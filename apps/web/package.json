@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@trip/graph": "workspace:*",
     "@trip/orchestrator": "workspace:*",
     "@trip/shared": "workspace:*",
     "next": "^15.1.3",

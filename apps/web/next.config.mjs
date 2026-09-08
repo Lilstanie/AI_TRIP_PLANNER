@@ -4,6 +4,7 @@ const nextConfig = {
   transpilePackages: [
     "@trip/shared",
     "@trip/orchestrator",
+    "@trip/graph",
     "@trip/agents",
     "@trip/services",
     "@trip/tools",
