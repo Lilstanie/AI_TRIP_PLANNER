@@ -13,11 +13,13 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@trip/llm": "workspace:*",
     "@trip/services": "workspace:*",
     "@trip/shared": "workspace:*",
     "@trip/tools": "workspace:*"
   },
   "devDependencies": {
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "vitest": "^4.0.0"
   }
 }

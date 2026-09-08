@@ -6,6 +6,7 @@ const nextConfig = {
     "@trip/orchestrator",
     "@trip/graph",
     "@trip/agents",
+    "@trip/llm",
     "@trip/services",
     "@trip/tools",
   ],

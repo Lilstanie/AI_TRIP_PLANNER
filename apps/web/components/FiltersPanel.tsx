@@ -22,7 +22,7 @@ export function FiltersPanel({ brief }: { brief: TripBrief }) {
       <input className="field" defaultValue={`$${brief.budgetTotal}`} />
 
       <div className="todo">
-        TODO(E): trip style (J/P), nationality, accommodation type, star rating,
+        TODO(E): nationality, accommodation type, star rating,
         amenities, “show more”. All feed the TripBrief.
       </div>
     </section>

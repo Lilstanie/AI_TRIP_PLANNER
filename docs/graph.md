@@ -49,20 +49,66 @@ In the web app: `POST /api/chat` runs the graph when `USE_GRAPH=true`, otherwise
 
 ## LLM calls — `@trip/llm`
 
-`@trip/llm` is a thin OpenRouter (OpenAI-compatible) client with retry + free-model
-fallback. Agents don't use it yet — each owner wires it into their agent's
-`run()`/`revise()` where a real model call helps. Config in `.env.local`:
+`@trip/llm` is a thin OpenRouter (OpenAI-compatible) client. Free-tier models
+constantly return HTTP 429 / 502 / an empty body, so the client:
+
+1. tries `AI_MODEL` (pinned to `google/gemma-4-26b-a4b-it:free`), then
+   `google/gemma-4-31b-it:free`, then `openrouter/free` (the auto-router, which
+   itself retries across every free provider);
+2. retries each with backoff;
+3. treats an empty completion as a failure — `chat()` never returns `""`.
+
+Config in `.env.local` (never commit the key):
 
 ```
-OPENROUTER_API_KEY=sk-or-...      # from https://openrouter.ai/keys — never commit
+OPENROUTER_API_KEY=sk-or-...
 OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
-AI_MODEL=openrouter/free           # free auto-router; pin a specific :free model if it gets flaky
+AI_MODEL=google/gemma-4-26b-a4b-it:free
 ```
+
+API:
+
+| function | on failure |
+|---|---|
+| `chat(messages, opts?)` | **throws** after the whole chain fails |
+| `chatOrNull(messages, opts?)` | returns `null` |
+| `chatJson<T>(messages, opts?)` | **throws** (network or unparseable) |
+| `chatJsonOrNull<T>(messages, opts?)` | returns `null` |
+
+### How to add an LLM call to your agent
+
+**It's ~10 lines.** Use the `*OrNull` variant and fall back to your deterministic
+logic, so a flaky endpoint degrades your section, never crashes the plan. The
+worked example is `packages/agents/src/dining/index.ts` (owner D) — copy its shape:
 
 ```ts
-import { chat, chatJson, llmConfigured } from "@trip/llm";
-const text = await chat([{ role: "user", content: "…" }]);
+import { chatJsonOrNull } from "@trip/llm";
+
+async run(brief, ctx) {
+  ctx.signal?.throwIfAborted();
+  const prefs = await ctx.mem.getLongTerm(brief.userId);       // your inputs
+
+  const llm = await chatJsonOrNull<MyShape>(
+    [
+      { role: "system", content: 'Reply with ONLY JSON: {"…":…}' },
+      { role: "user", content: `…facts from brief + prefs…` },
+    ],
+    { signal: ctx.signal, maxTokens: 400 },
+  );
+
+  if (llm && /* looks valid */) {
+    return { agent: "<name>", summary: "…", items: [/* from llm */], assumptions: ["LLM-generated"], conflictsWith: [] };
+  }
+  return { /* your existing stub proposal */ };            // fallback path
+}
 ```
+
+Test both paths with `vi.mock("@trip/llm")` — see
+`packages/agents/src/dining/index.test.ts` (LLM success, dietary-pref passthrough,
+`null` → fallback, aborted signal).
+
+Later: if the team wants stricter DI, fold an `llm` port into `AgentContext` in
+`@trip/shared` (coordinate — everyone depends on it) instead of importing directly.
 
 ## CI
 
