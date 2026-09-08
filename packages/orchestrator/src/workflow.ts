@@ -33,6 +33,7 @@ import {
   ESCALATION_OVERRUN_PCT,
   NEGOTIATION_OVERRUN_PCT,
 } from "./budget";
+import { enrichTripMap } from "./map";
 
 const DEFAULT_MAX_ROUNDS = 3;
 
@@ -242,10 +243,15 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
     return { round, proposals };
   };
 
-  const buildPlan: WorkflowNode = (state) => {
+  const buildPlan: WorkflowNode = async (state) => {
     const unresolved = state.conflicts.length > 0;
-    const sections = state.proposals.map((proposal) =>
+    const sourceSections = state.proposals.map((proposal) =>
       toSection(proposal, state.conflicts, agentByName),
+    );
+    const { sections, map } = await enrichTripMap(
+      sourceSections,
+      tools.maps,
+      state.brief.destination,
     );
     const { estTotal, overrunPct } = rollUpCost(sections, state.brief.budgetTotal);
     const plan: TripPlan = {
@@ -257,6 +263,7 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
       overrunPct,
       sections,
       hitl: buildHitl(state.brief, overrunPct, unresolved, maxRounds),
+      map,
     };
     return { plan: TripPlanSchema.parse(plan) };
   };

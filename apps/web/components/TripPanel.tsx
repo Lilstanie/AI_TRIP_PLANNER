@@ -3,7 +3,19 @@
 import type { TripPlan } from "@trip/shared";
 import { TripSection } from "@/components/TripSection";
 
-export function TripPanel({ plan }: { plan: TripPlan }) {
+export function TripPanel({
+  plan,
+  selectedItemId,
+  openSectionId,
+  onSelectItem,
+  onToggleSection,
+}: {
+  plan: TripPlan;
+  selectedItemId?: string;
+  openSectionId?: string;
+  onSelectItem: (itemId: string, sectionId: string) => void;
+  onToggleSection: (sectionId: string) => void;
+}) {
   const pct = Math.min(100, Math.round((plan.estTotal / plan.budgetTotal) * 100));
   const delta = plan.budgetTotal - plan.estTotal;
   const pendingHitl = plan.hitl.filter((h) => h.status === "pending");
@@ -22,7 +34,9 @@ export function TripPanel({ plan }: { plan: TripPlan }) {
       </p>
 
       {/* one budget bar, top only */}
-      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 6 }}>
+      <div
+        style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 6 }}
+      >
         <span style={{ color: "var(--text-dim)" }}>Budget</span>
         <span>
           <strong>${plan.estTotal.toLocaleString()}</strong>{" "}
@@ -33,7 +47,9 @@ export function TripPanel({ plan }: { plan: TripPlan }) {
         <span style={{ width: `${pct}%` }} />
       </div>
       <p style={{ fontSize: 12, color: "var(--ok)", margin: "6px 0 4px" }}>
-        {delta >= 0 ? `$${delta.toLocaleString()} under budget` : `$${(-delta).toLocaleString()} over budget`}
+        {delta >= 0
+          ? `$${delta.toLocaleString()} under budget`
+          : `$${(-delta).toLocaleString()} over budget`}
       </p>
 
       {pendingHitl.length > 0 && (
@@ -48,7 +64,14 @@ export function TripPanel({ plan }: { plan: TripPlan }) {
 
       <div>
         {plan.sections.map((s) => (
-          <TripSection key={s.id} section={s} />
+          <TripSection
+            key={s.id}
+            section={s}
+            open={openSectionId === s.id}
+            selectedItemId={selectedItemId}
+            onToggle={() => onToggleSection(s.id)}
+            onSelectItem={(itemId) => onSelectItem(itemId, s.id)}
+          />
         ))}
       </div>
 

@@ -1,9 +1,7 @@
 "use client";
 
-// Owner: E (row shell). The expanded body is a slot each agent owner fills in
-// with a real detail view for their section.
-import { useState } from "react";
-import type { TripSection as TripSectionData } from "@trip/shared";
+// Owner: E — controlled so map markers and proposal rows share one selection.
+import { tripItemId, type TripSection as TripSectionData } from "@trip/shared";
 
 const STATUS_LABEL: Record<string, string> = {
   planning: "Planning",
@@ -12,12 +10,30 @@ const STATUS_LABEL: Record<string, string> = {
   confirmed: "Confirmed",
 };
 
-export function TripSection({ section }: { section: TripSectionData }) {
-  const [open, setOpen] = useState(false);
+const KIND_LABEL: Record<string, string> = {
+  activity: "Activity",
+  transport: "Transport",
+  hotel: "Stay",
+  meal: "Meal",
+  note: "Note",
+};
 
+export function TripSection({
+  section,
+  open,
+  selectedItemId,
+  onToggle,
+  onSelectItem,
+}: {
+  section: TripSectionData;
+  open: boolean;
+  selectedItemId?: string;
+  onToggle: () => void;
+  onSelectItem: (itemId: string) => void;
+}) {
   return (
     <div className="section">
-      <button className="section__row" onClick={() => setOpen((v) => !v)} aria-expanded={open}>
+      <button className="section__row" onClick={onToggle} aria-expanded={open}>
         <span style={{ flex: 1, minWidth: 0 }}>
           <strong>{section.label}</strong>
           <small>{section.summary}</small>
@@ -31,18 +47,44 @@ export function TripSection({ section }: { section: TripSectionData }) {
 
       {open && (
         <div className="section__body">
-          {/* TODO(owner of {section.id}): render the real detail view here —
-              flights list, hotel cards, day-by-day, etc. Raw proposal below. */}
-          <pre
-            style={{
-              fontSize: 11,
-              whiteSpace: "pre-wrap",
-              color: "var(--text-dim)",
-              margin: 0,
-            }}
-          >
-            {JSON.stringify(section.proposal ?? {}, null, 2)}
-          </pre>
+          {section.proposal?.items.map((item, index) => {
+            const id = tripItemId(section.id, index);
+            return (
+              <button
+                key={id}
+                type="button"
+                className={`trip-item${selectedItemId === id ? " trip-item--selected" : ""}`}
+                onClick={() => onSelectItem(id)}
+                aria-pressed={selectedItemId === id}
+              >
+                <span className="trip-item__head">
+                  <span>{KIND_LABEL[item.kind] ?? item.kind}</span>
+                  {item.estCost !== undefined && (
+                    <strong>${Math.round(item.estCost).toLocaleString()}</strong>
+                  )}
+                </span>
+                {(item.day || item.startTime) && (
+                  <small>
+                    {item.day ? `Day ${item.day}` : ""}
+                    {item.startTime ? ` · ${item.startTime}–${item.endTime}` : ""}
+                  </small>
+                )}
+                {item.location && <strong className="trip-item__location">{item.location}</strong>}
+                <span>{item.detail}</span>
+                {item.coordinates && <small className="trip-item__map-hint">Show on map ↗</small>}
+              </button>
+            );
+          })}
+          {section.proposal?.assumptions.length ? (
+            <details className="assumptions">
+              <summary>Planning notes ({section.proposal.assumptions.length})</summary>
+              <ul>
+                {section.proposal.assumptions.map((assumption) => (
+                  <li key={assumption}>{assumption}</li>
+                ))}
+              </ul>
+            </details>
+          ) : null}
         </div>
       )}
     </div>

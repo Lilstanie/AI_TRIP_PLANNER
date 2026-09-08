@@ -16,3 +16,4 @@ export {
   type OrchestratorOptions,
 } from "./workflow";
 export { rollUpCost } from "./budget";
+export { enrichTripMap } from "./map";

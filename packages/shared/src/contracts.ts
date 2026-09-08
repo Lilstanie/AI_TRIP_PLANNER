@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { Coordinates } from "./map";
 
 // ---------------------------------------------------------------------------
 // The five specialist agents. `name` is the stable id used as the section id
@@ -45,6 +46,10 @@ export const ProposalItem = z
     startTime: z.string().regex(HHMM, "startTime must be HH:MM (24h)").optional(),
     endTime: z.string().regex(HHMM, "endTime must be HH:MM (24h)").optional(),
     location: z.string().trim().min(1).optional(),
+    // Populated by the orchestrator's map-enrichment pass. Agents can continue
+    // returning text-only locations, so this remains backwards compatible.
+    placeId: z.string().optional(),
+    coordinates: Coordinates.optional(),
   })
   // `.check()` (Zod 4's superRefine) keeps this a plain object, so B/C/D/E can
   // still `.extend()` / `.pick()` it. Three cross-field rules:

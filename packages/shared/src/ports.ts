@@ -4,18 +4,25 @@
 // Owner: A.
 
 import type { ChatTurn, UserPreference } from "./contracts";
+import type { Coordinates, GeoJsonPosition } from "./map";
 
 // --- Maps / Places port (implemented by @trip/tools/maps) -------------------
 export interface RouteQuery {
   from: string;
   to: string;
   date?: string;
+  fromCoordinates?: Coordinates;
+  toCoordinates?: Coordinates;
 }
 export interface RouteLeg {
   mode: "train" | "flight" | "bus" | "walk" | "transit";
   durationMin: number;
   priceUsd: number;
   note?: string;
+  from?: Coordinates;
+  to?: Coordinates;
+  geometry?: GeoJsonPosition[];
+  distanceKm?: number;
 }
 export interface PlaceQuery {
   near: string;
@@ -25,10 +32,22 @@ export interface Place {
   name: string;
   category: string;
   rating?: number;
+  id?: string;
+  coordinates?: Coordinates;
+}
+export interface GeocodeQuery {
+  query: string;
+  near?: string;
+}
+export interface GeocodedPlace extends Place {
+  id: string;
+  coordinates: Coordinates;
 }
 export interface MapsPort {
   route(q: RouteQuery): Promise<RouteLeg[]>;
   places(q: PlaceQuery): Promise<Place[]>;
+  /** Optional during migration so existing injected fakes remain compatible. */
+  geocode?(q: GeocodeQuery): Promise<GeocodedPlace | null>;
 }
 
 // --- Booking / Price port (implemented by @trip/tools/booking) --------------

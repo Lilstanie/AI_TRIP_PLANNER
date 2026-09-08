@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { AgentProposal, TripBrief } from "./contracts";
+import { TripMapData } from "./map";
 
 // Status shown on each section of the right-hand "Your trip" panel.
 // Maps 1:1 to where that agent's proposal sits in the Orchestrator loop.
@@ -36,5 +37,7 @@ export const TripPlan = z.object({
   overrunPct: z.number(), // (estTotal - budgetTotal) / budgetTotal * 100, can be negative
   sections: z.array(TripSection),
   hitl: z.array(HitlCheckpoint),
+  // Optional so persisted plans and independently-tested agents remain valid.
+  map: TripMapData.optional(),
 });
 export type TripPlan = z.infer<typeof TripPlan>;

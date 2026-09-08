@@ -104,6 +104,7 @@ async function planStays(
       kind: "hotel",
       day: segment.day,
       estCost: cost,
+      location: `${chosen.name}, ${segment.city}`,
       detail: `${chosen.name} — ${chosen.area}; ${segment.checkIn} to ${segment.checkOut}; ${rooms} room(s) × ${segment.nights} night(s) × USD ${chosen.pricePerNightUsd.toFixed(2)} per room/night = USD ${cost.toFixed(2)}; rating ${chosen.rating}/10; ${chosen.freeCancellation ? "free cancellation" : "no free cancellation"}.`,
     })),
     assumptions,
