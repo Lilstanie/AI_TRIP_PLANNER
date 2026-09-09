@@ -388,7 +388,9 @@ export async function runTripChat(
     ChatTurn.parse({ role: "user", content: request.message }),
   );
   const plan = await runOrchestrator(brief, { ...orchestrationOptions, mem, onProgress: report });
-  const reply = replyFor(request.message, changedFields(current, brief), plan);
+  const reply = request.history?.length
+    ? `Your trip details are complete. The plan is ready for review at an estimated USD ${plan.estTotal.toFixed(2)}.`
+    : replyFor(request.message, changedFields(current, brief), plan);
   await mem.appendShortTerm(request.tripId, ChatTurn.parse({ role: "assistant", content: reply }));
   await mem.saveTrip?.({
     tripId: request.tripId,
