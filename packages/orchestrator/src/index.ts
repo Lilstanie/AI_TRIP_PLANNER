@@ -13,6 +13,7 @@ export {
   createOrchestratorGraph,
   detectConflicts,
   runOrchestrator,
+  recordHitlDecision,
   type OrchestratorOptions,
 } from "./workflow";
 export { rollUpCost } from "./budget";

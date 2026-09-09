@@ -26,6 +26,13 @@ export const HitlCheckpoint = z.object({
 });
 export type HitlCheckpoint = z.infer<typeof HitlCheckpoint>;
 
+export const HitlDecision = z.object({
+  checkpointId: z.string(),
+  status: z.enum(["approved", "rejected"]),
+  at: z.string().default(() => new Date().toISOString()),
+});
+export type HitlDecision = z.infer<typeof HitlDecision>;
+
 // The aggregated artifact the UI renders. Produced by @trip/orchestrator.
 export const TripPlan = z.object({
   tripId: z.string(),

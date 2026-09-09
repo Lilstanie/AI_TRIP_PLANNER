@@ -298,9 +298,29 @@ export async function runOrchestrator(
   brief: TripBrief,
   options: OrchestratorOptions = {},
 ): Promise<TripPlan> {
-  const result = await createOrchestratorGraph(options).invoke({
+  const mem = options.mem ?? memory;
+  const result = await createOrchestratorGraph({ ...options, mem }).invoke({
     brief: TripBriefSchema.parse(brief),
   });
   if (!result.plan) throw new Error("Orchestrator graph finished without a trip plan.");
-  return TripPlanSchema.parse(result.plan);
+  const plan = TripPlanSchema.parse(result.plan);
+  const decisions = (await mem.getHitlDecisions?.(plan.tripId)) ?? [];
+  if (decisions.length === 0) return plan;
+  const byId = new Map(decisions.map((decision) => [decision.checkpointId, decision.status]));
+  return TripPlanSchema.parse({
+    ...plan,
+    hitl: plan.hitl.map((checkpoint) => ({
+      ...checkpoint,
+      status: byId.get(checkpoint.id) ?? checkpoint.status,
+    })),
+  });
+}
+
+export async function recordHitlDecision(
+  tripId: string,
+  decision: import("@trip/shared").HitlDecision,
+  mem: MemoryStore = memory,
+): Promise<void> {
+  if (!mem.setHitlDecision) throw new Error("This memory store does not support HITL decisions.");
+  await mem.setHitlDecision(tripId, decision);
 }

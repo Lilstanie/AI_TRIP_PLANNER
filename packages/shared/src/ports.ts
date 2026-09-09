@@ -4,6 +4,7 @@
 // Owner: A.
 
 import type { ChatTurn, UserPreference } from "./contracts";
+import type { HitlDecision } from "./plan";
 
 // --- Maps / Places port (implemented by @trip/tools/maps) -------------------
 export interface RouteQuery {
@@ -76,4 +77,7 @@ export interface MemoryStore {
   setLongTerm(userId: string, pref: UserPreference): Promise<void>;
   /** promote a confirmed short-term item into the long-term profile */
   promote(tripId: string, userId: string, key: string): Promise<void>;
+  /** Optional durable HITL decisions. Older test stores may omit these methods. */
+  getHitlDecisions?(tripId: string): Promise<HitlDecision[]>;
+  setHitlDecision?(tripId: string, decision: HitlDecision): Promise<void>;
 }

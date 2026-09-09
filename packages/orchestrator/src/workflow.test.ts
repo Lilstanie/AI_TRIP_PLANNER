@@ -109,6 +109,27 @@ describe("LangGraph orchestrator workflow", () => {
     expect(plan.hitl.some((checkpoint) => checkpoint.type === "escalation")).toBe(false);
   });
 
+  it("hydrates durable HITL decisions after rebuilding a plan", async () => {
+    const decisionMem: MemoryStore = {
+      ...mem,
+      getHitlDecisions: vi.fn(async () => [
+        {
+          checkpointId: "confirm-brief",
+          status: "approved" as const,
+          at: "2026-01-01T00:00:00.000Z",
+        },
+      ]),
+    };
+    const plan = await runOrchestrator(brief, {
+      agents: [agent("itinerary", 400)],
+      tools,
+      mem: decisionMem,
+    });
+    expect(plan.hitl.find((checkpoint) => checkpoint.id === "confirm-brief")?.status).toBe(
+      "approved",
+    );
+  });
+
   it("targets itinerary when activity and transport schedules overlap", () => {
     const requests = detectConflicts(
       [
