@@ -6,3 +6,4 @@ export * from "./ports";
 export * from "./agent";
 export * from "./plan";
 export * from "./chat";
+export * from "./telemetry";

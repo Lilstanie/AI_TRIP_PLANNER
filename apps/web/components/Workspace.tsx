@@ -16,6 +16,9 @@ export function Workspace({ initialPlan }: { initialPlan: TripPlan }) {
       <FiltersPanel brief={plan.brief} onPlan={setPlan} />
       <ChatPanel plan={plan} onPlan={setPlan} />
       <TripPanel plan={plan} />
+      <div className="version-badge" aria-label="Current application and plan version">
+        Stage 5.3 · Plan {plan.planVersion.slice(0, 8)}
+      </div>
     </main>
   );
 }

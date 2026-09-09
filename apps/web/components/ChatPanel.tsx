@@ -3,9 +3,16 @@
 // Owner: E (shell) + A (wire to real orchestrator chat parsing).
 // Posts a ChatRequest to /api/chat and lifts the returned plan up to Workspace.
 import { useState } from "react";
-import type { ChatResponse, TripPlan } from "@trip/shared";
+import type { AgentRunTelemetry, ChatRunProgress, TripPlan } from "@trip/shared";
+import { readChatStream } from "@/lib/chatStream";
 
 type Msg = { role: "user" | "agent"; text: string };
+type RunView = {
+  phase: ChatRunProgress["phase"];
+  message: string;
+  agents: Record<string, AgentRunTelemetry>;
+  steps: Array<{ phase: ChatRunProgress["phase"]; message: string }>;
+};
 
 const SEED: Msg[] = [
   {
@@ -21,6 +28,26 @@ export function ChatPanel({ plan, onPlan }: { plan: TripPlan; onPlan: (plan: Tri
   const [busy, setBusy] = useState(false);
   const [decisionBusy, setDecisionBusy] = useState<string>();
   const [decisionError, setDecisionError] = useState<Record<string, string>>({});
+  const [run, setRun] = useState<RunView>();
+
+  function showProgress(progress: ChatRunProgress) {
+    setRun((current) => {
+      const steps = current?.steps ?? [];
+      const recordStep = !progress.agent || progress.agent.id === "coordinator";
+      const duplicate = steps.at(-1)?.message === progress.message;
+      return {
+        phase: progress.phase,
+        message: progress.message,
+        agents: progress.agent
+          ? { ...(current?.agents ?? {}), [progress.agent.id]: progress.agent }
+          : (current?.agents ?? {}),
+        steps:
+          recordStep && !duplicate
+            ? [...steps, { phase: progress.phase, message: progress.message }]
+            : steps,
+      };
+    });
+  }
 
   async function send(e: React.FormEvent) {
     e.preventDefault();
@@ -28,22 +55,34 @@ export function ChatPanel({ plan, onPlan }: { plan: TripPlan; onPlan: (plan: Tri
     if (!text || busy) return;
     setMessages((m) => [...m, { role: "user", text }]);
     setInput("");
+    setRun({
+      phase: "decomposing",
+      message: "Starting the planning run",
+      agents: {},
+      steps: [{ phase: "decomposing", message: "Starting the planning run" }],
+    });
     setBusy(true);
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", accept: "application/x-ndjson" },
         body: JSON.stringify({ tripId: brief.tripId, message: text, brief }),
       });
-      const data = (await res.json()) as Partial<ChatResponse> & { error?: string };
-      if (!res.ok || !data.plan) throw new Error(data.error ?? "Unable to update this trip.");
+      const data = await readChatStream(res, showProgress);
       onPlan(data.plan);
-      setMessages((m) => [...m, { role: "agent", text: data.reply ?? data.error ?? "(no reply)" }]);
+      setMessages((m) => [...m, { role: "agent", text: data.reply }]);
     } catch (cause) {
-      setMessages((m) => [
-        ...m,
-        { role: "agent", text: cause instanceof Error ? cause.message : "Request failed." },
-      ]);
+      const message = cause instanceof Error ? cause.message : "Request failed.";
+      setRun((current) => ({
+        phase: "complete",
+        message: `Planning stopped: ${message}`,
+        agents: current?.agents ?? {},
+        steps: [
+          ...(current?.steps ?? []),
+          { phase: "complete", message: `Planning stopped: ${message}` },
+        ],
+      }));
+      setMessages((m) => [...m, { role: "agent", text: message }]);
     } finally {
       setBusy(false);
     }
@@ -58,6 +97,7 @@ export function ChatPanel({ plan, onPlan }: { plan: TripPlan; onPlan: (plan: Tri
             {m.text}
           </div>
         ))}
+        {run && <RunTelemetry run={run} busy={busy} />}
         {plan.hitl
           .filter((checkpoint) => checkpoint.status === "pending")
           .map((checkpoint) => (
@@ -153,4 +193,54 @@ export function ChatPanel({ plan, onPlan }: { plan: TripPlan; onPlan: (plan: Tri
       setDecisionBusy(undefined);
     }
   }
+}
+
+function RunTelemetry({ run, busy }: { run: RunView; busy: boolean }) {
+  const agents = Object.values(run.agents);
+  const hasUnavailableUsage = agents.some((agent) => agent.usage === null);
+  const knownTokens = agents.reduce((total, agent) => total + (agent.usage?.totalTokens ?? 0), 0);
+
+  return (
+    <details className="run-telemetry" open={busy}>
+      <summary>
+        <span className={`run-dot ${busy ? "run-dot--active" : "run-dot--done"}`} />
+        <strong>{busy ? "Planning in progress" : "Planning run"}</strong>
+        <span>{run.phase}</span>
+      </summary>
+      <p className="run-telemetry__message">{run.message}</p>
+      <ol className="run-telemetry__steps" aria-label="Planning stages">
+        {run.steps.map((step, index) => (
+          <li key={`${step.phase}-${index}`}>
+            <span>{step.phase}</span>
+            {step.message}
+          </li>
+        ))}
+      </ol>
+      <div className="run-telemetry__agents">
+        {agents.map((agent) => (
+          <div className="run-agent" key={agent.id}>
+            <span className={`run-agent__status run-agent__status--${agent.status}`} aria-hidden />
+            <span>
+              <strong>{agent.label}</strong>
+              <small>{agent.model}</small>
+            </span>
+            <span className="run-agent__meta">
+              {agent.status}
+              <small>
+                {agent.usage === null
+                  ? "Tokens unavailable"
+                  : agent.usage.totalTokens === 0
+                    ? "No LLM tokens"
+                    : `${agent.usage.totalTokens.toLocaleString()} tokens`}
+              </small>
+            </span>
+          </div>
+        ))}
+      </div>
+      <p className="run-telemetry__usage">
+        Token usage: {knownTokens.toLocaleString()} known
+        {hasUnavailableUsage ? " · provider usage unavailable for model calls" : ""}
+      </p>
+    </details>
+  );
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { Agent, MemoryStore, ToolGateway, TripBrief } from "@trip/shared";
+import type { Agent, ChatRunProgress, MemoryStore, ToolGateway, TripBrief } from "@trip/shared";
 import {
   applyBriefPatch,
   extractBriefPatchLocally,
@@ -76,6 +76,7 @@ describe("trip chat workflow", () => {
       extract: vi.fn(async () => ({ destination: "Melbourne", budgetTotal: 5000 })),
     };
     const turns: Array<{ role: string; content: string }> = [];
+    const progress: ChatRunProgress[] = [];
     const mem: MemoryStore = {
       getShortTerm: vi.fn(async () => []),
       appendShortTerm: vi.fn(async (_tripId, turn) => {
@@ -105,12 +106,17 @@ describe("trip chat workflow", () => {
 
     const result = await runTripChat(
       { tripId: brief.tripId, message: "Please change the destination", brief },
-      { extractor, agents: [itinerary], tools, mem },
+      { extractor, agents: [itinerary], tools, mem, onProgress: (event) => progress.push(event) },
     );
 
     expect(extractor.extract).toHaveBeenCalledWith("Please change the destination", brief);
     expect(result.plan.brief).toMatchObject({ destination: "Melbourne", budgetTotal: 5000 });
     expect(result.reply).toContain("Updated: destination, budgetTotal");
     expect(turns.map((turn) => turn.role)).toEqual(["user", "assistant"]);
+    expect(progress[0]).toMatchObject({
+      phase: "decomposing",
+      agent: { id: "coordinator", status: "running", usage: null },
+    });
+    expect(progress.at(-1)).toMatchObject({ phase: "complete" });
   });
 });

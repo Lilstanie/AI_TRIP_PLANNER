@@ -7,7 +7,7 @@ import {
   type GraphNode,
 } from "@langchain/langgraph";
 import { createHash } from "node:crypto";
-import { allAgents } from "@trip/agents";
+import { allAgents, routedModelName } from "@trip/agents";
 import { memory } from "@trip/services";
 import {
   AgentProposal as AgentProposalSchema,
@@ -17,10 +17,13 @@ import {
   type AgentContext,
   type AgentProposal,
   type AgentName,
+  type AgentRunStatus,
+  type ChatRunProgress,
   type HitlCheckpoint,
   type MemoryStore,
   type RevisionRequest,
   type ToolGateway,
+  type TokenUsage,
   type TripBrief,
   type TripPlan,
   type TripSection,
@@ -43,6 +46,8 @@ export interface OrchestratorOptions {
   tools?: ToolGateway;
   mem?: MemoryStore;
   maxRounds?: number;
+  /** High-level, user-safe execution telemetry. Never include prompts or chain-of-thought. */
+  onProgress?: (progress: ChatRunProgress) => void;
 }
 
 const OrchestratorState = new StateSchema({
@@ -188,6 +193,23 @@ export function planVersionOf(plan: Omit<TripPlan, "planVersion">): string {
   return createHash("sha256").update(JSON.stringify(plan)).digest("hex").slice(0, 16);
 }
 
+function modelForAgent(name: AgentName): { model: string; usage: TokenUsage | null } {
+  if (name === "itinerary" || name === "destination-guide" || name === "dining") {
+    const model = routedModelName(name);
+    return {
+      model,
+      usage:
+        model === "Deterministic fallback"
+          ? { inputTokens: 0, outputTokens: 0, totalTokens: 0 }
+          : null,
+    };
+  }
+  return {
+    model: "Rules + tools",
+    usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+  };
+}
+
 function resolveOptions(options: OrchestratorOptions) {
   const agents = options.agents ?? allAgents;
   const maxRounds = options.maxRounds ?? DEFAULT_MAX_ROUNDS;
@@ -207,6 +229,7 @@ function resolveOptions(options: OrchestratorOptions) {
     maxRounds,
     tools: options.tools ?? createToolGateway(),
     mem: options.mem ?? memory,
+    onProgress: options.onProgress,
   };
 }
 
@@ -220,7 +243,22 @@ function resolveOptions(options: OrchestratorOptions) {
  *                                 build_plan -> END
  */
 export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
-  const { agents, agentByName, maxRounds, tools, mem } = resolveOptions(options);
+  const { agents, agentByName, maxRounds, tools, mem, onProgress } = resolveOptions(options);
+
+  const report = (progress: ChatRunProgress) => {
+    try {
+      onProgress?.(progress);
+    } catch {
+      // Observability must never break the planning workflow.
+    }
+  };
+
+  const agentProgress = (agent: Agent, status: AgentRunStatus): ChatRunProgress["agent"] => ({
+    id: agent.name,
+    label: agent.label,
+    status,
+    ...modelForAgent(agent.name),
+  });
 
   const context = (brief: TripBrief, round: number): AgentContext => ({
     tripId: brief.tripId,
@@ -231,15 +269,52 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
 
   const dispatchSpecialists: WorkflowNode = async (state) => {
     const round = 1;
+    for (const agent of agents) {
+      report({
+        phase: "assigning",
+        message: `Assigned ${agent.label}`,
+        agent: agentProgress(agent, "queued"),
+      });
+    }
     const proposals = await Promise.all(
-      agents.map((agent) => agent.run(state.brief, context(state.brief, round))),
+      agents.map(async (agent) => {
+        report({
+          phase: "running",
+          message: `${agent.label} is preparing its proposal`,
+          agent: agentProgress(agent, "running"),
+        });
+        try {
+          const proposal = await agent.run(state.brief, context(state.brief, round));
+          const parsed = AgentProposalSchema.parse(proposal);
+          report({
+            phase: "running",
+            message: `${agent.label} completed its proposal`,
+            agent: agentProgress(agent, "completed"),
+          });
+          return parsed;
+        } catch (error) {
+          report({
+            phase: "running",
+            message: `${agent.label} could not complete its proposal`,
+            agent: agentProgress(agent, "failed"),
+          });
+          throw error;
+        }
+      }),
     );
-    return { round, proposals: proposals.map((proposal) => AgentProposalSchema.parse(proposal)) };
+    return { round, proposals };
   };
 
-  const detectProposalConflicts: WorkflowNode = (state) => ({
-    conflicts: detectConflicts(state.proposals, state.brief),
-  });
+  const detectProposalConflicts: WorkflowNode = (state) => {
+    const conflicts = detectConflicts(state.proposals, state.brief);
+    report({
+      phase: "negotiating",
+      message: conflicts.length
+        ? `Checking ${conflicts.length} constraint${conflicts.length === 1 ? "" : "s"} with specialist agents`
+        : "Budget and schedule checks passed",
+    });
+    return { conflicts };
+  };
 
   const reviseConflicts: WorkflowNode = async (state) => {
     const round = state.round + 1;
@@ -251,14 +326,35 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
         const request = requestByAgent.get(proposal.agent);
         const agent = agentByName.get(proposal.agent);
         if (!request || !agent?.revise) return proposal;
-        const revised = await agent.revise(state.brief, context(state.brief, round), request);
-        return AgentProposalSchema.parse(revised);
+        report({
+          phase: "revising",
+          message: `${agent.label} is resolving plan constraints in round ${round}`,
+          agent: agentProgress(agent, "revising"),
+        });
+        try {
+          const revised = await agent.revise(state.brief, context(state.brief, round), request);
+          const parsed = AgentProposalSchema.parse(revised);
+          report({
+            phase: "revising",
+            message: `${agent.label} completed round ${round}`,
+            agent: agentProgress(agent, "completed"),
+          });
+          return parsed;
+        } catch (error) {
+          report({
+            phase: "revising",
+            message: `${agent.label} could not complete round ${round}`,
+            agent: agentProgress(agent, "failed"),
+          });
+          throw error;
+        }
       }),
     );
     return { round, proposals };
   };
 
   const buildPlan: WorkflowNode = (state) => {
+    report({ phase: "assembling", message: "Assembling the final itinerary and review steps" });
     const unresolved = state.conflicts.length > 0;
     const sections = state.proposals.map((proposal) =>
       toSection(proposal, state.conflicts, agentByName),

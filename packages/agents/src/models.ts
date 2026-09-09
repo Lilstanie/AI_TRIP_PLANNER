@@ -17,6 +17,18 @@ export const MODEL_ROUTING = {
 
 export type RoutedModelTask = keyof typeof MODEL_ROUTING;
 
+export function routedModelName(task: RoutedModelTask): string {
+  const provider = MODEL_ROUTING[task];
+  if (provider === "deepseek") {
+    return process.env.DEEPSEEK_API_KEY
+      ? `DeepSeek · ${process.env.DEEPSEEK_MODEL || "deepseek-v4-flash"}`
+      : "Deterministic fallback";
+  }
+  return process.env.MINIMAX_API_KEY
+    ? `MiniMax · ${process.env.MINIMAX_MODEL || "MiniMax-M2.7"}`
+    : "Deterministic fallback";
+}
+
 export function createRoutedChatModel(task: RoutedModelTask): ChatOpenAI | undefined {
   const provider = MODEL_ROUTING[task];
   if (provider === "deepseek") {
@@ -65,7 +77,8 @@ export function createRoutedStructuredInvoker<Schema extends z.ZodType>(
   if (MODEL_ROUTING[task] === "deepseek") {
     const structured = model.withStructuredOutput(schema, { name, method: "functionCalling" });
     const call = (prompt: string) => structured.invoke(prompt) as Promise<z.infer<Schema>>;
-    return (prompt) => call(prompt).catch((error: unknown) => call(withCorrection(prompt, name, error)));
+    return (prompt) =>
+      call(prompt).catch((error: unknown) => call(withCorrection(prompt, name, error)));
   }
 
   const bound = model.bindTools(

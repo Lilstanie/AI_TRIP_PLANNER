@@ -6,7 +6,9 @@ import {
   TripBrief as TripBriefSchema,
   type ChatRequest,
   type ChatResponse,
+  type ChatRunProgress,
   type MemoryStore,
+  type TokenUsage,
   type TripBrief,
 } from "@trip/shared";
 import { z } from "zod/v4";
@@ -221,20 +223,43 @@ function createLangChainExtractor(): BriefExtractor | undefined {
   return createOpenAIExtractor() ?? createAnthropicExtractor();
 }
 
+function configuredExtractorModel(extractor?: BriefExtractor): string {
+  if (extractor) return "Injected extractor";
+  if (process.env.GPT_API_KEY || process.env.OPENAI_API_KEY) {
+    return `OpenAI · ${process.env.GPT_MODEL || "gpt-5.6-luna"}`;
+  }
+  if (process.env.ANTHROPIC_API_KEY) {
+    return `Anthropic · ${process.env.AI_MODEL || "claude-haiku-4-5-20251001"}`;
+  }
+  return "Local parser";
+}
+
 async function extractPatch(
   message: string,
   current: TripBrief,
   extractor?: BriefExtractor,
-): Promise<BriefPatch> {
+): Promise<{ patch: BriefPatch; model: string; usage: TokenUsage | null }> {
   const selected = extractor ?? createLangChainExtractor();
+  const selectedModel = configuredExtractorModel(extractor);
   if (selected) {
     try {
-      return await selected.extract(message, current);
+      return { patch: await selected.extract(message, current), model: selectedModel, usage: null };
     } catch {
       console.warn("[chat] LangChain brief extraction failed; using the local parser.");
+      return {
+        patch: extractBriefPatchLocally(message),
+        model: `Local parser (fallback from ${selectedModel})`,
+        // The failed provider request may have consumed tokens, but its
+        // structured adapter did not expose usage metadata.
+        usage: null,
+      };
     }
   }
-  return extractBriefPatchLocally(message);
+  return {
+    patch: extractBriefPatchLocally(message),
+    model: "Local parser",
+    usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+  };
 }
 
 function changedFields(before: TripBrief, after: TripBrief): string[] {
@@ -261,20 +286,55 @@ export async function runTripChat(
   request: ChatRequest,
   options: TripChatOptions = {},
 ): Promise<ChatResponse> {
-  const { extractor, ...orchestrationOptions } = options;
+  const { extractor, onProgress, ...orchestrationOptions } = options;
+  const report = (progress: ChatRunProgress) => {
+    try {
+      onProgress?.(progress);
+    } catch {
+      // Progress reporting is optional and must not affect the answer.
+    }
+  };
   const current = TripBriefSchema.parse({
     ...(request.brief ?? DEMO_BRIEF),
     tripId: request.tripId,
   });
-  const patch = await extractPatch(request.message, current, extractor);
+  const coordinatorModel = configuredExtractorModel(extractor);
+  report({
+    phase: "decomposing",
+    message: "Extracting explicit trip changes and preserving existing constraints",
+    agent: {
+      id: "coordinator",
+      label: "Trip coordinator",
+      status: "running",
+      model: coordinatorModel,
+      usage:
+        coordinatorModel === "Local parser"
+          ? { inputTokens: 0, outputTokens: 0, totalTokens: 0 }
+          : null,
+    },
+  });
+  const extracted = await extractPatch(request.message, current, extractor);
+  report({
+    phase: "decomposing",
+    message: "Trip changes decomposed into specialist tasks",
+    agent: {
+      id: "coordinator",
+      label: "Trip coordinator",
+      status: "completed",
+      model: extracted.model,
+      usage: extracted.usage,
+    },
+  });
+  const patch = extracted.patch;
   const brief = applyBriefPatch(current, patch, request.tripId);
   const mem: MemoryStore = orchestrationOptions.mem ?? memory;
   await mem.appendShortTerm(
     request.tripId,
     ChatTurn.parse({ role: "user", content: request.message }),
   );
-  const plan = await runOrchestrator(brief, { ...orchestrationOptions, mem });
+  const plan = await runOrchestrator(brief, { ...orchestrationOptions, mem, onProgress: report });
   const reply = replyFor(request.message, changedFields(current, brief), plan);
   await mem.appendShortTerm(request.tripId, ChatTurn.parse({ role: "assistant", content: reply }));
+  report({ phase: "complete", message: `Plan ${plan.planVersion.slice(0, 8)} is ready to review` });
   return { reply, plan };
 }

@@ -81,6 +81,26 @@ describe("LangGraph orchestrator workflow", () => {
     );
   });
 
+  it("reports high-level agent status without exposing prompts", async () => {
+    const progress: import("@trip/shared").ChatRunProgress[] = [];
+    await runOrchestrator(brief, {
+      agents: [agent("itinerary", 400)],
+      tools,
+      mem,
+      onProgress: (event) => progress.push(event),
+    });
+
+    expect(progress.map((event) => event.phase)).toEqual(
+      expect.arrayContaining(["assigning", "running", "negotiating", "assembling"]),
+    );
+    expect(
+      progress
+        .filter((event) => event.agent?.id === "itinerary")
+        .map((event) => event.agent?.status),
+    ).toEqual(["queued", "running", "completed"]);
+    expect(JSON.stringify(progress)).not.toMatch(/prompt|chain.of.thought|reasoning/i);
+  });
+
   it("runs targeted revision nodes concurrently and converges", async () => {
     const started: AgentName[] = [];
     let release: (() => void) | undefined;
