@@ -40,7 +40,7 @@ flowchart TB
     end
 
     subgraph TOOLS[ToolGateway: external tool adapters]
-      MAPS[(Maps / Places API · mock)]
+      MAPS[(OpenStreetMap / Nominatim / OSRM · mockable)]
       BOOK[(Booking / Price API · mock)]
       LLM[(Claude / DeepSeek · LangChain)]
     end
@@ -87,14 +87,14 @@ flowchart TB
 | Cost-aggregation | sums every agent's `estCost` against `budgetTotal`, emits an overrun % that feeds HITL / escalation | C |
 | `PreferenceMemoryService` | short-term memory (in-session requests) / long-term memory (user profile, confirmed preferences); Filter writes long-term, chat-confirmed items promote short → long | E |
 | `ToolGateway` | wraps all external tool calls, `USE_MOCK_TOOLS` switch | A (interface) + adapter owners |
-| Maps adapter | Maps / Places API adapter, mock in dev | B |
+| Maps adapter | OpenStreetMap Nominatim + OSRM in live mode; deterministic mock in dev | B |
 | Booking adapter | Booking / Price API adapter, **mock** — real payment is out of scope | C |
 | `NotificationService`, `AuthService` | minimal stubs | E |
 
 ### External tools / systems
 
-- **LLM** — GPT (preferred) or Claude for chat extraction via LangChain structured output; DeepSeek V4 Flash for itinerary drafting; deterministic fallbacks keep the flow usable without API keys
-- **Maps / Places API** — routes and price info, mockable
+- **LLM** — explicit task routing: GPT/Claude-compatible extraction for chat intake, DeepSeek V4 Flash for itinerary drafting, and MiniMax M2.7 for destination/dining guidance; deterministic fallbacks keep every flow usable without API keys
+- **Maps / Places API** — free OpenStreetMap Nominatim + OSRM in live mode, deterministic mockable in dev
 - **Booking / Price API** — lodging / flight pricing, **mock**; real payment is out of scope
 - No weather API — weather advice is an LLM sub-function inside `DestinationGuideAgent`
 
@@ -134,8 +134,9 @@ flowchart TB
 ## 3. Repository structure
 
 The end-to-end scaffold now includes LangGraph orchestration, incremental chat intake,
-and working itinerary, transport, and accommodation agents. Destination-guide, dining,
-and the external tool adapters remain explicit `TODO(owner)` mocks.
+all five specialist agents, free OpenStreetMap search/routing, file-backed memory, and
+basic executable HITL actions. Production persistence, authentication, booking data,
+notifications, and several UI workflows remain explicit follow-up work.
 See [`docs/scaffold.md`](docs/scaffold.md) for the full "who codes where" map, and
 [`docs/class-diagram.md`](docs/class-diagram.md) for the design-time UML class model
 (ELEC5620 Lab 4 Part 2).
@@ -157,12 +158,12 @@ ai-trip-planner/
 │   │   ├── destination-guide/        # incl. weather / packing sub-function         (D)
 │   │   └── dining/                   #                                              (D)
 │   ├── services/src/
-│   │   ├── memory/                   # PreferenceMemoryService (in-memory stub)     (E)
+│   │   ├── memory/                   # file-backed dev memory; DB migration planned (E)
 │   │   ├── notification/             # stub                                         (E)
 │   │   └── auth/                     # stub                                         (E)
 │   └── tools/src/
 │       ├── gateway.ts                # ToolGateway (mock vs real switch)            (A)
-│       ├── maps.ts                   # Maps / Places adapter (mock)                 (B)
+│       ├── maps.ts                   # OSM/Nominatim/OSRM + mock adapter             (B)
 │       ├── booking.ts                # Booking / Price adapter (mock)               (C)
 │       └── mock-server.mjs           # local canned-response API server            (A)
 ├── docs/
@@ -173,6 +174,61 @@ ai-trip-planner/
 ├── turbo.json  pnpm-workspace.yaml  tsconfig.base.json
 └── README.md
 ```
+
+## Development roadmap — single-user scope
+
+This project is intentionally a **single-user AI trip workspace**. The near-term goal is not
+social travel planning or real-time multi-user editing. The product should first let one person
+discover places, edit a plan, confirm decisions, save trips, and use the plan during travel.
+
+### Current status
+
+| Stage | Status | Scope | Exit criteria |
+| --- | --- | --- | --- |
+| Stage 5.2 | ✅ Complete / PR #8 | Specialist agents, budget and conflict negotiation, place grounding, free OSM/Nominatim/OSRM maps, streaming shell and demo-plan caching | CI, tests and production build pass; plan no longer accepts ungrounded itinerary places |
+| Stage 5.3 | 🚧 In progress | File-backed memory, HITL API/UI, decision recovery, atomic writes and checkpoint validation | Confirm/reject actions survive a new request and affect a versioned plan |
+| Stage 6A | ⏳ Next | Finish the existing UI: controlled filters, real detail cards, review flow, loading/error states | A user can complete planning without typing implementation-specific chat commands |
+| Stage 6B | ⏳ Planned | Save/reopen trips, preference memory, plan versions and rollback | Refreshing or restarting does not lose the user's trip |
+| Stage 6C | ⏳ Planned | Map/list view, editable timeline, add/remove/reorder/replace itinerary items | A user can manually adjust the generated plan and re-run constraint checks |
+| Stage 7 | ⏳ Planned | Start Anywhere imports (URL, image, PDF), source tracking and collections | Imported places become reviewable, attributable candidates before entering the plan |
+| Stage 8 | ⏳ Planned | Real hotel/flight/activity search and booking deep links; receipt/confirmation import | Results show provider, timestamp, price freshness and a clear booking hand-off |
+| Stage 9 | ⏳ Later | On-trip mode: nearby suggestions, delay-aware replanning, offline read-only itinerary | A saved trip remains useful while travelling with intermittent connectivity |
+
+### Immediate UI completion plan
+
+The current UI contains several visible placeholders. These are the next concrete tasks, in order:
+
+| Priority | Area | Current gap | Required change |
+| --- | --- | --- | --- |
+| P0 | `FiltersPanel` | Inputs use `defaultValue` and do not update the plan | Convert to controlled fields; validate dates, group size and budget; add Apply/Replan |
+| P0 | `TripSection` | Expanded view renders raw JSON | Render real activity, transport, hotel, dining and guide cards with source/assumption labels |
+| P0 | `TripPanel` | `Review plan` is a non-functional button | Focus the next pending HITL action or open the relevant section |
+| P0 | `ChatPanel` | HITL has only basic approve/reject feedback | Add pending/success/error states and show which plan version was changed |
+| P1 | `Header` | Saved trips, My trips and language are plain text | Implement single-user Saved Trips first; remove or disable unsupported links |
+| P1 | Plan editing | No add/remove/reorder/replace interaction | Add item actions and run route/time/budget checks after each edit |
+| P1 | Persistence | Current memory is file-backed development storage | Move trips, preferences, chat turns and HITL decisions to SQLite/Postgres |
+| P1 | Errors | Provider failures are mostly silent fallbacks | Show “estimated”, “mock”, “source unavailable” and retry actions in the UI |
+
+### Explicitly out of scope for the current roadmap
+
+These are not required for the one-person product and should not block the next releases:
+
+- Multi-user collaboration, group chat, voting and real-time co-editing
+- Creator marketplace, public social feed and follower system
+- In-app payment, refunds and booking fulfilment
+
+They can be reconsidered only after the single-user save → edit → confirm → travel loop is stable.
+
+### Definition of done for the single-user MVP
+
+- A user can enter or edit destination, dates, travellers, budget and preferences.
+- The planner returns grounded recommendations with source and freshness labels.
+- The user can inspect real detail cards instead of raw JSON.
+- The user can edit the itinerary and see time, route and budget conflicts.
+- HITL confirmations are persisted, versioned and recoverable after refresh.
+- A saved trip can be reopened without relying on the demo user.
+- Provider failures degrade visibly and safely; mock data is never presented as a live quote.
+- `pnpm typecheck`, `pnpm test`, lint and production build pass before merge.
 
 Run it:
 
