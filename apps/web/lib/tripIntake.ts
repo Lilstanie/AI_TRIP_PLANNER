@@ -17,11 +17,18 @@ function amount(value: string): number | undefined {
 }
 
 /** Extract only explicit onboarding fields; missing details stay missing. */
-export function extractIntakePatch(message: string): IntakeDraft {
+export function extractIntakePatch(message: string, expectedField?: IntakeField): IntakeDraft {
   const patch: IntakeDraft = {};
   const value = message.trim().replace(/[.!?。！？]+$/, "").trim();
   const dates = value.match(ISO_DATE);
   if (dates?.length && dates.length >= 2) patch.dates = [dates[0], dates[1]];
+
+  if (expectedField === "groupSize" && /^\d+$/.test(value)) {
+    patch.groupSize = amount(value);
+  }
+  if (expectedField === "budgetTotal" && /^\$?[\d,]+(?:\.\d+)?$/.test(value)) {
+    patch.budgetTotal = amount(value.replace(/^\$/, ""));
+  }
 
   const group = value.match(/(\d+)\s*(?:people|persons?|travell?ers?|人)/i);
   if (group?.[1]) patch.groupSize = amount(group[1]);

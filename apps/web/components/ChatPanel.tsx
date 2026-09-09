@@ -79,7 +79,10 @@ export function ChatPanel({
     // Keep asking in the center chat until the minimum brief is complete.
     let completedBrief = brief;
     if (!plan) {
-      const nextIntake = { ...(intake ?? {}), ...extractIntakePatch(text) };
+      const nextIntake = {
+        ...(intake ?? {}),
+        ...extractIntakePatch(text, missingIntakeField(intake ?? {})),
+      };
       setIntake(nextIntake);
       const missing = missingIntakeField(nextIntake);
       if (missing) {

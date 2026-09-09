@@ -17,6 +17,11 @@ describe("trip onboarding intake", () => {
     ).toEqual({ dates: ["2026-10-01", "2026-10-05"], groupSize: 2, budgetTotal: 3000 });
   });
 
+  it("accepts short numeric answers when the question gives them context", () => {
+    expect(extractIntakePatch("2", "groupSize")).toEqual({ groupSize: 2 });
+    expect(extractIntakePatch("3000", "budgetTotal")).toEqual({ budgetTotal: 3000 });
+  });
+
   it("asks for the next missing field and builds a complete brief", () => {
     const draft = { destination: "Sydney" };
     expect(missingIntakeField(draft)).toBe("dates");
