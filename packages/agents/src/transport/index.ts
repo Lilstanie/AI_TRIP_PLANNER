@@ -1,5 +1,6 @@
 import {
   TripBrief as TripBriefSchema,
+  splitDestinationSchedule,
   type Agent,
   type AgentContext,
   type AgentProposal,
@@ -13,15 +14,6 @@ function tripDays([start, end]: [string, string]): number {
   const days = Math.round((Date.parse(end) - Date.parse(start)) / DAY_MS);
   if (!Number.isSafeInteger(days) || days < 1) throw new Error("Transport requires ordered dates.");
   return days;
-}
-
-function cities(destination: string): string[] {
-  const result = destination
-    .split(/\s*&\s*/)
-    .map((city) => city.trim())
-    .filter(Boolean);
-  if (!result.length) throw new Error("Transport requires at least one destination.");
-  return result;
 }
 
 function clock(totalMinutes: number): string {
@@ -38,8 +30,15 @@ async function planTransport(
 ): Promise<AgentProposal> {
   ctx.signal?.throwIfAborted();
   const brief = TripBriefSchema.parse(briefInput);
-  const destinations = cities(brief.destination);
-  const days = tripDays(brief.dates);
+  const start = Date.parse(`${brief.dates[0]}T00:00:00.000Z`);
+  const schedule = splitDestinationSchedule(brief.destination, tripDays(brief.dates)).map(
+    (segment) => ({
+      city: segment.city,
+      checkIn: new Date(start + (segment.startDay - 1) * DAY_MS).toISOString().slice(0, 10),
+      day: segment.startDay,
+    }),
+  );
+  const destinations = schedule.map((stay) => stay.city);
   const preferences = await ctx.mem.getLongTerm(brief.userId);
   const origin =
     preferences.find((preference) => preference.key === "transport.origin")?.value.trim() ||
@@ -49,11 +48,11 @@ async function planTransport(
     /budget|cost|cheaper|overrun/i.test([revision.reason, ...revision.constraints].join(" "));
   const scheduleRevision = revision !== undefined && /time|overlap|schedule/i.test(revision.reason);
 
-  const routeQueries = destinations.slice(1).map((destination, index) => ({
+  const routeQueries = schedule.slice(1).map((stay, index) => ({
     from: destinations[index]!,
-    to: destination,
-    date: brief.dates[0],
-    day: Math.min(days, Math.floor((days * (index + 1)) / destinations.length) + 1),
+    to: stay.city,
+    date: stay.checkIn,
+    day: stay.day,
   }));
   if (origin.toLowerCase() === destinations[0]!.toLowerCase() && routeQueries.length === 0) {
     routeQueries.push({

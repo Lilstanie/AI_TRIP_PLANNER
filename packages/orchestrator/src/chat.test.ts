@@ -79,6 +79,41 @@ describe("local TripBrief extraction", () => {
 });
 
 describe("trip chat workflow", () => {
+  it("uses a conversational responder without letting it change the confirmed draft", async () => {
+    const responder = {
+      respond: vi.fn(async () => "东京的行程可以慢慢安排。你考虑什么时候出发？"),
+    };
+    const result = await runTripIntake(
+      { tripId: "natural-intake", message: "我想去东京" },
+      { extractor: { extract: async () => ({ destination: "东京" }) }, responder },
+    );
+    expect(result.reply).toBe("东京的行程可以慢慢安排。你考虑什么时候出发？");
+    expect(result.draft.destination).toBe("东京");
+    expect(result.draft.dates).toBeUndefined();
+    expect(result.ready).toBe(false);
+  });
+
+  it("falls back to the user's language when the responder fails", async () => {
+    const result = await runTripIntake(
+      {
+        tripId: "reply-fallback",
+        message: "去东京",
+        draft: { tripId: "reply-fallback", userId: "demo-user", destination: "东京" },
+      },
+      {
+        extractor: { extract: async () => ({}) },
+        responder: {
+          respond: async () => {
+            throw new Error("offline");
+          },
+        },
+      },
+    );
+    expect(result.reply).toContain("什么时候");
+    expect(result.reply).toContain("东京");
+    expect(result.ready).toBe(false);
+  });
+
   it("treats a greeting as a greeting instead of a destination", async () => {
     expect(isGreeting("hi")).toBe(true);
     expect(isGreeting("hello there!")).toBe(true);
@@ -214,7 +249,8 @@ describe("trip chat workflow", () => {
 
     expect(extractor.extract).toHaveBeenCalledWith("Please change the destination", brief);
     expect(result.plan.brief).toMatchObject({ destination: "Melbourne", budgetTotal: 5000 });
-    expect(result.reply).toContain("Updated: destination, budgetTotal");
+    expect(result.reply).toContain("Melbourne");
+    expect(result.reply).toContain("estimated group total");
     expect(turns.map((turn) => turn.role)).toEqual(["user", "assistant"]);
     expect(progress[0]).toMatchObject({
       phase: "decomposing",

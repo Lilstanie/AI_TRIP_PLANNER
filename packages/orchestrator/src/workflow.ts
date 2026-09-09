@@ -253,7 +253,10 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
     }
   };
 
-  const agentProgress = (agent: Agent, status: AgentRunStatus): ChatRunProgress["agent"] => ({
+  const agentProgress = (
+    agent: Agent,
+    status: AgentRunStatus,
+  ): NonNullable<ChatRunProgress["agent"]> => ({
     id: agent.name,
     label: agent.label,
     status,
@@ -289,7 +292,10 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
           report({
             phase: "running",
             message: `${agent.label} completed its proposal`,
-            agent: agentProgress(agent, "completed"),
+            agent: {
+              ...agentProgress(agent, "completed"),
+              ...(parsed.model ? { model: parsed.model } : {}),
+            },
           });
           return parsed;
         } catch (error) {
@@ -337,7 +343,10 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
           report({
             phase: "revising",
             message: `${agent.label} completed round ${round}`,
-            agent: agentProgress(agent, "completed"),
+            agent: {
+              ...agentProgress(agent, "completed"),
+              ...(parsed.model ? { model: parsed.model } : {}),
+            },
           });
           return parsed;
         } catch (error) {

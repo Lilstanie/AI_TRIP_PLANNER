@@ -78,6 +78,7 @@ export type ProposalItem = z.infer<typeof ProposalItem>;
 
 export const AgentProposal = z.object({
   agent: z.enum(AGENT_NAMES),
+  model: z.string().optional(),
   summary: z.string(),
   items: z.array(ProposalItem),
   assumptions: z.array(z.string()),

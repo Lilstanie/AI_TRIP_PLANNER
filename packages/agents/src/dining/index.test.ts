@@ -71,7 +71,7 @@ describe("dining planner", () => {
       }),
     );
     expect(result.assumptions.join(" ")).toContain("dietary.allergy=peanuts");
-    expect(result.assumptions.join(" ")).toContain("MiniMax/LangChain");
+    expect(result.model).toBe("Injected generator");
   });
 
   it("falls back when model cost exceeds the budget guardrail", async () => {
@@ -81,7 +81,7 @@ describe("dining planner", () => {
     };
     const result = await createDiningAgent({ generator }).run(brief, context());
     expect(result.items[0]!.estCost).toBe(200);
-    expect(result.assumptions.join(" ")).toContain("deterministic fallback");
+    expect(result.model).toBe("Deterministic fallback");
     warning.mockRestore();
   });
 
@@ -113,6 +113,7 @@ describe("dining planner", () => {
     };
     const result = await createDiningAgent({ generator }).run(brief, context());
     expect(result.items.map((item) => item.location).filter(Boolean)).toEqual(["Market Kitchen"]);
+    expect(result.model).toBe("Deterministic fallback");
     warning.mockRestore();
   });
 

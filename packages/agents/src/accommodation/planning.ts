@@ -1,4 +1,9 @@
-import type { StayOption, TripBrief, UserPreference } from "@trip/shared";
+import {
+  splitDestinationSchedule,
+  type StayOption,
+  type TripBrief,
+  type UserPreference,
+} from "@trip/shared";
 
 const DAY_MS = 86_400_000;
 export interface StaySegment {
@@ -52,23 +57,16 @@ export function splitStay(brief: TripBrief): StaySegment[] {
   const start = parseDate(brief.dates[0]);
   const nights = (parseDate(brief.dates[1]) - start) / DAY_MS;
   if (nights <= 0) throw new Error("Accommodation check-out must be after check-in.");
-  // Temporary convention for the existing demo string, pending B's structured city schedule.
-  const cities = brief.destination.split("&").map((city) => city.trim());
-  if (cities.some((city) => !city)) throw new Error("Accommodation requires non-empty cities.");
-  if (nights < cities.length)
-    throw new Error("Each destination needs at least one overnight stay.");
   let offset = 0;
-  return cities.map((city, index) => {
-    const cityNights =
-      Math.floor(nights / cities.length) + (index < nights % cities.length ? 1 : 0);
+  return splitDestinationSchedule(brief.destination, nights).map((schedule) => {
     const segment = {
-      city,
+      city: schedule.city,
       checkIn: new Date(start + offset * DAY_MS).toISOString().slice(0, 10),
-      checkOut: new Date(start + (offset + cityNights) * DAY_MS).toISOString().slice(0, 10),
-      nights: cityNights,
-      day: offset + 1,
+      checkOut: new Date(start + (offset + schedule.nights) * DAY_MS).toISOString().slice(0, 10),
+      nights: schedule.nights,
+      day: schedule.startDay,
     };
-    offset += cityNights;
+    offset += schedule.nights;
     return segment;
   });
 }

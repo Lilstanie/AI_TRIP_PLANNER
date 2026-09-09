@@ -69,16 +69,16 @@ describe("destination guide", () => {
     expect(result.items.find((item) => item.kind === "entry-health")?.detail).toContain(
       "Australian passport",
     );
-    expect(result.assumptions.join(" ")).toContain("deterministic fallback");
+    expect(result.model).toBe("Deterministic fallback");
     expect(ctx.tools.maps.places).toHaveBeenCalledTimes(2);
     expect(ctx.mem.getLongTerm).toHaveBeenCalledWith("traveller");
   });
 
-  it("uses a schema-valid MiniMax draft grounded in supplied places", async () => {
+  it("uses a schema-valid injected draft grounded in supplied places", async () => {
     const generate = vi.fn(async () => validDraft);
     const generator: DestinationGuideGenerator = { generate };
     const result = await createDestinationGuideAgent({ generator }).run(brief, context());
-    expect(result.assumptions.join(" ")).toContain("MiniMax/LangChain");
+    expect(result.model).toBe("Injected generator");
     expect(result.items[0]).toMatchObject({ kind: "attraction", location: "Temple Walk" });
     expect(generate).toHaveBeenCalledWith(
       expect.objectContaining({ travelMonth: "October", brief }),
@@ -94,7 +94,7 @@ describe("destination guide", () => {
       })),
     };
     const result = await createDestinationGuideAgent({ generator }).run(brief, context());
-    expect(result.assumptions.join(" ")).toContain("deterministic fallback");
+    expect(result.model).toBe("Deterministic fallback");
     expect(result.items.map((item) => item.location).filter(Boolean)).not.toContain(
       "Invented Palace",
     );

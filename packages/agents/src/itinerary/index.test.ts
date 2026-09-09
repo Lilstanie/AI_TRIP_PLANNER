@@ -80,14 +80,14 @@ describe("itinerary planner", () => {
     expect(result.items.map((item) => item.day)).toEqual([1, 2]);
     expect(result.items.every((item) => item.startTime === "13:00")).toBe(true);
     expect(result.summary).not.toContain("STUB");
-    expect(result.assumptions.join(" ")).toContain("deterministic fallback");
+    expect(result.model).toBe("Deterministic fallback");
     expect(ctx.tools.maps.places).toHaveBeenCalledTimes(2);
   });
 
   it("uses an injected structured generator and checks travel feasibility", async () => {
     const generator: ItineraryGenerator = { generate: vi.fn(async () => feasibleDraft) };
     const result = await createItineraryAgent({ generator }).run(brief, context(200));
-    expect(result.assumptions.join(" ")).toContain("DeepSeek/LangChain");
+    expect(result.model).toBe("Injected generator");
     expect(result.conflictsWith[0]).toContain("geography conflict on day 1");
   });
 
@@ -103,7 +103,7 @@ describe("itinerary planner", () => {
     };
     const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
     const result = await createItineraryAgent({ generator }).run(brief, context());
-    expect(result.assumptions.join(" ")).toContain("deterministic fallback");
+    expect(result.model).toBe("Deterministic fallback");
     expect(result.items).toHaveLength(2);
     warning.mockRestore();
   });
@@ -118,7 +118,7 @@ describe("itinerary planner", () => {
       constraints: ["make the route geographically feasible"],
     });
     expect(result.conflictsWith).toEqual([]);
-    expect(result.assumptions.join(" ")).toContain("deterministic fallback");
+    expect(result.model).toBe("Deterministic fallback");
   });
 
   it("rejects revisions addressed to another agent", async () => {

@@ -9,7 +9,7 @@ import {
   type UserPreference,
 } from "@trip/shared";
 import { z } from "zod/v4";
-import { createRoutedStructuredInvoker } from "../models";
+import { createRoutedStructuredInvoker, routedModelName } from "../models";
 
 const DAY_MS = 86_400_000;
 const DINING_BUDGET_SHARE = 0.2;
@@ -133,7 +133,7 @@ function fallbackDraft(
   };
 }
 
-function createMiniMaxGenerator(): DiningGenerator | undefined {
+function createRoutedGenerator(): DiningGenerator | undefined {
   const structured = createRoutedStructuredInvoker("dining", DiningDraft, "DiningDraft");
   if (!structured) return undefined;
 
@@ -163,9 +163,9 @@ async function planDining(
   const preferences = dietaryPreferences(allPreferences);
   const ceiling = budgetCeiling(brief, days, revision);
   const generator =
-    options.generator === false ? undefined : (options.generator ?? createMiniMaxGenerator());
+    options.generator === false ? undefined : (options.generator ?? createRoutedGenerator());
   let draft: DiningDraft;
-  let source: "MiniMax/LangChain" | "deterministic fallback" = "deterministic fallback";
+  let source = "Deterministic fallback";
 
   if (generator) {
     try {
@@ -181,7 +181,7 @@ async function planDining(
         places,
         ceiling,
       );
-      source = "MiniMax/LangChain";
+      source = options.generator ? "Injected generator" : routedModelName("dining");
     } catch (error) {
       const reason = error instanceof Error ? error.message : "unknown model error";
       console.warn(`[dining] Model draft failed; using deterministic fallback: ${reason}`);
@@ -194,6 +194,7 @@ async function planDining(
   const total = Number((draft.dailyBudgetPerPersonUsd * brief.groupSize * days).toFixed(2));
   return {
     agent: "dining",
+    model: source,
     summary: `${draft.summary} · USD ${total.toFixed(2)} meal budget`,
     items: [
       {

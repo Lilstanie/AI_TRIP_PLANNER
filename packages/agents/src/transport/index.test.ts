@@ -6,6 +6,7 @@ import {
   type UserPreference,
 } from "@trip/shared";
 import { transportAgent } from "./index";
+import { splitStay } from "../accommodation/planning";
 
 const brief: TripBrief = {
   tripId: "transport-test",
@@ -43,6 +44,17 @@ function context(preferences: UserPreference[] = []) {
 }
 
 describe("transport planner", () => {
+  it("travels on the next hotel's check-in date when nights do not divide evenly", async () => {
+    const unevenBrief: TripBrief = { ...brief, dates: ["2026-10-01", "2026-10-06"] };
+    const { ctx, route } = context();
+    const result = await transportAgent.run(unevenBrief, ctx);
+    const nextStay = splitStay(unevenBrief)[1]!;
+    expect(nextStay.day).toBe(4);
+    expect(result.items[1]?.day).toBe(nextStay.day);
+    expect(route).toHaveBeenCalledWith(
+      expect.objectContaining({ date: nextStay.checkIn, from: "Tokyo", to: "Kyoto" }),
+    );
+  });
   it("combines a whole-group flight with timed inter-city routes", async () => {
     const { ctx, route, searchFlights } = context();
     const result = await transportAgent.run(brief, ctx);

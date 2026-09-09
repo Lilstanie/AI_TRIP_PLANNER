@@ -77,8 +77,8 @@ flowchart TB
 | Specialist   | `ItineraryPlannerAgent` | structured day-by-day schedule, pacing from dates/group/prefs, model-backed drafting with deterministic fallback, route-feasibility checks                            | B     |
 | Specialist   | `TransportAgent`        | group flight pricing, inter-city/local routes, explicit timing, budget and schedule revisions                                                                         | B     |
 | Specialist   | `AccommodationAgent`    | lodging search and comparison, individual / group room allocation                                                                                                     | C     |
-| Specialist   | `DestinationGuideAgent` | MiniMax-backed grounded attractions, customs/safety checklist, official-source entry/health reminders, typical-weather packing context                                | D     |
-| Specialist   | `DiningAgent`           | MiniMax-backed grounded venue suggestions, dietary preferences and one whole-trip meal budget envelope                                                                | D     |
+| Specialist   | `DestinationGuideAgent` | DeepSeek-backed grounded attractions, customs/safety checklist, official-source entry/health reminders, typical-weather packing context                               | D     |
+| Specialist   | `DiningAgent`           | DeepSeek-backed grounded venue suggestions, dietary preferences and one whole-trip meal budget envelope                                                               | D     |
 
 ### Non-agent modules
 
@@ -115,19 +115,19 @@ flowchart TB
 
 ## 2. Tech stack
 
-| Area                       | Choice                                                                                                                                                                                                       |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Language                   | **TypeScript** (`strict: true`)                                                                                                                                                                              |
-| Runtime                    | Node.js 22 LTS                                                                                                                                                                                               |
-| Monorepo / package manager | pnpm workspaces + Turborepo                                                                                                                                                                                  |
-| Web framework              | Next.js 15 (App Router) — frontend + server-side agent logic in one deployable (Route Handlers / Server Actions)                                                                                             |
-| Agent orchestration        | **LangGraph.js** (`@langchain/langgraph`): typed graph state, parallel specialist dispatch, conditional conflict/revision loop                                                                               |
-| LLM calls                  | LangChain structured output; `ChatOpenAI` routes itinerary and (when no GPT/Anthropic key is configured) chat intake to DeepSeek thinking mode, while destination/dining can use MiniMax; every path has a validated deterministic fallback |
-| Contracts / validation     | **Zod** — every inter-agent message and tool input/output                                                                                                                                                    |
-| State / memory             | SQLite (`better-sqlite3`) or JSON files in dev; add Redis (optional in compose) if cross-request sharing is needed                                                                                           |
-| Testing                    | Vitest                                                                                                                                                                                                       |
-| Lint / format              | ESLint + Prettier (or Biome)                                                                                                                                                                                 |
-| CI                         | GitHub Actions: lint + typecheck + test + build                                                                                                                                                              |
+| Area                       | Choice                                                                                                                                                                                                                                                                  |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Language                   | **TypeScript** (`strict: true`)                                                                                                                                                                                                                                         |
+| Runtime                    | Node.js 22 LTS                                                                                                                                                                                                                                                          |
+| Monorepo / package manager | pnpm workspaces + Turborepo                                                                                                                                                                                                                                             |
+| Web framework              | Next.js 15 (App Router) — frontend + server-side agent logic in one deployable (Route Handlers / Server Actions)                                                                                                                                                        |
+| Agent orchestration        | **LangGraph.js** (`@langchain/langgraph`): typed graph state, parallel specialist dispatch, conditional conflict/revision loop                                                                                                                                          |
+| LLM calls                  | LangChain structured output plus a supervisor-style conversational responder; `ChatOpenAI` routes itinerary, destination, dining and (when no GPT/Anthropic key is configured) chat intake to DeepSeek thinking mode; every path has a validated deterministic fallback |
+| Contracts / validation     | **Zod** — every inter-agent message and tool input/output                                                                                                                                                                                                               |
+| State / memory             | SQLite (`better-sqlite3`) or JSON files in dev; add Redis (optional in compose) if cross-request sharing is needed                                                                                                                                                      |
+| Testing                    | Vitest                                                                                                                                                                                                                                                                  |
+| Lint / format              | ESLint + Prettier (or Biome)                                                                                                                                                                                                                                            |
+| CI                         | GitHub Actions: lint + typecheck + test + build                                                                                                                                                                                                                         |
 
 ---
 
@@ -183,32 +183,32 @@ discover places, edit a plan, confirm decisions, save trips, and use the plan du
 
 ### Current status
 
-| Stage | Status | Scope | Exit criteria |
-| --- | --- | --- | --- |
+| Stage     | Status              | Scope                                                                                                                                    | Exit criteria                                                                           |
+| --------- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
 | Stage 5.2 | ✅ Complete / PR #8 | Specialist agents, budget and conflict negotiation, place grounding, free OSM/Nominatim/OSRM maps, streaming shell and demo-plan caching | CI, tests and production build pass; plan no longer accepts ungrounded itinerary places |
-| Stage 5.3 | 🚧 In progress | File-backed memory, HITL API/UI, decision recovery, atomic writes and checkpoint validation | Confirm/reject actions survive a new request and affect a versioned plan |
-| Stage 6A | ⏳ Next | Finish the existing UI: controlled filters, real detail cards, review flow, loading/error states | A user can complete planning without typing implementation-specific chat commands |
-| Stage 6B | ⏳ Planned | Save/reopen trips, preference memory, plan versions and rollback | Refreshing or restarting does not lose the user's trip |
-| Stage 6C | ⏳ Planned | Map/list view, editable timeline, add/remove/reorder/replace itinerary items | A user can manually adjust the generated plan and re-run constraint checks |
-| Stage 7 | ⏳ Planned | Start Anywhere imports (URL, image, PDF), source tracking and collections | Imported places become reviewable, attributable candidates before entering the plan |
-| Stage 8 | ⏳ Planned | Real hotel/flight/activity search and booking deep links; receipt/confirmation import | Results show provider, timestamp, price freshness and a clear booking hand-off |
-| Stage 9 | ⏳ Later | On-trip mode: nearby suggestions, delay-aware replanning, offline read-only itinerary | A saved trip remains useful while travelling with intermittent connectivity |
+| Stage 5.3 | 🚧 In progress      | File-backed memory, HITL API/UI, decision recovery, atomic writes and checkpoint validation                                              | Confirm/reject actions survive a new request and affect a versioned plan                |
+| Stage 6A  | ⏳ Next             | Finish the existing UI: controlled filters, real detail cards, review flow, loading/error states                                         | A user can complete planning without typing implementation-specific chat commands       |
+| Stage 6B  | ⏳ Planned          | Save/reopen trips, preference memory, plan versions and rollback                                                                         | Refreshing or restarting does not lose the user's trip                                  |
+| Stage 6C  | ⏳ Planned          | Map/list view, editable timeline, add/remove/reorder/replace itinerary items                                                             | A user can manually adjust the generated plan and re-run constraint checks              |
+| Stage 7   | ⏳ Planned          | Start Anywhere imports (URL, image, PDF), source tracking and collections                                                                | Imported places become reviewable, attributable candidates before entering the plan     |
+| Stage 8   | ⏳ Planned          | Real hotel/flight/activity search and booking deep links; receipt/confirmation import                                                    | Results show provider, timestamp, price freshness and a clear booking hand-off          |
+| Stage 9   | ⏳ Later            | On-trip mode: nearby suggestions, delay-aware replanning, offline read-only itinerary                                                    | A saved trip remains useful while travelling with intermittent connectivity             |
 
 ### Immediate UI completion plan
 
 The current UI contains several visible placeholders. These are the next concrete tasks, in order:
 
-| Priority | Area | Current gap | Required change |
-| --- | --- | --- | --- |
-| P0 | `FiltersPanel` | Inputs use `defaultValue` and do not update the plan | Convert to controlled fields; validate dates, group size and budget; add Apply/Replan |
-| P0 | `TripSection` | Expanded view renders raw JSON | Render real activity, transport, hotel, dining and guide cards with source/assumption labels |
-| P0 | `TripPanel` | `Review plan` is a non-functional button | Focus the next pending HITL action or open the relevant section |
-| P0 | `ChatPanel` | HITL has only basic approve/reject feedback | Add pending/success/error states and show which plan version was changed |
-| P1 | `Header` | Saved trips, My trips and language are plain text | Implement single-user Saved Trips first; remove or disable unsupported links |
-| P1 | Plan editing | No add/remove/reorder/replace interaction | Add item actions and run route/time/budget checks after each edit |
-| P1 | Persistence | Current memory is file-backed development storage | Move trips, preferences, chat turns and HITL decisions to SQLite/Postgres |
-| P1 | Errors | Provider failures are mostly silent fallbacks | Show “estimated”, “mock”, “source unavailable” and retry actions in the UI |
-| P1 | Observability | Custom progress telemetry does not expose prompt/tool traces, latency, tokens or cost | Add optional LangSmith tracing and evaluation runs before provider tuning or production; redact trip PII and keep local fallback telemetry |
+| Priority | Area           | Current gap                                                                           | Required change                                                                                                                            |
+| -------- | -------------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| P0       | `FiltersPanel` | Inputs use `defaultValue` and do not update the plan                                  | Convert to controlled fields; validate dates, group size and budget; add Apply/Replan                                                      |
+| P0       | `TripSection`  | Expanded view renders raw JSON                                                        | Render real activity, transport, hotel, dining and guide cards with source/assumption labels                                               |
+| P0       | `TripPanel`    | `Review plan` is a non-functional button                                              | Focus the next pending HITL action or open the relevant section                                                                            |
+| P0       | `ChatPanel`    | HITL has only basic approve/reject feedback                                           | Add pending/success/error states and show which plan version was changed                                                                   |
+| P1       | `Header`       | Saved trips, My trips and language are plain text                                     | Implement single-user Saved Trips first; remove or disable unsupported links                                                               |
+| P1       | Plan editing   | No add/remove/reorder/replace interaction                                             | Add item actions and run route/time/budget checks after each edit                                                                          |
+| P1       | Persistence    | Current memory is file-backed development storage                                     | Move trips, preferences, chat turns and HITL decisions to SQLite/Postgres                                                                  |
+| P1       | Errors         | Provider failures are mostly silent fallbacks                                         | Show “estimated”, “mock”, “source unavailable” and retry actions in the UI                                                                 |
+| P1       | Observability  | Custom progress telemetry does not expose prompt/tool traces, latency, tokens or cost | Add optional LangSmith tracing and evaluation runs before provider tuning or production; redact trip PII and keep local fallback telemetry |
 
 ### Explicitly out of scope for the current roadmap
 

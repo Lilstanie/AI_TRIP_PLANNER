@@ -7,6 +7,7 @@ export {
   runTripIntake,
   runTripChat,
   type BriefExtractor,
+  type BriefResponder,
   type BriefPatch,
   type TripChatOptions,
 } from "./chat";

@@ -9,7 +9,7 @@ import {
   type UserPreference,
 } from "@trip/shared";
 import { z } from "zod/v4";
-import { createRoutedStructuredInvoker } from "../models";
+import { createRoutedStructuredInvoker, routedModelName } from "../models";
 
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
 const MODEL_ACTIVITY_BUDGET_SHARE = 0.4;
@@ -194,7 +194,7 @@ async function planItinerary(
   const generator =
     options.generator === false ? undefined : (options.generator ?? createDeepSeekGenerator());
   let draft: ItineraryDraft;
-  let source: "DeepSeek/LangChain" | "deterministic fallback" = "deterministic fallback";
+  let source = "Deterministic fallback";
   if (generator) {
     try {
       draft = validateDraft(
@@ -203,7 +203,7 @@ async function planItinerary(
         days,
         places,
       );
-      source = "DeepSeek/LangChain";
+      source = options.generator ? "Injected generator" : routedModelName("itinerary");
     } catch (error) {
       const reason = error instanceof Error ? error.message : "unknown model error";
       console.warn(
@@ -218,10 +218,11 @@ async function planItinerary(
   if (revision && conflicts.length) {
     draft = fallbackDraft(brief, days, places);
     conflicts = await travelConflicts(draft, ctx);
-    source = "deterministic fallback";
+    source = "Deterministic fallback";
   }
   return {
     agent: "itinerary",
+    model: source,
     summary: draft.summary,
     items: draft.activities.map((activity) => ({ kind: "activity", ...activity })),
     assumptions: [

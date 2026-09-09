@@ -8,7 +8,7 @@ import {
   type UserPreference,
 } from "@trip/shared";
 import { z } from "zod/v4";
-import { createRoutedStructuredInvoker } from "../models";
+import { createRoutedStructuredInvoker, routedModelName } from "../models";
 
 const GuideAttraction = z.object({
   name: z.string().trim().min(1).max(120),
@@ -97,8 +97,12 @@ function fallbackDraft(brief: TripBrief, month: string, places: Place[]): Destin
   };
 }
 
-function createMiniMaxGenerator(): DestinationGuideGenerator | undefined {
-  const structured = createRoutedStructuredInvoker("destination-guide", DestinationGuideDraft, "DestinationGuideDraft");
+function createRoutedGenerator(): DestinationGuideGenerator | undefined {
+  const structured = createRoutedStructuredInvoker(
+    "destination-guide",
+    DestinationGuideDraft,
+    "DestinationGuideDraft",
+  );
   if (!structured) return undefined;
 
   return {
@@ -129,9 +133,9 @@ async function planDestinationGuide(
       all.findIndex((candidate) => normalize(candidate.name) === normalize(place.name)) === index,
   );
   const generator =
-    options.generator === false ? undefined : (options.generator ?? createMiniMaxGenerator());
+    options.generator === false ? undefined : (options.generator ?? createRoutedGenerator());
   let draft: DestinationGuideDraft;
-  let source: "MiniMax/LangChain" | "deterministic fallback" = "deterministic fallback";
+  let source = "Deterministic fallback";
 
   if (generator) {
     try {
@@ -139,7 +143,7 @@ async function planDestinationGuide(
         await generator.generate({ brief, travelMonth: month, places, preferences }),
         places,
       );
-      source = "MiniMax/LangChain";
+      source = options.generator ? "Injected generator" : routedModelName("destination-guide");
     } catch (error) {
       const reason = error instanceof Error ? error.message : "unknown model error";
       console.warn(
@@ -153,6 +157,7 @@ async function planDestinationGuide(
 
   return {
     agent: "destination-guide",
+    model: source,
     summary: draft.summary,
     items: [
       ...draft.attractions.map((attraction) => ({
