@@ -134,6 +134,15 @@ export function extractBriefPatchLocally(message: string): BriefPatch {
     /(\d{4}-\d{2}-\d{2})\s*(?:to|through|until|–|—|至|到)\s*(\d{4}-\d{2}-\d{2})/i,
   );
   if (dates?.[1] && dates[2]) patch.dates = [dates[1], dates[2]];
+  if (!patch.dates) {
+    const relative = message.match(/(?:tomorrow|明天).*?(\d+)\s*(?:days?|天)/i);
+    if (relative?.[1]) {
+      const duration = Number(relative[1]);
+      if (Number.isSafeInteger(duration) && duration > 0 && duration <= 90) {
+        patch.dates = [dateFromNow(1), dateFromNow(duration + 1)];
+      }
+    }
+  }
 
   const budget =
     message.match(

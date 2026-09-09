@@ -57,6 +57,12 @@ describe("local TripBrief extraction", () => {
     ).toEqual({ destination: "Sydney", budgetTotal: 3000 });
   });
 
+  it("understands a natural-language relative date window", () => {
+    const patch = extractBriefPatchLocally("从明天开始去 3 天");
+    expect(patch.dates?.[0]).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(patch.dates?.[1]).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
   it("keeps unmentioned fields and rejects impossible date ranges", () => {
     expect(applyBriefPatch(brief, { budgetTotal: 3000 }, brief.tripId)).toEqual({
       ...brief,
