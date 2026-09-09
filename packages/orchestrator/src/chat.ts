@@ -3,10 +3,15 @@ import { ChatOpenAI } from "@langchain/openai";
 import { memory } from "@trip/services";
 import {
   ChatTurn,
+  completeTripBrief,
+  TripIntakeDraft as TripIntakeDraftSchema,
+  TripIntakeResponse,
   TripBrief as TripBriefSchema,
   type ChatRequest,
   type ChatResponse,
   type ChatRunProgress,
+  type TripIntakeRequest,
+  type TripIntakeResponse as TripIntakeResponseType,
   type MemoryStore,
   type TokenUsage,
   type TripBrief,
@@ -49,6 +54,17 @@ function bareDestination(message: string): string | undefined {
     return undefined;
   }
   return /^[\p{L}\p{M}][\p{L}\p{M} &'·.\-]*$/u.test(value) ? value : undefined;
+}
+
+function contextualIntakePatch(message: string, draft: TripIntakeResponseType["draft"]): BriefPatch {
+  const value = message.trim().replace(/[.!?。！？]+$/, "").trim();
+  if (!draft.groupSize && /^\d+$/.test(value)) {
+    return { groupSize: Number(value) };
+  }
+  if (!draft.budgetTotal && /^\$?[\d,]+(?:\.\d+)?$/.test(value)) {
+    return { budgetTotal: Number(value.replace(/[\$,]/g, "")) };
+  }
+  return {};
 }
 
 const BriefPatchSchema = z.object({
@@ -314,6 +330,75 @@ function replyFor(message: string, fields: string[], plan: ChatResponse["plan"])
     ? `Updated: ${fields.join(", ")}.`
     : "I could not find an explicit trip-field update, so I kept the current brief.";
   return `${update} The plan completed in round ${plan.round} at an estimated USD ${plan.estTotal.toFixed(2)}.`;
+}
+
+function intakeQuestion(draft: TripIntakeResponseType["draft"]): string {
+  if (!draft.destination) {
+    return "What destination would you like to visit? You can name a city, region, or country.";
+  }
+  if (!draft.dates) {
+    return `What dates would you like to travel to ${draft.destination}? If your dates are flexible, give me an approximate window.`;
+  }
+  if (!draft.groupSize) {
+    return "How many travellers are going? Let me know if there are children or accessibility needs too.";
+  }
+  if (!draft.budgetTotal) {
+    return "What is your total trip budget, and which currency should I use?";
+  }
+  return "I have the core trip details. Are there any must-see interests, dietary needs, or pace preferences I should account for?";
+}
+
+/**
+ * The conversational intake agent. It decides after every message whether the
+ * brief has enough grounding for the planner, rather than making the browser
+ * follow a fixed question sequence.
+ */
+export async function runTripIntake(
+  request: TripIntakeRequest,
+  options: TripChatOptions = {},
+): Promise<TripIntakeResponseType> {
+  const draft = TripIntakeDraftSchema.parse(request.draft ?? { tripId: request.tripId });
+  const current = TripBriefSchema.parse({
+    ...starterBrief(request.tripId),
+    ...draft,
+    tripId: request.tripId,
+  });
+  const extracted = await extractPatch(request.message, current, options.extractor);
+  Object.assign(extracted.patch, contextualIntakePatch(request.message, draft));
+  if (!extracted.patch.destination) {
+    const destination = bareDestination(request.message);
+    if (destination) extracted.patch.destination = destination;
+  }
+  const nextDraft = TripIntakeDraftSchema.parse({
+    ...draft,
+    ...extracted.patch,
+    tripId: request.tripId,
+  });
+  const brief = completeTripBrief(nextDraft);
+  if (!brief) {
+    return TripIntakeResponse.parse({
+      reply: intakeQuestion(nextDraft),
+      draft: nextDraft,
+      ready: false,
+      plan: null,
+    });
+  }
+
+  const planned = await runTripChat(
+    {
+      tripId: request.tripId,
+      message: request.message,
+      brief,
+      history: request.history,
+    },
+    options,
+  );
+  return TripIntakeResponse.parse({
+    reply: `Your trip details are complete. The plan is ready for review at an estimated USD ${planned.plan.estTotal.toFixed(2)}.`,
+    draft: nextDraft,
+    ready: true,
+    plan: planned.plan,
+  });
 }
 
 export async function runTripChat(

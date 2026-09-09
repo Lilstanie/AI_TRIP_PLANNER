@@ -3,6 +3,7 @@ import type { Agent, ChatRunProgress, MemoryStore, ToolGateway, TripBrief } from
 import {
   applyBriefPatch,
   extractBriefPatchLocally,
+  runTripIntake,
   runTripChat,
   type BriefExtractor,
 } from "./chat";
@@ -71,6 +72,15 @@ describe("local TripBrief extraction", () => {
 });
 
 describe("trip chat workflow", () => {
+  it("lets the intake agent decide when a destination needs more detail", async () => {
+    const result = await runTripIntake({ tripId: "intake-1", message: "Sydney" });
+
+    expect(result.ready).toBe(false);
+    expect(result.plan).toBeNull();
+    expect(result.draft).toMatchObject({ tripId: "intake-1", destination: "Sydney" });
+    expect(result.reply).toContain("dates");
+  });
+
   it("creates a new trip from the first destination message and saves the latest plan", async () => {
     const savedTrips: unknown[] = [];
     const turns: Array<{ role: string; content: string }> = [];

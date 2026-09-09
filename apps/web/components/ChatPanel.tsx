@@ -3,15 +3,15 @@
 // Owner: E (shell) + A (wire to real orchestrator chat parsing).
 // Posts a ChatRequest to /api/chat and lifts the returned plan up to Workspace.
 import { useState } from "react";
-import type { AgentRunTelemetry, ChatRunProgress, ChatTurn, TripPlan } from "@trip/shared";
+import type {
+  AgentRunTelemetry,
+  ChatRunProgress,
+  ChatTurn,
+  TripIntakeDraft,
+  TripIntakeResponse,
+  TripPlan,
+} from "@trip/shared";
 import { readChatStream } from "@/lib/chatStream";
-import {
-  buildIntakeBrief,
-  extractIntakePatch,
-  intakeQuestion,
-  missingIntakeField,
-  type IntakeDraft,
-} from "@/lib/tripIntake";
 
 type Msg = { role: "user" | "agent"; text: string };
 type RunView = {
@@ -34,7 +34,7 @@ export function ChatPanel({
 }) {
   const brief = plan?.brief;
   const [tripId, setTripId] = useState(initialTripId ?? plan?.tripId);
-  const [intake, setIntake] = useState<IntakeDraft>();
+  const [intake, setIntake] = useState<TripIntakeDraft>();
   const [messages, setMessages] = useState<Msg[]>(() =>
     initialTurns.map((turn) => ({
       role: turn.role === "assistant" ? "agent" : "user",
@@ -75,21 +75,42 @@ export function ChatPanel({
     setMessages((m) => [...m, { role: "user", text }]);
     setInput("");
 
-    // Do not run the expensive planner from an underspecified first message.
-    // Keep asking in the center chat until the minimum brief is complete.
-    let completedBrief = brief;
     if (!plan) {
-      const nextIntake = {
-        ...(intake ?? {}),
-        ...extractIntakePatch(text, missingIntakeField(intake ?? {})),
-      };
-      setIntake(nextIntake);
-      const missing = missingIntakeField(nextIntake);
-      if (missing) {
-        setMessages((m) => [...m, { role: "agent", text: intakeQuestion(missing) }]);
-        return;
+      setBusy(true);
+      try {
+        const response = await fetch("/api/chat/intake", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            tripId: requestTripId,
+            message: text,
+            ...(intake ? { draft: intake } : {}),
+            history: messages.map((message) => ({
+              role: message.role === "agent" ? "assistant" : "user",
+              content: message.text,
+            })),
+          }),
+        });
+        const data = (await response.json()) as TripIntakeResponse & { error?: string };
+        if (!response.ok) throw new Error(data.error ?? "Unable to understand this trip request.");
+        setIntake(data.draft);
+        setMessages((m) => [...m, { role: "agent", text: data.reply }]);
+        if (data.ready && data.plan) {
+          setTripId(data.plan.tripId);
+          onPlan(data.plan);
+        }
+      } catch (cause) {
+        setMessages((m) => [
+          ...m,
+          {
+            role: "agent",
+            text: cause instanceof Error ? cause.message : "Unable to understand this trip request.",
+          },
+        ]);
+      } finally {
+        setBusy(false);
       }
-      completedBrief = buildIntakeBrief(nextIntake, requestTripId);
+      return;
     }
 
     setRun({
@@ -106,15 +127,7 @@ export function ChatPanel({
         body: JSON.stringify({
           tripId: requestTripId,
           message: text,
-          ...(completedBrief ? { brief: completedBrief } : {}),
-          ...(!plan
-            ? {
-                history: messages.map((message) => ({
-                  role: message.role === "agent" ? "assistant" : "user",
-                  content: message.text,
-                })),
-              }
-            : {}),
+          ...(brief ? { brief } : {}),
         }),
       });
       const data = await readChatStream(res, showProgress);

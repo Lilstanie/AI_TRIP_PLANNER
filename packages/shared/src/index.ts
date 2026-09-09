@@ -8,3 +8,4 @@ export * from "./plan";
 export * from "./chat";
 export * from "./telemetry";
 export * from "./trip";
+export * from "./intake";

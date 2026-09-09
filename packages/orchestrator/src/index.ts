@@ -4,6 +4,7 @@ export { DEMO_BRIEF } from "./demo";
 export {
   applyBriefPatch,
   extractBriefPatchLocally,
+  runTripIntake,
   runTripChat,
   type BriefExtractor,
   type BriefPatch,
