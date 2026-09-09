@@ -21,7 +21,7 @@ export function TripPanel({ plan }: { plan: TripPlan }) {
       <div className="trip__head">
         <h2 style={{ margin: 0 }}>Your trip</h2>
         <span style={{ fontSize: 12, color: "var(--text-mut)" }}>
-          {plan.round > 1 ? `Round ${plan.round} · ` : ""}Timeline · Day plan
+          {plan.round > 1 ? `Round ${plan.round} · ` : ""}Plan {plan.planVersion.slice(0, 8)}
         </span>
       </div>
       <p className="trip__sub">

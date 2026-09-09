@@ -8,7 +8,9 @@ export async function POST(req: Request) {
     typeof body?.tripId !== "string" ||
     body.tripId.trim().length === 0 ||
     typeof body?.checkpointId !== "string" ||
-    body.checkpointId.trim().length === 0
+    body.checkpointId.trim().length === 0 ||
+    typeof body?.planVersion !== "string" ||
+    body.planVersion.trim().length === 0
   ) {
     return NextResponse.json({ error: "invalid HITL decision" }, { status: 400 });
   }
@@ -17,6 +19,7 @@ export async function POST(req: Request) {
   }
   const parsed = HitlDecision.safeParse({
     checkpointId: body.checkpointId.trim(),
+    planVersion: body.planVersion.trim(),
     status: body.status,
   });
   if (!parsed.success)

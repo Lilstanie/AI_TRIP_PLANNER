@@ -110,23 +110,61 @@ describe("LangGraph orchestrator workflow", () => {
   });
 
   it("hydrates durable HITL decisions after rebuilding a plan", async () => {
+    const getHitlDecisions = vi.fn<NonNullable<MemoryStore["getHitlDecisions"]>>(async () => []);
+    const decisionMem: MemoryStore = {
+      ...mem,
+      getHitlDecisions,
+    };
+    const initial = await runOrchestrator(brief, {
+      agents: [agent("itinerary", 400)],
+      tools,
+      mem: decisionMem,
+    });
+    getHitlDecisions.mockResolvedValue([
+      {
+        checkpointId: "confirm-brief",
+        planVersion: initial.planVersion,
+        status: "approved",
+        at: "2026-01-01T00:00:00.000Z",
+      },
+    ]);
+    const hydrated = await runOrchestrator(brief, {
+      agents: [agent("itinerary", 400)],
+      tools,
+      mem: decisionMem,
+    });
+    expect(hydrated.hitl.find((checkpoint) => checkpoint.id === "confirm-brief")?.status).toBe(
+      "approved",
+    );
+  });
+
+  it("invalidates a HITL decision after the trip brief changes", async () => {
+    const initial = await runOrchestrator(brief, {
+      agents: [agent("itinerary", 400)],
+      tools,
+      mem,
+    });
     const decisionMem: MemoryStore = {
       ...mem,
       getHitlDecisions: vi.fn(async () => [
         {
           checkpointId: "confirm-brief",
+          planVersion: initial.planVersion,
           status: "approved" as const,
           at: "2026-01-01T00:00:00.000Z",
         },
       ]),
     };
-    const plan = await runOrchestrator(brief, {
-      agents: [agent("itinerary", 400)],
-      tools,
-      mem: decisionMem,
-    });
+    const plan = await runOrchestrator(
+      { ...brief, budgetTotal: brief.budgetTotal + 500 },
+      {
+        agents: [agent("itinerary", 400)],
+        tools,
+        mem: decisionMem,
+      },
+    );
     expect(plan.hitl.find((checkpoint) => checkpoint.id === "confirm-brief")?.status).toBe(
-      "approved",
+      "pending",
     );
   });
 

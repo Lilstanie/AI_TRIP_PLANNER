@@ -6,6 +6,7 @@ import {
   type ConditionalEdgeRouter,
   type GraphNode,
 } from "@langchain/langgraph";
+import { createHash } from "node:crypto";
 import { allAgents } from "@trip/agents";
 import { memory } from "@trip/services";
 import {
@@ -182,6 +183,11 @@ function buildHitl(
   return items;
 }
 
+/** Stable identifier for the exact generated artifact shown to the user. */
+export function planVersionOf(plan: Omit<TripPlan, "planVersion">): string {
+  return createHash("sha256").update(JSON.stringify(plan)).digest("hex").slice(0, 16);
+}
+
 function resolveOptions(options: OrchestratorOptions) {
   const agents = options.agents ?? allAgents;
   const maxRounds = options.maxRounds ?? DEFAULT_MAX_ROUNDS;
@@ -258,7 +264,7 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
       toSection(proposal, state.conflicts, agentByName),
     );
     const { estTotal, overrunPct } = rollUpCost(sections, state.brief.budgetTotal);
-    const plan: TripPlan = {
+    const unversionedPlan: Omit<TripPlan, "planVersion"> = {
       tripId: state.brief.tripId,
       brief: state.brief,
       round: state.round,
@@ -267,6 +273,10 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
       overrunPct,
       sections,
       hitl: buildHitl(state.brief, overrunPct, unresolved, maxRounds),
+    };
+    const plan: TripPlan = {
+      ...unversionedPlan,
+      planVersion: planVersionOf(unversionedPlan),
     };
     return { plan: TripPlanSchema.parse(plan) };
   };
@@ -306,7 +316,11 @@ export async function runOrchestrator(
   const plan = TripPlanSchema.parse(result.plan);
   const decisions = (await mem.getHitlDecisions?.(plan.tripId)) ?? [];
   if (decisions.length === 0) return plan;
-  const byId = new Map(decisions.map((decision) => [decision.checkpointId, decision.status]));
+  const byId = new Map(
+    decisions
+      .filter((decision) => decision.planVersion === plan.planVersion)
+      .map((decision) => [decision.checkpointId, decision.status]),
+  );
   return TripPlanSchema.parse({
     ...plan,
     hitl: plan.hitl.map((checkpoint) => ({

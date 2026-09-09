@@ -36,11 +36,15 @@ function load() {
         key,
         value.map((v) => UserPreference.parse(v)),
       );
-    for (const [key, value] of Object.entries(raw.decisions ?? {}))
-      nextDecisions.set(
-        key,
-        value.map((v) => HitlDecision.parse(v)),
-      );
+    for (const [key, value] of Object.entries(raw.decisions ?? {})) {
+      // Pre-versioning decisions cannot be safely applied to a current plan.
+      // Ignore only those legacy records instead of discarding the whole file.
+      const valid = value.flatMap((item) => {
+        const parsed = HitlDecision.safeParse(item);
+        return parsed.success ? [parsed.data] : [];
+      });
+      nextDecisions.set(key, valid);
+    }
     for (const [key, value] of nextShortTerm) shortTerm.set(key, value);
     for (const [key, value] of nextLongTerm) longTerm.set(key, value);
     for (const [key, value] of nextDecisions) decisions.set(key, value);

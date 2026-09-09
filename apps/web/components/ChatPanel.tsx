@@ -122,7 +122,12 @@ export function ChatPanel({ plan, onPlan }: { plan: TripPlan; onPlan: (plan: Tri
       const response = await fetch("/api/hitl", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ tripId: brief.tripId, checkpointId, status }),
+        body: JSON.stringify({
+          tripId: brief.tripId,
+          checkpointId,
+          planVersion: plan.planVersion,
+          status,
+        }),
       });
       const data = (await response.json()) as { error?: string };
       if (!response.ok) throw new Error(data.error ?? "Unable to save this decision.");
@@ -132,6 +137,13 @@ export function ChatPanel({ plan, onPlan }: { plan: TripPlan; onPlan: (plan: Tri
           checkpoint.id === checkpointId ? { ...checkpoint, status } : checkpoint,
         ),
       });
+      setMessages((current) => [
+        ...current,
+        {
+          role: "agent",
+          text: `${status === "approved" ? "Approved" : "Rejected"} for plan ${plan.planVersion.slice(0, 8)}.`,
+        },
+      ]);
     } catch (cause) {
       setDecisionError((current) => ({
         ...current,
