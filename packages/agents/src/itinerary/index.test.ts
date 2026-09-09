@@ -18,7 +18,12 @@ function context(durationMin = 30): AgentContext {
     tools: {
       maps: {
         places: vi.fn(async ({ category }) => [
-          { name: category === "sight" ? "Museum" : "Old Town", category: category ?? "sight" },
+          ...(category === "sight"
+            ? [{ name: "Museum", category: "sight" }]
+            : [
+                { name: "Old Town", category: "neighborhood" },
+                { name: "Garden", category: "neighborhood" },
+              ]),
         ]),
         route: vi.fn(async () => [{ mode: "transit" as const, durationMin, priceUsd: 5 }]),
       },

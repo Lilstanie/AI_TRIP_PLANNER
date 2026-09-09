@@ -10,10 +10,11 @@ import * as bookingAdapter from "./booking";
 export function createToolGateway(): ToolGateway {
   const useMock = process.env.USE_MOCK_TOOLS !== "false";
   if (!useMock) {
-    // TODO(B/C): construct and return the real Maps / Booking adapters here.
-    console.warn(
-      "[tools] USE_MOCK_TOOLS=false but real adapters are not implemented — falling back to mocks.",
-    );
+    if (!process.env.MAPS_API_KEY) {
+      throw new Error("USE_MOCK_TOOLS=false requires MAPS_API_KEY for the Google Maps adapter.");
+    }
+    // Booking remains fixture-backed until a provider is configured. Maps is live.
+    console.warn("[tools] Live Google Maps adapter enabled; booking remains fixture-backed.");
   }
   return { maps: mapsAdapter, booking: bookingAdapter };
 }
