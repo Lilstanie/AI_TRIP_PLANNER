@@ -21,6 +21,11 @@ import { z } from "zod/v4";
 import { runOrchestrator, type OrchestratorOptions } from "./workflow";
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+const GREETING = /^(?:hi|hello|hey|hiya|你好|您好|嗨|哈喽)(?:\s+there)?[!,.。！？，?\s]*$/iu;
+
+export function isGreeting(message: string): boolean {
+  return GREETING.test(message.trim());
+}
 
 function dateFromNow(days: number): string {
   const date = new Date();
@@ -45,6 +50,7 @@ function bareDestination(message: string): string | undefined {
     .trim()
     .replace(/[.!?。！？]+$/, "")
     .trim();
+  if (isGreeting(value)) return undefined;
   if (
     value.length > 60 ||
     /\d/.test(value) ||
@@ -417,6 +423,17 @@ function intakeQuestion(draft: TripIntakeResponseType["draft"]): string {
   return "I have the core trip details. Are there any must-see interests, dietary needs, or pace preferences I should account for?";
 }
 
+function greetingReply(message: string, draft: TripIntakeResponseType["draft"]): string {
+  if (/\p{Script=Han}/u.test(message)) {
+    return draft.destination
+      ? `你好！我可以继续帮你完善${draft.destination}的行程。你想修改日期、人数还是预算？`
+      : "你好！我可以帮你规划旅行。先告诉我想去哪里，例如“我想去东京”。";
+  }
+  return draft.destination
+    ? `Hi! I can keep helping with your ${draft.destination} trip. What would you like to change?`
+    : "Hi! I can help plan your trip. Where would you like to go?";
+}
+
 /**
  * The conversational intake agent. It decides after every message whether the
  * brief has enough grounding for the planner, rather than making the browser
@@ -427,6 +444,14 @@ export async function runTripIntake(
   options: TripChatOptions = {},
 ): Promise<TripIntakeResponseType> {
   const draft = TripIntakeDraftSchema.parse(request.draft ?? { tripId: request.tripId });
+  if (isGreeting(request.message)) {
+    return TripIntakeResponse.parse({
+      reply: greetingReply(request.message, draft),
+      draft,
+      ready: false,
+      plan: null,
+    });
+  }
   const current = TripBriefSchema.parse({
     ...starterBrief(request.tripId),
     ...draft,
