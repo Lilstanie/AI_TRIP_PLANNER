@@ -208,6 +208,7 @@ The current UI contains several visible placeholders. These are the next concret
 | P1 | Plan editing | No add/remove/reorder/replace interaction | Add item actions and run route/time/budget checks after each edit |
 | P1 | Persistence | Current memory is file-backed development storage | Move trips, preferences, chat turns and HITL decisions to SQLite/Postgres |
 | P1 | Errors | Provider failures are mostly silent fallbacks | Show “estimated”, “mock”, “source unavailable” and retry actions in the UI |
+| P1 | Observability | Custom progress telemetry does not expose prompt/tool traces, latency, tokens or cost | Add optional LangSmith tracing and evaluation runs before provider tuning or production; redact trip PII and keep local fallback telemetry |
 
 ### Explicitly out of scope for the current roadmap
 
