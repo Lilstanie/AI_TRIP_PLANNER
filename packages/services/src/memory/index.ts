@@ -3,13 +3,21 @@
 //          or Redis). Keep implementing MemoryStore from @trip/shared so nothing
 //          else has to change.
 
-import { ChatTurn, HitlDecision, UserPreference, type MemoryStore } from "@trip/shared";
+import {
+  ChatTurn,
+  HitlDecision,
+  SavedTrip,
+  TripSummary,
+  UserPreference,
+  type MemoryStore,
+} from "@trip/shared";
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 
 const shortTerm = new Map<string, ChatTurn[]>();
 const longTerm = new Map<string, UserPreference[]>();
 const decisions = new Map<string, HitlDecision[]>();
+const trips = new Map<string, SavedTrip>();
 const file = process.env.TRIP_MEMORY_FILE || "/tmp/ai-trip-planner-memory.json";
 let loaded = false;
 
@@ -22,10 +30,12 @@ function load() {
       shortTerm?: Record<string, unknown[]>;
       longTerm?: Record<string, unknown[]>;
       decisions?: Record<string, unknown[]>;
+      trips?: Record<string, unknown>;
     };
     const nextShortTerm = new Map<string, ChatTurn[]>();
     const nextLongTerm = new Map<string, UserPreference[]>();
     const nextDecisions = new Map<string, HitlDecision[]>();
+    const nextTrips = new Map<string, SavedTrip>();
     for (const [key, value] of Object.entries(raw.shortTerm ?? {}))
       nextShortTerm.set(
         key,
@@ -45,9 +55,14 @@ function load() {
       });
       nextDecisions.set(key, valid);
     }
+    for (const [key, value] of Object.entries(raw.trips ?? {})) {
+      const parsed = SavedTrip.safeParse(value);
+      if (parsed.success) nextTrips.set(key, parsed.data);
+    }
     for (const [key, value] of nextShortTerm) shortTerm.set(key, value);
     for (const [key, value] of nextLongTerm) longTerm.set(key, value);
     for (const [key, value] of nextDecisions) decisions.set(key, value);
+    for (const [key, value] of nextTrips) trips.set(key, value);
   } catch {
     // A corrupt cache should not prevent a trip from being planned.
   }
@@ -62,6 +77,7 @@ function persist() {
       shortTerm: Object.fromEntries(shortTerm),
       longTerm: Object.fromEntries(longTerm),
       decisions: Object.fromEntries(decisions),
+      trips: Object.fromEntries(trips),
     }),
     "utf8",
   );
@@ -105,6 +121,33 @@ export const memory: MemoryStore = {
       (item) => item.checkpointId !== decision.checkpointId,
     );
     decisions.set(tripId, [...existing, decision]);
+    persist();
+  },
+  async listTrips(userId) {
+    load();
+    return [...trips.values()]
+      .filter((trip) => trip.userId === userId)
+      .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
+      .map((trip) =>
+        TripSummary.parse({
+          tripId: trip.tripId,
+          userId: trip.userId,
+          title: trip.title,
+          createdAt: trip.createdAt,
+          updatedAt: trip.updatedAt,
+          destination: trip.plan?.brief.destination,
+          planVersion: trip.plan?.planVersion ?? null,
+        }),
+      );
+  },
+  async getTrip(tripId) {
+    load();
+    return trips.get(tripId);
+  },
+  async saveTrip(trip) {
+    load();
+    const parsed = SavedTrip.parse(trip);
+    trips.set(parsed.tripId, parsed);
     persist();
   },
 };

@@ -2,6 +2,13 @@ import { NextResponse } from "next/server";
 import { runTripChat } from "@trip/orchestrator";
 import { ChatRequest, ChatResponse, ChatStreamEvent } from "@trip/shared";
 
+function publicError(error: unknown): string {
+  if (error instanceof Error && error.message === "Tell me a destination to start your trip.") {
+    return error.message;
+  }
+  return "Unable to update this trip. Check the request and try again.";
+}
+
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
   const parsed = ChatRequest.safeParse(body);
@@ -42,7 +49,7 @@ export async function POST(req: Request) {
             console.error("[chat] streamed planning failed", error);
             send({
               type: "error",
-              error: "Unable to update this trip. Check the request and try again.",
+              error: publicError(error),
             });
           })
           .finally(() => {
@@ -68,9 +75,6 @@ export async function POST(req: Request) {
     return NextResponse.json(ChatResponse.parse(await runTripChat(parsed.data)));
   } catch (error) {
     console.error("[chat] planning failed", error);
-    return NextResponse.json(
-      { error: "Unable to update this trip. Check the request and try again." },
-      { status: 422 },
-    );
+    return NextResponse.json({ error: publicError(error) }, { status: 422 });
   }
 }

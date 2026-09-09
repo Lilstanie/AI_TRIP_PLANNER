@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@trip/orchestrator": "workspace:*",
+    "@trip/services": "workspace:*",
     "@trip/shared": "workspace:*",
     "next": "^15.1.3",
     "react": "^19.0.0",

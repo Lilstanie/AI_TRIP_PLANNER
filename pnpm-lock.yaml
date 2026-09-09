@@ -32,6 +32,9 @@ importers:
       '@trip/orchestrator':
         specifier: workspace:*
         version: link:../../packages/orchestrator
+      '@trip/services':
+        specifier: workspace:*
+        version: link:../../packages/services
       '@trip/shared':
         specifier: workspace:*
         version: link:../../packages/shared

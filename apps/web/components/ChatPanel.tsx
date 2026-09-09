@@ -3,7 +3,7 @@
 // Owner: E (shell) + A (wire to real orchestrator chat parsing).
 // Posts a ChatRequest to /api/chat and lifts the returned plan up to Workspace.
 import { useState } from "react";
-import type { AgentRunTelemetry, ChatRunProgress, TripPlan } from "@trip/shared";
+import type { AgentRunTelemetry, ChatRunProgress, ChatTurn, TripPlan } from "@trip/shared";
 import { readChatStream } from "@/lib/chatStream";
 
 type Msg = { role: "user" | "agent"; text: string };
@@ -14,16 +14,25 @@ type RunView = {
   steps: Array<{ phase: ChatRunProgress["phase"]; message: string }>;
 };
 
-const SEED: Msg[] = [
-  {
-    role: "agent",
-    text: "Tell me what to change — for example: “Sydney, 2026-10-01 to 2026-10-05, 2 people, budget $3000.”",
-  },
-];
-
-export function ChatPanel({ plan, onPlan }: { plan: TripPlan; onPlan: (plan: TripPlan) => void }) {
-  const brief = plan.brief;
-  const [messages, setMessages] = useState<Msg[]>(SEED);
+export function ChatPanel({
+  plan,
+  initialTripId,
+  initialTurns = [],
+  onPlan,
+}: {
+  plan: TripPlan | null;
+  initialTripId?: string;
+  initialTurns?: ChatTurn[];
+  onPlan: (plan: TripPlan) => void;
+}) {
+  const brief = plan?.brief;
+  const [tripId, setTripId] = useState(initialTripId ?? plan?.tripId);
+  const [messages, setMessages] = useState<Msg[]>(() =>
+    initialTurns.map((turn) => ({
+      role: turn.role === "assistant" ? "agent" : "user",
+      text: turn.content,
+    })),
+  );
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [decisionBusy, setDecisionBusy] = useState<string>();
@@ -53,6 +62,8 @@ export function ChatPanel({ plan, onPlan }: { plan: TripPlan; onPlan: (plan: Tri
     e.preventDefault();
     const text = input.trim();
     if (!text || busy) return;
+    const requestTripId = tripId ?? crypto.randomUUID();
+    if (!tripId) setTripId(requestTripId);
     setMessages((m) => [...m, { role: "user", text }]);
     setInput("");
     setRun({
@@ -66,9 +77,14 @@ export function ChatPanel({ plan, onPlan }: { plan: TripPlan; onPlan: (plan: Tri
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "content-type": "application/json", accept: "application/x-ndjson" },
-        body: JSON.stringify({ tripId: brief.tripId, message: text, brief }),
+        body: JSON.stringify({
+          tripId: requestTripId,
+          message: text,
+          ...(brief ? { brief } : {}),
+        }),
       });
       const data = await readChatStream(res, showProgress);
+      setTripId(data.plan.tripId);
       onPlan(data.plan);
       setMessages((m) => [...m, { role: "agent", text: data.reply }]);
     } catch (cause) {
@@ -89,16 +105,25 @@ export function ChatPanel({ plan, onPlan }: { plan: TripPlan; onPlan: (plan: Tri
   }
 
   return (
-    <section className="panel chat">
-      <h2>AI Trip Planner · Agent</h2>
+    <section
+      className={`panel chat ${plan ? "" : "chat--welcome"} ${!plan && messages.length === 0 ? "chat--empty" : ""}`}
+    >
+      {plan && <h2>AI Trip Planner · Agent</h2>}
       <div className="chat__stream">
+        {!plan && messages.length === 0 && (
+          <div className="welcome-copy">
+            <span>AI TRIP PLANNER</span>
+            <h1>今天想去哪？</h1>
+            <p>告诉我目的地、日期、人数和预算，我会从第一条消息开始为你规划。</p>
+          </div>
+        )}
         {messages.map((m, i) => (
           <div key={i} className={`msg msg--${m.role === "user" ? "user" : "agent"}`}>
             {m.text}
           </div>
         ))}
         {run && <RunTelemetry run={run} busy={busy} />}
-        {plan.hitl
+        {(plan?.hitl ?? [])
           .filter((checkpoint) => checkpoint.status === "pending")
           .map((checkpoint) => (
             <div
@@ -141,10 +166,11 @@ export function ChatPanel({ plan, onPlan }: { plan: TripPlan; onPlan: (plan: Tri
           className="field"
           style={{ marginBottom: 0 }}
           placeholder="Message AI Trip Planner…"
+          aria-label={plan ? "Message AI Trip Planner" : "Describe your next trip"}
           value={input}
           onChange={(e) => setInput(e.target.value)}
         />
-        <button type="submit" disabled={busy}>
+        <button type="submit" disabled={busy} aria-label="Send message">
           {busy ? "…" : "Send"}
         </button>
       </form>
@@ -155,7 +181,7 @@ export function ChatPanel({ plan, onPlan }: { plan: TripPlan; onPlan: (plan: Tri
   );
 
   async function decide(checkpointId: string, status: "approved" | "rejected") {
-    if (decisionBusy) return;
+    if (decisionBusy || !plan || !brief) return;
     setDecisionBusy(checkpointId);
     setDecisionError((current) => ({ ...current, [checkpointId]: "" }));
     try {

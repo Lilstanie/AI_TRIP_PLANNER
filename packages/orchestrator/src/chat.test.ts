@@ -71,6 +71,79 @@ describe("local TripBrief extraction", () => {
 });
 
 describe("trip chat workflow", () => {
+  it("creates a new trip from the first destination message and saves the latest plan", async () => {
+    const savedTrips: unknown[] = [];
+    const turns: Array<{ role: string; content: string }> = [];
+    const mem: MemoryStore = {
+      getShortTerm: vi.fn(async () => []),
+      appendShortTerm: vi.fn(async (_tripId, turn) => {
+        turns.push(turn);
+      }),
+      getLongTerm: vi.fn(async () => []),
+      setLongTerm: vi.fn(async () => {}),
+      promote: vi.fn(async () => {}),
+      getTrip: vi.fn(async () => undefined),
+      saveTrip: vi.fn(async (trip) => {
+        savedTrips.push(trip);
+      }),
+    };
+    const tools: ToolGateway = {
+      maps: { route: vi.fn(async () => []), places: vi.fn(async () => []) },
+      booking: { searchStays: vi.fn(async () => []), searchFlights: vi.fn(async () => []) },
+    };
+    const itinerary: Agent = {
+      name: "itinerary",
+      label: "Day plan",
+      async run(created) {
+        return {
+          agent: "itinerary",
+          summary: `Plan for ${created.destination}`,
+          items: [{ kind: "activity", detail: "Harbour walk", estCost: 100 }],
+          assumptions: [],
+          conflictsWith: [],
+        };
+      },
+    };
+
+    const result = await runTripChat(
+      { tripId: "new-trip", message: "Sydney" },
+      { agents: [itinerary], tools, mem },
+    );
+
+    expect(result.plan.brief).toMatchObject({
+      tripId: "new-trip",
+      userId: "demo-user",
+      destination: "Sydney",
+      groupSize: 1,
+      budgetTotal: 3000,
+    });
+    expect(turns.map((turn) => turn.role)).toEqual(["user", "assistant"]);
+    expect(savedTrips).toHaveLength(2);
+    expect(savedTrips[0]).toMatchObject({ title: "Sydney", plan: null });
+    expect(savedTrips[1]).toMatchObject({
+      title: "Sydney",
+      plan: { tripId: "new-trip", brief: { destination: "Sydney" } },
+    });
+  });
+
+  it("requires a destination before starting a new trip", async () => {
+    await expect(
+      runTripChat(
+        { tripId: "new-trip", message: "Please help me plan" },
+        {
+          extractor: { extract: vi.fn(async () => ({})) },
+          mem: {
+            getShortTerm: vi.fn(async () => []),
+            appendShortTerm: vi.fn(async () => {}),
+            getLongTerm: vi.fn(async () => []),
+            setLongTerm: vi.fn(async () => {}),
+            promote: vi.fn(async () => {}),
+          },
+        },
+      ),
+    ).rejects.toThrow("Tell me a destination");
+  });
+
   it("applies an injected structured extractor, records both turns and replans", async () => {
     const extractor: BriefExtractor = {
       extract: vi.fn(async () => ({ destination: "Melbourne", budgetTotal: 5000 })),

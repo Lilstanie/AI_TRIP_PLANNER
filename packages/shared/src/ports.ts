@@ -5,6 +5,7 @@
 
 import type { ChatTurn, UserPreference } from "./contracts";
 import type { HitlDecision } from "./plan";
+import type { SavedTrip, TripSummary } from "./trip";
 
 // --- Maps / Places port (implemented by @trip/tools/maps) -------------------
 export interface RouteQuery {
@@ -80,4 +81,8 @@ export interface MemoryStore {
   /** Optional durable HITL decisions. Older test stores may omit these methods. */
   getHitlDecisions?(tripId: string): Promise<HitlDecision[]>;
   setHitlDecision?(tripId: string, decision: HitlDecision): Promise<void>;
+  /** Optional single-user saved-trip index used by the Stage 5.3 web shell. */
+  listTrips?(userId: string): Promise<TripSummary[]>;
+  getTrip?(tripId: string): Promise<SavedTrip | undefined>;
+  saveTrip?(trip: SavedTrip): Promise<void>;
 }

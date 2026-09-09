@@ -12,10 +12,44 @@ import {
   type TripBrief,
 } from "@trip/shared";
 import { z } from "zod/v4";
-import { DEMO_BRIEF } from "./demo";
 import { runOrchestrator, type OrchestratorOptions } from "./workflow";
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+function dateFromNow(days: number): string {
+  const date = new Date();
+  date.setUTCHours(0, 0, 0, 0);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+function starterBrief(tripId: string): TripBrief {
+  return TripBriefSchema.parse({
+    tripId,
+    userId: "demo-user",
+    destination: "Destination not set",
+    dates: [dateFromNow(30), dateFromNow(35)],
+    groupSize: 1,
+    budgetTotal: 3000,
+  });
+}
+
+function bareDestination(message: string): string | undefined {
+  const value = message
+    .trim()
+    .replace(/[.!?。！？]+$/, "")
+    .trim();
+  if (
+    value.length > 60 ||
+    /\d/.test(value) ||
+    value.split(/\s+/).length > 4 ||
+    /\b(?:plan|trip|travel|holiday|budget|people|person|date|when|help|please)\b/i.test(value) ||
+    /(?:旅行|旅游|预算|日期|几人|帮我|计划)/u.test(value)
+  ) {
+    return undefined;
+  }
+  return /^[\p{L}\p{M}][\p{L}\p{M} &'·.\-]*$/u.test(value) ? value : undefined;
+}
 
 const BriefPatchSchema = z.object({
   destination: z.string().trim().min(1).optional(),
@@ -294,8 +328,9 @@ export async function runTripChat(
       // Progress reporting is optional and must not affect the answer.
     }
   };
+  const firstMessage = request.brief === undefined;
   const current = TripBriefSchema.parse({
-    ...(request.brief ?? DEMO_BRIEF),
+    ...(request.brief ?? starterBrief(request.tripId)),
     tripId: request.tripId,
   });
   const coordinatorModel = configuredExtractorModel(extractor);
@@ -314,6 +349,13 @@ export async function runTripChat(
     },
   });
   const extracted = await extractPatch(request.message, current, extractor);
+  if (firstMessage && !extracted.patch.destination) {
+    const destination = bareDestination(request.message);
+    if (destination) extracted.patch.destination = destination;
+  }
+  if (firstMessage && !extracted.patch.destination) {
+    throw new Error("Tell me a destination to start your trip.");
+  }
   report({
     phase: "decomposing",
     message: "Trip changes decomposed into specialist tasks",
@@ -328,6 +370,16 @@ export async function runTripChat(
   const patch = extracted.patch;
   const brief = applyBriefPatch(current, patch, request.tripId);
   const mem: MemoryStore = orchestrationOptions.mem ?? memory;
+  const existingTrip = await mem.getTrip?.(request.tripId);
+  const now = new Date().toISOString();
+  await mem.saveTrip?.({
+    tripId: request.tripId,
+    userId: brief.userId,
+    title: brief.destination,
+    createdAt: existingTrip?.createdAt ?? now,
+    updatedAt: now,
+    plan: existingTrip?.plan ?? null,
+  });
   await mem.appendShortTerm(
     request.tripId,
     ChatTurn.parse({ role: "user", content: request.message }),
@@ -335,6 +387,14 @@ export async function runTripChat(
   const plan = await runOrchestrator(brief, { ...orchestrationOptions, mem, onProgress: report });
   const reply = replyFor(request.message, changedFields(current, brief), plan);
   await mem.appendShortTerm(request.tripId, ChatTurn.parse({ role: "assistant", content: reply }));
+  await mem.saveTrip?.({
+    tripId: request.tripId,
+    userId: brief.userId,
+    title: brief.destination,
+    createdAt: existingTrip?.createdAt ?? now,
+    updatedAt: new Date().toISOString(),
+    plan,
+  });
   report({ phase: "complete", message: `Plan ${plan.planVersion.slice(0, 8)} is ready to review` });
   return { reply, plan };
 }

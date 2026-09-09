@@ -7,3 +7,4 @@ export * from "./agent";
 export * from "./plan";
 export * from "./chat";
 export * from "./telemetry";
+export * from "./trip";
