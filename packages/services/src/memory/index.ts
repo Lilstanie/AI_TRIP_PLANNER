@@ -4,7 +4,8 @@
 //          else has to change.
 
 import { ChatTurn, HitlDecision, UserPreference, type MemoryStore } from "@trip/shared";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { dirname } from "node:path";
 
 const shortTerm = new Map<string, ChatTurn[]>();
 const longTerm = new Map<string, UserPreference[]>();
@@ -22,29 +23,37 @@ function load() {
       longTerm?: Record<string, unknown[]>;
       decisions?: Record<string, unknown[]>;
     };
+    const nextShortTerm = new Map<string, ChatTurn[]>();
+    const nextLongTerm = new Map<string, UserPreference[]>();
+    const nextDecisions = new Map<string, HitlDecision[]>();
     for (const [key, value] of Object.entries(raw.shortTerm ?? {}))
-      shortTerm.set(
+      nextShortTerm.set(
         key,
         value.map((v) => ChatTurn.parse(v)),
       );
     for (const [key, value] of Object.entries(raw.longTerm ?? {}))
-      longTerm.set(
+      nextLongTerm.set(
         key,
         value.map((v) => UserPreference.parse(v)),
       );
     for (const [key, value] of Object.entries(raw.decisions ?? {}))
-      decisions.set(
+      nextDecisions.set(
         key,
         value.map((v) => HitlDecision.parse(v)),
       );
+    for (const [key, value] of nextShortTerm) shortTerm.set(key, value);
+    for (const [key, value] of nextLongTerm) longTerm.set(key, value);
+    for (const [key, value] of nextDecisions) decisions.set(key, value);
   } catch {
     // A corrupt cache should not prevent a trip from being planned.
   }
 }
 
 function persist() {
+  mkdirSync(dirname(file), { recursive: true });
+  const temporaryFile = `${file}.${process.pid}.tmp`;
   writeFileSync(
-    file,
+    temporaryFile,
     JSON.stringify({
       shortTerm: Object.fromEntries(shortTerm),
       longTerm: Object.fromEntries(longTerm),
@@ -52,6 +61,7 @@ function persist() {
     }),
     "utf8",
   );
+  renameSync(temporaryFile, file);
 }
 
 export const memory: MemoryStore = {
