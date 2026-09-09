@@ -380,6 +380,9 @@ export async function runTripChat(
     updatedAt: now,
     plan: existingTrip?.plan ?? null,
   });
+  for (const turn of request.history ?? []) {
+    await mem.appendShortTerm(request.tripId, ChatTurn.parse(turn));
+  }
   await mem.appendShortTerm(
     request.tripId,
     ChatTurn.parse({ role: "user", content: request.message }),

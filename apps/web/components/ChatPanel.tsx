@@ -5,6 +5,13 @@
 import { useState } from "react";
 import type { AgentRunTelemetry, ChatRunProgress, ChatTurn, TripPlan } from "@trip/shared";
 import { readChatStream } from "@/lib/chatStream";
+import {
+  buildIntakeBrief,
+  extractIntakePatch,
+  intakeQuestion,
+  missingIntakeField,
+  type IntakeDraft,
+} from "@/lib/tripIntake";
 
 type Msg = { role: "user" | "agent"; text: string };
 type RunView = {
@@ -27,6 +34,7 @@ export function ChatPanel({
 }) {
   const brief = plan?.brief;
   const [tripId, setTripId] = useState(initialTripId ?? plan?.tripId);
+  const [intake, setIntake] = useState<IntakeDraft>();
   const [messages, setMessages] = useState<Msg[]>(() =>
     initialTurns.map((turn) => ({
       role: turn.role === "assistant" ? "agent" : "user",
@@ -66,6 +74,21 @@ export function ChatPanel({
     if (!tripId) setTripId(requestTripId);
     setMessages((m) => [...m, { role: "user", text }]);
     setInput("");
+
+    // Do not run the expensive planner from an underspecified first message.
+    // Keep asking in the center chat until the minimum brief is complete.
+    let completedBrief = brief;
+    if (!plan) {
+      const nextIntake = { ...(intake ?? {}), ...extractIntakePatch(text) };
+      setIntake(nextIntake);
+      const missing = missingIntakeField(nextIntake);
+      if (missing) {
+        setMessages((m) => [...m, { role: "agent", text: intakeQuestion(missing) }]);
+        return;
+      }
+      completedBrief = buildIntakeBrief(nextIntake, requestTripId);
+    }
+
     setRun({
       phase: "decomposing",
       message: "Starting the planning run",
@@ -80,7 +103,15 @@ export function ChatPanel({
         body: JSON.stringify({
           tripId: requestTripId,
           message: text,
-          ...(brief ? { brief } : {}),
+          ...(completedBrief ? { brief: completedBrief } : {}),
+          ...(!plan
+            ? {
+                history: messages.map((message) => ({
+                  role: message.role === "agent" ? "assistant" : "user",
+                  content: message.text,
+                })),
+              }
+            : {}),
         }),
       });
       const data = await readChatStream(res, showProgress);
@@ -113,8 +144,11 @@ export function ChatPanel({
         {!plan && messages.length === 0 && (
           <div className="welcome-copy">
             <span>AI TRIP PLANNER</span>
-            <h1>今天想去哪？</h1>
-            <p>告诉我目的地、日期、人数和预算，我会从第一条消息开始为你规划。</p>
+            <h1>Where do you want to go?</h1>
+            <p>
+              Tell me your destination, dates, group size, and budget. I&apos;ll ask for any missing
+              details before building your trip.
+            </p>
           </div>
         )}
         {messages.map((m, i) => (
