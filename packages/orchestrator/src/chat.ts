@@ -1,6 +1,7 @@
 import { ChatAnthropic } from "@langchain/anthropic";
 import { ChatOpenAI } from "@langchain/openai";
 import { memory } from "@trip/services";
+import { deepSeekReasoningEffort, deepSeekThinkingEnabled } from "@trip/agents";
 import {
   ChatTurn,
   completeTripBrief,
@@ -56,8 +57,14 @@ function bareDestination(message: string): string | undefined {
   return /^[\p{L}\p{M}][\p{L}\p{M} &'·.\-]*$/u.test(value) ? value : undefined;
 }
 
-function contextualIntakePatch(message: string, draft: TripIntakeResponseType["draft"]): BriefPatch {
-  const value = message.trim().replace(/[.!?。！？]+$/, "").trim();
+function contextualIntakePatch(
+  message: string,
+  draft: TripIntakeResponseType["draft"],
+): BriefPatch {
+  const value = message
+    .trim()
+    .replace(/[.!?。！？]+$/, "")
+    .trim();
   if (!draft.groupSize && /^\d+$/.test(value)) {
     return { groupSize: Number(value) };
   }
@@ -254,6 +261,56 @@ function createOpenAIExtractor(): BriefExtractor | undefined {
   };
 }
 
+/**
+ * DeepSeek is the default configured provider in this project. Its thinking
+ * mode returns reasoning separately and is most reliable with an `auto` tool
+ * call rather than LangChain's forced structured-output tool choice.
+ */
+function createDeepSeekExtractor(): BriefExtractor | undefined {
+  const apiKey = process.env.DEEPSEEK_API_KEY;
+  if (!apiKey) return undefined;
+  const thinking = deepSeekThinkingEnabled();
+  const model = new ChatOpenAI({
+    apiKey,
+    model: process.env.DEEPSEEK_MODEL || "deepseek-v4-flash",
+    ...(thinking ? {} : { temperature: 0 }),
+    streamUsage: false,
+    modelKwargs: thinking
+      ? { thinking: { type: "enabled" }, reasoning_effort: deepSeekReasoningEffort() }
+      : { thinking: { type: "disabled" } },
+    configuration: {
+      baseURL: process.env.DEEPSEEK_BASE_URL || "https://api.deepseek.com",
+    },
+  });
+  const bound = model.bindTools(
+    [
+      {
+        type: "function",
+        function: {
+          name: "TripBriefPatch",
+          description: "Return only explicit trip brief updates.",
+          parameters: z.toJSONSchema(ModelPatchSchema, { io: "input", target: "draft-7" }),
+        },
+      },
+    ],
+    { tool_choice: "auto" },
+  );
+  return {
+    async extract(message, current) {
+      const response = await bound.invoke(extractionPrompt(message, current));
+      const call = response.tool_calls?.find((toolCall) => toolCall.name === "TripBriefPatch");
+      if (!call) throw new Error("DeepSeek returned no TripBriefPatch tool call");
+      const result = ModelPatchSchema.parse(call.args);
+      const { dates, ...fields } = result;
+      const patch: BriefPatch = Object.fromEntries(
+        Object.entries(fields).filter(([, value]) => value !== null),
+      );
+      if (dates !== null) patch.dates = dates;
+      return BriefPatchSchema.parse(patch);
+    },
+  };
+}
+
 function createAnthropicExtractor(): BriefExtractor | undefined {
   if (!process.env.ANTHROPIC_API_KEY) return undefined;
   const model = new ChatAnthropic({
@@ -279,7 +336,7 @@ function createAnthropicExtractor(): BriefExtractor | undefined {
 function createLangChainExtractor(): BriefExtractor | undefined {
   // Prefer the GPT profile for chat/intent extraction, then preserve the
   // existing Anthropic profile for teams that still configure that provider.
-  return createOpenAIExtractor() ?? createAnthropicExtractor();
+  return createOpenAIExtractor() ?? createAnthropicExtractor() ?? createDeepSeekExtractor();
 }
 
 function configuredExtractorModel(extractor?: BriefExtractor): string {
@@ -289,6 +346,9 @@ function configuredExtractorModel(extractor?: BriefExtractor): string {
   }
   if (process.env.ANTHROPIC_API_KEY) {
     return `Anthropic · ${process.env.AI_MODEL || "claude-haiku-4-5-20251001"}`;
+  }
+  if (process.env.DEEPSEEK_API_KEY) {
+    return `DeepSeek · ${process.env.DEEPSEEK_MODEL || "deepseek-v4-flash"}${deepSeekThinkingEnabled() ? " · thinking" : ""}`;
   }
   return "Local parser";
 }

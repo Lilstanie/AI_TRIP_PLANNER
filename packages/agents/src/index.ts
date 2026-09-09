@@ -41,6 +41,8 @@ export {
 export {
   MODEL_ROUTING,
   createRoutedChatModel,
+  deepSeekReasoningEffort,
+  deepSeekThinkingEnabled,
   routedModelName,
   type RoutedModelTask,
 } from "./models";

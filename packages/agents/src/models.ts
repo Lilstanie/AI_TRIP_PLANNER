@@ -17,11 +17,21 @@ export const MODEL_ROUTING = {
 
 export type RoutedModelTask = keyof typeof MODEL_ROUTING;
 
+/** DeepSeek thinking is on by default; set the env var to `false` for latency-sensitive runs. */
+export function deepSeekThinkingEnabled(): boolean {
+  return (process.env.DEEPSEEK_THINKING_ENABLED || "true").toLowerCase() !== "false";
+}
+
+export function deepSeekReasoningEffort(): "low" | "high" | "max" {
+  const configured = (process.env.DEEPSEEK_REASONING_EFFORT || "high").toLowerCase();
+  return configured === "low" || configured === "max" ? configured : "high";
+}
+
 export function routedModelName(task: RoutedModelTask): string {
   const provider = MODEL_ROUTING[task];
   if (provider === "deepseek") {
     return process.env.DEEPSEEK_API_KEY
-      ? `DeepSeek · ${process.env.DEEPSEEK_MODEL || "deepseek-v4-flash"}`
+      ? `DeepSeek · ${process.env.DEEPSEEK_MODEL || "deepseek-v4-flash"}${deepSeekThinkingEnabled() ? " · thinking" : ""}`
       : "Deterministic fallback";
   }
   return process.env.MINIMAX_API_KEY
@@ -34,13 +44,17 @@ export function createRoutedChatModel(task: RoutedModelTask): ChatOpenAI | undef
   if (provider === "deepseek") {
     const apiKey = process.env.DEEPSEEK_API_KEY;
     if (!apiKey) return undefined;
+    const thinking = deepSeekThinkingEnabled();
     return new ChatOpenAI({
       apiKey,
       model: process.env.DEEPSEEK_MODEL || "deepseek-v4-flash",
-      temperature: 0,
+      // DeepSeek thinking mode does not support temperature/top_p. Omit them
+      // entirely when enabled instead of sending a value the API ignores.
+      ...(thinking ? {} : { temperature: 0 }),
       streamUsage: false,
-      // DeepSeek V4 thinking mode rejects the tool_choice used for structured output.
-      modelKwargs: { thinking: { type: "disabled" } },
+      modelKwargs: thinking
+        ? { thinking: { type: "enabled" }, reasoning_effort: deepSeekReasoningEffort() }
+        : { thinking: { type: "disabled" } },
       configuration: {
         baseURL: process.env.DEEPSEEK_BASE_URL || "https://api.deepseek.com",
       },
@@ -74,7 +88,7 @@ export function createRoutedStructuredInvoker<Schema extends z.ZodType>(
   const model = createRoutedChatModel(task);
   if (!model) return undefined;
 
-  if (MODEL_ROUTING[task] === "deepseek") {
+  if (MODEL_ROUTING[task] === "deepseek" && !deepSeekThinkingEnabled()) {
     const structured = model.withStructuredOutput(schema, { name, method: "functionCalling" });
     const call = (prompt: string) => structured.invoke(prompt) as Promise<z.infer<Schema>>;
     return (prompt) =>

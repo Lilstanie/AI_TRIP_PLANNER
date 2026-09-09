@@ -93,7 +93,7 @@ flowchart TB
 
 ### External tools / systems
 
-- **LLM** — explicit task routing: GPT/Claude-compatible extraction for chat intake, DeepSeek V4 Flash for itinerary drafting, and MiniMax M2.7 for destination/dining guidance; deterministic fallbacks keep every flow usable without API keys
+- **LLM** — explicit task routing: GPT/Claude-compatible extraction when configured, otherwise DeepSeek V4 Flash with thinking enabled by default for chat intake and itinerary drafting; deterministic fallbacks keep every flow usable without API keys
 - **Maps / Places API** — free OpenStreetMap Nominatim + OSRM in live mode, deterministic mockable in dev
 - **Booking / Price API** — lodging / flight pricing, **mock**; real payment is out of scope
 - No weather API — weather advice is an LLM sub-function inside `DestinationGuideAgent`
@@ -122,7 +122,7 @@ flowchart TB
 | Monorepo / package manager | pnpm workspaces + Turborepo                                                                                                                                                                                  |
 | Web framework              | Next.js 15 (App Router) — frontend + server-side agent logic in one deployable (Route Handlers / Server Actions)                                                                                             |
 | Agent orchestration        | **LangGraph.js** (`@langchain/langgraph`): typed graph state, parallel specialist dispatch, conditional conflict/revision loop                                                                               |
-| LLM calls                  | LangChain structured output; `ChatOpenAI` routes itinerary to DeepSeek and destination/dining to MiniMax, while chat extraction supports GPT or Anthropic; every path has a validated deterministic fallback |
+| LLM calls                  | LangChain structured output; `ChatOpenAI` routes itinerary and (when no GPT/Anthropic key is configured) chat intake to DeepSeek thinking mode, while destination/dining can use MiniMax; every path has a validated deterministic fallback |
 | Contracts / validation     | **Zod** — every inter-agent message and tool input/output                                                                                                                                                    |
 | State / memory             | SQLite (`better-sqlite3`) or JSON files in dev; add Redis (optional in compose) if cross-request sharing is needed                                                                                           |
 | Testing                    | Vitest                                                                                                                                                                                                       |
