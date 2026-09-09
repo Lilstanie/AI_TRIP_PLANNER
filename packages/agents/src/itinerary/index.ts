@@ -68,11 +68,20 @@ function minutes(time: string): number {
   return hour! * 60 + minute!;
 }
 
-function validateDraft(draft: ItineraryDraft, brief: TripBrief, days: number): ItineraryDraft {
+function validateDraft(
+  draft: ItineraryDraft,
+  brief: TripBrief,
+  days: number,
+  places: Place[],
+): ItineraryDraft {
   const parsed = ItineraryDraft.parse(draft);
+  const candidates = new Set(places.map((place) => place.name.trim().toLocaleLowerCase()));
   const representedDays = new Set<number>();
   let total = 0;
   for (const activity of parsed.activities) {
+    if (!candidates.has(activity.location.trim().toLocaleLowerCase())) {
+      throw new Error(`Itinerary returned an ungrounded location: ${activity.location}`);
+    }
     if (activity.day > days) throw new Error(`Itinerary day ${activity.day} exceeds trip length.`);
     if (minutes(activity.endTime) <= minutes(activity.startTime)) {
       throw new Error(`Itinerary activity on day ${activity.day} must end after it starts.`);
@@ -124,7 +133,11 @@ function fallbackDraft(brief: TripBrief, days: number, places: Place[]): Itinera
 }
 
 function createDeepSeekGenerator(): ItineraryGenerator | undefined {
-  const structured = createRoutedStructuredInvoker("itinerary", ItineraryDraft, "TripItineraryDraft");
+  const structured = createRoutedStructuredInvoker(
+    "itinerary",
+    ItineraryDraft,
+    "TripItineraryDraft",
+  );
   if (!structured) return undefined;
   return {
     async generate(input) {
@@ -188,6 +201,7 @@ async function planItinerary(
         await generator.generate({ brief, days, places, preferences, revision }),
         brief,
         days,
+        places,
       );
       source = "DeepSeek/LangChain";
     } catch (error) {
