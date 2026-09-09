@@ -10,11 +10,11 @@ import * as bookingAdapter from "./booking";
 export function createToolGateway(): ToolGateway {
   const useMock = process.env.USE_MOCK_TOOLS !== "false";
   if (!useMock) {
-    if (!process.env.MAPS_API_KEY) {
-      throw new Error("USE_MOCK_TOOLS=false requires MAPS_API_KEY for the Google Maps adapter.");
+    const selected = process.env.MAPS_PROVIDER || (process.env.MAPS_API_KEY ? "google" : "osm");
+    if (selected === "osm" && !process.env.OSM_USER_AGENT) {
+      console.warn("[tools] OSM_USER_AGENT is unset; configure one before production traffic.");
     }
-    // Booking remains fixture-backed until a provider is configured. Maps is live.
-    console.warn("[tools] Live Google Maps adapter enabled; booking remains fixture-backed.");
+    console.warn(`[tools] Live ${selected} Maps adapter enabled; booking remains fixture-backed.`);
   }
   return { maps: mapsAdapter, booking: bookingAdapter };
 }
