@@ -1,28 +1,17 @@
 "use client";
 
-// Owner: E (shell) + A (wire to real orchestrator chat parsing).
-// Posts a ChatRequest to /api/chat and lifts the returned plan up to Workspace.
 import { useEffect, useRef, useState } from "react";
-import {
-  AGENT_NAMES,
-  type AgentName,
-  type AgentProgressEvent,
-  type ChatResponse,
-  type TripBrief,
-  type TripPlan,
-} from "@trip/shared";
+import { AGENT_NAMES, type AgentName, type AgentProgressEvent, type TripPlan } from "@trip/shared";
+import { useLanguage } from "@/components/LanguageContext";
+import { requestTripUpdate } from "@/lib/chatStream";
 
-type Msg = { role: "user" | "agent"; text: string };
-type AgentActivity = {
+type Message = { id: string; role: "user" | "agent"; text: string };
+type Activity = {
   agent: AgentName;
   status: "queued" | "running" | "completed" | "failed";
   round?: number;
   error?: string;
 };
-type StreamFrame =
-  | AgentProgressEvent
-  | { type: "complete"; response: ChatResponse }
-  | { type: "error"; error: string };
 
 const AGENT_LABELS: Record<AgentName, string> = {
   itinerary: "Day plan",
@@ -32,45 +21,55 @@ const AGENT_LABELS: Record<AgentName, string> = {
   dining: "Food & dining",
 };
 
-const SEED: Msg[] = [
-  {
-    role: "agent",
-    text: "Tell me what to change — for example: “Sydney, 2026-10-01 to 2026-10-05, 2 people, budget $3000.”",
-  },
-];
-
 export function ChatPanel({
-  brief,
+  plan,
   onPlan,
   inputRef,
+  onOpenFilters,
 }: {
-  brief: TripBrief;
+  plan: TripPlan;
   onPlan: (plan: TripPlan) => void;
-  /** Lets the trip panel hand off to the composer, which is where a plan is changed. */
   inputRef?: React.Ref<HTMLInputElement>;
+  onOpenFilters: () => void;
 }) {
-  const [messages, setMessages] = useState<Msg[]>(SEED);
+  const { language, t } = useLanguage();
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
-  const [activity, setActivity] = useState<AgentActivity[]>([]);
+  const [activity, setActivity] = useState<Activity[]>([]);
   const streamRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController>(null);
 
-  // Keep the newest turn in view; without this the reply lands below the fold
-  // and the panel looks like it did nothing.
   useEffect(() => {
     streamRef.current?.scrollTo({ top: streamRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, activity]);
-
-  // A turn takes tens of seconds. If the panel goes away mid-stream, stop
-  // reading rather than writing state into an unmounted component.
   useEffect(() => () => abortRef.current?.abort(), []);
 
-  async function send(e: React.FormEvent) {
-    e.preventDefault();
+  function updateProgress(event: AgentProgressEvent) {
+    setActivity((current) =>
+      current.map((item) =>
+        item.agent === event.agent
+          ? {
+              ...item,
+              status:
+                event.type === "agent_started"
+                  ? "running"
+                  : event.type === "agent_completed"
+                    ? "completed"
+                    : "failed",
+              round: event.round,
+              error: event.type === "agent_failed" ? event.error : undefined,
+            }
+          : item,
+      ),
+    );
+  }
+
+  async function send(event: React.FormEvent) {
+    event.preventDefault();
     const text = input.trim();
     if (!text || busy) return;
-    setMessages((m) => [...m, { role: "user", text }]);
+    setMessages((current) => [...current, { id: crypto.randomUUID(), role: "user", text }]);
     setInput("");
     setBusy(true);
     setActivity(AGENT_NAMES.map((agent) => ({ agent, status: "queued" })));
@@ -78,147 +77,130 @@ export function ChatPanel({
     const controller = new AbortController();
     abortRef.current = controller;
     try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ tripId: brief.tripId, message: text, brief }),
+      const response = await requestTripUpdate({
+        tripId: plan.tripId,
+        message: text,
+        brief: plan.brief,
         signal: controller.signal,
+        onProgress: updateProgress,
       });
-      if (!res.ok) {
-        // The route answers 400/422 with { error } as plain JSON, not as a
-        // progress stream. Without this the body was parsed as NDJSON, matched
-        // no frame type, and the user saw "(no reply)" instead of the reason.
-        const detail = await res
-          .json()
-          .then((body: { error?: string }) => body.error)
-          .catch(() => undefined);
-        throw new Error(detail ?? `Chat request failed (${res.status}).`);
-      }
-      if (!res.body) throw new Error("Chat response did not provide a progress stream.");
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
-      let finalResponse: ChatResponse | undefined;
-      let streamError: string | undefined;
-
-      const handleFrame = (frame: StreamFrame) => {
-        if (
-          frame.type === "agent_started" ||
-          frame.type === "agent_completed" ||
-          frame.type === "agent_failed"
-        ) {
-          setActivity((current) =>
-            current.map((item) =>
-              item.agent === frame.agent
-                ? {
-                    ...item,
-                    status:
-                      frame.type === "agent_started"
-                        ? "running"
-                        : frame.type === "agent_completed"
-                          ? "completed"
-                          : "failed",
-                    round: frame.round,
-                    error: frame.type === "agent_failed" ? frame.error : undefined,
-                  }
-                : item,
-            ),
-          );
-        } else if (frame.type === "complete") {
-          finalResponse = frame.response;
-        } else if (frame.type === "error") {
-          streamError = frame.error;
-        }
-      };
-
-      // One unparseable frame used to throw out of the read loop and discard
-      // the progress and plan already received. Skip it and keep reading.
-      const readFrame = (line: string) => {
-        if (!line.trim()) return;
-        try {
-          handleFrame(JSON.parse(line) as StreamFrame);
-        } catch (error) {
-          console.error("[chat] discarding unreadable progress frame", line, error);
-        }
-      };
-
-      while (true) {
-        const { value, done } = await reader.read();
-        buffer += decoder.decode(value ?? new Uint8Array(), { stream: !done });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() ?? "";
-        for (const line of lines) readFrame(line);
-        if (done) break;
-      }
-      readFrame(buffer);
-
-      if (finalResponse) {
-        onPlan(finalResponse.plan);
-        setMessages((m) => [...m, { role: "agent", text: finalResponse!.reply }]);
-      } else {
-        setMessages((m) => [...m, { role: "agent", text: streamError ?? "(no reply)" }]);
-      }
-    } catch (error) {
+      onPlan(response.plan);
+      setMessages((current) => [
+        ...current,
+        { id: crypto.randomUUID(), role: "agent", text: response.reply },
+      ]);
+    } catch (cause) {
       if (controller.signal.aborted) return;
-      console.error("[chat] request failed", error);
-      const detail = error instanceof Error ? error.message : "Request failed.";
-      setMessages((m) => [...m, { role: "agent", text: detail }]);
+      setMessages((current) => [
+        ...current,
+        {
+          id: crypto.randomUUID(),
+          role: "agent",
+          text: cause instanceof Error ? cause.message : "Unable to update this trip.",
+        },
+      ]);
     } finally {
       if (abortRef.current === controller) abortRef.current = null;
       setBusy(false);
     }
   }
 
+  const completed = plan.sections.filter((section) => section.status === "confirmed").length;
+  const displayedActivity: Activity[] = activity.length
+    ? activity
+    : AGENT_NAMES.map((agent) => ({ agent, status: "queued" }));
+
   return (
-    <section className="panel chat">
-      <h2>AI Trip Planner · Agent</h2>
-      <div className="chat__stream" ref={streamRef} aria-live="polite" aria-busy={busy}>
-        {messages.map((m, i) => (
-          <div key={i} className={`msg msg--${m.role === "user" ? "user" : "agent"}`}>
-            {m.text}
+    <section className="panel chat" aria-label="Conversation with trip coordinator">
+      <header className="chat-heading">
+        <div>
+          <span className="eyebrow">{t("Coordinator")}</span>
+          <h1>{t("Build your trip together")}</h1>
+          <p>{t("One conversation, with specialists working behind the scenes.")}</p>
+        </div>
+        <span className="decision-count">
+          {language === "zh"
+            ? `${completed}/${plan.sections.length} 项已确认`
+            : `${completed}/${plan.sections.length} confirmed`}
+        </span>
+      </header>
+
+      <div className="agent-progress" aria-live="polite" aria-busy={busy}>
+        {displayedActivity.map((item) => (
+          <div key={item.agent}>
+            <span className={`status-dot status-dot--${item.status}`} />
+            <span>{t(AGENT_LABELS[item.agent])}</span>
+            <small>
+              {t(
+                item.status === "queued"
+                  ? "Queued"
+                  : item.status === "running"
+                    ? "Running"
+                    : item.status === "completed"
+                      ? "Complete"
+                      : "Needs attention",
+              )}
+              {item.round && item.round > 1 ? ` · ${item.round}` : ""}
+            </small>
+            {item.error && <small className="agent-progress__error">{item.error}</small>}
           </div>
         ))}
-        {activity.length > 0 && (
-          <div className="agent-activity" aria-live="polite">
-            <div className="agent-activity__title">Agent activity</div>
-            {activity.map((item) => (
-              <div className="agent-activity__row" key={item.agent}>
-                <span>{AGENT_LABELS[item.agent]}</span>
-                <span className={`agent-activity__status agent-activity__status--${item.status}`}>
-                  {item.status === "queued"
-                    ? "Queued"
-                    : item.status === "running"
-                      ? `Running${item.round && item.round > 1 ? ` · round ${item.round}` : ""}`
-                      : item.status === "completed"
-                        ? `Complete${item.round && item.round > 1 ? ` · round ${item.round}` : ""}`
-                        : "Needs attention"}
-                </span>
-                {/* The failure reason was captured and then never shown. */}
-                {item.error && <p className="agent-activity__error">{item.error}</p>}
-              </div>
-            ))}
-          </div>
-        )}
-        {/* TODO(E): render HITL checkpoint cards here (plan.hitl) — hotel picker,
-            confirm-brief, escalation. See TripPlan in @trip/shared. */}
-        <div className="todo">TODO(E): inline HITL cards (choose hotels, confirm plan…).</div>
       </div>
+
+      <div className="chat__stream" ref={streamRef}>
+        <div className="coordinator-message">
+          <span className="avatar">AI</span>
+          <div>
+            <strong>
+              {t("Tell me what to change, and I’ll ask the specialist agents to rebuild the plan.")}
+            </strong>
+            <p>
+              {plan.brief.destination} · {plan.brief.dates[0]} – {plan.brief.dates[1]} · USD{" "}
+              {plan.brief.budgetTotal.toLocaleString()}
+            </p>
+            <button type="button" className="secondary-button" onClick={onOpenFilters}>
+              {t("Trip filters")}
+            </button>
+          </div>
+        </div>
+
+        {plan.hitl
+          .filter((checkpoint) => checkpoint.status === "pending")
+          .map((checkpoint) => (
+            <article className="decision-card" key={checkpoint.id}>
+              <div className="card-kicker">Human in the loop</div>
+              <h2>{checkpoint.title}</h2>
+              <p>{checkpoint.detail}</p>
+              <span className="pending-contract-note">
+                {language === "zh"
+                  ? "当前 main 分支尚未接回决策写入接口，请在对话中确认或修改。"
+                  : "Decision persistence is not yet reconnected on main; confirm or revise this in chat."}
+              </span>
+            </article>
+          ))}
+
+        {messages.map((message) => (
+          <div className={`msg msg--${message.role}`} key={message.id}>
+            {message.text}
+          </div>
+        ))}
+      </div>
+
       <form className="chat__form" onSubmit={send}>
         <input
-          className="field"
           ref={inputRef}
-          placeholder={busy ? "Planning your trip…" : "Message AI Trip Planner…"}
-          aria-label="Message AI Trip Planner"
+          aria-label="Message the trip coordinator"
+          placeholder={busy ? t("Planning your trip…") : t("Message the trip coordinator…")}
           value={input}
           disabled={busy}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={(event) => setInput(event.target.value)}
         />
-        <button type="submit" disabled={busy}>
-          {busy ? "…" : "Send"}
+        <button type="submit" disabled={busy || !input.trim()}>
+          {busy ? "…" : t("Send")}
         </button>
       </form>
       <p className="disclaimer">
-        AI-generated results may be inaccurate. Double-check important details.
+        {t("AI-generated results may be inaccurate. Double-check important details.")}
       </p>
     </section>
   );

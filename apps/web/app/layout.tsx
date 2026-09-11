@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 
 export const metadata = {
   title: "AI Trip Planner",
-  description: "ELEC5620 multi-agent trip planning system — scaffold",
+  description: "A human-in-the-loop, multi-agent trip planning workspace",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
