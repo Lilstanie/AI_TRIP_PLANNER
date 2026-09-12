@@ -4,24 +4,18 @@ import {
   type AgentContext,
   type AgentProposal,
   type RevisionRequest,
+  type ProposalItem,
+  type RouteLeg,
   type Specialist,
   type TripBrief,
 } from "@trip/shared";
 import { createAgent, tool } from "langchain";
 import { z } from "zod/v4";
 import { createRoutedChatModel, readStructuredResponse } from "../models";
+import { dateForDay, planningDays, routeProblem, fareUnavailable } from "./validation";
 
 // Transport combines booking fares with map legs and keeps all pricing in the
 // deterministic calculator that the specialist must call.
-const DAY_MS = 86_400_000;
-
-/** Return trip length after validating the date ordering. */
-function tripDays([start, end]: [string, string]): number {
-  const days = Math.round((Date.parse(end) - Date.parse(start)) / DAY_MS);
-  if (!Number.isSafeInteger(days) || days < 1) throw new Error("Transport requires ordered dates.");
-  return days;
-}
-
 /** Parse the demo's ampersand-separated destination convention. */
 function cities(destination: string): string[] {
   const result = destination
@@ -49,7 +43,7 @@ async function buildTransportProposal(
   ctx.signal?.throwIfAborted();
   const brief = TripBriefSchema.parse(briefInput);
   const destinations = cities(brief.destination);
-  const days = tripDays(brief.dates);
+  const days = planningDays(brief.dates);
   const preferences = await ctx.mem.getLongTerm(brief.userId);
   const origin =
     preferences.find((preference) => preference.key === "transport.origin")?.value.trim() ||
@@ -62,7 +56,10 @@ async function buildTransportProposal(
   const routeQueries = destinations.slice(1).map((destination, index) => ({
     from: destinations[index]!,
     to: destination,
-    date: brief.dates[0],
+    date: dateForDay(
+      brief.dates[0],
+      Math.min(days, Math.floor((days * (index + 1)) / destinations.length) + 1),
+    ),
     day: Math.min(days, Math.floor((days * (index + 1)) / destinations.length) + 1),
   }));
   // A single-city trip still gets an arrival transfer when the origin matches
@@ -76,43 +73,82 @@ async function buildTransportProposal(
     });
   }
 
+  const conflicts: string[] = [];
   const [flightOptions, routed] = await Promise.all([
     origin.toLowerCase() === destinations[0]!.toLowerCase()
       ? Promise.resolve([])
-      : ctx.tools.booking.searchFlights({
-          from: origin,
-          to: destinations[0]!,
-          depart: brief.dates[0],
-          return: brief.dates[1],
-          passengers: brief.groupSize,
-        }),
+      : ctx.tools.booking
+          .searchFlights({
+            from: origin,
+            to: destinations[0]!,
+            depart: brief.dates[0],
+            return: brief.dates[1],
+            passengers: brief.groupSize,
+          })
+          .catch(() => {
+            ctx.signal?.throwIfAborted();
+            conflicts.push("Flight provider unavailable; required flight remains unpriced.");
+            return [];
+          }),
     Promise.all(
-      routeQueries.map(async (query) => ({ query, legs: await ctx.tools.maps.route(query) })),
+      routeQueries.map(async (query) => {
+        try {
+          return { query, legs: await ctx.tools.maps.route(query) };
+        } catch {
+          ctx.signal?.throwIfAborted();
+          conflicts.push(
+            `geography conflict on day ${query.day}: route provider unavailable for ${query.from} → ${query.to}`,
+          );
+          return { query, legs: [] as RouteLeg[] };
+        }
+      }),
     ),
   ]);
   ctx.signal?.throwIfAborted();
 
-  const flight = flightOptions.length
+  const validFlights = flightOptions.filter(
+    (option) => Number.isFinite(option.priceUsd) && option.priceUsd >= 0 && option.carrier.trim(),
+  );
+  if (origin.toLowerCase() !== destinations[0]!.toLowerCase() && !validFlights.length)
+    conflicts.push("Required flight has no valid fare; transport estimate is incomplete.");
+  const flight = validFlights.length
     ? budgetRevision
-      ? [...flightOptions].sort((left, right) => left.priceUsd - right.priceUsd)[0]
-      : (flightOptions.find((option) => /flex/i.test(option.carrier)) ?? flightOptions[0])
+      ? [...validFlights].sort((left, right) => left.priceUsd - right.priceUsd)[0]
+      : (validFlights.find((option) => /flex/i.test(option.carrier)) ?? validFlights[0])
     : undefined;
   const routeStart = scheduleRevision ? 6 * 60 : 9 * 60;
   // Convert each returned map leg into sequential, same-day transport items.
-  const routeItems = routed.flatMap(({ query, legs }) => {
+  const routeItems: ProposalItem[] = routed.flatMap(({ query, legs }) => {
+    const problem = routeProblem(legs);
+    if (problem) {
+      conflicts.push(
+        `geography conflict on day ${query.day}: ${query.from} → ${query.to}: ${problem}`,
+      );
+      return [];
+    }
     let cursor = routeStart;
+    if (cursor + legs.reduce((sum, leg) => sum + Math.ceil(leg.durationMin), 0) >= 1440) {
+      conflicts.push(`time conflict on day ${query.day}: route cannot fit inside one planning day`);
+      return [];
+    }
     return legs.map((leg) => {
       const startTime = clock(cursor);
-      cursor += leg.durationMin;
+      cursor += Math.ceil(leg.durationMin);
       const endTime = clock(cursor);
+      const unknownFare = fareUnavailable(leg);
+      if (unknownFare) {
+        conflicts.push(
+          `Transport fare unavailable on day ${query.day}: budget total is incomplete, not a free trip.`,
+        );
+      }
       return {
         kind: "transport",
         day: query.day,
         startTime,
         endTime,
         location: `${query.from} → ${query.to}`,
-        detail: `${leg.mode} from ${query.from} to ${query.to}; ${leg.durationMin} minutes${leg.note ? `; ${leg.note}` : ""}.`,
-        estCost: leg.priceUsd,
+        detail: `${leg.mode} from ${query.from} to ${query.to} on ${query.date}; ${leg.durationMin} minutes${leg.note ? `; ${leg.note}` : ""}.`,
+        ...(unknownFare ? {} : { estCost: leg.priceUsd }),
       };
     });
   });
@@ -130,18 +166,20 @@ async function buildTransportProposal(
       : []),
     ...routeItems,
   ];
-  const total = items.reduce((sum, item) => sum + item.estCost, 0);
+  const total = items.reduce((sum, item) => sum + (item.estCost ?? 0), 0);
   return {
     agent: "transport",
-    summary: `${items.length} transport option(s) for ${origin} ↔ ${destinations.join(" → ")} · USD ${total.toFixed(2)}`,
+    summary: `${items.length} transport option(s) for ${origin} ↔ ${destinations.join(" → ")} · known estimate USD ${total.toFixed(2)}${conflicts.length ? " (incomplete/unverified)" : ""}`,
     items,
     assumptions: [
+      "Route arrays are consecutive legs; calculator preserves adapter USD amounts as group totals, matching the current integration. Per-person providers must normalize fares before returning them.",
+      "Inter-city route dates follow their scheduled day. Unsupported driving-only estimates cannot verify public transport.",
       `Origin defaults to Sydney unless long-term preference "transport.origin" is set; current origin: ${origin}.`,
       "Injected booking and maps results are treated as estimates, not reservations or live availability.",
       ...(budgetRevision ? ["Budget revision selected the lowest returned flight fare."] : []),
       ...(scheduleRevision ? ["Schedule revision moved routed legs to an early departure."] : []),
     ],
-    conflictsWith: [],
+    conflictsWith: [...new Set(conflicts)],
   };
 }
 
@@ -193,8 +231,11 @@ async function planTransport(
     if (proposal.agent !== "transport" || !evidence) {
       throw new Error("Transport specialist returned the wrong proposal type or skipped its tool.");
     }
-    return proposal;
+    // A valid schema does not prove that prices/routes still match the calculator.
+    // Keep all tool-owned fields authoritative, even if the model rewrites them.
+    return evidence;
   } catch (error) {
+    ctx.signal?.throwIfAborted();
     const reason = error instanceof Error ? error.message : "unknown model error";
     console.warn(`[transport] Specialist failed; using a safe local plan: ${reason}`);
     return evidence ?? buildTransportProposal(brief, ctx, revision);

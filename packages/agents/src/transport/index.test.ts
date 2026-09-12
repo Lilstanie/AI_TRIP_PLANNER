@@ -114,3 +114,78 @@ describe("transport planner", () => {
     ).rejects.toThrow("target this trip and agent");
   });
 });
+
+describe("B transport reliability", () => {
+  it("queries the date of the assigned travel day, not the first day", async () => {
+    const { ctx, route } = context();
+    await transportAgent.invoke({ brief, context: ctx });
+    expect(route).toHaveBeenCalledWith(expect.objectContaining({ day: 3, date: "2026-10-03" }));
+  });
+
+  it("reports missing routes and flights while preserving available evidence", async () => {
+    const { ctx, route, searchFlights } = context();
+    route.mockResolvedValue([]);
+    searchFlights.mockResolvedValue([]);
+    const result = await transportAgent.invoke({ brief, context: ctx });
+    expect(result.items).toEqual([]);
+    expect(result.conflictsWith.join(" ")).toContain("no route returned");
+    expect(result.conflictsWith.join(" ")).toContain("no valid fare");
+    expect(result.summary).toContain("incomplete");
+  });
+
+  it("degrades provider exceptions into unresolved conflicts", async () => {
+    const { ctx, route } = context();
+    route.mockRejectedValue(new Error("offline"));
+    const result = await transportAgent.invoke({ brief, context: ctx });
+    expect(result.items[0]!.estCost).toBe(1600);
+    expect(result.conflictsWith.join(" ")).toContain("provider unavailable");
+  });
+
+  it("omits unknown fares rather than claiming a free route", async () => {
+    const { ctx, route } = context();
+    route.mockResolvedValue([
+      { mode: "train", durationMin: 140, priceUsd: 0, note: "fare unavailable" },
+    ]);
+    const result = await transportAgent.invoke({ brief, context: ctx });
+    expect(result.items[1]).not.toHaveProperty("estCost");
+    expect(result.conflictsWith.join(" ")).toContain("not a free trip");
+    expect(AgentProposal.safeParse(result).success).toBe(true);
+  });
+
+  it.each([NaN, -1, 0, Infinity, 1600])(
+    "does not emit a timed route for invalid/unrepresentable duration %s",
+    async (durationMin) => {
+      const { ctx, route } = context();
+      route.mockResolvedValue([{ mode: "train", durationMin, priceUsd: 90, note: "fixture" }]);
+      const result = await transportAgent.invoke({ brief, context: ctx });
+      expect(result.items).toHaveLength(1);
+      expect(result.conflictsWith.length).toBeGreaterThan(0);
+    },
+  );
+
+  it("does not mistake OSRM driving time for public transport", async () => {
+    const { ctx, route } = context();
+    route.mockResolvedValue([
+      {
+        mode: "train",
+        durationMin: 20,
+        priceUsd: 0,
+        note: "OSRM driving estimate; fare unavailable",
+      },
+    ]);
+    const result = await transportAgent.invoke({ brief, context: ctx });
+    expect(result.conflictsWith.join(" ")).toContain("driving estimate");
+  });
+
+  it("validates calendar dates before any provider call", async () => {
+    const { ctx, route, searchFlights } = context();
+    await expect(
+      transportAgent.invoke({
+        brief: { ...brief, dates: ["2026-02-30", "2026-03-05"] },
+        context: ctx,
+      }),
+    ).rejects.toThrow("valid YYYY-MM-DD");
+    expect(route).not.toHaveBeenCalled();
+    expect(searchFlights).not.toHaveBeenCalled();
+  });
+});

@@ -11,6 +11,8 @@ import {
 import { z } from "zod/v4";
 import { createAgent, tool } from "langchain";
 import { createRoutedChatModel, readStructuredResponse } from "../models";
+import { dateForDay, planningDays, routeProblem } from "../transport/validation";
+import { avoidBlockedWindows } from "./revision";
 
 // The itinerary schema and guardrails constrain model output before it reaches
 // the shared proposal format or the route-conflict checker.
@@ -50,24 +52,6 @@ export interface ItineraryGenerator {
 export interface ItineraryAgentOptions {
   /** Pass false to force the deterministic planner in tests or offline runs. */
   generator?: ItineraryGenerator | false;
-}
-
-/** Validate ISO dates and return the number of overnight intervals. */
-function daySpan([start, end]: [string, string]): number {
-  const parse = (value: string) => {
-    const timestamp = Date.parse(`${value}T00:00:00.000Z`);
-    if (
-      !/^\d{4}-\d{2}-\d{2}$/.test(value) ||
-      !Number.isFinite(timestamp) ||
-      new Date(timestamp).toISOString().slice(0, 10) !== value
-    ) {
-      throw new Error(`Itinerary requires a valid YYYY-MM-DD date: ${value}`);
-    }
-    return timestamp;
-  };
-  const days = Math.round((parse(end) - parse(start)) / 86_400_000);
-  if (!Number.isSafeInteger(days) || days < 1) throw new Error("Itinerary requires ordered dates.");
-  return days;
 }
 
 /** Convert an HH:mm value to minutes so schedules can be compared numerically. */
@@ -117,9 +101,7 @@ function validateDraft(
 
 /** Create one low-risk activity per day when a model is unavailable or invalid. */
 function fallbackDraft(brief: TripBrief, days: number, places: Place[]): ItineraryDraft {
-  const candidates = places.length
-    ? places
-    : [{ name: `Central ${brief.destination}`, category: "orientation" }];
+  const candidates = places; // Empty evidence is handled before reaching this fallback.
   const dailyEstimate =
     Math.floor(((brief.budgetTotal * MODEL_ACTIVITY_BUDGET_SHARE) / days) * 100) / 100;
   return {
@@ -181,7 +163,11 @@ function createDeepSeekGenerator(): ItineraryGenerator | undefined {
   };
 }
 
-async function travelConflicts(draft: ItineraryDraft, ctx: AgentContext): Promise<string[]> {
+async function travelConflicts(
+  draft: ItineraryDraft,
+  ctx: AgentContext,
+  brief: TripBrief,
+): Promise<string[]> {
   // Check map travel time between consecutive activities on each day. These
   // conflicts are reported to the orchestrator rather than silently shifting times.
   const conflicts: string[] = [];
@@ -194,15 +180,34 @@ async function travelConflicts(draft: ItineraryDraft, ctx: AgentContext): Promis
       const previous = activities[index - 1]!;
       const current = activities[index]!;
       if (previous.location === current.location) continue;
-      const legs = await ctx.tools.maps.route({
-        from: previous.location,
-        to: current.location,
-      });
-      const required = legs.reduce((sum, leg) => sum + leg.durationMin, 0);
+      ctx.signal?.throwIfAborted();
+      let legs;
+      try {
+        legs = await ctx.tools.maps.route({
+          from: previous.location,
+          to: current.location,
+          date: dateForDay(brief.dates[0], day),
+        });
+      } catch {
+        ctx.signal?.throwIfAborted();
+        conflicts.push(
+          `geography conflict on day ${day}: route provider failed; connection unverified`,
+        );
+        continue;
+      }
+      ctx.signal?.throwIfAborted();
+      const problem = routeProblem(legs);
+      if (problem) {
+        conflicts.push(
+          `geography conflict on day ${day}: ${previous.location} to ${current.location}: ${problem}`,
+        );
+        continue;
+      }
+      const required = Math.ceil(legs.reduce((sum, leg) => sum + leg.durationMin, 0)) + 15;
       const available = minutes(current.startTime) - minutes(previous.endTime);
       if (required > available) {
         conflicts.push(
-          `geography conflict on day ${day}: ${previous.location} to ${current.location} needs ${required} minutes but only ${available} are available`,
+          `geography conflict on day ${day}: ${previous.location} to ${current.location} needs ${required} minutes including a 15-minute buffer but only ${available} are available`,
         );
       }
     }
@@ -220,17 +225,51 @@ async function planItinerary(
   // selecting the model or deterministic planner.
   ctx.signal?.throwIfAborted();
   const brief = TripBriefSchema.parse(briefInput);
-  const days = daySpan(brief.dates);
+  const days = planningDays(brief.dates);
+  const evidenceIssues: string[] = [];
+  const readPlaces = async (category: string) => {
+    try {
+      const found = await ctx.tools.maps.places({ near: brief.destination, category });
+      return found.filter(
+        (place) => typeof place.name === "string" && place.name.trim().length > 0,
+      );
+    } catch {
+      ctx.signal?.throwIfAborted();
+      evidenceIssues.push(
+        `Place provider unavailable for ${category}; using only remaining evidence.`,
+      );
+      return [];
+    }
+  };
   const [sights, neighborhoods, preferences] = await Promise.all([
-    ctx.tools.maps.places({ near: brief.destination, category: "sight" }),
-    ctx.tools.maps.places({ near: brief.destination, category: "neighborhood" }),
+    readPlaces("sight"),
+    readPlaces("neighborhood"),
     ctx.mem.getLongTerm(brief.userId),
   ]);
   ctx.signal?.throwIfAborted();
-  const places = [...sights, ...neighborhoods];
+  const places = [
+    ...new Map(
+      [...sights, ...neighborhoods].map((place) => [place.name.trim().toLowerCase(), place]),
+    ).values(),
+  ];
+  if (!places.length) {
+    return {
+      agent: "itinerary",
+      summary: "Itinerary needs verified place data",
+      items: [],
+      assumptions: [
+        ...evidenceIssues,
+        "No grounded places available; no attraction, opening time or admission price has been invented.",
+      ],
+      conflictsWith: [
+        "geography conflict: no grounded places available; itinerary requires new evidence",
+      ],
+    };
+  }
   const generator =
     options.generator === false ? undefined : (options.generator ?? createDeepSeekGenerator());
   let draft: ItineraryDraft;
+  let usedFallback = !generator;
   if (generator) {
     try {
       draft = validateDraft(
@@ -240,21 +279,26 @@ async function planItinerary(
         places,
       );
     } catch (error) {
+      ctx.signal?.throwIfAborted();
+      usedFallback = true;
       const reason = error instanceof Error ? error.message : "unknown model error";
-      console.warn(
-        `[itinerary] Model draft failed validation; using a safe local plan: ${reason}`,
-      );
+      console.warn(`[itinerary] Model draft failed validation; using a safe local plan: ${reason}`);
       draft = fallbackDraft(brief, days, places);
     }
   } else {
     draft = fallbackDraft(brief, days, places);
   }
-  let conflicts = await travelConflicts(draft, ctx);
+  let adjusted = avoidBlockedWindows(draft, revision);
+  draft = adjusted.draft;
+  let conflicts = [...adjusted.conflicts, ...(await travelConflicts(draft, ctx, brief))];
   if (revision && conflicts.length) {
     // A revision must not preserve newly discovered geography conflicts; use a
     // conservative fallback and re-check it before returning.
+    usedFallback = true;
     draft = fallbackDraft(brief, days, places);
-    conflicts = await travelConflicts(draft, ctx);
+    adjusted = avoidBlockedWindows(draft, revision);
+    draft = adjusted.draft;
+    conflicts = [...adjusted.conflicts, ...(await travelConflicts(draft, ctx, brief))];
   }
   return {
     agent: "itinerary",
@@ -262,7 +306,19 @@ async function planItinerary(
     items: draft.activities.map((activity) => ({ kind: "activity", ...activity })),
     assumptions: [
       ...draft.assumptions,
-      ...(revision ? [`Revision requested: ${revision.reason}.`] : []),
+      ...evidenceIssues,
+      "Different-place connections require route time plus a 15-minute arrival buffer. Opening hours remain unverified.",
+      ...(usedFallback
+        ? [
+            "Planner source: deterministic fallback; activity costs are planning allowances, not verified admission fares.",
+          ]
+        : []),
+      ...(revision
+        ? [
+            `Revision requested: ${revision.reason}.`,
+            "The orchestrator must recheck the full plan budget; no percentage saving is claimed without a previous proposal baseline.",
+          ]
+        : []),
     ],
     conflictsWith: conflicts,
   };

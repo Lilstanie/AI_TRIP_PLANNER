@@ -161,3 +161,96 @@ describe("itinerary planner", () => {
     expect(ctx.tools.maps.places).not.toHaveBeenCalled();
   });
 });
+
+describe("B itinerary reliability", () => {
+  it("does not treat an empty route as a zero-minute journey", async () => {
+    const ctx = context();
+    vi.mocked(ctx.tools.maps.route).mockResolvedValue([]);
+    const result = await createItineraryAgent({
+      generator: { generate: async () => feasibleDraft },
+    }).invoke({ brief, context: ctx });
+    expect(result.conflictsWith.join(" ")).toContain("no route returned");
+    expect(ctx.tools.maps.route).toHaveBeenCalledWith(
+      expect.objectContaining({ date: "2026-10-01" }),
+    );
+  });
+
+  it("requires a fifteen-minute arrival buffer at the exact boundary", async () => {
+    const generator = { generate: async () => feasibleDraft };
+    const exact = await createItineraryAgent({ generator }).invoke({
+      brief,
+      context: context(165),
+    });
+    expect(exact.conflictsWith).toEqual([]);
+    const late = await createItineraryAgent({ generator }).invoke({ brief, context: context(166) });
+    expect(late.conflictsWith.join(" ")).toContain("15-minute buffer");
+  });
+
+  it("reports provider failure without dropping the complete proposal", async () => {
+    const ctx = context();
+    vi.mocked(ctx.tools.maps.route).mockRejectedValue(new Error("offline"));
+    const result = await createItineraryAgent({
+      generator: { generate: async () => feasibleDraft },
+    }).invoke({ brief, context: ctx });
+    expect(AgentProposal.safeParse(result).success).toBe(true);
+    expect(result.conflictsWith.join(" ")).toContain("provider failed");
+  });
+
+  it("does not invent a central attraction when all evidence is unavailable", async () => {
+    const ctx = context();
+    vi.mocked(ctx.tools.maps.places).mockRejectedValue(new Error("offline"));
+    const generate = vi.fn();
+    const result = await createItineraryAgent({ generator: { generate } }).invoke({
+      brief,
+      context: ctx,
+    });
+    expect(result.items).toEqual([]);
+    expect(result.conflictsWith.join(" ")).toContain("no grounded places");
+    expect(generate).not.toHaveBeenCalled();
+  });
+
+  it("moves the deterministic fallback around A's blocked window", async () => {
+    const result = await createItineraryAgent({ generator: false }).invoke({
+      brief,
+      context: context(),
+      revision: {
+        tripId: brief.tripId,
+        targetAgent: "itinerary",
+        reason: "time overlap",
+        constraints: [
+          "on day 1 keep clear of 12:00-14:00, held by transport; reschedule without changing trip dates",
+        ],
+      },
+    });
+    expect(result.items[0]).toMatchObject({ startTime: "14:15", endTime: "17:15" });
+    expect(result.conflictsWith).toEqual([]);
+  });
+
+  it("retains a conflict when no daytime slot remains", async () => {
+    const result = await createItineraryAgent({ generator: false }).invoke({
+      brief,
+      context: context(),
+      revision: {
+        tripId: brief.tripId,
+        targetAgent: "itinerary",
+        reason: "time overlap",
+        constraints: ["on day 1 keep clear of 09:00-19:00, held by transport"],
+      },
+    });
+    expect(result.conflictsWith.join(" ")).toContain("no daytime slot");
+  });
+
+  it("does not swallow cancellation during a model call", async () => {
+    const controller = new AbortController();
+    const ctx = { ...context(), signal: controller.signal };
+    const generator = {
+      generate: async () => {
+        controller.abort();
+        throw new Error("cancelled");
+      },
+    };
+    await expect(
+      createItineraryAgent({ generator }).invoke({ brief, context: ctx }),
+    ).rejects.toThrow();
+  });
+});

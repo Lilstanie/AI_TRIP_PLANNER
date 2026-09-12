@@ -24,6 +24,7 @@ async function googleRequest<T>(url: string, body: unknown, fieldMask: string): 
       "x-goog-fieldmask": fieldMask,
     },
     body: JSON.stringify(body),
+    signal: AbortSignal.timeout(8_000),
   });
   if (!response.ok) throw new Error(`Google Maps request failed (${response.status})`);
   return (await response.json()) as T;
@@ -50,7 +51,18 @@ async function geocode(
   );
   const result = results[0];
   if (!result) return undefined;
-  return { lat: Number(result.lat), lon: Number(result.lon), label: result.display_name };
+  const lat = Number(result.lat),
+    lon = Number(result.lon);
+  if (
+    !result.lat ||
+    !result.lon ||
+    !Number.isFinite(lat) ||
+    !Number.isFinite(lon) ||
+    Math.abs(lat) > 90 ||
+    Math.abs(lon) > 180
+  )
+    throw new Error("Invalid geocoding coordinates");
+  return { lat, lon, label: result.display_name };
 }
 
 export async function route(q: RouteQuery): Promise<RouteLeg[]> {
@@ -66,12 +78,14 @@ export async function route(q: RouteQuery): Promise<RouteLeg[]> {
     );
     const candidate = data.routes?.[0];
     if (!candidate) return [];
+    if (!Number.isFinite(candidate.duration) || candidate.duration! <= 0)
+      throw new Error("OSRM returned an invalid route duration");
     return [
       {
         mode: "transit",
-        durationMin: Math.max(1, Math.ceil((candidate.duration ?? 0) / 60)),
+        durationMin: Math.max(1, Math.ceil(candidate.duration! / 60)),
         priceUsd: 0,
-        note: `Free OSRM route estimate via OpenStreetMap; ${Math.round(candidate.distance ?? 0)}m; fare unavailable`,
+        note: `OSRM driving-only estimate, not verified public transport; ${Math.round(candidate.distance ?? 0)}m; fare unavailable`,
       },
     ];
   }
@@ -91,7 +105,11 @@ export async function route(q: RouteQuery): Promise<RouteLeg[]> {
   );
   const route = data.routes?.[0];
   if (!route) return [];
-  const seconds = Number.parseInt(route.duration?.replace(/s$/, "") || "0", 10);
+  if (!route.duration || !/^\d+(?:\.\d+)?s$/.test(route.duration))
+    throw new Error("Google Maps returned an invalid route duration");
+  const seconds = Number(route.duration.slice(0, -1));
+  if (!Number.isFinite(seconds) || seconds <= 0)
+    throw new Error("Google Maps returned an invalid route duration");
   return [
     {
       mode: "transit",
