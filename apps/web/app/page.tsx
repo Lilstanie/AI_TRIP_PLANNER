@@ -1,7 +1,9 @@
 // Owner: E (layout / composition). Server component: computes the first plan.
 import { Suspense } from "react";
+import { cookies } from "next/headers";
 import { getDemoPlan } from "@/lib/demoPlan";
 import { Header } from "@/components/Header";
+import { LanguageProvider } from "@/components/LanguageContext";
 import { Workspace } from "@/components/Workspace";
 import { WorkspaceSkeleton } from "@/components/WorkspaceSkeleton";
 
@@ -18,13 +20,16 @@ async function PlannedWorkspace() {
   return <Workspace initialPlan={plan} />;
 }
 
-export default function Page() {
+export default async function Page() {
+  const cookieStore = await cookies();
+  const initialLanguage = cookieStore.get("ai-trip-planner-language")?.value === "zh" ? "zh" : "en";
+
   return (
-    <>
+    <LanguageProvider initialLanguage={initialLanguage}>
       <Header />
       <Suspense fallback={<WorkspaceSkeleton />}>
         <PlannedWorkspace />
       </Suspense>
-    </>
+    </LanguageProvider>
   );
 }
