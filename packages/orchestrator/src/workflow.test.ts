@@ -202,6 +202,97 @@ describe("LangGraph orchestrator workflow", () => {
     );
   });
 
+  describe("HITL decision execution", () => {
+    it("surfaces a pending confirm-plan checkpoint once the negotiation converges", async () => {
+      const itinerary = agent("itinerary", 400);
+      const plan = await runOrchestrator(brief, { specialists: [itinerary], tools, mem });
+
+      expect(plan.hitl).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: "confirm-plan", type: "confirm_plan", status: "pending" }),
+        ]),
+      );
+      // Not confirmed yet — nobody has approved it.
+      expect(plan.sections[0]!.status).toBe("draft");
+    });
+
+    it("locks sections in as confirmed once confirm-plan is approved", async () => {
+      const itinerary = agent("itinerary", 400);
+      const plan = await runOrchestrator(brief, {
+        specialists: [itinerary],
+        tools,
+        mem,
+        decisions: [{ checkpointId: "confirm-plan", decision: "approve" }],
+      });
+
+      expect(plan.hitl).toEqual(
+        expect.arrayContaining([expect.objectContaining({ id: "confirm-plan", status: "approved" })]),
+      );
+      expect(plan.sections[0]!.status).toBe("confirmed");
+    });
+
+    it("records a rejection without confirming sections", async () => {
+      const itinerary = agent("itinerary", 400);
+      const plan = await runOrchestrator(brief, {
+        specialists: [itinerary],
+        tools,
+        mem,
+        decisions: [{ checkpointId: "confirm-plan", decision: "reject" }],
+      });
+
+      expect(plan.hitl).toEqual(
+        expect.arrayContaining([expect.objectContaining({ id: "confirm-plan", status: "rejected" })]),
+      );
+      expect(plan.sections[0]!.status).toBe("draft");
+    });
+
+    it("ignores a decision whose checkpoint id no longer matches anything", async () => {
+      const itinerary = agent("itinerary", 400);
+      const plan = await runOrchestrator(brief, {
+        specialists: [itinerary],
+        tools,
+        mem,
+        decisions: [{ checkpointId: "some-stale-id-from-an-old-brief", decision: "approve" }],
+      });
+
+      expect(plan.hitl.find((checkpoint) => checkpoint.id === "confirm-plan")!.status).toBe(
+        "pending",
+      );
+      expect(plan.sections[0]!.status).toBe("draft");
+    });
+
+    it("approving the escalation checkpoint unblocks a section without claiming it converged", async () => {
+      const accommodation = agent("accommodation", 1200);
+      const plan = await runOrchestrator(brief, {
+        specialists: [accommodation],
+        tools,
+        mem,
+        maxRounds: 2,
+        decisions: [{ checkpointId: "escalation", decision: "approve" }],
+      });
+
+      expect(plan.hitl).toEqual(
+        expect.arrayContaining([expect.objectContaining({ id: "escalation", status: "approved" })]),
+      );
+      // The human overrode the block, but the agents never actually agreed —
+      // that's "draft", not "confirmed" (confirmed is only for a clean converge).
+      expect(plan.sections[0]!.status).toBe("draft");
+    });
+
+    it("rejecting the escalation checkpoint leaves the section blocked", async () => {
+      const accommodation = agent("accommodation", 1200);
+      const plan = await runOrchestrator(brief, {
+        specialists: [accommodation],
+        tools,
+        mem,
+        maxRounds: 2,
+        decisions: [{ checkpointId: "escalation", decision: "reject" }],
+      });
+
+      expect(plan.sections[0]!.status).toBe("needs_you");
+    });
+  });
+
   it("rejects invalid graph configuration before running agents", () => {
     const duplicate = agent("itinerary", 100);
     expect(() => createOrchestratorGraph({ specialists: [], tools, mem })).toThrow(

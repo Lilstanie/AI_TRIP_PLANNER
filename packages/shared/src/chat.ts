@@ -6,6 +6,17 @@ import { TripPlan } from "./plan";
 // Owner: A. Frozen shape — streaming can be added later without changing it
 // (the final frame of a stream is still one ChatResponse).
 
+// A human's answer to one HitlCheckpoint (see plan.ts). The server is
+// stateless per request (see `brief` below), so the client must resend every
+// decision it wants honoured on each turn — the same pattern already used for
+// `brief`. A decision whose `checkpointId` no longer matches a live checkpoint
+// (e.g. the brief changed after approval) is simply ignored, not an error.
+export const HitlDecision = z.object({
+  checkpointId: z.string(),
+  decision: z.enum(["approve", "reject"]),
+});
+export type HitlDecision = z.infer<typeof HitlDecision>;
+
 // Client -> server
 export const ChatRequest = z.object({
   tripId: z.string(),
@@ -13,6 +24,9 @@ export const ChatRequest = z.object({
   // Optional for backward compatibility. The browser sends the latest brief so
   // serverless requests can apply incremental edits without sticky process state.
   brief: TripBrief.optional(),
+  // Same statelessness rule as `brief`: the client owns the running list of
+  // decisions and resends all of them every turn.
+  decisions: z.array(HitlDecision).default([]),
 });
 export type ChatRequest = z.infer<typeof ChatRequest>;
 

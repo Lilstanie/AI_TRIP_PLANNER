@@ -348,7 +348,11 @@ export async function runTripChat(
     request.tripId,
     ChatTurn.parse({ role: "user", content: request.message }),
   );
-  const plan = await runOrchestrator(brief, { ...orchestrationOptions, mem });
+  const plan = await runOrchestrator(brief, {
+    ...orchestrationOptions,
+    mem,
+    decisions: request.decisions,
+  });
   const fields = changedFields(current, brief);
   const generator = replyGenerator ?? createReplyGenerator();
   let reply = fallbackReplyFor(plan);

@@ -17,6 +17,7 @@ import {
   type AgentProgressEvent,
   type AgentName,
   type HitlCheckpoint,
+  type HitlDecision,
   type MemoryStore,
   type RevisionRequest,
   type Specialist,
@@ -27,13 +28,7 @@ import {
 } from "@trip/shared";
 import { createToolGateway } from "@trip/tools";
 import { z } from "zod/v4";
-import {
-  assessBudget,
-  costOf,
-  rollUpCost,
-  ESCALATION_OVERRUN_PCT,
-  NEGOTIATION_OVERRUN_PCT,
-} from "./budget";
+import { assessBudget, costOf, ESCALATION_OVERRUN_PCT, NEGOTIATION_OVERRUN_PCT } from "./budget";
 import { dispatchWithSupervisor, reviseWithSupervisor } from "./supervisor";
 
 const DEFAULT_MAX_ROUNDS = 3;
@@ -45,6 +40,10 @@ export interface OrchestratorOptions {
   mem?: MemoryStore;
   maxRounds?: number;
   onProgress?: (event: AgentProgressEvent) => void;
+  // Decisions the human has already made on this trip's HITL checkpoints.
+  // Pure projection input: it never changes what the specialists negotiate,
+  // only how the resulting plan's `hitl`/section statuses are reported.
+  decisions?: HitlDecision[];
 }
 
 const OrchestratorState = new StateSchema({
@@ -143,16 +142,38 @@ function toSection(
   proposal: AgentProposal,
   unresolved: RevisionRequest[],
   specialistByName: Map<Specialist["name"], Specialist>,
+  planConfirmed: boolean,
+  escalationOverridden: boolean,
 ): TripSection {
-  const stillConflicting = unresolved.some((request) => request.targetAgent === proposal.agent);
+  // Approving the escalation checkpoint is the human explicitly saying "ship
+  // it anyway" — the underlying conflict never actually resolved, but it must
+  // no longer block the section as "needs_you", or the override is theater.
+  const stillConflicting =
+    unresolved.some((request) => request.targetAgent === proposal.agent) && !escalationOverridden;
+  const status = stillConflicting ? "needs_you" : planConfirmed ? "confirmed" : "draft";
   return {
     id: proposal.agent,
     label: specialistByName.get(proposal.agent)?.label ?? proposal.agent,
     summary: proposal.summary,
-    status: stillConflicting ? "needs_you" : "draft",
+    status,
     estCost: costOf(proposal),
     proposal,
   };
+}
+
+/**
+ * A decision only ever resolves the one checkpoint it names — it ignores
+ * every other id. This is what makes it safe for a decision to survive on
+ * the client past the point its checkpoint stops being generated (e.g. the
+ * brief changed): applying it here is a harmless no-op instead of an error.
+ */
+function statusFor(
+  checkpointId: string,
+  decisions: HitlDecision[],
+): HitlCheckpoint["status"] {
+  const decision = decisions.find((entry) => entry.checkpointId === checkpointId);
+  if (!decision) return "pending";
+  return decision.decision === "approve" ? "approved" : "rejected";
 }
 
 function buildHitl(
@@ -160,6 +181,8 @@ function buildHitl(
   overrunPct: number,
   unresolved: boolean,
   maxRounds: number,
+  round: number,
+  decisions: HitlDecision[],
 ): HitlCheckpoint[] {
   const items: HitlCheckpoint[] = [
     {
@@ -167,7 +190,7 @@ function buildHitl(
       type: "confirm_brief",
       title: "Confirm your trip basics",
       detail: `${brief.destination} · ${brief.dates[0]} to ${brief.dates[1]} · ${brief.groupSize} people · $${brief.budgetTotal}`,
-      status: "pending",
+      status: statusFor("confirm-brief", decisions),
     },
   ];
 
@@ -179,7 +202,18 @@ function buildHitl(
       detail: unresolved
         ? `Agents did not converge within ${maxRounds} rounds.`
         : `Plan is ${overrunPct.toFixed(2)}% over budget.`,
-      status: "pending",
+      status: statusFor("escalation", decisions),
+    });
+  } else {
+    // Nothing needs escalating — the plan converged under budget, so the only
+    // decision left is the human's final sign-off before sections show as
+    // "confirmed" rather than just "draft".
+    items.push({
+      id: "confirm-plan",
+      type: "confirm_plan",
+      title: "Confirm this plan",
+      detail: `Converged in round ${round} at USD ${brief.budgetTotal} budget (${overrunPct <= 0 ? "under" : "at"} budget). Approve to lock it in.`,
+      status: statusFor("confirm-plan", decisions),
     });
   }
   return items;
@@ -207,6 +241,7 @@ function resolveOptions(options: OrchestratorOptions) {
     tools: options.tools ?? createToolGateway(),
     mem: options.mem ?? memory,
     onProgress: options.onProgress,
+    decisions: options.decisions ?? [],
   };
 }
 
@@ -220,7 +255,7 @@ function resolveOptions(options: OrchestratorOptions) {
  *                                 build_plan -> END
  */
 export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
-  const { specialists, specialistByName, injected, maxRounds, tools, mem, onProgress } =
+  const { specialists, specialistByName, injected, maxRounds, tools, mem, onProgress, decisions } =
     resolveOptions(options);
 
   const context = (brief: TripBrief, round: number): AgentContext => ({
@@ -337,10 +372,23 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
 
   const buildPlan: WorkflowNode = (state) => {
     const unresolved = state.conflicts.length > 0;
-    const sections = state.proposals.map((proposal) =>
-      toSection(proposal, state.conflicts, specialistByName),
+    // Computed straight from the proposals (not the sections) because building
+    // the sections themselves now needs to know whether confirm-plan was
+    // approved — hitl has to exist first.
+    const { estTotal, overrunPct } = assessBudget(
+      state.proposals.map(costOf),
+      state.brief.budgetTotal,
     );
-    const { estTotal, overrunPct } = rollUpCost(sections, state.brief.budgetTotal);
+    const hitl = buildHitl(state.brief, overrunPct, unresolved, maxRounds, state.round, decisions);
+    const planConfirmed = hitl.some(
+      (checkpoint) => checkpoint.type === "confirm_plan" && checkpoint.status === "approved",
+    );
+    const escalationOverridden = hitl.some(
+      (checkpoint) => checkpoint.type === "escalation" && checkpoint.status === "approved",
+    );
+    const sections = state.proposals.map((proposal) =>
+      toSection(proposal, state.conflicts, specialistByName, planConfirmed, escalationOverridden),
+    );
     const plan: TripPlan = {
       tripId: state.brief.tripId,
       brief: state.brief,
@@ -349,7 +397,7 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
       estTotal,
       overrunPct,
       sections,
-      hitl: buildHitl(state.brief, overrunPct, unresolved, maxRounds),
+      hitl,
     };
     return { plan: TripPlanSchema.parse(plan) };
   };

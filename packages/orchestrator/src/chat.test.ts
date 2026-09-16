@@ -109,7 +109,7 @@ describe("trip chat workflow", () => {
     };
 
     const result = await runTripChat(
-      { tripId: brief.tripId, message: "Please change the destination", brief },
+      { tripId: brief.tripId, message: "Please change the destination", brief, decisions: [] },
       { extractor, replyGenerator, specialists: [itinerary], tools, mem },
     );
 
