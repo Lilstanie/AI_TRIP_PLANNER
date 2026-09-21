@@ -92,6 +92,7 @@ function missingFields(known: BriefPatch, tripId: string): string[] {
  */
 export const BriefUpdate = z.object({
   destination: z.string().nullish(),
+  origin: z.string().nullish().describe("the city they are travelling from, if they said one"),
   startDate: z.string().nullish().describe("YYYY-MM-DD"),
   endDate: z.string().nullish().describe("YYYY-MM-DD"),
   groupSize: z.union([z.number(), z.string()]).nullish(),
@@ -121,6 +122,7 @@ function toPatch(update: z.infer<typeof BriefUpdate>): BriefPatch {
   const groupSize = count(update.groupSize);
   const patch: BriefPatch = BriefPatchSchema.parse({
     ...(text(update.destination) ? { destination: text(update.destination) } : {}),
+    ...(text(update.origin) ? { origin: text(update.origin) } : {}),
     ...(text(update.nationality) ? { nationality: text(update.nationality) } : {}),
     ...(groupSize !== undefined ? { groupSize: Math.round(groupSize) } : {}),
     // Only a whole range is meaningful; one end alone is held back.

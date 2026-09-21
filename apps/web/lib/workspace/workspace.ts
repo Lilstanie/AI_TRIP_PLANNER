@@ -12,6 +12,7 @@ import {
 export type Message = { role: "user" | "agent"; text: string };
 export type Draft = {
   destination: string;
+  origin: string;
   start: string;
   end: string;
   groupSize: string;
@@ -38,6 +39,7 @@ export const budgetHint = (brief: Pick<TripBrief, "budgetSource">) =>
 export function draftFor(brief: TripBrief): Draft {
   return {
     destination: brief.destination,
+    origin: brief.origin ?? "",
     start: brief.dates[0],
     end: brief.dates[1],
     groupSize: String(brief.groupSize),
@@ -51,6 +53,7 @@ export function draftFor(brief: TripBrief): Draft {
 /** Empty preferences for a new conversation; never derived from the demo or a previous trip. */
 export const blankDraft = (): Draft => ({
   destination: "",
+  origin: "",
   start: "",
   end: "",
   groupSize: "",
@@ -76,6 +79,7 @@ export function parseDraft(draft: Draft, current: Pick<TripBrief, "tripId"> & Pa
   return TripBrief.safeParse({
     ...current,
     destination: draft.destination,
+    origin: draft.origin.trim() || undefined,
     dates: [draft.start, draft.end],
     groupSize: Number(draft.groupSize),
     budgetTotal: Number(draft.budgetTotal),
@@ -99,6 +103,7 @@ export function knownFromDraft(draft: Draft): PartialTripBrief {
   const number = (value: string) => (value.trim() ? Number(value) : undefined);
   const parsed = PartialTripBrief.safeParse({
     destination: draft.destination.trim() || undefined,
+    origin: draft.origin.trim() || undefined,
     dates: draft.start.trim() && draft.end.trim() ? [draft.start, draft.end] : undefined,
     groupSize: number(draft.groupSize),
     budgetTotal: number(draft.budgetTotal),
@@ -112,6 +117,7 @@ export function draftWithKnown(draft: Draft, known: PartialTripBrief): Draft {
   return {
     ...draft,
     destination: known.destination ?? draft.destination,
+    origin: known.origin ?? draft.origin,
     start: known.dates?.[0] ?? draft.start,
     end: known.dates?.[1] ?? draft.end,
     groupSize: known.groupSize === undefined ? draft.groupSize : String(known.groupSize),

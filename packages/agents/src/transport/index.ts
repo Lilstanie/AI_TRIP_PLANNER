@@ -75,7 +75,11 @@ async function gatherTransportEvidence(
   const destinations = cities(brief.destination);
   const days = planningDays(brief.dates);
   const preferences = await ctx.mem.getLongTerm(brief.userId);
+  // The brief is what the traveller actually stated this trip; the long-term
+  // preference is a standing default for people who always leave from the same
+  // city. The literal remains only so a brief that states neither still plans.
   const origin =
+    brief.origin?.trim() ||
     preferences.find((preference) => preference.key === "transport.origin")?.value.trim() ||
     "Sydney";
   const budgetRevision =
@@ -310,7 +314,7 @@ function assembleTransportProposal(
     assumptions: [
       "Route arrays are consecutive legs; calculator preserves adapter AUD amounts as group totals, matching the current integration. Per-person providers must normalize fares before returning them.",
       "Inter-city route dates follow their scheduled day. Unsupported driving-only estimates cannot verify public transport.",
-      `Origin defaults to Sydney unless long-term preference "transport.origin" is set; current origin: ${origin}.`,
+      `Origin comes from the trip brief, else the long-term preference "transport.origin", else Sydney; current origin: ${origin}.`,
       "Injected booking and maps results are treated as estimates, not reservations or live availability.",
       ...(budgetRevision ? ["Budget revision selected the lowest returned flight fare."] : []),
       ...(scheduleRevision ? ["Schedule revision moved routed legs to an early departure."] : []),

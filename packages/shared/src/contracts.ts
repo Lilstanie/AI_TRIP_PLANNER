@@ -36,6 +36,10 @@ export const TripBrief = z
     tripId: z.string(),
     userId: z.string().default("demo-user"),
     destination: z.string().trim().min(1),
+    // Where the trip departs from. Optional: briefs saved before this field
+    // existed still parse, and a traveller who never states it just gets no
+    // long-haul leg priced rather than a guessed one.
+    origin: z.string().trim().min(1).optional(),
     dates: z.tuple([
       z.string().refine(isTripDate, "Enter a real date"),
       z.string().refine(isTripDate, "Enter a real date"),

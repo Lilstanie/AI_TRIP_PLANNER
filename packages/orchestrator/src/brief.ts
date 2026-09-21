@@ -9,6 +9,7 @@ export const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
  */
 export const BriefPatchSchema = z.object({
   destination: z.string().trim().min(1).optional(),
+  origin: z.string().trim().min(1).optional(),
   dates: z.tuple([z.string().regex(ISO_DATE), z.string().regex(ISO_DATE)]).optional(),
   groupSize: z.number().int().positive().optional(),
   budgetTotal: z.number().positive().optional(),

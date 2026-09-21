@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  blankDraft,
   budgetHint,
   draftFor,
   draftWithKnown,
@@ -149,5 +150,30 @@ describe("budget display", () => {
     const parsed = parseDraft({ ...draftFor(current), budgetTotal: "900" }, current);
     expect(parsed.success && parsed.data.budgetSource).toBeUndefined();
     expect(parsed.success && parsed.data.budgetTotal).toBe(900);
+  });
+});
+
+describe("trip origin", () => {
+  it("round-trips through the form and treats blank as not stated", () => {
+    const withOrigin = parseDraft(
+      { ...snapshot.draft, origin: "Melbourne" },
+      plan.brief,
+    );
+    expect(withOrigin.success && withOrigin.data.origin).toBe("Melbourne");
+
+    // Blank must become undefined, not "": TripBrief rejects an empty string,
+    // and "no origin stated" is what skips long-haul flight pricing.
+    const blank = parseDraft({ ...snapshot.draft, origin: "   " }, plan.brief);
+    expect(blank.success).toBe(true);
+    expect(blank.success && blank.data.origin).toBeUndefined();
+
+    // And back out again for the form to show.
+    expect(draftFor({ ...plan.brief, origin: "Perth" }).origin).toBe("Perth");
+    expect(draftFor({ ...plan.brief, origin: undefined }).origin).toBe("");
+  });
+
+  it("sends a stated origin to the assistant as a known fact", () => {
+    expect(knownFromDraft({ ...blankDraft(), origin: "Perth" }).origin).toBe("Perth");
+    expect(knownFromDraft(blankDraft()).origin).toBeUndefined();
   });
 });

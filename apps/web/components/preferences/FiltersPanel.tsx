@@ -66,6 +66,10 @@ export function FiltersPanel({
           <p className="muted">
             Separate multiple cities with &amp;; allow at least one night per city.
           </p>
+          {field("origin", "Departing from (optional)")}
+          <p className="muted">
+            Leave blank to skip long-haul flight pricing and plan the destination only.
+          </p>
           <div className="filter-dates">
             {field("start", "Start date", "date", "dates")}
             {field("end", "End date", "date", "dates")}
