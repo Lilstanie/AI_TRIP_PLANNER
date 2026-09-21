@@ -18,7 +18,7 @@ real files so every AI tool reads the same rules.
 ## Protected files
 
 These rules apply to people and AI tools alike. The `protected-files` CI job (`pnpm verify:protected`)
-checks the frozen and shared-contract rules; `.github/CODEOWNERS` requests the owner's review.
+checks the frozen and shared-contract rules.
 
 - **Frozen — never modify, rename or delete; only add new files:** `.agents/archive/**`, dated files in
   `.agents/session-logs/`, `.agents/notes/rejected/**` and `.agents/notes/archived/**`.

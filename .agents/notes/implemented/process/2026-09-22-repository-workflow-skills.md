@@ -44,7 +44,7 @@ archive-maintenance workflows address problems this project does not have yet.
 - A skill that names a command, path or threshold must change in the same pull request as that fact;
   stale skills mislead every session that loads them. `AGENTS.md` states the rule and
   `pnpm verify:docs` catches broken links and invalid frontmatter, but not stale commands.
-- Skills add review surface: a change to one is a team-rule change owned through CODEOWNERS.
+- A change to a skill changes how every AI session works, so it is treated like a team-rule change.
 - Skills are written or updated by people, or by AI tools when asked or while making a change the
   skill describes. Nothing generates them automatically. DeepSeek Harness maintains only its
   code-review skill periodically, from merged human review feedback, and has not settled that

@@ -23,8 +23,8 @@ teammates could not see them.
 - `scripts/verify-protected-files.mjs` runs as the `protected-files` CI job. It fails a pull request
   that modifies, renames or deletes a frozen file, or that changes `packages/shared/src` without
   adding or updating an Agent Note.
-- Authors merge their own pull requests. `.github/CODEOWNERS` maps each module to its owner so
-  GitHub requests their review, but no approval is required.
+- Authors merge their own pull requests; no approval is required. Automatic review requests were
+  removed afterwards; see [no review requests](2026-09-22-no-review-requests.md).
 
 ## Alternatives considered
 
@@ -50,7 +50,6 @@ it becomes wrong. Only its decision is fixed; reversing it takes a new note.
 - Fixing a typo in an archived document or an old session log is no longer possible without a
   repository admin bypassing the check.
 - Team-rule and configuration files have no mechanical guard; `AGENTS.md` tells AI tools to leave
-  them alone unless asked, and CODEOWNERS only requests review.
+  them alone unless asked.
 - CI failures do not block merging on their own; authors must not merge a red pull request.
-- Each owner needs write access to the repository before CODEOWNERS can request their review.
 - Symlinks need Developer Mode or `core.symlinks=true` on Windows clones.

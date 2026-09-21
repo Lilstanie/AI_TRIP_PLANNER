@@ -10,9 +10,6 @@ This is a single deployable, so ownership is by module rather than by frontend/b
 | Destination and dining       | D     | `@jbia0391`       | Grounded guide, customs, dining and dietary constraints    |
 | Web and memory               | E     | `@WhW0591`        | Chat, filters, plan UI, preference memory and persistence  |
 
-[`.github/CODEOWNERS`](../.github/CODEOWNERS) mirrors this table and requests the owner's review
-automatically.
-
 ## Who owns which paths
 
 | Path                                                                                     | Owner | Responsibility                                               |
@@ -42,9 +39,9 @@ Use a standard branch type prefix such as `feature/<module>-<short-desc>`, `fix/
 assistant that created them. Use conventional commit prefixes: `feat:`, `fix:`, `docs:`,
 `refactor:`, `test:` and `chore:`.
 
-Open a pull request for `main` and merge it yourself once CI passes. Reviews are requested
-automatically from the module owner but are not required; ask for one when a change crosses
-modules. Do not force-push or delete `main`.
+Open a pull request for `main` and merge it yourself once CI passes. No review is required or
+requested automatically; ask a teammate yourself when a change crosses modules. Do not force-push or
+delete `main` ([why](../.agents/notes/implemented/process/2026-09-22-no-review-requests.md)).
 
 Every pull request merges into `main`. When a change depends on an open pull request, base it on that
 branch, but merge the lower pull request first and retarget the next one to `main` before merging it;
