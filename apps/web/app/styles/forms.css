@@ -4,18 +4,88 @@ button,
 select {
   color: inherit;
 }
-button:not(.section__row):not(.stay-option) {
+button:not(.section__row):not(.stay-option):not(.rdp-day_button) {
   min-height: 36px;
 }
 button:disabled {
   cursor: not-allowed;
   opacity: 0.55;
 }
-button:not(.section__row):not(.stay-option):not(.primary):not(.trip__cta) {
+/* Calendar day and navigation buttons own their sizing, border, and
+   background in the scoped react-day-picker theme below. */
+button:not(.section__row):not(.stay-option):not(.primary):not(.trip__cta):not(
+    .rdp-day_button
+  ):not(.rdp-button_previous):not(.rdp-button_next) {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--surface);
   padding: 6px 10px;
+}
+/* react-day-picker ships unthemed defaults and its day buttons are otherwise
+   captured by the generic secondary-button rules above. Keep the calendar on
+   the app tokens and make range endpoints distinct from the middle band. */
+.date-picker .rdp-root {
+  --rdp-accent-color: var(--accent);
+  --rdp-accent-background-color: var(--accent-bg);
+  --rdp-today-color: var(--accent);
+  --rdp-day_button-border: 1px solid transparent;
+  --rdp-selected-border: 1px solid var(--accent);
+  --rdp-outside-opacity: 0.45;
+  --rdp-disabled-opacity: 0.35;
+  --rdp-nav_button-width: 30px;
+  --rdp-nav_button-height: 30px;
+  color: var(--text);
+  font-family: inherit;
+}
+.date-picker .rdp-month_caption {
+  font-size: 14px;
+  font-weight: 600;
+}
+.date-picker .rdp-weekday {
+  color: var(--text-mut);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.date-picker .rdp-day_button {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background: none;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  transition: background-color var(--transition);
+}
+.date-picker .rdp-day:not(.rdp-selected) .rdp-day_button:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+.date-picker .rdp-selected:not(.rdp-range_middle) .rdp-day_button {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.date-picker .rdp-range_middle {
+  background: var(--accent-bg);
+}
+.date-picker .rdp-range_middle .rdp-day_button {
+  border-radius: 0;
+}
+.date-picker .rdp-button_previous,
+.date-picker .rdp-button_next {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-dim);
+  transition:
+    color var(--transition),
+    border-color var(--transition);
+}
+.date-picker .rdp-button_previous:hover:not(:disabled),
+.date-picker .rdp-button_next:hover:not(:disabled) {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.date-picker .rdp-chevron {
+  fill: currentColor;
 }
 .panel {
   min-width: 0;

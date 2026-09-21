@@ -29,14 +29,16 @@ export function DateRangePicker({
 
   return (
     <Dialog title={title} onClose={onClose}>
-      <DayPicker
-        mode="range"
-        selected={range}
-        onSelect={setRange}
-        disabled={{ before: today }}
-        numberOfMonths={2}
-        showOutsideDays
-      />
+      <div className="date-picker">
+        <DayPicker
+          mode="range"
+          selected={range}
+          onSelect={setRange}
+          disabled={{ before: today }}
+          numberOfMonths={2}
+          showOutsideDays
+        />
+      </div>
       <div className="date-picker__actions">
         <button type="button" onClick={onClose}>
           Cancel
