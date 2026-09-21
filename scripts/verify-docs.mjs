@@ -95,7 +95,14 @@ const PACKAGE_READMES = [
 ]
   .map((dir) => join(dir, "README.md"))
   .filter((path) => existsSync(path));
-const LINK_ROOTS = ["README.md", "AGENTS.md", "docs", ".agents", ...PACKAGE_READMES];
+const LINK_ROOTS = [
+  "README.md",
+  "AGENTS.md",
+  "CONTRIBUTING.md",
+  "docs",
+  ".agents",
+  ...PACKAGE_READMES,
+];
 const FROZEN_DOCS = [
   /^\.agents\/archive\//,
   /^\.agents\/session-logs\/\d{4}-\d{2}-\d{2}-[^/]+\.md$/,

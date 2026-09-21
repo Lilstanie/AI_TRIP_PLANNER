@@ -5,21 +5,22 @@ everywhere else links to it. `pnpm verify:docs` checks the Markdown links.
 
 ## Where each kind of content belongs
 
-| Content                                                       | Home                                                                  | Not here                              |
-| ------------------------------------------------------------- | --------------------------------------------------------------------- | ------------------------------------- |
-| Standing orders every session needs                           | Root `AGENTS.md`, one to three lines each, linking the home           | Examples, procedures, restated detail |
-| Runtime structure: packages, graph, agents, contracts         | [architecture.md](architecture.md)                                    | Decision rationale, per-file detail   |
-| HTTP routes and request/response formats                      | [api.md](api.md)                                                      | Implementation notes                  |
-| Setup, commands, environment variables, providers, CI summary | [development.md](development.md)                                      | Why a tool or setting was chosen      |
-| Current UI behaviour and editing rules                        | [workspace-ui.md](workspace-ui.md)                                    | Phase history, acceptance transcripts |
-| Visual and interaction design rules, design models            | [design/](design/ui-guidelines.md)                                    | Implementation plans                  |
-| Product direction and status                                  | [roadmap.md](roadmap.md)                                              | Task checklists, PR plans             |
-| Ownership, branches and reviews                               | [team-workflow.md](team-workflow.md)                                  | Rules already in `AGENTS.md`          |
-| A package's exports, configuration and invariants             | `packages/*/README.md`, `apps/web/README.md`                          | Restated `docs/` pages or rationale   |
-| Why a decision was made and what it beat                      | [Agent Notes](../.agents/notes/README.md)                             | —                                     |
-| Plans and proposals not yet built                             | `proposed/` Agent Notes or GitHub issues                              | `docs/`                               |
-| Repeatable workflows for AI tools                             | [Skills](../.agents/skills/)                                          | Product or runtime facts              |
-| What one session did; retired plans and audits                | [Session logs](../.agents/session-logs/README.md), `.agents/archive/` | `docs/`                               |
+| Content                                                        | Home                                                                  | Not here                              |
+| -------------------------------------------------------------- | --------------------------------------------------------------------- | ------------------------------------- |
+| How contributors write and ship code (entry point, links only) | [`CONTRIBUTING.md`](../CONTRIBUTING.md)                               | Detail owned by the pages it links    |
+| Standing orders every session needs                            | Root `AGENTS.md`, one to three lines each, linking the home           | Examples, procedures, restated detail |
+| Runtime structure: packages, graph, agents, contracts          | [architecture.md](architecture.md)                                    | Decision rationale, per-file detail   |
+| HTTP routes and request/response formats                       | [api.md](api.md)                                                      | Implementation notes                  |
+| Setup, commands, environment variables, providers, CI summary  | [development.md](development.md)                                      | Why a tool or setting was chosen      |
+| Current UI behaviour and editing rules                         | [workspace-ui.md](workspace-ui.md)                                    | Phase history, acceptance transcripts |
+| Visual and interaction design rules, design models             | [design/](design/ui-guidelines.md)                                    | Implementation plans                  |
+| Product direction and status                                   | [roadmap.md](roadmap.md)                                              | Task checklists, PR plans             |
+| Ownership, branches and reviews                                | [team-workflow.md](team-workflow.md)                                  | Rules already in `AGENTS.md`          |
+| A package's exports, configuration and invariants              | `packages/*/README.md`, `apps/web/README.md`                          | Restated `docs/` pages or rationale   |
+| Why a decision was made and what it beat                       | [Agent Notes](../.agents/notes/README.md)                             | —                                     |
+| Plans and proposals not yet built                              | `proposed/` Agent Notes or GitHub issues                              | `docs/`                               |
+| Repeatable workflows for AI tools                              | [Skills](../.agents/skills/)                                          | Product or runtime facts              |
+| What one session did; retired plans and audits                 | [Session logs](../.agents/session-logs/README.md), `.agents/archive/` | `docs/`                               |
 
 ## Writing rules
 
