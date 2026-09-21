@@ -42,8 +42,11 @@ describe("FiltersPanel dates", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /pick trip dates from a calendar/i }));
 
+    // First test to trigger next/dynamic's import of DateRangePicker (react-day-picker plus its
+    // stylesheet). That cold transform takes ~3.5s here, which is close enough to the 5s default
+    // poll to fail whenever the suite runs alongside everything else — so it gets its own budget.
     expect(
-      await screen.findByRole("heading", { name: /when are you travelling/i }),
+      await screen.findByRole("heading", { name: /when are you travelling/i }, { timeout: 15000 }),
     ).toBeTruthy();
   });
 

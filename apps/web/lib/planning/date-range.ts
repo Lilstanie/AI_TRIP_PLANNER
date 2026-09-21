@@ -34,10 +34,3 @@ export function formatTravelDatesMessage(range: DateRange): string | undefined {
   const iso = isoDateRange(range);
   return iso && `Travel dates: ${iso.start} to ${iso.end}`;
 }
-
-/** Heuristic: is the assistant's message asking the traveller to pick dates? */
-const DATE_QUESTION =
-  /\b(what|which)\s+dates?\b|\btravel\s+dates?\b|\bwhen\s+(are|is)\s+you\b|哪天|什么时候|几号|日期/i;
-export function looksLikeDateQuestion(text: string): boolean {
-  return DATE_QUESTION.test(text);
-}
