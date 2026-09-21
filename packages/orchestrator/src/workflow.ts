@@ -29,8 +29,7 @@ import { z } from "zod/v4";
 import { assessBudget, costOf, rollUpCost, NEGOTIATION_OVERRUN_PCT } from "./budget";
 import { detectConflicts } from "./conflicts";
 export { detectConflicts } from "./conflicts";
-import { checkpointsFor } from "./hitl";
-import { dispatchWithSupervisor, reviseWithSupervisor } from "./supervisor";
+import { choiceFor, dispatchWithSupervisor, reviseWithSupervisor } from "./supervisor";
 import { withProgressTools } from "./progress-tools";
 
 const DEFAULT_MAX_ROUNDS = 3;
@@ -61,6 +60,10 @@ function toSection(
   unresolved: RevisionRequest[],
   specialistByName: Map<Specialist["name"], Specialist>,
 ): TripSection {
+  // A section is "needs_you" exactly while an unresolved revision request still
+  // targets it, and "draft" once it has a proposal and no conflict. Nothing else
+  // can move a section out of one of those states any more: there is no
+  // confirmation step, so "confirmed" is never produced here.
   const stillConflicting = unresolved.some((request) => request.targetAgent === proposal.agent);
   return {
     id: proposal.agent,
@@ -138,12 +141,19 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
       agent: specialist.name,
       round: request.context.round,
       summary: `${request.brief.destination} · ${request.brief.dates.join(" to ")} · ${request.brief.groupSize} people · AUD ${request.brief.budgetTotal}`,
+      objective: request.revision
+        ? `Fix: ${request.revision.reason}`
+        : `Produce the ${specialist.label} section for this trip.`,
       constraints: request.revision?.constraints,
     });
     try {
       const proposal = AgentProposalSchema.parse(await specialist.invoke(request));
       onProgress?.({
         summary: proposal.summary,
+        outcome: request.revision
+          ? `Revised ${proposal.agent} after: ${request.revision.reason}.`
+          : `Produced ${proposal.agent} section.`,
+        ...(choiceFor(proposal) ? { choice: choiceFor(proposal)! } : {}),
         type: "agent_completed",
         agent: specialist.name,
         round: request.context.round,
@@ -267,26 +277,13 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
       type: "coordinator",
       phase: "assembly",
       round: state.round,
-      summary: "Assembling the plan and decisions for your review.",
+      summary: "Assembling the plan.",
     });
     const sections = state.proposals.map((proposal) =>
       toSection(proposal, state.conflicts, specialistByName),
     );
     const { estTotal, overrunPct } = rollUpCost(sections, state.brief.budgetTotal);
-    const plan: TripPlan = {
-      tripId: state.brief.tripId,
-      brief: state.brief,
-      round: state.round,
-      budgetTotal: state.brief.budgetTotal,
-      estTotal,
-      overrunPct,
-      sections,
-      hitl: [],
-      conflicts: state.conflicts,
-    };
-    plan.hitl = checkpointsFor(plan);
-    for (const section of plan.sections) {
-      if (plan.hitl.some((c) => c.sectionId === section.id)) section.status = "needs_you";
+    for (const section of sections) {
       if (section.proposal && !section.proposal.source)
         section.proposal.source = {
           kind: "unavailable",
@@ -295,6 +292,16 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
             "This specialist did not report its provider or degradation state; treat the result as unverified.",
         };
     }
+    const plan: TripPlan = {
+      tripId: state.brief.tripId,
+      brief: state.brief,
+      round: state.round,
+      budgetTotal: state.brief.budgetTotal,
+      estTotal,
+      overrunPct,
+      sections,
+      conflicts: state.conflicts,
+    };
     return { plan: TripPlanSchema.parse(plan) };
   };
 
