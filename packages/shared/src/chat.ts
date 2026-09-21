@@ -56,7 +56,11 @@ export const ChatResponse = z.object({
 export type ChatResponse = z.infer<typeof ChatResponse>;
 
 // Sent instead of a plan when a blank conversation is still missing required
-// fields: the assistant's question, plus everything understood so far.
+// fields: the assistant's own question, plus everything understood so far.
+//
+// There is no structured question here. The assistant asks in prose, in the
+// chat, and the traveller answers by typing; a suggestion list or answer form
+// would present a product capability that does not exist.
 export const ChatNeedsInfo = z.object({
   type: z.literal("needs_info"),
   question: z.string(),
@@ -64,11 +68,47 @@ export const ChatNeedsInfo = z.object({
 });
 export type ChatNeedsInfo = z.infer<typeof ChatNeedsInfo>;
 
+// One line of a tool call's structured result, e.g. a stay candidate or a place.
+// The label is the whole row, so a client never has to know the tool's domain.
+export const ToolResultRow = z.object({
+  label: z.string().min(1),
+  detail: z.string().optional(),
+});
+export type ToolResultRow = z.infer<typeof ToolResultRow>;
+
+// The model's own choice inside a tool result, e.g. the stay it picked out of
+// the candidates. `rationale` is the model's stated reason, not a restatement.
+export const ToolChoice = z.object({
+  title: z.string().min(1),
+  selected: ToolResultRow,
+  rationale: z.string().optional(),
+  alternatives: z.array(ToolResultRow).default([]),
+});
+export type ToolChoice = z.infer<typeof ToolChoice>;
+
 // Progress frames emitted while the orchestrator delegates work. The final
 // ChatResponse remains unchanged; clients can render these frames as optional
 // activity without coupling to LangGraph internals.
 export const AgentProgressEvent = z.discriminatedUnion("type", [
   z.object({
+    // A streamed slice of the supervisor's or coordinator's own thinking. Text
+    // is a delta, not the whole block; clients append by
+    // (agent, round, episode, index).
+    type: z.literal("agent_reasoning"),
+    agent: z.enum(AGENT_NAMES),
+    round: z.number().int().positive(),
+    // Which model call chain produced this block. One round can hold several —
+    // the dispatch supervisor, then one revision supervisor per conflict pass —
+    // and each numbers its own blocks from zero, so `round` alone does not
+    // identify a block. Defaults to 0 for an emitter that never sets it.
+    episode: z.number().int().nonnegative().default(0),
+    index: z.number().int().nonnegative(),
+    text: z.string().min(1),
+  }),
+  z.object({
+    // The coordinator's account of a round boundary: what started it and what
+    // it is waiting on. Renders as the round's heading in the transcript, and
+    // is the only explanation a round number ever gets.
     type: z.literal("coordinator"),
     phase: z.enum(["dispatch", "conflicts", "revision", "assembly"]),
     round: z.number().int().positive(),
@@ -79,12 +119,19 @@ export const AgentProgressEvent = z.discriminatedUnion("type", [
     type: z.literal("agent_started"),
     summary: z.string().optional(),
     constraints: z.array(z.string()).optional(),
+    // The bounded objective the supervisor handed this specialist, so a reader
+    // can see what it was asked to do rather than only that it ran.
+    objective: z.string().optional(),
     agent: z.enum(AGENT_NAMES),
     round: z.number().int().positive(),
   }),
   z.object({
     type: z.literal("agent_completed"),
     summary: z.string().optional(),
+    // What this round of work changed, in the specialist's own words. Present
+    // on revisions, where the reason a round exists is the conflict it fixed.
+    outcome: z.string().optional(),
+    choice: ToolChoice.optional(),
     agent: z.enum(AGENT_NAMES),
     round: z.number().int().positive(),
   }),
@@ -102,6 +149,8 @@ export const AgentProgressEvent = z.discriminatedUnion("type", [
     tool: z.string().min(1),
     label: z.string().min(1),
     summary: z.string().min(1),
+    // The arguments the call was made with. Optional: older emitters omit it.
+    args: z.record(z.string(), z.string()).optional(),
   }),
   z.object({
     type: z.literal("tool_completed"),
@@ -112,6 +161,10 @@ export const AgentProgressEvent = z.discriminatedUnion("type", [
     label: z.string().min(1),
     resultSummary: z.string().min(1),
     resultCount: z.number().int().nonnegative().optional(),
+    // The result's own rows, bounded by the emitter (see BOUNDED_RESULT_ROWS).
+    resultRows: z.array(ToolResultRow).optional(),
+    // Set when the emitter had more rows than it published.
+    resultTruncated: z.boolean().optional(),
   }),
   z.object({
     type: z.literal("tool_failed"),
@@ -123,4 +176,7 @@ export const AgentProgressEvent = z.discriminatedUnion("type", [
     error: z.string().min(1),
   }),
 ]);
+
+/** Emitters never publish more than this many rows for one tool result. */
+export const BOUNDED_RESULT_ROWS = 20;
 export type AgentProgressEvent = z.infer<typeof AgentProgressEvent>;
