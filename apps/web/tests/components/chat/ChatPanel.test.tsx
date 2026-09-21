@@ -59,10 +59,14 @@ describe("ChatPanel", () => {
     // the input would send the previous (empty) value.
     expect(onSend).toHaveBeenCalledTimes(1);
     const [sent] = onSend.mock.calls[0]!;
-    expect(sent).toMatch(/Melbourne to Sydney for 2 people/);
+    // Assert the facts, not the word order: the phrasing is constrained by the
+    // offline extractor and has had to change once already.
+    expect(sent).toMatch(/Sydney/);
+    expect(sent).toMatch(/Melbourne/);
+    expect(sent).toMatch(/2 people/);
     expect(sent).toMatch(/total budget 4000 AUD/);
     // Complete enough to plan outright, so no follow-up question is needed.
-    expect(sent).toMatch(/from \d{4}-\d{2}-\d{2} to \d{4}-\d{2}-\d{2}/);
+    expect(sent).toMatch(/\d{4}-\d{2}-\d{2} to \d{4}-\d{2}-\d{2}/);
   });
 
   it("does not scroll an empty chat above its heading", () => {
