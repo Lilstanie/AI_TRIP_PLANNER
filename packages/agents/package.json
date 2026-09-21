@@ -13,6 +13,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@langchain/core": "^1.2.9",
     "@langchain/openai": "^1.5.11",
     "@trip/services": "workspace:*",
     "@trip/shared": "workspace:*",

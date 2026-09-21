@@ -6,6 +6,7 @@ import {
   type AgentProgressEvent,
   type RevisionRequest,
   type Specialist,
+  type ToolChoice,
   type TripBrief,
 } from "@trip/shared";
 import { createRoutedChatModel } from "@trip/agents";
@@ -13,6 +14,51 @@ import type { BaseChatModel } from "@langchain/core/language_models/chat_models"
 import { createAgent, tool } from "langchain";
 import { z } from "zod/v4";
 import { withProgressTools } from "./progress-tools";
+import { createReasoningSink } from "./reasoning-sink";
+
+/**
+ * The stay a specialist settled on, as a transcript decision rather than prose.
+ * Published on `agent_completed` so the transcript shows the choice and its
+ * alternatives instead of asking the traveller to make it from scratch.
+ */
+export function choiceFor(proposal: AgentProposal): ToolChoice | undefined {
+  const stay = proposal.stays?.[0];
+  if (!stay) return undefined;
+  const selected = stay.candidates.find((candidate) => candidate.id === stay.selectedId);
+  if (!selected) return undefined;
+  const cost = selected.pricePerNight * stay.nights * stay.rooms;
+  return {
+    title: `Stay in ${stay.city}`,
+    selected: {
+      label: selected.name,
+      detail: [
+        selected.area,
+        `AUD ${cost.toFixed(2)} total`,
+        `${selected.rating}/10`,
+        selected.freeCancellation ? "Free cancellation" : "No free cancellation",
+      ].join(" · "),
+    },
+    rationale: proposal.summary,
+    alternatives: stay.candidates
+      .filter((candidate) => candidate.id !== stay.selectedId)
+      .map((candidate) => ({
+        label: candidate.name,
+        detail: [
+          candidate.area,
+          `AUD ${(candidate.pricePerNight * stay.nights * stay.rooms).toFixed(2)} total`,
+          `${candidate.rating}/10`,
+          candidate.freeCancellation ? "Free cancellation" : "No free cancellation",
+        ].join(" · "),
+      })),
+  };
+}
+
+/** What changed in this round, read from the proposal the specialist returned. */
+function outcomeFor(proposal: AgentProposal, revision: RevisionRequest | undefined): string {
+  if (!revision) return `Produced ${proposal.agent} section.`;
+  const constraints = revision.constraints.length ? ` under ${revision.constraints.join("; ")}` : "";
+  return `Revised ${proposal.agent} after: ${revision.reason}${constraints}.`;
+}
 
 const DelegationRequest = z.object({
   objective: z
@@ -59,6 +105,7 @@ export function createSupervisorTools(
       async ({ objective }) => {
         options.onProgress?.({
           summary: `${options.brief.destination} · ${options.brief.dates.join(" to ")} · ${options.brief.groupSize} people · AUD ${options.brief.budgetTotal}`,
+          objective,
           type: "agent_started",
           agent: specialist.name,
           round: options.context.round,
@@ -92,6 +139,8 @@ export function createSupervisorTools(
         }
         options.onProgress?.({
           summary: proposal.summary,
+          outcome: outcomeFor(proposal, undefined),
+          ...(choiceFor(proposal) ? { choice: choiceFor(proposal)! } : {}),
           type: "agent_completed",
           agent: specialist.name,
           round: options.context.round,
@@ -124,8 +173,9 @@ export function createRevisionTools(
         async ({ objective }) => {
           options.onProgress?.({
             summary: `${options.brief.destination} · ${options.brief.dates.join(" to ")} · ${options.brief.groupSize} people · AUD ${options.brief.budgetTotal}`,
-            type: "agent_started",
+            objective,
             constraints: request.constraints,
+            type: "agent_started",
             agent: specialist.name,
             round: options.context.round,
           });
@@ -159,6 +209,8 @@ export function createRevisionTools(
           }
           options.onProgress?.({
             summary: proposal.summary,
+            outcome: outcomeFor(proposal, request),
+            ...(choiceFor(proposal) ? { choice: choiceFor(proposal)! } : {}),
             type: "agent_completed",
             agent: specialist.name,
             round: options.context.round,
@@ -183,7 +235,16 @@ export function createRevisionTools(
 export async function dispatchWithSupervisor(
   options: SupervisorDispatchOptions,
 ): Promise<AgentProposal[]> {
-  const model = options.model ?? createRoutedChatModel("itinerary");
+  const sink = createReasoningSink(options.context.round, options.onProgress, 0);
+  // Thinking is on for the supervisor: choosing which specialists to delegate
+  // to is the run's visible reasoning, and streaming it is the only way to show
+  // it. A model injected by a test is used as-is.
+  const model = options.model
+    ? options.model
+    : ((): BaseChatModel | undefined => {
+        const routed = createRoutedChatModel("itinerary", { thinking: true });
+        return routed ? sink.wrap(routed) : undefined;
+      })();
   if (!model) throw new Error("Supervisor requires a configured routed chat model.");
 
   const proposals = new Map<AgentProposal["agent"], AgentProposal>();
@@ -195,20 +256,24 @@ export async function dispatchWithSupervisor(
     model,
     tools,
     systemPrompt:
-      "You are the trip-planning supervisor. Decide which specialist tools are needed for the user's requested plan, delegate bounded objectives, and do not perform specialist work yourself. For a complete new trip plan, consider day planning, inter-city transport, accommodation, destination guidance and dining. Day planning is not optional: always delegate to the itinerary specialist. Do not invent or modify trip facts. Stop after the necessary specialist tools have returned; the deterministic LangGraph workflow validates, reconciles and persists their proposals.",
+      "You are the trip-planning supervisor. Decide which specialist tools are needed for the user's requested plan, delegate bounded objectives, and do not perform specialist work yourself. For a complete new trip plan, consider day planning, inter-city transport, accommodation, destination guidance and dining. Day planning is not optional: always delegate to the itinerary specialist. Do not invent or modify trip facts. Stop after the necessary specialist tools have returned; the deterministic LangGraph workflow validates, reconciles and persists their proposals. Write each objective as one concrete sentence naming the trip facts it must respect, because the traveller reads it in the transcript while the specialist works. Never ask the traveller a question yourself; the coordinator owns questions.",
   });
 
-  await supervisor.invoke({
-    messages: [
-      {
-        role: "user",
-        content: JSON.stringify({
-          task: "Delegate the specialist work required to produce this trip plan.",
-          brief: options.brief,
-        }),
-      },
-    ],
-  });
+  try {
+    await supervisor.invoke({
+      messages: [
+        {
+          role: "user",
+          content: JSON.stringify({
+            task: "Delegate the specialist work required to produce this trip plan.",
+            brief: options.brief,
+          }),
+        },
+      ],
+    });
+  } finally {
+    sink.flush();
+  }
 
   if (proposals.size === 0) {
     throw new Error("Supervisor completed without delegating to a specialist.");
@@ -234,7 +299,15 @@ export async function dispatchWithSupervisor(
 export async function reviseWithSupervisor(
   options: SupervisorRevisionOptions,
 ): Promise<AgentProposal[]> {
-  const model = options.model ?? createRoutedChatModel("itinerary");
+  // The revision pass revises the round it is about to produce, so that round
+  // names its episode: two conflict passes never share a block identity.
+  const sink = createReasoningSink(options.context.round + 1, options.onProgress, options.context.round + 1);
+  const model = options.model
+    ? options.model
+    : ((): BaseChatModel | undefined => {
+        const routed = createRoutedChatModel("itinerary", { thinking: true });
+        return routed ? sink.wrap(routed) : undefined;
+      })();
   if (!model) throw new Error("Revision supervisor requires a configured routed chat model.");
 
   const revised = new Map<AgentProposal["agent"], AgentProposal>();
@@ -248,18 +321,22 @@ export async function reviseWithSupervisor(
     systemPrompt:
       "You are the trip revision supervisor. Call every provided revision specialist tool exactly once so each validated conflict request reaches its targeted owner. Do not rewrite requests, constraints or trip facts, and do not solve specialist work yourself. Stop after all revision tools return; LangGraph will re-run deterministic conflict validation.",
   });
-  await supervisor.invoke({
-    messages: [
-      {
-        role: "user",
-        content: JSON.stringify({
-          task: "Delegate every pending revision request to its typed specialist tool.",
-          tripId: options.brief.tripId,
-          requests: options.requests,
-        }),
-      },
-    ],
-  });
+  try {
+    await supervisor.invoke({
+      messages: [
+        {
+          role: "user",
+          content: JSON.stringify({
+            task: "Delegate every pending revision request to its typed specialist tool.",
+            tripId: options.brief.tripId,
+            requests: options.requests,
+          }),
+        },
+      ],
+    });
+  } finally {
+    sink.flush();
+  }
 
   const expected = new Set(tools.map((revisionTool) => revisionTool.name));
   if (revised.size !== expected.size) {

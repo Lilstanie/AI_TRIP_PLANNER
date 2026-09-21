@@ -23,8 +23,22 @@ export const MODEL_ROUTING = {
 /** Valid task names accepted by the provider/model routing helpers. */
 export type RoutedModelTask = keyof typeof MODEL_ROUTING;
 
+/**
+ * Which model roles need private reasoning. The supervisor and the coordinator
+ * decide what work to delegate and publish that thinking in the transcript, so
+ * they run with thinking on. Specialists ask for structured output through a
+ * forced tool call, and DeepSeek rejects a forced `tool_choice` in thinking
+ * mode ("Thinking mode does not support this tool_choice"), so they stay off.
+ */
+export interface RoutedModelOptions {
+  thinking?: boolean;
+}
+
 /** Create the chat model for a task, or return undefined when its credentials are absent. */
-export function createRoutedChatModel(task: RoutedModelTask): ChatOpenAI | undefined {
+export function createRoutedChatModel(
+  task: RoutedModelTask,
+  options: RoutedModelOptions = {},
+): ChatOpenAI | undefined {
   const provider = MODEL_ROUTING[task];
   if (provider === "deepseek") {
     const apiKey = process.env.DEEPSEEK_API_KEY;
@@ -34,8 +48,7 @@ export function createRoutedChatModel(task: RoutedModelTask): ChatOpenAI | undef
       model: process.env.DEEPSEEK_MODEL || "deepseek-v4-flash",
       temperature: 0,
       streamUsage: false,
-      // DeepSeek V4 thinking mode rejects the tool_choice used for structured output.
-      modelKwargs: { thinking: { type: "disabled" } },
+      modelKwargs: { thinking: { type: options.thinking ? "enabled" : "disabled" } },
       configuration: {
         baseURL: process.env.DEEPSEEK_BASE_URL || "https://api.deepseek.com",
       },
@@ -67,8 +80,9 @@ export function createRoutedStructuredInvoker<Schema extends z.ZodType>(
   name: string,
 ): ((prompt: string) => Promise<z.infer<Schema>>) | undefined {
   // Build the model lazily: tests and offline runs can use deterministic paths
-  // simply by omitting the provider key.
-  const model = createRoutedChatModel(task);
+  // simply by omitting the provider key. Structured output forces a tool call,
+  // so this path always runs with thinking off (see RoutedModelOptions).
+  const model = createRoutedChatModel(task, { thinking: false });
   if (!model) return undefined;
 
   if (MODEL_ROUTING[task] === "deepseek") {

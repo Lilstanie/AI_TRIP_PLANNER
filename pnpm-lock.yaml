@@ -99,6 +99,9 @@ importers:
 
   packages/agents:
     dependencies:
+      '@langchain/core':
+        specifier: ^1.2.9
+        version: 1.2.9(openai@7.10.0(ws@8.21.3)(zod@4.5.4))(ws@8.21.3)
       '@langchain/openai':
         specifier: ^1.5.11
         version: 1.5.11(@langchain/core@1.2.9(openai@7.10.0(ws@8.21.3)(zod@4.5.4))(ws@8.21.3))(ws@8.21.3)

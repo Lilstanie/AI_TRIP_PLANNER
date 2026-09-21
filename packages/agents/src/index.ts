@@ -45,6 +45,13 @@ export {
   MODEL_ROUTING,
   createRoutedChatModel,
   createRoutedStructuredInvoker,
+  type RoutedModelOptions,
   type RoutedModelTask,
 } from "./models";
+export {
+  assembleChunks,
+  messageText,
+  withReasoningStream,
+  type ReasoningListener,
+} from "./reasoning";
 export { transportAgent, accommodationAgent };
