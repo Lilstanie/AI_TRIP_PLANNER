@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 1300" role="img" aria-label="UML use case diagram. The human actor Traveler, on the left, has an association to all ten use cases stacked in one column inside the AI Trip Planner system boundary. Generate Itinerary includes Set Preferences (Filter) and Submit Requirement (Chat). Confirm Key Itinerary, marked HITL, extends Generate Itinerary at the condition key nodes pending and extends Manage Budget at the condition over budget. Arrange Transportation is associated with the external Maps and Transportation API, Arrange Accommodation with the external Booking and Payment Service, and View Weather-based Clothing Recommendation with the external Weather Service. Arrange Accommodation has an alternative note Individual or Group; View Itinerary Output has an alternative note Mind-map or List Timeline.">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 1300" role="img" aria-label="UML use case diagram. The human actor Traveler, on the left, has an association to all ten use cases stacked in one column inside the AI Trip Planner system boundary. Generate Itinerary includes Set Preferences (Filter) and Submit Requirement (Chat). Edit Itinerary (Timeline / Map) extends Generate Itinerary when the traveller edits the plan and includes Manage Budget to re-check the budget. Arrange Transportation is associated with the external Maps and Routes API, Arrange Accommodation with the external Hotel and Flight Search, and View Weather-based Clothing Recommendation with the external Weather API. Arrange Accommodation has an alternative note Individual or Group; View Itinerary Output has an alternative note Timeline or Map.">
         <defs>
           <marker id="oa" viewBox="0 0 12 12" refX="9.5" refY="6" markerWidth="8.5" markerHeight="8.5" orient="auto-start-reverse">
             <polyline points="2,2 10,6 2,10" fill="none" stroke="#1d2733" stroke-width="1.7"/>
@@ -39,18 +39,18 @@
         <g font-family="'IBM Plex Sans','Helvetica Neue',Arial,sans-serif" font-size="12" fill="#1d2733">
           <rect x="884" y="693" width="152" height="54" rx="3" fill="none" stroke="#1d2733" stroke-width="1.4"/>
           <text x="960" y="713" text-anchor="middle" font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" font-size="9.5" fill="#5a6675">«external system»</text>
-          <text x="960" y="729" text-anchor="middle">Maps /</text>
-          <text x="960" y="743" text-anchor="middle">Transportation API</text>
+          <text x="960" y="729" text-anchor="middle">Maps / Routes API</text>
+          <text x="960" y="743" text-anchor="middle" font-size="10.5" fill="#5a6675">Google · OpenStreetMap</text>
 
           <rect x="884" y="809" width="152" height="54" rx="3" fill="none" stroke="#1d2733" stroke-width="1.4"/>
           <text x="960" y="829" text-anchor="middle" font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" font-size="9.5" fill="#5a6675">«external system»</text>
-          <text x="960" y="845" text-anchor="middle">Booking /</text>
-          <text x="960" y="859" text-anchor="middle">Payment Service</text>
+          <text x="960" y="845" text-anchor="middle">Hotel / Flight Search</text>
+          <text x="960" y="859" text-anchor="middle" font-size="10.5" fill="#5a6675">SerpApi · Google Places</text>
 
           <rect x="884" y="925" width="152" height="54" rx="3" fill="none" stroke="#1d2733" stroke-width="1.4"/>
           <text x="960" y="945" text-anchor="middle" font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" font-size="9.5" fill="#5a6675">«external system»</text>
-          <text x="960" y="961" text-anchor="middle">Weather</text>
-          <text x="960" y="975" text-anchor="middle">Service</text>
+          <text x="960" y="961" text-anchor="middle">Weather API</text>
+          <text x="960" y="975" text-anchor="middle" font-size="10.5" fill="#5a6675">Google · Open-Meteo</text>
         </g>
 
         <!-- ============ use case → external associations ============ -->
@@ -71,9 +71,9 @@
           <text x="430" y="320" text-anchor="start">«include»</text>
           <text x="614" y="256" text-anchor="middle">«include»</text>
           <text x="452" y="430" text-anchor="start">«extend»</text>
-          <text x="452" y="443" text-anchor="start" font-size="8.5" fill="#5a6675">[key nodes pending]</text>
-          <text x="452" y="546" text-anchor="start">«extend»</text>
-          <text x="452" y="559" text-anchor="start" font-size="8.5" fill="#5a6675">[over budget]</text>
+          <text x="452" y="443" text-anchor="start" font-size="8.5" fill="#5a6675">[traveller edits the plan]</text>
+          <text x="452" y="546" text-anchor="start">«include»</text>
+          <text x="452" y="559" text-anchor="start" font-size="8.5" fill="#5a6675">[re-check route and budget]</text>
         </g>
 
         <!-- ============ use case ellipses ============ -->
@@ -98,13 +98,12 @@
         <circle cx="524" cy="348" r="11" fill="#0c6b5e"/>
         <text x="524" y="352" text-anchor="middle" font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" font-size="11" font-weight="600" fill="#fff">A</text>
 
-        <!-- UC7 Confirm Key Itinerary : A  (HITL) -->
-        <ellipse cx="430" cy="488" rx="118" ry="38" fill="#ffffff" stroke="#1d2733" stroke-width="2.1"/>
-        <text x="430" y="470" text-anchor="middle" font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" font-size="9.5" fill="#0c6b5e">«HITL»</text>
-        <text x="430" y="486" text-anchor="middle" font-family="'IBM Plex Sans','Helvetica Neue',Arial,sans-serif" font-size="12.5" fill="#1d2733">Confirm Key</text>
-        <text x="430" y="503" text-anchor="middle" font-family="'IBM Plex Sans','Helvetica Neue',Arial,sans-serif" font-size="12.5" fill="#1d2733">Itinerary</text>
-        <circle cx="524" cy="464" r="11" fill="#0c6b5e"/>
-        <text x="524" y="468" text-anchor="middle" font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" font-size="11" font-weight="600" fill="#fff">A</text>
+        <!-- UC7 Edit Itinerary (Timeline / Map) : E -->
+        <ellipse cx="430" cy="488" rx="118" ry="38" fill="#ffffff" stroke="#1d2733" stroke-width="1.5"/>
+        <text x="430" y="484" text-anchor="middle" font-family="'IBM Plex Sans','Helvetica Neue',Arial,sans-serif" font-size="12.5" fill="#1d2733">Edit Itinerary</text>
+        <text x="430" y="501" text-anchor="middle" font-family="'IBM Plex Sans','Helvetica Neue',Arial,sans-serif" font-size="11" fill="#5a6675">(Timeline / Map)</text>
+        <circle cx="524" cy="464" r="11" fill="#475569"/>
+        <text x="524" y="468" text-anchor="middle" font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" font-size="11" font-weight="600" fill="#fff">E</text>
 
         <!-- UC6 Manage Budget : C -->
         <ellipse cx="430" cy="604" rx="118" ry="38" fill="#ffffff" stroke="#1d2733" stroke-width="1.5"/>
@@ -157,6 +156,6 @@
           <line x1="548" y1="1178" x2="628" y2="1152" stroke="#5a6675" stroke-width="1.1" stroke-dasharray="3 3"/>
           <path d="M 628,1130 h 162 l 12,12 v 34 h -174 z M 790,1130 v 12 h 12" fill="#f7f2e6" stroke="#5a6675" stroke-width="1.1"/>
           <text x="638" y="1150" font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" font-size="9.5" fill="#3a4757">«alternative»</text>
-          <text x="638" y="1165" font-family="'IBM Plex Sans','Helvetica Neue',Arial,sans-serif" font-size="10.5" fill="#3a4757">Mind-map | List / Timeline</text>
+          <text x="638" y="1165" font-family="'IBM Plex Sans','Helvetica Neue',Arial,sans-serif" font-size="10.5" fill="#3a4757">Timeline | Map</text>
         </g>
       </svg>

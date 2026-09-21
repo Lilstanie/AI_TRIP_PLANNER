@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1560 1180" role="img" aria-label="Combined UML view. On the left, the actor Traveler is associated with ten use cases in one column: Set Preferences, Submit Requirement, Generate Itinerary, Confirm Key Itinerary (HITL), Manage Budget, Arrange Transportation, Arrange Accommodation, View Weather-based Clothing Recommendation, View Food and Cuisine Recommendation, and View Itinerary Output. Generate Itinerary includes Set Preferences and Submit Requirement; Confirm Key Itinerary extends Generate Itinerary and Manage Budget. On the right, the architecture as six packages: apps/web, @trip/orchestrator, @trip/agents, @trip/tools, @trip/services, and @trip/shared. apps/web delegates to @trip/orchestrator, which dispatches to @trip/agents and uses @trip/services; @trip/agents uses @trip/tools and @trip/services; @trip/tools adapters call the external Maps and Transportation API and Booking and Payment Service; the Weather Service is reached by an LLM sub-function with no adapter; every package depends on @trip/shared. Dashed trace links connect each use case to its realising package.">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1560 1180" role="img" aria-label="Combined UML view. On the left, the actor Traveler is associated with ten use cases in one column: Set Preferences, Submit Requirement, Generate Itinerary, Edit Itinerary (Timeline / Map), Manage Budget, Arrange Transportation, Arrange Accommodation, View Weather-based Clothing Recommendation, View Food and Cuisine Recommendation, and View Itinerary Output. Generate Itinerary includes Set Preferences and Submit Requirement; Edit Itinerary extends Generate Itinerary and includes Manage Budget. On the right, the architecture as six packages: apps/web, @trip/orchestrator, @trip/agents, @trip/tools, @trip/services, and @trip/shared. apps/web delegates to @trip/orchestrator, which dispatches to @trip/agents and uses @trip/services; @trip/agents uses @trip/tools and @trip/services; @trip/tools adapters call the external Maps and Routes API, the Hotel and Flight Search, and the Weather API; @trip/services keeps state in a Redis REST store when configured; every package depends on @trip/shared. Dashed trace links connect each use case to its realising package.">
         <defs>
           <marker id="ah" viewBox="0 0 12 12" refX="9.5" refY="6" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
             <polyline points="2,2 10,6 2,10" fill="none" stroke="#1d2733" stroke-width="1.8"/>
@@ -41,7 +41,7 @@
           <text x="252" y="234" text-anchor="start">«include»</text>
           <text x="336" y="148" text-anchor="end">«include»</text>
           <text x="150" y="342" text-anchor="start">«extend»</text>
-          <text x="150" y="448" text-anchor="start">«extend»</text>
+          <text x="148" y="448" text-anchor="start">«include»</text>
         </g>
 
         <!-- ================= use case ellipses ================= -->
@@ -63,11 +63,11 @@
         <text x="210" y="286" text-anchor="middle" font-family="'IBM Plex Sans','Helvetica Neue',Arial,sans-serif" font-size="12.5" fill="#1d2733">Generate Itinerary</text>
         <circle cx="292" cy="266" r="10" fill="#0c6b5e"/><text x="292" y="270" text-anchor="middle" font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" font-size="10" font-weight="600" fill="#fff">A</text>
 
-        <!-- UC7 Confirm Key Itinerary A HITL -->
-        <ellipse cx="210" cy="390" rx="108" ry="26" fill="#fff" stroke="#1d2733" stroke-width="2.1"/>
-        <text x="210" y="384" text-anchor="middle" font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" font-size="8.5" fill="#0c6b5e">«HITL»</text>
-        <text x="210" y="398" text-anchor="middle" font-family="'IBM Plex Sans','Helvetica Neue',Arial,sans-serif" font-size="11.5" fill="#1d2733">Confirm Key Itinerary</text>
-        <circle cx="292" cy="374" r="10" fill="#0c6b5e"/><text x="292" y="378" text-anchor="middle" font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" font-size="10" font-weight="600" fill="#fff">A</text>
+        <!-- UC7 Edit Itinerary (Timeline / Map) E -->
+        <ellipse cx="210" cy="390" rx="108" ry="26" fill="#fff" stroke="#1d2733" stroke-width="1.5"/>
+        <text x="210" y="387" text-anchor="middle" font-family="'IBM Plex Sans','Helvetica Neue',Arial,sans-serif" font-size="12" fill="#1d2733">Edit Itinerary</text>
+        <text x="210" y="402" text-anchor="middle" font-family="'IBM Plex Sans','Helvetica Neue',Arial,sans-serif" font-size="10" fill="#5a6675">(Timeline / Map)</text>
+        <circle cx="292" cy="374" r="10" fill="#475569"/><text x="292" y="378" text-anchor="middle" font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" font-size="10" font-weight="600" fill="#fff">E</text>
 
         <!-- UC6 Manage Budget C -->
         <ellipse cx="210" cy="498" rx="108" ry="26" fill="#fff" stroke="#1d2733" stroke-width="1.5"/>
@@ -107,7 +107,7 @@
           <path d="M 318,66 L 400,96" stroke="#475569"/>
           <path d="M 318,174 L 400,150" stroke="#475569"/>
           <path d="M 318,282 L 470,300" stroke="#0c6b5e"/>
-          <path d="M 318,390 L 470,392" stroke="#0c6b5e"/>
+          <path d="M 318,390 C 360,370 370,210 400,200" stroke="#475569"/>
           <path d="M 318,498 L 470,436" stroke="#b45309"/>
           <path d="M 318,606 C 470,600 600,470 740,458" stroke="#2f4b8f"/>
           <path d="M 318,714 C 470,710 600,494 740,486" stroke="#b45309"/>
@@ -123,11 +123,11 @@
         <rect x="400" y="66" width="270" height="150" fill="#fff" stroke="#1d2733" stroke-width="1.3"/>
         <text x="414" y="86" font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" font-size="12" font-weight="600" fill="#1d2733">apps/web <tspan fill="#475569">⟨E⟩</tspan></text>
         <g font-family="'IBM Plex Sans','Helvetica Neue',Arial,sans-serif" font-size="11" fill="#1d2733">
-          <text x="414" y="108">ChatRoute</text>
-          <text x="414" y="128">Workspace</text>
-          <text x="414" y="148">FiltersPanel · ChatPanel</text>
-          <text x="414" y="168">TripPanel · TripSection (view)</text>
-          <text x="414" y="196" font-size="9.5" fill="#5a6675">POST /api/chat → ChatResponse{ reply, plan }</text>
+          <text x="414" y="108">API routes: chat · data-mode · places · routes · trip</text>
+          <text x="414" y="128">WorkspaceView · WorkspaceController</text>
+          <text x="414" y="148">FiltersPanel · ChatPanel · DataModeToggle</text>
+          <text x="414" y="168">TripPanel · TripEditor · TripMapCanvas</text>
+          <text x="414" y="196" font-size="9.5" fill="#5a6675">POST /api/chat → progress events + { reply, plan }</text>
         </g>
 
         <!-- @trip/orchestrator  A -->
@@ -135,12 +135,12 @@
         <rect x="400" y="252" width="270" height="196" fill="#fff" stroke="#1d2733" stroke-width="1.3"/>
         <text x="414" y="272" font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" font-size="12" font-weight="600" fill="#1d2733">@trip/orchestrator <tspan fill="#0c6b5e">⟨A⟩</tspan></text>
         <g font-family="'IBM Plex Sans','Helvetica Neue',Arial,sans-serif" font-size="11" fill="#1d2733">
-          <text x="414" y="296">OrchestratorAgent</text>
-          <text x="414" y="316">AgentRegistry</text>
-          <text x="414" y="336">ConflictDetector</text>
-          <text x="414" y="356">CostAggregator</text>
-          <text x="414" y="384" font-size="9.5" fill="#5a6675">dispatch → aggregate → K≤3 revisions</text>
-          <text x="414" y="400" font-size="9.5" fill="#5a6675">→ HITL / escalate</text>
+          <text x="414" y="296">TripChat (runTripChat)</text>
+          <text x="414" y="316">OrchestratorGraph (LangGraph)</text>
+          <text x="414" y="336">Supervisor · ConflictDetection</text>
+          <text x="414" y="356">BudgetPolicy (rollUpCost)</text>
+          <text x="414" y="384" font-size="9.5" fill="#5a6675">dispatch → detect → revise (≤ 3 rounds) → build plan</text>
+          <text x="414" y="400" font-size="9.5" fill="#5a6675">unresolved conflicts stay on the plan</text>
         </g>
 
         <!-- @trip/agents  B C D -->
@@ -148,29 +148,31 @@
         <rect x="720" y="252" width="320" height="356" fill="#fff" stroke="#1d2733" stroke-width="1.3"/>
         <text x="734" y="272" font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" font-size="12" font-weight="600" fill="#1d2733">@trip/agents</text>
         <g font-family="'IBM Plex Sans','Helvetica Neue',Arial,sans-serif" font-size="11.5" fill="#1d2733">
-          <text x="734" y="296" font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" font-size="10.5">«interface» Agent</text>
-          <text x="734" y="318" font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" font-size="10.5">«abstract» AbstractSpecialistAgent</text>
+          <text x="734" y="296" font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" font-size="10.5">«interface» Specialist (@trip/shared)</text>
+          <text x="734" y="318" font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" font-size="10.5">«module» ModelRouting (DeepSeek)</text>
           <line x1="734" y1="330" x2="1024" y2="330" stroke="#d5dbe3" stroke-width="1"/>
-          <text x="742" y="352">ItineraryPlannerAgent <tspan font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" fill="#2f4b8f">⟨B⟩</tspan></text>
+          <text x="742" y="352">ItineraryAgent <tspan font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" fill="#2f4b8f">⟨B⟩</tspan></text>
           <text x="742" y="376">TransportAgent <tspan font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" fill="#2f4b8f">⟨B⟩</tspan></text>
           <text x="742" y="400">AccommodationAgent <tspan font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" fill="#b45309">⟨C⟩</tspan></text>
           <text x="742" y="424">DestinationGuideAgent <tspan font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" fill="#86337a">⟨D⟩</tspan></text>
           <text x="742" y="448">DiningAgent <tspan font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" fill="#86337a">⟨D⟩</tspan></text>
-          <text x="742" y="472" font-size="9.5" fill="#5a6675">weather / packing = LLM sub-function of DestinationGuideAgent</text>
-          <text x="734" y="500" font-size="9.5" fill="#5a6675">each agent: run(brief, ctx) / revise(...) — ctx carries tools + mem (injected)</text>
+          <text x="742" y="472" font-size="9.5" fill="#5a6675">weather through WeatherPort (ctx.tools.weather)</text>
+          <text x="734" y="500" font-size="9.5" fill="#5a6675">each agent: invoke({ brief, context, revision? })</text>
+          <text x="734" y="516" font-size="9.5" fill="#5a6675">context carries tools + mem (injected)</text>
         </g>
 
         <!-- @trip/tools  A B C -->
         <rect x="1100" y="238" width="150" height="16" fill="#fff" stroke="#1d2733" stroke-width="1.3"/>
-        <rect x="1100" y="252" width="290" height="200" fill="#fff" stroke="#1d2733" stroke-width="1.3"/>
-        <text x="1114" y="272" font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" font-size="12" font-weight="600" fill="#1d2733">@trip/tools <tspan fill="#0c6b5e">⟨A·B·C⟩</tspan></text>
+        <rect x="1100" y="252" width="290" height="226" fill="#fff" stroke="#1d2733" stroke-width="1.3"/>
+        <text x="1114" y="272" font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" font-size="12" font-weight="600" fill="#1d2733">@trip/tools <tspan fill="#0c6b5e">⟨A·B·C·D⟩</tspan></text>
         <g font-family="'IBM Plex Sans','Helvetica Neue',Arial,sans-serif" font-size="11" fill="#1d2733">
           <text x="1114" y="296" font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" font-size="10">«interface» ToolGateway</text>
-          <text x="1114" y="318" font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" font-size="10">«interface» MapsPort · BookingPort</text>
-          <text x="1114" y="342">ToolGatewayImpl (mock ⇄ real)</text>
-          <text x="1114" y="366">MapsAdapter <tspan font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" fill="#2f4b8f">⟨B⟩</tspan></text>
-          <text x="1114" y="390">BookingAdapter <tspan font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" fill="#b45309">⟨C⟩</tspan> (mock — no payment)</text>
-          <text x="1114" y="430" font-size="9.5" fill="#5a6675">ports live in @trip/shared (hexagonal)</text>
+          <text x="1114" y="318" font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" font-size="10">«interface» Maps / Booking / WeatherPort</text>
+          <text x="1114" y="342">createToolGateway · DataMode (per request)</text>
+          <text x="1114" y="366">MapsAdapter <tspan font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" fill="#2f4b8f">⟨B⟩</tspan> (fixtures · OSM · Google)</text>
+          <text x="1114" y="390">BookingAdapter · SerpApiClient <tspan font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" fill="#b45309">⟨C⟩</tspan> (no payment)</text>
+          <text x="1114" y="414">WeatherAdapter <tspan font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" fill="#86337a">⟨D⟩</tspan></text>
+          <text x="1114" y="446" font-size="9.5" fill="#5a6675">ports live in @trip/shared (hexagonal)</text>
         </g>
 
         <!-- @trip/services  E -->
@@ -179,10 +181,10 @@
         <text x="1114" y="520" font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" font-size="12" font-weight="600" fill="#1d2733">@trip/services <tspan fill="#475569">⟨E⟩</tspan></text>
         <g font-family="'IBM Plex Sans','Helvetica Neue',Arial,sans-serif" font-size="11" fill="#1d2733">
           <text x="1114" y="544" font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" font-size="10">«interface» MemoryStore</text>
-          <text x="1114" y="566">PreferenceMemoryService</text>
+          <text x="1114" y="566">PreferenceMemoryService · TripStore</text>
           <text x="1114" y="586" font-size="9.5" fill="#5a6675">short-term (tripId) / long-term (userId)</text>
-          <text x="1114" y="610">NotificationService (stub)</text>
-          <text x="1114" y="632">AuthService (stub)</text>
+          <text x="1114" y="610">JsonStore (Redis REST or in-process)</text>
+          <text x="1114" y="632">NotificationService · AuthService (stubs)</text>
         </g>
 
         <!-- @trip/shared  A  (bottom, wide) -->
@@ -190,9 +192,9 @@
         <rect x="400" y="780" width="990" height="150" fill="#fff" stroke="#1d2733" stroke-width="1.3"/>
         <text x="414" y="800" font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" font-size="12" font-weight="600" fill="#1d2733">@trip/shared — contracts <tspan fill="#0c6b5e">⟨A⟩</tspan></text>
         <g font-family="'IBM Plex Sans','Helvetica Neue',Arial,sans-serif" font-size="11" fill="#1d2733">
-          <text x="414" y="824">TripBrief · AgentProposal · ProposalItem · RevisionRequest · TripPlan · TripSection</text>
-          <text x="414" y="846">HitlCheckpoint · AgentContext · ToolGateway / MapsPort / BookingPort · MemoryStore · ChatRequest · ChatResponse</text>
-          <text x="414" y="868">enums: AgentName · SectionStatus · HitlType · CheckpointStatus · ProposalKind · Role · PrefSource</text>
+          <text x="414" y="824">TripBrief · AgentProposal (source) · ProposalItem · StaySelection · RevisionRequest · TripPlan · TripSection</text>
+          <text x="414" y="846">Specialist · AgentContext · ToolGateway / MapsPort / BookingPort / WeatherPort · MemoryStore · ChatRequest · ChatResponse</text>
+          <text x="414" y="868">enums: AgentName · SectionStatus · SourceKind · ChatMode · Currency (AUD base)</text>
           <text x="414" y="900" font-size="9.5" fill="#5a6675">every package depends on @trip/shared · Zod schema = single source of truth</text>
         </g>
 
@@ -204,6 +206,7 @@
           <line x1="1040" y1="552" x2="1100" y2="552"/>
           <line x1="1390" y1="330" x2="1440" y2="330"/>
           <line x1="1390" y1="400" x2="1440" y2="400"/>
+          <line x1="1390" y1="470" x2="1440" y2="470"/>
           <path d="M 470,448 L 470,766"/>
           <path d="M 880,608 L 880,766"/>
           <path d="M 1245,680 L 1245,766"/>
@@ -216,28 +219,24 @@
           <text x="1044" y="544" text-anchor="start">ctx.mem</text>
           <text x="1396" y="323" text-anchor="start">calls</text>
           <text x="1396" y="393" text-anchor="start">calls</text>
-          <text x="860" y="700" text-anchor="middle" fill="#5a6675">every package &rarr; @trip/shared</text>
+          <text x="1396" y="463" text-anchor="start">calls</text>
+          <text x="860" y="700" text-anchor="middle" fill="#5a6675">every package → @trip/shared</text>
           <text x="792" y="642" text-anchor="start">memory</text>
         </g>
 
-        <!-- Weather Service : LLM sub-function, no adapter -->
-        <g stroke="#1d2733" stroke-width="1.5" stroke-dasharray="6 4" fill="none" marker-end="url(#ah)">
-          <path d="M 1424,472 L 1090,472 L 1040,440"/>
-        </g>
-        <text x="1116" y="464" font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" font-size="9" fill="#3a4757">«LLM» weather — no adapter</text>
 
         <!-- ================= external systems ================= -->
         <g font-family="'IBM Plex Sans','Helvetica Neue',Arial,sans-serif" font-size="11" fill="#1d2733">
           <rect x="1440" y="308" width="112" height="44" fill="#fff" stroke="#1d2733" stroke-width="1.4"/>
           <text x="1496" y="326" text-anchor="middle" font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" font-size="8.5" fill="#5a6675">«external»</text>
-          <text x="1496" y="341" text-anchor="middle" font-size="10">Maps / Transp. API</text>
+          <text x="1496" y="341" text-anchor="middle" font-size="10">Maps / Routes API</text>
 
           <rect x="1440" y="378" width="112" height="44" fill="#fff" stroke="#1d2733" stroke-width="1.4"/>
           <text x="1496" y="396" text-anchor="middle" font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" font-size="8.5" fill="#5a6675">«external»</text>
-          <text x="1496" y="411" text-anchor="middle" font-size="10">Booking / Payment</text>
+          <text x="1496" y="411" text-anchor="middle" font-size="9.5">Hotel / Flight Search</text>
 
           <rect x="1440" y="448" width="112" height="44" fill="#fff" stroke="#1d2733" stroke-width="1.4"/>
           <text x="1496" y="466" text-anchor="middle" font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" font-size="8.5" fill="#5a6675">«external»</text>
-          <text x="1496" y="481" text-anchor="middle" font-size="10">Weather Service</text>
+          <text x="1496" y="481" text-anchor="middle" font-size="10">Weather API</text>
         </g>
       </svg>

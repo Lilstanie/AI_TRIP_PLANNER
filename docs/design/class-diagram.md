@@ -1,63 +1,93 @@
-# Class model — design-time structure
+# Class model
 
-ELEC5620 Lab 4 Part 2. Static structure of `AI_TRIP_PLANNER` as five UML 2.5 class
-diagrams that share one namespace. Rendered diagrams are in [`diagrams/`](diagrams/)
-(start with [`combined-architecture-map.svg`](diagrams/combined-architecture-map.svg));
-the relationship, multiplicity, interface and rationale tables are below.
+ELEC5620 Lab 4 Part 2. Static structure of `AI_TRIP_PLANNER` as five UML 2.5 class diagrams that
+share one namespace, drawn from the code on `main`. Rendered diagrams are in
+[`diagrams/`](diagrams/) (start with
+[`combined-architecture-map.svg`](diagrams/combined-architecture-map.svg)); the relationship,
+multiplicity, interface and rationale tables are below.
 
-This is a **design** model — a light refinement of the current skeleton. One class
-is introduced ahead of implementation and flagged below: `ConflictDetector`
-(conflict logic split out of the
-orchestrator, per *separate control from function*).
-
-Supporting types used in signatures but not expanded: `Money`, `Date`, `DateTime`,
-`AbortSignal`, `RoomPlan`, `HitlDecision`, `TransportMode`, and the tool DTOs
-`RouteQuery` / `PlaceQuery` / `Place` / `StayQuery` / `FlightQuery` / `FlightOption`.
+TypeScript modules that export functions rather than classes appear as classes with the `«module»`
+stereotype, and React components and hooks as `«component»` and `«hook»`. Operations are
+asynchronous where the code returns a `Promise`; the diagrams show the resolved type. Supporting
+types used in signatures but not expanded: `Date` (an ISO `YYYY-MM-DD` string), `Money` (an AUD
+amount), `AbortSignal`, `BaseChatModel`, `TravelMode`, and the query DTOs `RouteQuery`, `PlaceQuery`,
+`StayQuery`, `FlightQuery` and `WeatherQuery`.
 
 ## Notation
 
-| Mark | Relationship | Meaning |
-|---|---|---|
-| solid line, hollow triangle | generalisation | subclass → superclass ("is a kind of") |
-| dashed line, hollow triangle | realisation | class → interface ("implements") |
-| solid line, filled diamond | composition | whole ◆ part; part cannot outlive the whole |
-| solid line, hollow diamond | aggregation | whole ◇ part, shared; part has an independent lifetime |
-| solid line, open arrow | association | source holds a stored reference to the target |
-| dashed line, open arrow | dependency | transient use only (parameter, return, local); no stored field |
+| Mark                         | Relationship   | Meaning                                                        |
+| ---------------------------- | -------------- | -------------------------------------------------------------- |
+| solid line, hollow triangle  | generalisation | subclass → superclass ("is a kind of")                         |
+| dashed line, hollow triangle | realisation    | class → interface ("implements")                               |
+| solid line, filled diamond   | composition    | whole ◆ part; part cannot outlive the whole                    |
+| solid line, hollow diamond   | aggregation    | whole ◇ part, shared; part has an independent lifetime         |
+| solid line, open arrow       | association    | source holds a stored reference to the target                  |
+| dashed line, open arrow      | dependency     | transient use only (parameter, return, local); no stored field |
 
 ---
 
 ## Diagram 1 — Structural spine
 
-Load-bearing classes across every layer: HTTP entry point, client shell that holds
-plan state, orchestrator, specialist registry, and the two interfaces the orchestrator
-injects into every specialist.
+Load-bearing classes across every layer: the browser workspace that holds plan state, the chat route,
+the chat intake and planning graph, the specialist registry, and the two interfaces injected into
+every specialist.
 
 ```mermaid
 classDiagram
   direction TB
-  class ChatRoute {
-    +POST(req: ChatRequest) ChatResponse
+  class WorkspaceView {
+    <<component>>
   }
-  class Workspace {
-    -plan: TripPlan
-    +onPlan(next: TripPlan) void
+  class WorkspaceController {
+    <<hook>>
+    -plan: TripPlan?
+    -draft: TripBrief
+    -messages: Message[]
+    -dataMode: DataMode
+  }
+  class WorkspaceTransport {
+    <<hook>>
+    +send(override: String?) void
+    +submit() void
+  }
+  class WorkspaceStorage {
+    <<hook>>
+    +save() void
+    +loadSaved() void
+  }
+  class FiltersPanel {
+    <<component>>
   }
   class ChatPanel {
-    -messages: Message[]
-    +send(text: String) void
+    <<component>>
   }
-  class FiltersPanel
-  class TripPanel
-  class TripOrchestrator {
-    -MAX_ROUNDS: int
-    -escalationOverrunPct: float
-    +plan(brief: TripBrief) TripPlan
-    +resume(tripId: String, decision: HitlDecision) TripPlan
+  class TripPanel {
+    <<component>>
+  }
+  class TripEditor {
+    <<component>>
+  }
+  class TripMapCanvas {
+    <<component>>
+  }
+  class DataModeToggle {
+    <<component>>
+  }
+  class ChatRoute {
+    +POST(req: ChatRequest) NDJSON stream
+  }
+  class TripChat {
+    <<module>>
+    +runTripChat(request: ChatRequest, options: TripChatOptions) ChatResponse
+  }
+  class OrchestratorGraph {
+    <<module>>
+    +runOrchestrator(brief: TripBrief, options: OrchestratorOptions) TripPlan
+    +createOrchestratorGraph(options: OrchestratorOptions) CompiledGraph
   }
   class SpecialistRegistry {
-    +all() Specialist[]
-    +byName(name: AgentName) Specialist
+    <<module>>
+    +allSpecialists: Specialist[]
   }
   class Specialist {
     <<interface>>
@@ -66,46 +96,50 @@ classDiagram
     +supportsRevision: boolean
     +invoke(request: SpecialistRequest) AgentProposal
   }
-  class SpecialistRequest {
-    +brief: TripBrief
-    +context: AgentContext
-    +revision: RevisionRequest?
-  }
   class ToolGateway {
     <<interface>>
   }
   class MemoryStore {
     <<interface>>
   }
+  class TripStore {
+    <<module>>
+    +get(tripId: String) TripPlan
+    +set(plan: TripPlan) void
+  }
 
-  Workspace "1" *-- "1" FiltersPanel : contains
-  Workspace "1" *-- "1" ChatPanel : contains
-  Workspace "1" *-- "1" TripPanel : contains
-  Workspace "1" --> "1" TripPlan : holds state
-  FiltersPanel "1" --> "1" TripBrief : renders
-  TripPanel "1" --> "1" TripPlan : renders
-  ChatPanel ..> ChatRequest : sends
-  ChatPanel ..> ChatResponse : receives
+  WorkspaceView "1" --> "1" WorkspaceController : state
+  WorkspaceView "1" *-- "1" FiltersPanel : contains
+  WorkspaceView "1" *-- "1" ChatPanel : contains
+  WorkspaceView "1" *-- "1" TripPanel : contains
+  WorkspaceView "1" *-- "1" TripEditor : contains
+  WorkspaceView "1" *-- "1" TripMapCanvas : contains
+  WorkspaceView "1" *-- "1" DataModeToggle : contains
+  WorkspaceController "1" --> "0..1" TripPlan : holds
+  WorkspaceController "1" *-- "1" WorkspaceTransport : requests
+  WorkspaceController "1" *-- "1" WorkspaceStorage : localStorage
+  WorkspaceTransport ..> ChatRequest : sends
+  FiltersPanel ..> TripBrief : edits
+  TripPanel ..> TripPlan : renders
 
   ChatRoute ..> ChatRequest : validates
-  ChatRoute ..> ChatResponse : returns
-  ChatRoute "1" --> "1" TripOrchestrator : delegates to
-
-  TripOrchestrator "1" --> "1" SpecialistRegistry : specialists
-  TripOrchestrator "1" --> "1" ToolGateway : creates
-  TripOrchestrator "1" --> "1" MemoryStore : uses
-  TripOrchestrator ..> TripBrief : consumes
-  TripOrchestrator ..> TripPlan : produces
-  SpecialistRegistry "1" o-- "1..*" Specialist : registers
-  Specialist ..> SpecialistRequest : consumes
+  ChatRoute ..> TripChat : calls
+  ChatRoute ..> TripStore : saves plan
+  TripChat ..> OrchestratorGraph : plans with
+  TripChat ..> MemoryStore : chat turns
+  TripChat ..> ChatResponse : returns
+  OrchestratorGraph ..> SpecialistRegistry : specialists
+  OrchestratorGraph ..> ToolGateway : creates
+  OrchestratorGraph ..> TripPlan : produces
+  SpecialistRegistry "1" o-- "5" Specialist : registers
 ```
 
 ---
 
 ## Diagram 2 — Domain model
 
-The value classes carried between the client, the orchestrator, and the specialists.
-Every field is data the specialists plan against or the UI renders.
+The value types carried between the browser, the chat route, the planning graph and the
+specialists. Every type is a Zod schema in `packages/shared`, validated at each boundary.
 
 ```mermaid
 classDiagram
@@ -114,25 +148,59 @@ classDiagram
     +tripId: String
     +userId: String
     +destination: String
-    +startDate: Date
-    +endDate: Date
+    +origin: String?
+    +dates: Date[2]
     +groupSize: int
     +budgetTotal: Money
-    +nationality: String
-    +daySpan() int
+    +budgetSource: BudgetSource?
+    +nationality: String?
   }
-  class ProposalItem {
-    +kind: ProposalKind
-    +detail: String
-    +estCost: Money
-    +day: int
+  class AccommodationPreferences {
+    +roomAllocation: RoomAllocation
+    +minRating: float
+    +freeCancellation: boolean
+  }
+  class BudgetSource {
+    +amount: float
+    +currency: Currency
   }
   class AgentProposal {
     +agent: AgentName
     +summary: String
     +assumptions: String[]
-    +conflictsWith: AgentName[]
-    +totalCost() Money
+    +conflictsWith: String[]
+  }
+  class ProposalItem {
+    +id: String?
+    +kind: String
+    +detail: String
+    +estCost: Money?
+    +day: int?
+    +startTime: String?
+    +endTime: String?
+    +location: String?
+    +placeId: String?
+  }
+  class AgentProposalSource {
+    +kind: SourceKind
+    +label: String
+    +freshness: String
+  }
+  class StaySelection {
+    +city: String
+    +checkIn: Date
+    +checkOut: Date
+    +nights: int
+    +rooms: int
+    +selectedId: String
+  }
+  class StayCandidate {
+    +name: String
+    +area: String
+    +pricePerNight: Money
+    +rating: float
+    +freeCancellation: boolean
+    +grounded: boolean?
   }
   class RevisionRequest {
     +tripId: String
@@ -147,24 +215,25 @@ classDiagram
     +status: SectionStatus
     +estCost: Money
   }
-  class HitlCheckpoint {
-    +id: String
-    +type: HitlType
-    +title: String
-    +detail: String
-    +status: CheckpointStatus
-  }
   class TripPlan {
     +tripId: String
+    +editVersion: int?
     +round: int
     +budgetTotal: Money
     +estTotal: Money
     +overrunPct: float
   }
+  class EditIssue {
+    +code: EditIssueCode
+    +message: String
+    +activityIds: String[]
+  }
   class ChatRequest {
     +tripId: String
     +message: String
+    +mode: ChatMode?
   }
+  class PartialTripBrief
   class ChatResponse {
     +reply: String
   }
@@ -183,48 +252,60 @@ classDiagram
     NEEDS_YOU
     CONFIRMED
   }
-  class HitlType {
+  class SourceKind {
     <<enumeration>>
-    CONFIRM_BRIEF
-    CONFIRM_PLAN
-    ESCALATION
+    LIVE
+    ESTIMATED
+    MOCK
+    FALLBACK
+    UNAVAILABLE
   }
-  class CheckpointStatus {
+  class ChatMode {
     <<enumeration>>
-    PENDING
-    APPROVED
-    REJECTED
+    CHAT
+    PLAN
+    START
   }
-  class ProposalKind {
+  class Currency {
     <<enumeration>>
-    TRANSPORT
-    HOTEL
-    ACTIVITY
-    MEAL
-    NOTE
+    AUD
+    CNY
+    USD
+    JPY
   }
 
   TripPlan "1" *-- "1" TripBrief : brief
-  TripPlan "1" *-- "1..*" TripSection : sections
-  TripPlan "1" *-- "0..*" HitlCheckpoint : hitl
-  AgentProposal "1" *-- "1..*" ProposalItem : items
-  TripSection "1" o-- "0..1" AgentProposal : detail
+  TripPlan "1" *-- "0..*" TripSection : sections
+  TripPlan "1" *-- "0..*" RevisionRequest : conflicts
+  TripPlan "1" *-- "0..*" EditIssue : editIssues
+  TripSection "1" *-- "0..1" AgentProposal : proposal
+  AgentProposal "1" *-- "0..*" ProposalItem : items
+  AgentProposal "1" *-- "0..1" AgentProposalSource : source
+  AgentProposal "1" *-- "0..*" StaySelection : stays
+  StaySelection "1" *-- "1..*" StayCandidate : candidates
+  TripBrief "1" *-- "0..1" AccommodationPreferences : accommodation
+  TripBrief "1" *-- "0..1" BudgetSource : budgetSource
+  ChatRequest "1" *-- "0..1" TripBrief : brief
+  ChatRequest "1" *-- "0..1" TripPlan : plan
+  ChatRequest "1" *-- "0..1" PartialTripBrief : known
   ChatResponse "1" *-- "1" TripPlan : plan
   AgentProposal ..> AgentName
   RevisionRequest ..> AgentName
   TripSection ..> SectionStatus
-  HitlCheckpoint ..> HitlType
-  HitlCheckpoint ..> CheckpointStatus
-  ProposalItem ..> ProposalKind
+  AgentProposalSource ..> SourceKind
+  ChatRequest ..> ChatMode
+  BudgetSource ..> Currency
 ```
 
 ---
 
 ## Diagram 3 — Specialists & orchestration
 
-`TripOrchestrator` owns the negotiation loop; it composes a `ConflictDetector` and
-a `CostAggregator` and drives the five specialists through a registry. Each
-specialist receives its dependencies through `AgentContext` rather than importing them.
+`OrchestratorGraph` is a compiled LangGraph `StateGraph` whose nodes dispatch the specialists, detect
+conflicts, revise the targeted specialists for up to `maxRounds` rounds and build the plan. It calls
+conflict detection and the budget policy as functions, and the supervisor helpers choose which
+specialists to call. Each specialist receives its dependencies through `AgentContext` and calls
+models only through the shared routing module.
 
 ```mermaid
 classDiagram
@@ -241,93 +322,125 @@ classDiagram
     +context: AgentContext
     +revision: RevisionRequest?
   }
-  class ItinerarySpecialist {
-    +invoke(request: SpecialistRequest) AgentProposal
-    -orderActivities(brief: TripBrief) ProposalItem[]
-  }
-  class TransportSpecialist {
-    +invoke(request: SpecialistRequest) AgentProposal
-    +checkTimeGeoConflicts(sections: TripSection[]) RevisionRequest[]
-  }
-  class AccommodationSpecialist {
-    +invoke(request: SpecialistRequest) AgentProposal
-    -allocateRooms(groupSize: int) RoomPlan
-  }
-  class DestinationGuideSpecialist {
-    +supportsRevision: false
-    +invoke(request: SpecialistRequest) AgentProposal
-    -weatherAndPacking(destination: String, month: int) ProposalItem[]
-  }
-  class DiningSpecialist {
-    +invoke(request: SpecialistRequest) AgentProposal
-  }
   class AgentContext {
     +tripId: String
     +round: int
-    +signal: AbortSignal
+    +tools: ToolGateway
+    +mem: MemoryStore
+    +signal: AbortSignal?
+  }
+  class ItineraryAgent {
+    +supportsRevision: true
+    +invoke(request: SpecialistRequest) AgentProposal
+  }
+  class TransportAgent {
+    +supportsRevision: true
+    +invoke(request: SpecialistRequest) AgentProposal
+    -journeyLegs(brief: TripBrief) JourneyLeg[]
+    -legMode(leg: JourneyLeg) TravelMode
+  }
+  class AccommodationAgent {
+    +supportsRevision: true
+    +invoke(request: SpecialistRequest) AgentProposal
+  }
+  class DestinationGuideAgent {
+    +supportsRevision: false
+    +invoke(request: SpecialistRequest) AgentProposal
+  }
+  class DiningAgent {
+    +supportsRevision: true
+    +invoke(request: SpecialistRequest) AgentProposal
+  }
+  class ModelRouting {
+    <<module>>
+    +MODEL_ROUTING: Map
+    +createRoutedChatModel(task, options) BaseChatModel?
+    +createRoutedStructuredInvoker(task, schema, name) Invoker?
   }
   class SpecialistRegistry {
-    +all() Specialist[]
-    +byName(name: AgentName) Specialist
+    <<module>>
+    +allSpecialists: Specialist[]
   }
-  class TripOrchestrator {
-    -MAX_ROUNDS: int
-    -escalationOverrunPct: float
-    +plan(brief: TripBrief) TripPlan
-    +resume(tripId: String, decision: HitlDecision) TripPlan
-    -dispatch(brief, ctx) AgentProposal[]
-    -applyRevisions(brief, ctx, proposals, reqs) AgentProposal[]
-    -aggregate(proposals) TripSection[]
-    -buildHitl(brief, cost, unresolved) HitlCheckpoint[]
+  class TripChat {
+    <<module>>
+    +runTripChat(request: ChatRequest, options: TripChatOptions) ChatResponse
+    -runConversationAgent(...) ChatResponse
+    -runOffline(...) ChatResponse
   }
-  class ConflictDetector {
-    -budgetTolerancePct: float
-    +detect(proposals: AgentProposal[], brief: TripBrief) RevisionRequest[]
-    -detectBudget(proposals, brief) RevisionRequest[]
-    -detectTimeGeo(sections) RevisionRequest[]
+  class IncompleteBriefError {
+    +missing: String[]
+    +known: PartialTripBrief
   }
-  class CostAggregator {
-    +rollUp(sections: TripSection[], budgetTotal: Money) CostSummary
+  class BriefExtractor {
+    <<interface>>
+    +extract(message: String, current: TripBrief) BriefPatch
+  }
+  class OrchestratorGraph {
+    <<module>>
+    -maxRounds: int = 3
+    +runOrchestrator(brief: TripBrief, options: OrchestratorOptions) TripPlan
+    -dispatch_specialists(state) State
+    -detect_conflicts(state) State
+    -revise_conflicts(state) State
+    -build_plan(state) State
+  }
+  class Supervisor {
+    <<module>>
+    +dispatchWithSupervisor(options: SupervisorDispatchOptions) AgentProposal[]
+    +reviseWithSupervisor(options: SupervisorRevisionOptions) AgentProposal[]
+  }
+  class ConflictDetection {
+    <<module>>
+    +detectConflicts(proposals: AgentProposal[], brief: TripBrief) RevisionRequest[]
+  }
+  class BudgetPolicy {
+    <<module>>
+    +ESCALATION_OVERRUN_PCT: float = 10
+    +rollUpCost(sections: TripSection[], budgetTotal: Money) CostSummary
   }
   class CostSummary {
     +estTotal: Money
     +overrunPct: float
   }
 
-  Specialist <|.. ItinerarySpecialist
-  Specialist <|.. TransportSpecialist
-  Specialist <|.. AccommodationSpecialist
-  Specialist <|.. DestinationGuideSpecialist
-  Specialist <|.. DiningSpecialist
-
-  TripOrchestrator "1" --> "1" SpecialistRegistry : specialists
-  SpecialistRegistry "1" o-- "1..*" Specialist : registers
-  TripOrchestrator "1" *-- "1" ConflictDetector : owns
-  TripOrchestrator "1" *-- "1" CostAggregator : owns
-  TripOrchestrator ..> AgentContext : creates
-  TripOrchestrator ..> RevisionRequest
-  TripOrchestrator ..> TripPlan : produces
-
-  ConflictDetector ..> AgentProposal
-  ConflictDetector ..> RevisionRequest : emits
-  ConflictDetector ..> TransportSpecialist : geo check
-  CostAggregator ..> TripSection
-  CostAggregator ..> CostSummary : returns
-
-  Specialist ..> AgentProposal : returns
+  Specialist <|.. ItineraryAgent
+  Specialist <|.. TransportAgent
+  Specialist <|.. AccommodationAgent
+  Specialist <|.. DestinationGuideAgent
+  Specialist <|.. DiningAgent
   Specialist ..> SpecialistRequest : consumes
-  Specialist ..> AgentContext : uses
+  Specialist ..> AgentProposal : returns
+  SpecialistRequest "1" *-- "1" AgentContext : context
   AgentContext "1" --> "1" ToolGateway : tools
   AgentContext "1" --> "1" MemoryStore : mem
+
+  ItineraryAgent ..> ModelRouting
+  TransportAgent ..> ModelRouting
+  AccommodationAgent ..> ModelRouting
+  DestinationGuideAgent ..> ModelRouting
+  DiningAgent ..> ModelRouting
+
+  SpecialistRegistry "1" o-- "5" Specialist : registers
+  TripChat ..> BriefExtractor : extracts with
+  TripChat ..> IncompleteBriefError : throws
+  TripChat ..> OrchestratorGraph : plans with
+  OrchestratorGraph ..> SpecialistRegistry : specialists
+  OrchestratorGraph ..> Supervisor : delegates
+  OrchestratorGraph ..> ConflictDetection : detects
+  OrchestratorGraph ..> BudgetPolicy : rolls up
+  OrchestratorGraph ..> AgentContext : creates
+  OrchestratorGraph ..> RevisionRequest : emits
+  BudgetPolicy ..> CostSummary : returns
 ```
 
 ---
 
 ## Diagram 4 — Ports, adapters & infrastructure
 
-The hexagonal boundary. Ports live in `packages/shared`; concrete adapters — mock
-and real — implement them. `ToolGatewayImpl` is a factory that wires one adapter per
-port based on `USE_MOCK_TOOLS`.
+The hexagonal boundary. Ports live in `packages/shared`; the adapter modules in `packages/tools`
+implement them, choosing fixtures or live providers per request through the data mode. Server state
+goes through one key-value store that uses a Redis REST API when configured and process memory
+otherwise.
 
 ```mermaid
 classDiagram
@@ -336,50 +449,84 @@ classDiagram
     <<interface>>
     +maps: MapsPort
     +booking: BookingPort
+    +weather: WeatherPort?
   }
   class MapsPort {
     <<interface>>
     +route(q: RouteQuery) RouteLeg[]
     +places(q: PlaceQuery) Place[]
+    +routeOptions(q: RouteQuery) RouteOption[]
   }
   class BookingPort {
     <<interface>>
     +searchStays(q: StayQuery) StayOption[]
     +searchFlights(q: FlightQuery) FlightOption[]
   }
-  class ToolGatewayImpl {
-    -useMock: boolean
-    +create() ToolGateway$
+  class WeatherPort {
+    <<interface>>
+    +forecast(q: WeatherQuery) WeatherResult
   }
-  class MockMapsAdapter {
+  class ToolGatewayFactory {
+    <<module>>
+    +createToolGateway() ToolGateway
+  }
+  class DataMode {
+    <<module>>
+    +mockEnabled() boolean
+    +runWithDataMode(mode: Mode, fn) T
+    +parseDataMode(value: String) Mode
+  }
+  class MapsAdapter {
+    <<module>>
+    -provider: fixture | osm | google
     +route(q) RouteLeg[]
     +places(q) Place[]
+    +routeOptions(q) RouteOption[]
   }
-  class RealMapsAdapter {
-    -apiKey: String
-    +route(q) RouteLeg[]
-    +places(q) Place[]
-  }
-  class MockBookingAdapter {
+  class BookingAdapter {
+    <<module>>
     +searchStays(q) StayOption[]
     +searchFlights(q) FlightOption[]
   }
-  class RealBookingAdapter {
-    -apiKey: String
-    +searchStays(q) StayOption[]
-    +searchFlights(q) FlightOption[]
+  class SerpApiClient {
+    <<module>>
+    -MONTHLY_LIMIT: int = 230
+    +searchHotelsSerpApi(q) StayOption[]
+    +searchFlightsSerpApi(q) FlightOption[]
   }
-  class RouteLeg {
-    +mode: TransportMode
-    +durationMin: int
-    +priceUsd: Money
+  class GooglePlacesSearch {
+    <<module>>
+    +searchGooglePlacesText(query) Place[]
+  }
+  class WeatherAdapter {
+    <<module>>
+    +forecast(q) WeatherResult
   }
   class StayOption {
     +name: String
     +area: String
-    +pricePerNightUsd: Money
+    +pricePerNight: Money
     +rating: float
     +freeCancellation: boolean
+    +grounded: boolean?
+  }
+  class FlightOption {
+    +carrier: String
+    +price: Money
+    +stops: int?
+    +durationMin: int?
+  }
+  class ProviderProvenance {
+    +kind: live | estimated | mock
+    +provider: String
+    +queriedAt: String?
+    +fallbackFrom: String?
+  }
+  class WeatherResult {
+    +horizon: forecast | climate
+    +summary: String
+    +observedAt: String
+    +provider: String
   }
   class MemoryStore {
     <<interface>>
@@ -390,84 +537,82 @@ classDiagram
     +promote(tripId: String, userId: String, key: String) void
   }
   class PreferenceMemoryService {
-    -shortTerm: Map
-    -longTerm: Map
+    <<module>>
+  }
+  class TripStore {
+    <<module>>
+    +get(tripId: String) TripPlan
+    +set(plan: TripPlan) void
+  }
+  class JsonStore {
+    <<interface>>
+    +get(key: String) T
+    +set(key: String, value: T) void
+    +increment(key: String) int
+    +decrement(key: String) int
+  }
+  class RedisRestOrLocalStore {
+    -url: String?
+    -token: String?
   }
   class ChatTurn {
-    +role: Role
+    +role: user | assistant
     +content: String
-    +at: DateTime
   }
   class UserPreference {
     +key: String
     +value: String
-    +source: PrefSource
+    +source: filter | chat_confirmed
   }
   class NotificationService {
-    <<interface>>
-    +notify(userId: String, message: String) void
-  }
-  class StubNotificationService {
-    +notify(userId, message) void
+    <<module>>
+    +send(userId: String, message: String) void
   }
   class AuthService {
-    <<interface>>
-    +currentUser() User
-  }
-  class StubAuthService {
-    +currentUser() User
-  }
-  class User {
-    +id: String
-    +email: String
-    +displayName: String
-  }
-  class Role {
-    <<enumeration>>
-    USER
-    ASSISTANT
-  }
-  class PrefSource {
-    <<enumeration>>
-    FILTER
-    CHAT_CONFIRMED
+    <<module>>
+    +currentUser() SessionUser
   }
 
-  ToolGateway <|.. ToolGatewayImpl
-  MapsPort <|.. MockMapsAdapter
-  MapsPort <|.. RealMapsAdapter
-  BookingPort <|.. MockBookingAdapter
-  BookingPort <|.. RealBookingAdapter
+  ToolGatewayFactory ..> ToolGateway : creates
+  ToolGatewayFactory ..> DataMode : reads
   ToolGateway "1" o-- "1" MapsPort : maps
   ToolGateway "1" o-- "1" BookingPort : booking
-  ToolGatewayImpl ..> MapsPort : instantiates
-  ToolGatewayImpl ..> BookingPort : instantiates
-  MapsPort ..> RouteLeg : returns
+  ToolGateway "1" o-- "0..1" WeatherPort : weather
+  MapsPort <|.. MapsAdapter
+  BookingPort <|.. BookingAdapter
+  WeatherPort <|.. WeatherAdapter
+  MapsAdapter ..> DataMode
+  BookingAdapter ..> DataMode
+  WeatherAdapter ..> DataMode
+  MapsAdapter ..> GooglePlacesSearch
+  BookingAdapter ..> SerpApiClient : first tier
+  BookingAdapter ..> GooglePlacesSearch : estimate tier
+  SerpApiClient ..> JsonStore : quota and cache
   BookingPort ..> StayOption : returns
+  BookingPort ..> FlightOption : returns
+  StayOption "1" *-- "0..1" ProviderProvenance : provenance
+  FlightOption "1" *-- "0..1" ProviderProvenance : provenance
+  WeatherPort ..> WeatherResult : returns
 
   MemoryStore <|.. PreferenceMemoryService
-  PreferenceMemoryService "1" *-- "0..*" ChatTurn : shortTerm
-  PreferenceMemoryService "1" *-- "0..*" UserPreference : longTerm
-  ChatTurn ..> Role
-  UserPreference ..> PrefSource
-
-  NotificationService <|.. StubNotificationService
-  AuthService <|.. StubAuthService
-  AuthService ..> User : returns
+  PreferenceMemoryService ..> JsonStore
+  TripStore ..> JsonStore
+  JsonStore <|.. RedisRestOrLocalStore
+  PreferenceMemoryService ..> ChatTurn
+  PreferenceMemoryService ..> UserPreference
 ```
 
 ---
 
-## Diagram 5 — use cases traced onto the specialist & orchestration model
+## Diagram 5 — Use cases traced onto the model
 
-Diagram 3 with the ten `«use case»` from the use case model folded in: the actor
-`Traveler` is associated with every use case; `«include»` / `«extend»` hold between
-use cases; and a `«trace»` dependency runs from each use case to the class that
-realises it.
+The ten `«use case»` from the use case model: the actor `Traveler` is associated with every use case;
+`«include»` / `«extend»` hold between use cases; and a `«trace»` dependency runs from each use case to
+the class or module that realises it. Members are omitted; they are in diagrams 1–4.
 
 ```mermaid
 classDiagram
-  direction TB
+  direction LR
 
   class Traveler {
     <<actor>>
@@ -482,7 +627,7 @@ classDiagram
     class UC3["Generate Itinerary"] {
       <<use case>>
     }
-    class UC7["Confirm Key Itinerary (HITL)"] {
+    class UC7["Edit Itinerary (Timeline / Map)"] {
       <<use case>>
     }
     class UC6["Manage Budget"] {
@@ -519,172 +664,122 @@ classDiagram
   UC3 ..> UC1 : «include»
   UC3 ..> UC2 : «include»
   UC7 ..> UC3 : «extend»
-  UC7 ..> UC6 : «extend»
+  UC7 ..> UC6 : «include»
 
-  class Specialist {
+  class FiltersPanel {
+    <<component>>
+  }
+  class TripChat {
+    <<module>>
+  }
+  class OrchestratorGraph {
+    <<module>>
+  }
+  class TripEditor {
+    <<component>>
+  }
+  class BudgetPolicy {
+    <<module>>
+  }
+  class TransportAgent
+  class AccommodationAgent
+  class DestinationGuideAgent
+  class WeatherPort {
     <<interface>>
-    +name: AgentName
-    +label: String
-    +supportsRevision: boolean
-    +invoke(request: SpecialistRequest) AgentProposal
   }
-  class SpecialistRequest {
-    +brief: TripBrief
-    +context: AgentContext
-    +revision: RevisionRequest?
-  }
-  class ItinerarySpecialist {
-    +invoke(request: SpecialistRequest) AgentProposal
-    -orderActivities(brief: TripBrief) ProposalItem[]
-  }
-  class TransportSpecialist {
-    +invoke(request: SpecialistRequest) AgentProposal
-    +checkTimeGeoConflicts(sections: TripSection[]) RevisionRequest[]
-  }
-  class AccommodationSpecialist {
-    +invoke(request: SpecialistRequest) AgentProposal
-    -allocateRooms(groupSize: int) RoomPlan
-  }
-  class DestinationGuideSpecialist {
-    +supportsRevision: false
-    +invoke(request: SpecialistRequest) AgentProposal
-    -weatherAndPacking(destination: String, month: int) ProposalItem[]
-  }
-  class DiningSpecialist {
-    +invoke(request: SpecialistRequest) AgentProposal
-  }
-  class AgentContext {
-    +tripId: String
-    +round: int
-    +signal: AbortSignal
-  }
-  class SpecialistRegistry {
-    +all() Specialist[]
-    +byName(name: AgentName) Specialist
-  }
-  class TripOrchestrator {
-    -MAX_ROUNDS: int
-    -escalationOverrunPct: float
-    +plan(brief: TripBrief) TripPlan
-    +resume(tripId: String, decision: HitlDecision) TripPlan
-    -dispatch(brief, ctx) AgentProposal[]
-    -applyRevisions(brief, ctx, proposals, reqs) AgentProposal[]
-    -aggregate(proposals) TripSection[]
-    -buildHitl(brief, cost, unresolved) HitlCheckpoint[]
-  }
-  class ConflictDetector {
-    -budgetTolerancePct: float
-    +detect(proposals: AgentProposal[], brief: TripBrief) RevisionRequest[]
-    -detectBudget(proposals, brief) RevisionRequest[]
-    -detectTimeGeo(sections) RevisionRequest[]
-  }
-  class CostAggregator {
-    +rollUp(sections: TripSection[], budgetTotal: Money) CostSummary
-  }
-  class CostSummary {
-    +estTotal: Money
-    +overrunPct: float
-  }
-  class TripPlan {
-    +tripId: String
-    +round: int
-    +estTotal: Money
-  }
+  class DiningAgent
+  class TripPlan
 
-  Specialist <|.. ItinerarySpecialist
-  Specialist <|.. TransportSpecialist
-  Specialist <|.. AccommodationSpecialist
-  Specialist <|.. DestinationGuideSpecialist
-  Specialist <|.. DiningSpecialist
-
-  TripOrchestrator "1" --> "1" SpecialistRegistry : specialists
-  SpecialistRegistry "1" o-- "1..*" Specialist : registers
-  TripOrchestrator "1" *-- "1" ConflictDetector : owns
-  TripOrchestrator "1" *-- "1" CostAggregator : owns
-  TripOrchestrator ..> AgentContext : creates
-  TripOrchestrator ..> RevisionRequest
-  TripOrchestrator ..> TripPlan : produces
-
-  ConflictDetector ..> AgentProposal
-  ConflictDetector ..> RevisionRequest : emits
-  ConflictDetector ..> TransportSpecialist : geo check
-  CostAggregator ..> TripSection
-  CostAggregator ..> CostSummary : returns
-
-  Specialist ..> AgentProposal : returns
-  Specialist ..> SpecialistRequest : consumes
-  Specialist ..> AgentContext : uses
-  AgentContext "1" --> "1" ToolGateway : tools
-  AgentContext "1" --> "1" MemoryStore : mem
-
-  UC1 ..> MemoryStore : «trace»
-  UC2 ..> TripOrchestrator : «trace»
-  UC3 ..> TripOrchestrator : «trace»
-  UC7 ..> TripOrchestrator : «trace»
-  UC6 ..> CostAggregator : «trace»
-  UC4 ..> TransportSpecialist : «trace»
-  UC5 ..> AccommodationSpecialist : «trace»
-  UC8 ..> DestinationGuideSpecialist : «trace»
-  UC9 ..> DiningSpecialist : «trace»
+  UC1 ..> FiltersPanel : «trace»
+  UC2 ..> TripChat : «trace»
+  UC3 ..> OrchestratorGraph : «trace»
+  UC7 ..> TripEditor : «trace»
+  UC6 ..> BudgetPolicy : «trace»
+  UC4 ..> TransportAgent : «trace»
+  UC5 ..> AccommodationAgent : «trace»
+  UC8 ..> DestinationGuideAgent : «trace»
+  UC9 ..> DiningAgent : «trace»
   UC10 ..> TripPlan : «trace»
+  DestinationGuideAgent ..> WeatherPort : forecast
 ```
 
-| Use case | «trace» → class | Owner |
-|---|---|---|
-| Set Preferences (Filter) | `MemoryStore` (writes long-term preferences) | E |
-| Submit Requirement (Chat) | `TripOrchestrator` (parses into a brief) | E |
-| Generate Itinerary | `TripOrchestrator` | A |
-| Confirm Key Itinerary (HITL) | `TripOrchestrator.buildHitl` / `resume` | A |
-| Manage Budget | `CostAggregator.rollUp` | C |
-| Arrange Transportation | `TransportSpecialist` | B |
-| Arrange Accommodation | `AccommodationSpecialist` | C |
-| View Weather-based Clothing Recommendation | `DestinationGuideSpecialist` (LLM weather sub-function) | D |
-| View Food / Cuisine Recommendation | `DiningSpecialist` | D |
-| View Itinerary Output | `TripPlan` (rendered by the web `TripPanel`) | E |
+| Use case                                   | «trace» → class                                                                          | Owner |
+| ------------------------------------------ | ---------------------------------------------------------------------------------------- | ----- |
+| Set Preferences (Filter)                   | `FiltersPanel` (edits the `TripBrief` sent with the next request)                        | E     |
+| Submit Requirement (Chat)                  | `TripChat.runTripChat` (extracts brief updates from the message)                         | E     |
+| Generate Itinerary                         | `OrchestratorGraph`                                                                      | A     |
+| Edit Itinerary (Timeline / Map)            | `TripEditor` with `previewEdit` (`/api/trip/preview-edit`), re-checking route and budget | E     |
+| Manage Budget                              | `BudgetPolicy.rollUpCost`                                                                | C     |
+| Arrange Transportation                     | `TransportAgent`                                                                         | B     |
+| Arrange Accommodation                      | `AccommodationAgent`                                                                     | C     |
+| View Weather-based Clothing Recommendation | `DestinationGuideAgent`, using `WeatherPort`                                             | D     |
+| View Food / Cuisine Recommendation         | `DiningAgent`                                                                            | D     |
+| View Itinerary Output                      | `TripPlan` (rendered by `TripPanel` and `TripMapCanvas`)                                 | E     |
 
 ---
 
 ## Key associations & multiplicity
 
-Read *source → target*.
+Read _source → target_.
 
-| Source | Target | Type | Mult. | Meaning |
-|---|---|---|---|---|
-| `Workspace` | `FiltersPanel` / `ChatPanel` / `TripPanel` | composition | 1 → 1 | shell owns one of each child view |
-| `Workspace` / `TripPanel` | `TripPlan` | association | 1 → 1 | holds / renders the current plan |
-| `ChatRoute` | `TripOrchestrator` | association | 1 → 1 | HTTP handler delegates every request |
-| `ChatResponse` | `TripPlan` | composition | 1 → 1 | response carries a full plan |
-| `TripOrchestrator` | `ConflictDetector` / `CostAggregator` | composition | 1 → 1 | private owned helpers |
-| `TripOrchestrator` | `SpecialistRegistry` / `ToolGateway` / `MemoryStore` | association | 1 → 1 | looks up specialists; injects tools + memory |
-| `SpecialistRegistry` | `Specialist` | aggregation | 1 → 1..* | references shared singletons; no lifecycle ownership |
-| `AgentContext` | `ToolGateway` / `MemoryStore` | association | 1 → 1 | injected — the specialist's only route out |
-| `TripPlan` | `TripBrief` | composition | 1 → 1 | embeds an immutable snapshot |
-| `TripPlan` | `TripSection` | composition | 1 → 1..* | one section per specialist |
-| `TripPlan` | `HitlCheckpoint` | composition | 1 → 0..* | pending human decisions on this plan |
-| `AgentProposal` | `ProposalItem` | composition | 1 → 1..* | a proposal is its list of line items |
-| `TripSection` | `AgentProposal` | aggregation | 1 → 0..1 | holds the proposal it was built from, for drill-down |
-| `ToolGateway` | `MapsPort` / `BookingPort` | aggregation | 1 → 1 | exposes one port of each kind |
-| `PreferenceMemoryService` | `ChatTurn` / `UserPreference` | composition | 1 → 0..* | owns the short- / long-term records |
-| `AuthService` | `User` | dependency | → 0..1 | `currentUser()` may return none |
+| Source                                  | Target                                            | Type        | Mult.          | Meaning                                                                |
+| --------------------------------------- | ------------------------------------------------- | ----------- | -------------- | ---------------------------------------------------------------------- |
+| `WorkspaceView`                         | panels, editor, map, data-mode toggle             | composition | 1 → 1          | the workspace renders one of each view                                 |
+| `WorkspaceController`                   | `TripPlan`                                        | association | 1 → 0..1       | holds the current plan; none before the first plan                     |
+| `WorkspaceController`                   | `WorkspaceTransport` / `WorkspaceStorage`         | composition | 1 → 1          | request and `localStorage` hooks used only by this controller          |
+| `ChatRoute`                             | `TripChat`, `TripStore`                           | dependency  | —              | handles one request, then saves the resulting plan                     |
+| `ChatResponse`                          | `TripPlan`                                        | composition | 1 → 1          | a response carries a full plan                                         |
+| `ChatRequest`                           | `TripBrief` / `TripPlan` / `PartialTripBrief`     | composition | 1 → 0..1       | the browser sends its current state with each message                  |
+| `OrchestratorGraph`                     | `Supervisor`, `ConflictDetection`, `BudgetPolicy` | dependency  | —              | functions called from graph nodes                                      |
+| `SpecialistRegistry`                    | `Specialist`                                      | aggregation | 1 → 5          | references module-level agents; no lifecycle ownership                 |
+| `SpecialistRequest`                     | `AgentContext`                                    | composition | 1 → 1          | each call carries its own context                                      |
+| `AgentContext`                          | `ToolGateway` / `MemoryStore`                     | association | 1 → 1          | injected — the specialist's only route to tools and memory             |
+| `TripPlan`                              | `TripBrief`                                       | composition | 1 → 1          | embeds the brief it answers                                            |
+| `TripPlan`                              | `TripSection`                                     | composition | 1 → 0..*       | one section per specialist that returned a proposal                    |
+| `TripPlan`                              | `RevisionRequest`                                 | composition | 1 → 0..*       | conflicts still unresolved after the last round                        |
+| `TripSection`                           | `AgentProposal`                                   | composition | 1 → 0..1       | the proposal the section was built from, for drill-down                |
+| `AgentProposal`                         | `ProposalItem`                                    | composition | 1 → 0..*       | a proposal is its list of line items                                   |
+| `AgentProposal`                         | `AgentProposalSource`                             | composition | 1 → 0..1       | where the data came from: live, estimated, mock, fallback, unavailable |
+| `StaySelection`                         | `StayCandidate`                                   | composition | 1 → 1..*       | the chosen stay and its alternatives                                   |
+| `ToolGateway`                           | `MapsPort` / `BookingPort` / `WeatherPort`        | aggregation | 1 → 1, 1, 0..1 | one port of each kind; weather is optional                             |
+| `StayOption` / `FlightOption`           | `ProviderProvenance`                              | composition | 1 → 0..1       | which provider answered and whether it was a fallback                  |
+| `PreferenceMemoryService` / `TripStore` | `JsonStore`                                       | dependency  | —              | every read and write goes through the store                            |
 
 ## Interfaces & realisation
 
-| Interface | Realised by | Note |
-|---|---|---|
-| `Specialist` | `ItinerarySpecialist`, `TransportSpecialist`, `AccommodationSpecialist`, `DestinationGuideSpecialist`, `DiningSpecialist` | each concrete implements `invoke(SpecialistRequest)`; revision support is explicit |
-| `ToolGateway` | `ToolGatewayImpl` | also a factory (`create()`) reading `USE_MOCK_TOOLS` |
-| `MapsPort` | `MockMapsAdapter`, `RealMapsAdapter` | owner B |
-| `BookingPort` | `MockBookingAdapter`, `RealBookingAdapter` | owner C; real payment out of scope |
-| `MemoryStore` | `PreferenceMemoryService` | owner E; in-memory now, SQLite/Redis later, same signature |
-| `NotificationService` | `StubNotificationService` | owner E |
-| `AuthService` | `StubAuthService` | owner E |
+| Interface        | Realised by                                                                                      | Note                                                                      |
+| ---------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------- |
+| `Specialist`     | `ItineraryAgent`, `TransportAgent`, `AccommodationAgent`, `DestinationGuideAgent`, `DiningAgent` | one `invoke(SpecialistRequest)`; only the destination guide cannot revise |
+| `ToolGateway`    | object returned by `createToolGateway()`                                                         | one per planning run                                                      |
+| `MapsPort`       | `MapsAdapter` (`maps.ts`)                                                                        | owner B; fixtures, OpenStreetMap or Google                                |
+| `BookingPort`    | `BookingAdapter` (`booking.ts`)                                                                  | owner C; SerpApi, then Google Places estimate, or fixtures; no payment    |
+| `WeatherPort`    | `WeatherAdapter` (`weather.ts`)                                                                  | owner D; Google Weather, Open-Meteo or climate context                    |
+| `MemoryStore`    | `PreferenceMemoryService` (`memory`)                                                             | owner E                                                                   |
+| `JsonStore`      | `RedisRestOrLocalStore` (`createJsonStore()`)                                                    | owner E; Redis REST when configured, process memory otherwise             |
+| `BriefExtractor` | model extractor in `chat.ts`, or `extractBriefPatchLocally` without a key                        | owner A                                                                   |
+
+`NotificationService` and `AuthService` are stubs: notifications are logged, and every request is the
+demo user.
 
 ## Design rationale
 
-- **`Specialist` is the framework-neutral interface** — the orchestrator iterates `Specialist[]` and calls `invoke(SpecialistRequest)` without knowing the concrete type or whether it uses an LLM.
-- **`SpecialistRegistry → Specialist` is aggregation** — specialists are module-level singletons; the registry references them but does not own their lifecycle.
-- **`TripOrchestrator → ConflictDetector / CostAggregator` is composition** — private collaborators with no independent identity. Splitting them out follows *separate control from function*.
-- **Dependencies injected via `AgentContext`** — specialists never import concrete services, so a unit test passes a fake `ToolGateway` and mock↔real is a one-line switch in the factory.
-- **Ports in `packages/shared` (hexagonal)** — the core never names a concrete adapter, so external APIs can change without touching specialist or orchestrator code.
-- **`TripPlan` composes a `TripBrief` snapshot** — a plan answers one specific brief; embedding a copy means a later brief edit cannot silently invalidate an existing plan.
-- **`ConflictDetector` depends on `TransportSpecialist`** — "are these two stops reachable in one day?" needs routing data owned by `TransportSpecialist`; control asks, function answers.
+- **`Specialist` is the framework-neutral interface** — the graph iterates `Specialist[]` and calls
+  `invoke(SpecialistRequest)` without knowing the concrete agent or whether it uses a model. The
+  decision is in the [LangGraph note](../../.agents/notes/implemented/architecture/2026-09-08-langgraph-orchestration.md).
+- **Control and function are separate** — the graph owns state, rounds and ordering; conflict
+  detection and the budget policy are plain functions it calls, testable without the graph.
+- **`SpecialistRegistry → Specialist` is aggregation** — agents are module-level values; the registry
+  lists them but does not own their lifecycle.
+- **Dependencies are injected through `AgentContext`** — specialists never import concrete services,
+  so a unit test passes a fake `ToolGateway` or `MemoryStore`.
+- **Ports in `packages/shared` (hexagonal)** — the core never names a concrete adapter, so providers
+  can change without touching specialist or graph code. Mock or live is chosen per request by
+  `DataMode` ([note](../../.agents/notes/implemented/feature/2026-09-21-request-scoped-data-mode.md)).
+- **Provenance travels with the data** — `ProviderProvenance` on tool results becomes
+  `AgentProposalSource` on proposals, so the UI can say whether a price is live, estimated or mock
+  ([note](../../.agents/notes/implemented/bug-fix/2026-09-21-proposal-source-kind.md)).
+- **`TripPlan` composes a `TripBrief` snapshot** — a plan answers one brief; a later edit to the brief
+  cannot silently change what an existing plan claims.
+- **The traveller edits rather than approves** — there is no checkpoint to confirm; changes are made
+  in chat or through `TripEditor`, whose previews re-run route and budget checks
+  ([note](../../.agents/notes/implemented/simplification/2026-09-22-remove-hitl-decisions.md)).
