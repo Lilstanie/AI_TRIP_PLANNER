@@ -33,4 +33,5 @@ consumer; adding `kind` touched four places.
 
 ## Sources
 
-[Product closure TODO](../../../../docs/todo-product-closure.md) (PR #31, `fix/degraded-visibility`).
+Archived [product closure TODO](../../../archive/todo-product-closure.md) (PR #31,
+`fix/degraded-visibility`).

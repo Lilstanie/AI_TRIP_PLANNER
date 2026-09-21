@@ -9,8 +9,8 @@ real files so every AI tool reads the same rules.
 1. If present, read `.agents/local/PROJECT.md` and `.agents/local/CURRENT_STATE.md` for local session
    context. `.agents/local/` is ignored by Git and is not authoritative shared project state.
 2. Read the relevant versioned documents under `docs/`; use `docs/architecture.md` for runtime boundaries,
-   `docs/development.md` for commands and directory rules, and `docs/todo-product-closure.md` for
-   current product work.
+   `docs/development.md` for commands and directory rules, and `docs/roadmap.md` for current
+   product status.
 3. Check `.agents/notes/implemented/` for a decision covering the area you are changing. Do not reverse
    an implemented decision silently; propose a superseding note instead.
 4. Inspect the existing implementation and tests before proposing a new abstraction.
