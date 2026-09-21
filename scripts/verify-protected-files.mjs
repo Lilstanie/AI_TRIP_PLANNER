@@ -8,15 +8,19 @@ import { execFileSync } from "node:child_process";
 
 const DATED_LOG = String.raw`\d{4}-\d{2}-\d{2}-[^/]+\.md$`;
 const FROZEN = [
+  /^\.agents\/archive\//,
+  // Locations before 2026-09-22; kept so files still there on an old base stay frozen.
   /^docs\/archive\//,
   new RegExp(`^\\.agents/session-logs/${DATED_LOG}`),
-  // Location before 2026-09-22; kept so a log still there on an old base stays frozen.
   new RegExp(`^docs/session-logs/${DATED_LOG}`),
-  /^\.agents\/notes\/rejected\//,
+  /^\.agents\/notes\/(rejected|archived)\//,
 ];
 const CONTRACTS = /^packages\/shared\/src\//;
-const DECISION_NOTE = /^\.agents\/notes\/(proposed|accepted)\/[^/]+\.md$/;
-const RETIRED = [{ pattern: /^docs\/session-logs\//, moved: ".agents/session-logs/" }];
+const DECISION_NOTE = /^\.agents\/notes\/(proposed|implemented)\/[^/]+\/[^/]+\.md$/;
+const RETIRED = [
+  { pattern: /^docs\/session-logs\//, moved: ".agents/session-logs/" },
+  { pattern: /^docs\/archive\//, moved: ".agents/archive/" },
+];
 
 const isFrozen = (path) => FROZEN.some((pattern) => pattern.test(path));
 const base = process.argv[2] ?? "origin/main";

@@ -35,7 +35,7 @@
 /.agents/notes/                          @Lilstanie @HeadmasterEggy
 /docs/team-workflow.md                   @Lilstanie @HeadmasterEggy
 /.github/                                @Lilstanie @HeadmasterEggy
-/scripts/verify-protected-files.mjs      @Lilstanie @HeadmasterEggy
+/scripts/verify-*.mjs                 @Lilstanie @HeadmasterEggy
 /package.json                            @Lilstanie @HeadmasterEggy
 /turbo.json                              @Lilstanie @HeadmasterEggy
 /tsconfig.base.json                      @Lilstanie @HeadmasterEggy

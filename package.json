@@ -14,7 +14,8 @@
     "test": "turbo run test",
     "mock-server": "pnpm --filter @trip/tools mock-server",
     "format": "prettier --write .",
-    "verify:protected": "node scripts/verify-protected-files.mjs"
+    "verify:protected": "node scripts/verify-protected-files.mjs",
+    "verify:docs": "node scripts/verify-docs.mjs"
   },
   "pnpm": {
     "overrides": {

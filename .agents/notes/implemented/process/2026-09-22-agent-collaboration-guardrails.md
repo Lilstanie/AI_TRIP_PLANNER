@@ -1,6 +1,6 @@
 # Agent Note: Guardrails for several people and several AI tools
 
-Status: accepted
+Status: implemented
 Owner: A (@Lilstanie), repository owner (@HeadmasterEggy)
 
 ## Problem
@@ -42,7 +42,7 @@ project uses as its reference for multi-agent repositories.
 their own pull requests, and an AI session acting under the author's account cannot count as a
 second reviewer. Checks that need no other person enforce the rules that matter most.
 
-**Freeze accepted notes as well.** Rejected: an accepted note has to follow file moves and renames, or
+**Freeze implemented notes as well.** Rejected: an implemented note has to follow file moves and renames, or
 it becomes wrong. Only its decision is fixed; reversing it takes a new note.
 
 ## Consequences

@@ -34,3 +34,5 @@ jobs:
           fetch-depth: 0
 
       - run: node scripts/verify-protected-files.mjs origin/${{ github.base_ref }}
+
+      - run: node scripts/verify-docs.mjs

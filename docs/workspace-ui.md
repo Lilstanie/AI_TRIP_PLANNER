@@ -236,5 +236,5 @@ The root layout loads the self-hosted Fraunces display font through `next/font`;
 blank start, history restore, sidebar collapse, place lookup failures, request races and storage
 recovery; `lib/map/map-view.test.ts` and `lib/map/place-query.test.ts` cover framing and lookup rules. Live
 Google checks are reported separately in session logs and are never inferred from mocks. The
-historical P0–P3 plan is in [`archive/p3-implementation.md`](archive/p3-implementation.md) and the
+historical P0–P3 plan is in [`.agents/archive/p3-implementation.md`](../.agents/archive/p3-implementation.md) and the
 session logs.

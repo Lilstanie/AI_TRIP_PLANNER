@@ -1,20 +1,22 @@
 # API entry points
 
-The Next.js route handlers live under `apps/web/app/api/`. All five are `POST` handlers. Request bodies
-are validated with Zod, and planning outputs are validated against the shared contracts in
-`packages/shared/src/`.
+The Next.js route handlers live under `apps/web/app/api/`. `/api/data-mode` is a `GET` handler; the
+other five are `POST` handlers. Request bodies are validated with Zod, and planning outputs are
+validated against the shared contracts in `packages/shared/src/`.
 
 | Path                                                        | Purpose                                                             |
 | ----------------------------------------------------------- | ------------------------------------------------------------------- |
 | [`/api/chat`](#post-apichat)                                | Extract brief updates or plan a submitted brief, streaming progress |
+| [`/api/data-mode`](#get-apidata-mode)                       | Default data mode and whether live provider keys are configured     |
 | [`/api/places/search`](#post-apiplacessearch)               | Google Places text search                                           |
 | [`/api/places/details`](#post-apiplacesdetails)             | Google place details for a place ID                                 |
 | [`/api/routes/from-location`](#post-apiroutesfrom-location) | Route from a user-approved location to a place                      |
 | [`/api/trip/preview-edit`](#post-apitrippreview-edit)       | Preview an itinerary edit with route and budget checks              |
 
-The server is stateless for plans: the browser sends the current plan or brief with each request and
-keeps its workspace in local storage. Short-term chat turns are recorded in the in-process
-`MemoryStore` from `packages/services`.
+The browser sends the current plan or brief with each request and keeps its workspace in local
+storage. On the server, `packages/services` records chat turns, preferences and generated plans in
+the Redis REST store when `KV_REST_API_URL` and `KV_REST_API_TOKEN` are set, and in process memory
+otherwise.
 
 ## `POST /api/chat`
 
@@ -53,6 +55,18 @@ The response is `application/x-ndjson`, one JSON object per line:
 - or `{ "type": "error", "error": "…" }` with a user-facing message.
 
 An invalid request body returns HTTP 400 JSON before streaming starts.
+
+An optional `x-trip-data-mode` header of `mock` or `live` chooses fixtures or live providers for this
+request only; any other value, or no header, uses the deployment default.
+
+## `GET /api/data-mode`
+
+```json
+{ "configured": "mock", "providers": { "hotelsAndFlights": false, "maps": true } }
+```
+
+`configured` is the deployment default (`live` only when `USE_MOCK_TOOLS=false`). `providers` reports
+whether `SERPAPI_KEY` and `MAPS_API_KEY` are set, never their values. The response is not cached.
 
 ## `POST /api/places/search`
 

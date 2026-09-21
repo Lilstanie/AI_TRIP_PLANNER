@@ -83,7 +83,6 @@ docs/                     Project documentation
 Also in `docs/`:
 
 - [`design/`](docs/design/class-diagram.md): the ELEC5620 UML design model and SVG diagrams.
-- [`archive/`](docs/archive/): dated plans, audits and historical module handoffs; not current documentation.
 - [`.agents/`](.agents/README.md): shared AI-tool material: decision records and repository skills.
 
 ## Scope

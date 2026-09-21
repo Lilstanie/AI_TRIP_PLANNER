@@ -1,37 +1,43 @@
 # Product roadmap
 
-The near-term target is a reliable single-user workspace: discover places, edit a plan, confirm
-decisions, save the trip and use it while travelling.
+The near-term target is a reliable single-user workspace: describe a trip, inspect grounded
+recommendations, edit the plan, save it and use it while travelling.
 
-## Current sequence
+## Status
 
-Status as of 2026-09-21 (`main`; see [workspace UI](workspace-ui.md) and the
-[product closure TODO](todo-product-closure.md)):
+Status as of 2026-09-22 on `main`; see [workspace UI](workspace-ui.md) for current behaviour.
 
-1. **Done** — LangChain Agent migration for all five specialists and revision routing (merged in
-   PR #10).
-2. **Done on `main`** — single-user UI: controlled filters, detail cards, review flow, HITL
-   decisions and clear loading/error states.
-3. **Partly done** — trips, chats, forms and HITL results are saved in browser storage with
-   versioned migration; durable server-side storage of trips, preferences, chat turns and decisions
-   is still open (`MemoryStore` is in process).
-4. **Done on `main`** — editable timeline and Google map with route, time and budget checks.
-5. **Partly done** — real Google Places grounding and SerpApi hotel/flight search are implemented behind
-   environment flags; live smoke verification, source labels and visible degradation remain.
-6. **P0 open** — visible specialist/provider degradation and durable storage for chats, preferences,
-   trips, decisions and provider usage/cache. The detailed order is in the product closure TODO.
-7. **P1 open** — weather evidence and short-range forecast support, with the 14-day forecast boundary.
-8. **P1 open** — BeautifulUI-inspired model-thinking/answer states and the remaining workspace visual polish.
-9. **P2 later** — consider on-trip mode after the save/edit/confirm/travel loop is stable.
+**Done**
+
+- LangGraph planning workflow with five LangChain specialists and targeted revision.
+- Single-user workspace: chat, preferences, controlled filters, detail cards, loading and error
+  states, and example trips from a blank chat.
+- Editable timeline and Google map with route, time and budget checks.
+- Live data behind a per-request mock/live toggle: Google Places grounding, SerpApi hotel and flight
+  search, weather forecast and climate evidence.
+- Visible provenance: every proposal reports whether its data is live, estimated, mock, fallback or
+  unavailable.
+- Storage: saved trips in the browser; chat turns, preferences, plans and SerpApi usage and cache in
+  the Redis REST store when configured.
+- Streaming planning progress and a thinking transcript in the chat.
+
+**Open**
+
+1. Verify live providers end to end with real keys in a deployed environment.
+2. On-trip mode, once the describe, edit, save and travel loop is stable.
+
+**Later, only if needed**
+
+- Flight delays, gates and operational status through a dedicated provider such as Aviationstack.
+- Affiliate inventory or booking links through a provider such as Travelpayouts.
 
 ## Definition of done for the MVP
 
-- Users can enter destination, dates, travellers, budget and preferences.
-- Recommendations are grounded and labelled with source/freshness assumptions, including real, estimated
-  and mock provider states.
+- Users can enter destination, origin, dates, travellers, budget and preferences.
+- Recommendations are grounded and labelled with their source and freshness, including live,
+  estimated and mock provider states.
 - Users can inspect and edit real detail cards rather than raw JSON.
 - Time, route and budget conflicts are visible after edits.
-- HITL decisions are persisted, versioned and recoverable.
 - Saved trips reopen after refresh.
 - Provider failures degrade visibly and safely without silently substituting fictional prices.
 - Typecheck, tests, lint and production build pass before merge.

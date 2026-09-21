@@ -5,6 +5,7 @@ dist
 pnpm-lock.yaml
 
 # Frozen history: formatting would change content (see AGENTS.md "Protected files")
-docs/archive/
+.agents/archive/
 .agents/session-logs/20*.md
 .agents/notes/rejected/
+.agents/notes/archived/

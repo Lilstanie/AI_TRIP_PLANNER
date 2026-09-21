@@ -34,8 +34,8 @@ automatically.
 | `packages/services/src/{notification,auth}/**`                                         | E     | real notifications + auth                                                                                                                |
 
 Search the codebase for `TODO(` to see open slots. Historical module handoff notes are preserved in
-[`archive/`](archive/): [itinerary and transport reliability](archive/module-b-reliability-2026-09.md)
-(B) and [accommodation and budget](archive/module-accommodation-2026-09.md) (C). Current provider,
+[`.agents/archive/`](../.agents/archive/): [itinerary and transport reliability](../.agents/archive/module-b-reliability-2026-09.md)
+(B) and [accommodation and budget](../.agents/archive/module-accommodation-2026-09.md) (C). Current provider,
 weather and UI work is tracked in [the product closure TODO](todo-product-closure.md). How the pieces
 fit together is described in [architecture](architecture.md).
 
@@ -56,7 +56,7 @@ Don't edit `packages/shared` without telling the team; every package depends on 
 
 The [Protected files](../AGENTS.md#protected-files) section of `AGENTS.md` lists what nobody, human or
 AI, may change casually. The `protected-files` CI job fails a pull request that modifies, renames or
-deletes frozen history (`docs/archive/`, dated session logs, rejected Agent Notes), or that changes
+deletes frozen history (`.agents/archive/`, dated session logs, rejected and archived Agent Notes), or that changes
 `packages/shared/src` without adding or updating an [Agent Note](../.agents/notes/README.md) in the
 same pull request. Session logs describe one session; they do not decide anything.
 

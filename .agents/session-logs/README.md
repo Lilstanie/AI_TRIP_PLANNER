@@ -14,8 +14,8 @@ to it is another line for two people to conflict on.
 
 ## How to write one
 
-**Say what changed, then why.** The diff already shows *how*. Git does not
-record *why*, which is the one thing a reader cannot recover on their own.
+**Say what changed, then why.** The diff already shows _how_. Git does not
+record _why_, which is the one thing a reader cannot recover on their own.
 
 **Be specific in the title.** "Theme the calendar to match the app" is useful;
 "UI fixes" is not. This line is what people skim.
@@ -45,6 +45,6 @@ Logs are historical records, not living documents. Do not rewrite one after
 the fact except to correct a factual error. Paths and document names in an old
 log describe the repository as it was on that date — for example
 `docs/scaffold.md` and `docs/ui-improvements.md` were later merged into
-[`team-workflow.md`](../team-workflow.md),
-[`architecture.md`](../architecture.md) and
-[`workspace-ui.md`](../workspace-ui.md).
+[`team-workflow.md`](../../docs/team-workflow.md),
+[`architecture.md`](../../docs/architecture.md) and
+[`workspace-ui.md`](../../docs/workspace-ui.md).
