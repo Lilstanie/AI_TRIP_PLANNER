@@ -9,6 +9,9 @@ export {
 } from "./chat";
 export { applyBriefPatch, type BriefPatch } from "./brief";
 export { extractBriefPatchLocally } from "./chat-offline";
+export { parseFlightQuery, type FlightQuery } from "./flight-query";
+export { answerFlightQuery } from "./flight-answer";
+export { parseTripDate, isAmbiguous } from "./dates";
 export {
   createOrchestratorGraph,
   detectConflicts,

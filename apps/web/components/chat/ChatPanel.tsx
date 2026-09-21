@@ -5,6 +5,7 @@ import { quickPrompts } from "@/lib/planning/quick-prompts";
 import type { Message } from "@/lib/workspace";
 import { ThinkingProcess } from "./ThinkingProcess";
 import { Composer } from "./Composer";
+import { FlightResults } from "./FlightResults";
 
 export function ChatPanel({
   plan,
@@ -80,6 +81,7 @@ export function ChatPanel({
                 {m.role === "user" ? "You" : "Travel planning assistant"}
               </span>
               <div className="msg__content">{m.text}</div>
+              {m.flights && <FlightResults answer={m.flights} />}
             </div>
           ))}
         </div>

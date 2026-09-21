@@ -1,12 +1,18 @@
 import { NextResponse } from "next/server";
-import { IncompleteBriefError, runTripChat } from "@trip/orchestrator";
-import { parseDataMode, runWithDataMode } from "@trip/tools";
+import {
+  IncompleteBriefError,
+  answerFlightQuery,
+  parseFlightQuery,
+  runTripChat,
+} from "@trip/orchestrator";
+import { createToolGateway, parseDataMode, runWithDataMode } from "@trip/tools";
 import { tripStore } from "@trip/services";
 import {
   ChatRequest,
   ChatResponse,
   type AgentProgressEvent,
   type ChatNeedsInfo,
+  type FlightAnswer,
 } from "@trip/shared";
 
 export async function POST(req: Request) {
@@ -30,6 +36,7 @@ export async function POST(req: Request) {
         event:
           | AgentProgressEvent
           | ChatNeedsInfo
+          | FlightAnswer
           | { type: "complete"; response: ChatResponse }
           | { type: "error"; error: string },
       ) => {
@@ -38,6 +45,17 @@ export async function POST(req: Request) {
       };
 
       try {
+        // A fare question is answered from the one provider it needs. Running
+        // the planning workflow would spend five model calls to bury the number
+        // in a trip nobody asked for.
+        const flightQuery = parsed.data.plan ? undefined : parseFlightQuery(parsed.data.message);
+        if (flightQuery) {
+          const answer = await runWithDataMode(dataMode, () =>
+            answerFlightQuery(flightQuery, createToolGateway().booking),
+          );
+          send(answer);
+          return;
+        }
         const response = ChatResponse.parse(
           await runWithDataMode(dataMode, () => runTripChat(parsed.data, { onProgress: send })),
         );

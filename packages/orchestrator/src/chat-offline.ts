@@ -1,5 +1,6 @@
 import { detectCurrency, toAud } from "@trip/shared";
 import { BriefPatchSchema, type BriefPatch } from "./brief";
+import { DATE_TOKEN, parseTripDate } from "./dates";
 
 /**
  * The no-API-key path. Patterns can only ever cover the phrasings someone
@@ -27,10 +28,17 @@ function cleanDestination(value: string): string {
 export function extractBriefPatchLocally(message: string): BriefPatch {
   const patch: BriefPatch = {};
 
+  // A range of any date shape this project can read. An ambiguous numeric date
+  // leaves `dates` unset on purpose, which makes the assistant ask for them
+  // rather than plan months away from what the traveller meant.
   const dates = message.match(
-    /(\d{4}-\d{2}-\d{2})\s*(?:to|through|until|–|—|至|到)\s*(\d{4}-\d{2}-\d{2})/i,
+    new RegExp(`${DATE_TOKEN}\\s*(?:to|through|until|–|—|至|到)\\s*${DATE_TOKEN}`, "i"),
   );
-  if (dates?.[1] && dates[2]) patch.dates = [dates[1], dates[2]];
+  if (dates?.[1] && dates[2]) {
+    const start = parseTripDate(dates[1]);
+    const end = parseTripDate(dates[2]);
+    if (start && end && "iso" in start && "iso" in end) patch.dates = [start.iso, end.iso];
+  }
 
   const budget =
     message.match(

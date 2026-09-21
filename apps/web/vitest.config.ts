@@ -7,10 +7,10 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./tests/setup.ts"],
     // Vitest's default assertion budget is 5s. This suite runs a full jsdom per
-    // worker, and a handful of its tests drive a cold `next/dynamic` import or a
-    // focus cycle; on a loaded machine those have been measured at 3-6s, so they
-    // failed intermittently while passing in isolation. 15s still fails a genuine
-    // hang, and stops load from deciding the result.
-    testTimeout: 15_000,
+    // worker, and several tests dynamically import @trip/orchestrator, which
+    // carries LangChain and LangGraph, or drive a focus cycle. Under the parallel
+    // full-suite run those cold imports regularly pass 5s and fail on time rather
+    // than on behaviour. A genuine hang still fails here, just later.
+    testTimeout: 20_000,
   },
 });
