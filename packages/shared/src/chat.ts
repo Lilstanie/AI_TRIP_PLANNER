@@ -65,6 +65,34 @@ export const ChatNeedsInfo = z.object({
 });
 export type ChatNeedsInfo = z.infer<typeof ChatNeedsInfo>;
 
+// Sent instead of a plan when the traveller asked what a flight costs rather
+// than for a trip to be planned: the fares themselves, with no itinerary,
+// budget or decisions attached because none were asked for.
+export const FlightAnswerOption = z.object({
+  carrier: z.string(),
+  /** Whole-party total in the base currency; see ./money. */
+  price: z.number().nonnegative(),
+  note: z.string().optional(),
+  stops: z.number().int().nonnegative().optional(),
+  durationMin: z.number().int().positive().optional(),
+});
+export type FlightAnswerOption = z.infer<typeof FlightAnswerOption>;
+
+export const FlightAnswer = z.object({
+  type: z.literal("flight_answer"),
+  reply: z.string(),
+  from: z.string(),
+  to: z.string(),
+  depart: z.string(),
+  return: z.string().optional(),
+  passengers: z.number().int().positive(),
+  /** Cheapest first; empty when the provider had nothing or was unavailable. */
+  options: z.array(FlightAnswerOption),
+  /** Where the fares came from, so the UI can label them like any other result. */
+  source: z.object({ kind: z.string(), label: z.string(), freshness: z.string() }).optional(),
+});
+export type FlightAnswer = z.infer<typeof FlightAnswer>;
+
 // Progress frames emitted while the orchestrator delegates work. The final
 // ChatResponse remains unchanged; clients can render these frames as optional
 // activity without coupling to LangGraph internals.

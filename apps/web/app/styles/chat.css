@@ -303,3 +303,59 @@
   gap: var(--space-2);
   margin-top: var(--space-3);
 }
+
+/* ---- flight fares in the chat ----
+   A fare answer is a result, not a message, so it reads as a card inside the
+   assistant's turn — same surface and radius as the decision cards it sits
+   beside, without competing with them for attention. */
+.flight-results {
+  margin-top: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+.flight-results__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+.flight-results__meta {
+  color: var(--text-mut);
+  font-size: 12px;
+}
+.flight-results__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.flight-results__row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: baseline;
+  gap: var(--space-2);
+  padding: 6px 0;
+  border-top: 1px solid var(--border);
+}
+.flight-results__row:first-child {
+  border-top: 0;
+  /* The cheapest fare is the answer to the question that was asked. */
+  font-weight: 600;
+}
+.flight-results__detail {
+  color: var(--text-mut);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.flight-results__price {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.flight-results__note {
+  margin: var(--space-2) 0 0;
+  color: var(--text-mut);
+  font-size: 11px;
+}

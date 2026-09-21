@@ -3,13 +3,19 @@ import {
   BASE_CURRENCY,
   ChatNeedsInfo,
   ChatResponse,
+  FlightAnswer,
   moneyIn,
   PartialTripBrief,
   TripBrief,
   TripPlan,
 } from "@trip/shared";
 
-export type Message = { role: "user" | "agent"; text: string };
+export type Message = {
+  role: "user" | "agent";
+  text: string;
+  /** Fares, when this turn answered a flight question instead of planning. */
+  flights?: FlightAnswer;
+};
 export type Draft = {
   destination: string;
   origin: string;
@@ -194,6 +200,18 @@ export class NeedsInfoError extends Error {
   }
 }
 
+/**
+ * The traveller asked what a flight costs, so there is no plan to return —
+ * only fares. Signalled the same way as NeedsInfoError: a non-plan outcome the
+ * chat renders, not a failure.
+ */
+export class FlightAnswerError extends Error {
+  constructor(readonly answer: FlightAnswer) {
+    super(answer.reply);
+    this.name = "FlightAnswerError";
+  }
+}
+
 /** One shared parser for form planning and chat. An incomplete stream is a retryable failure. */
 export async function readPlanStream(
   response: Response,
@@ -209,6 +227,7 @@ export async function readPlanStream(
   let buffer = "";
   let result: ChatResponse | undefined;
   let needsInfo: ChatNeedsInfo | undefined;
+  let flights: FlightAnswer | undefined;
   let error: string | undefined;
   const frame = (line: string) => {
     if (!line.trim()) return;
@@ -227,6 +246,10 @@ export async function readPlanStream(
       const parsed = ChatNeedsInfo.safeParse(data);
       if (parsed.success) needsInfo = parsed.data;
       else error = "The assistant's question was invalid. Please retry.";
+    } else if (data.type === "flight_answer") {
+      const parsed = FlightAnswer.safeParse(data);
+      if (parsed.success) flights = parsed.data;
+      else error = "The returned fares were invalid. Please retry.";
     } else if (data.type === "error")
       error = typeof data.error === "string" ? data.error : "Planning failed. Please retry.";
     else {
@@ -249,6 +272,7 @@ export async function readPlanStream(
   }
   if (error) throw new Error(error);
   if (needsInfo) throw new NeedsInfoError(needsInfo);
+  if (flights) throw new FlightAnswerError(flights);
   if (!result) throw new Error("Connection ended before the plan was ready. Please retry.");
   return result;
 }

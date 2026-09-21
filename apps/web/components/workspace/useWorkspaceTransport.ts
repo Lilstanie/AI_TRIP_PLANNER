@@ -11,6 +11,7 @@ import {
   money,
   parseDraft,
   readPlanStream,
+  FlightAnswerError,
   NeedsInfoError,
   type Draft,
   type Message,
@@ -119,6 +120,17 @@ export function useWorkspaceTransport({
       if (active.current !== controller || controller.signal.aborted) return;
       // Not enough to plan yet: the assistant asks for the rest in the chat, and what it already
       // understood goes into the preferences form and travels with the next message.
+      // A fare question answered: the reply and its fares belong in the chat,
+      // and the trip that was already open stays exactly as it was.
+      if (failure instanceof FlightAnswerError) {
+        setMessages((current) => [
+          ...current,
+          { role: "agent", text: failure.answer.reply, flights: failure.answer },
+        ]);
+        setInput("");
+        setActivity([]);
+        return;
+      }
       if (failure instanceof NeedsInfoError) {
         setMessages((current) => [...current, { role: "agent", text: failure.needsInfo.question }]);
         setDraft((current) => draftWithKnown(current, failure.needsInfo.known));
