@@ -127,14 +127,15 @@ Shared contracts live in `packages/shared/src/`:
 - `contracts.ts`: `TripBrief`, `AgentProposal`, `ProposalItem`, `RevisionRequest`.
 - `plan.ts`: `TripPlan`, `TripSection` and `TripProposal`.
 - `chat.ts`: `ChatRequest`, `ChatResponse` and progress events.
-- `ports.ts`: `ToolGateway` and `MemoryStore`.
+- `ports.ts`: `ToolGateway`, `MapsPort`, `BookingPort`, `WeatherPort` and `MemoryStore`.
 
 Agents receive `ctx.tools` (`ToolGateway`) and `ctx.mem` (`MemoryStore`) through `AgentContext`. Do
 not import the singletons; take them from `ctx` so tests can pass fakes. The tool gateway
 (`packages/tools/src/gateway.ts`) chooses in-process fixtures (`USE_MOCK_TOOLS=true`) or the real
 OpenStreetMap and Google maps adapters; booking routes through SerpApi Google Hotels/Flights when
 configured, with Google Places estimates or fixtures as explicitly labelled fallbacks. `MemoryStore`
-(`packages/services/src/memory`) is still an in-process `Map`.
+(`packages/services/src/memory`) uses the Redis REST store when configured and process memory
+otherwise. Each package's exports and configuration are in its own `README.md`.
 
 Do not change `packages/shared` without telling the team; every package depends on it.
 

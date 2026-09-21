@@ -4,7 +4,7 @@
 //   header whose Status matches the lifecycle, and the required sections per lifecycle. Frozen
 //   lifecycles (rejected, archived) are checked for path and header only.
 // - Every skill folder has a SKILL.md whose frontmatter names the folder and has a description.
-// - Relative Markdown links resolve in README.md, AGENTS.md, docs/ and .agents/, except in frozen
+// - Relative Markdown links resolve in README.md, AGENTS.md, docs/, .agents/ and package READMEs, except in frozen
 //   history (.agents/archive/, dated session logs, rejected and archived notes), which cannot be repaired.
 // Usage: node scripts/verify-docs.mjs
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
@@ -89,7 +89,13 @@ for (const name of readdirSync(SKILLS)) {
   else if (!field("description")) errors.push(`${skill}: frontmatter needs a description`);
 }
 
-const LINK_ROOTS = ["README.md", "AGENTS.md", "docs", ".agents"];
+const PACKAGE_READMES = [
+  "apps/web",
+  ...readdirSync("packages").map((name) => join("packages", name)),
+]
+  .map((dir) => join(dir, "README.md"))
+  .filter((path) => existsSync(path));
+const LINK_ROOTS = ["README.md", "AGENTS.md", "docs", ".agents", ...PACKAGE_READMES];
 const FROZEN_DOCS = [
   /^\.agents\/archive\//,
   /^\.agents\/session-logs\/\d{4}-\d{2}-\d{2}-[^/]+\.md$/,

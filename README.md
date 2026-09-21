@@ -62,7 +62,7 @@ packages/orchestrator/    LangGraph workflow, supervisor, chat intake, budget an
 packages/shared/          Zod contracts, plan types and ports
 packages/services/        memory and trip storage (Redis REST store or in-process), notify, auth
 packages/tools/           Maps, booking, SerpApi and weather adapters, mock fixtures, tool gateway
-docs/                     Documentation of the current system
+docs/                     Documentation of the current system; each package also has a README.md
 .agents/                  Decision records, session logs, AI-tool skills and archived plans
 ```
 

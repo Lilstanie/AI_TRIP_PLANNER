@@ -1,8 +1,9 @@
-// Owner: C — AUD totals and budget policy. A owns negotiation/HITL execution.
+// Owner: C — AUD totals and budget policy. A owns the revision loop that negotiates overruns.
 import type { AgentProposal, TripSection } from "@trip/shared";
 
 // Any overrun should be negotiated; >10% is the explicit budget red line.
-// A also escalates any unresolved conflict after K rounds, even below this red line.
+// After K rounds the workflow stops revising and leaves any unresolved conflict on the plan, even
+// below this red line.
 export const NEGOTIATION_OVERRUN_PCT = 0;
 export const ESCALATION_OVERRUN_PCT = 10;
 

@@ -15,6 +15,7 @@ everywhere else links to it. `pnpm verify:docs` checks the Markdown links.
 | Visual and interaction design rules, design models            | [design/](design/ui-guidelines.md)                                    | Implementation plans                  |
 | Product direction and status                                  | [roadmap.md](roadmap.md)                                              | Task checklists, PR plans             |
 | Ownership, branches and reviews                               | [team-workflow.md](team-workflow.md)                                  | Rules already in `AGENTS.md`          |
+| A package's exports, configuration and invariants             | `packages/*/README.md`, `apps/web/README.md`                          | Restated `docs/` pages or rationale   |
 | Why a decision was made and what it beat                      | [Agent Notes](../.agents/notes/README.md)                             | —                                     |
 | Plans and proposals not yet built                             | `proposed/` Agent Notes or GitHub issues                              | `docs/`                               |
 | Repeatable workflows for AI tools                             | [Skills](../.agents/skills/)                                          | Product or runtime facts              |
