@@ -125,7 +125,7 @@ gate every proposal before aggregation.
 Shared contracts live in `packages/shared/src/`:
 
 - `contracts.ts`: `TripBrief`, `AgentProposal`, `ProposalItem`, `RevisionRequest`.
-- `plan.ts`: `TripPlan`, HITL checkpoints and `HitlRequest`.
+- `plan.ts`: `TripPlan`, `TripSection` and `TripProposal`.
 - `chat.ts`: `ChatRequest`, `ChatResponse` and progress events.
 - `ports.ts`: `ToolGateway` and `MemoryStore`.
 

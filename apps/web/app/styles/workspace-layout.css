@@ -158,3 +158,35 @@
   height: 100%;
   border-radius: 0;
 }
+
+/* ---- data mode toggle ----
+   Reads as a status light first and a control second: the traveller needs to
+   know at a glance whether a plan came from fixtures or from paid providers. */
+.data-mode__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--text-mut);
+  flex: none;
+}
+.data-mode--live .data-mode__dot {
+  background: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
+}
+.data-mode--live {
+  border-color: var(--accent) !important;
+  color: var(--accent);
+}
+.data-mode__warn {
+  display: grid;
+  width: 16px;
+  height: 16px;
+  place-items: center;
+  border-radius: var(--radius-pill);
+  /* --warn inverts between themes (dark orange on light, bright amber on
+     dark), so no single fill/text pair reads well in both. Draw it instead. */
+  border: 1px solid var(--warn);
+  color: var(--warn);
+  font-size: 11px;
+  font-weight: 700;
+}

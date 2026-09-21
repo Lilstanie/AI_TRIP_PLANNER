@@ -136,7 +136,9 @@ export function Composer({
               className="composer__primary"
               aria-label="Send"
               disabled={!canSend}
-              onClick={onSend}
+              // Not `onClick={onSend}`: the caller's send() reads an optional message
+              // argument, and a click event is not one.
+              onClick={() => onSend()}
             >
               <SendIcon />
             </button>

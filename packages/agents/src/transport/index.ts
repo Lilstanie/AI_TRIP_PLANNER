@@ -14,6 +14,8 @@ import { createAgent, tool } from "langchain";
 import { z } from "zod/v4";
 import { createRoutedChatModel, readStructuredResponse } from "../models";
 import { dateForDay, planningDays, routeProblem, fareUnavailable } from "./validation";
+import { journeyLegs, flightLegs, groundLegs, type JourneyLeg } from "./legs";
+import { mockEnabled } from "@trip/tools";
 
 // Transport combines booking fares with map legs and keeps all pricing in the
 // deterministic calculator that the specialist must call.
@@ -47,6 +49,8 @@ interface TransportEvidence {
   brief: TripBrief;
   origin: string;
   destinations: string[];
+  /** Every hop in travel order; the single source of truth for the itinerary. */
+  legs: JourneyLeg[];
   days: number;
   budgetRevision: boolean;
   scheduleRevision: boolean;
@@ -74,7 +78,11 @@ async function gatherTransportEvidence(
   const destinations = cities(brief.destination);
   const days = planningDays(brief.dates);
   const preferences = await ctx.mem.getLongTerm(brief.userId);
+  // The brief is what the traveller actually stated this trip; the long-term
+  // preference is a standing default for people who always leave from the same
+  // city. The literal remains only so a brief that states neither still plans.
   const origin =
+    brief.origin?.trim() ||
     preferences.find((preference) => preference.key === "transport.origin")?.value.trim() ||
     "Sydney";
   const budgetRevision =
@@ -82,37 +90,28 @@ async function gatherTransportEvidence(
     /budget|cost|cheaper|overrun/i.test([revision.reason, ...revision.constraints].join(" "));
   const scheduleRevision = revision !== undefined && /time|overlap|schedule/i.test(revision.reason);
 
-  const routeQueries: RouteQuery[] = destinations.slice(1).map((destination, index) => ({
+  const legs = journeyLegs({ origin, destinations, start: brief.dates[0], days });
+  const routeQueries: RouteQuery[] = groundLegs(legs).map((leg) => ({
     localTime: scheduleRevision ? "06:00" : "09:00",
-    from: destinations[index]!,
-    to: destination,
-    date: dateForDay(
-      brief.dates[0],
-      Math.min(days, Math.floor((days * (index + 1)) / destinations.length) + 1),
-    ),
-    day: Math.min(days, Math.floor((days * (index + 1)) / destinations.length) + 1),
+    from: leg.from,
+    to: leg.to,
+    date: leg.date,
+    day: leg.day,
   }));
-  // A single-city trip still gets an arrival transfer when the origin matches
-  // the destination, keeping the proposal useful without inventing a flight.
-  if (origin.toLowerCase() === destinations[0]!.toLowerCase() && routeQueries.length === 0) {
-    routeQueries.push({
-      localTime: scheduleRevision ? "06:00" : "09:00",
-      from: `${destinations[0]} airport`,
-      to: destinations[0]!,
-      date: brief.dates[0],
-      day: 1,
-    });
-  }
+  const flown = flightLegs(legs);
 
   const conflicts: string[] = [];
+  // One flown hop today. When legMode() starts flying later hops this becomes a
+  // search per leg; the leg list it would map over already exists.
+  const flightLeg = flown[0];
   const [flightOptions, routed] = await Promise.all([
-    origin.toLowerCase() === destinations[0]!.toLowerCase()
+    !flightLeg
       ? Promise.resolve([])
       : ctx.tools.booking
           .searchFlights({
-            from: origin,
-            to: destinations[0]!,
-            depart: brief.dates[0],
+            from: flightLeg.from,
+            to: flightLeg.to,
+            depart: flightLeg.date,
             return: brief.dates[1],
             passengers: brief.groupSize,
           })
@@ -140,13 +139,14 @@ async function gatherTransportEvidence(
   const flights = flightOptions.filter(
     (option) => Number.isFinite(option.price) && option.price >= 0 && option.carrier.trim(),
   );
-  if (origin.toLowerCase() !== destinations[0]!.toLowerCase() && !flights.length)
+  if (flightLeg && !flights.length)
     conflicts.push("Required flight has no valid fare; transport estimate is incomplete.");
 
   return {
     brief,
     origin,
     destinations,
+    legs,
     days,
     budgetRevision,
     scheduleRevision,
@@ -224,7 +224,7 @@ function transportSource(
         "The model schedule was unavailable or invalid; a deterministic transport plan was used from the gathered evidence.",
     };
   }
-  const requiresFlight = evidence.origin.toLowerCase() !== evidence.destinations[0]!.toLowerCase();
+  const requiresFlight = flightLegs(evidence.legs).length > 0;
   if (requiresFlight && !evidence.flights.length) {
     return {
       kind: "unavailable",
@@ -232,7 +232,7 @@ function transportSource(
       freshness: "No valid flight fare was available; transport remains incomplete and unpriced.",
     };
   }
-  if (process.env.USE_MOCK_TOOLS !== "false") {
+  if (mockEnabled()) {
     return {
       kind: "mock",
       label: "Mock booking and route data",
@@ -282,19 +282,22 @@ function assembleTransportProposal(
   degraded = false,
 ): AgentProposal {
   const { origin, destinations, brief, budgetRevision, scheduleRevision } = evidence;
+  const flownLeg = flightLegs(evidence.legs)[0];
   const conflicts = [...evidence.conflicts];
   const routeItems = evidence.routed.flatMap(({ query, legs }, index) => {
     const slot = plan.schedule[index] ?? { day: query.day, startMinutes: 9 * 60 };
     return layOutHop(query, legs, slot.day, slot.startMinutes, brief.dates[0], conflicts);
   });
   const items = [
-    ...(plan.flight
+    // A fare only exists because a leg was flown, so the two travel together
+    // rather than each falling back to the first destination on its own.
+    ...(plan.flight && flownLeg
       ? [
           {
             kind: "transport",
-            day: 1,
-            location: `${origin} → ${destinations[0]}`,
-            detail: `${plan.flight.carrier}: ${origin} to ${destinations[0]}, returning ${brief.dates[1]}; whole-group fare${plan.flight.note ? `; ${plan.flight.note}` : ""}.`,
+            day: flownLeg.day,
+            location: `${flownLeg.from} → ${flownLeg.to}`,
+            detail: `${plan.flight.carrier}: ${flownLeg.from} to ${flownLeg.to}, returning ${brief.dates[1]}; whole-group fare${plan.flight.note ? `; ${plan.flight.note}` : ""}.`,
             estCost: plan.flight.price,
           },
         ]
@@ -309,7 +312,7 @@ function assembleTransportProposal(
     assumptions: [
       "Route arrays are consecutive legs; calculator preserves adapter AUD amounts as group totals, matching the current integration. Per-person providers must normalize fares before returning them.",
       "Inter-city route dates follow their scheduled day. Unsupported driving-only estimates cannot verify public transport.",
-      `Origin defaults to Sydney unless long-term preference "transport.origin" is set; current origin: ${origin}.`,
+      `Origin comes from the trip brief, else the long-term preference "transport.origin", else Sydney; current origin: ${origin}.`,
       "Injected booking and maps results are treated as estimates, not reservations or live availability.",
       ...(budgetRevision ? ["Budget revision selected the lowest returned flight fare."] : []),
       ...(scheduleRevision ? ["Schedule revision moved routed legs to an early departure."] : []),

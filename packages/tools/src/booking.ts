@@ -17,11 +17,11 @@
 import type { StayQuery, StayOption, FlightQuery, FlightOption } from "@trip/shared";
 import { searchGooglePlacesText } from "./google-places";
 import { searchFlightsSerpApi, searchHotelsSerpApi, SerpApiError } from "./serpapi";
+import { mockEnabled } from "./data-mode";
 
 export type { StayQuery, StayOption, FlightQuery, FlightOption } from "@trip/shared";
 export { SerpApiError, serpApiUsage } from "./serpapi";
 
-const mockEnabled = () => process.env.USE_MOCK_TOOLS !== "false";
 const provider = () => process.env.MAPS_PROVIDER || (process.env.MAPS_API_KEY ? "google" : "osm");
 
 // Google's place rating is 1.0-5.0; every rating-based rule in this project

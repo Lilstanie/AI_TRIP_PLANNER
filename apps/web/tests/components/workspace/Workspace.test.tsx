@@ -66,6 +66,12 @@ const withPlaceRequests = (...responses: (Response | ((init?: RequestInit) => Re
   let next = 0;
   return vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
+    // Asked once on mount to learn the deployment's mock/live default; it is
+    // not part of any test's ordered response queue.
+    if (url === "/api/data-mode")
+      return Promise.resolve(
+        Response.json({ configured: "mock", providers: { hotelsAndFlights: false, maps: false } }),
+      );
     if (url === "/api/places/search")
       return Promise.resolve(Response.json({ places: [googlePlace] }));
     if (url === "/api/places/details")
@@ -173,7 +179,9 @@ describe("Workspace interactions", () => {
     const chat = document.querySelector<HTMLElement>(".workspace-panel--chat")!;
     const map = document.querySelector<HTMLElement>(".workspace-panel--map")!;
     expect((screen.getByLabelText("Message AI Trip Planner") as HTMLInputElement).value).toBe("");
-    expect(within(chat).queryByText(/Sydney|Museum/)).toBeNull();
+    // The blank state's example buttons name cities on purpose; what must not
+    // survive New chat is the previous plan's own content.
+    expect(within(within(chat).getByRole("log")).queryByText(/Sydney|Museum/)).toBeNull();
     expect(within(map).queryByText(/Sydney|Museum/)).toBeNull();
     expect(within(chat).getByText("Where to next?")).toBeTruthy();
     openPreferences();
@@ -389,8 +397,12 @@ describe("Workspace interactions", () => {
     expect((screen.getByLabelText("Destination") as HTMLInputElement).value).toBe("Lisbon");
     expect((screen.getByLabelText("Start date") as HTMLInputElement).value).toBe("");
     expect(within(drawer("trip")).queryByText(/Sydney/)).toBeNull();
+    // Scoped to the message log: the blank state's example buttons name cities
+    // on purpose, so the chat panel as a whole is no longer a clean signal.
     expect(
-      within(document.querySelector<HTMLElement>(".workspace-panel--chat")!).queryByText(/Sydney/),
+      within(
+        within(document.querySelector<HTMLElement>(".workspace-panel--chat")!).getByRole("log"),
+      ).queryByText(/Sydney/),
     ).toBeNull();
     // Switching back to the earlier chat restores its own trip.
     fireEvent.click(historyButton(/^Sydney · 2026-10-01/));
@@ -512,7 +524,8 @@ describe("Workspace interactions", () => {
     const fetcher = vi.fn();
     vi.stubGlobal("fetch", fetcher);
     render(<Workspace />);
-    expect(fetcher).not.toHaveBeenCalled();
+    // The mount-time mock/live status probe is fine; a demo plan request is not.
+    expect(fetcher.mock.calls.map(([url]) => String(url))).not.toContain("/api/chat");
     expect(screen.getByRole("heading", { name: "New trip" })).toBeTruthy();
     expect(screen.getByText(/Not planned yet/)).toBeTruthy();
     expect(screen.getByText("Where to next?")).toBeTruthy();

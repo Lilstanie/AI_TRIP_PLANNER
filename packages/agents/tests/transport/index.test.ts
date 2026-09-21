@@ -75,6 +75,28 @@ describe("transport planner", () => {
     expect(result.assumptions.join(" ")).toContain("lowest returned flight fare");
   });
 
+  it("prefers the origin stated in the brief over the standing preference", async () => {
+    // The preference is a default for people who always leave from the same
+    // city; what the traveller said about *this* trip has to win.
+    const { ctx, searchFlights } = context([
+      { key: "transport.origin", value: "Melbourne", source: "chat_confirmed" },
+    ]);
+    const result = await transportAgent.invoke({
+      brief: { ...brief, origin: "Perth" },
+      context: ctx,
+    });
+    expect(searchFlights).toHaveBeenCalledWith(expect.objectContaining({ from: "Perth" }));
+    expect(result.items[0]).toMatchObject({ location: "Perth → Tokyo" });
+  });
+
+  it("falls back to the standing preference when the brief states no origin", async () => {
+    const { ctx, searchFlights } = context([
+      { key: "transport.origin", value: "Melbourne", source: "chat_confirmed" },
+    ]);
+    await transportAgent.invoke({ brief: { ...brief, origin: undefined }, context: ctx });
+    expect(searchFlights).toHaveBeenCalledWith(expect.objectContaining({ from: "Melbourne" }));
+  });
+
   it("moves routed legs earlier for a schedule revision", async () => {
     const result = await transportAgent.invoke({
       brief,

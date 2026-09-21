@@ -1,16 +1,10 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { type AgentProgressEvent, type TripPlan } from "@trip/shared";
+import { quickPrompts } from "@/lib/planning/quick-prompts";
 import type { Message } from "@/lib/workspace";
 import { ThinkingProcess } from "./ThinkingProcess";
 import { Composer } from "./Composer";
-
-const suggestions = [
-  "Plan a week in Paris with food, museums and day trips.",
-  "Build a relaxed long weekend in Lisbon for two.",
-  "Plan a family-friendly five days in Vancouver.",
-  "Create a train-focused week through northern Italy.",
-];
 
 export function ChatPanel({
   plan,
@@ -33,7 +27,8 @@ export function ChatPanel({
   onInput: (value: string) => void;
   busy: boolean;
   activity: AgentProgressEvent[];
-  onSend: () => void;
+  /** Optional text sends that message instead of the composer's contents. */
+  onSend: (message?: string) => void;
   onEdit: () => void;
   /** Opens Trip preferences from the blank-conversation prompt. */
   onStart?: () => void;
@@ -51,6 +46,7 @@ export function ChatPanel({
       stream.current?.scrollTo({ top: stream.current.scrollHeight });
   }, [messages, activity]);
 
+  const prompts = useMemo(() => quickPrompts(), []);
   return (
     <section className="panel chat" aria-labelledby="chat-title">
       <h2 id="chat-title">Plan together</h2>
@@ -62,21 +58,14 @@ export function ChatPanel({
               Describe your destination, travel dates, number of travellers and total budget, or
               fill in the preferences form.
             </p>
-            <div className="chat-empty__suggestions" aria-label="Example trip suggestions">
-              {suggestions.map((suggestion) => (
-                <button
-                  key={suggestion}
-                  type="button"
-                  onClick={() => {
-                    onInput(suggestion);
-                    inputRef.current?.focus();
-                  }}
-                >
-                  {suggestion}
+            <div className="chat-empty__suggestions" aria-label="Example trips">
+              {prompts.map(({ label, text }) => (
+                <button key={label} type="button" title={text} disabled={busy} onClick={() => onSend(text)}>
+                  {label}
                 </button>
               ))}
             </div>
-            <p className="chat-empty__input-hint">Choose a suggestion or write your own below.</p>
+            <p className="chat-empty__input-hint">Pick an example to plan it now, or write your own below.</p>
             {onStart && (
               <button type="button" onClick={onStart}>
                 Fill in trip preferences

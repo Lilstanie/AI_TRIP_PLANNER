@@ -12,6 +12,7 @@ import { TripPlan } from "./plan";
 // date after the start, a night per destination) cannot run on a brief that is still being built.
 export const PartialTripBrief = z.object({
   destination: z.string().trim().min(1).optional(),
+  origin: z.string().trim().min(1).optional(),
   dates: z
     .tuple([
       z.string().refine(isTripDate, "Enter a real date"),

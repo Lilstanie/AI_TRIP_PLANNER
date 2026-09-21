@@ -13,6 +13,7 @@ import { createAgent, tool } from "langchain";
 import { createRoutedChatModel, readStructuredResponse } from "../models";
 import { dateForDay, planningDays, routeProblem } from "../transport/validation";
 import { avoidBlockedWindows } from "./revision";
+import { mockEnabled } from "@trip/tools";
 
 // The itinerary schema and guardrails constrain model output before it reaches
 // the shared proposal format or the route-conflict checker.
@@ -333,10 +334,10 @@ async function planItinerary(
           freshness: "The model draft was unavailable or invalid; a deterministic itinerary was used from the gathered place evidence.",
         }
       : {
-          kind: process.env.USE_MOCK_TOOLS === "false" ? "estimated" : "mock",
+          kind: !mockEnabled() ? "estimated" : "mock",
           label: "Maps evidence and AI plan",
           freshness:
-            process.env.USE_MOCK_TOOLS === "false"
+            !mockEnabled()
               ? "Place and route details are provider estimates; opening hours and availability remain unverified."
               : "Place and route details come from deterministic mock fixtures; not live verified.",
         },

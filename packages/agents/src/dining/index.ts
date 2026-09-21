@@ -11,6 +11,7 @@ import {
 import { z } from "zod/v4";
 import { createAgent, tool } from "langchain";
 import { createRoutedChatModel, readStructuredResponse } from "../models";
+import { mockEnabled } from "@trip/tools";
 
 // Dining has an explicit budget envelope: venue candidates are unpriced unless
 // a caller separately confirms them, so only the envelope contributes cost.
@@ -299,10 +300,10 @@ async function planDining(
           freshness: "The model dining draft was unavailable or invalid; deterministic meal guidance was used from the gathered venue evidence.",
         }
       : {
-          kind: process.env.USE_MOCK_TOOLS === "false" ? "estimated" : "mock",
+          kind: !mockEnabled() ? "estimated" : "mock",
           label: "Maps evidence and AI dining plan",
           freshness:
-            process.env.USE_MOCK_TOOLS === "false"
+            !mockEnabled()
               ? "Venue details are provider estimates; menus, dietary suitability and availability require direct confirmation."
               : "Venue details come from deterministic mock fixtures; not live verified.",
         },

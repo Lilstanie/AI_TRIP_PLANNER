@@ -15,9 +15,12 @@ import {
   type Message,
 } from "@/lib/workspace";
 import type { Task } from "./workspace-helpers";
+import { dataModeHeaders, type DataMode } from "@/lib/workspace/data-mode";
 
 type WorkspaceTransportOptions = {
   plan: TripPlan | undefined;
+  /** Fixtures or real providers; travels with each planning request. */
+  dataMode: DataMode | undefined;
   draft: Draft;
   input: string;
   planRef: MutableRefObject<TripPlan | undefined>;
@@ -58,6 +61,7 @@ export function useWorkspaceTransport({
   setSelectedActivity,
   setMapRoutes,
   onReject,
+  dataMode,
 }: WorkspaceTransportOptions) {
   async function run(task: Task) {
     if (active.current) return;
@@ -72,7 +76,7 @@ export function useWorkspaceTransport({
     try {
       const response = await fetch("/api/chat", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", ...dataModeHeaders(dataMode) },
         body: JSON.stringify(task.request),
         signal: controller.signal,
       });
@@ -134,9 +138,12 @@ export function useWorkspaceTransport({
       request: { tripId: brief.tripId, mode: "plan", brief, message },
     });
   }
-  /** One traveller message, recorded as an ordinary chat turn rather than a form submission. */
-  function sendText(text: string) {
-    const message = text.trim();
+  /** One traveller message, recorded as an ordinary chat turn rather than a form
+   *  submission. `override` lets a one-click example send its own text: React state
+   *  has not flushed yet when the button fires, so reading `input` would send the
+   *  previous value (usually empty, which the guard below then swallows). */
+  function send(override?: string) {
+    const message = (override ?? input).trim();
     if (!message || active.current) return;
     setMessages((current) => [...current, { role: "user", text: message }]);
     // No mode: the assistant reads the message and decides whether this is a question,
@@ -148,9 +155,6 @@ export function useWorkspaceTransport({
         ? { tripId: plan.tripId, message, brief: plan.brief, plan }
         : { tripId: freshTripId.current, message, known: knownFromDraft(draft) },
     });
-  }
-  function send() {
-    sendText(input);
   }
   return { run, submit, send };
 }

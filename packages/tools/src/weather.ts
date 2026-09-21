@@ -1,12 +1,9 @@
 import type { WeatherPort, WeatherQuery, WeatherResult } from "@trip/shared";
+import { mockEnabled } from "./data-mode";
 
 const DAY_MS = 86_400_000;
 const FORECAST_LIMIT_DAYS = 14;
 const GOOGLE_FORECAST_LIMIT_DAYS = 10;
-
-function mockEnabled(): boolean {
-  return process.env.USE_MOCK_TOOLS !== "false";
-}
 
 function dateValue(value: string): number {
   const timestamp = Date.parse(`${value}T00:00:00.000Z`);

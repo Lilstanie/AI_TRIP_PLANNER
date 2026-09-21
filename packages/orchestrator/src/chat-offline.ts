@@ -67,6 +67,25 @@ export function extractBriefPatchLocally(message: string): BriefPatch {
     if (chineseGroup?.[1]) patch.groupSize = values[chineseGroup[1]];
   }
 
+  // "a trip from A to B" states both ends at once. Without this the destination
+  // pattern below never fires on that phrasing — it keys on "trip to" — so the
+  // destination was silently dropped, and the trip planned for nowhere.
+  const fromTo = message.match(
+    /\b(?:trip|travel|flight|fly(?:ing)?|go(?:ing)?)\s+from\s+([A-Za-z][\w'&.\- ]*?)\s+to\s+([A-Za-z][\w'&.\- ]*?)(?=\s+(?:for|between|on|with|budget|departing|from)\b|[,.;]|$)/i,
+  );
+  // "departing Melbourne", "leaving from Melbourne". Requires a letter first so
+  // "departing 2026-10-12" cannot be read as a city.
+  const departing = message.match(
+    /\b(?:departing|leaving|flying)\s+(?:from\s+)?([A-Za-z][\w'&.\- ]*?)(?=\s+(?:for|to|on|with|budget)\b|[,.;]|$)/i,
+  );
+  const chineseOrigin = message.match(
+    /从\s*([\p{Script=Han}A-Za-z][\p{Script=Han}A-Za-z&·\- ]*?)(?=\s*(?:出发|飞|到|去|，|,|。|$))/u,
+  );
+  const origin = cleanDestination(
+    fromTo?.[1] ?? departing?.[1] ?? chineseOrigin?.[1] ?? "",
+  );
+  if (origin) patch.origin = origin;
+
   const englishDestination = message.match(
     /(?:(?:trip|travel|holiday|go|going)\s+(?:to|in)|visit(?:ing)?)\s+(.+?)(?=\s+(?:for|from|between|on|with|budget)\b|[,.;]|$)/i,
   );
@@ -81,6 +100,7 @@ export function extractBriefPatchLocally(message: string): BriefPatch {
   );
   const destination = cleanDestination(
     englishDestination?.[1] ??
+      fromTo?.[2] ??
       explicitDestination?.[1] ??
       leadingDestination?.[1] ??
       chineseDestination?.[1] ??
