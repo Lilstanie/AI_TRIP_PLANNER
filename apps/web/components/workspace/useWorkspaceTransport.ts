@@ -153,8 +153,11 @@ export function useWorkspaceTransport({
       request: { tripId: brief.tripId, mode: "plan", brief, message },
     });
   }
-  function send() {
-    const message = input.trim();
+  /** `override` lets a one-click example send its own text: React state has
+   *  not flushed yet when the button fires, so reading `input` would send the
+   *  previous value (usually empty, which the guard below then swallows). */
+  function send(override?: string) {
+    const message = (override ?? input).trim();
     if (!message || active.current) return;
     setMessages((current) => [...current, { role: "user", text: message }]);
     // No mode: the assistant reads the message and decides whether this is a question,

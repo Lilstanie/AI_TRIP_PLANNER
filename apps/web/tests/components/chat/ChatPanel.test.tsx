@@ -30,7 +30,7 @@ function Chat({ activityEvents = [] }: { activityEvents?: AgentProgressEvent[] }
 }
 
 describe("ChatPanel", () => {
-  it("prefills a suggestion without sending or adding a message", () => {
+  it("plans an example trip in one click, sending its own complete text", () => {
     const onSend = vi.fn();
     function EmptyChat() {
       const [input, setInput] = useState("");
@@ -52,15 +52,17 @@ describe("ChatPanel", () => {
     const log = screen.getByRole("log");
     expect(screen.getByRole("heading", { name: "Where to next?" })).toBeTruthy();
     expect(within(log).queryByText(/.+/)).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: /week in paris/i }));
+    fireEvent.click(screen.getByRole("button", { name: /melbourne/i }));
 
-    const input = screen.getByRole("textbox", { name: "Message AI Trip Planner" });
-    expect((input as HTMLInputElement).value).toBe(
-      "Plan a week in Paris with food, museums and day trips.",
-    );
-    expect(document.activeElement).toBe(input);
-    expect(within(log).queryByText(/.+/)).toBeNull();
-    expect(onSend).not.toHaveBeenCalled();
+    // The example sends its own text rather than staging it in the composer:
+    // React state has not flushed when the click handler runs, so relying on
+    // the input would send the previous (empty) value.
+    expect(onSend).toHaveBeenCalledTimes(1);
+    const [sent] = onSend.mock.calls[0]!;
+    expect(sent).toMatch(/Melbourne to Sydney for 2 people/);
+    expect(sent).toMatch(/total budget 4000 AUD/);
+    // Complete enough to plan outright, so no follow-up question is needed.
+    expect(sent).toMatch(/from \d{4}-\d{2}-\d{2} to \d{4}-\d{2}-\d{2}/);
   });
 
   it("does not scroll an empty chat above its heading", () => {

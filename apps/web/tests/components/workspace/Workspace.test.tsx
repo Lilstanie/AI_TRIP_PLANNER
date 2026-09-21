@@ -173,7 +173,9 @@ describe("Workspace interactions", () => {
     const chat = document.querySelector<HTMLElement>(".workspace-panel--chat")!;
     const map = document.querySelector<HTMLElement>(".workspace-panel--map")!;
     expect((screen.getByLabelText("Message AI Trip Planner") as HTMLInputElement).value).toBe("");
-    expect(within(chat).queryByText(/Sydney|Museum/)).toBeNull();
+    // The blank state's example buttons name cities on purpose; what must not
+    // survive New chat is the previous plan's own content.
+    expect(within(within(chat).getByRole("log")).queryByText(/Sydney|Museum/)).toBeNull();
     expect(within(map).queryByText(/Sydney|Museum/)).toBeNull();
     expect(within(chat).getByText("Where to next?")).toBeTruthy();
     openPreferences();
@@ -389,8 +391,12 @@ describe("Workspace interactions", () => {
     expect((screen.getByLabelText("Destination") as HTMLInputElement).value).toBe("Lisbon");
     expect((screen.getByLabelText("Start date") as HTMLInputElement).value).toBe("");
     expect(within(drawer("trip")).queryByText(/Sydney/)).toBeNull();
+    // Scoped to the message log: the blank state's example buttons name cities
+    // on purpose, so the chat panel as a whole is no longer a clean signal.
     expect(
-      within(document.querySelector<HTMLElement>(".workspace-panel--chat")!).queryByText(/Sydney/),
+      within(
+        within(document.querySelector<HTMLElement>(".workspace-panel--chat")!).getByRole("log"),
+      ).queryByText(/Sydney/),
     ).toBeNull();
     // Switching back to the earlier chat restores its own trip.
     fireEvent.click(historyButton(/^Sydney · 2026-10-01/));
