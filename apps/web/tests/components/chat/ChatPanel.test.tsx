@@ -11,22 +11,49 @@ const activity = (type: string): AgentProgressEvent =>
     agent: "itinerary",
     round: 1,
     ...(type === "agent_failed" ? { error: "Retry" } : {}),
+    ...(type === "agent_started" ? { summary: "Drafting the day plan" } : {}),
   }) as AgentProgressEvent;
 
-function Chat({ activityEvents = [] }: { activityEvents?: AgentProgressEvent[] }) {
+function Chat({
+  activityEvents = [],
+  busy = false,
+}: {
+  activityEvents?: AgentProgressEvent[];
+  busy?: boolean;
+}) {
   const [input, setInput] = useState("");
   return (
     <ChatPanel
       messages={[{ role: "agent", text: "Hello" }]}
       input={input}
       onInput={setInput}
-      busy={false}
+      busy={busy}
       activity={activityEvents}
       onSend={vi.fn()}
-      onDecision={vi.fn()}
       onEdit={vi.fn()}
     />
   );
+}
+
+/** The turn-level Think disclosure in a finished run: the only visible row. */
+function thinkRow(): HTMLElement {
+  return screen.getByRole("button", { name: /^Think/ });
+}
+
+/** The disclosure button of one subagent row. The row's own accessible name
+ *  (and its status) lives on the enclosing listitem, so match that exactly
+ *  rather than substring-searching the status suffix. */
+function subagentRow(label: string, status = "Complete"): HTMLElement {
+  const rows = screen.getAllByRole("listitem").filter(
+    (row) => row.getAttribute("aria-label") === `${label} ${status}`,
+  );
+  expect(rows).toHaveLength(1);
+  return within(rows[0]).getByRole("button");
+}
+
+/** The tool disclosure nested under an agent. */
+function toolRow(label: string): HTMLElement {
+  return screen.getByRole("button", { name: new RegExp(`^${label}`) });
 }
 
 describe("ChatPanel", () => {
@@ -42,7 +69,6 @@ describe("ChatPanel", () => {
           busy={false}
           activity={[]}
           onSend={onSend}
-          onDecision={vi.fn()}
           onEdit={vi.fn()}
         />
       );
@@ -79,7 +105,6 @@ describe("ChatPanel", () => {
           busy={false}
           activity={[]}
           onSend={vi.fn()}
-          onDecision={vi.fn()}
           onEdit={vi.fn()}
         />,
       );
@@ -104,7 +129,6 @@ describe("ChatPanel", () => {
         busy={false}
         activity={[]}
         onSend={vi.fn()}
-        onDecision={vi.fn()}
         onEdit={vi.fn()}
       />,
     );
@@ -124,18 +148,102 @@ describe("ChatPanel", () => {
     ["agent_started", "Thinking"],
     ["agent_completed", "Complete"],
     ["agent_failed", "Needs attention"],
-    ["unexpected", "Waiting for update"],
+    ["unexpected", "Waiting"],
   ])("exposes %s as %s and keeps subagent details collapsed", (type, status) => {
-    render(<Chat activityEvents={[activity(type)]} />);
+    render(<Chat activityEvents={[activity(type)]} busy />);
 
     const progress = screen.getByRole("region", { name: "Thinking process" });
-    expect(
-      within(progress).getByRole("listitem", { name: new RegExp(`Day plan.*${status}`) }),
-    ).toBeTruthy();
-    const details = within(progress).getByRole("button", { name: "Day plan details" });
+    const row = within(progress).getByRole("listitem", {
+      name: new RegExp(`Day plan.*${status}`),
+    });
+    // The dot is decorative; the state also travels as text.
+    expect(within(row).getAllByText(status).length).toBeGreaterThan(0);
+    const details = within(row).getByRole("button", { name: /^Subagent .*Day plan/ });
     expect(details.getAttribute("aria-expanded")).toBe("false");
     fireEvent.click(details);
     expect(details.getAttribute("aria-expanded")).toBe("true");
+  });
+
+  it("folds a settled run behind its count line and unfolds it on demand", () => {
+    render(
+      <Chat
+        activityEvents={[
+          { type: "coordinator", phase: "dispatch", round: 1, summary: "Preparing" },
+          { type: "agent_started", agent: "itinerary", round: 1 },
+          {
+            type: "tool_started",
+            agent: "itinerary",
+            round: 1,
+            callId: "itinerary:1:1",
+            tool: "maps.places",
+            label: "Search places",
+            summary: "sights near Sydney",
+          },
+          {
+            type: "tool_completed",
+            agent: "itinerary",
+            round: 1,
+            callId: "itinerary:1:1",
+            tool: "maps.places",
+            label: "Search places",
+            resultSummary: "5 place result(s)",
+            resultCount: 5,
+          },
+          { type: "agent_completed", agent: "itinerary", round: 1, summary: "Day plan drafted" },
+        ]}
+      />,
+    );
+
+    expect(thinkRow().textContent).toContain("1 tool call · 1 subagent");
+    expect(screen.queryByRole("listitem", { name: "Day plan Complete" })).toBeNull();
+
+    // Expand all reveals the whole run, and collapse all folds it again.
+    fireEvent.click(screen.getByRole("button", { name: "Expand all" }));
+    expect(screen.getByRole("listitem", { name: "Day plan Complete" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Collapse all" }));
+    expect(screen.queryByRole("listitem", { name: "Day plan Complete" })).toBeNull();
+  });
+
+  it("explains each round after the first and keeps them out of a single-round run", () => {
+    const firstRound: AgentProgressEvent[] = [
+      { type: "agent_started", agent: "itinerary", round: 1 },
+      { type: "agent_completed", agent: "itinerary", round: 1, summary: "Day plan drafted" },
+    ];
+    const view = render(<Chat activityEvents={firstRound} busy />);
+
+    expect(screen.queryByText(/^Round 1/)).toBeNull();
+
+    view.rerender(
+      <Chat
+        busy
+        activityEvents={[
+          ...firstRound,
+          {
+            type: "coordinator",
+            phase: "revision",
+            round: 2,
+            summary: "Revising the stay after a conflict",
+            constraints: ["Keep the budget under AUD 4,000"],
+          },
+          {
+            type: "agent_started",
+            agent: "accommodation",
+            round: 2,
+            constraints: ["Free cancellation is required"],
+          },
+        ]}
+      />,
+    );
+
+    // The count line names the volume; the heading explains why the round exists.
+    fireEvent.click(thinkRow());
+    expect(document.querySelector(".thinking-turn__body")?.textContent).toContain("2 rounds");
+    expect(screen.getByText("Round 2 · Revising the stay after a conflict")).toBeTruthy();
+    expect(screen.getByText("Keep the budget under AUD 4,000")).toBeTruthy();
+
+    // The revision's own constraint lives in the agent whose round it is.
+    fireEvent.click(subagentRow("Stay", "Revising"));
+    expect(screen.getByText("Free cancellation is required")).toBeTruthy();
   });
 
   it("shows the DeepSeek-style thinking transcript and a stop action while busy", () => {
@@ -152,15 +260,14 @@ describe("ChatPanel", () => {
         ]}
         onCancel={onCancel}
         onSend={vi.fn()}
-        onDecision={vi.fn()}
         onEdit={vi.fn()}
       />,
     );
 
-    const thinking = screen.getByRole("button", { name: /Think/ });
-    expect(thinking).toBeTruthy();
-    fireEvent.click(thinking);
-    expect(screen.getByText("0/5 subagents have reported back.")).toBeTruthy();
+    expect(screen.getAllByText(/Deep diving/)).toHaveLength(1);
+    expect(screen.getByRole("status").textContent).toContain("Deep diving");
+    fireEvent.click(thinkRow());
+    expect(thinkRow().getAttribute("aria-expanded")).toBe("true");
     expect(screen.getByRole("list", { name: "Subagents thinking together" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Stop planning" }));
     expect(onCancel).toHaveBeenCalledTimes(1);
@@ -175,7 +282,6 @@ describe("ChatPanel", () => {
         busy
         activity={[{ type: "agent_started", agent: "itinerary", round: 1 }]}
         onSend={vi.fn()}
-        onDecision={vi.fn()}
         onEdit={vi.fn()}
       />,
     );
@@ -210,12 +316,12 @@ describe("ChatPanel", () => {
         busy
         activity={baseActivity}
         onSend={vi.fn()}
-        onDecision={vi.fn()}
         onEdit={vi.fn()}
       />,
     );
 
-    expect(screen.getAllByText(/Deep diving/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Deep diving/).length).toBe(1);
+    // No arguments and no result rows means nothing to disclose: a plain row.
     expect(screen.getByRole("group", { name: "Search places running" })).toBeTruthy();
     view.rerender(
       <ChatPanel
@@ -237,12 +343,147 @@ describe("ChatPanel", () => {
           },
         ]}
         onSend={vi.fn()}
-        onDecision={vi.fn()}
         onEdit={vi.fn()}
       />,
     );
-    expect(screen.getByRole("group", { name: "Search places completed" })).toBeTruthy();
-    expect(screen.getByText("5 place result(s)")).toBeTruthy();
+    expect(screen.getByRole("group", { name: "Search places completed" }).textContent).toContain(
+      "5 place result(s)",
+    );
+  });
+
+  it("reveals a tool call's arguments, result rows and truncation note when expanded", () => {
+    render(
+      <Chat
+        busy
+        activityEvents={[
+          { type: "agent_started", agent: "accommodation", round: 1 },
+          {
+            type: "tool_started",
+            agent: "accommodation",
+            round: 1,
+            callId: "accommodation:1:1",
+            tool: "booking.searchStays",
+            label: "Search stays",
+            summary: "Sydney · 2026-03-01–2026-03-05",
+            args: { city: "Sydney", guests: "2" },
+          },
+          {
+            type: "tool_completed",
+            agent: "accommodation",
+            round: 1,
+            callId: "accommodation:1:1",
+            tool: "booking.searchStays",
+            label: "Search stays",
+            resultSummary: "34 stay option(s)",
+            resultCount: 34,
+            resultRows: [
+              { label: "Harbour View Hotel", detail: "The Rocks · AUD 210.00/night" },
+              { label: "Surry Hills Loft", detail: "Surry Hills · AUD 180.00/night" },
+            ],
+            resultTruncated: true,
+          },
+          { type: "agent_completed", agent: "accommodation", round: 1 },
+        ]}
+      />,
+    );
+
+    const row = toolRow("Search stays");
+    expect(row.getAttribute("aria-expanded")).toBe("false");
+    expect(screen.queryByText("Harbour View Hotel")).toBeNull();
+
+    fireEvent.click(row);
+    expect(row.getAttribute("aria-expanded")).toBe("true");
+    expect(screen.getByText("Harbour View Hotel")).toBeTruthy();
+    expect(screen.getByText("Surry Hills Loft")).toBeTruthy();
+    expect(screen.getByText("The Rocks · AUD 210.00/night")).toBeTruthy();
+    expect(screen.getByText("Showing the first 2 of 34")).toBeTruthy();
+  });
+
+  it("renders a streamed reasoning block collapsed on its last line and expands to the full text", () => {
+    render(
+      <Chat
+        busy
+        activityEvents={[
+          { type: "agent_started", agent: "itinerary", round: 1 },
+          {
+            type: "agent_reasoning",
+            agent: "itinerary",
+            round: 1,
+            episode: 0,
+            index: 0,
+            text: "**Weighing the neighbourhoods**\nCherrybrook suits the family.",
+          },
+        ]}
+      />,
+    );
+
+    // While the block is the streaming tail the summary follows the last line,
+    // with the double-asterisk markers stripped from the summary only.
+    const row = screen.getByRole("button", { name: /Cherrybrook suits the family\.$/ });
+    expect(row.textContent).not.toContain("**");
+    expect(row.getAttribute("aria-expanded")).toBe("false");
+    expect(document.querySelector(".thinking-reasoning__body")).toBeNull();
+
+    fireEvent.click(row);
+    expect(row.getAttribute("aria-expanded")).toBe("true");
+    expect(document.querySelector(".thinking-reasoning__body")?.textContent).toBe(
+      "**Weighing the neighbourhoods**\nCherrybrook suits the family.",
+    );
+  });
+
+  it("surfaces the accommodation choice, with its alternatives behind a disclosure", () => {
+    render(
+      <Chat
+        busy
+        activityEvents={[
+          { type: "agent_started", agent: "accommodation", round: 1 },
+          {
+            type: "agent_completed",
+            agent: "accommodation",
+            round: 1,
+            summary: "Stay chosen",
+            choice: {
+              title: "Stay in Sydney",
+              selected: { label: "Harbour View Hotel", detail: "The Rocks · AUD 210.00/night" },
+              rationale: "Best rating inside the budget.",
+              alternatives: [
+                { label: "Surry Hills Loft", detail: "Surry Hills · AUD 180.00/night" },
+                { label: "Bondi Beach House", detail: "Bondi · AUD 240.00/night" },
+              ],
+            },
+          },
+        ]}
+      />,
+    );
+
+    fireEvent.click(subagentRow("Stay"));
+    expect(screen.getByText("Stay in Sydney")).toBeTruthy();
+    expect(screen.getByText("Harbour View Hotel")).toBeTruthy();
+    expect(screen.getByText("Best rating inside the budget.")).toBeTruthy();
+    expect(screen.queryByText("Surry Hills Loft")).toBeNull();
+
+    const other = screen.getByRole("button", { name: "Other options (2)" });
+    expect(other.getAttribute("aria-expanded")).toBe("false");
+    fireEvent.click(other);
+    expect(screen.getByText("Surry Hills Loft")).toBeTruthy();
+    expect(screen.getByText("Bondi Beach House")).toBeTruthy();
+  });
+
+  // The chat asks nothing and confirms nothing. A question the assistant cannot
+  // answer is prose in the transcript, and the traveller answers by typing in the
+  // composer; there is no answer surface and no confirmation card to render.
+  it("renders no confirmation card and no question surface", () => {
+    renderPanel([{ role: "agent", text: "Which dates did you mean — 3 March or 3 April?" }]);
+
+    expect(document.querySelector(".question")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Send answer" })).toBeNull();
+    expect(screen.queryByRole("textbox", { name: "Type your answer" })).toBeNull();
+    for (const text of [
+      "Confirm your trip basics",
+      "Confirm this plan",
+      "Review unresolved conflicts",
+    ])
+      expect(screen.queryByText(text)).toBeNull();
   });
 });
 
@@ -259,55 +500,9 @@ function renderPanel(
       busy={false}
       activity={[]}
       onSend={vi.fn()}
-      onDecision={vi.fn()}
       onEdit={vi.fn()}
       {...overrides}
     />,
   );
   return { onInput };
 }
-
-describe("ChatPanel date picker", () => {
-  it("opens the calendar automatically when the assistant asks about travel dates", async () => {
-    renderPanel([{ role: "agent", text: "What dates are you hoping to travel?" }]);
-
-    // A generous timeout: this is the first test to trigger next/dynamic's
-    // import of DateRangePicker (react-day-picker + its stylesheet), and a
-    // cold module transform can take longer than the default 1s poll.
-    expect(
-      await screen.findByRole("heading", { name: /when are you travelling/i }, { timeout: 5000 }),
-    ).toBeTruthy();
-  });
-
-  it("does not auto-open for an unrelated assistant message", () => {
-    renderPanel([{ role: "agent", text: "Sydney is a fantastic choice for a family trip!" }]);
-
-    expect(screen.queryByRole("heading", { name: /when are you travelling/i })).toBeNull();
-  });
-
-  it("does not auto-open when the traveller (not the assistant) mentions dates", () => {
-    renderPanel([{ role: "user", text: "What dates work for you?" }]);
-
-    expect(screen.queryByRole("heading", { name: /when are you travelling/i })).toBeNull();
-  });
-
-  it("still opens manually via the calendar button regardless of message content", async () => {
-    renderPanel([]);
-
-    fireEvent.click(screen.getByRole("button", { name: /pick travel dates from a calendar/i }));
-
-    expect(await screen.findByRole("heading", { name: /when are you travelling/i })).toBeTruthy();
-  });
-
-  it("fills the composer with the picked dates instead of sending immediately", async () => {
-    const { onInput } = renderPanel([{ role: "agent", text: "What dates are you travelling?" }]);
-    await screen.findByRole("heading", { name: /when are you travelling/i });
-
-    fireEvent.click(await screen.findByRole("button", { name: /use these dates/i }));
-
-    // The confirm button starts disabled until a full range is picked, so
-    // clicking it while empty must be a no-op — text still typed by the
-    // traveller, not silently overwritten with an incomplete range.
-    await waitFor(() => expect(onInput).not.toHaveBeenCalled());
-  });
-});

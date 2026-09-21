@@ -1,0 +1,239 @@
+/* The chat composer: one card, one control row. Structure and geometry follow
+   DeepSeek Harness's input bar (ui-conversation InputBar.module.css) — a single
+   capsule surface holds the text and its controls, the attach-side control sits
+   left and the primary action right — with this app's own tokens and icon
+   weight.
+
+   Three DSH row controls are deliberately absent rather than pending: the
+   command palette (this composer is a single send), the model picker with the
+   permission/access chip beside it (one model, one user) and the context meter
+   (no token budget to show). Nothing stands in for them, so the left group is
+   the plus control and the hint. */
+
+.composer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+  margin-top: 12px;
+  /* DSH's card pads its top only (8px), and the control row below supplies the
+     8px sides and the 6px foot. Padding the card on all three sides as well
+     would double that inset to 16px/12px and drift from the reference. */
+  padding: 8px 0 0;
+  border: 1px solid var(--border);
+  /* DSH's drawn corner for this capsule. The app's --radius-lg (14px) is the
+     panel/message radius; at ~98px tall this card is its own input surface, and
+     22px is what keeps it reading as a capsule rather than another panel. */
+  border-radius: 22px;
+  /* DSH fills its composer with `--dsw-specific-input-major`, one elevation rung
+     above the page — a grey capsule, not the page colour. This app's `--surface-2`
+     is that same rung and already means "a surface laid on the page": white on
+     light, grey on dark. */
+  background: var(--surface-2);
+  box-shadow: var(--shadow-sm);
+  transition:
+    border-color var(--transition),
+    box-shadow var(--transition);
+}
+
+/* The card answers the pointer the way the field does: one surface, one focus
+   state, whether the reader clicked the text or the padding around it. */
+.composer:focus-within {
+  border-color: var(--accent);
+  box-shadow: var(--shadow-md);
+}
+
+.composer__input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 36px;
+  max-height: 168px;
+  /* DSH's .input: 14px in from the card's left edge is the draft's column. */
+  padding: 4px 8px 0 14px;
+  overflow-y: auto;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  line-height: 1.5;
+  resize: none;
+  outline: none;
+  caret-color: var(--accent);
+}
+
+.composer__input::placeholder {
+  color: var(--text-mut);
+}
+
+/* `base.css` gives every focusable element a `box-shadow: var(--ring)` ring.
+   Inside this card that would be a second highlight nested in the card's own
+   accent border — two boxes around one field. The card is the focus surface, so
+   the field draws nothing. */
+.composer__input:focus,
+.composer__input:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+/* The field is disabled only while a request is in flight; the card keeps its
+   shape and the tray below explains the state. */
+.composer__input:disabled {
+  color: var(--text-dim);
+  cursor: default;
+}
+
+.composer__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  padding: 2px 8px 6px;
+  /* Kept from DSH's .row: the row is the size container its chips collapse
+     inside. This app has no chips, so no @container rule consumes it yet. */
+  container-type: inline-size;
+}
+
+.composer__tools,
+.composer__trailing {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.composer__tools {
+  /* Takes the slack so the hint, not the controls, is what gives way first. */
+  flex: 1 1 auto;
+  gap: 12px;
+}
+
+.composer__trailing {
+  flex: none;
+  margin-left: auto;
+}
+
+.composer__hint {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-mut);
+  font-size: var(--font-size-meta);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* The attach control (DSH's .add): a 28px circle with no chrome of its own, the
+   selector fill, and the primary glyph. */
+.composer__add {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  /* A circle, exactly as DSH draws it: `999px` on a 28px box is a 14px radius,
+     and unlike a token it cannot be retuned into a rounded square. */
+  border-radius: 999px;
+  /* The row stretches its items, which turned the 28px box into a 28x36
+     ellipse. A circle has to keep its own height. */
+  align-self: center;
+  /* DSH draws this as a selector-filled circle with the primary label colour on
+     it. It sits inside a composer that is already `--surface-2`, so the fill is
+     one rung up and the glyph takes the primary ink — otherwise a dim glyph on
+     a grey capsule reads as disabled. */
+  background: var(--border);
+  color: var(--text);
+  cursor: pointer;
+  transition:
+    background var(--transition),
+    color var(--transition),
+    opacity var(--transition);
+}
+
+.composer__add .icon {
+  width: 14px;
+  height: 14px;
+}
+
+/* One step up from the selector fill in both themes: --border is the only
+   neutral this token set offers above --surface-2. */
+.composer__add:hover:not(:disabled) {
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+
+.composer__add:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* The pick target is the plus button, never this field; the markup's `hidden`
+   attribute is the mechanism, and this rule keeps it out of layout even if a
+   future author style claims `display` on inputs. */
+.composer__file-input {
+  display: none;
+}
+
+.composer__primary {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: var(--on-accent);
+  cursor: pointer;
+  transition:
+    filter var(--transition),
+    opacity var(--transition),
+    transform var(--transition);
+  /* Opts out of the row's 2px lower seat, as DSH's .primary does. */
+  transform: translateY(-2px);
+}
+
+.composer__primary .icon {
+  width: 16px;
+  height: 16px;
+}
+
+.composer__primary:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.composer__primary:active:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+/* Nothing to send is a dimmed circle, not a hidden one: the affordance stays
+   where it will be. */
+.composer__primary:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* Stop is not send: the same circle in the danger tone, so stopping never
+   reads as the default action. */
+.composer__primary--stop {
+  background: var(--warn);
+  color: var(--on-accent);
+}
+
+.composer__stop-glyph {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: currentColor;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .composer,
+  .composer__add,
+  .composer__primary {
+    transition: none;
+  }
+}
