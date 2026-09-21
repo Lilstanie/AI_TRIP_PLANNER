@@ -4,9 +4,10 @@
 // OSM_USER_AGENT in deployments. The deterministic fixture remains available
 // for local tests.
 
-import type { RouteQuery, RouteLeg, PlaceQuery, Place } from "@trip/shared";
+import type { RouteQuery, RouteLeg, RouteOption, PlaceQuery, Place } from "@trip/shared";
 import { searchGooglePlacesText } from "./google-places";
 import { mockEnabled } from "./data-mode";
+import { driveOption, transitOption, type GoogleRouteShape } from "./route-options";
 
 export type { RouteQuery, RouteLeg, PlaceQuery, Place } from "@trip/shared";
 
@@ -294,4 +295,72 @@ export async function places(q: PlaceQuery): Promise<Place[]> {
         : {}),
     }))
     .filter((place) => place.name.length > 0);
+}
+
+const OPTION_FIELDS = [
+  "routes.duration",
+  "routes.distanceMeters",
+  "routes.travelAdvisory.tollInfo",
+  "routes.travelAdvisory.transitFare",
+  "routes.legs.steps.transitDetails.transitLine.vehicle.type",
+  "routes.legs.steps.transitDetails.transitLine.nameShort",
+].join(",");
+
+/**
+ * Ways to make one hop — driving or public transport — as alternatives to
+ * compare, not as segments of one journey.
+ *
+ * The two are requested together because a traveller choosing between them
+ * needs both; one failing does not withhold the other, since "the bus takes
+ * 56 minutes" is still useful when the driving lookup times out.
+ */
+export async function routeOptions(q: RouteQuery): Promise<RouteOption[]> {
+  if (mockEnabled()) {
+    return [
+      {
+        mode: "drive",
+        durationMin: 35,
+        distanceMeters: 24_000,
+        price: 8,
+        priceBasis: "partial",
+        note: `mock drive ${q.from} -> ${q.to}; tolls only`,
+      },
+      {
+        mode: "train",
+        durationMin: 52,
+        distanceMeters: 26_000,
+        price: 0,
+        priceBasis: "unavailable",
+        note: `mock train ${q.from} -> ${q.to}; fare unavailable`,
+      },
+    ];
+  }
+  if (provider() !== "google") throw new Error(`Unsupported maps provider: ${provider()}`);
+  if (!process.env.MAPS_API_KEY) throw new Error("Google Maps provider requires MAPS_API_KEY.");
+
+  const departureTime = await departureForGoogle(q);
+  const ask = (body: Record<string, unknown>) =>
+    googleRequest<{ routes?: GoogleRouteShape[] }>(
+      apiUrl("/directions/v2:computeRoutes"),
+      { origin: { address: q.from }, destination: { address: q.to }, ...body },
+      OPTION_FIELDS,
+    ).then((data) => data.routes?.[0]);
+
+  const [drive, transit] = await Promise.allSettled([
+    ask({ travelMode: "DRIVE", extraComputations: ["TOLLS"] }),
+    ask({ travelMode: "TRANSIT", departureTime }),
+  ]);
+
+  const options: RouteOption[] = [];
+  if (drive.status === "fulfilled" && drive.value) {
+    const option = driveOption(drive.value, q);
+    if (option) options.push(option);
+  }
+  if (transit.status === "fulfilled" && transit.value) {
+    const option = transitOption(transit.value, q);
+    if (option) options.push(option);
+  }
+  // Quickest first: the comparison a traveller makes before price, given that
+  // one of the two prices is usually unknown anyway.
+  return options.sort((a, b) => a.durationMin - b.durationMin);
 }

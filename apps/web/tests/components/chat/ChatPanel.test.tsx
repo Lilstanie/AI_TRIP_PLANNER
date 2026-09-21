@@ -192,13 +192,15 @@ describe("ChatPanel date picker", () => {
     renderPanel([{ role: "agent", text: "What dates are you hoping to travel?" }]);
 
     // A generous timeout: this is the first test to trigger next/dynamic's
-    // import of DateRangePicker (react-day-picker + its stylesheet), and a
-    // cold module transform can take longer than the default 1s poll.
+    // import of DateRangePicker (react-day-picker + its stylesheet), and a cold
+    // module transform can take longer than the default 1s poll. 5s was still
+    // short enough to fail during a parallel full-suite run while passing when
+    // this file ran alone — the failure was the clock, never the behaviour.
     expect(
       await screen.findByRole(
         "heading",
         { name: /when are you travelling/i },
-        { timeout: 5000 },
+        { timeout: 15_000 },
       ),
     ).toBeTruthy();
   });

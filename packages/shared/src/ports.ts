@@ -15,8 +15,9 @@ export interface RouteQuery {
   /** Local wall-clock departure time for `date`, in HH:MM (defaults to 09:00). */
   localTime?: string;
 }
+export type TravelMode = "train" | "flight" | "bus" | "walk" | "transit" | "tram" | "ferry" | "drive";
 export interface RouteLeg {
-  mode: "train" | "flight" | "bus" | "walk" | "transit";
+  mode: TravelMode;
   durationMin: number;
   price: number;
   note?: string;
@@ -38,9 +39,29 @@ export interface ProviderProvenance {
   fallbackFrom?: string;
   fallbackReason?: string;
 }
+/**
+ * One way of making a hop, as an alternative to the others — driving instead of
+ * the bus, not driving *and then* the bus.
+ *
+ * RouteLeg[] is a single journey's consecutive segments: callers sum their
+ * durations and advance a clock through them. Alternatives cannot travel in
+ * that shape without reading as one very long trip, so they have their own.
+ */
+export interface RouteOption {
+  mode: TravelMode;
+  durationMin: number;
+  distanceMeters?: number;
+  /** Known cost in BASE_CURRENCY (road tolls, a published fare), else 0. */
+  price: number;
+  /** Whether `price` is the whole cost or only the part a provider reported. */
+  priceBasis: "complete" | "partial" | "unavailable";
+  note?: string;
+}
 export interface MapsPort {
   route(q: RouteQuery): Promise<RouteLeg[]>;
   places(q: PlaceQuery): Promise<Place[]>;
+  /** Ways to make this hop, best first. Optional: not every adapter has them. */
+  routeOptions?(q: RouteQuery): Promise<RouteOption[]>;
 }
 
 // --- Booking / Price port (implemented by @trip/tools/booking) --------------
