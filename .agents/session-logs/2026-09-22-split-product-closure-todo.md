@@ -34,5 +34,5 @@ on the roadmap.
 
 ## Notes for the next person
 
-- The archived TODO records that stacked PRs based on feature branches (#32–#36) only reached `main`
-  through integration PR #37. Worth a team-workflow rule if stacking happens again.
+- The archived TODO recorded that stacked PRs (#32–#36) only reached `main` through #37; the
+  merge-into-main-only rule and note now cover it.

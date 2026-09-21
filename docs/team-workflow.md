@@ -46,6 +46,11 @@ Open a pull request for `main` and merge it yourself once CI passes. Reviews are
 automatically from the module owner but are not required; ask for one when a change crosses
 modules. Do not force-push or delete `main`.
 
+Every pull request merges into `main`. When a change depends on an open pull request, base it on that
+branch, but merge the lower pull request first and retarget the next one to `main` before merging it;
+never merge a pull request into another feature branch
+([why](../.agents/notes/implemented/process/2026-09-21-merge-into-main-only.md)).
+
 Don't edit `packages/shared` without telling the team; every package depends on it.
 
 ## Protected files and decisions
