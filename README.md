@@ -82,7 +82,6 @@ docs/                     Project documentation
 Also in `docs/`:
 
 - [`design/`](docs/design/class-diagram.md): the ELEC5620 UML design model and SVG diagrams.
-- [Shared project brain](.ai/README.md): compact cross-agent state, decisions and backlog.
 - [`archive/`](docs/archive/): dated plans, audits and historical module handoffs; not current documentation.
 - [`session-logs/`](docs/session-logs/README.md): one note per AI-assisted session, one file each.
 
