@@ -51,6 +51,29 @@ describe("workspace boundaries", () => {
       expect(() => parseSnapshot(invalid)).toThrow();
     expect(() => parseSaved("garbage")).toThrow();
   });
+  it("drops a removed decision list from a stored plan instead of rejecting it", () => {
+    // Plans saved before the decision apparatus was removed still carry `hitl`.
+    // The object schema strips unknown keys, so they keep loading rather than
+    // throwing away the traveller's saved trips.
+    const stored = {
+      ...snapshot,
+      plan: {
+        ...snapshot.plan,
+        hitl: [
+          {
+            id: "confirm-plan",
+            type: "confirm_plan",
+            title: "Confirm this plan",
+            detail: "Confirm the reviewed itinerary.",
+            status: "pending",
+          },
+        ],
+      },
+    };
+    const parsed = parseSnapshot(JSON.parse(JSON.stringify(stored)));
+    expect(parsed.plan).not.toHaveProperty("hitl");
+    expect(parsed.plan.tripId).toBe(snapshot.plan.tripId);
+  });
   it("parses split NDJSON and a trailing final frame, skipping malformed progress", async () => {
     const payload = JSON.stringify({ type: "complete", response: { plan, reply: "Updated" } });
     const stream = new ReadableStream({
@@ -81,6 +104,8 @@ describe("workspace boundaries", () => {
       (failure: unknown) => failure,
     );
     expect(error).toBeInstanceOf(NeedsInfoError);
+    // A question carries only what is still unknown. The traveller answers it
+    // by typing, so there is no option list on the wire.
     expect((error as NeedsInfoError).needsInfo).toEqual({
       type: "needs_info",
       question: "你打算哪天出发？",

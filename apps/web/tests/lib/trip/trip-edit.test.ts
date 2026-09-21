@@ -1,6 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
 import { previewEdit } from "@/lib/trip/trip-edit";
-import { applyHitl } from "@trip/orchestrator";
 import { localInstant, googleRoute, searchPlaces } from "@/lib/integrations/google";
 import { plan as fixture, snapshot } from "@/tests/fixtures/workspace";
 import { identifyActivities, parseSnapshot } from "@/lib/workspace/workspace";
@@ -27,10 +26,6 @@ function plan() {
       placeId: "place-b",
       estCost: 100,
     },
-  ];
-  p.hitl = [
-    { id: "confirm-brief", type: "confirm_brief", title: "Brief", detail: "", status: "approved" },
-    { id: "confirm-plan", type: "confirm_plan", title: "Final", detail: "", status: "approved" },
   ];
   return p;
 }
@@ -74,8 +69,9 @@ describe("P3 edit boundary", () => {
     expect(result.plan.sections[0]!.proposal!.items.map((a) => a.id)).toEqual(["b", "a"]);
     expect(result.plan.sections[0]!.proposal!.items[1]!.startTime).toBe("10:35");
     expect(deps.googleRoute.mock.calls[0]![2]).toBe("2026-10-01T00:00:00.000Z");
-    expect(result.plan.hitl.find((h) => h.id === "confirm-brief")!.status).toBe("approved");
-    expect(result.plan.hitl.find((h) => h.id === "confirm-plan")!.status).toBe("pending");
+    // A clean edit leaves no unresolved request, so the section stays a draft.
+    expect(result.plan.conflicts).toEqual([]);
+    expect(result.plan.sections[0]!.status).toBe("draft");
     expect(p.sections[0]!.proposal!.items[0]!.id).toBe("a");
   });
   it("rejects stale versions and invalid dates/targets", async () => {
@@ -222,25 +218,16 @@ describe("P3 edit boundary", () => {
       expect(result.blockers).toContain("Route unavailable");
     },
   );
-  it("completes the edit → conflict acceptance → final confirmation loop", async () => {
+  it("keeps an edited section unresolved while its change is unverified", async () => {
     const edited = await previewEdit(
       { plan: plan(), baseVersion: 0, operation: { kind: "place", id: "a", placeId: "new" } },
       dependencies(),
     );
-    const escalation = edited.plan.hitl.find((h) => h.type === "escalation")!;
-    expect(escalation.id).toBe("escalation");
-    const accepted = await applyHitl({
-      plan: edited.plan,
-      checkpointId: escalation.id,
-      action: "approve",
-    });
-    const confirmed = await applyHitl({
-      plan: accepted,
-      checkpointId: "confirm-plan",
-      action: "approve",
-    });
-    expect(confirmed.hitl.every((h) => h.status === "approved")).toBe(true);
-    expect(confirmed.editVersion).toBe(1);
+    // The unverified price is the section's own conflict evidence; there is no
+    // decision to apply, so the section reports itself as needing attention.
+    expect(edited.plan.conflicts?.some((c) => c.targetAgent === "itinerary")).toBe(true);
+    expect(edited.plan.sections[0]!.status).toBe("needs_you");
+    expect(edited.plan.editVersion).toBe(1);
   });
   it("keeps unresolved route issues on an untouched day", async () => {
     const p = plan();

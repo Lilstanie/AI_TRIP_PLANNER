@@ -16,19 +16,12 @@ export const TripSection = z.object({
 });
 export type TripSection = z.infer<typeof TripSection>;
 
-// A point where the flow pauses for the human (HITL) or escalates.
-export const HitlCheckpoint = z.object({
-  id: z.string(),
-  type: z.enum(["confirm_brief", "confirm_plan", "escalation", "select_stay"]),
-  title: z.string(),
-  detail: z.string(),
-  status: z.enum(["pending", "approved", "rejected", "deferred"]),
-  sectionId: z.string().optional(),
-  stayId: z.string().optional(),
-});
-export type HitlCheckpoint = z.infer<typeof HitlCheckpoint>;
-
 // The aggregated artifact the UI renders. Produced by @trip/orchestrator.
+//
+// There is deliberately no pending-decision list here. The traveller changes a
+// plan by saying so in chat or editing it; nothing in the product asks them to
+// approve a checkpoint, and a stored plan that still carries the old `hitl`
+// array parses because object schemas drop unknown keys.
 export const TripPlan = z.object({
   tripId: z.string(),
   brief: TripBrief,
@@ -38,7 +31,6 @@ export const TripPlan = z.object({
   estTotal: z.number().nonnegative(),
   overrunPct: z.number(), // (estTotal - budgetTotal) / budgetTotal * 100, can be negative
   sections: z.array(TripSection),
-  hitl: z.array(HitlCheckpoint),
   conflicts: z.array(RevisionRequest).optional(),
   editIssues: z
     .array(
@@ -51,11 +43,3 @@ export const TripPlan = z.object({
     .optional(),
 });
 export type TripPlan = z.infer<typeof TripPlan>;
-
-export const HitlRequest = z.object({
-  plan: TripPlan,
-  checkpointId: z.string().min(1),
-  action: z.enum(["approve", "reject", "defer", "select_stay"]),
-  candidateId: z.string().optional(),
-});
-export type HitlRequest = z.infer<typeof HitlRequest>;

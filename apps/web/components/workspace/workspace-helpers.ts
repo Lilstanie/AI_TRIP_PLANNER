@@ -1,11 +1,10 @@
 "use client";
 import { useEffect, useState } from "react";
 import { TripPlan, type ChatRequest } from "@trip/shared";
-import type { Decision } from "../trip/CheckpointCards";
 import { budgetHint, money, type Message } from "@/lib/workspace";
 
-export type Task =
-  { kind: "chat"; request: ChatRequest } | { kind: "decision"; plan: TripPlan; decision: Decision };
+/** Every turn is a chat turn: there is no "apply a decision" request. */
+export type Task = { kind: "chat"; request: ChatRequest };
 export type DialogKind = "review" | "saved" | "language" | "account";
 /** Narrow screens show one of chat or map; preferences, trip and navigation are drawers. */
 export type MobileView = "chat" | "map";
@@ -37,7 +36,7 @@ export function tripFacts(plan: TripPlan) {
 export const seed: Message[] = [
   {
     role: "agent",
-    text: "Edit your trip preferences or tell me what to change. Review the decisions when your plan is ready.",
+    text: "Edit your trip preferences or tell me what to change. I'll build the plan here, and you can ask for changes in this chat at any time.",
   },
 ];
 export const STORAGE_FULL =

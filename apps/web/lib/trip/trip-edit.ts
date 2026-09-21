@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TripPlan, type ProposalItem } from "@trip/shared";
-import { detectConflicts, checkpointsFor, rollUpCost } from "@trip/orchestrator";
+import { detectConflicts, rollUpCost } from "@trip/orchestrator";
 import {
   googleRoute,
   placeDetails,
@@ -261,11 +261,17 @@ export async function previewEdit(
         activityIds: [a.id!],
       })),
   ];
-  section.status = "needs_you";
   plan.conflicts = detectConflicts(
     plan.sections.flatMap((s) => (s.proposal ? [s.proposal] : [])),
     plan.brief,
   );
+  // A section is unresolved when the recomputed conflicts still target it — the
+  // same rule the orchestrator uses. An edit no longer rebuilds a decision list.
+  plan.sections.forEach((section) => {
+    section.status = plan.conflicts?.some((c) => c.targetAgent === section.id)
+      ? "needs_you"
+      : "draft";
+  });
   // Recompute from item evidence, never trust client totals.
   plan.sections.forEach((s) => {
     if (s.proposal) s.estCost = s.proposal.items.reduce((sum, i) => sum + (i.estCost ?? 0), 0);
@@ -274,14 +280,6 @@ export async function previewEdit(
   // Share the orchestrator's calculator rather than keeping a float copy of it here. The two
   // already disagreed by float dust, and converted budgets make fractional cents routine.
   Object.assign(plan, rollUpCost(plan.sections, plan.budgetTotal));
-  const previousDecisions = new Map(plan.hitl.map((h) => [h.id, h.status]));
-  plan.hitl = checkpointsFor(plan).map((h) => ({
-    ...h,
-    status:
-      h.type === "confirm_brief" || h.type === "select_stay"
-        ? (previousDecisions.get(h.id) ?? "pending")
-        : "pending",
-  }));
   plan.editVersion = baseVersion + 1;
   const differences = activities.flatMap((a) => {
     const old = before.find((b) => b.id === a.id)!;

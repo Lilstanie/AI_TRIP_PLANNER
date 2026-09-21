@@ -109,7 +109,9 @@ describe("LangGraph orchestrator workflow", () => {
 
     expect(started).toEqual(expect.arrayContaining(["accommodation", "transport"]));
     expect(plan).toMatchObject({ round: 2, estTotal: 700 });
-    expect(plan.hitl.some((checkpoint) => checkpoint.type === "escalation")).toBe(false);
+    // Nothing is unresolved after the revision, so every section is a draft.
+    expect(plan.conflicts).toEqual([]);
+    expect(plan.sections.every((section) => section.status === "draft")).toBe(true);
   });
 
   it("reports specialist lifecycle progress for the UI", async () => {
@@ -237,11 +239,13 @@ describe("LangGraph orchestrator workflow", () => {
 
     expect(plan.round).toBe(2);
     expect(plan.sections[0]!.status).toBe("needs_you");
-    expect(plan.hitl).toEqual(
+    // The section is marked unresolved because a revision request still targets
+    // it, not because a confirmation checkpoint exists.
+    expect(plan.conflicts).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          type: "escalation",
-          detail: expect.stringContaining("over budget"),
+          targetAgent: "accommodation",
+          reason: expect.stringContaining("over budget"),
         }),
       ]),
     );

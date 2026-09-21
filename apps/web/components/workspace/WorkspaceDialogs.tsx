@@ -1,5 +1,4 @@
 "use client";
-import { CheckpointCards } from "../trip/CheckpointCards";
 import { Dialog } from "../ui/Dialog";
 import { CURRENT_KEY, money, parseSnapshot } from "@/lib/workspace";
 import type { WorkspaceController } from "./useWorkspaceController";
@@ -24,8 +23,6 @@ export function WorkspaceDialogs({ model }: { model: WorkspaceController }) {
     save,
     loadSaved,
     run,
-    onDecision,
-    edit,
   } = model;
 
   return (
@@ -71,7 +68,6 @@ export function WorkspaceDialogs({ model }: { model: WorkspaceController }) {
                 </div>
               )}
               {!plan.sections.length && <p>No plan yet. Update your trip preferences to start.</p>}
-              <CheckpointCards plan={plan} busy={busy} onDecision={onDecision} onEdit={edit} />
             </>
           )}
           {dialog === "saved" && (

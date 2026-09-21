@@ -19,7 +19,6 @@ describe("Trip drawer details", () => {
         onTab={() => {}}
         timeline={null}
         onReview={() => {}}
-        onDecision={() => {}}
         onEdit={() => {}}
         onSave={() => {}}
       />,

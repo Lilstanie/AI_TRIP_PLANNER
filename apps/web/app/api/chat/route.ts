@@ -38,7 +38,9 @@ export async function POST(req: Request) {
         await tripStore.set(response.plan);
         send({ type: "complete", response });
       } catch (error) {
-        // A blank conversation that has not stated everything yet is a question, not a failure.
+        // A blank conversation that has not stated everything yet is a question
+        // rather than a failure: the chat shows the assistant's own words, and
+        // the traveller answers by typing.
         if (error instanceof IncompleteBriefError) {
           send(error.needsInfo);
         } else {

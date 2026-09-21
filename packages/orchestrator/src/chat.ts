@@ -7,6 +7,7 @@ import {
   toAud,
   type ChatRequest,
   type ChatResponse,
+  type AgentProgressEvent,
   type ChatNeedsInfo,
   type MemoryStore,
   type PartialTripBrief,
@@ -17,6 +18,7 @@ import type { BaseChatModel } from "@langchain/core/language_models/chat_models"
 import { createAgent, tool } from "langchain";
 import { z } from "zod/v4";
 import { applyBriefPatch, BriefPatchSchema, ISO_DATE, type BriefPatch } from "./brief";
+import { COORDINATOR_REASONING_EPISODE, createReasoningSink } from "./reasoning-sink";
 import { extractBriefPatchLocally } from "./chat-offline";
 import { runOrchestrator, type OrchestratorOptions } from "./workflow";
 
@@ -146,6 +148,12 @@ Choosing what to do:
 - For a question you can answer from the trip context or from general travel knowledge, just answer. Do not replan.
 - For something this product cannot do, say plainly that it is not built yet. Never imply a booking, a price quote or live data you do not have.
 
+Asking the traveller:
+- When you truly cannot proceed without an answer, ask it in one short plain sentence, in the traveller's language, inside your reply. There is no question tool and no answer form.
+- Never present a form, a checklist or a set of options, and never ask the traveller to pick from a list.
+- Never ask for anything you can already read from the trip context or the traveller's message, and never ask the traveller to choose between hotels, restaurants or routes a specialist has already compared: the plan decides those.
+- Ask one question at a time, and say plainly what you need and why.
+
 Dates:
 - Pass dates as YYYY-MM-DD. Rewriting a date the traveller gave is a format conversion, not an inference.
 - If the day/month order is genuinely ambiguous, do not pass dates at all — ask the traveller which they meant, in their language. Asking is better than planning a trip in the wrong month.
@@ -172,9 +180,6 @@ function planDigest(plan: TripPlan) {
       summary: section.summary,
       estimatedCost: section.estCost,
     })),
-    pendingDecisions: plan.hitl
-      .filter((checkpoint) => checkpoint.status === "pending")
-      .map((checkpoint) => ({ title: checkpoint.title, detail: checkpoint.detail })),
   };
 }
 
@@ -183,8 +188,7 @@ function fallbackReplyFor(plan: TripPlan): string {
     .map((section) => section.summary.trim())
     .filter(Boolean)
     .slice(0, 2);
-  const pending = plan.hitl.find((checkpoint) => checkpoint.status === "pending");
-  return [...summaries, ...(pending ? [pending.detail] : [])].join(" ") || plan.estTotal.toFixed(2);
+  return summaries.join(" ") || plan.estTotal.toFixed(2);
 }
 
 function lastMessageText(result: unknown): string {
@@ -234,9 +238,19 @@ export async function runTripChat(
     return { reply, plan };
   }
 
-  const chatModel = model ?? createRoutedChatModel("itinerary");
+  // Thinking is on: how the coordinator reads the message is the first visible
+  // step of the turn, and the only way to show it is to stream it.
+  const chatModel =
+    model ?? createRoutedChatModel("itinerary", { thinking: true });
   const result = chatModel
-    ? await runConversationAgent(request, chatModel, submitted, mem, orchestrate)
+    ? await runConversationAgent(
+        request,
+        chatModel,
+        submitted,
+        mem,
+        orchestrate,
+        orchestrationOptions.onProgress,
+      )
     : await runOffline(request, submitted, extractor, orchestrate);
   await remember(result.reply);
   return result;
@@ -249,10 +263,15 @@ async function runConversationAgent(
   submitted: TripBrief | undefined,
   mem: MemoryStore,
   orchestrate: (brief: TripBrief) => Promise<TripPlan>,
+  onProgress?: (event: AgentProgressEvent) => void,
 ): Promise<ChatResponse> {
   let brief = submitted;
   let known: BriefPatch = BriefPatchSchema.parse({ ...request.known });
   let planned: TripPlan | undefined;
+  // The coordinator's own thinking — how it read the message and what it chose
+  // to do — is the first thing a reader wants to see.
+  const reasoning = createReasoningSink(1, onProgress, COORDINATOR_REASONING_EPISODE);
+  const streamingModel = onProgress ? reasoning.wrap(model) : model;
 
   const updateTripBrief = tool(
     async (update: z.infer<typeof BriefUpdate>) => {
@@ -292,7 +311,7 @@ async function runConversationAgent(
   const history = (await mem.getShortTerm(request.tripId)).slice(-9, -1);
   const agent = createAgent({
     name: "trip_conversation",
-    model,
+    model: streamingModel,
     tools: [updateTripBrief, replanTrip],
     systemPrompt: COORDINATOR_PROMPT,
   });
@@ -311,6 +330,7 @@ async function runConversationAgent(
     ],
   });
   const reply = lastMessageText(invoked);
+  reasoning.flush();
 
   if (planned) return { reply: reply || fallbackReplyFor(planned), plan: planned };
   // A question about an existing trip changes nothing, so the plan travels back unchanged and no

@@ -91,22 +91,17 @@ describe("accommodation integration with negotiation", () => {
     expect(plan.estTotal).toBe(3930);
     expect(plan.sections.find((section) => section.id === "dining")!.estCost).toBe(700);
     expect(plan.sections.find((section) => section.id === "accommodation")!.estCost).toBe(1480);
-    expect(plan.hitl.some((checkpoint) => checkpoint.type === "escalation")).toBe(false);
-    expect(plan.sections.find((section) => section.id === "accommodation")?.status).toBe(
-      "needs_you",
-    );
-    expect(
-      plan.sections
-        .filter((section) => section.id !== "accommodation")
-        .every((section) => section.status === "draft"),
-    ).toBe(true);
+    // Converged with no unresolved request, so every section is a draft. There is
+    // no longer a "needs you" state driven by a confirmation checkpoint.
+    expect(plan.conflicts).toEqual([]);
+    expect(plan.sections.every((section) => section.status === "draft")).toBe(true);
   });
 
   it("stops at K=3 and escalates when the cheapest valid plan is still too expensive", async () => {
     const plan = await runOrchestrator({ ...DEMO_BRIEF, budgetTotal: 1200 });
     expect(plan.round).toBe(3);
     expect(plan.estTotal).toBe(3470);
-    expect(plan.hitl.some((checkpoint) => checkpoint.type === "escalation")).toBe(true);
+    expect(plan.conflicts?.some((request) => request.targetAgent === "accommodation")).toBe(true);
     expect(plan.sections.find((section) => section.id === "accommodation")!.status).toBe(
       "needs_you",
     );
@@ -117,6 +112,6 @@ describe("accommodation integration with negotiation", () => {
     expect(plan.round).toBe(3);
     expect(plan.overrunPct).toBeGreaterThan(0);
     expect(plan.overrunPct).toBeLessThan(10);
-    expect(plan.hitl.some((checkpoint) => checkpoint.type === "escalation")).toBe(true);
+    expect((plan.conflicts?.length ?? 0) > 0).toBe(true);
   });
 });

@@ -18,7 +18,7 @@ export type HistoryItem = {
   title: string;
   subtitle: string;
   updatedAt: string;
-  status?: "Draft" | "Needs review" | "Confirmed";
+  status?: "Draft" | "Needs review";
   active?: boolean;
 };
 

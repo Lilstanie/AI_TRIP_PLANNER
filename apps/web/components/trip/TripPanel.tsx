@@ -1,20 +1,19 @@
 import type { ReactNode } from "react";
 import type { TripPlan } from "@trip/shared";
 import { TripSection } from "./TripSection";
-import { CheckpointCards, type Decision } from "./CheckpointCards";
+import { statusForPlan } from "@/lib/workspace/catalog";
 import { budgetHint, money } from "@/lib/workspace";
 
 export type TripTab = "overview" | "timeline";
 
-export function pendingDecisions(plan: TripPlan | undefined) {
-  return plan?.hitl.filter((checkpoint) => checkpoint.status !== "approved").length ?? 0;
-}
-
+/**
+ * The drawer's one-line state. A plan is "Needs review" only while it still
+ * reports an unresolved revision request or a budget overrun; otherwise it is a
+ * draft. Nothing can mark it confirmed, so that label is gone.
+ */
 export function tripStatus(plan: TripPlan) {
-  const pending = pendingDecisions(plan);
-  if (pending) return `${pending} decision${pending === 1 ? "" : "s"} to review`;
   if (!plan.sections.length) return "No plan yet";
-  return plan.hitl.length ? "Plan confirmed" : "Ready to review";
+  return statusForPlan(plan) === "needs_review" ? "Needs review" : "Draft";
 }
 
 /** Body of the Your Trip drawer; the drawer supplies the heading and close button. */
@@ -25,7 +24,6 @@ export function TripPanel({
   onTab,
   timeline,
   onReview,
-  onDecision,
   onEdit,
   onSave,
 }: {
@@ -35,7 +33,6 @@ export function TripPanel({
   onTab(tab: TripTab): void;
   timeline: ReactNode;
   onReview: () => void;
-  onDecision: (decision: Decision) => void;
   onEdit: () => void;
   onSave: () => void;
 }) {
@@ -131,12 +128,6 @@ export function TripPanel({
               <p className="section__empty">
                 No itinerary yet. Fill in your preferences and select Update trip.
               </p>
-            )}
-            {plan.hitl.length > 0 && (
-              <>
-                <h3 className="trip-panel__subhead">Stays and confirmations</h3>
-                <CheckpointCards plan={plan} busy={busy} onDecision={onDecision} onEdit={onEdit} />
-              </>
             )}
           </>
         ) : (

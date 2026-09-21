@@ -58,7 +58,7 @@ describe("B proposals in the actual LangGraph workflow", () => {
       startTime: "14:15",
       endTime: "17:15",
     });
-    expect(plan.hitl.some((h) => h.type === "escalation")).toBe(false);
+    expect(plan.conflicts).toEqual([]);
   });
   it("propagates missing evidence to K=3 escalation instead of a false successful itinerary", async () => {
     const plan = await runOrchestrator(brief, {
@@ -68,6 +68,6 @@ describe("B proposals in the actual LangGraph workflow", () => {
     });
     expect(plan.round).toBe(3);
     expect(plan.sections[0]!.status).toBe("needs_you");
-    expect(plan.hitl.some((h) => h.type === "escalation")).toBe(true);
+    expect((plan.conflicts?.length ?? 0) > 0).toBe(true);
   });
 });

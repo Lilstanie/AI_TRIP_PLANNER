@@ -77,6 +77,33 @@ describe("workspace catalog", () => {
     expect(searchCatalog(catalog, "2099").trips).toHaveLength(0);
   });
 
+  it("derives the trip label from real state and recomputes a legacy status", () => {
+    const catalog = createCatalog(snapshot);
+    expect(catalog.trips[0]!.status).toBe("draft");
+
+    // An overrun or an unresolved request is the only thing that makes a trip
+    // "needs review" now that nothing can confirm a plan.
+    const conflicted = createCatalog({
+      ...snapshot,
+      plan: {
+        ...snapshot.plan,
+        overrunPct: 15,
+        conflicts: [
+          { tripId: snapshot.plan.tripId, targetAgent: "itinerary", reason: "over", constraints: [] },
+        ],
+      },
+    });
+    expect(conflicted.trips[0]!.status).toBe("needs_review");
+
+    // A stored catalog from before the change may still say "confirmed". It is
+    // recomputed from the plan rather than rejected or relabelled.
+    const legacy = {
+      ...catalog,
+      trips: [{ ...catalog.trips[0]!, status: "confirmed" }],
+    };
+    expect(parseCatalog(legacy).trips[0]!.status).toBe("draft");
+  });
+
   it("rejects corrupt catalog data without changing the input", () => {
     const corrupt = {
       version: 4,

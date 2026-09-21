@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { TripPlan, type AgentProgressEvent } from "@trip/shared";
 import type { SidebarSection } from "./WorkspaceSidebar";
-import { pendingDecisions, type TripTab } from "../trip/TripPanel";
+import type { TripTab } from "../trip/TripPanel";
 import { useWorkspaceStorage } from "./useWorkspaceStorage";
 import { useWorkspaceTransport } from "./useWorkspaceTransport";
 import { useTripPlaces } from "../map/useTripPlaces";
@@ -180,7 +180,7 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
       left.current?.querySelector<HTMLInputElement>("input")?.focus({ preventScroll: true });
     });
   }
-  const { run, submit, send, onDecision } = useWorkspaceTransport({
+  const { run, submit, send } = useWorkspaceTransport({
     plan,
     draft,
     input,
@@ -226,12 +226,7 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     title: item.title,
     subtitle: `${item.snapshot.plan.brief.dates.join(" – ")} · ${money(item.snapshot.plan.estTotal)}`,
     updatedAt: item.updatedAt,
-    status:
-      item.status === "needs_review"
-        ? ("Needs review" as const)
-        : item.status === "confirmed"
-          ? ("Confirmed" as const)
-          : ("Draft" as const),
+    status: item.status === "needs_review" ? ("Needs review" as const) : ("Draft" as const),
     active: !blank && item.id === catalog.activeTripId,
   }));
   function selectConversation(id: string) {
@@ -363,7 +358,9 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     if (activeConversation.current === id) startBlankChat(withoutConversation(catalog, id));
     else setCatalog((current) => withoutConversation(current, id));
   }
-  const pending = pendingDecisions(plan);
+  // The trip badge counts unresolved revision requests — the only thing the
+  // product can still report as outstanding. There is no decision to make.
+  const pending = plan?.conflicts?.length ?? 0;
   const dialogTitle =
     dialog === "review"
       ? "Review plan"
@@ -450,7 +447,6 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     run,
     submit,
     send,
-    onDecision,
     newChat,
     selectConversation,
     selectTrip,

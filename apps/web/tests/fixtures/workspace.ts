@@ -14,7 +14,6 @@ export const plan: TripPlan = {
   budgetTotal: 2000,
   estTotal: 200,
   overrunPct: -90,
-  hitl: [],
   sections: [
     {
       id: "itinerary",

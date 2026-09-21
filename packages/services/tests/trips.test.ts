@@ -17,20 +17,11 @@ const plan: TripPlan = {
   estTotal: 0,
   overrunPct: -100,
   sections: [],
-  hitl: [
-    {
-      id: "confirm-plan",
-      type: "confirm_plan",
-      title: "Confirm this plan",
-      detail: "Confirm the reviewed itinerary.",
-      status: "approved",
-    },
-  ],
   conflicts: [],
 };
 
 describe("durable trip store", () => {
-  it("round-trips a plan together with its HITL decisions", async () => {
+  it("round-trips a plan", async () => {
     await tripStore.set(plan);
     expect(await tripStore.get(plan.tripId)).toEqual(plan);
   });

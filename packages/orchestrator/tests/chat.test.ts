@@ -133,6 +133,23 @@ describe("the conversation agent decides what to do", () => {
     });
   });
 
+  it("asks the traveller in the coordinator's own words, with no structured question", async () => {
+    const { mem } = memoryStore();
+    const failure = await run(
+      { tripId: "blank", message: "Plan a trip in March 2027" },
+      scriptedModel(),
+      mem,
+    ).catch((error: unknown) => error);
+
+    expect(failure).toBeInstanceOf(IncompleteBriefError);
+    const asked = (failure as IncompleteBriefError).needsInfo;
+    expect(asked.type).toBe("needs_info");
+    // The frame carries prose and what is known; there is no question surface
+    // and no option list on the wire to render one from.
+    expect(asked.question.length).toBeGreaterThan(0);
+    expect(asked).not.toHaveProperty("asked");
+  });
+
   it("carries what earlier turns stated, so the traveller answers only the question", async () => {
     const { mem } = memoryStore();
     const result = await run(

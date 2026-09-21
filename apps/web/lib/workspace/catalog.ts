@@ -14,7 +14,7 @@ import {
 /** Storage key for the multi-chat/multi-trip workspace catalog. */
 export const CATALOG_KEY = "trip-workspace-catalog-v3";
 
-export type TripStatus = "draft" | "needs_review" | "confirmed";
+export type TripStatus = "draft" | "needs_review";
 export type WorkspaceView = "chat" | "map" | "trip";
 
 export type ConversationRecord = {
@@ -88,11 +88,19 @@ function titleFor(snapshot: Snapshot): string {
     : "Untitled trip";
 }
 
+/**
+ * The one honest trip label. A plan is "needs review" while it still reports an
+ * unresolved revision request or an overrun, and a draft otherwise. Nothing can
+ * confirm a plan any more, so `status` never says "confirmed" — a stored value
+ * from before this change is recomputed from the snapshot on read.
+ */
+export function statusForPlan(plan: TripPlan): TripStatus {
+  const unresolved = plan.conflicts?.length ?? 0;
+  return unresolved > 0 || plan.overrunPct > 0 ? "needs_review" : "draft";
+}
+
 function statusFor(snapshot: Snapshot): TripStatus {
-  if (snapshot.plan.hitl.some((checkpoint) => checkpoint.status !== "approved"))
-    return "needs_review";
-  if (snapshot.plan.hitl.length) return "confirmed";
-  return "draft";
+  return statusForPlan(snapshot.plan);
 }
 
 /**
@@ -287,7 +295,6 @@ function parseTrip(value: unknown): TripRecord {
     !text(value.id) ||
     !text(value.title) ||
     !validDate(value.updatedAt) ||
-    !["draft", "needs_review", "confirmed"].includes(String(value.status)) ||
     !Array.isArray(value.conversationIds) ||
     !value.conversationIds.every(text)
   )
@@ -297,7 +304,9 @@ function parseTrip(value: unknown): TripRecord {
     id: value.id,
     title: value.title,
     updatedAt: value.updatedAt,
-    status: value.status as TripStatus,
+    // `status` is derived, not stored state: a legacy "confirmed" (or any other
+    // stored value) is recomputed from the plan so an old catalog keeps loading.
+    status: statusFor(snapshot),
     conversationIds: [...value.conversationIds],
     snapshot,
   };
