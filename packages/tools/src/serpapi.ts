@@ -15,6 +15,7 @@
 // `{"error": "Invalid API key. ..."}` with HTTP 401.
 import { durableStoreConfigured, jsonStore } from "@trip/services";
 import type { FlightOption, StayOption } from "@trip/shared";
+import { airportCodeFor } from "./airports";
 
 const MONTHLY_LIMIT = 230;
 const CACHE_TTL_MS = 15 * 60 * 1000;
@@ -253,24 +254,12 @@ export async function searchHotelsSerpApi(q: {
 // start with "/m" or "/g"` — it does NOT resolve city names the way the
 // Google Flights website does. This project's TripBrief only ever carries
 // free-text city names (e.g. "Sydney"), never an airport code, so every real
-// flight search needs this bridge. Covers the cities this project's own demo
-// fixtures use (see booking.ts's NIGHTLY_RATES); anywhere else needs a new
-// entry, or the caller can already pass a real 3-letter code directly.
-const CITY_AIRPORT_CODES: Record<string, string> = {
-  sydney: "SYD",
-  tokyo: "NRT",
-  kyoto: "KIX", // Kyoto has no airport; Kansai (Osaka) is the nearest major one.
-  paris: "CDG",
-};
+// flight search needs this bridge. The table itself lives in ./airports.
 function airportCode(city: string): string {
-  const trimmed = city.trim();
-  // Already a 3-letter airport code, or a Google Knowledge Graph id — SerpApi
-  // accepts both verbatim.
-  if (/^[A-Z]{3}$/.test(trimmed) || /^\/[mg]\//.test(trimmed)) return trimmed;
-  const code = CITY_AIRPORT_CODES[trimmed.toLowerCase()];
+  const code = airportCodeFor(city);
   if (!code) {
     throw new SerpApiError(
-      `SerpApi's flight search needs an airport code for "${city}", and this project has no mapping for it yet. Add it to CITY_AIRPORT_CODES in packages/tools/src/serpapi.ts, or search with a 3-letter code directly.`,
+      `SerpApi's flight search needs an airport code for "${city}", and this project has no mapping for it yet. Add it to packages/tools/src/airports.ts, or search with a 3-letter code directly.`,
       "unsupported_location",
     );
   }
