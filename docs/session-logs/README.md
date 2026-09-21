@@ -30,8 +30,14 @@ symbol name. Pasted code drifts from the file the moment someone edits it.
 most likely to save a teammate: anything touching `packages/shared` or the API
 routes can break work that is already in progress on another branch.
 
-**Aim for 40 lines.** If a change genuinely needs more explanation than that,
-it belongs in `docs/` as a real document, and the log should link to it.
+**Hard limit: 60 lines**, frontmatter included. This is a cap, not a target —
+most logs should be well under it. A change that genuinely needs more
+explanation belongs in `docs/` as a real document, with the log linking to it.
+Check before committing:
+
+```bash
+wc -l docs/session-logs/[0-9]*.md | awk '$2 != "total" && $1 > 60 { print $1" lines  "$2 }'
+```
 
 ## Reading old logs
 
