@@ -52,7 +52,7 @@ describe("ChatPanel", () => {
     const log = screen.getByRole("log");
     expect(screen.getByRole("heading", { name: "Where to next?" })).toBeTruthy();
     expect(within(log).queryByText(/.+/)).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: /melbourne/i }));
+    fireEvent.click(screen.getByRole("button", { name: /sydney/i }));
 
     // The example sends its own text rather than staging it in the composer:
     // React state has not flushed when the click handler runs, so relying on
@@ -62,7 +62,6 @@ describe("ChatPanel", () => {
     // Assert the facts, not the word order: the phrasing is constrained by the
     // offline extractor and has had to change once already.
     expect(sent).toMatch(/Sydney/);
-    expect(sent).toMatch(/Melbourne/);
     expect(sent).toMatch(/2 people/);
     expect(sent).toMatch(/total budget 4000 AUD/);
     // Complete enough to plan outright, so no follow-up question is needed.

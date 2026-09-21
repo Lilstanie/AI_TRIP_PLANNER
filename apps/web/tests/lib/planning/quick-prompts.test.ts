@@ -11,6 +11,9 @@ describe("quickPrompts", () => {
       expect(text, label).toMatch(/\d+ AUD/);
       // Either a party size or an explicit solo trip.
       expect(text, label).toMatch(/\d+ people|solo/);
+      // No "trip from A to B": TripBrief has no origin, and that shape makes
+      // the offline extractor drop the destination entirely.
+      expect(text, label).not.toMatch(/\b(?:trip|travel|flight)\s+from\b/i);
     }
   });
 

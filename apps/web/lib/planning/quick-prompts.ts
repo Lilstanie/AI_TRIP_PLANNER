@@ -14,6 +14,11 @@ export type QuickPrompt = { label: string; text: string };
  * Dates are offsets from today, never literals: a hardcoded date quietly
  * becomes a past date, and live provider searches reject those — the prompt
  * would keep looking fine while only ever failing.
+ *
+ * Phrase these as "trip to <city>". TripBrief has no origin field, so a
+ * "from A to B" prompt states something the planner cannot use — and the
+ * offline extractor, whose destination pattern keys on "trip to", drops the
+ * destination entirely when it sees that shape.
  */
 export function quickPrompts(today: Date = new Date()): QuickPrompt[] {
   const inDays = (days: number) => {
@@ -23,11 +28,8 @@ export function quickPrompts(today: Date = new Date()): QuickPrompt[] {
   };
   return [
     {
-      label: "Melbourne → Sydney · 4 days",
-      // "trip to <city>", not "trip from A to B": the offline extractor's
-      // destination pattern keys on "trip to", so the from-A-to-B phrasing
-      // loses the destination entirely whenever no model key is configured.
-      text: `Plan a 4-day trip to Sydney for 2 people departing Melbourne, ${inDays(21)} to ${inDays(25)}, total budget 4000 AUD.`,
+      label: "Sydney · 4 days",
+      text: `Plan a 4-day trip to Sydney for 2 people from ${inDays(21)} to ${inDays(25)}, total budget 4000 AUD.`,
     },
     {
       label: "Seoul · 5 days",

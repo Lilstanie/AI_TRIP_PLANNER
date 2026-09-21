@@ -32,9 +32,10 @@ handler runs, so `send()` reading `input` would send the previous (empty) value
 and be swallowed by its own empty guard.
 
 Two things the prompts had to be shaped around, both found by running them:
-- The offline extractor keys destinations on "trip to <city>", so the natural
-  "trip from Melbourne to Sydney" lost the destination entirely whenever no
-  model key was configured. Phrased as "trip to Sydney ... departing Melbourne".
+- The offline extractor keys destinations on "trip to <city>", so "trip from
+  Melbourne to Sydney" lost the destination entirely whenever no model key was
+  configured. `TripBrief` has no origin field either, so the origin was stating
+  something the planner cannot use — every prompt names a destination only.
 - "Tokyo" and "Sydney" are used in Workspace tests as markers that a fixture
   plan leaked into a blank chat. Those assertions are now scoped to the message
   log, since example buttons name cities on purpose.
