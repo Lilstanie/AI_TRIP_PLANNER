@@ -68,23 +68,23 @@ docs/                     Project documentation
 
 ## Documentation
 
-| Document                               | Contents                                                    |
-| -------------------------------------- | ----------------------------------------------------------- |
-| [Architecture](docs/architecture.md)   | Runtime flow, LangGraph workflow, agents, models, contracts |
-| [API](docs/api.md)                     | The six API routes with requests, responses and errors      |
-| [Development](docs/development.md)     | Setup, environment variables, Docker, verification          |
-| [Workspace UI](docs/workspace-ui.md)   | Current UI behaviour, storage, map and editing rules        |
-| [Roadmap](docs/roadmap.md)             | MVP sequence and status                                     |
-| [Product closure TODO](docs/todo-product-closure.md) | Real providers, weather, UI polish and persistence |
-| [Team workflow](docs/team-workflow.md) | Ownership, branches, reviews and session logs               |
-| [UI guidelines](docs/design/ui-guidelines.md) | Visual tokens, layout and component design rules        |
-| [DSH thinking UI](docs/design/dsh-thinking-ui.md) | The thinking surface this project imitates, and the gaps against it |
+| Document                                             | Contents                                                            |
+| ---------------------------------------------------- | ------------------------------------------------------------------- |
+| [Architecture](docs/architecture.md)                 | Runtime flow, LangGraph workflow, agents, models, contracts         |
+| [API](docs/api.md)                                   | The six API routes with requests, responses and errors              |
+| [Development](docs/development.md)                   | Setup, environment variables, Docker, verification                  |
+| [Workspace UI](docs/workspace-ui.md)                 | Current UI behaviour, storage, map and editing rules                |
+| [Roadmap](docs/roadmap.md)                           | MVP sequence and status                                             |
+| [Product closure TODO](docs/todo-product-closure.md) | Real providers, weather, UI polish and persistence                  |
+| [Team workflow](docs/team-workflow.md)               | Ownership, branches, reviews and session logs                       |
+| [UI guidelines](docs/design/ui-guidelines.md)        | Visual tokens, layout and component design rules                    |
+| [DSH thinking UI](docs/design/dsh-thinking-ui.md)    | The thinking surface this project imitates, and the gaps against it |
 
 Also in `docs/`:
 
 - [`design/`](docs/design/class-diagram.md): the ELEC5620 UML design model and SVG diagrams.
 - [`archive/`](docs/archive/): dated plans, audits and historical module handoffs; not current documentation.
-- [`session-logs/`](docs/session-logs/README.md): one note per AI-assisted session, one file each.
+- [`.agents/`](.agents/README.md): shared AI-tool material: decision records and repository skills.
 
 ## Scope
 

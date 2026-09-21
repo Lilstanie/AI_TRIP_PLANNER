@@ -18,6 +18,7 @@ dev.db
 .idea/
 .vercel
 .env*
+!.env.example
 
 # Local agent and editor state
 .pi/
@@ -29,7 +30,8 @@ dev.db
 # Generated Next.js metadata
 apps/web/next-env.d.ts
 
-# Local AI session context
+# Local AI session context (shared agent material in .agents/ is tracked)
+.agents/local/
 .ai/
 
 # Local browser verification artifacts

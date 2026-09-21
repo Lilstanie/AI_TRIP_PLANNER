@@ -8,7 +8,7 @@ different files, so these notes never produce a merge conflict. Keep it that
 way: write your own file, do not edit someone else's.
 
 There is deliberately no index table here. The filenames carry the date and
-the topic, so `ls docs/session-logs/` is the index — a hand-maintained table
+the topic, so `ls .agents/session-logs/` is the index — a hand-maintained table
 goes stale the first time someone forgets to add a row, and every row added
 to it is another line for two people to conflict on.
 
@@ -36,7 +36,7 @@ explanation belongs in `docs/` as a real document, with the log linking to it.
 Check before committing:
 
 ```bash
-wc -l docs/session-logs/[0-9]*.md | awk '$2 != "total" && $1 > 60 { print $1" lines  "$2 }'
+wc -l .agents/session-logs/[0-9]*.md | awk '$2 != "total" && $1 > 60 { print $1" lines  "$2 }'
 ```
 
 ## Reading old logs

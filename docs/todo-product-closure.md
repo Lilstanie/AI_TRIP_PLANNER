@@ -68,7 +68,7 @@ estimated、mock、fallback 或 unavailable 状态及高层原因；未暴露 pr
 | `packages/agents/src/accommodation/index.ts:163-172` | 两个分支各给一个 `kind`                 |
 | `apps/web/components/trip/TripSection.tsx:57`        | 渲染 `kind`，不再只显示 label/freshness |
 
-`source.kind` 是跨包契约变更，按 `AGENTS.md` 记入 `.ai/DECISIONS.md`。
+`source.kind` 是跨包契约变更，按 `AGENTS.md` 记为 `.agents/notes/` 下的 Agent Note。
 
 ## P0：持久化与降级基础设施
 

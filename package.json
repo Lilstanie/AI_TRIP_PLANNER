@@ -13,7 +13,8 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "mock-server": "pnpm --filter @trip/tools mock-server",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "verify:protected": "node scripts/verify-protected-files.mjs"
   },
   "pnpm": {
     "overrides": {

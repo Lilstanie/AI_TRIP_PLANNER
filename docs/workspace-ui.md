@@ -2,7 +2,7 @@
 
 The web app (`apps/web`) is a single-user planning workspace. This document describes how it behaves
 now. Implementation history and browser acceptance for each phase are in the
-[session logs](session-logs/README.md).
+[session logs](../.agents/session-logs/README.md).
 
 ## Layout
 
@@ -10,9 +10,9 @@ now. Implementation history and browser acceptance for each phase are in the
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------- |
 | Sidebar                 | Logo, New chat, search, Chats and Trips history with counts, Saved trips, Language, Local account                              | `WorkspaceSidebar`, `BrandMark`, `icons.tsx` |
 | Top bar                 | Destination with days, travellers and budget (real plan values only); Preferences; Trip with pending-decision count, rightmost | `Workspace`                                  |
-| Chat                    | Conversation, the planning transcript, the composer; starter suggestions in a blank chat                                     | `ChatPanel`                                  |
+| Chat                    | Conversation, the planning transcript, the composer; starter suggestions in a blank chat                                       | `ChatPanel`                                  |
 | Map                     | Only the map, numbered markers, a place list, map status, View all places and Show my location                                 | `TripMapCanvas`, `TripMap`                   |
-| Your Trip drawer        | Budget; Overview (sections and the stay chosen); Timeline & routes (editor); Review plan and Save trip                        | `Drawer`, `TripPanel`, `TripEditor`          |
+| Your Trip drawer        | Budget; Overview (sections and the stay chosen); Timeline & routes (editor); Review plan and Save trip                         | `Drawer`, `TripPanel`, `TripEditor`          |
 | Trip Preferences drawer | Structured brief form: destination, dates, travellers, budget, nationality, accommodation                                      | `Drawer`, `FiltersPanel`                     |
 
 - **Sidebar.**
@@ -215,16 +215,16 @@ must retain their provider and freshness labels.
 
 Use this checklist for each visual change. It supplements, and does not change, the layout and drawer behavior described above.
 
-| Dimension | Required checks |
-| --- | --- |
-| Viewports | 1600×900, near the 1000 px responsive boundary, and 375×812 |
-| Theme | Light and dark at each relevant viewport |
-| Motion | Default and `prefers-reduced-motion: reduce` |
-| Input | Mouse and full keyboard navigation, including visible focus |
-| Workspace | Sidebar resize/collapse, Chat/Map switch, and no horizontal overflow |
-| Drawers | Navigation, Preferences, and Trip drawers; close, Escape, and focus return |
-| Content | Empty chat/map, planning and failure states, long messages, and available map places |
-| Native controls | Date, select, checkbox, and scrollbar follow the active color scheme |
+| Dimension       | Required checks                                                                      |
+| --------------- | ------------------------------------------------------------------------------------ |
+| Viewports       | 1600×900, near the 1000 px responsive boundary, and 375×812                          |
+| Theme           | Light and dark at each relevant viewport                                             |
+| Motion          | Default and `prefers-reduced-motion: reduce`                                         |
+| Input           | Mouse and full keyboard navigation, including visible focus                          |
+| Workspace       | Sidebar resize/collapse, Chat/Map switch, and no horizontal overflow                 |
+| Drawers         | Navigation, Preferences, and Trip drawers; close, Escape, and focus return           |
+| Content         | Empty chat/map, planning and failure states, long messages, and available map places |
+| Native controls | Date, select, checkbox, and scrollbar follow the active color scheme                 |
 
 Keep light and dark screenshots for desktop (1600×900) and narrow (375×812) acceptance. Verify body and supporting text contrast with a contrast tool; status must retain a textual or graphical cue when color is unavailable.
 

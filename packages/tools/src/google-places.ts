@@ -6,7 +6,7 @@
 // coordinates for the transit timezone lookup, and — as of this feature —
 // grounding hotel candidates for accommodation. Before this file, that request
 // was implemented three times with small drifts between copies (see
-// docs/session-logs/2026-09-20-claude-google-maps-tests.md for the sibling
+// .agents/session-logs/2026-09-20-claude-google-maps-tests.md for the sibling
 // duplicate found in apps/web/lib/google.ts). One implementation here removes
 // that drift risk for the two call sites that live in this package.
 export interface RawGooglePlace {
