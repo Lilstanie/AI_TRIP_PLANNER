@@ -143,19 +143,9 @@ Do not change `packages/shared` without telling the team; every package depends 
 1. Use LangChain JS/TypeScript `createAgent`; do not add a Python runtime or another agent framework.
 2. Keep prompts limited to durable role and safety instructions. Pass trip data as messages, context
    or typed tool results.
-3. Keep LangGraph responsible for state, retries, conflict validation, HITL and persistence.
+3. Keep LangGraph responsible for state, retries and conflict validation.
 4. Preserve deterministic fallbacks and validate every model and tool boundary.
 5. Keep the public `TripBrief`, `AgentProposal` and `TripPlan` contracts stable.
-
-## History and remaining work
-
-The LangChain migration from the former `Agent.run()` / `revise()` abstraction was merged into `main`
-through PR #10 (2026-09-09 UTC). Remaining work:
-
-- Persist supervisor checkpoints, memory, trips and decisions durably (the browser workspace saves
-  locally today).
-- Stream individual tool-loop steps inside an agent; coordinator and per-specialist progress already
-  stream.
 
 ## Verification
 

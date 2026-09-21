@@ -35,7 +35,7 @@ Each item below is a defect this project has hit; the source is in brackets.
 - **Late responses.** Restoring, editing or switching trips must abort or ignore in-flight requests so
   a late response cannot overwrite newer state.
 - **Boundaries.** Agents reach providers only through ports; `route.ts` files stay thin adapters;
-  production and test files stay at or below 500 lines ([development.md](../../../docs/development.md)).
+  production and test files stay at or below 1000 lines ([development.md](../../../docs/development.md)).
 - **Secrets.** No key in code, fixtures, logs, docs or test output.
 - **Documentation.** Affected `docs/` pages and Agent Notes change in the same PR; no frozen file is
   touched (`pnpm verify:protected`).

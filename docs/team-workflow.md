@@ -2,42 +2,38 @@
 
 This is a single deployable, so ownership is by module rather than by frontend/backend layers.
 
-| Area                         | Owner | GitHub            | Ownership                                                        |
-| ---------------------------- | ----- | ----------------- | ---------------------------------------------------------------- |
-| Orchestrator and integration | A     | `@Lilstanie`      | Graph state, supervisor, contracts, conflict policy, HITL and CI |
-| Itinerary and transport      | B     | `@fonever2`       | Schedule, route feasibility and maps adapter                     |
-| Accommodation and budget     | C     | `@HeadmasterEggy` | Lodging adapter, cost aggregation and budget policy              |
-| Destination and dining       | D     | `@jbia0391`       | Grounded guide, customs, dining and dietary constraints          |
-| Web and memory               | E     | `@WhW0591`        | Chat, filters, plan UI, preference memory and persistence        |
+| Area                         | Owner | GitHub            | Ownership                                                  |
+| ---------------------------- | ----- | ----------------- | ---------------------------------------------------------- |
+| Orchestrator and integration | A     | `@Lilstanie`      | Graph state, supervisor, contracts, conflict policy and CI |
+| Itinerary and transport      | B     | `@fonever2`       | Schedule, route feasibility and maps adapter               |
+| Accommodation and budget     | C     | `@HeadmasterEggy` | Lodging adapter, cost aggregation and budget policy        |
+| Destination and dining       | D     | `@jbia0391`       | Grounded guide, customs, dining and dietary constraints    |
+| Web and memory               | E     | `@WhW0591`        | Chat, filters, plan UI, preference memory and persistence  |
 
 [`.github/CODEOWNERS`](../.github/CODEOWNERS) mirrors this table and requests the owner's review
 automatically.
 
 ## Who owns which paths
 
-| Path                                                                                   | Owner | Fill in                                                                                                                                  |
-| -------------------------------------------------------------------------------------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `packages/shared/src/**`                                                               | A     | contracts — freeze early, announce changes                                                                                               |
-| `packages/orchestrator/src/workflow.ts`                                                | A     | LangGraph workflow; add richer conflict policies, status promotion and HITL                                                              |
-| `apps/web/app/api/chat/route.ts`, `packages/orchestrator/src/chat.ts`                  | A     | enrich chat clarification/extraction and move from process-local to durable memory (structured extraction + fallback + loop wiring done) |
-| `packages/tools/src/gateway.ts` + `mock-server.mjs`                                    | A     | real-vs-mock routing                                                                                                                     |
-| `packages/agents/src/itinerary/**`                                                     | B     | enrich the implemented model/fallback daily plan with live opening-hour data                                                             |
-| `packages/agents/src/transport/**`                                                     | B     | replace injected mock fares/routes with live adapter data                                                                                |
-| `packages/tools/src/maps.ts`                                                           | B     | real Maps / Places adapter                                                                                                               |
-| `packages/agents/src/accommodation/**`                                                 | C     | lodging search + room allocation                                                                                                         |
-| `packages/tools/src/booking.ts`                                                        | C     | real Booking / Price adapter (mock only for payment)                                                                                     |
-| cost roll-up and conflict threshold in `orchestrator` `rollUpCost` / `detectConflicts` | C     | budget overrun % + escalation cutoff                                                                                                     |
-| `packages/agents/src/destination-guide/**`                                             | D     | maintain grounded attractions, customs/safety and verification-first entry/weather guidance                                              |
-| `packages/agents/src/dining/**`                                                        | D     | maintain grounded venue picks, dietary preferences and meal budgeting                                                                    |
-| `apps/web/components/**`, `apps/web/app/globals.css`                                   | E     | UI: chat, filters, "Your trip" panel                                                                                                     |
-| `packages/services/src/memory/**`                                                      | E     | real short/long-term memory store                                                                                                        |
-| `packages/services/src/{notification,auth}/**`                                         | E     | real notifications + auth                                                                                                                |
+| Path                                                                                     | Owner | Responsibility                                               |
+| ---------------------------------------------------------------------------------------- | ----- | ------------------------------------------------------------ |
+| `packages/shared/src/**`                                                                 | A     | Shared contracts; changes need an Agent Note and team notice |
+| `packages/orchestrator/**`                                                               | A     | LangGraph workflow, supervisor, chat intake, conflict policy |
+| `apps/web/app/api/**`                                                                    | A     | Route handlers                                               |
+| `packages/tools/src/gateway.ts`, `data-mode.ts`, `mock-server.mjs`                       | A     | Mock versus live routing                                     |
+| `packages/agents/src/itinerary/**`, `packages/agents/src/transport/**`                   | B     | Daily plan, journey legs, routes and fares                   |
+| `packages/tools/src/maps.ts`, `route-options.ts`, `airports.ts`                          | B     | Maps, Places and routing adapters                            |
+| `packages/agents/src/accommodation/**`                                                   | C     | Lodging search and room allocation                           |
+| `packages/tools/src/booking.ts`, `serpapi.ts`, `google-places.ts`                        | C     | Hotel and flight price adapters                              |
+| `rollUpCost` and `detectConflicts` in `packages/orchestrator`                            | C     | Budget roll-up and overrun thresholds                        |
+| `packages/agents/src/destination-guide/**`, `packages/agents/src/dining/**`              | D     | Grounded attractions, customs, weather guidance, dining      |
+| `packages/tools/src/weather.ts`                                                          | D     | Weather forecast and climate adapter                         |
+| `apps/web/components/**`, `apps/web/lib/**`, `apps/web/app/styles/**`, `app/globals.css` | E     | Workspace UI                                                 |
+| `packages/services/**`                                                                   | E     | Memory, trip storage, notification and auth                  |
 
-Search the codebase for `TODO(` to see open slots. Historical module handoff notes are preserved in
-[`.agents/archive/`](../.agents/archive/): [itinerary and transport reliability](../.agents/archive/module-b-reliability-2026-09.md)
-(B) and [accommodation and budget](../.agents/archive/module-accommodation-2026-09.md) (C). Current provider,
-weather and UI work is tracked in [the product closure TODO](todo-product-closure.md). How the pieces
-fit together is described in [architecture](architecture.md).
+Open work is on the [roadmap](roadmap.md) and in `TODO(<owner>)` comments in the code. How the pieces
+fit together is described in [architecture](architecture.md); retired module handoffs are in
+[`.agents/archive/`](../.agents/archive/).
 
 ## Branches and commits
 

@@ -1,4 +1,4 @@
-# Multi-stage build. Starter — A to refine (prune workspace, standalone output, etc.)
+# Multi-stage build: `dev` for docker compose, `runner` for a production image.
 FROM node:22-alpine AS base
 RUN corepack enable
 WORKDIR /app

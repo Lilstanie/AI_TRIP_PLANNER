@@ -7,24 +7,33 @@
 
 # A: orchestrator and integration
 /packages/orchestrator/                  @Lilstanie
-/packages/tools/src/gateway.ts           @Lilstanie
 /apps/web/app/api/                       @Lilstanie
+/packages/tools/src/gateway.ts           @Lilstanie
+/packages/tools/src/data-mode.ts         @Lilstanie
+/packages/tools/src/mock-server.mjs      @Lilstanie
 
 # B: itinerary and transport
 /packages/agents/src/itinerary/          @fonever2
 /packages/agents/src/transport/          @fonever2
 /packages/tools/src/maps.ts              @fonever2
+/packages/tools/src/route-options.ts     @fonever2
+/packages/tools/src/airports.ts          @fonever2
 
 # C: accommodation and budget
 /packages/agents/src/accommodation/      @HeadmasterEggy
 /packages/tools/src/booking.ts           @HeadmasterEggy
+/packages/tools/src/serpapi.ts           @HeadmasterEggy
+/packages/tools/src/google-places.ts     @HeadmasterEggy
 
 # D: destination and dining
 /packages/agents/src/destination-guide/  @jbia0391
 /packages/agents/src/dining/             @jbia0391
+/packages/tools/src/weather.ts           @jbia0391
 
 # E: web and memory
 /apps/web/components/                    @WhW0591
+/apps/web/lib/                           @WhW0591
+/apps/web/app/styles/                    @WhW0591
 /apps/web/app/globals.css                @WhW0591
 /packages/services/                      @WhW0591
 

@@ -44,7 +44,7 @@ their keyboard and focus behavior.
 
 ### File size and style boundaries
 
-Keep production source files and test files at or below 500 lines of code. When a file exceeds that
+Keep production source files and test files at or below 1000 lines of code. When a file exceeds that
 threshold, split it by responsibility instead of adding more sections to the same file. CSS files
 should use domain names such as `workspace-navigation.css`, `workspace-layout.css`,
 `workspace-drawers.css`, and `workspace-responsive.css`; an aggregate file may remain small and
@@ -85,6 +85,8 @@ Every variable is described in `.env.example`. The important ones:
 | `MAPS_API_KEY`                                                      | Server-side Google Places, Routes and Time Zone for the workspace map and edit previews.                                                                                                                                                                                                         |
 | `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`, `NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID` | Browser Google Maps JavaScript map. Without them the workspace shows a map fallback and the itinerary stays usable.                                                                                                                                                                              |
 | `SERPAPI_KEY`                                                       | Shared SerpApi key for Google Hotels and Google Flights searches. It is used only when `USE_MOCK_TOOLS=false`; it does not replace Google Maps, Places, Routes or Weather APIs.                                                                                                                  |
+| `WEATHER_API_KEY`                                                   | Google Weather forecasts for days 0–10; falls back to `MAPS_API_KEY`. Open-Meteo covers days 11–14 without a key.                                                                                                                                                                                |
+| `KV_REST_API_URL`, `KV_REST_API_TOKEN`                              | Durable Redis REST store for chat turns, preferences, plans and SerpApi usage/cache. Without them, state is in process memory.                                                                                                                                                                   |
 
 Google key restrictions and map behaviour are described in [workspace UI](workspace-ui.md#google-maps-configuration).
 Model routing and fallbacks are described in [architecture](architecture.md#agents-and-models).
@@ -95,17 +97,17 @@ SerpApi is the provider for the project's current hotel and flight search layer.
 `SERPAPI_KEY` can be used for both SerpApi engines, but this does not make SerpApi a universal
 travel backend:
 
-| Capability                                                           | Provider                                                                                             | Status and boundary                                                                                                                     |
-| -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| Hotel search and indicative prices                                   | [SerpApi Google Hotels](https://serpapi.com/google-hotels-api)                                       | Live search results when configured; results are planning data, not a reservation or guaranteed quote.                                  |
-| Flight search and indicative fares                                   | [SerpApi Google Flights](https://serpapi.com/google-flights-api)                                     | Search results and fares; it does not book tickets or provide the full operational status feed.                                         |
-| Interactive map                                                      | [Google Maps JavaScript API](https://developers.google.com/maps/documentation/javascript/overview)   | Browser-side map rendering with `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`.                                                                      |
-| Place search and details                                             | [Google Places API](https://developers.google.com/maps/documentation/places/web-service/op-overview) | Server-side place grounding with `MAPS_API_KEY`.                                                                                        |
-| Routes and travel time                                               | [Google Routes API](https://developers.google.com/maps/documentation/routes)                         | Route and distance checks for itinerary editing.                                                                                        |
-| Time zones                                                           | [Google Time Zone API](https://developers.google.com/maps/documentation/timezone/overview)           | Destination-local time calculations.                                                                                                    |
-| Weather forecasts                                                    | Google Weather API (days 0–10), Open-Meteo (days 11–14), climate fixture after day 14                | Implemented in the tool gateway with explicit forecast/climate provenance; generic SerpApi web results are not treated as weather data. |
-| Flight delays, gates and operational status                          | Aviationstack or another aviation-status provider                                                    | Optional future capability; not needed for hotel/flight price search.                                                                   |
-| Chat, preferences, trip plans/HITL decisions and SerpApi usage/cache | Upstash-compatible Redis REST store                                                                  | Configure `KV_REST_API_URL` + `KV_REST_API_TOKEN` in deployment; local/offline runs use an in-process fallback.                         |
+| Capability                                            | Provider                                                                                             | Status and boundary                                                                                                                     |
+| ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Hotel search and indicative prices                    | [SerpApi Google Hotels](https://serpapi.com/google-hotels-api)                                       | Live search results when configured; results are planning data, not a reservation or guaranteed quote.                                  |
+| Flight search and indicative fares                    | [SerpApi Google Flights](https://serpapi.com/google-flights-api)                                     | Search results and fares; it does not book tickets or provide the full operational status feed.                                         |
+| Interactive map                                       | [Google Maps JavaScript API](https://developers.google.com/maps/documentation/javascript/overview)   | Browser-side map rendering with `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`.                                                                      |
+| Place search and details                              | [Google Places API](https://developers.google.com/maps/documentation/places/web-service/op-overview) | Server-side place grounding with `MAPS_API_KEY`.                                                                                        |
+| Routes and travel time                                | [Google Routes API](https://developers.google.com/maps/documentation/routes)                         | Route and distance checks for itinerary editing.                                                                                        |
+| Time zones                                            | [Google Time Zone API](https://developers.google.com/maps/documentation/timezone/overview)           | Destination-local time calculations.                                                                                                    |
+| Weather forecasts                                     | Google Weather API (days 0–10), Open-Meteo (days 11–14), climate fixture after day 14                | Implemented in the tool gateway with explicit forecast/climate provenance; generic SerpApi web results are not treated as weather data. |
+| Flight delays, gates and operational status           | Aviationstack or another aviation-status provider                                                    | Optional future capability; not needed for hotel/flight price search.                                                                   |
+| Chat, preferences, trip plans and SerpApi usage/cache | Upstash-compatible Redis REST store                                                                  | Configure `KV_REST_API_URL` + `KV_REST_API_TOKEN` in deployment; local/offline runs use an in-process fallback.                         |
 
 Travelpayouts and Aviationstack are therefore not required for the current MVP. Add them only if the
 product needs affiliate inventory/booking flows or operational flight-status data. SerpApi also does
@@ -126,14 +128,14 @@ Keep real credentials out of Git and out of committed documentation.
 For deployed durability, configure the Vercel project with `KV_REST_API_URL` and
 `KV_REST_API_TOKEN` (the equivalent `UPSTASH_REDIS_REST_URL` and
 `UPSTASH_REDIS_REST_TOKEN` names are also accepted). The shared Redis REST store backs chat turns,
-preferences, generated trip plans/HITL decisions, and SerpApi usage/cache state. Without those
+preferences, generated trip plans, and SerpApi usage/cache state. Without those
 variables, local tests and offline development use an in-process fallback and should not be treated
 as a production deployment check.
 
 ## Mock server
 
-`pnpm mock-server` starts an optional stub HTTP server on port 4000. The app does not need it: mock
-tools run in process, and `MOCK_API_URL` is not read by current code. It is kept for adapter
+`pnpm mock-server` starts an optional stub HTTP server on port 4000. The app never calls it: mock
+tools run in process. It is kept for adapter
 experiments and is started by Docker Compose.
 
 ## Docker

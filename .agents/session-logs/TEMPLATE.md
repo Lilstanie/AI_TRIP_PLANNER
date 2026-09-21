@@ -1,10 +1,10 @@
 ---
 date: YYYY-MM-DD
-author:                   # your name, or the AI tool that did the work
+author: # your name, or the AI tool that did the work
 branch:
-pr:                       # number, or "none"
-area:                     # apps/web, packages/tools, docs, ...
-contract-impact: none     # none | packages/shared | api
+pr: # number, or "none"
+area: # apps/web, packages/tools, docs, ...
+contract-impact: none # none | packages/shared | api
 ---
 
 # One line saying what changed

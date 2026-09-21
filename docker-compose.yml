@@ -10,7 +10,6 @@ services:
     environment:
       - WATCHPACK_POLLING=true
       - CHOKIDAR_USEPOLLING=true
-      - MOCK_API_URL=http://mock-apis:4000
     volumes:
       - .:/app
       - /app/node_modules
@@ -28,8 +27,6 @@ services:
       - .:/app
       - /app/node_modules
 
-  # Enable if cross-request shared state is needed.
-  # redis:
-  #   image: redis:7-alpine
-  #   ports:
-  #     - "6379:6379"
+  # Durable state uses an Upstash-compatible Redis REST API (KV_REST_API_URL and
+  # KV_REST_API_TOKEN in .env.local), not the Redis wire protocol, so a plain
+  # redis image cannot back it. Without those variables state stays in memory.
