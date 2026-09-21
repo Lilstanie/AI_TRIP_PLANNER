@@ -1,13 +1,12 @@
 # API entry points
 
-The Next.js route handlers live under `apps/web/app/api/`. All six are `POST` handlers. Request bodies
+The Next.js route handlers live under `apps/web/app/api/`. All five are `POST` handlers. Request bodies
 are validated with Zod, and planning outputs are validated against the shared contracts in
 `packages/shared/src/`.
 
 | Path                                                        | Purpose                                                             |
 | ----------------------------------------------------------- | ------------------------------------------------------------------- |
 | [`/api/chat`](#post-apichat)                                | Extract brief updates or plan a submitted brief, streaming progress |
-| [`/api/hitl`](#post-apihitl)                                | Apply a human-in-the-loop decision to a plan                        |
 | [`/api/places/search`](#post-apiplacessearch)               | Google Places text search                                           |
 | [`/api/places/details`](#post-apiplacesdetails)             | Google place details for a place ID                                 |
 | [`/api/routes/from-location`](#post-apiroutesfrom-location) | Route from a user-approved location to a place                      |
@@ -54,25 +53,6 @@ The response is `application/x-ndjson`, one JSON object per line:
 - or `{ "type": "error", "error": "…" }` with a user-facing message.
 
 An invalid request body returns HTTP 400 JSON before streaming starts.
-
-## `POST /api/hitl`
-
-Contract: `HitlRequest` in `packages/shared/src/plan.ts`; implementation `applyHitl` in
-`packages/orchestrator/src/hitl.ts`.
-
-```json
-{
-  "plan": { "…": "current TripPlan" },
-  "checkpointId": "select-stay-1",
-  "action": "select_stay",
-  "candidateId": "stay-1-2"
-}
-```
-
-Checkpoint IDs come from `checkpointsFor`: `confirm-brief`, `select-<stayId>`, `escalation` and
-`confirm-plan`. `action` is `approve`, `reject`, `defer` or `select_stay` (with `candidateId`). Stay selections re-query
-the booking port and recompute costs rather than trusting client prices. The response is
-`{ "plan": TripPlan }`; invalid input returns 400 and a decision that cannot be applied returns 422.
 
 ## `POST /api/places/search`
 
@@ -128,5 +108,5 @@ when the user confirms and rejects it if `baseVersion` no longer matches. Invali
 
 - Chat request/response and progress events: `packages/shared/src/chat.ts`
 - Trip brief, proposals and ports: `packages/shared/src/contracts.ts`, `packages/shared/src/ports.ts`
-- Trip plan, HITL checkpoints and requests: `packages/shared/src/plan.ts`
+- Trip plan and its unresolved conflicts: `packages/shared/src/plan.ts`
 - Specialist contract: `packages/shared/src/agent.ts`

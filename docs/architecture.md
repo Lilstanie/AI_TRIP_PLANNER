@@ -21,8 +21,7 @@ flowchart TB
     SPEC -.->|model unavailable or off-schema| FB[Deterministic fallback output]
     WF --> CONF[detect_conflicts → build_plan]
     WF --- MEM[(MemoryStore, packages/services)]
-    CONF --> PLAN[Validated TripPlan + HITL checkpoints]
-    UI -->|POST /api/hitl| HITL[applyHitl]
+    CONF --> PLAN[Validated TripPlan with its unresolved conflicts]
     UI -->|places, routes, edit preview| GOOGLE[Google Places / Routes / Time Zone]
 ```
 
@@ -36,11 +35,12 @@ step.
    submitted brief; `mode: "start"` requires every brief field in the message (see
    [API](api.md)).
 2. The workflow runs the specialists, detects conflicts, revises targeted specialists for up to
-   `maxRounds` rounds and assembles a `TripPlan` with HITL checkpoints.
+   `maxRounds` rounds and assembles a `TripPlan` whose sections carry their own draft/needs-you state
+   and whose `conflicts` list any request still unresolved.
 3. Progress events stream to the browser as NDJSON; the final frame carries `{ reply, plan }`.
-4. HITL decisions are applied later through `POST /api/hitl` (`applyHitl` in
-   `packages/orchestrator/src/hitl.ts`). Map lookups and itinerary edit previews use the Google
-   routes in `apps/web` and never re-run the planner.
+4. There is no confirmation step: the traveller changes a plan by saying so in chat or editing the
+   itinerary, and nothing in the product asks them to approve a checkpoint. Map lookups and itinerary
+   edit previews use the Google routes in `apps/web` and never re-run the planner.
 
 ## LangGraph workflow
 
@@ -69,12 +69,13 @@ Specialist proposals, the brief and the final plan are re-validated at the graph
   `revision` request through the same `invoke` entry point, through the revision supervisor or
   directly.
 - A conditional edge repeats detection and revision up to `maxRounds` (default `3`).
-- `build_plan` rolls up costs (`budget.ts`) and derives HITL checkpoints (`checkpointsFor`).
+- `build_plan` rolls up costs (`budget.ts`), marks each section `needs_you` when a revision request
+  still targets it and `draft` otherwise, and assembles the plan.
 - Specialists, tools, memory and the round limit are injectable through `OrchestratorOptions`.
 
-`packages/orchestrator/src/budget.test.ts` shows the loop firing: the orchestrator's `DEMO_BRIEF` is
+`packages/orchestrator/tests/budget.test.ts` shows the loop firing: the orchestrator's `DEMO_BRIEF` is
 over budget in round 1 and converges in round 2, while a much lower budget stops at `K = 3` with an
-escalation checkpoint. `plan.round` records how many rounds ran.
+unresolved conflict request. `plan.round` records how many rounds ran.
 
 ## Agents and models
 

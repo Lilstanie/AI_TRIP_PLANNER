@@ -10,9 +10,9 @@ now. Implementation history and browser acceptance for each phase are in the
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------- |
 | Sidebar                 | Logo, New chat, search, Chats and Trips history with counts, Saved trips, Language, Local account                              | `WorkspaceSidebar`, `BrandMark`, `icons.tsx` |
 | Top bar                 | Destination with days, travellers and budget (real plan values only); Preferences; Trip with pending-decision count, rightmost | `Workspace`                                  |
-| Chat                    | Conversation, planning progress, decision cards; starter suggestions in a blank chat                                           | `ChatPanel`                                  |
+| Chat                    | Conversation, the planning transcript, the composer; starter suggestions in a blank chat                                     | `ChatPanel`                                  |
 | Map                     | Only the map, numbered markers, a place list, map status, View all places and Show my location                                 | `TripMapCanvas`, `TripMap`                   |
-| Your Trip drawer        | Budget; Overview (sections, stay choices, confirmations); Timeline & routes (editor); Review plan and Save trip                | `Drawer`, `TripPanel`, `TripEditor`          |
+| Your Trip drawer        | Budget; Overview (sections and the stay chosen); Timeline & routes (editor); Review plan and Save trip                        | `Drawer`, `TripPanel`, `TripEditor`          |
 | Trip Preferences drawer | Structured brief form: destination, dates, travellers, budget, nationality, accommodation                                      | `Drawer`, `FiltersPanel`                     |
 
 - **Sidebar.**
@@ -70,14 +70,35 @@ now. Implementation history and browser acceptance for each phase are in the
 - **Starting to plan.**
   - A blank chat offers example trip suggestions. Selecting one replaces and focuses the message input;
     it never sends a message or starts a request.
-  - Planning progress is a flat status list for the coordinator and specialists. Each row is an
-    `aria-expanded` button whose detail block stays collapsed until it is opened; unknown states
-    remain neutral rather than complete. The surface it imitates, and the changes still outstanding
-    against it, are recorded in the [DSH thinking UI reference](design/dsh-thinking-ui.md).
+  - Planning progress is a deep-dive transcript, not a status list. The Think row carries the
+    turn's count line (`N tool calls · M subagents · K rounds`) and a control that expands or
+    collapses every row at once; under it sit one row per specialist, one per reasoning block and
+    one per tool call. Each row is an `aria-expanded` button, unknown states stay neutral rather
+    than complete, and a tool row opens to the result's own options. Once a turn settles the process
+    folds; while it runs the rows stay open so the work is visible. A round above 1 is shown only
+    with the coordinator's own explanation of what it revised. The surface it imitates, and the
+    reasoning behind each divergence, are recorded in the
+    [DSH thinking UI reference](design/dsh-thinking-ui.md).
+  - Exactly one `Deep diving` line is the surface's only live region; it grows an elapsed clock after
+    15 seconds.
+  - The app asks nothing in a structured form. When the planner cannot proceed it says so in one
+    sentence and the traveller answers by typing; a missing destination, dates, travellers or budget
+    is reported the same way instead of borrowing values. There is no question card, no suggestion
+    list and no confirmation to click — there is no "apply the traveller's decision" feature yet, so
+    the app does not present one. A traveller who wants a change says so in chat or edits the trip.
+  - The chat has no calendar pop-up: dates can be typed in the composer. The calendar picker still
+    exists in Trip preferences, where the traveller asks for it.
   - Messages retain their conversation order in a `role="log"`; each has one visible, spoken-once
     speaker label (You or Travel planning assistant). Bubbles use alignment, surface, border and
     corner shape as well as the label, and long URLs or mixed Chinese/English text wrap within the
     chat column.
+  - The composer is one card at the foot of the chat: a draft that grows with its content and then
+    scrolls, an upload control and a state hint on the left, and one primary action on the right.
+    The card is `--surface-2` (white on light, grey on dark) so it reads as an input capsule laid on
+    the page, and clicking anywhere in it highlights the card once — the field draws no ring of its
+    own. Enter sends and Shift+Enter breaks the line, but never while an input method is composing.
+    While a request runs, the primary action becomes Stop in place and the hint says what is
+    happening.
   - Submitting Preferences sends `mode: "plan"` with the brief.
   - A first chat message sends `mode: "start"`, and the server reports any missing destination,
     dates, travellers or budget instead of borrowing values.
@@ -98,17 +119,25 @@ now. Implementation history and browser acceptance for each phase are in the
   - Saved trips are independent snapshots, and “Restore last workspace” lives in the Saved trips
     dialog.
 
-## Decisions and review
+## Reviewing a plan
 
-- HITL checkpoints (`confirm-brief`, `select-<stayId>`, `escalation`, `confirm-plan`) render in chat,
-  in the Trip drawer and in Review plan.
-- Actions are approve, reject (opens Preferences), defer (still pending) and select stay. The final
-  confirmation is blocked until the other decisions are resolved.
-- Changing a stay or replanning resets the confirmations that depend on it, and accepted conflicts stay
-  visible.
-- The client is not a source of supplier facts: stay selections re-query the booking port and totals
-  are recomputed from proposal items. Results are labelled as SerpApi live search, Google Places
-  estimates or simulated fixtures; none of them creates a reservation.
+Names of removed surfaces below appear only to explain their removal; nothing in this section
+describes current behaviour except the absences.
+
+- **There are no decisions to approve.** `HitlCheckpoint`, `TripPlan.hitl`, the checkpoint cards, the
+  approve/reject/defer actions and `POST /api/hitl` are all removed. The app cannot apply a
+  traveller's decision yet, so it does not ask for one: presenting a list of things to confirm would
+  offer a capability that does not exist.
+- **What the plan does decide is reported, not asked.** The accommodation specialist compares every
+  eligible candidate and names one; the transcript shows that choice with the alternatives it
+  compared, and the Trip drawer shows the sections and their cost. A traveller who wants something
+  different says so in chat, or edits the trip in Timeline & routes.
+- **Conflicts are information.** When the orchestrator detects a conflict it retries the affected
+  sections within its round budget, and anything still unresolved stays visible on the plan rather
+  than becoming a card that waits for an acknowledgement nothing can record.
+- The client is not a source of supplier facts: totals are recomputed from proposal items, and
+  results are labelled as SerpApi live search, Google Places estimates or simulated fixtures. None
+  of them creates a reservation.
 
 ## Map and places
 

@@ -23,10 +23,10 @@ This is a single deployable, so ownership is by module rather than by frontend/b
 | `packages/tools/src/maps.ts`                                             | B     | real Maps / Places adapter                                                                                                               |
 | `packages/agents/src/accommodation/**`                                   | C     | lodging search + room allocation                                                                                                         |
 | `packages/tools/src/booking.ts`                                          | C     | real Booking / Price adapter (mock only for payment)                                                                                     |
-| cost roll-up threshold in `orchestrator` `rollUpCost` / `checkpointsFor` | C     | budget overrun % + escalation cutoff                                                                                                     |
+| cost roll-up and conflict threshold in `orchestrator` `rollUpCost` / `detectConflicts` | C     | budget overrun % + escalation cutoff                                                                                                     |
 | `packages/agents/src/destination-guide/**`                               | D     | maintain grounded attractions, customs/safety and verification-first entry/weather guidance                                              |
 | `packages/agents/src/dining/**`                                          | D     | maintain grounded venue picks, dietary preferences and meal budgeting                                                                    |
-| `apps/web/components/**`, `apps/web/app/globals.css`                     | E     | UI: chat, filters, "Your trip" panel, HITL cards                                                                                         |
+| `apps/web/components/**`, `apps/web/app/globals.css`                     | E     | UI: chat, filters, "Your trip" panel                                                                                         |
 | `packages/services/src/memory/**`                                        | E     | real short/long-term memory store                                                                                                        |
 | `packages/services/src/{notification,auth}/**`                           | E     | real notifications + auth                                                                                                                |
 
