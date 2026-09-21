@@ -1,0 +1,112 @@
+/* Global reset, focus, shared controls, and scrollbars. */
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+body {
+  background: var(--page);
+  color: var(--text);
+  font:
+    var(--font-size-body) / var(--line-height-body) -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    system-ui,
+    sans-serif;
+}
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+/* Every interactive element gets the same visible ring; the browser default is
+   inconsistent across the custom-styled controls here and vanished entirely on
+   the ones that reset their outline. */
+:where(a, button, input, textarea, select, summary, [tabindex]):focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+  border-radius: var(--radius-sm);
+}
+
+/* Money should line up column to column rather than wander with digit width. */
+.cost,
+.trip__budget,
+.proposal-item__meta strong {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* The panels scroll independently; leave the bars visible but quiet. */
+.panel::-webkit-scrollbar,
+.chat__stream::-webkit-scrollbar {
+  width: 10px;
+}
+.panel::-webkit-scrollbar-thumb,
+.chat__stream::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border: 3px solid transparent;
+  background-clip: content-box;
+  border-radius: var(--radius-pill);
+}
+.panel::-webkit-scrollbar-thumb:hover,
+.chat__stream::-webkit-scrollbar-thumb:hover {
+  background: var(--text-mut);
+  background-clip: content-box;
+}
+
+/* ---- shell ---- */
+
+.panel {
+  overflow-y: auto;
+  padding: 20px;
+}
+.panel--left {
+  border-right: 1px solid var(--border);
+}
+.panel h2 {
+  font-size: 15px;
+  margin: 0 0 14px;
+}
+.panel h3 {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-mut);
+  margin: 18px 0 8px;
+}
+
+/* ---- generic controls ---- */
+.field {
+  width: 100%;
+  padding: var(--space-2) 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  margin-bottom: var(--space-1);
+  transition:
+    border-color var(--transition),
+    box-shadow var(--transition);
+}
+.field:not([readonly]):hover {
+  border-color: var(--text-mut);
+}
+.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  color: var(--text-dim);
+}

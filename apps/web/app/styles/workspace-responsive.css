@@ -1,0 +1,104 @@
+@media (prefers-reduced-motion: reduce) {
+  .workspace-app,
+  .drawer,
+  .drawer.is-open {
+    transition: none;
+  }
+}
+@media (max-width: 1250px) {
+  .workspace-app {
+    --sidebar-width: 220px;
+  }
+  .workspace-shell {
+    grid-template-columns: minmax(300px, 0.85fr) minmax(320px, 1.15fr);
+  }
+}
+@media (max-width: 1000px) {
+  .workspace-app {
+    --sidebar-width: 0px;
+  }
+  /* Menu, summary and actions on one row (Trip stays rightmost); the view switch below. */
+  .workspace-topbar {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "menu summary actions"
+      "views views views";
+    gap: 8px;
+    padding: 8px 12px;
+  }
+  .topbar-icon-button {
+    grid-area: menu;
+  }
+  .topbar-summary {
+    grid-area: summary;
+  }
+  .topbar-actions {
+    grid-area: actions;
+  }
+  .topbar-views {
+    grid-area: views;
+    display: flex;
+  }
+  .topbar-views button {
+    flex: 1;
+  }
+  .workspace-shell {
+    display: block;
+  }
+  .workspace-shell > .workspace-panel {
+    height: 100%;
+  }
+  .workspace-shell[data-mobile-view="chat"] > .workspace-panel--map,
+  .workspace-shell[data-mobile-view="map"] > .workspace-panel--chat {
+    display: none;
+  }
+  .workspace-panel--chat {
+    border-right: 0;
+  }
+  .drawer--left,
+  .drawer--right {
+    width: 100%;
+    border: 0;
+  }
+  .drawer--left {
+    transform: translateX(calc(-100% - 48px));
+  }
+}
+@media (max-width: 520px) {
+  .topbar-button {
+    width: 40px;
+    padding: 0 !important;
+    justify-content: center;
+  }
+  .topbar-button__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+  .topbar-actions .trip-trigger__count {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+  }
+  .topbar-button.trip-trigger {
+    position: relative;
+  }
+}
+.edit-preview {
+  background: var(--surface-2);
+  padding: 16px;
+  border-radius: 12px;
+}
+@media (max-width: 600px) {
+  .trip-editor {
+    padding: 12px;
+    margin: 12px;
+  }
+  .google-map {
+    height: 340px;
+  }
+}

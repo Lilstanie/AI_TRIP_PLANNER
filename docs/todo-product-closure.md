@@ -61,12 +61,12 @@ estimated、mock、fallback 或 unavailable 状态及高层原因；未暴露 pr
 
 落点只有四处，不要重造一套来源体系：
 
-| 位置 | 改动 |
+| 位置                                                 | 改动                                    |
 | --- | --- |
-| `packages/shared/src/contracts.ts:156` | `source` 增加必填 `kind` 枚举 |
-| `packages/orchestrator/src/workflow.ts:288-291` | 回填降级为缺省兜底 |
-| `packages/agents/src/accommodation/index.ts:163-172` | 两个分支各给一个 `kind` |
-| `apps/web/components/trip/TripSection.tsx:57` | 渲染 `kind`，不再只显示 label/freshness |
+| `packages/shared/src/contracts.ts:156`               | `source` 增加必填 `kind` 枚举           |
+| `packages/orchestrator/src/workflow.ts:288-291`      | 回填降级为缺省兜底                      |
+| `packages/agents/src/accommodation/index.ts:163-172` | 两个分支各给一个 `kind`                 |
+| `apps/web/components/trip/TripSection.tsx:57`        | 渲染 `kind`，不再只显示 label/freshness |
 
 `source.kind` 是跨包契约变更，按 `AGENTS.md` 记入 `.ai/DECISIONS.md`。
 
@@ -133,17 +133,17 @@ Recommendation Card 和 Context Cards 都与本项目的聊天规划、agent 协
 
 ### 推荐组件映射
 
-| 参考模式 | 项目位置 | 移植行为 |
+| 参考模式            | 项目位置                   | 移植行为                                                       |
 | --- | --- | --- |
-| Loading State | 规划开始、SerpApi/天气查询 | 低对比度 shimmer 或网格 loader，不阻塞布局 |
-| Thinking | `ChatPanel` agent progress | 显示当前阶段、当前 agent 和已完成步骤 |
-| Task Rows | 五个 specialist agent | queued/running/completed/failed/interrupted 状态行 |
-| Streaming Text | AI 回复 | 文字逐步出现，完成后显示来源和 follow-up |
-| Tool Chips | provider 调用 | `Google Hotels · 3 results`、`Weather API · Sydney` 等紧凑标签 |
-| Approval Card | `CheckpointCards` | 酒店选择和最终确认保留键盘、焦点和 HITL 语义 |
-| Recommendation Card | 酒店/航班候选 | 价格、来源、评分、时长、匹配理由和操作 |
-| Context Card | 天气、地点和来源 | 展开查看证据、更新时间和限制 |
-| Prompt Bar | 聊天输入区 | 发送中、停止、重试、日期按钮和清除状态 |
+| Loading State       | 规划开始、SerpApi/天气查询 | 低对比度 shimmer 或网格 loader，不阻塞布局                     |
+| Thinking            | `ChatPanel` agent progress | 显示当前阶段、当前 agent 和已完成步骤                          |
+| Task Rows           | 五个 specialist agent      | queued/running/completed/failed/interrupted 状态行             |
+| Streaming Text      | AI 回复                    | 文字逐步出现，完成后显示来源和 follow-up                       |
+| Tool Chips          | provider 调用              | `Google Hotels · 3 results`、`Weather API · Sydney` 等紧凑标签 |
+| Approval Card       | `CheckpointCards`          | 酒店选择和最终确认保留键盘、焦点和 HITL 语义                   |
+| Recommendation Card | 酒店/航班候选              | 价格、来源、评分、时长、匹配理由和操作                         |
+| Context Card        | 天气、地点和来源           | 展开查看证据、更新时间和限制                                   |
+| Prompt Bar          | 聊天输入区                 | 发送中、停止、重试、日期按钮和清除状态                         |
 
 ### 状态流
 
@@ -189,10 +189,11 @@ Approval Card、Recommendation Card、Context Card、Chat 和 Prompt Bar。优�
 
 优先使用可复制的 CSS 模式，不依赖付费 Pro 包；所有动效都必须支持 reduced motion。
 
-### beUI：选择交互，不整体安装
+### beUI：选择交互，不整体迁移
 
-[beUI](https://beui.dev/) 基于 Motion 和 Tailwind，并通过 shadcn registry 分发。当前项目没有
-Tailwind，且已经有自己的 Drawer、Dialog、Tabs 和 CSS token，因此不执行整库安装或 CLI 覆盖。
+[beUI](https://beui.dev/) 基于 Motion 和 Tailwind，并通过 shadcn registry 分发。项目现在接入
+Tailwind v4 和 source-owned shadcn 基础组件，但不执行整站覆盖；现有 Drawer、Dialog、Tabs 和
+CSS token 继续作为行为与视觉约束，组件采用渐进迁移。
 
 可以手动借鉴：
 
@@ -244,9 +245,11 @@ Mock fixture
 1. **AI 进度层**：`ChatPanel`、agent rows、loading、streaming answer、error/retry。
 2. **真实数据层**：`CheckpointCards`、`ProposalDetails`、`TripPanel` 的来源和价格状态。
 3. **天气层**：Forecast/Climate 卡片、更新时间、provider 状态和失败 fallback。
-4. **微交互层**：card resize、number pop-in、tab sliding、toast、spinner/check 和 sidebar active pill。
+4. **微交互层**：card resize、number pop-in、tab sliding、toast、spinner/check 和 sidebar active pill；
+   新增基础交互优先复用 Tailwind/shadcn primitives。
 
-不在第一阶段引入复杂背景、3D 卡片、动态岛或整套 Tailwind/shadcn 迁移。
+不在第一阶段引入复杂背景、3D 卡片、动态岛或整套 Tailwind/shadcn 重写；当前只做基础层接入和
+低风险控件的渐进迁移。
 
 ## P1：真实数据卡片与工作区视觉收敛
 
@@ -291,15 +294,15 @@ unavailable 状态和可访问的进度条，HITL 酒店选择显示来源和“
 
 ### 已完成合并记录
 
-| 顺序 | PR | 内容 | 结果 |
+| 顺序 | PR  | 内容                                     | 结果                                |
 | --- | --- | --- | --- |
-| 1 | #31 | specialist 降级状态可见 | 已合入 `main`（`f79a43b`） |
-| 2 | #32 | 持久化规划状态、HITL、SerpApi 配额和缓存 | 已按 stacked base 合并（`8c25dba`） |
-| 3 | #33 | 14 天 forecast/climate 天气能力 | 已按 stacked base 合并（`f68fa1f`） |
-| 4 | #34 | 酒店/航班 provider provenance | 已按 stacked base 合并（`8e6b2ae`） |
-| 5 | #35 | AI 规划进度 UI | 已按 stacked base 合并（`b5c9242`） |
-| 6 | #36 | 真实结果卡片、预算和 HITL 来源状态 | 已按 stacked base 合并（`e79a8a6`） |
-| 7 | #37 | 将 stacked 累计结果整合进 `main` | 已合入 `main`（`056f45f`） |
+| 1    | #31 | specialist 降级状态可见                  | 已合入 `main`（`f79a43b`）          |
+| 2    | #32 | 持久化规划状态、HITL、SerpApi 配额和缓存 | 已按 stacked base 合并（`8c25dba`） |
+| 3    | #33 | 14 天 forecast/climate 天气能力          | 已按 stacked base 合并（`f68fa1f`） |
+| 4    | #34 | 酒店/航班 provider provenance            | 已按 stacked base 合并（`8e6b2ae`） |
+| 5    | #35 | AI 规划进度 UI                           | 已按 stacked base 合并（`b5c9242`） |
+| 6    | #36 | 真实结果卡片、预算和 HITL 来源状态       | 已按 stacked base 合并（`e79a8a6`） |
+| 7    | #37 | 将 stacked 累计结果整合进 `main`         | 已合入 `main`（`056f45f`）          |
 
 由于 #32–#36 当时分别以功能分支为 base，#37 是必要的 mainline integration；没有它，前面
 已合并的 PR 虽然存在于 stacked 分支，主线仍不会包含完整实现。
@@ -342,8 +345,8 @@ apps/web/tests/
 
 ## 暂缓或不纳入当前实现
 
-- 不整体安装 Tailwind、shadcn、beUI 或 Rare UI；它们只提供交互和视觉参考，当前 CSS token 与无障碍
-  结构仍是项目的实现基础。
+- 不整体迁移 beUI 或 Rare UI；它们只提供交互和视觉参考。Tailwind/shadcn 已作为基础实现层接入，
+  但当前 CSS token 与无障碍结构仍是项目的实现基础。
 - 不新增完整的 prompt 快照系统、遥测框架或额外 shared progress event，除非出现明确回归或跨请求
   追踪需求。
 - 不把 Travelpayouts、Aviationstack、支付、预订履约或天气历史数据提前加入 MVP。

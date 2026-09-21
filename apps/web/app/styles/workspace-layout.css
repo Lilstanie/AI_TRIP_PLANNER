@@ -1,0 +1,160 @@
+/* Workspace top bar: a real layout row above chat and map. */
+.workspace-topbar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 12px;
+  min-height: 60px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.topbar-summary {
+  flex: 1;
+  min-width: 0;
+}
+.topbar-title {
+  margin: 0;
+  overflow: hidden;
+  font-family: var(--font-display), Georgia, "Times New Roman", serif;
+  font-size: var(--font-size-title);
+  line-height: var(--line-height-title);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.topbar-facts {
+  margin: 0;
+  overflow: hidden;
+  color: var(--text-dim);
+  font-size: var(--font-size-meta);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.topbar-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+}
+.topbar-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 38px;
+  padding: 6px 14px !important;
+  border-radius: var(--radius-pill) !important;
+  font-weight: 600;
+}
+.topbar-actions .trip-trigger {
+  border-color: var(--text) !important;
+}
+.trip-trigger__count {
+  display: grid;
+  min-width: 20px;
+  height: 20px;
+  padding-inline: 5px;
+  place-items: center;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 11px;
+}
+.topbar-views {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+}
+.topbar-views button {
+  min-height: 30px !important;
+  padding: 3px 12px !important;
+  border: 0 !important;
+  border-radius: var(--radius-pill) !important;
+  background: transparent !important;
+}
+.topbar-views button[aria-pressed="true"] {
+  background: var(--surface) !important;
+  box-shadow: var(--shadow-sm);
+  font-weight: 600;
+}
+
+/* Chat and map below the top bar. Drawers are positioned inside this area. */
+.workspace-shell {
+  position: relative;
+  display: grid;
+  flex: 1;
+  grid-template-columns: minmax(320px, 0.85fr) minmax(360px, 1.15fr);
+  min-height: 0;
+  min-width: 0;
+  /* Closed drawers sit beyond these edges. `clip` (unlike `hidden`) cannot be scrolled by
+     focus or scrollIntoView, so the grid never shifts sideways to reveal them. */
+  overflow: hidden;
+  overflow: clip;
+  background: var(--surface);
+}
+.workspace-shell > * {
+  min-width: 0;
+}
+.workspace-panel {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--surface);
+}
+.workspace-panel--chat {
+  border-right: 1px solid var(--border);
+}
+.workspace-panel--chat > .panel {
+  height: 100%;
+  max-height: none;
+}
+.chat-empty {
+  flex: none;
+  min-width: 0;
+  margin: 0;
+  padding: var(--space-5);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface-2);
+  color: var(--text-dim);
+  text-align: center;
+}
+@container (min-height: 600px) {
+  .chat-empty {
+    margin: auto 0;
+  }
+}
+.chat-empty h3,
+.map-placeholder h2 {
+  margin: 0;
+  color: var(--text);
+  font-family: var(--font-display), Georgia, "Times New Roman", serif;
+  font-size: var(--font-size-title);
+  line-height: var(--line-height-title);
+}
+.chat-empty > p {
+  max-width: 38ch;
+  margin: var(--space-2) auto 0;
+}
+.chat-empty__suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+.chat-empty__suggestions button {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--text-dim);
+  padding: var(--space-1) var(--space-2);
+  text-align: left;
+}
+.chat-empty__input-hint {
+  font-size: var(--font-size-meta);
+}
+.skeleton--map {
+  height: 100%;
+  border-radius: 0;
+}

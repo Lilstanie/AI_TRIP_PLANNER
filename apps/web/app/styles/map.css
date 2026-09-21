@@ -1,0 +1,79 @@
+/* Map-specific primitives and fallbacks. */
+.google-map {
+  height: 480px;
+  min-width: 0;
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+.trip-map-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.trip-map-location-status {
+  min-height: 1.5em;
+  color: var(--text-dim);
+  font-size: 12px;
+}
+.trip-map-place-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0;
+  padding: 0;
+  list-style: none;
+}
+.trip-map-place-list button[aria-pressed="true"] {
+  border-color: var(--accent) !important;
+  background: var(--accent-bg) !important;
+  box-shadow: inset 3px 0 0 var(--accent);
+  font-weight: 600;
+}
+.trip-map-marker {
+  --marker-size: 1.75rem;
+  display: grid;
+  width: var(--marker-size);
+  height: var(--marker-size);
+  place-items: center;
+  border: 2px solid white;
+  border-radius: var(--radius-pill);
+  background: var(--marker-color);
+  color: white;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 35%);
+  font-weight: 700;
+}
+.trip-map-marker.is-selected {
+  --marker-size: 2rem;
+  border-width: 3px;
+  outline: 2px solid var(--text);
+  outline-offset: 1px;
+}
+.trip-map-user-marker {
+  display: grid;
+  width: 1.25rem;
+  height: 1.25rem;
+  place-items: center;
+  border: 3px solid #2563eb;
+  border-radius: var(--radius-pill);
+  background: white;
+  color: #2563eb;
+  box-shadow: 0 1px 5px rgb(0 0 0 / 40%);
+}
+.trip-map-fallback {
+  min-height: 220px;
+  display: grid;
+  align-content: center;
+  gap: 8px;
+  padding: 24px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  color: var(--text-dim);
+}
+.trip-map-fallback ul {
+  display: grid;
+  gap: 6px;
+  padding: 0;
+  list-style: none;
+}

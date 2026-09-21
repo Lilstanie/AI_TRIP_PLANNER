@@ -34,6 +34,31 @@ When a feature crosses folders, keep the public contract in the domain module an
 there rather than creating a new root-level convenience file. Update this section and the API docs
 when a directory boundary changes.
 
+The web UI uses Tailwind CSS v4 with source-owned shadcn primitives. Tailwind is configured through
+`apps/web/postcss.config.mjs` and imported from `apps/web/app/globals.css`; v4 does not use a
+traditional `tailwind.config.js` in this project. `apps/web/components.json` configures the shadcn
+CLI, while generated primitives live under `apps/web/components/ui/` and use `@/lib/utils` for
+`cn()`. Keep the existing semantic tokens and migrate domain CSS incrementally under
+`apps/web/app/styles/`; do not replace the custom focus-managed Dialog or Drawer without preserving
+their keyboard and focus behavior.
+
+### File size and style boundaries
+
+Keep production source files and test files at or below 500 lines of code. When a file exceeds that
+threshold, split it by responsibility instead of adding more sections to the same file. CSS files
+should use domain names such as `workspace-navigation.css`, `workspace-layout.css`,
+`workspace-drawers.css`, and `workspace-responsive.css`; an aggregate file may remain small and
+only contain ordered `@import` statements. Preserve import order when a split separates base rules,
+overlays, and responsive overrides. Existing files that already exceed the threshold are migrated
+incrementally when their domain is next changed; new or substantially modified files must not grow
+past the threshold without documenting the exception.
+
+Next.js API endpoints keep the framework-required `route.ts` filename. The directory path is the
+route namespace, so `app/api/chat/route.ts` maps to `/api/chat` and does not conflict with
+`app/api/places/search/route.ts`. Keep these files as thin Route Handler adapters and move reusable
+business logic into `apps/web/lib/` or package `src/` modules. Do not rename `route.ts` merely to
+make filenames unique.
+
 Next.js only ever reads `.env*` files from the directory it runs in (`apps/web`), never from a
 monorepo root — that lookup has no config option to redirect it, and it is re-applied by the dev
 server's own file watcher, so pointing it elsewhere from `next.config.mjs` does not survive `next
@@ -51,15 +76,15 @@ ln -s ../../.env.local apps/web/.env.local
 
 Every variable is described in `.env.example`. The important ones:
 
-| Setting                                                             | Purpose                                                                                                                                                                                                   |
-| ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DEEPSEEK_API_KEY`                                                  | Brief extraction from chat, all five specialists, the supervisor and chat replies. Without it a local rule parser handles extraction and agents use deterministic fallbacks.                              |
-| `USE_MOCK_TOOLS=true` (default)                                     | In-process map and booking fixtures; no external calls.                                                                                                                                                   |
+| Setting                                                             | Purpose                                                                                                                                                                                                                                                                                          |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `DEEPSEEK_API_KEY`                                                  | Brief extraction from chat, all five specialists, the supervisor and chat replies. Without it a local rule parser handles extraction and agents use deterministic fallbacks.                                                                                                                     |
+| `USE_MOCK_TOOLS=true` (default)                                     | In-process map and booking fixtures; no external calls.                                                                                                                                                                                                                                          |
 | `USE_MOCK_TOOLS=false`                                              | Real map adapters chosen by `MAPS_PROVIDER` (`google` or `osm`). If unset, Google is used when `MAPS_API_KEY` is set, otherwise OpenStreetMap; `.env.example` sets `osm`. Booking uses SerpApi when `SERPAPI_KEY` is configured, with the existing Google Places estimate as the hotel fallback. |
-| `OSM_USER_AGENT`                                                    | Required contact string for Nominatim. Replace the `contact@example.com` placeholder before real traffic or you may be rate limited.                                                                      |
-| `MAPS_API_KEY`                                                      | Server-side Google Places, Routes and Time Zone for the workspace map and edit previews.                                                                                                                  |
-| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`, `NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID` | Browser Google Maps JavaScript map. Without them the workspace shows a map fallback and the itinerary stays usable.                                                                                       |
-| `SERPAPI_KEY`                                                       | Shared SerpApi key for Google Hotels and Google Flights searches. It is used only when `USE_MOCK_TOOLS=false`; it does not replace Google Maps, Places, Routes or Weather APIs.                                |
+| `OSM_USER_AGENT`                                                    | Required contact string for Nominatim. Replace the `contact@example.com` placeholder before real traffic or you may be rate limited.                                                                                                                                                             |
+| `MAPS_API_KEY`                                                      | Server-side Google Places, Routes and Time Zone for the workspace map and edit previews.                                                                                                                                                                                                         |
+| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`, `NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID` | Browser Google Maps JavaScript map. Without them the workspace shows a map fallback and the itinerary stays usable.                                                                                                                                                                              |
+| `SERPAPI_KEY`                                                       | Shared SerpApi key for Google Hotels and Google Flights searches. It is used only when `USE_MOCK_TOOLS=false`; it does not replace Google Maps, Places, Routes or Weather APIs.                                                                                                                  |
 
 Google key restrictions and map behaviour are described in [workspace UI](workspace-ui.md#google-maps-configuration).
 Model routing and fallbacks are described in [architecture](architecture.md#agents-and-models).
@@ -70,17 +95,17 @@ SerpApi is the provider for the project's current hotel and flight search layer.
 `SERPAPI_KEY` can be used for both SerpApi engines, but this does not make SerpApi a universal
 travel backend:
 
-| Capability | Provider | Status and boundary |
-| --- | --- | --- |
-| Hotel search and indicative prices | [SerpApi Google Hotels](https://serpapi.com/google-hotels-api) | Live search results when configured; results are planning data, not a reservation or guaranteed quote. |
-| Flight search and indicative fares | [SerpApi Google Flights](https://serpapi.com/google-flights-api) | Search results and fares; it does not book tickets or provide the full operational status feed. |
-| Interactive map | [Google Maps JavaScript API](https://developers.google.com/maps/documentation/javascript/overview) | Browser-side map rendering with `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`. |
-| Place search and details | [Google Places API](https://developers.google.com/maps/documentation/places/web-service/op-overview) | Server-side place grounding with `MAPS_API_KEY`. |
-| Routes and travel time | [Google Routes API](https://developers.google.com/maps/documentation/routes) | Route and distance checks for itinerary editing. |
-| Time zones | [Google Time Zone API](https://developers.google.com/maps/documentation/timezone/overview) | Destination-local time calculations. |
-| Weather forecasts | Google Weather API (days 0–10), Open-Meteo (days 11–14), climate fixture after day 14 | Implemented in the tool gateway with explicit forecast/climate provenance; generic SerpApi web results are not treated as weather data. |
-| Flight delays, gates and operational status | Aviationstack or another aviation-status provider | Optional future capability; not needed for hotel/flight price search. |
-| Chat, preferences, trip plans/HITL decisions and SerpApi usage/cache | Upstash-compatible Redis REST store | Configure `KV_REST_API_URL` + `KV_REST_API_TOKEN` in deployment; local/offline runs use an in-process fallback. |
+| Capability                                                           | Provider                                                                                             | Status and boundary                                                                                                                     |
+| -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Hotel search and indicative prices                                   | [SerpApi Google Hotels](https://serpapi.com/google-hotels-api)                                       | Live search results when configured; results are planning data, not a reservation or guaranteed quote.                                  |
+| Flight search and indicative fares                                   | [SerpApi Google Flights](https://serpapi.com/google-flights-api)                                     | Search results and fares; it does not book tickets or provide the full operational status feed.                                         |
+| Interactive map                                                      | [Google Maps JavaScript API](https://developers.google.com/maps/documentation/javascript/overview)   | Browser-side map rendering with `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`.                                                                      |
+| Place search and details                                             | [Google Places API](https://developers.google.com/maps/documentation/places/web-service/op-overview) | Server-side place grounding with `MAPS_API_KEY`.                                                                                        |
+| Routes and travel time                                               | [Google Routes API](https://developers.google.com/maps/documentation/routes)                         | Route and distance checks for itinerary editing.                                                                                        |
+| Time zones                                                           | [Google Time Zone API](https://developers.google.com/maps/documentation/timezone/overview)           | Destination-local time calculations.                                                                                                    |
+| Weather forecasts                                                    | Google Weather API (days 0–10), Open-Meteo (days 11–14), climate fixture after day 14                | Implemented in the tool gateway with explicit forecast/climate provenance; generic SerpApi web results are not treated as weather data. |
+| Flight delays, gates and operational status                          | Aviationstack or another aviation-status provider                                                    | Optional future capability; not needed for hotel/flight price search.                                                                   |
+| Chat, preferences, trip plans/HITL decisions and SerpApi usage/cache | Upstash-compatible Redis REST store                                                                  | Configure `KV_REST_API_URL` + `KV_REST_API_TOKEN` in deployment; local/offline runs use an in-process fallback.                         |
 
 Travelpayouts and Aviationstack are therefore not required for the current MVP. Add them only if the
 product needs affiliate inventory/booking flows or operational flight-status data. SerpApi also does

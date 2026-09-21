@@ -1,0 +1,160 @@
+/* Forms, source labels, notices, and shared control states. */
+/* Operable workspace: controls share sizing and reflow on narrow screens. */
+button,
+select {
+  color: inherit;
+}
+button:not(.section__row):not(.stay-option) {
+  min-height: 36px;
+}
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+button:not(.section__row):not(.stay-option):not(.primary):not(.trip__cta) {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  padding: 6px 10px;
+}
+.panel {
+  min-width: 0;
+  max-height: calc(100dvh - 72px);
+}
+.filter-container {
+  min-width: 0;
+}
+.chat {
+  min-height: 600px;
+  height: calc(100dvh - 72px);
+}
+.plain-fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.form-field {
+  display: block;
+  margin-bottom: 14px;
+}
+.form-field > span {
+  display: block;
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-bottom: 5px;
+}
+/* Start/end date fields plus a calendar shortcut, aligned to the inputs'
+   baseline rather than the labels' — the label row above them differs in
+   height between "Start date" and "End date" only by content, so align on
+   the row that's actually the same height everywhere: the fields. */
+.filter-dates {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.filter-dates .form-field {
+  flex: 1;
+  margin-bottom: 0;
+}
+.filter-dates__calendar {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  width: 40px;
+  height: 38px;
+  background: transparent;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.filter-dates__calendar:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.field[aria-invalid="true"] {
+  border-color: var(--warn);
+}
+.primary {
+  background: var(--accent);
+  color: var(--on-accent);
+  border: 0;
+  border-radius: var(--radius-sm);
+  padding: 9px 14px;
+}
+.plain-fieldset > .primary {
+  margin-top: 16px;
+  width: 100%;
+}
+.muted,
+.source-note {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.source-note {
+  padding: 8px;
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+}
+.source-note__head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+}
+.source-note p {
+  margin: 6px 0 0;
+}
+.source-kind {
+  display: inline-flex;
+  align-items: center;
+  min-height: 20px;
+  padding: 2px 7px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.source-kind--live {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+  color: var(--accent);
+}
+.source-kind--estimated {
+  border-color: color-mix(in srgb, var(--text-dim) 70%, var(--border));
+}
+.source-kind--mock {
+  border-color: color-mix(in srgb, var(--text-dim) 50%, var(--border));
+}
+.source-kind--fallback,
+.source-kind--unavailable {
+  border-color: var(--warn);
+  color: var(--warn);
+}
+.source-kind--compact {
+  min-height: 18px;
+  padding: 1px 6px;
+  font-size: 10px;
+}
+.error-text {
+  color: var(--warn);
+  display: block;
+}
+.error-banner {
+  background: var(--warn-bg);
+  color: var(--warn);
+  padding: 10px 20px;
+}
+.error-banner button {
+  margin-left: 8px;
+}
+.notice {
+  margin: 0;
+  padding: 8px 20px;
+  background: var(--accent-bg);
+}
+.notice button {
+  margin-left: 8px;
+}

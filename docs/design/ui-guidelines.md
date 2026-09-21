@@ -49,7 +49,9 @@ Do use semantic tokens, clear type hierarchy, visible focus, and text or shape i
 Do not:
 
 1. Change the three-column workspace, drawer behavior, or responsive model for visual work.
-2. Add Tailwind, CSS-in-JS, a UI library, or an animation library.
+2. Replace the workspace with a full UI-library redesign. Tailwind v4 and source-owned shadcn
+   primitives are allowed as implementation tools, but they must use the semantic tokens above and
+   must not replace the workspace layout, focus behavior, or accessibility contract.
 3. Turn the interface into a full-screen beige or retro skin.
 4. Use glassmorphism, neon, texture images, noise filters, photography, or illustrations.
 5. Stack cards inside cards when surface, spacing, and a hairline communicate the grouping.

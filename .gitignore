@@ -19,6 +19,19 @@ dev.db
 .vercel
 .env*
 
+# Local agent and editor state
+.pi/
+.claude/settings.local.json
+.cache/
+.eslintcache
+*.pid
+
+# Generated Next.js metadata
+apps/web/next-env.d.ts
+
+# Local AI session context
+.ai/
+
 # Local browser verification artifacts
 .playwright-cli/
 output/playwright/

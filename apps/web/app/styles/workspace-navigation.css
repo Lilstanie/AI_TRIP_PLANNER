@@ -1,0 +1,408 @@
+/* Multi-panel workspace, sidebar, topbar, drawers, and responsive layout. */
+/* ---- multi-panel planning workspace ---- */
+.workspace-app {
+  --sidebar-width: 240px;
+  --sidebar-collapsed-width: 64px;
+  --drawer-ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --drawer-duration: 240ms;
+  /* Positions the sidebar resize handle on the column edge. */
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+  overflow: clip;
+  background: var(--surface);
+  transition: grid-template-columns 200ms var(--drawer-ease);
+}
+/* Dragging follows the pointer directly and must not text-select across the workspace. */
+.workspace-app[data-resizing="true"] {
+  cursor: col-resize;
+  user-select: none;
+  transition: none;
+}
+.sidebar-resizer {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  /* Centred on the sidebar's border so the grab area straddles both sides of the edge. */
+  left: calc(var(--sidebar-width) - 4px);
+  z-index: 6;
+  width: 8px;
+  cursor: col-resize;
+  touch-action: none;
+}
+.sidebar-resizer::after {
+  content: "";
+  position: absolute;
+  inset: 0 3px;
+  border-radius: 1px;
+  background: transparent;
+  transition: background-color 120ms ease;
+}
+.sidebar-resizer:hover::after,
+.sidebar-resizer:focus-visible::after,
+.workspace-app[data-resizing="true"] .sidebar-resizer::after {
+  background: var(--accent);
+}
+.sidebar-resizer:focus-visible {
+  box-shadow: none;
+}
+.workspace-app[data-sidebar-collapsed="true"] {
+  grid-template-columns: var(--sidebar-collapsed-width) minmax(0, 1fr);
+}
+.workspace-app[data-narrow="true"] {
+  grid-template-columns: minmax(0, 1fr);
+}
+.workspace-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+.workspace-notices:empty {
+  display: none;
+}
+.icon {
+  flex: none;
+  display: block;
+}
+
+/* Brand */
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.brand-mark__logo {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+.brand-mark__name {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Sidebar navigation */
+.workspace-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  min-height: 0;
+  padding: 14px 12px;
+  overflow: hidden auto;
+  border-right: 1px solid var(--border);
+  background: var(--surface-2);
+}
+.sidebar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 40px;
+  padding-inline: 4px;
+}
+.sidebar-toggle,
+.sidebar-icon-button,
+.topbar-icon-button {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0 !important;
+  border-color: transparent !important;
+  background: transparent !important;
+  color: var(--text-dim);
+}
+.sidebar-toggle:hover,
+.sidebar-icon-button:hover,
+.topbar-icon-button:hover {
+  background: var(--surface) !important;
+  color: var(--text);
+}
+.sidebar-nav {
+  display: grid;
+  gap: 2px;
+}
+.sidebar-nav__item,
+.sidebar-search {
+  --tone: var(--text-dim);
+  --tone-bg: var(--surface);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 40px;
+  padding: 4px 8px !important;
+  border: 1px solid transparent !important;
+  border-radius: var(--radius) !important;
+  background: transparent !important;
+  color: var(--text);
+  font-weight: 500;
+  text-align: left;
+}
+.sidebar-nav__item:hover {
+  background: var(--surface) !important;
+}
+.sidebar-nav__item--create {
+  --tone: var(--on-accent);
+  --tone-bg: var(--accent);
+  font-weight: 600;
+}
+.sidebar-nav__item--chats,
+.sidebar-nav__item--trips {
+  --tone: var(--accent);
+  --tone-bg: var(--accent-bg);
+}
+.sidebar-nav__item--saved {
+  --tone: var(--warn);
+  --tone-bg: var(--warn-bg);
+}
+.sidebar-nav__icon {
+  display: grid;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 9px;
+  background: var(--tone-bg);
+  color: var(--tone);
+}
+.sidebar-nav__icon--neutral {
+  background: var(--surface);
+  color: var(--text-dim);
+}
+.sidebar-nav__label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.sidebar-nav__count {
+  min-width: 22px;
+  padding: 1px 7px;
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--text-dim);
+  font-size: 12px;
+  text-align: center;
+}
+/* Current section: background, weight, a filled icon and a leading bar, not colour alone. */
+.sidebar-nav__item.is-current {
+  border-color: var(--border) !important;
+  background: var(--surface) !important;
+  box-shadow: inset 3px 0 0 var(--tone);
+  font-weight: 700;
+}
+.sidebar-nav__item.is-current .sidebar-nav__icon {
+  background: var(--tone);
+  color: var(--on-accent);
+}
+.sidebar-search {
+  padding-right: 4px !important;
+}
+.sidebar-search input {
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  padding: 4px 8px;
+}
+.sidebar-history {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+.sidebar-history__title {
+  margin: 4px 8px 6px;
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.sidebar-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: auto;
+  padding: 8px 4px 0;
+  border-top: 1px solid var(--border);
+}
+.sidebar-footer__actions {
+  display: flex;
+  gap: 2px;
+}
+.sidebar-footer .sidebar-icon-button {
+  width: auto;
+  min-width: 36px;
+  gap: 4px;
+  grid-auto-flow: column;
+  padding-inline: 6px !important;
+  font-size: 12px;
+}
+.workspace-sidebar.is-collapsed {
+  align-items: center;
+  padding-inline: 8px;
+  overflow: visible;
+}
+.workspace-sidebar.is-collapsed .sidebar-head {
+  flex-direction: column;
+  padding: 0;
+}
+.workspace-sidebar.is-collapsed .sidebar-nav__item {
+  justify-content: center;
+  width: 44px;
+  padding: 4px !important;
+}
+.workspace-sidebar.is-collapsed .sidebar-nav__item.is-current {
+  box-shadow: inset 0 -3px 0 var(--tone);
+}
+.workspace-sidebar.is-collapsed .sidebar-footer {
+  flex-direction: column;
+  width: 100%;
+}
+.workspace-sidebar.is-collapsed .sidebar-footer__actions {
+  flex-direction: column;
+}
+/* Tooltips for icon-only controls (keyboard focus shows them too). */
+[data-tooltip] {
+  position: relative;
+}
+[data-tooltip]:hover::after,
+[data-tooltip]:focus-visible::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  z-index: 60;
+  top: 50%;
+  left: calc(100% + 10px);
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--text);
+  color: var(--surface);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+.history-list {
+  display: grid;
+  /* An auto track grows to a long nowrap title and pushes rows past the sidebar edge. */
+  grid-template-columns: minmax(0, 1fr);
+  gap: 7px;
+  margin-top: 8px;
+}
+.history-item {
+  position: relative;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+}
+.history-item--active {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+}
+.history-item__open {
+  width: 100%;
+  min-height: 0 !important;
+  padding: 9px !important;
+  /* Keep the title clear of the overflow trigger, which occupies the last 32px. */
+  padding-right: 46px !important;
+  border: 0 !important;
+  background: transparent !important;
+  text-align: left;
+}
+.history-item__open > * {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.history-item__open span,
+.history-item__open small,
+.history-empty {
+  color: var(--text-dim);
+  font-size: 11px;
+}
+.history-item__menu-wrap {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  /* No z-index: it would trap the open menu below the next row's trigger. */
+}
+.history-item__more {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0 !important;
+  border-color: transparent !important;
+  border-radius: var(--radius-sm);
+  background: transparent !important;
+  color: var(--text-dim);
+  /* Revealed on hover and keyboard focus, like the chat lists this follows. */
+  opacity: 0;
+}
+.history-item:hover .history-item__more,
+.history-item__more:focus-visible,
+.history-item__more[aria-expanded="true"] {
+  opacity: 1;
+}
+.history-item__more:hover {
+  background: var(--surface) !important;
+  color: var(--text);
+}
+/* Without hover there is nothing to reveal it, so touch devices always show it. */
+@media (hover: none) {
+  .history-item__more {
+    opacity: 1;
+  }
+}
+.history-item__menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 5;
+  display: grid;
+  min-width: 132px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+}
+.history-item__menu button {
+  min-height: 30px !important;
+  padding: 4px 8px !important;
+  border: 0 !important;
+  border-radius: var(--radius-sm);
+  background: transparent !important;
+  color: var(--text);
+  font-size: 12px;
+  text-align: left;
+}
+.history-item__menu button:hover {
+  background: var(--accent-bg) !important;
+}
+.save-state {
+  color: var(--text-dim);
+  font-size: 11px;
+}
+.save-state--failed {
+  color: var(--warn);
+}
+.save-state--saving {
+  color: var(--accent);
+}

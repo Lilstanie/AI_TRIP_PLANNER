@@ -1,4 +1,5 @@
 import type { AgentProposalSource } from "@trip/shared";
+import { Badge } from "../ui/badge";
 
 const SOURCE_KIND_LABEL: Record<AgentProposalSource["kind"] | "unknown", string> = {
   live: "Live data",
@@ -19,11 +20,12 @@ export function SourceBadge({
 }) {
   const kind = source?.kind ?? "unknown";
   return (
-    <span
+    <Badge
+      variant="outline"
       className={`source-kind source-kind--${kind}${compact ? " source-kind--compact" : ""}`}
       role="status"
     >
       {SOURCE_KIND_LABEL[kind]}
-    </span>
+    </Badge>
   );
 }

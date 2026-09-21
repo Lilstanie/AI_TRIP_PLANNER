@@ -2,15 +2,16 @@
 import dynamic from "next/dynamic";
 import { useState } from "react";
 import type { Draft } from "@/lib/workspace";
+import { Button } from "../ui/button";
 import { CalendarIcon } from "../ui/icons";
+import { Input } from "../ui/input";
 
 // react-day-picker + its stylesheet are only worth loading once the
 // traveller actually opens the calendar, not on every preferences open —
 // same reasoning as ChatPanel's identical lazy import.
-const DateRangePicker = dynamic(
-  () => import("./DateRangePicker").then((m) => m.DateRangePicker),
-  { ssr: false },
-);
+const DateRangePicker = dynamic(() => import("./DateRangePicker").then((m) => m.DateRangePicker), {
+  ssr: false,
+});
 
 export function FiltersPanel({
   draft,
@@ -29,7 +30,7 @@ export function FiltersPanel({
   const field = (key: keyof Draft, label: string, type = "text", errorKey: string = key) => (
     <label className="form-field" key={key}>
       <span>{label}</span>
-      <input
+      <Input
         className="field"
         type={type}
         value={String(draft[key])}
@@ -68,14 +69,15 @@ export function FiltersPanel({
           <div className="filter-dates">
             {field("start", "Start date", "date", "dates")}
             {field("end", "End date", "date", "dates")}
-            <button
+            <Button
+              variant="ghost"
               type="button"
               className="filter-dates__calendar"
               aria-label="Pick trip dates from a calendar"
               onClick={() => setShowCalendar(true)}
             >
               <CalendarIcon />
-            </button>
+            </Button>
           </div>
           {field("groupSize", "Travellers", "number")}
           {field("budgetTotal", "Total budget (AUD)", "number")}
@@ -103,9 +105,9 @@ export function FiltersPanel({
             />
             Free cancellation required
           </label>
-          <button className="primary" type="submit">
+          <Button className="primary" type="submit">
             {busy ? "Planning…" : "Update trip"}
-          </button>
+          </Button>
         </fieldset>
       </form>
       {showCalendar && (
