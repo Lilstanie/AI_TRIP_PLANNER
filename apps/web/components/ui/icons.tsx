@@ -167,3 +167,42 @@ export const ToolIcon = ({ tool }: { tool: string }) => {
   if (tool === "weather.forecast") return <GlobeIcon />;
   return <SearchIcon />;
 };
+
+/**
+ * The disclosure chevron. It points right when collapsed and rotates to point
+ * down when open, which is how the Thinking rows show state — a rotating glyph
+ * would shift the text baseline instead.
+ */
+export const ChevronIcon = () => (
+  <Icon strokeWidth={2}>
+    <path d="m10 6 6 6-6 6" />
+  </Icon>
+);
+
+/** Confirmation mark for a decision the plan already made. */
+export const CheckIcon = () => (
+  <Icon strokeWidth={2}>
+    <path d="m5 12.5 4.5 4.5L19 7" />
+  </Icon>
+);
+
+/** Collapse-everything control beside the Think title. */
+export const CollapseAllIcon = () => (
+  <Icon strokeWidth={2}>
+    <path d="m7 14 5-5 5 5M7 19h10" />
+  </Icon>
+);
+
+/** Expand-everything control beside the Think title. */
+export const ExpandAllIcon = () => (
+  <Icon strokeWidth={2}>
+    <path d="m7 10 5 5 5-5M7 5h10" />
+  </Icon>
+);
+
+/** Send glyph for the composer's submit button. */
+export const SendIcon = () => (
+  <Icon strokeWidth={2}>
+    <path d="M12 19V5M6 11l6-6 6 6" />
+  </Icon>
+);
