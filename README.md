@@ -75,6 +75,7 @@ docs/                     Documentation of the current system; each package also
 | [Development](docs/development.md)                | Setup, environment variables, Docker, verification                  |
 | [Workspace UI](docs/workspace-ui.md)              | Current UI behaviour, storage, map and editing rules                |
 | [Roadmap](docs/roadmap.md)                        | MVP sequence and status                                             |
+| [Contributing](CONTRIBUTING.md)                   | How to write, check and ship a change (Chinese)                     |
 | [Team workflow](docs/team-workflow.md)            | Ownership, branches, reviews and session logs                       |
 | [UI guidelines](docs/design/ui-guidelines.md)     | Visual tokens, layout and component design rules                    |
 | [DSH thinking UI](docs/design/dsh-thinking-ui.md) | The thinking surface this project imitates, and the gaps against it |

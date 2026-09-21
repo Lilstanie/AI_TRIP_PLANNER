@@ -35,7 +35,7 @@ fit together is described in [architecture](architecture.md); retired module han
 ## Branches and commits
 
 Use a standard branch type prefix such as `feature/<module>-<short-desc>`, `fix/<short-desc>`,
-`refactor/<short-desc>`, or `docs/<short-desc>`. Branch names are independent of the tool or
+`refactor/<short-desc>`, `docs/<short-desc>`, or `chore/<short-desc>`. Branch names are independent of the tool or
 assistant that created them. Use conventional commit prefixes: `feat:`, `fix:`, `docs:`,
 `refactor:`, `test:` and `chore:`.
 
