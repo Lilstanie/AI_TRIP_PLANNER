@@ -11,11 +11,13 @@ import { SidebarResizer } from "./SidebarResizer";
 import { MenuIcon, RouteIcon, SlidersIcon } from "../ui/icons";
 import type { WorkspaceController } from "./useWorkspaceController";
 import { WorkspaceDialogs } from "./WorkspaceDialogs";
+import { DataModeToggle } from "./DataModeToggle";
 
 export function WorkspaceView({ model }: { model: WorkspaceController }) {
   const {
     plan,
     draft,
+    dataMode,
     messages,
     input,
     previousTotal,
@@ -173,6 +175,12 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
             </div>
           )}
           <div className="topbar-actions">
+            <DataModeToggle
+              mode={dataMode.mode}
+              providers={dataMode.providers}
+              onChange={dataMode.choose}
+              disabled={busy}
+            />
             <button
               ref={preferencesToggle}
               type="button"

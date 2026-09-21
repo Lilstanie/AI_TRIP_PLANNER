@@ -66,6 +66,12 @@ const withPlaceRequests = (...responses: (Response | ((init?: RequestInit) => Re
   let next = 0;
   return vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
+    // Asked once on mount to learn the deployment's mock/live default; it is
+    // not part of any test's ordered response queue.
+    if (url === "/api/data-mode")
+      return Promise.resolve(
+        Response.json({ configured: "mock", providers: { hotelsAndFlights: false, maps: false } }),
+      );
     if (url === "/api/places/search")
       return Promise.resolve(Response.json({ places: [googlePlace] }));
     if (url === "/api/places/details")
@@ -512,7 +518,8 @@ describe("Workspace interactions", () => {
     const fetcher = vi.fn();
     vi.stubGlobal("fetch", fetcher);
     render(<Workspace />);
-    expect(fetcher).not.toHaveBeenCalled();
+    // The mount-time mock/live status probe is fine; a demo plan request is not.
+    expect(fetcher.mock.calls.map(([url]) => String(url))).not.toContain("/api/chat");
     expect(screen.getByRole("heading", { name: "New trip" })).toBeTruthy();
     expect(screen.getByText(/Not planned yet/)).toBeTruthy();
     expect(screen.getByText("Where to next?")).toBeTruthy();

@@ -16,9 +16,12 @@ import {
   type Message,
 } from "@/lib/workspace";
 import type { Task } from "./workspace-helpers";
+import { dataModeHeaders, type DataMode } from "@/lib/workspace/data-mode";
 
 type WorkspaceTransportOptions = {
   plan: TripPlan | undefined;
+  /** Fixtures or real providers; travels with each planning request. */
+  dataMode: DataMode | undefined;
   draft: Draft;
   input: string;
   planRef: MutableRefObject<TripPlan | undefined>;
@@ -59,6 +62,7 @@ export function useWorkspaceTransport({
   setSelectedActivity,
   setMapRoutes,
   onReject,
+  dataMode,
 }: WorkspaceTransportOptions) {
   async function run(task: Task) {
     if (active.current) return;
@@ -76,7 +80,7 @@ export function useWorkspaceTransport({
       if (task.kind === "chat") {
         const response = await fetch("/api/chat", {
           method: "POST",
-          headers: { "content-type": "application/json" },
+          headers: { "content-type": "application/json", ...dataModeHeaders(dataMode) },
           body: JSON.stringify(task.request),
           signal: controller.signal,
         });
@@ -91,7 +95,7 @@ export function useWorkspaceTransport({
       } else {
         const response = await fetch("/api/hitl", {
           method: "POST",
-          headers: { "content-type": "application/json" },
+          headers: { "content-type": "application/json", ...dataModeHeaders(dataMode) },
           body: JSON.stringify({ plan: task.plan, ...task.decision }),
           signal: controller.signal,
         });

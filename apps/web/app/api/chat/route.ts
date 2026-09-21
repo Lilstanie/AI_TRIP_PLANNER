@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { IncompleteBriefError, runTripChat } from "@trip/orchestrator";
+import { parseDataMode, runWithDataMode } from "@trip/tools";
 import { tripStore } from "@trip/services";
 import {
   ChatRequest,
@@ -9,6 +10,9 @@ import {
 } from "@trip/shared";
 
 export async function POST(req: Request) {
+  // The workspace toggle states the mode per request; absent, the deployment's
+  // USE_MOCK_TOOLS default applies.
+  const dataMode = parseDataMode(req.headers.get("x-trip-data-mode"));
   const body = await req.json().catch(() => ({}));
   const parsed = ChatRequest.safeParse(body);
   if (!parsed.success || (parsed.data.mode === "plan" && !parsed.data.brief)) {
@@ -34,7 +38,9 @@ export async function POST(req: Request) {
       };
 
       try {
-        const response = ChatResponse.parse(await runTripChat(parsed.data, { onProgress: send }));
+        const response = ChatResponse.parse(
+          await runWithDataMode(dataMode, () => runTripChat(parsed.data, { onProgress: send })),
+        );
         await tripStore.set(response.plan);
         send({ type: "complete", response });
       } catch (error) {

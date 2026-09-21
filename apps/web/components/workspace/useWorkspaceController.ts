@@ -31,6 +31,7 @@ import {
   type MobileView,
   type Task,
 } from "./workspace-helpers";
+import { useDataMode } from "@/lib/workspace/data-mode";
 export function useWorkspaceController({ restored }: { restored: RestoredWorkspace }) {
   const [plan, setPlan] = useState<TripPlan | undefined>(restored.plan);
   const [draft, setDraft] = useState(restored.draft);
@@ -180,8 +181,10 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
       left.current?.querySelector<HTMLInputElement>("input")?.focus({ preventScroll: true });
     });
   }
+  const dataMode = useDataMode();
   const { run, submit, send, onDecision } = useWorkspaceTransport({
     plan,
+    dataMode: dataMode.mode,
     draft,
     input,
     planRef,
@@ -377,6 +380,7 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
 
   return {
     plan,
+    dataMode,
     draft,
     messages,
     input,

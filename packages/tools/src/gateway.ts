@@ -7,9 +7,10 @@ import type { ToolGateway } from "@trip/shared";
 import * as mapsAdapter from "./maps";
 import * as bookingAdapter from "./booking";
 import * as weatherAdapter from "./weather";
+import { mockEnabled } from "./data-mode";
 
 export function createToolGateway(): ToolGateway {
-  const useMock = process.env.USE_MOCK_TOOLS !== "false";
+  const useMock = mockEnabled();
   if (!useMock) {
     const selected = process.env.MAPS_PROVIDER || (process.env.MAPS_API_KEY ? "google" : "osm");
     if (selected === "osm" && !process.env.OSM_USER_AGENT) {

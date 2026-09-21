@@ -6,10 +6,10 @@
 
 import type { RouteQuery, RouteLeg, PlaceQuery, Place } from "@trip/shared";
 import { searchGooglePlacesText } from "./google-places";
+import { mockEnabled } from "./data-mode";
 
 export type { RouteQuery, RouteLeg, PlaceQuery, Place } from "@trip/shared";
 
-const mockEnabled = () => process.env.USE_MOCK_TOOLS !== "false";
 const provider = () => process.env.MAPS_PROVIDER || (process.env.MAPS_API_KEY ? "google" : "osm");
 
 function apiUrl(path: string): string {

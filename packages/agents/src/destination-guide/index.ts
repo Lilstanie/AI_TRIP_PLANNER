@@ -10,6 +10,7 @@ import {
 import { z } from "zod/v4";
 import { createAgent, tool } from "langchain";
 import { createRoutedChatModel, readStructuredResponse } from "../models";
+import { mockEnabled } from "@trip/tools";
 
 // The guide schema keeps model output bounded and makes every downstream item
 // safe to render as traveller-facing content.
@@ -272,13 +273,13 @@ async function planDestinationGuide(
         : {
             kind: weatherResult?.provider === "Google Weather API"
               ? "live"
-              : process.env.USE_MOCK_TOOLS === "false"
+              : !mockEnabled()
                 ? "estimated"
                 : "mock",
             label: weatherResult?.provider ?? "Maps evidence and AI guide",
             freshness: weatherResult
               ? `${weatherResult.horizon === "forecast" ? "Forecast" : "Climate context"} observed at ${weatherResult.observedAt}; conditions and provider availability may change.`
-              : process.env.USE_MOCK_TOOLS === "false"
+              : !mockEnabled()
                 ? "Place details are provider estimates; weather, entry, health and safety claims require official verification."
                 : "Place details come from deterministic mock fixtures; not live verified.",
           },

@@ -14,6 +14,7 @@ import { createAgent, tool } from "langchain";
 import { z } from "zod/v4";
 import { createRoutedChatModel, readStructuredResponse } from "../models";
 import { dateForDay, planningDays, routeProblem, fareUnavailable } from "./validation";
+import { mockEnabled } from "@trip/tools";
 
 // Transport combines booking fares with map legs and keeps all pricing in the
 // deterministic calculator that the specialist must call.
@@ -232,7 +233,7 @@ function transportSource(
       freshness: "No valid flight fare was available; transport remains incomplete and unpriced.",
     };
   }
-  if (process.env.USE_MOCK_TOOLS !== "false") {
+  if (mockEnabled()) {
     return {
       kind: "mock",
       label: "Mock booking and route data",
