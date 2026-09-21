@@ -51,5 +51,6 @@ Don't edit `packages/shared` without telling the team; every package depends on 
 ## Session logs
 
 Every AI-assisted coding session adds a concise note in `docs/session-logs/`, named
-`YYYY-MM-DD-<topic-or-name>.md` and based on [`TEMPLATE.md`](session-logs/TEMPLATE.md). The
-[session-log index](session-logs/README.md) groups them by phase.
+`YYYY-MM-DD-<topic>.md` and based on [`TEMPLATE.md`](session-logs/TEMPLATE.md). One session is one
+new file, so two people writing at once never conflict. The
+[session-log README](session-logs/README.md) has the writing rules.

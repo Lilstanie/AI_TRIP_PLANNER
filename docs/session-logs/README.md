@@ -1,38 +1,44 @@
 # Session logs
 
-One note per AI-assisted coding session, named `YYYY-MM-DD-<topic-or-name>.md` and based on
-[`TEMPLATE.md`](TEMPLATE.md). Logs are historical records: file paths and document names in them
-describe the repository at the time (for example `docs/scaffold.md` and `docs/ui-improvements.md`,
-which were later merged into [`team-workflow.md`](../team-workflow.md),
-[`architecture.md`](../architecture.md) and [`workspace-ui.md`](../workspace-ui.md)).
+One note per coding session, named `YYYY-MM-DD-<topic>.md`, based on
+[`TEMPLATE.md`](TEMPLATE.md).
 
-## Agents and orchestration
+One session, one new file. Two people working at the same time create two
+different files, so these notes never produce a merge conflict. Keep it that
+way: write your own file, do not edit someone else's.
 
-| Date       | Log                                                        | Topic                                             |
-| ---------- | ---------------------------------------------------------- | ------------------------------------------------- |
-| 2026-09-05 | [yi-qiao](2026-09-05-yi-qiao.md)                           | Accommodation and budget (C)                      |
-| 2026-09-08 | [codex](2026-09-08-codex.md)                               | LangChain fit assessment and implementation start |
-| 2026-09-08 | [codex-phase-4](2026-09-08-codex-phase-4.md)               | Itinerary and transport specialists               |
-| 2026-09-09 | [codex-stage-5-2](2026-09-09-codex-stage-5-2.md)           | Remaining specialist agents                       |
-| 2026-09-09 | [minimax-endpoint-fix](2026-09-09-minimax-endpoint-fix.md) | MiniMax 401, latency and demo caching             |
-| 2026-09-12 | [tingsong-jin](2026-09-12-tingsong-jin.md)                 | Itinerary and transport reliability (B)           |
+There is deliberately no index table here. The filenames carry the date and
+the topic, so `ls docs/session-logs/` is the index — a hand-maintained table
+goes stale the first time someone forgets to add a row, and every row added
+to it is another line for two people to conflict on.
 
-## Web workspace
+## How to write one
 
-| Date       | Log                                                                                                                                            | Topic                                                     |
-| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
-| 2026-09-16 | [ui-p0](2026-09-16-ui-p0.md)                                                                                                                   | Editable preferences, progress and detail cards           |
-| 2026-09-16 | [ui-p1](2026-09-16-ui-p1.md)                                                                                                                   | HITL decisions and review                                 |
-| 2026-09-16 | [ui-p2](2026-09-16-ui-p2.md)                                                                                                                   | Saved trips, restore and responsive layout                |
-| 2026-09-16 | [main-sync](2026-09-16-main-sync.md)                                                                                                           | Merge of `main` into the UI branch                        |
-| 2026-09-17 | [p3-0](2026-09-17-p3-0.md) · [p3-1](2026-09-17-p3-1.md) · [p3-2](2026-09-17-p3-2.md) · [p3-3](2026-09-17-p3-3.md) · [p3-4](2026-09-17-p3-4.md) | Google map, timeline, routes, edit preview and acceptance |
-| 2026-09-17 | [workspace-map-shell](2026-09-17-workspace-map-shell.md)                                                                                       | Multi-panel workspace, history and geolocation            |
-| 2026-09-17 | [workspace-redesign](2026-09-17-workspace-redesign.md)                                                                                         | Overlay drawers and blank chat sessions                   |
-| 2026-09-17 | [navigation-map-framing](2026-09-17-navigation-map-framing.md)                                                                                 | Icon navigation, top bar, blank start and map framing     |
+**Say what changed, then why.** The diff already shows *how*. Git does not
+record *why*, which is the one thing a reader cannot recover on their own.
 
-## Documentation
+**Be specific in the title.** "Theme the calendar to match the app" is useful;
+"UI fixes" is not. This line is what people skim.
 
-| Date       | Log                                                      | Topic                             |
-| ---------- | -------------------------------------------------------- | --------------------------------- |
-| 2026-09-17 | [readme-docs-refresh](2026-09-17-readme-docs-refresh.md) | README and docs aligned with code |
-| 2026-09-17 | [docs-restructure](2026-09-17-docs-restructure.md)       | Docs merged and reorganised       |
+**Only claim checks you actually ran.** Paste the real result, including the
+number of tests. Never write that something passes because it probably does.
+
+**Link to code, do not paste it.** Reference `apps/web/app/globals.css` or a
+symbol name. Pasted code drifts from the file the moment someone edits it.
+
+**Record contract changes in the frontmatter.** `contract-impact` is the field
+most likely to save a teammate: anything touching `packages/shared` or the API
+routes can break work that is already in progress on another branch.
+
+**Aim for 40 lines.** If a change genuinely needs more explanation than that,
+it belongs in `docs/` as a real document, and the log should link to it.
+
+## Reading old logs
+
+Logs are historical records, not living documents. Do not rewrite one after
+the fact except to correct a factual error. Paths and document names in an old
+log describe the repository as it was on that date — for example
+`docs/scaffold.md` and `docs/ui-improvements.md` were later merged into
+[`team-workflow.md`](../team-workflow.md),
+[`architecture.md`](../architecture.md) and
+[`workspace-ui.md`](../workspace-ui.md).
