@@ -94,5 +94,33 @@ export const AgentProgressEvent = z.discriminatedUnion("type", [
     round: z.number().int().positive(),
     error: z.string(),
   }),
+  z.object({
+    type: z.literal("tool_started"),
+    agent: z.enum(AGENT_NAMES),
+    round: z.number().int().positive(),
+    callId: z.string().min(1),
+    tool: z.string().min(1),
+    label: z.string().min(1),
+    summary: z.string().min(1),
+  }),
+  z.object({
+    type: z.literal("tool_completed"),
+    agent: z.enum(AGENT_NAMES),
+    round: z.number().int().positive(),
+    callId: z.string().min(1),
+    tool: z.string().min(1),
+    label: z.string().min(1),
+    resultSummary: z.string().min(1),
+    resultCount: z.number().int().nonnegative().optional(),
+  }),
+  z.object({
+    type: z.literal("tool_failed"),
+    agent: z.enum(AGENT_NAMES),
+    round: z.number().int().positive(),
+    callId: z.string().min(1),
+    tool: z.string().min(1),
+    label: z.string().min(1),
+    error: z.string().min(1),
+  }),
 ]);
 export type AgentProgressEvent = z.infer<typeof AgentProgressEvent>;

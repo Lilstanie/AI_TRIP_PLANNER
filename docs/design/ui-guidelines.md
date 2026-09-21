@@ -4,6 +4,22 @@
 
 The workspace is a cartographer's field desk: the map is the working ground, panels are layered paper, and tools remain close without competing with the plan. This is achieved with surfaces, hairlines, restrained shadows, and whitespace—not textures, filters, or decorative assets.
 
+## UI Reference Resources
+
+The following sites are reference sources for interaction patterns, motion, components, and visual
+direction. They inform implementation choices but do not replace the project's own accessibility,
+semantic-token, or workspace-layout contracts.
+
+- [Beautiful UI](https://beautifului.dev)
+- [BeUI](https://beui.dev)
+- [Rare UI](https://rareui.com)
+- [Transitions](https://transitions.dev)
+- [shadcn/ui](https://ui.shadcn.com)
+
+External source code may only be copied under the source's current license. Use public/free BeUI
+components unless a matching Pro license is available; preserve required MIT notices, and do not
+redistribute an external library as a competing component kit.
+
 ## Colors
 
 Use the semantic tokens in `apps/web/app/globals.css` as the only color contract:

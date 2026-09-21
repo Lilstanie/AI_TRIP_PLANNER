@@ -70,9 +70,10 @@ now. Implementation history and browser acceptance for each phase are in the
 - **Starting to plan.**
   - A blank chat offers example trip suggestions. Selecting one replaces and focuses the message input;
     it never sends a message or starts a request.
-  - Planning progress is a flat, text-and-symbol status list for the coordinator and specialists.
-    Per-agent and coordinator event details remain native, collapsed `<details>` controls; unknown
-    states remain neutral rather than complete.
+  - Planning progress is a flat status list for the coordinator and specialists. Each row is an
+    `aria-expanded` button whose detail block stays collapsed until it is opened; unknown states
+    remain neutral rather than complete. The surface it imitates, and the changes still outstanding
+    against it, are recorded in the [DSH thinking UI reference](design/dsh-thinking-ui.md).
   - Messages retain their conversation order in a `role="log"`; each has one visible, spoken-once
     speaker label (You or Travel planning assistant). Bubbles use alignment, surface, border and
     corner shape as well as the label, and long URLs or mixed Chinese/English text wrap within the

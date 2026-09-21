@@ -257,12 +257,51 @@
   background: var(--surface);
   font-size: 13px;
   min-width: 0;
+  transition:
+    border-color var(--transition),
+    box-shadow var(--transition),
+    transform var(--transition);
+}
+.checkpoint--pending,
+.checkpoint--deferred {
+  border-color: color-mix(in srgb, var(--warn) 28%, var(--border));
+}
+.checkpoint--approved {
+  border-color: color-mix(in srgb, var(--ok) 35%, var(--border));
+}
+.checkpoint--blocked {
+  border-color: color-mix(in srgb, var(--warn) 48%, var(--border));
+  background: color-mix(in srgb, var(--warn-bg) 45%, var(--surface));
 }
 .checkpoint__head {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
+}
+.checkpoint__head h3 {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 650;
+}
+.checkpoint__status {
+  border-color: var(--border);
+  font-size: 10px;
+}
+.checkpoint__status--pending,
+.checkpoint__status--deferred {
+  border-color: color-mix(in srgb, var(--warn) 45%, var(--border));
+  color: var(--warn);
+}
+.checkpoint__status--rejected {
+  border-color: color-mix(in srgb, var(--warn) 65%, var(--border));
+  color: var(--warn);
+}
+.checkpoint__status--approved {
+  border-color: color-mix(in srgb, var(--ok) 45%, var(--border));
+  color: var(--ok);
 }
 .checkpoint p {
   color: var(--text-dim);
@@ -281,6 +320,9 @@
   gap: 8px;
   margin-block: 12px;
 }
+.actions [data-slot="button"] {
+  min-height: 32px;
+}
 .stay-options {
   display: grid;
   gap: 8px;
@@ -293,6 +335,15 @@
   border: 1px solid var(--border);
   background: var(--surface-2);
   border-radius: var(--radius-sm);
+  transition:
+    border-color var(--transition),
+    background var(--transition),
+    box-shadow var(--transition),
+    transform var(--transition);
+}
+.stay-option:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+  box-shadow: var(--shadow-sm);
 }
 .stay-option span,
 .stay-option small {
@@ -301,6 +352,12 @@
 .stay-option--selected {
   border: 2px solid var(--accent);
   background: var(--accent-bg);
+}
+.checkpoint__blocked {
+  display: block;
+  margin-top: 8px;
+  color: var(--warn);
+  font-size: 11px;
 }
 .result-card {
   padding: 12px;

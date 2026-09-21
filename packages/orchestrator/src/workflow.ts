@@ -13,6 +13,7 @@ import {
   TripBrief as TripBriefSchema,
   TripPlan as TripPlanSchema,
   type AgentContext,
+  type AgentName,
   type AgentProposal,
   type AgentProgressEvent,
   type MemoryStore,
@@ -30,6 +31,7 @@ import { detectConflicts } from "./conflicts";
 export { detectConflicts } from "./conflicts";
 import { checkpointsFor } from "./hitl";
 import { dispatchWithSupervisor, reviseWithSupervisor } from "./supervisor";
+import { withProgressTools } from "./progress-tools";
 
 const DEFAULT_MAX_ROUNDS = 3;
 
@@ -108,10 +110,10 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
   const { specialists, specialistByName, injected, maxRounds, tools, mem, onProgress } =
     resolveOptions(options);
 
-  const context = (brief: TripBrief, round: number): AgentContext => ({
+  const context = (brief: TripBrief, round: number, agent?: AgentName): AgentContext => ({
     tripId: brief.tripId,
     round,
-    tools,
+    tools: agent && onProgress ? withProgressTools(tools, agent, round, onProgress) : tools,
     mem: brief.accommodation
       ? {
           ...mem,
@@ -231,7 +233,7 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
           if (!request || !specialist?.supportsRevision) return proposal;
           return invokeSpecialist(specialist, {
             brief: state.brief,
-            context: context(state.brief, round),
+            context: context(state.brief, round, specialist.name),
             revision: request,
           });
         }),

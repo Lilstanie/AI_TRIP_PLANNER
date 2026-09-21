@@ -166,6 +166,16 @@ Idle → Submitting → Thinking → Calling tools → Drafting answer → Compl
 结构化回答生成占位、失败/重试提示和 Stop 操作。保留现有 `<details>` 结构、ARIA live region、
 键盘焦点和 `prefers-reduced-motion`，并为阶段、占位回答和取消操作补浏览器回归测试。
 
+当前实现记录（DeepSeek Harness 风格）：旧的进度卡片、阶段轨道、工具 chips 和回答占位已由
+`apps/web/components/chat/ThinkingProcess.tsx` 替换为对话流内的 `Think` 行与五个 specialist
+subagent 行。五个 subagent 会同时可见，状态仍只来自高层 `AgentProgressEvent`（queued、thinking、
+revising、complete、needs attention），展开后只显示 round、summary、constraints 和错误；不显示
+原始 prompt 或 chain-of-thought。交互参考 DeepSeek Harness 的 MIT 许可思考行结构与折叠行为，样式
+继续使用本项目的语义 token、ARIA 和 `prefers-reduced-motion` 约束。外部工具网关现在也投影为
+`tool_started`、`tool_completed` 和 `tool_failed` 事件，动态显示 Search places、Check route、
+Search stays、Search flights、Check weather 的真实调用、结果数量和失败状态；Think 行在工具执行期间
+显示 Deep diving 动态，并按事件流更新工具行。
+
 ## P1：五个 UI 站点的取舍与移植策略
 
 ### Beautiful UI：主参考

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import type { HitlCheckpoint, TripPlan } from "@trip/shared";
 import { CheckpointCards } from "@/components/trip/CheckpointCards";
@@ -68,5 +68,37 @@ describe("CheckpointCards", () => {
       />,
     );
     expect(screen.getByText("Resolve the other decisions first.")).toBeTruthy();
+  });
+
+  it("keeps checkpoint actions wired to the existing decision contract", () => {
+    const onDecision = vi.fn();
+    render(
+      <CheckpointCards
+        plan={planWith([checkpoint({ id: "brief", title: "Confirm the brief" })])}
+        busy={false}
+        onDecision={onDecision}
+        onEdit={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("status").textContent).toContain("Needs you");
+    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
+    expect(onDecision).toHaveBeenCalledWith({ checkpointId: "brief", action: "approve" });
+  });
+
+  it("shows the edit recovery action after a rejected checkpoint", () => {
+    const onEdit = vi.fn();
+    render(
+      <CheckpointCards
+        plan={planWith([checkpoint({ status: "rejected" })])}
+        busy={false}
+        onDecision={vi.fn()}
+        onEdit={onEdit}
+      />,
+    );
+
+    expect(screen.getByRole("status").textContent).toContain("Returned to edit");
+    fireEvent.click(screen.getByRole("button", { name: "Edit trip preferences" }));
+    expect(onEdit).toHaveBeenCalledTimes(1);
   });
 });

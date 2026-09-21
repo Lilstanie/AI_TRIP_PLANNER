@@ -1,8 +1,18 @@
 "use client";
-import type { HitlRequest, TripPlan } from "@trip/shared";
+import type { HitlCheckpoint, HitlRequest, TripPlan } from "@trip/shared";
 import { money } from "@/lib/workspace";
+import { Button } from "../ui/button";
+import { Badge } from "../ui/badge";
 import { SourceBadge } from "./SourceBadge";
 export type Decision = Pick<HitlRequest, "checkpointId" | "action" | "candidateId">;
+
+const CHECKPOINT_STATUS_LABEL: Record<HitlCheckpoint["status"], string> = {
+  pending: "Needs you",
+  deferred: "Deferred · still pending",
+  rejected: "Returned to edit",
+  approved: "Confirmed",
+};
+
 export function CheckpointCards({
   plan,
   busy,
@@ -34,16 +44,20 @@ export function CheckpointCards({
             checkpoint.type === "confirm_plan" &&
             plan.hitl.some((c) => c.id !== checkpoint.id && c.status !== "approved");
           return (
-            <article className="checkpoint" key={checkpoint.id}>
+            <article
+              className={`checkpoint checkpoint--${checkpoint.status}${blocked ? " checkpoint--blocked" : ""}`}
+              data-status={checkpoint.status}
+              key={checkpoint.id}
+            >
               <div className="checkpoint__head">
-                <strong>{checkpoint.title}</strong>
-                <span
-                  className={`chip chip--${checkpoint.status === "approved" ? "confirmed" : "needs_you"}`}
+                <h3>{checkpoint.title}</h3>
+                <Badge
+                  variant={checkpoint.status === "approved" ? "secondary" : "outline"}
+                  className={`checkpoint__status checkpoint__status--${checkpoint.status}`}
+                  role="status"
                 >
-                  {checkpoint.status === "deferred"
-                    ? "Deferred · still pending"
-                    : checkpoint.status}
-                </span>
+                  {CHECKPOINT_STATUS_LABEL[checkpoint.status]}
+                </Badge>
               </div>
               <p>{checkpoint.detail}</p>
               {stay && (
@@ -64,6 +78,7 @@ export function CheckpointCards({
                   </div>
                   {stay.candidates.map((choice) => (
                     <button
+                      type="button"
                       disabled={busy}
                       className={`stay-option${stay.selectedId === choice.id ? " stay-option--selected" : ""}`}
                       key={choice.id}
@@ -100,33 +115,45 @@ export function CheckpointCards({
               {checkpoint.status !== "approved" && (
                 <div className="actions">
                   {checkpoint.type !== "select_stay" && (
-                    <button
+                    <Button
+                      type="button"
+                      size="sm"
                       disabled={busy || blocked}
                       onClick={() => onDecision({ checkpointId: checkpoint.id, action: "approve" })}
                     >
                       {checkpoint.type === "escalation" ? "Accept these conflicts" : "Confirm"}
-                    </button>
+                    </Button>
                   )}
-                  <button
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
                     disabled={busy}
                     onClick={() => onDecision({ checkpointId: checkpoint.id, action: "reject" })}
                   >
                     Return to edit
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
                     disabled={busy || checkpoint.status === "deferred"}
                     onClick={() => onDecision({ checkpointId: checkpoint.id, action: "defer" })}
                   >
                     Decide later
-                  </button>
+                  </Button>
                 </div>
               )}
               {checkpoint.status === "rejected" && (
-                <button disabled={busy} onClick={onEdit}>
+                <Button type="button" size="sm" variant="outline" disabled={busy} onClick={onEdit}>
                   Edit trip preferences
-                </button>
+                </Button>
               )}
-              {blocked && <small className="muted">Resolve the other decisions first.</small>}
+              {blocked && (
+                <small className="checkpoint__blocked" role="status">
+                  Resolve the other decisions first.
+                </small>
+              )}
             </article>
           );
         })}

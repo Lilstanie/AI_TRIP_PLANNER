@@ -73,6 +73,13 @@ export const RouteIcon = () => (
   </Icon>
 );
 
+export const FlightIcon = () => (
+  <Icon>
+    <path d="m4 14 16-4.5M9 12.5l-2.5-6 1.8-.5 5.2 5.2M13 11.1l2.5 5.1-1.8.5-4.4-4.3" />
+    <path d="M4 14v2.5M20 9.5V12" />
+  </Icon>
+);
+
 export const MapPinIcon = () => (
   <Icon>
     <path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11Z" />
@@ -134,3 +141,29 @@ export const CalendarIcon = () => (
     <path d="M3.5 9.5h17M8 3v4M16 3v4" />
   </Icon>
 );
+
+/** Small outline icon used by the collapsible AI thinking row. */
+export const ThinkIcon = () => (
+  <Icon>
+    <path d="M8.5 15.5h7a3.5 3.5 0 0 0 .4-7 4.8 4.8 0 0 0-9.1 1.1 3 3 0 0 0 1.7 5.9Z" />
+    <path d="M9.5 18h5M10.5 20h3" />
+  </Icon>
+);
+
+/** Small stacked-agent glyph used by the Thinking transcript rows. */
+export const SubagentIcon = () => (
+  <Icon>
+    <circle cx="8" cy="9" r="2.5" />
+    <circle cx="16" cy="9" r="2.5" />
+    <path d="M3.8 18a4.8 4.8 0 0 1 8.4-2.1A4.8 4.8 0 0 1 20.2 18" />
+  </Icon>
+);
+
+/** Tool-specific leading glyphs used by the live Thinking transcript. */
+export const ToolIcon = ({ tool }: { tool: string }) => {
+  if (tool === "maps.route") return <RouteIcon />;
+  if (tool === "booking.searchFlights") return <FlightIcon />;
+  if (tool === "booking.searchStays") return <SuitcaseIcon />;
+  if (tool === "weather.forecast") return <GlobeIcon />;
+  return <SearchIcon />;
+};

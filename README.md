@@ -78,6 +78,7 @@ docs/                     Project documentation
 | [Product closure TODO](docs/todo-product-closure.md) | Real providers, weather, UI polish and persistence |
 | [Team workflow](docs/team-workflow.md) | Ownership, branches, reviews and session logs               |
 | [UI guidelines](docs/design/ui-guidelines.md) | Visual tokens, layout and component design rules        |
+| [DSH thinking UI](docs/design/dsh-thinking-ui.md) | The thinking surface this project imitates, and the gaps against it |
 
 Also in `docs/`:
 

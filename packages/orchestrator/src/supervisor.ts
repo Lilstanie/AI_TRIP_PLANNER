@@ -12,6 +12,7 @@ import { createRoutedChatModel } from "@trip/agents";
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import { createAgent, tool } from "langchain";
 import { z } from "zod/v4";
+import { withProgressTools } from "./progress-tools";
 
 const DelegationRequest = z.object({
   objective: z
@@ -65,7 +66,20 @@ export function createSupervisorTools(
         let proposal: AgentProposal;
         try {
           proposal = AgentProposalSchema.parse(
-            await specialist.invoke({ brief: options.brief, context: options.context }),
+            await specialist.invoke({
+              brief: options.brief,
+              context: {
+                ...options.context,
+                tools: options.onProgress
+                  ? withProgressTools(
+                      options.context.tools,
+                      specialist.name,
+                      options.context.round,
+                      options.onProgress,
+                    )
+                  : options.context.tools,
+              },
+            }),
           );
         } catch (error) {
           options.onProgress?.({
@@ -120,7 +134,17 @@ export function createRevisionTools(
             proposal = AgentProposalSchema.parse(
               await specialist.invoke({
                 brief: options.brief,
-                context: options.context,
+                context: {
+                  ...options.context,
+                  tools: options.onProgress
+                    ? withProgressTools(
+                        options.context.tools,
+                        specialist.name,
+                        options.context.round,
+                        options.onProgress,
+                      )
+                    : options.context.tools,
+                },
                 revision: request,
               }),
             );

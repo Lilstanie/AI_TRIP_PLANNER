@@ -121,24 +121,24 @@ describe("ChatPanel", () => {
   });
 
   it.each([
-    ["agent_started", "Running"],
+    ["agent_started", "Thinking"],
     ["agent_completed", "Complete"],
     ["agent_failed", "Needs attention"],
-    ["unexpected", "Unknown status"],
-  ])("exposes %s progress as %s and keeps details collapsed", (type, status) => {
+    ["unexpected", "Waiting for update"],
+  ])("exposes %s as %s and keeps subagent details collapsed", (type, status) => {
     render(<Chat activityEvents={[activity(type)]} />);
 
-    const progress = screen.getByRole("region", { name: "Planning progress" });
+    const progress = screen.getByRole("region", { name: "Thinking process" });
     expect(
       within(progress).getByRole("listitem", { name: new RegExp(`Day plan.*${status}`) }),
     ).toBeTruthy();
-    const details = within(progress).getByRole("group", { name: "Day plan details" });
-    expect(details.hasAttribute("open")).toBe(false);
-    fireEvent.click(details.querySelector("summary")!);
-    expect(details.hasAttribute("open")).toBe(true);
+    const details = within(progress).getByRole("button", { name: "Day plan details" });
+    expect(details.getAttribute("aria-expanded")).toBe("false");
+    fireEvent.click(details);
+    expect(details.getAttribute("aria-expanded")).toBe("true");
   });
 
-  it("shows high-level planning stages, an answer placeholder, and a stop action while busy", () => {
+  it("shows the DeepSeek-style thinking transcript and a stop action while busy", () => {
     const onCancel = vi.fn();
     render(
       <ChatPanel
@@ -157,14 +157,99 @@ describe("ChatPanel", () => {
       />,
     );
 
-    expect(screen.getByText("Thinking", { selector: "strong" })).toBeTruthy();
-    expect(screen.getByLabelText("Answer in progress")).toBeTruthy();
+    const thinking = screen.getByRole("button", { name: /Think/ });
+    expect(thinking).toBeTruthy();
+    fireEvent.click(thinking);
+    expect(screen.getByText("0/5 subagents have reported back.")).toBeTruthy();
+    expect(screen.getByRole("list", { name: "Subagents thinking together" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Stop planning" }));
     expect(onCancel).toHaveBeenCalledTimes(1);
   });
+
+  it("shows all subagents without exposing internal reasoning", () => {
+    render(
+      <ChatPanel
+        messages={[{ role: "user", text: "Plan Sydney" }]}
+        input=""
+        onInput={vi.fn()}
+        busy
+        activity={[{ type: "agent_started", agent: "itinerary", round: 1 }]}
+        onSend={vi.fn()}
+        onDecision={vi.fn()}
+        onEdit={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("listitem", { name: "Day plan Thinking" })).toBeTruthy();
+    expect(screen.getByRole("listitem", { name: "Getting around Waiting" })).toBeTruthy();
+    expect(screen.getByRole("listitem", { name: "Stay Waiting" })).toBeTruthy();
+    expect(screen.getByRole("listitem", { name: "Destination guide Waiting" })).toBeTruthy();
+    expect(screen.getByRole("listitem", { name: "Food & dining Waiting" })).toBeTruthy();
+    expect(screen.queryByText(/chain[- ]of[- ]thought/i)).toBeNull();
+  });
+
+  it("renders live tool actions and settles them when the stream reports a result", () => {
+    const baseActivity: AgentProgressEvent[] = [
+      { type: "coordinator", phase: "dispatch", round: 1, summary: "Assigning work" },
+      { type: "agent_started", agent: "itinerary", round: 1, summary: "Building the day plan" },
+      {
+        type: "tool_started",
+        agent: "itinerary",
+        round: 1,
+        callId: "itinerary:1:1",
+        tool: "maps.places",
+        label: "Search places",
+        summary: "sight near Sydney",
+      },
+    ];
+    const view = render(
+      <ChatPanel
+        messages={[{ role: "user", text: "Plan Sydney" }]}
+        input=""
+        onInput={vi.fn()}
+        busy
+        activity={baseActivity}
+        onSend={vi.fn()}
+        onDecision={vi.fn()}
+        onEdit={vi.fn()}
+      />,
+    );
+
+    expect(screen.getAllByText(/Deep diving/).length).toBeGreaterThan(0);
+    expect(screen.getByRole("group", { name: "Search places running" })).toBeTruthy();
+    view.rerender(
+      <ChatPanel
+        messages={[{ role: "user", text: "Plan Sydney" }]}
+        input=""
+        onInput={vi.fn()}
+        busy
+        activity={[
+          ...baseActivity,
+          {
+            type: "tool_completed",
+            agent: "itinerary",
+            round: 1,
+            callId: "itinerary:1:1",
+            tool: "maps.places",
+            label: "Search places",
+            resultSummary: "5 place result(s)",
+            resultCount: 5,
+          },
+        ]}
+        onSend={vi.fn()}
+        onDecision={vi.fn()}
+        onEdit={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole("group", { name: "Search places completed" })).toBeTruthy();
+    expect(screen.getByText("5 place result(s)")).toBeTruthy();
+  });
 });
 
-function renderPanel(messages: Message[], overrides: Partial<Parameters<typeof ChatPanel>[0]> = {}) {
+function renderPanel(
+  messages: Message[],
+  overrides: Partial<Parameters<typeof ChatPanel>[0]> = {},
+) {
   const onInput = vi.fn();
   render(
     <ChatPanel
@@ -190,11 +275,7 @@ describe("ChatPanel date picker", () => {
     // import of DateRangePicker (react-day-picker + its stylesheet), and a
     // cold module transform can take longer than the default 1s poll.
     expect(
-      await screen.findByRole(
-        "heading",
-        { name: /when are you travelling/i },
-        { timeout: 5000 },
-      ),
+      await screen.findByRole("heading", { name: /when are you travelling/i }, { timeout: 5000 }),
     ).toBeTruthy();
   });
 
@@ -215,9 +296,7 @@ describe("ChatPanel date picker", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /pick travel dates from a calendar/i }));
 
-    expect(
-      await screen.findByRole("heading", { name: /when are you travelling/i }),
-    ).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: /when are you travelling/i })).toBeTruthy();
   });
 
   it("fills the composer with the picked dates instead of sending immediately", async () => {
