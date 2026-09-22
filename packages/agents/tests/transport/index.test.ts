@@ -97,6 +97,45 @@ describe("transport planner", () => {
     expect(searchFlights).toHaveBeenCalledWith(expect.objectContaining({ from: "Melbourne" }));
   });
 
+  it("offers the ground-transport choice on each hop when the adapter has one", async () => {
+    const { ctx } = context();
+    ctx.tools.maps.routeOptions = vi.fn(async () => [
+      {
+        mode: "drive" as const,
+        durationMin: 29,
+        price: 13.29,
+        priceBasis: "partial" as const,
+        note: "tolls only",
+      },
+      {
+        mode: "bus" as const,
+        durationMin: 74,
+        price: 0,
+        priceBasis: "unavailable" as const,
+        note: "via bus 52",
+      },
+    ]);
+    const result = await transportAgent.invoke({ brief, context: ctx });
+    const hop = result.items.find((item) => item.detail?.includes("Ways to make this hop"))!;
+    expect(hop).toBeTruthy();
+    // A partial cost reads as a floor, and an unpriced fare says so rather than
+    // appearing as free next to a priced drive.
+    expect(hop.detail).toContain("drive 29 min, from A$13.29");
+    expect(hop.detail).toContain("bus 74 min, fare not published");
+  });
+
+  it("keeps a hop's timing when the comparison lookup fails", async () => {
+    // The options only describe a choice; losing them must not cost the hop its
+    // place in the schedule.
+    const { ctx } = context();
+    ctx.tools.maps.routeOptions = vi.fn(async () => {
+      throw new Error("options provider down");
+    });
+    const result = await transportAgent.invoke({ brief, context: ctx });
+    expect(result.items.some((item) => item.kind === "transport")).toBe(true);
+    expect(result.items.some((item) => item.detail?.includes("Ways to make this hop"))).toBe(false);
+  });
+
   it("moves routed legs earlier for a schedule revision", async () => {
     const result = await transportAgent.invoke({
       brief,

@@ -1,4 +1,21 @@
-import type { RouteLeg } from "@trip/shared";
+import type { RouteLeg, TravelMode } from "@trip/shared";
+
+/**
+ * Every mode a route leg may claim. Written as a keyed record rather than an
+ * array so adding a TravelMode to the shared contract breaks this build until
+ * it is considered here — the previous hardcoded list silently fell behind the
+ * contract and would have rejected a legitimate driving leg as invalid.
+ */
+const ROUTE_MODES: Record<TravelMode, true> = {
+  train: true,
+  flight: true,
+  bus: true,
+  walk: true,
+  transit: true,
+  tram: true,
+  ferry: true,
+  drive: true,
+};
 
 /** Preserve main's end-exclusive planning interval; do not change team date semantics. */
 export function planningDays([start, end]: [string, string]): number {
@@ -30,7 +47,7 @@ export function routeProblem(legs: RouteLeg[]): string | undefined {
   if (
     legs.some(
       (leg) =>
-        !["train", "flight", "bus", "walk", "transit"].includes(leg.mode) ||
+        !(leg.mode in ROUTE_MODES) ||
         !Number.isFinite(leg.durationMin) ||
         leg.durationMin <= 0 ||
         !Number.isFinite(leg.price) ||
@@ -38,9 +55,10 @@ export function routeProblem(legs: RouteLeg[]): string | undefined {
     )
   )
     return "invalid route duration, fare or mode";
-  // The current shared port has no driving mode. A road duration is not evidence
-  // that public transit can make this journey. Keep that ambiguity explicit.
-  if (legs.some((leg) => /OSRM|driving/i.test(leg.note ?? "")))
+  // A road duration is not evidence that public transport can make this
+  // journey. A leg that says so honestly (mode "drive") is fine; one that
+  // reports a driving estimate while claiming transit is not.
+  if (legs.some((leg) => leg.mode !== "drive" && /OSRM|driving/i.test(leg.note ?? "")))
     return "driving estimate cannot verify public transport timing";
   return undefined;
 }

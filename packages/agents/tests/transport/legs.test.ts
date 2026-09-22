@@ -57,11 +57,28 @@ describe("journeyLegs", () => {
 });
 
 describe("legMode", () => {
-  it("flies only the first hop today, and only when it leaves somewhere else", () => {
-    expect(legMode(0, "Melbourne", "Sydney")).toBe("flight");
-    expect(legMode(0, "Sydney", "sydney")).toBe("ground");
+  it("flies only the arrival today, and only when it leaves somewhere else", () => {
+    expect(legMode("arrival", "Melbourne", "Sydney")).toBe("flight");
+    expect(legMode("arrival", "Sydney", "sydney")).toBe("ground");
     // Changing this line is what turns on B→C and C→D flights.
-    expect(legMode(1, "Tokyo", "Kyoto")).toBe("ground");
+    expect(legMode("inter-city", "Tokyo", "Kyoto")).toBe("ground");
+  });
+
+  it("never flies a city hop, even when no arrival hop exists", () => {
+    // Keying on position instead of role sent Sydney → Parramatta, 25km apart,
+    // to the airline search: with the origin already the first destination
+    // there is no arrival hop, so the first city hop inherited index 0.
+    const legs = journeyLegs({
+      ...base,
+      days: 6,
+      origin: "Sydney",
+      destinations: ["Sydney", "Parramatta", "Newcastle"],
+    });
+    expect(legs.map((leg) => `${leg.from} → ${leg.to} (${leg.mode})`)).toEqual([
+      "Sydney → Parramatta (ground)",
+      "Parramatta → Newcastle (ground)",
+    ]);
+    expect(flightLegs(legs)).toHaveLength(0);
   });
 
   it("splits a journey into the two provider groups", () => {

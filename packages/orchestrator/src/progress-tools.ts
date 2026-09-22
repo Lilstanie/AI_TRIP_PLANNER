@@ -8,6 +8,7 @@ import {
   type MapsPort,
   type Place,
   type RouteLeg,
+  type RouteOption,
   type RouteQuery,
   type StayOption,
   type StayQuery,
@@ -74,6 +75,19 @@ function placeDetail(place: Place): string | undefined {
   const parts = [place.category, place.rating === undefined ? undefined : `${place.rating}/10`];
   const joined = parts.filter((part): part is string => Boolean(part)).join(" · ");
   return joined || undefined;
+}
+
+/** A travel option in one line, with the cost qualified by how much is known. */
+function optionDetail(option: RouteOption): string {
+  const hours = Math.floor(option.durationMin / 60);
+  const minutes = option.durationMin % 60;
+  const cost =
+    option.priceBasis === "unavailable"
+      ? "fare not published"
+      : option.priceBasis === "partial"
+        ? `from AUD ${option.price.toFixed(2)}`
+        : `AUD ${option.price.toFixed(2)}`;
+  return [`${hours ? `${hours}h ` : ""}${minutes}m`, cost, option.note].filter(Boolean).join(" · ");
 }
 
 function routeDetail(leg: RouteLeg): string {
@@ -156,6 +170,11 @@ export function withProgressTools(
   }
 
   const maps: MapsPort = {
+    // Spread first so a capability added to MapsPort keeps working here even if
+    // nobody remembers to wrap it. Re-listing every method by hand silently
+    // dropped routeOptions: the agent saw `undefined`, took its own "no
+    // comparison available" branch, and the feature looked merely unused.
+    ...tools.maps,
     places: (query: Parameters<MapsPort["places"]>[0]) =>
       run(
         "maps.places",
@@ -197,6 +216,32 @@ export function withProgressTools(
           };
         },
       ),
+    ...(tools.maps.routeOptions
+      ? {
+          routeOptions: (query: RouteQuery) =>
+            run(
+              "maps.routeOptions",
+              "Compare ways to travel",
+              `${query.from} → ${query.to}`,
+              { from: query.from, to: query.to, ...(query.date ? { date: query.date } : {}) },
+              () => tools.maps.routeOptions!(query),
+              (result) => {
+                const { rows, truncated } = bounded(
+                  result.map((option) => ({
+                    label: option.mode,
+                    detail: optionDetail(option),
+                  })),
+                );
+                return {
+                  text: plural(result.length, "way to travel"),
+                  count: result.length,
+                  rows,
+                  truncated,
+                };
+              },
+            ),
+        }
+      : {}),
   };
 
   const booking: BookingPort = {

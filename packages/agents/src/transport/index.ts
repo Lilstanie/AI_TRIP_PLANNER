@@ -6,6 +6,7 @@ import {
   type RevisionRequest,
   type ProposalItem,
   type RouteLeg,
+  type RouteOption,
   type Specialist,
   type TripBrief,
   type FlightOption,
@@ -55,7 +56,7 @@ interface TransportEvidence {
   budgetRevision: boolean;
   scheduleRevision: boolean;
   flights: FlightOption[];
-  routed: { query: RouteQuery; legs: RouteLeg[] }[];
+  routed: { query: RouteQuery; legs: RouteLeg[]; options: RouteOption[] }[];
   conflicts: string[];
 }
 
@@ -122,14 +123,20 @@ async function gatherTransportEvidence(
           }),
     Promise.all(
       routeQueries.map(async (query) => {
+        // The legs set the schedule; the options only describe the choice. A
+        // missing comparison must not cost the hop its timing, so they are
+        // gathered independently and an options failure is silent.
+        const options = ctx.tools.maps.routeOptions
+          ? await ctx.tools.maps.routeOptions(query).catch(() => [] as RouteOption[])
+          : [];
         try {
-          return { query, legs: await ctx.tools.maps.route(query) };
+          return { query, legs: await ctx.tools.maps.route(query), options };
         } catch {
           ctx.signal?.throwIfAborted();
           conflicts.push(
             `geography conflict on day ${query.day}: route provider unavailable for ${query.from} → ${query.to}`,
           );
-          return { query, legs: [] as RouteLeg[] };
+          return { query, legs: [] as RouteLeg[], options };
         }
       }),
     ),
@@ -161,9 +168,33 @@ async function gatherTransportEvidence(
  * fare. Returns nothing and records a conflict when the hop cannot be scheduled -- an unroutable or
  * overlong hop is a gap in the plan, not a free one.
  */
+/**
+ * How else this hop could be made, in one line.
+ *
+ * Costs are quoted with their basis rather than as bare numbers: Google gives
+ * real road tolls in AUD but no Australian transit fare, so an unqualified "$0
+ * bus" next to a "$13.29 drive" would read as the bus being free rather than
+ * unpriced. Only the scheduled leg's cost reaches the budget; these are shown
+ * so the traveller can make the trade the planner did not make for them.
+ */
+function alternativesLine(options: RouteOption[]): string | undefined {
+  if (options.length < 2) return undefined;
+  const described = options.map((option) => {
+    const price =
+      option.priceBasis === "unavailable"
+        ? "fare not published"
+        : option.priceBasis === "partial"
+          ? `from A$${option.price.toFixed(2)}`
+          : `A$${option.price.toFixed(2)}`;
+    return `${option.mode} ${option.durationMin} min, ${price}`;
+  });
+  return `Ways to make this hop: ${described.join("; ")}`;
+}
+
 function layOutHop(
   query: RouteQuery,
   legs: RouteLeg[],
+  options: RouteOption[],
   day: number,
   startMinutes: number,
   tripStart: string,
@@ -182,7 +213,8 @@ function layOutHop(
     conflicts.push(`time conflict on day ${day}: route cannot fit inside one planning day`);
     return [];
   }
-  return legs.map((leg) => {
+  const alternatives = alternativesLine(options);
+  return legs.map((leg, index) => {
     const startTime = clock(cursor);
     const durationMin = Math.ceil(leg.durationMin);
     cursor += durationMin;
@@ -199,7 +231,11 @@ function layOutHop(
       startTime,
       endTime,
       location: `${query.from} → ${query.to}`,
-      detail: `${leg.mode} from ${query.from} to ${query.to} on ${date}; ${durationMin} minutes${leg.note ? `; ${leg.note}` : ""}.`,
+      detail: `${leg.mode} from ${query.from} to ${query.to} on ${date}; ${durationMin} minutes${leg.note ? `; ${leg.note}` : ""}.${
+        // Only on the first leg of a hop: the comparison is for the hop, not
+        // for each of its segments.
+        index === 0 && alternatives ? ` ${alternatives}` : ""
+      }`,
       ...(unknownFare ? {} : { estCost: leg.price }),
     };
   });
@@ -284,9 +320,9 @@ function assembleTransportProposal(
   const { origin, destinations, brief, budgetRevision, scheduleRevision } = evidence;
   const flownLeg = flightLegs(evidence.legs)[0];
   const conflicts = [...evidence.conflicts];
-  const routeItems = evidence.routed.flatMap(({ query, legs }, index) => {
+  const routeItems = evidence.routed.flatMap(({ query, legs, options }, index) => {
     const slot = plan.schedule[index] ?? { day: query.day, startMinutes: 9 * 60 };
-    return layOutHop(query, legs, slot.day, slot.startMinutes, brief.dates[0], conflicts);
+    return layOutHop(query, legs, options, slot.day, slot.startMinutes, brief.dates[0], conflicts);
   });
   const items = [
     // A fare only exists because a leg was flown, so the two travel together

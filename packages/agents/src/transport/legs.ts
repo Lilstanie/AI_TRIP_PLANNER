@@ -23,18 +23,27 @@ export interface JourneyLeg {
 
 export type LegMode = "flight" | "ground";
 
+/** What a hop is for, which is what decides how it is made. */
+export type LegRole = "arrival" | "inter-city";
+
 /**
  * Which hops are flown.
  *
- * Today: only the hop that reaches the first destination, and only when it
- * actually starts somewhere else. Every later hop is ground travel, because a
- * multi-city trip in one region (Tokyo → Kyoto) is a train, not a flight.
+ * Today: only the arrival — the hop that brings the traveller to the first
+ * destination — and only when it starts somewhere else. Every hop between
+ * cities is ground travel, because a multi-city trip inside one region
+ * (Tokyo → Kyoto, Sydney → Parramatta) is a train, not a flight.
  *
- * This is the one function to change when B→C and C→D should also be priced as
- * flights — everything downstream already follows whatever it returns.
+ * The role is passed in rather than inferred from position. Keying on "index
+ * 0" looked equivalent and was not: a trip whose origin is already its first
+ * destination has no arrival hop, so the first inter-city hop inherited index 0
+ * and was priced as a flight — Sydney to Parramatta, 25km apart, went to the
+ * airline search and came back unpriced.
+ *
+ * This is the one function to change when B→C and C→D should also be flown.
  */
-export function legMode(index: number, from: string, to: string): LegMode {
-  if (index > 0) return "ground";
+export function legMode(role: LegRole, from: string, to: string): LegMode {
+  if (role === "inter-city") return "ground";
   return from.toLowerCase() === to.toLowerCase() ? "ground" : "flight";
 }
 
@@ -60,7 +69,14 @@ export function journeyLegs(input: {
   const legs: JourneyLeg[] = [];
 
   if (arrivesFromElsewhere) {
-    legs.push({ index: 0, from: origin, to: first, date: start, day: 1, mode: "flight" });
+    legs.push({
+      index: 0,
+      from: origin,
+      to: first,
+      date: start,
+      day: 1,
+      mode: legMode("arrival", origin, first),
+    });
   } else if (destinations.length === 1) {
     // Same city, nothing else to travel: the only movement worth planning is
     // getting in from the airport.
@@ -84,7 +100,7 @@ export function journeyLegs(input: {
       to,
       date: dateForDay(start, day),
       day,
-      mode: legMode(legs.length, destinations[hop]!, to),
+      mode: legMode("inter-city", destinations[hop]!, to),
     });
   });
 

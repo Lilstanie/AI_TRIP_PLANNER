@@ -28,7 +28,10 @@ type MapsSDK = {
   marker: {
     AdvancedMarkerElement: new (options: object) => {
       map: unknown;
-      addListener(event: string, fn: () => void): void;
+      // Advanced markers are custom elements, so they take DOM events.
+      // addListener still works but Google warns it is going away.
+      addEventListener(event: string, fn: () => void): void;
+      removeEventListener(event: string, fn: () => void): void;
     };
   };
   Polyline: new (options: object) => { setMap(map: unknown): void };
@@ -291,9 +294,16 @@ export function TripMap({
         position,
         title: `${label}. ${placeName(place)}`,
         content,
+        // Required for gmp-click: an advanced marker is inert until asked to
+        // be clickable, unlike the legacy marker it replaced.
+        gmpClickable: true,
       });
-      marker.addListener("click", () => onSelectRef.current(place.id));
+      // "gmp-click", not addListener("click"): Google warns in the console that
+      // the legacy listener on advanced markers is going away.
+      const select = () => onSelectRef.current(place.id);
+      marker.addEventListener("gmp-click", select);
       cleanup.push(() => {
+        marker.removeEventListener("gmp-click", select);
         marker.map = null;
       });
     });
