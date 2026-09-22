@@ -25,6 +25,13 @@ export interface FlightQuery {
 
 const FLIGHT_WORDS = /\b(?:flights?|flying|fly|airfare|airfares|fares?)\b|机票|航班|航線/i;
 const PLANNING_WORDS = /\b(?:plan|planning|itinerary|organi[sz]e)\b|规划|行程|安排/i;
+/**
+ * Editing an open trip, not asking what something costs. "Change the flight to
+ * Tokyo on the 25th" names a flight, two cities and a date, and is still a
+ * request to the planner rather than a lookup.
+ */
+const EDIT_WORDS =
+  /\b(?:change|swap|replace|update|move|instead|remove|cancel|rebook|make it)\b|改成|换成|改为|换一/i;
 const CHEAPEST_WORDS = /\b(?:cheapest|lowest|least expensive|best price|budget)\b|最便宜|最低价/i;
 
 /** "Sydney to Seoul", "from Melbourne to Tokyo", "悉尼到首尔". */
@@ -64,8 +71,9 @@ function city(value: string | undefined): string | undefined {
 
 export function parseFlightQuery(message: string): FlightQuery | undefined {
   if (!FLIGHT_WORDS.test(message)) return undefined;
-  // "Plan a trip … and book a flight" is a trip, not a lookup.
-  if (PLANNING_WORDS.test(message)) return undefined;
+  // "Plan a trip … and book a flight" is a trip, not a lookup, and "change the
+  // flight to …" is an edit to one.
+  if (PLANNING_WORDS.test(message) || EDIT_WORDS.test(message)) return undefined;
 
   const pair = message.match(PAIR) ?? message.match(PAIR_CN);
   const from = city(pair?.[1]);

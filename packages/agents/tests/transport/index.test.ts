@@ -270,3 +270,27 @@ describe("B transport reliability", () => {
     expect(searchFlights).not.toHaveBeenCalled();
   });
 });
+
+describe("transport choice", () => {
+  it("keeps the fares the chosen flight beat, so the transcript can show them", async () => {
+    const { ctx } = context();
+    const result = await transportAgent.invoke({ brief, context: ctx });
+    const flight = result.flights?.[0];
+    expect(flight).toBeTruthy();
+    expect(flight!.from).toBe("Sydney");
+    expect(flight!.to).toBe("Tokyo");
+    // Both fares the mock offers survive the choice; one is marked selected.
+    expect(flight!.candidates.map((candidate) => candidate.carrier)).toEqual([
+      "MockAir Economy",
+      "MockAir Flexible",
+    ]);
+    expect(flight!.candidates.some((candidate) => candidate.id === flight!.selectedId)).toBe(true);
+  });
+
+  it("offers no choice when no fare came back", async () => {
+    const { ctx, searchFlights } = context();
+    searchFlights.mockResolvedValue([]);
+    const result = await transportAgent.invoke({ brief, context: ctx });
+    expect(result.flights).toBeUndefined();
+  });
+});

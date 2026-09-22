@@ -22,6 +22,33 @@ import { createReasoningSink } from "./reasoning-sink";
  * alternatives instead of asking the traveller to make it from scratch.
  */
 export function choiceFor(proposal: AgentProposal): ToolChoice | undefined {
+  const flight = proposal.flights?.[0];
+  if (flight) {
+    const selected = flight.candidates.find((candidate) => candidate.id === flight.selectedId);
+    if (!selected) return undefined;
+    const describe = (candidate: (typeof flight.candidates)[number]) =>
+      [
+        `AUD ${candidate.price.toFixed(2)} total`,
+        candidate.stops === undefined
+          ? undefined
+          : candidate.stops === 0
+            ? "Nonstop"
+            : `${candidate.stops} stop${candidate.stops === 1 ? "" : "s"}`,
+        candidate.durationMin
+          ? `${Math.floor(candidate.durationMin / 60)}h ${candidate.durationMin % 60}m`
+          : undefined,
+      ]
+        .filter(Boolean)
+        .join(" · ");
+    return {
+      title: `Flight ${flight.from} → ${flight.to}`,
+      selected: { label: selected.carrier, detail: describe(selected) },
+      rationale: proposal.summary,
+      alternatives: flight.candidates
+        .filter((candidate) => candidate.id !== flight.selectedId)
+        .map((candidate) => ({ label: candidate.carrier, detail: describe(candidate) })),
+    };
+  }
   const stay = proposal.stays?.[0];
   if (!stay) return undefined;
   const selected = stay.candidates.find((candidate) => candidate.id === stay.selectedId);

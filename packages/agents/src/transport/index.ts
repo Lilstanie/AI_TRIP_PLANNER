@@ -408,6 +408,37 @@ function assembleTransportProposal(
     ];
   });
   const items = [...flightItems, ...routeItems];
+  // The fares each chosen flight beat, kept so the transcript can answer "why
+  // this one?". Dropping them at the point of choice is what left Getting
+  // around with a summary line where Stay shows a card.
+  const flightSelections = plan.flights.flatMap((fare) => {
+    const hop = evidence.flights.find(({ leg }) => leg.index === fare.legIndex);
+    if (!hop?.options.length) return [];
+    const candidates = hop.options.map((option, index) => ({
+      id: `${hop.leg.index}-${index}`,
+      carrier: option.carrier,
+      price: option.price,
+      ...(option.stops !== undefined ? { stops: option.stops } : {}),
+      ...(option.durationMin !== undefined ? { durationMin: option.durationMin } : {}),
+      ...(option.note ? { note: option.note } : {}),
+    }));
+    const selected =
+      candidates.find(
+        (candidate) => candidate.carrier === fare.carrier && candidate.price === fare.price,
+      ) ?? candidates[0]!;
+    return [
+      {
+        id: `flight-${hop.leg.index}`,
+        from: hop.leg.from,
+        to: hop.leg.to,
+        depart: hop.leg.date,
+        day: hop.leg.day,
+        passengers: brief.groupSize,
+        selectedId: selected.id,
+        candidates,
+      },
+    ];
+  });
   const total = items.reduce((sum, item) => sum + (item.estCost ?? 0), 0);
   return {
     agent: "transport",
@@ -423,6 +454,7 @@ function assembleTransportProposal(
       ...plan.extraAssumptions,
     ],
     conflictsWith: [...new Set(conflicts)].sort((a, b) => a.localeCompare(b)),
+    ...(flightSelections.length ? { flights: flightSelections } : {}),
     source: transportSource(evidence, degraded),
   };
 }

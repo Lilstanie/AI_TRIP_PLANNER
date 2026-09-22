@@ -47,6 +47,17 @@ describe("parseFlightQuery", () => {
     ).toBeUndefined();
   });
 
+  it("leaves an edit to an open trip with the planner", () => {
+    // These name a flight, two cities and a date, and are still requests to
+    // change a trip rather than questions about a price.
+    for (const message of [
+      "change the flight from Sydney to Tokyo on 25 Nov 2026",
+      "swap the flight from Sydney to Tokyo on 25 Nov 2026 for a cheaper one",
+      "把 2026-11-25 悉尼到东京的机票换成更便宜的",
+    ])
+      expect(parseFlightQuery(message), message).toBeUndefined();
+  });
+
   it("declines anything it cannot answer outright", () => {
     // No date: a fare needs one, so this is a conversation, not a lookup.
     expect(parseFlightQuery("what is the cheapest flight from Sydney to Seoul")).toBeUndefined();

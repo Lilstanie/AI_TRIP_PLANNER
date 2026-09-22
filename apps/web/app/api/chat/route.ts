@@ -48,7 +48,13 @@ export async function POST(req: Request) {
         // A fare question is answered from the one provider it needs. Running
         // the planning workflow would spend five model calls to bury the number
         // in a trip nobody asked for.
-        const flightQuery = parsed.data.plan ? undefined : parseFlightQuery(parsed.data.message);
+        //
+        // Whether a plan is already open says nothing about what was asked:
+        // gating on that made "cheapest flight from Sydney to Tokyo" reach the
+        // planner for anyone who had looked at a trip first, which is everyone
+        // by the second question. parseFlightQuery decides from the message,
+        // and declines anything that reads as planning or editing.
+        const flightQuery = parseFlightQuery(parsed.data.message);
         if (flightQuery) {
           const answer = await runWithDataMode(dataMode, () =>
             answerFlightQuery(flightQuery, createToolGateway().booking),

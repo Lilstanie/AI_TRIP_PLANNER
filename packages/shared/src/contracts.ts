@@ -150,6 +150,37 @@ export const StaySelection = z.object({
   candidates: z.array(StayCandidate).min(1),
 });
 export type StaySelection = z.infer<typeof StaySelection>;
+/** One fare a provider offered for a hop, as the traveller would compare them. */
+export const FlightCandidate = z.object({
+  id: z.string().min(1),
+  carrier: z.string().min(1),
+  /** Whole-party total in BASE_CURRENCY; see ./money. */
+  price: z.number().nonnegative(),
+  stops: z.number().int().nonnegative().optional(),
+  durationMin: z.number().int().positive().optional(),
+  note: z.string().optional(),
+});
+export type FlightCandidate = z.infer<typeof FlightCandidate>;
+
+/**
+ * The fare chosen for one flown hop, with the ones it beat.
+ *
+ * Mirrors StaySelection because the traveller's question is the same — "why
+ * this one?" — and the transcript can only answer it if the alternatives
+ * survive the choice instead of being dropped where it was made.
+ */
+export const FlightSelection = z.object({
+  id: z.string().min(1),
+  from: z.string().min(1),
+  to: z.string().min(1),
+  depart: z.string().refine(isTripDate),
+  day: z.number().int().positive(),
+  passengers: z.number().int().positive(),
+  selectedId: z.string().min(1),
+  candidates: z.array(FlightCandidate).min(1),
+});
+export type FlightSelection = z.infer<typeof FlightSelection>;
+
 export const AgentProposalSourceKind = z.enum([
   "live",
   "estimated",
@@ -171,6 +202,7 @@ export const AgentProposal = z.object({
   assumptions: z.array(z.string()),
   conflictsWith: z.array(z.string()).default([]),
   stays: z.array(StaySelection).optional(),
+  flights: z.array(FlightSelection).optional(),
   source: AgentProposalSource.optional(),
 });
 export type AgentProposal = z.infer<typeof AgentProposal>;
