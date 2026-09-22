@@ -1,5 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
-import { AgentProposal, type AgentContext, type TripBrief } from "@trip/shared";
+import {
+  AgentProposal,
+  type AgentContext,
+  type RouteLeg,
+  type RouteOption,
+  type RouteQuery,
+  type TripBrief,
+} from "@trip/shared";
 import { createItineraryAgent, type ItineraryGenerator } from "../../src/itinerary";
 
 const brief: TripBrief = {
@@ -381,9 +388,11 @@ describe("routing between two stops the provider can find", () => {
             { name: "The Rocks", category: "neighborhood" },
           ],
     );
-    const route = vi.fn(async () => [{ mode: "transit" as const, durationMin: 30, price: 5 }]);
-    const routeOptions = vi.fn(async () => [
-      { mode: "bus" as const, durationMin: 30, price: 0, priceBasis: "unavailable" as const },
+    const route = vi.fn<(q: RouteQuery) => Promise<RouteLeg[]>>(async () => [
+      { mode: "transit", durationMin: 30, price: 5 },
+    ]);
+    const routeOptions = vi.fn<(q: RouteQuery) => Promise<RouteOption[]>>(async () => [
+      { mode: "bus", durationMin: 30, price: 0, priceBasis: "unavailable" },
     ]);
     ctx.tools.maps.route = route;
     ctx.tools.maps.routeOptions = routeOptions;

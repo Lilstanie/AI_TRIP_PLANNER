@@ -34,6 +34,10 @@ itinerary reported "no route returned" as a geography conflict about the travell
 `pnpm typecheck` clean. `pnpm test` 564/564 across 6 packages. `pnpm lint`, `pnpm build`,
 `pnpm verify:docs`, `pnpm verify:protected` clean. Not yet exercised against the live Google key.
 
+CI caught two typed-spy errors the first time: `pnpm typecheck` had been run before the new tests
+were added, and `vitest run` does not typecheck. Tests are typechecked (DEC-003), so typecheck has
+to come after the last test edit, not before it.
+
 ## Notes for the next person
 
 - Inter-city hops (`packages/agents/src/transport`) still send bare city names; there is no `Place`
