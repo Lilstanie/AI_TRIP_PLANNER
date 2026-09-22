@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import type { ProposalItem, TripSection } from "@trip/shared";
 import { money } from "@/lib/workspace";
 import { SourceBadge } from "./SourceBadge";
@@ -15,6 +16,41 @@ const titles: Record<string, string> = {
   "weather-packing": "Weather & packing",
   note: "Travel note",
 };
+const MODE_LABELS: Record<string, string> = {
+  walk: "Walk",
+  bus: "Bus",
+  train: "Train",
+  tram: "Tram",
+  ferry: "Ferry",
+  drive: "Drive",
+  transit: "Public transport",
+  flight: "Fly",
+};
+
+/**
+ * How the traveller gets to this activity from the last one.
+ *
+ * Shown above the card it arrives at, as a connector rather than a card of its
+ * own: the journey is a line between two places, not a third place, and a full
+ * card for every hop would bury the day's actual plan.
+ */
+function Connection({ arriveBy }: { arriveBy: NonNullable<ProposalItem["arriveBy"]> }) {
+  const hours = Math.floor(arriveBy.durationMin / 60);
+  const minutes = arriveBy.durationMin % 60;
+  const time = hours ? `${hours}h${minutes ? ` ${minutes}m` : ""}` : `${minutes} min`;
+  const mode = MODE_LABELS[arriveBy.mode] ?? arriveBy.mode;
+  return (
+    <p className="proposal-connection">
+      <span className="proposal-connection__rail" aria-hidden="true" />
+      <span className="proposal-connection__label">
+        {mode}
+        {arriveBy.line ? ` ${arriveBy.line}` : ""} · {time}
+        {arriveBy.from ? ` from ${arriveBy.from}` : ""}
+      </span>
+    </p>
+  );
+}
+
 function ItemCard({ item }: { item: ProposalItem }) {
   const informational = ["customs", "safety", "entry-health", "weather-packing", "note"].includes(
     item.kind,
@@ -126,7 +162,10 @@ export function ProposalDetails({
                 .filter((item) => item.day === day)
                 .sort((a, b) => (a.startTime ?? "").localeCompare(b.startTime ?? ""))
                 .map((item, index) => (
-                  <ItemCard key={index} item={item} />
+                  <Fragment key={index}>
+                    {item.arriveBy && <Connection arriveBy={item.arriveBy} />}
+                    <ItemCard item={item} />
+                  </Fragment>
                 ))}
             </div>
           </section>

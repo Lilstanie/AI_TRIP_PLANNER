@@ -77,6 +77,39 @@ export type TripBrief = z.infer<typeof TripBrief>;
 // ---------------------------------------------------------------------------
 const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
 
+/**
+ * How a journey is made. Lives here rather than beside the ports that return
+ * it, because a proposal item names one too and contracts cannot import ports.
+ */
+export const TravelModes = [
+  "train",
+  "flight",
+  "bus",
+  "walk",
+  "transit",
+  "tram",
+  "ferry",
+  "drive",
+] as const;
+export const TravelMode = z.enum(TravelModes);
+export type TravelMode = z.infer<typeof TravelMode>;
+
+/**
+ * How the traveller reaches this item from the one before it.
+ *
+ * The planner already looks this up to check the day fits; keeping it means
+ * the itinerary can say "45 minutes on bus 333" instead of leaving a silent
+ * gap between two activities and only speaking up when they collide.
+ */
+export const ArriveBy = z.object({
+  mode: TravelMode,
+  durationMin: z.number().int().positive(),
+  /** The service taken, when the provider named one: "333", "T1". */
+  line: z.string().min(1).optional(),
+  from: z.string().min(1).optional(),
+});
+export type ArriveBy = z.infer<typeof ArriveBy>;
+
 export const ProposalItem = z
   .object({
     id: z.string().min(1).optional(),
@@ -91,6 +124,8 @@ export const ProposalItem = z
     startTime: z.string().regex(HHMM, "startTime must be HH:MM (24h)").optional(),
     endTime: z.string().regex(HHMM, "endTime must be HH:MM (24h)").optional(),
     location: z.string().trim().min(1).optional(),
+    /** The connection into this item from the previous one on the same day. */
+    arriveBy: ArriveBy.optional(),
   })
   // `.check()` (Zod 4's superRefine) keeps this a plain object, so B/C/D/E can
   // still `.extend()` / `.pick()` it. Three cross-field rules:

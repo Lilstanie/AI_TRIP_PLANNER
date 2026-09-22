@@ -2,7 +2,11 @@ import {
   TripBrief as TripBriefSchema,
   type AgentContext,
   type AgentProposal,
+  type ArriveBy,
   type Place,
+  type RouteLeg,
+  type RouteOption,
+  type TravelMode,
   type RevisionRequest,
   type Specialist,
   type TripBrief,
@@ -101,26 +105,54 @@ function validateDraft(
 }
 
 /** Create one low-risk activity per day when a model is unavailable or invalid. */
+/**
+ * A morning and an afternoon stop, with the middle of the day left open.
+ *
+ * The gap is deliberately wide enough for a meal and the journey between the
+ * two, which the route check then verifies against the real travel time rather
+ * than assuming.
+ */
+const DAY_SLOTS = [
+  { startTime: "09:30", endTime: "12:00" },
+  { startTime: "14:00", endTime: "16:30" },
+] as const;
+
+/** A day with only one grounded stop keeps the afternoon anchor it always had. */
+const SINGLE_SLOT = { startTime: "13:00", endTime: "16:00" } as const;
+
 function fallbackDraft(brief: TripBrief, days: number, places: Place[]): ItineraryDraft {
   const candidates = places; // Empty evidence is handled before reaching this fallback.
+  // Two stops a day, but never the same place twice in one day, and never more
+  // stops than there are grounded places to fill them with.
+  const perDay = Math.min(DAY_SLOTS.length, Math.max(1, Math.floor(candidates.length / days) || 1));
   const dailyEstimate =
     Math.floor(((brief.budgetTotal * MODEL_ACTIVITY_BUDGET_SHARE) / days) * 100) / 100;
-  return {
-    summary: `${days}-day plan for ${brief.destination} with one grounded activity per day`,
-    activities: Array.from({ length: days }, (_, index) => {
-      const place = candidates[index % candidates.length]!;
+  // The day's allowance is split across its stops rather than spent on each:
+  // the cap is what a day of activities may cost, so two stops must share it
+  // or adding a second stop would silently double the itinerary's budget.
+  const perActivity =
+    Math.floor((Math.min(30 * brief.groupSize, dailyEstimate) / perDay) * 100) / 100;
+  const slots = perDay === 1 ? [SINGLE_SLOT] : DAY_SLOTS.slice(0, perDay);
+  const activities = Array.from({ length: days }, (_, day) =>
+    Array.from({ length: perDay }, (_, slot) => {
+      const place = candidates[(day * perDay + slot) % candidates.length]!;
       return {
-        day: index + 1,
-        startTime: "13:00",
-        endTime: "16:00",
+        day: day + 1,
+        ...slots[slot]!,
         location: place.name,
         detail: `${place.name} (${place.category}) is a suggested stop; confirm timing and suitability before visiting.`,
-        estCost: Math.min(30 * brief.groupSize, dailyEstimate),
+        estCost: perActivity,
       };
     }),
+  ).flat();
+  return {
+    summary: `${days}-day plan for ${brief.destination} with ${perDay === 1 ? "one grounded activity" : `${perDay} grounded activities`} per day`,
+    activities,
     assumptions: [
       "Opening hours and live availability must be confirmed before plans are finalised.",
-      "One anchored activity per day leaves room for meals, transfers and human changes.",
+      perDay === 1
+        ? "Only enough grounded places for one anchored activity a day; the rest of each day is left open."
+        : "Two anchored stops a day, with the middle of the day left for a meal and the journey between them.",
     ],
   };
 }
@@ -163,10 +195,33 @@ function createDeepSeekGenerator(): ItineraryGenerator | undefined {
   };
 }
 
+/** Keyed by the activity a connection arrives at: `day|startTime|location`. */
+export type Connections = Map<string, ArriveBy>;
+
+const connectionKey = (activity: { day: number; startTime: string; location: string }) =>
+  `${activity.day}|${activity.startTime}|${activity.location}`;
+
+/**
+ * The mode and service a hop actually uses, from the richer comparison when the
+ * adapter offers one. `route()` reports everything as a generic "transit", so
+ * without this the itinerary could say how long a hop takes but not how it is
+ * made — which is the part a traveller standing on a street needs.
+ */
+function describeHop(legs: RouteLeg[], options: RouteOption[]): { mode: TravelMode; line?: string } {
+  const best = options.find((option) => option.mode !== "drive") ?? options[0];
+  // Only the service designation: the note reads "via tram L2", and the mode
+  // is already named beside it, so capturing both renders "Tram tram L2".
+  const line = best?.note?.match(/via [a-z]+ ([\w-]+)/i)?.[1];
+  if (best) return { mode: best.mode, ...(line ? { line } : {}) };
+  const leg = legs[0];
+  return { mode: leg?.mode ?? "transit" };
+}
+
 async function travelConflicts(
   draft: ItineraryDraft,
   ctx: AgentContext,
   brief: TripBrief,
+  connections: Connections,
 ): Promise<string[]> {
   // Check map travel time between consecutive activities on each day. These
   // conflicts are reported to the orchestrator rather than silently shifting times.
@@ -204,7 +259,29 @@ async function travelConflicts(
         );
         continue;
       }
-      const required = Math.ceil(legs.reduce((sum, leg) => sum + leg.durationMin, 0)) + 15;
+      const durationMin = Math.ceil(legs.reduce((sum, leg) => sum + leg.durationMin, 0));
+      // The lookup already happened for the conflict check; keeping its answer
+      // is what turns a silent gap between two activities into a connection.
+      const options = ctx.tools.maps.routeOptions
+        ? await ctx.tools.maps
+            .routeOptions({
+              from: previous.location,
+              to: current.location,
+              date: dateForDay(brief.dates[0], day),
+              localTime: previous.endTime,
+            })
+            .catch(() => [] as RouteOption[])
+        : [];
+      if (durationMin > 0) {
+        const { mode, line } = describeHop(legs, options);
+        connections.set(connectionKey(current), {
+          mode,
+          durationMin,
+          ...(line ? { line } : {}),
+          from: previous.location,
+        });
+      }
+      const required = durationMin + 15;
       const available = minutes(current.startTime) - minutes(previous.endTime);
       if (required > available) {
         conflicts.push(
@@ -296,7 +373,8 @@ async function planItinerary(
   }
   let adjusted = avoidBlockedWindows(draft, revision);
   draft = adjusted.draft;
-  let conflicts = [...adjusted.conflicts, ...(await travelConflicts(draft, ctx, brief))];
+  let connections: Connections = new Map();
+  let conflicts = [...adjusted.conflicts, ...(await travelConflicts(draft, ctx, brief, connections))];
   if (revision && conflicts.length) {
     // A revision must not preserve newly discovered geography conflicts; use a
     // conservative fallback and re-check it before returning.
@@ -304,12 +382,17 @@ async function planItinerary(
     draft = fallbackDraft(brief, days, places);
     adjusted = avoidBlockedWindows(draft, revision);
     draft = adjusted.draft;
-    conflicts = [...adjusted.conflicts, ...(await travelConflicts(draft, ctx, brief))];
+    // The fallback is a different day plan, so its connections are different too.
+    connections = new Map();
+    conflicts = [...adjusted.conflicts, ...(await travelConflicts(draft, ctx, brief, connections))];
   }
   return {
     agent: "itinerary",
     summary: draft.summary,
-    items: draft.activities.map((activity) => ({ kind: "activity", ...activity })),
+    items: draft.activities.map((activity) => {
+      const arriveBy = connections.get(connectionKey(activity));
+      return { kind: "activity", ...activity, ...(arriveBy ? { arriveBy } : {}) };
+    }),
     assumptions: [
       ...draft.assumptions,
       ...evidenceIssues,

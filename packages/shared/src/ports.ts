@@ -3,7 +3,9 @@
 // only on the interface, so they stay testable (pass a fake in a unit test).
 // Owner: A.
 
-import type { ChatTurn, FlightLeg, UserPreference } from "./contracts";
+import type { ChatTurn, FlightLeg, TravelMode, UserPreference } from "./contracts";
+
+export type { TravelMode };
 
 // --- Maps / Places port (implemented by @trip/tools/maps) -------------------
 export interface RouteQuery {
@@ -15,7 +17,6 @@ export interface RouteQuery {
   /** Local wall-clock departure time for `date`, in HH:MM (defaults to 09:00). */
   localTime?: string;
 }
-export type TravelMode = "train" | "flight" | "bus" | "walk" | "transit" | "tram" | "ferry" | "drive";
 export interface RouteLeg {
   mode: TravelMode;
   durationMin: number;
