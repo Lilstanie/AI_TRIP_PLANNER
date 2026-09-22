@@ -4,12 +4,12 @@
 // OSM_USER_AGENT in deployments. The deterministic fixture remains available
 // for local tests.
 
-import type { RouteQuery, RouteLeg, RouteOption, PlaceQuery, Place } from "@trip/shared";
+import type { GeoPoint, RouteQuery, RouteLeg, RouteOption, PlaceQuery, Place } from "@trip/shared";
 import { searchGooglePlacesText } from "./google-places";
 import { mockEnabled } from "./data-mode";
 import { driveOption, transitOption, type GoogleRouteShape } from "./route-options";
 
-export type { RouteQuery, RouteLeg, PlaceQuery, Place } from "@trip/shared";
+export type { GeoPoint, RouteQuery, RouteLeg, PlaceQuery, Place } from "@trip/shared";
 
 const provider = () => process.env.MAPS_PROVIDER || (process.env.MAPS_API_KEY ? "google" : "osm");
 
@@ -55,27 +55,47 @@ async function osmRequest<T>(url: string): Promise<T> {
   return (await response.json()) as T;
 }
 
-async function geocode(
-  query: string,
-): Promise<{ lat: number; lon: number; label: string } | undefined> {
+/**
+ * Whether coordinates are usable as they stand: real numbers inside the WGS84
+ * range. Anything else is treated as absent rather than as an error, because
+ * these are a hint — a caller that cannot supply them is expected, so a caller
+ * that supplies nonsense falls back to the same path rather than failing the
+ * whole route.
+ */
+function usable(at: { latitude?: number; longitude?: number } | undefined): at is GeoPoint {
+  return (
+    at !== undefined &&
+    Number.isFinite(at.latitude) &&
+    Number.isFinite(at.longitude) &&
+    Math.abs(at.latitude!) <= 90 &&
+    Math.abs(at.longitude!) <= 180
+  );
+}
+
+/**
+ * A point for Google to route from or to, preferring coordinates over the name.
+ *
+ * An address is resolved by Google against the whole world. Coordinates are
+ * already the answer, so a caller that has them removes the ambiguity rather
+ * than hoping the geocoder guesses the same city the plan is about.
+ */
+function waypoint(name: string, at?: GeoPoint) {
+  return usable(at)
+    ? { location: { latLng: { latitude: at.latitude, longitude: at.longitude } } }
+    : { address: name };
+}
+
+async function geocode(query: string): Promise<GeoPoint | undefined> {
   const base = process.env.NOMINATIM_BASE_URL || "https://nominatim.openstreetmap.org";
   const results = await osmRequest<Array<{ lat: string; lon: string; display_name: string }>>(
     `${base}/search?format=jsonv2&limit=1&q=${encodeURIComponent(query)}`,
   );
   const result = results[0];
   if (!result) return undefined;
-  const lat = Number(result.lat),
-    lon = Number(result.lon);
-  if (
-    !result.lat ||
-    !result.lon ||
-    !Number.isFinite(lat) ||
-    !Number.isFinite(lon) ||
-    Math.abs(lat) > 90 ||
-    Math.abs(lon) > 180
-  )
+  const at = { latitude: Number(result.lat), longitude: Number(result.lon) };
+  if (!result.lat || !result.lon || !usable(at))
     throw new Error("Invalid geocoding coordinates");
-  return { lat, lon, label: result.display_name };
+  return at;
 }
 
 const localTimePattern = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -145,17 +165,19 @@ function localInstant(date: string, time: string, zone: string): string {
   return new Date(matches[0]!).toISOString();
 }
 
-async function googleOriginTimeZone(from: string, dateTimestamp: number): Promise<string> {
-  const places = await searchGooglePlacesText(from, "places.location", 1);
-  const location = places[0]?.location;
-  if (
-    !location ||
-    !Number.isFinite(location.latitude) ||
-    !Number.isFinite(location.longitude) ||
-    Math.abs(location.latitude!) > 90 ||
-    Math.abs(location.longitude!) > 180
-  )
-    throw new Error("Google Places returned no valid origin coordinates.");
+/**
+ * The origin's time zone, so a local departure hour becomes a real instant.
+ *
+ * A caller that already resolved the origin skips the Places lookup, and with
+ * it a failure mode: that lookup searches the bare name worldwide, so it could
+ * answer with another city's zone, or with nothing, and take the route down
+ * with it.
+ */
+async function originTimeZone(q: RouteQuery, dateTimestamp: number): Promise<string> {
+  const location = usable(q.fromLocation)
+    ? q.fromLocation
+    : (await searchGooglePlacesText(q.from, "places.location", 1))[0]?.location;
+  if (!usable(location)) throw new Error("Google Places returned no valid origin coordinates.");
 
   const url = new URL("https://maps.googleapis.com/maps/api/timezone/json");
   url.search = new URLSearchParams({
@@ -186,7 +208,7 @@ async function departureForGoogle(q: RouteQuery): Promise<string> {
   const localTime = q.localTime ?? "09:00";
   if (!localTimePattern.test(localTime))
     throw new Error("Google transit route requires localTime in HH:MM format.");
-  const zone = await googleOriginTimeZone(q.from, dateTimestamp);
+  const zone = await originTimeZone(q, dateTimestamp);
   return localInstant(q.date, localTime, zone);
 }
 
@@ -195,11 +217,14 @@ export async function route(q: RouteQuery): Promise<RouteLeg[]> {
     return [{ mode: "train", durationMin: 140, price: 90, note: `mock ${q.from} -> ${q.to}` }];
   }
   if (provider() === "osm") {
-    const [from, to] = await Promise.all([geocode(q.from), geocode(q.to)]);
+    const [from, to] = await Promise.all([
+      usable(q.fromLocation) ? q.fromLocation : geocode(q.from),
+      usable(q.toLocation) ? q.toLocation : geocode(q.to),
+    ]);
     if (!from || !to) return [];
     const base = process.env.OSRM_BASE_URL || "https://router.project-osrm.org";
     const data = await osmRequest<{ routes?: Array<{ duration?: number; distance?: number }> }>(
-      `${base}/route/v1/driving/${from.lon},${from.lat};${to.lon},${to.lat}?overview=false`,
+      `${base}/route/v1/driving/${from.longitude},${from.latitude};${to.longitude},${to.latitude}?overview=false`,
     );
     const candidate = data.routes?.[0];
     if (!candidate) return [];
@@ -223,8 +248,8 @@ export async function route(q: RouteQuery): Promise<RouteLeg[]> {
   }>(
     apiUrl("/directions/v2:computeRoutes"),
     {
-      origin: { address: q.from },
-      destination: { address: q.to },
+      origin: waypoint(q.from, q.fromLocation),
+      destination: waypoint(q.to, q.toLocation),
       travelMode: "TRANSIT",
       departureTime,
     },
@@ -346,7 +371,7 @@ export async function routeOptions(q: RouteQuery): Promise<RouteOption[]> {
   const ask = (body: Record<string, unknown>) =>
     googleRequest<{ routes?: GoogleRouteShape[] }>(
       apiUrl("/directions/v2:computeRoutes"),
-      { origin: { address: q.from }, destination: { address: q.to }, ...body },
+      { origin: waypoint(q.from, q.fromLocation), destination: waypoint(q.to, q.toLocation), ...body },
       OPTION_FIELDS,
     ).then((data) => data.routes?.[0]);
 

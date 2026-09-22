@@ -3,9 +3,11 @@ import {
   type AgentContext,
   type AgentProposal,
   type ArriveBy,
+  type GeoPoint,
   type Place,
   type RouteLeg,
   type RouteOption,
+  type RouteQuery,
   type TravelMode,
   type RevisionRequest,
   type Specialist,
@@ -233,11 +235,29 @@ function describeHop(legs: RouteLeg[], options: RouteOption[]): { mode: TravelMo
   return { mode: leg?.mode ?? "transit" };
 }
 
+/**
+ * Where each candidate place actually is, keyed by its name.
+ *
+ * A drafted activity's `location` is a candidate's name copied character for
+ * character — `validateDraft` throws away any draft where it is not — so the
+ * name is an exact key back to the place the provider returned, coordinates
+ * included. Normalised the same way `validateDraft` compares them, or a name
+ * differing only in case would silently lose its position.
+ */
+function placeCoordinates(places: Place[]): ReadonlyMap<string, GeoPoint> {
+  return new Map(
+    places.flatMap((place) =>
+      place.location ? [[place.name.trim().toLocaleLowerCase(), place.location] as const] : [],
+    ),
+  );
+}
+
 async function travelConflicts(
   draft: ItineraryDraft,
   ctx: AgentContext,
   brief: TripBrief,
   connections: Connections,
+  coordinates: ReadonlyMap<string, GeoPoint>,
 ): Promise<string[]> {
   // Check map travel time between consecutive activities on each day. These
   // conflicts are reported to the orchestrator rather than silently shifting times.
@@ -252,14 +272,25 @@ async function travelConflicts(
       const current = activities[index]!;
       if (previous.location === current.location) continue;
       ctx.signal?.throwIfAborted();
+      // One query for both lookups: they describe the same hop, and letting
+      // them drift apart would compare one journey against another's timing.
+      // The coordinates are what stop a bare place name being resolved against
+      // the whole world — two stops in the same city came back unroutable
+      // because the geocoder found a namesake on another continent.
+      const at = (name: string) => coordinates.get(name.trim().toLocaleLowerCase());
+      const fromLocation = at(previous.location);
+      const toLocation = at(current.location);
+      const query: RouteQuery = {
+        from: previous.location,
+        to: current.location,
+        date: dateForDay(brief.dates[0], day),
+        localTime: previous.endTime,
+        ...(fromLocation ? { fromLocation } : {}),
+        ...(toLocation ? { toLocation } : {}),
+      };
       let legs;
       try {
-        legs = await ctx.tools.maps.route({
-          from: previous.location,
-          to: current.location,
-          date: dateForDay(brief.dates[0], day),
-          localTime: previous.endTime,
-        });
+        legs = await ctx.tools.maps.route(query);
       } catch {
         ctx.signal?.throwIfAborted();
         conflicts.push(
@@ -279,14 +310,7 @@ async function travelConflicts(
       // The lookup already happened for the conflict check; keeping its answer
       // is what turns a silent gap between two activities into a connection.
       const options = ctx.tools.maps.routeOptions
-        ? await ctx.tools.maps
-            .routeOptions({
-              from: previous.location,
-              to: current.location,
-              date: dateForDay(brief.dates[0], day),
-              localTime: previous.endTime,
-            })
-            .catch(() => [] as RouteOption[])
+        ? await ctx.tools.maps.routeOptions(query).catch(() => [] as RouteOption[])
         : [];
       if (durationMin > 0) {
         const { mode, line } = describeHop(legs, options);
@@ -409,8 +433,12 @@ async function planItinerary(
   }
   let adjusted = avoidBlockedWindows(draft, revision);
   draft = adjusted.draft;
+  const coordinates = placeCoordinates(places);
   let connections: Connections = new Map();
-  let conflicts = [...adjusted.conflicts, ...(await travelConflicts(draft, ctx, brief, connections))];
+  let conflicts = [
+    ...adjusted.conflicts,
+    ...(await travelConflicts(draft, ctx, brief, connections, coordinates)),
+  ];
   if (revision && conflicts.length) {
     // A revision must not preserve newly discovered geography conflicts; use a
     // conservative fallback and re-check it before returning.
@@ -420,7 +448,10 @@ async function planItinerary(
     draft = adjusted.draft;
     // The fallback is a different day plan, so its connections are different too.
     connections = new Map();
-    conflicts = [...adjusted.conflicts, ...(await travelConflicts(draft, ctx, brief, connections))];
+    conflicts = [
+      ...adjusted.conflicts,
+      ...(await travelConflicts(draft, ctx, brief, connections, coordinates)),
+    ];
   }
   return {
     agent: "itinerary",

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { places, route } from "../src/maps";
+import { places, route, routeOptions } from "../src/maps";
 
 const q = {
   from: "Tokyo",
@@ -142,6 +142,102 @@ describe("B route provider boundaries", () => {
       })),
     );
     expect((await route(q))[0]!.note).toContain("driving-only");
+  });
+});
+
+describe("B resolves a named place to the one the plan means", () => {
+  const tokyo = { latitude: 35.68, longitude: 139.69 };
+  const kyoto = { latitude: 35.01, longitude: 135.77 };
+
+  function google(data: unknown) {
+    vi.stubEnv("USE_MOCK_TOOLS", "false");
+    vi.stubEnv("MAPS_PROVIDER", "google");
+    vi.stubEnv("MAPS_API_KEY", "test-only");
+    const fetcher = vi.fn().mockResolvedValue({ ok: true, json: async () => data });
+    vi.stubGlobal("fetch", fetcher);
+    return fetcher;
+  }
+  const bodyOf = (fetcher: ReturnType<typeof vi.fn>, call = 0) =>
+    JSON.parse(String(fetcher.mock.calls[call]![1].body));
+
+  it("sends coordinates rather than a name Google would resolve against the world", async () => {
+    const fetcher = google({ routes: [{ duration: "60s" }] });
+
+    await route({ ...q, fromLocation: tokyo, toLocation: kyoto });
+
+    expect(bodyOf(fetcher)).toMatchObject({
+      origin: { location: { latLng: tokyo } },
+      destination: { location: { latLng: kyoto } },
+    });
+  });
+
+  it("still addresses a point by name when the caller has no coordinates for it", async () => {
+    const fetcher = google({ routes: [{ duration: "60s" }] });
+
+    await route({ ...q, fromLocation: tokyo });
+
+    expect(bodyOf(fetcher)).toMatchObject({
+      origin: { location: { latLng: tokyo } },
+      destination: { address: "Kyoto" },
+    });
+  });
+
+  it("treats an out-of-range coordinate as absent instead of routing from nowhere", async () => {
+    const fetcher = google({ routes: [{ duration: "60s" }] });
+
+    await route({ ...q, fromLocation: { latitude: 91, longitude: 0 } });
+
+    expect(bodyOf(fetcher)).toMatchObject({ origin: { address: "Tokyo" } });
+  });
+
+  it("compares ways to travel between the same two points", async () => {
+    const fetcher = google({ routes: [{ duration: "60s" }] });
+
+    await routeOptions({ ...q, fromLocation: tokyo, toLocation: kyoto });
+
+    for (const call of fetcher.mock.calls) {
+      expect(JSON.parse(String(call[1].body))).toMatchObject({
+        origin: { location: { latLng: tokyo } },
+        destination: { location: { latLng: kyoto } },
+      });
+    }
+  });
+
+  it("skips the place search for the origin time zone when the origin is already resolved", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-17T00:00:00.000Z"));
+    vi.stubEnv("USE_MOCK_TOOLS", "false");
+    vi.stubEnv("MAPS_PROVIDER", "google");
+    vi.stubEnv("MAPS_API_KEY", "test-only");
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ status: "OK", timeZoneId: "Asia/Tokyo" }),
+      })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ routes: [{ duration: "60s" }] }) });
+    vi.stubGlobal("fetch", fetcher);
+
+    await route({ from: "Tokyo", to: "Kyoto", date: "2026-10-05", localTime: "09:00", fromLocation: tokyo });
+
+    // The name lookup is gone; the time zone is asked for the point itself.
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    expect(String(fetcher.mock.calls[0]![0])).toContain("maps/api/timezone/json");
+    expect(String(fetcher.mock.calls[0]![0])).toContain("location=35.68%2C139.69");
+  });
+
+  it("skips geocoding on the road provider too", async () => {
+    vi.stubEnv("USE_MOCK_TOOLS", "false");
+    vi.stubEnv("MAPS_PROVIDER", "osm");
+    const fetcher = vi
+      .fn()
+      .mockResolvedValue({ ok: true, json: async () => ({ routes: [{ duration: 60, distance: 500 }] }) });
+    vi.stubGlobal("fetch", fetcher);
+
+    await route({ ...q, fromLocation: tokyo, toLocation: kyoto });
+
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(String(fetcher.mock.calls[0]![0])).toContain("139.69,35.68;135.77,35.01");
   });
 });
 

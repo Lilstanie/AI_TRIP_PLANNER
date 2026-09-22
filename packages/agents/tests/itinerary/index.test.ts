@@ -358,3 +358,62 @@ describe("multi-city days", () => {
     }
   });
 });
+
+describe("routing between two stops the provider can find", () => {
+  const opera = { latitude: -33.8568, longitude: 151.2153 };
+  const tower = { latitude: -33.8704, longitude: 151.2088 };
+
+  /** Two stops for day one, with control over which of them has coordinates. */
+  function located(towerLocation?: { latitude: number; longitude: number }) {
+    const ctx = context();
+    ctx.tools.maps.places = vi.fn(async ({ category }) =>
+      category === "sight"
+        ? [
+            { name: "Sydney Opera House", category: "sight", location: opera },
+            {
+              name: "Sydney Tower Eye",
+              category: "sight",
+              ...(towerLocation ? { location: towerLocation } : {}),
+            },
+          ]
+        : [
+            { name: "Bondi Beach", category: "neighborhood" },
+            { name: "The Rocks", category: "neighborhood" },
+          ],
+    );
+    const route = vi.fn(async () => [{ mode: "transit" as const, durationMin: 30, price: 5 }]);
+    const routeOptions = vi.fn(async () => [
+      { mode: "bus" as const, durationMin: 30, price: 0, priceBasis: "unavailable" as const },
+    ]);
+    ctx.tools.maps.route = route;
+    ctx.tools.maps.routeOptions = routeOptions;
+    return { ctx, route, routeOptions };
+  }
+
+  it("asks for the route between the places the provider returned, not two names", async () => {
+    const { ctx, route, routeOptions } = located(tower);
+
+    await createItineraryAgent({ generator: false }).invoke({ brief, context: ctx });
+
+    // Both lookups describe the same hop, so both must be pinned to the same
+    // two points — otherwise the comparison belongs to a different journey.
+    for (const spy of [route, routeOptions]) {
+      expect(spy.mock.calls[0]![0]).toMatchObject({
+        from: "Sydney Opera House",
+        to: "Sydney Tower Eye",
+        fromLocation: opera,
+        toLocation: tower,
+      });
+    }
+  });
+
+  it("leaves an end unresolved rather than inventing a position for it", async () => {
+    const { ctx, route } = located();
+
+    await createItineraryAgent({ generator: false }).invoke({ brief, context: ctx });
+
+    const query = route.mock.calls[0]![0];
+    expect(query).toMatchObject({ fromLocation: opera });
+    expect("toLocation" in query).toBe(false);
+  });
+});

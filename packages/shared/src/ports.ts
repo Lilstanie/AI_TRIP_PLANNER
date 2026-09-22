@@ -8,9 +8,29 @@ import type { ChatTurn, FlightLeg, TravelMode, UserPreference } from "./contract
 export type { TravelMode };
 
 // --- Maps / Places port (implemented by @trip/tools/maps) -------------------
+/** A point on the earth in WGS84 degrees, as Places and geocoders report it. */
+export interface GeoPoint {
+  latitude: number;
+  longitude: number;
+}
 export interface RouteQuery {
   from: string;
   to: string;
+  /**
+   * Exact coordinates for `from` and `to`, when the caller resolved the place
+   * rather than only naming it.
+   *
+   * The names stay the authority for anything a traveller reads: a route note
+   * says "Circular Quay → The Rocks", not a pair of decimals. These say only
+   * *which* Circular Quay. A bare name goes to a global geocoder, and a name
+   * that is a landmark in one city is a street in another, so two places a
+   * short walk apart could come back with no route between them at all.
+   *
+   * Optional because not every caller has them: a hop between cities is named,
+   * never resolved. A provider given none geocodes the name as before.
+   */
+  fromLocation?: GeoPoint;
+  toLocation?: GeoPoint;
   date?: string;
   /** Explicit RFC 3339 departure instant; providers may skip local-time lookup. */
   departureTime?: string;
@@ -31,7 +51,7 @@ export interface Place {
   name: string;
   category: string;
   rating?: number;
-  location?: { latitude: number; longitude: number };
+  location?: GeoPoint;
   /** The place's own website, when the provider reports one (Google Places'
    *  `websiteUri`). Absent for providers that do not publish it, such as
    *  Nominatim search results. */
