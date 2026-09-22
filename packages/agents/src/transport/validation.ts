@@ -67,3 +67,28 @@ export function fareUnavailable(leg: RouteLeg): boolean {
   // Compatibility with current adapter until A introduces structured fare status.
   return /fare unavailable/i.test(leg.note ?? "");
 }
+
+/** Minutes in a planning day, and the hour the planner departs by default. */
+export const DAY_MINUTES = 24 * 60;
+export const DEFAULT_DEPARTURE_MINUTES = 9 * 60;
+export const EARLY_DEPARTURE_MINUTES = 6 * 60;
+
+/**
+ * Whether a hop of this length can be travelled inside one planning day.
+ *
+ * Shared by the scheduler, which rejects a hop that does not fit, and by the
+ * decision to fly a hop instead. Two copies of this arithmetic could disagree,
+ * and then a hop would be scheduled as ground travel and immediately rejected
+ * as impossible — the traveller would get a conflict instead of a flight.
+ */
+export function fitsInPlanningDay(
+  durationMin: number,
+  startMinutes = DEFAULT_DEPARTURE_MINUTES,
+): boolean {
+  return startMinutes + Math.ceil(durationMin) < DAY_MINUTES;
+}
+
+/** Total scheduled travel time for one hop. */
+export function hopDuration(legs: RouteLeg[]): number {
+  return legs.reduce((sum, leg) => sum + Math.ceil(leg.durationMin), 0);
+}

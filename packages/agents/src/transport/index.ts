@@ -14,8 +14,23 @@ import {
 import { createAgent, tool } from "langchain";
 import { z } from "zod/v4";
 import { createRoutedChatModel, readStructuredResponse } from "../models";
-import { dateForDay, planningDays, routeProblem, fareUnavailable } from "./validation";
-import { journeyLegs, flightLegs, groundLegs, type JourneyLeg } from "./legs";
+import {
+  dateForDay,
+  planningDays,
+  routeProblem,
+  fareUnavailable,
+  fitsInPlanningDay,
+  hopDuration,
+  EARLY_DEPARTURE_MINUTES,
+  DEFAULT_DEPARTURE_MINUTES,
+} from "./validation";
+import {
+  journeyLegs,
+  flightLegs,
+  groundLegs,
+  flownInstead,
+  type JourneyLeg,
+} from "./legs";
 import { mockEnabled } from "@trip/tools";
 
 // Transport combines booking fares with map legs and keeps all pricing in the
@@ -55,7 +70,8 @@ interface TransportEvidence {
   days: number;
   budgetRevision: boolean;
   scheduleRevision: boolean;
-  flights: FlightOption[];
+  /** One entry per flown hop, in travel order. */
+  flights: { leg: JourneyLeg; options: FlightOption[] }[];
   routed: { query: RouteQuery; legs: RouteLeg[]; options: RouteOption[] }[];
   conflicts: string[];
 }
@@ -99,55 +115,101 @@ async function gatherTransportEvidence(
     date: leg.date,
     day: leg.day,
   }));
-  const flown = flightLegs(legs);
-
   const conflicts: string[] = [];
-  // One flown hop today. When legMode() starts flying later hops this becomes a
-  // search per leg; the leg list it would map over already exists.
-  const flightLeg = flown[0];
-  const [flightOptions, routed] = await Promise.all([
-    !flightLeg
-      ? Promise.resolve([])
-      : ctx.tools.booking
-          .searchFlights({
-            from: flightLeg.from,
-            to: flightLeg.to,
-            depart: flightLeg.date,
-            return: brief.dates[1],
-            passengers: brief.groupSize,
-          })
-          .catch(() => {
-            ctx.signal?.throwIfAborted();
-            conflicts.push("Flight provider unavailable; required flight remains unpriced.");
-            return [];
-          }),
-    Promise.all(
-      routeQueries.map(async (query) => {
-        // The legs set the schedule; the options only describe the choice. A
-        // missing comparison must not cost the hop its timing, so they are
-        // gathered independently and an options failure is silent.
-        const options = ctx.tools.maps.routeOptions
-          ? await ctx.tools.maps.routeOptions(query).catch(() => [] as RouteOption[])
-          : [];
-        try {
-          return { query, legs: await ctx.tools.maps.route(query), options };
-        } catch {
-          ctx.signal?.throwIfAborted();
-          conflicts.push(
-            `geography conflict on day ${query.day}: route provider unavailable for ${query.from} → ${query.to}`,
-          );
-          return { query, legs: [] as RouteLeg[], options };
-        }
-      }),
-    ),
+
+  /** One flown hop, priced, with a provider failure recorded rather than hidden. */
+  const priceFlight = async (leg: JourneyLeg) => {
+    const options = await ctx.tools.booking
+      .searchFlights({
+        from: leg.from,
+        to: leg.to,
+        depart: leg.date,
+        // Only the arrival is a return trip; a hop between cities is one way.
+        ...(leg.index === 0 ? { return: brief.dates[1] } : {}),
+        passengers: brief.groupSize,
+      })
+      .catch(() => {
+        ctx.signal?.throwIfAborted();
+        conflicts.push(
+          `Flight provider unavailable; required flight ${leg.from} → ${leg.to} remains unpriced.`,
+        );
+        return [] as FlightOption[];
+      });
+    const valid = options.filter(
+      (option) => Number.isFinite(option.price) && option.price >= 0 && option.carrier.trim(),
+    );
+    if (!valid.length)
+      conflicts.push(
+        `Required flight ${leg.from} → ${leg.to} has no valid fare; transport estimate is incomplete.`,
+      );
+    return { leg, options: valid };
+  };
+
+  /** One ground hop's scheduled legs, plus the alternatives to it. */
+  const gatherGround = async (query: RouteQuery) => {
+    // The legs set the schedule; the options only describe the choice. A
+    // missing comparison must not cost the hop its timing, so they are
+    // gathered independently and an options failure is silent.
+    const options = ctx.tools.maps.routeOptions
+      ? await ctx.tools.maps.routeOptions(query).catch(() => [] as RouteOption[])
+      : [];
+    try {
+      return { query, legs: await ctx.tools.maps.route(query), options };
+    } catch {
+      ctx.signal?.throwIfAborted();
+      return { query, legs: [] as RouteLeg[], options };
+    }
+  };
+
+  // The arrival is known to be flown before any provider answers, so it is
+  // priced alongside the ground lookups rather than after them.
+  const arrival = flightLegs(legs)[0];
+  const [arrivalPriced, groundResults] = await Promise.all([
+    arrival ? priceFlight(arrival) : Promise.resolve(undefined),
+    Promise.all(routeQueries.map(gatherGround)),
   ]);
   ctx.signal?.throwIfAborted();
 
-  const flights = flightOptions.filter(
-    (option) => Number.isFinite(option.price) && option.price >= 0 && option.carrier.trim(),
+  // A city hop whose scheduled ground journey cannot be travelled inside one
+  // planning day is not a ground hop: the scheduler would reject it and the
+  // traveller would get a conflict where a flight belongs. Promote it and price
+  // it. The rule is the scheduler's own, so the two cannot disagree.
+  const startMinutes = scheduleRevision ? EARLY_DEPARTURE_MINUTES : DEFAULT_DEPARTURE_MINUTES;
+  const promoted = groundResults.filter(({ legs: hop }) => {
+    if (!hop.length) return false;
+    const duration = hopDuration(hop);
+    // A duration that is not a number is a broken route, not a long one.
+    // routeProblem already reports those; flying a hop because a provider
+    // returned NaN would turn bad data into a purchase.
+    return Number.isFinite(duration) && !fitsInPlanningDay(duration, startMinutes);
+  });
+  const promotedKeys = new Set(promoted.map(({ query }) => `${query.from}|${query.to}`));
+  const promotedFlights = await Promise.all(
+    promoted.map(({ query }) => {
+      const leg = legs.find((candidate) => candidate.from === query.from && candidate.to === query.to);
+      return priceFlight(flownInstead(leg ?? {
+        index: legs.length,
+        from: query.from,
+        to: query.to,
+        date: query.date,
+        day: query.day,
+        mode: "ground",
+      }));
+    }),
   );
-  if (flightLeg && !flights.length)
-    conflicts.push("Required flight has no valid fare; transport estimate is incomplete.");
+  ctx.signal?.throwIfAborted();
+
+  const routed = groundResults.filter(
+    ({ query }) => !promotedKeys.has(`${query.from}|${query.to}`),
+  );
+  // Only a hop still travelled on the ground needs a ground route.
+  for (const { query, legs: hop } of routed) {
+    if (!hop.length)
+      conflicts.push(
+        `geography conflict on day ${query.day}: route provider unavailable for ${query.from} → ${query.to}`,
+      );
+  }
+  const flights = [...(arrivalPriced ? [arrivalPriced] : []), ...promotedFlights];
 
   return {
     brief,
@@ -209,7 +271,7 @@ function layOutHop(
     return [];
   }
   let cursor = startMinutes;
-  if (cursor + legs.reduce((sum, leg) => sum + Math.ceil(leg.durationMin), 0) >= 1440) {
+  if (!fitsInPlanningDay(hopDuration(legs), cursor)) {
     conflicts.push(`time conflict on day ${day}: route cannot fit inside one planning day`);
     return [];
   }
@@ -242,7 +304,8 @@ function layOutHop(
 }
 
 interface TransportPlan {
-  flight?: { carrier: string; price: number; note?: string };
+  /** The fare chosen for each flown hop, keyed by the hop's position. */
+  flights: { legIndex: number; carrier: string; price: number; note?: string }[];
   /** One entry per routed hop, in the order they were searched. */
   schedule: { day: number; startMinutes: number }[];
   extraAssumptions: string[];
@@ -260,8 +323,11 @@ function transportSource(
         "The model schedule was unavailable or invalid; a deterministic transport plan was used from the gathered evidence.",
     };
   }
-  const requiresFlight = flightLegs(evidence.legs).length > 0;
-  if (requiresFlight && !evidence.flights.length) {
+  // A hop was flown but came back with no fares. Checking the array's length
+  // no longer answers this: it holds one entry per flown hop, present even
+  // when that hop's fare list is empty.
+  const unpricedHop = evidence.flights.some(({ options }) => options.length === 0);
+  if (unpricedHop) {
     return {
       kind: "unavailable",
       label: "Flight provider",
@@ -276,7 +342,8 @@ function transportSource(
     };
   }
   const flightProvenance = evidence.flights
-    .map((flight) => flight.provenance)
+    .flatMap(({ options }) => options)
+    .map((option) => option.provenance)
     .filter((value): value is NonNullable<FlightOption["provenance"]> => value !== undefined);
   if (flightProvenance.length) {
     const providers = [...new Set(flightProvenance.map((value) => value.provider))];
@@ -318,28 +385,29 @@ function assembleTransportProposal(
   degraded = false,
 ): AgentProposal {
   const { origin, destinations, brief, budgetRevision, scheduleRevision } = evidence;
-  const flownLeg = flightLegs(evidence.legs)[0];
   const conflicts = [...evidence.conflicts];
   const routeItems = evidence.routed.flatMap(({ query, legs, options }, index) => {
-    const slot = plan.schedule[index] ?? { day: query.day, startMinutes: 9 * 60 };
+    const slot = plan.schedule[index] ?? { day: query.day, startMinutes: DEFAULT_DEPARTURE_MINUTES };
     return layOutHop(query, legs, options, slot.day, slot.startMinutes, brief.dates[0], conflicts);
   });
-  const items = [
-    // A fare only exists because a leg was flown, so the two travel together
-    // rather than each falling back to the first destination on its own.
-    ...(plan.flight && flownLeg
-      ? [
-          {
-            kind: "transport",
-            day: flownLeg.day,
-            location: `${flownLeg.from} → ${flownLeg.to}`,
-            detail: `${plan.flight.carrier}: ${flownLeg.from} to ${flownLeg.to}, returning ${brief.dates[1]}; whole-group fare${plan.flight.note ? `; ${plan.flight.note}` : ""}.`,
-            estCost: plan.flight.price,
-          },
-        ]
-      : []),
-    ...routeItems,
-  ];
+  // One item per flown hop. A fare exists only because a hop was flown, so the
+  // two are matched by the hop's position rather than each resolving the route
+  // on its own and risking a mismatched label.
+  const flightItems = plan.flights.flatMap((fare) => {
+    const leg = evidence.flights.find(({ leg: flown }) => flown.index === fare.legIndex)?.leg;
+    if (!leg) return [];
+    const returning = leg.index === 0 ? `, returning ${brief.dates[1]}` : "";
+    return [
+      {
+        kind: "transport" as const,
+        day: leg.day,
+        location: `${leg.from} → ${leg.to}`,
+        detail: `${fare.carrier}: ${leg.from} to ${leg.to}${returning}; whole-group fare${fare.note ? `; ${fare.note}` : ""}.`,
+        estCost: fare.price,
+      },
+    ];
+  });
+  const items = [...flightItems, ...routeItems];
   const total = items.reduce((sum, item) => sum + (item.estCost ?? 0), 0);
   return {
     agent: "transport",
@@ -362,14 +430,25 @@ function assembleTransportProposal(
 /** The deterministic choice: kept as the no-key path and as the fallback from the model path. */
 function deterministicPlan(evidence: TransportEvidence): TransportPlan {
   const { flights, budgetRevision, scheduleRevision, routed } = evidence;
-  const flight = flights.length
-    ? budgetRevision
-      ? [...flights].sort((left, right) => left.price - right.price)[0]
-      : (flights.find((option) => /flex/i.test(option.carrier)) ?? flights[0])
-    : undefined;
-  const startMinutes = scheduleRevision ? 6 * 60 : 9 * 60;
+  // One fare per flown hop, chosen the same way for each: the cheapest when
+  // the plan is over budget, otherwise a flexible fare if one was offered.
+  const chosen = flights.flatMap(({ leg, options }) => {
+    if (!options.length) return [];
+    const pick = budgetRevision
+      ? [...options].sort((left, right) => left.price - right.price)[0]!
+      : (options.find((option) => /flex/i.test(option.carrier)) ?? options[0]!);
+    return [
+      {
+        legIndex: leg.index,
+        carrier: pick.carrier,
+        price: pick.price,
+        ...(pick.note ? { note: pick.note } : {}),
+      },
+    ];
+  });
+  const startMinutes = scheduleRevision ? EARLY_DEPARTURE_MINUTES : DEFAULT_DEPARTURE_MINUTES;
   return {
-    flight,
+    flights: chosen,
     schedule: routed.map(({ query }) => ({ day: query.day, startMinutes })),
     extraAssumptions: [],
   };
@@ -390,10 +469,10 @@ async function buildTransportProposal(
  * fares come from the candidate the model named, so an invented price has nowhere to land.
  */
 const TransportSelection = z.object({
-  flightId: z
-    .string()
+  flightIds: z
+    .array(z.string())
     .nullish()
-    .describe("One of the offered flight ids, or null when none were offered"),
+    .describe("One offered flight id per flown hop, or null when none were offered"),
   schedule: z
     .array(
       z.object({
@@ -431,12 +510,18 @@ async function planTransport(
       return {
         planningDays: evidence.days,
         origin: evidence.origin,
-        flights: evidence.flights.map((option, index) => ({
-          flightId: `flight-${index}`,
-          carrier: option.carrier,
-          totalCost: option.price,
-          note: option.note,
-        })),
+        // Flattened for the model, but each fare still names the hop it is
+        // for, so a chosen fare cannot be attached to the wrong leg.
+        flights: evidence.flights.flatMap(({ leg, options }) =>
+          options.map((option, index) => ({
+            flightId: `flight-${leg.index}-${index}`,
+            legIndex: leg.index,
+            hop: `${leg.from} → ${leg.to}`,
+            carrier: option.carrier,
+            totalCost: option.price,
+            note: option.note,
+          })),
+        ),
         hops: evidence.routed.map(({ query, legs }, index) => ({
           hopId: `hop-${index}`,
           from: query.from,
@@ -486,13 +571,30 @@ async function planTransport(
 
     // Resolve the whole selection before using any of it: a half-understood answer should fall
     // back to the deterministic plan rather than mix a model day with a heuristic flight.
-    const flightIndex = selection.flightId
-      ? Number(/^flight-(\d+)$/.exec(selection.flightId)?.[1] ?? NaN)
-      : -1;
-    if (selection.flightId && !gathered.flights[flightIndex])
-      throw new Error(`Transport specialist chose an unknown flight ${selection.flightId}.`);
-    if (!selection.flightId && gathered.flights.length)
-      throw new Error("Transport specialist declined to choose among offered flights.");
+    const offered = gathered.flights.filter(({ options }) => options.length > 0);
+    const chosenIds = selection.flightIds ?? [];
+    const flights = chosenIds.map((id) => {
+      const match = /^flight-(\d+)-(\d+)$/.exec(id);
+      const legIndex = Number(match?.[1] ?? NaN);
+      const optionIndex = Number(match?.[2] ?? NaN);
+      const hop = gathered.flights.find(({ leg }) => leg.index === legIndex);
+      const option = hop?.options[optionIndex];
+      if (!option) throw new Error(`Transport specialist chose an unknown flight ${id}.`);
+      return {
+        legIndex,
+        carrier: option.carrier,
+        price: option.price,
+        ...(option.note ? { note: option.note } : {}),
+      };
+    });
+    // Exactly one fare per hop that had fares: fewer leaves a flown hop
+    // unpriced, more would double-count one hop in the budget.
+    const flownHops = new Set(offered.map(({ leg }) => leg.index));
+    const pricedHops = new Set(flights.map((fare) => fare.legIndex));
+    if (pricedHops.size !== flownHops.size || [...flownHops].some((index) => !pricedHops.has(index)))
+      throw new Error("Transport specialist did not choose one fare for each flown hop.");
+    if (flights.length !== pricedHops.size)
+      throw new Error("Transport specialist chose more than one fare for a hop.");
 
     const schedule = gathered.routed.map(({ query }, index) => {
       const entry = selection.schedule.find((slot) => slot.hopId === `hop-${index}`);
@@ -506,7 +608,7 @@ async function planTransport(
     });
 
     return assembleTransportProposal(gathered, {
-      flight: flightIndex >= 0 ? gathered.flights[flightIndex] : undefined,
+      flights,
       schedule,
       extraAssumptions: (selection.guidance ?? [])
         .map((note) => note.trim())

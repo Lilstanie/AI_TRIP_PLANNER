@@ -217,7 +217,7 @@ describe("B transport reliability", () => {
     expect(AgentProposal.safeParse(result).success).toBe(true);
   });
 
-  it.each([NaN, -1, 0, Infinity, 1600])(
+  it.each([NaN, -1, 0, Infinity])(
     "does not emit a timed route for invalid/unrepresentable duration %s",
     async (durationMin) => {
       const { ctx, route } = context();
@@ -227,6 +227,22 @@ describe("B transport reliability", () => {
       expect(result.conflictsWith.length).toBeGreaterThan(0);
     },
   );
+
+  it("flies a city hop the ground journey cannot fit into one planning day", async () => {
+    // 1600 minutes of train is not a scheduling failure to report — it is a
+    // journey that has to be flown. The scheduler would otherwise reject the
+    // hop and leave the traveller a conflict where a flight belongs.
+    const { ctx, route, searchFlights } = context();
+    route.mockResolvedValue([{ mode: "train", durationMin: 1600, price: 90, note: "fixture" }]);
+    const result = await transportAgent.invoke({ brief, context: ctx });
+    expect(searchFlights).toHaveBeenCalledWith(
+      expect.objectContaining({ from: "Tokyo", to: "Kyoto" }),
+    );
+    // One fare for the arrival, one for the promoted hop, and no timed route.
+    expect(result.items.filter((item) => item.kind === "transport")).toHaveLength(2);
+    expect(result.items.some((item) => item.location === "Tokyo → Kyoto")).toBe(true);
+    expect(result.conflictsWith.join(" ")).not.toContain("cannot fit inside one planning day");
+  });
 
   it("does not mistake OSRM driving time for public transport", async () => {
     const { ctx, route } = context();

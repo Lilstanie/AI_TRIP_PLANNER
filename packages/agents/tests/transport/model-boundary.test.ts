@@ -3,7 +3,7 @@ import type { AgentContext, TripBrief } from "@trip/shared";
 
 type Evidence = {
   planningDays: number;
-  flights: { flightId: string; carrier: string; totalCost: number }[];
+  flights: { flightId: string; legIndex: number; carrier: string; totalCost: number }[];
   hops: { hopId: string; from: string; to: string }[];
 };
 type Tool = () => Promise<Evidence>;
@@ -69,9 +69,14 @@ const context: AgentContext = {
   },
 };
 
-/** A well-formed selection: pick a flight by carrier and put every hop on a given day/time. */
+/** A well-formed selection: one fare per flown hop, every hop on a given day/time. */
 const choose = (carrier: string, day: number, startTime: string) => (evidence: Evidence) => ({
-  flightId: evidence.flights.find((flight) => flight.carrier === carrier)!.flightId,
+  // One id per flown hop: the named carrier where it is offered, else the
+  // first fare that hop has.
+  flightIds: [...new Set(evidence.flights.map((flight) => flight.legIndex))].map((legIndex) => {
+    const forHop = evidence.flights.filter((flight) => flight.legIndex === legIndex);
+    return (forHop.find((flight) => flight.carrier === carrier) ?? forHop[0]!).flightId;
+  }),
   schedule: evidence.hops.map((hop) => ({ hopId: hop.hopId, day, startTime })),
   guidance: [`Leaving at ${startTime} keeps the afternoon free.`],
 });
@@ -128,7 +133,7 @@ describe("the model's transport choices are load-bearing", () => {
   it.each([
     [
       "an unknown flight id",
-      (e: Evidence) => ({ ...choose("Flex Air", 2, "09:00")(e), flightId: "flight-99" }),
+      (e: Evidence) => ({ ...choose("Flex Air", 2, "09:00")(e), flightIds: ["flight-99-0"] }),
     ],
     ["a day outside the trip", (e: Evidence) => choose("Flex Air", 99, "09:00")(e)],
     ["an unreadable time", (e: Evidence) => choose("Flex Air", 2, "half past nine")(e)],

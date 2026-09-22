@@ -27,6 +27,14 @@ export type LegMode = "flight" | "ground";
 export type LegRole = "arrival" | "inter-city";
 
 /**
+ * A mode the traveller asked for on a hop, overriding what the planner would
+ * pick. Nothing sets this yet; it exists so choosing "train, not a flight" is
+ * a value threaded through the existing decision rather than a second code
+ * path bolted alongside it.
+ */
+export type ModePreference = LegMode;
+
+/**
  * Which hops are flown.
  *
  * Today: only the arrival — the hop that brings the traveller to the first
@@ -42,9 +50,24 @@ export type LegRole = "arrival" | "inter-city";
  *
  * This is the one function to change when B→C and C→D should also be flown.
  */
-export function legMode(role: LegRole, from: string, to: string): LegMode {
+export function legMode(
+  role: LegRole,
+  from: string,
+  to: string,
+  preference?: ModePreference,
+): LegMode {
+  // A stated choice wins: the planner's guess is a default, not a rule.
+  if (preference) return preference;
+  // Inter-city hops start as ground and are promoted to a flight only when the
+  // ground journey turns out not to fit a planning day — a decision that needs
+  // provider durations, so it cannot be made here.
   if (role === "inter-city") return "ground";
   return from.toLowerCase() === to.toLowerCase() ? "ground" : "flight";
+}
+
+/** The same leg, flown instead of driven or ridden. */
+export function flownInstead(leg: JourneyLeg): JourneyLeg {
+  return { ...leg, mode: "flight" };
 }
 
 /**
