@@ -794,3 +794,150 @@
   color: var(--text-mut);
   font-size: 11px;
 }
+
+/* ---- flight itinerary cards ----
+   Cards sit side by side and scroll horizontally, so two itineraries can be
+   compared at a glance without either being cut down to a summary row. */
+.flight-results__itineraries {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(258px, 1fr);
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+  overflow-x: auto;
+  /* Wide content scrolls inside its own container; the page never does. */
+  padding-bottom: var(--space-1, 4px);
+  scroll-snap-type: x mandatory;
+}
+.itinerary {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  scroll-snap-align: start;
+}
+.itinerary__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.itinerary__badge {
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  color: var(--text-mut);
+  font-size: 11px;
+  font-weight: 600;
+}
+.itinerary__badge--best {
+  border-color: var(--ok);
+  background: var(--ok-bg);
+  color: var(--ok);
+}
+.itinerary__route {
+  margin: 2px 0 0;
+  font-weight: 600;
+}
+.itinerary__dates,
+.itinerary__class {
+  margin: 0;
+  color: var(--text-mut);
+  font-size: 12px;
+}
+.itinerary__legs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+.itinerary-leg {
+  padding: var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+.itinerary-leg__airline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 6px;
+  font-size: 12px;
+}
+.itinerary-leg__logo {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  flex: none;
+}
+.itinerary-leg__carrier {
+  color: var(--text-dim);
+}
+.itinerary-leg__number {
+  margin-left: auto;
+  color: var(--text-mut);
+  font-variant-numeric: tabular-nums;
+}
+.itinerary-leg__route {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.itinerary-leg__code {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.itinerary-leg__rail {
+  flex: 1;
+  height: 1px;
+  border-top: 1px dashed var(--border);
+}
+.itinerary-leg__duration {
+  padding: 1px 7px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  color: var(--text-mut);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.itinerary-leg__times {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 2px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.itinerary-leg__offset {
+  margin-left: 1px;
+  color: var(--text-mut);
+  font-size: 10px;
+}
+.itinerary-leg__stops {
+  margin: 4px 0 0;
+  color: var(--text-mut);
+  font-size: 12px;
+}
+.itinerary__pending {
+  margin: 0;
+  color: var(--warn);
+  font-size: 11px;
+}
+.itinerary__footer {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: var(--space-2);
+}
+.itinerary__price {
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.itinerary__price-note {
+  color: var(--text-mut);
+  font-size: 11px;
+}

@@ -1,5 +1,6 @@
 "use client";
 import { BASE_CURRENCY, moneyIn, type FlightAnswer } from "@trip/shared";
+import { FlightItineraryCard } from "./FlightItineraryCard";
 
 function duration(minutes: number | undefined): string | undefined {
   if (!minutes) return undefined;
@@ -34,9 +35,28 @@ export function FlightResults({ answer }: { answer: FlightAnswer }) {
           {answer.return ? ` – ${answer.return}` : ""} · {party}
         </span>
       </header>
-      {answer.options.length ? (
+      {/* Itineraries the provider described in full read as cards; the rest
+          stay a list, because a card with no flights in it is just a price. */}
+      {answer.options.some((option) => option.outbound) && (
+        <div className="flight-results__itineraries">
+          {answer.options
+            .filter((option) => option.outbound)
+            .slice(0, 3)
+            .map((option, index) => (
+              <FlightItineraryCard
+                key={`${option.carrier}-${index}`}
+                option={option}
+                cheapest={index === 0}
+              />
+            ))}
+        </div>
+      )}
+      {answer.options.some((option) => !option.outbound) ? (
         <ol className="flight-results__list">
-          {answer.options.slice(0, 6).map((option, index) => {
+          {answer.options
+            .filter((option) => !option.outbound)
+            .slice(0, 6)
+            .map((option, index) => {
             const detail = [stops(option.stops), duration(option.durationMin)]
               .filter(Boolean)
               .join(" · ");
@@ -51,9 +71,9 @@ export function FlightResults({ answer }: { answer: FlightAnswer }) {
             );
           })}
         </ol>
-      ) : (
+      ) : answer.options.length === 0 ? (
         <p className="muted">No fares were returned for this search.</p>
-      )}
+      ) : null}
       <p className="flight-results__note">
         Whole-party totals. {answer.source?.freshness ?? "Prices change without notice."} Nothing
         here makes a booking.

@@ -7,6 +7,9 @@ import {
 } from "@trip/shared";
 import type { FlightQuery } from "./flight-query";
 
+/** How many itineraries are shown with both legs; each costs one extra search. */
+const ITINERARIES_SHOWN_IN_FULL = 2;
+
 /**
  * Answer "what does this flight cost" with fares and nothing else.
  *
@@ -25,7 +28,7 @@ export async function answerFlightQuery(
   const { from, to, depart, passengers } = query;
   const trip = `${from} → ${to} on ${depart}`;
 
-  let options: FlightAnswer["options"] = [];
+  let options: (FlightAnswer["options"][number] & { returnToken?: string })[] = [];
   let failure: string | undefined;
   try {
     const found = await booking.searchFlights({
@@ -43,10 +46,43 @@ export async function answerFlightQuery(
         ...(option.note ? { note: option.note } : {}),
         ...(option.stops !== undefined ? { stops: option.stops } : {}),
         ...(option.durationMin !== undefined ? { durationMin: option.durationMin } : {}),
+        ...(option.outbound ? { outbound: option.outbound } : {}),
+        ...(option.roundTrip ? { roundTrip: true } : {}),
+        ...(option.returnToken ? { returnToken: option.returnToken } : {}),
       }))
       // Cheapest first whether or not they asked: it is the useful order, and
       // when they did ask it is the answer.
       .sort((a, b) => a.price - b.price);
+
+    // The way home, for the itineraries that will be shown in full only.
+    // Google Flights needs a separate search per itinerary for its returns, so
+    // fetching every one would spend the monthly allowance on fares nobody
+    // reads. Two is what fits on screen beside each other.
+    if (booking.searchReturnLeg && query.return) {
+      const shown = options.slice(0, ITINERARIES_SHOWN_IN_FULL);
+      const legs = await Promise.all(
+        shown.map((option) =>
+          option.returnToken && option.roundTrip
+            ? booking
+                .searchReturnLeg!({
+                  from,
+                  to,
+                  depart,
+                  return: query.return,
+                  passengers,
+                  token: option.returnToken,
+                })
+                .catch(() => undefined)
+            : Promise.resolve(undefined),
+        ),
+      );
+      shown.forEach((option, index) => {
+        const leg = legs[index];
+        if (leg) option.inbound = leg;
+      });
+    }
+    // The token is a provider handle, not something a reader needs.
+    for (const option of options) delete option.returnToken;
   } catch (error) {
     failure = error instanceof Error ? error.message : "The flight provider was unavailable.";
   }

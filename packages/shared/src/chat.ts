@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { AGENT_NAMES, isTripDate, TripBrief } from "./contracts";
+import { AGENT_NAMES, FlightLeg, isTripDate, TripBrief } from "./contracts";
 import { Currency } from "./money";
 import { TripPlan } from "./plan";
 
@@ -97,6 +97,11 @@ export const FlightAnswerOption = z.object({
   note: z.string().optional(),
   stops: z.number().int().nonnegative().optional(),
   durationMin: z.number().int().positive().optional(),
+  /** The flights themselves, when the provider described them. */
+  outbound: FlightLeg.optional(),
+  /** The way home. Only fetched for the itineraries shown in full. */
+  inbound: FlightLeg.optional(),
+  roundTrip: z.boolean().optional(),
 });
 export type FlightAnswerOption = z.infer<typeof FlightAnswerOption>;
 

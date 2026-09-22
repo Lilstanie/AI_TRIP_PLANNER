@@ -245,6 +245,9 @@ export function withProgressTools(
   };
 
   const booking: BookingPort = {
+    // Spread first, for the same reason as maps above: re-listing the port's
+    // methods by hand silently drops anything added to it later.
+    ...tools.booking,
     searchStays: (query: StayQuery) =>
       run(
         "booking.searchStays",

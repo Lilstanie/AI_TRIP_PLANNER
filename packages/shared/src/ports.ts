@@ -3,7 +3,7 @@
 // only on the interface, so they stay testable (pass a fake in a unit test).
 // Owner: A.
 
-import type { ChatTurn, UserPreference } from "./contracts";
+import type { ChatTurn, FlightLeg, UserPreference } from "./contracts";
 
 // --- Maps / Places port (implemented by @trip/tools/maps) -------------------
 export interface RouteQuery {
@@ -85,6 +85,16 @@ export interface StayOption {
   detailsUrl?: string;
   /** Provider and pricing status for traveller-facing source labels. */
   provenance?: ProviderProvenance;
+  /** The flights themselves, when the provider described them. */
+  outbound?: FlightLeg;
+  inbound?: FlightLeg;
+  roundTrip?: boolean;
+  /**
+   * Opaque provider handle for fetching this itinerary's return flights.
+   * Google Flights returns outbound options first; the returns for one of them
+   * are a second search, so a round-trip fare arrives without its way home.
+   */
+  returnToken?: string;
 }
 export interface FlightQuery {
   from: string;
@@ -103,10 +113,27 @@ export interface FlightOption {
   durationMin?: number;
   /** Provider and pricing status for traveller-facing source labels. */
   provenance?: ProviderProvenance;
+  /** The flights themselves, when the provider described them. */
+  outbound?: FlightLeg;
+  inbound?: FlightLeg;
+  roundTrip?: boolean;
+  /**
+   * Opaque provider handle for fetching this itinerary's return flights.
+   * Google Flights returns outbound options first; the returns for one of them
+   * are a second search, so a round-trip fare arrives without its way home.
+   */
+  returnToken?: string;
 }
 export interface BookingPort {
   searchStays(q: StayQuery): Promise<StayOption[]>;
   searchFlights(q: FlightQuery): Promise<FlightOption[]>;
+  /**
+   * The return flights for one outbound itinerary, identified by the token its
+   * search returned. Optional: a provider that answers a round trip in one
+   * call has nothing to add here. Each call is another provider search, so
+   * callers fetch it only for itineraries they are about to show in full.
+   */
+  searchReturnLeg?(q: FlightQuery & { token: string }): Promise<FlightLeg | undefined>;
 }
 
 export type WeatherHorizon = "forecast" | "climate";

@@ -150,6 +150,52 @@ export const StaySelection = z.object({
   candidates: z.array(StayCandidate).min(1),
 });
 export type StaySelection = z.infer<typeof StaySelection>;
+/** An airport as a provider names it: the code people read, and the full name. */
+export const FlightPlace = z.object({
+  code: z.string().min(2),
+  name: z.string().min(1),
+});
+export type FlightPlace = z.infer<typeof FlightPlace>;
+
+/**
+ * One aircraft between two airports.
+ *
+ * Times are local to each airport and kept as the provider's own strings.
+ * Converting them to instants would need each airport's zone, and showing a
+ * departure in anything but the departure airport's local time is wrong on a
+ * boarding pass and wrong here.
+ */
+export const FlightSegment = z.object({
+  from: FlightPlace,
+  to: FlightPlace,
+  /** Local departure, "YYYY-MM-DD HH:mm" at `from`. */
+  departsAt: z.string().min(1),
+  /** Local arrival, "YYYY-MM-DD HH:mm" at `to`. */
+  arrivesAt: z.string().min(1),
+  durationMin: z.number().int().positive(),
+  airline: z.string().min(1),
+  airlineLogo: z.string().url().optional(),
+  flightNumber: z.string().min(1),
+  aircraft: z.string().optional(),
+  cabin: z.string().optional(),
+});
+export type FlightSegment = z.infer<typeof FlightSegment>;
+
+export const FlightLayover = z.object({
+  place: FlightPlace,
+  durationMin: z.number().int().positive(),
+});
+export type FlightLayover = z.infer<typeof FlightLayover>;
+
+/** One direction of a journey: the aircraft taken, and the waits between them. */
+export const FlightLeg = z.object({
+  segments: z.array(FlightSegment).min(1),
+  layovers: z.array(FlightLayover).default([]),
+  /** Gate to gate including layovers. */
+  durationMin: z.number().int().positive(),
+});
+export type FlightLeg = z.infer<typeof FlightLeg>;
+
 /** One fare a provider offered for a hop, as the traveller would compare them. */
 export const FlightCandidate = z.object({
   id: z.string().min(1),
@@ -159,6 +205,17 @@ export const FlightCandidate = z.object({
   stops: z.number().int().nonnegative().optional(),
   durationMin: z.number().int().positive().optional(),
   note: z.string().optional(),
+  /** The flights themselves, when the provider described them. */
+  outbound: FlightLeg.optional(),
+  /**
+   * The way home. Absent on a one-way fare, and absent on a round trip whose
+   * return flights were not looked up — Google Flights returns the outbound
+   * options first and needs a second search per itinerary for its returns, so
+   * a fare can carry a round-trip price with no inbound leg to show yet.
+   */
+  inbound: FlightLeg.optional(),
+  /** Round trip when a return date was searched, whether or not `inbound` is filled. */
+  roundTrip: z.boolean().optional(),
 });
 export type FlightCandidate = z.infer<typeof FlightCandidate>;
 

@@ -14,9 +14,14 @@
 // failure here is thrown; the transport agent already treats a thrown
 // searchFlights as "flight remains unpriced" rather than a crash (see
 // packages/agents/src/transport/index.ts's .catch on this call).
-import type { StayQuery, StayOption, FlightQuery, FlightOption } from "@trip/shared";
+import type { StayQuery, StayOption, FlightQuery, FlightOption, FlightLeg } from "@trip/shared";
 import { searchGooglePlacesText } from "./google-places";
-import { searchFlightsSerpApi, searchHotelsSerpApi, SerpApiError } from "./serpapi";
+import {
+  searchFlightsSerpApi,
+  searchHotelsSerpApi,
+  searchReturnLegSerpApi,
+  SerpApiError,
+} from "./serpapi";
 import { mockEnabled } from "./data-mode";
 
 export type { StayQuery, StayOption, FlightQuery, FlightOption } from "@trip/shared";
@@ -240,4 +245,33 @@ export async function searchFlights(q: FlightQuery): Promise<FlightOption[]> {
     return: q.return,
     passengers: q.passengers,
   });
+}
+
+/**
+ * The return flights for one outbound itinerary.
+ *
+ * Only SerpApi answers this: Google Flights returns the outbound halves of a
+ * round trip first, and the ways home for one of them are a second search. In
+ * mock mode there is nothing to look up, because the fixture fare is a single
+ * made-up number with no flights behind it.
+ */
+export async function searchReturnLeg(
+  q: FlightQuery & { token: string },
+): Promise<FlightLeg | undefined> {
+  if (mockEnabled() || !process.env.SERPAPI_KEY || !q.return) return undefined;
+  try {
+    return await searchReturnLegSerpApi({
+      from: q.from,
+      to: q.to,
+      depart: q.depart,
+      return: q.return,
+      passengers: q.passengers,
+      token: q.token,
+    });
+  } catch (error) {
+    // A missing way home is a smaller answer, not a failed one: the fare and
+    // its outbound flights are still worth showing.
+    if (error instanceof SerpApiError) return undefined;
+    throw error;
+  }
 }

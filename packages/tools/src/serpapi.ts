@@ -14,8 +14,9 @@
 // which neither doc page shows) an empirical request with a bad key:
 // `{"error": "Invalid API key. ..."}` with HTTP 401.
 import { durableStoreConfigured, jsonStore } from "@trip/services";
-import type { FlightOption, StayOption } from "@trip/shared";
+import type { FlightLeg, FlightOption, StayOption } from "@trip/shared";
 import { airportCodeFor } from "./airports";
+import { legFrom, isRoundTrip, departureToken, type RawItinerary } from "./flight-itinerary";
 
 const MONTHLY_LIMIT = 230;
 const CACHE_TTL_MS = 15 * 60 * 1000;
@@ -288,13 +289,10 @@ export async function searchFlightsSerpApi(q: {
     const flights = [...(data.best_flights ?? []), ...(data.other_flights ?? [])];
     const options: FlightOption[] = flights
       .map((raw): FlightOption => {
-        const flight = raw as {
-          price?: unknown;
-          layovers?: unknown[];
-          total_duration?: unknown;
-          flights?: Array<{ airline?: unknown }>;
-        };
+        const flight = raw as RawItinerary & { flights?: Array<{ airline?: unknown }> };
         const airline = flight.flights?.[0]?.airline;
+        const outbound = legFrom(flight);
+        const token = departureToken(flight);
         const durationMin = Number(flight.total_duration);
         // SerpApi/Google Flights reports one price per passenger for the
         // whole itinerary (both legs already combined on a round trip); this
@@ -308,6 +306,12 @@ export async function searchFlightsSerpApi(q: {
           price: perPassenger * q.passengers,
           stops: Array.isArray(flight.layovers) ? flight.layovers.length : 0,
           ...(Number.isFinite(durationMin) ? { durationMin } : {}),
+          ...(outbound ? { outbound } : {}),
+          ...(isRoundTrip(flight) ? { roundTrip: true } : {}),
+          // Google Flights answers a round trip in two steps: these options
+          // are the outbound halves, and the return flights for one of them
+          // need a second search keyed by this token.
+          ...(token ? { returnToken: token } : {}),
           provenance: {
             kind: "live",
             provider: "SerpApi Google Flights",
@@ -324,5 +328,46 @@ export async function searchFlightsSerpApi(q: {
       );
     }
     return options;
+  });
+}
+
+/**
+ * The return flights for one outbound itinerary.
+ *
+ * Google Flights answers a round trip in two steps: the first search returns
+ * outbound options carrying the whole round-trip price, and the ways home for
+ * one of them are a second search keyed by that option's token. Each call
+ * spends another unit of the monthly allowance, so callers fetch this only for
+ * the itineraries they are about to show, not for every fare returned.
+ */
+export async function searchReturnLegSerpApi(q: {
+  from: string;
+  to: string;
+  depart: string;
+  return: string;
+  passengers: number;
+  token: string;
+}): Promise<FlightLeg | undefined> {
+  const key = `return:${q.from.toLowerCase()}|${q.to.toLowerCase()}|${q.depart}|${q.return}|${q.passengers}|${q.token.slice(0, 32)}`;
+  return cached(key, async () => {
+    const data = await serpApiSearch({
+      engine: "google_flights",
+      departure_id: airportCode(q.from),
+      arrival_id: airportCode(q.to),
+      outbound_date: q.depart,
+      return_date: q.return,
+      adults: String(q.passengers),
+      currency: "AUD",
+      type: "1",
+      departure_token: q.token,
+    });
+    const itineraries = [...(data.best_flights ?? []), ...(data.other_flights ?? [])];
+    // The first is Google's own pick for this outbound; a traveller choosing a
+    // different way home is a second question, not part of this answer.
+    for (const raw of itineraries) {
+      const leg = legFrom(raw as RawItinerary);
+      if (leg) return leg;
+    }
+    return undefined;
   });
 }
