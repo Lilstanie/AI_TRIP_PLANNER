@@ -16,6 +16,7 @@ import { z } from "zod/v4";
 import { createAgent, tool } from "langchain";
 import { createRoutedChatModel, readStructuredResponse } from "../models";
 import { dateForDay, planningDays, routeProblem } from "../transport/validation";
+import { cities, cityForDay } from "../transport/legs";
 import { avoidBlockedWindows } from "./revision";
 import { mockEnabled } from "@trip/tools";
 
@@ -120,11 +121,25 @@ const DAY_SLOTS = [
 /** A day with only one grounded stop keeps the afternoon anchor it always had. */
 const SINGLE_SLOT = { startTime: "13:00", endTime: "16:00" } as const;
 
-function fallbackDraft(brief: TripBrief, days: number, places: Place[]): ItineraryDraft {
+function fallbackDraft(
+  brief: TripBrief,
+  days: number,
+  places: Place[],
+  placesByCity?: ReadonlyMap<string, readonly Place[]>,
+): ItineraryDraft {
   const candidates = places; // Empty evidence is handled before reaching this fallback.
-  // Two stops a day, but never the same place twice in one day, and never more
-  // stops than there are grounded places to fill them with.
-  const perDay = Math.min(DAY_SLOTS.length, Math.max(1, Math.floor(candidates.length / days) || 1));
+  // Each day draws on the city it is spent in, so a day's stops are places a
+  // traveller can actually move between. The day-to-city split is the one the
+  // journey legs use, so the two plans describe the same trip.
+  const cityNames = cities(brief.destination);
+  const dayCity = cityForDay(cityNames, days);
+  const forDay = (day: number): readonly Place[] => {
+    const inCity = placesByCity?.get(dayCity[day - 1] ?? cityNames[0]!) ?? [];
+    return inCity.length ? inCity : candidates;
+  };
+  // Two stops a day, but never more stops than the thinnest day has places for.
+  const scarcest = Math.min(...Array.from({ length: days }, (_, day) => forDay(day + 1).length));
+  const perDay = Math.min(DAY_SLOTS.length, Math.max(1, Math.floor(scarcest / 2) || 1));
   const dailyEstimate =
     Math.floor(((brief.budgetTotal * MODEL_ACTIVITY_BUDGET_SHARE) / days) * 100) / 100;
   // The day's allowance is split across its stops rather than spent on each:
@@ -135,7 +150,8 @@ function fallbackDraft(brief: TripBrief, days: number, places: Place[]): Itinera
   const slots = perDay === 1 ? [SINGLE_SLOT] : DAY_SLOTS.slice(0, perDay);
   const activities = Array.from({ length: days }, (_, day) =>
     Array.from({ length: perDay }, (_, slot) => {
-      const place = candidates[(day * perDay + slot) % candidates.length]!;
+      const cityPlaces = forDay(day + 1);
+      const place = cityPlaces[(day * perDay + slot) % cityPlaces.length]!;
       return {
         day: day + 1,
         ...slots[slot]!,
@@ -305,29 +321,49 @@ async function planItinerary(
   const brief = TripBriefSchema.parse(briefInput);
   const days = planningDays(brief.dates);
   const evidenceIssues: string[] = [];
-  const readPlaces = async (category: string) => {
+  const readPlaces = async (category: string, near: string) => {
     try {
-      const found = await ctx.tools.maps.places({ near: brief.destination, category });
+      const found = await ctx.tools.maps.places({ near, category });
       return found.filter(
         (place) => typeof place.name === "string" && place.name.trim().length > 0,
       );
     } catch {
       ctx.signal?.throwIfAborted();
       evidenceIssues.push(
-        `Place provider unavailable for ${category}; using only remaining evidence.`,
+        `Place provider unavailable for ${category} in ${near}; using only remaining evidence.`,
       );
       return [];
     }
   };
-  const [sights, neighborhoods, preferences] = await Promise.all([
-    readPlaces("sight"),
-    readPlaces("neighborhood"),
+  // A multi-city brief is searched city by city. Asking Google for places
+  // "near Sydney & Wollongong" returns a mix of both with nothing saying
+  // which is which, and the day plan then put a Wollongong lookout and the
+  // Sydney CBD in the same afternoon, two hours apart.
+  const cityNames = cities(brief.destination);
+  const [byCity, preferences] = await Promise.all([
+    Promise.all(
+      cityNames.map(async (city) => {
+        const [sights, neighborhoods] = await Promise.all([
+          readPlaces("sight", city),
+          readPlaces("neighborhood", city),
+        ]);
+        return [
+          city,
+          [
+            ...new Map(
+              [...sights, ...neighborhoods].map((place) => [place.name.trim().toLowerCase(), place]),
+            ).values(),
+          ],
+        ] as const;
+      }),
+    ),
     ctx.mem.getLongTerm(brief.userId),
   ]);
   ctx.signal?.throwIfAborted();
+  const placesByCity = new Map(byCity);
   const places = [
     ...new Map(
-      [...sights, ...neighborhoods].map((place) => [place.name.trim().toLowerCase(), place]),
+      [...placesByCity.values()].flat().map((place) => [place.name.trim().toLowerCase(), place]),
     ).values(),
   ];
   if (!places.length) {
@@ -366,10 +402,10 @@ async function planItinerary(
       usedFallback = true;
       const reason = error instanceof Error ? error.message : "unknown model error";
       console.warn(`[itinerary] Model draft failed validation; using a safe local plan: ${reason}`);
-      draft = fallbackDraft(brief, days, places);
+      draft = fallbackDraft(brief, days, places, placesByCity);
     }
   } else {
-    draft = fallbackDraft(brief, days, places);
+    draft = fallbackDraft(brief, days, places, placesByCity);
   }
   let adjusted = avoidBlockedWindows(draft, revision);
   draft = adjusted.draft;
@@ -379,7 +415,7 @@ async function planItinerary(
     // A revision must not preserve newly discovered geography conflicts; use a
     // conservative fallback and re-check it before returning.
     usedFallback = true;
-    draft = fallbackDraft(brief, days, places);
+    draft = fallbackDraft(brief, days, places, placesByCity);
     adjusted = avoidBlockedWindows(draft, revision);
     draft = adjusted.draft;
     // The fallback is a different day plan, so its connections are different too.

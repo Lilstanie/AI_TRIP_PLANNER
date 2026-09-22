@@ -84,7 +84,11 @@ describe("itinerary planner", () => {
     expect(result.items.every((item) => item.startTime === "13:00")).toBe(true);
     expect(result.summary).not.toContain("STUB");
     expect(result.assumptions.join(" ")).toContain("Opening hours and live availability");
-    expect(ctx.tools.maps.places).toHaveBeenCalledTimes(2);
+    // Two categories per city, not per brief: "near Tokyo & Kyoto" returns a
+    // mix with nothing saying which place is in which city.
+    expect(ctx.tools.maps.places).toHaveBeenCalledTimes(4);
+    expect(ctx.tools.maps.places).toHaveBeenCalledWith({ near: "Tokyo", category: "sight" });
+    expect(ctx.tools.maps.places).toHaveBeenCalledWith({ near: "Kyoto", category: "sight" });
   });
 
   it("uses an injected structured generator and checks travel feasibility", async () => {
@@ -325,5 +329,32 @@ describe("city connections", () => {
     const result = await createItineraryAgent({ generator: false }).invoke({ brief, context: ctx });
     expect(result.items.every((item) => item.arriveBy === undefined)).toBe(true);
     expect(result.conflictsWith.join(" ")).toContain("connection unverified");
+  });
+});
+
+describe("multi-city days", () => {
+  it("keeps a day's stops in the city that day is spent in", async () => {
+    // A day that mixes cities is not a day: the five-day Sydney and Wollongong
+    // plan put a Wollongong lookout and the Sydney CBD in one afternoon, two
+    // hours apart, and the route check then reported it as a conflict.
+    const ctx = context();
+    ctx.tools.maps.places = vi.fn(async ({ near, category }) =>
+      category === "sight"
+        ? [
+            { name: `${near} Museum`, category: "sight" },
+            { name: `${near} Gallery`, category: "sight" },
+          ]
+        : [{ name: `${near} Old Town`, category: "neighborhood" }],
+    );
+    const result = await createItineraryAgent({ generator: false }).invoke({
+      brief: { ...brief, destination: "Tokyo & Kyoto", dates: ["2026-10-01", "2026-10-05"] },
+      context: ctx,
+    });
+    for (const item of result.items) {
+      // The journey moves to Kyoto partway through, and every stop belongs to
+      // whichever city its own day is spent in.
+      const city = item.day! <= 2 ? "Tokyo" : "Kyoto";
+      expect(item.location, `day ${item.day}`).toContain(city);
+    }
   });
 });

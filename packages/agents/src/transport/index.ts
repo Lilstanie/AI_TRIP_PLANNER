@@ -25,6 +25,7 @@ import {
   DEFAULT_DEPARTURE_MINUTES,
 } from "./validation";
 import {
+  cities,
   journeyLegs,
   flightLegs,
   groundLegs,
@@ -35,15 +36,6 @@ import { mockEnabled } from "@trip/tools";
 
 // Transport combines booking fares with map legs and keeps all pricing in the
 // deterministic calculator that the specialist must call.
-/** Parse the demo's ampersand-separated destination convention. */
-function cities(destination: string): string[] {
-  const result = destination
-    .split(/\s*&\s*/)
-    .map((city) => city.trim())
-    .filter(Boolean);
-  if (!result.length) throw new Error("Transport requires at least one destination.");
-  return result;
-}
 
 /** Format a leg cursor as a same-day HH:mm value. */
 function clock(totalMinutes: number): string {

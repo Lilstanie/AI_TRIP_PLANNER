@@ -78,7 +78,8 @@ describe("ChatPanel", () => {
     const log = screen.getByRole("log");
     expect(screen.getByRole("heading", { name: "Where to next?" })).toBeTruthy();
     expect(within(log).queryByText(/.+/)).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: /sydney/i }));
+    // Several examples name Sydney now, so match the single-city one exactly.
+    fireEvent.click(screen.getByRole("button", { name: /^Sydney · \d+ days$/ }));
 
     // The example sends its own text rather than staging it in the composer:
     // React state has not flushed when the click handler runs, so relying on

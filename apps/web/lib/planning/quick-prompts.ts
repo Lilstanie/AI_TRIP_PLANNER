@@ -17,8 +17,12 @@ export type QuickPrompt = { label: string; text: string };
  *
  * Phrase these as "trip to <city>". TripBrief has no origin field, so a
  * "from A to B" prompt states something the planner cannot use — and the
- * offline extractor, whose destination pattern keys on "trip to", drops the
- * destination entirely when it sees that shape.
+ * Between them they exercise the planner's four travel shapes, so a change
+ * that breaks one is visible from the blank chat rather than only under test:
+ * a single city (stops connected by local transport), one city to another (a
+ * priced flight), a multi-city run whose hops are too far to travel on the
+ * ground (each promoted to its own flight), and a multi-city run close enough
+ * to stay on the ground.
  */
 export function quickPrompts(today: Date = new Date()): QuickPrompt[] {
   const inDays = (days: number) => {
@@ -28,20 +32,28 @@ export function quickPrompts(today: Date = new Date()): QuickPrompt[] {
   };
   return [
     {
+      // One city: two stops a day, each connected by real local transport.
       label: "Sydney · 4 days",
       text: `Plan a 4-day trip to Sydney for 2 people from ${inDays(21)} to ${inDays(25)}, total budget 4000 AUD.`,
     },
     {
-      label: "Seoul · 5 days",
-      text: `Plan a 5-day trip to Seoul for 2 people from ${inDays(30)} to ${inDays(35)}, total budget 6000 AUD.`,
+      // A to B: states an origin, so the arrival is a priced flight.
+      label: "Melbourne → Sydney · 5 days",
+      text: `Plan a 5-day trip from Melbourne to Sydney for 2 people from ${inDays(30)} to ${inDays(35)}, total budget 5000 AUD.`,
     },
     {
-      label: "Paris & Lisbon · 8 days",
-      text: `Plan an 8-day trip to Paris & Lisbon for 3 people from ${inDays(45)} to ${inDays(53)}, total budget 9000 AUD.`,
+      // Hops far enough apart that the ground journey cannot fit a planning
+      // day, so each is flown: Sydney to Brisbane is 15 hours by coach.
+      label: "Melbourne → Sydney & Brisbane · 9 days",
+      text: `Plan a 9-day trip from Melbourne to Sydney & Brisbane for 2 people from ${inDays(45)} to ${inDays(54)}, total budget 9000 AUD.`,
     },
     {
-      label: "Singapore solo · 3 days",
-      text: `Plan a 3-day solo trip to Singapore from ${inDays(14)} to ${inDays(17)}, total budget 1800 AUD.`,
+      // Close enough to stay on the ground: 95 minutes by train, so the hop is
+      // never promoted to a flight. Google's transit routing does not cover
+      // intercity rail everywhere — Tokyo to Kyoto returns nothing at all —
+      // so this example uses a pair it can actually answer.
+      label: "Sydney & Wollongong · 5 days",
+      text: `Plan a 5-day trip to Sydney & Wollongong for 2 people from ${inDays(60)} to ${inDays(65)}, total budget 4500 AUD.`,
     },
   ];
 }

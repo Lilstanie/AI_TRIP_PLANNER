@@ -1,5 +1,16 @@
 import { dateForDay } from "./validation";
 
+/** Parse the demo's ampersand-separated destination convention. */
+export function cities(destination: string): string[] {
+  const result = destination
+    .split(/\s*&\s*/)
+    .map((city) => city.trim())
+    .filter(Boolean);
+  if (!result.length) throw new Error("Transport requires at least one destination.");
+  return result;
+}
+
+
 /**
  * One hop of a journey, in travel order: origin → city 1 → city 2 → …
  *
@@ -132,3 +143,27 @@ export function journeyLegs(input: {
 
 export const flightLegs = (legs: JourneyLeg[]) => legs.filter((leg) => leg.mode === "flight");
 export const groundLegs = (legs: JourneyLeg[]) => legs.filter((leg) => leg.mode === "ground");
+
+/**
+ * Which city each planning day belongs to, counted the same way the journey
+ * legs are: a hop's day is where that city's stay begins.
+ *
+ * Shared so the itinerary and the transport plan cannot disagree. They did:
+ * the itinerary cycled through every city's places regardless of day, so a
+ * five-day Sydney and Wollongong trip put a Wollongong lookout and the Sydney
+ * CBD in the same afternoon, two hours apart.
+ */
+export function cityForDay(cities: string[], days: number): string[] {
+  if (!cities.length) throw new Error("A journey needs at least one destination.");
+  const startsOn = cities.map((_, index) =>
+    index === 0 ? 1 : Math.min(days, Math.floor((days * index) / cities.length) + 1),
+  );
+  return Array.from({ length: days }, (_, offset) => {
+    const day = offset + 1;
+    let city = cities[0]!;
+    startsOn.forEach((start, index) => {
+      if (day >= start) city = cities[index]!;
+    });
+    return city;
+  });
+}
