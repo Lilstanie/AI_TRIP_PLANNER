@@ -396,6 +396,9 @@
   border-radius: var(--radius-lg);
   width: min(720px, calc(100% - 24px));
   max-height: calc(100dvh - 40px);
+  /* Tailwind's preflight zeroes every margin, which pinned modal dialogs to the top-left corner
+     instead of the browser's centred default. */
+  margin: auto;
   padding: 20px;
 }
 .dialog::backdrop {
