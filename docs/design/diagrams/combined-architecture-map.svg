@@ -125,7 +125,7 @@
         <g font-family="'IBM Plex Sans','Helvetica Neue',Arial,sans-serif" font-size="11" fill="#1d2733">
           <text x="414" y="108">API routes: chat · data-mode · places · routes · trip</text>
           <text x="414" y="128">WorkspaceView · WorkspaceController</text>
-          <text x="414" y="148">FiltersPanel · ChatPanel · DataModeToggle</text>
+          <text x="414" y="148">TripFactChips · ChatPanel · DataModeToggle</text>
           <text x="414" y="168">TripPanel · TripEditor · TripMapCanvas</text>
           <text x="414" y="196" font-size="9.5" fill="#5a6675">POST /api/chat → progress events + { reply, plan }</text>
         </g>

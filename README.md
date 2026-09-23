@@ -2,8 +2,8 @@
 
 [![CI](https://github.com/Lilstanie/AI_TRIP_PLANNER/actions/workflows/ci.yml/badge.svg)](https://github.com/Lilstanie/AI_TRIP_PLANNER/actions/workflows/ci.yml)
 
-AI Trip Planner is a single-user, multi-agent travel workspace. A user describes a trip in chat or a
-preferences form; a LangGraph workflow delegates to five LangChain specialist agents and returns a
+AI Trip Planner is a single-user, multi-agent travel workspace. A user describes a trip in chat or
+edits its facts from the top-bar chips; a LangGraph workflow delegates to five LangChain specialist agents and returns a
 validated plan with itinerary, transport, accommodation, dining, destination guidance and budget,
 each labelled with where its data came from. The user edits the plan by chatting or directly on the
 day timeline and Google map, and saves trips in the browser.

@@ -71,8 +71,8 @@ No contract in `packages/shared` changed; the request shapes are the ones the dr
 - Below 1250 px the trip title is visually hidden, because the destination chip already names the
   trip. On narrow screens the chips scroll sideways inside their row, with a faded edge as the cue.
 - Unlike Mindtrip, the Trip drawer's header does not repeat the chips; they stay visible above it.
-- The class diagrams' Markdown now names `TripFactChips`; the rendered SVGs under
-  `docs/design/diagrams/` still say `FiltersPanel` until they are regenerated.
+- The class diagrams and the combined architecture map name `TripFactChips` in both the Markdown
+  source and the rendered SVGs under `docs/design/diagrams/`.
 
 ## Sources
 

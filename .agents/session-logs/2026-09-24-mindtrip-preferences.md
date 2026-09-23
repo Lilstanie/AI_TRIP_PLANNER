@@ -49,6 +49,7 @@ why the editors anchor instead of opening centred, and why Update trip replans o
 
 ## Notes for the next person
 
-- The rendered class-diagram SVGs under `docs/design/diagrams/` still name `FiltersPanel`.
+- `class-1-spine.svg` and `class-5-with-use-cases.svg` were re-rendered with Mermaid 11 from
+  `class-diagram.md`, and the combined map's label was edited, so no diagram names `FiltersPanel`.
 - Update trip and Plan trip were not clicked in the browser because they start a paid planning
   request; component tests cover them.
