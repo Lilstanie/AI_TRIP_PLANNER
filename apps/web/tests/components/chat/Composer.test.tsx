@@ -16,7 +16,6 @@ function renderComposer(overrides: Partial<Parameters<typeof Composer>[0]> = {})
       busy={false}
       canSend
       canCancel
-      hint="Enter to send"
       inputRef={inputRef}
       onInput={onInput}
       onSend={onSend}
@@ -77,12 +76,6 @@ describe("composer", () => {
     });
 
     expect(onInput).toHaveBeenCalledWith("Add a food market");
-  });
-
-  it("keeps the hint copy on the control row", () => {
-    renderComposer({ hint: "Planning…" });
-
-    expect(screen.getByText("Planning…")).toBeTruthy();
   });
 
   it("opens the file dialog from the Upload files control", () => {

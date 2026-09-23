@@ -114,15 +114,6 @@
   margin-left: auto;
 }
 
-.composer__hint {
-  min-width: 0;
-  overflow: hidden;
-  color: var(--text-mut);
-  font-size: var(--font-size-meta);
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
 /* The attach control (DSH's .add): a 28px circle with no chrome of its own, the
    selector fill, and the primary glyph. */
 .composer__add {
@@ -216,17 +207,17 @@
   cursor: default;
 }
 
-/* Stop is not send: the same circle in the danger tone, so stopping never
-   reads as the default action. */
-.composer__primary--stop {
-  background: var(--warn);
-  color: var(--on-accent);
-}
+/* Stop reuses the same circle as send (DSH's InputBar renders both from one
+   `.primary` button — the accent fill and hover never change, only the glyph
+   does), so the composer__primary rules above already cover fill, colour and
+   hover for Stop. No separate tone here. */
 
 .composer__stop-glyph {
   width: 10px;
   height: 10px;
-  border-radius: 2px;
+  /* DSH's stop glyph is a 10x10 rect with rx="3" inside a 16px viewBox
+     (InputBar.tsx) — same 3/10 corner ratio here. */
+  border-radius: 3px;
   background: currentColor;
 }
 

@@ -31,7 +31,6 @@ export function Composer({
   busy,
   canSend,
   canCancel,
-  hint,
   inputRef,
   onInput,
   onSend,
@@ -43,8 +42,6 @@ export function Composer({
   busy: boolean;
   canSend: boolean;
   canCancel: boolean;
-  /** Small copy on the control row: what Enter does, or why the field is locked. */
-  hint: string;
   inputRef: RefObject<HTMLTextAreaElement | null>;
   onInput: (value: string) => void;
   onSend: () => void;
@@ -117,7 +114,6 @@ export function Composer({
             disabled={busy}
             onChange={onPickFiles}
           />
-          <span className="composer__hint">{hint}</span>
         </div>
         <div className="composer__trailing">
           {busy ? (
