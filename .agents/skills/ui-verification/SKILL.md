@@ -21,6 +21,10 @@ you can check both without redeploying.
 - Check the states the change touches: empty, loading, error, degraded source badges, long text.
 - Keyboard: Tab order, visible focus, Escape closes dialogs and returns focus to the trigger.
 - Watch the browser console for errors and React warnings.
+- What "right" looks like is owned by [better-accessibility](../better-accessibility/SKILL.md),
+  [better-layout](../better-layout/SKILL.md), [better-ui](../better-ui/SKILL.md) and
+  [better-writing](../better-writing/SKILL.md). To stress one component with worst-case data, run
+  the manual [break](../break/SKILL.md) skill.
 
 ## 3. Check both widths
 
