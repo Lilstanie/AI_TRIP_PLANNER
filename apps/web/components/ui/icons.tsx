@@ -31,6 +31,12 @@ export const PlusIcon = () => (
   </Icon>
 );
 
+export const MinusIcon = () => (
+  <Icon>
+    <path d="M5 12h14" />
+  </Icon>
+);
+
 export const SearchIcon = () => (
   <Icon>
     <circle cx="11" cy="11" r="6.5" />
