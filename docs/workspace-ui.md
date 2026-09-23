@@ -70,35 +70,50 @@ now. Implementation history and browser acceptance for each phase are in the
 - **Starting to plan.**
   - A blank chat offers example trip suggestions. Selecting one replaces and focuses the message input;
     it never sends a message or starts a request.
-  - Planning progress is a deep-dive transcript, not a status list. The Think row carries the
-    turn's count line (`N tool calls · M subagents · K rounds`) and a control that expands or
-    collapses every row at once; under it sit one row per specialist, one per reasoning block and
-    one per tool call. Each row is an `aria-expanded` button, unknown states stay neutral rather
-    than complete, and a tool row opens to the result's own options. Once a turn settles the process
-    folds; while it runs the rows stay open so the work is visible. A round above 1 is shown only
-    with the coordinator's own explanation of what it revised. The surface it imitates, and the
-    reasoning behind each divergence, are recorded in the
-    [DSH thinking UI reference](design/dsh-thinking-ui.md).
+  - Each agent reply renders under its own Think fold: the transcript streams at the foot of the chat
+    while the turn runs, then moves above the reply that ended the turn and stays with it (including
+    after a reload).
+  - Planning progress is a deep-dive transcript, not a status list: `Think` (the turn) nests
+    `Subagent · <name>` rows per round, which in turn nest that specialist's reasoning and tool
+    rows, each with a DSH-style disclosure — a leading icon that crossfades to a chevron on hover or
+    while open, and no trailing chevron. Every row starts collapsed, busy or settled alike, and a
+    click opens only that row; there is no expand-all control. The Think row's own collapsed summary
+    is the turn's count line (`N tool calls · M subagents · K rounds`); while busy it instead follows
+    the newest streaming reasoning line or the live tool/subagent line. A tool row opens to the
+    result's own rows, each with a category glyph (a fork and knife, a bed, a plane, and so on) drawn
+    from the result's own kind, or the site's own icon when the provider returned that row's web
+    page. The call's arguments read as one line, such as `Sydney Airport → The Rocks · 2026-11-10`. Reasoning deltas from one model call merge into a single row rather
+    than arriving as separate fragments. A round above 1 is shown only with the coordinator's own
+    explanation of what it revised. The surface it imitates, and the reasoning behind each
+    divergence, are recorded in the [DSH thinking UI reference](design/dsh-thinking-ui.md).
   - Exactly one `Deep diving` line is the surface's only live region; it grows an elapsed clock after
     15 seconds.
-  - The app asks nothing in a structured form. When the planner cannot proceed it says so in one
-    sentence and the traveller answers by typing; a missing destination, dates, travellers or budget
-    is reported the same way instead of borrowing values. There is no question card, no suggestion
-    list and no confirmation to click — there is no "apply the traveller's decision" feature yet, so
-    the app does not present one. A traveller who wants a change says so in chat or edits the trip.
+  - Most of the time the planner still asks in plain prose: when it cannot proceed on a missing
+    destination, dates, travellers or budget, it says so in one sentence and the traveller answers by
+    typing, with nothing borrowed. For a genuine ambiguity with 2–4 concrete choices, the coordinator
+    can instead ask a structured question: a card takes the composer's seat with the question, an
+    optional recommended choice, and (for more than one question) a pager. Submitting sends the
+    answers as the traveller's next message; closing the card returns the plain composer, and the
+    question text stays visible in the assistant's own message either way. There is still no
+    "apply the traveller's decision" feature for a plan choice a specialist already made — a
+    structured question is only ever about planning input, never an approval — so a traveller who
+    wants the plan itself changed still says so in chat or edits the trip. See
+    [DSH thinking UI §3.2](design/dsh-thinking-ui.md#32-asking-the-traveller) and the
+    [ask-user Agent Note](../.agents/notes/implemented/feature/2026-09-23-ask-user-question.md).
   - The chat has no calendar pop-up: dates can be typed in the composer. The calendar picker still
     exists in Trip preferences, where the traveller asks for it.
   - Messages retain their conversation order in a `role="log"`; each has one visible, spoken-once
-    speaker label (You or Travel planning assistant). Bubbles use alignment, surface, border and
-    corner shape as well as the label, and long URLs or mixed Chinese/English text wrap within the
-    chat column.
+    speaker label (You or Travel planning assistant). The traveller's own message is a right-aligned
+    bubble; the assistant's reply renders full-width with no border or background, as Markdown
+    (paragraphs, lists, bold, links opening in a new tab). Both carry a small clock underneath, in
+    `HH:mm` for today and a short date otherwise, and long URLs or mixed Chinese/English text wrap
+    within the chat column.
   - The composer is one card at the foot of the chat: a draft that grows with its content and then
-    scrolls, an upload control and a state hint on the left, and one primary action on the right.
-    The card is `--surface-2` (white on light, grey on dark) so it reads as an input capsule laid on
-    the page, and clicking anywhere in it highlights the card once — the field draws no ring of its
-    own. Enter sends and Shift+Enter breaks the line, but never while an input method is composing.
-    While a request runs, the primary action becomes Stop in place and the hint says what is
-    happening.
+    scrolls, an upload control on the left, and one primary action on the right. The card is
+    `--surface-2` (white on light, grey on dark) so it reads as an input capsule laid on the page,
+    and clicking anywhere in it highlights the card once — the field draws no ring of its own. Enter
+    sends and Shift+Enter breaks the line, but never while an input method is composing. While a
+    request runs, the primary action becomes Stop in place; there is no hint text.
   - Submitting Preferences sends `mode: "plan"` with the brief.
   - A first chat message sends `mode: "start"`, and the server reports any missing destination,
     dates, travellers or budget instead of borrowing values.

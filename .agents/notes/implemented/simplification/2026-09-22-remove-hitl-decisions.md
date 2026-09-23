@@ -28,8 +28,11 @@ for each decision, not only a confirmation screen.
 ## Consequences
 
 - A plan stored before the removal still has a `hitl` array; the schema strips it on load.
-- The app asks nothing in a structured form; see
-  [DSH thinking UI](../../../../docs/design/dsh-thinking-ui.md).
+- There is still no "apply the traveller's decision" feature, so the checkpoint half of this
+  decision stands unchanged. The question half is superseded by
+  [ask-user questions](../feature/2026-09-23-ask-user-question.md): the coordinator can again offer
+  structured choices, now that the answer is acted on as the next turn's message instead of going
+  nowhere. See [DSH thinking UI](../../../../docs/design/dsh-thinking-ui.md) for the current surface.
 
 ## Sources
 
