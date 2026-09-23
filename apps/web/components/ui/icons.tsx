@@ -38,21 +38,25 @@ export const SearchIcon = () => (
   </Icon>
 );
 
-export const ChatIcon = () => (
-  <Icon>
+/** Navigation icons take `filled` for the current section: the same outline, solid inside. */
+type NavIconProps = { filled?: boolean };
+
+export const ChatIcon = ({ filled = false }: NavIconProps) => (
+  <Icon fill={filled ? "currentColor" : "none"}>
     <path d="M20 11.5a7.5 7.5 0 0 1-10.9 6.7L4 19.5l1.4-4.3A7.5 7.5 0 1 1 20 11.5Z" />
   </Icon>
 );
 
-export const SuitcaseIcon = () => (
+export const SuitcaseIcon = ({ filled = false }: NavIconProps) => (
   <Icon>
-    <rect x="3.5" y="7" width="17" height="12.5" rx="2.5" />
-    <path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7M3.5 12.5h17" />
+    <rect x="3.5" y="7" width="17" height="12.5" rx="2.5" fill={filled ? "currentColor" : "none"} />
+    <path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7" />
+    {!filled && <path d="M3.5 12.5h17" />}
   </Icon>
 );
 
-export const BookmarkIcon = () => (
-  <Icon>
+export const BookmarkIcon = ({ filled = false }: NavIconProps) => (
+  <Icon fill={filled ? "currentColor" : "none"}>
     <path d="M7 4h10a1 1 0 0 1 1 1v15l-6-4-6 4V5a1 1 0 0 1 1-1Z" />
   </Icon>
 );

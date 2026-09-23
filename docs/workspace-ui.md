@@ -32,11 +32,12 @@ now. Implementation history and browser acceptance for each phase are in the
     there is a query and returns focus to the field. It filters chats and trips.
   - Collapsed icons keep `aria-label`, a tooltip and focus styles; New chat stays an accent icon
     button. Search, Chats and Trips expand the sidebar, and Search then focuses the field.
-  - The current section is shown by background, bold text, a filled icon and a bar, plus
-    `aria-current`. History supports search and select.
+  - Chats, Trips and Saved trips use outline line icons in the text colour, with no tile behind them,
+    so they follow light and dark. The current section is shown by its icon filling in, a heavier
+    full-ink label and a quiet background, plus `aria-current`. History supports search and select.
   - A recent chat row shows only its title, on one line with an ellipsis; the full title is the
     button's name and its `title` tooltip. Trip rows add their dates, total and status on a second
-    line. Neither shows an updated time. The selected row has an accent hairline and fill, a heavier
+    line. Neither shows an updated time. The selected row has the same quiet background, a heavier
     title and `aria-current`.
   - Each conversation has an overflow trigger at its top right that opens Rename and Delete, so those
     actions stay off the row until they are wanted. It is revealed on hover and on keyboard focus,

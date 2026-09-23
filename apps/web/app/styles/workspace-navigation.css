@@ -224,46 +224,36 @@
   gap: 2px;
 }
 .sidebar-nav__item {
-  --tone: var(--text-dim);
-  --tone-bg: var(--surface);
   display: flex;
   align-items: center;
   gap: var(--space-2);
   width: 100%;
   min-height: 40px;
   padding: var(--space-1) var(--space-2) !important;
+  /* Transparent, but it keeps the 1px the search icon and history rows are aligned to. */
   border: 1px solid transparent !important;
   border-radius: var(--radius) !important;
   background: transparent !important;
-  color: var(--text);
+  color: var(--text-dim);
   font-weight: 500;
   text-align: left;
 }
 .sidebar-nav__item:hover {
   background: var(--surface) !important;
+  color: var(--text);
 }
-.sidebar-nav__item--chats,
-.sidebar-nav__item--trips {
-  --tone: var(--accent);
-  --tone-bg: var(--accent-bg);
-}
-.sidebar-nav__item--saved {
-  --tone: var(--warn);
-  --tone-bg: var(--warn-bg);
-}
+/* Plain line icons in the text colour, so they follow light and dark with no tile behind them. */
 .sidebar-nav__icon {
   display: grid;
   flex: none;
   width: 28px;
   height: 28px;
   place-items: center;
-  border-radius: var(--radius-sm);
-  background: var(--tone-bg);
-  color: var(--tone);
+  color: inherit;
 }
 .sidebar-nav__icon .icon {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
 }
 .sidebar-nav__label {
   flex: 1;
@@ -276,25 +266,20 @@
   min-width: 24px;
   padding: 0 var(--space-2);
   border-radius: var(--radius-pill);
-  background: var(--surface);
-  color: var(--text-dim);
+  color: var(--text-mut);
   font-size: var(--font-size-meta);
   font-variant-numeric: tabular-nums;
   text-align: center;
 }
-.sidebar-nav__item.is-current .sidebar-nav__count {
-  background: var(--surface-2);
-}
-/* Current section: background, weight, a filled icon and a leading bar, not colour alone. */
+/* Current section: the icon fills in, the label turns full ink and heavier, and a quiet fill sits
+   behind the row. Shape and weight carry it, not colour alone. */
 .sidebar-nav__item.is-current {
-  border-color: var(--border) !important;
   background: var(--surface) !important;
-  box-shadow: inset 3px 0 0 var(--tone);
-  font-weight: 700;
+  color: var(--text);
+  font-weight: 600;
 }
-.sidebar-nav__item.is-current .sidebar-nav__icon {
-  background: var(--tone);
-  color: var(--on-accent);
+.sidebar-nav__item.is-current .sidebar-nav__count {
+  color: var(--text-dim);
 }
 .sidebar-history {
   display: flex;
@@ -354,9 +339,6 @@
   width: 44px;
   padding: 4px !important;
 }
-.workspace-sidebar.is-collapsed .sidebar-nav__item.is-current {
-  box-shadow: inset 0 -3px 0 var(--tone);
-}
 .workspace-sidebar.is-collapsed .sidebar-footer {
   flex-direction: column;
   width: 100%;
@@ -403,11 +385,10 @@
 .history-item:hover {
   background: var(--surface);
 }
-/* Selected: accent hairline and fill, plus a heavier title, so it is not colour alone. */
+/* Selected: the same quiet fill as the current section, plus a heavier title and aria-current. */
 .history-item--active,
 .history-item--active:hover {
-  border-color: var(--accent);
-  background: var(--accent-bg);
+  background: var(--surface);
 }
 .history-item--active .history-item__title {
   font-weight: 600;

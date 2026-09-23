@@ -680,6 +680,17 @@ describe("Workspace navigation", () => {
         .getByRole("button", { name: /^Chats\s*1$/ })
         .getAttribute("aria-current"),
     ).toBe("true");
+    // The current section's icon fills in; the others stay outlines.
+    const filled = (name: RegExp) =>
+      within(sidebar())
+        .getByRole("button", { name })
+        .querySelector('svg [fill="currentColor"], svg[fill="currentColor"]');
+    expect(filled(/^Chats\s*1$/)).not.toBeNull();
+    expect(filled(/^Trips\s*0$/)).toBeNull();
+    fireEvent.click(within(sidebar()).getByRole("button", { name: /^Trips\s*0$/ }));
+    expect(filled(/^Trips\s*0$/)).not.toBeNull();
+    expect(filled(/^Chats\s*1$/)).toBeNull();
+    fireEvent.click(within(sidebar()).getByRole("button", { name: /^Chats\s*1$/ }));
     toggle.focus();
     fireEvent.click(toggle);
     expect(toggle.getAttribute("aria-expanded")).toBe("false");

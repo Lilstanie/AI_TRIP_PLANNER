@@ -25,12 +25,9 @@ export type HistoryItem = {
 
 export type SidebarSection = "chats" | "trips";
 
-type Tone = "neutral" | "chats" | "trips" | "saved";
-
 function NavButton({
   icon,
   label,
-  tone,
   collapsed,
   count,
   current,
@@ -38,7 +35,6 @@ function NavButton({
 }: {
   icon: ReactNode;
   label: string;
-  tone: Tone;
   collapsed: boolean;
   count?: number;
   current?: boolean;
@@ -47,7 +43,7 @@ function NavButton({
   return (
     <button
       type="button"
-      className={`sidebar-nav__item sidebar-nav__item--${tone}${current ? " is-current" : ""}`}
+      className={`sidebar-nav__item${current ? " is-current" : ""}`}
       aria-label={collapsed ? (count === undefined ? label : `${label}, ${count}`) : undefined}
       aria-current={current ? "true" : undefined}
       data-tooltip={collapsed ? label : undefined}
@@ -243,7 +239,6 @@ export function WorkspaceSidebar({
           <NavButton
             icon={<SearchIcon />}
             label="Search chats and trips"
-            tone="neutral"
             collapsed
             onClick={() => {
               focusSearch.current = true;
@@ -285,18 +280,16 @@ export function WorkspaceSidebar({
 
       <nav className="sidebar-nav" aria-label="Workspace">
         <NavButton
-          icon={<ChatIcon />}
+          icon={<ChatIcon filled={section === "chats"} />}
           label="Chats"
-          tone="chats"
           collapsed={isCollapsed}
           count={chats.length}
           current={section === "chats"}
           onClick={() => reveal("chats")}
         />
         <NavButton
-          icon={<SuitcaseIcon />}
+          icon={<SuitcaseIcon filled={section === "trips"} />}
           label="Trips"
-          tone="trips"
           collapsed={isCollapsed}
           count={trips.length}
           current={section === "trips"}
@@ -305,7 +298,6 @@ export function WorkspaceSidebar({
         <NavButton
           icon={<BookmarkIcon />}
           label="Saved trips"
-          tone="saved"
           collapsed={isCollapsed}
           count={savedCount}
           onClick={onSavedTrips}
