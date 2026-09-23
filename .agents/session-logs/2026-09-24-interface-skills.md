@@ -39,7 +39,7 @@ layer so that dense reading surfaces keep their contrast. The notes record the r
 
 ## Notes for the next person
 
-- No provider fetches place photos yet. Showing them needs a Places photo reference, quota
+- No provider fetches place photos yet. Showing them needs fresh Places photo names (never cached), quota
   limits and a mock fallback (add-provider skill).
 - No surface uses glass yet. The first change that does adds `--glass-*` tokens to `tokens.css` and
   checks contrast over real map tiles in both themes.

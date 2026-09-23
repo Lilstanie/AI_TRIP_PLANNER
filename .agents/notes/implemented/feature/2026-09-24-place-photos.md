@@ -22,7 +22,8 @@ images.
 Each photo slot has:
 
 - the provider's required attribution;
-- a stored photo reference rather than the image bytes;
+- nothing persisted except the place ID: photo names come fresh from a Places response, because Google
+  forbids caching them and they expire, and image bytes are never stored;
 - a fixed aspect ratio, lazy loading, and a category-icon fallback on `--surface-2`;
 - the container's radius and a 1 px hairline;
 - no text laid directly on the image;
@@ -45,11 +46,11 @@ place misleads the traveller. This is the same honesty rule that governs source 
 
 ## Consequences
 
-- Showing photos needs a provider change: a photo reference in the place data, the photo request,
+- Showing photos needs a provider change: fresh photo names in the place data, the photo request,
   quota limits and a mock-mode fallback. It follows the
-  [add-provider skill](../../../skills/add-provider/SKILL.md). If the reference crosses
+  [add-provider skill](../../../skills/add-provider/SKILL.md). If photo data crosses
   `packages/shared`, that change needs its own contract note.
 - Photo requests are billed separately by Google Places, so thumbnails in long lists must be fetched
   within the quota rules.
-- Reviews treat a decorative photo, text placed on a photo, missing attribution, or a stored image
-  as contract violations.
+- Reviews treat a decorative photo, text placed on a photo, missing attribution, or a stored photo
+  name or image as contract violations.

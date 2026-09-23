@@ -83,7 +83,7 @@ The implementation recipe is the [better-ui glass reference](../../.agents/skill
 
 Photos are allowed only as **content about a specific place**, and only when they come from that place's data provider (Google Places). They may appear in place cards, place previews and place detail, as itinerary and place-list thumbnails, and as photo markers on the map. They are never decorative: no hero banners, no page or panel backgrounds, no stock or generated imagery.
 
-- Show the attribution the provider's terms require, such as Google's author attributions for a place photo. Store the provider's photo reference, never the image bytes.
+- Show the attribution the provider's terms require, such as Google's author attributions for a place photo. Persist only the place ID. Never store photo names or image bytes, because Google forbids caching photo names and they expire; fetch the names fresh from a Places response each time photos are shown.
 - Every photo slot has a fixed aspect ratio so nothing shifts while images load. It loads lazily, and without a photo it shows the place's category icon on `--surface-2`.
 - Photos use the radius of their container and a 1px inner hairline (`--border`). Text never sits directly on a photo; captions sit below it or on a glass or opaque chip.
 - Alt text is the place name, or empty when the name is visible next to the photo.
