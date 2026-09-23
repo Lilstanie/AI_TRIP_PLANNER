@@ -23,7 +23,21 @@ export async function POST(req: Request) {
   const dataMode = parseDataMode(req.headers.get("x-trip-data-mode"));
   const body = await req.json().catch(() => ({}));
   const parsed = ChatRequest.safeParse(body);
-  if (!parsed.success || (parsed.data.mode === "plan" && !parsed.data.brief)) {
+  if (!parsed.success) {
+    // An attachment is the one part of the request a person chose by hand, so its rejection is
+    // reported in the schema's own words ("image/tiff is not an accepted image type") instead of
+    // the generic message. Everything else stays a flat 400: the client builds those fields.
+    const attachmentIssue = parsed.error.issues.find((issue) => issue.path[0] === "attachments");
+    return NextResponse.json(
+      {
+        error: attachmentIssue
+          ? `Attachment rejected: ${attachmentIssue.message}`
+          : "invalid ChatRequest",
+      },
+      { status: 400 },
+    );
+  }
+  if (parsed.data.mode === "plan" && !parsed.data.brief) {
     return NextResponse.json({ error: "invalid ChatRequest" }, { status: 400 });
   }
 

@@ -28,25 +28,122 @@ export const PartialTripBrief = z.object({
 });
 export type PartialTripBrief = z.infer<typeof PartialTripBrief>;
 
+/**
+ * What the traveller may attach to one chat message.
+ *
+ * The limits are deliberately small and are enforced here, at the schema boundary, so a malformed
+ * or oversized attachment is a 400 from the API rather than a provider error deeper in the turn.
+ */
+export const MAX_ATTACHMENTS_PER_MESSAGE = 4;
+/** Length of an image's base64 payload, i.e. roughly 1.1 MB of original file. */
+export const MAX_IMAGE_BASE64_LENGTH = 1_500_000;
+/** UTF-8 bytes of a text attachment's contents. */
+export const MAX_TEXT_ATTACHMENT_BYTES = 32_768;
+export const IMAGE_MEDIA_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"] as const;
+export const TEXT_MEDIA_TYPES = [
+  "text/plain",
+  "text/markdown",
+  "text/csv",
+  "application/json",
+] as const;
+
+export const ImageMediaType = z.enum(IMAGE_MEDIA_TYPES);
+export type ImageMediaType = z.infer<typeof ImageMediaType>;
+export const TextMediaType = z.enum(TEXT_MEDIA_TYPES);
+export type TextMediaType = z.infer<typeof TextMediaType>;
+
+const BASE64 = /^[A-Za-z0-9+/]+={0,2}$/;
+const utf8Bytes = (value: string) => new TextEncoder().encode(value).length;
+
+/**
+ * One file the traveller attached. `data` carries the file's contents, and what is in it follows
+ * from `kind` and from nothing else:
+ *
+ * - `kind: "image"` — standard base64 of the raw bytes, with no `data:` prefix and no whitespace.
+ *   The orchestrator builds the data URL from `mediaType` and `data`, so a client that sent one
+ *   would have it doubled.
+ * - `kind: "text"` — the decoded UTF-8 text itself, not base64. The coordinator reads it inline, and
+ *   base64 here would reach the model as an unreadable blob.
+ *
+ * `mediaType` must belong to the allow-list for that kind: only formats the coordinator model can
+ * actually read reach a provider.
+ */
+export const Attachment = z
+  .object({
+    name: z.string().trim().min(1).max(200),
+    mediaType: z.string().trim().min(1),
+    kind: z.enum(["image", "text"]),
+    data: z.string().min(1),
+  })
+  .check((ctx) => {
+    const { kind, mediaType, data } = ctx.value;
+    const allowed = kind === "image" ? ImageMediaType : TextMediaType;
+    if (!allowed.safeParse(mediaType).success) {
+      ctx.issues.push({
+        code: "custom",
+        message: `${mediaType} is not an accepted ${kind} type`,
+        input: ctx.value,
+        path: ["mediaType"],
+      });
+    }
+    if (kind === "image") {
+      if (data.length > MAX_IMAGE_BASE64_LENGTH) {
+        ctx.issues.push({
+          code: "custom",
+          message: `An image may carry at most ${MAX_IMAGE_BASE64_LENGTH} base64 characters`,
+          input: ctx.value,
+          path: ["data"],
+        });
+      } else if (!BASE64.test(data) || data.length % 4 !== 0) {
+        ctx.issues.push({
+          code: "custom",
+          message: "An image's data must be base64 with no data: prefix",
+          input: ctx.value,
+          path: ["data"],
+        });
+      }
+    } else if (utf8Bytes(data) > MAX_TEXT_ATTACHMENT_BYTES) {
+      ctx.issues.push({
+        code: "custom",
+        message: `A text file may carry at most ${MAX_TEXT_ATTACHMENT_BYTES} bytes`,
+        input: ctx.value,
+        path: ["data"],
+      });
+    }
+  });
+export type Attachment = z.infer<typeof Attachment>;
+
 // Client -> server
-export const ChatRequest = z.object({
-  tripId: z.string(),
-  message: z.string().min(1),
-  // What earlier turns of a blank conversation already stated. The server merges
-  // this turn's message onto it, so the traveller answers a follow-up question
-  // instead of repeating everything.
-  known: PartialTripBrief.optional(),
-  // Optional for backward compatibility. The browser sends the latest brief so
-  // serverless requests can apply incremental edits without sticky process state.
-  brief: TripBrief.optional(),
-  // The plan those edits apply to. The server is stateless, so a message that
-  // only asks a question has no plan to return unless the client supplies the
-  // current one — and every completed response must carry a plan.
-  plan: TripPlan.optional(),
-  // "start" begins a blank conversation: the brief is extracted only from the
-  // message, and missing required fields are reported instead of defaulted.
-  mode: z.enum(["chat", "plan", "start"]).optional(),
-});
+export const ChatRequest = z
+  .object({
+    tripId: z.string(),
+    // Empty only when the turn carries attachments: a picture of a hotel
+    // confirmation is a message, and asking the traveller to caption it before
+    // it can be sent is a rule the app has no reason to have.
+    message: z.string(),
+    // What earlier turns of a blank conversation already stated. The server merges
+    // this turn's message onto it, so the traveller answers a follow-up question
+    // instead of repeating everything.
+    known: PartialTripBrief.optional(),
+    // Optional for backward compatibility. The browser sends the latest brief so
+    // serverless requests can apply incremental edits without sticky process state.
+    brief: TripBrief.optional(),
+    // The plan those edits apply to. The server is stateless, so a message that
+    // only asks a question has no plan to return unless the client supplies the
+    // current one — and every completed response must carry a plan.
+    plan: TripPlan.optional(),
+    // "start" begins a blank conversation: the brief is extracted only from the
+    // message, and missing required fields are reported instead of defaulted.
+    mode: z.enum(["chat", "plan", "start"]).optional(),
+    // Files the traveller attached to this message. Images reach the coordinator
+    // as image content blocks and text files are inlined into its message; only
+    // the coordinator sees them, and specialists keep their current inputs.
+    attachments: z.array(Attachment).max(MAX_ATTACHMENTS_PER_MESSAGE).optional(),
+  })
+  .refine((request) => request.message.trim() !== "" || (request.attachments?.length ?? 0) > 0, {
+    message: "Send a message or at least one attachment",
+    path: ["message"],
+  });
 export type ChatRequest = z.infer<typeof ChatRequest>;
 
 // Server -> client

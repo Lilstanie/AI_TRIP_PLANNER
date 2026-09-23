@@ -586,3 +586,100 @@ describe("asking the traveller a structured question", () => {
     ).toEqual([{ id: "q", question: "Which?" }]);
   });
 });
+
+describe("attachments reach the coordinator", () => {
+  /** What the agent actually handed the model, across every call of one turn. */
+  function recordPrompts() {
+    const spy = vi.spyOn(
+      FakeToolCallingModel.prototype as unknown as { _generate: (...args: unknown[]) => unknown },
+      "_generate",
+    );
+    return {
+      restore: () => spy.mockRestore(),
+      /** The content of the last human message the model saw. */
+      lastHuman: () => {
+        const messages = (spy.mock.calls.at(-1)?.[0] ?? []) as { content: unknown }[];
+        return messages.at(-1)?.content;
+      },
+    };
+  }
+
+  const png = {
+    name: "hotel.png",
+    mediaType: "image/png" as const,
+    kind: "image" as const,
+    data: "iVBORw0KGgo=",
+  };
+  const note = {
+    name: "booking.txt",
+    mediaType: "text/plain" as const,
+    kind: "text" as const,
+    data: "Confirmation 12345 for the Harbour Hotel",
+  };
+
+  it("sends an image as an image_url content block beside the envelope", async () => {
+    const prompts = recordPrompts();
+    try {
+      await run(
+        { tripId: brief.tripId, message: "Is this our hotel?", brief, attachments: [png] },
+        scriptedModel(),
+        memoryStore().mem,
+      );
+      const content = prompts.lastHuman() as {
+        type: string;
+        text?: string;
+        image_url?: { url: string };
+      }[];
+      expect(Array.isArray(content)).toBe(true);
+      expect(content[0]?.type).toBe("text");
+      // The JSON envelope is untouched; the image rides beside it.
+      expect(JSON.parse(content[0]?.text ?? "{}")).toMatchObject({
+        message: "Is this our hotel?",
+        knownSoFar: { destination: "Tokyo" },
+      });
+      expect(content[1]).toEqual({
+        type: "image_url",
+        image_url: { url: "data:image/png;base64,iVBORw0KGgo=" },
+      });
+    } finally {
+      prompts.restore();
+    }
+  });
+
+  it("inlines a text file into the message under a delimiter that names it", async () => {
+    const prompts = recordPrompts();
+    try {
+      await run(
+        { tripId: brief.tripId, message: "What does this say?", brief, attachments: [note] },
+        scriptedModel(),
+        memoryStore().mem,
+      );
+      // No image, so the message stays a plain string as it always was.
+      const content = prompts.lastHuman();
+      expect(typeof content).toBe("string");
+      const message = JSON.parse(content as string).message as string;
+      expect(message).toContain("What does this say?");
+      expect(message).toContain("--- attached file: booking.txt (text/plain) ---");
+      expect(message).toContain("Confirmation 12345 for the Harbour Hotel");
+      expect(message).toContain("--- end of booking.txt ---");
+    } finally {
+      prompts.restore();
+    }
+  });
+
+  it("changes nothing when the traveller attached nothing", async () => {
+    const prompts = recordPrompts();
+    try {
+      await run(
+        { tripId: brief.tripId, message: "Is Tokyo warm in June?", brief },
+        scriptedModel(),
+        memoryStore().mem,
+      );
+      const content = prompts.lastHuman();
+      expect(typeof content).toBe("string");
+      expect(JSON.parse(content as string).message).toBe("Is Tokyo warm in June?");
+    } finally {
+      prompts.restore();
+    }
+  });
+});

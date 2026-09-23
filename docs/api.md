@@ -37,6 +37,44 @@ Contract: `ChatRequest`, `ChatResponse` and `AgentProgressEvent` in `packages/sh
 }
 ```
 
+Optional `attachments`: up to 4 files the traveller attached to this message.
+
+```json
+{
+  "attachments": [
+    { "name": "hotel.png", "mediaType": "image/png", "kind": "image", "data": "iVBORw0KGgo=" },
+    {
+      "name": "booking.txt",
+      "mediaType": "text/plain",
+      "kind": "text",
+      "data": "Confirmation 12345"
+    }
+  ]
+}
+```
+
+`data` is base64 of the file's bytes for `kind: "image"` (no `data:` prefix) and the decoded UTF-8
+text itself for `kind: "text"`. Limits, as the named constants in `packages/shared/src/chat.ts`:
+
+| Constant                      | Limit                                                         |
+| ----------------------------- | ------------------------------------------------------------- |
+| `MAX_ATTACHMENTS_PER_MESSAGE` | 4 attachments per message                                     |
+| `MAX_IMAGE_BASE64_LENGTH`     | 1,500,000 base64 characters per image (~1.1 MB of file)       |
+| `MAX_TEXT_ATTACHMENT_BYTES`   | 32,768 UTF-8 bytes per text file                              |
+| `IMAGE_MEDIA_TYPES`           | `image/png`, `image/jpeg`, `image/webp`, `image/gif`          |
+| `TEXT_MEDIA_TYPES`            | `text/plain`, `text/markdown`, `text/csv`, `application/json` |
+
+A media type outside its kind's allow-list, an oversized file or an image that is not bare base64 is
+rejected before any provider is called, as HTTP 400 with `{ "error": "Attachment rejected: …" }`.
+The whole request body is still bound by the platform: a Vercel serverless function rejects a body
+over 4.5 MB with its own 413 before the handler runs, so three maximum-size images in one message is
+the practical ceiling regardless of the per-file limits above.
+
+Only the coordinator sees attachments: images travel to it as OpenAI-style `image_url` content
+blocks, text files are inlined into its message under a delimiter naming the file, and the
+specialists' inputs are unchanged. Without a provider key, images are ignored and the inlined text is
+still read.
+
 Optional `mode` values:
 
 - `"chat"` (default): extract explicit updates from `message` and apply them to `brief`. Without a

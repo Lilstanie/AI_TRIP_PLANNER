@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   AgentProgressEvent,
+  Attachment,
+  ChatRequest,
+  MAX_ATTACHMENTS_PER_MESSAGE,
+  MAX_IMAGE_BASE64_LENGTH,
+  MAX_TEXT_ATTACHMENT_BYTES,
   ASK_USER_MAX_OPTIONS,
   ASK_USER_MAX_QUESTIONS,
   AskUserQuestionItem,
@@ -96,6 +101,82 @@ describe("result row kind", () => {
     expect(parsed.type === "tool_completed" && parsed.resultRows?.[0]?.kind).toBe("stay");
     expect(parsed.type === "tool_completed" && parsed.resultRows?.[0]?.url).toBe(
       "https://harbourhotel.example/rooms",
+    );
+  });
+});
+
+const png = (data: string) => ({
+  name: "hotel.png",
+  mediaType: "image/png",
+  kind: "image" as const,
+  data,
+});
+const note = (data: string) => ({
+  name: "booking.txt",
+  mediaType: "text/plain",
+  kind: "text" as const,
+  data,
+});
+/** Valid base64 of exactly `length` characters. */
+const base64 = (length: number) => "A".repeat(length);
+
+describe("message attachments", () => {
+  it("accepts a base64 image and a UTF-8 text file", () => {
+    expect(Attachment.safeParse(png("iVBORw0KGgo=")).success).toBe(true);
+    expect(Attachment.safeParse(note("Confirmation 12345")).success).toBe(true);
+  });
+
+  it("refuses a media type outside the allow-list, and one from the wrong kind", () => {
+    expect(Attachment.safeParse({ ...png("AAAA"), mediaType: "image/tiff" }).success).toBe(false);
+    expect(Attachment.safeParse({ ...note("x"), mediaType: "application/pdf" }).success).toBe(
+      false,
+    );
+    // An image's type is not a text type and the other way round, so `kind` cannot be
+    // mislabelled to smuggle a format past the allow-list.
+    expect(Attachment.safeParse({ ...png("AAAA"), mediaType: "text/plain" }).success).toBe(false);
+    expect(Attachment.safeParse({ ...note("x"), mediaType: "image/png" }).success).toBe(false);
+  });
+
+  it("requires an image to be bare base64, with no data: prefix", () => {
+    expect(Attachment.safeParse({ ...png("data:image/png;base64,iVBORw0KGgo=") }).success).toBe(
+      false,
+    );
+    expect(Attachment.safeParse({ ...png("iVBO Rw0K") }).success).toBe(false);
+    // Base64 is whole groups of four; a truncated payload is a broken image.
+    expect(Attachment.safeParse({ ...png("iVBOR") }).success).toBe(false);
+  });
+
+  it("caps an image's payload and a text file's bytes", () => {
+    expect(Attachment.safeParse(png(base64(MAX_IMAGE_BASE64_LENGTH))).success).toBe(true);
+    expect(Attachment.safeParse(png(base64(MAX_IMAGE_BASE64_LENGTH + 4))).success).toBe(false);
+    expect(Attachment.safeParse(note("a".repeat(MAX_TEXT_ATTACHMENT_BYTES))).success).toBe(true);
+    expect(Attachment.safeParse(note("a".repeat(MAX_TEXT_ATTACHMENT_BYTES + 1))).success).toBe(
+      false,
+    );
+    // The cap is bytes, not characters: a multi-byte language fills it sooner.
+    expect(Attachment.safeParse(note("東".repeat(MAX_TEXT_ATTACHMENT_BYTES / 3 + 1))).success).toBe(
+      false,
+    );
+  });
+
+  it("rides on a chat request, up to the per-message limit", () => {
+    const request = (count: number) => ({
+      tripId: "trip-1",
+      message: "What is this?",
+      attachments: Array.from({ length: count }, () => png("iVBORw0KGgo=")),
+    });
+    expect(ChatRequest.safeParse(request(MAX_ATTACHMENTS_PER_MESSAGE)).success).toBe(true);
+    expect(ChatRequest.safeParse(request(MAX_ATTACHMENTS_PER_MESSAGE + 1)).success).toBe(false);
+    // Absent is the ordinary case and stays valid.
+    expect(ChatRequest.safeParse({ tripId: "trip-1", message: "hi" }).success).toBe(true);
+  });
+
+  it("lets a picture be the whole message, but never sends an empty turn", () => {
+    const attached = { tripId: "trip-1", message: "", attachments: [png("iVBORw0KGgo=")] };
+    expect(ChatRequest.safeParse(attached).success).toBe(true);
+    expect(ChatRequest.safeParse({ tripId: "trip-1", message: "   " }).success).toBe(false);
+    expect(ChatRequest.safeParse({ tripId: "trip-1", message: "", attachments: [] }).success).toBe(
+      false,
     );
   });
 });
