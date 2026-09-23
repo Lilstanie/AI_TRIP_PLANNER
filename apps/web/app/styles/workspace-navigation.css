@@ -73,7 +73,7 @@
 .brand-mark {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-2);
   min-width: 0;
 }
 .brand-mark__logo {
@@ -96,10 +96,10 @@
 .workspace-sidebar {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-4);
   min-width: 0;
   min-height: 0;
-  padding: 14px 12px;
+  padding: var(--space-3);
   overflow: hidden auto;
   border-right: 1px solid var(--border);
   background: var(--surface-2);
@@ -108,9 +108,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-2);
   min-height: 40px;
-  padding-inline: 4px;
+  padding-inline: var(--space-1) 0;
 }
 .sidebar-toggle,
 .sidebar-icon-button,
@@ -130,20 +130,108 @@
   background: var(--surface) !important;
   color: var(--text);
 }
+/* New chat and search: the sidebar's two tools, above the sections they act on. */
+.sidebar-actions {
+  display: grid;
+  gap: var(--space-2);
+}
+/* The sidebar's primary action, so it takes the accent fill every other primary button has. */
+.sidebar-new-chat {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  width: 100%;
+  /* A height, not min-height: the shared button rule's 36px floor outranks a single class. */
+  height: 40px;
+  padding: 0 var(--space-3) !important;
+  border: 1px solid transparent !important;
+  border-radius: var(--radius) !important;
+  background: var(--accent) !important;
+  box-shadow: var(--shadow-sm);
+  color: var(--on-accent);
+  font-weight: 600;
+  transition: filter var(--transition);
+}
+.sidebar-new-chat:hover {
+  filter: brightness(1.08);
+}
+.sidebar-new-chat:focus-visible {
+  box-shadow: var(--ring);
+}
+.sidebar-new-chat > span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+/* One field: the magnifier and the clear button sit inside the input's box. */
+.sidebar-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  color: var(--text-dim);
+}
+.sidebar-search > .icon {
+  position: absolute;
+  /* Lines up with the nav and history icons: the rows' padding plus their 1px border. */
+  inset-inline-start: calc(var(--space-2) + 1px);
+  width: 16px;
+  height: 16px;
+  pointer-events: none;
+}
+.sidebar-search__input {
+  height: 36px;
+  margin: 0;
+  padding-block: 0;
+  padding-inline: 32px var(--space-2);
+  border-radius: var(--radius);
+}
+.sidebar-search__input:has(+ .sidebar-search__clear) {
+  padding-inline-end: 32px;
+}
+.sidebar-search__input::placeholder {
+  color: var(--text-dim);
+  opacity: 1;
+}
+/* The clear button below replaces the browser's own, which differs per engine. */
+.sidebar-search__input::-webkit-search-cancel-button {
+  appearance: none;
+}
+.sidebar-search__clear {
+  position: absolute;
+  inset-inline-end: var(--space-1);
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  min-height: 28px !important;
+  height: 28px;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: var(--radius-sm) !important;
+  background: transparent !important;
+  color: var(--text-dim);
+}
+.sidebar-search__clear:hover {
+  background: var(--surface-2) !important;
+  color: var(--text);
+}
+.sidebar-search__clear .icon {
+  width: 16px;
+  height: 16px;
+}
 .sidebar-nav {
   display: grid;
   gap: 2px;
 }
-.sidebar-nav__item,
-.sidebar-search {
+.sidebar-nav__item {
   --tone: var(--text-dim);
   --tone-bg: var(--surface);
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-2);
   width: 100%;
   min-height: 40px;
-  padding: 4px 8px !important;
+  padding: var(--space-1) var(--space-2) !important;
   border: 1px solid transparent !important;
   border-radius: var(--radius) !important;
   background: transparent !important;
@@ -153,11 +241,6 @@
 }
 .sidebar-nav__item:hover {
   background: var(--surface) !important;
-}
-.sidebar-nav__item--create {
-  --tone: var(--on-accent);
-  --tone-bg: var(--accent);
-  font-weight: 600;
 }
 .sidebar-nav__item--chats,
 .sidebar-nav__item--trips {
@@ -171,16 +254,16 @@
 .sidebar-nav__icon {
   display: grid;
   flex: none;
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   place-items: center;
-  border-radius: 9px;
+  border-radius: var(--radius-sm);
   background: var(--tone-bg);
   color: var(--tone);
 }
-.sidebar-nav__icon--neutral {
-  background: var(--surface);
-  color: var(--text-dim);
+.sidebar-nav__icon .icon {
+  width: 18px;
+  height: 18px;
 }
 .sidebar-nav__label {
   flex: 1;
@@ -190,13 +273,17 @@
   text-overflow: ellipsis;
 }
 .sidebar-nav__count {
-  min-width: 22px;
-  padding: 1px 7px;
+  min-width: 24px;
+  padding: 0 var(--space-2);
   border-radius: var(--radius-pill);
   background: var(--surface);
   color: var(--text-dim);
-  font-size: 12px;
+  font-size: var(--font-size-meta);
+  font-variant-numeric: tabular-nums;
   text-align: center;
+}
+.sidebar-nav__item.is-current .sidebar-nav__count {
+  background: var(--surface-2);
 }
 /* Current section: background, weight, a filled icon and a leading bar, not colour alone. */
 .sidebar-nav__item.is-current {
@@ -209,15 +296,6 @@
   background: var(--tone);
   color: var(--on-accent);
 }
-.sidebar-search {
-  padding-right: 4px !important;
-}
-.sidebar-search input {
-  flex: 1;
-  min-width: 0;
-  height: 32px;
-  padding: 4px 8px;
-}
 .sidebar-history {
   display: flex;
   flex: 1;
@@ -225,38 +303,47 @@
   min-height: 0;
 }
 .sidebar-history__title {
-  margin: 4px 8px 6px;
+  margin: 0;
+  padding-inline: var(--space-2);
   color: var(--text-dim);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  font-size: var(--font-size-meta);
+  font-weight: 600;
 }
 .sidebar-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  /* At the narrowest widths the actions wrap below the save status instead of squeezing it. */
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
   margin-top: auto;
-  padding: 8px 4px 0;
+  padding: var(--space-2) 0 0 var(--space-2);
   border-top: 1px solid var(--border);
 }
 .sidebar-footer__actions {
   display: flex;
   gap: 2px;
+  margin-inline-start: auto;
 }
 .sidebar-footer .sidebar-icon-button {
   width: auto;
   min-width: 36px;
-  gap: 4px;
+  gap: var(--space-1);
   grid-auto-flow: column;
-  padding-inline: 6px !important;
-  font-size: 12px;
+  padding-inline: var(--space-1) var(--space-2) !important;
+  font-size: var(--font-size-meta);
 }
 .workspace-sidebar.is-collapsed {
   align-items: center;
-  padding-inline: 8px;
+  padding-inline: var(--space-2);
   overflow: visible;
+}
+.workspace-sidebar.is-collapsed .sidebar-actions {
+  justify-items: center;
+}
+.workspace-sidebar.is-collapsed .sidebar-new-chat {
+  width: 44px;
+  padding: 0 !important;
 }
 .workspace-sidebar.is-collapsed .sidebar-head {
   flex-direction: column;
@@ -273,9 +360,11 @@
 .workspace-sidebar.is-collapsed .sidebar-footer {
   flex-direction: column;
   width: 100%;
+  padding-inline: 0;
 }
 .workspace-sidebar.is-collapsed .sidebar-footer__actions {
   flex-direction: column;
+  margin-inline-start: 0;
 }
 /* Tooltips for icon-only controls (keyboard focus shows them too). */
 [data-tooltip] {
@@ -302,51 +391,74 @@
   display: grid;
   /* An auto track grows to a long nowrap title and pushes rows past the sidebar edge. */
   grid-template-columns: minmax(0, 1fr);
-  gap: 7px;
-  margin-top: 8px;
+  gap: 2px;
+  margin-top: var(--space-2);
 }
 .history-item {
   position: relative;
   border: 1px solid transparent;
   border-radius: var(--radius);
+  transition: background-color var(--transition);
 }
-.history-item--active {
+.history-item:hover {
+  background: var(--surface);
+}
+/* Selected: accent hairline and fill, plus a heavier title, so it is not colour alone. */
+.history-item--active,
+.history-item--active:hover {
   border-color: var(--accent);
   background: var(--accent-bg);
 }
+.history-item--active .history-item__title {
+  font-weight: 600;
+}
 .history-item__open {
+  display: grid;
+  gap: 2px;
   width: 100%;
-  min-height: 0 !important;
-  padding: 9px !important;
-  /* Keep the title clear of the overflow trigger, which occupies the last 32px. */
-  padding-right: 46px !important;
+  min-height: 36px !important;
+  padding: 7px var(--space-2) !important;
+  /* Keep the title clear of the overflow trigger at the row's end. */
+  padding-inline-end: 36px !important;
   border: 0 !important;
+  border-radius: calc(var(--radius) - 1px) !important;
   background: transparent !important;
+  color: var(--text);
   text-align: left;
 }
 .history-item__open > * {
-  display: block;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.history-item__open span,
-.history-item__open small,
+.history-item__title {
+  font-weight: 500;
+}
+.history-item__meta,
 .history-empty {
   color: var(--text-dim);
-  font-size: 11px;
+  font-size: var(--font-size-meta);
 }
+.history-empty {
+  margin: 0;
+  padding: var(--space-1) var(--space-2);
+}
+/* Stretched to the row's height and centred without a transform, which would add a stacking
+   context and hide the open menu below the next row. */
 .history-item__menu-wrap {
   position: absolute;
-  top: 6px;
-  right: 6px;
+  inset-block: 0;
+  inset-inline-end: var(--space-1);
+  display: flex;
+  align-items: center;
   /* No z-index: it would trap the open menu below the next row's trigger. */
 }
 .history-item__more {
   display: inline-grid;
   place-items: center;
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  min-height: 28px !important;
+  height: 28px;
   padding: 0 !important;
   border-color: transparent !important;
   border-radius: var(--radius-sm);
@@ -361,7 +473,7 @@
   opacity: 1;
 }
 .history-item__more:hover {
-  background: var(--surface) !important;
+  background: var(--surface-2) !important;
   color: var(--text);
 }
 /* Without hover there is nothing to reveal it, so touch devices always show it. */
@@ -372,7 +484,7 @@
 }
 .history-item__menu {
   position: absolute;
-  top: calc(100% + 4px);
+  top: calc(100% + var(--space-1));
   right: 0;
   z-index: 5;
   display: grid;
@@ -398,7 +510,8 @@
 }
 .save-state {
   color: var(--text-dim);
-  font-size: 11px;
+  font-size: var(--font-size-meta);
+  white-space: nowrap;
 }
 .save-state--failed {
   color: var(--warn);

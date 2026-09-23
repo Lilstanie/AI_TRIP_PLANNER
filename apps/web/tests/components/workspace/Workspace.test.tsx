@@ -62,6 +62,8 @@ const useNarrowLayout = () =>
     dispatchEvent: vi.fn(),
   }));
 const historyButton = (name: RegExp) => within(sidebar()).getAllByRole("button", { name })[0]!;
+/** An untitled chat's history row is also named "New chat"; the sidebar action comes first. */
+const newChatButton = () => screen.getAllByRole("button", { name: "New chat" })[0]!;
 const withPlaceRequests = (...responses: (Response | ((init?: RequestInit) => Response))[]) => {
   let next = 0;
   return vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
@@ -175,7 +177,7 @@ describe("Workspace interactions", () => {
     fireEvent.change(screen.getByLabelText("Message AI Trip Planner"), {
       target: { value: "left over from Sydney" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "New chat" }));
+    fireEvent.click(newChatButton());
     const chat = document.querySelector<HTMLElement>(".workspace-panel--chat")!;
     const map = document.querySelector<HTMLElement>(".workspace-panel--map")!;
     expect((screen.getByLabelText("Message AI Trip Planner") as HTMLInputElement).value).toBe("");
@@ -215,7 +217,7 @@ describe("Workspace interactions", () => {
     await waitFor(() =>
       expect(parseCatalog(localStorage.getItem(CATALOG_KEY)).trips).toHaveLength(1),
     );
-    const newChat = screen.getByRole("button", { name: "New chat" });
+    const newChat = newChatButton();
     fireEvent.click(newChat);
     fireEvent.click(newChat);
     fireEvent.click(newChat);
@@ -235,7 +237,7 @@ describe("Workspace interactions", () => {
     await waitFor(() =>
       expect(parseCatalog(localStorage.getItem(CATALOG_KEY)).trips).toHaveLength(1),
     );
-    fireEvent.click(screen.getByRole("button", { name: "New chat" }));
+    fireEvent.click(newChatButton());
     await waitFor(() =>
       expect(parseCatalog(localStorage.getItem(CATALOG_KEY)).conversations).toHaveLength(2),
     );
@@ -256,14 +258,14 @@ describe("Workspace interactions", () => {
     await waitFor(() =>
       expect(parseCatalog(localStorage.getItem(CATALOG_KEY)).trips).toHaveLength(1),
     );
-    fireEvent.click(screen.getByRole("button", { name: "New chat" }));
-    fireEvent.click(screen.getByRole("button", { name: "New chat" }));
+    fireEvent.click(newChatButton());
+    fireEvent.click(newChatButton());
     await waitFor(() =>
       expect(parseCatalog(localStorage.getItem(CATALOG_KEY)).conversations).toHaveLength(2),
     );
     view.unmount();
     render(<Workspace />);
-    fireEvent.click(screen.getByRole("button", { name: "New chat" }));
+    fireEvent.click(newChatButton());
     await waitFor(() => {
       const catalog = parseCatalog(localStorage.getItem(CATALOG_KEY));
       expect(catalog.conversations).toHaveLength(2);
@@ -276,7 +278,7 @@ describe("Workspace interactions", () => {
     await waitFor(() =>
       expect(parseCatalog(localStorage.getItem(CATALOG_KEY)).trips).toHaveLength(1),
     );
-    fireEvent.click(screen.getByRole("button", { name: "New chat" }));
+    fireEvent.click(newChatButton());
     const prompt = vi.spyOn(window, "prompt").mockReturnValue("Later ideas");
     fireEvent.click(screen.getByRole("button", { name: "Actions for New chat" }));
     fireEvent.click(screen.getByRole("menuitem", { name: "Rename" }));
@@ -286,7 +288,7 @@ describe("Workspace interactions", () => {
         parseCatalog(localStorage.getItem(CATALOG_KEY)).conversations.map((item) => item.title),
       ).toContain("Later ideas"),
     );
-    fireEvent.click(screen.getByRole("button", { name: "New chat" }));
+    fireEvent.click(newChatButton());
     await waitFor(() => {
       const catalog = parseCatalog(localStorage.getItem(CATALOG_KEY));
       expect(catalog.conversations).toHaveLength(2);
@@ -376,7 +378,7 @@ describe("Workspace interactions", () => {
   it("saves a blank conversation's form and input and restores it after reload", async () => {
     vi.stubGlobal("fetch", withPlaceRequests());
     const view = render(<Workspace initialPlan={plan} />);
-    fireEvent.click(screen.getByRole("button", { name: "New chat" }));
+    fireEvent.click(newChatButton());
     openPreferences();
     fireEvent.change(screen.getByLabelText("Destination"), { target: { value: "Lisbon" } });
     fireEvent.change(screen.getByLabelText("Message AI Trip Planner"), {
@@ -428,7 +430,7 @@ describe("Workspace interactions", () => {
     const fetcher = withPlaceRequests(completeFor("Lisbon"));
     vi.stubGlobal("fetch", fetcher);
     render(<Workspace initialPlan={plan} />);
-    fireEvent.click(screen.getByRole("button", { name: "New chat" }));
+    fireEvent.click(newChatButton());
     fireEvent.change(screen.getByLabelText("Message AI Trip Planner"), {
       target: { value: "Lisbon, 2026-11-02 to 2026-11-06, 2 people, budget $2400" },
     });
@@ -471,7 +473,7 @@ describe("Workspace interactions", () => {
       string,
       RequestInit,
     ];
-    fireEvent.click(screen.getByRole("button", { name: "New chat" }));
+    fireEvent.click(newChatButton());
     expect(call[1].signal!.aborted).toBe(true);
     await act(async () => {
       finish(complete("Tokyo"));
@@ -706,6 +708,32 @@ describe("Workspace navigation", () => {
     expect(screen.getByRole("button", { name: "Expand sidebar" })).toBeTruthy();
     fireEvent.click(within(sidebar()).getByRole("button", { name: "Search chats and trips" }));
     expect(document.activeElement).toBe(within(sidebar()).getByRole("searchbox"));
+  });
+
+  it("lists recent chats by title only, with the full title kept for truncated rows", async () => {
+    render(<Workspace />);
+    const chats = await screen.findByRole("region", { name: "Chats" });
+    const row = await within(chats).findByRole("button", { name: "New chat" });
+    expect(row.getAttribute("aria-current")).toBe("true");
+    expect(row.getAttribute("title")).toBe("New chat");
+    expect(row.textContent).toBe("New chat");
+    // No timestamp and no "No trip yet" line under the title.
+    expect(within(chats).queryByText(/No trip yet/)).toBeNull();
+    expect(chats.textContent).not.toMatch(/\d{1,2}[:/.]\d{2}/);
+    expect(within(chats).getByRole("button", { name: "Actions for New chat" })).toBeTruthy();
+  });
+
+  it("clears the sidebar search from the field and keeps focus in it", () => {
+    render(<Workspace />);
+    const search = within(sidebar()).getByRole("searchbox", { name: "Search chats and trips" });
+    expect(search.getAttribute("placeholder")).toBe("Search");
+    expect(within(sidebar()).queryByRole("button", { name: "Clear search" })).toBeNull();
+    fireEvent.change(search, { target: { value: "kyoto" } });
+    expect(within(sidebar()).getByText("No matching records.")).toBeTruthy();
+    fireEvent.click(within(sidebar()).getByRole("button", { name: "Clear search" }));
+    expect((search as HTMLInputElement).value).toBe("");
+    expect(document.activeElement).toBe(search);
+    expect(within(sidebar()).queryByRole("button", { name: "Clear search" })).toBeNull();
   });
 
   it("resizes the sidebar by dragging or keyboard, remembers it and resets on double-click", async () => {

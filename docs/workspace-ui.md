@@ -26,10 +26,18 @@ now. Implementation history and browser acceptance for each phase are in the
   - The width is stored in the catalog layout only once the user resizes. Until then the stylesheet's
     responsive default applies, so narrowing the window still narrows the sidebar. Collapsing keeps
     the width for the next expand.
-  - Collapsed icons keep `aria-label`, a tooltip and focus styles. Search, Chats and Trips expand the
-    sidebar.
+  - New chat is the sidebar's primary action: a full-width accent button with a plus icon. Search is
+    one field below it, with the magnifier inside, a short "Search" placeholder that fits at 200 px,
+    the visually hidden label "Search chats and trips", and a Clear search button that appears once
+    there is a query and returns focus to the field. It filters chats and trips.
+  - Collapsed icons keep `aria-label`, a tooltip and focus styles; New chat stays an accent icon
+    button. Search, Chats and Trips expand the sidebar, and Search then focuses the field.
   - The current section is shown by background, bold text, a filled icon and a bar, plus
     `aria-current`. History supports search and select.
+  - A recent chat row shows only its title, on one line with an ellipsis; the full title is the
+    button's name and its `title` tooltip. Trip rows add their dates, total and status on a second
+    line. Neither shows an updated time. The selected row has an accent hairline and fill, a heavier
+    title and `aria-current`.
   - Each conversation has an overflow trigger at its top right that opens Rename and Delete, so those
     actions stay off the row until they are wanted. It is revealed on hover and on keyboard focus,
     and always shown where there is no hover to reveal it. The menu is a `role="menu"` of
@@ -38,6 +46,8 @@ now. Implementation history and browser acceptance for each phase are in the
     tabbing away closes it. Trips have no overflow menu because they have neither action.
   - The logo is `apps/web/public/brand/ai-trip-planner-logo.svg`, referenced by URL. Its alt text is
     empty next to the product name and “AI Trip Planner” when shown alone.
+  - At the narrowest widths the footer's Language and Local account buttons wrap below the save
+    status rather than truncating it.
 - **Drawers.**
   - Preferences, Your Trip and the narrow-screen navigation are overlay drawers below the top bar.
     They never cover the logo or top-bar buttons, and the chat and map keep their width.

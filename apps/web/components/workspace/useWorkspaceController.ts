@@ -232,17 +232,12 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
   const historyChats = filteredHistory.conversations.map((item) => ({
     id: item.id,
     title: item.title,
-    subtitle: item.tripId
-      ? (catalog.trips.find((trip) => trip.id === item.tripId)?.title ?? "Linked trip")
-      : "No trip yet",
-    updatedAt: item.updatedAt,
     active: item.id === catalog.activeConversationId,
   }));
   const historyTrips = filteredHistory.trips.map((item) => ({
     id: item.id,
     title: item.title,
     subtitle: `${item.snapshot.plan.brief.dates.join(" – ")} · ${money(item.snapshot.plan.estTotal)}`,
-    updatedAt: item.updatedAt,
     status: item.status === "needs_review" ? ("Needs review" as const) : ("Draft" as const),
     active: !blank && item.id === catalog.activeTripId,
   }));
