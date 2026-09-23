@@ -459,6 +459,24 @@ describe("asking the traveller a structured question", () => {
     expect(typeof asked.reply).toBe("string");
   });
 
+  it("remembers the question it asked, so the next turn does not ask it again", async () => {
+    const { mem, turns } = memoryStore();
+    await caught(
+      run(
+        { tripId: "blank", message: "Somewhere in Japan next spring" },
+        scriptedModel([ask([choice])]),
+        mem,
+      ),
+    );
+
+    const assistant = turns.filter((turn) => turn.role === "assistant");
+    expect(assistant).toHaveLength(1);
+    expect(assistant[0]?.content).toContain("How full should each day be?");
+    // The options are part of what was asked: an answer reads as an answer only
+    // beside the choices it was picked from.
+    expect(assistant[0]?.content).toContain("Relaxed (Recommended)");
+  });
+
   it("caps questions and options, drops blanks and maps multi_select", async () => {
     const many = Array.from({ length: 6 }, (_v, i) => ({
       id: i === 1 ? "q0" : `q${i}`,
