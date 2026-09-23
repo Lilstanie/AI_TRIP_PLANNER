@@ -8,7 +8,10 @@
    command palette (this composer is a single send), the model picker with the
    permission/access chip beside it (one model, one user) and the context meter
    (no token budget to show). Nothing stands in for them, so the left group is
-   the plus control and the hint. */
+   the plus control alone.
+
+   Attachment chips share one look with the sent message and live in
+   attachments.css; only their seat inside this card is set here. */
 
 .composer {
   display: flex;
@@ -42,6 +45,30 @@
 .composer:focus-within {
   border-color: var(--accent);
   box-shadow: var(--shadow-md);
+}
+
+/* The chips sit above the draft, inside the card, aligned to the draft's own
+   14px column so a chip and the first character of the message share an edge. */
+.composer__attachments {
+  padding: 0 10px 0 14px;
+}
+
+/* Why a file was refused, or that the limit is reached. A line inside the card,
+   not a toast: it is something to read and act on, and it stays until the next
+   pick replaces it. */
+.composer__notice {
+  margin: 0;
+  padding: 0 10px 0 14px;
+  color: var(--text-mut);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+/* A file is over the card: the whole capsule is the drop target, so say so. */
+.composer[data-dragging] {
+  border-color: var(--accent);
+  border-style: dashed;
+  background: var(--accent-bg);
 }
 
 .composer__input {
@@ -91,8 +118,8 @@
   gap: 12px;
   min-width: 0;
   padding: 2px 8px 6px;
-  /* Kept from DSH's .row: the row is the size container its chips collapse
-     inside. This app has no chips, so no @container rule consumes it yet. */
+  /* Kept from DSH's .row: the row is the size container its controls collapse
+     inside. No @container rule consumes it yet. */
   container-type: inline-size;
 }
 
@@ -160,11 +187,17 @@
   cursor: default;
 }
 
-/* The pick target is the plus button, never this field; the markup's `hidden`
-   attribute is the mechanism, and this rule keeps it out of layout even if a
-   future author style claims `display` on inputs. */
+/* The pick target is the plus button; this field is driven by it. Hidden from
+   view but left in the accessibility tree and reachable programmatically, so a
+   reader that drives file inputs directly still finds one. `display: none`
+   would take it out of the tree altogether. */
 .composer__file-input {
-  display: none;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .composer__primary {

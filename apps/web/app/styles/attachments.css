@@ -1,0 +1,127 @@
+/* Attachment chips, shared by the composer and the sent message so a file looks
+   the same before and after it leaves. Geometry follows DeepSeek Harness's file
+   card (ui-attachment FileCard.module.css, ui-chat MessageItem .fileCard): a
+   square leading slot, the name on one line, type and size on a quieter second
+   line, and the remove control in the card's top corner, revealed on hover and
+   always present on a touch surface. Tokens are this app's own. */
+
+.attachment-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.attachment-chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  /* DSH's card is a fixed 240px. At 375px the chat column cannot spare that, so
+     the chip is elastic with 240px as its ceiling and two to a row when there
+     is room. */
+  flex: 1 1 180px;
+  max-width: 240px;
+  min-width: 0;
+  box-sizing: border-box;
+  min-height: 56px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  text-align: left;
+}
+
+.attachment-chip__thumb,
+.attachment-chip__glyph {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+.attachment-chip__thumb {
+  object-fit: cover;
+}
+
+.attachment-chip__glyph {
+  color: var(--text-mut);
+}
+
+.attachment-chip__glyph .icon {
+  width: 18px;
+  height: 18px;
+}
+
+.attachment-chip__text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.attachment-chip__name {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.attachment-chip__meta {
+  overflow: hidden;
+  color: var(--text-mut);
+  font-size: 11px;
+  line-height: 1.4;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.attachment-chip__remove {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  color: var(--text);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+
+.attachment-chip__remove .icon {
+  width: 12px;
+  height: 12px;
+}
+
+.attachment-chip:hover .attachment-chip__remove,
+.attachment-chip__remove:focus-visible {
+  opacity: 1;
+}
+
+/* A touch surface has no hover to reveal the control with. */
+@media (pointer: coarse) {
+  .attachment-chip__remove {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .attachment-chip__remove {
+    transition: none;
+  }
+}

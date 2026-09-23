@@ -11,7 +11,7 @@ button:not(.section__row):not(.stay-option):not(.rdp-day_button):not(.thinking-l
     .thinking-control
   ):not(.thinking-choice__toggle):not(.composer__add):not(.composer__primary):not(
     .question__icon-button
-  ):not(.question__option):not(.question__button) {
+  ):not(.question__option):not(.question__button):not(.attachment-chip__remove) {
   min-height: 36px;
 }
 button:disabled {
@@ -26,7 +26,7 @@ button:not(.section__row):not(.stay-option):not(.primary):not(.trip__cta):not(.r
     .thinking-choice__toggle
   ):not(.composer__add):not(.composer__primary):not(.question__icon-button):not(
     .question__option
-  ):not(.question__button) {
+  ):not(.question__button):not(.attachment-chip__remove) {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--surface);

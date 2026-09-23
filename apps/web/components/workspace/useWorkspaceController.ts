@@ -32,6 +32,7 @@ import {
   type Task,
 } from "./workspace-helpers";
 import { useDataMode } from "@/lib/workspace/data-mode";
+import { useComposerAttachments } from "./useComposerAttachments";
 import type { PendingAsk } from "@/lib/workspace/ask-user";
 export function useWorkspaceController({ restored }: { restored: RestoredWorkspace }) {
   const [plan, setPlan] = useState<TripPlan | undefined>(restored.plan);
@@ -149,6 +150,8 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     setDialog(undefined);
     setSelectedActivity(undefined);
     setMapRoutes([]);
+    // Files picked for a message that was never sent belong to the chat being left.
+    composerAttachments.clearAttachments();
   }
   function applySnapshot(snapshot: Snapshot) {
     setPlan(snapshot.plan);
@@ -186,6 +189,9 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     });
   }
   const dataMode = useDataMode();
+  // Files held for the next message. In memory only: a reload drops them, the
+  // same way an unanswered question card is dropped.
+  const composerAttachments = useComposerAttachments();
   const { run, submit, send, answer } = useWorkspaceTransport({
     plan,
     dataMode: dataMode.mode,
@@ -206,6 +212,8 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     setErrors,
     setSelectedActivity,
     setMapRoutes,
+    attachments: composerAttachments.attachments,
+    clearAttachments: composerAttachments.clearAttachments,
     ask,
     setAsk,
     onReject: edit,
@@ -417,6 +425,7 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     historyChats,
     historyTrips,
     notice,
+    composerAttachments,
     blank,
     pending,
     dialogTitle,

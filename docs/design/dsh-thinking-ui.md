@@ -332,6 +332,13 @@ The Rocks · 2026-11-10`, with any other argument as a `key value` chip — rath
 - **No model selector, permission chip or context meter in the composer.** This app has one model,
   one user and no token budget to show, so DSH's three chips would be inert. The composer keeps
   DSH's other control: the bottom-left attach control, which opens a file picker.
+- **Attachments are chips inside the card, as DSH draws them.** Files picked, dropped on the card or
+  pasted become chips above the draft: a thumbnail for an image, a file glyph for a text file, each
+  with its name, size and a remove control. Preparation happens in the browser before anything is
+  sent (`apps/web/lib/chat/attachments.ts`) — an image is redrawn at 1024px and re-encoded, keeping
+  PNG while it has transparency and the payload limit allows it, and a text file is truncated at the
+  contract's byte limit with a marker saying so. A refusal is an inline line under the chips, not a
+  toast that disappears before it is read.
 
 ### 3.2 Asking the traveller
 
@@ -523,7 +530,16 @@ is an input capsule and 14px would flatten it into another panel.
 Three of DSH's controls are deliberately absent: the model selector, the permission/access chip and
 the context-window meter. This app has one model, one user and no token budget to show, so they would
 be three inert chips. The bottom-left control is the attach control, and it opens a multi-file
-picker beside a quiet hint.
+picker.
+
+Attachment chips sit above the draft inside the same card, aligned to the draft's own 14px column,
+and the whole capsule is the drop target (`data-dragging` dashes its border). The chip itself is
+`components/chat/AttachmentChip.tsx` and its look is shared with the sent message, so a file reads
+the same before and after it leaves — DSH keeps two shapes (a bare 64px thumbnail for an image, a
+240px card for a file), but this chat column is too narrow for an unlabelled square to identify a
+pasted screenshot, so one card shape serves both and an image puts its thumbnail in the glyph's
+slot. The remove control is a real button named after its file; the thumbnail carries an empty
+`alt`, because the name is already beside it as text.
 
 The card's fill is `--surface-2`, not `--surface`: DSH fills its composer with
 `--dsw-specific-input-major`, which in its dark palette is `rgb(44, 44, 46)` — one elevation rung
@@ -545,11 +561,13 @@ Three behaviours are worth keeping:
 - **Enter sends, Shift+Enter breaks the line, and an IME composition never submits.** The last one
   is what lets Chinese and Japanese be typed at all; `event.nativeEvent.isComposing` is the guard.
 - **The primary action becomes Stop in place** — same 34px circle, warning colour, a square glyph —
-  so stopping is never mistaken for sending. The hint beside the attach control says which state the
-  composer is in.
-- **The text surface is a `textarea`, not DSH's contenteditable.** This app has no attachment chips
-  or inline decorators inside the draft, so a textarea gives the three behaviours that matter here
-  (grow, keyboard, own scroll) with far less machinery.
+  so stopping is never mistaken for sending.
+- **The text surface is a `textarea`, not DSH's contenteditable.** DSH renders its attachment chips
+  as decorator portals inside the editor; here they are ordinary DOM above the field, so a textarea
+  still gives the three behaviours that matter (grow, keyboard, own scroll) with far less machinery
+  — and the chips can be real list items with real buttons.
+- **A paste that carries files attaches them.** An image on the clipboard is the common case and has
+  no file name to pick; a paste with no files falls through to ordinary typing.
 
 `chat.css` used to style `.chat__form`'s input and both buttons as a horizontal row; that block is
 gone, and the form is now only the submit boundary around the card.
@@ -620,7 +638,8 @@ so the tag never splits the label from its description when both wrap.
   is a DSH brand detail at 10px. An 8px halo-and-core dot with the same keyframes is closer to this
   app's existing icon weight.
 - **DSH's model, permission and context chips.** They are real controls there; here they would be
-  three inert chips. The composer keeps the attach control and omits those three (see 3.1).
+  three inert chips. The composer keeps the attach control and its attachment chips, and omits those
+  three (see 3.1).
 - **DSH's process-fold durability and `hidden="until-found"`.** DSH keeps a store entry keyed by
   `(turn, answerStep)` and folds a settled turn behind one summary that survives a reload. This
   project keeps each reply's frames with the message (see 3.1) but not its open state, so every row

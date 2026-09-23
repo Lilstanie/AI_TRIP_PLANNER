@@ -23,6 +23,13 @@
   align-items: flex-end;
 }
 
+/* Files sent with the message, above the bubble and aligned with it, the way
+   DSH's MessageItem puts its attachment row above the user text. */
+.msg-item__attachments {
+  justify-content: flex-end;
+  max-width: min(82%, 70ch);
+}
+
 .msg-item__bubble {
   max-width: min(82%, 70ch);
   padding: 10px 16px;

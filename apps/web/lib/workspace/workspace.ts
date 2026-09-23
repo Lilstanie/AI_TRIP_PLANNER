@@ -11,9 +11,28 @@ import {
   TripPlan,
 } from "@trip/shared";
 
+/**
+ * What a sent message keeps about one attachment. Deliberately not the sent
+ * payload: the workspace is persisted in browser storage, and a 1.5 MB base64
+ * image per message would exhaust that budget within a few turns. Only a small
+ * thumbnail (see THUMBNAIL_MAX_EDGE) and the file's identity are kept, which is
+ * all the transcript needs to show.
+ */
+export type MessageAttachment = {
+  name: string;
+  mediaType: string;
+  kind: "image" | "text";
+  /** A `data:` URL at most a couple of hundred pixels across; images only. */
+  thumbnail?: string;
+  /** Size of what was sent, for the chip's second line. */
+  bytes?: number;
+};
+
 export type Message = {
   role: "user" | "agent";
   text: string;
+  /** Files sent with this message, shown with the bubble. Optional like `at`. */
+  attachments?: MessageAttachment[];
   /** Fares, when this turn answered a flight question instead of planning. */
   flights?: FlightAnswer;
   /** The thinking transcript that produced this reply, rendered as the fold above it. */
@@ -193,7 +212,7 @@ export function parseSnapshot(value: unknown): Snapshot {
     ...value,
     version: 3,
     plan,
-    messages: withValidActivity(value.messages as Message[]),
+    messages: withValidAttachments(withValidActivity(value.messages as Message[])),
   } as Snapshot;
 }
 
@@ -210,6 +229,43 @@ export function withValidActivity(messages: Message[]): Message[] {
     return rest;
   });
 }
+/**
+ * A stored message keeps its attachments only while every entry still matches
+ * the shape above; a damaged or foreign entry is dropped, never the message.
+ * Same posture as `withValidActivity` and `Message.at`.
+ */
+export function withValidAttachments(messages: Message[]): Message[] {
+  return messages.map((message) => {
+    if (message.attachments === undefined) return message;
+    const kept = Array.isArray(message.attachments)
+      ? message.attachments.filter(isMessageAttachment)
+      : [];
+    if (!Array.isArray(message.attachments) || kept.length !== message.attachments.length) {
+      if (!kept.length) {
+        const { attachments: _dropped, ...rest } = message;
+        return rest;
+      }
+      return { ...message, attachments: kept };
+    }
+    return message;
+  });
+}
+
+function isMessageAttachment(value: unknown): value is MessageAttachment {
+  return (
+    object(value) &&
+    typeof value.name === "string" &&
+    value.name.length > 0 &&
+    typeof value.mediaType === "string" &&
+    (value.kind === "image" || value.kind === "text") &&
+    // A thumbnail is inert only while it is an inline image; a remote or
+    // script-bearing URL restored from storage would be neither.
+    (value.thumbnail === undefined ||
+      (typeof value.thumbnail === "string" && value.thumbnail.startsWith("data:image/"))) &&
+    (value.bytes === undefined || (typeof value.bytes === "number" && Number.isFinite(value.bytes)))
+  );
+}
+
 export function parseSaved(raw: string | null): Snapshot[] {
   if (raw === null) return [];
   const value: unknown = JSON.parse(raw);

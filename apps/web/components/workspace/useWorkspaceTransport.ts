@@ -1,6 +1,6 @@
 "use client";
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
-import { TripPlan, type AgentProgressEvent } from "@trip/shared";
+import { TripPlan, type AgentProgressEvent, type Attachment } from "@trip/shared";
 import type { RouteResult } from "@/lib/integrations/google";
 import {
   identifyActivities,
@@ -19,6 +19,8 @@ import {
 import type { Task } from "./workspace-helpers";
 import { dataModeHeaders, type DataMode } from "@/lib/workspace/data-mode";
 import { formatAskAnswers, type PendingAsk, type QuestionAnswer } from "@/lib/workspace/ask-user";
+import type { PreparedAttachment } from "@/lib/chat/attachments";
+import { storedAttachments } from "./useComposerAttachments";
 
 type WorkspaceTransportOptions = {
   plan: TripPlan | undefined;
@@ -41,6 +43,10 @@ type WorkspaceTransportOptions = {
   setErrors: Dispatch<SetStateAction<Record<string, string>>>;
   setSelectedActivity: Dispatch<SetStateAction<string | undefined>>;
   setMapRoutes: Dispatch<SetStateAction<RouteResult[]>>;
+  /** Files the composer is holding for the next message. */
+  attachments: PreparedAttachment[];
+  /** Drops the held files once they have left with a message. */
+  clearAttachments(): void;
   /** The structured question awaiting an answer, if the coordinator asked one. */
   ask: PendingAsk | undefined;
   setAsk: Dispatch<SetStateAction<PendingAsk | undefined>>;
@@ -66,6 +72,8 @@ export function useWorkspaceTransport({
   setErrors,
   setSelectedActivity,
   setMapRoutes,
+  attachments,
+  clearAttachments,
   ask,
   setAsk,
   onReject,
@@ -152,10 +160,7 @@ export function useWorkspaceTransport({
       if (failure instanceof AskUserError) {
         const { questions, known, plan: askedAbout, reply } = failure.askUser;
         const text = reply?.trim() || questions.map((item) => item.question).join("\n\n");
-        setMessages((current) => [
-          ...current,
-          withTurn({ role: "agent", text, at: Date.now() }),
-        ]);
+        setMessages((current) => [...current, withTurn({ role: "agent", text, at: Date.now() })]);
         if (!askedAbout) setDraft((current) => draftWithKnown(current, known));
         setAsk({
           key: crypto.randomUUID(),
@@ -204,16 +209,40 @@ export function useWorkspaceTransport({
    *  previous value (usually empty, which the guard below then swallows). */
   function send(override?: string) {
     const message = (override ?? input).trim();
-    if (!message || active.current) return;
-    setMessages((current) => [...current, { role: "user", text: message, at: Date.now() }]);
+    // A picture can be the whole message: the turn goes out when there is text,
+    // attachments, or both.
+    if ((!message && attachments.length === 0) || active.current) return;
+    // The files leave with this message: the transcript keeps their thumbnails,
+    // the request carries their contents, and the composer is emptied. Holding
+    // them past the send would attach them again to the next message.
+    const files = attachments;
+    const sent: Attachment[] = files.map(({ name, mediaType, kind, data }) => ({
+      name,
+      mediaType,
+      kind,
+      data,
+    }));
+    if (files.length) clearAttachments();
+    setMessages((current) => [
+      ...current,
+      {
+        role: "user",
+        text: message,
+        at: Date.now(),
+        ...(files.length ? { attachments: storedAttachments(files) } : {}),
+      },
+    ]);
     // No mode: the assistant reads the message and decides whether this is a question,
     // an edit, or a request to plan. The plan travels with the brief so a question can
     // be answered without rebuilding it.
     void run({
       kind: "chat",
-      request: plan
-        ? { tripId: plan.tripId, message, brief: plan.brief, plan }
-        : { tripId: freshTripId.current, message, known: knownFromDraft(draft) },
+      request: {
+        ...(plan
+          ? { tripId: plan.tripId, message, brief: plan.brief, plan }
+          : { tripId: freshTripId.current, message, known: knownFromDraft(draft) }),
+        ...(sent.length ? { attachments: sent } : {}),
+      },
     });
   }
   /** Sends the question card's answers as the traveller's next message, carrying what the

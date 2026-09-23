@@ -12,6 +12,7 @@ import {
   parseSnapshot,
   parseSaved,
   readPlanStream,
+  withValidAttachments,
 } from "@/lib/workspace/workspace";
 import { plan, snapshot } from "@/tests/fixtures/workspace";
 
@@ -204,6 +205,47 @@ describe("workspace boundaries", () => {
     await expect(
       readPlanStream(new Response('{"type":"complete","response":{}}'), () => {}),
     ).rejects.toThrow("invalid");
+  });
+});
+
+describe("stored message attachments", () => {
+  const good = {
+    name: "shrine.jpg",
+    mediaType: "image/jpeg",
+    kind: "image" as const,
+    thumbnail: "data:image/jpeg;base64,AAAA",
+    bytes: 2048,
+  };
+
+  it("keeps a message whose attachments all match the stored shape", () => {
+    const messages = [{ role: "user" as const, text: "Look", attachments: [good] }];
+    expect(withValidAttachments(messages)).toEqual(messages);
+  });
+
+  it("drops a damaged entry and keeps the message it belonged to", () => {
+    const [message] = withValidAttachments([
+      {
+        role: "user",
+        text: "Look",
+        attachments: [good, { name: "", mediaType: "image/jpeg", kind: "image" }],
+      },
+    ]);
+    expect(message?.text).toBe("Look");
+    expect(message?.attachments).toEqual([good]);
+  });
+
+  it("drops the field entirely when nothing in it survives", () => {
+    const [message] = withValidAttachments([
+      // A thumbnail restored from storage is inert only while it is an inline
+      // image; a remote or script-bearing URL is neither.
+      { role: "user", text: "Look", attachments: [{ ...good, thumbnail: "javascript:alert(1)" }] },
+    ]);
+    expect(message).toEqual({ role: "user", text: "Look" });
+  });
+
+  it("leaves a message stored before attachments existed alone", () => {
+    const messages = [{ role: "agent" as const, text: "Here you go." }];
+    expect(withValidAttachments(messages)).toEqual(messages);
   });
 });
 

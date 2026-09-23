@@ -1,6 +1,7 @@
 "use client";
 import type { Components } from "react-markdown";
 import { formatMessageClock, type Message } from "@/lib/workspace";
+import { AttachmentChip } from "./AttachmentChip";
 import { FlightResults } from "./FlightResults";
 import { RevealedText } from "./RevealedText";
 import { ThinkingProcess } from "./ThinkingProcess";
@@ -22,6 +23,11 @@ const markdownComponents: Components = {
  * underneath once the message has a timestamp (`at` is optional so a trip
  * saved before this change still loads and simply shows no clock).
  *
+ * A message sent with files shows them as chips above its bubble, the way DSH's
+ * `MessageItem` puts its attachment row above the user text. What is stored is
+ * only a thumbnail and the file's identity, so a restored transcript shows the
+ * same chips without carrying the sent payload in browser storage.
+ *
  * `animate` reveals the reply word by word; ChatPanel sets it for the one
  * agent message that arrived during this session, and `RevealedText` latches
  * it on mount so the reveal never replays.
@@ -35,7 +41,21 @@ export function MessageItem({ message, animate }: { message: Message; animate?: 
     return (
       <div className="msg-item msg-item--user">
         <span className="sr-only">You</span>
-        <div className="msg-item__bubble">{message.text}</div>
+        {message.attachments && message.attachments.length > 0 && (
+          <ul className="attachment-chips msg-item__attachments" aria-label="Attached files">
+            {message.attachments.map((attachment, index) => (
+              <AttachmentChip
+                key={`${attachment.name}:${index}`}
+                name={attachment.name}
+                kind={attachment.kind}
+                {...(attachment.thumbnail ? { thumbnail: attachment.thumbnail } : {})}
+                {...(attachment.bytes === undefined ? {} : { bytes: attachment.bytes })}
+              />
+            ))}
+          </ul>
+        )}
+        {/* A turn can be files alone; an empty bubble would be a blank box. */}
+        {message.text && <div className="msg-item__bubble">{message.text}</div>}
         {clock}
       </div>
     );

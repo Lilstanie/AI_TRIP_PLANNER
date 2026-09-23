@@ -49,6 +49,7 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
     historyChats,
     historyTrips,
     notice,
+    composerAttachments,
     blank,
     pending,
     dialogTitle,
@@ -272,15 +273,11 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
               onDismissAsk={dismissAsk}
               onEdit={edit}
               onStart={edit}
-              /* The composer's attach control is real, but this app has no
-                 upload endpoint, so a picked file is acknowledged rather than
-                 silently dropped. Replace this with the upload call when one
-                 exists; the composer prop does not change. */
-              onAttachFiles={(files) =>
-                setNotice(
-                  `Attachments aren't supported yet — ${files.length} file${files.length === 1 ? "" : "s"} not uploaded.`,
-                )
-              }
+              onAttachFiles={composerAttachments.addFiles}
+              attachments={composerAttachments.attachments}
+              onRemoveAttachment={composerAttachments.removeAttachment}
+              canAttach={composerAttachments.canAttach}
+              attachNotice={composerAttachments.notice}
             />
           </div>
           <div className="workspace-panel workspace-panel--map">

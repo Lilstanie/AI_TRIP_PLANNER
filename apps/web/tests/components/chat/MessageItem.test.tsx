@@ -173,4 +173,42 @@ describe("MessageItem", () => {
     // Same element, so the CSS animation is not restarted by a re-render.
     expect(fresh.container.querySelector(".msg-reveal__word")).toBe(first);
   });
+  it("shows the files a message was sent with, above its bubble", () => {
+    const { container } = render(
+      <MessageItem
+        message={{
+          role: "user",
+          text: "Is this the shrine?",
+          attachments: [
+            {
+              name: "shrine.jpg",
+              mediaType: "image/jpeg",
+              kind: "image",
+              thumbnail: "data:image/jpeg;base64,AAAA",
+              bytes: 2048,
+            },
+            { name: "notes.md", mediaType: "text/markdown", kind: "text", bytes: 512 },
+          ],
+        }}
+      />,
+    );
+
+    const row = container.firstElementChild as HTMLElement;
+    const list = within(row).getByRole("list", { name: "Attached files" });
+    // The chips come before the bubble, as DSH's attachment row does.
+    expect(list.compareDocumentPosition(within(row).getByText("Is this the shrine?"))).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    const [photo, notes] = within(list).getAllByRole("listitem");
+    expect(within(photo as HTMLElement).getByText("shrine.jpg")).toBeTruthy();
+    expect((photo as HTMLElement).querySelector("img")?.getAttribute("alt")).toBe("");
+    expect(within(notes as HTMLElement).getByText("notes.md")).toBeTruthy();
+    // A sent message shows its files; it cannot un-send one.
+    expect(within(list).queryByRole("button")).toBeNull();
+  });
+
+  it("renders a message with no attachments exactly as before", () => {
+    const { container } = render(<MessageItem message={{ role: "user", text: "Plan Kyoto" }} />);
+    expect(container.querySelector(".attachment-chips")).toBeNull();
+  });
 });

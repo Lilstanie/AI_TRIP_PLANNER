@@ -8,6 +8,7 @@ import { Composer } from "./Composer";
 import { MessageItem } from "./MessageItem";
 import { QuestionComposer } from "./QuestionComposer";
 import type { PendingAsk, QuestionAnswer } from "@/lib/workspace/ask-user";
+import type { PreparedAttachment } from "@/lib/chat/attachments";
 
 export function ChatPanel({
   plan,
@@ -22,6 +23,10 @@ export function ChatPanel({
   onCancel,
   error,
   onAttachFiles,
+  attachments,
+  onRemoveAttachment,
+  canAttach,
+  attachNotice,
   ask,
   onAnswer,
   onDismissAsk,
@@ -42,8 +47,16 @@ export function ChatPanel({
   onCancel?: () => void;
   /** High-level request error shown in the workspace. */
   error?: string;
-  /** Receives files picked from the composer's attach control. */
+  /** Receives files picked, dropped or pasted into the composer. */
   onAttachFiles?: (files: File[]) => void;
+  /** Files held for the next message, drawn as chips inside the composer. */
+  attachments?: PreparedAttachment[];
+  /** Drops one held file by id. */
+  onRemoveAttachment?: (id: string) => void;
+  /** False at the per-message attachment limit. */
+  canAttach?: boolean;
+  /** One line under the chips explaining a refusal or the limit. */
+  attachNotice?: string;
   /** A structured question awaiting an answer; its card takes the composer's seat. */
   ask?: PendingAsk;
   /** Receives the question card's answers. */
@@ -129,13 +142,17 @@ export function ChatPanel({
               plan ? "Tell me what to change…" : "Destination, dates, travellers and budget…"
             }
             busy={busy}
-            canSend={Boolean(input.trim())}
+            canSend={Boolean(input.trim()) || Boolean(attachments?.length)}
             canCancel={Boolean(onCancel)}
             inputRef={inputRef}
             onInput={onInput}
             onSend={onSend}
             {...(onCancel ? { onCancel } : {})}
             {...(onAttachFiles ? { onAttachFiles } : {})}
+            {...(attachments ? { attachments } : {})}
+            {...(onRemoveAttachment ? { onRemoveAttachment } : {})}
+            {...(canAttach === undefined ? {} : { canAttach })}
+            {...(attachNotice ? { attachNotice } : {})}
           />
         </form>
       )}
