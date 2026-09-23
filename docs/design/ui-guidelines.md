@@ -89,7 +89,7 @@ Photos are allowed only as **content about a specific place**, and only when the
 - Alt text is the place name, or empty when the name is visible next to the photo.
 - Photo requests count against provider quota and follow the provider rules in the [add-provider skill](../../.agents/skills/add-provider/SKILL.md). Mock mode serves the fallback state, never a network photo.
 
-The [place photos Agent Note](../../.agents/notes/implemented/feature/2026-09-24-place-photos.md) explains the scope. No surface shows place photos yet.
+The [place photos Agent Note](../../.agents/notes/implemented/feature/2026-09-24-place-photos.md) explains the scope. The map's place preview is the first surface that shows them.
 
 ## Shapes
 

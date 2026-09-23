@@ -24,6 +24,7 @@ export function TripMapCanvas({
   selectedActivity,
   onSelectActivity,
   routes,
+  showPhotos = false,
 }: {
   /** The trip destination, or undefined for a blank conversation. */
   destination?: string;
@@ -32,6 +33,8 @@ export function TripMapCanvas({
   selectedActivity?: string;
   onSelectActivity(id: string): void;
   routes: RouteResult[];
+  /** Load Google place photos; only in live data mode, because every image is billed. */
+  showPhotos?: boolean;
 }) {
   const {
     markers,
@@ -94,6 +97,7 @@ export function TripMapCanvas({
         }}
         routes={routes}
         viewKey={viewKey}
+        showPhotos={showPhotos}
       />
       {(loading || unconfirmed > 0 || unavailable > 0) && (
         // Lightweight and non-blocking: located places stay usable on the map.

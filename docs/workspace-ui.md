@@ -177,6 +177,10 @@ describes current behaviour except the absences.
     location count as user moves and are never taken back.
   - No Google map is created before there is somewhere to show; a neutral placeholder is shown
     instead. Container resizes keep the centre.
+- **Place preview.** The selected place is previewed above the place list with its first Google
+  photo, address, the photo's author attribution and an Open in Google Maps link. Photos load only
+  in live data mode with a server Maps key, one image per selection. Otherwise, and when Google has
+  no photo or the image fails, the fixed 16:9 slot shows a pin.
 - **Selection.** Selecting a marker or list item selects the activity in the timeline and jumps to its
   day, and the reverse also works. Selected markers add a larger outlined shape, while selected place-list
   buttons add a leading inset line and weight alongside `aria-pressed`; color is not the sole cue.

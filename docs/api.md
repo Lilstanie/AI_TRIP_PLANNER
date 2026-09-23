@@ -1,7 +1,7 @@
 # API entry points
 
-The Next.js route handlers live under `apps/web/app/api/`. `/api/data-mode` is a `GET` handler; the
-other five are `POST` handlers. Request bodies are validated with Zod, and planning outputs are
+The Next.js route handlers live under `apps/web/app/api/`. `/api/data-mode` and `/api/places/photo` are
+`GET` handlers; the other five are `POST` handlers. Request bodies are validated with Zod, and planning outputs are
 validated against the shared contracts in `packages/shared/src/`.
 
 | Path                                                        | Purpose                                                             |
@@ -10,6 +10,7 @@ validated against the shared contracts in `packages/shared/src/`.
 | [`/api/data-mode`](#get-apidata-mode)                       | Default data mode and whether live provider keys are configured     |
 | [`/api/places/search`](#post-apiplacessearch)               | Google Places text search                                           |
 | [`/api/places/details`](#post-apiplacesdetails)             | Google place details for a place ID                                 |
+| [`/api/places/photo`](#get-apiplacesphoto)                  | Redirect to one Google place photo                                  |
 | [`/api/routes/from-location`](#post-apiroutesfrom-location) | Route from a user-approved location to a place                      |
 | [`/api/trip/preview-edit`](#post-apitrippreview-edit)       | Preview an itinerary edit with route and budget checks              |
 
@@ -128,6 +129,23 @@ not include the query or provider details.
 
 Returns `{ "place": GooglePlace }`. Errors: 400 invalid input, 404 the place ID is no longer
 available, 429 rate limit, 502 other upstream failures.
+
+`GooglePlace.photos` from either route carries Google's photo names and author attributions. They
+stay in browser memory and are never written into a plan, because Google forbids caching them.
+
+## `GET /api/places/photo`
+
+Implementation: `placePhotoUri` in `apps/web/lib/integrations/google.ts`.
+
+```text
+/api/places/photo?name=places/ChIJ…/photos/Aa…&width=400
+```
+
+`name` must be a `places/{id}/photos/{id}` name from a fresh lookup, and `width` is 160, 400 or 800.
+The route asks Google for the image URL and answers `302` to a `googleusercontent.com` URL with
+`Cache-Control: no-store`, so an `<img>` can point at it without the server key reaching the
+browser. Each call is a billed Google photo request. Errors: 400 invalid input, 404 an expired or
+unknown photo, 429 rate limit, 502 other upstream failures or a missing key.
 
 ## `POST /api/routes/from-location`
 

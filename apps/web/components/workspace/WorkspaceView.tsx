@@ -288,6 +288,7 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
               selectedActivity={selectedActivity}
               onSelectActivity={setSelectedActivity}
               routes={mapRoutes}
+              showPhotos={dataMode.mode === "live" && !!dataMode.providers?.maps}
             />
           </div>
           {drawerOpen && (

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { GooglePlace, RouteResult } from "@/lib/integrations/google";
 import { MapViewController, type FramableMap } from "@/lib/map/map-view";
+import { PlacePreview } from "./PlacePreview";
 
 type Coordinate = { lat: number; lng: number };
 
@@ -148,6 +149,7 @@ export function TripMap({
   mode = "WALK",
   viewKey,
   destinations = [],
+  showPhotos = false,
 }: {
   places: GooglePlace[];
   /** Destination city places; the map centres on them before any activity is mapped. */
@@ -158,6 +160,8 @@ export function TripMap({
   mode?: "WALK" | "TRANSIT";
   /** Trip identity and destination: changing it reframes the map once for the new trip. */
   viewKey?: string;
+  /** Load Google place photos. Only in live data mode: every image is billed. */
+  showPhotos?: boolean;
 }) {
   const root = useRef<HTMLDivElement>(null);
   const onSelectRef = useRef(onSelect);
@@ -176,6 +180,7 @@ export function TripMap({
   const initialFocus = useRef(destinations.length ? destinations : places);
   initialFocus.current = destinations.length ? destinations : places;
   const mappedPlaces = places.filter((place) => coordinate(place));
+  const selectedPlace = mappedPlaces.find((place) => place.id === selected);
 
   // A route estimate belongs to one selected place; never show it for another.
   useEffect(() => {
@@ -435,19 +440,22 @@ export function TripMap({
       <div ref={root} className="google-map" aria-label="Google activity map" />
       {loading && <p role="status">Loading Google Maps…</p>}
       {mappedPlaces.length > 0 && (
-        <ol className="trip-map-place-list" aria-label="Places shown on the map">
-          {mappedPlaces.map((place, index) => (
-            <li key={place.id}>
-              <button
-                type="button"
-                aria-pressed={place.id === selected}
-                onClick={() => onSelectRef.current(place.id)}
-              >
-                {index + 1}. {placeName(place)}
-              </button>
-            </li>
-          ))}
-        </ol>
+        <div className="trip-map-places">
+          {selectedPlace && <PlacePreview place={selectedPlace} showPhoto={showPhotos} />}
+          <ol className="trip-map-place-list" aria-label="Places shown on the map">
+            {mappedPlaces.map((place, index) => (
+              <li key={place.id}>
+                <button
+                  type="button"
+                  aria-pressed={place.id === selected}
+                  onClick={() => onSelectRef.current(place.id)}
+                >
+                  {index + 1}. {placeName(place)}
+                </button>
+              </li>
+            ))}
+          </ol>
+        </div>
       )}
       <p className="trip-map-location-status" aria-live="polite">
         {locationMessage}

@@ -29,8 +29,13 @@ Each photo slot has:
 - no text laid directly on the image;
 - alt text taken from the place name.
 
-The rule lives in the design contract. This note changes the contract only; no provider fetches
-photos yet.
+The rule lives in the design contract. The first surface is the map's place preview:
+
+- `apps/web/lib/integrations/google.ts` asks Places for `photos` on the lookups the map already
+  makes. The names stay in browser memory with the rest of the lookup.
+- `GET /api/places/photo` exchanges one name for Google's image URL and redirects to it, so the
+  server key never reaches the browser.
+- The preview loads one image for the selected place, and only in live data mode with a Maps key.
 
 ## Alternatives considered
 
@@ -46,11 +51,12 @@ place misleads the traveller. This is the same honesty rule that governs source 
 
 ## Consequences
 
-- Showing photos needs a provider change: fresh photo names in the place data, the photo request,
-  quota limits and a mock-mode fallback. It follows the
-  [add-provider skill](../../../skills/add-provider/SKILL.md). If photo data crosses
-  `packages/shared`, that change needs its own contract note.
-- Photo requests are billed separately by Google Places, so thumbnails in long lists must be fetched
-  within the quota rules.
+- Photo data stays in the web app's own `GooglePlace` type; `packages/shared` does not change. A
+  change that moves photos into the shared contracts needs its own contract note.
+- Adding `photos` to the field mask costs nothing extra, because `rating` already puts the lookups
+  in a higher billing tier. Each image is a separate billed request.
+- There is no monthly photo quota counter. Spending is bounded by one image per selection in live
+  mode. Thumbnails in lists or on markers would multiply requests, so they need a counter in the
+  shared store first, following the [add-provider skill](../../../skills/add-provider/SKILL.md).
 - Reviews treat a decorative photo, text placed on a photo, missing attribution, or a stored photo
   name or image as contract violations.

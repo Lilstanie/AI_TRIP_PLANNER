@@ -12,9 +12,28 @@ export const PlaceDetails = z.object({
   attributions: z
     .array(z.object({ provider: z.string().optional(), providerUri: z.string().optional() }))
     .optional(),
+  /**
+   * Google's photo names for this place. Google forbids caching them and they expire, so they
+   * live only in memory beside the rest of the lookup and are never written into a plan.
+   */
+  photos: z
+    .array(
+      z.object({
+        name: z.string().min(1),
+        widthPx: z.number().optional(),
+        heightPx: z.number().optional(),
+        authorAttributions: z
+          .array(z.object({ displayName: z.string().optional(), uri: z.string().optional() }))
+          .optional(),
+      }),
+    )
+    .optional(),
 });
 export type GooglePlace = z.infer<typeof PlaceDetails>;
-const fields = "id,displayName,formattedAddress,location,googleMapsUri,rating,attributions";
+export type GooglePlacePhoto = NonNullable<GooglePlace["photos"]>[number];
+// `photos` sits in a lower billing tier than `rating`, so asking for it does not raise the cost of
+// a lookup; only fetching an image (placePhotoUri) is billed on its own.
+const fields = "id,displayName,formattedAddress,location,googleMapsUri,rating,attributions,photos";
 function key() {
   if (!process.env.MAPS_API_KEY)
     throw new Error("Google Maps is not configured. Add the server MAPS_API_KEY.");
@@ -58,6 +77,36 @@ export async function placeDetails(id: string) {
   return PlaceDetails.parse(
     await request(`https://places.googleapis.com/v1/places/${encodeURIComponent(id)}`, fields),
   );
+}
+/** `places/{placeId}/photos/{photoId}`, as Places returns it; anything else is refused. */
+export const PHOTO_NAME = /^places\/[A-Za-z0-9_-]{1,300}\/photos\/[A-Za-z0-9_-]{1,2048}$/;
+export const PHOTO_WIDTHS = [160, 400, 800] as const;
+export type PhotoWidth = (typeof PHOTO_WIDTHS)[number];
+
+/**
+ * A short-lived image URL for one place photo. Each call is billed by Google, so callers fetch it
+ * only for a photo someone is looking at. The key stays on the server: the browser only ever sees
+ * the returned googleusercontent URL.
+ */
+export async function placePhotoUri(name: string, maxWidthPx: PhotoWidth) {
+  if (!PHOTO_NAME.test(name)) throw new GoogleRequestError(400);
+  const url = new URL(`https://places.googleapis.com/v1/${name}/media`);
+  url.search = new URLSearchParams({
+    maxWidthPx: String(maxWidthPx),
+    skipHttpRedirect: "true",
+  }).toString();
+  const data = await request(url.toString());
+  const photoUri = typeof data?.photoUri === "string" ? data.photoUri : "";
+  let parsed: URL | undefined;
+  try {
+    parsed = new URL(photoUri);
+  } catch {
+    parsed = undefined;
+  }
+  // Only ever redirect the browser to Google's own image host.
+  if (parsed?.protocol !== "https:" || !parsed.hostname.endsWith(".googleusercontent.com"))
+    throw new GoogleRequestError(502);
+  return parsed.toString();
 }
 export async function timeZone(place: GooglePlace, date: string) {
   if (!place.location) throw new Error("This place has no verified coordinates.");
