@@ -45,6 +45,10 @@
 .composer:focus-within {
   border-color: var(--accent);
   box-shadow: var(--shadow-md);
+  /* Forced-colors mode flattens the border colour and drops the shadow; this
+     outline is invisible normally and drawn in the system colour there. */
+  outline: 2px solid transparent;
+  outline-offset: 2px;
 }
 
 /* The chips sit above the draft, inside the card, aligned to the draft's own

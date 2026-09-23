@@ -288,6 +288,15 @@
   border-color: var(--border);
 }
 
+/* The frames below show focus by colour alone, which forced-colors mode
+   flattens; this outline is invisible normally and drawn in the system colour
+   there. */
+.question__custom-row:focus-within,
+.question__custom-block:focus-within {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+}
+
 /* Auto-growing answer: mirror and textarea share one grid cell; the mirror
    sizes it. Both layers MUST keep identical type, padding and wrapping. */
 .question__field {

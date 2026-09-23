@@ -24,9 +24,12 @@ button {
 
 /* Every interactive element gets the same visible ring; the browser default is
    inconsistent across the custom-styled controls here and vanished entirely on
-   the ones that reset their outline. */
+   the ones that reset their outline. The ring is a box-shadow, which
+   forced-colors mode (Windows High Contrast) drops; the transparent outline is
+   invisible normally and painted in the system colour there. */
 :where(a, button, input, textarea, select, summary, [tabindex]):focus-visible {
-  outline: none;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
   box-shadow: var(--ring);
   border-radius: var(--radius-sm);
 }
