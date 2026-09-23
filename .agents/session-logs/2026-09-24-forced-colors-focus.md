@@ -2,7 +2,7 @@
 date: 2026-09-24
 author: Claude Code
 branch: fix/forced-colors-focus
-pr: none
+pr: 62
 area: apps/web
 contract-impact: none
 ---
