@@ -34,6 +34,10 @@ semantic-token, or workspace-layout contracts.
   - **The trip plan.** It keeps an Ideas bucket apart from the day-by-day itinerary. Each stop shows a
     time range and a thumbnail, with the distance between stops and a booking link where one exists.
   - **Follow-up suggestion chips** appear above the composer.
+  - **Trip facts in the top bar.** Destination, dates, travellers and budget are chips, each
+    opening an editor for that fact alone, and a Preferences chip holds the rest. Here the editors
+    anchor under their chip (a bottom sheet on phones) instead of opening centred. See the
+    [preference chips Agent Note](../../.agents/notes/implemented/feature/2026-09-24-preference-chips.md).
 
   Fit these into this workspace's fixed regions. For example, place detail opens in a drawer or map
   overlay instead of replacing the map column. Borrow the interactions, not the brand: Mindtrip's
@@ -61,7 +65,7 @@ Body copy, controls, navigation, forms, and status labels use the system sans st
 
 ## Layout
 
-The existing workspace grid is fixed: sidebar, chat, and map; overlay drawers preserve that working area. Keep its current responsive breakpoints, sidebar resizing, drawer directions, and narrow-screen Chat/Map switch.
+The existing workspace grid is fixed: sidebar, chat, and map; overlay drawers preserve that working area. Keep its current responsive breakpoints, sidebar resizing, drawer directions, and narrow-screen Chat/Map switch. Trip preferences are edited from the top bar's fact chips rather than a drawer, at the owner's request.
 
 Spacing uses `--space-1` through `--space-5`. Do not introduce parallel spacing values where these tokens fit.
 

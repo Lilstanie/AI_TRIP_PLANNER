@@ -111,7 +111,7 @@ fails, a small English/Chinese rule parser handles extraction instead; it only r
 A blank conversation that has not stated everything needed to plan is a question, not a failure:
 `runTripChat` throws `IncompleteBriefError` carrying the fields understood so far and a follow-up
 question written by the reply model in the traveller's own language. `/api/chat` streams it as a
-`needs_info` frame, the client shows it as an assistant message, fills the preferences form with what
+`needs_info` frame, the client shows it as an assistant message, fills the top-bar trip fact chips with what
 was understood, and sends those fields back as `ChatRequest.known` with the next message, which is
 merged under that message's own extraction. So "悉尼三日游" is answered with a question about dates,
 travellers and budget, and the reply only has to supply those.

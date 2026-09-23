@@ -12,7 +12,7 @@ and two more places rebuilding the first hop for labels.
 
 ## Decision
 
-`TripBrief.origin` is an optional field in `packages/shared`, filled from the Preferences form or
+`TripBrief.origin` is an optional field in `packages/shared`, filled from the top bar's Where chip or
 chat extraction ("a trip from A to B", "departing X"). `packages/agents/src/transport/legs.ts`
 builds every hop in travel order with `journeyLegs()`, and `legMode()` decides flight or ground
 per leg. `transport/index.ts` derives both its flight query and its route queries from that list.

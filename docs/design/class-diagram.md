@@ -55,7 +55,7 @@ classDiagram
     +save() void
     +loadSaved() void
   }
-  class FiltersPanel {
+  class TripFactChips {
     <<component>>
   }
   class ChatPanel {
@@ -109,7 +109,7 @@ classDiagram
   }
 
   WorkspaceView "1" --> "1" WorkspaceController : state
-  WorkspaceView "1" *-- "1" FiltersPanel : contains
+  WorkspaceView "1" *-- "1" TripFactChips : contains
   WorkspaceView "1" *-- "1" ChatPanel : contains
   WorkspaceView "1" *-- "1" TripPanel : contains
   WorkspaceView "1" *-- "1" TripEditor : contains
@@ -119,7 +119,7 @@ classDiagram
   WorkspaceController "1" *-- "1" WorkspaceTransport : requests
   WorkspaceController "1" *-- "1" WorkspaceStorage : localStorage
   WorkspaceTransport ..> ChatRequest : sends
-  FiltersPanel ..> TripBrief : edits
+  TripFactChips ..> TripBrief : edits
   TripPanel ..> TripPlan : renders
 
   ChatRoute ..> ChatRequest : validates
@@ -666,7 +666,7 @@ classDiagram
   UC7 ..> UC3 : «extend»
   UC7 ..> UC6 : «include»
 
-  class FiltersPanel {
+  class TripFactChips {
     <<component>>
   }
   class TripChat {
@@ -690,7 +690,7 @@ classDiagram
   class DiningAgent
   class TripPlan
 
-  UC1 ..> FiltersPanel : «trace»
+  UC1 ..> TripFactChips : «trace»
   UC2 ..> TripChat : «trace»
   UC3 ..> OrchestratorGraph : «trace»
   UC7 ..> TripEditor : «trace»
@@ -705,7 +705,7 @@ classDiagram
 
 | Use case                                   | «trace» → class                                                                          | Owner |
 | ------------------------------------------ | ---------------------------------------------------------------------------------------- | ----- |
-| Set Preferences (Filter)                   | `FiltersPanel` (edits the `TripBrief` sent with the next request)                        | E     |
+| Set Preferences (Filter)                   | `TripFactChips` (edits the `TripBrief` sent with the next request)                       | E     |
 | Submit Requirement (Chat)                  | `TripChat.runTripChat` (extracts brief updates from the message)                         | E     |
 | Generate Itinerary                         | `OrchestratorGraph`                                                                      | A     |
 | Edit Itinerary (Timeline / Map)            | `TripEditor` with `previewEdit` (`/api/trip/preview-edit`), re-checking route and budget | E     |

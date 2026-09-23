@@ -6,14 +6,14 @@ now. Implementation history and browser acceptance for each phase are in the
 
 ## Layout
 
-| Area                    | Content                                                                                                                        | Implementation                               |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------- |
-| Sidebar                 | Logo, New chat, search, Chats and Trips history with counts, Saved trips, Language, Local account                              | `WorkspaceSidebar`, `BrandMark`, `icons.tsx` |
-| Top bar                 | Destination with days, travellers and budget (real plan values only); Preferences; Trip with pending-decision count, rightmost | `Workspace`                                  |
-| Chat                    | Conversation, the planning transcript, the composer; starter suggestions in a blank chat                                       | `ChatPanel`                                  |
-| Map                     | Only the map, numbered markers, a place list, map status, View all places and Show my location                                 | `TripMapCanvas`, `TripMap`                   |
-| Your Trip drawer        | Budget; Overview (sections and the stay chosen); Timeline & routes (editor); Review plan and Save trip                         | `Drawer`, `TripPanel`, `TripEditor`          |
-| Trip Preferences drawer | Structured brief form: destination, dates, travellers, budget, nationality, accommodation                                      | `Drawer`, `FiltersPanel`                     |
+| Area              | Content                                                                                                       | Implementation                                             |
+| ----------------- | ------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| Sidebar           | Logo, New chat, search, Chats and Trips history with counts, Saved trips, Language, Local account             | `WorkspaceSidebar`, `BrandMark`, `icons.tsx`               |
+| Top bar           | Trip title; trip fact chips (destination, dates, travellers, budget, Preferences); data mode; Trip, rightmost | `WorkspaceView`, `TripFactChips`                           |
+| Trip fact editors | One small editor per chip; Preferences holds nationality and accommodation                                    | `FactPopover`, `FactFields`, `lib/workspace/trip-facts.ts` |
+| Chat              | Conversation, the planning transcript, the composer; starter suggestions in a blank chat                      | `ChatPanel`                                                |
+| Map               | Only the map, numbered markers, a place list, map status, View all places and Show my location                | `TripMapCanvas`, `TripMap`                                 |
+| Your Trip drawer  | Budget; Overview (sections and the stay chosen); Timeline & routes (editor); Review plan and Save trip        | `Drawer`, `TripPanel`, `TripEditor`                        |
 
 - **Sidebar.**
   - Expands to 240 px (220 px below 1250 px) or collapses to a 64 px icon rail. The toggle uses
@@ -49,8 +49,33 @@ now. Implementation history and browser acceptance for each phase are in the
     empty next to the product name and “AI Trip Planner” when shown alone.
   - At the narrowest widths the footer's Language and Local account buttons wrap below the save
     status rather than truncating it.
+- **Trip facts.** The brief is edited one fact at a time from chips in the top bar, following
+  Mindtrip's trip bar; the [preference chips Agent Note](../.agents/notes/implemented/feature/2026-09-24-preference-chips.md) records why.
+  - The chips read the preferences draft, so they show only what the traveller stated: a value
+    ("Sydney", "1 Oct – 4 Oct · 4 days", "2 travellers", "AUD 2,000"), or "Add destination", "Add
+    dates", "Add travellers" and "Add budget" while it is missing. A converted budget keeps its
+    "(≈ ¥3,000)" hint while it still matches the plan. The chips form a `role="group"` named Trip
+    details; a filled chip's accessible name leads with its fact ("Destination: Sydney").
+  - Each chip is a button with `aria-haspopup="dialog"`, `aria-expanded` and `aria-controls`, and
+    opens its own editor: Where (destination, departing from), When (start and end date plus the
+    calendar), Who (a travellers stepper), Budget (total in AUD) and Trip preferences (nationality,
+    room allocation, minimum guest rating, free cancellation). Every field the old Preferences
+    drawer held lives in exactly one of them.
+  - An editor is a labelled `role="dialog"` anchored under its chip. Focus moves to its first field,
+    Tab loops inside it, and Escape, the close button or a saved edit return focus to the chip.
+    Escape with the calendar open closes only the calendar. A press outside closes the editor
+    without moving focus. Opening one closes the Trip drawer and the navigation drawer.
+  - Edits stay in the editor until they are kept, so Escape and a press outside discard them. Each
+    editor checks its own fields with the brief schema and shows how to fix one next to it.
+  - Before there is a plan, Save keeps the edit in the draft; nothing is sent. The stated facts go
+    with the next chat message as `known`, and Plan trip in Trip preferences plans with the whole
+    brief (`mode: "plan"`). Once a plan exists the button is Update trip: it keeps the edit and
+    replans with the whole brief, because a chat message carries the plan's brief, not the draft. A
+    rejected brief opens the editor of the first fact at fault, with the error beside the field.
+  - The trip title stays in the top bar at 1250 px and wider. Below that the destination chip names
+    the trip and the title is kept for assistive technology only.
 - **Drawers.**
-  - Preferences, Your Trip and the narrow-screen navigation are overlay drawers below the top bar.
+  - Your Trip and the narrow-screen navigation are overlay drawers below the top bar.
     They never cover the logo or top-bar buttons, and the chat and map keep their width.
   - `Drawer` provides `role="dialog"`, `aria-modal`, `aria-hidden` and `inert` when closed, focus on
     the close button, a Tab loop, Escape (nested edit previews and native dialogs first) and focus
@@ -60,9 +85,12 @@ now. Implementation history and browser acceptance for each phase are in the
   - The Trip drawer is `min(max(62vw, 560px), 100% - 24px)` wide. Animations are 240 ms and respect
     `prefers-reduced-motion`.
 - **Narrow screens (≤1000 px).**
-  - The top bar keeps the menu, summary, Preferences and Trip on one row, with a Chat/Map switch below.
-  - Navigation opens as a drawer, and Preferences and Trip span the content width.
-  - At ≤520 px the top-bar buttons show icons only but keep their accessible names.
+  - The top bar keeps the menu, the fact chips and Trip on one row, with a Chat/Map switch below.
+    When the chips do not fit they scroll sideways inside their row, which fades at the edge that
+    has more chips behind it; the page itself never scrolls sideways.
+  - Navigation opens as a drawer, and Trip spans the content width.
+  - At ≤520 px the top-bar buttons show icons only but keep their accessible names, chips are 44 px
+    tall, and an editor opens as a bottom sheet over a scrim.
 
 ## Conversations, trips and storage
 
@@ -112,7 +140,7 @@ now. Implementation history and browser acceptance for each phase are in the
     [DSH thinking UI §3.2](design/dsh-thinking-ui.md#32-asking-the-traveller) and the
     [ask-user Agent Note](../.agents/notes/implemented/feature/2026-09-23-ask-user-question.md).
   - The chat has no calendar pop-up: dates can be typed in the composer. The calendar picker still
-    exists in Trip preferences, where the traveller asks for it.
+    exists in the When chip's editor, where the traveller asks for it.
   - Messages retain their conversation order in a `role="log"`; each has one visible, spoken-once
     speaker label (You or Travel planning assistant). The traveller's own message is a right-aligned
     bubble; the assistant's reply renders full-width with no border or background, as Markdown
@@ -125,7 +153,8 @@ now. Implementation history and browser acceptance for each phase are in the
     and clicking anywhere in it highlights the card once — the field draws no ring of its own. Enter
     sends and Shift+Enter breaks the line, but never while an input method is composing. While a
     request runs, the primary action becomes Stop in place; there is no hint text.
-  - Submitting Preferences sends `mode: "plan"` with the brief.
+  - Update trip in a chip editor, or Plan trip in Trip preferences before there is a plan, sends
+    `mode: "plan"` with the brief.
   - A first chat message sends `mode: "start"`, and the server reports any missing destination,
     dates, travellers or budget instead of borrowing values.
   - The blank form's minimum rating defaults to `0` (no minimum).
@@ -252,7 +281,7 @@ Use this checklist for each visual change. It supplements, and does not change, 
 | Motion          | Default and `prefers-reduced-motion: reduce`                                         |
 | Input           | Mouse and full keyboard navigation, including visible focus                          |
 | Workspace       | Sidebar resize/collapse, Chat/Map switch, and no horizontal overflow                 |
-| Drawers         | Navigation, Preferences, and Trip drawers; close, Escape, and focus return           |
+| Overlays        | Navigation and Trip drawers, chip editors; close, Escape, and focus return           |
 | Content         | Empty chat/map, planning and failure states, long messages, and available map places |
 | Native controls | Date, select, checkbox, and scrollbar follow the active color scheme                 |
 
@@ -263,7 +292,7 @@ The root layout loads the self-hosted Fraunces display font through `next/font`;
 ## Verification
 
 `pnpm typecheck`, `pnpm lint`, `pnpm test` and `pnpm build` must pass. Component tests cover drawers,
-blank start, history restore, sidebar collapse, place lookup failures, request races and storage
+the trip fact chips and their editors, blank start, history restore, sidebar collapse, place lookup failures, request races and storage
 recovery; `lib/map/map-view.test.ts` and `lib/map/place-query.test.ts` cover framing and lookup rules. Live
 Google checks are reported separately in session logs and are never inferred from mocks. The
 historical P0–P3 plan is in [`.agents/archive/p3-implementation.md`](../.agents/archive/p3-implementation.md) and the

@@ -20,8 +20,11 @@ over a custom rebuild, and remove ARIA rather than add it.
 - **Drawers and dialogs.** `components/ui/Drawer.tsx` provides `role="dialog"`, `aria-modal`,
   `inert` when closed, a Tab loop, Escape, and focus return to the trigger.
   `components/ui/Dialog.tsx` wraps a native `<dialog>` opened with `showModal()`, so the browser
-  supplies the trap and Escape, and the component restores focus on close. Build new overlays on
-  these two rather than writing another focus trap.
+  supplies the trap and Escape, and the component restores focus on close.
+  `components/preferences/FactPopover.tsx` is the anchored editor under a top-bar chip (a bottom
+  sheet at ≤520 px): a labelled `role="dialog"` with a Tab loop, Escape that yields to an open
+  native dialog, and dismissal on an outside press. Build new overlays on these three rather than
+  writing another focus trap.
 - **Menus and splitters.** The conversation overflow menu (`role="menu"`, Escape returns focus
   without closing the enclosing drawer) and the sidebar `role="separator"` resizer are the reference
   patterns. Copy their keyboard handling for similar widgets.
@@ -49,7 +52,7 @@ over a custom rebuild, and remove ARIA rather than add it.
 - **Hit areas.** At least 24×24 CSS px (WCAG 2.5.8). Aim for 40px on desktop and 44px on phones where
   the density allows. Collapsed sidebar icons and map controls are the usual offenders. See
   [hit-areas.md](hit-areas.md).
-- **Label every control.** A placeholder is never a label. The Preferences form uses real labels, and
+- **Label every control.** A placeholder is never a label. The top-bar fact editors use real labels, and
   new fields do too. See [forms.md](forms.md).
 - **Accessible names.** Icon-only buttons need an `aria-label` that contains any visible text.
   Buttons that shrink to icons at ≤520 px keep their names.
