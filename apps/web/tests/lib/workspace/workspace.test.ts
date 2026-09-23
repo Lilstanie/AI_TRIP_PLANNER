@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  AskUserError,
   blankDraft,
   budgetHint,
   draftFor,
@@ -75,6 +76,19 @@ describe("workspace boundaries", () => {
     expect(parsed.plan).not.toHaveProperty("hitl");
     expect(parsed.plan.tripId).toBe(snapshot.plan.tripId);
   });
+  it("keeps a stored reply's valid transcript and drops a damaged one without losing the message", () => {
+    const good = [{ type: "agent_started", agent: "itinerary", round: 1 }];
+    const stored = {
+      ...snapshot,
+      messages: [
+        { role: "agent", text: "Kept", activity: good },
+        { role: "agent", text: "Damaged", activity: [{ type: "nonsense" }] },
+      ],
+    };
+    const parsed = parseSnapshot(JSON.parse(JSON.stringify(stored)));
+    expect(parsed.messages[0]).toMatchObject({ text: "Kept", activity: good });
+    expect(parsed.messages[1]).toEqual({ role: "agent", text: "Damaged" });
+  });
   it("parses split NDJSON and a trailing final frame, skipping malformed progress", async () => {
     const payload = JSON.stringify({ type: "complete", response: { plan, reply: "Updated" } });
     const stream = new ReadableStream({
@@ -112,6 +126,46 @@ describe("workspace boundaries", () => {
       question: "你打算哪天出发？",
       known: { destination: "悉尼" },
     });
+  });
+  it("raises a structured question with its choices and the plan it left untouched", async () => {
+    const asked = {
+      type: "ask_user",
+      questions: [
+        {
+          id: "pace",
+          header: "Pace",
+          question: "How full should each day be?",
+          options: [
+            { label: "Relaxed (Recommended)", description: "Two sights a day." },
+            { label: "Packed" },
+          ],
+        },
+      ],
+      known: { destination: "Tokyo" },
+      plan,
+      reply: "One quick choice first.",
+    };
+    const error = await readPlanStream(new Response(JSON.stringify(asked)), () => {}).catch(
+      (failure: unknown) => failure,
+    );
+    expect(error).toBeInstanceOf(AskUserError);
+    expect((error as AskUserError).askUser).toEqual(asked);
+  });
+  it("rejects a structured question with more choices than the contract allows", async () => {
+    const frame = JSON.stringify({
+      type: "ask_user",
+      questions: [
+        {
+          id: "q",
+          question: "Which?",
+          options: ["a", "b", "c", "d", "e"].map((label) => ({ label })),
+        },
+      ],
+      known: {},
+    });
+    await expect(readPlanStream(new Response(frame), () => {})).rejects.toThrow(
+      "The assistant's question was invalid",
+    );
   });
   it("sends only filled, valid form fields as what the traveller has stated", () => {
     const blank = {

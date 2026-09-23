@@ -8,6 +8,7 @@ import {
   parseSnapshot,
   type Draft,
   type Message,
+  withValidActivity,
   type Snapshot,
 } from "./workspace";
 
@@ -281,7 +282,7 @@ function parseConversation(value: unknown): ConversationRecord {
     title: value.title,
     updatedAt: value.updatedAt,
     ...(value.tripId === undefined ? {} : { tripId: value.tripId }),
-    messages: clone(value.messages) as Message[],
+    messages: withValidActivity(clone(value.messages) as Message[]),
     input: value.input,
     ...(value.renamed ? { renamed: true } : {}),
     ...(snapshot ? { snapshot } : {}),

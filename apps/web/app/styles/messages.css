@@ -1,0 +1,132 @@
+/* Chat message rows, styled after DeepSeek Harness's MessageItem/AssistantMarkdown:
+   the traveller's own words sit in a right-aligned bubble, the assistant's reply is
+   full-width prose with no border, background or speaker chrome. Token levels are
+   borrowed from tokens.css (surface-2 fill, text/text-mut label tiers), not DSH's
+   own names -- see docs/design/dsh-thinking-ui.md §5. */
+
+.msg-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  animation: msg-item-in 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes msg-item-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+/* User: right-aligned bubble, DSH r22/fill/pad. */
+.msg-item--user {
+  align-items: flex-end;
+}
+
+.msg-item__bubble {
+  max-width: min(82%, 70ch);
+  padding: 10px 16px;
+  border-radius: 22px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* Agent: full-width prose, no border/background/speaker label. */
+.msg-item--agent {
+  align-items: flex-start;
+  width: 100%;
+}
+
+/* The turn's Think fold sits above its reply and spans the row; the reply hugs
+   it the way DSH's answer hugs a closed process fold. */
+.msg-item--agent > .agent-activity {
+  align-self: stretch;
+  margin-bottom: 4px;
+}
+
+.msg-item__body {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 16px;
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.msg-item__body p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.msg-item__body ul,
+.msg-item__body ol {
+  margin: 0;
+  padding-left: 1.4em;
+}
+
+.msg-item__body li + li {
+  margin-top: 4px;
+}
+
+.msg-item__body strong {
+  font-weight: 600;
+}
+
+.msg-item__body a {
+  color: var(--accent);
+  text-underline-offset: 2px;
+}
+
+.msg-item__body code {
+  padding: 1px 4px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  font-size: 0.9em;
+}
+
+/* Clock: DSH's timeStart/timeEnd -- 13px tertiary, right-aligned under a user
+   bubble, left-aligned under an agent reply. */
+.msg-item__clock {
+  color: var(--text-mut);
+  font-size: 13px;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+/* Newest reply reveal: each word fades up out of a small blur a beat after the
+   one before it, the way the streaming-text components on shadcn/ui and Magic
+   UI's TextAnimate (blurIn) read. The stagger is a per-word animation-delay
+   set by components/chat/RevealedText.tsx, so no motion library is involved
+   and the whole reply is in the DOM -- and readable by a screen reader, a
+   find-in-page or a copy/paste -- from the first frame. */
+.msg-reveal__word {
+  display: inline-block;
+  animation: msg-reveal-word 320ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+@keyframes msg-reveal-word {
+  from {
+    opacity: 0;
+    filter: blur(5px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+/* Reduced motion: the words simply are there, with no stagger and no blur. */
+@media (prefers-reduced-motion: reduce) {
+  .msg-item {
+    animation: none;
+  }
+
+  .msg-reveal__word {
+    animation: none;
+  }
+}
