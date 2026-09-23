@@ -32,6 +32,7 @@ import {
   type Task,
 } from "./workspace-helpers";
 import { useDataMode } from "@/lib/workspace/data-mode";
+import type { PendingAsk } from "@/lib/workspace/ask-user";
 export function useWorkspaceController({ restored }: { restored: RestoredWorkspace }) {
   const [plan, setPlan] = useState<TripPlan | undefined>(restored.plan);
   const [draft, setDraft] = useState(restored.draft);
@@ -46,6 +47,8 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
   const [error, setError] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [retry, setRetry] = useState<Task>();
+  // In memory only: a reload drops the card, and the question stays in the chat.
+  const [ask, setAsk] = useState<PendingAsk>();
   const [dialog, setDialog] = useState<DialogKind>();
   const [notice, setNotice] = useState("");
   const [catalog, setCatalog] = useState<WorkspaceCatalog>(restored.catalog);
@@ -142,6 +145,7 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     setError("");
     setErrors({});
     setRetry(undefined);
+    setAsk(undefined);
     setDialog(undefined);
     setSelectedActivity(undefined);
     setMapRoutes([]);
@@ -182,7 +186,7 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     });
   }
   const dataMode = useDataMode();
-  const { run, submit, send } = useWorkspaceTransport({
+  const { run, submit, send, answer } = useWorkspaceTransport({
     plan,
     dataMode: dataMode.mode,
     draft,
@@ -202,6 +206,8 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     setErrors,
     setSelectedActivity,
     setMapRoutes,
+    ask,
+    setAsk,
     onReject: edit,
   });
   function restore(snapshot: Snapshot) {
@@ -388,6 +394,7 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     error,
     errors,
     retry,
+    ask,
     dialog,
     saved,
     storageError,
@@ -451,6 +458,8 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     run,
     submit,
     send,
+    answer,
+    dismissAsk: () => setAsk(undefined),
     newChat,
     selectConversation,
     selectTrip,

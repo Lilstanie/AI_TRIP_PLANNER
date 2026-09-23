@@ -35,20 +35,20 @@ function Chat({
   );
 }
 
-/** The turn-level Think disclosure in a finished run: the only visible row. */
+/** The turn-level Think disclosure: always the first Think row. */
 function thinkRow(): HTMLElement {
-  return screen.getByRole("button", { name: /^Think/ });
+  return screen.getAllByRole("button", { name: /^Think/ })[0];
 }
 
 /** The disclosure button of one subagent row. The row's own accessible name
  *  (and its status) lives on the enclosing listitem, so match that exactly
  *  rather than substring-searching the status suffix. */
 function subagentRow(label: string, status = "Complete"): HTMLElement {
-  const rows = screen.getAllByRole("listitem").filter(
-    (row) => row.getAttribute("aria-label") === `${label} ${status}`,
-  );
+  const rows = screen
+    .getAllByRole("listitem")
+    .filter((row) => row.getAttribute("aria-label") === `${label} ${status}`);
   expect(rows).toHaveLength(1);
-  return within(rows[0]).getByRole("button");
+  return within(rows[0]).getAllByRole("button")[0];
 }
 
 /** The tool disclosure nested under an agent. */
@@ -146,7 +146,8 @@ describe("ChatPanel", () => {
     ]);
     expect(within(log).getByText("You")).toBeTruthy();
     expect(within(log).getByText("Travel planning assistant")).toBeTruthy();
-    expect(within(log).getByText(longUrl).classList.contains("msg__content")).toBe(true);
+    expect(within(log).getByText("Plan Kyoto").classList.contains("msg-item__bubble")).toBe(true);
+    expect(within(log).getByText(longUrl).closest(".msg-item__body")).toBeTruthy();
     expect(log.querySelectorAll("[aria-label]")).toHaveLength(0);
   });
 
@@ -155,19 +156,52 @@ describe("ChatPanel", () => {
     ["agent_completed", "Complete"],
     ["agent_failed", "Needs attention"],
     ["unexpected", "Waiting"],
-  ])("exposes %s as %s and keeps subagent details collapsed", (type, status) => {
+  ])("exposes %s as %s under a collapsed Think row", (type, status) => {
     render(<Chat activityEvents={[activity(type)]} busy />);
 
     const progress = screen.getByRole("region", { name: "Thinking process" });
+    // Every row starts collapsed, busy or not: the subagents sit under Think.
+    expect(within(progress).queryAllByRole("listitem")).toHaveLength(0);
+    fireEvent.click(thinkRow());
     const row = within(progress).getByRole("listitem", {
       name: new RegExp(`Day plan.*${status}`),
     });
     // The dot is decorative; the state also travels as text.
     expect(within(row).getAllByText(status).length).toBeGreaterThan(0);
-    const details = within(row).getByRole("button", { name: /^Subagent .*Day plan/ });
-    expect(details.getAttribute("aria-expanded")).toBe("false");
-    fireEvent.click(details);
-    expect(details.getAttribute("aria-expanded")).toBe("true");
+  });
+
+  it("opens one subagent at a time and keeps its tool calls behind it", () => {
+    render(
+      <Chat
+        busy
+        activityEvents={[
+          { type: "agent_started", agent: "itinerary", round: 1 },
+          {
+            type: "tool_started",
+            agent: "itinerary",
+            round: 1,
+            callId: "itinerary:1:1",
+            tool: "maps.places",
+            label: "Search places",
+            summary: "sights near Sydney",
+            args: { near: "Sydney" },
+          },
+          { type: "agent_started", agent: "accommodation", round: 1, objective: "Compare stays." },
+        ]}
+      />,
+    );
+
+    fireEvent.click(thinkRow());
+    const dayPlan = subagentRow("Day plan", "Thinking");
+    const stay = subagentRow("Stay", "Thinking");
+    expect(dayPlan.getAttribute("aria-expanded")).toBe("false");
+    expect(screen.queryByRole("group", { name: /Search places/ })).toBeNull();
+
+    fireEvent.click(dayPlan);
+    expect(dayPlan.getAttribute("aria-expanded")).toBe("true");
+    expect(stay.getAttribute("aria-expanded")).toBe("false");
+    expect(screen.getByRole("group", { name: "Search places running" })).toBeTruthy();
+    expect(screen.queryByText("Asked for: Compare stays.")).toBeNull();
   });
 
   it("folds a settled run behind its count line and unfolds it on demand", () => {
@@ -203,10 +237,12 @@ describe("ChatPanel", () => {
     expect(thinkRow().textContent).toContain("1 tool call · 1 subagent");
     expect(screen.queryByRole("listitem", { name: "Day plan Complete" })).toBeNull();
 
-    // Expand all reveals the whole run, and collapse all folds it again.
-    fireEvent.click(screen.getByRole("button", { name: "Expand all" }));
+    // Think opens to its subagents and folds them again; there is no
+    // expand-all control and no trailing chevron.
+    expect(screen.queryByRole("button", { name: /Expand all|Collapse all/ })).toBeNull();
+    fireEvent.click(thinkRow());
     expect(screen.getByRole("listitem", { name: "Day plan Complete" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Collapse all" }));
+    fireEvent.click(thinkRow());
     expect(screen.queryByRole("listitem", { name: "Day plan Complete" })).toBeNull();
   });
 
@@ -241,9 +277,8 @@ describe("ChatPanel", () => {
       />,
     );
 
-    // The count line names the volume; the heading explains why the round exists.
+    // The heading explains why the round exists.
     fireEvent.click(thinkRow());
-    expect(document.querySelector(".thinking-turn__body")?.textContent).toContain("2 rounds");
     expect(screen.getByText("Round 2 · Revising the stay after a conflict")).toBeTruthy();
     expect(screen.getByText("Keep the budget under AUD 4,000")).toBeTruthy();
 
@@ -292,6 +327,7 @@ describe("ChatPanel", () => {
       />,
     );
 
+    fireEvent.click(thinkRow());
     expect(screen.getByRole("listitem", { name: "Day plan Thinking" })).toBeTruthy();
     expect(screen.getByRole("listitem", { name: "Getting around Waiting" })).toBeTruthy();
     expect(screen.getByRole("listitem", { name: "Stay Waiting" })).toBeTruthy();
@@ -327,6 +363,8 @@ describe("ChatPanel", () => {
     );
 
     expect(screen.getAllByText(/Deep diving/).length).toBe(1);
+    fireEvent.click(thinkRow());
+    fireEvent.click(subagentRow("Day plan", "Thinking"));
     // No arguments and no result rows means nothing to disclose: a plain row.
     expect(screen.getByRole("group", { name: "Search places running" })).toBeTruthy();
     view.rerender(
@@ -393,6 +431,8 @@ describe("ChatPanel", () => {
       />,
     );
 
+    fireEvent.click(thinkRow());
+    fireEvent.click(subagentRow("Stay"));
     const row = toolRow("Search stays");
     expect(row.getAttribute("aria-expanded")).toBe("false");
     expect(screen.queryByText("Harbour View Hotel")).toBeNull();
@@ -403,6 +443,9 @@ describe("ChatPanel", () => {
     expect(screen.getByText("Surry Hills Loft")).toBeTruthy();
     expect(screen.getByText("The Rocks · AUD 210.00/night")).toBeTruthy();
     expect(screen.getByText("Showing the first 2 of 34")).toBeTruthy();
+    // Each result row leads with its category glyph (a stay, by the tool's kind).
+    const hotel = screen.getByText("Harbour View Hotel").closest("li");
+    expect(hotel?.querySelector("[data-kind='stay'] svg")).toBeTruthy();
   });
 
   it("renders a streamed reasoning block collapsed on its last line and expands to the full text", () => {
@@ -425,7 +468,11 @@ describe("ChatPanel", () => {
 
     // While the block is the streaming tail the summary follows the last line,
     // with the double-asterisk markers stripped from the summary only.
-    const row = screen.getByRole("button", { name: /Cherrybrook suits the family\.$/ });
+    fireEvent.click(thinkRow());
+    fireEvent.click(subagentRow("Day plan", "Thinking"));
+    const row = document.querySelector<HTMLElement>(".thinking-reasoning [role='button']");
+    if (!row) throw new Error("reasoning row missing");
+    expect(row.textContent).toMatch(/Cherrybrook suits the family\.$/);
     expect(row.textContent).not.toContain("**");
     expect(row.getAttribute("aria-expanded")).toBe("false");
     expect(document.querySelector(".thinking-reasoning__body")).toBeNull();
@@ -462,6 +509,7 @@ describe("ChatPanel", () => {
       />,
     );
 
+    fireEvent.click(thinkRow());
     fireEvent.click(subagentRow("Stay"));
     expect(screen.getByText("Stay in Sydney")).toBeTruthy();
     expect(screen.getByText("Harbour View Hotel")).toBeTruthy();

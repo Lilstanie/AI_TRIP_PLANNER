@@ -7,11 +7,11 @@ select {
 /* Controls that own their own size are exempt: a 28px circle cannot carry a
    36px floor. The transcript is already exempt from the rule below through the
    same chain, so the two lists stay together. */
-button:not(.section__row):not(.stay-option):not(.rdp-day_button):not(
-    .thinking-line
-  ):not(.thinking-control):not(.thinking-choice__toggle):not(.composer__add):not(
-    .composer__primary
-  ) {
+button:not(.section__row):not(.stay-option):not(.rdp-day_button):not(.thinking-line):not(
+    .thinking-control
+  ):not(.thinking-choice__toggle):not(.composer__add):not(.composer__primary):not(
+    .question__icon-button
+  ):not(.question__option):not(.question__button) {
   min-height: 36px;
 }
 button:disabled {
@@ -20,11 +20,13 @@ button:disabled {
 }
 /* Calendar day and navigation buttons own their sizing, border, and
    background in the scoped react-day-picker theme below. */
-button:not(.section__row):not(.stay-option):not(.primary):not(.trip__cta):not(
-    .rdp-day_button
-  ):not(.rdp-button_previous):not(.rdp-button_next):not(.thinking-line):not(
-    .thinking-control
-  ):not(.thinking-choice__toggle):not(.composer__add):not(.composer__primary) {
+button:not(.section__row):not(.stay-option):not(.primary):not(.trip__cta):not(.rdp-day_button):not(
+    .rdp-button_previous
+  ):not(.rdp-button_next):not(.thinking-line):not(.thinking-control):not(
+    .thinking-choice__toggle
+  ):not(.composer__add):not(.composer__primary):not(.question__icon-button):not(
+    .question__option
+  ):not(.question__button) {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--surface);

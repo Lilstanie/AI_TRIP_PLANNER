@@ -1,0 +1,513 @@
+/* The structured-question card that takes the composer's seat while the
+   coordinator waits for an answer. Geometry, type scale and radii follow
+   DeepSeek Harness's QuestionComposer.module.css (ui-user-questions); its
+   --dsw-* colour aliases map onto this app's tokens:
+     specific-input-major     -> --surface-2 (the composer's own fill)
+     label-primary/secondary  -> --text / --text-dim
+     label-tertiary/caption   -> --text-mut
+     interactive-bg-hover     -> --question-hover
+     bg-overlay               -> --question-overlay
+     border-l2 / border-l3-l4 -> --border / --question-stroke
+     state-business-primary   -> --accent
+     state-error-primary      -> --warn
+     button-primary-fill      -> --accent (the send button's colour here) */
+
+.question {
+  --question-hover: color-mix(in srgb, var(--text) 6%, transparent);
+  --question-overlay: color-mix(in srgb, var(--text) 7%, transparent);
+  --question-stroke: color-mix(in srgb, var(--text) 22%, transparent);
+  /* The card seats where the composer sits, 16px in from its edges on each
+     side (DSH: content width = input card width - 32). */
+  display: flex;
+  justify-content: center;
+  margin-top: 12px;
+  padding: 6px 16px 10px;
+}
+
+.question__card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  /* Cap the card against the viewport and scroll the option list so the
+     header and footer actions stay reachable on long batches. */
+  max-height: min(60vh, 520px);
+  padding: 0 0 10px;
+  border: 0;
+  border-radius: 20px;
+  background: var(--surface-2);
+  box-shadow:
+    0 0 0 0.5px var(--border),
+    var(--shadow-md);
+  color: var(--text);
+  overflow: hidden;
+}
+
+.question__card,
+.question__card * {
+  box-sizing: border-box;
+}
+
+/* Collapsed to the header strip: drop the height cap so the card hugs the
+   title row. */
+.question__card--minimized {
+  max-height: none;
+}
+
+.question__card--minimized .question__header {
+  padding-bottom: 14px;
+}
+
+.question__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-shrink: 0;
+  padding: 20px 16px 0 24px;
+}
+
+.question__heading {
+  min-width: 0;
+}
+
+.question__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.question__eyebrow {
+  margin-bottom: 5px;
+  color: var(--text-mut);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+/* Doubled class: `.panel h2` would otherwise out-rank a single class. */
+.question .question__title {
+  margin: 0;
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 500;
+}
+
+.question__detail {
+  margin: 8px 0 0;
+  padding: 0 24px;
+  color: var(--text);
+  font-size: 14px;
+  line-height: 22px;
+  white-space: pre-wrap;
+}
+
+.question__icon-button {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-mut);
+  cursor: pointer;
+}
+
+.question__icon-button:hover:not(:disabled) {
+  background: var(--question-hover);
+  color: var(--text);
+}
+
+.question__icon-button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.question__body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.question__options {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin: 8px 0 0;
+  padding: 4px 12px;
+}
+
+.question__option {
+  display: flex;
+  /* flex-start keeps the indicator on the first line of a wrapped row. */
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  min-height: 40px;
+  flex-shrink: 0;
+  padding: 8px 12px 8px 8px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease;
+}
+
+.question__option:hover:not(:disabled),
+.question__option--selected {
+  background: var(--question-hover);
+}
+
+.question__option--selected {
+  border-color: var(--border);
+}
+
+/* Leading indicator: 20x20, radius 6, re-centred on the 24px first line. */
+.question__number {
+  display: grid;
+  place-items: center;
+  flex: 0 0 20px;
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  border-radius: 6px;
+  background: var(--question-overlay);
+  color: var(--text-dim);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+}
+
+.question__checkbox {
+  display: grid;
+  place-items: center;
+  flex: 0 0 20px;
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+}
+
+.question__checkbox::before {
+  content: "";
+  grid-area: 1 / 1;
+  width: 14px;
+  height: 14px;
+  border: 0.5px solid var(--question-stroke);
+  border-radius: 4px;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease;
+}
+
+.question__checkbox > svg {
+  grid-area: 1 / 1;
+}
+
+/* Checked: text-colour fill with a page-colour check, inverting with theme. */
+.question__checkbox--checked {
+  color: var(--surface);
+}
+
+.question__checkbox--checked::before {
+  border-color: var(--text);
+  background: var(--text);
+}
+
+.question__option-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.question__option-line {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 2px 6px;
+}
+
+.question__option-label {
+  font-size: 14px;
+  line-height: 24px;
+  font-weight: 500;
+}
+
+.question__badge {
+  /* Pinned to the row's end so the tag never splits the label from its description. */
+  margin-left: auto;
+  flex: none;
+  padding: 0 4px;
+  border-radius: 6px;
+  background: var(--accent-bg);
+  color: var(--accent);
+  font-size: 11px;
+  line-height: 18px;
+  font-weight: 600;
+}
+
+.question__description {
+  color: var(--text-mut);
+  font-size: 14px;
+  line-height: 24px;
+  font-weight: 400;
+}
+
+/* "Other": an option-shaped row whose copy is an inline text field; focus or
+   a typed draft lifts it to the selected look. */
+.question__custom-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  min-height: 40px;
+  flex-shrink: 0;
+  padding: 8px 12px 8px 8px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease;
+}
+
+.question__custom-row:hover,
+.question__custom-row:focus-within,
+.question__custom-row--active {
+  background: var(--question-hover);
+}
+
+.question__custom-row:focus-within,
+.question__custom-row--active {
+  border-color: var(--border);
+}
+
+/* Auto-growing answer: mirror and textarea share one grid cell; the mirror
+   sizes it. Both layers MUST keep identical type, padding and wrapping. */
+.question__field {
+  --question-field-padding: 0;
+  display: grid;
+  min-width: 0;
+}
+
+.question__field > * {
+  grid-area: 1 / 1;
+  min-width: 0;
+  margin: 0;
+  padding: var(--question-field-padding);
+  font: inherit;
+  font-size: 14px;
+  line-height: 24px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+/* The height ruler, never painted; growth stops at 6 lines, then the
+   textarea scrolls. content-box so the cap counts text lines. */
+.question__field-mirror {
+  box-sizing: content-box;
+  max-height: 144px;
+  overflow: hidden;
+  visibility: hidden;
+}
+
+.question__field-input {
+  resize: none;
+  overflow-y: auto;
+  border: none;
+  border-radius: 0;
+  outline: none;
+  background: transparent;
+  color: var(--text);
+  caret-color: var(--accent);
+  box-shadow: none;
+}
+
+/* The row or block frame shows focus; the textarea itself draws no ring. */
+.question__field-input:focus-visible {
+  box-shadow: none;
+}
+
+.question__field-input::placeholder {
+  color: var(--text-mut);
+}
+
+.question__custom-inline {
+  flex: 1;
+}
+
+/* Optionless question: the free-form answer carries its own frame; 12px side
+   margins plus the list's 12px padding align it with the title's 24px inset. */
+.question__custom-block {
+  --question-field-padding: 8px 12px;
+  min-height: 64px;
+  flex-shrink: 0;
+  margin: 0 12px;
+  border: 0.5px solid var(--question-stroke);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.question__custom-block:focus-within {
+  border-color: var(--accent);
+}
+
+.question__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-shrink: 0;
+  margin-top: 12px;
+  padding: 0 10px 0 18px;
+}
+
+.question__pager {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.question__progress {
+  padding: 0 4px;
+  color: var(--text-dim);
+  font-size: 14px;
+  line-height: 24px;
+  font-weight: 500;
+  white-space: nowrap;
+  word-spacing: -2px;
+}
+
+.question__feedback {
+  flex: 1;
+  min-height: 16px;
+  color: var(--warn);
+  font-size: 11px;
+  line-height: 16px;
+  text-align: right;
+}
+
+.question__footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+/* DSH Button capsule: h36, pad 0/14, r18, 14/22 type. */
+.question__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 36px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 18px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  line-height: 22px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.question__button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.question__button--primary {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.question__button--primary:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.question__button--outline {
+  border: 0.5px solid var(--question-stroke);
+  background: transparent;
+}
+
+.question__button--outline:hover:not(:disabled) {
+  background: var(--question-hover);
+}
+
+@media (max-width: 720px) {
+  .question__card {
+    border-radius: 16px;
+  }
+
+  .question__header {
+    padding: 10px 12px 0 18px;
+  }
+
+  .question__options {
+    padding: 4px 8px;
+  }
+
+  .question .question__title {
+    font-size: 15px;
+    line-height: 21px;
+  }
+
+  .question__option,
+  .question__custom-row {
+    padding: 8px 6px;
+  }
+
+  .question__footer {
+    align-items: flex-end;
+    padding: 0 10px;
+  }
+
+  /* The app's chat panel keeps its own 20px gutter on a phone, which leaves
+     too little width for the pager, Skip and Next on one line (DSH's column
+     runs edge to edge). Wrap the actions under the pager instead of clipping
+     them, and give feedback its own row only when there is some. */
+  .question {
+    padding: 6px 0 10px;
+  }
+
+  .question__detail {
+    padding: 0 18px;
+  }
+
+  .question__footer {
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+
+  .question__feedback:empty {
+    flex: 0 0 0;
+    min-height: 0;
+  }
+
+  .question__feedback:not(:empty) {
+    order: 3;
+    flex-basis: 100%;
+  }
+
+  .question__footer-actions {
+    margin-left: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .question__option,
+  .question__custom-row,
+  .question__checkbox::before {
+    transition: none;
+  }
+}

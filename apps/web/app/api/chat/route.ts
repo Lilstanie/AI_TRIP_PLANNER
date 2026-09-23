@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import {
+  AskUserError,
   IncompleteBriefError,
   answerFlightQuery,
   parseFlightQuery,
@@ -11,6 +12,7 @@ import {
   ChatRequest,
   ChatResponse,
   type AgentProgressEvent,
+  type ChatAskUser,
   type ChatNeedsInfo,
   type FlightAnswer,
 } from "@trip/shared";
@@ -36,6 +38,7 @@ export async function POST(req: Request) {
         event:
           | AgentProgressEvent
           | ChatNeedsInfo
+          | ChatAskUser
           | FlightAnswer
           | { type: "complete"; response: ChatResponse }
           | { type: "error"; error: string },
@@ -73,6 +76,11 @@ export async function POST(req: Request) {
         // the traveller answers by typing.
         if (error instanceof IncompleteBriefError) {
           send(error.needsInfo);
+        } else if (error instanceof AskUserError) {
+          // The coordinator asked a structured question. Like needs_info it is
+          // the turn's final frame, and the traveller's answer is the next
+          // message; any plan it carries is the client's own, unchanged.
+          send(error.askUser);
         } else {
           console.error("[chat] planning failed", error);
           send({

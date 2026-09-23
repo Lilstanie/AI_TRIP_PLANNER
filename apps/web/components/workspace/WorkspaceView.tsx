@@ -90,6 +90,9 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
     run,
     submit,
     send,
+    ask,
+    answer,
+    dismissAsk,
     onCancel,
     newChat,
     selectConversation,
@@ -264,6 +267,9 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
               error={error}
               onCancel={onCancel}
               onSend={send}
+              ask={ask}
+              onAnswer={answer}
+              onDismissAsk={dismissAsk}
               onEdit={edit}
               onStart={edit}
               /* The composer's attach control is real, but this app has no

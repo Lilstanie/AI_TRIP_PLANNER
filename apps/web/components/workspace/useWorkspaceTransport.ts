@@ -10,6 +10,7 @@ import {
   money,
   parseDraft,
   readPlanStream,
+  AskUserError,
   FlightAnswerError,
   NeedsInfoError,
   type Draft,
@@ -17,6 +18,7 @@ import {
 } from "@/lib/workspace";
 import type { Task } from "./workspace-helpers";
 import { dataModeHeaders, type DataMode } from "@/lib/workspace/data-mode";
+import { formatAskAnswers, type PendingAsk, type QuestionAnswer } from "@/lib/workspace/ask-user";
 
 type WorkspaceTransportOptions = {
   plan: TripPlan | undefined;
@@ -39,6 +41,9 @@ type WorkspaceTransportOptions = {
   setErrors: Dispatch<SetStateAction<Record<string, string>>>;
   setSelectedActivity: Dispatch<SetStateAction<string | undefined>>;
   setMapRoutes: Dispatch<SetStateAction<RouteResult[]>>;
+  /** The structured question awaiting an answer, if the coordinator asked one. */
+  ask: PendingAsk | undefined;
+  setAsk: Dispatch<SetStateAction<PendingAsk | undefined>>;
   onReject(): void;
 };
 
@@ -61,6 +66,8 @@ export function useWorkspaceTransport({
   setErrors,
   setSelectedActivity,
   setMapRoutes,
+  ask,
+  setAsk,
   onReject,
   dataMode,
 }: WorkspaceTransportOptions) {
@@ -71,9 +78,16 @@ export function useWorkspaceTransport({
     setBusy(true);
     setError("");
     setRetry(undefined);
-    setActivity([
+    // Any new request supersedes an unanswered question.
+    setAsk(undefined);
+    // The turn's transcript is collected here as well as in state, so the reply
+    // that ends the turn can carry it and render its Think fold above the answer.
+    const turn: AgentProgressEvent[] = [
       { type: "coordinator", phase: "dispatch", round: 1, summary: "Preparing your request." },
-    ]);
+    ];
+    const withTurn = (message: Message): Message =>
+      turn.length > 1 ? { ...message, activity: [...turn] } : message;
+    setActivity([...turn]);
     try {
       const response = await fetch("/api/chat", {
         method: "POST",
@@ -82,12 +96,18 @@ export function useWorkspaceTransport({
         signal: controller.signal,
       });
       const result = await readPlanStream(response, (event) => {
-        if (active.current === controller) setActivity((events) => [...events, event]);
+        if (active.current !== controller) return;
+        turn.push(event);
+        setActivity((events) => [...events, event]);
       });
       const next = result.plan;
       // A New chat or history switch replaced this request; its answer belongs nowhere.
       if (active.current !== controller) return;
-      setMessages((current) => [...current, { role: "agent", text: result.reply }]);
+      setMessages((current) => [
+        ...current,
+        withTurn({ role: "agent", text: result.reply, at: Date.now() }),
+      ]);
+      setActivity([]);
       setInput("");
       const before = planRef.current;
       setPreviousTotal(before?.estTotal);
@@ -103,7 +123,12 @@ export function useWorkspaceTransport({
       if (failure instanceof FlightAnswerError) {
         setMessages((current) => [
           ...current,
-          { role: "agent", text: failure.answer.reply, flights: failure.answer },
+          withTurn({
+            role: "agent",
+            text: failure.answer.reply,
+            flights: failure.answer,
+            at: Date.now(),
+          }),
         ]);
         setInput("");
         setActivity([]);
@@ -113,8 +138,31 @@ export function useWorkspaceTransport({
       // in the chat, and what it already understood goes into the preferences
       // form and travels with the next message.
       if (failure instanceof NeedsInfoError) {
-        setMessages((current) => [...current, { role: "agent", text: failure.needsInfo.question }]);
+        setMessages((current) => [
+          ...current,
+          withTurn({ role: "agent", text: failure.needsInfo.question, at: Date.now() }),
+        ]);
         setDraft((current) => draftWithKnown(current, failure.needsInfo.known));
+        setInput("");
+        setActivity([]);
+        return;
+      }
+      // A structured question: its prose goes in the chat, the question card takes the
+      // composer's seat, and the open trip stays exactly as it was.
+      if (failure instanceof AskUserError) {
+        const { questions, known, plan: askedAbout, reply } = failure.askUser;
+        const text = reply?.trim() || questions.map((item) => item.question).join("\n\n");
+        setMessages((current) => [
+          ...current,
+          withTurn({ role: "agent", text, at: Date.now() }),
+        ]);
+        if (!askedAbout) setDraft((current) => draftWithKnown(current, known));
+        setAsk({
+          key: crypto.randomUUID(),
+          questions,
+          known,
+          ...(askedAbout ? { plan: askedAbout } : {}),
+        });
         setInput("");
         setActivity([]);
         return;
@@ -144,7 +192,7 @@ export function useWorkspaceTransport({
     setErrors({});
     const brief = parsed.data;
     const message = `Plan ${brief.destination}, ${brief.dates.join(" to ")}, ${brief.groupSize} travellers, ${money(brief.budgetTotal)} total, with the submitted accommodation preferences.`;
-    setMessages((current) => [...current, { role: "user", text: message }]);
+    setMessages((current) => [...current, { role: "user", text: message, at: Date.now() }]);
     void run({
       kind: "chat",
       request: { tripId: brief.tripId, mode: "plan", brief, message },
@@ -157,7 +205,7 @@ export function useWorkspaceTransport({
   function send(override?: string) {
     const message = (override ?? input).trim();
     if (!message || active.current) return;
-    setMessages((current) => [...current, { role: "user", text: message }]);
+    setMessages((current) => [...current, { role: "user", text: message, at: Date.now() }]);
     // No mode: the assistant reads the message and decides whether this is a question,
     // an edit, or a request to plan. The plan travels with the brief so a question can
     // be answered without rebuilding it.
@@ -168,5 +216,23 @@ export function useWorkspaceTransport({
         : { tripId: freshTripId.current, message, known: knownFromDraft(draft) },
     });
   }
-  return { run, submit, send };
+  /** Sends the question card's answers as the traveller's next message, carrying what the
+   *  coordinator already understood (and the plan it asked about) so it carries on from there. */
+  function answer(answers: QuestionAnswer[]) {
+    if (!ask || active.current) return;
+    const message = formatAskAnswers(ask.questions, answers);
+    setMessages((current) => [...current, { role: "user", text: message, at: Date.now() }]);
+    const current = ask.plan ?? plan;
+    void run({
+      kind: "chat",
+      request: current
+        ? { tripId: current.tripId, message, brief: current.brief, plan: current, known: ask.known }
+        : {
+            tripId: freshTripId.current,
+            message,
+            known: { ...knownFromDraft(draft), ...ask.known },
+          },
+    });
+  }
+  return { run, submit, send, answer };
 }

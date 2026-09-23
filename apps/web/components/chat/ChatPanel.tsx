@@ -5,7 +5,9 @@ import { quickPrompts } from "@/lib/planning/quick-prompts";
 import type { Message } from "@/lib/workspace";
 import { ThinkingProcess } from "./ThinkingProcess";
 import { Composer } from "./Composer";
-import { FlightResults } from "./FlightResults";
+import { MessageItem } from "./MessageItem";
+import { QuestionComposer } from "./QuestionComposer";
+import type { PendingAsk, QuestionAnswer } from "@/lib/workspace/ask-user";
 
 export function ChatPanel({
   plan,
@@ -20,6 +22,9 @@ export function ChatPanel({
   onCancel,
   error,
   onAttachFiles,
+  ask,
+  onAnswer,
+  onDismissAsk,
 }: {
   /** Undefined for a blank conversation that has not produced a plan. */
   plan?: TripPlan;
@@ -39,8 +44,20 @@ export function ChatPanel({
   error?: string;
   /** Receives files picked from the composer's attach control. */
   onAttachFiles?: (files: File[]) => void;
+  /** A structured question awaiting an answer; its card takes the composer's seat. */
+  ask?: PendingAsk;
+  /** Receives the question card's answers. */
+  onAnswer?: (answers: QuestionAnswer[]) => void;
+  /** Dismisses the question card and brings the composer back. */
+  onDismissAsk?: () => void;
 }) {
   const stream = useRef<HTMLDivElement>(null);
+  /** Messages already on screen when the panel mounted -- a transcript restored
+   *  from storage after a reload. Only a reply that arrives after them is new,
+   *  so only that one is revealed word by word. */
+  const restored = useRef(messages.length);
+  const last = messages.length - 1;
+  const revealIndex = last >= restored.current && messages[last]?.role === "agent" ? last : -1;
   const inputRef = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
     if (messages.length || activity.length)
@@ -61,12 +78,20 @@ export function ChatPanel({
             </p>
             <div className="chat-empty__suggestions" aria-label="Example trips">
               {prompts.map(({ label, text }) => (
-                <button key={label} type="button" title={text} disabled={busy} onClick={() => onSend(text)}>
+                <button
+                  key={label}
+                  type="button"
+                  title={text}
+                  disabled={busy}
+                  onClick={() => onSend(text)}
+                >
                   {label}
                 </button>
               ))}
             </div>
-            <p className="chat-empty__input-hint">Pick an example to plan it now, or write your own below.</p>
+            <p className="chat-empty__input-hint">
+              Pick an example to plan it now, or write your own below.
+            </p>
             {onStart && (
               <button type="button" onClick={onStart}>
                 Fill in trip preferences
@@ -76,13 +101,7 @@ export function ChatPanel({
         )}
         <div role="log" aria-live="polite">
           {messages.map((m, i) => (
-            <div key={i} className={`msg msg--${m.role}`}>
-              <span className="msg__speaker">
-                {m.role === "user" ? "You" : "Travel planning assistant"}
-              </span>
-              <div className="msg__content">{m.text}</div>
-              {m.flights && <FlightResults answer={m.flights} />}
-            </div>
+            <MessageItem key={i} message={m} animate={i === revealIndex} />
           ))}
         </div>
         {(activity.length > 0 || busy) && (
@@ -94,33 +113,32 @@ export function ChatPanel({
           </section>
         )}
       </div>
-      <form
-        className="chat__form"
-        onSubmit={(e) => {
-          e.preventDefault();
-          onSend();
-        }}
-      >
-        <Composer
-          value={input}
-          placeholder={
-            plan ? "Tell me what to change…" : "Destination, dates, travellers and budget…"
-          }
-          busy={busy}
-          canSend={Boolean(input.trim())}
-          canCancel={Boolean(onCancel)}
-          hint={
-            busy
-              ? "Planning… the transcript above updates as each specialist works."
-              : "Enter to send · Shift+Enter for a new line"
-          }
-          inputRef={inputRef}
-          onInput={onInput}
-          onSend={onSend}
-          {...(onCancel ? { onCancel } : {})}
-          {...(onAttachFiles ? { onAttachFiles } : {})}
-        />
-      </form>
+      {ask && onAnswer && onDismissAsk ? (
+        <QuestionComposer key={ask.key} request={ask} onSubmit={onAnswer} onCancel={onDismissAsk} />
+      ) : (
+        <form
+          className="chat__form"
+          onSubmit={(e) => {
+            e.preventDefault();
+            onSend();
+          }}
+        >
+          <Composer
+            value={input}
+            placeholder={
+              plan ? "Tell me what to change…" : "Destination, dates, travellers and budget…"
+            }
+            busy={busy}
+            canSend={Boolean(input.trim())}
+            canCancel={Boolean(onCancel)}
+            inputRef={inputRef}
+            onInput={onInput}
+            onSend={onSend}
+            {...(onCancel ? { onCancel } : {})}
+            {...(onAttachFiles ? { onAttachFiles } : {})}
+          />
+        </form>
+      )}
       <p className="disclaimer">Estimates require verification. Nothing here makes a booking.</p>
     </section>
   );
