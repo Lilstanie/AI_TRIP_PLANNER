@@ -102,9 +102,6 @@ button:not(.section__row):not(.stay-option):not(.primary):not(.trip__cta):not(.r
   min-width: 0;
   max-height: calc(100dvh - 72px);
 }
-.filter-container {
-  min-width: 0;
-}
 .chat {
   min-height: 600px;
   height: calc(100dvh - 72px);

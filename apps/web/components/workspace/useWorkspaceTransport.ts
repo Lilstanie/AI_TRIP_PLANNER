@@ -21,6 +21,7 @@ import { dataModeHeaders, type DataMode } from "@/lib/workspace/data-mode";
 import { formatAskAnswers, type PendingAsk, type QuestionAnswer } from "@/lib/workspace/ask-user";
 import type { PreparedAttachment } from "@/lib/chat/attachments";
 import { storedAttachments } from "./useComposerAttachments";
+import { briefErrors } from "@/lib/workspace/trip-facts";
 
 type WorkspaceTransportOptions = {
   plan: TripPlan | undefined;
@@ -50,7 +51,8 @@ type WorkspaceTransportOptions = {
   /** The structured question awaiting an answer, if the coordinator asked one. */
   ask: PendingAsk | undefined;
   setAsk: Dispatch<SetStateAction<PendingAsk | undefined>>;
-  onReject(): void;
+  /** A submission was rejected; `fields` holds one message per invalid field. */
+  onReject(fields: Record<string, string>): void;
 };
 
 export function useWorkspaceTransport({
@@ -183,16 +185,17 @@ export function useWorkspaceTransport({
       }
     }
   }
-  function submit() {
-    if (active.current) return;
-    const parsed = parseDraft(draft, plan?.brief ?? { tripId: freshTripId.current });
+  /** Plans with the whole brief. `next` is a chip's edit that React state has not flushed yet.
+   *  Returns false when nothing was sent: a request is running, or the brief was rejected. */
+  function submit(next: Draft = draft): boolean {
+    if (active.current) return false;
+    const parsed = parseDraft(next, plan?.brief ?? { tripId: freshTripId.current });
     if (!parsed.success) {
-      const fields: Record<string, string> = {};
-      for (const issue of parsed.error.issues) fields[String(issue.path[0])] ??= issue.message;
+      const fields = briefErrors(parsed.error.issues);
       setErrors(fields);
-      setError("Check the highlighted trip preferences.");
-      onReject();
-      return;
+      setError("Check the highlighted trip details.");
+      onReject(fields);
+      return false;
     }
     setErrors({});
     const brief = parsed.data;
@@ -202,6 +205,7 @@ export function useWorkspaceTransport({
       kind: "chat",
       request: { tripId: brief.tripId, mode: "plan", brief, message },
     });
+    return true;
   }
   /** One traveller message, recorded as an ordinary chat turn rather than a form
    *  submission. `override` lets a one-click example send its own text: React state

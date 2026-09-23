@@ -38,10 +38,12 @@ const louvre = {
   displayName: { text: "Louvre" },
   location: { latitude: 48.86, longitude: 2.34 },
 };
-const drawer = (name: "trip" | "preferences") =>
-  document.querySelector<HTMLElement>(`.workspace-drawer--${name}`)!;
+const drawer = (name: "trip") => document.querySelector<HTMLElement>(`.workspace-drawer--${name}`)!;
 const openPreferences = () =>
   fireEvent.click(screen.getByRole("button", { name: "Open trip preferences" }));
+/** A top-bar fact chip: "Destination: Sydney" once filled, "Add destination" while empty. */
+const chip = (name: RegExp) => screen.getByRole("button", { name });
+const openChip = (name: RegExp) => fireEvent.click(chip(name));
 const googlePlace = {
   id: "place-museum",
   displayName: { text: "Sydney museum" },
@@ -124,37 +126,38 @@ describe("Workspace interactions", () => {
       expect(catalog.layout.trip.open).toBe(false);
     });
   });
-  it("keeps only one drawer open and returns focus from Preferences", () => {
+  it("keeps the Trip drawer and a chip editor apart and returns focus from Preferences", () => {
     render(<Workspace initialPlan={plan} />);
-    const preferences = drawer("preferences");
     const trip = drawer("trip");
     const preferencesTrigger = screen.getByRole("button", { name: "Open trip preferences" });
     fireEvent.click(preferencesTrigger);
-    expect(preferences.getAttribute("aria-hidden")).toBe("false");
+    expect(screen.getByRole("dialog", { name: "Trip preferences" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Open your trip" }));
-    expect(preferences.getAttribute("aria-hidden")).toBe("true");
+    expect(screen.queryByRole("dialog", { name: "Trip preferences" })).toBeNull();
     expect(trip.getAttribute("aria-hidden")).toBe("false");
     fireEvent.click(screen.getByRole("button", { name: "Open trip preferences" }));
     expect(trip.getAttribute("aria-hidden")).toBe("true");
     fireEvent.keyDown(window, { key: "Escape" });
-    expect(preferences.getAttribute("aria-hidden")).toBe("true");
+    expect(screen.queryByRole("dialog", { name: "Trip preferences" })).toBeNull();
     expect(document.activeElement).toBe(preferencesTrigger);
     expect(document.querySelector(".workspace-drawer-backdrop")).toBeNull();
   });
-  it("closes a drawer when its own topbar button is clicked again", () => {
+  it("closes a drawer or chip editor when its own topbar button is clicked again", () => {
     render(<Workspace initialPlan={plan} />);
-    for (const [name, panel] of [
-      ["Open trip preferences", "preferences"],
-      ["Open your trip", "trip"],
-    ] as const) {
-      const trigger = screen.getByRole("button", { name });
-      fireEvent.click(trigger);
-      expect(drawer(panel).getAttribute("aria-hidden")).toBe("false");
-      expect(trigger.getAttribute("aria-expanded")).toBe("true");
-      fireEvent.click(trigger);
-      expect(drawer(panel).getAttribute("aria-hidden")).toBe("true");
-      expect(trigger.getAttribute("aria-expanded")).toBe("false");
-    }
+    const trigger = screen.getByRole("button", { name: "Open your trip" });
+    fireEvent.click(trigger);
+    expect(drawer("trip").getAttribute("aria-hidden")).toBe("false");
+    expect(trigger.getAttribute("aria-expanded")).toBe("true");
+    fireEvent.click(trigger);
+    expect(drawer("trip").getAttribute("aria-hidden")).toBe("true");
+    expect(trigger.getAttribute("aria-expanded")).toBe("false");
+
+    const preferences = screen.getByRole("button", { name: "Open trip preferences" });
+    fireEvent.click(preferences);
+    expect(preferences.getAttribute("aria-expanded")).toBe("true");
+    fireEvent.click(preferences);
+    expect(preferences.getAttribute("aria-expanded")).toBe("false");
+    expect(screen.queryByRole("dialog", { name: "Trip preferences" })).toBeNull();
   });
   it("keeps the timeline and editors out of the map canvas", () => {
     render(<Workspace initialPlan={plan} />);
@@ -186,15 +189,8 @@ describe("Workspace interactions", () => {
     expect(within(within(chat).getByRole("log")).queryByText(/Sydney|Museum/)).toBeNull();
     expect(within(map).queryByText(/Sydney|Museum/)).toBeNull();
     expect(within(chat).getByText("Where to next?")).toBeTruthy();
-    openPreferences();
-    for (const label of [
-      "Destination",
-      "Start date",
-      "End date",
-      "Travellers",
-      "Total budget (AUD)",
-    ])
-      expect((screen.getByLabelText(label) as HTMLInputElement).value).toBe("");
+    for (const name of ["Add destination", "Add dates", "Add travellers", "Add budget"])
+      expect(screen.getByRole("button", { name })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Open your trip" }));
     expect(within(drawer("trip")).getByText(/No trip yet/)).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Save trip" })).toBeNull();
@@ -379,8 +375,9 @@ describe("Workspace interactions", () => {
     vi.stubGlobal("fetch", withPlaceRequests());
     const view = render(<Workspace initialPlan={plan} />);
     fireEvent.click(newChatButton());
-    openPreferences();
+    openChip(/^Add destination$/);
     fireEvent.change(screen.getByLabelText("Destination"), { target: { value: "Lisbon" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
     fireEvent.change(screen.getByLabelText("Message AI Trip Planner"), {
       target: { value: "somewhere warm" },
     });
@@ -395,9 +392,8 @@ describe("Workspace interactions", () => {
     expect((screen.getByLabelText("Message AI Trip Planner") as HTMLInputElement).value).toBe(
       "somewhere warm",
     );
-    openPreferences();
-    expect((screen.getByLabelText("Destination") as HTMLInputElement).value).toBe("Lisbon");
-    expect((screen.getByLabelText("Start date") as HTMLInputElement).value).toBe("");
+    expect(chip(/^Destination: Lisbon$/)).toBeTruthy();
+    expect(chip(/^Add dates$/)).toBeTruthy();
     expect(within(drawer("trip")).queryByText(/Sydney/)).toBeNull();
     // Scoped to the message log: the blank state's example buttons name cities
     // on purpose, so the chat panel as a whole is no longer a clean signal.
@@ -408,7 +404,7 @@ describe("Workspace interactions", () => {
     ).toBeNull();
     // Switching back to the earlier chat restores its own trip.
     fireEvent.click(historyButton(/^Sydney · 2026-10-01/));
-    expect((screen.getByLabelText("Destination") as HTMLInputElement).value).toBe("Sydney");
+    expect(chip(/^Destination: Sydney$/)).toBeTruthy();
   });
   it("sends the current plan with a chat message so a question need not rebuild it", async () => {
     const fetcher = withPlaceRequests(completeFor("Sydney"));
@@ -529,14 +525,13 @@ describe("Workspace interactions", () => {
     // The mount-time mock/live status probe is fine; a demo plan request is not.
     expect(fetcher.mock.calls.map(([url]) => String(url))).not.toContain("/api/chat");
     expect(screen.getByRole("heading", { name: "New trip" })).toBeTruthy();
-    expect(screen.getByText(/Not planned yet/)).toBeTruthy();
     expect(screen.getByText("Where to next?")).toBeTruthy();
     expect(screen.getByText("Your map will appear here")).toBeTruthy();
     expect((screen.getByLabelText("Message AI Trip Planner") as HTMLInputElement).value).toBe("");
     expect(document.body.textContent).not.toMatch(/Tokyo|Kyoto/);
-    openPreferences();
-    for (const label of ["Destination", "Start date", "End date", "Travellers"])
-      expect((screen.getByLabelText(label) as HTMLInputElement).value).toBe("");
+    // Nothing is invented for a blank trip: every fact chip asks for its value.
+    for (const name of ["Add destination", "Add dates", "Add travellers", "Add budget"])
+      expect(screen.getByRole("button", { name })).toBeTruthy();
     await waitFor(() => {
       const catalog = parseCatalog(localStorage.getItem(CATALOG_KEY));
       expect(catalog.trips).toHaveLength(0);
@@ -546,8 +541,6 @@ describe("Workspace interactions", () => {
   it("does not reopen the last trip on refresh but restores it when chosen from history", async () => {
     vi.stubGlobal("fetch", withPlaceRequests());
     const view = render(<Workspace initialPlan={plan} />);
-    openPreferences();
-    fireEvent.change(screen.getByLabelText("Total budget (AUD)"), { target: { value: "" } });
     fireEvent.change(screen.getByLabelText("Message AI Trip Planner"), {
       target: { value: "unfinished request" },
     });
@@ -568,8 +561,7 @@ describe("Workspace interactions", () => {
     expect((screen.getByLabelText("Message AI Trip Planner") as HTMLInputElement).value).toBe(
       "unfinished request",
     );
-    openPreferences();
-    expect((screen.getByLabelText("Total budget (AUD)") as HTMLInputElement).value).toBe("");
+    expect(chip(/^Budget: AUD\s2,000$/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /^Trips\s*1$/ }));
     expect(historyButton(/^Sydney · 2026-10-01/).getAttribute("aria-current")).toBe("true");
   });
@@ -580,11 +572,11 @@ describe("Workspace interactions", () => {
     );
     vi.stubGlobal("fetch", fetcher);
     render(<Workspace initialPlan={plan} />);
-    openPreferences();
+    openChip(/^Destination: Sydney$/);
     fireEvent.change(screen.getByLabelText("Destination"), { target: { value: "Paris" } });
     fireEvent.click(screen.getByRole("button", { name: "Update trip" }));
     await screen.findByText("Offline");
-    expect((screen.getByLabelText("Destination") as HTMLInputElement).value).toBe("Paris");
+    expect(chip(/^Destination: Paris$/)).toBeTruthy();
     expect(within(drawer("trip")).getByText(/Sydney · 2026-10-01/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Retry update" }));
     await within(drawer("trip")).findByText(/Paris · 2026-10-01/);
@@ -614,13 +606,12 @@ describe("Workspace interactions", () => {
     fireEvent.click(screen.getByRole("button", { name: "Update trip" }));
     fireEvent.click(screen.getByRole("button", { name: /^Saved trips/ }));
     fireEvent.click(screen.getByRole("button", { name: "Restore trip" }));
-    // Restoring leaves the preferences drawer open, and the topbar button is a toggle, so
-    // re-opening it here would close it.
     await act(async () => {
       finish(complete("Obsolete result"));
     });
-    expect((screen.getByLabelText("Destination") as HTMLInputElement).value).toBe("Melbourne");
+    expect(chip(/^Destination: Melbourne$/)).toBeTruthy();
     expect(screen.queryByText(/Obsolete result/)).toBeNull();
+    openPreferences();
     expect(screen.getByRole("button", { name: "Update trip" }).hasAttribute("disabled")).toBe(
       false,
     );
@@ -836,7 +827,7 @@ describe("Workspace navigation", () => {
     expect(screen.queryByRole("alert")).toBeNull();
   });
 
-  it("puts Preferences and Trip in a top bar above the chat and map, with drawers below it", () => {
+  it("puts the fact chips, Preferences and Trip in a top bar above the chat and map", () => {
     render(<Workspace initialPlan={plan} />);
     const topbar = document.querySelector<HTMLElement>(".workspace-topbar")!;
     const shell = document.querySelector<HTMLElement>(".workspace-shell")!;
@@ -848,10 +839,19 @@ describe("Workspace navigation", () => {
       within(map).queryByRole("button", { name: /Open (your trip|trip preferences)/ }),
     ).toBeNull();
     expect(within(topbar).getByRole("heading", { name: "Sydney" })).toBeTruthy();
-    expect(topbar.textContent).toMatch(/4 days · 2 travellers · AUD\s2,000\.00 budget/);
+    const facts = within(topbar).getByRole("group", { name: "Trip details" });
+    for (const name of [
+      /^Destination: Sydney$/,
+      /^Dates: 1 Oct – 4 Oct · 4 days$/,
+      /^Travellers: 2 travellers$/,
+      /^Budget: AUD\s2,000$/,
+    ])
+      expect(within(facts).getByRole("button", { name }).getAttribute("aria-haspopup")).toBe(
+        "dialog",
+      );
     expect(shell.contains(topbar)).toBe(false);
     expect(shell.contains(drawer("trip"))).toBe(true);
-    expect(shell.contains(drawer("preferences"))).toBe(true);
+    expect(document.querySelector(".workspace-drawer--preferences")).toBeNull();
   });
 });
 

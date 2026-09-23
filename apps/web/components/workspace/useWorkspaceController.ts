@@ -25,7 +25,6 @@ import {
 } from "@/lib/workspace/catalog";
 import {
   seed,
-  tripFacts,
   useIsNarrow,
   type DialogKind,
   type MobileView,
@@ -34,6 +33,7 @@ import {
 import { useDataMode } from "@/lib/workspace/data-mode";
 import { useComposerAttachments } from "./useComposerAttachments";
 import type { PendingAsk } from "@/lib/workspace/ask-user";
+import { firstFactWithError, firstMissingFact, type FactKey } from "@/lib/workspace/trip-facts";
 export function useWorkspaceController({ restored }: { restored: RestoredWorkspace }) {
   const [plan, setPlan] = useState<TripPlan | undefined>(restored.plan);
   const [draft, setDraft] = useState(restored.draft);
@@ -54,7 +54,9 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
   const [notice, setNotice] = useState("");
   const [catalog, setCatalog] = useState<WorkspaceCatalog>(restored.catalog);
   const [historyQuery, setHistoryQuery] = useState("");
-  const [preferencesOpen, setPreferencesOpen] = useState(false);
+  // The top-bar chip whose editor is open; Preferences is one of them.
+  const [openFact, setOpenFact] = useState<FactKey>();
+  const preferencesOpen = openFact !== undefined;
   const [tripOpen, setTripOpen] = useState(false);
   const [tripTab, setTripTab] = useState<TripTab>(
     restored.catalog.layout.editorView === "timeline" ? "timeline" : "overview",
@@ -79,7 +81,6 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
   const planRef = useRef(plan);
   planRef.current = plan;
   const active = useRef<AbortController | null>(null);
-  const left = useRef<HTMLDivElement>(null);
   const preferencesToggle = useRef<HTMLButtonElement>(null);
   const tripToggle = useRef<HTMLButtonElement>(null);
   const navToggle = useRef<HTMLButtonElement>(null);
@@ -160,17 +161,17 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     setInput(snapshot.input);
     setPreviousTotal(snapshot.previousTotal);
   }
-  function openPreferences() {
+  function openPreferences(fact: FactKey = "preferences") {
     setDialog(undefined);
     setTripOpen(false);
     setNavOpen(false);
-    setPreferencesOpen(true);
+    setOpenFact(fact);
   }
   function closePreferences() {
-    setPreferencesOpen(false);
+    setOpenFact(undefined);
   }
   function openTrip() {
-    setPreferencesOpen(false);
+    setOpenFact(undefined);
     setNavOpen(false);
     setTripOpen(true);
   }
@@ -182,11 +183,15 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     setNavOpen(false);
     setDialog(kind);
   }
-  function edit() {
-    openPreferences();
-    requestAnimationFrame(() => {
-      left.current?.querySelector<HTMLInputElement>("input")?.focus({ preventScroll: true });
-    });
+  /**
+   * Opens the chip editor for the first fact still missing, or the one a rejected submission
+   * points at. Called from buttons too, so anything that is not a fact key (a click event) is
+   * ignored.
+   */
+  function edit(fact?: unknown) {
+    openPreferences(
+      typeof fact === "string" ? (fact as FactKey) : (firstMissingFact(draft) ?? "preferences"),
+    );
   }
   const dataMode = useDataMode();
   // Files held for the next message. In memory only: a reload drops them, the
@@ -216,7 +221,7 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     clearAttachments: composerAttachments.clearAttachments,
     ask,
     setAsk,
-    onReject: edit,
+    onReject: (fields) => openPreferences(firstFactWithError(fields) ?? "preferences"),
   });
   function restore(snapshot: Snapshot) {
     resetTransient();
@@ -313,7 +318,7 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     setInput("");
     setPreviousTotal(undefined);
     setNotice("");
-    setPreferencesOpen(false);
+    setOpenFact(undefined);
     setTripOpen(false);
     setNavOpen(false);
     setCatalog((current) =>
@@ -381,8 +386,8 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
         : dialog === "language"
           ? "Language"
           : "Local account";
-  const facts = plan ? tripFacts(plan) : [];
-  const drawerOpen = preferencesOpen || tripOpen || navOpen;
+  // Chip editors are popovers, not drawers: they bring no drawer backdrop.
+  const drawerOpen = tripOpen || navOpen;
 
   return {
     plan,
@@ -424,9 +429,8 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     blank,
     pending,
     dialogTitle,
-    facts,
     drawerOpen,
-    left,
+    openFact,
     preferencesToggle,
     tripToggle,
     navToggle,
@@ -440,7 +444,6 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     setStorageEnabled,
     setNotice,
     setHistoryQuery,
-    setPreferencesOpen,
     setTripOpen,
     setTripTab,
     setMobileView,
@@ -456,6 +459,13 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     closeTrip,
     openDialog,
     edit,
+    /** Keeps a chip's edit in the draft without planning. */
+    saveFacts: (next: typeof draft) => setDraft(next),
+    /** Keeps a chip's edit and plans with the whole brief; false when it was rejected. */
+    planWith: (next: typeof draft) => {
+      setDraft(next);
+      return submit(next);
+    },
     restore,
     save,
     loadSaved,

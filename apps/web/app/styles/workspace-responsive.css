@@ -17,12 +17,12 @@
   .workspace-app {
     --sidebar-width: 0px;
   }
-  /* Menu, summary and actions on one row (Trip stays rightmost); the view switch below. */
+  /* Menu, fact chips and actions on one row (Trip stays rightmost); the view switch below. */
   .workspace-topbar {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
     grid-template-areas:
-      "menu summary actions"
+      "menu chips actions"
       "views views views";
     gap: 8px;
     padding: 8px 12px;
@@ -30,8 +30,8 @@
   .topbar-icon-button {
     grid-area: menu;
   }
-  .topbar-summary {
-    grid-area: summary;
+  .fact-chips {
+    grid-area: chips;
   }
   .topbar-actions {
     grid-area: actions;

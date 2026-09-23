@@ -1,6 +1,6 @@
 "use client";
 import type { CSSProperties } from "react";
-import { FiltersPanel } from "../preferences/FiltersPanel";
+import { TripFactChips } from "../preferences/TripFactChips";
 import { ChatPanel } from "../chat/ChatPanel";
 import { TripEditor } from "../trip/TripEditor";
 import { TripMapCanvas } from "../map/TripMapCanvas";
@@ -8,7 +8,7 @@ import { TripPanel, tripStatus } from "../trip/TripPanel";
 import { Drawer } from "../ui/Drawer";
 import { WorkspaceSidebar } from "./WorkspaceSidebar";
 import { SidebarResizer } from "./SidebarResizer";
-import { MenuIcon, RouteIcon, SlidersIcon } from "../ui/icons";
+import { MenuIcon, RouteIcon } from "../ui/icons";
 import type { WorkspaceController } from "./useWorkspaceController";
 import { WorkspaceDialogs } from "./WorkspaceDialogs";
 import { DataModeToggle } from "./DataModeToggle";
@@ -53,9 +53,8 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
     blank,
     pending,
     dialogTitle,
-    facts,
     drawerOpen,
-    left,
+    openFact,
     preferencesToggle,
     tripToggle,
     navToggle,
@@ -69,7 +68,6 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
     setStorageEnabled,
     setNotice,
     setHistoryQuery,
-    setPreferencesOpen,
     setTripOpen,
     setTripTab,
     setMobileView,
@@ -85,6 +83,8 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
     closeTrip,
     openDialog,
     edit,
+    saveFacts,
+    planWith,
     restore,
     save,
     loadSaved,
@@ -149,7 +149,7 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
               aria-expanded={navOpen}
               aria-haspopup="dialog"
               onClick={() => {
-                setPreferencesOpen(false);
+                closePreferences();
                 setTripOpen(false);
                 setNavOpen(true);
               }}
@@ -159,10 +159,19 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
           )}
           <div className="topbar-summary">
             <h1 className="topbar-title">{plan ? plan.brief.destination : "New trip"}</h1>
-            <p className="topbar-facts">
-              {plan ? facts.join(" · ") : "Not planned yet — add a destination and dates"}
-            </p>
           </div>
+          <TripFactChips
+            draft={draft}
+            plan={plan}
+            busy={busy || editPending}
+            errors={errors}
+            open={openFact}
+            onOpen={openPreferences}
+            onClose={closePreferences}
+            onSave={saveFacts}
+            onPlan={planWith}
+            preferencesChip={preferencesToggle}
+          />
           {narrow && (
             <div className="topbar-views" role="group" aria-label="Workspace view">
               {(["chat", "map"] as const).map((view) => (
@@ -184,18 +193,6 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
               onChange={dataMode.choose}
               disabled={busy}
             />
-            <button
-              ref={preferencesToggle}
-              type="button"
-              className="topbar-button"
-              aria-label="Open trip preferences"
-              aria-expanded={preferencesOpen}
-              aria-haspopup="dialog"
-              onClick={() => (preferencesOpen ? closePreferences() : openPreferences())}
-            >
-              <SlidersIcon />
-              <span className="topbar-button__label">Preferences</span>
-            </button>
             <button
               ref={tripToggle}
               type="button"
@@ -298,12 +295,7 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
               className="workspace-drawer-backdrop"
               aria-label="Close open panel"
               onClick={() => {
-                const trigger = tripOpen
-                  ? tripToggle
-                  : preferencesOpen
-                    ? preferencesToggle
-                    : navToggle;
-                closePreferences();
+                const trigger = tripOpen ? tripToggle : navToggle;
                 closeTrip();
                 setNavOpen(false);
                 trigger.current?.focus({ preventScroll: true });
@@ -342,25 +334,6 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
               />
             </Drawer>
           )}
-          <Drawer
-            side="left"
-            open={preferencesOpen}
-            title="Trip preferences"
-            closeLabel="Close trip preferences"
-            onClose={closePreferences}
-            returnFocus={preferencesToggle}
-            className="workspace-drawer workspace-drawer--preferences"
-          >
-            <div ref={left} className="filter-container">
-              <FiltersPanel
-                draft={draft}
-                onChange={setDraft}
-                onSubmit={submit}
-                busy={busy || editPending}
-                errors={errors}
-              />
-            </div>
-          </Drawer>
           <Drawer
             side="right"
             open={tripOpen}

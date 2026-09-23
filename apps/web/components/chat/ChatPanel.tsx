@@ -86,8 +86,8 @@ export function ChatPanel({
           <div className="chat-empty">
             <h3>Where to next?</h3>
             <p>
-              Describe your destination, travel dates, number of travellers and total budget, or
-              fill in the preferences form.
+              Describe your destination, travel dates, number of travellers and total budget, or add
+              them in the bar at the top.
             </p>
             <div className="chat-empty__suggestions" aria-label="Example trips">
               {prompts.map(({ label, text }) => (
@@ -107,7 +107,7 @@ export function ChatPanel({
             </p>
             {onStart && (
               <button type="button" onClick={onStart}>
-                Fill in trip preferences
+                Add trip details
               </button>
             )}
           </div>

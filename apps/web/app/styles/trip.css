@@ -450,10 +450,6 @@
     padding: 16px;
     max-height: none;
   }
-  .panel--left {
-    border-right: 0;
-    border-bottom: 1px solid var(--border);
-  }
   .chat {
     height: auto;
     min-height: 500px;
@@ -555,8 +551,5 @@
   height: 18px;
   flex: none;
   border-radius: 1px;
-  background: repeating-linear-gradient(
-    var(--border) 0 3px,
-    transparent 3px 6px
-  );
+  background: repeating-linear-gradient(var(--border) 0 3px, transparent 3px 6px);
 }

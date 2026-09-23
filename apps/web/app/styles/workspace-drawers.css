@@ -93,10 +93,6 @@
   overflow: auto;
   overscroll-behavior: contain;
 }
-.drawer__body > .filter-container > .panel {
-  max-height: none;
-  border: 0;
-}
 .workspace-drawer--nav .drawer__body > .workspace-sidebar {
   min-height: 100%;
   border-right: 0;

@@ -75,9 +75,6 @@ button {
   overflow-y: auto;
   padding: 20px;
 }
-.panel--left {
-  border-right: 1px solid var(--border);
-}
 .panel h2 {
   font-size: 15px;
   margin: 0 0 14px;

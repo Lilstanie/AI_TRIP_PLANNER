@@ -9,9 +9,11 @@
   border-bottom: 1px solid var(--border);
   background: var(--surface);
 }
+/* The trip title keeps to its share; the fact chips take the middle. */
 .topbar-summary {
-  flex: 1;
+  flex: 0 1 auto;
   min-width: 0;
+  max-width: 30%;
 }
 .topbar-title {
   margin: 0;
@@ -19,14 +21,6 @@
   font-family: var(--font-display), Georgia, "Times New Roman", serif;
   font-size: var(--font-size-title);
   line-height: var(--line-height-title);
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-.topbar-facts {
-  margin: 0;
-  overflow: hidden;
-  color: var(--text-dim);
-  font-size: var(--font-size-meta);
   white-space: nowrap;
   text-overflow: ellipsis;
 }
