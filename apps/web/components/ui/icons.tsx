@@ -142,61 +142,18 @@ export const CalendarIcon = () => (
   </Icon>
 );
 
-/** Small outline icon used by the collapsible AI thinking row. */
-export const ThinkIcon = () => (
-  <Icon>
-    <path d="M8.5 15.5h7a3.5 3.5 0 0 0 .4-7 4.8 4.8 0 0 0-9.1 1.1 3 3 0 0 0 1.7 5.9Z" />
-    <path d="M9.5 18h5M10.5 20h3" />
-  </Icon>
-);
-
-/** Small stacked-agent glyph used by the Thinking transcript rows. */
-export const SubagentIcon = () => (
-  <Icon>
-    <circle cx="8" cy="9" r="2.5" />
-    <circle cx="16" cy="9" r="2.5" />
-    <path d="M3.8 18a4.8 4.8 0 0 1 8.4-2.1A4.8 4.8 0 0 1 20.2 18" />
-  </Icon>
-);
-
-/** Tool-specific leading glyphs used by the live Thinking transcript. */
-export const ToolIcon = ({ tool }: { tool: string }) => {
-  if (tool === "maps.route") return <RouteIcon />;
-  if (tool === "booking.searchFlights") return <FlightIcon />;
-  if (tool === "booking.searchStays") return <SuitcaseIcon />;
-  if (tool === "weather.forecast") return <GlobeIcon />;
-  return <SearchIcon />;
-};
-
-/**
- * The disclosure chevron. It points right when collapsed and rotates to point
- * down when open, which is how the Thinking rows show state — a rotating glyph
- * would shift the text baseline instead.
- */
+/** A right-pointing chevron for disclosures outside the thinking transcript,
+ *  whose rows use the flow glyphs in flow-icons.tsx. */
 export const ChevronIcon = () => (
   <Icon strokeWidth={2}>
     <path d="m10 6 6 6-6 6" />
   </Icon>
 );
 
-/** Confirmation mark for a decision the plan already made. */
+/** A confirmation check mark. */
 export const CheckIcon = () => (
   <Icon strokeWidth={2}>
     <path d="m5 12.5 4.5 4.5L19 7" />
-  </Icon>
-);
-
-/** Collapse-everything control beside the Think title. */
-export const CollapseAllIcon = () => (
-  <Icon strokeWidth={2}>
-    <path d="m7 14 5-5 5 5M7 19h10" />
-  </Icon>
-);
-
-/** Expand-everything control beside the Think title. */
-export const ExpandAllIcon = () => (
-  <Icon strokeWidth={2}>
-    <path d="m7 10 5 5 5-5M7 5h10" />
   </Icon>
 );
 

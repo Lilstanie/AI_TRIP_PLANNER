@@ -2,7 +2,10 @@
 @import "./styles/tokens.css";
 @import "./styles/base.css";
 @import "./styles/chat.css";
+@import "./styles/thinking.css";
+@import "./styles/messages.css";
 @import "./styles/composer.css";
+@import "./styles/question.css";
 @import "./styles/forms.css";
 @import "./styles/trip.css";
 @import "./styles/map.css";

@@ -1,0 +1,643 @@
+/* The thinking transcript: DeepSeek Harness (DSH) flow rows in the conversation
+   flow. No card, progress rail or dashboard chrome. Components:
+   apps/web/components/chat/{ThinkingProcess,ThinkingRows,Disclosure}.tsx. */
+
+.agent-activity {
+  align-self: stretch;
+  min-width: 0;
+  padding: 2px 0;
+  color: var(--text);
+  font-size: 13px;
+}
+
+.thinking-process {
+  /* DSH label levels mapped onto this project's tokens (see
+     docs/design/dsh-thinking-ui.md §5): borrow the levels, not the names. */
+  --thinking-label-secondary: color-mix(in srgb, var(--text) 78%, transparent);
+  --thinking-label-tertiary: var(--text-mut);
+  --thinking-label-caption: color-mix(in srgb, var(--text-mut) 60%, transparent);
+  --thinking-rail: color-mix(in srgb, var(--text-mut) 40%, transparent);
+
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.thinking-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* --- Disclosure row (DSH DisclosureRow): [16 leading] 6 [title 13/24] · summary --- */
+
+.thinking-row {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  flex-direction: column;
+}
+
+/* A closed row is height-locked, so streaming text never reflows the transcript. */
+.thinking-row:not([data-open]) {
+  contain: size layout;
+  height: 24px;
+}
+
+.thinking-row__line {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 24px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.thinking-row__line[data-expandable] {
+  cursor: pointer;
+}
+
+.thinking-row__line:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-radius: 4px;
+}
+
+.thinking-row__leading {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin-right: 6px;
+  color: var(--thinking-label-tertiary);
+}
+
+/* Flow glyphs render at 14px inside the 16px box; the status dot keeps its size. */
+.thinking-row__leading svg {
+  width: 14px;
+  height: 14px;
+}
+
+.thinking-row__idle {
+  display: inline-flex;
+  opacity: 1;
+  transition: opacity 100ms ease;
+}
+
+.thinking-row__chevron {
+  color: var(--thinking-label-secondary);
+}
+
+.thinking-row__chevron-hover {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  opacity: 0;
+  transition: opacity 100ms ease;
+}
+
+.thinking-row__line[data-expandable]:hover .thinking-row__idle {
+  opacity: 0;
+}
+
+.thinking-row__line[data-expandable]:hover .thinking-row__chevron-hover {
+  opacity: 1;
+}
+
+.thinking-row__title {
+  flex: none;
+  color: var(--thinking-label-secondary);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 24px;
+}
+
+.thinking-row__sep {
+  flex: none;
+  width: 2px;
+  height: 2px;
+  margin: 0 8px;
+  border-radius: 1px;
+  background: var(--thinking-label-caption);
+}
+
+.thinking-row__name {
+  flex: none;
+  max-width: 45%;
+  overflow: hidden;
+  color: var(--thinking-label-secondary);
+  font-size: 13px;
+  line-height: 24px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.thinking-row__summary {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--thinking-label-tertiary);
+  font-size: 13px;
+  line-height: 20px;
+  white-space: nowrap;
+}
+
+.thinking-row__summary[data-tone="error"] {
+  color: var(--warn);
+}
+
+.thinking-row__summary-text {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* A streaming line is right-anchored so its newest words stay in view. */
+.thinking-row__summary[data-follow-end] {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.thinking-row__summary[data-follow-end] .thinking-row__summary-text {
+  flex: 0 0 auto;
+  width: max-content;
+  min-width: 100%;
+  overflow: visible;
+  text-align: start;
+  text-overflow: clip;
+}
+
+/* --- One sweep for every running row: 300px band, 2.6s ease-out, 90% hold --- */
+
+.thinking-row[data-state="running"] > .thinking-row__line::after {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 300px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in srgb, var(--surface) 60%, transparent) 55%,
+    transparent 100%
+  );
+  animation: thinking-sweep 2.6s ease-out infinite;
+  pointer-events: none;
+}
+
+@keyframes thinking-sweep {
+  0% {
+    left: -300px;
+  }
+  90%,
+  100% {
+    left: 100%;
+  }
+}
+
+/* --- The tree: one rail rule at every depth (DSH ToolCallTree .subCalls) --- */
+
+.thinking-children {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+  margin: 4px 0 2px 22px;
+  padding-left: 8px;
+  border-left: 0.5px solid var(--thinking-rail);
+}
+
+.thinking-round-group,
+.thinking-subagents {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.thinking-subagent {
+  min-width: 0;
+}
+
+.thinking-subagent__status {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  margin-left: 8px;
+}
+
+/* --- Reasoning body (DSH thinkBody): indented under the title --- */
+
+.thinking-reasoning__body {
+  padding: 4px 0 4px 22px;
+  color: var(--thinking-label-tertiary);
+  font-size: 13px;
+  line-height: 20px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* --- Tool body: arguments, then result rows with category glyphs --- */
+
+.thinking-tool__body {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--thinking-label-tertiary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+/* The call's arguments read as one wrapped line — `Sydney → Wollongong ·
+   2026-11-24`, then a chip per remaining argument — rather than a stack of
+   label/value rows. It wraps instead of scrolling, so it survives 375px. */
+.thinking-tool__args {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 8px;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.thinking-tool__arg-journey,
+.thinking-tool__arg-chip {
+  display: inline-flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: 4px;
+  overflow-wrap: anywhere;
+}
+
+.thinking-tool__arg-value {
+  color: var(--thinking-label-secondary);
+}
+
+.thinking-tool__arg-key {
+  color: var(--thinking-label-caption);
+}
+
+/* Separators carry no meaning a reader needs to weigh, so they stay behind the
+   values they join. */
+.thinking-tool__arg-sep {
+  flex: none;
+  color: var(--thinking-label-tertiary);
+}
+
+.thinking-tool__rows {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.thinking-tool__row {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.thinking-tool__row-icon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 18px;
+  color: var(--thinking-label-tertiary);
+}
+
+.thinking-tool__row-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* A site icon sits in the same 14px box as the category glyph, so a list of
+   results keeps one left edge whether or not its rows have a web page. */
+.thinking-tool__row-favicon {
+  width: 14px;
+  height: 14px;
+  /* Many site icons are a dark mark on transparency, which disappears on this
+     transcript's background; a faint plate keeps them readable in either
+     theme without turning the icon into a badge. */
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--text) 10%, transparent);
+  object-fit: contain;
+}
+
+.thinking-tool__row-label {
+  flex: 0 1 auto;
+  min-width: 0;
+  color: var(--thinking-label-secondary);
+  overflow-wrap: anywhere;
+}
+
+.thinking-tool__row-detail {
+  flex: 1 1 0;
+  min-width: 0;
+  margin-left: 2px;
+  color: var(--thinking-label-tertiary);
+  overflow-wrap: anywhere;
+}
+
+.thinking-tool__truncated {
+  margin: 0;
+  color: var(--thinking-label-caption);
+}
+
+/* --- The one running line --- */
+
+.thinking-running {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 2px 0 4px 22px;
+  color: var(--thinking-label-tertiary);
+  font-size: 12px;
+  line-height: 22px;
+}
+
+.thinking-running__label {
+  display: inline-flex;
+  align-items: baseline;
+}
+
+/* DSH's running-text treatment, ported from the real source (not the blue
+   gradient docs/design/dsh-thinking-ui.md §1.2 used to describe — that was
+   never in DSH; see the corrected note there). DSH's `TextShimmer`
+   (packages/client/ui-primitives/src/TextShimmer.{tsx,module.css}) is a
+   currentColor sweep: DSH's per-turn "Deep diving" text itself carries no
+   shimmer or motion (`TurnProcessNodeView.module.css` — plain tertiary-label
+   colour, no animation), but the same running-row treatment used everywhere
+   else in DSH while a row is live (`ChatGroupSeat.tsx`, `ui-tool`'s
+   `ToolRow.tsx`, `DisclosureRow.tsx`) is this shimmer, so this project
+   applies it to the running line's label. The colour stays the tertiary
+   label tone already used here — DSH's shimmer is currentColor-based, never
+   brand blue. */
+.thinking-running__label[data-text-shimmer] {
+  background-image: linear-gradient(
+    90deg,
+    currentColor calc(50% - var(--thinking-text-shimmer-spread, 48px)),
+    color-mix(in oklab, currentColor 50%, transparent),
+    currentColor calc(50% + var(--thinking-text-shimmer-spread, 48px))
+  );
+  background-position: 100% center;
+  background-repeat: no-repeat;
+  background-size: 250% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: thinking-text-shimmer 1.5s cubic-bezier(0.33, 0, 0.67, 1) infinite;
+}
+
+@keyframes thinking-text-shimmer {
+  66.6667%,
+  100% {
+    background-position: 0% center;
+  }
+}
+
+.thinking-running__clock {
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- State dot: 8px halo + 60%-scale core --- */
+
+.thinking-dot {
+  position: relative;
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.thinking-dot::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: currentColor;
+  opacity: 0.1;
+}
+
+.thinking-dot::after {
+  content: "";
+  position: absolute;
+  inset: 20%;
+  border-radius: inherit;
+  background: currentColor;
+}
+
+.thinking-dot--running {
+  color: var(--accent);
+  animation: thinking-chase 1s infinite;
+}
+
+.thinking-dot--completed {
+  color: var(--ok);
+}
+
+.thinking-dot--failed {
+  color: var(--warn);
+}
+
+.thinking-dot--queued {
+  color: var(--text-mut);
+}
+
+@keyframes thinking-chase {
+  0%,
+  12.4% {
+    opacity: 1;
+  }
+  12.5%,
+  24.9% {
+    opacity: 0.6;
+  }
+  25%,
+  37.4% {
+    opacity: 0.35;
+  }
+  37.5%,
+  100% {
+    opacity: 0.15;
+  }
+}
+
+/* --- Round headings and a subagent's notes --- */
+
+.thinking-round {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 4px 0 0;
+}
+
+.thinking-round__title {
+  margin: 0;
+  color: var(--thinking-label-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+}
+
+.thinking-round__list,
+.thinking-note__list {
+  margin: 0;
+  padding-left: 16px;
+  color: var(--thinking-label-tertiary);
+  font-size: 12px;
+}
+
+.thinking-subagent__body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 2px 0;
+  color: var(--thinking-label-tertiary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.thinking-note {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.thinking-note__summary,
+.thinking-error {
+  margin: 0;
+}
+
+.thinking-error {
+  color: var(--warn);
+  font-size: 12px;
+}
+
+/* --- The model's choice --- */
+
+.thinking-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding-top: 2px;
+}
+
+.thinking-choice__title {
+  margin: 0;
+  color: var(--thinking-label-secondary);
+}
+
+.thinking-choice__selected {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0;
+}
+
+.thinking-choice__check {
+  display: inline-flex;
+  align-self: center;
+  color: var(--ok);
+}
+
+.thinking-choice__check svg,
+.thinking-choice__chevron svg {
+  width: 14px;
+  height: 14px;
+}
+
+.thinking-choice__label {
+  color: var(--thinking-label-secondary);
+}
+
+.thinking-choice__detail,
+.thinking-choice__rationale {
+  margin: 0;
+  color: var(--thinking-label-tertiary);
+}
+
+.thinking-choice__other {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.thinking-choice__toggle {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--thinking-label-tertiary);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.thinking-choice__toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.thinking-choice__chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transform: rotate(-90deg);
+  transition: transform 100ms ease;
+}
+
+.thinking-choice__toggle[aria-expanded="true"] .thinking-choice__chevron {
+  transform: rotate(0deg);
+}
+
+.thinking-choice__alternatives {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 2px 0 0 18px;
+  list-style: none;
+}
+
+.thinking-choice__alternatives > li {
+  display: flex;
+  gap: 8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .thinking-row[data-state="running"] > .thinking-row__line::after,
+  .thinking-dot--running {
+    animation: none;
+  }
+
+  /* DSH's own reduced-motion fallback for TextShimmer: drop the gradient and
+     restore solid text instead of just freezing the sweep mid-frame. */
+  .thinking-running__label[data-text-shimmer] {
+    background-image: none;
+    -webkit-text-fill-color: currentColor;
+    animation: none;
+  }
+
+  .thinking-row__idle,
+  .thinking-row__chevron-hover,
+  .thinking-choice__chevron {
+    transition: none;
+  }
+}
