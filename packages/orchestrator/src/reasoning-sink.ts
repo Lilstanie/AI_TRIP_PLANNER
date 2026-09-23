@@ -15,7 +15,8 @@ export const REASONING_OWNER: AgentName = "itinerary";
  * Reasoning arrives as a token stream. Publishing every delta would put
  * hundreds of events on the wire, so deltas accumulate until the buffer is
  * worth reading. The block is flushed at the end of the model call either way,
- * so the tail of a thought is never lost.
+ * so the tail of a thought is never lost. Flushing only paces the wire: every
+ * flush of one sink continues the same block, see REASONING_BLOCK_INDEX.
  */
 export const REASONING_FLUSH_CHARS = 160;
 
@@ -25,6 +26,14 @@ export const REASONING_FLUSH_CHARS = 160;
  * supervisor's episode 0 for the same (round, index) identity.
  */
 export const COORDINATOR_REASONING_EPISODE = 1000;
+
+/**
+ * The block index every flush of a sink carries. A sink covers one model call
+ * chain, which a reader sees as one thought, so its flushes are deltas of one
+ * growing block rather than separate blocks: numbering them apart made a client
+ * render each 160-character slice as its own mid-sentence row.
+ */
+export const REASONING_BLOCK_INDEX = 0;
 
 export interface ReasoningSink {
   /** Wrap a model so its private reasoning reaches the transcript. */
@@ -39,9 +48,9 @@ export interface ReasoningSink {
  * @param round - the orchestration round the thinking belongs to.
  * @param onProgress - the run's progress writer; absent in tests and offline runs.
  * @param episode - which model call chain this sink belongs to. A round can hold
- *   several (the dispatch supervisor and each revision pass), and every chain
- *   numbers its own blocks from zero, so the episode is what keeps two chains'
- *   blocks apart.
+ *   several (the dispatch supervisor and each revision pass), and each chain's
+ *   block has the same index, so the episode is what keeps two chains' blocks
+ *   apart.
  * @returns a sink that wraps a model and flushes the buffer.
  */
 export function createReasoningSink(
@@ -50,7 +59,6 @@ export function createReasoningSink(
   episode = 0,
 ): ReasoningSink {
   let buffer = "";
-  let index = 0;
   const flush = () => {
     if (!buffer) return;
     onProgress?.({
@@ -58,7 +66,7 @@ export function createReasoningSink(
       agent: REASONING_OWNER,
       round,
       episode,
-      index: index++,
+      index: REASONING_BLOCK_INDEX,
       text: buffer,
     });
     buffer = "";

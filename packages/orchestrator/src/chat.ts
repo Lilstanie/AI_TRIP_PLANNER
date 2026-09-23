@@ -1,13 +1,18 @@
 import { CAPABILITIES, createRoutedChatModel } from "@trip/agents";
 import { memory } from "@trip/services";
 import {
+  ASK_USER_MAX_OPTIONS,
+  ASK_USER_MAX_QUESTIONS,
   ChatTurn,
   Currency,
+  PartialTripBrief as PartialTripBriefSchema,
   TripBrief as TripBriefSchema,
   toAud,
   type ChatRequest,
   type ChatResponse,
   type AgentProgressEvent,
+  type AskUserQuestionItem,
+  type ChatAskUser,
   type ChatNeedsInfo,
   type MemoryStore,
   type PartialTripBrief,
@@ -57,6 +62,19 @@ export class IncompleteBriefError extends Error {
   /** The frame the API sends in place of a plan. */
   get needsInfo(): ChatNeedsInfo {
     return { type: "needs_info", question: this.message, known: this.known };
+  }
+}
+
+/**
+ * The coordinator asked the traveller a structured question instead of finishing the turn.
+ *
+ * Signalled like IncompleteBriefError: a non-plan outcome the API sends as its own frame. The
+ * traveller's answer arrives as the next message, with `known` sent back like any follow-up.
+ */
+export class AskUserError extends Error {
+  constructor(readonly askUser: ChatAskUser) {
+    super(askUser.questions[0]?.question ?? "The assistant asked a question.");
+    this.name = "AskUserError";
   }
 }
 
@@ -140,6 +158,85 @@ function toPatch(update: z.infer<typeof BriefUpdate>): BriefPatch {
   return patch;
 }
 
+/**
+ * The wire shape of ask_user_question, after DeepSeek Harness's tool of the same name: snake_case
+ * `multi_select` on the wire, `multiSelect` in the frame. Like BriefUpdate it is loose on purpose,
+ * with no length limits the provider would have to honour; `toQuestions` enforces the caps and
+ * drops what cannot be shown.
+ */
+export const AskUserQuestionInput = z.object({
+  questions: z
+    .array(
+      z.object({
+        id: z.string().describe("Stable id for this question; echoed in the answer."),
+        question: z.string().describe("The specific question to ask the user."),
+        header: z
+          .string()
+          .nullish()
+          .describe('Optional short heading for the question, such as "Confirm" or "Choose Mode".'),
+        options: z
+          .array(
+            z.object({
+              label: z.string().describe("Short user-facing option label."),
+              description: z
+                .string()
+                .nullish()
+                .describe("One sentence explaining the tradeoff or impact."),
+            }),
+          )
+          .nullish()
+          .describe(
+            'Optional choices to show the user. If you recommend one, put it first and append "(Recommended)" to that label.',
+          ),
+        multi_select: z
+          .boolean()
+          .nullish()
+          .describe("Whether the user may select more than one option. Defaults to false."),
+      }),
+    )
+    .describe("Questions to ask the user before continuing."),
+});
+
+/**
+ * Turn what the model sent into questions a client can render: blank questions and blank option
+ * labels are dropped, ids are made unique, and both lists are capped. Empty when nothing is left.
+ */
+export function toQuestions(input: z.infer<typeof AskUserQuestionInput>): AskUserQuestionItem[] {
+  const ids = new Set<string>();
+  const questions: AskUserQuestionItem[] = [];
+  for (const raw of input.questions ?? []) {
+    if (questions.length >= ASK_USER_MAX_QUESTIONS) break;
+    const question = text(raw.question);
+    if (!question) continue;
+    let id = text(raw.id) ?? `q${questions.length + 1}`;
+    while (ids.has(id)) id = `${id}-${questions.length + 1}`;
+    ids.add(id);
+    const options = (raw.options ?? [])
+      .flatMap((option) => {
+        const label = text(option?.label);
+        if (!label) return [];
+        const description = text(option.description);
+        return [{ label, ...(description ? { description } : {}) }];
+      })
+      .slice(0, ASK_USER_MAX_OPTIONS);
+    const header = text(raw.header);
+    questions.push({
+      id,
+      question,
+      ...(header ? { header } : {}),
+      ...(options.length ? { options } : {}),
+      ...(options.length && typeof raw.multi_select === "boolean"
+        ? { multiSelect: raw.multi_select }
+        : {}),
+    });
+  }
+  return questions;
+}
+
+const ASK_USER_DESCRIPTION =
+  "Ask the user a concise question when you need confirmation, a choice, or missing information before proceeding. " +
+  "Send one or more questions, each with a stable id that will be echoed in the answer.";
+
 const COORDINATOR_PROMPT = `You are the trip coordinator, speaking directly to a traveller.
 
 ${CAPABILITIES}
@@ -151,10 +248,11 @@ Choosing what to do:
 - For something this product cannot do, say plainly that it is not built yet. Never imply a booking, a price quote or live data you do not have.
 
 Asking the traveller:
-- When you truly cannot proceed without an answer, ask it in one short plain sentence, in the traveller's language, inside your reply. There is no question tool and no answer form.
-- Never present a form, a checklist or a set of options, and never ask the traveller to pick from a list.
+- Ask only about a genuine ambiguity the plan cannot sensibly decide by itself. Anything with a reasonable default, decide and say what you assumed.
 - Never ask for anything you can already read from the trip context or the traveller's message, and never ask the traveller to choose between hotels, restaurants or routes a specialist has already compared: the plan decides those.
-- Ask one question at a time, and say plainly what you need and why.
+- When 2-4 concrete choices would help the traveller answer, call ask_user_question. Write the question, header and option labels in the traveller's language. Put the option you recommend first and append " (Recommended)" to its label. Give each option a one-sentence description of its tradeoff.
+- A missing required fact with no useful choices (a destination, a budget) is better asked as one short plain sentence in your reply, without the tool.
+- Ask at most once per turn. After ask_user_question, call no other tools and end your turn with at most one short sentence; do not repeat the question, the traveller already sees it.
 
 Dates:
 - Pass dates as YYYY-MM-DD. Rewriting a date the traveller gave is a format conversion, not an inference.
@@ -270,6 +368,9 @@ async function runConversationAgent(
   let brief = submitted;
   let known: BriefPatch = BriefPatchSchema.parse({ ...request.known });
   let planned: TripPlan | undefined;
+  // Questions the coordinator asked this turn. Recorded rather than answered in the loop: the
+  // traveller answers in their next message, so asking ends the turn.
+  let asked: AskUserQuestionItem[] = [];
   // The coordinator's own thinking — how it read the message and what it chose
   // to do — is the first thing a reader wants to see.
   const reasoning = createReasoningSink(1, onProgress, COORDINATOR_REASONING_EPISODE);
@@ -310,11 +411,26 @@ async function runConversationAgent(
     },
   );
 
+  const askUserQuestion = tool(
+    async (input: z.infer<typeof AskUserQuestionInput>) => {
+      const questions = toQuestions(input);
+      if (!questions.length)
+        return "No question was shown: every question needs text. Ask again or answer without asking.";
+      asked = [...asked, ...questions].slice(0, ASK_USER_MAX_QUESTIONS);
+      return "The question is now shown to the traveller, who will answer in their next message. End your turn now without calling any more tools, and do not repeat the question.";
+    },
+    {
+      name: "ask_user_question",
+      description: ASK_USER_DESCRIPTION,
+      schema: AskUserQuestionInput,
+    },
+  );
+
   const history = (await mem.getShortTerm(request.tripId)).slice(-9, -1);
   const agent = createAgent({
     name: "trip_conversation",
     model: streamingModel,
-    tools: [updateTripBrief, replanTrip],
+    tools: [updateTripBrief, replanTrip, askUserQuestion],
     systemPrompt: COORDINATOR_PROMPT,
   });
   const invoked = await agent.invoke({
@@ -335,6 +451,18 @@ async function runConversationAgent(
   reasoning.flush();
 
   if (planned) return { reply: reply || fallbackReplyFor(planned), plan: planned };
+  // A question ends the turn before any plan is built. The client's plan rides along unchanged
+  // so an open trip stays open while the traveller answers.
+  if (asked.length) {
+    const understood = PartialTripBriefSchema.safeParse(brief ?? known);
+    throw new AskUserError({
+      type: "ask_user",
+      questions: asked,
+      known: understood.success ? understood.data : {},
+      ...(request.plan ? { plan: request.plan } : {}),
+      ...(reply ? { reply } : {}),
+    });
+  }
   // A question about an existing trip changes nothing, so the plan travels back unchanged and no
   // specialist runs. `readPlanStream` requires every completed frame to carry one.
   if (request.plan) return { reply: reply || "", plan: request.plan };

@@ -169,7 +169,7 @@ async function searchStaysGooglePlacesEstimate(
   if (!process.env.MAPS_API_KEY) throw new Error("Google Places provider requires MAPS_API_KEY.");
   const results = await searchGooglePlacesText(
     `hotels in ${city}`,
-    "places.displayName,places.rating,places.priceLevel,places.formattedAddress",
+    "places.displayName,places.rating,places.priceLevel,places.formattedAddress,places.websiteUri",
   );
   const queriedAt = new Date().toISOString();
   const options: StayOption[] = results
@@ -184,6 +184,10 @@ async function searchStaysGooglePlacesEstimate(
       // for — see accommodation's eligibleOptions filter.
       freeCancellation: false,
       grounded: true,
+      // The property's own page, when Google reports one. The price here is an
+      // estimate, so this link is the only thing in the row a traveller can
+      // check against the property itself.
+      ...(place.websiteUri?.trim() ? { detailsUrl: place.websiteUri.trim() } : {}),
       provenance: {
         kind: "estimated" as const,
         provider: "Google Places estimate",

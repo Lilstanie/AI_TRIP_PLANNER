@@ -3,7 +3,12 @@ import type { BaseChatModel } from "@langchain/core/language_models/chat_models"
 import { describe, expect, it } from "vitest";
 import type { AgentProgressEvent } from "@trip/shared";
 import { withReasoningStream } from "@trip/agents";
-import { createReasoningSink, REASONING_FLUSH_CHARS, REASONING_OWNER } from "../src/reasoning-sink";
+import {
+  createReasoningSink,
+  REASONING_BLOCK_INDEX,
+  REASONING_FLUSH_CHARS,
+  REASONING_OWNER,
+} from "../src/reasoning-sink";
 
 /** A model stub whose only behaviour is a scripted stream of deltas. */
 function streamingModel(deltas: Array<{ content?: string; reasoning?: string }>) {
@@ -50,7 +55,7 @@ describe("reasoning stream", () => {
 });
 
 describe("reasoning sink", () => {
-  it("publishes a complete thinking block as numbered events for its round", async () => {
+  it("paces one model call's thinking as deltas of a single block", async () => {
     const events: AgentProgressEvent[] = [];
     const sink = createReasoningSink(2, (event) => events.push(event));
     const long = "a".repeat(REASONING_FLUSH_CHARS);
@@ -62,12 +67,14 @@ describe("reasoning sink", () => {
 
     const reasoning = reasoningEvents(events);
     expect(reasoning.map((event) => event.text).join("")).toBe(long + long);
+    // Flushing still paces the wire, but every flush continues the same block,
+    // so a client appending by (agent, round, episode, index) grows one row.
     expect(reasoning.length).toBeGreaterThan(1);
-    for (const [index, event] of reasoning.entries()) {
+    for (const event of reasoning) {
       expect(event.agent).toBe(REASONING_OWNER);
       expect(event.round).toBe(2);
       expect(event.episode).toBe(0);
-      expect(event.index).toBe(index);
+      expect(event.index).toBe(REASONING_BLOCK_INDEX);
     }
   });
 

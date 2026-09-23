@@ -2,6 +2,7 @@
 
 export { DEMO_BRIEF } from "./demo";
 export {
+  AskUserError,
   IncompleteBriefError,
   runTripChat,
   type BriefExtractor,

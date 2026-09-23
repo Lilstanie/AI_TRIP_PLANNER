@@ -272,7 +272,7 @@ export async function places(q: PlaceQuery): Promise<Place[]> {
   if (!process.env.MAPS_API_KEY) throw new Error("Google Maps provider requires MAPS_API_KEY.");
   const results = await searchGooglePlacesText(
     `${q.category ?? "attraction"} in ${q.near}`,
-    "places.displayName,places.types,places.rating,places.location",
+    "places.displayName,places.types,places.rating,places.location,places.websiteUri",
   );
   return results
     .map((place) => ({
@@ -283,6 +283,10 @@ export async function places(q: PlaceQuery): Promise<Place[]> {
       // it numerically against this project's 0-10 convention, so it is not
       // converted.
       ...(place.rating === undefined ? {} : { rating: place.rating }),
+      // Absent for a place Google has no site for; never substituted with a
+      // search or directions link, which would be this project's guess rather
+      // than the place's page.
+      ...(place.websiteUri?.trim() ? { website: place.websiteUri.trim() } : {}),
       ...(place.location &&
       Number.isFinite(place.location.latitude) &&
       Number.isFinite(place.location.longitude)

@@ -59,9 +59,9 @@ export type ChatResponse = z.infer<typeof ChatResponse>;
 // Sent instead of a plan when a blank conversation is still missing required
 // fields: the assistant's own question, plus everything understood so far.
 //
-// There is no structured question here. The assistant asks in prose, in the
-// chat, and the traveller answers by typing; a suggestion list or answer form
-// would present a product capability that does not exist.
+// The question here is prose; the traveller answers by typing. A structured
+// question with choices, when the coordinator asked one, arrives as
+// ChatAskUser instead.
 export const ChatNeedsInfo = z.object({
   type: z.literal("needs_info"),
   question: z.string(),
@@ -69,11 +69,79 @@ export const ChatNeedsInfo = z.object({
 });
 export type ChatNeedsInfo = z.infer<typeof ChatNeedsInfo>;
 
+/** At most this many questions in one ask, and this many options per question. */
+export const ASK_USER_MAX_QUESTIONS = 4;
+export const ASK_USER_MAX_OPTIONS = 4;
+
+// One selectable answer to a structured question. A recommended option comes
+// first, with " (Recommended)" appended to its label.
+export const AskUserQuestionOption = z.object({
+  label: z.string().trim().min(1),
+  description: z.string().optional(),
+});
+export type AskUserQuestionOption = z.infer<typeof AskUserQuestionOption>;
+
+// One structured question the coordinator asked. With no options the traveller
+// answers in free text; with options, "Other" free text is still allowed.
+export const AskUserQuestionItem = z.object({
+  id: z.string().min(1),
+  question: z.string().trim().min(1),
+  header: z.string().optional(),
+  detail: z.string().optional(),
+  options: z.array(AskUserQuestionOption).max(ASK_USER_MAX_OPTIONS).optional(),
+  multiSelect: z.boolean().optional(),
+});
+export type AskUserQuestionItem = z.infer<typeof AskUserQuestionItem>;
+
+// Sent instead of a completed plan when the coordinator asked the traveller a
+// structured question. The answer is the traveller's next message, sent with
+// `known` like any follow-up. `plan` is the client's plan returned unchanged
+// when there was one, so a question about an open trip loses nothing; `reply`
+// is whatever prose the coordinator wrote alongside the question.
+export const ChatAskUser = z.object({
+  type: z.literal("ask_user"),
+  questions: z.array(AskUserQuestionItem).min(1).max(ASK_USER_MAX_QUESTIONS),
+  known: PartialTripBrief,
+  plan: TripPlan.optional(),
+  reply: z.string().optional(),
+});
+export type ChatAskUser = z.infer<typeof ChatAskUser>;
+
+// What a result row is, so a client can give it a category glyph without
+// parsing the label. "place" is the fallback for a place no keyword placed.
+export const TOOL_RESULT_KINDS = [
+  "attraction",
+  "restaurant",
+  "cafe",
+  "nightlife",
+  "shopping",
+  "nature",
+  "museum",
+  "stay",
+  "flight",
+  "route",
+  "drive",
+  "transit",
+  "walk",
+  "weather",
+  "place",
+] as const;
+export const ToolResultKind = z.enum(TOOL_RESULT_KINDS);
+export type ToolResultKind = z.infer<typeof ToolResultKind>;
+
 // One line of a tool call's structured result, e.g. a stay candidate or a place.
-// The label is the whole row, so a client never has to know the tool's domain.
+// The label is the whole row, so a client never has to know the tool's domain;
+// `kind` only chooses its icon and is optional for older emitters.
 export const ToolResultRow = z.object({
   label: z.string().min(1),
   detail: z.string().optional(),
+  kind: ToolResultKind.optional(),
+  // The web page this row is about, when the provider reported one — a hotel's
+  // own site, a place's website. It is never invented: a row whose provider
+  // returned no page has no `url`, and a client that shows a site icon for it
+  // falls back to the category glyph. Only the host is ever used for that icon,
+  // so a link with a query string cannot leak through it.
+  url: z.string().url().optional(),
 });
 export type ToolResultRow = z.infer<typeof ToolResultRow>;
 
@@ -126,8 +194,10 @@ export type FlightAnswer = z.infer<typeof FlightAnswer>;
 export const AgentProgressEvent = z.discriminatedUnion("type", [
   z.object({
     // A streamed slice of the supervisor's or coordinator's own thinking. Text
-    // is a delta, not the whole block; clients append by
-    // (agent, round, episode, index).
+    // is a delta, not the whole block; clients append deltas by
+    // (agent, round, episode, index). One model call chain is one block: the
+    // orchestrator paces flushes but gives every flush the same index, so the
+    // block grows in place instead of arriving as separate fragments.
     type: z.literal("agent_reasoning"),
     agent: z.enum(AGENT_NAMES),
     round: z.number().int().positive(),

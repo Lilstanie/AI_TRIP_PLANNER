@@ -183,6 +183,27 @@ describe("B places provider boundaries", () => {
     expect(result).toEqual({ name: "Ichiran Ramen", category: "restaurant" });
   });
 
+  it("asks for the place's own site and reports it, or nothing when Google has none", async () => {
+    const fetcher = google({
+      places: [
+        {
+          displayName: { text: "Sensoji Temple" },
+          types: ["tourist_attraction"],
+          websiteUri: "https://www.senso-ji.jp/",
+        },
+        { displayName: { text: "Nakamise Street" }, types: ["tourist_attraction"] },
+      ],
+    });
+
+    const results = await places({ near: "Tokyo" });
+
+    expect(results.map((place) => place.website)).toEqual(["https://www.senso-ji.jp/", undefined]);
+    const [, init] = fetcher.mock.calls[0]!;
+    expect((init as RequestInit).headers).toMatchObject({
+      "x-goog-fieldmask": expect.stringContaining("places.websiteUri"),
+    });
+  });
+
   it("drops candidates with no usable name instead of returning a blank card", async () => {
     google({ places: [{ types: ["restaurant"] }, { displayName: { text: "  " } }] });
 

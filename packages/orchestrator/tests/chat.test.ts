@@ -10,7 +10,14 @@ import type {
   TripPlan,
 } from "@trip/shared";
 import { z } from "zod/v4";
-import { BriefUpdate, IncompleteBriefError, runTripChat } from "../src/chat";
+import {
+  AskUserError,
+  AskUserQuestionInput,
+  BriefUpdate,
+  IncompleteBriefError,
+  runTripChat,
+  toQuestions,
+} from "../src/chat";
 
 const brief: TripBrief = {
   tripId: "chat-test",
@@ -144,8 +151,8 @@ describe("the conversation agent decides what to do", () => {
     expect(failure).toBeInstanceOf(IncompleteBriefError);
     const asked = (failure as IncompleteBriefError).needsInfo;
     expect(asked.type).toBe("needs_info");
-    // The frame carries prose and what is known; there is no question surface
-    // and no option list on the wire to render one from.
+    // Without an ask_user_question call the frame carries prose and what is
+    // known; choices only ever arrive in an ask_user frame.
     expect(asked.question.length).toBeGreaterThan(0);
     expect(asked).not.toHaveProperty("asked");
   });
@@ -407,5 +414,175 @@ describe("the tool schema the provider actually receives", () => {
       ).toBe(true);
     // Numbers arrive as strings often enough to be worth accepting.
     expect(BriefUpdate.safeParse({ groupSize: "2", budgetAmount: "3000" }).success).toBe(true);
+  });
+});
+
+describe("asking the traveller a structured question", () => {
+  const ask = (questions: unknown[], id = "ask") => ({
+    name: "ask_user_question",
+    args: { questions },
+    id,
+  });
+  const choice = {
+    id: "pace",
+    header: "Pace",
+    question: "How full should each day be?",
+    options: [
+      { label: "Relaxed (Recommended)", description: "Two sights a day." },
+      { label: "Packed", description: "Everything on the list." },
+    ],
+  };
+  const caught = (promise: Promise<unknown>) => promise.catch((error: unknown) => error);
+
+  it("ends the turn with the question and what is known, without planning", async () => {
+    vi.mocked(itinerary.invoke).mockClear();
+    const failure = await caught(
+      run(
+        { tripId: "blank", message: "Sydney sometime next year for a few people" },
+        scriptedModel(
+          [{ name: "update_trip_brief", args: { destination: "Sydney" }, id: "c1" }],
+          [ask([choice])],
+        ),
+        memoryStore().mem,
+      ),
+    );
+
+    expect(itinerary.invoke).not.toHaveBeenCalled();
+    expect(failure).toBeInstanceOf(AskUserError);
+    const asked = (failure as AskUserError).askUser;
+    expect(asked).toMatchObject({
+      type: "ask_user",
+      known: { destination: "Sydney" },
+      questions: [choice],
+    });
+    expect(asked).not.toHaveProperty("plan");
+    expect(typeof asked.reply).toBe("string");
+  });
+
+  it("caps questions and options, drops blanks and maps multi_select", async () => {
+    const many = Array.from({ length: 6 }, (_v, i) => ({
+      id: i === 1 ? "q0" : `q${i}`,
+      question: i === 2 ? "   " : `Question ${i}?`,
+      options: [
+        { label: "A" },
+        { label: " " },
+        { label: "B" },
+        { label: "C" },
+        { label: "D" },
+        { label: "E" },
+      ],
+      multi_select: true,
+    }));
+    const failure = await caught(
+      run(
+        { tripId: "blank", message: "somewhere warm" },
+        scriptedModel([ask(many)]),
+        memoryStore().mem,
+      ),
+    );
+
+    const { questions } = (failure as AskUserError).askUser;
+    expect(questions).toHaveLength(4);
+    // The blank question is gone and the duplicate id was made unique.
+    expect(questions.map((question) => question.question)).toEqual([
+      "Question 0?",
+      "Question 1?",
+      "Question 3?",
+      "Question 4?",
+    ]);
+    expect(new Set(questions.map((question) => question.id)).size).toBe(4);
+    for (const question of questions) {
+      expect(question.options?.map((option) => option.label)).toEqual(["A", "B", "C", "D"]);
+      expect(question.multiSelect).toBe(true);
+    }
+  });
+
+  it("keeps the client's plan unchanged while the traveller answers", async () => {
+    const seed = await run(
+      { tripId: brief.tripId, message: "plan it", brief },
+      scriptedModel([{ name: "replan_trip", args: {}, id: "c1" }]),
+      memoryStore().mem,
+    );
+    vi.mocked(itinerary.invoke).mockClear();
+
+    const failure = await caught(
+      run(
+        { tripId: brief.tripId, message: "Make it better", brief, plan: seed.plan },
+        scriptedModel([ask([choice])]),
+        memoryStore().mem,
+      ),
+    );
+
+    expect(itinerary.invoke).not.toHaveBeenCalled();
+    const asked = (failure as AskUserError).askUser;
+    expect(asked.plan).toBe(seed.plan);
+    // A full brief narrows to the fields a follow-up carries.
+    expect(asked.known).toEqual({
+      destination: "Tokyo",
+      dates: ["2026-06-15", "2026-06-22"],
+      groupSize: 2,
+      budgetTotal: 4000,
+    });
+  });
+
+  it("does not build a plan for an older client that sent only the brief", async () => {
+    vi.mocked(itinerary.invoke).mockClear();
+    const failure = await caught(
+      run(
+        { tripId: brief.tripId, message: "Make it better", brief },
+        scriptedModel([ask([choice])]),
+        memoryStore().mem,
+      ),
+    );
+
+    expect(failure).toBeInstanceOf(AskUserError);
+    expect(itinerary.invoke).not.toHaveBeenCalled();
+  });
+
+  it("lets a plan built in the same turn win over the question", async () => {
+    const result = await run(
+      { tripId: brief.tripId, message: "plan it", brief },
+      scriptedModel([ask([choice])], [{ name: "replan_trip", args: {}, id: "c2" }]),
+      memoryStore().mem,
+    );
+
+    expect(result.plan.brief).toMatchObject({ destination: "Tokyo" });
+  });
+
+  it("shows nothing when every question is blank", async () => {
+    const failure = await caught(
+      run(
+        { tripId: "blank", message: "somewhere" },
+        scriptedModel([ask([{ id: "q", question: " " }])]),
+        memoryStore().mem,
+      ),
+    );
+
+    expect(failure).toBeInstanceOf(IncompleteBriefError);
+  });
+
+  it("is never asked without a provider key", async () => {
+    const failure = await caught(
+      runTripChat(
+        { tripId: "blank", message: "Sydney sometime next year for a few people" },
+        { specialists: [itinerary], tools, mem: memoryStore().mem },
+      ),
+    );
+
+    expect(failure).toBeInstanceOf(IncompleteBriefError);
+    expect(failure).not.toBeInstanceOf(AskUserError);
+  });
+
+  it("renders its tool schema to JSON Schema and tolerates null fields", () => {
+    expect(() =>
+      z.toJSONSchema(AskUserQuestionInput, { io: "input", target: "draft-7" }),
+    ).not.toThrow();
+    expect(
+      toQuestions({
+        questions: [
+          { id: "q", question: "Which?", header: null, options: null, multi_select: null },
+        ],
+      }),
+    ).toEqual([{ id: "q", question: "Which?" }]);
   });
 });

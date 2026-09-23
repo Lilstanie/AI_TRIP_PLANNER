@@ -166,6 +166,30 @@ describe("SerpApi stays: takes priority over Google Places, falls back to it on 
     });
   });
 
+  it("reports the property's own page from Google Places, and omits it when there is none", async () => {
+    vi.stubEnv("USE_MOCK_TOOLS", "false");
+    vi.stubEnv("MAPS_PROVIDER", "google");
+    vi.stubEnv("MAPS_API_KEY", "test-only");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        Response.json({
+          places: [
+            { displayName: { text: "Park Hotel" }, websiteUri: "https://parkhotel.example/" },
+            { displayName: { text: "No Site Inn" } },
+          ],
+        }),
+      ),
+    );
+
+    const options = await searchStays(stay);
+
+    expect(options.map((option) => option.detailsUrl)).toEqual([
+      "https://parkhotel.example/",
+      undefined,
+    ]);
+  });
+
   it("still throws the original 'no lodging' error when SerpApi AND the Google Places fallback both fail", async () => {
     vi.stubEnv("USE_MOCK_TOOLS", "false");
     vi.stubEnv("SERPAPI_KEY", "test-serpapi-key");

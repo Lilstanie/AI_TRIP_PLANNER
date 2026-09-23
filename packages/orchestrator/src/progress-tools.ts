@@ -13,6 +13,7 @@ import {
   type StayOption,
   type StayQuery,
   type ToolGateway,
+  type ToolResultKind,
   type ToolResultRow,
   type WeatherPort,
   type WeatherQuery,
@@ -33,6 +34,23 @@ function failureMessage(_error: unknown): string {
   return "Tool unavailable; continuing with fallback when possible.";
 }
 
+/**
+ * The web page a result row refers to, when the provider gave one. Clients show
+ * the site's icon for it, so anything that is not an http(s) page — a `tel:`
+ * link, a provider's own placeholder — is dropped rather than published as a
+ * site this result does not have.
+ */
+function site(url: string | undefined): { url: string } | Record<string, never> {
+  if (!url) return {};
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return {};
+    return { url: parsed.toString() };
+  } catch {
+    return {};
+  }
+}
+
 /** `20 options` reads false for one result; keep the plural honest. */
 function plural(count: number, singular: string, pluralForm = `${singular}s`): string {
   return `${count} ${count === 1 ? singular : pluralForm}`;
@@ -46,6 +64,70 @@ function plural(count: number, singular: string, pluralForm = `${singular}s`): s
 function bounded(rows: ToolResultRow[]): { rows: ToolResultRow[]; truncated: boolean } {
   if (rows.length <= BOUNDED_RESULT_ROWS) return { rows, truncated: false };
   return { rows: rows.slice(0, BOUNDED_RESULT_ROWS), truncated: true };
+}
+
+/**
+ * Place categories come from agents ("sight", "restaurant") and from providers
+ * (Google's "tourist_attraction", "night_club", OSM's "viewpoint"), so they are
+ * matched by keyword rather than by a closed list. Order matters: "art gallery
+ * cafe" is a museum, and a "coffee shop" is a cafe before it is shopping.
+ */
+const PLACE_KINDS: Array<[ToolResultKind, RegExp]> = [
+  ["museum", /\b(museums?|galler(y|ies)|exhibitions?)\b/],
+  ["cafe", /\b(cafes?|coffee|bakery|bakeries|tea ?house|tea ?room|dessert)\b/],
+  [
+    "restaurant",
+    /\b(restaurants?|food|dining|diner|eatery|bistro|brasserie|meal|izakaya|ramen|sushi|takeaway)\b/,
+  ],
+  [
+    "nightlife",
+    /\b(bars?|pubs?|night ?clubs?|nightlife|lounge|brewery|winery|cocktails?|karaoke)\b/,
+  ],
+  ["shopping", /\b(shop|shops|shopping|mall|malls|market|markets|stores?|boutiques?|department)\b/],
+  [
+    "nature",
+    /\b(parks?|gardens?|beach(es)?|nature|natural|hik(e|ing)|trails?|mountains?|lakes?|forests?|zoo|aquarium|campground|national park)\b/,
+  ],
+  ["stay", /\b(hotels?|lodging|hostels?|stays?|resorts?|accommodation)\b/],
+  [
+    "attraction",
+    /\b(sights?|sightseeing|attractions?|landmarks?|tourist|monuments?|temples?|shrines?|castles?|palaces?|churches|church|cathedral|historic(al)?|viewpoints?|point of interest|amusement)\b/,
+  ],
+];
+
+/** The icon kind for a place, defaulting to a generic place. */
+export function placeKind(category: string | undefined): ToolResultKind {
+  // Accents are stripped first: `\b` treats "é" as a non-word character.
+  const normalized = (category ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[_-]+/g, " ");
+  return PLACE_KINDS.find(([, pattern]) => pattern.test(normalized))?.[0] ?? "place";
+}
+
+/** The icon kind for a journey leg or option, by its TravelMode (or a provider synonym). */
+export function travelKind(mode: string): ToolResultKind {
+  switch (mode) {
+    case "drive":
+    case "car":
+    case "taxi":
+      return "drive";
+    case "transit":
+    case "bus":
+    case "train":
+    case "tram":
+    case "ferry":
+    case "subway":
+    case "metro":
+      return "transit";
+    case "walk":
+      return "walk";
+    case "flight":
+      return "flight";
+    default:
+      return "route";
+  }
 }
 
 /** `AUD 210.00 · 8.9/10 · free cancellation`. */
@@ -187,7 +269,14 @@ export function withProgressTools(
         () => tools.maps.places(query),
         (result) => {
           const { rows, truncated } = bounded(
-            result.map((place) => ({ label: place.name, detail: placeDetail(place) })),
+            result.map((place) => ({
+              label: place.name,
+              detail: placeDetail(place),
+              kind: placeKind(place.category || query.category),
+              // Only what the provider reported. A place with no site keeps
+              // its category glyph rather than borrowing another site's icon.
+              ...site(place.website),
+            })),
           );
           return {
             text: plural(result.length, "place result"),
@@ -206,7 +295,11 @@ export function withProgressTools(
         () => tools.maps.route(query),
         (result) => {
           const { rows, truncated } = bounded(
-            result.map((leg) => ({ label: leg.mode, detail: routeDetail(leg) })),
+            result.map((leg) => ({
+              label: leg.mode,
+              detail: routeDetail(leg),
+              kind: travelKind(leg.mode),
+            })),
           );
           return {
             text: plural(result.length, "route option"),
@@ -230,6 +323,7 @@ export function withProgressTools(
                   result.map((option) => ({
                     label: option.mode,
                     detail: optionDetail(option),
+                    kind: travelKind(option.mode),
                   })),
                 );
                 return {
@@ -262,7 +356,14 @@ export function withProgressTools(
         () => tools.booking.searchStays(query),
         (result) => {
           const { rows, truncated } = bounded(
-            result.map((option) => ({ label: option.name, detail: stayDetail(option) })),
+            result.map((option) => ({
+              label: option.name,
+              detail: stayDetail(option),
+              kind: "stay" as const,
+              // Whatever page the provider published for the property: its own
+              // site from Google Places, the details page from SerpApi.
+              ...site(option.detailsUrl),
+            })),
           );
           return {
             text: plural(result.length, "stay option"),
@@ -287,7 +388,11 @@ export function withProgressTools(
         () => tools.booking.searchFlights(query),
         (result) => {
           const { rows, truncated } = bounded(
-            result.map((option) => ({ label: option.carrier, detail: flightDetail(option) })),
+            result.map((option) => ({
+              label: option.carrier,
+              detail: flightDetail(option),
+              kind: "flight" as const,
+            })),
           );
           return {
             text: plural(result.length, "flight option"),
@@ -310,7 +415,13 @@ export function withProgressTools(
             () => tools.weather!.forecast(query),
             (result) => ({
               text: `${result.provider} · ${result.horizon}`,
-              rows: [{ label: result.summary, detail: `${result.horizon} · ${result.provider}` }],
+              rows: [
+                {
+                  label: result.summary,
+                  detail: `${result.horizon} · ${result.provider}`,
+                  kind: "weather",
+                },
+              ],
             }),
           ),
       }

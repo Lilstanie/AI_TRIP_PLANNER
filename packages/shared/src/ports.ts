@@ -32,6 +32,10 @@ export interface Place {
   category: string;
   rating?: number;
   location?: { latitude: number; longitude: number };
+  /** The place's own website, when the provider reports one (Google Places'
+   *  `websiteUri`). Absent for providers that do not publish it, such as
+   *  Nominatim search results. */
+  website?: string;
 }
 export interface ProviderProvenance {
   kind: "live" | "estimated" | "mock";

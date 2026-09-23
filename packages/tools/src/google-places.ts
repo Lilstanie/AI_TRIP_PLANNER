@@ -26,6 +26,9 @@ export interface RawGooglePlace {
   formattedAddress?: string;
   location?: { latitude?: number; longitude?: number };
   types?: string[];
+  /** The place's own website. Requested with the `places.websiteUri` field
+   *  mask; Google omits it for places that have none. */
+  websiteUri?: string;
 }
 
 export async function searchGooglePlacesText(
