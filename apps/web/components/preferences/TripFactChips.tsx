@@ -12,6 +12,7 @@ import {
 import { SlidersIcon } from "../ui/icons";
 import { FactFields } from "./FactFields";
 import { FactPopover, type CloseReason } from "./FactPopover";
+import { usePresence } from "../ui/motion";
 
 const TITLES: Record<FactKey, string> = {
   where: "Where",
@@ -64,6 +65,8 @@ type Props = {
 export function TripFactChips(props: Props) {
   const { draft, plan, open, onOpen, onClose, preferencesChip } = props;
   const labels = factLabels(draft, plan?.brief);
+  // The editor stays mounted briefly after it closes so it can sink away instead of vanishing.
+  const shown = usePresence(open, 220);
   const chips = useRef<Partial<Record<FactKey, HTMLButtonElement | null>>>({});
   // Read at event time, after the chip refs have been attached.
   const anchor = useMemo(
@@ -164,17 +167,19 @@ export function TripFactChips(props: Props) {
           );
         })}
       </div>
-      {open && (
+      {shown.value && (
         <FactPopover
-          key={open}
-          id={`fact-popover-${open}`}
-          title={TITLES[open]}
+          // A fresh instance for the exit, so reopening mid-exit mounts (and focuses) anew.
+          key={shown.leaving ? `${shown.value}:leaving` : shown.value}
+          id={`fact-popover-${shown.value}`}
+          title={TITLES[shown.value]}
           anchor={anchor}
           onClose={close}
           modal
-          className={`fact-popover--${open}`}
+          leaving={shown.leaving}
+          className={`fact-popover--${shown.value}`}
         >
-          <FactForm {...props} fact={open} onDone={() => close("dismiss")} />
+          <FactForm {...props} fact={shown.value} onDone={() => close("dismiss")} />
         </FactPopover>
       )}
     </div>

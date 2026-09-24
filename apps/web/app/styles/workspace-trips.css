@@ -123,7 +123,7 @@
 }
 .trip-cover__initial {
   position: relative;
-  font-family: var(--font-display), Georgia, "Times New Roman", serif;
+  font-family: var(--font-display);
   font-weight: 700;
   line-height: 1;
 }
@@ -401,7 +401,7 @@
   font-variant-numeric: tabular-nums;
 }
 .trip-calendar__day[data-today="true"] .trip-calendar__date {
-  background: var(--accent);
+  background: var(--accent-fill);
   color: var(--on-accent);
   font-weight: 700;
 }

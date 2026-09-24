@@ -18,7 +18,7 @@
 .topbar-title {
   margin: 0;
   overflow: hidden;
-  font-family: var(--font-display), Georgia, "Times New Roman", serif;
+  font-family: var(--font-display);
   font-size: var(--font-size-title);
   line-height: var(--line-height-title);
   white-space: nowrap;
@@ -49,7 +49,7 @@
   padding-inline: 5px;
   place-items: center;
   border-radius: var(--radius-pill);
-  background: var(--accent);
+  background: var(--accent-fill);
   color: var(--on-accent);
   font-size: 11px;
 }
@@ -118,7 +118,7 @@
 .split-resizer:hover::after,
 .split-resizer:focus-visible::after,
 .workspace-shell[data-resizing="true"] .split-resizer::after {
-  background: var(--accent);
+  background: var(--accent-fill);
 }
 .split-resizer:focus-visible {
   box-shadow: none;
@@ -156,7 +156,7 @@
 .map-placeholder h2 {
   margin: 0;
   color: var(--text);
-  font-family: var(--font-display), Georgia, "Times New Roman", serif;
+  font-family: var(--font-display);
   font-size: var(--font-size-title);
   line-height: var(--line-height-title);
 }
@@ -198,7 +198,7 @@
   flex: none;
 }
 .data-mode--live .data-mode__dot {
-  background: var(--accent);
+  background: var(--accent-fill);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
 }
 .data-mode--live {

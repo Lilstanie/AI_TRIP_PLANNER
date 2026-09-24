@@ -2,6 +2,7 @@
 import { useMemo, useRef, useState, type KeyboardEvent } from "react";
 import type { TripRecord } from "@/lib/workspace/catalog";
 import { ChevronIcon, PlusIcon } from "../ui/icons";
+import { useSegmentIndicator } from "../ui/motion";
 import { TripCover, coverColours } from "./TripCover";
 
 type Tab = "trips" | "calendar";
@@ -39,6 +40,8 @@ export function TripsPage({
 }) {
   const [tab, setTab] = useState<Tab>("trips");
   const tabRefs = useRef<Partial<Record<Tab, HTMLButtonElement | null>>>({});
+  const tabList = useRef<HTMLDivElement>(null);
+  useSegmentIndicator(tabList, tab);
 
   const onTabKey = (event: KeyboardEvent<HTMLButtonElement>) => {
     if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
@@ -58,7 +61,12 @@ export function TripsPage({
             <span>New trip</span>
           </button>
         </header>
-        <div className="trips-page__tabs" role="tablist" aria-label="Your trips">
+        <div
+          ref={tabList}
+          className="trips-page__tabs segmented"
+          role="tablist"
+          aria-label="Your trips"
+        >
           {TABS.map((item) => (
             <button
               key={item.id}
@@ -79,10 +87,11 @@ export function TripsPage({
           ))}
         </div>
         <div
+          key={tab}
           role="tabpanel"
           id={`trips-panel-${tab}`}
           aria-labelledby={`trips-tab-${tab}`}
-          className="trips-page__panel"
+          className="trips-page__panel tab-panel-enter"
         >
           {tab === "trips" ? (
             <TripCards trips={trips} activeTripId={activeTripId} onOpenTrip={onOpenTrip} />

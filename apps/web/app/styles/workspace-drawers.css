@@ -75,7 +75,7 @@
   overflow-wrap: anywhere;
 }
 .workspace-drawer--trip .drawer__title h2 {
-  font-family: var(--font-display), Georgia, "Times New Roman", serif;
+  font-family: var(--font-display);
 }
 .drawer__close {
   display: grid;

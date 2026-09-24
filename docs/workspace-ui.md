@@ -32,7 +32,7 @@ now. Implementation history and browser acceptance for each phase are in the
     text colour that fill in for the open panel or page, which also gets a heavier label, a quiet
     background and `aria-current`. Collapsed, they are labelled icon buttons with tooltips.
   - **Chats** toggles the Chats panel (`aria-expanded`, `aria-controls="chats-panel"`): a 320 px
-    region at the sidebar's right edge that slides and fades in over the workspace in 240 ms
+    glass region at the sidebar's right edge that springs and fades in over the workspace in 380 ms
     (instant under `prefers-reduced-motion`) and is `inert` while closed. Opening it focuses its
     search; Escape closes it and returns focus to Chats (an open history menu or dialog takes Escape
     first), and a press outside it closes it. The [Chats panel and Your trips Agent Note](../.agents/notes/implemented/feature/2026-09-24-chats-panel-and-trips-page.md)
@@ -44,7 +44,8 @@ now. Implementation history and browser acceptance for each phase are in the
     with the linked trip's name under it. Choosing any of them closes the panel. See
     [New chat and New trip](#conversations-trips-and-storage) for what the two starts do.
   - **Trips** replaces the top bar, chat and map with the Your trips page: a "Your trips" heading, a
-    New trip button, and Trips and Calendar tabs (`role="tablist"`, arrow keys switch). Trips shows
+    New trip button, and Trips and Calendar tabs (`role="tablist"`, arrow keys switch) drawn as a
+    segmented control whose thumb slides between them. Trips shows
     every trip as a 4:3 cover card with "Trip to <destination>" and "<destination> · N days",
     grouped into Upcoming and Past. Calendar is a Monday-first month grid with previous, Today and
     next, drawing each trip as a band over its days, labelled where it starts and at each week's
@@ -78,12 +79,13 @@ now. Implementation history and browser acceptance for each phase are in the
   - Every editor opens as a centred modal dialog (`aria-modal="true"`) over a scrim, like Mindtrip's,
     held a fixed distance from the top so a new row grows it downwards. The panel has no padding of
     its own: the head has the close button leading and a centred 20 px semibold title, content is
-    inset by `--space-5`, and one ink pill at the bottom right (`--text` fill, `--page` label, so it
-    inverts in dark mode, 168 × 40) is the primary action: Save, Done on Trip preferences, or Update
+    inset by `--space-5`, and one Apple-blue pill at the bottom right (`--accent-fill` fill,
+    `--on-accent` label, 168 × 40) is the primary action: Save, Done on Trip preferences, or Update
     trip once a plan exists. Trip preferences has a hairline under its head; the others have none. The
     panel is 512 px wide, 420 px for Who and Budget's shorter rows, and 680 px for When's two-month
-    calendar (all `min(…, 100vw - 2 × --space-4)`). It uses `--radius-lg` (14 px) and the list rows
-    `--radius` (10 px) rather than Mindtrip's 16 and 12, to stay on the tokens.
+    calendar (all `min(…, 100vw - 2 × --space-4)`). It is a Liquid Glass sheet with 28 px corners that
+    springs in and sinks out (200 ms, kept mounted by `usePresence`), and the list rows use
+    `--radius` (12 px).
   - Where lists the destinations in visiting order as cards: a 48 px square icon slot on
     `--surface-2` where Mindtrip shows a photo (no photo is fetched here), the name in 15 px semibold,
     the region line under it when the place was picked from a suggestion, and a 28 px round remove
@@ -162,8 +164,11 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     return to the trigger.
   - Only one drawer is open at a time. Closed drawers are translated fully outside the viewport, and
     the shell uses `overflow: clip` so they cannot be scrolled into view.
-  - Animations are 240 ms and respect
-    `prefers-reduced-motion`.
+  - Drawers are floating Liquid Glass sheets inset by `--space-2` with `--radius-xl` corners. They
+    slide on the iOS sheet curve in 380 ms, and the backdrop fades out with them (kept mounted by
+    `usePresence`). All of it respects `prefers-reduced-motion`.
+  - Opening another chat or trip, New chat, New trip and the Your trips page cross-fade the main
+    column through the View Transitions API (`viewTransition`); the phone Chat/Map switch slides.
 - **Narrow screens (≤1000 px).**
   - The top bar keeps the menu, the fact chips and Trip on one row, with a Chat/Map switch below.
     When the chips do not fit they scroll sideways inside their row, which fades at the edge that
@@ -407,7 +412,7 @@ Use this checklist for each visual change. It supplements, and does not change, 
 
 Keep light and dark screenshots for desktop (1600×900) and narrow (375×812) acceptance. Verify body and supporting text contrast with a contrast tool; status must retain a textual or graphical cue when color is unavailable.
 
-The root layout loads the self-hosted Fraunces display font through `next/font`; it is limited to destination, Trip, and empty-state headings. Body copy and controls retain the system sans stack, with serif fallbacks for display headings. `color-scheme: light dark` keeps native controls aligned with the active theme.
+No web font is loaded: body and controls use SF Pro Text and headings SF Pro Display through the system stack, falling back to PingFang and Hiragino for Chinese. `color-scheme: light dark` keeps native controls aligned with the active theme.
 
 ## Verification
 

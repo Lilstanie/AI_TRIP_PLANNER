@@ -36,7 +36,7 @@
   place-items: center;
   border: 2px solid var(--surface);
   border-radius: var(--radius-pill);
-  background: var(--accent);
+  background: var(--accent-fill);
   color: var(--on-accent);
   box-shadow: var(--shadow-md);
   font-size: var(--font-size-meta);
