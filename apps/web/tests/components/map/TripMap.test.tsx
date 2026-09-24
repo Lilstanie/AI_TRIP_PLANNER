@@ -1,6 +1,29 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { TripMap } from "@/components/map/TripMap";
+import { TripMap, type MapStop } from "@/components/map/TripMap";
+import { useUserLocation } from "@/components/map/useUserLocation";
+import type { GooglePlace } from "@/lib/integrations/google";
+
+type MapProps = Omit<Parameters<typeof TripMap>[0], "userLocation" | "stops"> & {
+  places: GooglePlace[];
+  days?: number[];
+};
+/** TripMap with the workspace's location hook, and places numbered in the order given. */
+function Map({ places, days = [], ...props }: MapProps) {
+  const userLocation = useUserLocation();
+  const stops: MapStop[] = places.map((place, index) => ({
+    place,
+    order: index + 1,
+    day: days[index],
+  }));
+  return <TripMap {...props} stops={stops} userLocation={userLocation} />;
+}
+const museum: GooglePlace = {
+  id: "place-1",
+  displayName: { text: "Museum" },
+  formattedAddress: "1 Museum Way",
+  location: { latitude: -33.87, longitude: 151.2 },
+};
 
 function setGeolocation(getCurrentPosition: Geolocation["getCurrentPosition"]) {
   Object.defineProperty(navigator, "geolocation", {
@@ -15,22 +38,35 @@ afterEach(() => {
 });
 
 describe("TripMap", () => {
-  it("keeps the selected place available as a pressed list button", () => {
-    render(
-      <TripMap
-        places={[
-          {
-            id: "place-1",
-            displayName: { text: "Museum" },
-            location: { latitude: -33.87, longitude: 151.2 },
-          },
-        ]}
-        selected="place-1"
-        routes={[]}
-        onSelect={() => {}}
-      />,
+  it("keeps no place list on the map; the Trip drawer lists the places", () => {
+    render(<Map places={[museum]} routes={[]} onSelect={() => {}} />);
+    expect(screen.queryByRole("list", { name: "Places shown on the map" })).toBeNull();
+    expect(document.querySelector(".trip-map-place-list")).toBeNull();
+  });
+
+  it("opens the selected place's details with its stop and day, and closes them", () => {
+    const { rerender } = render(
+      <Map places={[museum]} days={[2]} selected="place-1" routes={[]} onSelect={() => {}} />,
     );
-    expect(screen.getByRole("button", { name: "1. Museum", pressed: true })).toBeTruthy();
+    const popup = screen.getByRole("dialog", { name: "Museum" });
+    expect(within(popup).getByText("Stop 1 · Day 2")).toBeTruthy();
+    expect(within(popup).getByText("1 Museum Way")).toBeTruthy();
+
+    fireEvent.click(within(popup).getByRole("button", { name: "Close place details" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+
+    // Selecting another place (from the drawer, say) opens its details again.
+    const other = { ...museum, id: "place-2", displayName: { text: "Harbour" } };
+    rerender(<Map places={[museum, other]} selected="place-2" routes={[]} onSelect={() => {}} />);
+    expect(screen.getByRole("dialog", { name: "Harbour" })).toBeTruthy();
+  });
+
+  it("closes the place details with Escape", () => {
+    render(<Map places={[museum]} selected="place-1" routes={[]} onSelect={() => {}} />);
+    fireEvent.keyDown(screen.getByRole("button", { name: "Close place details" }), {
+      key: "Escape",
+    });
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 
   it("requests location only after the user clicks and reports success", async () => {
@@ -39,7 +75,7 @@ describe("TripMap", () => {
     });
     setGeolocation(getCurrentPosition);
 
-    render(<TripMap places={[]} routes={[]} onSelect={() => {}} />);
+    render(<Map places={[]} routes={[]} onSelect={() => {}} />);
     expect(getCurrentPosition).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole("button", { name: "Show my location" }));
@@ -55,7 +91,7 @@ describe("TripMap", () => {
     });
     setGeolocation(getCurrentPosition);
 
-    render(<TripMap places={[]} routes={[]} onSelect={() => {}} />);
+    render(<Map places={[]} routes={[]} onSelect={() => {}} />);
     fireEvent.click(screen.getByRole("button", { name: "Show my location" }));
 
     await waitFor(() => expect(screen.getByText(/permission was denied/i)).toBeTruthy());
@@ -64,7 +100,7 @@ describe("TripMap", () => {
   });
 
   it("handles browsers without geolocation", async () => {
-    render(<TripMap places={[]} routes={[]} onSelect={() => {}} />);
+    render(<Map places={[]} routes={[]} onSelect={() => {}} />);
     fireEvent.click(screen.getByRole("button", { name: "Show my location" }));
     await waitFor(() => expect(screen.getByText(/not supported by this browser/i)).toBeTruthy());
   });
@@ -84,20 +120,7 @@ describe("TripMap", () => {
       }),
     );
     vi.stubGlobal("fetch", fetcher);
-    render(
-      <TripMap
-        places={[
-          {
-            id: "place-1",
-            displayName: { text: "Museum" },
-            location: { latitude: -33.87, longitude: 151.2 },
-          },
-        ]}
-        selected="place-1"
-        routes={[]}
-        onSelect={() => {}}
-      />,
-    );
+    render(<Map places={[museum]} selected="place-1" routes={[]} onSelect={() => {}} />);
     expect(fetcher).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Show my location" }));
     fireEvent.click(await screen.findByRole("button", { name: "Route from my location" }));
@@ -111,7 +134,7 @@ describe("TripMap", () => {
     setGeolocation((_success, failure) => {
       failure?.({ code } as GeolocationPositionError);
     });
-    render(<TripMap places={[]} routes={[]} onSelect={() => {}} />);
+    render(<Map places={[]} routes={[]} onSelect={() => {}} />);
     fireEvent.click(screen.getByRole("button", { name: "Show my location" }));
     await waitFor(() => expect(screen.getByText(expectedMessage)).toBeTruthy());
   });

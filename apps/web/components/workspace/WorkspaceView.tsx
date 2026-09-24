@@ -5,6 +5,9 @@ import { ChatPanel } from "../chat/ChatPanel";
 import { TripEditor } from "../trip/TripEditor";
 import { TripMapCanvas } from "../map/TripMapCanvas";
 import { TripPanel, tripStatus } from "../trip/TripPanel";
+import { TripPlaceList } from "../trip/TripPlaceList";
+import { LocationPrompt } from "../map/LocationPrompt";
+import { useUserLocation } from "../map/useUserLocation";
 import { Drawer } from "../ui/Drawer";
 import { WorkspaceSidebar } from "./WorkspaceSidebar";
 import { SidebarResizer } from "./SidebarResizer";
@@ -101,6 +104,7 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
     renameChat,
     deleteChat,
   } = model;
+  const userLocation = useUserLocation();
 
   return (
     <div
@@ -238,6 +242,9 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
               </button>
             </div>
           )}
+          {userLocation.asking && (
+            <LocationPrompt onAllow={userLocation.allow} onDismiss={userLocation.dismiss} />
+          )}
           {notice && (
             <p role="status" className="notice">
               {notice}{" "}
@@ -286,6 +293,7 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
               onSelectActivity={setSelectedActivity}
               routes={mapRoutes}
               showPhotos={dataMode.mode === "live" && !!dataMode.providers?.maps}
+              userLocation={userLocation}
             />
           </div>
           {drawerOpen && (
@@ -353,6 +361,14 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
                 onReview={() => setDialog("review")}
                 onEdit={edit}
                 onSave={save}
+                places={
+                  <TripPlaceList
+                    tripPlaces={tripPlaces}
+                    startDate={plan.brief.dates[0]}
+                    selected={selectedActivity}
+                    onSelect={setSelectedActivity}
+                  />
+                }
                 timeline={
                   <TripEditor
                     plan={plan}

@@ -514,8 +514,12 @@ describe("Workspace interactions", () => {
     await act(async () => {
       finishPlaces(Response.json({ places: [googlePlace] }));
     });
-    const list = await screen.findByRole("list", { name: "Places shown on the map" });
-    expect(within(list).getByText(/Louvre/)).toBeTruthy();
+    // The Trip drawer's place list, not an overlay on the map, lists the trip's places.
+    fireEvent.click(screen.getByRole("button", { name: "Open your trip" }));
+    const list = await within(drawer("trip")).findByRole("list", { name: "Places, Unscheduled" });
+    await waitFor(() =>
+      expect(within(list).getByRole("button", { name: /Stop 1: Louvre/ })).toBeTruthy(),
+    );
     expect(within(list).queryByText(/Sydney museum/)).toBeNull();
   });
   it("opens blank on first visit without requesting a demo plan", async () => {
@@ -916,8 +920,12 @@ describe("Workspace map places", () => {
         ])}
       />,
     );
-    const list = await screen.findByRole("list", { name: "Places shown on the map" });
-    expect(within(list).getByText(/To-ji Temple/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Open your trip" }));
+    const places = () =>
+      within(drawer("trip")).getByRole("list", { name: "Places, Day 1 · 2026-10-01" });
+    await waitFor(() =>
+      expect(within(places()).getByRole("button", { name: /To-ji Temple/ })).toBeTruthy(),
+    );
     const map = document.querySelector<HTMLElement>(".workspace-panel--map")!;
     await waitFor(() =>
       expect(within(map).getByText(/1 could not be loaded from Google Places/)).toBeTruthy(),
@@ -930,11 +938,9 @@ describe("Workspace map places", () => {
     await waitFor(() =>
       expect(within(map).getByText(/1 activity has no confirmed place yet/)).toBeTruthy(),
     );
-    expect(
-      within(screen.getByRole("list", { name: "Places shown on the map" })).getByText(
-        /To-ji Temple/,
-      ),
-    ).toBeTruthy();
+    expect(within(places()).getByRole("button", { name: /To-ji Temple/ })).toBeTruthy();
+    // The failed stop stays listed, without a map selection, instead of disappearing.
+    expect(within(places()).getByText(/Gallery afternoon|Kyoto Gallery/)).toBeTruthy();
   });
 
   it("shows a neutral placeholder instead of a world map when the destination cannot be located", async () => {

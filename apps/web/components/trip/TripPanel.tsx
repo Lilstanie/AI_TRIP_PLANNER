@@ -23,6 +23,7 @@ export function TripPanel({
   tab,
   onTab,
   timeline,
+  places,
   onReview,
   onEdit,
   onSave,
@@ -32,6 +33,8 @@ export function TripPanel({
   tab: TripTab;
   onTab(tab: TripTab): void;
   timeline: ReactNode;
+  /** The trip's places in visiting order, shown first in the Overview tab. */
+  places?: ReactNode;
   onReview: () => void;
   onEdit: () => void;
   onSave: () => void;
@@ -115,6 +118,7 @@ export function TripPanel({
       >
         {tab === "overview" ? (
           <>
+            {places}
             {plan.sections.length ? (
               plan.sections.map((section) => (
                 <TripSection

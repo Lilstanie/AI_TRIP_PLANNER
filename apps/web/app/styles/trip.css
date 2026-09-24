@@ -556,3 +556,88 @@
   border-radius: 1px;
   background: repeating-linear-gradient(var(--border) 0 3px, transparent 3px 6px);
 }
+
+/* Places: the trip's stops in visiting order at the top of Overview; the keyboard path to markers. */
+.trip-places {
+  display: grid;
+  gap: var(--space-3);
+  padding-bottom: var(--space-4);
+}
+.trip-places h3 {
+  margin: 0;
+  font-size: var(--font-size-body);
+}
+.trip-places__day {
+  display: grid;
+  gap: var(--space-2);
+}
+.trip-places__day h4 {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: var(--font-size-meta);
+  font-weight: 600;
+}
+.trip-places ol {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.trip-places__stop {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  text-align: left;
+}
+button.trip-places__stop {
+  padding: var(--space-2) var(--space-3) !important;
+  border-radius: var(--radius) !important;
+}
+button.trip-places__stop:hover {
+  border-color: var(--accent) !important;
+}
+button.trip-places__stop[aria-pressed="true"] {
+  border-color: var(--accent) !important;
+  background: var(--accent-bg) !important;
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+.trip-places__stop--unmapped {
+  padding: var(--space-2) var(--space-3);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  color: var(--text-dim);
+}
+.trip-places__order {
+  display: grid;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: var(--font-size-meta);
+  font-weight: 700;
+}
+.trip-places__stop--unmapped .trip-places__order {
+  border: 1px dashed var(--text-dim);
+  background: none;
+}
+.trip-places__text {
+  display: grid;
+  min-width: 0;
+}
+.trip-places__name {
+  overflow-wrap: anywhere;
+  font-weight: 600;
+}
+button.trip-places__stop[aria-pressed="true"] .trip-places__name {
+  font-weight: 700;
+}
+.trip-places__text small {
+  color: var(--text-dim);
+  font-size: var(--font-size-meta);
+  overflow-wrap: anywhere;
+}
