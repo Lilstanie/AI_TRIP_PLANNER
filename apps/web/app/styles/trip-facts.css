@@ -112,10 +112,6 @@
   box-shadow: var(--shadow-md);
   animation: fact-popover-in var(--transition);
 }
-.fact-popover--when,
-.fact-popover--preferences {
-  width: min(400px, calc(100vw - 24px));
-}
 @keyframes fact-popover-in {
   from {
     opacity: 0;
@@ -169,18 +165,6 @@
   display: block;
   margin-top: 2px;
 }
-.fact-form .filter-dates {
-  margin-bottom: var(--space-1);
-}
-/* Native date inputs carry a wide intrinsic size; let them shrink so the calendar button fits. */
-.fact-form .filter-dates .form-field,
-.fact-form .filter-dates .field {
-  min-width: 0;
-}
-.fact-form .filter-dates__calendar {
-  flex: none;
-  margin-bottom: var(--space-1);
-}
 .fact-form__error {
   margin-bottom: var(--space-3);
 }
@@ -203,24 +187,184 @@
   font-weight: 600;
 }
 
-/* Travellers: minus, the count, plus. */
-.fact-stepper {
-  display: grid;
-  grid-template-columns: 40px minmax(0, 1fr) 40px;
-  gap: var(--space-2);
+/* When: a summary line and Clear above a full inline calendar. */
+.when-fields__summary {
+  display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+  font-size: 15px;
+  font-weight: 600;
+}
+.when-fields__summary .muted {
+  color: var(--text-dim);
+  font-weight: 400;
+}
+.when-fields__clear {
+  flex: none;
+  padding: 0 !important;
+  border: 0 !important;
+  background: none !important;
+  color: var(--accent);
+  font-size: var(--font-size-meta);
+  font-weight: 600;
+}
+@media (hover: hover) {
+  .when-fields__clear:hover {
+    text-decoration: underline;
+  }
+}
+/* react-day-picker retokened onto the design system, so the calendar reads as part of the app
+   rather than a third-party widget: rounded cells, a soft accent band across the picked range and
+   solid accent circles at its start and end, dropped in place of react-day-picker's own blue. */
+.trip-calendar.rdp-root {
+  --rdp-accent-color: var(--accent);
+  --rdp-accent-background-color: var(--accent-bg);
+  --rdp-today-color: var(--accent);
+  --rdp-range_start-color: var(--on-accent);
+  --rdp-range_end-color: var(--on-accent);
+  --rdp-range_middle-color: var(--text);
+  --rdp-day-width: 38px;
+  --rdp-day-height: 38px;
+  --rdp-day_button-width: 34px;
+  --rdp-day_button-height: 34px;
+  --rdp-day_button-border-radius: var(--radius-pill);
+  --rdp-day_button-border: none;
+  --rdp-selected-border: none;
+  --rdp-nav_button-width: 30px;
+  --rdp-nav_button-height: 30px;
+  --rdp-months-gap: var(--space-5);
+  margin: 0 auto;
+  color: var(--text);
+  font-family: inherit;
+}
+.trip-calendar .rdp-month_caption {
+  font-size: var(--font-size-body);
+  font-weight: 600;
+}
+.trip-calendar .rdp-weekday {
+  color: var(--text-dim);
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+.trip-calendar .rdp-chevron {
+  fill: var(--text-dim);
+}
+/* Start and end keep their solid accent under the pointer, or the end just picked would vanish. */
+.trip-calendar .rdp-day:not(.rdp-range_start, .rdp-range_end) .rdp-day_button:not(:disabled):hover {
+  background: var(--surface-2);
+}
+.trip-calendar .rdp-day_button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.trip-calendar .rdp-today:not(.rdp-outside) .rdp-day_button {
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+/* One month on phones: the sheet is too narrow for two side by side. */
+@media (max-width: 520px) {
+  .trip-calendar .rdp-months > .rdp-month:nth-of-type(2) {
+    display: none;
+  }
+}
+
+/* Budget: a set of preset range cards, plus a custom amount field. */
+.fact-budget__presets {
+  display: grid;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+.fact-budget__preset {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: 52px !important;
+  padding: var(--space-2) var(--space-4) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius) !important;
+  background: var(--surface) !important;
+  color: var(--text);
+  text-align: left;
+}
+.fact-budget__preset[data-checked="true"] {
+  border-color: var(--accent) !important;
+  background: var(--accent-bg) !important;
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+@media (hover: hover) {
+  .fact-budget__preset:not([data-checked="true"]):hover {
+    background: var(--surface-2) !important;
+  }
+}
+.fact-budget__preset-name {
+  font-size: 15px;
+  font-weight: 600;
+}
+.fact-budget__preset-hint {
+  color: var(--text-dim);
+  font-size: var(--font-size-meta);
+}
+.fact-budget__preset[data-checked="true"] .fact-budget__preset-hint {
+  color: var(--text);
+}
+
+/* Who: a row of steppers, one per traveller kind. */
+.fact-steppers {
+  display: grid;
+  gap: var(--space-4);
+}
+.fact-steppers__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.fact-steppers__label {
+  display: grid;
+  gap: 2px;
+}
+.fact-steppers__label span {
+  font-size: 15px;
+  font-weight: 500;
+}
+.fact-steppers__label small {
+  color: var(--text-dim);
+  font-size: var(--font-size-meta);
+}
+.fact-stepper {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-3);
 }
 .fact-stepper__button {
   display: grid;
-  width: 40px;
-  height: 40px;
+  flex: none;
+  width: 32px;
+  height: 32px;
   padding: 0 !important;
   place-items: center;
+  border: 1px solid var(--border) !important;
   border-radius: var(--radius-pill) !important;
+  background: var(--surface) !important;
+  color: var(--text);
+}
+.fact-stepper__button:disabled {
+  opacity: 0.4;
+}
+@media (hover: hover) {
+  .fact-stepper__button:not(:disabled):hover {
+    background: var(--surface-2) !important;
+  }
 }
 .fact-stepper__value {
-  margin-bottom: 0;
+  min-width: 20px;
   text-align: center;
+  font-size: 15px;
+  font-weight: 600;
 }
 
 /* ---- Where and Trip preferences: a centred dialog ----
@@ -243,12 +387,12 @@
 /* Held at a fixed distance from the top rather than centred vertically, so adding or removing a
    row grows the dialog downwards instead of shifting it under the pointer. */
 .fact-popover.fact-popover--modal {
-  --fact-modal-top: min(12dvh, 120px);
+  /* Centred on the screen, both ways. */
   inset: 0;
   width: min(512px, calc(100vw - 2 * var(--space-4)));
   height: fit-content;
-  max-height: calc(100dvh - var(--fact-modal-top) - var(--space-5));
-  margin: var(--fact-modal-top) auto auto;
+  max-height: calc(100dvh - 2 * var(--space-5));
+  margin: auto;
   padding: 0;
   overflow: hidden;
   border-radius: var(--radius-lg);
@@ -259,6 +403,15 @@
     opacity: 0;
     transform: scale(0.98);
   }
+}
+/* When needs room for two months side by side; Who and Budget hold a short list of rows, so a
+   narrower dialog reads better than the full 512px. */
+.fact-popover--when.fact-popover--modal {
+  width: min(680px, calc(100vw - 2 * var(--space-4)));
+}
+.fact-popover--who.fact-popover--modal,
+.fact-popover--budget.fact-popover--modal {
+  width: min(420px, calc(100vw - 2 * var(--space-4)));
 }
 .fact-popover--modal .fact-popover__head {
   display: grid;
@@ -674,12 +827,9 @@
   .stop-add {
     min-height: 44px !important;
   }
-  .fact-stepper {
-    grid-template-columns: 44px minmax(0, 1fr) 44px;
-  }
   .fact-stepper__button {
-    width: 44px;
-    height: 44px;
+    width: 40px;
+    height: 40px;
   }
   .fact-form__actions button {
     flex: 1;

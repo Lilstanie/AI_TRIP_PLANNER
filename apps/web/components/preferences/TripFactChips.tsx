@@ -21,16 +21,11 @@ const TITLES: Record<FactKey, string> = {
   preferences: "Trip preferences",
 };
 const EMPTY: Record<Exclude<FactKey, "preferences">, string> = {
-  where: "Add destination",
-  when: "Add dates",
-  who: "Add travellers",
-  budget: "Add budget",
+  where: "Where",
+  when: "When",
+  who: "Who",
+  budget: "Budget",
 };
-/**
- * Editors that hold a list open as a centred dialog over a scrim, as Mindtrip's Where and trip
- * preferences dialogs do; the single-value editors stay anchored under their chip.
- */
-const MODAL: ReadonlySet<FactKey> = new Set(["where", "preferences"]);
 /** Spoken before a filled chip's value, so "Sydney" is announced as "Destination: Sydney". */
 const NAMES: Record<Exclude<FactKey, "preferences">, string> = {
   where: "Destination",
@@ -176,7 +171,7 @@ export function TripFactChips(props: Props) {
           title={TITLES[open]}
           anchor={anchor}
           onClose={close}
-          modal={MODAL.has(open)}
+          modal
           className={`fact-popover--${open}`}
         >
           <FactForm {...props} fact={open} onDone={() => close("dismiss")} />

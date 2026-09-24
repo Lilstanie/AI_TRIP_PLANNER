@@ -10,7 +10,6 @@ import {
   NeedsInfoError,
   parseDraft,
   parseSnapshot,
-  parseSaved,
   readPlanStream,
   withValidAttachments,
 } from "@/lib/workspace/workspace";
@@ -94,7 +93,6 @@ describe("workspace boundaries", () => {
       { ...snapshot, previousTotal: -1 },
     ])
       expect(() => parseSnapshot(invalid)).toThrow();
-    expect(() => parseSaved("garbage")).toThrow();
   });
   it("drops a removed decision list from a stored plan instead of rejecting it", () => {
     // Plans saved before the decision apparatus was removed still carry `hitl`.
@@ -343,5 +341,27 @@ describe("trip origin", () => {
   it("sends a stated origin to the assistant as a known fact", () => {
     expect(knownFromDraft({ ...blankDraft(), origin: "Perth" }).origin).toBe("Perth");
     expect(knownFromDraft(blankDraft()).origin).toBeUndefined();
+  });
+});
+
+describe("traveller party", () => {
+  const party = { adults: 2, children: 1, infants: 1, seniors: 0, pets: 1 };
+  const withParty = { ...snapshot.draft, groupSize: "4", party };
+  it("sends the breakdown with the brief and the known facts while it matches groupSize", () => {
+    const parsed = parseDraft(withParty, plan.brief);
+    expect(parsed.success && parsed.data.party).toEqual(party);
+    expect(knownFromDraft(withParty).party).toEqual(party);
+    expect(draftFor({ ...plan.brief, groupSize: 4, party }).party).toEqual(party);
+  });
+  it("leaves out a breakdown that no longer adds up to groupSize", () => {
+    const stale = { ...withParty, groupSize: "3" };
+    const parsed = parseDraft(stale, { ...plan.brief, party });
+    expect(parsed.success && parsed.data.party).toBeUndefined();
+    expect(knownFromDraft(stale).party).toBeUndefined();
+    expect(draftFor({ ...plan.brief, groupSize: 3, party }).party).toBeUndefined();
+  });
+  it("drops the breakdown when the chat learns a different head count", () => {
+    expect(draftWithKnown(withParty, { groupSize: 3 }).party).toBeUndefined();
+    expect(draftWithKnown(withParty, { destination: "Hobart" }).party).toEqual(party);
   });
 });

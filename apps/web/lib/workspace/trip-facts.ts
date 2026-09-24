@@ -6,6 +6,15 @@ import {
 } from "@trip/shared";
 import { budgetHint, parseDraft, type Draft } from "./workspace";
 
+/** Age labels shown beside each Who stepper; also the order the chip summary lists them in. */
+export const PARTY_ROWS = [
+  { key: "adults", label: "Adults", hint: "Ages 13–64", singular: "adult", article: "an" },
+  { key: "children", label: "Children", hint: "Ages 2–12", singular: "child", article: "a" },
+  { key: "infants", label: "Infants", hint: "Under 2", singular: "infant", article: "an" },
+  { key: "seniors", label: "Seniors", hint: "65+", singular: "senior", article: "a" },
+  { key: "pets", label: "Pets", hint: "", singular: "pet", article: "a" },
+] as const;
+
 /**
  * The top bar edits the brief one fact at a time, each from its own chip. Every draft field
  * belongs to exactly one fact, or is one of the retired fields nothing edits any more.
@@ -150,16 +159,29 @@ export function factLabels(draft: Draft, brief?: TripBrief) {
   const budget = Number(draft.budgetTotal);
   const dates = datesLabel(draft.start, draft.end);
   const hint = brief && budget === brief.budgetTotal ? budgetHint(brief) : "";
+  const validTravellers = draft.groupSize.trim() && Number.isInteger(travellers) && travellers > 0;
   return {
     where: draft.destination.trim() || undefined,
     when: dates && `${dates.range} · ${dates.days}`,
-    who:
-      draft.groupSize.trim() && Number.isInteger(travellers) && travellers > 0
-        ? `${travellers} ${travellers === 1 ? "traveller" : "travellers"}`
-        : undefined,
+    who: validTravellers ? whoLabel(draft, travellers) : undefined,
     budget:
       draft.budgetTotal.trim() && Number.isFinite(budget) && budget > 0
         ? `${chipMoney(budget)}${hint}`
         : undefined,
   };
+}
+
+/**
+ * "2 adults, 1 child, 1 pet" from the stepper breakdown, or a plain "3 travellers" when the draft
+ * has none — a brief loaded fresh (`draftFor`), or one saved before the steppers existed.
+ */
+function whoLabel(draft: Draft, travellers: number) {
+  const plain = `${travellers} ${travellers === 1 ? "traveller" : "travellers"}`;
+  const party = draft.party;
+  if (!party) return plain;
+  const parts = PARTY_ROWS.map(({ key, singular }) => {
+    const count = party[key];
+    return count > 0 ? `${count} ${count === 1 ? singular : `${singular}s`}` : undefined;
+  }).filter((part): part is string => !!part);
+  return parts.length ? parts.join(", ") : plain;
 }

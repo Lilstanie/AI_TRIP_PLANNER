@@ -63,13 +63,7 @@ describe("TripFactChips", () => {
     const names = within(group)
       .getAllByRole("button")
       .map((item) => item.textContent);
-    expect(names).toEqual([
-      "Add destination",
-      "Add dates",
-      "Add travellers",
-      "Add budget",
-      "Preferences",
-    ]);
+    expect(names).toEqual(["Where", "When", "Who", "Budget", "Preferences"]);
     for (const item of within(group).getAllByRole("button")) {
       expect(item.getAttribute("aria-haspopup")).toBe("dialog");
       expect(item.getAttribute("aria-expanded")).toBe("false");
@@ -86,7 +80,7 @@ describe("TripFactChips", () => {
 
   it("opens a labelled editor for one fact, focuses its field and returns focus on Escape", () => {
     render(<Harness />);
-    const chip = button("Add destination");
+    const chip = button("Where");
     fireEvent.click(chip);
     const dialog = screen.getByRole("dialog", { name: "Where" });
     expect(chip.getAttribute("aria-expanded")).toBe("true");
@@ -102,14 +96,14 @@ describe("TripFactChips", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(document.activeElement).toBe(chip);
     // Escape discards the edit.
-    expect(button("Add destination")).toBeTruthy();
+    expect(button("Where")).toBeTruthy();
   });
 
   it("keeps an edit only on Save, and saving without a plan never starts planning", () => {
     const onSave = vi.fn();
     const onPlan = vi.fn(() => true);
     render(<Harness onSave={onSave} onPlan={onPlan} />);
-    fireEvent.click(button("Add destination"));
+    fireEvent.click(button("Where"));
     // Text left in the search field counts, without pressing Enter first.
     fireEvent.change(screen.getByLabelText("Add a destination"), { target: { value: "Lisbon" } });
     fireEvent.change(screen.getByLabelText("Departing from (optional)"), {
@@ -124,24 +118,56 @@ describe("TripFactChips", () => {
     expect(document.activeElement).toBe(button("Destination: Lisbon"));
   });
 
-  it("steps travellers and rejects a value the planner would reject", () => {
+  it("steps travellers with a stepper per kind and rejects an empty party", () => {
     const onSave = vi.fn();
     render(<Harness onSave={onSave} />);
-    fireEvent.click(button("Add travellers"));
-    expect((button("Remove a traveller") as HTMLButtonElement).disabled).toBe(true);
-    fireEvent.click(button("Add a traveller"));
-    fireEvent.click(button("Add a traveller"));
-    expect((screen.getByLabelText("Travellers") as HTMLInputElement).value).toBe("2");
+    fireEvent.click(button("Who"));
+    expect((button("Remove an adult") as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(button("Add an adult"));
+    fireEvent.click(button("Add an adult"));
+    fireEvent.click(button("Add a child"));
+    expect(screen.getByLabelText("Adults: 2")).toBeTruthy();
+    expect(screen.getByLabelText("Children: 1")).toBeTruthy();
     fireEvent.click(button("Save"));
-    expect(onSave).toHaveBeenLastCalledWith(expect.objectContaining({ groupSize: "2" }));
+    expect(onSave).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        groupSize: "3",
+        party: { adults: 2, children: 1, infants: 0, seniors: 0, pets: 0 },
+      }),
+    );
 
-    fireEvent.click(button("Add budget"));
-    fireEvent.change(screen.getByLabelText("Total budget (AUD)"), { target: { value: "-5" } });
+    fireEvent.click(button("Budget"));
+    fireEvent.change(screen.getByLabelText("Or enter an amount (AUD)"), {
+      target: { value: "-5" },
+    });
     fireEvent.click(button("Save"));
     expect(screen.getByRole("dialog", { name: "Budget" })).toBeTruthy();
     expect(screen.getByText("Enter a total budget above zero.")).toBeTruthy();
-    expect(screen.getByLabelText("Total budget (AUD)").getAttribute("aria-invalid")).toBe("true");
+    expect(screen.getByLabelText("Or enter an amount (AUD)").getAttribute("aria-invalid")).toBe(
+      "true",
+    );
     expect(onSave).toHaveBeenCalledTimes(1);
+  });
+
+  it("fills the budget from a preset card, shown selected while the amount still matches it", () => {
+    const onSave = vi.fn();
+    render(<Harness onSave={onSave} />);
+    fireEvent.click(button("Budget"));
+    const group = screen.getByRole("radiogroup", { name: "Budget range" });
+    const moderate = within(group).getByRole("radio", { name: /Moderate/ });
+    expect(moderate.getAttribute("aria-checked")).toBe("false");
+    fireEvent.click(moderate);
+    expect(moderate.getAttribute("aria-checked")).toBe("true");
+    expect((screen.getByLabelText("Or enter an amount (AUD)") as HTMLInputElement).value).toBe(
+      "3000",
+    );
+    // Typing a different amount deselects the preset.
+    fireEvent.change(screen.getByLabelText("Or enter an amount (AUD)"), {
+      target: { value: "3500" },
+    });
+    expect(moderate.getAttribute("aria-checked")).toBe("false");
+    fireEvent.click(button("Save"));
+    expect(onSave).toHaveBeenLastCalledWith(expect.objectContaining({ budgetTotal: "3500" }));
   });
 
   it("with a plan, updates the trip through the planner and closes only when it was accepted", () => {
@@ -222,7 +248,7 @@ describe("TripFactChips Where", () => {
   it("lists each destination, adds several at once and removes one from its row", () => {
     const onSave = vi.fn();
     render(<Harness onSave={onSave} />);
-    fireEvent.click(button("Add destination"));
+    fireEvent.click(button("Where"));
     const field = screen.getByLabelText("Add a destination");
     fireEvent.change(field, { target: { value: "Sydney & Melbourne" } });
     fireEvent.keyDown(field, { key: "Enter" });
@@ -250,6 +276,7 @@ describe("TripFactChips Where", () => {
   it("folds an empty search field back into its button with Escape, keeping the editor open", () => {
     render(<Harness initial={draftFor(plan.brief)} />);
     fireEvent.click(button("Destination: Sydney"));
+    // Where with places already listed starts focus on its own "Add destination" pill, not the chip.
     expect(document.activeElement).toBe(button("Add destination"));
     fireEvent.click(button("Add destination"));
     const field = screen.getByLabelText("Add a destination");
@@ -261,7 +288,7 @@ describe("TripFactChips Where", () => {
 
   it("clears the search field from the button inside it", () => {
     render(<Harness />);
-    fireEvent.click(button("Add destination"));
+    fireEvent.click(button("Where"));
     const field = screen.getByLabelText("Add a destination") as HTMLInputElement;
     expect(screen.queryByRole("button", { name: "Clear" })).toBeNull();
     fireEvent.change(field, { target: { value: "Lisb" } });
@@ -274,7 +301,7 @@ describe("TripFactChips Where", () => {
     const fetcher = vi.fn();
     vi.stubGlobal("fetch", fetcher);
     render(<Harness />);
-    fireEvent.click(button("Add destination"));
+    fireEvent.click(button("Where"));
     fireEvent.change(screen.getByLabelText("Add a destination"), { target: { value: "Lisbon" } });
     await vi.advanceTimersByTimeAsync(1000);
     expect(fetcher).not.toHaveBeenCalled();
@@ -294,7 +321,7 @@ describe("TripFactChips Where", () => {
     );
     vi.stubGlobal("fetch", fetcher);
     render(<Harness suggestPlaces />);
-    fireEvent.click(button("Add destination"));
+    fireEvent.click(button("Where"));
     const field = screen.getByRole("combobox", { name: "Add a destination" });
     fireEvent.change(field, { target: { value: "Li" } });
     await vi.advanceTimersByTimeAsync(1000);
@@ -338,50 +365,55 @@ describe("TripFactChips Where", () => {
 describe("TripFactChips dates", () => {
   const openWhen = () => {
     render(<Harness />);
-    fireEvent.click(button("Add dates"));
+    fireEvent.click(button("When"));
   };
+  // The first dynamic import of react-day-picker is slow under a full parallel run.
+  const pickStart = () =>
+    screen.findByRole("button", { name: "Tuesday, September 22nd, 2026" }, { timeout: 15000 });
 
-  it("keeps plain date inputs for typing dates by hand", () => {
+  it("shows an inline calendar with a prompt, disables past dates, and a single click is a complete one-day range", async () => {
     openWhen();
-    expect(screen.getByLabelText("Start date")).toHaveProperty("type", "date");
-    expect(screen.getByLabelText("End date")).toHaveProperty("type", "date");
+    expect(screen.getByText("Choose your travel dates.")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Clear" })).toBeNull();
+    const start = await pickStart();
+    // Past dates are disabled; "today" is pinned to 2026-09-20.
+    expect(
+      (screen.getByRole("button", { name: "Saturday, September 19th, 2026" }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true);
+    fireEvent.click(start);
+    expect(screen.getByText(/22 Sept? – 22 Sept? · 1 day/)).toBeTruthy();
+    expect(button("Clear")).toBeTruthy();
   });
 
-  it("fills both dates from the calendar, and the chip changes only on Save", async () => {
+  it("fills both dates from the inline calendar, shows the summary and a Clear action, and the chip changes only on Save", async () => {
     openWhen();
-    fireEvent.click(button(/pick trip dates from a calendar/i));
-    // The first dynamic import of react-day-picker is slow under a full parallel run.
-    await screen.findByRole("heading", { name: /when are you travelling/i }, { timeout: 15000 });
-    fireEvent.click(button("Tuesday, September 22nd, 2026"));
+    fireEvent.click(await pickStart());
     fireEvent.click(button("Friday, September 25th, 2026"));
-    fireEvent.click(button(/use these dates/i));
-    expect((screen.getByLabelText("Start date") as HTMLInputElement).value).toBe("2026-09-22");
-    expect((screen.getByLabelText("End date") as HTMLInputElement).value).toBe("2026-09-25");
-    expect(button("Add dates")).toBeTruthy();
+    expect(screen.getByText(/22 Sept? – 25 Sept? · 4 days/)).toBeTruthy();
+    expect(button("Clear")).toBeTruthy();
+    expect(button("When")).toBeTruthy();
     fireEvent.click(button("Save"));
     expect(button(/^Dates: 22 Sept? – 25 Sept? · 4 days$/)).toBeTruthy();
   });
 
-  it("closes only the calendar on Escape while it is open", async () => {
+  it("clears a picked range back to the prompt", async () => {
     openWhen();
-    fireEvent.click(button(/pick trip dates from a calendar/i));
-    const heading = await screen.findByRole("heading", { name: /when are you travelling/i });
-    const calendar = heading.closest("dialog")!;
-    fireEvent.keyDown(window, { key: "Escape" });
-    expect(screen.getByRole("dialog", { name: "When" })).toBeTruthy();
-    // The native dialog closes itself through its cancel event.
-    fireEvent(calendar, new Event("cancel"));
-    await waitFor(() => expect(document.querySelector("dialog[open]")).toBeNull());
-    fireEvent.keyDown(window, { key: "Escape" });
-    expect(screen.queryByRole("dialog", { name: "When" })).toBeNull();
+    fireEvent.click(await pickStart());
+    fireEvent.click(button("Friday, September 25th, 2026"));
+    fireEvent.click(button("Clear"));
+    expect(screen.getByText("Choose your travel dates.")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Clear" })).toBeNull();
   });
 
-  it("asks for both dates rather than keeping half a range", () => {
-    openWhen();
-    fireEvent.change(screen.getByLabelText("Start date"), { target: { value: "2026-10-01" } });
+  // Picking through the calendar always yields a complete range (even a single day), so a "half a
+  // range" draft can only arise from data set another way — an imported or previously stored draft.
+  it("asks for both dates when the draft holds only a start date", () => {
+    render(<Harness initial={{ ...blankDraft(), start: "2026-10-01" }} />);
+    fireEvent.click(button("When"));
     fireEvent.click(button("Save"));
     expect(screen.getByText("Choose both a start and an end date.")).toBeTruthy();
-    expect(button("Add dates")).toBeTruthy();
+    expect(button("When")).toBeTruthy();
   });
 });
 
@@ -396,7 +428,7 @@ describe("TripFactChips in the workspace", () => {
     );
     vi.stubGlobal("fetch", fetcher);
     render(<Workspace />);
-    fireEvent.click(button("Add destination"));
+    fireEvent.click(button("Where"));
     fireEvent.change(screen.getByLabelText("Add a destination"), { target: { value: "Lisbon" } });
     fireEvent.click(button("Save"));
     fireEvent.click(button("Open trip preferences"));
@@ -404,8 +436,10 @@ describe("TripFactChips in the workspace", () => {
       target: { value: "Vegetarian food" },
     });
     fireEvent.click(button("Done"));
-    fireEvent.click(button("Add travellers"));
-    fireEvent.change(screen.getByLabelText("Travellers"), { target: { value: "3" } });
+    fireEvent.click(button("Who"));
+    fireEvent.click(button("Add an adult"));
+    fireEvent.click(button("Add an adult"));
+    fireEvent.click(button("Add an adult"));
     fireEvent.click(button("Save"));
     fireEvent.change(screen.getByLabelText("Message AI Trip Planner"), {
       target: { value: "somewhere warm" },
@@ -419,6 +453,8 @@ describe("TripFactChips in the workspace", () => {
     expect(body.known).toEqual({
       destination: "Lisbon",
       groupSize: 3,
+      // The Who steppers' breakdown travels with the head count.
+      party: { adults: 3, children: 0, infants: 0, seniors: 0, pets: 0 },
       preferences: ["Vegetarian food"],
     });
     expect(body.mode).toBeUndefined();

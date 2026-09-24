@@ -1,9 +1,9 @@
 "use client";
 import { useState } from "react";
-import { DayPicker, type DateRange } from "react-day-picker";
-import "react-day-picker/style.css";
+import type { DateRange } from "react-day-picker";
 import { isoDateRange } from "@/lib/planning/date-range";
 import { Dialog } from "../ui/Dialog";
+import { TripCalendar } from "./TripCalendar";
 
 /**
  * A calendar for picking a date range by click, as an alternative to typing
@@ -23,21 +23,12 @@ export function DateRangePicker({
   onClose: () => void;
 }) {
   const [range, setRange] = useState<DateRange>();
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
   const iso = range ? isoDateRange(range) : undefined;
 
   return (
     <Dialog title={title} onClose={onClose}>
       <div className="date-picker">
-        <DayPicker
-          mode="range"
-          selected={range}
-          onSelect={setRange}
-          disabled={{ before: today }}
-          numberOfMonths={2}
-          showOutsideDays
-        />
+        <TripCalendar range={range} onSelect={setRange} numberOfMonths={2} />
       </div>
       <div className="date-picker__actions">
         <button type="button" onClick={onClose}>

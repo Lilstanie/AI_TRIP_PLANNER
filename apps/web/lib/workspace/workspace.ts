@@ -7,9 +7,11 @@ import {
   FlightAnswer,
   moneyIn,
   PartialTripBrief,
+  partyPeople,
   TripBrief,
   TripPlan,
   TripPreferences,
+  type TravellerParty,
 } from "@trip/shared";
 
 /**
@@ -41,6 +43,10 @@ export type Message = {
   /** Epoch ms this message was appended; optional so a stored trip without it still loads. */
   at?: number;
 };
+/** The Who chip's steppers; sent to the planner as `TripBrief.party` beside `groupSize`. */
+export const PARTY_KEYS = ["adults", "children", "infants", "seniors", "pets"] as const;
+export type Party = TravellerParty;
+
 export type Draft = {
   destination: string;
   origin: string;
@@ -53,6 +59,14 @@ export type Draft = {
    * list existed still loads; read it through `draftPreferences`.
    */
   preferences?: string[];
+  /**
+   * The Who chip's stepper breakdown. Optional so a draft stored before the steppers existed, or a
+   * draft built from a brief (`draftFor`, which has no breakdown to restore), still loads; read it
+   * through `partyFor`. `groupSize` is kept in sync from it whenever a stepper changes, and both
+   * reach the planner: `groupSize` for the arithmetic, `party` (as `TripBrief.party`) for who is
+   * travelling. A breakdown that no longer adds up to `groupSize` is not sent.
+   */
+  party?: Party;
   // No longer edited anywhere (the preferences editor replaced them with the list above). A stored
   // brief's values are carried through unchanged so replanning an older trip keeps them.
   nationality: string;
@@ -63,6 +77,29 @@ export type Draft = {
 /** The draft's preference list; absent in drafts stored before the list existed. */
 export const draftPreferences = (draft: Pick<Draft, "preferences">): string[] =>
   draft.preferences ?? [];
+const isParty = (value: unknown): value is Party =>
+  object(value) &&
+  PARTY_KEYS.every(
+    (key) => typeof value[key] === "number" && Number.isInteger(value[key]) && value[key] >= 0,
+  );
+/**
+ * The Who chip's stepper state: the draft's own breakdown, or — for a draft with none, such as one
+ * built from a brief or from before the steppers existed — every stated traveller counted as an
+ * adult, so opening the editor never contradicts the chip's own count.
+ */
+export function partyFor(draft: Pick<Draft, "party" | "groupSize">): Party {
+  if (draft.party) return draft.party;
+  const adults = Number(draft.groupSize);
+  return {
+    adults: Number.isInteger(adults) && adults > 0 ? adults : 0,
+    children: 0,
+    infants: 0,
+    seniors: 0,
+    pets: 0,
+  };
+}
+/** `groupSize` the planner receives: people only — pets never count as travellers. */
+export const groupSizeFromParty = (party: Party) => partyPeople(party);
 export const money = (value: number) =>
   new Intl.NumberFormat("en-AU", {
     style: "currency",
@@ -84,6 +121,7 @@ export function draftFor(brief: TripBrief): Draft {
     start: brief.dates[0],
     end: brief.dates[1],
     groupSize: String(brief.groupSize),
+    ...(brief.party && partyPeople(brief.party) === brief.groupSize ? { party: brief.party } : {}),
     budgetTotal: String(brief.budgetTotal),
     preferences: brief.preferences ?? [],
     nationality: brief.nationality ?? "",
@@ -117,7 +155,8 @@ export function isDraft(value: unknown): value is Draft {
     typeof value.freeCancellation === "boolean" &&
     (value.preferences === undefined ||
       (Array.isArray(value.preferences) &&
-        value.preferences.every((item) => typeof item === "string")))
+        value.preferences.every((item) => typeof item === "string"))) &&
+    (value.party === undefined || isParty(value.party))
   );
 }
 /** `current` is the existing brief, or only the identifiers for a blank conversation. */
@@ -132,6 +171,8 @@ export function parseDraft(draft: Draft, current: Pick<TripBrief, "tripId"> & Pa
     origin: draft.origin.trim() || undefined,
     dates: [draft.start, draft.end],
     groupSize: Number(draft.groupSize),
+    // Spreading `current` would otherwise keep a breakdown the traveller has since changed.
+    party: statedParty(draft),
     budgetTotal: Number(draft.budgetTotal),
     // The form is base-currency only, so a budget typed here has no source to explain.
     // Spreading `current` would otherwise carry a stale one past an edit.
@@ -158,11 +199,23 @@ export function knownFromDraft(draft: Draft): PartialTripBrief {
     origin: draft.origin.trim() || undefined,
     dates: draft.start.trim() && draft.end.trim() ? [draft.start, draft.end] : undefined,
     groupSize: number(draft.groupSize),
+    party: statedParty(draft),
     budgetTotal: number(draft.budgetTotal),
     nationality: draft.nationality.trim() || undefined,
     preferences: statedPreferences(draftPreferences(draft)),
   });
   return parsed.success ? parsed.data : {};
+}
+
+/**
+ * The draft's breakdown, only while it still matches the stated number of people: a count typed or
+ * learned in chat after the steppers were used makes the breakdown stale, and it is then left out.
+ */
+function statedParty(draft: Pick<Draft, "party" | "groupSize">): Party | undefined {
+  const party = draft.party;
+  return party && partyPeople(party) > 0 && partyPeople(party) === Number(draft.groupSize)
+    ? party
+    : undefined;
 }
 
 /** A list the schema would reject is left out, so it cannot drop the other stated facts. */
@@ -180,6 +233,11 @@ export function draftWithKnown(draft: Draft, known: PartialTripBrief): Draft {
     start: known.dates?.[0] ?? draft.start,
     end: known.dates?.[1] ?? draft.end,
     groupSize: known.groupSize === undefined ? draft.groupSize : String(known.groupSize),
+    // A head count learned in chat that the breakdown no longer adds up to replaces it.
+    party: statedParty({
+      party: known.party ?? draft.party,
+      groupSize: String(known.groupSize ?? draft.groupSize),
+    }),
     budgetTotal: known.budgetTotal === undefined ? draft.budgetTotal : String(known.budgetTotal),
     nationality: known.nationality ?? draft.nationality,
     preferences: known.preferences ?? draft.preferences,
@@ -204,7 +262,6 @@ export type Snapshot = {
   previousTotal?: number;
 };
 export const CURRENT_KEY = "trip-workspace-v1";
-export const SAVED_KEY = "trip-saved-v1";
 const object = (value: unknown): value is Record<string, unknown> =>
   !!value && typeof value === "object" && !Array.isArray(value);
 export function parseSnapshot(value: unknown): Snapshot {
@@ -294,13 +351,6 @@ function isMessageAttachment(value: unknown): value is MessageAttachment {
       (typeof value.thumbnail === "string" && value.thumbnail.startsWith("data:image/"))) &&
     (value.bytes === undefined || (typeof value.bytes === "number" && Number.isFinite(value.bytes)))
   );
-}
-
-export function parseSaved(raw: string | null): Snapshot[] {
-  if (raw === null) return [];
-  const value: unknown = JSON.parse(raw);
-  if (!Array.isArray(value)) throw new Error("Saved trip list is invalid.");
-  return value.map(parseSnapshot);
 }
 
 /**
