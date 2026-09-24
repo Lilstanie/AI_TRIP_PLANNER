@@ -303,8 +303,11 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
    *
    * Kept separate from `newChat` because that one is handed to `onClick`-style props, which would
    * otherwise pass a click event in as `base`.
+   *
+   * `kind` only changes the conversation's default name and where focus lands: a chat starts at
+   * the composer, a trip at the Where editor. Both are the same blank conversation underneath.
    */
-  function startBlankChat(base?: WorkspaceCatalog) {
+  function startBlankChat(base?: WorkspaceCatalog, kind: "chat" | "trip" = "chat") {
     resetTransient();
     // Reuse an untouched conversation so repeated New chat presses cannot stack blank history
     // entries. Only a conversation holding nothing the user wrote is safe to reuse.
@@ -327,9 +330,15 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
         messages: [],
         input: "",
         draft: blankDraft(),
+        title: kind === "trip" ? "New trip" : "New chat",
       }),
     );
     setMobileView("chat");
+    // A new trip starts from its destination; the Where editor moves focus to its own field.
+    if (kind === "trip") {
+      setOpenFact("where");
+      return;
+    }
     requestAnimationFrame(() =>
       document
         .querySelector<HTMLInputElement>('[aria-label="Message AI Trip Planner"]')
@@ -338,6 +347,10 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
   }
   function newChat() {
     startBlankChat();
+  }
+  /** A blank trip: the same fresh conversation as New chat, opened on the Where editor. */
+  function newTrip() {
+    startBlankChat(undefined, "trip");
   }
   function renameChat(id: string) {
     const existing = catalog.conversations.find((item) => item.id === id);
@@ -475,6 +488,7 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     answer,
     dismissAsk: () => setAsk(undefined),
     newChat,
+    newTrip,
     selectConversation,
     selectTrip,
     renameChat,
