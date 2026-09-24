@@ -9,6 +9,7 @@ import {
   PartialTripBrief,
   TripBrief,
   TripPlan,
+  TripPreferences,
 } from "@trip/shared";
 
 /**
@@ -47,11 +48,21 @@ export type Draft = {
   end: string;
   groupSize: string;
   budgetTotal: string;
+  /**
+   * The traveller's own trip preferences, in their words. Optional so a draft stored before the
+   * list existed still loads; read it through `draftPreferences`.
+   */
+  preferences?: string[];
+  // No longer edited anywhere (the preferences editor replaced them with the list above). A stored
+  // brief's values are carried through unchanged so replanning an older trip keeps them.
   nationality: string;
   roomAllocation: "shared" | "individual";
   minRating: string;
   freeCancellation: boolean;
 };
+/** The draft's preference list; absent in drafts stored before the list existed. */
+export const draftPreferences = (draft: Pick<Draft, "preferences">): string[] =>
+  draft.preferences ?? [];
 export const money = (value: number) =>
   new Intl.NumberFormat("en-AU", {
     style: "currency",
@@ -74,6 +85,7 @@ export function draftFor(brief: TripBrief): Draft {
     end: brief.dates[1],
     groupSize: String(brief.groupSize),
     budgetTotal: String(brief.budgetTotal),
+    preferences: brief.preferences ?? [],
     nationality: brief.nationality ?? "",
     roomAllocation: brief.accommodation?.roomAllocation ?? "shared",
     minRating: String(brief.accommodation?.minRating ?? 0),
@@ -88,6 +100,7 @@ export const blankDraft = (): Draft => ({
   end: "",
   groupSize: "",
   budgetTotal: "",
+  preferences: [],
   nationality: "",
   roomAllocation: "shared",
   // 0 is the schema default and means "no minimum"; it is a filter, not invented trip data.
@@ -101,11 +114,18 @@ export function isDraft(value: unknown): value is Draft {
       (key) => typeof value[key] === "string",
     ) &&
     ["shared", "individual"].includes(String(value.roomAllocation)) &&
-    typeof value.freeCancellation === "boolean"
+    typeof value.freeCancellation === "boolean" &&
+    (value.preferences === undefined ||
+      (Array.isArray(value.preferences) &&
+        value.preferences.every((item) => typeof item === "string")))
   );
 }
 /** `current` is the existing brief, or only the identifiers for a blank conversation. */
 export function parseDraft(draft: Draft, current: Pick<TripBrief, "tripId"> & Partial<TripBrief>) {
+  const preferences = draftPreferences(draft);
+  // Nothing edits the rating any more, so a stored value the schema would reject cannot be fixed
+  // by the traveller; it falls back to the schema default, 0, which means "no minimum".
+  const rating = draft.minRating.trim() ? Number(draft.minRating) : NaN;
   return TripBrief.safeParse({
     ...current,
     destination: draft.destination,
@@ -116,10 +136,12 @@ export function parseDraft(draft: Draft, current: Pick<TripBrief, "tripId"> & Pa
     // The form is base-currency only, so a budget typed here has no source to explain.
     // Spreading `current` would otherwise carry a stale one past an edit.
     budgetSource: undefined,
+    // An emptied list clears the brief's, rather than letting `current` carry the old one.
+    preferences: preferences.length ? preferences : undefined,
     nationality: draft.nationality.trim() || undefined,
     accommodation: {
       roomAllocation: draft.roomAllocation,
-      minRating: draft.minRating.trim() ? Number(draft.minRating) : NaN,
+      minRating: Number.isFinite(rating) && rating >= 0 && rating <= 10 ? rating : 0,
       freeCancellation: draft.freeCancellation,
     },
   });
@@ -138,8 +160,15 @@ export function knownFromDraft(draft: Draft): PartialTripBrief {
     groupSize: number(draft.groupSize),
     budgetTotal: number(draft.budgetTotal),
     nationality: draft.nationality.trim() || undefined,
+    preferences: statedPreferences(draftPreferences(draft)),
   });
   return parsed.success ? parsed.data : {};
+}
+
+/** A list the schema would reject is left out, so it cannot drop the other stated facts. */
+function statedPreferences(list: string[]) {
+  const parsed = TripPreferences.safeParse(list);
+  return parsed.success && parsed.data.length ? parsed.data : undefined;
 }
 
 /** Show what the assistant understood in the preferences form, without clearing anything else. */
@@ -153,6 +182,7 @@ export function draftWithKnown(draft: Draft, known: PartialTripBrief): Draft {
     groupSize: known.groupSize === undefined ? draft.groupSize : String(known.groupSize),
     budgetTotal: known.budgetTotal === undefined ? draft.budgetTotal : String(known.budgetTotal),
     nationality: known.nationality ?? draft.nationality,
+    preferences: known.preferences ?? draft.preferences,
   };
 }
 

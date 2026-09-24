@@ -24,8 +24,8 @@ describe("workspace boundaries", () => {
       { destination: " " },
       { groupSize: "1.2" },
       { budgetTotal: "0" },
-      { minRating: "11" },
-      { minRating: "" },
+      { preferences: [" "] },
+      { preferences: ["x".repeat(201)] },
     ])
       expect(parseDraft({ ...snapshot.draft, ...patch }, plan.brief).success).toBe(false);
     expect(parseDraft({ ...snapshot.draft, budgetTotal: "0.01" }, plan.brief).success).toBe(true);
@@ -35,6 +35,48 @@ describe("workspace boundaries", () => {
         plan.brief,
       ).success,
     ).toBe(false);
+  });
+  it("passes the retired accommodation fields through, and cannot be blocked by them", () => {
+    const kept = parseDraft(
+      { ...snapshot.draft, nationality: "Australian", minRating: "8", freeCancellation: true },
+      plan.brief,
+    );
+    expect(kept.success && kept.data).toMatchObject({
+      nationality: "Australian",
+      accommodation: { minRating: 8, freeCancellation: true },
+    });
+    // Nothing edits the rating any more, so a stored value the schema rejects means "no minimum".
+    for (const minRating of ["", "11"]) {
+      const parsed = parseDraft({ ...snapshot.draft, minRating }, plan.brief);
+      expect(parsed.success && parsed.data.accommodation?.minRating).toBe(0);
+    }
+  });
+  it("sends the traveller's preferences with the brief, and clears an emptied list", () => {
+    const withList = parseDraft(
+      { ...snapshot.draft, preferences: ["Vegetarian food", "No early starts"] },
+      plan.brief,
+    );
+    expect(withList.success && withList.data.preferences).toEqual([
+      "Vegetarian food",
+      "No early starts",
+    ]);
+    const cleared = parseDraft(
+      { ...snapshot.draft, preferences: [] },
+      { ...plan.brief, preferences: ["Old wish"] },
+    );
+    expect(cleared.success && cleared.data.preferences).toBeUndefined();
+    expect(draftFor({ ...plan.brief, preferences: ["Quiet hotels"] }).preferences).toEqual([
+      "Quiet hotels",
+    ]);
+  });
+  it("loads a draft stored before the preference list existed", () => {
+    const { preferences: _dropped, ...older } = snapshot.draft;
+    expect(parseSnapshot(JSON.parse(JSON.stringify({ ...snapshot, draft: older }))).draft).toEqual(
+      older,
+    );
+    expect(() =>
+      parseSnapshot({ ...snapshot, draft: { ...snapshot.draft, preferences: "vegetarian" } }),
+    ).toThrow();
   });
   it("round-trips unfinished forms while rejecting corrupt or incompatible snapshots", () => {
     const unfinished = { ...snapshot, draft: { ...snapshot.draft, budgetTotal: "" } };
@@ -184,6 +226,14 @@ describe("workspace boundaries", () => {
     expect(
       knownFromDraft({ ...blank, destination: "悉尼", start: "2026-10-01", end: "2026-10-05" }),
     ).toEqual({ destination: "悉尼", dates: ["2026-10-01", "2026-10-05"] });
+    // Preferences stated before any plan travel as known; a list the schema rejects is left out
+    // rather than dropping the other facts with it.
+    expect(
+      knownFromDraft({ ...blank, destination: "Lisbon", preferences: ["Vegetarian food"] }),
+    ).toEqual({ destination: "Lisbon", preferences: ["Vegetarian food"] });
+    expect(knownFromDraft({ ...blank, destination: "Lisbon", preferences: [" "] })).toEqual({
+      destination: "Lisbon",
+    });
   });
   it("shows what the assistant understood in the form without clearing the rest", () => {
     const draft = { ...snapshot.draft, destination: "", groupSize: "4" };
@@ -276,10 +326,7 @@ describe("budget display", () => {
 
 describe("trip origin", () => {
   it("round-trips through the form and treats blank as not stated", () => {
-    const withOrigin = parseDraft(
-      { ...snapshot.draft, origin: "Melbourne" },
-      plan.brief,
-    );
+    const withOrigin = parseDraft({ ...snapshot.draft, origin: "Melbourne" }, plan.brief);
     expect(withOrigin.success && withOrigin.data.origin).toBe("Melbourne");
 
     // Blank must become undefined, not "": TripBrief rejects an empty string,

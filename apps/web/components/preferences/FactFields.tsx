@@ -5,6 +5,8 @@ import type { Draft } from "@/lib/workspace";
 import type { FactKey } from "@/lib/workspace/trip-facts";
 import { CalendarIcon, MinusIcon, PlusIcon } from "../ui/icons";
 import { Input } from "../ui/input";
+import { PreferenceList } from "./PreferenceList";
+import { WhereFields } from "./WhereFields";
 
 // react-day-picker and its stylesheet load only once the traveller opens the calendar.
 const DateRangePicker = dynamic(() => import("./DateRangePicker").then((m) => m.DateRangePicker), {
@@ -17,11 +19,15 @@ type FieldsProps = {
   errors: Record<string, string>;
 };
 
-/** The fields one chip edits. Labels are the ones the old preferences drawer used. */
-export function FactFields({ fact, ...props }: FieldsProps & { fact: FactKey }) {
+/** The fields one chip edits. */
+export function FactFields({
+  fact,
+  suggestPlaces,
+  ...props
+}: FieldsProps & { fact: FactKey; suggestPlaces: boolean }) {
   switch (fact) {
     case "where":
-      return <WhereFields {...props} />;
+      return <WhereFields {...props} suggestPlaces={suggestPlaces} />;
     case "when":
       return <WhenFields {...props} />;
     case "who":
@@ -29,7 +35,7 @@ export function FactFields({ fact, ...props }: FieldsProps & { fact: FactKey }) 
     case "budget":
       return <BudgetFields {...props} />;
     case "preferences":
-      return <PreferenceFields {...props} />;
+      return <PreferenceList {...props} />;
   }
 }
 
@@ -101,31 +107,6 @@ function TextField({
         />
       )}
     </Field>
-  );
-}
-
-function WhereFields({ value, onChange, errors }: FieldsProps) {
-  return (
-    <>
-      <TextField
-        name="destination"
-        label="Destination"
-        hint="Separate multiple cities with &; allow at least one night per city."
-        error={errors.destination}
-        value={value}
-        onChange={onChange}
-        inputProps={{ autoComplete: "off" }}
-      />
-      <TextField
-        name="origin"
-        label="Departing from (optional)"
-        hint="Leave blank to skip long-haul flight pricing and plan the destination only."
-        error={errors.origin}
-        value={value}
-        onChange={onChange}
-        inputProps={{ autoComplete: "off" }}
-      />
-    </>
   );
 }
 
@@ -233,52 +214,5 @@ function BudgetFields({ value, onChange, errors }: FieldsProps) {
       onChange={onChange}
       inputProps={{ min: 0.01, step: 0.01, inputMode: "decimal" }}
     />
-  );
-}
-
-function PreferenceFields({ value, onChange, errors }: FieldsProps) {
-  return (
-    <>
-      <TextField
-        name="nationality"
-        label="Nationality / passport (optional)"
-        error={errors.nationality}
-        value={value}
-        onChange={onChange}
-        inputProps={{ autoComplete: "off" }}
-      />
-      <h3 className="fact-form__group">Accommodation</h3>
-      <div className="form-field">
-        <label htmlFor="fact-roomAllocation">Room allocation</label>
-        <select
-          id="fact-roomAllocation"
-          className="field"
-          value={value.roomAllocation}
-          onChange={(event) =>
-            onChange({ ...value, roomAllocation: event.target.value as Draft["roomAllocation"] })
-          }
-        >
-          <option value="shared">Shared · up to 2 guests per room</option>
-          <option value="individual">Individual · 1 room per guest</option>
-        </select>
-      </div>
-      <TextField
-        name="minRating"
-        label="Minimum guest rating (out of 10)"
-        type="number"
-        error={errors.accommodation}
-        value={value}
-        onChange={onChange}
-        inputProps={{ min: 0, max: 10, step: 0.1, inputMode: "decimal" }}
-      />
-      <label className="check">
-        <input
-          type="checkbox"
-          checked={value.freeCancellation}
-          onChange={(event) => onChange({ ...value, freeCancellation: event.target.checked })}
-        />
-        Free cancellation required
-      </label>
-    </>
   );
 }

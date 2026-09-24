@@ -26,6 +26,11 @@ const EMPTY: Record<Exclude<FactKey, "preferences">, string> = {
   who: "Add travellers",
   budget: "Add budget",
 };
+/**
+ * Editors that hold a list open as a centred dialog over a scrim, as Mindtrip's Where and trip
+ * preferences dialogs do; the single-value editors stay anchored under their chip.
+ */
+const MODAL: ReadonlySet<FactKey> = new Set(["where", "preferences"]);
 /** Spoken before a filled chip's value, so "Sydney" is announced as "Destination: Sydney". */
 const NAMES: Record<Exclude<FactKey, "preferences">, string> = {
   where: "Destination",
@@ -49,6 +54,11 @@ type Props = {
   onPlan(next: Draft): boolean;
   /** The Preferences chip, which other surfaces return focus to. */
   preferencesChip: RefObject<HTMLButtonElement | null>;
+  /**
+   * Suggest places while typing in Where. Each lookup is a billed Places request, so only in live
+   * data mode with Maps configured.
+   */
+  suggestPlaces?: boolean;
 };
 
 /**
@@ -166,6 +176,7 @@ export function TripFactChips(props: Props) {
           title={TITLES[open]}
           anchor={anchor}
           onClose={close}
+          modal={MODAL.has(open)}
           className={`fact-popover--${open}`}
         >
           <FactForm {...props} fact={open} onDone={() => close("dismiss")} />
@@ -184,6 +195,7 @@ function FactForm({
   onSave,
   onPlan,
   onDone,
+  suggestPlaces = false,
 }: Props & { fact: FactKey; onDone(): void }) {
   const [value, setValue] = useState(draft);
   const [local, setLocal] = useState<Record<string, string>>();
@@ -214,7 +226,13 @@ function FactForm({
   return (
     <form ref={form} className="fact-form" noValidate onSubmit={submit}>
       <fieldset disabled={busy} className="plain-fieldset fact-form__fields">
-        <FactFields fact={fact} value={value} onChange={setValue} errors={shown} />
+        <FactFields
+          fact={fact}
+          value={value}
+          onChange={setValue}
+          errors={shown}
+          suggestPlaces={suggestPlaces}
+        />
       </fieldset>
       <div className="fact-form__actions">
         {!plan && fact === "preferences" && (
@@ -230,7 +248,7 @@ function FactForm({
           </button>
         )}
         <button type="submit" className="primary fact-form__primary" disabled={busy}>
-          {plan ? (busy ? "Planning…" : "Update trip") : "Save"}
+          {plan ? (busy ? "Planning…" : "Update trip") : fact === "preferences" ? "Done" : "Save"}
         </button>
       </div>
     </form>

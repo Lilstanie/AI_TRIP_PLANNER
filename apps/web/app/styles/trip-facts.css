@@ -223,6 +223,376 @@
   text-align: center;
 }
 
+/* ---- Where and Trip preferences: a centred dialog ----
+   These editors hold lists, so they open centred over a scrim like Mindtrip's: no panel padding, a
+   centred title with the close button leading, content inset by --space-5 and one pill action at
+   the bottom right. Trip preferences adds a hairline under its head; Where has none. */
+.fact-popover-scrim--modal {
+  position: fixed;
+  z-index: 59;
+  inset: 0;
+  display: block;
+  background: rgb(15 15 20 / 18%);
+  animation: fact-scrim-in var(--transition);
+}
+@keyframes fact-scrim-in {
+  from {
+    opacity: 0;
+  }
+}
+/* Held at a fixed distance from the top rather than centred vertically, so adding or removing a
+   row grows the dialog downwards instead of shifting it under the pointer. */
+.fact-popover.fact-popover--modal {
+  --fact-modal-top: min(12dvh, 120px);
+  inset: 0;
+  width: min(512px, calc(100vw - 2 * var(--space-4)));
+  height: fit-content;
+  max-height: calc(100dvh - var(--fact-modal-top) - var(--space-5));
+  margin: var(--fact-modal-top) auto auto;
+  padding: 0;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  animation-name: fact-modal-in;
+}
+@keyframes fact-modal-in {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+}
+.fact-popover--modal .fact-popover__head {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) 32px;
+  column-gap: var(--space-1);
+  align-items: center;
+  margin: 0;
+  padding: var(--space-5) var(--space-4) var(--space-4);
+}
+.fact-popover--where .fact-popover__head {
+  padding-bottom: 0;
+}
+.fact-popover--preferences .fact-popover__head {
+  border-bottom: 1px solid var(--border);
+}
+.fact-popover--modal .fact-popover__head > div {
+  grid-column: 2;
+  text-align: center;
+}
+.fact-popover--modal .fact-popover__head h2 {
+  font-size: var(--font-size-title);
+  font-weight: 600;
+  line-height: var(--line-height-title);
+}
+.fact-popover--modal .fact-popover__close {
+  grid-row: 1;
+  grid-column: 1;
+  width: 32px;
+  height: 32px;
+  margin: 0;
+}
+.fact-popover--modal .fact-form {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+.fact-popover--modal .fact-form__fields {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: var(--space-4) var(--space-5) var(--space-5);
+}
+.fact-popover--preferences .fact-form__fields {
+  padding-top: var(--space-5);
+}
+.fact-popover--modal .fact-form__actions {
+  margin: 0;
+  padding: 0 var(--space-5) var(--space-5);
+}
+/* One ink pill: the page's text colour as its fill, so it inverts in dark mode. */
+.fact-popover--modal .fact-form__primary {
+  min-width: 168px;
+  min-height: 40px;
+  border-radius: var(--radius-pill) !important;
+  background: var(--text);
+  color: var(--page);
+  font-size: var(--font-size-body);
+  font-weight: 500;
+}
+.fact-popover--modal .fact-form__secondary {
+  min-height: 40px;
+  border-radius: var(--radius-pill) !important;
+  font-weight: 500;
+}
+
+.fact-section + .fact-section {
+  margin-top: var(--space-5);
+}
+.fact-section__label {
+  display: block;
+  margin: 0 0 var(--space-2);
+  color: var(--text-dim);
+  font-size: var(--font-size-meta);
+  font-weight: 500;
+}
+.fact-section__optional {
+  font-weight: 400;
+}
+.fact-section .form-field__hint,
+.fact-section .fact-form__error {
+  display: block;
+  margin: var(--space-1) 0 0;
+}
+
+/* Where: one card per destination, a square icon slot where a photo would sit, then its name. */
+.stop-list,
+.pref-list {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.stop-list {
+  margin-bottom: var(--space-3);
+}
+.stop-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 64px;
+  padding: var(--space-2) var(--space-1) var(--space-2) var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.stop-card__thumb {
+  display: grid;
+  flex: none;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text-dim);
+}
+.stop-card__text {
+  display: grid;
+  flex: 1 1 auto;
+  min-width: 0;
+  gap: 2px;
+}
+.stop-card__name {
+  overflow-wrap: anywhere;
+  font-size: 15px;
+  font-weight: 600;
+}
+.stop-card__region {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+  color: var(--text-dim);
+  font-size: var(--font-size-meta);
+}
+.stop-card__region svg {
+  flex: none;
+  width: 12px;
+  height: 12px;
+}
+.stop-card__remove,
+.pref-row__remove,
+.place-input__clear {
+  display: grid;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  min-height: 28px !important;
+  padding: 0 !important;
+  place-items: center;
+  border: 0 !important;
+  border-radius: var(--radius-pill) !important;
+  background: transparent !important;
+  color: var(--text-dim);
+}
+.stop-card__remove svg,
+.pref-row__remove svg,
+.place-input__clear svg {
+  width: 16px;
+  height: 16px;
+}
+@media (hover: hover) {
+  .stop-card__remove:hover,
+  .place-input__clear:hover {
+    background: var(--surface-2) !important;
+    color: var(--text);
+  }
+  .pref-row__remove:hover {
+    background: var(--surface) !important;
+    color: var(--text);
+  }
+}
+.stop-add {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 32px !important;
+  padding: 0 var(--space-3) !important;
+  border: 0 !important;
+  border-radius: var(--radius-pill) !important;
+  background: var(--surface-2) !important;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+}
+.stop-add svg {
+  width: 16px;
+  height: 16px;
+}
+@media (hover: hover) {
+  .stop-add:hover {
+    background: var(--border) !important;
+  }
+}
+
+/* A place field: a full-width pill with a clear button inside, and suggestions floating below. */
+.place-input {
+  position: relative;
+}
+.place-input .field {
+  height: 40px;
+  margin: 0;
+  padding: 0 40px 0 var(--space-4);
+  border-radius: var(--radius-pill);
+  font-size: 15px;
+}
+.place-input__clear {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+}
+.place-input__list {
+  position: absolute;
+  z-index: 1;
+  top: calc(100% + var(--space-1));
+  right: 0;
+  left: 0;
+  margin: 0;
+  padding: var(--space-1);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+  list-style: none;
+}
+.place-input__option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.place-input__option[aria-selected="true"] {
+  background: var(--accent-bg);
+  outline: 1px solid transparent;
+}
+@media (hover: hover) {
+  .place-input__option:hover {
+    background: var(--surface-2);
+  }
+}
+.place-input__thumb {
+  display: grid;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text-dim);
+}
+.place-input__thumb svg {
+  width: 16px;
+  height: 16px;
+}
+.place-input__text {
+  display: grid;
+  min-width: 0;
+}
+.place-input__name strong {
+  font-weight: 700;
+}
+.place-input__address {
+  overflow: hidden;
+  color: var(--text-dim);
+  font-size: var(--font-size-meta);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Trip preferences: a quiet filled field, then one quiet filled row per preference. */
+.pref-input.field,
+.pref-row__field.field {
+  height: auto;
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  font-size: 15px;
+  outline: 2px solid transparent;
+}
+.pref-input.field:focus-visible,
+.pref-row__field.field:focus-visible {
+  box-shadow: var(--ring);
+}
+.pref-list {
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+.pref-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 45px;
+  padding: 0 var(--space-2) 0 0;
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+.pref-row--editing {
+  padding: 0;
+  background: transparent;
+}
+.pref-row__field {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.pref-row__text {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 45px !important;
+  padding: var(--space-3) 0 var(--space-3) var(--space-4) !important;
+  border: 0 !important;
+  border-radius: var(--radius) !important;
+  background: transparent !important;
+  color: var(--text);
+  font-size: 15px;
+  text-align: left;
+  overflow-wrap: anywhere;
+  cursor: text;
+}
+.pref-row__text:focus-visible {
+  outline-offset: -2px;
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+.pref-row__text:disabled {
+  opacity: 1;
+  cursor: default;
+}
+
 /* The destination chip already names the trip, so where space runs short the title is kept for
    assistive technology only and the chips take its place. */
 @media (max-width: 1250px) {
@@ -253,7 +623,11 @@
   }
   .fact-popover,
   .fact-popover--when,
-  .fact-popover--preferences {
+  .fact-popover--preferences,
+  .fact-popover.fact-popover--modal {
+    inset: auto 0 0;
+    height: auto;
+    margin: 0;
     top: auto;
     right: 0;
     bottom: 0;
@@ -264,6 +638,41 @@
     border-width: 1px 0 0;
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     animation-name: fact-sheet-in;
+  }
+  .fact-popover.fact-popover--modal {
+    width: 100%;
+    margin: 0;
+    padding-bottom: env(safe-area-inset-bottom);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
+  .fact-popover--modal .fact-form__fields {
+    padding-inline: var(--space-4);
+  }
+  .fact-popover--modal .fact-form__actions {
+    padding: 0 var(--space-4) var(--space-4);
+  }
+  .fact-popover--modal .fact-form__primary {
+    min-width: 0;
+  }
+  /* 44px targets on touch screens. */
+  .fact-popover--modal .fact-popover__close,
+  .stop-card__remove,
+  .pref-row__remove,
+  .place-input__clear {
+    width: 44px;
+    height: 44px;
+    min-height: 44px !important;
+  }
+  .place-input .field {
+    height: 44px;
+    padding-right: 48px;
+  }
+  .place-input__clear {
+    top: 0;
+    right: 0;
+  }
+  .stop-add {
+    min-height: 44px !important;
   }
   .fact-stepper {
     grid-template-columns: 44px minmax(0, 1fr) 44px;

@@ -362,7 +362,8 @@ function isUntouchedConversation(item: ConversationRecord): boolean {
     !item.input.trim() &&
     (["destination", "start", "end", "groupSize", "budgetTotal", "nationality"] as const).every(
       (key) => !item.draft?.[key]?.trim(),
-    )
+    ) &&
+    !item.draft?.preferences?.length
   );
 }
 

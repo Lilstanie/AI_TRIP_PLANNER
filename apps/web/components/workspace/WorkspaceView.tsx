@@ -171,6 +171,7 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
             onSave={saveFacts}
             onPlan={planWith}
             preferencesChip={preferencesToggle}
+            suggestPlaces={dataMode.mode === "live" && !!dataMode.providers?.maps}
           />
           {narrow && (
             <div className="topbar-views" role="group" aria-label="Workspace view">

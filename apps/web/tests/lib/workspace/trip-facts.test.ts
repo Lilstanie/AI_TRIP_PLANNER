@@ -3,6 +3,7 @@ import { blankDraft, draftFor } from "@/lib/workspace";
 import {
   FACT_FIELDS,
   FACTS,
+  RETIRED_FIELDS,
   datesLabel,
   factErrors,
   factLabels,
@@ -14,9 +15,17 @@ import { plan } from "@/tests/fixtures/workspace";
 const blank = { tripId: "draft" };
 
 describe("trip facts", () => {
-  it("gives every field the old preferences form edited exactly one chip", () => {
-    const fields = FACTS.flatMap((fact) => FACT_FIELDS[fact]).sort();
+  it("gives every draft field exactly one chip, or marks it retired", () => {
+    const fields = [...FACTS.flatMap((fact) => FACT_FIELDS[fact]), ...RETIRED_FIELDS].sort();
     expect(fields).toEqual(Object.keys(blankDraft()).sort());
+    expect(FACT_FIELDS.preferences).toEqual(["preferences"]);
+  });
+
+  it("checks the preference list with the brief schema", () => {
+    expect(factErrors("preferences", blankDraft(), blank, false)).toEqual({});
+    expect(
+      factErrors("preferences", { ...blankDraft(), preferences: ["x".repeat(201)] }, blank, false),
+    ).toEqual({ preferences: expect.stringMatching(/^Keep to 12 preferences/) });
   });
 
   it("labels only stated values", () => {
@@ -74,7 +83,8 @@ describe("trip facts", () => {
   });
 
   it("points a rejected brief at the first fact in top-bar order", () => {
-    expect(firstFactWithError({ accommodation: "x", budgetTotal: "y" })).toBe("budget");
+    expect(firstFactWithError({ preferences: "x", budgetTotal: "y" })).toBe("budget");
+    expect(firstFactWithError({ preferences: "x" })).toBe("preferences");
     expect(firstFactWithError({ dates: "x" })).toBe("when");
     expect(firstFactWithError({})).toBeUndefined();
     expect(firstMissingFact(blankDraft())).toBe("where");

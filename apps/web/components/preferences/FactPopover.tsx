@@ -18,8 +18,9 @@ const GUTTER = 12;
 export type CloseReason = "dismiss" | "outside";
 
 /**
- * A small editor anchored under the top-bar chip that opened it. On phones the stylesheet turns it
- * into a bottom sheet over a scrim instead.
+ * A small editor anchored under the top-bar chip that opened it, or, with `modal`, a dialog centred
+ * over a scrim (Where and Trip preferences, which hold lists, as Mindtrip's do). On phones the
+ * stylesheet turns either into a bottom sheet over a scrim.
  *
  * It is a labelled dialog: focus moves to its first field, Tab stays inside it, and Escape closes
  * it — unless a native dialog opened from inside it (the calendar) is on top, which closes first.
@@ -33,6 +34,7 @@ export function FactPopover({
   anchor,
   onClose,
   className = "",
+  modal = false,
   children,
 }: {
   id: string;
@@ -41,6 +43,8 @@ export function FactPopover({
   anchor: RefObject<HTMLElement | null>;
   onClose(reason: CloseReason): void;
   className?: string;
+  /** Centred over a scrim instead of anchored to the chip. */
+  modal?: boolean;
   children: ReactNode;
 }) {
   const panel = useRef<HTMLElement>(null);
@@ -49,6 +53,7 @@ export function FactPopover({
   const [position, setPosition] = useState<{ top: number; left: number }>();
 
   useLayoutEffect(() => {
+    if (modal) return;
     const place = () => {
       const chip = anchor.current?.getBoundingClientRect();
       const width = panel.current?.offsetWidth ?? 0;
@@ -59,12 +64,15 @@ export function FactPopover({
     place();
     window.addEventListener("resize", place);
     return () => window.removeEventListener("resize", place);
-  }, [anchor]);
+  }, [anchor, modal]);
 
   useEffect(() => {
-    const first = panel.current?.querySelector<HTMLElement>(
-      "input:not([disabled]), select:not([disabled]), textarea:not([disabled])",
-    );
+    // An editor can name the control to start on; otherwise its first field.
+    const first =
+      panel.current?.querySelector<HTMLElement>("[data-autofocus]:not([disabled])") ??
+      panel.current?.querySelector<HTMLElement>(
+        "input:not([disabled]), select:not([disabled]), textarea:not([disabled])",
+      );
     (first ?? panel.current?.querySelector<HTMLElement>(FOCUSABLE))?.focus({
       preventScroll: true,
     });
@@ -82,7 +90,8 @@ export function FactPopover({
       const target = event.target as Node;
       // The chip toggles itself, so a press on it is not "outside".
       if (panel.current?.contains(target) || anchor.current?.contains(target)) return;
-      onCloseRef.current("outside");
+      // A press on a modal's scrim lands nowhere else, so focus goes back to the chip.
+      onCloseRef.current(modal ? "dismiss" : "outside");
     };
     window.addEventListener("keydown", onKeyDown);
     document.addEventListener("pointerdown", onPointerDown);
@@ -90,23 +99,27 @@ export function FactPopover({
       window.removeEventListener("keydown", onKeyDown);
       document.removeEventListener("pointerdown", onPointerDown);
     };
-  }, [anchor]);
+  }, [anchor, modal]);
 
   const titleId = `${id}-title`;
   const descriptionId = description ? `${id}-description` : undefined;
   return (
     <>
-      <div className="fact-popover-scrim" aria-hidden="true" />
+      <div
+        className={`fact-popover-scrim${modal ? " fact-popover-scrim--modal" : ""}`}
+        aria-hidden="true"
+      />
       <section
         ref={panel}
         id={id}
         role="dialog"
+        aria-modal={modal || undefined}
         aria-labelledby={titleId}
         aria-describedby={descriptionId}
-        className={`fact-popover ${className}`.trim()}
+        className={`fact-popover ${modal ? "fact-popover--modal " : ""}${className}`.trim()}
         data-placed={position ? "true" : undefined}
         style={
-          position
+          position && !modal
             ? ({
                 "--fact-popover-top": `${position.top}px`,
                 "--fact-popover-left": `${position.left}px`,

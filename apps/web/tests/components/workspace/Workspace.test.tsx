@@ -376,7 +376,7 @@ describe("Workspace interactions", () => {
     const view = render(<Workspace initialPlan={plan} />);
     fireEvent.click(newChatButton());
     openChip(/^Add destination$/);
-    fireEvent.change(screen.getByLabelText("Destination"), { target: { value: "Lisbon" } });
+    fireEvent.change(screen.getByLabelText("Add a destination"), { target: { value: "Lisbon" } });
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     fireEvent.change(screen.getByLabelText("Message AI Trip Planner"), {
       target: { value: "somewhere warm" },
@@ -573,7 +573,8 @@ describe("Workspace interactions", () => {
     vi.stubGlobal("fetch", fetcher);
     render(<Workspace initialPlan={plan} />);
     openChip(/^Destination: Sydney$/);
-    fireEvent.change(screen.getByLabelText("Destination"), { target: { value: "Paris" } });
+    fireEvent.click(screen.getByRole("button", { name: "Remove Sydney" }));
+    fireEvent.change(screen.getByLabelText("Add a destination"), { target: { value: "Paris" } });
     fireEvent.click(screen.getByRole("button", { name: "Update trip" }));
     await screen.findByText("Offline");
     expect(chip(/^Destination: Paris$/)).toBeTruthy();

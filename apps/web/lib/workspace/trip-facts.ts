@@ -1,10 +1,14 @@
-import { BASE_CURRENCY, type TripBrief } from "@trip/shared";
+import {
+  BASE_CURRENCY,
+  MAX_TRIP_PREFERENCE_LENGTH,
+  MAX_TRIP_PREFERENCES,
+  type TripBrief,
+} from "@trip/shared";
 import { budgetHint, parseDraft, type Draft } from "./workspace";
 
 /**
  * The top bar edits the brief one fact at a time, each from its own chip. Every draft field
- * belongs to exactly one fact, so nothing the preferences form used to edit is left without a
- * home.
+ * belongs to exactly one fact, or is one of the retired fields nothing edits any more.
  */
 export const FACTS = ["where", "when", "who", "budget", "preferences"] as const;
 export type FactKey = (typeof FACTS)[number];
@@ -15,8 +19,19 @@ export const FACT_FIELDS: Record<FactKey, readonly (keyof Draft)[]> = {
   when: ["start", "end"],
   who: ["groupSize"],
   budget: ["budgetTotal"],
-  preferences: ["nationality", "roomAllocation", "minRating", "freeCancellation"],
+  preferences: ["preferences"],
 };
+
+/**
+ * Fields the trip preferences editor used to hold, replaced by the traveller's own preference
+ * list. Nothing edits them; a stored brief's values pass through `parseDraft` unchanged.
+ */
+export const RETIRED_FIELDS: readonly (keyof Draft)[] = [
+  "nationality",
+  "roomAllocation",
+  "minRating",
+  "freeCancellation",
+];
 
 /** The keys `parseDraft` reports issues under (its path's first segment), by fact. */
 const FACT_ERRORS: Record<FactKey, readonly string[]> = {
@@ -24,7 +39,7 @@ const FACT_ERRORS: Record<FactKey, readonly string[]> = {
   when: ["dates"],
   who: ["groupSize"],
   budget: ["budgetTotal"],
-  preferences: ["nationality", "accommodation"],
+  preferences: ["preferences"],
 };
 
 /** Which fact owns a validation issue, so a rejected submission opens the right editor. */
@@ -57,8 +72,7 @@ export function factErrors(
   current: Pick<TripBrief, "tripId"> & Partial<TripBrief>,
   requireAll: boolean,
 ): Record<string, string> {
-  if (!requireAll && FACT_FIELDS[fact].every((field) => String(draft[field]).trim() === ""))
-    return {};
+  if (!requireAll && FACT_FIELDS[fact].every((field) => isBlank(draft[field]))) return {};
   if (fact === "when" && !requireAll && (!draft.start || !draft.end))
     return { dates: "Choose both a start and an end date." };
   // The dates rule counts a night per destination city. With no destination yet, check the dates
@@ -73,13 +87,16 @@ export function factErrors(
   return errors;
 }
 
+const isBlank = (value: Draft[keyof Draft]) =>
+  Array.isArray(value) ? value.length === 0 : String(value ?? "").trim() === "";
+
 /** Schema messages ("expected number, received NaN") rewritten as how to fix the field. */
 const FIX: Record<string, string> = {
   destination: "Enter a destination.",
   origin: "Enter where you are departing from, or leave it blank.",
   groupSize: "Enter a whole number of travellers, 1 or more.",
   budgetTotal: "Enter a total budget above zero.",
-  accommodation: "Enter a minimum guest rating from 0 to 10.",
+  preferences: `Keep to ${MAX_TRIP_PREFERENCES} preferences of up to ${MAX_TRIP_PREFERENCE_LENGTH} characters each.`,
 };
 
 /** One message per field, keyed like the old preferences form's errors. */
