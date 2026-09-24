@@ -8,10 +8,10 @@ now. Implementation history and browser acceptance for each phase are in the
 
 | Area              | Content                                                                                                       | Implementation                                             |
 | ----------------- | ------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| Sidebar           | Logo, New chat, search, Chats and Trips history with counts, Saved trips, Language, Local account             | `WorkspaceSidebar`, `BrandMark`, `icons.tsx`               |
+| Sidebar           | Logo, search, Chats, Trips and Saved trips with counts, New chat, New trip, history, Language, Local account  | `WorkspaceSidebar`, `BrandMark`, `icons.tsx`               |
 | Top bar           | Trip title; trip fact chips (destination, dates, travellers, budget, Preferences); data mode; Trip, rightmost | `WorkspaceView`, `TripFactChips`                           |
 | Trip fact editors | One small editor per chip; Preferences holds nationality and accommodation                                    | `FactPopover`, `FactFields`, `lib/workspace/trip-facts.ts` |
-| Chat              | Conversation, the planning transcript, the composer; starter suggestions in a blank chat                      | `ChatPanel`                                                |
+| Chat              | Conversation, the planning transcript, the composer; starter suggestions in a blank chat; no visible heading  | `ChatPanel`                                                |
 | Map               | Only the map, numbered markers, a place list, map status, View all places and Show my location                | `TripMapCanvas`, `TripMap`                                 |
 | Your Trip drawer  | Budget; Overview (sections and the stay chosen); Timeline & routes (editor); Review plan and Save trip        | `Drawer`, `TripPanel`, `TripEditor`                        |
 
@@ -26,12 +26,19 @@ now. Implementation history and browser acceptance for each phase are in the
   - The width is stored in the catalog layout only once the user resizes. Until then the stylesheet's
     responsive default applies, so narrowing the window still narrows the sidebar. Collapsing keeps
     the width for the next expand.
-  - New chat is the sidebar's primary action: a full-width accent button with a plus icon. Search is
-    one field below it, with the magnifier inside, a short "Search" placeholder that fits at 200 px,
-    the visually hidden label "Search chats and trips", and a Clear search button that appears once
-    there is a query and returns focus to the field. It filters chats and trips.
-  - Collapsed icons keep `aria-label`, a tooltip and focus styles; New chat stays an accent icon
-    button. Search, Chats and Trips expand the sidebar, and Search then focuses the field.
+  - Search is one field below the logo, with the magnifier inside, a short "Search" placeholder that
+    fits at 200 px, the visually hidden label "Search chats and trips", and a Clear search button
+    that appears once there is a query and returns focus to the field. It filters chats and trips.
+  - New chat follows Mindtrip's sidebar: a full-width, 40 px, pill-shaped button below Chats, Trips
+    and Saved trips (32 px under the last one), with a neutral ink wash (`--text` at 6 %, 11 % on
+    hover) instead of the accent, the text colour at 14 px/500, no icon, and a slight press scale
+    that `prefers-reduced-motion` turns off. It starts a blank chat and focuses the message input.
+  - New trip is a separate action: a second pill directly below New chat, always visible whichever
+    list is shown; see
+    [New chat and New trip](#conversations-trips-and-storage) for what it does.
+  - Collapsed icons keep `aria-label`, a tooltip and focus styles. New chat (plus) and New trip
+    (suitcase with a plus) are 40 px round icon buttons under the section icons. Search, Chats and
+    Trips expand the sidebar, and Search then focuses the field.
   - Chats, Trips and Saved trips use outline line icons in the text colour, with no tile behind them,
     so they follow light and dark. The current section is shown by its icon filling in, a heavier
     full-ink label and a quiet background, plus `aria-current`. History supports search and select.
@@ -88,7 +95,10 @@ now. Implementation history and browser acceptance for each phase are in the
   - The top bar keeps the menu, the fact chips and Trip on one row, with a Chat/Map switch below.
     When the chips do not fit they scroll sideways inside their row, which fades at the edge that
     has more chips behind it; the page itself never scrolls sideways.
-  - Navigation opens as a drawer, and Trip spans the content width.
+  - Navigation opens as a drawer, and Trip spans the content width. The navigation drawer has no
+    title row: it opens on the sidebar's own logo row with the close button at its end, and the
+    dialog keeps "Navigation" as its accessible name through a visually hidden heading
+    (`Drawer`'s `hideTitle`).
   - At ≤520 px the top-bar buttons show icons only but keep their accessible names, chips are 44 px
     tall, and an editor opens as a bottom sheet over a scrim.
 
@@ -106,6 +116,11 @@ now. Implementation history and browser acceptance for each phase are in the
   anything the user typed is never reused, and a renamed one keeps its name. A trip record is
   created and linked (`tripId`) only when a plan is produced; the chat title then becomes the
   destination and dates.
+- **New trip** starts the same blank conversation, named "New trip", and opens the Where editor
+  with focus on Destination instead of focusing the message input. It reuses an untouched blank
+  conversation exactly as New chat does, and New chat renames that conversation back. The trip is
+  listed under Trips once a plan is produced; until then it is a blank conversation under Chats. The
+  [New trip Agent Note](../.agents/notes/implemented/feature/2026-09-24-new-trip.md) records why.
 - **Starting to plan.**
   - A blank chat offers example trip suggestions. Selecting one replaces and focuses the message input;
     it never sends a message or starts a request.
