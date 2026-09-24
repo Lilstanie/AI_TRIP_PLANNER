@@ -52,8 +52,7 @@ classDiagram
   }
   class WorkspaceStorage {
     <<hook>>
-    +save() void
-    +loadSaved() void
+    +flushSave() void
   }
   class TripFactChips {
     <<component>>

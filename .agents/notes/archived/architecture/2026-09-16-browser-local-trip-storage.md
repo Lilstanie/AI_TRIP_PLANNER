@@ -1,6 +1,7 @@
 # Agent Note: Saved trips live in browser storage
 
 Status: implemented
+Archived: 2026-09-24
 Owner: E (@WhW0591)
 
 ## Problem
@@ -26,7 +27,7 @@ browser-local saving for this phase, and durable storage is next on the
 
 - Saved trips are limited to one browser on one device.
 - A schema change to persisted fields needs a version bump and a decision on old snapshots; see
-  [AUD base currency](2026-09-20-aud-base-currency.md).
+  [AUD base currency](../../implemented/architecture/2026-09-20-aud-base-currency.md).
 
 ## Sources
 

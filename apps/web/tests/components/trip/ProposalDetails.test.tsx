@@ -14,13 +14,11 @@ describe("Trip drawer details", () => {
     const { container } = render(
       <TripPanel
         plan={trip}
-        busy={false}
         tab="overview"
         onTab={() => {}}
         timeline={null}
         onReview={() => {}}
         onEdit={() => {}}
-        onSave={() => {}}
       />,
     );
     expect(screen.getByLabelText("Trip budget").textContent).toMatch(expected);

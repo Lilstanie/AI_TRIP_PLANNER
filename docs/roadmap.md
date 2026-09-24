@@ -17,7 +17,7 @@ Status as of 2026-09-22 on `main`; see [workspace UI](workspace-ui.md) for curre
   search, weather forecast and climate evidence.
 - Visible provenance: every proposal reports whether its data is live, estimated, mock, fallback or
   unavailable.
-- Storage: saved trips in the browser; chat turns, preferences, plans and SerpApi usage and cache in
+- Storage: chats and trips in the browser; chat turns, preferences, plans and SerpApi usage and cache in
   the Redis REST store when configured.
 - Streaming planning progress and a thinking transcript in the chat.
 
@@ -38,7 +38,7 @@ Status as of 2026-09-22 on `main`; see [workspace UI](workspace-ui.md) for curre
   estimated and mock provider states.
 - Users can inspect and edit real detail cards rather than raw JSON.
 - Time, route and budget conflicts are visible after edits.
-- Saved trips reopen after refresh.
+- Planned trips reopen from Your trips after refresh.
 - Provider failures degrade visibly and safely without silently substituting fictional prices.
 - Typecheck, tests, lint and production build pass before merge.
 

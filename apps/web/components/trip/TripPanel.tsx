@@ -19,17 +19,14 @@ export function tripStatus(plan: TripPlan) {
 /** Body of the Your Trip drawer; the drawer supplies the heading and close button. */
 export function TripPanel({
   plan,
-  busy,
   tab,
   onTab,
   timeline,
   places,
   onReview,
   onEdit,
-  onSave,
 }: {
   plan: TripPlan;
-  busy: boolean;
   tab: TripTab;
   onTab(tab: TripTab): void;
   timeline: ReactNode;
@@ -37,7 +34,6 @@ export function TripPanel({
   places?: ReactNode;
   onReview: () => void;
   onEdit: () => void;
-  onSave: () => void;
 }) {
   const estimated =
     Number.isFinite(plan.estTotal) && plan.estTotal >= 0 ? plan.estTotal : undefined;
@@ -141,9 +137,6 @@ export function TripPanel({
       <div className="actions trip-panel__footer">
         <button className="primary" disabled={!plan.sections.length} onClick={onReview}>
           Review plan
-        </button>
-        <button disabled={busy || !plan.sections.length} onClick={onSave}>
-          Save trip
         </button>
       </div>
     </div>

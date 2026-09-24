@@ -35,8 +35,8 @@ image cannot back the store.
 - Without the two variables a deployment silently runs in memory; `/api/data-mode` and the logs do
   not report it, so deployment checks must confirm the variables are set.
 - Every read and write is an HTTP request; hot paths should stay coarse-grained.
-- Saved trips shown in the workspace still come from browser storage; see
-  [browser-local trip storage](2026-09-16-browser-local-trip-storage.md).
+- Chats and trips shown in the workspace still come from browser storage; see
+  [workspace catalog trip storage](2026-09-24-workspace-catalog-trip-storage.md).
 
 ## Sources
 

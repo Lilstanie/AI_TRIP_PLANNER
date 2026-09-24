@@ -8,14 +8,7 @@ import {
   type SetStateAction,
 } from "react";
 import type { TripPlan } from "@trip/shared";
-import {
-  CURRENT_KEY,
-  SAVED_KEY,
-  parseSaved,
-  type Draft,
-  type Message,
-  type Snapshot,
-} from "@/lib/workspace";
+import { CURRENT_KEY, type Draft, type Message, type Snapshot } from "@/lib/workspace";
 import {
   CATALOG_KEY,
   serializeCatalog,
@@ -36,7 +29,6 @@ type WorkspaceStorageOptions = {
   catalog: WorkspaceCatalog;
   setCatalog: Dispatch<SetStateAction<WorkspaceCatalog>>;
   activeConversation: MutableRefObject<string>;
-  setNotice: Dispatch<SetStateAction<string>>;
 };
 
 export function useWorkspaceStorage({
@@ -49,9 +41,7 @@ export function useWorkspaceStorage({
   catalog,
   setCatalog,
   activeConversation,
-  setNotice,
 }: WorkspaceStorageOptions) {
-  const [saved, setSaved] = useState<Snapshot[]>(restored.saved);
   const [storageError, setStorageError] = useState(restored.storageError ?? "");
   const [storageEnabled, setStorageEnabled] = useState(restored.storageEnabled);
   const [saveState, setSaveState] = useState<"saving" | "saved" | "failed">("saved");
@@ -120,58 +110,16 @@ export function useWorkspaceStorage({
     }
   }, [catalog, storageEnabled]);
 
-  function snapshot(current: TripPlan): Snapshot {
-    return {
-      version: 3,
-      id: activeConversation.current.replace(/^conversation:/, ""),
-      savedAt: new Date().toISOString(),
-      plan: current,
-      draft,
-      messages,
-      input,
-      previousTotal,
-    };
-  }
-  function save() {
-    if (!plan) {
-      setNotice("Add trip details before saving a trip.");
-      return;
-    }
-    try {
-      const current = parseSaved(localStorage.getItem(SAVED_KEY));
-      const next = [{ ...snapshot(plan), id: crypto.randomUUID() }, ...current];
-      localStorage.setItem(SAVED_KEY, JSON.stringify(next));
-      setSaved(next);
-      setNotice("Saved a copy of this trip in this browser.");
-      setStorageError("");
-    } catch {
-      setStorageError(
-        "Could not save this trip. Storage may be full or the saved list unreadable. Existing data was kept.",
-      );
-    }
-  }
-  function loadSaved() {
-    try {
-      setSaved(parseSaved(localStorage.getItem(SAVED_KEY)));
-      setStorageError("");
-    } catch {
-      setStorageError("Saved trips are still unreadable. Existing data was kept.");
-    }
-  }
-
   function flushSave() {
     pendingSave.current?.();
   }
 
   return {
-    saved,
     storageError,
     storageEnabled,
     saveState,
     setStorageError,
     setStorageEnabled,
     flushSave,
-    save,
-    loadSaved,
   };
 }

@@ -5,7 +5,7 @@ import { budgetHint, money, type Message } from "@/lib/workspace";
 
 /** Every turn is a chat turn: there is no "apply a decision" request. */
 export type Task = { kind: "chat"; request: ChatRequest };
-export type DialogKind = "review" | "saved" | "language" | "account";
+export type DialogKind = "review" | "language" | "account";
 /** Narrow screens show one of chat or map; preferences, trip and navigation are drawers. */
 export type MobileView = "chat" | "map";
 const NARROW_QUERY = "(max-width: 1000px)";

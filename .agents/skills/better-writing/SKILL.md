@@ -12,7 +12,7 @@ redesigned so that the error cannot happen.
 
 Read the copy around your change before you write. It establishes these conventions:
 
-- **Sentence case** for labels, buttons and headings: "Save trip", "Review plan", "Change trip
+- **Sentence case** for labels, buttons and headings: "Update trip", "Review plan", "Change trip
   preferences". "Your Trip" is the one established title.
 - **Australian and British spelling** in prose: "traveller", "colour". Code identifiers
   keep their existing spelling.
@@ -27,7 +27,7 @@ Read the copy around your change before you write. It establishes these conventi
 
 ## Rules
 
-- **Buttons start with a verb that names the action**: "Save trip", "Restore trip", "Preview
+- **Buttons start with a verb that names the action**: "Update trip", "Retry update", "Preview
   changes". Never write "OK", or a bare "Yes"/"No" for a consequential choice. A confirmation button
   restates the consequence: a dialog asking "Delete this chat?" offers "Delete chat" and "Cancel".
 - **One word for one thing.** If the sidebar says "Chats", a toast does not say "Conversations". If a

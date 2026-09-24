@@ -30,9 +30,9 @@ Each item below is a defect this project has hit; the source is in brackets.
 - **Shared contracts.** A change under `packages/shared/src` needs an Agent Note and
   `contract-impact: packages/shared` in the session log; check every consumer still compiles and that
   removed fields are stripped, not rejected, when old data is parsed.
-- **Persisted browser data.** A change to a saved-trip field needs a snapshot version bump and a stated
-  decision about old snapshots. [storage](../../notes/implemented/architecture/2026-09-16-browser-local-trip-storage.md)
-- **Late responses.** Restoring, editing or switching trips must abort or ignore in-flight requests so
+- **Persisted browser data.** A change to a stored trip field needs a snapshot version bump and a stated
+  decision about old snapshots. [storage](../../notes/implemented/architecture/2026-09-24-workspace-catalog-trip-storage.md)
+- **Late responses.** Editing, switching or starting trips must abort or ignore in-flight requests so
   a late response cannot overwrite newer state.
 - **Boundaries.** Agents reach providers only through ports; `route.ts` files stay thin adapters;
   production and test files stay at or below 1000 lines ([development.md](../../../docs/development.md)).
