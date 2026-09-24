@@ -6,14 +6,14 @@ now. Implementation history and browser acceptance for each phase are in the
 
 ## Layout
 
-| Area              | Content                                                                                                               | Implementation                                             |
-| ----------------- | --------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| Sidebar           | Logo, search, Chats, Trips and Saved trips with counts, New chat, New trip, history, Language, Local account          | `WorkspaceSidebar`, `BrandMark`, `icons.tsx`               |
-| Top bar           | Trip title; trip fact chips (destination, dates, travellers, budget, Preferences); data mode; Trip, rightmost         | `WorkspaceView`, `TripFactChips`                           |
-| Trip fact editors | One small editor per chip; Preferences holds nationality and accommodation                                            | `FactPopover`, `FactFields`, `lib/workspace/trip-facts.ts` |
-| Chat              | Conversation, the planning transcript, the composer; starter suggestions in a blank chat; no visible heading          | `ChatPanel`                                                |
-| Map               | Only the map, labelled markers, itinerary lines, the place popup, map status, View all places and Show my location    | `TripMapCanvas`, `TripMap`                                 |
-| Your Trip drawer  | Budget; Overview (places by day, sections and the stay chosen); Timeline & routes (editor); Review plan and Save trip | `Drawer`, `TripPanel`, `TripPlaceList`, `TripEditor`       |
+| Area              | Content                                                                                                               | Implementation                                                                              |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| Sidebar           | Logo, search, Chats, Trips and Saved trips with counts, New chat, New trip, history, Language, Local account          | `WorkspaceSidebar`, `BrandMark`, `icons.tsx`                                                |
+| Top bar           | Trip title; trip fact chips (destination, dates, travellers, budget, Preferences); data mode; Trip, rightmost         | `WorkspaceView`, `TripFactChips`                                                            |
+| Trip fact editors | One editor per chip; Where and Trip preferences are centred dialogs, Preferences holds the traveller's own list       | `FactPopover`, `FactFields`, `WhereFields`, `PreferenceList`, `lib/workspace/trip-facts.ts` |
+| Chat              | Conversation, the planning transcript, the composer; starter suggestions in a blank chat; no visible heading          | `ChatPanel`                                                                                 |
+| Map               | Only the map, labelled markers, itinerary lines, the place popup, map status, View all places and Show my location    | `TripMapCanvas`, `TripMap`                                                                  |
+| Your Trip drawer  | Budget; Overview (places by day, sections and the stay chosen); Timeline & routes (editor); Review plan and Save trip | `Drawer`, `TripPanel`, `TripPlaceList`, `TripEditor`                                        |
 
 - **Sidebar.**
   - Expands to 240 px (220 px below 1250 px) or collapses to a 64 px icon rail. The toggle uses
