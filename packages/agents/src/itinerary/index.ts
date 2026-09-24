@@ -21,6 +21,7 @@ import { dateForDay, planningDays, routeProblem } from "../transport/validation"
 import { cities, cityForDay } from "../transport/legs";
 import { avoidBlockedWindows } from "./revision";
 import { mockEnabled } from "@trip/tools";
+import { TRAVELLER_PREFERENCES_RULE } from "../prompts/traveller-preferences";
 
 // The itinerary schema and guardrails constrain model output before it reaches
 // the shared proposal format or the route-conflict checker.
@@ -193,7 +194,7 @@ function createDeepSeekGenerator(): ItineraryGenerator | undefined {
         name: "itinerary_specialist",
         model,
         tools: [evidence],
-        systemPrompt: `You are the itinerary specialist. Always call read_itinerary_evidence before drafting. Use only its facts and candidate place names. Cover every trip day with 1-3 non-overlapping activities using 24-hour HH:mm times, leave 150 minutes between different locations, and keep activity cost within ${MODEL_ACTIVITY_BUDGET_SHARE * 100}% of the total trip budget. Never claim live hours, availability, safety, visa or weather facts. Address a supplied revision exactly. Return the requested structured itinerary draft.\n\nEach activity location must be a candidate's name copied character for character. Do not append its category, rating or district, and do not reword it: an activity whose location is not an exact candidate name is discarded and the whole draft is thrown away.`,
+        systemPrompt: `You are the itinerary specialist. Always call read_itinerary_evidence before drafting. Use only its facts and candidate place names. Cover every trip day with 1-3 non-overlapping activities using 24-hour HH:mm times, leave 150 minutes between different locations, and keep activity cost within ${MODEL_ACTIVITY_BUDGET_SHARE * 100}% of the total trip budget. Never claim live hours, availability, safety, visa or weather facts. Address a supplied revision exactly. Return the requested structured itinerary draft.\n\nEach activity location must be a candidate's name copied character for character. Do not append its category, rating or district, and do not reword it: an activity whose location is not an exact candidate name is discarded and the whole draft is thrown away.\n\n${TRAVELLER_PREFERENCES_RULE}`,
         responseFormat: ItineraryDraft,
       });
       const result = await specialist.invoke({

@@ -12,6 +12,8 @@ const behavior = vi.hoisted(() => ({
   respond: (_evidence: Evidence): unknown => ({ schedule: [] }),
   skipTool: false,
   fail: false,
+  /** The system prompt and the user message the specialist was last given. */
+  seen: { prompt: "", message: "" },
 }));
 
 vi.mock("../../src/models", () => ({
@@ -24,8 +26,9 @@ vi.mock("../../src/models", () => ({
 }));
 vi.mock("langchain", () => ({
   tool: (search: Tool) => search,
-  createAgent: ({ tools }: { tools: Tool[] }) => ({
-    invoke: async () => {
+  createAgent: ({ tools, systemPrompt }: { tools: Tool[]; systemPrompt: string }) => ({
+    invoke: async (input: { messages: { content: string }[] }) => {
+      behavior.seen = { prompt: systemPrompt, message: input.messages[0]!.content };
       if (behavior.fail) throw new Error("provider failure");
       if (behavior.skipTool) return { structuredResponse: { schedule: [] } };
       const evidence = await tools[0]!();
@@ -34,6 +37,7 @@ vi.mock("langchain", () => ({
   }),
 }));
 
+import { TRAVELLER_PREFERENCES_RULE } from "../../src/prompts/traveller-preferences";
 import { transportAgent } from "../../src/transport";
 
 const brief: TripBrief = {
@@ -163,4 +167,18 @@ describe("the model's transport choices are load-bearing", () => {
       warning.mockRestore();
     },
   );
+});
+
+describe("the traveller's trip preferences", () => {
+  it("reach the specialist with the brief, with the rule for weighing them", async () => {
+    await transportAgent.invoke({
+      brief: { ...brief, preferences: ["Quiet neighbourhood", "No red-eye flights"] },
+      context,
+    });
+    expect(JSON.parse(behavior.seen.message).brief.preferences).toEqual([
+      "Quiet neighbourhood",
+      "No red-eye flights",
+    ]);
+    expect(behavior.seen.prompt).toContain(TRAVELLER_PREFERENCES_RULE);
+  });
 });

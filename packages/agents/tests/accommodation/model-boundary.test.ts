@@ -13,6 +13,8 @@ const behavior = vi.hoisted(() => ({
   respond: (_evidence: Awaited<ReturnType<Tool>>): unknown => ({ choices: [] }),
   skipTool: false,
   fail: false,
+  /** The system prompt and the user message the specialist was last given. */
+  seen: { prompt: "", message: "" },
 }));
 
 vi.mock("../../src/models", () => ({
@@ -25,8 +27,9 @@ vi.mock("../../src/models", () => ({
 }));
 vi.mock("langchain", () => ({
   tool: (search: Tool) => search,
-  createAgent: ({ tools }: { tools: Tool[] }) => ({
-    invoke: async () => {
+  createAgent: ({ tools, systemPrompt }: { tools: Tool[]; systemPrompt: string }) => ({
+    invoke: async (input: { messages: { content: string }[] }) => {
+      behavior.seen = { prompt: systemPrompt, message: input.messages[0]!.content };
       if (behavior.fail) throw new Error("provider failure");
       if (behavior.skipTool) return { structuredResponse: { choices: [] } };
       const evidence = await tools[0]!();
@@ -35,6 +38,7 @@ vi.mock("langchain", () => ({
   }),
 }));
 
+import { TRAVELLER_PREFERENCES_RULE } from "../../src/prompts/traveller-preferences";
 import { accommodationAgent } from "../../src/accommodation";
 
 const brief: TripBrief = {
@@ -147,5 +151,19 @@ describe("the model's stay choice is load-bearing", () => {
     const proposal = await accommodationAgent.invoke({ brief, context });
     expect(proposal.items[0]!.estCost).toBe(1000);
     expect(proposal.source).toMatchObject({ kind: "fallback" });
+  });
+});
+
+describe("the traveller's trip preferences", () => {
+  it("reach the specialist with the brief, with the rule for weighing them", async () => {
+    await accommodationAgent.invoke({
+      brief: { ...brief, preferences: ["Quiet neighbourhood", "No red-eye flights"] },
+      context,
+    });
+    expect(JSON.parse(behavior.seen.message).brief.preferences).toEqual([
+      "Quiet neighbourhood",
+      "No red-eye flights",
+    ]);
+    expect(behavior.seen.prompt).toContain(TRAVELLER_PREFERENCES_RULE);
   });
 });

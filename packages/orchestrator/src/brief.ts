@@ -1,4 +1,9 @@
-import { TripBrief as TripBriefSchema, Currency, type TripBrief } from "@trip/shared";
+import {
+  TripBrief as TripBriefSchema,
+  Currency,
+  TripPreferences,
+  type TripBrief,
+} from "@trip/shared";
 import { z } from "zod/v4";
 
 export const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -15,6 +20,9 @@ export const BriefPatchSchema = z.object({
   budgetTotal: z.number().positive().optional(),
   budgetSource: z.object({ amount: z.number().positive(), currency: Currency }).optional(),
   nationality: z.string().trim().min(1).optional(),
+  // Set only by the trip preferences editor and carried in `known`; the coordinator's
+  // update_trip_brief tool has no field for it, so a model cannot rewrite the traveller's list.
+  preferences: TripPreferences.optional(),
 });
 export type BriefPatch = z.infer<typeof BriefPatchSchema>;
 

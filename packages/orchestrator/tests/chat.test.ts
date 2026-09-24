@@ -701,3 +701,80 @@ describe("attachments reach the coordinator", () => {
     }
   });
 });
+
+describe("the traveller's trip preferences reach the planner", () => {
+  const preferences = ["Vegetarian food", "No early starts"];
+  const plannedBrief = () => vi.mocked(itinerary.invoke).mock.lastCall?.[0].brief;
+
+  it("carries them from `known` into the brief the specialists plan", async () => {
+    vi.mocked(itinerary.invoke).mockClear();
+    const { mem } = memoryStore();
+    const result = await run(
+      {
+        tripId: "blank",
+        message: "2026-11-02 to 2026-11-06, 3 people, budget 2400",
+        known: { destination: "Lisbon", preferences },
+      },
+      scriptedModel(
+        [
+          {
+            name: "update_trip_brief",
+            args: {
+              startDate: "2026-11-02",
+              endDate: "2026-11-06",
+              groupSize: 3,
+              budgetAmount: 2400,
+            },
+            id: "c1",
+          },
+        ],
+        [{ name: "replan_trip", args: {}, id: "c2" }],
+      ),
+      mem,
+    );
+    expect(result.plan.brief.preferences).toEqual(preferences);
+    expect(plannedBrief()?.preferences).toEqual(preferences);
+  });
+
+  it("keeps them through an edit the coordinator records on a planned trip", async () => {
+    vi.mocked(itinerary.invoke).mockClear();
+    const result = await run(
+      { tripId: brief.tripId, message: "Make it 3 people", brief: { ...brief, preferences } },
+      scriptedModel(
+        [{ name: "update_trip_brief", args: { groupSize: 3 }, id: "c1" }],
+        [{ name: "replan_trip", args: {}, id: "c2" }],
+      ),
+      memoryStore().mem,
+    );
+    expect(result.plan.brief).toMatchObject({ groupSize: 3, preferences });
+    expect(plannedBrief()?.preferences).toEqual(preferences);
+  });
+
+  it("plans a submitted brief with them", async () => {
+    vi.mocked(itinerary.invoke).mockClear();
+    const result = await runTripChat(
+      {
+        tripId: brief.tripId,
+        mode: "plan",
+        message: "Plan trip",
+        brief: { ...brief, preferences },
+      },
+      { specialists: [itinerary], tools, mem: memoryStore().mem },
+    );
+    expect(result.plan.brief.preferences).toEqual(preferences);
+    expect(plannedBrief()?.preferences).toEqual(preferences);
+  });
+
+  it("carries them without a provider key too", async () => {
+    vi.mocked(itinerary.invoke).mockClear();
+    const result = await runTripChat(
+      {
+        tripId: "blank",
+        message: "Lisbon, 2026-11-02 to 2026-11-06, 3 people, budget $2400",
+        known: { preferences },
+      },
+      { specialists: [itinerary], tools, mem: memoryStore().mem },
+    );
+    expect(result.plan.brief.preferences).toEqual(preferences);
+  });
+});

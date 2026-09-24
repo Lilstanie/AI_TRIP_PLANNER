@@ -33,6 +33,7 @@ import {
   type JourneyLeg,
 } from "./legs";
 import { mockEnabled } from "@trip/tools";
+import { TRAVELLER_PREFERENCES_RULE } from "../prompts/traveller-preferences";
 
 // Transport combines booking fares with map legs and keeps all pricing in the
 // deterministic calculator that the specialist must call.
@@ -567,7 +568,8 @@ async function planTransport(
     model,
     tools: [search],
     systemPrompt:
-      "You are the transport specialist. Call search_transport_evidence, then decide two things: which flight candidate to take, and which planning day and local departure time each hop should run at. You own those choices -- weigh cost against the traveller's budget, and schedule hops so they leave enough of the day to be worth arriving for. A budget revision means prefer the cheapest flight; a schedule revision means move departures earlier. Refer to flights and hops only by the ids you were given. Never state a fare, a duration or a carrier of your own. Return the requested structured selection.",
+      "You are the transport specialist. Call search_transport_evidence, then decide two things: which flight candidate to take, and which planning day and local departure time each hop should run at. You own those choices -- weigh cost against the traveller's budget, and schedule hops so they leave enough of the day to be worth arriving for. A budget revision means prefer the cheapest flight; a schedule revision means move departures earlier. Refer to flights and hops only by the ids you were given. Never state a fare, a duration or a carrier of your own. Return the requested structured selection. " +
+      TRAVELLER_PREFERENCES_RULE,
     responseFormat: TransportSelection,
   });
   try {
@@ -583,6 +585,7 @@ async function planTransport(
               dates: brief.dates,
               groupSize: brief.groupSize,
               budgetTotal: brief.budgetTotal,
+              preferences: brief.preferences,
             },
             revision: revision && { reason: revision.reason, constraints: revision.constraints },
           }),
