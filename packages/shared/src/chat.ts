@@ -1,5 +1,12 @@
 import { z } from "zod";
-import { AGENT_NAMES, FlightLeg, isTripDate, TripBrief, TripPreferences } from "./contracts";
+import {
+  AGENT_NAMES,
+  FlightLeg,
+  isTripDate,
+  TravellerParty,
+  TripBrief,
+  TripPreferences,
+} from "./contracts";
 import { Currency } from "./money";
 import { TripPlan } from "./plan";
 
@@ -20,6 +27,8 @@ export const PartialTripBrief = z.object({
     ])
     .optional(),
   groupSize: z.number().int().positive().optional(),
+  // The Who editor's breakdown of groupSize. See TripBrief.party.
+  party: TravellerParty.optional(),
   budgetTotal: z.number().min(0.01).optional(), // always BASE_CURRENCY; see ./money
   // Travels with `budgetTotal` so a half-built brief can still explain the
   // conversion it came from. See TripBrief.budgetSource.

@@ -584,6 +584,7 @@ async function planTransport(
               destination: brief.destination,
               dates: brief.dates,
               groupSize: brief.groupSize,
+              party: brief.party,
               budgetTotal: brief.budgetTotal,
               preferences: brief.preferences,
             },

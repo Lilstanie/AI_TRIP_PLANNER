@@ -32,6 +32,23 @@ export const TripPreferences = z
   .array(z.string().trim().min(1).max(MAX_TRIP_PREFERENCE_LENGTH))
   .max(MAX_TRIP_PREFERENCES);
 export type TripPreferences = z.infer<typeof TripPreferences>;
+/**
+ * Who is travelling, by kind, as the Who editor's steppers state it. `groupSize` stays the people
+ * count every agent budgets with; this only breaks it down (and adds pets, who are never counted in
+ * `groupSize`). A breakdown whose people do not add up to `groupSize` is to be ignored, not
+ * reconciled: `groupSize` is authoritative.
+ */
+const partyCount = z.number().int().min(0).max(99);
+export const TravellerParty = z.object({
+  adults: partyCount,
+  children: partyCount, // 2–12
+  infants: partyCount, // under 2
+  seniors: partyCount, // 65+
+  pets: partyCount,
+});
+export type TravellerParty = z.infer<typeof TravellerParty>;
+export const partyPeople = (party: TravellerParty) =>
+  party.adults + party.children + party.infants + party.seniors;
 export function isTripDate(value: string): boolean {
   const time = Date.parse(`${value}T00:00:00.000Z`);
   return (
@@ -54,6 +71,8 @@ export const TripBrief = z
       z.string().refine(isTripDate, "Enter a real date"),
     ]), // [start, end] ISO date
     groupSize: z.number().int().positive(),
+    // Optional and additive: briefs saved before it existed still parse. See TravellerParty.
+    party: TravellerParty.optional(),
     budgetTotal: z.number().min(0.01), // always BASE_CURRENCY; see ./money
     // What the traveller actually said, kept only so the UI can show "A$630
     // (≈ ¥3,000)". Absent means they stated the budget in the base currency, so

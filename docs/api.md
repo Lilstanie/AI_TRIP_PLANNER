@@ -45,6 +45,12 @@ Contract: `ChatRequest`, `ChatResponse` and `AgentProgressEvent` in `packages/sh
 never writes them, and every specialist and the supervisor receive them with the brief. `nationality`
 and `accommodation` are still accepted and passed through, but no current screen sets them.
 
+`brief.party` and `known.party` are optional too: `{ adults, children, infants, seniors, pets }`,
+whole numbers from 0 to 99 (`TravellerParty` in `packages/shared/src/contracts.ts`), set by the Who
+editor's steppers. They break `groupSize` down and add pets, who are not counted in it; `groupSize`
+stays authoritative for every cost, and specialists are told to ignore a party whose people do not
+add up to it.
+
 Optional `attachments`: up to 4 files the traveller attached to this message.
 
 ```json

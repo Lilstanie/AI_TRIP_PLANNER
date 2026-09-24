@@ -337,6 +337,7 @@ async function planStays(
               destination: brief.destination,
               dates: brief.dates,
               groupSize: brief.groupSize,
+              party: brief.party,
               budgetTotal: brief.budgetTotal,
               accommodation: brief.accommodation,
               preferences: brief.preferences,
