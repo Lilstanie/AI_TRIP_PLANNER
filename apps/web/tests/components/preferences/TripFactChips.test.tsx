@@ -319,7 +319,11 @@ describe("TripFactChips Where", () => {
 
     fireEvent.change(field, { target: { value: "Lisbo" } });
     await vi.advanceTimersByTimeAsync(400);
-    await screen.findAllByRole("option");
+    // The previous query's options stay visible until the new ones arrive, and new results reset
+    // the highlight; wait for the second lookup to land before moving through the list.
+    await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(2));
+    await vi.advanceTimersByTimeAsync(0);
+    await waitFor(() => expect(field.getAttribute("aria-expanded")).toBe("true"));
     fireEvent.keyDown(field, { key: "ArrowDown" });
     expect(field.getAttribute("aria-activedescendant")).toBe(screen.getAllByRole("option")[0]!.id);
     fireEvent.keyDown(field, { key: "Enter" });
