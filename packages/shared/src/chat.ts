@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { AGENT_NAMES, FlightLeg, isTripDate, TripBrief } from "./contracts";
+import { AGENT_NAMES, FlightLeg, isTripDate, TripBrief, TripPreferences } from "./contracts";
 import { Currency } from "./money";
 import { TripPlan } from "./plan";
 
@@ -25,6 +25,9 @@ export const PartialTripBrief = z.object({
   // conversion it came from. See TripBrief.budgetSource.
   budgetSource: z.object({ amount: z.number().positive(), currency: Currency }).optional(),
   nationality: z.string().optional(),
+  // The traveller's own trip preferences, stated in the editor before a plan exists.
+  // See TripBrief.preferences.
+  preferences: TripPreferences.optional(),
 });
 export type PartialTripBrief = z.infer<typeof PartialTripBrief>;
 

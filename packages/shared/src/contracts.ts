@@ -23,6 +23,15 @@ export const AccommodationPreferences = z.object({
   minRating: z.number().min(0).max(10).default(0),
   freeCancellation: z.boolean().default(false),
 });
+// What the traveller asked for in their own words ("vegetarian food", "no early starts"). Each
+// entry is a request the planner and every specialist weigh, not a verified fact. Bounded so a
+// brief stays small enough to repeat in every specialist prompt.
+export const MAX_TRIP_PREFERENCES = 12;
+export const MAX_TRIP_PREFERENCE_LENGTH = 200;
+export const TripPreferences = z
+  .array(z.string().trim().min(1).max(MAX_TRIP_PREFERENCE_LENGTH))
+  .max(MAX_TRIP_PREFERENCES);
+export type TripPreferences = z.infer<typeof TripPreferences>;
 export function isTripDate(value: string): boolean {
   const time = Date.parse(`${value}T00:00:00.000Z`);
   return (
@@ -53,6 +62,9 @@ export const TripBrief = z
     budgetSource: z.object({ amount: z.number().positive(), currency: Currency }).optional(),
     nationality: z.string().optional(),
     accommodation: AccommodationPreferences.optional(),
+    // Optional and additive: briefs saved before it existed still parse, and an absent list
+    // means the traveller stated no preferences.
+    preferences: TripPreferences.optional(),
   })
   .check((ctx) => {
     const [start, end] = ctx.value.dates;
