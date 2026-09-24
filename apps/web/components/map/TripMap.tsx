@@ -1,94 +1,28 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { GooglePlace, RouteResult } from "@/lib/integrations/google";
-import { MapViewController, type FramableMap } from "@/lib/map/map-view";
+import { MapViewController } from "@/lib/map/map-view";
+import { dayRoutes, type RouteStop } from "@/lib/map/itinerary-route";
 import { PlacePreview } from "./PlacePreview";
+import { framable, loadMaps, type MapMarker, type MapRuntime } from "./google-maps-sdk";
+import {
+  declutterLabels,
+  drawItineraryRoutes,
+  markerContent,
+  markerTitle,
+  placeName,
+  routeColors,
+} from "./map-layers";
+import type { UserLocation } from "./useUserLocation";
 
 type Coordinate = { lat: number; lng: number };
 
-// Minimal runtime boundary: the Maps SDK is loaded only when this view mounts.
-type MapsSDK = {
-  Map: new (
-    el: HTMLElement,
-    options: object,
-  ) => {
-    fitBounds(bounds: unknown, padding?: number): void;
-    panTo(position: Coordinate): void;
-    setCenter(position: Coordinate): void;
-    getCenter(): { lat(): number; lng(): number } | undefined;
-    setZoom(zoom: number): void;
-    getZoom(): number | undefined;
-    setOptions(options: object): void;
-    addListener(event: string, fn: () => void): { remove(): void };
-  };
-  LatLngBounds: new () => { extend(point: object): void; isEmpty(): boolean };
-  event: {
-    addListenerOnce(instance: unknown, event: string, fn: () => void): { remove(): void };
-  };
-  marker: {
-    AdvancedMarkerElement: new (options: object) => {
-      map: unknown;
-      // Advanced markers are custom elements, so they take DOM events.
-      // addListener still works but Google warns it is going away.
-      addEventListener(event: string, fn: () => void): void;
-      removeEventListener(event: string, fn: () => void): void;
-    };
-  };
-  Polyline: new (options: object) => { setMap(map: unknown): void };
-  geometry: { encoding: { decodePath(value: string): unknown } };
-};
+/** A located itinerary stop. `order` is its 1-based number across the trip, in visiting order. */
+export type MapStop = { place: GooglePlace; order: number; day?: number };
 
-type MapRuntime = { maps: MapsSDK; map: InstanceType<MapsSDK["Map"]> };
-type LocationState =
-  | { status: "idle" }
-  | { status: "loading" }
-  | { status: "success"; position: Coordinate; message: string }
-  | { status: "error"; message: string };
-
-const markerColors = ["#345948", "#9b5d32", "#315d80", "#7b4b91", "#8a6a16"];
-
-let sdk: Promise<MapsSDK> | undefined;
-
-function loadMaps() {
-  if (sdk) return sdk;
-  sdk = new Promise<MapsSDK>((resolve, reject) => {
-    const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-    if (!key) {
-      reject(new Error("Map unavailable: configure the browser Google Maps key."));
-      return;
-    }
-    const script = document.createElement("script");
-    const host = window as unknown as {
-      google: { maps: MapsSDK };
-      tripGoogleMapsReady?: () => void;
-    };
-    const timeout = window.setTimeout(() => {
-      delete host.tripGoogleMapsReady;
-      script.remove();
-      reject(new Error("Google Maps took too long to load. Check your connection and retry."));
-    }, 10_000);
-    host.tripGoogleMapsReady = () => {
-      window.clearTimeout(timeout);
-      resolve(host.google.maps);
-      delete host.tripGoogleMapsReady;
-    };
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}&libraries=marker,geometry&v=weekly&loading=async&callback=tripGoogleMapsReady`;
-    script.async = true;
-
-    script.onerror = () => {
-      window.clearTimeout(timeout);
-      delete host.tripGoogleMapsReady;
-      script.remove();
-      reject(new Error("Google Maps could not load. Check your connection and retry."));
-    };
-    document.head.appendChild(script);
-  }).catch((error) => {
-    sdk = undefined;
-    throw error;
-  });
-  return sdk;
-}
+/** Below this zoom only the selected marker keeps its name label, so labels do not pile up. */
+const LABEL_ZOOM = 12;
 
 function coordinate(place: GooglePlace): Coordinate | undefined {
   if (!place.location) return undefined;
@@ -99,50 +33,22 @@ function positions(places: GooglePlace[]) {
   return places.flatMap((place) => coordinate(place) ?? []);
 }
 
-/**
- * Adapt a Google map to the SDK-free framing controller. Programmatic moves are flagged until
- * the map is idle again, so only real user interaction counts as "the user moved the map".
- */
-function framable(runtime: MapRuntime, moving: { current: boolean }): FramableMap {
-  const { maps, map } = runtime;
-  const settle = () => {
-    moving.current = true;
-    maps.event.addListenerOnce(map, "idle", () => {
-      moving.current = false;
-    });
-  };
-  return {
-    center(point, zoom) {
-      settle();
-      map.setCenter(point);
-      map.setZoom(zoom);
-    },
-    fit(points, maxZoom) {
-      settle();
-      const bounds = new maps.LatLngBounds();
-      points.forEach((point) => bounds.extend(point));
-      map.setOptions({ maxZoom });
-      map.fitBounds(bounds, 72);
-      maps.event.addListenerOnce(map, "idle", () => map.setOptions({ maxZoom: null }));
-    },
-  };
-}
-
-function geolocationError(error: GeolocationPositionError) {
-  if (error.code === 1)
-    return "Location permission was denied. You can retry after allowing it in your browser settings.";
-  if (error.code === 2)
-    return "Your current location is unavailable. Check your device settings and retry.";
-  if (error.code === 3) return "Finding your location timed out. Please retry.";
-  return "Your current location could not be found. Please retry.";
-}
-
-function placeName(place: GooglePlace) {
-  return place.displayName?.text ?? place.formattedAddress ?? "Activity";
+/** Follow a media query without per-frame state; false where matchMedia is unavailable. */
+function useMediaQuery(query: string) {
+  const [matches, setMatches] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const list = window.matchMedia(query);
+    const update = () => setMatches(list.matches);
+    update();
+    list.addEventListener?.("change", update);
+    return () => list.removeEventListener?.("change", update);
+  }, [query]);
+  return matches;
 }
 
 export function TripMap({
-  places,
+  stops,
   selected,
   onSelect,
   routes,
@@ -150,8 +56,10 @@ export function TripMap({
   viewKey,
   destinations = [],
   showPhotos = false,
+  userLocation,
 }: {
-  places: GooglePlace[];
+  /** Located stops in visiting order; each becomes a labelled marker. */
+  stops: MapStop[];
   /** Destination city places; the map centres on them before any activity is mapped. */
   destinations?: GooglePlace[];
   selected?: string;
@@ -162,25 +70,36 @@ export function TripMap({
   viewKey?: string;
   /** Load Google place photos. Only in live data mode: every image is billed. */
   showPhotos?: boolean;
+  userLocation: UserLocation;
 }) {
   const root = useRef<HTMLDivElement>(null);
   const onSelectRef = useRef(onSelect);
   const view = useRef<MapViewController | null>(null);
   const moving = useRef(false);
-  const userLocationCentered = useRef(false);
+  const panOnLocate = useRef(false);
+  const markers = useRef(new Map<string, { marker: MapMarker; content: HTMLElement }>());
+  const popup = useRef<HTMLDivElement>(null);
+  const focusPopup = useRef(false);
+  const returnFocus = useRef<HTMLElement | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [retry, setRetry] = useState(0);
   const [runtime, setRuntime] = useState<MapRuntime>();
-  const [location, setLocation] = useState<LocationState>({ status: "idle" });
+  const [closedFor, setClosedFor] = useState<string>();
+  const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
+  const dark = useMediaQuery("(prefers-color-scheme: dark)");
+  const { location, request: requestLocation } = userLocation;
   const [nearbyRoute, setNearbyRoute] = useState<
     RouteResult | { status: "loading" } | { status: "error"; error: string }
   >();
   const routeRequest = useRef<AbortController | null>(null);
-  const initialFocus = useRef(destinations.length ? destinations : places);
-  initialFocus.current = destinations.length ? destinations : places;
-  const mappedPlaces = places.filter((place) => coordinate(place));
-  const selectedPlace = mappedPlaces.find((place) => place.id === selected);
+  const mapped = useMemo(() => stops.filter((stop) => coordinate(stop.place)), [stops]);
+  const mappedPlaces = useMemo(() => mapped.map((stop) => stop.place), [mapped]);
+  const initialFocus = useRef(destinations.length ? destinations : mappedPlaces);
+  initialFocus.current = destinations.length ? destinations : mappedPlaces;
+  const selectedStop = mapped.find((stop) => stop.place.id === selected);
+  const focusDay = selectedStop?.day;
+  const popupOpen = !!selectedStop && closedFor !== selected;
 
   // A route estimate belongs to one selected place; never show it for another.
   useEffect(() => {
@@ -193,6 +112,29 @@ export function TripMap({
   useEffect(() => {
     onSelectRef.current = onSelect;
   }, [onSelect]);
+
+  const closePopup = useCallback(() => {
+    setClosedFor(selected);
+    const target = returnFocus.current;
+    returnFocus.current = null;
+    if (popup.current?.contains(document.activeElement))
+      (target?.isConnected ? target : root.current)?.focus?.();
+  }, [selected]);
+  const closeRef = useRef(closePopup);
+  closeRef.current = closePopup;
+
+  // Measure labels shortly after a change: Google attaches and positions marker content in its own
+  // render pass, a frame or more after the marker is created.
+  const declutterTimer = useRef<number | undefined>(undefined);
+  const declutterRef = useRef((attempt = 0) => {
+    window.clearTimeout(declutterTimer.current);
+    declutterTimer.current = window.setTimeout(() => {
+      const contents = [...markers.current.values()].map(({ content }) => content);
+      if (!declutterLabels(contents) && contents.length && attempt < 8)
+        declutterRef.current(attempt + 1);
+    }, 150);
+  });
+  useEffect(() => () => window.clearTimeout(declutterTimer.current), []);
 
   useEffect(() => {
     let disposed = false;
@@ -212,6 +154,7 @@ export function TripMap({
           mapTypeControl: false,
           streetViewControl: false,
           fullscreenControl: false,
+          colorScheme: "FOLLOW_SYSTEM",
           mapId: process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || "DEMO_MAP_ID",
         });
         const next = { maps, map };
@@ -219,10 +162,21 @@ export function TripMap({
         const userMoved = () => {
           if (!moving.current) view.current?.markUserMoved();
         };
+        const labels = () => {
+          if (root.current)
+            root.current.dataset.labels = (map.getZoom() ?? 0) >= LABEL_ZOOM ? "all" : "selected";
+        };
+        labels();
         listeners.push(
           map.addListener("dragstart", () => view.current?.markUserMoved()),
-          map.addListener("zoom_changed", userMoved),
+          map.addListener("zoom_changed", () => {
+            userMoved();
+            labels();
+          }),
           map.addListener("center_changed", userMoved),
+          map.addListener("idle", () => declutterRef.current()),
+          // A press on the map itself dismisses the place popup, as on other map apps.
+          map.addListener("click", () => closeRef.current()),
         );
         setRuntime(next);
         setLoading(false);
@@ -265,6 +219,8 @@ export function TripMap({
       const center = runtime.map.getCenter();
       if (!center) return;
       frame = requestAnimationFrame(() => {
+        // A map shown after being hidden (the phone Chat/Map switch) lays its labels out now.
+        declutterRef.current();
         moving.current = true;
         runtime.map.setCenter({ lat: center.lat(), lng: center.lng() });
         runtime.maps.event.addListenerOnce(runtime.map, "idle", () => {
@@ -279,25 +235,18 @@ export function TripMap({
     };
   }, [runtime]);
 
+  // Labelled markers, created once per set of stops; selection only restyles them below.
   useEffect(() => {
     if (!runtime) return;
     const { maps, map } = runtime;
-    const cleanup: (() => void)[] = [];
-    let markerIndex = 0;
-    places.forEach((place) => {
-      const position = coordinate(place);
-      if (!position) return;
-      const label = String(++markerIndex);
-      const content = document.createElement("span");
-      content.className = `trip-map-marker${place.id === selected ? " is-selected" : ""}`;
-      content.textContent = label;
-      content.setAttribute("aria-label", `${label}. ${placeName(place)}`);
-      const markerColor = markerColors[(markerIndex - 1) % markerColors.length]!;
-      content.style.setProperty("--marker-color", markerColor);
+    const created = markers.current;
+    mapped.forEach((stop) => {
+      const position = coordinate(stop.place)!;
+      const content = markerContent(stop.place, stop.order, stop.day);
       const marker = new maps.marker.AdvancedMarkerElement({
         map,
         position,
-        title: `${label}. ${placeName(place)}`,
+        title: markerTitle(stop.place, stop.order, stop.day),
         content,
         // Required for gmp-click: an advanced marker is inert until asked to
         // be clickable, unlike the legacy marker it replaced.
@@ -305,25 +254,89 @@ export function TripMap({
       });
       // "gmp-click", not addListener("click"): Google warns in the console that
       // the legacy listener on advanced markers is going away.
-      const select = () => onSelectRef.current(place.id);
+      const select = () => {
+        returnFocus.current = marker;
+        focusPopup.current = true;
+        setClosedFor(undefined);
+        onSelectRef.current(stop.place.id);
+      };
       marker.addEventListener("gmp-click", select);
-      cleanup.push(() => {
-        marker.removeEventListener("gmp-click", select);
+      // The name label hangs outside the marker's own hit area, so it listens for itself and
+      // keeps the press from reaching the map, which would close the popup again.
+      content.querySelector(".trip-map-marker__label")?.addEventListener("click", (event) => {
+        event.stopPropagation();
+        select();
+      });
+      created.set(stop.place.id, { marker, content });
+    });
+    return () => {
+      created.forEach(({ marker }) => {
         marker.map = null;
       });
+      created.clear();
+    };
+  }, [runtime, mapped]);
+
+  useEffect(() => {
+    markers.current.forEach(({ marker, content }, placeId) => {
+      const isSelected = placeId === selected;
+      const day = content.dataset.day ? Number(content.dataset.day) : undefined;
+      content.classList.toggle("is-selected", isSelected);
+      content.classList.toggle("is-muted", focusDay !== undefined && day !== focusDay);
+      marker.zIndex = isSelected ? 1000 : focusDay !== undefined && day === focusDay ? 10 : 1;
     });
-    routes.forEach((route) => {
-      if (route.status !== "ok" || !route.polyline) return;
-      const line = new maps.Polyline({
-        map,
-        path: maps.geometry.encoding.decodePath(route.polyline),
-        strokeColor: "#345948",
-        strokeWeight: 4,
-      });
-      cleanup.push(() => line.setMap(null));
+    declutterRef.current();
+  }, [runtime, mapped, selected, focusDay]);
+
+  // Itinerary lines: one per day, the focused day's dashes flowing in visiting order.
+  const lines = useMemo(
+    () =>
+      dayRoutes(
+        mapped.map((stop): RouteStop => ({
+          placeId: stop.place.id,
+          day: stop.day,
+          order: stop.order,
+          position: coordinate(stop.place)!,
+        })),
+        routes,
+      ),
+    [mapped, routes],
+  );
+  useEffect(() => {
+    if (!runtime || !root.current) return;
+    return drawItineraryRoutes({
+      runtime,
+      lines,
+      routes,
+      focusDay,
+      colors: routeColors(root.current),
+      reducedMotion,
     });
-    return () => cleanup.forEach((fn) => fn());
-  }, [runtime, places, selected, routes]);
+    // `dark` re-reads the token colours when the theme changes.
+  }, [runtime, lines, routes, focusDay, reducedMotion, dark]);
+
+  // A place chosen elsewhere (the Trip drawer) is brought into view if it is off the map. This is a
+  // programmatic move, so it does not count as the traveller moving the map.
+  useEffect(() => {
+    const position = selectedStop && coordinate(selectedStop.place);
+    if (!runtime || !position || runtime.map.getBounds()?.contains(position) !== false) return;
+    moving.current = true;
+    runtime.map.panTo(position);
+    runtime.maps.event.addListenerOnce(runtime.map, "idle", () => {
+      moving.current = false;
+    });
+    // Only on a new selection, not when the stop list is rebuilt.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [runtime, selected]);
+
+  // Selecting a new place reopens its popup; a marker press also moves focus into it.
+  useEffect(() => {
+    if (!popupOpen || !focusPopup.current) return;
+    focusPopup.current = false;
+    // After the marker's own key handling, which otherwise keeps focus on the marker.
+    const timer = window.setTimeout(() => popup.current?.focus());
+    return () => window.clearTimeout(timer);
+  }, [popupOpen, selected]);
 
   useEffect(() => {
     if (!runtime || location.status !== "success") return;
@@ -338,35 +351,21 @@ export function TripMap({
       title: "Your current location",
       content,
     });
-    if (!userLocationCentered.current) {
+    if (panOnLocate.current) {
       // The user asked to see their location: that is a manual move the trip framing respects.
       view.current?.markUserMoved();
       runtime.map.panTo(location.position);
-      userLocationCentered.current = true;
+      panOnLocate.current = false;
     }
     return () => {
       marker.map = null;
     };
   }, [runtime, location]);
 
-  const requestLocation = useCallback(() => {
-    if (!navigator.geolocation) {
-      setLocation({ status: "error", message: "Location is not supported by this browser." });
-      return;
-    }
-    setLocation({ status: "loading" });
-    navigator.geolocation.getCurrentPosition(
-      ({ coords }) => {
-        setLocation({
-          status: "success",
-          position: { lat: coords.latitude, lng: coords.longitude },
-          message: "Your current location is shown on the map.",
-        });
-      },
-      (cause) => setLocation({ status: "error", message: geolocationError(cause) }),
-      { enableHighAccuracy: false, timeout: 10_000, maximumAge: 60_000 },
-    );
-  }, []);
+  const showMyLocation = useCallback(() => {
+    panOnLocate.current = true;
+    requestLocation();
+  }, [requestLocation]);
 
   const locationMessage =
     location.status === "loading"
@@ -406,7 +405,16 @@ export function TripMap({
   }, [location, mode, selected]);
 
   return (
-    <section className="trip-map" aria-label="Trip map">
+    <section
+      className="trip-map"
+      aria-label="Trip map"
+      onKeyDown={(event) => {
+        // Escape closes the place popup from inside it or from the marker that opened it.
+        if (event.key !== "Escape" || !popupOpen) return;
+        event.stopPropagation();
+        closePopup();
+      }}
+    >
       <div className="trip-map-controls">
         <button
           type="button"
@@ -416,11 +424,11 @@ export function TripMap({
               places: positions(mappedPlaces),
             })
           }
-          disabled={!runtime || (mappedPlaces.length === 0 && destinations.length === 0)}
+          disabled={!runtime || (mapped.length === 0 && destinations.length === 0)}
         >
           View all places
         </button>
-        <button type="button" onClick={requestLocation} disabled={location.status === "loading"}>
+        <button type="button" onClick={showMyLocation} disabled={location.status === "loading"}>
           {location.status === "loading"
             ? "Finding location…"
             : location.status === "error"
@@ -437,24 +445,24 @@ export function TripMap({
           </button>
         )}
       </div>
-      <div ref={root} className="google-map" aria-label="Google activity map" />
+      <div ref={root} className="google-map" aria-label="Google activity map" tabIndex={-1} />
       {loading && <p role="status">Loading Google Maps…</p>}
-      {mappedPlaces.length > 0 && (
-        <div className="trip-map-places">
-          {selectedPlace && <PlacePreview place={selectedPlace} showPhoto={showPhotos} />}
-          <ol className="trip-map-place-list" aria-label="Places shown on the map">
-            {mappedPlaces.map((place, index) => (
-              <li key={place.id}>
-                <button
-                  type="button"
-                  aria-pressed={place.id === selected}
-                  onClick={() => onSelectRef.current(place.id)}
-                >
-                  {index + 1}. {placeName(place)}
-                </button>
-              </li>
-            ))}
-          </ol>
+      {popupOpen && selectedStop && (
+        <div
+          ref={popup}
+          className="trip-map-popup"
+          role="dialog"
+          aria-labelledby="trip-map-popup-title"
+          tabIndex={-1}
+        >
+          <PlacePreview
+            key={selectedStop.place.id}
+            place={selectedStop.place}
+            showPhoto={showPhotos}
+            headingId="trip-map-popup-title"
+            meta={`Stop ${selectedStop.order}${selectedStop.day ? ` · Day ${selectedStop.day}` : ""}`}
+            onClose={closePopup}
+          />
         </div>
       )}
       <p className="trip-map-location-status" aria-live="polite">
@@ -485,14 +493,14 @@ export function TripMap({
           <button type="button" onClick={() => setRetry((value) => value + 1)}>
             Retry map
           </button>
-          {mappedPlaces.length > 0 && (
+          {mapped.length > 0 && (
             <div aria-label="Mapped places">
               <p>Trip places remain available:</p>
               <ol>
-                {mappedPlaces.map((place) => (
-                  <li key={place.id}>
-                    <button type="button" onClick={() => onSelectRef.current(place.id)}>
-                      {placeName(place)}
+                {mapped.map((stop) => (
+                  <li key={stop.place.id}>
+                    <button type="button" onClick={() => onSelectRef.current(stop.place.id)}>
+                      {placeName(stop.place)}
                     </button>
                   </li>
                 ))}

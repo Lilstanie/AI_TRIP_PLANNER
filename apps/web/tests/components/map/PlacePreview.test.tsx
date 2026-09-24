@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { PlacePreview } from "@/components/map/PlacePreview";
 import { TripMap } from "@/components/map/TripMap";
+import type { UserLocation } from "@/components/map/useUserLocation";
 import type { GooglePlace } from "@/lib/integrations/google";
 
 const place: GooglePlace = {
@@ -17,6 +18,16 @@ const place: GooglePlace = {
     },
   ],
 };
+
+const noLocation: UserLocation = {
+  location: { status: "idle" },
+  asking: false,
+  request() {},
+  allow() {},
+  dismiss() {},
+};
+const stops = (...places: GooglePlace[]) =>
+  places.map((item, index) => ({ place: item, order: index + 1 }));
 
 const photo = (container: HTMLElement) => container.querySelector("img");
 
@@ -67,17 +78,24 @@ describe("TripMap place preview", () => {
   it("previews only the selected place, passing the photo setting through", () => {
     const other = { ...place, id: "place-2", displayName: { text: "Bondi Beach" } };
     const { container, rerender } = render(
-      <TripMap places={[place, other]} routes={[]} onSelect={() => {}} showPhotos />,
+      <TripMap
+        stops={stops(place, other)}
+        routes={[]}
+        onSelect={() => {}}
+        showPhotos
+        userLocation={noLocation}
+      />,
     );
     expect(container.querySelector(".place-preview")).toBeNull();
 
     rerender(
       <TripMap
-        places={[place, other]}
+        stops={stops(place, other)}
         selected="place-2"
         routes={[]}
         onSelect={() => {}}
         showPhotos
+        userLocation={noLocation}
       />,
     );
 

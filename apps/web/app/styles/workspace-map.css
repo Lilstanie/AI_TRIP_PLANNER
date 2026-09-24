@@ -11,14 +11,13 @@
   border-radius: 0;
 }
 .trip-map-canvas .trip-map-controls,
-.trip-map-canvas .trip-map-places,
+.trip-map-canvas .trip-map-popup,
 .trip-map-canvas .trip-map-location-status:not(:empty),
 .trip-map-status {
   position: absolute;
   z-index: 4;
 }
 .trip-map-canvas .trip-map-controls,
-.trip-map-canvas .trip-map-place-list,
 .trip-map-canvas .place-preview,
 .trip-map-canvas .trip-map-location-status:not(:empty),
 .trip-map-status {
@@ -26,8 +25,7 @@
   background: color-mix(in srgb, var(--surface) 94%, transparent);
   box-shadow: var(--shadow-sm);
 }
-.trip-map-canvas .trip-map-controls button,
-.trip-map-canvas .trip-map-place-list button {
+.trip-map-canvas .trip-map-controls button {
   box-shadow: none;
 }
 .trip-map-canvas .trip-map-controls {
@@ -41,27 +39,19 @@
 .trip-map-canvas .trip-map-controls button {
   border-radius: var(--radius-pill) !important;
 }
-/* The selected place's preview sits directly above the place list, so the two never overlap. */
-.trip-map-canvas .trip-map-places {
+/* The place popup a marker or a drawer row opens: bottom-left, clear of the controls and status. */
+.trip-map-canvas .trip-map-popup {
   left: 14px;
   bottom: 14px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--space-2);
-  width: min(460px, calc(100% - 28px));
-  pointer-events: none;
-}
-.trip-map-canvas .trip-map-places > * {
-  pointer-events: auto;
-}
-.trip-map-canvas .trip-map-place-list {
-  max-width: 100%;
-  max-height: 132px;
-  margin: 0;
+  width: min(300px, calc(100% - 28px));
+  max-height: calc(100% - 92px);
   overflow: auto;
-  padding: 6px;
   border-radius: var(--radius);
+  outline: none;
+}
+.trip-map-canvas .trip-map-popup .place-preview {
+  width: 100%;
+  box-shadow: var(--shadow-md);
 }
 .trip-map-canvas .trip-map-location-status:not(:empty) {
   top: 64px;
@@ -148,9 +138,30 @@
 
 /* Place preview: a provider photo in a fixed 16:9 slot, a pin until it loads or when there is none. */
 .trip-map-canvas .place-preview {
+  position: relative;
   width: min(300px, 100%);
   overflow: hidden;
   border-radius: var(--radius);
+}
+.place-preview__close {
+  position: absolute;
+  z-index: 1;
+  top: var(--space-2);
+  right: var(--space-2);
+  display: grid;
+  width: 32px;
+  height: 32px;
+  min-height: 32px !important;
+  padding: 0 !important;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill) !important;
+  background: var(--surface);
+  color: var(--text);
+}
+.place-preview__close .icon {
+  width: 16px;
+  height: 16px;
 }
 .place-preview__photo {
   position: relative;
@@ -183,7 +194,14 @@
   line-height: var(--line-height-body);
   overflow-wrap: anywhere;
 }
+.place-preview__meta {
+  margin: 0;
+  color: var(--accent);
+  font-size: var(--font-size-meta);
+  font-weight: 600;
+}
 .place-preview__address,
+.place-preview__rating,
 .place-preview__credit {
   margin: 0;
   color: var(--text-dim);
@@ -200,4 +218,43 @@
   justify-self: start;
   color: var(--accent);
   font-size: var(--font-size-meta);
+}
+
+/* The location question asked on open, in the notices strip so it shows on every layout. */
+.location-prompt {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  border-bottom: 1px solid var(--border);
+  background: var(--accent-bg);
+}
+.location-prompt__icon {
+  display: grid;
+  flex: none;
+  color: var(--accent);
+}
+.location-prompt__icon .icon {
+  width: 20px;
+  height: 20px;
+}
+.location-prompt__text {
+  flex: 1 1 28ch;
+  min-width: 0;
+}
+.location-prompt h2 {
+  margin: 0;
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+}
+.location-prompt p {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: var(--font-size-meta);
+}
+.location-prompt__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
 }

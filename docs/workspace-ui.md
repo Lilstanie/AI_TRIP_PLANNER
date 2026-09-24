@@ -6,14 +6,14 @@ now. Implementation history and browser acceptance for each phase are in the
 
 ## Layout
 
-| Area              | Content                                                                                                       | Implementation                                             |
-| ----------------- | ------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| Sidebar           | Logo, New chat, search, Chats and Trips history with counts, Saved trips, Language, Local account             | `WorkspaceSidebar`, `BrandMark`, `icons.tsx`               |
-| Top bar           | Trip title; trip fact chips (destination, dates, travellers, budget, Preferences); data mode; Trip, rightmost | `WorkspaceView`, `TripFactChips`                           |
-| Trip fact editors | One small editor per chip; Preferences holds nationality and accommodation                                    | `FactPopover`, `FactFields`, `lib/workspace/trip-facts.ts` |
-| Chat              | Conversation, the planning transcript, the composer; starter suggestions in a blank chat                      | `ChatPanel`                                                |
-| Map               | Only the map, numbered markers, a place list, map status, View all places and Show my location                | `TripMapCanvas`, `TripMap`                                 |
-| Your Trip drawer  | Budget; Overview (sections and the stay chosen); Timeline & routes (editor); Review plan and Save trip        | `Drawer`, `TripPanel`, `TripEditor`                        |
+| Area              | Content                                                                                                               | Implementation                                             |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| Sidebar           | Logo, search, Chats, Trips and Saved trips with counts, New chat, New trip, history, Language, Local account          | `WorkspaceSidebar`, `BrandMark`, `icons.tsx`               |
+| Top bar           | Trip title; trip fact chips (destination, dates, travellers, budget, Preferences); data mode; Trip, rightmost         | `WorkspaceView`, `TripFactChips`                           |
+| Trip fact editors | One small editor per chip; Preferences holds nationality and accommodation                                            | `FactPopover`, `FactFields`, `lib/workspace/trip-facts.ts` |
+| Chat              | Conversation, the planning transcript, the composer; starter suggestions in a blank chat; no visible heading          | `ChatPanel`                                                |
+| Map               | Only the map, labelled markers, itinerary lines, the place popup, map status, View all places and Show my location    | `TripMapCanvas`, `TripMap`                                 |
+| Your Trip drawer  | Budget; Overview (places by day, sections and the stay chosen); Timeline & routes (editor); Review plan and Save trip | `Drawer`, `TripPanel`, `TripPlaceList`, `TripEditor`       |
 
 - **Sidebar.**
   - Expands to 240 px (220 px below 1250 px) or collapses to a 64 px icon rail. The toggle uses
@@ -26,12 +26,19 @@ now. Implementation history and browser acceptance for each phase are in the
   - The width is stored in the catalog layout only once the user resizes. Until then the stylesheet's
     responsive default applies, so narrowing the window still narrows the sidebar. Collapsing keeps
     the width for the next expand.
-  - New chat is the sidebar's primary action: a full-width accent button with a plus icon. Search is
-    one field below it, with the magnifier inside, a short "Search" placeholder that fits at 200 px,
-    the visually hidden label "Search chats and trips", and a Clear search button that appears once
-    there is a query and returns focus to the field. It filters chats and trips.
-  - Collapsed icons keep `aria-label`, a tooltip and focus styles; New chat stays an accent icon
-    button. Search, Chats and Trips expand the sidebar, and Search then focuses the field.
+  - Search is one field below the logo, with the magnifier inside, a short "Search" placeholder that
+    fits at 200 px, the visually hidden label "Search chats and trips", and a Clear search button
+    that appears once there is a query and returns focus to the field. It filters chats and trips.
+  - New chat follows Mindtrip's sidebar: a full-width, 40 px, pill-shaped button below Chats, Trips
+    and Saved trips (32 px under the last one), with a neutral ink wash (`--text` at 6 %, 11 % on
+    hover) instead of the accent, the text colour at 14 px/500, no icon, and a slight press scale
+    that `prefers-reduced-motion` turns off. It starts a blank chat and focuses the message input.
+  - New trip is a separate action: a second pill directly below New chat, always visible whichever
+    list is shown; see
+    [New chat and New trip](#conversations-trips-and-storage) for what it does.
+  - Collapsed icons keep `aria-label`, a tooltip and focus styles. New chat (plus) and New trip
+    (suitcase with a plus) are 40 px round icon buttons under the section icons. Search, Chats and
+    Trips expand the sidebar, and Search then focuses the field.
   - Chats, Trips and Saved trips use outline line icons in the text colour, with no tile behind them,
     so they follow light and dark. The current section is shown by its icon filling in, a heavier
     full-ink label and a quiet background, plus `aria-current`. History supports search and select.
@@ -120,7 +127,10 @@ now. Implementation history and browser acceptance for each phase are in the
   - The top bar keeps the menu, the fact chips and Trip on one row, with a Chat/Map switch below.
     When the chips do not fit they scroll sideways inside their row, which fades at the edge that
     has more chips behind it; the page itself never scrolls sideways.
-  - Navigation opens as a drawer, and Trip spans the content width.
+  - Navigation opens as a drawer, and Trip spans the content width. The navigation drawer has no
+    title row: it opens on the sidebar's own logo row with the close button at its end, and the
+    dialog keeps "Navigation" as its accessible name through a visually hidden heading
+    (`Drawer`'s `hideTitle`).
   - At ≤520 px the top-bar buttons show icons only but keep their accessible names, chips are 44 px
     tall, and every editor, the modal ones included, opens as a bottom sheet over a scrim with 44 px
     row buttons.
@@ -139,6 +149,11 @@ now. Implementation history and browser acceptance for each phase are in the
   anything the user typed is never reused, and a renamed one keeps its name. A trip record is
   created and linked (`tripId`) only when a plan is produced; the chat title then becomes the
   destination and dates.
+- **New trip** starts the same blank conversation, named "New trip", and opens the Where editor
+  with focus on Destination instead of focusing the message input. It reuses an untouched blank
+  conversation exactly as New chat does, and New chat renames that conversation back. The trip is
+  listed under Trips once a plan is produced; until then it is a blank conversation under Chats. The
+  [New trip Agent Note](../.agents/notes/implemented/feature/2026-09-24-new-trip.md) records why.
 - **Starting to plan.**
   - A blank chat offers example trip suggestions. Selecting one replaces and focuses the message input;
     it never sends a message or starts a request.
@@ -250,19 +265,48 @@ describes current behaviour except the absences.
     location count as user moves and are never taken back.
   - No Google map is created before there is somewhere to show; a neutral placeholder is shown
     instead. Container resizes keep the centre.
-- **Place preview.** The selected place is previewed above the place list with its first Google
-  photo, address, the photo's author attribution and an Open in Google Maps link. Photos load only
+- **Markers** (`components/map/map-layers.ts`, `lib/map/place-category.ts`). Each located stop is a
+  numbered badge on the place with a label pill beside it: a category icon from Google's
+  `primaryType` and the place name, cut to 22 characters (26 when selected). Stops are numbered in
+  visiting order, by day and then start time. Below zoom 12 only the selected stop keeps its label,
+  and when the map settles a label that would overlap one already shown is hidden (the selected stop
+  wins, then visiting order). Markers never load place photos.
+- **Itinerary lines** (`lib/map/itinerary-route.ts`). Each day's stops are joined in visiting order
+  by one line. A leg follows a verified Google Routes polyline when one exists for that exact pair
+  of places, otherwise it is a straight segment; no route is requested just to draw a line. The
+  focused day (the selected stop's day, or every day when nothing is selected) is drawn in
+  `--accent` with dashes flowing from stop to stop; other days are a thin static `--text-dim` line.
+  The dashes move in one `requestAnimationFrame` loop throttled to about 30 frames a second, which
+  stops when the lines are redrawn or the map unmounts. Under `prefers-reduced-motion: reduce` the
+  dashes are drawn still and no loop runs. Verified routes that are not an itinerary leg, such as an
+  edit preview, stay solid lines. The map follows the system light or dark scheme.
+- **Place popup.** Pressing a marker or its label, or a place in the Trip drawer, opens the place's
+  details over the bottom-left of the map: stop number and day, first Google photo, name, address,
+  Google rating, the photo's author attribution and an Open in Google Maps link. Photos load only
   in live data mode with a server Maps key, one image per selection. Otherwise, and when Google has
-  no photo or the image fails, the fixed 16:9 slot shows a pin.
-- **Selection.** Selecting a marker or list item selects the activity in the timeline and jumps to its
-  day, and the reverse also works. Selected markers add a larger outlined shape, while selected place-list
-  buttons add a leading inset line and weight alongside `aria-pressed`; color is not the sole cue.
-- **Trip drawer.** The reading order is heading and summary, budget, sections, then expanded detail.
-  Missing or zero budgets state that no budget is set; invalid totals never render `NaN`, a negative bar,
-  or a bar wider than its container.
-- **Location.** Show my location runs only on request and handles denied, unavailable, timeout and
-  unsupported cases. The position stays in component memory and is never saved or written into the
-  plan. Route from my location requests a verified duration and distance for the selected place.
+  no photo or the image fails, the fixed 16:9 slot shows a pin. A marker press moves focus into the
+  popup; the close button, Escape or a press on the map closes it and returns focus to the marker.
+  A place chosen in the drawer that is off the map is panned into view, which does not count as a
+  user move.
+- **Selection.** Selecting a marker or a drawer place selects the activity in the timeline and jumps
+  to its day, and the reverse also works. The selected marker has a larger outlined badge and a
+  bordered label, and its drawer row adds a leading inset line and weight alongside `aria-pressed`;
+  color is not the sole cue. Stops on other days step back to grey badges without labels.
+- **Trip drawer.** The reading order is heading and summary, budget, then the Overview tab: the
+  Places list (every itinerary activity by day in visiting order; located stops are buttons, the
+  keyboard path to each marker, and the others say why they are not on the map), sections, then
+  expanded detail. Missing or zero budgets state that no budget is set; invalid totals never render
+  `NaN`, a negative bar, or a bar wider than its container.
+- **Location.** When the workspace opens it asks in its own words, in the notices strip, whether to
+  show the traveller's location (`components/map/useUserLocation.ts`, `LocationPrompt`). The
+  browser's permission prompt appears only after Allow location or Show my location is pressed.
+  Not now is remembered in this browser (`trip.locationPrompt`) and the question does not return;
+  after an Allow that the browser still grants, later visits show the position without asking. The
+  question is skipped when the browser already blocks location. Denied, unavailable, timeout and
+  unsupported cases are explained on the map. Only the answer is stored: the position stays in
+  memory and is never saved or written into the plan. Route from my location requests a verified
+  duration and distance for the selected place. See the
+  [location prompt Agent Note](../.agents/notes/implemented/feature/2026-09-24-location-prompt-and-itinerary-map.md).
 - **Controls.** Google's map-type, Street View and fullscreen controls are disabled so the map stays
   below the top bar.
 
@@ -326,7 +370,9 @@ The root layout loads the self-hosted Fraunces display font through `next/font`;
 
 `pnpm typecheck`, `pnpm lint`, `pnpm test` and `pnpm build` must pass. Component tests cover drawers,
 the trip fact chips and their editors, blank start, history restore, sidebar collapse, place lookup failures, request races and storage
-recovery; `lib/map/map-view.test.ts` and `lib/map/place-query.test.ts` cover framing and lookup rules. Live
+recovery, the location question, the drawer's place list and the place popup;
+`lib/map/map-view.test.ts`, `lib/map/place-query.test.ts` and `lib/map/itinerary-route.test.ts`
+cover framing, lookup rules, visiting order and the reduced-motion branch of the line animation. Live
 Google checks are reported separately in session logs and are never inferred from mocks. The
 historical P0–P3 plan is in [`.agents/archive/p3-implementation.md`](../.agents/archive/p3-implementation.md) and the
 session logs.

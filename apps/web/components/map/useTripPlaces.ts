@@ -4,11 +4,22 @@ import type { TripPlan } from "@trip/shared";
 import type { GooglePlace } from "@/lib/integrations/google";
 import { itineraryActivities } from "@/lib/workspace";
 import { destinationCities, placeQueryFor } from "@/lib/map/place-query";
+import { itineraryOrder } from "@/lib/map/itinerary-route";
 
 type Activity = ReturnType<typeof itineraryActivities>[number];
 
-/** One numbered map marker and the activity that owns it. */
-export type TripMarker = { activityId: string; place: GooglePlace; verified: boolean };
+/**
+ * One numbered map marker and the activity that owns it. Markers come in visiting order (day, then
+ * start time); `order` is the 1-based stop number across the trip.
+ */
+export type TripMarker = {
+  activityId: string;
+  place: GooglePlace;
+  verified: boolean;
+  order: number;
+  day?: number;
+  startTime?: string;
+};
 
 /**
  * - `located`: the activity has a place on the map.
@@ -194,13 +205,21 @@ export function useTripPlaces(plan: TripPlan | undefined): TripPlaces {
 
   const markers = useMemo(() => {
     const seen = new Set<string>();
-    return activities.flatMap((activity) => {
+    const located = itineraryOrder(activities).flatMap((activity) => {
       const placeId = placeIdFor(activity);
       const place = placeId ? places[placeId] : undefined;
       if (!activity.id || !place?.location || seen.has(place.id)) return [];
       seen.add(place.id);
-      return [{ activityId: activity.id, place, verified: !!activity.placeId }];
+      return [{ activity, place }];
     });
+    return located.map(({ activity, place }, index): TripMarker => ({
+      activityId: activity.id!,
+      place,
+      verified: !!activity.placeId,
+      order: index + 1,
+      day: activity.day,
+      startTime: activity.startTime,
+    }));
   }, [activities, places, placeIdFor]);
 
   const destinations = useMemo(

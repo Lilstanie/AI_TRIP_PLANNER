@@ -9,6 +9,8 @@ export const PlaceDetails = z.object({
     .optional(),
   googleMapsUri: z.string().url().optional(),
   rating: z.number().optional(),
+  /** Google's main type for the place, such as `museum`; picks the icon on its map label. */
+  primaryType: z.string().optional(),
   attributions: z
     .array(z.object({ provider: z.string().optional(), providerUri: z.string().optional() }))
     .optional(),
@@ -31,9 +33,10 @@ export const PlaceDetails = z.object({
 });
 export type GooglePlace = z.infer<typeof PlaceDetails>;
 export type GooglePlacePhoto = NonNullable<GooglePlace["photos"]>[number];
-// `photos` sits in a lower billing tier than `rating`, so asking for it does not raise the cost of
-// a lookup; only fetching an image (placePhotoUri) is billed on its own.
-const fields = "id,displayName,formattedAddress,location,googleMapsUri,rating,attributions,photos";
+// `photos` and `primaryType` sit in a lower billing tier than `rating`, so asking for them does not
+// raise the cost of a lookup; only fetching an image (placePhotoUri) is billed on its own.
+const fields =
+  "id,displayName,formattedAddress,location,googleMapsUri,rating,primaryType,attributions,photos";
 function key() {
   if (!process.env.MAPS_API_KEY)
     throw new Error("Google Maps is not configured. Add the server MAPS_API_KEY.");

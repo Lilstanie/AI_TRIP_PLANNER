@@ -79,8 +79,8 @@ export function ChatPanel({
 
   const prompts = useMemo(() => quickPrompts(), []);
   return (
-    <section className="panel chat" aria-labelledby="chat-title">
-      <h2 id="chat-title">Plan together</h2>
+    // No visible heading: the conversation speaks for itself. The region keeps its name.
+    <section className="panel chat" aria-label="Chat">
       <div className="chat__stream" ref={stream} aria-busy={busy}>
         {!plan && !messages.length && (
           <div className="chat-empty">

@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import type { GooglePlace } from "@/lib/integrations/google";
-import { MapPinIcon } from "../ui/icons";
+import { CloseIcon, MapPinIcon } from "../ui/icons";
 
 /**
  * The selected place, previewed over the map with its first Google photo.
@@ -10,8 +10,23 @@ import { MapPinIcon } from "../ui/icons";
  * image is billed. Without a photo (mock mode, none on Google, an expired name, a failed load) the
  * slot keeps its size and shows a pin instead. Google requires the photo's author attribution
  * wherever the image appears.
+ *
+ * On the map it is the popup a marker opens: `meta` names the stop (for example "Stop 2 · Day 1")
+ * and `onClose` adds a close button.
  */
-export function PlacePreview({ place, showPhoto }: { place: GooglePlace; showPhoto: boolean }) {
+export function PlacePreview({
+  place,
+  showPhoto,
+  meta,
+  onClose,
+  headingId,
+}: {
+  place: GooglePlace;
+  showPhoto: boolean;
+  meta?: string;
+  onClose?(): void;
+  headingId?: string;
+}) {
   const photo = showPhoto ? place.photos?.[0] : undefined;
   const [failed, setFailed] = useState<string>();
   const visible = photo && failed !== photo.name ? photo : undefined;
@@ -38,10 +53,24 @@ export function PlacePreview({ place, showPhoto }: { place: GooglePlace; showPho
           />
         )}
       </div>
+      {onClose && (
+        <button
+          type="button"
+          className="place-preview__close"
+          aria-label="Close place details"
+          onClick={onClose}
+        >
+          <CloseIcon />
+        </button>
+      )}
       <div className="place-preview__body">
-        <h3>{name}</h3>
+        {meta && <p className="place-preview__meta">{meta}</p>}
+        <h3 id={headingId}>{name}</h3>
         {place.formattedAddress && place.formattedAddress !== name && (
           <p className="place-preview__address">{place.formattedAddress}</p>
+        )}
+        {place.rating !== undefined && (
+          <p className="place-preview__rating">Google rating {place.rating.toFixed(1)} / 5</p>
         )}
         {authors.length > 0 && (
           <p className="place-preview__credit">

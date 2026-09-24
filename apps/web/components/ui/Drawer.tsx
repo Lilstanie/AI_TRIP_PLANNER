@@ -20,6 +20,7 @@ export function Drawer({
   returnFocus,
   className = "",
   meta,
+  hideTitle = false,
   children,
 }: {
   side: "left" | "right";
@@ -30,6 +31,11 @@ export function Drawer({
   returnFocus: RefObject<HTMLElement | null>;
   className?: string;
   meta?: ReactNode;
+  /**
+   * Keeps the title as the dialog's accessible name but draws no title row; the close button then
+   * floats over the drawer's top edge. For drawers whose content already opens with its own header.
+   */
+  hideTitle?: boolean;
   children: ReactNode;
 }) {
   const titleId = useId();
@@ -86,8 +92,8 @@ export function Drawer({
         }
       }}
     >
-      <header className="drawer__head">
-        <div className="drawer__title">
+      <header className={`drawer__head${hideTitle ? " drawer__head--bare" : ""}`}>
+        <div className={hideTitle ? "sr-only" : "drawer__title"}>
           <h2 id={titleId}>{title}</h2>
           {meta}
         </div>

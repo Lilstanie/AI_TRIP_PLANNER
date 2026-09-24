@@ -24,7 +24,6 @@ export function WorkspaceSkeleton() {
         <main className="workspace-shell">
           <section className="workspace-panel workspace-panel--chat">
             <div className="panel chat">
-              <h2>Plan together</h2>
               <p className="skeleton__status" role="status">
                 Opening your workspace…
               </p>

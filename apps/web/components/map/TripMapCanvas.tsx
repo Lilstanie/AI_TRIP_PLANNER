@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import dynamic from "next/dynamic";
 import type { RouteResult } from "@/lib/integrations/google";
 import type { TripPlaces } from "./useTripPlaces";
+import type { UserLocation } from "./useUserLocation";
 import { MapPinIcon } from "../ui/icons";
 
 const TripMap = dynamic(() => import("./TripMap").then((m) => m.TripMap), {
@@ -25,6 +26,7 @@ export function TripMapCanvas({
   onSelectActivity,
   routes,
   showPhotos = false,
+  userLocation,
 }: {
   /** The trip destination, or undefined for a blank conversation. */
   destination?: string;
@@ -35,6 +37,8 @@ export function TripMapCanvas({
   routes: RouteResult[];
   /** Load Google place photos; only in live data mode, because every image is billed. */
   showPhotos?: boolean;
+  /** The traveller's position, shared with the workspace's location question. */
+  userLocation: UserLocation;
 }) {
   const {
     markers,
@@ -47,7 +51,10 @@ export function TripMapCanvas({
     retry,
     activityForPlace,
   } = tripPlaces;
-  const places = useMemo(() => markers.map((marker) => marker.place), [markers]);
+  const stops = useMemo(
+    () => markers.map(({ place, order, day }) => ({ place, order, day })),
+    [markers],
+  );
   const selected = markers.find((marker) => marker.activityId === selectedActivity)?.place.id;
   const canShowMap = destinations.length > 0 || markers.length > 0;
 
@@ -88,7 +95,7 @@ export function TripMapCanvas({
   return (
     <section className="trip-map-canvas" aria-label="Trip map">
       <TripMap
-        places={places}
+        stops={stops}
         destinations={destinations}
         selected={selected}
         onSelect={(placeId) => {
@@ -98,6 +105,7 @@ export function TripMapCanvas({
         routes={routes}
         viewKey={viewKey}
         showPhotos={showPhotos}
+        userLocation={userLocation}
       />
       {(loading || unconfirmed > 0 || unavailable > 0) && (
         // Lightweight and non-blocking: located places stay usable on the map.

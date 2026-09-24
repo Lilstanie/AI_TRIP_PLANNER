@@ -7,6 +7,7 @@ import {
   CloseIcon,
   GlobeIcon,
   MoreIcon,
+  NewTripIcon,
   PlusIcon,
   SearchIcon,
   SidebarIcon,
@@ -154,6 +155,7 @@ export function WorkspaceSidebar({
   trips,
   savedCount,
   onNewChat,
+  onNewTrip,
   onOpenChat,
   onOpenTrip,
   onRenameChat,
@@ -175,6 +177,8 @@ export function WorkspaceSidebar({
   trips: HistoryItem[];
   savedCount: number;
   onNewChat(): void;
+  /** Starts a blank trip: a fresh conversation opened on the destination editor. */
+  onNewTrip(): void;
   onOpenChat(id: string): void;
   onOpenTrip(id: string): void;
   onRenameChat(id: string): void;
@@ -225,16 +229,6 @@ export function WorkspaceSidebar({
       </div>
 
       <div className="sidebar-actions">
-        <button
-          type="button"
-          className="sidebar-new-chat"
-          aria-label={isCollapsed ? "New chat" : undefined}
-          data-tooltip={isCollapsed ? "New chat" : undefined}
-          onClick={onNewChat}
-        >
-          <PlusIcon />
-          {!isCollapsed && <span>New chat</span>}
-        </button>
         {isCollapsed ? (
           <NavButton
             icon={<SearchIcon />}
@@ -304,11 +298,37 @@ export function WorkspaceSidebar({
         />
       </nav>
 
+      {/* Below the sections, as on Mindtrip: quiet full-width pills rather than an accent block.
+          New chat and New trip are separate starts, always both visible; the rail shows them as
+          icons. */}
+      <div className="sidebar-create">
+        <button
+          type="button"
+          className="sidebar-new-chat"
+          aria-label={isCollapsed ? "New chat" : undefined}
+          data-tooltip={isCollapsed ? "New chat" : undefined}
+          onClick={onNewChat}
+        >
+          {isCollapsed ? <PlusIcon /> : <span>New chat</span>}
+        </button>
+        <button
+          type="button"
+          className="sidebar-new-chat"
+          aria-label={isCollapsed ? "New trip" : undefined}
+          data-tooltip={isCollapsed ? "New trip" : undefined}
+          onClick={onNewTrip}
+        >
+          {isCollapsed ? <NewTripIcon /> : <span>New trip</span>}
+        </button>
+      </div>
+
       {!isCollapsed && (
         <section className="sidebar-history" aria-label={section === "chats" ? "Chats" : "Trips"}>
-          <h2 className="sidebar-history__title">
-            {section === "chats" ? "Recent chats" : "Your trips"}
-          </h2>
+          <div className="sidebar-history__head">
+            <h2 className="sidebar-history__title">
+              {section === "chats" ? "Recent chats" : "Your trips"}
+            </h2>
+          </div>
           <div className="history-list">
             {items.map((item) => (
               <article
@@ -344,7 +364,7 @@ export function WorkspaceSidebar({
                   ? "No matching records."
                   : section === "chats"
                     ? "No chats yet."
-                    : "No trips yet. Plans you create appear here."}
+                    : "No trips yet. Start one with New trip."}
               </p>
             )}
           </div>

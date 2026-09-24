@@ -8,11 +8,11 @@ This file is the implementation recipe.
 
 ## Where it goes
 
-| Glass (control layer)                                                                                       | Opaque paper (content layer)                          |
-| ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
-| Map overlays: `.trip-map-controls`, `.trip-map-place-list`, `.trip-map-location-status`, `.trip-map-status` | The chat stream, messages and the composer field      |
-| The top bar, once content scrolls beneath it                                                                | Drawer bodies: the trip timeline, budget, preferences |
-| Popovers, menus and tooltips                                                                                | Cards, decision cards and dialogs with forms          |
+| Glass (control layer)                                                                                  | Opaque paper (content layer)                          |
+| ------------------------------------------------------------------------------------------------------ | ----------------------------------------------------- |
+| Map overlays: `.trip-map-controls`, `.trip-map-popup`, `.trip-map-location-status`, `.trip-map-status` | The chat stream, messages and the composer field      |
+| The top bar, once content scrolls beneath it                                                           | Drawer bodies: the trip timeline, budget, preferences |
+| Popovers, menus and tooltips                                                                           | Cards, decision cards and dialogs with forms          |
 
 The test is what sits behind the surface. Glass is for chrome over content that moves or varies,
 such as the map or a scrolling list. Wherever someone reads or edits dense text for long, keep the
