@@ -207,6 +207,80 @@ describe("Workspace interactions", () => {
       expect(catalog.conversations).toHaveLength(2);
     });
   });
+  it("starts a blank trip from New trip, opened on the Where editor", async () => {
+    vi.stubGlobal("fetch", withPlaceRequests());
+    render(<Workspace initialPlan={plan} />);
+    await waitFor(() =>
+      expect(parseCatalog(localStorage.getItem(CATALOG_KEY)).trips).toHaveLength(1),
+    );
+    // New chat and New trip are separate starts, both visible whichever list is shown.
+    expect(within(sidebar()).getByRole("button", { name: "New chat" })).toBeTruthy();
+    fireEvent.click(within(sidebar()).getByRole("button", { name: "New trip" }));
+    const where = await screen.findByRole("dialog", { name: "Where" });
+    await waitFor(() => expect(where.contains(document.activeElement)).toBe(true));
+    const chat = document.querySelector<HTMLElement>(".workspace-panel--chat")!;
+    expect(within(chat).getByText("Where to next?")).toBeTruthy();
+    // An autosave after typing must keep the conversation's "New trip" name.
+    fireEvent.change(screen.getByLabelText("Message AI Trip Planner"), {
+      target: { value: "typed after New trip" },
+    });
+    await waitFor(() => {
+      const catalog = parseCatalog(localStorage.getItem(CATALOG_KEY));
+      const active = catalog.conversations.find(
+        (conversation) => conversation.id === catalog.activeConversationId,
+      );
+      expect(active?.title).toBe("New trip");
+      expect(active?.input).toBe("typed after New trip");
+      expect(active?.tripId).toBeUndefined();
+      expect(catalog.activeTripId).toBeUndefined();
+      // The existing trip is untouched; the new one is listed once it has a plan.
+      expect(catalog.trips).toHaveLength(1);
+    });
+    // Once emptied again, New chat reuses the same conversation and names it a chat.
+    fireEvent.change(screen.getByLabelText("Message AI Trip Planner"), { target: { value: "" } });
+    await waitFor(() =>
+      expect(
+        parseCatalog(localStorage.getItem(CATALOG_KEY)).conversations.find(
+          (item) => item.title === "New trip",
+        )?.input,
+      ).toBe(""),
+    );
+    fireEvent.keyDown(window, { key: "Escape" });
+    fireEvent.click(newChatButton());
+    await waitFor(() => {
+      const catalog = parseCatalog(localStorage.getItem(CATALOG_KEY));
+      expect(catalog.conversations.filter((item) => !item.tripId)).toHaveLength(1);
+      expect(
+        catalog.conversations.find((item) => item.id === catalog.activeConversationId)?.title,
+      ).toBe("New chat");
+    });
+    expect(screen.queryByRole("dialog", { name: "Where" })).toBeNull();
+  });
+  it("names the chat region and the navigation drawer without visible titles", async () => {
+    useNarrowLayout();
+    vi.stubGlobal("fetch", withPlaceRequests());
+    render(<Workspace />);
+    expect(screen.getByRole("region", { name: "Chat" })).toBeTruthy();
+    expect(screen.queryByText("Plan together")).toBeNull();
+    // A previous test's New chat schedules a composer focus for the next frame; let it land first
+    // so it cannot steal focus from the drawer this test opens.
+    await act(() => new Promise((resolve) => requestAnimationFrame(() => resolve(undefined))));
+    fireEvent.click(screen.getByRole("button", { name: "Open navigation" }));
+    const nav = document.querySelector<HTMLElement>(".workspace-drawer--nav")!;
+    await waitFor(() => expect(nav.getAttribute("aria-hidden")).toBe("false"));
+    expect(screen.getByRole("dialog", { name: "Navigation" })).toBe(nav);
+    expect(nav.querySelector(".drawer__head--bare .sr-only h2")?.textContent).toBe("Navigation");
+    expect(within(nav).queryByText("Chats and trips")).toBeNull();
+    expect(document.activeElement).toBe(
+      within(nav).getByRole("button", { name: "Close navigation" }),
+    );
+    // Both starts are reachable from the drawer too.
+    expect(within(nav).getAllByRole("button", { name: "New chat" })[0]).toBeTruthy();
+    fireEvent.click(within(nav).getByRole("button", { name: /^Trips/ }));
+    fireEvent.click(within(nav).getByRole("button", { name: "New trip" }));
+    await waitFor(() => expect(nav.getAttribute("aria-hidden")).toBe("true"));
+    expect(await screen.findByRole("dialog", { name: "Where" })).toBeTruthy();
+  });
   it("reuses the empty conversation instead of stacking one per New chat press", async () => {
     vi.stubGlobal("fetch", withPlaceRequests());
     render(<Workspace initialPlan={plan} />);
@@ -698,6 +772,7 @@ describe("Workspace navigation", () => {
     expect(within(sidebar()).queryByRole("searchbox")).toBeNull();
     for (const name of [
       "New chat",
+      "New trip",
       "Search chats and trips",
       "Chats, 1",
       "Trips, 0",

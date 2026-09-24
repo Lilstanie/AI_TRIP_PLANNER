@@ -97,8 +97,22 @@
   min-height: 100%;
   border-right: 0;
 }
+/* A titleless drawer: the close button floats over the content's own first row. */
+.drawer__head--bare {
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  right: 0;
+  padding: var(--space-3);
+  border-bottom: 0;
+}
+/* The navigation drawer opens on the sidebar's own logo row, with the close button at its end
+   (the sidebar's 12px padding plus the 40px row centre the 36px button). */
+.workspace-drawer--nav .drawer__head--bare {
+  padding: calc(var(--space-3) + 2px) var(--space-3);
+}
 .workspace-drawer--nav .sidebar-head {
-  display: none;
+  padding-inline-end: 44px;
 }
 .trip-panel {
   display: flex;

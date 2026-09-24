@@ -135,7 +135,9 @@ describe("editor request lifecycle", () => {
     fireEvent.click(trigger);
     await screen.findByRole("button", { name: "Apply changes" });
     const region = screen.getByRole("region", { name: "Edit preview" });
-    expect(document.activeElement).toBe(region);
+    // Focus moves in an effect after the preview commits; on a slow runner the button can appear
+    // before that effect has run, so wait for focus rather than asserting it on the same tick.
+    await waitFor(() => expect(document.activeElement).toBe(region));
     fireEvent.keyDown(region, { key: "Escape" });
     expect(screen.queryByRole("button", { name: "Apply changes" })).toBeNull();
     expect(document.activeElement).toBe(trigger);
