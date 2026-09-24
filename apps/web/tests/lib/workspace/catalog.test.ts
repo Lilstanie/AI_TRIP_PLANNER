@@ -67,6 +67,28 @@ describe("workspace catalog", () => {
     expect(next.conversations[0].tripId).toBeUndefined();
   });
 
+  it("keeps a blank conversation's starting title through untitled autosaves", () => {
+    const started = upsertConversationDraft(createCatalog(), {
+      id: "conversation:trip",
+      messages: [],
+      input: "",
+      title: "New trip",
+    });
+    const saved = upsertConversationDraft(started, {
+      id: "conversation:trip",
+      messages: [],
+      input: "Kyoto",
+    });
+    expect(saved.conversations[0]?.title).toBe("New trip");
+    const renamed = upsertConversationDraft(saved, {
+      id: "conversation:trip",
+      messages: [],
+      input: "",
+      title: "New chat",
+    });
+    expect(renamed.conversations[0]?.title).toBe("New chat");
+  });
+
   it("searches destination, dates, titles and message text", () => {
     const catalog = createCatalog({
       ...snapshot,
@@ -89,7 +111,12 @@ describe("workspace catalog", () => {
         ...snapshot.plan,
         overrunPct: 15,
         conflicts: [
-          { tripId: snapshot.plan.tripId, targetAgent: "itinerary", reason: "over", constraints: [] },
+          {
+            tripId: snapshot.plan.tripId,
+            targetAgent: "itinerary",
+            reason: "over",
+            constraints: [],
+          },
         ],
       },
     });

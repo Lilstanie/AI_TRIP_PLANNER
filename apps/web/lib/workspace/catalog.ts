@@ -390,7 +390,9 @@ export function upsertConversationDraft(
   const existing = next.conversations.findIndex((item) => item.id === conversation.id);
   const record: ConversationRecord = {
     id: conversation.id,
-    title: conversation.title?.trim() || "New chat",
+    // An autosave passes no title, so it keeps the one the conversation started with ("New chat"
+    // or "New trip"); only an explicit title replaces it.
+    title: conversation.title?.trim() || next.conversations[existing]?.title || "New chat",
     updatedAt: now,
     messages: clone(conversation.messages),
     input: conversation.input,
