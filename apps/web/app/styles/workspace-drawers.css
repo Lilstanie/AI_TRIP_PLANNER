@@ -45,9 +45,10 @@
   /* Past its own width, the sidebar and the shadow: no sliver stays in the viewport. */
   transform: translateX(calc(-100% - var(--sidebar-width) - 48px));
 }
+/* The trip drawer lies exactly over the map: from the chat/map divider to the right edge. */
 .drawer--right {
   right: 0;
-  width: min(max(62vw, 560px), calc(100% - 24px));
+  width: calc((1 - var(--chat-share, 0.56)) * 100%);
   border-left: 1px solid var(--border);
   transform: translateX(calc(100% + 48px));
 }

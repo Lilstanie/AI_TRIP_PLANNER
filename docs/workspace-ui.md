@@ -6,14 +6,16 @@ now. Implementation history and browser acceptance for each phase are in the
 
 ## Layout
 
-| Area              | Content                                                                                                               | Implementation                                                                              |
-| ----------------- | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| Sidebar           | Logo, search, Chats, Trips and Saved trips with counts, New chat, New trip, history, Language, Local account          | `WorkspaceSidebar`, `BrandMark`, `icons.tsx`                                                |
-| Top bar           | Trip title; trip fact chips (destination, dates, travellers, budget, Preferences); data mode; Trip, rightmost         | `WorkspaceView`, `TripFactChips`                                                            |
-| Trip fact editors | One editor per chip; Where and Trip preferences are centred dialogs, Preferences holds the traveller's own list       | `FactPopover`, `FactFields`, `WhereFields`, `PreferenceList`, `lib/workspace/trip-facts.ts` |
-| Chat              | Conversation, the planning transcript, the composer; starter suggestions in a blank chat; no visible heading          | `ChatPanel`                                                                                 |
-| Map               | Only the map, labelled markers, itinerary lines, the place popup, map status, View all places and Show my location    | `TripMapCanvas`, `TripMap`                                                                  |
-| Your Trip drawer  | Budget; Overview (places by day, sections and the stay chosen); Timeline & routes (editor); Review plan and Save trip | `Drawer`, `TripPanel`, `TripPlaceList`, `TripEditor`                                        |
+| Area              | Content                                                                                                            | Implementation                                                                                              |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| Sidebar           | Logo, Chats and Trips with counts, Language, Local account                                                         | `WorkspaceSidebar`, `BrandMark`, `icons.tsx`                                                                |
+| Chats panel       | Slides out beside the sidebar: search, New chat, New trip, then trips and chats                                    | `ChatsPanel`, `TripCover`                                                                                   |
+| Your trips        | Opened by Trips in place of chat and map: trip cards (Upcoming, Past) and a Calendar tab; New trip                 | `TripsPage`, `TripCover`                                                                                    |
+| Top bar           | Trip title; trip fact chips (destination, dates, travellers, budget, Preferences); data mode; Trip, rightmost      | `WorkspaceView`, `TripFactChips`                                                                            |
+| Trip fact editors | One editor per chip, every one a centred dialog; Preferences holds the traveller's own list                        | `FactPopover`, `FactFields`, `TripCalendar`, `WhereFields`, `PreferenceList`, `lib/workspace/trip-facts.ts` |
+| Chat              | Conversation, the planning transcript, the composer; starter suggestions in a blank chat; no visible heading       | `ChatPanel`                                                                                                 |
+| Map               | Only the map, labelled markers, itinerary lines, the place popup, map status, View all places and Show my location | `TripMapCanvas`, `TripMap`                                                                                  |
+| Your Trip drawer  | Budget; Overview (places by day, sections and the stay chosen); Timeline & routes (editor); Review plan            | `Drawer`, `TripPanel`, `TripPlaceList`, `TripEditor`                                                        |
 
 - **Sidebar.**
   - Expands to 240 px (220 px below 1250 px) or collapses to a 64 px icon rail. The toggle uses
@@ -26,32 +28,38 @@ now. Implementation history and browser acceptance for each phase are in the
   - The width is stored in the catalog layout only once the user resizes. Until then the stylesheet's
     responsive default applies, so narrowing the window still narrows the sidebar. Collapsing keeps
     the width for the next expand.
-  - Search is one field below the logo, with the magnifier inside, a short "Search" placeholder that
-    fits at 200 px, the visually hidden label "Search chats and trips", and a Clear search button
-    that appears once there is a query and returns focus to the field. It filters chats and trips.
-  - New chat follows Mindtrip's sidebar: a full-width, 40 px, pill-shaped button below Chats, Trips
-    and Saved trips (32 px under the last one), with a neutral ink wash (`--text` at 6 %, 11 % on
-    hover) instead of the accent, the text colour at 14 px/500, no icon, and a slight press scale
-    that `prefers-reduced-motion` turns off. It starts a blank chat and focuses the message input.
-  - New trip is a separate action: a second pill directly below New chat, always visible whichever
-    list is shown; see
-    [New chat and New trip](#conversations-trips-and-storage) for what it does.
-  - Collapsed icons keep `aria-label`, a tooltip and focus styles. New chat (plus) and New trip
-    (suitcase with a plus) are 40 px round icon buttons under the section icons. Search, Chats and
-    Trips expand the sidebar, and Search then focuses the field.
-  - Chats, Trips and Saved trips use outline line icons in the text colour, with no tile behind them,
-    so they follow light and dark. The current section is shown by its icon filling in, a heavier
-    full-ink label and a quiet background, plus `aria-current`. History supports search and select.
-  - A recent chat row shows only its title, on one line with an ellipsis; the full title is the
-    button's name and its `title` tooltip. Trip rows add their dates, total and status on a second
-    line. Neither shows an updated time. The selected row has the same quiet background, a heavier
-    title and `aria-current`.
-  - Each conversation has an overflow trigger at its top right that opens Rename and Delete, so those
+  - The sidebar holds only navigation: Chats and Trips with counts, in outline line icons in the
+    text colour that fill in for the open panel or page, which also gets a heavier label, a quiet
+    background and `aria-current`. Collapsed, they are labelled icon buttons with tooltips.
+  - **Chats** toggles the Chats panel (`aria-expanded`, `aria-controls="chats-panel"`): a 320 px
+    region at the sidebar's right edge that slides and fades in over the workspace in 240 ms
+    (instant under `prefers-reduced-motion`) and is `inert` while closed. Opening it focuses its
+    search; Escape closes it and returns focus to Chats (an open history menu or dialog takes Escape
+    first), and a press outside it closes it. The [Chats panel and Your trips Agent Note](../.agents/notes/implemented/feature/2026-09-24-chats-panel-and-trips-page.md)
+    records why.
+  - The panel has, from the top: a pill search field ("Search…", the visually hidden label "Search
+    chats and trips" and a Clear search button that returns focus to the field), which filters both
+    lists; New chat (pencil icon) and New trip (suitcase with a plus); **Trips**, each row a small
+    destination cover and "Trip to <destination>"; and **Chats**, each row its title on one line
+    with the linked trip's name under it. Choosing any of them closes the panel. See
+    [New chat and New trip](#conversations-trips-and-storage) for what the two starts do.
+  - **Trips** replaces the top bar, chat and map with the Your trips page: a "Your trips" heading, a
+    New trip button, and Trips and Calendar tabs (`role="tablist"`, arrow keys switch). Trips shows
+    every trip as a 4:3 cover card with "Trip to <destination>" and "<destination> · N days",
+    grouped into Upcoming and Past. Calendar is a Monday-first month grid with previous, Today and
+    next, drawing each trip as a band over its days, labelled where it starts and at each week's
+    start; it opens on the next trip's month. Choosing a trip, a chat, New chat or New trip returns
+    to the workspace.
+  - Trips keep no photos, so a cover is a gradient chosen by hashing the destination, with its
+    initial; the same destination always gets the same colours.
+  - A chat row's overflow trigger at its top right opens Rename and Delete, so those
     actions stay off the row until they are wanted. It is revealed on hover and on keyboard focus,
     and always shown where there is no hover to reveal it. The menu is a `role="menu"` of
     `role="menuitem"` buttons with `aria-haspopup` and `aria-expanded` on the trigger; Escape closes
-    it and returns focus to the trigger without closing an enclosing drawer, and clicking outside or
-    tabbing away closes it. Trips have no overflow menu because they have neither action.
+    it and returns focus to the trigger without closing an enclosing panel or drawer, and clicking
+    outside or tabbing away closes it. Trips have no overflow menu because they have neither action.
+  - On narrow screens the navigation drawer shows the sidebar with the panel's content (search, the
+    two starts, Trips and Chats) under Trips.
   - The logo is `apps/web/public/brand/ai-trip-planner-logo.svg`, referenced by URL. Its alt text is
     empty next to the product name and “AI Trip Planner” when shown alone.
   - At the narrowest widths the footer's Language and Local account buttons wrap below the save
@@ -59,22 +67,23 @@ now. Implementation history and browser acceptance for each phase are in the
 - **Trip facts.** The brief is edited one fact at a time from chips in the top bar, following
   Mindtrip's trip bar; the [preference chips Agent Note](../.agents/notes/implemented/feature/2026-09-24-preference-chips.md) records why.
   - The chips read the preferences draft, so they show only what the traveller stated: a value
-    ("Sydney", "1 Oct – 4 Oct · 4 days", "2 travellers", "AUD 2,000"), or "Add destination", "Add
-    dates", "Add travellers" and "Add budget" while it is missing. A converted budget keeps its
+    ("Sydney", "1 Oct – 4 Oct · 4 days", "2 adults, 1 child", "AUD 2,000"), or the bare fact name —
+    "Where", "When", "Who" and "Budget" — while it is missing. A converted budget keeps its
     "(≈ ¥3,000)" hint while it still matches the plan. The chips form a `role="group"` named Trip
     details; a filled chip's accessible name leads with its fact ("Destination: Sydney").
   - Each chip is a button with `aria-haspopup="dialog"`, `aria-expanded` and `aria-controls`, and
-    opens its own editor: Where (destinations and departing from), When (start and end date plus the
-    calendar), Who (a travellers stepper), Budget (total in AUD) and Trip preferences (the
-    traveller's own list).
-  - Where and Trip preferences hold lists, so, like Mindtrip's, they open as a centred modal
-    (`aria-modal="true"`) over a scrim, held a fixed distance from the top so a new row grows it
-    downwards. The panel is 512 px wide with no padding of its own: the head has the close button
-    leading and a centred 20 px semibold title, content is inset by `--space-5`, and one ink pill at
-    the bottom right (`--text` fill, `--page` label, so it inverts in dark mode, 168 × 40) is the
-    primary action: Save on Where, Done on Trip preferences, Update trip once a plan exists. Trip
-    preferences has a hairline under its head; Where has none. The panel uses `--radius-lg` (14 px)
-    and the list rows `--radius` (10 px) rather than Mindtrip's 16 and 12, to stay on the tokens.
+    opens its own editor: Where (destinations and departing from), When (a full inline calendar), Who
+    (a stepper per traveller kind), Budget (preset range cards plus a custom amount) and Trip
+    preferences (the traveller's own list).
+  - Every editor opens as a centred modal dialog (`aria-modal="true"`) over a scrim, like Mindtrip's,
+    held a fixed distance from the top so a new row grows it downwards. The panel has no padding of
+    its own: the head has the close button leading and a centred 20 px semibold title, content is
+    inset by `--space-5`, and one ink pill at the bottom right (`--text` fill, `--page` label, so it
+    inverts in dark mode, 168 × 40) is the primary action: Save, Done on Trip preferences, or Update
+    trip once a plan exists. Trip preferences has a hairline under its head; the others have none. The
+    panel is 512 px wide, 420 px for Who and Budget's shorter rows, and 680 px for When's two-month
+    calendar (all `min(…, 100vw - 2 × --space-4)`). It uses `--radius-lg` (14 px) and the list rows
+    `--radius` (10 px) rather than Mindtrip's 16 and 12, to stay on the tokens.
   - Where lists the destinations in visiting order as cards: a 48 px square icon slot on
     `--surface-2` where Mindtrip shows a photo (no photo is fetched here), the name in 15 px semibold,
     the region line under it when the place was picked from a suggestion, and a 28 px round remove
@@ -91,6 +100,32 @@ now. Implementation history and browser acceptance for each phase are in the
     a hint that leaving it blank skips long-haul flights. A card like a destination's was rejected
     because it would read as another stop. Mindtrip's road-trip switch is left out, because the
     planner has no road-trip mode.
+  - When shows a full inline calendar (`react-day-picker`, `mode="range"`), two months side by side on
+    desktop and one on phones, styled onto the design tokens: rounded day cells, a soft accent band
+    across the picked range, solid accent circles at its start and end, today outlined, and month
+    navigation in the header. Past dates are disabled. A summary line above it reads "1 Oct – 4 Oct ·
+    4 days" (or a prompt to choose dates while none are picked), with a Clear action beside it once a
+    date is picked. `DateRangePicker` (a calendar in its own dialog, used nowhere else at the moment)
+    shares the same styled calendar component (`TripCalendar`) so the two never drift apart.
+  - Who is a stepper (− count +) per traveller kind: Adults (13–64), Children (2–12), Infants (under
+    2), Seniors (65+) and Pets, each with its own remove/add buttons and a live count. The draft keeps
+    this breakdown (`Draft.party`) and keeps `groupSize` in sync as `adults + children + infants +
+seniors` (pets are never counted as travellers) on every change; `groupSize` stays the validated
+    field, so at least one person is required. Opening Who on a draft with no breakdown yet (saved
+    before the steppers existed) starts every stated traveller counted as an adult.
+  - The breakdown reaches the planner as `TripBrief.party` (and `known.party` before a plan exists),
+    beside `groupSize`. Every specialist's shared rule asks it to plan for children, infants,
+    seniors and pets where its evidence allows and to say when it cannot confirm suitability;
+    `groupSize` still drives all cost arithmetic. A breakdown that no longer adds up to `groupSize`
+    (say, the chat later learns "we're three now") is dropped rather than sent. The
+    [traveller party Agent Note](../.agents/notes/implemented/architecture/2026-09-24-traveller-party.md)
+    records why.
+  - Budget offers four preset range cards in a `role="radiogroup"` — Budget (under AUD 1,000, sets AUD
+    900), Moderate (AUD 1,000–3,000, sets AUD 3,000), Comfort (AUD 3,000–6,000, sets AUD 6,000) and
+    Luxury (AUD 6,000+, sets AUD 10,000) — each `role="radio"` and shown selected
+    (`aria-checked="true"`) exactly while `budgetTotal` equals its value. Below them, "Or enter an
+    amount (AUD)" sets `budgetTotal` directly to any figure, which deselects every preset unless it
+    happens to match one.
   - Trip preferences opens on a filled field (`--surface-2`, no border, 15 px) that adds a preference
     with Enter; below it each preference is a filled row with a remove button, up to 12 of up to 200
     characters. Clicking a preference's text edits it in place (Enter or leaving the field keeps it,
@@ -101,9 +136,8 @@ now. Implementation history and browser acceptance for each phase are in the
     counts as "no minimum".
   - An editor is a labelled `role="dialog"`. Focus moves to its first field (Where with places
     already listed starts on Add destination), Tab loops inside it, and Escape, the close button or a
-    saved edit return focus to the chip. Escape with the calendar open closes only the calendar. A
-    press outside an anchored editor closes it without moving focus; a press on a modal's scrim
-    returns focus to the chip. Opening one closes the Trip drawer and the navigation drawer.
+    saved edit return focus to the chip. A press outside the panel lands on the scrim and returns
+    focus to the chip. Opening one closes the Trip drawer and the navigation drawer.
   - Edits stay in the editor until they are kept, so Escape and a press outside discard them. Each
     editor checks its own fields with the brief schema and shows how to fix one next to it.
   - Before there is a plan, Save keeps the edit in the draft; nothing is sent. The stated facts go
@@ -113,15 +147,22 @@ now. Implementation history and browser acceptance for each phase are in the
     rejected brief opens the editor of the first fact at fault, with the error beside the field.
   - The trip title stays in the top bar at 1250 px and wider. Below that the destination chip names
     the trip and the title is kept for assistive technology only.
+- **Chat and map split.** On desktop the chat is on the left at 56 % of the area by default, a
+  little wider than the map. A separator between them (`role="separator"`, "Resize chat and map")
+  moves it between 30 % and 75 %: drag it, or focus it and use Left/Right (2 % steps), Home and End;
+  double-click restores the default. Dragging writes `--chat-share` straight onto the shell, and the
+  layout stores `chatShare` only once it has moved.
 - **Drawers.**
   - Your Trip and the narrow-screen navigation are overlay drawers below the top bar.
     They never cover the logo or top-bar buttons, and the chat and map keep their width.
+  - On desktop the Trip drawer is `(1 - --chat-share) × 100%` wide, so it covers exactly the map
+    wherever the divider sits.
   - `Drawer` provides `role="dialog"`, `aria-modal`, `aria-hidden` and `inert` when closed, focus on
     the close button, a Tab loop, Escape (nested edit previews and native dialogs first) and focus
     return to the trigger.
   - Only one drawer is open at a time. Closed drawers are translated fully outside the viewport, and
     the shell uses `overflow: clip` so they cannot be scrolled into view.
-  - The Trip drawer is `min(max(62vw, 560px), 100% - 24px)` wide. Animations are 240 ms and respect
+  - Animations are 240 ms and respect
     `prefers-reduced-motion`.
 - **Narrow screens (≤1000 px).**
   - The top bar keeps the menu, the fact chips and Trip on one row, with a Chat/Map switch below.
@@ -142,7 +183,7 @@ now. Implementation history and browser acceptance for each phase are in the
     trip.
   - An unfinished blank chat (form and input) is continued. Otherwise an untouched blank chat is
     reused, so refreshing does not add empty chats.
-  - Saved chats and trips open only when chosen from the sidebar or Saved trips.
+  - Saved chats and trips open only when chosen from the sidebar.
 - **New chat** creates an independent conversation with an empty form, input and map. It reuses an
   untouched blank chat when one exists, so pressing New chat repeatedly or after a refresh keeps a
   single empty conversation instead of stacking blank history entries. A conversation holding
@@ -153,7 +194,7 @@ now. Implementation history and browser acceptance for each phase are in the
   with focus on Destination instead of focusing the message input. It reuses an untouched blank
   conversation exactly as New chat does, and New chat renames that conversation back. The trip is
   listed under Trips once a plan is produced; until then it is a blank conversation under Chats. The
-  [New trip Agent Note](../.agents/notes/implemented/feature/2026-09-24-new-trip.md) records why.
+  [New trip Agent Note](../.agents/notes/archived/feature/2026-09-24-new-trip.md) records why.
 - **Starting to plan.**
   - A blank chat offers example trip suggestions. Selecting one replaces and focuses the message input;
     it never sends a message or starts a request.
@@ -219,8 +260,10 @@ now. Implementation history and browser acceptance for each phase are in the
   - Corrupt data is never overwritten automatically, and layout fields fall back to defaults instead
     of making history unreadable.
   - When storage is full or unavailable, the plan stays in memory with a visible retry.
-  - Saved trips are independent snapshots, and “Restore last workspace” lives in the Saved trips
-    dialog.
+  - Every planned trip is kept in the catalog automatically, so there is no separate Save trip
+    button or saved-snapshot list. Snapshots left under `trip-saved-v1` by the retired button are
+    neither read nor deleted; see
+    [workspace catalog trip storage](../.agents/notes/implemented/architecture/2026-09-24-workspace-catalog-trip-storage.md).
 
 ## Reviewing a plan
 

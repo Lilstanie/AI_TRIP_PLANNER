@@ -1,10 +1,8 @@
 import type { TripPlan } from "@trip/shared";
 import {
   CURRENT_KEY,
-  SAVED_KEY,
   blankDraft,
   isDraft,
-  parseSaved,
   parseSnapshot,
   type Draft,
   type Message,
@@ -47,6 +45,11 @@ export type PanelLayout = {
    * set once the user drags the edge; without it the stylesheet's responsive default applies.
    */
   sidebar: { collapsed: boolean; width?: number };
+  /**
+   * The chat column's share of the chat-and-map area on desktop, set once the traveller drags the
+   * divider. Without it the stylesheet's default applies (chat slightly wider than the map).
+   */
+  chatShare?: number;
   preferences: { open: boolean; width: number };
   trip: { open: boolean; width: number };
   view: WorkspaceView;
@@ -64,6 +67,10 @@ export type WorkspaceCatalog = {
 };
 
 export const SIDEBAR_WIDTH = { min: 200, default: 240, max: 420 } as const;
+/** Bounds for the chat column's share of the chat-and-map area; the default is in the stylesheet. */
+export const CHAT_SHARE = { min: 0.3, default: 0.56, max: 0.75 } as const;
+export const clampChatShare = (share: number) =>
+  Math.round(Math.min(CHAT_SHARE.max, Math.max(CHAT_SHARE.min, share)) * 1000) / 1000;
 export const clampSidebarWidth = (width: number) =>
   Math.round(Math.min(SIDEBAR_WIDTH.max, Math.max(SIDEBAR_WIDTH.min, width)));
 
@@ -136,6 +143,9 @@ function normalizeLayout(value: unknown): PanelLayout {
         ? { width: clampSidebarWidth(sidebar.width) }
         : {}),
     },
+    ...(typeof layout.chatShare === "number" && Number.isFinite(layout.chatShare)
+      ? { chatShare: clampChatShare(layout.chatShare) }
+      : {}),
     preferences: panel("preferences"),
     trip: panel("trip"),
     view,
@@ -198,12 +208,10 @@ export function createCatalog(current?: Snapshot, saved: Snapshot[] = []): Works
 export function parseCatalog(
   raw: string | unknown | null,
   legacyCurrent?: unknown,
-  legacySaved?: unknown,
 ): WorkspaceCatalog {
   if (raw === null || raw === undefined || raw === "") {
     const current = legacyCurrent === undefined ? undefined : parseSnapshot(legacyCurrent);
-    const saved = legacySaved === undefined ? [] : parseLegacySaved(legacySaved);
-    return createCatalog(current, saved);
+    return createCatalog(current);
   }
   let value: unknown;
   try {
@@ -251,11 +259,6 @@ export function parseCatalog(
     trips,
     layout: normalizeLayout(value.layout),
   };
-}
-
-function parseLegacySaved(value: unknown): Snapshot[] {
-  if (!Array.isArray(value)) throw new Error("Saved trip list is invalid.");
-  return value.map((item) => parseSnapshot(item));
 }
 
 function parseConversation(value: unknown): ConversationRecord {
@@ -459,7 +462,6 @@ export type RestoredWorkspace = {
   messages?: Message[];
   input: string;
   previousTotal?: number;
-  saved: Snapshot[];
   catalog: WorkspaceCatalog;
   /** The blank conversation to continue, when the last active conversation had no trip yet. */
   conversationId?: string;
@@ -477,7 +479,6 @@ export function restoreWorkspace(storage: Pick<Storage, "getItem">): RestoredWor
   const result: RestoredWorkspace = {
     draft: blankDraft(),
     input: "",
-    saved: [],
     catalog: createCatalog(),
     storageEnabled: true,
   };
@@ -492,13 +493,7 @@ export function restoreWorkspace(storage: Pick<Storage, "getItem">): RestoredWor
       "Your last workspace could not be read. It was kept unchanged; your history may be incomplete. Retry storage or explicitly replace the unreadable workspace.";
   }
   try {
-    result.saved = parseSaved(storage.getItem(SAVED_KEY));
-  } catch {
-    result.storageError ??=
-      "Saved trips could not be read. Existing stored data has been kept; you can retry from Saved trips.";
-  }
-  try {
-    const catalog = parseCatalog(storage.getItem(CATALOG_KEY), current, result.saved);
+    const catalog = parseCatalog(storage.getItem(CATALOG_KEY), current);
     const active = catalog.conversations.find((item) => item.id === catalog.activeConversationId);
     // Continue the active blank chat; otherwise reuse an untouched one instead of adding
     // another empty "New chat" on every refresh.

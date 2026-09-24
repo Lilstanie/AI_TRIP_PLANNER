@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { TripPlan, type AgentProgressEvent } from "@trip/shared";
-import type { SidebarSection } from "./WorkspaceSidebar";
+import type { WorkspacePage } from "./WorkspaceSidebar";
 import type { TripTab } from "../trip/TripPanel";
 import { useWorkspaceStorage } from "./useWorkspaceStorage";
 import { useWorkspaceTransport } from "./useWorkspaceTransport";
@@ -68,7 +68,11 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     restored.catalog.layout.sidebar.collapsed,
   );
   const [sidebarWidth, setSidebarWidth] = useState(restored.catalog.layout.sidebar.width);
-  const [section, setSection] = useState<SidebarSection>("chats");
+  const [chatShare, setChatShare] = useState(restored.catalog.layout.chatShare);
+  // The main area shows either the chat-and-map workspace or the Your trips overview.
+  const [page, setPage] = useState<WorkspacePage>("workspace");
+  // The Chats panel that slides out beside the sidebar.
+  const [chatsOpen, setChatsOpen] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
   const narrow = useIsNarrow();
   const [selectedActivity, setSelectedActivity] = useState<string>();
@@ -85,28 +89,18 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
   const tripToggle = useRef<HTMLButtonElement>(null);
   const navToggle = useRef<HTMLButtonElement>(null);
   const tripPlaces = useTripPlaces(plan);
-  const {
-    saved,
-    storageError,
-    storageEnabled,
-    saveState,
-    setStorageError,
-    setStorageEnabled,
-    flushSave,
-    save,
-    loadSaved,
-  } = useWorkspaceStorage({
-    restored,
-    plan,
-    draft,
-    messages,
-    input,
-    previousTotal,
-    catalog,
-    setCatalog,
-    activeConversation,
-    setNotice,
-  });
+  const { storageError, storageEnabled, saveState, setStorageError, setStorageEnabled, flushSave } =
+    useWorkspaceStorage({
+      restored,
+      plan,
+      draft,
+      messages,
+      input,
+      previousTotal,
+      catalog,
+      setCatalog,
+      activeConversation,
+    });
   const blank = !plan;
 
   useEffect(
@@ -122,6 +116,7 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
       updateCatalog(current, {
         layout: {
           sidebar: { collapsed: sidebarCollapsed, width: sidebarWidth },
+          chatShare,
           preferences: { ...current.layout.preferences, open: preferencesOpen },
           trip: { ...current.layout.trip, open: tripOpen },
           view: mobileView,
@@ -129,7 +124,7 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
         },
       }),
     );
-  }, [preferencesOpen, tripOpen, mobileView, tripTab, sidebarCollapsed, sidebarWidth]);
+  }, [preferencesOpen, tripOpen, mobileView, tripTab, sidebarCollapsed, sidebarWidth, chatShare]);
 
   // Leaving the narrow layout closes its navigation drawer.
   useEffect(() => {
@@ -179,7 +174,6 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     setTripOpen(false);
   }
   function openDialog(kind: DialogKind) {
-    if (kind === "saved") loadSaved();
     setNavOpen(false);
     setDialog(kind);
   }
@@ -223,25 +217,24 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     setAsk,
     onReject: (fields) => openPreferences(firstFactWithError(fields) ?? "preferences"),
   });
-  function restore(snapshot: Snapshot) {
-    resetTransient();
-    applySnapshot(snapshot);
-    activeConversation.current = `conversation:${snapshot.id}`;
-    setNotice("Trip restored. Future edits are saved to your current workspace.");
-  }
 
   const filteredHistory = useMemo(
     () => searchCatalog(catalog, historyQuery),
     [catalog, historyQuery],
   );
-  const historyChats = filteredHistory.conversations.map((item) => ({
-    id: item.id,
-    title: item.title,
-    active: item.id === catalog.activeConversationId,
-  }));
+  const historyChats = filteredHistory.conversations.map((item) => {
+    const trip = item.tripId && catalog.trips.find((record) => record.id === item.tripId);
+    return {
+      id: item.id,
+      title: item.title,
+      subtitle: trip ? `Trip to ${trip.snapshot.plan.brief.destination}` : undefined,
+      active: item.id === catalog.activeConversationId,
+    };
+  });
   const historyTrips = filteredHistory.trips.map((item) => ({
     id: item.id,
-    title: item.title,
+    title: `Trip to ${item.snapshot.plan.brief.destination}`,
+    destination: item.snapshot.plan.brief.destination,
     subtitle: `${item.snapshot.plan.brief.dates.join(" – ")} · ${money(item.snapshot.plan.estTotal)}`,
     status: item.status === "needs_review" ? ("Needs review" as const) : ("Draft" as const),
     active: !blank && item.id === catalog.activeTripId,
@@ -273,6 +266,8 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
       return next;
     });
     setNavOpen(false);
+    setChatsOpen(false);
+    setPage("workspace");
     setMobileView("chat");
   }
   function selectTrip(id: string) {
@@ -295,6 +290,8 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
       }),
     );
     setNavOpen(false);
+    setChatsOpen(false);
+    setPage("workspace");
   }
   /**
    * `base` is the catalog this new chat is derived from. `deleteChat` passes the already-pruned
@@ -324,6 +321,8 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     setOpenFact(undefined);
     setTripOpen(false);
     setNavOpen(false);
+    setChatsOpen(false);
+    setPage("workspace");
     setCatalog((current) =>
       upsertConversationDraft(base ?? current, {
         id,
@@ -392,13 +391,7 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
   // product can still report as outstanding. There is no decision to make.
   const pending = plan?.conflicts?.length ?? 0;
   const dialogTitle =
-    dialog === "review"
-      ? "Review plan"
-      : dialog === "saved"
-        ? "Saved trips"
-        : dialog === "language"
-          ? "Language"
-          : "Local account";
+    dialog === "review" ? "Review plan" : dialog === "language" ? "Language" : "Local account";
   // Chip editors are popovers, not drawers: they bring no drawer backdrop.
   const drawerOpen = tripOpen || navOpen;
 
@@ -417,7 +410,6 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     retry,
     ask,
     dialog,
-    saved,
     storageError,
     storageEnabled,
     saveState,
@@ -429,7 +421,9 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     mobileView,
     sidebarCollapsed,
     sidebarWidth,
-    section,
+    chatShare,
+    page,
+    chatsOpen,
     navOpen,
     narrow,
     selectedActivity,
@@ -462,7 +456,9 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     setMobileView,
     setSidebarCollapsed,
     setSidebarWidth,
-    setSection,
+    setChatShare,
+    setPage,
+    setChatsOpen,
     setNavOpen,
     setSelectedActivity,
     setMapRoutes,
@@ -479,9 +475,6 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
       setDraft(next);
       return submit(next);
     },
-    restore,
-    save,
-    loadSaved,
     run,
     submit,
     send,

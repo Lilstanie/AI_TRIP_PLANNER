@@ -130,61 +130,6 @@
   background: var(--surface) !important;
   color: var(--text);
 }
-/* Search: the sidebar's tool above the sections it filters. */
-.sidebar-actions {
-  display: grid;
-  gap: var(--space-2);
-}
-/* New chat and New trip are neutral: a faint ink wash that deepens on hover, never the accent,
-   following Mindtrip's sidebar. The wash is mixed from --text so it follows light and dark. */
-.workspace-sidebar {
-  --sidebar-wash: color-mix(in srgb, var(--text) 6%, transparent);
-  --sidebar-wash-hover: color-mix(in srgb, var(--text) 11%, transparent);
-}
-/* Mindtrip leaves 32px between the last section and New chat: the sidebar's 16px gap plus this.
-   New chat and New trip stack as two equal pills. */
-.sidebar-create {
-  display: grid;
-  gap: var(--space-2);
-  margin-top: var(--space-4);
-}
-.sidebar-new-chat {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-1);
-  border: 1px solid transparent !important;
-  border-radius: var(--radius-pill) !important;
-  background: var(--sidebar-wash) !important;
-  color: var(--text);
-  font-weight: 500;
-  white-space: nowrap;
-  transition:
-    background-color var(--transition),
-    transform var(--transition);
-}
-.sidebar-new-chat {
-  width: 100%;
-  /* A height, not min-height: the shared button rule's 36px floor outranks a single class. */
-  height: 40px;
-  padding: 0 var(--space-4) !important;
-  font-size: var(--font-size-body);
-}
-.sidebar-new-chat:hover {
-  background: var(--sidebar-wash-hover) !important;
-}
-.sidebar-new-chat:active {
-  transform: scale(0.98);
-}
-.sidebar-new-chat > span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-@media (prefers-reduced-motion: reduce) {
-  .sidebar-new-chat:active {
-    transform: none;
-  }
-}
 /* One field: the magnifier and the clear button sit inside the input's box. */
 .sidebar-search {
   position: relative;
@@ -351,16 +296,6 @@
   align-items: center;
   padding-inline: var(--space-2);
   overflow: visible;
-}
-.workspace-sidebar.is-collapsed .sidebar-actions {
-  justify-items: center;
-}
-.workspace-sidebar.is-collapsed .sidebar-create {
-  justify-items: center;
-}
-.workspace-sidebar.is-collapsed .sidebar-new-chat {
-  width: 40px;
-  padding: 0 !important;
 }
 .workspace-sidebar.is-collapsed .sidebar-head {
   flex-direction: column;

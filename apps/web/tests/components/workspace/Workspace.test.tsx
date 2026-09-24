@@ -1,8 +1,13 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import { Workspace } from "@/components/workspace/Workspace";
-import { CURRENT_KEY, SAVED_KEY } from "@/lib/workspace";
-import { CATALOG_KEY, parseCatalog } from "@/lib/workspace/catalog";
+import { CURRENT_KEY } from "@/lib/workspace";
+import {
+  CATALOG_KEY,
+  createCatalog,
+  parseCatalog,
+  serializeCatalog,
+} from "@/lib/workspace/catalog";
 import { plan, snapshot } from "@/tests/fixtures/workspace";
 const planFor = (destination: string, activity = "Museum", tripId = plan.tripId) => ({
   ...plan,
@@ -41,7 +46,7 @@ const louvre = {
 const drawer = (name: "trip") => document.querySelector<HTMLElement>(`.workspace-drawer--${name}`)!;
 const openPreferences = () =>
   fireEvent.click(screen.getByRole("button", { name: "Open trip preferences" }));
-/** A top-bar fact chip: "Destination: Sydney" once filled, "Add destination" while empty. */
+/** A top-bar fact chip: "Destination: Sydney" once filled, "Where" while empty. */
 const chip = (name: RegExp) => screen.getByRole("button", { name });
 const openChip = (name: RegExp) => fireEvent.click(chip(name));
 const googlePlace = {
@@ -63,9 +68,11 @@ const useNarrowLayout = () =>
     removeListener: vi.fn(),
     dispatchEvent: vi.fn(),
   }));
-const historyButton = (name: RegExp) => within(sidebar()).getAllByRole("button", { name })[0]!;
-/** An untitled chat's history row is also named "New chat"; the sidebar action comes first. */
-const newChatButton = () => screen.getAllByRole("button", { name: "New chat" })[0]!;
+/** The Chats panel beside the desktop sidebar: search, New chat, New trip, trips and chats. */
+const chatsPanel = () => document.getElementById("chats-panel")!;
+const historyButton = (name: RegExp) => within(chatsPanel()).getAllByRole("button", { name })[0]!;
+/** An untitled chat's history row is also named "New chat"; the panel's action comes first. */
+const newChatButton = () => within(chatsPanel()).getAllByRole("button", { name: "New chat" })[0]!;
 const withPlaceRequests = (...responses: (Response | ((init?: RequestInit) => Response))[]) => {
   let next = 0;
   return vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
@@ -105,7 +112,8 @@ describe("Workspace interactions", () => {
     // The drawer overlays the map; the map canvas stays mounted in its own column.
     expect(document.querySelector(".workspace-panel--map")).toBe(map);
     expect(within(trip).getByRole("button", { name: "Review plan" })).toBeTruthy();
-    expect(within(trip).getByRole("button", { name: "Save trip" })).toBeTruthy();
+    // Every planned trip is already kept in Your trips; there is no separate snapshot button.
+    expect(within(trip).queryByRole("button", { name: "Save trip" })).toBeNull();
 
     fireEvent.keyDown(window, { key: "Escape" });
     expect(trip.getAttribute("aria-hidden")).toBe("true");
@@ -189,11 +197,11 @@ describe("Workspace interactions", () => {
     expect(within(within(chat).getByRole("log")).queryByText(/Sydney|Museum/)).toBeNull();
     expect(within(map).queryByText(/Sydney|Museum/)).toBeNull();
     expect(within(chat).getByText("Where to next?")).toBeTruthy();
-    for (const name of ["Add destination", "Add dates", "Add travellers", "Add budget"])
+    for (const name of ["Where", "When", "Who", "Budget"])
       expect(screen.getByRole("button", { name })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Open your trip" }));
     expect(within(drawer("trip")).getByText(/No trip yet/)).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Save trip" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Review plan" })).toBeNull();
     await waitFor(() => {
       const catalog = parseCatalog(localStorage.getItem(CATALOG_KEY));
       const active = catalog.conversations.find(
@@ -213,9 +221,11 @@ describe("Workspace interactions", () => {
     await waitFor(() =>
       expect(parseCatalog(localStorage.getItem(CATALOG_KEY)).trips).toHaveLength(1),
     );
-    // New chat and New trip are separate starts, both visible whichever list is shown.
-    expect(within(sidebar()).getByRole("button", { name: "New chat" })).toBeTruthy();
-    fireEvent.click(within(sidebar()).getByRole("button", { name: "New trip" }));
+    // New chat and New trip are separate starts at the top of the Chats panel.
+    fireEvent.click(within(sidebar()).getByRole("button", { name: /^Chats/ }));
+    expect(within(chatsPanel()).getByRole("button", { name: "New chat" })).toBeTruthy();
+    fireEvent.click(within(chatsPanel()).getByRole("button", { name: "New trip" }));
+    expect(chatsPanel().classList.contains("is-open")).toBe(false);
     const where = await screen.findByRole("dialog", { name: "Where" });
     await waitFor(() => expect(where.contains(document.activeElement)).toBe(true));
     const chat = document.querySelector<HTMLElement>(".workspace-panel--chat")!;
@@ -276,7 +286,6 @@ describe("Workspace interactions", () => {
     );
     // Both starts are reachable from the drawer too.
     expect(within(nav).getAllByRole("button", { name: "New chat" })[0]).toBeTruthy();
-    fireEvent.click(within(nav).getByRole("button", { name: /^Trips/ }));
     fireEvent.click(within(nav).getByRole("button", { name: "New trip" }));
     await waitFor(() => expect(nav.getAttribute("aria-hidden")).toBe("true"));
     expect(await screen.findByRole("dialog", { name: "Where" })).toBeTruthy();
@@ -440,16 +449,16 @@ describe("Workspace interactions", () => {
     await waitFor(() =>
       expect(parseCatalog(localStorage.getItem(CATALOG_KEY)).trips).toHaveLength(1),
     );
-    fireEvent.click(screen.getByRole("button", { name: /^Trips/ }));
-    const sidebarSection = screen.getByRole("region", { name: "Trips" });
-    expect(within(sidebarSection).queryByRole("button", { name: /^Actions for / })).toBeNull();
+    const trips = within(chatsPanel()).getByRole("region", { name: "Trips" });
+    expect(within(trips).getByRole("button", { name: "Trip to Sydney" })).toBeTruthy();
+    expect(within(trips).queryByRole("button", { name: /^Actions for / })).toBeNull();
     expect(screen.queryByRole("menuitem")).toBeNull();
   });
   it("saves a blank conversation's form and input and restores it after reload", async () => {
     vi.stubGlobal("fetch", withPlaceRequests());
     const view = render(<Workspace initialPlan={plan} />);
     fireEvent.click(newChatButton());
-    openChip(/^Add destination$/);
+    openChip(/^Where$/);
     fireEvent.change(screen.getByLabelText("Add a destination"), { target: { value: "Lisbon" } });
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     fireEvent.change(screen.getByLabelText("Message AI Trip Planner"), {
@@ -467,7 +476,7 @@ describe("Workspace interactions", () => {
       "somewhere warm",
     );
     expect(chip(/^Destination: Lisbon$/)).toBeTruthy();
-    expect(chip(/^Add dates$/)).toBeTruthy();
+    expect(chip(/^When$/)).toBeTruthy();
     expect(within(drawer("trip")).queryByText(/Sydney/)).toBeNull();
     // Scoped to the message log: the blank state's example buttons name cities
     // on purpose, so the chat panel as a whole is no longer a clean signal.
@@ -608,7 +617,7 @@ describe("Workspace interactions", () => {
     expect((screen.getByLabelText("Message AI Trip Planner") as HTMLInputElement).value).toBe("");
     expect(document.body.textContent).not.toMatch(/Tokyo|Kyoto/);
     // Nothing is invented for a blank trip: every fact chip asks for its value.
-    for (const name of ["Add destination", "Add dates", "Add travellers", "Add budget"])
+    for (const name of ["Where", "When", "Who", "Budget"])
       expect(screen.getByRole("button", { name })).toBeTruthy();
     await waitFor(() => {
       const catalog = parseCatalog(localStorage.getItem(CATALOG_KEY));
@@ -640,8 +649,8 @@ describe("Workspace interactions", () => {
       "unfinished request",
     );
     expect(chip(/^Budget: AUD\s2,000$/)).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: /^Trips\s*1$/ }));
     expect(historyButton(/^Sydney · 2026-10-01/).getAttribute("aria-current")).toBe("true");
+    expect(historyButton(/^Trip to Sydney$/).getAttribute("aria-current")).toBe("true");
   });
   it("keeps the plan and draft on failure and retries the same structured request", async () => {
     const fetcher = withPlaceRequests(
@@ -665,28 +674,37 @@ describe("Workspace interactions", () => {
     expect(first.brief.destination).toBe("Paris");
     expect((chatCalls[0]![1] as RequestInit).body).toBe((chatCalls[1]![1] as RequestInit).body);
   });
-  it("restores saved data and ignores the result of the aborted old request", async () => {
-    const restored = {
+  it("opens a trip from history and ignores the result of the aborted old request", async () => {
+    const melbourne = {
       ...snapshot,
-      plan: { ...plan, brief: { ...plan.brief, destination: "Melbourne" } },
+      id: "melbourne-chat",
+      plan: planFor("Melbourne", "Museum", "melbourne-trip"),
       draft: { ...snapshot.draft, destination: "Melbourne" },
     };
-    localStorage.setItem(SAVED_KEY, JSON.stringify([restored]));
-    let finish!: (response: Response) => void;
-    const fetcher = vi.fn(
-      () =>
-        new Promise<Response>((resolve) => {
+    localStorage.setItem(CATALOG_KEY, serializeCatalog(createCatalog(undefined, [melbourne])));
+    // Left behind by the retired Save trip button: no longer read, and never removed.
+    localStorage.setItem("trip-saved-v1", "broken");
+    const places = withPlaceRequests();
+    let finish: ((response: Response) => void) | undefined;
+    // Only the chat request is held open, so `finish` resolves that request and nothing else.
+    const fetcher = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url === "/api/chat")
+        return new Promise<Response>((resolve) => {
           finish = resolve;
-        }),
-    );
+        });
+      if (url === "/api/data-mode" || url.startsWith("/api/places/")) return places(input, init);
+      return new Promise<Response>(() => {});
+    });
     vi.stubGlobal("fetch", fetcher);
     render(<Workspace initialPlan={plan} />);
     openPreferences();
     fireEvent.click(screen.getByRole("button", { name: "Update trip" }));
-    fireEvent.click(screen.getByRole("button", { name: /^Saved trips/ }));
-    fireEvent.click(screen.getByRole("button", { name: "Restore trip" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Trips\s*\d$/ }));
+    fireEvent.click(historyButton(/^Melbourne/));
+    expect(finish).toBeDefined();
     await act(async () => {
-      finish(complete("Obsolete result"));
+      finish!(complete("Obsolete result"));
     });
     expect(chip(/^Destination: Melbourne$/)).toBeTruthy();
     expect(screen.queryByText(/Obsolete result/)).toBeNull();
@@ -694,6 +712,8 @@ describe("Workspace interactions", () => {
     expect(screen.getByRole("button", { name: "Update trip" }).hasAttribute("disabled")).toBe(
       false,
     );
+    expect(localStorage.getItem("trip-saved-v1")).toBe("broken");
+    expect(screen.queryByText(/could not be read/)).toBeNull();
   });
   it("keeps corrupt storage intact and tolerates quota failures", async () => {
     localStorage.setItem(CURRENT_KEY, "broken");
@@ -745,40 +765,31 @@ describe("Workspace navigation", () => {
     const toggle = screen.getByRole("button", { name: "Collapse sidebar" });
     expect(toggle.getAttribute("aria-expanded")).toBe("true");
     expect(within(sidebar()).getByText("AI Trip Planner")).toBeTruthy();
-    expect(
-      within(sidebar())
-        .getByRole("button", { name: /^Chats\s*1$/ })
-        .getAttribute("aria-current"),
-    ).toBe("true");
-    // The current section's icon fills in; the others stay outlines.
-    const filled = (name: RegExp) =>
-      within(sidebar())
-        .getByRole("button", { name })
-        .querySelector('svg [fill="currentColor"], svg[fill="currentColor"]');
-    expect(filled(/^Chats\s*1$/)).not.toBeNull();
-    expect(filled(/^Trips\s*0$/)).toBeNull();
-    fireEvent.click(within(sidebar()).getByRole("button", { name: /^Trips\s*0$/ }));
-    expect(filled(/^Trips\s*0$/)).not.toBeNull();
-    expect(filled(/^Chats\s*1$/)).toBeNull();
-    fireEvent.click(within(sidebar()).getByRole("button", { name: /^Chats\s*1$/ }));
+    const chats = () => within(sidebar()).getByRole("button", { name: /^Chats\s*1$/ });
+    const trips = () => within(sidebar()).getByRole("button", { name: /^Trips\s*0$/ });
+    // The open panel's or page's icon fills in; the others stay outlines.
+    const filled = (button: HTMLElement) =>
+      button.querySelector('svg [fill="currentColor"], svg[fill="currentColor"]');
+    expect(filled(chats())).toBeNull();
+    expect(filled(trips())).toBeNull();
+    fireEvent.click(chats());
+    expect(chats().getAttribute("aria-expanded")).toBe("true");
+    expect(chats().getAttribute("aria-current")).toBe("true");
+    expect(filled(chats())).not.toBeNull();
+    fireEvent.click(trips());
+    expect(screen.getByRole("heading", { name: "Your trips" })).toBeTruthy();
+    expect(chats().getAttribute("aria-expanded")).toBe("false");
+    expect(filled(trips())).not.toBeNull();
+    expect(filled(chats())).toBeNull();
     toggle.focus();
     fireEvent.click(toggle);
     expect(toggle.getAttribute("aria-expanded")).toBe("false");
     expect(toggle.getAttribute("aria-label")).toBe("Expand sidebar");
     expect(document.activeElement).toBe(toggle);
-    // Text and history details are gone; icon buttons stay reachable by name.
+    // Text is gone; icon buttons stay reachable by name.
     expect(within(sidebar()).queryByText("AI Trip Planner")).toBeNull();
     expect(within(sidebar()).getByRole("img", { name: "AI Trip Planner" })).toBeTruthy();
-    expect(within(sidebar()).queryByRole("region", { name: "Chats" })).toBeNull();
-    expect(within(sidebar()).queryByRole("searchbox")).toBeNull();
-    for (const name of [
-      "New chat",
-      "New trip",
-      "Search chats and trips",
-      "Chats, 1",
-      "Trips, 0",
-      "Saved trips, 0",
-    ]) {
+    for (const name of ["Chats, 1", "Trips, 0"]) {
       const button = within(sidebar()).getByRole("button", { name });
       expect(button.getAttribute("data-tooltip")).toBeTruthy();
     }
@@ -788,13 +799,26 @@ describe("Workspace navigation", () => {
     view.unmount();
     render(<Workspace />);
     expect(screen.getByRole("button", { name: "Expand sidebar" })).toBeTruthy();
-    fireEvent.click(within(sidebar()).getByRole("button", { name: "Search chats and trips" }));
-    expect(document.activeElement).toBe(within(sidebar()).getByRole("searchbox"));
+    // The Chats panel still opens from the collapsed rail, with focus on its search.
+    fireEvent.click(within(sidebar()).getByRole("button", { name: "Chats, 1" }));
+    expect(document.activeElement).toBe(within(chatsPanel()).getByRole("searchbox"));
+  });
+
+  it("opens the Chats panel with focus on search and closes it with Escape", () => {
+    render(<Workspace />);
+    const button = within(sidebar()).getByRole("button", { name: /^Chats/ });
+    expect(chatsPanel().hasAttribute("inert")).toBe(true);
+    fireEvent.click(button);
+    expect(chatsPanel().hasAttribute("inert")).toBe(false);
+    expect(document.activeElement).toBe(within(chatsPanel()).getByRole("searchbox"));
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(chatsPanel().classList.contains("is-open")).toBe(false);
+    expect(document.activeElement).toBe(button);
   });
 
   it("lists recent chats by title only, with the full title kept for truncated rows", async () => {
     render(<Workspace />);
-    const chats = await screen.findByRole("region", { name: "Chats" });
+    const chats = await within(chatsPanel()).findByRole("region", { name: "Chats" });
     const row = await within(chats).findByRole("button", { name: "New chat" });
     expect(row.getAttribute("aria-current")).toBe("true");
     expect(row.getAttribute("title")).toBe("New chat");
@@ -805,17 +829,59 @@ describe("Workspace navigation", () => {
     expect(within(chats).getByRole("button", { name: "Actions for New chat" })).toBeTruthy();
   });
 
-  it("clears the sidebar search from the field and keeps focus in it", () => {
+  it("clears the Chats panel search from the field and keeps focus in it", () => {
     render(<Workspace />);
-    const search = within(sidebar()).getByRole("searchbox", { name: "Search chats and trips" });
-    expect(search.getAttribute("placeholder")).toBe("Search");
-    expect(within(sidebar()).queryByRole("button", { name: "Clear search" })).toBeNull();
+    const panel = within(chatsPanel());
+    const search = panel.getByRole("searchbox", { name: "Search chats and trips" });
+    expect(search.getAttribute("placeholder")).toBe("Search…");
+    expect(panel.queryByRole("button", { name: "Clear search" })).toBeNull();
     fireEvent.change(search, { target: { value: "kyoto" } });
-    expect(within(sidebar()).getByText("No matching records.")).toBeTruthy();
-    fireEvent.click(within(sidebar()).getByRole("button", { name: "Clear search" }));
+    expect(panel.getByText("No matching chats.")).toBeTruthy();
+    expect(panel.getByText("No matching trips.")).toBeTruthy();
+    fireEvent.click(panel.getByRole("button", { name: "Clear search" }));
     expect((search as HTMLInputElement).value).toBe("");
     expect(document.activeElement).toBe(search);
-    expect(within(sidebar()).queryByRole("button", { name: "Clear search" })).toBeNull();
+    expect(panel.queryByRole("button", { name: "Clear search" })).toBeNull();
+  });
+
+  it("opens Your trips from Trips, with cards and a calendar, and returns on choosing a trip", async () => {
+    vi.stubGlobal("fetch", withPlaceRequests());
+    render(<Workspace initialPlan={plan} />);
+    await waitFor(() =>
+      expect(parseCatalog(localStorage.getItem(CATALOG_KEY)).trips).toHaveLength(1),
+    );
+    fireEvent.click(within(sidebar()).getByRole("button", { name: /^Trips/ }));
+    expect(screen.getByRole("heading", { name: "Your trips" })).toBeTruthy();
+    expect(screen.queryByLabelText("Message AI Trip Planner")).toBeNull();
+    const page = () => within(document.querySelector<HTMLElement>(".trips-page")!);
+    const card = page().getByRole("button", { name: /^Trip to Sydney/ });
+    fireEvent.click(screen.getByRole("tab", { name: "Calendar" }));
+    expect(screen.getByRole("tab", { name: "Calendar" }).getAttribute("aria-selected")).toBe(
+      "true",
+    );
+    expect(screen.getByRole("grid")).toBeTruthy();
+    fireEvent.click(screen.getByRole("tab", { name: "Trips" }));
+    fireEvent.click(page().getByRole("button", { name: /^Trip to Sydney/ }));
+    expect(card.isConnected).toBe(false);
+    expect(screen.queryByRole("heading", { name: "Your trips" })).toBeNull();
+    expect(screen.getByRole("heading", { name: "Sydney" })).toBeTruthy();
+  });
+
+  it("moves the chat and map divider by keyboard, remembers it and resets on double-click", async () => {
+    const view = render(<Workspace />);
+    const shell = () => document.querySelector<HTMLElement>(".workspace-shell")!;
+    const handle = () => screen.getByRole("separator", { name: "Resize chat and map" });
+    expect(shell().style.getPropertyValue("--chat-share")).toBe("");
+    fireEvent.keyDown(handle(), { key: "Home" });
+    expect(shell().style.getPropertyValue("--chat-share")).toBe("0.3");
+    await waitFor(() =>
+      expect(parseCatalog(localStorage.getItem(CATALOG_KEY)).layout.chatShare).toBe(0.3),
+    );
+    view.unmount();
+    render(<Workspace />);
+    expect(shell().style.getPropertyValue("--chat-share")).toBe("0.3");
+    fireEvent.doubleClick(handle());
+    expect(shell().style.getPropertyValue("--chat-share")).toBe("");
   });
 
   it("resizes the sidebar by dragging or keyboard, remembers it and resets on double-click", async () => {

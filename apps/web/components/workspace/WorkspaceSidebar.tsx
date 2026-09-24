@@ -1,30 +1,23 @@
 "use client";
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode, type Ref } from "react";
 import { BrandMark } from "./BrandMark";
-import {
-  BookmarkIcon,
-  ChatIcon,
-  CloseIcon,
-  GlobeIcon,
-  MoreIcon,
-  NewTripIcon,
-  PlusIcon,
-  SearchIcon,
-  SidebarIcon,
-  SuitcaseIcon,
-  UserIcon,
-} from "../ui/icons";
+import { ChatIcon, GlobeIcon, MoreIcon, SidebarIcon, SuitcaseIcon, UserIcon } from "../ui/icons";
 
-/** A history row. Chats show only their title; trips add their dates and total as `subtitle`. */
+/**
+ * A history row. Chats show their title and, when they belong to a trip, that trip's name as
+ * `subtitle`; trips add their dates and total as `subtitle` and their destination for the cover.
+ */
 export type HistoryItem = {
   id: string;
   title: string;
   subtitle?: string;
   status?: "Draft" | "Needs review";
+  destination?: string;
   active?: boolean;
 };
 
-export type SidebarSection = "chats" | "trips";
+/** What the main area shows: the chat-and-map workspace, or the Your trips overview. */
+export type WorkspacePage = "workspace" | "trips";
 
 function NavButton({
   icon,
@@ -32,6 +25,9 @@ function NavButton({
   collapsed,
   count,
   current,
+  expanded,
+  controls,
+  buttonRef,
   onClick,
 }: {
   icon: ReactNode;
@@ -39,11 +35,18 @@ function NavButton({
   collapsed: boolean;
   count?: number;
   current?: boolean;
+  /** Set for a button that opens a panel. */
+  expanded?: boolean;
+  controls?: string;
+  buttonRef?: Ref<HTMLButtonElement>;
   onClick(): void;
 }) {
   return (
     <button
+      ref={buttonRef}
       type="button"
+      aria-expanded={expanded}
+      aria-controls={expanded ? controls : undefined}
       className={`sidebar-nav__item${current ? " is-current" : ""}`}
       aria-label={collapsed ? (count === undefined ? label : `${label}, ${count}`) : undefined}
       aria-current={current ? "true" : undefined}
@@ -62,7 +65,7 @@ function NavButton({
  * history noisy; they now open from one trigger. Escape closes the menu and hands focus back to the
  * trigger, and it is handled in the capture phase so it cannot also close an enclosing drawer.
  */
-function HistoryMenu({
+export function HistoryMenu({
   title,
   onRename,
   onDelete,
@@ -143,69 +146,48 @@ function HistoryMenu({
   );
 }
 
+/**
+ * The navigation rail. Chats opens the Chats panel beside it (search, New chat, New trip and the
+ * history), as Mindtrip's does; Trips opens the Your trips overview in the main area. On narrow
+ * screens the sidebar sits in the navigation drawer and shows the Chats panel's content itself,
+ * passed as `children`.
+ */
 export function WorkspaceSidebar({
   collapsed = false,
   collapsible = true,
   onToggleCollapsed,
-  section,
-  onSection,
-  query,
-  onQuery,
-  chats,
-  trips,
-  savedCount,
-  onNewChat,
-  onNewTrip,
-  onOpenChat,
-  onOpenTrip,
-  onRenameChat,
-  onDeleteChat,
-  onSavedTrips,
+  page,
+  chatsOpen,
+  chatCount,
+  tripCount,
+  onChats,
+  onTrips,
+  chatsButton,
   onLanguage,
   onAccount,
   saveState,
+  children,
 }: {
   collapsed?: boolean;
   /** False when the sidebar is shown inside the narrow-screen navigation drawer. */
   collapsible?: boolean;
   onToggleCollapsed?(): void;
-  section: SidebarSection;
-  onSection(section: SidebarSection): void;
-  query: string;
-  onQuery(value: string): void;
-  chats: HistoryItem[];
-  trips: HistoryItem[];
-  savedCount: number;
-  onNewChat(): void;
-  /** Starts a blank trip: a fresh conversation opened on the destination editor. */
-  onNewTrip(): void;
-  onOpenChat(id: string): void;
-  onOpenTrip(id: string): void;
-  onRenameChat(id: string): void;
-  onDeleteChat(id: string): void;
-  onSavedTrips(): void;
+  page: WorkspacePage;
+  chatsOpen: boolean;
+  chatCount: number;
+  tripCount: number;
+  /** Opens or closes the Chats panel. */
+  onChats(): void;
+  /** Shows the Your trips overview. */
+  onTrips(): void;
+  /** The Chats button, which the Chats panel returns focus to. */
+  chatsButton?: Ref<HTMLButtonElement>;
   onLanguage(): void;
   onAccount(): void;
   saveState: "saving" | "saved" | "failed";
+  children?: ReactNode;
 }) {
   const isCollapsed = collapsible && collapsed;
-  const search = useRef<HTMLInputElement>(null);
-  const searchId = useId();
-  const focusSearch = useRef(false);
-
-  useEffect(() => {
-    if (isCollapsed || !focusSearch.current) return;
-    focusSearch.current = false;
-    search.current?.focus();
-  }, [isCollapsed]);
-
-  /** Collapsed icons expand the sidebar so the chosen section's history is visible. */
-  const reveal = (next?: SidebarSection) => {
-    if (next) onSection(next);
-    if (isCollapsed) onToggleCollapsed?.();
-  };
-
-  const items = section === "chats" ? chats : trips;
 
   return (
     <aside
@@ -228,148 +210,31 @@ export function WorkspaceSidebar({
         )}
       </div>
 
-      <div className="sidebar-actions">
-        {isCollapsed ? (
-          <NavButton
-            icon={<SearchIcon />}
-            label="Search chats and trips"
-            collapsed
-            onClick={() => {
-              focusSearch.current = true;
-              reveal();
-            }}
-          />
-        ) : (
-          <div className="sidebar-search">
-            <SearchIcon />
-            <label className="sr-only" htmlFor={searchId}>
-              Search chats and trips
-            </label>
-            <input
-              ref={search}
-              id={searchId}
-              className="field sidebar-search__input"
-              type="search"
-              placeholder="Search"
-              autoComplete="off"
-              value={query}
-              onChange={(event) => onQuery(event.target.value)}
-            />
-            {query && (
-              <button
-                type="button"
-                className="sidebar-search__clear"
-                aria-label="Clear search"
-                onClick={() => {
-                  onQuery("");
-                  search.current?.focus();
-                }}
-              >
-                <CloseIcon />
-              </button>
-            )}
-          </div>
-        )}
-      </div>
-
       <nav className="sidebar-nav" aria-label="Workspace">
+        {collapsible ? (
+          <NavButton
+            buttonRef={chatsButton}
+            icon={<ChatIcon filled={chatsOpen} />}
+            label="Chats"
+            collapsed={isCollapsed}
+            count={chatCount}
+            current={chatsOpen}
+            expanded={chatsOpen}
+            controls="chats-panel"
+            onClick={onChats}
+          />
+        ) : null}
         <NavButton
-          icon={<ChatIcon filled={section === "chats"} />}
-          label="Chats"
-          collapsed={isCollapsed}
-          count={chats.length}
-          current={section === "chats"}
-          onClick={() => reveal("chats")}
-        />
-        <NavButton
-          icon={<SuitcaseIcon filled={section === "trips"} />}
+          icon={<SuitcaseIcon filled={page === "trips" && !chatsOpen} />}
           label="Trips"
           collapsed={isCollapsed}
-          count={trips.length}
-          current={section === "trips"}
-          onClick={() => reveal("trips")}
-        />
-        <NavButton
-          icon={<BookmarkIcon />}
-          label="Saved trips"
-          collapsed={isCollapsed}
-          count={savedCount}
-          onClick={onSavedTrips}
+          count={tripCount}
+          current={page === "trips" && !chatsOpen}
+          onClick={onTrips}
         />
       </nav>
 
-      {/* Below the sections, as on Mindtrip: quiet full-width pills rather than an accent block.
-          New chat and New trip are separate starts, always both visible; the rail shows them as
-          icons. */}
-      <div className="sidebar-create">
-        <button
-          type="button"
-          className="sidebar-new-chat"
-          aria-label={isCollapsed ? "New chat" : undefined}
-          data-tooltip={isCollapsed ? "New chat" : undefined}
-          onClick={onNewChat}
-        >
-          {isCollapsed ? <PlusIcon /> : <span>New chat</span>}
-        </button>
-        <button
-          type="button"
-          className="sidebar-new-chat"
-          aria-label={isCollapsed ? "New trip" : undefined}
-          data-tooltip={isCollapsed ? "New trip" : undefined}
-          onClick={onNewTrip}
-        >
-          {isCollapsed ? <NewTripIcon /> : <span>New trip</span>}
-        </button>
-      </div>
-
-      {!isCollapsed && (
-        <section className="sidebar-history" aria-label={section === "chats" ? "Chats" : "Trips"}>
-          <div className="sidebar-history__head">
-            <h2 className="sidebar-history__title">
-              {section === "chats" ? "Recent chats" : "Your trips"}
-            </h2>
-          </div>
-          <div className="history-list">
-            {items.map((item) => (
-              <article
-                className={`history-item${item.active ? " history-item--active" : ""}`}
-                key={item.id}
-              >
-                <button
-                  type="button"
-                  className="history-item__open"
-                  aria-current={item.active ? "true" : undefined}
-                  title={item.title}
-                  onClick={() => (section === "chats" ? onOpenChat : onOpenTrip)(item.id)}
-                >
-                  <span className="history-item__title">{item.title}</span>
-                  {item.subtitle && (
-                    <span className="history-item__meta">
-                      {item.status ? `${item.status} · ${item.subtitle}` : item.subtitle}
-                    </span>
-                  )}
-                </button>
-                {section === "chats" && (
-                  <HistoryMenu
-                    title={item.title}
-                    onRename={() => onRenameChat(item.id)}
-                    onDelete={() => onDeleteChat(item.id)}
-                  />
-                )}
-              </article>
-            ))}
-            {!items.length && (
-              <p className="history-empty">
-                {query.trim()
-                  ? "No matching records."
-                  : section === "chats"
-                    ? "No chats yet."
-                    : "No trips yet. Start one with New trip."}
-              </p>
-            )}
-          </div>
-        </section>
-      )}
+      {children}
 
       <div className="sidebar-footer">
         {!isCollapsed && (

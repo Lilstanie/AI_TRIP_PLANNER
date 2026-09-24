@@ -61,18 +61,20 @@ export const SuitcaseIcon = ({ filled = false }: NavIconProps) => (
   </Icon>
 );
 
+/** A pencil over a square: start a new chat. */
+export const ComposeIcon = () => (
+  <Icon>
+    <path d="M11 4.5H6.5a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V13" />
+    <path d="M17.6 3.9a1.9 1.9 0 0 1 2.7 2.7L12.5 14.4 9 15l.6-3.5 8-7.6Z" />
+  </Icon>
+);
+
 /** A suitcase with a plus beside it: start a new trip. */
 export const NewTripIcon = () => (
   <Icon>
     <rect x="2.5" y="8" width="12.5" height="11.5" rx="2.5" />
     <path d="M6.5 8V6.5A1.5 1.5 0 0 1 8 5h1.5A1.5 1.5 0 0 1 11 6.5V8" />
     <path d="M19 12.5v6M16 15.5h6" />
-  </Icon>
-);
-
-export const BookmarkIcon = ({ filled = false }: NavIconProps) => (
-  <Icon fill={filled ? "currentColor" : "none"}>
-    <path d="M7 4h10a1 1 0 0 1 1 1v15l-6-4-6 4V5a1 1 0 0 1 1-1Z" />
   </Icon>
 );
 
