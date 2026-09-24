@@ -169,6 +169,10 @@ Do not change `packages/shared` without telling the team; every package depends 
 
 ## Verification
 
+The commands below are existing package regression checks. For new complex user-facing behavior,
+follow the [E2E-first testing approach](development.md#testing-approach) and retain a repeatable
+artifact.
+
 ```bash
 pnpm --filter @trip/orchestrator test
 pnpm --filter @trip/agents test

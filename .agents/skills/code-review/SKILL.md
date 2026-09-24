@@ -17,7 +17,9 @@ Each item below is a defect this project has hit; the source is in brackets.
 
 - **Unit and scale conversions that schemas cannot catch.** Provider ratings on 1–5 must become the
   project's 0–10 (`× 2`); per-passenger fares must become whole-group totals; every stored amount is
-  AUD. Zod accepts the unconverted value, so require a test that asserts the converted number.
+  AUD. Zod accepts the unconverted value, so require behavioral evidence for the converted number.
+  Prefer an E2E assertion; when isolation is necessary, check that failure modes were enumerated
+  before implementation and that the focused check covers them.
   [SerpApi and Places notes](../../notes/implemented/feature/2026-09-20-serpapi-live-prices.md)
 - **Data provenance tells the truth.** Each specialist sets `source.kind` in the branch that actually
   ran, including its fallback `catch`. A label derived from configuration is wrong exactly when a call

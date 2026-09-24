@@ -6,7 +6,8 @@ description: Use after changing anything a person can see in apps/web of AI_TRIP
 # Verify a UI change in the browser
 
 Unit tests do not show layout, focus or overflow. Every visible change is checked in a running app,
-and the pull request carries the evidence. This is guidance: check what the change can affect.
+and the pull request carries the evidence. For complex user-visible features, prefer E2E as the sole
+behavioral test and leave a repeatable artifact. This is guidance: check what the change can affect.
 
 ## 1. Run the app
 

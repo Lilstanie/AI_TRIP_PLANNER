@@ -40,7 +40,8 @@ Status as of 2026-09-22 on `main`; see [workspace UI](workspace-ui.md) for curre
 - Time, route and budget conflicts are visible after edits.
 - Planned trips reopen from Your trips after refresh.
 - Provider failures degrade visibly and safely without silently substituting fictional prices.
-- Typecheck, tests, lint and production build pass before merge.
+- Typecheck, lint, the existing CI test suite and production build pass before merge. Complex new
+  behaviour is verified with an E2E test that leaves a repeatable, reviewable artifact.
 
 ## Out of scope for now
 

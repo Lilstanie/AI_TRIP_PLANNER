@@ -24,6 +24,7 @@ checklist, and it links to the note or document that owns a fact instead of rest
 | `ui-verification` | Verify visible changes in a browser at two widths | The 1440 × 1000 and 390 × 844 checks, overflow and Escape-focus findings in the UI P2, P3.4 and calendar sessions                                                                                             |
 | `add-provider`    | Add an external data provider safely              | The Google Places and SerpApi integrations: free error-shape probes, typed errors, fallback tiers, stubbed `fetch` tests                                                                                      |
 | `agent-notes`     | Write, supersede and archive notes                | The DeepSeek Harness note workflow and this project's note backfill                                                                                                                                           |
+| `api-scout`       | Find and compare APIs for a product data gap      | The public-apis catalog, project provider plan and official provider documentation                                                                                                                            |
 | `session-log`     | Write one log per session                         | The team session-log rules                                                                                                                                                                                    |
 
 ## Alternatives considered
@@ -53,4 +54,5 @@ archive-maintenance workflows address problems this project does not have yet.
 ## Sources
 
 The session logs named in the table, under `.agents/session-logs/`, and
-[the backfilled notes](../feature/2026-09-20-serpapi-live-prices.md) they produced.
+[the backfilled notes](../feature/2026-09-20-serpapi-live-prices.md) they produced, plus the
+[API scout session log](../../../session-logs/2026-09-25-api-scout-skill.md).

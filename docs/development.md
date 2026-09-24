@@ -93,6 +93,11 @@ Model routing and fallbacks are described in [architecture](architecture.md#agen
 
 ## External data provider plan
 
+Use the project [api-scout skill](../.agents/skills/api-scout/SKILL.md) to discover candidates in the
+[public-apis catalog](https://github.com/public-apis/public-apis). Treat that repository as a changing
+index only: verify access, pricing, quotas, data rights, freshness and geographic coverage in each
+provider's official documentation before adding it to this table or implementing an adapter.
+
 SerpApi is the provider for the project's current hotel and flight search layer. One
 `SERPAPI_KEY` can be used for both SerpApi engines, but this does not make SerpApi a universal
 travel backend:
@@ -148,6 +153,18 @@ The compose file starts the web app on port 3000 (reading `.env.local`) and the 
 port 4000. Redis is optional and commented out.
 
 ## Verification
+
+### Testing approach
+
+For complex features, prefer an end-to-end (E2E) test as the sole behavioral test: exercise the
+complete user path and leave a repeatable, reviewable artifact such as a report, trace or screenshots.
+Record the command and the steps or fixtures needed to reproduce it. Never write unit tests after
+writing implementation code. If a system must be tested in isolation, first enumerate all the ways it
+could fail, then write the code and derive the isolated checks from that list.
+
+This describes the preferred approach for new work; the commands below document the checks currently
+available in the repository. CI runs the existing Vitest suite through `pnpm test`; no checked-in E2E
+runner is currently configured.
 
 ```bash
 pnpm typecheck

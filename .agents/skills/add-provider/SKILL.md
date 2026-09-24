@@ -40,8 +40,12 @@ The agent that uses the data sets `source.kind` (`live`, `estimated`, `mock`, `f
 - Add each variable name to `.env.example` with a comment; never a value.
 - Update the provider table in [development.md](../../../docs/development.md).
 
-## 5. Tests
+## 5. Verification
 
-Stub `fetch` with `vi.stubGlobal`; assert request parameters, the success mapping, every conversion as
-a number, each error `reason`, and the fallback tier. Then run [pre-push-checks](../pre-push-checks/SKILL.md)
-and, for visible results, [ui-verification](../ui-verification/SKILL.md) in both data modes.
+Prefer an E2E check that exercises the user-visible provider path and leaves a repeatable artifact.
+Stub the provider so the run needs no credentials and spends no quota. If adapter behavior must be
+tested in isolation, first enumerate every way it could fail before writing implementation code, then
+derive focused checks for request parameters, success mapping, conversions, typed errors and fallback
+tiers. Never add unit tests after implementation code. Then follow
+[pre-push-checks](../pre-push-checks/SKILL.md) and, for visible results,
+[ui-verification](../ui-verification/SKILL.md) in both data modes.

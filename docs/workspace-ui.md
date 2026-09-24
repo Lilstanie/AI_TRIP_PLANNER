@@ -411,9 +411,15 @@ The root layout loads the self-hosted Fraunces display font through `next/font`;
 
 ## Verification
 
-`pnpm typecheck`, `pnpm lint`, `pnpm test` and `pnpm build` must pass. Component tests cover drawers,
-the trip fact chips and their editors, blank start, history restore, sidebar collapse, place lookup failures, request races and storage
-recovery, the location question, the drawer's place list and the place popup;
+For complex UI features, prefer an E2E test as the sole behavioral test: exercise the complete
+traveller flow and leave a repeatable artifact. The browser screenshots required above are useful
+review evidence; record the steps and command needed to reproduce the E2E run as well.
+
+The following is the current regression-test inventory, not a prescription to add component tests
+after implementation. `pnpm typecheck`, `pnpm lint`, `pnpm test` and `pnpm build` are the current
+repository checks. Component tests cover drawers, the trip fact chips and their editors, blank start,
+history restore, sidebar collapse, place lookup failures, request races and storage recovery, the
+location question, the drawer's place list and the place popup;
 `lib/map/map-view.test.ts`, `lib/map/place-query.test.ts` and `lib/map/itinerary-route.test.ts`
 cover framing, lookup rules, visiting order and the reduced-motion branch of the line animation. Live
 Google checks are reported separately in session logs and are never inferred from mocks. The
