@@ -18,6 +18,8 @@
 .trip-map-canvas .trip-map-controls,
 .trip-map-canvas .trip-map-location-status:not(:empty),
 .trip-map-status,
+.map-controls .map-control,
+.map-control-group,
 .trips-page__new,
 .trip-card__text,
 .trip-calendar__grid,
@@ -322,6 +324,22 @@
 }
 .trip-map-canvas .trip-map-popup .place-preview {
   border-radius: var(--radius-lg);
+}
+/* The zoom capsule is one piece of glass; its two buttons are clear, never glass on glass. */
+.map-controls .map-control-group > .map-control {
+  border: 0 !important;
+  background: transparent !important;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+@media (hover: hover) {
+  .map-controls > .map-control:hover:not(:disabled) {
+    --glass-fill: var(--glass-bg-strong);
+  }
+  .map-controls .map-control-group > .map-control:hover:not(:disabled) {
+    background: var(--fill-hover) !important;
+  }
 }
 .place-preview__close {
   border: 0 !important;

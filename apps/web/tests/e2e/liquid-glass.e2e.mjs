@@ -58,7 +58,11 @@ async function desktop(browser, scheme) {
   await settle(page);
   await shot(page, `${tag}-01-blank`);
   check(
-    await page.evaluate(() => getComputedStyle(document.querySelector(".workspace-sidebar")).backdropFilter.includes("blur")),
+    await page.evaluate(() =>
+      getComputedStyle(document.querySelector(".workspace-sidebar")).backdropFilter.includes(
+        "blur",
+      ),
+    ),
     `${tag}: sidebar is glass`,
   );
 
@@ -81,6 +85,13 @@ async function desktop(browser, scheme) {
   await page.keyboard.press("Escape");
   await settle(page, 300);
 
+  // A closed Chats panel must stay out of view transitions, or its glass flashes a blurred strip.
+  check(
+    await page.evaluate(
+      () => getComputedStyle(document.querySelector(".chats-panel")).viewTransitionName === "none",
+    ),
+    `${tag}: closed Chats panel is not captured by view transitions`,
+  );
   await page.getByRole("button", { name: /^Trips/ }).click();
   await settle(page, 700);
   await shot(page, `${tag}-05-your-trips`);
@@ -118,10 +129,47 @@ async function desktop(browser, scheme) {
   }
   await page.keyboard.press("Escape");
   await settle(page, 500);
-  check(!(await page.locator(".workspace-drawer-backdrop").count()), `${tag}: backdrop leaves after its fade`);
+  check(
+    !(await page.locator(".workspace-drawer-backdrop").count()),
+    `${tag}: backdrop leaves after its fade`,
+  );
 
   check(await noSideScroll(page), `${tag}: no horizontal page scroll`);
-  check(!errors.length, `${tag}: no console errors${errors.length ? `: ${errors.join(" | ")}` : ""}`);
+  check(
+    !errors.length,
+    `${tag}: no console errors${errors.length ? `: ${errors.join(" | ")}` : ""}`,
+  );
+  await context.close();
+}
+
+// The trip map over real tiles, from the development page with fixed coordinates (no Places or
+// pricing requests): day-coloured curved routes and the bottom-right control stack.
+async function map(browser, scheme) {
+  const { context, page, errors } = await open(browser, { width: 1000, height: 800, scheme });
+  const tag = `map-${scheme}`;
+  await page.goto(`${BASE}/debug/map`);
+  await page.waitForSelector(".trip-map-marker", { timeout: 30_000 }).catch(() => undefined);
+  await settle(page, 2500);
+  await shot(page, `${tag}-01-routes`);
+  check((await page.locator(".trip-map-marker").count()) === 8, `${tag}: eight stops are marked`);
+  const controls = page.getByRole("group", { name: "Map controls" });
+  const box = await controls.boundingBox();
+  check(!!box && box.x > 800 && box.y > 450, `${tag}: map controls sit bottom-right`);
+  check(
+    !(await page.getByRole("button", { name: "View all places" }).count()),
+    `${tag}: no View all places button`,
+  );
+  const layers = page.getByRole("button", { name: "Satellite view" });
+  await layers.click();
+  await settle(page, 1500);
+  check((await layers.getAttribute("aria-pressed")) === "true", `${tag}: satellite toggles on`);
+  await shot(page, `${tag}-02-satellite`);
+  await page.getByRole("button", { name: "Zoom in" }).click();
+  await settle(page, 800);
+  check(
+    !errors.length,
+    `${tag}: no console errors${errors.length ? `: ${errors.join(" | ")}` : ""}`,
+  );
   await context.close();
 }
 
@@ -144,7 +192,10 @@ async function phone(browser, scheme) {
   await settle(page, 600);
   await shot(page, `${tag}-04-navigation`);
   check(await noSideScroll(page), `${tag}: no horizontal page scroll`);
-  check(!errors.length, `${tag}: no console errors${errors.length ? `: ${errors.join(" | ")}` : ""}`);
+  check(
+    !errors.length,
+    `${tag}: no console errors${errors.length ? `: ${errors.join(" | ")}` : ""}`,
+  );
   await context.close();
 }
 
@@ -153,6 +204,7 @@ const browser = await chromium.launch(process.env.CHANNEL ? { channel: process.e
 try {
   for (const scheme of ["light", "dark"]) {
     await desktop(browser, scheme);
+    await map(browser, scheme);
     await phone(browser, scheme);
   }
 } finally {

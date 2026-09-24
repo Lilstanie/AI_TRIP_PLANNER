@@ -9,7 +9,9 @@
 .workspace-main {
   view-transition-name: workspace-main;
 }
-.chats-panel {
+/* Named only while open. A closed panel is still captured if named, and its glass then paints a
+   blurred strip over the page for the length of the transition. */
+.chats-panel.is-open {
   view-transition-name: chats-panel;
 }
 ::view-transition-group(root) {

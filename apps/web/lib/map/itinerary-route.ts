@@ -104,3 +104,38 @@ export function startFlow(
   handle = frame.request(tick);
   return () => frame.cancel(handle);
 }
+
+const toMercator = ({ lat, lng }: Coordinate) => {
+  const phi = (Math.max(-85, Math.min(85, lat)) * Math.PI) / 180;
+  return { x: (lng * Math.PI) / 180, y: Math.log(Math.tan(Math.PI / 4 + phi / 2)) };
+};
+const fromMercator = ({ x, y }: { x: number; y: number }): Coordinate => ({
+  lat: ((2 * Math.atan(Math.exp(y)) - Math.PI / 2) * 180) / Math.PI,
+  lng: (x * 180) / Math.PI,
+});
+
+/**
+ * A gentle arc from one stop to the next, for legs without a verified route. It is a quadratic
+ * curve in Web Mercator (the map's own projection, so it looks the same at every latitude) whose
+ * control point sits `bend` × the leg's length to the left of travel, so consecutive legs of a day
+ * read as one flowing path rather than a zig-zag of straight segments. Returns `samples + 1`
+ * points including both ends; identical ends return just the two points.
+ */
+export function curvedPath(from: Coordinate, to: Coordinate, bend = 0.18, samples = 32) {
+  const a = toMercator(from);
+  const b = toMercator(to);
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  if (!dx && !dy) return [from, to];
+  const control = { x: (a.x + b.x) / 2 - dy * bend, y: (a.y + b.y) / 2 + dx * bend };
+  return Array.from({ length: samples + 1 }, (_, index) => {
+    if (index === 0) return from;
+    if (index === samples) return to;
+    const t = index / samples;
+    const u = 1 - t;
+    return fromMercator({
+      x: u * u * a.x + 2 * u * t * control.x + t * t * b.x,
+      y: u * u * a.y + 2 * u * t * control.y + t * t * b.y,
+    });
+  });
+}

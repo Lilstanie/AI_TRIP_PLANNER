@@ -1,6 +1,7 @@
 "use client";
 import {
   coveredByItinerary,
+  curvedPath,
   FLOW_REPEAT_PX,
   startFlow,
   type Coordinate,
@@ -34,6 +35,7 @@ export function markerContent(place: GooglePlace, order: number, day?: number) {
   label.appendChild(text);
   content.append(badge, label);
   content.dataset.day = day === undefined ? "" : String(day);
+  if (day !== undefined) content.style.setProperty("--day-color", `var(${dayToken(day)})`);
   return content;
 }
 
@@ -41,21 +43,43 @@ export function markerTitle(place: GooglePlace, order: number, day?: number) {
   return `${order}. ${placeName(place)}${day ? ` · Day ${day}` : ""}`;
 }
 
+const DAY_COLOURS = 7;
+/** The token for a day's colour; days past the palette wrap round it. */
+export function dayToken(day: number) {
+  return `--day-${((Math.max(1, day) - 1) % DAY_COLOURS) + 1}`;
+}
+
 /** Route colours come from the design tokens on the map element, so they follow light and dark. */
 export function routeColors(element: HTMLElement) {
   const style = getComputedStyle(element);
+  const token = (name: string, fallback: string) => style.getPropertyValue(name).trim() || fallback;
   return {
-    active: style.getPropertyValue("--accent").trim() || "#4f46e5",
-    muted: style.getPropertyValue("--text-dim").trim() || "#626975",
+    day: (day?: number) =>
+      day === undefined ? token("--accent-fill", "#0071e3") : token(dayToken(day), "#0071e3"),
+    muted: token("--text-dim", "#6e6e73"),
+    casing: token("--route-casing", "rgba(255,255,255,0.92)"),
   };
 }
+export type RouteColors = ReturnType<typeof routeColors>;
 
-const DASH = { path: "M 0,-1 0,1", strokeOpacity: 1, scale: 3 };
+/** White dashes that march along the line, showing the direction of travel. */
+const DASH = { path: "M 0,-1 0,1", strokeOpacity: 0.95, strokeColor: "#ffffff", scale: 2 };
+/** A chevron at the middle of each leg, pointing to the next stop. */
+const ARROW = {
+  path: "M -2.2,1.6 0,-0.6 2.2,1.6",
+  strokeColor: "#ffffff",
+  strokeOpacity: 1,
+  strokeWeight: 2.2,
+  scale: 1.6,
+};
 
 /**
- * Draw one line per itinerary day through its stops. The focused day (the selected stop's day, or
- * every day when nothing is selected) gets a solid underlay and dashes that flow from stop to stop;
- * other days stay a quiet static line. Returns a cleanup that stops the animation and removes lines.
+ * Draw each itinerary day through its stops, Apple Maps style. Every leg without a verified route
+ * is a gentle arc (`curvedPath`) rather than a straight segment; a verified leg keeps Google's
+ * real geometry. The focused day (the selected stop's day, or every day when nothing is selected)
+ * is drawn in its day colour over a casing, with a direction chevron on each leg and dashes that
+ * flow from stop to stop; other days stay a quiet thin grey line. Returns a cleanup that stops the
+ * animation and removes the lines.
  */
 export function drawItineraryRoutes({
   runtime,
@@ -69,46 +93,65 @@ export function drawItineraryRoutes({
   lines: DayRoute[];
   routes: RouteResult[];
   focusDay?: number;
-  colors: { active: string; muted: string };
+  colors: RouteColors;
   reducedMotion: boolean;
 }) {
   const { maps, map } = runtime;
   const drawn: MapPolyline[] = [];
-  const flowing: { line: MapPolyline; color: string }[] = [];
+  const flowing: MapPolyline[] = [];
   for (const line of lines) {
-    const path: Coordinate[] = [];
-    for (const leg of line.legs) {
-      const segment = leg.polyline
-        ? maps.geometry.encoding.decodePath(leg.polyline)
-        : [leg.from.position, leg.to.position];
-      path.push(...(path.length ? segment.slice(1) : segment));
-    }
     const active = focusDay === undefined || line.day === focusDay;
-    const color = active ? colors.active : colors.muted;
-    drawn.push(
-      new maps.Polyline({
+    const color = active ? colors.day(line.day) : colors.muted;
+    for (const leg of line.legs) {
+      const path = leg.polyline
+        ? maps.geometry.encoding.decodePath(leg.polyline)
+        : curvedPath(leg.from.position, leg.to.position);
+      if (!active) {
+        drawn.push(
+          new maps.Polyline({
+            map,
+            path,
+            clickable: false,
+            strokeColor: color,
+            strokeOpacity: 0.5,
+            strokeWeight: 3,
+            zIndex: 1,
+          }),
+        );
+        continue;
+      }
+      drawn.push(
+        new maps.Polyline({
+          map,
+          path,
+          clickable: false,
+          strokeColor: colors.casing,
+          strokeOpacity: 1,
+          strokeWeight: 9,
+          zIndex: 2,
+        }),
+        new maps.Polyline({
+          map,
+          path,
+          clickable: false,
+          strokeColor: color,
+          strokeOpacity: 1,
+          strokeWeight: 5,
+          zIndex: 3,
+          icons: [{ icon: { ...ARROW, fillColor: color }, offset: "50%" }],
+        }),
+      );
+      const dashes = new maps.Polyline({
         map,
         path,
         clickable: false,
-        strokeColor: color,
-        strokeOpacity: active ? 0.35 : 0.45,
-        strokeWeight: active ? 6 : 3,
-        zIndex: active ? 2 : 1,
-      }),
-    );
-    if (!active) continue;
-    const dashes = new maps.Polyline({
-      map,
-      path,
-      clickable: false,
-      strokeOpacity: 0,
-      zIndex: 3,
-      icons: [
-        { icon: { ...DASH, strokeColor: color }, offset: "0px", repeat: `${FLOW_REPEAT_PX}px` },
-      ],
-    });
-    drawn.push(dashes);
-    flowing.push({ line: dashes, color });
+        strokeOpacity: 0,
+        zIndex: 4,
+        icons: [{ icon: DASH, offset: "0px", repeat: `${FLOW_REPEAT_PX}px` }],
+      });
+      drawn.push(dashes);
+      flowing.push(dashes);
+    }
   }
   // Verified routes that are not an itinerary leg (for example an edit preview) stay solid lines.
   for (const route of routes) {
@@ -118,21 +161,17 @@ export function drawItineraryRoutes({
         map,
         path: maps.geometry.encoding.decodePath(route.polyline),
         clickable: false,
-        strokeColor: colors.active,
+        strokeColor: colors.day(),
         strokeWeight: 4,
       }),
     );
   }
   const stop = flowing.length
     ? startFlow((offset) => {
-        for (const { line, color } of flowing)
+        for (const line of flowing)
           line.setOptions({
             icons: [
-              {
-                icon: { ...DASH, strokeColor: color },
-                offset: `${offset.toFixed(1)}px`,
-                repeat: `${FLOW_REPEAT_PX}px`,
-              },
+              { icon: DASH, offset: `${offset.toFixed(1)}px`, repeat: `${FLOW_REPEAT_PX}px` },
             ],
           });
       }, reducedMotion)

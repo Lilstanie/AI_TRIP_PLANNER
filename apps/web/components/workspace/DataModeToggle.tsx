@@ -42,7 +42,11 @@ export function DataModeToggle({
     >
       <span className="data-mode__dot" aria-hidden="true" />
       <span className="topbar-button__label">{live ? "Live data" : "Mock data"}</span>
-      {live && !keyed && <span className="data-mode__warn" aria-hidden="true">!</span>}
+      {live && !keyed && (
+        <span className="data-mode__warn" aria-hidden="true">
+          !
+        </span>
+      )}
       <span className="sr-only">
         {live
           ? ". Currently using live provider data. Activate to switch to mock fixtures."

@@ -30,9 +30,9 @@ counter before lists or markers multiply them.
   it never undoes the trip framing; Show my location still pans.
 - **Itinerary lines.** `lib/map/itinerary-route.ts` orders stops by day, then start time, then plan
   order, and draws one line per day. A leg uses a verified Google Routes polyline from the timeline
-  editor when one exists for that exact pair of places, otherwise a straight segment; nothing calls
+  editor when one exists for that exact pair of places, otherwise a gentle arc (`curvedPath`); nothing calls
   Routes just to draw. The focused day (the selected stop's day, or every day with no selection)
-  gets an `--accent` underlay plus dashed Symbol icons whose `offset` advances in one
+  is drawn in its day colour (`--day-N`) over a casing, with a direction chevron per leg and dashed Symbol icons whose `offset` advances in one
   `requestAnimationFrame` loop capped near 30 frames a second. The pattern is Google's documented
   "Animating Symbols" technique (icons on a `Polyline` with a changing offset), written here from the
   API reference rather than copied. Reduced motion draws the dashes still and starts no loop.

@@ -166,9 +166,7 @@ export function Composer({
               bytes={attachment.bytes}
               {...(attachment.thumbnail ? { thumbnail: attachment.thumbnail } : {})}
               {...(attachment.truncated ? { truncated: true } : {})}
-              {...(onRemoveAttachment
-                ? { onRemove: () => onRemoveAttachment(attachment.id) }
-                : {})}
+              {...(onRemoveAttachment ? { onRemove: () => onRemoveAttachment(attachment.id) } : {})}
             />
           ))}
         </ul>

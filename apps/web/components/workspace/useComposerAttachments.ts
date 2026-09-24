@@ -58,7 +58,9 @@ export function useComposerAttachments({ render }: { render?: ImageRenderer } = 
           });
           setNotice(
             rejections.length
-              ? rejections.map(({ name, reason }) => `${name} wasn't attached — ${reason}.`).join(" ")
+              ? rejections
+                  .map(({ name, reason }) => `${name} wasn't attached — ${reason}.`)
+                  .join(" ")
               : "",
           );
         })
@@ -102,8 +104,7 @@ export function useComposerAttachments({ render }: { render?: ImageRenderer } = 
     clearAttachments,
     canAttach: !full,
     notice:
-      notice ||
-      (full ? `You can attach ${MAX_ATTACHMENTS_PER_MESSAGE} files to one message.` : ""),
+      notice || (full ? `You can attach ${MAX_ATTACHMENTS_PER_MESSAGE} files to one message.` : ""),
   } satisfies ComposerAttachments;
 }
 

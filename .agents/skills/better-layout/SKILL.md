@@ -41,7 +41,7 @@ changing those regions. If a region really does need to change, raise it as a de
 - **Never clip a critical action.** Review plan and the composer send button stay in stable
   chrome or in normal flow. They must never sit at the bottom of a pane that can scroll out
   of view.
-- **Disclosure has a cue.** Collapsed timeline sections, thinking rows and "View all places" show
+- **Disclosure has a cue.** Collapsed timeline sections, thinking rows and the drawer's Places list show
   what is hidden and how many items it holds.
 - **Logical properties in new code.** The UI is English-only today, so do not churn existing
   `left`/`right` for this reason alone. New code uses `inline-start` and `inline-end`.

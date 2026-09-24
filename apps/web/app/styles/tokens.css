@@ -37,6 +37,16 @@
   --warn: #b25000;
   --warn-bg: #fff4e5;
   --warn-strong: #ff9f0a;
+  /* One colour per itinerary day, for its route line and stop badges (Apple Maps style). Deep
+     enough that a white stop number on them passes AA in both themes. */
+  --day-1: #0071e3;
+  --day-2: #c2410c;
+  --day-3: #1f7a35;
+  --day-4: #8e3fd1;
+  --day-5: #c2185b;
+  --day-6: #0e7490;
+  --day-7: #4f46e5;
+  --route-casing: rgb(255 255 255 / 92%);
   /* Quiet fills for hover and pressed states on any surface, like iOS's tertiary fills. */
   --fill-hover: rgb(120 120 128 / 10%);
   --fill-press: rgb(120 120 128 / 18%);
@@ -134,6 +144,7 @@
     --warn: #ffb340;
     --warn-bg: #33230a;
     --warn-strong: #ff9f0a;
+    --route-casing: rgb(0 0 0 / 55%);
     --fill-hover: rgb(120 120 128 / 22%);
     --fill-press: rgb(120 120 128 / 32%);
 

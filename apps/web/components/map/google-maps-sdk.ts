@@ -23,6 +23,7 @@ export type MapsSDK = {
     setZoom(zoom: number): void;
     getZoom(): number | undefined;
     setOptions(options: object): void;
+    setMapTypeId(type: "roadmap" | "hybrid"): void;
     addListener(event: string, fn: () => void): { remove(): void };
   };
   LatLngBounds: new () => { extend(point: object): void; isEmpty(): boolean };

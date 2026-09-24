@@ -22,8 +22,7 @@ function stops(count: number | undefined): string | undefined {
  * of these numbers would be wrong by the size of the group.
  */
 export function FlightResults({ answer }: { answer: FlightAnswer }) {
-  const party =
-    answer.passengers === 1 ? "1 traveller" : `${answer.passengers} travellers`;
+  const party = answer.passengers === 1 ? "1 traveller" : `${answer.passengers} travellers`;
   return (
     <section className="flight-results" aria-label={`Fares from ${answer.from} to ${answer.to}`}>
       <header className="flight-results__head">
@@ -57,19 +56,19 @@ export function FlightResults({ answer }: { answer: FlightAnswer }) {
             .filter((option) => !option.outbound)
             .slice(0, 6)
             .map((option, index) => {
-            const detail = [stops(option.stops), duration(option.durationMin)]
-              .filter(Boolean)
-              .join(" · ");
-            return (
-              <li key={`${option.carrier}-${index}`} className="flight-results__row">
-                <span className="flight-results__carrier">{option.carrier}</span>
-                {detail && <span className="flight-results__detail">{detail}</span>}
-                <span className="flight-results__price">
-                  {moneyIn(option.price, BASE_CURRENCY)}
-                </span>
-              </li>
-            );
-          })}
+              const detail = [stops(option.stops), duration(option.durationMin)]
+                .filter(Boolean)
+                .join(" · ");
+              return (
+                <li key={`${option.carrier}-${index}`} className="flight-results__row">
+                  <span className="flight-results__carrier">{option.carrier}</span>
+                  {detail && <span className="flight-results__detail">{detail}</span>}
+                  <span className="flight-results__price">
+                    {moneyIn(option.price, BASE_CURRENCY)}
+                  </span>
+                </li>
+              );
+            })}
         </ol>
       ) : answer.options.length === 0 ? (
         <p className="muted">No fares were returned for this search.</p>

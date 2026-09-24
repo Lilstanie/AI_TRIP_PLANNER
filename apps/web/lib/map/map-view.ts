@@ -3,8 +3,7 @@
  *
  * The map frames a trip at most twice: first on its destination (as soon as the city is
  * known), then once on its activity places. It never refits on ordinary re-renders, and once
- * the user drags or zooms it leaves the view alone until the trip or destination changes or
- * the user asks to view all places again.
+ * the user drags or zooms it leaves the view alone until the trip or destination changes.
  */
 export type LatLng = { lat: number; lng: number };
 
@@ -64,16 +63,6 @@ export class MapViewController {
   /** The user dragged, zoomed or otherwise moved the map. */
   markUserMoved() {
     this.userMoved = true;
-  }
-
-  /** Explicit "View all places": frame places, or the destination when none are mapped. */
-  viewAll({ destinations, places }: { destinations: LatLng[]; places: LatLng[] }) {
-    this.userMoved = false;
-    if (frame(this.map, places, "places")) this.stage = "places";
-    else if (frame(this.map, destinations, "destination")) {
-      this.stage = "destination";
-      this.framedDestinations = destinations.length;
-    }
   }
 
   get hasView() {

@@ -70,16 +70,13 @@ describe("map framing", () => {
     expect(map.center).not.toHaveBeenCalled();
   });
 
-  it("reframes when the trip changes or the user asks to view all places", () => {
+  it("reframes when the trip changes, even after the user moved the map", () => {
     const map = fakeMap();
     const view = new MapViewController(map);
     view.update({ key: "trip-a|Kyoto", destinations: [kyoto], places: [temple] });
     view.markUserMoved();
     view.update({ key: "trip-b|Tokyo", destinations: [tokyo], places: [] });
     expect(map.center).toHaveBeenLastCalledWith(tokyo, CITY_ZOOM);
-    view.markUserMoved();
-    view.viewAll({ destinations: [kyoto], places: [temple] });
-    expect(map.center).toHaveBeenLastCalledWith(temple, PLACE_ZOOM);
   });
 
   it("keeps the last view when nothing can be located", () => {

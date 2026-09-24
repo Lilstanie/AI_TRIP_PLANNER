@@ -4,13 +4,7 @@ import type { AgentProgressEvent } from "@trip/shared";
 import { FlowThinkIcon } from "../ui/flow-icons";
 import { Disclosure, RowSeparator, RowSummary } from "./Disclosure";
 import { countActivity, roundGroups, turnSummary } from "./thinking-model";
-import {
-  Children,
-  RoundHeading,
-  RunningLine,
-  SubagentRow,
-  type OpenRows,
-} from "./ThinkingRows";
+import { Children, RoundHeading, RunningLine, SubagentRow, type OpenRows } from "./ThinkingRows";
 
 // ---------------------------------------------------------------------------
 // The thinking transcript is a DSH-style tree of 24px disclosure rows:

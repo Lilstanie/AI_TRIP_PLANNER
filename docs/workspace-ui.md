@@ -6,16 +6,16 @@ now. Implementation history and browser acceptance for each phase are in the
 
 ## Layout
 
-| Area              | Content                                                                                                            | Implementation                                                                                              |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
-| Sidebar           | Logo, Chats and Trips with counts, Language, Local account                                                         | `WorkspaceSidebar`, `BrandMark`, `icons.tsx`                                                                |
-| Chats panel       | Slides out beside the sidebar: search, New chat, New trip, then trips and chats                                    | `ChatsPanel`, `TripCover`                                                                                   |
-| Your trips        | Opened by Trips in place of chat and map: trip cards (Upcoming, Past) and a Calendar tab; New trip                 | `TripsPage`, `TripCover`                                                                                    |
-| Top bar           | Trip title; trip fact chips (destination, dates, travellers, budget, Preferences); data mode; Trip, rightmost      | `WorkspaceView`, `TripFactChips`                                                                            |
-| Trip fact editors | One editor per chip, every one a centred dialog; Preferences holds the traveller's own list                        | `FactPopover`, `FactFields`, `TripCalendar`, `WhereFields`, `PreferenceList`, `lib/workspace/trip-facts.ts` |
-| Chat              | Conversation, the planning transcript, the composer; starter suggestions in a blank chat; no visible heading       | `ChatPanel`                                                                                                 |
-| Map               | Only the map, labelled markers, itinerary lines, the place popup, map status, View all places and Show my location | `TripMapCanvas`, `TripMap`                                                                                  |
-| Your Trip drawer  | Budget; Overview (places by day, sections and the stay chosen); Timeline & routes (editor); Review plan            | `Drawer`, `TripPanel`, `TripPlaceList`, `TripEditor`                                                        |
+| Area              | Content                                                                                                                                     | Implementation                                                                                              |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Sidebar           | Logo, Chats and Trips with counts, Language, Local account                                                                                  | `WorkspaceSidebar`, `BrandMark`, `icons.tsx`                                                                |
+| Chats panel       | Slides out beside the sidebar: search, New chat, New trip, then trips and chats                                                             | `ChatsPanel`, `TripCover`                                                                                   |
+| Your trips        | Opened by Trips in place of chat and map: trip cards (Upcoming, Past) and a Calendar tab; New trip                                          | `TripsPage`, `TripCover`                                                                                    |
+| Top bar           | Trip title; trip fact chips (destination, dates, travellers, budget, Preferences); data mode; Trip, rightmost                               | `WorkspaceView`, `TripFactChips`                                                                            |
+| Trip fact editors | One editor per chip, every one a centred dialog; Preferences holds the traveller's own list                                                 | `FactPopover`, `FactFields`, `TripCalendar`, `WhereFields`, `PreferenceList`, `lib/workspace/trip-facts.ts` |
+| Chat              | Conversation, the planning transcript, the composer; starter suggestions in a blank chat; no visible heading                                | `ChatPanel`                                                                                                 |
+| Map               | Only the map, labelled markers, curved day-coloured itinerary lines, the place popup, map status, and the locate / map type / zoom controls | `TripMapCanvas`, `TripMap`                                                                                  |
+| Your Trip drawer  | Budget; Overview (places by day, sections and the stay chosen); Timeline & routes (editor); Review plan                                     | `Drawer`, `TripPanel`, `TripPlaceList`, `TripEditor`                                                        |
 
 - **Sidebar.**
   - Expands to 240 px (220 px below 1250 px) or collapses to a 64 px icon rail. The toggle uses
@@ -309,28 +309,32 @@ describes current behaviour except the absences.
   - The map frames the destination first: zoom 12 for one city, or bounds capped at zoom 12 for
     several, widened as cities resolve.
   - Once markers exist it fits them once, capped at zoom 15 (zoom 14 for a single place).
-  - It reframes only on a trip or destination change or View all places. Drag, zoom and Show my
-    location count as user moves and are never taken back.
+  - It reframes only on a trip or destination change. Drag, zoom and Show my location count as
+    user moves and are never taken back.
   - No Google map is created before there is somewhere to show; a neutral placeholder is shown
     instead. Container resizes keep the centre.
 - **Markers** (`components/map/map-layers.ts`, `lib/map/place-category.ts`). Each located stop is a
-  numbered badge on the place with a label pill beside it: a category icon from Google's
+  numbered badge in its day's colour (`--day-1` … `--day-7`) on the place with a label pill beside it: a category icon from Google's
   `primaryType` and the place name, cut to 22 characters (26 when selected). Stops are numbered in
   visiting order, by day and then start time. Below zoom 12 only the selected stop keeps its label,
   and when the map settles a label that would overlap one already shown is hidden (the selected stop
   wins, then visiting order). Markers never load place photos.
-- **Itinerary lines** (`lib/map/itinerary-route.ts`). Each day's stops are joined in visiting order
-  by one line. A leg follows a verified Google Routes polyline when one exists for that exact pair
-  of places, otherwise it is a straight segment; no route is requested just to draw a line. The
-  focused day (the selected stop's day, or every day when nothing is selected) is drawn in
-  `--accent` with dashes flowing from stop to stop; other days are a thin static `--text-dim` line.
-  The dashes move in one `requestAnimationFrame` loop throttled to about 30 frames a second, which
-  stops when the lines are redrawn or the map unmounts. Under `prefers-reduced-motion: reduce` the
-  dashes are drawn still and no loop runs. Verified routes that are not an itinerary leg, such as an
-  edit preview, stay solid lines. The map follows the system light or dark scheme.
+- **Itinerary lines** (`lib/map/itinerary-route.ts`, `components/map/map-layers.ts`). Each day's
+  stops are joined in visiting order. A leg follows a verified Google Routes polyline when one exists
+  for that exact pair of places; otherwise it is a gentle arc (`curvedPath`, a quadratic curve in
+  Web Mercator bending to the left of travel), so a day reads as one flowing path rather than a
+  zig-zag. No route is requested just to draw a line. The focused day (the selected stop's day, or
+  every day when nothing is selected) is drawn Apple Maps style in its day colour over a
+  `--route-casing`, with a white chevron at the middle of each leg pointing to the next stop and
+  white dashes flowing from stop to stop; other days are a thin static `--text-dim` line. The dashes
+  move in one `requestAnimationFrame` loop throttled to about 30 frames a second, which stops when
+  the lines are redrawn or the map unmounts. Under `prefers-reduced-motion: reduce` the dashes are
+  drawn still and no loop runs. Verified routes that are not an itinerary leg, such as an edit
+  preview, stay solid lines. The map follows the system light or dark scheme.
 - **Place popup.** Pressing a marker or its label, or a place in the Trip drawer, opens the place's
   details over the bottom-left of the map: stop number and day, first Google photo, name, address,
-  Google rating, the photo's author attribution and an Open in Google Maps link. Photos load only
+  Google rating, the photo's author attribution and an Open in Google Maps link, plus Route from my
+  location once the traveller's position is known. Photos load only
   in live data mode with a server Maps key, one image per selection. Otherwise, and when Google has
   no photo or the image fails, the fixed 16:9 slot shows a pin. A marker press moves focus into the
   popup; the close button, Escape or a press on the map closes it and returns focus to the marker.
@@ -355,8 +359,14 @@ describes current behaviour except the absences.
   memory and is never saved or written into the plan. Route from my location requests a verified
   duration and distance for the selected place. See the
   [location prompt Agent Note](../.agents/notes/implemented/feature/2026-09-24-location-prompt-and-itinerary-map.md).
-- **Controls.** Google's map-type, Street View and fullscreen controls are disabled so the map stays
-  below the top bar.
+- **Controls.** A stack of round glass buttons at the bottom right, as on Mindtrip and Apple Maps:
+  Show my location (a location arrow; it asks for the position, or centres on it at zoom 14 or
+  closer once known, fills in while the position is shown, and reads Retry my location after a
+  failure), Satellite view (`aria-pressed`, switches between the road map and hybrid imagery), and
+  Zoom in / Zoom out joined into one capsule. The traveller is an Apple-style blue dot with a slow
+  halo. Google's own controls are all disabled (`disableDefaultUI`), wheel zoom and one-finger pans
+  need no modifier (`gestureHandling: "greedy"`), and the dev-only `/debug/map` page shows the map
+  with fixed Sydney stops and no Places or pricing requests.
 
 ## Timeline editing
 
