@@ -306,7 +306,8 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
             <Drawer
               side="left"
               open={navOpen}
-              title="Chats and trips"
+              title="Navigation"
+              hideTitle
               closeLabel="Close navigation"
               onClose={() => setNavOpen(false)}
               returnFocus={navToggle}

@@ -207,6 +207,25 @@ describe("Workspace interactions", () => {
       expect(catalog.conversations).toHaveLength(2);
     });
   });
+  it("names the chat region and the navigation drawer without visible titles", async () => {
+    useNarrowLayout();
+    vi.stubGlobal("fetch", withPlaceRequests());
+    render(<Workspace />);
+    expect(screen.getByRole("region", { name: "Chat" })).toBeTruthy();
+    expect(screen.queryByText("Plan together")).toBeNull();
+    // A previous test's New chat schedules a composer focus for the next frame; let it land first
+    // so it cannot steal focus from the drawer this test opens.
+    await act(() => new Promise((resolve) => requestAnimationFrame(() => resolve(undefined))));
+    fireEvent.click(screen.getByRole("button", { name: "Open navigation" }));
+    const nav = document.querySelector<HTMLElement>(".workspace-drawer--nav")!;
+    await waitFor(() => expect(nav.getAttribute("aria-hidden")).toBe("false"));
+    expect(screen.getByRole("dialog", { name: "Navigation" })).toBe(nav);
+    expect(nav.querySelector(".drawer__head--bare .sr-only h2")?.textContent).toBe("Navigation");
+    expect(within(nav).queryByText("Chats and trips")).toBeNull();
+    expect(document.activeElement).toBe(
+      within(nav).getByRole("button", { name: "Close navigation" }),
+    );
+  });
   it("reuses the empty conversation instead of stacking one per New chat press", async () => {
     vi.stubGlobal("fetch", withPlaceRequests());
     render(<Workspace initialPlan={plan} />);
