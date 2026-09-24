@@ -1,6 +1,7 @@
 # Agent Note: Glass for the control layer
 
 Status: implemented
+Archived: 2026-09-25
 Owner: repository owner (@HeadmasterEggy)
 
 ## Problem

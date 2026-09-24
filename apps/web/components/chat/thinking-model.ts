@@ -14,13 +14,7 @@ import {
 // ---------------------------------------------------------------------------
 
 export type ActivityStatus =
-  | "queued"
-  | "running"
-  | "revising"
-  | "completed"
-  | "failed"
-  | "interrupted"
-  | "unknown";
+  "queued" | "running" | "revising" | "completed" | "failed" | "interrupted" | "unknown";
 
 export const labels: Record<AgentName, string> = {
   itinerary: "Day plan",
@@ -224,7 +218,8 @@ export function mergeReasoning(events: AgentProgressEvent[], busy: boolean): Rea
 /** The newest streaming block of the whole turn, if any is streaming. */
 function streamingBlock(blocks: ReasoningBlock[]): ReasoningBlock | undefined {
   let latest: ReasoningBlock | undefined;
-  for (const block of blocks) if (block.running && (!latest || block.last > latest.last)) latest = block;
+  for (const block of blocks)
+    if (block.running && (!latest || block.last > latest.last)) latest = block;
   return latest;
 }
 
@@ -310,9 +305,7 @@ export function argLine(args: Record<string, string>): ArgLine {
   return {
     ...(journey ? { journey } : {}),
     ...(date ? { date } : {}),
-    chips: entries
-      .filter(([key]) => !used.has(key))
-      .map(([key, value]) => ({ key, value })),
+    chips: entries.filter(([key]) => !used.has(key)).map(([key, value]) => ({ key, value })),
   };
 }
 
@@ -350,8 +343,7 @@ function toolRows(events: AgentProgressEvent[]): ToolRowModel[] {
 
 /** A subagent's children in the order they happened: model calls and tool calls. */
 export type SubagentStep =
-  | { kind: "reasoning"; block: ReasoningBlock }
-  | { kind: "tool"; row: ToolRowModel };
+  { kind: "reasoning"; block: ReasoningBlock } | { kind: "tool"; row: ToolRowModel };
 
 export interface SubagentModel {
   /** Disclosure id: one row per (round, agent). */
@@ -375,12 +367,12 @@ export interface SubagentModel {
 export function subagentHasBody(model: SubagentModel): boolean {
   return Boolean(
     model.steps.length ||
-      model.objective ||
-      model.constraints ||
-      model.outcome ||
-      model.error ||
-      model.choice ||
-      model.coordinator,
+    model.objective ||
+    model.constraints ||
+    model.outcome ||
+    model.error ||
+    model.choice ||
+    model.coordinator,
   );
 }
 
@@ -544,7 +536,10 @@ export function turnSummary(
       return { text: reasoningSummary(stream.text, true), streaming: true };
     return { text: liveSummary(activity), streaming: false };
   }
-  return { text: countLine(counts) || (error ? "Needs attention" : "Trip plan ready"), streaming: false };
+  return {
+    text: countLine(counts) || (error ? "Needs attention" : "Trip plan ready"),
+    streaming: false,
+  };
 }
 
 function groupByAgent(events: AgentProgressEvent[]): Map<AgentName, AgentProgressEvent[]> {
@@ -587,9 +582,7 @@ export function roundGroups(activity: AgentProgressEvent[], busy: boolean): Roun
   const rounds = workRounds(activity);
   if (rounds.length === 0) {
     // Nothing reported yet: the whole cast waits in round 1.
-    return [
-      { round: 1, subagents: AGENT_NAMES.map((name) => subagentModel(name, 1, [], busy)) },
-    ];
+    return [{ round: 1, subagents: AGENT_NAMES.map((name) => subagentModel(name, 1, [], busy)) }];
   }
   const multiRound = rounds.length > 1;
 

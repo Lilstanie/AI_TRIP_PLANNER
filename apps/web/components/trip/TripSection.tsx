@@ -56,7 +56,9 @@ export function TripSection({
                   <SourceBadge source={section.proposal.source} />
                   <strong>{section.proposal.source?.label ?? "Source not recorded"}</strong>
                 </div>
-                <p>{section.proposal.source?.freshness ?? "These estimates are not live verified."}</p>
+                <p>
+                  {section.proposal.source?.freshness ?? "These estimates are not live verified."}
+                </p>
               </div>
               <ProposalDetails section={section} onReview={onReview} />
               <button onClick={onEdit}>Change trip preferences</button>

@@ -1,8 +1,8 @@
-# Cartographer Workspace Design Contract
+# Liquid Glass Workspace Design Contract
 
 ## Overview
 
-The workspace is a cartographer's field desk: the map is the working ground, panels are layered paper, and tools remain close without competing with the plan. This is achieved with surfaces, hairlines, restrained shadows, and whitespace—not textures, filters, or decorative assets. Photos of the places themselves are content, not decoration.
+The workspace follows Apple's latest iOS design language, Liquid Glass. The map and the conversation are the content; the sidebar, top-bar capsules, composer, panels, drawers and sheets float over them as translucent glass, on a soft ambient ground. Switching between regions is animated: views cross-fade, segmented controls slide, sheets spring in and sink out. This is achieved with the tokens, glass material and motion helpers described below, not textures or decorative assets. Photos of the places themselves are content, not decoration. The [Liquid Glass Agent Note](../../.agents/notes/implemented/feature/2026-09-25-liquid-glass-workspace.md) records why.
 
 ## UI Reference Resources
 
@@ -51,19 +51,20 @@ notices, and do not redistribute an external library as a competing component ki
 
 ## Colors
 
-Use the semantic tokens in `apps/web/app/globals.css` as the only color contract:
+Use the semantic tokens in `apps/web/app/styles/tokens.css` as the only color contract:
 
-- `--page`, `--surface`, and `--surface-2` establish the paper hierarchy.
+- `--page`, `--surface`, and `--surface-2` follow iOS grouped backgrounds; `--ambient` is the soft colour wash under the glass and never carries content.
 - `--text`, `--text-dim`, and `--text-mut` establish ink hierarchy; body and important supporting text must meet WCAG AA contrast on their surface.
 - `--border` is the 1px hairline between regions.
-- `--accent` and `--accent-bg` identify the primary action or current state.
+- `--accent` (text and icons) and `--accent-bg` identify the primary action or current state; `--accent-fill` is the solid fill behind `--on-accent` text, deeper than `--accent` in dark mode so white labels stay AA.
+- `--fill-hover` and `--fill-press` are the quiet grey fills for capsule buttons, rows and fields.
 - `--ok`/`--ok-bg` and `--warn`/`--warn-bg` communicate status alongside text or a shape; color is never the only status signal.
 
 Both light and dark token values are required. Native controls must follow the active system theme, and focus rings must remain visible.
 
 ## Typography
 
-Body copy, controls, navigation, forms, and status labels use the system sans stack. The display font is reserved for destination names, Trip titles, and empty-state primary headings. It always declares serif fallbacks so mixed Chinese and Latin titles remain usable when the display font is unavailable.
+Everything uses the Apple system face: `--font-text` (SF Pro Text) for body, controls and labels, `--font-display` (SF Pro Display) for headings with `--tracking-title` tightening. Both stacks fall through to PingFang and Hiragino so mixed Chinese and Latin text stays usable; no web font is loaded.
 
 ## Layout
 
@@ -73,17 +74,22 @@ Spacing uses `--space-1` through `--space-5`. Do not introduce parallel spacing 
 
 ## Elevation & Depth
 
-Normal panels separate with `--surface`, `--surface-2`, and `--border`. Use `--shadow-sm` sparingly for small raised controls; reserve `--shadow-md` for drawers and map overlays. No noise, paper textures, or simulated curled edges.
+Floating layers are glass (below); content inside them separates with spacing, `--fill-hover` rows and hairlines. `--shadow-sm` is for small raised controls, `--shadow-md` for menus, `--shadow-lg` for sheets and drawers. No noise, paper textures, or simulated curled edges.
 
 ### Glass
 
-Glass is a translucent, blurred material in the spirit of iOS materials. It belongs to the **control layer only**, meaning chrome that floats over moving or varied content: map overlays, the top bar over scrolling content, popovers, menus, and tooltips. The content layer stays opaque paper: the chat stream, the composer field, drawer bodies, cards, and dialogs with forms. Glass on glass is not allowed.
+Glass is Liquid Glass, the translucent, blurred and lightly saturated material of iOS 26 with a bright specular rim. It is applied to **every floating layer**: the sidebar, the Chats panel, the top-bar capsules, segmented controls, the composer, empty-state cards, notices, map overlays, drawers, the trip fact sheets, dialogs, trip-card captions and the trip calendar. `apps/web/app/styles/glass.css` holds the list.
 
-- Glass values come only from semantic tokens in `tokens.css` (`--glass-bg`, `--glass-border`, `--glass-highlight`, `--glass-blur`), with light and dark values. No surface uses glass yet; the first change that does adds these tokens. Glass keeps a 1px hairline.
+- Glass values come only from semantic tokens in `tokens.css` (`--glass-bg`, `--glass-bg-strong`, `--glass-border`, `--glass-edge`, `--glass-highlight`, `--glass-shadow`, `--glass-blur`, `--glass-saturate`), with light and dark values. Layers that carry dense text use `--glass-bg-strong`.
+- Glass never stacks on glass: menus, tooltips and suggestion lists inside a glass layer are opaque; segmented tracks inside drawers are fills.
 - Text and icons on glass meet WCAG AA against the busiest backdrop they can cover. When they fail, raise the fill opacity rather than adding text shadows.
 - Glass falls back to `--surface` when `backdrop-filter` is unsupported, under `prefers-reduced-transparency: reduce` or `prefers-contrast: more`, and to system colours in forced-colors mode.
 
-The implementation recipe is the [better-ui glass reference](../../.agents/skills/better-ui/glass.md). The [glass Agent Note](../../.agents/notes/implemented/feature/2026-09-24-glass-control-layer.md) explains why glass is limited to the control layer.
+The implementation recipe is the [better-ui glass reference](../../.agents/skills/better-ui/glass.md).
+
+### Motion
+
+Region swaps (another chat or trip, the Your trips page, the phone Chat/Map switch) run through `viewTransition` in `apps/web/components/ui/motion.ts`; segmented controls use `useSegmentIndicator` for a sliding thumb; closing sheets and the drawer backdrop use `usePresence` to play an exit. Timing comes from `--ease-out`, `--ease-spring`, `--duration-fast`, `--duration`, `--duration-slow`, `--drawer-ease` and `--drawer-duration`, and `apps/web/app/styles/motion.css` holds the animations. All of it is off under `prefers-reduced-motion`.
 
 ### Place photos
 
@@ -99,7 +105,7 @@ The [place photos Agent Note](../../.agents/notes/implemented/feature/2026-09-24
 
 ## Shapes
 
-Panels and drawers use `--radius-lg`; controls use `--radius-sm` or `--radius`; chips use `--radius-pill`. Hairlines remain 1px.
+Floating panels, drawers and sheets use `--radius-xl` (26 px); cards use `--radius-lg`; rows and fields use `--radius`; buttons, chips and segmented controls are capsules (`--radius-pill`). Hairlines remain 1px.
 
 ## Components
 
@@ -120,5 +126,5 @@ Do not:
    primitives are allowed as implementation tools, but they must use the semantic tokens above and
    must not replace the workspace layout, focus behavior, or accessibility contract.
 3. Turn the interface into a full-screen beige or retro skin.
-4. Use neon, texture images, noise filters, decorative photography, or illustrations, put glass on the content layer, or show photos other than provider place photos as described above.
+4. Use neon, texture images, noise filters, decorative photography, or illustrations, stack glass on glass, or show photos other than provider place photos as described above.
 5. Stack cards inside cards when surface, spacing, and a hairline communicate the grouping.

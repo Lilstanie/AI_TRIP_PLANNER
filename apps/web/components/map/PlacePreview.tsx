@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import type { GooglePlace } from "@/lib/integrations/google";
 import { CloseIcon, MapPinIcon } from "../ui/icons";
 
@@ -20,12 +20,15 @@ export function PlacePreview({
   meta,
   onClose,
   headingId,
+  actions,
 }: {
   place: GooglePlace;
   showPhoto: boolean;
   meta?: string;
   onClose?(): void;
   headingId?: string;
+  /** Extra actions for this place, shown under its details (for example a route lookup). */
+  actions?: ReactNode;
 }) {
   const photo = showPhoto ? place.photos?.[0] : undefined;
   const [failed, setFailed] = useState<string>();
@@ -99,6 +102,7 @@ export function PlacePreview({
             Open in Google Maps
           </a>
         )}
+        {actions && <div className="place-preview__actions">{actions}</div>}
       </div>
     </article>
   );

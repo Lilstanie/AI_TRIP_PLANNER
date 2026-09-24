@@ -18,6 +18,7 @@ import { MenuIcon, RouteIcon } from "../ui/icons";
 import type { WorkspaceController } from "./useWorkspaceController";
 import { WorkspaceDialogs } from "./WorkspaceDialogs";
 import { DataModeToggle } from "./DataModeToggle";
+import { usePresence, useSegmentIndicator, viewTransition } from "../ui/motion";
 
 export function WorkspaceView({ model }: { model: WorkspaceController }) {
   const {
@@ -112,6 +113,15 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
   const chatsButton = useRef<HTMLButtonElement>(null);
   const chatsSearch = useRef<HTMLInputElement>(null);
   const chatsPanel = useRef<HTMLDivElement>(null);
+  const viewSwitch = useRef<HTMLDivElement>(null);
+  useSegmentIndicator(viewSwitch, `${narrow}|${page}|${mobileView}`);
+  // The backdrop fades out with its drawer instead of vanishing under it.
+  const backdrop = usePresence(drawerOpen || undefined, 360);
+  // Whole-view swaps (another chat, a trip, the Your trips page) cross-fade.
+  const swap =
+    <A extends unknown[]>(action: (...args: A) => void) =>
+    (...args: A) =>
+      viewTransition(() => action(...args));
 
   // The Chats panel takes focus on its search when it opens, and Escape or a press outside it
   // closes it. Escape hands focus back to the Chats button.
@@ -149,22 +159,23 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
       onQuery={setHistoryQuery}
       chats={historyChats}
       trips={historyTrips}
-      onNewChat={newChat}
-      onNewTrip={newTrip}
-      onOpenChat={selectConversation}
-      onOpenTrip={selectTrip}
+      onNewChat={swap(newChat)}
+      onNewTrip={swap(newTrip)}
+      onOpenChat={swap(selectConversation)}
+      onOpenTrip={swap(selectTrip)}
       onRenameChat={renameChat}
       onDeleteChat={deleteChat}
       searchRef={searchRef}
     />
   );
-  const showTrips = () => {
-    setChatsOpen(false);
-    setNavOpen(false);
-    closePreferences();
-    setTripOpen(false);
-    setPage("trips");
-  };
+  const showTrips = () =>
+    viewTransition(() => {
+      setChatsOpen(false);
+      setNavOpen(false);
+      closePreferences();
+      setTripOpen(false);
+      setPage("trips");
+    });
 
   const navDrawer = narrow && (
     <Drawer
@@ -263,8 +274,8 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
             <TripsPage
               trips={catalog.trips}
               activeTripId={blank ? undefined : catalog.activeTripId}
-              onOpenTrip={selectTrip}
-              onNewTrip={newTrip}
+              onOpenTrip={swap(selectTrip)}
+              onNewTrip={swap(newTrip)}
             />
             {navOpen && (
               <button
@@ -302,13 +313,20 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
               suggestPlaces={dataMode.mode === "live" && !!dataMode.providers?.maps}
             />
             {narrow && (
-              <div className="topbar-views" role="group" aria-label="Workspace view">
+              <div
+                ref={viewSwitch}
+                className="topbar-views segmented"
+                role="group"
+                aria-label="Workspace view"
+              >
                 {(["chat", "map"] as const).map((view) => (
                   <button
                     key={view}
                     type="button"
                     aria-pressed={mobileView === view}
-                    onClick={() => setMobileView(view)}
+                    onClick={() =>
+                      view !== mobileView && viewTransition(() => setMobileView(view), `to-${view}`)
+                    }
                   >
                     {view === "chat" ? "Chat" : "Map"}
                   </button>
@@ -427,11 +445,13 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
                 userLocation={userLocation}
               />
             </div>
-            {drawerOpen && (
+            {backdrop.value && (
               <button
                 type="button"
                 tabIndex={-1}
                 className="workspace-drawer-backdrop"
+                data-leaving={backdrop.leaving || undefined}
+                aria-hidden={backdrop.leaving || undefined}
                 aria-label="Close open panel"
                 onClick={() => {
                   const trigger = tripOpen ? tripToggle : navToggle;

@@ -616,7 +616,7 @@ button.trip-places__stop[aria-pressed="true"] {
   height: 24px;
   place-items: center;
   border-radius: var(--radius-pill);
-  background: var(--accent);
+  background: var(--accent-fill);
   color: var(--on-accent);
   font-size: var(--font-size-meta);
   font-weight: 700;

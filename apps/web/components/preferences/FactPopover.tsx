@@ -35,6 +35,7 @@ export function FactPopover({
   onClose,
   className = "",
   modal = false,
+  leaving = false,
   children,
 }: {
   id: string;
@@ -45,6 +46,8 @@ export function FactPopover({
   className?: string;
   /** Centred over a scrim instead of anchored to the chip. */
   modal?: boolean;
+  /** Closed and playing its exit: inert, hidden from assistive technology, deaf to keys. */
+  leaving?: boolean;
   children: ReactNode;
 }) {
   const panel = useRef<HTMLElement>(null);
@@ -67,6 +70,7 @@ export function FactPopover({
   }, [anchor, modal]);
 
   useEffect(() => {
+    if (leaving) return;
     // An editor can name the control to start on; otherwise its first field.
     const first =
       panel.current?.querySelector<HTMLElement>("[data-autofocus]:not([disabled])") ??
@@ -76,9 +80,12 @@ export function FactPopover({
     (first ?? panel.current?.querySelector<HTMLElement>(FOCUSABLE))?.focus({
       preventScroll: true,
     });
+    // Runs once per instance; a leaving instance never takes focus.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
+    if (leaving) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Escape" || event.defaultPrevented) return;
       // The calendar is a native modal dialog; the browser closes it first.
@@ -99,7 +106,7 @@ export function FactPopover({
       window.removeEventListener("keydown", onKeyDown);
       document.removeEventListener("pointerdown", onPointerDown);
     };
-  }, [anchor, modal]);
+  }, [anchor, modal, leaving]);
 
   const titleId = `${id}-title`;
   const descriptionId = description ? `${id}-description` : undefined;
@@ -107,6 +114,7 @@ export function FactPopover({
     <>
       <div
         className={`fact-popover-scrim${modal ? " fact-popover-scrim--modal" : ""}`}
+        data-leaving={leaving || undefined}
         aria-hidden="true"
       />
       <section
@@ -118,6 +126,9 @@ export function FactPopover({
         aria-describedby={descriptionId}
         className={`fact-popover ${modal ? "fact-popover--modal " : ""}${className}`.trim()}
         data-placed={position ? "true" : undefined}
+        data-leaving={leaving || undefined}
+        aria-hidden={leaving || undefined}
+        inert={leaving}
         style={
           position && !modal
             ? ({

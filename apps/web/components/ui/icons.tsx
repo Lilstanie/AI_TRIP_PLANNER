@@ -192,3 +192,17 @@ export const SendIcon = () => (
     <path d="M12 19V5M6 11l6-6 6 6" />
   </Icon>
 );
+
+/** Apple Maps' location arrow; filled while the map is showing the traveller's position. */
+export const LocateIcon = ({ filled = false }: { filled?: boolean }) => (
+  <Icon fill={filled ? "currentColor" : "none"}>
+    <path d="M20.5 3.5 3.8 10.6a.5.5 0 0 0 .06.94l6.9 1.7 1.7 6.9a.5.5 0 0 0 .94.06Z" />
+  </Icon>
+);
+
+export const LayersIcon = () => (
+  <Icon>
+    <path d="m12 3 9 5-9 5-9-5 9-5Z" />
+    <path d="m3 13 9 5 9-5" />
+  </Icon>
+);

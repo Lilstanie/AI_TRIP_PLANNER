@@ -26,7 +26,16 @@ function fakeRuntime() {
   return { runtime, lines };
 }
 
-const colors = { active: "#111111", muted: "#999999" };
+const colors = {
+  day: (day?: number) => `#day${day ?? 0}`,
+  muted: "#999999",
+  casing: "#ffffff",
+};
+/** The flowing dashes: the only lines whose icon repeats along them. */
+const dashed = (lines: { options: Record<string, unknown> }[]) =>
+  lines.filter((line) =>
+    (line.options.icons as { repeat?: string }[] | undefined)?.some((icon) => icon.repeat),
+  );
 const twoDays = dayRoutes([stop("a", 1, 1), stop("b", 2, 1), stop("c", 3, 2), stop("d", 4, 2)]);
 
 describe("markerContent", () => {
@@ -53,9 +62,12 @@ describe("drawItineraryRoutes", () => {
       colors,
       reducedMotion: false,
     });
-    // An underlay and a dashed line per day.
-    expect(lines).toHaveLength(4);
-    expect(lines.filter((line) => line.options.icons)).toHaveLength(2);
+    // Per leg: a casing, the day-coloured line with its direction chevron, and flowing dashes.
+    expect(lines).toHaveLength(6);
+    expect(dashed(lines)).toHaveLength(2);
+    expect(lines.map((line) => line.options.strokeColor)).toEqual(
+      expect.arrayContaining(["#day1", "#day2", colors.casing]),
+    );
     expect(request).toHaveBeenCalledOnce();
     cleanup();
     expect(cancel).toHaveBeenCalledOnce();
@@ -73,10 +85,10 @@ describe("drawItineraryRoutes", () => {
       colors,
       reducedMotion: false,
     });
-    expect(lines).toHaveLength(3);
-    const dashed = lines.filter((line) => line.options.icons);
-    expect(dashed).toHaveLength(1);
+    expect(lines).toHaveLength(4);
+    expect(dashed(lines)).toHaveLength(1);
     expect(lines.map((line) => line.options.strokeColor)).toContain(colors.muted);
+    expect(lines.map((line) => line.options.strokeColor)).not.toContain("#day1");
   });
 
   it("keeps the dashes still, with no frame loop, under reduced motion", () => {
@@ -84,7 +96,7 @@ describe("drawItineraryRoutes", () => {
     const { runtime, lines } = fakeRuntime();
     drawItineraryRoutes({ runtime, lines: twoDays, routes: [], colors, reducedMotion: true });
     expect(request).not.toHaveBeenCalled();
-    expect(lines.filter((line) => line.options.icons)).toHaveLength(2);
+    expect(dashed(lines)).toHaveLength(2);
   });
 
   it("follows a verified polyline for its leg and still draws unrelated verified routes", () => {
@@ -103,6 +115,24 @@ describe("drawItineraryRoutes", () => {
     });
     expect(runtime.maps.geometry.encoding.decodePath).toHaveBeenCalledWith("ab");
     expect(runtime.maps.geometry.encoding.decodePath).toHaveBeenCalledWith("xy");
-    expect(lines).toHaveLength(3);
+    expect(lines).toHaveLength(4);
+  });
+
+  it("bends a leg without a verified route into an arc between its stops", () => {
+    const { runtime, lines } = fakeRuntime();
+    drawItineraryRoutes({
+      runtime,
+      lines: dayRoutes([stop("a", 1, 1), stop("b", 2, 1)]),
+      routes: [],
+      colors,
+      reducedMotion: true,
+    });
+    const path = lines[0]!.options.path as { lat: number; lng: number }[];
+    expect(path.length).toBeGreaterThan(2);
+    expect(path[0]).toEqual({ lat: 1, lng: 1 });
+    expect(path.at(-1)).toEqual({ lat: 2, lng: 2 });
+    // The midpoint sits off the straight line between the stops.
+    const middle = path[Math.floor(path.length / 2)]!;
+    expect(Math.abs(middle.lat - middle.lng)).toBeGreaterThan(0.05);
   });
 });

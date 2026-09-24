@@ -139,7 +139,12 @@ function ResultRowIcon({ row, kind }: { row: ToolResultRow; kind: ToolResultKind
   const host = resultHost(row);
   if (host && !failed) {
     return (
-      <span className="thinking-tool__row-icon" data-kind={kind} data-site={host} aria-hidden="true">
+      <span
+        className="thinking-tool__row-icon"
+        data-kind={kind}
+        data-site={host}
+        aria-hidden="true"
+      >
         {/* A 14px third-party icon: next/image would need the icon host in
             remotePatterns and would proxy the request this component
             deliberately sends without a referrer. */}
@@ -189,7 +194,10 @@ export function ToolRow({ row, open }: { row: ToolRowModel; open: OpenRows }) {
         collapsedContent={
           <>
             <RowSeparator />
-            <RowSummary text={row.summary} {...(row.state === "failed" ? { tone: "error" as const } : {})} />
+            <RowSummary
+              text={row.summary}
+              {...(row.state === "failed" ? { tone: "error" as const } : {})}
+            />
           </>
         }
       >
@@ -204,7 +212,9 @@ export function ToolRow({ row, open }: { row: ToolRowModel; open: OpenRows }) {
                     <li className="thinking-tool__row" key={`${item.label}-${index}`}>
                       <ResultRowIcon row={item} kind={kind} />
                       <span className="thinking-tool__row-label">{item.label}</span>
-                      {item.detail && <span className="thinking-tool__row-detail">{item.detail}</span>}
+                      {item.detail && (
+                        <span className="thinking-tool__row-detail">{item.detail}</span>
+                      )}
                     </li>
                   );
                 })}
@@ -277,11 +287,11 @@ function ChoiceBlock({
 function SubagentNotes({ model, open }: { model: SubagentModel; open: OpenRows }) {
   const hasNotes = Boolean(
     model.objective ||
-      model.constraints ||
-      model.outcome ||
-      model.error ||
-      model.choice ||
-      model.coordinator,
+    model.constraints ||
+    model.outcome ||
+    model.error ||
+    model.choice ||
+    model.coordinator,
   );
   if (!hasNotes) return null;
   const choiceId = `choice:${model.round}:${model.name}`;
@@ -299,7 +309,9 @@ function SubagentNotes({ model, open }: { model: SubagentModel; open: OpenRows }
           )}
         </div>
       )}
-      {model.objective && <p className="thinking-note__summary">{`Asked for: ${model.objective}`}</p>}
+      {model.objective && (
+        <p className="thinking-note__summary">{`Asked for: ${model.objective}`}</p>
+      )}
       {model.constraints && (
         <ul className="thinking-note__list">
           {model.constraints.map((constraint, index) => (
@@ -405,7 +417,9 @@ export function RunningLine({ elapsedMs }: { elapsedMs: number }) {
       <span
         className="thinking-running__label"
         data-text-shimmer
-        style={{ "--thinking-text-shimmer-spread": `${RUNNING_LABEL.length * 8}px` } as CSSProperties}
+        style={
+          { "--thinking-text-shimmer-spread": `${RUNNING_LABEL.length * 8}px` } as CSSProperties
+        }
       >
         {RUNNING_LABEL}
       </span>

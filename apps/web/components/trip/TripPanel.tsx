@@ -1,8 +1,9 @@
-import type { ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 import type { TripPlan } from "@trip/shared";
 import { TripSection } from "./TripSection";
 import { statusForPlan } from "@/lib/workspace/catalog";
 import { budgetHint, money } from "@/lib/workspace";
+import { useSegmentIndicator } from "../ui/motion";
 
 export type TripTab = "overview" | "timeline";
 
@@ -43,6 +44,8 @@ export function TripPanel({
     budget && estimated !== undefined ? Math.min(100, Math.round((estimated / budget) * 100)) : 0;
   const delta = budget && estimated !== undefined ? budget - estimated : undefined;
   const budgetState = delta === undefined ? "unavailable" : delta < 0 ? "over" : "within";
+  const tabList = useRef<HTMLDivElement>(null);
+  useSegmentIndicator(tabList, tab);
   const tabs: [TripTab, string][] = [
     ["overview", "Overview"],
     ["timeline", "Timeline & routes"],
@@ -85,7 +88,7 @@ export function TripPanel({
             : `${money(Math.abs(delta))} ${delta < 0 ? "over" : "under"} the ${money(budget!)}${budgetHint(plan.brief)} budget`}
         </p>
       </section>
-      <div className="trip-tabs" role="tablist" aria-label="Trip views">
+      <div ref={tabList} className="trip-tabs segmented" role="tablist" aria-label="Trip views">
         {tabs.map(([id, label]) => (
           <button
             key={id}
@@ -107,7 +110,8 @@ export function TripPanel({
         ))}
       </div>
       <div
-        className="trip-tabpanel"
+        key={tab}
+        className="trip-tabpanel tab-panel-enter"
         role="tabpanel"
         id={`trip-tabpanel-${tab}`}
         aria-labelledby={`trip-tab-${tab}`}

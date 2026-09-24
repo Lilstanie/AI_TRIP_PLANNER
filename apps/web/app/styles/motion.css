@@ -1,0 +1,374 @@
+/* Motion: how regions hand over to each other. Everything here is a CSS transition or a view
+   transition started by components/ui/motion.ts, so it stays interruptible and adds no library.
+   Reduced motion turns all of it off (base.css zeroes durations; view transitions are skipped
+   in script). */
+
+/* ---- whole-view swaps: another chat, a trip, the Your trips page ----
+   The main column is its own view-transition group, so the sidebar stays put while the content
+   cross-fades with a small rise, the way iOS pushes between views. */
+.workspace-main {
+  view-transition-name: workspace-main;
+}
+/* Named only while open. A closed panel is still captured if named, and its glass then paints a
+   blurred strip over the page for the length of the transition. */
+.chats-panel.is-open {
+  view-transition-name: chats-panel;
+}
+::view-transition-group(root) {
+  animation-duration: var(--duration);
+}
+::view-transition-group(workspace-main) {
+  animation-duration: var(--duration-slow);
+  animation-timing-function: var(--ease-out);
+}
+::view-transition-old(workspace-main) {
+  animation: vt-fade-out var(--duration) var(--ease-out) both;
+}
+::view-transition-new(workspace-main) {
+  animation: vt-rise-in var(--duration-slow) var(--ease-out) both;
+}
+::view-transition-old(chats-panel),
+::view-transition-new(chats-panel) {
+  animation-duration: var(--duration);
+  animation-timing-function: var(--ease-out);
+}
+/* Phone Chat/Map switch: slide in the direction of the segment chosen. */
+html[data-transition="to-map"]::view-transition-old(workspace-main) {
+  animation: vt-slide-out-left var(--duration) var(--ease-out) both;
+}
+html[data-transition="to-map"]::view-transition-new(workspace-main) {
+  animation: vt-slide-in-right var(--duration-slow) var(--ease-out) both;
+}
+html[data-transition="to-chat"]::view-transition-old(workspace-main) {
+  animation: vt-slide-out-right var(--duration) var(--ease-out) both;
+}
+html[data-transition="to-chat"]::view-transition-new(workspace-main) {
+  animation: vt-slide-in-left var(--duration-slow) var(--ease-out) both;
+}
+@keyframes vt-fade-out {
+  to {
+    opacity: 0;
+    transform: scale(0.985);
+  }
+}
+@keyframes vt-rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.995);
+  }
+}
+@keyframes vt-slide-out-left {
+  to {
+    opacity: 0;
+    transform: translateX(-6%);
+  }
+}
+@keyframes vt-slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(8%);
+  }
+}
+@keyframes vt-slide-out-right {
+  to {
+    opacity: 0;
+    transform: translateX(6%);
+  }
+}
+@keyframes vt-slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-8%);
+  }
+}
+
+/* ---- segmented controls: a glass thumb glides to the chosen segment ---- */
+.segmented {
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--radius-pill);
+  background: var(--fill-hover);
+}
+.segmented::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: 3px;
+  bottom: 3px;
+  left: 0;
+  width: var(--segment-w, 0);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  box-shadow:
+    0 3px 8px rgb(0 0 0 / 12%),
+    0 1px 1px rgb(0 0 0 / 4%),
+    0 0 0 0.5px var(--glass-edge);
+  opacity: 0;
+  transform: translateX(var(--segment-x, 0));
+}
+.segmented[data-segmented]::before {
+  opacity: 1;
+}
+.segmented[data-segmented="ready"]::before {
+  transition:
+    transform var(--duration) var(--ease-spring),
+    width var(--duration) var(--ease-spring);
+}
+@media (prefers-color-scheme: dark) {
+  .segmented::before {
+    background: #636366;
+  }
+}
+.segmented > :is(button, [role="tab"]) {
+  position: relative;
+  min-height: 30px !important;
+  padding: 3px 16px !important;
+  border: 0 !important;
+  border-radius: var(--radius-pill) !important;
+  background: transparent !important;
+  color: var(--text-dim);
+  font-size: 13px;
+  font-weight: 500;
+  transition: color var(--transition);
+}
+.segmented > button::after {
+  display: none;
+}
+.segmented > button:hover {
+  color: var(--text);
+}
+.segmented > [aria-selected="true"],
+.segmented > [aria-pressed="true"] {
+  color: var(--text);
+  font-weight: 600;
+  box-shadow: none !important;
+}
+/* Once measured, the thumb is the only fill; the segment itself stays clear. */
+.segmented[data-segmented] > [aria-selected="true"],
+.segmented[data-segmented] > [aria-pressed="true"] {
+  background: transparent !important;
+}
+/* Until the script has measured a thumb, the chosen segment carries its own fill. */
+.segmented:not([data-segmented]) > [aria-selected="true"],
+.segmented:not([data-segmented]) > [aria-pressed="true"] {
+  background: var(--surface) !important;
+}
+/* The tab lists were underlined rows; as segmented controls they drop the rule. */
+.trips-page__tabs.segmented,
+.trip-tabs.segmented {
+  border-bottom: 0;
+}
+.trips-page__tabs.segmented {
+  margin-top: var(--space-5);
+}
+.trip-tabs.segmented {
+  display: flex;
+  margin: var(--space-4) 0 var(--space-2);
+}
+.trip-tabs.segmented > button {
+  flex: 1;
+  margin: 0;
+}
+.topbar-views.segmented {
+  display: flex;
+}
+
+/* ---- tab panels: the new panel settles in ---- */
+.tab-panel-enter {
+  animation: panel-in var(--duration) var(--ease-out);
+}
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* ---- drawers: an iOS sheet curve, and a backdrop that fades both ways ---- */
+.workspace-app {
+  --drawer-ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --drawer-duration: 380ms;
+}
+.workspace-drawer-backdrop {
+  transition: opacity var(--drawer-duration) var(--ease-out);
+}
+.workspace-drawer-backdrop[data-leaving] {
+  opacity: 0;
+  pointer-events: none;
+}
+.drawer {
+  transition:
+    transform var(--drawer-duration) var(--drawer-ease),
+    opacity var(--drawer-duration) var(--drawer-ease),
+    visibility 0s linear var(--drawer-duration);
+  opacity: 0;
+}
+.drawer.is-open {
+  opacity: 1;
+  transition:
+    transform var(--drawer-duration) var(--drawer-ease),
+    opacity calc(var(--drawer-duration) * 0.6) var(--ease-out),
+    visibility 0s;
+}
+.chats-panel {
+  transition:
+    transform var(--drawer-duration) var(--ease-spring),
+    opacity var(--duration) var(--ease-out),
+    visibility 0s linear var(--drawer-duration);
+}
+.chats-panel.is-open {
+  transition:
+    transform var(--drawer-duration) var(--ease-spring),
+    opacity var(--duration-fast) var(--ease-out),
+    visibility 0s;
+}
+.workspace-app {
+  transition: grid-template-columns var(--duration) var(--ease-out);
+}
+
+/* ---- trip fact sheets: spring in, sink out ---- */
+.fact-popover.fact-popover--modal {
+  animation: sheet-in var(--duration-slow) var(--ease-spring) both;
+}
+.fact-popover-scrim--modal {
+  animation: scrim-in var(--duration) var(--ease-out) both;
+}
+.fact-popover[data-leaving] {
+  animation: sheet-out 200ms var(--ease-in-out) both !important;
+  pointer-events: none;
+}
+.fact-popover-scrim[data-leaving] {
+  animation: scrim-out 200ms var(--ease-in-out) both !important;
+  pointer-events: none;
+}
+@keyframes sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.94);
+  }
+}
+@keyframes sheet-out {
+  to {
+    opacity: 0;
+    transform: translateY(6px) scale(0.97);
+  }
+}
+@keyframes scrim-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes scrim-out {
+  to {
+    opacity: 0;
+  }
+}
+@media (max-width: 520px) {
+  .fact-popover.fact-popover--modal {
+    animation: phone-sheet-in var(--duration-slow) var(--drawer-ease) both;
+  }
+  .fact-popover[data-leaving] {
+    animation: phone-sheet-out 220ms var(--ease-in-out) both !important;
+  }
+}
+@keyframes phone-sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+}
+@keyframes phone-sheet-out {
+  to {
+    transform: translateY(100%);
+  }
+}
+
+/* ---- native dialogs ---- */
+.dialog[open] {
+  animation: sheet-in var(--duration-slow) var(--ease-spring);
+}
+.dialog[open]::backdrop {
+  animation: scrim-in var(--duration) var(--ease-out);
+}
+
+/* ---- small moments ---- */
+.msg-item {
+  animation: msg-rise var(--duration-slow) var(--ease-spring);
+}
+@keyframes msg-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}
+.msg-item--user {
+  transform-origin: bottom right;
+}
+.section__body {
+  animation: panel-in var(--duration) var(--ease-out);
+}
+.section__chevron {
+  transition: transform var(--duration) var(--ease-spring);
+}
+.history-item__menu {
+  transform-origin: top right;
+  animation: menu-in var(--duration) var(--ease-spring);
+}
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+}
+.chat__stream {
+  scroll-behavior: smooth;
+}
+[data-tooltip]:hover::after,
+[data-tooltip]:focus-visible::after {
+  animation: tooltip-in var(--duration-fast) var(--ease-out);
+}
+@keyframes tooltip-in {
+  from {
+    opacity: 0;
+    translate: -4px 0;
+  }
+}
+.bar > span {
+  transition:
+    width var(--duration-slow) var(--ease-spring),
+    background var(--transition);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workspace-main,
+  .chats-panel {
+    view-transition-name: none;
+  }
+  .chat__stream {
+    scroll-behavior: auto;
+  }
+  .fact-popover,
+  .fact-popover-scrim,
+  .msg-item,
+  .tab-panel-enter,
+  .section__body,
+  .history-item__menu,
+  .dialog[open] {
+    animation: none !important;
+  }
+}
+
+/* The Chats panel's blur is off while a view transition runs (`viewTransition` sets
+   html[data-transition] before the old view is captured) and whenever the panel is closed.
+   Chrome keeps a captured element's backdrop-filter live on its snapshot, so the fading panel
+   would otherwise blur the new page beneath it into a strip; a closing panel would do the same
+   against the snapshot behind it. A stronger fill stands in for the blur meanwhile. */
+html[data-transition] .chats-panel,
+.chats-panel:not(.is-open) {
+  --glass-fill: var(--glass-bg-strong);
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}

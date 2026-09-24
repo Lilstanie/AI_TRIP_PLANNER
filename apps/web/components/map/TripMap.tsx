@@ -15,6 +15,7 @@ import {
   routeColors,
 } from "./map-layers";
 import type { UserLocation } from "./useUserLocation";
+import { LayersIcon, LocateIcon, MinusIcon, PlusIcon } from "../ui/icons";
 
 type Coordinate = { lat: number; lng: number };
 
@@ -86,6 +87,7 @@ export function TripMap({
   const [retry, setRetry] = useState(0);
   const [runtime, setRuntime] = useState<MapRuntime>();
   const [closedFor, setClosedFor] = useState<string>();
+  const [satellite, setSatellite] = useState(false);
   const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
   const dark = useMediaQuery("(prefers-color-scheme: dark)");
   const { location, request: requestLocation } = userLocation;
@@ -149,11 +151,17 @@ export function TripMap({
           // Created only once the trip has somewhere to show, never as a tiled world map.
           center: start ?? { lat: 0, lng: 0 },
           zoom: start ? 12 : 3,
-          // Our map controls sit top-left; Google's map-type toggle would be hidden beneath
-          // them, and browser fullscreen would cover the workspace top bar.
+          // Our own glass controls (locate, map type, zoom) sit bottom-right, as on Mindtrip and
+          // Apple Maps; Google's would duplicate them, and browser fullscreen would cover the
+          // workspace top bar.
+          disableDefaultUI: true,
           mapTypeControl: false,
           streetViewControl: false,
           fullscreenControl: false,
+          zoomControl: false,
+          cameraControl: false,
+          // One-finger pans and wheel zoom without a modifier: the map is the whole panel.
+          gestureHandling: "greedy",
           colorScheme: "FOLLOW_SYSTEM",
           mapId: process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || "DEMO_MAP_ID",
         });
@@ -362,10 +370,33 @@ export function TripMap({
     };
   }, [runtime, location]);
 
+  // Locate: centre on the traveller now when their position is known, otherwise ask for it and
+  // centre once it arrives. Either way it is a manual move the trip framing then respects.
   const showMyLocation = useCallback(() => {
+    if (runtime && location.status === "success") {
+      view.current?.markUserMoved();
+      runtime.map.panTo(location.position);
+      if ((runtime.map.getZoom() ?? 0) < 14) runtime.map.setZoom(14);
+      return;
+    }
     panOnLocate.current = true;
     requestLocation();
-  }, [requestLocation]);
+  }, [runtime, location, requestLocation]);
+
+  const zoomBy = useCallback(
+    (step: number) => {
+      if (!runtime) return;
+      runtime.map.setZoom((runtime.map.getZoom() ?? 12) + step);
+    },
+    [runtime],
+  );
+
+  const toggleSatellite = useCallback(() => {
+    if (!runtime) return;
+    const next = !satellite;
+    runtime.map.setMapTypeId(next ? "hybrid" : "roadmap");
+    setSatellite(next);
+  }, [runtime, satellite]);
 
   const locationMessage =
     location.status === "loading"
@@ -415,36 +446,6 @@ export function TripMap({
         closePopup();
       }}
     >
-      <div className="trip-map-controls">
-        <button
-          type="button"
-          onClick={() =>
-            view.current?.viewAll({
-              destinations: positions(destinations),
-              places: positions(mappedPlaces),
-            })
-          }
-          disabled={!runtime || (mapped.length === 0 && destinations.length === 0)}
-        >
-          View all places
-        </button>
-        <button type="button" onClick={showMyLocation} disabled={location.status === "loading"}>
-          {location.status === "loading"
-            ? "Finding location…"
-            : location.status === "error"
-              ? "Retry my location"
-              : "Show my location"}
-        </button>
-        {location.status === "success" && selected && (
-          <button
-            type="button"
-            onClick={() => void routeFromLocation()}
-            disabled={nearbyRoute?.status === "loading"}
-          >
-            {nearbyRoute?.status === "loading" ? "Checking route…" : "Route from my location"}
-          </button>
-        )}
-      </div>
       <div ref={root} className="google-map" aria-label="Google activity map" tabIndex={-1} />
       {loading && <p role="status">Loading Google Maps…</p>}
       {popupOpen && selectedStop && (
@@ -462,10 +463,75 @@ export function TripMap({
             headingId="trip-map-popup-title"
             meta={`Stop ${selectedStop.order}${selectedStop.day ? ` · Day ${selectedStop.day}` : ""}`}
             onClose={closePopup}
+            actions={
+              location.status === "success" && (
+                <button
+                  type="button"
+                  onClick={() => void routeFromLocation()}
+                  disabled={nearbyRoute?.status === "loading"}
+                >
+                  {nearbyRoute?.status === "loading" ? "Checking route…" : "Route from my location"}
+                </button>
+              )
+            }
           />
         </div>
       )}
-      <p className="trip-map-location-status" aria-live="polite">
+      <div className="map-controls" role="group" aria-label="Map controls">
+        <button
+          type="button"
+          className="map-control"
+          aria-label={
+            location.status === "loading"
+              ? "Finding your location"
+              : location.status === "error"
+                ? "Retry my location"
+                : "Show my location"
+          }
+          data-tooltip-left={location.status === "error" ? "Retry my location" : "My location"}
+          aria-busy={location.status === "loading" || undefined}
+          data-active={location.status === "success" || undefined}
+          onClick={showMyLocation}
+        >
+          <LocateIcon filled={location.status === "success"} />
+        </button>
+        <button
+          type="button"
+          className="map-control"
+          aria-label="Satellite view"
+          aria-pressed={satellite}
+          data-tooltip-left={satellite ? "Map view" : "Satellite view"}
+          onClick={toggleSatellite}
+          disabled={!runtime}
+        >
+          <LayersIcon />
+        </button>
+        <div className="map-control-group">
+          <button
+            type="button"
+            className="map-control"
+            aria-label="Zoom in"
+            onClick={() => zoomBy(1)}
+            disabled={!runtime}
+          >
+            <PlusIcon />
+          </button>
+          <button
+            type="button"
+            className="map-control"
+            aria-label="Zoom out"
+            onClick={() => zoomBy(-1)}
+            disabled={!runtime}
+          >
+            <MinusIcon />
+          </button>
+        </div>
+      </div>
+      <p
+        className="trip-map-location-status"
+        data-quiet={location.status === "success" || undefined}
+        aria-live="polite"
+      >
         {locationMessage}
       </p>
       {nearbyRoute?.status === "ok" && (

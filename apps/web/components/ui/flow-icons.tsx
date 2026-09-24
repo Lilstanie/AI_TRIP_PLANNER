@@ -150,9 +150,18 @@ export const FlowSubagentIcon = (props: FlowIconProps) => {
 /** DSH `IconSparkle16`: the generic ("others") tool glyph. */
 export const FlowSparkleIcon = (props: FlowIconProps) => (
   <DshSvg box={16} {...props}>
-    <path d="M6.1 3.1Q6.6 7.8 11.3 8.3Q6.6 8.8 6.1 13.5Q5.6 8.8 0.9 8.3Q5.6 7.8 6.1 3.1Z" fill="currentColor" />
-    <path d="M11.9 1Q12.2 3.7 14.9 4Q12.2 4.3 11.9 7Q11.6 4.3 8.9 4Q11.6 3.7 11.9 1Z" fill="currentColor" />
-    <path d="M12.5 9.4Q12.7 11.4 14.7 11.6Q12.7 11.8 12.5 13.8Q12.3 11.8 10.3 11.6Q12.3 11.4 12.5 9.4Z" fill="currentColor" />
+    <path
+      d="M6.1 3.1Q6.6 7.8 11.3 8.3Q6.6 8.8 6.1 13.5Q5.6 8.8 0.9 8.3Q5.6 7.8 6.1 3.1Z"
+      fill="currentColor"
+    />
+    <path
+      d="M11.9 1Q12.2 3.7 14.9 4Q12.2 4.3 11.9 7Q11.6 4.3 8.9 4Q11.6 3.7 11.9 1Z"
+      fill="currentColor"
+    />
+    <path
+      d="M12.5 9.4Q12.7 11.4 14.7 11.6Q12.7 11.8 12.5 13.8Q12.3 11.8 10.3 11.6Q12.3 11.4 12.5 9.4Z"
+      fill="currentColor"
+    />
   </DshSvg>
 );
 
@@ -338,6 +347,10 @@ export function ToolGlyph({ tool, ...props }: FlowIconProps & { tool: string }) 
     case "weather.forecast":
       return <FlowWeatherIcon {...props} />;
     default:
-      return tool.startsWith("web.") ? <FlowGlobeIcon {...props} /> : <FlowSparkleIcon {...props} />;
+      return tool.startsWith("web.") ? (
+        <FlowGlobeIcon {...props} />
+      ) : (
+        <FlowSparkleIcon {...props} />
+      );
   }
 }

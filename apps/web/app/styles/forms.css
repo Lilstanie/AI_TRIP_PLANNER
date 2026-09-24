@@ -27,10 +27,15 @@ button:not(.section__row):not(.stay-option):not(.primary):not(.trip__cta):not(.r
   ):not(.composer__add):not(.composer__primary):not(.question__icon-button):not(
     .question__option
   ):not(.question__button):not(.attachment-chip__remove) {
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  padding: 6px 10px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  background: var(--button-bg, var(--fill-hover));
+  padding: 6px 14px;
+  font-weight: 500;
+  transition:
+    background-color var(--transition),
+    color var(--transition),
+    scale var(--duration-fast) var(--ease-out);
 }
 /* react-day-picker ships unthemed defaults and its day buttons are otherwise
    captured by the generic secondary-button rules above. Keep the calendar on
@@ -72,7 +77,7 @@ button:not(.section__row):not(.stay-option):not(.primary):not(.trip__cta):not(.r
   background: var(--surface-2);
 }
 .date-picker .rdp-selected:not(.rdp-range_middle) .rdp-day_button {
-  background: var(--accent);
+  background: var(--accent-fill);
   color: var(--on-accent);
 }
 .date-picker .rdp-range_middle {
@@ -155,11 +160,35 @@ button:not(.section__row):not(.stay-option):not(.primary):not(.trip__cta):not(.r
   border-color: var(--warn);
 }
 .primary {
-  background: var(--accent);
+  background: var(--accent-fill);
   color: var(--on-accent);
   border: 0;
-  border-radius: var(--radius-sm);
-  padding: 9px 14px;
+  border-radius: var(--radius-pill);
+  padding: 9px 18px;
+  font-weight: 600;
+  transition:
+    filter var(--transition),
+    scale var(--duration-fast) var(--ease-out);
+}
+.primary:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+/* Press feedback: buttons give a little under the finger, like UIKit controls. Dense lists and map
+   controls opt out by owning their own class rules. */
+@media (hover: hover) {
+  :where(button:hover:not(:disabled)) {
+    --button-bg: var(--fill-press);
+  }
+}
+:where(button:active:not(:disabled)):not(
+  .history-item__open,
+  .sidebar-nav__item,
+  .section__row,
+  .rdp-day_button,
+  .fact-chip,
+  .trip-calendar__trip
+) {
+  scale: 0.97;
 }
 .plain-fieldset > .primary {
   margin-top: 16px;
