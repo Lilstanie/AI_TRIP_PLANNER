@@ -579,7 +579,7 @@ when the assistant's message looked like a date question. A regex guessing at th
 is not a good reason to open a modal, and it fought the conversation: a date question opened the
 dialog _over_ the surface the traveller was meant to answer on. Both are gone. A date question is now
 answered in the conversation, dates can be typed in the composer at any time, and the real calendar
-picker still lives in Trip preferences, where the traveller asks for it.
+picker still lives in the top bar's When editor, where the traveller asks for it.
 
 ### 4.12 Messages: full-width reply, a bubble for the traveller, a clock on both
 

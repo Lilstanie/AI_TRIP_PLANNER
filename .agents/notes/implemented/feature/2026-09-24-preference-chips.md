@@ -21,10 +21,13 @@ the edit and returns focus to the chip. The same chips repeat in the trip panel'
 ## Decision
 
 The top bar holds a chip per fact: destination, dates, travellers, budget and Preferences
-(`components/preferences/TripFactChips.tsx`). Each opens its own editor, `FactPopover`, anchored
-under the chip on wider screens and a bottom sheet at ≤520 px. Preferences holds nationality and
-accommodation. Every field of the old drawer belongs to exactly one fact (`FACT_FIELDS` in
-`lib/workspace/trip-facts.ts`, checked by a unit test), and the Preferences drawer and
+(`components/preferences/TripFactChips.tsx`). Each opens its own editor, `FactPopover`: When, Who
+and Budget anchored under the chip on wider screens, Where and Trip preferences centred over a scrim
+since they hold lists, and every editor a bottom sheet at ≤520 px. Preferences holds the traveller's
+own preference list; the [trip preference list Agent Note](2026-09-24-trip-preference-list.md)
+records why it replaced nationality and accommodation, and why those two editors open centred. Every
+draft field belongs to exactly one fact or is listed as retired (`FACT_FIELDS` and `RETIRED_FIELDS`
+in `lib/workspace/trip-facts.ts`, checked by a unit test), and the Preferences drawer and
 `FiltersPanel` are removed.
 
 - The chips read the preferences draft, not only the plan, so what the traveller stated in a blank
@@ -42,7 +45,8 @@ accommodation. Every field of the old drawer belongs to exactly one fact (`FACT_
 - A rejected brief opens the editor of the first fact at fault, with a message that says how to fix
   it, replacing the drawer's generic highlight.
 
-No contract in `packages/shared` changed; the request shapes are the ones the drawer produced.
+No contract in `packages/shared` changed with the chips themselves; the preference list later added
+the optional `TripBrief.preferences`.
 
 ## Alternatives considered
 
@@ -51,7 +55,8 @@ No contract in `packages/shared` changed; the request shapes are the ones the dr
 - **Centred modal dialogs, as Mindtrip uses.** Rejected for wider screens: a centred modal covers
   the chat and map that the traveller is editing the trip against, and an editor anchored to its
   chip keeps the edit next to what it changes. Phones get a bottom sheet, which is the closest
-  equivalent there.
+  equivalent there. The owner later asked for Where and Trip preferences to match Mindtrip's
+  dialogs, and those two now open centred; see the trip preference list note.
 - **Apply each edit immediately, without a Save or Update trip button.** Rejected: once a plan
   exists every applied edit is a paid planning request, so replanning has to be an explicit choice,
   and a half-typed value would otherwise reach the draft.

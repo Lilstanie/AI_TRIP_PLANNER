@@ -35,9 +35,11 @@ semantic-token, or workspace-layout contracts.
     time range and a thumbnail, with the distance between stops and a booking link where one exists.
   - **Follow-up suggestion chips** appear above the composer.
   - **Trip facts in the top bar.** Destination, dates, travellers and budget are chips, each
-    opening an editor for that fact alone, and a Preferences chip holds the rest. Here the editors
-    anchor under their chip (a bottom sheet on phones) instead of opening centred. See the
-    [preference chips Agent Note](../../.agents/notes/implemented/feature/2026-09-24-preference-chips.md).
+    opening an editor for that fact alone, and a Preferences chip holds the traveller's own
+    preference list. Where and Trip preferences open centred over a scrim, as Mindtrip's do; the
+    single-value editors anchor under their chip; all of them are bottom sheets on phones. See the
+    [preference chips Agent Note](../../.agents/notes/implemented/feature/2026-09-24-preference-chips.md)
+    and the [trip preference list Agent Note](../../.agents/notes/implemented/feature/2026-09-24-trip-preference-list.md).
 
   Fit these into this workspace's fixed regions. For example, place detail opens in a drawer or map
   overlay instead of replacing the map column. Borrow the interactions, not the brand: Mindtrip's

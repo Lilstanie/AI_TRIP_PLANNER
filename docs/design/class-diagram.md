@@ -154,6 +154,7 @@ classDiagram
     +budgetTotal: Money
     +budgetSource: BudgetSource?
     +nationality: String?
+    +preferences: String[]?
   }
   class AccommodationPreferences {
     +roomAllocation: RoomAllocation

@@ -57,14 +57,46 @@ now. Implementation history and browser acceptance for each phase are in the
     "(≈ ¥3,000)" hint while it still matches the plan. The chips form a `role="group"` named Trip
     details; a filled chip's accessible name leads with its fact ("Destination: Sydney").
   - Each chip is a button with `aria-haspopup="dialog"`, `aria-expanded` and `aria-controls`, and
-    opens its own editor: Where (destination, departing from), When (start and end date plus the
-    calendar), Who (a travellers stepper), Budget (total in AUD) and Trip preferences (nationality,
-    room allocation, minimum guest rating, free cancellation). Every field the old Preferences
-    drawer held lives in exactly one of them.
-  - An editor is a labelled `role="dialog"` anchored under its chip. Focus moves to its first field,
-    Tab loops inside it, and Escape, the close button or a saved edit return focus to the chip.
-    Escape with the calendar open closes only the calendar. A press outside closes the editor
-    without moving focus. Opening one closes the Trip drawer and the navigation drawer.
+    opens its own editor: Where (destinations and departing from), When (start and end date plus the
+    calendar), Who (a travellers stepper), Budget (total in AUD) and Trip preferences (the
+    traveller's own list).
+  - Where and Trip preferences hold lists, so, like Mindtrip's, they open as a centred modal
+    (`aria-modal="true"`) over a scrim, held a fixed distance from the top so a new row grows it
+    downwards. The panel is 512 px wide with no padding of its own: the head has the close button
+    leading and a centred 20 px semibold title, content is inset by `--space-5`, and one ink pill at
+    the bottom right (`--text` fill, `--page` label, so it inverts in dark mode, 168 × 40) is the
+    primary action: Save on Where, Done on Trip preferences, Update trip once a plan exists. Trip
+    preferences has a hairline under its head; Where has none. The panel uses `--radius-lg` (14 px)
+    and the list rows `--radius` (10 px) rather than Mindtrip's 16 and 12, to stay on the tokens.
+  - Where lists the destinations in visiting order as cards: a 48 px square icon slot on
+    `--surface-2` where Mindtrip shows a photo (no photo is fetched here), the name in 15 px semibold,
+    the region line under it when the place was picked from a suggestion, and a 28 px round remove
+    button. They are stored as one string joined with " & ". Below the list, an Add destination pill
+    turns into a full-width pill search field with a clear button inside. Enter adds what was typed
+    ("Sydney & Melbourne" adds two, a repeat is skipped), and text left in the field is kept on
+    Save. In live data mode with Maps configured the field is a combobox that suggests places from
+    `/api/places/search` after 3 characters and 350 ms without typing, each query asked once per
+    editor, with the typed part of each name in bold; in mock mode nothing is looked up. Escape
+    closes the suggestions first, then folds the field back into its pill (dropping what was typed),
+    and only then closes the editor.
+  - Departing from has no counterpart in Mindtrip's dialog but feeds transport planning, so it stays
+    as a secondary section below the destinations: a small dim label and the same pill field, with
+    a hint that leaving it blank skips long-haul flights. A card like a destination's was rejected
+    because it would read as another stop. Mindtrip's road-trip switch is left out, because the
+    planner has no road-trip mode.
+  - Trip preferences opens on a filled field (`--surface-2`, no border, 15 px) that adds a preference
+    with Enter; below it each preference is a filled row with a remove button, up to 12 of up to 200
+    characters. Clicking a preference's text edits it in place (Enter or leaving the field keeps it,
+    Escape cancels only the edit); there is no pencil. Duplicates are refused with a message, text
+    left in the field is kept on Done, and additions and removals are announced in a status region.
+    Nationality, room allocation, minimum guest rating and free cancellation are no longer edited;
+    a stored brief's values pass through unchanged, and a stored rating the schema would reject
+    counts as "no minimum".
+  - An editor is a labelled `role="dialog"`. Focus moves to its first field (Where with places
+    already listed starts on Add destination), Tab loops inside it, and Escape, the close button or a
+    saved edit return focus to the chip. Escape with the calendar open closes only the calendar. A
+    press outside an anchored editor closes it without moving focus; a press on a modal's scrim
+    returns focus to the chip. Opening one closes the Trip drawer and the navigation drawer.
   - Edits stay in the editor until they are kept, so Escape and a press outside discard them. Each
     editor checks its own fields with the brief schema and shows how to fix one next to it.
   - Before there is a plan, Save keeps the edit in the draft; nothing is sent. The stated facts go
@@ -90,7 +122,8 @@ now. Implementation history and browser acceptance for each phase are in the
     has more chips behind it; the page itself never scrolls sideways.
   - Navigation opens as a drawer, and Trip spans the content width.
   - At ≤520 px the top-bar buttons show icons only but keep their accessible names, chips are 44 px
-    tall, and an editor opens as a bottom sheet over a scrim.
+    tall, and every editor, the modal ones included, opens as a bottom sheet over a scrim with 44 px
+    row buttons.
 
 ## Conversations, trips and storage
 

@@ -116,6 +116,14 @@ was understood, and sends those fields back as `ChatRequest.known` with the next
 merged under that message's own extraction. So "悉尼三日游" is answered with a question about dates,
 travellers and budget, and the reply only has to supply those.
 
+`TripBrief.preferences` (and the same field on `known`) carries the traveller's own trip
+preferences, written in the top bar's Trip preferences editor. The coordinator's `update_trip_brief`
+tool has no field for them, so a model cannot rewrite the list; `BriefPatchSchema` carries them from
+`known` into the planned brief. The supervisor is told to pass each one into the objectives it bears
+on, and every specialist receives them in its evidence or payload with one shared rule
+(`packages/agents/src/prompts/traveller-preferences.ts`): weigh them where the evidence allows, say
+when one could not be met, and never treat one as a verified fact.
+
 A message can carry up to four attachments. Images reach the coordinator as content blocks and text
 files are inlined into its message; only the coordinator sees them, the specialists' inputs are
 unchanged, and the offline path ignores images while still reading the inlined text. Sizes and

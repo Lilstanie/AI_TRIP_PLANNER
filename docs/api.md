@@ -38,6 +38,13 @@ Contract: `ChatRequest`, `ChatResponse` and `AgentProgressEvent` in `packages/sh
 }
 ```
 
+`brief.preferences` and `known.preferences` are optional: the traveller's own trip preferences
+("Vegetarian food", "No early starts"), at most `MAX_TRIP_PREFERENCES` (12) entries of 1 to
+`MAX_TRIP_PREFERENCE_LENGTH` (200) characters after trimming, both in
+`packages/shared/src/contracts.ts`. They come only from the trip preferences editor; the coordinator
+never writes them, and every specialist and the supervisor receive them with the brief. `nationality`
+and `accommodation` are still accepted and passed through, but no current screen sets them.
+
 Optional `attachments`: up to 4 files the traveller attached to this message.
 
 ```json
