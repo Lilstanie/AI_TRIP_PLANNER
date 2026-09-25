@@ -31,6 +31,52 @@ const DestinationGuideDraft = z.object({
   assumptions: z.array(z.string().trim().min(1).max(400)).max(6),
 });
 
+/**
+ * What the model is asked to return: the same shape with no length limits.
+ * The model cannot count characters, so it wrote a 414-character summary
+ * against a 400 limit, the extraction failed, and a retry that reused the
+ * failed call's id ended the agent with no result at all — the guide fell back
+ * in four of nine live runs. Lengths are enforced afterwards by `fitDraft`.
+ */
+const ModelGuideDraft = z.object({
+  summary: z.string().trim().min(1),
+  attractions: z.array(z.object({ name: z.string().trim().min(1), detail: z.string().trim().min(1) })),
+  customs: z.array(z.string().trim().min(1)).min(1),
+  safety: z.array(z.string().trim().min(1)).min(1),
+  entryHealth: z.array(z.string().trim().min(1)).min(1),
+  weather: z.string().trim().min(1),
+  packing: z.array(z.string().trim().min(1)).min(1),
+  assumptions: z.array(z.string().trim().min(1)),
+});
+
+/** Shorten prose to `max` characters, at a sentence end when one is close enough. */
+function clip(text: string, max: number): string {
+  if (text.length <= max) return text;
+  const cut = text.slice(0, max);
+  const sentence = Math.max(cut.lastIndexOf(". "), cut.lastIndexOf("! "), cut.lastIndexOf("? "));
+  if (sentence >= max / 2) return cut.slice(0, sentence + 1);
+  const word = cut.slice(0, max - 1).lastIndexOf(" ");
+  return `${cut.slice(0, word > 0 ? word : max - 1)}…`;
+}
+
+/** Bring a model draft within the display limits instead of discarding it. */
+export function fitDraft(draft: z.infer<typeof ModelGuideDraft>): DestinationGuideDraft {
+  const each = (items: string[], count: number, max: number) =>
+    items.slice(0, count).map((item) => clip(item, max));
+  return DestinationGuideDraft.parse({
+    summary: clip(draft.summary, 400),
+    attractions: draft.attractions
+      .slice(0, 5)
+      .map(({ name, detail }) => ({ name, detail: clip(detail, 500) })),
+    customs: each(draft.customs, 4, 400),
+    safety: each(draft.safety, 4, 400),
+    entryHealth: each(draft.entryHealth, 4, 400),
+    weather: clip(draft.weather, 500),
+    packing: each(draft.packing, 6, 300),
+    assumptions: each(draft.assumptions, 6, 400),
+  });
+}
+
 /** Structured guide content before it is adapted to the shared proposal shape. */
 export type DestinationGuideDraft = z.infer<typeof DestinationGuideDraft>;
 
@@ -150,9 +196,9 @@ function createMiniMaxGenerator(): DestinationGuideGenerator | undefined {
         model,
         tools: [evidence],
         systemPrompt:
-          "You are the destination specialist. Always call read_destination_evidence before answering and use only its facts. Attraction names must be a grounded candidate's name copied character for character, with no category, rating or district appended. Give concise customs, packing and planning guidance. Treat weather as monthly context, never a forecast. Never assert entry eligibility, vaccine requirements or that an area is safe; direct travellers to current official immigration, health and travel-advisory sources. Never claim live opening hours or availability. Return the requested structured destination guide.\n\nFill every field on the first attempt and respect these limits literally, because the extraction is retried only a few times before the draft is abandoned: summary at most 400 characters; at most 5 attractions, each detail at most 500 characters; customs, safety and entryHealth are each 1-4 strings of at most 400 characters; weather at most 500 characters; packing 1-6 strings of at most 300 characters; assumptions at most 6 strings.\n\n" +
+          "You are the destination specialist. Always call read_destination_evidence before answering and use only its facts. Attraction names must be a grounded candidate's name copied character for character, with no category, rating or district appended. Give concise customs, packing and planning guidance. Treat weather as monthly context, never a forecast. Never assert entry eligibility, vaccine requirements or that an area is safe; direct travellers to current official immigration, health and travel-advisory sources. Never claim live opening hours or availability. Return the requested structured destination guide.\n\nKeep within these lengths; longer text is cut at a sentence end: summary at most 400 characters; at most 5 attractions, each detail at most 500 characters; customs, safety and entryHealth are each 1-4 strings of at most 400 characters; weather at most 500 characters; packing 1-6 strings of at most 300 characters; assumptions at most 6 strings.\n\n" +
           TRAVELLER_PREFERENCES_RULE,
-        responseFormat: DestinationGuideDraft,
+        responseFormat: ModelGuideDraft,
       });
       const result = await specialist.invoke({
         messages: [
@@ -165,7 +211,7 @@ function createMiniMaxGenerator(): DestinationGuideGenerator | undefined {
           },
         ],
       });
-      return readStructuredResponse("destination-guide", DestinationGuideDraft, result);
+      return fitDraft(readStructuredResponse("destination-guide", ModelGuideDraft, result));
     },
   };
 }
@@ -273,7 +319,9 @@ async function planDestinationGuide(
             freshness: "The destination guide completed with monthly context because the requested weather data was unavailable.",
           }
         : {
-            kind: weatherResult?.provider === "Google Weather API"
+            // Live providers are live whether they forecast or report history;
+            // anything else (a model's month context, a fixture) is not.
+            kind: /^(Google Weather API|Open-Meteo)/.test(weatherResult?.provider ?? "")
               ? "live"
               : !mockEnabled()
                 ? "estimated"

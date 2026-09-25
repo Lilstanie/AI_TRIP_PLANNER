@@ -148,14 +148,69 @@ async function openMeteoForecast(query: WeatherQuery): Promise<WeatherResult> {
   };
 }
 
+type OpenMeteoArchive = {
+  daily?: {
+    time?: string[];
+    temperature_2m_max?: (number | null)[];
+    temperature_2m_min?: (number | null)[];
+    precipitation_sum?: (number | null)[];
+  };
+};
+
+const CLIMATE_YEARS = 3;
+const CLIMATE_WINDOW_DAYS = 3;
+
+/**
+ * Climate context from what actually happened: the same week in each of the
+ * last three years, from the Open-Meteo historical archive. Replaces a
+ * hemisphere-and-month guess that live mode used to return under a provider
+ * name, which called Bali in October "cooler".
+ */
+async function openMeteoClimate(query: WeatherQuery): Promise<WeatherResult> {
+  const target = dateValue(query.targetDate);
+  const iso = (value: number) => new Date(value).toISOString().slice(0, 10);
+  const years = await Promise.all(
+    Array.from({ length: CLIMATE_YEARS }, async (_, index) => {
+      const shifted = new Date(target);
+      shifted.setUTCFullYear(shifted.getUTCFullYear() - index - 1);
+      const url = new URL("https://archive-api.open-meteo.com/v1/archive");
+      url.search = new URLSearchParams({
+        latitude: String(query.location.latitude),
+        longitude: String(query.location.longitude),
+        start_date: iso(shifted.getTime() - CLIMATE_WINDOW_DAYS * DAY_MS),
+        end_date: iso(shifted.getTime() + CLIMATE_WINDOW_DAYS * DAY_MS),
+        daily: "temperature_2m_max,temperature_2m_min,precipitation_sum",
+        timezone: "UTC",
+      }).toString();
+      const response = await fetch(url, { signal: AbortSignal.timeout(8_000) });
+      if (!response.ok) throw new Error(`Open-Meteo archive request failed (${response.status}).`);
+      return ((await response.json()) as OpenMeteoArchive).daily ?? {};
+    }),
+  );
+  const values = (key: "temperature_2m_max" | "temperature_2m_min" | "precipitation_sum") =>
+    years.flatMap((daily) => (daily[key] ?? []).filter((value): value is number => Number.isFinite(value)));
+  const highs = values("temperature_2m_max");
+  const lows = values("temperature_2m_min");
+  const rain = values("precipitation_sum");
+  if (!highs.length || !lows.length || !rain.length)
+    throw new Error("Open-Meteo archive returned no climate data for this location.");
+  const mean = (list: number[]) => Math.round(list.reduce((sum, value) => sum + value, 0) / list.length);
+  const wetShare = Math.round((rain.filter((value) => value >= 1).length / rain.length) * 100);
+  return {
+    horizon: "climate",
+    targetDate: query.targetDate,
+    summary: `In the same week of the last ${CLIMATE_YEARS} years: typically ${mean(lows)}–${mean(highs)}°C, with 1 mm or more of rain on ${wetShare}% of days. Historical conditions, not a forecast.`,
+    observedAt: new Date().toISOString(),
+    provider: "Open-Meteo historical archive",
+  };
+}
+
 export const weather: WeatherPort = {
   async forecast(query) {
     const days = daysUntil(query.targetDate);
     if (days < 0) throw new Error("Weather target date cannot be in the past.");
-    if (days > FORECAST_LIMIT_DAYS) {
-      return climateFixture(query.targetDate, query.location.latitude, "Seasonal climate fixture");
-    }
     if (mockEnabled()) return mockWeather(query);
+    if (days > FORECAST_LIMIT_DAYS) return openMeteoClimate(query);
     return days <= GOOGLE_FORECAST_LIMIT_DAYS
       ? googleForecast(query)
       : openMeteoForecast(query);
