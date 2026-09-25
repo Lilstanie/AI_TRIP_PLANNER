@@ -3,6 +3,23 @@
 AI Trip Planner is one Next.js deployable backed by workspace packages. A deterministic LangGraph
 workflow owns the planning control flow; LangChain agents do role-specific reasoning inside it.
 
+## Change entry points
+
+Use this map to find the owner of a change before editing. Package READMEs document their exports and
+configuration; [development](development.md) owns setup, directory and verification rules.
+
+| Change area                                        | Start here                                 | Follow through                                                                                                                                     |
+| -------------------------------------------------- | ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Chat requests and streamed replies                 | `apps/web/app/api/chat/route.ts`           | `packages/orchestrator/src/chat.ts`, shared chat contract, and the chat UI                                                                         |
+| Planning state, conflict checks or specialist flow | `packages/orchestrator/src/workflow.ts`    | `packages/agents/src/`, validated plan contract, persistence and workspace consumer                                                                |
+| Shared request, proposal or plan shape             | `packages/shared/src/`                     | Every producer and consumer; add an Agent Note in the same change                                                                                  |
+| Maps, booking or weather evidence                  | `packages/tools/src/gateway.ts`            | Typed ports, provider adapters, fallback labels and agent consumers; use [add-provider](../.agents/skills/add-provider/SKILL.md) for provider work |
+| Saved chats, preferences or trips                  | `packages/services/src/`                   | Browser storage, API routes and workspace restore behavior                                                                                         |
+| Visible workspace or interaction behavior          | `apps/web/components/` and `apps/web/lib/` | [Workspace UI](workspace-ui.md), design rules and [ui-verification](../.agents/skills/ui-verification/SKILL.md)                                    |
+
+For changes that cross these boundaries, trace the value from its producer to the final user-facing
+consumer with [end-to-end-feature-wiring](../.agents/skills/end-to-end-feature-wiring/SKILL.md).
+
 ## Runtime flow
 
 ```mermaid
