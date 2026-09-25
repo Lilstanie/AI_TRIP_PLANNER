@@ -4,6 +4,7 @@ import {
   type AgentContext,
   type AgentProposal,
   type RevisionRequest,
+  type BudgetAllocation,
   type ProposalItem,
   type RouteLeg,
   type RouteOption,
@@ -63,6 +64,8 @@ interface TransportEvidence {
   days: number;
   budgetRevision: boolean;
   scheduleRevision: boolean;
+  /** The graph's ceiling for all transport, during a budget revision. */
+  allocation?: BudgetAllocation;
   /** One entry per flown hop, in travel order. */
   flights: { leg: JourneyLeg; options: FlightOption[] }[];
   routed: { query: RouteQuery; legs: RouteLeg[]; options: RouteOption[] }[];
@@ -82,6 +85,7 @@ async function gatherTransportEvidence(
   briefInput: TripBrief,
   ctx: AgentContext,
   revision?: RevisionRequest,
+  allocation?: BudgetAllocation,
 ): Promise<TransportEvidence> {
   ctx.signal?.throwIfAborted();
   const brief = TripBriefSchema.parse(briefInput);
@@ -215,6 +219,7 @@ async function gatherTransportEvidence(
     flights,
     routed,
     conflicts,
+    ...(allocation ? { allocation } : {}),
   };
 }
 
@@ -374,15 +379,27 @@ function transportSource(
 /** Turn a chosen flight and schedule into the costed proposal. */
 function assembleTransportProposal(
   evidence: TransportEvidence,
-  plan: TransportPlan,
+  chosenPlan: TransportPlan,
   degraded = false,
 ): AgentProposal {
-  const { origin, destinations, brief, budgetRevision, scheduleRevision } = evidence;
+  const { origin, destinations, brief, budgetRevision, scheduleRevision, allocation } = evidence;
   const conflicts = [...evidence.conflicts];
   const routeItems = evidence.routed.flatMap(({ query, legs, options }, index) => {
-    const slot = plan.schedule[index] ?? { day: query.day, startMinutes: DEFAULT_DEPARTURE_MINUTES };
+    const slot = chosenPlan.schedule[index] ?? {
+      day: query.day,
+      startMinutes: DEFAULT_DEPARTURE_MINUTES,
+    };
     return layOutHop(query, legs, options, slot.day, slot.startMinutes, brief.dates[0], conflicts);
   });
+  const groundCost = routeItems.reduce((sum, item) => sum + (item.estCost ?? 0), 0);
+  const cheapest = cheapestFares(evidence);
+  const cheapestCost = cheapest.reduce((sum, fare) => sum + fare.price, 0);
+  // Over its allocation, a chosen fare gives way to the cheapest one offered;
+  // whatever is still over is the orchestrator's to weigh.
+  const overAllocation =
+    allocation !== undefined &&
+    chosenPlan.flights.reduce((sum, fare) => sum + fare.price, 0) + groundCost > allocation.budget;
+  const plan = overAllocation ? { ...chosenPlan, flights: cheapest } : chosenPlan;
   // One item per flown hop. A fare exists only because a hop was flown, so the
   // two are matched by the hop's position rather than each resolving the route
   // on its own and risking a mismatched label.
@@ -443,13 +460,35 @@ function assembleTransportProposal(
       `Origin comes from the trip brief, else the long-term preference "transport.origin", else Sydney; current origin: ${origin}.`,
       "Injected booking and maps results are treated as estimates, not reservations or live availability.",
       ...(budgetRevision ? ["Budget revision selected the lowest returned flight fare."] : []),
+      ...(allocation
+        ? [
+            `Transport allocation: ${allocation.basis}.${overAllocation ? " The chosen fare was over it, so the cheapest returned fare was taken." : ""}`,
+          ]
+        : []),
       ...(scheduleRevision ? ["Schedule revision moved routed legs to an early departure."] : []),
       ...plan.extraAssumptions,
     ],
     conflictsWith: [...new Set(conflicts)].sort((a, b) => a.localeCompare(b)),
+    floorCost: Math.round((cheapestCost + groundCost) * 100) / 100,
     ...(flightSelections.length ? { flights: flightSelections } : {}),
     source: transportSource(evidence, degraded),
   };
+}
+
+/** The lowest fare offered for every flown hop. */
+function cheapestFares(evidence: TransportEvidence): TransportPlan["flights"] {
+  return evidence.flights.flatMap(({ leg, options }) => {
+    if (!options.length) return [];
+    const pick = [...options].sort((left, right) => left.price - right.price)[0]!;
+    return [
+      {
+        legIndex: leg.index,
+        carrier: pick.carrier,
+        price: pick.price,
+        ...(pick.note ? { note: pick.note } : {}),
+      },
+    ];
+  });
 }
 
 /** The deterministic choice: kept as the no-key path and as the fallback from the model path. */
@@ -484,8 +523,9 @@ async function buildTransportProposal(
   briefInput: TripBrief,
   ctx: AgentContext,
   revision?: RevisionRequest,
+  allocation?: BudgetAllocation,
 ): Promise<AgentProposal> {
-  const evidence = await gatherTransportEvidence(briefInput, ctx, revision);
+  const evidence = await gatherTransportEvidence(briefInput, ctx, revision, allocation);
   return assembleTransportProposal(evidence, deterministicPlan(evidence));
 }
 
@@ -524,14 +564,15 @@ async function planTransport(
   brief: TripBrief,
   ctx: AgentContext,
   revision?: RevisionRequest,
+  allocation?: BudgetAllocation,
 ): Promise<AgentProposal> {
   const model = createRoutedChatModel("transport");
-  if (!model) return buildTransportProposal(brief, ctx, revision);
+  if (!model) return buildTransportProposal(brief, ctx, revision, allocation);
 
   let evidence: TransportEvidence | undefined;
   const search = tool(
     async () => {
-      evidence = await gatherTransportEvidence(brief, ctx, revision);
+      evidence = await gatherTransportEvidence(brief, ctx, revision, allocation);
       return {
         planningDays: evidence.days,
         origin: evidence.origin,
@@ -589,6 +630,9 @@ async function planTransport(
               preferences: brief.preferences,
             },
             revision: revision && { reason: revision.reason, constraints: revision.constraints },
+            ...(allocation
+              ? { transportBudget: { maxTotalCost: allocation.budget, basis: allocation.basis } }
+              : {}),
           }),
         },
       ],
@@ -647,7 +691,7 @@ async function planTransport(
     const reason = error instanceof Error ? error.message : "unknown model error";
     console.warn(`[transport] Specialist failed; using a safe local plan: ${reason}`);
     if (evidence) return assembleTransportProposal(evidence, deterministicPlan(evidence), true);
-    const proposal = await buildTransportProposal(brief, ctx, revision);
+    const proposal = await buildTransportProposal(brief, ctx, revision, allocation);
     return {
       ...proposal,
       source: {
@@ -664,12 +708,12 @@ export const transportAgent: Specialist = {
   name: "transport",
   label: "Getting around",
   supportsRevision: true,
-  async invoke({ brief, context, revision }) {
+  async invoke({ brief, context, revision, allocation }) {
     if (revision) {
       if (revision.tripId !== brief.tripId || revision.targetAgent !== "transport") {
         throw new Error("Transport revision must target this trip and agent.");
       }
     }
-    return planTransport(brief, context, revision);
+    return planTransport(brief, context, revision, allocation);
   },
 };

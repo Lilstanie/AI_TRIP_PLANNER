@@ -1,28 +1,72 @@
 import type { AgentName, AgentProposal, TripBrief, RevisionRequest } from "@trip/shared";
 import { assessBudget, costOf, NEGOTIATION_OVERRUN_PCT } from "./budget";
 
+/** Reason prefix of the one conflict that ends the loop: no revision can meet the budget. */
+export const INFEASIBLE_BUDGET = "infeasible budget";
+
+export const isInfeasible = (request: RevisionRequest) =>
+  request.reason.startsWith(INFEASIBLE_BUDGET);
+
+const cents = (amount: number) => Math.ceil(amount * 100) / 100;
+const aud = (amount: number) => `AUD ${amount.toFixed(2)}`;
+
+/**
+ * The lowest the plan can cost from the options the specialists found: each
+ * section at its floor, or free when it could not name one (activities and
+ * meals can always be scaled down to nothing).
+ */
+export function minimumCost(proposals: AgentProposal[]): number {
+  return proposals.reduce((sum, proposal) => sum + Math.min(costOf(proposal), proposal.floorCost ?? 0), 0);
+}
+
 export function detectConflicts(proposals: AgentProposal[], brief: TripBrief): RevisionRequest[] {
-  const { overrunPct } = assessBudget(proposals.map(costOf), brief.budgetTotal);
-  const pending = new Map<AgentName, { reasons: string[]; constraints: string[] }>();
-  const add = (agent: AgentName, reason: string, constraint: string) => {
+  const { estTotal, overrunPct } = assessBudget(proposals.map(costOf), brief.budgetTotal);
+  const pending = new Map<AgentName, { reasons: string[]; constraints: string[]; targetSaving?: number }>();
+  const add = (agent: AgentName, reason: string, constraint: string, targetSaving?: number) => {
     const entry = pending.get(agent) ?? { reasons: [], constraints: [] };
     if (!entry.reasons.includes(reason)) entry.reasons.push(reason);
     if (!entry.constraints.includes(constraint)) entry.constraints.push(constraint);
+    if (targetSaving !== undefined) entry.targetSaving = targetSaving;
     pending.set(agent, entry);
   };
 
   if (overrunPct > NEGOTIATION_OVERRUN_PCT) {
-    [...proposals]
-      .filter((proposal) => costOf(proposal) > 0)
-      .sort((left, right) => costOf(right) - costOf(left))
-      .slice(0, 2)
-      .forEach((proposal) =>
-        add(
-          proposal.agent,
-          `plan is ${overrunPct.toFixed(2)}% over budget`,
-          `cut ${proposal.agent} cost by ~30%`,
-        ),
+    const overrun = estTotal - brief.budgetTotal;
+    const floor = minimumCost(proposals);
+    if (floor > brief.budgetTotal) {
+      // Revising cannot help: even the cheapest options found exceed the
+      // budget. Say so once, with the number, instead of burning every round.
+      const largest = [...proposals].sort((left, right) => costOf(right) - costOf(left))[0]!;
+      return [
+        {
+          tripId: brief.tripId,
+          targetAgent: largest.agent,
+          reason: `${INFEASIBLE_BUDGET}: the cheapest flights and stays found already cost ${aud(floor)}, above the ${aud(brief.budgetTotal)} budget`,
+          constraints: [
+            `raise the budget to at least ${aud(floor)} (from the options found, before activities and meals), or change dates, origin or destination`,
+          ],
+        },
+      ];
+    }
+    // Spread the actual overrun over what each section can still give up, so a
+    // 500% overrun and a 4% one are not both answered with "cut 30%".
+    const reducible = proposals
+      .map((proposal) => ({
+        proposal,
+        room: costOf(proposal) - Math.min(costOf(proposal), proposal.floorCost ?? 0),
+      }))
+      .filter(({ room }) => room > 0);
+    const room = reducible.reduce((sum, entry) => sum + entry.room, 0);
+    for (const { proposal, room: own } of reducible) {
+      const saving = cents(Math.min(own, (overrun * own) / room));
+      if (saving <= 0) continue;
+      add(
+        proposal.agent,
+        `plan is ${overrunPct.toFixed(2)}% (${aud(overrun)}) over budget`,
+        `cut ${proposal.agent} cost by ${aud(saving)}, to at most ${aud(costOf(proposal) - saving)}`,
+        saving,
       );
+    }
   }
 
   for (const proposal of proposals) {
@@ -82,5 +126,6 @@ export function detectConflicts(proposals: AgentProposal[], brief: TripBrief): R
     targetAgent,
     reason: value.reasons.join("; "),
     constraints: value.constraints,
+    ...(value.targetSaving !== undefined ? { targetSaving: value.targetSaving } : {}),
   }));
 }

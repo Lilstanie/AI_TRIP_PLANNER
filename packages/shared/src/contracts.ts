@@ -327,6 +327,9 @@ export const AgentProposal = z.object({
   stays: z.array(StaySelection).optional(),
   flights: z.array(FlightSelection).optional(),
   source: AgentProposalSource.optional(),
+  // The lowest total this specialist could reach from the options it found (AUD, whole group).
+  // Absent when it cannot tell; the orchestrator then treats the section as fully reducible.
+  floorCost: z.number().nonnegative().optional(),
 });
 export type AgentProposal = z.infer<typeof AgentProposal>;
 
@@ -338,6 +341,8 @@ export const RevisionRequest = z.object({
   targetAgent: z.enum(AGENT_NAMES),
   reason: z.string(), // "over budget by 18%", "day 2 route infeasible" ...
   constraints: z.array(z.string()),
+  // AUD this agent is asked to cut from its previous proposal, for a budget overrun.
+  targetSaving: z.number().nonnegative().optional(),
 });
 export type RevisionRequest = z.infer<typeof RevisionRequest>;
 

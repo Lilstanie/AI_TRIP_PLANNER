@@ -25,6 +25,25 @@ export interface SpecialistRequest {
   readonly brief: TripBrief;
   readonly context: AgentContext;
   readonly revision?: RevisionRequest;
+  /** What the other specialists have proposed so far; absent when planning blind. */
+  readonly board?: PlanningBoard;
+  /** The AUD this specialist may spend, set by the graph from what earlier stages left. */
+  readonly allocation?: BudgetAllocation;
+  /** This specialist's own last proposal, during a revision. */
+  readonly previous?: AgentProposal;
+}
+
+/** The other specialists' current proposals, shared by the orchestrator. */
+export interface PlanningBoard {
+  readonly proposals: readonly AgentProposal[];
+}
+
+/** A spending ceiling for one specialist, with the arithmetic that produced it. */
+export interface BudgetAllocation {
+  /** AUD for the whole group; never negative. */
+  readonly budget: number;
+  /** One sentence the specialist can repeat to the traveller, e.g. "AUD 1,582 left after flights". */
+  readonly basis: string;
 }
 
 /**

@@ -60,13 +60,15 @@ describe("B proposals in the actual LangGraph workflow", () => {
     });
     expect(plan.conflicts).toEqual([]);
   });
-  it("propagates missing evidence to K=3 escalation instead of a false successful itinerary", async () => {
+  it("escalates missing evidence instead of a false successful itinerary", async () => {
     const plan = await runOrchestrator(brief, {
       specialists: [createItineraryAgent({ generator: false })],
       tools: { ...tools, maps: { ...tools.maps, places: vi.fn(async () => []) } },
       mem,
     });
-    expect(plan.round).toBe(3);
+    // The revision cannot find places either, so it improves nothing and the
+    // loop stops there rather than repeating it until K.
+    expect(plan.round).toBe(2);
     expect(plan.sections[0]!.status).toBe("needs_you");
     expect((plan.conflicts?.length ?? 0) > 0).toBe(true);
   });

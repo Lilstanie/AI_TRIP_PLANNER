@@ -7,6 +7,7 @@ import {
   type Specialist,
   type TripBrief,
   type UserPreference,
+  type BudgetAllocation,
 } from "@trip/shared";
 import { z } from "zod/v4";
 import { createAgent, tool } from "langchain";
@@ -120,7 +121,16 @@ function isBudgetRevision(revision?: RevisionRequest): boolean {
 }
 
 /** Compute the per-person ceiling shared with the model and validator. */
-function budgetCeiling(brief: TripBrief, days: number, revision?: RevisionRequest): number {
+function budgetCeiling(
+  brief: TripBrief,
+  days: number,
+  revision?: RevisionRequest,
+  allocation?: BudgetAllocation,
+): number {
+  // An allocation is already the graph's answer to the budget, including any
+  // revision's cut, so it replaces both the fixed share and the 30% trim.
+  if (allocation)
+    return Math.min(MAX_DAILY_PER_PERSON, allocation.budget / (brief.groupSize * days));
   const normal = Math.min(
     MAX_DAILY_PER_PERSON,
     (brief.budgetTotal * DINING_BUDGET_SHARE) / (brief.groupSize * days),
@@ -224,6 +234,7 @@ async function planDining(
   ctx: AgentContext,
   options: DiningAgentOptions,
   revision?: RevisionRequest,
+  allocation?: BudgetAllocation,
 ): Promise<AgentProposal> {
   // Gather map candidates and persisted preferences before applying the budget
   // guardrail and choosing either the injected or deterministic generator.
@@ -237,7 +248,7 @@ async function planDining(
   ctx.signal?.throwIfAborted();
   const places = uniquePlaces(candidatePlaces);
   const preferences = dietaryPreferences(allPreferences);
-  const ceiling = budgetCeiling(brief, days, revision);
+  const ceiling = budgetCeiling(brief, days, revision, allocation);
   const generator =
     options.generator === false ? undefined : (options.generator ?? createMiniMaxGenerator());
   let draft: DiningDraft;
@@ -327,7 +338,13 @@ export function createDiningAgent(options: DiningAgentOptions = {}): Specialist 
           throw new Error("Dining revision must target this trip and agent.");
         }
       }
-      return planDining(request.brief, request.context, options, request.revision);
+      return planDining(
+        request.brief,
+        request.context,
+        options,
+        request.revision,
+        request.allocation,
+      );
     },
   };
 }

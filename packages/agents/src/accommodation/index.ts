@@ -8,6 +8,8 @@ import {
   type Specialist,
   type ProviderProvenance,
   type StayOption,
+  type BudgetAllocation,
+  type PlanningBoard,
 } from "@trip/shared";
 import { createAgent, tool } from "langchain";
 import { z } from "zod/v4";
@@ -19,6 +21,8 @@ import { TRAVELLER_PREFERENCES_RULE } from "../prompts/traveller-preferences";
 const candidateId = (day: number, index: number) => `stay-${day}-${index}`;
 
 interface StayEvidence {
+  /** The graph's spending ceiling for every stay together, when it set one. */
+  allocation?: BudgetAllocation;
   segments: ReturnType<typeof splitStay>;
   rooms: number;
   roomAllocation: string;
@@ -35,6 +39,7 @@ async function gatherStayEvidence(
   brief: TripBrief,
   ctx: AgentContext,
   revision?: RevisionRequest,
+  allocation?: BudgetAllocation,
 ): Promise<StayEvidence> {
   ctx.signal?.throwIfAborted();
   const segments = splitStay(brief);
@@ -75,6 +80,7 @@ async function gatherStayEvidence(
     groupSize: brief.groupSize,
     budgetRevision,
     searched,
+    ...(allocation ? { allocation } : {}),
   };
 }
 
@@ -91,10 +97,27 @@ function assembleStayProposal(
   pick: (segmentDay: number, options: StayOption[]) => StayOption,
   sourceKind: "estimated" | "mock" | "fallback" = "estimated",
 ): AgentProposal {
-  const { segments, rooms, roomAllocation, groupSize, budgetRevision, searched } = evidence;
-  const selections = searched.map(({ segment, options }) => {
+  const { segments, rooms, roomAllocation, groupSize, budgetRevision, searched, allocation } =
+    evidence;
+  const picked = searched.map(({ segment, options }) => pick(segment.day, options));
+  const pickedTotal = searched.reduce(
+    (sum, { segment }, index) => sum + stayCost(picked[index]!, segment.nights, rooms),
+    0,
+  );
+  // The allocation is what flights left for the stay. A choice over it is
+  // replaced, city by city, by the best stay that fits that city's share of
+  // nights, or the cheapest when none fits; the orchestrator sees the rest.
+  const totalNights = segments.reduce((sum, segment) => sum + segment.nights, 0);
+  const overAllocation = allocation !== undefined && pickedTotal > allocation.budget;
+  const selections = searched.map(({ segment, options }, index) => {
     const initial = chooseInitial(options);
-    const chosen = pick(segment.day, options);
+    const share = allocation ? (allocation.budget * segment.nights) / totalNights : Infinity;
+    const fitting = options.filter((option) => stayCost(option, segment.nights, rooms) <= share);
+    const chosen = overAllocation
+      ? fitting.length
+        ? chooseInitial(fitting)
+        : options[0]!
+      : picked[index]!;
     return {
       segment,
       options,
@@ -120,7 +143,9 @@ function assembleStayProposal(
     `${roomAllocation} allocation: ${rooms} room(s) for ${groupSize} guest(s); check-out day is not charged.`,
     "Only selected stays contribute to estCost. Taxes/fees are assumed included in mock rates.",
     "Initial selection prefers rating >=8/10 and free cancellation; confirmed preferences remain mandatory during revisions.",
-    "Trip budget covers every agent; no accommodation budget allocation is assumed. Orchestrator checks the combined cost.",
+    allocation
+      ? `Stay allocation: ${allocation.basis}.${overAllocation ? " The first choice was over it, so the best stay within it (or the cheapest) was taken." : ""}`
+      : "Trip budget covers every agent; no accommodation budget allocation is assumed. Orchestrator checks the combined cost.",
     ...selections.map(
       ({ segment, options }) =>
         `${segment.city}: compared ${options.length} eligible option(s): ` +
@@ -166,6 +191,12 @@ function assembleStayProposal(
   return {
     agent: "accommodation",
     source,
+    floorCost:
+      selections.reduce(
+        (sum, { segment, options }) =>
+          sum + Math.round(stayCost(options[0]!, segment.nights, rooms) * 100),
+        0,
+      ) / 100,
     stays: selections.map(({ segment, options, chosen }) => ({
       id: `stay-${segment.day}`,
       ...segment,
@@ -250,8 +281,9 @@ async function buildStayProposal(
   brief: TripBrief,
   ctx: AgentContext,
   revision?: RevisionRequest,
+  allocation?: BudgetAllocation,
 ): Promise<AgentProposal> {
-  const evidence = await gatherStayEvidence(brief, ctx, revision);
+  const evidence = await gatherStayEvidence(brief, ctx, revision, allocation);
   return assembleStayProposal(evidence, revision, (_day, options) =>
     evidence.budgetRevision ? options[0]! : chooseInitial(options),
   );
@@ -281,15 +313,17 @@ async function planStays(
   brief: TripBrief,
   ctx: AgentContext,
   revision?: RevisionRequest,
+  allocation?: BudgetAllocation,
+  board?: PlanningBoard,
 ): Promise<AgentProposal> {
   const model = createRoutedChatModel("accommodation");
-  if (!model) return buildStayProposal(brief, ctx, revision);
+  if (!model) return buildStayProposal(brief, ctx, revision, allocation);
 
   let evidence: StayEvidence | undefined;
   // The tool hands over candidates and their real rates. It does not decide.
   const search = tool(
     async () => {
-      evidence = await gatherStayEvidence(brief, ctx, revision);
+      evidence = await gatherStayEvidence(brief, ctx, revision, allocation);
       return {
         stays: evidence.searched.map(({ segment, options }) => ({
           stayId: `stay-${segment.day}`,
@@ -321,7 +355,7 @@ async function planStays(
     model,
     tools: [search],
     systemPrompt:
-      "You are the accommodation specialist. Call search_accommodation_candidates, then choose one candidate for every stay it returns. You own that choice: weigh rating, free cancellation and total cost against the traveller's brief and any revision. A budget revision means prefer the cheapest eligible candidate. Refer to candidates only by the ids you were given -- never invent a property, a rate, a rating or a policy, and never state a price yourself. Return the requested structured selection. " +
+      "You are the accommodation specialist. Call search_accommodation_candidates, then choose one candidate for every stay it returns. You own that choice: weigh rating, free cancellation and total cost against the traveller's brief and any revision. When a stayBudget is given, keep the total of all chosen stays within maxTotalCost. A budget revision means prefer the cheapest eligible candidate. Refer to candidates only by the ids you were given -- never invent a property, a rate, a rating or a policy, and never state a price yourself. Return the requested structured selection. " +
       TRAVELLER_PREFERENCES_RULE,
     responseFormat: StaySelection,
   });
@@ -343,6 +377,14 @@ async function planStays(
               preferences: brief.preferences,
             },
             revision: revision && { reason: revision.reason, constraints: revision.constraints },
+            // What the rest of the plan has settled, so the stay is chosen
+            // against what is actually left rather than the whole budget.
+            ...(allocation
+              ? { stayBudget: { maxTotalCost: allocation.budget, basis: allocation.basis } }
+              : {}),
+            ...(board?.proposals.length
+              ? { otherSections: board.proposals.map(({ agent, summary }) => ({ agent, summary })) }
+              : {}),
           }),
         },
       ],
@@ -390,7 +432,7 @@ async function planStays(
         "fallback",
       );
     }
-    const proposal = await buildStayProposal(brief, ctx, revision);
+    const proposal = await buildStayProposal(brief, ctx, revision, allocation);
     return {
       ...proposal,
       source: {
@@ -407,12 +449,12 @@ export const accommodationAgent: Specialist = {
   name: "accommodation",
   label: "Stay",
   supportsRevision: true,
-  async invoke({ brief, context, revision }) {
+  async invoke({ brief, context, revision, allocation, board }) {
     if (revision) {
       if (revision.tripId !== brief.tripId || revision.targetAgent !== "accommodation") {
         throw new Error("Accommodation revision must target this trip and agent.");
       }
     }
-    return planStays(brief, context, revision);
+    return planStays(brief, context, revision, allocation, board);
   },
 };
