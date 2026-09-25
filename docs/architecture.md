@@ -16,7 +16,6 @@ configuration; [development](development.md) owns setup, directory and verificat
 | Maps, booking or weather evidence                  | `packages/tools/src/gateway.ts`            | Typed ports, provider adapters, fallback labels and agent consumers; use [add-provider](../.agents/skills/add-provider/SKILL.md) for provider work |
 | Saved chats, preferences or trips                  | `packages/services/src/`                   | Browser storage, API routes and workspace restore behavior                                                                                         |
 | Visible workspace or interaction behavior          | `apps/web/components/` and `apps/web/lib/` | [Workspace UI](workspace-ui.md), design rules and [ui-verification](../.agents/skills/ui-verification/SKILL.md)                                    |
-| Native iOS shell or WebKit behavior                | `apps/ios/`                                | [iOS setup and limits](../apps/ios/README.md) and the shared web workspace                                                                         |
 
 For changes that cross these boundaries, trace the value from its producer to the final user-facing
 consumer with [end-to-end-feature-wiring](../.agents/skills/end-to-end-feature-wiring/SKILL.md).
