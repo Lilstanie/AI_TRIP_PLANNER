@@ -78,10 +78,13 @@ describe("LangGraph orchestrator workflow", () => {
     const plan = await runOrchestrator(brief, { specialists: [itinerary], tools, mem });
     expect(plan).toMatchObject({ tripId: brief.tripId, round: 1, estTotal: 400 });
     expect(plan.sections[0]).toMatchObject({ id: "itinerary", label: "itinerary label" });
-    expect(itinerary.invoke).toHaveBeenCalledWith({
-      brief,
-      context: expect.objectContaining({ tripId: brief.tripId, round: 1, tools, mem }),
-    });
+    expect(itinerary.invoke).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brief,
+        context: expect.objectContaining({ tripId: brief.tripId, round: 1, tools, mem }),
+        board: { proposals: [] },
+      }),
+    );
   });
 
   it("runs targeted revision nodes concurrently and converges", async () => {

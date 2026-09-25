@@ -6,6 +6,7 @@ import {
   type AgentProgressEvent,
   type RevisionRequest,
   type Specialist,
+  type SpecialistRequest,
   type ToolChoice,
   type TripBrief,
 } from "@trip/shared";
@@ -14,6 +15,7 @@ import type { BaseChatModel } from "@langchain/core/language_models/chat_models"
 import { createAgent, tool } from "langchain";
 import { z } from "zod/v4";
 import { withProgressTools } from "./progress-tools";
+import type { PlanningBoardRun } from "./board";
 import { createReasoningSink } from "./reasoning-sink";
 
 /**
@@ -111,11 +113,15 @@ export interface SupervisorDispatchOptions {
   /** Defaults to DEFAULT_REQUIRED_AGENTS; entries not offered as tools are ignored. */
   requiredAgents?: readonly AgentName[];
   onProgress?: (event: AgentProgressEvent) => void;
+  /** Stages each call through the planning board; without it specialists plan blind. */
+  run?: PlanningBoardRun;
 }
 
 export interface SupervisorRevisionOptions extends SupervisorDispatchOptions {
   proposals: AgentProposal[];
   requests: RevisionRequest[];
+  /** The board, previous proposal and allocation each reviser receives. */
+  extrasFor?: (agent: AgentName) => Partial<SpecialistRequest>;
 }
 
 /**
@@ -138,8 +144,8 @@ export function createSupervisorTools(
           round: options.context.round,
         });
         let proposal: AgentProposal;
-        try {
-          proposal = AgentProposalSchema.parse(
+        const invoke = async (extra: Partial<SpecialistRequest>) =>
+          AgentProposalSchema.parse(
             await specialist.invoke({
               brief: options.brief,
               context: {
@@ -153,8 +159,11 @@ export function createSupervisorTools(
                     )
                   : options.context.tools,
               },
+              ...extra,
             }),
           );
+        try {
+          proposal = options.run ? await options.run(specialist.name, invoke) : await invoke({});
         } catch (error) {
           options.onProgress?.({
             type: "agent_failed",
@@ -223,6 +232,7 @@ export function createRevisionTools(
                     : options.context.tools,
                 },
                 revision: request,
+                ...options.extrasFor?.(specialist.name),
               }),
             );
           } catch (error) {

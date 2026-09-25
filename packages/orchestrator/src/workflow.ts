@@ -27,8 +27,9 @@ import {
 import { createToolGateway } from "@trip/tools";
 import { z } from "zod/v4";
 import { assessBudget, costOf, rollUpCost, NEGOTIATION_OVERRUN_PCT } from "./budget";
-import { detectConflicts } from "./conflicts";
+import { detectConflicts, isInfeasible } from "./conflicts";
 export { detectConflicts } from "./conflicts";
+import { createPlanningBoard } from "./board";
 import { choiceFor, dispatchWithSupervisor, reviseWithSupervisor } from "./supervisor";
 import { withProgressTools } from "./progress-tools";
 
@@ -51,7 +52,22 @@ const OrchestratorState = new StateSchema({
   proposals: z.array(z.custom<AgentProposal>()).default(() => []),
   conflicts: z.array(z.custom<RevisionRequest>()).default(() => []),
   plan: z.custom<TripPlan>().optional(),
+  // Set when a revision round improved nothing; the loop stops rather than repeat it.
+  stalled: z.boolean().default(false),
 });
+
+/**
+ * How far a set of proposals is from a plan the traveller can use: the AUD over
+ * budget, plus a tenth of the budget for every other unresolved conflict, so a
+ * revision that fixes a route by blowing the budget does not count as progress.
+ */
+export function planScore(proposals: AgentProposal[], brief: TripBrief): number {
+  const { estTotal } = assessBudget(proposals.map(costOf), brief.budgetTotal);
+  const others = detectConflicts(proposals, brief)
+    .flatMap((request) => request.reason.split("; "))
+    .filter((reason) => !/over budget|infeasible budget/.test(reason)).length;
+  return Math.max(0, estTotal - brief.budgetTotal) + others * brief.budgetTotal * 0.1;
+}
 
 type WorkflowNode = GraphNode<typeof OrchestratorState>;
 
@@ -179,15 +195,23 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
       summary: `Assigning planning tasks for ${state.brief.destination}.`,
     });
     const agentContext = context(state.brief, round);
+    // Every specialist runs through the board, so the stay knows what flights
+    // cost and the day plan knows where the stay is, on either dispatch path.
+    const staged = () => {
+      const board = createPlanningBoard(state.brief);
+      return Promise.all(
+        specialists.map((specialist) =>
+          board.run(specialist.name, (extra) =>
+            invokeSpecialist(specialist, { brief: state.brief, context: agentContext, ...extra }),
+          ),
+        ),
+      );
+    };
     let proposals: AgentProposal[];
     // Explicit specialist injection is the deterministic seam used by tests.
     // Production uses the supervisor to select named specialist tools.
     if (injected) {
-      proposals = await Promise.all(
-        specialists.map((specialist) =>
-          invokeSpecialist(specialist, { brief: state.brief, context: agentContext }),
-        ),
-      );
+      proposals = await staged();
     } else {
       try {
         proposals = await dispatchWithSupervisor({
@@ -195,17 +219,14 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
           specialists,
           context: agentContext,
           onProgress,
+          run: createPlanningBoard(state.brief).run,
         });
       } catch (error) {
         const reason = error instanceof Error ? error.message : "unknown supervisor error";
         console.warn(
           `[supervisor] Delegation unavailable; using deterministic dispatch: ${reason}`,
         );
-        proposals = await Promise.all(
-          specialists.map((specialist) =>
-            invokeSpecialist(specialist, { brief: state.brief, context: agentContext }),
-          ),
-        );
+        proposals = await staged();
       }
     }
     return { round, proposals: proposals.map((proposal) => AgentProposalSchema.parse(proposal)) };
@@ -235,6 +256,25 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
     const requestByAgent = new Map(
       state.conflicts.map((request) => [request.targetAgent, request]),
     );
+    // A reviser sees what it proposed last time and what everyone else holds,
+    // and a budget cut arrives as a ceiling rather than a percentage to guess at.
+    const extrasFor = (agent: AgentName) => {
+      const previous = state.proposals.find((proposal) => proposal.agent === agent);
+      const saving = requestByAgent.get(agent)?.targetSaving;
+      const cost = previous ? costOf(previous) : 0;
+      return {
+        board: { proposals: state.proposals.filter((proposal) => proposal.agent !== agent) },
+        ...(previous ? { previous } : {}),
+        ...(saving !== undefined && previous
+          ? {
+              allocation: {
+                budget: Math.max(0, Math.floor((cost - saving) * 100) / 100),
+                basis: `AUD ${cost.toFixed(2)} last round, less the AUD ${saving.toFixed(2)} this section must save for the plan to fit the budget`,
+              },
+            }
+          : {}),
+      };
+    };
     const deterministicRevision = () =>
       Promise.all(
         state.proposals.map(async (proposal) => {
@@ -245,6 +285,7 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
             brief: state.brief,
             context: context(state.brief, round, specialist.name),
             revision: request,
+            ...extrasFor(specialist.name),
           });
         }),
       );
@@ -260,6 +301,7 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
           proposals: state.proposals,
           requests: state.conflicts,
           onProgress,
+          extrasFor,
         });
       } catch (error) {
         const reason = error instanceof Error ? error.message : "unknown revision supervisor error";
@@ -268,6 +310,18 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
         );
         proposals = await deterministicRevision();
       }
+    }
+    // Keep the best plan so far: a round that does not improve the score is
+    // discarded, and the loop stops, because the next round would see the same
+    // inputs and repeat it.
+    if (planScore(proposals, state.brief) >= planScore(state.proposals, state.brief)) {
+      onProgress?.({
+        type: "coordinator",
+        phase: "revision",
+        round,
+        summary: "Revision did not improve the plan; keeping the previous version.",
+      });
+      return { round, stalled: true };
     }
     return { round, proposals };
   };
@@ -310,7 +364,15 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
     Record<string, unknown>,
     "revise_conflicts" | "build_plan"
   > = (state) =>
-    state.conflicts.length > 0 && state.round < maxRounds ? "revise_conflicts" : "build_plan";
+    state.conflicts.length > 0 && state.round < maxRounds && !state.conflicts.some(isInfeasible)
+      ? "revise_conflicts"
+      : "build_plan";
+
+  const routeAfterRevision: ConditionalEdgeRouter<
+    typeof OrchestratorState,
+    Record<string, unknown>,
+    "detect_conflicts" | "build_plan"
+  > = (state) => (state.stalled ? "build_plan" : "detect_conflicts");
 
   return new StateGraph(OrchestratorState)
     .addNode("dispatch_specialists", dispatchSpecialists)
@@ -323,7 +385,10 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
       "revise_conflicts",
       "build_plan",
     ])
-    .addEdge("revise_conflicts", "detect_conflicts")
+    .addConditionalEdges("revise_conflicts", routeAfterRevision, [
+      "detect_conflicts",
+      "build_plan",
+    ])
     .addEdge("build_plan", END)
     .compile();
 }

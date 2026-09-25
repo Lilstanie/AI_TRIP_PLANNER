@@ -13,6 +13,8 @@ import {
   type Specialist,
   type TripBrief,
   type UserPreference,
+  type BudgetAllocation,
+  type PlanningBoard,
 } from "@trip/shared";
 import { z } from "zod/v4";
 import { createAgent, tool } from "langchain";
@@ -56,6 +58,12 @@ export interface ItineraryGenerator {
     revision?: RevisionRequest;
     /** Why the previous draft was rejected, so the retry can correct it. */
     feedback?: string;
+    /** AUD the activities may cost in total, for the whole group. */
+    activityBudget: number;
+    /** What the other specialists settled: where the traveller sleeps and how they travel. */
+    otherSections?: { agent: string; summary: string; items: string[] }[];
+    /** The day plan this revision replaces. */
+    previous?: { summary: string; activities: string[] };
   }): Promise<ItineraryDraft>;
 }
 
@@ -74,9 +82,9 @@ function minutes(time: string): number {
 /** Enforce grounding, complete day coverage, budget and non-overlap invariants. */
 function validateDraft(
   draft: ItineraryDraft,
-  brief: TripBrief,
   days: number,
   places: Place[],
+  activityBudget: number,
 ): ItineraryDraft {
   const parsed = ItineraryDraft.parse(draft);
   const candidates = new Set(places.map((place) => place.name.trim().toLocaleLowerCase()));
@@ -106,9 +114,9 @@ function validateDraft(
     seen.add(key);
   }
   if (representedDays.size !== days) throw new Error("Itinerary must include every trip day.");
-  if (total > brief.budgetTotal * MODEL_ACTIVITY_BUDGET_SHARE) {
+  if (total > activityBudget) {
     throw new Error(
-      `Itinerary activity estimate ${total} exceeds its planning guardrail of ${brief.budgetTotal * MODEL_ACTIVITY_BUDGET_SHARE} for the whole group.`,
+      `Itinerary activity estimate ${total} exceeds its activity budget of ${activityBudget} for the whole group.`,
     );
   }
   for (let day = 1; day <= days; day += 1) {
@@ -156,6 +164,7 @@ function fallbackDraft(
   brief: TripBrief,
   days: number,
   places: Place[],
+  activityBudget: number,
   placesByCity?: ReadonlyMap<string, readonly Place[]>,
 ): ItineraryDraft {
   const candidates = places; // Empty evidence is handled before reaching this fallback.
@@ -172,7 +181,7 @@ function fallbackDraft(
   const scarcest = Math.min(...Array.from({ length: days }, (_, day) => forDay(day + 1).length));
   const perDay = Math.min(DAY_SLOTS.length, Math.max(1, Math.floor(scarcest / 2) || 1));
   const dailyEstimate =
-    Math.floor(((brief.budgetTotal * MODEL_ACTIVITY_BUDGET_SHARE) / days) * 100) / 100;
+    Math.floor((activityBudget / days) * 100) / 100;
   // The day's allowance is split across its stops rather than spent on each:
   // the cap is what a day of activities may cost, so two stops must share it
   // or adding a second stop would silently double the itinerary's budget.
@@ -222,7 +231,7 @@ function createDeepSeekGenerator(): ItineraryGenerator | undefined {
         name: "itinerary_specialist",
         model,
         tools: [evidence],
-        systemPrompt: `You are the itinerary specialist. Always call read_itinerary_evidence before drafting. Use only its facts and candidate place names. Cover every trip day with 1-3 non-overlapping activities using 24-hour HH:mm times, leave 150 minutes between different locations, and keep activity cost within ${MODEL_ACTIVITY_BUDGET_SHARE * 100}% of the total trip budget. Never claim live hours, availability, safety, visa or weather facts. Address a supplied revision exactly. Return the requested structured itinerary draft.\n\nEach activity location must be a candidate's name copied character for character. Do not append its category, rating or district, and do not reword it: an activity whose location is not an exact candidate name is discarded and the whole draft is thrown away.\n\n${TRAVELLER_PREFERENCES_RULE}`,
+        systemPrompt: `You are the itinerary specialist. Always call read_itinerary_evidence before drafting. Use only its facts and candidate place names. Cover every trip day with 1-3 non-overlapping activities using 24-hour HH:mm times, leave 150 minutes between different locations, and keep the total activity cost within activityBudget, which is what flights and the stay left for activities. When otherSections names where the traveller sleeps, build each day around that stay and keep long trips away from it rare. On a revision, start from previous and change only what the revision asks. Never claim live hours, availability, safety, visa or weather facts. Address a supplied revision exactly. Return the requested structured itinerary draft.\n\nEach activity location must be a candidate's name copied character for character. Do not append its category, rating or district, and do not reword it: an activity whose location is not an exact candidate name is discarded and the whole draft is thrown away.\n\n${TRAVELLER_PREFERENCES_RULE}`,
         responseFormat: ItineraryDraft,
       });
       const result = await specialist.invoke({
@@ -370,12 +379,24 @@ async function planItinerary(
   ctx: AgentContext,
   options: ItineraryAgentOptions,
   revision?: RevisionRequest,
+  extras: { allocation?: BudgetAllocation; board?: PlanningBoard; previous?: AgentProposal } = {},
 ): Promise<AgentProposal> {
   // Validate the brief and gather map/preferences evidence in parallel before
   // selecting the model or deterministic planner.
   ctx.signal?.throwIfAborted();
   const brief = TripBriefSchema.parse(briefInput);
   const days = planningDays(brief.dates);
+  // What flights and the stay left, when the graph has worked that out;
+  // otherwise the old fixed share of the whole budget.
+  const activityBudget =
+    extras.allocation?.budget ?? brief.budgetTotal * MODEL_ACTIVITY_BUDGET_SHARE;
+  const otherSections = (extras.board?.proposals ?? [])
+    .filter((proposal) => proposal.agent === "accommodation" || proposal.agent === "transport")
+    .map((proposal) => ({
+      agent: proposal.agent,
+      summary: proposal.summary,
+      items: proposal.items.map((item) => `day ${item.day ?? "?"}: ${item.detail}`),
+    }));
   const evidenceIssues: string[] = [];
   const readPlaces = async (category: string, near: string) => {
     try {
@@ -463,11 +484,24 @@ async function planItinerary(
             places,
             preferences,
             revision,
+            activityBudget,
+            ...(otherSections.length ? { otherSections } : {}),
+            ...(extras.previous
+              ? {
+                  previous: {
+                    summary: extras.previous.summary,
+                    activities: extras.previous.items.map(
+                      (item) =>
+                        `day ${item.day} ${item.startTime}-${item.endTime} ${item.location}: AUD ${item.estCost}`,
+                    ),
+                  },
+                }
+              : {}),
             ...(feedback ? { feedback } : {}),
           }),
-          brief,
           days,
           places,
+          activityBudget,
         );
       } catch (error) {
         ctx.signal?.throwIfAborted();
@@ -478,10 +512,10 @@ async function planItinerary(
     if (accepted) draft = accepted;
     else {
       usedFallback = true;
-      draft = fallbackDraft(brief, days, places, placesByCity);
+      draft = fallbackDraft(brief, days, places, activityBudget, placesByCity);
     }
   } else {
-    draft = fallbackDraft(brief, days, places, placesByCity);
+    draft = fallbackDraft(brief, days, places, activityBudget, placesByCity);
   }
   const adjusted = avoidBlockedWindows(draft, revision);
   draft = adjusted.draft;
@@ -495,7 +529,7 @@ async function planItinerary(
     // A revision that still conflicts is compared with the conservative
     // fallback, and the fallback is kept only when it actually conflicts less:
     // swapping unconditionally replaced a good model plan with a template one.
-    const fallback = avoidBlockedWindows(fallbackDraft(brief, days, places, placesByCity), revision);
+    const fallback = avoidBlockedWindows(fallbackDraft(brief, days, places, activityBudget, placesByCity), revision);
     // The fallback is a different day plan, so its connections are different too.
     const fallbackConnections: Connections = new Map();
     const fallbackConflicts = [
@@ -565,7 +599,11 @@ export function createItineraryAgent(options: ItineraryAgentOptions = {}): Speci
           throw new Error("Itinerary revision must target this trip and agent.");
         }
       }
-      return planItinerary(request.brief, request.context, options, request.revision);
+      return planItinerary(request.brief, request.context, options, request.revision, {
+        ...(request.allocation ? { allocation: request.allocation } : {}),
+        ...(request.board ? { board: request.board } : {}),
+        ...(request.previous ? { previous: request.previous } : {}),
+      });
     },
   };
 }

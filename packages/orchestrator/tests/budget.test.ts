@@ -74,22 +74,40 @@ describe("budget calculations", () => {
     ).toEqual([]);
   });
 
-  it("keeps the existing targeting of the two most expensive agents", () => {
+  it("spreads the overrun in AUD over what each section can still give up", () => {
     const requests = detectConflicts(
-      [proposal("itinerary", 200), proposal("transport", 1890), proposal("accommodation", 2600)],
+      [
+        proposal("itinerary", 200),
+        { ...proposal("transport", 1890), floorCost: 1890 },
+        { ...proposal("accommodation", 2600), floorCost: 2000 },
+      ],
       DEMO_BRIEF,
     );
-    expect(requests.map((request) => request.targetAgent)).toEqual(["accommodation", "transport"]);
+    // Transport is at its floor, so only itinerary (200) and accommodation (600) can cut the 690.
+    expect(requests.map((request) => [request.targetAgent, request.targetSaving])).toEqual([
+      ["itinerary", 172.5],
+      ["accommodation", 517.5],
+    ]);
     expect(requests[0]!.reason).toContain("17.25%");
+  });
+
+  it("reports an infeasible budget once instead of asking for cuts", () => {
+    const requests = detectConflicts(
+      [{ ...proposal("transport", 3000), floorCost: 2500 }, { ...proposal("accommodation", 2000), floorCost: 1800 }],
+      DEMO_BRIEF,
+    );
+    expect(requests).toHaveLength(1);
+    expect(requests[0]!.reason).toContain("infeasible budget");
+    expect(requests[0]!.constraints[0]).toContain("AUD 4300.00");
   });
 });
 
 describe("accommodation integration with negotiation", () => {
-  it("converges with selected hotel prices and the dining budget envelope", async () => {
+  it("fits the budget in the first round once each stage knows what earlier ones cost", async () => {
     const plan = await runOrchestrator(DEMO_BRIEF);
-    expect(plan.round).toBe(2);
-    expect(plan.estTotal).toBe(3930);
-    expect(plan.sections.find((section) => section.id === "dining")!.estCost).toBe(700);
+    expect(plan.round).toBe(1);
+    expect(plan.estTotal).toBe(3919.99);
+    expect(plan.sections.find((section) => section.id === "dining")!.estCost).toBe(249.99);
     expect(plan.sections.find((section) => section.id === "accommodation")!.estCost).toBe(1480);
     // Converged with no unresolved request, so every section is a draft. There is
     // no longer a "needs you" state driven by a confirmation checkpoint.
@@ -97,21 +115,18 @@ describe("accommodation integration with negotiation", () => {
     expect(plan.sections.every((section) => section.status === "draft")).toBe(true);
   });
 
-  it("stops at K=3 and escalates when the cheapest valid plan is still too expensive", async () => {
+  it("stops in round 1 with the minimum budget when the cheapest options are too expensive", async () => {
     const plan = await runOrchestrator({ ...DEMO_BRIEF, budgetTotal: 1200 });
-    expect(plan.round).toBe(3);
-    expect(plan.estTotal).toBe(3470);
-    expect(plan.conflicts?.some((request) => request.targetAgent === "accommodation")).toBe(true);
-    expect(plan.sections.find((section) => section.id === "accommodation")!.status).toBe(
-      "needs_you",
-    );
+    expect(plan.round).toBe(1);
+    expect(plan.conflicts).toHaveLength(1);
+    expect(plan.conflicts![0]!.reason).toContain("infeasible budget");
+    expect(plan.conflicts![0]!.constraints[0]).toContain("AUD 2810.00");
   });
 
-  it("also escalates an unresolved sub-10% overrun instead of silently accepting it", async () => {
+  it("fits a budget just below the old plan by allocating what flights and the stay left", async () => {
     const plan = await runOrchestrator({ ...DEMO_BRIEF, budgetTotal: 3800 });
-    expect(plan.round).toBe(3);
-    expect(plan.overrunPct).toBeGreaterThan(0);
-    expect(plan.overrunPct).toBeLessThan(10);
-    expect((plan.conflicts?.length ?? 0) > 0).toBe(true);
+    expect(plan.round).toBe(1);
+    expect(plan.overrunPct).toBeLessThanOrEqual(0);
+    expect(plan.conflicts).toEqual([]);
   });
 });

@@ -65,34 +65,46 @@ step.
 flowchart LR
     S((START)) --> D[dispatch_specialists]
     D --> C[detect_conflicts]
-    C -->|conflicts and round < K| R[revise_conflicts]
-    R --> C
-    C -->|converged or round = K| B[build_plan]
+    C -->|conflicts, feasible and round < K| R[revise_conflicts]
+    R -->|plan score improved| C
+    R -->|no improvement| B[build_plan]
+    C -->|converged, infeasible or round = K| B
     B --> E((END))
 ```
 
 The compiled graph lives in `packages/orchestrator/src/workflow.ts`. It carries `brief`, `round`,
-`proposals`, `conflicts` and the final `plan`. Shared contracts and the internal `StateSchema` both use Zod 4
+`proposals`, `conflicts`, `stalled` and the final `plan`. Shared contracts and the internal `StateSchema` both use Zod 4
 (`zod` 4.5); `packages/shared` imports the `zod` entry point and the orchestrator imports `zod/v4`.
 Specialist proposals, the brief and the final plan are re-validated at the graph boundaries with
 `AgentProposalSchema.parse`, `TripBriefSchema.parse` and `TripPlanSchema.parse`.
 
 - `dispatch_specialists` asks the supervisor to delegate to the registered specialists. When no
-  model is configured or the supervisor fails, it invokes every specialist directly with
-  `Promise.all`.
+  model is configured or the supervisor fails, it invokes every specialist directly. Either way each
+  call runs through the planning board (`packages/orchestrator/src/board.ts`): accommodation waits
+  for transport, and itinerary and dining wait for both, but only for specialists already started in
+  the same turn. Each call receives the others' proposals as `board` and, for accommodation,
+  itinerary and dining, an `allocation`: its share (0.4, 0.4, 0.2) of the budget left after the
+  stages it waited for.
 - `detect_conflicts` combines budget overruns, structured cross-agent schedule overlaps and geography
-  conflicts reported after itinerary route-duration checks.
+  conflicts reported after itinerary route-duration checks. An overrun is spread in AUD
+  (`targetSaving`) over each section's room to cut, its cost less its `floorCost`. When the sum of
+  floors already exceeds the budget it returns one `infeasible budget` conflict naming that minimum,
+  and the graph stops revising.
 - `revise_conflicts` runs only targeted specialists with `supportsRevision`, passing an immutable
-  `revision` request through the same `invoke` entry point, through the revision supervisor or
-  directly.
+  `revision` request, the specialist's `previous` proposal, the `board` and, for a budget cut, an
+  `allocation` of its last cost less `targetSaving`, through the revision supervisor or directly.
+  A round is kept only when `planScore` (AUD over budget plus a tenth of the budget per other
+  conflict) improves; otherwise the previous proposals stand and the loop stops.
 - A conditional edge repeats detection and revision up to `maxRounds` (default `3`).
 - `build_plan` rolls up costs (`budget.ts`), marks each section `needs_you` when a revision request
   still targets it and `draft` otherwise, and assembles the plan.
 - Specialists, tools, memory and the round limit are injectable through `OrchestratorOptions`.
 
-`packages/orchestrator/tests/budget.test.ts` shows the loop firing: the orchestrator's `DEMO_BRIEF` is
-over budget in round 1 and converges in round 2, while a much lower budget stops at `K = 3` with an
-unresolved conflict request. `plan.round` records how many rounds ran.
+`packages/orchestrator/tests/budget.test.ts` shows the staging at work: the orchestrator's
+`DEMO_BRIEF` fits its budget in round 1, and a much lower budget stops in round 1 with one
+`infeasible budget` conflict naming the minimum. `plan.round` records how many rounds ran. The
+decision is recorded in
+[Specialists plan in stages over a shared board](../.agents/notes/implemented/architecture/2026-09-26-coordinated-specialist-planning.md).
 
 ## Agents and models
 
