@@ -255,21 +255,53 @@ export async function route(q: RouteQuery): Promise<RouteLeg[]> {
     },
     "routes.duration,routes.distanceMeters",
   );
-  const route = data.routes?.[0];
-  if (!route) return [];
+  const transit = data.routes?.[0];
+  const transitLeg = transit ? googleLeg(transit, "transit") : undefined;
+  if (transitLeg && transitLeg.durationMin <= SLOW_TRANSIT_MIN) return [transitLeg];
+  // Google has no transit data for some countries (Japan) and sparse data for
+  // others (Bali), so an empty transit answer is not evidence that two stops
+  // cannot be connected, and a long one may be a four-hour bus chain where a
+  // taxi takes an hour. A driving route, labelled as one, is compared.
+  const driving = await googleRequest<{
+    routes?: Array<{ duration?: string; distanceMeters?: number }>;
+  }>(
+    apiUrl("/directions/v2:computeRoutes"),
+    {
+      origin: waypoint(q.from, q.fromLocation),
+      destination: waypoint(q.to, q.toLocation),
+      travelMode: "DRIVE",
+    },
+    "routes.duration,routes.distanceMeters",
+  );
+  const drive = driving.routes?.[0];
+  const driveLeg = drive ? googleLeg(drive, "drive") : undefined;
+  if (transitLeg && (!driveLeg || transitLeg.durationMin <= driveLeg.durationMin * 2))
+    return [transitLeg];
+  return driveLeg ? [driveLeg] : [];
+}
+
+/** A transit answer longer than this is compared with driving before it is trusted. */
+const SLOW_TRANSIT_MIN = 90;
+
+function googleLeg(
+  route: { duration?: string; distanceMeters?: number },
+  mode: "transit" | "drive",
+): RouteLeg {
   if (!route.duration || !/^\d+(?:\.\d+)?s$/.test(route.duration))
     throw new Error("Google Maps returned an invalid route duration");
   const seconds = Number(route.duration.slice(0, -1));
   if (!Number.isFinite(seconds) || seconds <= 0)
     throw new Error("Google Maps returned an invalid route duration");
-  return [
-    {
-      mode: "transit",
-      durationMin: Math.max(1, Math.ceil(seconds / 60)),
-      price: 0,
-      note: `Google Maps route${route.distanceMeters ? `; ${Math.round(route.distanceMeters)}m` : ""}; fare unavailable`,
-    },
-  ];
+  const distance = route.distanceMeters ? `; ${Math.round(route.distanceMeters)}m` : "";
+  return {
+    mode,
+    durationMin: Math.max(1, Math.ceil(seconds / 60)),
+    price: 0,
+    note:
+      mode === "drive"
+        ? `Google Maps driving route; no public transport route found${distance}; fare unavailable`
+        : `Google Maps route${distance}; fare unavailable`,
+  };
 }
 
 export async function places(q: PlaceQuery): Promise<Place[]> {

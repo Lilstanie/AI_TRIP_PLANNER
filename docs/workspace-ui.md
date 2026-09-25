@@ -387,6 +387,9 @@ deterministic and make no LLM calls.
   manual activities.
 - Routes use real local departure times from the Google Time Zone API; ambiguous or nonexistent DST
   times are rejected. Transit queries respect Google's supported departure window.
+- A hop with no Google transit answer (Japan has no transit data) or with transit over 90 minutes and
+  more than twice the driving time is returned as a driving leg (`mode: "drive"`) and says so, rather
+  than reported as unroutable.
 
 ## Google Maps configuration
 
