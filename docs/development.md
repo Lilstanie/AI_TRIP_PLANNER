@@ -166,6 +166,11 @@ This describes the preferred approach for new work; the commands below document 
 available in the repository. CI runs the existing Vitest suite through `pnpm test`; no checked-in E2E
 runner is currently configured.
 
+`apps/web/tests/e2e/plan-quality.e2e.mjs` plans three fixed briefs through `POST /api/chat` against a
+running dev server (`DATA_MODE=live` by default, or `mock`) and checks budget, unresolved conflicts,
+itinerary source, repeated and generic stops. Each run writes the NDJSON streams, plans and
+`summary.json` to `output/e2e/plan-quality/<run>/`. Live model output varies, so compare several runs.
+
 ```bash
 pnpm typecheck
 pnpm lint

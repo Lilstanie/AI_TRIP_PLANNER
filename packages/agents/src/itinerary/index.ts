@@ -54,6 +54,8 @@ export interface ItineraryGenerator {
     places: Place[];
     preferences: UserPreference[];
     revision?: RevisionRequest;
+    /** Why the previous draft was rejected, so the retry can correct it. */
+    feedback?: string;
   }): Promise<ItineraryDraft>;
 }
 
@@ -91,9 +93,23 @@ function validateDraft(
     representedDays.add(activity.day);
     total += activity.estCost;
   }
+  // The same stop twice in one day skips the route check between them, so a
+  // revision could clear a geography conflict by repeating a place.
+  const seen = new Set<string>();
+  for (const activity of parsed.activities) {
+    const key = `${activity.day}|${activity.location.trim().toLocaleLowerCase()}`;
+    if (seen.has(key)) {
+      throw new Error(
+        `Itinerary repeats ${activity.location} on day ${activity.day}; make it one longer activity or pick another place.`,
+      );
+    }
+    seen.add(key);
+  }
   if (representedDays.size !== days) throw new Error("Itinerary must include every trip day.");
   if (total > brief.budgetTotal * MODEL_ACTIVITY_BUDGET_SHARE) {
-    throw new Error("Itinerary activity estimate exceeds its planning guardrail.");
+    throw new Error(
+      `Itinerary activity estimate ${total} exceeds its planning guardrail of ${brief.budgetTotal * MODEL_ACTIVITY_BUDGET_SHARE} for the whole group.`,
+    );
   }
   for (let day = 1; day <= days; day += 1) {
     const scheduled = parsed.activities
@@ -106,6 +122,18 @@ function validateDraft(
     }
   }
   return parsed;
+}
+
+/**
+ * A result that names the area rather than a place to visit: "Bali" for a
+ * neighbourhood search near Bali, or a bare "Neighborhood". Scheduling one
+ * gives the traveller nothing to go to and routes to the destination's centroid.
+ */
+function isGenericPlace(place: Place, near: string, destination: string): boolean {
+  const name = place.name.trim().toLocaleLowerCase();
+  return [near, destination, place.category, `${place.category}s`, "neighborhood", "neighbourhood"]
+    .map((value) => value.trim().toLocaleLowerCase())
+    .includes(name);
 }
 
 /** Create one low-risk activity per day when a model is unavailable or invalid. */
@@ -205,6 +233,9 @@ function createDeepSeekGenerator(): ItineraryGenerator | undefined {
               task: "Draft the itinerary from the validated evidence available through your tool.",
               tripId: input.brief.tripId,
               revision: input.revision?.reason,
+              ...(input.feedback
+                ? { previousDraftRejected: `${input.feedback} Fix this and return a new draft.` }
+                : {}),
             }),
           },
         ],
@@ -350,7 +381,10 @@ async function planItinerary(
     try {
       const found = await ctx.tools.maps.places({ near, category });
       return found.filter(
-        (place) => typeof place.name === "string" && place.name.trim().length > 0,
+        (place) =>
+          typeof place.name === "string" &&
+          place.name.trim().length > 0 &&
+          !isGenericPlace(place, near, brief.destination),
       );
     } catch {
       ctx.signal?.throwIfAborted();
@@ -415,24 +449,41 @@ async function planItinerary(
   let draft: ItineraryDraft;
   let usedFallback = !generator;
   if (generator) {
-    try {
-      draft = validateDraft(
-        await generator.generate({ brief, days, places, preferences, revision }),
-        brief,
-        days,
-        places,
-      );
-    } catch (error) {
-      ctx.signal?.throwIfAborted();
+    // One corrective retry: a draft rejected for a fixable reason (cost, a
+    // repeated stop, a reworded name) is sent back with that reason rather than
+    // replaced outright by the template plan.
+    let feedback: string | undefined;
+    let accepted: ItineraryDraft | undefined;
+    for (let attempt = 0; attempt < 2 && !accepted; attempt += 1) {
+      try {
+        accepted = validateDraft(
+          await generator.generate({
+            brief,
+            days,
+            places,
+            preferences,
+            revision,
+            ...(feedback ? { feedback } : {}),
+          }),
+          brief,
+          days,
+          places,
+        );
+      } catch (error) {
+        ctx.signal?.throwIfAborted();
+        feedback = error instanceof Error ? error.message : "unknown model error";
+        console.warn(`[itinerary] Model draft failed validation (attempt ${attempt + 1}): ${feedback}`);
+      }
+    }
+    if (accepted) draft = accepted;
+    else {
       usedFallback = true;
-      const reason = error instanceof Error ? error.message : "unknown model error";
-      console.warn(`[itinerary] Model draft failed validation; using a safe local plan: ${reason}`);
       draft = fallbackDraft(brief, days, places, placesByCity);
     }
   } else {
     draft = fallbackDraft(brief, days, places, placesByCity);
   }
-  let adjusted = avoidBlockedWindows(draft, revision);
+  const adjusted = avoidBlockedWindows(draft, revision);
   draft = adjusted.draft;
   const coordinates = placeCoordinates(places);
   let connections: Connections = new Map();
@@ -440,19 +491,23 @@ async function planItinerary(
     ...adjusted.conflicts,
     ...(await travelConflicts(draft, ctx, brief, connections, coordinates)),
   ];
-  if (revision && conflicts.length) {
-    // A revision must not preserve newly discovered geography conflicts; use a
-    // conservative fallback and re-check it before returning.
-    usedFallback = true;
-    draft = fallbackDraft(brief, days, places, placesByCity);
-    adjusted = avoidBlockedWindows(draft, revision);
-    draft = adjusted.draft;
+  if (revision && conflicts.length && !usedFallback) {
+    // A revision that still conflicts is compared with the conservative
+    // fallback, and the fallback is kept only when it actually conflicts less:
+    // swapping unconditionally replaced a good model plan with a template one.
+    const fallback = avoidBlockedWindows(fallbackDraft(brief, days, places, placesByCity), revision);
     // The fallback is a different day plan, so its connections are different too.
-    connections = new Map();
-    conflicts = [
-      ...adjusted.conflicts,
-      ...(await travelConflicts(draft, ctx, brief, connections, coordinates)),
+    const fallbackConnections: Connections = new Map();
+    const fallbackConflicts = [
+      ...fallback.conflicts,
+      ...(await travelConflicts(fallback.draft, ctx, brief, fallbackConnections, coordinates)),
     ];
+    if (fallbackConflicts.length < conflicts.length) {
+      usedFallback = true;
+      draft = fallback.draft;
+      connections = fallbackConnections;
+      conflicts = fallbackConflicts;
+    }
   }
   return {
     agent: "itinerary",
