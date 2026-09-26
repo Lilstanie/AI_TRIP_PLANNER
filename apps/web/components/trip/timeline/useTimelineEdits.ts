@@ -34,6 +34,13 @@ export function useTimelineEdits({
   const [preview, setPreview] = useState<EditPreview>();
   const [undo, setUndo] = useState<Operation>();
   const [verifiedRoutes, setVerifiedRoutes] = useState<RouteResult[]>([]);
+  // Stops an applied edit moved, retimed or re-placed, flashed once so the eye finds them.
+  const [changed, setChanged] = useState<ReadonlySet<string>>(new Set());
+  useEffect(() => {
+    if (!changed.size) return;
+    const timer = window.setTimeout(() => setChanged(new Set()), 1600);
+    return () => window.clearTimeout(timer);
+  }, [changed]);
   const applied = useRef<TripPlan | null>(null);
   const returnFocus = useRef<HTMLElement | null>(null);
   const request = useRef<AbortController | null>(null);
@@ -157,6 +164,26 @@ export function useTimelineEdits({
       })),
     });
     setVerifiedRoutes(preview.routes);
+    const after = new Map(
+      (preview.plan.sections.find((s) => s.id === "itinerary")?.proposal?.items ?? []).map((item) => [
+        item.id,
+        item,
+      ]),
+    );
+    setChanged(
+      new Set(
+        activities.flatMap((before) => {
+          const now = before.id ? after.get(before.id) : undefined;
+          return now &&
+            (now.day !== before.day ||
+              now.startTime !== before.startTime ||
+              now.endTime !== before.endTime ||
+              now.placeId !== before.placeId)
+            ? [before.id!]
+            : [];
+        }),
+      ),
+    );
     onApply(preview.plan);
     setPreview(undefined);
   }
@@ -175,6 +202,7 @@ export function useTimelineEdits({
     preview,
     undo,
     routes: preview?.routes ?? verifiedRoutes,
+    changed,
     busy: working !== "" || !!preview,
     edit,
     search,

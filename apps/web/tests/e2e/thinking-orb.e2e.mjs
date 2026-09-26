@@ -51,6 +51,11 @@ async function run(browser, { width, height, scheme, reducedMotion = "no-prefere
     const box = await orb.first().boundingBox();
     check(!!box && Math.round(box.width) === 20, `${tag}: orb is 20px (${box?.width})`);
     const row = await page.locator(".thinking-turn .thinking-row__line").first().boundingBox();
+    // Each running specialist gets its own orb once the turn is expanded.
+    await page.locator(".thinking-turn .thinking-row__line").first().click();
+    const subOrbs = page.locator(".thinking-subagent .thinking-row__leading canvas.thinking-orb");
+    await subOrbs.first().waitFor({ timeout: 30_000 }).catch(() => undefined);
+    check((await subOrbs.count()) >= 1, `${tag}: running subagents show orbs (${await subOrbs.count()})`);
     await page.waitForTimeout(600);
     await page.screenshot({ path: `${OUT}/${tag}-running.png` });
     // Drawn pixels, not an empty canvas: the orb paints on the client.
@@ -65,6 +70,7 @@ async function run(browser, { width, height, scheme, reducedMotion = "no-prefere
     await page.locator(".msg-item--agent .msg-item__body").first().waitFor({ timeout: 180_000 });
     await page.waitForTimeout(800);
     check((await orb.count()) === 0, `${tag}: orb gives way to the static icon when done`);
+    check((await subOrbs.count()) === 0, `${tag}: finished subagents drop their orbs`);
     const after = await page.locator(".thinking-turn .thinking-row__line").first().boundingBox();
     check(
       !!row && !!after && Math.abs(row.height - after.height) < 1,

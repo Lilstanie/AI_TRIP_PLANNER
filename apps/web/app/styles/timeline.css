@@ -523,3 +523,71 @@ button.timeline-stop__main:hover {
     scroll-behavior: auto;
   }
 }
+
+/* ---- motion ----
+   Every animation here also has a text or colour signal ("Change applied", the "checked" tag), so
+   nothing is shown only by movement; all of it stops under reduced motion (base.css zeroes the
+   durations, and the rules below drop the keyframes outright). */
+
+/* A stop an applied edit changed: one soft accent wash that fades out. */
+.timeline-stop.is-changed button.timeline-stop__main {
+  animation: stop-changed 1.4s var(--ease-out);
+}
+@keyframes stop-changed {
+  0%,
+  25% {
+    background: var(--accent-bg);
+    box-shadow: inset 3px 0 0 var(--accent);
+  }
+}
+.timeline-stop.is-changed .timeline-stop__node {
+  animation: node-pop var(--duration-slow) var(--ease-spring);
+}
+@keyframes node-pop {
+  from {
+    transform: scale(0.6);
+  }
+}
+
+/* A journey a route check verified draws itself down the line. */
+.timeline-connection--checked .timeline-connection__rail {
+  transform-origin: top;
+  animation: rail-draw var(--duration-slow) var(--ease-out) both;
+}
+@keyframes rail-draw {
+  from {
+    transform: scaleY(0);
+  }
+}
+.timeline-connection--checked .timeline-connection__label {
+  animation: panel-in var(--duration) var(--ease-out) var(--duration-fast) both;
+}
+
+/* A stop's editor unfolds under it; the review panel rises from the bottom of the tab. */
+.stop-editor {
+  animation: panel-in var(--duration) var(--ease-out);
+}
+.edit-preview {
+  animation: preview-rise var(--duration-slow) var(--ease-spring);
+}
+@keyframes preview-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+.timeline-undo {
+  animation: panel-in var(--duration) var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .timeline-stop.is-changed button.timeline-stop__main,
+  .timeline-stop.is-changed .timeline-stop__node,
+  .timeline-connection--checked .timeline-connection__rail,
+  .timeline-connection--checked .timeline-connection__label,
+  .stop-editor,
+  .edit-preview,
+  .timeline-undo {
+    animation: none;
+  }
+}

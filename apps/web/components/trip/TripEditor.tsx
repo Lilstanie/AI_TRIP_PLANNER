@@ -154,7 +154,7 @@ export function TripEditor({
           </p>
         )}
         {rows.length ? (
-          <ol className="timeline" aria-label={`Day ${day} timeline`}>
+          <ol key={day} className="timeline tab-panel-enter" aria-label={`Day ${day} timeline`}>
             {rows.map((row, position) => {
               if (row.type === "fixed") return <FixedTimelineRow key={row.key} row={row} />;
               const activity = row.activity;
@@ -164,7 +164,9 @@ export function TripEditor({
               previous = activity;
               return (
                 <Fragment key={activity.id ?? position}>
-                  {connection && <ConnectionRow connection={connection} />}
+                  {connection && (
+                    <ConnectionRow key={connection.status} connection={connection} />
+                  )}
                   <TimelineStop
                     activity={activity}
                     number={number}

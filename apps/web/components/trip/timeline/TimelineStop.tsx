@@ -76,7 +76,9 @@ export function TimelineStop({
 
   return (
     <li
-      className={`timeline-row timeline-stop${selected ? " is-selected" : ""}`}
+      className={`timeline-row timeline-stop${selected ? " is-selected" : ""}${
+        edits.changed.has(id) ? " is-changed" : ""
+      }`}
       draggable={!locked}
       onDragStart={(event) => event.dataTransfer.setData("text/plain", id)}
       onDragOver={(event) => event.preventDefault()}

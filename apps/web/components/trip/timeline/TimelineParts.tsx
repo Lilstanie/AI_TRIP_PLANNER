@@ -57,6 +57,7 @@ const CONNECTION_ICON: Record<string, (props: { size?: number }) => ReactNode> =
 export function ConnectionRow({ connection }: { connection: Connection }) {
   const Icon = CONNECTION_ICON[connection.mode] ?? FlowTransitIcon;
   return (
+    // Keyed by status in the parent, so a journey that becomes checked mounts again and draws in.
     <li className={`timeline-connection timeline-connection--${connection.status}`}>
       <span className="timeline-row__time" />
       <span className="timeline-connection__rail" aria-hidden="true" />

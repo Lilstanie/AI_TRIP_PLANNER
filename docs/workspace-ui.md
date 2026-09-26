@@ -230,7 +230,9 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     planning weaves, a provider lookup searches, the conflict check solves, a revision works,
     assembly composes and a specialist's reasoning breathes. It is hidden from assistive technology
     because the row's text already says what is happening, draws one still frame under reduced
-    motion, and gives way to the static icon when the turn ends.
+    motion, and gives way to the static icon when the turn ends. Each running Subagent row has its
+    own orb from that specialist's latest step: a route check connects, another provider call
+    searches, a revision works, its reasoning breathes.
   - Most of the time the planner still asks in plain prose: when it cannot proceed on a missing
     destination, dates, travellers or budget, it says so in one sentence and the traveller answers by
     typing, with nothing borrowed. For a genuine ambiguity with 2–4 concrete choices, the coordinator
@@ -403,6 +405,10 @@ no LLM calls.
   moved stop, the routes checked, blockers, and only the conflicts the change would add. Apply
   changes applies it; Cancel or Escape closes only the preview. An applied edit shows "Undo last
   change", which is previewed the same way.
+- **Motion.** A day's list fades in when the day changes; a stop's editor and the review panel rise
+  in; an applied edit washes the stops it changed with the accent for a moment; a journey a route
+  check verified draws down the line. Each has a text or colour signal too, and none plays under
+  reduced motion.
 - While an edit is pending the chat composer cannot send (`ChatPanel` `locked`), but the chat shows
   no thinking row or stop button: a pending edit is not a chat request.
 
