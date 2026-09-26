@@ -119,6 +119,9 @@ async function gatherTransportEvidence(
 
   /** One flown hop, priced, with a provider failure recorded rather than hidden. */
   const priceFlight = async (leg: JourneyLeg) => {
+    // The traveller arranges their own flights: the hop stays in the plan but
+    // is neither searched nor priced, and its missing fare is not a conflict.
+    if (brief.excludeFlights) return { leg, options: [] as FlightOption[] };
     const options = await ctx.tools.booking
       .searchFlights({
         from: leg.from,
@@ -420,7 +423,16 @@ function assembleTransportProposal(
       },
     ];
   });
-  const items = [...flightItems, ...routeItems];
+  const ownFlights = brief.excludeFlights
+    ? evidence.flights.map(({ leg }) => ({
+        kind: "transport" as const,
+        day: leg.day,
+        location: `${leg.from} → ${leg.to}`,
+        detail: `Flight ${leg.from} to ${leg.to} arranged by you; not priced.`,
+        estCost: undefined as number | undefined,
+      }))
+    : [];
+  const items = [...ownFlights, ...flightItems, ...routeItems];
   // The fares each chosen flight beat, kept so the transcript can answer "why
   // this one?". Dropping them at the point of choice is what left Getting
   // around with a summary line where Stay shows a card.

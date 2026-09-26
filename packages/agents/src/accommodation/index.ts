@@ -454,6 +454,38 @@ async function planStays(
   }
 }
 
+/**
+ * The stay the traveller booked themselves, used as given: no search, no price and no candidates,
+ * so neither the model nor a budget revision can swap it for another property.
+ */
+function bookedStayProposal(brief: TripBrief): AgentProposal {
+  const booked = brief.bookedStay!;
+  const nights = splitStay(brief).reduce((sum, segment) => sum + segment.nights, 0);
+  return {
+    agent: "accommodation",
+    summary: `${booked.name} · booked by you, ${nights} night(s) · not priced`,
+    items: [
+      {
+        kind: "hotel",
+        day: 1,
+        location: booked.name,
+        booked: true,
+        detail: `${booked.name} — booked by you${booked.note ? `; ${booked.note}` : ""}. Not priced by the planner.`,
+      },
+    ],
+    assumptions: [
+      "The traveller has already booked this stay, so no other stay was searched and its cost is outside the planned budget.",
+    ],
+    conflictsWith: [],
+    floorCost: 0,
+    source: {
+      kind: "estimated",
+      label: "Booked by you",
+      freshness: "The traveller's own booking; the planner neither searched nor priced it.",
+    },
+  };
+}
+
 // Public registry entry used by the orchestrator and revision router.
 export const accommodationAgent: Specialist = {
   name: "accommodation",
@@ -465,6 +497,7 @@ export const accommodationAgent: Specialist = {
         throw new Error("Accommodation revision must target this trip and agent.");
       }
     }
+    if (brief.bookedStay) return bookedStayProposal(brief);
     return planStays(brief, context, revision, allocation, board);
   },
 };

@@ -1,6 +1,7 @@
 import {
   AgentProgressEvent,
   BASE_CURRENCY,
+  BookedStay,
   ChatAskUser,
   ChatNeedsInfo,
   ChatResponse,
@@ -59,6 +60,15 @@ export type Draft = {
    * list existed still loads; read it through `draftPreferences`.
    */
   preferences?: string[];
+  /**
+   * Lasting wishes the coordinator learned from the conversation, kept apart from the traveller's
+   * own list so they can see and remove them. Optional like `preferences`.
+   */
+  learnedPreferences?: string[];
+  /** The traveller arranges their own flights; the planner neither asks about nor prices them. */
+  excludeFlights?: boolean;
+  /** The stay the traveller has already booked; the planner uses it as given. */
+  bookedStay?: BookedStay;
   /**
    * The Who chip's stepper breakdown. Optional so a draft stored before the steppers existed, or a
    * draft built from a brief (`draftFor`, which has no breakdown to restore), still loads; read it
@@ -124,6 +134,9 @@ export function draftFor(brief: TripBrief): Draft {
     ...(brief.party && partyPeople(brief.party) === brief.groupSize ? { party: brief.party } : {}),
     budgetTotal: String(brief.budgetTotal),
     preferences: brief.preferences ?? [],
+    ...(brief.learnedPreferences?.length ? { learnedPreferences: brief.learnedPreferences } : {}),
+    ...(brief.excludeFlights ? { excludeFlights: true } : {}),
+    ...(brief.bookedStay ? { bookedStay: brief.bookedStay } : {}),
     nationality: brief.nationality ?? "",
     roomAllocation: brief.accommodation?.roomAllocation ?? "shared",
     minRating: String(brief.accommodation?.minRating ?? 0),
@@ -156,7 +169,12 @@ export function isDraft(value: unknown): value is Draft {
     (value.preferences === undefined ||
       (Array.isArray(value.preferences) &&
         value.preferences.every((item) => typeof item === "string"))) &&
-    (value.party === undefined || isParty(value.party))
+    (value.party === undefined || isParty(value.party)) &&
+    (value.learnedPreferences === undefined ||
+      (Array.isArray(value.learnedPreferences) &&
+        value.learnedPreferences.every((item) => typeof item === "string"))) &&
+    (value.excludeFlights === undefined || typeof value.excludeFlights === "boolean") &&
+    (value.bookedStay === undefined || BookedStay.safeParse(value.bookedStay).success)
   );
 }
 /** `current` is the existing brief, or only the identifiers for a blank conversation. */
@@ -179,6 +197,10 @@ export function parseDraft(draft: Draft, current: Pick<TripBrief, "tripId"> & Pa
     budgetSource: undefined,
     // An emptied list clears the brief's, rather than letting `current` carry the old one.
     preferences: preferences.length ? preferences : undefined,
+    // Like the list above, each is read from the draft so a removal clears the brief's copy.
+    learnedPreferences: statedPreferences(draft.learnedPreferences ?? []),
+    excludeFlights: draft.excludeFlights || undefined,
+    bookedStay: draft.bookedStay,
     nationality: draft.nationality.trim() || undefined,
     accommodation: {
       roomAllocation: draft.roomAllocation,
@@ -203,6 +225,9 @@ export function knownFromDraft(draft: Draft): PartialTripBrief {
     budgetTotal: number(draft.budgetTotal),
     nationality: draft.nationality.trim() || undefined,
     preferences: statedPreferences(draftPreferences(draft)),
+    learnedPreferences: statedPreferences(draft.learnedPreferences ?? []),
+    excludeFlights: draft.excludeFlights || undefined,
+    bookedStay: draft.bookedStay,
   });
   return parsed.success ? parsed.data : {};
 }
@@ -241,6 +266,9 @@ export function draftWithKnown(draft: Draft, known: PartialTripBrief): Draft {
     budgetTotal: known.budgetTotal === undefined ? draft.budgetTotal : String(known.budgetTotal),
     nationality: known.nationality ?? draft.nationality,
     preferences: known.preferences ?? draft.preferences,
+    learnedPreferences: known.learnedPreferences ?? draft.learnedPreferences,
+    excludeFlights: known.excludeFlights ?? draft.excludeFlights,
+    bookedStay: known.bookedStay ?? draft.bookedStay,
   };
 }
 

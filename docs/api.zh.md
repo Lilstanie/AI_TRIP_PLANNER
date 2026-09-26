@@ -50,6 +50,17 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 每个 specialist 和 supervisor 都会随行程需求一起接收它们。`nationality` 和 `accommodation`
 仍可接收并继续传递，但当前没有界面设置它们。
 
+`brief` 和 `known` 上另有三个可选字段，来自对话：
+
+- `learnedPreferences` 的限制与 `preferences` 相同，保存协调器在聊天中听到的愿望。specialist
+  收到的是追加在 `preferences` 之后的列表。
+- `excludeFlights: true` 表示旅行者自行安排航班。此时飞行航段是未计价的“arranged by you”条目，
+  没有票价，也没有 `flights` 选择。
+- `bookedStay: { name, note? }` 是旅行者已预订的住宿。住宿部分只有这一条未计价条目，没有
+  `stays` 候选。
+
+旅行者可以在 Trip preferences 中移除这些字段，客户端随后发送的行程需求不再包含它们。
+
 `brief.party` 和 `known.party` 也是可选字段，格式为 `{ adults, children, infants, seniors, pets }`，
 各项为 0 到 99 的整数（`packages/shared/src/contracts.ts` 中的 `TravellerParty`），
 由 Who 编辑器的步进控件设置。它们细分 `groupSize` 并补充宠物数量；宠物不计入其中。
