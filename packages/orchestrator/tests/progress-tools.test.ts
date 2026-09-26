@@ -75,7 +75,7 @@ describe("progress tool instrumentation", () => {
     expect(completed.resultRows).toEqual([
       {
         label: "Harbour Hotel",
-        detail: "The Rocks · AUD 210.00/night · 8.9/10 · Free cancellation",
+        detail: "The Rocks · AUD 210.00/night · 4.5/5 · Free cancellation",
         kind: "stay",
       },
     ]);

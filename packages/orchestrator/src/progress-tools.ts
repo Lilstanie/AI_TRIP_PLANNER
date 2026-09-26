@@ -130,12 +130,16 @@ export function travelKind(mode: string): ToolResultKind {
   }
 }
 
-/** `AUD 210.00 · 8.9/10 · free cancellation`. */
+
+/** Stays keep a 0–10 rating internally; travellers read it out of 5, like Google's own stars. */
+const outOfFive = (rating: number) => `${(rating / 2).toFixed(1)}/5`;
+
+/** `AUD 210.00 · 4.5/5 · free cancellation`. */
 function stayDetail(option: StayOption): string {
   return [
     option.area,
     `AUD ${option.pricePerNight.toFixed(2)}/night`,
-    `${option.rating.toFixed(1)}/10`,
+    outOfFive(option.rating),
     option.freeCancellation ? "Free cancellation" : "No free cancellation",
   ].join(" · ");
 }
@@ -154,7 +158,8 @@ function flightDetail(option: FlightOption): string {
 }
 
 function placeDetail(place: Place): string | undefined {
-  const parts = [place.category, place.rating === undefined ? undefined : `${place.rating}/10`];
+  // A place's rating is Google's own 1–5 value, passed through unconverted.
+  const parts = [place.category, place.rating === undefined ? undefined : `${place.rating.toFixed(1)}/5`];
   const joined = parts.filter((part): part is string => Boolean(part)).join(" · ");
   return joined || undefined;
 }

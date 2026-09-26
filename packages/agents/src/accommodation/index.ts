@@ -151,7 +151,7 @@ function assembleStayProposal(
         : "Booking mock convention: AUD per room per night; at most 2 guests per room; availability is simulated.",
     `${roomAllocation} allocation: ${rooms} room(s) for ${groupSize} guest(s); check-out day is not charged.`,
     "Only selected stays contribute to estCost. Taxes/fees are assumed included in mock rates.",
-    "Initial selection prefers rating >=8/10 and free cancellation; confirmed preferences remain mandatory during revisions.",
+    "Initial selection prefers a rating of at least 4/5 and free cancellation; confirmed preferences remain mandatory during revisions.",
     allocation
       ? `Stay allocation: ${allocation.basis}.${overAllocation ? " The first choice was over it, so the best stay within it (or the cheapest) was taken." : ""}`
       : "Trip budget covers every agent; no accommodation budget allocation is assumed. Orchestrator checks the combined cost.",
@@ -161,7 +161,7 @@ function assembleStayProposal(
         options
           .map(
             (option) =>
-              `${option.name} (AUD ${stayCost(option, segment.nights, rooms).toFixed(2)} total, ${option.rating}/10, ${option.freeCancellation ? "free cancellation" : "no free cancellation"})`,
+              `${option.name} (AUD ${stayCost(option, segment.nights, rooms).toFixed(2)} total, ${(option.rating / 2).toFixed(1)}/5, ${option.freeCancellation ? "free cancellation" : "no free cancellation"})`,
           )
           .join("; ") +
         ". Only the selected option is charged.",
@@ -221,7 +221,7 @@ function assembleStayProposal(
       kind: "hotel",
       day: segment.day,
       estCost: cost,
-      detail: `${chosen.name} — ${chosen.area}; ${segment.checkIn} to ${segment.checkOut}; ${rooms} room(s) × ${segment.nights} night(s) × AUD ${chosen.pricePerNight.toFixed(2)} per room/night = AUD ${cost.toFixed(2)}; rating ${chosen.rating}/10; ${chosen.freeCancellation ? "free cancellation" : "no free cancellation"}.`,
+      detail: `${chosen.name} — ${chosen.area}; ${segment.checkIn} to ${segment.checkOut}; ${rooms} room(s) × ${segment.nights} night(s) × AUD ${chosen.pricePerNight.toFixed(2)} per room/night = AUD ${cost.toFixed(2)}; rating ${(chosen.rating / 2).toFixed(1)}/5; ${chosen.freeCancellation ? "free cancellation" : "no free cancellation"}.`,
     })),
     assumptions,
     conflictsWith: [],
