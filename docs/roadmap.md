@@ -1,5 +1,7 @@
 # Product roadmap
 
+English | [中文](roadmap.zh.md)
+
 The near-term target is a reliable single-user workspace: describe a trip, inspect grounded
 recommendations, edit the plan, save it and use it while travelling.
 

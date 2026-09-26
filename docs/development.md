@@ -1,5 +1,7 @@
 # Development environment
 
+English | [中文](development.zh.md)
+
 ## Prerequisites
 
 - Node.js 22 or newer
@@ -84,7 +86,7 @@ Every variable is described in `.env.example`. The important ones:
 | `OSM_USER_AGENT`                                                    | Required contact string for Nominatim. Replace the `contact@example.com` placeholder before real traffic or you may be rate limited.                                                                                                                                                             |
 | `MAPS_API_KEY`                                                      | Server-side Google Places, Routes and Time Zone for the workspace map and edit previews.                                                                                                                                                                                                         |
 | `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`, `NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID` | Browser Google Maps JavaScript map. Without them the workspace shows a map fallback and the itinerary stays usable.                                                                                                                                                                              |
-| `SERPAPI_KEY`                                                       | Shared SerpApi key for Google Hotels, Google Flights and inter-city Google Maps transit searches. It is used only when `USE_MOCK_TOOLS=false`; it does not replace Google Maps, Places, Routes or Weather APIs.                                                                                                                  |
+| `SERPAPI_KEY`                                                       | Shared SerpApi key for Google Hotels, Google Flights and inter-city Google Maps transit searches. It is used only when `USE_MOCK_TOOLS=false`; it does not replace Google Maps, Places, Routes or Weather APIs.                                                                                  |
 | `WEATHER_API_KEY`                                                   | Google Weather forecasts for days 0–10; falls back to `MAPS_API_KEY`. Open-Meteo covers days 11–14 without a key.                                                                                                                                                                                |
 | `KV_REST_API_URL`, `KV_REST_API_TOKEN`                              | Durable Redis REST store for chat turns, preferences, plans and SerpApi usage/cache. Without them, state is in process memory.                                                                                                                                                                   |
 
@@ -109,9 +111,9 @@ travel backend:
 | Interactive map                                       | [Google Maps JavaScript API](https://developers.google.com/maps/documentation/javascript/overview)   | Browser-side map rendering with `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`.                                                                      |
 | Place search and details                              | [Google Places API](https://developers.google.com/maps/documentation/places/web-service/op-overview) | Server-side place grounding with `MAPS_API_KEY`; place photos through `/api/places/photo`, billed per image and live mode only.         |
 | Routes and travel time                                | [Google Routes API](https://developers.google.com/maps/documentation/routes)                         | Route and distance checks for itinerary editing.                                                                                        |
-| Inter-city rail where Routes has no transit (Japan)    | [SerpApi Google Maps Directions](https://serpapi.com/google-maps-directions-api)                     | Transport's inter-city hops only; duration, services and a per-person fare converted to AUD for the group; falls back to driving.        |
+| Inter-city rail where Routes has no transit (Japan)   | [SerpApi Google Maps Directions](https://serpapi.com/google-maps-directions-api)                     | Transport's inter-city hops only; duration, services and a per-person fare converted to AUD for the group; falls back to driving.       |
 | Time zones                                            | [Google Time Zone API](https://developers.google.com/maps/documentation/timezone/overview)           | Destination-local time calculations.                                                                                                    |
-| Weather forecasts                                     | Google Weather API (days 0–10), Open-Meteo (days 11–14), Open-Meteo historical archive after day 14 | Implemented in the tool gateway with explicit forecast/climate provenance; generic SerpApi web results are not treated as weather data. |
+| Weather forecasts                                     | Google Weather API (days 0–10), Open-Meteo (days 11–14), Open-Meteo historical archive after day 14  | Implemented in the tool gateway with explicit forecast/climate provenance; generic SerpApi web results are not treated as weather data. |
 | Flight delays, gates and operational status           | Aviationstack or another aviation-status provider                                                    | Optional future capability; not needed for hotel/flight price search.                                                                   |
 | Chat, preferences, trip plans and SerpApi usage/cache | Upstash-compatible Redis REST store                                                                  | Configure `KV_REST_API_URL` + `KV_REST_API_TOKEN` in deployment; local/offline runs use an in-process fallback.                         |
 
@@ -153,7 +155,46 @@ docker compose up
 The compose file starts the web app on port 3000 (reading `.env.local`) and the stub mock server on
 port 4000. Redis is optional and commented out.
 
+## Agent workflows
+
+Project skills live directly under `.agents/skills/<name>/SKILL.md`. The categories below are
+navigation groups; each skill retains its own discoverable entrypoint and loads references on demand.
+
+| Area                                | Skills                                                                                                                                                                                                                                                                                                        |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Interface design and effects        | [better-layout](../.agents/skills/better-layout/SKILL.md), [better-ui](../.agents/skills/better-ui/SKILL.md), [better-accessibility](../.agents/skills/better-accessibility/SKILL.md), [better-writing](../.agents/skills/better-writing/SKILL.md), [libraries-dev](../.agents/skills/libraries-dev/SKILL.md) |
+| Feature and provider implementation | [end-to-end-feature-wiring](../.agents/skills/end-to-end-feature-wiring/SKILL.md), [api-scout](../.agents/skills/api-scout/SKILL.md), [add-provider](../.agents/skills/add-provider/SKILL.md), [agent-experience](../.agents/skills/agent-experience/SKILL.md)                                                |
+| Review and verification             | [code-review](../.agents/skills/code-review/SKILL.md), [find-simplifications](../.agents/skills/find-simplifications/SKILL.md), [break](../.agents/skills/break/SKILL.md), [ui-verification](../.agents/skills/ui-verification/SKILL.md), [pre-push-checks](../.agents/skills/pre-push-checks/SKILL.md)       |
+| Documentation and decisions         | [prose-standard](../.agents/skills/prose-standard/SKILL.md), [translate-docs](../.agents/skills/translate-docs/SKILL.md), [agent-notes](../.agents/skills/agent-notes/SKILL.md), [session-log](../.agents/skills/session-log/SKILL.md)                                                                        |
+
+The Libraries.dev skill supports `libraries reveal`, `libraries review` and `libraries apply`.
+It selects concrete effects within the [workspace design contract](design/ui-guidelines.md), while
+`better-ui` owns general visual polish and `ui-verification` owns browser acceptance.
+Installing the skill adds instructions and references; npm packages are added only for an authorized
+effect implementation. The [integration decision](../.agents/notes/implemented/process/2026-09-26-libraries-dev-project-skill.md)
+records its source and grouping rationale.
+
+Use [find-simplifications](../.agents/skills/find-simplifications/SKILL.md) for evidence-backed
+removal proposals and authorized cleanups. Use
+[prose-standard](../.agents/skills/prose-standard/SKILL.md) to edit technical documentation and
+comments without losing behavior or failure guarantees;
+[better-writing](../.agents/skills/better-writing/SKILL.md) owns interface voice and terminology.
+These workflows follow the project's existing protection and validation rules. Their adaptation is
+recorded in the [Agent Note](../.agents/notes/implemented/process/2026-09-26-simplification-prose-skills.md).
+
+[agent-experience](../.agents/skills/agent-experience/SKILL.md) guides model-facing tool definitions
+and context delivery. [translate-docs](../.agents/skills/translate-docs/SKILL.md) maintains the
+[English/Chinese documentation pairs](i18n.md); changing either language includes updating its
+counterpart in the same task.
+
 ## Verification
+
+For documentation changes, also run the local pairing check after reviewing and recording the
+changed pairs. This is separate from `pnpm verify:docs` and is not currently a CI check:
+
+```bash
+node .agents/skills/translate-docs/scripts/check-pairs.mjs
+```
 
 ### Testing approach
 

@@ -68,6 +68,8 @@ docs/                     Documentation of the current system; each package also
 
 ## Documentation
 
+Browse the [English documentation index](docs/README.md) or [中文文档](docs/README.zh.md).
+
 | Document                                          | Contents                                                            |
 | ------------------------------------------------- | ------------------------------------------------------------------- |
 | [Architecture](docs/architecture.md)              | Runtime flow, LangGraph workflow, agents, models, contracts         |

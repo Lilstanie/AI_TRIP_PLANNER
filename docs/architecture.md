@@ -1,5 +1,7 @@
 # Architecture
 
+English | [中文](architecture.zh.md)
+
 AI Trip Planner is one Next.js deployable backed by workspace packages. A deterministic LangGraph
 workflow owns the planning control flow; LangChain agents do role-specific reasoning inside it.
 

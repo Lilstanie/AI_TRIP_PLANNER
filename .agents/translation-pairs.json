@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "pairs": {
+    "docs/api.md": {
+      "sourceSha256": "013f3f1f8e31064b5a92789eb1c6ec0d3d952f4e1590709c12c7728859d2237f",
+      "translationSha256": "70ce62a8c55f831a6608845fcf0c1cde46e36a3a90faa3b3f171968c941cedc6"
+    },
+    "docs/architecture.md": {
+      "sourceSha256": "b50a55c619930f1e553855270282c1d6e08f868338290ec40f1e6f77df56ad13",
+      "translationSha256": "878e5b92c234585d4c7ae633c9c8986d18508c7aed5f5ef0b087179f43e01ae0"
+    },
+    "docs/design/class-diagram.md": {
+      "sourceSha256": "b617fec2f4daaca75a5203a525dc127b5bb2c5e4a47dbb9a91dcc499a7654f00",
+      "translationSha256": "9ccb2ea0b78ef61a120311271ab88e08504851000911f1d207d1b908b230efc8"
+    },
+    "docs/design/dsh-thinking-ui.md": {
+      "sourceSha256": "de28b0bebd4ea0d9de6f34714e5bc29e54d5f85b20e97c19841696d8ea4e2227",
+      "translationSha256": "ea2e79620e1a5f2ee201521e20348af83ae325d4a936433d4db454c71747cf7c"
+    },
+    "docs/design/ui-guidelines.md": {
+      "sourceSha256": "a3b83bb53df51551c068438977222b133ff08d867d7a2c36d48e69e7005f3a96",
+      "translationSha256": "87829ec2768dc4fe9f5bff0e2f497789892da64292f3550ee573b170b568e623"
+    },
+    "docs/development.md": {
+      "sourceSha256": "421ac08f066a8ceb79c4b021afa91582fbac25558bf308795c7c80b552196af4",
+      "translationSha256": "de514189a96161aab2306b778dd87ea1af3ced8b9e679a3d6692f73baafc105c"
+    },
+    "docs/i18n.md": {
+      "sourceSha256": "136e304bdfa6fbd2069ef0f14f31067173f76b4cee71962e087db48db68ace07",
+      "translationSha256": "8c670eb4e16372b3757d9f615262d39c666539b1c90cadad67afec74cc64883d"
+    },
+    "docs/README.md": {
+      "sourceSha256": "eda002fd1a942f00455c57e0c2450d6b46ec0180497993821826873e6049d958",
+      "translationSha256": "f407a13eba6f757f15c48f91d391b300db45203a43528747c6ba3d5808ac57ef"
+    },
+    "docs/roadmap.md": {
+      "sourceSha256": "14cd18016140ea786d278e72715c1392096c1ab78aff76a5687a24c2dc1772f8",
+      "translationSha256": "83d624fbf722f0515d18eafa10db469b2c04e4f9f99f974b6bf77b309300d173"
+    },
+    "docs/team-workflow.md": {
+      "sourceSha256": "c4e0ab62e2ef0cbd113a3daa0a9a4250b6a5dca7fb6695c14c5a4e7e73626442",
+      "translationSha256": "fc3cdafe8a8a7f31f0d94d52f2666af1b2e1e2fcffc1b0f41714204d3755e5ab"
+    },
+    "docs/workspace-ui.md": {
+      "sourceSha256": "d5dc48501f58188e9d9c0612b243df21fa799d179b1a2e66638205bbaef5031e",
+      "translationSha256": "6b3a1a101791cfc84c674ad298b2c6aad2f60fc8c94a156bd6b0140bc174c281"
+    }
+  }
+}
