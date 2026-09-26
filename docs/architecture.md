@@ -84,7 +84,9 @@ Specialist proposals, the brief and the final plan are re-validated at the graph
   for transport, and itinerary and dining wait for both, but only for specialists already started in
   the same turn. Each call receives the others' proposals as `board` and, for accommodation,
   itinerary and dining, an `allocation`: its share (0.4, 0.4, 0.2) of the budget left after the
-  stages it waited for.
+  stages it waited for. On a multi-city trip the itinerary takes each day's city from the inter-city
+  hop transport scheduled (`citiesByDay`); a hop day allows both cities, and a draft with a stop in
+  another city is sent back to the model with that reason.
 - `detect_conflicts` combines budget overruns, structured cross-agent schedule overlaps and geography
   conflicts reported after itinerary route-duration checks. An overrun is spread in AUD
   (`targetSaving`) over each section's room to cut, its cost less its `floorCost`. When the sum of
