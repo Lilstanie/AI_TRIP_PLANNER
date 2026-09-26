@@ -13,7 +13,7 @@ now. Implementation history and browser acceptance for each phase are in the
 | Sidebar           | Logo, Chats and Trips with counts, Language, Local account                                                                                  | `WorkspaceSidebar`, `BrandMark`, `icons.tsx`                                                                |
 | Chats panel       | Slides out beside the sidebar: search, New chat, New trip, then trips and chats                                                             | `ChatsPanel`, `TripCover`                                                                                   |
 | Your trips        | Opened by Trips in place of chat and map: trip cards (Upcoming, Past) and a Calendar tab; New trip                                          | `TripsPage`, `TripCover`                                                                                    |
-| Top bar           | Trip title; trip fact chips (destination, dates, travellers, budget, Preferences); data mode; Trip, rightmost                               | `WorkspaceView`, `TripFactChips`                                                                            |
+| Top bar           | Trip title; trip fact chips (destination, dates, travellers, budget, Preferences); data mode; Trip with its stop count, rightmost           | `WorkspaceView`, `TripFactChips`                                                                            |
 | Trip fact editors | One editor per chip, every one a centred dialog; Preferences holds the traveller's own list                                                 | `FactPopover`, `FactFields`, `TripCalendar`, `WhereFields`, `PreferenceList`, `lib/workspace/trip-facts.ts` |
 | Chat              | Conversation, the planning transcript, the composer; starter suggestions in a blank chat; no visible heading                                | `ChatPanel`                                                                                                 |
 | Map               | Only the map, labelled markers, curved day-coloured itinerary lines, the place popup, map status, and the locate / map type / zoom controls | `TripMapCanvas`, `TripMap`                                                                                  |
@@ -263,7 +263,9 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     `mode: "plan"` with the brief.
   - A first chat message sends `mode: "start"`, and the server reports any missing destination,
     dates, travellers or budget instead of borrowing values.
-  - The blank form's minimum rating defaults to `0` (no minimum).
+  - The blank form's minimum rating defaults to `0` (no minimum). Stay ratings are stored on a 0–10
+    scale and shown out of 5 everywhere (hotel cards, stay rows, the thinking transcript); a place's
+    Google rating is already out of 5 and shown as it is.
 - **Requests.**
   - `Workspace` owns chat, plan and decision requests. Failures keep the current plan and offer retry.
   - Switching chat or trip, or New chat, first flushes the pending autosave, then aborts in-flight
