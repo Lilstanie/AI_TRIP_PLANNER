@@ -62,6 +62,9 @@ export interface ItineraryGenerator {
     activityBudget: number;
     /** What the other specialists settled: where the traveller sleeps and how they travel. */
     otherSections?: { agent: string; summary: string; items: string[] }[];
+    /** For a multi-city trip: the cities each day is spent in, and each city's candidates. */
+    dayCities?: { day: number; cities: string[] }[];
+    candidatesByCity?: Record<string, string[]>;
     /** The day plan this revision replaces. */
     previous?: { summary: string; activities: string[] };
   }): Promise<ItineraryDraft>;
@@ -71,6 +74,44 @@ export interface ItineraryGenerator {
 export interface ItineraryAgentOptions {
   /** Pass false to force the deterministic planner in tests or offline runs. */
   generator?: ItineraryGenerator | false;
+}
+
+/**
+ * The cities the traveller can be in on each day, 1-indexed by position.
+ *
+ * Transport decides when an inter-city hop runs and may move it off the
+ * default split, so a hop on the board wins: the day it runs allows both
+ * cities, and later days the one it arrives in. Without this the day plan
+ * sent a traveller back to Tokyo the day after the train to Kyoto.
+ */
+export function citiesByDay(
+  destination: string,
+  days: number,
+  transport?: AgentProposal,
+): string[][] {
+  const names = cities(destination);
+  const byDay = cityForDay(names, days).map((city) => [city]);
+  const lower = names.map((name) => name.toLocaleLowerCase());
+  const hops = (transport?.items ?? []).flatMap((item) => {
+    const [from, to] = (item.location ?? "").split(" → ").map((part) => part.trim());
+    const fromIndex = lower.indexOf((from ?? "").toLocaleLowerCase());
+    const toIndex = lower.indexOf((to ?? "").toLocaleLowerCase());
+    return item.day !== undefined && fromIndex >= 0 && toIndex >= 0
+      ? [{ day: item.day, from: names[fromIndex]!, to: names[toIndex]! }]
+      : [];
+  });
+  if (!hops.length) return byDay;
+  hops.sort((left, right) => left.day - right.day);
+  let current = names[0]!;
+  return byDay.map((_, index) => {
+    const day = index + 1;
+    const hop = hops.find((candidate) => candidate.day === day);
+    if (hop) {
+      current = hop.to;
+      return [hop.from, hop.to];
+    }
+    return [current];
+  });
 }
 
 /** Convert an HH:mm value to minutes so schedules can be compared numerically. */
@@ -85,8 +126,29 @@ function validateDraft(
   days: number,
   places: Place[],
   activityBudget: number,
+  dayCities?: string[][],
+  placesByCity?: ReadonlyMap<string, readonly Place[]>,
 ): ItineraryDraft {
   const parsed = ItineraryDraft.parse(draft);
+  // A stop must be in a city the traveller is in that day. Only checked when
+  // the trip has more than one city and each city has its own candidates.
+  if (dayCities && placesByCity && placesByCity.size > 1) {
+    const cityOf = new Map<string, string[]>();
+    for (const [city, found] of placesByCity)
+      for (const place of found) {
+        const key = place.name.trim().toLocaleLowerCase();
+        cityOf.set(key, [...(cityOf.get(key) ?? []), city]);
+      }
+    for (const activity of parsed.activities) {
+      const allowed = dayCities[activity.day - 1] ?? [];
+      const found = cityOf.get(activity.location.trim().toLocaleLowerCase()) ?? [];
+      if (found.length && !found.some((city) => allowed.includes(city))) {
+        throw new Error(
+          `Day ${activity.day} is spent in ${allowed.join(" and ")}, but ${activity.location} is in ${found.join(" and ")}. Use only that day's city's candidates.`,
+        );
+      }
+    }
+  }
   const candidates = new Set(places.map((place) => place.name.trim().toLocaleLowerCase()));
   const representedDays = new Set<number>();
   let total = 0;
@@ -166,13 +228,15 @@ function fallbackDraft(
   places: Place[],
   activityBudget: number,
   placesByCity?: ReadonlyMap<string, readonly Place[]>,
+  dayCities?: string[][],
 ): ItineraryDraft {
   const candidates = places; // Empty evidence is handled before reaching this fallback.
   // Each day draws on the city it is spent in, so a day's stops are places a
   // traveller can actually move between. The day-to-city split is the one the
   // journey legs use, so the two plans describe the same trip.
   const cityNames = cities(brief.destination);
-  const dayCity = cityForDay(cityNames, days);
+  // On a hop day the arrival city is where the afternoon is spent.
+  const dayCity = dayCities?.map((cities) => cities.at(-1)!) ?? cityForDay(cityNames, days);
   const forDay = (day: number): readonly Place[] => {
     const inCity = placesByCity?.get(dayCity[day - 1] ?? cityNames[0]!) ?? [];
     return inCity.length ? inCity : candidates;
@@ -231,7 +295,7 @@ function createDeepSeekGenerator(): ItineraryGenerator | undefined {
         name: "itinerary_specialist",
         model,
         tools: [evidence],
-        systemPrompt: `You are the itinerary specialist. Always call read_itinerary_evidence before drafting. Use only its facts and candidate place names. Cover every trip day with 1-3 non-overlapping activities using 24-hour HH:mm times, leave 150 minutes between different locations, and keep the total activity cost within activityBudget, which is what flights and the stay left for activities. When otherSections names where the traveller sleeps, build each day around that stay and keep long trips away from it rare. On a revision, start from previous and change only what the revision asks. Never claim live hours, availability, safety, visa or weather facts. Address a supplied revision exactly. Return the requested structured itinerary draft.\n\nEach activity location must be a candidate's name copied character for character. Do not append its category, rating or district, and do not reword it: an activity whose location is not an exact candidate name is discarded and the whole draft is thrown away.\n\n${TRAVELLER_PREFERENCES_RULE}`,
+        systemPrompt: `You are the itinerary specialist. Always call read_itinerary_evidence before drafting. Use only its facts and candidate place names. Cover every trip day with 1-3 non-overlapping activities using 24-hour HH:mm times, leave 150 minutes between different locations, and keep the total activity cost within activityBudget, which is what flights and the stay left for activities. When dayCities is given, every activity on a day must be a candidate from one of that day's cities in candidatesByCity; a day with two cities is travel day. When otherSections names where the traveller sleeps, build each day around that stay and keep long trips away from it rare. On a revision, start from previous and change only what the revision asks. Never claim live hours, availability, safety, visa or weather facts. Address a supplied revision exactly. Return the requested structured itinerary draft.\n\nEach activity location must be a candidate's name copied character for character. Do not append its category, rating or district, and do not reword it: an activity whose location is not an exact candidate name is discarded and the whole draft is thrown away.\n\n${TRAVELLER_PREFERENCES_RULE}`,
         responseFormat: ItineraryDraft,
       });
       const result = await specialist.invoke({
@@ -441,6 +505,11 @@ async function planItinerary(
   ]);
   ctx.signal?.throwIfAborted();
   const placesByCity = new Map(byCity);
+  const dayCities = citiesByDay(
+    brief.destination,
+    days,
+    extras.board?.proposals.find((proposal) => proposal.agent === "transport"),
+  );
   const places = [
     ...new Map(
       [...placesByCity.values()].flat().map((place) => [place.name.trim().toLowerCase(), place]),
@@ -485,6 +554,14 @@ async function planItinerary(
             preferences,
             revision,
             activityBudget,
+            ...(placesByCity.size > 1
+              ? {
+                  dayCities: dayCities.map((cities, index) => ({ day: index + 1, cities })),
+                  candidatesByCity: Object.fromEntries(
+                    [...placesByCity].map(([city, found]) => [city, found.map((place) => place.name)]),
+                  ),
+                }
+              : {}),
             ...(otherSections.length ? { otherSections } : {}),
             ...(extras.previous
               ? {
@@ -502,6 +579,8 @@ async function planItinerary(
           days,
           places,
           activityBudget,
+          dayCities,
+          placesByCity,
         );
       } catch (error) {
         ctx.signal?.throwIfAborted();
@@ -512,10 +591,10 @@ async function planItinerary(
     if (accepted) draft = accepted;
     else {
       usedFallback = true;
-      draft = fallbackDraft(brief, days, places, activityBudget, placesByCity);
+      draft = fallbackDraft(brief, days, places, activityBudget, placesByCity, dayCities);
     }
   } else {
-    draft = fallbackDraft(brief, days, places, activityBudget, placesByCity);
+    draft = fallbackDraft(brief, days, places, activityBudget, placesByCity, dayCities);
   }
   const adjusted = avoidBlockedWindows(draft, revision);
   draft = adjusted.draft;
@@ -529,7 +608,7 @@ async function planItinerary(
     // A revision that still conflicts is compared with the conservative
     // fallback, and the fallback is kept only when it actually conflicts less:
     // swapping unconditionally replaced a good model plan with a template one.
-    const fallback = avoidBlockedWindows(fallbackDraft(brief, days, places, activityBudget, placesByCity), revision);
+    const fallback = avoidBlockedWindows(fallbackDraft(brief, days, places, activityBudget, placesByCity, dayCities), revision);
     // The fallback is a different day plan, so its connections are different too.
     const fallbackConnections: Connections = new Map();
     const fallbackConflicts = [
@@ -554,6 +633,9 @@ async function planItinerary(
       ...draft.assumptions,
       ...evidenceIssues,
       "Different-place connections require route time plus a 15-minute arrival buffer. Opening hours remain unverified.",
+      ...(placesByCity.size > 1
+        ? [`Cities by day: ${dayCities.map((cities, index) => `day ${index + 1} ${cities.join(" → ")}`).join("; ")}.`]
+        : []),
       ...(usedFallback
         ? [
             "Planner source: deterministic fallback; activity costs are planning allowances, not verified admission fares.",

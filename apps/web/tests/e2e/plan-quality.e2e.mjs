@@ -4,13 +4,14 @@
 // output/e2e/plan-quality/<run>/ as a repeatable, reviewable artifact.
 //
 //   pnpm --filter @trip/web dev            # in another terminal
-//   [DATA_MODE=live|mock] [RUNS=3] [BASE_URL=...] node apps/web/tests/e2e/plan-quality.e2e.mjs
+//   [DATA_MODE=live|mock] [RUNS=3] [ONLY=id,id] [BASE_URL=...] node apps/web/tests/e2e/plan-quality.e2e.mjs
 import { mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const BASE = process.env.BASE_URL ?? "http://localhost:3000";
 const MODE = process.env.DATA_MODE ?? "live";
 const RUNS = Number(process.env.RUNS ?? 1);
+const ONLY = process.env.ONLY?.split(",").map((id) => id.trim());
 const RUN = `${new Date().toISOString().replace(/[:.]/g, "-")}-${MODE}`;
 const OUT = resolve(process.cwd(), "output/e2e/plan-quality", RUN);
 mkdirSync(OUT, { recursive: true });
@@ -51,7 +52,30 @@ const SCENARIOS = [
       preferences: ["Surfing", "Quiet areas"],
     },
   },
-];
+  {
+    // About 4% above the cheapest flights and stay found for these dates, so
+    // the plan only fits if every section spends close to its floor.
+    id: "tokyo-tight",
+    brief: {
+      destination: "Tokyo",
+      origin: "Sydney",
+      dates: ["2026-11-10", "2026-11-14"],
+      groupSize: 2,
+      budgetTotal: 4800,
+    },
+  },
+  {
+    // Two cities: an inter-city hop the transport and day plan must agree on.
+    id: "tokyo-kyoto",
+    brief: {
+      destination: "Tokyo & Kyoto",
+      origin: "Sydney",
+      dates: ["2026-11-10", "2026-11-17"],
+      groupSize: 2,
+      budgetTotal: 9000,
+    },
+  },
+].filter(({ id }) => !ONLY || ONLY.includes(id));
 
 const days = ([a, b]) => Math.round((Date.parse(b) - Date.parse(a)) / 864e5) + 1;
 
@@ -140,6 +164,18 @@ function checks({ plan: p, frames, reply }, { brief, infeasible }) {
     a.location.trim().toLowerCase() === brief.destination.toLowerCase(),
   );
   check(!generic.length, `no generic stops (${generic.map((a) => a.location).join(", ") || "ok"})`);
+  if (brief.destination.includes("&")) {
+    // The day plan must move city on the day transport does, and never go back.
+    const cityLine = itinerary?.assumptions?.find((a) => a.startsWith("Cities by day:")) ?? "";
+    const hopDays = (p.sections.find((s) => s.id === "transport")?.proposal?.items ?? [])
+      .filter((i) => / → /.test(i.location ?? "") && !i.location.startsWith(brief.origin))
+      .map((i) => i.day);
+    const planDays = [...cityLine.matchAll(/day (\d+) [^;]+ → /g)].map((m) => Number(m[1]));
+    check(
+      hopDays.length > 0 && JSON.stringify(hopDays) === JSON.stringify(planDays),
+      `day plan moves city with transport (transport ${hopDays}, day plan ${planDays})`,
+    );
+  }
   check(p.round >= 1, `rounds run: ${p.round}`);
   check(days(brief.dates) > 0, `trip is ${days(brief.dates)} days`);
   return out;
