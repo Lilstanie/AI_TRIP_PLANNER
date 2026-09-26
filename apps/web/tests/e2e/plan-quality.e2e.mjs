@@ -117,6 +117,13 @@ function checks({ plan: p, frames }, { brief, infeasible }) {
   const itinerary = p.sections.find((s) => s.id === "itinerary")?.proposal;
   const stops = itinerary?.items ?? [];
   check(itinerary?.source?.kind !== "fallback", `itinerary is model-planned (${itinerary?.source?.kind})`);
+  const guide = p.sections.find((s) => s.id === "destination-guide")?.proposal;
+  check(guide?.source?.kind !== "fallback", `destination guide is model-written (${guide?.source?.kind})`);
+  if (MODE === "live") {
+    // A fixture under a provider label is the provenance lie this suite exists to catch.
+    const fixtures = frames.filter((f) => /fixture/i.test(f.resultSummary ?? ""));
+    check(!fixtures.length, `no fixture data in live mode (${fixtures.map((f) => f.resultSummary).join(", ") || "ok"})`);
+  }
   const repeats = stops.filter(
     (a, i) => stops.findIndex((b) => b.day === a.day && b.location === a.location) !== i,
   );
