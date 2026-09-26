@@ -82,7 +82,7 @@ async function plan({ id, brief }, run) {
   return { id, ms, plan: p, reply: final.response.reply, frames };
 }
 
-function checks({ plan: p, frames }, { brief, infeasible }) {
+function checks({ plan: p, frames, reply }, { brief, infeasible }) {
   const out = [];
   const check = (ok, message) => out.push({ ok: Boolean(ok), message });
   const ids = p.sections.map((s) => s.id);
@@ -91,6 +91,13 @@ function checks({ plan: p, frames }, { brief, infeasible }) {
     const only = p.conflicts?.length === 1 ? p.conflicts[0] : undefined;
     check(/infeasible budget/.test(only?.reason ?? ""), `reported infeasible (${JSON.stringify(p.conflicts ?? []).slice(0, 160)})`);
     check(p.round === 1, `stopped in round 1 (${p.round})`);
+    // The traveller has to hear the number, not just "over budget".
+    const minimum = Number(/AUD ([\d.]+)/.exec(only?.constraints?.[0] ?? "")?.[1]);
+    const said = [...(reply ?? "").matchAll(/\d[\d,]*(?:\.\d+)?/g)].map((m) => Number(m[0].replaceAll(",", "")));
+    check(
+      Number.isFinite(minimum) && said.some((n) => Math.abs(n - minimum) <= minimum * 0.05),
+      `reply names the minimum budget ~${minimum} (${JSON.stringify(reply).slice(0, 200)})`,
+    );
   } else {
     check(p.overrunPct <= 0, `within budget (est ${p.estTotal} / ${p.budgetTotal}, ${p.overrunPct.toFixed(1)}%)`);
     check(!p.conflicts?.length, `no unresolved conflicts (${p.conflicts?.length ?? 0})`);
