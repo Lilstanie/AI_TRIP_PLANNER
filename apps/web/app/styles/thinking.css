@@ -85,6 +85,14 @@
   height: 14px;
 }
 
+/* The running orb (thinking-orbs, tuned at 20px) overhangs the 16px slot by 2px each side rather
+   than resizing the row, so the Think line does not shift when it switches back to the icon. */
+.thinking-row__leading .thinking-orb {
+  width: 20px;
+  height: 20px;
+  margin: -2px;
+}
+
 .thinking-row__idle {
   display: inline-flex;
   opacity: 1;

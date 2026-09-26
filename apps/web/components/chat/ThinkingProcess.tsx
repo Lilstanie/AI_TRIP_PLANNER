@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AgentProgressEvent } from "@trip/shared";
 import { FlowThinkIcon } from "../ui/flow-icons";
+import { ThinkingOrbIcon } from "./ThinkingOrbIcon";
 import { Disclosure, RowSeparator, RowSummary } from "./Disclosure";
 import { countActivity, roundGroups, turnSummary } from "./thinking-model";
 import { Children, RoundHeading, RunningLine, SubagentRow, type OpenRows } from "./ThinkingRows";
@@ -71,7 +72,7 @@ export function ThinkingProcess({
     <div className="thinking-process">
       <Disclosure
         className="thinking-turn"
-        icon={<FlowThinkIcon />}
+        icon={busy ? <ThinkingOrbIcon activity={activity} /> : <FlowThinkIcon />}
         title="Think"
         state={busy ? "running" : failed ? "error" : "ok"}
         open={open.isOpen("turn")}

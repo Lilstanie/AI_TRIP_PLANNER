@@ -225,6 +225,12 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     divergence, are recorded in the [DSH thinking UI reference](design/dsh-thinking-ui.md).
   - Exactly one `Deep diving` line is the surface's only live region; it grows an elapsed clock after
     15 seconds.
+  - While a request runs, the Think row's icon is a 20 px `ThinkingOrb` from `thinking-orbs`
+    (`components/chat/ThinkingOrbIcon.tsx`). Its animation follows the latest real progress event:
+    planning weaves, a provider lookup searches, the conflict check solves, a revision works,
+    assembly composes and a specialist's reasoning breathes. It is hidden from assistive technology
+    because the row's text already says what is happening, draws one still frame under reduced
+    motion, and gives way to the static icon when the turn ends.
   - Most of the time the planner still asks in plain prose: when it cannot proceed on a missing
     destination, dates, travellers or budget, it says so in one sentence and the traveller answers by
     typing, with nothing borrowed. For a genuine ambiguity with 2–4 concrete choices, the coordinator
