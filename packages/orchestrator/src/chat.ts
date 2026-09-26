@@ -5,6 +5,8 @@ import {
   ASK_USER_MAX_QUESTIONS,
   ChatTurn,
   Currency,
+  MAX_TRIP_PREFERENCE_LENGTH,
+  MAX_TRIP_PREFERENCES,
   PartialTripBrief as PartialTripBriefSchema,
   TripBrief as TripBriefSchema,
   toAud,
@@ -122,6 +124,21 @@ export const BriefUpdate = z.object({
   budgetAmount: z.union([z.number(), z.string()]).nullish().describe("the number they said"),
   budgetCurrency: z.string().nullish().describe("AUD, CNY, USD or JPY, as they said it"),
   nationality: z.string().nullish(),
+  learnedPreferences: z
+    .array(z.string())
+    .nullish()
+    .describe(
+      "The whole list of trip preferences learned from this conversation, replacing the previous one: short phrases in the traveller's language for lasting wishes they stated (diet, pace, what to avoid). Leave out anything already in knownSoFar.preferences.",
+    ),
+  excludeFlights: z
+    .boolean()
+    .nullish()
+    .describe("true when the traveller says they arrange flights themselves or flights are not needed; false if they ask to include flights again"),
+  bookedStayName: z
+    .string()
+    .nullish()
+    .describe("the hotel or stay the traveller says they have already booked"),
+  bookedStayNote: z.string().nullish().describe("anything they said about that booking, briefly"),
 });
 
 /** Models answer "nothing here" with the text "null" as often as by omitting the field. */
@@ -143,6 +160,16 @@ function toPatch(update: z.infer<typeof BriefUpdate>): BriefPatch {
   const startDate = isoDate(update.startDate);
   const endDate = isoDate(update.endDate);
   const groupSize = count(update.groupSize);
+  // The coordinator's list, cleaned the way the traveller's own is: trimmed, deduplicated, capped.
+  const learned = Array.isArray(update.learnedPreferences)
+    ? [
+        ...new Set(
+          update.learnedPreferences
+            .map((item) => text(item)?.slice(0, MAX_TRIP_PREFERENCE_LENGTH))
+            .filter((item): item is string => Boolean(item)),
+        ),
+      ].slice(0, MAX_TRIP_PREFERENCES)
+    : undefined;
   const patch: BriefPatch = BriefPatchSchema.parse({
     ...(text(update.destination) ? { destination: text(update.destination) } : {}),
     ...(text(update.origin) ? { origin: text(update.origin) } : {}),
@@ -150,6 +177,16 @@ function toPatch(update: z.infer<typeof BriefUpdate>): BriefPatch {
     ...(groupSize !== undefined ? { groupSize: Math.round(groupSize) } : {}),
     // Only a whole range is meaningful; one end alone is held back.
     ...(startDate && endDate ? { dates: [startDate, endDate] as [string, string] } : {}),
+    ...(learned ? { learnedPreferences: learned } : {}),
+    ...(typeof update.excludeFlights === "boolean" ? { excludeFlights: update.excludeFlights } : {}),
+    ...(text(update.bookedStayName)
+      ? {
+          bookedStay: {
+            name: text(update.bookedStayName)!.slice(0, 160),
+            ...(text(update.bookedStayNote) ? { note: text(update.bookedStayNote)!.slice(0, 300) } : {}),
+          },
+        }
+      : {}),
   });
   const budgetAmount = count(update.budgetAmount);
   if (budgetAmount !== undefined) {
@@ -249,6 +286,9 @@ Choosing what to do:
 - Call replan_trip after any change that affects the plan, and when the traveller asks for a plan.
 - knownSoFar.party, when present, breaks groupSize down into adults, children, infants and seniors and adds pets (who are not in groupSize). Never ask again for anything it already says; if the traveller changes the number of people, update groupSize and the breakdown no longer applies.
 - knownSoFar.preferences, when present, is the traveller's own list of trip preferences from the preferences editor. Respect it when you answer and never ask for something it already says; the planner receives it with the brief.
+- When the traveller states a lasting wish in chat ("no dietary requirements", "we like quiet places", "no early starts"), record it with update_trip_brief learnedPreferences: pass the whole updated list, keeping earlier entries in knownSoFar.learnedPreferences unless they changed. Never copy the traveller's own preferences into it.
+- When they say they arrange flights themselves or flights should not be considered, set excludeFlights true. When they say their stay is already booked, pass bookedStayName (and bookedStayNote). Then replan.
+- Once knownSoFar.excludeFlights is true, never ask about, price or mention flights, and never tell them the budget is missing a flight fare. Once knownSoFar.bookedStay is set, never suggest, compare or ask about other stays.
 - For a question you can answer from the trip context or from general travel knowledge, just answer. Do not replan.
 - For something this product cannot do, say plainly that it is not built yet. Never imply a booking, a price quote or live data you do not have.
 
@@ -464,7 +504,7 @@ async function runConversationAgent(
     {
       name: "update_trip_brief",
       description:
-        "Record trip facts the traveller just stated: destination, dates, number of travellers, budget or nationality. Only pass fields they actually gave in this message.",
+        "Record trip facts the traveller just stated: destination, dates, number of travellers, budget, nationality, lasting preferences learned in chat, that they arrange flights themselves, or a stay they already booked. Only pass fields their messages actually gave.",
       schema: BriefUpdate,
     },
   );

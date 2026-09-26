@@ -1,5 +1,6 @@
 import {
   TripBrief as TripBriefSchema,
+  BookedStay,
   Currency,
   TripPreferences,
   type TripBrief,
@@ -23,6 +24,10 @@ export const BriefPatchSchema = z.object({
   // Set only by the trip preferences editor and carried in `known`; the coordinator's
   // update_trip_brief tool has no field for it, so a model cannot rewrite the traveller's list.
   preferences: TripPreferences.optional(),
+  // Set by the coordinator from what the traveller says in chat, never merged into `preferences`.
+  learnedPreferences: TripPreferences.optional(),
+  excludeFlights: z.boolean().optional(),
+  bookedStay: BookedStay.optional(),
 });
 export type BriefPatch = z.infer<typeof BriefPatchSchema>;
 

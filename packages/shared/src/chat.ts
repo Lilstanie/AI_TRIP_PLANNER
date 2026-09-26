@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   AGENT_NAMES,
+  BookedStay,
   FlightLeg,
   isTripDate,
   TravellerParty,
@@ -37,6 +38,10 @@ export const PartialTripBrief = z.object({
   // The traveller's own trip preferences, stated in the editor before a plan exists.
   // See TripBrief.preferences.
   preferences: TripPreferences.optional(),
+  // See TripBrief.learnedPreferences, excludeFlights and bookedStay.
+  learnedPreferences: TripPreferences.optional(),
+  excludeFlights: z.boolean().optional(),
+  bookedStay: BookedStay.optional(),
 });
 export type PartialTripBrief = z.infer<typeof PartialTripBrief>;
 
