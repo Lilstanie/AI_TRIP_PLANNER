@@ -150,6 +150,8 @@ function checks({ plan: p, frames, reply }, { brief, infeasible }) {
   check(itinerary?.source?.kind !== "fallback", `itinerary is model-planned (${itinerary?.source?.kind})`);
   const guide = p.sections.find((s) => s.id === "destination-guide")?.proposal;
   check(guide?.source?.kind !== "fallback", `destination guide is model-written (${guide?.source?.kind})`);
+  const dining = p.sections.find((s) => s.id === "dining")?.proposal;
+  check(dining?.source?.kind !== "fallback", `dining is model-written (${dining?.source?.kind})`);
   if (MODE === "live") {
     // A fixture under a provider label is the provenance lie this suite exists to catch.
     const fixtures = frames.filter((f) => /fixture/i.test(f.resultSummary ?? ""));
