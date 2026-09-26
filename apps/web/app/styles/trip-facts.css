@@ -745,6 +745,18 @@
   opacity: 1;
   cursor: default;
 }
+.pref-learned {
+  margin-top: var(--space-5);
+}
+.pref-learned__title {
+  margin: 0;
+  color: var(--text-mut);
+  font-size: 13px;
+  font-weight: 600;
+}
+.pref-row--learned .pref-row__text {
+  cursor: default;
+}
 
 /* The destination chip already names the trip, so where space runs short the title is kept for
    assistive technology only and the chips take its place. */

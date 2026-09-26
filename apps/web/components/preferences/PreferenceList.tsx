@@ -203,9 +203,78 @@ export function PreferenceList({ value, onChange, errors }: Props) {
           )}
         </ul>
       )}
+      <LearnedList value={value} onChange={onChange} onNotice={setNotice} />
       <p className="sr-only" role="status">
         {notice}
       </p>
     </section>
+  );
+}
+
+/**
+ * What the assistant picked up in chat: lasting wishes, flights the traveller arranges and a stay
+ * they have booked. The assistant writes these; the traveller can only remove them, which returns
+ * the matter to the planner on the next plan.
+ */
+function LearnedList({
+  value,
+  onChange,
+  onNotice,
+}: {
+  value: Draft;
+  onChange(next: Draft): void;
+  onNotice(text: string): void;
+}) {
+  const learned = value.learnedPreferences ?? [];
+  const rows: { key: string; text: string; remove(): Draft }[] = [
+    ...learned.map((text, index) => ({
+      key: `learned-${index}`,
+      text,
+      remove: () => ({ ...value, learnedPreferences: learned.filter((_, at) => at !== index) }),
+    })),
+    ...(value.excludeFlights
+      ? [
+          {
+            key: "flights",
+            text: "Flights: arranged by you, not planned",
+            remove: () => ({ ...value, excludeFlights: undefined }),
+          },
+        ]
+      : []),
+    ...(value.bookedStay
+      ? [
+          {
+            key: "stay",
+            text: `Stay: ${value.bookedStay.name}, booked by you${value.bookedStay.note ? ` (${value.bookedStay.note})` : ""}`,
+            remove: () => ({ ...value, bookedStay: undefined }),
+          },
+        ]
+      : []),
+  ];
+  if (!rows.length) return null;
+  return (
+    <div className="pref-learned">
+      <h3 className="pref-learned__title" id="pref-learned-title">
+        Learned from your chats
+      </h3>
+      <ul className="pref-list" aria-labelledby="pref-learned-title">
+        {rows.map((row) => (
+          <li key={row.key} className="pref-row pref-row--learned">
+            <span className="pref-row__text">{row.text}</span>
+            <button
+              type="button"
+              className="pref-row__remove"
+              aria-label={`Remove “${row.text}”`}
+              onClick={() => {
+                onChange(row.remove());
+                onNotice(`Removed “${row.text}”.`);
+              }}
+            >
+              <CloseIcon />
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

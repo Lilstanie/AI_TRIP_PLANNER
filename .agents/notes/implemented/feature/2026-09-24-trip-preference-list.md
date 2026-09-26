@@ -54,6 +54,8 @@ specialist ever saw it.
   brief would not record what the trip was planned against.
 - **Let the coordinator record preferences it hears in chat.** Not done: the list is the traveller's
   own words, and a model paraphrasing it into the brief could not be told apart from what they wrote.
+  Superseded by the [conversation scope note](2026-09-27-conversation-scope.md): the coordinator now
+  records them in a separate `learnedPreferences` list, so this list stays the traveller's own.
 - **Suggest places in mock mode too.** Rejected: every lookup is a billed Places request.
 
 ## Consequences

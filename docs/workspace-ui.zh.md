@@ -46,6 +46,12 @@ seniors`（宠物不计为旅客）；`groupSize` 仍是校验字段，因此至
   - 分类以 `TripBrief.party`（方案生成前为 `known.party`）传给规划器，与 `groupSize` 并列。每个 specialist 的共享规则要求它在证据允许时为儿童、婴儿、老年人和宠物规划，并在无法确认适宜性时说明；所有费用计算仍使用 `groupSize`。分类合计不再等于 `groupSize` 时（例如聊天后来得知“we're three now”），会丢弃分类，不再发送。[旅客分类 Agent Note](../.agents/notes/implemented/architecture/2026-09-24-traveller-party.md) 记录了原因。
   - Budget 在一个 `role="radiogroup"` 中提供四个预设范围卡片：Budget（低于 AUD 1,000，设置为 AUD 900）、Moderate（AUD 1,000–3,000，设置为 AUD 3,000）、Comfort（AUD 3,000–6,000，设置为 AUD 6,000）和 Luxury（AUD 6,000+，设置为 AUD 10,000）。各卡片为 `role="radio"`，仅当 `budgetTotal` 与其值完全相等时显示选中（`aria-checked="true"`）。下方“Or enter an amount (AUD)”可直接把 `budgetTotal` 设为任意金额；除非恰好匹配某个预设，否则取消所有预设的选中状态。
   - Trip preferences 打开时显示填充背景的输入框（`--surface-2`、无边框、15 px），Enter 添加偏好；下方每项偏好是一行带移除按钮的填充背景行，最多 12 项，每项最多 200 字符。点击偏好文字可原地编辑（Enter 或离开输入框保存，Escape 只取消此次编辑）；没有铅笔按钮。重复项会被拒绝并显示提示，Done 会保留输入框中尚未提交的文字，添加和移除通过状态区域播报。国籍、房间分配、最低住客评分和免费取消已不再可编辑；已存储行程需求中的值原样透传，已存储但不符合 schema 的评分视为“no minimum”。
+  - 列表下方的“Learned from your chats”在有内容时显示助手从对话中记录的内容：
+    - 每条学到的偏好；
+    - “Flights: arranged by you, not planned”；
+    - “Stay: <name>, booked by you”。
+
+    每行都可以移除但不能编辑。移除在下一次规划时生效。
   - 编辑器是带标签的 `role="dialog"`。焦点移到首个字段（Where 已有地点时从 Add destination 开始），Tab 在内部循环，Escape、关闭按钮或保存编辑后将焦点返回标签。点击面板外部会落在遮罩上，并将焦点返回标签。打开编辑器会关闭 Trip 抽屉和导航抽屉。
   - 编辑内容在保存前留在编辑器中，因此 Escape 和点击外部都会丢弃编辑。各编辑器用行程需求 schema 校验自身字段，并在字段旁说明如何修正。
   - 没有方案时，Save 把编辑保留在草稿中，不发送请求。已陈述事实以 `known` 随下一条聊天消息发送，Trip preferences 中的 Plan trip 使用完整行程需求规划（`mode: "plan"`）。已有方案时，按钮为 Update trip：保存编辑并使用完整行程需求重新规划，因为聊天消息携带的是方案的行程需求，不是草稿。行程需求被拒绝时，打开首个有误事实的编辑器，在字段旁显示错误。

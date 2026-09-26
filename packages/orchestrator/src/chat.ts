@@ -128,7 +128,7 @@ export const BriefUpdate = z.object({
     .array(z.string())
     .nullish()
     .describe(
-      "The whole list of trip preferences learned from this conversation, replacing the previous one: short phrases in the traveller's language for lasting wishes they stated (diet, pace, what to avoid). Leave out anything already in knownSoFar.preferences.",
+      "The whole list of trip preferences learned from this conversation, replacing the previous one: short phrases, written in the same language as the traveller's own message, for lasting wishes they stated (diet, pace, what to avoid). Leave out anything already in knownSoFar.preferences.",
     ),
   excludeFlights: z
     .boolean()
@@ -347,7 +347,7 @@ function fallbackReplyFor(plan: TripPlan): string {
     const aud = (amount: number) =>
       `AUD ${Math.ceil(amount).toLocaleString("en-AU", { maximumFractionDigits: 0 })}`;
     const floor = minimumCost(plan.sections.flatMap((section) => section.proposal ?? []));
-    return `The cheapest flights and stays found already come to about ${aud(floor)}, above your ${aud(plan.budgetTotal)} budget, so no version of this plan fits it. To go ahead, raise the budget to at least ${aud(floor)} before activities and meals, or change the dates, origin or destination.`;
+    return `The cheapest travel and stays found already come to about ${aud(floor)}, above your ${aud(plan.budgetTotal)} budget, so no version of this plan fits it. To go ahead, raise the budget to at least ${aud(floor)} before activities and meals, or change the dates, origin or destination.`;
   }
   const summaries = plan.sections
     .map((section) => section.summary.trim())

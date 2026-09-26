@@ -138,6 +138,13 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     Nationality, room allocation, minimum guest rating and free cancellation are no longer edited;
     a stored brief's values pass through unchanged, and a stored rating the schema would reject
     counts as "no minimum".
+  - Below the list, "Learned from your chats" shows what the assistant recorded from the
+    conversation, when there is anything:
+    - each learned preference;
+    - "Flights: arranged by you, not planned";
+    - "Stay: <name>, booked by you".
+
+    Each row can be removed but not edited. A removal takes effect on the next plan.
   - An editor is a labelled `role="dialog"`. Focus moves to its first field (Where with places
     already listed starts on Add destination), Tab loops inside it, and Escape, the close button or a
     saved edit return focus to the chip. A press outside the panel lands on the scrim and returns

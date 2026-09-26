@@ -165,6 +165,20 @@ Supervisor 收到指令，将每条偏好传入它所影响的目标；每个 sp
 并遵循同一条共享规则（`packages/agents/src/prompts/traveller-preferences.ts`）：
 在依据允许的范围内权衡偏好，说明无法满足的偏好，且绝不把偏好当作已验证的事实。
 
+`update_trip_brief` 用另外三个字段记录对话中确定的内容：
+
+- `learnedPreferences`：旅行者在聊天中说出的愿望，每次整体替换。
+- `excludeFlights`：旅行者自行安排航班。
+- `bookedStay`：旅行者已预订住宿。
+
+`packages/orchestrator/src/supervisor.ts` 中的 `specialistBrief` 把学到的列表追加到旅行者自己的
+列表之后交给 specialist，去重并限制为 12 条。存储的行程需求仍把两个列表分开保存。
+
+设置 `excludeFlights` 后，交通 specialist 既不搜索也不计价航班，也不产生票价冲突。设置
+`bookedStay` 后，住宿 specialist 不搜索，直接返回未计价的预订。即使模型跳过住宿
+specialist，supervisor 也会运行它。任一字段设置后，协调器不再询问航班或其他住宿。
+原因见[对话范围说明](../.agents/notes/implemented/feature/2026-09-27-conversation-scope.md)。
+
 一条消息最多携带四个附件。图片以内容块传给协调器，文本文件内联到消息中；
 只有协调器能看到附件，specialist 的输入不变，离线路径忽略图片但仍读取内联文本。
 大小和允许的媒体类型在 `packages/shared/src/chat.ts` 中强制执行，并列于 [API](api.zh.md)。

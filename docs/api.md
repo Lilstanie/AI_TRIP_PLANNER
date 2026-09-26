@@ -47,6 +47,17 @@ Contract: `ChatRequest`, `ChatResponse` and `AgentProgressEvent` in `packages/sh
 never writes them, and every specialist and the supervisor receive them with the brief. `nationality`
 and `accommodation` are still accepted and passed through, but no current screen sets them.
 
+Three more optional fields on `brief` and `known` come from the conversation:
+
+- `learnedPreferences` has the same limits as `preferences` and holds the wishes the coordinator
+  heard in chat. Specialists receive it appended to `preferences`.
+- `excludeFlights: true` means the traveller arranges flights. Flown hops are then unpriced
+  "arranged by you" items, with no fares and no `flights` selection.
+- `bookedStay: { name, note? }` is a stay the traveller has booked. The accommodation section is that
+  one unpriced item, with no `stays` candidates.
+
+The traveller can remove these from Trip preferences, and the client then sends them without them.
+
 `brief.party` and `known.party` are optional too: `{ adults, children, infants, seniors, pets }`,
 whole numbers from 0 to 99 (`TravellerParty` in `packages/shared/src/contracts.ts`), set by the Who
 editor's steppers. They break `groupSize` down and add pets, who are not counted in it; `groupSize`
