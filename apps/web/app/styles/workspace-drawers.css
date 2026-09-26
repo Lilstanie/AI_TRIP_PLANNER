@@ -218,3 +218,8 @@
   white-space: nowrap;
   border: 0;
 }
+.trip-panel__budget-summary .trip__budget-note {
+  margin: var(--space-1) 0 0;
+  color: var(--text-dim);
+  font-size: var(--font-size-meta);
+}

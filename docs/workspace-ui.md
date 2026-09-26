@@ -382,6 +382,9 @@ no LLM calls.
   and "Staying at …" on later nights. Fixed rows show an icon, a title, one detail line and their
   cost ("Fare not published" or "Price unknown" rather than AUD 0). Between two stops the journey
   reads "Walk · 6 min · checked" from a route check, or the planner's `arriveBy` as an estimate.
+- **Prices.** No provider publishes admission prices, so itinerary stops carry no `estCost` and show
+  "Price unknown"; the budget card adds "Not included: admission for N stops with no published
+  price" so the total is not read as the whole cost.
 - **Editing.** A stop is compact until selected, here or on the map; selecting it opens its editor:
   start and end time ("Preview time change"), Move earlier / Move later, Move to another day, and a
   Google Maps search to replace the place. A stop the map matched by name but not confirmed offers

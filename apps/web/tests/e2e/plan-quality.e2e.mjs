@@ -133,9 +133,12 @@ function checks({ plan: p, frames, reply }, { brief, infeasible }) {
   const failed = frames.filter((f) => f.type === "agent_failed");
   check(!failed.length, `no agent_failed events (${failed.length})`);
   for (const s of p.sections) {
-    // A zero is not a failure: with no priced evidence the model is told not to
-    // invent admission fares. It is listed so an understated total is visible.
-    if (s.estCost === 0 && !/destination/i.test(s.id)) console.log(`warn ${s.id} costs AUD 0`);
+    // No source publishes admission prices, so an activity with a price was invented.
+    if (s.id === "itinerary")
+      check(
+        (s.proposal?.items ?? []).every((item) => item.estCost === undefined),
+        "no activity carries an invented price",
+      );
     const json = JSON.stringify(s.proposal ?? {});
     const dates = [...json.matchAll(/20\d\d-\d\d-\d\d(?!T)/g)].map((m) => m[0]);
     const outside = dates.filter((d) => d < brief.dates[0] || d > brief.dates[1]);

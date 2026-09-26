@@ -36,7 +36,11 @@ const ItineraryActivity = z.object({
   endTime: z.string().regex(TIME),
   location: z.string().trim().min(1),
   detail: z.string().trim().min(1),
-  estCost: z.number().nonnegative(),
+  /**
+   * Ignored: no provider publishes admission prices for these places, so a number here would be
+   * the model's guess. Kept optional so an older generator's drafts still parse.
+   */
+  estCost: z.number().nonnegative().optional(),
 });
 
 const ItineraryDraft = z.object({
@@ -116,7 +120,6 @@ function validateDraft(
   draft: ItineraryDraft,
   days: number,
   places: Place[],
-  activityBudget: number,
   dayCities?: string[][],
   placesByCity?: ReadonlyMap<string, readonly Place[]>,
 ): ItineraryDraft {
@@ -142,7 +145,6 @@ function validateDraft(
   }
   const candidates = new Set(places.map((place) => place.name.trim().toLocaleLowerCase()));
   const representedDays = new Set<number>();
-  let total = 0;
   for (const activity of parsed.activities) {
     if (!candidates.has(activity.location.trim().toLocaleLowerCase())) {
       throw new Error(`Itinerary returned an ungrounded location: ${activity.location}`);
@@ -152,7 +154,6 @@ function validateDraft(
       throw new Error(`Itinerary activity on day ${activity.day} must end after it starts.`);
     }
     representedDays.add(activity.day);
-    total += activity.estCost;
   }
   // The same stop twice in one day skips the route check between them, so a
   // revision could clear a geography conflict by repeating a place.
@@ -167,11 +168,6 @@ function validateDraft(
     seen.add(key);
   }
   if (representedDays.size !== days) throw new Error("Itinerary must include every trip day.");
-  if (total > activityBudget) {
-    throw new Error(
-      `Itinerary activity estimate ${total} exceeds its activity budget of ${activityBudget} for the whole group.`,
-    );
-  }
   for (let day = 1; day <= days; day += 1) {
     const scheduled = parsed.activities
       .filter((activity) => activity.day === day)
@@ -217,7 +213,6 @@ function fallbackDraft(
   brief: TripBrief,
   days: number,
   places: Place[],
-  activityBudget: number,
   placesByCity?: ReadonlyMap<string, readonly Place[]>,
   dayCities?: string[][],
 ): ItineraryDraft {
@@ -235,13 +230,10 @@ function fallbackDraft(
   // Two stops a day, but never more stops than the thinnest day has places for.
   const scarcest = Math.min(...Array.from({ length: days }, (_, day) => forDay(day + 1).length));
   const perDay = Math.min(DAY_SLOTS.length, Math.max(1, Math.floor(scarcest / 2) || 1));
-  const dailyEstimate =
-    Math.floor((activityBudget / days) * 100) / 100;
+
   // The day's allowance is split across its stops rather than spent on each:
   // the cap is what a day of activities may cost, so two stops must share it
   // or adding a second stop would silently double the itinerary's budget.
-  const perActivity =
-    Math.floor((Math.min(30 * brief.groupSize, dailyEstimate) / perDay) * 100) / 100;
   const slots = perDay === 1 ? [SINGLE_SLOT] : DAY_SLOTS.slice(0, perDay);
   const activities = Array.from({ length: days }, (_, day) =>
     Array.from({ length: perDay }, (_, slot) => {
@@ -252,7 +244,6 @@ function fallbackDraft(
         ...slots[slot]!,
         location: place.name,
         detail: `${place.name} (${place.category}) is a suggested stop; confirm timing and suitability before visiting.`,
-        estCost: perActivity,
       };
     }),
   ).flat();
@@ -286,7 +277,7 @@ function createDeepSeekGenerator(): ItineraryGenerator | undefined {
         name: "itinerary_specialist",
         model,
         tools: [evidence],
-        systemPrompt: `You are the itinerary specialist. Always call read_itinerary_evidence before drafting. Use only its facts and candidate place names. Cover every trip day with 1-3 non-overlapping activities using 24-hour HH:mm times, leave 150 minutes between different locations, and keep the total activity cost within activityBudget, which is what flights and the stay left for activities. When dayCities is given, every activity on a day must be a candidate from one of that day's cities in candidatesByCity; a day with two cities is travel day. When otherSections names where the traveller sleeps, build each day around that stay and keep long trips away from it rare. On a revision, start from previous and change only what the revision asks. Never claim live hours, availability, safety, visa or weather facts. Address a supplied revision exactly. Return the requested structured itinerary draft.\n\nEach activity location must be a candidate's name copied character for character. Do not append its category, rating or district, and do not reword it: an activity whose location is not an exact candidate name is discarded and the whole draft is thrown away.\n\n${TRAVELLER_PREFERENCES_RULE}`,
+        systemPrompt: `You are the itinerary specialist. Always call read_itinerary_evidence before drafting. Use only its facts and candidate place names. Cover every trip day with 1-3 non-overlapping activities using 24-hour HH:mm times, leave 150 minutes between different locations, and treat activityBudget, what flights and the stay left for activities, as a guide to how many paid attractions to include. Do not state activity prices: no evidence has them. When dayCities is given, every activity on a day must be a candidate from one of that day's cities in candidatesByCity; a day with two cities is travel day. When otherSections names where the traveller sleeps, build each day around that stay and keep long trips away from it rare. On a revision, start from previous and change only what the revision asks. Never claim live hours, availability, safety, visa or weather facts. Address a supplied revision exactly. Return the requested structured itinerary draft.\n\nEach activity location must be a candidate's name copied character for character. Do not append its category, rating or district, and do not reword it: an activity whose location is not an exact candidate name is discarded and the whole draft is thrown away.\n\n${TRAVELLER_PREFERENCES_RULE}`,
         responseFormat: ItineraryDraft,
       });
       const result = await specialist.invoke({
@@ -560,7 +551,7 @@ async function planItinerary(
                     summary: extras.previous.summary,
                     activities: extras.previous.items.map(
                       (item) =>
-                        `day ${item.day} ${item.startTime}-${item.endTime} ${item.location}: AUD ${item.estCost}`,
+                        `day ${item.day} ${item.startTime}-${item.endTime} ${item.location}`,
                     ),
                   },
                 }
@@ -569,7 +560,6 @@ async function planItinerary(
           }),
           days,
           places,
-          activityBudget,
           dayCities,
           placesByCity,
         );
@@ -582,10 +572,10 @@ async function planItinerary(
     if (accepted) draft = accepted;
     else {
       usedFallback = true;
-      draft = fallbackDraft(brief, days, places, activityBudget, placesByCity, dayCities);
+      draft = fallbackDraft(brief, days, places, placesByCity, dayCities);
     }
   } else {
-    draft = fallbackDraft(brief, days, places, activityBudget, placesByCity, dayCities);
+    draft = fallbackDraft(brief, days, places, placesByCity, dayCities);
   }
   const adjusted = avoidBlockedWindows(draft, revision);
   draft = adjusted.draft;
@@ -599,7 +589,7 @@ async function planItinerary(
     // A revision that still conflicts is compared with the conservative
     // fallback, and the fallback is kept only when it actually conflicts less:
     // swapping unconditionally replaced a good model plan with a template one.
-    const fallback = avoidBlockedWindows(fallbackDraft(brief, days, places, activityBudget, placesByCity, dayCities), revision);
+    const fallback = avoidBlockedWindows(fallbackDraft(brief, days, places, placesByCity, dayCities), revision);
     // The fallback is a different day plan, so its connections are different too.
     const fallbackConnections: Connections = new Map();
     const fallbackConflicts = [
@@ -616,7 +606,8 @@ async function planItinerary(
   return {
     agent: "itinerary",
     summary: draft.summary,
-    items: draft.activities.map((activity) => {
+    // No estCost: nothing publishes admission prices, and a guessed one would read as a quote.
+    items: draft.activities.map(({ estCost: _unpriced, ...activity }) => {
       const arriveBy = connections.get(connectionKey(activity));
       return { kind: "activity", ...activity, ...(arriveBy ? { arriveBy } : {}) };
     }),
@@ -624,12 +615,13 @@ async function planItinerary(
       ...draft.assumptions,
       ...evidenceIssues,
       "Different-place connections require route time plus a 15-minute arrival buffer. Opening hours remain unverified.",
+      `Activity prices unknown: no source publishes admission prices for these ${draft.activities.length} stops, so none is counted in the trip total.`,
       ...(placesByCity.size > 1
         ? [`Cities by day: ${dayCities.map((cities, index) => `day ${index + 1} ${cities.join(" → ")}`).join("; ")}.`]
         : []),
       ...(usedFallback
         ? [
-            "Planner source: deterministic fallback; activity costs are planning allowances, not verified admission fares.",
+            "Planner source: deterministic fallback from the gathered place evidence.",
           ]
         : []),
       ...(revision
