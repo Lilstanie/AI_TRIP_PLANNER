@@ -143,6 +143,14 @@ async function interactions(browser) {
   );
   await preview.getByRole("button", { name: "Apply changes" }).click();
   await settle(page, 800);
+  // The stop the edit changed flashes once, and only while motion is allowed.
+  const flashed = timeline.locator(".timeline-stop.is-changed");
+  check((await flashed.count()) >= 1, "an applied edit marks the changed stop");
+  check(
+    (await flashed.first().locator(".timeline-stop__main").evaluate((el) => getComputedStyle(el).animationName)) ===
+      "stop-changed",
+    "the changed stop plays its highlight",
+  );
   const undo = timeline.getByRole("button", { name: /Undo/ });
   check(await undo.isVisible(), "an applied edit can be undone");
   await page.screenshot({ path: `${OUT}/interact-03-applied.png` });
@@ -224,6 +232,13 @@ async function interactions(browser) {
       check(
         (await timeline.locator(".timeline-connection--checked").count()) > 0,
         "checked journeys appear between the stops",
+      );
+      check(
+        (await timeline
+          .locator(".timeline-connection--checked .timeline-connection__rail")
+          .first()
+          .evaluate((el) => getComputedStyle(el).animationName)) === "rail-draw",
+        "a checked journey draws itself down the line",
       );
     }
     await page.screenshot({ path: `${OUT}/interact-05-routes-checked.png` });

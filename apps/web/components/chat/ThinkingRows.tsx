@@ -2,6 +2,7 @@
 import { useState, type CSSProperties, type HTMLAttributes, type ReactNode } from "react";
 import type { ToolResultKind, ToolResultRow } from "@trip/shared";
 import { cn } from "@/lib/utils";
+import { SubagentOrbIcon } from "./ThinkingOrbIcon";
 import {
   FlowCheckIcon,
   FlowChevronDownIcon,
@@ -345,7 +346,7 @@ export function SubagentRow({ model, open }: { model: SubagentModel; open: OpenR
     >
       <Disclosure
         className="thinking-subagent__row"
-        icon={<FlowSubagentIcon />}
+        icon={running ? <SubagentOrbIcon model={model} /> : <FlowSubagentIcon />}
         title="Subagent"
         state={running ? "running" : model.status === "failed" ? "error" : "ok"}
         open={open.isOpen(model.id)}

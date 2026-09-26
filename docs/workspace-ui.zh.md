@@ -78,7 +78,7 @@ seniors`（宠物不计为旅客）；`groupSize` 仍是校验字段，因此至
   - 每个 agent（智能体）回复都显示在自己的 Think 折叠区下：轮次运行时，transcript 在聊天底部流式呈现；随后移到结束该轮次的回复上方，并始终与其关联（重新加载后也保留）。
   - 规划进度是深入展开的 transcript，而非状态列表：`Think`（轮次）按编排轮次嵌套 `Subagent · <name>` 行，各行再嵌套该 specialist 的推理和工具行。每行都使用 DSH 风格的展开控件：左侧图标在悬停或展开时交叉淡变为 chevron，右侧没有 chevron。所有行起初都收起，无论正在运行还是已结束；点击只展开该行，没有全部展开控件。Think 行自身收起时显示该轮次的统计行（`N tool calls · M subagents · K rounds`）；运行中则跟随最新流式推理行，或实时工具／subagent 行。工具行展开后显示结果自己的行，每行带根据结果类型选择的类别图标（刀叉、床、飞机等），如果提供方返回了该行的网页，则显示网站自己的图标。调用参数显示为一行，例如 `Sydney Airport → The Rocks · 2026-11-10`。同一次模型调用的推理增量合并为一行，不以零散片段到达。大于 1 的编排轮次只有附带 coordinator 对修改内容的说明时才显示。所参考的界面，以及每处差异的原因，记录在 [DSH 思考 UI 参考](design/dsh-thinking-ui.zh.md) 中。
   - 界面恰好有一行 `Deep diving`，它是唯一 live region；15 秒后增加已用时间计时。
-  - 请求运行时，Think 行的图标是来自 `thinking-orbs` 的 20 px `ThinkingOrb`（`components/chat/ThinkingOrbIcon.tsx`）。动画跟随最新的真实进度事件：规划时编织（weaving），调用数据提供方时搜索（searching），检查冲突时求解（solving），修订时工作（working），汇总方案时撰写（composing），specialist 推理时呼吸（breathing）。行内文字已说明当前在做什么，因此它对辅助技术隐藏；在减弱动态效果设置下只绘制一帧静态画面；该轮结束后恢复为静态图标。
+  - 请求运行时，Think 行的图标是来自 `thinking-orbs` 的 20 px `ThinkingOrb`（`components/chat/ThinkingOrbIcon.tsx`）。动画跟随最新的真实进度事件：规划时编织（weaving），调用数据提供方时搜索（searching），检查冲突时求解（solving），修订时工作（working），汇总方案时撰写（composing），specialist 推理时呼吸（breathing）。行内文字已说明当前在做什么，因此它对辅助技术隐藏；在减弱动态效果设置下只绘制一帧静态画面；该轮结束后恢复为静态图标。每个运行中的 Subagent 行也有自己的光球，由该 specialist 最新的一步决定：检查路线时连接（connecting），调用其他数据提供方时搜索（searching），修订时工作（working），推理时呼吸（breathing）。
   - 大多数时候，规划器仍用普通文字提问：缺少目的地、日期、旅客或预算而无法继续时，用一句话说明，旅客通过输入回答，不借用任何值。遇到确实有歧义、且有 2–4 个具体选项的情况，coordinator 可改问结构化问题：卡片替代输入区，显示问题、可选的推荐选项，以及多个问题时的翻页控件。提交后，答案作为旅客的下一条消息发送；关闭卡片恢复普通输入区，无论怎样，问题文字都保留在助手自己的消息中。对于 specialist 已作出的方案选择，仍没有“apply the traveller's decision”功能：结构化问题始终只涉及规划输入，绝不是审批。因此旅客要修改方案本身，仍需在聊天中说明或编辑行程。见 [DSH 思考 UI §3.2](design/dsh-thinking-ui.zh.md#32-asking-the-traveller) 和 [ask-user Agent Note](../.agents/notes/implemented/feature/2026-09-23-ask-user-question.md)。
   - 聊天没有日历弹窗：日期可在输入区键入。When 标签的编辑器仍提供日历选择器，由旅客主动打开。
   - 消息在 `role="log"` 中保留对话顺序；每条消息有一个可见、仅播报一次的说话者标签（You 或 Travel planning assistant）。旅客消息是右对齐气泡；助手回复全宽显示，无边框或背景，以 Markdown 呈现（段落、列表、粗体、在新标签页打开的链接）。两者下方都有小号时间，今天用 `HH:mm`，其他日期用短日期；长 URL 和中英文混排文字在聊天栏内换行。
@@ -145,6 +145,7 @@ Timeline & routes 标签页（由 `TripEditor` 组合 `components/trip/timeline/
 - **编辑。** 停靠点在此处或地图上被选中前保持紧凑；选择后打开编辑器：开始和结束时间（“Preview time change”）、Move earlier / Move later、Move to another day，以及用于替换地点的 Google Maps 搜索。地图按名称匹配但尚未确认的停靠点提供“Use this place”。仍支持拖放调整当天顺序。
 - **路线检查。** 提供 Walk / Public transport 切换和“Check routes for Day N”；当天有两个地点已确认的停靠点时启用，下方提示说明缺少哪个条件。
 - **审查。** 每次编辑打开“Review this change”：显示新总额和差额、每个移动停靠点一行、已检查路线、阻断项，以及仅由此次变化新增的冲突。Apply changes 应用修改；Cancel 或 Escape 只关闭预览。应用编辑后显示“Undo last change”，撤销也用同样方式预览。
+- **动效。** 切换日期时当天列表淡入；站点编辑器和审阅面板上浮出现；应用编辑后，被改动的站点短暂以强调色高亮；路线检查确认的行程沿时间线自上而下绘出。每种动效同时有文字或颜色信号，在减弱动态效果设置下都不播放。
 - 编辑待处理时，聊天输入区无法发送（`ChatPanel` `locked`），但聊天不显示思考行或停止按钮：待处理编辑不是聊天请求。
 
 - 活动只分配一次稳定 ID，重排和恢复时保留。`editVersion` 独立于 orchestrator 的编排轮次，只有基础版本仍匹配时才能应用预览。
