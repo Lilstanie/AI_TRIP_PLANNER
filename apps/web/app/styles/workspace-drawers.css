@@ -200,26 +200,6 @@
   border-top: 1px solid var(--border);
   background: var(--surface);
 }
-.drawer .trip-editor {
-  margin: 0;
-  padding: 8px 0 16px;
-  max-width: none;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-}
-.editor-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px 12px;
-}
-.editor-toolbar p {
-  flex-basis: 100%;
-  margin: 0;
-  color: var(--text-dim);
-  font-size: 12px;
-}
 .trip-drawer-empty {
   display: grid;
   justify-items: start;

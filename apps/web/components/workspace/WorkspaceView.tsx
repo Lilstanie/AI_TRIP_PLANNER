@@ -415,7 +415,8 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
                 messages={messages}
                 input={input}
                 onInput={setInput}
-                busy={busy || editPending}
+                busy={busy}
+                locked={editPending}
                 activity={activity}
                 error={error}
                 onCancel={onCancel}

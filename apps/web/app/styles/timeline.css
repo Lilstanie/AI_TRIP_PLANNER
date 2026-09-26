@@ -1,0 +1,525 @@
+/* Timeline & routes tab (components/trip/TripEditor.tsx and components/trip/timeline/).
+   One day at a time as a vertical line: a time column, a node on the line, the stop, its cost.
+   It sits inside the trip drawer's glass, so it groups with space and fills, never new cards.
+   The container query adapts it to the drawer's width, which is phone-narrow on a phone. */
+
+.trip-editor {
+  container: timeline / inline-size;
+  display: grid;
+  gap: var(--space-4);
+  padding-block: var(--space-2) var(--space-4);
+  overflow-wrap: anywhere;
+}
+
+/* ---- day strip ---- */
+.day-strip {
+  display: flex;
+  gap: var(--space-2);
+  margin-inline: calc(var(--space-1) * -1);
+  padding: var(--space-1);
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+}
+.day-strip::-webkit-scrollbar {
+  display: none;
+}
+button.day-strip__day {
+  display: grid;
+  flex: none;
+  gap: 1px;
+  min-width: 96px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: transparent;
+  text-align: start;
+  scroll-snap-align: start;
+  font-weight: 400;
+}
+button.day-strip__day:hover {
+  background: var(--fill-hover);
+}
+button.day-strip__day[aria-selected="true"] {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+}
+.day-strip__title {
+  font-size: var(--font-size-body);
+  font-weight: 600;
+}
+.day-strip__date,
+.day-strip__meta {
+  color: var(--text-dim);
+  font-size: var(--font-size-meta);
+}
+.day-strip__flag {
+  color: var(--warn);
+}
+
+/* ---- route check ---- */
+.route-check {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius);
+  background: var(--fill-hover);
+}
+.route-check__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+}
+.route-check__modes {
+  background: var(--fill-press);
+}
+.route-check__hint {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: var(--font-size-meta);
+}
+
+.timeline-status {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: var(--font-size-meta);
+}
+.timeline-status--error {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--warn-bg);
+  color: var(--warn);
+}
+
+/* ---- the day ---- */
+.timeline-day {
+  display: grid;
+  gap: var(--space-2);
+}
+.timeline-day__title {
+  margin: 0;
+  font-size: var(--font-size-body);
+}
+.timeline-day__title span {
+  margin-inline-start: var(--space-1);
+  color: var(--text-dim);
+  font-weight: 400;
+}
+.timeline-day__staying,
+.timeline-day__tip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--text-dim);
+  font-size: var(--font-size-meta);
+}
+.timeline-empty {
+  margin: 0;
+  padding: var(--space-4);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  color: var(--text-dim);
+}
+
+.timeline {
+  --time-col: 44px;
+  --node: 24px;
+  position: relative;
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+/* The line every stop and journey hangs on. */
+.timeline::before {
+  content: "";
+  position: absolute;
+  top: var(--space-3);
+  bottom: var(--space-3);
+  inset-inline-start: calc(var(--time-col) + var(--space-2) + var(--node) / 2 - 1px);
+  width: 2px;
+  border-radius: 1px;
+  background: var(--border);
+}
+
+.timeline-row,
+.timeline-connection {
+  display: grid;
+  grid-template-columns: var(--time-col) var(--node) minmax(0, 1fr) auto;
+  align-items: start;
+  column-gap: var(--space-2);
+}
+.timeline-row {
+  padding-block: var(--space-2);
+}
+.timeline-row__time {
+  display: grid;
+  padding-top: 3px;
+  font-size: var(--font-size-meta);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  text-align: end;
+}
+.timeline-row__end {
+  color: var(--text-dim);
+  font-weight: 400;
+}
+.timeline-row__node {
+  position: relative;
+  display: grid;
+  width: var(--node);
+  height: var(--node);
+  place-items: center;
+  border-radius: var(--radius-pill);
+  font-size: var(--font-size-meta);
+  font-weight: 600;
+}
+.timeline-row__meta {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: var(--font-size-meta);
+}
+.timeline-row__cost {
+  padding-top: 3px;
+  color: var(--text-dim);
+  font-size: var(--font-size-meta);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Fixed rows: flights, transfers and stays. Quieter than stops, since they are edited in chat. */
+.timeline-fixed__icon {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-dim);
+}
+.timeline-fixed__body {
+  min-width: 0;
+}
+.timeline-fixed__title {
+  margin: 0;
+  font-size: var(--font-size-body);
+  font-weight: 500;
+}
+
+/* Stops. */
+.timeline-stop__node {
+  background: var(--accent-fill);
+  color: var(--on-accent);
+}
+.timeline-stop__body {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+button.timeline-stop__main {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  margin: calc(var(--space-1) * -1) calc(var(--space-2) * -1);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  text-align: start;
+  font-weight: 400;
+  box-sizing: content-box;
+  max-width: 100%;
+}
+button.timeline-stop__main:hover {
+  background: var(--fill-hover);
+}
+.timeline-stop.is-selected button.timeline-stop__main {
+  background: var(--accent-bg);
+}
+.timeline-stop.is-selected .timeline-stop__node {
+  box-shadow: 0 0 0 3px var(--accent-bg);
+}
+.timeline-stop__name {
+  font-size: var(--font-size-body);
+  font-weight: 600;
+}
+.timeline-stop__detail {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--text-dim);
+  font-size: var(--font-size-meta);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.timeline-stop.is-selected .timeline-stop__detail {
+  display: block;
+}
+.timeline-stop__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin-top: 2px;
+}
+.timeline-tag {
+  padding: 1px var(--space-2);
+  border-radius: var(--radius-pill);
+  font-size: var(--font-size-meta);
+}
+.timeline-tag--ok {
+  background: var(--ok-bg);
+  color: var(--ok);
+}
+.timeline-tag--warn {
+  background: var(--warn-bg);
+  color: var(--warn);
+}
+.timeline-stop[draggable="true"] {
+  cursor: grab;
+}
+
+/* Journeys between stops: text on the line, dashed while only an estimate. */
+.timeline-connection {
+  min-height: 28px;
+  align-items: center;
+}
+.timeline-connection__rail {
+  justify-self: center;
+  width: 2px;
+  height: 100%;
+  min-height: 28px;
+  background: var(--accent);
+  opacity: 0.55;
+}
+.timeline-connection--planned .timeline-connection__rail {
+  background: repeating-linear-gradient(var(--text-dim) 0 3px, transparent 3px 6px);
+  opacity: 0.6;
+}
+.timeline-connection--failed .timeline-connection__rail {
+  background: var(--warn);
+}
+.timeline-connection__label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+  grid-column: 3 / -1;
+  margin: 0;
+  color: var(--text-dim);
+  font-size: var(--font-size-meta);
+}
+.timeline-connection__status {
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--fill-hover);
+}
+.timeline-connection--checked .timeline-connection__status {
+  background: var(--ok-bg);
+  color: var(--ok);
+}
+.timeline-connection--failed .timeline-connection__status {
+  background: var(--warn-bg);
+  color: var(--warn);
+}
+
+/* ---- a selected stop's editor ---- */
+.stop-editor {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+.stop-editor__group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--space-2);
+  margin: 0;
+}
+.stop-editor__group p {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: var(--font-size-meta);
+}
+.stop-editor__group label {
+  display: grid;
+  gap: 2px;
+  color: var(--text-dim);
+  font-size: var(--font-size-meta);
+}
+.stop-editor input,
+.stop-editor select {
+  min-height: 36px;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--font-size-body);
+}
+.stop-editor__search {
+  align-items: end;
+}
+.stop-editor__search label {
+  flex: 1 1 200px;
+}
+.stop-editor__search-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.stop-editor__search-field svg {
+  position: absolute;
+  inset-inline-start: var(--space-2);
+  width: 14px;
+  height: 14px;
+  color: var(--text-dim);
+  pointer-events: none;
+}
+.stop-editor__search-field input {
+  width: 100%;
+  padding-inline-start: calc(var(--space-2) + 20px);
+}
+.stop-editor__hint {
+  color: var(--warn);
+}
+.stop-editor__results {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.stop-editor__results li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+.stop-editor__results span {
+  display: grid;
+  min-width: 0;
+}
+.stop-editor__results small,
+.stop-editor__footnote {
+  color: var(--text-dim);
+  font-size: var(--font-size-meta);
+}
+.stop-editor__footnote {
+  margin: 0;
+}
+
+/* ---- preview and undo ---- */
+.edit-preview {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+}
+.edit-preview:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+.edit-preview__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.edit-preview h3,
+.edit-preview h4 {
+  margin: 0;
+  font-size: var(--font-size-body);
+}
+.edit-preview h4 {
+  color: var(--text-dim);
+  font-size: var(--font-size-meta);
+}
+.edit-preview__total {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+.edit-preview__total .is-up {
+  color: var(--warn);
+}
+.edit-preview__total .is-down {
+  color: var(--ok);
+}
+.edit-preview__total small {
+  color: var(--text-dim);
+  font-size: var(--font-size-meta);
+}
+.edit-preview__list {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding-inline-start: var(--space-4);
+  font-size: var(--font-size-meta);
+}
+.edit-preview__list--blockers,
+.edit-preview__list--conflicts {
+  padding: var(--space-2) var(--space-3) var(--space-2) calc(var(--space-3) + var(--space-4));
+  border-radius: var(--radius-sm);
+  background: var(--warn-bg);
+  color: var(--warn);
+}
+.edit-preview__routes {
+  display: grid;
+  gap: var(--space-1);
+}
+.edit-preview__note {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: var(--font-size-meta);
+}
+.edit-preview__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.timeline-undo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius);
+  background: var(--ok-bg);
+  color: var(--ok);
+  font-size: var(--font-size-meta);
+}
+
+/* A phone-width drawer: the cost moves under the stop instead of taking a column. */
+@container timeline (max-width: 420px) {
+  .timeline {
+    --time-col: 40px;
+  }
+  .timeline-row,
+  .timeline-connection {
+    grid-template-columns: var(--time-col) var(--node) minmax(0, 1fr);
+  }
+  .timeline-row__cost {
+    grid-column: 3;
+    padding-top: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .day-strip {
+    scroll-behavior: auto;
+  }
+}

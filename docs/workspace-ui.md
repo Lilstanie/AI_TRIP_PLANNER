@@ -15,7 +15,7 @@ now. Implementation history and browser acceptance for each phase are in the
 | Trip fact editors | One editor per chip, every one a centred dialog; Preferences holds the traveller's own list                                                 | `FactPopover`, `FactFields`, `TripCalendar`, `WhereFields`, `PreferenceList`, `lib/workspace/trip-facts.ts` |
 | Chat              | Conversation, the planning transcript, the composer; starter suggestions in a blank chat; no visible heading                                | `ChatPanel`                                                                                                 |
 | Map               | Only the map, labelled markers, curved day-coloured itinerary lines, the place popup, map status, and the locate / map type / zoom controls | `TripMapCanvas`, `TripMap`                                                                                  |
-| Your Trip drawer  | Budget; Overview (places by day, sections and the stay chosen); Timeline & routes (editor); Review plan                                     | `Drawer`, `TripPanel`, `TripPlaceList`, `TripEditor`                                                        |
+| Your Trip drawer  | Budget; Overview (places by day, sections and the stay chosen); Timeline & routes (day strip, timeline, stop editor); Review plan            | `Drawer`, `TripPanel`, `TripPlaceList`, `TripEditor`                                                        |
 
 - **Sidebar.**
   - Expands to 240 px (220 px below 1250 px) or collapses to a 64 px icon rail. The toggle uses
@@ -169,6 +169,8 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     `usePresence`). All of it respects `prefers-reduced-motion`.
   - Opening another chat or trip, New chat, New trip and the Your trips page cross-fade the main
     column through the View Transitions API (`viewTransition`); the phone Chat/Map switch slides.
+    The column carries its `view-transition-name` only while a transition runs: a named element is
+    a backdrop root, and a permanent name left the chat sharp behind the drawers' glass.
 - **Narrow screens (≤1000 px).**
   - The top bar keeps the menu, the fact chips and Trip on one row, with a Chat/Map switch below.
     When the chips do not fit they scroll sideways inside their row, which fades at the edge that
@@ -370,8 +372,28 @@ describes current behaviour except the absences.
 
 ## Timeline editing
 
-The Timeline & routes tab edits activities through `POST /api/trip/preview-edit`. Previews are
-deterministic and make no LLM calls.
+The Timeline & routes tab (`TripEditor` composing `components/trip/timeline/`) shows one day at a
+time and edits activities through `POST /api/trip/preview-edit`. Previews are deterministic and make
+no LLM calls.
+
+- **Layout.** A day strip of tabs (`Day 2 · Sun, 18 Oct · 3 stops`, flagged when a stop needs a
+  place) picks the day. The day is a vertical line in time order (`lib/trip/timeline.ts`): an
+  untimed flight first, timed inter-city hops and stops by start time, the night's check-in last,
+  and "Staying at …" on later nights. Fixed rows show an icon, a title, one detail line and their
+  cost ("Fare not published" or "Price unknown" rather than AUD 0). Between two stops the journey
+  reads "Walk · 6 min · checked" from a route check, or the planner's `arriveBy` as an estimate.
+- **Editing.** A stop is compact until selected, here or on the map; selecting it opens its editor:
+  start and end time ("Preview time change"), Move earlier / Move later, Move to another day, and a
+  Google Maps search to replace the place. A stop the map matched by name but not confirmed offers
+  "Use this place". Drag and drop still reorders the day.
+- **Route check.** A Walk / Public transport switch and "Check routes for Day N", enabled once the
+  day has two stops with confirmed places; the hint under it says which is missing.
+- **Review.** Every edit opens "Review this change": the new total and difference, one line per
+  moved stop, the routes checked, blockers, and only the conflicts the change would add. Apply
+  changes applies it; Cancel or Escape closes only the preview. An applied edit shows "Undo last
+  change", which is previewed the same way.
+- While an edit is pending the chat composer cannot send (`ChatPanel` `locked`), but the chat shows
+  no thinking row or stop button: a pending edit is not a chat request.
 
 - Activities receive stable IDs once, retained on reorder and restore. `editVersion` is independent of
   the orchestrator round, and a preview applies only if its base version still matches.

@@ -53,7 +53,7 @@ describe("editor request lifecycle", () => {
         onSelect={vi.fn()}
       />,
     );
-    expect(screen.getByRole("button", { name: "Verify day routes" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Check routes for Day 1" })).toBeTruthy();
     expect(screen.queryByLabelText("Google activity map")).toBeNull();
   });
   it("shares activity selection with the map", () => {
@@ -69,7 +69,7 @@ describe("editor request lifecycle", () => {
         onSelect={select}
       />,
     );
-    fireEvent.click(screen.getByRole("button", { name: /09:00–10:00 · Museum/ }));
+    fireEvent.click(screen.getByRole("button", { name: /09:00–10:00 · .*Museum/ }));
     expect(select).toHaveBeenCalledWith(itineraryActivities(plan)[0]!.id);
   });
   it("discards a late preview after workspace restore", async () => {
@@ -93,10 +93,12 @@ describe("editor request lifecycle", () => {
         onApply={apply}
         onPending={pending}
         tripPlaces={places(original)}
+        selected={itineraryActivities(original)[0]!.id}
         onSelect={vi.fn()}
       />,
     );
-    fireEvent.click(screen.getByRole("button", { name: "Preview time" }));
+    fireEvent.change(screen.getByLabelText("End"), { target: { value: "10:30" } });
+    fireEvent.click(screen.getByRole("button", { name: "Preview time change" }));
     const restored = { ...original, tripId: "restored" };
     rerender(
       <TripEditor
@@ -105,6 +107,7 @@ describe("editor request lifecycle", () => {
         onApply={apply}
         onPending={pending}
         tripPlaces={places(restored)}
+        selected={itineraryActivities(restored)[0]!.id}
         onSelect={vi.fn()}
       />,
     );
@@ -127,10 +130,12 @@ describe("editor request lifecycle", () => {
         onApply={vi.fn()}
         onPending={vi.fn()}
         tripPlaces={places(plan)}
+        selected={itineraryActivities(plan)[0]!.id}
         onSelect={vi.fn()}
       />,
     );
-    const trigger = screen.getByRole("button", { name: "Preview time" });
+    fireEvent.change(screen.getByLabelText("End"), { target: { value: "10:30" } });
+    const trigger = screen.getByRole("button", { name: "Preview time change" });
     trigger.focus();
     fireEvent.click(trigger);
     await screen.findByRole("button", { name: "Apply changes" });
