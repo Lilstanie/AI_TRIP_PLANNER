@@ -1,7 +1,23 @@
 "use client";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { TripPlan } from "@trip/shared";
 import { itineraryOrder } from "@/lib/map/itinerary-route";
+import { applyItemAction, type ItemAction } from "@/lib/trip/item-actions";
+import { dayCount, dayLabel } from "@/lib/trip/timeline";
 import type { TripPlaces } from "../map/useTripPlaces";
+import { ActionMenu, type ActionMenuItem } from "../ui/ActionMenu";
+import {
+  CalendarIcon,
+  ChatIcon,
+  CheckIcon,
+  ChevronIcon,
+  CloseIcon,
+  ComposeIcon,
+  SuitcaseIcon,
+} from "../ui/icons";
+
+type Activity = TripPlaces["activities"][number];
+type Editing = { id: string; mode: "details" | "note" | "schedule" };
 
 function dayDate(start: string, day: number) {
   const time = Date.parse(start);
@@ -9,24 +25,130 @@ function dayDate(start: string, day: number) {
   return new Date(time + (day - 1) * 86400000).toISOString().slice(0, 10);
 }
 
+/** The small form under a row for editing details, a note, or picking an idea's day. */
+function ItemEditor({
+  activity,
+  editing,
+  days,
+  labels,
+  onSubmit,
+  onCancel,
+}: {
+  activity: Activity;
+  editing: Editing;
+  days: number;
+  labels: string[];
+  onSubmit(action: ItemAction): void;
+  onCancel(): void;
+}) {
+  const [detail, setDetail] = useState(activity.detail);
+  const [location, setLocation] = useState(activity.location ?? "");
+  const [note, setNote] = useState(activity.note ?? "");
+  const [day, setDay] = useState(1);
+  const first = useRef<HTMLInputElement & HTMLTextAreaElement & HTMLSelectElement>(null);
+  useEffect(() => first.current?.focus(), []);
+  return (
+    <form
+      className="item-editor"
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (editing.mode === "details") onSubmit({ kind: "details", detail, location });
+        else if (editing.mode === "note") onSubmit({ kind: "note", note });
+        else onSubmit({ kind: "day", day });
+      }}
+      onKeyDown={(event) => {
+        if (event.key !== "Escape") return;
+        event.stopPropagation();
+        onCancel();
+      }}
+    >
+      {editing.mode === "details" && (
+        <>
+          <label>
+            Place name
+            <input ref={first} value={location} maxLength={120} onChange={(e) => setLocation(e.target.value)} />
+          </label>
+          <label>
+            What you will do
+            <textarea value={detail} maxLength={500} rows={2} onChange={(e) => setDetail(e.target.value)} />
+          </label>
+        </>
+      )}
+      {editing.mode === "note" && (
+        <label>
+          Note
+          <textarea
+            ref={first}
+            value={note}
+            maxLength={500}
+            rows={2}
+            placeholder="e.g. Book tickets a day ahead"
+            onChange={(e) => setNote(e.target.value)}
+          />
+        </label>
+      )}
+      {editing.mode === "schedule" && (
+        <label>
+          Day
+          <select
+            ref={first}
+            aria-label="Day"
+            value={day}
+            onChange={(e) => setDay(Number(e.target.value))}
+          >
+            {Array.from({ length: days }, (_, index) => (
+              <option key={index} value={index + 1}>
+                Day {index + 1} · {labels[index]}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+      <div className="item-editor__actions">
+        <button type="submit" className="primary">
+          {editing.mode === "schedule" ? "Schedule" : "Save"}
+        </button>
+        <button type="button" onClick={onCancel}>
+          Cancel
+        </button>
+      </div>
+    </form>
+  );
+}
+
 /**
- * The trip's places in visiting order, grouped by day, at the top of the Overview tab. It is the
- * keyboard path to every map marker: a located stop is a button that selects it on the map and
- * opens its place details, and a marker pressed on the map marks its row here.
+ * The trip's stops in visiting order, grouped by day, at the top of the Itinerary tab, then its
+ * Ideas. It is the keyboard path to every map marker: a located stop is a button that selects it on
+ * the map. With `plan` and `onApply` each stop also has an action menu (adjust schedule, edit
+ * details, note, ideas, previous or next day, booked, remove); actions apply at once and can be
+ * undone (lib/trip/item-actions.ts).
  */
 export function TripPlaceList({
   tripPlaces,
   startDate,
   selected,
   onSelect,
+  plan,
+  onApply,
+  onAdjust,
+  disabled = false,
 }: {
   tripPlaces: TripPlaces;
   startDate: string;
   selected?: string;
   onSelect(activityId: string): void;
+  plan?: TripPlan;
+  onApply?(plan: TripPlan): void;
+  /** Open the Timeline on this stop to change its time. */
+  onAdjust?(activityId: string): void;
+  disabled?: boolean;
 }) {
   const { activities, markers, places, placeIdFor, locationStatus } = tripPlaces;
   const list = useRef<HTMLElement>(null);
+  const [editing, setEditing] = useState<Editing>();
+  const [undo, setUndo] = useState<{ previous: TripPlan; message: string }>();
+  const [problem, setProblem] = useState("");
+  const applied = useRef<TripPlan | null>(null);
   const orderFor = useMemo(
     () => new Map(markers.map((marker) => [marker.activityId, marker.order])),
     [markers],
@@ -38,8 +160,20 @@ export function TripPlaceList({
       group.push(activity);
       groups.set(activity.day, group);
     }
-    return [...groups];
+    // Ideas come after the scheduled days.
+    return [...groups].sort(([a], [b]) => (a ?? Infinity) - (b ?? Infinity));
   }, [activities]);
+  const total = plan ? dayCount(plan) : 0;
+  const labels = useMemo(
+    () => (plan ? Array.from({ length: total }, (_, index) => dayLabel(plan, index + 1)) : []),
+    [plan, total],
+  );
+
+  // A plan that arrives from elsewhere (chat, restore) ends the chance to undo.
+  useEffect(() => {
+    if (applied.current !== plan) setUndo(undefined);
+    applied.current = null;
+  }, [plan]);
 
   // A marker chosen on the map scrolls its row into view without taking focus.
   useEffect(() => {
@@ -47,17 +181,113 @@ export function TripPlaceList({
     row?.scrollIntoView?.({ block: "nearest" });
   }, [selected]);
 
+  const act = (activity: Activity, action: ItemAction, message: string) => {
+    if (!plan || !onApply || !activity.id) return;
+    try {
+      const next = applyItemAction(plan, activity.id, action);
+      applied.current = next;
+      setUndo({ previous: plan, message });
+      setProblem("");
+      setEditing(undefined);
+      onApply(next);
+    } catch (error) {
+      setProblem(error instanceof Error ? error.message : "That change could not be made.");
+    }
+  };
+
+  const menuFor = (activity: Activity, name: string): ActionMenuItem[] => {
+    const scheduled = activity.day !== undefined;
+    const edit = (mode: Editing["mode"]) => () => setEditing({ id: activity.id!, mode });
+    const items: ActionMenuItem[] = [];
+    if (scheduled && onAdjust)
+      items.push({ label: "Adjust schedule", icon: <CalendarIcon />, onSelect: () => onAdjust(activity.id!) });
+    if (!scheduled)
+      items.push({ label: "Schedule on a day", icon: <CalendarIcon />, onSelect: edit("schedule") });
+    items.push(
+      { label: "Edit details", icon: <ComposeIcon />, onSelect: edit("details") },
+      { label: activity.note ? "Edit note" : "Add a note", icon: <ChatIcon />, onSelect: edit("note") },
+    );
+    if (scheduled)
+      items.push(
+        {
+          label: "Move to ideas",
+          icon: <SuitcaseIcon />,
+          separated: true,
+          onSelect: () => act(activity, { kind: "idea" }, `${name} moved to Ideas.`),
+        },
+        {
+          label: "Move to previous day",
+          icon: <span className="action-menu__up"><ChevronIcon /></span>,
+          disabled: activity.day! <= 1,
+          onSelect: () =>
+            act(activity, { kind: "day", day: activity.day! - 1 }, `${name} moved to Day ${activity.day! - 1}.`),
+        },
+        {
+          label: "Move to next day",
+          icon: <span className="action-menu__down"><ChevronIcon /></span>,
+          disabled: activity.day! >= total,
+          onSelect: () =>
+            act(activity, { kind: "day", day: activity.day! + 1 }, `${name} moved to Day ${activity.day! + 1}.`),
+        },
+      );
+    items.push(
+      {
+        label: activity.booked ? "Mark as not booked" : "Mark as booked",
+        icon: <CheckIcon />,
+        separated: true,
+        onSelect: () =>
+          act(
+            activity,
+            { kind: "booked", booked: !activity.booked },
+            activity.booked ? `${name} marked as not booked.` : `${name} marked as booked.`,
+          ),
+      },
+      {
+        label: "Remove",
+        icon: <CloseIcon />,
+        tone: "danger",
+        separated: true,
+        onSelect: () => act(activity, { kind: "remove" }, `${name} removed.`),
+      },
+    );
+    return items.map((item) => (disabled ? { ...item, disabled: true } : item));
+  };
+
   if (!activities.length) return null;
   return (
     <section className="trip-places" aria-labelledby="trip-places-title" ref={list}>
-      <h3 id="trip-places-title">Places</h3>
+      <h3 id="trip-places-title">Stops</h3>
+      {undo && (
+        <div className="item-undo" role="status">
+          <span>{undo.message}</span>
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={() => {
+              applied.current = undo.previous;
+              onApply?.(undo.previous);
+              setUndo(undefined);
+            }}
+          >
+            Undo
+          </button>
+        </div>
+      )}
+      {problem && (
+        <p className="item-problem" role="alert">
+          {problem}
+        </p>
+      )}
       {days.map(([day, items]) => {
         const date = day === undefined ? undefined : dayDate(startDate, day);
-        const title = day === undefined ? "Unscheduled" : `Day ${day}${date ? ` · ${date}` : ""}`;
+        const title = day === undefined ? "Ideas" : `Day ${day}${date ? ` · ${date}` : ""}`;
         return (
-          <div className="trip-places__day" key={day ?? "none"}>
+          <div className="trip-places__day" key={day ?? "ideas"}>
             <h4>{title}</h4>
-            <ol aria-label={`Places, ${title}`}>
+            {day === undefined && (
+              <p className="trip-places__hint">Set aside for later. Schedule one on a day from its menu.</p>
+            )}
+            <ol aria-label={`Stops, ${title}`}>
               {items.map((activity, index) => {
                 const placeId = placeIdFor(activity);
                 const place = placeId ? places[placeId] : undefined;
@@ -67,49 +297,86 @@ export function TripPlaceList({
                   : undefined;
                 const name = place?.displayName?.text ?? activity.location ?? activity.detail;
                 const status = locationStatus(activity);
+                const extras = (
+                  <>
+                    {activity.booked && <span className="trip-places__tag">Booked</span>}
+                    {activity.note && <span className="trip-places__note">{activity.note}</span>}
+                  </>
+                );
                 return (
-                  <li key={activity.id ?? `${day}-${index}`}>
-                    {order !== undefined && activity.id ? (
-                      <button
-                        type="button"
-                        className="trip-places__stop"
-                        aria-pressed={selected === activity.id}
-                        onClick={() => onSelect(activity.id!)}
-                      >
-                        <span className="trip-places__order" aria-hidden="true">
-                          {order}
-                        </span>
-                        <span className="trip-places__text">
-                          <span className="trip-places__name">
-                            <span className="sr-only">Stop {order}: </span>
-                            {name}
+                  <li key={activity.id ?? `${day}-${index}`} className="trip-places__item">
+                    <div className="trip-places__row">
+                      {order !== undefined && activity.id ? (
+                        <button
+                          type="button"
+                          className="trip-places__stop"
+                          aria-pressed={selected === activity.id}
+                          onClick={() => onSelect(activity.id!)}
+                        >
+                          <span className="trip-places__order" aria-hidden="true">
+                            {order}
                           </span>
-                          <small>
-                            {[time, activity.detail !== name && activity.detail]
-                              .filter(Boolean)
-                              .join(" · ")}
-                          </small>
-                        </span>
-                      </button>
-                    ) : (
-                      <div className="trip-places__stop trip-places__stop--unmapped">
-                        <span className="trip-places__order" aria-hidden="true" />
-                        <span className="trip-places__text">
-                          <span className="trip-places__name">{name}</span>
-                          <small>
-                            {[
-                              time,
-                              status === "loading"
-                                ? "Finding this place…"
-                                : status === "unavailable"
-                                  ? "Place could not be loaded right now"
-                                  : "Location to be confirmed",
-                            ]
-                              .filter(Boolean)
-                              .join(" · ")}
-                          </small>
-                        </span>
-                      </div>
+                          <span className="trip-places__text">
+                            <span className="trip-places__name">
+                              <span className="sr-only">Stop {order}: </span>
+                              {name}
+                            </span>
+                            <small>
+                              {[time, activity.detail !== name && activity.detail]
+                                .filter(Boolean)
+                                .join(" · ")}
+                            </small>
+                            {extras}
+                          </span>
+                        </button>
+                      ) : (
+                        <div className="trip-places__stop trip-places__stop--unmapped">
+                          <span className="trip-places__order" aria-hidden="true" />
+                          <span className="trip-places__text">
+                            <span className="trip-places__name">{name}</span>
+                            <small>
+                              {[
+                                time,
+                                activity.detail !== name && activity.detail,
+                                status === "loading"
+                                  ? "Finding this place…"
+                                  : status === "unavailable"
+                                    ? "Place could not be loaded right now"
+                                    : "Location to be confirmed",
+                              ]
+                                .filter(Boolean)
+                                .join(" · ")}
+                            </small>
+                            {extras}
+                          </span>
+                        </div>
+                      )}
+                      {plan && onApply && activity.id && (
+                        <ActionMenu
+                          label={`Actions for ${name}, ${day === undefined ? "idea" : `Day ${day}${time ? ` ${time}` : ""}`}`}
+                          items={menuFor(activity, name)}
+                        />
+                      )}
+                    </div>
+                    {editing && editing.id === activity.id && (
+                      <ItemEditor
+                        activity={activity}
+                        editing={editing}
+                        days={total}
+                        labels={labels}
+                        onCancel={() => setEditing(undefined)}
+                        onSubmit={(action) =>
+                          act(
+                            activity,
+                            action,
+                            action.kind === "day"
+                              ? `${name} scheduled on Day ${action.day}.`
+                              : action.kind === "note"
+                                ? "Note saved."
+                                : "Details saved.",
+                          )
+                        }
+                      />
                     )}
                   </li>
                 );

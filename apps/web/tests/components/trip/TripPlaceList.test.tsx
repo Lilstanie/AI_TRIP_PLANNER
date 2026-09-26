@@ -63,7 +63,7 @@ describe("TripPlaceList", () => {
         onSelect={onSelect}
       />,
     );
-    const day1 = screen.getByRole("list", { name: "Places, Day 1 · 2026-10-01" });
+    const day1 = screen.getByRole("list", { name: "Stops, Day 1 · 2026-10-01" });
     const stops = within(day1).getAllByRole("button");
     expect(stops.map((button) => button.textContent)).toEqual([
       "1Stop 1: Art Gallery09:00–11:00 · Morning at the gallery",
@@ -75,7 +75,7 @@ describe("TripPlaceList", () => {
     expect(onSelect).toHaveBeenCalledWith("a1");
 
     // A stop without a place is listed but has nothing to select on the map.
-    const day2 = screen.getByRole("list", { name: "Places, Day 2 · 2026-10-02" });
+    const day2 = screen.getByRole("list", { name: "Stops, Day 2 · 2026-10-02" });
     expect(within(day2).queryByRole("button")).toBeNull();
     expect(within(day2).getByText(/Location to be confirmed/)).toBeTruthy();
   });

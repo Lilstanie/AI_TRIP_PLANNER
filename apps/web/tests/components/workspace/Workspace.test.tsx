@@ -599,7 +599,7 @@ describe("Workspace interactions", () => {
     });
     // The Trip drawer's place list, not an overlay on the map, lists the trip's places.
     fireEvent.click(screen.getByRole("button", { name: "Open your trip" }));
-    const list = await within(drawer("trip")).findByRole("list", { name: "Places, Unscheduled" });
+    const list = await within(drawer("trip")).findByRole("list", { name: "Stops, Ideas" });
     await waitFor(() =>
       expect(within(list).getByRole("button", { name: /Stop 1: Louvre/ })).toBeTruthy(),
     );
@@ -1064,9 +1064,9 @@ describe("Workspace map places", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: "Open your trip" }));
     const places = () =>
-      within(drawer("trip")).getByRole("list", { name: "Places, Day 1 · 2026-10-01" });
+      within(drawer("trip")).getByRole("list", { name: "Stops, Day 1 · 2026-10-01" });
     await waitFor(() =>
-      expect(within(places()).getByRole("button", { name: /To-ji Temple/ })).toBeTruthy(),
+      expect(within(places()).getByRole("button", { name: /^Stop \d+: To-ji Temple/ })).toBeTruthy(),
     );
     const map = document.querySelector<HTMLElement>(".workspace-panel--map")!;
     await waitFor(() =>
@@ -1080,9 +1080,9 @@ describe("Workspace map places", () => {
     await waitFor(() =>
       expect(within(map).getByText(/1 activity has no confirmed place yet/)).toBeTruthy(),
     );
-    expect(within(places()).getByRole("button", { name: /To-ji Temple/ })).toBeTruthy();
+    expect(within(places()).getByRole("button", { name: /^Stop \d+: To-ji Temple/ })).toBeTruthy();
     // The failed stop stays listed, without a map selection, instead of disappearing.
-    expect(within(places()).getByText(/Gallery afternoon|Kyoto Gallery/)).toBeTruthy();
+    expect(within(places()).getAllByText(/Gallery afternoon|Kyoto Gallery/).length).toBeGreaterThan(0);
   });
 
   it("shows a neutral placeholder instead of a world map when the destination cannot be located", async () => {

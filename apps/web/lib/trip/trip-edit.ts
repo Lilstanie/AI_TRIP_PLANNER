@@ -64,7 +64,12 @@ export async function previewEdit(
     throw new Error("Plan identifiers do not match. Restore or replan first.");
   const section = plan.sections.find((s) => s.id === "itinerary");
   if (!section?.proposal) throw new Error("There are no activities to edit.");
-  const activities = section.proposal.items.filter((i) => i.kind === "activity");
+  // Ideas (activities with no day) are set aside and kept as they are: only scheduled stops are
+  // routed and re-timed.
+  const ideas = section.proposal.items.filter((i) => i.kind === "activity" && i.day === undefined);
+  const activities = section.proposal.items.filter(
+    (i) => i.kind === "activity" && i.day !== undefined,
+  );
   const before = structuredClone(activities);
   if (
     activities.some((i) => !i.id || !i.day || !i.startTime || !i.endTime) ||
@@ -226,6 +231,7 @@ export async function previewEdit(
   section.proposal.items = [
     ...section.proposal.items.filter((i) => i.kind !== "activity"),
     ...activities,
+    ...ideas,
   ];
   const affectedIds = new Set(activities.filter((a) => affected.has(a.day!)).map((a) => a.id!));
   const retainedIssues = (plan.editIssues ?? []).filter(
