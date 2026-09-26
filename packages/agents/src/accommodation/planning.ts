@@ -1,3 +1,4 @@
+import type { ScheduledHop } from "../transport/legs";
 import type { StayOption, TripBrief, UserPreference } from "@trip/shared";
 
 // Accommodation planning is deliberately deterministic: the model may narrate
@@ -52,8 +53,12 @@ function parseDate(date: string): number {
   return value;
 }
 
-/** Split a multi-city trip into evenly distributed overnight segments. */
-export function splitStay(brief: TripBrief): StaySegment[] {
+/**
+ * Split a multi-city trip into overnight segments. When transport has scheduled the inter-city hops,
+ * each city's nights run from the day the traveller arrives to the day they leave; otherwise the
+ * nights are spread evenly, extra nights going to earlier cities.
+ */
+export function splitStay(brief: TripBrief, hops: ScheduledHop[] = []): StaySegment[] {
   if (!Number.isSafeInteger(brief.groupSize) || brief.groupSize <= 0) {
     throw new Error("Accommodation requires a positive integer group size.");
   }
@@ -65,9 +70,11 @@ export function splitStay(brief: TripBrief): StaySegment[] {
   if (cities.some((city) => !city)) throw new Error("Accommodation requires non-empty cities.");
   if (nights < cities.length)
     throw new Error("Each destination needs at least one overnight stay.");
+  const fromHops = hopNights(cities, nights, hops);
   let offset = 0;
   return cities.map((city, index) => {
     const cityNights =
+      fromHops?.[index] ??
       Math.floor(nights / cities.length) + (index < nights % cities.length ? 1 : 0);
     const segment = {
       city,
@@ -79,6 +86,21 @@ export function splitStay(brief: TripBrief): StaySegment[] {
     offset += cityNights;
     return segment;
   });
+}
+
+/**
+ * Nights per city from the scheduled hops, or undefined when the hops do not describe this trip:
+ * one hop into each later city, in order, leaving every city at least one night.
+ */
+function hopNights(cities: string[], nights: number, hops: ScheduledHop[]): number[] | undefined {
+  if (cities.length < 2 || hops.length !== cities.length - 1) return undefined;
+  const arrivals = [1];
+  for (const [index, hop] of hops.entries()) {
+    if (hop.from !== cities[index] || hop.to !== cities[index + 1]) return undefined;
+    arrivals.push(hop.day);
+  }
+  const counts = arrivals.map((day, index) => (arrivals[index + 1] ?? nights + 1) - day);
+  return counts.every((count) => count >= 1) ? counts : undefined;
 }
 
 export function eligibleOptions(options: StayOption[], prefs: StayPreferences): StayOption[] {

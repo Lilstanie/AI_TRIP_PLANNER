@@ -20,7 +20,7 @@ import { z } from "zod/v4";
 import { createAgent, tool } from "langchain";
 import { createRoutedChatModel, readStructuredResponse } from "../models";
 import { dateForDay, planningDays, routeProblem } from "../transport/validation";
-import { cities, cityForDay } from "../transport/legs";
+import { cities, cityForDay, scheduledHops } from "../transport/legs";
 import { avoidBlockedWindows } from "./revision";
 import { mockEnabled } from "@trip/tools";
 import { TRAVELLER_PREFERENCES_RULE } from "../prompts/traveller-preferences";
@@ -91,17 +91,8 @@ export function citiesByDay(
 ): string[][] {
   const names = cities(destination);
   const byDay = cityForDay(names, days).map((city) => [city]);
-  const lower = names.map((name) => name.toLocaleLowerCase());
-  const hops = (transport?.items ?? []).flatMap((item) => {
-    const [from, to] = (item.location ?? "").split(" → ").map((part) => part.trim());
-    const fromIndex = lower.indexOf((from ?? "").toLocaleLowerCase());
-    const toIndex = lower.indexOf((to ?? "").toLocaleLowerCase());
-    return item.day !== undefined && fromIndex >= 0 && toIndex >= 0
-      ? [{ day: item.day, from: names[fromIndex]!, to: names[toIndex]! }]
-      : [];
-  });
+  const hops = scheduledHops(destination, transport);
   if (!hops.length) return byDay;
-  hops.sort((left, right) => left.day - right.day);
   let current = names[0]!;
   return byDay.map((_, index) => {
     const day = index + 1;

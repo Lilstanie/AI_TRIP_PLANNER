@@ -177,6 +177,14 @@ function checks({ plan: p, frames, reply }, { brief, infeasible }) {
       hopDays.length > 0 && JSON.stringify(hopDays) === JSON.stringify(planDays),
       `day plan moves city with transport (transport ${hopDays}, day plan ${planDays})`,
     );
+    // And the traveller sleeps where they are: each later stay checks in on its hop day.
+    const checkIns = (p.sections.find((s) => s.id === "accommodation")?.proposal?.items ?? [])
+      .map((i) => i.day)
+      .slice(1);
+    check(
+      hopDays.length > 0 && JSON.stringify(hopDays) === JSON.stringify(checkIns),
+      `stays change city with transport (transport ${hopDays}, check-ins ${checkIns})`,
+    );
   }
   check(p.round >= 1, `rounds run: ${p.round}`);
   check(days(brief.dates) > 0, `trip is ${days(brief.dates)} days`);
