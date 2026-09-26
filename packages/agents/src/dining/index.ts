@@ -13,6 +13,7 @@ import { z } from "zod/v4";
 import { createAgent, tool } from "langchain";
 import { createRoutedChatModel, readStructuredResponse } from "../models";
 import { mockEnabled } from "@trip/tools";
+import { clip } from "../clip";
 import { TRAVELLER_PREFERENCES_RULE } from "../prompts/traveller-preferences";
 
 // Dining has an explicit budget envelope: venue candidates are unpriced unless
@@ -189,6 +190,45 @@ function fallbackDraft(
   };
 }
 
+/**
+ * What the model returns: the draft's shape without length limits, which it
+ * cannot count to. A summary a few characters long sent the extraction into
+ * retries until the recursion limit, and the dining section fell back.
+ */
+const ModelDiningDraft = z.object({
+  summary: z.string().trim().min(1),
+  dailyBudgetPerPerson: z.number().nonnegative(),
+  picks: z.array(z.object({ name: z.string().trim().min(1), detail: z.string().trim().min(1) })),
+  assumptions: z.array(z.string().trim().min(1)),
+});
+
+/** Bring a model draft within the display limits and the budget ceiling. */
+export function fitDiningDraft(
+  draft: z.infer<typeof ModelDiningDraft>,
+  maxDailyPerPerson: number,
+): DiningDraft {
+  const capped = draft.dailyBudgetPerPerson > maxDailyPerPerson;
+  return DiningDraft.parse({
+    summary: clip(draft.summary, 400),
+    // The ceiling is what the rest of the plan left for meals; an estimate
+    // above it is capped and said so, rather than discarding every pick.
+    dailyBudgetPerPerson: Math.min(draft.dailyBudgetPerPerson, maxDailyPerPerson),
+    picks: draft.picks
+      .slice(0, 5)
+      .map(({ name, detail }) => ({ name: clip(name, 120), detail: clip(detail, 500) })),
+    assumptions: [
+      ...(capped
+        ? [
+            `Meal estimate of AUD ${draft.dailyBudgetPerPerson.toFixed(2)} per person/day capped at the AUD ${maxDailyPerPerson.toFixed(2)} this plan leaves for meals.`,
+          ]
+        : []),
+      ...draft.assumptions,
+    ]
+      .slice(0, 6)
+      .map((assumption) => clip(assumption, 400)),
+  });
+}
+
 /** Build the LangChain generator around one read-only evidence tool. */
 function createMiniMaxGenerator(): DiningGenerator | undefined {
   const model = createRoutedChatModel("dining");
@@ -210,7 +250,7 @@ function createMiniMaxGenerator(): DiningGenerator | undefined {
         systemPrompt:
           "You are the dining specialist. Always call read_dining_evidence and use only its facts and exact venue names. Stay within its daily per-person AUD ceiling and address any revision. Never claim live hours, availability, menu items, allergen safety, certification or dietary suitability; tell travellers to confirm important constraints directly. Return the requested structured dining draft.\n\nEach pick's name must be a candidate's name copied character for character, with no category, rating or district appended. Return no picks rather than inventing a venue that is not in the evidence.\n\n" +
           TRAVELLER_PREFERENCES_RULE,
-        responseFormat: DiningDraft,
+        responseFormat: ModelDiningDraft,
       });
       const result = await specialist.invoke({
         messages: [
@@ -224,7 +264,10 @@ function createMiniMaxGenerator(): DiningGenerator | undefined {
           },
         ],
       });
-      return readStructuredResponse("dining", DiningDraft, result);
+      return fitDiningDraft(
+        readStructuredResponse("dining", ModelDiningDraft, result),
+        input.maxDailyPerPerson,
+      );
     },
   };
 }

@@ -11,6 +11,7 @@ import { z } from "zod/v4";
 import { createAgent, tool } from "langchain";
 import { createRoutedChatModel, readStructuredResponse } from "../models";
 import { mockEnabled } from "@trip/tools";
+import { clip } from "../clip";
 import { TRAVELLER_PREFERENCES_RULE } from "../prompts/traveller-preferences";
 
 // The guide schema keeps model output bounded and makes every downstream item
@@ -48,16 +49,6 @@ const ModelGuideDraft = z.object({
   packing: z.array(z.string().trim().min(1)).min(1),
   assumptions: z.array(z.string().trim().min(1)),
 });
-
-/** Shorten prose to `max` characters, at a sentence end when one is close enough. */
-function clip(text: string, max: number): string {
-  if (text.length <= max) return text;
-  const cut = text.slice(0, max);
-  const sentence = Math.max(cut.lastIndexOf(". "), cut.lastIndexOf("! "), cut.lastIndexOf("? "));
-  if (sentence >= max / 2) return cut.slice(0, sentence + 1);
-  const word = cut.slice(0, max - 1).lastIndexOf(" ");
-  return `${cut.slice(0, word > 0 ? word : max - 1)}…`;
-}
 
 /** Bring a model draft within the display limits instead of discarding it. */
 export function fitDraft(draft: z.infer<typeof ModelGuideDraft>): DestinationGuideDraft {
