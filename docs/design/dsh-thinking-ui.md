@@ -1,5 +1,7 @@
 # DSH thinking UI reference
 
+English | [中文](dsh-thinking-ui.zh.md)
+
 This document records how DeepSeek Harness (DSH, the `deepseek-harness` repository) renders an agent
 turn — the running "Deep diving" line, the Think row, tool rows, and subagent rows — and how this
 project's chat surface (`apps/web/components/chat/ThinkingProcess.tsx`) compares to it.

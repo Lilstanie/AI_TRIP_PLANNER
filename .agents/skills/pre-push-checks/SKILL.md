@@ -40,6 +40,11 @@ Include uncommitted files if you are about to commit them.
 
 The web test script sets `NODE_OPTIONS` with POSIX syntax; on Windows run it from WSL or Git Bash.
 
+For ordinary `docs/` Markdown changes, synchronize both languages with
+[translate-docs](../translate-docs/SKILL.md), record only reviewed pairs and run
+`node .agents/skills/translate-docs/scripts/check-pairs.mjs`. This local check supplements
+`pnpm verify:docs`; it is not yet included in CI.
+
 ## 3. Report
 
 List each command and its result, including test counts, in the PR's Testing section and the session

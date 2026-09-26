@@ -1,5 +1,7 @@
 # API entry points
 
+English | [中文](api.zh.md)
+
 The Next.js route handlers live under `apps/web/app/api/`. `/api/data-mode` and `/api/places/photo` are
 `GET` handlers; the other five are `POST` handlers. Request bodies are validated with Zod, and planning outputs are
 validated against the shared contracts in `packages/shared/src/`.

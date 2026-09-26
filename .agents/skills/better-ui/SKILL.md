@@ -10,6 +10,10 @@ Polish comes from many small details adding up. In this project the values come 
 from taste or a copied recipe. If a detail needs a value the tokens do not have, add a semantic token
 with light and dark values. Do not write a one-off number.
 
+For a requested Libraries.dev effect, use [libraries-dev](../libraries-dev/SKILL.md) for package
+selection and integration under this same design contract. Ordinary polish keeps the existing motion
+helpers.
+
 When reviewing motion, slow it down in the browser's Animations panel. Anything that looks wrong at
 10% speed is subtly wrong at full speed.
 

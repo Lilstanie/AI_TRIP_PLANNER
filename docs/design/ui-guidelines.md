@@ -1,5 +1,7 @@
 # Liquid Glass Workspace Design Contract
 
+English | [中文](ui-guidelines.zh.md)
+
 ## Overview
 
 The workspace follows Apple's latest iOS design language, Liquid Glass. The map and the conversation are the content; the sidebar, top-bar capsules, composer, panels, drawers and sheets float over them as translucent glass, on a soft ambient ground. Switching between regions is animated: views cross-fade, segmented controls slide, sheets spring in and sink out. This is achieved with the tokens, glass material and motion helpers described below, not textures or decorative assets. Photos of the places themselves are content, not decoration. The [Liquid Glass Agent Note](../../.agents/notes/implemented/feature/2026-09-25-liquid-glass-workspace.md) records why.

@@ -1,5 +1,7 @@
 # Workspace UI
 
+English | [中文](workspace-ui.zh.md)
+
 The web app (`apps/web`) is a single-user planning workspace. This document describes how it behaves
 now. Implementation history and browser acceptance for each phase are in the
 [session logs](../.agents/session-logs/README.md).
@@ -15,7 +17,7 @@ now. Implementation history and browser acceptance for each phase are in the
 | Trip fact editors | One editor per chip, every one a centred dialog; Preferences holds the traveller's own list                                                 | `FactPopover`, `FactFields`, `TripCalendar`, `WhereFields`, `PreferenceList`, `lib/workspace/trip-facts.ts` |
 | Chat              | Conversation, the planning transcript, the composer; starter suggestions in a blank chat; no visible heading                                | `ChatPanel`                                                                                                 |
 | Map               | Only the map, labelled markers, curved day-coloured itinerary lines, the place popup, map status, and the locate / map type / zoom controls | `TripMapCanvas`, `TripMap`                                                                                  |
-| Your Trip drawer  | Budget; Overview (places by day, sections and the stay chosen); Timeline & routes (day strip, timeline, stop editor); Review plan            | `Drawer`, `TripPanel`, `TripPlaceList`, `TripEditor`                                                        |
+| Your Trip drawer  | Budget; Overview (places by day, sections and the stay chosen); Timeline & routes (day strip, timeline, stop editor); Review plan           | `Drawer`, `TripPanel`, `TripPlaceList`, `TripEditor`                                                        |
 
 - **Sidebar.**
   - Expands to 240 px (220 px below 1250 px) or collapses to a 64 px icon rail. The toggle uses

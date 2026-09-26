@@ -23,6 +23,11 @@ everywhere else links to it. `pnpm verify:docs` checks the Markdown links.
 
 ## Writing rules
 
+- Ordinary Markdown under `docs/` has an English `.md` and Chinese `.zh.md` pair. Update both
+  languages in the same change, preserving examples and technical meaning; instruction files
+  (`AGENTS.md`, `CLAUDE.md`) are excluded. Follow [translate-docs](../.agents/skills/translate-docs/SKILL.md)
+  and [the pairing guide](i18n.md); record reviewed pairs and run its check before finishing.
+
 - Write the current state in the present tense. History lives in commits, PRs, Agent Notes, session
   logs and `.agents/archive/`; do not narrate what changed or what used to be true.
 - Update the owning page in the same pull request as the code it describes. A page that disagrees with
