@@ -2,7 +2,7 @@ import { useRef, type ReactNode } from "react";
 import type { TripPlan } from "@trip/shared";
 import { TripSection } from "./TripSection";
 import { statusForPlan } from "@/lib/workspace/catalog";
-import { budgetHint, money } from "@/lib/workspace";
+import { budgetHint, itineraryActivities, money } from "@/lib/workspace";
 import { useSegmentIndicator } from "../ui/motion";
 
 export type TripTab = "overview" | "timeline";
@@ -44,6 +44,9 @@ export function TripPanel({
     budget && estimated !== undefined ? Math.min(100, Math.round((estimated / budget) * 100)) : 0;
   const delta = budget && estimated !== undefined ? budget - estimated : undefined;
   const budgetState = delta === undefined ? "unavailable" : delta < 0 ? "over" : "within";
+  // Admission prices are published nowhere the planner can read, so these stops add nothing to the
+  // total. Saying so keeps the total from reading as the whole cost of the trip.
+  const unpriced = itineraryActivities(plan).filter((item) => item.estCost === undefined).length;
   const tabList = useRef<HTMLDivElement>(null);
   useSegmentIndicator(tabList, tab);
   const tabs: [TripTab, string][] = [
@@ -87,6 +90,12 @@ export function TripPanel({
             ? "Budget not set"
             : `${money(Math.abs(delta))} ${delta < 0 ? "over" : "under"} the ${money(budget!)}${budgetHint(plan.brief)} budget`}
         </p>
+        {unpriced > 0 && (
+          <p className="trip__budget-note">
+            Not included: admission for {unpriced} {unpriced === 1 ? "stop" : "stops"} with no
+            published price.
+          </p>
+        )}
       </section>
       <div ref={tabList} className="trip-tabs segmented" role="tablist" aria-label="Trip views">
         {tabs.map(([id, label]) => (

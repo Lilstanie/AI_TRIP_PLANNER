@@ -42,7 +42,7 @@ describe("Trip drawer details", () => {
       "Day 1",
       "Day 2",
     ]);
-    expect(screen.getByText("Price not provided")).toBeTruthy();
+    expect(screen.getByText("Price unknown")).toBeTruthy();
     expect(screen.getByText(/AUD\s*0.01/)).toBeTruthy();
     expect(screen.getByText("Fallback plan")).toBeTruthy();
     expect(screen.getByText("Local fallback")).toBeTruthy();
@@ -57,7 +57,7 @@ describe("Trip drawer details", () => {
     render(<TripSection section={section} onEdit={() => {}} onReview={() => {}} />);
     fireEvent.click(screen.getByRole("button", { expanded: false }));
     expect(screen.getByText(/not added again to the total/)).toBeTruthy();
-    expect(screen.getByText("Price not provided")).toBeTruthy();
+    expect(screen.getByText("Price unknown")).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Example cafe" })).toBeTruthy();
   });
   it("renders selected lodging facts and opens the hotel review action", () => {

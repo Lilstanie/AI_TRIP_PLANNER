@@ -69,7 +69,7 @@ function ItemCard({ item }: { item: ProposalItem }) {
         {item.estCost !== undefined ? (
           <strong>{money(item.estCost)}</strong>
         ) : (
-          !informational && <span>Price not provided</span>
+          !informational && <span>Price unknown</span>
         )}
       </div>
       <h4>{item.location ?? titles[item.kind] ?? "Planning detail"}</h4>

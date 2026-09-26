@@ -108,7 +108,7 @@ describe("itinerary planner", () => {
     expect(result.conflictsWith[0]).toContain("geography conflict on day 1");
   });
 
-  it("falls back when model output violates the budget guardrail", async () => {
+  it("never passes a model's guessed admission price on as a cost", async () => {
     const generator: ItineraryGenerator = {
       generate: vi.fn(async () => ({
         ...feasibleDraft,
@@ -118,15 +118,12 @@ describe("itinerary planner", () => {
         })),
       })),
     };
-    const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
     const result = await createItineraryAgent({ generator }).invoke({
       brief,
       context: context(),
     });
-    expect(result.assumptions.join(" ")).toContain("Opening hours and live availability");
-    expect(result.items).toHaveLength(2);
-    expect(result.source).toMatchObject({ kind: "fallback", label: "Local fallback" });
-    warning.mockRestore();
+    expect(result.items.every((item) => item.estCost === undefined)).toBe(true);
+    expect(result.assumptions.join(" ")).toContain("Activity prices unknown");
   });
 
   it("uses the safe fallback if a revision is still geographically infeasible", async () => {
@@ -314,18 +311,13 @@ describe("city connections", () => {
     });
   });
 
-  it("splits the day's allowance across its stops rather than spending it twice", async () => {
+  it("plans the fallback without inventing admission prices", async () => {
     const result = await createItineraryAgent({ generator: false }).invoke({
       brief,
       context: richContext(),
     });
-    const dayOne = result.items.filter((item) => item.day === 1);
-    const single = await createItineraryAgent({ generator: false }).invoke({
-      brief,
-      context: context(),
-    });
-    const spent = dayOne.reduce((sum, item) => sum + (item.estCost ?? 0), 0);
-    expect(spent).toBeLessThanOrEqual(single.items[0]!.estCost! + 0.01);
+    expect(result.items.length).toBeGreaterThan(0);
+    expect(result.items.every((item) => item.estCost === undefined)).toBe(true);
   });
 
   it("leaves the connection out when the route provider cannot answer", async () => {

@@ -131,6 +131,8 @@ initial plans and revisions. An agent owns a durable role definition: model, `na
 | Accommodation | Lodging search, comparison and room allocation                        | Agent around deterministic calculators |
 
 Transport and accommodation wrap calculators so models cannot invent prices, routes or properties.
+The itinerary likewise never prices a stop: Google Places publishes no admission prices, so an
+activity's `estCost` is left unset and the plan says how many stops are unpriced.
 
 Model routing (`MODEL_ROUTING` in `packages/agents/src/models.ts` and `chat.ts`):
 

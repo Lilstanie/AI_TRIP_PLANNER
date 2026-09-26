@@ -106,7 +106,7 @@ describe("accommodation integration with negotiation", () => {
   it("fits the budget in the first round once each stage knows what earlier ones cost", async () => {
     const plan = await runOrchestrator(DEMO_BRIEF);
     expect(plan.round).toBe(1);
-    expect(plan.estTotal).toBe(3906.66);
+    expect(plan.estTotal).toBe(3486.66);
     expect(plan.sections.find((section) => section.id === "dining")!.estCost).toBe(256.66);
     expect(plan.sections.find((section) => section.id === "accommodation")!.estCost).toBe(1460);
     // Converged with no unresolved request, so every section is a draft. There is
