@@ -469,6 +469,7 @@ function bookedStayProposal(brief: TripBrief): AgentProposal {
         kind: "hotel",
         day: 1,
         location: booked.name,
+        booked: true,
         detail: `${booked.name} — booked by you${booked.note ? `; ${booked.note}` : ""}. Not priced by the planner.`,
       },
     ],
