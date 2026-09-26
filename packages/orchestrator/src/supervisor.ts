@@ -16,6 +16,9 @@ import { createAgent, tool } from "langchain";
 import { z } from "zod/v4";
 import { withProgressTools } from "./progress-tools";
 import type { PlanningBoardRun } from "./board";
+
+/** Stays keep a 0–10 rating internally; travellers read it out of 5, like Google's own stars. */
+const outOfFive = (rating: number) => `${(rating / 2).toFixed(1)}/5`;
 import { createReasoningSink } from "./reasoning-sink";
 
 /**
@@ -63,7 +66,7 @@ export function choiceFor(proposal: AgentProposal): ToolChoice | undefined {
       detail: [
         selected.area,
         `AUD ${cost.toFixed(2)} total`,
-        `${selected.rating}/10`,
+        outOfFive(selected.rating),
         selected.freeCancellation ? "Free cancellation" : "No free cancellation",
       ].join(" · "),
     },
@@ -75,7 +78,7 @@ export function choiceFor(proposal: AgentProposal): ToolChoice | undefined {
         detail: [
           candidate.area,
           `AUD ${(candidate.pricePerNight * stay.nights * stay.rooms).toFixed(2)} total`,
-          `${candidate.rating}/10`,
+          outOfFive(candidate.rating),
           candidate.freeCancellation ? "Free cancellation" : "No free cancellation",
         ].join(" · "),
       })),

@@ -15,7 +15,7 @@ Web 应用（`apps/web`）是单用户规划工作区。本文描述其当前行
 | 侧边栏         | Logo、带数量的 Chats 和 Trips、Language、Local account                                                                 | `WorkspaceSidebar`、`BrandMark`、`icons.tsx`                                                                |
 | Chats 面板     | 在侧边栏旁滑出：搜索、New chat、New trip，然后是行程和聊天                                                             | `ChatsPanel`、`TripCover`                                                                                   |
 | Your trips     | 通过 Trips 打开，替代聊天和地图：行程卡片（Upcoming、Past）、Calendar 标签页和 New trip                                | `TripsPage`、`TripCover`                                                                                    |
-| 顶栏           | 行程标题；行程事实标签（目的地、日期、旅客、预算、Preferences）；数据模式；最右侧的 Trip                               | `WorkspaceView`、`TripFactChips`                                                                            |
+| 顶栏           | 行程标题；行程事实标签（目的地、日期、旅客、预算、Preferences）；数据模式；最右侧显示站点数的 Trip                     | `WorkspaceView`、`TripFactChips`                                                                            |
 | 行程事实编辑器 | 每个标签对应一个编辑器，全部为居中对话框；Preferences 保存旅客自己的列表                                               | `FactPopover`、`FactFields`、`TripCalendar`、`WhereFields`、`PreferenceList`、`lib/workspace/trip-facts.ts` |
 | 聊天           | 对话、规划 transcript（文本记录）、输入区；空白聊天中的起始建议；没有可见标题                                          | `ChatPanel`                                                                                                 |
 | 地图           | 仅包含地图、带标签的标记、按天着色的弧形行程线、地点弹窗、地图状态，以及定位／地图类型／缩放控件                       | `TripMapCanvas`、`TripMap`                                                                                  |
@@ -85,7 +85,7 @@ seniors`（宠物不计为旅客）；`groupSize` 仍是校验字段，因此至
   - 输入区是聊天底部的一张卡片：草稿随内容增高，随后内部滚动；上传控件在左，唯一主操作在右。卡片使用 `--surface-2`（浅色为白色，深色为灰色），呈现为页面上的输入胶囊；点击其中任意位置，只高亮卡片一次，字段自身不绘制焦点环。Enter 发送，Shift+Enter 换行，但输入法组合输入期间绝不触发。请求运行时，主操作在原位变为 Stop；没有提示文字。
   - 标签编辑器中的 Update trip，或尚无方案时 Trip preferences 中的 Plan trip，携带行程需求发送 `mode: "plan"`。
   - 首条聊天消息发送 `mode: "start"`，服务端报告缺失的目的地、日期、旅客或预算，不借用值。
-  - 空白表单的最低评分默认为 `0`（无最低要求）。
+  - 空白表单的最低评分默认为 `0`（无最低要求）。住宿评分内部按 0–10 存储，在所有位置（酒店卡片、住宿行、思考 transcript）都按 5 分制显示；地点的 Google 评分本身就是 5 分制，原样显示。
 - **请求。**
   - `Workspace` 负责聊天、方案和决策请求。失败时保留当前方案，并提供重试。
   - 切换聊天或行程，或 New chat 时，先落盘待执行的自动保存，再中止进行中的请求，并清空进度、错误、选择和地图路线。晚到的响应被忽略。

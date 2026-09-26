@@ -83,7 +83,13 @@ function transportRow(item: ProposalItem, index: number): FixedRow {
 function stayRow(item: ProposalItem, index: number): FixedRow {
   const name = item.detail.split(" — ")[0]!.trim();
   const nights = /(\d+) night/.exec(item.detail)?.[1];
-  const rating = /rating ([\d.]+)\/10/.exec(item.detail)?.[1];
+  // Stay details read "rating 4.5/5"; plans saved before carry "/10", shown out of 5 too.
+  const match = /rating ([\d.]+)\/(10|5)\b/.exec(item.detail);
+  const rating = match
+    ? match[2] === "10"
+      ? (Number(match[1]) / 2).toFixed(1)
+      : match[1]
+    : undefined;
   return {
     type: "fixed",
     key: `stay-${index}`,
@@ -92,7 +98,7 @@ function stayRow(item: ProposalItem, index: number): FixedRow {
     detail: [
       "Check in",
       nights && `${nights} ${nights === "1" ? "night" : "nights"}`,
-      rating && `rated ${rating}/10`,
+      rating && `rated ${rating}/5`,
     ]
       .filter(Boolean)
       .join(" · "),
