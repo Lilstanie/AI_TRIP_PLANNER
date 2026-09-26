@@ -1,4 +1,29 @@
+import type { AgentProposal } from "@trip/shared";
 import { dateForDay } from "./validation";
+
+/** An inter-city hop as transport scheduled it: the traveller leaves `from` for `to` on `day`. */
+export type ScheduledHop = { day: number; from: string; to: string };
+
+/**
+ * The inter-city hops in a transport proposal, in day order. Transport chooses the day each hop
+ * runs and may move it off the default split, so the day plan and the stays read it from here
+ * rather than each assuming their own — otherwise the traveller sleeps in one city while the day
+ * plan has them in the next.
+ */
+export function scheduledHops(destination: string, transport?: AgentProposal): ScheduledHop[] {
+  const names = cities(destination);
+  const lower = names.map((name) => name.toLocaleLowerCase());
+  return (transport?.items ?? [])
+    .flatMap((item) => {
+      const [from, to] = (item.location ?? "").split(" → ").map((part) => part.trim());
+      const fromIndex = lower.indexOf((from ?? "").toLocaleLowerCase());
+      const toIndex = lower.indexOf((to ?? "").toLocaleLowerCase());
+      return item.day !== undefined && fromIndex >= 0 && toIndex >= 0
+        ? [{ day: item.day, from: names[fromIndex]!, to: names[toIndex]! }]
+        : [];
+    })
+    .sort((left, right) => left.day - right.day);
+}
 
 /** Parse the demo's ampersand-separated destination convention. */
 export function cities(destination: string): string[] {

@@ -15,6 +15,7 @@ import { createAgent, tool } from "langchain";
 import { z } from "zod/v4";
 import { createRoutedChatModel, readStructuredResponse } from "../models";
 import { chooseInitial, eligibleOptions, readPreferences, splitStay, stayCost } from "./planning";
+import { scheduledHops } from "../transport/legs";
 import { TRAVELLER_PREFERENCES_RULE } from "../prompts/traveller-preferences";
 
 /** A stay's candidate id, as published on the proposal: `stay-{day}-{index}`. */
@@ -40,9 +41,17 @@ async function gatherStayEvidence(
   ctx: AgentContext,
   revision?: RevisionRequest,
   allocation?: BudgetAllocation,
+  board?: PlanningBoard,
 ): Promise<StayEvidence> {
   ctx.signal?.throwIfAborted();
-  const segments = splitStay(brief);
+  // Nights follow the day transport runs each inter-city hop, when it is on the board.
+  const segments = splitStay(
+    brief,
+    scheduledHops(
+      brief.destination,
+      board?.proposals.find((proposal) => proposal.agent === "transport"),
+    ),
+  );
   const prefs = brief.accommodation ?? readPreferences(await ctx.mem.getLongTerm(brief.userId));
   ctx.signal?.throwIfAborted();
   const rooms =
@@ -282,8 +291,9 @@ async function buildStayProposal(
   ctx: AgentContext,
   revision?: RevisionRequest,
   allocation?: BudgetAllocation,
+  board?: PlanningBoard,
 ): Promise<AgentProposal> {
-  const evidence = await gatherStayEvidence(brief, ctx, revision, allocation);
+  const evidence = await gatherStayEvidence(brief, ctx, revision, allocation, board);
   return assembleStayProposal(evidence, revision, (_day, options) =>
     evidence.budgetRevision ? options[0]! : chooseInitial(options),
   );
@@ -317,13 +327,13 @@ async function planStays(
   board?: PlanningBoard,
 ): Promise<AgentProposal> {
   const model = createRoutedChatModel("accommodation");
-  if (!model) return buildStayProposal(brief, ctx, revision, allocation);
+  if (!model) return buildStayProposal(brief, ctx, revision, allocation, board);
 
   let evidence: StayEvidence | undefined;
   // The tool hands over candidates and their real rates. It does not decide.
   const search = tool(
     async () => {
-      evidence = await gatherStayEvidence(brief, ctx, revision, allocation);
+      evidence = await gatherStayEvidence(brief, ctx, revision, allocation, board);
       return {
         stays: evidence.searched.map(({ segment, options }) => ({
           stayId: `stay-${segment.day}`,
@@ -432,7 +442,7 @@ async function planStays(
         "fallback",
       );
     }
-    const proposal = await buildStayProposal(brief, ctx, revision, allocation);
+    const proposal = await buildStayProposal(brief, ctx, revision, allocation, board);
     return {
       ...proposal,
       source: {

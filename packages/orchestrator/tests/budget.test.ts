@@ -106,9 +106,9 @@ describe("accommodation integration with negotiation", () => {
   it("fits the budget in the first round once each stage knows what earlier ones cost", async () => {
     const plan = await runOrchestrator(DEMO_BRIEF);
     expect(plan.round).toBe(1);
-    expect(plan.estTotal).toBe(3919.99);
-    expect(plan.sections.find((section) => section.id === "dining")!.estCost).toBe(249.99);
-    expect(plan.sections.find((section) => section.id === "accommodation")!.estCost).toBe(1480);
+    expect(plan.estTotal).toBe(3906.66);
+    expect(plan.sections.find((section) => section.id === "dining")!.estCost).toBe(256.66);
+    expect(plan.sections.find((section) => section.id === "accommodation")!.estCost).toBe(1460);
     // Converged with no unresolved request, so every section is a draft. There is
     // no longer a "needs you" state driven by a confirmation checkpoint.
     expect(plan.conflicts).toEqual([]);
@@ -120,7 +120,7 @@ describe("accommodation integration with negotiation", () => {
     expect(plan.round).toBe(1);
     expect(plan.conflicts).toHaveLength(1);
     expect(plan.conflicts![0]!.reason).toContain("infeasible budget");
-    expect(plan.conflicts![0]!.constraints[0]).toContain("AUD 2810.00");
+    expect(plan.conflicts![0]!.constraints[0]).toContain("AUD 2790.00");
   });
 
   it("fits a budget just below the old plan by allocating what flights and the stay left", async () => {
