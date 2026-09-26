@@ -85,16 +85,7 @@
     position: relative;
   }
 }
-.edit-preview {
-  background: var(--surface-2);
-  padding: 16px;
-  border-radius: 12px;
-}
 @media (max-width: 600px) {
-  .trip-editor {
-    padding: 12px;
-    margin: 12px;
-  }
   .google-map {
     height: 340px;
   }

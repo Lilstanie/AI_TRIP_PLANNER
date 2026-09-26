@@ -170,7 +170,7 @@ export async function previewEdit(
       const previous = daily[index - 1];
       if (previous) {
         if (!previous.placeId || !current.placeId) {
-          blockers.push(`Day ${day}: select verified Google places before automatic routing.`);
+          blockers.push(`Day ${day}: confirm the place for every stop first, so travel times between them can be checked.`);
           break;
         }
         try {
@@ -288,7 +288,8 @@ export async function previewEdit(
       old.endTime !== a.endTime ||
       old.placeId !== a.placeId
       ? [
-          `${a.detail}: day ${old.day} ${old.startTime}–${old.endTime} → day ${a.day} ${a.startTime}–${a.endTime}${old.placeId !== a.placeId ? " · place changed; price unverified" : ""}`,
+          // The stop's name, not its whole description: the preview lists one line per stop.
+          `${a.location ?? a.detail}: ${old.day === a.day ? "" : `day ${old.day} → day ${a.day}, `}${old.startTime}–${old.endTime} → ${a.startTime}–${a.endTime}${old.placeId !== a.placeId ? " · place changed; price unverified" : ""}`,
         ]
       : [];
   });

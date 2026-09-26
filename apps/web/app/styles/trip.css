@@ -500,43 +500,6 @@
   margin-top: 12px;
 }
 
-.trip-editor {
-  margin: 24px auto;
-  padding: 24px;
-  max-width: 1400px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  overflow-wrap: anywhere;
-}
-.trip-editor button,
-.trip-editor select,
-.trip-editor input {
-  padding: 8px 12px;
-  margin: 4px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  max-width: 100%;
-}
-.trip-editor button[aria-pressed="true"] {
-  background: var(--accent-bg);
-}
-.trip-editor button:focus-visible,
-.trip-editor input:focus-visible,
-.trip-editor select:focus-visible {
-  outline: 3px solid var(--accent);
-  outline-offset: 2px;
-}
-.editor-columns {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
-  gap: 24px;
-}
-.editor-activity {
-  border-bottom: 1px solid var(--border);
-  padding: 16px 0;
-}
-
 /* ---- connection between two activities ----
    A journey is a line between two places, not a third place, so it reads as a
    connector rather than another card in the day. */

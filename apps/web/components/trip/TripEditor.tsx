@@ -1,14 +1,31 @@
 "use client";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { TripPlan } from "@trip/shared";
-import type { GooglePlace, RouteResult } from "@/lib/integrations/google";
-import type { EditInput, EditPreview } from "@/lib/trip/trip-edit";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import type { TripPlan } from "@trip/shared";
+import type { RouteResult } from "@/lib/integrations/google";
 import type { TripPlaces } from "../map/useTripPlaces";
-import { money } from "@/lib/workspace";
+import {
+  connectionBetween,
+  dayCount,
+  dayLabel,
+  dayRows,
+  stayingAt,
+} from "@/lib/trip/timeline";
+import { useSegmentIndicator } from "../ui/motion";
+import { FlowStayIcon } from "../ui/flow-icons";
+import { DayStrip } from "./timeline/DayStrip";
+import { EditPreviewPanel } from "./timeline/EditPreviewPanel";
+import { ConnectionRow, FixedTimelineRow } from "./timeline/TimelineParts";
+import { TimelineStop } from "./timeline/TimelineStop";
+import { useTimelineEdits, type RouteMode } from "./timeline/useTimelineEdits";
 
 /**
- * Day timeline and activity editor shown inside the Your Trip drawer. Place data and the
- * selected activity are shared with the map canvas, so selecting either side highlights both.
+ * The Timeline & routes tab: one day at a time, in the order the traveller lives it — the flight or
+ * transfer that starts it, each stop with the journey to the next, and the night's check-in.
+ *
+ * Stops are edited here (time, order, day, place) and every edit is previewed by the server, which
+ * re-checks routes, budget and conflicts before anything changes. "Check routes" asks Google for
+ * real walking or public-transport times between the day's confirmed places. Selection is shared
+ * with the map: choosing a stop in either place highlights it in both.
  */
 export function TripEditor({
   plan,
@@ -30,425 +47,169 @@ export function TripEditor({
   /** Routes to draw on the map: the open preview's routes, otherwise the last verified ones. */
   onRoutesChange?(routes: RouteResult[]): void;
 }) {
-  const { activities, places, placeIdFor, rememberPlace, locationStatus } = tripPlaces;
-  const [day, setDay] = useState(1);
-  const [mode, setMode] = useState<"WALK" | "TRANSIT">("WALK");
-  const [query, setQuery] = useState(""),
-    [results, setResults] = useState<GooglePlace[]>([]);
-  const [error, setError] = useState(""),
-    [working, setWorking] = useState(false);
-  const [preview, setPreview] = useState<EditPreview>();
-  const [undo, setUndo] = useState<EditInput["operation"]>();
-  const [verifiedRoutes, setVerifiedRoutes] = useState<RouteResult[]>([]);
-  const applied = useRef<TripPlan | null>(null);
-  const previewRoot = useRef<HTMLDivElement>(null);
-  const returnFocus = useRef<HTMLElement | null>(null);
-  const request = useRef<AbortController | null>(null);
-  const current = useRef(plan);
-  current.current = plan;
-  const daily = useMemo(() => activities.filter((a) => a.day === day), [activities, day]);
-  const active = activities.find((a) => a.id === selected);
-  const activePlaceId = active ? placeIdFor(active) : undefined;
-  const days = Math.max(
-    1,
-    (Date.parse(plan.brief.dates[1]) - Date.parse(plan.brief.dates[0])) / 86400000,
+  const { activities, places, placeIdFor, locationStatus } = tripPlaces;
+  const edits = useTimelineEdits({ plan, activities, onApply, onPending, onRoutesChange });
+  const days = dayCount(plan);
+  const labels = useMemo(
+    () => Array.from({ length: days }, (_, index) => dayLabel(plan, index + 1)),
+    [plan, days],
   );
-  useEffect(() => {
-    setDay((value) => Math.min(Math.max(1, value), days));
-  }, [days]);
-  // Selecting a marker on the map jumps the timeline to that activity's day.
+  const [day, setDay] = useState(1);
+  useEffect(() => setDay((value) => Math.min(Math.max(1, value), days)), [days]);
+  const active = activities.find((activity) => activity.id === selected);
+  // Selecting a marker on the map jumps the timeline to that stop's day.
   useEffect(() => {
     if (active?.day && active.day !== day) setDay(active.day);
-    // Only follow selection changes; manual day changes must not be undone.
+    // Only follow selection changes; a day picked by hand must not be undone.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected]);
-  useEffect(() => {
-    request.current?.abort();
-    setPreview(undefined);
-    if (applied.current !== plan) {
-      setUndo(undefined);
-      setVerifiedRoutes([]);
-    }
-    applied.current = null;
-    setWorking(false);
-  }, [plan]);
-  useEffect(() => {
-    onPending(!!preview || working);
-  }, [preview, working, onPending]);
-  const routesSynced = useRef(false);
-  useEffect(() => {
-    // Skip the mount: reopening the timeline must not erase routes already on the map.
-    if (!routesSynced.current) {
-      routesSynced.current = true;
-      return;
-    }
-    onRoutesChange?.(preview?.routes ?? verifiedRoutes);
-  }, [preview, verifiedRoutes, onRoutesChange]);
-  useEffect(
-    () => () => {
-      request.current?.abort();
-      onPending(false);
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
+
+  const daily = useMemo(
+    () => activities.filter((activity) => activity.day === day),
+    [activities, day],
   );
-  useEffect(() => {
-    if (!preview) {
-      returnFocus.current?.focus();
-      return;
-    }
-    previewRoot.current?.focus();
-  }, [preview]);
-  async function edit(operation: EditInput["operation"]) {
-    returnFocus.current = document.activeElement as HTMLElement;
-    request.current?.abort();
-    const controller = new AbortController();
-    request.current = controller;
-    const base = plan;
-    setWorking(true);
-    setError("");
-    setPreview(undefined);
-    try {
-      const response = await fetch("/api/trip/preview-edit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan, baseVersion: plan.editVersion ?? 0, operation, mode }),
-        signal: controller.signal,
-      });
-      const body = await response.json();
-      if (!response.ok) throw new Error(body.error);
-      if (!controller.signal.aborted && current.current === base)
-        setPreview({ ...body, plan: TripPlan.parse(body.plan) });
-    } catch (e) {
-      if (!controller.signal.aborted)
-        setError(e instanceof Error ? e.message : "Preview failed. Retry your edit.");
-    } finally {
-      if (request.current === controller) setWorking(false);
-    }
-  }
-  async function search() {
-    request.current?.abort();
-    const controller = new AbortController();
-    request.current = controller;
-    setWorking(true);
-    setError("");
-    try {
-      const response = await fetch("/api/places/search", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: query, destination: plan.brief.destination }),
-        signal: controller.signal,
-      });
-      const body = await response.json();
-      if (!response.ok) throw new Error(body.error);
-      if (!controller.signal.aborted) {
-        setResults(body.places);
-        if (!body.places.length) setError("No places found. Try a different search.");
-      }
-    } catch (e) {
-      if (!controller.signal.aborted) setError(e instanceof Error ? e.message : "Search failed");
-    } finally {
-      if (request.current === controller) setWorking(false);
-    }
-  }
-  const locked = disabled || working || !!preview;
-  const locationLabel = (item: (typeof activities)[number]) => {
-    const placeId = placeIdFor(item);
-    const name = placeId ? places[placeId]?.displayName?.text : undefined;
-    switch (locationStatus(item)) {
-      case "located":
-        return item.placeId
-          ? (name ?? "Google place")
-          : `Map match: ${name ?? "Google place"} · unverified`;
-      case "loading":
-        return "Finding this place…";
-      case "unavailable":
-        return "Place could not be loaded right now — retry from the map";
-      default:
-        return "Location to be confirmed — search for a Google place";
-    }
-  };
+  const rows = useMemo(() => dayRows(plan, day, daily), [plan, day, daily]);
+  const unconfirmed = daily.filter((activity) => !activity.placeId).length;
+  const staying = stayingAt(plan, day);
+  const locked = disabled || edits.busy;
+  const modes = useRef<HTMLDivElement>(null);
+  useSegmentIndicator(modes, edits.mode);
+  const strip = useMemo(
+    () =>
+      labels.map((date, index) => {
+        const stops = activities.filter((activity) => activity.day === index + 1);
+        return {
+          day: index + 1,
+          date,
+          stops: stops.length,
+          attention: stops.some((activity) => locationStatus(activity) !== "located"),
+        };
+      }),
+    [labels, activities, locationStatus],
+  );
+
+  // Stops are numbered and connected in the order shown; moves use the plan's own order for the
+  // day, which is what the preview endpoint indexes.
+  let shown = 0;
+  let previous: (typeof daily)[number] | undefined;
   return (
     <section className="trip-editor" aria-label="Trip timeline">
-      <div className="editor-toolbar">
-        <label>
-          Day{" "}
-          <select value={day} onChange={(e) => setDay(Number(e.target.value))}>
-            {Array.from({ length: days }, (_, i) => (
-              <option key={i} value={i + 1}>
-                {new Date(Date.parse(plan.brief.dates[0]) + i * 86400000)
-                  .toISOString()
-                  .slice(0, 10)}
-              </option>
+      <DayStrip days={strip} selected={day} onSelect={setDay} />
+
+      <div className="route-check" aria-label="Route check" role="group">
+        <div className="route-check__controls">
+          <div ref={modes} className="segmented route-check__modes" aria-label="Travel between stops by">
+            {(
+              [
+                ["WALK", "Walk"],
+                ["TRANSIT", "Public transport"],
+              ] as [RouteMode, string][]
+            ).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={edits.mode === value}
+                disabled={locked}
+                onClick={() => edits.setMode(value)}
+              >
+                {label}
+              </button>
             ))}
-          </select>
-        </label>
-        <label>
-          Route mode{" "}
-          <select
-            disabled={locked}
-            value={mode}
-            onChange={(e) => setMode(e.target.value as typeof mode)}
+          </div>
+          <button
+            type="button"
+            disabled={locked || daily.length < 2 || unconfirmed > 0}
+            onClick={() => void edits.edit({ kind: "verify", day })}
           >
-            <option value="WALK">Walk</option>
-            <option value="TRANSIT">Public transit</option>
-          </select>
-        </label>
-        <p>
-          Routes use local departure times plus a 15-minute buffer. Route fares are separate from
-          the existing transport budget.
+            Check routes for Day {day}
+          </button>
+        </div>
+        <p className="route-check__hint">
+          {daily.length < 2
+            ? "Routes are checked between stops; this day has fewer than two."
+            : unconfirmed > 0
+              ? `Confirm the place for ${unconfirmed} ${unconfirmed === 1 ? "stop" : "stops"} first — select a stop to confirm or search for it.`
+              : `Real ${edits.mode === "WALK" ? "walking" : "public transport"} times from Google, leaving when each stop ends, plus 15 minutes to arrive.`}
         </p>
-        <button disabled={locked} onClick={() => void edit({ kind: "verify", day })}>
-          Verify day routes
-        </button>
       </div>
-      <p>
-        Walking routes may miss sidewalks or pedestrian paths; check conditions before travelling.
-      </p>
-      <div className="editor-columns">
-        <div>
-          <h3>Fixed transport and stays</h3>
-          {plan.sections
-            .filter((s) => s.id === "transport" || s.id === "accommodation")
-            .flatMap(
-              (s) =>
-                s.proposal?.items
-                  .filter((item) => item.day === day)
-                  .map((item, i) => (
-                    <p key={`${s.id}-${i}`}>
-                      {s.label} · {item.startTime} {item.endTime && `–${item.endTime}`} ·{" "}
-                      {item.detail} · Read-only
-                    </p>
-                  )) ?? [],
-            )}
-          {!daily.length && <p>No activities scheduled on this day.</p>}
-          {daily.map((item, index) => (
-            <article
-              key={item.id}
-              className="editor-activity"
-              draggable={!locked}
-              onDragStart={(e) => e.dataTransfer.setData("text/plain", item.id!)}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => {
-                e.preventDefault();
-                if (!locked)
-                  void edit({
-                    kind: "move",
-                    id: e.dataTransfer.getData("text/plain"),
-                    day,
-                    index,
-                  });
-              }}
-            >
-              <button aria-pressed={selected === item.id} onClick={() => onSelect(item.id!)}>
-                {item.startTime ?? "Time missing"}–{item.endTime} · {item.detail}
-              </button>
-              <p>{locationLabel(item)}</p>
-              <p>
-                {item.estCost === undefined
-                  ? "Activity price unknown"
-                  : `${money(item.estCost)}${item.priceNeedsReview ? " · needs verification" : " estimated"}`}
-              </p>
-              <button
-                disabled={locked || index === 0}
-                onClick={() => void edit({ kind: "move", id: item.id!, day, index: index - 1 })}
-              >
-                Move up
-              </button>
-              <button
-                disabled={locked || index === daily.length - 1}
-                onClick={() => void edit({ kind: "move", id: item.id!, day, index: index + 1 })}
-              >
-                Move down
-              </button>
-              <label>
-                Move to day{" "}
-                <select
-                  disabled={locked}
-                  value={day}
-                  onChange={(e) =>
-                    void edit({
-                      kind: "move",
-                      id: item.id!,
-                      day: Number(e.target.value),
-                      index: 0,
-                    })
-                  }
-                >
-                  {Array.from({ length: days }, (_, d) => (
-                    <option key={d} value={d + 1}>
-                      {d + 1}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  const data = new FormData(e.currentTarget);
-                  void edit({
-                    kind: "time",
-                    id: item.id!,
-                    startTime: String(data.get("start")),
-                    endTime: String(data.get("end")),
-                  });
-                }}
-              >
-                <label>
-                  Start{" "}
-                  <input
-                    aria-label={`Start ${item.detail}`}
-                    name="start"
-                    type="time"
-                    required
-                    defaultValue={item.startTime}
-                    key={`start-${plan.editVersion}-${item.startTime}`}
-                    disabled={locked}
-                  />
-                </label>
-                <label>
-                  End{" "}
-                  <input
-                    aria-label={`End ${item.detail}`}
-                    name="end"
-                    type="time"
-                    required
-                    defaultValue={item.endTime}
-                    key={`end-${plan.editVersion}-${item.endTime}`}
-                    disabled={locked}
-                  />
-                </label>
-                <button disabled={locked}>Preview time</button>
-              </form>
-            </article>
-          ))}
-          {active && (
-            <div>
-              <h3>Replace selected activity place</h3>
-              <label>
-                Search Google Places{" "}
-                <input value={query} onChange={(e) => setQuery(e.target.value)} />
-              </label>
-              <button disabled={locked || !query.trim()} onClick={() => void search()}>
-                Search places
-              </button>
-              <p>Place information provided by Google Maps.</p>
-              {results.map((place) => (
-                <div key={place.id}>
-                  <p>
-                    {place.displayName?.text} · {place.formattedAddress ?? "Address unavailable"}
-                  </p>
-                  <button
-                    disabled={locked}
-                    onClick={() => {
-                      rememberPlace(place);
-                      void edit({ kind: "place", id: active.id!, placeId: place.id });
-                    }}
-                  >
-                    Preview this place
-                  </button>
-                </div>
-              ))}
-              {activePlaceId && places[activePlaceId] && (
-                <p>
-                  {places[activePlaceId]!.formattedAddress ?? "Address unavailable"} · Google
-                  rating: {places[activePlaceId]!.rating ?? "unavailable"}{" "}
-                  {places[activePlaceId]!.googleMapsUri && (
-                    <a href={places[activePlaceId]!.googleMapsUri} target="_blank" rel="noreferrer">
-                      View on Google Maps
-                    </a>
-                  )}
-                </p>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-      {working && <p role="status">Verifying edit…</p>}
-      {error && <p role="alert">{error}</p>}
-      {preview && (
-        <div
-          ref={previewRoot}
-          tabIndex={-1}
-          className="edit-preview"
-          role="region"
-          aria-label="Edit preview"
-          onKeyDown={(event) => {
-            if (event.key !== "Escape") return;
-            // Close only the preview, not the surrounding drawer.
-            event.preventDefault();
-            event.stopPropagation();
-            setPreview(undefined);
-            returnFocus.current?.focus();
-          }}
-        >
-          <h3>Preview changes</h3>
-          <p>
-            Trip estimate: {money(preview.plan.estTotal)} · Change:{" "}
-            {money(preview.plan.estTotal - plan.estTotal)} · Budget difference:{" "}
-            {money(preview.plan.budgetTotal - preview.plan.estTotal)}. Route fares are shown in the
-            provider&apos;s own currency and are not added to the transport budget.
-          </p>
-          {preview.differences.map((d, i) => (
-            <p key={i}>{d}</p>
-          ))}
-          {!preview.differences.length && <p>Activity order or route verification updated.</p>}
-          {preview.routes.map((r, i) => (
-            <p key={i}>
-              {r.mode}: {r.durationMin ?? "Unknown"} minutes ·{" "}
-              {/* The provider's currency, deliberately not converted and not counted. */}
-              {r.fare ? `${r.fare.currency} ${r.fare.amount.toFixed(2)}` : "Fare unavailable"}
-            </p>
-          ))}
-          {preview.blockers.map((b, i) => (
-            <p role="alert" key={i}>
-              {b}
-            </p>
-          ))}
-          {preview.plan.conflicts?.map((c, i) => (
-            <p key={i}>{c.reason}</p>
-          ))}
-          <button
-            disabled={disabled || !!preview.blockers.length}
-            onClick={() => {
-              if (preview.baseVersion !== (plan.editVersion ?? 0)) {
-                setError("Preview is stale. Please retry.");
-                return;
-              }
-              const previous: EditInput["operation"] = {
-                kind: "undo",
-                activities: activities.map((a) => ({
-                  id: a.id!,
-                  day: a.day!,
-                  startTime: a.startTime!,
-                  endTime: a.endTime!,
-                  placeId: a.placeId,
-                  priceNeedsReview: a.priceNeedsReview,
-                })),
-              };
-              applied.current = preview.plan;
-              setUndo(previous);
-              setVerifiedRoutes(preview.routes);
-              onApply(preview.plan);
-              setPreview(undefined);
-            }}
-          >
-            Apply changes
-          </button>
-          <button
-            onClick={() => {
-              setPreview(undefined);
-              returnFocus.current?.focus();
-            }}
-          >
-            Cancel preview
-          </button>
-        </div>
+
+      {edits.working && (
+        <p className="timeline-status" role="status">
+          {edits.working === "search" ? "Searching Google Maps…" : "Checking the change…"}
+        </p>
       )}
-      {undo && (
-        <button disabled={locked} onClick={() => void edit(undo)}>
-          Preview undo last edit
-        </button>
+      {edits.error && (
+        <p className="timeline-status timeline-status--error" role="alert">
+          {edits.error}
+        </p>
+      )}
+
+      <div className="timeline-day">
+        <h3 className="timeline-day__title">
+          Day {day} <span>{labels[day - 1]}</span>
+        </h3>
+        {staying && (
+          <p className="timeline-day__staying">
+            <FlowStayIcon size={13} /> Staying at {staying}
+          </p>
+        )}
+        {rows.length ? (
+          <ol className="timeline" aria-label={`Day ${day} timeline`}>
+            {rows.map((row, position) => {
+              if (row.type === "fixed") return <FixedTimelineRow key={row.key} row={row} />;
+              const activity = row.activity;
+              const placeId = placeIdFor(activity);
+              const connection = connectionBetween(previous, activity, edits.routes);
+              const number = ++shown;
+              previous = activity;
+              return (
+                <Fragment key={activity.id ?? position}>
+                  {connection && <ConnectionRow connection={connection} />}
+                  <TimelineStop
+                    activity={activity}
+                    number={number}
+                    index={daily.indexOf(activity)}
+                    count={daily.length}
+                    days={days}
+                    dayLabels={labels}
+                    selected={selected === activity.id}
+                    locked={locked}
+                    place={placeId ? places[placeId] : undefined}
+                    status={locationStatus(activity)}
+                    edits={edits}
+                    onSelect={() => onSelect(selected === activity.id ? "" : activity.id!)}
+                  />
+                </Fragment>
+              );
+            })}
+          </ol>
+        ) : (
+          <p className="timeline-empty">
+            Nothing planned for this day yet. Ask in the chat to add something, or move a stop here
+            from another day.
+          </p>
+        )}
+        {daily.length > 1 && (
+          <p className="timeline-day__tip">Drag a stop to reorder the day, or select it to edit.</p>
+        )}
+      </div>
+
+      {edits.preview && (
+        <EditPreviewPanel
+          plan={plan}
+          preview={edits.preview}
+          disabled={disabled}
+          onApply={edits.apply}
+          onCancel={edits.cancel}
+        />
+      )}
+      {edits.undo && !edits.preview && (
+        <div className="timeline-undo">
+          <span>Change applied.</span>
+          <button type="button" disabled={locked} onClick={() => void edits.edit(edits.undo!)}>
+            Undo last change
+          </button>
+        </div>
       )}
     </section>
   );

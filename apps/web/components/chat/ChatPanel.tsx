@@ -16,6 +16,7 @@ export function ChatPanel({
   input,
   onInput,
   busy,
+  locked = false,
   activity,
   onSend,
   onEdit,
@@ -37,6 +38,11 @@ export function ChatPanel({
   input: string;
   onInput: (value: string) => void;
   busy: boolean;
+  /**
+   * Sending is paused while a timeline edit is being previewed. Kept apart from `busy`, which also
+   * shows the thinking row and the stop button: a pending edit is not a chat request.
+   */
+  locked?: boolean;
   activity: AgentProgressEvent[];
   /** Optional text sends that message instead of the composer's contents. */
   onSend: (message?: string) => void;
@@ -95,7 +101,7 @@ export function ChatPanel({
                   key={label}
                   type="button"
                   title={text}
-                  disabled={busy}
+                  disabled={busy || locked}
                   onClick={() => onSend(text)}
                 >
                   {label}
@@ -133,7 +139,7 @@ export function ChatPanel({
           className="chat__form"
           onSubmit={(e) => {
             e.preventDefault();
-            onSend();
+            if (!locked) onSend();
           }}
         >
           <Composer
@@ -142,7 +148,7 @@ export function ChatPanel({
               plan ? "Tell me what to change…" : "Destination, dates, travellers and budget…"
             }
             busy={busy}
-            canSend={Boolean(input.trim()) || Boolean(attachments?.length)}
+            canSend={!locked && (Boolean(input.trim()) || Boolean(attachments?.length))}
             canCancel={Boolean(onCancel)}
             inputRef={inputRef}
             onInput={onInput}

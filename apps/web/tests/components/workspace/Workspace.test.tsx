@@ -170,14 +170,14 @@ describe("Workspace interactions", () => {
   it("keeps the timeline and editors out of the map canvas", () => {
     render(<Workspace initialPlan={plan} />);
     const map = document.querySelector<HTMLElement>(".workspace-panel--map")!;
-    expect(within(map).queryByRole("button", { name: "Verify day routes" })).toBeNull();
+    expect(within(map).queryByRole("button", { name: /Check routes for Day/ })).toBeNull();
     expect(within(map).queryByRole("button", { name: "Review plan" })).toBeNull();
     expect(within(map).queryByText(/Estimated total/)).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Open your trip" }));
     fireEvent.click(screen.getByRole("tab", { name: "Timeline & routes" }));
     const trip = drawer("trip");
-    expect(within(trip).getByRole("button", { name: "Verify day routes" })).toBeTruthy();
-    expect(within(map).queryByRole("button", { name: "Verify day routes" })).toBeNull();
+    expect(within(trip).getByRole("button", { name: /Check routes for Day/ })).toBeTruthy();
+    expect(within(map).queryByRole("button", { name: /Check routes for Day/ })).toBeNull();
   });
   it("starts a blank conversation instead of carrying the demo trip into New chat", async () => {
     vi.stubGlobal("fetch", withPlaceRequests());

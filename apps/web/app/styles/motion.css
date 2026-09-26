@@ -5,8 +5,11 @@
 
 /* ---- whole-view swaps: another chat, a trip, the Your trips page ----
    The main column is its own view-transition group, so the sidebar stays put while the content
-   cross-fades with a small rise, the way iOS pushes between views. */
-.workspace-main {
+   cross-fades with a small rise, the way iOS pushes between views.
+   Named only while `viewTransition()` runs (it sets `data-transition` on the root first): a named
+   element is a backdrop root, so a permanent name cut the drawers' glass off from the chat behind
+   them and left its text sharp through the sheet instead of blurred. */
+:root[data-transition] .workspace-main {
   view-transition-name: workspace-main;
 }
 /* Named only while open. A closed panel is still captured if named, and its glass then paints a
