@@ -486,6 +486,16 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
                       startDate={plan.brief.dates[0]}
                       selected={selectedActivity}
                       onSelect={setSelectedActivity}
+                      plan={plan}
+                      disabled={busy || editPending}
+                      onApply={(next) => {
+                        setPreviousTotal(plan.estTotal);
+                        setPlan(next);
+                      }}
+                      onAdjust={(id) => {
+                        setSelectedActivity(id);
+                        setTripTab("timeline");
+                      }}
                     />
                   }
                   timeline={

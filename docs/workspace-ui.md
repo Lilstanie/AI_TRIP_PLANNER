@@ -17,7 +17,7 @@ now. Implementation history and browser acceptance for each phase are in the
 | Trip fact editors | One editor per chip, every one a centred dialog; Preferences holds the traveller's own list                                                 | `FactPopover`, `FactFields`, `TripCalendar`, `WhereFields`, `PreferenceList`, `lib/workspace/trip-facts.ts` |
 | Chat              | Conversation, the planning transcript, the composer; starter suggestions in a blank chat; no visible heading                                | `ChatPanel`                                                                                                 |
 | Map               | Only the map, labelled markers, curved day-coloured itinerary lines, the place popup, map status, and the locate / map type / zoom controls | `TripMapCanvas`, `TripMap`                                                                                  |
-| Your Trip drawer  | Budget; Overview (places by day, sections and the stay chosen); Timeline & routes (day strip, timeline, stop editor); Review plan           | `Drawer`, `TripPanel`, `TripPlaceList`, `TripEditor`                                                        |
+| Your Trip drawer  | Budget; Itinerary (stops by day with an action menu, Ideas, sections); Timeline & routes (day strip, timeline, stop editor); Review plan    | `Drawer`, `TripPanel`, `TripPlaceList`, `TripEditor`                                                        |
 
 - **Sidebar.**
   - Expands to 240 px (220 px below 1250 px) or collapses to a 64 px icon rail. The toggle uses
@@ -356,10 +356,18 @@ describes current behaviour except the absences.
   to its day, and the reverse also works. The selected marker has a larger outlined badge and a
   bordered label, and its drawer row adds a leading inset line and weight alongside `aria-pressed`;
   color is not the sole cue. Stops on other days step back to grey badges without labels.
-- **Trip drawer.** The reading order is heading and summary, budget, then the Overview tab: the
-  Places list (every itinerary activity by day in visiting order; located stops are buttons, the
-  keyboard path to each marker, and the others say why they are not on the map), sections, then
-  expanded detail. Missing or zero budgets state that no budget is set; invalid totals never render
+- **Trip drawer.** The reading order is heading and summary, budget, then the Itinerary tab: the
+  Stops list (every itinerary activity by day in visiting order, then Ideas; located stops are
+  buttons, the keyboard path to each marker, and the others say why they are not on the map),
+  sections, then expanded detail.
+- **Itinerary item menu** ([Agent Note](../.agents/notes/implemented/feature/2026-09-27-itinerary-item-actions.md)).
+  Each stop's "…" menu (`ActionMenu`, a `role="menu"`; arrow keys move, Escape closes it and returns
+  focus without closing the drawer) offers Adjust schedule (opens the Timeline on that stop), Edit
+  details (place name and description), Add or Edit note, Move to ideas, Move to previous or next
+  day, Mark as booked, and Remove. An idea offers Schedule on a day, which puts it after that day's
+  last stop. These apply at once, show "Booked" and the note on the row, and offer Undo until the
+  next plan arrives from chat. Day moves keep the stop's duration and do not re-check routes; the
+  Timeline's route check does. Missing or zero budgets state that no budget is set; invalid totals never render
   `NaN`, a negative bar, or a bar wider than its container.
 - **Location.** When the workspace opens it asks in its own words, in the notices strip, whether to
   show the traveller's location (`components/map/useUserLocation.ts`, `LocationPrompt`). The

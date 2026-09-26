@@ -31,7 +31,7 @@ export function TripPanel({
   tab: TripTab;
   onTab(tab: TripTab): void;
   timeline: ReactNode;
-  /** The trip's places in visiting order, shown first in the Overview tab. */
+  /** The trip's stops in visiting order, shown first in the Itinerary tab. */
   places?: ReactNode;
   onReview: () => void;
   onEdit: () => void;
@@ -50,7 +50,7 @@ export function TripPanel({
   const tabList = useRef<HTMLDivElement>(null);
   useSegmentIndicator(tabList, tab);
   const tabs: [TripTab, string][] = [
-    ["overview", "Overview"],
+    ["overview", "Itinerary"],
     ["timeline", "Timeline & routes"],
   ];
   return (
