@@ -100,6 +100,11 @@ Specialist proposals, the brief and the final plan are re-validated at the graph
   still targets it and `draft` otherwise, and assembles the plan.
 - Specialists, tools, memory and the round limit are injectable through `OrchestratorOptions`.
 
+The coordinator's reply reads a digest of the plan that includes every unresolved conflict with its
+fix (`planDigest` in `packages/orchestrator/src/chat.ts`), so an infeasible budget is answered with
+the estimated total and the minimum budget it needs. Without a model, and in `mode: "plan"`, the
+fallback reply states the same minimum.
+
 `packages/orchestrator/tests/budget.test.ts` shows the staging at work: the orchestrator's
 `DEMO_BRIEF` fits its budget in round 1, and a much lower budget stops in round 1 with one
 `infeasible budget` conflict naming the minimum. `plan.round` records how many rounds ran. The
