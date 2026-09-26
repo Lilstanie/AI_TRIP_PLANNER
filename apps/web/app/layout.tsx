@@ -1,5 +1,7 @@
+import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
 import type { ReactNode } from "react";
+import { authEnabled } from "@/lib/auth/config";
 
 export const metadata = {
   title: "AI Trip Planner",
@@ -9,7 +11,8 @@ export const metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      {/* ClerkProvider sits inside <body>; without keys the workspace stays local-only. */}
+      <body>{authEnabled ? <ClerkProvider>{children}</ClerkProvider> : children}</body>
     </html>
   );
 }

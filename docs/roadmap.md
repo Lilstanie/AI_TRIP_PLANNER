@@ -22,6 +22,8 @@ Status as of 2026-09-22 on `main`; see [workspace UI](workspace-ui.md) for curre
 - Storage: chats and trips in the browser; chat turns, preferences, plans and SerpApi usage and cache in
   the Redis REST store when configured.
 - Streaming planning progress and a thinking transcript in the chat.
+- Optional accounts (Clerk) that sync chats, trips and settings to Neon Postgres, and a Settings
+  dialog with a travel profile that prefills new trips.
 
 **Open**
 

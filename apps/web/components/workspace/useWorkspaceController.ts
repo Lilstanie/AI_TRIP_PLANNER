@@ -31,6 +31,10 @@ import {
   type Task,
 } from "./workspace-helpers";
 import { useDataMode } from "@/lib/workspace/data-mode";
+import { draftDefaults } from "@/lib/account/settings";
+import { useSettings } from "../account/SettingsProvider";
+import { useAccountSync } from "../account/useAccountSync";
+import type { SettingsSection } from "../account/SettingsDialog";
 import { useComposerAttachments } from "./useComposerAttachments";
 import type { PendingAsk } from "@/lib/workspace/ask-user";
 import { firstFactWithError, firstMissingFact, type FactKey } from "@/lib/workspace/trip-facts";
@@ -51,8 +55,10 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
   // In memory only: a reload drops the card, and the question stays in the chat.
   const [ask, setAsk] = useState<PendingAsk>();
   const [dialog, setDialog] = useState<DialogKind>();
+  const [settingsSection, setSettingsSection] = useState<SettingsSection>("travel");
   const [notice, setNotice] = useState("");
   const [catalog, setCatalog] = useState<WorkspaceCatalog>(restored.catalog);
+  const { settings } = useSettings();
   const [historyQuery, setHistoryQuery] = useState("");
   // The top-bar chip whose editor is open; Preferences is one of them.
   const [openFact, setOpenFact] = useState<FactKey>();
@@ -101,6 +107,7 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
       setCatalog,
       activeConversation,
     });
+  const syncStatus = useAccountSync({ catalog, setCatalog, storageEnabled });
   const blank = !plan;
 
   useEffect(
@@ -173,6 +180,10 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
   function closeTrip() {
     setTripOpen(false);
   }
+  function openSettings(section: SettingsSection = "travel") {
+    setSettingsSection(section);
+    openDialog("settings");
+  }
   function openDialog(kind: DialogKind) {
     setNavOpen(false);
     setDialog(kind);
@@ -187,7 +198,7 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
       typeof fact === "string" ? (fact as FactKey) : (firstMissingFact(draft) ?? "preferences"),
     );
   }
-  const dataMode = useDataMode();
+  const dataMode = useDataMode(settings.dataMode === "default" ? undefined : settings.dataMode);
   // Files held for the next message. In memory only: a reload drops them, the
   // same way an unanswered question card is dropped.
   const composerAttachments = useComposerAttachments();
@@ -308,12 +319,14 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     resetTransient();
     // Reuse an untouched conversation so repeated New chat presses cannot stack blank history
     // entries. Only a conversation holding nothing the user wrote is safe to reuse.
+    const defaults = draftDefaults(settings);
     const id =
-      reusableBlankConversation(base ?? catalog)?.id ?? `conversation:${crypto.randomUUID()}`;
+      reusableBlankConversation(base ?? catalog, defaults)?.id ??
+      `conversation:${crypto.randomUUID()}`;
     activeConversation.current = id;
     freshTripId.current = crypto.randomUUID();
     setPlan(undefined);
-    setDraft(blankDraft());
+    setDraft(defaults);
     setMessages([]);
     setInput("");
     setPreviousTotal(undefined);
@@ -328,7 +341,7 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
         id,
         messages: [],
         input: "",
-        draft: blankDraft(),
+        draft: defaults,
         title: kind === "trip" ? "New trip" : "New chat",
       }),
     );
@@ -391,7 +404,7 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
   // product can still report as outstanding. There is no decision to make.
   const pending = plan?.conflicts?.length ?? 0;
   const dialogTitle =
-    dialog === "review" ? "Review plan" : dialog === "language" ? "Language" : "Local account";
+    dialog === "review" ? "Review plan" : dialog === "language" ? "Language" : "Settings";
   // Chip editors are popovers, not drawers: they bring no drawer backdrop.
   const drawerOpen = tripOpen || navOpen;
 
@@ -413,6 +426,9 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     storageError,
     storageEnabled,
     saveState,
+    syncStatus,
+    settingsSection,
+    openSettings,
     catalog,
     historyQuery,
     preferencesOpen,

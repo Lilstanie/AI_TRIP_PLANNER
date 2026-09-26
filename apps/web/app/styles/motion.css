@@ -122,9 +122,12 @@ html[data-transition="to-chat"]::view-transition-new(workspace-main) {
     width var(--duration) var(--ease-spring);
 }
 @media (prefers-color-scheme: dark) {
-  .segmented::before {
+  :root:not([data-theme="light"]) .segmented::before {
     background: #636366;
   }
+}
+:root[data-theme="dark"] .segmented::before {
+  background: #636366;
 }
 .segmented > :is(button, [role="tab"]) {
   position: relative;

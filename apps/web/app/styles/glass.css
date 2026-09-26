@@ -74,13 +74,14 @@
   pointer-events: none;
 }
 @media (prefers-color-scheme: dark) {
-  .workspace-sidebar::before,
-  .chats-panel::before,
-  .drawer::before,
-  .fact-popover::before,
-  .composer::before {
+  :root:not([data-theme="light"])
+    :is(.workspace-sidebar, .chats-panel, .drawer, .fact-popover, .composer)::before {
     opacity: 0.35;
   }
+}
+:root[data-theme="dark"]
+  :is(.workspace-sidebar, .chats-panel, .drawer, .fact-popover, .composer)::before {
+  opacity: 0.35;
 }
 /* ---- the ground the glass floats over ---- */
 .workspace-app {

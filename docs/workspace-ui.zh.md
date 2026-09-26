@@ -12,7 +12,7 @@ Web 应用（`apps/web`）是单用户规划工作区。本文描述其当前行
 
 | 区域           | 内容                                                                                                                   | 实现                                                                                                        |
 | -------------- | ---------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| 侧边栏         | Logo、带数量的 Chats 和 Trips、Language、Local account                                                                 | `WorkspaceSidebar`、`BrandMark`、`icons.tsx`                                                                |
+| 侧边栏         | Logo、带数量的 Chats 和 Trips、保存或同步状态、Language、Settings、账号控件                                            | `WorkspaceSidebar`、`BrandMark`、`icons.tsx`                                                                |
 | Chats 面板     | 在侧边栏旁滑出：搜索、New chat、New trip，然后是行程和聊天                                                             | `ChatsPanel`、`TripCover`                                                                                   |
 | Your trips     | 通过 Trips 打开，替代聊天和地图：行程卡片（Upcoming、Past）、Calendar 标签页和 New trip                                | `TripsPage`、`TripCover`                                                                                    |
 | 顶栏           | 行程标题；行程事实标签（目的地、日期、旅客、预算、Preferences）；数据模式；最右侧的 Trip                               | `WorkspaceView`、`TripFactChips`                                                                            |
@@ -33,7 +33,7 @@ Web 应用（`apps/web`）是单用户规划工作区。本文描述其当前行
   - 聊天行右上角的更多操作按钮打开 Rename 和 Delete，使这些操作只在需要时出现。悬停或键盘聚焦时显示按钮；无悬停能力的环境始终显示。菜单由 `role="menu"` 和 `role="menuitem"` 按钮组成，触发按钮带 `aria-haspopup` 和 `aria-expanded`；Escape 关闭菜单并将焦点返回触发按钮，不关闭外层面板或抽屉，点击外部或按 Tab 离开也会关闭菜单。行程没有这两个操作，因此没有更多操作菜单。
   - 窄屏导航抽屉显示侧边栏，并在 Trips 下显示面板内容（搜索、两个起始操作、Trips 和 Chats）。
   - Logo 是 `apps/web/public/brand/ai-trip-planner-logo.svg`，通过 URL 引用。产品名称旁的替代文本为空，单独显示时为“AI Trip Planner”。
-  - 最窄的视口下，底部 Language 和 Local account 按钮换行到保存状态下方，不截断保存状态。
+  - 最窄的视口下，底部 Language、Settings 和账号按钮换行到保存状态下方，不截断保存状态。
 - **行程事实。** 行程需求通过顶栏标签逐项编辑，参考 Mindtrip 的行程栏；[偏好标签 Agent Note](../.agents/notes/implemented/feature/2026-09-24-preference-chips.md) 记录了原因。
   - 标签读取偏好草稿，只显示旅客明确陈述的内容：已有值（“Sydney”、“1 Oct – 4 Oct · 4 days”、“2 adults, 1 child”、“AUD 2,000”），或缺失时只显示事实名称：“Where”、“When”、“Who”和“Budget”。换算后的预算在仍与方案匹配时保留“(≈ ¥3,000)”提示。标签组成名为 Trip details 的 `role="group"`；有值标签的无障碍名称以其事实类型开头（“Destination: Sydney”）。
   - 每个标签都是带 `aria-haspopup="dialog"`、`aria-expanded` 和 `aria-controls` 的按钮，打开各自的编辑器：Where（目的地和出发地）、When（完整内嵌日历）、Who（每类旅客一个步进器）、Budget（预设范围卡片和自定义金额），以及 Trip preferences（旅客自己的列表）。
@@ -169,6 +169,28 @@ Timeline & routes 标签页（由 `TripEditor` 组合 `components/trip/timeline/
 按 HTTP referrer 限制浏览器密钥，按 API 限制服务端密钥。地图加载从不延迟首次渲染；没有浏览器密钥时，地图显示回退界面，行程仍可使用。
 
 <a id="out-of-scope"></a>
+
+## 账号和设置
+
+账号是可选功能（[Agent Note](../.agents/notes/implemented/architecture/2026-09-27-accounts-settings-sync.md)）。
+没有 Clerk 密钥时，工作区为单用户：账号控件显示 **Local**，Settings 说明所有内容都保存在当前浏览器中。
+
+- **账号控件。** 位于侧边栏底部：未登录时显示 **Sign in**（Clerk 弹窗）；登录后显示本人头像或首字母以及名字，点击打开
+  Settings → Account。
+- **同步。** 登录后，聊天和行程同步到账号。某个浏览器首次登录时，会把其中的聊天和行程加入账号，并把账号中的拉取到浏览器；
+  之后每次改动都会在片刻后保存。底部状态显示 Saving…、Synced to your account，或在无法连接账号时显示
+  Saved here · sync paused。同一聊天或行程以较新的副本整体为准；未改动的空白聊天和面板布局只保留在浏览器中。退出登录后，
+  当前浏览器中的副本保留。
+- **Settings**（齿轮按钮）分四部分：
+  - **Travel profile：** 常住城市、旅客人数、整趟行程的 AUD 预算、节奏、兴趣、饮食需求和其他长期偏好。新聊天或新行程以这些
+    为起点：常住城市作为出发地，加上旅客人数和预算，节奏、兴趣和饮食需求成为行程偏好条目。新聊天的信息仍等于这些默认值时，
+    仍算作空白聊天。
+  - **Memberships：** 航空和酒店会员计划，可选填会员号，供参考。
+  - **General：** 外观（System、Light、Dark，设置在 `<html data-theme>` 上，地图同样跟随）、默认行程数据（站点默认、实时价格
+    或示例数据），以及界面语言说明。
+  - **Account：** 来自 Clerk 的姓名、邮箱和头像，Manage account、Export my data、Sign out，以及需确认的
+    Delete account and data。
+- 未登录时，设置保存在当前浏览器；登录后，浏览器和账号中较新的副本为准，之后的改动保存到账号。
 
 ## 范围之外
 

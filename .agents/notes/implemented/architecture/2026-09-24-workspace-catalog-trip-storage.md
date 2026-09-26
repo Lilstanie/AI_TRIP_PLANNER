@@ -26,7 +26,8 @@ the in-flight request and drops its controller, so a late response cannot overwr
 open.
 
 This supersedes [browser-local trip storage](../../archived/architecture/2026-09-16-browser-local-trip-storage.md);
-its choice of browser-local storage over accounts still holds.
+the catalog remains the browser's working store, and signed-in travellers also sync it to their
+account ([accounts, settings and sync](2026-09-27-accounts-settings-sync.md)).
 
 ## Alternatives considered
 

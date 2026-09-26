@@ -10,7 +10,7 @@ now. Implementation history and browser acceptance for each phase are in the
 
 | Area              | Content                                                                                                                                     | Implementation                                                                                              |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| Sidebar           | Logo, Chats and Trips with counts, Language, Local account                                                                                  | `WorkspaceSidebar`, `BrandMark`, `icons.tsx`                                                                |
+| Sidebar           | Logo, Chats and Trips with counts, save or sync status, Language, Settings, account control                                                 | `WorkspaceSidebar`, `BrandMark`, `icons.tsx`                                                                |
 | Chats panel       | Slides out beside the sidebar: search, New chat, New trip, then trips and chats                                                             | `ChatsPanel`, `TripCover`                                                                                   |
 | Your trips        | Opened by Trips in place of chat and map: trip cards (Upcoming, Past) and a Calendar tab; New trip                                          | `TripsPage`, `TripCover`                                                                                    |
 | Top bar           | Trip title; trip fact chips (destination, dates, travellers, budget, Preferences); data mode; Trip, rightmost                               | `WorkspaceView`, `TripFactChips`                                                                            |
@@ -65,8 +65,8 @@ now. Implementation history and browser acceptance for each phase are in the
     two starts, Trips and Chats) under Trips.
   - The logo is `apps/web/public/brand/ai-trip-planner-logo.svg`, referenced by URL. Its alt text is
     empty next to the product name and “AI Trip Planner” when shown alone.
-  - At the narrowest widths the footer's Language and Local account buttons wrap below the save
-    status rather than truncating it.
+  - At the narrowest widths the footer's Language, Settings and account buttons wrap below the
+    save status rather than truncating it.
 - **Trip facts.** The brief is edited one fact at a time from chips in the top bar, following
   Mindtrip's trip bar; the [preference chips Agent Note](../.agents/notes/implemented/feature/2026-09-24-preference-chips.md) records why.
   - The chips read the preferences draft, so they show only what the traveller stated: a value
@@ -441,6 +441,34 @@ no LLM calls.
 
 Restrict the browser key by HTTP referrer and the server key by API. Map loading never delays the
 first render; without a browser key the map shows a fallback and the itinerary stays usable.
+
+## Accounts and settings
+
+Accounts are optional ([Agent Note](../.agents/notes/implemented/architecture/2026-09-27-accounts-settings-sync.md)).
+Without Clerk keys the workspace is single-user: the account control reads **Local**, and Settings
+explains that everything stays in this browser.
+
+- **Account control.** In the sidebar footer: **Sign in** when signed out (Clerk's modal), the
+  person's picture or initial and first name when signed in, which opens Settings → Account.
+- **Sync.** Signed in, chats and trips sync to the account. The first sign-in in a browser adds its
+  chats and trips to the account and pulls the account's into the browser; after that each change
+  is saved a moment later. The footer status reads Saving…, Synced to your account, or Saved here ·
+  sync paused when the account cannot be reached. The newer copy of a chat or trip wins whole;
+  untouched blank chats and panel layout stay in the browser. Signing out leaves this browser's copy.
+- **Settings** (gear button), in four sections:
+  - **Travel profile:** home city, travellers, whole-trip budget in AUD, pace, interests, dietary
+    needs and other standing preferences. A new chat or trip starts with these: home city as the
+    origin, travellers, budget, and pace, interests and dietary needs as trip preference lines. A
+    new chat still counts as blank while its facts equal these defaults.
+  - **Memberships:** airline and hotel loyalty programmes with an optional member number, for
+    reference.
+  - **General:** appearance (System, Light, Dark, set on `<html data-theme>` and followed by the
+    map), default trip data (the site's default, live prices or sample data), and the interface
+    language note.
+  - **Account:** name, email and picture from Clerk, Manage account, Export my data, Sign out, and
+    Delete account and data behind a confirmation.
+- Signed out, settings are kept in this browser; signed in, the newer copy of browser and account
+  wins and changes save to the account.
 
 ## Out of scope
 

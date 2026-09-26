@@ -28,7 +28,7 @@ button:not(.section__row):not(.stay-option):not(.primary):not(.trip__cta):not(.r
     .question__option
   ):not(.question__button):not(.attachment-chip__remove):not(.day-strip__day):not(
     .timeline-stop__main
-  ) {
+  ):not(.settings-chip) {
   border: 1px solid transparent;
   border-radius: var(--radius-pill);
   background: var(--button-bg, var(--fill-hover));

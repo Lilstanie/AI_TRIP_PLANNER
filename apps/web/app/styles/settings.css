@@ -1,0 +1,194 @@
+/* Settings dialog (components/account/SettingsDialog.tsx). It sits in the glass dialog, so it
+   groups with space and fills, not new cards. */
+.settings {
+  display: grid;
+  gap: var(--space-4);
+  width: min(560px, 100%);
+}
+.settings-tabs {
+  justify-self: start;
+  max-width: 100%;
+  overflow-x: auto;
+}
+.settings-tabs > button {
+  white-space: nowrap;
+}
+.settings-form {
+  display: grid;
+  gap: var(--space-4);
+}
+.settings-lead,
+.settings-hint,
+.settings-sync {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: var(--font-size-meta);
+}
+.settings-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-3);
+}
+.settings-field {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.settings-field > span,
+.settings-field > legend {
+  margin-bottom: var(--space-1);
+  padding: 0;
+  font-size: var(--font-size-meta);
+  font-weight: 600;
+}
+.settings-field input {
+  min-height: 40px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+.settings-field input[aria-invalid="true"] {
+  border-color: var(--warn);
+}
+.settings-error {
+  color: var(--warn);
+  font-size: var(--font-size-meta);
+}
+.settings-segmented {
+  justify-self: start;
+  flex-wrap: wrap;
+}
+.settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+.settings-saved {
+  color: var(--ok);
+  font-size: var(--font-size-meta);
+}
+a.settings-link-button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  background: var(--fill-hover);
+  color: inherit;
+  font-weight: 500;
+  text-decoration: none;
+}
+a.settings-link-button:hover {
+  background: var(--fill-press);
+}
+.settings-profile {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.settings-profile img,
+.settings-profile__initial {
+  display: grid;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: var(--radius-pill);
+  object-fit: cover;
+  background: var(--accent-fill);
+  color: var(--on-accent);
+  font-weight: 600;
+}
+.settings-profile span {
+  display: grid;
+  min-width: 0;
+}
+.settings-profile small {
+  overflow: hidden;
+  color: var(--text-dim);
+  text-overflow: ellipsis;
+}
+.settings-danger {
+  display: grid;
+  gap: var(--space-2);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
+}
+.settings-danger p {
+  margin: 0;
+  font-size: var(--font-size-meta);
+}
+button.settings-danger__button {
+  justify-self: start;
+  color: var(--warn);
+}
+
+/* Interest and dietary chips: pressed chips take the accent, like the day strip. */
+.settings-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+button.settings-chip {
+  min-height: 32px;
+  border-radius: var(--radius-pill);
+  transition:
+    background-color var(--transition),
+    border-color var(--transition),
+    color var(--transition);
+  padding: 4px var(--space-3);
+  border: 1px solid var(--border);
+  background: transparent;
+  font-weight: 400;
+}
+button.settings-chip[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+  color: var(--accent);
+  font-weight: 600;
+}
+.settings-field select {
+  min-height: 40px;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+.settings-list {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.settings-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--fill-hover);
+}
+.settings-list span {
+  display: grid;
+  min-width: 0;
+}
+.settings-list small,
+.settings-empty {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: var(--font-size-meta);
+}
+.settings-add {
+  align-items: end;
+}

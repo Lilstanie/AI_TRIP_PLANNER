@@ -1,10 +1,23 @@
 "use client";
 import { Dialog } from "../ui/Dialog";
+import { SettingsDialog } from "../account/SettingsDialog";
 import { money } from "@/lib/workspace";
 import type { WorkspaceController } from "./useWorkspaceController";
 
 export function WorkspaceDialogs({ model }: { model: WorkspaceController }) {
-  const { dialog, dialogTitle, plan, previousTotal, error, retry, busy, setDialog, run } = model;
+  const {
+    dialog,
+    dialogTitle,
+    plan,
+    previousTotal,
+    error,
+    retry,
+    busy,
+    setDialog,
+    run,
+    settingsSection,
+    dataMode,
+  } = model;
 
   return (
     <>
@@ -57,11 +70,8 @@ export function WorkspaceDialogs({ model }: { model: WorkspaceController }) {
               interface translation is not available yet.
             </p>
           )}
-          {dialog === "account" && (
-            <p>
-              This is a single-user local workspace. No sign-in is required. Chats and trips stay in
-              this browser and are not synced to other devices.
-            </p>
+          {dialog === "settings" && (
+            <SettingsDialog initial={settingsSection} onDataMode={dataMode.choose} />
           )}
         </Dialog>
       )}

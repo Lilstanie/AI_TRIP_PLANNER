@@ -1,7 +1,10 @@
 "use client";
 import { useEffect, useRef, useState, type ReactNode, type Ref } from "react";
 import { BrandMark } from "./BrandMark";
-import { ChatIcon, GlobeIcon, MoreIcon, SidebarIcon, SuitcaseIcon, UserIcon } from "../ui/icons";
+import { ChatIcon, GearIcon, GlobeIcon, MoreIcon, SidebarIcon, SuitcaseIcon } from "../ui/icons";
+import { AccountButton } from "../account/AccountButton";
+import type { SettingsSection } from "../account/SettingsDialog";
+import type { SyncStatus } from "../account/useAccountSync";
 
 /**
  * A history row. Chats show their title and, when they belong to a trip, that trip's name as
@@ -164,8 +167,9 @@ export function WorkspaceSidebar({
   onTrips,
   chatsButton,
   onLanguage,
-  onAccount,
+  onSettings,
   saveState,
+  syncStatus = "local",
   children,
 }: {
   collapsed?: boolean;
@@ -183,8 +187,11 @@ export function WorkspaceSidebar({
   /** The Chats button, which the Chats panel returns focus to. */
   chatsButton?: Ref<HTMLButtonElement>;
   onLanguage(): void;
-  onAccount(): void;
+  /** Opens Settings, at the account section when the account control is pressed. */
+  onSettings(section?: SettingsSection): void;
   saveState: "saving" | "saved" | "failed";
+  /** Whether chats and trips are syncing to a signed-in account. */
+  syncStatus?: SyncStatus;
   children?: ReactNode;
 }) {
   const isCollapsed = collapsible && collapsed;
@@ -238,12 +245,19 @@ export function WorkspaceSidebar({
 
       <div className="sidebar-footer">
         {!isCollapsed && (
-          <span className={`save-state save-state--${saveState}`} role="status">
-            {saveState === "saving"
-              ? "Saving…"
-              : saveState === "failed"
-                ? "Save failed"
-                : "Saved locally"}
+          <span
+            className={`save-state save-state--${syncStatus === "local" ? saveState : syncStatus}`}
+            role="status"
+          >
+            {saveState === "failed"
+              ? "Save failed"
+              : syncStatus === "syncing" || saveState === "saving"
+                ? "Saving…"
+                : syncStatus === "synced"
+                  ? "Synced to your account"
+                  : syncStatus === "offline"
+                    ? "Saved here · sync paused"
+                    : "Saved locally"}
           </span>
         )}
         <div className="sidebar-footer__actions">
@@ -260,13 +274,13 @@ export function WorkspaceSidebar({
           <button
             type="button"
             className="sidebar-icon-button"
-            aria-label="Local account"
-            data-tooltip={isCollapsed ? "Local account" : undefined}
-            onClick={onAccount}
+            aria-label="Settings"
+            data-tooltip={isCollapsed ? "Settings" : undefined}
+            onClick={() => onSettings()}
           >
-            <UserIcon />
-            {!isCollapsed && <span>Local</span>}
+            <GearIcon />
           </button>
+          <AccountButton collapsed={isCollapsed} onSettings={onSettings} />
         </div>
       </div>
     </aside>

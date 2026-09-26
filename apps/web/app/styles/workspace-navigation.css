@@ -467,3 +467,37 @@
 .save-state--saving {
   color: var(--accent);
 }
+
+/* ---- account control (components/account/AccountButton.tsx) ---- */
+.account-button__avatar {
+  display: grid;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+  border-radius: var(--radius-pill);
+  object-fit: cover;
+  outline: 1px solid var(--border);
+  outline-offset: -1px;
+}
+.account-button__initial {
+  background: var(--accent-fill);
+  color: var(--on-accent);
+  font-size: var(--font-size-meta);
+  font-weight: 600;
+}
+.account-button__name {
+  overflow: hidden;
+  max-width: 7em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.save-state--syncing {
+  color: var(--text-dim);
+}
+.save-state--synced {
+  color: var(--ok);
+}
+.save-state--offline {
+  color: var(--warn);
+}

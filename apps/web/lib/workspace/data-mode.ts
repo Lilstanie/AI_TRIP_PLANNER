@@ -25,7 +25,7 @@ function stored(): DataMode | undefined {
  * reported its own default, the mode is `undefined` and the toggle renders as
  * pending rather than guessing and flipping a moment later.
  */
-export function useDataMode() {
+export function useDataMode(preferred?: DataMode) {
   const [mode, setMode] = useState<DataMode>();
   const [providers, setProviders] = useState<DataModeProviders>();
 
@@ -42,11 +42,13 @@ export function useDataMode() {
       }
       if (!active) return;
       setProviders(body?.providers);
-      setMode(stored() ?? (body?.configured === "live" ? "live" : "mock"));
+      setMode(stored() ?? preferred ?? (body?.configured === "live" ? "live" : "mock"));
     })();
     return () => {
       active = false;
     };
+    // The preference only seeds the first choice; the toggle and Settings set it afterwards.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const choose = useCallback((next: DataMode) => {
