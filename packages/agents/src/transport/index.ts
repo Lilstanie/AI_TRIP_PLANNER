@@ -111,6 +111,9 @@ async function gatherTransportEvidence(
     to: leg.to,
     date: leg.date,
     day: leg.day,
+    // A hop between trip cities, priced for the whole group; only these may use paid rail data.
+    intercity: true,
+    passengers: brief.groupSize,
   }));
   const conflicts: string[] = [];
 

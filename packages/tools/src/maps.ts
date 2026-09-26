@@ -7,6 +7,8 @@
 import type { GeoPoint, RouteQuery, RouteLeg, RouteOption, PlaceQuery, Place } from "@trip/shared";
 import { searchGooglePlacesText } from "./google-places";
 import { mockEnabled } from "./data-mode";
+import { searchTransitSerpApi } from "./serpapi";
+import { SUPPORTED_CURRENCIES, toAud } from "@trip/shared";
 import { driveOption, transitOption, type GoogleRouteShape } from "./route-options";
 
 export type { GeoPoint, RouteQuery, RouteLeg, PlaceQuery, Place } from "@trip/shared";
@@ -258,6 +260,12 @@ export async function route(q: RouteQuery): Promise<RouteLeg[]> {
   const transit = data.routes?.[0];
   const transitLeg = transit ? googleLeg(transit, "transit") : undefined;
   if (transitLeg && transitLeg.durationMin <= SLOW_TRANSIT_MIN) return [transitLeg];
+  // Between two trip cities, rail the Routes API does not cover (all of Japan) is looked up in
+  // Google Maps' own directions through SerpApi. Any failure there falls through to driving.
+  if (q.intercity) {
+    const rail = await railLeg(q).catch(() => undefined);
+    if (rail && (!transitLeg || rail.durationMin < transitLeg.durationMin)) return [rail];
+  }
   // Google has no transit data for some countries (Japan) and sparse data for
   // others (Bali), so an empty transit answer is not evidence that two stops
   // cannot be connected, and a long one may be a four-hour bus chain where a
@@ -278,6 +286,30 @@ export async function route(q: RouteQuery): Promise<RouteLeg[]> {
   if (transitLeg && (!driveLeg || transitLeg.durationMin <= driveLeg.durationMin * 2))
     return [transitLeg];
   return driveLeg ? [driveLeg] : [];
+}
+
+/** An inter-city rail leg from SerpApi's Google Maps directions, priced in AUD for the group. */
+async function railLeg(q: RouteQuery): Promise<RouteLeg | undefined> {
+  if (!process.env.SERPAPI_KEY) return undefined;
+  const route = await searchTransitSerpApi({ from: q.from, to: q.to });
+  const passengers = q.passengers && q.passengers > 0 ? q.passengers : 1;
+  const currency = SUPPORTED_CURRENCIES.find((code) => code === route.fare?.currency);
+  // A fare in a currency without a reviewed rate stays unpriced rather than guessed.
+  const price =
+    route.fare && currency ? Math.round(toAud(route.fare.amount, currency) * passengers * 100) / 100 : 0;
+  const service = route.services.join(" → ");
+  const train = /shinkansen|express|limited|line|jr |rail|train/i.test(service);
+  return {
+    mode: train ? "train" : "transit",
+    durationMin: route.durationMin,
+    price,
+    note: [
+      `Google Maps transit via SerpApi${service ? `: ${service}` : ""}`,
+      route.fare
+        ? `${route.fare.currency} ${route.fare.amount.toLocaleString("en-AU")} per person${currency ? "" : "; fare unavailable in AUD"}`
+        : "fare unavailable",
+    ].join("; "),
+  };
 }
 
 /** A transit answer longer than this is compared with driving before it is trusted. */

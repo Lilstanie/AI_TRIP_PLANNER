@@ -129,6 +129,7 @@ interface SerpApiRaw {
   properties?: unknown[];
   best_flights?: unknown[];
   other_flights?: unknown[];
+  directions?: unknown[];
 }
 
 async function serpApiSearch(params: Record<string, string>): Promise<SerpApiRaw> {
@@ -369,5 +370,55 @@ export async function searchReturnLegSerpApi(q: {
       if (leg) return leg;
     }
     return undefined;
+  });
+}
+
+// --- Google Maps directions: transit between cities -------------------------
+//
+// For hops where Google's Routes API has no transit (all of Japan). Verified against
+// https://serpapi.com/google-maps-directions-api and one Tokyo Station → Kyoto Station request:
+// `directions[0]` carried `duration` (seconds), `cost` 14170, `currency` "JPY" and `trips[]` whose
+// `title` named "Tokaido Shinkansen Nozomi 91". The fare is per person.
+
+export interface TransitRoute {
+  durationMin: number;
+  /** Per-person fare in the provider's currency, when it gave one. */
+  fare?: { amount: number; currency: string };
+  /** The services taken, e.g. "Tokaido Shinkansen Nozomi 91". */
+  services: string[];
+}
+
+export async function searchTransitSerpApi(q: { from: string; to: string }): Promise<TransitRoute> {
+  const key = `transit:${q.from.toLowerCase()}|${q.to.toLowerCase()}`;
+  return cached(key, async () => {
+    const data = await serpApiSearch({
+      engine: "google_maps_directions",
+      start_addr: q.from,
+      end_addr: q.to,
+      travel_mode: "3",
+      hl: "en",
+    });
+    const route = (data.directions ?? []).find(
+      (entry): entry is { duration: number; cost?: unknown; currency?: unknown; trips?: unknown[] } =>
+        typeof entry === "object" &&
+        entry !== null &&
+        Number.isFinite((entry as { duration?: unknown }).duration) &&
+        (entry as { duration: number }).duration > 0,
+    );
+    if (!route) throw new SerpApiError(`No transit route from ${q.from} to ${q.to}.`, "no_results");
+    const amount = Number(route.cost);
+    const services = (route.trips ?? []).flatMap((trip) => {
+      const title = (trip as { title?: unknown; travel_mode?: unknown }).title;
+      return (trip as { travel_mode?: unknown }).travel_mode === "Transit" && typeof title === "string"
+        ? [title]
+        : [];
+    });
+    return {
+      durationMin: Math.max(1, Math.ceil(route.duration / 60)),
+      ...(Number.isFinite(amount) && amount > 0 && typeof route.currency === "string"
+        ? { fare: { amount, currency: route.currency } }
+        : {}),
+      services,
+    };
   });
 }

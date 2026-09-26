@@ -36,6 +36,14 @@ export interface RouteQuery {
   departureTime?: string;
   /** Local wall-clock departure time for `date`, in HH:MM (defaults to 09:00). */
   localTime?: string;
+  /**
+   * A hop between two trip cities rather than between two stops in one. Only these may use a
+   * paid rail lookup where the maps provider has no transit, so a day plan's many short hops
+   * never spend that quota.
+   */
+  intercity?: boolean;
+  /** How many travellers a fare is for; a per-person fare is multiplied by it. Defaults to 1. */
+  passengers?: number;
 }
 export interface RouteLeg {
   mode: TravelMode;
