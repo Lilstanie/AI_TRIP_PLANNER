@@ -414,7 +414,8 @@ no LLM calls.
   times are rejected. Transit queries respect Google's supported departure window.
 - A hop with no Google transit answer (Japan has no transit data) or with transit over 90 minutes and
   more than twice the driving time is returned as a driving leg (`mode: "drive"`) and says so, rather
-  than reported as unroutable.
+  than reported as unroutable. A hop between two trip cities first tries Google Maps transit through
+  SerpApi (Tokyo → Kyoto: a Shinkansen with its fare), and drives only if that finds nothing.
 
 ## Google Maps configuration
 
