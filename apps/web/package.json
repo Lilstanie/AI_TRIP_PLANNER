@@ -24,6 +24,7 @@
     "react-dom": "^19.0.0",
     "react-markdown": "^10.1.0",
     "tailwind-merge": "^3.7.0",
+    "thinking-orbs": "^0.3.2",
     "zod": "^4.0.0"
   },
   "devDependencies": {
