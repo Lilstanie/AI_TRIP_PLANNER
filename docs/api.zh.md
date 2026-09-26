@@ -206,7 +206,7 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 }
 ```
 
-`operation.kind` 为 `verify`（检查某一天的路线）、`move`、`time`、`place` 或 `undo`。
+`operation.kind` 为 `verify`（检查某一天的路线）、`move`、`time`、`place` 或 `undo`。只有带日期的活动会被规划路线和重新排时；ideas（没有日期的活动）原样保留。
 响应为 `{ plan, baseVersion, routes, differences, blockers }`。它只是预览：
 客户端在用户确认后才应用它，若 `baseVersion` 已不匹配则拒绝应用。无效编辑返回 400。
 

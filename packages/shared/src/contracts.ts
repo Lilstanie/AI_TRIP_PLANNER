@@ -174,6 +174,10 @@ export const ProposalItem = z
     location: z.string().trim().min(1).optional(),
     /** The connection into this item from the previous one on the same day. */
     arriveBy: ArriveBy.optional(),
+    /** The traveller's own note on this item. */
+    note: z.string().trim().max(500).optional(),
+    /** The traveller has booked this item themselves. */
+    booked: z.boolean().optional(),
   })
   // `.check()` (Zod 4's superRefine) keeps this a plain object, so B/C/D/E can
   // still `.extend()` / `.pick()` it. Three cross-field rules:

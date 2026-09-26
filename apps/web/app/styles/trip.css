@@ -604,3 +604,181 @@ button.trip-places__stop[aria-pressed="true"] .trip-places__name {
   font-size: var(--font-size-meta);
   overflow-wrap: anywhere;
 }
+
+/* ---- itinerary item actions (components/trip/TripPlaceList.tsx, components/ui/ActionMenu.tsx) ---- */
+.trip-places__row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-1);
+}
+.trip-places__row > .trip-places__stop {
+  flex: 1;
+  min-width: 0;
+}
+.trip-places__tag {
+  justify-self: start;
+  margin-top: 2px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--ok-bg);
+  color: var(--ok);
+  font-size: var(--font-size-meta);
+  font-weight: 600;
+}
+.trip-places__note {
+  margin-top: 2px;
+  padding-inline-start: var(--space-2);
+  border-inline-start: 2px solid var(--accent);
+  color: var(--text);
+  font-size: var(--font-size-meta);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.trip-places__hint {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: var(--font-size-meta);
+}
+.item-undo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius);
+  background: var(--ok-bg);
+  color: var(--ok);
+  font-size: var(--font-size-meta);
+  animation: panel-in var(--duration) var(--ease-out);
+}
+.item-problem {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--warn-bg);
+  color: var(--warn);
+  font-size: var(--font-size-meta);
+}
+.item-editor {
+  display: grid;
+  gap: var(--space-2);
+  margin: var(--space-1) 0 var(--space-2) calc(24px + var(--space-3) + var(--space-3));
+  padding: var(--space-3);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  animation: panel-in var(--duration) var(--ease-out);
+}
+.item-editor label {
+  display: grid;
+  gap: 2px;
+  color: var(--text-dim);
+  font-size: var(--font-size-meta);
+}
+.item-editor :is(input, textarea, select) {
+  min-height: 36px;
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--font-size-body);
+  resize: vertical;
+}
+.item-editor__actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.action-menu {
+  position: relative;
+  flex: none;
+}
+button.action-menu__trigger {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  min-height: 32px !important;
+  height: 32px;
+  margin-top: var(--space-1);
+  padding: 0 !important;
+  border-radius: var(--radius-sm) !important;
+  background: transparent !important;
+  color: var(--text-dim);
+}
+button.action-menu__trigger:hover,
+button.action-menu__trigger[aria-expanded="true"] {
+  background: var(--fill-hover) !important;
+  color: var(--text);
+}
+.action-menu__list {
+  position: absolute;
+  top: calc(100% + var(--space-1));
+  right: 0;
+  z-index: 6;
+  display: grid;
+  min-width: 220px;
+  padding: var(--space-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+  animation: panel-in var(--duration-fast) var(--ease-out);
+}
+.action-menu__list button[role="menuitem"] {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: 34px !important;
+  padding: var(--space-1) var(--space-2) !important;
+  border-radius: var(--radius-sm) !important;
+  background: transparent !important;
+  font-weight: 400;
+  text-align: start;
+}
+.action-menu__list button[role="menuitem"]:hover:not(:disabled),
+.action-menu__list button[role="menuitem"]:focus-visible {
+  background: var(--fill-hover) !important;
+}
+.action-menu__list button.is-danger {
+  color: var(--warn);
+}
+.action-menu__icon {
+  display: inline-grid;
+  width: 16px;
+  place-items: center;
+  color: var(--text-dim);
+}
+.action-menu__icon svg {
+  width: 16px;
+  height: 16px;
+}
+.action-menu__list button.is-danger .action-menu__icon {
+  color: var(--warn);
+}
+.action-menu__up svg {
+  transform: rotate(-90deg);
+}
+.action-menu__down svg {
+  transform: rotate(90deg);
+}
+.action-menu__separator {
+  margin: var(--space-1) 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+@media (prefers-reduced-motion: reduce) {
+  .action-menu__list,
+  .item-editor,
+  .item-undo {
+    animation: none;
+  }
+}
+/* Long descriptions keep the list scannable; the full text is in Edit details. */
+.trip-places__text small {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}

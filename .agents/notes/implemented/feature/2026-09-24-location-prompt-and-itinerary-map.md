@@ -36,7 +36,7 @@ counter before lists or markers multiply them.
   `requestAnimationFrame` loop capped near 30 frames a second. The pattern is Google's documented
   "Animating Symbols" technique (icons on a `Polyline` with a changing offset), written here from the
   API reference rather than copied. Reduced motion draws the dashes still and starts no loop.
-- **Places in the drawer.** `TripPlaceList` heads the Overview tab with every activity by day in
+- **Places in the drawer.** `TripPlaceList` heads the Itinerary tab with every activity by day in
   visiting order. Located stops are buttons that select the stop on the map; this list is the
   keyboard path to every marker, replacing the map overlay list.
 - **Labelled markers.** A numbered badge sits on the place with a pill holding a category icon (from
