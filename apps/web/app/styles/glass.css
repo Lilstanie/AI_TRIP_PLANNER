@@ -40,6 +40,7 @@
 .drawer,
 .fact-popover,
 .trip-map-canvas .trip-map-popup .place-preview,
+.auth-form,
 .question__card,
 .dialog {
   --glass-fill: var(--glass-bg-strong);
@@ -511,13 +512,16 @@
   .drawer,
   .fact-popover,
   .trip-map-canvas .trip-map-popup .place-preview,
+  .auth-form,
   .question__card,
   .dialog {
     --glass-fill: var(--surface);
   }
 }
 @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
-  .workspace-app {
+  .workspace-app,
+  .auth-page,
+  .auth-redirect {
     background: var(--page);
   }
   .workspace-sidebar,
@@ -537,6 +541,7 @@
   .drawer,
   .fact-popover,
   .trip-map-canvas .trip-map-popup .place-preview,
+  .auth-form,
   .question__card,
   .dialog {
     --glass-fill: var(--surface);
@@ -558,6 +563,7 @@
   .composer,
   .drawer,
   .fact-popover,
+  .auth-form,
   .dialog {
     background: Canvas !important;
     border-color: CanvasText !important;

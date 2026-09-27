@@ -1,6 +1,7 @@
 "use client";
 import { useAuth, useClerk, useUser } from "@clerk/nextjs";
-import { createContext, useContext, useMemo, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import { authEnabled } from "@/lib/auth/config";
 
 /**
@@ -38,13 +39,17 @@ function ClerkAccount({ children }: { children: ReactNode }) {
   const { isLoaded, isSignedIn, userId } = useAuth();
   const { user } = useUser();
   const clerk = useClerk();
+  const router = useRouter();
+  useEffect(() => {
+    if (isLoaded && !isSignedIn) router.replace("/sign-in");
+  }, [isLoaded, isSignedIn, router]);
   const account = useMemo<Account>(() => {
     if (!isLoaded) return { status: "loading" };
     if (!isSignedIn || !userId)
       return {
         status: "signed-out",
-        signIn: () => clerk.openSignIn(),
-        signUp: () => clerk.openSignUp(),
+        signIn: () => router.push("/sign-in"),
+        signUp: () => router.push("/sign-up"),
       };
     const email = user?.primaryEmailAddress?.emailAddress;
     return {
@@ -64,10 +69,17 @@ function ClerkAccount({ children }: { children: ReactNode }) {
         await user?.update({ firstName, lastName });
       },
       ...(user?.imageUrl ? { imageUrl: user.imageUrl } : {}),
-      signOut: () => clerk.signOut(),
+      signOut: () => clerk.signOut({ redirectUrl: "/sign-in" }),
       manage: () => clerk.openUserProfile(),
     };
-  }, [isLoaded, isSignedIn, userId, user, clerk]);
+  }, [isLoaded, isSignedIn, userId, user, clerk, router]);
+  if (account.status === "signed-out" || account.status === "loading") {
+    return (
+      <main className="auth-redirect" role="status">
+        Opening your workspace…
+      </main>
+    );
+  }
   return <AccountContext.Provider value={account}>{children}</AccountContext.Provider>;
 }
 

@@ -34,16 +34,16 @@
       "translationSha256": "f407a13eba6f757f15c48f91d391b300db45203a43528747c6ba3d5808ac57ef"
     },
     "docs/roadmap.md": {
-      "sourceSha256": "ab0ab2fda2a3e7e4035666f39290538238f45eeef87db73e6a5f54034b16b4b8",
-      "translationSha256": "bd02bc42df8ba1f508f4fe1d961c617473ea6c8ff3e23401a08f0c96c558d2aa"
+      "sourceSha256": "b1b88e546ec1abe9d98ab593887d820ee4c396e5847024383209fefb94c2222b",
+      "translationSha256": "b8d414ac03dfc73ef9688a85e6465a1ecc62ab391ee81128d4777b3b73f9e859"
     },
     "docs/team-workflow.md": {
       "sourceSha256": "c4e0ab62e2ef0cbd113a3daa0a9a4250b6a5dca7fb6695c14c5a4e7e73626442",
       "translationSha256": "fc3cdafe8a8a7f31f0d94d52f2666af1b2e1e2fcffc1b0f41714204d3755e5ab"
     },
     "docs/workspace-ui.md": {
-      "sourceSha256": "e821eb405a1659a49813288cabafb219abbee9d778a7f5d575049d3eda77375a",
-      "translationSha256": "fb044e67a748385a24185a124649cf7aa45454c91a690d2836f1504693c8a75d"
+      "sourceSha256": "1e4c292f0c3c3872c61477083bb8144bd38bf1204aff5cd7967924fed26fd25e",
+      "translationSha256": "2a5ac938ec21c0272846d04a4e193aee311f7c5b637478f98615ad13662627eb"
     }
   }
 }

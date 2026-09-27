@@ -462,8 +462,17 @@ first render; without a browser key the map shows a fallback and the itinerary s
 
 ## Accounts and settings
 
-Accounts are optional ([Agent Note](../.agents/notes/implemented/architecture/2026-09-27-accounts-settings-sync.md)).
-Without Clerk keys the workspace is single-user. The sidebar has one **Settings & account** entry;
+With Clerk configured, page navigation requires sign-in ([login gate Agent Note](../.agents/notes/implemented/architecture/2026-09-28-workspace-login-gate.md)).
+Signed-out visitors go to `/sign-in` before the workspace renders. The full-page login combines a
+short product introduction with Clerk's Google, Apple, GitHub and email controls. `/sign-up` uses
+the same layout. Successful sign-in or registration opens `/`; signed-in visitors to either auth
+entry page return to `/`. Signing out returns to `/sign-in`, and losing a session hides the workspace
+while navigating there. Existing API authorization and response formats remain as documented in
+[API](api.md).
+
+Without Clerk keys the workspace is single-user and auth pages return to `/`
+([account storage Agent Note](../.agents/notes/implemented/architecture/2026-09-27-accounts-settings-sync.md)).
+The sidebar has one **Settings & account** entry;
 the account section explains that everything stays in this browser.
 
 - **Settings & account control.** The sidebar footer follows Mindtrip's profile row: an avatar,

@@ -2,6 +2,9 @@
 
 Status: implemented
 
+The [workspace login gate](2026-09-28-workspace-login-gate.md) supersedes optional sign-in for
+configured deployments. This note continues to own local mode, account storage and synchronization.
+
 ## Problem
 
 The workspace was single-user and browser-local: chats and trips lived only in the `localStorage`
