@@ -105,7 +105,7 @@ export function ProposalDetails({
               </div>
               <h4>{selected.name}</h4>
               <p>
-                {selected.area} · {selected.rating}/10 guest rating
+                {selected.area} · {(selected.rating / 2).toFixed(1)}/5 guest rating
               </p>
               <dl className="stay-facts">
                 <div>

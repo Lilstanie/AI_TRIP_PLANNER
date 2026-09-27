@@ -166,6 +166,23 @@ on, and every specialist receives them in its evidence or payload with one share
 (`packages/agents/src/prompts/traveller-preferences.ts`): weigh them where the evidence allows, say
 when one could not be met, and never treat one as a verified fact.
 
+`update_trip_brief` records what the conversation settles in three more fields:
+
+- `learnedPreferences`: wishes the traveller states in chat, with the whole list replaced each time.
+- `excludeFlights`: the traveller arranges flights.
+- `bookedStay`: the traveller has booked their stay.
+
+`specialistBrief` in `packages/orchestrator/src/supervisor.ts` appends the learned list to the
+traveller's own for the specialists, deduplicated and capped at 12. The stored brief keeps the two
+lists apart.
+
+With `excludeFlights`, transport neither searches nor prices flights and raises no fare conflict.
+With `bookedStay`, accommodation returns the booking unpriced without a search. The supervisor runs
+the accommodation specialist even when the model skips it. Once either field is set, the coordinator
+never asks about flights or other stays. The
+[conversation scope note](../.agents/notes/implemented/feature/2026-09-27-conversation-scope.md)
+explains why.
+
 A message can carry up to four attachments. Images reach the coordinator as content blocks and text
 files are inlined into its message; only the coordinator sees them, the specialists' inputs are
 unchanged, and the offline path ignores images while still reading the inlined text. Sizes and

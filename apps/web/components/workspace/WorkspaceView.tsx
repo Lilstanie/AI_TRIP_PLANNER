@@ -61,7 +61,7 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
     notice,
     composerAttachments,
     blank,
-    pending,
+    tripStops,
     dialogTitle,
     drawerOpen,
     openFact,
@@ -349,17 +349,17 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
                 type="button"
                 className="topbar-button trip-trigger"
                 aria-label="Open your trip"
-                aria-describedby={pending ? "trip-trigger-count" : undefined}
+                aria-describedby={tripStops ? "trip-trigger-count" : undefined}
                 aria-expanded={tripOpen}
                 aria-haspopup="dialog"
                 onClick={() => (tripOpen ? closeTrip() : openTrip())}
               >
                 <RouteIcon />
                 <span className="topbar-button__label">Trip</span>
-                {pending > 0 && (
+                {tripStops > 0 && (
                   <span className="trip-trigger__count" id="trip-trigger-count">
-                    {pending}
-                    <span className="sr-only"> unresolved conflicts</span>
+                    {tripStops}
+                    <span className="sr-only"> {tripStops === 1 ? "stop" : "stops"}</span>
                   </span>
                 )}
               </button>
@@ -490,6 +490,16 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
                       startDate={plan.brief.dates[0]}
                       selected={selectedActivity}
                       onSelect={setSelectedActivity}
+                      plan={plan}
+                      disabled={busy || editPending}
+                      onApply={(next) => {
+                        setPreviousTotal(plan.estTotal);
+                        setPlan(next);
+                      }}
+                      onAdjust={(id) => {
+                        setSelectedActivity(id);
+                        setTripTab("timeline");
+                      }}
                     />
                   }
                   timeline={

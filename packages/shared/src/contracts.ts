@@ -32,6 +32,16 @@ export const TripPreferences = z
   .array(z.string().trim().min(1).max(MAX_TRIP_PREFERENCE_LENGTH))
   .max(MAX_TRIP_PREFERENCES);
 export type TripPreferences = z.infer<typeof TripPreferences>;
+
+/**
+ * A stay the traveller has booked themselves ("the hotel is booked — the Hilton Hongqiao"). The
+ * accommodation specialist then plans around it instead of searching and pricing one.
+ */
+export const BookedStay = z.object({
+  name: z.string().trim().min(1).max(160),
+  note: z.string().trim().max(300).optional(),
+});
+export type BookedStay = z.infer<typeof BookedStay>;
 /**
  * Who is travelling, by kind, as the Who editor's steppers state it. `groupSize` stays the people
  * count every agent budgets with; this only breaks it down (and adds pets, who are never counted in
@@ -84,6 +94,13 @@ export const TripBrief = z
     // Optional and additive: briefs saved before it existed still parse, and an absent list
     // means the traveller stated no preferences.
     preferences: TripPreferences.optional(),
+    // What the coordinator heard in chat ("no dietary requirements"), kept apart from the
+    // traveller's own list so the two are never confused; the traveller can remove any of them.
+    learnedPreferences: TripPreferences.optional(),
+    // The traveller arranges flights themselves: none are searched, priced or asked about.
+    excludeFlights: z.boolean().optional(),
+    // The traveller has booked their stay: it is used as given and not priced.
+    bookedStay: BookedStay.optional(),
   })
   .check((ctx) => {
     const [start, end] = ctx.value.dates;
@@ -157,6 +174,10 @@ export const ProposalItem = z
     location: z.string().trim().min(1).optional(),
     /** The connection into this item from the previous one on the same day. */
     arriveBy: ArriveBy.optional(),
+    /** The traveller's own note on this item. */
+    note: z.string().trim().max(500).optional(),
+    /** The traveller has booked this item themselves. */
+    booked: z.boolean().optional(),
   })
   // `.check()` (Zod 4's superRefine) keeps this a plain object, so B/C/D/E can
   // still `.extend()` / `.pick()` it. Three cross-field rules:

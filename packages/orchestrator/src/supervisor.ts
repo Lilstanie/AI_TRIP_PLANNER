@@ -1,5 +1,6 @@
 import {
   AgentProposal as AgentProposalSchema,
+  MAX_TRIP_PREFERENCES,
   type AgentContext,
   type AgentName,
   type AgentProposal,
@@ -16,7 +17,30 @@ import { createAgent, tool } from "langchain";
 import { z } from "zod/v4";
 import { withProgressTools } from "./progress-tools";
 import type { PlanningBoardRun } from "./board";
+
+/** Stays keep a 0–10 rating internally; travellers read it out of 5, like Google's own stars. */
+const outOfFive = (rating: number) => `${(rating / 2).toFixed(1)}/5`;
 import { createReasoningSink } from "./reasoning-sink";
+
+/**
+ * The brief a specialist sees. Preferences learned from the conversation are the traveller's
+ * requests as much as the ones they typed, so specialists get one list: the typed ones first, then
+ * the learned ones that are not already there, capped at the contract's limit. The stored brief keeps
+ * them apart so the traveller can see and remove what the coordinator learned.
+ */
+export function specialistBrief(brief: TripBrief): TripBrief {
+  if (!brief.learnedPreferences?.length) return brief;
+  const seen = new Set<string>();
+  const preferences = [...(brief.preferences ?? []), ...brief.learnedPreferences]
+    .filter((preference) => {
+      const key = preference.trim().toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, MAX_TRIP_PREFERENCES);
+  return { ...brief, preferences };
+}
 
 /**
  * The stay a specialist settled on, as a transcript decision rather than prose.
@@ -63,7 +87,7 @@ export function choiceFor(proposal: AgentProposal): ToolChoice | undefined {
       detail: [
         selected.area,
         `AUD ${cost.toFixed(2)} total`,
-        `${selected.rating}/10`,
+        outOfFive(selected.rating),
         selected.freeCancellation ? "Free cancellation" : "No free cancellation",
       ].join(" · "),
     },
@@ -75,7 +99,7 @@ export function choiceFor(proposal: AgentProposal): ToolChoice | undefined {
         detail: [
           candidate.area,
           `AUD ${(candidate.pricePerNight * stay.nights * stay.rooms).toFixed(2)} total`,
-          `${candidate.rating}/10`,
+          outOfFive(candidate.rating),
           candidate.freeCancellation ? "Free cancellation" : "No free cancellation",
         ].join(" · "),
       })),
@@ -147,7 +171,7 @@ export function createSupervisorTools(
         const invoke = async (extra: Partial<SpecialistRequest>) =>
           AgentProposalSchema.parse(
             await specialist.invoke({
-              brief: options.brief,
+              brief: specialistBrief(options.brief),
               context: {
                 ...options.context,
                 tools: options.onProgress
@@ -219,7 +243,7 @@ export function createRevisionTools(
           try {
             proposal = AgentProposalSchema.parse(
               await specialist.invoke({
-                brief: options.brief,
+                brief: specialistBrief(options.brief),
                 context: {
                   ...options.context,
                   tools: options.onProgress
@@ -293,7 +317,7 @@ export async function dispatchWithSupervisor(
     model,
     tools,
     systemPrompt:
-      "You are the trip-planning supervisor. Decide which specialist tools are needed for the user's requested plan, delegate bounded objectives, and do not perform specialist work yourself. For a complete new trip plan, consider day planning, inter-city transport, accommodation, destination guidance and dining. Day planning is not optional: always delegate to the itinerary specialist. Do not invent or modify trip facts. Stop after the necessary specialist tools have returned; the deterministic LangGraph workflow validates, reconciles and persists their proposals. Write each objective as one concrete sentence naming the trip facts it must respect, because the traveller reads it in the transcript while the specialist works. When the brief has a preferences list, carry each preference into the objective of every specialist it bears on. Never ask the traveller a question yourself; the coordinator owns questions.",
+      "You are the trip-planning supervisor. Decide which specialist tools are needed for the user's requested plan, delegate bounded objectives, and do not perform specialist work yourself. For a complete new trip plan, consider day planning, inter-city transport, accommodation, destination guidance and dining. Day planning is not optional: always delegate to the itinerary specialist. Do not invent or modify trip facts. Stop after the necessary specialist tools have returned; the deterministic LangGraph workflow validates, reconciles and persists their proposals. Write each objective as one concrete sentence naming the trip facts it must respect, because the traveller reads it in the transcript while the specialist works. When the brief has a preferences list, carry each preference into the objective of every specialist it bears on. When the brief has bookedStay, still delegate to the accommodation specialist: it records the traveller's booking. When excludeFlights is true, tell the transport specialist that flights are arranged by the traveller. Never ask the traveller a question yourself; the coordinator owns questions.",
   });
 
   try {
@@ -303,7 +327,7 @@ export async function dispatchWithSupervisor(
           role: "user",
           content: JSON.stringify({
             task: "Delegate the specialist work required to produce this trip plan.",
-            brief: options.brief,
+            brief: specialistBrief(options.brief),
           }),
         },
       ],
@@ -314,6 +338,18 @@ export async function dispatchWithSupervisor(
 
   if (proposals.size === 0) {
     throw new Error("Supervisor completed without delegating to a specialist.");
+  }
+  // A booked stay leaves the accommodation specialist nothing to decide, so the model may reason
+  // it away; but the plan still needs its Stay section. The specialist records the booking without
+  // a search or a model call, so it is run directly.
+  const stay = options.specialists.find((specialist) => specialist.name === "accommodation");
+  if (options.brief.bookedStay && stay && !proposals.has("accommodation")) {
+    proposals.set(
+      "accommodation",
+      AgentProposalSchema.parse(
+        await stay.invoke({ brief: specialistBrief(options.brief), context: options.context }),
+      ),
+    );
   }
   // The prompt only asks the model to "consider" each domain, so it can return after picking
   // three and the plan quietly ships two sections short. Name the ones a plan is not a plan

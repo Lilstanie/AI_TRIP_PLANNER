@@ -2,12 +2,12 @@
   "version": 1,
   "pairs": {
     "docs/api.md": {
-      "sourceSha256": "88c3d3301a67f47fe7ca3ac033172301acbd993c79f3b0eb7c066166ae994423",
-      "translationSha256": "d7ed3115cca5154803eb4cee4294abcf8989cf0a54ee0a1a404529c8a8ca5948"
+      "sourceSha256": "c0298f2c04fca81dacc762269227fcaf716cfe8c4e5166f4748ce2886db55e64",
+      "translationSha256": "c1df5f728e2eb716651c77aa254a6699a6dfb055592deaeeff619ce17f6771f8"
     },
     "docs/architecture.md": {
-      "sourceSha256": "b50a55c619930f1e553855270282c1d6e08f868338290ec40f1e6f77df56ad13",
-      "translationSha256": "878e5b92c234585d4c7ae633c9c8986d18508c7aed5f5ef0b087179f43e01ae0"
+      "sourceSha256": "79663ccc73b149f4f789101cc2a1900ea8a8be1f0723517458905aeda4a3a160",
+      "translationSha256": "833c30e97511df171914f34778a816e922e757a733328254d3c32a44bfe87a73"
     },
     "docs/design/class-diagram.md": {
       "sourceSha256": "b617fec2f4daaca75a5203a525dc127b5bb2c5e4a47dbb9a91dcc499a7654f00",
@@ -42,8 +42,8 @@
       "translationSha256": "fc3cdafe8a8a7f31f0d94d52f2666af1b2e1e2fcffc1b0f41714204d3755e5ab"
     },
     "docs/workspace-ui.md": {
-      "sourceSha256": "0f5e9c4a345b5784dd099cce8b1091a14a2dd6b8019c63e0ad01bdf06126d7e5",
-      "translationSha256": "7dcd6ac4388175a77d8873a751dff49a266129066beb897cc67b470ff946903f"
+      "sourceSha256": "58dde1f937355536cfb6d3e09dc0aee81c22027f8f4183ee73805f8d8c74a7b8",
+      "translationSha256": "d7d1d6f5cc962aec6ce9e114c396b373120b412b81fc0e1dd2b7e16c1fcf402a"
     }
   }
 }
