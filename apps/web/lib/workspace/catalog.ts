@@ -261,7 +261,7 @@ export function parseCatalog(
   };
 }
 
-function parseConversation(value: unknown): ConversationRecord {
+export function parseConversation(value: unknown): ConversationRecord {
   if (
     !isObject(value) ||
     !text(value.id) ||
@@ -294,7 +294,7 @@ function parseConversation(value: unknown): ConversationRecord {
   };
 }
 
-function parseTrip(value: unknown): TripRecord {
+export function parseTrip(value: unknown): TripRecord {
   if (
     !isObject(value) ||
     !text(value.id) ||
@@ -358,15 +358,20 @@ function isBlankConversation(item: ConversationRecord): boolean {
  * An untouched conversation is blank and holds nothing the user wrote. Filter defaults do not
  * count, so only the fields a person can type are read.
  */
-function isUntouchedConversation(item: ConversationRecord): boolean {
+export function isUntouchedConversation(
+  item: ConversationRecord,
+  defaults: Draft = blankDraft(),
+): boolean {
+  // Facts still equal to the traveller's own defaults (Settings → Travel defaults) were not typed
+  // for this chat, so they do not make it touched.
+  const same = (key: "destination" | "start" | "end" | "groupSize" | "budgetTotal" | "nationality") =>
+    (item.draft?.[key] ?? "").trim() === (defaults[key] ?? "").trim();
   return (
     isBlankConversation(item) &&
     !item.messages.length &&
     !item.input.trim() &&
-    (["destination", "start", "end", "groupSize", "budgetTotal", "nationality"] as const).every(
-      (key) => !item.draft?.[key]?.trim(),
-    ) &&
-    !item.draft?.preferences?.length
+    (["destination", "start", "end", "groupSize", "budgetTotal", "nationality"] as const).every(same) &&
+    JSON.stringify(item.draft?.preferences ?? []) === JSON.stringify(defaults.preferences ?? [])
   );
 }
 
@@ -376,9 +381,10 @@ function isUntouchedConversation(item: ConversationRecord): boolean {
  */
 export function reusableBlankConversation(
   catalog: WorkspaceCatalog,
+  defaults?: Draft,
 ): ConversationRecord | undefined {
   return [...catalog.conversations]
-    .filter(isUntouchedConversation)
+    .filter((item) => isUntouchedConversation(item, defaults))
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0];
 }
 

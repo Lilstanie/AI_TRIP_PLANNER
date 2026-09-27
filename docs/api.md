@@ -15,6 +15,10 @@ validated against the shared contracts in `packages/shared/src/`.
 | [`/api/places/photo`](#get-apiplacesphoto)                  | Redirect to one Google place photo                                  |
 | [`/api/routes/from-location`](#post-apiroutesfrom-location) | Route from a user-approved location to a place                      |
 | [`/api/trip/preview-edit`](#post-apitrippreview-edit)       | Preview an itinerary edit with route and budget checks              |
+| [`/api/account/settings`](#get-and-put-apiaccountsettings)  | Read or save the signed-in traveller's settings                     |
+| [`/api/account/sync`](#get-and-post-apiaccountsync)         | Pull or push the signed-in traveller's trips and chats              |
+| [`/api/account/export`](#get-apiaccountexport)              | Download everything the account holds as JSON                       |
+| [`/api/account`](#delete-apiaccount)                        | Delete the account and its data                                     |
 
 The browser sends the current plan or brief with each request and keeps its workspace in local
 storage. On the server, `packages/services` records chat turns, preferences and generated plans in
@@ -200,6 +204,36 @@ Contract: `EditRequest` and `EditPreview` in `apps/web/lib/trip/trip-edit.ts`.
 day are routed and re-timed; ideas (activities without a day) pass through unchanged. The response is
 `{ plan, baseVersion, routes, differences, blockers }`. It is a preview only: the client applies it
 when the user confirms and rejects it if `baseVersion` no longer matches. Invalid edits return 400.
+
+## Account routes
+
+Every account route needs a Clerk session and answers 401 without one, and 503 when Clerk or
+`DATABASE_URL` is not configured. Queries use the session's user id, never an id from the body.
+Contracts: `UserSettings` in `apps/web/lib/account/settings.ts`, `SyncedRecord` and `SyncPush` in
+`apps/web/lib/account/sync.ts`.
+
+### `GET` and `PUT /api/account/settings`
+
+`GET` returns `{ settings }`, or `{ settings: null }` for an account that has never saved any. `PUT`
+takes a `UserSettings` body and stores it unless the account already holds a newer `updatedAt`; either
+way it returns the copy it holds. An invalid body returns 400.
+
+### `GET` and `POST /api/account/sync`
+
+`GET` returns `{ trips, conversations }`: every record the account holds as
+`{ id, updatedAt, record }`, or `{ id, updatedAt, deleted: true }` for a deletion. `POST` takes the same
+shape (at most 500 of each, each record at most 2,000,000 characters of JSON) and writes each record
+only if its `updatedAt` is newer than the stored one. The client merges and validates records with
+the workspace catalog's own parsers.
+
+### `GET /api/account/export`
+
+A JSON attachment with the account's settings, trips and conversations.
+
+### `DELETE /api/account`
+
+Deletes the account's rows, then the Clerk user. If Clerk fails after the rows are gone it answers
+502 and says so.
 
 ## Related contracts
 

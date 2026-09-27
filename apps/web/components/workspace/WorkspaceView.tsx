@@ -38,6 +38,8 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
     storageError,
     storageEnabled,
     saveState,
+    syncStatus,
+    openSettings,
     catalog,
     historyQuery,
     preferencesOpen,
@@ -198,8 +200,9 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
         onChats={() => undefined}
         onTrips={showTrips}
         onLanguage={() => openDialog("language")}
-        onAccount={() => openDialog("account")}
+        onSettings={openSettings}
         saveState={saveState}
+        syncStatus={syncStatus}
       >
         {chatsContent()}
       </WorkspaceSidebar>
@@ -246,8 +249,9 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
           onChats={() => setChatsOpen((open) => !open)}
           onTrips={showTrips}
           onLanguage={() => openDialog("language")}
-          onAccount={() => openDialog("account")}
+          onSettings={openSettings}
           saveState={saveState}
+          syncStatus={syncStatus}
         />
       )}
       {!narrow && (

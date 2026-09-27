@@ -90,6 +90,18 @@ Every variable is described in `.env.example`. The important ones:
 | `WEATHER_API_KEY`                                                   | Google Weather forecasts for days 0–10; falls back to `MAPS_API_KEY`. Open-Meteo covers days 11–14 without a key.                                                                                                                                                                                |
 | `KV_REST_API_URL`, `KV_REST_API_TOKEN`                              | Durable Redis REST store for chat turns, preferences, plans and SerpApi usage/cache. Without them, state is in process memory.                                                                                                                                                                   |
 
+Accounts are optional and configured only in `.env.local` (these names are not in `.env.example`):
+
+| Setting                                                          | Purpose                                                                                                                                                                  |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`          | Clerk sign-in. Without the publishable key the workspace is single-user and local, and the account routes answer 503. `clerk init` also writes the sign-in route variables. |
+| `DATABASE_URL`                                                   | Neon Postgres (pooled connection string) for settings, trips and chats of signed-in users. Use a development branch locally; production gets it from the owner's integration. |
+
+Create the tables with `pnpm --filter @trip/web db:migrate` (it loads `.env.local`); after changing
+`apps/web/lib/db/schema.ts`, generate a migration with `pnpm --filter @trip/web db:generate` and
+commit it under `apps/web/drizzle/`. On Vercel, the Clerk and Neon Marketplace integrations inject
+the same names.
+
 Google key restrictions and map behaviour are described in [workspace UI](workspace-ui.md#google-maps-configuration).
 Model routing and fallbacks are described in [architecture](architecture.md#agents-and-models).
 

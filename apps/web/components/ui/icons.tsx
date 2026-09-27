@@ -158,6 +158,13 @@ export const UserIcon = () => (
   </Icon>
 );
 
+export const GearIcon = () => (
+  <Icon>
+    <circle cx="12" cy="12" r="3" />
+    <path d="M12 3.5v2.2M12 18.3v2.2M20.5 12h-2.2M5.7 12H3.5M18 6l-1.6 1.6M7.6 16.4 6 18M18 18l-1.6-1.6M7.6 7.6 6 6" />
+  </Icon>
+);
+
 export const MapIcon = () => (
   <Icon>
     <path d="m9 5-5 2v12l5-2 6 2 5-2V5l-5 2-6-2ZM9 5v12M15 7v12" />

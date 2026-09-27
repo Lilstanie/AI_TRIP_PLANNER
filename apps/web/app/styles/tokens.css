@@ -125,8 +125,10 @@
     );
   }
 }
+/* Dark tokens apply under a dark system setting unless Settings chose Light, and whenever it
+   chose Dark (`data-theme` on <html>, set by components/account/SettingsProvider.tsx). */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     /* iOS dark: true black page, elevated greys for surfaces. */
     --page: #000000;
     --surface: #1c1c1e;
@@ -171,6 +173,57 @@
       radial-gradient(65% 60% at 60% 110%, rgb(191 90 242 / 20%), transparent 70%),
       radial-gradient(45% 45% at 0% 100%, rgb(48 209 88 / 12%), transparent 70%);
   }
+}
+:root[data-theme="dark"] {
+  /* iOS dark: true black page, elevated greys for surfaces. */
+  --page: #000000;
+  --surface: #1c1c1e;
+  --surface-2: #2c2c2e;
+  --text: #f5f5f7;
+  --text-dim: #a1a1a6;
+  --text-mut: #a1a1a6;
+  --on-accent: #ffffff;
+  --border: #38383a;
+  --accent: #2997ff;
+  --accent-fill: #0a6fd8;
+  --accent-bg: #0b2a4a;
+  --ok: #30d158;
+  --ok-bg: #0c2e17;
+  --warn: #ffb340;
+  --warn-bg: #33230a;
+  --warn-strong: #ff9f0a;
+  --route-casing: rgb(0 0 0 / 55%);
+  --fill-hover: rgb(120 120 128 / 22%);
+  --fill-press: rgb(120 120 128 / 32%);
+
+  /* Shadows read as depth on light ground and as haze on dark, so lean on
+     darker, tighter shadows here and brighten the focus ring to match the
+     lighter accent. */
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 50%), 0 0 0 0.5px rgb(255 255 255 / 6%);
+  --shadow-md: 0 10px 30px -6px rgb(0 0 0 / 60%), 0 2px 8px -2px rgb(0 0 0 / 40%);
+  --shadow-lg: 0 30px 80px -12px rgb(0 0 0 / 70%), 0 0 0 0.5px rgb(255 255 255 / 8%);
+  --ring: 0 0 0 3.5px rgb(41 151 255 / 45%);
+  --scrim: rgb(0 0 0 / 50%);
+
+  --glass-bg: rgb(44 44 48 / 52%);
+  --glass-bg-strong: rgb(30 30 32 / 84%);
+  --glass-border: rgb(255 255 255 / 14%);
+  --glass-edge: rgb(0 0 0 / 40%);
+  --glass-highlight:
+    inset 0 1px 0.5px rgb(255 255 255 / 22%), inset 0 -1px 1px rgb(255 255 255 / 6%),
+    inset 0 0 18px -8px rgb(255 255 255 / 14%);
+  --glass-shadow: 0 12px 40px -10px rgb(0 0 0 / 70%), 0 1px 3px rgb(0 0 0 / 40%);
+  --ambient:
+    radial-gradient(70% 55% at 0% 0%, rgb(10 132 255 / 26%), transparent 70%),
+    radial-gradient(55% 50% at 100% 0%, rgb(255 159 10 / 14%), transparent 70%),
+    radial-gradient(65% 60% at 60% 110%, rgb(191 90 242 / 20%), transparent 70%),
+    radial-gradient(45% 45% at 0% 100%, rgb(48 209 88 / 12%), transparent 70%);
+  }
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
 }
 
 /* Tailwind/shadcn semantic aliases. Keep the product token names above as the

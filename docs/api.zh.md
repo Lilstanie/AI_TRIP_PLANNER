@@ -17,6 +17,10 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 | [`/api/places/photo`](#get-apiplacesphoto)                  | 重定向到一张 Google 地点照片                           |
 | [`/api/routes/from-location`](#post-apiroutesfrom-location) | 从用户授权提供的位置到地点的路线                       |
 | [`/api/trip/preview-edit`](#post-apitrippreview-edit)       | 预览行程编辑，并检查路线和预算                         |
+| [`/api/account/settings`](#get-and-put-apiaccountsettings)  | 读取或保存已登录旅客的设置                             |
+| [`/api/account/sync`](#get-and-post-apiaccountsync)         | 拉取或推送已登录旅客的行程和聊天                       |
+| [`/api/account/export`](#get-apiaccountexport)              | 以 JSON 下载账号保存的全部数据                         |
+| [`/api/account`](#delete-apiaccount)                        | 删除账号及其数据                                       |
 
 浏览器在每次请求中发送当前计划或行程需求，并将工作区保存在本地存储中。服务端的
 `packages/services` 在配置了 `KV_REST_API_URL` 和 `KV_REST_API_TOKEN` 时，将聊天轮次、
@@ -211,6 +215,31 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 客户端在用户确认后才应用它，若 `baseVersion` 已不匹配则拒绝应用。无效编辑返回 400。
 
 <a id="related-contracts"></a>
+
+## 账号路由
+
+所有账号路由都需要 Clerk 会话，没有会话时返回 401；未配置 Clerk 或 `DATABASE_URL` 时返回 503。查询使用会话中的用户
+id，绝不使用请求体中的 id。约定：`apps/web/lib/account/settings.ts` 中的 `UserSettings`，
+`apps/web/lib/account/sync.ts` 中的 `SyncedRecord` 和 `SyncPush`。
+
+### `GET` and `PUT /api/account/settings`
+
+`GET` 返回 `{ settings }`；账号从未保存过设置时返回 `{ settings: null }`。`PUT` 接收 `UserSettings`
+请求体并保存，除非账号中已有 `updatedAt` 更新的副本；无论是否写入，都返回账号当前保存的副本。请求体无效时返回 400。
+
+### `GET` and `POST /api/account/sync`
+
+`GET` 返回 `{ trips, conversations }`：账号保存的每条记录，形如 `{ id, updatedAt, record }`，已删除的记录为
+`{ id, updatedAt, deleted: true }`。`POST` 接收相同结构（每类最多 500 条，每条记录的 JSON 最多 2,000,000 个字符），
+仅当某条记录的 `updatedAt` 比已保存的更新时才写入。客户端使用工作区 catalog 自身的解析器合并并校验记录。
+
+### `GET /api/account/export`
+
+以 JSON 附件返回账号的设置、行程和对话。
+
+### `DELETE /api/account`
+
+先删除账号的数据行，再删除 Clerk 用户。如果数据行已删除但 Clerk 删除失败，返回 502 并说明情况。
 
 ## 相关约定
 

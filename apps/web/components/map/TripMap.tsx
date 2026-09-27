@@ -16,6 +16,7 @@ import {
 } from "./map-layers";
 import type { UserLocation } from "./useUserLocation";
 import { LayersIcon, LocateIcon, MinusIcon, PlusIcon } from "../ui/icons";
+import { useSettings } from "../account/SettingsProvider";
 
 type Coordinate = { lat: number; lng: number };
 
@@ -89,7 +90,10 @@ export function TripMap({
   const [closedFor, setClosedFor] = useState<string>();
   const [satellite, setSatellite] = useState(false);
   const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
-  const dark = useMediaQuery("(prefers-color-scheme: dark)");
+  const systemDark = useMediaQuery("(prefers-color-scheme: dark)");
+  // Settings → Appearance overrides the system; outside the workspace it stays "system".
+  const { appearance } = useSettings().settings;
+  const dark = appearance === "system" ? systemDark : appearance === "dark";
   const { location, request: requestLocation } = userLocation;
   const [nearbyRoute, setNearbyRoute] = useState<
     RouteResult | { status: "loading" } | { status: "error"; error: string }

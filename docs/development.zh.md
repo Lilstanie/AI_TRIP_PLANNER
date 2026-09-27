@@ -68,6 +68,17 @@ ln -s ../../.env.local apps/web/.env.local
 | `WEATHER_API_KEY`                                                   | Google Weather 提供第 0–10 天的天气预报；未配置时回退到 `MAPS_API_KEY`。第 11–14 天由 Open-Meteo 提供，无需密钥。                                                                                                                                       |
 | `KV_REST_API_URL`、`KV_REST_API_TOKEN`                              | 用于聊天轮次、偏好、方案和 SerpApi 用量／缓存的持久化 Redis REST 存储。未配置时，状态保存在进程内存中。                                                                                                                                                 |
 
+账号是可选功能，只在 `.env.local` 中配置（这些名称不在 `.env.example` 中）：
+
+| 设置                                                    | 用途                                                                                                                  |
+| ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`、`CLERK_SECRET_KEY` | Clerk 登录。没有 publishable key 时，工作区为单用户本地模式，账号路由返回 503。`clerk init` 还会写入登录路由变量。      |
+| `DATABASE_URL`                                          | Neon Postgres（pooled 连接串），保存已登录用户的设置、行程和聊天。本地使用开发分支；生产环境由 owner 的集成提供。       |
+
+用 `pnpm --filter @trip/web db:migrate` 建表（它会加载 `.env.local`）；修改 `apps/web/lib/db/schema.ts`
+后，用 `pnpm --filter @trip/web db:generate` 生成迁移并提交到 `apps/web/drizzle/`。在 Vercel 上，Clerk
+和 Neon 的 Marketplace 集成会注入相同名称的变量。
+
 Google 密钥限制和地图行为见[工作区 UI](workspace-ui.zh.md#google-maps-configuration)。模型路由和回退逻辑见[架构](architecture.zh.md#agents-and-models)。
 
 <a id="external-data-provider-plan"></a>

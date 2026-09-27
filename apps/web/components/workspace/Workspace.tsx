@@ -4,6 +4,8 @@ import { TripPlan } from "@trip/shared";
 import { identifyActivities, draftFor } from "@/lib/workspace";
 import { restoreWorkspace, type RestoredWorkspace } from "@/lib/workspace/catalog";
 import { WorkspaceSkeleton } from "./WorkspaceSkeleton";
+import { AccountProvider } from "../account/AccountProvider";
+import { SettingsProvider } from "../account/SettingsProvider";
 import { WorkspaceView } from "./WorkspaceView";
 import { useWorkspaceController } from "./useWorkspaceController";
 
@@ -41,7 +43,13 @@ export function Workspace({ initialPlan }: { initialPlan?: TripPlan }) {
     });
   }, [initialPlan]);
 
-  return restored ? <WorkspaceContent restored={restored} /> : <WorkspaceSkeleton />;
+  return (
+    <AccountProvider>
+      <SettingsProvider>
+        {restored ? <WorkspaceContent restored={restored} /> : <WorkspaceSkeleton />}
+      </SettingsProvider>
+    </AccountProvider>
+  );
 }
 
 function WorkspaceContent({ restored }: { restored: RestoredWorkspace }) {
