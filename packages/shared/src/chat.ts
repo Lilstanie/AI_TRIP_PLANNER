@@ -131,6 +131,19 @@ export const Attachment = z
 export type Attachment = z.infer<typeof Attachment>;
 
 // Client -> server
+/**
+ * How the traveller wants the assistant to behave, from Settings → Personalization. `style` sets
+ * the tone of replies; with `memory` off the assistant neither records nor uses what it learns in
+ * chat (`learnedPreferences`). Both default to today's behaviour, so a request without them is
+ * unchanged.
+ */
+export const COMMUNICATION_STYLES = ["neutral", "friendly", "concise", "detailed"] as const;
+export const AssistantSettings = z.object({
+  style: z.enum(COMMUNICATION_STYLES).default("neutral"),
+  memory: z.boolean().default(true),
+});
+export type AssistantSettings = z.infer<typeof AssistantSettings>;
+
 export const ChatRequest = z
   .object({
     tripId: z.string(),
@@ -156,6 +169,7 @@ export const ChatRequest = z
     // as image content blocks and text files are inlined into its message; only
     // the coordinator sees them, and specialists keep their current inputs.
     attachments: z.array(Attachment).max(MAX_ATTACHMENTS_PER_MESSAGE).optional(),
+    assistant: AssistantSettings.optional(),
   })
   .refine((request) => request.message.trim() !== "" || (request.attachments?.length ?? 0) > 0, {
     message: "Send a message or at least one attachment",

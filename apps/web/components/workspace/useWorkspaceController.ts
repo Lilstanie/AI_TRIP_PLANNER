@@ -56,7 +56,7 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
   // In memory only: a reload drops the card, and the question stays in the chat.
   const [ask, setAsk] = useState<PendingAsk>();
   const [dialog, setDialog] = useState<DialogKind>();
-  const [settingsSection, setSettingsSection] = useState<SettingsSection>("travel");
+  const [settingsSection, setSettingsSection] = useState<SettingsSection>("personalization");
   const [notice, setNotice] = useState("");
   const [catalog, setCatalog] = useState<WorkspaceCatalog>(restored.catalog);
   const { settings } = useSettings();
@@ -181,7 +181,7 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
   function closeTrip() {
     setTripOpen(false);
   }
-  function openSettings(section: SettingsSection = "travel") {
+  function openSettings(section: SettingsSection = "personalization") {
     setSettingsSection(section);
     openDialog("settings");
   }
@@ -206,6 +206,7 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
   const { run, submit, send, answer } = useWorkspaceTransport({
     plan,
     dataMode: dataMode.mode,
+    assistant: settings.assistant,
     draft,
     input,
     planRef,

@@ -188,15 +188,32 @@ Timeline & routes 标签页（由 `TripEditor` 组合 `components/trip/timeline/
   之后每次改动都会在片刻后保存。底部状态显示 Saving…、Synced to your account，或在无法连接账号时显示
   Saved here · sync paused。同一聊天或行程以较新的副本整体为准；未改动的空白聊天和面板布局只保留在浏览器中。退出登录后，
   当前浏览器中的副本保留。
-- **Settings**（齿轮按钮）分四部分：
-  - **Travel profile：** 常住城市、旅客人数、整趟行程的 AUD 预算、节奏、兴趣、饮食需求和其他长期偏好。新聊天或新行程以这些
-    为起点：常住城市作为出发地，加上旅客人数和预算，节奏、兴趣和饮食需求成为行程偏好条目。新聊天的信息仍等于这些默认值时，
-    仍算作空白聊天。
-  - **Memberships：** 航空和酒店会员计划，可选填会员号，供参考。
-  - **General：** 外观（System、Light、Dark，设置在 `<html data-theme>` 上，地图同样跟随）、默认行程数据（站点默认、实时价格
-    或示例数据），以及界面语言说明。
-  - **Account：** 来自 Clerk 的姓名、邮箱和头像，Manage account、Export my data、Sign out，以及需确认的
-    Delete account and data。
+- **Settings**（齿轮按钮）沿用 Mindtrip 设置页的布局。左侧是分区列表，选中项旁有一条深色竖线；在手机上
+  列表变成可横向滚动的一行，线条在下方。右侧显示所选分区的各行，每行有标签和值，Change 在原位打开编辑器。
+  Settings 默认打开 Personalization。Mindtrip 的 Voice、Price alerts、Notifications 和 Cookie preferences
+  在这里没有对应功能。
+  - **Edit profile：** 头像、名和姓，保存到 Clerk（Change profile photo 打开 Clerk）。Location 即常住城市。
+  - **Your account：** 邮箱（Manage 在 Clerk 中打开）及其已验证标记；Theme（System、Light、Dark，设置在
+    `<html data-theme>` 上，地图同样跟随）；Export；Sign out；以及需确认的 Delete my account。未登录或未启用账号时，
+    该分区说明如何登录或数据保存在浏览器中，下方仍有 Theme。
+  - **Personalization：**
+    - **Communication style：** Neutral、Friendly、Concise 或 Detailed。
+    - **Long-term memory** 开关。关闭后，助手既不记录也不使用在聊天中学到的内容。
+    - **规划器了解的信息**，按 Mindtrip 的方式分组：
+      - Identity：常住地。
+      - Travel party：旅客人数。
+      - Travel style：节奏和兴趣。
+      - Food：饮食需求。
+      - Budget：整趟行程的 AUD 预算。
+      - Accommodation：会员计划。
+      - Other preferences：长期偏好。
+
+      每项是带 emoji 和粗体标签的填充行，点击即可编辑。空项在琥珀色边框的行中显示问题和 Answer。新聊天或新行程以
+      这些信息为起点：常住地作为出发地，加上旅客人数和预算，节奏、兴趣和饮食需求成为行程偏好条目。新聊天的信息仍等于
+      这些默认值时，仍算作空白聊天。
+  - **Language & region：** 语言（英语；可用任何语言聊天）、地区、货币（AUD，基础货币）、单位（公制），以及
+    Advanced 下的 Trip data（站点默认、实时价格或示例数据）。
+  - **Connected accounts：** 通过 Clerk 关联的 Google、GitHub 或 Apple 登录方式，并有一个按钮打开 Clerk 进行更改。
 - 未登录时，设置保存在当前浏览器；登录后，浏览器和账号中较新的副本为准，之后的改动保存到账号。
 
 ## 范围之外

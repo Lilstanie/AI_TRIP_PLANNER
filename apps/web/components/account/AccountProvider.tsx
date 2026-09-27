@@ -16,8 +16,15 @@ export type Account =
       status: "signed-in";
       userId: string;
       name: string;
+      firstName: string;
+      lastName: string;
       email?: string;
+      emailVerified: boolean;
       imageUrl?: string;
+      /** Sign-in methods linked through Clerk: Google, GitHub, Apple. */
+      connected: { provider: string; email?: string }[];
+      /** Saves a new first and last name to the Clerk user. */
+      rename(firstName: string, lastName: string): Promise<void>;
       signOut(): Promise<void>;
       manage(): void;
     };
@@ -43,7 +50,17 @@ function ClerkAccount({ children }: { children: ReactNode }) {
       status: "signed-in",
       userId,
       name: user?.fullName || user?.username || email || "Your account",
+      firstName: user?.firstName ?? "",
+      lastName: user?.lastName ?? "",
       ...(email ? { email } : {}),
+      emailVerified: user?.primaryEmailAddress?.verification?.status === "verified",
+      connected: (user?.externalAccounts ?? []).map((external) => ({
+        provider: external.provider,
+        ...(external.emailAddress ? { email: external.emailAddress } : {}),
+      })),
+      rename: async (firstName, lastName) => {
+        await user?.update({ firstName, lastName });
+      },
       ...(user?.imageUrl ? { imageUrl: user.imageUrl } : {}),
       signOut: () => clerk.signOut(),
       manage: () => clerk.openUserProfile(),

@@ -11,7 +11,7 @@ button:not(.section__row):not(.stay-option):not(.rdp-day_button):not(.thinking-l
     .thinking-control
   ):not(.thinking-choice__toggle):not(.composer__add):not(.composer__primary):not(
     .question__icon-button
-  ):not(.question__option):not(.question__button):not(.attachment-chip__remove):not(.timeline-stop__main) {
+  ):not(.question__option):not(.question__button):not(.attachment-chip__remove):not(.timeline-stop__main):not(.settings-pill):not(.settings-switch):not(.settings-tab):not(.memory-row__main):not(.memory-row__answer):not(.settings-text-button) {
   min-height: 36px;
 }
 button:disabled {
@@ -28,7 +28,7 @@ button:not(.section__row):not(.stay-option):not(.primary):not(.trip__cta):not(.r
     .question__option
   ):not(.question__button):not(.attachment-chip__remove):not(.day-strip__day):not(
     .timeline-stop__main
-  ):not(.settings-chip) {
+  ):not(.settings-chip):not(.settings-pill):not(.settings-switch):not(.settings-tab):not(.memory-row__main):not(.memory-row__answer):not(.settings-text-button) {
   border: 1px solid transparent;
   border-radius: var(--radius-pill);
   background: var(--button-bg, var(--fill-hover));

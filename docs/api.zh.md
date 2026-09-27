@@ -70,6 +70,14 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 由 Who 编辑器的步进控件设置。它们细分 `groupSize` 并补充宠物数量；宠物不计入其中。
 所有费用仍以 `groupSize` 为准，specialist 会收到指令：如果 party 中的人数之和与它不符，就忽略 party。
 
+可选的 `assistant`：来自 Settings → Personalization 的 `{ style, memory }`（`packages/shared/src/chat.ts` 中的
+`AssistantSettings`）。
+
+- `style` 取 `neutral`、`friendly`、`concise` 或 `detailed`，决定协调器的语气。
+- `memory: false` 时，服务器从 `brief` 和 `known` 中去掉 `learnedPreferences`，协调器也不再记录。
+
+不传该字段时，行为等同于 `neutral` 且开启记忆。
+
 可选的 `attachments`：旅行者附加到这条消息的文件，最多 4 个。
 
 ```json

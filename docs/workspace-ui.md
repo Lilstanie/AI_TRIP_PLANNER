@@ -472,18 +472,40 @@ explains that everything stays in this browser.
   is saved a moment later. The footer status reads Saving…, Synced to your account, or Saved here ·
   sync paused when the account cannot be reached. The newer copy of a chat or trip wins whole;
   untouched blank chats and panel layout stay in the browser. Signing out leaves this browser's copy.
-- **Settings** (gear button), in four sections:
-  - **Travel profile:** home city, travellers, whole-trip budget in AUD, pace, interests, dietary
-    needs and other standing preferences. A new chat or trip starts with these: home city as the
-    origin, travellers, budget, and pace, interests and dietary needs as trip preference lines. A
-    new chat still counts as blank while its facts equal these defaults.
-  - **Memberships:** airline and hotel loyalty programmes with an optional member number, for
-    reference.
-  - **General:** appearance (System, Light, Dark, set on `<html data-theme>` and followed by the
-    map), default trip data (the site's default, live prices or sample data), and the interface
-    language note.
-  - **Account:** name, email and picture from Clerk, Manage account, Export my data, Sign out, and
-    Delete account and data behind a confirmation.
+- **Settings** (gear button) follows the layout of Mindtrip's settings page. A section list sits on
+  the left, with an ink bar beside the chosen section; on a phone it becomes a scrolling row with the
+  bar underneath. The chosen section's rows fill the right. Each row has a label and value, and
+  Change opens its editor in place. Settings opens on Personalization. Mindtrip's Voice, Price
+  alerts, Notifications and Cookie preferences have no counterpart here.
+  - **Edit profile:** picture, first and last name, saved to Clerk (Change profile photo opens
+    Clerk). Location is the home city.
+  - **Your account:** email, which Manage opens in Clerk, with its verified mark; Theme (System,
+    Light, Dark, set on `<html data-theme>` and followed by the map); Export; Sign out; and Delete
+    my account behind a confirmation. Signed out or without accounts, the section shows how to sign
+    in, or that data stays in the browser, with Theme below.
+  - **Personalization:**
+    - **Communication style:** Neutral, Friendly, Concise or Detailed.
+    - **Long-term memory** switch. Off, the assistant neither records nor uses what it learns in
+      chat.
+    - **What the planner knows**, grouped as in Mindtrip:
+      - Identity: home base.
+      - Travel party: travellers.
+      - Travel style: pace and interests.
+      - Food: dietary needs.
+      - Budget: whole-trip budget in AUD.
+      - Accommodation: loyalty programmes.
+      - Other preferences: standing preferences.
+
+      Each fact is a filled row with an emoji and bold label; clicking it edits the fact. An empty
+      fact shows its question on an amber-edged row with Answer. A new chat or trip starts from these
+      facts: home base as the origin, plus travellers and budget, with pace, interests and dietary
+      needs as trip preference lines. A new chat counts as blank while its facts equal these
+      defaults.
+  - **Language & region:** language (English; chat in any language), region, currency (AUD, the
+    base currency), units (metric), and Trip data (the site's default, live prices or sample data)
+    under Advanced.
+  - **Connected accounts:** the Google, GitHub or Apple sign-ins linked through Clerk, with a button
+    that opens Clerk to change them.
 - Signed out, settings are kept in this browser; signed in, the newer copy of browser and account
   wins and changes save to the account.
 
