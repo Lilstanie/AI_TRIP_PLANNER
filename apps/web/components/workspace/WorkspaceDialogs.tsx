@@ -1,4 +1,5 @@
 "use client";
+import { flushSync } from "react-dom";
 import { Dialog } from "../ui/Dialog";
 import { SettingsDialog } from "../account/SettingsDialog";
 import { money } from "@/lib/workspace";
@@ -65,7 +66,15 @@ export function WorkspaceDialogs({ model }: { model: WorkspaceController }) {
             </>
           )}
           {dialog === "settings" && (
-            <SettingsDialog initial={settingsSection} onDataMode={dataMode.choose} />
+            <SettingsDialog
+              initial={settingsSection}
+              onDataMode={dataMode.choose}
+              onAccountModal={(open) => {
+                // Close the native dialog's top layer before Clerk mounts its DOM portal.
+                flushSync(() => setDialog(undefined));
+                open();
+              }}
+            />
           )}
         </Dialog>
       )}
