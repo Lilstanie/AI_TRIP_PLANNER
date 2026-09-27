@@ -199,7 +199,6 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
         tripCount={catalog.trips.length}
         onChats={() => undefined}
         onTrips={showTrips}
-        onLanguage={() => openDialog("language")}
         onSettings={openSettings}
         saveState={saveState}
         syncStatus={syncStatus}
@@ -248,7 +247,6 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
           chatsButton={chatsButton}
           onChats={() => setChatsOpen((open) => !open)}
           onTrips={showTrips}
-          onLanguage={() => openDialog("language")}
           onSettings={openSettings}
           saveState={saveState}
           syncStatus={syncStatus}

@@ -64,12 +64,6 @@ export function WorkspaceDialogs({ model }: { model: WorkspaceController }) {
               {!plan.sections.length && <p>No plan yet. Update your trip preferences to start.</p>}
             </>
           )}
-          {dialog === "language" && (
-            <p>
-              English is the current interface language. You can chat in your preferred language;
-              interface translation is not available yet.
-            </p>
-          )}
           {dialog === "settings" && (
             <SettingsDialog initial={settingsSection} onDataMode={dataMode.choose} />
           )}

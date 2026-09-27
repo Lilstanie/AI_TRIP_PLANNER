@@ -270,27 +270,145 @@
 }
 .sidebar-footer {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  /* At the narrowest widths the actions wrap below the save status instead of squeezing it. */
-  flex-wrap: wrap;
-  gap: var(--space-1) var(--space-2);
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-2);
   margin-top: auto;
-  padding: var(--space-2) 0 0 var(--space-2);
+  padding-top: var(--space-2);
   border-top: 1px solid var(--border);
+}
+.sidebar-footer > .save-state {
+  padding-inline: var(--space-2);
 }
 .sidebar-footer__actions {
   display: flex;
-  gap: 2px;
-  margin-inline-start: auto;
+  width: 100%;
 }
-.sidebar-footer .sidebar-icon-button {
-  width: auto;
-  min-width: 36px;
-  gap: var(--space-1);
-  grid-auto-flow: column;
-  padding-inline: var(--space-1) var(--space-2) !important;
-  font-size: var(--font-size-meta);
+.account-button__wrap {
+  position: relative;
+  width: 100%;
+}
+.account-button__row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.account-button__profile,
+.account-button__more {
+  border: 0 !important;
+  border-radius: var(--radius-sm) !important;
+  background: transparent !important;
+  color: var(--text);
+}
+.account-button__profile {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  min-height: 52px;
+  padding: 4px !important;
+  text-align: left;
+}
+.account-button__identity,
+.account-menu__profile-copy {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+.account-button__identity strong,
+.account-button__identity small,
+.account-menu__profile-copy strong,
+.account-menu__profile-copy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.account-button__identity strong,
+.account-menu__profile-copy strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+.account-button__identity small,
+.account-menu__profile-copy small {
+  color: var(--text-dim);
+  font-size: 12px;
+}
+.account-button__more {
+  display: grid;
+  flex: none;
+  width: 32px;
+  height: 36px;
+  padding: 0 !important;
+  place-items: center;
+}
+.account-button__more .icon {
+  width: 18px;
+  height: 18px;
+  transform: rotate(90deg);
+}
+.account-button__profile:hover,
+.account-button__more:hover,
+.account-button__more[aria-expanded="true"] {
+  background: var(--fill-hover) !important;
+}
+.account-menu {
+  position: absolute;
+  inset-inline-start: 0;
+  inset-inline-end: 0;
+  bottom: calc(100% + var(--space-1));
+  z-index: 7;
+  display: grid;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+}
+.account-menu button {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: 36px !important;
+  padding: 7px var(--space-2) !important;
+  border: 0 !important;
+  border-radius: var(--radius-sm) !important;
+  background: transparent !important;
+  color: var(--text);
+  font-size: 14px;
+  text-align: left;
+}
+.account-menu > div:first-child button {
+  min-height: 60px !important;
+  padding-inline: 4px !important;
+}
+.account-menu__profile-copy {
+  flex: 1;
+}
+.account-menu__profile-copy + .icon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
+.account-menu__separator {
+  height: 1px;
+  margin-block: 6px;
+  background: var(--border);
+}
+@media (max-width: 520px) {
+  .account-menu button {
+    min-height: 44px !important;
+  }
+  .account-button__more {
+    width: 44px;
+    height: 44px;
+  }
+}
+.account-menu button:hover,
+.account-menu button:focus-visible {
+  background: var(--fill-hover) !important;
 }
 .workspace-sidebar.is-collapsed {
   align-items: center;
@@ -312,8 +430,21 @@
   padding-inline: 0;
 }
 .workspace-sidebar.is-collapsed .sidebar-footer__actions {
+  justify-content: center;
+}
+.workspace-sidebar.is-collapsed .account-button__row {
   flex-direction: column;
-  margin-inline-start: 0;
+}
+.workspace-sidebar.is-collapsed .account-button__profile {
+  flex: none;
+  justify-content: center;
+  min-height: 40px;
+}
+.workspace-sidebar.is-collapsed .account-menu {
+  inset-inline-start: calc(100% + var(--space-2));
+  inset-inline-end: auto;
+  bottom: 0;
+  width: 220px;
 }
 /* Tooltips for icon-only controls (keyboard focus shows them too). */
 [data-tooltip] {
@@ -468,12 +599,12 @@
   color: var(--accent);
 }
 
-/* ---- account control (components/account/AccountButton.tsx) ---- */
+/* The account-style footer entry also opens the shared settings dialog. */
 .account-button__avatar {
   display: grid;
   flex: none;
-  width: 20px;
-  height: 20px;
+  width: 32px;
+  height: 32px;
   place-items: center;
   border-radius: var(--radius-pill);
   object-fit: cover;
@@ -486,12 +617,11 @@
   font-size: var(--font-size-meta);
   font-weight: 600;
 }
-.account-button__name {
-  overflow: hidden;
-  max-width: 7em;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.account-menu .account-button__avatar {
+  width: 36px;
+  height: 36px;
 }
+
 .save-state--syncing {
   color: var(--text-dim);
 }
