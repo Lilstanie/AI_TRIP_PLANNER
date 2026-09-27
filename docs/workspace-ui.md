@@ -485,6 +485,8 @@ the account section explains that everything stays in this browser.
   Change opens its editor in place. **Account settings** opens Your account and **Personalization**
   opens Personalization. Mindtrip's Voice, Price
   alerts, Notifications and Cookie preferences have no counterpart here.
+  - Before opening Clerk for sign-in, account creation, profile photo or account management, the
+    settings dialog closes so its native modal layer cannot cover Clerk's controls.
   - **Edit profile:** picture, first and last name, saved to Clerk (Change profile photo opens
     Clerk). Location is the home city.
   - **Your account:** email, which Manage opens in Clerk, with its verified mark; Theme (System,

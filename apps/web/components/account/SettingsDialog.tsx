@@ -16,6 +16,7 @@ import { useSettings } from "./SettingsProvider";
  */
 export type SettingsSection = "profile" | "account" | "personalization" | "region" | "connected";
 type Section = SettingsSection;
+type AccountModalProps = { onAccountModal(open: () => void): void };
 const SECTIONS: [Section, string][] = [
   ["profile", "Edit profile"],
   ["account", "Your account"],
@@ -77,7 +78,9 @@ function SettingRow({
           </button>
         )}
       </div>
-      {open && children && <div className="settings-row-item__editor">{children(() => setOpen(false))}</div>}
+      {open && children && (
+        <div className="settings-row-item__editor">{children(() => setOpen(false))}</div>
+      )}
     </div>
   );
 }
@@ -99,7 +102,12 @@ function Segmented<T extends string>({
   return (
     <div ref={track} className="segmented settings-segmented" role="group" aria-label={label}>
       {options.map(([option, text]) => (
-        <button key={option} type="button" aria-pressed={value === option} onClick={() => onChange(option)}>
+        <button
+          key={option}
+          type="button"
+          aria-pressed={value === option}
+          onClick={() => onChange(option)}
+        >
           {text}
         </button>
       ))}
@@ -129,7 +137,9 @@ function ChipGroup<T extends string>({
             type="button"
             className="settings-chip"
             aria-pressed={on}
-            onClick={() => onChange(on ? value.filter((item) => item !== option) : [...value, option])}
+            onClick={() =>
+              onChange(on ? value.filter((item) => item !== option) : [...value, option])
+            }
           >
             {option}
           </button>
@@ -235,9 +245,15 @@ function TextEditor({
         value={value}
         inputMode={numeric ? "decimal" : undefined}
         aria-invalid={Boolean(problem) || undefined}
-        onChange={(event) => setValue(numeric ? event.target.value.replace(/[^\d.]/g, "") : event.target.value)}
+        onChange={(event) =>
+          setValue(numeric ? event.target.value.replace(/[^\d.]/g, "") : event.target.value)
+        }
       />
-      <button type="submit" className="settings-pill settings-pill--ink" disabled={Boolean(problem)}>
+      <button
+        type="submit"
+        className="settings-pill settings-pill--ink"
+        disabled={Boolean(problem)}
+      >
         Save
       </button>
       {problem && <small className="settings-error">{problem}</small>}
@@ -245,7 +261,7 @@ function TextEditor({
   );
 }
 
-function ProfileSection() {
+function ProfileSection({ onAccountModal }: AccountModalProps) {
   const account = useAccount();
   const { settings, update } = useSettings();
   const signedIn = account.status === "signed-in" ? account : undefined;
@@ -255,7 +271,8 @@ function ProfileSection() {
   const [state, setState] = useState<"idle" | "saving" | "saved" | "failed">("idle");
   const dirty =
     location.trim() !== settings.travel.homeCity ||
-    (signedIn !== undefined && (first.trim() !== signedIn.firstName || last.trim() !== signedIn.lastName));
+    (signedIn !== undefined &&
+      (first.trim() !== signedIn.firstName || last.trim() !== signedIn.lastName));
 
   async function save() {
     setState("saving");
@@ -289,7 +306,11 @@ function ProfileSection() {
           )}
           <span>
             <strong>{signedIn.name}</strong>
-            <button type="button" className="settings-text-button" onClick={signedIn.manage}>
+            <button
+              type="button"
+              className="settings-text-button"
+              onClick={() => onAccountModal(signedIn.manage)}
+            >
               Change profile photo
             </button>
           </span>
@@ -305,7 +326,11 @@ function ProfileSection() {
         <>
           <label className="settings-field">
             <span>First name</span>
-            <input value={first} maxLength={60} onChange={(event) => setFirst(event.target.value)} />
+            <input
+              value={first}
+              maxLength={60}
+              onChange={(event) => setFirst(event.target.value)}
+            />
           </label>
           <label className="settings-field">
             <span>Last name</span>
@@ -324,7 +349,11 @@ function ProfileSection() {
         <small className="settings-hint">New trips start from here.</small>
       </label>
       <div className="settings-actions">
-        <button type="submit" className="settings-pill settings-pill--ink" disabled={!dirty || state === "saving"}>
+        <button
+          type="submit"
+          className="settings-pill settings-pill--ink"
+          disabled={!dirty || state === "saving"}
+        >
           {state === "saving" ? "Saving…" : "Save"}
         </button>
         {state === "saved" && !dirty && (
@@ -342,7 +371,7 @@ function ProfileSection() {
   );
 }
 
-function AccountSection() {
+function AccountSection({ onAccountModal }: AccountModalProps) {
   const account = useAccount();
   const { settings, update } = useSettings();
   const [deleting, setDeleting] = useState<"idle" | "confirm" | "working" | "failed">("idle");
@@ -376,13 +405,22 @@ function AccountSection() {
           <>
             <p className="settings-lead">
               Sign in to keep your chats, trips and settings in your account and open them on any
-              device. What is in this browser now is added to your account the first time you sign in.
+              device. What is in this browser now is added to your account the first time you sign
+              in.
             </p>
             <div className="settings-actions">
-              <button type="button" className="settings-pill settings-pill--ink" onClick={account.signIn}>
+              <button
+                type="button"
+                className="settings-pill settings-pill--ink"
+                onClick={() => onAccountModal(account.signIn)}
+              >
                 Sign in
               </button>
-              <button type="button" className="settings-pill" onClick={account.signUp}>
+              <button
+                type="button"
+                className="settings-pill"
+                onClick={() => onAccountModal(account.signUp)}
+              >
                 Create account
               </button>
             </div>
@@ -425,14 +463,22 @@ function AccountSection() {
       >
         {() => (
           <div className="settings-actions">
-            <button type="button" className="settings-pill" onClick={account.manage}>
+            <button
+              type="button"
+              className="settings-pill"
+              onClick={() => onAccountModal(account.manage)}
+            >
               Manage email and password
             </button>
           </div>
         )}
       </SettingRow>
       {theme}
-      <SettingRow label="Your data" value="Chats, trips and settings sync to this account." action="Export">
+      <SettingRow
+        label="Your data"
+        value="Chats, trips and settings sync to this account."
+        action="Export"
+      >
         {() => (
           <div className="settings-actions">
             <a className="settings-pill" href="/api/account/export" download>
@@ -449,7 +495,11 @@ function AccountSection() {
       <div className="settings-danger">
         {deleting === "idle" || deleting === "failed" ? (
           <>
-            <button type="button" className="settings-danger__button" onClick={() => setDeleting("confirm")}>
+            <button
+              type="button"
+              className="settings-danger__button"
+              onClick={() => setDeleting("confirm")}
+            >
               Delete my account
             </button>
             <p>Permanently delete the account and remove access to your data.</p>
@@ -491,7 +541,13 @@ function AccountSection() {
 }
 
 /** Airline and hotel loyalty programmes, kept for reference. */
-function Loyalty({ list, onChange }: { list: UserSettings["memberships"]; onChange(next: UserSettings["memberships"]): void }) {
+function Loyalty({
+  list,
+  onChange,
+}: {
+  list: UserSettings["memberships"];
+  onChange(next: UserSettings["memberships"]): void;
+}) {
   const [kind, setKind] = useState<"airline" | "hotel">("airline");
   const [program, setProgram] = useState("");
   const [number, setNumber] = useState("");
@@ -533,7 +589,11 @@ function Loyalty({ list, onChange }: { list: UserSettings["memberships"]; onChan
           setNumber("");
         }}
       >
-        <select aria-label="Type" value={kind} onChange={(event) => setKind(event.target.value as "airline" | "hotel")}>
+        <select
+          aria-label="Type"
+          value={kind}
+          onChange={(event) => setKind(event.target.value as "airline" | "hotel")}
+        >
           <option value="airline">Airline</option>
           <option value="hotel">Hotel</option>
         </select>
@@ -551,7 +611,11 @@ function Loyalty({ list, onChange }: { list: UserSettings["memberships"]; onChan
           placeholder="Member number"
           onChange={(event) => setNumber(event.target.value)}
         />
-        <button type="submit" className="settings-pill settings-pill--ink" disabled={list.length >= 20 || !program.trim()}>
+        <button
+          type="submit"
+          className="settings-pill settings-pill--ink"
+          disabled={list.length >= 20 || !program.trim()}
+        >
           Add membership
         </button>
       </form>
@@ -562,8 +626,12 @@ function Loyalty({ list, onChange }: { list: UserSettings["memberships"]; onChan
 function PersonalizationSection() {
   const { settings, update } = useSettings();
   const travel = settings.travel;
-  const setTravel = (next: Partial<UserSettings["travel"]>) => update({ travel: { ...travel, ...next } });
-  const [preferences, setPreferences] = useState<Draft>({ ...blankDraft(), preferences: travel.preferences });
+  const setTravel = (next: Partial<UserSettings["travel"]>) =>
+    update({ travel: { ...travel, ...next } });
+  const [preferences, setPreferences] = useState<Draft>({
+    ...blankDraft(),
+    preferences: travel.preferences,
+  });
 
   return (
     <div className="settings-form">
@@ -612,7 +680,12 @@ function PersonalizationSection() {
       </p>
       <h3 className="settings-group">Identity</h3>
       <ul className="memory-list">
-        <MemoryRow icon="🏡" label="Home base" value={travel.homeCity} question="Where do your trips usually start?">
+        <MemoryRow
+          icon="🏡"
+          label="Home base"
+          value={travel.homeCity}
+          question="Where do your trips usually start?"
+        >
           {(close) => (
             <TextEditor
               label="Home base"
@@ -630,7 +703,11 @@ function PersonalizationSection() {
         <MemoryRow
           icon="👥"
           label="Travellers"
-          value={travel.travellers ? `${travel.travellers} ${travel.travellers === 1 ? "person" : "people"}` : ""}
+          value={
+            travel.travellers
+              ? `${travel.travellers} ${travel.travellers === 1 ? "person" : "people"}`
+              : ""
+          }
           question="How many people usually travel?"
         >
           {(close) => (
@@ -639,7 +716,8 @@ function PersonalizationSection() {
               numeric
               initial={travel.travellers?.toString() ?? ""}
               validate={(value) =>
-                value && !(Number.isInteger(Number(value)) && Number(value) >= 1 && Number(value) <= 20)
+                value &&
+                !(Number.isInteger(Number(value)) && Number(value) >= 1 && Number(value) <= 20)
                   ? "From 1 to 20."
                   : undefined
               }
@@ -715,7 +793,9 @@ function PersonalizationSection() {
         <MemoryRow
           icon="💰"
           label="Trip budget"
-          value={travel.budget ? `AUD ${travel.budget.toLocaleString("en-AU")} for a whole trip` : ""}
+          value={
+            travel.budget ? `AUD ${travel.budget.toLocaleString("en-AU")} for a whole trip` : ""
+          }
           question="What do you usually spend on a trip, in AUD?"
         >
           {(close) => (
@@ -723,7 +803,9 @@ function PersonalizationSection() {
               label="Budget (AUD, whole trip)"
               numeric
               initial={travel.budget?.toString() ?? ""}
-              validate={(value) => (value && !(Number(value) > 0) ? "Enter an amount above 0." : undefined)}
+              validate={(value) =>
+                value && !(Number(value) > 0) ? "Enter an amount above 0." : undefined
+              }
               onSave={(value) => {
                 const { budget: _old, ...rest } = travel;
                 update({ travel: value ? { ...rest, budget: Number(value) } : rest });
@@ -741,7 +823,12 @@ function PersonalizationSection() {
           value={settings.memberships.map((item) => item.program).join(", ")}
           question="Any frequent-flyer or hotel loyalty programmes?"
         >
-          {() => <Loyalty list={settings.memberships} onChange={(memberships) => update({ memberships })} />}
+          {() => (
+            <Loyalty
+              list={settings.memberships}
+              onChange={(memberships) => update({ memberships })}
+            />
+          )}
         </MemoryRow>
       </ul>
       <h3 className="settings-group">Other preferences</h3>
@@ -780,7 +867,9 @@ function RegionSection({ onDataMode }: { onDataMode(mode: DataMode): void }) {
   return (
     <div className="settings-form">
       <SettingRow label="Language" value="English" />
-      <p className="settings-hint">The interface is in English. Chat in any language: the planner replies in yours.</p>
+      <p className="settings-hint">
+        The interface is in English. Chat in any language: the planner replies in yours.
+      </p>
       <SettingRow label="Region" value="🇦🇺 Australia" />
       <h3 className="settings-group">Advanced</h3>
       <SettingRow label="Currency" value="AUD (A$) — Australian Dollar" />
@@ -817,9 +906,13 @@ function RegionSection({ onDataMode }: { onDataMode(mode: DataMode): void }) {
   );
 }
 
-const PROVIDER_LABEL: Record<string, string> = { google: "Google", github: "GitHub", apple: "Apple" };
+const PROVIDER_LABEL: Record<string, string> = {
+  google: "Google",
+  github: "GitHub",
+  apple: "Apple",
+};
 
-function ConnectedSection() {
+function ConnectedSection({ onAccountModal }: AccountModalProps) {
   const account = useAccount();
   if (account.status !== "signed-in")
     return (
@@ -844,7 +937,11 @@ function ConnectedSection() {
         <p className="settings-empty">No connected accounts. You sign in with email.</p>
       )}
       <div className="settings-actions">
-        <button type="button" className="settings-pill" onClick={account.manage}>
+        <button
+          type="button"
+          className="settings-pill"
+          onClick={() => onAccountModal(account.manage)}
+        >
           Connect or disconnect
         </button>
       </div>
@@ -856,10 +953,11 @@ function ConnectedSection() {
 export function SettingsDialog({
   initial = "personalization",
   onDataMode,
+  onAccountModal,
 }: {
   initial?: Section;
   onDataMode(mode: DataMode): void;
-}) {
+} & AccountModalProps) {
   const [section, setSection] = useState<Section>(initial);
   const { syncState } = useSettings();
   const title = SECTIONS.find(([id]) => id === section)![1];
@@ -884,7 +982,8 @@ export function SettingsDialog({
                   event.preventDefault();
                   const forward = event.key === "ArrowDown" || event.key === "ArrowRight";
                   const index = SECTIONS.findIndex(([item]) => item === id);
-                  const next = SECTIONS[(index + (forward ? 1 : SECTIONS.length - 1)) % SECTIONS.length]![0];
+                  const next =
+                    SECTIONS[(index + (forward ? 1 : SECTIONS.length - 1)) % SECTIONS.length]![0];
                   setSection(next);
                   document.getElementById(`settings-tab-${next}`)?.focus();
                 }}
@@ -903,11 +1002,11 @@ export function SettingsDialog({
         className="settings-panel tab-panel-enter"
       >
         <h3 className="settings-panel__title">{title}</h3>
-        {section === "profile" && <ProfileSection />}
-        {section === "account" && <AccountSection />}
+        {section === "profile" && <ProfileSection onAccountModal={onAccountModal} />}
+        {section === "account" && <AccountSection onAccountModal={onAccountModal} />}
         {section === "personalization" && <PersonalizationSection />}
         {section === "region" && <RegionSection onDataMode={onDataMode} />}
-        {section === "connected" && <ConnectedSection />}
+        {section === "connected" && <ConnectedSection onAccountModal={onAccountModal} />}
         <p className="settings-sync" role="status">
           {SYNC_TEXT[syncState]}
         </p>

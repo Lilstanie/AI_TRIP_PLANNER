@@ -192,6 +192,7 @@ Timeline & routes 标签页（由 `TripEditor` 组合 `components/trip/timeline/
   列表变成可横向滚动的一行，线条在下方。右侧显示所选分区的各行，每行有标签和值，Change 在原位打开编辑器。
   **Account settings** 会打开 Your account，**Personalization** 会打开 Personalization。Mindtrip 的 Voice、Price alerts、Notifications 和 Cookie preferences
   在这里没有对应功能。
+  - 打开 Clerk 登录、注册、更改头像或账号管理窗口前，先关闭设置对话框，避免原生模态层遮挡 Clerk 的控件。
   - **Edit profile：** 头像、名和姓，保存到 Clerk（Change profile photo 打开 Clerk）。Location 即常住城市。
   - **Your account：** 邮箱（Manage 在 Clerk 中打开）及其已验证标记；Theme（System、Light、Dark，设置在
     `<html data-theme>` 上，地图同样跟随）；Export；Sign out；以及需确认的 Delete my account。未登录或未启用账号时，
