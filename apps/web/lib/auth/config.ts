@@ -1,5 +1,5 @@
 /**
- * Accounts are optional. With Clerk keys configured, travellers can sign in and their trips,
+ * With Clerk keys configured, travellers must sign in to the workspace and their trips,
  * chats and settings sync to the database; without them — CI, a fresh clone, a deployment whose
  * owner has not added Clerk yet — the workspace runs exactly as before, single-user and local.
  *

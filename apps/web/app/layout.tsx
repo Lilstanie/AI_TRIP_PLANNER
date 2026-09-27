@@ -12,7 +12,20 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       {/* ClerkProvider sits inside <body>; without keys the workspace stays local-only. */}
-      <body>{authEnabled ? <ClerkProvider>{children}</ClerkProvider> : children}</body>
+      <body>
+        {authEnabled ? (
+          <ClerkProvider
+            signInUrl="/sign-in"
+            signUpUrl="/sign-up"
+            signInForceRedirectUrl="/"
+            signUpForceRedirectUrl="/"
+          >
+            {children}
+          </ClerkProvider>
+        ) : (
+          children
+        )}
+      </body>
     </html>
   );
 }

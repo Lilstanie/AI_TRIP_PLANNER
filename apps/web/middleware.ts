@@ -1,11 +1,31 @@
-import { clerkMiddleware } from "@clerk/nextjs/server";
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { authEnabled } from "./lib/auth/config";
 
-// Without Clerk keys the app runs local-only, so the middleware steps aside rather than failing
-// every request on a missing key. Routes are public either way; server code that needs a user
-// checks for one itself (lib/auth/session.ts).
-export default authEnabled ? clerkMiddleware() : () => NextResponse.next();
+const publicRoutes = createRouteMatcher([
+  "/sign-in(.*)",
+  "/sign-up(.*)",
+  "/__clerk(.*)",
+  "/api(.*)",
+  "/trpc(.*)",
+]);
+
+// API routes keep their own authorization and response contracts. Only page navigation redirects.
+// Without Clerk keys the app remains a local workspace.
+export default authEnabled
+  ? clerkMiddleware(async (auth, request) => {
+      const { userId } = await auth();
+      if (!userId && !publicRoutes(request)) {
+        return NextResponse.redirect(new URL("/sign-in", request.url));
+      }
+      if (
+        userId &&
+        (request.nextUrl.pathname === "/sign-in" || request.nextUrl.pathname === "/sign-up")
+      ) {
+        return NextResponse.redirect(new URL("/", request.url));
+      }
+    })
+  : () => NextResponse.next();
 
 export const config = {
   matcher: [
