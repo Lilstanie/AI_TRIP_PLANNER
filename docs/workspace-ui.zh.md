@@ -10,15 +10,15 @@ Web 应用（`apps/web`）是单用户规划工作区。本文描述其当前行
 
 ## 布局
 
-| 区域           | 内容                                                                                                                   | 实现                                                                                                        |
-| -------------- | ---------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| 侧边栏         | Logo、带数量的 Chats 和 Trips、保存或同步状态、Language、Settings、账号控件                                            | `WorkspaceSidebar`、`BrandMark`、`icons.tsx`                                                                |
-| Chats 面板     | 在侧边栏旁滑出：搜索、New chat、New trip，然后是行程和聊天                                                             | `ChatsPanel`、`TripCover`                                                                                   |
-| Your trips     | 通过 Trips 打开，替代聊天和地图：行程卡片（Upcoming、Past）、Calendar 标签页和 New trip                                | `TripsPage`、`TripCover`                                                                                    |
-| 顶栏           | 行程标题；行程事实标签（目的地、日期、旅客、预算、Preferences）；数据模式；最右侧显示站点数的 Trip                     | `WorkspaceView`、`TripFactChips`                                                                            |
-| 行程事实编辑器 | 每个标签对应一个编辑器，全部为居中对话框；Preferences 保存旅客自己的列表                                               | `FactPopover`、`FactFields`、`TripCalendar`、`WhereFields`、`PreferenceList`、`lib/workspace/trip-facts.ts` |
-| 聊天           | 对话、规划 transcript（文本记录）、输入区；空白聊天中的起始建议；没有可见标题                                          | `ChatPanel`                                                                                                 |
-| 地图           | 仅包含地图、带标签的标记、按天着色的弧形行程线、地点弹窗、地图状态，以及定位／地图类型／缩放控件                       | `TripMapCanvas`、`TripMap`                                                                                  |
+| 区域           | 内容                                                                                                                               | 实现                                                                                                        |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| 侧边栏         | Logo、带数量的 Chats 和 Trips、保存或同步状态、Settings & account                                                                  | `WorkspaceSidebar`、`BrandMark`、`icons.tsx`                                                                |
+| Chats 面板     | 在侧边栏旁滑出：搜索、New chat、New trip，然后是行程和聊天                                                                         | `ChatsPanel`、`TripCover`                                                                                   |
+| Your trips     | 通过 Trips 打开，替代聊天和地图：行程卡片（Upcoming、Past）、Calendar 标签页和 New trip                                            | `TripsPage`、`TripCover`                                                                                    |
+| 顶栏           | 行程标题；行程事实标签（目的地、日期、旅客、预算、Preferences）；数据模式；最右侧显示站点数的 Trip                                 | `WorkspaceView`、`TripFactChips`                                                                            |
+| 行程事实编辑器 | 每个标签对应一个编辑器，全部为居中对话框；Preferences 保存旅客自己的列表                                                           | `FactPopover`、`FactFields`、`TripCalendar`、`WhereFields`、`PreferenceList`、`lib/workspace/trip-facts.ts` |
+| 聊天           | 对话、规划 transcript（文本记录）、输入区；空白聊天中的起始建议；没有可见标题                                                      | `ChatPanel`                                                                                                 |
+| 地图           | 仅包含地图、带标签的标记、按天着色的弧形行程线、地点弹窗、地图状态，以及定位／地图类型／缩放控件                                   | `TripMapCanvas`、`TripMap`                                                                                  |
 | Your Trip 抽屉 | 预算；Itinerary（按天排列、带操作菜单的停靠点，Ideas，各部分方案）；Timeline & routes（日期条、时间线、停靠点编辑器）；Review plan | `Drawer`、`TripPanel`、`TripPlaceList`、`TripEditor`                                                        |
 
 - **侧边栏。**
@@ -33,7 +33,7 @@ Web 应用（`apps/web`）是单用户规划工作区。本文描述其当前行
   - 聊天行右上角的更多操作按钮打开 Rename 和 Delete，使这些操作只在需要时出现。悬停或键盘聚焦时显示按钮；无悬停能力的环境始终显示。菜单由 `role="menu"` 和 `role="menuitem"` 按钮组成，触发按钮带 `aria-haspopup` 和 `aria-expanded`；Escape 关闭菜单并将焦点返回触发按钮，不关闭外层面板或抽屉，点击外部或按 Tab 离开也会关闭菜单。行程没有这两个操作，因此没有更多操作菜单。
   - 窄屏导航抽屉显示侧边栏，并在 Trips 下显示面板内容（搜索、两个起始操作、Trips 和 Chats）。
   - Logo 是 `apps/web/public/brand/ai-trip-planner-logo.svg`，通过 URL 引用。产品名称旁的替代文本为空，单独显示时为“AI Trip Planner”。
-  - 最窄的视口下，底部 Language、Settings 和账号按钮换行到保存状态下方，不截断保存状态。
+  - 底部把保存状态放在占满侧栏宽度的个人资料行上方；资料行包含头像、两行身份信息和末尾的更多按钮。
 - **行程事实。** 行程需求通过顶栏标签逐项编辑，参考 Mindtrip 的行程栏；[偏好标签 Agent Note](../.agents/notes/implemented/feature/2026-09-24-preference-chips.md) 记录了原因。
   - 标签读取偏好草稿，只显示旅客明确陈述的内容：已有值（“Sydney”、“1 Oct – 4 Oct · 4 days”、“2 adults, 1 child”、“AUD 2,000”），或缺失时只显示事实名称：“Where”、“When”、“Who”和“Budget”。换算后的预算在仍与方案匹配时保留“(≈ ¥3,000)”提示。标签组成名为 Trip details 的 `role="group"`；有值标签的无障碍名称以其事实类型开头（“Destination: Sydney”）。
   - 每个标签都是带 `aria-haspopup="dialog"`、`aria-expanded` 和 `aria-controls` 的按钮，打开各自的编辑器：Where（目的地和出发地）、When（完整内嵌日历）、Who（每类旅客一个步进器）、Budget（预设范围卡片和自定义金额），以及 Trip preferences（旅客自己的列表）。
@@ -52,6 +52,7 @@ seniors`（宠物不计为旅客）；`groupSize` 仍是校验字段，因此至
     - “Stay: <name>, booked by you”。
 
     每行都可以移除但不能编辑。移除在下一次规划时生效。
+
   - 编辑器是带标签的 `role="dialog"`。焦点移到首个字段（Where 已有地点时从 Add destination 开始），Tab 在内部循环，Escape、关闭按钮或保存编辑后将焦点返回标签。点击面板外部会落在遮罩上，并将焦点返回标签。打开编辑器会关闭 Trip 抽屉和导航抽屉。
   - 编辑内容在保存前留在编辑器中，因此 Escape 和点击外部都会丢弃编辑。各编辑器用行程需求 schema 校验自身字段，并在字段旁说明如何修正。
   - 没有方案时，Save 把编辑保留在草稿中，不发送请求。已陈述事实以 `known` 随下一条聊天消息发送，Trip preferences 中的 Plan trip 使用完整行程需求规划（`mode: "plan"`）。已有方案时，按钮为 Update trip：保存编辑并使用完整行程需求重新规划，因为聊天消息携带的是方案的行程需求，不是草稿。行程需求被拒绝时，打开首个有误事实的编辑器，在字段旁显示错误。
@@ -180,17 +181,16 @@ Timeline & routes 标签页（由 `TripEditor` 组合 `components/trip/timeline/
 ## 账号和设置
 
 账号是可选功能（[Agent Note](../.agents/notes/implemented/architecture/2026-09-27-accounts-settings-sync.md)）。
-没有 Clerk 密钥时，工作区为单用户：账号控件显示 **Local**，Settings 说明所有内容都保存在当前浏览器中。
+没有 Clerk 密钥时，工作区为单用户。侧栏只有一个 **Settings & account** 入口；账号分区会说明所有内容都保存在当前浏览器中。
 
-- **账号控件。** 位于侧边栏底部：未登录时显示 **Sign in**（Clerk 弹窗）；登录后显示本人头像或首字母以及名字，点击打开
-  Settings → Account。
+- **Settings & account 控件。** 侧栏底部沿用 Mindtrip 的个人资料行：头像、完整姓名和第二行信息（有用户名时显示用户名），右侧是横向三点按钮。点击身份区域，已登录时打开 Edit profile，否则打开 Your account。更多菜单在资料行上方展开，顶部是带 **View profile** 的资料卡片，下方为 **Account settings**、**Personalization** 和 **Language & region**。已登录时，分隔线下方显示 **Sign out**。设置操作分别打开共用对话框的对应分区。方向键可切换菜单项；按 Escape 可关闭菜单并将焦点返回更多按钮。收起侧栏后，头像和更多按钮上下排列，菜单在侧旁展开。
 - **同步。** 登录后，聊天和行程同步到账号。某个浏览器首次登录时，会把其中的聊天和行程加入账号，并把账号中的拉取到浏览器；
   之后每次改动都会在片刻后保存。底部状态显示 Saving…、Synced to your account，或在无法连接账号时显示
   Saved here · sync paused。同一聊天或行程以较新的副本整体为准；未改动的空白聊天和面板布局只保留在浏览器中。退出登录后，
   当前浏览器中的副本保留。
-- **Settings**（齿轮按钮）沿用 Mindtrip 设置页的布局。左侧是分区列表，选中项旁有一条深色竖线；在手机上
+- **Settings & account** 打开共用对话框。对话框沿用 Mindtrip 设置页的布局。左侧是分区列表，选中项旁有一条深色竖线；在手机上
   列表变成可横向滚动的一行，线条在下方。右侧显示所选分区的各行，每行有标签和值，Change 在原位打开编辑器。
-  Settings 默认打开 Personalization。Mindtrip 的 Voice、Price alerts、Notifications 和 Cookie preferences
+  **Account settings** 会打开 Your account，**Personalization** 会打开 Personalization。Mindtrip 的 Voice、Price alerts、Notifications 和 Cookie preferences
   在这里没有对应功能。
   - **Edit profile：** 头像、名和姓，保存到 Clerk（Change profile photo 打开 Clerk）。Location 即常住城市。
   - **Your account：** 邮箱（Manage 在 Clerk 中打开）及其已验证标记；Theme（System、Light、Dark，设置在

@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState, type ReactNode, type Ref } from "react";
 import { BrandMark } from "./BrandMark";
-import { ChatIcon, GearIcon, GlobeIcon, MoreIcon, SidebarIcon, SuitcaseIcon } from "../ui/icons";
+import { ChatIcon, MoreIcon, SidebarIcon, SuitcaseIcon } from "../ui/icons";
 import { AccountButton } from "../account/AccountButton";
 import type { SettingsSection } from "../account/SettingsDialog";
 import type { SyncStatus } from "../account/useAccountSync";
@@ -166,7 +166,6 @@ export function WorkspaceSidebar({
   onChats,
   onTrips,
   chatsButton,
-  onLanguage,
   onSettings,
   saveState,
   syncStatus = "local",
@@ -186,8 +185,7 @@ export function WorkspaceSidebar({
   onTrips(): void;
   /** The Chats button, which the Chats panel returns focus to. */
   chatsButton?: Ref<HTMLButtonElement>;
-  onLanguage(): void;
-  /** Opens Settings, at the account section when the account control is pressed. */
+  /** Opens the combined settings and account dialog. */
   onSettings(section?: SettingsSection): void;
   saveState: "saving" | "saved" | "failed";
   /** Whether chats and trips are syncing to a signed-in account. */
@@ -261,25 +259,6 @@ export function WorkspaceSidebar({
           </span>
         )}
         <div className="sidebar-footer__actions">
-          <button
-            type="button"
-            className="sidebar-icon-button"
-            aria-label="Language: English"
-            data-tooltip={isCollapsed ? "Language" : undefined}
-            onClick={onLanguage}
-          >
-            <GlobeIcon />
-            {!isCollapsed && <span>EN</span>}
-          </button>
-          <button
-            type="button"
-            className="sidebar-icon-button"
-            aria-label="Settings"
-            data-tooltip={isCollapsed ? "Settings" : undefined}
-            onClick={() => onSettings()}
-          >
-            <GearIcon />
-          </button>
           <AccountButton collapsed={isCollapsed} onSettings={onSettings} />
         </div>
       </div>

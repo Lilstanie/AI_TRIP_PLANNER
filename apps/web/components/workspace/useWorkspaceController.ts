@@ -405,8 +405,7 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
   // The trip badge counts the stops in the trip; unresolved problems show as "Needs review" on
   // the drawer itself and in Review plan.
   const tripStops = itineraryActivities(plan).length;
-  const dialogTitle =
-    dialog === "review" ? "Review plan" : dialog === "language" ? "Language" : "Settings";
+  const dialogTitle = dialog === "review" ? "Review plan" : "Settings";
   // Chip editors are popovers, not drawers: they bring no drawer backdrop.
   const drawerOpen = tripOpen || navOpen;
 

@@ -18,6 +18,7 @@ export type Account =
       name: string;
       firstName: string;
       lastName: string;
+      username?: string;
       email?: string;
       emailVerified: boolean;
       imageUrl?: string;
@@ -52,6 +53,7 @@ function ClerkAccount({ children }: { children: ReactNode }) {
       name: user?.fullName || user?.username || email || "Your account",
       firstName: user?.firstName ?? "",
       lastName: user?.lastName ?? "",
+      ...(user?.username ? { username: user.username } : {}),
       ...(email ? { email } : {}),
       emailVerified: user?.primaryEmailAddress?.verification?.status === "verified",
       connected: (user?.externalAccounts ?? []).map((external) => ({

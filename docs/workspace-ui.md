@@ -10,7 +10,7 @@ now. Implementation history and browser acceptance for each phase are in the
 
 | Area              | Content                                                                                                                                     | Implementation                                                                                              |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| Sidebar           | Logo, Chats and Trips with counts, save or sync status, Language, Settings, account control                                                 | `WorkspaceSidebar`, `BrandMark`, `icons.tsx`                                                                |
+| Sidebar           | Logo, Chats and Trips with counts, save or sync status, Settings & account                                                                  | `WorkspaceSidebar`, `BrandMark`, `icons.tsx`                                                                |
 | Chats panel       | Slides out beside the sidebar: search, New chat, New trip, then trips and chats                                                             | `ChatsPanel`, `TripCover`                                                                                   |
 | Your trips        | Opened by Trips in place of chat and map: trip cards (Upcoming, Past) and a Calendar tab; New trip                                          | `TripsPage`, `TripCover`                                                                                    |
 | Top bar           | Trip title; trip fact chips (destination, dates, travellers, budget, Preferences); data mode; Trip with its stop count, rightmost           | `WorkspaceView`, `TripFactChips`                                                                            |
@@ -65,8 +65,8 @@ now. Implementation history and browser acceptance for each phase are in the
     two starts, Trips and Chats) under Trips.
   - The logo is `apps/web/public/brand/ai-trip-planner-logo.svg`, referenced by URL. Its alt text is
     empty next to the product name and “AI Trip Planner” when shown alone.
-  - At the narrowest widths the footer's Language, Settings and account buttons wrap below the
-    save status rather than truncating it.
+  - The footer keeps the save status above a full-width profile row, with an avatar, two lines
+    of identity information and an overflow button at the end.
 - **Trip facts.** The brief is edited one fact at a time from chips in the top bar, following
   Mindtrip's trip bar; the [preference chips Agent Note](../.agents/notes/implemented/feature/2026-09-24-preference-chips.md) records why.
   - The chips read the preferences draft, so they show only what the traveller stated: a value
@@ -145,6 +145,7 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     - "Stay: <name>, booked by you".
 
     Each row can be removed but not edited. A removal takes effect on the next plan.
+
   - An editor is a labelled `role="dialog"`. Focus moves to its first field (Where with places
     already listed starts on Add destination), Tab loops inside it, and Escape, the close button or a
     saved edit return focus to the chip. A press outside the panel lands on the scrim and returns
@@ -462,20 +463,27 @@ first render; without a browser key the map shows a fallback and the itinerary s
 ## Accounts and settings
 
 Accounts are optional ([Agent Note](../.agents/notes/implemented/architecture/2026-09-27-accounts-settings-sync.md)).
-Without Clerk keys the workspace is single-user: the account control reads **Local**, and Settings
-explains that everything stays in this browser.
+Without Clerk keys the workspace is single-user. The sidebar has one **Settings & account** entry;
+the account section explains that everything stays in this browser.
 
-- **Account control.** In the sidebar footer: **Sign in** when signed out (Clerk's modal), the
-  person's picture or initial and first name when signed in, which opens Settings → Account.
+- **Settings & account control.** The sidebar footer follows Mindtrip's profile row: an avatar,
+  full name and secondary line (username when available), with a horizontal three-dot button. The identity opens Edit profile
+  when signed in, or Your account otherwise. The overflow menu opens above the row and contains
+  a profile card with **View profile**, then **Account settings**, **Personalization** and
+  **Language & region**. Signed in, **Sign out** sits below a separator. Each settings action
+  opens that section of the shared dialog. Arrow keys move through the menu; Escape closes it
+  and returns focus to the overflow button. A collapsed sidebar stacks the avatar and overflow
+  button and opens the menu beside them.
 - **Sync.** Signed in, chats and trips sync to the account. The first sign-in in a browser adds its
   chats and trips to the account and pulls the account's into the browser; after that each change
   is saved a moment later. The footer status reads Saving…, Synced to your account, or Saved here ·
   sync paused when the account cannot be reached. The newer copy of a chat or trip wins whole;
   untouched blank chats and panel layout stay in the browser. Signing out leaves this browser's copy.
-- **Settings** (gear button) follows the layout of Mindtrip's settings page. A section list sits on
+- **Settings & account** opens the shared dialog, which follows the layout of Mindtrip's settings page. A section list sits on
   the left, with an ink bar beside the chosen section; on a phone it becomes a scrolling row with the
   bar underneath. The chosen section's rows fill the right. Each row has a label and value, and
-  Change opens its editor in place. Settings opens on Personalization. Mindtrip's Voice, Price
+  Change opens its editor in place. **Account settings** opens Your account and **Personalization**
+  opens Personalization. Mindtrip's Voice, Price
   alerts, Notifications and Cookie preferences have no counterpart here.
   - **Edit profile:** picture, first and last name, saved to Clerk (Change profile photo opens
     Clerk). Location is the home city.
