@@ -11,6 +11,7 @@ import {
   TripBrief as TripBriefSchema,
   toAud,
   type ChatRequest,
+  type AssistantSettings,
   type ChatResponse,
   type AgentProgressEvent,
   type Attachment,
@@ -417,8 +418,15 @@ export async function runTripChat(
   const remember = async (reply: string) =>
     mem.appendShortTerm(request.tripId, ChatTurn.parse({ role: "assistant", content: reply }));
 
+  // With memory off nothing learned in chat is used, so it is dropped before anything reads it.
+  const forget = request.assistant?.memory === false;
+  if (forget && request.known) request = { ...request, known: withoutLearned(request.known) };
   const submitted = request.brief
-    ? TripBriefSchema.parse({ ...request.brief, tripId: request.tripId })
+    ? TripBriefSchema.parse(
+        forget
+          ? withoutLearned({ ...request.brief, tripId: request.tripId })
+          : { ...request.brief, tripId: request.tripId },
+      )
     : undefined;
 
   // The preferences form submits a brief that is already complete and validated. Running the
@@ -454,6 +462,29 @@ export async function runTripChat(
     if (asked) await remember(asked);
     throw error;
   }
+}
+
+/** A brief without what the assistant learned in chat; used when the traveller turned memory off. */
+function withoutLearned<T extends { learnedPreferences?: unknown }>(value: T): T {
+  const { learnedPreferences: _dropped, ...rest } = value;
+  return rest as T;
+}
+
+const STYLE_TEXT: Record<AssistantSettings["style"], string> = {
+  neutral: "",
+  friendly: "Write warmly and conversationally, like a friend who knows the place.",
+  concise: "Keep replies short: the answer first, at most three sentences or a short list.",
+  detailed: "Give fuller replies: explain the reasoning, timings and trade-offs behind each suggestion.",
+};
+
+/** The traveller's chosen communication style, appended to the coordinator's prompt. */
+function styleRule(assistant: AssistantSettings | undefined): string {
+  const text = assistant ? STYLE_TEXT[assistant.style] : "";
+  const memory =
+    assistant?.memory === false
+      ? " The traveller turned memory off: never pass learnedPreferences."
+      : "";
+  return text || memory ? `\n\nCommunication style: ${text}${memory}` : "";
 }
 
 /** What an assistant turn said when it ended by throwing rather than replying. */
@@ -495,6 +526,7 @@ async function runConversationAgent(
   const updateTripBrief = tool(
     async (update: z.infer<typeof BriefUpdate>) => {
       const patch = toPatch(update);
+      if (request.assistant?.memory === false) delete patch.learnedPreferences;
       if (brief) brief = applyBriefPatch(brief, patch, request.tripId);
       else known = BriefPatchSchema.parse({ ...known, ...patch });
       // Echo the merged state so a replan_trip call in this same loop sees it, and so the reply
@@ -547,7 +579,7 @@ async function runConversationAgent(
     name: "trip_conversation",
     model: streamingModel,
     tools: [updateTripBrief, replanTrip, askUserQuestion],
-    systemPrompt: COORDINATOR_PROMPT,
+    systemPrompt: COORDINATOR_PROMPT + styleRule(request.assistant),
   });
   // The envelope is unchanged whatever is attached: text files are inlined into `message` under
   // their own delimiter, and images ride beside the envelope as their own content blocks.

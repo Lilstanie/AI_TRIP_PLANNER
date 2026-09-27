@@ -45,49 +45,87 @@ async function run(browser, { width, height, tag }) {
     await settle(page);
   }
 
-  // Travel defaults.
+  // Personalization: the profile rows, communication style and memory switch.
   await openSettings(page);
   const dialog = page.getByRole("dialog");
-  await dialog.getByLabel("Home city").fill("Melbourne");
-  await dialog.getByLabel("Travellers").fill("3");
-  await dialog.getByLabel(/Budget/).fill("5200");
+  check(
+    (await dialog.getByRole("tab", { name: "Personalization" }).getAttribute("aria-selected")) === "true",
+    `${tag}: Settings opens on Personalization`,
+  );
+  check(await dialog.getByText("Any dietary restrictions or allergies?", { exact: false }).isVisible(), `${tag}: an empty fact asks its question`);
+  await page.screenshot({ path: `${OUT}/${tag}-01-personalization.png` });
+  const answer = async (label) => {
+    await dialog.getByRole("button", { name: `Edit ${label}` }).click();
+    await settle(page, 200);
+  };
+  await answer("Home base");
+  await dialog.getByRole("textbox", { name: "Home base" }).fill("Melbourne");
+  await dialog.getByRole("textbox", { name: "Home base" }).press("Enter");
+  await answer("Travellers");
+  await dialog.getByRole("textbox", { name: "Travellers" }).fill("3");
+  await dialog.getByRole("textbox", { name: "Travellers" }).press("Enter");
+  await answer("Pace");
+  await dialog.getByRole("button", { name: "Relaxed" }).click();
+  await answer("Interests");
+  await dialog.getByRole("group", { name: "Interests" }).getByRole("button", { name: "Food" }).click();
+  await answer("Dietary");
+  await dialog.getByRole("group", { name: "Dietary needs" }).getByRole("button", { name: "Vegetarian" }).click();
+  await answer("Trip budget");
+  await dialog.getByRole("textbox", { name: /Budget/ }).fill("5200");
+  await dialog.getByRole("textbox", { name: /Budget/ }).press("Enter");
+  await answer("Standing preferences");
   await dialog.getByPlaceholder(/Add a trip preference/).fill("Vegetarian food");
   await dialog.getByPlaceholder(/Add a trip preference/).press("Enter");
-  await dialog.getByRole("button", { name: "Relaxed" }).click();
-  await dialog.getByRole("group", { name: "Interests" }).getByRole("button", { name: "Food" }).click();
-  await dialog.getByRole("group", { name: "Dietary needs" }).getByRole("button", { name: "Vegetarian" }).click();
-  await dialog.getByRole("button", { name: "Save profile" }).click();
-  check(await dialog.getByRole("status").filter({ hasText: "Saved." }).isVisible(), `${tag}: defaults save`);
-  await page.screenshot({ path: `${OUT}/${tag}-01-travel-defaults.png` });
-
-  // Memberships: add one, see it listed.
-  await dialog.getByRole("tab", { name: "Memberships" }).click();
-  await settle(page, 300);
+  await dialog.getByRole("button", { name: "Save preferences" }).click();
+  await answer("Loyalty");
   await dialog.getByLabel("Programme").fill("Qantas Frequent Flyer");
   await dialog.getByRole("button", { name: "Add membership" }).click();
   check(
     await dialog.getByRole("list", { name: "Your memberships" }).getByText("Qantas Frequent Flyer").isVisible(),
     `${tag}: a membership is added`,
   );
-  await page.screenshot({ path: `${OUT}/${tag}-01b-memberships.png` });
+  check(await dialog.getByText("Home base:").locator("..").getByText("Melbourne").isVisible(), `${tag}: an answered fact shows its value`);
+  await dialog.getByRole("combobox", { name: "Communication style" }).selectOption("concise");
+  const memory = dialog.getByRole("switch", { name: "Long-term memory" });
+  await memory.click();
+  check((await memory.getAttribute("aria-checked")) === "false", `${tag}: memory switch turns off`);
+  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem("trip.settings.v1") ?? "{}"));
+  check(
+    stored.assistant?.style === "concise" && stored.assistant?.memory === false,
+    `${tag}: style and memory are saved (${JSON.stringify(stored.assistant)})`,
+  );
+  await memory.click();
+  await dialog.getByRole("combobox", { name: "Communication style" }).selectOption("neutral");
+  await page.screenshot({ path: `${OUT}/${tag}-01b-personalization-filled.png`, fullPage: true });
 
-  // Appearance and data mode apply at once.
-  await dialog.getByRole("tab", { name: "General" }).click();
+  // Your account: theme applies at once; the section says where data lives.
+  await dialog.getByRole("tab", { name: "Your account" }).click();
   await settle(page, 300);
+  await dialog.getByRole("button", { name: "Change Theme" }).click();
   await dialog.getByRole("button", { name: "Dark" }).click();
   check(
     (await page.evaluate(() => document.documentElement.dataset.theme)) === "dark",
     `${tag}: Dark sets the theme`,
   );
-  await dialog.getByRole("button", { name: "Sample data" }).click();
-  await page.screenshot({ path: `${OUT}/${tag}-02-appearance.png` });
-  await dialog.getByRole("tab", { name: "Account" }).click();
-  await settle(page, 300);
   check(
     (await dialog.getByText(/Sign in to keep|Accounts are not set up/).count()) === 1,
     `${tag}: account section says where data lives`,
   );
-  await page.screenshot({ path: `${OUT}/${tag}-03-account.png` });
+  await page.screenshot({ path: `${OUT}/${tag}-02-account.png` });
+
+  // Language & region: the data default lives under Advanced.
+  await dialog.getByRole("tab", { name: "Language & region" }).click();
+  await settle(page, 300);
+  check(await dialog.getByText("AUD (A$) — Australian Dollar").isVisible(), `${tag}: currency is shown`);
+  await dialog.getByRole("button", { name: "Change Trip data" }).click();
+  await dialog.getByRole("button", { name: "Sample data" }).click();
+  await page.screenshot({ path: `${OUT}/${tag}-03-region.png` });
+
+  // Edit profile: location is the same home city.
+  await dialog.getByRole("tab", { name: "Edit profile" }).click();
+  await settle(page, 300);
+  check((await dialog.getByLabel("Location").inputValue()) === "Melbourne", `${tag}: profile location is the home base`);
+  await page.screenshot({ path: `${OUT}/${tag}-04-profile.png` });
   await page.keyboard.press("Escape");
   await settle(page);
 
@@ -120,7 +158,7 @@ async function run(browser, { width, height, tag }) {
       prefs.includes("Vegetarian food"),
     `${tag}: new trip carries the travel profile as preferences (${JSON.stringify(prefs)})`,
   );
-  await page.screenshot({ path: `${OUT}/${tag}-04-new-trip.png` });
+  await page.screenshot({ path: `${OUT}/${tag}-05-new-trip.png` });
   const before = await page.evaluate(
     () => JSON.parse(localStorage.getItem("trip-workspace-catalog-v3") ?? "{}").conversations?.length ?? 0,
   );

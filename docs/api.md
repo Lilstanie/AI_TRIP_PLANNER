@@ -68,6 +68,15 @@ editor's steppers. They break `groupSize` down and add pets, who are not counted
 stays authoritative for every cost, and specialists are told to ignore a party whose people do not
 add up to it.
 
+Optional `assistant`: `{ style, memory }` from Settings → Personalization (`AssistantSettings` in
+`packages/shared/src/chat.ts`).
+
+- `style` is one of `neutral`, `friendly`, `concise` or `detailed` and sets the coordinator's tone.
+- With `memory: false`, the server drops `learnedPreferences` from `brief` and `known`, and the
+  coordinator records none.
+
+Without the field, the behaviour is `neutral` with memory on.
+
 Optional `attachments`: up to 4 files the traveller attached to this message.
 
 ```json

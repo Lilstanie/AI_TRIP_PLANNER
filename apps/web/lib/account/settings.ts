@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { MAX_TRIP_PREFERENCE_LENGTH, MAX_TRIP_PREFERENCES } from "@trip/shared";
+import {
+  COMMUNICATION_STYLES,
+  MAX_TRIP_PREFERENCE_LENGTH,
+  MAX_TRIP_PREFERENCES,
+} from "@trip/shared";
 import { blankDraft, type Draft } from "../workspace/workspace";
 
 /**
@@ -62,6 +66,10 @@ export const UserSettings = z.object({
     )
     .max(20)
     .default([]),
+  /** Settings → Personalization; defaulted so settings saved before it existed still load. */
+  assistant: z
+    .object({ style: z.enum(COMMUNICATION_STYLES), memory: z.boolean() })
+    .default({ style: "neutral", memory: true }),
   /** "default" follows the deployment's own setting. */
   dataMode: z.enum(["default", "live", "mock"]),
   appearance: z.enum(["system", "light", "dark"]),
@@ -76,6 +84,7 @@ export const defaultSettings = (): UserSettings => ({
   version: 1,
   travel: { homeCity: "", preferences: [], interests: [], dietary: [] },
   memberships: [],
+  assistant: { style: "neutral", memory: true },
   dataMode: "default",
   appearance: "system",
   // The epoch, so any settings the traveller actually saved are newer than the defaults.

@@ -1,6 +1,6 @@
 "use client";
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
-import { TripPlan, type AgentProgressEvent, type Attachment } from "@trip/shared";
+import { TripPlan, type AgentProgressEvent, type AssistantSettings, type Attachment } from "@trip/shared";
 import type { RouteResult } from "@/lib/integrations/google";
 import {
   identifyActivities,
@@ -53,6 +53,8 @@ type WorkspaceTransportOptions = {
   setAsk: Dispatch<SetStateAction<PendingAsk | undefined>>;
   /** A submission was rejected; `fields` holds one message per invalid field. */
   onReject(fields: Record<string, string>): void;
+  /** Settings → Personalization: reply style and whether chat memory is on. */
+  assistant?: AssistantSettings;
 };
 
 export function useWorkspaceTransport({
@@ -80,6 +82,7 @@ export function useWorkspaceTransport({
   setAsk,
   onReject,
   dataMode,
+  assistant,
 }: WorkspaceTransportOptions) {
   async function run(task: Task) {
     if (active.current) return;
@@ -102,7 +105,7 @@ export function useWorkspaceTransport({
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "content-type": "application/json", ...dataModeHeaders(dataMode) },
-        body: JSON.stringify(task.request),
+        body: JSON.stringify(assistant ? { ...task.request, assistant } : task.request),
         signal: controller.signal,
       });
       const result = await readPlanStream(response, (event) => {
