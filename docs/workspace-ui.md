@@ -470,6 +470,13 @@ entry page return to `/`. Signing out returns to `/sign-in`, and losing a sessio
 while navigating there. Existing API authorization and response formats remain as documented in
 [API](api.md).
 
+On a desktop with a mouse, login and registration show a faint grid and background tint near the
+pointer. Inside the form, a thin edge highlight follows its position; the controls stay still.
+Introduction rows change colour and shift slightly on hover. Pointer updates are batched per
+animation frame without re-rendering the form. Leaving the page, scrolling, resizing or losing
+window focus clears the feedback. Touch, reduced-motion, reduced-transparency, increased-contrast
+and forced-colour modes use the static page.
+
 Without Clerk keys the workspace is single-user and auth pages return to `/`
 ([account storage Agent Note](../.agents/notes/implemented/architecture/2026-09-27-accounts-settings-sync.md)).
 The sidebar has one **Settings & account** entry;

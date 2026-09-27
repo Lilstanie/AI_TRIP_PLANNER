@@ -2,6 +2,7 @@
 
 import { ClerkFailed, ClerkLoading, SignIn, SignUp } from "@clerk/nextjs";
 import { BrandMark } from "../workspace/BrandMark";
+import { useAuthPointerFeedback } from "./useAuthPointerFeedback";
 
 const appearance = {
   variables: {
@@ -27,8 +28,9 @@ const appearance = {
 };
 
 export function AuthScreen({ mode }: { mode: "sign-in" | "sign-up" }) {
+  const { pageRef, formRef } = useAuthPointerFeedback();
   return (
-    <main className="auth-page">
+    <main className="auth-page" ref={pageRef}>
       <div className="auth-layout">
         <section className="auth-intro" aria-labelledby="auth-title">
           <BrandMark />
@@ -54,6 +56,7 @@ export function AuthScreen({ mode }: { mode: "sign-in" | "sign-up" }) {
         </section>
         <section
           className="auth-form"
+          ref={formRef}
           aria-label={mode === "sign-in" ? "Sign in" : "Create account"}
         >
           <ClerkLoading>
