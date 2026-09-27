@@ -182,6 +182,8 @@ Timeline & routes 标签页（由 `TripEditor` 组合 `components/trip/timeline/
 
 配置 Clerk 后，访问页面须先登录（[登录入口 Agent Note](../.agents/notes/implemented/architecture/2026-09-28-workspace-login-gate.md)）。未登录的访客在工作区渲染前跳转到 `/sign-in`。独立登录页将简短的产品介绍与 Clerk 的 Google、Apple、GitHub 和邮箱登录控件放在一起。`/sign-up` 使用相同布局。登录或注册成功后进入 `/`；已登录用户访问这两个认证入口页时返回 `/`。退出登录后回到 `/sign-in`，会话失效时先隐藏工作区再跳转。现有 API 的鉴权和响应格式见 [API](api.zh.md)。
 
+在使用鼠标的桌面环境中，登录和注册页会在指针附近显示淡网格和背景色。鼠标进入表单时，细边缘高亮随指针位置变化，控件保持不动；悬停介绍行时，文字变色并轻微移动。指针更新按动画帧合并，不重新渲染表单。离开页面、滚动、调整窗口大小或窗口失去焦点时，反馈消失。触屏、减弱动态效果、减弱透明度、提高对比度和强制颜色模式使用静态页面。
+
 没有 Clerk 密钥时，工作区为单用户，认证页面返回 `/`（[账号存储 Agent Note](../.agents/notes/implemented/architecture/2026-09-27-accounts-settings-sync.md)）。侧栏只有一个 **Settings & account** 入口；账号分区会说明所有内容都保存在当前浏览器中。
 
 - **Settings & account 控件。** 侧栏底部沿用 Mindtrip 的个人资料行：头像、完整姓名和第二行信息（有用户名时显示用户名），右侧是横向三点按钮。点击身份区域，已登录时打开 Edit profile，否则打开 Your account。更多菜单在资料行上方展开，顶部是带 **View profile** 的资料卡片，下方为 **Account settings**、**Personalization** 和 **Language & region**。已登录时，分隔线下方显示 **Sign out**。设置操作分别打开共用对话框的对应分区。方向键可切换菜单项；按 Escape 可关闭菜单并将焦点返回更多按钮。收起侧栏后，头像和更多按钮上下排列，菜单在侧旁展开。

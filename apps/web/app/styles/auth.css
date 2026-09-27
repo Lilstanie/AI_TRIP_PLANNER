@@ -13,6 +13,48 @@
   align-items: center;
   gap: calc(var(--space-5) * 3);
 }
+.auth-page {
+  position: relative;
+  isolation: isolate;
+}
+.auth-layout {
+  position: relative;
+  z-index: 1;
+}
+/* A quiet grid appears only near the pointer, beneath all text and form controls. */
+.auth-page::before,
+.auth-page::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+.auth-page::before {
+  background-image:
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: calc(var(--space-5) * 2) calc(var(--space-5) * 2);
+  mask-image: radial-gradient(
+    circle 240px at var(--auth-pointer-x, 50%) var(--auth-pointer-y, 50%),
+    var(--text) 0%,
+    transparent 100%
+  );
+}
+.auth-page::after {
+  background: radial-gradient(
+    circle 320px at var(--auth-pointer-x, 50%) var(--auth-pointer-y, 50%),
+    color-mix(in srgb, var(--accent-bg) 45%, transparent),
+    transparent 100%
+  );
+}
+.auth-page[data-pointer-active="true"]::before {
+  opacity: 0.6;
+}
+.auth-page[data-pointer-active="true"]::after {
+  opacity: 1;
+}
 .auth-intro {
   display: grid;
   gap: calc(var(--space-5) * 2);
@@ -49,6 +91,9 @@
   display: flex;
   align-items: baseline;
   gap: var(--space-4);
+  transition:
+    color var(--transition),
+    transform var(--transition);
 }
 .auth-benefits span {
   color: var(--text-mut);
@@ -56,9 +101,60 @@
   font-variant-numeric: tabular-nums;
 }
 .auth-form {
+  position: relative;
   border-radius: var(--radius-xl);
   overflow: hidden;
   min-width: 0;
+}
+/* The highlight is a masked hairline, with no overlay on the inputs and no moving targets. */
+.auth-form::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(
+    circle 160px at var(--auth-pointer-x, 50%) var(--auth-pointer-y, 50%),
+    var(--accent),
+    transparent 100%
+  );
+  mask:
+    linear-gradient(var(--text) 0 0) content-box,
+    linear-gradient(var(--text) 0 0);
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+.auth-form[data-pointer-active="true"]::after {
+  opacity: 0.65;
+}
+@supports not (mask-composite: exclude) {
+  .auth-form::after {
+    display: none;
+  }
+}
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .auth-benefits li:hover {
+    color: var(--accent);
+    transform: translateX(var(--space-1));
+  }
+}
+@media (hover: none),
+  (pointer: coarse),
+  (prefers-reduced-motion: reduce),
+  (prefers-reduced-transparency: reduce),
+  (prefers-contrast: more),
+  (forced-colors: active) {
+  .auth-page::before,
+  .auth-page::after,
+  .auth-form::after {
+    display: none;
+  }
+  .auth-benefits li {
+    transform: none;
+    transition: none;
+  }
 }
 .auth-status {
   margin: 0;
