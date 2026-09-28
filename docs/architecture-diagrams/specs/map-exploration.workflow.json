@@ -1,0 +1,233 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "地图地点检索与路线展示",
+    "output": "map-exploration.html",
+    "quality_profile": "showcase",
+    "locale": "zh-CN",
+    "views": [
+      {
+        "id": "stops",
+        "label": "行程地点",
+        "focus": ["tripPlan", "tripPlaces", "placesApi", "googlePlaces", "mapLayers", "tripMap"],
+        "note": "地图 hooks 将 TripPlan 活动转换为地点和标记，不会重新运行 planner。"
+      },
+      {
+        "id": "from-location",
+        "label": "当前位置路线",
+        "focus": ["traveller", "tripMap", "routeApi", "googleRoutes", "routeOverlay"],
+        "note": "旅客位置和 WALK / TRANSIT 选择驱动独立路线查询。"
+      },
+      {
+        "id": "boundary",
+        "label": "Web 与 Provider 边界",
+        "focus": ["tripPlaces", "placesApi", "googlePlaces", "routeApi", "googleRoutes"],
+        "note": "Places 和 Routes 请求通过 Web API route 封装，并在该层处理 provider 错误。"
+      }
+    ]
+  },
+  "lanes": [
+    {
+      "id": "state",
+      "label": "行程与地图界面"
+    },
+    {
+      "id": "places",
+      "label": "地点服务"
+    },
+    {
+      "id": "routes",
+      "label": "路线与位置"
+    }
+  ],
+  "phases": [
+    {
+      "id": "plan-places",
+      "label": "行程地点",
+      "fromCol": 0,
+      "toCol": 3,
+      "variant": "emphasis"
+    },
+    {
+      "id": "render",
+      "label": "地图呈现与浏览",
+      "fromCol": 4,
+      "toCol": 5
+    }
+  ],
+  "mainPath": ["tripPlan", "tripPlaces", "placesApi", "googlePlaces", "mapLayers", "tripMap"],
+  "nodes": [
+    {
+      "id": "tripPlan",
+      "lane": "state",
+      "col": 0,
+      "type": "backend",
+      "label": "已校验的 TripPlan",
+      "width": 184
+    },
+    {
+      "id": "tripPlaces",
+      "lane": "state",
+      "col": 1,
+      "type": "frontend",
+      "label": "useTripPlaces",
+      "width": 184
+    },
+    {
+      "id": "placesApi",
+      "lane": "places",
+      "col": 2,
+      "type": "backend",
+      "label": "/api/places/*",
+      "width": 184
+    },
+    {
+      "id": "googlePlaces",
+      "lane": "places",
+      "col": 3,
+      "type": "external",
+      "label": "Google Places",
+      "width": 184
+    },
+    {
+      "id": "mapLayers",
+      "lane": "state",
+      "col": 3,
+      "type": "frontend",
+      "label": "地图图层",
+      "width": 184
+    },
+    {
+      "id": "tripMap",
+      "lane": "state",
+      "col": 4,
+      "type": "frontend",
+      "label": "TripMap",
+      "width": 184
+    },
+    {
+      "id": "traveller",
+      "lane": "routes",
+      "col": 0,
+      "type": "external",
+      "label": "位置",
+      "width": 148
+    },
+    {
+      "id": "routeApi",
+      "lane": "routes",
+      "col": 2,
+      "type": "backend",
+      "label": "/api/routes/from-location",
+      "width": 200
+    },
+    {
+      "id": "googleRoutes",
+      "lane": "routes",
+      "col": 3,
+      "type": "external",
+      "label": "Google Routes",
+      "width": 184
+    },
+    {
+      "id": "routeOverlay",
+      "lane": "routes",
+      "col": 4,
+      "type": "frontend",
+      "label": "路线图层",
+      "width": 184
+    }
+  ],
+  "edges": [
+    {
+      "id": "plan-places",
+      "from": "tripPlan",
+      "to": "tripPlaces",
+      "label": "计划中的活动",
+      "role": "main"
+    },
+    {
+      "id": "places-search",
+      "from": "tripPlaces",
+      "to": "placesApi",
+      "label": "缺少地点信息时查询",
+      "role": "branch"
+    },
+    {
+      "id": "places-provider",
+      "from": "placesApi",
+      "to": "googlePlaces",
+      "label": "带类型的 Places 请求",
+      "role": "main"
+    },
+    {
+      "id": "places-layers",
+      "from": "googlePlaces",
+      "to": "mapLayers",
+      "label": "标准化地点结果",
+      "role": "return"
+    },
+    {
+      "id": "layers-map",
+      "from": "mapLayers",
+      "to": "tripMap",
+      "label": "绘制地点标记和路线",
+      "role": "main"
+    },
+    {
+      "id": "location-route",
+      "from": "traveller",
+      "to": "routeApi",
+      "label": "坐标 + WALK / TRANSIT",
+      "role": "branch"
+    },
+    {
+      "id": "route-provider",
+      "from": "routeApi",
+      "to": "googleRoutes",
+      "label": "通过校验的路线请求",
+      "role": "main"
+    },
+    {
+      "id": "route-overlay",
+      "from": "googleRoutes",
+      "to": "routeOverlay",
+      "label": "路线几何数据",
+      "role": "return"
+    },
+    {
+      "id": "overlay-map",
+      "from": "routeOverlay",
+      "to": "tripMap",
+      "label": "绘制已选路线",
+      "role": "return"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "地图不会重新规划行程",
+      "items": [
+        "地图地点查询只补充展示数据",
+        "时间线编辑通过独立预览 endpoint 重新计算路线、预算和冲突"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "两种独立的地图查询",
+      "items": [
+        "行程地点通过 Places 搜索、详情和照片 endpoints 解析",
+        "当前位置路线使用 WALK 或 TRANSIT 查询，并作为地图图层显示"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Provider 边界",
+      "items": [
+        "Next.js route 校验输入，并将 provider 错误转换为 API 响应",
+        "浏览器 Google Maps SDK 与服务端 API 使用分别配置的 key"
+      ]
+    }
+  ]
+}

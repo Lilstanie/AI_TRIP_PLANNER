@@ -1,0 +1,227 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "聊天请求与 NDJSON 流",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "viewBox": [1000, 640],
+    "column_fit": "spread"
+  },
+  "participants": [
+    {
+      "id": "traveller",
+      "type": "external",
+      "label": "旅行者",
+      "sublabel": "消息 / 行程需求"
+    },
+    {
+      "id": "browser",
+      "type": "frontend",
+      "label": "工作区",
+      "sublabel": "readPlanStream"
+    },
+    {
+      "id": "route",
+      "type": "backend",
+      "label": "POST /api/chat",
+      "sublabel": "校验并发送 NDJSON"
+    },
+    {
+      "id": "chat",
+      "type": "backend",
+      "label": "runTripChat",
+      "sublabel": "协调对话与行程"
+    },
+    {
+      "id": "agents",
+      "type": "cloud",
+      "label": "LangChain",
+      "sublabel": "对话协调与专家代理"
+    },
+    {
+      "id": "graph",
+      "type": "backend",
+      "label": "LangGraph",
+      "sublabel": "确定性规划图"
+    },
+    {
+      "id": "store",
+      "type": "database",
+      "label": "tripStore",
+      "sublabel": "校验后保存计划"
+    }
+  ],
+  "segments": [
+    {
+      "from": 145,
+      "to": 258,
+      "label": "请求接收"
+    },
+    {
+      "from": 270,
+      "to": 448,
+      "label": "协调与规划"
+    },
+    {
+      "from": 450,
+      "to": 575,
+      "label": "流式返回与保存"
+    }
+  ],
+  "messages": [
+    {
+      "from": "traveller",
+      "to": "browser",
+      "y": 160,
+      "label": "提交消息与行程需求",
+      "variant": "emphasis"
+    },
+    {
+      "from": "browser",
+      "to": "route",
+      "y": 190,
+      "label": "POST /api/chat + 数据模式",
+      "variant": "emphasis"
+    },
+    {
+      "from": "route",
+      "to": "chat",
+      "y": 220,
+      "label": "runTripChat(request, onProgress)",
+      "variant": "default"
+    },
+    {
+      "from": "chat",
+      "to": "agents",
+      "y": 250,
+      "label": "提取明确的 TripBrief 更新",
+      "variant": "default"
+    },
+    {
+      "from": "agents",
+      "to": "chat",
+      "y": 280,
+      "label": "结构化字段 / coordinator 工具结果",
+      "variant": "return"
+    },
+    {
+      "from": "chat",
+      "to": "graph",
+      "y": 310,
+      "label": "完整需求进入 runOrchestrator",
+      "variant": "emphasis"
+    },
+    {
+      "from": "graph",
+      "to": "agents",
+      "y": 340,
+      "label": "分派专家并执行冲突修订",
+      "variant": "default"
+    },
+    {
+      "from": "graph",
+      "to": "route",
+      "y": 370,
+      "label": "onProgress(event) 回调",
+      "variant": "dashed"
+    },
+    {
+      "from": "route",
+      "to": "browser",
+      "y": 400,
+      "label": "逐行发送 NDJSON 进度帧",
+      "variant": "dashed"
+    },
+    {
+      "from": "agents",
+      "to": "graph",
+      "y": 430,
+      "label": "通过共享 schema 的提案",
+      "variant": "return"
+    },
+    {
+      "from": "graph",
+      "to": "chat",
+      "y": 460,
+      "label": "校验后的 TripPlan",
+      "variant": "return"
+    },
+    {
+      "from": "route",
+      "to": "store",
+      "y": 490,
+      "label": "保存最终计划",
+      "variant": "emphasis"
+    },
+    {
+      "from": "route",
+      "to": "browser",
+      "y": 520,
+      "label": "complete { response } 终帧",
+      "variant": "return"
+    },
+    {
+      "from": "browser",
+      "to": "traveller",
+      "y": 550,
+      "label": "解析契约并更新工作区",
+      "variant": "return"
+    }
+  ],
+  "activations": [
+    {
+      "participant": "route",
+      "from": 190,
+      "to": 570,
+      "type": "backend"
+    },
+    {
+      "participant": "chat",
+      "from": 220,
+      "to": 465,
+      "type": "backend"
+    },
+    {
+      "participant": "agents",
+      "from": 280,
+      "to": 430,
+      "type": "cloud"
+    },
+    {
+      "participant": "graph",
+      "from": 335,
+      "to": 445,
+      "type": "backend"
+    },
+    {
+      "participant": "store",
+      "from": 490,
+      "to": 510,
+      "type": "database"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "正常规划路径",
+      "items": [
+        "进度事件在规划运行期间经 onProgress 连续发送",
+        "完整结果通过 ChatResponse 校验后才保存并发送 complete"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "本轮不生成计划的结果",
+      "items": [
+        "缺少需求时返回 needs_info；coordinator 追问返回 ask_user",
+        "识别到航班问价时直接回传 FlightAnswer，不运行规划图"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "错误边界",
+      "items": ["非法 ChatRequest 在开始流之前返回 400", "规划异常以 error 帧结束本轮"]
+    }
+  ]
+}

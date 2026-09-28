@@ -1,0 +1,241 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Agent 协作与 LangGraph 规划循环",
+    "output": "agent-collaboration.html",
+    "quality_profile": "showcase",
+    "locale": "zh-CN",
+    "views": [
+      {
+        "id": "dispatch",
+        "label": "委派与并行规划",
+        "focus": ["start", "dispatch", "supervisor", "fallback", "board", "specialists"],
+        "note": "LangGraph 控制 specialist 的启动；LangChain supervisor 选择职责工具。"
+      },
+      {
+        "id": "revision",
+        "label": "冲突修订",
+        "focus": ["specialists", "conflicts", "revise", "build"],
+        "note": "确定性冲突检测决定修订对象与循环停止条件。"
+      },
+      {
+        "id": "contract",
+        "label": "边界校验",
+        "focus": ["dispatch", "specialists", "conflicts", "build"],
+        "note": "每份 proposal 和最终 TripPlan 都通过共享 schema 校验。"
+      }
+    ]
+  },
+  "lanes": [
+    {
+      "id": "control",
+      "label": "控制流与回退"
+    },
+    {
+      "id": "agents",
+      "label": "LangChain Agents"
+    },
+    {
+      "id": "checks",
+      "label": "确定性校验"
+    }
+  ],
+  "phases": [
+    {
+      "id": "plan",
+      "label": "委派与提案",
+      "fromCol": 0,
+      "toCol": 2
+    },
+    {
+      "id": "converge",
+      "label": "冲突与修订",
+      "fromCol": 3,
+      "toCol": 5,
+      "variant": "emphasis"
+    }
+  ],
+  "mainPath": ["start", "dispatch", "supervisor", "board", "specialists", "conflicts", "build"],
+  "nodes": [
+    {
+      "id": "start",
+      "lane": "control",
+      "col": 0,
+      "type": "external",
+      "label": "开始"
+    },
+    {
+      "id": "dispatch",
+      "lane": "control",
+      "col": 1,
+      "type": "backend",
+      "label": "dispatch_specialists",
+      "sublabel": "启动本轮专家",
+      "width": 164
+    },
+    {
+      "id": "supervisor",
+      "lane": "agents",
+      "col": 1,
+      "type": "backend",
+      "label": "监督器 · createAgent",
+      "sublabel": "选择受限的专家工具",
+      "width": 176
+    },
+    {
+      "id": "fallback",
+      "lane": "control",
+      "col": 2,
+      "type": "security",
+      "label": "确定性直接委派",
+      "sublabel": "无模型 / supervisor 失败",
+      "width": 176
+    },
+    {
+      "id": "board",
+      "lane": "agents",
+      "col": 2,
+      "type": "backend",
+      "label": "共享规划板"
+    },
+    {
+      "id": "specialists",
+      "lane": "agents",
+      "col": 3,
+      "type": "backend",
+      "label": "五个专家 Agent",
+      "sublabel": "分别生成 AgentProposal",
+      "width": 176
+    },
+    {
+      "id": "conflicts",
+      "lane": "checks",
+      "col": 4,
+      "type": "backend",
+      "label": "detect_conflicts",
+      "sublabel": "预算 · 日程 · 地理",
+      "width": 164
+    },
+    {
+      "id": "revise",
+      "lane": "agents",
+      "col": 4,
+      "type": "backend",
+      "label": "revise_conflicts",
+      "sublabel": "只重跑目标专家",
+      "width": 164
+    },
+    {
+      "id": "build",
+      "lane": "control",
+      "col": 4,
+      "type": "backend",
+      "label": "build_plan",
+      "sublabel": "校验 TripPlan"
+    }
+  ],
+  "edges": [
+    {
+      "id": "start-dispatch",
+      "from": "start",
+      "to": "dispatch",
+      "role": "main"
+    },
+    {
+      "id": "dispatch-supervisor",
+      "from": "dispatch",
+      "to": "supervisor",
+      "label": "模型可用",
+      "role": "main"
+    },
+    {
+      "id": "dispatch-fallback",
+      "from": "dispatch",
+      "to": "fallback",
+      "label": "未配置模型密钥 / supervisor 失败",
+      "role": "error",
+      "variant": "dashed"
+    },
+    {
+      "id": "supervisor-board",
+      "from": "supervisor",
+      "to": "board",
+      "label": "调用专家工具",
+      "role": "main"
+    },
+    {
+      "id": "board-specialists",
+      "from": "board",
+      "to": "specialists",
+      "label": "来自共享 board 的输入",
+      "role": "main"
+    },
+    {
+      "id": "specialists-conflicts",
+      "from": "specialists",
+      "to": "conflicts",
+      "label": "已校验的 proposals",
+      "role": "main"
+    },
+    {
+      "id": "conflicts-revise",
+      "from": "conflicts",
+      "to": "revise",
+      "label": "冲突可修复且仍有轮数",
+      "role": "branch"
+    },
+    {
+      "id": "conflicts-build",
+      "from": "conflicts",
+      "to": "build",
+      "label": "已收敛 / 不可行 / 达到上限",
+      "role": "branch"
+    },
+    {
+      "id": "revise-conflicts",
+      "from": "revise",
+      "to": "conflicts",
+      "label": "有改善：重新检测",
+      "role": "return"
+    },
+    {
+      "id": "revise-build",
+      "from": "revise",
+      "to": "build",
+      "label": "无改善：保留上一轮结果",
+      "role": "error",
+      "variant": "dashed"
+    },
+    {
+      "id": "fallback-specialists",
+      "from": "fallback",
+      "to": "specialists",
+      "label": "直接调用专家",
+      "role": "branch"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "职责分工",
+      "items": ["LangGraph 固定控制节点、循环和停止条件", "LangChain 监督器只决定调用哪些专家工具"]
+    },
+    {
+      "dot": "emerald",
+      "title": "协作约束",
+      "items": [
+        "共享 board 传递已完成的提案和预算份额",
+        "revision 只交给冲突目标专家；无改善则保留上一版"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "输出保障",
+      "items": [
+        "proposal 和 TripPlan 都在边界处通过 Zod schema 校验",
+        "未解决的冲突会保留在 plan 中，不会标成已解决"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,233 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "行程时间线编辑与预览",
+    "output": "trip-edit.html",
+    "quality_profile": "showcase",
+    "locale": "zh-CN",
+    "views": [
+      {
+        "id": "replace-place",
+        "label": "替换地点",
+        "focus": [
+          "traveller",
+          "editor",
+          "searchApi",
+          "places",
+          "select",
+          "previewApi",
+          "preview",
+          "apply"
+        ],
+        "note": "新地点先搜索，再通过服务端预览重算路线、预算和冲突。"
+      },
+      {
+        "id": "other-edits",
+        "label": "时间与顺序编辑",
+        "focus": ["editor", "previewApi", "preview", "apply"],
+        "note": "移动日期、调整顺序和时间也先生成预览；apply 才会更新工作区。"
+      },
+      {
+        "id": "stale-preview",
+        "label": "并发保护",
+        "focus": ["previewApi", "preview", "apply"],
+        "note": "预览绑定 baseVersion；计划变更后旧预览不会覆盖新计划。"
+      }
+    ]
+  },
+  "lanes": [
+    {
+      "id": "workspace",
+      "label": "旅客与工作区"
+    },
+    {
+      "id": "search",
+      "label": "地点搜索"
+    },
+    {
+      "id": "preview",
+      "label": "预览与应用"
+    }
+  ],
+  "phases": [
+    {
+      "id": "change",
+      "label": "选择更改",
+      "fromCol": 0,
+      "toCol": 1
+    },
+    {
+      "id": "lookup",
+      "label": "搜索与重算",
+      "fromCol": 2,
+      "toCol": 4,
+      "variant": "emphasis"
+    },
+    {
+      "id": "commit",
+      "label": "检查并应用",
+      "fromCol": 5,
+      "toCol": 5
+    }
+  ],
+  "mainPath": [
+    "traveller",
+    "editor",
+    "searchApi",
+    "places",
+    "select",
+    "previewApi",
+    "preview",
+    "apply"
+  ],
+  "nodes": [
+    {
+      "id": "traveller",
+      "lane": "workspace",
+      "col": 0,
+      "type": "external",
+      "label": "旅客"
+    },
+    {
+      "id": "editor",
+      "lane": "workspace",
+      "col": 1,
+      "type": "frontend",
+      "label": "行程时间线编辑器",
+      "sublabel": "移动 · 改时间 · 排序 · 替换地点",
+      "width": 194
+    },
+    {
+      "id": "searchApi",
+      "lane": "search",
+      "col": 2,
+      "type": "backend",
+      "label": "POST /api/places/search",
+      "sublabel": "可选的地点查询",
+      "width": 194
+    },
+    {
+      "id": "places",
+      "lane": "search",
+      "col": 3,
+      "type": "external",
+      "label": "Google Places",
+      "sublabel": "地点候选结果",
+      "width": 184
+    },
+    {
+      "id": "select",
+      "lane": "workspace",
+      "col": 3,
+      "type": "frontend",
+      "label": "选择编辑操作",
+      "sublabel": "编辑操作 + baseVersion",
+      "width": 194
+    },
+    {
+      "id": "previewApi",
+      "lane": "preview",
+      "col": 3,
+      "type": "backend",
+      "label": "POST /api/trip/preview-edit",
+      "sublabel": "重新计算路线 · 预算 · 冲突",
+      "width": 206
+    },
+    {
+      "id": "preview",
+      "lane": "preview",
+      "col": 4,
+      "type": "frontend",
+      "label": "编辑预览",
+      "sublabel": "检查变更后的计划与路线",
+      "width": 184
+    },
+    {
+      "id": "apply",
+      "lane": "workspace",
+      "col": 4,
+      "type": "frontend",
+      "label": "应用或取消",
+      "sublabel": "baseVersion 必须仍然匹配",
+      "width": 184
+    }
+  ],
+  "edges": [
+    {
+      "id": "traveller-editor",
+      "from": "traveller",
+      "to": "editor",
+      "role": "main"
+    },
+    {
+      "id": "editor-search",
+      "from": "editor",
+      "to": "searchApi",
+      "label": "搜索替换地点",
+      "role": "branch"
+    },
+    {
+      "id": "search-places",
+      "from": "searchApi",
+      "to": "places",
+      "label": "关键词 + 目的地",
+      "role": "main"
+    },
+    {
+      "id": "places-select",
+      "from": "places",
+      "to": "select",
+      "label": "地点候选",
+      "role": "return"
+    },
+    {
+      "id": "editor-select",
+      "from": "editor",
+      "to": "select",
+      "label": "其他时间线编辑",
+      "role": "main"
+    },
+    {
+      "id": "select-preview",
+      "from": "select",
+      "to": "previewApi",
+      "label": "编辑操作 + 当前计划",
+      "role": "main"
+    },
+    {
+      "id": "preview-api-result",
+      "from": "previewApi",
+      "to": "preview",
+      "label": "通过校验的预览和路线",
+      "role": "return"
+    },
+    {
+      "id": "preview-apply",
+      "from": "preview",
+      "to": "apply",
+      "label": "应用或取消",
+      "role": "main"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "提交前先预览",
+      "items": ["编辑不会直接修改行程计划", "服务端预览会重新计算路线、预算和冲突"]
+    },
+    {
+      "dot": "amber",
+      "title": "过期请求保护",
+      "items": ["预览会记录 baseVersion", "预览期间如果计划发生变化，旧结果会被拒绝"]
+    },
+    {
+      "dot": "emerald",
+      "title": "地图关联",
+      "items": [
+        "应用前会先在地图上绘制预览路线",
+        "应用预览后更新工作区计划；地图查询不会重新运行规划器"
+      ]
+    }
+  ]
+}

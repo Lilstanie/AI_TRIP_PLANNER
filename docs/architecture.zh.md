@@ -6,6 +6,7 @@
 
 AI Trip Planner 是一个由工作区包支撑的 Next.js 可部署单元。确定性的 LangGraph 工作流
 负责规划控制流程，LangChain agent（智能体）在其中执行各自角色的推理。
+请求、agent、数据提供方、持久化和工作区流程的交互式图表见[架构流程图索引](architecture-diagrams.zh.md)。
 
 <a id="change-entry-points"></a>
 

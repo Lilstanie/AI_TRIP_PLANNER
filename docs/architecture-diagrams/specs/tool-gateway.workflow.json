@@ -1,0 +1,218 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "ToolGateway 与旅行数据 Provider",
+    "output": "tool-gateway.html",
+    "quality_profile": "showcase",
+    "locale": "zh-CN",
+    "views": [
+      {
+        "id": "mode",
+        "label": "请求模式",
+        "focus": ["agents", "gateway", "mode", "mock", "live", "fixtures", "adapters", "result"],
+        "note": "每轮 planning run 注入一个 gateway；模拟和真实模式返回相同类型。"
+      },
+      {
+        "id": "providers",
+        "label": "真实数据适配器",
+        "focus": ["live", "adapters", "result"],
+        "note": "地图、预订和天气都封装在独立 adapter 后。"
+      },
+      {
+        "id": "price",
+        "label": "价格来源",
+        "focus": ["adapters", "result"],
+        "note": "酒店价格估计会标明来源；航班查询失败时不会编造票价。"
+      }
+    ]
+  },
+  "lanes": [
+    {
+      "id": "request",
+      "label": "Agent 请求与 Gateway"
+    },
+    {
+      "id": "mock",
+      "label": "模拟数据路径"
+    },
+    {
+      "id": "live",
+      "label": "真实数据路径"
+    }
+  ],
+  "phases": [
+    {
+      "id": "request",
+      "label": "Port 请求",
+      "fromCol": 0,
+      "toCol": 2
+    },
+    {
+      "id": "route",
+      "label": "模式与适配器",
+      "fromCol": 3,
+      "toCol": 4,
+      "variant": "emphasis"
+    },
+    {
+      "id": "result",
+      "label": "依据结果",
+      "fromCol": 5,
+      "toCol": 5
+    }
+  ],
+  "mainPath": ["agents", "gateway", "mode", "live", "adapters", "result"],
+  "nodes": [
+    {
+      "id": "agents",
+      "lane": "request",
+      "col": 0,
+      "type": "backend",
+      "label": "专家 Agents",
+      "width": 184
+    },
+    {
+      "id": "gateway",
+      "lane": "request",
+      "col": 1,
+      "type": "backend",
+      "label": "createToolGateway",
+      "width": 184
+    },
+    {
+      "id": "mode",
+      "lane": "request",
+      "col": 2,
+      "type": "security",
+      "label": "请求数据模式",
+      "width": 190
+    },
+    {
+      "id": "mock",
+      "lane": "mock",
+      "col": 3,
+      "type": "backend",
+      "label": "模拟数据适配器",
+      "width": 184
+    },
+    {
+      "id": "live",
+      "lane": "live",
+      "col": 3,
+      "type": "backend",
+      "label": "真实数据适配器",
+      "width": 184
+    },
+    {
+      "id": "fixtures",
+      "lane": "mock",
+      "col": 4,
+      "type": "database",
+      "label": "进程内 Fixtures",
+      "width": 184
+    },
+    {
+      "id": "adapters",
+      "lane": "live",
+      "col": 4,
+      "type": "cloud",
+      "label": "数据提供方适配器",
+      "width": 200
+    },
+    {
+      "id": "result",
+      "lane": "request",
+      "col": 4,
+      "type": "backend",
+      "label": "带类型的依据",
+      "width": 184
+    }
+  ],
+  "edges": [
+    {
+      "id": "agents-gateway",
+      "from": "agents",
+      "to": "gateway",
+      "label": "带类型的 ToolGateway 请求",
+      "role": "main"
+    },
+    {
+      "id": "gateway-mode",
+      "from": "gateway",
+      "to": "mode",
+      "label": "选择请求模式",
+      "role": "main"
+    },
+    {
+      "id": "mode-mock",
+      "from": "mode",
+      "to": "mock",
+      "label": "模拟数据",
+      "role": "branch",
+      "variant": "dashed"
+    },
+    {
+      "id": "mode-live",
+      "from": "mode",
+      "to": "live",
+      "label": "真实数据",
+      "role": "main"
+    },
+    {
+      "id": "mock-fixtures",
+      "from": "mock",
+      "to": "fixtures",
+      "label": "返回 fixture 数据",
+      "role": "branch",
+      "variant": "dashed"
+    },
+    {
+      "id": "live-adapters",
+      "from": "live",
+      "to": "adapters",
+      "label": "地图 · 预订 · 天气",
+      "role": "main"
+    },
+    {
+      "id": "fixtures-result",
+      "from": "fixtures",
+      "to": "result",
+      "label": "相同的 DTO",
+      "role": "return"
+    },
+    {
+      "id": "adapters-result",
+      "from": "adapters",
+      "to": "result",
+      "label": "带有数据来源标记的依据",
+      "role": "return"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Agent 边界",
+      "items": [
+        "Agents 从 AgentContext 接收工具，不直接导入数据提供方",
+        "模拟和真实模式都实现相同的共享 port 契约"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "价格语义",
+      "items": [
+        "酒店：SerpApi 实时报价 → 标明来源的 Google Places 估价 → fixtures",
+        "航班 provider 失败不会被替换成虚构票价"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "数据提供方选择",
+      "items": [
+        "x-trip-data-mode 为单个请求覆盖部署默认值",
+        "MAPS_PROVIDER 选择 Google 或 OSM；天气依据预测时间范围选源"
+      ]
+    }
+  ]
+}

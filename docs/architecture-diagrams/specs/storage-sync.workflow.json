@@ -1,0 +1,249 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "工作区存储、账号同步与服务端记忆",
+    "output": "storage-sync.html",
+    "quality_profile": "showcase",
+    "locale": "zh-CN",
+    "views": [
+      {
+        "id": "browser",
+        "label": "浏览器工作目录",
+        "focus": ["workspace", "catalog", "accountSync", "syncApi", "accountDb"],
+        "note": "localStorage 是聊天与行程的工作存储；登录后与账号记录合并并同步。"
+      },
+      {
+        "id": "server",
+        "label": "服务端 Services",
+        "focus": ["chatApi", "memory", "tripStore", "jsonStore", "redis", "process"],
+        "note": "MemoryStore 和最新计划 store 共用 jsonStore 持久化边界。"
+      },
+      {
+        "id": "fallback",
+        "label": "失败与回退",
+        "focus": ["catalog", "accountSync", "chatApi", "jsonStore", "process"],
+        "note": "同步失败时保留本地修改；未配置 Redis 时使用进程内存。"
+      }
+    ]
+  },
+  "lanes": [
+    {
+      "id": "browser",
+      "label": "浏览器与同步"
+    },
+    {
+      "id": "planner",
+      "label": "聊天与服务"
+    },
+    {
+      "id": "durable",
+      "label": "持久化与回退"
+    }
+  ],
+  "phases": [
+    {
+      "id": "workspace",
+      "label": "本地工作区",
+      "fromCol": 0,
+      "toCol": 2,
+      "variant": "emphasis"
+    },
+    {
+      "id": "remote",
+      "label": "账号同步",
+      "fromCol": 3,
+      "toCol": 3
+    }
+  ],
+  "mainPath": ["workspace", "catalog", "accountSync", "syncApi", "accountDb"],
+  "nodes": [
+    {
+      "id": "workspace",
+      "lane": "browser",
+      "col": 0,
+      "type": "frontend",
+      "label": "工作区界面",
+      "width": 172
+    },
+    {
+      "id": "catalog",
+      "lane": "browser",
+      "col": 1,
+      "type": "database",
+      "label": "浏览器目录",
+      "width": 184
+    },
+    {
+      "id": "accountSync",
+      "lane": "browser",
+      "col": 2,
+      "type": "backend",
+      "label": "useAccountSync",
+      "width": 190
+    },
+    {
+      "id": "syncApi",
+      "lane": "browser",
+      "col": 3,
+      "type": "backend",
+      "label": "/api/account/sync",
+      "width": 184
+    },
+    {
+      "id": "accountDb",
+      "lane": "durable",
+      "col": 3,
+      "type": "database",
+      "label": "账号数据库",
+      "width": 184
+    },
+    {
+      "id": "chatApi",
+      "lane": "planner",
+      "col": 0,
+      "type": "backend",
+      "label": "聊天 / 编排器",
+      "width": 190
+    },
+    {
+      "id": "memory",
+      "lane": "planner",
+      "col": 2,
+      "type": "backend",
+      "label": "MemoryStore",
+      "width": 190
+    },
+    {
+      "id": "tripStore",
+      "lane": "planner",
+      "col": 1,
+      "type": "backend",
+      "label": "tripStore",
+      "width": 190
+    },
+    {
+      "id": "jsonStore",
+      "lane": "planner",
+      "col": 3,
+      "type": "backend",
+      "label": "jsonStore",
+      "width": 172
+    },
+    {
+      "id": "redis",
+      "lane": "durable",
+      "col": 2,
+      "type": "database",
+      "label": "Redis REST",
+      "width": 194
+    },
+    {
+      "id": "process",
+      "lane": "durable",
+      "col": 0,
+      "type": "database",
+      "label": "进程内存",
+      "width": 194
+    }
+  ],
+  "edges": [
+    {
+      "id": "workspace-catalog",
+      "from": "workspace",
+      "to": "catalog",
+      "label": "防抖自动保存",
+      "role": "main"
+    },
+    {
+      "id": "catalog-sync",
+      "from": "catalog",
+      "to": "accountSync",
+      "label": "发生变更的记录",
+      "role": "main"
+    },
+    {
+      "id": "sync-request",
+      "from": "accountSync",
+      "to": "syncApi",
+      "label": "GET 拉取合并 · POST 推送",
+      "role": "main"
+    },
+    {
+      "id": "sync-database",
+      "from": "syncApi",
+      "to": "accountDb",
+      "label": "写入行程和对话",
+      "role": "main"
+    },
+    {
+      "id": "chat-memory",
+      "from": "chatApi",
+      "to": "memory",
+      "label": "追加对话轮次",
+      "role": "main"
+    },
+    {
+      "id": "chat-plan",
+      "from": "chatApi",
+      "to": "tripStore",
+      "label": "已校验的计划",
+      "role": "branch"
+    },
+    {
+      "id": "memory-json",
+      "from": "memory",
+      "to": "jsonStore",
+      "label": "JSON 键值读写",
+      "role": "main"
+    },
+    {
+      "id": "plan-json",
+      "from": "tripStore",
+      "to": "jsonStore",
+      "label": "保存最新计划",
+      "role": "branch"
+    },
+    {
+      "id": "json-redis",
+      "from": "jsonStore",
+      "to": "redis",
+      "label": "已配置 URL 和 token",
+      "role": "main"
+    },
+    {
+      "id": "json-process",
+      "from": "jsonStore",
+      "to": "process",
+      "label": "未配置时",
+      "role": "error",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "工作区目录",
+      "items": [
+        "已保存的聊天和行程从浏览器 localStorage 读取",
+        "登录时账号同步拉取并合并记录；本地变更稍后推送"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "服务端存储范围",
+      "items": [
+        "tripStore 按 trip ID 保存最新计划；它不是工作区行程目录",
+        "MemoryStore 和 tripStore 通过 jsonStore 使用 Redis REST 或进程内存"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "失败处理",
+      "items": [
+        "账号同步失败时保留浏览器中的待同步变更",
+        "进程内存状态在重启或 serverless 冷启动后消失"
+      ]
+    }
+  ]
+}

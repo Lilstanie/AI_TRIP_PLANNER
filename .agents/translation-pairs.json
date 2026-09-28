@@ -5,9 +5,13 @@
       "sourceSha256": "3ee29dff9d105f43b71d5a79a472fff25d66e4402211947ad9ea466a3335951f",
       "translationSha256": "e70c3bc9c42df79c6820a351cb5ff90b7fb5540f5926da4625689cfaf0e3b5ff"
     },
+    "docs/architecture-diagrams.md": {
+      "sourceSha256": "30e65d92386d4406cf37adccbf7f5deb5eb55815d2d08cec85e927f3db944855",
+      "translationSha256": "a22644fb0da51fe737bdf733a945782d07e2b6ea310eda162029102c98c4f52b"
+    },
     "docs/architecture.md": {
-      "sourceSha256": "79663ccc73b149f4f789101cc2a1900ea8a8be1f0723517458905aeda4a3a160",
-      "translationSha256": "833c30e97511df171914f34778a816e922e757a733328254d3c32a44bfe87a73"
+      "sourceSha256": "0f01a5e1e0e1400d3d7de931ac6993469341529964892f0e15d18694794e6b89",
+      "translationSha256": "0f0e748404156714364cfa82503e16efb3825e9a37fcd2c5120aa0e4a3822e38"
     },
     "docs/design/class-diagram.md": {
       "sourceSha256": "b617fec2f4daaca75a5203a525dc127b5bb2c5e4a47dbb9a91dcc499a7654f00",
