@@ -8,35 +8,34 @@ These diagrams describe the current runtime and browser flows. Each opens as a s
 
 ## File layout
 
-- `architecture-diagrams/specs/` — editable Archify JSON sources.
-- `architecture-diagrams/rendered/` — standalone HTML viewers.
-- `architecture-diagrams/evidence/` — visual-check reports, contact sheets and screenshots.
+- `system/`, `agent-workflows/`, `data-and-storage/`, and `workspace/` group diagrams by project area.
+- Each area contains `specs/` (editable Archify JSON), `rendered/` (standalone HTML), and `evidence/` (visual-check reports, contact sheets, and screenshots).
 
 Each entry links to the viewer, source, and visual-check contact sheet.
 
 ## System structure and trust boundaries
 
-- [Project architecture](architecture-diagrams/rendered/project-overview.html) ([source](architecture-diagrams/specs/project-overview.architecture.json), [evidence](architecture-diagrams/evidence/project-overview.visual-check.html)) — Next.js request path, LangGraph workflow, specialists, LangChain model calls, and the tool gateway.
-- [Agent and evidence trust boundaries](architecture-diagrams/rendered/agent-trust-boundaries.html) ([source](architecture-diagrams/specs/agent-trust-boundaries.architecture.json), [evidence](architecture-diagrams/evidence/agent-trust-boundaries.visual-check.html)) — traveller input, coordinator-only attachments, injected agent capabilities, and external providers.
-- [Shared contracts](architecture-diagrams/rendered/contracts-flow.html) ([source](architecture-diagrams/specs/contracts-flow.workflow.json), [evidence](architecture-diagrams/evidence/contracts-flow.visual-check.html)) — how `ChatRequest`, `TripBrief`, `AgentProposal`, and `TripPlan` cross package boundaries.
+- [Project architecture](architecture-diagrams/system/rendered/project-overview.html) ([source](architecture-diagrams/system/specs/project-overview.architecture.json), [evidence](architecture-diagrams/system/evidence/project-overview.visual-check.html)) — Next.js request path, LangGraph workflow, specialists, LangChain model calls, and the tool gateway.
+- [Agent and evidence trust boundaries](architecture-diagrams/agent-workflows/rendered/agent-trust-boundaries.html) ([source](architecture-diagrams/agent-workflows/specs/agent-trust-boundaries.architecture.json), [evidence](architecture-diagrams/agent-workflows/evidence/agent-trust-boundaries.visual-check.html)) — traveller input, coordinator-only attachments, injected agent capabilities, and external providers.
+- [Shared contracts](architecture-diagrams/system/rendered/contracts-flow.html) ([source](architecture-diagrams/system/specs/contracts-flow.workflow.json), [evidence](architecture-diagrams/system/evidence/contracts-flow.visual-check.html)) — how `ChatRequest`, `TripBrief`, `AgentProposal`, and `TripPlan` cross package boundaries.
 
 ## Chat and planning
 
-- [Chat and LangChain](architecture-diagrams/rendered/chat-langchain.html) ([source](architecture-diagrams/specs/chat-langchain.workflow.json), [evidence](architecture-diagrams/evidence/chat-langchain.visual-check.html)) — coordinator tools, incomplete-brief questions, the no-model path, and the handoff to LangGraph.
-- [Chat request and NDJSON stream](architecture-diagrams/rendered/chat-stream.html) ([source](architecture-diagrams/specs/chat-stream.sequence.json), [evidence](architecture-diagrams/evidence/chat-stream.visual-check.html)) — request validation, progress frames, final response, persistence, and non-plan outcomes.
-- [Agent collaboration](architecture-diagrams/rendered/agent-collaboration.html) ([source](architecture-diagrams/specs/agent-collaboration.workflow.json), [evidence](architecture-diagrams/evidence/agent-collaboration.visual-check.html)) — specialist dispatch, the shared planning board, conflict checks, targeted revisions, and stop conditions.
-- [Plan-section lifecycle](architecture-diagrams/rendered/plan-lifecycle.html) ([source](architecture-diagrams/specs/plan-lifecycle.lifecycle.json), [evidence](architecture-diagrams/evidence/plan-lifecycle.visual-check.html)) — when a section becomes `draft` or `needs_you`, and how the traveller continues.
+- [Chat and LangChain](architecture-diagrams/agent-workflows/rendered/chat-langchain.html) ([source](architecture-diagrams/agent-workflows/specs/chat-langchain.workflow.json), [evidence](architecture-diagrams/agent-workflows/evidence/chat-langchain.visual-check.html)) — coordinator tools, incomplete-brief questions, the no-model path, and the handoff to LangGraph.
+- [Chat request and NDJSON stream](architecture-diagrams/agent-workflows/rendered/chat-stream.html) ([source](architecture-diagrams/agent-workflows/specs/chat-stream.sequence.json), [evidence](architecture-diagrams/agent-workflows/evidence/chat-stream.visual-check.html)) — request validation, progress frames, final response, persistence, and non-plan outcomes.
+- [Agent collaboration](architecture-diagrams/agent-workflows/rendered/agent-collaboration.html) ([source](architecture-diagrams/agent-workflows/specs/agent-collaboration.workflow.json), [evidence](architecture-diagrams/agent-workflows/evidence/agent-collaboration.visual-check.html)) — specialist dispatch, the shared planning board, conflict checks, targeted revisions, and stop conditions.
+- [Plan-section lifecycle](architecture-diagrams/agent-workflows/rendered/plan-lifecycle.html) ([source](architecture-diagrams/agent-workflows/specs/plan-lifecycle.lifecycle.json), [evidence](architecture-diagrams/agent-workflows/evidence/plan-lifecycle.visual-check.html)) — when a section becomes `draft` or `needs_you`, and how the traveller continues.
 
 ## Data, storage and services
 
-- [ToolGateway and providers](architecture-diagrams/rendered/tool-gateway.html) ([source](architecture-diagrams/specs/tool-gateway.workflow.json), [evidence](architecture-diagrams/evidence/tool-gateway.visual-check.html)) — request-scoped mock/live mode, provider adapters, and evidence returned to agents.
-- [Storage and account sync](architecture-diagrams/rendered/storage-sync.html) ([source](architecture-diagrams/specs/storage-sync.workflow.json), [evidence](architecture-diagrams/evidence/storage-sync.visual-check.html)) — browser catalog, signed-in account sync, `MemoryStore`, `tripStore`, and durable-store fallback.
-- [Local and account sync sequence](architecture-diagrams/rendered/account-sync.html) ([source](architecture-diagrams/specs/account-sync.sequence.json), [evidence](architecture-diagrams/evidence/account-sync.visual-check.html)) — per-record timestamp merge, deletion tombstones, delayed pushes, and offline retention.
+- [ToolGateway and providers](architecture-diagrams/data-and-storage/rendered/tool-gateway.html) ([source](architecture-diagrams/data-and-storage/specs/tool-gateway.workflow.json), [evidence](architecture-diagrams/data-and-storage/evidence/tool-gateway.visual-check.html)) — request-scoped mock/live mode, provider adapters, and evidence returned to agents.
+- [Storage and account sync](architecture-diagrams/data-and-storage/rendered/storage-sync.html) ([source](architecture-diagrams/data-and-storage/specs/storage-sync.workflow.json), [evidence](architecture-diagrams/data-and-storage/evidence/storage-sync.visual-check.html)) — browser catalog, signed-in account sync, `MemoryStore`, `tripStore`, and durable-store fallback.
+- [Local and account sync sequence](architecture-diagrams/data-and-storage/rendered/account-sync.html) ([source](architecture-diagrams/data-and-storage/specs/account-sync.sequence.json), [evidence](architecture-diagrams/data-and-storage/evidence/account-sync.visual-check.html)) — per-record timestamp merge, deletion tombstones, delayed pushes, and offline retention.
 
 ## Workspace behavior
 
-- [Trip editing](architecture-diagrams/rendered/trip-edit.html) ([source](architecture-diagrams/specs/trip-edit.workflow.json), [evidence](architecture-diagrams/evidence/trip-edit.visual-check.html)) — place search, edit preview, route/budget/conflict recomputation, and version-checked apply.
-- [Map exploration](architecture-diagrams/rendered/map-exploration.html) ([source](architecture-diagrams/specs/map-exploration.workflow.json), [evidence](architecture-diagrams/evidence/map-exploration.visual-check.html)) — Places queries and traveller-location routes appear on the map without rerunning the planner.
+- [Trip editing](architecture-diagrams/workspace/rendered/trip-edit.html) ([source](architecture-diagrams/workspace/specs/trip-edit.workflow.json), [evidence](architecture-diagrams/workspace/evidence/trip-edit.visual-check.html)) — place search, edit preview, route/budget/conflict recomputation, and version-checked apply.
+- [Map exploration](architecture-diagrams/workspace/rendered/map-exploration.html) ([source](architecture-diagrams/workspace/specs/map-exploration.workflow.json), [evidence](architecture-diagrams/workspace/evidence/map-exploration.visual-check.html)) — Places queries and traveller-location routes appear on the map without rerunning the planner.
 
 ## How LangChain is used
 
