@@ -1,4 +1,4 @@
-English | [简体中文](docs/README.zh.md)
+English | [简体中文](README.zh.md)
 
 # AI Trip Planner
 
