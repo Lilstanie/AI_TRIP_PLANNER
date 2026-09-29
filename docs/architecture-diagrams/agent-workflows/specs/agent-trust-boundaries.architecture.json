@@ -1,0 +1,198 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Agent、证据与信任边界",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "viewBox": [1350, 860]
+  },
+  "components": [
+    {
+      "id": "traveller",
+      "type": "external",
+      "label": "旅行者输入",
+      "sublabel": "文本与附件",
+      "pos": [36.0, 340],
+      "size": [150, 74],
+      "tag": "不可信内容"
+    },
+    {
+      "id": "route",
+      "type": "security",
+      "label": "ChatRequest 边界",
+      "sublabel": "字段与附件校验",
+      "pos": [225.0, 340],
+      "size": [170, 74],
+      "tag": "Zod"
+    },
+    {
+      "id": "coordinator",
+      "type": "backend",
+      "label": "对话协调器",
+      "sublabel": "LangChain createAgent",
+      "pos": [441.0, 340],
+      "size": [170, 74],
+      "tag": "附件仅此可见"
+    },
+    {
+      "id": "graph",
+      "type": "backend",
+      "label": "规划控制流",
+      "sublabel": "LangGraph StateGraph",
+      "pos": [657.0, 340],
+      "size": [170, 74],
+      "tag": "确定性状态机"
+    },
+    {
+      "id": "context",
+      "type": "security",
+      "label": "AgentContext",
+      "sublabel": "显式依赖注入",
+      "pos": [873.0, 340],
+      "size": [170, 74],
+      "tag": "工具与记忆"
+    },
+    {
+      "id": "specialists",
+      "type": "backend",
+      "label": "五类 Specialist",
+      "sublabel": "角色化 LangChain agents",
+      "pos": [1089.0, 340],
+      "size": [190, 74],
+      "tag": "schema 校验"
+    },
+    {
+      "id": "fallback",
+      "type": "backend",
+      "label": "确定性回退",
+      "sublabel": "离线 / 模型失败",
+      "pos": [441.0, 540],
+      "size": [170, 74],
+      "tag": "仍需校验"
+    },
+    {
+      "id": "memory",
+      "type": "database",
+      "label": "MemoryStore",
+      "sublabel": "通过 context 访问",
+      "pos": [873.0, 540],
+      "size": [170, 74]
+    },
+    {
+      "id": "gateway",
+      "type": "security",
+      "label": "ToolGateway",
+      "sublabel": "有界证据接口",
+      "pos": [1089.0, 540],
+      "size": [190, 74],
+      "tag": "adapter 层"
+    },
+    {
+      "id": "providers",
+      "type": "external",
+      "label": "地图与预订 API",
+      "sublabel": "OSM · Google · SerpApi",
+      "pos": [1089.0, 730],
+      "size": [190, 74],
+      "tag": "外部来源"
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "security-group",
+      "label": "应用内受控运行时",
+      "wraps": [
+        "route",
+        "coordinator",
+        "graph",
+        "context",
+        "specialists",
+        "fallback",
+        "memory",
+        "gateway"
+      ],
+      "pad": 20
+    },
+    {
+      "kind": "region",
+      "label": "外部服务",
+      "wraps": ["providers"],
+      "pad": 16
+    }
+  ],
+  "connections": [
+    {
+      "id": "traveller-request",
+      "from": "traveller",
+      "to": "route"
+    },
+    {
+      "id": "request-coordinator",
+      "from": "route",
+      "to": "coordinator"
+    },
+    {
+      "id": "coordinator-graph",
+      "from": "coordinator",
+      "to": "graph"
+    },
+    {
+      "id": "offline-fallback",
+      "from": "coordinator",
+      "to": "fallback",
+      "variant": "dashed"
+    },
+    {
+      "id": "graph-context",
+      "from": "graph",
+      "to": "context"
+    },
+    {
+      "id": "context-agents",
+      "from": "context",
+      "to": "specialists"
+    },
+    {
+      "id": "context-memory",
+      "from": "context",
+      "to": "memory",
+      "variant": "dashed"
+    },
+    {
+      "id": "agents-gateway",
+      "from": "specialists",
+      "to": "gateway"
+    },
+    {
+      "id": "gateway-providers",
+      "from": "gateway",
+      "to": "providers",
+      "label": "查询与证据返回",
+      "labelDy": 24
+    }
+  ],
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "输入与证据边界",
+      "items": ["用户文本和附件按 ChatRequest 契约校验", "附件只传给对话协调器，不会交给五个专家"]
+    },
+    {
+      "dot": "cyan",
+      "title": "Agent 控制与权限",
+      "items": [
+        "LangGraph 决定何时分派、修订与停止",
+        "Agent 只通过 AgentContext 访问 ToolGateway 和 MemoryStore"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "外部依据与回退",
+      "items": [
+        "地图 / 预订结果经 gateway adapter 返回为结构化依据",
+        "模型缺失、失败或越 schema 时改走确定性输出，仍须通过共享 Zod 契约"
+      ]
+    }
+  ]
+}

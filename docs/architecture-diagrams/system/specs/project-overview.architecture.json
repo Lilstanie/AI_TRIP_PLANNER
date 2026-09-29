@@ -1,0 +1,161 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "AI Trip Planner — Project Architecture",
+    "output": "project-overview.html",
+    "quality_profile": "showcase",
+    "locale": "zh-CN",
+    "views": [
+      {
+        "id": "request",
+        "label": "请求主链路",
+        "focus": ["traveller", "web", "orchestrator", "workflow", "agents", "tools", "providers"],
+        "note": "从对话入口沿横向主链路跟到旅行数据适配器。"
+      },
+      {
+        "id": "langchain",
+        "label": "模型调用",
+        "focus": ["agents", "models", "workflow"],
+        "note": "LangChain 提供角色 agent；LangGraph 保持控制流程。"
+      }
+    ],
+    "viewBox": [1390, 660]
+  },
+  "components": [
+    {
+      "id": "traveller",
+      "type": "external",
+      "label": "旅客",
+      "sublabel": "浏览器工作区",
+      "pos": [40, 120],
+      "size": [184, 76]
+    },
+    {
+      "id": "web",
+      "type": "frontend",
+      "label": "Next.js Web",
+      "sublabel": "工作区界面 · API 路由",
+      "pos": [260, 120],
+      "size": [184, 76]
+    },
+    {
+      "id": "orchestrator",
+      "type": "backend",
+      "label": "聊天编排器",
+      "sublabel": "brief · reply · progress stream",
+      "pos": [480, 120],
+      "size": [184, 76]
+    },
+    {
+      "id": "workflow",
+      "type": "backend",
+      "label": "LangGraph 工作流",
+      "sublabel": "委派 · 冲突 · 修订 · 组装",
+      "pos": [700, 120],
+      "size": [184, 76]
+    },
+    {
+      "id": "agents",
+      "type": "backend",
+      "label": "专家 Agents",
+      "sublabel": "五个旅行规划角色",
+      "pos": [700, 370],
+      "size": [184, 76]
+    },
+    {
+      "id": "tools",
+      "type": "backend",
+      "label": "带类型的工具 Gateway",
+      "sublabel": "地图 · 预订 · 天气",
+      "pos": [920, 370],
+      "size": [184, 76]
+    },
+    {
+      "id": "models",
+      "type": "external",
+      "label": "DeepSeek 模型",
+      "sublabel": "LangChain OpenAI 兼容适配器",
+      "pos": [700, 520],
+      "size": [184, 76]
+    },
+    {
+      "id": "providers",
+      "type": "external",
+      "label": "旅行数据提供方",
+      "sublabel": "Google · OSM · SerpApi",
+      "pos": [1140, 370],
+      "size": [184, 76]
+    }
+  ],
+  "connections": [
+    {
+      "id": "traveller-web",
+      "from": "traveller",
+      "to": "web",
+      "label": "聊天 · 编辑 · 浏览",
+      "variant": "emphasis",
+      "labelAt": [150, 90]
+    },
+    {
+      "id": "web-chat",
+      "from": "web",
+      "to": "orchestrator",
+      "label": "POST /api/chat · NDJSON",
+      "labelAt": [370, 90]
+    },
+    {
+      "id": "chat-workflow",
+      "from": "orchestrator",
+      "to": "workflow",
+      "label": "TripBrief",
+      "labelAt": [590, 90]
+    },
+    {
+      "id": "workflow-agents",
+      "from": "workflow",
+      "to": "agents",
+      "label": "专家提案",
+      "labelAt": [792, 282]
+    },
+    {
+      "id": "agents-tools",
+      "from": "agents",
+      "to": "tools",
+      "label": "带类型的依据",
+      "labelAt": [920, 340]
+    },
+    {
+      "id": "tools-providers",
+      "from": "tools",
+      "to": "providers",
+      "label": "provider adapter",
+      "labelAt": [1140, 340]
+    },
+    {
+      "id": "agents-model",
+      "from": "agents",
+      "to": "models",
+      "label": "LangChain createAgent",
+      "labelAt": [792, 480]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "控制边界",
+      "items": [
+        "LangGraph 决定 specialist 的委派、冲突修订与停止条件",
+        "LangChain agent 在角色节点内推理并调用受限工具"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "数据边界",
+      "items": [
+        "TripBrief、AgentProposal 与 TripPlan 在 schema 边界校验",
+        "旅行数据通过 ToolGateway；agent 不直连 provider"
+      ]
+    }
+  ]
+}

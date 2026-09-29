@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "diagram_type": "lifecycle",
+  "meta": {
+    "title": "行程区段状态生命周期",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "viewBox": [1035, 630],
+    "legend": {
+      "mode": "hidden"
+    }
+  },
+  "lanes": [
+    {
+      "id": "main",
+      "label": "规划阶段"
+    },
+    {
+      "id": "events",
+      "label": "区段结果"
+    },
+    {
+      "id": "terminal",
+      "label": "持久化计划"
+    }
+  ],
+  "states": [
+    {
+      "id": "start",
+      "type": "start",
+      "label": "需求齐全",
+      "sublabel": "提交计划请求",
+      "lane": "main",
+      "col": 0,
+      "step": "01"
+    },
+    {
+      "id": "planning",
+      "type": "active",
+      "label": "LangGraph 规划",
+      "sublabel": "分派 / 冲突 / 修订",
+      "lane": "main",
+      "col": 1,
+      "step": "02"
+    },
+    {
+      "id": "review",
+      "type": "decision",
+      "label": "区段仍有目标冲突？",
+      "sublabel": "检查未解冲突",
+      "lane": "main",
+      "col": 2,
+      "step": "03"
+    },
+    {
+      "id": "draft",
+      "type": "success",
+      "label": "draft",
+      "sublabel": "有提案，无目标冲突",
+      "lane": "events",
+      "col": 0,
+      "tag": "可继续编辑"
+    },
+    {
+      "id": "needs",
+      "type": "waiting",
+      "label": "needs_you",
+      "sublabel": "冲突尚待处理",
+      "lane": "events",
+      "col": 1,
+      "tag": "提示旅行者"
+    },
+    {
+      "id": "stored",
+      "type": "success",
+      "label": "本轮计划已保存",
+      "sublabel": "区段保留各自状态",
+      "lane": "terminal",
+      "col": 2,
+      "yOffset": -40,
+      "tag": "plan"
+    }
+  ],
+  "cards": [],
+  "transitions": [
+    {
+      "id": "request-plan",
+      "from": "start",
+      "to": "planning"
+    },
+    {
+      "id": "planning-review",
+      "from": "planning",
+      "to": "review"
+    },
+    {
+      "id": "review-draft",
+      "from": "review",
+      "to": "draft",
+      "variant": "emphasis"
+    },
+    {
+      "id": "review-needs",
+      "from": "review",
+      "to": "needs",
+      "variant": "security"
+    },
+    {
+      "id": "draft-stored",
+      "from": "draft",
+      "to": "stored",
+      "route": "bottom-channel",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "channelY": 380
+    },
+    {
+      "id": "needs-stored",
+      "from": "needs",
+      "to": "stored"
+    }
+  ]
+}
