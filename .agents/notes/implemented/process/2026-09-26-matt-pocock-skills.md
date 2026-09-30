@@ -12,6 +12,11 @@ Adapt two workflows from [mattpocock/skills](https://github.com/mattpocock/skill
 
 The skills follow this project's decision-round style, bilingual documentation requirements, protected-file rules, E2E preference, failure-inventory rule for isolation checks, and session logging. They complement rather than replace `agent-experience`, `end-to-end-feature-wiring`, `code-review`, `ui-verification`, and `pre-push-checks`. Attribution and the MIT licence are in [THIRD_PARTY_NOTICES.md](../../../skills/THIRD_PARTY_NOTICES.md).
 
+This decision to keep the two project-local adaptations remains in force. The later
+[engineering skills repository configuration](2026-10-01-engineering-skills-repository-configuration.md)
+partially supersedes only the earlier conclusion about avoiding a root `CONTEXT.md` and `docs/adr/`
+layout.
+
 ## Alternatives considered
 
 **Install the full upstream collection unchanged.** Rejected: it overlaps existing workflows and includes defaults such as TDD-first validation and a separate `CONTEXT.md`/ADR structure that do not match this repository.
@@ -29,3 +34,4 @@ Two new skill entrypoints need maintenance when the repository's testing, docume
 - [Matt Pocock skills repository](https://github.com/mattpocock/skills), adapted at commit `c55ee46073ed923f86ce59a5eb3b6d895095d1b7`: `grill-with-docs`, `grilling`, `domain-modeling`, and `diagnosing-bugs`.
 - [E2E-first testing decision](../testing/2026-09-25-e2e-first-testing.md).
 - [Repository workflow skills decision](2026-09-22-repository-workflow-skills.md).
+- [Engineering skills repository configuration](2026-10-01-engineering-skills-repository-configuration.md).

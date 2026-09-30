@@ -1,6 +1,18 @@
 {
   "version": 1,
   "pairs": {
+    "docs/agents/domain.md": {
+      "sourceSha256": "88e9e72c226a81aea2b5f515535481ca34179ef9b16194e006bc459c8cc153fe",
+      "translationSha256": "db41f42177bd94b04163162406ce06523d294ab3a3a1fa2bfabdb72481895fe9"
+    },
+    "docs/agents/issue-tracker.md": {
+      "sourceSha256": "afd6852a80185217bd28aa5cbe456bef1e85be25be7bd1fba382d5b8ee428325",
+      "translationSha256": "8987b843058b77ba1b5048e04866dd2a6afd540821ca613d2a14e1cd8017074d"
+    },
+    "docs/agents/triage-labels.md": {
+      "sourceSha256": "98a7d8cc2a5a6a771f92a0393dafd5d6f628ef6f3da48b468b31c783719ccaa8",
+      "translationSha256": "e42dfb30914fef0ea4cfa05a178490d80b3ba4ca4433fe604d67d792917c04ff"
+    },
     "docs/api.md": {
       "sourceSha256": "3ee29dff9d105f43b71d5a79a472fff25d66e4402211947ad9ea466a3335951f",
       "translationSha256": "e70c3bc9c42df79c6820a351cb5ff90b7fb5540f5926da4625689cfaf0e3b5ff"
