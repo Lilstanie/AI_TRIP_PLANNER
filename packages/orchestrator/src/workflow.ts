@@ -32,6 +32,7 @@ export { detectConflicts } from "./conflicts";
 import { createPlanningBoard } from "./board";
 import { choiceFor, dispatchWithSupervisor, reviseWithSupervisor } from "./supervisor";
 import { withProgressTools } from "./progress-tools";
+import type { WorkflowDecision } from "./decisions";
 
 const DEFAULT_MAX_ROUNDS = 3;
 
@@ -42,6 +43,8 @@ export interface OrchestratorOptions {
   mem?: MemoryStore;
   maxRounds?: number;
   onProgress?: (event: AgentProgressEvent) => void;
+  /** Receives the loop's decisions as typed facts; see `WorkflowDecision`. Never affects the plan. */
+  onDecision?: (decision: WorkflowDecision) => void;
 }
 
 const OrchestratorState = new StateSchema({
@@ -113,6 +116,7 @@ function resolveOptions(options: OrchestratorOptions) {
     tools: options.tools ?? createToolGateway(),
     mem: options.mem ?? memory,
     onProgress: options.onProgress,
+    onDecision: options.onDecision,
   };
 }
 
@@ -126,8 +130,17 @@ function resolveOptions(options: OrchestratorOptions) {
  *                                 build_plan -> END
  */
 export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
-  const { specialists, specialistByName, injected, maxRounds, tools, mem, onProgress } =
+  const { specialists, specialistByName, injected, maxRounds, tools, mem, onProgress, onDecision } =
     resolveOptions(options);
+
+  // A consumer's bug must not cost the traveller their plan.
+  const decide = (decision: WorkflowDecision) => {
+    try {
+      onDecision?.(decision);
+    } catch (error) {
+      console.warn("[orchestrator] A decision consumer failed; the plan is unaffected.", error);
+    }
+  };
 
   const context = (brief: TripBrief, round: number, agent?: AgentName): AgentContext => ({
     tripId: brief.tripId,
@@ -241,6 +254,20 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
       summary: `Checked budget and schedules: ${conflicts.length} revision request(s).`,
       constraints: conflicts.flatMap((c) => c.constraints),
     });
+    // The score is recomputed from the proposals, so skip it when nothing is listening.
+    if (onDecision) {
+      decide({
+        type: "conflicts_detected",
+        round: state.round,
+        score: planScore(state.proposals, state.brief),
+        infeasible: conflicts.some(isInfeasible),
+        conflicts: conflicts.map((conflict) => ({
+          agent: conflict.targetAgent,
+          reason: conflict.reason,
+          ...(conflict.targetSaving !== undefined ? { targetSaving: conflict.targetSaving } : {}),
+        })),
+      });
+    }
     return { conflicts };
   };
 
@@ -256,6 +283,20 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
     const requestByAgent = new Map(
       state.conflicts.map((request) => [request.targetAgent, request]),
     );
+    // Only specialists that can revise are asked to; the others keep their proposal and are not rerun.
+    for (const request of state.conflicts) {
+      if (!specialistByName.get(request.targetAgent)?.supportsRevision) continue;
+      const previous = state.proposals.find((proposal) => proposal.agent === request.targetAgent);
+      decide({
+        type: "revision_started",
+        round,
+        agent: request.targetAgent,
+        reason: request.reason,
+        objective: `Fix: ${request.reason}`,
+        previousSummary: previous?.summary ?? "No earlier proposal.",
+        previousCost: previous ? costOf(previous) : 0,
+      });
+    }
     // A reviser sees what it proposed last time and what everyone else holds,
     // and a budget cut arrives as a ceiling rather than a percentage to guess at.
     const extrasFor = (agent: AgentName) => {
@@ -314,7 +355,19 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
     // Keep the best plan so far: a round that does not improve the score is
     // discarded, and the loop stops, because the next round would see the same
     // inputs and repeat it.
-    if (planScore(proposals, state.brief) >= planScore(state.proposals, state.brief)) {
+    const scoreBefore = planScore(state.proposals, state.brief);
+    const scoreAfter = planScore(proposals, state.brief);
+    decide({
+      type: "revision_scored",
+      round,
+      agents: state.conflicts
+        .filter((request) => specialistByName.get(request.targetAgent)?.supportsRevision)
+        .map((request) => request.targetAgent),
+      scoreBefore,
+      scoreAfter,
+      kept: scoreAfter < scoreBefore,
+    });
+    if (scoreAfter >= scoreBefore) {
       onProgress?.({
         type: "coordinator",
         phase: "revision",
@@ -332,6 +385,18 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
       phase: "assembly",
       round: state.round,
       summary: "Assembling the plan.",
+    });
+    decide({
+      type: "loop_stopped",
+      round: state.round,
+      reason: state.conflicts.some(isInfeasible)
+        ? "infeasible_budget"
+        : state.stalled
+          ? "no_improvement"
+          : state.conflicts.length === 0
+            ? "converged"
+            : "round_limit",
+      unresolved: state.conflicts.length,
     });
     const sections = state.proposals.map((proposal) =>
       toSection(proposal, state.conflicts, specialistByName),

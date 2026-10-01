@@ -33,6 +33,8 @@ runner, evaluator and metrics, and neither persists anything.
 
 ## Contracts
 
+- `OrchestratorOptions.onDecision` receives the loop's decisions as typed `WorkflowDecision` facts
+  (conflicts, revision started and scored, why the loop stopped); it never affects the plan.
 - Specialists, tools, memory and `maxRounds` are injectable through `OrchestratorOptions`; tests
   pass fakes.
 - The brief, each proposal and the final plan are validated against `@trip/shared` schemas at the
