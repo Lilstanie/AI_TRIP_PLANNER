@@ -3,12 +3,13 @@
 English | [中文](api.zh.md)
 
 The Next.js route handlers live under `apps/web/app/api/`. `/api/data-mode` and `/api/places/photo` are
-`GET` handlers; the other five are `POST` handlers. Request bodies are validated with Zod, and planning outputs are
+`GET` handlers; the remaining routes use the methods shown below. Request bodies are validated with Zod, and planning outputs are
 validated against the shared contracts in `packages/shared/src/`.
 
 | Path                                                        | Purpose                                                             |
 | ----------------------------------------------------------- | ------------------------------------------------------------------- |
 | [`/api/chat`](#post-apichat)                                | Extract brief updates or plan a submitted brief, streaming progress |
+| [`/api/agent-lab/runs`](#post-apiagent-labruns)             | Run a registered, inspectable fixture experiment                    |
 | [`/api/data-mode`](#get-apidata-mode)                       | Default data mode and whether live provider keys are configured     |
 | [`/api/places/search`](#post-apiplacessearch)               | Google Places text search                                           |
 | [`/api/places/details`](#post-apiplacesdetails)             | Google place details for a place ID                                 |
@@ -136,6 +137,31 @@ An invalid request body returns HTTP 400 JSON before streaming starts.
 
 An optional `x-trip-data-mode` header of `mock` or `live` chooses fixtures or live providers for this
 request only; any other value, or no header, uses the deployment default.
+
+## `POST /api/agent-lab/runs`
+
+Contract: `AgentLabRunRequest`, `AgentLabRunEvent`, `AgentLabStreamFrame` and
+`AgentLabRunArtifact` in `packages/shared/src/agent-lab.ts`.
+
+```json
+{
+  "scenarioId": "tokyo-couple",
+  "strategyId": "single-agent-baseline",
+  "dataMode": "fixture"
+}
+```
+
+The request is strict: an unknown value or extra property returns HTTP 400 with
+`{ "error": "Invalid Agent Lab request" }`. A valid request streams NDJSON frames. Event frames have
+`{ "type": "event", "event": { ... } }`; the last frame has
+`{ "type": "complete", "artifact": { ... } }`. The artifact contains the validated plan, ordered
+events, deterministic metrics and explicit fixture/evaluator versions. Cancelling the client request
+aborts the run without emitting a completion frame. An internal run failure emits an `error` frame
+with a non-sensitive message and a structured `failed` artifact containing the events recorded before
+the failure.
+
+This first slice is fixture-only. It needs no model or provider key, makes no external calls and does
+not persist chats, trips or lab results.
 
 ## `GET /api/data-mode`
 

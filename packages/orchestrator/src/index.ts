@@ -28,3 +28,9 @@ export {
   type SupervisorDispatchOptions,
   type SupervisorRevisionOptions,
 } from "./supervisor";
+export {
+  agentLabScenarioSummaries,
+  createFailedAgentLabArtifact,
+  runAgentLab,
+  type RunAgentLabOptions,
+} from "./agent-lab";

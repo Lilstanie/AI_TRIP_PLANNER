@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { authEnabled } from "./lib/auth/config";
 
 const publicRoutes = createRouteMatcher([
+  "/agent-lab(.*)",
   "/sign-in(.*)",
   "/sign-up(.*)",
   "/__clerk(.*)",

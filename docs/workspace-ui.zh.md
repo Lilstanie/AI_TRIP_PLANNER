@@ -176,6 +176,18 @@ Timeline & routes 标签页（由 `TripEditor` 组合 `components/trip/timeline/
 
 按 HTTP referrer 限制浏览器密钥，按 API 限制服务端密钥。地图加载从不延迟首次渲染；没有浏览器密钥时，地图显示回退界面，行程仍可使用。
 
+<a id="agent-lab"></a>
+
+## Agent Lab
+
+`/agent-lab` 是公开的工程演示路由，即使 Clerk 保护主工作区时也可访问。它不共用工作区外壳，
+也不读写工作区的浏览器存储。工具栏提供一个已注册场景、一个策略和固定的 Fixture data 模式；
+NDJSON 响应活动期间，Run experiment 按钮会变为 Cancel run。
+
+响应式三面板检查器展示有序运行时间线、经过校验的计划和运行指标。状态与错误使用实时区域，
+控件具有程序化标签和键盘焦点，面板在手机上纵向堆叠且不会横向溢出。只有通过共享 `TripPlan`
+约定校验后才显示结果。该页面无需外部提供方、模型密钥或登录。
+
 <a id="out-of-scope"></a>
 
 ## 账号和设置

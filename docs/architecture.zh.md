@@ -66,6 +66,19 @@ supervisor 只选择某个节点需要哪些 specialist 工具。控制路径、
 4. 没有确认步骤：旅行者通过聊天说明或编辑行程来修改计划，产品不会要求他们批准某个检查点。
    地图查询和行程编辑预览使用 `apps/web` 中的 Google 路由，绝不会重新运行规划器。
 
+<a id="agent-lab"></a>
+
+## Agent Lab
+
+`/agent-lab` 是独立于已保存工作区的公开、可检查实验界面。首个切片只接受已注册的东京双人场景、
+`single-agent-baseline` 策略和 fixture 数据。`POST /api/agent-lab/runs` 校验这一封闭请求，
+调用 `runAgentLab()`，先流式返回有序的 NDJSON 事件信封，最后返回带 schema 版本的产物。
+
+该基线是位于五个旅行 specialist 之上的实验策略，不是第六个 specialist。其确定性 fixture
+生成 `TripPlan`，再次按共享约定校验，并记录基础预算和约束指标。实验室事件信封也能承载现有的
+`AgentProgressEvent` 联合类型，因此后续多 agent 策略可公开同一种受限的运行轨迹，而不公开提示词
+或原始思维链。Fixture 运行不使用提供方凭据、不调用外部服务，也不读取或修改工作区存储。
+
 <a id="langgraph-workflow"></a>
 
 ## LangGraph 工作流
@@ -203,6 +216,7 @@ specialist，supervisor 也会运行它。任一字段设置后，协调器不�
 - `plan.ts`：`TripPlan`、`TripSection` 和 `TripProposal`。
 - `chat.ts`：`ChatRequest`、`ChatResponse`、进度事件、`ChatAskUser` 结构化提问帧，
   以及 `Attachment` 和它的限制。
+- `agent-lab.ts`：封闭的实验请求、生命周期事件信封、指标和带版本的运行产物。
 - `ports.ts`：`ToolGateway`、`MapsPort`、`BookingPort`、`WeatherPort` 和 `MemoryStore`。
 
 Agent 通过 `AgentContext` 接收 `ctx.tools`（`ToolGateway`）和 `ctx.mem`（`MemoryStore`）。
