@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { AgentProgressEvent } from "./chat";
+import { AGENT_NAMES } from "./contracts";
 import { TripPlan } from "./plan";
 
 export const AGENT_LAB_ARTIFACT_SCHEMA_VERSION = 1 as const;
@@ -26,6 +27,15 @@ export type AgentLabRunRequest = z.infer<typeof AgentLabRunRequest>;
 export const AgentLabActor = z.enum(["single-agent", "multi-agent"]);
 export type AgentLabActor = z.infer<typeof AgentLabActor>;
 
+// Why the planning loop ended; exactly one applies to every multi-agent run.
+export const AgentLabStopReason = z.enum([
+  "converged",
+  "round_limit",
+  "infeasible_budget",
+  "no_improvement",
+]);
+export type AgentLabStopReason = z.infer<typeof AgentLabStopReason>;
+
 export const AgentLabLifecycleEvent = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("lab_run_started"),
@@ -51,6 +61,47 @@ export const AgentLabLifecycleEvent = z.discriminatedUnion("type", [
     label: z.string().min(1),
     resultSummary: z.string().min(1),
     resultCount: z.number().int().nonnegative(),
+  }),
+  z.object({
+    type: z.literal("lab_conflict_detected"),
+    round: z.number().int().positive(),
+    // AUD over budget plus a tenth of the budget per other conflict; lower is better.
+    score: z.number().nonnegative(),
+    // True when no revision can meet the budget, so the loop stops instead of revising.
+    infeasible: z.boolean(),
+    conflicts: z.array(
+      z.object({
+        agent: z.enum(AGENT_NAMES),
+        reason: z.string().min(1),
+        targetSaving: z.number().nonnegative().optional(),
+      }),
+    ),
+    summary: z.string().min(1),
+  }),
+  z.object({
+    type: z.literal("lab_revision_started"),
+    round: z.number().int().positive(),
+    agent: z.enum(AGENT_NAMES),
+    objective: z.string().min(1),
+    // What the specialist proposed before this revision, so a reader can see what it replaced.
+    previousOutcome: z.string().min(1),
+  }),
+  z.object({
+    type: z.literal("lab_revision_scored"),
+    round: z.number().int().positive(),
+    agents: z.array(z.enum(AGENT_NAMES)),
+    scoreBefore: z.number().nonnegative(),
+    scoreAfter: z.number().nonnegative(),
+    // False means the revision did not improve the plan and the previous proposals stand.
+    kept: z.boolean(),
+    summary: z.string().min(1),
+  }),
+  z.object({
+    type: z.literal("lab_loop_stopped"),
+    round: z.number().int().positive(),
+    reason: AgentLabStopReason,
+    unresolved: z.number().int().nonnegative(),
+    summary: z.string().min(1),
   }),
   z.object({
     type: z.literal("lab_plan_validated"),
@@ -118,6 +169,18 @@ export const AgentLabMetrics = z.object({
   fallbacks: z.number().int().nonnegative(),
   failedAgents: z.number().int().nonnegative(),
   unresolvedConflicts: z.number().int().nonnegative(),
+  // Sections built from provider or fixture evidence rather than a fallback or an unavailable source.
+  groundedSections: z.number().int().nonnegative(),
+  // Itinerary stops that repeat an earlier stop, counting each repeat after the first visit.
+  duplicateStops: z.number().int().nonnegative(),
+  // Itinerary stops that name no real place ("Mock attraction near Tokyo", a bare city, nothing).
+  genericStops: z.number().int().nonnegative(),
+  // Whether every city of a multi-city trip has a stay and an activity; null for a single-city trip.
+  multiCityConsistent: z.boolean().nullable(),
+  // Why the loop ended, from the trace; null for a strategy that has no loop.
+  stopReason: AgentLabStopReason.nullable(),
+  // Token and model-cost usage. Fixture runs make no model calls, so this is unavailable, never zero.
+  usage: z.object({ status: z.literal("unavailable"), reason: z.string().min(1) }),
 });
 export type AgentLabMetrics = z.infer<typeof AgentLabMetrics>;
 

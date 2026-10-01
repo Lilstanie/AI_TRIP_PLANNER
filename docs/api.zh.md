@@ -160,7 +160,11 @@ specialist 运行一轮，因此其计划为 `round: 1`，所有冲突都保持�
 确定性指标，以及明确的 fixture／评估器版本。`metrics.checks` 逐项列出按场景规则衡量的具名检查
 （`id`、`label`、`passed`）；计划超出预算时 `budgetHeadroom` 为负数。对比数据 `rounds`、`toolCalls`、`fallbacks`、`failedAgents` 和
 `unresolvedConflicts` 由轨迹和计划统计得出；`latencyMs` 是不含显示节奏延迟的运行耗时（`durationMs` 含该延迟），
-在 fixture 模式下仅衡量编排开销。客户端取消请求会中止运行，不发送完成帧。
+在 fixture 模式下仅衡量编排开销。产物还记录 `groundedSections`、`duplicateStops`、`genericStops`、
+`multiCityConsistent`（单城市旅行为 `null`）、`stopReason`（没有循环的策略为 `null`）和 `usage`；fixture 运行不调用
+模型，所以 `usage` 为 `{ "status": "unavailable" }`：缺失的用量绝不会被当作 0。除 `durationMs` 和 `latencyMs` 外，
+每个指标都能仅凭最终计划和轨迹重新计算，不需要模型来评判。该约定还定义了轨迹事件 `lab_conflict_detected`、
+`lab_revision_started`、`lab_revision_scored` 和 `lab_loop_stopped`，带修订循环的运行会产生它们。客户端取消请求会中止运行，不发送完成帧。
 运行内部失败时，会发送 `error` 帧；其中包含不敏感的消息，以及记录失败前事件的结构化
 `failed` 产物。
 

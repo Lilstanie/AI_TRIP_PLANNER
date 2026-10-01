@@ -1,3 +1,4 @@
+export { measureAgentLabRun, recomputeAgentLabMetrics, type AgentLabMeasurement } from "./metrics";
 export { evaluateAgentLabPlan, type AgentLabEvaluation } from "./evaluate";
 export { createMultiAgentFixtureStrategy, multiAgentFixtureStrategy } from "./multi-agent-fixture";
 export { agentLabStrategySummaries, findAgentLabStrategy } from "./strategies";
