@@ -164,7 +164,13 @@ named check (`id`, `label`, `passed`) measured against the scenario's rules; `bu
 negative when the plan is over budget. The comparison figures `rounds`, `toolCalls`, `fallbacks`,
 `failedAgents` and `unresolvedConflicts` are counted from the trace and the plan; `latencyMs` is the
 run's wall time without display pacing (`durationMs` includes it) and, in fixture mode, measures
-orchestration overhead only. Cancelling the client request
+orchestration overhead only. The artifact also records `groundedSections`, `duplicateStops`,
+`genericStops`, `multiCityConsistent` (`null` for a single-city trip), `stopReason` (`null` for a
+strategy with no loop) and `usage`. Because fixture runs make no model calls, `usage` is `{ "status": "unavailable" }`:
+missing usage is never reported as zero. Every metric except `durationMs` and `latencyMs`
+is recomputed from the final plan and the trace alone, with no model judging it. The contract also defines the trace
+events `lab_conflict_detected`, `lab_revision_started`, `lab_revision_scored` and `lab_loop_stopped`, which a run
+with a revision loop emits. Cancelling the client request
 aborts the run without emitting a completion frame. An internal run failure emits an `error` frame
 with a non-sensitive message and a structured `failed` artifact containing the events recorded before
 the failure.

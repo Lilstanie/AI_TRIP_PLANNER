@@ -4,13 +4,13 @@ import {
   AgentLabFailedRunArtifact,
   AgentLabRunEvent,
   type AgentLabEventPayload,
-  type AgentLabMetrics,
   type AgentLabFailedRunArtifact as AgentLabFailedRunArtifactValue,
   type AgentLabRunEvent as AgentLabRunEventValue,
   type AgentLabRunRequest,
   type TripPlan,
 } from "@trip/shared";
 import { evaluateAgentLabPlan } from "./evaluate";
+import { measureAgentLabRun } from "./metrics";
 import { findAgentLabScenario } from "./scenarios";
 import { findAgentLabStrategy } from "./strategies";
 
@@ -27,26 +27,6 @@ interface CreateFailedArtifactOptions {
   startedAtMs: number;
   events: AgentLabRunEventValue[];
   message: string;
-}
-
-/** What the trace and the plan say, counted once so every strategy is measured the same way. */
-function traceMetrics(
-  events: readonly AgentLabRunEventValue[],
-  plan: TripPlan,
-): Pick<
-  AgentLabMetrics,
-  "rounds" | "toolCalls" | "fallbacks" | "failedAgents" | "unresolvedConflicts"
-> {
-  const count = (...types: string[]) =>
-    events.filter((runEvent) => types.includes(runEvent.event.type)).length;
-  return {
-    rounds: Math.max(1, plan.round),
-    toolCalls: count("tool_completed", "lab_tool_completed"),
-    fallbacks: plan.sections.filter((section) => section.proposal?.source?.kind === "fallback")
-      .length,
-    failedAgents: count("agent_failed"),
-    unresolvedConflicts: plan.conflicts?.length ?? 0,
-  };
 }
 
 function abortableDelay(ms: number, signal: AbortSignal): Promise<void> {
@@ -147,9 +127,7 @@ export async function runAgentLab(
     events,
     plan,
     metrics: {
-      ...evaluated,
-      ...traceMetrics(events, plan),
-      eventCount: events.length,
+      ...measureAgentLabRun(scenario, plan, events),
       durationMs: completedAtMs - startedAtMs,
       latencyMs: Math.max(0, completedAtMs - startedAtMs - pacedMs),
     },

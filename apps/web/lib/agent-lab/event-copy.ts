@@ -16,9 +16,13 @@ export interface EventCopy {
   detail: string;
   /** Constraints the actor was given, when the event states them. */
   constraints?: string[];
+  /** Another named list the event carries, such as the conflicts a check found. */
+  list?: { heading: string; lines: string[] };
 }
 
 const agentName = (agent: string) => agent.replace(/-/g, " ");
+/** A revision runs a specialist again, so later rounds say which round a title belongs to. */
+const inRound = (round: number) => (round > 1 ? ` · round ${round}` : "");
 
 const phaseTitle = {
   dispatch: "Dispatch specialists",
@@ -43,6 +47,44 @@ export function eventCopy(runEvent: AgentLabRunEvent): EventCopy {
       return { kind: "tool", title: event.label, detail: event.summary };
     case "lab_tool_completed":
       return { kind: "tool", title: event.label, detail: event.resultSummary };
+    case "lab_conflict_detected":
+      return {
+        kind: "graph",
+        title: `Conflict check · round ${event.round}`,
+        detail: event.summary,
+        list: event.conflicts.length
+          ? {
+              heading: "Conflicts",
+              lines: event.conflicts.map(
+                (conflict) =>
+                  `${agentName(conflict.agent)}: ${conflict.reason}${
+                    conflict.targetSaving !== undefined
+                      ? ` (asked to save AUD ${conflict.targetSaving.toFixed(2)})`
+                      : ""
+                  }`,
+              ),
+            }
+          : undefined,
+      };
+    case "lab_revision_started":
+      return {
+        kind: "graph",
+        title: `Revise ${agentName(event.agent)} · round ${event.round}`,
+        detail: event.objective,
+        list: { heading: "Previous outcome", lines: [event.previousOutcome] },
+      };
+    case "lab_revision_scored":
+      return {
+        kind: "graph",
+        title: `Revision scored · round ${event.round}`,
+        detail: event.summary,
+      };
+    case "lab_loop_stopped":
+      return {
+        kind: "graph",
+        title: `Loop stopped · round ${event.round}`,
+        detail: event.summary,
+      };
     case "lab_plan_validated":
       return { kind: "run", title: "Plan validated", detail: event.summary };
     case "lab_evaluation_completed":
@@ -71,34 +113,38 @@ export function eventCopy(runEvent: AgentLabRunEvent): EventCopy {
     case "agent_started":
       return {
         kind: "specialist",
-        title: `${agentName(event.agent)} started`,
+        title: `${agentName(event.agent)} started${inRound(event.round)}`,
         detail: event.objective ?? event.summary ?? "Started.",
         constraints: event.constraints?.length ? event.constraints : undefined,
       };
     case "agent_completed":
       return {
         kind: "specialist",
-        title: `${agentName(event.agent)} completed`,
+        title: `${agentName(event.agent)} completed${inRound(event.round)}`,
         detail: event.outcome ?? event.summary ?? "Completed.",
       };
     case "agent_failed":
-      return { kind: "specialist", title: `${agentName(event.agent)} failed`, detail: event.error };
+      return {
+        kind: "specialist",
+        title: `${agentName(event.agent)} failed${inRound(event.round)}`,
+        detail: event.error,
+      };
     case "tool_started":
       return {
         kind: "tool",
-        title: `${agentName(event.agent)} · ${event.label}`,
+        title: `${agentName(event.agent)} · ${event.label}${inRound(event.round)}`,
         detail: event.summary,
       };
     case "tool_completed":
       return {
         kind: "tool",
-        title: `${agentName(event.agent)} · ${event.label}`,
+        title: `${agentName(event.agent)} · ${event.label}${inRound(event.round)}`,
         detail: event.resultSummary,
       };
     case "tool_failed":
       return {
         kind: "tool",
-        title: `${agentName(event.agent)} · ${event.label}`,
+        title: `${agentName(event.agent)} · ${event.label}${inRound(event.round)}`,
         detail: event.error,
       };
   }
