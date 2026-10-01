@@ -1,6 +1,6 @@
 ---
 name: break
-description: Use when asked to stress-test one apps/web component of AI_TRIP_PLANNER — render it on a throwaway dev-only debug page under every scenario its props can reach (long mixed-script names, huge AUD amounts, zero or many stops, degraded sources, narrow containers) and report what visibly broke.
+description: Stress-test one apps/web component of AI_TRIP_PLANNER by rendering it on a throwaway dev-only debug page under every scenario its props can reach (long mixed-script names, huge AUD amounts, zero or many stops, degraded sources, narrow containers) and reporting what visibly broke. Use when asked to stress-test or break a component.
 disable-model-invocation: true
 ---
 
@@ -23,7 +23,7 @@ what the component accepts, what it renders and where it lives.
 ## 2. Pick the scenarios from its props
 
 Read the component's props, states and the data it renders. Go through
-[scenarios.md](scenarios.md) and keep only the axes whose cue matches. Write the kept scenarios down,
+[scenarios.md](references/scenarios.md) and keep only the axes whose cue matches. Write the kept scenarios down,
 one line each, before you build. Say in one line which axes you dropped and why.
 
 ## 3. Build the harness page

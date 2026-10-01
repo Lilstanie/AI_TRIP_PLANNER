@@ -1,6 +1,6 @@
 ---
 name: better-layout
-description: Use when arranging or reviewing content inside the apps/web workspace of AI_TRIP_PLANNER — drawer sections, trip timeline rows, preference fields, chat cards, map overlays — for grouping, alignment, reading order, disclosure and growth, without changing the fixed workspace layout.
+description: Arrange content inside the apps/web workspace of AI_TRIP_PLANNER for grouping, alignment, reading order, disclosure and growth without changing the fixed workspace layout. Use when laying out or reviewing drawer sections, trip timeline rows, preference fields, chat cards or map overlays.
 ---
 
 # Layout
@@ -29,7 +29,7 @@ changing those regions. If a region really does need to change, raise it as a de
 
 - **Order by importance.** A trip row leads with the place and time, and the metadata and actions
   trail. The budget leads with the total. The one number the traveller came for is never buried. See
-  [grouping-and-alignment.md](grouping-and-alignment.md).
+  [grouping-and-alignment.md](references/grouping-and-alignment.md).
 - **Controls look like controls.** They have a fill, a border or a consistent control zone. A badge
   must not look like the button next to it.
 - **Align to shared edges.** Use one leading edge per column and one indent step (`--space-4`) per
@@ -37,7 +37,7 @@ changing those regions. If a region really does need to change, raise it as a de
 - **Plan for growth.** Destinations, places and hotel names come from providers and users, in
   English, Chinese or mixed. Do not set a fixed width or height on text. Let rows wrap. Clamp long
   names and keep the full text reachable. A one-word button label is the riskiest string on screen.
-  See [spacing-and-adaptivity.md](spacing-and-adaptivity.md).
+  See [spacing-and-adaptivity.md](references/spacing-and-adaptivity.md).
 - **Never clip a critical action.** Review plan and the composer send button stay in stable
   chrome or in normal flow. They must never sit at the bottom of a pane that can scroll out
   of view.

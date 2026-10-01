@@ -87,7 +87,7 @@ Glass is Liquid Glass, the translucent, blurred and lightly saturated material o
 - Text and icons on glass meet WCAG AA against the busiest backdrop they can cover. When they fail, raise the fill opacity rather than adding text shadows.
 - Glass falls back to `--surface` when `backdrop-filter` is unsupported, under `prefers-reduced-transparency: reduce` or `prefers-contrast: more`, and to system colours in forced-colors mode.
 
-The implementation recipe is the [better-ui glass reference](../../.agents/skills/better-ui/glass.md).
+The implementation recipe is the [better-ui glass reference](../../.agents/skills/better-ui/references/glass.md).
 
 ### Motion
 

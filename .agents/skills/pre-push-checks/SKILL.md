@@ -1,6 +1,6 @@
 ---
 name: pre-push-checks
-description: Use before pushing, opening or updating a pull request, or claiming that checks pass in AI_TRIP_PLANNER, to pick the smallest set of commands that would catch a regression in the outgoing diff instead of reflexively running the whole repository suite.
+description: Pick the smallest set of commands that would catch a regression in the outgoing diff, instead of reflexively running the whole repository suite, in AI_TRIP_PLANNER. Use before pushing, opening or updating a pull request, or claiming that checks pass.
 ---
 
 # Pre-push checks

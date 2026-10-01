@@ -1,6 +1,6 @@
 # Scenario axes
 
-This is the menu that step 2 of [SKILL.md](SKILL.md) chooses from. Each axis has a cue, meaning the
+This is the menu that step 2 of [SKILL.md](../SKILL.md) chooses from. Each axis has a cue, meaning the
 property of the component that makes the axis worth running. If the cue matches, the axis stays; if
 not, drop it and name the drop in the plan. Prefer the worst real values from the mock data in
 `packages/tools/src/mock-server.mjs` when they are worse than the examples below.
@@ -90,4 +90,4 @@ Leave focus and hover for the user to try on the page.
 
 **Cue: the project supports the mode.** The page does not render these. Name them in the report for
 the user to toggle: OS dark mode, 200% zoom, reduced motion, and reduced transparency for anything
-that uses [glass](../better-ui/glass.md).
+that uses glass (the `better-ui` skill).

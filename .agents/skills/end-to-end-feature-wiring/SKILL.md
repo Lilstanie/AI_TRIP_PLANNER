@@ -1,6 +1,6 @@
 ---
 name: end-to-end-feature-wiring
-description: Use when implementing a feature that crosses package, port, agent, persistence, streaming, or UI boundaries, or when existing data or behavior is produced but does not reach its intended consumer.
+description: Trace a value across package, port, agent, persistence, streaming and UI boundaries until it reaches its intended consumer. Use when implementing a feature that crosses those boundaries, or when existing data or behavior is produced but does not reach its intended consumer.
 ---
 
 # End-to-end feature wiring

@@ -1,6 +1,6 @@
 ---
 name: better-accessibility
-description: Use when building or reviewing anything interactive in apps/web of AI_TRIP_PLANNER — buttons, drawers, dialogs, menus, forms, live planning status, map controls or motion — to keep keyboard, focus, screen-reader, contrast and reduced-motion behaviour working.
+description: Keep keyboard, focus, screen-reader, contrast and reduced-motion behaviour working for interactive UI in apps/web of AI_TRIP_PLANNER. Use when building or reviewing buttons, drawers, dialogs, menus, forms, live planning status, map controls or motion.
 ---
 
 # Accessibility
@@ -40,31 +40,31 @@ over a custom rebuild, and remove ARIA rather than add it.
   and colour is never the only status signal. Source badges and warnings carry text or a shape.
 - **Glass surfaces.** Text on glass must pass AA against the busiest backdrop behind it. Glass must
   turn opaque under `prefers-reduced-transparency` and `prefers-contrast: more`. See the
-  [glass recipe](../better-ui/glass.md).
+  [`better-ui` skill](../better-ui/SKILL.md)'s glass recipe.
 
 ## Rules that keep coming up
 
 - **Native elements first.** Use `<button>` for actions and `<a href>` for navigation, never
-  `<div onClick>`. See [semantics-and-aria.md](semantics-and-aria.md).
+  `<div onClick>`. See [semantics-and-aria.md](references/semantics-and-aria.md).
 - **Keyboard path for every pointer action**, including map interactions. A marker or place that
   opens detail on click also needs a focusable equivalent in the place list. Escape closes the
-  overlay that opened last. See [focus-and-keyboard.md](focus-and-keyboard.md).
+  overlay that opened last. See [focus-and-keyboard.md](references/focus-and-keyboard.md).
 - **Hit areas.** At least 24×24 CSS px (WCAG 2.5.8). Aim for 40px on desktop and 44px on phones where
   the density allows. Collapsed sidebar icons and map controls are the usual offenders. See
-  [hit-areas.md](hit-areas.md).
+  [hit-areas.md](references/hit-areas.md).
 - **Label every control.** A placeholder is never a label. The top-bar fact editors use real labels, and
-  new fields do too. See [forms.md](forms.md).
+  new fields do too. See [forms.md](references/forms.md).
 - **Accessible names.** Icon-only buttons need an `aria-label` that contains any visible text.
   Buttons that shrink to icons at ≤520 px keep their names.
 - **Announce streaming and planning progress politely.** Use a stable `role="status"` region that
   exists before its text changes. Reserve `role="alert"` for urgent failures that no control owns.
-  Never announce every streamed token. See [screen-readers.md](screen-readers.md).
+  Never announce every streamed token. See [screen-readers.md](references/screen-readers.md).
 - **Place photos.** Use the place name as alt text, or `alt=""` when the name is visible beside the
   photo. A photo carousel needs labelled previous and next buttons, and its keyboard path must not
   trap Tab.
 - **Survive zoom and reflow.** Test at 200% zoom and 320 px width. The map is 2D content and may
   scroll inside its own box. The page must not scroll sideways. See
-  [motion-and-zoom.md](motion-and-zoom.md).
+  [motion-and-zoom.md](references/motion-and-zoom.md).
 
 The reference files are generic web guidance. Where one of them gives a value or a token name
 (`--focus-ring`, opt-in motion) that disagrees with the project facts above, the project wins.

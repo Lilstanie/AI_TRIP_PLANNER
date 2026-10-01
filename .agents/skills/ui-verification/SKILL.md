@@ -1,6 +1,6 @@
 ---
 name: ui-verification
-description: Use after changing anything a person can see in apps/web of AI_TRIP_PLANNER — components, styles, layout, copy or client state — to verify it in a real browser at desktop and phone widths and attach screenshots as evidence, before claiming the change works.
+description: Verify a UI change in a real browser at desktop and phone widths and attach screenshots as evidence, in apps/web of AI_TRIP_PLANNER. Use after changing anything a person can see (components, styles, layout, copy or client state), before claiming the change works.
 ---
 
 # Verify a UI change in the browser

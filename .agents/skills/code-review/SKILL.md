@@ -1,6 +1,6 @@
 ---
 name: code-review
-description: Use when reviewing a pull request or diff in AI_TRIP_PLANNER, including self-review before opening one, to check the defect classes this repository has actually shipped or nearly shipped, on top of general correctness.
+description: Review a pull request or diff in AI_TRIP_PLANNER against the defect classes this repository has actually shipped or nearly shipped, on top of general correctness. Use when reviewing a pull request or diff, including self-review before opening one.
 ---
 
 # Reviewing an AI_TRIP_PLANNER change

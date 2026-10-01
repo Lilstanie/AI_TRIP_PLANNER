@@ -36,8 +36,9 @@ SOFTWARE.
 The `better-accessibility`, `better-layout`, `better-ui`, `better-writing` and `break` skills are
 adapted from [jakubkrehel/skills](https://github.com/jakubkrehel/skills) at commit
 `267330e1adfc66a718fb65fa6918c1f06d0a689e` (2026-08-29). Their `SKILL.md` files and
-`break/scenarios.md` are rewritten for this project, and `better-ui/glass.md` is new. The remaining
-reference files are copied with small edits to their cross-references. The upstream licence follows.
+`break/references/scenarios.md` are rewritten for this project, and `better-ui/references/glass.md`
+is new. The remaining reference files are copied with small edits to their cross-references, and all
+of them sit under each skill's `references/` directory. The upstream licence follows.
 
 ```text
 MIT License
