@@ -162,7 +162,7 @@ Libraries.dev skill 支持 `libraries reveal`、`libraries review` 和 `librarie
 
 ## 验证
 
-文档变化还需在审查并记录已修改的配对后，运行本地配对检查。这项检查独立于 `pnpm verify:docs`，目前不在 CI 中运行：
+文档变化还需在审查并记录已修改的配对后，运行本地配对检查。这项检查独立于 `pnpm verify:docs`，CI 会在拉取请求中运行它：
 
 ```bash
 node .agents/skills/translate-docs/scripts/check-pairs.mjs
@@ -174,18 +174,29 @@ node .agents/skills/translate-docs/scripts/check-pairs.mjs
 
 复杂功能应优先只用端到端（E2E）测试验证行为：走完整用户路径，并留下可复现、可审查的产物，例如报告、trace 或截图。记录复现所需的命令、步骤或 fixture。绝不在编写实现代码之后再编写单元测试。如果必须隔离测试一个系统，先列举它所有可能的失败方式，再编写代码，并从这份清单推导隔离检查。
 
-这是新工作的首选方式；以下命令记录仓库当前提供的检查。CI 通过 `pnpm test` 运行现有 Vitest 测试套件；目前没有配置已纳入版本控制的 E2E runner。
+这是新工作的首选方式。CI 通过 `pnpm test` 运行 Vitest 测试套件，通过 `pnpm test:scripts` 运行仓库脚本测试（`scripts/*.test.mjs`）。CI 不运行 E2E 脚本，因此推送前应自行运行相关脚本。
 
-`apps/web/tests/e2e/plan-quality.e2e.mjs` 通过 `POST /api/chat` 向运行中的开发服务器提交三个固定行程需求以生成方案（`DATA_MODE=live` 为默认值，也可设为 `mock`），并检查预算、未解决冲突、行程来源、重复停靠点和泛化停靠点。每次运行把 NDJSON 流、方案和 `summary.json` 写入 `output/e2e/plan-quality/<run>/`。实时模型输出会变化，因此应比较多次运行。
+E2E 脚本位于 `apps/web/tests/e2e/`，需手动对运行中的开发服务器执行：
+
+```bash
+pnpm --filter @trip/web dev            # in another terminal
+node apps/web/tests/e2e/<name>.e2e.mjs
+```
+
+- **API 脚本**（`plan-quality`、`conversation-scope`）向 `/api/chat` 发请求，`DATA_MODE=live` 为默认值，也可设为 `mock`。`plan-quality` 提交三个固定行程需求，并检查预算、未解决冲突、行程来源、重复停靠点和泛化停靠点；实时模型输出会变化，因此应比较多次运行。每次运行把 NDJSON 流、方案和 `summary.json` 写入 `output/e2e/<name>/<run>/`。
+- **浏览器脚本**（其余所有脚本，包括三个 `agent-lab-*`）用 Playwright 在桌面和手机宽度下运行，并把截图写入 `output/playwright/<name>/`；Agent Lab 的脚本还会写入原始 NDJSON 和 artifact。`CHANNEL=chrome` 与 `PLAYWRIGHT=<path>` 用于选择浏览器和 Playwright 包；服务器不在 `http://localhost:3000` 时用 `BASE_URL` 指定。
+
+`output/e2e/` 和 `output/playwright/` 已被 Git 忽略。每个脚本的文件头列出它所依据的失败清单和所需的服务器环境，例如 `agent-lab-revision` 需要 `USE_MOCK_TOOLS=true`，且不能配置模型或 provider 密钥。
 
 ```bash
 pnpm typecheck
 pnpm lint
 pnpm test
+pnpm test:scripts
 pnpm build
 ```
 
-CI（`.github/workflows/ci.yml`）在拉取请求和推送到 `main` 时，用 Node 22 运行相同的四条命令。
+CI（`.github/workflows/ci.yml`）在拉取请求和推送到 `main` 时，用 Node 22 运行这五条命令。
 
 使用 `pnpm --filter @trip/agents test`、`pnpm --filter @trip/orchestrator test` 或 `pnpm --filter @trip/web test` 针对特定包运行测试。Web 测试脚本使用 POSIX shell 语法设置 `NODE_OPTIONS`；Windows 上应从 WSL 或 Git Bash 运行。
 

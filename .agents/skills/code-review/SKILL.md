@@ -34,6 +34,22 @@ Each item below is a defect this project has hit; the source is in brackets.
   removed fields are stripped, not rejected, when old data is parsed.
 - **Persisted browser data.** A change to a stored trip field needs a snapshot version bump and a stated
   decision about old snapshots. [storage](../../notes/implemented/architecture/2026-09-24-workspace-catalog-trip-storage.md)
+- **Labels and verdicts come from the data.** A status the page prints ("Within budget", "Passed")
+  must be read from the field that decides it, never a constant. Agent Lab's first slice shipped a
+  fixed "Within budget" label and a page that showed a figure its artifact did not hold. A comparison
+  page must not rank what it only measures.
+- **A check must be able to fail.** An evaluator measures the rules its scenario states, not a
+  convenient subset, and each acceptance criterion needs a check that fails when it is broken. A
+  sign-in-gate criterion no test could observe was caught only by review. Prefer metrics a plain
+  script can recompute from the artifact, as `agent-lab-revision.e2e.mjs` does, over a model judge.
+  [Agent Lab review fixes](../../session-logs/2026-10-01-agent-lab-review-fixes.md)
+- **Optional services stay optional.** Accounts (Clerk) and the database (Neon) switch on only when
+  their keys are set; without them the workspace stays single-user and local, the account routes
+  answer 503 and `pnpm build` still passes. Check both modes, and that API contracts are not
+  redirected to sign-in. [accounts](../../notes/implemented/architecture/2026-09-27-accounts-settings-sync.md)
+- **Observers never steer.** A hook or trace that reports a decision (`onDecision`, Agent Lab events)
+  must not change the plan, must cost nothing when no one listens, and must survive a consumer that
+  throws. A versioned artifact keeps its `schemaVersion` only while nothing released reads the old shape.
 - **Late responses.** Editing, switching or starting trips must abort or ignore in-flight requests so
   a late response cannot overwrite newer state.
 - **Boundaries.** Agents reach providers only through ports; `route.ts` files stay thin adapters;

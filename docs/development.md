@@ -213,7 +213,7 @@ counterpart in the same task.
 ## Verification
 
 For documentation changes, also run the local pairing check after reviewing and recording the
-changed pairs. This is separate from `pnpm verify:docs` and is not currently a CI check:
+changed pairs. This is separate from `pnpm verify:docs`; CI runs it for pull requests:
 
 ```bash
 node .agents/skills/translate-docs/scripts/check-pairs.mjs
@@ -227,23 +227,39 @@ Record the command and the steps or fixtures needed to reproduce it. Never write
 writing implementation code. If a system must be tested in isolation, first enumerate all the ways it
 could fail, then write the code and derive the isolated checks from that list.
 
-This describes the preferred approach for new work; the commands below document the checks currently
-available in the repository. CI runs the existing Vitest suite through `pnpm test`; no checked-in E2E
-runner is currently configured.
+This describes the preferred approach for new work. CI runs the Vitest suites through `pnpm test` and
+the repository script tests (`scripts/*.test.mjs`) through `pnpm test:scripts`. It does not run the E2E
+scripts, so run the relevant one yourself before pushing.
 
-`apps/web/tests/e2e/plan-quality.e2e.mjs` plans three fixed briefs through `POST /api/chat` against a
-running dev server (`DATA_MODE=live` by default, or `mock`) and checks budget, unresolved conflicts,
-itinerary source, repeated and generic stops. Each run writes the NDJSON streams, plans and
-`summary.json` to `output/e2e/plan-quality/<run>/`. Live model output varies, so compare several runs.
+The E2E scripts live in `apps/web/tests/e2e/` and run by hand against a running dev server:
+
+```bash
+pnpm --filter @trip/web dev            # in another terminal
+node apps/web/tests/e2e/<name>.e2e.mjs
+```
+
+- **API scripts** (`plan-quality`, `conversation-scope`) post to `/api/chat` with `DATA_MODE=live`
+  (default) or `mock`. `plan-quality` plans three fixed briefs and checks budget, unresolved conflicts,
+  itinerary source, repeated and generic stops; live model output varies, so compare several runs.
+  Each run writes the NDJSON streams, plans and `summary.json` to `output/e2e/<name>/<run>/`.
+- **Browser scripts** (every other script, including the three `agent-lab-*` ones) drive Playwright at
+  desktop and phone widths and write screenshots, and for Agent Lab the raw NDJSON and artifacts, to
+  `output/playwright/<name>/`. `CHANNEL=chrome` and `PLAYWRIGHT=<path>` select the browser and the
+  Playwright package; `BASE_URL` points at a server other than `http://localhost:3000`.
+
+`output/e2e/` and `output/playwright/` are Git-ignored. Each script's header lists the failure inventory it was written from and
+any server environment it needs; for example `agent-lab-revision` expects `USE_MOCK_TOOLS=true` and no
+model or provider keys.
 
 ```bash
 pnpm typecheck
 pnpm lint
 pnpm test
+pnpm test:scripts
 pnpm build
 ```
 
-CI (`.github/workflows/ci.yml`) runs the same four commands on Node 22 for pull requests and pushes
+CI (`.github/workflows/ci.yml`) runs these five commands on Node 22 for pull requests and pushes
 to `main`.
 
 Run focused packages with `pnpm --filter @trip/agents test`, `pnpm --filter @trip/orchestrator test`

@@ -6,8 +6,9 @@ description: Pick the smallest set of commands that would catch a regression in 
 # Pre-push checks
 
 Run relevant evidence once before a push, and report only commands you actually ran with their real
-results. CI (`.github/workflows/ci.yml`) already runs `typecheck`, `lint`, `test` and `build` for the
-whole repository plus the protected-file and Agent Note checks; local runs exist to catch the failure
+results. CI (`.github/workflows/ci.yml`) already runs `typecheck`, `lint`, `test`, `test:scripts` and `build`
+for the whole repository, plus the protected-file, `verify:docs` and translation-pair checks on pull
+requests. It does not run the E2E scripts, so those are local evidence only; local runs exist to catch the failure
 before CI does, not to repeat CI. Prefer an E2E test as the sole behavioral check for complex new
 features, with a repeatable artifact. Do not write unit tests after implementation code. If isolated
 testing is necessary, enumerate the failure modes before writing the code, then choose focused checks
@@ -32,18 +33,20 @@ Include uncommitted files if you are about to commit them.
 | One behaviour inside a package                                            | If isolation is necessary, enumerate failure modes before implementation, then run the focused file: `pnpm --filter @trip/<pkg> exec vitest run tests/<file>.test.ts`                                                               |
 | `packages/shared/src/**`                                                  | `pnpm typecheck` (every package depends on it), the existing `pnpm --filter @trip/shared test` suite, and `pnpm verify:protected` — CI fails without an Agent Note                                                                  |
 | `apps/web/**`                                                             | Prefer browser E2E for complex user paths; run existing regression checks with `pnpm --filter @trip/web test`, plus web typecheck and lint                                                                                          |
+| A user path covered by `apps/web/tests/e2e/*.e2e.mjs`                     | Run that script against a dev server and keep its `output/` artifact; commands, modes and output folders are in [development.md](../../../docs/development.md#testing-approach). Add a script for a new complex path                |
+| `apps/web/drizzle/**`, `apps/web/lib/db/**`                               | `pnpm --filter @trip/web db:generate` produces the migration you commit; test with and without `DATABASE_URL`, since the database is optional                                                                                       |
 | Route handlers, `next.config.mjs`, server/client boundaries               | Add `pnpm --filter @trip/web build`. If `pnpm dev` is running, start it with `NEXT_DIST_DIR=.next-dev` so the two do not share `.next`                                                                                              |
 | UI a person can see                                                       | Also follow [ui-verification](../ui-verification/SKILL.md)                                                                                                                                                                          |
 | Provider adapters in `packages/tools`                                     | Prefer a repeatable user-path E2E with a stubbed provider; never spend real SerpApi or Google quota. If adapter isolation is necessary, enumerate failure modes before implementation. See [add-provider](../add-provider/SKILL.md) |
 | `.agents/**`, `docs/**`                                                   | `pnpm verify:docs`, `pnpm verify:protected`, and `npx prettier --check <changed files>` (Prettier is not in CI)                                                                                                                     |
-| Root `package.json`, `pnpm-lock.yaml`, `turbo.json`, `tsconfig.base.json` | The full four: `pnpm typecheck && pnpm lint && pnpm test && pnpm build`                                                                                                                                                             |
+| `scripts/**`, `.agents/skills/**/SKILL.md` or skill frontmatter           | `pnpm test:scripts` for rule changes and `pnpm verify:docs`, which runs `scripts/skill-rules.mjs` over every skill                                                                                                                  |
+| Root `package.json`, `pnpm-lock.yaml`, `turbo.json`, `tsconfig.base.json` | The full five: `pnpm typecheck && pnpm lint && pnpm test && pnpm test:scripts && pnpm build`                                                                                                                                        |
 
 The web test script sets `NODE_OPTIONS` with POSIX syntax; on Windows run it from WSL or Git Bash.
 
 For ordinary `docs/` Markdown changes, synchronize both languages with
 [translate-docs](../translate-docs/SKILL.md), record only reviewed pairs and run
-`node .agents/skills/translate-docs/scripts/check-pairs.mjs`. This local check supplements
-`pnpm verify:docs`; it is not yet included in CI.
+`pnpm verify:pairs` (the same command). CI runs it for pull requests, so a stale pair fails the build.
 
 ## 3. Report
 
@@ -52,6 +55,6 @@ log. When a check could not run (missing key, no network), say so; do not descri
 
 ## When to run everything
 
-Run the full four only when the change is genuinely cross-cutting, when the user asks, or when
+Run the full five only when the change is genuinely cross-cutting, when the user asks, or when
 diagnosing a CI failure. Do not repeat a check that already passed on the same diff just because a
 commit or push follows.
