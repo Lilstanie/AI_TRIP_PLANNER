@@ -151,7 +151,7 @@ Compose 文件在 3000 端口启动 Web 应用（读取 `.env.local`），在 40
 64 个字符）；`description` 不超过 1,024 个字符，并同时说明 skill 做什么和何时使用（“Use when …”）；只使用已知的前置字段；
 name、description 和 `when_to_use` 合计不超过 1,536 个字符；`SKILL.md` 不超过 500 行；辅助文件只放在
 `references/`、`scripts/` 和 `assets/` 下（另可有许可证文件）；参考文件不得链接到其他参考文件，也不得链接到其他 skill 的参考文件。
-`node --test scripts/skill-rules.test.mjs` 运行这些规则的测试；它不属于 CI。
+`pnpm test:scripts` 运行这些规则的测试，CI 会在 `pnpm test` 之后运行它。
 
 Libraries.dev skill 支持 `libraries reveal`、`libraries review` 和 `libraries apply`。它在[工作区设计约定](design/ui-guidelines.zh.md)内选择具体动效；`better-ui` 负责通用视觉打磨，`ui-verification` 负责浏览器验收。安装 skill 添加的是指令和参考文件；只有已授权实现具体动效时才添加 npm 包。[整合决策](../.agents/notes/implemented/process/2026-09-26-libraries-dev-project-skill.md)记录了来源和分类理由。
 

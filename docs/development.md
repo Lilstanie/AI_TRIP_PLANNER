@@ -187,7 +187,7 @@ Use [diagnosing-bugs](../.agents/skills/diagnosing-bugs/SKILL.md) for unclear de
 says what the skill does and when to use it ("Use when …"), only known frontmatter fields, name,
 description and `when_to_use` within 1,536 characters together, a `SKILL.md` of at most 500 lines,
 supporting files only under `references/`, `scripts/` and `assets/` (plus a licence file), and references
-that do not link to other references or into another skill's references. The command `node --test scripts/skill-rules.test.mjs` runs the rule tests; it is not part of CI.
+that do not link to other references or into another skill's references. `pnpm test:scripts` runs the rule tests, and CI runs it after `pnpm test`.
 
 The Libraries.dev skill supports `libraries reveal`, `libraries review` and `libraries apply`.
 It selects concrete effects within the [workspace design contract](design/ui-guidelines.md), while
