@@ -35,3 +35,5 @@ export {
   runAgentLab,
   type RunAgentLabOptions,
 } from "./agent-lab";
+
+export type { StopReason, WorkflowDecision } from "./decisions";

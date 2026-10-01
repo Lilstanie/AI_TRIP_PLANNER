@@ -130,6 +130,11 @@ Specialist proposals, the brief and the final plan are re-validated at the graph
   `allocation` of its last cost less `targetSaving`, through the revision supervisor or directly.
   A round is kept only when `planScore` (AUD over budget plus a tenth of the budget per other
   conflict) improves; otherwise the previous proposals stand and the loop stops.
+- `OrchestratorOptions.onDecision` receives the loop's decisions as typed `WorkflowDecision` facts:
+  conflicts detected (targets, reasons, score, infeasibility), revision started (objective and
+  previous outcome), revision scored (before, after, kept) and loop stopped (round and reason). A
+  consumer reads them instead of parsing progress prose. The hook never affects the plan, a consumer
+  that throws is logged and ignored, and the chat progress protocol is unchanged.
 - A conditional edge repeats detection and revision up to `maxRounds` (default `3`).
 - `build_plan` rolls up costs (`budget.ts`), marks each section `needs_you` when a revision request
   still targets it and `draft` otherwise, and assembles the plan.
