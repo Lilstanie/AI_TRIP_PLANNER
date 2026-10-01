@@ -263,8 +263,8 @@ async function run(browser, { width, height, tag }) {
     `${tag}: page states that it measures specialization, not revision`,
   );
   check(
-    /measures the repair loop/i.test(body),
-    `${tag}: page states that no-revision against revision measures the repair loop`,
+    /what targeted revision adds/i.test(body),
+    `${tag}: page states that no-revision against revision measures what targeted revision adds`,
   );
   check(
     /not a target/i.test(body),

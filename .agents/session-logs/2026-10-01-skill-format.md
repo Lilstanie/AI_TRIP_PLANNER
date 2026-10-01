@@ -3,7 +3,7 @@ date: 2026-10-01
 author: Claude
 branch: fix/skill-format
 pr: none
-area: .agents/skills, .agents/notes, .github, scripts, docs
+area: .agents/skills, .agents/notes, .github, scripts, apps/web, docs
 contract-impact: none
 ---
 
@@ -24,6 +24,8 @@ contract-impact: none
   character trigger budget, 500 lines, files beside SKILL.md, and one level of references.
 - CI runs the rule tests (`pnpm test:scripts`); a new Agent Note, `2026-10-01-enforce-skill-format.md`,
   records the decision.
+- Added a root `CONTEXT.md` glossary for the planning and Agent Lab terms that had drifted, and replaced
+  the page copy, docs and notes' "repair loop" with "targeted revision".
 - Removed the project-local `grill-with-docs` skill, which duplicates the upstream skill the owner
   uses in Claude Code and Codex. New Agent Note `2026-10-01-remove-grill-with-docs-skill.md`; the earlier
   note moved to `archived/`, and the development guide and third-party notice no longer list the skill.

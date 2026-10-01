@@ -6,7 +6,7 @@ Owner: A (@Lilstanie)
 ## Problem
 
 Comparing the single agent with the no-revision specialists measures specialization. A reader also
-needs to see what the repair loop adds, which needs a conflict the loop can actually repair, the loop's
+needs to see what targeted revision adds, which needs a conflict revision can actually fix, the loop's
 decisions in the trace, and metrics nobody has to take on trust. The default Tokyo trip has no
 conflict, and the workflow reported its decisions only as progress prose.
 

@@ -482,7 +482,7 @@ traces side by side. Token and model cost reads "Unavailable", never 0, because 
 model calls. Every figure
 is read from that run's artifact; a strategy that has not finished shows "No completed run". The page never
 ranks the strategies. It states that single agent against no revision measures specialization and
-no revision against targeted revision measures the repair loop,
+no revision against targeted revision measures what targeted revision adds,
 that fixture mode shows how evidence is measured and not model quality, and why budgeting, conflict
 checks, state transitions, maps and weather are graph nodes or tools instead of agents.
 
