@@ -23,9 +23,10 @@ product documentation, Agent Notes, protected-file rules, and the E2E-first test
 authoritative.
 
 This note partially supersedes only the context-and-ADR conclusion in
-[the earlier Matt Pocock skills decision](2026-09-26-matt-pocock-skills.md). Its decision to keep the
-two project-local adaptations, rather than install the full upstream collection unchanged, remains
-in force.
+[the earlier Matt Pocock skills decision](../../archived/process/2026-09-26-matt-pocock-skills.md). Its decision to
+keep project-local adaptations, rather than install the full upstream collection unchanged, remains in force
+for `diagnosing-bugs`; the `grill-with-docs` adaptation was later removed by
+[a superseding decision](2026-10-01-remove-grill-with-docs-skill.md).
 
 ## Alternatives considered
 
@@ -47,6 +48,6 @@ replace the repository's existing product docs or Agent Notes.
 
 ## Sources
 
-- [Earlier Matt Pocock skills decision](2026-09-26-matt-pocock-skills.md).
+- [Earlier Matt Pocock skills decision](../../archived/process/2026-09-26-matt-pocock-skills.md).
 - [Repository agent instructions](../../../../AGENTS.md).
 - [Engineering skills setup](../../../../docs/agents/domain.md).

@@ -70,10 +70,10 @@ ln -s ../../.env.local apps/web/.env.local
 
 账号是可选功能，只在 `.env.local` 中配置（这些名称不在 `.env.example` 中）：
 
-| 设置                                                    | 用途                                                                                                                  |
-| ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`、`CLERK_SECRET_KEY` | Clerk 登录。没有 publishable key 时，工作区为单用户本地模式，账号路由返回 503。`clerk init` 还会写入登录路由变量。      |
-| `DATABASE_URL`                                          | Neon Postgres（pooled 连接串），保存已登录用户的设置、行程和聊天。本地使用开发分支；生产环境由 owner 的集成提供。       |
+| 设置                                                    | 用途                                                                                                               |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`、`CLERK_SECRET_KEY` | Clerk 登录。没有 publishable key 时，工作区为单用户本地模式，账号路由返回 503。`clerk init` 还会写入登录路由变量。 |
+| `DATABASE_URL`                                          | Neon Postgres（pooled 连接串），保存已登录用户的设置、行程和聊天。本地使用开发分支；生产环境由 owner 的集成提供。  |
 
 用 `pnpm --filter @trip/web db:migrate` 建表（它会加载 `.env.local`）；修改 `apps/web/lib/db/schema.ts`
 后，用 `pnpm --filter @trip/web db:generate` 生成迁移并提交到 `apps/web/drizzle/`。在 Vercel 上，Clerk
@@ -141,11 +141,17 @@ Compose 文件在 3000 端口启动 Web 应用（读取 `.env.local`），在 40
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 界面设计与动效       | [better-layout](../.agents/skills/better-layout/SKILL.md), [better-ui](../.agents/skills/better-ui/SKILL.md), [better-accessibility](../.agents/skills/better-accessibility/SKILL.md), [better-writing](../.agents/skills/better-writing/SKILL.md), [libraries-dev](../.agents/skills/libraries-dev/SKILL.md) |
 | 功能与数据提供方实现 | [end-to-end-feature-wiring](../.agents/skills/end-to-end-feature-wiring/SKILL.md), [api-scout](../.agents/skills/api-scout/SKILL.md), [add-provider](../.agents/skills/add-provider/SKILL.md), [agent-experience](../.agents/skills/agent-experience/SKILL.md)                                                |
-| 需求与排障           | [grill-with-docs](../.agents/skills/grill-with-docs/SKILL.md), [diagnosing-bugs](../.agents/skills/diagnosing-bugs/SKILL.md)                                                                                                                                                                                  |
+| 排障                 | [diagnosing-bugs](../.agents/skills/diagnosing-bugs/SKILL.md)                                                                                                                                                                                                                                                 |
 | 审查与验证           | [code-review](../.agents/skills/code-review/SKILL.md), [find-simplifications](../.agents/skills/find-simplifications/SKILL.md), [break](../.agents/skills/break/SKILL.md), [ui-verification](../.agents/skills/ui-verification/SKILL.md), [pre-push-checks](../.agents/skills/pre-push-checks/SKILL.md)       |
 | 文档与决策           | [prose-standard](../.agents/skills/prose-standard/SKILL.md), [translate-docs](../.agents/skills/translate-docs/SKILL.md), [agent-notes](../.agents/skills/agent-notes/SKILL.md), [session-log](../.agents/skills/session-log/SKILL.md)                                                                        |
 
-使用 [grill-with-docs](../.agents/skills/grill-with-docs/SKILL.md) 在实现前厘清重要需求与术语问题，并通过现有 docs 和 Agent Notes 记录长期决策。需求明确但故障原因不清时，使用 [diagnosing-bugs](../.agents/skills/diagnosing-bugs/SKILL.md)；该技能遵循项目的 E2E 优先验证规则。这两个技能改编自 [mattpocock/skills](https://github.com/mattpocock/skills)；[整合决策](../.agents/notes/implemented/process/2026-09-26-matt-pocock-skills.md)记录了来源及针对项目所做的调整。
+故障原因不清的缺陷和回归，使用 [diagnosing-bugs](../.agents/skills/diagnosing-bugs/SKILL.md)；该技能遵循项目的 E2E 优先验证规则。它改编自 [mattpocock/skills](https://github.com/mattpocock/skills)；[整合决策](../.agents/notes/archived/process/2026-09-26-matt-pocock-skills.md)记录了来源及针对项目所做的调整。需求访谈使用你自己工具里的上游 `grill-with-docs` 技能；项目不再保留副本（见[移除决策](../.agents/notes/implemented/process/2026-10-01-remove-grill-with-docs-skill.md)）。
+
+`pnpm verify:docs` 还会按 `scripts/skill-rules.mjs` 强制执行 skill 格式：`name` 为小写 kebab-case 且与文件夹一致（最多
+64 个字符）；`description` 不超过 1,024 个字符，并同时说明 skill 做什么和何时使用（“Use when …”）；只使用已知的前置字段；
+name、description 和 `when_to_use` 合计不超过 1,536 个字符；`SKILL.md` 不超过 500 行；辅助文件只放在
+`references/`、`scripts/` 和 `assets/` 下（另可有许可证文件）；参考文件不得链接到其他参考文件，也不得链接到其他 skill 的参考文件。
+`node --test scripts/skill-rules.test.mjs` 运行这些规则的测试；它不属于 CI。
 
 Libraries.dev skill 支持 `libraries reveal`、`libraries review` 和 `libraries apply`。它在[工作区设计约定](design/ui-guidelines.zh.md)内选择具体动效；`better-ui` 负责通用视觉打磨，`ui-verification` 负责浏览器验收。安装 skill 添加的是指令和参考文件；只有已授权实现具体动效时才添加 npm 包。[整合决策](../.agents/notes/implemented/process/2026-09-26-libraries-dev-project-skill.md)记录了来源和分类理由。
 

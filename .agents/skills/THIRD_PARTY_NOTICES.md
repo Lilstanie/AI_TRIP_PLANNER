@@ -75,10 +75,9 @@ Copyright (c) 2026 Jakub Antalik; the complete MIT licence is preserved in
 
 ## Matt Pocock skills
 
-`grill-with-docs` adapts ideas from the `grill-with-docs`, `grilling` and `domain-modeling` skills;
 `diagnosing-bugs` adapts the `diagnosing-bugs` skill from
 [mattpocock/skills](https://github.com/mattpocock/skills) at commit
-`c55ee46073ed923f86ce59a5eb3b6d895095d1b7`. Their workflows are rewritten for AI_TRIP_PLANNER's
+`c55ee46073ed923f86ce59a5eb3b6d895095d1b7`. Its workflow is rewritten for AI_TRIP_PLANNER's
 documentation ownership, Agent Notes, E2E-first validation and testing constraints.
 
 ```text

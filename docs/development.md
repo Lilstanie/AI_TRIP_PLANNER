@@ -92,10 +92,10 @@ Every variable is described in `.env.example`. The important ones:
 
 Accounts are optional and configured only in `.env.local` (these names are not in `.env.example`):
 
-| Setting                                                          | Purpose                                                                                                                                                                  |
-| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`          | Clerk sign-in. Without the publishable key the workspace is single-user and local, and the account routes answer 503. `clerk init` also writes the sign-in route variables. |
-| `DATABASE_URL`                                                   | Neon Postgres (pooled connection string) for settings, trips and chats of signed-in users. Use a development branch locally; production gets it from the owner's integration. |
+| Setting                                                 | Purpose                                                                                                                                                                       |
+| ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY` | Clerk sign-in. Without the publishable key the workspace is single-user and local, and the account routes answer 503. `clerk init` also writes the sign-in route variables.   |
+| `DATABASE_URL`                                          | Neon Postgres (pooled connection string) for settings, trips and chats of signed-in users. Use a development branch locally; production gets it from the owner's integration. |
 
 Create the tables with `pnpm --filter @trip/web db:migrate` (it loads `.env.local`); after changing
 `apps/web/lib/db/schema.ts`, generate a migration with `pnpm --filter @trip/web db:generate` and
@@ -176,11 +176,18 @@ navigation groups; each skill retains its own discoverable entrypoint and loads 
 | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Interface design and effects        | [better-layout](../.agents/skills/better-layout/SKILL.md), [better-ui](../.agents/skills/better-ui/SKILL.md), [better-accessibility](../.agents/skills/better-accessibility/SKILL.md), [better-writing](../.agents/skills/better-writing/SKILL.md), [libraries-dev](../.agents/skills/libraries-dev/SKILL.md) |
 | Feature and provider implementation | [end-to-end-feature-wiring](../.agents/skills/end-to-end-feature-wiring/SKILL.md), [api-scout](../.agents/skills/api-scout/SKILL.md), [add-provider](../.agents/skills/add-provider/SKILL.md), [agent-experience](../.agents/skills/agent-experience/SKILL.md)                                                |
-| Requirements and debugging          | [grill-with-docs](../.agents/skills/grill-with-docs/SKILL.md), [diagnosing-bugs](../.agents/skills/diagnosing-bugs/SKILL.md)                                                                                                                                                                                  |
+| Debugging                           | [diagnosing-bugs](../.agents/skills/diagnosing-bugs/SKILL.md)                                                                                                                                                                                                                                                 |
 | Review and verification             | [code-review](../.agents/skills/code-review/SKILL.md), [find-simplifications](../.agents/skills/find-simplifications/SKILL.md), [break](../.agents/skills/break/SKILL.md), [ui-verification](../.agents/skills/ui-verification/SKILL.md), [pre-push-checks](../.agents/skills/pre-push-checks/SKILL.md)       |
 | Documentation and decisions         | [prose-standard](../.agents/skills/prose-standard/SKILL.md), [translate-docs](../.agents/skills/translate-docs/SKILL.md), [agent-notes](../.agents/skills/agent-notes/SKILL.md), [session-log](../.agents/skills/session-log/SKILL.md)                                                                        |
 
-Use [grill-with-docs](../.agents/skills/grill-with-docs/SKILL.md) to resolve material requirement and terminology questions before implementation; it records durable decisions using the existing docs and Agent Notes. Use [diagnosing-bugs](../.agents/skills/diagnosing-bugs/SKILL.md) for unclear defects and regressions, following the project's E2E-first validation policy. Both skills are adapted from [mattpocock/skills](https://github.com/mattpocock/skills); the [integration decision](../.agents/notes/implemented/process/2026-09-26-matt-pocock-skills.md) records the source and project-specific changes.
+Use [diagnosing-bugs](../.agents/skills/diagnosing-bugs/SKILL.md) for unclear defects and regressions, following the project's E2E-first validation policy. It is adapted from [mattpocock/skills](https://github.com/mattpocock/skills); the [integration decision](../.agents/notes/archived/process/2026-09-26-matt-pocock-skills.md) records the source and project-specific changes. Requirement interviews come from the upstream `grill-with-docs` skill in your own tool; the project no longer carries a copy (see the [removal decision](../.agents/notes/implemented/process/2026-10-01-remove-grill-with-docs-skill.md)).
+
+`pnpm verify:docs` also enforces the skill format in `scripts/skill-rules.mjs`: a lower-case kebab-case
+`name` that matches the folder (at most 64 characters), a `description` of at most 1,024 characters that
+says what the skill does and when to use it ("Use when …"), only known frontmatter fields, name,
+description and `when_to_use` within 1,536 characters together, a `SKILL.md` of at most 500 lines,
+supporting files only under `references/`, `scripts/` and `assets/` (plus a licence file), and references
+that do not link to other references or into another skill's references. The command `node --test scripts/skill-rules.test.mjs` runs the rule tests; it is not part of CI.
 
 The Libraries.dev skill supports `libraries reveal`, `libraries review` and `libraries apply`.
 It selects concrete effects within the [workspace design contract](design/ui-guidelines.md), while

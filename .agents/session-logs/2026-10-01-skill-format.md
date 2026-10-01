@@ -3,7 +3,7 @@ date: 2026-10-01
 author: Claude
 branch: fix/skill-format
 pr: none
-area: .agents/skills, docs
+area: .agents/skills, .agents/notes, scripts, docs
 contract-impact: none
 ---
 
@@ -19,6 +19,13 @@ contract-impact: none
 - Rewrote 13 `description` fields as what the skill does, then when to use it, with the same keywords.
   `libraries-dev` gained `license`, since it ships a `LICENSE`.
 
+- Added `scripts/skill-rules.mjs` (called from `scripts/verify-docs.mjs`) and its node tests, so
+  `pnpm verify:docs` enforces the format: names, description size and "Use when", known fields, the 1536
+  character trigger budget, 500 lines, files beside SKILL.md, and one level of references.
+- Removed the project-local `grill-with-docs` skill, which duplicates the upstream skill the owner
+  uses in Claude Code and Codex. New Agent Note `2026-10-01-remove-grill-with-docs-skill.md`; the earlier
+  note moved to `archived/`, and the development guide and third-party notice no longer list the skill.
+
 ## Why
 
 The format guide at https://qiao1.top/posts/fcc443a7.html asks for a flat `SKILL.md` plus `scripts/`,
@@ -28,9 +35,12 @@ The format guide at https://qiao1.top/posts/fcc443a7.html asks for a flat `SKILL
 
 - Every skill has a name matching its folder, a description of at most 1024 characters, a `SKILL.md`
   under 500 lines and only permitted frontmatter fields (parsed as YAML).
+- Failure inventory and failing tests for the rules were written before the code (26 cases, `node --test
+  scripts/skill-rules.test.mjs`); dropping the link rule turns two of them red. On `main` before the fixes
+  the check reports 12 violations; on this branch it reports none.
 - `pnpm verify:docs`, `pnpm verify:protected` and the translation pair check pass.
 
 ## Notes for the next person
 
-The archived note `2026-09-24-glass-control-layer.md` still links the old `better-ui/glass.md` path; it is
+The rule tests are not part of CI. The archived note `2026-09-24-glass-control-layer.md` still links the old `better-ui/glass.md` path; it is
 frozen, and `verify:docs` skips frozen history.
