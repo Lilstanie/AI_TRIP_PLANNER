@@ -150,16 +150,21 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 }
 ```
 
+`strategyId` 为 `single-agent-baseline` 或 `multi-agent-no-revision`。后者通过 LangGraph 工作流用五个已注册
+specialist 运行一轮，因此其计划为 `round: 1`，所有冲突都保持未解决；`multi-agent-with-revision` 未注册，会被拒绝。
+
 请求采用严格校验：未知值或额外属性会返回 HTTP 400 和
 `{ "error": "Invalid Agent Lab request" }`。有效请求以 NDJSON 流返回帧。事件帧格式为
 `{ "type": "event", "event": { ... } }`，最后一帧格式为
 `{ "type": "complete", "artifact": { ... } }`。产物包含经过校验的计划、有序事件、
 确定性指标，以及明确的 fixture／评估器版本。`metrics.checks` 逐项列出按场景规则衡量的具名检查
-（`id`、`label`、`passed`）；计划超出预算时 `budgetHeadroom` 为负数。客户端取消请求会中止运行，不发送完成帧。
+（`id`、`label`、`passed`）；计划超出预算时 `budgetHeadroom` 为负数。对比数据 `rounds`、`toolCalls`、`fallbacks`、`failedAgents` 和
+`unresolvedConflicts` 由轨迹和计划统计得出；`latencyMs` 是不含显示节奏延迟的运行耗时（`durationMs` 含该延迟），
+在 fixture 模式下仅衡量编排开销。客户端取消请求会中止运行，不发送完成帧。
 运行内部失败时，会发送 `error` 帧；其中包含不敏感的消息，以及记录失败前事件的结构化
 `failed` 产物。
 
-首个切片只使用 fixture：无需模型或提供方密钥，不调用外部服务，也不持久化聊天、行程或实验结果。
+Agent Lab 只使用 fixture：应在没有模型或提供方密钥的情况下运行，未配置时不调用外部服务，也不持久化聊天、行程或实验结果。
 
 <a id="get-apidata-mode"></a>
 

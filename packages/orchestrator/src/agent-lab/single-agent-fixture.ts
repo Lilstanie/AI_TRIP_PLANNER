@@ -1,23 +1,11 @@
-import {
-  TripPlan,
-  type AgentLabLifecycleEvent,
-  type TripPlan as TripPlanValue,
-} from "@trip/shared";
-import type { AgentLabScenario } from "./scenarios";
-
-export interface AgentLabStrategyContext {
-  scenario: AgentLabScenario;
-  signal: AbortSignal;
-  emit: (event: AgentLabLifecycleEvent) => Promise<void>;
-}
-
-export interface AgentLabStrategy {
-  id: "single-agent-baseline";
-  run: (context: AgentLabStrategyContext) => Promise<TripPlanValue>;
-}
+import { TripPlan } from "@trip/shared";
+import type { AgentLabStrategy } from "./strategy";
 
 export const singleAgentFixtureStrategy: AgentLabStrategy = {
   id: "single-agent-baseline",
+  actor: "single-agent",
+  completionSummary: () =>
+    "The scripted baseline produced one complete plan without external model calls.",
   async run({ scenario, signal, emit }) {
     signal.throwIfAborted();
     await emit({

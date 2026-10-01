@@ -30,6 +30,7 @@ export {
 } from "./supervisor";
 export {
   agentLabScenarioSummaries,
+  agentLabStrategySummaries,
   createFailedAgentLabArtifact,
   runAgentLab,
   type RunAgentLabOptions,

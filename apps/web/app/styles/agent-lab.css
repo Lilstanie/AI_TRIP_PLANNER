@@ -9,6 +9,9 @@
 .agent-lab__toolbar,
 .agent-lab__status,
 .agent-lab__error,
+.agent-lab__views,
+.agent-lab__compare,
+.agent-lab__notes,
 .agent-lab__grid {
   width: min(1480px, 100%);
   margin-inline: auto;
@@ -241,7 +244,7 @@
   list-style: none;
 }
 
-.agent-lab__timeline li {
+.agent-lab__timeline > li {
   display: grid;
   grid-template-columns: 28px minmax(0, 1fr);
   gap: var(--space-3);
@@ -368,6 +371,156 @@
   color: var(--warn);
 }
 
+.agent-lab__actions {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.agent-lab__secondary,
+.agent-lab__views button {
+  min-height: 44px;
+  padding-inline: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-weight: 650;
+  touch-action: manipulation;
+}
+
+.agent-lab__secondary:disabled,
+.agent-lab__views button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.agent-lab__views {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding-block: var(--space-2) var(--space-3);
+}
+
+/* The pressed state is stated by weight and an outline as well as by fill. */
+.agent-lab__views button[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+  color: var(--accent);
+  font-weight: 750;
+}
+
+.agent-lab__kind {
+  display: inline-block;
+  margin-inline-end: var(--space-2);
+  padding: 1px var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  color: var(--text-dim);
+  font-size: var(--font-size-meta);
+  font-weight: 700;
+}
+
+.agent-lab__kind[data-kind="graph"] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.agent-lab__constraints {
+  display: block;
+  margin: var(--space-1) 0;
+  padding-inline-start: var(--space-4);
+  color: var(--text-mut);
+  font-size: var(--font-size-meta);
+  list-style: disc;
+}
+
+.agent-lab__constraints li {
+  display: list-item;
+  padding: 0;
+  background: none;
+}
+
+.agent-lab__compare,
+.agent-lab__notes {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+}
+
+.agent-lab__compare-note {
+  margin: 0;
+  padding: var(--space-3);
+  border-inline-start: 3px solid var(--accent);
+  background: var(--accent-bg);
+}
+
+.agent-lab__table-wrap {
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.agent-lab__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.agent-lab__table caption {
+  padding-block-end: var(--space-2);
+  color: var(--text-mut);
+  font-size: var(--font-size-meta);
+  text-align: start;
+}
+
+.agent-lab__table th,
+.agent-lab__table td {
+  padding: var(--space-2) var(--space-3);
+  border-block-end: 1px solid var(--border);
+  text-align: start;
+  overflow-wrap: anywhere;
+}
+
+.agent-lab__table thead th {
+  color: var(--text-mut);
+  font-size: var(--font-size-meta);
+}
+
+.agent-lab__table td[data-not-run="true"],
+.agent-lab__compare-empty {
+  color: var(--text-mut);
+}
+
+.agent-lab__compare-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.agent-lab__compare-columns article {
+  min-width: 0;
+}
+
+.agent-lab__compare-columns h3,
+.agent-lab__notes h2,
+.agent-lab__notes h3 {
+  margin: 0;
+}
+
+.agent-lab__notes {
+  margin-block: var(--space-4) 0;
+}
+
+.agent-lab__notes p {
+  max-width: 72ch;
+  margin: var(--space-1) 0 0;
+  color: var(--text-dim);
+}
+
 @media (hover: hover) {
   .agent-lab__run:hover {
     background: color-mix(in srgb, var(--accent-fill) 88%, black);
@@ -384,6 +537,10 @@
   }
 
   .agent-lab__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .agent-lab__compare-columns {
     grid-template-columns: 1fr;
   }
 

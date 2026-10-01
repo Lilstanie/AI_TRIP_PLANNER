@@ -10,6 +10,12 @@ import {
 import Link from "next/link";
 import { useRef, useState } from "react";
 import { AgentLabRunError, readAgentLabStream } from "@/lib/agent-lab/stream";
+import { money } from "@/lib/agent-lab/format";
+import { ComparisonPanel } from "./ComparisonPanel";
+import { DesignNotes } from "./DesignNotes";
+import { MetricsList } from "./MetricsPanel";
+import { PlanSections, PlanSummary } from "./PlanSections";
+import { RunTimeline } from "./RunTimeline";
 
 interface ScenarioSummary {
   id: AgentLabScenarioId;
@@ -17,15 +23,25 @@ interface ScenarioSummary {
   summary: string;
 }
 
+interface StrategySummary {
+  id: AgentLabStrategyId;
+  label: string;
+}
+
 interface AgentLabClientProps {
   scenarios: readonly ScenarioSummary[];
+  strategies: readonly StrategySummary[];
 }
 
 type RunState = "ready" | "running" | "cancelled" | "complete" | "error";
 
-const strategyOptions: readonly { id: AgentLabStrategyId; label: string }[] = [
-  { id: "single-agent-baseline", label: "Single-agent baseline" },
-];
+interface RunView {
+  state: RunState;
+  events: AgentLabRunEvent[];
+  artifact?: AgentLabCompletedRunArtifact;
+  failure?: AgentLabFailedRunArtifact;
+  error?: string;
+}
 
 const statusCopy: Record<RunState, string> = {
   ready: "Ready",
@@ -35,106 +51,98 @@ const statusCopy: Record<RunState, string> = {
   error: "Run failed",
 };
 
-function money(value: number): string {
-  return `A$${value.toLocaleString("en-AU", { maximumFractionDigits: 0 })}`;
-}
+const emptyRun = (): RunView => ({ state: "ready", events: [] });
 
-function eventCopy(runEvent: AgentLabRunEvent): { title: string; detail: string } {
-  const event = runEvent.event;
-  switch (event.type) {
-    case "lab_run_started":
-      return { title: "Run started", detail: event.summary };
-    case "lab_strategy_started":
-      return { title: "Single agent started", detail: event.objective };
-    case "lab_tool_started":
-      return { title: event.label, detail: event.summary };
-    case "lab_tool_completed":
-      return { title: event.label, detail: event.resultSummary };
-    case "lab_plan_validated":
-      return { title: "Plan validated", detail: event.summary };
-    case "lab_evaluation_completed":
-      return { title: "Evaluation complete", detail: event.summary };
-    case "lab_strategy_completed":
-      return { title: "Single agent completed", detail: event.summary };
-    case "lab_run_completed":
-      return { title: "Run completed", detail: event.summary };
-    case "agent_reasoning":
-      return { title: `${event.agent} reasoning`, detail: event.text };
-    case "coordinator":
-      return { title: `Coordinator · ${event.phase}`, detail: event.summary };
-    case "agent_started":
-      return {
-        title: `${event.agent} started`,
-        detail: event.objective ?? event.summary ?? "Started.",
-      };
-    case "agent_completed":
-      return {
-        title: `${event.agent} completed`,
-        detail: event.outcome ?? event.summary ?? "Completed.",
-      };
-    case "agent_failed":
-      return { title: `${event.agent} failed`, detail: event.error };
-    case "tool_started":
-      return { title: event.label, detail: event.summary };
-    case "tool_completed":
-      return { title: event.label, detail: event.resultSummary };
-    case "tool_failed":
-      return { title: event.label, detail: event.error };
-  }
-}
-
-export function AgentLabClient({ scenarios }: AgentLabClientProps) {
+export function AgentLabClient({ scenarios, strategies }: AgentLabClientProps) {
   const [scenarioId, setScenarioId] = useState<AgentLabScenarioId>(scenarios[0]!.id);
-  const [strategyId, setStrategyId] = useState<AgentLabStrategyId>(strategyOptions[0]!.id);
-  const [runState, setRunState] = useState<RunState>("ready");
-  const [events, setEvents] = useState<AgentLabRunEvent[]>([]);
-  const [artifact, setArtifact] = useState<AgentLabCompletedRunArtifact>();
-  const [failure, setFailure] = useState<AgentLabFailedRunArtifact>();
-  const [error, setError] = useState<string>();
+  const [strategyId, setStrategyId] = useState<AgentLabStrategyId>(strategies[0]!.id);
+  const [view, setView] = useState<"inspect" | "compare">("inspect");
+  const [runs, setRuns] = useState<Record<string, RunView>>({});
+  const [busy, setBusy] = useState(false);
   const controllerRef = useRef<AbortController | undefined>(undefined);
   const selectedScenario = scenarios.find((scenario) => scenario.id === scenarioId)!;
+  const runOf = (id: AgentLabStrategyId): RunView => runs[id] ?? emptyRun();
+  const patch = (id: AgentLabStrategyId, change: Partial<RunView> | ((run: RunView) => RunView)) =>
+    setRuns((current) => {
+      const run = current[id] ?? emptyRun();
+      return {
+        ...current,
+        [id]: typeof change === "function" ? change(run) : { ...run, ...change },
+      };
+    });
 
-  const run = async () => {
-    if (runState === "running") {
-      controllerRef.current?.abort();
-      setRunState("cancelled");
-      return;
-    }
-
+  // Strategies run one after another so each one's latency is measured on its own.
+  const start = async (targets: readonly AgentLabStrategyId[]) => {
     const controller = new AbortController();
     controllerRef.current = controller;
-    setRunState("running");
-    setEvents([]);
-    setArtifact(undefined);
-    setFailure(undefined);
-    setError(undefined);
-    try {
-      const response = await fetch("/api/agent-lab/runs", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ scenarioId, strategyId, dataMode: "fixture" }),
-        signal: controller.signal,
-      });
-      const completed = await readAgentLabStream(response, (event) => {
-        setEvents((current) => [...current, event]);
-      });
-      setArtifact(completed);
-      setRunState("complete");
-    } catch (caught) {
-      if (controller.signal.aborted) {
-        setRunState("cancelled");
-      } else {
-        if (caught instanceof AgentLabRunError) setFailure(caught.artifact);
-        setError(caught instanceof Error ? caught.message : "Unable to run this experiment.");
-        setRunState("error");
+    setBusy(true);
+    for (const target of targets) {
+      setRuns((current) => ({ ...current, [target]: { ...emptyRun(), state: "running" } }));
+      try {
+        const response = await fetch("/api/agent-lab/runs", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ scenarioId, strategyId: target, dataMode: "fixture" }),
+          signal: controller.signal,
+        });
+        const completed = await readAgentLabStream(response, (event) =>
+          patch(target, (run) => ({ ...run, events: [...run.events, event] })),
+        );
+        patch(target, { artifact: completed, state: "complete" });
+      } catch (caught) {
+        if (controller.signal.aborted) {
+          patch(target, { state: "cancelled" });
+        } else {
+          patch(target, {
+            state: "error",
+            error: caught instanceof Error ? caught.message : "Unable to run this experiment.",
+            ...(caught instanceof AgentLabRunError ? { failure: caught.artifact } : {}),
+          });
+        }
+        break;
       }
-    } finally {
-      if (controllerRef.current === controller) controllerRef.current = undefined;
     }
+    if (controllerRef.current === controller) controllerRef.current = undefined;
+    setBusy(false);
+  };
+
+  const runSelected = () => {
+    if (busy) {
+      controllerRef.current?.abort();
+      return;
+    }
+    setView("inspect");
+    void start([strategyId]);
+  };
+
+  const compare = () => {
+    setView("compare");
+    void start(strategies.map((strategy) => strategy.id));
+  };
+
+  const selected = runOf(strategyId);
+  const activeState: RunState = busy
+    ? "running"
+    : view === "compare"
+      ? (strategies
+          .map((strategy) => runOf(strategy.id).state)
+          .find((state) => state !== "complete") ?? "complete")
+      : selected.state;
+  const errorRun =
+    view === "compare"
+      ? strategies.map((strategy) => runOf(strategy.id)).find((run) => run.state === "error")
+      : selected.state === "error"
+        ? selected
+        : undefined;
+  const hasRun = strategies.some((strategy) => runOf(strategy.id).state !== "ready");
+  const sideOf = (index: number) => {
+    const strategy = strategies[index]!;
+    const run = runOf(strategy.id);
+    return { label: strategy.label, events: run.events, artifact: run.artifact };
   };
 
   return (
-    <main className="agent-lab" aria-busy={runState === "running"}>
+    <main className="agent-lab" aria-busy={busy}>
       <header className="agent-lab__header">
         <div>
           <Link className="agent-lab__home" href="/">
@@ -149,7 +157,7 @@ export function AgentLabClient({ scenarios }: AgentLabClientProps) {
         </div>
         <div className="agent-lab__purpose" aria-label="Experiment purpose">
           <span>Question</span>
-          <strong>What does one agent produce from the same bounded travel brief?</strong>
+          <strong>What does specialization change on the same bounded travel brief?</strong>
         </div>
       </header>
 
@@ -159,7 +167,7 @@ export function AgentLabClient({ scenarios }: AgentLabClientProps) {
           <select
             value={scenarioId}
             onChange={(event) => setScenarioId(event.target.value as AgentLabScenarioId)}
-            disabled={runState === "running"}
+            disabled={busy}
           >
             {scenarios.map((scenario) => (
               <option key={scenario.id} value={scenario.id}>
@@ -173,9 +181,9 @@ export function AgentLabClient({ scenarios }: AgentLabClientProps) {
           <select
             value={strategyId}
             onChange={(event) => setStrategyId(event.target.value as AgentLabStrategyId)}
-            disabled={runState === "running"}
+            disabled={busy}
           >
-            {strategyOptions.map((strategy) => (
+            {strategies.map((strategy) => (
               <option key={strategy.id} value={strategy.id}>
                 {strategy.label}
               </option>
@@ -187,163 +195,113 @@ export function AgentLabClient({ scenarios }: AgentLabClientProps) {
           <strong>Fixture data</strong>
           <small>No external calls</small>
         </div>
-        <button className="agent-lab__run primary" type="button" onClick={run}>
-          {runState === "running" ? "Cancel run" : "Run experiment"}
-        </button>
+        <div className="agent-lab__actions">
+          <button className="agent-lab__run primary" type="button" onClick={runSelected}>
+            {busy ? "Cancel run" : "Run experiment"}
+          </button>
+          <button className="agent-lab__secondary" type="button" onClick={compare} disabled={busy}>
+            Compare both strategies
+          </button>
+        </div>
       </section>
 
       <div className="agent-lab__status" role="status">
         <span
-          className={`agent-lab__status-mark agent-lab__status-mark--${runState}`}
+          className={`agent-lab__status-mark agent-lab__status-mark--${activeState}`}
           aria-hidden="true"
         />
-        <span>{statusCopy[runState]}</span>
-        {runState === "ready" ? <span> · {selectedScenario.summary}</span> : null}
+        <span>{statusCopy[activeState]}</span>
+        {activeState === "ready" ? <span> · {selectedScenario.summary}</span> : null}
       </div>
 
-      {error ? (
+      {errorRun?.error ? (
         <p className="agent-lab__error" role="alert">
-          {error}
-          {failure
-            ? ` The run stopped after event ${failure.failure.atSequence} (${failure.metrics.durationMs} ms); the events recorded so far are kept below.`
+          {errorRun.error}
+          {errorRun.failure
+            ? ` The run stopped after event ${errorRun.failure.failure.atSequence} (${errorRun.failure.metrics.durationMs} ms); the events recorded so far are kept below.`
             : ""}{" "}
           Choose the registered fixture and try again.
         </p>
       ) : null}
 
-      <div className="agent-lab__grid">
-        <section className="agent-lab__panel" aria-labelledby="agent-lab-timeline-title">
-          <div className="agent-lab__panel-heading">
-            <div>
-              <p className="agent-lab__kicker">Trace</p>
-              <h2 id="agent-lab-timeline-title">Run timeline</h2>
-            </div>
-            <span>{events.length} events</span>
-          </div>
-          {events.length ? (
-            <ol className="agent-lab__timeline" aria-label="Run events">
-              {events.map((runEvent) => {
-                const copy = eventCopy(runEvent);
-                return (
-                  <li key={`${runEvent.runId}-${runEvent.sequence}`} data-agent-lab-event>
-                    <span className="agent-lab__sequence">{runEvent.sequence}</span>
-                    <div>
-                      <strong>{copy.title}</strong>
-                      <p>{copy.detail}</p>
-                      <small>+{runEvent.elapsedMs} ms</small>
-                    </div>
-                  </li>
-                );
-              })}
-            </ol>
-          ) : (
-            <div className="agent-lab__empty">
-              <strong>No run yet</strong>
-              <p>Start the fixture experiment to see each validated event in order.</p>
-            </div>
-          )}
-        </section>
-
-        <section className="agent-lab__panel" aria-labelledby="agent-lab-plan-title">
-          <div className="agent-lab__panel-heading">
-            <div>
-              <p className="agent-lab__kicker">Outcome</p>
-              <h2 id="agent-lab-plan-title">Plan result</h2>
-            </div>
-            {artifact ? <span>{money(artifact.plan.estTotal)}</span> : null}
-          </div>
-          {artifact ? (
-            <>
-              <div className="agent-lab__plan-summary">
-                <div>
-                  <span>Destination</span>
-                  <strong>{artifact.plan.brief.destination}</strong>
-                </div>
-                <div>
-                  <span>Budget</span>
-                  <strong>{money(artifact.plan.budgetTotal)}</strong>
-                </div>
-                <div>
-                  <span>Estimated</span>
-                  <strong>{money(artifact.plan.estTotal)}</strong>
-                </div>
-              </div>
-              <div className="agent-lab__sections">
-                {artifact.plan.sections.map((section) => (
-                  <article key={section.id} data-agent-lab-section>
-                    <div>
-                      <span>{section.label}</span>
-                      <strong>{section.summary}</strong>
-                    </div>
-                    <b>{money(section.estCost)}</b>
-                  </article>
-                ))}
-              </div>
-            </>
-          ) : (
-            <div className="agent-lab__empty">
-              <strong>The plan will appear here</strong>
-              <p>The result is rendered only after the shared TripPlan contract validates it.</p>
-            </div>
-          )}
-        </section>
-
-        <section className="agent-lab__panel" aria-labelledby="agent-lab-evidence-title">
-          <div className="agent-lab__panel-heading">
-            <div>
-              <p className="agent-lab__kicker">Evidence</p>
-              <h2 id="agent-lab-evidence-title">Run metrics</h2>
-            </div>
-            {artifact ? <span>Schema v{artifact.schemaVersion}</span> : null}
-          </div>
-          {artifact ? (
-            <>
-              <dl className="agent-lab__metrics">
-                <div>
-                  <dt>Budget</dt>
-                  <dd>{artifact.metrics.withinBudget ? "Within budget" : "Over budget"}</dd>
-                  <small>
-                    {artifact.metrics.withinBudget
-                      ? `${money(artifact.metrics.budgetHeadroom)} remaining`
-                      : `${money(-artifact.metrics.budgetHeadroom)} over`}
-                  </small>
-                </div>
-                <div>
-                  <dt>Checks</dt>
-                  <dd>
-                    {artifact.metrics.checks.filter((check) => check.passed).length}/
-                    {artifact.metrics.checks.length} passed
-                  </dd>
-                  <small>Deterministic checks</small>
-                </div>
-                <div>
-                  <dt>Sections</dt>
-                  <dd>{artifact.metrics.sectionCount}</dd>
-                  <small>Validated plan sections</small>
-                </div>
-                <div>
-                  <dt>Trace</dt>
-                  <dd>{artifact.metrics.eventCount} events</dd>
-                  <small>{artifact.metrics.durationMs} ms recorded</small>
-                </div>
-              </dl>
-              <ul className="agent-lab__checks" aria-label="Deterministic checks">
-                {artifact.metrics.checks.map((check) => (
-                  <li key={check.id} data-agent-lab-check={check.id} data-passed={check.passed}>
-                    <span>{check.passed ? "Passed" : "Failed"}</span>
-                    {check.label}
-                  </li>
-                ))}
-              </ul>
-            </>
-          ) : (
-            <div className="agent-lab__empty">
-              <strong>Measured, not judged</strong>
-              <p>Budget, sections and constraints are calculated from the plan and trace.</p>
-            </div>
-          )}
-        </section>
+      <div className="agent-lab__views" role="group" aria-label="View">
+        <button type="button" aria-pressed={view === "inspect"} onClick={() => setView("inspect")}>
+          Inspect one run
+        </button>
+        <button
+          type="button"
+          aria-pressed={view === "compare"}
+          onClick={() => setView("compare")}
+          disabled={!hasRun}
+        >
+          Compare strategies
+        </button>
       </div>
+
+      {view === "compare" ? (
+        <ComparisonPanel single={sideOf(0)} multi={sideOf(1)} />
+      ) : (
+        <div className="agent-lab__grid">
+          <section className="agent-lab__panel" aria-labelledby="agent-lab-timeline-title">
+            <div className="agent-lab__panel-heading">
+              <div>
+                <p className="agent-lab__kicker">Trace</p>
+                <h2 id="agent-lab-timeline-title">Run timeline</h2>
+              </div>
+              <span>{selected.events.length} events</span>
+            </div>
+            {selected.events.length ? (
+              <RunTimeline events={selected.events} label="Run events" />
+            ) : (
+              <div className="agent-lab__empty">
+                <strong>No run yet</strong>
+                <p>Start the fixture experiment to see each validated event in order.</p>
+              </div>
+            )}
+          </section>
+
+          <section className="agent-lab__panel" aria-labelledby="agent-lab-plan-title">
+            <div className="agent-lab__panel-heading">
+              <div>
+                <p className="agent-lab__kicker">Outcome</p>
+                <h2 id="agent-lab-plan-title">Plan result</h2>
+              </div>
+              {selected.artifact ? <span>{money(selected.artifact.plan.estTotal)}</span> : null}
+            </div>
+            {selected.artifact ? (
+              <>
+                <PlanSummary plan={selected.artifact.plan} />
+                <PlanSections plan={selected.artifact.plan} />
+              </>
+            ) : (
+              <div className="agent-lab__empty">
+                <strong>The plan will appear here</strong>
+                <p>The result is rendered only after the shared TripPlan contract validates it.</p>
+              </div>
+            )}
+          </section>
+
+          <section className="agent-lab__panel" aria-labelledby="agent-lab-evidence-title">
+            <div className="agent-lab__panel-heading">
+              <div>
+                <p className="agent-lab__kicker">Evidence</p>
+                <h2 id="agent-lab-evidence-title">Run metrics</h2>
+              </div>
+              {selected.artifact ? <span>Schema v{selected.artifact.schemaVersion}</span> : null}
+            </div>
+            {selected.artifact ? (
+              <MetricsList artifact={selected.artifact} />
+            ) : (
+              <div className="agent-lab__empty">
+                <strong>Measured, not judged</strong>
+                <p>Budget, sections and constraints are calculated from the plan and trace.</p>
+              </div>
+            )}
+          </section>
+        </div>
+      )}
+
+      <DesignNotes />
     </main>
   );
 }

@@ -65,18 +65,30 @@ step.
 
 ## Agent Lab
 
-`/agent-lab` is a public, inspectable experiment surface separate from the saved workspace. Its first
-slice accepts only the registered Tokyo couple scenario, the `single-agent-baseline` strategy and
-fixture data. `POST /api/agent-lab/runs` validates that closed request, calls `runAgentLab()` and
+`/agent-lab` is a public, inspectable experiment surface separate from the saved workspace. It accepts
+only the registered Tokyo couple scenario, the registered strategies (`single-agent-baseline` and
+`multi-agent-no-revision`) and fixture data. `POST /api/agent-lab/runs` validates that closed request, calls `runAgentLab()` and
 streams ordered NDJSON event envelopes before a final schema-versioned artifact.
 
 The baseline is an experiment strategy above the five travel specialists, not a sixth specialist.
 Its deterministic fixture produces a `TripPlan`, re-validates it against the shared contract and
 records deterministic metrics. The metrics list each named check, such as budget, section count,
-earliest activity start and vegetarian-marked meals, measured against the scenario's own rules. The lab envelope can also carry the existing
-`AgentProgressEvent` union, so later multi-agent strategies can expose the same bounded operational
-trace without publishing prompts or raw chain-of-thought. Fixture runs use no provider credentials,
-do not call external services and do not read or mutate workspace storage.
+earliest activity start and vegetarian-marked meals, measured against the scenario's own rules, plus
+the figures a comparison needs: planning rounds, tool calls, fallback sections, failed agents,
+unresolved conflicts and latency. Latency excludes the pacing delay that keeps the stream watchable.
+
+`multi-agent-no-revision` runs the real LangGraph workflow and planning board with the five registered
+specialists for exactly one round (`maxRounds: 1`), so the graph assembles a plan and reports its
+conflicts but never reaches `revise_conflicts`. The comparison therefore measures specialization, not
+targeted revision. Each specialist's tool calls are attributed to it in the trace, the specialists
+read only the scenario's own preferences through a read-only memory, and the graph's progress events
+are published through the same envelope as the baseline's. The single-agent baseline replays a
+scripted plan after loading its evidence once, so tool-call counts compare what each trace recorded,
+not equal workloads. Fixture runs rely on an environment with no model or provider keys, where the
+specialists take their deterministic path and the tools return mock fixtures; they do not read or
+mutate workspace storage. The envelope carries the existing `AgentProgressEvent` union, so the
+inspector can show graph stages, specialist lifecycle, objectives, constraints, tool summaries and
+outcomes without publishing prompts or raw chain-of-thought.
 
 ## LangGraph workflow
 

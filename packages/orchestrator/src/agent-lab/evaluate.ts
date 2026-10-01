@@ -1,7 +1,10 @@
 import type { AgentLabCheck, AgentLabMetrics, TripPlan } from "@trip/shared";
 import type { AgentLabScenario } from "./scenarios";
 
-export type AgentLabEvaluation = Omit<AgentLabMetrics, "eventCount" | "durationMs">;
+export type AgentLabEvaluation = Pick<
+  AgentLabMetrics,
+  "withinBudget" | "budgetHeadroom" | "sectionCount" | "checks"
+>;
 
 const money = (value: number) => `A$${value.toLocaleString("en-AU")}`;
 

@@ -181,8 +181,17 @@ Timeline & routes 标签页（由 `TripEditor` 组合 `components/trip/timeline/
 ## Agent Lab
 
 `/agent-lab` 是公开的工程演示路由，即使 Clerk 保护主工作区时也可访问。它不共用工作区外壳，
-也不读写工作区的浏览器存储。工具栏提供一个已注册场景、一个策略和固定的 Fixture data 模式；
-NDJSON 响应活动期间，Run experiment 按钮会变为 Cancel run。
+也不读写工作区的浏览器存储。工具栏提供一个已注册场景、策略选择和固定的 Fixture data 模式；
+NDJSON 响应活动期间，Run experiment 按钮会变为 Cancel run。Compare both strategies 会先后运行单 agent 基线和
+五 specialist 无修订策略，并打开对比视图。
+
+每个时间线事件都带有文字标签，说明它来自系统的哪一部分：Run、Graph stage、Specialist 或 Tool。
+Specialist 事件会展示受限的目标、约束和结果。
+
+对比视图展示一张度量表（延迟、轮数、工具调用、回退、失败 agent、预算、未解决冲突和检查）、两份计划以及
+并排的两条轨迹。每个数字都读取自对应运行的产物；尚未完成的策略显示 “No completed run”。页面从不给策略排名。
+它会说明该对比衡量的是专业化而非定向修订，说明 fixture 模式展示的是证据如何被度量而不是模型质量，
+并解释为什么预算、冲突检查、状态转换、地图和天气是图节点或工具而不是 agent。
 
 响应式三面板检查器展示有序运行时间线、经过校验的计划和运行指标。指标面板显示真实的预算状态（未超出或超出及金额），并把每项确定性检查
 标为 Passed 或 Failed。流式传输开始后若运行失败，页面会保留已记录的事件，并说明运行停在第几个事件之后。状态与错误使用实时区域，

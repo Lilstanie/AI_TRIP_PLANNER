@@ -70,15 +70,23 @@ supervisor 只选择某个节点需要哪些 specialist 工具。控制路径、
 
 ## Agent Lab
 
-`/agent-lab` 是独立于已保存工作区的公开、可检查实验界面。首个切片只接受已注册的东京双人场景、
-`single-agent-baseline` 策略和 fixture 数据。`POST /api/agent-lab/runs` 校验这一封闭请求，
+`/agent-lab` 是独立于已保存工作区的公开、可检查实验界面。它只接受已注册的东京双人场景、
+已注册的策略（`single-agent-baseline` 和 `multi-agent-no-revision`）以及 fixture 数据。`POST /api/agent-lab/runs` 校验这一封闭请求，
 调用 `runAgentLab()`，先流式返回有序的 NDJSON 事件信封，最后返回带 schema 版本的产物。
 
 该基线是位于五个旅行 specialist 之上的实验策略，不是第六个 specialist。其确定性 fixture
 生成 `TripPlan`，再次按共享约定校验，并记录确定性指标。指标会逐项列出具名检查，例如预算、分段数量、最早活动开始时间和标注为素食的餐食，
-并以场景自身的规则为衡量依据。实验室事件信封也能承载现有的
-`AgentProgressEvent` 联合类型，因此后续多 agent 策略可公开同一种受限的运行轨迹，而不公开提示词
-或原始思维链。Fixture 运行不使用提供方凭据、不调用外部服务，也不读取或修改工作区存储。
+并以场景自身的规则为衡量依据；还包含对比所需的数据：规划轮数、工具调用数、回退分段数、失败 agent 数、
+未解决冲突数和延迟。延迟不含让流式输出便于观看的节奏延迟。
+
+`multi-agent-no-revision` 用五个已注册 specialist 运行真实的 LangGraph 工作流和规划板，恰好一轮
+（`maxRounds: 1`），因此图会汇总出计划并报告冲突，但不会进入 `revise_conflicts`。所以该对比衡量的是
+专业化，而不是定向修订。每个 specialist 的工具调用在轨迹中归属于它；specialist 只通过只读记忆读取场景自身的
+偏好；图的进度事件经与基线相同的信封发布。单 agent 基线加载一次证据后回放脚本化计划，所以工具调用数
+比较的是各自轨迹所记录的内容，而不是等量的工作。Fixture 运行依赖没有模型或提供方密钥的环境：此时
+specialist 走确定性路径，工具返回 mock fixture；它们不读取或修改工作区存储。信封承载现有的
+`AgentProgressEvent` 联合类型，因此检查器可以展示图阶段、specialist 生命周期、目标、约束、工具摘要和结果，
+而不公开提示词或原始思维链。
 
 <a id="langgraph-workflow"></a>
 
