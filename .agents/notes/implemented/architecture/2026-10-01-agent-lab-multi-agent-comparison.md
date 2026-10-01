@@ -6,8 +6,8 @@ Owner: A (@Lilstanie)
 ## Problem
 
 The single-agent baseline had nothing to be compared against, and a comparison is only fair if the
-other side is the real planner, runs under the same measurement and does not quietly include the
-repair loop. Without that, any difference could come from revision, from a different evidence set, or
+other side is the real planner, runs under the same measurement and does not quietly include
+targeted revision. Without that, any difference could come from the revision step, from a different evidence set, or
 from how the two sides were scored.
 
 ## Decision

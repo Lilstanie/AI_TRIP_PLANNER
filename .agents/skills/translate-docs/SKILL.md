@@ -29,7 +29,7 @@ the mandatory pairs. Never edit frozen history or generated code to make a trans
 
 Read a paragraph for meaning, then write natural technical Chinese or English. Compare the finished
 translation clause by clause for actors, conditions, ordering, exceptions, units and failure
-semantics. Read it alone once for clarity. Use the terminology in the pairing guide; keep ambiguous
+semantics. Read it alone once for clarity. Use the terminology table in the pairing guide, which gives the Chinese form of the terms in the root `CONTEXT.md`; keep ambiguous
 technical identifiers in English and report unresolved terminology.
 
 Keep heading levels, list types, table structure, inline code and code fences. Code fences, including
@@ -58,7 +58,8 @@ or person reviewed the pair, not proof supplied by a translator or a semantic eq
 Never record a stale translation just to make the check pass. For deleted pairs, use
 `--remove docs/old-page.md` only after both files are removed.
 
-Follow [pre-push-checks](../pre-push-checks/SKILL.md) for docs, protection and formatting. The pairing
-command is required locally for documentation changes; it is not wired into CI or `pnpm verify:docs`.
+Follow [pre-push-checks](../pre-push-checks/SKILL.md) for docs, protection and formatting. Run the
+pairing check locally for documentation changes (`pnpm verify:pairs` is the same command); CI runs it
+after `verify-docs`, so an unreviewed or unrecorded pair fails the pull request.
 Report translated files, unresolved terms and checks actually run, and add a new
 [session log](../session-log/SKILL.md) after edits.

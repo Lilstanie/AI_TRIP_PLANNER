@@ -1,6 +1,6 @@
 ---
 name: better-writing
-description: Use when writing or reviewing interface copy in apps/web of AI_TRIP_PLANNER — button labels, empty states, errors, degraded-source notices, questions the planner asks, aria-labels — so the wording stays plain, consistent and honest about where data came from.
+description: Write interface copy for apps/web of AI_TRIP_PLANNER so wording stays plain, consistent and honest about where data came from. Use when writing or reviewing button labels, empty states, errors, degraded-source notices, questions the planner asks or aria-labels.
 ---
 
 # Interface writing

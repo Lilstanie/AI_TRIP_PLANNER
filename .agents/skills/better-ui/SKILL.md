@@ -1,6 +1,6 @@
 ---
 name: better-ui
-description: Use when polishing or reviewing the visual details of apps/web in AI_TRIP_PLANNER — radii, surfaces, shadows, glass, place photos, icons, hover and press feedback, transitions — so the change follows the Liquid Glass design contract and its tokens instead of ad hoc values.
+description: Polish the visual details of apps/web in AI_TRIP_PLANNER so changes follow the Liquid Glass design contract and its tokens instead of ad hoc values. Use when working on radii, surfaces, shadows, glass, place photos, icons, hover and press feedback or transitions.
 ---
 
 # UI polish
@@ -20,7 +20,7 @@ When reviewing motion, slow it down in the browser's Animations panel. Anything 
 ## Surfaces and depth
 
 - **Glass for every floating layer.** The sidebar, top-bar capsules, composer, panels, drawers,
-  sheets and map overlays are Liquid Glass on the `--ambient` ground. Follow [glass.md](glass.md)
+  sheets and map overlays are Liquid Glass on the `--ambient` ground. Follow [glass.md](references/glass.md)
   exactly, including its fallbacks, and never nest glass in glass.
 - **Fills inside.** Inside a glass layer, group with spacing and `--fill-hover` / `--fill-press`
   rows rather than new cards or borders. `--shadow-sm` for small raised controls, `--shadow-md` for
@@ -46,7 +46,7 @@ When reviewing motion, slow it down in the browser's Animations panel. Anything 
   shimmer.
 - **Name the properties.** Never write `transition: all`. Animate `transform`, `opacity` and
   `filter`, not layout properties. Add `will-change` only when the first frame visibly stutters. See
-  [performance.md](performance.md).
+  [performance.md](references/performance.md).
 - **Restraint.** High-frequency actions get instant feedback or at most 150 ms on colour and
   opacity: typing, row hover, switching chats. Keep expressive motion for rare moments, like a new
   plan arriving. Exits are shorter and quieter than entrances. Use a small `translateY`, never the

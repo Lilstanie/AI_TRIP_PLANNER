@@ -1,6 +1,7 @@
 # Agent Note: Selected Matt Pocock skills adapted for this project
 
 Status: implemented
+Archived: 2026-10-01
 
 ## Problem
 

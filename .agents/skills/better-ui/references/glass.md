@@ -1,8 +1,8 @@
 # Liquid Glass surfaces
 
 A translucent, blurred, lightly saturated material with a bright specular rim, like Liquid Glass in
-iOS 26. The [design contract](../../../docs/design/ui-guidelines.md) says where it goes, and the
-[Liquid Glass Agent Note](../../notes/implemented/feature/2026-09-25-liquid-glass-workspace.md)
+iOS 26. The [design contract](../../../../docs/design/ui-guidelines.md) says where it goes, and the
+[Liquid Glass Agent Note](../../../notes/implemented/feature/2026-09-25-liquid-glass-workspace.md)
 records why. This file is the implementation recipe; `apps/web/app/styles/glass.css` applies it.
 
 ## Where it goes

@@ -77,6 +77,6 @@ Disable spellcheck on emails, codes and usernames: `spellcheck="false"`.
 ## Submit behavior
 
 - Keep submit enabled until the request starts, then disable it and show a spinner _beside the original label_. "Save" with a spinner, not a bare spinner. The label is what tells assistive tech which button is busy.
-- Announce results. Success goes through a polite live region. On failure, focus the first invalid field, which is itself the announcement. Reserve `role="alert"` for form-level errors not tied to a field ([screen-readers.md](screen-readers.md)).
+- Announce results. Success goes through a polite live region. On failure, focus the first invalid field, which is itself the announcement. Reserve `role="alert"` for form-level errors not tied to a field (see `screen-readers.md`).
 - Warn on unsaved changes before navigation, and never lose typed input to a re-render. Hydration must preserve focus and value.
 - Enter submits from any focused input; in `<textarea>`, ⌘/Ctrl+Enter submits.

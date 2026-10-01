@@ -8,7 +8,7 @@
 // - targeted revision is not available from the public page, or the request is accepted without being
 //   registered;
 // - the revision strategy saw different evidence from the no-revision strategy, so a difference could
-//   come from the data rather than the repair loop;
+//   come from the data rather than targeted revision;
 // - the trace omits the conflict, the targeted specialist, the previous outcome, the revision objective,
 //   the score before and after, the round or the stopping reason, or the page hides them;
 // - a specialist the conflict did not name runs again;
@@ -299,8 +299,8 @@ async function run(browser, { width, height, tag }) {
 
   const body = await page.locator("main").innerText();
   check(
-    /measures the repair loop/i.test(body) && /measures specialization only/i.test(body),
-    `${tag}: page says which comparison measures specialization and which measures the repair loop`,
+    /what targeted revision adds/i.test(body) && /measures specialization only/i.test(body),
+    `${tag}: page says which comparison measures specialization and which measures what targeted revision adds`,
   );
   check(
     /not a target/i.test(body),

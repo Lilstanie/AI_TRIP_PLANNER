@@ -30,9 +30,9 @@ export function ComparisonPanel({ sides }: { sides: readonly ComparisonSide[] })
           specialist run plays one round and never revises.
         </p>
         <p>
-          Five specialists with no revision against targeted revision measures the repair loop: the
-          two share the same evidence and the same first round, and differ only in whether the
-          conflicts that round finds may be revised.
+          Five specialists with no revision against targeted revision measures what targeted
+          revision adds: the two share the same evidence and the same first round, and differ only
+          in whether the conflicts that round finds may be revised.
         </p>
       </div>
       <div className="agent-lab__table-wrap">
