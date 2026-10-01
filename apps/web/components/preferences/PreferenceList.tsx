@@ -1,6 +1,10 @@
 "use client";
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
-import { MAX_TRIP_PREFERENCE_LENGTH, MAX_TRIP_PREFERENCES } from "@trip/shared";
+import {
+  MAX_TRIP_PREFERENCE_LENGTH,
+  MAX_TRIP_PREFERENCES,
+  type LegModeChoice,
+} from "@trip/shared";
 import { draftPreferences, type Draft } from "@/lib/workspace";
 import { CloseIcon } from "../ui/icons";
 import { Input } from "../ui/input";
@@ -211,10 +215,22 @@ export function PreferenceList({ value, onChange, errors }: Props) {
   );
 }
 
+/** How a chosen travel mode reads on its own row: "Train from Melbourne to Sydney". */
+const MODE_PHRASE: Record<LegModeChoice["mode"], string> = {
+  train: "Train",
+  flight: "Fly",
+  bus: "Bus",
+  walk: "Walk",
+  transit: "Public transport",
+  tram: "Tram",
+  ferry: "Ferry",
+  drive: "Drive",
+};
+
 /**
- * What the assistant picked up in chat: lasting wishes, flights the traveller arranges and a stay
- * they have booked. The assistant writes these; the traveller can only remove them, which returns
- * the matter to the planner on the next plan.
+ * What the assistant picked up in chat: lasting wishes, how the traveller wants particular hops
+ * made, flights the traveller arranges and a stay they have booked. The assistant writes these;
+ * the traveller can only remove them, which returns the matter to the planner on the next plan.
  */
 function LearnedList({
   value,
@@ -231,6 +247,15 @@ function LearnedList({
       key: `learned-${index}`,
       text,
       remove: () => ({ ...value, learnedPreferences: learned.filter((_, at) => at !== index) }),
+    })),
+    // Each hop is its own row, so taking back one choice leaves the others alone.
+    ...(value.legModes ?? []).map((choice, index) => ({
+      key: `leg-mode-${index}`,
+      text: `${MODE_PHRASE[choice.mode]} from ${choice.from} to ${choice.to}`,
+      remove: () => {
+        const rest = (value.legModes ?? []).filter((_, at) => at !== index);
+        return { ...value, legModes: rest.length ? rest : undefined };
+      },
     })),
     ...(value.excludeFlights
       ? [

@@ -6,6 +6,7 @@ import {
   ChatNeedsInfo,
   ChatResponse,
   FlightAnswer,
+  LegModeChoice,
   moneyIn,
   PartialTripBrief,
   partyPeople,
@@ -67,6 +68,12 @@ export type Draft = {
   learnedPreferences?: string[];
   /** The traveller arranges their own flights; the planner neither asks about nor prices them. */
   excludeFlights?: boolean;
+  /**
+   * How the traveller said particular hops should be made, learned from the conversation. Kept on
+   * the draft like `learnedPreferences` so they can see each one and take it back; removing an
+   * entry clears the brief's copy. Optional, so a draft stored before it existed still loads.
+   */
+  legModes?: LegModeChoice[];
   /** The stay the traveller has already booked; the planner uses it as given. */
   bookedStay?: BookedStay;
   /**
@@ -136,6 +143,7 @@ export function draftFor(brief: TripBrief): Draft {
     preferences: brief.preferences ?? [],
     ...(brief.learnedPreferences?.length ? { learnedPreferences: brief.learnedPreferences } : {}),
     ...(brief.excludeFlights ? { excludeFlights: true } : {}),
+    ...(brief.legModes?.length ? { legModes: brief.legModes } : {}),
     ...(brief.bookedStay ? { bookedStay: brief.bookedStay } : {}),
     nationality: brief.nationality ?? "",
     roomAllocation: brief.accommodation?.roomAllocation ?? "shared",
@@ -174,6 +182,8 @@ export function isDraft(value: unknown): value is Draft {
       (Array.isArray(value.learnedPreferences) &&
         value.learnedPreferences.every((item) => typeof item === "string"))) &&
     (value.excludeFlights === undefined || typeof value.excludeFlights === "boolean") &&
+    (value.legModes === undefined ||
+      LegModeChoice.array().safeParse(value.legModes).success) &&
     (value.bookedStay === undefined || BookedStay.safeParse(value.bookedStay).success)
   );
 }
@@ -200,6 +210,8 @@ export function parseDraft(draft: Draft, current: Pick<TripBrief, "tripId"> & Pa
     // Like the list above, each is read from the draft so a removal clears the brief's copy.
     learnedPreferences: statedPreferences(draft.learnedPreferences ?? []),
     excludeFlights: draft.excludeFlights || undefined,
+    // Read from the draft like the lists above, so removing the last choice clears the brief's.
+    legModes: draft.legModes?.length ? draft.legModes : undefined,
     bookedStay: draft.bookedStay,
     nationality: draft.nationality.trim() || undefined,
     accommodation: {
@@ -227,6 +239,7 @@ export function knownFromDraft(draft: Draft): PartialTripBrief {
     preferences: statedPreferences(draftPreferences(draft)),
     learnedPreferences: statedPreferences(draft.learnedPreferences ?? []),
     excludeFlights: draft.excludeFlights || undefined,
+    legModes: draft.legModes?.length ? draft.legModes : undefined,
     bookedStay: draft.bookedStay,
   });
   return parsed.success ? parsed.data : {};
@@ -268,6 +281,7 @@ export function draftWithKnown(draft: Draft, known: PartialTripBrief): Draft {
     preferences: known.preferences ?? draft.preferences,
     learnedPreferences: known.learnedPreferences ?? draft.learnedPreferences,
     excludeFlights: known.excludeFlights ?? draft.excludeFlights,
+    legModes: known.legModes ?? draft.legModes,
     bookedStay: known.bookedStay ?? draft.bookedStay,
   };
 }

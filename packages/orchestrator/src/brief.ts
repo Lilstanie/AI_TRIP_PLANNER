@@ -2,6 +2,7 @@ import {
   TripBrief as TripBriefSchema,
   BookedStay,
   Currency,
+  LegModeChoice,
   TripPreferences,
   type TripBrief,
 } from "@trip/shared";
@@ -27,6 +28,7 @@ export const BriefPatchSchema = z.object({
   // Set by the coordinator from what the traveller says in chat, never merged into `preferences`.
   learnedPreferences: TripPreferences.optional(),
   excludeFlights: z.boolean().optional(),
+  legModes: z.array(LegModeChoice).max(12).optional(),
   bookedStay: BookedStay.optional(),
 });
 export type BriefPatch = z.infer<typeof BriefPatchSchema>;
