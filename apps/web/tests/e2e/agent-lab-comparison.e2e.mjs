@@ -1,6 +1,6 @@
 // End-to-end contract for Agent Lab's strategy comparison. From the public page a visitor runs the
-// single-agent baseline and the five-specialist no-revision strategy, inspects the typed trace and
-// reads both results side by side. Raw NDJSON, parsed artifacts, a summary and desktop/phone
+// single-agent baseline, the five-specialist no-revision strategy and the targeted-revision strategy,
+// inspects the typed trace and reads the results side by side. Raw NDJSON, parsed artifacts, a summary and desktop/phone
 // screenshots land under output/playwright/agent-lab-comparison/ as repeatable evidence.
 //
 // Failure inventory, written before implementation:
@@ -57,6 +57,24 @@ const expectedRows = (metrics) => ({
     : `Over budget by ${money(-metrics.budgetHeadroom)}`,
   conflicts: String(metrics.unresolvedConflicts),
   checks: `${metrics.checks.filter((item) => item.passed).length}/${metrics.checks.length} passed`,
+  grounding: `${metrics.groundedSections}/${metrics.sectionCount} sections`,
+  "duplicate-stops": String(metrics.duplicateStops),
+  "generic-stops": String(metrics.genericStops),
+  "multi-city":
+    metrics.multiCityConsistent === null
+      ? "Not applicable"
+      : metrics.multiCityConsistent
+        ? "Consistent"
+        : "Inconsistent",
+  "stop-reason":
+    {
+      converged: "Converged",
+      round_limit: "Round limit reached",
+      infeasible_budget: "Infeasible budget",
+      no_improvement: "No improvement",
+    }[metrics.stopReason ?? ""] ?? "No loop",
+  // Fixture runs make no model calls: the page must say unavailable, never a number.
+  usage: "Unavailable",
 });
 
 async function run(browser, { width, height, tag }) {
@@ -89,8 +107,8 @@ async function run(browser, { width, height, tag }) {
   const storageBefore = await workspaceStorage();
 
   check(
-    (await page.getByLabel("Strategy").locator("option").allTextContents()).length === 2,
-    `${tag}: both strategies are selectable`,
+    (await page.getByLabel("Strategy").locator("option").allTextContents()).length === 3,
+    `${tag}: all three strategies are selectable`,
   );
   check(
     (await page.getByRole("button", { name: "Compare strategies" }).isDisabled()) === true,
@@ -98,7 +116,7 @@ async function run(browser, { width, height, tag }) {
   );
 
   // Cancelling a comparison must not leave a number for the strategy that never ran.
-  await page.getByRole("button", { name: "Compare both strategies" }).click();
+  await page.getByRole("button", { name: "Compare all strategies" }).click();
   const cancel = page.getByRole("button", { name: "Cancel run" });
   await cancel.waitFor();
   await cancel.click();
@@ -117,17 +135,20 @@ async function run(browser, { width, height, tag }) {
   await page.keyboard.press("Tab");
   check(
     await page
-      .getByRole("button", { name: "Compare both strategies" })
+      .getByRole("button", { name: "Compare all strategies" })
       .evaluate((element) => element === document.activeElement),
-    `${tag}: Tab reaches Compare both strategies`,
+    `${tag}: Tab reaches Compare all strategies`,
   );
   await page.keyboard.press("Enter");
   await page
     .getByRole("status")
     .getByText("Run complete", { exact: true })
     .waitFor({ timeout: 30000 });
-  const [singleBody, multiBody] = await Promise.all(bodies);
-  check(bodies.length === 2, `${tag}: comparison issued exactly two runs, one per strategy`);
+  const [singleBody, multiBody, revisionBody] = await Promise.all(bodies);
+  check(bodies.length === 3, `${tag}: comparison issued exactly three runs, one per strategy`);
+  writeFileSync(`${OUT}/${tag}.revision.ndjson`, revisionBody);
+  const revision = completeOf(revisionBody).artifact;
+  writeFileSync(`${OUT}/${tag}.revision.artifact.json`, JSON.stringify(revision, null, 2));
   writeFileSync(`${OUT}/${tag}.single.ndjson`, singleBody);
   writeFileSync(`${OUT}/${tag}.multi.ndjson`, multiBody);
   const single = completeOf(singleBody).artifact;
@@ -144,8 +165,20 @@ async function run(browser, { width, height, tag }) {
     `${tag}: second run is the no-revision multi-agent strategy`,
   );
   check(
-    single.status === "completed" && multi.status === "completed",
-    `${tag}: both artifacts completed`,
+    revision.strategyId === "multi-agent-targeted-revision",
+    `${tag}: third run is the targeted-revision strategy`,
+  );
+  check(
+    [single, multi, revision].every((artifact) => artifact.status === "completed"),
+    `${tag}: all three artifacts completed`,
+  );
+  check(
+    JSON.stringify(revision.plan) === JSON.stringify(multi.plan),
+    `${tag}: with no conflict, targeted revision leaves the no-revision plan unchanged`,
+  );
+  check(
+    revision.metrics.rounds === 1 && revision.metrics.stopReason === "converged",
+    `${tag}: with no conflict, targeted revision adds no round and converges`,
   );
   check(
     multi.plan.sections.length === 5 && single.plan.sections.length === 5,
@@ -199,7 +232,7 @@ async function run(browser, { width, height, tag }) {
   );
 
   // The comparison table must say exactly what each artifact says.
-  for (const [index, artifact] of [single, multi].entries()) {
+  for (const [index, artifact] of [single, multi, revision].entries()) {
     const expected = expectedRows(artifact.metrics);
     for (const [row, text] of Object.entries(expected)) {
       const actual = (
@@ -212,22 +245,30 @@ async function run(browser, { width, height, tag }) {
     }
   }
   check(
-    (await page.locator("[data-agent-lab-compare-side]").count()) === 2,
-    `${tag}: both plans are shown side by side`,
+    (await page.locator("[data-agent-lab-compare-side]").count()) === 3,
+    `${tag}: all three plans are shown side by side`,
   );
   check(
-    (await page.locator("[data-agent-lab-compare-side] [data-agent-lab-section]").count()) === 10,
-    `${tag}: the page renders ten plan sections, five per strategy`,
+    (await page.locator("[data-agent-lab-compare-side] [data-agent-lab-section]").count()) === 15,
+    `${tag}: the page renders fifteen plan sections, five per strategy`,
   );
   check(
     (await page.locator("[data-agent-lab-compare-side] [data-agent-lab-event]").count()) ===
-      single.events.length + multi.events.length,
-    `${tag}: the page renders every event of both traces`,
+      single.events.length + multi.events.length + revision.events.length,
+    `${tag}: the page renders every event of all three traces`,
   );
   const body = await page.locator("main").innerText();
   check(
     /measures specialization only/i.test(body),
     `${tag}: page states that it measures specialization, not revision`,
+  );
+  check(
+    /measures the repair loop/i.test(body),
+    `${tag}: page states that no-revision against revision measures the repair loop`,
+  );
+  check(
+    /not a target/i.test(body),
+    `${tag}: page does not present five specialists as a permanent number`,
   );
   check(
     /graph nodes or tools/i.test(body) && /budgeting, conflict checks/i.test(body),
@@ -275,7 +316,7 @@ async function run(browser, { width, height, tag }) {
   );
   await page.screenshot({ path: `${OUT}/${tag}.png`, fullPage: true });
   await context.close();
-  return { single, multi };
+  return { single, multi, revision };
 }
 
 const browser = await chromium.launch({ channel: process.env.CHANNEL });
@@ -298,6 +339,10 @@ check(
 check(
   strip(desktop.single) === strip(phone.single),
   "single-agent fixture repeats exactly across sessions",
+);
+check(
+  strip(desktop.revision) === strip(phone.revision),
+  "targeted-revision fixture repeats exactly across sessions",
 );
 
 writeFileSync(
