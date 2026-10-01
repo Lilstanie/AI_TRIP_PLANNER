@@ -24,6 +24,8 @@ contract-impact: none
   character trigger budget, 500 lines, files beside SKILL.md, and one level of references.
 - CI runs the rule tests (`pnpm test:scripts`); a new Agent Note, `2026-10-01-enforce-skill-format.md`,
   records the decision.
+- Updated the translation rules: the pairing guide in both languages now has Chinese forms for the
+  `CONTEXT.md` terms and the exact inline-code rule, and CI runs the pair check (`pnpm verify:pairs`).
 - Added a root `CONTEXT.md` glossary for the planning and Agent Lab terms that had drifted, and replaced
   the page copy, docs and notes' "repair loop" with "targeted revision".
 - Removed the project-local `grill-with-docs` and `diagnosing-bugs` skills, which duplicate the upstream
