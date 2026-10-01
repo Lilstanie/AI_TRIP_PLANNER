@@ -50,7 +50,8 @@ the comparison already used. No model judges anything. Token and model cost is r
 
 ## Consequences
 
-`packages/shared` gained the scenario and strategy ids, four lab trace events, a stop-reason enum and
+`packages/shared` gained the scenario and strategy ids (`tokyo-couple-tight-budget` and
+`multi-agent-targeted-revision`, registered together with the strategy), four lab trace events, a stop-reason enum and
 the new metrics; `schemaVersion` stays 1 because no earlier shape was released. Fixture runs still rely
 on an environment without model or provider keys; with keys set the specialists use them. Repeated and
 generic stops are measured on the specialists' deterministic fallback itinerary, which repeats one
