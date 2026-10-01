@@ -26,12 +26,12 @@ Status as of 2026-10-01 on `main`; see [workspace UI](workspace-ui.md) for curre
   dialog with a travel profile that prefills new trips.
 - Public Agent Lab: a fixed Tokyo fixture exposes a single-agent trace, validated plan and
   deterministic metrics without provider keys, and compares it with five specialists running one
-  round without revision.
+  round without revision and with bounded targeted revision on a tight-budget variant.
 
 **Open**
 
 1. Verify live providers end to end with real keys in a deployed environment.
-2. Extend Agent Lab with bounded revision, replay and injected-failure runs.
+2. Extend Agent Lab with replay and injected-failure runs.
 3. On-trip mode, once the describe, edit, save and travel loop is stable.
 
 **Later, only if needed**
