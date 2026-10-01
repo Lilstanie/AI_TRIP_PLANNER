@@ -1,14 +1,15 @@
 "use client";
 
 import {
-  AgentLabStreamFrame,
   type AgentLabCompletedRunArtifact,
+  type AgentLabFailedRunArtifact,
   type AgentLabRunEvent,
   type AgentLabScenarioId,
   type AgentLabStrategyId,
 } from "@trip/shared";
 import Link from "next/link";
 import { useRef, useState } from "react";
+import { AgentLabRunError, readAgentLabStream } from "@/lib/agent-lab/stream";
 
 interface ScenarioSummary {
   id: AgentLabScenarioId;
@@ -82,44 +83,13 @@ function eventCopy(runEvent: AgentLabRunEvent): { title: string; detail: string 
   }
 }
 
-async function readStream(
-  response: Response,
-  onEvent: (event: AgentLabRunEvent) => void,
-): Promise<AgentLabCompletedRunArtifact> {
-  if (!response.ok || !response.body) throw new Error("Unable to start this experiment.");
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-  let artifact: AgentLabCompletedRunArtifact | undefined;
-
-  const consume = (line: string) => {
-    if (!line.trim()) return;
-    const parsed = AgentLabStreamFrame.safeParse(JSON.parse(line));
-    if (!parsed.success) throw new Error("The experiment returned an invalid event.");
-    if (parsed.data.type === "event") onEvent(parsed.data.event);
-    if (parsed.data.type === "complete") artifact = parsed.data.artifact;
-    if (parsed.data.type === "error") throw new Error(parsed.data.error);
-  };
-
-  while (true) {
-    const { value, done } = await reader.read();
-    buffer += decoder.decode(value, { stream: !done });
-    const lines = buffer.split("\n");
-    buffer = lines.pop() ?? "";
-    lines.forEach(consume);
-    if (done) break;
-  }
-  consume(buffer);
-  if (!artifact) throw new Error("The experiment ended without a completed artifact.");
-  return artifact;
-}
-
 export function AgentLabClient({ scenarios }: AgentLabClientProps) {
   const [scenarioId, setScenarioId] = useState<AgentLabScenarioId>(scenarios[0]!.id);
   const [strategyId, setStrategyId] = useState<AgentLabStrategyId>(strategyOptions[0]!.id);
   const [runState, setRunState] = useState<RunState>("ready");
   const [events, setEvents] = useState<AgentLabRunEvent[]>([]);
   const [artifact, setArtifact] = useState<AgentLabCompletedRunArtifact>();
+  const [failure, setFailure] = useState<AgentLabFailedRunArtifact>();
   const [error, setError] = useState<string>();
   const controllerRef = useRef<AbortController | undefined>(undefined);
   const selectedScenario = scenarios.find((scenario) => scenario.id === scenarioId)!;
@@ -136,6 +106,7 @@ export function AgentLabClient({ scenarios }: AgentLabClientProps) {
     setRunState("running");
     setEvents([]);
     setArtifact(undefined);
+    setFailure(undefined);
     setError(undefined);
     try {
       const response = await fetch("/api/agent-lab/runs", {
@@ -144,7 +115,7 @@ export function AgentLabClient({ scenarios }: AgentLabClientProps) {
         body: JSON.stringify({ scenarioId, strategyId, dataMode: "fixture" }),
         signal: controller.signal,
       });
-      const completed = await readStream(response, (event) => {
+      const completed = await readAgentLabStream(response, (event) => {
         setEvents((current) => [...current, event]);
       });
       setArtifact(completed);
@@ -153,6 +124,7 @@ export function AgentLabClient({ scenarios }: AgentLabClientProps) {
       if (controller.signal.aborted) {
         setRunState("cancelled");
       } else {
+        if (caught instanceof AgentLabRunError) setFailure(caught.artifact);
         setError(caught instanceof Error ? caught.message : "Unable to run this experiment.");
         setRunState("error");
       }
@@ -231,7 +203,11 @@ export function AgentLabClient({ scenarios }: AgentLabClientProps) {
 
       {error ? (
         <p className="agent-lab__error" role="alert">
-          {error} Choose the registered fixture and try again.
+          {error}
+          {failure
+            ? ` The run stopped after event ${failure.failure.atSequence} (${failure.metrics.durationMs} ms); the events recorded so far are kept below.`
+            : ""}{" "}
+          Choose the registered fixture and try again.
         </p>
       ) : null}
 
@@ -321,30 +297,45 @@ export function AgentLabClient({ scenarios }: AgentLabClientProps) {
             {artifact ? <span>Schema v{artifact.schemaVersion}</span> : null}
           </div>
           {artifact ? (
-            <dl className="agent-lab__metrics">
-              <div>
-                <dt>Budget</dt>
-                <dd>Within budget</dd>
-                <small>{money(artifact.metrics.budgetHeadroom)} remaining</small>
-              </div>
-              <div>
-                <dt>Constraints</dt>
-                <dd>
-                  {artifact.metrics.constraintsSatisfied}/{artifact.metrics.constraintsTotal} passed
-                </dd>
-                <small>Deterministic checks</small>
-              </div>
-              <div>
-                <dt>Sections</dt>
-                <dd>{artifact.metrics.sectionCount}</dd>
-                <small>Validated plan sections</small>
-              </div>
-              <div>
-                <dt>Trace</dt>
-                <dd>{artifact.metrics.eventCount} events</dd>
-                <small>{artifact.metrics.durationMs} ms recorded</small>
-              </div>
-            </dl>
+            <>
+              <dl className="agent-lab__metrics">
+                <div>
+                  <dt>Budget</dt>
+                  <dd>{artifact.metrics.withinBudget ? "Within budget" : "Over budget"}</dd>
+                  <small>
+                    {artifact.metrics.withinBudget
+                      ? `${money(artifact.metrics.budgetHeadroom)} remaining`
+                      : `${money(-artifact.metrics.budgetHeadroom)} over`}
+                  </small>
+                </div>
+                <div>
+                  <dt>Checks</dt>
+                  <dd>
+                    {artifact.metrics.checks.filter((check) => check.passed).length}/
+                    {artifact.metrics.checks.length} passed
+                  </dd>
+                  <small>Deterministic checks</small>
+                </div>
+                <div>
+                  <dt>Sections</dt>
+                  <dd>{artifact.metrics.sectionCount}</dd>
+                  <small>Validated plan sections</small>
+                </div>
+                <div>
+                  <dt>Trace</dt>
+                  <dd>{artifact.metrics.eventCount} events</dd>
+                  <small>{artifact.metrics.durationMs} ms recorded</small>
+                </div>
+              </dl>
+              <ul className="agent-lab__checks" aria-label="Deterministic checks">
+                {artifact.metrics.checks.map((check) => (
+                  <li key={check.id} data-agent-lab-check={check.id} data-passed={check.passed}>
+                    <span>{check.passed ? "Passed" : "Failed"}</span>
+                    {check.label}
+                  </li>
+                ))}
+              </ul>
+            </>
           ) : (
             <div className="agent-lab__empty">
               <strong>Measured, not judged</strong>

@@ -14,16 +14,16 @@
       "translationSha256": "e42dfb30914fef0ea4cfa05a178490d80b3ba4ca4433fe604d67d792917c04ff"
     },
     "docs/api.md": {
-      "sourceSha256": "84225782e641ce08a5c3d8d4e3539cb7ffe01d00d9d8846305297f39516566c8",
-      "translationSha256": "ce63ab46f96868eaffaf98c0d325ffa384c11ef2b7e58838ebe018b11620e74a"
+      "sourceSha256": "6f1ec1b7db0f54efd5e295c4a758bb0ad05212fc0925490e9584cd7f9efc7337",
+      "translationSha256": "083e7093962dbfb1c3ad96abe97ff1937a5e3560d56e7dd3f8dd792a30e0695e"
     },
     "docs/architecture-diagrams.md": {
       "sourceSha256": "231b079855cf88439e2961ad891345882b0001cd0d6802f8467805e263a7e1ab",
       "translationSha256": "781be0671133136d445f9295617d95816929e9ba0c1d910316f0ee74e0c3d7cb"
     },
     "docs/architecture.md": {
-      "sourceSha256": "8371193ed871743237fe78edb15534093f3107e20c1b8344436e7065aa1050ba",
-      "translationSha256": "d3eea29051f19ee88a45a0a8742542dee8e7138cf6d7ab0e6802047781b53dca"
+      "sourceSha256": "2551f61fba3d4aadc5ba1e6bdaf5f5f51ffd2181473c5947d03e2077942d270f",
+      "translationSha256": "8234bb0ce87b1674721dd0468b44467720d4a91e51959dc345800bf91b0c1732"
     },
     "docs/design/class-diagram.md": {
       "sourceSha256": "b617fec2f4daaca75a5203a525dc127b5bb2c5e4a47dbb9a91dcc499a7654f00",
@@ -58,8 +58,8 @@
       "translationSha256": "fc3cdafe8a8a7f31f0d94d52f2666af1b2e1e2fcffc1b0f41714204d3755e5ab"
     },
     "docs/workspace-ui.md": {
-      "sourceSha256": "971741b93221955b87e8d0ec1392c2dc9a255532f93506ad8f204d5d38d73c87",
-      "translationSha256": "d9c5bc8f6e8d1eaab482c7775865e752cff20faab1c8ece0bb70e284c8c737f1"
+      "sourceSha256": "37cb09161726bb27f9674b0b6a511f3a5efdc0766f06803f851fde6ae7b066b3",
+      "translationSha256": "f167d9d5056f81f84d2a9e1cdb093a587135843cb329e1d9d6476a2ff6ee5260"
     }
   }
 }

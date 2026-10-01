@@ -468,7 +468,9 @@ registered scenario, one strategy and the fixed Fixture data mode; Run experimen
 while the NDJSON response is active.
 
 The responsive three-panel inspector shows the ordered run timeline, the validated plan and the run
-metrics. Status and errors use live regions, controls have programmatic labels and keyboard focus,
+metrics. The metrics panel shows the real budget state (within or over, with the amount) and every
+named deterministic check as Passed or Failed. If a run fails after streaming starts, the page keeps
+the events recorded so far and reports the event the run stopped after. Status and errors use live regions, controls have programmatic labels and keyboard focus,
 and the panels stack without horizontal overflow on phones. The result appears only after the shared
 `TripPlan` contract validates it. No external provider, model key or sign-in is required.
 

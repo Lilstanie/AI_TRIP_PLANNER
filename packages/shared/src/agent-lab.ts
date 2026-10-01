@@ -85,12 +85,21 @@ export const AgentLabRunEvent = z.object({
 });
 export type AgentLabRunEvent = z.infer<typeof AgentLabRunEvent>;
 
+// One named, deterministic check. Showing each check, instead of a bare pass count, lets a visitor see
+// exactly which constraints were measured.
+export const AgentLabCheck = z.object({
+  id: z.string().min(1),
+  label: z.string().min(1),
+  passed: z.boolean(),
+});
+export type AgentLabCheck = z.infer<typeof AgentLabCheck>;
+
 export const AgentLabMetrics = z.object({
   withinBudget: z.boolean(),
+  // Budget minus estimate; negative when the plan is over budget.
   budgetHeadroom: z.number(),
   sectionCount: z.number().int().nonnegative(),
-  constraintsSatisfied: z.number().int().nonnegative(),
-  constraintsTotal: z.number().int().nonnegative(),
+  checks: z.array(AgentLabCheck).min(1),
   eventCount: z.number().int().nonnegative(),
   durationMs: z.number().int().nonnegative(),
 });

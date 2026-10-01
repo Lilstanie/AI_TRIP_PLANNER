@@ -154,7 +154,8 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 `{ "error": "Invalid Agent Lab request" }`。有效请求以 NDJSON 流返回帧。事件帧格式为
 `{ "type": "event", "event": { ... } }`，最后一帧格式为
 `{ "type": "complete", "artifact": { ... } }`。产物包含经过校验的计划、有序事件、
-确定性指标，以及明确的 fixture／评估器版本。客户端取消请求会中止运行，不发送完成帧。
+确定性指标，以及明确的 fixture／评估器版本。`metrics.checks` 逐项列出按场景规则衡量的具名检查
+（`id`、`label`、`passed`）；计划超出预算时 `budgetHeadroom` 为负数。客户端取消请求会中止运行，不发送完成帧。
 运行内部失败时，会发送 `error` 帧；其中包含不敏感的消息，以及记录失败前事件的结构化
 `failed` 产物。
 

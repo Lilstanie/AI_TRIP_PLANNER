@@ -12,7 +12,14 @@
 // - the visible plan or metrics disagree with the completed artifact;
 // - raw prompts, secrets or private chain-of-thought reach the page or artifact;
 // - the keyboard path cannot reach the selectors and run/cancel action;
-// - the page overflows horizontally at phone width.
+// - the page overflows horizontally at phone width;
+// - the metrics panel claims a budget or constraint result the artifact does not hold, or a pass
+//   count that is not the list of named checks shown beside it.
+//
+// Covered by focused tests because the E2E cannot observe them (no Clerk keys, no server internals):
+// apps/web/tests/lib/auth/public-routes.test.ts (sign-in gate), tests/app/api/agent-lab/runs.test.ts
+// (cancel writes nothing), tests/lib/agent-lab/stream.test.ts (failed-run artifact),
+// packages/orchestrator/tests/agent-lab-evaluate.test.ts (each check can fail).
 //
 //   pnpm --filter @trip/web dev
 //   [CHANNEL=chrome] [PLAYWRIGHT=<path to playwright>] node apps/web/tests/e2e/agent-lab-single-agent.e2e.mjs
@@ -127,6 +134,11 @@ async function run(browser, { width, height, tag }) {
   check(complete?.artifact?.plan?.budgetTotal === 6000, `${tag}: artifact budget is A$6,000`);
   check(complete?.artifact?.metrics?.withinBudget === true, `${tag}: metrics report within budget`);
   check(complete?.artifact?.metrics?.sectionCount === 5, `${tag}: metrics count five sections`);
+  const checks = complete?.artifact?.metrics?.checks ?? [];
+  check(
+    checks.length === 6 && checks.every((item) => item.passed),
+    `${tag}: all six named checks pass (${checks.map((item) => item.id).join(", ")})`,
+  );
   check(complete?.artifact?.events?.length === 8, `${tag}: artifact carries eight events`);
   check(
     JSON.stringify(complete?.artifact?.events?.map((event) => event.sequence)) ===
@@ -155,6 +167,15 @@ async function run(browser, { width, height, tag }) {
     (await page.getByText("Within budget", { exact: true }).count()) >= 1,
     `${tag}: UI renders budget status`,
   );
+  check(
+    (await page.locator("[data-agent-lab-check]").count()) === checks.length &&
+      (await page.locator('[data-agent-lab-check][data-passed="true"]').count()) === checks.length,
+    `${tag}: UI lists every named check as passed`,
+  );
+  check(
+    (await page.getByText("6/6 passed", { exact: true }).count()) >= 1,
+    `${tag}: UI pass count matches the listed checks`,
+  );
 
   const storageAfter = await workspaceStorage();
   check(storageAfter === storageBefore, `${tag}: Agent Lab does not mutate workspace storage`);
@@ -169,21 +190,32 @@ async function run(browser, { width, height, tag }) {
   await page.screenshot({ path: `${OUT}/${tag}.png`, fullPage: true });
 
   if (tag === "desktop") {
-    const invalid = await page.evaluate(async () => {
-      const response = await fetch("/api/agent-lab/runs", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          scenarioId: "unknown",
-          strategyId: "single-agent-baseline",
-          dataMode: "fixture",
-          prompt: "Do anything",
-        }),
-      });
-      return { status: response.status, body: await response.json() };
-    });
-    check(invalid.status === 400, `desktop: unknown and extra request fields are rejected`);
-    check(invalid.body?.error === "Invalid Agent Lab request", `desktop: rejection is explicit`);
+    // One invalid field per request, so each rejection is attributable to that field alone.
+    const valid = {
+      scenarioId: "tokyo-couple",
+      strategyId: "single-agent-baseline",
+      dataMode: "fixture",
+    };
+    const invalidRequests = {
+      "unknown scenario": { ...valid, scenarioId: "unknown" },
+      "unknown strategy": { ...valid, strategyId: "multi-agent" },
+      "unknown data mode": { ...valid, dataMode: "live" },
+      "extra field": { ...valid, prompt: "Do anything" },
+    };
+    for (const [name, body] of Object.entries(invalidRequests)) {
+      const invalid = await page.evaluate(async (payload) => {
+        const response = await fetch("/api/agent-lab/runs", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        return { status: response.status, body: await response.json() };
+      }, body);
+      check(
+        invalid.status === 400 && invalid.body?.error === "Invalid Agent Lab request",
+        `desktop: ${name} is rejected with an explicit 400`,
+      );
+    }
   }
 
   await context.close();

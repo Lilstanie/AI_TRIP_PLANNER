@@ -19,7 +19,10 @@ specialists, not a sixth specialist.
 
 Runs stream ordered, typed lifecycle envelopes and finish with a schema-versioned artifact containing
 the validated `TripPlan`, the same events and deterministic metrics. The envelope may also carry the
-existing `AgentProgressEvent` union so later strategies can use one inspector. Public evidence is
+existing `AgentProgressEvent` union so later strategies can use one inspector. Metrics carry the
+named, deterministic checks (`id`, `label`, `passed`) instead of a bare pass count, measured against
+rules the scenario declares, so the evaluator never hard-codes one scenario and the inspector shows
+exactly what was measured. Public evidence is
 limited to bounded summaries; prompts and raw chain-of-thought are not part of the contract. Fixture
 runs make no external calls and do not persist workspace or experiment state. Artifacts are a
 discriminated completed/failed contract; a failed artifact carries safe structured failure data and

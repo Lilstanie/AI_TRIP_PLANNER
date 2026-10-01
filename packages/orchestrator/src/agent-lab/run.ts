@@ -5,11 +5,11 @@ import {
   AgentLabRunEvent,
   type AgentLabEventPayload,
   type AgentLabFailedRunArtifact as AgentLabFailedRunArtifactValue,
-  type AgentLabMetrics,
   type AgentLabRunEvent as AgentLabRunEventValue,
   type AgentLabRunRequest,
   type TripPlan,
 } from "@trip/shared";
+import { evaluateAgentLabPlan } from "./evaluate";
 import { findAgentLabScenario } from "./scenarios";
 import { singleAgentFixtureStrategy } from "./single-agent-fixture";
 
@@ -42,22 +42,6 @@ function abortableDelay(ms: number, signal: AbortSignal): Promise<void> {
     signal.addEventListener("abort", onAbort, { once: true });
     if (signal.aborted) onAbort();
   });
-}
-
-function evaluate(plan: TripPlan): Omit<AgentLabMetrics, "eventCount" | "durationMs"> {
-  const checks = [
-    plan.sections.length === 5,
-    plan.estTotal <= plan.budgetTotal,
-    (plan.conflicts?.length ?? 0) === 0,
-    plan.brief.destination === "Tokyo",
-  ];
-  return {
-    withinBudget: plan.estTotal <= plan.budgetTotal,
-    budgetHeadroom: plan.budgetTotal - plan.estTotal,
-    sectionCount: plan.sections.length,
-    constraintsSatisfied: checks.filter(Boolean).length,
-    constraintsTotal: checks.length,
-  };
 }
 
 export async function runAgentLab(
@@ -99,10 +83,15 @@ export async function runAgentLab(
     type: "lab_plan_validated",
     summary: `Validated ${plan.sections.length} plan sections against the shared TripPlan contract.`,
   });
-  const evaluated = evaluate(plan);
+  const evaluated = evaluateAgentLabPlan(scenario, plan);
+  const passed = evaluated.checks.filter((check) => check.passed).length;
   await emit({
     type: "lab_evaluation_completed",
-    summary: `${evaluated.constraintsSatisfied}/${evaluated.constraintsTotal} baseline constraints passed; A$${evaluated.budgetHeadroom.toLocaleString("en-AU")} remains.`,
+    summary: `${passed}/${evaluated.checks.length} baseline checks passed; ${
+      evaluated.withinBudget
+        ? `A$${evaluated.budgetHeadroom.toLocaleString("en-AU")} remains.`
+        : `over budget by A$${(-evaluated.budgetHeadroom).toLocaleString("en-AU")}.`
+    }`,
   });
   await emit({
     type: "lab_strategy_completed",

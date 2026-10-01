@@ -1,11 +1,21 @@
 import { TripPlan, type AgentLabScenarioId, type TripBrief } from "@trip/shared";
 
+// Constraints a plan for this scenario is measured against. They mirror the brief's preferences so the
+// evaluator never hard-codes one scenario's facts.
+export interface AgentLabScenarioRules {
+  /** Earliest allowed activity start, "HH:MM". */
+  earliestStartTime: string;
+  vegetarianMeals: boolean;
+  sectionCount: number;
+}
+
 export interface AgentLabScenario {
   id: AgentLabScenarioId;
   title: string;
   summary: string;
   fixtureVersion: string;
   brief: TripBrief;
+  rules: AgentLabScenarioRules;
   fixturePlan: TripPlan;
 }
 
@@ -174,7 +184,7 @@ const fixturePlan = TripPlan.parse({
           },
           {
             kind: "meal",
-            detail: "Lunch and café allowance",
+            detail: "Vegetarian-friendly lunch and café allowance",
             estCost: 160,
             day: 2,
             location: "Tokyo",
@@ -197,6 +207,7 @@ export const agentLabScenarios: readonly AgentLabScenario[] = [
     summary: "A five-day trip from Sydney for two travellers with a A$6,000 budget.",
     fixtureVersion: "tokyo-couple-v1",
     brief,
+    rules: { earliestStartTime: "10:00", vegetarianMeals: true, sectionCount: 5 },
     fixturePlan,
   },
 ];

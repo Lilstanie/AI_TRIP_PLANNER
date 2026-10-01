@@ -155,7 +155,9 @@ The request is strict: an unknown value or extra property returns HTTP 400 with
 `{ "error": "Invalid Agent Lab request" }`. A valid request streams NDJSON frames. Event frames have
 `{ "type": "event", "event": { ... } }`; the last frame has
 `{ "type": "complete", "artifact": { ... } }`. The artifact contains the validated plan, ordered
-events, deterministic metrics and explicit fixture/evaluator versions. Cancelling the client request
+events, deterministic metrics and explicit fixture/evaluator versions. `metrics.checks` lists each
+named check (`id`, `label`, `passed`) measured against the scenario's rules; `budgetHeadroom` is
+negative when the plan is over budget. Cancelling the client request
 aborts the run without emitting a completion frame. An internal run failure emits an `error` frame
 with a non-sensitive message and a structured `failed` artifact containing the events recorded before
 the failure.

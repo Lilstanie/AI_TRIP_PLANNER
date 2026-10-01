@@ -340,6 +340,34 @@
   font-variant-numeric: tabular-nums;
 }
 
+.agent-lab__checks {
+  display: grid;
+  gap: var(--space-1);
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--font-size-meta);
+}
+
+.agent-lab__checks li {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* The word carries the result; colour only reinforces it. */
+.agent-lab__checks li span {
+  flex: none;
+  font-weight: 700;
+  color: var(--ok);
+}
+
+.agent-lab__checks li[data-passed="false"] span {
+  color: var(--warn);
+}
+
 @media (hover: hover) {
   .agent-lab__run:hover {
     background: color-mix(in srgb, var(--accent-fill) 88%, black);

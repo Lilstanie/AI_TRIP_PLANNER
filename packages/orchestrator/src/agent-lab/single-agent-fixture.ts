@@ -26,8 +26,9 @@ export const singleAgentFixtureStrategy: AgentLabStrategy = {
       objective: "Produce one complete, validated trip plan from the registered scenario evidence.",
       constraints: [
         `Keep the whole trip within A$${scenario.brief.budgetTotal.toLocaleString("en-AU")}.`,
-        "Respect vegetarian dining and no early starts.",
-        "Return all five comparable plan sections.",
+        ...(scenario.rules.vegetarianMeals ? ["Mark every meal as vegetarian-friendly."] : []),
+        `Start no activity before ${scenario.rules.earliestStartTime}.`,
+        `Return all ${scenario.rules.sectionCount} comparable plan sections.`,
       ],
     });
     await emit({

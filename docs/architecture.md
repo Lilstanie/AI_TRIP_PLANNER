@@ -72,7 +72,8 @@ streams ordered NDJSON event envelopes before a final schema-versioned artifact.
 
 The baseline is an experiment strategy above the five travel specialists, not a sixth specialist.
 Its deterministic fixture produces a `TripPlan`, re-validates it against the shared contract and
-records basic budget and constraint metrics. The lab envelope can also carry the existing
+records deterministic metrics. The metrics list each named check, such as budget, section count,
+earliest activity start and vegetarian-marked meals, measured against the scenario's own rules. The lab envelope can also carry the existing
 `AgentProgressEvent` union, so later multi-agent strategies can expose the same bounded operational
 trace without publishing prompts or raw chain-of-thought. Fixture runs use no provider credentials,
 do not call external services and do not read or mutate workspace storage.
