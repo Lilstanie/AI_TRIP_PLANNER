@@ -26,9 +26,9 @@ contract-impact: none
   records the decision.
 - Added a root `CONTEXT.md` glossary for the planning and Agent Lab terms that had drifted, and replaced
   the page copy, docs and notes' "repair loop" with "targeted revision".
-- Removed the project-local `grill-with-docs` skill, which duplicates the upstream skill the owner
-  uses in Claude Code and Codex. New Agent Note `2026-10-01-remove-grill-with-docs-skill.md`; the earlier
-  note moved to `archived/`, and the development guide and third-party notice no longer list the skill.
+- Removed the project-local `grill-with-docs` and `diagnosing-bugs` skills, which duplicate the upstream
+  skills the owner uses in Claude Code and Codex. New Agent Note `2026-10-01-remove-duplicate-upstream-skills.md`;
+  the earlier note moved to `archived/`, and the development guide and third-party notice no longer list them.
 
 ## Why
 

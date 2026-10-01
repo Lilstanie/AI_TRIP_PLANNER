@@ -24,9 +24,9 @@ authoritative.
 
 This note partially supersedes only the context-and-ADR conclusion in
 [the earlier Matt Pocock skills decision](../../archived/process/2026-09-26-matt-pocock-skills.md). Its decision to
-keep project-local adaptations, rather than install the full upstream collection unchanged, remains in force
-for `diagnosing-bugs`; the `grill-with-docs` adaptation was later removed by
-[a superseding decision](2026-10-01-remove-grill-with-docs-skill.md).
+keep project-local adaptations was later reversed: both were removed by
+[a superseding decision](2026-10-01-remove-duplicate-upstream-skills.md), so the upstream skills configured
+here are the only ones in use.
 
 ## Alternatives considered
 
