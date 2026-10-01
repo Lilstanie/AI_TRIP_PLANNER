@@ -70,6 +70,24 @@ describe("POST /api/agent-lab/runs", () => {
     );
   });
 
+  it("streams the targeted-revision strategy on the tight-budget scenario through a repaired second round", async () => {
+    const response = await post({
+      scenarioId: "tokyo-couple-tight-budget",
+      strategyId: "multi-agent-targeted-revision",
+      dataMode: "fixture",
+    });
+    expect(response.status).toBe(200);
+    const frames = (await response.text())
+      .split("\n")
+      .filter(Boolean)
+      .map((text) => JSON.parse(text));
+    const artifact = frames.at(-1).artifact;
+    expect(frames.at(-1).type).toBe("complete");
+    expect(artifact.metrics.rounds).toBe(2);
+    expect(artifact.metrics.stopReason).toBe("converged");
+    expect(artifact.metrics.unresolvedConflicts).toBe(0);
+  });
+
   it("stops writing and does not log an error when the reader cancels mid-run", async () => {
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
     const enqueue = vi.spyOn(ReadableStreamDefaultController.prototype, "enqueue");

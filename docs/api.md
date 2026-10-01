@@ -151,9 +151,13 @@ Contract: `AgentLabRunRequest`, `AgentLabRunEvent`, `AgentLabStreamFrame` and
 }
 ```
 
-`strategyId` is `single-agent-baseline` or `multi-agent-no-revision`. The second runs the five
-registered specialists through the LangGraph workflow for one round, so its plan has `round: 1` and any
-conflicts stay unresolved; `multi-agent-with-revision` is not registered and is rejected.
+`scenarioId` is `tokyo-couple` or `tokyo-couple-tight-budget` (the same trip and evidence with a
+A$2,300 budget, so the first plan overruns). `strategyId` is `single-agent-baseline`,
+`multi-agent-no-revision` or `multi-agent-targeted-revision`. The second runs the five registered
+specialists through the LangGraph workflow for one round, so its plan has `round: 1` and any conflicts
+stay unresolved. The third runs the established loop with at most three rounds: it routes each conflict
+to the specialist it names, keeps the best known proposals when a revision does not improve the plan, and
+stops early when the budget is infeasible. `multi-agent-with-revision` is not registered and is rejected.
 
 The request is strict: an unknown value or extra property returns HTTP 400 with
 `{ "error": "Invalid Agent Lab request" }`. A valid request streams NDJSON frames. Event frames have
@@ -168,9 +172,8 @@ orchestration overhead only. The artifact also records `groundedSections`, `dupl
 `genericStops`, `multiCityConsistent` (`null` for a single-city trip), `stopReason` (`null` for a
 strategy with no loop) and `usage`. Because fixture runs make no model calls, `usage` is `{ "status": "unavailable" }`:
 missing usage is never reported as zero. Every metric except `durationMs` and `latencyMs`
-is recomputed from the final plan and the trace alone, with no model judging it. The contract also defines the trace
-events `lab_conflict_detected`, `lab_revision_started`, `lab_revision_scored` and `lab_loop_stopped`, which a run
-with a revision loop emits. Cancelling the client request
+is recomputed from the final plan and the trace alone, with no model judging it. Revision runs add trace
+events `lab_conflict_detected`, `lab_revision_started`, `lab_revision_scored` and `lab_loop_stopped`. Cancelling the client request
 aborts the run without emitting a completion frame. An internal run failure emits an `error` frame
 with a non-sensitive message and a structured `failed` artifact containing the events recorded before
 the failure.

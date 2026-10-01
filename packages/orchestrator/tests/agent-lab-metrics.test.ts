@@ -96,6 +96,10 @@ describe("recomputable metrics", () => {
   const combos = [
     ["tokyo-couple", "single-agent-baseline"],
     ["tokyo-couple", "multi-agent-no-revision"],
+    ["tokyo-couple", "multi-agent-targeted-revision"],
+    ["tokyo-couple-tight-budget", "single-agent-baseline"],
+    ["tokyo-couple-tight-budget", "multi-agent-no-revision"],
+    ["tokyo-couple-tight-budget", "multi-agent-targeted-revision"],
   ] as const;
 
   it.each(combos)(

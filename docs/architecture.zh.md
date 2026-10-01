@@ -71,7 +71,8 @@ supervisor 只选择某个节点需要哪些 specialist 工具。控制路径、
 ## Agent Lab
 
 `/agent-lab` 是独立于已保存工作区的公开、可检查实验界面。它只接受已注册的东京双人场景、
-已注册的策略（`single-agent-baseline` 和 `multi-agent-no-revision`）以及 fixture 数据。`POST /api/agent-lab/runs` 校验这一封闭请求，
+已注册的策略（`single-agent-baseline`、`multi-agent-no-revision` 和 `multi-agent-targeted-revision`）、两个场景
+（`tokyo-couple` 以及预算为 A$2,300 的同一趟旅行）以及 fixture 数据。`POST /api/agent-lab/runs` 校验这一封闭请求，
 调用 `runAgentLab()`，先流式返回有序的 NDJSON 事件信封，最后返回带 schema 版本的产物。
 
 该基线是位于五个旅行 specialist 之上的实验策略，不是第六个 specialist。其确定性 fixture
@@ -84,7 +85,12 @@ supervisor 只选择某个节点需要哪些 specialist 工具。控制路径、
 专业化，而不是定向修订。每个 specialist 的工具调用在轨迹中归属于它；specialist 只通过只读记忆读取场景自身的
 偏好；图的进度事件经与基线相同的信封发布。单 agent 基线加载一次证据后回放脚本化计划，所以工具调用数
 比较的是各自轨迹所记录的内容，而不是等量的工作。Fixture 运行依赖没有模型或提供方密钥的环境：此时
-specialist 走确定性路径，工具返回 mock fixture；它们不读取或修改工作区存储。信封承载现有的
+specialist 走确定性路径，工具返回 mock fixture；它们不读取或修改工作区存储。
+
+`multi-agent-targeted-revision` 是打开了既有有界循环（最多三轮）的同一工作流，因此复用该工作流的冲突检测、
+把冲突交给被点名 specialist 的定向路由、最佳已知方案评分和预算不可行时的停止。在 `tokyo-couple-tight-budget`
+上，第一轮与无修订策略完全相同（同一份简报、证据和 specialist），会发现一个可行的预算超支，只有 transport 被修订；
+在 `tokyo-couple` 上没有冲突，两个多 agent 策略产出相同的计划。循环的决策通过工作流的 `onDecision` 钩子以类型化事实的形式交给实验室。信封承载现有的
 `AgentProgressEvent` 联合类型，因此检查器可以展示图阶段、specialist 生命周期、目标、约束、工具摘要和结果，
 而不公开提示词或原始思维链。
 
