@@ -9,6 +9,7 @@ Owner: A (@Lilstanie); budget roll-up and thresholds: C.
 | Export                                            | Purpose                                                        |
 | ------------------------------------------------- | -------------------------------------------------------------- |
 | `runTripChat()`                                   | Chat entry used by `/api/chat`: extract, plan, reply, stream   |
+| `runAgentLab()`, `agentLabScenarioSummaries`      | Run or enumerate registered Agent Lab fixture experiments      |
 | `IncompleteBriefError`                            | Thrown when a new conversation lacks what planning needs       |
 | `runOrchestrator()`, `createOrchestratorGraph()`  | Run or build the LangGraph workflow                            |
 | `detectConflicts()`, `rollUpCost()`               | Conflict detection and AUD cost roll-up                        |
@@ -24,6 +25,9 @@ The graph, its nodes and the round limit are described in
 [architecture.md](../../docs/architecture.md#langgraph-workflow); the decision is in the
 [LangGraph note](../../.agents/notes/implemented/architecture/2026-09-08-langgraph-orchestration.md). Model calls go through
 `@trip/agents`' routing, so this package reads no environment variables itself.
+
+Agent Lab is a separate deterministic experiment boundary. Its first strategy validates a fixed
+fixture plan and emits a versioned trace artifact without invoking models, providers or persistence.
 
 ## Contracts
 

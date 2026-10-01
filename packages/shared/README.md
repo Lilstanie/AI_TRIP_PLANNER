@@ -10,6 +10,7 @@ and the money helpers only; no I/O and no provider code. Owner: A (@Lilstanie).
 | `contracts.ts` | `TripBrief`, `AgentProposal` and its `source`, `ProposalItem`, `RevisionRequest`, stay types |
 | `plan.ts`      | `TripPlan`, `TripSection`, `SectionStatus`                                                   |
 | `chat.ts`      | `ChatRequest`, `ChatResponse`, `AgentProgressEvent` and the other `/api/chat` frames         |
+| `agent-lab.ts` | Agent Lab requests, event envelopes, metrics, stream frames and versioned artifacts          |
 | `agent.ts`     | `Specialist`, `SpecialistRequest`, `AgentContext`                                            |
 | `ports.ts`     | `ToolGateway`, `MapsPort`, `BookingPort`, `WeatherPort`, `MemoryStore` and their DTOs        |
 | `money.ts`     | `BASE_CURRENCY` (AUD), supported currencies, static conversion rates, formatting             |

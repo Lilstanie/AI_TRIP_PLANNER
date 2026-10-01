@@ -63,6 +63,21 @@ step.
    itinerary, and nothing in the product asks them to approve a checkpoint. Map lookups and itinerary
    edit previews use the Google routes in `apps/web` and never re-run the planner.
 
+## Agent Lab
+
+`/agent-lab` is a public, inspectable experiment surface separate from the saved workspace. Its first
+slice accepts only the registered Tokyo couple scenario, the `single-agent-baseline` strategy and
+fixture data. `POST /api/agent-lab/runs` validates that closed request, calls `runAgentLab()` and
+streams ordered NDJSON event envelopes before a final schema-versioned artifact.
+
+The baseline is an experiment strategy above the five travel specialists, not a sixth specialist.
+Its deterministic fixture produces a `TripPlan`, re-validates it against the shared contract and
+records deterministic metrics. The metrics list each named check, such as budget, section count,
+earliest activity start and vegetarian-marked meals, measured against the scenario's own rules. The lab envelope can also carry the existing
+`AgentProgressEvent` union, so later multi-agent strategies can expose the same bounded operational
+trace without publishing prompts or raw chain-of-thought. Fixture runs use no provider credentials,
+do not call external services and do not read or mutate workspace storage.
+
 ## LangGraph workflow
 
 ```mermaid
@@ -207,6 +222,7 @@ Shared contracts live in `packages/shared/src/`:
 - `contracts.ts`: `TripBrief`, `AgentProposal`, `ProposalItem`, `RevisionRequest`.
 - `plan.ts`: `TripPlan`, `TripSection` and `TripProposal`.
 - `chat.ts`: `ChatRequest`, `ChatResponse`, progress events, the `ChatAskUser` structured-question frame, and `Attachment` with its limits.
+- `agent-lab.ts`: the closed experiment request, lifecycle event envelope, metrics and versioned run artifact.
 - `ports.ts`: `ToolGateway`, `MapsPort`, `BookingPort`, `WeatherPort` and `MemoryStore`.
 
 Agents receive `ctx.tools` (`ToolGateway`) and `ctx.mem` (`MemoryStore`) through `AgentContext`. Do

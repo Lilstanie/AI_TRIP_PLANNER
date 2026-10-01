@@ -25,7 +25,8 @@
 .trip-calendar__grid,
 .location-prompt,
 .workspace-notices .notice,
-.workspace-notices .error-banner {
+.workspace-notices .error-banner,
+.agent-lab__toolbar {
   --glass-fill: var(--glass-bg);
   border: 1px solid var(--glass-border) !important;
   background: var(--glass-fill) !important;
@@ -42,7 +43,8 @@
 .trip-map-canvas .trip-map-popup .place-preview,
 .auth-form,
 .question__card,
-.dialog {
+.dialog,
+.agent-lab__panel {
   --glass-fill: var(--glass-bg-strong);
   border: 1px solid var(--glass-border) !important;
   background: var(--glass-fill) !important;
@@ -514,14 +516,17 @@
   .trip-map-canvas .trip-map-popup .place-preview,
   .auth-form,
   .question__card,
-  .dialog {
+  .dialog,
+  .agent-lab__toolbar,
+  .agent-lab__panel {
     --glass-fill: var(--surface);
   }
 }
 @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
   .workspace-app,
   .auth-page,
-  .auth-redirect {
+  .auth-redirect,
+  .agent-lab {
     background: var(--page);
   }
   .workspace-sidebar,
@@ -543,7 +548,9 @@
   .trip-map-canvas .trip-map-popup .place-preview,
   .auth-form,
   .question__card,
-  .dialog {
+  .dialog,
+  .agent-lab__toolbar,
+  .agent-lab__panel {
     --glass-fill: var(--surface);
     border-color: var(--border) !important;
     -webkit-backdrop-filter: none;
@@ -564,7 +571,9 @@
   .drawer,
   .fact-popover,
   .auth-form,
-  .dialog {
+  .dialog,
+  .agent-lab__toolbar,
+  .agent-lab__panel {
     background: Canvas !important;
     border-color: CanvasText !important;
     backdrop-filter: none;
