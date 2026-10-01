@@ -1,5 +1,11 @@
-// Failure inventory for the skill format check, written before `skill-rules.mjs`. Each case is a way a
-// malformed skill could slip through, or a well-formed one could be rejected:
+// Failure inventory for the skill format check. Each case is a way a malformed skill could slip through,
+// or a well-formed one could be rejected. The rules come in two tiers, because only some are requirements
+// of the Agent Skills specification (https://agentskills.io/specification) and the rest are guidance:
+// - requirements (name, description size, compatibility size, frontmatter) and this project's own
+//   conventions (when-to-use phrase, files beside SKILL.md, one level of references) must fail the build;
+// - recommendations (500 lines, the 1536-character trigger budget of Claude Code, an unknown frontmatter
+//   field) must only warn, so a long but valid skill is never blocked and the warning is never lost.
+// Cases:
 // - a name that is not lower-case kebab case (upper case, underscore, leading, trailing or doubled
 //   hyphen), longer than 64 characters, or different from its folder;
 // - a missing, empty or over-long description, or one that never says when to use the skill;
@@ -39,7 +45,9 @@ const skill = (front = {}, body = "# Skill\n\nDo it.\n") => {
     .map(([key, value]) => `${key}: ${value}`);
   return `---\n${lines.join("\n")}\n---\n\n${body}`;
 };
-const errors = (files) => checkSkills(fixture(files));
+const result = (files) => checkSkills(fixture(files));
+const errors = (files) => result(files).errors;
+const warnings = (files) => result(files).warnings;
 const has = (list, text) => list.some((message) => message.includes(text));
 
 describe("skill names", () => {
@@ -81,8 +89,10 @@ describe("skill descriptions and fields", () => {
       );
     }
   });
-  it("rejects an unknown frontmatter key", () => {
-    assert.ok(has(errors({ "demo/SKILL.md": skill({ descripton: "typo" }) }), "descripton"));
+  it("warns about an unknown frontmatter key without failing", () => {
+    const files = { "demo/SKILL.md": skill({ descripton: "typo" }) };
+    assert.ok(has(warnings(files), "descripton"));
+    assert.deepEqual(errors(files), []);
   });
   it("accepts the documented optional fields", () => {
     const list = errors({
@@ -94,18 +104,23 @@ describe("skill descriptions and fields", () => {
       }),
     });
     assert.deepEqual(list, []);
+    assert.deepEqual(
+      warnings({ "demo/SKILL.md": skill({ license: "MIT", compatibility: "needs git" }) }),
+      [],
+    );
   });
   it("rejects compatibility over 500 characters", () => {
     assert.ok(has(errors({ "demo/SKILL.md": skill({ compatibility: "x".repeat(501) }) }), "500"));
   });
-  it("rejects name, description and when_to_use over the 1536 budget", () => {
-    const list = errors({
+  it("warns, without failing, when name, description and when_to_use pass the 1536 budget", () => {
+    const files = {
       "demo/SKILL.md": skill({
         description: `Does a thing. Use when ${"x".repeat(900)}`,
         when_to_use: "y".repeat(700),
       }),
-    });
-    assert.ok(has(list, "1536"));
+    };
+    assert.ok(has(warnings(files), "1536"));
+    assert.deepEqual(errors(files), []);
   });
   it("reads a folded multi-line description", () => {
     const text =
@@ -119,10 +134,14 @@ describe("skill descriptions and fields", () => {
 
 describe("skill size and layout", () => {
   const withLines = (count) => skill({}, `${"line\n".repeat(count)}`);
-  it("accepts exactly 500 lines and rejects more", () => {
+  it("warns, without failing, above 500 lines and stays quiet at exactly 500", () => {
     const header = skill({}, "").split("\n").length - 1;
-    assert.deepEqual(errors({ "demo/SKILL.md": withLines(500 - header) }), []);
-    assert.ok(has(errors({ "demo/SKILL.md": withLines(501 - header) }), "500 lines"));
+    const at500 = { "demo/SKILL.md": withLines(500 - header) };
+    assert.deepEqual(errors(at500), []);
+    assert.deepEqual(warnings(at500), []);
+    const over = { "demo/SKILL.md": withLines(501 - header) };
+    assert.deepEqual(errors(over), []);
+    assert.ok(has(warnings(over), "500 lines"));
   });
   it("rejects a stray file beside SKILL.md", () => {
     assert.ok(has(errors({ "demo/SKILL.md": skill(), "demo/forms.md": "x" }), "forms.md"));

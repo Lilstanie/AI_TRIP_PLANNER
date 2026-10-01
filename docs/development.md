@@ -182,12 +182,16 @@ navigation groups; each skill retains its own discoverable entrypoint and loads 
 
 Use [diagnosing-bugs](../.agents/skills/diagnosing-bugs/SKILL.md) for unclear defects and regressions, following the project's E2E-first validation policy. It is adapted from [mattpocock/skills](https://github.com/mattpocock/skills); the [integration decision](../.agents/notes/archived/process/2026-09-26-matt-pocock-skills.md) records the source and project-specific changes. Requirement interviews come from the upstream `grill-with-docs` skill in your own tool; the project no longer carries a copy (see the [removal decision](../.agents/notes/implemented/process/2026-10-01-remove-grill-with-docs-skill.md)).
 
-`pnpm verify:docs` also enforces the skill format in `scripts/skill-rules.mjs`: a lower-case kebab-case
-`name` that matches the folder (at most 64 characters), a `description` of at most 1,024 characters that
-says what the skill does and when to use it ("Use when …"), only known frontmatter fields, name,
-description and `when_to_use` within 1,536 characters together, a `SKILL.md` of at most 500 lines,
-supporting files only under `references/`, `scripts/` and `assets/` (plus a licence file), and references
-that do not link to other references or into another skill's references. `pnpm test:scripts` runs the rule tests, and CI runs it after `pnpm test`.
+`pnpm verify:docs` also checks every skill with `scripts/skill-rules.mjs`, in two tiers. These rules fail the
+check: a lower-case kebab-case `name` that matches the folder (at most 64 characters); a `description` of
+at most 1,024 characters that says what the skill does and when to use it ("Use when …"); a `compatibility`
+field of at most 500 characters; supporting files only under `references/`, `scripts/` and `assets/` (plus a
+licence file); and references that do not link to other references or into another skill's references. They
+come from the [Agent Skills specification](https://agentskills.io/specification) and this project's layout.
+These are advisories, printed without failing the check: a `SKILL.md` over 500 lines (the specification
+recommends staying under it), name, description and `when_to_use` over 1,536 characters together (the
+trigger budget Claude Code shows per skill), and frontmatter fields the script does not know.
+`pnpm test:scripts` runs the rule tests, and CI runs it after `pnpm test`.
 
 The Libraries.dev skill supports `libraries reveal`, `libraries review` and `libraries apply`.
 It selects concrete effects within the [workspace design contract](design/ui-guidelines.md), while

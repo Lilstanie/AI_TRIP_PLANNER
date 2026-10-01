@@ -4,8 +4,9 @@
 //   header whose Status matches the lifecycle, and the required sections per lifecycle. Frozen
 //   lifecycles (rejected, archived) are checked for path and header only.
 // - Every skill follows the SKILL.md format rules in scripts/skill-rules.mjs: a SKILL.md whose name matches
-//   its folder, a description that says what and when, known fields, at most 500 lines, supporting files only in
-//   references/, scripts/ and assets/, and references that do not link to other references.
+//   its folder, a description that says what and when, supporting files only in references/, scripts/ and
+//   assets/, and references that do not link to other references. Recommendations (500 lines, the trigger
+//   budget, unknown fields) are printed as advisories and do not fail the check.
 // - Relative Markdown links resolve in README.md, AGENTS.md, docs/, .agents/ and package READMEs, except in frozen
 //   history (.agents/archive/, dated session logs, rejected and archived notes), which cannot be repaired.
 // Usage: node scripts/verify-docs.mjs
@@ -76,7 +77,9 @@ for (const path of walk(ROOT)) {
   }
 }
 
-errors.push(...checkSkills(".agents/skills"));
+const skills = checkSkills(".agents/skills");
+errors.push(...skills.errors);
+for (const warning of skills.warnings) console.warn(`Skill advisory: ${warning}`);
 
 const PACKAGE_READMES = [
   "apps/web",

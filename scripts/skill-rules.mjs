@@ -1,7 +1,16 @@
 // Format rules for agent skills under `.agents/skills`, checked by `scripts/verify-docs.mjs`.
-// They follow the SKILL.md guide at https://qiao1.top/posts/fcc443a7.html, limited to what a script can
-// decide: names, field sizes, known fields, file layout and how deep references go. Whether a rule is the
-// most important one, or an operation deserves a script, is judgement and is left to review.
+// Sources: the Agent Skills specification (https://agentskills.io/specification), the Claude Code skill
+// guide at https://qiao1.top/posts/fcc443a7.html, and this project's own layout. Only what a script can
+// decide is checked; whether a rule is the most important one, or an operation deserves a script, is
+// judgement and is left to review.
+//
+// The rules come in two tiers, returned separately by `checkSkills`:
+// - `errors` fail `verify:docs`. They are requirements of the specification (name, description and
+//   compatibility limits, frontmatter) and this project's conventions: the description says when to use the
+//   skill, supporting files live under references/, scripts/ or assets/, and references stay one level deep.
+// - `warnings` do not fail anything. They are recommendations or client-specific limits: 500 lines in
+//   SKILL.md (the specification says "keep under"), the 1536-character trigger budget of Claude Code, and
+//   frontmatter fields this list does not know. Each is a number or a list that is easy to change here.
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
 
@@ -93,9 +102,10 @@ function checkLinks(skill, skillsDir, errors) {
   }
 }
 
-/** Returns one message per violation of the skill format rules under `skillsDir`. */
+/** Returns `{ errors, warnings }`: one message per violation of the skill format rules under `skillsDir`. */
 export function checkSkills(skillsDir) {
   const errors = [];
+  const warnings = [];
   for (const skill of readdirSync(skillsDir)) {
     const dir = join(skillsDir, skill);
     if (!statSync(dir).isDirectory()) continue;
@@ -118,8 +128,8 @@ export function checkSkills(skillsDir) {
 
     const lines = text.split("\n").length - (text.endsWith("\n") ? 1 : 0);
     if (lines > BODY_MAX_LINES) {
-      errors.push(
-        `${file}: ${lines} lines; keep SKILL.md to ${BODY_MAX_LINES} lines and move detail into references/`,
+      warnings.push(
+        `${file}: ${lines} lines; the specification recommends keeping SKILL.md under ${BODY_MAX_LINES} lines and moving detail into references/`,
       );
     }
 
@@ -156,19 +166,23 @@ export function checkSkills(skillsDir) {
     }
 
     for (const key of fields.keys()) {
-      if (!KNOWN_FIELDS.has(key)) errors.push(`${file}: unknown frontmatter field "${key}"`);
+      if (!KNOWN_FIELDS.has(key)) {
+        warnings.push(
+          `${file}: unknown frontmatter field "${key}"; a typo drops the field, and a new field belongs in KNOWN_FIELDS`,
+        );
+      }
     }
     if ((fields.get("compatibility") ?? "").length > COMPATIBILITY_MAX) {
       errors.push(`${file}: compatibility is longer than ${COMPATIBILITY_MAX} characters`);
     }
     const trigger = name.length + description.length + (fields.get("when_to_use") ?? "").length;
     if (trigger > TRIGGER_BUDGET) {
-      errors.push(
-        `${file}: name, description and when_to_use together exceed ${TRIGGER_BUDGET} characters (${trigger})`,
+      warnings.push(
+        `${file}: name, description and when_to_use together exceed ${TRIGGER_BUDGET} characters (${trigger}), the trigger budget Claude Code shows per skill`,
       );
     }
 
     checkLinks(skill, skillsDir, errors);
   }
-  return errors;
+  return { errors, warnings };
 }

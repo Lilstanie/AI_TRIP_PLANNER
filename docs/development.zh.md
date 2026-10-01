@@ -147,11 +147,13 @@ Compose 文件在 3000 端口启动 Web 应用（读取 `.env.local`），在 40
 
 故障原因不清的缺陷和回归，使用 [diagnosing-bugs](../.agents/skills/diagnosing-bugs/SKILL.md)；该技能遵循项目的 E2E 优先验证规则。它改编自 [mattpocock/skills](https://github.com/mattpocock/skills)；[整合决策](../.agents/notes/archived/process/2026-09-26-matt-pocock-skills.md)记录了来源及针对项目所做的调整。需求访谈使用你自己工具里的上游 `grill-with-docs` 技能；项目不再保留副本（见[移除决策](../.agents/notes/implemented/process/2026-10-01-remove-grill-with-docs-skill.md)）。
 
-`pnpm verify:docs` 还会按 `scripts/skill-rules.mjs` 强制执行 skill 格式：`name` 为小写 kebab-case 且与文件夹一致（最多
-64 个字符）；`description` 不超过 1,024 个字符，并同时说明 skill 做什么和何时使用（“Use when …”）；只使用已知的前置字段；
-name、description 和 `when_to_use` 合计不超过 1,536 个字符；`SKILL.md` 不超过 500 行；辅助文件只放在
-`references/`、`scripts/` 和 `assets/` 下（另可有许可证文件）；参考文件不得链接到其他参考文件，也不得链接到其他 skill 的参考文件。
-`pnpm test:scripts` 运行这些规则的测试，CI 会在 `pnpm test` 之后运行它。
+`pnpm verify:docs` 还会用 `scripts/skill-rules.mjs` 检查每个 skill，分为两级。下列规则会使检查失败：`name` 为小写
+kebab-case 且与文件夹一致（最多 64 个字符）；`description` 不超过 1,024 个字符，并同时说明 skill 做什么和何时使用
+（“Use when …”）；`compatibility` 字段不超过 500 个字符；辅助文件只放在 `references/`、`scripts/` 和 `assets/` 下（另可有
+许可证文件）；参考文件不得链接到其他参考文件，也不得链接到其他 skill 的参考文件。它们来自
+[Agent Skills 规范](https://agentskills.io/specification)和本项目的目录约定。下列只是提示，会打印但不会使检查失败：
+`SKILL.md` 超过 500 行（规范建议不超过）、name、description 和 `when_to_use` 合计超过 1,536 个字符（Claude Code 为每个 skill
+显示的触发预算），以及脚本不认识的前置字段。`pnpm test:scripts` 运行这些规则的测试，CI 会在 `pnpm test` 之后运行它。
 
 Libraries.dev skill 支持 `libraries reveal`、`libraries review` 和 `libraries apply`。它在[工作区设计约定](design/ui-guidelines.zh.md)内选择具体动效；`better-ui` 负责通用视觉打磨，`ui-verification` 负责浏览器验收。安装 skill 添加的是指令和参考文件；只有已授权实现具体动效时才添加 npm 包。[整合决策](../.agents/notes/implemented/process/2026-09-26-libraries-dev-project-skill.md)记录了来源和分类理由。
 
