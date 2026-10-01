@@ -67,7 +67,8 @@ step.
 
 `/agent-lab` is a public, inspectable experiment surface separate from the saved workspace. It accepts
 only the registered Tokyo couple scenario, the registered strategies (`single-agent-baseline` and
-`multi-agent-no-revision`) and fixture data. `POST /api/agent-lab/runs` validates that closed request, calls `runAgentLab()` and
+`multi-agent-no-revision` and `multi-agent-targeted-revision`), two scenarios (`tokyo-couple` and the
+same trip with a A$2,300 budget) and fixture data. `POST /api/agent-lab/runs` validates that closed request, calls `runAgentLab()` and
 streams ordered NDJSON event envelopes before a final schema-versioned artifact.
 
 The baseline is an experiment strategy above the five travel specialists, not a sixth specialist.
@@ -86,7 +87,15 @@ are published through the same envelope as the baseline's. The single-agent base
 scripted plan after loading its evidence once, so tool-call counts compare what each trace recorded,
 not equal workloads. Fixture runs rely on an environment with no model or provider keys, where the
 specialists take their deterministic path and the tools return mock fixtures; they do not read or
-mutate workspace storage. The envelope carries the existing `AgentProgressEvent` union, so the
+mutate workspace storage.
+
+`multi-agent-targeted-revision` is the same workflow with the established bounded loop (at most three
+rounds) switched on, so it reuses the workflow's conflict detection, targeted routing to the specialists
+a conflict names, best-so-far scoring and infeasible-budget stop. On `tokyo-couple-tight-budget` the
+first round is identical to the no-revision strategy's (same brief, evidence and specialists), finds a
+feasible budget overrun, and transport alone is revised; on `tokyo-couple` there is no conflict and the
+two multi-agent strategies produce the same plan. The loop's decisions reach the lab as typed facts
+through the workflow's `onDecision` hook. The envelope carries the existing `AgentProgressEvent` union, so the
 inspector can show graph stages, specialist lifecycle, objectives, constraints, tool summaries and
 outcomes without publishing prompts or raw chain-of-thought.
 

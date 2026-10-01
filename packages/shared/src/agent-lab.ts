@@ -5,10 +5,14 @@ import { TripPlan } from "./plan";
 
 export const AGENT_LAB_ARTIFACT_SCHEMA_VERSION = 1 as const;
 
-export const AgentLabScenarioId = z.enum(["tokyo-couple"]);
+export const AgentLabScenarioId = z.enum(["tokyo-couple", "tokyo-couple-tight-budget"]);
 export type AgentLabScenarioId = z.infer<typeof AgentLabScenarioId>;
 
-export const AgentLabStrategyId = z.enum(["single-agent-baseline", "multi-agent-no-revision"]);
+export const AgentLabStrategyId = z.enum([
+  "single-agent-baseline",
+  "multi-agent-no-revision",
+  "multi-agent-targeted-revision",
+]);
 export type AgentLabStrategyId = z.infer<typeof AgentLabStrategyId>;
 
 export const AgentLabDataMode = z.enum(["fixture"]);

@@ -150,8 +150,11 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 }
 ```
 
-`strategyId` 为 `single-agent-baseline` 或 `multi-agent-no-revision`。后者通过 LangGraph 工作流用五个已注册
-specialist 运行一轮，因此其计划为 `round: 1`，所有冲突都保持未解决；`multi-agent-with-revision` 未注册，会被拒绝。
+`scenarioId` 为 `tokyo-couple` 或 `tokyo-couple-tight-budget`（同一趟旅行、同一份证据，预算为 A$2,300，
+因此第一版计划会超支）。`strategyId` 为 `single-agent-baseline`、`multi-agent-no-revision` 或
+`multi-agent-targeted-revision`。第二个通过 LangGraph 工作流用五个已注册 specialist 运行一轮，因此其计划为
+`round: 1`，所有冲突都保持未解决。第三个运行既有的循环，最多三轮：把每个冲突交给它所点名的 specialist，
+修订未改善计划时保留已知最佳提案，预算不可行时提前停止。`multi-agent-with-revision` 未注册，会被拒绝。
 
 请求采用严格校验：未知值或额外属性会返回 HTTP 400 和
 `{ "error": "Invalid Agent Lab request" }`。有效请求以 NDJSON 流返回帧。事件帧格式为
@@ -163,8 +166,8 @@ specialist 运行一轮，因此其计划为 `round: 1`，所有冲突都保持�
 在 fixture 模式下仅衡量编排开销。产物还记录 `groundedSections`、`duplicateStops`、`genericStops`、
 `multiCityConsistent`（单城市旅行为 `null`）、`stopReason`（没有循环的策略为 `null`）和 `usage`；fixture 运行不调用
 模型，所以 `usage` 为 `{ "status": "unavailable" }`：缺失的用量绝不会被当作 0。除 `durationMs` 和 `latencyMs` 外，
-每个指标都能仅凭最终计划和轨迹重新计算，不需要模型来评判。该约定还定义了轨迹事件 `lab_conflict_detected`、
-`lab_revision_started`、`lab_revision_scored` 和 `lab_loop_stopped`，带修订循环的运行会产生它们。客户端取消请求会中止运行，不发送完成帧。
+每个指标都能仅凭最终计划和轨迹重新计算，不需要模型来评判。修订运行会增加轨迹事件 `lab_conflict_detected`、
+`lab_revision_started`、`lab_revision_scored` 和 `lab_loop_stopped`。客户端取消请求会中止运行，不发送完成帧。
 运行内部失败时，会发送 `error` 帧；其中包含不敏感的消息，以及记录失败前事件的结构化
 `failed` 产物。
 

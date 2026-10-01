@@ -28,8 +28,9 @@ The graph, its nodes and the round limit are described in
 
 Agent Lab is a separate deterministic experiment boundary. `single-agent-baseline` validates a fixed
 fixture plan; `multi-agent-no-revision` runs the registered specialists through the real workflow for
-one round with the scenario's own preferences. Both emit a versioned trace artifact through the same
-runner, evaluator and metrics, and neither persists anything.
+one round with the scenario's own preferences, and `multi-agent-targeted-revision` turns on the
+workflow's bounded revision loop. All three emit a versioned trace artifact through the same
+runner, evaluator and metrics, and none persists anything.
 
 ## Contracts
 
