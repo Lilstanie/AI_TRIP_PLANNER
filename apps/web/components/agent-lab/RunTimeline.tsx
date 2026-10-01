@@ -27,11 +27,24 @@ export function RunTimeline({
               <strong>{copy.title}</strong>
               <p>{copy.detail}</p>
               {copy.constraints ? (
-                <ul className="agent-lab__constraints" aria-label="Constraints">
-                  {copy.constraints.map((constraint) => (
-                    <li key={constraint}>{constraint}</li>
-                  ))}
-                </ul>
+                <div className="agent-lab__list">
+                  <span>Constraints</span>
+                  <ul className="agent-lab__constraints" aria-label="Constraints">
+                    {copy.constraints.map((constraint) => (
+                      <li key={constraint}>{constraint}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+              {copy.list ? (
+                <div className="agent-lab__list">
+                  <span>{copy.list.heading}</span>
+                  <ul className="agent-lab__constraints" aria-label={copy.list.heading}>
+                    {copy.list.lines.map((line) => (
+                      <li key={line}>{line}</li>
+                    ))}
+                  </ul>
+                </div>
               ) : null}
               <small>+{runEvent.elapsedMs} ms</small>
             </div>

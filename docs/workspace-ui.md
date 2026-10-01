@@ -465,16 +465,24 @@ first render; without a browser key the map shows a fallback and the itinerary s
 `/agent-lab` is a public engineering-demo route, including when Clerk protects the main workspace.
 It does not share the workspace shell or read and write its browser storage. The toolbar exposes one
 registered scenario, a strategy choice and the fixed Fixture data mode; Run experiment becomes Cancel
-run while the NDJSON response is active. Compare both strategies runs the single-agent baseline and
-then the five-specialist no-revision strategy, one after the other, and opens the comparison view.
+run while the NDJSON response is active. Compare all strategies runs the single-agent baseline, the
+five-specialist no-revision strategy and the targeted-revision strategy one after the other and opens
+the comparison view. The scenario list also offers the tight-budget Tokyo trip, where the first plan
+overruns and only transport is revised.
 
 Each timeline event carries a text label for the part of the system that produced it: Run, Graph stage,
-Specialist or Tool. Specialist events show the bounded objective, constraints and outcome.
+Specialist or Tool. Specialist events show the bounded objective, constraints and outcome. Revision
+runs add Graph stage events for the conflict check (the conflicts and their targets), the revision
+(objective and previous outcome), its score before and after, and the reason the loop stopped.
 
 The comparison view shows a table of measured figures (latency, rounds, tool calls, fallbacks, failed
-agents, budget, unresolved conflicts and checks), both plans and both traces side by side. Every figure
+agents, budget, unresolved conflicts, checks, grounded sections, repeated and generic stops,
+multi-city consistency, stopping reason and token and model cost), the three plans and the three
+traces side by side. Token and model cost reads "Unavailable", never 0, because fixture runs make no
+model calls. Every figure
 is read from that run's artifact; a strategy that has not finished shows "No completed run". The page never
-ranks the strategies. It states that the comparison measures specialization, not targeted revision,
+ranks the strategies. It states that single agent against no revision measures specialization and
+no revision against targeted revision measures the repair loop,
 that fixture mode shows how evidence is measured and not model quality, and why budgeting, conflict
 checks, state transitions, maps and weather are graph nodes or tools instead of agents.
 

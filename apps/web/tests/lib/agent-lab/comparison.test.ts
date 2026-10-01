@@ -4,7 +4,10 @@
 //   earlier run) instead of "Not run";
 // - an over-budget plan is labelled "Within budget", or its overrun is shown as remaining money;
 // - the check count counts failed checks as passed;
-// - a one-sided comparison pretends to have a winner (the module must never rank the strategies).
+// - a one-sided comparison pretends to have a winner (the module must never rank the strategies);
+// - unavailable token or cost usage is shown as 0, or a missing stop reason as a reason;
+// - a single-city trip is shown as "Consistent" for multi-city;
+// - a third strategy is dropped, or its values land in another strategy's column.
 import { describe, expect, it } from "vitest";
 import type { AgentLabCompletedRunArtifact } from "@trip/shared";
 import { buildComparisonRows } from "@/lib/agent-lab/comparison";
@@ -27,6 +30,12 @@ const artifact = (overrides: Partial<AgentLabCompletedRunArtifact["metrics"]> = 
       fallbacks: 3,
       failedAgents: 0,
       unresolvedConflicts: 0,
+      groundedSections: 5,
+      duplicateStops: 0,
+      genericStops: 0,
+      multiCityConsistent: null,
+      stopReason: null,
+      usage: { status: "unavailable", reason: "Fixture runs make no model calls." },
       ...overrides,
     },
   }) as AgentLabCompletedRunArtifact;
@@ -70,5 +79,49 @@ describe("buildComparisonRows", () => {
   it("never ranks the strategies", () => {
     const rows = buildComparisonRows(artifact(), artifact());
     expect(JSON.stringify(rows)).not.toMatch(/winner|better|best|worse/i);
+  });
+
+  it("keeps three strategies in their own columns", () => {
+    const rows = buildComparisonRows(
+      artifact({ rounds: 1 }),
+      artifact({ rounds: 1 }),
+      artifact({ rounds: 3, toolCalls: 12 }),
+    );
+    expect(rows.find((row) => row.id === "rounds")!.values).toEqual(["1", "1", "3"]);
+    expect(rows.find((row) => row.id === "tool-calls")!.values).toEqual(["6", "6", "12"]);
+    expect(
+      buildComparisonRows(artifact(), artifact()).every((row) => row.values.length === 2),
+    ).toBe(true);
+  });
+
+  it("shows unavailable usage as Unavailable, never as a number", () => {
+    const rows = buildComparisonRows(artifact());
+    expect(value(rows, "usage", 0)).toBe("Unavailable");
+    expect(value(rows, "usage", 0)).not.toMatch(/\d/);
+  });
+
+  it("states grounding, repeated and generic stops and the stop reason from the metrics", () => {
+    const rows = buildComparisonRows(
+      artifact({
+        groundedSections: 2,
+        duplicateStops: 3,
+        genericStops: 4,
+        stopReason: "no_improvement",
+      }),
+      artifact(),
+    );
+    expect(value(rows, "grounding", 0)).toBe("2/5 sections");
+    expect(value(rows, "duplicate-stops", 0)).toBe("3");
+    expect(value(rows, "generic-stops", 0)).toBe("4");
+    expect(value(rows, "stop-reason", 0)).toBe("No improvement");
+    expect(value(rows, "stop-reason", 1)).toBe("No loop");
+  });
+
+  it("labels multi-city consistency as not applicable, consistent or inconsistent", () => {
+    const at = (multiCityConsistent: boolean | null) =>
+      value(buildComparisonRows(artifact({ multiCityConsistent })), "multi-city", 0);
+    expect(at(null)).toBe("Not applicable");
+    expect(at(true)).toBe("Consistent");
+    expect(at(false)).toBe("Inconsistent");
   });
 });

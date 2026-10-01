@@ -135,11 +135,10 @@ export function AgentLabClient({ scenarios, strategies }: AgentLabClientProps) {
         ? selected
         : undefined;
   const hasRun = strategies.some((strategy) => runOf(strategy.id).state !== "ready");
-  const sideOf = (index: number) => {
-    const strategy = strategies[index]!;
+  const sides = strategies.map((strategy) => {
     const run = runOf(strategy.id);
     return { label: strategy.label, events: run.events, artifact: run.artifact };
-  };
+  });
 
   return (
     <main className="agent-lab" aria-busy={busy}>
@@ -157,7 +156,10 @@ export function AgentLabClient({ scenarios, strategies }: AgentLabClientProps) {
         </div>
         <div className="agent-lab__purpose" aria-label="Experiment purpose">
           <span>Question</span>
-          <strong>What does specialization change on the same bounded travel brief?</strong>
+          <strong>
+            What do specialization and targeted revision each change on the same bounded travel
+            brief?
+          </strong>
         </div>
       </header>
 
@@ -166,7 +168,11 @@ export function AgentLabClient({ scenarios, strategies }: AgentLabClientProps) {
           <span>Scenario</span>
           <select
             value={scenarioId}
-            onChange={(event) => setScenarioId(event.target.value as AgentLabScenarioId)}
+            onChange={(event) => {
+              // A result belongs to the scenario that produced it; do not show it under another.
+              setScenarioId(event.target.value as AgentLabScenarioId);
+              setRuns({});
+            }}
             disabled={busy}
           >
             {scenarios.map((scenario) => (
@@ -200,7 +206,7 @@ export function AgentLabClient({ scenarios, strategies }: AgentLabClientProps) {
             {busy ? "Cancel run" : "Run experiment"}
           </button>
           <button className="agent-lab__secondary" type="button" onClick={compare} disabled={busy}>
-            Compare both strategies
+            Compare all strategies
           </button>
         </div>
       </section>
@@ -239,7 +245,7 @@ export function AgentLabClient({ scenarios, strategies }: AgentLabClientProps) {
       </div>
 
       {view === "compare" ? (
-        <ComparisonPanel single={sideOf(0)} multi={sideOf(1)} />
+        <ComparisonPanel sides={sides} />
       ) : (
         <div className="agent-lab__grid">
           <section className="agent-lab__panel" aria-labelledby="agent-lab-timeline-title">
