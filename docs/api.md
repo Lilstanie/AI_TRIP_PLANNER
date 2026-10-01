@@ -151,19 +151,26 @@ Contract: `AgentLabRunRequest`, `AgentLabRunEvent`, `AgentLabStreamFrame` and
 }
 ```
 
+`strategyId` is `single-agent-baseline` or `multi-agent-no-revision`. The second runs the five
+registered specialists through the LangGraph workflow for one round, so its plan has `round: 1` and any
+conflicts stay unresolved; `multi-agent-with-revision` is not registered and is rejected.
+
 The request is strict: an unknown value or extra property returns HTTP 400 with
 `{ "error": "Invalid Agent Lab request" }`. A valid request streams NDJSON frames. Event frames have
 `{ "type": "event", "event": { ... } }`; the last frame has
 `{ "type": "complete", "artifact": { ... } }`. The artifact contains the validated plan, ordered
 events, deterministic metrics and explicit fixture/evaluator versions. `metrics.checks` lists each
 named check (`id`, `label`, `passed`) measured against the scenario's rules; `budgetHeadroom` is
-negative when the plan is over budget. Cancelling the client request
+negative when the plan is over budget. The comparison figures `rounds`, `toolCalls`, `fallbacks`,
+`failedAgents` and `unresolvedConflicts` are counted from the trace and the plan; `latencyMs` is the
+run's wall time without display pacing (`durationMs` includes it) and, in fixture mode, measures
+orchestration overhead only. Cancelling the client request
 aborts the run without emitting a completion frame. An internal run failure emits an `error` frame
 with a non-sensitive message and a structured `failed` artifact containing the events recorded before
 the failure.
 
-This first slice is fixture-only. It needs no model or provider key, makes no external calls and does
-not persist chats, trips or lab results.
+Agent Lab is fixture-only. It is meant to run with no model or provider key, makes no external calls
+when none are configured and does not persist chats, trips or lab results.
 
 ## `GET /api/data-mode`
 

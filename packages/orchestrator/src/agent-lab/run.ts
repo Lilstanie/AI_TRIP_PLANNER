@@ -4,6 +4,7 @@ import {
   AgentLabFailedRunArtifact,
   AgentLabRunEvent,
   type AgentLabEventPayload,
+  type AgentLabMetrics,
   type AgentLabFailedRunArtifact as AgentLabFailedRunArtifactValue,
   type AgentLabRunEvent as AgentLabRunEventValue,
   type AgentLabRunRequest,
@@ -11,7 +12,7 @@ import {
 } from "@trip/shared";
 import { evaluateAgentLabPlan } from "./evaluate";
 import { findAgentLabScenario } from "./scenarios";
-import { singleAgentFixtureStrategy } from "./single-agent-fixture";
+import { findAgentLabStrategy } from "./strategies";
 
 export interface RunAgentLabOptions {
   signal?: AbortSignal;
@@ -26,6 +27,26 @@ interface CreateFailedArtifactOptions {
   startedAtMs: number;
   events: AgentLabRunEventValue[];
   message: string;
+}
+
+/** What the trace and the plan say, counted once so every strategy is measured the same way. */
+function traceMetrics(
+  events: readonly AgentLabRunEventValue[],
+  plan: TripPlan,
+): Pick<
+  AgentLabMetrics,
+  "rounds" | "toolCalls" | "fallbacks" | "failedAgents" | "unresolvedConflicts"
+> {
+  const count = (...types: string[]) =>
+    events.filter((runEvent) => types.includes(runEvent.event.type)).length;
+  return {
+    rounds: Math.max(1, plan.round),
+    toolCalls: count("tool_completed", "lab_tool_completed"),
+    fallbacks: plan.sections.filter((section) => section.proposal?.source?.kind === "fallback")
+      .length,
+    failedAgents: count("agent_failed"),
+    unresolvedConflicts: plan.conflicts?.length ?? 0,
+  };
 }
 
 function abortableDelay(ms: number, signal: AbortSignal): Promise<void> {
@@ -51,11 +72,14 @@ export async function runAgentLab(
   const fallbackController = new AbortController();
   const signal = options.signal ?? fallbackController.signal;
   const scenario = findAgentLabScenario(request.scenarioId);
-  const strategy = singleAgentFixtureStrategy;
+  const strategy = findAgentLabStrategy(request.strategyId);
   const runId = options.runId ?? `agent-lab-${crypto.randomUUID()}`;
   const startedAtMs = options.startedAtMs ?? Date.now();
   const startedAt = new Date(startedAtMs).toISOString();
   const events: AgentLabRunEventValue[] = [];
+  // Time spent waiting so the stream is watchable. It is part of the run's wall time but not of the
+  // strategy's latency, or a strategy that emits more events would look slower for no reason.
+  let pacedMs = 0;
 
   const emit = async (event: AgentLabEventPayload) => {
     signal.throwIfAborted();
@@ -71,7 +95,9 @@ export async function runAgentLab(
     });
     events.push(envelope);
     await options.onEvent?.(envelope);
+    const pacingStartedAt = Date.now();
     await abortableDelay(options.paceMs ?? 90, signal);
+    pacedMs += Date.now() - pacingStartedAt;
   };
 
   await emit({
@@ -95,8 +121,8 @@ export async function runAgentLab(
   });
   await emit({
     type: "lab_strategy_completed",
-    actor: "single-agent",
-    summary: "The scripted baseline produced one complete plan without external model calls.",
+    actor: strategy.actor,
+    summary: strategy.completionSummary(plan),
   });
   await emit({
     type: "lab_run_completed",
@@ -122,8 +148,10 @@ export async function runAgentLab(
     plan,
     metrics: {
       ...evaluated,
+      ...traceMetrics(events, plan),
       eventCount: events.length,
       durationMs: completedAtMs - startedAtMs,
+      latencyMs: Math.max(0, completedAtMs - startedAtMs - pacedMs),
     },
   });
 }

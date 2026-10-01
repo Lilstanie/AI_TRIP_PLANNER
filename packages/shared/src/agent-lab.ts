@@ -7,7 +7,7 @@ export const AGENT_LAB_ARTIFACT_SCHEMA_VERSION = 1 as const;
 export const AgentLabScenarioId = z.enum(["tokyo-couple"]);
 export type AgentLabScenarioId = z.infer<typeof AgentLabScenarioId>;
 
-export const AgentLabStrategyId = z.enum(["single-agent-baseline"]);
+export const AgentLabStrategyId = z.enum(["single-agent-baseline", "multi-agent-no-revision"]);
 export type AgentLabStrategyId = z.infer<typeof AgentLabStrategyId>;
 
 export const AgentLabDataMode = z.enum(["fixture"]);
@@ -22,6 +22,10 @@ export const AgentLabRunRequest = z
   .strict();
 export type AgentLabRunRequest = z.infer<typeof AgentLabRunRequest>;
 
+// Who ran a strategy: the lone baseline, or the five specialists coordinated by the graph.
+export const AgentLabActor = z.enum(["single-agent", "multi-agent"]);
+export type AgentLabActor = z.infer<typeof AgentLabActor>;
+
 export const AgentLabLifecycleEvent = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("lab_run_started"),
@@ -29,7 +33,7 @@ export const AgentLabLifecycleEvent = z.discriminatedUnion("type", [
   }),
   z.object({
     type: z.literal("lab_strategy_started"),
-    actor: z.literal("single-agent"),
+    actor: AgentLabActor,
     objective: z.string().min(1),
     constraints: z.array(z.string().min(1)),
   }),
@@ -58,7 +62,7 @@ export const AgentLabLifecycleEvent = z.discriminatedUnion("type", [
   }),
   z.object({
     type: z.literal("lab_strategy_completed"),
-    actor: z.literal("single-agent"),
+    actor: AgentLabActor,
     summary: z.string().min(1),
   }),
   z.object({
@@ -101,7 +105,19 @@ export const AgentLabMetrics = z.object({
   sectionCount: z.number().int().nonnegative(),
   checks: z.array(AgentLabCheck).min(1),
   eventCount: z.number().int().nonnegative(),
+  // Wall time including the pacing delay that makes the stream watchable.
   durationMs: z.number().int().nonnegative(),
+  // Wall time without that pacing: what the strategy itself took. Fixture latency measures
+  // orchestration overhead only, never model latency.
+  latencyMs: z.number().int().nonnegative(),
+  // Planning rounds the graph ran. One means no revision happened.
+  rounds: z.number().int().positive(),
+  // Tool calls that completed in the trace.
+  toolCalls: z.number().int().nonnegative(),
+  // Sections whose proposal came from a deterministic fallback instead of the specialist's own draft.
+  fallbacks: z.number().int().nonnegative(),
+  failedAgents: z.number().int().nonnegative(),
+  unresolvedConflicts: z.number().int().nonnegative(),
 });
 export type AgentLabMetrics = z.infer<typeof AgentLabMetrics>;
 

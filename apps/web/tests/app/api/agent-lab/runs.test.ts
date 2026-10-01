@@ -28,6 +28,8 @@ describe("POST /api/agent-lab/runs", () => {
   it.each([
     ["unknown scenario", { ...valid, scenarioId: "paris-solo" }],
     ["unknown strategy", { ...valid, strategyId: "multi-agent" }],
+    // Targeted revision is a later strategy; it must stay unregistered until it exists.
+    ["unregistered revision strategy", { ...valid, strategyId: "multi-agent-with-revision" }],
     ["unknown data mode", { ...valid, dataMode: "live" }],
     ["extra field", { ...valid, prompt: "Do anything" }],
     ["missing field", { scenarioId: valid.scenarioId, strategyId: valid.strategyId }],
@@ -49,6 +51,23 @@ describe("POST /api/agent-lab/runs", () => {
     expect(frames.slice(0, -1).map((frame) => frame.event.sequence)).toEqual([
       1, 2, 3, 4, 5, 6, 7, 8,
     ]);
+  });
+
+  it("streams the registered no-revision multi-agent strategy to a completed one-round artifact", async () => {
+    const response = await post({ ...valid, strategyId: "multi-agent-no-revision" });
+    expect(response.status).toBe(200);
+    const frames = (await response.text())
+      .split("\n")
+      .filter(Boolean)
+      .map((text) => JSON.parse(text));
+    const last = frames.at(-1);
+    expect(last.type).toBe("complete");
+    expect(last.artifact.strategyId).toBe("multi-agent-no-revision");
+    expect(last.artifact.plan.round).toBe(1);
+    expect(last.artifact.metrics.rounds).toBe(1);
+    expect(frames.slice(0, -1).map((frame) => frame.event.sequence)).toEqual(
+      last.artifact.events.map((event: { sequence: number }) => event.sequence),
+    );
   });
 
   it("stops writing and does not log an error when the reader cancels mid-run", async () => {

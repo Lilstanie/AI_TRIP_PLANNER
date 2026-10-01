@@ -1,4 +1,9 @@
-import { TripPlan, type AgentLabScenarioId, type TripBrief } from "@trip/shared";
+import {
+  TripPlan,
+  type AgentLabScenarioId,
+  type TripBrief,
+  type UserPreference,
+} from "@trip/shared";
 
 // Constraints a plan for this scenario is measured against. They mirror the brief's preferences so the
 // evaluator never hard-codes one scenario's facts.
@@ -16,6 +21,11 @@ export interface AgentLabScenario {
   fixtureVersion: string;
   brief: TripBrief;
   rules: AgentLabScenarioRules;
+  /**
+   * The traveller's confirmed preferences, supplied to every strategy as its long-term memory. The lab
+   * never reads a stored profile, so both strategies see the same evidence.
+   */
+  preferences: UserPreference[];
   fixturePlan: TripPlan;
 }
 
@@ -208,6 +218,10 @@ export const agentLabScenarios: readonly AgentLabScenario[] = [
     fixtureVersion: "tokyo-couple-v1",
     brief,
     rules: { earliestStartTime: "10:00", vegetarianMeals: true, sectionCount: 5 },
+    preferences: [
+      { key: "dietary", value: "vegetarian", source: "filter" },
+      { key: "schedule", value: "no early starts", source: "filter" },
+    ],
     fixturePlan,
   },
 ];

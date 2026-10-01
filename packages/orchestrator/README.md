@@ -6,18 +6,18 @@ Owner: A (@Lilstanie); budget roll-up and thresholds: C.
 
 ## Exports
 
-| Export                                            | Purpose                                                        |
-| ------------------------------------------------- | -------------------------------------------------------------- |
-| `runTripChat()`                                   | Chat entry used by `/api/chat`: extract, plan, reply, stream   |
-| `runAgentLab()`, `agentLabScenarioSummaries`      | Run or enumerate registered Agent Lab fixture experiments      |
-| `IncompleteBriefError`                            | Thrown when a new conversation lacks what planning needs       |
-| `runOrchestrator()`, `createOrchestratorGraph()`  | Run or build the LangGraph workflow                            |
-| `detectConflicts()`, `rollUpCost()`               | Conflict detection and AUD cost roll-up                        |
-| `applyBriefPatch()`, `extractBriefPatchLocally()` | Apply extracted updates; the no-key rule parser                |
-| `parseFlightQuery()`, `answerFlightQuery()`       | Answer a direct fare question without planning a trip          |
-| `parseTripDate()`, `isAmbiguous()`                | Date reading for the offline parser                            |
-| supervisor helpers                                | `dispatchWithSupervisor()`, `reviseWithSupervisor()` and tools |
-| `DEMO_BRIEF`                                      | Baseline brief for clients that send none                      |
+| Export                                                                    | Purpose                                                        |
+| ------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| `runTripChat()`                                                           | Chat entry used by `/api/chat`: extract, plan, reply, stream   |
+| `runAgentLab()`, `agentLabScenarioSummaries`, `agentLabStrategySummaries` | Run or enumerate registered Agent Lab fixture experiments      |
+| `IncompleteBriefError`                                                    | Thrown when a new conversation lacks what planning needs       |
+| `runOrchestrator()`, `createOrchestratorGraph()`                          | Run or build the LangGraph workflow                            |
+| `detectConflicts()`, `rollUpCost()`                                       | Conflict detection and AUD cost roll-up                        |
+| `applyBriefPatch()`, `extractBriefPatchLocally()`                         | Apply extracted updates; the no-key rule parser                |
+| `parseFlightQuery()`, `answerFlightQuery()`                               | Answer a direct fare question without planning a trip          |
+| `parseTripDate()`, `isAmbiguous()`                                        | Date reading for the offline parser                            |
+| supervisor helpers                                                        | `dispatchWithSupervisor()`, `reviseWithSupervisor()` and tools |
+| `DEMO_BRIEF`                                                              | Baseline brief for clients that send none                      |
 
 ## Behaviour
 
@@ -26,8 +26,10 @@ The graph, its nodes and the round limit are described in
 [LangGraph note](../../.agents/notes/implemented/architecture/2026-09-08-langgraph-orchestration.md). Model calls go through
 `@trip/agents`' routing, so this package reads no environment variables itself.
 
-Agent Lab is a separate deterministic experiment boundary. Its first strategy validates a fixed
-fixture plan and emits a versioned trace artifact without invoking models, providers or persistence.
+Agent Lab is a separate deterministic experiment boundary. `single-agent-baseline` validates a fixed
+fixture plan; `multi-agent-no-revision` runs the registered specialists through the real workflow for
+one round with the scenario's own preferences. Both emit a versioned trace artifact through the same
+runner, evaluator and metrics, and neither persists anything.
 
 ## Contracts
 
