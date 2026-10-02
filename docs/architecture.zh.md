@@ -94,6 +94,10 @@ specialist 走确定性路径，工具返回 mock fixture；它们不读取或�
 `AgentProgressEvent` 联合类型，因此检查器可以展示图阶段、specialist 生命周期、目标、约束、工具摘要和结果，
 而不公开提示词或原始思维链。
 
+产物的下载与回放都发生在浏览器中，不涉及任何端点或服务端存储。页面保存它收到的产物，`apps/web/lib/agent-lab/replay.ts` 则按共享的
+`AgentLabRunArtifact` 约定校验所选文件（单一 schema 版本、连续的事件、有效的计划、不会倒退的时间），再按记录的偏移量回放记录下的事件。
+所存的指标按记录原样显示，不在页面中重新计算；原因见 [Agent Note](../.agents/notes/implemented/architecture/2026-10-02-agent-lab-artifact-replay.md)。
+
 <a id="langgraph-workflow"></a>
 
 ## LangGraph 工作流

@@ -8,11 +8,13 @@ import {
   type AgentLabStrategyId,
 } from "@trip/shared";
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AgentLabRunError, readAgentLabStream } from "@/lib/agent-lab/stream";
 import { money } from "@/lib/agent-lab/format";
+import { readReplayFile, replayEvents } from "@/lib/agent-lab/replay";
 import { ComparisonPanel } from "./ComparisonPanel";
 import { DesignNotes } from "./DesignNotes";
+import { DownloadArtifactButton } from "./DownloadArtifactButton";
 import { MetricsList } from "./MetricsPanel";
 import { PlanSections, PlanSummary } from "./PlanSections";
 import { RunTimeline } from "./RunTimeline";
@@ -41,6 +43,8 @@ interface RunView {
   artifact?: AgentLabCompletedRunArtifact;
   failure?: AgentLabFailedRunArtifact;
   error?: string;
+  // Set when the events come from a recorded artifact rather than a run on this page.
+  replay?: { runId: string; startedAt: string; total: number };
 }
 
 const statusCopy: Record<RunState, string> = {
@@ -51,6 +55,12 @@ const statusCopy: Record<RunState, string> = {
   error: "Run failed",
 };
 
+const replayCopy: Partial<Record<RunState, string>> = {
+  running: "Replaying recorded run",
+  cancelled: "Replay stopped",
+  complete: "Replay complete",
+};
+
 const emptyRun = (): RunView => ({ state: "ready", events: [] });
 
 export function AgentLabClient({ scenarios, strategies }: AgentLabClientProps) {
@@ -59,7 +69,23 @@ export function AgentLabClient({ scenarios, strategies }: AgentLabClientProps) {
   const [view, setView] = useState<"inspect" | "compare">("inspect");
   const [runs, setRuns] = useState<Record<string, RunView>>({});
   const [busy, setBusy] = useState(false);
+  const [replaying, setReplaying] = useState(false);
+  // What the status region last announced besides the run state: a download or a refused file.
+  const [notice, setNotice] = useState<string>();
+  const [replayError, setReplayError] = useState<string>();
   const controllerRef = useRef<AbortController | undefined>(undefined);
+  const replayRef = useRef<AbortController | undefined>(undefined);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const locked = busy || replaying;
+
+  useEffect(
+    () => () => {
+      controllerRef.current?.abort();
+      replayRef.current?.abort();
+    },
+    [],
+  );
+
   const selectedScenario = scenarios.find((scenario) => scenario.id === scenarioId)!;
   const runOf = (id: AgentLabStrategyId): RunView => runs[id] ?? emptyRun();
   const patch = (id: AgentLabStrategyId, change: Partial<RunView> | ((run: RunView) => RunView)) =>
@@ -75,6 +101,8 @@ export function AgentLabClient({ scenarios, strategies }: AgentLabClientProps) {
   const start = async (targets: readonly AgentLabStrategyId[]) => {
     const controller = new AbortController();
     controllerRef.current = controller;
+    setNotice(undefined);
+    setReplayError(undefined);
     setBusy(true);
     for (const target of targets) {
       setRuns((current) => ({ ...current, [target]: { ...emptyRun(), state: "running" } }));
@@ -106,6 +134,67 @@ export function AgentLabClient({ scenarios, strategies }: AgentLabClientProps) {
     setBusy(false);
   };
 
+  // Plays a recorded artifact back through the same views as a live run. Nothing is requested from
+  // the server, and a refused file leaves whatever result is already on the page.
+  const replay = async (file: File) => {
+    setNotice(undefined);
+    setReplayError(undefined);
+    // Lock the controls while the file is read, so a run started meanwhile cannot be overwritten
+    // by this file when it arrives.
+    const controller = new AbortController();
+    replayRef.current = controller;
+    setReplaying(true);
+    const parsed = await readReplayFile(file);
+    const artifact = parsed.ok ? parsed.artifact : undefined;
+    const registered =
+      artifact &&
+      scenarios.some((scenario) => scenario.id === artifact.scenarioId) &&
+      strategies.some((strategy) => strategy.id === artifact.strategyId);
+    if (controller.signal.aborted || !artifact || !registered) {
+      if (!controller.signal.aborted) {
+        setNotice("Replay failed");
+        setReplayError(
+          parsed.ok
+            ? "This artifact names a scenario or strategy that is not registered on this page."
+            : parsed.message,
+        );
+      }
+      if (replayRef.current === controller) replayRef.current = undefined;
+      setReplaying(false);
+      return;
+    }
+    const target = artifact.strategyId;
+    setScenarioId(artifact.scenarioId);
+    setStrategyId(target);
+    setView("inspect");
+    setRuns({
+      [target]: {
+        ...emptyRun(),
+        state: "running",
+        replay: {
+          runId: artifact.runId,
+          startedAt: artifact.startedAt,
+          total: artifact.events.length,
+        },
+      },
+    });
+    const finished = await replayEvents(
+      artifact.events,
+      (event) => patch(target, (run) => ({ ...run, events: [...run.events, event] })),
+      controller.signal,
+    );
+    patch(target, finished ? { artifact, state: "complete" } : { state: "cancelled" });
+    if (replayRef.current === controller) replayRef.current = undefined;
+    setReplaying(false);
+  };
+
+  const chooseFile = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    // Clearing the chooser lets the same file be chosen again.
+    event.target.value = "";
+    if (file) void replay(file);
+  };
+
   const runSelected = () => {
     if (busy) {
       controllerRef.current?.abort();
@@ -121,7 +210,8 @@ export function AgentLabClient({ scenarios, strategies }: AgentLabClientProps) {
   };
 
   const selected = runOf(strategyId);
-  const activeState: RunState = busy
+  const replayView = view === "inspect" && selected.replay !== undefined;
+  const activeState: RunState = locked
     ? "running"
     : view === "compare"
       ? (strategies
@@ -134,11 +224,18 @@ export function AgentLabClient({ scenarios, strategies }: AgentLabClientProps) {
       : selected.state === "error"
         ? selected
         : undefined;
+  const reading = replaying && !selected.replay;
+  const statusLabel =
+    notice ??
+    (reading ? "Reading artifact" : undefined) ??
+    (replayView ? replayCopy[activeState] : undefined) ??
+    statusCopy[activeState];
   const hasRun = strategies.some((strategy) => runOf(strategy.id).state !== "ready");
   const sides = strategies.map((strategy) => {
     const run = runOf(strategy.id);
     return { label: strategy.label, events: run.events, artifact: run.artifact };
   });
+  const selectedLabel = strategies.find((strategy) => strategy.id === strategyId)!.label;
 
   return (
     <main className="agent-lab" aria-busy={busy}>
@@ -172,8 +269,10 @@ export function AgentLabClient({ scenarios, strategies }: AgentLabClientProps) {
               // A result belongs to the scenario that produced it; do not show it under another.
               setScenarioId(event.target.value as AgentLabScenarioId);
               setRuns({});
+              setNotice(undefined);
+              setReplayError(undefined);
             }}
-            disabled={busy}
+            disabled={locked}
           >
             {scenarios.map((scenario) => (
               <option key={scenario.id} value={scenario.id}>
@@ -187,7 +286,7 @@ export function AgentLabClient({ scenarios, strategies }: AgentLabClientProps) {
           <select
             value={strategyId}
             onChange={(event) => setStrategyId(event.target.value as AgentLabStrategyId)}
-            disabled={busy}
+            disabled={locked}
           >
             {strategies.map((strategy) => (
               <option key={strategy.id} value={strategy.id}>
@@ -202,23 +301,63 @@ export function AgentLabClient({ scenarios, strategies }: AgentLabClientProps) {
           <small>No external calls</small>
         </div>
         <div className="agent-lab__actions">
-          <button className="agent-lab__run primary" type="button" onClick={runSelected}>
+          <button
+            className="agent-lab__run primary"
+            type="button"
+            onClick={runSelected}
+            disabled={replaying}
+          >
             {busy ? "Cancel run" : "Run experiment"}
           </button>
-          <button className="agent-lab__secondary" type="button" onClick={compare} disabled={busy}>
+          <button
+            className="agent-lab__secondary"
+            type="button"
+            onClick={compare}
+            disabled={locked}
+          >
             Compare all strategies
           </button>
+          {/* One element for both jobs, so keyboard focus stays on it when a replay starts. */}
+          <button
+            className="agent-lab__secondary"
+            type="button"
+            onClick={() => (replaying ? replayRef.current?.abort() : fileInputRef.current?.click())}
+            disabled={busy}
+          >
+            {replaying ? "Stop replay" : "Replay artifact"}
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/json,.json"
+            hidden
+            data-agent-lab-replay-input
+            disabled={locked}
+            onChange={chooseFile}
+          />
         </div>
       </section>
 
       <div className="agent-lab__status" role="status">
         <span
-          className={`agent-lab__status-mark agent-lab__status-mark--${activeState}`}
+          className={`agent-lab__status-mark agent-lab__status-mark--${replayError ? "error" : activeState}`}
           aria-hidden="true"
         />
-        <span>{statusCopy[activeState]}</span>
-        {activeState === "ready" ? <span> · {selectedScenario.summary}</span> : null}
+        <span>{statusLabel}</span>
+        {replaying && selected.replay ? (
+          <span>
+            {" "}
+            · event {selected.events.length} of {selected.replay.total}
+          </span>
+        ) : null}
+        {activeState === "ready" && !notice ? <span> · {selectedScenario.summary}</span> : null}
       </div>
+
+      {replayError ? (
+        <p className="agent-lab__error" role="alert" data-agent-lab-replay-error>
+          Could not replay this file. {replayError}
+        </p>
+      ) : null}
 
       {errorRun?.error ? (
         <p className="agent-lab__error" role="alert">
@@ -245,7 +384,10 @@ export function AgentLabClient({ scenarios, strategies }: AgentLabClientProps) {
       </div>
 
       {view === "compare" ? (
-        <ComparisonPanel sides={sides} />
+        <ComparisonPanel
+          sides={sides}
+          onDownloaded={(filename) => setNotice(`Artifact downloaded: ${filename}`)}
+        />
       ) : (
         <div className="agent-lab__grid">
           <section className="agent-lab__panel" aria-labelledby="agent-lab-timeline-title">
@@ -256,6 +398,13 @@ export function AgentLabClient({ scenarios, strategies }: AgentLabClientProps) {
               </div>
               <span>{selected.events.length} events</span>
             </div>
+            {selected.replay ? (
+              <p className="agent-lab__replay-note" data-agent-lab-replay-note>
+                Replay of recorded run <code>{selected.replay.runId}</code> from{" "}
+                {selected.replay.startedAt}. Nothing is run again: events appear at their recorded
+                times.
+              </p>
+            ) : null}
             {selected.events.length ? (
               <RunTimeline events={selected.events} label="Run events" />
             ) : (
@@ -296,7 +445,16 @@ export function AgentLabClient({ scenarios, strategies }: AgentLabClientProps) {
               {selected.artifact ? <span>Schema v{selected.artifact.schemaVersion}</span> : null}
             </div>
             {selected.artifact ? (
-              <MetricsList artifact={selected.artifact} />
+              <>
+                <MetricsList artifact={selected.artifact} />
+                <div className="agent-lab__artifact-actions">
+                  <DownloadArtifactButton
+                    artifact={selected.artifact}
+                    label={selectedLabel}
+                    onDownloaded={(filename) => setNotice(`Artifact downloaded: ${filename}`)}
+                  />
+                </div>
+              </>
             ) : (
               <div className="agent-lab__empty">
                 <strong>Measured, not judged</strong>
