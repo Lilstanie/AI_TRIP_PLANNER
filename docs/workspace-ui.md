@@ -464,7 +464,7 @@ first render; without a browser key the map shows a fallback and the itinerary s
 
 `/agent-lab` is a public engineering-demo route, including when Clerk protects the main workspace.
 It does not share the workspace shell or read and write its browser storage. The toolbar exposes one
-registered scenario, a strategy choice and the fixed Fixture data mode; Run experiment becomes Cancel
+registered scenario, a strategy choice and a Data mode control; Run experiment becomes Cancel
 run while the NDJSON response is active. Compare all strategies runs the single-agent baseline, the
 five-specialist no-revision strategy and the targeted-revision strategy one after the other and opens
 the comparison view. The scenario list also offers the tight-budget Tokyo trip, where the first plan
@@ -503,6 +503,14 @@ missing, duplicated or out-of-order events, has events timed backwards or from a
 mismatched event count or an invalid plan, records a failed run (not yet replayable), is larger than
 5 MB or would play for more than ten minutes. Fields the contract does not define are dropped, never
 shown.
+
+Data mode is Fixture data by default. Live data is selectable only when the deployment has enabled it, and the page
+says beforehand when it has not. Choosing Live data marks the scripted baseline fixture only and runs the specialist
+strategies. A request the server turns away (live not enabled, or a concurrency or hourly limit) shows Live run not
+started and an alert that says which limit was hit, how long to wait and that nothing was run; it is never shown as a
+failed run, and fixture data stays available. The trace, the metrics, the comparison and every artifact say Fixture data
+or Live data. Measured usage shows the tokens the provider returned and that cost is not reported; usage that was not
+measured reads Unavailable, never zero.
 
 The responsive three-panel inspector shows the ordered run timeline, the validated plan and the run
 metrics. The metrics panel shows the real budget state (within or over, with the amount) and every

@@ -172,7 +172,15 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 运行内部失败时，会发送 `error` 帧；其中包含不敏感的消息，以及记录失败前事件的结构化
 `failed` 产物。
 
-Agent Lab 只使用 fixture：应在没有模型或提供方密钥的情况下运行，未配置时不调用外部服务，也不持久化聊天、行程或实验结果。
+`dataMode` 为 `fixture`（默认）或 `live`。fixture 运行对该请求使用 mock 工具且不使用模型，因此无论部署持有什么密钥、默认数据模式是什么，
+它都不发起外部调用、不消耗额度。它不需要任何凭据，并且它和实时运行都不会持久化聊天、行程或实验结果。
+
+实时运行使用部署自己的模型和提供方，且只在部署设置了 `AGENT_LAB_LIVE_ENABLED=true` 时存在（见 [development](development.zh.md)）。只有两个 specialist 策略有实时实现；
+单 agent 基线回放的是一份录制结果，因此请求它的实时运行会被拒绝。无法开始的请求只会收到一个带类型的 `rejected` 帧，没有运行，也绝不会有产物：
+503 `live_disabled`、400 `live_unsupported`，或带有 `Retry-After` 头和 `retryAfterSeconds` 的 429 `concurrency_limit` / `rate_limit`。
+这些都不是实验的失败，且消息不会点出任何设置或限额。实时产物的 `dataMode`，以及每个事件上的同名字段，都是 `live`。
+它的 `metrics.usage` 仅当提供方为每次模型调用都返回了用量时才是带有输入、输出和总 token 数的 `{ "status": "measured", ... }`，否则是
+`{ "status": "unavailable", "reason": ... }`，绝不会是 0 或部分合计。模型成本从不报告，轨迹也从不包含模型自己的推理。
 
 <a id="get-apidata-mode"></a>
 

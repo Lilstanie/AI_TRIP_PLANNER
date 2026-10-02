@@ -2,14 +2,20 @@
 
 import {
   type AgentLabCompletedRunArtifact,
+  type AgentLabDataMode,
   type AgentLabFailedRunArtifact,
+  type AgentLabRejectionReason,
   type AgentLabRunEvent,
   type AgentLabScenarioId,
   type AgentLabStrategyId,
 } from "@trip/shared";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { AgentLabRunError, readAgentLabStream } from "@/lib/agent-lab/stream";
+import {
+  AgentLabRejectedError,
+  AgentLabRunError,
+  readAgentLabStream,
+} from "@/lib/agent-lab/stream";
 import { money } from "@/lib/agent-lab/format";
 import { readReplayFile, replayEvents } from "@/lib/agent-lab/replay";
 import { ComparisonPanel } from "./ComparisonPanel";
@@ -28,14 +34,18 @@ interface ScenarioSummary {
 interface StrategySummary {
   id: AgentLabStrategyId;
   label: string;
+  /** False for the scripted baseline, which replays a recording and has no live implementation. */
+  live: boolean;
 }
 
 interface AgentLabClientProps {
   scenarios: readonly ScenarioSummary[];
   strategies: readonly StrategySummary[];
+  /** Whether this deployment has explicitly enabled live runs; read on the server, never guessed here. */
+  liveEnabled: boolean;
 }
 
-type RunState = "ready" | "running" | "cancelled" | "complete" | "error";
+type RunState = "ready" | "running" | "cancelled" | "complete" | "error" | "rejected";
 
 interface RunView {
   state: RunState;
@@ -43,6 +53,8 @@ interface RunView {
   artifact?: AgentLabCompletedRunArtifact;
   failure?: AgentLabFailedRunArtifact;
   error?: string;
+  // Set when the server turned the request away before a run started: not a failed experiment.
+  rejection?: { reason: AgentLabRejectionReason; message: string; retryAfterSeconds?: number };
   // Set when the events come from a recorded artifact rather than a run on this page.
   replay?: { runId: string; startedAt: string; total: number };
 }
@@ -53,7 +65,20 @@ const statusCopy: Record<RunState, string> = {
   cancelled: "Run cancelled",
   complete: "Run complete",
   error: "Run failed",
+  rejected: "Live run not started",
 };
+
+const modeLabel: Record<AgentLabDataMode, string> = {
+  fixture: "Fixture data",
+  live: "Live data",
+};
+
+const retryHint = (seconds?: number) =>
+  seconds === undefined
+    ? ""
+    : seconds >= 120
+      ? ` Try again in about ${Math.ceil(seconds / 60)} minutes.`
+      : ` Try again in about ${seconds} seconds.`;
 
 const replayCopy: Partial<Record<RunState, string>> = {
   running: "Replaying recorded run",
@@ -63,10 +88,11 @@ const replayCopy: Partial<Record<RunState, string>> = {
 
 const emptyRun = (): RunView => ({ state: "ready", events: [] });
 
-export function AgentLabClient({ scenarios, strategies }: AgentLabClientProps) {
+export function AgentLabClient({ scenarios, strategies, liveEnabled }: AgentLabClientProps) {
   const [scenarioId, setScenarioId] = useState<AgentLabScenarioId>(scenarios[0]!.id);
   const [strategyId, setStrategyId] = useState<AgentLabStrategyId>(strategies[0]!.id);
   const [view, setView] = useState<"inspect" | "compare">("inspect");
+  const [dataMode, setDataMode] = useState<AgentLabDataMode>("fixture");
   const [runs, setRuns] = useState<Record<string, RunView>>({});
   const [busy, setBusy] = useState(false);
   const [replaying, setReplaying] = useState(false);
@@ -97,6 +123,9 @@ export function AgentLabClient({ scenarios, strategies }: AgentLabClientProps) {
       };
     });
 
+  // Strategies a request can use in the chosen mode: live needs a live implementation.
+  const available = strategies.filter((strategy) => dataMode === "fixture" || strategy.live);
+
   // Strategies run one after another so each one's latency is measured on its own.
   const start = async (targets: readonly AgentLabStrategyId[]) => {
     const controller = new AbortController();
@@ -110,7 +139,7 @@ export function AgentLabClient({ scenarios, strategies }: AgentLabClientProps) {
         const response = await fetch("/api/agent-lab/runs", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ scenarioId, strategyId: target, dataMode: "fixture" }),
+          body: JSON.stringify({ scenarioId, strategyId: target, dataMode }),
           signal: controller.signal,
         });
         const completed = await readAgentLabStream(response, (event) =>
@@ -120,6 +149,16 @@ export function AgentLabClient({ scenarios, strategies }: AgentLabClientProps) {
       } catch (caught) {
         if (controller.signal.aborted) {
           patch(target, { state: "cancelled" });
+        } else if (caught instanceof AgentLabRejectedError) {
+          // Turned away before a run began; say why in plain words, and do not call it a failed run.
+          patch(target, {
+            state: "rejected",
+            rejection: {
+              reason: caught.reason,
+              message: caught.message,
+              retryAfterSeconds: caught.retryAfterSeconds,
+            },
+          });
         } else {
           patch(target, {
             state: "error",
@@ -206,7 +245,7 @@ export function AgentLabClient({ scenarios, strategies }: AgentLabClientProps) {
 
   const compare = () => {
     setView("compare");
-    void start(strategies.map((strategy) => strategy.id));
+    void start(available.map((strategy) => strategy.id));
   };
 
   const selected = runOf(strategyId);
@@ -214,7 +253,7 @@ export function AgentLabClient({ scenarios, strategies }: AgentLabClientProps) {
   const activeState: RunState = locked
     ? "running"
     : view === "compare"
-      ? (strategies
+      ? (available
           .map((strategy) => runOf(strategy.id).state)
           .find((state) => state !== "complete") ?? "complete")
       : selected.state;
@@ -224,14 +263,20 @@ export function AgentLabClient({ scenarios, strategies }: AgentLabClientProps) {
       : selected.state === "error"
         ? selected
         : undefined;
+  const rejectedRun =
+    view === "compare"
+      ? available.map((strategy) => runOf(strategy.id)).find((run) => run.state === "rejected")
+      : selected.state === "rejected"
+        ? selected
+        : undefined;
   const reading = replaying && !selected.replay;
   const statusLabel =
     notice ??
     (reading ? "Reading artifact" : undefined) ??
     (replayView ? replayCopy[activeState] : undefined) ??
-    statusCopy[activeState];
+    (activeState === "running" ? `Running ${dataMode} experiment` : statusCopy[activeState]);
   const hasRun = strategies.some((strategy) => runOf(strategy.id).state !== "ready");
-  const sides = strategies.map((strategy) => {
+  const sides = available.map((strategy) => {
     const run = runOf(strategy.id);
     return { label: strategy.label, events: run.events, artifact: run.artifact };
   });
@@ -289,16 +334,50 @@ export function AgentLabClient({ scenarios, strategies }: AgentLabClientProps) {
             disabled={locked}
           >
             {strategies.map((strategy) => (
-              <option key={strategy.id} value={strategy.id}>
+              <option
+                key={strategy.id}
+                value={strategy.id}
+                disabled={dataMode === "live" && !strategy.live}
+              >
                 {strategy.label}
+                {dataMode === "live" && !strategy.live ? " (fixture only)" : ""}
               </option>
             ))}
           </select>
         </label>
         <div className="agent-lab__mode">
-          <span>Data mode</span>
-          <strong>Fixture data</strong>
-          <small>No external calls</small>
+          <label className="agent-lab__field">
+            <span>Data mode</span>
+            <select
+              value={dataMode}
+              onChange={(event) => {
+                // A result belongs to the mode that produced it; do not show it under another.
+                const next = event.target.value as AgentLabDataMode;
+                setDataMode(next);
+                setRuns({});
+                setNotice(undefined);
+                setReplayError(undefined);
+                const current = strategies.find((strategy) => strategy.id === strategyId);
+                if (next === "live" && current && !current.live) {
+                  setStrategyId(strategies.find((strategy) => strategy.live)?.id ?? strategyId);
+                }
+              }}
+              disabled={locked}
+            >
+              <option value="fixture">{modeLabel.fixture}</option>
+              <option value="live" disabled={!liveEnabled}>
+                {modeLabel.live}
+                {liveEnabled ? "" : " (not enabled)"}
+              </option>
+            </select>
+          </label>
+          <small data-agent-lab-mode-note>
+            {dataMode === "live"
+              ? "Uses this deployment's own models and providers, within its limits."
+              : liveEnabled
+                ? "No external calls."
+                : "No external calls. Live runs are not enabled on this deployment."}
+          </small>
         </div>
         <div className="agent-lab__actions">
           <button
@@ -359,6 +438,18 @@ export function AgentLabClient({ scenarios, strategies }: AgentLabClientProps) {
         </p>
       ) : null}
 
+      {rejectedRun?.rejection ? (
+        <p
+          className="agent-lab__notice"
+          role="alert"
+          data-agent-lab-rejection={rejectedRun.rejection.reason}
+        >
+          {rejectedRun.rejection.message}
+          {retryHint(rejectedRun.rejection.retryAfterSeconds)} Nothing was run, and this is not a
+          failed experiment. Fixture data is always available.
+        </p>
+      ) : null}
+
       {errorRun?.error ? (
         <p className="agent-lab__error" role="alert">
           {errorRun.error}
@@ -385,6 +476,13 @@ export function AgentLabClient({ scenarios, strategies }: AgentLabClientProps) {
 
       {view === "compare" ? (
         <ComparisonPanel
+          provenance={
+            [
+              ...new Set(
+                sides.flatMap((side) => (side.artifact ? [modeLabel[side.artifact.dataMode]] : [])),
+              ),
+            ].join(" and ") || modeLabel[dataMode]
+          }
           sides={sides}
           onDownloaded={(filename) => setNotice(`Artifact downloaded: ${filename}`)}
         />
@@ -396,7 +494,10 @@ export function AgentLabClient({ scenarios, strategies }: AgentLabClientProps) {
                 <p className="agent-lab__kicker">Trace</p>
                 <h2 id="agent-lab-timeline-title">Run timeline</h2>
               </div>
-              <span>{selected.events.length} events</span>
+              <span data-agent-lab-provenance>
+                {selected.events.length} events ·{" "}
+                {modeLabel[selected.events[0]?.dataMode ?? dataMode]}
+              </span>
             </div>
             {selected.replay ? (
               <p className="agent-lab__replay-note" data-agent-lab-replay-note>
@@ -442,7 +543,12 @@ export function AgentLabClient({ scenarios, strategies }: AgentLabClientProps) {
                 <p className="agent-lab__kicker">Evidence</p>
                 <h2 id="agent-lab-evidence-title">Run metrics</h2>
               </div>
-              {selected.artifact ? <span>Schema v{selected.artifact.schemaVersion}</span> : null}
+              {selected.artifact ? (
+                <span data-agent-lab-provenance>
+                  Schema v{selected.artifact.schemaVersion} ·{" "}
+                  {modeLabel[selected.artifact.dataMode]}
+                </span>
+              ) : null}
             </div>
             {selected.artifact ? (
               <>

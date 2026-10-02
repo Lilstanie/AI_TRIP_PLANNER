@@ -149,6 +149,29 @@ describe("buildComparisonRows", () => {
     expect(value(rows, "conflict-outcome", 1)).toBe("No completed run");
   });
 
+  it("shows measured usage as the tokens the provider returned, and says cost is not reported", () => {
+    const rows = buildComparisonRows(
+      artifact({
+        usage: {
+          status: "measured",
+          modelCalls: 5,
+          inputTokens: 8200,
+          outputTokens: 1300,
+          totalTokens: 9500,
+        },
+      }),
+      artifact({
+        usage: {
+          status: "unavailable",
+          reason: "The provider reported usage for 3 of 5 model calls.",
+        },
+      }),
+    );
+    expect(value(rows, "usage", 0)).toBe("9,500 tokens in 5 model calls; cost not reported");
+    expect(value(rows, "usage", 1)).toBe("Unavailable");
+    expect(value(rows, "usage", 1)).not.toMatch(/\d/);
+  });
+
   it("labels multi-city consistency as not applicable, consistent or inconsistent", () => {
     const at = (multiCityConsistent: boolean | null) =>
       value(buildComparisonRows(artifact({ multiCityConsistent })), "multi-city", 0);

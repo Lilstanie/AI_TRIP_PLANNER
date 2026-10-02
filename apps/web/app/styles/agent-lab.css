@@ -637,3 +637,16 @@
 .agent-lab__download {
   min-height: 44px;
 }
+
+.agent-lab__notice {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--accent-bg);
+  color: var(--text);
+}
+
+.agent-lab__mode .agent-lab__field select {
+  min-width: 0;
+}

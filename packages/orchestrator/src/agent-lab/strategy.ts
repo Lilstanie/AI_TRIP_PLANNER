@@ -23,4 +23,9 @@ export interface AgentLabStrategy {
   run: (context: AgentLabStrategyContext) => Promise<TripPlan>;
   /** One sentence for the trace, written after the plan exists. */
   completionSummary: (plan: TripPlan) => string;
+  /**
+   * Whether this strategy has a live implementation. The scripted baseline replays a recording, so a live
+   * request for it would label a recording as live; it is refused instead.
+   */
+  live: boolean;
 }

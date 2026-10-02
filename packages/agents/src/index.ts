@@ -45,8 +45,13 @@ export {
   MODEL_ROUTING,
   createRoutedChatModel,
   createRoutedStructuredInvoker,
+  createUsageCollector,
+  runWithModelsDisabled,
+  runWithUsageCollector,
   type RoutedModelOptions,
   type RoutedModelTask,
+  type UsageCollector,
+  type UsageSnapshot,
 } from "./models";
 export {
   assembleChunks,

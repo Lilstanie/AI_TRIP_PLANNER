@@ -1,5 +1,6 @@
 import {
   AgentLabStreamFrame,
+  type AgentLabRejectionReason,
   type AgentLabCompletedRunArtifact,
   type AgentLabFailedRunArtifact,
   type AgentLabRunEvent,
@@ -13,6 +14,21 @@ export class AgentLabRunError extends Error {
   ) {
     super(message);
     this.name = "AgentLabRunError";
+  }
+}
+
+/**
+ * The server turned the request away before any run started: live is not enabled, the strategy has no live
+ * implementation, or a limit was reached. It is not a failure of the experiment and carries no artifact.
+ */
+export class AgentLabRejectedError extends Error {
+  constructor(
+    message: string,
+    readonly reason: AgentLabRejectionReason,
+    readonly retryAfterSeconds?: number,
+  ) {
+    super(message);
+    this.name = "AgentLabRejectedError";
   }
 }
 
@@ -35,6 +51,19 @@ export async function readAgentLabStream(
   response: Response,
   onEvent: (event: AgentLabRunEvent) => void,
 ): Promise<AgentLabCompletedRunArtifact> {
+  if (!response.ok && response.body) {
+    // A rejection is a single frame in a non-200 body; anything else is an unreadable failure.
+    const text = await response.text();
+    try {
+      const frame = parseFrame(text.split("\n").find((line) => line.trim()) ?? "");
+      if (frame.type === "rejected") {
+        throw new AgentLabRejectedError(frame.message, frame.reason, frame.retryAfterSeconds);
+      }
+    } catch (caught) {
+      if (caught instanceof AgentLabRejectedError) throw caught;
+    }
+    throw new Error("Unable to start this experiment.");
+  }
   if (!response.ok || !response.body) throw new Error("Unable to start this experiment.");
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
@@ -44,6 +73,9 @@ export async function readAgentLabStream(
   const consume = (line: string) => {
     if (!line.trim()) return;
     const frame = parseFrame(line);
+    if (frame.type === "rejected") {
+      throw new AgentLabRejectedError(frame.message, frame.reason, frame.retryAfterSeconds);
+    }
     if (frame.type === "event") onEvent(frame.event);
     else if (frame.type === "complete") artifact = frame.artifact;
     else throw new AgentLabRunError(frame.error, frame.artifact);

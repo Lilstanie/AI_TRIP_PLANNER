@@ -79,6 +79,16 @@ ln -s ../../.env.local apps/web/.env.local
 后，用 `pnpm --filter @trip/web db:generate` 生成迁移并提交到 `apps/web/drizzle/`。在 Vercel 上，Clerk
 和 Neon 的 Marketplace 集成会注入相同名称的变量。
 
+Agent Lab 的实时运行默认关闭，除非部署启用它（这些名称不在 `.env.example` 中）：
+
+| 设置                               | 用途                                                                                                                          |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `AGENT_LAB_LIVE_ENABLED`           | 恰为 `true` 时，`/agent-lab` 才提供实时运行，它使用上面的模型和提供方密钥。其他任何值都保持实时关闭；fixture 数据从不受影响。 |
+| `AGENT_LAB_LIVE_MAX_CONCURRENT`    | 同时进行的实时运行数。默认 `1`；`0` 表示不允许；上限 `20`。                                                                   |
+| `AGENT_LAB_LIVE_MAX_RUNS_PER_HOUR` | 滚动一小时内可开始的实时运行数。默认 `6`；`0` 表示不允许；上限 `1000`。                                                       |
+
+无法使用的值会回退为默认值，绝不会变成无限制。计数保存在单个服务进程中，因此运行多个实例的部署会对每个实例分别应用限额；设置时请考虑这一点。
+
 Google 密钥限制和地图行为见[工作区 UI](workspace-ui.zh.md#google-maps-configuration)。模型路由和回退逻辑见[架构](architecture.zh.md#agents-and-models)。
 
 <a id="external-data-provider-plan"></a>
@@ -184,9 +194,9 @@ node apps/web/tests/e2e/<name>.e2e.mjs
 ```
 
 - **API 脚本**（`plan-quality`、`conversation-scope`）向 `/api/chat` 发请求，`DATA_MODE=live` 为默认值，也可设为 `mock`。`plan-quality` 提交三个固定行程需求，并检查预算、未解决冲突、行程来源、重复停靠点和泛化停靠点；实时模型输出会变化，因此应比较多次运行。每次运行把 NDJSON 流、方案和 `summary.json` 写入 `output/e2e/<name>/<run>/`。
-- **浏览器脚本**（其余所有脚本，包括五个 `agent-lab-*`）用 Playwright 在桌面和手机宽度下运行，并把截图写入 `output/playwright/<name>/`；Agent Lab 的脚本还会写入原始 NDJSON 和 artifact。`CHANNEL=chrome` 与 `PLAYWRIGHT=<path>` 用于选择浏览器和 Playwright 包；服务器不在 `http://localhost:3000` 时用 `BASE_URL` 指定。
+- **浏览器脚本**（其余所有脚本，包括六个 `agent-lab-*`）用 Playwright 在桌面和手机宽度下运行，并把截图写入 `output/playwright/<name>/`；Agent Lab 的脚本还会写入原始 NDJSON 和 artifact。`CHANNEL=chrome` 与 `PLAYWRIGHT=<path>` 用于选择浏览器和 Playwright 包；服务器不在 `http://localhost:3000` 时用 `BASE_URL` 指定。
 
-`output/e2e/` 和 `output/playwright/` 已被 Git 忽略。每个脚本的文件头列出它所依据的失败清单和所需的服务器环境，例如 `agent-lab-revision` 需要 `USE_MOCK_TOOLS=true`，且不能配置模型或 provider 密钥。
+`output/e2e/` 和 `output/playwright/` 已被 Git 忽略。每个脚本的文件头列出它所依据的失败清单和所需的服务器环境，fixture 运行与部署的密钥和默认数据模式相互隔离，因此无论环境中有什么，Agent Lab 的脚本都能通过；`agent-lab-live-gate` 还会使用两个启用了实时运行的服务（见其文件头）。
 
 `apps/web/tests/e2e/leg-mode-choice.e2e.mjs` 检查：旅行者为某一程选择的出行方式（`TripBrief.legModes`）确实是计划所采用的方式，或者被如实报告为不可用，绝不会被悄悄替换。四个场景不需要模型（选择通过简报传入），一个需要模型（旅行者在聊天中说出）；没有模型密钥时，这一个会报告 `skip` 而不是失败。产物写入 `output/e2e/leg-mode-choice/<run>/`。
 

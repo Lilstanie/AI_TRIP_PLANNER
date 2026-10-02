@@ -31,6 +31,8 @@ export {
 export {
   agentLabScenarioSummaries,
   agentLabStrategySummaries,
+  agentLabStrategySupportsLive,
+  buildAgentLabUsage,
   createFailedAgentLabArtifact,
   runAgentLab,
   type RunAgentLabOptions,

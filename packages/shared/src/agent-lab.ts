@@ -20,7 +20,9 @@ export const AgentLabStrategyId = z.enum([
 ]);
 export type AgentLabStrategyId = z.infer<typeof AgentLabStrategyId>;
 
-export const AgentLabDataMode = z.enum(["fixture"]);
+// Fixture is the default and the only mode that needs no credentials. Live uses the deployment's own model
+// and provider services and exists only where the server has been explicitly configured to allow it.
+export const AgentLabDataMode = z.enum(["fixture", "live"]);
 export type AgentLabDataMode = z.infer<typeof AgentLabDataMode>;
 
 export const AgentLabRunRequest = z
@@ -188,8 +190,19 @@ export const AgentLabMetrics = z.object({
   multiCityConsistent: z.boolean().nullable(),
   // Why the loop ended, from the trace; null for a strategy that has no loop.
   stopReason: AgentLabStopReason.nullable(),
-  // Token and model-cost usage. Fixture runs make no model calls, so this is unavailable, never zero.
-  usage: z.object({ status: z.literal("unavailable"), reason: z.string().min(1) }),
+  // Token usage, only when the provider actually returned it for every model call. A run that made no
+  // model calls, or whose provider reported nothing for some call, is unavailable, never a guessed number.
+  // Model cost is never computed: providers do not return it.
+  usage: z.discriminatedUnion("status", [
+    z.object({ status: z.literal("unavailable"), reason: z.string().min(1) }),
+    z.object({
+      status: z.literal("measured"),
+      modelCalls: z.number().int().positive(),
+      inputTokens: z.number().int().nonnegative(),
+      outputTokens: z.number().int().nonnegative(),
+      totalTokens: z.number().int().nonnegative(),
+    }),
+  ]),
 });
 export type AgentLabMetrics = z.infer<typeof AgentLabMetrics>;
 
@@ -303,7 +316,23 @@ export const AgentLabRunArtifact = z.discriminatedUnion("status", [
 ]);
 export type AgentLabRunArtifact = z.infer<typeof AgentLabRunArtifact>;
 
+// Why a request was turned away before any run started. None of these is a failure of the experiment, and
+// none carries anything about the deployment beyond the reason.
+export const AgentLabRejectionReason = z.enum([
+  "live_disabled",
+  "live_unsupported",
+  "concurrency_limit",
+  "rate_limit",
+]);
+export type AgentLabRejectionReason = z.infer<typeof AgentLabRejectionReason>;
+
 export const AgentLabStreamFrame = z.discriminatedUnion("type", [
+  z.object({
+    type: z.literal("rejected"),
+    reason: AgentLabRejectionReason,
+    message: z.string().min(1),
+    retryAfterSeconds: z.number().int().nonnegative().optional(),
+  }),
   z.object({ type: z.literal("event"), event: AgentLabRunEvent }),
   z.object({ type: z.literal("complete"), artifact: AgentLabCompletedRunArtifact }),
   z.object({

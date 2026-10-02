@@ -28,12 +28,14 @@ Status as of 2026-10-01 on `main`; see [workspace UI](workspace-ui.md) for curre
   deterministic metrics without provider keys, and compares it with five specialists running one
   round without revision and with bounded targeted revision on a tight-budget variant. Completed runs
   download as versioned artifacts that replay offline in the page. Benchmark scenarios cover an
-  infeasible Paris budget and a Tokyo and Kyoto trip whose move between cities must stay consistent.
+  infeasible Paris budget and a Tokyo and Kyoto trip whose move between cities must stay consistent. Live runs
+  exist only where the deployment enables them, within concurrency and hourly limits, and fixture runs can never
+  reach a provider or model.
 
 **Open**
 
 1. Verify live providers end to end with real keys in a deployed environment.
-2. Extend Agent Lab with injected-failure runs and optional live runs.
+2. Extend Agent Lab with injected-failure runs.
 3. On-trip mode, once the describe, edit, save and travel loop is stable.
 
 **Later, only if needed**
