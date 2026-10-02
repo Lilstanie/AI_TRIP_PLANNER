@@ -67,6 +67,39 @@ export function isTripDate(value: string): boolean {
     new Date(time).toISOString().slice(0, 10) === value
   );
 }
+/**
+ * How a journey is made. Lives here rather than beside the ports that return
+ * it, because a proposal item names one too and contracts cannot import ports.
+ */
+export const TravelModes = [
+  "train",
+  "flight",
+  "bus",
+  "walk",
+  "transit",
+  "tram",
+  "ferry",
+  "drive",
+] as const;
+export const TravelMode = z.enum(TravelModes);
+export type TravelMode = z.infer<typeof TravelMode>;
+
+/**
+ * A mode the traveller chose for one hop, overriding what the planner would
+ * pick for it.
+ *
+ * Keyed by the hop's endpoints rather than its position: adding a destination
+ * renumbers the legs, and a stored index would then quietly apply the choice
+ * to a different journey. Matching is case- and whitespace-insensitive, and
+ * the first match wins.
+ */
+export const LegModeChoice = z.object({
+  from: z.string().trim().min(1),
+  to: z.string().trim().min(1),
+  mode: TravelMode,
+});
+export type LegModeChoice = z.infer<typeof LegModeChoice>;
+
 export const TripBrief = z
   .object({
     tripId: z.string(),
@@ -99,6 +132,10 @@ export const TripBrief = z
     learnedPreferences: TripPreferences.optional(),
     // The traveller arranges flights themselves: none are searched, priced or asked about.
     excludeFlights: z.boolean().optional(),
+    // How the traveller wants particular hops made, when they said so. Optional and additive:
+    // briefs saved before it existed still parse, and an absent list means the planner decides
+    // every hop. See LegModeChoice and the transport agent's legMode.
+    legModes: z.array(LegModeChoice).max(12).optional(),
     // The traveller has booked their stay: it is used as given and not priced.
     bookedStay: BookedStay.optional(),
   })
@@ -124,23 +161,6 @@ export type TripBrief = z.infer<typeof TripBrief>;
 // The `estCost` rule (currency = AUD, whole trip not per-person) is frozen by A.
 // ---------------------------------------------------------------------------
 const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
-
-/**
- * How a journey is made. Lives here rather than beside the ports that return
- * it, because a proposal item names one too and contracts cannot import ports.
- */
-export const TravelModes = [
-  "train",
-  "flight",
-  "bus",
-  "walk",
-  "transit",
-  "tram",
-  "ferry",
-  "drive",
-] as const;
-export const TravelMode = z.enum(TravelModes);
-export type TravelMode = z.infer<typeof TravelMode>;
 
 /**
  * How the traveller reaches this item from the one before it.

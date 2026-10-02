@@ -188,6 +188,13 @@ node apps/web/tests/e2e/<name>.e2e.mjs
 
 `output/e2e/` 和 `output/playwright/` 已被 Git 忽略。每个脚本的文件头列出它所依据的失败清单和所需的服务器环境，例如 `agent-lab-revision` 需要 `USE_MOCK_TOOLS=true`，且不能配置模型或 provider 密钥。
 
+`apps/web/tests/e2e/leg-mode-choice.e2e.mjs` 检查：旅行者为某一程选择的出行方式（`TripBrief.legModes`）确实是计划所采用的方式，或者被如实报告为不可用，绝不会被悄悄替换。四个场景不需要模型（选择通过简报传入），一个需要模型（旅行者在聊天中说出）；没有模型密钥时，这一个会报告 `skip` 而不是失败。产物写入 `output/e2e/leg-mode-choice/<run>/`。
+
+```bash
+pnpm --filter @trip/web dev          # in another terminal
+DATA_MODE=mock node apps/web/tests/e2e/leg-mode-choice.e2e.mjs
+```
+
 ```bash
 pnpm typecheck
 pnpm lint

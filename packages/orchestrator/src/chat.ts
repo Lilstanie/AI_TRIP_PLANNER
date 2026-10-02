@@ -7,6 +7,7 @@ import {
   Currency,
   MAX_TRIP_PREFERENCE_LENGTH,
   MAX_TRIP_PREFERENCES,
+  TravelModes,
   PartialTripBrief as PartialTripBriefSchema,
   TripBrief as TripBriefSchema,
   toAud,
@@ -135,6 +136,18 @@ export const BriefUpdate = z.object({
     .boolean()
     .nullish()
     .describe("true when the traveller says they arrange flights themselves or flights are not needed; false if they ask to include flights again"),
+  travelModeChoices: z
+    .array(
+      z.object({
+        from: z.string().describe("the place the hop starts at, as the trip names it"),
+        to: z.string().describe("the place the hop ends at, as the trip names it"),
+        mode: z.enum(TravelModes).describe("how the traveller wants to make that hop"),
+      }),
+    )
+    .nullish()
+    .describe(
+      "The whole list of per-hop travel choices the traveller has stated, replacing the previous one: only hops between the trip's own cities, or its origin and first city. Keep earlier entries from knownSoFar.legModes unless they changed, and leave an entry out when the traveller takes that choice back.",
+    ),
   bookedStayName: z
     .string()
     .nullish()
@@ -180,6 +193,21 @@ function toPatch(update: z.infer<typeof BriefUpdate>): BriefPatch {
     ...(startDate && endDate ? { dates: [startDate, endDate] as [string, string] } : {}),
     ...(learned ? { learnedPreferences: learned } : {}),
     ...(typeof update.excludeFlights === "boolean" ? { excludeFlights: update.excludeFlights } : {}),
+    // A whole replacing list, like learnedPreferences: that is what lets the
+    // traveller take a choice back by restating the rest without it. Entries
+    // whose endpoints did not survive text() are dropped rather than stored
+    // with a blank side that could never match a hop.
+    ...(update.travelModeChoices
+      ? {
+          legModes: update.travelModeChoices
+            .flatMap((choice) => {
+              const from = text(choice.from);
+              const to = text(choice.to);
+              return from && to ? [{ from, to, mode: choice.mode }] : [];
+            })
+            .slice(0, 12),
+        }
+      : {}),
     ...(text(update.bookedStayName)
       ? {
           bookedStay: {
@@ -288,6 +316,7 @@ Choosing what to do:
 - knownSoFar.party, when present, breaks groupSize down into adults, children, infants and seniors and adds pets (who are not in groupSize). Never ask again for anything it already says; if the traveller changes the number of people, update groupSize and the breakdown no longer applies.
 - knownSoFar.preferences, when present, is the traveller's own list of trip preferences from the preferences editor. Respect it when you answer and never ask for something it already says; the planner receives it with the brief.
 - When the traveller states a lasting wish in chat ("no dietary requirements", "we like quiet places", "no early starts"), record it with update_trip_brief learnedPreferences: pass the whole updated list, keeping earlier entries in knownSoFar.learnedPreferences unless they changed. Never copy the traveller's own preferences into it.
+- When they say how they want to make a particular hop ("take the train to Sydney", "we would rather drive to Wollongong", "fly that leg instead"), record it with update_trip_brief travelModeChoices: pass the whole updated list, keeping earlier entries in knownSoFar.legModes unless they changed, and leaving one out when they take it back. Name the hop with the trip's own place names. Then replan. The planner may answer that the mode is not offered for that hop; do not promise it beforehand.
 - When they say they arrange flights themselves or flights should not be considered, set excludeFlights true. When they say their stay is already booked, pass bookedStayName (and bookedStayNote). Then replan.
 - Once knownSoFar.excludeFlights is true, never ask about, price or mention flights, and never tell them the budget is missing a flight fare. Once knownSoFar.bookedStay is set, never suggest, compare or ask about other stays.
 - For a question you can answer from the trip context or from general travel knowledge, just answer. Do not replan.

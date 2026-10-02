@@ -251,6 +251,17 @@ node apps/web/tests/e2e/<name>.e2e.mjs
 any server environment it needs; for example `agent-lab-revision` expects `USE_MOCK_TOOLS=true` and no
 model or provider keys.
 
+`apps/web/tests/e2e/leg-mode-choice.e2e.mjs` checks that a travel mode the traveller chose for one
+hop (`TripBrief.legModes`) is the mode the plan uses, or is reported as unavailable — never silently
+swapped. Four scenarios need no model (the choice arrives on the brief) and one does (the traveller
+says it in chat); without a model key that one reports `skip` rather than failing. Artifacts land in
+`output/e2e/leg-mode-choice/<run>/`.
+
+```bash
+pnpm --filter @trip/web dev          # in another terminal
+DATA_MODE=mock node apps/web/tests/e2e/leg-mode-choice.e2e.mjs
+```
+
 ```bash
 pnpm typecheck
 pnpm lint
