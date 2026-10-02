@@ -66,9 +66,9 @@ step.
 ## Agent Lab
 
 `/agent-lab` is a public, inspectable experiment surface separate from the saved workspace. It accepts
-only the registered Tokyo couple scenario, the registered strategies (`single-agent-baseline` and
-`multi-agent-no-revision` and `multi-agent-targeted-revision`), two scenarios (`tokyo-couple` and the
-same trip with a A$2,300 budget) and fixture data. `POST /api/agent-lab/runs` validates that closed request, calls `runAgentLab()` and
+only registered values: the strategies (`single-agent-baseline`, `multi-agent-no-revision` and
+`multi-agent-targeted-revision`), four scenarios (`tokyo-couple`, the same trip with a A$2,300 budget, a Paris
+family trip and a Tokyo and Kyoto trip) and fixture data. `POST /api/agent-lab/runs` validates that closed request, calls `runAgentLab()` and
 streams ordered NDJSON event envelopes before a final schema-versioned artifact.
 
 The baseline is an experiment strategy above the five travel specialists, not a sixth specialist.
@@ -98,6 +98,20 @@ two multi-agent strategies produce the same plan. The loop's decisions reach the
 through the workflow's `onDecision` hook. The envelope carries the existing `AgentProgressEvent` union, so the
 inspector can show graph stages, specialist lifecycle, objectives, constraints, tool summaries and
 outcomes without publishing prompts or raw chain-of-thought.
+
+Two benchmark scenarios extend the same registry. `paris-family-infeasible` asks for a Paris trip for four
+travellers on A$3,000, while the shared booking evidence puts the cheapest round-trip flights (A$2,480) and
+the cheapest two rooms for five nights (A$1,400) at A$3,880. The workflow finds the infeasible conflict in
+round 1 and stops with `infeasible_budget`, naming that minimum, so neither multi-agent strategy spends a
+revision round, and no strategy invents cheaper evidence or drops a section. Because no plan can fit, the
+scenario's rules replace the `budget` and `no-conflicts` checks with `evidence-floor` and
+`infeasibility-reported`, which measure whether a plan stays honest: the scripted single-agent baseline
+prices the trip at the minimum but never states the shortfall, so it fails the second.
+`tokyo-kyoto-multi-city` is seven nights in Tokyo and then Kyoto. Its rules add `hop-date`,
+`itinerary-by-city`, `stay-transition`, `trip-dates` and `total-consistent`, derived from the cities in the
+brief, which check that the train, the stays, each day's activities and the totals agree on one move.
+Every artifact records the scenario's fixture version and the evaluator version (`scenario-rules-v2`); the
+[Agent Note](../.agents/notes/implemented/architecture/2026-10-02-agent-lab-benchmark-scenarios.md) records the decision.
 
 ## LangGraph workflow
 

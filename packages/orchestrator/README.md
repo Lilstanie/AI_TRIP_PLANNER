@@ -30,7 +30,10 @@ Agent Lab is a separate deterministic experiment boundary. `single-agent-baselin
 fixture plan; `multi-agent-no-revision` runs the registered specialists through the real workflow for
 one round with the scenario's own preferences, and `multi-agent-targeted-revision` turns on the
 workflow's bounded revision loop. All three emit a versioned trace artifact through the same
-runner, evaluator and metrics, and none persists anything.
+runner, evaluator and metrics, and none persists anything. The registry holds four scenarios; a scenario
+whose evidence shows no plan can meet the budget declares `rules.infeasibleBudget`, and a scenario with
+several cities is checked for a consistent move between them (`evaluate.ts`). Every artifact records
+`AGENT_LAB_EVALUATOR_VERSION` and the scenario's fixture version.
 
 ## Contracts
 

@@ -1,4 +1,5 @@
 import type { AgentLabRunEvent } from "@trip/shared";
+import { stopReasonLabel } from "./comparison";
 
 /** Which part of the system produced an event, so the inspector can tell them apart. */
 export type EventKind = "run" | "graph" | "specialist" | "tool";
@@ -50,7 +51,13 @@ export function eventCopy(runEvent: AgentLabRunEvent): EventCopy {
     case "lab_conflict_detected":
       return {
         kind: "graph",
-        title: `Conflict check · round ${event.round}`,
+        title: `Conflict check · round ${event.round} · ${
+          event.infeasible
+            ? "infeasible budget"
+            : event.conflicts.length
+              ? "repairable"
+              : "none found"
+        }`,
         detail: event.summary,
         list: event.conflicts.length
           ? {
@@ -82,7 +89,7 @@ export function eventCopy(runEvent: AgentLabRunEvent): EventCopy {
     case "lab_loop_stopped":
       return {
         kind: "graph",
-        title: `Loop stopped · round ${event.round}`,
+        title: `Loop stopped · round ${event.round} · ${stopReasonLabel(event.reason)}`,
         detail: event.summary,
       };
     case "lab_plan_validated":

@@ -151,8 +151,9 @@ Contract: `AgentLabRunRequest`, `AgentLabRunEvent`, `AgentLabStreamFrame` and
 }
 ```
 
-`scenarioId` is `tokyo-couple` or `tokyo-couple-tight-budget` (the same trip and evidence with a
-A$2,300 budget, so the first plan overruns). `strategyId` is `single-agent-baseline`,
+`scenarioId` is `tokyo-couple`, `tokyo-couple-tight-budget` (the same trip and evidence with a
+A$2,300 budget, so the first plan overruns), `paris-family-infeasible` (four travellers, A$3,000, against a
+supported minimum of A$3,880, so no plan can fit) or `tokyo-kyoto-multi-city` (seven nights in two cities). `strategyId` is `single-agent-baseline`,
 `multi-agent-no-revision` or `multi-agent-targeted-revision`. The second runs the five registered
 specialists through the LangGraph workflow for one round, so its plan has `round: 1` and any conflicts
 stay unresolved. The third runs the established loop with at most three rounds: it routes each conflict
@@ -165,7 +166,11 @@ The request is strict: an unknown value or extra property returns HTTP 400 with
 `{ "type": "complete", "artifact": { ... } }`. The artifact contains the validated plan, ordered
 events, deterministic metrics and explicit fixture/evaluator versions. `metrics.checks` lists each
 named check (`id`, `label`, `passed`) measured against the scenario's rules; `budgetHeadroom` is
-negative when the plan is over budget. The comparison figures `rounds`, `toolCalls`, `fallbacks`,
+negative when the plan is over budget. A scenario whose evidence shows no plan can fit replaces `budget` and
+`no-conflicts` with `evidence-floor` (the estimate is not below the cheapest supported options) and
+`infeasibility-reported` (the plan names the supported minimum); a multi-city scenario adds `hop-date`,
+`itinerary-by-city`, `stay-transition`, `trip-dates` and `total-consistent`. `versions.evaluator` is
+`scenario-rules-v2` and `versions.fixture` names the scenario's fixture. The comparison figures `rounds`, `toolCalls`, `fallbacks`,
 `failedAgents` and `unresolvedConflicts` are counted from the trace and the plan; `latencyMs` is the
 run's wall time without display pacing (`durationMs` includes it) and, in fixture mode, measures
 orchestration overhead only. The artifact also records `groundedSections`, `duplicateStops`,
