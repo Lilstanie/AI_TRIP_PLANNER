@@ -213,7 +213,11 @@ describe("B transport reliability", () => {
     ]);
     const result = await transportAgent.invoke({ brief, context: ctx });
     expect(result.items[1]).not.toHaveProperty("estCost");
-    expect(result.conflictsWith.join(" ")).toContain("not a free trip");
+    // No conflict: the fare is missing because the provider publishes none, so
+    // no revision could produce one. The proposal counts it instead.
+    expect(result.conflictsWith.join(" ")).not.toContain("not a free trip");
+    expect(result.summary).toContain("1 leg(s) unpriced");
+    expect(result.assumptions.join(" ")).toContain("known estimate is a floor");
     expect(AgentProposal.safeParse(result).success).toBe(true);
   });
 

@@ -285,12 +285,11 @@ function layOutHop(
     const durationMin = Math.ceil(leg.durationMin);
     cursor += durationMin;
     const endTime = clock(cursor);
+    // An unpriced leg raises no conflict: the fare is missing because the
+    // provider does not publish it, so no revision can produce one. The
+    // proposal says how many legs are unpriced instead; see the Agent Note
+    // 2026-10-02-unpriced-leg-is-not-a-conflict.
     const unknownFare = fareUnavailable(leg);
-    if (unknownFare) {
-      conflicts.push(
-        `Transport fare unavailable on day ${day}: budget total is incomplete, not a free trip.`,
-      );
-    }
     return {
       kind: "transport",
       day,
@@ -465,15 +464,23 @@ function assembleTransportProposal(
     ];
   });
   const total = items.reduce((sum, item) => sum + (item.estCost ?? 0), 0);
+  // An item with no estCost is a leg no provider would price. Counted from the
+  // items rather than reported separately, so the two can never disagree.
+  const unpriced = items.filter((item) => item.estCost === undefined).length;
   return {
     agent: "transport",
-    summary: `${items.length} transport option(s) for ${origin} ↔ ${destinations.join(" → ")} · known estimate AUD ${total.toFixed(2)}${conflicts.length ? " (incomplete/unverified)" : ""}`,
+    summary: `${items.length} transport option(s) for ${origin} ↔ ${destinations.join(" → ")} · known estimate AUD ${total.toFixed(2)}${unpriced ? ` · ${unpriced} leg(s) unpriced` : ""}${conflicts.length ? " (incomplete/unverified)" : ""}`,
     items,
     assumptions: [
       "Route arrays are consecutive legs; calculator preserves adapter AUD amounts as group totals, matching the current integration. Per-person providers must normalize fares before returning them.",
       "Inter-city route dates follow their scheduled day. Unsupported driving-only estimates cannot verify public transport.",
       `Origin comes from the trip brief, else the long-term preference "transport.origin", else Sydney; current origin: ${origin}.`,
       "Injected booking and maps results are treated as estimates, not reservations or live availability.",
+      ...(unpriced
+        ? [
+            `${unpriced} leg(s) carry no fare because the provider publishes none, so the known estimate is a floor rather than the full cost.`,
+          ]
+        : []),
       ...(budgetRevision ? ["Budget revision selected the lowest returned flight fare."] : []),
       ...(allocation
         ? [
