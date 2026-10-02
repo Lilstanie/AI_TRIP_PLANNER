@@ -106,6 +106,14 @@ specialist 走确定性路径，工具返回 mock fixture；它们不读取或�
 `AgentLabRunArtifact` 约定校验所选文件（单一 schema 版本、连续的事件、有效的计划、不会倒退的时间），再按记录的偏移量回放记录下的事件。
 所存的指标按记录原样显示，不在页面中重新计算；原因见 [Agent Note](../.agents/notes/implemented/architecture/2026-10-02-agent-lab-artifact-replay.md)。
 
+故障实验室让五个已注册的故障走过同一套策略、轨迹、产物和视图。档案是服务端持有的 id，绑定到一个场景和一个策略；访客从不定义故障，
+`POST /api/agent-lab/runs` 会拒绝任何其他组合。故障是包在工作流已在运行的 specialist 外面的包装器，位于轨迹包装器之外，
+因此会经过同样的进度工具和 schema 校验。工作流本身只增加两个可选的事实（`agent_output_rejected`，只带字段路径，以及 `delegation_fallback`）
+和一个可注入的 `supervisorModel`。每个故障的结果就是观察到的工作流行为：航班查询超时会让 transport 分段变为 `unavailable`、不定价并留下冲突，
+运行以较少内容继续；住宿查询为空会终止运行，因为 accommodation 拒绝编造住宿；dining 的非法输出在提案 schema 处被拒绝并终止运行；
+不委派任何人的 supervisor 会回退到确定性分发；无法改善计划的修订保留最佳已知计划并以 `no_improvement` 停止。
+被故障终止的运行会结束于一个 `failed` 产物，它保留轨迹并指明失败的 specialist，并且像其他产物一样可下载、可回放。决策见 [Agent Note](../.agents/notes/implemented/architecture/2026-10-02-agent-lab-failure-lab.md)。
+
 <a id="langgraph-workflow"></a>
 
 ## LangGraph 工作流
@@ -147,7 +155,7 @@ Specialist 提案、行程需求和最终计划在图边界上分别通过 `Agen
   才保留这一轮；否则保留先前的提案并停止循环。
 - `OrchestratorOptions.onDecision` 以类型化的 `WorkflowDecision` 事实接收循环的决策：发现冲突（目标、原因、评分、
   是否不可行）、修订开始（目标和上一版结果）、修订评分（修订前、修订后、是否保留）以及循环停止（轮次和原因）。
-  消费者读取这些事实，而不是解析进度文本。该钩子绝不影响计划，抛错的消费者会被记录并忽略，聊天进度协议保持不变。
+  消费者读取这些事实，而不是解析进度文本。该钩子绝不影响计划，抛错的消费者会被记录并忽略，聊天进度协议保持不变。另有两个事实服务于故障实验室：specialist 的输出未通过提案 schema 时的 `agent_output_rejected`（只带字段路径，绝不含值），以及 supervisor 无法委派、工作流改为确定性分发或修订时的 `delegation_fallback`。`OrchestratorOptions.supervisorModel` 即使对注入的 specialist 也通过给定的模型进行委派。
 - 条件边重复执行检测和修订，最多 `maxRounds` 轮（默认 `3`）。
 - `build_plan` 汇总费用（`budget.ts`）；若某部分仍是修订请求的目标，则标记为 `needs_you`，
   否则标记为 `draft`，随后组装计划。

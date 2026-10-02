@@ -120,6 +120,20 @@ timing that never runs backwards) before replaying the recorded events at their 
 stored metrics are shown as recorded, not recomputed in the page; the
 [Agent Note](../.agents/notes/implemented/architecture/2026-10-02-agent-lab-artifact-replay.md) explains why.
 
+The Failure Lab runs five registered faults through the same strategy, trace, artifact and views. A
+profile is a server-owned id bound to one scenario and strategy; the visitor never defines a fault, and
+`POST /api/agent-lab/runs` rejects any other combination. Faults are wrappers around the specialists the
+workflow already runs, applied outside the trace wrapper, so they pass through the same progress tools
+and schema validation. The workflow itself gains only two optional facts (`agent_output_rejected`, with
+field paths, and `delegation_fallback`) and an injectable `supervisorModel`. What each fault does is what
+the workflow was observed to do. A flight search timeout leaves the transport section `unavailable`, unpriced,
+with a conflict, and the run carries on with less. An empty stay search stops the run, because accommodation
+refuses to invent a stay. An invalid dining output is rejected at the proposal schema and stops the run. A
+supervisor that delegates to nobody falls back to deterministic dispatch. A revision that cannot improve the
+plan leaves the best known plan and stops with `no_improvement`. A run a fault stops ends in a `failed`
+artifact that keeps its trace and names the failing specialist, and that artifact downloads and replays like
+any other. The [Agent Note](../.agents/notes/implemented/architecture/2026-10-02-agent-lab-failure-lab.md) records the decision.
+
 ## LangGraph workflow
 
 ```mermaid
@@ -164,7 +178,11 @@ Specialist proposals, the brief and the final plan are re-validated at the graph
   conflicts detected (targets, reasons, score, infeasibility), revision started (objective and
   previous outcome), revision scored (before, after, kept) and loop stopped (round and reason). A
   consumer reads them instead of parsing progress prose. The hook never affects the plan, a consumer
-  that throws is logged and ignored, and the chat progress protocol is unchanged.
+  that throws is logged and ignored, and the chat progress protocol is unchanged. Two more facts serve the
+  Failure Lab: `agent_output_rejected` when a specialist's output fails the proposal schema (field paths
+  only, never values) and `delegation_fallback` when the supervisor could not delegate and the workflow
+  dispatched or revised deterministically. `OrchestratorOptions.supervisorModel` delegates through a given
+  model even for injected specialists.
 - A conditional edge repeats detection and revision up to `maxRounds` (default `3`).
 - `build_plan` rolls up costs (`budget.ts`), marks each section `needs_you` when a revision request
   still targets it and `draft` otherwise, and assembles the plan.

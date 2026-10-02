@@ -1,8 +1,7 @@
-import { createFailedAgentLabArtifact, runAgentLab } from "@trip/orchestrator";
+import { isRegisteredAgentLabRun, runAgentLabToArtifact } from "@trip/orchestrator";
 import {
   AgentLabRunRequest,
   AgentLabStreamFrame,
-  type AgentLabRunEvent,
   type AgentLabStreamFrame as AgentLabStreamFrameValue,
 } from "@trip/shared";
 import { NextResponse } from "next/server";
@@ -10,15 +9,13 @@ import { NextResponse } from "next/server";
 export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
   const parsed = AgentLabRunRequest.safeParse(body);
-  if (!parsed.success) {
+  // A fault is a registered profile on the scenario and strategy it was built for, or nothing.
+  if (!parsed.success || !isRegisteredAgentLabRun(parsed.data)) {
     return NextResponse.json({ error: "Invalid Agent Lab request" }, { status: 400 });
   }
 
   const encoder = new TextEncoder();
   const abortController = new AbortController();
-  const runId = `agent-lab-${crypto.randomUUID()}`;
-  const startedAtMs = Date.now();
-  const events: AgentLabRunEvent[] = [];
   let cancelled = false;
   const stream = new ReadableStream({
     cancel() {
@@ -33,28 +30,16 @@ export async function POST(request: Request) {
       };
 
       try {
-        const artifact = await runAgentLab(parsed.data, {
+        // Ends in a completed artifact, or in a failed one that keeps the events recorded before the
+        // failure. A cancelled run throws instead, and writes nothing more.
+        const artifact = await runAgentLabToArtifact(parsed.data, {
           signal: abortController.signal,
-          runId,
-          startedAtMs,
-          onEvent: (event) => {
-            events.push(event);
-            send({ type: "event", event });
-          },
+          onEvent: (event) => send({ type: "event", event }),
         });
-        send({ type: "complete", artifact });
-      } catch (error) {
-        if (!abortController.signal.aborted) {
-          console.error("[agent-lab] run failed", error);
-          const message = "Unable to run this Agent Lab experiment.";
-          const artifact = createFailedAgentLabArtifact(parsed.data, {
-            runId,
-            startedAtMs,
-            events,
-            message,
-          });
-          send({ type: "error", error: message, artifact });
-        }
+        if (artifact.status === "completed") send({ type: "complete", artifact });
+        else send({ type: "error", error: artifact.failure.message, artifact });
+      } catch {
+        // Only a cancellation reaches here; the reader has gone, so there is nobody to tell.
       } finally {
         if (!cancelled) controller.close();
       }

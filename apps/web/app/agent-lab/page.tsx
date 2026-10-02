@@ -1,5 +1,9 @@
 import type { Metadata } from "next";
-import { agentLabScenarioSummaries, agentLabStrategySummaries } from "@trip/orchestrator";
+import {
+  agentLabFaultProfileSummaries,
+  agentLabScenarioSummaries,
+  agentLabStrategySummaries,
+} from "@trip/orchestrator";
 import { AgentLabClient } from "@/components/agent-lab/AgentLabClient";
 
 export const metadata: Metadata = {
@@ -10,6 +14,10 @@ export const metadata: Metadata = {
 
 export default function AgentLabPage() {
   return (
-    <AgentLabClient scenarios={agentLabScenarioSummaries} strategies={agentLabStrategySummaries} />
+    <AgentLabClient
+      scenarios={agentLabScenarioSummaries}
+      strategies={agentLabStrategySummaries}
+      faultProfiles={agentLabFaultProfileSummaries}
+    />
   );
 }
