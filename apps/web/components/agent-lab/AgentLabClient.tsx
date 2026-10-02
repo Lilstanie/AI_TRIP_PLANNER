@@ -25,10 +25,11 @@ import {
   type RunView,
 } from "@/lib/agent-lab/run-view";
 import { ComparisonPanel } from "./ComparisonPanel";
-import { DesignNotes } from "./DesignNotes";
+import { ArchitectureView } from "./ArchitectureView";
 import { DownloadArtifactButton } from "./DownloadArtifactButton";
 import { FailureLab } from "./FailureLab";
 import { MetricsList } from "./MetricsPanel";
+import { OutcomeBadge } from "./OutcomeBadge";
 import { PlanSections, PlanSummary } from "./PlanSections";
 import { RunTimeline } from "./RunTimeline";
 
@@ -53,7 +54,7 @@ interface AgentLabClientProps {
   liveEnabled: boolean;
 }
 
-type View = "inspect" | "compare" | "failures";
+type View = "inspect" | "compare" | "failures" | "architecture";
 
 /** One request the page makes, and the key its result is kept under. */
 interface Job {
@@ -558,7 +559,7 @@ export function AgentLabClient({
 
       <div className="agent-lab__views" role="group" aria-label="View">
         <button type="button" aria-pressed={view === "inspect"} onClick={() => setView("inspect")}>
-          Inspect one run
+          Run
         </button>
         <button
           type="button"
@@ -566,7 +567,7 @@ export function AgentLabClient({
           onClick={() => setView("compare")}
           disabled={!hasRun}
         >
-          Compare strategies
+          Compare
         </button>
         <button
           type="button"
@@ -575,9 +576,18 @@ export function AgentLabClient({
         >
           Failures
         </button>
+        <button
+          type="button"
+          aria-pressed={view === "architecture"}
+          onClick={() => setView("architecture")}
+        >
+          Architecture
+        </button>
       </div>
 
-      {view === "failures" ? (
+      {view === "architecture" ? (
+        <ArchitectureView />
+      ) : view === "failures" ? (
         <FailureLab
           profiles={faultProfiles}
           scenarioTitle={(id) => scenarios.find((scenario) => scenario.id === id)?.title ?? id}
@@ -613,6 +623,9 @@ export function AgentLabClient({
                 {modeLabel[selected.events[0]?.dataMode ?? dataMode]}
               </span>
             </div>
+            {(selected.artifact ?? selected.failure) && selected.state !== "running" ? (
+              <OutcomeBadge outcome={faultOutcome((selected.artifact ?? selected.failure)!)} />
+            ) : null}
             {selected.replay ? (
               <p className="agent-lab__replay-note" data-agent-lab-replay-note>
                 Replay of recorded run <code>{selected.replay.runId}</code> from{" "}
@@ -684,8 +697,6 @@ export function AgentLabClient({
           </section>
         </div>
       )}
-
-      <DesignNotes />
     </main>
   );
 }

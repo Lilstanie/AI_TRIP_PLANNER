@@ -160,7 +160,7 @@ const statusText = (page) => page.getByRole("status").innerText();
 const evidence = (page, id) =>
   card(page, id).evaluate((node) => {
     const text = (item) => item.textContent.replace(/\s+/g, " ").trim();
-    const outcome = node.querySelector("[data-agent-lab-fault-outcome]");
+    const outcome = node.querySelector("[data-agent-lab-outcome]");
     return {
       kind: outcome?.getAttribute("data-outcome") ?? null,
       label: outcome ? text(outcome) : null,
@@ -270,7 +270,7 @@ async function main() {
     );
   }
   check(
-    (await page.locator("[data-agent-lab-fault-outcome]").count()) === 0,
+    (await page.locator("[data-agent-lab-outcome]").count()) === 0,
     "live: no outcome is shown before a profile has run",
   );
 
@@ -284,7 +284,7 @@ async function main() {
     );
     await page.getByRole("button", { name: `Run fault profile: ${profile.title}` }).click();
     const body = await (await responsePromise).text();
-    await card(page, id).locator("[data-agent-lab-fault-outcome]").waitFor({ timeout: 90_000 });
+    await card(page, id).locator("[data-agent-lab-outcome]").waitFor({ timeout: 90_000 });
     writeFileSync(`${OUT}/${id}.ndjson`, body);
     const frames = parseFrames(body);
     const last = frames.at(-1);
@@ -514,7 +514,7 @@ async function main() {
     "run all: every profile ran once, one after another, in registry order",
   );
   check(
-    (await page.locator("[data-agent-lab-fault-outcome]").count()) === IDS.length,
+    (await page.locator("[data-agent-lab-outcome]").count()) === IDS.length,
     "run all: every card shows an outcome",
   );
   await page.getByRole("button", { name: "Run all fault profiles" }).click();
@@ -563,9 +563,8 @@ async function main() {
       `${id}: the card says it is a replay and names the recorded run`,
     );
     check(
-      (await card(rp, id)
-        .locator("[data-agent-lab-fault-outcome]")
-        .getAttribute("data-outcome")) === PROFILES[id].outcome,
+      (await card(rp, id).locator("[data-agent-lab-outcome]").getAttribute("data-outcome")) ===
+        PROFILES[id].outcome,
       `${id}: the replay ends in the same final status (${PROFILES[id].outcome})`,
     );
   }
@@ -583,7 +582,7 @@ async function main() {
     .getByRole("button", { name: `Run fault profile: ${PROFILES["provider-empty-result"].title}` })
     .click();
   await card(phone.page, "provider-empty-result")
-    .locator("[data-agent-lab-fault-outcome]")
+    .locator("[data-agent-lab-outcome]")
     .waitFor({ timeout: 90_000 });
   check(
     (await phone.page.evaluate(() => document.documentElement.scrollWidth)) === 390,

@@ -3,6 +3,11 @@
   padding: var(--space-5);
   background: var(--ambient), var(--page);
   color: var(--text);
+  /* The lab sits on tinted glass, where the workspace's secondary text and accent measure just under the
+     4.5:1 AA ratio in the light theme. The secondary text is strengthened here, for the lab only, by mixing
+     toward the primary text colour, so the ordinary workspace keeps its own values. */
+  --text-dim: color-mix(in srgb, var(--text) 74%, var(--page));
+  --text-mut: color-mix(in srgb, var(--text) 74%, var(--page));
 }
 
 .agent-lab__header,
@@ -134,7 +139,8 @@
   padding-inline: var(--space-5);
   border: 0;
   border-radius: var(--radius-pill);
-  background: var(--accent-fill);
+  /* A little darker than the workspace's accent fill, so the white label clears the 4.5:1 AA ratio. */
+  background: color-mix(in srgb, var(--accent-fill) 88%, black);
   color: var(--on-accent);
   font-weight: 700;
   touch-action: manipulation;
@@ -777,4 +783,114 @@
 
 .agent-lab__fault-running {
   color: var(--text-dim);
+}
+
+.agent-lab__architecture {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border-radius: var(--radius-xl);
+}
+
+.agent-lab__architecture > section {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
+}
+
+.agent-lab__architecture h3,
+.agent-lab__architecture h4,
+.agent-lab__architecture p {
+  margin: 0;
+}
+
+.agent-lab__architecture p {
+  max-width: 72ch;
+  color: var(--text-dim);
+}
+
+.agent-lab__flow,
+.agent-lab__capabilities {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+}
+
+.agent-lab__flow li,
+.agent-lab__capabilities li {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.agent-lab__flow li > span {
+  color: var(--text-mut);
+  font-size: var(--font-size-meta);
+}
+
+.agent-lab__capabilities dl,
+.agent-lab__outcomes {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+}
+
+.agent-lab__capabilities dl > div,
+.agent-lab__outcomes > div {
+  display: flex;
+  min-width: 0;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.agent-lab__capabilities dt,
+.agent-lab__outcomes dt {
+  flex: 0 0 auto;
+  color: var(--text-mut);
+  font-size: var(--font-size-meta);
+}
+
+.agent-lab__capabilities dd,
+.agent-lab__outcomes dd {
+  min-width: 0;
+  margin: 0;
+  text-align: end;
+  overflow-wrap: anywhere;
+}
+
+/* Motion is never needed to reach any evidence, so nothing animates when it is not wanted. */
+@media (prefers-reduced-motion: reduce) {
+  .agent-lab,
+  .agent-lab * {
+    transition: none !important;
+    animation: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* The outcome words read as a glossary: the word, then what it means beside it, not pushed to the far edge. */
+.agent-lab__outcomes > div {
+  display: grid;
+  grid-template-columns: minmax(7rem, 9rem) minmax(0, 1fr);
+  justify-content: start;
+}
+
+.agent-lab__outcomes dd {
+  text-align: start;
+}
+
+@media (max-width: 520px) {
+  .agent-lab__outcomes > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
 }

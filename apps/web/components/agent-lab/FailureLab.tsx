@@ -8,6 +8,7 @@ import {
 } from "@/lib/agent-lab/run-view";
 import { DownloadArtifactButton } from "./DownloadArtifactButton";
 import { MetricsList } from "./MetricsPanel";
+import { OutcomeBadge } from "./OutcomeBadge";
 import { RunTimeline } from "./RunTimeline";
 
 interface FailureLabProps {
@@ -85,9 +86,9 @@ export function FailureLab({
       </div>
       <p className="agent-lab__failures-intro">
         Each profile injects one registered, deterministic fault into the same workflow the other
-        views run, on its own scenario and strategy. You choose a profile and never define a fault.
-        The card shows where it was injected and whether the workflow carried on with less, kept a
-        partial result or stopped.
+        views run, on its own scenario and strategy, always with Fixture data. You choose a profile
+        and never define a fault. The card shows where it was injected and whether the workflow
+        carried on with less, kept a partial result or stopped.
       </p>
       <div className="agent-lab__fault-list">
         {profiles.map((profile) => {
@@ -150,13 +151,7 @@ export function FailureLab({
               ) : null}
               {outcome ? (
                 <div className="agent-lab__fault-result">
-                  <p
-                    className="agent-lab__outcome"
-                    data-agent-lab-fault-outcome
-                    data-outcome={outcome.kind}
-                  >
-                    {outcome.label}
-                  </p>
+                  <OutcomeBadge outcome={outcome} />
                   <p className="agent-lab__fault-headline" data-agent-lab-fault-headline>
                     {outcome.headline}
                   </p>

@@ -38,8 +38,8 @@
       "translationSha256": "cf667c5234b93624f696425e959c577a1d4dff5486ccbd84b7b61a0fe1e5b8e3"
     },
     "docs/development.md": {
-      "sourceSha256": "bda8f367d4cb02a5c06ee4e1a78dcfa174ec6a4112b087b3062b0eac04510dc1",
-      "translationSha256": "8221fe9afb110599288c7e08ad8cf75295dd1d784fee0b9cc0159fae299a9fd7"
+      "sourceSha256": "1bf2ca061c0eb5f5395b11a79d9c081c85707449599a50839c2d3e53c4b23d81",
+      "translationSha256": "87faf14e8a0cf49ed8c01e7af0e05e26e0817b6f886b566e93f0e2856f8fec1d"
     },
     "docs/i18n.md": {
       "sourceSha256": "006d1efdd6fda97bace63eb32c768c600cef538bd27cc50e0f685bf37f7ea56c",
@@ -50,16 +50,16 @@
       "translationSha256": "f407a13eba6f757f15c48f91d391b300db45203a43528747c6ba3d5808ac57ef"
     },
     "docs/roadmap.md": {
-      "sourceSha256": "5c4f6d06af16d19b02a18e7a707d89d4a98acc21c821cd613ad48ee5e80719ed",
-      "translationSha256": "7be8d8ff4da650b81175e936f21a9b7c2b6b07c67f0e648a2e6094d5f70f850a"
+      "sourceSha256": "728ee9df5261e2474980b0c0097d676b74b88049d2baa24a053659220c3f513e",
+      "translationSha256": "a9095e0c6cf685fe93665020ee4238fef4f3d11faba6906e5fdde35369693aaa"
     },
     "docs/team-workflow.md": {
       "sourceSha256": "c4e0ab62e2ef0cbd113a3daa0a9a4250b6a5dca7fb6695c14c5a4e7e73626442",
       "translationSha256": "fc3cdafe8a8a7f31f0d94d52f2666af1b2e1e2fcffc1b0f41714204d3755e5ab"
     },
     "docs/workspace-ui.md": {
-      "sourceSha256": "37669d1aa2d180f7cf2e910ebe72b91fa0323cfdab36b1dbe3cc9a089460969f",
-      "translationSha256": "7fe1c68d1618779d54050a5cb90c86d3607475ba97c6f373a64a6b032938d5ad"
+      "sourceSha256": "423e165fbcd683b89ad5afc5fcb6b0c0f48fd7335a23215e3d632b288d35328a",
+      "translationSha256": "ec2102844ca35636c3c28be8504f886bee58c0aab6e4cc18f489317beacafb75"
     }
   }
 }

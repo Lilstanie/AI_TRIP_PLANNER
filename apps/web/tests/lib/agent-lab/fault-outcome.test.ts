@@ -7,6 +7,8 @@
 // - the supervisor's fallback is not reported, or is reported as a failure of the run;
 // - a figure (events, failed tools, failed agents, unavailable sections) disagrees with the trace it is
 //   read from, or an unavailable one is shown as zero;
+// - a run that finished with conflicts left, or that stopped because the budget cannot be met, is worded
+//   "Completed without a failure", so the Run and Compare views read as if nothing was wrong;
 // - the outcome depends on anything but the artifact, so a live run, a downloaded file and a replay of
 //   it could read differently.
 import { describe, expect, it } from "vitest";
@@ -213,6 +215,24 @@ describe("faultOutcome", () => {
       ),
     );
     expect(outcome.facts.join(" ")).toMatch(/schema boundary: items, assumptions/);
+  });
+
+  it("does not call a run with conflicts left completed without a failure", () => {
+    const outcome = faultOutcome(
+      completed([started], { unresolved: 2, stopReason: "round_limit" }),
+    );
+    expect(outcome.kind).toBe("completed");
+    expect(outcome.headline).toBe("Completed with 2 unresolved conflicts");
+    expect(outcome.facts.join(" ")).toMatch(/2 conflicts remain unresolved/);
+  });
+
+  it("says plainly that an infeasible budget stopped the run at once", () => {
+    const outcome = faultOutcome(
+      completed([started], { unresolved: 1, stopReason: "infeasible_budget" }),
+    );
+    expect(outcome.kind).toBe("completed");
+    expect(outcome.headline).toMatch(/budget cannot be met/i);
+    expect(outcome.figures.stopReason).toBe("infeasible_budget");
   });
 
   it("falls back to a generic failure when no capability is named", () => {

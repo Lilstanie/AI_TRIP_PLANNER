@@ -253,7 +253,7 @@ node apps/web/tests/e2e/<name>.e2e.mjs
   (default) or `mock`. `plan-quality` plans three fixed briefs and checks budget, unresolved conflicts,
   itinerary source, repeated and generic stops; live model output varies, so compare several runs.
   Each run writes the NDJSON streams, plans and `summary.json` to `output/e2e/<name>/<run>/`.
-- **Browser scripts** (every other script, including the seven `agent-lab-*` ones) drive Playwright at
+- **Browser scripts** (every other script, including the eight `agent-lab-*` ones) drive Playwright at
   desktop and phone widths and write screenshots, and for Agent Lab the raw NDJSON and artifacts, to
   `output/playwright/<name>/`. `CHANNEL=chrome` and `PLAYWRIGHT=<path>` select the browser and the
   Playwright package; `BASE_URL` points at a server other than `http://localhost:3000`.
@@ -261,7 +261,9 @@ node apps/web/tests/e2e/<name>.e2e.mjs
 `output/e2e/` and `output/playwright/` are Git-ignored. Each script's header lists the failure inventory it was written from and
 any server environment it needs. Fixture runs are isolated from the deployment's keys and data-mode default, so the
 Agent Lab scripts pass whatever the environment holds; `agent-lab-live-gate` also uses two servers with live enabled
-(see its header).
+(see its header). `agent-lab-release` walks the whole public flow and writes the release evidence: raw NDJSON,
+versioned artifacts, a comparison summary, a report and a screenshot matrix (light and dark, desktop and narrow,
+reduced motion).
 
 `apps/web/tests/e2e/leg-mode-choice.e2e.mjs` checks that a travel mode the traveller chose for one
 hop (`TripBrief.legModes`) is the mode the plan uses, or is reported as unavailable — never silently
