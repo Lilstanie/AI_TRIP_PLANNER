@@ -302,17 +302,29 @@ async function run(browser, { width, height, tag }) {
     /what targeted revision adds/i.test(body) && /measures specialization only/i.test(body),
     `${tag}: page says which comparison measures specialization and which measures what targeted revision adds`,
   );
+  // The explanation lives in the Architecture view; read it there, then return to the comparison.
+  await page
+    .getByRole("group", { name: "View" })
+    .getByRole("button", { name: "Architecture", exact: true })
+    .click();
   check(
-    /not a target/i.test(body),
-    `${tag}: page does not present five specialists as a permanent number`,
+    /not a fixed number/i.test(await page.locator("[data-agent-lab-architecture]").innerText()),
+    `${tag}: Architecture does not present five specialists as a permanent number`,
   );
+  await page
+    .getByRole("group", { name: "View" })
+    .getByRole("button", { name: "Compare", exact: true })
+    .click();
   check(
     !/\b(winner|better|best|worse)\b/i.test(await page.locator(".agent-lab__compare").innerText()),
     `${tag}: the comparison does not rank the strategies`,
   );
 
   // The inspector shows the repair in words.
-  await page.getByRole("button", { name: "Inspect one run" }).click();
+  await page
+    .getByRole("group", { name: "View" })
+    .getByRole("button", { name: "Run", exact: true })
+    .click();
   await page.getByLabel("Strategy").selectOption("multi-agent-targeted-revision");
   const trace = await page.locator("[data-agent-lab-event]").allInnerTexts();
   const has = (pattern) => trace.some((row) => pattern.test(row));
@@ -347,7 +359,10 @@ async function run(browser, { width, height, tag }) {
       trace.some((row) => /transport completed · round 2/i.test(row)),
     `${tag}: the revised specialist's rows say round 2`,
   );
-  await page.getByRole("button", { name: "Compare strategies" }).click();
+  await page
+    .getByRole("group", { name: "View" })
+    .getByRole("button", { name: "Compare", exact: true })
+    .click();
 
   check(
     (await workspaceStorage()) === storageBefore,

@@ -321,7 +321,10 @@ async function main() {
     "paris: the inspector marks the conflict check as infeasible, the stop by its reason and shows no revision",
   );
   await page.screenshot({ path: `${OUT}/desktop-paris-compare.png`, fullPage: true });
-  await page.getByRole("button", { name: "Inspect one run" }).click();
+  await page
+    .getByRole("group", { name: "View" })
+    .getByRole("button", { name: "Run", exact: true })
+    .click();
   check(
     (await page
       .locator('[data-agent-lab-check="infeasibility-reported"][data-passed="false"]')

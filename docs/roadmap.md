@@ -31,7 +31,8 @@ Status as of 2026-10-01 on `main`; see [workspace UI](workspace-ui.md) for curre
   infeasible Paris budget and a Tokyo and Kyoto trip whose move between cities must stay consistent, and a
   Failure Lab runs five registered faults (provider timeout, empty result, invalid output, supervisor failure,
   stalled revision) through the same views. Live runs exist only where the deployment enables them, within
-  concurrency and hourly limits, and fixture runs can never reach a provider or model.
+  concurrency and hourly limits, and fixture runs can never reach a provider or model. The public lab is complete: four
+  views (Run, Compare, Failures, Architecture) with release evidence from one end-to-end script.
 
 **Open**
 

@@ -1,6 +1,8 @@
 import type { AgentLabCompletedRunArtifact, AgentLabRunEvent } from "@trip/shared";
 import { buildComparisonRows, NO_RESULT } from "@/lib/agent-lab/comparison";
+import { faultOutcome } from "@/lib/agent-lab/fault-outcome";
 import { DownloadArtifactButton } from "./DownloadArtifactButton";
+import { OutcomeBadge } from "./OutcomeBadge";
 import { PlanSections, PlanSummary } from "./PlanSections";
 import { RunTimeline } from "./RunTimeline";
 
@@ -77,6 +79,7 @@ export function ComparisonPanel({
         {sides.map((side) => (
           <article key={side.label} aria-label={side.label} data-agent-lab-compare-side>
             <h3>{side.label}</h3>
+            {side.artifact ? <OutcomeBadge outcome={faultOutcome(side.artifact)} /> : null}
             {side.artifact ? (
               <DownloadArtifactButton
                 artifact={side.artifact}

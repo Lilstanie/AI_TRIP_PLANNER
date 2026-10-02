@@ -147,5 +147,19 @@ export function faultOutcome(artifact: AgentLabRunArtifact): FaultOutcome {
       facts,
     );
   }
+  if (artifact.metrics.stopReason === "infeasible_budget") {
+    return outcome(
+      "completed",
+      "The budget cannot be met, so the run stopped without revising",
+      facts,
+    );
+  }
+  if (unresolved > 0) {
+    return outcome(
+      "completed",
+      `Completed with ${plural(unresolved, "unresolved conflict")}`,
+      facts,
+    );
+  }
   return outcome("completed", "Completed without a failure", facts);
 }

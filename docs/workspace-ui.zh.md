@@ -203,6 +203,14 @@ Specialist 事件会展示受限的目标、约束和结果。修订运行还会
 拒绝的情形包括：不是 JSON，没有或不支持的 schema 版本，事件缺失、重复或乱序，事件时间倒退或来自另一次运行，事件数量不一致或计划无效，
 记录的是没有保留事件的失败运行，文件超过 5 MB，或回放时长会超过十分钟。契约未定义的字段会被丢弃，绝不显示。
 
+四个视图共用一个导航组，分别命名为 Run、Compare、Failures 和 Architecture，当前视图会标为按下状态。Compare 在出现运行之前不可用，其余视图始终可用，
+每个视图都可以用键盘进入和离开（Tab，然后 Enter 或 Space）。**Run** 展示单次运行的时间线、计划和指标。**Compare** 并排展示各策略。**Failures** 是故障实验室。
+**Architecture** 解释这个规划器是如何构建的以及原因：LangGraph 负责工作流状态、顺序、冲突检测、修订路由和停止；LangChain agent 是它内部有边界的推理者；
+五个能力边界，各有目标、工具、输出和失败方式；为什么预算、冲突检测、状态转换、地图和天气是节点或工具而不是 agent；为什么五不是固定数字；以及如何阅读结果。
+每次运行在 Run、Compare 和 Failures 中都用同一个结果词（Completed、Degraded、Partial result 或 Failed）说明它如何结束，且只从其产物读取。
+带着未解决冲突结束的运行会在标题句中说明，预算不可行时会说明预算无法满足。实验室在浅色和深色、从桌面宽度到 320 px、以及减少动态效果（此时没有任何动画）下，
+都保持每个控件和结果可达；它的次要文字仅在实验室内加强，使文字满足 4.5:1 的 AA 对比度。决策见 [Agent Note](../.agents/notes/implemented/feature/2026-10-02-agent-lab-public-release.md)。
+
 **Failures** 视图列出五个已注册的故障档案。卡片说明故障注入在哪里、在哪个场景和策略上运行，以及预期结果。**Run profile** 运行单个档案，
 **Run all fault profiles** 依次运行五个档案，Cancel run 会停止这个序列。运行结束后，卡片显示结果用词（Completed、Degraded、Partial result 或 Failed）、
 标题句、其背后的事实、从产物统计出的六个数字（事件、失败的工具调用、失败的 specialist、不可用的分段、未解决冲突和停止原因）以及完整轨迹，已完成的运行还有运行指标。

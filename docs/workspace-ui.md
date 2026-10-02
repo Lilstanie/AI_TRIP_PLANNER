@@ -512,6 +512,20 @@ failed run, and fixture data stays available. The trace, the metrics, the compar
 or Live data. Measured usage shows the tokens the provider returned and that cost is not reported; usage that was not
 measured reads Unavailable, never zero.
 
+Four views share one navigation group, named Run, Compare, Failures and Architecture, with the current one marked
+pressed. Compare is unavailable until a run exists; the others are always available, and every view is reached and left
+by keyboard (Tab, then Enter or Space). **Run** shows one run's timeline, plan and metrics. **Compare** shows the
+strategies side by side. **Failures** is the Failure Lab. **Architecture** explains how the planner is built and why:
+LangGraph owns the workflow state, the order, conflict detection, revision routing and stopping; LangChain agents are
+bounded reasoners inside it; five capability boundaries, each with its goal, tools, output and way of failing; why
+budgeting, conflict detection, state transitions, maps and weather are nodes or tools and not agents; why five is not
+a fixed number; and how to read the results. Every run says how it ended with the same outcome word (Completed,
+Degraded, Partial result or Failed) in Run, Compare and Failures, read from its artifact alone. A run that finished with
+conflicts left says so in its headline, and an infeasible budget says the budget cannot be met. The lab keeps every
+control and result reachable in light and dark, from desktop down to 320 px, and with reduced motion, where nothing
+animates; its secondary text is strengthened for the lab only so text meets the 4.5:1 AA ratio. The
+[Agent Note](../.agents/notes/implemented/feature/2026-10-02-agent-lab-public-release.md) records the decision.
+
 The **Failures** view lists the five registered fault profiles. A card says where its fault is injected,
 which scenario and strategy it runs on and what to expect. **Run profile** runs it, and **Run all fault
 profiles** runs the five one after another; Cancel run stops the sequence. When a run ends, the card shows an
