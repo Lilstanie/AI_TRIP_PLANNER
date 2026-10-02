@@ -1,6 +1,6 @@
 ---
 name: add-provider
-description: Use when adding, replacing or changing an external data provider in AI_TRIP_PLANNER — maps, places, hotels, flights, weather, routes or any paid API reached through packages/tools — so it keeps mock mode, typed failures, truthful provenance, AUD amounts and quota limits intact.
+description: Add, replace or change an external data provider (maps, places, hotels, flights, weather, routes or any paid API reached through packages/tools) in AI_TRIP_PLANNER while keeping mock mode, typed failures, truthful provenance, AUD amounts and quota limits intact. Use when adding, replacing or changing a provider or its adapter.
 ---
 
 # Add or change an external data provider

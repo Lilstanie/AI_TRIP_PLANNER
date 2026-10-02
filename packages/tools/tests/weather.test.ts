@@ -98,6 +98,9 @@ describe("weather provider", () => {
   });
 
   it("surfaces provider failures instead of turning them into a forecast", async () => {
+    // The query's target date must still be ahead, or validation rejects it before the provider is called.
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-21T00:00:00.000Z"));
     vi.stubEnv("USE_MOCK_TOOLS", "false");
     vi.stubEnv("WEATHER_API_KEY", "weather-test-key");
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 503 }));

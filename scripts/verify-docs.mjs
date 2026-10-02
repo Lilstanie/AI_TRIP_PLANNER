@@ -3,12 +3,16 @@
 // - Agent Notes follow .agents/notes/README.md: path {lifecycle}/{class}/yyyy-mm-dd-topic.md, a
 //   header whose Status matches the lifecycle, and the required sections per lifecycle. Frozen
 //   lifecycles (rejected, archived) are checked for path and header only.
-// - Every skill folder has a SKILL.md whose frontmatter names the folder and has a description.
+// - Every skill follows the SKILL.md format rules in scripts/skill-rules.mjs: a SKILL.md whose name matches
+//   its folder, a description that says what and when, supporting files only in references/, scripts/ and
+//   assets/, and references that do not link to other references. Recommendations (500 lines, the trigger
+//   budget, unknown fields) are printed as advisories and do not fail the check.
 // - Relative Markdown links resolve in README.md, AGENTS.md, docs/, .agents/ and package READMEs, except in frozen
 //   history (.agents/archive/, dated session logs, rejected and archived notes), which cannot be repaired.
 // Usage: node scripts/verify-docs.mjs
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
+import { checkSkills } from "./skill-rules.mjs";
 
 const ROOT = ".agents/notes";
 const LIFECYCLES = ["proposed", "implemented", "rejected", "archived"];
@@ -73,21 +77,9 @@ for (const path of walk(ROOT)) {
   }
 }
 
-const SKILLS = ".agents/skills";
-for (const name of readdirSync(SKILLS)) {
-  const dir = join(SKILLS, name);
-  if (!statSync(dir).isDirectory()) continue;
-  const skill = join(dir, "SKILL.md");
-  if (!existsSync(skill)) {
-    errors.push(`${dir}: missing SKILL.md`);
-    continue;
-  }
-  const match = readFileSync(skill, "utf8").match(/^---\n([\s\S]*?)\n---\n/);
-  const field = (key) => match?.[1].match(new RegExp(`^${key}:\\s*(.+)$`, "m"))?.[1].trim();
-  if (!match) errors.push(`${skill}: must start with YAML frontmatter`);
-  else if (field("name") !== name) errors.push(`${skill}: frontmatter name must be "${name}"`);
-  else if (!field("description")) errors.push(`${skill}: frontmatter needs a description`);
-}
+const skills = checkSkills(".agents/skills");
+errors.push(...skills.errors);
+for (const warning of skills.warnings) console.warn(`Skill advisory: ${warning}`);
 
 const PACKAGE_READMES = [
   "apps/web",

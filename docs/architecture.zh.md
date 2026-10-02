@@ -6,6 +6,7 @@
 
 AI Trip Planner 是一个由工作区包支撑的 Next.js 可部署单元。确定性的 LangGraph 工作流
 负责规划控制流程，LangChain agent（智能体）在其中执行各自角色的推理。
+请求、agent、数据提供方、持久化和工作区流程的交互式图表见[架构流程图索引](architecture-diagrams.zh.md)。
 
 <a id="change-entry-points"></a>
 
@@ -65,6 +66,46 @@ supervisor 只选择某个节点需要哪些 specialist 工具。控制路径、
 4. 没有确认步骤：旅行者通过聊天说明或编辑行程来修改计划，产品不会要求他们批准某个检查点。
    地图查询和行程编辑预览使用 `apps/web` 中的 Google 路由，绝不会重新运行规划器。
 
+<a id="agent-lab"></a>
+
+## Agent Lab
+
+`/agent-lab` 是独立于已保存工作区的公开、可检查实验界面。它只接受已注册的取值：策略
+（`single-agent-baseline`、`multi-agent-no-revision` 和 `multi-agent-targeted-revision`）、四个场景
+（`tokyo-couple`、预算为 A$2,300 的同一趟旅行、一趟巴黎家庭行程和一趟东京与京都行程）以及 fixture 数据。`POST /api/agent-lab/runs` 校验这一封闭请求，
+调用 `runAgentLab()`，先流式返回有序的 NDJSON 事件信封，最后返回带 schema 版本的产物。
+
+该基线是位于五个旅行 specialist 之上的实验策略，不是第六个 specialist。其确定性 fixture
+生成 `TripPlan`，再次按共享约定校验，并记录确定性指标。指标会逐项列出具名检查，例如预算、分段数量、最早活动开始时间和标注为素食的餐食，
+并以场景自身的规则为衡量依据；还包含对比所需的数据：规划轮数、工具调用数、回退分段数、失败 agent 数、
+未解决冲突数和延迟。延迟不含让流式输出便于观看的节奏延迟。
+
+`multi-agent-no-revision` 用五个已注册 specialist 运行真实的 LangGraph 工作流和规划板，恰好一轮
+（`maxRounds: 1`），因此图会汇总出计划并报告冲突，但不会进入 `revise_conflicts`。所以该对比衡量的是
+专业化，而不是定向修订。每个 specialist 的工具调用在轨迹中归属于它；specialist 只通过只读记忆读取场景自身的
+偏好；图的进度事件经与基线相同的信封发布。单 agent 基线加载一次证据后回放脚本化计划，所以工具调用数
+比较的是各自轨迹所记录的内容，而不是等量的工作。Fixture 运行依赖没有模型或提供方密钥的环境：此时
+specialist 走确定性路径，工具返回 mock fixture；它们不读取或修改工作区存储。
+
+`multi-agent-targeted-revision` 是打开了既有有界循环（最多三轮）的同一工作流，因此复用该工作流的冲突检测、
+把冲突交给被点名 specialist 的定向路由、最佳已知方案评分和预算不可行时的停止。在 `tokyo-couple-tight-budget`
+上，第一轮与无修订策略完全相同（同一份简报、证据和 specialist），会发现一个可行的预算超支，只有 transport 被修订；
+在 `tokyo-couple` 上没有冲突，两个多 agent 策略产出相同的计划。循环的决策通过工作流的 `onDecision` 钩子以类型化事实的形式交给实验室。信封承载现有的
+`AgentProgressEvent` 联合类型，因此检查器可以展示图阶段、specialist 生命周期、目标、约束、工具摘要和结果，
+而不公开提示词或原始思维链。
+
+两个基准场景扩展同一个注册表。`paris-family-infeasible` 要求为四位旅行者规划预算 A$3,000 的巴黎之行，而共享的预订证据把
+最便宜的往返机票（A$2,480）和五晚最便宜的两间客房（A$1,400）定在 A$3,880。工作流在第 1 轮就发现这个不可行的冲突，并以
+`infeasible_budget` 停止、指出这一最低成本，因此两个多 agent 策略都不会再花修订轮次，也没有任何策略编造更便宜的证据或删去分段。
+由于没有计划放得下，该场景的规则用 `evidence-floor` 和 `infeasibility-reported` 取代 `budget` 与 `no-conflicts` 检查，衡量计划是否保持诚实：
+脚本化的单 agent 基线按最低成本定价，却没有说明缺口，所以未通过第二项。`tokyo-kyoto-multi-city` 是先东京后京都的七晚行程，其规则增加了
+`hop-date`、`itinerary-by-city`、`stay-transition`、`trip-dates` 和 `total-consistent`，它们按简报中的城市推导，检查火车、住宿、每天的活动和总额是否围绕同一次移动保持一致。
+每个产物都记录场景的 fixture 版本和评估器版本（`scenario-rules-v2`）；决策见 [Agent Note](../.agents/notes/implemented/architecture/2026-10-02-agent-lab-benchmark-scenarios.md)。
+
+产物的下载与回放都发生在浏览器中，不涉及任何端点或服务端存储。页面保存它收到的产物，`apps/web/lib/agent-lab/replay.ts` 则按共享的
+`AgentLabRunArtifact` 约定校验所选文件（单一 schema 版本、连续的事件、有效的计划、不会倒退的时间），再按记录的偏移量回放记录下的事件。
+所存的指标按记录原样显示，不在页面中重新计算；原因见 [Agent Note](../.agents/notes/implemented/architecture/2026-10-02-agent-lab-artifact-replay.md)。
+
 <a id="langgraph-workflow"></a>
 
 ## LangGraph 工作流
@@ -104,6 +145,9 @@ Specialist 提案、行程需求和最终计划在图边界上分别通过 `Agen
   以及预算削减时的 `allocation`（上次费用减去 `targetSaving`）。
   只有 `planScore`（以 AUD 计的超支额，加上每个其他冲突对应的预算十分之一）改善时，
   才保留这一轮；否则保留先前的提案并停止循环。
+- `OrchestratorOptions.onDecision` 以类型化的 `WorkflowDecision` 事实接收循环的决策：发现冲突（目标、原因、评分、
+  是否不可行）、修订开始（目标和上一版结果）、修订评分（修订前、修订后、是否保留）以及循环停止（轮次和原因）。
+  消费者读取这些事实，而不是解析进度文本。该钩子绝不影响计划，抛错的消费者会被记录并忽略，聊天进度协议保持不变。
 - 条件边重复执行检测和修订，最多 `maxRounds` 轮（默认 `3`）。
 - `build_plan` 汇总费用（`budget.ts`）；若某部分仍是修订请求的目标，则标记为 `needs_you`，
   否则标记为 `draft`，随后组装计划。
@@ -202,6 +246,7 @@ specialist，supervisor 也会运行它。任一字段设置后，协调器不�
 - `plan.ts`：`TripPlan`、`TripSection` 和 `TripProposal`。
 - `chat.ts`：`ChatRequest`、`ChatResponse`、进度事件、`ChatAskUser` 结构化提问帧，
   以及 `Attachment` 和它的限制。
+- `agent-lab.ts`：封闭的实验请求、生命周期事件信封、指标和带版本的运行产物。
 - `ports.ts`：`ToolGateway`、`MapsPort`、`BookingPort`、`WeatherPort` 和 `MemoryStore`。
 
 Agent 通过 `AgentContext` 接收 `ctx.tools`（`ToolGateway`）和 `ctx.mem`（`MemoryStore`）。

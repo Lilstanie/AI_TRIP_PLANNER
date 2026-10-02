@@ -10,6 +10,21 @@ AI_TRIP_PLANNER is a pnpm/Turbo monorepo for a single-user AI-assisted travel wo
 `CLAUDE.md` is a symlink to this file and `.claude/skills` is a symlink to `.agents/skills`; edit the
 real files so every AI tool reads the same rules.
 
+## Agent skills
+
+### Issue tracker
+
+Issues and specs are tracked in GitHub Issues for `Lilstanie/AI_TRIP_PLANNER`. See
+`docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Triage uses the default five canonical labels. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Domain docs use a single-context layout. See `docs/agents/domain.md`.
+
 ## Before editing
 
 1. If present, read `.agents/local/PROJECT.md` and `.agents/local/CURRENT_STATE.md` for local session

@@ -1,21 +1,14 @@
-import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { clerkMiddleware } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { authEnabled } from "./lib/auth/config";
-
-const publicRoutes = createRouteMatcher([
-  "/sign-in(.*)",
-  "/sign-up(.*)",
-  "/__clerk(.*)",
-  "/api(.*)",
-  "/trpc(.*)",
-]);
+import { isPublicRoute } from "./lib/auth/public-routes";
 
 // API routes keep their own authorization and response contracts. Only page navigation redirects.
 // Without Clerk keys the app remains a local workspace.
 export default authEnabled
   ? clerkMiddleware(async (auth, request) => {
       const { userId } = await auth();
-      if (!userId && !publicRoutes(request)) {
+      if (!userId && !isPublicRoute(request)) {
         return NextResponse.redirect(new URL("/sign-in", request.url));
       }
       if (

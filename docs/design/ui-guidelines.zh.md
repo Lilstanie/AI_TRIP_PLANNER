@@ -81,7 +81,7 @@
 - 玻璃上的文字和图标，在它们可能覆盖的最复杂背景上仍须满足 WCAG AA。不满足时，提高填充不透明度，不要添加文字阴影。
 - 不支持 `backdrop-filter`、启用 `prefers-reduced-transparency: reduce` 或 `prefers-contrast: more` 时，玻璃回退到 `--surface`；在 forced-colors 模式下回退到系统颜色。
 
-实现方法见 [better-ui 玻璃参考](../../.agents/skills/better-ui/glass.md)。
+实现方法见 [better-ui 玻璃参考](../../.agents/skills/better-ui/references/glass.md)。
 
 <a id="motion"></a>
 

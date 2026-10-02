@@ -23,6 +23,7 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm test
+      - run: pnpm test:scripts
       - run: pnpm build
 
   protected-files:
@@ -36,3 +37,5 @@ jobs:
       - run: node scripts/verify-protected-files.mjs origin/${{ github.base_ref }}
 
       - run: node scripts/verify-docs.mjs
+
+      - run: node .agents/skills/translate-docs/scripts/check-pairs.mjs

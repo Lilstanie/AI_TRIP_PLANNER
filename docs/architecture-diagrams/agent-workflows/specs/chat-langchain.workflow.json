@@ -1,0 +1,298 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Chat 请求与 LangChain 使用位置",
+    "output": "chat-langchain.html",
+    "quality_profile": "showcase",
+    "locale": "zh-CN",
+    "views": [
+      {
+        "id": "conversation",
+        "label": "LangChain 对话流程",
+        "focus": [
+          "traveller",
+          "workspace",
+          "route",
+          "tripChat",
+          "coordinator",
+          "briefTool",
+          "questionTool",
+          "planTool",
+          "workflow",
+          "stream"
+        ],
+        "note": "createAgent 通过三个 schema 工具理解消息、追问或启动规划。"
+      },
+      {
+        "id": "plan",
+        "label": "进入规划",
+        "focus": ["coordinator", "planTool", "workflow", "stream"],
+        "note": "replan_trip 将完整 brief 交给 LangGraph，由图完成计划。"
+      },
+      {
+        "id": "offline",
+        "label": "无模型回退",
+        "focus": ["tripChat", "offline", "workflow", "stream"],
+        "note": "未配置 provider key 时使用规则提取和确定性规划路径。"
+      }
+    ]
+  },
+  "lanes": [
+    {
+      "id": "entry",
+      "label": "旅客与 API"
+    },
+    {
+      "id": "conversation",
+      "label": "对话协调器"
+    },
+    {
+      "id": "planning",
+      "label": "规划与回传"
+    },
+    {
+      "id": "offlineLane",
+      "label": "确定性回退"
+    }
+  ],
+  "phases": [
+    {
+      "id": "intake",
+      "label": "请求入口",
+      "fromCol": 0,
+      "toCol": 1
+    },
+    {
+      "id": "conversation",
+      "label": "对话与工具调用",
+      "fromCol": 2,
+      "toCol": 3,
+      "variant": "emphasis"
+    },
+    {
+      "id": "planning",
+      "label": "计划与回传",
+      "fromCol": 4,
+      "toCol": 5
+    }
+  ],
+  "mainPath": [
+    "traveller",
+    "workspace",
+    "route",
+    "tripChat",
+    "coordinator",
+    "planTool",
+    "workflow",
+    "stream"
+  ],
+  "nodes": [
+    {
+      "id": "traveller",
+      "lane": "entry",
+      "col": 0,
+      "type": "external",
+      "label": "旅客"
+    },
+    {
+      "id": "workspace",
+      "lane": "entry",
+      "col": 1,
+      "type": "frontend",
+      "label": "工作区",
+      "width": 172
+    },
+    {
+      "id": "route",
+      "lane": "entry",
+      "col": 2,
+      "type": "backend",
+      "label": "POST /api/chat",
+      "width": 172
+    },
+    {
+      "id": "tripChat",
+      "lane": "conversation",
+      "col": 2,
+      "type": "backend",
+      "label": "runTripChat",
+      "width": 172
+    },
+    {
+      "id": "coordinator",
+      "lane": "conversation",
+      "col": 3,
+      "type": "backend",
+      "label": "createAgent(trip_conversation)",
+      "width": 210
+    },
+    {
+      "id": "briefTool",
+      "lane": "conversation",
+      "col": 4,
+      "type": "backend",
+      "label": "update_trip_brief",
+      "width": 172
+    },
+    {
+      "id": "questionTool",
+      "lane": "entry",
+      "col": 4,
+      "type": "security",
+      "label": "ask_user_question",
+      "width": 190
+    },
+    {
+      "id": "planTool",
+      "lane": "planning",
+      "col": 3,
+      "type": "backend",
+      "label": "replan_trip",
+      "width": 172
+    },
+    {
+      "id": "offline",
+      "lane": "offlineLane",
+      "col": 3,
+      "type": "backend",
+      "label": "离线解析器",
+      "width": 190
+    },
+    {
+      "id": "workflow",
+      "lane": "planning",
+      "col": 4,
+      "type": "backend",
+      "label": "LangGraph 工作流",
+      "width": 190
+    },
+    {
+      "id": "stream",
+      "lane": "entry",
+      "col": 5,
+      "type": "messagebus",
+      "label": "NDJSON 数据帧",
+      "width": 190
+    }
+  ],
+  "edges": [
+    {
+      "id": "person-workspace",
+      "from": "traveller",
+      "to": "workspace",
+      "role": "main"
+    },
+    {
+      "id": "workspace-route",
+      "from": "workspace",
+      "to": "route",
+      "label": "ChatRequest",
+      "role": "main"
+    },
+    {
+      "id": "route-tripChat",
+      "from": "route",
+      "to": "tripChat",
+      "label": "通过校验的请求",
+      "role": "main"
+    },
+    {
+      "id": "tripChat-agent",
+      "from": "tripChat",
+      "to": "coordinator",
+      "label": "模型可用",
+      "role": "main"
+    },
+    {
+      "id": "tripChat-offline",
+      "from": "tripChat",
+      "to": "offline",
+      "label": "未配置模型密钥",
+      "role": "error",
+      "variant": "dashed"
+    },
+    {
+      "id": "agent-brief",
+      "from": "coordinator",
+      "to": "briefTool",
+      "label": "记录行程事实",
+      "role": "branch"
+    },
+    {
+      "id": "brief-agent",
+      "from": "briefTool",
+      "to": "coordinator",
+      "label": "合并后的已知事实",
+      "role": "return"
+    },
+    {
+      "id": "agent-question",
+      "from": "coordinator",
+      "to": "questionTool",
+      "label": "需要补充信息",
+      "role": "branch"
+    },
+    {
+      "id": "agent-plan",
+      "from": "coordinator",
+      "to": "planTool",
+      "label": "规划请求或影响计划的更改",
+      "role": "main"
+    },
+    {
+      "id": "plan-workflow",
+      "from": "planTool",
+      "to": "workflow",
+      "label": "TripBrief",
+      "role": "main"
+    },
+    {
+      "id": "offline-workflow",
+      "from": "offline",
+      "to": "workflow",
+      "label": "规则提取出的行程需求",
+      "role": "branch"
+    },
+    {
+      "id": "question-stream",
+      "from": "questionTool",
+      "to": "stream",
+      "label": "ask_user / needs_info 数据帧",
+      "role": "return"
+    },
+    {
+      "id": "workflow-stream",
+      "from": "workflow",
+      "to": "stream",
+      "label": "已校验的计划和回复",
+      "role": "return"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "LangChain 的用途",
+      "items": [
+        "createAgent 用于对话协调器和监督器的工具调用循环",
+        "模型在带类型的工具中选择；规划状态流转由 LangGraph 控制"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "追问与规划",
+      "items": [
+        "信息不全时通过 needs_info 或 ask_user 结束本轮，旅客在下一条消息回答",
+        "只有行程需求通过校验后，replan_trip 才调用规划流程"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "模型回退",
+      "items": [
+        "未配置模型密钥时使用本地行程提取和确定性回复路径",
+        "单独的机票价格查询直接访问 booking，不运行行程规划"
+      ]
+    }
+  ]
+}

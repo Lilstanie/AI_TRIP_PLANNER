@@ -460,6 +460,57 @@ no LLM calls.
 Restrict the browser key by HTTP referrer and the server key by API. Map loading never delays the
 first render; without a browser key the map shows a fallback and the itinerary stays usable.
 
+## Agent Lab
+
+`/agent-lab` is a public engineering-demo route, including when Clerk protects the main workspace.
+It does not share the workspace shell or read and write its browser storage. The toolbar exposes one
+registered scenario, a strategy choice and the fixed Fixture data mode; Run experiment becomes Cancel
+run while the NDJSON response is active. Compare all strategies runs the single-agent baseline, the
+five-specialist no-revision strategy and the targeted-revision strategy one after the other and opens
+the comparison view. The scenario list also offers the tight-budget Tokyo trip, where the first plan
+overruns and only transport is revised; a Paris family trip whose budget no plan can meet; and a seven-night
+Tokyo and Kyoto trip whose move between cities every strategy must keep consistent.
+
+Each timeline event carries a text label for the part of the system that produced it: Run, Graph stage,
+Specialist or Tool. Specialist events show the bounded objective, constraints and outcome. Revision
+runs add Graph stage events for the conflict check (the conflicts and their targets), the revision
+(objective and previous outcome), its score before and after, and the reason the loop stopped.
+
+The comparison view shows a table of measured figures (latency, rounds, tool calls, fallbacks, failed
+agents, budget, unresolved conflicts, checks, grounded sections, repeated and generic stops,
+multi-city consistency, stopping reason, conflict outcome and token and model cost), the three plans and the three
+traces side by side. Token and model cost reads "Unavailable", never 0, because fixture runs make no
+model calls. Every figure
+is read from that run's artifact; a strategy that has not finished shows "No completed run". The page never
+ranks the strategies. Conflict outcome tells a strategy that never checked, one that found no conflict, one that
+repaired its conflicts, one that left some unresolved and one that stopped because the budget is infeasible
+apart; the inspector marks each conflict check as repairable, infeasible budget or none found, and each stop
+with its reason. It states that single agent against no revision measures specialization and
+no revision against targeted revision measures what targeted revision adds,
+that fixture mode shows how evidence is measured and not model quality, and why budgeting, conflict
+checks, state transitions, maps and weather are graph nodes or tools instead of agents.
+
+Every completed run offers **Download artifact**, in the inspector beside the metrics and under each
+strategy in the comparison. The file is the versioned run artifact exactly as the stream completed with
+it, and the status region announces its name. **Replay artifact** opens a file chooser. The page
+validates the chosen file in the browser and plays it back through the same timeline, plan and metrics
+views, with the recorded scenario and strategy selected, each event appearing at its recorded time and
+a note naming the recorded run, so a replay is never mistaken for a live run. **Stop replay** ends it
+with the events seen so far and no plan. Replay makes no request, so it works offline, and it does not
+touch saved chats, trips or preferences. A file is refused, with the reason stated and any result
+already on the page left in place, when it is not JSON, has no or an unsupported schema version, has
+missing, duplicated or out-of-order events, has events timed backwards or from another run, has a
+mismatched event count or an invalid plan, records a failed run (not yet replayable), is larger than
+5 MB or would play for more than ten minutes. Fields the contract does not define are dropped, never
+shown.
+
+The responsive three-panel inspector shows the ordered run timeline, the validated plan and the run
+metrics. The metrics panel shows the real budget state (within or over, with the amount) and every
+named deterministic check as Passed or Failed. If a run fails after streaming starts, the page keeps
+the events recorded so far and reports the event the run stopped after. Status and errors use live regions, controls have programmatic labels and keyboard focus,
+and the panels stack without horizontal overflow on phones. The result appears only after the shared
+`TripPlan` contract validates it. No external provider, model key or sign-in is required.
+
 ## Accounts and settings
 
 With Clerk configured, page navigation requires sign-in ([login gate Agent Note](../.agents/notes/implemented/architecture/2026-09-28-workspace-login-gate.md)).

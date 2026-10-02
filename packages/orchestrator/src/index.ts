@@ -28,3 +28,12 @@ export {
   type SupervisorDispatchOptions,
   type SupervisorRevisionOptions,
 } from "./supervisor";
+export {
+  agentLabScenarioSummaries,
+  agentLabStrategySummaries,
+  createFailedAgentLabArtifact,
+  runAgentLab,
+  type RunAgentLabOptions,
+} from "./agent-lab";
+
+export type { StopReason, WorkflowDecision } from "./decisions";

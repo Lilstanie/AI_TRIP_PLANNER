@@ -1,0 +1,237 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "共享契约从消息到 TripPlan",
+    "output": "contracts-flow.html",
+    "quality_profile": "showcase",
+    "locale": "zh-CN",
+    "views": [
+      {
+        "id": "chat",
+        "label": "对话请求契约",
+        "focus": ["traveller", "chatRequest", "apiRoute", "tripBrief"],
+        "note": "浏览器与 API 使用共享 ChatRequest、ChatResponse 约定字段和 NDJSON frame。"
+      },
+      {
+        "id": "planning",
+        "label": "规划契约",
+        "focus": ["tripBrief", "specialists", "proposal", "plan"],
+        "note": "专家返回 AgentProposal；图边界校验后再汇总成 TripPlan。"
+      },
+      {
+        "id": "ports",
+        "label": "依赖注入 Ports",
+        "focus": ["specialists", "proposal", "ports", "plan"],
+        "note": "ToolGateway 与 MemoryStore 从 context 注入；shared 不包含 I/O。"
+      }
+    ]
+  },
+  "lanes": [
+    {
+      "id": "entry",
+      "label": "请求入口与回复"
+    },
+    {
+      "id": "orchestration",
+      "label": "编排与专家"
+    },
+    {
+      "id": "contracts",
+      "label": "共享契约与输出"
+    },
+    {
+      "id": "output",
+      "label": "计划输出"
+    }
+  ],
+  "phases": [
+    {
+      "id": "request",
+      "label": "消息与 Brief",
+      "fromCol": 0,
+      "toCol": 2
+    },
+    {
+      "id": "proposals",
+      "label": "专家提案校验",
+      "fromCol": 3,
+      "toCol": 4,
+      "variant": "emphasis"
+    },
+    {
+      "id": "plan",
+      "label": "计划输出",
+      "fromCol": 5,
+      "toCol": 5
+    }
+  ],
+  "mainPath": [
+    "traveller",
+    "chatRequest",
+    "apiRoute",
+    "tripBrief",
+    "specialists",
+    "proposal",
+    "plan",
+    "response"
+  ],
+  "nodes": [
+    {
+      "id": "traveller",
+      "lane": "entry",
+      "col": 0,
+      "type": "external",
+      "label": "旅客消息"
+    },
+    {
+      "id": "chatRequest",
+      "lane": "entry",
+      "col": 1,
+      "type": "frontend",
+      "label": "ChatRequest",
+      "width": 190
+    },
+    {
+      "id": "apiRoute",
+      "lane": "entry",
+      "col": 2,
+      "type": "backend",
+      "label": "POST /api/chat",
+      "width": 184
+    },
+    {
+      "id": "tripBrief",
+      "lane": "orchestration",
+      "col": 2,
+      "type": "backend",
+      "label": "TripBrief",
+      "width": 184
+    },
+    {
+      "id": "specialists",
+      "lane": "orchestration",
+      "col": 3,
+      "type": "backend",
+      "label": "Specialist.invoke",
+      "width": 184
+    },
+    {
+      "id": "proposal",
+      "lane": "contracts",
+      "col": 4,
+      "type": "backend",
+      "label": "AgentProposal",
+      "width": 190
+    },
+    {
+      "id": "ports",
+      "lane": "entry",
+      "col": 3,
+      "type": "backend",
+      "label": "带类型的 Ports",
+      "width": 190
+    },
+    {
+      "id": "plan",
+      "lane": "output",
+      "col": 4,
+      "type": "backend",
+      "label": "TripPlan",
+      "width": 184
+    },
+    {
+      "id": "response",
+      "lane": "entry",
+      "col": 5,
+      "type": "messagebus",
+      "label": "ChatResponse",
+      "width": 190
+    }
+  ],
+  "edges": [
+    {
+      "id": "traveller-request",
+      "from": "traveller",
+      "to": "chatRequest",
+      "label": "通过校验的请求结构",
+      "role": "main"
+    },
+    {
+      "id": "request-api",
+      "from": "chatRequest",
+      "to": "apiRoute",
+      "label": "POST JSON 请求",
+      "role": "main"
+    },
+    {
+      "id": "api-brief",
+      "from": "apiRoute",
+      "to": "tripBrief",
+      "label": "提取消息事实并合并已知信息",
+      "role": "main"
+    },
+    {
+      "id": "brief-specialists",
+      "from": "tripBrief",
+      "to": "specialists",
+      "label": "SpecialistRequest",
+      "role": "main"
+    },
+    {
+      "id": "specialists-proposal",
+      "from": "specialists",
+      "to": "proposal",
+      "label": "AgentProposalSchema 校验",
+      "role": "main"
+    },
+    {
+      "id": "proposal-plan",
+      "from": "proposal",
+      "to": "plan",
+      "label": "冲突检查后汇总",
+      "role": "main"
+    },
+    {
+      "id": "plan-response",
+      "from": "plan",
+      "to": "response",
+      "label": "TripPlanSchema.parse",
+      "role": "return"
+    },
+    {
+      "id": "ports-agents",
+      "from": "ports",
+      "to": "specialists",
+      "label": "通过 context 注入依赖",
+      "role": "branch",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "共享契约边界",
+      "items": [
+        "packages/shared 存放 Zod schemas、类型和 ports，不包含 provider I/O",
+        "每个 package 都使用相同的 request、proposal 和 plan 类型"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "边界校验",
+      "items": [
+        "ChatRequest 在 API 入口校验",
+        "行程需求、每份 proposal 和最终 TripPlan 都在系统边界解析校验"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "注入式依赖",
+      "items": [
+        "Agents 使用 ctx.tools 和 ctx.mem，不直接导入 service 单例",
+        "ToolGateway 和 MemoryStore 可替换为 fake 或 adapter"
+      ]
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 ---
 name: session-log
-description: Use at the end of any AI-assisted coding session in AI_TRIP_PLANNER, or when asked to write or check a session log, to add one new file under .agents/session-logs/ that follows the team template and limits.
+description: Add one session log file under .agents/session-logs/ that follows the team template and limits in AI_TRIP_PLANNER. Use at the end of any AI-assisted coding session, or when asked to write or check a session log.
 ---
 
 # Write a session log

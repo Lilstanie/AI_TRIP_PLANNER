@@ -5,12 +5,13 @@
 [English](api.md) | 中文
 
 Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/places/photo` 是
-`GET` 处理器，其余五个是 `POST` 处理器。请求体使用 Zod 验证，规划输出按照
+`GET` 处理器；其余路由使用下表所示的方法。请求体使用 Zod 验证，规划输出按照
 `packages/shared/src/` 中的共享约定验证。
 
 | 路径                                                        | 用途                                                   |
 | ----------------------------------------------------------- | ------------------------------------------------------ |
 | [`/api/chat`](#post-apichat)                                | 提取行程需求更新或规划提交的需求，并以流式方式报告进度 |
+| [`/api/agent-lab/runs`](#post-apiagent-labruns)             | 运行已注册、可检查的 fixture 实验                      |
 | [`/api/data-mode`](#get-apidata-mode)                       | 返回默认数据模式，以及是否配置了实时提供方密钥         |
 | [`/api/places/search`](#post-apiplacessearch)               | Google Places 文本搜索                                 |
 | [`/api/places/details`](#post-apiplacesdetails)             | 按地点 ID 获取 Google 地点详情                         |
@@ -133,6 +134,45 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 
 可选的 `x-trip-data-mode` 请求头值为 `mock` 或 `live`，仅为本次请求选择 fixture（测试前置数据）
 或实时提供方；其他值或未提供请求头时，使用部署默认值。
+
+<a id="post-apiagent-labruns"></a>
+
+## `POST /api/agent-lab/runs`
+
+约定：`packages/shared/src/agent-lab.ts` 中的 `AgentLabRunRequest`、`AgentLabRunEvent`、
+`AgentLabStreamFrame` 和 `AgentLabRunArtifact`。
+
+```json
+{
+  "scenarioId": "tokyo-couple",
+  "strategyId": "single-agent-baseline",
+  "dataMode": "fixture"
+}
+```
+
+`scenarioId` 为 `tokyo-couple`、`tokyo-couple-tight-budget`（同一趟旅行、同一份证据，预算为 A$2,300，
+因此第一版计划会超支）、`paris-family-infeasible`（四位旅行者、A$3,000，而受支持的最低成本为 A$3,880，
+因此没有任何计划放得下）或 `tokyo-kyoto-multi-city`（两座城市共七晚）。`strategyId` 为 `single-agent-baseline`、`multi-agent-no-revision` 或
+`multi-agent-targeted-revision`。第二个通过 LangGraph 工作流用五个已注册 specialist 运行一轮，因此其计划为
+`round: 1`，所有冲突都保持未解决。第三个运行既有的循环，最多三轮：把每个冲突交给它所点名的 specialist，
+修订未改善计划时保留已知最佳提案，预算不可行时提前停止。`multi-agent-with-revision` 未注册，会被拒绝。
+
+请求采用严格校验：未知值或额外属性会返回 HTTP 400 和
+`{ "error": "Invalid Agent Lab request" }`。有效请求以 NDJSON 流返回帧。事件帧格式为
+`{ "type": "event", "event": { ... } }`，最后一帧格式为
+`{ "type": "complete", "artifact": { ... } }`。产物包含经过校验的计划、有序事件、
+确定性指标，以及明确的 fixture／评估器版本。`metrics.checks` 逐项列出按场景规则衡量的具名检查
+（`id`、`label`、`passed`）；计划超出预算时 `budgetHeadroom` 为负数。若场景的证据表明没有任何计划放得下，则用 `evidence-floor`（估算不低于受支持的最便宜选项）和 `infeasibility-reported`（计划指出受支持的最低成本）取代 `budget` 和 `no-conflicts`；多城市场景再增加 `hop-date`、`itinerary-by-city`、`stay-transition`、`trip-dates` 和 `total-consistent`。`versions.evaluator` 为 `scenario-rules-v2`，`versions.fixture` 指明场景的 fixture。对比数据 `rounds`、`toolCalls`、`fallbacks`、`failedAgents` 和
+`unresolvedConflicts` 由轨迹和计划统计得出；`latencyMs` 是不含显示节奏延迟的运行耗时（`durationMs` 含该延迟），
+在 fixture 模式下仅衡量编排开销。产物还记录 `groundedSections`、`duplicateStops`、`genericStops`、
+`multiCityConsistent`（单城市旅行为 `null`）、`stopReason`（没有循环的策略为 `null`）和 `usage`；fixture 运行不调用
+模型，所以 `usage` 为 `{ "status": "unavailable" }`：缺失的用量绝不会被当作 0。除 `durationMs` 和 `latencyMs` 外，
+每个指标都能仅凭最终计划和轨迹重新计算，不需要模型来评判。修订运行会增加轨迹事件 `lab_conflict_detected`、
+`lab_revision_started`、`lab_revision_scored` 和 `lab_loop_stopped`。客户端取消请求会中止运行，不发送完成帧。
+运行内部失败时，会发送 `error` 帧；其中包含不敏感的消息，以及记录失败前事件的结构化
+`failed` 产物。
+
+Agent Lab 只使用 fixture：应在没有模型或提供方密钥的情况下运行，未配置时不调用外部服务，也不持久化聊天、行程或实验结果。
 
 <a id="get-apidata-mode"></a>
 

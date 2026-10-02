@@ -92,10 +92,10 @@ Every variable is described in `.env.example`. The important ones:
 
 Accounts are optional and configured only in `.env.local` (these names are not in `.env.example`):
 
-| Setting                                                          | Purpose                                                                                                                                                                  |
-| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`          | Clerk sign-in. Without the publishable key the workspace is single-user and local, and the account routes answer 503. `clerk init` also writes the sign-in route variables. |
-| `DATABASE_URL`                                                   | Neon Postgres (pooled connection string) for settings, trips and chats of signed-in users. Use a development branch locally; production gets it from the owner's integration. |
+| Setting                                                 | Purpose                                                                                                                                                                       |
+| ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY` | Clerk sign-in. Without the publishable key the workspace is single-user and local, and the account routes answer 503. `clerk init` also writes the sign-in route variables.   |
+| `DATABASE_URL`                                          | Neon Postgres (pooled connection string) for settings, trips and chats of signed-in users. Use a development branch locally; production gets it from the owner's integration. |
 
 Create the tables with `pnpm --filter @trip/web db:migrate` (it loads `.env.local`); after changing
 `apps/web/lib/db/schema.ts`, generate a migration with `pnpm --filter @trip/web db:generate` and
@@ -176,11 +176,19 @@ navigation groups; each skill retains its own discoverable entrypoint and loads 
 | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Interface design and effects        | [better-layout](../.agents/skills/better-layout/SKILL.md), [better-ui](../.agents/skills/better-ui/SKILL.md), [better-accessibility](../.agents/skills/better-accessibility/SKILL.md), [better-writing](../.agents/skills/better-writing/SKILL.md), [libraries-dev](../.agents/skills/libraries-dev/SKILL.md) |
 | Feature and provider implementation | [end-to-end-feature-wiring](../.agents/skills/end-to-end-feature-wiring/SKILL.md), [api-scout](../.agents/skills/api-scout/SKILL.md), [add-provider](../.agents/skills/add-provider/SKILL.md), [agent-experience](../.agents/skills/agent-experience/SKILL.md)                                                |
-| Requirements and debugging          | [grill-with-docs](../.agents/skills/grill-with-docs/SKILL.md), [diagnosing-bugs](../.agents/skills/diagnosing-bugs/SKILL.md)                                                                                                                                                                                  |
 | Review and verification             | [code-review](../.agents/skills/code-review/SKILL.md), [find-simplifications](../.agents/skills/find-simplifications/SKILL.md), [break](../.agents/skills/break/SKILL.md), [ui-verification](../.agents/skills/ui-verification/SKILL.md), [pre-push-checks](../.agents/skills/pre-push-checks/SKILL.md)       |
 | Documentation and decisions         | [prose-standard](../.agents/skills/prose-standard/SKILL.md), [translate-docs](../.agents/skills/translate-docs/SKILL.md), [agent-notes](../.agents/skills/agent-notes/SKILL.md), [session-log](../.agents/skills/session-log/SKILL.md)                                                                        |
 
-Use [grill-with-docs](../.agents/skills/grill-with-docs/SKILL.md) to resolve material requirement and terminology questions before implementation; it records durable decisions using the existing docs and Agent Notes. Use [diagnosing-bugs](../.agents/skills/diagnosing-bugs/SKILL.md) for unclear defects and regressions, following the project's E2E-first validation policy. Both skills are adapted from [mattpocock/skills](https://github.com/mattpocock/skills); the [integration decision](../.agents/notes/implemented/process/2026-09-26-matt-pocock-skills.md) records the source and project-specific changes.
+`pnpm verify:docs` also checks every skill with `scripts/skill-rules.mjs`, in two tiers. These rules fail the
+check: a lower-case kebab-case `name` that matches the folder (at most 64 characters); a `description` of
+at most 1,024 characters that says what the skill does and when to use it ("Use when …"); a `compatibility`
+field of at most 500 characters; supporting files only under `references/`, `scripts/` and `assets/` (plus a
+licence file); and references that do not link to other references or into another skill's references. They
+come from the [Agent Skills specification](https://agentskills.io/specification) and this project's layout.
+These are advisories, printed without failing the check: a `SKILL.md` over 500 lines (the specification
+recommends staying under it), name, description and `when_to_use` over 1,536 characters together (the
+trigger budget Claude Code shows per skill), and frontmatter fields the script does not know.
+`pnpm test:scripts` runs the rule tests, and CI runs it after `pnpm test`.
 
 The Libraries.dev skill supports `libraries reveal`, `libraries review` and `libraries apply`.
 It selects concrete effects within the [workspace design contract](design/ui-guidelines.md), while
@@ -205,7 +213,7 @@ counterpart in the same task.
 ## Verification
 
 For documentation changes, also run the local pairing check after reviewing and recording the
-changed pairs. This is separate from `pnpm verify:docs` and is not currently a CI check:
+changed pairs. This is separate from `pnpm verify:docs`; CI runs it for pull requests:
 
 ```bash
 node .agents/skills/translate-docs/scripts/check-pairs.mjs
@@ -219,14 +227,29 @@ Record the command and the steps or fixtures needed to reproduce it. Never write
 writing implementation code. If a system must be tested in isolation, first enumerate all the ways it
 could fail, then write the code and derive the isolated checks from that list.
 
-This describes the preferred approach for new work; the commands below document the checks currently
-available in the repository. CI runs the existing Vitest suite through `pnpm test`; no checked-in E2E
-runner is currently configured.
+This describes the preferred approach for new work. CI runs the Vitest suites through `pnpm test` and
+the repository script tests (`scripts/*.test.mjs`) through `pnpm test:scripts`. It does not run the E2E
+scripts, so run the relevant one yourself before pushing.
 
-`apps/web/tests/e2e/plan-quality.e2e.mjs` plans three fixed briefs through `POST /api/chat` against a
-running dev server (`DATA_MODE=live` by default, or `mock`) and checks budget, unresolved conflicts,
-itinerary source, repeated and generic stops. Each run writes the NDJSON streams, plans and
-`summary.json` to `output/e2e/plan-quality/<run>/`. Live model output varies, so compare several runs.
+The E2E scripts live in `apps/web/tests/e2e/` and run by hand against a running dev server:
+
+```bash
+pnpm --filter @trip/web dev            # in another terminal
+node apps/web/tests/e2e/<name>.e2e.mjs
+```
+
+- **API scripts** (`plan-quality`, `conversation-scope`) post to `/api/chat` with `DATA_MODE=live`
+  (default) or `mock`. `plan-quality` plans three fixed briefs and checks budget, unresolved conflicts,
+  itinerary source, repeated and generic stops; live model output varies, so compare several runs.
+  Each run writes the NDJSON streams, plans and `summary.json` to `output/e2e/<name>/<run>/`.
+- **Browser scripts** (every other script, including the five `agent-lab-*` ones) drive Playwright at
+  desktop and phone widths and write screenshots, and for Agent Lab the raw NDJSON and artifacts, to
+  `output/playwright/<name>/`. `CHANNEL=chrome` and `PLAYWRIGHT=<path>` select the browser and the
+  Playwright package; `BASE_URL` points at a server other than `http://localhost:3000`.
+
+`output/e2e/` and `output/playwright/` are Git-ignored. Each script's header lists the failure inventory it was written from and
+any server environment it needs; for example `agent-lab-revision` expects `USE_MOCK_TOOLS=true` and no
+model or provider keys.
 
 `apps/web/tests/e2e/leg-mode-choice.e2e.mjs` checks that a travel mode the traveller chose for one
 hop (`TripBrief.legModes`) is the mode the plan uses, or is reported as unavailable — never silently
@@ -243,10 +266,11 @@ DATA_MODE=mock node apps/web/tests/e2e/leg-mode-choice.e2e.mjs
 pnpm typecheck
 pnpm lint
 pnpm test
+pnpm test:scripts
 pnpm build
 ```
 
-CI (`.github/workflows/ci.yml`) runs the same four commands on Node 22 for pull requests and pushes
+CI (`.github/workflows/ci.yml`) runs these five commands on Node 22 for pull requests and pushes
 to `main`.
 
 Run focused packages with `pnpm --filter @trip/agents test`, `pnpm --filter @trip/orchestrator test`

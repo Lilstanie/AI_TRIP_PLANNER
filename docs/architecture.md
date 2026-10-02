@@ -4,6 +4,8 @@ English | [中文](architecture.zh.md)
 
 AI Trip Planner is one Next.js deployable backed by workspace packages. A deterministic LangGraph
 workflow owns the planning control flow; LangChain agents do role-specific reasoning inside it.
+For interactive views of the request, agent, provider, persistence and workspace flows, see the
+[architecture diagram index](architecture-diagrams.md).
 
 ## Change entry points
 
@@ -61,6 +63,63 @@ step.
    itinerary, and nothing in the product asks them to approve a checkpoint. Map lookups and itinerary
    edit previews use the Google routes in `apps/web` and never re-run the planner.
 
+## Agent Lab
+
+`/agent-lab` is a public, inspectable experiment surface separate from the saved workspace. It accepts
+only registered values: the strategies (`single-agent-baseline`, `multi-agent-no-revision` and
+`multi-agent-targeted-revision`), four scenarios (`tokyo-couple`, the same trip with a A$2,300 budget, a Paris
+family trip and a Tokyo and Kyoto trip) and fixture data. `POST /api/agent-lab/runs` validates that closed request, calls `runAgentLab()` and
+streams ordered NDJSON event envelopes before a final schema-versioned artifact.
+
+The baseline is an experiment strategy above the five travel specialists, not a sixth specialist.
+Its deterministic fixture produces a `TripPlan`, re-validates it against the shared contract and
+records deterministic metrics. The metrics list each named check, such as budget, section count,
+earliest activity start and vegetarian-marked meals, measured against the scenario's own rules, plus
+the figures a comparison needs: planning rounds, tool calls, fallback sections, failed agents,
+unresolved conflicts and latency. Latency excludes the pacing delay that keeps the stream watchable.
+
+`multi-agent-no-revision` runs the real LangGraph workflow and planning board with the five registered
+specialists for exactly one round (`maxRounds: 1`), so the graph assembles a plan and reports its
+conflicts but never reaches `revise_conflicts`. The comparison therefore measures specialization, not
+targeted revision. Each specialist's tool calls are attributed to it in the trace, the specialists
+read only the scenario's own preferences through a read-only memory, and the graph's progress events
+are published through the same envelope as the baseline's. The single-agent baseline replays a
+scripted plan after loading its evidence once, so tool-call counts compare what each trace recorded,
+not equal workloads. Fixture runs rely on an environment with no model or provider keys, where the
+specialists take their deterministic path and the tools return mock fixtures; they do not read or
+mutate workspace storage.
+
+`multi-agent-targeted-revision` is the same workflow with the established bounded loop (at most three
+rounds) switched on, so it reuses the workflow's conflict detection, targeted routing to the specialists
+a conflict names, best-so-far scoring and infeasible-budget stop. On `tokyo-couple-tight-budget` the
+first round is identical to the no-revision strategy's (same brief, evidence and specialists), finds a
+feasible budget overrun, and transport alone is revised; on `tokyo-couple` there is no conflict and the
+two multi-agent strategies produce the same plan. The loop's decisions reach the lab as typed facts
+through the workflow's `onDecision` hook. The envelope carries the existing `AgentProgressEvent` union, so the
+inspector can show graph stages, specialist lifecycle, objectives, constraints, tool summaries and
+outcomes without publishing prompts or raw chain-of-thought.
+
+Two benchmark scenarios extend the same registry. `paris-family-infeasible` asks for a Paris trip for four
+travellers on A$3,000, while the shared booking evidence puts the cheapest round-trip flights (A$2,480) and
+the cheapest two rooms for five nights (A$1,400) at A$3,880. The workflow finds the infeasible conflict in
+round 1 and stops with `infeasible_budget`, naming that minimum, so neither multi-agent strategy spends a
+revision round, and no strategy invents cheaper evidence or drops a section. Because no plan can fit, the
+scenario's rules replace the `budget` and `no-conflicts` checks with `evidence-floor` and
+`infeasibility-reported`, which measure whether a plan stays honest: the scripted single-agent baseline
+prices the trip at the minimum but never states the shortfall, so it fails the second.
+`tokyo-kyoto-multi-city` is seven nights in Tokyo and then Kyoto. Its rules add `hop-date`,
+`itinerary-by-city`, `stay-transition`, `trip-dates` and `total-consistent`, derived from the cities in the
+brief, which check that the train, the stays, each day's activities and the totals agree on one move.
+Every artifact records the scenario's fixture version and the evaluator version (`scenario-rules-v2`); the
+[Agent Note](../.agents/notes/implemented/architecture/2026-10-02-agent-lab-benchmark-scenarios.md) records the decision.
+
+Artifact download and replay happen in the browser; no endpoint or server storage is involved. The
+page saves the artifact it received, and `apps/web/lib/agent-lab/replay.ts` validates a chosen file
+against the shared `AgentLabRunArtifact` contract (one schema version, contiguous events, a valid plan,
+timing that never runs backwards) before replaying the recorded events at their recorded offsets. The
+stored metrics are shown as recorded, not recomputed in the page; the
+[Agent Note](../.agents/notes/implemented/architecture/2026-10-02-agent-lab-artifact-replay.md) explains why.
+
 ## LangGraph workflow
 
 ```mermaid
@@ -101,6 +160,11 @@ Specialist proposals, the brief and the final plan are re-validated at the graph
   `allocation` of its last cost less `targetSaving`, through the revision supervisor or directly.
   A round is kept only when `planScore` (AUD over budget plus a tenth of the budget per other
   conflict) improves; otherwise the previous proposals stand and the loop stops.
+- `OrchestratorOptions.onDecision` receives the loop's decisions as typed `WorkflowDecision` facts:
+  conflicts detected (targets, reasons, score, infeasibility), revision started (objective and
+  previous outcome), revision scored (before, after, kept) and loop stopped (round and reason). A
+  consumer reads them instead of parsing progress prose. The hook never affects the plan, a consumer
+  that throws is logged and ignored, and the chat progress protocol is unchanged.
 - A conditional edge repeats detection and revision up to `maxRounds` (default `3`).
 - `build_plan` rolls up costs (`budget.ts`), marks each section `needs_you` when a revision request
   still targets it and `draft` otherwise, and assembles the plan.
@@ -205,6 +269,7 @@ Shared contracts live in `packages/shared/src/`:
 - `contracts.ts`: `TripBrief`, `AgentProposal`, `ProposalItem`, `RevisionRequest`.
 - `plan.ts`: `TripPlan`, `TripSection` and `TripProposal`.
 - `chat.ts`: `ChatRequest`, `ChatResponse`, progress events, the `ChatAskUser` structured-question frame, and `Attachment` with its limits.
+- `agent-lab.ts`: the closed experiment request, lifecycle event envelope, metrics and versioned run artifact.
 - `ports.ts`: `ToolGateway`, `MapsPort`, `BookingPort`, `WeatherPort` and `MemoryStore`.
 
 Agents receive `ctx.tools` (`ToolGateway`) and `ctx.mem` (`MemoryStore`) through `AgentContext`. Do

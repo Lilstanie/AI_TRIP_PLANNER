@@ -1,0 +1,211 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "本地工作区与账号同步",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "viewBox": [1000, 640],
+    "column_fit": "spread"
+  },
+  "participants": [
+    {
+      "id": "browser",
+      "type": "frontend",
+      "label": "浏览器目录",
+      "sublabel": "本地工作副本"
+    },
+    {
+      "id": "sync",
+      "type": "backend",
+      "label": "useAccountSync",
+      "sublabel": "pull / merge / push"
+    },
+    {
+      "id": "merge",
+      "type": "backend",
+      "label": "mergeCatalog",
+      "sublabel": "逐记录合并"
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "/api/account/sync",
+      "sublabel": "身份校验与 upsert"
+    },
+    {
+      "id": "db",
+      "type": "database",
+      "label": "账号数据库",
+      "sublabel": "trips + conversations"
+    },
+    {
+      "id": "stamp",
+      "type": "database",
+      "label": "同步标记",
+      "sublabel": "synced times · userId"
+    }
+  ],
+  "segments": [
+    {
+      "from": 145,
+      "to": 300,
+      "label": "登录与双向合并"
+    },
+    {
+      "from": 312,
+      "to": 474,
+      "label": "推送变更"
+    },
+    {
+      "from": 462,
+      "to": 575,
+      "label": "本地与离线行为"
+    }
+  ],
+  "messages": [
+    {
+      "from": "browser",
+      "to": "sync",
+      "y": 160,
+      "label": "登录后开始同步",
+      "variant": "emphasis"
+    },
+    {
+      "from": "sync",
+      "to": "api",
+      "y": 192,
+      "label": "GET /api/account/sync",
+      "variant": "default"
+    },
+    {
+      "from": "api",
+      "to": "db",
+      "y": 224,
+      "label": "按账号读取 trips / conversations",
+      "variant": "default"
+    },
+    {
+      "from": "db",
+      "to": "api",
+      "y": 256,
+      "label": "records + 删除 tombstones",
+      "variant": "return"
+    },
+    {
+      "from": "api",
+      "to": "sync",
+      "y": 288,
+      "label": "SyncPull",
+      "variant": "return"
+    },
+    {
+      "from": "sync",
+      "to": "merge",
+      "y": 320,
+      "label": "本地 + 远端 + synced times",
+      "variant": "emphasis"
+    },
+    {
+      "from": "merge",
+      "to": "sync",
+      "y": 352,
+      "label": "较新记录优先；解析并修复关联",
+      "variant": "return"
+    },
+    {
+      "from": "sync",
+      "to": "api",
+      "y": 384,
+      "label": "POST 新记录、编辑与 tombstones",
+      "variant": "emphasis"
+    },
+    {
+      "from": "api",
+      "to": "db",
+      "y": 416,
+      "label": "仅较新 updatedAt 可覆盖",
+      "variant": "default"
+    },
+    {
+      "from": "sync",
+      "to": "browser",
+      "y": 448,
+      "label": "回写合并目录并记录成功时间",
+      "variant": "return"
+    },
+    {
+      "from": "browser",
+      "to": "sync",
+      "y": 480,
+      "label": "目录变更后等待 1.5 秒",
+      "variant": "dashed"
+    },
+    {
+      "from": "sync",
+      "to": "api",
+      "y": 512,
+      "label": "推送 pendingChanges",
+      "variant": "default"
+    },
+    {
+      "from": "sync",
+      "to": "browser",
+      "y": 544,
+      "label": "失败时保留本地修改，状态为 offline",
+      "variant": "dashed"
+    }
+  ],
+  "activations": [
+    {
+      "participant": "sync",
+      "from": 190,
+      "to": 565,
+      "type": "backend"
+    },
+    {
+      "participant": "api",
+      "from": 220,
+      "to": 500,
+      "type": "backend"
+    },
+    {
+      "participant": "db",
+      "from": 250,
+      "to": 475,
+      "type": "database"
+    },
+    {
+      "participant": "merge",
+      "from": 350,
+      "to": 390,
+      "type": "backend"
+    },
+    {
+      "participant": "stamp",
+      "from": 470,
+      "to": 506,
+      "type": "database"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "合并规则",
+      "items": [
+        "按 updatedAt 取较新的整条记录，不做字段级拼接",
+        "较新 tombstone 删除记录；本地较新版本可重新上传"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "数据验证",
+      "items": ["远端记录需通过目录解析器；关联 id 会重新校正", "空白且未修改的对话不会上传"]
+    },
+    {
+      "dot": "orange",
+      "title": "离线行为",
+      "items": ["浏览器目录一直是工作副本", "推送失败不丢本地修改，后续同步继续尝试"]
+    }
+  ]
+}

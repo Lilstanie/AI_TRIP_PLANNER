@@ -7,7 +7,7 @@ recommendations, edit the plan, save it and use it while travelling.
 
 ## Status
 
-Status as of 2026-09-22 on `main`; see [workspace UI](workspace-ui.md) for current behaviour.
+Status as of 2026-10-01 on `main`; see [workspace UI](workspace-ui.md) for current behaviour.
 
 **Done**
 
@@ -24,11 +24,17 @@ Status as of 2026-09-22 on `main`; see [workspace UI](workspace-ui.md) for curre
 - Streaming planning progress and a thinking transcript in the chat.
 - Accounts (Clerk) with a dedicated login page required when configured, syncing chats, trips and settings to Neon Postgres, and a Settings
   dialog with a travel profile that prefills new trips.
+- Public Agent Lab: a fixed Tokyo fixture exposes a single-agent trace, validated plan and
+  deterministic metrics without provider keys, and compares it with five specialists running one
+  round without revision and with bounded targeted revision on a tight-budget variant. Completed runs
+  download as versioned artifacts that replay offline in the page. Benchmark scenarios cover an
+  infeasible Paris budget and a Tokyo and Kyoto trip whose move between cities must stay consistent.
 
 **Open**
 
 1. Verify live providers end to end with real keys in a deployed environment.
-2. On-trip mode, once the describe, edit, save and travel loop is stable.
+2. Extend Agent Lab with injected-failure runs and optional live runs.
+3. On-trip mode, once the describe, edit, save and travel loop is stable.
 
 **Later, only if needed**
 

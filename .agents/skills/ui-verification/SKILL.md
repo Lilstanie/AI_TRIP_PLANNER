@@ -1,6 +1,6 @@
 ---
 name: ui-verification
-description: Use after changing anything a person can see in apps/web of AI_TRIP_PLANNER — components, styles, layout, copy or client state — to verify it in a real browser at desktop and phone widths and attach screenshots as evidence, before claiming the change works.
+description: Verify a UI change in a real browser at desktop and phone widths and attach screenshots as evidence, in apps/web of AI_TRIP_PLANNER. Use after changing anything a person can see (components, styles, layout, copy or client state), before claiming the change works.
 ---
 
 # Verify a UI change in the browser
@@ -15,6 +15,12 @@ Start the `web` configuration from `.claude/launch.json` (`pnpm --filter @trip/w
 If a production build is running at the same time, start dev with `NEXT_DIST_DIR=.next-dev`.
 Use mock data unless the change concerns live providers; the top-bar toggle switches per request, so
 you can check both without redeploying.
+
+Accounts are optional. With `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` set, anonymous page navigation is
+redirected to `/sign-in` before the workspace renders, and signing in goes through Clerk's hosted
+pages, which you cannot automate; verify that path by hand and say so in the session log. To reach the
+workspace in a script, run the dev server without the Clerk keys, which is the single-user local mode.
+`/agent-lab` and `/sign-in` stay public in both modes. The API routes are never redirected.
 
 ## 2. Exercise the change
 
@@ -37,8 +43,14 @@ you can check both without redeploying.
 At phone width confirm there is no horizontal page scroll: `document.documentElement.scrollWidth`
 must equal the viewport width. Check dark and light theme when colours changed.
 
+For a complex path, a script under `apps/web/tests/e2e/` does steps 2 and 3 repeatably; run the one
+that covers your change or add one, following
+[Testing approach](../../../docs/development.md#testing-approach). Motion changes also need the
+reduced-motion state, as in `thinking-orb.e2e.mjs`.
+
 ## 4. Record evidence
 
-Save screenshots under `output/playwright/`, which is Git-ignored, and attach them to the PR's
+Save screenshots under `output/playwright/<name>/`, which is Git-ignored (an E2E script writes there
+itself), and attach them to the PR's
 Testing section; describe what each one proves. Record the viewports and results in the session log.
 Never commit screenshots into the repository.

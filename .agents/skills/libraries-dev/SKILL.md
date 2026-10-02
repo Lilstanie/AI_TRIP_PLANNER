@@ -1,6 +1,7 @@
 ---
 name: libraries-dev
-description: Review or integrate Libraries.dev UI effects in AI_TRIP_PLANNER when the user mentions libraries.dev, libraries reveal/review/apply, or requests a thinking orb, border beam, voice visualizer, bot avatar, gooey transition, liquid metal or image reveal. Follow the workspace design contract and real application state.
+description: Review or integrate Libraries.dev UI effects (thinking orb, border beam, voice visualizer, bot avatar, gooey transition, liquid metal, image reveal) in AI_TRIP_PLANNER, following the workspace design contract and real application state. Use when the user mentions libraries.dev or libraries reveal/review/apply, or asks for one of those effects.
+license: MIT, see LICENSE
 ---
 
 # Libraries.dev effects

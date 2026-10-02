@@ -1,3 +1,5 @@
+English | [简体中文](README.zh.md)
+
 # AI Trip Planner
 
 [![CI](https://github.com/Lilstanie/AI_TRIP_PLANNER/actions/workflows/ci.yml/badge.svg)](https://github.com/Lilstanie/AI_TRIP_PLANNER/actions/workflows/ci.yml)
@@ -68,7 +70,7 @@ docs/                     Documentation of the current system; each package also
 
 ## Documentation
 
-Browse the [English documentation index](docs/README.md) or [中文文档](docs/README.zh.md).
+Browse the [documentation index](docs/README.md) for the full technical guides.
 
 | Document                                          | Contents                                                            |
 | ------------------------------------------------- | ------------------------------------------------------------------- |

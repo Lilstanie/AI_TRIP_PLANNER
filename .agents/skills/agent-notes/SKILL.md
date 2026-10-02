@@ -1,6 +1,6 @@
 ---
 name: agent-notes
-description: Use when writing, updating, superseding, rejecting or archiving an Agent Note in AI_TRIP_PLANNER, when a change touches packages/shared or makes a decision with lasting rationale, or when turning decisions buried in session logs into notes.
+description: Write, update, supersede, reject or archive Agent Notes, the repository's decision records, in AI_TRIP_PLANNER, and turn decisions buried in session logs into notes. Use when a change touches packages/shared, makes a decision with lasting rationale, or an existing note needs updating.
 ---
 
 # Write and maintain Agent Notes

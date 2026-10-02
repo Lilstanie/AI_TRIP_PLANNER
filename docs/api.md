@@ -3,12 +3,13 @@
 English | [中文](api.zh.md)
 
 The Next.js route handlers live under `apps/web/app/api/`. `/api/data-mode` and `/api/places/photo` are
-`GET` handlers; the other five are `POST` handlers. Request bodies are validated with Zod, and planning outputs are
+`GET` handlers; the remaining routes use the methods shown below. Request bodies are validated with Zod, and planning outputs are
 validated against the shared contracts in `packages/shared/src/`.
 
 | Path                                                        | Purpose                                                             |
 | ----------------------------------------------------------- | ------------------------------------------------------------------- |
 | [`/api/chat`](#post-apichat)                                | Extract brief updates or plan a submitted brief, streaming progress |
+| [`/api/agent-lab/runs`](#post-apiagent-labruns)             | Run a registered, inspectable fixture experiment                    |
 | [`/api/data-mode`](#get-apidata-mode)                       | Default data mode and whether live provider keys are configured     |
 | [`/api/places/search`](#post-apiplacessearch)               | Google Places text search                                           |
 | [`/api/places/details`](#post-apiplacesdetails)             | Google place details for a place ID                                 |
@@ -136,6 +137,54 @@ An invalid request body returns HTTP 400 JSON before streaming starts.
 
 An optional `x-trip-data-mode` header of `mock` or `live` chooses fixtures or live providers for this
 request only; any other value, or no header, uses the deployment default.
+
+## `POST /api/agent-lab/runs`
+
+Contract: `AgentLabRunRequest`, `AgentLabRunEvent`, `AgentLabStreamFrame` and
+`AgentLabRunArtifact` in `packages/shared/src/agent-lab.ts`.
+
+```json
+{
+  "scenarioId": "tokyo-couple",
+  "strategyId": "single-agent-baseline",
+  "dataMode": "fixture"
+}
+```
+
+`scenarioId` is `tokyo-couple`, `tokyo-couple-tight-budget` (the same trip and evidence with a
+A$2,300 budget, so the first plan overruns), `paris-family-infeasible` (four travellers, A$3,000, against a
+supported minimum of A$3,880, so no plan can fit) or `tokyo-kyoto-multi-city` (seven nights in two cities). `strategyId` is `single-agent-baseline`,
+`multi-agent-no-revision` or `multi-agent-targeted-revision`. The second runs the five registered
+specialists through the LangGraph workflow for one round, so its plan has `round: 1` and any conflicts
+stay unresolved. The third runs the established loop with at most three rounds: it routes each conflict
+to the specialist it names, keeps the best known proposals when a revision does not improve the plan, and
+stops early when the budget is infeasible. `multi-agent-with-revision` is not registered and is rejected.
+
+The request is strict: an unknown value or extra property returns HTTP 400 with
+`{ "error": "Invalid Agent Lab request" }`. A valid request streams NDJSON frames. Event frames have
+`{ "type": "event", "event": { ... } }`; the last frame has
+`{ "type": "complete", "artifact": { ... } }`. The artifact contains the validated plan, ordered
+events, deterministic metrics and explicit fixture/evaluator versions. `metrics.checks` lists each
+named check (`id`, `label`, `passed`) measured against the scenario's rules; `budgetHeadroom` is
+negative when the plan is over budget. A scenario whose evidence shows no plan can fit replaces `budget` and
+`no-conflicts` with `evidence-floor` (the estimate is not below the cheapest supported options) and
+`infeasibility-reported` (the plan names the supported minimum); a multi-city scenario adds `hop-date`,
+`itinerary-by-city`, `stay-transition`, `trip-dates` and `total-consistent`. `versions.evaluator` is
+`scenario-rules-v2` and `versions.fixture` names the scenario's fixture. The comparison figures `rounds`, `toolCalls`, `fallbacks`,
+`failedAgents` and `unresolvedConflicts` are counted from the trace and the plan; `latencyMs` is the
+run's wall time without display pacing (`durationMs` includes it) and, in fixture mode, measures
+orchestration overhead only. The artifact also records `groundedSections`, `duplicateStops`,
+`genericStops`, `multiCityConsistent` (`null` for a single-city trip), `stopReason` (`null` for a
+strategy with no loop) and `usage`. Because fixture runs make no model calls, `usage` is `{ "status": "unavailable" }`:
+missing usage is never reported as zero. Every metric except `durationMs` and `latencyMs`
+is recomputed from the final plan and the trace alone, with no model judging it. Revision runs add trace
+events `lab_conflict_detected`, `lab_revision_started`, `lab_revision_scored` and `lab_loop_stopped`. Cancelling the client request
+aborts the run without emitting a completion frame. An internal run failure emits an `error` frame
+with a non-sensitive message and a structured `failed` artifact containing the events recorded before
+the failure.
+
+Agent Lab is fixture-only. It is meant to run with no model or provider key, makes no external calls
+when none are configured and does not persist chats, trips or lab results.
 
 ## `GET /api/data-mode`
 

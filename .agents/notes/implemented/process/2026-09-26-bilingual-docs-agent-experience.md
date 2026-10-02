@@ -33,9 +33,9 @@ line-alignment rules and documentation gates do not exist here.
 **Translate only summaries or leave counterpart updates manual and unchecked.** Not chosen: this
 would leave Chinese readers with different technical content and make stale translations invisible.
 
-**Add model-based translation on every file save or change protected CI scripts.** Not adopted:
-the user requests synchronized documentation, not a background API integration; protected root
-configuration remains unchanged. Workflow instructions require the standalone local check.
+**Add model-based translation on every file save.** Not adopted: the user requests synchronized
+documentation, not a background API integration. The standalone check was first local only; the owner later
+approved running it in CI.
 
 ## Consequences
 
@@ -44,9 +44,9 @@ the prose maintenance cost. Updating either file invalidates the review hashes; 
 do not detect a fluent mistranslation, so semantic review precedes recording. Code blocks stay
 unchanged and Chinese headings retain English fragment anchors.
 
-No watcher or automatic translation service runs. Existing `pnpm verify:docs` and CI do not enforce
-pair freshness yet; the new check is explicitly required by documentation and pre-push workflows.
-Root or CI integration would need explicit authorization for the protected files.
+No watcher or automatic translation service runs. The pairing check is required by documentation and
+pre-push workflows, and since 2026-10-01 CI runs it too (`pnpm verify:pairs`), added with the owner's explicit
+approval of the CI configuration and root script.
 
 ## Sources
 
