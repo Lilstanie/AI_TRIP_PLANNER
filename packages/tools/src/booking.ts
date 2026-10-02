@@ -23,11 +23,12 @@ import {
   SerpApiError,
 } from "./serpapi";
 import { mockEnabled } from "./data-mode";
+import { toolNow, toolRuntimeConfig } from "./runtime-context";
 
 export type { StayQuery, StayOption, FlightQuery, FlightOption } from "@trip/shared";
 export { SerpApiError, serpApiUsage } from "./serpapi";
 
-const provider = () => process.env.MAPS_PROVIDER || (process.env.MAPS_API_KEY ? "google" : "osm");
+const provider = () => toolRuntimeConfig().mapsProvider;
 
 // Google's place rating is 1.0-5.0; every rating-based rule in this project
 // (StayCandidate.rating, accommodation.minRating, chooseInitial's ">= 8")
@@ -57,7 +58,9 @@ const PRICE_LEVEL_ESTIMATE_AUD: Partial<Record<string, number>> = {
 function estimatedNightlyRate(priceLevel: string | undefined): number {
   // Google frequently omits price_level for lodging; "moderate" is the
   // least-wrong default when the property didn't report one.
-  return PRICE_LEVEL_ESTIMATE_AUD[priceLevel ?? ""] ?? PRICE_LEVEL_ESTIMATE_AUD.PRICE_LEVEL_MODERATE!;
+  return (
+    PRICE_LEVEL_ESTIMATE_AUD[priceLevel ?? ""] ?? PRICE_LEVEL_ESTIMATE_AUD.PRICE_LEVEL_MODERATE!
+  );
 }
 
 // Expensive Tokyo/Kyoto standard rooms keep the negotiation demo useful.
@@ -133,7 +136,7 @@ export async function searchStays(q: StayQuery): Promise<StayOption[]> {
     ];
   }
 
-  if (process.env.SERPAPI_KEY) {
+  if (toolRuntimeConfig().serpApiKey) {
     try {
       return await searchHotelsSerpApi({
         city,
@@ -166,12 +169,13 @@ async function searchStaysGooglePlacesEstimate(
   fallback?: { fallbackFrom: string; fallbackReason: string },
 ): Promise<StayOption[]> {
   if (provider() !== "google") throw new Error(`Unsupported booking provider: ${provider()}`);
-  if (!process.env.MAPS_API_KEY) throw new Error("Google Places provider requires MAPS_API_KEY.");
+  if (!toolRuntimeConfig().mapsApiKey)
+    throw new Error("Google Places provider requires MAPS_API_KEY.");
   const results = await searchGooglePlacesText(
     `hotels in ${city}`,
     "places.displayName,places.rating,places.priceLevel,places.formattedAddress,places.websiteUri",
   );
-  const queriedAt = new Date().toISOString();
+  const queriedAt = toolNow().toISOString();
   const options: StayOption[] = results
     .map((place) => ({
       name: place.displayName?.text?.trim() ?? "",
@@ -241,7 +245,8 @@ export async function searchFlights(q: FlightQuery): Promise<FlightOption[]> {
   // exception). The transport agent already treats a thrown searchFlights as
   // "flight remains unpriced" — a conflict note, not a crash — rather than
   // silently substituting a fictional fare for a real search that failed.
-  if (!process.env.SERPAPI_KEY) throw new Error("Unsupported flight provider: no SERPAPI_KEY set.");
+  if (!toolRuntimeConfig().serpApiKey)
+    throw new Error("Unsupported flight provider: no SERPAPI_KEY set.");
   return searchFlightsSerpApi({
     from,
     to,
@@ -262,7 +267,7 @@ export async function searchFlights(q: FlightQuery): Promise<FlightOption[]> {
 export async function searchReturnLeg(
   q: FlightQuery & { token: string },
 ): Promise<FlightLeg | undefined> {
-  if (mockEnabled() || !process.env.SERPAPI_KEY || !q.return) return undefined;
+  if (mockEnabled() || !toolRuntimeConfig().serpApiKey || !q.return) return undefined;
   try {
     return await searchReturnLegSerpApi({
       from: q.from,

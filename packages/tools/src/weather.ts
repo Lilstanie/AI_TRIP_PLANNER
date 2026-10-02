@@ -1,5 +1,6 @@
 import type { WeatherPort, WeatherQuery, WeatherResult } from "@trip/shared";
 import { mockEnabled } from "./data-mode";
+import { toolFetch, toolNow, toolRuntimeConfig } from "./runtime-context";
 
 const DAY_MS = 86_400_000;
 const FORECAST_LIMIT_DAYS = 14;
@@ -17,7 +18,9 @@ function dateValue(value: string): number {
 }
 
 function daysUntil(targetDate: string): number {
-  return Math.floor((dateValue(targetDate) - dateValue(new Date().toISOString().slice(0, 10))) / DAY_MS);
+  return Math.floor(
+    (dateValue(targetDate) - dateValue(toolNow().toISOString().slice(0, 10))) / DAY_MS,
+  );
 }
 
 function climateFixture(targetDate: string, latitude: number, provider: string): WeatherResult {
@@ -28,19 +31,21 @@ function climateFixture(targetDate: string, latitude: number, provider: string):
     horizon: "climate",
     targetDate,
     summary: `${warm ? "Warm" : "Cooler"} seasonal climate context for the destination; historical planning guidance only, not a forecast.`,
-    observedAt: new Date().toISOString(),
+    observedAt: toolNow().toISOString(),
     provider,
   };
 }
 
 function mockWeather({ targetDate, location }: WeatherQuery): WeatherResult {
   const days = daysUntil(targetDate);
-  if (days > FORECAST_LIMIT_DAYS) return climateFixture(targetDate, location.latitude, "Mock climate fixture");
+  if (days > FORECAST_LIMIT_DAYS)
+    return climateFixture(targetDate, location.latitude, "Mock climate fixture");
   return {
     horizon: "forecast",
     targetDate,
-    summary: "Mostly clear with a mild daytime temperature; carry a light layer and check conditions again before departure.",
-    observedAt: new Date().toISOString(),
+    summary:
+      "Mostly clear with a mild daytime temperature; carry a light layer and check conditions again before departure.",
+    observedAt: toolNow().toISOString(),
     validUntil: new Date(dateValue(targetDate) + DAY_MS).toISOString(),
     provider: "Mock weather fixture",
   };
@@ -77,7 +82,7 @@ function weatherCodeDescription(code: number): string {
 }
 
 async function googleForecast(query: WeatherQuery): Promise<WeatherResult> {
-  const key = process.env.WEATHER_API_KEY || process.env.MAPS_API_KEY;
+  const key = toolRuntimeConfig().weatherApiKey;
   if (!key) throw new Error("Google Weather API requires WEATHER_API_KEY or MAPS_API_KEY.");
   const url = new URL("https://weather.googleapis.com/v1/forecast/days:lookup");
   url.search = new URLSearchParams({
@@ -89,7 +94,7 @@ async function googleForecast(query: WeatherQuery): Promise<WeatherResult> {
     pageSize: "10",
     languageCode: "en",
   }).toString();
-  const response = await fetch(url, { signal: AbortSignal.timeout(8_000) });
+  const response = await toolFetch(url, { signal: AbortSignal.timeout(8_000) });
   if (!response.ok) throw new Error(`Google Weather request failed (${response.status}).`);
   const data = (await response.json()) as GoogleForecast;
   const day = data.forecastDays?.find(
@@ -99,7 +104,8 @@ async function googleForecast(query: WeatherQuery): Promise<WeatherResult> {
       candidate.displayDate?.day === Number(query.targetDate.slice(8, 10)),
   );
   if (!day) throw new Error("Google Weather did not return the requested forecast date.");
-  const condition = day.daytimeForecast?.weatherCondition?.description?.text ?? "Conditions unavailable";
+  const condition =
+    day.daytimeForecast?.weatherCondition?.description?.text ?? "Conditions unavailable";
   const high = day.maxTemperature?.degrees;
   const low = day.minTemperature?.degrees;
   const temperatures = Number.isFinite(high) && Number.isFinite(low) ? `, ${low}–${high}°C` : "";
@@ -107,7 +113,7 @@ async function googleForecast(query: WeatherQuery): Promise<WeatherResult> {
     horizon: "forecast",
     targetDate: query.targetDate,
     summary: `${condition}${temperatures}. Forecast conditions can change before departure.`,
-    observedAt: new Date().toISOString(),
+    observedAt: toolNow().toISOString(),
     validUntil: new Date(dateValue(query.targetDate) + DAY_MS).toISOString(),
     provider: "Google Weather API",
   };
@@ -122,7 +128,7 @@ async function openMeteoForecast(query: WeatherQuery): Promise<WeatherResult> {
     forecast_days: String(FORECAST_LIMIT_DAYS),
     timezone: "UTC",
   }).toString();
-  const response = await fetch(url, { signal: AbortSignal.timeout(8_000) });
+  const response = await toolFetch(url, { signal: AbortSignal.timeout(8_000) });
   if (!response.ok) throw new Error(`Open-Meteo request failed (${response.status}).`);
   const data = (await response.json()) as OpenMeteoForecast;
   const daily = data.daily;
@@ -130,19 +136,14 @@ async function openMeteoForecast(query: WeatherQuery): Promise<WeatherResult> {
   const code = index >= 0 ? daily?.weather_code?.[index] : undefined;
   const high = index >= 0 ? daily?.temperature_2m_max?.[index] : undefined;
   const low = index >= 0 ? daily?.temperature_2m_min?.[index] : undefined;
-  if (
-    index < 0 ||
-    !Number.isFinite(code) ||
-    !Number.isFinite(high) ||
-    !Number.isFinite(low)
-  ) {
+  if (index < 0 || !Number.isFinite(code) || !Number.isFinite(high) || !Number.isFinite(low)) {
     throw new Error("Open-Meteo did not return the requested forecast date.");
   }
   return {
     horizon: "forecast",
     targetDate: query.targetDate,
     summary: `${weatherCodeDescription(code!)} (${low}–${high}°C). Forecast conditions can change before departure.`,
-    observedAt: new Date().toISOString(),
+    observedAt: toolNow().toISOString(),
     validUntil: new Date(dateValue(query.targetDate) + DAY_MS).toISOString(),
     provider: "Open-Meteo Forecast API",
   };
@@ -182,25 +183,28 @@ async function openMeteoClimate(query: WeatherQuery): Promise<WeatherResult> {
         daily: "temperature_2m_max,temperature_2m_min,precipitation_sum",
         timezone: "UTC",
       }).toString();
-      const response = await fetch(url, { signal: AbortSignal.timeout(8_000) });
+      const response = await toolFetch(url, { signal: AbortSignal.timeout(8_000) });
       if (!response.ok) throw new Error(`Open-Meteo archive request failed (${response.status}).`);
       return ((await response.json()) as OpenMeteoArchive).daily ?? {};
     }),
   );
   const values = (key: "temperature_2m_max" | "temperature_2m_min" | "precipitation_sum") =>
-    years.flatMap((daily) => (daily[key] ?? []).filter((value): value is number => Number.isFinite(value)));
+    years.flatMap((daily) =>
+      (daily[key] ?? []).filter((value): value is number => Number.isFinite(value)),
+    );
   const highs = values("temperature_2m_max");
   const lows = values("temperature_2m_min");
   const rain = values("precipitation_sum");
   if (!highs.length || !lows.length || !rain.length)
     throw new Error("Open-Meteo archive returned no climate data for this location.");
-  const mean = (list: number[]) => Math.round(list.reduce((sum, value) => sum + value, 0) / list.length);
+  const mean = (list: number[]) =>
+    Math.round(list.reduce((sum, value) => sum + value, 0) / list.length);
   const wetShare = Math.round((rain.filter((value) => value >= 1).length / rain.length) * 100);
   return {
     horizon: "climate",
     targetDate: query.targetDate,
     summary: `In the same week of the last ${CLIMATE_YEARS} years: typically ${mean(lows)}–${mean(highs)}°C, with 1 mm or more of rain on ${wetShare}% of days. Historical conditions, not a forecast.`,
-    observedAt: new Date().toISOString(),
+    observedAt: toolNow().toISOString(),
     provider: "Open-Meteo historical archive",
   };
 }
@@ -211,9 +215,7 @@ export const weather: WeatherPort = {
     if (days < 0) throw new Error("Weather target date cannot be in the past.");
     if (mockEnabled()) return mockWeather(query);
     if (days > FORECAST_LIMIT_DAYS) return openMeteoClimate(query);
-    return days <= GOOGLE_FORECAST_LIMIT_DAYS
-      ? googleForecast(query)
-      : openMeteoForecast(query);
+    return days <= GOOGLE_FORECAST_LIMIT_DAYS ? googleForecast(query) : openMeteoForecast(query);
   },
 };
 

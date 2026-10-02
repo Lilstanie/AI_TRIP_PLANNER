@@ -10,21 +10,22 @@ import { mockEnabled } from "./data-mode";
 import { searchTransitSerpApi } from "./serpapi";
 import { SUPPORTED_CURRENCIES, toAud } from "@trip/shared";
 import { driveOption, transitOption, type GoogleRouteShape } from "./route-options";
+import { toolFetch, toolNow, toolRuntimeConfig } from "./runtime-context";
 
 export type { GeoPoint, RouteQuery, RouteLeg, PlaceQuery, Place } from "@trip/shared";
 
-const provider = () => process.env.MAPS_PROVIDER || (process.env.MAPS_API_KEY ? "google" : "osm");
+const provider = () => toolRuntimeConfig().mapsProvider;
 
 function apiUrl(path: string): string {
-  return `${process.env.MAPS_API_BASE_URL || "https://routes.googleapis.com"}${path}`;
+  return `${toolRuntimeConfig().mapsApiBaseUrl}${path}`;
 }
 
 async function googleRequest<T>(url: string, body: unknown, fieldMask: string): Promise<T> {
-  const response = await fetch(url, {
+  const response = await toolFetch(url, {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      "x-goog-api-key": process.env.MAPS_API_KEY!,
+      "x-goog-api-key": toolRuntimeConfig().mapsApiKey!,
       "x-goog-fieldmask": fieldMask,
     },
     body: JSON.stringify(body),
@@ -35,9 +36,9 @@ async function googleRequest<T>(url: string, body: unknown, fieldMask: string): 
 }
 
 async function googleGet<T>(url: string): Promise<T> {
-  const response = await fetch(url, {
+  const response = await toolFetch(url, {
     headers: {
-      "x-goog-api-key": process.env.MAPS_API_KEY!,
+      "x-goog-api-key": toolRuntimeConfig().mapsApiKey!,
     },
     signal: AbortSignal.timeout(8_000),
   });
@@ -46,10 +47,10 @@ async function googleGet<T>(url: string): Promise<T> {
 }
 
 async function osmRequest<T>(url: string): Promise<T> {
-  const response = await fetch(url, {
+  const response = await toolFetch(url, {
     headers: {
       accept: "application/json",
-      "user-agent": process.env.OSM_USER_AGENT || "ai-trip-planner/1.0 (local development)",
+      "user-agent": toolRuntimeConfig().osmUserAgent || "ai-trip-planner/1.0 (local development)",
     },
     signal: AbortSignal.timeout(8_000),
   });
@@ -88,15 +89,14 @@ function waypoint(name: string, at?: GeoPoint) {
 }
 
 async function geocode(query: string): Promise<GeoPoint | undefined> {
-  const base = process.env.NOMINATIM_BASE_URL || "https://nominatim.openstreetmap.org";
+  const base = toolRuntimeConfig().nominatimBaseUrl;
   const results = await osmRequest<Array<{ lat: string; lon: string; display_name: string }>>(
     `${base}/search?format=jsonv2&limit=1&q=${encodeURIComponent(query)}`,
   );
   const result = results[0];
   if (!result) return undefined;
   const at = { latitude: Number(result.lat), longitude: Number(result.lon) };
-  if (!result.lat || !result.lon || !usable(at))
-    throw new Error("Invalid geocoding coordinates");
+  if (!result.lat || !result.lon || !usable(at)) throw new Error("Invalid geocoding coordinates");
   return at;
 }
 
@@ -138,7 +138,7 @@ const transitWindowMs = {
 };
 
 function assertTransitWindow(timestamp: number): void {
-  const delta = timestamp - Date.now();
+  const delta = timestamp - toolNow().getTime();
   if (delta < -transitWindowMs.past || delta > transitWindowMs.future)
     throw new Error("Transit departure is outside Google's supported date window.");
 }
@@ -185,7 +185,7 @@ async function originTimeZone(q: RouteQuery, dateTimestamp: number): Promise<str
   url.search = new URLSearchParams({
     location: `${location.latitude},${location.longitude}`,
     timestamp: String(Math.floor((dateTimestamp + 12 * 60 * 60 * 1000) / 1000)),
-    key: process.env.MAPS_API_KEY!,
+    key: toolRuntimeConfig().mapsApiKey!,
   }).toString();
   const timezone = await googleGet<{ status?: string; timeZoneId?: string }>(url.toString());
   if (timezone.status !== "OK" || typeof timezone.timeZoneId !== "string")
@@ -201,7 +201,7 @@ async function departureForGoogle(q: RouteQuery): Promise<string> {
   const dateTimestamp = parseDate(q.date);
   // A date clearly outside the provider window can be rejected before the
   // Places/Time Zone lookups. Near a boundary, resolve the true instant first.
-  const roughDelta = dateTimestamp - Date.now();
+  const roughDelta = dateTimestamp - toolNow().getTime();
   if (
     roughDelta < -(transitWindowMs.past + 86400000) ||
     roughDelta > transitWindowMs.future + 86400000
@@ -224,7 +224,7 @@ export async function route(q: RouteQuery): Promise<RouteLeg[]> {
       usable(q.toLocation) ? q.toLocation : geocode(q.to),
     ]);
     if (!from || !to) return [];
-    const base = process.env.OSRM_BASE_URL || "https://router.project-osrm.org";
+    const base = toolRuntimeConfig().osrmBaseUrl;
     const data = await osmRequest<{ routes?: Array<{ duration?: number; distance?: number }> }>(
       `${base}/route/v1/driving/${from.longitude},${from.latitude};${to.longitude},${to.latitude}?overview=false`,
     );
@@ -242,7 +242,8 @@ export async function route(q: RouteQuery): Promise<RouteLeg[]> {
     ];
   }
   if (provider() !== "google") throw new Error(`Unsupported maps provider: ${provider()}`);
-  if (!process.env.MAPS_API_KEY) throw new Error("Google Maps provider requires MAPS_API_KEY.");
+  if (!toolRuntimeConfig().mapsApiKey)
+    throw new Error("Google Maps provider requires MAPS_API_KEY.");
   const departureTime = await departureForGoogle(q);
   assertTransitWindow(Date.parse(departureTime));
   const data = await googleRequest<{
@@ -290,13 +291,15 @@ export async function route(q: RouteQuery): Promise<RouteLeg[]> {
 
 /** An inter-city rail leg from SerpApi's Google Maps directions, priced in AUD for the group. */
 async function railLeg(q: RouteQuery): Promise<RouteLeg | undefined> {
-  if (!process.env.SERPAPI_KEY) return undefined;
+  if (!toolRuntimeConfig().serpApiKey) return undefined;
   const route = await searchTransitSerpApi({ from: q.from, to: q.to });
   const passengers = q.passengers && q.passengers > 0 ? q.passengers : 1;
   const currency = SUPPORTED_CURRENCIES.find((code) => code === route.fare?.currency);
   // A fare in a currency without a reviewed rate stays unpriced rather than guessed.
   const price =
-    route.fare && currency ? Math.round(toAud(route.fare.amount, currency) * passengers * 100) / 100 : 0;
+    route.fare && currency
+      ? Math.round(toAud(route.fare.amount, currency) * passengers * 100) / 100
+      : 0;
   const service = route.services.join(" → ");
   const train = /shinkansen|express|limited|line|jr |rail|train/i.test(service);
   return {
@@ -343,7 +346,7 @@ export async function places(q: PlaceQuery): Promise<Place[]> {
     ];
   }
   if (provider() === "osm") {
-    const base = process.env.NOMINATIM_BASE_URL || "https://nominatim.openstreetmap.org";
+    const base = toolRuntimeConfig().nominatimBaseUrl;
     const results = await osmRequest<
       Array<{ display_name: string; type?: string; lat?: string; lon?: string }>
     >(
@@ -358,7 +361,8 @@ export async function places(q: PlaceQuery): Promise<Place[]> {
     }));
   }
   if (provider() !== "google") throw new Error(`Unsupported maps provider: ${provider()}`);
-  if (!process.env.MAPS_API_KEY) throw new Error("Google Maps provider requires MAPS_API_KEY.");
+  if (!toolRuntimeConfig().mapsApiKey)
+    throw new Error("Google Maps provider requires MAPS_API_KEY.");
   const results = await searchGooglePlacesText(
     `${q.category ?? "attraction"} in ${q.near}`,
     "places.displayName,places.types,places.rating,places.location,places.websiteUri",
@@ -429,13 +433,18 @@ export async function routeOptions(q: RouteQuery): Promise<RouteOption[]> {
     ];
   }
   if (provider() !== "google") throw new Error(`Unsupported maps provider: ${provider()}`);
-  if (!process.env.MAPS_API_KEY) throw new Error("Google Maps provider requires MAPS_API_KEY.");
+  if (!toolRuntimeConfig().mapsApiKey)
+    throw new Error("Google Maps provider requires MAPS_API_KEY.");
 
   const departureTime = await departureForGoogle(q);
   const ask = (body: Record<string, unknown>) =>
     googleRequest<{ routes?: GoogleRouteShape[] }>(
       apiUrl("/directions/v2:computeRoutes"),
-      { origin: waypoint(q.from, q.fromLocation), destination: waypoint(q.to, q.toLocation), ...body },
+      {
+        origin: waypoint(q.from, q.fromLocation),
+        destination: waypoint(q.to, q.toLocation),
+        ...body,
+      },
       OPTION_FIELDS,
     ).then((data) => data.routes?.[0]);
 
