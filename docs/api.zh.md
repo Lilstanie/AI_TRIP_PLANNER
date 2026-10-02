@@ -150,8 +150,9 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 }
 ```
 
-`scenarioId` 为 `tokyo-couple` 或 `tokyo-couple-tight-budget`（同一趟旅行、同一份证据，预算为 A$2,300，
-因此第一版计划会超支）。`strategyId` 为 `single-agent-baseline`、`multi-agent-no-revision` 或
+`scenarioId` 为 `tokyo-couple`、`tokyo-couple-tight-budget`（同一趟旅行、同一份证据，预算为 A$2,300，
+因此第一版计划会超支）、`paris-family-infeasible`（四位旅行者、A$3,000，而受支持的最低成本为 A$3,880，
+因此没有任何计划放得下）或 `tokyo-kyoto-multi-city`（两座城市共七晚）。`strategyId` 为 `single-agent-baseline`、`multi-agent-no-revision` 或
 `multi-agent-targeted-revision`。第二个通过 LangGraph 工作流用五个已注册 specialist 运行一轮，因此其计划为
 `round: 1`，所有冲突都保持未解决。第三个运行既有的循环，最多三轮：把每个冲突交给它所点名的 specialist，
 修订未改善计划时保留已知最佳提案，预算不可行时提前停止。`multi-agent-with-revision` 未注册，会被拒绝。
@@ -161,7 +162,7 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 `{ "type": "event", "event": { ... } }`，最后一帧格式为
 `{ "type": "complete", "artifact": { ... } }`。产物包含经过校验的计划、有序事件、
 确定性指标，以及明确的 fixture／评估器版本。`metrics.checks` 逐项列出按场景规则衡量的具名检查
-（`id`、`label`、`passed`）；计划超出预算时 `budgetHeadroom` 为负数。对比数据 `rounds`、`toolCalls`、`fallbacks`、`failedAgents` 和
+（`id`、`label`、`passed`）；计划超出预算时 `budgetHeadroom` 为负数。若场景的证据表明没有任何计划放得下，则用 `evidence-floor`（估算不低于受支持的最便宜选项）和 `infeasibility-reported`（计划指出受支持的最低成本）取代 `budget` 和 `no-conflicts`；多城市场景再增加 `hop-date`、`itinerary-by-city`、`stay-transition`、`trip-dates` 和 `total-consistent`。`versions.evaluator` 为 `scenario-rules-v2`，`versions.fixture` 指明场景的 fixture。对比数据 `rounds`、`toolCalls`、`fallbacks`、`failedAgents` 和
 `unresolvedConflicts` 由轨迹和计划统计得出；`latencyMs` 是不含显示节奏延迟的运行耗时（`durationMs` 含该延迟），
 在 fixture 模式下仅衡量编排开销。产物还记录 `groundedSections`、`duplicateStops`、`genericStops`、
 `multiCityConsistent`（单城市旅行为 `null`）、`stopReason`（没有循环的策略为 `null`）和 `usage`；fixture 运行不调用

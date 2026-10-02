@@ -1,3 +1,5 @@
+import { parisFamilyInfeasible } from "./paris-family";
+import { tokyoKyotoMultiCity } from "./tokyo-kyoto";
 import {
   TripPlan,
   type AgentLabScenarioId,
@@ -12,6 +14,12 @@ export interface AgentLabScenarioRules {
   earliestStartTime: string;
   vegetarianMeals: boolean;
   sectionCount: number;
+  /**
+   * Set when the scenario's own evidence shows no plan can meet the budget: the cheapest flights and
+   * stays it supports. The evaluator then asks whether a plan stays honest about that instead of
+   * whether it fits.
+   */
+  infeasibleBudget?: { minimumSupportedCost: number };
 }
 
 export interface AgentLabScenario {
@@ -258,6 +266,8 @@ export const agentLabScenarios: readonly AgentLabScenario[] = [
     preferences,
     fixturePlan: scriptedBaselinePlan(tightBrief),
   },
+  parisFamilyInfeasible,
+  tokyoKyotoMultiCity,
 ];
 
 export const agentLabScenarioSummaries = agentLabScenarios.map(({ id, title, summary }) => ({

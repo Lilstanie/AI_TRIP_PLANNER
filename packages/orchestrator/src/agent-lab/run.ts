@@ -9,7 +9,7 @@ import {
   type AgentLabRunRequest,
   type TripPlan,
 } from "@trip/shared";
-import { evaluateAgentLabPlan } from "./evaluate";
+import { AGENT_LAB_EVALUATOR_VERSION, evaluateAgentLabPlan } from "./evaluate";
 import { measureAgentLabRun } from "./metrics";
 import { findAgentLabScenario } from "./scenarios";
 import { findAgentLabStrategy } from "./strategies";
@@ -122,7 +122,7 @@ export async function runAgentLab(
     completedAt: new Date(completedAtMs).toISOString(),
     versions: {
       fixture: scenario.fixtureVersion,
-      evaluator: "basic-plan-v1",
+      evaluator: AGENT_LAB_EVALUATOR_VERSION,
     },
     events,
     plan,
@@ -151,7 +151,7 @@ export function createFailedAgentLabArtifact(
     completedAt: new Date(completedAtMs).toISOString(),
     versions: {
       fixture: scenario.fixtureVersion,
-      evaluator: "basic-plan-v1",
+      evaluator: AGENT_LAB_EVALUATOR_VERSION,
     },
     events,
     failure: {

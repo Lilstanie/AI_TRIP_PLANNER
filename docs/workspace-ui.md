@@ -468,7 +468,8 @@ registered scenario, a strategy choice and the fixed Fixture data mode; Run expe
 run while the NDJSON response is active. Compare all strategies runs the single-agent baseline, the
 five-specialist no-revision strategy and the targeted-revision strategy one after the other and opens
 the comparison view. The scenario list also offers the tight-budget Tokyo trip, where the first plan
-overruns and only transport is revised.
+overruns and only transport is revised; a Paris family trip whose budget no plan can meet; and a seven-night
+Tokyo and Kyoto trip whose move between cities every strategy must keep consistent.
 
 Each timeline event carries a text label for the part of the system that produced it: Run, Graph stage,
 Specialist or Tool. Specialist events show the bounded objective, constraints and outcome. Revision
@@ -477,11 +478,14 @@ runs add Graph stage events for the conflict check (the conflicts and their targ
 
 The comparison view shows a table of measured figures (latency, rounds, tool calls, fallbacks, failed
 agents, budget, unresolved conflicts, checks, grounded sections, repeated and generic stops,
-multi-city consistency, stopping reason and token and model cost), the three plans and the three
+multi-city consistency, stopping reason, conflict outcome and token and model cost), the three plans and the three
 traces side by side. Token and model cost reads "Unavailable", never 0, because fixture runs make no
 model calls. Every figure
 is read from that run's artifact; a strategy that has not finished shows "No completed run". The page never
-ranks the strategies. It states that single agent against no revision measures specialization and
+ranks the strategies. Conflict outcome tells a strategy that never checked, one that found no conflict, one that
+repaired its conflicts, one that left some unresolved and one that stopped because the budget is infeasible
+apart; the inspector marks each conflict check as repairable, infeasible budget or none found, and each stop
+with its reason. It states that single agent against no revision measures specialization and
 no revision against targeted revision measures what targeted revision adds,
 that fixture mode shows how evidence is measured and not model quality, and why budgeting, conflict
 checks, state transitions, maps and weather are graph nodes or tools instead of agents.

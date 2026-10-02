@@ -5,6 +5,7 @@ import type {
   ProposalItem,
   TripPlan,
 } from "@trip/shared";
+import { cityNames, normal } from "./cities";
 import { evaluateAgentLabPlan } from "./evaluate";
 import { findAgentLabScenario, type AgentLabScenario } from "./scenarios";
 
@@ -12,13 +13,6 @@ import { findAgentLabScenario, type AgentLabScenario } from "./scenarios";
 export type AgentLabMeasurement = Omit<AgentLabMetrics, "durationMs" | "latencyMs">;
 
 const GROUNDED_SOURCES = new Set(["live", "estimated", "mock"]);
-
-const normal = (text: string) => text.trim().replace(/\s+/g, " ").toLowerCase();
-const cityNames = (destination: string) =>
-  destination
-    .split(/\s*&\s*/)
-    .map(normal)
-    .filter(Boolean);
 
 function activities(plan: TripPlan): ProposalItem[] {
   return plan.sections
