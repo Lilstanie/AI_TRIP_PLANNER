@@ -113,6 +113,13 @@ brief, which check that the train, the stays, each day's activities and the tota
 Every artifact records the scenario's fixture version and the evaluator version (`scenario-rules-v2`); the
 [Agent Note](../.agents/notes/implemented/architecture/2026-10-02-agent-lab-benchmark-scenarios.md) records the decision.
 
+Artifact download and replay happen in the browser; no endpoint or server storage is involved. The
+page saves the artifact it received, and `apps/web/lib/agent-lab/replay.ts` validates a chosen file
+against the shared `AgentLabRunArtifact` contract (one schema version, contiguous events, a valid plan,
+timing that never runs backwards) before replaying the recorded events at their recorded offsets. The
+stored metrics are shown as recorded, not recomputed in the page; the
+[Agent Note](../.agents/notes/implemented/architecture/2026-10-02-agent-lab-artifact-replay.md) explains why.
+
 ## LangGraph workflow
 
 ```mermaid

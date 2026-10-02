@@ -490,6 +490,20 @@ no revision against targeted revision measures what targeted revision adds,
 that fixture mode shows how evidence is measured and not model quality, and why budgeting, conflict
 checks, state transitions, maps and weather are graph nodes or tools instead of agents.
 
+Every completed run offers **Download artifact**, in the inspector beside the metrics and under each
+strategy in the comparison. The file is the versioned run artifact exactly as the stream completed with
+it, and the status region announces its name. **Replay artifact** opens a file chooser. The page
+validates the chosen file in the browser and plays it back through the same timeline, plan and metrics
+views, with the recorded scenario and strategy selected, each event appearing at its recorded time and
+a note naming the recorded run, so a replay is never mistaken for a live run. **Stop replay** ends it
+with the events seen so far and no plan. Replay makes no request, so it works offline, and it does not
+touch saved chats, trips or preferences. A file is refused, with the reason stated and any result
+already on the page left in place, when it is not JSON, has no or an unsupported schema version, has
+missing, duplicated or out-of-order events, has events timed backwards or from another run, has a
+mismatched event count or an invalid plan, records a failed run (not yet replayable), is larger than
+5 MB or would play for more than ten minutes. Fields the contract does not define are dropped, never
+shown.
+
 The responsive three-panel inspector shows the ordered run timeline, the validated plan and the run
 metrics. The metrics panel shows the real budget state (within or over, with the amount) and every
 named deterministic check as Passed or Failed. If a run fails after streaming starts, the page keeps

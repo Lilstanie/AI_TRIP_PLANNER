@@ -1,5 +1,6 @@
 import type { AgentLabCompletedRunArtifact, AgentLabRunEvent } from "@trip/shared";
 import { buildComparisonRows, NO_RESULT } from "@/lib/agent-lab/comparison";
+import { DownloadArtifactButton } from "./DownloadArtifactButton";
 import { PlanSections, PlanSummary } from "./PlanSections";
 import { RunTimeline } from "./RunTimeline";
 
@@ -14,7 +15,13 @@ export interface ComparisonSide {
  * artifact, and the panel never ranks the strategies: it shows what each step adds, not which side
  * "wins".
  */
-export function ComparisonPanel({ sides }: { sides: readonly ComparisonSide[] }) {
+export function ComparisonPanel({
+  sides,
+  onDownloaded,
+}: {
+  sides: readonly ComparisonSide[];
+  onDownloaded: (filename: string) => void;
+}) {
   const rows = buildComparisonRows(...sides.map((side) => side.artifact));
   return (
     <section className="agent-lab__compare" aria-labelledby="agent-lab-compare-title">
@@ -66,6 +73,13 @@ export function ComparisonPanel({ sides }: { sides: readonly ComparisonSide[] })
         {sides.map((side) => (
           <article key={side.label} aria-label={side.label} data-agent-lab-compare-side>
             <h3>{side.label}</h3>
+            {side.artifact ? (
+              <DownloadArtifactButton
+                artifact={side.artifact}
+                label={side.label}
+                onDownloaded={onDownloaded}
+              />
+            ) : null}
             {side.artifact ? (
               <>
                 <PlanSummary plan={side.artifact.plan} />

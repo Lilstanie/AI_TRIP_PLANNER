@@ -24,8 +24,8 @@ contract-impact: packages/shared
 ## Why
 
 See the Agent Note: an impossible request must not reward fabricated feasibility, and multi-city
-consistency needs checks that can fail. Roadmap and the E2E script count in `development.md` are not
-edited here because #119 changes the same lines; fix them when it merges.
+consistency needs checks that can fail. After #119 merged, main was merged in; the roadmap and the E2E
+script count in `development.md` (now five) were updated then.
 
 ## Validation
 
