@@ -500,7 +500,7 @@ with the events seen so far and no plan. Replay makes no request, so it works of
 touch saved chats, trips or preferences. A file is refused, with the reason stated and any result
 already on the page left in place, when it is not JSON, has no or an unsupported schema version, has
 missing, duplicated or out-of-order events, has events timed backwards or from another run, has a
-mismatched event count or an invalid plan, records a failed run (not yet replayable), is larger than
+mismatched event count or an invalid plan, records a failed run that kept no events, is larger than
 5 MB or would play for more than ten minutes. Fields the contract does not define are dropped, never
 shown.
 
@@ -511,6 +511,16 @@ started and an alert that says which limit was hit, how long to wait and that no
 failed run, and fixture data stays available. The trace, the metrics, the comparison and every artifact say Fixture data
 or Live data. Measured usage shows the tokens the provider returned and that cost is not reported; usage that was not
 measured reads Unavailable, never zero.
+
+The **Failures** view lists the five registered fault profiles. A card says where its fault is injected,
+which scenario and strategy it runs on and what to expect. **Run profile** runs it, and **Run all fault
+profiles** runs the five one after another; Cancel run stops the sequence. When a run ends, the card shows an
+outcome word (Completed, Degraded, Partial result or Failed), a headline, the facts behind it, six figures
+counted from the artifact (events, failed tool calls, failed specialists, unavailable sections, unresolved
+conflicts and stopping reason) and the full trace, with the run metrics for a completed run. A run a fault
+stops keeps its trace and shows no plan, because none was assembled. The outcome is read from the artifact
+alone and announced in the status region, so a live run, a download and a replay of it read the same. Every
+card offers Download artifact, a failed run included, and replaying a fault artifact opens this view.
 
 The responsive three-panel inspector shows the ordered run timeline, the validated plan and the run
 metrics. The metrics panel shows the real budget state (within or over, with the amount) and every

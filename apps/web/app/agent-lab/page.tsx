@@ -1,5 +1,9 @@
 import type { Metadata } from "next";
-import { agentLabScenarioSummaries, agentLabStrategySummaries } from "@trip/orchestrator";
+import {
+  agentLabFaultProfileSummaries,
+  agentLabScenarioSummaries,
+  agentLabStrategySummaries,
+} from "@trip/orchestrator";
 import { AgentLabClient } from "@/components/agent-lab/AgentLabClient";
 import { readLiveConfig } from "@/lib/agent-lab/live-gate";
 
@@ -18,6 +22,7 @@ export default function AgentLabPage() {
       scenarios={agentLabScenarioSummaries}
       strategies={agentLabStrategySummaries}
       liveEnabled={readLiveConfig().enabled}
+      faultProfiles={agentLabFaultProfileSummaries}
     />
   );
 }

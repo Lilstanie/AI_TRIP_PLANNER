@@ -1,15 +1,15 @@
 "use client";
 
-import type { AgentLabCompletedRunArtifact } from "@trip/shared";
+import type { AgentLabRunArtifact } from "@trip/shared";
 import { downloadArtifact } from "@/lib/agent-lab/replay";
 
-/** Saves one completed run's artifact. The name carries the strategy so three buttons stay distinct. */
+/** Saves one run's artifact, completed or failed. The name carries the strategy so three buttons stay distinct. */
 export function DownloadArtifactButton({
   artifact,
   label,
   onDownloaded,
 }: {
-  artifact: AgentLabCompletedRunArtifact;
+  artifact: AgentLabRunArtifact;
   label: string;
   onDownloaded: (filename: string) => void;
 }) {

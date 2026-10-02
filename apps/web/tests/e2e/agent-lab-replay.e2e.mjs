@@ -19,7 +19,7 @@
 // - an unreadable file is guessed into a run: not JSON, not an artifact, an unknown schema version,
 //   a missing, duplicated or reordered event, events timed backwards, an event from another run,
 //   a mismatched event count, a broken plan, an unknown scenario, an empty trace, a failed-run
-//   artifact, an oversized file or a trace that would play for hours;
+//   artifact with no events, an oversized file or a trace that would play for hours;
 // - a rejection hides the reason, is not announced, replaces a result already on the page, or
 //   blocks the next valid file;
 // - fields the contract does not define (a raw prompt in an uploaded file) reach the page;
@@ -491,14 +491,17 @@ async function main() {
     copy.metrics.eventCount = 0;
     return JSON.stringify(copy);
   });
-  mutate("failed-run", ["failed run", "not supported"], () => {
+  // A failed run replays when it kept its events (see agent-lab-failures.e2e.mjs); with none there is
+  // nothing to show.
+  mutate("failed-run-without-events", ["no events to replay"], () => {
     const copy = clone(base);
     delete copy.plan;
     return JSON.stringify({
       ...copy,
       status: "failed",
-      failure: { code: "run_failed", message: "recorded failure", atSequence: copy.events.length },
-      metrics: { eventCount: copy.events.length, durationMs: base.metrics.durationMs },
+      events: [],
+      failure: { code: "run_failed", message: "recorded failure", atSequence: 0 },
+      metrics: { eventCount: 0, durationMs: base.metrics.durationMs },
     });
   });
   mutate("endless-trace", ["longer than 10 minutes"], () => {

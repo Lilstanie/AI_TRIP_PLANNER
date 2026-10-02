@@ -25,11 +25,28 @@ export type AgentLabStrategyId = z.infer<typeof AgentLabStrategyId>;
 export const AgentLabDataMode = z.enum(["fixture", "live"]);
 export type AgentLabDataMode = z.infer<typeof AgentLabDataMode>;
 
+// The registered, deterministic faults a visitor may ask for. A visitor never defines a fault: the
+// profile names one that the server owns, and the server decides where it applies.
+export const AgentLabFaultProfileId = z.enum([
+  "provider-timeout",
+  "provider-empty-result",
+  "invalid-agent-output",
+  "supervisor-failure",
+  "stalled-revision",
+]);
+export type AgentLabFaultProfileId = z.infer<typeof AgentLabFaultProfileId>;
+
+// The part of the system a fault is injected into: one of the five specialists, or the supervisor that
+// delegates to them.
+export const AgentLabFaultCapability = z.enum([...AGENT_NAMES, "supervisor"]);
+export type AgentLabFaultCapability = z.infer<typeof AgentLabFaultCapability>;
+
 export const AgentLabRunRequest = z
   .object({
     scenarioId: AgentLabScenarioId,
     strategyId: AgentLabStrategyId,
     dataMode: AgentLabDataMode,
+    faultProfileId: AgentLabFaultProfileId.optional(),
   })
   .strict();
 export type AgentLabRunRequest = z.infer<typeof AgentLabRunRequest>;
@@ -112,6 +129,30 @@ export const AgentLabLifecycleEvent = z.discriminatedUnion("type", [
     round: z.number().int().positive(),
     reason: AgentLabStopReason,
     unresolved: z.number().int().nonnegative(),
+    summary: z.string().min(1),
+  }),
+  z.object({
+    // The first event after the run starts when a registered fault was asked for, so a reader knows
+    // the failures that follow were injected, and where.
+    type: z.literal("lab_fault_injected"),
+    profileId: AgentLabFaultProfileId,
+    capability: AgentLabFaultCapability,
+    summary: z.string().min(1),
+  }),
+  z.object({
+    // A specialist's output failed the shared proposal schema at the workflow boundary. Only the
+    // field paths are published, never the validator's message or the rejected value.
+    type: z.literal("lab_agent_output_rejected"),
+    agent: z.enum(AGENT_NAMES),
+    round: z.number().int().positive(),
+    fields: z.array(z.string().min(1)).min(1),
+    summary: z.string().min(1),
+  }),
+  z.object({
+    // The supervisor could not delegate, so the workflow dispatched the specialists deterministically.
+    type: z.literal("lab_supervisor_fallback"),
+    phase: z.enum(["dispatch", "revision"]),
+    round: z.number().int().positive(),
     summary: z.string().min(1),
   }),
   z.object({
@@ -213,9 +254,11 @@ export const AgentLabFailureMetrics = z.object({
 export type AgentLabFailureMetrics = z.infer<typeof AgentLabFailureMetrics>;
 
 export const AgentLabFailure = z.object({
-  code: z.literal("run_failed"),
+  // `agent_failed` names the specialist whose failure ended the run; `run_failed` is any other cause.
+  code: z.enum(["run_failed", "agent_failed"]),
   message: z.string().min(1),
   atSequence: z.number().int().nonnegative(),
+  agent: z.enum(AGENT_NAMES).optional(),
 });
 export type AgentLabFailure = z.infer<typeof AgentLabFailure>;
 
@@ -226,6 +269,9 @@ const AgentLabRunArtifactBase = z
     scenarioId: AgentLabScenarioId,
     strategyId: AgentLabStrategyId,
     dataMode: AgentLabDataMode,
+    // The registered fault this run was asked to inject; null for an ordinary run, and for any artifact
+    // recorded before faults existed.
+    faultProfileId: AgentLabFaultProfileId.nullable().default(null),
     startedAt: z.string().min(1),
     completedAt: z.string().min(1),
     versions: z.object({

@@ -29,12 +29,16 @@ export {
   type SupervisorRevisionOptions,
 } from "./supervisor";
 export {
+  agentLabFaultProfileSummaries,
   agentLabScenarioSummaries,
   agentLabStrategySummaries,
   agentLabStrategySupportsLive,
   buildAgentLabUsage,
   createFailedAgentLabArtifact,
+  isRegisteredAgentLabRun,
   runAgentLab,
+  runAgentLabToArtifact,
+  type AgentLabFaultProfile,
   type RunAgentLabOptions,
 } from "./agent-lab";
 

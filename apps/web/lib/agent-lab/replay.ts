@@ -1,7 +1,7 @@
 import {
   AGENT_LAB_ARTIFACT_SCHEMA_VERSION,
   AgentLabRunArtifact,
-  type AgentLabCompletedRunArtifact,
+  type AgentLabRunArtifact as AgentLabRunArtifactValue,
   type AgentLabRunEvent,
 } from "@trip/shared";
 
@@ -10,7 +10,7 @@ export const MAX_REPLAY_BYTES = 5 * 1024 * 1024;
 export const MAX_REPLAY_MS = 10 * 60 * 1000;
 
 export type ReplayParse =
-  { ok: true; artifact: AgentLabCompletedRunArtifact } | { ok: false; message: string };
+  { ok: true; artifact: AgentLabRunArtifactValue } | { ok: false; message: string };
 
 const reject = (message: string): ReplayParse => ({ ok: false, message });
 
@@ -84,10 +84,10 @@ export function parseReplayArtifact(text: string): ReplayParse {
   const parsed = AgentLabRunArtifact.safeParse(raw);
   if (!parsed.success) return reject(describeInvalid(parsed.error.issues, raw));
   const artifact = parsed.data;
-  if (artifact.status === "failed") {
-    return reject(
-      "This artifact records a failed run; replaying a failed run is not supported yet.",
-    );
+  // A failed run is replayable when it kept the events recorded before it failed; without them there
+  // is nothing to show.
+  if (artifact.events.length === 0) {
+    return reject("This artifact has no events to replay.");
   }
   for (let index = 1; index < artifact.events.length; index += 1) {
     const previous = artifact.events[index - 1]!.elapsedMs;
@@ -151,13 +151,13 @@ export async function replayEvents(
   return true;
 }
 
-export function artifactFilename(artifact: AgentLabCompletedRunArtifact): string {
+export function artifactFilename(artifact: AgentLabRunArtifactValue): string {
   const run = artifact.runId.replace(/[^a-z0-9_-]/gi, "-");
   return `agent-lab-${artifact.scenarioId}-${artifact.strategyId}-${run}.json`;
 }
 
 /** Saves the artifact exactly as validated: the same bounded contract the stream completed with. */
-export function downloadArtifact(artifact: AgentLabCompletedRunArtifact): string {
+export function downloadArtifact(artifact: AgentLabRunArtifactValue): string {
   const filename = artifactFilename(artifact);
   const url = URL.createObjectURL(
     new Blob([JSON.stringify(artifact, null, 2)], { type: "application/json" }),

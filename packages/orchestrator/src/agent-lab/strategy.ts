@@ -4,6 +4,7 @@ import type {
   AgentLabStrategyId,
   TripPlan,
 } from "@trip/shared";
+import type { AgentLabFaultProfile } from "./fault-profiles";
 import type { AgentLabScenario } from "./scenarios";
 
 export interface AgentLabStrategyContext {
@@ -11,6 +12,8 @@ export interface AgentLabStrategyContext {
   signal: AbortSignal;
   /** Publishes one trace event; resolves once the event has been delivered and paced. */
   emit: (event: AgentLabEventPayload) => Promise<void>;
+  /** The registered fault this run injects, when one was asked for. */
+  fault?: AgentLabFaultProfile;
 }
 
 /**

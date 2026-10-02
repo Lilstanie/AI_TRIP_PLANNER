@@ -92,6 +92,25 @@ export function eventCopy(runEvent: AgentLabRunEvent): EventCopy {
         title: `Loop stopped · round ${event.round} · ${stopReasonLabel(event.reason)}`,
         detail: event.summary,
       };
+    case "lab_fault_injected":
+      return {
+        kind: "run",
+        title: `Fault injected · ${event.capability}`,
+        detail: event.summary,
+      };
+    case "lab_agent_output_rejected":
+      return {
+        kind: "specialist",
+        title: `${agentName(event.agent)} output rejected${inRound(event.round)}`,
+        detail: event.summary,
+        list: { heading: "Rejected fields", lines: event.fields },
+      };
+    case "lab_supervisor_fallback":
+      return {
+        kind: "graph",
+        title: `Supervisor fallback · ${event.phase}${inRound(event.round)}`,
+        detail: event.summary,
+      };
     case "lab_plan_validated":
       return { kind: "run", title: "Plan validated", detail: event.summary };
     case "lab_evaluation_completed":
@@ -151,7 +170,7 @@ export function eventCopy(runEvent: AgentLabRunEvent): EventCopy {
     case "tool_failed":
       return {
         kind: "tool",
-        title: `${agentName(event.agent)} · ${event.label}${inRound(event.round)}`,
+        title: `${agentName(event.agent)} · ${event.label} failed${inRound(event.round)}`,
         detail: event.error,
       };
   }

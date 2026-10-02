@@ -12,6 +12,12 @@
 //   limits or configuration;
 // - the concurrency or hourly limit is not enforced, a slot is not freed when a run is cancelled, or a
 //   fixture run is blocked by the live limits.
+
+// - a fault the server did not register (an unknown id, an object that defines one, a registered one on
+//   a scenario or strategy it was not built for) is accepted;
+// - a fault that ends the run is reported as an ordinary success, loses the events recorded before it,
+//   or does not name the capability that failed;
+// - a faulted run's artifact is missing the profile, so a download could not say what was injected.
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { POST } from "@/app/api/agent-lab/runs/route";
 import { resetLiveLimiter } from "@/lib/agent-lab/live-gate";
@@ -100,6 +106,77 @@ describe("POST /api/agent-lab/runs", () => {
     expect(artifact.metrics.rounds).toBe(2);
     expect(artifact.metrics.stopReason).toBe("converged");
     expect(artifact.metrics.unresolvedConflicts).toBe(0);
+  });
+
+  it.each([
+    [
+      "an unknown fault",
+      { ...valid, strategyId: "multi-agent-no-revision", faultProfileId: "disk-full" },
+    ],
+    [
+      "a fault the visitor defines",
+      {
+        ...valid,
+        strategyId: "multi-agent-no-revision",
+        faultProfileId: { tool: "searchFlights" },
+      },
+    ],
+    ["a fault on the single-agent baseline", { ...valid, faultProfileId: "provider-timeout" }],
+    [
+      "a fault on a scenario it was not built for",
+      {
+        scenarioId: "tokyo-couple-tight-budget",
+        strategyId: "multi-agent-no-revision",
+        dataMode: "fixture",
+        faultProfileId: "provider-timeout",
+      },
+    ],
+  ])("rejects %s with 400", async (_name, body) => {
+    const response = await post(body);
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ error: "Invalid Agent Lab request" });
+  });
+
+  const frames = async (response: Response) =>
+    (await response.text())
+      .split("\n")
+      .filter(Boolean)
+      .map((text) => JSON.parse(text));
+
+  it("streams a degraded run to a completed artifact that names the injected fault", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const response = await post({
+      scenarioId: "tokyo-couple",
+      strategyId: "multi-agent-no-revision",
+      dataMode: "fixture",
+      faultProfileId: "provider-timeout",
+    });
+    expect(response.status).toBe(200);
+    const all = await frames(response);
+    expect(all.at(-1).type).toBe("complete");
+    expect(all.at(-1).artifact.faultProfileId).toBe("provider-timeout");
+    expect(all[0].event.event.type).toBe("lab_run_started");
+    expect(all[1].event.event.type).toBe("lab_fault_injected");
+  });
+
+  it("ends a run the fault stops with an error frame, the recorded events and the failed capability", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const response = await post({
+      scenarioId: "tokyo-couple",
+      strategyId: "multi-agent-no-revision",
+      dataMode: "fixture",
+      faultProfileId: "provider-empty-result",
+    });
+    expect(response.status).toBe(200);
+    const all = await frames(response);
+    const last = all.at(-1);
+    expect(last.type).toBe("error");
+    expect(last.artifact.status).toBe("failed");
+    expect(last.artifact.faultProfileId).toBe("provider-empty-result");
+    expect(last.artifact.failure).toMatchObject({ code: "agent_failed", agent: "accommodation" });
+    expect(last.error).toBe(last.artifact.failure.message);
+    expect(last.artifact.events).toHaveLength(all.length - 1);
+    expect(all.some((frame) => frame.type === "complete")).toBe(false);
   });
 
   it("stops writing and does not log an error when the reader cancels mid-run", async () => {
