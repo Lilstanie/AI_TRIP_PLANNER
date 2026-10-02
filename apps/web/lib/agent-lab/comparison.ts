@@ -35,9 +35,17 @@ export function conflictOutcomeLabel(metrics: Metrics): string {
 export const multiCityLabel = (consistent: boolean | null) =>
   consistent === null ? "Not applicable" : consistent ? "Consistent" : "Inconsistent";
 
-/** Usage that was not measured is "Unavailable", never a zero that reads as free. */
-const usageLabels = { unavailable: "Unavailable" } as const;
-export const usageLabel = (usage: Metrics["usage"]) => usageLabels[usage.status];
+/**
+ * Usage that was not measured is "Unavailable", never a zero that reads as free. Measured usage is the
+ * token count the provider returned for every model call; cost is never shown because providers do not
+ * return it.
+ */
+export const usageLabel = (usage: Metrics["usage"]) =>
+  usage.status === "unavailable"
+    ? "Unavailable"
+    : `${usage.totalTokens.toLocaleString("en-AU")} tokens in ${usage.modelCalls} model ${
+        usage.modelCalls === 1 ? "call" : "calls"
+      }; cost not reported`;
 
 export const NO_RESULT = "No completed run";
 

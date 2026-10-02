@@ -13,10 +13,14 @@ const registry: Record<AgentLabStrategyId, AgentLabStrategy> = {
 };
 
 export const agentLabStrategySummaries = [
-  { id: "single-agent-baseline", label: "Single-agent baseline" },
-  { id: "multi-agent-no-revision", label: "Five specialists, no revision" },
-  { id: "multi-agent-targeted-revision", label: "Five specialists, targeted revision" },
-] as const satisfies readonly { id: AgentLabStrategyId; label: string }[];
+  { id: "single-agent-baseline", label: "Single-agent baseline", live: false },
+  { id: "multi-agent-no-revision", label: "Five specialists, no revision", live: true },
+  { id: "multi-agent-targeted-revision", label: "Five specialists, targeted revision", live: true },
+] as const satisfies readonly { id: AgentLabStrategyId; label: string; live: boolean }[];
+
+export function agentLabStrategySupportsLive(id: AgentLabStrategyId): boolean {
+  return registry[id].live;
+}
 
 export function findAgentLabStrategy(id: AgentLabStrategyId): AgentLabStrategy {
   return registry[id];

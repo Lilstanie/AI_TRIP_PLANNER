@@ -1,5 +1,6 @@
 import type {
   AgentLabCompletedRunArtifact,
+  AgentLabRejectionReason,
   AgentLabFailedRunArtifact,
   AgentLabFaultCapability,
   AgentLabFaultProfileId,
@@ -8,7 +9,7 @@ import type {
   AgentLabStrategyId,
 } from "@trip/shared";
 
-export type RunState = "ready" | "running" | "cancelled" | "complete" | "error";
+export type RunState = "ready" | "running" | "cancelled" | "complete" | "error" | "rejected";
 
 /** One run as the page holds it: the events so far, and the artifact it ended in. */
 export interface RunView {
@@ -17,6 +18,8 @@ export interface RunView {
   artifact?: AgentLabCompletedRunArtifact;
   failure?: AgentLabFailedRunArtifact;
   error?: string;
+  // Set when the server turned the request away before a run started: not a failed experiment.
+  rejection?: { reason: AgentLabRejectionReason; message: string; retryAfterSeconds?: number };
   // Set when the events come from a recorded artifact rather than a run on this page.
   replay?: { runId: string; startedAt: string; total: number };
 }

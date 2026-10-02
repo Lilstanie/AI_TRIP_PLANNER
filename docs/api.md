@@ -194,8 +194,20 @@ the failure. `failure.code` is `agent_failed`, with `failure.agent` naming the s
 reported that it could not finish, and `run_failed` otherwise; neither message carries a stack, a validator
 message or a provider payload.
 
-Agent Lab is fixture-only. It is meant to run with no model or provider key, makes no external calls
-when none are configured and does not persist chats, trips or lab results.
+`dataMode` is `fixture` (the default) or `live`. A fixture run executes with mock tools and no model for
+that request, so it makes no external call and spends no quota whatever keys or data-mode default the
+deployment holds. It needs no credential, and neither it nor a live run persists chats, trips or lab results.
+
+A live run uses the deployment's own models and providers, and exists only where the deployment sets
+`AGENT_LAB_LIVE_ENABLED=true` (see [development](development.md)). Only the two specialist strategies have a live
+implementation; the single-agent baseline replays a recording, so asking for it live is refused. A request that
+cannot start is answered with one typed `rejected` frame and no run, never an artifact: 503 `live_disabled`, 400
+`live_unsupported`, or 429 `concurrency_limit` or `rate_limit` with a `Retry-After` header and
+`retryAfterSeconds`. These are not failures of the experiment, and the messages name no setting or limit. A live
+artifact's `dataMode`, and every event's, say `live`. Its `metrics.usage` is `{ "status": "measured", ... }` with
+the input, output and total tokens only when the provider returned usage for every model call, and
+`{ "status": "unavailable", "reason": ... }` otherwise, never a zero or a partial total. Model cost is never
+reported, and the trace never carries a model's own reasoning.
 
 ## `GET /api/data-mode`
 

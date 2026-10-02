@@ -57,7 +57,11 @@ export function MetricsList({ artifact }: { artifact: AgentLabCompletedRunArtifa
         <div>
           <dt>Token and model cost</dt>
           <dd>{usageLabel(metrics.usage)}</dd>
-          <small>{metrics.usage.reason}</small>
+          <small>
+            {metrics.usage.status === "unavailable"
+              ? metrics.usage.reason
+              : `${metrics.usage.inputTokens.toLocaleString("en-AU")} in, ${metrics.usage.outputTokens.toLocaleString("en-AU")} out; reported by the provider`}
+          </small>
         </div>
       </dl>
       <ul className="agent-lab__checks" aria-label="Deterministic checks">

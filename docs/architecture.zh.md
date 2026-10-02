@@ -72,7 +72,7 @@ supervisor 只选择某个节点需要哪些 specialist 工具。控制路径、
 
 `/agent-lab` 是独立于已保存工作区的公开、可检查实验界面。它只接受已注册的取值：策略
 （`single-agent-baseline`、`multi-agent-no-revision` 和 `multi-agent-targeted-revision`）、四个场景
-（`tokyo-couple`、预算为 A$2,300 的同一趟旅行、一趟巴黎家庭行程和一趟东京与京都行程）以及 fixture 数据。`POST /api/agent-lab/runs` 校验这一封闭请求，
+（`tokyo-couple`、预算为 A$2,300 的同一趟旅行、一趟巴黎家庭行程和一趟东京与京都行程）以及数据模式（fixture 为默认，或 live）。`POST /api/agent-lab/runs` 校验这一封闭请求，
 调用 `runAgentLab()`，先流式返回有序的 NDJSON 事件信封，最后返回带 schema 版本的产物。
 
 该基线是位于五个旅行 specialist 之上的实验策略，不是第六个 specialist。其确定性 fixture
@@ -105,6 +105,12 @@ specialist 走确定性路径，工具返回 mock fixture；它们不读取或�
 产物的下载与回放都发生在浏览器中，不涉及任何端点或服务端存储。页面保存它收到的产物，`apps/web/lib/agent-lab/replay.ts` 则按共享的
 `AgentLabRunArtifact` 约定校验所选文件（单一 schema 版本、连续的事件、有效的计划、不会倒退的时间），再按记录的偏移量回放记录下的事件。
 所存的指标按记录原样显示，不在页面中重新计算；原因见 [Agent Note](../.agents/notes/implemented/architecture/2026-10-02-agent-lab-artifact-replay.md)。
+
+实时门控保护这个公开端点。fixture 运行在请求级的 mock 数据模式下、并禁用模型来执行（`runWithDataMode("mock")` 和 `runWithModelsDisabled`），
+两者都由 AsyncLocalStorage 携带，绝不写入 `process.env`，因此没有任何密钥或默认数据模式能让它触及提供方或模型。只有部署设置了 `AGENT_LAB_LIVE_ENABLED=true`、
+策略有实时实现（脚本化基线没有），并且在 `apps/web/lib/agent-lab/live-gate.ts` 维护的并发和每小时限额之内，才允许实时运行；每一次拒绝都是在运行开始之前发出的、带类型的 `rejected` 帧。
+实时运行在实时数据模式下执行，用量收集器在每个模型创建时捕获，因此产物中的用量就是提供方为每次调用返回的数字，否则为不可用。多 agent 策略从不发布模型的 `agent_reasoning`。
+决策见 [Agent Note](../.agents/notes/implemented/architecture/2026-10-02-agent-lab-live-gate.md)。
 
 故障实验室让五个已注册的故障走过同一套策略、轨迹、产物和视图。档案是服务端持有的 id，绑定到一个场景和一个策略；访客从不定义故障，
 `POST /api/agent-lab/runs` 会拒绝任何其他组合。故障是包在工作流已在运行的 specialist 外面的包装器，位于轨迹包装器之外，

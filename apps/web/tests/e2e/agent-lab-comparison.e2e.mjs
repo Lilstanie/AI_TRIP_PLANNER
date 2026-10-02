@@ -131,8 +131,9 @@ async function run(browser, { width, height, tag }) {
 
   // Keyboard path to the comparison action.
   await page.getByLabel("Strategy").focus();
-  await page.keyboard.press("Tab");
-  await page.keyboard.press("Tab");
+  await page.keyboard.press("Tab"); // Data mode
+  await page.keyboard.press("Tab"); // Run experiment
+  await page.keyboard.press("Tab"); // Compare all strategies
   check(
     await page
       .getByRole("button", { name: "Compare all strategies" })

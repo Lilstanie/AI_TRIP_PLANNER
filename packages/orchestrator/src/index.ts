@@ -32,6 +32,8 @@ export {
   agentLabFaultProfileSummaries,
   agentLabScenarioSummaries,
   agentLabStrategySummaries,
+  agentLabStrategySupportsLive,
+  buildAgentLabUsage,
   createFailedAgentLabArtifact,
   isRegisteredAgentLabRun,
   runAgentLab,

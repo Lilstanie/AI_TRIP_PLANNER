@@ -4,6 +4,7 @@ import type { AgentLabStrategy } from "./strategy";
 export const singleAgentFixtureStrategy: AgentLabStrategy = {
   id: "single-agent-baseline",
   actor: "single-agent",
+  live: false,
   completionSummary: () =>
     "The scripted baseline produced one complete plan without external model calls.",
   async run({ scenario, signal, emit }) {

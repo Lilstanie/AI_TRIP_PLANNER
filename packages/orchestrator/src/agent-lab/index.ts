@@ -9,7 +9,12 @@ export {
   multiAgentFixtureStrategy,
   multiAgentRevisionFixtureStrategy,
 } from "./multi-agent-fixture";
-export { agentLabStrategySummaries, findAgentLabStrategy } from "./strategies";
+export {
+  agentLabStrategySummaries,
+  agentLabStrategySupportsLive,
+  findAgentLabStrategy,
+} from "./strategies";
+export { buildAgentLabUsage } from "./usage";
 export type { AgentLabStrategy, AgentLabStrategyContext } from "./strategy";
 export { agentLabScenarioSummaries, findAgentLabScenario } from "./scenarios";
 export {

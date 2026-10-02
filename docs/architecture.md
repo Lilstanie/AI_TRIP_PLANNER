@@ -68,7 +68,7 @@ step.
 `/agent-lab` is a public, inspectable experiment surface separate from the saved workspace. It accepts
 only registered values: the strategies (`single-agent-baseline`, `multi-agent-no-revision` and
 `multi-agent-targeted-revision`), four scenarios (`tokyo-couple`, the same trip with a A$2,300 budget, a Paris
-family trip and a Tokyo and Kyoto trip) and fixture data. `POST /api/agent-lab/runs` validates that closed request, calls `runAgentLab()` and
+family trip and a Tokyo and Kyoto trip) and a data mode, fixture (the default) or live. `POST /api/agent-lab/runs` validates that closed request, calls `runAgentLab()` and
 streams ordered NDJSON event envelopes before a final schema-versioned artifact.
 
 The baseline is an experiment strategy above the five travel specialists, not a sixth specialist.
@@ -119,6 +119,16 @@ against the shared `AgentLabRunArtifact` contract (one schema version, contiguou
 timing that never runs backwards) before replaying the recorded events at their recorded offsets. The
 stored metrics are shown as recorded, not recomputed in the page; the
 [Agent Note](../.agents/notes/implemented/architecture/2026-10-02-agent-lab-artifact-replay.md) explains why.
+
+The live gate protects the public endpoint. A fixture run executes under a request-scoped mock data mode and with
+models disabled (`runWithDataMode("mock")` and `runWithModelsDisabled`), both carried by AsyncLocalStorage and never
+written to `process.env`, so no key and no data-mode default can make it reach a provider or a model. A live run is
+allowed only when the deployment sets `AGENT_LAB_LIVE_ENABLED=true`, only for a strategy with a live implementation
+(the scripted baseline has none), and only within the concurrency and hourly limits kept by
+`apps/web/lib/agent-lab/live-gate.ts`; each refusal is a typed `rejected` frame sent before any run starts. A live run
+executes under a live data mode with a usage collector captured when each model is built, so the usage in the artifact
+is what the provider returned for every call, or is unavailable. The multi-agent strategy never publishes a model's
+`agent_reasoning`. The [Agent Note](../.agents/notes/implemented/architecture/2026-10-02-agent-lab-live-gate.md) records the decision.
 
 The Failure Lab runs five registered faults through the same strategy, trace, artifact and views. A
 profile is a server-owned id bound to one scenario and strategy; the visitor never defines a fault, and

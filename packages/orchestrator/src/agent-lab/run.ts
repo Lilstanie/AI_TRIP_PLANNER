@@ -10,11 +10,19 @@ import {
   type AgentLabRunRequest,
   type TripPlan,
 } from "@trip/shared";
+import {
+  createUsageCollector,
+  runWithModelsDisabled,
+  runWithUsageCollector,
+  type UsageCollector,
+} from "@trip/agents";
+import { runWithDataMode } from "@trip/tools";
 import { AGENT_LAB_EVALUATOR_VERSION, evaluateAgentLabPlan } from "./evaluate";
 import { findAgentLabFaultProfile, isRegisteredAgentLabRun } from "./fault-profiles";
 import { measureAgentLabRun } from "./metrics";
 import { findAgentLabScenario } from "./scenarios";
 import { findAgentLabStrategy } from "./strategies";
+import { buildAgentLabUsage } from "./usage";
 
 export interface RunAgentLabOptions {
   signal?: AbortSignal;
@@ -47,9 +55,36 @@ function abortableDelay(ms: number, signal: AbortSignal): Promise<void> {
   });
 }
 
+/**
+ * Runs one registered experiment. The mode travels with the request, never through `process.env`:
+ *
+ * - fixture forces mock tools and no model, so a public run cannot reach a provider or a paid model
+ *   whatever keys the deployment holds or whatever data mode it defaults to;
+ * - live uses the real adapters and models and reports the usage the provider actually returned. A
+ *   strategy with no live implementation is refused rather than labelled live.
+ */
 export async function runAgentLab(
   request: AgentLabRunRequest,
   options: RunAgentLabOptions = {},
+): Promise<AgentLabCompletedRunArtifact> {
+  if (request.dataMode === "live") {
+    if (!findAgentLabStrategy(request.strategyId).live) {
+      throw new Error("This strategy has no live implementation.");
+    }
+    const usage = createUsageCollector();
+    return runWithDataMode("live", () =>
+      runWithUsageCollector(usage, () => executeAgentLab(request, options, usage)),
+    );
+  }
+  return runWithDataMode("mock", () =>
+    runWithModelsDisabled(() => executeAgentLab(request, options)),
+  );
+}
+
+async function executeAgentLab(
+  request: AgentLabRunRequest,
+  options: RunAgentLabOptions,
+  usage?: UsageCollector,
 ): Promise<AgentLabCompletedRunArtifact> {
   const fallbackController = new AbortController();
   const signal = options.signal ?? fallbackController.signal;
@@ -145,6 +180,8 @@ export async function runAgentLab(
     plan,
     metrics: {
       ...measureAgentLabRun(scenario, plan, events),
+      // Usage is not in the trace, so it is the one figure a reader cannot recompute from the artifact.
+      ...(usage ? { usage: buildAgentLabUsage(usage.snapshot()) } : {}),
       durationMs: completedAtMs - startedAtMs,
       latencyMs: Math.max(0, completedAtMs - startedAtMs - pacedMs),
     },

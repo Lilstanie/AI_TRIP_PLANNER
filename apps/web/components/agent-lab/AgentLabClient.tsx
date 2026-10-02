@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  type AgentLabDataMode,
   type AgentLabFaultProfileId,
   type AgentLabRunRequest,
   type AgentLabScenarioId,
@@ -9,7 +10,11 @@ import {
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { faultOutcome } from "@/lib/agent-lab/fault-outcome";
-import { AgentLabRunError, readAgentLabStream } from "@/lib/agent-lab/stream";
+import {
+  AgentLabRejectedError,
+  AgentLabRunError,
+  readAgentLabStream,
+} from "@/lib/agent-lab/stream";
 import { money } from "@/lib/agent-lab/format";
 import { readReplayFile, replayEvents } from "@/lib/agent-lab/replay";
 import {
@@ -36,12 +41,16 @@ interface ScenarioSummary {
 interface StrategySummary {
   id: AgentLabStrategyId;
   label: string;
+  /** False for the scripted baseline, which replays a recording and has no live implementation. */
+  live: boolean;
 }
 
 interface AgentLabClientProps {
   scenarios: readonly ScenarioSummary[];
   strategies: readonly StrategySummary[];
   faultProfiles: readonly FaultProfileSummary[];
+  /** Whether this deployment has explicitly enabled live runs; read on the server, never guessed here. */
+  liveEnabled: boolean;
 }
 
 type View = "inspect" | "compare" | "failures";
@@ -60,7 +69,20 @@ const statusCopy: Record<RunState, string> = {
   cancelled: "Run cancelled",
   complete: "Run complete",
   error: "Run failed",
+  rejected: "Live run not started",
 };
+
+const modeLabel: Record<AgentLabDataMode, string> = {
+  fixture: "Fixture data",
+  live: "Live data",
+};
+
+const retryHint = (seconds?: number) =>
+  seconds === undefined
+    ? ""
+    : seconds >= 120
+      ? ` Try again in about ${Math.ceil(seconds / 60)} minutes.`
+      : ` Try again in about ${seconds} seconds.`;
 
 const faultCopy: Record<RunState, string> = {
   ready: "Ready · choose a fault profile",
@@ -68,6 +90,7 @@ const faultCopy: Record<RunState, string> = {
   cancelled: "Run cancelled",
   complete: "Fault runs complete",
   error: "Fault runs complete",
+  rejected: "Fault runs complete",
 };
 
 const replayCopy = {
@@ -76,10 +99,16 @@ const replayCopy = {
   done: "Replay complete",
 } as const;
 
-export function AgentLabClient({ scenarios, strategies, faultProfiles }: AgentLabClientProps) {
+export function AgentLabClient({
+  scenarios,
+  strategies,
+  faultProfiles,
+  liveEnabled,
+}: AgentLabClientProps) {
   const [scenarioId, setScenarioId] = useState<AgentLabScenarioId>(scenarios[0]!.id);
   const [strategyId, setStrategyId] = useState<AgentLabStrategyId>(strategies[0]!.id);
   const [view, setView] = useState<View>("inspect");
+  const [dataMode, setDataMode] = useState<AgentLabDataMode>("fixture");
   const [runs, setRuns] = useState<Record<string, RunView>>({});
   const [busy, setBusy] = useState(false);
   const [replaying, setReplaying] = useState(false);
@@ -111,6 +140,9 @@ export function AgentLabClient({ scenarios, strategies, faultProfiles }: AgentLa
       };
     });
 
+  // Strategies a request can use in the chosen mode: live needs a live implementation.
+  const available = strategies.filter((strategy) => dataMode === "fixture" || strategy.live);
+
   // Runs go one after another so each one's latency is measured on its own.
   const start = async (jobs: readonly Job[]) => {
     const controller = new AbortController();
@@ -136,6 +168,18 @@ export function AgentLabClient({ scenarios, strategies, faultProfiles }: AgentLa
         if (controller.signal.aborted) {
           patch(job.key, { state: "cancelled" });
           setNotice(undefined);
+          break;
+        }
+        if (caught instanceof AgentLabRejectedError) {
+          // Turned away before a run began; say why in plain words, and do not call it a failed run.
+          patch(job.key, {
+            state: "rejected",
+            rejection: {
+              reason: caught.reason,
+              message: caught.message,
+              retryAfterSeconds: caught.retryAfterSeconds,
+            },
+          });
           break;
         }
         if (job.profile && caught instanceof AgentLabRunError) {
@@ -230,7 +274,7 @@ export function AgentLabClient({ scenarios, strategies, faultProfiles }: AgentLa
 
   const strategyJob = (id: AgentLabStrategyId): Job => ({
     key: id,
-    body: { scenarioId, strategyId: id, dataMode: "fixture" },
+    body: { scenarioId, strategyId: id, dataMode },
   });
 
   const runSelected = () => {
@@ -244,7 +288,7 @@ export function AgentLabClient({ scenarios, strategies, faultProfiles }: AgentLa
 
   const compare = () => {
     setView("compare");
-    void start(strategies.map((strategy) => strategyJob(strategy.id)));
+    void start(available.map((strategy) => strategyJob(strategy.id)));
   };
 
   // A profile runs on the scenario and strategy it was registered with, never on the toolbar's choice.
@@ -278,7 +322,7 @@ export function AgentLabClient({ scenarios, strategies, faultProfiles }: AgentLa
   const activeState: RunState = locked
     ? "running"
     : view === "compare"
-      ? (strategies
+      ? (available
           .map((strategy) => runOf(strategy.id).state)
           .find((state) => state !== "complete") ?? "complete")
       : view === "failures"
@@ -290,8 +334,14 @@ export function AgentLabClient({ scenarios, strategies, faultProfiles }: AgentLa
         : selected.state;
   const errorRun =
     view === "compare"
-      ? strategies.map((strategy) => runOf(strategy.id)).find((run) => run.state === "error")
+      ? available.map((strategy) => runOf(strategy.id)).find((run) => run.state === "error")
       : view === "inspect" && selected.state === "error"
+        ? selected
+        : undefined;
+  const rejectedRun =
+    view === "compare"
+      ? available.map((strategy) => runOf(strategy.id)).find((run) => run.state === "rejected")
+      : view === "inspect" && selected.state === "rejected"
         ? selected
         : undefined;
   const reading = replaying && !replayRun;
@@ -306,9 +356,13 @@ export function AgentLabClient({ scenarios, strategies, faultProfiles }: AgentLa
     notice ??
     (reading ? "Reading artifact" : undefined) ??
     replayLabel ??
-    (view === "failures" ? faultCopy[activeState] : statusCopy[activeState]);
+    (view === "failures"
+      ? faultCopy[activeState]
+      : activeState === "running"
+        ? `Running ${dataMode} experiment`
+        : statusCopy[activeState]);
   const hasRun = strategies.some((strategy) => runOf(strategy.id).state !== "ready");
-  const sides = strategies.map((strategy) => {
+  const sides = available.map((strategy) => {
     const run = runOf(strategy.id);
     return { label: strategy.label, events: run.events, artifact: run.artifact };
   });
@@ -371,16 +425,55 @@ export function AgentLabClient({ scenarios, strategies, faultProfiles }: AgentLa
             disabled={locked}
           >
             {strategies.map((strategy) => (
-              <option key={strategy.id} value={strategy.id}>
+              <option
+                key={strategy.id}
+                value={strategy.id}
+                disabled={dataMode === "live" && !strategy.live}
+              >
                 {strategy.label}
+                {dataMode === "live" && !strategy.live ? " (fixture only)" : ""}
               </option>
             ))}
           </select>
         </label>
         <div className="agent-lab__mode">
-          <span>Data mode</span>
-          <strong>Fixture data</strong>
-          <small>No external calls</small>
+          <label className="agent-lab__field">
+            <span>Data mode</span>
+            <select
+              value={dataMode}
+              onChange={(event) => {
+                // A result belongs to the mode that produced it; do not show it under another.
+                // Fault runs are always fixture, so they stay.
+                const next = event.target.value as AgentLabDataMode;
+                setDataMode(next);
+                setRuns((current) =>
+                  Object.fromEntries(
+                    Object.entries(current).filter(([key]) => key.startsWith("fault:")),
+                  ),
+                );
+                setNotice(undefined);
+                setReplayError(undefined);
+                const current = strategies.find((strategy) => strategy.id === strategyId);
+                if (next === "live" && current && !current.live) {
+                  setStrategyId(strategies.find((strategy) => strategy.live)?.id ?? strategyId);
+                }
+              }}
+              disabled={locked}
+            >
+              <option value="fixture">{modeLabel.fixture}</option>
+              <option value="live" disabled={!liveEnabled}>
+                {modeLabel.live}
+                {liveEnabled ? "" : " (not enabled)"}
+              </option>
+            </select>
+          </label>
+          <small data-agent-lab-mode-note>
+            {dataMode === "live"
+              ? "Uses this deployment's own models and providers, within its limits."
+              : liveEnabled
+                ? "No external calls."
+                : "No external calls. Live runs are not enabled on this deployment."}
+          </small>
         </div>
         <div className="agent-lab__actions">
           <button
@@ -441,6 +534,18 @@ export function AgentLabClient({ scenarios, strategies, faultProfiles }: AgentLa
         </p>
       ) : null}
 
+      {rejectedRun?.rejection ? (
+        <p
+          className="agent-lab__notice"
+          role="alert"
+          data-agent-lab-rejection={rejectedRun.rejection.reason}
+        >
+          {rejectedRun.rejection.message}
+          {retryHint(rejectedRun.rejection.retryAfterSeconds)} Nothing was run, and this is not a
+          failed experiment. Fixture data is always available.
+        </p>
+      ) : null}
+
       {errorRun?.error ? (
         <p className="agent-lab__error" role="alert">
           {errorRun.error}
@@ -485,6 +590,13 @@ export function AgentLabClient({ scenarios, strategies, faultProfiles }: AgentLa
         />
       ) : view === "compare" ? (
         <ComparisonPanel
+          provenance={
+            [
+              ...new Set(
+                sides.flatMap((side) => (side.artifact ? [modeLabel[side.artifact.dataMode]] : [])),
+              ),
+            ].join(" and ") || modeLabel[dataMode]
+          }
           sides={sides}
           onDownloaded={(filename) => setNotice(`Artifact downloaded: ${filename}`)}
         />
@@ -496,7 +608,10 @@ export function AgentLabClient({ scenarios, strategies, faultProfiles }: AgentLa
                 <p className="agent-lab__kicker">Trace</p>
                 <h2 id="agent-lab-timeline-title">Run timeline</h2>
               </div>
-              <span>{selected.events.length} events</span>
+              <span data-agent-lab-provenance>
+                {selected.events.length} events ·{" "}
+                {modeLabel[selected.events[0]?.dataMode ?? dataMode]}
+              </span>
             </div>
             {selected.replay ? (
               <p className="agent-lab__replay-note" data-agent-lab-replay-note>
@@ -542,7 +657,12 @@ export function AgentLabClient({ scenarios, strategies, faultProfiles }: AgentLa
                 <p className="agent-lab__kicker">Evidence</p>
                 <h2 id="agent-lab-evidence-title">Run metrics</h2>
               </div>
-              {selected.artifact ? <span>Schema v{selected.artifact.schemaVersion}</span> : null}
+              {selected.artifact ? (
+                <span data-agent-lab-provenance>
+                  Schema v{selected.artifact.schemaVersion} ·{" "}
+                  {modeLabel[selected.artifact.dataMode]}
+                </span>
+              ) : null}
             </div>
             {selected.artifact ? (
               <>

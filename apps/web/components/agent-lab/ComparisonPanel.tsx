@@ -17,9 +17,12 @@ export interface ComparisonSide {
  */
 export function ComparisonPanel({
   sides,
+  provenance,
   onDownloaded,
 }: {
   sides: readonly ComparisonSide[];
+  /** Whether the figures come from fixture or live runs, so the two are never mistaken for each other. */
+  provenance: string;
   onDownloaded: (filename: string) => void;
 }) {
   const rows = buildComparisonRows(...sides.map((side) => side.artifact));
@@ -30,6 +33,7 @@ export function ComparisonPanel({
           <p className="agent-lab__kicker">Comparison</p>
           <h2 id="agent-lab-compare-title">Three strategies, one scenario</h2>
         </div>
+        <span data-agent-lab-provenance>{provenance}</span>
       </div>
       <div className="agent-lab__compare-note" data-agent-lab-compare-note>
         <p>

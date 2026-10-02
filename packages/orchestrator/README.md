@@ -33,7 +33,10 @@ workflow's bounded revision loop. All three emit a versioned trace artifact thro
 runner, evaluator and metrics, and none persists anything. The registry holds four scenarios; a scenario
 whose evidence shows no plan can meet the budget declares `rules.infeasibleBudget`, and a scenario with
 several cities is checked for a consistent move between them (`evaluate.ts`). Every artifact records
-`AGENT_LAB_EVALUATOR_VERSION` and the scenario's fixture version. A request may also name one registered
+`AGENT_LAB_EVALUATOR_VERSION` and the scenario's fixture version. A fixture run executes with mock tools and no
+model whatever the environment holds; a live run (`dataMode: "live"`) uses the real adapters and models and reports
+the usage the provider returned (`buildAgentLabUsage`). `agentLabStrategySupportsLive` says which strategies have a
+live implementation. A request may also name one registered
 fault profile (`fault-profiles.ts`), which `faults.ts` applies around the specialists; `runAgentLabToArtifact`
 ends a run in a completed or failed artifact.
 

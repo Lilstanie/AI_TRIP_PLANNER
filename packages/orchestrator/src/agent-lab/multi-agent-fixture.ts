@@ -153,6 +153,7 @@ export function createMultiAgentFixtureStrategy(
   return {
     id: revise ? "multi-agent-targeted-revision" : "multi-agent-no-revision",
     actor: "multi-agent",
+    live: true,
     completionSummary: (plan) => {
       const conflicts = plan.conflicts?.length ?? 0;
       return revise
@@ -176,6 +177,9 @@ export function createMultiAgentFixtureStrategy(
       let outcome: Outcome | undefined;
       let wake: (() => void) | undefined;
       const publish = (event: AgentLabEventPayload) => {
+        // The trace carries bounded operational summaries. A model's own reasoning text is never published,
+        // whichever mode the run is in.
+        if (event.type === "agent_reasoning") return;
         queue.push(event);
         wake?.();
       };
