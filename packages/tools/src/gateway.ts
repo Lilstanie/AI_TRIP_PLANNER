@@ -9,9 +9,6 @@ import { createToolGatewayWithRuntime, snapshotToolRuntime } from "./gateway-int
 export function createToolGateway(): ToolGateway {
   const runtime = snapshotToolRuntime();
   if (runtime.dataMode === "live") {
-    if (runtime.mapsProvider === "osm" && !runtime.osmUserAgent) {
-      console.warn("[tools] OSM_USER_AGENT is unset; configure one before production traffic.");
-    }
     // Describes booking.ts's tier order (SerpApi -> Google Places estimate ->
     // fixture) for this log line only; booking.ts decides at call time.
     const booking = runtime.serpApiKey
@@ -19,7 +16,7 @@ export function createToolGateway(): ToolGateway {
       : runtime.mapsProvider === "google"
         ? "Google Places (grounded properties, estimated prices)"
         : "fixture-backed (no SERPAPI_KEY or MAPS_API_KEY set)";
-    console.warn(`[tools] Live ${runtime.mapsProvider} Maps adapter enabled; booking: ${booking}.`);
+    console.warn(`[tools] Live booking: ${booking}.`);
   }
   return createToolGatewayWithRuntime(runtime);
 }

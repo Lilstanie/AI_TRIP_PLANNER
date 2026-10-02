@@ -84,6 +84,7 @@ weather, public-export cleanup, documentation, and final end-to-end evidence.
 
 - [Specification issue #126](https://github.com/Lilstanie/AI_TRIP_PLANNER/issues/126)
 - [Provider behavior matrix issue #127](https://github.com/Lilstanie/AI_TRIP_PLANNER/issues/127)
+- [Deep Maps provider selection issue #129](https://github.com/Lilstanie/AI_TRIP_PLANNER/issues/129)
 - [Request-scoped data mode](../../implemented/feature/2026-09-21-request-scoped-data-mode.md)
 - [SerpApi live prices and hotel fallback](../../implemented/feature/2026-09-20-serpapi-live-prices.md)
 - [Weather forecast horizon](../../implemented/feature/2026-09-21-weather-forecast-horizon.md)

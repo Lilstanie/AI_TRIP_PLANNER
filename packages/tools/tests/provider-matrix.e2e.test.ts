@@ -16,6 +16,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createToolGatewayWithRuntime, snapshotToolRuntime } from "../src/gateway-internal";
+import { clearSerpApiCacheForTests } from "../src/serpapi";
 
 interface MatrixEvidence {
   id: string;
@@ -36,6 +37,7 @@ afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllEnvs();
   vi.restoreAllMocks();
+  clearSerpApiCacheForTests();
 });
 
 describe("ToolGateway provider matrix", () => {
@@ -91,8 +93,10 @@ describe("ToolGateway provider matrix", () => {
     vi.stubEnv("USE_MOCK_TOOLS", "false");
     vi.stubEnv("MAPS_PROVIDER", "google");
     vi.stubEnv("MAPS_API_KEY", "captured-key");
-    const fetcher = vi.fn(async (_input: string | URL | Request, _init?: RequestInit) =>
-      Response.json({ routes: [{ duration: "3600s", distanceMeters: 120_000 }] }),
+    const fetcher = vi.fn(async (input: string | URL | Request, _init?: RequestInit) =>
+      String(input).includes("places.googleapis.com")
+        ? Response.json({ places: [{ displayName: { text: "Sensoji Temple" } }] })
+        : Response.json({ routes: [{ duration: "3600s", distanceMeters: 120_000 }] }),
     );
     const gateway = createToolGatewayWithRuntime(snapshotToolRuntime(), {
       fetch: fetcher,
@@ -108,9 +112,11 @@ describe("ToolGateway provider matrix", () => {
       to: "Kyoto",
       departureTime: "2026-02-01T09:00:00+09:00",
     });
+    const [place] = await gateway.maps.places({ near: "Tokyo", category: "temple" });
 
     expect(route).toMatchObject({ mode: "transit", durationMin: 60 });
-    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(place).toMatchObject({ name: "Sensoji Temple", category: "temple" });
+    expect(fetcher).toHaveBeenCalledTimes(2);
     expect(fetcher.mock.calls[0]?.[1]).toMatchObject({
       headers: expect.objectContaining({ "x-goog-api-key": "captured-key" }),
     });
@@ -119,6 +125,135 @@ describe("ToolGateway provider matrix", () => {
       selection: "google",
       result: "transit route",
       provenance: "Google Maps request",
+    });
+  });
+
+  it("keeps Google's empty-transit driving fallback", async () => {
+    vi.stubEnv("USE_MOCK_TOOLS", "false");
+    vi.stubEnv("MAPS_PROVIDER", "google");
+    vi.stubEnv("MAPS_API_KEY", "maps-key");
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce(Response.json({ routes: [] }))
+      .mockResolvedValueOnce(
+        Response.json({ routes: [{ duration: "2400s", distanceMeters: 30_000 }] }),
+      );
+    const gateway = createToolGatewayWithRuntime(snapshotToolRuntime(), {
+      fetch: fetcher,
+      now: () => new Date("2026-01-01T00:00:00.000Z"),
+    });
+
+    const [route] = await gateway.maps.route({
+      from: "Tokyo",
+      to: "Kyoto",
+      departureTime: "2026-02-01T09:00:00+09:00",
+    });
+
+    expect(route).toMatchObject({ mode: "drive", durationMin: 40 });
+    expect(route?.note).toContain("no public transport route found");
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    evidence.push({
+      id: "google-driving-fallback",
+      selection: "google",
+      result: "driving route",
+      fallback: "empty transit -> drive",
+      provenance: "Google Maps driving route",
+    });
+  });
+
+  it("keeps the inter-city SerpApi rail fallback", async () => {
+    vi.stubEnv("USE_MOCK_TOOLS", "false");
+    vi.stubEnv("MAPS_PROVIDER", "google");
+    vi.stubEnv("MAPS_API_KEY", "maps-key");
+    vi.stubEnv("SERPAPI_KEY", "serp-key");
+    const fetcher = vi.fn(async (input: string | URL | Request) =>
+      String(input).includes("serpapi.com")
+        ? Response.json({
+            directions: [
+              {
+                duration: 8_400,
+                cost: 14_170,
+                currency: "JPY",
+                trips: [{ travel_mode: "Transit", title: "Tokaido Shinkansen Nozomi 91" }],
+              },
+            ],
+          })
+        : Response.json({ routes: [] }),
+    );
+    const gateway = createToolGatewayWithRuntime(snapshotToolRuntime(), {
+      fetch: fetcher,
+      now: () => new Date("2026-01-01T00:00:00.000Z"),
+    });
+
+    const [route] = await gateway.maps.route({
+      from: "Tokyo Station",
+      to: "Kyoto Station",
+      departureTime: "2026-02-01T09:00:00+09:00",
+      intercity: true,
+      passengers: 2,
+    });
+
+    expect(route).toMatchObject({ mode: "train", durationMin: 140 });
+    expect(route?.note).toContain("SerpApi");
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    evidence.push({
+      id: "google-intercity-rail-fallback",
+      selection: "google + SerpApi",
+      result: "priced train route",
+      fallback: "empty Google transit -> SerpApi rail",
+      provenance: "Google Maps transit via SerpApi",
+    });
+  });
+
+  it("keeps a useful route option when its sibling provider call fails", async () => {
+    vi.stubEnv("USE_MOCK_TOOLS", "false");
+    vi.stubEnv("MAPS_PROVIDER", "google");
+    vi.stubEnv("MAPS_API_KEY", "maps-key");
+    const fetcher = vi.fn(async (_input: string | URL | Request, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body)) as { travelMode?: string };
+      return body.travelMode === "DRIVE"
+        ? new Response("unavailable", { status: 503 })
+        : Response.json({
+            routes: [
+              {
+                duration: "3000s",
+                travelAdvisory: { transitFare: { currencyCode: "AUD", units: "5" } },
+                legs: [
+                  {
+                    steps: [
+                      {
+                        travelMode: "TRANSIT",
+                        transitDetails: {
+                          transitLine: { nameShort: "T1", vehicle: { type: "HEAVY_RAIL" } },
+                        },
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          });
+    });
+    const gateway = createToolGatewayWithRuntime(snapshotToolRuntime(), {
+      fetch: fetcher,
+      now: () => new Date("2026-01-01T00:00:00.000Z"),
+    });
+
+    const options = await gateway.maps.routeOptions!({
+      from: "Parramatta",
+      to: "Sydney CBD",
+      departureTime: "2026-02-01T09:00:00+11:00",
+    });
+
+    expect(options).toEqual([
+      expect.objectContaining({ mode: "train", durationMin: 50, price: 5 }),
+    ]);
+    evidence.push({
+      id: "google-route-options-partial-success",
+      selection: "google",
+      result: "transit option retained",
+      diagnostic: "driving request failed with 503",
+      provenance: "Google Routes transit option",
     });
   });
 
@@ -311,19 +446,21 @@ describe("ToolGateway provider matrix", () => {
     });
 
     vi.stubEnv("MAPS_PROVIDER", "unsupported-after-construction");
-    const [googleRoutes, osmRoutes] = await Promise.all([
+    const [googleRoutes, osmRoutes, osmPlaces] = await Promise.all([
       google.maps.route({
         from: "Tokyo",
         to: "Kyoto",
         departureTime: "2026-02-01T09:00:00+09:00",
       }),
       osm.maps.route({ from: "Tokyo", to: "Kyoto" }),
+      osm.maps.places({ near: "Tokyo", category: "temple" }),
     ]);
 
     expect(googleRoutes[0]).toMatchObject({ mode: "transit", durationMin: 30 });
     expect(osmRoutes[0]?.note).toContain("OSRM driving-only");
+    expect(osmPlaces[0]).toMatchObject({ category: "temple" });
     expect(googleFetch).toHaveBeenCalledTimes(1);
-    expect(osmFetch).toHaveBeenCalledTimes(3);
+    expect(osmFetch).toHaveBeenCalledTimes(4);
     evidence.push({
       id: "concurrent-runtime-isolation",
       selection: "automatic google | explicit osm",
@@ -335,6 +472,9 @@ describe("ToolGateway provider matrix", () => {
     expect(evidence.map((item) => item.id)).toEqual([
       "fixture-isolation",
       "explicit-google-snapshot",
+      "google-driving-fallback",
+      "google-intercity-rail-fallback",
+      "google-route-options-partial-success",
       "booking-fallback-vs-flight-failure",
       "weather-horizons",
       "lazy-unavailable-capabilities",
