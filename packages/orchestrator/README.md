@@ -33,12 +33,17 @@ workflow's bounded revision loop. All three emit a versioned trace artifact thro
 runner, evaluator and metrics, and none persists anything. The registry holds four scenarios; a scenario
 whose evidence shows no plan can meet the budget declares `rules.infeasibleBudget`, and a scenario with
 several cities is checked for a consistent move between them (`evaluate.ts`). Every artifact records
-`AGENT_LAB_EVALUATOR_VERSION` and the scenario's fixture version.
+`AGENT_LAB_EVALUATOR_VERSION` and the scenario's fixture version. A request may also name one registered
+fault profile (`fault-profiles.ts`), which `faults.ts` applies around the specialists; `runAgentLabToArtifact`
+ends a run in a completed or failed artifact.
 
 ## Contracts
 
 - `OrchestratorOptions.onDecision` receives the loop's decisions as typed `WorkflowDecision` facts
-  (conflicts, revision started and scored, why the loop stopped); it never affects the plan.
+  (conflicts, revision started and scored, why the loop stopped); it never affects the plan. `delegation_fallback` reports a supervisor that could not delegate, and
+  `agent_output_rejected` a specialist output that failed the proposal schema (field paths only).
+- `OrchestratorOptions.supervisorModel` delegates through the given model even for injected specialists; a
+  failed delegation falls back to deterministic dispatch.
 - Specialists, tools, memory and `maxRounds` are injectable through `OrchestratorOptions`; tests
   pass fakes.
 - The brief, each proposal and the final plan are validated against `@trip/shared` schemas at the

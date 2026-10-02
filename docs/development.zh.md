@@ -184,7 +184,7 @@ node apps/web/tests/e2e/<name>.e2e.mjs
 ```
 
 - **API 脚本**（`plan-quality`、`conversation-scope`）向 `/api/chat` 发请求，`DATA_MODE=live` 为默认值，也可设为 `mock`。`plan-quality` 提交三个固定行程需求，并检查预算、未解决冲突、行程来源、重复停靠点和泛化停靠点；实时模型输出会变化，因此应比较多次运行。每次运行把 NDJSON 流、方案和 `summary.json` 写入 `output/e2e/<name>/<run>/`。
-- **浏览器脚本**（其余所有脚本，包括五个 `agent-lab-*`）用 Playwright 在桌面和手机宽度下运行，并把截图写入 `output/playwright/<name>/`；Agent Lab 的脚本还会写入原始 NDJSON 和 artifact。`CHANNEL=chrome` 与 `PLAYWRIGHT=<path>` 用于选择浏览器和 Playwright 包；服务器不在 `http://localhost:3000` 时用 `BASE_URL` 指定。
+- **浏览器脚本**（其余所有脚本，包括六个 `agent-lab-*`）用 Playwright 在桌面和手机宽度下运行，并把截图写入 `output/playwright/<name>/`；Agent Lab 的脚本还会写入原始 NDJSON 和 artifact。`CHANNEL=chrome` 与 `PLAYWRIGHT=<path>` 用于选择浏览器和 Playwright 包；服务器不在 `http://localhost:3000` 时用 `BASE_URL` 指定。
 
 `output/e2e/` 和 `output/playwright/` 已被 Git 忽略。每个脚本的文件头列出它所依据的失败清单和所需的服务器环境，例如 `agent-lab-revision` 需要 `USE_MOCK_TOOLS=true`，且不能配置模型或 provider 密钥。
 

@@ -12,4 +12,17 @@ export {
 export { agentLabStrategySummaries, findAgentLabStrategy } from "./strategies";
 export type { AgentLabStrategy, AgentLabStrategyContext } from "./strategy";
 export { agentLabScenarioSummaries, findAgentLabScenario } from "./scenarios";
-export { createFailedAgentLabArtifact, runAgentLab, type RunAgentLabOptions } from "./run";
+export {
+  createFailedAgentLabArtifact,
+  runAgentLab,
+  runAgentLabToArtifact,
+  type RunAgentLabOptions,
+} from "./run";
+export {
+  agentLabFaultProfiles,
+  agentLabFaultProfileSummaries,
+  findAgentLabFaultProfile,
+  isRegisteredAgentLabRun,
+  type AgentLabFaultBehaviour,
+  type AgentLabFaultProfile,
+} from "./fault-profiles";

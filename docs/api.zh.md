@@ -157,6 +157,12 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 `round: 1`，所有冲突都保持未解决。第三个运行既有的循环，最多三轮：把每个冲突交给它所点名的 specialist，
 修订未改善计划时保留已知最佳提案，预算不可行时提前停止。`multi-agent-with-revision` 未注册，会被拒绝。
 
+可选的 `faultProfileId` 请求一个已注册的故障：`provider-timeout`、`provider-empty-result`、
+`invalid-agent-output`、`supervisor-failure` 或 `stalled-revision`。每个故障只绑定它所设计的那一个场景和策略
+（见 [architecture](architecture.zh.md#agent-lab)）；对其他组合的请求，与未知 id、自行定义故障的对象或多余属性一样，得到相同的 400。
+访客只能选择档案，绝不能自行定义故障。产物在 `faultProfileId` 中记录它（普通运行以及故障出现之前记录的产物为 `null`），
+轨迹以 `lab_fault_injected` 开头。故障还可能增加 `lab_agent_output_rejected`（只列出被拒绝的字段路径）和 `lab_supervisor_fallback`。
+
 请求采用严格校验：未知值或额外属性会返回 HTTP 400 和
 `{ "error": "Invalid Agent Lab request" }`。有效请求以 NDJSON 流返回帧。事件帧格式为
 `{ "type": "event", "event": { ... } }`，最后一帧格式为
@@ -169,8 +175,9 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 模型，所以 `usage` 为 `{ "status": "unavailable" }`：缺失的用量绝不会被当作 0。除 `durationMs` 和 `latencyMs` 外，
 每个指标都能仅凭最终计划和轨迹重新计算，不需要模型来评判。修订运行会增加轨迹事件 `lab_conflict_detected`、
 `lab_revision_started`、`lab_revision_scored` 和 `lab_loop_stopped`。客户端取消请求会中止运行，不发送完成帧。
-运行内部失败时，会发送 `error` 帧；其中包含不敏感的消息，以及记录失败前事件的结构化
-`failed` 产物。
+运行失败时（包括被故障终止的运行），会发送 `error` 帧；其中包含不敏感的消息，以及记录失败前事件的结构化
+`failed` 产物。当某个 specialist 报告无法完成时，`failure.code` 为 `agent_failed`，`failure.agent` 指明该 specialist；
+其他情况为 `run_failed`；两种消息都不含堆栈、校验器消息或提供方载荷。
 
 Agent Lab 只使用 fixture：应在没有模型或提供方密钥的情况下运行，未配置时不调用外部服务，也不持久化聊天、行程或实验结果。
 

@@ -160,6 +160,15 @@ stay unresolved. The third runs the established loop with at most three rounds: 
 to the specialist it names, keeps the best known proposals when a revision does not improve the plan, and
 stops early when the budget is infeasible. `multi-agent-with-revision` is not registered and is rejected.
 
+An optional `faultProfileId` asks for one registered fault: `provider-timeout`, `provider-empty-result`,
+`invalid-agent-output`, `supervisor-failure` or `stalled-revision`. Each is bound to the one scenario and
+strategy it was built for (see [architecture](architecture.md#agent-lab)); a request for any other
+combination gets the same 400 as an unknown id, an object that defines a fault or an extra property. A
+visitor chooses a profile and never defines a fault. The artifact records it in `faultProfileId` (`null`
+for an ordinary run, and for any artifact recorded before faults existed), and the trace opens with
+`lab_fault_injected`. A fault can add `lab_agent_output_rejected`, which lists only the rejected field
+paths, and `lab_supervisor_fallback`.
+
 The request is strict: an unknown value or extra property returns HTTP 400 with
 `{ "error": "Invalid Agent Lab request" }`. A valid request streams NDJSON frames. Event frames have
 `{ "type": "event", "event": { ... } }`; the last frame has
@@ -179,9 +188,11 @@ strategy with no loop) and `usage`. Because fixture runs make no model calls, `u
 missing usage is never reported as zero. Every metric except `durationMs` and `latencyMs`
 is recomputed from the final plan and the trace alone, with no model judging it. Revision runs add trace
 events `lab_conflict_detected`, `lab_revision_started`, `lab_revision_scored` and `lab_loop_stopped`. Cancelling the client request
-aborts the run without emitting a completion frame. An internal run failure emits an `error` frame
+aborts the run without emitting a completion frame. A run that fails, including one a fault stops, emits an `error` frame
 with a non-sensitive message and a structured `failed` artifact containing the events recorded before
-the failure.
+the failure. `failure.code` is `agent_failed`, with `failure.agent` naming the specialist, when a specialist
+reported that it could not finish, and `run_failed` otherwise; neither message carries a stack, a validator
+message or a provider payload.
 
 Agent Lab is fixture-only. It is meant to run with no model or provider key, makes no external calls
 when none are configured and does not persist chats, trips or lab results.

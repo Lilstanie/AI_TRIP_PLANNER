@@ -13,15 +13,16 @@ page did not produce.
 
 ## Decision
 
-A completed run's artifact is saved from the browser exactly as the stream completed with it. The
+A run's artifact, completed or failed, is saved from the browser exactly as the stream completed with it. The
 artifact contract is unchanged: `schemaVersion`, scenario, strategy, data mode, fixture and evaluator
-versions, ordered events, plan and metrics, so nothing in `packages/shared` moved.
+versions, ordered events, plan and metrics, so this decision moved nothing in `packages/shared`.
 
 Replay is also entirely in the browser. `apps/web/lib/agent-lab/replay.ts` reads one chosen file and
 accepts it only when it is at most 5 MB, parses as JSON, declares schema version 1, passes
 `AgentLabRunArtifact` (contiguous events from 1, event metadata matching the artifact, a valid plan,
 `eventCount` matching), has `elapsedMs` that never decreases and spans at most ten minutes, and
-records a completed run. Anything else is refused with the reason, and the result already on the page
+kept at least one event to replay; a failed run qualifies (see the
+[Failure Lab note](2026-10-02-agent-lab-failure-lab.md)). Anything else is refused with the reason, and the result already on the page
 stays. Fields the contract does not define are dropped by validation, so a raw prompt added to a file
 never reaches the page. Accepted events are delivered in order at their recorded offsets from one
 clock, then drive the same timeline, plan and metrics views as a live run. The page labels a replay
@@ -49,8 +50,8 @@ that the replayed evidence equals the original run's.
 ## Consequences
 
 A visitor can keep and replay evidence without any server cost. Replay trusts the file's own metrics,
-so it demonstrates a recording, not a verification. Failed-run artifacts are refused with an explicit
-message until the failure work (#105) decides how a failed run replays. A change to the artifact
+so it demonstrates a recording, not a verification. A failed run replays when it kept its events, and an
+artifact with none is refused. A change to the artifact
 schema must bump `AGENT_LAB_ARTIFACT_SCHEMA_VERSION`, and the page then refuses older files instead of
 guessing.
 
