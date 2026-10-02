@@ -99,6 +99,13 @@ through the workflow's `onDecision` hook. The envelope carries the existing `Age
 inspector can show graph stages, specialist lifecycle, objectives, constraints, tool summaries and
 outcomes without publishing prompts or raw chain-of-thought.
 
+Artifact download and replay happen in the browser; no endpoint or server storage is involved. The
+page saves the artifact it received, and `apps/web/lib/agent-lab/replay.ts` validates a chosen file
+against the shared `AgentLabRunArtifact` contract (one schema version, contiguous events, a valid plan,
+timing that never runs backwards) before replaying the recorded events at their recorded offsets. The
+stored metrics are shown as recorded, not recomputed in the page; the
+[Agent Note](../.agents/notes/implemented/architecture/2026-10-02-agent-lab-artifact-replay.md) explains why.
+
 ## LangGraph workflow
 
 ```mermaid

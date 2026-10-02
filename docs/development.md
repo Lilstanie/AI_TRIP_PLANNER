@@ -242,7 +242,7 @@ node apps/web/tests/e2e/<name>.e2e.mjs
   (default) or `mock`. `plan-quality` plans three fixed briefs and checks budget, unresolved conflicts,
   itinerary source, repeated and generic stops; live model output varies, so compare several runs.
   Each run writes the NDJSON streams, plans and `summary.json` to `output/e2e/<name>/<run>/`.
-- **Browser scripts** (every other script, including the three `agent-lab-*` ones) drive Playwright at
+- **Browser scripts** (every other script, including the four `agent-lab-*` ones) drive Playwright at
   desktop and phone widths and write screenshots, and for Agent Lab the raw NDJSON and artifacts, to
   `output/playwright/<name>/`. `CHANNEL=chrome` and `PLAYWRIGHT=<path>` select the browser and the
   Playwright package; `BASE_URL` points at a server other than `http://localhost:3000`.
