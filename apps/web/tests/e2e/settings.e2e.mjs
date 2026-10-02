@@ -24,8 +24,11 @@ const check = (ok, message) => {
 };
 const settle = (page, ms = 500) => page.waitForTimeout(ms);
 
-async function openSettings(page) {
-  await page.getByRole("button", { name: "Settings", exact: true }).first().click();
+// Settings opens from the sidebar's account menu: Open account menu, then the section's menu item.
+async function openSettings(page, section = "Personalization") {
+  // Both the sidebar and the drawer hold one; only the visible one can be used.
+  await page.locator('button[aria-label="Open account menu"]:visible').first().click();
+  await page.getByRole("menuitem", { name: section }).click();
   await page.getByRole("dialog").waitFor();
   await settle(page, 300);
 }
@@ -37,11 +40,13 @@ async function run(browser, { width, height, tag }) {
   page.on("pageerror", (error) => errors.push(String(error)));
   page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
   await page.goto(BASE);
+  // The dev server's own badge sits over the account button at phone width and would take its clicks.
+  await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
   await page.waitForSelector(".workspace-app");
   await page.waitForLoadState("networkidle");
   if (width < 1000) {
     // Narrow screens reach Settings through the navigation drawer.
-    await page.getByRole("button", { name: /menu|navigation/i }).first().click();
+    await page.getByRole("button", { name: "Open navigation" }).click();
     await settle(page);
   }
 
@@ -133,7 +138,7 @@ async function run(browser, { width, height, tag }) {
   const chats = page.getByRole("button", { name: /^Chats/ });
   const newChat = async () => {
     if (width < 1000) {
-      await page.getByRole("button", { name: /menu|navigation/i }).first().click();
+      await page.getByRole("button", { name: "Open navigation" }).click();
       await settle(page);
     } else if (!(await page.getByRole("button", { name: "New chat" }).first().isVisible())) {
       await chats.click();
