@@ -14,7 +14,8 @@
 | 文件 | 内容 |
 | --- | --- |
 | [`ELEC5620_Stage1_Report.pdf`](ELEC5620_Stage1_Report.pdf) | 报告，13 章，覆盖评分表每一项 |
-| [`ELEC5620_Stage1_Slides.pptx`](ELEC5620_Stage1_Slides.pptx) | 录视频用的 PowerPoint，24 页，按 A→B→C→D→E 每人一段。文字、表格可直接编辑，每页备注里是讲稿 |
+| [`ELEC5620_Stage1_Slides.pptx`](ELEC5620_Stage1_Slides.pptx) | 录视频用的 PowerPoint，24 页，按 A→B→C→D→E 每人一段。每页顶部有成员色标，图上有编号标注；字体用 Georgia 和 Arial，Windows 和 Mac 打开不会跑版。每页备注里是讲稿 |
+| [`slides-source/`](slides-source/) | 幻灯片生成脚本 `build_deck.py`、按幻灯片配色重新渲染的图（源文件在 `mmd-src/`）和图标 |
 | [`video-script.md`](video-script.md) | 逐页英文讲稿和每人时长，约 7:46 |
 | [`report-source/`](report-source/) | 报告源文件：`parts/*.md` 按章节，`build.mjs` 生成 PDF |
 
@@ -27,3 +28,7 @@
 ## 重新生成 PDF
 
 修改 `report-source/parts/` 里的 Markdown 后运行 `node submission/stage1/report-source/build.mjs`。脚本需要 `@mermaid-js/mermaid-cli`、`marked` 和 `puppeteer`，在脚本开头的 `MMD` 路径下安装，并且需要一个 Chromium。
+
+## 重新生成幻灯片
+
+安装 `python-pptx` 后运行 `python3 submission/stage1/slides-source/build_deck.py`，会覆盖 `ELEC5620_Stage1_Slides.pptx`。A、B、D、E 的行为模型页是带虚线框的模板：可以直接在 PowerPoint 里把图拖进去，也可以把图放进 `slides-source/assets/diagrams/` 再改脚本里对应的 `behaviour_template`。

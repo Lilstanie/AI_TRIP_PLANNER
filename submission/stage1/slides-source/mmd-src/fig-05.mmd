@@ -1,0 +1,28 @@
+flowchart LR
+    subgraph client["«device» Traveller's browser"]
+      ls[(localStorage: chats, trips)]
+      app[Next.js client]
+    end
+    subgraph vercel["«execution environment» Vercel serverless"]
+      api[Next.js API routes + orchestrator]
+    end
+    subgraph data["«cloud services»"]
+      redis[(Redis REST store)]
+      neon[(Neon Postgres: accounts sync)]
+      clerk[Clerk authentication]
+    end
+    subgraph ext["«external systems»"]
+      llm[DeepSeek LLM]
+      serp[SerpApi hotels and flights]
+      goog[Google Places, Routes, Weather]
+      osm[OpenStreetMap, Open-Meteo]
+    end
+    app -->|HTTPS, NDJSON| api
+    app --- ls
+    api --> redis
+    api --> neon
+    app --> clerk
+    api --> llm
+    api --> serp
+    api --> goog
+    api --> osm

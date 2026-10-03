@@ -1,0 +1,33 @@
+flowchart LR
+    subgraph web["«package» @trip/web (apps/web) · E"]
+      webui["workspace UI, API routes, Agent Lab page"]
+    end
+    subgraph orch["«package» @trip/orchestrator · A"]
+      orchc["chat coordinator, LangGraph workflow, board, conflicts, budget"]
+    end
+    subgraph agents["«package» @trip/agents · B C D"]
+      agc["five specialists, prompts, model routing"]
+    end
+    subgraph tools["«package» @trip/tools · B C D"]
+      toolc["ToolGateway, maps, booking, weather adapters"]
+    end
+    subgraph services["«package» @trip/services · E"]
+      svc["MemoryStore, trip store, JSON store"]
+    end
+    subgraph shared["«package» @trip/shared · A"]
+      sh["Zod contracts: TripBrief, AgentProposal, TripPlan, ports"]
+    end
+    web -.->|«import»| orch
+    web -.->|«import»| tools
+    web -.->|«import»| services
+    web -.->|«import»| shared
+    orch -.->|«import»| agents
+    orch -.->|«import»| tools
+    orch -.->|«import»| services
+    orch -.->|«import»| shared
+    agents -.->|«import»| tools
+    agents -.->|«import»| services
+    agents -.->|«import»| shared
+    tools -.->|«import»| services
+    tools -.->|«import»| shared
+    services -.->|«import»| shared
