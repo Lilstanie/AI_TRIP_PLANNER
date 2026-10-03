@@ -1,12 +1,33 @@
 ---
 name: skill-maintenance
-description: Find and fix project skills in AI_TRIP_PLANNER that have fallen behind the code or the team's pull request history, using a drift report script plus a review of recent pull requests. Use when asked to check or update skills, after a refactor that renames files or commands, or on the scheduled skill review.
+description: Find and fix project skills in AI_TRIP_PLANNER that have fallen behind the code or the team's pull request history, using a drift report script plus a review of recent pull requests. Use when asked to check or update skills, after a refactor that renames files or commands, or when the scheduled due check reports that a review is due.
 ---
 
 # Keep the skills current
 
 A skill that names a moved file, a renamed command or a superseded rule is worse than no skill: an
 agent follows it confidently. This workflow finds those skills and updates them in one pull request.
+
+## 0. Decide whether a review is due
+
+```bash
+node .agents/skills/skill-maintenance/scripts/is-due.mjs    # exit 10 when due, 0 when not
+```
+
+It counts what happened on the branch since any skill last changed and reports a review as due when
+any count reaches its threshold, or when a skill names a path or command that no longer exists:
+
+| Signal                                                                                                                                                      | Default | Flag            |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | --------------- |
+| Merged pull requests (squash commits ending in `(#N)`)                                                                                                      | 8       | `--prs`         |
+| Issues closed                                                                                                                                               | 5       | `--issues`      |
+| Pull requests closed without merging (a rejected or redone change)                                                                                          | 2       | `--unmerged`    |
+| Commits on convention files (AGENTS.md, development and team-workflow docs, CI, verify scripts, root `package.json`, Prettier, TypeScript and Turbo config) | 1       | `--conventions` |
+| Commits that add, supersede or archive an Agent Note                                                                                                        | 2       | `--notes`       |
+
+Issue and pull request counts come from the GitHub API through `curl`; when it is unreachable they
+print as unavailable and the git signals still decide. Any skill change resets every count, so run it
+on the latest `main`. When nothing is due, stop here.
 
 ## 1. Run the drift report
 
