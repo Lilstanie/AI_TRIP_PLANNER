@@ -1,4 +1,4 @@
-// Public compatibility namespace for direct Booking adapter callers.
+// Internal compatibility surface for direct Booking adapter callers.
 // ToolGateway uses the internal deep port so one Planning Run selects once.
 import type { FlightQuery, StayQuery } from "@trip/shared";
 import { createBookingPort } from "./booking-port";

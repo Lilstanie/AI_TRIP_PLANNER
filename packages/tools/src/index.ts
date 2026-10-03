@@ -1,8 +1,5 @@
-// @trip/tools — ToolGateway + external adapters.
-// Owner: A (gateway interface) + B (maps) + C (booking)
+// @trip/tools — public ToolGateway and request-scoped data-mode helpers.
+// Raw provider adapters remain internal to this package.
 
 export * from "./gateway";
 export * from "./data-mode";
-export * as maps from "./maps";
-export * as booking from "./booking";
-export * as weather from "./weather";

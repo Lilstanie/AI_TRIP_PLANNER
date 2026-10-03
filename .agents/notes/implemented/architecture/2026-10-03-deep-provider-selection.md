@@ -1,6 +1,6 @@
 # Agent Note: Deep provider selection behind ToolGateway
 
-Status: proposed
+Status: implemented
 
 ## Problem
 
@@ -10,14 +10,15 @@ request data mode and environment again during each call, own different fallback
 publicly importable. Deleting the factory moves an object literal and logging rather than
 concentrating provider complexity, so the module is shallow and its "once per run" claim is not true.
 
-## Proposal
+## Decision
 
 Keep the shared `ToolGateway`, `MapsPort`, `BookingPort` and `WeatherPort` interfaces unchanged.
 `createToolGateway()` snapshots the request-scoped data mode and provider configuration once per
 planning run, then composes three deep port modules. Each port module selects its concrete mock or
-live adapters and owns any cross-adapter fallback; the top-level gateway knows only how to assemble
-them. Raw maps, booking and weather adapters stop being public package exports, while their
-implementations remain available to tests through internal paths.
+live adapters and owns any cross-adapter fallback; the top-level gateway only assembles them.
+The package entry point exports the gateway and data-mode helpers, not raw maps, booking or weather
+adapters. Internal adapter files remain available to package tests through internal paths. A runtime
+and compile-time boundary test guards the public entry point.
 
 The public factory remains `createToolGateway()` with no arguments. An internal factory accepts a
 normalised runtime configuration plus injectable network and clock dependencies for gateway-level
@@ -28,14 +29,14 @@ to result provenance requires a separate shared-contract decision and is not ada
 
 This supersedes the earlier `mockEnabled()` requirement only inside gateway-owned deep ports: they
 use the request-scoped `dataMode` already captured in the normalized runtime configuration.
-Temporary direct compatibility adapters continue to capture the same request scope through
-`snapshotToolRuntime()` until issue #131 removes those public bypasses. Provider code still never
-reads `process.env.USE_MOCK_TOOLS` directly.
+Internal direct compatibility adapters continue to capture the same request scope through
+`snapshotToolRuntime()`, but are not public package exports. Provider code does not read
+`process.env.USE_MOCK_TOOLS` directly.
 
 This is a behavior-preserving refactor. The current maps routing, hotel fallback, flight failure,
-weather horizon, provenance and unavailable-data behavior are captured before implementation and
-remain unchanged. Truthful corrections to stale documentation and selection logging accompany the
-refactor, but provider behavior redesign is separate work.
+weather horizon, provenance and unavailable-data behavior are captured in the gateway matrix and
+Planning-loop evidence. Truthful corrections to stale documentation accompany the refactor;
+provider behavior redesign is separate work.
 
 ## Alternatives considered
 
@@ -57,34 +58,16 @@ then be difficult to attribute to migration drift or to a deliberate policy chan
 first the behavior matrix and gateway test seam, then runtime configuration and maps, booking,
 weather, public-export cleanup, documentation, and final end-to-end evidence.
 
-## Acceptance criteria
+## Consequences
 
-- One gateway creation snapshots one request data mode and one provider configuration.
-- Maps, booking and weather each expose the existing shared port interface through a deep module.
-- Cross-adapter fallback is private to the port that owns it.
-- Production code cannot bypass `ToolGateway` through the `@trip/tools` package entry point.
-- The public gateway factory stays zero-argument; only an internal factory exposes runtime and test
-  dependencies.
-- Missing or unsupported capabilities retain their current call-time failure behavior rather than
-  making gateway creation fail.
-- Specialist data-mode reads remain limited to presentation and do not select provider adapters.
-- A gateway-level matrix proves mock isolation, live selection, current fallback and failure paths,
-  weather horizons and concurrent request-mode isolation before the implementation changes.
-- Existing planning end-to-end checks leave repeatable artifacts and show no change to Plan,
-  Conflict or provenance behavior.
-- Provider selection logs and versioned documentation describe the behavior the code actually runs.
-
-## Risks
-
-- Snapshotting configuration exposes any code that relied on mutating environment variables during
-  one planning run; that behavior is not intended, but the matrix must make the change explicit.
-- Moving fallback code can accidentally change which errors propagate or which provenance is shown.
-- Removing raw exports can break an overlooked internal caller, so the export cleanup follows a
-  full repository reference check.
-- Keeping Specialist data-mode reads means provenance knowledge is not yet fully local to the
-  gateway; removing that exception may require a later shared-contract change.
-- Existing weather documentation describes a seasonal fixture while the implementation uses an
-  Open-Meteo archive; correcting that record must not silently change the runtime again.
+- One Planning Run holds one captured provider policy, and provider errors remain call-time errors.
+- The public `ToolGateway` and shared ports stay unchanged; production package imports cannot reach
+  raw adapters. A future adapter export fails the boundary test.
+- Specialists still read request mode to label presentation-only fallback facts. Moving those labels
+  into result provenance would require a separate shared-contract decision.
+- Configuration changes during a run no longer switch its provider policy. This is intentional and
+  protected by the provider matrix, which also records fallback and weather-horizon decisions in a
+  repeatable artifact.
 
 ## Sources
 
@@ -96,3 +79,9 @@ weather, public-export cleanup, documentation, and final end-to-end evidence.
 - [SerpApi live prices and hotel fallback](../../implemented/feature/2026-09-20-serpapi-live-prices.md)
 - [Weather forecast horizon](../../implemented/feature/2026-09-21-weather-forecast-horizon.md)
 - [Inter-city rail fallback](../../implemented/feature/2026-09-26-intercity-rail-via-serpapi.md)
+- [Deep Weather provider selection issue #128](https://github.com/Lilstanie/AI_TRIP_PLANNER/issues/128)
+- [Final boundary issue #131](https://github.com/Lilstanie/AI_TRIP_PLANNER/issues/131)
+- [Gateway matrix](../../../../packages/tools/tests/provider-matrix.e2e.test.ts)
+- [Fixture Planning-loop and targeted-revision evidence](../../../../apps/web/tests/e2e/provider-boundary-planning.e2e.mjs)
+- [Live Planning-loop isolation evidence](../../../../packages/orchestrator/tests/provider-boundary-live.e2e.test.ts)
+- [Public-entry boundary check](../../../../packages/tools/tests/public-boundary.test.ts)

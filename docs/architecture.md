@@ -315,6 +315,12 @@ day 14. A missing near-date credential fails only when that forecast is requeste
 (`packages/services/src/memory`) uses the Redis REST store when configured and process memory
 otherwise. Each package's exports and configuration are in its own `README.md`.
 
+The `@trip/tools` package entry point exposes the zero-argument gateway factory and request-mode
+helpers, but not raw Maps, Booking or Weather adapters. Production specialists use `ctx.tools` for
+provider evidence; their remaining request-mode reads only label presentation-only fallback facts.
+The [provider-selection decision](../.agents/notes/implemented/architecture/2026-10-03-deep-provider-selection.md)
+records this boundary and its deliberately unchanged shared contracts.
+
 Do not change `packages/shared` without telling the team; every package depends on it.
 
 ## Design rules

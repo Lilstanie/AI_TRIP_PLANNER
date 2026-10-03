@@ -22,8 +22,9 @@ averages as a forecast would mislead them.
 Mock mode returns fixtures for every horizon without network calls. Live climate context summarizes
 the same week of the previous three years from the historical archive. A forecast result carries
 `observedAt` and `validUntil`; climate text says it is historical guidance, not a forecast. The
-destination guide receives the result through the tool gateway, records provider, horizon and time in
-its assumptions and `source`, and reports weather as unavailable when the provider fails instead of
+destination guide receives the result through the tool gateway and records provider, horizon and
+time in its assumptions. Its top-level `source` can still be `Local fallback` if model drafting
+falls back after weather evidence succeeds. Provider failure leaves weather unavailable rather than
 blocking the plan. `WEATHER_API_KEY` is optional and falls back to `MAPS_API_KEY`.
 
 ## Alternatives considered
@@ -39,7 +40,8 @@ a forecast.
 ## Consequences
 
 - Two live providers must stay in agreement on units and wording.
-- Trips starting more than 14 days out show observed historical context, never a forecast.
+- Live trips starting more than 14 days out use observed historical context, never a forecast;
+  mock mode uses a deterministic climate fixture.
 
 ## Sources
 

@@ -11,6 +11,7 @@
 // - weather crosses the 10-day or 14-day provider boundary incorrectly;
 // - concurrent gateways see each other's runtime configuration;
 // - the matrix produces no stable artifact a reviewer can inspect.
+// - selection logs claim a configured provider is enabled when its key is missing.
 
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -587,6 +588,32 @@ describe("ToolGateway provider matrix", () => {
     });
   });
 
+  it("reports a selected Google Maps adapter without claiming a missing key is enabled", async () => {
+    vi.stubEnv("USE_MOCK_TOOLS", "false");
+    vi.stubEnv("MAPS_PROVIDER", "google");
+    vi.stubEnv("MAPS_API_KEY", "");
+    const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const gateway = createToolGatewayWithRuntime(snapshotToolRuntime(), {
+      fetch: vi.fn(),
+      now: () => new Date("2026-01-01T00:00:00.000Z"),
+    });
+
+    expect(warning).toHaveBeenCalledWith(
+      expect.stringContaining("Google Maps selected; MAPS_API_KEY is missing"),
+    );
+    const error = await gateway.maps
+      .places({ near: "Tokyo", category: "temple" })
+      .catch((failure: unknown) => failure);
+    expect(error).toBeInstanceOf(Error);
+    expect((error as Error).message).toContain("MAPS_API_KEY");
+    evidence.push({
+      id: "missing-google-maps-credential-diagnostic",
+      selection: "google selected; key absent",
+      result: "gateway constructed; places rejected at call time",
+      diagnostic: "Google Maps selected; MAPS_API_KEY is missing",
+    });
+  });
+
   it("isolates concurrent automatically-selected Google and explicit OSM gateways", async () => {
     vi.stubEnv("USE_MOCK_TOOLS", "false");
     vi.stubEnv("MAPS_PROVIDER", "");
@@ -647,6 +674,7 @@ describe("ToolGateway provider matrix", () => {
       "weather-horizons",
       "weather-lazy-missing-credential",
       "lazy-unavailable-capabilities",
+      "missing-google-maps-credential-diagnostic",
       "concurrent-runtime-isolation",
     ]);
     const artifact = {

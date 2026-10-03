@@ -500,7 +500,13 @@ export function createMapsPort(config: ToolRuntimeConfig, reportSelection = fals
   }
 
   if (reportSelection) {
-    console.warn(`[tools] Live ${config.mapsProvider} Maps adapter enabled.`);
+    const selection =
+      config.mapsProvider === "google" && !config.mapsApiKey
+        ? "Google Maps selected; MAPS_API_KEY is missing, so capabilities fail when called."
+        : config.mapsProvider !== "google" && config.mapsProvider !== "osm"
+          ? `${config.mapsProvider} Maps selected but unsupported; capabilities fail when called.`
+          : `${config.mapsProvider} Maps adapter enabled.`;
+    console.warn(`[tools] Live ${selection}`);
   }
 
   if (config.mapsProvider === "google") {
