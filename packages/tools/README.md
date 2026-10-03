@@ -6,23 +6,23 @@ data mode), B (maps and routes), C (booking and SerpApi), D (weather).
 
 ## Modules
 
-| Module                | Purpose                                                                                 |
-| --------------------- | --------------------------------------------------------------------------------------- |
-| `gateway.ts`          | `createToolGateway()`: the `maps`, `booking` and `weather` ports for one planning run   |
-| `gateway-internal.ts` | Internal deterministic gateway construction for provider-policy E2E coverage            |
-| `runtime-context.ts`  | Immutable per-gateway provider configuration, network dependency and clock              |
-| `data-mode.ts`        | Per-request mock or live mode (`mockEnabled()`, `runWithDataMode()`, `parseDataMode()`) |
-| `maps-port.ts`        | Deep Maps port selecting fixtures, OpenStreetMap or Google once per gateway             |
-| `maps.ts`             | Temporary direct-adapter compatibility surface pending issue #131                       |
-| `booking-port.ts`     | Deep Booking port selecting fixtures, SerpApi or Google estimates once per gateway      |
-| `route-options.ts`    | Drive and transit options for one hop, compared side by side                            |
-| `google-places.ts`    | Shared Google Places `searchText` request                                               |
-| `booking.ts`          | Temporary direct-adapter compatibility surface pending issue #131                       |
-| `serpapi.ts`          | SerpApi Google Hotels and Google Flights with a shared monthly quota and cache          |
-| `airports.ts`         | City to IATA code lookup for flight searches                                            |
-| `weather-port.ts`     | Deep Weather port selecting fixture, Google Weather, Open-Meteo forecast or archive     |
-| `weather.ts`          | Temporary direct-adapter compatibility surface pending issue #131                       |
-| `mock-server.mjs`     | Optional stub HTTP server (`pnpm mock-server`); the app never calls it                  |
+| Module                | Purpose                                                                                  |
+| --------------------- | ---------------------------------------------------------------------------------------- |
+| `gateway.ts`          | `createToolGateway()`: the `maps`, `booking` and `weather` ports for one planning run    |
+| `gateway-internal.ts` | Internal deterministic gateway construction for provider-policy E2E coverage             |
+| `runtime-context.ts`  | Immutable per-gateway provider configuration, network dependency and clock               |
+| `data-mode.ts`        | Per-request mock or live mode (`mockEnabled()`, `runWithDataMode()`, `parseDataMode()`)  |
+| `maps-port.ts`        | Deep Maps port selecting fixtures, OpenStreetMap or Google once per gateway              |
+| `maps.ts`             | Internal direct-adapter compatibility surface; not exported from the package entry point |
+| `booking-port.ts`     | Deep Booking port selecting fixtures, SerpApi or Google estimates once per gateway       |
+| `route-options.ts`    | Drive and transit options for one hop, compared side by side                             |
+| `google-places.ts`    | Shared Google Places `searchText` request                                                |
+| `booking.ts`          | Internal direct-adapter compatibility surface; not exported from the package entry point |
+| `serpapi.ts`          | SerpApi Google Hotels and Google Flights with a shared monthly quota and cache           |
+| `airports.ts`         | City to IATA code lookup for flight searches                                             |
+| `weather-port.ts`     | Deep Weather port selecting fixture, Google Weather, Open-Meteo forecast or archive      |
+| `weather.ts`          | Internal direct-adapter compatibility surface; not exported from the package entry point |
+| `mock-server.mjs`     | Optional stub HTTP server (`pnpm mock-server`); the app never calls it                   |
 
 ## Configuration
 
@@ -52,9 +52,13 @@ weather path.
 ## Contracts
 
 - Mock mode makes no network calls and returns the same types as live mode.
-- Deep ports use the request-scoped mode captured in `ToolRuntimeConfig`; temporary direct
+- Deep ports use the request-scoped mode captured in `ToolRuntimeConfig`; internal direct
   compatibility adapters obtain the same mode through `snapshotToolRuntime()`. Provider code never
   reads `process.env.USE_MOCK_TOOLS` directly ([data mode note](../../.agents/notes/implemented/feature/2026-09-21-request-scoped-data-mode.md)).
+- The production package entry point exports only `createToolGateway()` and request-mode helpers.
+  The compile-time and runtime boundary check in `tests/public-boundary.test.ts` rejects raw Maps,
+  Booking and Weather namespace exports. Production specialists get provider evidence from `ctx.tools`;
+  their remaining `mockEnabled()` reads label presentation-only fallback facts.
 - Amounts are AUD. Stay prices are per room per night; flight prices are for all passengers.
 - Ratings are on a 0–10 scale; provider ratings on 1–5 are doubled.
 - Failures raise typed errors (`SerpApiError.reason`) and fall back only to a labelled tier; a flight
@@ -68,3 +72,6 @@ weather path.
 `pnpm --filter @trip/tools test`. Tests stub `fetch`; none needs a key or spends provider quota. The
 provider matrix exercises the public gateway ports with injected configuration, network and time,
 then writes its reviewable summary to `output/e2e/tool-gateway-provider-matrix/summary.json`.
+The public boundary test checks the exact package export surface. The Agent Lab Planning-loop
+regression scripts save fixture and live artifacts under `output/e2e/provider-boundary-planning/`
+and `output/e2e/provider-boundary-live/`; live provider requests are stubbed and use no quota.

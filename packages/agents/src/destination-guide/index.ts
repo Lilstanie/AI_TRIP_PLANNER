@@ -41,7 +41,9 @@ const DestinationGuideDraft = z.object({
  */
 const ModelGuideDraft = z.object({
   summary: z.string().trim().min(1),
-  attractions: z.array(z.object({ name: z.string().trim().min(1), detail: z.string().trim().min(1) })),
+  attractions: z.array(
+    z.object({ name: z.string().trim().min(1), detail: z.string().trim().min(1) }),
+  ),
   customs: z.array(z.string().trim().min(1)).min(1),
   safety: z.array(z.string().trim().min(1)).min(1),
   entryHealth: z.array(z.string().trim().min(1)).min(1),
@@ -228,7 +230,8 @@ async function planDestinationGuide(
       all.findIndex((candidate) => normalize(candidate.name) === normalize(place.name)) === index,
   );
   const weatherLocation = places.find((place) => place.location)?.location;
-  let weatherResult: Awaited<ReturnType<NonNullable<AgentContext["tools"]["weather"]>["forecast"]>> | undefined;
+  let weatherResult:
+    Awaited<ReturnType<NonNullable<AgentContext["tools"]["weather"]>["forecast"]>> | undefined;
   let weatherUnavailable = false;
   if (ctx.tools.weather && weatherLocation) {
     try {
@@ -253,9 +256,7 @@ async function planDestinationGuide(
       );
     } catch (error) {
       const reason = error instanceof Error ? error.message : "unknown model error";
-      console.warn(
-        `[destination-guide] Model draft failed; using a safe local plan: ${reason}`,
-      );
+      console.warn(`[destination-guide] Model draft failed; using a safe local plan: ${reason}`);
       usedFallback = true;
       draft = fallbackDraft(brief, month, places);
     }
@@ -284,7 +285,9 @@ async function planDestinationGuide(
       },
     ],
     assumptions: [
-      "Attractions come only from the injected MapsPort and may still be mock or stale data.",
+      mockEnabled()
+        ? "Attractions come only from the injected MapsPort and may still be mock or stale data."
+        : "Attractions come from provider candidates; opening hours and availability may be stale and require verification.",
       ...(weatherResult
         ? [
             `Weather source: ${weatherResult.provider}; ${weatherResult.horizon}${weatherResult.validUntil ? `, valid until ${weatherResult.validUntil}` : ""}; observed ${weatherResult.observedAt}.`,
@@ -301,13 +304,15 @@ async function planDestinationGuide(
       ? {
           kind: "fallback",
           label: "Local fallback",
-          freshness: "The model guide was unavailable or invalid; deterministic destination guidance was used from the gathered place evidence.",
+          freshness:
+            "The model guide was unavailable or invalid; deterministic destination guidance was used from the gathered place evidence.",
         }
       : weatherUnavailable
         ? {
             kind: "unavailable",
             label: "Weather provider",
-            freshness: "The destination guide completed with monthly context because the requested weather data was unavailable.",
+            freshness:
+              "The destination guide completed with monthly context because the requested weather data was unavailable.",
           }
         : {
             // Live providers are live whether they forecast or report history;

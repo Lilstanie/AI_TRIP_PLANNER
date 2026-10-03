@@ -277,6 +277,12 @@ Open-Meteo 预报，第 14 天之后使用 Open-Meteo 历史归档作为气候�
 `MemoryStore`（`packages/services/src/memory`）在配置后使用
 Redis REST 存储，否则使用进程内存。各包的导出和配置位于各自的 `README.md`。
 
+`@trip/tools` 包入口只公开零参数的 gateway 工厂和请求数据模式辅助函数，不公开原始
+Maps、Booking 或 Weather 适配器。生产环境中的 specialist 通过 `ctx.tools` 获取提供方依据；
+它们保留的请求模式读取仅用于给展示层回退事实加标签。
+[提供方选择决策](../.agents/notes/implemented/architecture/2026-10-03-deep-provider-selection.md)
+记录了这个边界以及刻意保持不变的共享约定。
+
 不要在未通知团队的情况下更改 `packages/shared`；每个包都依赖它。
 
 <a id="design-rules"></a>
