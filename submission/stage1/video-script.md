@@ -60,7 +60,7 @@ Our key design choice: the LangGraph workflow drives the agents, not the other w
 
 I'm Tingsong Jin, member B. We classified requirements into the agreed scope, mandatory capabilities and optional features. Each member owns two core features and one optional one, shown here. Every member also wrote an ad hoc requirement and broke it into functional, non-functional and constraint requirements.
 
-### 7. Eight feature groups with their constraints
+### 7. Seven feature groups with their constraints
 
 **B Tingsong Jin** · 约 18 秒
 

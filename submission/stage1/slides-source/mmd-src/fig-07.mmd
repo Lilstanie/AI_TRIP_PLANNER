@@ -1,0 +1,71 @@
+classDiagram
+  direction LR
+  class brief["tightBrief : TripBrief"] {
+    tripId = "agent-lab-tokyo-couple-tight-budget"
+    destination = "Tokyo"
+    origin = "Sydney"
+    dates = ["2026-11-10", "2026-11-14"]
+    groupSize = 2
+    budgetTotal = 2300
+  }
+  class prefs["prefs : AccommodationPreferences"] {
+    roomAllocation = "shared"
+    minRating = 0
+    freeCancellation = false
+  }
+  class transport["transportP : AgentProposal"] {
+    agent = "transport"
+    cost = 1180.00
+    floorCost = 980.00
+  }
+  class acc["accP : AgentProposal"] {
+    agent = "accommodation"
+    cost = 1520.00
+    floorCost = 880.00
+  }
+  class dining["diningP : AgentProposal"] {
+    agent = "dining"
+    cost = 240.00
+    floorCost = 0
+  }
+  class stay["tokyoStay : StaySelection"] {
+    city = "Tokyo"
+    checkIn = "2026-11-10"
+    checkOut = "2026-11-14"
+    nights = 4
+    rooms = 1
+    selectedId = "standard"
+  }
+  class c1["saver : StayCandidate"] {
+    pricePerNight = 220
+    rating = 7.2
+    freeCancellation = false
+  }
+  class c2["economy : StayCandidate"] {
+    pricePerNight = 240
+    rating = 7.6
+    freeCancellation = true
+  }
+  class c3["standard : StayCandidate"] {
+    pricePerNight = 380
+    rating = 8.7
+    freeCancellation = true
+  }
+  class c4["comfort : StayCandidate"] {
+    pricePerNight = 520
+    rating = 9.3
+    freeCancellation = true
+  }
+  class req["accRevision : RevisionRequest"] {
+    targetAgent = "accommodation"
+    reason = "plan is 27.83% (AUD 640.00) over budget"
+    targetSaving = 379.26
+  }
+  brief --> prefs : accommodation
+  acc --> stay : stays
+  stay --> c1 : candidates
+  stay --> c2
+  stay --> c3
+  stay --> c4
+  req ..> acc : targets
+  req ..> brief : tripId

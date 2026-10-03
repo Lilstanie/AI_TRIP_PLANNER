@@ -1,0 +1,33 @@
+flowchart LR
+  pChat(["chatIn : ChatRequest"])
+  pOut(["planOut : TripPlan"])
+  pProg(["progress : AgentProgressEvent"])
+  subgraph W["TripPlanningWorkflow «structured class»"]
+    direction LR
+    intake["intake : BriefExtractor [1]"]
+    lg["graph : CompiledStateGraph [1]"]
+    sup["supervisor : SupervisorAgent [0..1]"]
+    reg["registry : SpecialistRegistry [1]"]
+    specs["specialists : Specialist [5]"]
+    brd["board : PlanningBoard [1]"]
+    pol["policy : ConflictPolicy [1]"]
+    bud["budget : BudgetCalculator [1]"]
+    intake --> lg
+    lg --> sup
+    lg --> brd
+    sup --> reg
+    reg --> specs
+    brd --> specs
+    lg --> pol
+    pol --> bud
+  end
+  pTools(["tools : ToolGateway"])
+  pMem(["mem : MemoryStore"])
+  pModel(["model : BaseChatModel"])
+  pChat --> intake
+  lg --> pOut
+  lg --> pProg
+  specs --> pTools
+  specs --> pMem
+  sup --> pModel
+  intake --> pModel
