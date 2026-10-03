@@ -24,7 +24,7 @@ and what is still missing; this skill says which copies a change touches.
   `slides-source/assets/diagrams/`, fill that member's `behaviour_template` call in `build_deck.py`,
   then run the script. A hand-edited `.pptx` is lost on the next run; #142 had to rebuild slide 19 from the generator.
 - **One copy of each image.** Diagrams for the deck live only in `slides-source/assets/diagrams/`,
-  with their source in `mmd-src/`. Do not add a parallel `submission/stage1/diagrams/` folder or
+  with their source in `mmd-src/`. Do not add a parallel `diagrams` folder elsewhere under `submission/stage1/`, or
   commit preview screenshots; previews are evidence for the PR, not files.
 - **Complete diagrams.** A diagram shows the whole model even when it no longer fits one screen or
   slide; split it into views rather than dropping elements. Do not keep two renderings of one diagram.
