@@ -15,13 +15,14 @@ Web 应用（`apps/web`）是单用户规划工作区。本文描述其当前行
 | 侧边栏         | Logo、带数量的 Chats 和 Trips、保存或同步状态、Settings & account                                                                  | `WorkspaceSidebar`、`BrandMark`、`icons.tsx`                                                                |
 | Chats 面板     | 在侧边栏旁滑出：搜索、New chat、New trip，然后是行程和聊天                                                                         | `ChatsPanel`、`TripCover`                                                                                   |
 | Your trips     | 通过 Trips 打开，替代聊天和地图：行程卡片（Upcoming、Past）、Calendar 标签页和 New trip                                            | `TripsPage`、`TripCover`                                                                                    |
-| 顶栏           | 行程标题；行程事实标签（目的地、日期、旅客、预算、Preferences）；数据模式；最右侧显示站点数的 Trip                                 | `WorkspaceView`、`TripFactChips`                                                                            |
+| 顶栏           | 行程标题；行程事实标签；相邻的数据模式和语言控件；最右侧显示站点数的 Trip                                                          | `WorkspaceView`、`TripFactChips`、`DataModeToggle`、`LanguageToggle`                                        |
 | 行程事实编辑器 | 每个标签对应一个编辑器，全部为居中对话框；Preferences 保存旅客自己的列表                                                           | `FactPopover`、`FactFields`、`TripCalendar`、`WhereFields`、`PreferenceList`、`lib/workspace/trip-facts.ts` |
 | 聊天           | 对话、规划 transcript（文本记录）、输入区；空白聊天中的起始建议；没有可见标题                                                      | `ChatPanel`                                                                                                 |
 | 地图           | 仅包含地图、带标签的标记、按天着色的弧形行程线、地点弹窗、地图状态，以及定位／地图类型／缩放控件                                   | `TripMapCanvas`、`TripMap`                                                                                  |
 | Your Trip 抽屉 | 预算；Itinerary（按天排列、带操作菜单的停靠点，Ideas，各部分方案）；Timeline & routes（日期条、时间线、停靠点编辑器）；Review plan | `Drawer`、`TripPanel`、`TripPlaceList`、`TripEditor`                                                        |
 
 - **侧边栏。**
+  - 桌面端的浮动侧边栏卡片与主工作区之间保留标准的 8 px 环境间距；进入窄屏断点并移除侧边栏时，该间距同时取消。
   - 展开宽度为 240 px（视口小于 1250 px 时为 220 px），或折叠成 64 px 的图标栏。切换按钮使用 `aria-expanded`，偏好保存在目录布局中。
   - 展开时，右边缘的分隔条可将宽度调整到 200–420 px。可拖动，或聚焦后使用 Left/Right（步长 16 px）、Home 和 End；双击恢复响应式默认宽度。它是带 `aria-valuenow` 的 `role="separator"` 窗口分隔控件，拖动时直接把 `--sidebar-width` 写入工作区网格，避免工作区在每次指针移动时重新渲染。只点击而不移动指针，不改变响应式默认值。
   - 用户调整大小之后，宽度才存入目录布局。在此之前遵循样式表的响应式默认值，因此缩窄窗口仍会缩窄侧边栏。折叠时保留宽度，供下次展开使用。
@@ -44,7 +45,7 @@ Web 应用（`apps/web`）是单用户规划工作区。本文描述其当前行
   - Who 为每类旅客提供一个步进器（− 数量 +）：Adults（13–64）、Children（2–12）、Infants（2 岁以下）、Seniors（65+）和 Pets，各自有减／加按钮和实时数量。草稿保存该分类（`Draft.party`），每次变化都将 `groupSize` 同步为 `adults + children + infants +
 seniors`（宠物不计为旅客）；`groupSize` 仍是校验字段，因此至少需要一人。在尚无分类的草稿上打开 Who（保存时还未引入步进器），所有已陈述的旅客起初都计为成年人。
   - 分类以 `TripBrief.party`（方案生成前为 `known.party`）传给规划器，与 `groupSize` 并列。每个 specialist 的共享规则要求它在证据允许时为儿童、婴儿、老年人和宠物规划，并在无法确认适宜性时说明；所有费用计算仍使用 `groupSize`。分类合计不再等于 `groupSize` 时（例如聊天后来得知“we're three now”），会丢弃分类，不再发送。[旅客分类 Agent Note](../.agents/notes/implemented/architecture/2026-09-24-traveller-party.md) 记录了原因。
-  - Budget 在一个 `role="radiogroup"` 中提供四个预设范围卡片：Budget（低于 AUD 1,000，设置为 AUD 900）、Moderate（AUD 1,000–3,000，设置为 AUD 3,000）、Comfort（AUD 3,000–6,000，设置为 AUD 6,000）和 Luxury（AUD 6,000+，设置为 AUD 10,000）。各卡片为 `role="radio"`，仅当 `budgetTotal` 与其值完全相等时显示选中（`aria-checked="true"`）。下方“Or enter an amount (AUD)”可直接把 `budgetTotal` 设为任意金额；除非恰好匹配某个预设，否则取消所有预设的选中状态。
+  - Budget 在一个 `role="radiogroup"` 中提供四个预设范围卡片。预设阈值仍以 AUD 900、3,000、6,000 和 10,000 存储，但标签和自定义金额字段使用已选择的显示币种。自定义金额在写入 `budgetTotal` 前换算回 AUD，因此 Agent、持久化数据和预算约束继续共用一种基础币种。显示币种可以选择 AUD、USD、CNY 或根据目的地推断的当地币种；目的地尚未填写或无法识别时回退为 AUD。换算使用注明日期的取整规划汇率表，界面明确说明它是估算值，而不是实时外汇报价。
   - Trip preferences 打开时显示填充背景的输入框（`--surface-2`、无边框、15 px），Enter 添加偏好；下方每项偏好是一行带移除按钮的填充背景行，最多 12 项，每项最多 200 字符。点击偏好文字可原地编辑（Enter 或离开输入框保存，Escape 只取消此次编辑）；没有铅笔按钮。重复项会被拒绝并显示提示，Done 会保留输入框中尚未提交的文字，添加和移除通过状态区域播报。国籍、房间分配、最低住客评分和免费取消已不再可编辑；已存储行程需求中的值原样透传，已存储但不符合 schema 的评分视为“no minimum”。
   - 列表下方的“Learned from your chats”在有内容时显示助手从对话中记录的内容：
     - 每条学到的偏好；
@@ -240,8 +241,7 @@ Specialist 事件会展示受限的目标、约束和结果。修订运行还会
       每项是带 emoji 和粗体标签的填充行，点击即可编辑。空项在琥珀色边框的行中显示问题和 Answer。新聊天或新行程以
       这些信息为起点：常住地作为出发地，加上旅客人数和预算，节奏、兴趣和饮食需求成为行程偏好条目。新聊天的信息仍等于
       这些默认值时，仍算作空白聊天。
-  - **Language & region：** 语言（英语；可用任何语言聊天）、地区、货币（AUD，基础货币）、单位（公制），以及
-    Advanced 下的 Trip data（站点默认、实时价格或示例数据）。
+  - **Language & region：** 界面语言（English 或简体中文）、地区、显示币种（AUD、USD、CNY 或目的地当地币种）、单位（公制），以及 Advanced 下的 Trip data（站点默认、实时价格或示例数据）。语言和显示币种立即生效，并与其他设置一起保存；它们不会改变聊天语言或以 AUD 为基础的规划计算。顶栏在数据模式控件旁还提供一键语言切换，复用同一保存设置，并在窄屏下保留带无障碍名称的图标。参见[界面本地化和显示币种 Agent Note](../.agents/notes/implemented/feature/2026-10-02-interface-localisation-display-currency.md)。
   - **Connected accounts：** 通过 Clerk 关联的 Google、GitHub 或 Apple 登录方式，并有一个按钮打开 Clerk 进行更改。
 - 未登录时，设置保存在当前浏览器；登录后，浏览器和账号中较新的副本为准，之后的改动保存到账号。
 

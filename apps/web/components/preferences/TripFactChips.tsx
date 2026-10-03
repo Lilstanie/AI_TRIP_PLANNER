@@ -13,6 +13,7 @@ import { SlidersIcon } from "../ui/icons";
 import { FactFields } from "./FactFields";
 import { FactPopover, type CloseReason } from "./FactPopover";
 import { usePresence } from "../ui/motion";
+import { useLocale } from "../account/LocaleProvider";
 
 const TITLES: Record<FactKey, string> = {
   where: "Where",
@@ -64,7 +65,11 @@ type Props = {
  */
 export function TripFactChips(props: Props) {
   const { draft, plan, open, onOpen, onClose, preferencesChip } = props;
-  const labels = factLabels(draft, plan?.brief);
+  const { locale, t, currency } = useLocale();
+  const labels = factLabels(draft, plan?.brief, {
+    locale,
+    currency: currency(draft.destination),
+  });
   // The editor stays mounted briefly after it closes so it can sink away instead of vanishing.
   const shown = usePresence(open, 220);
   const chips = useRef<Partial<Record<FactKey, HTMLButtonElement | null>>>({});
@@ -117,7 +122,7 @@ export function TripFactChips(props: Props) {
   }, [labelText]);
 
   return (
-    <div className="fact-chips" role="group" aria-label="Trip details">
+    <div className="fact-chips" role="group" aria-label={t("Trip details")}>
       <div ref={scroller} className="fact-chips__scroller">
         {FACTS.map((fact) => {
           const expanded = open === fact;
@@ -138,10 +143,10 @@ export function TripFactChips(props: Props) {
                   preferencesChip.current = node;
                 }}
                 className="fact-chip fact-chip--preferences"
-                aria-label="Open trip preferences"
+                aria-label={t("Open trip preferences")}
               >
                 <SlidersIcon />
-                <span>Preferences</span>
+                <span>{t("Preferences")}</span>
               </button>
             );
           const label = labels[fact];
@@ -157,11 +162,14 @@ export function TripFactChips(props: Props) {
             >
               {label ? (
                 <>
-                  <span className="sr-only">{NAMES[fact]}: </span>
+                  <span className="sr-only">
+                    {t(NAMES[fact])}
+                    {locale === "zh-CN" ? "：" : ": "}
+                  </span>
                   {label}
                 </>
               ) : (
-                EMPTY[fact]
+                t(EMPTY[fact])
               )}
             </button>
           );
@@ -172,7 +180,7 @@ export function TripFactChips(props: Props) {
           // A fresh instance for the exit, so reopening mid-exit mounts (and focuses) anew.
           key={shown.leaving ? `${shown.value}:leaving` : shown.value}
           id={`fact-popover-${shown.value}`}
-          title={TITLES[shown.value]}
+          title={t(TITLES[shown.value])}
           anchor={anchor}
           onClose={close}
           modal
@@ -197,6 +205,7 @@ function FactForm({
   onDone,
   suggestPlaces = false,
 }: Props & { fact: FactKey; onDone(): void }) {
+  const { t } = useLocale();
   const [value, setValue] = useState(draft);
   const [local, setLocal] = useState<Record<string, string>>();
   const form = useRef<HTMLFormElement>(null);
@@ -244,11 +253,13 @@ function FactForm({
               if (check() && onPlan(value)) onDone();
             }}
           >
-            {busy ? "Planning…" : "Plan trip"}
+            {t(busy ? "Planning…" : "Plan trip")}
           </button>
         )}
         <button type="submit" className="primary fact-form__primary" disabled={busy}>
-          {plan ? (busy ? "Planning…" : "Update trip") : fact === "preferences" ? "Done" : "Save"}
+          {t(
+            plan ? (busy ? "Planning…" : "Update trip") : fact === "preferences" ? "Done" : "Save",
+          )}
         </button>
       </div>
     </form>

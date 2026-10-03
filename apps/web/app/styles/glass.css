@@ -130,6 +130,9 @@
   margin: var(--float-gap) 0 var(--float-gap) var(--float-gap);
   border-radius: var(--radius-xl);
 }
+.workspace-main {
+  margin-inline-start: var(--float-gap);
+}
 .workspace-sidebar.is-collapsed {
   padding-inline: var(--space-2);
 }
@@ -582,6 +585,9 @@
 
 /* ---- narrow screens ---- */
 @media (max-width: 1000px) {
+  .workspace-main {
+    margin-inline-start: 0;
+  }
   .workspace-notices {
     padding-inline: var(--float-gap);
   }

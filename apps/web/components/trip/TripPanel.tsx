@@ -2,8 +2,9 @@ import { useRef, type ReactNode } from "react";
 import type { TripPlan } from "@trip/shared";
 import { TripSection } from "./TripSection";
 import { statusForPlan } from "@/lib/workspace/catalog";
-import { budgetHint, itineraryActivities, money } from "@/lib/workspace";
+import { budgetHint, itineraryActivities } from "@/lib/workspace";
 import { useSegmentIndicator } from "../ui/motion";
+import { useLocale } from "../account/LocaleProvider";
 
 export type TripTab = "overview" | "timeline";
 
@@ -36,6 +37,7 @@ export function TripPanel({
   onReview: () => void;
   onEdit: () => void;
 }) {
+  const { money } = useLocale();
   const estimated =
     Number.isFinite(plan.estTotal) && plan.estTotal >= 0 ? plan.estTotal : undefined;
   const budget =

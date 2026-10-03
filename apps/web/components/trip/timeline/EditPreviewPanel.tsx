@@ -3,7 +3,7 @@ import { useEffect, useRef } from "react";
 import type { TripPlan } from "@trip/shared";
 import type { EditPreview } from "@/lib/trip/trip-edit";
 import { formatDuration } from "@/lib/trip/timeline";
-import { money } from "@/lib/workspace";
+import { useLocale } from "../../account/LocaleProvider";
 
 /**
  * "Review this change": what an edit does to the trip before it is applied — the new total and the
@@ -23,6 +23,7 @@ export function EditPreviewPanel({
   onApply(): void;
   onCancel(): void;
 }) {
+  const { money } = useLocale();
   const root = useRef<HTMLDivElement>(null);
   useEffect(() => root.current?.focus(), []);
   const change = preview.plan.estTotal - plan.estTotal;

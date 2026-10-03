@@ -41,9 +41,10 @@ sections.
 - **Memory off disables the travel profile too.** Rejected: the profile is entered explicitly by the
   traveller. Mindtrip's switch covers what the assistant learns, and here that is
   `learnedPreferences`.
-- **Changing units or currency.** Not added: every total is AUD by
-  [the base-currency note](../architecture/2026-09-20-aud-base-currency.md), so the rows are shown
-  read-only.
+- **Changing the planning currency.** Rejected: every stored and checked total remains AUD by the
+  [base-currency note](../architecture/2026-09-20-aud-base-currency.md). A later change added a
+  presentation-only currency choice without changing that contract; see the
+  [localisation and display-currency note](2026-10-02-interface-localisation-display-currency.md).
 
 ## Consequences
 

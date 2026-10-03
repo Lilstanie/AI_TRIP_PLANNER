@@ -13,13 +13,15 @@ now. Implementation history and browser acceptance for each phase are in the
 | Sidebar           | Logo, Chats and Trips with counts, save or sync status, Settings & account                                                                  | `WorkspaceSidebar`, `BrandMark`, `icons.tsx`                                                                |
 | Chats panel       | Slides out beside the sidebar: search, New chat, New trip, then trips and chats                                                             | `ChatsPanel`, `TripCover`                                                                                   |
 | Your trips        | Opened by Trips in place of chat and map: trip cards (Upcoming, Past) and a Calendar tab; New trip                                          | `TripsPage`, `TripCover`                                                                                    |
-| Top bar           | Trip title; trip fact chips (destination, dates, travellers, budget, Preferences); data mode; Trip with its stop count, rightmost           | `WorkspaceView`, `TripFactChips`                                                                            |
+| Top bar           | Trip title; trip fact chips; adjacent data-mode and language controls; Trip with its stop count, rightmost                                  | `WorkspaceView`, `TripFactChips`, `DataModeToggle`, `LanguageToggle`                                        |
 | Trip fact editors | One editor per chip, every one a centred dialog; Preferences holds the traveller's own list                                                 | `FactPopover`, `FactFields`, `TripCalendar`, `WhereFields`, `PreferenceList`, `lib/workspace/trip-facts.ts` |
 | Chat              | Conversation, the planning transcript, the composer; starter suggestions in a blank chat; no visible heading                                | `ChatPanel`                                                                                                 |
 | Map               | Only the map, labelled markers, curved day-coloured itinerary lines, the place popup, map status, and the locate / map type / zoom controls | `TripMapCanvas`, `TripMap`                                                                                  |
 | Your Trip drawer  | Budget; Itinerary (stops by day with an action menu, Ideas, sections); Timeline & routes (day strip, timeline, stop editor); Review plan    | `Drawer`, `TripPanel`, `TripPlaceList`, `TripEditor`                                                        |
 
 - **Sidebar.**
+  - On desktop the floating sidebar card is separated from the main workspace by the standard 8 px
+    ambient gutter. The gutter is removed with the sidebar at the narrow-screen breakpoint.
   - Expands to 240 px (220 px below 1250 px) or collapses to a 64 px icon rail. The toggle uses
     `aria-expanded`, and the preference is saved in the catalog layout.
   - While expanded, a separator on its right edge resizes it between 200 and 420 px. Drag it, or focus
@@ -124,12 +126,13 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     (say, the chat later learns "we're three now") is dropped rather than sent. The
     [traveller party Agent Note](../.agents/notes/implemented/architecture/2026-09-24-traveller-party.md)
     records why.
-  - Budget offers four preset range cards in a `role="radiogroup"` — Budget (under AUD 1,000, sets AUD
-    900), Moderate (AUD 1,000–3,000, sets AUD 3,000), Comfort (AUD 3,000–6,000, sets AUD 6,000) and
-    Luxury (AUD 6,000+, sets AUD 10,000) — each `role="radio"` and shown selected
-    (`aria-checked="true"`) exactly while `budgetTotal` equals its value. Below them, "Or enter an
-    amount (AUD)" sets `budgetTotal` directly to any figure, which deselects every preset unless it
-    happens to match one.
+  - Budget offers four preset range cards in a `role="radiogroup"`. Their stored thresholds remain
+    AUD 900, 3,000, 6,000 and 10,000, but their labels and the custom amount field use the selected
+    display currency. A custom amount converts back to AUD before it becomes `budgetTotal`, so the
+    agents, persistence and budget guardrails keep one base currency. The selected display currency
+    can be AUD, USD, CNY or the destination's inferred local currency; unsupported or unstated
+    destinations fall back to AUD. Conversion uses a dated, rounded planning-rate table and the UI
+    says it is approximate rather than a live foreign-exchange quote.
   - Trip preferences opens on a filled field (`--surface-2`, no border, 15 px) that adds a preference
     with Enter; below it each preference is a filled row with a remove button, up to 12 of up to 200
     characters. Clicking a preference's text edits it in place (Enter or leaving the field keeps it,
@@ -560,9 +563,13 @@ the account section explains that everything stays in this browser.
       facts: home base as the origin, plus travellers and budget, with pace, interests and dietary
       needs as trip preference lines. A new chat counts as blank while its facts equal these
       defaults.
-  - **Language & region:** language (English; chat in any language), region, currency (AUD, the
-    base currency), units (metric), and Trip data (the site's default, live prices or sample data)
-    under Advanced.
+  - **Language & region:** interface language (English or Simplified Chinese), region, display
+    currency (AUD, USD, CNY or destination-local), units (metric), and Trip data (the site's
+    default, live prices or sample data) under Advanced. Language and display currency apply at
+    once, persist with the other settings, and do not change the chat language or the AUD planning
+    base. The top bar also provides a one-press language switch immediately beside the data-mode
+    control; it uses the same saved setting and remains icon-labelled on narrow screens. See the
+    [localisation and display-currency Agent Note](../.agents/notes/implemented/feature/2026-10-02-interface-localisation-display-currency.md).
   - **Connected accounts:** the Google, GitHub or Apple sign-ins linked through Clerk, with a button
     that opens Clerk to change them.
 - Signed out, settings are kept in this browser; signed in, the newer copy of browser and account

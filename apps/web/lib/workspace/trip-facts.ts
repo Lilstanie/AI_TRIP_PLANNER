@@ -5,6 +5,7 @@ import {
   type TripBrief,
 } from "@trip/shared";
 import { budgetHint, parseDraft, type Draft } from "./workspace";
+import { formatAudForDisplay, translate, type AppLocale, type CurrencyCode } from "../i18n/locale";
 
 /** Age labels shown beside each Who stepper; also the order the chip summary lists them in. */
 export const PARTY_ROWS = [
@@ -118,8 +119,8 @@ export function briefErrors(issues: readonly { path: readonly PropertyKey[]; mes
   return errors;
 }
 
-const shortDate = (iso: string, withYear: boolean) =>
-  new Intl.DateTimeFormat("en-AU", {
+const shortDate = (iso: string, withYear: boolean, locale: AppLocale) =>
+  new Intl.DateTimeFormat(locale === "zh-CN" ? "zh-CN" : "en-AU", {
     day: "numeric",
     month: "short",
     ...(withYear ? { year: "numeric" } : {}),
@@ -130,43 +131,61 @@ const validDate = (iso: string) =>
   /^\d{4}-\d{2}-\d{2}$/.test(iso) && !Number.isNaN(Date.parse(iso));
 
 /** "1 Oct – 4 Oct" and "4 days"; years only across a new year. Undefined until both dates are real and in order. */
-export function datesLabel(start: string, end: string) {
+export function datesLabel(start: string, end: string, locale: AppLocale = "en") {
   if (!validDate(start) || !validDate(end)) return undefined;
   const days = (Date.parse(end) - Date.parse(start)) / 86400000 + 1;
   if (days < 1) return undefined;
   const sameYear = start.slice(0, 4) === end.slice(0, 4);
-  const range = `${shortDate(start, !sameYear)} – ${shortDate(end, !sameYear)}`;
-  return { range, days: `${days} ${days === 1 ? "day" : "days"}` };
+  const range = `${shortDate(start, !sameYear, locale)} – ${shortDate(end, !sameYear, locale)}`;
+  return {
+    range,
+    days: locale === "zh-CN" ? `${days} 天` : `${days} ${days === 1 ? "day" : "days"}`,
+  };
 }
 
 /** Cents only when the amount has them: "AUD 2,000", but "AUD 1,999.50". */
-const chipMoney = (amount: number) =>
-  new Intl.NumberFormat("en-AU", {
-    style: "currency",
-    currency: BASE_CURRENCY,
-    currencyDisplay: "code",
-    minimumFractionDigits: Number.isInteger(amount) ? 0 : 2,
-    maximumFractionDigits: Number.isInteger(amount) ? 0 : 2,
-  }).format(amount);
+const chipMoney = (amount: number, currency: CurrencyCode, locale: AppLocale) =>
+  currency === BASE_CURRENCY && locale === "en"
+    ? new Intl.NumberFormat("en-AU", {
+        style: "currency",
+        currency: BASE_CURRENCY,
+        currencyDisplay: "code",
+        minimumFractionDigits: Number.isInteger(amount) ? 0 : 2,
+        maximumFractionDigits: Number.isInteger(amount) ? 0 : 2,
+      }).format(amount)
+    : formatAudForDisplay(
+        amount,
+        currency,
+        locale,
+        Number.isInteger(amount) ? 0 : 2,
+        Number.isInteger(amount) ? 0 : 2,
+      );
 
 /**
  * What each chip shows. Only values the traveller stated appear; anything missing reads as an
  * invitation to add it, never as a guess. `brief` is the planned trip's, used only to explain a
  * converted budget that still matches the draft.
  */
-export function factLabels(draft: Draft, brief?: TripBrief) {
+export function factLabels(
+  draft: Draft,
+  brief?: TripBrief,
+  display: { locale?: AppLocale; currency?: CurrencyCode } = {},
+) {
+  const locale = display.locale ?? "en";
+  const currency = display.currency ?? BASE_CURRENCY;
   const travellers = Number(draft.groupSize);
   const budget = Number(draft.budgetTotal);
-  const dates = datesLabel(draft.start, draft.end);
-  const hint = brief && budget === brief.budgetTotal ? budgetHint(brief) : "";
+  const dates = datesLabel(draft.start, draft.end, locale);
+  const hint =
+    currency === BASE_CURRENCY && brief && budget === brief.budgetTotal ? budgetHint(brief) : "";
   const validTravellers = draft.groupSize.trim() && Number.isInteger(travellers) && travellers > 0;
   return {
     where: draft.destination.trim() || undefined,
     when: dates && `${dates.range} · ${dates.days}`,
-    who: validTravellers ? whoLabel(draft, travellers) : undefined,
+    who: validTravellers ? whoLabel(draft, travellers, locale) : undefined,
     budget:
       draft.budgetTotal.trim() && Number.isFinite(budget) && budget > 0
-        ? `${chipMoney(budget)}${hint}`
+        ? `${chipMoney(budget, currency, locale)}${hint}`
         : undefined,
   };
 }
@@ -175,13 +194,20 @@ export function factLabels(draft: Draft, brief?: TripBrief) {
  * "2 adults, 1 child, 1 pet" from the stepper breakdown, or a plain "3 travellers" when the draft
  * has none — a brief loaded fresh (`draftFor`), or one saved before the steppers existed.
  */
-function whoLabel(draft: Draft, travellers: number) {
-  const plain = `${travellers} ${travellers === 1 ? "traveller" : "travellers"}`;
+function whoLabel(draft: Draft, travellers: number, locale: AppLocale) {
+  const plain =
+    locale === "zh-CN"
+      ? `${travellers} 位旅行人员`
+      : `${travellers} ${travellers === 1 ? "traveller" : "travellers"}`;
   const party = draft.party;
   if (!party) return plain;
-  const parts = PARTY_ROWS.map(({ key, singular }) => {
+  const parts = PARTY_ROWS.map(({ key, singular, label }) => {
     const count = party[key];
-    return count > 0 ? `${count} ${count === 1 ? singular : `${singular}s`}` : undefined;
+    return count > 0
+      ? locale === "zh-CN"
+        ? `${count} ${translate(locale, label)}`
+        : `${count} ${count === 1 ? singular : `${singular}s`}`
+      : undefined;
   }).filter((part): part is string => !!part);
   return parts.length ? parts.join(", ") : plain;
 }

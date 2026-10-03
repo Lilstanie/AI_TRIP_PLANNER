@@ -9,6 +9,8 @@ import { MinusIcon, PlusIcon } from "../ui/icons";
 import { Input } from "../ui/input";
 import { PreferenceList } from "./PreferenceList";
 import { WhereFields } from "./WhereFields";
+import { useLocale } from "../account/LocaleProvider";
+import { audToDisplay, displayToAud } from "@/lib/i18n/locale";
 
 // react-day-picker and its stylesheet load only once the traveller opens the When editor.
 const TripCalendar = dynamic(() => import("./TripCalendar").then((m) => m.TripCalendar), {
@@ -119,10 +121,11 @@ const parseIsoDate = (iso: string) => {
 };
 
 function WhenFields({ value, onChange, errors }: FieldsProps) {
+  const { locale, t } = useLocale();
   const range: DateRange | undefined = value.start
     ? { from: parseIsoDate(value.start), to: value.end ? parseIsoDate(value.end) : undefined }
     : undefined;
-  const dates = datesLabel(value.start, value.end);
+  const dates = datesLabel(value.start, value.end, locale);
   const clear = () => onChange({ ...value, start: "", end: "" });
   const handleSelect = (next: DateRange | undefined) => {
     if (!next?.from) {
@@ -139,11 +142,11 @@ function WhenFields({ value, onChange, errors }: FieldsProps) {
     <div className="when-fields">
       <div className="when-fields__summary">
         <span className={dates ? undefined : "muted"}>
-          {dates ? `${dates.range} · ${dates.days}` : "Choose your travel dates."}
+          {dates ? `${dates.range} · ${dates.days}` : t("Choose your travel dates.")}
         </span>
         {(value.start || value.end) && (
           <button type="button" className="when-fields__clear" onClick={clear}>
-            Clear
+            {t("Clear")}
           </button>
         )}
       </div>
@@ -158,6 +161,7 @@ function WhenFields({ value, onChange, errors }: FieldsProps) {
 }
 
 function WhoFields({ value, onChange, errors }: FieldsProps) {
+  const { t } = useLocale();
   const party = partyFor(value);
   const setParty = (next: Party) =>
     onChange({ ...value, party: next, groupSize: String(groupSizeFromParty(next)) });
@@ -168,8 +172,8 @@ function WhoFields({ value, onChange, errors }: FieldsProps) {
         return (
           <div className="fact-steppers__row" key={key}>
             <div className="fact-steppers__label">
-              <span>{label}</span>
-              {hint && <small className="muted">{hint}</small>}
+              <span>{t(label)}</span>
+              {hint && <small className="muted">{t(hint)}</small>}
             </div>
             <div className="fact-stepper">
               <button
@@ -181,7 +185,7 @@ function WhoFields({ value, onChange, errors }: FieldsProps) {
               >
                 <MinusIcon />
               </button>
-              <span className="fact-stepper__value" aria-label={`${label}: ${count}`}>
+              <span className="fact-stepper__value" aria-label={`${t(label)}: ${count}`}>
                 {count}
               </span>
               <button
@@ -216,10 +220,16 @@ const BUDGET_PRESETS = [
 ] as const;
 
 function BudgetFields({ value, onChange, errors }: FieldsProps) {
+  const { locale, t, currency, money } = useLocale();
+  const displayCurrency = currency(value.destination);
   const current = value.budgetTotal.trim() ? Number(value.budgetTotal) : undefined;
+  const shown =
+    current === undefined
+      ? ""
+      : String(Math.round(audToDisplay(current, displayCurrency) * 100) / 100);
   return (
     <div className="fact-budget">
-      <div className="fact-budget__presets" role="radiogroup" aria-label="Budget range">
+      <div className="fact-budget__presets" role="radiogroup" aria-label={t("Budget range")}>
         {BUDGET_PRESETS.map((preset) => {
           const checked = current === preset.value;
           return (
@@ -232,22 +242,49 @@ function BudgetFields({ value, onChange, errors }: FieldsProps) {
               data-checked={checked ? "true" : undefined}
               onClick={() => onChange({ ...value, budgetTotal: String(preset.value) })}
             >
-              <span className="fact-budget__preset-name">{preset.name}</span>
-              <span className="fact-budget__preset-hint">{preset.hint}</span>
+              <span className="fact-budget__preset-name">{t(preset.name)}</span>
+              <span className="fact-budget__preset-hint">
+                {preset.name === "Budget"
+                  ? `${t("under")} ${money(1000, value.destination)}`
+                  : preset.name === "Luxury"
+                    ? `${money(6000, value.destination)}+`
+                    : preset.name === "Moderate"
+                      ? `${money(1000, value.destination)}–${money(3000, value.destination)}`
+                      : `${money(3000, value.destination)}–${money(6000, value.destination)}`}
+              </span>
             </button>
           );
         })}
       </div>
-      <TextField
-        name="budgetTotal"
-        label="Or enter an amount (AUD)"
-        hint="For the whole group and the whole trip, in Australian dollars."
-        type="number"
+      <Field
+        id="fact-budgetTotal"
+        label={`${t("Or enter an amount")}${locale === "zh-CN" ? `（${displayCurrency}）` : ` (${displayCurrency})`}`}
+        hint={t("For the whole group and the whole trip.")}
         error={errors.budgetTotal}
-        value={value}
-        onChange={onChange}
-        inputProps={{ min: 0.01, step: 0.01, inputMode: "decimal" }}
-      />
+      >
+        {(describedBy) => (
+          <Input
+            id="fact-budgetTotal"
+            className="field"
+            type="number"
+            value={shown}
+            min={0.01}
+            step={0.01}
+            inputMode="decimal"
+            aria-invalid={!!errors.budgetTotal}
+            aria-describedby={describedBy}
+            onChange={(event) => {
+              const entered = event.target.value;
+              onChange({
+                ...value,
+                budgetTotal: entered
+                  ? String(Math.round(displayToAud(Number(entered), displayCurrency) * 100) / 100)
+                  : "",
+              });
+            }}
+          />
+        )}
+      </Field>
     </div>
   );
 }

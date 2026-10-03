@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import type { Connection, FixedRow } from "@/lib/trip/timeline";
-import { money } from "@/lib/workspace";
+import { useLocale } from "../../account/LocaleProvider";
 import {
   FlowDriveIcon,
   FlowFlightIcon,
@@ -19,7 +19,9 @@ const FIXED_LABEL = { flight: "Flight", ground: "Transfer", stay: "Stay" } as co
 
 /** A flight, inter-city hop or stay: part of the day, but changed through the chat, not here. */
 export function FixedTimelineRow({ row }: { row: FixedRow }) {
-  const Icon = row.kind === "ground" && /^Drive/.test(row.detail) ? FlowDriveIcon : FIXED_ICON[row.kind];
+  const { money } = useLocale();
+  const Icon =
+    row.kind === "ground" && /^Drive/.test(row.detail) ? FlowDriveIcon : FIXED_ICON[row.kind];
   return (
     <li className={`timeline-row timeline-fixed timeline-fixed--${row.kind}`}>
       <span className="timeline-row__time">
