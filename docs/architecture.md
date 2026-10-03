@@ -305,8 +305,10 @@ not import the singletons; take them from `ctx` so tests can pass fakes. The too
 (`packages/tools/src/gateway.ts`) snapshots provider configuration once for a planning run and
 composes its ports. The Maps port then privately selects in-process fixtures
 (`USE_MOCK_TOOLS=true`), OpenStreetMap or Google and owns route/places capability plus transit,
-inter-city rail and driving fallback. Booking routes through SerpApi Google Hotels/Flights when
-configured, with Google Places estimates or fixtures as explicitly labelled fallbacks. `MemoryStore`
+inter-city rail and driving fallback. The Booking port privately selects fixture or live adapters
+once per gateway. Live hotels use SerpApi first and retain the labelled Google Places estimate
+fallback; live flights remain SerpApi-only and never receive a fictional fallback fare. Missing
+credentials fail only when the corresponding Booking capability is called. `MemoryStore`
 (`packages/services/src/memory`) uses the Redis REST store when configured and process memory
 otherwise. Each package's exports and configuration are in its own `README.md`.
 

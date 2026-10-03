@@ -315,6 +315,119 @@ describe("ToolGateway provider matrix", () => {
     });
   });
 
+  it("keeps SerpApi as the primary live provider for stays and flights", async () => {
+    vi.stubEnv("USE_MOCK_TOOLS", "false");
+    vi.stubEnv("MAPS_PROVIDER", "google");
+    vi.stubEnv("MAPS_API_KEY", "captured-maps-key");
+    vi.stubEnv("SERPAPI_KEY", "captured-serp-key");
+    const fetcher = vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+      if (url.includes("engine=google_hotels")) {
+        return Response.json({
+          properties: [
+            {
+              name: "Live Hotel",
+              rate_per_night: { extracted_lowest: 650 },
+              overall_rating: 4.7,
+            },
+          ],
+        });
+      }
+      if (url.includes("engine=google_flights")) {
+        return Response.json({
+          best_flights: [{ price: 450, flights: [{ airline: "Qantas" }] }],
+        });
+      }
+      throw new Error(`unexpected provider request: ${url}`);
+    });
+    const gateway = createToolGatewayWithRuntime(snapshotToolRuntime(), {
+      fetch: fetcher,
+      now: () => new Date("2026-01-01T00:00:00.000Z"),
+    });
+
+    vi.stubEnv("MAPS_API_KEY", "");
+    vi.stubEnv("SERPAPI_KEY", "");
+
+    const [stay] = await gateway.booking.searchStays({
+      city: "Tokyo",
+      checkIn: "2026-02-01",
+      checkOut: "2026-02-03",
+      guests: 2,
+    });
+    const [flight] = await gateway.booking.searchFlights({
+      from: "Sydney",
+      to: "Tokyo",
+      depart: "2026-02-01",
+      passengers: 2,
+    });
+
+    expect(stay).toMatchObject({
+      name: "Live Hotel",
+      pricePerNight: 650,
+      provenance: { kind: "live", provider: "SerpApi Google Hotels" },
+    });
+    expect(flight).toMatchObject({
+      carrier: "Qantas",
+      price: 900,
+      provenance: { kind: "live", provider: "SerpApi Google Flights" },
+    });
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    evidence.push({
+      id: "booking-primary-success",
+      selection: "SerpApi",
+      result: "live stay and flight",
+      provenance: "SerpApi Google Hotels | SerpApi Google Flights",
+    });
+  });
+
+  it("keeps Google-only lodging available while flights stay unavailable", async () => {
+    vi.stubEnv("USE_MOCK_TOOLS", "false");
+    vi.stubEnv("MAPS_PROVIDER", "google");
+    vi.stubEnv("MAPS_API_KEY", "captured-maps-key");
+    vi.stubEnv("SERPAPI_KEY", "");
+    const fetcher = vi.fn(async () =>
+      Response.json({
+        places: [{ displayName: { text: "Estimated Hotel" }, rating: 4.4 }],
+      }),
+    );
+    const gateway = createToolGatewayWithRuntime(snapshotToolRuntime(), {
+      fetch: fetcher,
+      now: () => new Date("2026-01-01T00:00:00.000Z"),
+    });
+
+    vi.stubEnv("MAPS_API_KEY", "");
+
+    const [stay] = await gateway.booking.searchStays({
+      city: "Tokyo",
+      checkIn: "2026-02-01",
+      checkOut: "2026-02-03",
+      guests: 2,
+    });
+    const flightError = await gateway.booking
+      .searchFlights({
+        from: "Sydney",
+        to: "Tokyo",
+        depart: "2026-02-01",
+        passengers: 2,
+      })
+      .catch((error: unknown) => error);
+
+    expect(stay).toMatchObject({
+      name: "Estimated Hotel",
+      provenance: { kind: "estimated", provider: "Google Places estimate" },
+    });
+    expect(flightError).toBeInstanceOf(Error);
+    expect((flightError as Error).message).toContain("no SERPAPI_KEY");
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    evidence.push({
+      id: "booking-google-only-partial",
+      selection: "Google Places stays; no flight provider",
+      result: "estimated stay; flight unavailable",
+      diagnostic: "missing SerpApi flight credential",
+      provenance: stay?.provenance?.provider,
+    });
+  });
+
   it("keeps the 10-day and 14-day weather provider boundaries on the captured clock", async () => {
     vi.stubEnv("USE_MOCK_TOOLS", "false");
     vi.stubEnv("WEATHER_API_KEY", "captured-weather-key");
@@ -403,6 +516,14 @@ describe("ToolGateway provider matrix", () => {
         passengers: 1,
       })
       .catch((error: unknown) => error);
+    const stayError = await gateway.booking
+      .searchStays({
+        city: "Tokyo",
+        checkIn: "2026-02-01",
+        checkOut: "2026-02-03",
+        guests: 1,
+      })
+      .catch((error: unknown) => error);
     const routeOptionsError = await gateway.maps.routeOptions!({
       from: "Tokyo",
       to: "Kyoto",
@@ -411,13 +532,15 @@ describe("ToolGateway provider matrix", () => {
 
     expect(flightError).toBeInstanceOf(Error);
     expect((flightError as Error).message).toContain("no SERPAPI_KEY");
+    expect(stayError).toBeInstanceOf(Error);
+    expect((stayError as Error).message).toContain("Unsupported booking provider: osm");
     expect(routeOptionsError).toBeInstanceOf(Error);
     expect((routeOptionsError as Error).message).toContain("Unsupported maps provider: osm");
     evidence.push({
       id: "lazy-unavailable-capabilities",
       selection: "osm; no flight provider",
-      result: "gateway constructed; calls rejected",
-      diagnostic: "unsupported maps capability; missing SerpApi credential",
+      result: "gateway constructed; booking and maps calls rejected lazily",
+      diagnostic: "unsupported stay/maps capability; missing flight credential",
     });
   });
 
@@ -476,6 +599,8 @@ describe("ToolGateway provider matrix", () => {
       "google-intercity-rail-fallback",
       "google-route-options-partial-success",
       "booking-fallback-vs-flight-failure",
+      "booking-primary-success",
+      "booking-google-only-partial",
       "weather-horizons",
       "lazy-unavailable-capabilities",
       "concurrent-runtime-isolation",

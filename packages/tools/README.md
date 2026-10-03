@@ -14,9 +14,10 @@ data mode), B (maps and routes), C (booking and SerpApi), D (weather).
 | `data-mode.ts`        | Per-request mock or live mode (`mockEnabled()`, `runWithDataMode()`, `parseDataMode()`) |
 | `maps-port.ts`        | Deep Maps port selecting fixtures, OpenStreetMap or Google once per gateway             |
 | `maps.ts`             | Temporary direct-adapter compatibility surface pending issue #131                       |
+| `booking-port.ts`     | Deep Booking port selecting fixtures, SerpApi or Google estimates once per gateway      |
 | `route-options.ts`    | Drive and transit options for one hop, compared side by side                            |
 | `google-places.ts`    | Shared Google Places `searchText` request                                               |
-| `booking.ts`          | Hotels and flights: SerpApi, then a Google Places estimate for hotels, or fixtures      |
+| `booking.ts`          | Temporary direct-adapter compatibility surface pending issue #131                       |
 | `serpapi.ts`          | SerpApi Google Hotels and Google Flights with a shared monthly quota and cache          |
 | `airports.ts`         | City to IATA code lookup for flight searches                                            |
 | `weather.ts`          | `WeatherPort`: Google Weather, Open-Meteo or climate context by date distance           |
@@ -35,11 +36,17 @@ concurrent route options; OpenStreetMap supplies Nominatim places plus OSRM driv
 rejects unsupported route options only when called. Google transit-to-driving and inter-city
 SerpApi rail fallback decisions remain internal to the port.
 
+The Booking port owns hotel and flight provider selection. Fixture mode stays deterministic;
+live hotel searches use SerpApi first and fall back to a labelled Google Places estimate, while
+live flights remain SerpApi-only and never substitute a fictional fare. Missing credentials and
+unsupported capabilities fail only when the corresponding method is called.
+
 ## Contracts
 
 - Mock mode makes no network calls and returns the same types as live mode.
-- Call `mockEnabled()`; never read `process.env.USE_MOCK_TOOLS` directly
-  ([data mode note](../../.agents/notes/implemented/feature/2026-09-21-request-scoped-data-mode.md)).
+- Deep ports use the request-scoped mode captured in `ToolRuntimeConfig`; temporary direct
+  compatibility adapters obtain the same mode through `snapshotToolRuntime()`. Provider code never
+  reads `process.env.USE_MOCK_TOOLS` directly ([data mode note](../../.agents/notes/implemented/feature/2026-09-21-request-scoped-data-mode.md)).
 - Amounts are AUD. Stay prices are per room per night; flight prices are for all passengers.
 - Ratings are on a 0–10 scale; provider ratings on 1–5 are doubled.
 - Failures raise typed errors (`SerpApiError.reason`) and fall back only to a labelled tier; a flight

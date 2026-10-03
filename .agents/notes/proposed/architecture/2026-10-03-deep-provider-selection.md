@@ -26,6 +26,12 @@ is called, so an unused flight provider cannot prevent a maps-only plan. Special
 reading the request data mode solely to describe source labels in this refactor; moving those labels
 to result provenance requires a separate shared-contract decision and is not adapter selection.
 
+This supersedes the earlier `mockEnabled()` requirement only inside gateway-owned deep ports: they
+use the request-scoped `dataMode` already captured in the normalized runtime configuration.
+Temporary direct compatibility adapters continue to capture the same request scope through
+`snapshotToolRuntime()` until issue #131 removes those public bypasses. Provider code still never
+reads `process.env.USE_MOCK_TOOLS` directly.
+
 This is a behavior-preserving refactor. The current maps routing, hotel fallback, flight failure,
 weather horizon, provenance and unavailable-data behavior are captured before implementation and
 remain unchanged. Truthful corrections to stale documentation and selection logging accompany the
@@ -85,6 +91,7 @@ weather, public-export cleanup, documentation, and final end-to-end evidence.
 - [Specification issue #126](https://github.com/Lilstanie/AI_TRIP_PLANNER/issues/126)
 - [Provider behavior matrix issue #127](https://github.com/Lilstanie/AI_TRIP_PLANNER/issues/127)
 - [Deep Maps provider selection issue #129](https://github.com/Lilstanie/AI_TRIP_PLANNER/issues/129)
+- [Deep Booking provider selection issue #130](https://github.com/Lilstanie/AI_TRIP_PLANNER/issues/130)
 - [Request-scoped data mode](../../implemented/feature/2026-09-21-request-scoped-data-mode.md)
 - [SerpApi live prices and hotel fallback](../../implemented/feature/2026-09-20-serpapi-live-prices.md)
 - [Weather forecast horizon](../../implemented/feature/2026-09-21-weather-forecast-horizon.md)
