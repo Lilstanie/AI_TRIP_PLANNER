@@ -6,222 +6,341 @@
     "locale": "en",
     "quality_profile": "showcase",
     "viewBox": [
-      1085,
-      698
+      1360,
+      1220
     ],
-    "column_fit": "spread",
-    "legend": {
-      "mode": "hidden"
-    }
+    "column_fit": "spread"
   },
   "participants": [
     {
       "id": "traveller",
+      "type": "external",
+      "label": "Traveler"
+    },
+    {
+      "id": "ui",
       "type": "frontend",
-      "label": "Traveler",
-      "sublabel": "web workspace"
+      "label": "Workspace"
     },
     {
       "id": "chat",
       "type": "backend",
-      "label": "runTripChat",
-      "sublabel": "coordinator"
+      "label": "runTripChat"
     },
     {
       "id": "wf",
       "type": "backend",
-      "label": "LangGraph",
-      "sublabel": "workflow"
+      "label": "LangGraph"
     },
     {
       "id": "board",
       "type": "database",
-      "label": "Board",
-      "sublabel": "PlanningBoard"
+      "label": "Board"
+    },
+    {
+      "id": "transport",
+      "type": "backend",
+      "label": "Transport"
     },
     {
       "id": "accom",
       "type": "backend",
-      "label": "Stay agent",
-      "sublabel": "accommodation"
+      "label": "Stay agent"
     },
     {
       "id": "booking",
       "type": "external",
-      "label": "BookingPort",
-      "sublabel": "SerpApi"
+      "label": "BookingPort"
     },
     {
       "id": "llm",
       "type": "cloud",
-      "label": "LLM",
-      "sublabel": "DeepSeek"
+      "label": "LLM"
     },
     {
       "id": "policy",
       "type": "security",
-      "label": "Conflicts",
-      "sublabel": "ConflictPolicy"
+      "label": "Conflicts"
     }
   ],
   "segments": [
     {
-      "from": 158,
-      "to": 212,
+      "from": 174,
+      "to": 332,
       "label": "Brief"
     },
     {
-      "from": 216,
-      "to": 352,
+      "from": 336,
+      "to": 632,
       "label": "First round"
     },
     {
-      "from": 356,
-      "to": 408,
+      "from": 636,
+      "to": 692,
       "label": "Budget check"
     },
     {
-      "from": 412,
-      "to": 492,
-      "label": "Revision loop: round < 3, score improves"
+      "from": 696,
+      "to": 902,
+      "label": "Loop: round < 3 and score improves"
     },
     {
-      "from": 496,
-      "to": 550,
-      "label": "Reply"
+      "from": 906,
+      "to": 1056,
+      "label": "Build plan and reply"
     }
   ],
   "messages": [
     {
       "from": "traveller",
+      "to": "ui",
+      "y": 200,
+      "label": "Tokyo 10–14 Nov, 2 people, AUD 2,300",
+      "variant": "emphasis"
+    },
+    {
+      "from": "ui",
       "to": "chat",
-      "y": 172,
-      "label": "POST /api/chat: Tokyo, 2 people, AUD 2,300",
+      "y": 230,
+      "label": "POST /api/chat",
       "variant": "emphasis"
     },
     {
       "from": "chat",
+      "to": "llm",
+      "y": 260,
+      "label": "extract TripBrief",
+      "variant": "default"
+    },
+    {
+      "from": "llm",
+      "to": "chat",
+      "y": 290,
+      "label": "structured brief",
+      "variant": "return"
+    },
+    {
+      "from": "chat",
       "to": "wf",
-      "y": 200,
-      "label": "run(TripBrief)",
+      "y": 320,
+      "label": "run(brief)",
       "variant": "emphasis"
+    },
+    {
+      "from": "wf",
+      "to": "transport",
+      "y": 350,
+      "label": "invoke(brief)",
+      "variant": "default"
+    },
+    {
+      "from": "transport",
+      "to": "board",
+      "y": 380,
+      "label": "transport proposal",
+      "variant": "return"
+    },
+    {
+      "from": "wf",
+      "to": "board",
+      "y": 410,
+      "label": "allocationFor(accommodation)",
+      "variant": "default"
     },
     {
       "from": "board",
       "to": "wf",
-      "y": 228,
-      "label": "allocationFor: 40% left after transport",
+      "y": 440,
+      "label": "40% of the budget left after transport",
       "variant": "return"
     },
     {
       "from": "wf",
       "to": "accom",
-      "y": 256,
-      "label": "invoke(brief, allocation)",
+      "y": 470,
+      "label": "invoke(brief, board, allocation)",
       "variant": "default"
     },
     {
       "from": "accom",
       "to": "booking",
-      "y": 284,
-      "label": "searchStays(Tokyo, 2 guests)",
+      "y": 500,
+      "label": "searchStays(Tokyo, 10–14 Nov, 2 guests)",
       "variant": "default"
+    },
+    {
+      "from": "booking",
+      "to": "accom",
+      "y": 530,
+      "label": "candidates",
+      "variant": "return"
     },
     {
       "from": "accom",
       "to": "llm",
-      "y": 312,
-      "label": "choose ids within allocation",
+      "y": 560,
+      "label": "choose ids (allocation as maxTotalCost)",
       "variant": "default"
+    },
+    {
+      "from": "llm",
+      "to": "accom",
+      "y": 590,
+      "label": "selection, then validate ids, price in cents, floorCost",
+      "variant": "return"
     },
     {
       "from": "accom",
       "to": "board",
-      "y": 340,
-      "label": "validated, priced proposal",
-      "variant": "default"
+      "y": 620,
+      "label": "accommodation proposal (itinerary, dining, guide post too)",
+      "variant": "return"
     },
     {
       "from": "wf",
       "to": "policy",
-      "y": 368,
-      "label": "detectConflicts(proposals)",
+      "y": 650,
+      "label": "detectConflicts(proposals, brief)",
       "variant": "security"
     },
     {
       "from": "policy",
       "to": "wf",
-      "y": 396,
-      "label": "RevisionRequest + targetSaving",
+      "y": 680,
+      "label": "rollUpCost, minimumCost ≤ budget → RevisionRequest[] + targetSaving",
       "variant": "return"
+    },
+    {
+      "from": "wf",
+      "to": "ui",
+      "y": 710,
+      "label": "progress: revising accommodation",
+      "variant": "dashed"
     },
     {
       "from": "wf",
       "to": "accom",
-      "y": 424,
-      "label": "revise: allocation − saving",
+      "y": 740,
+      "label": "invoke(brief, revision, previous, allocation − saving)",
       "variant": "emphasis"
     },
     {
       "from": "accom",
-      "to": "board",
-      "y": 452,
-      "label": "cheapest eligible, rules kept",
+      "to": "booking",
+      "y": 770,
+      "label": "searchStays(…)",
       "variant": "default"
+    },
+    {
+      "from": "booking",
+      "to": "accom",
+      "y": 800,
+      "label": "candidates, then cheapest eligible, preferences kept",
+      "variant": "return"
+    },
+    {
+      "from": "accom",
+      "to": "board",
+      "y": 830,
+      "label": "revised proposal",
+      "variant": "return"
     },
     {
       "from": "wf",
       "to": "policy",
-      "y": 480,
-      "label": "re-check: conflicts + planScore",
+      "y": 860,
+      "label": "detectConflicts(revised proposals, brief)",
       "variant": "security"
+    },
+    {
+      "from": "policy",
+      "to": "wf",
+      "y": 890,
+      "label": "remaining conflicts, planScore (no improvement: keep previous, stop)",
+      "variant": "return"
     },
     {
       "from": "wf",
       "to": "chat",
-      "y": 508,
-      "label": "TripPlan: draft / needs_you",
+      "y": 920,
+      "label": "build_plan (draft / needs_you) → TripPlan",
       "variant": "return"
     },
     {
       "from": "chat",
-      "to": "traveller",
-      "y": 536,
+      "to": "llm",
+      "y": 950,
+      "label": "write reply from plan digest",
+      "variant": "default"
+    },
+    {
+      "from": "llm",
+      "to": "chat",
+      "y": 980,
+      "label": "reply text",
+      "variant": "return"
+    },
+    {
+      "from": "chat",
+      "to": "ui",
+      "y": 1010,
       "label": "final frame { reply, plan }",
+      "variant": "return"
+    },
+    {
+      "from": "ui",
+      "to": "traveller",
+      "y": 1040,
+      "label": "plan with total vs budget",
       "variant": "return"
     }
   ],
   "activations": [
     {
       "participant": "chat",
-      "from": 172,
-      "to": 536,
+      "from": 230,
+      "to": 1010,
       "type": "backend"
     },
     {
       "participant": "wf",
-      "from": 200,
-      "to": 508,
+      "from": 320,
+      "to": 920,
       "type": "backend"
     },
     {
       "participant": "accom",
-      "from": 256,
-      "to": 340,
+      "from": 470,
+      "to": 620,
       "type": "backend"
     },
     {
       "participant": "accom",
-      "from": 424,
-      "to": 452,
+      "from": 740,
+      "to": 830,
       "type": "backend"
     },
     {
       "participant": "policy",
-      "from": 368,
-      "to": 396,
+      "from": 650,
+      "to": 680,
+      "type": "security"
+    },
+    {
+      "participant": "policy",
+      "from": 860,
+      "to": 890,
       "type": "security"
     }
   ],
-  "cards": []
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "Extension 2b: infeasible budget",
+      "items": [
+        "If minimumCost is above the budget, detectConflicts returns one infeasible-budget conflict",
+        "The loop is skipped and the reply names the minimum budget needed"
+      ]
+    }
+  ]
 }

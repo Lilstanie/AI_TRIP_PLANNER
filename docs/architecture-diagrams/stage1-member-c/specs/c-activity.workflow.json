@@ -4,14 +4,7 @@
   "meta": {
     "title": "Member C: Arrange Accommodation activity (UC-C1)",
     "locale": "en",
-    "quality_profile": "showcase",
-    "legend": {
-      "mode": "hidden"
-    },
-    "viewBox": [
-      1020,
-      656
-    ]
+    "quality_profile": "showcase"
   },
   "lanes": [
     {
@@ -19,50 +12,30 @@
       "label": "Orchestrator"
     },
     {
-      "id": "agent",
-      "label": "Accommodation agent"
+      "id": "shortcut",
+      "label": "Accommodation agent: booked stay"
+    },
+    {
+      "id": "prep",
+      "label": "Accommodation agent: prepare"
+    },
+    {
+      "id": "booking",
+      "label": "Booking port"
+    },
+    {
+      "id": "llm",
+      "label": "LLM (DeepSeek)"
+    },
+    {
+      "id": "choosel",
+      "label": "Accommodation agent: choose and price"
     },
     {
       "id": "exc",
       "label": "Fallbacks and failure",
       "variant": "exception"
-    },
-    {
-      "id": "ext",
-      "label": "Booking port + LLM"
     }
-  ],
-  "phases": [
-    {
-      "id": "prepare",
-      "label": "Prepare",
-      "fromCol": 0,
-      "toCol": 1
-    },
-    {
-      "id": "search",
-      "label": "Search + choose",
-      "fromCol": 2,
-      "toCol": 3,
-      "variant": "emphasis"
-    },
-    {
-      "id": "guard",
-      "label": "Guard + price",
-      "fromCol": 4,
-      "toCol": 5,
-      "variant": "security"
-    }
-  ],
-  "mainPath": [
-    "recv",
-    "prep",
-    "search",
-    "filter",
-    "choose",
-    "guard",
-    "price",
-    "post"
   ],
   "nodes": [
     {
@@ -70,87 +43,9 @@
       "lane": "orch",
       "col": 0,
       "type": "backend",
-      "label": "Dispatch",
-      "sublabel": "brief + allocation"
-    },
-    {
-      "id": "prep",
-      "lane": "agent",
-      "col": 1,
-      "type": "backend",
-      "label": "Rooms + segments",
-      "sublabel": "⌈guests / 2⌉ if shared",
-      "width": 128
-    },
-    {
-      "id": "search",
-      "lane": "ext",
-      "col": 1,
-      "type": "external",
-      "label": "Search stays",
-      "sublabel": "per city segment",
-      "width": 128
-    },
-    {
-      "id": "est",
-      "lane": "ext",
-      "col": 2,
-      "type": "external",
-      "label": "Estimates",
-      "sublabel": "Google Places"
-    },
-    {
-      "id": "filter",
-      "lane": "agent",
-      "col": 2,
-      "type": "backend",
-      "label": "Filter + sort",
-      "sublabel": "eligible, cheapest first",
-      "width": 128
-    },
-    {
-      "id": "fail",
-      "lane": "exc",
-      "col": 2,
-      "type": "security",
-      "label": "No eligible stay",
-      "sublabel": "run stops",
-      "width": 128
-    },
-    {
-      "id": "choose",
-      "lane": "ext",
-      "col": 3,
-      "type": "cloud",
-      "label": "LLM choice",
-      "sublabel": "ids per segment"
-    },
-    {
-      "id": "guard",
-      "lane": "agent",
-      "col": 4,
-      "type": "security",
-      "label": "Validate + fit",
-      "sublabel": "known id, in allocation",
-      "width": 128
-    },
-    {
-      "id": "rule",
-      "lane": "exc",
-      "col": 4,
-      "type": "backend",
-      "label": "Deterministic pick",
-      "sublabel": "rating ≥ 8 + free cancel",
-      "width": 128
-    },
-    {
-      "id": "price",
-      "lane": "agent",
-      "col": 5,
-      "type": "backend",
-      "label": "Price in cents",
-      "sublabel": "floorCost = cheapest",
-      "width": 128
+      "label": "Receive dispatch",
+      "sublabel": "brief, board, allocation",
+      "width": 124
     },
     {
       "id": "post",
@@ -158,35 +53,234 @@
       "col": 5,
       "type": "database",
       "label": "Post proposal",
-      "sublabel": "planning board",
-      "width": 128
+      "sublabel": "on the planning board",
+      "width": 124
+    },
+    {
+      "id": "keep",
+      "lane": "shortcut",
+      "col": 2,
+      "type": "backend",
+      "label": "Return booked stay",
+      "sublabel": "unpriced, floorCost = 0",
+      "width": 124
+    },
+    {
+      "id": "booked",
+      "lane": "prep",
+      "col": 0,
+      "type": "security",
+      "label": "bookedStay set?",
+      "sublabel": "decision",
+      "width": 124
+    },
+    {
+      "id": "prefs",
+      "lane": "prep",
+      "col": 1,
+      "type": "backend",
+      "label": "Read preferences",
+      "sublabel": "rooms, rating, cancel",
+      "width": 124
+    },
+    {
+      "id": "rooms",
+      "lane": "prep",
+      "col": 2,
+      "type": "backend",
+      "label": "Compute rooms",
+      "sublabel": "shared = ⌈guests / 2⌉",
+      "width": 124
+    },
+    {
+      "id": "split",
+      "lane": "prep",
+      "col": 3,
+      "type": "backend",
+      "label": "Split nights",
+      "sublabel": "city segments by hop",
+      "width": 124
+    },
+    {
+      "id": "search",
+      "lane": "booking",
+      "col": 3,
+      "type": "external",
+      "label": "Search stays",
+      "sublabel": "for each segment",
+      "width": 124
+    },
+    {
+      "id": "live",
+      "lane": "booking",
+      "col": 4,
+      "type": "security",
+      "label": "Live search ok?",
+      "sublabel": "decision",
+      "width": 124
+    },
+    {
+      "id": "est",
+      "lane": "booking",
+      "col": 5,
+      "type": "external",
+      "label": "Places estimates",
+      "sublabel": "label 'estimated'",
+      "width": 124
+    },
+    {
+      "id": "filter",
+      "lane": "choosel",
+      "col": 0,
+      "type": "backend",
+      "label": "Filter + sort",
+      "sublabel": "drop ineligible, cheapest",
+      "width": 124
+    },
+    {
+      "id": "empty",
+      "lane": "choosel",
+      "col": 1,
+      "type": "security",
+      "label": "Any eligible?",
+      "sublabel": "decision",
+      "width": 124
+    },
+    {
+      "id": "hasModel",
+      "lane": "choosel",
+      "col": 2,
+      "type": "security",
+      "label": "Model configured?",
+      "sublabel": "decision",
+      "width": 124
+    },
+    {
+      "id": "valid",
+      "lane": "choosel",
+      "col": 3,
+      "type": "security",
+      "label": "Choice valid?",
+      "sublabel": "known id, on schema",
+      "width": 124
+    },
+    {
+      "id": "fit",
+      "lane": "choosel",
+      "col": 4,
+      "type": "security",
+      "label": "Within allocation?",
+      "sublabel": "decision",
+      "width": 124
+    },
+    {
+      "id": "price",
+      "lane": "choosel",
+      "col": 5,
+      "type": "backend",
+      "label": "Price in cents",
+      "sublabel": "rooms × nights × rate",
+      "width": 124
+    },
+    {
+      "id": "choose",
+      "lane": "llm",
+      "col": 3,
+      "type": "cloud",
+      "label": "Choose ids",
+      "sublabel": "one per segment",
+      "width": 124
+    },
+    {
+      "id": "fail",
+      "lane": "exc",
+      "col": 1,
+      "type": "security",
+      "label": "Raise error",
+      "sublabel": "no stay meets the rules",
+      "width": 124
+    },
+    {
+      "id": "rule",
+      "lane": "exc",
+      "col": 3,
+      "type": "backend",
+      "label": "Deterministic pick",
+      "sublabel": "rating ≥ 8 + free cancel",
+      "width": 124
+    },
+    {
+      "id": "refit",
+      "lane": "exc",
+      "col": 4,
+      "type": "backend",
+      "label": "Best in allocation",
+      "sublabel": "else the cheapest",
+      "width": 124
     }
   ],
   "edges": [
     {
       "from": "recv",
-      "to": "prep",
+      "to": "booked",
       "role": "main",
       "variant": "emphasis"
     },
     {
-      "from": "prep",
+      "from": "booked",
+      "to": "keep",
+      "role": "branch",
+      "label": "yes"
+    },
+    {
+      "from": "keep",
+      "to": "post",
+      "role": "branch",
+      "variant": "dashed"
+    },
+    {
+      "from": "booked",
+      "to": "prefs",
+      "role": "main",
+      "label": "no",
+      "variant": "emphasis"
+    },
+    {
+      "from": "prefs",
+      "to": "rooms",
+      "role": "main",
+      "variant": "emphasis"
+    },
+    {
+      "from": "rooms",
+      "to": "split",
+      "role": "main",
+      "variant": "emphasis"
+    },
+    {
+      "from": "split",
       "to": "search",
       "role": "main",
       "variant": "emphasis"
     },
     {
       "from": "search",
-      "to": "filter",
-      "label": "live",
+      "to": "live",
       "role": "main",
       "variant": "emphasis"
     },
     {
-      "from": "search",
+      "from": "live",
+      "to": "filter",
+      "role": "main",
+      "label": "yes",
+      "variant": "emphasis"
+    },
+    {
+      "from": "live",
       "to": "est",
-      "label": "failed",
       "role": "error",
+      "label": "no",
       "variant": "dashed"
     },
     {
@@ -197,41 +291,79 @@
     },
     {
       "from": "filter",
+      "to": "empty",
+      "role": "main",
+      "variant": "emphasis"
+    },
+    {
+      "from": "empty",
       "to": "fail",
-      "label": "none",
       "role": "error",
+      "label": "no",
       "variant": "security"
     },
     {
-      "from": "filter",
-      "to": "choose",
-      "label": "model set",
+      "from": "empty",
+      "to": "hasModel",
       "role": "main",
+      "label": "yes",
       "variant": "emphasis"
+    },
+    {
+      "from": "hasModel",
+      "to": "choose",
+      "role": "main",
+      "label": "yes",
+      "variant": "emphasis"
+    },
+    {
+      "from": "hasModel",
+      "to": "rule",
+      "role": "branch",
+      "label": "no"
     },
     {
       "from": "choose",
-      "to": "guard",
+      "to": "valid",
       "role": "main",
       "variant": "emphasis"
     },
     {
-      "from": "guard",
+      "from": "valid",
+      "to": "fit",
+      "role": "main",
+      "label": "yes",
+      "variant": "emphasis"
+    },
+    {
+      "from": "valid",
       "to": "rule",
-      "label": "invalid",
       "role": "error",
+      "label": "no",
       "variant": "security"
     },
     {
       "from": "rule",
-      "to": "price",
+      "to": "fit",
       "role": "branch"
     },
     {
-      "from": "guard",
+      "from": "fit",
       "to": "price",
       "role": "main",
+      "label": "yes",
       "variant": "emphasis"
+    },
+    {
+      "from": "fit",
+      "to": "refit",
+      "role": "branch",
+      "label": "no"
+    },
+    {
+      "from": "refit",
+      "to": "price",
+      "role": "branch"
     },
     {
       "from": "price",
@@ -239,6 +371,5 @@
       "role": "main",
       "variant": "emphasis"
     }
-  ],
-  "cards": []
+  ]
 }

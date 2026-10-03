@@ -18,8 +18,8 @@
       "translationSha256": "c9b810bbab57b002a511b45e5d3caf725d8197b3c65bc3657aa119a27b7d1aff"
     },
     "docs/architecture-diagrams.md": {
-      "sourceSha256": "231b079855cf88439e2961ad891345882b0001cd0d6802f8467805e263a7e1ab",
-      "translationSha256": "781be0671133136d445f9295617d95816929e9ba0c1d910316f0ee74e0c3d7cb"
+      "sourceSha256": "54aa59fa3c40e9d4a46737c42607fb318e704267baa0eb297ed4043f81c01523",
+      "translationSha256": "949cdb8dbf1f5140a10226fbc70e3a6f56f0d758aed3963331f0642aadf5aade"
     },
     "docs/architecture.md": {
       "sourceSha256": "1f6e02702667965656f651864f33969d8f664dcbd0291580d489a8da9ab19fa9",
@@ -46,12 +46,12 @@
       "translationSha256": "71c1808cbdb82c1882d7ed506dadade89383a860b9313ae5a09635c0a5c6f80d"
     },
     "docs/design/stage1/04-member-c-behaviour.md": {
-      "sourceSha256": "a52ce34d8c7e0760cc04811f83fb7ed068394f3b3329b02c7dc8b294d0897d36",
-      "translationSha256": "5570062fcffdb712e7a7b6844acb49cc28490cee005e95a521fe359f8637333e"
+      "sourceSha256": "dc0db819b0beacd7c4e604abc1089fa559e445d5cf21f4b5f3e5e91e87385e9c",
+      "translationSha256": "d248f1f41c02c49af66b559a54fc3bd4ce798641aef8ac2d9170a0283884009c"
     },
     "docs/design/stage1/README.md": {
-      "sourceSha256": "c03026ee3b8e3c595b1bc9fb5d8cf10d995169180385a64de64cc61a23c299d3",
-      "translationSha256": "fb82b6c29e4d21b40ce85e52cb52584869c3fa278826e4d0974aceb7a559f1a3"
+      "sourceSha256": "698bd829da6f8013c821d287d005a964c35f52402623c05e98ba802aa7064abc",
+      "translationSha256": "ac72742119891d486e8ed3ad1af36cf2fcf9a2d70faafef188d507e07f3c059d"
     },
     "docs/design/ui-guidelines.md": {
       "sourceSha256": "31f328abad78da71fc093515d9b212eec712b3d443b48ddb793eb2d5862a3a6d",

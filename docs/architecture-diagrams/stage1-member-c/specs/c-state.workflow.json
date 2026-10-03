@@ -1,0 +1,220 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Member C: accommodation section state machine",
+    "locale": "en",
+    "quality_profile": "showcase"
+  },
+  "lanes": [
+    {
+      "id": "booked",
+      "label": "Booked stay (UI: planning)"
+    },
+    {
+      "id": "main",
+      "label": "Planning states (UI: planning)"
+    },
+    {
+      "id": "revision",
+      "label": "Revision (UI: planning)"
+    },
+    {
+      "id": "outcome",
+      "label": "End of turn (UI: draft / needs_you)",
+      "variant": "exception"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "start",
+      "lane": "main",
+      "col": 0,
+      "type": "frontend",
+      "label": "Initial",
+      "sublabel": "[*] dispatch",
+      "width": 128
+    },
+    {
+      "id": "waiting",
+      "lane": "main",
+      "col": 1,
+      "type": "messagebus",
+      "label": "WaitingForTransport",
+      "sublabel": "allocation pending",
+      "width": 150
+    },
+    {
+      "id": "searching",
+      "lane": "main",
+      "col": 2,
+      "type": "backend",
+      "label": "Searching",
+      "sublabel": "booking port",
+      "width": 128
+    },
+    {
+      "id": "choosing",
+      "lane": "main",
+      "col": 3,
+      "type": "cloud",
+      "label": "Choosing",
+      "sublabel": "invalid → rule pick",
+      "width": 128,
+      "tag": "self: [invalid]"
+    },
+    {
+      "id": "priced",
+      "lane": "main",
+      "col": 4,
+      "type": "backend",
+      "label": "Priced",
+      "sublabel": "cents, floorCost",
+      "width": 128
+    },
+    {
+      "id": "review",
+      "lane": "main",
+      "col": 5,
+      "type": "security",
+      "label": "UnderReview",
+      "sublabel": "detectConflicts",
+      "width": 128
+    },
+    {
+      "id": "kept",
+      "lane": "booked",
+      "col": 2,
+      "type": "database",
+      "label": "Kept",
+      "sublabel": "floorCost 0",
+      "width": 128
+    },
+    {
+      "id": "revising",
+      "lane": "revision",
+      "col": 4,
+      "type": "messagebus",
+      "label": "Revising",
+      "sublabel": "round < 3, minus saving",
+      "width": 128
+    },
+    {
+      "id": "failed",
+      "lane": "outcome",
+      "col": 2,
+      "type": "security",
+      "label": "Failed",
+      "sublabel": "run stops",
+      "width": 128
+    },
+    {
+      "id": "needs",
+      "lane": "outcome",
+      "col": 4,
+      "type": "external",
+      "label": "NeedsYou",
+      "sublabel": "minimum shown, prev kept",
+      "width": 128
+    },
+    {
+      "id": "draft",
+      "lane": "outcome",
+      "col": 5,
+      "type": "frontend",
+      "label": "Draft",
+      "sublabel": "no request targets it",
+      "width": 128
+    }
+  ],
+  "edges": [
+    {
+      "from": "start",
+      "to": "waiting",
+      "label": "dispatch",
+      "role": "main",
+      "variant": "emphasis"
+    },
+    {
+      "from": "waiting",
+      "to": "searching",
+      "label": "allocation",
+      "role": "main",
+      "variant": "emphasis"
+    },
+    {
+      "from": "waiting",
+      "to": "kept",
+      "label": "[bookedStay]",
+      "role": "branch"
+    },
+    {
+      "from": "searching",
+      "to": "choosing",
+      "label": "candidates",
+      "role": "main",
+      "variant": "emphasis"
+    },
+    {
+      "from": "searching",
+      "to": "failed",
+      "label": "[none eligible]",
+      "role": "error",
+      "variant": "security"
+    },
+    {
+      "from": "choosing",
+      "to": "priced",
+      "label": "validated",
+      "role": "main",
+      "variant": "emphasis"
+    },
+    {
+      "from": "priced",
+      "to": "review",
+      "label": "post",
+      "role": "main",
+      "variant": "emphasis"
+    },
+    {
+      "from": "kept",
+      "to": "review",
+      "label": "post",
+      "role": "branch"
+    },
+    {
+      "from": "review",
+      "to": "draft",
+      "label": "[within budget]",
+      "role": "main",
+      "variant": "emphasis"
+    },
+    {
+      "from": "review",
+      "to": "revising",
+      "label": "[over, feasible]",
+      "role": "branch"
+    },
+    {
+      "from": "revising",
+      "to": "searching",
+      "label": "revision request",
+      "role": "return",
+      "variant": "dashed"
+    },
+    {
+      "from": "review",
+      "to": "needs",
+      "label": "[infeasible / round 3]",
+      "role": "error",
+      "variant": "security"
+    },
+    {
+      "from": "revising",
+      "to": "needs",
+      "label": "[no improvement]",
+      "role": "error",
+      "variant": "security"
+    }
+  ]
+}

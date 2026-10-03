@@ -10,8 +10,7 @@ focuses on where the LLM sits and what deterministic code guards it, as the brie
 
 Swimlanes are the four participants. The LLM is used once, in *Choose one candidate id per segment*, and
 its output is checked before anything is priced.
-Rendered: [`../diagrams/c-activity.svg`](../diagrams/c-activity.svg).
-Interactive Archify view, simplified from the Mermaid model below: [`c-activity.html`](../../architecture-diagrams/stage1-member-c/rendered/c-activity.html) ([source](../../architecture-diagrams/stage1-member-c/specs/c-activity.workflow.json), [evidence](../../architecture-diagrams/stage1-member-c/evidence/c-activity.visual-check.html)).
+Rendered: [`c-activity.html`](../../architecture-diagrams/stage1-member-c/rendered/c-activity.html) (Archify; [source](../../architecture-diagrams/stage1-member-c/specs/c-activity.workflow.json), [evidence](../../architecture-diagrams/stage1-member-c/evidence/c-activity.visual-check.html)).
 
 ```mermaid
 flowchart TB
@@ -70,8 +69,7 @@ flowchart TB
 ## 4.2 Sequence diagram: budget overrun and targeted revision (UC-C2, extension 2a)
 
 One planning turn in which the first round goes over budget and the accommodation agent is asked to
-cut its cost. Rendered: [`../diagrams/c-sequence.svg`](../diagrams/c-sequence.svg).
-Interactive Archify view, simplified from the Mermaid model below: [`c-sequence.html`](../../architecture-diagrams/stage1-member-c/rendered/c-sequence.html) ([source](../../architecture-diagrams/stage1-member-c/specs/c-sequence.sequence.json), [evidence](../../architecture-diagrams/stage1-member-c/evidence/c-sequence.visual-check.html)).
+cut its cost. Rendered: [`c-sequence.html`](../../architecture-diagrams/stage1-member-c/rendered/c-sequence.html) (Archify; [source](../../architecture-diagrams/stage1-member-c/specs/c-sequence.sequence.json), [evidence](../../architecture-diagrams/stage1-member-c/evidence/c-sequence.visual-check.html)).
 
 ```mermaid
 sequenceDiagram
@@ -137,8 +135,7 @@ If `minimumCost` is above the budget (extension 2b), `detectConflicts` instead r
 ## 4.3 State machine: accommodation section within a planning turn (UC-C1 and UC-C2)
 
 The section's visible status (`planning`, `draft`, `needs_you`) is derived from these internal
-states. Rendered: [`../diagrams/c-state.svg`](../diagrams/c-state.svg).
-Interactive Archify view, simplified from the Mermaid model below: [`c-state.html`](../../architecture-diagrams/stage1-member-c/rendered/c-state.html) ([source](../../architecture-diagrams/stage1-member-c/specs/c-state.lifecycle.json), [evidence](../../architecture-diagrams/stage1-member-c/evidence/c-state.visual-check.html)).
+states. Rendered: [`c-state.html`](../../architecture-diagrams/stage1-member-c/rendered/c-state.html) (Archify; [source](../../architecture-diagrams/stage1-member-c/specs/c-state.workflow.json), [evidence](../../architecture-diagrams/stage1-member-c/evidence/c-state.visual-check.html)).
 
 ```mermaid
 stateDiagram-v2

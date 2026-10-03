@@ -11,8 +11,7 @@
 ## 4.1 活动图：Arrange Accommodation（UC-C1）
 
 四条泳道对应四个参与者。LLM 只在 *Choose one candidate id per segment* 这一步使用一次，它的输出在任何定价之前都会先经过校验。
-渲染图：[`../diagrams/c-activity.svg`](../diagrams/c-activity.svg)。
-Archify 交互视图（由下方 Mermaid 模型简化而来）：[`c-activity.html`](../../architecture-diagrams/stage1-member-c/rendered/c-activity.html)（[源文件](../../architecture-diagrams/stage1-member-c/specs/c-activity.workflow.json)、[检查记录](../../architecture-diagrams/stage1-member-c/evidence/c-activity.visual-check.html)）。
+渲染图：[`c-activity.html`](../../architecture-diagrams/stage1-member-c/rendered/c-activity.html)（Archify，[源文件](../../architecture-diagrams/stage1-member-c/specs/c-activity.workflow.json)、[检查记录](../../architecture-diagrams/stage1-member-c/evidence/c-activity.visual-check.html)）。
 
 ```mermaid
 flowchart TB
@@ -72,8 +71,7 @@ flowchart TB
 
 ## 4.2 时序图：预算超支与定向修订（UC-C2，扩展 2a）
 
-一轮规划：第 1 轮超出预算，住宿 agent 被要求削减费用。渲染图：[`../diagrams/c-sequence.svg`](../diagrams/c-sequence.svg)。
-Archify 交互视图（由下方 Mermaid 模型简化而来）：[`c-sequence.html`](../../architecture-diagrams/stage1-member-c/rendered/c-sequence.html)（[源文件](../../architecture-diagrams/stage1-member-c/specs/c-sequence.sequence.json)、[检查记录](../../architecture-diagrams/stage1-member-c/evidence/c-sequence.visual-check.html)）。
+一轮规划：第 1 轮超出预算，住宿 agent 被要求削减费用。渲染图：[`c-sequence.html`](../../architecture-diagrams/stage1-member-c/rendered/c-sequence.html)（Archify，[源文件](../../architecture-diagrams/stage1-member-c/specs/c-sequence.sequence.json)、[检查记录](../../architecture-diagrams/stage1-member-c/evidence/c-sequence.visual-check.html)）。
 
 ```mermaid
 sequenceDiagram
@@ -140,8 +138,7 @@ sequenceDiagram
 
 ## 4.3 状态机：一轮规划中的住宿区段（UC-C1 和 UC-C2）
 
-区段对外显示的状态（`planning`、`draft`、`needs_you`）由这些内部状态推导得出。渲染图：[`../diagrams/c-state.svg`](../diagrams/c-state.svg)。
-Archify 交互视图（由下方 Mermaid 模型简化而来）：[`c-state.html`](../../architecture-diagrams/stage1-member-c/rendered/c-state.html)（[源文件](../../architecture-diagrams/stage1-member-c/specs/c-state.lifecycle.json)、[检查记录](../../architecture-diagrams/stage1-member-c/evidence/c-state.visual-check.html)）。
+区段对外显示的状态（`planning`、`draft`、`needs_you`）由这些内部状态推导得出。渲染图：[`c-state.html`](../../architecture-diagrams/stage1-member-c/rendered/c-state.html)（Archify，[源文件](../../architecture-diagrams/stage1-member-c/specs/c-state.workflow.json)、[检查记录](../../architecture-diagrams/stage1-member-c/evidence/c-state.visual-check.html)）。
 
 ```mermaid
 stateDiagram-v2

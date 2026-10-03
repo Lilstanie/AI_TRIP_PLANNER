@@ -25,7 +25,7 @@
 | 状态机图\* | 1.5 | 成员 C：[§4.3](04-member-c-behaviour.zh.md#43-state-machine-accommodation-section-within-a-planning-turn-uc-c1-and-uc-c2) |
 | 架构视图（可选） | — | [架构图](../../architecture-diagrams.zh.md)：系统概览、agent 协作、聊天流时序、行程区段生命周期、存储同步 |
 
-每张图的 SVG 和 PNG 渲染文件都在 [`../diagrams/`](../diagrams/)。
+需求图和结构图的 SVG 和 PNG 渲染文件在 [`../diagrams/`](../diagrams/)。成员 C 的活动图、时序图和状态机图以 Archify 视图形式渲染，放在 [`../../architecture-diagrams/stage1-member-c/`](../../architecture-diagrams.zh.md#elec5620-stage-1-member-c-behaviour)。
 
 <a id="what-each-other-member-still-has-to-write"></a>
 

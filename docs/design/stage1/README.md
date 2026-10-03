@@ -24,7 +24,7 @@ the traveller changes a plan in chat or in the editor (`packages/shared/src/plan
 | State machine diagram\* | 1.5 | Member C: [§4.3](04-member-c-behaviour.md#43-state-machine-accommodation-section-within-a-planning-turn-uc-c1-and-uc-c2) |
 | Architecture viewpoints (optional) | — | [Architecture diagrams](../../architecture-diagrams.md): system overview, agent collaboration, chat stream sequence, plan-section lifecycle, storage sync |
 
-Rendered SVG and PNG files for every diagram are in [`../diagrams/`](../diagrams/).
+Rendered SVG and PNG files for the requirement and structure diagrams are in [`../diagrams/`](../diagrams/). Member C's activity, sequence and state machine diagrams are rendered as Archify views under [`../../architecture-diagrams/stage1-member-c/`](../../architecture-diagrams.md#elec5620-stage-1-member-c-behaviour).
 
 ## What each other member still has to write
 
