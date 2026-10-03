@@ -24,14 +24,24 @@ Each item below is a defect this project has hit; the source is in brackets.
 - **Data provenance tells the truth.** Each specialist sets `source.kind` in the branch that actually
   ran, including its fallback `catch`. A label derived from configuration is wrong exactly when a call
   degrades. [source kind](../../notes/implemented/bug-fix/2026-09-21-proposal-source-kind.md)
-- **Mock versus live is per request.** Code must call `mockEnabled()`, never read
-  `process.env.USE_MOCK_TOOLS` or write `process.env` per request.
-  [data mode](../../notes/implemented/feature/2026-09-21-request-scoped-data-mode.md)
+- **Mock versus live is per request.** Code must never read `process.env.USE_MOCK_TOOLS` or write
+  `process.env` per request. Provider selection happens once per run inside the ToolGateway port
+  modules from the snapshotted `dataMode`; elsewhere call `mockEnabled()`. Raw adapters stay out of
+  the `@trip/tools` entry point.
+  [data mode](../../notes/implemented/feature/2026-09-21-request-scoped-data-mode.md),
+  [deep provider selection](../../notes/implemented/architecture/2026-10-03-deep-provider-selection.md)
 - **Do not invent unknown facts.** Missing cancellation policies stay `false`, missing coordinates
   stay absent, estimated prices are labelled as estimates.
 - **Shared contracts.** A change under `packages/shared/src` needs an Agent Note and
   `contract-impact: packages/shared` in the session log; check every consumer still compiles and that
-  removed fields are stripped, not rejected, when old data is parsed.
+  removed fields are stripped, not rejected, when old data is parsed. A tightened limit (a new
+  maximum, a newly required field) must still load saved briefs and settings, and a new gate in the
+  orchestrator must not block existing drafts. Another member's agents depend on the contract, so
+  ask whether the team agreed to it. [PR #144](https://github.com/Lilstanie/AI_TRIP_PLANNER/pull/144)
+- **One feature per PR, and CI that actually ran.** Unrelated features in one PR cannot be reviewed,
+  reverted or merged alone; ask for a split. A PR from a fork waits on workflow approval
+  (`action_required`), so a missing check is not a passing one: confirm the CI run finished on the
+  head commit before approving. [PR #144](https://github.com/Lilstanie/AI_TRIP_PLANNER/pull/144)
 - **Persisted browser data.** A change to a stored trip field needs a snapshot version bump and a stated
   decision about old snapshots. [storage](../../notes/implemented/architecture/2026-09-24-workspace-catalog-trip-storage.md)
 - **Labels and verdicts come from the data.** A status the page prints ("Within budget", "Passed")
