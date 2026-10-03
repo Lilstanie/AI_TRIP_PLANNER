@@ -34,12 +34,12 @@
       "translationSha256": "ea2e79620e1a5f2ee201521e20348af83ae325d4a936433d4db454c71747cf7c"
     },
     "docs/design/stage1/01-requirements.md": {
-      "sourceSha256": "7f093fe553c0500e9ae08f2c78344f9a0e96f633ec5a635081d33d966839c81c",
-      "translationSha256": "4a91dcd7f8465bd361e5e2dea20a8456fce2fcf1cd03442d4b81867ddfc1d344"
+      "sourceSha256": "0b370ac7f522b0167f8ddf014778a4160480674fe4603baef3739471e12ffa2f",
+      "translationSha256": "7ddbfbf5ef15d68cfbde5dca7387a410500c16959982a7d4d95bae4b978b0c49"
     },
     "docs/design/stage1/02-use-cases.md": {
-      "sourceSha256": "79f8de7ee2510aa1da9ac81069be7ff1d9f33fbd2acd242ea4afd1203b0aeeb5",
-      "translationSha256": "c077fc989127ecb7bdb15842e7ffc0527b76876b2c6f9c676cf9091a33d21f00"
+      "sourceSha256": "3bc184c2894a5155f21967c08d17f437977062cd4da86528143cea030c3ea99b",
+      "translationSha256": "6e4c9c9ffb5d8ecd64d2159837d59a54e3b2bba1e4739ff407c0232014d6fc8c"
     },
     "docs/design/stage1/03-structure.md": {
       "sourceSha256": "17433045dceaf1406d5e51d28cb290dc1f3080aaa5b69fb012149a1db1032c3f",
@@ -49,9 +49,13 @@
       "sourceSha256": "dc0db819b0beacd7c4e604abc1089fa559e445d5cf21f4b5f3e5e91e87385e9c",
       "translationSha256": "d248f1f41c02c49af66b559a54fc3bd4ce798641aef8ac2d9170a0283884009c"
     },
+    "docs/design/stage1/04-member-d-behaviour.md": {
+      "sourceSha256": "1069f4fe719c16a2c0e82b7e2c6dd2265e8f3045953962e2a5270e556e600ef1",
+      "translationSha256": "5b31a7912c73ae698d394c0a95c884298b52c8eddb26d1321c81a9e9fa668bef"
+    },
     "docs/design/stage1/README.md": {
-      "sourceSha256": "698bd829da6f8013c821d287d005a964c35f52402623c05e98ba802aa7064abc",
-      "translationSha256": "ac72742119891d486e8ed3ad1af36cf2fcf9a2d70faafef188d507e07f3c059d"
+      "sourceSha256": "9a22c124157ab975837d3a15d122511f92f0b0324a867f362bdf78bf35c7fa20",
+      "translationSha256": "9a16351574071624f0f58a606f235b612a5f26bbe18bccf72ea857ec74c97f3d"
     },
     "docs/design/ui-guidelines.md": {
       "sourceSha256": "31f328abad78da71fc093515d9b212eec712b3d443b48ddb793eb2d5862a3a6d",

@@ -3,14 +3,14 @@
 要求：≤ 8 分钟，介绍项目、主要 AI 角色、功能、用例和设计模型（Canvas: Stage One Video Presentation Submission）。
 按幻灯片顺序，每人连续讲自己那一段。估时按每分钟 140 个英文单词，每页加 3 秒翻页。
 
-| 成员 | 讲的页 | 估计时长 |
-| --- | --- | --- |
-| A Ziqi He | 1–5 | 1:56 |
-| B Tingsong Jin | 6–9 | 1:20 |
-| C Yi Qiao | 10–15 | 1:48 |
-| D Jiahang Bian | 16–19 | 1:17 |
-| E Weihao Wang | 20–24 | 1:25 |
-| 合计 | 24 页 | 7:46 |
+| 成员           | 讲的页 | 估计时长 |
+| -------------- | ------ | -------- |
+| A Ziqi He      | 1–5    | 1:56     |
+| B Tingsong Jin | 6–9    | 1:20     |
+| C Yi Qiao      | 10–15  | 1:48     |
+| D Jiahang Bian | 16–19  | 1:17     |
+| E Weihao Wang  | 20–24  | 1:25     |
+| 合计           | 24 页  | 7:46     |
 
 ## 要各自补的
 
@@ -136,7 +136,7 @@ We discarded a model-driven loop and free agent-to-agent chat, because limits an
 
 **D Jiahang Bian** · 约 25 秒
 
-[About 25 seconds. Name your ad hoc requirement and use case, then point to where the LLM sits in each diagram and which code checks it. Replace the three placeholders with your diagrams.]
+I'm Jiahang Bian, member D. UC-D1 shows both specialists working from evidence: the guide uses map coordinates and weather data; dining uses restaurant candidates and confirmed dietary preferences. The LLM drafts guidance, while deterministic code validates its output and budget. Forecasts are distinguished from climate context, and unavailable weather is disclosed.
 
 ### 20. Dependencies point inward to the shared contracts
 

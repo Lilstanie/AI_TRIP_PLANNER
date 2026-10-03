@@ -1,0 +1,21 @@
+sequenceDiagram
+  actor T as Traveler
+  participant S as Agents
+  participant P as Tools
+  participant L as LLM
+  T->>S: Brief
+  par Destination guide
+    S->>P: maps + weather
+    P-->>S: places + horizon
+    S->>L: guide evidence
+    L-->>S: draft
+    S->>S: validate / fallback
+  and Dining
+    S->>P: venues + diet
+    P-->>S: candidates + ceiling
+    S->>L: dining evidence
+    L-->>S: draft
+    S->>S: validate / fallback
+  end
+  S->>S: validate + assemble
+  S-->>T: grounded plan + sources

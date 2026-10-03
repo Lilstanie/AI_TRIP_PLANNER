@@ -16,13 +16,13 @@ the plan in chat or in the timeline and map editor.
 
 Informal statements in the stakeholder's own words, before any modelling.
 
-| ID | Member | Ad hoc requirement |
-| --- | --- | --- |
+| ID    | Member                | Ad hoc requirement                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| ----- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | AH-C1 | C (`@HeadmasterEggy`) | "We're five friends going to Tokyo on a fixed budget. I want the planner to work out how many rooms we need, whether we share or each get our own, and pick a hotel I'd actually stay in: decent rating, free cancellation if I asked for it. Flights get paid first, so the hotel has to fit in whatever money is left. If the whole trip ends up over budget, I want the hotel swapped for a cheaper one that still meets my rules rather than being told nothing fits. If no hotel can ever fit, tell me the minimum I'd need instead of making up a cheap one. And if I've already booked somewhere, just keep it." |
-| AH-A1 | A | _to be written by A_ |
-| AH-B1 | B | _to be written by B_ |
-| AH-D1 | D | _to be written by D_ |
-| AH-E1 | E | _to be written by E_ |
+| AH-A1 | A                     | _to be written by A_                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| AH-B1 | B                     | _to be written by B_                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| AH-D1 | D (`@jbia0391`)       | “I’m planning a few days in Kyoto and want the guide to help me pack for the actual dates, not just guess from the season. I’m vegetarian and have a peanut allergy, so I also want restaurant ideas that take those preferences into account. Please use real place and weather evidence when it is available, tell me when a forecast is only historical climate context or unavailable, and never assure me that a restaurant is allergy-safe unless the venue confirms it.”                                                                                                                                         |
+| AH-E1 | E                     | _to be written by E_                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 
 Group-level needs gathered in early lab discussion (from the team's design doc): clothing advice
 from the weather, accommodation for individuals or groups, food recommendations, day-by-day
@@ -34,19 +34,29 @@ merges the answers, and filters for party size, area and budget.
 AH-C1 is broken down into classified requirements below. FR = functional, NFR = non-functional,
 C = constraint.
 
-| ID | Type | Requirement | Traced to |
-| --- | --- | --- | --- |
-| R-C1 | FR | Compute the room count from party size and room allocation: `individual` gives one room per guest, `shared` gives ⌈guests / 2⌉. | `accommodation/index.ts` |
-| R-C2 | FR | Filter stay candidates by minimum rating and, when requested, free cancellation; these are hard rules that a budget revision may not relax. | `planning.ts: eligibleOptions` |
-| R-C3 | FR | Choose the first stay preferring rating ≥ 8 and free cancellation, within the stay allocation left after transport. | `chooseInitial`, board allocation |
-| R-C4 | FR | Roll up section costs in AUD and compare the total with `budgetTotal`. | `budget.ts: rollUpCost` |
-| R-C5 | FR | On any overrun, spread the required saving over the sections that can still be cut, and send each a targeted revision request. | `conflicts.ts: detectConflicts` |
-| R-C6 | FR | When the cheapest options already exceed the budget, report one `infeasible budget` conflict naming the minimum, and stop revising. | `minimumCost`, `INFEASIBLE_BUDGET` |
-| R-C7 | FR | Keep a stay the traveller has already booked, unpriced and without a search. | `bookedStayProposal` |
-| R-C8 | NFR (accuracy) | Money is summed in integer cents so totals never drift. | `sumMoney`, `stayCost` |
-| R-C9 | NFR (integrity) | The model may choose only among searched candidate ids; it never invents a property, rate or policy. | accommodation system prompt |
-| R-C10 | NFR (availability) | With no model key, or an off-schema answer, a deterministic fallback still produces a valid proposal. | `planStays` fallback |
-| R-C11 | C | At most three revision rounds; a round is kept only if the plan score improves. | `workflow.ts` |
+| ID    | Type               | Requirement                                                                                                                                 | Traced to                          |
+| ----- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| R-C1  | FR                 | Compute the room count from party size and room allocation: `individual` gives one room per guest, `shared` gives ⌈guests / 2⌉.             | `accommodation/index.ts`           |
+| R-C2  | FR                 | Filter stay candidates by minimum rating and, when requested, free cancellation; these are hard rules that a budget revision may not relax. | `planning.ts: eligibleOptions`     |
+| R-C3  | FR                 | Choose the first stay preferring rating ≥ 8 and free cancellation, within the stay allocation left after transport.                         | `chooseInitial`, board allocation  |
+| R-C4  | FR                 | Roll up section costs in AUD and compare the total with `budgetTotal`.                                                                      | `budget.ts: rollUpCost`            |
+| R-C5  | FR                 | On any overrun, spread the required saving over the sections that can still be cut, and send each a targeted revision request.              | `conflicts.ts: detectConflicts`    |
+| R-C6  | FR                 | When the cheapest options already exceed the budget, report one `infeasible budget` conflict naming the minimum, and stop revising.         | `minimumCost`, `INFEASIBLE_BUDGET` |
+| R-C7  | FR                 | Keep a stay the traveller has already booked, unpriced and without a search.                                                                | `bookedStayProposal`               |
+| R-C8  | NFR (accuracy)     | Money is summed in integer cents so totals never drift.                                                                                     | `sumMoney`, `stayCost`             |
+| R-C9  | NFR (integrity)    | The model may choose only among searched candidate ids; it never invents a property, rate or policy.                                        | accommodation system prompt        |
+| R-C10 | NFR (availability) | With no model key, or an off-schema answer, a deterministic fallback still produces a valid proposal.                                       | `planStays` fallback               |
+| R-C11 | C                  | At most three revision rounds; a round is kept only if the plan score improves.                                                             | `workflow.ts`                      |
+
+**D's AH-D1 classification.** FR = functional, NFR = non-functional, C = constraint.
+
+| ID   | Type               | Requirement                                                                                                                                                                                             | Traced to                                                                                                             |
+| ---- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| R-D1 | FR                 | For a valid trip date and destination coordinates, request weather evidence and include weather-based packing guidance in the destination-guide proposal.                                               | `destination-guide/index.ts:planDestinationGuide`                                                                     |
+| R-D2 | NFR (accuracy)     | Label weather by its actual horizon: forecasts cover up to 14 days; later dates use climate context, never a forecast. Preserve provider, observation time and forecast validity where supplied.        | `weather.ts:weather.forecast`; `destination-guide/index.ts:planDestinationGuide`                                      |
+| R-D3 | FR                 | Use grounded restaurant candidates and relevant stored dietary preferences to produce dining suggestions within the meal-budget ceiling.                                                                | `dining/index.ts:dietaryPreferences`; `dining/index.ts:budgetCeiling`                                                 |
+| R-D4 | NFR (integrity)    | Accept attraction and restaurant names only when they match map candidates; do not claim menus, allergen safety or dietary suitability as verified facts.                                               | `destination-guide/index.ts:validateDraft`; `dining/index.ts:validateDraft`; `dining/index.ts:createMiniMaxGenerator` |
+| R-D5 | NFR (availability) | If weather or model evidence is unavailable or invalid, return deterministic guidance where possible and label unavailable weather or fallback provenance rather than presenting it as a live forecast. | `destination-guide/index.ts:fallbackDraft`; `destination-guide/index.ts:planDestinationGuide`                         |
 
 ## 1.4 Feature diagram (group)
 
@@ -121,20 +131,20 @@ flowchart LR
 
 **Cross-tree constraints**
 
-1. *Targeted revision* requires *Conflict detection*.
-2. *Budget overrun* requires *Cost roll-up in AUD*; *Infeasible budget* requires *Minimum-cost floor*.
-3. *Keep booked stay* excludes searching and pricing in *Accommodation* for that trip.
-4. *Traveller arranges flights* excludes fare search in *Transport* and any flight-fare conflict.
-5. *Live providers* requires provider keys; without them the system selects *Mock fixtures*.
-6. *Accounts & cloud sync* requires *Long-term preferences*.
+1. _Targeted revision_ requires _Conflict detection_.
+2. _Budget overrun_ requires _Cost roll-up in AUD_; _Infeasible budget_ requires _Minimum-cost floor_.
+3. _Keep booked stay_ excludes searching and pricing in _Accommodation_ for that trip.
+4. _Traveller arranges flights_ excludes fare search in _Transport_ and any flight-fare conflict.
+5. _Live providers_ requires provider keys; without them the system selects _Mock fixtures_.
+6. _Accounts & cloud sync_ requires _Long-term preferences_.
 
 **Non-functional requirements attached to features**
 
-| Feature | NFR |
-| --- | --- |
-| Multi-agent planning | Every proposal is re-validated against the shared Zod schema at each graph boundary. |
-| Specialist roles | Each specialist falls back to deterministic output when the model is missing or off-schema, so a request always completes. |
-| Budget management | AUD arithmetic in integer cents; overrun percentages are compared unrounded. |
-| Evidence & tools | Prices and places come only from tools; every section shows whether its data is live, estimated, mock or fallback. |
-| Workspace | Planning progress streams as NDJSON so the traveller sees each stage as it runs. |
-| Agent Lab | Fixture runs can never reach a paid model or provider. |
+| Feature              | NFR                                                                                                                        |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Multi-agent planning | Every proposal is re-validated against the shared Zod schema at each graph boundary.                                       |
+| Specialist roles     | Each specialist falls back to deterministic output when the model is missing or off-schema, so a request always completes. |
+| Budget management    | AUD arithmetic in integer cents; overrun percentages are compared unrounded.                                               |
+| Evidence & tools     | Prices and places come only from tools; every section shows whether its data is live, estimated, mock or fallback.         |
+| Workspace            | Planning progress streams as NDJSON so the traveller sees each stage as it runs.                                           |
+| Agent Lab            | Fixture runs can never reach a paid model or provider.                                                                     |
