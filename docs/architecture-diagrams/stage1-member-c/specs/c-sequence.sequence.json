@@ -1,0 +1,227 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "Member C: budget overrun and targeted revision (UC-C2)",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1085,
+      698
+    ],
+    "column_fit": "spread",
+    "legend": {
+      "mode": "hidden"
+    }
+  },
+  "participants": [
+    {
+      "id": "traveller",
+      "type": "frontend",
+      "label": "Traveler",
+      "sublabel": "web workspace"
+    },
+    {
+      "id": "chat",
+      "type": "backend",
+      "label": "runTripChat",
+      "sublabel": "coordinator"
+    },
+    {
+      "id": "wf",
+      "type": "backend",
+      "label": "LangGraph",
+      "sublabel": "workflow"
+    },
+    {
+      "id": "board",
+      "type": "database",
+      "label": "Board",
+      "sublabel": "PlanningBoard"
+    },
+    {
+      "id": "accom",
+      "type": "backend",
+      "label": "Stay agent",
+      "sublabel": "accommodation"
+    },
+    {
+      "id": "booking",
+      "type": "external",
+      "label": "BookingPort",
+      "sublabel": "SerpApi"
+    },
+    {
+      "id": "llm",
+      "type": "cloud",
+      "label": "LLM",
+      "sublabel": "DeepSeek"
+    },
+    {
+      "id": "policy",
+      "type": "security",
+      "label": "Conflicts",
+      "sublabel": "ConflictPolicy"
+    }
+  ],
+  "segments": [
+    {
+      "from": 158,
+      "to": 212,
+      "label": "Brief"
+    },
+    {
+      "from": 216,
+      "to": 352,
+      "label": "First round"
+    },
+    {
+      "from": 356,
+      "to": 408,
+      "label": "Budget check"
+    },
+    {
+      "from": 412,
+      "to": 492,
+      "label": "Revision loop: round < 3, score improves"
+    },
+    {
+      "from": 496,
+      "to": 550,
+      "label": "Reply"
+    }
+  ],
+  "messages": [
+    {
+      "from": "traveller",
+      "to": "chat",
+      "y": 172,
+      "label": "POST /api/chat: Tokyo, 2 people, AUD 2,300",
+      "variant": "emphasis"
+    },
+    {
+      "from": "chat",
+      "to": "wf",
+      "y": 200,
+      "label": "run(TripBrief)",
+      "variant": "emphasis"
+    },
+    {
+      "from": "board",
+      "to": "wf",
+      "y": 228,
+      "label": "allocationFor: 40% left after transport",
+      "variant": "return"
+    },
+    {
+      "from": "wf",
+      "to": "accom",
+      "y": 256,
+      "label": "invoke(brief, allocation)",
+      "variant": "default"
+    },
+    {
+      "from": "accom",
+      "to": "booking",
+      "y": 284,
+      "label": "searchStays(Tokyo, 2 guests)",
+      "variant": "default"
+    },
+    {
+      "from": "accom",
+      "to": "llm",
+      "y": 312,
+      "label": "choose ids within allocation",
+      "variant": "default"
+    },
+    {
+      "from": "accom",
+      "to": "board",
+      "y": 340,
+      "label": "validated, priced proposal",
+      "variant": "default"
+    },
+    {
+      "from": "wf",
+      "to": "policy",
+      "y": 368,
+      "label": "detectConflicts(proposals)",
+      "variant": "security"
+    },
+    {
+      "from": "policy",
+      "to": "wf",
+      "y": 396,
+      "label": "RevisionRequest + targetSaving",
+      "variant": "return"
+    },
+    {
+      "from": "wf",
+      "to": "accom",
+      "y": 424,
+      "label": "revise: allocation − saving",
+      "variant": "emphasis"
+    },
+    {
+      "from": "accom",
+      "to": "board",
+      "y": 452,
+      "label": "cheapest eligible, rules kept",
+      "variant": "default"
+    },
+    {
+      "from": "wf",
+      "to": "policy",
+      "y": 480,
+      "label": "re-check: conflicts + planScore",
+      "variant": "security"
+    },
+    {
+      "from": "wf",
+      "to": "chat",
+      "y": 508,
+      "label": "TripPlan: draft / needs_you",
+      "variant": "return"
+    },
+    {
+      "from": "chat",
+      "to": "traveller",
+      "y": 536,
+      "label": "final frame { reply, plan }",
+      "variant": "return"
+    }
+  ],
+  "activations": [
+    {
+      "participant": "chat",
+      "from": 172,
+      "to": 536,
+      "type": "backend"
+    },
+    {
+      "participant": "wf",
+      "from": 200,
+      "to": 508,
+      "type": "backend"
+    },
+    {
+      "participant": "accom",
+      "from": 256,
+      "to": 340,
+      "type": "backend"
+    },
+    {
+      "participant": "accom",
+      "from": 424,
+      "to": 452,
+      "type": "backend"
+    },
+    {
+      "participant": "policy",
+      "from": 368,
+      "to": 396,
+      "type": "security"
+    }
+  ],
+  "cards": []
+}

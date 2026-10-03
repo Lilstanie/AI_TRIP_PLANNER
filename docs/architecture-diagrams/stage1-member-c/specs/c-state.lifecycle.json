@@ -1,0 +1,177 @@
+{
+  "schema_version": 1,
+  "diagram_type": "lifecycle",
+  "meta": {
+    "title": "Member C: accommodation section state machine",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "legend": {
+      "mode": "hidden"
+    },
+    "viewBox": [
+      1060,
+      670
+    ]
+  },
+  "lanes": [
+    {
+      "id": "main",
+      "label": "Main path"
+    },
+    {
+      "id": "events",
+      "label": "Revision and failure"
+    },
+    {
+      "id": "terminal",
+      "label": "Waiting on traveller"
+    }
+  ],
+  "states": [
+    {
+      "id": "start",
+      "type": "start",
+      "label": "Dispatched",
+      "sublabel": "orchestrator",
+      "lane": "main",
+      "col": 0,
+      "step": "01"
+    },
+    {
+      "id": "waiting",
+      "type": "waiting",
+      "label": "Waiting",
+      "sublabel": "for transport",
+      "lane": "main",
+      "col": 1,
+      "step": "02"
+    },
+    {
+      "id": "planning",
+      "type": "active",
+      "label": "Planning",
+      "sublabel": "search, choose, price",
+      "lane": "main",
+      "col": 2,
+      "step": "03"
+    },
+    {
+      "id": "review",
+      "type": "decision",
+      "label": "UnderReview",
+      "sublabel": "detectConflicts",
+      "lane": "main",
+      "col": 3,
+      "step": "04"
+    },
+    {
+      "id": "draft",
+      "type": "success",
+      "label": "draft",
+      "sublabel": "within budget",
+      "lane": "main",
+      "col": 4,
+      "step": "05"
+    },
+    {
+      "id": "failed",
+      "type": "failure",
+      "label": "Failed",
+      "sublabel": "no eligible stay",
+      "lane": "events",
+      "col": 0
+    },
+    {
+      "id": "revising",
+      "type": "failure",
+      "label": "Revising",
+      "sublabel": "allocation − saving",
+      "lane": "events",
+      "col": 1,
+      "tag": "round < 3"
+    },
+    {
+      "id": "needs",
+      "type": "waiting",
+      "label": "needs_you",
+      "sublabel": "traveller decides",
+      "lane": "terminal",
+      "col": 2
+    }
+  ],
+  "transitions": [
+    {
+      "id": "t-dispatch",
+      "from": "start",
+      "to": "waiting"
+    },
+    {
+      "id": "t-plan",
+      "from": "waiting",
+      "to": "planning",
+      "variant": "emphasis"
+    },
+    {
+      "id": "t-review",
+      "from": "planning",
+      "to": "review",
+      "variant": "emphasis",
+      "route": "straight",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "t-draft",
+      "from": "review",
+      "to": "draft",
+      "variant": "emphasis"
+    },
+    {
+      "id": "t-failed",
+      "from": "planning",
+      "to": "failed",
+      "label": "[none eligible]",
+      "variant": "security",
+      "labelDy": 24
+    },
+    {
+      "id": "t-revise",
+      "from": "review",
+      "to": "revising",
+      "label": "[over, feasible]",
+      "labelDy": 24
+    },
+    {
+      "id": "t-again",
+      "from": "revising",
+      "to": "planning",
+      "label": "revision request",
+      "variant": "dashed"
+    },
+    {
+      "id": "t-needs",
+      "from": "review",
+      "to": "needs",
+      "label": "[infeasible / round 3]",
+      "variant": "security",
+      "labelAt": [
+        633,
+        232
+      ]
+    },
+    {
+      "id": "t-stuck",
+      "from": "revising",
+      "to": "needs",
+      "label": "[no improvement]",
+      "variant": "security",
+      "fromSide": "bottom",
+      "toSide": "left",
+      "labelAt": [
+        556,
+        404
+      ]
+    }
+  ],
+  "cards": []
+}

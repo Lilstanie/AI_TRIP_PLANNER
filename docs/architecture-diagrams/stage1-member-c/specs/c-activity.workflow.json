@@ -1,0 +1,244 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Member C: Arrange Accommodation activity (UC-C1)",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "legend": {
+      "mode": "hidden"
+    },
+    "viewBox": [
+      1020,
+      656
+    ]
+  },
+  "lanes": [
+    {
+      "id": "orch",
+      "label": "Orchestrator"
+    },
+    {
+      "id": "agent",
+      "label": "Accommodation agent"
+    },
+    {
+      "id": "exc",
+      "label": "Fallbacks and failure",
+      "variant": "exception"
+    },
+    {
+      "id": "ext",
+      "label": "Booking port + LLM"
+    }
+  ],
+  "phases": [
+    {
+      "id": "prepare",
+      "label": "Prepare",
+      "fromCol": 0,
+      "toCol": 1
+    },
+    {
+      "id": "search",
+      "label": "Search + choose",
+      "fromCol": 2,
+      "toCol": 3,
+      "variant": "emphasis"
+    },
+    {
+      "id": "guard",
+      "label": "Guard + price",
+      "fromCol": 4,
+      "toCol": 5,
+      "variant": "security"
+    }
+  ],
+  "mainPath": [
+    "recv",
+    "prep",
+    "search",
+    "filter",
+    "choose",
+    "guard",
+    "price",
+    "post"
+  ],
+  "nodes": [
+    {
+      "id": "recv",
+      "lane": "orch",
+      "col": 0,
+      "type": "backend",
+      "label": "Dispatch",
+      "sublabel": "brief + allocation"
+    },
+    {
+      "id": "prep",
+      "lane": "agent",
+      "col": 1,
+      "type": "backend",
+      "label": "Rooms + segments",
+      "sublabel": "⌈guests / 2⌉ if shared",
+      "width": 128
+    },
+    {
+      "id": "search",
+      "lane": "ext",
+      "col": 1,
+      "type": "external",
+      "label": "Search stays",
+      "sublabel": "per city segment",
+      "width": 128
+    },
+    {
+      "id": "est",
+      "lane": "ext",
+      "col": 2,
+      "type": "external",
+      "label": "Estimates",
+      "sublabel": "Google Places"
+    },
+    {
+      "id": "filter",
+      "lane": "agent",
+      "col": 2,
+      "type": "backend",
+      "label": "Filter + sort",
+      "sublabel": "eligible, cheapest first",
+      "width": 128
+    },
+    {
+      "id": "fail",
+      "lane": "exc",
+      "col": 2,
+      "type": "security",
+      "label": "No eligible stay",
+      "sublabel": "run stops",
+      "width": 128
+    },
+    {
+      "id": "choose",
+      "lane": "ext",
+      "col": 3,
+      "type": "cloud",
+      "label": "LLM choice",
+      "sublabel": "ids per segment"
+    },
+    {
+      "id": "guard",
+      "lane": "agent",
+      "col": 4,
+      "type": "security",
+      "label": "Validate + fit",
+      "sublabel": "known id, in allocation",
+      "width": 128
+    },
+    {
+      "id": "rule",
+      "lane": "exc",
+      "col": 4,
+      "type": "backend",
+      "label": "Deterministic pick",
+      "sublabel": "rating ≥ 8 + free cancel",
+      "width": 128
+    },
+    {
+      "id": "price",
+      "lane": "agent",
+      "col": 5,
+      "type": "backend",
+      "label": "Price in cents",
+      "sublabel": "floorCost = cheapest",
+      "width": 128
+    },
+    {
+      "id": "post",
+      "lane": "orch",
+      "col": 5,
+      "type": "database",
+      "label": "Post proposal",
+      "sublabel": "planning board",
+      "width": 128
+    }
+  ],
+  "edges": [
+    {
+      "from": "recv",
+      "to": "prep",
+      "role": "main",
+      "variant": "emphasis"
+    },
+    {
+      "from": "prep",
+      "to": "search",
+      "role": "main",
+      "variant": "emphasis"
+    },
+    {
+      "from": "search",
+      "to": "filter",
+      "label": "live",
+      "role": "main",
+      "variant": "emphasis"
+    },
+    {
+      "from": "search",
+      "to": "est",
+      "label": "failed",
+      "role": "error",
+      "variant": "dashed"
+    },
+    {
+      "from": "est",
+      "to": "filter",
+      "role": "branch",
+      "variant": "dashed"
+    },
+    {
+      "from": "filter",
+      "to": "fail",
+      "label": "none",
+      "role": "error",
+      "variant": "security"
+    },
+    {
+      "from": "filter",
+      "to": "choose",
+      "label": "model set",
+      "role": "main",
+      "variant": "emphasis"
+    },
+    {
+      "from": "choose",
+      "to": "guard",
+      "role": "main",
+      "variant": "emphasis"
+    },
+    {
+      "from": "guard",
+      "to": "rule",
+      "label": "invalid",
+      "role": "error",
+      "variant": "security"
+    },
+    {
+      "from": "rule",
+      "to": "price",
+      "role": "branch"
+    },
+    {
+      "from": "guard",
+      "to": "price",
+      "role": "main",
+      "variant": "emphasis"
+    },
+    {
+      "from": "price",
+      "to": "post",
+      "role": "main",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": []
+}
