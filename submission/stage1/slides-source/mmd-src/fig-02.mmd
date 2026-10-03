@@ -1,0 +1,16 @@
+flowchart TB
+    U[Traveller] --> UI[Next.js workspace]
+    UI -->|POST /api/chat, NDJSON progress| CHAT[AI Travel Coordinator: runTripChat]
+    CHAT -->|explicit brief updates| EX[LLM structured extraction]
+    EX -.->|no key or invalid output| LP[Local rule parser]
+    CHAT --> WF[LangGraph workflow]
+    WF --> DISPATCH[dispatch_specialists / revise_conflicts]
+    DISPATCH --> SUP[AI Planning Supervisor]
+    DISPATCH -.->|no model or supervisor error| DIRECT[Deterministic dispatch]
+    SUP --> SPEC[Itinerary · Transport · Accommodation · Destination · Dining agents]
+    DIRECT --> SPEC
+    SPEC --> TOOLS[Typed tool gateway: maps, booking, weather]
+    SPEC -.->|model unavailable or off-schema| FB[Deterministic fallback output]
+    WF --> CONF[detect_conflicts → build_plan]
+    WF --- MEM[(MemoryStore)]
+    CONF --> PLAN[Validated TripPlan with unresolved conflicts]

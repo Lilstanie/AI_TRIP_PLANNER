@@ -13,7 +13,7 @@ describe("createToolGateway", () => {
   it.each([
     [{ SERPAPI_KEY: "k" }, /booking: SerpApi/],
     [{ MAPS_PROVIDER: "google", MAPS_API_KEY: "k" }, /booking: Google Places/],
-    [{}, /booking: fixture-backed/],
+    [{}, /booking: unavailable until a configured capability is called/],
   ])(
     "describes the real booking tier accurately for %j — this line went stale once before",
     (env, expected) => {
