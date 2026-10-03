@@ -1,13 +1,16 @@
 # 3. Structure models
 
+English | [中文](03-structure.zh.md)
+
 ## 3.1 Elementary structure: generalisation added to the class model
 
-The five class diagrams in [`docs/design/class-diagram.md`](../../docs/design/class-diagram.md)
-already show composition, aggregation, multiplicity, interfaces and realisation (`Specialist <|..
-ItineraryAgent`, `MapsPort <|.. MapsAdapter`, …). The criteria also name **generalisation**, which
-the existing diagrams do not draw. The code does have real inheritance: the typed errors that turn a
-failed or unfinished turn into a specific response frame. Add this as **Diagram 6**.
-Rendered: [`diagrams/class-6-generalisation.svg`](diagrams/class-6-generalisation.svg).
+The five class diagrams in [`../class-diagram.md`](../class-diagram.md)
+already show composition, aggregation, multiplicity, interfaces and realisation
+(`Specialist <|.. ItineraryAgent`, `MapsPort <|.. MapsAdapter`, …). The criteria also name
+**generalisation**, which the existing diagrams do not draw. The code does have real inheritance:
+the typed errors that turn a failed or unfinished turn into a specific response frame. This is
+**Diagram 6** of the class model.
+Rendered: [`../diagrams/class-6-generalisation.svg`](../diagrams/class-6-generalisation.svg).
 
 ```mermaid
 classDiagram
@@ -58,9 +61,9 @@ classDiagram
 
 | Relationship | Kind | Rationale |
 | --- | --- | --- |
-| `Error <|-- IncompleteBriefError` | generalisation | "Not enough to plan yet" is a non-plan outcome, not a crash; the API route catches it by type and streams a `needs_info` frame with the fields understood so far. |
-| `Error <|-- AskUserError` | generalisation | A clarifying question with 1–4 concrete choices, streamed as `ask_user`. |
-| `Error <|-- SerpApiError` | generalisation | A provider failure with a typed `reason` (quota, no results, …) so the booking adapter can fall back to Google Places estimates and label the provenance. |
+| `Error <\|-- IncompleteBriefError` | generalisation | "Not enough to plan yet" is a non-plan outcome, not a crash; the API route catches it by type and streams a `needs_info` frame with the fields understood so far. |
+| `Error <\|-- AskUserError` | generalisation | A clarifying question with 1–4 concrete choices, streamed as `ask_user`. |
+| `Error <\|-- SerpApiError` | generalisation | A provider failure with a typed `reason` (quota, no results, …) so the booking adapter can fall back to Google Places estimates and label the provenance. |
 
 *Design note.* Subclassing `Error` lets `runTripChat` end a turn early from deep inside the
 LangGraph or LangChain call stack, and lets the route handler distinguish outcomes with
@@ -72,7 +75,7 @@ A snapshot of the planning board at the end of round 1 of `detect_conflicts`, fo
 `tokyo-couple-tight-budget` brief. The brief and the four stay candidates are the real fixture values
 (`agent-lab/scenarios.ts`, `tools/src/booking.ts`). **Transport and dining costs are illustrative**:
 re-run the lab and replace them if you want exact figures.
-Rendered: [`diagrams/object-diagram.svg`](diagrams/object-diagram.svg).
+Rendered: [`../diagrams/object-diagram.svg`](../diagrams/object-diagram.svg).
 
 ```mermaid
 classDiagram
@@ -161,7 +164,7 @@ Had the traveller required free cancellation, *saver* would be filtered out and 
 ## 3.3 Collaboration: «collaboration» Negotiate Trip Plan
 
 Roles, not classes: any `Specialist` can play a role, and the connectors are the links the roles use
-during one planning turn. Rendered: [`diagrams/collaboration.svg`](diagrams/collaboration.svg).
+during one planning turn. Rendered: [`../diagrams/collaboration.svg`](../diagrams/collaboration.svg).
 
 ```mermaid
 flowchart LR
@@ -202,7 +205,7 @@ flowchart LR
 
 The internal structure of the orchestrator as a composite: its parts, the ports it exposes and
 requires, and the connectors between parts.
-Rendered: [`diagrams/structured-class.svg`](diagrams/structured-class.svg).
+Rendered: [`../diagrams/structured-class.svg`](../diagrams/structured-class.svg).
 
 ```mermaid
 flowchart LR

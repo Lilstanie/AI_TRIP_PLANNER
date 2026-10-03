@@ -1,14 +1,16 @@
 # 4. Behaviour models: member C (`@HeadmasterEggy`, accommodation and budget)
 
+English | [中文](04-member-c-behaviour.zh.md)
+
 All three diagrams come from ad hoc requirement **AH-C1** and the use case specifications **UC-C1
 Arrange Accommodation** and **UC-C2 Manage Budget** (`01-requirements.md`, `02-use-cases.md`). Each
 focuses on where the LLM sits and what deterministic code guards it, as the brief asks.
 
 ## 4.1 Activity diagram: Arrange Accommodation (UC-C1)
 
-Swimlanes are the four participants. The LLM is used once, in *Choose candidate per segment*, and
+Swimlanes are the four participants. The LLM is used once, in *Choose one candidate id per segment*, and
 its output is checked before anything is priced.
-Rendered: [`diagrams/c-activity.svg`](diagrams/c-activity.svg).
+Rendered: [`../diagrams/c-activity.svg`](../diagrams/c-activity.svg).
 
 ```mermaid
 flowchart TB
@@ -67,7 +69,7 @@ flowchart TB
 ## 4.2 Sequence diagram: budget overrun and targeted revision (UC-C2, extension 2a)
 
 One planning turn in which the first round goes over budget and the accommodation agent is asked to
-cut its cost. Rendered: [`diagrams/c-sequence.svg`](diagrams/c-sequence.svg).
+cut its cost. Rendered: [`../diagrams/c-sequence.svg`](../diagrams/c-sequence.svg).
 
 ```mermaid
 sequenceDiagram
@@ -127,13 +129,13 @@ sequenceDiagram
   UI-->>T: plan with total vs budget
 ```
 
-If `minimumCost` is above the budget (extension 2b), `detectConflicts` instead returns one `infeasible
-budget` conflict, the loop is skipped, and the reply names the minimum budget needed.
+If `minimumCost` is above the budget (extension 2b), `detectConflicts` instead returns one
+`infeasible budget` conflict, the loop is skipped, and the reply names the minimum budget needed.
 
 ## 4.3 State machine: accommodation section within a planning turn (UC-C1 and UC-C2)
 
 The section's visible status (`planning`, `draft`, `needs_you`) is derived from these internal
-states. Rendered: [`diagrams/c-state.svg`](diagrams/c-state.svg).
+states. Rendered: [`../diagrams/c-state.svg`](../diagrams/c-state.svg).
 
 ```mermaid
 stateDiagram-v2

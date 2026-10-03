@@ -1,5 +1,7 @@
 # 1. Requirements
 
+English | [中文](01-requirements.zh.md)
+
 ## 1.1 Product statement
 
 AI Trip Planner is a "one-person AI travel agency". A single human traveller, acting as the founder
@@ -49,7 +51,7 @@ C = constraint.
 ## 1.4 Feature diagram (group)
 
 Notation: ● mandatory, ○ optional, ⊕ alternative (exactly one), ⊗ or (one or more).
-Rendered: [`diagrams/feature-diagram.svg`](diagrams/feature-diagram.svg).
+Rendered: [`../diagrams/feature-diagram.svg`](../diagrams/feature-diagram.svg).
 
 ```mermaid
 flowchart LR

@@ -1,8 +1,10 @@
 # 2. Use cases
 
+English | [中文](02-use-cases.zh.md)
+
 ## 2.1 Overall use case diagram
 
-The group diagram is [`docs/design/diagrams/use-case-diagram.svg`](../../docs/design/diagrams/use-case-diagram.svg).
+The group diagram is [`../diagrams/use-case-diagram.svg`](../diagrams/use-case-diagram.svg).
 Actors: **Traveler** (primary), and three external systems: **Maps / Routes API** (Google,
 OpenStreetMap), **Hotel / Flight Search** (SerpApi, Google Places) and **Weather API** (Google,
 Open-Meteo).
