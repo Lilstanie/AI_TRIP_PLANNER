@@ -1,0 +1,51 @@
+flowchart TB
+  start((●)) --> recv
+
+  subgraph ORCH["Orchestrator"]
+    recv["Receive dispatch with brief, board and stay allocation"]
+    post["Post proposal on the planning board"]
+  end
+
+  subgraph AGENT["Accommodation agent"]
+    booked{"bookedStay set?"}
+    keep["Return booked stay, unpriced, floorCost = 0"]
+    prefs["Read preferences: room allocation, min rating, free cancellation"]
+    rooms["Compute rooms: individual = guests, shared = ⌈guests / 2⌉"]
+    split["Split nights into city segments from transport hops"]
+    filter["Filter ineligible candidates, sort cheapest first"]
+    empty{"Any eligible candidate?"}
+    fail["Raise error: no stay that meets the rules"]
+    hasModel{"Model configured?"}
+    valid{"Choice is a known id and on schema?"}
+    rule["Deterministic pick: rating ≥ 8 and free cancellation, else cheapest"]
+    fit{"Choice within allocation?"}
+    refit["Take best stay within allocation, or cheapest"]
+    price["Price rooms × nights × rate in cents; floorCost = cheapest eligible"]
+  end
+
+  subgraph BOOK["Booking port"]
+    search["Search stays for each segment"]
+    live{"Live search succeeded?"}
+    est["Use Google Places estimates, label 'estimated'"]
+  end
+
+  subgraph LLM["LLM (DeepSeek)"]
+    choose["Choose one candidate id per segment, weighing rating, cancellation and cost"]
+  end
+
+  recv --> booked
+  booked -- yes --> keep --> post
+  booked -- no --> prefs --> rooms --> split --> search --> live
+  live -- yes --> filter
+  live -- no --> est --> filter
+  filter --> empty
+  empty -- no --> fail --> stopFail((⊗))
+  empty -- yes --> hasModel
+  hasModel -- yes --> choose --> valid
+  hasModel -- no --> rule
+  valid -- yes --> fit
+  valid -- no --> rule
+  rule --> fit
+  fit -- yes --> price
+  fit -- no --> refit --> price
+  price --> post --> stop((◉))

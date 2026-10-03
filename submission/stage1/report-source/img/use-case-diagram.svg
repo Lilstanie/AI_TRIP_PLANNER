@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 1300" role="img" aria-label="UML use case diagram. The human actor Traveler, on the left, has an association to all ten use cases stacked in one column inside the AI Trip Planner system boundary. Generate Itinerary includes Set Preferences (Filter) and Submit Requirement (Chat). Edit Itinerary (Timeline / Map) extends Generate Itinerary when the traveller edits the plan and includes Manage Budget to re-check the budget. Arrange Transportation is associated with the external Maps and Routes API, Arrange Accommodation with the external Hotel and Flight Search, and View Weather-based Clothing Recommendation with the external Weather API. Arrange Accommodation has an alternative note Individual or Group; View Itinerary Output has an alternative note Timeline or Map." xmlns:c2pa="http://c2pa.org/manifest"><metadata><c2pa:manifest>AAAWgmp1bWIAAAAeanVtZGMycGEAEQAQgAAAqgA4m3EDYzJwYQAAABZcanVtYgAAAEdqdW1kYzJtYQARABCAAACqADibcQN1cm46YzJwYTpiODllM2E3My03ZjRhLTRiOTktODgwZS02NGRjZmIwOTZlNzgAAAADl2p1bWIAAAApanVtZGMyYXMAEQAQgAAAqgA4m3EDYzJwYS5hc3NlcnRpb25zAAAAALxqdW1iAAAARGp1bWRjYm9yABEAEIAAAKoAOJtxE2MycGEuaW5ncmVkaWVudC52MwAAAAAYYzJzaANOBuPceI8iAdUoYrkf1T8AAABwY2JvcqNpZGM6Zm9ybWF0bWltYWdlL3N2Zyt4bWxqaW5zdGFuY2VJRHgseG1wOmlpZDo0ODllMGMzMi0zYjY1LTRlYjUtYmRhMi1mZTU0NjQ4MmZkNDFscmVsYXRpb25zaGlwaHBhcmVudE9mAAAB4mp1bWIAAABBanVtZGNib3IAEQAQgAAAqgA4m3ETYzJwYS5hY3Rpb25zLnYyAAAAABhjMnNoBE7BIPiUlzqfnlxFaGqRbQAAAZljYm9yomdhY3Rpb25zgqJmYWN0aW9ua2MycGEub3BlbmVkanBhcmFtZXRlcnOha2luZ3JlZGllbnRzgaJjdXJseC1zZWxmI2p1bWJmPWMycGEuYXNzZXJ0aW9ucy9jMnBhLmluZ3JlZGllbnQudjNkaGFzaFggWTo2qK/Lq/K9PfLyHfGdHFMvCtlIag+fhbLKFj4/XPqkZmFjdGlvbngdY29tLmFudGhyb3BpYy5jbGF1ZGUucHJvdmlkZWRqcGFyYW1ldGVyc6F4H2NvbS5hbnRocm9waWMub3JpZ2luLWNvbmZpZGVuY2VndW5rbm93bmtkZXNjcmlwdGlvbnhmQ2xhdWRlIHByb3ZpZGVkIHRoaXMgZmlsZSBhdCB0aGUgcmVxdWVzdCBvZiBhIHVzZXIgYW5kIG1heSBoYXZlIGNyZWF0ZWQgb3IgbW9kaWZpZWQgdGhlIGZpbGUgY29udGVudHMubXNvZnR3YXJlQWdlbnShZG5hbWVmQ2xhdWRlcmFsbEFjdGlvbnNJbmNsdWRlZPUAAADIanVtYgAAAEBqdW1kY2JvcgARABCAAACqADibcRNjMnBhLmhhc2guZGF0YQAAAAAYYzJzaChRocad4ZX4sEQzcQpK430AAACAY2JvcqVjYWxnZnNoYTI1NmNwYWRMAAAAAAAAAAAAAAAAZGhhc2hYIOOGXa8FFqVpr256yHpPP1trVrc7wCutAIXW48zt542DZG5hbWVuanVtYmYgbWFuaWZlc3RqZXhjbHVzaW9uc4GiZXN0YXJ0GQOmZmxlbmd0aBkeBAAAAj5qdW1iAAAAJ2p1bWRjMmNsABEAEIAAAKoAOJtxA2MycGEuY2xhaW0udjIAAAACD2Nib3KlY2FsZ2ZzaGEyNTZpc2lnbmF0dXJleE1zZWxmI2p1bWJmPS9jMnBhL3VybjpjMnBhOmI4OWUzYTczLTdmNGEtNGI5OS04ODBlLTY0ZGNmYjA5NmU3OC9jMnBhLnNpZ25hdHVyZWppbnN0YW5jZUlEeCx4bXA6aWlkOjBkYjM5OTdhLTNiZGUtNDM2YS05YzdkLTA5ZmVjMWJkZjZkYnJjcmVhdGVkX2Fzc2VydGlvbnODomN1cmx4LXNlbGYjanVtYmY9YzJwYS5hc3NlcnRpb25zL2MycGEuaW5ncmVkaWVudC52M2RoYXNoWCBZOjaor8ur8r098vId8Z0cUy8K2UhqD5+FssoWPj9c+qJjdXJseCpzZWxmI2p1bWJmPWMycGEuYXNzZXJ0aW9ucy9jMnBhLmFjdGlvbnMudjJkaGFzaFggtookNC10zxo5l7Of8eKbBHs8Tf5NMkt42wDX3sz7uBqiY3VybHgpc2VsZiNqdW1iZj1jMnBhLmFzc2VydGlvbnMvYzJwYS5oYXNoLmRhdGFkaGFzaFggPmkkUcP66jRjAWdxBCQ4Jxjz0WE6MKxgzW/zKrsTtKZ0Y2xhaW1fZ2VuZXJhdG9yX2luZm+jZG5hbWVvQW50aHJvcGljIEZpbGVzZ3ZlcnNpb25lMS4wLjBrc3BlY1ZlcnNpb25lMi40LjAAABA4anVtYgAAAChqdW1kYzJjcwARABCAAACqADibcQNjMnBhLnNpZ25hdHVyZQAAABAIY2JvctKEWQISogEmGCFZAgowggIGMIIBjaADAgECAhRA5aAK7sI50L64g/oGQgU9Z1UTADAKBggqhkjOPQQDAzBJMRcwFQYDVQQKEw5BbnRocm9waWMsIFBCQzEuMCwGA1UEAxMlQW50aHJvcGljIENvbnRlbnQgQ3JlZGVudGlhbHMgUm9vdCBDQTAeFw0yNjA4MDcxODQzNTZaFw0yODA4MDYxOTQzNTZaMEQxFzAVBgNVBAoTDkFudGhyb3BpYywgUEJDMSkwJwYDVQQDEyBBbnRocm9waWMgQ2xhdWRlIENvbnRlbnQgU2lnbmluZzBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABJh6CmvLUBgFFNU0vUKlOVtE6djd17L5SuwX0LemFisBM3dkd/3cyjxFA3Qo5S46fX0/ihY0VZ7mfb9KF703t5OjWDBWMA4GA1UdDwEB/wQEAwIHgDAVBgNVHSUEDjAMBgorBgEEAYPoXgIBMAwGA1UdEwEB/wQCMAAwHwYDVR0jBBgwFoAUzlHiBIFOZFsj+OPEz5o+nMHXXMIwCgYIKoZIzj0EAwMDZwAwZAIwMXMdFJ4BetLLVY7ORuE9noqbbAZOZn/aArXyTwFAZfKrPzxF2vPoJNf1+UCdg1XGAjBwX1zd9WGqYkqmL5SFqw1QySjr1zJfpJM9+1rdDwSPLMOPOjKuiXjoU/pUUeG9RwmhY3BhZFkNngAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPZYQMmmqor9X/KFWy0xxtP9Q3OzNXy8DfV0zyM+mUUAx5L7SRC86YLpx4aq3SA6iMp2ZnhbMh/84dU5lWG4ONpSonU=</c2pa:manifest></metadata>
+        <defs>
+          <marker id="oa" viewBox="0 0 12 12" refX="9.5" refY="6" markerWidth="8.5" markerHeight="8.5" orient="auto-start-reverse">
+            <polyline points="2,2 10,6 2,10" fill="none" stroke="#1d2733" stroke-width="1.7"/>
+          </marker>
+        </defs>
+
+        <!-- ============ system boundary ============ -->
+        <rect x="150" y="64" width="694" height="1196" rx="10" fill="none" stroke="#1d2733" stroke-width="1.4"/>
+        <text x="170" y="92" font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" font-size="14" font-weight="600" fill="#1d2733">AI Trip Planner</text>
+
+        <!-- ============ Traveler actor ============ -->
+        <g stroke="#1d2733" stroke-width="1.7" fill="none">
+          <circle cx="76" cy="650" r="13"/>
+          <line x1="76" y1="663" x2="76" y2="708"/>
+          <line x1="54" y1="681" x2="98" y2="681"/>
+          <line x1="76" y1="708" x2="59" y2="740"/>
+          <line x1="76" y1="708" x2="93" y2="740"/>
+        </g>
+        <text x="76" y="764" text-anchor="middle" font-family="'IBM Plex Sans','Helvetica Neue',Arial,sans-serif" font-size="13" font-weight="600" fill="#1d2733">Traveler</text>
+        <text x="76" y="781" text-anchor="middle" font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" font-size="10" fill="#5a6675">«primary»</text>
+
+        <!-- ============ Traveler associations ============ -->
+        <g stroke="#7d8896" stroke-width="1.2" fill="none">
+          <line x1="101" y1="656" x2="312" y2="140"/>
+          <line x1="101" y1="658" x2="312" y2="256"/>
+          <line x1="101" y1="660" x2="312" y2="372"/>
+          <line x1="101" y1="662" x2="312" y2="488"/>
+          <line x1="101" y1="664" x2="312" y2="604"/>
+          <line x1="101" y1="666" x2="312" y2="720"/>
+          <line x1="101" y1="668" x2="312" y2="836"/>
+          <line x1="101" y1="670" x2="312" y2="952"/>
+          <line x1="101" y1="672" x2="312" y2="1068"/>
+          <line x1="101" y1="674" x2="312" y2="1184"/>
+        </g>
+
+        <!-- ============ external systems ============ -->
+        <g font-family="'IBM Plex Sans','Helvetica Neue',Arial,sans-serif" font-size="12" fill="#1d2733">
+          <rect x="884" y="693" width="152" height="54" rx="3" fill="none" stroke="#1d2733" stroke-width="1.4"/>
+          <text x="960" y="713" text-anchor="middle" font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" font-size="9.5" fill="#5a6675">«external system»</text>
+          <text x="960" y="729" text-anchor="middle">Maps / Routes API</text>
+          <text x="960" y="743" text-anchor="middle" font-size="10.5" fill="#5a6675">Google · OpenStreetMap</text>
+
+          <rect x="884" y="809" width="152" height="54" rx="3" fill="none" stroke="#1d2733" stroke-width="1.4"/>
+          <text x="960" y="829" text-anchor="middle" font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" font-size="9.5" fill="#5a6675">«external system»</text>
+          <text x="960" y="845" text-anchor="middle">Hotel / Flight Search</text>
+          <text x="960" y="859" text-anchor="middle" font-size="10.5" fill="#5a6675">SerpApi · Google Places</text>
+
+          <rect x="884" y="925" width="152" height="54" rx="3" fill="none" stroke="#1d2733" stroke-width="1.4"/>
+          <text x="960" y="945" text-anchor="middle" font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" font-size="9.5" fill="#5a6675">«external system»</text>
+          <text x="960" y="961" text-anchor="middle">Weather API</text>
+          <text x="960" y="975" text-anchor="middle" font-size="10.5" fill="#5a6675">Google · Open-Meteo</text>
+        </g>
+
+        <!-- ============ use case → external associations ============ -->
+        <g stroke="#1d2733" stroke-width="1.4" fill="none">
+          <line x1="548" y1="720" x2="884" y2="720"/>
+          <line x1="548" y1="836" x2="884" y2="836"/>
+          <line x1="548" y1="952" x2="884" y2="952"/>
+        </g>
+
+        <!-- ============ include / extend ============ -->
+        <g stroke="#1d2733" stroke-width="1.6" stroke-dasharray="6 4" fill="none" marker-end="url(#oa)">
+          <line x1="410" y1="334" x2="410" y2="298"/>
+          <path d="M 500,352 C 606,338 618,248 500,182"/>
+          <line x1="430" y1="450" x2="430" y2="414"/>
+          <line x1="430" y1="526" x2="430" y2="562"/>
+        </g>
+        <g font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" font-size="10.5" fill="#3a4757">
+          <text x="430" y="320" text-anchor="start">«include»</text>
+          <text x="614" y="256" text-anchor="middle">«include»</text>
+          <text x="452" y="430" text-anchor="start">«extend»</text>
+          <text x="452" y="443" text-anchor="start" font-size="8.5" fill="#5a6675">[traveller edits the plan]</text>
+          <text x="452" y="546" text-anchor="start">«include»</text>
+          <text x="452" y="559" text-anchor="start" font-size="8.5" fill="#5a6675">[re-check route and budget]</text>
+        </g>
+
+        <!-- ============ use case ellipses ============ -->
+
+        <!-- UC1 Set Preferences (Filter) : E -->
+        <ellipse cx="430" cy="140" rx="118" ry="38" fill="#ffffff" stroke="#1d2733" stroke-width="1.5"/>
+        <text x="430" y="136" text-anchor="middle" font-family="'IBM Plex Sans','Helvetica Neue',Arial,sans-serif" font-size="12.5" fill="#1d2733">Set Preferences</text>
+        <text x="430" y="153" text-anchor="middle" font-family="'IBM Plex Sans','Helvetica Neue',Arial,sans-serif" font-size="11" fill="#5a6675">(Filter)</text>
+        <circle cx="524" cy="116" r="11" fill="#475569"/>
+        <text x="524" y="120" text-anchor="middle" font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" font-size="11" font-weight="600" fill="#fff">E</text>
+
+        <!-- UC2 Submit Requirement (Chat) : E -->
+        <ellipse cx="430" cy="256" rx="118" ry="38" fill="#ffffff" stroke="#1d2733" stroke-width="1.5"/>
+        <text x="430" y="252" text-anchor="middle" font-family="'IBM Plex Sans','Helvetica Neue',Arial,sans-serif" font-size="12.5" fill="#1d2733">Submit Requirement</text>
+        <text x="430" y="269" text-anchor="middle" font-family="'IBM Plex Sans','Helvetica Neue',Arial,sans-serif" font-size="11" fill="#5a6675">(Chat)</text>
+        <circle cx="524" cy="232" r="11" fill="#475569"/>
+        <text x="524" y="236" text-anchor="middle" font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" font-size="11" font-weight="600" fill="#fff">E</text>
+
+        <!-- UC3 Generate Itinerary : A -->
+        <ellipse cx="430" cy="372" rx="118" ry="38" fill="#ffffff" stroke="#1d2733" stroke-width="1.5"/>
+        <text x="430" y="377" text-anchor="middle" font-family="'IBM Plex Sans','Helvetica Neue',Arial,sans-serif" font-size="13" fill="#1d2733">Generate Itinerary</text>
+        <circle cx="524" cy="348" r="11" fill="#0c6b5e"/>
+        <text x="524" y="352" text-anchor="middle" font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" font-size="11" font-weight="600" fill="#fff">A</text>
+
+        <!-- UC7 Edit Itinerary (Timeline / Map) : E -->
+        <ellipse cx="430" cy="488" rx="118" ry="38" fill="#ffffff" stroke="#1d2733" stroke-width="1.5"/>
+        <text x="430" y="484" text-anchor="middle" font-family="'IBM Plex Sans','Helvetica Neue',Arial,sans-serif" font-size="12.5" fill="#1d2733">Edit Itinerary</text>
+        <text x="430" y="501" text-anchor="middle" font-family="'IBM Plex Sans','Helvetica Neue',Arial,sans-serif" font-size="11" fill="#5a6675">(Timeline / Map)</text>
+        <circle cx="524" cy="464" r="11" fill="#475569"/>
+        <text x="524" y="468" text-anchor="middle" font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" font-size="11" font-weight="600" fill="#fff">E</text>
+
+        <!-- UC6 Manage Budget : C -->
+        <ellipse cx="430" cy="604" rx="118" ry="38" fill="#ffffff" stroke="#1d2733" stroke-width="1.5"/>
+        <text x="430" y="609" text-anchor="middle" font-family="'IBM Plex Sans','Helvetica Neue',Arial,sans-serif" font-size="13" fill="#1d2733">Manage Budget</text>
+        <circle cx="524" cy="580" r="11" fill="#b45309"/>
+        <text x="524" y="584" text-anchor="middle" font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" font-size="11" font-weight="600" fill="#fff">C</text>
+
+        <!-- UC4 Arrange Transportation : B -->
+        <ellipse cx="430" cy="720" rx="118" ry="38" fill="#ffffff" stroke="#1d2733" stroke-width="1.5"/>
+        <text x="430" y="725" text-anchor="middle" font-family="'IBM Plex Sans','Helvetica Neue',Arial,sans-serif" font-size="12.5" fill="#1d2733">Arrange Transportation</text>
+        <circle cx="524" cy="696" r="11" fill="#2f4b8f"/>
+        <text x="524" y="700" text-anchor="middle" font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" font-size="11" font-weight="600" fill="#fff">B</text>
+
+        <!-- UC5 Arrange Accommodation : C -->
+        <ellipse cx="430" cy="836" rx="118" ry="38" fill="#ffffff" stroke="#1d2733" stroke-width="1.5"/>
+        <text x="430" y="832" text-anchor="middle" font-family="'IBM Plex Sans','Helvetica Neue',Arial,sans-serif" font-size="12.5" fill="#1d2733">Arrange Accommodation</text>
+        <text x="430" y="849" text-anchor="middle" font-family="'IBM Plex Sans','Helvetica Neue',Arial,sans-serif" font-size="10.5" fill="#5a6675">(Individual / Group)</text>
+        <circle cx="524" cy="812" r="11" fill="#b45309"/>
+        <text x="524" y="816" text-anchor="middle" font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" font-size="11" font-weight="600" fill="#fff">C</text>
+
+        <!-- UC8 Weather-based Clothing Recommendation : D -->
+        <ellipse cx="430" cy="952" rx="118" ry="40" fill="#ffffff" stroke="#1d2733" stroke-width="1.5"/>
+        <text x="430" y="942" text-anchor="middle" font-family="'IBM Plex Sans','Helvetica Neue',Arial,sans-serif" font-size="12" fill="#1d2733">View Weather-based</text>
+        <text x="430" y="957" text-anchor="middle" font-family="'IBM Plex Sans','Helvetica Neue',Arial,sans-serif" font-size="12" fill="#1d2733">Clothing</text>
+        <text x="430" y="972" text-anchor="middle" font-family="'IBM Plex Sans','Helvetica Neue',Arial,sans-serif" font-size="12" fill="#1d2733">Recommendation</text>
+        <circle cx="526" cy="922" r="11" fill="#86337a"/>
+        <text x="526" y="926" text-anchor="middle" font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" font-size="11" font-weight="600" fill="#fff">D</text>
+
+        <!-- UC9 Food / Cuisine Recommendation : D -->
+        <ellipse cx="430" cy="1068" rx="118" ry="38" fill="#ffffff" stroke="#1d2733" stroke-width="1.5"/>
+        <text x="430" y="1064" text-anchor="middle" font-family="'IBM Plex Sans','Helvetica Neue',Arial,sans-serif" font-size="12" fill="#1d2733">View Food / Cuisine</text>
+        <text x="430" y="1081" text-anchor="middle" font-family="'IBM Plex Sans','Helvetica Neue',Arial,sans-serif" font-size="12" fill="#1d2733">Recommendation</text>
+        <circle cx="524" cy="1044" r="11" fill="#86337a"/>
+        <text x="524" y="1048" text-anchor="middle" font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" font-size="11" font-weight="600" fill="#fff">D</text>
+
+        <!-- UC10 View Itinerary Output : E -->
+        <ellipse cx="430" cy="1184" rx="118" ry="38" fill="#ffffff" stroke="#1d2733" stroke-width="1.5"/>
+        <text x="430" y="1189" text-anchor="middle" font-family="'IBM Plex Sans','Helvetica Neue',Arial,sans-serif" font-size="12.5" fill="#1d2733">View Itinerary Output</text>
+        <circle cx="524" cy="1160" r="11" fill="#475569"/>
+        <text x="524" y="1164" text-anchor="middle" font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" font-size="11" font-weight="600" fill="#fff">E</text>
+
+        <!-- ============ alternative notes ============ -->
+        <g>
+          <line x1="548" y1="850" x2="628" y2="886" stroke="#5a6675" stroke-width="1.1" stroke-dasharray="3 3"/>
+          <path d="M 628,878 h 138 l 12,12 v 34 h -150 z M 766,878 v 12 h 12" fill="#f7f2e6" stroke="#5a6675" stroke-width="1.1"/>
+          <text x="638" y="898" font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" font-size="9.5" fill="#3a4757">«alternative»</text>
+          <text x="638" y="913" font-family="'IBM Plex Sans','Helvetica Neue',Arial,sans-serif" font-size="10.5" fill="#3a4757">Individual | Group</text>
+        </g>
+        <g>
+          <line x1="548" y1="1178" x2="628" y2="1152" stroke="#5a6675" stroke-width="1.1" stroke-dasharray="3 3"/>
+          <path d="M 628,1130 h 162 l 12,12 v 34 h -174 z M 790,1130 v 12 h 12" fill="#f7f2e6" stroke="#5a6675" stroke-width="1.1"/>
+          <text x="638" y="1150" font-family="'IBM Plex Mono','SF Mono',Menlo,monospace" font-size="9.5" fill="#3a4757">«alternative»</text>
+          <text x="638" y="1165" font-family="'IBM Plex Sans','Helvetica Neue',Arial,sans-serif" font-size="10.5" fill="#3a4757">Timeline | Map</text>
+        </g>
+      </svg>
