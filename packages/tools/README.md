@@ -20,7 +20,8 @@ data mode), B (maps and routes), C (booking and SerpApi), D (weather).
 | `booking.ts`          | Temporary direct-adapter compatibility surface pending issue #131                       |
 | `serpapi.ts`          | SerpApi Google Hotels and Google Flights with a shared monthly quota and cache          |
 | `airports.ts`         | City to IATA code lookup for flight searches                                            |
-| `weather.ts`          | `WeatherPort`: Google Weather, Open-Meteo or climate context by date distance           |
+| `weather-port.ts`     | Deep Weather port selecting fixture, Google Weather, Open-Meteo forecast or archive     |
+| `weather.ts`          | Temporary direct-adapter compatibility surface pending issue #131                       |
 | `mock-server.mjs`     | Optional stub HTTP server (`pnpm mock-server`); the app never calls it                  |
 
 ## Configuration
@@ -40,6 +41,13 @@ The Booking port owns hotel and flight provider selection. Fixture mode stays de
 live hotel searches use SerpApi first and fall back to a labelled Google Places estimate, while
 live flights remain SerpApi-only and never substitute a fictional fare. Missing credentials and
 unsupported capabilities fail only when the corresponding method is called.
+
+The Weather port uses the gateway's captured mode, credentials and clock. Fixture mode is
+deterministic and makes no network request. Live dates 0–10 days away use Google Weather, dates
+11–14 days away use Open-Meteo forecast, and later dates use three years of Open-Meteo historical
+archive as climate context. A missing Google Weather key fails only when a near-date forecast is
+requested; provider errors are returned to the destination specialist for its existing unavailable
+weather path.
 
 ## Contracts
 

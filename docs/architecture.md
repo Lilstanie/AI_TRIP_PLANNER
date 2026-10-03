@@ -308,7 +308,10 @@ composes its ports. The Maps port then privately selects in-process fixtures
 inter-city rail and driving fallback. The Booking port privately selects fixture or live adapters
 once per gateway. Live hotels use SerpApi first and retain the labelled Google Places estimate
 fallback; live flights remain SerpApi-only and never receive a fictional fallback fare. Missing
-credentials fail only when the corresponding Booking capability is called. `MemoryStore`
+credentials fail only when the corresponding Booking capability is called. The Weather port uses
+the same captured configuration and clock to return fixture weather, Google Weather forecasts for
+days 0–10, Open-Meteo forecasts for days 11–14, or Open-Meteo historical climate context after
+day 14. A missing near-date credential fails only when that forecast is requested. `MemoryStore`
 (`packages/services/src/memory`) uses the Redis REST store when configured and process memory
 otherwise. Each package's exports and configuration are in its own `README.md`.
 

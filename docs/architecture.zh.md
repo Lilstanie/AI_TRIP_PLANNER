@@ -270,7 +270,10 @@ Agent 通过 `AgentContext` 接收 `ctx.tools`（`ToolGateway`）和 `ctx.mem`�
 Google，并负责路线与地点能力，以及公共交通、城际铁路和驾车回退。Booking port 为每个
 gateway 私下选择一次 fixture 或 live adapter。Live 酒店先使用 SerpApi，并保留带明确标签的
 Google Places 估算回退；live 航班仍只使用 SerpApi，绝不以虚构票价回退。缺失凭据只在调用
-相应 Booking 能力时失败。
+相应 Booking 能力时失败。Weather port 使用同一份已固定的配置和时钟：fixture 模式返回
+确定性的天气信息；live 模式在第 0–10 天使用 Google Weather 预报，第 11–14 天使用
+Open-Meteo 预报，第 14 天之后使用 Open-Meteo 历史归档作为气候背景。近期预报缺少密钥时，
+只在请求该预报时失败。
 `MemoryStore`（`packages/services/src/memory`）在配置后使用
 Redis REST 存储，否则使用进程内存。各包的导出和配置位于各自的 `README.md`。
 

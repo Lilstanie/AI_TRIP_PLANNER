@@ -2,6 +2,7 @@ import type { ToolGateway } from "@trip/shared";
 import { createBookingPort } from "./booking-port";
 import { runWithDataMode } from "./data-mode";
 import { createMapsPort } from "./maps-port";
+import { createWeatherPort } from "./weather-port";
 import {
   defaultToolRuntimeDependencies,
   runWithToolRuntime,
@@ -9,7 +10,6 @@ import {
   type ToolRuntimeConfig,
   type ToolRuntimeDependencies,
 } from "./runtime-context";
-import * as weatherAdapter from "./weather";
 
 export { snapshotToolRuntime } from "./runtime-context";
 export type { ToolRuntimeConfig, ToolRuntimeDependencies } from "./runtime-context";
@@ -23,6 +23,7 @@ export function createToolGatewayWithRuntime(
     runWithDataMode(config.dataMode, () => runWithToolRuntime(config, dependencies, fn));
   const mapsPort = createMapsPort(config, true);
   const bookingPort = createBookingPort(config, true);
+  const weatherPort = createWeatherPort(config, dependencies);
 
   return {
     maps: {
@@ -36,7 +37,7 @@ export function createToolGatewayWithRuntime(
       searchReturnLeg: (query) => invoke(() => bookingPort.searchReturnLeg!(query)),
     },
     weather: {
-      forecast: (query) => invoke(() => weatherAdapter.weather.forecast(query)),
+      forecast: (query) => invoke(() => weatherPort.forecast(query)),
     },
   };
 }

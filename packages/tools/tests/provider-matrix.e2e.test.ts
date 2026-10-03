@@ -435,23 +435,21 @@ describe("ToolGateway provider matrix", () => {
       const url = String(input);
       if (url.includes("weather.googleapis.com")) {
         return Response.json({
-          forecastDays: [
-            {
-              displayDate: { year: 2026, month: 1, day: 5 },
-              daytimeForecast: { weatherCondition: { description: { text: "Sunny" } } },
-              maxTemperature: { degrees: 24 },
-              minTemperature: { degrees: 14 },
-            },
-          ],
+          forecastDays: [1, 11].map((day) => ({
+            displayDate: { year: 2026, month: 1, day },
+            daytimeForecast: { weatherCondition: { description: { text: "Sunny" } } },
+            maxTemperature: { degrees: 24 },
+            minTemperature: { degrees: 14 },
+          })),
         });
       }
       if (url.includes("api.open-meteo.com/v1/forecast")) {
         return Response.json({
           daily: {
-            time: ["2026-01-13"],
-            weather_code: [61],
-            temperature_2m_max: [22],
-            temperature_2m_min: [13],
+            time: ["2026-01-12", "2026-01-15"],
+            weather_code: [61, 61],
+            temperature_2m_max: [22, 22],
+            temperature_2m_min: [13, 13],
           },
         });
       }
@@ -472,29 +470,74 @@ describe("ToolGateway provider matrix", () => {
     vi.setSystemTime(new Date("2026-10-03T00:00:00.000Z"));
 
     const query = { location: { latitude: -33.86, longitude: 151.2 } };
-    const near = await gateway.weather!.forecast({ ...query, targetDate: "2026-01-05" });
-    const extended = await gateway.weather!.forecast({ ...query, targetDate: "2026-01-13" });
-    const climate = await gateway.weather!.forecast({ ...query, targetDate: "2026-02-01" });
+    const dates = ["2026-01-01", "2026-01-11", "2026-01-12", "2026-01-15", "2026-01-16"];
+    const results = await Promise.all(
+      dates.map((targetDate) => gateway.weather!.forecast({ ...query, targetDate })),
+    );
 
-    expect(near).toMatchObject({ provider: "Google Weather API", horizon: "forecast" });
-    expect(extended).toMatchObject({
-      provider: "Open-Meteo Forecast API",
-      horizon: "forecast",
-    });
-    expect(climate).toMatchObject({
-      provider: "Open-Meteo historical archive",
-      horizon: "climate",
-    });
-    expect([near.observedAt, extended.observedAt, climate.observedAt]).toEqual([
-      "2026-01-01T00:00:00.000Z",
-      "2026-01-01T00:00:00.000Z",
-      "2026-01-01T00:00:00.000Z",
+    expect(results.map(({ provider, horizon }) => [provider, horizon])).toEqual([
+      ["Google Weather API", "forecast"],
+      ["Google Weather API", "forecast"],
+      ["Open-Meteo Forecast API", "forecast"],
+      ["Open-Meteo Forecast API", "forecast"],
+      ["Open-Meteo historical archive", "climate"],
     ]);
+    expect(results.map(({ observedAt }) => observedAt)).toEqual(
+      Array(5).fill("2026-01-01T00:00:00.000Z"),
+    );
+    expect(fetcher).toHaveBeenCalledTimes(7);
+    expect(String(fetcher.mock.calls[0]?.[0])).toContain("key=captured-weather-key");
     evidence.push({
       id: "weather-horizons",
       selection: "Google Weather <=10; Open-Meteo forecast 11-14; archive >14",
-      result: "forecast, forecast, climate",
-      provenance: [near.provider, extended.provider, climate.provider].join(" | "),
+      result: "forecast on days 0, 10, 11 and 14; climate on day 15",
+      provenance: results.map(({ provider }) => provider).join(" | "),
+    });
+  });
+
+  it("defers a missing Google Weather credential until the near-date capability is called", async () => {
+    vi.stubEnv("USE_MOCK_TOOLS", "false");
+    vi.stubEnv("MAPS_API_KEY", "");
+    vi.stubEnv("WEATHER_API_KEY", "");
+    const fetcher = vi.fn(async () =>
+      Response.json({
+        daily: {
+          time: ["2026-01-13"],
+          weather_code: [61],
+          temperature_2m_max: [22],
+          temperature_2m_min: [13],
+        },
+      }),
+    );
+    const gateway = createToolGatewayWithRuntime(snapshotToolRuntime(), {
+      fetch: fetcher,
+      now: () => new Date("2026-01-01T00:00:00.000Z"),
+    });
+    vi.stubEnv("WEATHER_API_KEY", "late-key");
+
+    const extended = await gateway.weather!.forecast({
+      location: { latitude: -33.86, longitude: 151.2 },
+      targetDate: "2026-01-13",
+    });
+    const nearError = await gateway
+      .weather!.forecast({
+        location: { latitude: -33.86, longitude: 151.2 },
+        targetDate: "2026-01-05",
+      })
+      .catch((error: unknown) => error);
+
+    expect(extended).toMatchObject({ provider: "Open-Meteo Forecast API", horizon: "forecast" });
+    expect(nearError).toBeInstanceOf(Error);
+    expect((nearError as Error).message).toBe(
+      "Google Weather API requires WEATHER_API_KEY or MAPS_API_KEY.",
+    );
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    evidence.push({
+      id: "weather-lazy-missing-credential",
+      selection: "Google Weather unavailable; Open-Meteo forecast available",
+      result: "extended forecast succeeds; near forecast rejects at call time",
+      diagnostic: (nearError as Error).message,
+      provenance: extended.provider,
     });
   });
 
@@ -602,6 +645,7 @@ describe("ToolGateway provider matrix", () => {
       "booking-primary-success",
       "booking-google-only-partial",
       "weather-horizons",
+      "weather-lazy-missing-credential",
       "lazy-unavailable-capabilities",
       "concurrent-runtime-isolation",
     ]);
