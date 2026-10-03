@@ -1,0 +1,44 @@
+classDiagram
+  direction TB
+  class Error {
+    <<built-in>>
+    +name: string
+    +message: string
+  }
+  class IncompleteBriefError {
+    +missing: string[]
+    +known: PartialTripBrief
+    +needsInfo: ChatNeedsInfo
+  }
+  class AskUserError {
+    +askUser: ChatAskUser
+  }
+  class SerpApiError {
+    +reason: SerpApiErrorReason
+  }
+  class ChatNeedsInfo {
+    +type = "needs_info"
+    +question: string
+    +known: PartialTripBrief
+  }
+  class ChatAskUser {
+    +type = "ask_user"
+    +questions: Question[1..4]
+  }
+  class runTripChat {
+    <<module>>
+    +runTripChat(request) ChatResponse
+  }
+  class BookingAdapter {
+    <<module>>
+    +searchStays(q) StayOption[]
+    +searchFlights(q) FlightOption[]
+  }
+  Error <|-- IncompleteBriefError
+  Error <|-- AskUserError
+  Error <|-- SerpApiError
+  IncompleteBriefError ..> ChatNeedsInfo : creates
+  AskUserError "1" *-- "1" ChatAskUser : askUser
+  runTripChat ..> IncompleteBriefError : throws
+  runTripChat ..> AskUserError : throws
+  BookingAdapter ..> SerpApiError : catches, falls back

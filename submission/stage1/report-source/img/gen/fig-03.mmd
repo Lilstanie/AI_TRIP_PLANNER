@@ -1,0 +1,8 @@
+flowchart LR
+    S((START)) --> D[dispatch_specialists]
+    D --> C[detect_conflicts]
+    C -->|conflicts, feasible and round < 3| R[revise_conflicts]
+    R -->|plan score improved| C
+    R -->|no improvement| B[build_plan]
+    C -->|converged, infeasible or round = 3| B
+    B --> E((END))
