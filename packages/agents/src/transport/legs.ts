@@ -1,4 +1,5 @@
 import type { AgentProposal } from "@trip/shared";
+import type { LegModeChoice, TravelMode } from "@trip/shared";
 import { dateForDay } from "./validation";
 
 /** An inter-city hop as transport scheduled it: the traveller leaves `from` for `to` on `day`. */
@@ -55,6 +56,14 @@ export interface JourneyLeg {
   /** 1-based planning day. */
   day: number;
   mode: LegMode;
+  /**
+   * The mode the traveller chose for this hop, when they chose one.
+   *
+   * `mode` only says whether the hop is flown. Train and bus are both ground,
+   * so the specific choice has to travel beside it or the agent cannot tell
+   * which of the two the traveller asked for.
+   */
+  chosenMode?: TravelMode;
 }
 
 export type LegMode = "flight" | "ground";
@@ -64,11 +73,32 @@ export type LegRole = "arrival" | "inter-city";
 
 /**
  * A mode the traveller asked for on a hop, overriding what the planner would
- * pick. Nothing sets this yet; it exists so choosing "train, not a flight" is
- * a value threaded through the existing decision rather than a second code
- * path bolted alongside it.
+ * pick. Set from `TripBrief.legModes`.
+ *
+ * A full `TravelMode`, not a `LegMode`: "flight or ground" cannot express
+ * "train, not the bus", and that is a choice within ground travel.
  */
-export type ModePreference = LegMode;
+export type ModePreference = TravelMode;
+
+/** Normalised so "Melbourne " and "melbourne" name the same place. */
+const sameName = (left: string, right: string) =>
+  left.trim().toLowerCase().replace(/\s+/g, " ") ===
+  right.trim().toLowerCase().replace(/\s+/g, " ");
+
+/**
+ * The mode the traveller chose for this hop, if they chose one.
+ *
+ * The first match wins, so two choices for one hop resolve the same way every
+ * time. A choice matching no hop — the destination changed after it was stated
+ * — simply does not apply; it is never attached to a different hop.
+ */
+export function chosenModeFor(
+  choices: readonly LegModeChoice[] | undefined,
+  from: string,
+  to: string,
+): TravelMode | undefined {
+  return choices?.find((choice) => sameName(choice.from, from) && sameName(choice.to, to))?.mode;
+}
 
 /**
  * Which hops are flown.
@@ -92,8 +122,10 @@ export function legMode(
   to: string,
   preference?: ModePreference,
 ): LegMode {
-  // A stated choice wins: the planner's guess is a default, not a rule.
-  if (preference) return preference;
+  // A stated choice wins: the planner's guess is a default, not a rule. Any
+  // mode that is not a flight is made on the ground; which ground mode it is
+  // rides on JourneyLeg.chosenMode.
+  if (preference) return preference === "flight" ? "flight" : "ground";
   // Inter-city hops start as ground and are promoted to a flight only when the
   // ground journey turns out not to fit a planning day — a decision that needs
   // provider durations, so it cannot be made here.
@@ -120,25 +152,32 @@ export function journeyLegs(input: {
   start: string;
   /** Total planning days, used to spread hops across the trip. */
   days: number;
+  /** How the traveller wants particular hops made; see TripBrief.legModes. */
+  legModes?: readonly LegModeChoice[];
 }): JourneyLeg[] {
-  const { origin, destinations, start, days } = input;
+  const { origin, destinations, start, days, legModes } = input;
   if (!destinations.length) throw new Error("A journey needs at least one destination.");
   const first = destinations[0]!;
   const arrivesFromElsewhere = origin.toLowerCase() !== first.toLowerCase();
   const legs: JourneyLeg[] = [];
 
   if (arrivesFromElsewhere) {
+    const chosen = chosenModeFor(legModes, origin, first);
     legs.push({
       index: 0,
       from: origin,
       to: first,
       date: start,
       day: 1,
-      mode: legMode("arrival", origin, first),
+      mode: legMode("arrival", origin, first, chosen),
+      ...(chosen ? { chosenMode: chosen } : {}),
     });
   } else if (destinations.length === 1) {
     // Same city, nothing else to travel: the only movement worth planning is
     // getting in from the airport.
+    // An airport transfer is ground by definition, but which ground mode is
+    // still the traveller's to choose: a taxi and the airport train differ.
+    const chosen = chosenModeFor(legModes, `${first} airport`, first);
     legs.push({
       index: 0,
       from: `${first} airport`,
@@ -146,6 +185,7 @@ export function journeyLegs(input: {
       date: start,
       day: 1,
       mode: "ground",
+      ...(chosen && chosen !== "flight" ? { chosenMode: chosen } : {}),
     });
   }
 
@@ -153,13 +193,15 @@ export function journeyLegs(input: {
     // Spread the inter-city hops evenly across the trip, counted against the
     // cities rather than the legs so a flown first hop does not shift them.
     const day = Math.min(days, Math.floor((days * (hop + 1)) / destinations.length) + 1);
+    const chosen = chosenModeFor(legModes, destinations[hop]!, to);
     legs.push({
       index: legs.length,
       from: destinations[hop]!,
       to,
       date: dateForDay(start, day),
       day,
-      mode: legMode("inter-city", destinations[hop]!, to),
+      mode: legMode("inter-city", destinations[hop]!, to, chosen),
+      ...(chosen ? { chosenMode: chosen } : {}),
     });
   });
 

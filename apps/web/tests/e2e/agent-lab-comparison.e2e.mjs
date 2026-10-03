@@ -111,7 +111,10 @@ async function run(browser, { width, height, tag }) {
     `${tag}: all three strategies are selectable`,
   );
   check(
-    (await page.getByRole("button", { name: "Compare strategies" }).isDisabled()) === true,
+    (await page
+      .getByRole("group", { name: "View" })
+      .getByRole("button", { name: "Compare", exact: true })
+      .isDisabled()) === true,
     `${tag}: comparison view is unavailable before any run`,
   );
 
@@ -131,8 +134,9 @@ async function run(browser, { width, height, tag }) {
 
   // Keyboard path to the comparison action.
   await page.getByLabel("Strategy").focus();
-  await page.keyboard.press("Tab");
-  await page.keyboard.press("Tab");
+  await page.keyboard.press("Tab"); // Data mode
+  await page.keyboard.press("Tab"); // Run experiment
+  await page.keyboard.press("Tab"); // Compare all strategies
   check(
     await page
       .getByRole("button", { name: "Compare all strategies" })
@@ -266,21 +270,35 @@ async function run(browser, { width, height, tag }) {
     /what targeted revision adds/i.test(body),
     `${tag}: page states that no-revision against revision measures what targeted revision adds`,
   );
+  // The explanations live in the Architecture view; read them there, then return to the comparison.
+  await page
+    .getByRole("group", { name: "View" })
+    .getByRole("button", { name: "Architecture", exact: true })
+    .click();
+  const architecture = await page.locator("[data-agent-lab-architecture]").innerText();
   check(
-    /not a target/i.test(body),
-    `${tag}: page does not present five specialists as a permanent number`,
+    /not a fixed number/i.test(architecture),
+    `${tag}: Architecture does not present five specialists as a permanent number`,
   );
   check(
-    /graph nodes or tools/i.test(body) && /budgeting, conflict checks/i.test(body),
-    `${tag}: page explains why budgeting and conflict checks are not agents`,
+    /graph nodes or typed tools/i.test(architecture) &&
+      /budgeting, conflict detection/i.test(architecture),
+    `${tag}: Architecture explains why budgeting and conflict checks are not agents`,
   );
+  await page
+    .getByRole("group", { name: "View" })
+    .getByRole("button", { name: "Compare", exact: true })
+    .click();
   check(
     !/\b(winner|better|best|worse)\b/i.test(await page.locator(".agent-lab__compare").innerText()),
     `${tag}: the comparison does not rank the strategies`,
   );
 
   // The inspector shows the multi-agent trace with each kind of event distinguishable.
-  await page.getByRole("button", { name: "Inspect one run" }).click();
+  await page
+    .getByRole("group", { name: "View" })
+    .getByRole("button", { name: "Run", exact: true })
+    .click();
   await page.getByLabel("Strategy").selectOption("multi-agent-no-revision");
   const kinds = await page
     .locator("[data-agent-lab-event]")
@@ -300,7 +318,10 @@ async function run(browser, { width, height, tag }) {
       (await page.getByText("Specialist", { exact: true }).count()) >= 5,
     `${tag}: inspector labels graph stages and specialists in words`,
   );
-  await page.getByRole("button", { name: "Compare strategies" }).click();
+  await page
+    .getByRole("group", { name: "View" })
+    .getByRole("button", { name: "Compare", exact: true })
+    .click();
 
   check(
     (await workspaceStorage()) === storageBefore,

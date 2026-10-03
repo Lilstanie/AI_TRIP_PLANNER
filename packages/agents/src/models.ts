@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import { ChatOpenAI } from "@langchain/openai";
 import { z } from "zod/v4";
 
@@ -23,6 +24,95 @@ export const MODEL_ROUTING = {
 /** Valid task names accepted by the provider/model routing helpers. */
 export type RoutedModelTask = keyof typeof MODEL_ROUTING;
 
+// A public fixture demo must never reach a paid model, whatever keys the deployment holds. Like the data
+// mode, this travels with the request through AsyncLocalStorage and is never written to `process.env`, so
+// one visitor's run cannot switch models on or off for another's.
+const modelsDisabled = new AsyncLocalStorage<true>();
+
+/** Runs `fn` with no model available: every routed model is `undefined`, so specialists take their deterministic path. */
+export function runWithModelsDisabled<T>(fn: () => T): T {
+  return modelsDisabled.run(true, fn);
+}
+
+/** What one run's model calls reported. A call that reported no usage is counted but never given tokens. */
+export interface UsageSnapshot {
+  calls: number;
+  reported: number;
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+}
+
+export interface UsageCollector {
+  /** Records one finished model call from its LangChain output; `undefined` is a call that failed. */
+  record: (output?: unknown) => void;
+  snapshot: () => UsageSnapshot;
+}
+
+const count = (value: unknown): number | undefined =>
+  typeof value === "number" && Number.isFinite(value) && value >= 0 ? Math.round(value) : undefined;
+
+/** The token counts a model response carries, from whichever shape the provider used, or undefined. */
+function usageOf(output: unknown): { input: number; output: number; total: number } | undefined {
+  const result = output as {
+    llmOutput?: { tokenUsage?: Record<string, unknown> };
+    generations?: { message?: { usage_metadata?: Record<string, unknown> } }[][];
+  };
+  const fromOutput = result?.llmOutput?.tokenUsage;
+  const fromMessage = result?.generations?.[0]?.[0]?.message?.usage_metadata;
+  const input = count(fromOutput?.promptTokens) ?? count(fromMessage?.input_tokens);
+  const out = count(fromOutput?.completionTokens) ?? count(fromMessage?.output_tokens);
+  if (input === undefined || out === undefined) return undefined;
+  const total = count(fromOutput?.totalTokens) ?? count(fromMessage?.total_tokens) ?? input + out;
+  return { input, output: out, total };
+}
+
+export function createUsageCollector(): UsageCollector {
+  const state: UsageSnapshot = {
+    calls: 0,
+    reported: 0,
+    inputTokens: 0,
+    outputTokens: 0,
+    totalTokens: 0,
+  };
+  return {
+    record(output) {
+      state.calls += 1;
+      const usage = output === undefined ? undefined : usageOf(output);
+      if (!usage) return;
+      state.reported += 1;
+      state.inputTokens += usage.input;
+      state.outputTokens += usage.output;
+      state.totalTokens += usage.total;
+    },
+    snapshot: () => ({ ...state }),
+  };
+}
+
+const usageCollectors = new AsyncLocalStorage<UsageCollector>();
+
+/** Runs `fn` so every model it builds reports its usage to `collector`. */
+export function runWithUsageCollector<T>(collector: UsageCollector, fn: () => T): T {
+  return usageCollectors.run(collector, fn);
+}
+
+/**
+ * The collector is captured when the model is built, inside the run, and not looked up when a callback
+ * fires: LangChain may run callbacks in the background, outside the run's async context, and a lookup
+ * there would lose the usage and report a run that called a model as one that did not.
+ */
+function usageCallbacks() {
+  const collector = usageCollectors.getStore();
+  return collector
+    ? [
+        {
+          handleLLMEnd: (output: unknown) => collector.record(output),
+          handleLLMError: () => collector.record(undefined),
+        },
+      ]
+    : [{ handleLLMEnd: () => {}, handleLLMError: () => {} }];
+}
+
 /**
  * Which model roles need private reasoning. The supervisor and the coordinator
  * decide what work to delegate and publish that thinking in the transcript, so
@@ -39,6 +129,7 @@ export function createRoutedChatModel(
   task: RoutedModelTask,
   options: RoutedModelOptions = {},
 ): ChatOpenAI | undefined {
+  if (modelsDisabled.getStore()) return undefined;
   const provider = MODEL_ROUTING[task];
   if (provider === "deepseek") {
     const apiKey = process.env.DEEPSEEK_API_KEY;
@@ -48,6 +139,7 @@ export function createRoutedChatModel(
       model: process.env.DEEPSEEK_MODEL || "deepseek-v4-flash",
       temperature: 0,
       streamUsage: false,
+      callbacks: usageCallbacks(),
       modelKwargs: { thinking: { type: options.thinking ? "enabled" : "disabled" } },
       configuration: {
         baseURL: process.env.DEEPSEEK_BASE_URL || "https://api.deepseek.com",
@@ -63,6 +155,7 @@ export function createRoutedChatModel(
     // MiniMax requires temperature to be greater than zero.
     temperature: 0.1,
     streamUsage: false,
+    callbacks: usageCallbacks(),
     configuration: { baseURL: process.env.MINIMAX_BASE_URL || "https://api.minimaxi.com/v1" },
   });
 }

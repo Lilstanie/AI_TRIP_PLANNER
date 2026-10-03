@@ -467,11 +467,12 @@ first render; without a browser key the map shows a fallback and the itinerary s
 
 `/agent-lab` is a public engineering-demo route, including when Clerk protects the main workspace.
 It does not share the workspace shell or read and write its browser storage. The toolbar exposes one
-registered scenario, a strategy choice and the fixed Fixture data mode; Run experiment becomes Cancel
+registered scenario, a strategy choice and a Data mode control; Run experiment becomes Cancel
 run while the NDJSON response is active. Compare all strategies runs the single-agent baseline, the
 five-specialist no-revision strategy and the targeted-revision strategy one after the other and opens
 the comparison view. The scenario list also offers the tight-budget Tokyo trip, where the first plan
-overruns and only transport is revised.
+overruns and only transport is revised; a Paris family trip whose budget no plan can meet; and a seven-night
+Tokyo and Kyoto trip whose move between cities every strategy must keep consistent.
 
 Each timeline event carries a text label for the part of the system that produced it: Run, Graph stage,
 Specialist or Tool. Specialist events show the bounded objective, constraints and outcome. Revision
@@ -480,14 +481,63 @@ runs add Graph stage events for the conflict check (the conflicts and their targ
 
 The comparison view shows a table of measured figures (latency, rounds, tool calls, fallbacks, failed
 agents, budget, unresolved conflicts, checks, grounded sections, repeated and generic stops,
-multi-city consistency, stopping reason and token and model cost), the three plans and the three
+multi-city consistency, stopping reason, conflict outcome and token and model cost), the three plans and the three
 traces side by side. Token and model cost reads "Unavailable", never 0, because fixture runs make no
 model calls. Every figure
 is read from that run's artifact; a strategy that has not finished shows "No completed run". The page never
-ranks the strategies. It states that single agent against no revision measures specialization and
+ranks the strategies. Conflict outcome tells a strategy that never checked, one that found no conflict, one that
+repaired its conflicts, one that left some unresolved and one that stopped because the budget is infeasible
+apart; the inspector marks each conflict check as repairable, infeasible budget or none found, and each stop
+with its reason. It states that single agent against no revision measures specialization and
 no revision against targeted revision measures what targeted revision adds,
 that fixture mode shows how evidence is measured and not model quality, and why budgeting, conflict
 checks, state transitions, maps and weather are graph nodes or tools instead of agents.
+
+Every completed run offers **Download artifact**, in the inspector beside the metrics and under each
+strategy in the comparison. The file is the versioned run artifact exactly as the stream completed with
+it, and the status region announces its name. **Replay artifact** opens a file chooser. The page
+validates the chosen file in the browser and plays it back through the same timeline, plan and metrics
+views, with the recorded scenario and strategy selected, each event appearing at its recorded time and
+a note naming the recorded run, so a replay is never mistaken for a live run. **Stop replay** ends it
+with the events seen so far and no plan. Replay makes no request, so it works offline, and it does not
+touch saved chats, trips or preferences. A file is refused, with the reason stated and any result
+already on the page left in place, when it is not JSON, has no or an unsupported schema version, has
+missing, duplicated or out-of-order events, has events timed backwards or from another run, has a
+mismatched event count or an invalid plan, records a failed run that kept no events, is larger than
+5 MB or would play for more than ten minutes. Fields the contract does not define are dropped, never
+shown.
+
+Data mode is Fixture data by default. Live data is selectable only when the deployment has enabled it, and the page
+says beforehand when it has not. Choosing Live data marks the scripted baseline fixture only and runs the specialist
+strategies. A request the server turns away (live not enabled, or a concurrency or hourly limit) shows Live run not
+started and an alert that says which limit was hit, how long to wait and that nothing was run; it is never shown as a
+failed run, and fixture data stays available. The trace, the metrics, the comparison and every artifact say Fixture data
+or Live data. Measured usage shows the tokens the provider returned and that cost is not reported; usage that was not
+measured reads Unavailable, never zero.
+
+Four views share one navigation group, named Run, Compare, Failures and Architecture, with the current one marked
+pressed. Compare is unavailable until a run exists; the others are always available, and every view is reached and left
+by keyboard (Tab, then Enter or Space). **Run** shows one run's timeline, plan and metrics. **Compare** shows the
+strategies side by side. **Failures** is the Failure Lab. **Architecture** explains how the planner is built and why:
+LangGraph owns the workflow state, the order, conflict detection, revision routing and stopping; LangChain agents are
+bounded reasoners inside it; five capability boundaries, each with its goal, tools, output and way of failing; why
+budgeting, conflict detection, state transitions, maps and weather are nodes or tools and not agents; why five is not
+a fixed number; and how to read the results. Every run says how it ended with the same outcome word (Completed,
+Degraded, Partial result or Failed) in Run, Compare and Failures, read from its artifact alone. A run that finished with
+conflicts left says so in its headline, and an infeasible budget says the budget cannot be met. The lab keeps every
+control and result reachable in light and dark, from desktop down to 320 px, and with reduced motion, where nothing
+animates; its secondary text is strengthened for the lab only so text meets the 4.5:1 AA ratio. The
+[Agent Note](../.agents/notes/implemented/feature/2026-10-02-agent-lab-public-release.md) records the decision.
+
+The **Failures** view lists the five registered fault profiles. A card says where its fault is injected,
+which scenario and strategy it runs on and what to expect. **Run profile** runs it, and **Run all fault
+profiles** runs the five one after another; Cancel run stops the sequence. When a run ends, the card shows an
+outcome word (Completed, Degraded, Partial result or Failed), a headline, the facts behind it, six figures
+counted from the artifact (events, failed tool calls, failed specialists, unavailable sections, unresolved
+conflicts and stopping reason) and the full trace, with the run metrics for a completed run. A run a fault
+stops keeps its trace and shows no plan, because none was assembled. The outcome is read from the artifact
+alone and announced in the status region, so a live run, a download and a replay of it read the same. Every
+card offers Download artifact, a failed run included, and replaying a fault artifact opens this view.
 
 The responsive three-panel inspector shows the ordered run timeline, the validated plan and the run
 metrics. The metrics panel shows the real budget state (within or over, with the amount) and every

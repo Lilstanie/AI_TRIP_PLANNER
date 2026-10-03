@@ -9,6 +9,7 @@ import {
   type RouteLeg,
   type RouteOption,
   type Specialist,
+  type TravelMode,
   type TripBrief,
   type FlightOption,
 } from "@trip/shared";
@@ -53,6 +54,8 @@ interface RouteQuery {
   to: string;
   date: string;
   day: number;
+  /** The mode the traveller chose for this hop, when they chose one. */
+  chosenMode?: TravelMode;
 }
 
 interface TransportEvidence {
@@ -104,7 +107,13 @@ async function gatherTransportEvidence(
     /budget|cost|cheaper|overrun/i.test([revision.reason, ...revision.constraints].join(" "));
   const scheduleRevision = revision !== undefined && /time|overlap|schedule/i.test(revision.reason);
 
-  const legs = journeyLegs({ origin, destinations, start: brief.dates[0], days });
+  // A flight the traveller said to take cannot be honoured when they also said
+  // they arrange flights themselves: that statement is trip-wide and already
+  // stops every search, so it wins and the hop plans on the ground.
+  const legModes = brief.excludeFlights
+    ? brief.legModes?.filter((choice) => choice.mode !== "flight")
+    : brief.legModes;
+  const legs = journeyLegs({ origin, destinations, start: brief.dates[0], days, legModes });
   const routeQueries: RouteQuery[] = groundLegs(legs).map((leg) => ({
     localTime: scheduleRevision ? "06:00" : "09:00",
     from: leg.from,
@@ -114,6 +123,7 @@ async function gatherTransportEvidence(
     // A hop between trip cities, priced for the whole group; only these may use paid rail data.
     intercity: true,
     passengers: brief.groupSize,
+    ...(leg.chosenMode ? { chosenMode: leg.chosenMode } : {}),
   }));
   const conflicts: string[] = [];
 
@@ -178,8 +188,12 @@ async function gatherTransportEvidence(
   // traveller would get a conflict where a flight belongs. Promote it and price
   // it. The rule is the scheduler's own, so the two cannot disagree.
   const startMinutes = scheduleRevision ? EARLY_DEPARTURE_MINUTES : DEFAULT_DEPARTURE_MINUTES;
-  const promoted = groundResults.filter(({ legs: hop }) => {
+  const promoted = groundResults.filter(({ query, legs: hop }) => {
     if (!hop.length) return false;
+    // A mode the traveller chose is not a default to overrule. Flying a hop
+    // they said to take by train would reverse the one thing they stated; if
+    // the chosen mode cannot fit the day, layOutHop reports that instead.
+    if (query.chosenMode) return false;
     const duration = hopDuration(hop);
     // A duration that is not a number is a broken route, not a long one.
     // routeProblem already reports those; flying a hop because a provider
@@ -257,6 +271,38 @@ function alternativesLine(options: RouteOption[]): string | undefined {
   return `Ways to make this hop: ${described.join("; ")}`;
 }
 
+/**
+ * The legs this hop is actually scheduled from, and whether each carries a fare.
+ *
+ * Normally the provider's own consecutive legs. When the traveller chose a mode
+ * and the provider offers it, that alternative replaces them: the choice has to
+ * change the schedule, not merely sit beside it as a suggestion. A chosen mode
+ * the provider does not offer is reported by the caller and the provider's
+ * legs stand, so the hop keeps its timing rather than leaving a gap.
+ *
+ * `unpriced` is decided here rather than re-derived from the note, because a
+ * RouteOption states its own `priceBasis` and reading that is exact where
+ * matching prose is not.
+ */
+function scheduledLegs(
+  legs: RouteLeg[],
+  chosen: RouteOption | undefined,
+): { leg: RouteLeg; unpriced: boolean }[] {
+  if (chosen)
+    return [
+      {
+        leg: {
+          mode: chosen.mode,
+          durationMin: chosen.durationMin,
+          price: chosen.priceBasis === "unavailable" ? 0 : chosen.price,
+          ...(chosen.note ? { note: chosen.note } : {}),
+        },
+        unpriced: chosen.priceBasis === "unavailable",
+      },
+    ];
+  return legs.map((leg) => ({ leg, unpriced: fareUnavailable(leg) }));
+}
+
 function layOutHop(
   query: RouteQuery,
   legs: RouteLeg[],
@@ -265,32 +311,68 @@ function layOutHop(
   startMinutes: number,
   tripStart: string,
   conflicts: string[],
+  unmet: string[],
 ): ProposalItem[] {
   // The date has to follow the day that was chosen, not the day this hop happened to be
   // searched on. Reporting the search date next to a reassigned day is simply wrong.
   const date = dateForDay(tripStart, day);
-  const problem = routeProblem(legs);
+  // The provider's own scheduled route may already be the chosen mode, and
+  // only that route carries an inter-city rail fare (2026-09-26-intercity-rail-via-serpapi).
+  // Taking the comparison option instead would throw away a price we had:
+  // Melbourne → Sydney by train went from a real fare to "unpriced" that way.
+  const alreadyChosen =
+    query.chosenMode !== undefined &&
+    legs.length > 0 &&
+    legs.every((leg) => leg.mode === query.chosenMode);
+  const chosen =
+    query.chosenMode && !alreadyChosen
+      ? options.find((option) => option.mode === query.chosenMode)
+      : undefined;
+  const honoured = alreadyChosen || chosen !== undefined;
+  if (query.chosenMode && !honoured) {
+    // Never substitute silently: a plan that quietly takes the bus after the
+    // traveller asked for the train is worse than one saying the train is not
+    // offered here.
+    //
+    // Not a conflict, though. The hop still has a route, so the plan is whole,
+    // and no revision can conjure a service the provider does not run — asking
+    // transport to "fix" it spends a round to get the same answer back, the
+    // trap 2026-10-02-unpriced-leg-is-not-a-conflict describes. It goes to the
+    // summary and assumptions, where the traveller reads it and can choose
+    // again.
+    unmet.push(
+      `${query.from} → ${query.to} by ${query.chosenMode} is not offered; it is planned as ${legs[0]?.mode ?? "the provider's route"} instead`,
+    );
+  }
+  const scheduled = scheduledLegs(legs, chosen);
+  const hopLegs = scheduled.map((entry) => entry.leg);
+  const problem = routeProblem(hopLegs);
   if (problem) {
     conflicts.push(`geography conflict on day ${day}: ${query.from} → ${query.to}: ${problem}`);
     return [];
   }
   let cursor = startMinutes;
-  if (!fitsInPlanningDay(hopDuration(legs), cursor)) {
-    conflicts.push(`time conflict on day ${day}: route cannot fit inside one planning day`);
+  if (!fitsInPlanningDay(hopDuration(hopLegs), cursor)) {
+    conflicts.push(
+      query.chosenMode
+        ? // The hop was not promoted to a flight because the traveller chose
+          // this mode. Saying which mode does not fit is what lets them change
+          // their mind; "route cannot fit" alone reads as our failure.
+          `time conflict on day ${day}: ${query.from} → ${query.to} by ${query.chosenMode} cannot fit inside one planning day`
+        : `time conflict on day ${day}: route cannot fit inside one planning day`,
+    );
     return [];
   }
   const alternatives = alternativesLine(options);
-  return legs.map((leg, index) => {
+  return scheduled.map(({ leg, unpriced }, index) => {
     const startTime = clock(cursor);
     const durationMin = Math.ceil(leg.durationMin);
     cursor += durationMin;
     const endTime = clock(cursor);
-    const unknownFare = fareUnavailable(leg);
-    if (unknownFare) {
-      conflicts.push(
-        `Transport fare unavailable on day ${day}: budget total is incomplete, not a free trip.`,
-      );
-    }
+    // An unpriced leg raises no conflict: the fare is missing because the
+    // provider does not publish it, so no revision can produce one. The
+    // proposal says how many legs are unpriced instead; see the Agent Note
+    // 2026-10-02-unpriced-leg-is-not-a-conflict.
     return {
       kind: "transport",
       day,
@@ -298,11 +380,13 @@ function layOutHop(
       endTime,
       location: `${query.from} → ${query.to}`,
       detail: `${leg.mode} from ${query.from} to ${query.to} on ${date}; ${durationMin} minutes${leg.note ? `; ${leg.note}` : ""}.${
+        honoured ? " Travelled this way because you chose it." : ""
+      }${
         // Only on the first leg of a hop: the comparison is for the hop, not
         // for each of its segments.
         index === 0 && alternatives ? ` ${alternatives}` : ""
       }`,
-      ...(unknownFare ? {} : { estCost: leg.price }),
+      ...(unpriced ? {} : { estCost: leg.price }),
     };
   });
 }
@@ -390,12 +474,24 @@ function assembleTransportProposal(
 ): AgentProposal {
   const { origin, destinations, brief, budgetRevision, scheduleRevision, allocation } = evidence;
   const conflicts = [...evidence.conflicts];
+  // Choices the provider could not meet: reported, never silently dropped, and
+  // never sent round the revision loop. See layOutHop.
+  const unmet: string[] = [];
   const routeItems = evidence.routed.flatMap(({ query, legs, options }, index) => {
     const slot = chosenPlan.schedule[index] ?? {
       day: query.day,
       startMinutes: DEFAULT_DEPARTURE_MINUTES,
     };
-    return layOutHop(query, legs, options, slot.day, slot.startMinutes, brief.dates[0], conflicts);
+    return layOutHop(
+      query,
+      legs,
+      options,
+      slot.day,
+      slot.startMinutes,
+      brief.dates[0],
+      conflicts,
+      unmet,
+    );
   });
   const groundCost = routeItems.reduce((sum, item) => sum + (item.estCost ?? 0), 0);
   const cheapest = cheapestFares(evidence);
@@ -465,15 +561,26 @@ function assembleTransportProposal(
     ];
   });
   const total = items.reduce((sum, item) => sum + (item.estCost ?? 0), 0);
+  // An item with no estCost is a leg no provider would price. Counted from the
+  // items rather than reported separately, so the two can never disagree.
+  const unpriced = items.filter((item) => item.estCost === undefined).length;
   return {
     agent: "transport",
-    summary: `${items.length} transport option(s) for ${origin} ↔ ${destinations.join(" → ")} · known estimate AUD ${total.toFixed(2)}${conflicts.length ? " (incomplete/unverified)" : ""}`,
+    summary: `${items.length} transport option(s) for ${origin} ↔ ${destinations.join(" → ")} · known estimate AUD ${total.toFixed(2)}${unpriced ? ` · ${unpriced} leg(s) unpriced` : ""}${unmet.length ? ` · ${unmet.length} travel choice(s) unavailable` : ""}${conflicts.length ? " (incomplete/unverified)" : ""}`,
     items,
     assumptions: [
       "Route arrays are consecutive legs; calculator preserves adapter AUD amounts as group totals, matching the current integration. Per-person providers must normalize fares before returning them.",
       "Inter-city route dates follow their scheduled day. Unsupported driving-only estimates cannot verify public transport.",
       `Origin comes from the trip brief, else the long-term preference "transport.origin", else Sydney; current origin: ${origin}.`,
       "Injected booking and maps results are treated as estimates, not reservations or live availability.",
+      ...unmet.map(
+        (note) => `You asked for ${note}. Name another mode and the plan will use it if it runs.`,
+      ),
+      ...(unpriced
+        ? [
+            `${unpriced} leg(s) carry no fare because the provider publishes none, so the known estimate is a floor rather than the full cost.`,
+          ]
+        : []),
       ...(budgetRevision ? ["Budget revision selected the lowest returned flight fare."] : []),
       ...(allocation
         ? [

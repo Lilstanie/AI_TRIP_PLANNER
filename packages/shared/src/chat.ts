@@ -4,6 +4,7 @@ import {
   BookedStay,
   FlightLeg,
   isTripDate,
+  LegModeChoice,
   TravellerParty,
   TripBrief,
   TripPreferences,
@@ -41,6 +42,8 @@ export const PartialTripBrief = z.object({
   // See TripBrief.learnedPreferences, excludeFlights and bookedStay.
   learnedPreferences: TripPreferences.optional(),
   excludeFlights: z.boolean().optional(),
+  // See TripBrief.legModes.
+  legModes: z.array(LegModeChoice).max(12).optional(),
   bookedStay: BookedStay.optional(),
 });
 export type PartialTripBrief = z.infer<typeof PartialTripBrief>;

@@ -9,6 +9,7 @@ import type {
 import { withProgressTools } from "../progress-tools";
 import type { WorkflowDecision } from "../decisions";
 import { runOrchestrator } from "../workflow";
+import { agentLabSupervisorFaultModel, applyAgentLabFault } from "./faults";
 import type { AgentLabScenario } from "./scenarios";
 import type { AgentLabStrategy } from "./strategy";
 
@@ -77,6 +78,24 @@ function decisionEvent(decision: WorkflowDecision): AgentLabEventPayload {
         unresolved: decision.unresolved,
         summary: stopSummary[decision.reason](decision.unresolved),
       };
+    case "agent_output_rejected":
+      return {
+        type: "lab_agent_output_rejected",
+        agent: decision.agent,
+        round: decision.round,
+        fields: decision.fields,
+        summary: `The ${decision.agent} specialist's output failed the shared proposal schema (${decision.fields.join(", ")}) and was rejected.`,
+      };
+    case "delegation_fallback":
+      return {
+        type: "lab_supervisor_fallback",
+        phase: decision.phase,
+        round: decision.round,
+        summary:
+          decision.phase === "dispatch"
+            ? "The supervisor could not delegate, so the coordinator dispatched the specialists deterministically."
+            : "The supervisor could not route the revision, so the coordinator revised the sections deterministically.",
+      };
   }
 }
 
@@ -134,13 +153,14 @@ export function createMultiAgentFixtureStrategy(
   return {
     id: revise ? "multi-agent-targeted-revision" : "multi-agent-no-revision",
     actor: "multi-agent",
+    live: true,
     completionSummary: (plan) => {
       const conflicts = plan.conflicts?.length ?? 0;
       return revise
         ? `${plural(plan.sections.length, "specialist")} planned over ${plural(plan.round, "round")}; ${plural(conflicts, "conflict")} left unresolved.`
         : `${plural(plan.sections.length, "specialist")} finished one planning round; ${plural(conflicts, "conflict")} left unresolved because this strategy does not revise.`;
     },
-    async run({ scenario, signal, emit }) {
+    async run({ scenario, signal, emit, fault }) {
       signal.throwIfAborted();
       await emit({
         type: "lab_strategy_started",
@@ -157,13 +177,21 @@ export function createMultiAgentFixtureStrategy(
       let outcome: Outcome | undefined;
       let wake: (() => void) | undefined;
       const publish = (event: AgentLabEventPayload) => {
+        // The trace carries bounded operational summaries. A model's own reasoning text is never published,
+        // whichever mode the run is in.
+        if (event.type === "agent_reasoning") return;
         queue.push(event);
         wake?.();
       };
 
       const traced = specialists.map((specialist) => withToolTrace(specialist, publish));
+      // The fault sits outside the trace, so its failures are seen by the same progress tools.
+      const faulted = fault ? applyAgentLabFault(fault, traced) : traced;
       void runOrchestrator(scenario.brief, {
-        specialists: traced,
+        specialists: faulted,
+        ...(fault?.id === "supervisor-failure"
+          ? { supervisorModel: agentLabSupervisorFaultModel() }
+          : {}),
         mem: scenarioMemory(scenario.preferences),
         maxRounds: revise ? REVISION_ROUNDS : 1,
         onProgress: publish,

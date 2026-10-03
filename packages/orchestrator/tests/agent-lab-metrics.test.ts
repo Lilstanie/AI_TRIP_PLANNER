@@ -28,7 +28,7 @@ describe("measureAgentLabRun", () => {
   it("reports usage as unavailable, never as zero", () => {
     const { usage } = measure(clone());
     expect(usage.status).toBe("unavailable");
-    expect(usage.reason).toMatch(/no model/i);
+    if (usage.status === "unavailable") expect(usage.reason).toMatch(/no model/i);
     expect(JSON.stringify(usage)).not.toMatch(/"(tokens|cost|costAud)"/);
   });
 

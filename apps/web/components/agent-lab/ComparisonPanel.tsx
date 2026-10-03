@@ -1,5 +1,8 @@
 import type { AgentLabCompletedRunArtifact, AgentLabRunEvent } from "@trip/shared";
 import { buildComparisonRows, NO_RESULT } from "@/lib/agent-lab/comparison";
+import { faultOutcome } from "@/lib/agent-lab/fault-outcome";
+import { DownloadArtifactButton } from "./DownloadArtifactButton";
+import { OutcomeBadge } from "./OutcomeBadge";
 import { PlanSections, PlanSummary } from "./PlanSections";
 import { RunTimeline } from "./RunTimeline";
 
@@ -14,7 +17,16 @@ export interface ComparisonSide {
  * artifact, and the panel never ranks the strategies: it shows what each step adds, not which side
  * "wins".
  */
-export function ComparisonPanel({ sides }: { sides: readonly ComparisonSide[] }) {
+export function ComparisonPanel({
+  sides,
+  provenance,
+  onDownloaded,
+}: {
+  sides: readonly ComparisonSide[];
+  /** Whether the figures come from fixture or live runs, so the two are never mistaken for each other. */
+  provenance: string;
+  onDownloaded: (filename: string) => void;
+}) {
   const rows = buildComparisonRows(...sides.map((side) => side.artifact));
   return (
     <section className="agent-lab__compare" aria-labelledby="agent-lab-compare-title">
@@ -23,6 +35,7 @@ export function ComparisonPanel({ sides }: { sides: readonly ComparisonSide[] })
           <p className="agent-lab__kicker">Comparison</p>
           <h2 id="agent-lab-compare-title">Three strategies, one scenario</h2>
         </div>
+        <span data-agent-lab-provenance>{provenance}</span>
       </div>
       <div className="agent-lab__compare-note" data-agent-lab-compare-note>
         <p>
@@ -66,6 +79,14 @@ export function ComparisonPanel({ sides }: { sides: readonly ComparisonSide[] })
         {sides.map((side) => (
           <article key={side.label} aria-label={side.label} data-agent-lab-compare-side>
             <h3>{side.label}</h3>
+            {side.artifact ? <OutcomeBadge outcome={faultOutcome(side.artifact)} /> : null}
+            {side.artifact ? (
+              <DownloadArtifactButton
+                artifact={side.artifact}
+                label={side.label}
+                onDownloaded={onDownloaded}
+              />
+            ) : null}
             {side.artifact ? (
               <>
                 <PlanSummary plan={side.artifact.plan} />

@@ -6,6 +6,7 @@ import {
   type ConditionalEdgeRouter,
   type GraphNode,
 } from "@langchain/langgraph";
+import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import { allSpecialists } from "@trip/agents";
 import { memory } from "@trip/services";
 import {
@@ -45,6 +46,12 @@ export interface OrchestratorOptions {
   onProgress?: (event: AgentProgressEvent) => void;
   /** Receives the loop's decisions as typed facts; see `WorkflowDecision`. Never affects the plan. */
   onDecision?: (decision: WorkflowDecision) => void;
+  /**
+   * The model that drives delegation. Without it, injected specialists are dispatched directly and the
+   * production default builds a routed model. Giving one, even with injected specialists, delegates
+   * through the supervisor and falls back to deterministic dispatch if it fails.
+   */
+  supervisorModel?: BaseChatModel;
 }
 
 const OrchestratorState = new StateSchema({
@@ -117,6 +124,7 @@ function resolveOptions(options: OrchestratorOptions) {
     mem: options.mem ?? memory,
     onProgress: options.onProgress,
     onDecision: options.onDecision,
+    supervisorModel: options.supervisorModel,
   };
 }
 
@@ -130,8 +138,19 @@ function resolveOptions(options: OrchestratorOptions) {
  *                                 build_plan -> END
  */
 export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
-  const { specialists, specialistByName, injected, maxRounds, tools, mem, onProgress, onDecision } =
-    resolveOptions(options);
+  const {
+    specialists,
+    specialistByName,
+    injected,
+    maxRounds,
+    tools,
+    mem,
+    onProgress,
+    onDecision,
+    supervisorModel,
+  } = resolveOptions(options);
+  // Injected specialists are the deterministic seam, unless a supervisor model was injected as well.
+  const delegates = !injected || supervisorModel !== undefined;
 
   // A consumer's bug must not cost the traveller their plan.
   const decide = (decision: WorkflowDecision) => {
@@ -189,6 +208,28 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
       });
       return proposal;
     } catch (error) {
+      // A schema rejection is a different failure from a provider error, and a reader should be able to
+      // tell them apart. Only the rejected field paths are reported, never the message or the value.
+      const issues = (error as { issues?: unknown } | null)?.issues;
+      if (Array.isArray(issues)) {
+        const fields = [
+          ...new Set(
+            issues
+              .map((issue: { path?: unknown }) =>
+                Array.isArray(issue.path) ? issue.path.map(String).join(".") : "",
+              )
+              .filter(Boolean),
+          ),
+        ].slice(0, 10);
+        if (fields.length) {
+          decide({
+            type: "agent_output_rejected",
+            agent: specialist.name,
+            round: request.context.round,
+            fields,
+          });
+        }
+      }
       onProgress?.({
         type: "agent_failed",
         agent: specialist.name,
@@ -223,7 +264,7 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
     let proposals: AgentProposal[];
     // Explicit specialist injection is the deterministic seam used by tests.
     // Production uses the supervisor to select named specialist tools.
-    if (injected) {
+    if (!delegates) {
       proposals = await staged();
     } else {
       try {
@@ -231,6 +272,7 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
           brief: state.brief,
           specialists,
           context: agentContext,
+          ...(supervisorModel ? { model: supervisorModel } : {}),
           onProgress,
           run: createPlanningBoard(state.brief).run,
         });
@@ -239,6 +281,7 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
         console.warn(
           `[supervisor] Delegation unavailable; using deterministic dispatch: ${reason}`,
         );
+        decide({ type: "delegation_fallback", phase: "dispatch", round });
         proposals = await staged();
       }
     }
@@ -331,7 +374,7 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
         }),
       );
     let proposals: AgentProposal[];
-    if (injected) {
+    if (!delegates) {
       proposals = await deterministicRevision();
     } else {
       try {
@@ -341,6 +384,7 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
           context: context(state.brief, round),
           proposals: state.proposals,
           requests: state.conflicts,
+          ...(supervisorModel ? { model: supervisorModel } : {}),
           onProgress,
           extrasFor,
         });
@@ -349,6 +393,7 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
         console.warn(
           `[supervisor] Revision delegation unavailable; using deterministic routing: ${reason}`,
         );
+        decide({ type: "delegation_fallback", phase: "revision", round });
         proposals = await deterministicRevision();
       }
     }
@@ -450,10 +495,7 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
       "revise_conflicts",
       "build_plan",
     ])
-    .addConditionalEdges("revise_conflicts", routeAfterRevision, [
-      "detect_conflicts",
-      "build_plan",
-    ])
+    .addConditionalEdges("revise_conflicts", routeAfterRevision, ["detect_conflicts", "build_plan"])
     .addEdge("build_plan", END)
     .compile();
 }

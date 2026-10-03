@@ -70,9 +70,9 @@ supervisor 只选择某个节点需要哪些 specialist 工具。控制路径、
 
 ## Agent Lab
 
-`/agent-lab` 是独立于已保存工作区的公开、可检查实验界面。它只接受已注册的东京双人场景、
-已注册的策略（`single-agent-baseline`、`multi-agent-no-revision` 和 `multi-agent-targeted-revision`）、两个场景
-（`tokyo-couple` 以及预算为 A$2,300 的同一趟旅行）以及 fixture 数据。`POST /api/agent-lab/runs` 校验这一封闭请求，
+`/agent-lab` 是独立于已保存工作区的公开、可检查实验界面。它只接受已注册的取值：策略
+（`single-agent-baseline`、`multi-agent-no-revision` 和 `multi-agent-targeted-revision`）、四个场景
+（`tokyo-couple`、预算为 A$2,300 的同一趟旅行、一趟巴黎家庭行程和一趟东京与京都行程）以及数据模式（fixture 为默认，或 live）。`POST /api/agent-lab/runs` 校验这一封闭请求，
 调用 `runAgentLab()`，先流式返回有序的 NDJSON 事件信封，最后返回带 schema 版本的产物。
 
 该基线是位于五个旅行 specialist 之上的实验策略，不是第六个 specialist。其确定性 fixture
@@ -93,6 +93,32 @@ specialist 走确定性路径，工具返回 mock fixture；它们不读取或�
 在 `tokyo-couple` 上没有冲突，两个多 agent 策略产出相同的计划。循环的决策通过工作流的 `onDecision` 钩子以类型化事实的形式交给实验室。信封承载现有的
 `AgentProgressEvent` 联合类型，因此检查器可以展示图阶段、specialist 生命周期、目标、约束、工具摘要和结果，
 而不公开提示词或原始思维链。
+
+两个基准场景扩展同一个注册表。`paris-family-infeasible` 要求为四位旅行者规划预算 A$3,000 的巴黎之行，而共享的预订证据把
+最便宜的往返机票（A$2,480）和五晚最便宜的两间客房（A$1,400）定在 A$3,880。工作流在第 1 轮就发现这个不可行的冲突，并以
+`infeasible_budget` 停止、指出这一最低成本，因此两个多 agent 策略都不会再花修订轮次，也没有任何策略编造更便宜的证据或删去分段。
+由于没有计划放得下，该场景的规则用 `evidence-floor` 和 `infeasibility-reported` 取代 `budget` 与 `no-conflicts` 检查，衡量计划是否保持诚实：
+脚本化的单 agent 基线按最低成本定价，却没有说明缺口，所以未通过第二项。`tokyo-kyoto-multi-city` 是先东京后京都的七晚行程，其规则增加了
+`hop-date`、`itinerary-by-city`、`stay-transition`、`trip-dates` 和 `total-consistent`，它们按简报中的城市推导，检查火车、住宿、每天的活动和总额是否围绕同一次移动保持一致。
+每个产物都记录场景的 fixture 版本和评估器版本（`scenario-rules-v2`）；决策见 [Agent Note](../.agents/notes/implemented/architecture/2026-10-02-agent-lab-benchmark-scenarios.md)。
+
+产物的下载与回放都发生在浏览器中，不涉及任何端点或服务端存储。页面保存它收到的产物，`apps/web/lib/agent-lab/replay.ts` 则按共享的
+`AgentLabRunArtifact` 约定校验所选文件（单一 schema 版本、连续的事件、有效的计划、不会倒退的时间），再按记录的偏移量回放记录下的事件。
+所存的指标按记录原样显示，不在页面中重新计算；原因见 [Agent Note](../.agents/notes/implemented/architecture/2026-10-02-agent-lab-artifact-replay.md)。
+
+实时门控保护这个公开端点。fixture 运行在请求级的 mock 数据模式下、并禁用模型来执行（`runWithDataMode("mock")` 和 `runWithModelsDisabled`），
+两者都由 AsyncLocalStorage 携带，绝不写入 `process.env`，因此没有任何密钥或默认数据模式能让它触及提供方或模型。只有部署设置了 `AGENT_LAB_LIVE_ENABLED=true`、
+策略有实时实现（脚本化基线没有），并且在 `apps/web/lib/agent-lab/live-gate.ts` 维护的并发和每小时限额之内，才允许实时运行；每一次拒绝都是在运行开始之前发出的、带类型的 `rejected` 帧。
+实时运行在实时数据模式下执行，用量收集器在每个模型创建时捕获，因此产物中的用量就是提供方为每次调用返回的数字，否则为不可用。多 agent 策略从不发布模型的 `agent_reasoning`。
+决策见 [Agent Note](../.agents/notes/implemented/architecture/2026-10-02-agent-lab-live-gate.md)。
+
+故障实验室让五个已注册的故障走过同一套策略、轨迹、产物和视图。档案是服务端持有的 id，绑定到一个场景和一个策略；访客从不定义故障，
+`POST /api/agent-lab/runs` 会拒绝任何其他组合。故障是包在工作流已在运行的 specialist 外面的包装器，位于轨迹包装器之外，
+因此会经过同样的进度工具和 schema 校验。工作流本身只增加两个可选的事实（`agent_output_rejected`，只带字段路径，以及 `delegation_fallback`）
+和一个可注入的 `supervisorModel`。每个故障的结果就是观察到的工作流行为：航班查询超时会让 transport 分段变为 `unavailable`、不定价并留下冲突，
+运行以较少内容继续；住宿查询为空会终止运行，因为 accommodation 拒绝编造住宿；dining 的非法输出在提案 schema 处被拒绝并终止运行；
+不委派任何人的 supervisor 会回退到确定性分发；无法改善计划的修订保留最佳已知计划并以 `no_improvement` 停止。
+被故障终止的运行会结束于一个 `failed` 产物，它保留轨迹并指明失败的 specialist，并且像其他产物一样可下载、可回放。决策见 [Agent Note](../.agents/notes/implemented/architecture/2026-10-02-agent-lab-failure-lab.md)。
 
 <a id="langgraph-workflow"></a>
 
@@ -135,7 +161,7 @@ Specialist 提案、行程需求和最终计划在图边界上分别通过 `Agen
   才保留这一轮；否则保留先前的提案并停止循环。
 - `OrchestratorOptions.onDecision` 以类型化的 `WorkflowDecision` 事实接收循环的决策：发现冲突（目标、原因、评分、
   是否不可行）、修订开始（目标和上一版结果）、修订评分（修订前、修订后、是否保留）以及循环停止（轮次和原因）。
-  消费者读取这些事实，而不是解析进度文本。该钩子绝不影响计划，抛错的消费者会被记录并忽略，聊天进度协议保持不变。
+  消费者读取这些事实，而不是解析进度文本。该钩子绝不影响计划，抛错的消费者会被记录并忽略，聊天进度协议保持不变。另有两个事实服务于故障实验室：specialist 的输出未通过提案 schema 时的 `agent_output_rejected`（只带字段路径，绝不含值），以及 supervisor 无法委派、工作流改为确定性分发或修订时的 `delegation_fallback`。`OrchestratorOptions.supervisorModel` 即使对注入的 specialist 也通过给定的模型进行委派。
 - 条件边重复执行检测和修订，最多 `maxRounds` 轮（默认 `3`）。
 - `build_plan` 汇总费用（`budget.ts`）；若某部分仍是修订请求的目标，则标记为 `needs_you`，
   否则标记为 `draft`，随后组装计划。

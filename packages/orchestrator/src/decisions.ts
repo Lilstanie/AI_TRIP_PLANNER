@@ -35,4 +35,17 @@ export type WorkflowDecision =
       /** False means the revision did not improve the plan and the previous proposals stand. */
       kept: boolean;
     }
-  | { type: "loop_stopped"; round: number; reason: StopReason; unresolved: number };
+  | { type: "loop_stopped"; round: number; reason: StopReason; unresolved: number }
+  | {
+      /** A specialist's output failed the proposal schema. Only field paths are reported, never values. */
+      type: "agent_output_rejected";
+      agent: AgentName;
+      round: number;
+      fields: string[];
+    }
+  | {
+      /** The supervisor could not delegate, so the workflow dispatched or revised deterministically. */
+      type: "delegation_fallback";
+      phase: "dispatch" | "revision";
+      round: number;
+    };

@@ -5,9 +5,15 @@
 // - an `error` frame loses the failed run artifact, so the failing sequence is never shown;
 // - events recorded before the failure are not delivered;
 // - the stream ends without a completion frame and the run is reported as complete;
-// - a non-200 response or empty body is reported with an internal message.
+// - a non-200 response or empty body is reported with an internal message;
+// - a rejection frame (live not enabled, a limit reached) is read as a failed run, or its reason and retry
+//   hint are lost, so the page cannot say why nothing started.
 import { describe, expect, it } from "vitest";
-import { AgentLabRunError, readAgentLabStream } from "@/lib/agent-lab/stream";
+import {
+  AgentLabRejectedError,
+  AgentLabRunError,
+  readAgentLabStream,
+} from "@/lib/agent-lab/stream";
 
 const meta = {
   runId: "agent-lab-test",
@@ -113,5 +119,38 @@ describe("readAgentLabStream", () => {
     await expect(readAgentLabStream(responseOf([], { status: 500 }), () => {})).rejects.toThrow(
       "Unable to start this experiment.",
     );
+  });
+});
+
+describe("a rejection", () => {
+  const rejected = (status: number, frame: object) =>
+    new Response(`${JSON.stringify({ type: "rejected", ...frame })}\n`, {
+      status,
+      headers: { "content-type": "application/x-ndjson" },
+    });
+
+  it("is read from a non-200 response with its reason, message and retry hint", async () => {
+    const error = await readAgentLabStream(
+      rejected(429, { reason: "rate_limit", message: "Try again later.", retryAfterSeconds: 90 }),
+      () => {},
+    ).catch((caught: unknown) => caught);
+    expect(error).toBeInstanceOf(AgentLabRejectedError);
+    expect(error).toMatchObject({ reason: "rate_limit", retryAfterSeconds: 90 });
+    expect((error as Error).message).toBe("Try again later.");
+  });
+
+  it("is not a failed run, and carries no artifact", async () => {
+    const error = await readAgentLabStream(
+      rejected(503, { reason: "live_disabled", message: "Live runs are not enabled." }),
+      () => {},
+    ).catch((caught: unknown) => caught);
+    expect(error).not.toBeInstanceOf(AgentLabRunError);
+    expect(error).toMatchObject({ reason: "live_disabled" });
+  });
+
+  it("still reports an unreadable non-200 body with the generic message", async () => {
+    await expect(
+      readAgentLabStream(new Response("nope", { status: 500 }), () => {}),
+    ).rejects.toThrow("Unable to start this experiment.");
   });
 });

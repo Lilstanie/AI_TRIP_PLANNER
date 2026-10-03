@@ -4,6 +4,7 @@ import type { AgentLabStrategy } from "./strategy";
 export const singleAgentFixtureStrategy: AgentLabStrategy = {
   id: "single-agent-baseline",
   actor: "single-agent",
+  live: false,
   completionSummary: () =>
     "The scripted baseline produced one complete plan without external model calls.",
   async run({ scenario, signal, emit }) {
@@ -24,7 +25,7 @@ export const singleAgentFixtureStrategy: AgentLabStrategy = {
       callId: "fixture-evidence-1",
       tool: "load_registered_scenario",
       label: "Load fixture evidence",
-      summary: "Read the fixed Tokyo planning evidence available to this strategy.",
+      summary: `Read the fixed ${scenario.brief.destination} planning evidence available to this strategy.`,
     });
     signal.throwIfAborted();
     await emit({

@@ -20,12 +20,32 @@ const stopReasons: Record<NonNullable<Metrics["stopReason"]>, string> = {
 export const stopReasonLabel = (reason: Metrics["stopReason"]) =>
   reason ? stopReasons[reason] : "No loop";
 
+/**
+ * What happened to the conflicts a plan had, read from the metrics alone. A strategy with no planning
+ * loop never checked, so it is not shown as having found none. An infeasible stop is its own outcome:
+ * a conflict remains, but no revision could have removed it, which is not the same as an unrepaired one.
+ */
+export function conflictOutcomeLabel(metrics: Metrics): string {
+  if (metrics.stopReason === null) return "Not checked";
+  if (metrics.stopReason === "infeasible_budget") return "Infeasible budget";
+  if (metrics.unresolvedConflicts > 0) return `Unresolved (${metrics.unresolvedConflicts} left)`;
+  return metrics.rounds > 1 ? `Repaired in ${metrics.rounds} rounds` : "None found";
+}
+
 export const multiCityLabel = (consistent: boolean | null) =>
   consistent === null ? "Not applicable" : consistent ? "Consistent" : "Inconsistent";
 
-/** Usage that was not measured is "Unavailable", never a zero that reads as free. */
-const usageLabels = { unavailable: "Unavailable" } as const;
-export const usageLabel = (usage: Metrics["usage"]) => usageLabels[usage.status];
+/**
+ * Usage that was not measured is "Unavailable", never a zero that reads as free. Measured usage is the
+ * token count the provider returned for every model call; cost is never shown because providers do not
+ * return it.
+ */
+export const usageLabel = (usage: Metrics["usage"]) =>
+  usage.status === "unavailable"
+    ? "Unavailable"
+    : `${usage.totalTokens.toLocaleString("en-AU")} tokens in ${usage.modelCalls} model ${
+        usage.modelCalls === 1 ? "call" : "calls"
+      }; cost not reported`;
 
 export const NO_RESULT = "No completed run";
 
@@ -46,6 +66,7 @@ const rows: readonly { id: string; label: string; read: (metrics: Metrics) => st
         : `Over budget by ${money(-m.budgetHeadroom)}`,
   },
   { id: "conflicts", label: "Unresolved conflicts", read: (m) => String(m.unresolvedConflicts) },
+  { id: "conflict-outcome", label: "Conflict outcome", read: conflictOutcomeLabel },
   {
     id: "checks",
     label: "Deterministic checks",

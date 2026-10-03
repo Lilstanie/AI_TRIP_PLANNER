@@ -1,0 +1,63 @@
+flowchart LR
+  root["AI Trip Planner"]
+
+  root --> coord["● Conversation & coordination"]
+  coord --> chat["● Chat intake"]
+  coord --> extract["● Brief extraction"]
+  coord --> ask["● Clarifying questions"]
+  coord --> attach["○ Attachments (images, text)"]
+  extract --> exmode{"⊕ Extraction mode"}
+  exmode --> exllm["LLM structured extraction"]
+  exmode --> exrule["Local rule parser (fallback)"]
+
+  root --> plan["● Multi-agent planning"]
+  plan --> sup["● Supervisor delegation"]
+  plan --> board["● Staged planning board"]
+  plan --> conf["● Conflict detection"]
+  plan --> rev["● Targeted revision (≤ 3 rounds)"]
+  conf --> ctype{"⊗ Conflict types"}
+  ctype --> cbud["Budget overrun"]
+  ctype --> ctime["Time overlap"]
+  ctype --> cgeo["Geography"]
+  ctype --> cinf["Infeasible budget"]
+
+  root --> spec["● Specialist roles"]
+  spec --> sitin["● Itinerary"]
+  spec --> strans["● Transport"]
+  spec --> sacc["● Accommodation"]
+  spec --> sdest["● Destination guide"]
+  spec --> sdin["● Dining"]
+  sacc --> room{"⊕ Room allocation"}
+  room --> rshared["Shared"]
+  room --> rind["Individual"]
+  sacc --> booked["○ Keep booked stay"]
+  strans --> noflt["○ Traveller arranges flights"]
+  sdest --> weather["○ Weather & packing advice"]
+  sdin --> diet["○ Dietary constraints"]
+
+  root --> budget["● Budget management"]
+  budget --> rollup["● Cost roll-up in AUD"]
+  budget --> alloc["● Stage allocation"]
+  budget --> floor["● Minimum-cost floor"]
+
+  root --> data["● Evidence & tools"]
+  data --> dmode{"⊕ Data mode"}
+  dmode --> dlive["Live providers"]
+  dmode --> dmock["Mock fixtures"]
+  data --> prov["● Provenance labels"]
+
+  root --> ws["● Workspace"]
+  ws --> view{"⊕ Plan view"}
+  view --> vtl["Timeline"]
+  view --> vmap["Map"]
+  ws --> edit["● Plan editing"]
+  ws --> prefs["● Preferences & filters"]
+  ws --> acct["○ Accounts & cloud sync"]
+  ws --> lab["○ Agent Lab"]
+
+  root --> mem["● Memory"]
+  mem --> mshort["● Session chat history"]
+  mem --> mlong["● Long-term preferences"]
+  mem --> mstore{"⊕ Store"}
+  mstore --> redis["Redis REST"]
+  mstore --> proc["In-process"]

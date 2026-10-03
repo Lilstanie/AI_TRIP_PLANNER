@@ -66,9 +66,9 @@ step.
 ## Agent Lab
 
 `/agent-lab` is a public, inspectable experiment surface separate from the saved workspace. It accepts
-only the registered Tokyo couple scenario, the registered strategies (`single-agent-baseline` and
-`multi-agent-no-revision` and `multi-agent-targeted-revision`), two scenarios (`tokyo-couple` and the
-same trip with a A$2,300 budget) and fixture data. `POST /api/agent-lab/runs` validates that closed request, calls `runAgentLab()` and
+only registered values: the strategies (`single-agent-baseline`, `multi-agent-no-revision` and
+`multi-agent-targeted-revision`), four scenarios (`tokyo-couple`, the same trip with a A$2,300 budget, a Paris
+family trip and a Tokyo and Kyoto trip) and a data mode, fixture (the default) or live. `POST /api/agent-lab/runs` validates that closed request, calls `runAgentLab()` and
 streams ordered NDJSON event envelopes before a final schema-versioned artifact.
 
 The baseline is an experiment strategy above the five travel specialists, not a sixth specialist.
@@ -98,6 +98,51 @@ two multi-agent strategies produce the same plan. The loop's decisions reach the
 through the workflow's `onDecision` hook. The envelope carries the existing `AgentProgressEvent` union, so the
 inspector can show graph stages, specialist lifecycle, objectives, constraints, tool summaries and
 outcomes without publishing prompts or raw chain-of-thought.
+
+Two benchmark scenarios extend the same registry. `paris-family-infeasible` asks for a Paris trip for four
+travellers on A$3,000, while the shared booking evidence puts the cheapest round-trip flights (A$2,480) and
+the cheapest two rooms for five nights (A$1,400) at A$3,880. The workflow finds the infeasible conflict in
+round 1 and stops with `infeasible_budget`, naming that minimum, so neither multi-agent strategy spends a
+revision round, and no strategy invents cheaper evidence or drops a section. Because no plan can fit, the
+scenario's rules replace the `budget` and `no-conflicts` checks with `evidence-floor` and
+`infeasibility-reported`, which measure whether a plan stays honest: the scripted single-agent baseline
+prices the trip at the minimum but never states the shortfall, so it fails the second.
+`tokyo-kyoto-multi-city` is seven nights in Tokyo and then Kyoto. Its rules add `hop-date`,
+`itinerary-by-city`, `stay-transition`, `trip-dates` and `total-consistent`, derived from the cities in the
+brief, which check that the train, the stays, each day's activities and the totals agree on one move.
+Every artifact records the scenario's fixture version and the evaluator version (`scenario-rules-v2`); the
+[Agent Note](../.agents/notes/implemented/architecture/2026-10-02-agent-lab-benchmark-scenarios.md) records the decision.
+
+Artifact download and replay happen in the browser; no endpoint or server storage is involved. The
+page saves the artifact it received, and `apps/web/lib/agent-lab/replay.ts` validates a chosen file
+against the shared `AgentLabRunArtifact` contract (one schema version, contiguous events, a valid plan,
+timing that never runs backwards) before replaying the recorded events at their recorded offsets. The
+stored metrics are shown as recorded, not recomputed in the page; the
+[Agent Note](../.agents/notes/implemented/architecture/2026-10-02-agent-lab-artifact-replay.md) explains why.
+
+The live gate protects the public endpoint. A fixture run executes under a request-scoped mock data mode and with
+models disabled (`runWithDataMode("mock")` and `runWithModelsDisabled`), both carried by AsyncLocalStorage and never
+written to `process.env`, so no key and no data-mode default can make it reach a provider or a model. A live run is
+allowed only when the deployment sets `AGENT_LAB_LIVE_ENABLED=true`, only for a strategy with a live implementation
+(the scripted baseline has none), and only within the concurrency and hourly limits kept by
+`apps/web/lib/agent-lab/live-gate.ts`; each refusal is a typed `rejected` frame sent before any run starts. A live run
+executes under a live data mode with a usage collector captured when each model is built, so the usage in the artifact
+is what the provider returned for every call, or is unavailable. The multi-agent strategy never publishes a model's
+`agent_reasoning`. The [Agent Note](../.agents/notes/implemented/architecture/2026-10-02-agent-lab-live-gate.md) records the decision.
+
+The Failure Lab runs five registered faults through the same strategy, trace, artifact and views. A
+profile is a server-owned id bound to one scenario and strategy; the visitor never defines a fault, and
+`POST /api/agent-lab/runs` rejects any other combination. Faults are wrappers around the specialists the
+workflow already runs, applied outside the trace wrapper, so they pass through the same progress tools
+and schema validation. The workflow itself gains only two optional facts (`agent_output_rejected`, with
+field paths, and `delegation_fallback`) and an injectable `supervisorModel`. What each fault does is what
+the workflow was observed to do. A flight search timeout leaves the transport section `unavailable`, unpriced,
+with a conflict, and the run carries on with less. An empty stay search stops the run, because accommodation
+refuses to invent a stay. An invalid dining output is rejected at the proposal schema and stops the run. A
+supervisor that delegates to nobody falls back to deterministic dispatch. A revision that cannot improve the
+plan leaves the best known plan and stops with `no_improvement`. A run a fault stops ends in a `failed`
+artifact that keeps its trace and names the failing specialist, and that artifact downloads and replays like
+any other. The [Agent Note](../.agents/notes/implemented/architecture/2026-10-02-agent-lab-failure-lab.md) records the decision.
 
 ## LangGraph workflow
 
@@ -143,7 +188,11 @@ Specialist proposals, the brief and the final plan are re-validated at the graph
   conflicts detected (targets, reasons, score, infeasibility), revision started (objective and
   previous outcome), revision scored (before, after, kept) and loop stopped (round and reason). A
   consumer reads them instead of parsing progress prose. The hook never affects the plan, a consumer
-  that throws is logged and ignored, and the chat progress protocol is unchanged.
+  that throws is logged and ignored, and the chat progress protocol is unchanged. Two more facts serve the
+  Failure Lab: `agent_output_rejected` when a specialist's output fails the proposal schema (field paths
+  only, never values) and `delegation_fallback` when the supervisor could not delegate and the workflow
+  dispatched or revised deterministically. `OrchestratorOptions.supervisorModel` delegates through a given
+  model even for injected specialists.
 - A conditional edge repeats detection and revision up to `maxRounds` (default `3`).
 - `build_plan` rolls up costs (`budget.ts`), marks each section `needs_you` when a revision request
   still targets it and `draft` otherwise, and assembles the plan.

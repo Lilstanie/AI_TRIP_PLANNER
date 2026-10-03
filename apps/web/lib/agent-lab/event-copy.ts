@@ -1,4 +1,5 @@
 import type { AgentLabRunEvent } from "@trip/shared";
+import { stopReasonLabel } from "./comparison";
 
 /** Which part of the system produced an event, so the inspector can tell them apart. */
 export type EventKind = "run" | "graph" | "specialist" | "tool";
@@ -50,7 +51,13 @@ export function eventCopy(runEvent: AgentLabRunEvent): EventCopy {
     case "lab_conflict_detected":
       return {
         kind: "graph",
-        title: `Conflict check · round ${event.round}`,
+        title: `Conflict check · round ${event.round} · ${
+          event.infeasible
+            ? "infeasible budget"
+            : event.conflicts.length
+              ? "repairable"
+              : "none found"
+        }`,
         detail: event.summary,
         list: event.conflicts.length
           ? {
@@ -82,7 +89,26 @@ export function eventCopy(runEvent: AgentLabRunEvent): EventCopy {
     case "lab_loop_stopped":
       return {
         kind: "graph",
-        title: `Loop stopped · round ${event.round}`,
+        title: `Loop stopped · round ${event.round} · ${stopReasonLabel(event.reason)}`,
+        detail: event.summary,
+      };
+    case "lab_fault_injected":
+      return {
+        kind: "run",
+        title: `Fault injected · ${event.capability}`,
+        detail: event.summary,
+      };
+    case "lab_agent_output_rejected":
+      return {
+        kind: "specialist",
+        title: `${agentName(event.agent)} output rejected${inRound(event.round)}`,
+        detail: event.summary,
+        list: { heading: "Rejected fields", lines: event.fields },
+      };
+    case "lab_supervisor_fallback":
+      return {
+        kind: "graph",
+        title: `Supervisor fallback · ${event.phase}${inRound(event.round)}`,
         detail: event.summary,
       };
     case "lab_plan_validated":
@@ -144,7 +170,7 @@ export function eventCopy(runEvent: AgentLabRunEvent): EventCopy {
     case "tool_failed":
       return {
         kind: "tool",
-        title: `${agentName(event.agent)} · ${event.label}${inRound(event.round)}`,
+        title: `${agentName(event.agent)} · ${event.label} failed${inRound(event.round)}`,
         detail: event.error,
       };
   }

@@ -150,28 +150,44 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 }
 ```
 
-`scenarioId` 为 `tokyo-couple` 或 `tokyo-couple-tight-budget`（同一趟旅行、同一份证据，预算为 A$2,300，
-因此第一版计划会超支）。`strategyId` 为 `single-agent-baseline`、`multi-agent-no-revision` 或
+`scenarioId` 为 `tokyo-couple`、`tokyo-couple-tight-budget`（同一趟旅行、同一份证据，预算为 A$2,300，
+因此第一版计划会超支）、`paris-family-infeasible`（四位旅行者、A$3,000，而受支持的最低成本为 A$3,880，
+因此没有任何计划放得下）或 `tokyo-kyoto-multi-city`（两座城市共七晚）。`strategyId` 为 `single-agent-baseline`、`multi-agent-no-revision` 或
 `multi-agent-targeted-revision`。第二个通过 LangGraph 工作流用五个已注册 specialist 运行一轮，因此其计划为
 `round: 1`，所有冲突都保持未解决。第三个运行既有的循环，最多三轮：把每个冲突交给它所点名的 specialist，
 修订未改善计划时保留已知最佳提案，预算不可行时提前停止。`multi-agent-with-revision` 未注册，会被拒绝。
+
+可选的 `faultProfileId` 请求一个已注册的故障：`provider-timeout`、`provider-empty-result`、
+`invalid-agent-output`、`supervisor-failure` 或 `stalled-revision`。每个故障只绑定它所设计的那一个场景和策略
+（见 [architecture](architecture.zh.md#agent-lab)）；对其他组合的请求，与未知 id、自行定义故障的对象或多余属性一样，得到相同的 400。
+访客只能选择档案，绝不能自行定义故障。产物在 `faultProfileId` 中记录它（普通运行以及故障出现之前记录的产物为 `null`），
+轨迹以 `lab_fault_injected` 开头。故障还可能增加 `lab_agent_output_rejected`（只列出被拒绝的字段路径）和 `lab_supervisor_fallback`。
 
 请求采用严格校验：未知值或额外属性会返回 HTTP 400 和
 `{ "error": "Invalid Agent Lab request" }`。有效请求以 NDJSON 流返回帧。事件帧格式为
 `{ "type": "event", "event": { ... } }`，最后一帧格式为
 `{ "type": "complete", "artifact": { ... } }`。产物包含经过校验的计划、有序事件、
 确定性指标，以及明确的 fixture／评估器版本。`metrics.checks` 逐项列出按场景规则衡量的具名检查
-（`id`、`label`、`passed`）；计划超出预算时 `budgetHeadroom` 为负数。对比数据 `rounds`、`toolCalls`、`fallbacks`、`failedAgents` 和
+（`id`、`label`、`passed`）；计划超出预算时 `budgetHeadroom` 为负数。若场景的证据表明没有任何计划放得下，则用 `evidence-floor`（估算不低于受支持的最便宜选项）和 `infeasibility-reported`（计划指出受支持的最低成本）取代 `budget` 和 `no-conflicts`；多城市场景再增加 `hop-date`、`itinerary-by-city`、`stay-transition`、`trip-dates` 和 `total-consistent`。`versions.evaluator` 为 `scenario-rules-v2`，`versions.fixture` 指明场景的 fixture。对比数据 `rounds`、`toolCalls`、`fallbacks`、`failedAgents` 和
 `unresolvedConflicts` 由轨迹和计划统计得出；`latencyMs` 是不含显示节奏延迟的运行耗时（`durationMs` 含该延迟），
 在 fixture 模式下仅衡量编排开销。产物还记录 `groundedSections`、`duplicateStops`、`genericStops`、
 `multiCityConsistent`（单城市旅行为 `null`）、`stopReason`（没有循环的策略为 `null`）和 `usage`；fixture 运行不调用
 模型，所以 `usage` 为 `{ "status": "unavailable" }`：缺失的用量绝不会被当作 0。除 `durationMs` 和 `latencyMs` 外，
 每个指标都能仅凭最终计划和轨迹重新计算，不需要模型来评判。修订运行会增加轨迹事件 `lab_conflict_detected`、
 `lab_revision_started`、`lab_revision_scored` 和 `lab_loop_stopped`。客户端取消请求会中止运行，不发送完成帧。
-运行内部失败时，会发送 `error` 帧；其中包含不敏感的消息，以及记录失败前事件的结构化
-`failed` 产物。
+运行失败时（包括被故障终止的运行），会发送 `error` 帧；其中包含不敏感的消息，以及记录失败前事件的结构化
+`failed` 产物。当某个 specialist 报告无法完成时，`failure.code` 为 `agent_failed`，`failure.agent` 指明该 specialist；
+其他情况为 `run_failed`；两种消息都不含堆栈、校验器消息或提供方载荷。
 
-Agent Lab 只使用 fixture：应在没有模型或提供方密钥的情况下运行，未配置时不调用外部服务，也不持久化聊天、行程或实验结果。
+`dataMode` 为 `fixture`（默认）或 `live`。fixture 运行对该请求使用 mock 工具且不使用模型，因此无论部署持有什么密钥、默认数据模式是什么，
+它都不发起外部调用、不消耗额度。它不需要任何凭据，并且它和实时运行都不会持久化聊天、行程或实验结果。
+
+实时运行使用部署自己的模型和提供方，且只在部署设置了 `AGENT_LAB_LIVE_ENABLED=true` 时存在（见 [development](development.zh.md)）。只有两个 specialist 策略有实时实现；
+单 agent 基线回放的是一份录制结果，因此请求它的实时运行会被拒绝。无法开始的请求只会收到一个带类型的 `rejected` 帧，没有运行，也绝不会有产物：
+503 `live_disabled`、400 `live_unsupported`，或带有 `Retry-After` 头和 `retryAfterSeconds` 的 429 `concurrency_limit` / `rate_limit`。
+这些都不是实验的失败，且消息不会点出任何设置或限额。实时产物的 `dataMode`，以及每个事件上的同名字段，都是 `live`。
+它的 `metrics.usage` 仅当提供方为每次模型调用都返回了用量时才是带有输入、输出和总 token 数的 `{ "status": "measured", ... }`，否则是
+`{ "status": "unavailable", "reason": ... }`，绝不会是 0 或部分合计。模型成本从不报告，轨迹也从不包含模型自己的推理。
 
 <a id="get-apidata-mode"></a>
 

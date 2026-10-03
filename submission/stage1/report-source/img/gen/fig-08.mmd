@@ -1,0 +1,22 @@
+flowchart LR
+  subgraph NTP["«collaboration» Negotiate Trip Plan"]
+    direction LR
+    coord(["coordinator : Orchestrator"])
+    board(["board : PlanningBoard"])
+    first(["firstStage : Specialist"])
+    dependent(["dependent : Specialist"])
+    reviser(["reviser : Specialist"])
+    judge(["judge : ConflictPolicy"])
+    gw(["evidence : ToolGateway"])
+  end
+  coord -- "1: dispatch(brief)" --> first
+  first -- "2: post proposal" --> board
+  board -- "3: allocation + board" --> dependent
+  dependent -- "4: post proposal" --> board
+  first -. "search" .-> gw
+  dependent -. "search" .-> gw
+  coord -- "5: detect(proposals, brief)" --> judge
+  judge -- "6: RevisionRequest[]" --> coord
+  coord -- "7: revise(request, previous)" --> reviser
+  reviser -- "8: revised proposal" --> board
+  style NTP stroke-dasharray: 6 4

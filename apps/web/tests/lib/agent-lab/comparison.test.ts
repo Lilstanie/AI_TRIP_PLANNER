@@ -7,7 +7,10 @@
 // - a one-sided comparison pretends to have a winner (the module must never rank the strategies);
 // - unavailable token or cost usage is shown as 0, or a missing stop reason as a reason;
 // - a single-city trip is shown as "Consistent" for multi-city;
-// - a third strategy is dropped, or its values land in another strategy's column.
+// - a third strategy is dropped, or its values land in another strategy's column;
+// - a conflict outcome blurs a conflict that was repaired, one left unresolved and an infeasible budget
+//   no revision could repair, or calls an infeasible stop "unresolved" because a conflict remains;
+// - a strategy with no planning loop is shown as having found no conflicts, when it never checked.
 import { describe, expect, it } from "vitest";
 import type { AgentLabCompletedRunArtifact } from "@trip/shared";
 import { buildComparisonRows } from "@/lib/agent-lab/comparison";
@@ -115,6 +118,58 @@ describe("buildComparisonRows", () => {
     expect(value(rows, "generic-stops", 0)).toBe("4");
     expect(value(rows, "stop-reason", 0)).toBe("No improvement");
     expect(value(rows, "stop-reason", 1)).toBe("No loop");
+  });
+
+  it("tells an infeasible stop, an unrepaired conflict and a repaired one apart", () => {
+    const outcome = (overrides: Partial<AgentLabCompletedRunArtifact["metrics"]>) =>
+      value(buildComparisonRows(artifact(overrides)), "conflict-outcome", 0);
+    expect(outcome({ stopReason: "infeasible_budget", unresolvedConflicts: 1 })).toBe(
+      "Infeasible budget",
+    );
+    expect(outcome({ stopReason: "round_limit", unresolvedConflicts: 1 })).toBe(
+      "Unresolved (1 left)",
+    );
+    expect(outcome({ stopReason: "no_improvement", unresolvedConflicts: 2 })).toBe(
+      "Unresolved (2 left)",
+    );
+    expect(outcome({ stopReason: "converged", unresolvedConflicts: 0, rounds: 2 })).toBe(
+      "Repaired in 2 rounds",
+    );
+    expect(outcome({ stopReason: "converged", unresolvedConflicts: 0, rounds: 1 })).toBe(
+      "None found",
+    );
+  });
+
+  it("says a strategy with no planning loop never checked for conflicts", () => {
+    const rows = buildComparisonRows(
+      artifact({ stopReason: null, withinBudget: false, budgetHeadroom: -880 }),
+      undefined,
+    );
+    expect(value(rows, "conflict-outcome", 0)).toBe("Not checked");
+    expect(value(rows, "conflict-outcome", 1)).toBe("No completed run");
+  });
+
+  it("shows measured usage as the tokens the provider returned, and says cost is not reported", () => {
+    const rows = buildComparisonRows(
+      artifact({
+        usage: {
+          status: "measured",
+          modelCalls: 5,
+          inputTokens: 8200,
+          outputTokens: 1300,
+          totalTokens: 9500,
+        },
+      }),
+      artifact({
+        usage: {
+          status: "unavailable",
+          reason: "The provider reported usage for 3 of 5 model calls.",
+        },
+      }),
+    );
+    expect(value(rows, "usage", 0)).toBe("9,500 tokens in 5 model calls; cost not reported");
+    expect(value(rows, "usage", 1)).toBe("Unavailable");
+    expect(value(rows, "usage", 1)).not.toMatch(/\d/);
   });
 
   it("labels multi-city consistency as not applicable, consistent or inconsistent", () => {

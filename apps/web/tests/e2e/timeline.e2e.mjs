@@ -3,7 +3,7 @@
 // day's routes, applying a previewed edit and undoing it. Screenshots at desktop and phone widths,
 // light and dark, land under output/playwright/timeline/<label>/ as a repeatable artifact.
 //
-//   pnpm --filter @trip/web dev            # in another terminal
+//   pnpm --filter @trip/web dev            # in another terminal; a map key is optional (see the 502 note below)
 //   [PLAYWRIGHT=<path to playwright>] [LABEL=after] [SHOTS_ONLY=1] node apps/web/tests/e2e/timeline.e2e.mjs
 //
 // SHOTS_ONLY=1 skips the interaction checks, for capturing a baseline of an older build.
@@ -34,7 +34,18 @@ async function openTimeline(browser, { width, height, scheme }) {
   });
   const page = await context.newPage();
   const errors = [];
-  page.on("console", (message) => message.type() === "error" && errors.push(message.text()));
+  // Without a map key the place search answers 502 ("other upstream failure"), and the browser logs that as a
+  // console error with no URL. That one case is expected; any other failed request is still an error.
+  const upstream = new Set();
+  page.on("response", (response) => {
+    if (response.status() === 502) upstream.add(new URL(response.url()).pathname);
+  });
+  page.on("console", (message) => {
+    if (message.type() !== "error") return;
+    const text = message.text();
+    if (/status of 502/.test(text) && [...upstream].every((path) => path === "/api/places/search")) return;
+    errors.push(text);
+  });
   page.on("pageerror", (error) => errors.push(String(error)));
   await page.goto(BASE);
   await page.waitForSelector(".workspace-app");
@@ -61,7 +72,7 @@ async function openTimeline(browser, { width, height, scheme }) {
   await settle(page, 700);
   await page.getByRole("tab", { name: /Timeline/ }).click();
   await settle(page, 700);
-  return { context, page, errors };
+  return { context, page, errors, upstream };
 }
 
 async function shots(browser, width, height, tag) {
@@ -94,7 +105,7 @@ async function applyPreview(page, preview, label) {
 }
 
 async function interactions(browser) {
-  const { context, page, errors } = await openTimeline(browser, {
+  const { context, page, errors, upstream } = await openTimeline(browser, {
     width: 1440,
     height: 1000,
     scheme: "light",
@@ -161,6 +172,14 @@ async function interactions(browser) {
 
   // The whole route check: pick a day with two or more stops, confirm each stop's map match, then
   // check the day's routes and see checked journeys between the stops.
+  // Confirming a stop's map match needs real place results. Without a map key the search answers 502, so
+  // from here this reports a skip, never a pass; everything above still ran.
+  if (upstream.has("/api/places/search")) {
+    console.log("skip  route check: the place search needs a map key (it answered 502), so stops cannot be matched");
+    check(!errors.length, `interactions: no console errors${errors.length ? `: ${errors.join(" | ")}` : ""}`);
+    await context.close();
+    return;
+  }
   const dayTabs = await days.count();
   let routeDay = -1;
   for (let index = 0; index < dayTabs; index += 1) {

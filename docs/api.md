@@ -151,13 +151,23 @@ Contract: `AgentLabRunRequest`, `AgentLabRunEvent`, `AgentLabStreamFrame` and
 }
 ```
 
-`scenarioId` is `tokyo-couple` or `tokyo-couple-tight-budget` (the same trip and evidence with a
-A$2,300 budget, so the first plan overruns). `strategyId` is `single-agent-baseline`,
+`scenarioId` is `tokyo-couple`, `tokyo-couple-tight-budget` (the same trip and evidence with a
+A$2,300 budget, so the first plan overruns), `paris-family-infeasible` (four travellers, A$3,000, against a
+supported minimum of A$3,880, so no plan can fit) or `tokyo-kyoto-multi-city` (seven nights in two cities). `strategyId` is `single-agent-baseline`,
 `multi-agent-no-revision` or `multi-agent-targeted-revision`. The second runs the five registered
 specialists through the LangGraph workflow for one round, so its plan has `round: 1` and any conflicts
 stay unresolved. The third runs the established loop with at most three rounds: it routes each conflict
 to the specialist it names, keeps the best known proposals when a revision does not improve the plan, and
 stops early when the budget is infeasible. `multi-agent-with-revision` is not registered and is rejected.
+
+An optional `faultProfileId` asks for one registered fault: `provider-timeout`, `provider-empty-result`,
+`invalid-agent-output`, `supervisor-failure` or `stalled-revision`. Each is bound to the one scenario and
+strategy it was built for (see [architecture](architecture.md#agent-lab)); a request for any other
+combination gets the same 400 as an unknown id, an object that defines a fault or an extra property. A
+visitor chooses a profile and never defines a fault. The artifact records it in `faultProfileId` (`null`
+for an ordinary run, and for any artifact recorded before faults existed), and the trace opens with
+`lab_fault_injected`. A fault can add `lab_agent_output_rejected`, which lists only the rejected field
+paths, and `lab_supervisor_fallback`.
 
 The request is strict: an unknown value or extra property returns HTTP 400 with
 `{ "error": "Invalid Agent Lab request" }`. A valid request streams NDJSON frames. Event frames have
@@ -165,7 +175,11 @@ The request is strict: an unknown value or extra property returns HTTP 400 with
 `{ "type": "complete", "artifact": { ... } }`. The artifact contains the validated plan, ordered
 events, deterministic metrics and explicit fixture/evaluator versions. `metrics.checks` lists each
 named check (`id`, `label`, `passed`) measured against the scenario's rules; `budgetHeadroom` is
-negative when the plan is over budget. The comparison figures `rounds`, `toolCalls`, `fallbacks`,
+negative when the plan is over budget. A scenario whose evidence shows no plan can fit replaces `budget` and
+`no-conflicts` with `evidence-floor` (the estimate is not below the cheapest supported options) and
+`infeasibility-reported` (the plan names the supported minimum); a multi-city scenario adds `hop-date`,
+`itinerary-by-city`, `stay-transition`, `trip-dates` and `total-consistent`. `versions.evaluator` is
+`scenario-rules-v2` and `versions.fixture` names the scenario's fixture. The comparison figures `rounds`, `toolCalls`, `fallbacks`,
 `failedAgents` and `unresolvedConflicts` are counted from the trace and the plan; `latencyMs` is the
 run's wall time without display pacing (`durationMs` includes it) and, in fixture mode, measures
 orchestration overhead only. The artifact also records `groundedSections`, `duplicateStops`,
@@ -174,12 +188,26 @@ strategy with no loop) and `usage`. Because fixture runs make no model calls, `u
 missing usage is never reported as zero. Every metric except `durationMs` and `latencyMs`
 is recomputed from the final plan and the trace alone, with no model judging it. Revision runs add trace
 events `lab_conflict_detected`, `lab_revision_started`, `lab_revision_scored` and `lab_loop_stopped`. Cancelling the client request
-aborts the run without emitting a completion frame. An internal run failure emits an `error` frame
+aborts the run without emitting a completion frame. A run that fails, including one a fault stops, emits an `error` frame
 with a non-sensitive message and a structured `failed` artifact containing the events recorded before
-the failure.
+the failure. `failure.code` is `agent_failed`, with `failure.agent` naming the specialist, when a specialist
+reported that it could not finish, and `run_failed` otherwise; neither message carries a stack, a validator
+message or a provider payload.
 
-Agent Lab is fixture-only. It is meant to run with no model or provider key, makes no external calls
-when none are configured and does not persist chats, trips or lab results.
+`dataMode` is `fixture` (the default) or `live`. A fixture run executes with mock tools and no model for
+that request, so it makes no external call and spends no quota whatever keys or data-mode default the
+deployment holds. It needs no credential, and neither it nor a live run persists chats, trips or lab results.
+
+A live run uses the deployment's own models and providers, and exists only where the deployment sets
+`AGENT_LAB_LIVE_ENABLED=true` (see [development](development.md)). Only the two specialist strategies have a live
+implementation; the single-agent baseline replays a recording, so asking for it live is refused. A request that
+cannot start is answered with one typed `rejected` frame and no run, never an artifact: 503 `live_disabled`, 400
+`live_unsupported`, or 429 `concurrency_limit` or `rate_limit` with a `Retry-After` header and
+`retryAfterSeconds`. These are not failures of the experiment, and the messages name no setting or limit. A live
+artifact's `dataMode`, and every event's, say `live`. Its `metrics.usage` is `{ "status": "measured", ... }` with
+the input, output and total tokens only when the provider returned usage for every model call, and
+`{ "status": "unavailable", "reason": ... }` otherwise, never a zero or a partial total. Model cost is never
+reported, and the trace never carries a model's own reasoning.
 
 ## `GET /api/data-mode`
 

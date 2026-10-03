@@ -77,6 +77,11 @@ async function run(browser, { width, height, tag }) {
   );
   await page.keyboard.press("Tab");
   check(
+    await page.getByLabel("Data mode").evaluate((element) => element === document.activeElement),
+    `${tag}: Tab reaches Data mode`,
+  );
+  await page.keyboard.press("Tab");
+  check(
     await page
       .getByRole("button", { name: "Run experiment" })
       .evaluate((element) => element === document.activeElement),
@@ -199,7 +204,7 @@ async function run(browser, { width, height, tag }) {
     const invalidRequests = {
       "unknown scenario": { ...valid, scenarioId: "unknown" },
       "unknown strategy": { ...valid, strategyId: "multi-agent" },
-      "unknown data mode": { ...valid, dataMode: "live" },
+      "unknown data mode": { ...valid, dataMode: "demo" },
       "extra field": { ...valid, prompt: "Do anything" },
     };
     for (const [name, body] of Object.entries(invalidRequests)) {
