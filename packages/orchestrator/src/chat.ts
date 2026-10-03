@@ -10,6 +10,7 @@ import {
   TravelModes,
   PartialTripBrief as PartialTripBriefSchema,
   TripBrief as TripBriefSchema,
+  TripLocations,
   toAud,
   type ChatRequest,
   type AssistantSettings,
@@ -135,7 +136,9 @@ export const BriefUpdate = z.object({
   excludeFlights: z
     .boolean()
     .nullish()
-    .describe("true when the traveller says they arrange flights themselves or flights are not needed; false if they ask to include flights again"),
+    .describe(
+      "true when the traveller says they arrange flights themselves or flights are not needed; false if they ask to include flights again",
+    ),
   travelModeChoices: z
     .array(
       z.object({
@@ -192,7 +195,9 @@ function toPatch(update: z.infer<typeof BriefUpdate>): BriefPatch {
     // Only a whole range is meaningful; one end alone is held back.
     ...(startDate && endDate ? { dates: [startDate, endDate] as [string, string] } : {}),
     ...(learned ? { learnedPreferences: learned } : {}),
-    ...(typeof update.excludeFlights === "boolean" ? { excludeFlights: update.excludeFlights } : {}),
+    ...(typeof update.excludeFlights === "boolean"
+      ? { excludeFlights: update.excludeFlights }
+      : {}),
     // A whole replacing list, like learnedPreferences: that is what lets the
     // traveller take a choice back by restating the rest without it. Entries
     // whose endpoints did not survive text() are dropped rather than stored
@@ -212,7 +217,9 @@ function toPatch(update: z.infer<typeof BriefUpdate>): BriefPatch {
       ? {
           bookedStay: {
             name: text(update.bookedStayName)!.slice(0, 160),
-            ...(text(update.bookedStayNote) ? { note: text(update.bookedStayNote)!.slice(0, 300) } : {}),
+            ...(text(update.bookedStayNote)
+              ? { note: text(update.bookedStayNote)!.slice(0, 300) }
+              : {}),
           },
         }
       : {}),
@@ -438,8 +445,19 @@ export async function runTripChat(
   const { model, extractor, ...orchestrationOptions } = options;
   if (request.mode === "plan" && !request.brief) throw new Error("A brief is required to plan.");
   const mem: MemoryStore = orchestrationOptions.mem ?? memory;
-  const orchestrate = (brief: TripBrief) =>
-    runOrchestrator(brief, { ...orchestrationOptions, mem });
+  const orchestrate = (brief: TripBrief) => {
+    if (request.requireStructuredLocations && !TripLocations.safeParse(brief.locations).success) {
+      const question = /\p{Script=Han}/u.test(request.message)
+        ? "规划前，请在顶部地址编辑器填写每个目的地及出发地的城市和国家；出发地也可点击获取当前位置。"
+        : "Before planning, fill in the city and country for each destination and your departure address in Where. You can also use Get current location.";
+      throw new IncompleteBriefError(
+        ["destination and departure city/country"],
+        PartialTripBriefSchema.parse(brief),
+        question,
+      );
+    }
+    return runOrchestrator(brief, { ...orchestrationOptions, mem });
+  };
   await mem.appendShortTerm(
     request.tripId,
     ChatTurn.parse({ role: "user", content: request.message }),
@@ -503,7 +521,8 @@ const STYLE_TEXT: Record<AssistantSettings["style"], string> = {
   neutral: "",
   friendly: "Write warmly and conversationally, like a friend who knows the place.",
   concise: "Keep replies short: the answer first, at most three sentences or a short list.",
-  detailed: "Give fuller replies: explain the reasoning, timings and trade-offs behind each suggestion.",
+  detailed:
+    "Give fuller replies: explain the reasoning, timings and trade-offs behind each suggestion.",
 };
 
 /** The traveller's chosen communication style, appended to the coordinator's prompt. */

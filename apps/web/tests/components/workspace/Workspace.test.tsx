@@ -459,7 +459,12 @@ describe("Workspace interactions", () => {
     const view = render(<Workspace initialPlan={plan} />);
     fireEvent.click(newChatButton());
     openChip(/^Where$/);
-    fireEvent.change(screen.getByLabelText("Add a destination"), { target: { value: "Lisbon" } });
+    const destination = within(screen.getByRole("group", { name: "Destination 1" }));
+    const origin = within(screen.getByRole("group", { name: "Departing from" }));
+    fireEvent.change(destination.getByLabelText("City *"), { target: { value: "Lisbon" } });
+    fireEvent.change(destination.getByLabelText("Country *"), { target: { value: "Portugal" } });
+    fireEvent.change(origin.getByLabelText("City *"), { target: { value: "Sydney" } });
+    fireEvent.change(origin.getByLabelText("Country *"), { target: { value: "Australia" } });
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     fireEvent.change(screen.getByLabelText("Message AI Trip Planner"), {
       target: { value: "somewhere warm" },
@@ -467,7 +472,7 @@ describe("Workspace interactions", () => {
     await waitFor(() => {
       const catalog = parseCatalog(localStorage.getItem(CATALOG_KEY));
       const active = catalog.conversations.find((item) => item.id === catalog.activeConversationId);
-      expect(active?.draft?.destination).toBe("Lisbon");
+      expect(active?.draft?.destination).toBe("Lisbon, Portugal");
       expect(active?.input).toBe("somewhere warm");
     });
     view.unmount();
@@ -475,7 +480,7 @@ describe("Workspace interactions", () => {
     expect((screen.getByLabelText("Message AI Trip Planner") as HTMLInputElement).value).toBe(
       "somewhere warm",
     );
-    expect(chip(/^Destination: Lisbon$/)).toBeTruthy();
+    expect(chip(/^Destination: Lisbon, Portugal$/)).toBeTruthy();
     expect(chip(/^When$/)).toBeTruthy();
     expect(within(drawer("trip")).queryByText(/Sydney/)).toBeNull();
     // Scoped to the message log: the blank state's example buttons name cities
@@ -660,18 +665,22 @@ describe("Workspace interactions", () => {
     vi.stubGlobal("fetch", fetcher);
     render(<Workspace initialPlan={plan} />);
     openChip(/^Destination: Sydney$/);
-    fireEvent.click(screen.getByRole("button", { name: "Remove Sydney" }));
-    fireEvent.change(screen.getByLabelText("Add a destination"), { target: { value: "Paris" } });
+    const destination = within(screen.getByRole("group", { name: "Destination 1" }));
+    const origin = within(screen.getByRole("group", { name: "Departing from" }));
+    fireEvent.change(destination.getByLabelText("City *"), { target: { value: "Paris" } });
+    fireEvent.change(destination.getByLabelText("Country *"), { target: { value: "France" } });
+    fireEvent.change(origin.getByLabelText("City *"), { target: { value: "Sydney" } });
+    fireEvent.change(origin.getByLabelText("Country *"), { target: { value: "Australia" } });
     fireEvent.click(screen.getByRole("button", { name: "Update trip" }));
     await screen.findByText("Offline");
-    expect(chip(/^Destination: Paris$/)).toBeTruthy();
+    expect(chip(/^Destination: Paris, France$/)).toBeTruthy();
     expect(within(drawer("trip")).getByText(/Sydney · 2026-10-01/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Retry update" }));
     await within(drawer("trip")).findByText(/Paris · 2026-10-01/);
     const chatCalls = fetcher.mock.calls.filter(([url]) => url === "/api/chat");
     const first = JSON.parse((chatCalls[0]![1] as RequestInit).body as string);
     expect(first.mode).toBe("plan");
-    expect(first.brief.destination).toBe("Paris");
+    expect(first.brief.destination).toBe("Paris, France");
     expect((chatCalls[0]![1] as RequestInit).body).toBe((chatCalls[1]![1] as RequestInit).body);
   });
   it("opens a trip from history and ignores the result of the aborted old request", async () => {
@@ -1066,7 +1075,9 @@ describe("Workspace map places", () => {
     const places = () =>
       within(drawer("trip")).getByRole("list", { name: "Stops, Day 1 · 2026-10-01" });
     await waitFor(() =>
-      expect(within(places()).getByRole("button", { name: /^Stop \d+: To-ji Temple/ })).toBeTruthy(),
+      expect(
+        within(places()).getByRole("button", { name: /^Stop \d+: To-ji Temple/ }),
+      ).toBeTruthy(),
     );
     const map = document.querySelector<HTMLElement>(".workspace-panel--map")!;
     await waitFor(() =>
@@ -1082,7 +1093,9 @@ describe("Workspace map places", () => {
     );
     expect(within(places()).getByRole("button", { name: /^Stop \d+: To-ji Temple/ })).toBeTruthy();
     // The failed stop stays listed, without a map selection, instead of disappearing.
-    expect(within(places()).getAllByText(/Gallery afternoon|Kyoto Gallery/).length).toBeGreaterThan(0);
+    expect(within(places()).getAllByText(/Gallery afternoon|Kyoto Gallery/).length).toBeGreaterThan(
+      0,
+    );
   });
 
   it("shows a neutral placeholder instead of a world map when the destination cannot be located", async () => {

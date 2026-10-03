@@ -11,6 +11,7 @@ validated against the shared contracts in `packages/shared/src/`.
 | [`/api/chat`](#post-apichat)                                | Extract brief updates or plan a submitted brief, streaming progress |
 | [`/api/agent-lab/runs`](#post-apiagent-labruns)             | Run a registered, inspectable fixture experiment                    |
 | [`/api/data-mode`](#get-apidata-mode)                       | Default data mode and whether live provider keys are configured     |
+| [`/api/location/reverse`](#post-apilocationreverse)         | Address for an explicitly approved browser location                 |
 | [`/api/places/search`](#post-apiplacessearch)               | Google Places text search                                           |
 | [`/api/places/details`](#post-apiplacesdetails)             | Google place details for a place ID                                 |
 | [`/api/places/photo`](#get-apiplacesphoto)                  | Redirect to one Google place photo                                  |
@@ -25,6 +26,14 @@ The browser sends the current plan or brief with each request and keeps its work
 storage. On the server, `packages/services` records chat turns, preferences and generated plans in
 the Redis REST store when `KV_REST_API_URL` and `KV_REST_API_TOKEN` are set, and in process memory
 otherwise.
+
+## `POST /api/location/reverse`
+
+Accepts latitude (−90 to 90), longitude (−180 to 180), and language (en or zh-CN, default en).
+Returns an address with suburb, city, state and country. Invalid input returns 400, a mismatched
+Origin header 403, rate limits 429, and unavailable or incomplete provider data 502.
+Coordinates are rounded to three decimal places before Nominatim receives them; the endpoint
+works independently of planning data mode. See [provider setup](development.md#location-lookup).
 
 ## `POST /api/chat`
 
@@ -64,10 +73,15 @@ Three more optional fields on `brief` and `known` come from the conversation:
 The traveller can remove these from Trip preferences, and the client then sends them without them.
 
 `brief.party` and `known.party` are optional too: `{ adults, children, infants, seniors, pets }`,
-whole numbers from 0 to 99 (`TravellerParty` in `packages/shared/src/contracts.ts`), set by the Who
+nonnegative whole numbers with at most nine people combined and three pets (`TravellerParty` in `packages/shared/src/contracts.ts`), set by the Who
 editor's steppers. They break `groupSize` down and add pets, who are not counted in it; `groupSize`
 stays authoritative for every cost, and specialists are told to ignore a party whose people do not
 add up to it.
+
+Optional `brief.locations` and `known.locations` contain a required origin and 1–12 destinations.
+Each address has required city/country and optional suburb/state strings, each at most 120 characters.
+The web client sends `requireStructuredLocations: true`; planning returns needs-info until these
+addresses are complete. Older API clients may omit the flag and metadata.
 
 Optional `assistant`: `{ style, memory }` from Settings → Personalization (`AssistantSettings` in
 `packages/shared/src/chat.ts`).

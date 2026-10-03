@@ -179,6 +179,32 @@ const ZH: Record<string, string> = {
   Infants: "婴儿",
   Seniors: "老人",
   Pets: "宠物",
+  "Suburb (optional)": "城区（选填）",
+  "City *": "城市 *",
+  "State / province (optional)": "州／省（选填）",
+  "Country *": "国家 *",
+  "e.g. Sydney": "例如：悉尼",
+  "e.g. Australia": "例如：澳大利亚",
+  Optional: "选填",
+  "Get current location": "获取当前位置",
+  "Locating…": "正在定位…",
+  "Remove destination": "移除目的地",
+  "City and country are required for every destination and your departure address.":
+    "每个目的地及出发地都需填写城市和国家。",
+  "Only when you click: your coordinates are sent to OpenStreetMap to fill this address.":
+    "仅点击定位后，才将坐标发送至 OpenStreetMap 填写地址。",
+  "Enter a city and country for each destination and your departure address.":
+    "请填写每个目的地及出发地的城市和国家。",
+  "Location is unavailable. Enter your address manually.": "暂时无法定位，请手动填写地址。",
+  "Location permission denied. Enter your address manually.": "定位权限被拒绝，请手动填写地址。",
+  "Unable to find your address. Enter it manually.": "无法查询地址，请手动填写。",
+  "Location filled in. Check the city and country before saving.":
+    "地址已填入，保存前请核对城市和国家。",
+  "Up to 9 travellers in total and 3 pets. Pets do not count as travellers.":
+    "同行人员合计最多 9 人，宠物最多 3 个。宠物不计入人数。",
+  "Trips support at most 9 travellers.": "同行人员合计最多 9 人。",
+  "Trips support at most 3 pets.": "宠物最多 3 个。",
+  "Enter a whole number of travellers, 1 or more.": "请填写至少 1 人的整数人数。",
   "Ages 13–64": "13–64 岁",
   "Ages 2–12": "2–12 岁",
   "Under 2": "2 岁以下",

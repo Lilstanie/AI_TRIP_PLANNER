@@ -15,6 +15,21 @@ const brief = {
   budgetTotal: 2000,
 };
 
+describe("structured locations", () => {
+  it("retains the city and country for both ends and rejects incomplete structured addresses", () => {
+    const address = { city: "Sydney", country: "Australia", suburb: "", state: "" };
+    const locations = { destinations: [address], origin: { ...address, city: "Melbourne" } };
+    expect(TripBrief.parse({ ...brief, locations })).toHaveProperty("locations", locations);
+    expect(
+      TripBrief.safeParse({
+        ...brief,
+        locations: { ...locations, origin: { ...address, city: "" } },
+      }).success,
+    ).toBe(false);
+    expect(PartialTripBrief.parse({ locations })).toHaveProperty("locations", locations);
+  });
+});
+
 describe("trip preferences", () => {
   it("is optional, so briefs saved before it existed still parse", () => {
     const parsed = TripBrief.parse(brief);
@@ -63,6 +78,22 @@ describe("trip preferences", () => {
 });
 
 describe("TripBrief.party", () => {
+  it("limits the combined people count to nine and pets independently to three", () => {
+    const party = { adults: 4, children: 2, infants: 1, seniors: 2, pets: 3 };
+    expect(TripBrief.safeParse({ ...brief, groupSize: 9, party }).success).toBe(true);
+    for (const bad of [
+      { ...party, children: 3 },
+      { ...party, pets: 4 },
+      { ...party, adults: 108 },
+    ]) {
+      expect(TripBrief.safeParse({ ...brief, groupSize: 9, party: bad }).success).toBe(false);
+      expect(PartialTripBrief.safeParse({ party: bad }).success).toBe(false);
+    }
+    for (const groupSize of [10, 108]) {
+      expect(TripBrief.safeParse({ ...brief, groupSize }).success).toBe(false);
+      expect(PartialTripBrief.safeParse({ groupSize }).success).toBe(false);
+    }
+  });
   const party = { adults: 2, children: 1, infants: 0, seniors: 1, pets: 1 };
   it("is optional, and accepted beside groupSize with pets outside the people count", () => {
     expect(TripBrief.safeParse(brief).success).toBe(true);

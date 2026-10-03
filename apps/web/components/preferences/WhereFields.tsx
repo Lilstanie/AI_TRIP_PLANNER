@@ -1,194 +1,234 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import type { TripAddress } from "@trip/shared";
 import type { Draft } from "@/lib/workspace";
 import { destinationCities } from "@/lib/map/place-query";
+import { addressText, emptyAddress, legacyAddress } from "@/lib/workspace/addresses";
 import { CloseIcon, MapPinIcon, PlusIcon } from "../ui/icons";
-import { PlaceInput } from "./PlaceInput";
+import { Input } from "../ui/input";
 import { useLocale } from "../account/LocaleProvider";
 
 type Props = {
   value: Draft;
   onChange(next: Draft): void;
   errors: Record<string, string>;
-  /** Offer place suggestions while typing (live data with Maps configured). */
   suggestPlaces: boolean;
 };
+const parts = ["suburb", "city", "state", "country"] as const;
+const labels = {
+  suburb: "Suburb (optional)",
+  city: "City *",
+  state: "State / province (optional)",
+  country: "Country *",
+};
 
-/** Split what was typed into places: "Sydney & Melbourne" is two. */
-const places = (text: string) =>
-  text
-    .split("&")
-    .map((place) => place.trim())
-    .filter(Boolean);
-
-/** Append places, skipping any already in the list (case-insensitively). */
-function withPlaces(list: string[], added: string[]) {
-  const next = [...list];
-  for (const place of added)
-    if (!next.some((item) => item.toLowerCase() === place.toLowerCase())) next.push(place);
-  return next;
+function AddressFields({
+  address,
+  onChange,
+  prefix,
+  locationButton,
+}: {
+  address: TripAddress;
+  onChange(next: TripAddress): void;
+  prefix: string;
+  locationButton?: ReactNode;
+}) {
+  const { t } = useLocale();
+  return (
+    <div className="address-grid">
+      {parts.map((key) => (
+        <div className="address-field" key={key}>
+          <label htmlFor={`${prefix}-${key}`}>{t(labels[key])}</label>
+          <div
+            className={key === "city" && locationButton ? "address-input-with-action" : undefined}
+          >
+            <Input
+              className="field"
+              id={`${prefix}-${key}`}
+              value={address[key]}
+              maxLength={120}
+              required={key === "city" || key === "country"}
+              autoComplete="off"
+              data-autofocus={prefix === "destination-0" && key === "city" ? "" : undefined}
+              placeholder={t(
+                key === "city" ? "e.g. Sydney" : key === "country" ? "e.g. Australia" : "Optional",
+              )}
+              onChange={(event) => onChange({ ...address, [key]: event.target.value })}
+            />
+            {key === "city" && locationButton}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 }
 
-/**
- * Where: the trip's destinations as cards, an Add destination pill that turns into a search field,
- * and where the trip departs from as a quieter field below. The brief keeps the destinations as
- * one string joined with " & ", in list order, which is also the order the trip visits them.
- */
-export function WhereFields({ value, onChange, errors, suggestPlaces }: Props) {
-  const { t } = useLocale();
-  const [stops, setStops] = useState(() => destinationCities(value.destination));
-  // The region line of a place picked from a suggestion. Kept for this editor only: the brief
-  // stores names, and a typed place has no region to show.
-  const [regions, setRegions] = useState<Record<string, string>>({});
-  const [pending, setPending] = useState("");
-  const [adding, setAdding] = useState(stops.length === 0);
-  const addInput = useRef<HTMLInputElement>(null);
-  const addButton = useRef<HTMLButtonElement>(null);
-  const list = useRef<HTMLOListElement>(null);
-  // Where focus goes once React has re-rendered after an add or a removal.
-  const [focusNext, setFocusNext] = useState<"input" | "button" | number>();
-
-  // Text still in the search field counts, so Save keeps a place the traveller typed but did not
-  // press Enter on.
-  const publish = (nextStops: string[], nextPending: string) =>
-    onChange({ ...value, destination: withPlaces(nextStops, places(nextPending)).join(" & ") });
-
+/** Manual structured inputs never call autocomplete or install an address database. */
+export function WhereFields({ value, onChange, errors }: Props) {
+  const { t, locale } = useLocale();
+  const addresses = value.locations ?? {
+    destinations: destinationCities(value.destination).map(legacyAddress),
+    origin: legacyAddress(value.origin),
+  };
+  const destinations = addresses.destinations.length ? addresses.destinations : [emptyAddress()];
+  const latest = useRef(value);
+  latest.current = value;
+  const mounted = useRef(true);
+  const requestId = useRef(0);
+  const [locating, setLocating] = useState(false);
+  const [notice, setNotice] = useState("");
   useEffect(() => {
-    if (focusNext === undefined) return;
-    if (focusNext === "input") addInput.current?.focus();
-    else if (focusNext === "button") addButton.current?.focus();
-    else {
-      const removes = list.current?.querySelectorAll<HTMLButtonElement>(".stop-card__remove");
-      const target = removes?.[Math.min(focusNext, removes.length - 1)];
-      (target ?? addButton.current ?? addInput.current)?.focus();
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+  const publish = (nextDestinations: TripAddress[], origin: TripAddress, current = value) =>
+    onChange({
+      ...current,
+      destination: nextDestinations.map(addressText).filter(Boolean).join(" & "),
+      origin: addressText(origin),
+      locations: { destinations: nextDestinations, origin },
+    });
+  useEffect(() => {
+    if (!value.locations) publish(destinations, addresses.origin);
+    // Initialise legacy text for this editor only; subsequent edits are controlled by the draft.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value.locations]);
+  const locate = () => {
+    if (!navigator.geolocation) {
+      setNotice("Location is unavailable. Enter your address manually.");
+      return;
     }
-    setFocusNext(undefined);
-  }, [focusNext]);
-
-  const add = (text: string, address?: string) => {
-    const added = places(text);
-    const next = withPlaces(stops, added);
-    if (address && added.length === 1) setRegions((known) => ({ ...known, [added[0]!]: address }));
-    setStops(next);
-    setPending("");
-    publish(next, "");
-    setFocusNext("input");
+    setLocating(true);
+    setNotice("");
+    const id = ++requestId.current;
+    const active = () => mounted.current && requestId.current === id;
+    navigator.geolocation.getCurrentPosition(
+      async ({ coords }) => {
+        try {
+          const response = await fetch("/api/location/reverse", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              latitude: coords.latitude,
+              longitude: coords.longitude,
+              language: locale,
+            }),
+          });
+          if (!response.ok) throw new Error("lookup unavailable");
+          const { address } = (await response.json()) as { address: TripAddress };
+          if (!active()) return;
+          const current = latest.current;
+          publish(current.locations?.destinations ?? destinations, address, current);
+          setNotice("Location filled in. Check the city and country before saving.");
+        } catch {
+          if (active()) setNotice("Unable to find your address. Enter it manually.");
+        } finally {
+          if (active()) setLocating(false);
+        }
+      },
+      (error) => {
+        if (active()) {
+          setLocating(false);
+          setNotice(
+            error.code === 1
+              ? "Location permission denied. Enter your address manually."
+              : "Location is unavailable. Enter your address manually.",
+          );
+        }
+      },
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 },
+    );
   };
-  const remove = (index: number) => {
-    const next = stops.filter((_, at) => at !== index);
-    setStops(next);
-    publish(next, pending);
-    if (next.length === 0) {
-      setAdding(true);
-      setFocusNext("input");
-    } else setFocusNext(index);
+  const editOrigin = (origin: TripAddress) => {
+    requestId.current++;
+    setLocating(false);
+    setNotice("");
+    publish(destinations, origin);
   };
-
-  const error = errors.destination;
   return (
     <>
-      <div className="fact-section">
-        {stops.length > 0 && (
-          <ol ref={list} className="stop-list" aria-label={t("Destinations")}>
-            {stops.map((stop, index) => (
-              <li key={stop} className="stop-card">
-                <span className="stop-card__thumb" aria-hidden="true">
-                  <MapPinIcon />
-                </span>
-                <span className="stop-card__text">
-                  <span className="stop-card__name">{stop}</span>
-                  {regions[stop] && (
-                    <span className="stop-card__region">
-                      <MapPinIcon />
-                      {regions[stop]}
-                    </span>
-                  )}
-                </span>
-                <button
-                  type="button"
-                  className="stop-card__remove"
-                  aria-label={`Remove ${stop}`}
-                  onClick={() => remove(index)}
-                >
-                  <CloseIcon />
-                </button>
-              </li>
-            ))}
-          </ol>
-        )}
-        {adding ? (
-          <PlaceInput
-            id="fact-destination"
-            label={t("Add a destination")}
-            value={pending}
-            inputRef={addInput}
-            autoFocus
-            suggest={suggestPlaces}
-            placeholder={t("City or region")}
-            invalid={!!error}
-            describedBy={error ? "fact-destination-error" : undefined}
-            onChange={(text) => {
-              setPending(text);
-              publish(stops, text);
-            }}
-            onPick={add}
-            onEnter={() => pending.trim() && add(pending)}
-            onEscape={() => {
-              // With places listed, Escape folds the field back into its pill, dropping what was
-              // typed; with none, it closes the editor.
-              if (stops.length === 0) return false;
-              setPending("");
-              publish(stops, "");
-              setAdding(false);
-              setFocusNext("button");
-              return true;
-            }}
+      <p className="muted address-guide">
+        {t("City and country are required for every destination and your departure address.")}
+      </p>
+      {destinations.map((address, index) => (
+        <fieldset className="address-block" key={index}>
+          <legend>
+            {t("Destination")} {index + 1}
+          </legend>
+          {destinations.length > 1 && (
+            <button
+              type="button"
+              className="address-remove"
+              aria-label={`${t("Remove destination")} ${index + 1}`}
+              onClick={() =>
+                publish(
+                  destinations.filter((_, at) => at !== index),
+                  addresses.origin,
+                )
+              }
+            >
+              <CloseIcon />
+            </button>
+          )}
+          <AddressFields
+            prefix={`destination-${index}`}
+            address={address}
+            onChange={(next) =>
+              publish(
+                destinations.map((item, at) => (at === index ? next : item)),
+                addresses.origin,
+              )
+            }
           />
-        ) : (
-          <button
-            ref={addButton}
-            type="button"
-            className="stop-add"
-            data-autofocus=""
-            onClick={() => {
-              setAdding(true);
-              setFocusNext("input");
-            }}
-          >
-            <PlusIcon />
-            {t("Add destination")}
-          </button>
-        )}
-        {error && (
-          <small className="error-text fact-form__error" id="fact-destination-error">
-            {error}
-          </small>
-        )}
-      </div>
-      <section className="fact-section fact-section--secondary">
-        <label className="fact-section__label" htmlFor="fact-origin">
-          {t("Departing from")} <span className="fact-section__optional">{t("(optional)")}</span>
-        </label>
-        <PlaceInput
-          id="fact-origin"
-          value={value.origin}
-          suggest={suggestPlaces}
-          placeholder={t("Your home city")}
-          invalid={!!errors.origin}
-          describedBy={errors.origin ? "fact-origin-error" : "fact-origin-hint"}
-          onChange={(origin) => onChange({ ...value, origin })}
-          onPick={(origin) => onChange({ ...value, origin })}
+        </fieldset>
+      ))}
+      <button
+        type="button"
+        className="stop-add"
+        disabled={destinations.length >= 12}
+        onClick={() => publish([...destinations, emptyAddress()], addresses.origin)}
+      >
+        <PlusIcon />
+        {t("Add destination")}
+      </button>
+      <fieldset className="address-block address-block--origin">
+        <legend>{t("Departing from")}</legend>
+        <AddressFields
+          prefix="origin"
+          address={addresses.origin}
+          onChange={editOrigin}
+          locationButton={
+            <button type="button" className="address-locate" disabled={locating} onClick={locate}>
+              <MapPinIcon />
+              {t(locating ? "Locating…" : "Get current location")}
+            </button>
+          }
         />
-        {errors.origin ? (
-          <small className="error-text fact-form__error" id="fact-origin-error">
-            {errors.origin}
-          </small>
-        ) : (
-          <small className="muted form-field__hint" id="fact-origin-hint">
-            {t("Leave blank to plan the destination only, without long-haul flights.")}
+        <small className="muted">
+          {t(
+            "Only when you click: your coordinates are sent to OpenStreetMap to fill this address.",
+          )}{" "}
+          <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">
+            © OpenStreetMap
+          </a>
+        </small>
+        {notice && (
+          <small role="status" className="muted">
+            {t(notice)}
           </small>
         )}
-      </section>
+      </fieldset>
+      {(errors.destination || errors.origin || errors.locations) && (
+        <small className="error-text fact-form__error" role="alert">
+          {t(
+            errors.locations
+              ? "Enter a city and country for each destination and your departure address."
+              : (errors.destination || errors.origin)!,
+          )}
+        </small>
+      )}
     </>
   );
 }

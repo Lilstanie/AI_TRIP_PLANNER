@@ -13,6 +13,7 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 | [`/api/chat`](#post-apichat)                                | 提取行程需求更新或规划提交的需求，并以流式方式报告进度 |
 | [`/api/agent-lab/runs`](#post-apiagent-labruns)             | 运行已注册、可检查的 fixture 实验                      |
 | [`/api/data-mode`](#get-apidata-mode)                       | 返回默认数据模式，以及是否配置了实时提供方密钥         |
+| [`/api/location/reverse`](#post-apilocationreverse)         | 查询用户明确授权的浏览器位置对应地址                   |
 | [`/api/places/search`](#post-apiplacessearch)               | Google Places 文本搜索                                 |
 | [`/api/places/details`](#post-apiplacesdetails)             | 按地点 ID 获取 Google 地点详情                         |
 | [`/api/places/photo`](#get-apiplacesphoto)                  | 重定向到一张 Google 地点照片                           |
@@ -26,6 +27,16 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 浏览器在每次请求中发送当前计划或行程需求，并将工作区保存在本地存储中。服务端的
 `packages/services` 在配置了 `KV_REST_API_URL` 和 `KV_REST_API_TOKEN` 时，将聊天轮次、
 偏好和生成的计划记录到 Redis REST 存储中；否则记录到进程内存中。
+
+<a id="post-apilocationreverse"></a>
+
+## `POST /api/location/reverse`
+
+接收纬度（−90 至 90）、经度（−180 至 180）和语言（en 或 zh-CN，默认 en）。
+返回包含郊区、城市、州和国家的地址。输入无效返回 400，Origin 请求头不匹配返回 403，
+限流返回 429，提供方不可用或数据不完整返回 502。
+发送到 Nominatim 前，坐标舍入至三位小数；该接口独立于规划数据模式运行。
+详见[提供方配置](development.zh.md#location-lookup)。
 
 <a id="post-apichat"></a>
 
@@ -67,9 +78,14 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 旅行者可以在 Trip preferences 中移除这些字段，客户端随后发送的行程需求不再包含它们。
 
 `brief.party` 和 `known.party` 也是可选字段，格式为 `{ adults, children, infants, seniors, pets }`，
-各项为 0 到 99 的整数（`packages/shared/src/contracts.ts` 中的 `TravellerParty`），
+各项为非负整数，人员合计最多九人，宠物最多三个（`packages/shared/src/contracts.ts` 中的 `TravellerParty`），
 由 Who 编辑器的步进控件设置。它们细分 `groupSize` 并补充宠物数量；宠物不计入其中。
 所有费用仍以 `groupSize` 为准，specialist 会收到指令：如果 party 中的人数之和与它不符，就忽略 party。
+
+可选的 `brief.locations` 和 `known.locations` 包含必填出发地和 1–12 个目的地。
+每个地址的城市／国家必填、郊区／州选填，各字符串最多 120 个字符。
+网页客户端发送 `requireStructuredLocations: true`；地址完整前，规划返回 needs-info。
+旧 API 客户端可省略该标记及结构化信息。
 
 可选的 `assistant`：来自 Settings → Personalization 的 `{ style, memory }`（`packages/shared/src/chat.ts` 中的
 `AssistantSettings`）。

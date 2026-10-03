@@ -90,22 +90,17 @@ now. Implementation history and browser acceptance for each phase are in the
     calendar (all `min(…, 100vw - 2 × --space-4)`). It is a Liquid Glass sheet with 28 px corners that
     springs in and sinks out (200 ms, kept mounted by `usePresence`), and the list rows use
     `--radius` (12 px).
-  - Where lists the destinations in visiting order as cards: a 48 px square icon slot on
-    `--surface-2` where Mindtrip shows a photo (no photo is fetched here), the name in 15 px semibold,
-    the region line under it when the place was picked from a suggestion, and a 28 px round remove
-    button. They are stored as one string joined with " & ". Below the list, an Add destination pill
-    turns into a full-width pill search field with a clear button inside. Enter adds what was typed
-    ("Sydney & Melbourne" adds two, a repeat is skipped), and text left in the field is kept on
-    Save. In live data mode with Maps configured the field is a combobox that suggests places from
-    `/api/places/search` after 3 characters and 350 ms without typing, each query asked once per
-    editor, with the typed part of each name in bold; in mock mode nothing is looked up. Escape
-    closes the suggestions first, then folds the field back into its pill (dropping what was typed),
-    and only then closes the editor.
-  - Departing from has no counterpart in Mindtrip's dialog but feeds transport planning, so it stays
-    as a secondary section below the destinations: a small dim label and the same pill field, with
-    a hint that leaving it blank skips long-haul flights. A card like a destination's was rejected
-    because it would read as another stop. Mindtrip's road-trip switch is left out, because the
-    planner has no road-trip mode.
+  - Where holds up to 12 destinations in visiting order, each with Suburb, City, State/province and
+    Country fields. City and Country are required; Suburb and State/province are optional. Fields
+    form two columns on desktop and one on phones. Manual entry never calls place autocomplete in
+    either data mode and needs no local address database. Structured values travel in
+    `locations`; destination text remains one string joined with " & " for existing agents.
+  - Departing from is required and uses the same fields in a secondary section. The Get current
+    location button sits inside its City input. Only a click requests browser permission and sends
+    rounded coordinates to the free OSM reverse lookup; the result must be reviewed. Failure or
+    permission denial leaves manual entry available, and a late result never replaces a newer
+    origin edit. Old saved text does not supply an inferred country. See the
+    [structured address decision](../.agents/notes/implemented/feature/2026-10-04-structured-address-entry.md).
   - When shows a full inline calendar (`react-day-picker`, `mode="range"`), two months side by side on
     desktop and one on phones, styled onto the design tokens: rounded day cells, a soft accent band
     across the picked range, solid accent circles at its start and end, today outlined, and month
@@ -117,7 +112,10 @@ now. Implementation history and browser acceptance for each phase are in the
     2), Seniors (65+) and Pets, each with its own remove/add buttons and a live count. The draft keeps
     this breakdown (`Draft.party`) and keeps `groupSize` in sync as `adults + children + infants +
 seniors` (pets are never counted as travellers) on every change; `groupSize` stays the validated
-    field, so at least one person is required. Opening Who on a draft with no breakdown yet (saved
+    field, so 1–9 people are required in total and up to 3 pets are allowed separately. At nine
+    people all person-add buttons are disabled; at three pets the pet-add button is disabled.
+    Removing one reopens that slot. The full brief, partial chat facts, chat updates and settings
+    travel defaults enforce the same limits; excessive party counts point back to Who. Opening Who on a draft with no breakdown yet (saved
     before the steppers existed) starts every stated traveller counted as an adult.
   - The breakdown reaches the planner as `TripBrief.party` (and `known.party` before a plan exists),
     beside `groupSize`. Every specialist's shared rule asks it to plan for children, infants,

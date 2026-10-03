@@ -48,15 +48,39 @@ export type BookedStay = z.infer<typeof BookedStay>;
  * `groupSize`). A breakdown whose people do not add up to `groupSize` is to be ignored, not
  * reconciled: `groupSize` is authoritative.
  */
-const partyCount = z.number().int().min(0).max(99);
-export const TravellerParty = z.object({
-  adults: partyCount,
-  children: partyCount, // 2–12
-  infants: partyCount, // under 2
-  seniors: partyCount, // 65+
-  pets: partyCount,
-});
+export const MAX_TRAVELLERS = 9;
+export const MAX_PETS = 3;
+export const TravellerCount = z
+  .number()
+  .int()
+  .positive()
+  .max(MAX_TRAVELLERS, "Trips support at most 9 travellers.");
+const partyCount = z.number().int().min(0).max(MAX_TRAVELLERS);
+export const TravellerParty = z
+  .object({
+    adults: partyCount,
+    children: partyCount, // 2–12
+    infants: partyCount, // under 2
+    seniors: partyCount, // 65+
+    pets: z.number().int().min(0).max(MAX_PETS, "Trips support at most 3 pets."),
+  })
+  .refine(
+    (party) => party.adults + party.children + party.infants + party.seniors <= MAX_TRAVELLERS,
+    "Trips support at most 9 travellers.",
+  );
 export type TravellerParty = z.infer<typeof TravellerParty>;
+export const TripAddress = z.object({
+  suburb: z.string().trim().max(120).default(""),
+  city: z.string().trim().min(1, "Enter a city.").max(120),
+  state: z.string().trim().max(120).default(""),
+  country: z.string().trim().min(1, "Enter a country.").max(120),
+});
+export type TripAddress = z.infer<typeof TripAddress>;
+export const TripLocations = z.object({
+  destinations: z.array(TripAddress).min(1).max(12),
+  origin: TripAddress,
+});
+export type TripLocations = z.infer<typeof TripLocations>;
 export const partyPeople = (party: TravellerParty) =>
   party.adults + party.children + party.infants + party.seniors;
 export function isTripDate(value: string): boolean {
@@ -109,11 +133,12 @@ export const TripBrief = z
     // existed still parse, and a traveller who never states it just gets no
     // long-haul leg priced rather than a guessed one.
     origin: z.string().trim().min(1).optional(),
+    locations: TripLocations.optional(),
     dates: z.tuple([
       z.string().refine(isTripDate, "Enter a real date"),
       z.string().refine(isTripDate, "Enter a real date"),
     ]), // [start, end] ISO date
-    groupSize: z.number().int().positive(),
+    groupSize: TravellerCount,
     // Optional and additive: briefs saved before it existed still parse. See TravellerParty.
     party: TravellerParty.optional(),
     budgetTotal: z.number().min(0.01), // always BASE_CURRENCY; see ./money

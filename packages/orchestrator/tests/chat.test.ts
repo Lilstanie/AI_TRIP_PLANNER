@@ -71,6 +71,21 @@ const run = (
 ) => runTripChat(request, { model, specialists: [itinerary], tools, mem, ...extra });
 
 describe("the conversation agent decides what to do", () => {
+  it("requires both structured address ends before planning for the new web client", async () => {
+    const { mem } = memoryStore();
+    await expect(
+      runTripChat(
+        {
+          tripId: brief.tripId,
+          message: "Plan",
+          mode: "plan",
+          brief,
+          requireStructuredLocations: true,
+        } as Parameters<typeof runTripChat>[0],
+        { mem, tools, specialists: [itinerary] },
+      ),
+    ).rejects.toBeInstanceOf(IncompleteBriefError);
+  });
   it("records what the traveller stated and replans when asked", async () => {
     const { mem, turns } = memoryStore();
     const model = scriptedModel(

@@ -13,6 +13,8 @@ import {
   TripBrief,
   TripPlan,
   TripPreferences,
+  TripLocations,
+  type TripAddress,
   type TravellerParty,
 } from "@trip/shared";
 
@@ -52,6 +54,7 @@ export type Party = TravellerParty;
 export type Draft = {
   destination: string;
   origin: string;
+  locations?: { destinations: TripAddress[]; origin: TripAddress };
   start: string;
   end: string;
   groupSize: string;
@@ -99,6 +102,11 @@ const isParty = (value: unknown): value is Party =>
   PARTY_KEYS.every(
     (key) => typeof value[key] === "number" && Number.isInteger(value[key]) && value[key] >= 0,
   );
+const isAddress = (value: unknown): boolean =>
+  object(value) &&
+  ["suburb", "city", "state", "country"].every(
+    (key) => typeof value[key] === "string" && value[key].length <= 120,
+  );
 /**
  * The Who chip's stepper state: the draft's own breakdown, or — for a draft with none, such as one
  * built from a brief or from before the steppers existed — every stated traveller counted as an
@@ -135,6 +143,7 @@ export function draftFor(brief: TripBrief): Draft {
   return {
     destination: brief.destination,
     origin: brief.origin ?? "",
+    ...(brief.locations && { locations: brief.locations }),
     start: brief.dates[0],
     end: brief.dates[1],
     groupSize: String(brief.groupSize),
@@ -178,12 +187,17 @@ export function isDraft(value: unknown): value is Draft {
       (Array.isArray(value.preferences) &&
         value.preferences.every((item) => typeof item === "string"))) &&
     (value.party === undefined || isParty(value.party)) &&
+    (value.locations === undefined ||
+      (object(value.locations) &&
+        Array.isArray(value.locations.destinations) &&
+        value.locations.destinations.length <= 12 &&
+        value.locations.destinations.every(isAddress) &&
+        isAddress(value.locations.origin))) &&
     (value.learnedPreferences === undefined ||
       (Array.isArray(value.learnedPreferences) &&
         value.learnedPreferences.every((item) => typeof item === "string"))) &&
     (value.excludeFlights === undefined || typeof value.excludeFlights === "boolean") &&
-    (value.legModes === undefined ||
-      LegModeChoice.array().safeParse(value.legModes).success) &&
+    (value.legModes === undefined || LegModeChoice.array().safeParse(value.legModes).success) &&
     (value.bookedStay === undefined || BookedStay.safeParse(value.bookedStay).success)
   );
 }
@@ -197,6 +211,7 @@ export function parseDraft(draft: Draft, current: Pick<TripBrief, "tripId"> & Pa
     ...current,
     destination: draft.destination,
     origin: draft.origin.trim() || undefined,
+    locations: draft.locations,
     dates: [draft.start, draft.end],
     groupSize: Number(draft.groupSize),
     // Spreading `current` would otherwise keep a breakdown the traveller has since changed.
@@ -231,6 +246,7 @@ export function knownFromDraft(draft: Draft): PartialTripBrief {
   const parsed = PartialTripBrief.safeParse({
     destination: draft.destination.trim() || undefined,
     origin: draft.origin.trim() || undefined,
+    locations: TripLocations.safeParse(draft.locations).success ? draft.locations : undefined,
     dates: draft.start.trim() && draft.end.trim() ? [draft.start, draft.end] : undefined,
     groupSize: number(draft.groupSize),
     party: statedParty(draft),
@@ -268,6 +284,12 @@ export function draftWithKnown(draft: Draft, known: PartialTripBrief): Draft {
     ...draft,
     destination: known.destination ?? draft.destination,
     origin: known.origin ?? draft.origin,
+    locations:
+      known.locations ??
+      ((known.destination && known.destination !== draft.destination) ||
+      (known.origin && known.origin !== draft.origin)
+        ? undefined
+        : draft.locations),
     start: known.dates?.[0] ?? draft.start,
     end: known.dates?.[1] ?? draft.end,
     groupSize: known.groupSize === undefined ? draft.groupSize : String(known.groupSize),

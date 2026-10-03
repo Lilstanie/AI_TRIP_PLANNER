@@ -102,9 +102,12 @@ try {
 
   await page.getByRole("button", { name: "去哪里" }).click();
   const where = page.getByRole("dialog", { name: "去哪里" });
-  await where.getByLabel("添加目的地").fill("Tokyo");
-  await where.getByLabel("添加目的地").press("Enter");
-  await where.getByRole("button", { name: "Remove Tokyo" }).waitFor();
+  const destination = where.getByRole("group", { name: "目的地 1" });
+  const origin = where.getByRole("group", { name: "出发地" });
+  await destination.getByLabel("城市 *", { exact: true }).fill("Tokyo");
+  await destination.getByLabel("国家 *", { exact: true }).fill("Japan");
+  await origin.getByLabel("城市 *", { exact: true }).fill("Sydney");
+  await origin.getByLabel("国家 *", { exact: true }).fill("Australia");
   await where.getByRole("button", { name: "保存" }).click();
   check(
     await page.getByRole("button", { name: /目的地.*Tokyo/ }).isVisible(),
@@ -115,7 +118,16 @@ try {
     "Local currency follows the destination",
   );
 
-  await page.getByRole("status").filter({ hasText: "已保存到本地" }).waitFor();
+  // A previous "saved" status can still be visible before the next debounced save starts.
+  // Verify this edit reached storage rather than reloading on the old status.
+  await page.waitForFunction(() => {
+    const catalog = JSON.parse(localStorage.getItem("trip-workspace-catalog-v3") ?? "null");
+    return catalog?.conversations?.some(
+      (item) =>
+        item.draft?.destination === "Tokyo, Japan" &&
+        item.draft?.locations?.origin?.country === "Australia",
+    );
+  });
   await page.reload();
   await page.waitForSelector(".workspace-app");
   check((await page.locator("html").getAttribute("lang")) === "zh-CN", "Language survives reload");

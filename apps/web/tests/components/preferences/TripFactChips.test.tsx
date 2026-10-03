@@ -54,9 +54,51 @@ function Harness({
   );
 }
 
+function completeAddressFields() {
+  if (!screen.queryByRole("dialog", { name: "Where" })) return;
+  const country = within(screen.getByRole("group", { name: "Destination 1" })).getByLabelText(
+    "Country *",
+  );
+  fireEvent.change(country, { target: { value: "Portugal" } });
+  const origin = screen.getByRole("group", { name: "Departing from" });
+  const city = within(origin).getByLabelText("City *") as HTMLInputElement;
+  if (!city.value) fireEvent.change(city, { target: { value: "Sydney" } });
+  fireEvent.change(within(origin).getByLabelText("Country *"), { target: { value: "Australia" } });
+}
 const button = (name: string | RegExp) => screen.getByRole("button", { name });
 
 describe("TripFactChips", () => {
+  it("stops all people additions at nine while pets have their own three-pet limit", () => {
+    render(
+      <Harness
+        initial={{
+          ...blankDraft(),
+          groupSize: "9",
+          party: {
+            adults: 4,
+            children: 2,
+            infants: 1,
+            seniors: 2,
+            pets: 2,
+          },
+        }}
+      />,
+    );
+    fireEvent.click(button(/^Travellers:/));
+    for (const name of ["Add an adult", "Add a child", "Add an infant", "Add a senior"])
+      expect((button(name) as HTMLButtonElement).disabled).toBe(true);
+    expect((button("Add a pet") as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.click(button("Add a pet"));
+    expect((button("Add a pet") as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(button("Remove a child"));
+    expect((button("Add an adult") as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.click(button("Add an adult"));
+    expect((button("Add an adult") as HTMLButtonElement).disabled).toBe(true);
+    completeAddressFields();
+    fireEvent.click(button("Save"));
+    expect(button(/^Travellers:/).textContent).toContain("5 adults");
+    expect(button(/^Travellers:/).textContent).toContain("3 pets");
+  });
   it("asks for each missing fact instead of showing a value", () => {
     render(<Harness />);
     const group = screen.getByRole("group", { name: "Trip details" });
@@ -87,11 +129,16 @@ describe("TripFactChips", () => {
     expect(chip.getAttribute("aria-controls")).toBe(dialog.id);
     // Where holds a list, so it opens centred as a modal dialog rather than under its chip.
     expect(dialog.getAttribute("aria-modal")).toBe("true");
-    expect(document.activeElement).toBe(screen.getByLabelText("Add a destination"));
+    expect(document.activeElement).toBe(
+      within(screen.getByRole("group", { name: "Destination 1" })).getByLabelText("City *"),
+    );
     // Only this fact's fields are in the editor.
     expect(within(dialog).queryByLabelText("Start date")).toBeNull();
 
-    fireEvent.change(screen.getByLabelText("Add a destination"), { target: { value: "Lisbon" } });
+    fireEvent.change(
+      within(screen.getByRole("group", { name: "Destination 1" })).getByLabelText("City *"),
+      { target: { value: "Lisbon" } },
+    );
     fireEvent.keyDown(window, { key: "Escape" });
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(document.activeElement).toBe(chip);
@@ -105,17 +152,28 @@ describe("TripFactChips", () => {
     render(<Harness onSave={onSave} onPlan={onPlan} />);
     fireEvent.click(button("Where"));
     // Text left in the search field counts, without pressing Enter first.
-    fireEvent.change(screen.getByLabelText("Add a destination"), { target: { value: "Lisbon" } });
-    fireEvent.change(screen.getByLabelText("Departing from (optional)"), {
-      target: { value: "Sydney" },
-    });
+    fireEvent.change(
+      within(screen.getByRole("group", { name: "Destination 1" })).getByLabelText("City *"),
+      { target: { value: "Lisbon" } },
+    );
+    fireEvent.change(
+      within(screen.getByRole("group", { name: "Departing from" })).getByLabelText("City *"),
+      {
+        target: { value: "Sydney" },
+      },
+    );
+    completeAddressFields();
     fireEvent.click(button("Save"));
     expect(onSave).toHaveBeenCalledWith(
-      expect.objectContaining({ destination: "Lisbon", origin: "Sydney", start: "" }),
+      expect.objectContaining({
+        destination: "Lisbon, Portugal",
+        origin: "Sydney, Australia",
+        start: "",
+      }),
     );
     expect(onPlan).not.toHaveBeenCalled();
     expect(screen.queryByRole("dialog")).toBeNull();
-    expect(document.activeElement).toBe(button("Destination: Lisbon"));
+    expect(document.activeElement).toBe(button("Destination: Lisbon, Portugal"));
   });
 
   it("steps travellers with a stepper per kind and rejects an empty party", () => {
@@ -128,6 +186,7 @@ describe("TripFactChips", () => {
     fireEvent.click(button("Add a child"));
     expect(screen.getByLabelText("Adults: 2")).toBeTruthy();
     expect(screen.getByLabelText("Children: 1")).toBeTruthy();
+    completeAddressFields();
     fireEvent.click(button("Save"));
     expect(onSave).toHaveBeenLastCalledWith(
       expect.objectContaining({
@@ -140,6 +199,7 @@ describe("TripFactChips", () => {
     fireEvent.change(screen.getByLabelText("Or enter an amount (AUD)"), {
       target: { value: "-5" },
     });
+    completeAddressFields();
     fireEvent.click(button("Save"));
     expect(screen.getByRole("dialog", { name: "Budget" })).toBeTruthy();
     expect(screen.getByText("Enter a total budget above zero.")).toBeTruthy();
@@ -166,6 +226,7 @@ describe("TripFactChips", () => {
       target: { value: "3500" },
     });
     expect(moderate.getAttribute("aria-checked")).toBe("false");
+    completeAddressFields();
     fireEvent.click(button("Save"));
     expect(onSave).toHaveBeenLastCalledWith(expect.objectContaining({ budgetTotal: "3500" }));
   });
@@ -174,11 +235,17 @@ describe("TripFactChips", () => {
     const onPlan = vi.fn().mockReturnValueOnce(false).mockReturnValue(true);
     render(<Harness initial={draftFor(plan.brief)} withPlan onPlan={onPlan} />);
     fireEvent.click(button("Destination: Sydney"));
-    fireEvent.click(button("Remove Sydney"));
-    fireEvent.change(screen.getByLabelText("Add a destination"), { target: { value: "Paris" } });
+    fireEvent.change(
+      within(screen.getByRole("group", { name: "Destination 1" })).getByLabelText("City *"),
+      { target: { value: "Paris" } },
+    );
+    completeAddressFields();
     fireEvent.click(button("Update trip"));
-    expect(onPlan).toHaveBeenCalledWith(expect.objectContaining({ destination: "Paris" }));
+    expect(onPlan).toHaveBeenCalledWith(
+      expect.objectContaining({ destination: "Paris, Portugal" }),
+    );
     expect(screen.getByRole("dialog", { name: "Where" })).toBeTruthy();
+    completeAddressFields();
     fireEvent.click(button("Update trip"));
     expect(screen.queryByRole("dialog")).toBeNull();
   });
@@ -245,120 +312,26 @@ describe("TripFactChips", () => {
 });
 
 describe("TripFactChips Where", () => {
-  it("lists each destination, adds several at once and removes one from its row", () => {
-    const onSave = vi.fn();
-    render(<Harness onSave={onSave} />);
-    fireEvent.click(button("Where"));
-    const field = screen.getByLabelText("Add a destination");
-    fireEvent.change(field, { target: { value: "Sydney & Melbourne" } });
-    fireEvent.keyDown(field, { key: "Enter" });
-    fireEvent.change(field, { target: { value: "hobart" } });
-    fireEvent.keyDown(field, { key: "Enter" });
-    fireEvent.change(field, { target: { value: "sydney" } });
-    fireEvent.keyDown(field, { key: "Enter" });
-    const list = screen.getByRole("list", { name: "Destinations" });
-    expect(
-      within(list)
-        .getAllByRole("listitem")
-        .map((item) => item.textContent),
-    ).toEqual(["Sydney", "Melbourne", "hobart"]);
-    expect(document.activeElement).toBe(field);
-
-    fireEvent.click(button("Remove Melbourne"));
-    // Focus moves to the row that took its place.
-    expect(document.activeElement).toBe(button("Remove hobart"));
-    fireEvent.click(button("Save"));
-    expect(onSave).toHaveBeenCalledWith(
-      expect.objectContaining({ destination: "Sydney & hobart" }),
-    );
-  });
-
-  it("folds an empty search field back into its button with Escape, keeping the editor open", () => {
-    render(<Harness initial={draftFor(plan.brief)} />);
-    fireEvent.click(button("Destination: Sydney"));
-    // Where with places already listed starts focus on its own "Add destination" pill, not the chip.
-    expect(document.activeElement).toBe(button("Add destination"));
-    fireEvent.click(button("Add destination"));
-    const field = screen.getByLabelText("Add a destination");
-    expect(document.activeElement).toBe(field);
-    fireEvent.keyDown(field, { key: "Escape" });
-    expect(screen.getByRole("dialog", { name: "Where" })).toBeTruthy();
-    expect(document.activeElement).toBe(button("Add destination"));
-  });
-
-  it("clears the search field from the button inside it", () => {
-    render(<Harness />);
-    fireEvent.click(button("Where"));
-    const field = screen.getByLabelText("Add a destination") as HTMLInputElement;
-    expect(screen.queryByRole("button", { name: "Clear" })).toBeNull();
-    fireEvent.change(field, { target: { value: "Lisb" } });
-    fireEvent.click(button("Clear"));
-    expect(field.value).toBe("");
-    expect(document.activeElement).toBe(field);
-  });
-
-  it("never looks places up unless suggestions are on", async () => {
+  it("never looks places up while entering manual addresses, even in live suggestion mode", async () => {
     const fetcher = vi.fn();
-    vi.stubGlobal("fetch", fetcher);
-    render(<Harness />);
-    fireEvent.click(button("Where"));
-    fireEvent.change(screen.getByLabelText("Add a destination"), { target: { value: "Lisbon" } });
-    await vi.advanceTimersByTimeAsync(1000);
-    expect(fetcher).not.toHaveBeenCalled();
-    expect(screen.getByLabelText("Add a destination").getAttribute("role")).toBeNull();
-  });
-
-  it("suggests places after three characters and a pause, and adds the one picked", async () => {
-    const fetcher = vi.fn((_url: RequestInfo | URL, _init?: RequestInit) =>
-      Promise.resolve(
-        Response.json({
-          places: [
-            { id: "p1", displayName: { text: "Lisbon" }, formattedAddress: "Lisbon, Portugal" },
-            { id: "p2", displayName: { text: "Lisburn" }, formattedAddress: "Lisburn, UK" },
-          ],
-        }),
-      ),
-    );
     vi.stubGlobal("fetch", fetcher);
     render(<Harness suggestPlaces />);
     fireEvent.click(button("Where"));
-    const field = screen.getByRole("combobox", { name: "Add a destination" });
-    fireEvent.change(field, { target: { value: "Li" } });
+    const group = screen.getByRole("group", { name: "Destination 1" });
+    fireEvent.change(within(group).getByLabelText("City *"), { target: { value: "Sydney" } });
     await vi.advanceTimersByTimeAsync(1000);
     expect(fetcher).not.toHaveBeenCalled();
-    fireEvent.change(field, { target: { value: "Lis" } });
-    fireEvent.change(field, { target: { value: "Lisb" } });
-    await vi.advanceTimersByTimeAsync(400);
-    // Debounced: only the last query is sent.
-    expect(fetcher).toHaveBeenCalledTimes(1);
-    expect(JSON.parse(fetcher.mock.calls[0]![1]!.body as string)).toEqual({ text: "Lisb" });
-    const options = await screen.findAllByRole("option");
-    expect(options.map((option) => option.textContent)).toEqual([
-      "LisbonLisbon, Portugal",
-      "LisburnLisburn, UK",
-    ]);
-    expect(field.getAttribute("aria-expanded")).toBe("true");
-
-    // Escape closes the list, not the editor.
-    fireEvent.keyDown(field, { key: "Escape" });
-    expect(field.getAttribute("aria-expanded")).toBe("false");
-    expect(screen.getByRole("dialog", { name: "Where" })).toBeTruthy();
-
-    fireEvent.change(field, { target: { value: "Lisbo" } });
-    await vi.advanceTimersByTimeAsync(400);
-    // The previous query's options stay visible until the new ones arrive, and new results reset
-    // the highlight; wait for the second lookup to land before moving through the list.
-    await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(2));
-    await vi.advanceTimersByTimeAsync(0);
-    await waitFor(() => expect(field.getAttribute("aria-expanded")).toBe("true"));
-    fireEvent.keyDown(field, { key: "ArrowDown" });
-    expect(field.getAttribute("aria-activedescendant")).toBe(screen.getAllByRole("option")[0]!.id);
-    fireEvent.keyDown(field, { key: "Enter" });
-    const list = screen.getByRole("list", { name: "Destinations" });
-    expect(within(list).getByText("Lisbon")).toBeTruthy();
-    // A picked place shows the region line it came with.
-    expect(within(list).getByText("Lisbon, Portugal")).toBeTruthy();
-    expect((field as HTMLInputElement).value).toBe("");
+  });
+  it("adds another structured destination and removes it without losing the first", () => {
+    render(<Harness />);
+    fireEvent.click(button("Where"));
+    const first = screen.getByRole("group", { name: "Destination 1" });
+    fireEvent.change(within(first).getByLabelText("City *"), { target: { value: "Sydney" } });
+    fireEvent.click(button("Add destination"));
+    expect(screen.getByRole("group", { name: "Destination 2" })).toBeTruthy();
+    fireEvent.click(button("Remove destination 2"));
+    expect(screen.queryByRole("group", { name: "Destination 2" })).toBeNull();
+    expect((within(first).getByLabelText("City *") as HTMLInputElement).value).toBe("Sydney");
   });
 });
 
@@ -393,6 +366,7 @@ describe("TripFactChips dates", () => {
     expect(screen.getByText(/22 Sept? – 25 Sept? · 4 days/)).toBeTruthy();
     expect(button("Clear")).toBeTruthy();
     expect(button("When")).toBeTruthy();
+    completeAddressFields();
     fireEvent.click(button("Save"));
     expect(button(/^Dates: 22 Sept? – 25 Sept? · 4 days$/)).toBeTruthy();
   });
@@ -411,6 +385,7 @@ describe("TripFactChips dates", () => {
   it("asks for both dates when the draft holds only a start date", () => {
     render(<Harness initial={{ ...blankDraft(), start: "2026-10-01" }} />);
     fireEvent.click(button("When"));
+    completeAddressFields();
     fireEvent.click(button("Save"));
     expect(screen.getByText("Choose both a start and an end date.")).toBeTruthy();
     expect(button("When")).toBeTruthy();
@@ -429,7 +404,11 @@ describe("TripFactChips in the workspace", () => {
     vi.stubGlobal("fetch", fetcher);
     render(<Workspace />);
     fireEvent.click(button("Where"));
-    fireEvent.change(screen.getByLabelText("Add a destination"), { target: { value: "Lisbon" } });
+    fireEvent.change(
+      within(screen.getByRole("group", { name: "Destination 1" })).getByLabelText("City *"),
+      { target: { value: "Lisbon" } },
+    );
+    completeAddressFields();
     fireEvent.click(button("Save"));
     fireEvent.click(button("Open trip preferences"));
     fireEvent.change(screen.getByLabelText("Add a preference"), {
@@ -440,6 +419,7 @@ describe("TripFactChips in the workspace", () => {
     fireEvent.click(button("Add an adult"));
     fireEvent.click(button("Add an adult"));
     fireEvent.click(button("Add an adult"));
+    completeAddressFields();
     fireEvent.click(button("Save"));
     fireEvent.change(screen.getByLabelText("Message AI Trip Planner"), {
       target: { value: "somewhere warm" },
@@ -450,8 +430,13 @@ describe("TripFactChips in the workspace", () => {
     );
     const [, init] = fetcher.mock.calls.find(([url]) => String(url) === "/api/chat")!;
     const body = JSON.parse((init as RequestInit).body as string);
-    expect(body.known).toEqual({
-      destination: "Lisbon",
+    expect(body.known).toMatchObject({
+      destination: "Lisbon, Portugal",
+      origin: "Sydney, Australia",
+      locations: {
+        destinations: [{ city: "Lisbon", country: "Portugal" }],
+        origin: { city: "Sydney", country: "Australia" },
+      },
       groupSize: 3,
       // The Who steppers' breakdown travels with the head count.
       party: { adults: 3, children: 0, infants: 0, seniors: 0, pets: 0 },
@@ -469,7 +454,9 @@ describe("TripFactChips in the workspace", () => {
     const chat = document.querySelector<HTMLElement>(".workspace-panel--chat")!;
     fireEvent.click(within(chat).getByRole("button", { name: "Add trip details" }));
     expect(screen.getByRole("dialog", { name: "Where" })).toBeTruthy();
-    expect(document.activeElement).toBe(screen.getByLabelText("Add a destination"));
+    expect(document.activeElement).toBe(
+      within(screen.getByRole("group", { name: "Destination 1" })).getByLabelText("City *"),
+    );
   });
 
   it("opens the fact a rejected Plan trip points at, without sending anything", () => {

@@ -6,6 +6,7 @@
 
 import type { GeoPoint, RouteQuery, RouteLeg, RouteOption, PlaceQuery, Place } from "@trip/shared";
 import { searchGooglePlacesText } from "./google-places";
+import { nominatimRequest } from "./nominatim";
 import { mockEnabled } from "./data-mode";
 import { searchTransitSerpApi } from "./serpapi";
 import { SUPPORTED_CURRENCIES, toAud } from "@trip/shared";
@@ -89,14 +90,14 @@ function waypoint(name: string, at?: GeoPoint) {
 
 async function geocode(query: string): Promise<GeoPoint | undefined> {
   const base = process.env.NOMINATIM_BASE_URL || "https://nominatim.openstreetmap.org";
-  const results = await osmRequest<Array<{ lat: string; lon: string; display_name: string }>>(
+  const results = await nominatimRequest<Array<{ lat: string; lon: string; display_name: string }>>(
     `${base}/search?format=jsonv2&limit=1&q=${encodeURIComponent(query)}`,
+    true,
   );
   const result = results[0];
   if (!result) return undefined;
   const at = { latitude: Number(result.lat), longitude: Number(result.lon) };
-  if (!result.lat || !result.lon || !usable(at))
-    throw new Error("Invalid geocoding coordinates");
+  if (!result.lat || !result.lon || !usable(at)) throw new Error("Invalid geocoding coordinates");
   return at;
 }
 
@@ -296,7 +297,9 @@ async function railLeg(q: RouteQuery): Promise<RouteLeg | undefined> {
   const currency = SUPPORTED_CURRENCIES.find((code) => code === route.fare?.currency);
   // A fare in a currency without a reviewed rate stays unpriced rather than guessed.
   const price =
-    route.fare && currency ? Math.round(toAud(route.fare.amount, currency) * passengers * 100) / 100 : 0;
+    route.fare && currency
+      ? Math.round(toAud(route.fare.amount, currency) * passengers * 100) / 100
+      : 0;
   const service = route.services.join(" → ");
   const train = /shinkansen|express|limited|line|jr |rail|train/i.test(service);
   return {
@@ -344,10 +347,11 @@ export async function places(q: PlaceQuery): Promise<Place[]> {
   }
   if (provider() === "osm") {
     const base = process.env.NOMINATIM_BASE_URL || "https://nominatim.openstreetmap.org";
-    const results = await osmRequest<
+    const results = await nominatimRequest<
       Array<{ display_name: string; type?: string; lat?: string; lon?: string }>
     >(
       `${base}/search?format=jsonv2&limit=5&q=${encodeURIComponent(`${q.category ?? "attraction"} in ${q.near}`)}`,
+      true,
     );
     return results.map((place) => ({
       name: place.display_name,
@@ -435,7 +439,11 @@ export async function routeOptions(q: RouteQuery): Promise<RouteOption[]> {
   const ask = (body: Record<string, unknown>) =>
     googleRequest<{ routes?: GoogleRouteShape[] }>(
       apiUrl("/directions/v2:computeRoutes"),
-      { origin: waypoint(q.from, q.fromLocation), destination: waypoint(q.to, q.toLocation), ...body },
+      {
+        origin: waypoint(q.from, q.fromLocation),
+        destination: waypoint(q.to, q.toLocation),
+        ...body,
+      },
       OPTION_FIELDS,
     ).then((data) => data.routes?.[0]);
 

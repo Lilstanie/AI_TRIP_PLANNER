@@ -11,10 +11,31 @@ import {
   firstMissingFact,
 } from "@/lib/workspace/trip-facts";
 import { plan } from "@/tests/fixtures/workspace";
+import { defaultSettings, UserSettings } from "@/lib/account/settings";
 
 const blank = { tripId: "draft" };
 
 describe("trip facts", () => {
+  it("refuses travel defaults that would prefill more than nine people", () => {
+    const settings = defaultSettings();
+    expect(
+      UserSettings.safeParse({ ...settings, travel: { ...settings.travel, travellers: 9 } })
+        .success,
+    ).toBe(true);
+    expect(
+      UserSettings.safeParse({ ...settings, travel: { ...settings.travel, travellers: 10 } })
+        .success,
+    ).toBe(false);
+  });
+  it("routes excessive pets and mixed people counts back to the Who editor", () => {
+    const party = { adults: 4, children: 2, infants: 1, seniors: 2, pets: 4 };
+    const errors = factErrors("who", { ...blankDraft(), groupSize: "9", party }, blank, false);
+    expect(errors).toHaveProperty("party");
+    expect(firstFactWithError(errors)).toBe("who");
+    expect(factErrors("who", { ...blankDraft(), groupSize: "10" }, blank, false)).toHaveProperty(
+      "groupSize",
+    );
+  });
   it("gives every draft field exactly one chip, or marks it retired", () => {
     const fields = [...FACTS.flatMap((fact) => FACT_FIELDS[fact]), ...RETIRED_FIELDS].sort();
     expect(fields).toEqual(Object.keys(blankDraft()).sort());

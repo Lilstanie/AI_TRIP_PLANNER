@@ -13,7 +13,8 @@ pets. The repository owner asked for that limit to be removed.
 ## Decision
 
 `packages/shared/src/contracts.ts` adds an optional `TravellerParty`
-(`{ adults, children, infants, seniors, pets }`, integers 0–99) as `TripBrief.party`, and
+(`{ adults, children, infants, seniors, pets }`, nonnegative integers, with people totalling at most
+9 and pets at most 3) as `TripBrief.party`, and
 `PartialTripBrief.party` in `chat.ts`, with `partyPeople(party)` for the people total.
 
 - `groupSize` stays required and authoritative: every cost (dining per person, rooms, passengers)
@@ -28,7 +29,9 @@ pets. The repository owner asked for that limit to be removed.
   guide) receive `party` with it; transport and accommodation add it to the brief they send. The
   chat coordinator is told not to re-ask what `knownSoFar.party` already says.
 
-Additive and optional: stored briefs, catalogs and API clients without `party` are unchanged.
+The breakdown remains optional. Both briefs with and without it follow the
+[party limits](2026-10-04-party-limits.md); oversized historical briefs fail validation rather than
+silently losing travellers.
 
 ## Alternatives considered
 

@@ -93,6 +93,18 @@ Google 密钥限制和地图行为见[工作区 UI](workspace-ui.zh.md#google-ma
 
 <a id="external-data-provider-plan"></a>
 
+<a id="location-lookup"></a>
+
+## 定位地址查询
+
+即使规划使用 mock 模式，明确点击定位按钮也会使用 Nominatim。
+通过 `NOMINATIM_BASE_URL` 切换服务，并将 `OSM_USER_AGENT` 设为包含真实联系信息的应用标识。
+没有可用配置时，适配器以项目 GitHub URL 标识应用。不需要 API 密钥，也不提供输入自动补全。
+共享进程限流器使 Nominatim 请求至少间隔 1.1 秒，并缓存最多 100 条响应，保留 24 小时。
+公共 Nominatim 要求整个部署每秒最多一个请求：多实例部署需使用单进程、共享限流或其他提供方。
+仅点击按钮并获得浏览器权限后发送坐标；用户须核对地址，查询失败时可手动填写。
+遵守[使用政策](https://operations.osmfoundation.org/policies/nominatim/)。
+
 ## 外部数据提供方方案
 
 使用项目的 [api-scout skill（技能）](../.agents/skills/api-scout/SKILL.md)，从 [public-apis 目录](https://github.com/public-apis/public-apis) 中发现候选提供方。只把该仓库视为持续变化的索引：在把提供方加入下表或实现适配器之前，必须通过其官方文档核实访问方式、价格、配额、数据使用权、新鲜度和地域覆盖。

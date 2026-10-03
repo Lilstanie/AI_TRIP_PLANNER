@@ -4,6 +4,8 @@ import {
   Currency,
   LegModeChoice,
   TripPreferences,
+  TravellerCount,
+  TripLocations,
   type TripBrief,
 } from "@trip/shared";
 import { z } from "zod/v4";
@@ -17,8 +19,9 @@ export const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 export const BriefPatchSchema = z.object({
   destination: z.string().trim().min(1).optional(),
   origin: z.string().trim().min(1).optional(),
+  locations: TripLocations.optional(),
   dates: z.tuple([z.string().regex(ISO_DATE), z.string().regex(ISO_DATE)]).optional(),
-  groupSize: z.number().int().positive().optional(),
+  groupSize: TravellerCount.optional(),
   budgetTotal: z.number().positive().optional(),
   budgetSource: z.object({ amount: z.number().positive(), currency: Currency }).optional(),
   nationality: z.string().trim().min(1).optional(),
@@ -44,7 +47,15 @@ export function isRealDate(value: string): boolean {
 
 export function applyBriefPatch(current: TripBrief, patch: BriefPatch, tripId: string): TripBrief {
   const parsedPatch = BriefPatchSchema.parse(patch);
-  const next = TripBriefSchema.parse({ ...current, ...parsedPatch, tripId });
+  const changedPlace =
+    (parsedPatch.destination !== undefined && parsedPatch.destination !== current.destination) ||
+    (parsedPatch.origin !== undefined && parsedPatch.origin !== current.origin);
+  const next = TripBriefSchema.parse({
+    ...current,
+    ...parsedPatch,
+    tripId,
+    locations: parsedPatch.locations ?? (changedPlace ? undefined : current.locations),
+  });
   if (!isRealDate(next.dates[0]) || !isRealDate(next.dates[1])) {
     throw new Error(
       "Those trip dates are not real calendar dates. Please restate the start and end dates.",

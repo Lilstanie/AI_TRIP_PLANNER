@@ -6,6 +6,8 @@ import {
   isTripDate,
   LegModeChoice,
   TravellerParty,
+  TravellerCount,
+  TripLocations,
   TripBrief,
   TripPreferences,
 } from "./contracts";
@@ -22,13 +24,14 @@ import { TripPlan } from "./plan";
 export const PartialTripBrief = z.object({
   destination: z.string().trim().min(1).optional(),
   origin: z.string().trim().min(1).optional(),
+  locations: TripLocations.optional(),
   dates: z
     .tuple([
       z.string().refine(isTripDate, "Enter a real date"),
       z.string().refine(isTripDate, "Enter a real date"),
     ])
     .optional(),
-  groupSize: z.number().int().positive().optional(),
+  groupSize: TravellerCount.optional(),
   // The Who editor's breakdown of groupSize. See TripBrief.party.
   party: TravellerParty.optional(),
   budgetTotal: z.number().min(0.01).optional(), // always BASE_CURRENCY; see ./money
@@ -168,6 +171,8 @@ export const ChatRequest = z
     // "start" begins a blank conversation: the brief is extracted only from the
     // message, and missing required fields are reported instead of defaulted.
     mode: z.enum(["chat", "plan", "start"]).optional(),
+    // The structured-address workspace requires both endpoints before generating a plan.
+    requireStructuredLocations: z.boolean().optional(),
     // Files the traveller attached to this message. Images reach the coordinator
     // as image content blocks and text files are inlined into its message; only
     // the coordinator sees them, and specialists keep their current inputs.

@@ -774,6 +774,96 @@
   }
 }
 /* Phones: 44px chips, and the editor becomes a bottom sheet over a scrim. */
+.address-guide {
+  margin: 0;
+  font-size: 13px;
+}
+.address-block {
+  position: relative;
+  margin: 0;
+  padding: 14px 0 0;
+  border: 0;
+  min-width: 0;
+}
+.address-block legend {
+  font-size: 15px;
+  font-weight: 600;
+}
+.address-block--origin {
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.address-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.address-field {
+  min-width: 0;
+}
+.address-field label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+.address-input-with-action {
+  position: relative;
+}
+.address-input-with-action input {
+  padding-right: 164px;
+}
+.address-locate {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: var(--radius);
+  color: var(--accent);
+  background: var(--surface-2);
+  font-size: 12px;
+  cursor: pointer;
+}
+.address-locate svg {
+  width: 14px;
+  height: 14px;
+}
+.address-block--origin .address-field:nth-child(2) {
+  grid-column: 1 / -1;
+}
+.address-block--origin small {
+  display: block;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.address-remove {
+  position: absolute;
+  top: -24px;
+  right: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.address-remove svg {
+  width: 18px;
+  height: 18px;
+}
+@media (max-width: 520px) {
+  .address-grid {
+    grid-template-columns: 1fr;
+  }
+  .address-field input {
+    min-height: 44px;
+  }
+  .address-locate {
+    min-height: 36px;
+  }
+}
 @media (max-width: 520px) {
   .fact-chip {
     min-height: 42px !important;

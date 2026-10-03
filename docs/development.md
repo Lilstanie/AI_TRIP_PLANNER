@@ -116,6 +116,18 @@ deployment that runs several instances applies the limits to each; size them for
 Google key restrictions and map behaviour are described in [workspace UI](workspace-ui.md#google-maps-configuration).
 Model routing and fallbacks are described in [architecture](architecture.md#agents-and-models).
 
+## Location lookup
+
+The explicit location button uses Nominatim even in mock planning mode. Configure
+`NOMINATIM_BASE_URL` to switch the service and set `OSM_USER_AGENT` to a descriptive application
+identity with real contact details. Without a usable setting, the adapter identifies the project
+by its GitHub URL. It needs no API key and does not provide input autocomplete.
+The shared process gate spaces Nominatim requests by 1.1 seconds and caches up to 100 responses
+for 24 hours. Public Nominatim requires a deployment-wide limit of one request per second:
+use one process, shared limiting, or another provider for multiple instances. Coordinates are sent
+only after a click and browser permission; users must review returned addresses and can enter them
+manually when lookup fails. Follow the [usage policy](https://operations.osmfoundation.org/policies/nominatim/).
+
 ## External data provider plan
 
 Use the project [api-scout skill](../.agents/skills/api-scout/SKILL.md) to discover candidates in the

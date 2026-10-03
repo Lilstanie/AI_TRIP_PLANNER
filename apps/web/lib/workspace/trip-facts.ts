@@ -45,9 +45,9 @@ export const RETIRED_FIELDS: readonly (keyof Draft)[] = [
 
 /** The keys `parseDraft` reports issues under (its path's first segment), by fact. */
 const FACT_ERRORS: Record<FactKey, readonly string[]> = {
-  where: ["destination", "origin"],
+  where: ["destination", "origin", "locations"],
   when: ["dates"],
-  who: ["groupSize"],
+  who: ["groupSize", "party"],
   budget: ["budgetTotal"],
   preferences: ["preferences"],
 };
@@ -82,7 +82,12 @@ export function factErrors(
   current: Pick<TripBrief, "tripId"> & Partial<TripBrief>,
   requireAll: boolean,
 ): Record<string, string> {
-  if (!requireAll && FACT_FIELDS[fact].every((field) => isBlank(draft[field]))) return {};
+  if (
+    !requireAll &&
+    !(fact === "where" && draft.locations) &&
+    FACT_FIELDS[fact].every((field) => isBlank(draft[field]))
+  )
+    return {};
   if (fact === "when" && !requireAll && (!draft.start || !draft.end))
     return { dates: "Choose both a start and an end date." };
   // The dates rule counts a night per destination city. With no destination yet, check the dates
@@ -114,7 +119,10 @@ export function briefErrors(issues: readonly { path: readonly PropertyKey[]; mes
   const errors: Record<string, string> = {};
   for (const issue of issues) {
     const key = String(issue.path[0]);
-    errors[key] ??= FIX[key] ?? issue.message;
+    errors[key] ??=
+      key === "groupSize" && issue.message === "Trips support at most 9 travellers."
+        ? issue.message
+        : (FIX[key] ?? issue.message);
   }
   return errors;
 }

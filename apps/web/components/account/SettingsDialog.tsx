@@ -1,6 +1,6 @@
 "use client";
 import { useRef, useState, type ReactNode } from "react";
-import { COMMUNICATION_STYLES } from "@trip/shared";
+import { COMMUNICATION_STYLES, MAX_TRAVELLERS } from "@trip/shared";
 import { blankDraft, type Draft } from "@/lib/workspace";
 import type { DataMode } from "@/lib/workspace/data-mode";
 import { DIETARY, INTERESTS, type UserSettings } from "@/lib/account/settings";
@@ -720,8 +720,12 @@ function PersonalizationSection() {
               initial={travel.travellers?.toString() ?? ""}
               validate={(value) =>
                 value &&
-                !(Number.isInteger(Number(value)) && Number(value) >= 1 && Number(value) <= 20)
-                  ? "From 1 to 20."
+                !(
+                  Number.isInteger(Number(value)) &&
+                  Number(value) >= 1 &&
+                  Number(value) <= MAX_TRAVELLERS
+                )
+                  ? "Enter between 1 and 9 travellers."
                   : undefined
               }
               onSave={(value) => {

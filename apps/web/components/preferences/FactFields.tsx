@@ -2,6 +2,7 @@
 import dynamic from "next/dynamic";
 import type { DateRange } from "react-day-picker";
 import type { ReactNode } from "react";
+import { MAX_TRAVELLERS, MAX_PETS } from "@trip/shared";
 import { groupSizeFromParty, partyFor, type Draft, type Party } from "@/lib/workspace";
 import { toIsoDate } from "@/lib/planning/date-range";
 import { datesLabel, PARTY_ROWS, type FactKey } from "@/lib/workspace/trip-facts";
@@ -163,10 +164,14 @@ function WhenFields({ value, onChange, errors }: FieldsProps) {
 function WhoFields({ value, onChange, errors }: FieldsProps) {
   const { t } = useLocale();
   const party = partyFor(value);
+  const people = groupSizeFromParty(party);
   const setParty = (next: Party) =>
     onChange({ ...value, party: next, groupSize: String(groupSizeFromParty(next)) });
   return (
     <div className="fact-steppers">
+      <small className="muted">
+        {t("Up to 9 travellers in total and 3 pets. Pets do not count as travellers.")}
+      </small>
       {PARTY_ROWS.map(({ key, label, hint, singular, article }) => {
         const count = party[key];
         return (
@@ -192,7 +197,11 @@ function WhoFields({ value, onChange, errors }: FieldsProps) {
                 type="button"
                 className="fact-stepper__button"
                 aria-label={`Add ${article} ${singular}`}
-                onClick={() => setParty({ ...party, [key]: count + 1 })}
+                disabled={key === "pets" ? count >= MAX_PETS : people >= MAX_TRAVELLERS}
+                onClick={() => {
+                  if (key === "pets" ? count < MAX_PETS : people < MAX_TRAVELLERS)
+                    setParty({ ...party, [key]: count + 1 });
+                }}
               >
                 <PlusIcon />
               </button>
@@ -202,9 +211,10 @@ function WhoFields({ value, onChange, errors }: FieldsProps) {
       })}
       {errors.groupSize && (
         <small className="error-text fact-form__error" id="fact-groupSize-error">
-          {errors.groupSize}
+          {t(errors.groupSize)}
         </small>
       )}
+      {errors.party && <small className="error-text fact-form__error">{t(errors.party)}</small>}
     </div>
   );
 }

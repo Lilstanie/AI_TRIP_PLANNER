@@ -1,6 +1,11 @@
 "use client";
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
-import { TripPlan, type AgentProgressEvent, type AssistantSettings, type Attachment } from "@trip/shared";
+import {
+  TripPlan,
+  type AgentProgressEvent,
+  type AssistantSettings,
+  type Attachment,
+} from "@trip/shared";
 import type { RouteResult } from "@/lib/integrations/google";
 import {
   identifyActivities,
@@ -105,7 +110,11 @@ export function useWorkspaceTransport({
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "content-type": "application/json", ...dataModeHeaders(dataMode) },
-        body: JSON.stringify(assistant ? { ...task.request, assistant } : task.request),
+        body: JSON.stringify({
+          ...task.request,
+          requireStructuredLocations: true,
+          ...(assistant && { assistant }),
+        }),
         signal: controller.signal,
       });
       const result = await readPlanStream(response, (event) => {

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   COMMUNICATION_STYLES,
+  TravellerCount,
   MAX_TRIP_PREFERENCE_LENGTH,
   MAX_TRIP_PREFERENCES,
 } from "@trip/shared";
@@ -45,7 +46,7 @@ export const UserSettings = z.object({
   travel: z.object({
     /** Where trips usually start, e.g. "Sydney". Empty means no default. */
     homeCity: z.string().trim().max(120),
-    travellers: z.number().int().min(1).max(20).optional(),
+    travellers: TravellerCount.optional(),
     /** Whole-trip budget in AUD, the base currency every total uses. */
     budget: z.number().positive().max(10_000_000).optional(),
     preferences: z

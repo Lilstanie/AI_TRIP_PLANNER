@@ -19,6 +19,10 @@ per leg. `transport/index.ts` derives both its flight query and its route querie
 
 ## Alternatives considered
 
+The [structured address note](2026-10-04-structured-address-entry.md) requires origin metadata
+for the web workspace's planning requests; the legacy optional contract described here remains
+available to older clients.
+
 **Write the `transport.origin` preference instead.** Not adopted: the origin belongs to a trip,
 not to a long-term preference.
 

@@ -48,6 +48,9 @@ in `lib/workspace/trip-facts.ts`, checked by a unit test), and the Preferences d
 No contract in `packages/shared` changed with the chips themselves; the preference list later added
 the optional `TripBrief.preferences`.
 
+The [structured address note](2026-10-04-structured-address-entry.md) owns the later Where field
+format, required departure address and explicit reverse-location lookup; the chip interaction stays.
+
 ## Alternatives considered
 
 - **Keep the drawer and restyle its trigger as chips.** Rejected: every chip would open the same
