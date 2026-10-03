@@ -10,7 +10,7 @@ focuses on where the LLM sits and what deterministic code guards it, as the brie
 
 ### 8.1.1 Activity diagram: Arrange Accommodation (UC-C1)
 
-Swimlanes are the four participants. The LLM is used once, in *Choose one candidate id per segment*, and
+Swimlanes are the four participants. The LLM is used once, in _Choose one candidate id per segment_, and
 its output is checked before anything is priced.
 
 ```mermaid
@@ -175,16 +175,16 @@ stateDiagram-v2
   end note
 ```
 
-| State | UI status | Entry / exit behaviour |
-| --- | --- | --- |
-| WaitingForTransport | planning | Waits only if transport was started in the same turn. |
-| Searching, Choosing, Priced | planning | The LLM acts only in Choosing; invalid output loops back through the deterministic pick. |
-| Kept | planning | Booked stay, no search; floorCost 0 so it is never asked to cut. |
-| UnderReview | planning | Member C's `detectConflicts` decides the next state. |
-| Revising | planning | Same preferences, new allocation; the round is kept only if `planScore` improves. |
-| Draft | draft | No revision request targets the section. |
-| NeedsYou | needs_you | The traveller decides: raise the budget, change dates or edit the plan. |
-| Failed | — | The run stops and names accommodation as the failing specialist. |
+| State                       | UI status | Entry / exit behaviour                                                                   |
+| --------------------------- | --------- | ---------------------------------------------------------------------------------------- |
+| WaitingForTransport         | planning  | Waits only if transport was started in the same turn.                                    |
+| Searching, Choosing, Priced | planning  | The LLM acts only in Choosing; invalid output loops back through the deterministic pick. |
+| Kept                        | planning  | Booked stay, no search; floorCost 0 so it is never asked to cut.                         |
+| UnderReview                 | planning  | Member C's `detectConflicts` decides the next state.                                     |
+| Revising                    | planning  | Same preferences, new allocation; the round is kept only if `planScore` improves.        |
+| Draft                       | draft     | No revision request targets the section.                                                 |
+| NeedsYou                    | needs_you | The traveller decides: raise the budget, change dates or edit the plan.                  |
+| Failed                      | —         | The run stops and names accommodation as the failing specialist.                         |
 
 ## 8.2 Member A
 
@@ -196,7 +196,181 @@ _Activity, sequence and state machine diagrams from AH-B1 and B's use case speci
 
 ## 8.4 Member D
 
-_Activity, sequence and state machine diagrams from AH-D1 and D's use case specification._
+All three diagrams come from **AH-D1** and **UC-D1 View Weather-based Clothing Recommendation**.
+The destination-guide and dining specialists run as part of one trip plan. The LLM drafts from
+tool evidence; deterministic code validates schema, candidate names and meal budget before proposals
+reach the plan. Weather provenance distinguishes a forecast from historical climate context.
+
+### 8.4.1 Activity diagram: weather and dietary guidance (UC-D1)
+
+The specialist paths run independently. Weather failure degrades only the guide's weather detail;
+invalid model output uses deterministic, evidence-bounded guidance.
+
+```mermaid
+flowchart TB
+  start((Start)) --> request
+
+  subgraph TRAVELLER["Traveler"]
+    request["Submit destination, dates, party and dietary needs"]
+    view["View assembled trip plan"]
+  end
+
+  subgraph ORCH["Orchestrator"]
+    dispatch["Validate TripBrief and dispatch specialists"]
+    assemble["Validate AgentProposals and assemble TripPlan"]
+  end
+
+  subgraph GUIDE["Destination Guide"]
+    guideStart["Read brief; fetch sight and museum candidates plus preferences"]
+    coords{"Candidate coordinates and WeatherPort available?"}
+    weatherEvidence["Request weather for first travel date"]
+    horizon{"Weather result horizon?"}
+    contextOnly["Use month context; mark forecast unavailable or not applicable"]
+    guideEvidence["Give validated brief, weather and map evidence to LLM"]
+    guideModel{"LLM configured and responds?"}
+    guideLLM["LLM drafts destination and packing guidance"]
+    guideCheck["Fit schema; validate and deduplicate attraction names"]
+    guideValid{"Draft valid and grounded?"}
+    guideFallback["Build deterministic guide from available map evidence"]
+    guideProposal["Return destination-guide proposal with provenance"]
+  end
+
+  subgraph DINING["Dining"]
+    diningStart["Fetch restaurant candidates and saved preferences"]
+    diningPrepare["Deduplicate venues; filter dietary preferences; compute meal ceiling"]
+    diningModel{"LLM configured and responds?"}
+    diningLLM["LLM drafts venue suggestions from evidence"]
+    diningCheck["Fit schema; validate candidate names and meal ceiling"]
+    diningValid{"Draft valid and grounded?"}
+    diningFallback["Build deterministic venue suggestions and budget envelope"]
+    diningProposal["Return dining proposal; disclose direct allergy confirmation"]
+  end
+
+  subgraph WEATHER["Maps / Weather ports"]
+    forecast["Forecast for days 0–14; climate context after day 14"]
+  end
+
+  subgraph LLM["Configured LLM"]
+    guideDraft["Structured destination guide draft"]
+    diningDraft["Structured dining draft"]
+  end
+
+  request --> dispatch
+  dispatch --> guideStart
+  dispatch --> diningStart
+  guideStart --> coords
+  coords -- yes --> weatherEvidence --> forecast --> horizon
+  horizon -- forecast or climate --> guideEvidence
+  horizon -- missing result --> contextOnly --> guideEvidence
+  coords -- no --> contextOnly
+  guideEvidence --> guideModel
+  guideModel -- yes --> guideLLM --> guideDraft --> guideCheck --> guideValid
+  guideModel -- no --> guideFallback
+  guideValid -- yes --> guideProposal
+  guideValid -- no --> guideFallback --> guideProposal
+  diningStart --> diningPrepare --> diningModel
+  diningModel -- yes --> diningLLM --> diningDraft --> diningCheck --> diningValid
+  diningModel -- no --> diningFallback
+  diningValid -- yes --> diningProposal
+  diningValid -- no --> diningFallback --> diningProposal
+  guideProposal --> assemble
+  diningProposal --> assemble
+  assemble --> view
+```
+
+### 8.4.2 Sequence diagram: weather-based packing and dietary dining (UC-D1)
+
+The LLM receives validated evidence through read-only tools. Provider calls and post-model
+validation remain deterministic.
+
+```mermaid
+sequenceDiagram
+  autonumber
+  actor T as Traveler
+  participant UI as Web workspace
+  participant WF as LangGraph workflow
+  participant DG as Destination Guide agent
+  participant DN as Dining agent
+  participant MP as MapsPort
+  participant WP as WeatherPort
+  participant MEM as MemoryStore
+  participant LLM as Configured LLM
+  participant BD as Planning board
+
+  T->>UI: Submit destination, dates, party and dietary needs
+  UI->>WF: run(validated TripBrief)
+  par Destination guide
+    WF->>DG: invoke(brief, AgentContext)
+    DG->>MP: places(destination, sight and museum)
+    MP-->>DG: grounded place candidates
+    DG->>MEM: getLongTerm(userId)
+    MEM-->>DG: saved preferences
+    alt Candidate coordinates and WeatherPort available
+      DG->>WP: forecast(location, first travel date)
+      alt Date within forecast horizon
+        WP-->>DG: forecast + provider + observedAt + validUntil
+      else Date beyond 14 days
+        WP-->>DG: climate context, not a forecast
+      end
+    else No coordinates, port or weather result
+      DG->>DG: use month context and record unavailable weather
+    end
+    DG->>LLM: read-only evidence tool: brief, month, places, preferences
+    LLM-->>DG: structured destination and packing draft
+    DG->>DG: fit schema, validate grounded names, deduplicate or fallback
+    DG->>BD: destination-guide proposal + source and freshness
+  and Dining
+    WF->>DN: invoke(brief, AgentContext)
+    DN->>MP: places(destination, restaurant)
+    MP-->>DN: grounded restaurant candidates
+    DN->>MEM: getLongTerm(userId)
+    MEM-->>DN: saved preferences
+    DN->>DN: deduplicate candidates, filter dietary needs, compute ceiling
+    DN->>LLM: read-only evidence tool: candidates, preferences, ceiling
+    LLM-->>DN: structured dining draft
+    DN->>DN: fit schema, validate names and ceiling or fallback
+    DN->>BD: dining proposal + meal budget, allergy confirmation caveat
+  end
+  WF->>BD: validate proposals and assemble TripPlan
+  BD-->>WF: destination-guide and dining sections
+  WF-->>UI: final plan with source labels and assumptions
+  UI-->>T: Show packing context and dietary-aware venue candidates
+```
+
+### 8.4.3 State machine: destination-guide weather and packing section
+
+The state machine follows the destination-guide proposal through evidence collection, model
+validation and fallback. Dining produces a separate proposal in parallel.
+
+```mermaid
+stateDiagram-v2
+  [*] --> AwaitingBrief
+  AwaitingBrief --> GatheringEvidence : dispatch with validated TripBrief
+  GatheringEvidence --> WeatherLookup : candidate coordinate and WeatherPort available
+  GatheringEvidence --> Drafting : no coordinates or no WeatherPort / use month context
+  WeatherLookup --> Drafting : forecast result with provenance
+  WeatherLookup --> Drafting : climate result marked not a forecast
+  WeatherLookup --> Drafting : provider error / mark weather unavailable
+  GatheringEvidence --> Failed : MapsPort or MemoryStore fails
+  Drafting --> Validating : LLM returns structured draft
+  Drafting --> DeterministicFallback : no model or model call fails
+  Validating --> Ready : schema valid and attractions match candidates
+  Validating --> DeterministicFallback : invalid schema or ungrounded attraction
+  DeterministicFallback --> Ready : build guidance from available evidence
+  Ready --> [*] : proposal includes source and freshness
+  Failed --> [*] : workflow reports specialist failure
+
+  note right of WeatherLookup
+    Forecast: at most 14 days
+    Later dates: climate context
+    Never label climate as forecast
+  end note
+
+  note right of DeterministicFallback
+    No invented attractions
+    Weather fallback is not a forecast
+  end note
+```
 
 ## 8.5 Member E
 

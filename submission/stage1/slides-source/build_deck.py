@@ -594,8 +594,26 @@ for i, (d, ch, dis, why) in enumerate(dec):
     text(s, c2 + 0.55, y, MR - c2 - 0.7, 0.68, [[(dis, {'bold': True, 'color': NAVY}), ('  ' + why, {'color': MUTED})]],
          size=12.5, anchor='m')
 
-# ---------------------------------------------------------------- 19 D template
-behaviour_template(19, 'D')
+# ---------------------------------------------------------------- 19 D behaviour
+s = slide(19, 'D', 'Individual behaviour models · UC-D1', 'Evidence first; the LLM drafts, code decides',
+          "Speaker D. I'm Jiahang Bian, member D. UC-D1 shows both specialists working from evidence: the guide uses "
+          "map coordinates and weather data; dining uses restaurant candidates and confirmed dietary preferences. The "
+          "LLM drafts guidance, while deterministic code validates its output and budget. Forecasts are distinguished "
+          "from climate context, and unavailable weather is disclosed. Over to E.")
+col = MEMBERS['D'][2]
+card(s, ML, CT, MR - ML, 0.62, accent=col)
+text(s, ML + 0.3, CT + 0.1, MR - ML - 0.5, 0.42,
+     [[('Ad hoc requirement  ', {'bold': True, 'color': col}),
+       ('AH-D1: pack for my real Kyoto dates; vegetarian, peanut allergy; never claim allergy-safe unless confirmed', {}),
+       ('      Use case  ', {'bold': True, 'color': col}), ('UC-D1 Weather-based clothing + dining', {})]],
+     size=12, anchor='m', color=INK)
+w = (MR - ML - 0.4) / 3
+y = CT + 0.82
+for i, (lab, name) in enumerate((('ACTIVITY', 'd-activity.png'), ('SEQUENCE', 'd-sequence.png'),
+                                 ('STATE MACHINE', 'd-state.png'))):
+    x = ML + i * (w + 0.2)
+    text(s, x, y, w, 0.3, lab, size=11, bold=True, color=MUTED)
+    figure(s, name, x, y + 0.35, w, CB - y - 0.35)
 
 # ---------------------------------------------------------------- 20 package
 s = slide(20, 'E', 'Package diagram', 'Dependencies point inward to the shared contracts',

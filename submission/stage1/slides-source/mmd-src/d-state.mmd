@@ -1,0 +1,12 @@
+stateDiagram-v2
+  [*] --> Evidence
+  Evidence --> Draft : map + weather horizon labelled
+  Evidence --> Draft : no coordinates / weather unavailable
+  Draft --> Check : LLM structured output
+  Draft --> Fallback : model absent / error
+  Check --> Ready : schema + names valid
+  Check --> Fallback : invalid / ungrounded
+  Fallback --> Ready : deterministic guidance
+  Evidence --> Failed : map or memory error
+  Ready --> [*] : proposal + provenance
+  Failed --> [*] : workflow reports failure

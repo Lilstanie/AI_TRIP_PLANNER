@@ -1,0 +1,9 @@
+flowchart TB
+  brief["TripBrief"] --> weather["Guide evidence: maps + weather horizon"]
+  brief --> dining["Dining evidence: venues + diet needs"]
+  weather --> llm["LLM drafts guidance"]
+  dining --> llm
+  llm --> gates{"Code checks schema, names + budget"}
+  gates -- valid --> plan["Grounded proposals + provenance"]
+  gates -- invalid --> fallback["Deterministic fallback"]
+  fallback --> plan
