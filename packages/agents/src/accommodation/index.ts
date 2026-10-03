@@ -143,6 +143,7 @@ function assembleStayProposal(
   // metadata so SerpApi rates and Google Places estimates cannot share a label.
   const grounded = selections.every(({ options }) => options.every((option) => option.grounded));
   const source = staySource(selections, sourceKind, grounded);
+  const fixtureRates = selections.every(({ chosen }) => chosen.provenance?.kind === "mock");
   const assumptions = [
     source.kind === "live"
       ? "AUD per room per night; rates came from a live search and can change before booking."
@@ -150,7 +151,9 @@ function assembleStayProposal(
         ? "AUD per room per night; property data is grounded but the nightly price is an estimate, not a live quote."
         : "Booking mock convention: AUD per room per night; at most 2 guests per room; availability is simulated.",
     `${roomAllocation} allocation: ${rooms} room(s) for ${groupSize} guest(s); check-out day is not charged.`,
-    "Only selected stays contribute to estCost. Taxes/fees are assumed included in mock rates.",
+    fixtureRates
+      ? "Only selected stays contribute to estCost. Taxes/fees are assumed included in mock rates."
+      : "Only selected stays contribute to estCost. Taxes and fees are not verified; confirm the total before booking.",
     "Initial selection prefers a rating of at least 4/5 and free cancellation; confirmed preferences remain mandatory during revisions.",
     allocation
       ? `Stay allocation: ${allocation.basis}.${overAllocation ? " The first choice was over it, so the best stay within it (or the cheapest) was taken." : ""}`
@@ -448,7 +451,8 @@ async function planStays(
       source: {
         kind: "fallback",
         label: "Local fallback",
-        freshness: "The model choice was unavailable; a deterministic stay selection was used from the gathered candidates.",
+        freshness:
+          "The model choice was unavailable; a deterministic stay selection was used from the gathered candidates.",
       },
     };
   }

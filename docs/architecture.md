@@ -302,11 +302,24 @@ Shared contracts live in `packages/shared/src/`:
 
 Agents receive `ctx.tools` (`ToolGateway`) and `ctx.mem` (`MemoryStore`) through `AgentContext`. Do
 not import the singletons; take them from `ctx` so tests can pass fakes. The tool gateway
-(`packages/tools/src/gateway.ts`) chooses in-process fixtures (`USE_MOCK_TOOLS=true`) or the real
-OpenStreetMap and Google maps adapters; booking routes through SerpApi Google Hotels/Flights when
-configured, with Google Places estimates or fixtures as explicitly labelled fallbacks. `MemoryStore`
+(`packages/tools/src/gateway.ts`) snapshots provider configuration once for a planning run and
+composes its ports. The Maps port then privately selects in-process fixtures
+(`USE_MOCK_TOOLS=true`), OpenStreetMap or Google and owns route/places capability plus transit,
+inter-city rail and driving fallback. The Booking port privately selects fixture or live adapters
+once per gateway. Live hotels use SerpApi first and retain the labelled Google Places estimate
+fallback; live flights remain SerpApi-only and never receive a fictional fallback fare. Missing
+credentials fail only when the corresponding Booking capability is called. The Weather port uses
+the same captured configuration and clock to return fixture weather, Google Weather forecasts for
+days 0–10, Open-Meteo forecasts for days 11–14, or Open-Meteo historical climate context after
+day 14. A missing near-date credential fails only when that forecast is requested. `MemoryStore`
 (`packages/services/src/memory`) uses the Redis REST store when configured and process memory
 otherwise. Each package's exports and configuration are in its own `README.md`.
+
+The `@trip/tools` package entry point exposes the zero-argument gateway factory and request-mode
+helpers, but not raw Maps, Booking or Weather adapters. Production specialists use `ctx.tools` for
+provider evidence; their remaining request-mode reads only label presentation-only fallback facts.
+The [provider-selection decision](../.agents/notes/implemented/architecture/2026-10-03-deep-provider-selection.md)
+records this boundary and its deliberately unchanged shared contracts.
 
 Do not change `packages/shared` without telling the team; every package depends on it.
 

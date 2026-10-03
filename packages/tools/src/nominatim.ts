@@ -1,3 +1,4 @@
+import { toolFetch, toolRuntimeConfig } from "./runtime-context";
 /** One process-wide gate shared by all Nominatim consumers. Deploy one instance for public OSM. */
 const cache = new Map<string, { expires: number; data: unknown }>();
 let busy = false;
@@ -18,12 +19,13 @@ export async function nominatimRequest<T>(url: string, waitForSlot = false): Pro
   busy = true;
   lastRequest = Date.now();
   try {
-    const response = await fetch(url, {
+    const userAgent = toolRuntimeConfig().osmUserAgent;
+    const response = await toolFetch(url, {
       headers: {
         accept: "application/json",
         "user-agent":
-          process.env.OSM_USER_AGENT && !process.env.OSM_USER_AGENT.includes("contact@example.com")
-            ? process.env.OSM_USER_AGENT
+          userAgent && !userAgent.includes("contact@example.com")
+            ? userAgent
             : "AITripPlanner/1.0 (+https://github.com/Lilstanie/AI_TRIP_PLANNER)",
       },
       signal: AbortSignal.timeout(8000),

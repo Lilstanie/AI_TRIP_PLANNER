@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { reverseAddress, NominatimError } from "@trip/tools";
+import { reverseAddress, NominatimError } from "@trip/tools/location";
 const Coordinates = z.object({
   latitude: z.number().min(-90).max(90),
   longitude: z.number().min(-180).max(180),

@@ -23,6 +23,10 @@ existing Nominatim map queries, caches up to 100 responses for 24 hours, and spa
 by at least 1.1 seconds. The UI credits OSM and protects manual edits from late responses.
 This supplements the [fact-chip interaction](2026-09-24-preference-chips.md), not the map display.
 
+The tools package exposes this explicit user utility through its separate location subpath;
+the main entry point keeps the team's ToolGateway-only agent-provider boundary. Map lookups
+use the shared limiter in maps-port, preserving captured configuration and injected fetch.
+
 ## Alternatives considered
 
 - Paid address autocomplete: rejected by the user because of cost.

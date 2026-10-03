@@ -265,11 +265,23 @@ specialist，supervisor 也会运行它。任一字段设置后，协调器不�
 
 Agent 通过 `AgentContext` 接收 `ctx.tools`（`ToolGateway`）和 `ctx.mem`（`MemoryStore`）。
 不要导入单例；从 `ctx` 获取它们，以便测试传入替身。工具网关
-（`packages/tools/src/gateway.ts`）选择进程内的 fixture（测试前置数据）
-（`USE_MOCK_TOOLS=true`）或真实的 OpenStreetMap 和 Google 地图适配器；
-配置后，预订通过 SerpApi Google Hotels/Flights 路由，Google Places 估算或 fixture
-作为明确标注的回退。`MemoryStore`（`packages/services/src/memory`）在配置后使用
+（`packages/tools/src/gateway.ts`）为一次规划运行创建数据提供方配置快照并组合各个 port。
+随后，Maps port 在内部选择进程内 fixture（`USE_MOCK_TOOLS=true`）、OpenStreetMap 或
+Google，并负责路线与地点能力，以及公共交通、城际铁路和驾车回退。Booking port 为每个
+gateway 私下选择一次 fixture 或 live adapter。Live 酒店先使用 SerpApi，并保留带明确标签的
+Google Places 估算回退；live 航班仍只使用 SerpApi，绝不以虚构票价回退。缺失凭据只在调用
+相应 Booking 能力时失败。Weather port 使用同一份已固定的配置和时钟：fixture 模式返回
+确定性的天气信息；live 模式在第 0–10 天使用 Google Weather 预报，第 11–14 天使用
+Open-Meteo 预报，第 14 天之后使用 Open-Meteo 历史归档作为气候背景。近期预报缺少密钥时，
+只在请求该预报时失败。
+`MemoryStore`（`packages/services/src/memory`）在配置后使用
 Redis REST 存储，否则使用进程内存。各包的导出和配置位于各自的 `README.md`。
+
+`@trip/tools` 包入口只公开零参数的 gateway 工厂和请求数据模式辅助函数，不公开原始
+Maps、Booking 或 Weather 适配器。生产环境中的 specialist 通过 `ctx.tools` 获取提供方依据；
+它们保留的请求模式读取仅用于给展示层回退事实加标签。
+[提供方选择决策](../.agents/notes/implemented/architecture/2026-10-03-deep-provider-selection.md)
+记录了这个边界以及刻意保持不变的共享约定。
 
 不要在未通知团队的情况下更改 `packages/shared`；每个包都依赖它。
 

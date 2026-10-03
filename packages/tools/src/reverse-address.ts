@@ -1,12 +1,13 @@
 import { TripAddress, type TripAddress as Address } from "@trip/shared";
 import { nominatimRequest, NominatimError } from "./nominatim";
+import { toolRuntimeConfig } from "./runtime-context";
 /** Explicit browser-location lookups are live even when trip planning uses mock fixtures. */
 export async function reverseAddress(
   latitude: number,
   longitude: number,
   language: string,
 ): Promise<Address> {
-  const base = process.env.NOMINATIM_BASE_URL || "https://nominatim.openstreetmap.org";
+  const base = toolRuntimeConfig().nominatimBaseUrl;
   // City/suburb granularity, never house numbers or street addresses.
   const url = new URL(`${base.replace(/\/$/, "")}/reverse`);
   url.search = new URLSearchParams({

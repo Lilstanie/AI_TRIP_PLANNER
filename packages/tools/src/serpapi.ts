@@ -17,6 +17,7 @@ import { durableStoreConfigured, jsonStore } from "@trip/services";
 import type { FlightLeg, FlightOption, StayOption } from "@trip/shared";
 import { airportCodeFor } from "./airports";
 import { legFrom, isRoundTrip, departureToken, type RawItinerary } from "./flight-itinerary";
+import { toolFetch, toolNow, toolRuntimeConfig } from "./runtime-context";
 
 const MONTHLY_LIMIT = 230;
 const CACHE_TTL_MS = 15 * 60 * 1000;
@@ -42,7 +43,7 @@ export class SerpApiError extends Error {
 // --- shared monthly quota, both engines count against the same total -------
 let usage = { month: "", count: 0 };
 function currentMonth(): string {
-  return new Date().toISOString().slice(0, 7); // YYYY-MM
+  return toolNow().toISOString().slice(0, 7); // YYYY-MM
 }
 function rolloverIfNewMonth(): void {
   const month = currentMonth();
@@ -99,18 +100,18 @@ async function cached<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
     const stored = await jsonStore.get<{ expiresAt: number; value: T }>(
       `trip:serpapi:cache:${key}`,
     );
-    if (stored && stored.expiresAt > Date.now()) return stored.value;
+    if (stored && stored.expiresAt > toolNow().getTime()) return stored.value;
     const value = await fetcher();
     await jsonStore.set(`trip:serpapi:cache:${key}`, {
-      expiresAt: Date.now() + CACHE_TTL_MS,
+      expiresAt: toolNow().getTime() + CACHE_TTL_MS,
       value,
     });
     return value;
   }
   const hit = cache.get(key);
-  if (hit && hit.expiresAt > Date.now()) return hit.value as T;
+  if (hit && hit.expiresAt > toolNow().getTime()) return hit.value as T;
   const value = await fetcher();
-  cache.set(key, { expiresAt: Date.now() + CACHE_TTL_MS, value });
+  cache.set(key, { expiresAt: toolNow().getTime() + CACHE_TTL_MS, value });
   return value;
 }
 /** Test-only: cache entries would otherwise leak between test cases. */
@@ -119,7 +120,7 @@ export function clearSerpApiCacheForTests(): void {
 }
 
 function apiKey(): string {
-  const key = process.env.SERPAPI_KEY;
+  const key = toolRuntimeConfig().serpApiKey;
   if (!key) throw new SerpApiError("SerpApi is not configured. Add SERPAPI_KEY.", "not_configured");
   return key;
 }
@@ -141,7 +142,7 @@ async function serpApiSearch(params: Record<string, string>): Promise<SerpApiRaw
 
     let response: Response;
     try {
-      response = await fetch(url.toString(), { signal: AbortSignal.timeout(10_000) });
+      response = await toolFetch(url.toString(), { signal: AbortSignal.timeout(10_000) });
     } catch (error) {
       throw new SerpApiError(
         `SerpApi request failed: ${error instanceof Error ? error.message : "network error"}.`,
@@ -201,7 +202,7 @@ export async function searchHotelsSerpApi(q: {
       adults: String(q.guests),
       currency: "AUD",
     });
-    const queriedAt = new Date().toISOString();
+    const queriedAt = toolNow().toISOString();
     const properties = Array.isArray(data.properties) ? data.properties : [];
     const options: StayOption[] = properties
       .map((raw): StayOption => {
@@ -239,7 +240,8 @@ export async function searchHotelsSerpApi(q: {
       .filter(
         (option) =>
           option.name.length > 0 &&
-          Number.isFinite(option.pricePerNight) && option.pricePerNight > 0,
+          Number.isFinite(option.pricePerNight) &&
+          option.pricePerNight > 0,
       );
     if (options.length === 0) {
       throw new SerpApiError(`SerpApi returned no hotel results for ${q.city}.`, "no_results");
@@ -286,7 +288,7 @@ export async function searchFlightsSerpApi(q: {
       currency: "AUD",
       ...(q.return ? { return_date: q.return, type: "1" } : { type: "2" }),
     });
-    const queriedAt = new Date().toISOString();
+    const queriedAt = toolNow().toISOString();
     const flights = [...(data.best_flights ?? []), ...(data.other_flights ?? [])];
     const options: FlightOption[] = flights
       .map((raw): FlightOption => {
@@ -321,7 +323,9 @@ export async function searchFlightsSerpApi(q: {
           note: `${q.from} ${q.return ? "<->" : "->"} ${q.to}; ${q.passengers} passenger(s); ${q.return ? "round-trip" : "one-way"} group total in AUD; real-time SerpApi fare.`,
         };
       })
-      .filter((option) => option.carrier.length > 0 && Number.isFinite(option.price) && option.price > 0);
+      .filter(
+        (option) => option.carrier.length > 0 && Number.isFinite(option.price) && option.price > 0,
+      );
     if (options.length === 0) {
       throw new SerpApiError(
         `SerpApi returned no flight results for ${q.from} to ${q.to}.`,
@@ -399,7 +403,9 @@ export async function searchTransitSerpApi(q: { from: string; to: string }): Pro
       hl: "en",
     });
     const route = (data.directions ?? []).find(
-      (entry): entry is { duration: number; cost?: unknown; currency?: unknown; trips?: unknown[] } =>
+      (
+        entry,
+      ): entry is { duration: number; cost?: unknown; currency?: unknown; trips?: unknown[] } =>
         typeof entry === "object" &&
         entry !== null &&
         Number.isFinite((entry as { duration?: unknown }).duration) &&
@@ -409,7 +415,8 @@ export async function searchTransitSerpApi(q: { from: string; to: string }): Pro
     const amount = Number(route.cost);
     const services = (route.trips ?? []).flatMap((trip) => {
       const title = (trip as { title?: unknown; travel_mode?: unknown }).title;
-      return (trip as { travel_mode?: unknown }).travel_mode === "Transit" && typeof title === "string"
+      return (trip as { travel_mode?: unknown }).travel_mode === "Transit" &&
+        typeof title === "string"
         ? [title]
         : [];
     });

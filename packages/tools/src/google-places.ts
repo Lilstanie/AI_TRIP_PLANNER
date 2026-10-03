@@ -9,6 +9,8 @@
 // .agents/session-logs/2026-09-20-claude-google-maps-tests.md for the sibling
 // duplicate found in apps/web/lib/google.ts). One implementation here removes
 // that drift risk for the two call sites that live in this package.
+import { toolFetch, toolRuntimeConfig } from "./runtime-context";
+
 export interface RawGooglePlace {
   displayName?: { text?: string };
   /** Google's native place-rating scale is 1.0–5.0, NOT this project's 0-10
@@ -36,11 +38,11 @@ export async function searchGooglePlacesText(
   fieldMask: string,
   pageSize = 5,
 ): Promise<RawGooglePlace[]> {
-  const response = await fetch("https://places.googleapis.com/v1/places:searchText", {
+  const response = await toolFetch("https://places.googleapis.com/v1/places:searchText", {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      "x-goog-api-key": process.env.MAPS_API_KEY!,
+      "x-goog-api-key": toolRuntimeConfig().mapsApiKey!,
       "x-goog-fieldmask": fieldMask,
     },
     body: JSON.stringify({ textQuery, pageSize }),
