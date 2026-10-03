@@ -11,15 +11,16 @@ averages as a forecast would mislead them.
 
 ## Decision
 
-`packages/tools/src/weather.ts` implements `WeatherPort` and chooses by days until the target date:
+`packages/tools/src/weather-port.ts` implements `WeatherPort` and chooses by days until the target date:
 
-| Days until the date | Source                               | `horizon`  |
-| ------------------- | ------------------------------------ | ---------- |
-| 0–10                | Google Weather API daily forecast    | `forecast` |
-| 11–14               | Open-Meteo forecast                  | `forecast` |
-| 15 or more          | Seasonal climate fixture, no network | `climate`  |
+| Days until the date | Source                            | `horizon`  |
+| ------------------- | --------------------------------- | ---------- |
+| 0–10                | Google Weather API daily forecast | `forecast` |
+| 11–14               | Open-Meteo forecast               | `forecast` |
+| 15 or more          | Open-Meteo historical archive     | `climate`  |
 
-Mock mode returns fixtures for every horizon without network calls. A forecast result carries
+Mock mode returns fixtures for every horizon without network calls. Live climate context summarizes
+the same week of the previous three years from the historical archive. A forecast result carries
 `observedAt` and `validUntil`; climate text says it is historical guidance, not a forecast. The
 destination guide receives the result through the tool gateway, records provider, horizon and time in
 its assumptions and `source`, and reports weather as unavailable when the provider fails instead of
@@ -38,8 +39,7 @@ a forecast.
 ## Consequences
 
 - Two live providers must stay in agreement on units and wording.
-- Trips starting more than 14 days out never show live weather, however accurate a provider claims
-  to be.
+- Trips starting more than 14 days out show observed historical context, never a forecast.
 
 ## Sources
 
