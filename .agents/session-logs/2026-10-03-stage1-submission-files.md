@@ -12,7 +12,7 @@ contract-impact: none
 ## What changed
 
 - `submission/stage1/ELEC5620_Stage1_Report.pdf`: the group report draft, built from `report-source/`.
-- `submission/stage1/ELEC5620_Stage1_Slides.pdf`: the 24-slide deck used to record the video.
+- `submission/stage1/ELEC5620_Stage1_Slides.pptx`: the 24-slide PowerPoint used to record the video, with the script in the speaker notes. Generated from the online deck with python-pptx; text and tables stay editable.
 - `submission/stage1/video-script.md`: per-slide script with each member's share of the 8 minutes.
 - `submission/stage1/report-source/`: report chapters as Markdown, diagram sources and the build script.
 - `submission/stage1/README.md`: what goes to which Canvas item and what is still missing.

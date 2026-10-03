@@ -14,7 +14,7 @@
 | 文件 | 内容 |
 | --- | --- |
 | [`ELEC5620_Stage1_Report.pdf`](ELEC5620_Stage1_Report.pdf) | 报告，13 章，覆盖评分表每一项 |
-| [`ELEC5620_Stage1_Slides.pdf`](ELEC5620_Stage1_Slides.pdf) | 录视频用的幻灯片，24 页，按 A→B→C→D→E 每人一段。可编辑版本在线上 deck，可从那里导出 PPTX |
+| [`ELEC5620_Stage1_Slides.pptx`](ELEC5620_Stage1_Slides.pptx) | 录视频用的 PowerPoint，24 页，按 A→B→C→D→E 每人一段。文字、表格可直接编辑，每页备注里是讲稿 |
 | [`video-script.md`](video-script.md) | 逐页英文讲稿和每人时长，约 7:46 |
 | [`report-source/`](report-source/) | 报告源文件：`parts/*.md` 按章节，`build.mjs` 生成 PDF |
 
