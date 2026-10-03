@@ -1,7 +1,7 @@
 ---
 date: 2026-10-03
 author: Claude Code
-branch: claude/project-thread-5pm7xj
+branch: docs/stage1-slides-polish
 pr: none
 area: submission
 contract-impact: none
