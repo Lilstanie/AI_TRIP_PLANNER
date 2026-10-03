@@ -8,7 +8,7 @@
 
 ## 文件分类
 
-- `system/`、`agent-workflows/`、`data-and-storage/` 和 `workspace/` 按项目领域归类图表。
+- `system/`、`agent-workflows/`、`data-and-storage/` 和 `workspace/` 按项目领域归类图表；`stage1-member-c/` 存放 ELEC5620 Stage 1 行为图。
 - 每个领域目录都包含 `specs/`（可编辑的 Archify JSON）、`rendered/`（独立 HTML）和 `evidence/`（visual-check 报告、联系表和截图）。
 
 每项都提供查看器、源文件和视觉检查联系表链接。
@@ -36,6 +36,16 @@
 
 - [行程编辑](architecture-diagrams/workspace/rendered/trip-edit.html)（[源文件](architecture-diagrams/workspace/specs/trip-edit.workflow.json)，[证据](architecture-diagrams/workspace/evidence/trip-edit.visual-check.html)）—— 地点搜索、编辑预览、路线/预算/冲突重算，以及带版本校验的应用操作。
 - [地图浏览](architecture-diagrams/workspace/rendered/map-exploration.html)（[源文件](architecture-diagrams/workspace/specs/map-exploration.workflow.json)，[证据](architecture-diagrams/workspace/evidence/map-exploration.visual-check.html)）—— 地点查询和旅行者当前位置路线会显示在地图上，且不会重新运行 planner。
+
+<a id="elec5620-stage-1-member-c-behaviour"></a>
+
+## ELEC5620 Stage 1：成员 C 行为图
+
+[Stage 1 行为模型](design/stage1/04-member-c-behaviour.zh.md)中活动图、时序图和状态机图的完整渲染版本；该页的 Mermaid 代码块是它们的文本源。这些视图可能超过一屏高度。
+
+- [安排住宿活动图（UC-C1）](architecture-diagrams/stage1-member-c/rendered/c-activity.html)（[源文件](architecture-diagrams/stage1-member-c/specs/c-activity.workflow.json)，[证据](architecture-diagrams/stage1-member-c/evidence/c-activity.visual-check.html)）—— 已预订住宿的快捷路径、房间与城市分段准备、实时搜索与 Places 估价回退、唯一一次 LLM 选择，以及定价前的确定性校验。
+- [预算超支与定向修订（UC-C2）](architecture-diagrams/stage1-member-c/rendered/c-sequence.html)（[源文件](architecture-diagrams/stage1-member-c/specs/c-sequence.sequence.json)，[证据](architecture-diagrams/stage1-member-c/evidence/c-sequence.visual-check.html)）—— 第一轮规划、`detectConflicts`、带 `targetSaving` 的修订循环和回复；预算不可行的扩展写在卡片中。
+- [住宿区段状态机](architecture-diagrams/stage1-member-c/rendered/c-state.html)（[源文件](architecture-diagrams/stage1-member-c/specs/c-state.workflow.json)，[证据](architecture-diagrams/stage1-member-c/evidence/c-state.visual-check.html)）—— `planning`、`draft` 和 `needs_you` 状态背后的内部状态，包含全部守卫条件和修订循环。
 
 ## 项目中的 LangChain 用法
 

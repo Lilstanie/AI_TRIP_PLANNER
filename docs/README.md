@@ -16,6 +16,7 @@ content in both languages; commands, examples and identifiers stay unchanged.
 | [Design rules](design/ui-guidelines.md)   | Layout, tokens, glass, motion and accessibility    |
 | [Thinking UI](design/dsh-thinking-ui.md)  | Planning transcript reference and behavior         |
 | [Class diagrams](design/class-diagram.md) | Domain and runtime relationships                   |
+| [Stage 1 design model](design/stage1/README.md) | ELEC5620 Stage 1 report models and where each marking item is covered |
 | [Translation maintenance](i18n.md)        | Pair scope, terminology and synchronization checks |
 
 Package READMEs describe their own exports and configuration. [Agent Notes](../.agents/notes/README.md)
