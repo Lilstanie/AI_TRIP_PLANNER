@@ -36,6 +36,9 @@ sections.
 
 ## Alternatives considered
 
+The [interface language note](2026-10-04-interface-language-only.md) adds editable English/Chinese
+language controls and persistence; the settings layout and other sections remain unchanged.
+
 - **A full settings page instead of the dialog.** Rejected: the workspace is one screen, and every
   other editor is a dialog.
 - **Memory off disables the travel profile too.** Rejected: the profile is entered explicitly by the

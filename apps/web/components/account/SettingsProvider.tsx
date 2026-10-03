@@ -1,5 +1,13 @@
 "use client";
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { SETTINGS_KEY, UserSettings, defaultSettings } from "@/lib/account/settings";
 import { useAccount } from "./AccountProvider";
 
@@ -43,7 +51,12 @@ function applyAppearance(appearance: UserSettings["appearance"]) {
   else root.dataset.theme = appearance;
 }
 
-const newer = (a: UserSettings, b: UserSettings) => Date.parse(a.updatedAt) > Date.parse(b.updatedAt);
+function applyLanguage(language: UserSettings["language"]) {
+  document.documentElement.lang = language;
+}
+
+const newer = (a: UserSettings, b: UserSettings) =>
+  Date.parse(a.updatedAt) > Date.parse(b.updatedAt);
 
 async function putSettings(settings: UserSettings): Promise<UserSettings | undefined> {
   const response = await fetch("/api/account/settings", {
@@ -66,6 +79,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   // Read after hydration so server and first client render match.
   useEffect(() => setSettings(readLocal()), []);
   useEffect(() => applyAppearance(settings.appearance), [settings.appearance]);
+  useEffect(() => applyLanguage(settings.language), [settings.language]);
 
   const signedIn = account.status === "signed-in" ? account.userId : undefined;
   // On sign-in the newer copy wins: the account's, or this browser's if it changed since.

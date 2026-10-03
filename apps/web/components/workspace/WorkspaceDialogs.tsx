@@ -2,10 +2,11 @@
 import { flushSync } from "react-dom";
 import { Dialog } from "../ui/Dialog";
 import { SettingsDialog } from "../account/SettingsDialog";
-import { money } from "@/lib/workspace";
 import type { WorkspaceController } from "./useWorkspaceController";
+import { useLocale } from "../account/LocaleProvider";
 
 export function WorkspaceDialogs({ model }: { model: WorkspaceController }) {
+  const { money } = useLocale();
   const {
     dialog,
     dialogTitle,

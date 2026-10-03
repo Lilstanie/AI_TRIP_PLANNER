@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { ChevronIcon, MoreIcon, UserIcon } from "../ui/icons";
 import { useAccount } from "./AccountProvider";
 import type { SettingsSection } from "./SettingsDialog";
+import { useLocale } from "./LocaleProvider";
 
 /** Profile identity stays visible in the sidebar; its overflow opens account and settings actions. */
 export function AccountButton({
@@ -13,6 +14,7 @@ export function AccountButton({
   onSettings(section?: SettingsSection): void;
 }) {
   const account = useAccount();
+  const { locale, t } = useLocale();
   const [open, setOpen] = useState(false);
   const [focusIndex, setFocusIndex] = useState(0);
   const wrap = useRef<HTMLDivElement>(null);
@@ -22,27 +24,27 @@ export function AccountButton({
   const name = signedIn
     ? account.name
     : account.status === "signed-out"
-      ? "Sign in"
+      ? t("Sign in")
       : account.status === "loading"
-        ? "Account"
-        : "Local";
+        ? t("Account")
+        : t("Local");
   const subtitle = signedIn
     ? account.username
       ? `@${account.username}`
       : "Your travel workspace"
     : account.status === "signed-out"
-      ? "Keep your trips in sync"
+      ? t("Keep your trips in sync")
       : account.status === "loading"
-        ? "Checking account…"
-        : "Saved in this browser";
+        ? t("Checking account…")
+        : t("Saved in this browser");
   const menuItemsList: Array<
     { kind: "section"; id: SettingsSection; label: string } | { kind: "sign-out"; label: string }
   > = [
-    { kind: "section", id: "profile", label: "View profile" },
-    { kind: "section", id: "account", label: "Account settings" },
-    { kind: "section", id: "personalization", label: "Personalization" },
-    { kind: "section", id: "region", label: "Language & region" },
-    ...(signedIn ? [{ kind: "sign-out" as const, label: "Sign out" }] : []),
+    { kind: "section", id: "profile", label: t("View profile") },
+    { kind: "section", id: "account", label: t("Account settings") },
+    { kind: "section", id: "personalization", label: t("Personalization") },
+    { kind: "section", id: "region", label: t("Language & region") },
+    ...(signedIn ? [{ kind: "sign-out" as const, label: t("Sign out") }] : []),
   ];
 
   useEffect(() => {
@@ -137,7 +139,7 @@ export function AccountButton({
         <button
           type="button"
           className="account-button__profile"
-          aria-label={`${signedIn ? "View profile" : "Account settings"}: ${name}`}
+          aria-label={`${t(signedIn ? "View profile" : "Account settings")}${locale === "zh-CN" ? "：" : ": "}${name}`}
           aria-busy={account.status === "loading" || undefined}
           onClick={() => onSettings(signedIn ? "profile" : "account")}
         >
@@ -153,7 +155,7 @@ export function AccountButton({
           ref={trigger}
           type="button"
           className="account-button__more"
-          aria-label="Open account menu"
+          aria-label={t("Open account menu")}
           aria-haspopup="menu"
           aria-expanded={open}
           aria-controls={open ? "account-settings-menu" : undefined}
@@ -173,7 +175,7 @@ export function AccountButton({
           id="account-settings-menu"
           className="account-menu"
           role="menu"
-          aria-label="Account and settings"
+          aria-label={t("Account and settings")}
           onKeyDown={moveMenuFocus}
         >
           {menuItemsList.map((item, index) => (

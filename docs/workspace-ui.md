@@ -610,9 +610,12 @@ the account section explains that everything stays in this browser.
       facts: home base as the origin, plus travellers and budget, with pace, interests and dietary
       needs as trip preference lines. A new chat counts as blank while its facts equal these
       defaults.
-  - **Language & region:** language (English; chat in any language), region, currency (AUD, the
+  - **Language & region:** interface language (English or Simplified Chinese; chat in any language), region, currency (AUD, the
     base currency), units (metric), and Trip data (the site's default, live prices or sample data)
     under Advanced.
+    The top-bar language switch sits beside Mock data and updates the same saved language setting.
+    Navigation, controls, dates and AUD amounts follow it; agent replies and traveller text are not
+    translated. Old settings default to English. The desktop sidebar and main content have an 8 px gutter.
   - **Connected accounts:** the Google, GitHub or Apple sign-ins linked through Clerk, with a button
     that opens Clerk to change them.
 - Signed out, settings are kept in this browser; signed in, the newer copy of browser and account

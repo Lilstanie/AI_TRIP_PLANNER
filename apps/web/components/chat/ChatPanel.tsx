@@ -9,6 +9,7 @@ import { MessageItem } from "./MessageItem";
 import { QuestionComposer } from "./QuestionComposer";
 import type { PendingAsk, QuestionAnswer } from "@/lib/workspace/ask-user";
 import type { PreparedAttachment } from "@/lib/chat/attachments";
+import { useLocale } from "../account/LocaleProvider";
 
 export function ChatPanel({
   plan,
@@ -70,6 +71,7 @@ export function ChatPanel({
   /** Dismisses the question card and brings the composer back. */
   onDismissAsk?: () => void;
 }) {
+  const { t } = useLocale();
   const stream = useRef<HTMLDivElement>(null);
   /** Messages already on screen when the panel mounted -- a transcript restored
    *  from storage after a reload. Only a reply that arrives after them is new,
@@ -86,16 +88,17 @@ export function ChatPanel({
   const prompts = useMemo(() => quickPrompts(), []);
   return (
     // No visible heading: the conversation speaks for itself. The region keeps its name.
-    <section className="panel chat" aria-label="Chat">
+    <section className="panel chat" aria-label={t("Chat")}>
       <div className="chat__stream" ref={stream} aria-busy={busy}>
         {!plan && !messages.length && (
           <div className="chat-empty">
-            <h3>Where to next?</h3>
+            <h3>{t("Where to next?")}</h3>
             <p>
-              Describe your destination, travel dates, number of travellers and total budget, or add
-              them in the bar at the top.
+              {t(
+                "Describe your destination, travel dates, number of travellers and total budget, or add them in the bar at the top.",
+              )}
             </p>
-            <div className="chat-empty__suggestions" aria-label="Example trips">
+            <div className="chat-empty__suggestions" aria-label={t("Example trips")}>
               {prompts.map(({ label, text }) => (
                 <button
                   key={label}
@@ -109,11 +112,11 @@ export function ChatPanel({
               ))}
             </div>
             <p className="chat-empty__input-hint">
-              Pick an example to plan it now, or write your own below.
+              {t("Pick an example to plan it now, or write your own below.")}
             </p>
             {onStart && (
               <button type="button" onClick={onStart}>
-                Add trip details
+                {t("Add trip details")}
               </button>
             )}
           </div>
@@ -126,7 +129,7 @@ export function ChatPanel({
         {(activity.length > 0 || busy) && (
           <section
             className={`agent-activity${error && !busy ? " agent-activity--error" : ""}`}
-            aria-label="Thinking process"
+            aria-label={t("Thinking process")}
           >
             <ThinkingProcess activity={activity} busy={busy} error={error} />
           </section>
@@ -144,9 +147,9 @@ export function ChatPanel({
         >
           <Composer
             value={input}
-            placeholder={
-              plan ? "Tell me what to change…" : "Destination, dates, travellers and budget…"
-            }
+            placeholder={t(
+              plan ? "Tell me what to change…" : "Destination, dates, travellers and budget…",
+            )}
             busy={busy}
             canSend={!locked && (Boolean(input.trim()) || Boolean(attachments?.length))}
             canCancel={Boolean(onCancel)}
@@ -162,7 +165,9 @@ export function ChatPanel({
           />
         </form>
       )}
-      <p className="disclaimer">Estimates require verification. Nothing here makes a booking.</p>
+      <p className="disclaimer">
+        {t("Estimates require verification. Nothing here makes a booking.")}
+      </p>
     </section>
   );
 }
