@@ -1,5 +1,5 @@
 import type { ToolGateway } from "@trip/shared";
-import * as bookingAdapter from "./booking";
+import { createBookingPort } from "./booking-port";
 import { runWithDataMode } from "./data-mode";
 import { createMapsPort } from "./maps-port";
 import {
@@ -22,6 +22,7 @@ export function createToolGatewayWithRuntime(
   const invoke = <T>(fn: () => T): T =>
     runWithDataMode(config.dataMode, () => runWithToolRuntime(config, dependencies, fn));
   const mapsPort = createMapsPort(config, true);
+  const bookingPort = createBookingPort(config, true);
 
   return {
     maps: {
@@ -30,9 +31,9 @@ export function createToolGatewayWithRuntime(
       routeOptions: (query) => invoke(() => mapsPort.routeOptions!(query)),
     },
     booking: {
-      searchStays: (query) => invoke(() => bookingAdapter.searchStays(query)),
-      searchFlights: (query) => invoke(() => bookingAdapter.searchFlights(query)),
-      searchReturnLeg: (query) => invoke(() => bookingAdapter.searchReturnLeg(query)),
+      searchStays: (query) => invoke(() => bookingPort.searchStays(query)),
+      searchFlights: (query) => invoke(() => bookingPort.searchFlights(query)),
+      searchReturnLeg: (query) => invoke(() => bookingPort.searchReturnLeg!(query)),
     },
     weather: {
       forecast: (query) => invoke(() => weatherAdapter.weather.forecast(query)),

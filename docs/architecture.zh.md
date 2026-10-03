@@ -267,8 +267,10 @@ Agent 通过 `AgentContext` 接收 `ctx.tools`（`ToolGateway`）和 `ctx.mem`�
 不要导入单例；从 `ctx` 获取它们，以便测试传入替身。工具网关
 （`packages/tools/src/gateway.ts`）为一次规划运行创建数据提供方配置快照并组合各个 port。
 随后，Maps port 在内部选择进程内 fixture（`USE_MOCK_TOOLS=true`）、OpenStreetMap 或
-Google，并负责路线与地点能力，以及公共交通、城际铁路和驾车回退。配置后，预订通过
-SerpApi Google Hotels/Flights 路由，Google Places 估算或 fixture 作为明确标注的回退。
+Google，并负责路线与地点能力，以及公共交通、城际铁路和驾车回退。Booking port 为每个
+gateway 私下选择一次 fixture 或 live adapter。Live 酒店先使用 SerpApi，并保留带明确标签的
+Google Places 估算回退；live 航班仍只使用 SerpApi，绝不以虚构票价回退。缺失凭据只在调用
+相应 Booking 能力时失败。
 `MemoryStore`（`packages/services/src/memory`）在配置后使用
 Redis REST 存储，否则使用进程内存。各包的导出和配置位于各自的 `README.md`。
 
