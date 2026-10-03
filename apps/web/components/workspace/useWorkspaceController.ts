@@ -12,7 +12,6 @@ import {
   itineraryActivities,
   blankDraft,
   draftFor,
-  money,
   type Message,
   type Snapshot,
 } from "@/lib/workspace";
@@ -39,6 +38,7 @@ import type { SettingsSection } from "../account/SettingsDialog";
 import { useComposerAttachments } from "./useComposerAttachments";
 import type { PendingAsk } from "@/lib/workspace/ask-user";
 import { firstFactWithError, firstMissingFact, type FactKey } from "@/lib/workspace/trip-facts";
+import { formatAudForDisplay } from "@/lib/i18n/locale";
 export function useWorkspaceController({ restored }: { restored: RestoredWorkspace }) {
   const [plan, setPlan] = useState<TripPlan | undefined>(restored.plan);
   const [draft, setDraft] = useState(restored.draft);
@@ -248,7 +248,11 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     id: item.id,
     title: `Trip to ${item.snapshot.plan.brief.destination}`,
     destination: item.snapshot.plan.brief.destination,
-    subtitle: `${item.snapshot.plan.brief.dates.join(" – ")} · ${money(item.snapshot.plan.estTotal)}`,
+    subtitle: `${item.snapshot.plan.brief.dates.join(" – ")} · ${formatAudForDisplay(
+      item.snapshot.plan.estTotal,
+      "AUD",
+      settings.language,
+    )}`,
     status: item.status === "needs_review" ? ("Needs review" as const) : ("Draft" as const),
     active: !blank && item.id === catalog.activeTripId,
   }));

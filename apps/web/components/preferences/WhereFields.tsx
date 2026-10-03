@@ -4,6 +4,7 @@ import type { Draft } from "@/lib/workspace";
 import { destinationCities } from "@/lib/map/place-query";
 import { CloseIcon, MapPinIcon, PlusIcon } from "../ui/icons";
 import { PlaceInput } from "./PlaceInput";
+import { useLocale } from "../account/LocaleProvider";
 
 type Props = {
   value: Draft;
@@ -34,6 +35,7 @@ function withPlaces(list: string[], added: string[]) {
  * one string joined with " & ", in list order, which is also the order the trip visits them.
  */
 export function WhereFields({ value, onChange, errors, suggestPlaces }: Props) {
+  const { t } = useLocale();
   const [stops, setStops] = useState(() => destinationCities(value.destination));
   // The region line of a place picked from a suggestion. Kept for this editor only: the brief
   // stores names, and a typed place has no region to show.
@@ -87,7 +89,7 @@ export function WhereFields({ value, onChange, errors, suggestPlaces }: Props) {
     <>
       <div className="fact-section">
         {stops.length > 0 && (
-          <ol ref={list} className="stop-list" aria-label="Destinations">
+          <ol ref={list} className="stop-list" aria-label={t("Destinations")}>
             {stops.map((stop, index) => (
               <li key={stop} className="stop-card">
                 <span className="stop-card__thumb" aria-hidden="true">
@@ -117,12 +119,12 @@ export function WhereFields({ value, onChange, errors, suggestPlaces }: Props) {
         {adding ? (
           <PlaceInput
             id="fact-destination"
-            label="Add a destination"
+            label={t("Add a destination")}
             value={pending}
             inputRef={addInput}
             autoFocus
             suggest={suggestPlaces}
-            placeholder="City or region"
+            placeholder={t("City or region")}
             invalid={!!error}
             describedBy={error ? "fact-destination-error" : undefined}
             onChange={(text) => {
@@ -154,7 +156,7 @@ export function WhereFields({ value, onChange, errors, suggestPlaces }: Props) {
             }}
           >
             <PlusIcon />
-            Add destination
+            {t("Add destination")}
           </button>
         )}
         {error && (
@@ -165,13 +167,13 @@ export function WhereFields({ value, onChange, errors, suggestPlaces }: Props) {
       </div>
       <section className="fact-section fact-section--secondary">
         <label className="fact-section__label" htmlFor="fact-origin">
-          Departing from <span className="fact-section__optional">(optional)</span>
+          {t("Departing from")} <span className="fact-section__optional">{t("(optional)")}</span>
         </label>
         <PlaceInput
           id="fact-origin"
           value={value.origin}
           suggest={suggestPlaces}
-          placeholder="Your home city"
+          placeholder={t("Your home city")}
           invalid={!!errors.origin}
           describedBy={errors.origin ? "fact-origin-error" : "fact-origin-hint"}
           onChange={(origin) => onChange({ ...value, origin })}
@@ -183,7 +185,7 @@ export function WhereFields({ value, onChange, errors, suggestPlaces }: Props) {
           </small>
         ) : (
           <small className="muted form-field__hint" id="fact-origin-hint">
-            Leave blank to plan the destination only, without long-haul flights.
+            {t("Leave blank to plan the destination only, without long-haul flights.")}
           </small>
         )}
       </section>

@@ -5,6 +5,7 @@ import { ChatIcon, MoreIcon, SidebarIcon, SuitcaseIcon } from "../ui/icons";
 import { AccountButton } from "../account/AccountButton";
 import type { SettingsSection } from "../account/SettingsDialog";
 import type { SyncStatus } from "../account/useAccountSync";
+import { useLocale } from "../account/LocaleProvider";
 
 /**
  * A history row. Chats show their title and, when they belong to a trip, that trip's name as
@@ -193,11 +194,12 @@ export function WorkspaceSidebar({
   children?: ReactNode;
 }) {
   const isCollapsed = collapsible && collapsed;
+  const { t } = useLocale();
 
   return (
     <aside
       className={`workspace-sidebar${isCollapsed ? " is-collapsed" : ""}`}
-      aria-label="Chats and trips"
+      aria-label={t("Chats and trips")}
     >
       <div className="sidebar-head">
         <BrandMark showName={!isCollapsed} />
@@ -205,9 +207,9 @@ export function WorkspaceSidebar({
           <button
             type="button"
             className="sidebar-toggle"
-            aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-label={t(isCollapsed ? "Expand sidebar" : "Collapse sidebar")}
             aria-expanded={!isCollapsed}
-            data-tooltip={isCollapsed ? "Expand sidebar" : undefined}
+            data-tooltip={isCollapsed ? t("Expand sidebar") : undefined}
             onClick={onToggleCollapsed}
           >
             <SidebarIcon />
@@ -215,12 +217,12 @@ export function WorkspaceSidebar({
         )}
       </div>
 
-      <nav className="sidebar-nav" aria-label="Workspace">
+      <nav className="sidebar-nav" aria-label={t("Workspace")}>
         {collapsible ? (
           <NavButton
             buttonRef={chatsButton}
             icon={<ChatIcon filled={chatsOpen} />}
-            label="Chats"
+            label={t("Chats")}
             collapsed={isCollapsed}
             count={chatCount}
             current={chatsOpen}
@@ -231,7 +233,7 @@ export function WorkspaceSidebar({
         ) : null}
         <NavButton
           icon={<SuitcaseIcon filled={page === "trips" && !chatsOpen} />}
-          label="Trips"
+          label={t("Trips")}
           collapsed={isCollapsed}
           count={tripCount}
           current={page === "trips" && !chatsOpen}
@@ -248,14 +250,14 @@ export function WorkspaceSidebar({
             role="status"
           >
             {saveState === "failed"
-              ? "Save failed"
+              ? t("Save failed")
               : syncStatus === "syncing" || saveState === "saving"
-                ? "Saving…"
+                ? t("Saving…")
                 : syncStatus === "synced"
-                  ? "Synced to your account"
+                  ? t("Synced to your account")
                   : syncStatus === "offline"
-                    ? "Saved here · sync paused"
-                    : "Saved locally"}
+                    ? t("Saved here · sync paused")
+                    : t("Saved locally")}
           </span>
         )}
         <div className="sidebar-footer__actions">

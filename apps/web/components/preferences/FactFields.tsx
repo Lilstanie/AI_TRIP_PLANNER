@@ -9,6 +9,7 @@ import { MinusIcon, PlusIcon } from "../ui/icons";
 import { Input } from "../ui/input";
 import { PreferenceList } from "./PreferenceList";
 import { WhereFields } from "./WhereFields";
+import { useLocale } from "../account/LocaleProvider";
 
 // react-day-picker and its stylesheet load only once the traveller opens the When editor.
 const TripCalendar = dynamic(() => import("./TripCalendar").then((m) => m.TripCalendar), {
@@ -119,10 +120,11 @@ const parseIsoDate = (iso: string) => {
 };
 
 function WhenFields({ value, onChange, errors }: FieldsProps) {
+  const { locale, t } = useLocale();
   const range: DateRange | undefined = value.start
     ? { from: parseIsoDate(value.start), to: value.end ? parseIsoDate(value.end) : undefined }
     : undefined;
-  const dates = datesLabel(value.start, value.end);
+  const dates = datesLabel(value.start, value.end, locale);
   const clear = () => onChange({ ...value, start: "", end: "" });
   const handleSelect = (next: DateRange | undefined) => {
     if (!next?.from) {
@@ -139,11 +141,11 @@ function WhenFields({ value, onChange, errors }: FieldsProps) {
     <div className="when-fields">
       <div className="when-fields__summary">
         <span className={dates ? undefined : "muted"}>
-          {dates ? `${dates.range} · ${dates.days}` : "Choose your travel dates."}
+          {dates ? `${dates.range} · ${dates.days}` : t("Choose your travel dates.")}
         </span>
         {(value.start || value.end) && (
           <button type="button" className="when-fields__clear" onClick={clear}>
-            Clear
+            {t("Clear")}
           </button>
         )}
       </div>
@@ -158,6 +160,7 @@ function WhenFields({ value, onChange, errors }: FieldsProps) {
 }
 
 function WhoFields({ value, onChange, errors }: FieldsProps) {
+  const { t } = useLocale();
   const party = partyFor(value);
   const setParty = (next: Party) =>
     onChange({ ...value, party: next, groupSize: String(groupSizeFromParty(next)) });
@@ -168,8 +171,8 @@ function WhoFields({ value, onChange, errors }: FieldsProps) {
         return (
           <div className="fact-steppers__row" key={key}>
             <div className="fact-steppers__label">
-              <span>{label}</span>
-              {hint && <small className="muted">{hint}</small>}
+              <span>{t(label)}</span>
+              {hint && <small className="muted">{t(hint)}</small>}
             </div>
             <div className="fact-stepper">
               <button
@@ -181,7 +184,7 @@ function WhoFields({ value, onChange, errors }: FieldsProps) {
               >
                 <MinusIcon />
               </button>
-              <span className="fact-stepper__value" aria-label={`${label}: ${count}`}>
+              <span className="fact-stepper__value" aria-label={`${t(label)}: ${count}`}>
                 {count}
               </span>
               <button
@@ -216,10 +219,11 @@ const BUDGET_PRESETS = [
 ] as const;
 
 function BudgetFields({ value, onChange, errors }: FieldsProps) {
+  const { t } = useLocale();
   const current = value.budgetTotal.trim() ? Number(value.budgetTotal) : undefined;
   return (
     <div className="fact-budget">
-      <div className="fact-budget__presets" role="radiogroup" aria-label="Budget range">
+      <div className="fact-budget__presets" role="radiogroup" aria-label={t("Budget range")}>
         {BUDGET_PRESETS.map((preset) => {
           const checked = current === preset.value;
           return (
@@ -232,7 +236,7 @@ function BudgetFields({ value, onChange, errors }: FieldsProps) {
               data-checked={checked ? "true" : undefined}
               onClick={() => onChange({ ...value, budgetTotal: String(preset.value) })}
             >
-              <span className="fact-budget__preset-name">{preset.name}</span>
+              <span className="fact-budget__preset-name">{t(preset.name)}</span>
               <span className="fact-budget__preset-hint">{preset.hint}</span>
             </button>
           );

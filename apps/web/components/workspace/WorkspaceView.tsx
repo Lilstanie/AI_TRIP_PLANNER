@@ -18,9 +18,12 @@ import { MenuIcon, RouteIcon } from "../ui/icons";
 import type { WorkspaceController } from "./useWorkspaceController";
 import { WorkspaceDialogs } from "./WorkspaceDialogs";
 import { DataModeToggle } from "./DataModeToggle";
+import { LanguageToggle } from "./LanguageToggle";
 import { usePresence, useSegmentIndicator, viewTransition } from "../ui/motion";
+import { useLocale } from "../account/LocaleProvider";
 
 export function WorkspaceView({ model }: { model: WorkspaceController }) {
+  const { t } = useLocale();
   const {
     plan,
     draft,
@@ -183,9 +186,9 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
     <Drawer
       side="left"
       open={navOpen}
-      title="Navigation"
+      title={t("Navigation")}
       hideTitle
-      closeLabel="Close navigation"
+      closeLabel={t("Close navigation")}
       onClose={() => setNavOpen(false)}
       returnFocus={navToggle}
       className="workspace-drawer workspace-drawer--nav"
@@ -212,7 +215,7 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
       ref={navToggle}
       type="button"
       className="topbar-icon-button"
-      aria-label="Open navigation"
+      aria-label={t("Open navigation")}
       aria-expanded={navOpen}
       aria-haspopup="dialog"
       onClick={() => {
@@ -299,7 +302,7 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
           <header className="workspace-topbar">
             {menuButton}
             <div className="topbar-summary">
-              <h1 className="topbar-title">{plan ? plan.brief.destination : "New trip"}</h1>
+              <h1 className="topbar-title">{plan ? plan.brief.destination : t("New trip")}</h1>
             </div>
             <TripFactChips
               draft={draft}
@@ -319,7 +322,7 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
                 ref={viewSwitch}
                 className="topbar-views segmented"
                 role="group"
-                aria-label="Workspace view"
+                aria-label={t("Workspace view")}
               >
                 {(["chat", "map"] as const).map((view) => (
                   <button
@@ -330,34 +333,41 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
                       view !== mobileView && viewTransition(() => setMobileView(view), `to-${view}`)
                     }
                   >
-                    {view === "chat" ? "Chat" : "Map"}
+                    {t(view === "chat" ? "Chat" : "Map")}
                   </button>
                 ))}
               </div>
             )}
             <div className="topbar-actions">
-              <DataModeToggle
-                mode={dataMode.mode}
-                providers={dataMode.providers}
-                onChange={dataMode.choose}
-                disabled={busy}
-              />
+              <div
+                className="topbar-control-cluster"
+                role="group"
+                aria-label={t("Data and language controls")}
+              >
+                <DataModeToggle
+                  mode={dataMode.mode}
+                  providers={dataMode.providers}
+                  onChange={dataMode.choose}
+                  disabled={busy}
+                />
+                <LanguageToggle />
+              </div>
               <button
                 ref={tripToggle}
                 type="button"
                 className="topbar-button trip-trigger"
-                aria-label="Open your trip"
+                aria-label={t("Open your trip")}
                 aria-describedby={tripStops ? "trip-trigger-count" : undefined}
                 aria-expanded={tripOpen}
                 aria-haspopup="dialog"
                 onClick={() => (tripOpen ? closeTrip() : openTrip())}
               >
                 <RouteIcon />
-                <span className="topbar-button__label">Trip</span>
+                <span className="topbar-button__label">{t("Trip")}</span>
                 {tripStops > 0 && (
                   <span className="trip-trigger__count" id="trip-trigger-count">
                     {tripStops}
-                    <span className="sr-only"> {tripStops === 1 ? "stop" : "stops"}</span>
+                    <span className="sr-only"> {t(tripStops === 1 ? "stop" : "stops")}</span>
                   </span>
                 )}
               </button>

@@ -4,7 +4,7 @@ import type { ProposalItem } from "@trip/shared";
 import type { GooglePlace } from "@/lib/integrations/google";
 import type { LocationStatus } from "../../map/useTripPlaces";
 import type { TimelineEdits } from "./useTimelineEdits";
-import { money } from "@/lib/workspace";
+import { useLocale } from "../../account/LocaleProvider";
 import { SearchIcon } from "../../ui/icons";
 
 type Activity = ProposalItem & { id?: string };
@@ -51,6 +51,7 @@ export function TimelineStop({
   edits: TimelineEdits;
   onSelect(): void;
 }) {
+  const { money } = useLocale();
   const id = activity.id!;
   const name = place?.displayName?.text ?? activity.location ?? activity.detail;
   const confirmed = !!activity.placeId;
@@ -149,7 +150,8 @@ export function TimelineStop({
               className="stop-editor__group stop-editor__time"
               onSubmit={(event) => {
                 event.preventDefault();
-                if (validTime) void edits.edit({ kind: "time", id, startTime: start, endTime: end });
+                if (validTime)
+                  void edits.edit({ kind: "time", id, startTime: start, endTime: end });
               }}
             >
               <label>
