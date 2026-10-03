@@ -265,10 +265,11 @@ specialist，supervisor 也会运行它。任一字段设置后，协调器不�
 
 Agent 通过 `AgentContext` 接收 `ctx.tools`（`ToolGateway`）和 `ctx.mem`（`MemoryStore`）。
 不要导入单例；从 `ctx` 获取它们，以便测试传入替身。工具网关
-（`packages/tools/src/gateway.ts`）选择进程内的 fixture（测试前置数据）
-（`USE_MOCK_TOOLS=true`）或真实的 OpenStreetMap 和 Google 地图适配器；
-配置后，预订通过 SerpApi Google Hotels/Flights 路由，Google Places 估算或 fixture
-作为明确标注的回退。`MemoryStore`（`packages/services/src/memory`）在配置后使用
+（`packages/tools/src/gateway.ts`）为一次规划运行创建数据提供方配置快照并组合各个 port。
+随后，Maps port 在内部选择进程内 fixture（`USE_MOCK_TOOLS=true`）、OpenStreetMap 或
+Google，并负责路线与地点能力，以及公共交通、城际铁路和驾车回退。配置后，预订通过
+SerpApi Google Hotels/Flights 路由，Google Places 估算或 fixture 作为明确标注的回退。
+`MemoryStore`（`packages/services/src/memory`）在配置后使用
 Redis REST 存储，否则使用进程内存。各包的导出和配置位于各自的 `README.md`。
 
 不要在未通知团队的情况下更改 `packages/shared`；每个包都依赖它。

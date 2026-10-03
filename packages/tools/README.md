@@ -6,25 +6,34 @@ data mode), B (maps and routes), C (booking and SerpApi), D (weather).
 
 ## Modules
 
-| Module             | Purpose                                                                                 |
-| ------------------ | --------------------------------------------------------------------------------------- |
-| `gateway.ts`       | `createToolGateway()`: the `maps`, `booking` and `weather` ports for one planning run   |
-| `data-mode.ts`     | Per-request mock or live mode (`mockEnabled()`, `runWithDataMode()`, `parseDataMode()`) |
-| `maps.ts`          | Places and routes through OpenStreetMap (Nominatim, OSRM) or Google, or fixtures        |
-| `route-options.ts` | Drive and transit options for one hop, compared side by side                            |
-| `google-places.ts` | Shared Google Places `searchText` request                                               |
-| `booking.ts`       | Hotels and flights: SerpApi, then a Google Places estimate for hotels, or fixtures      |
-| `serpapi.ts`       | SerpApi Google Hotels and Google Flights with a shared monthly quota and cache          |
-| `airports.ts`      | City to IATA code lookup for flight searches                                            |
-| `weather.ts`       | `WeatherPort`: Google Weather, Open-Meteo or climate context by date distance           |
-| `mock-server.mjs`  | Optional stub HTTP server (`pnpm mock-server`); the app never calls it                  |
+| Module                | Purpose                                                                                 |
+| --------------------- | --------------------------------------------------------------------------------------- |
+| `gateway.ts`          | `createToolGateway()`: the `maps`, `booking` and `weather` ports for one planning run   |
+| `gateway-internal.ts` | Internal deterministic gateway construction for provider-policy E2E coverage            |
+| `runtime-context.ts`  | Immutable per-gateway provider configuration, network dependency and clock              |
+| `data-mode.ts`        | Per-request mock or live mode (`mockEnabled()`, `runWithDataMode()`, `parseDataMode()`) |
+| `maps-port.ts`        | Deep Maps port selecting fixtures, OpenStreetMap or Google once per gateway             |
+| `maps.ts`             | Temporary direct-adapter compatibility surface pending issue #131                       |
+| `route-options.ts`    | Drive and transit options for one hop, compared side by side                            |
+| `google-places.ts`    | Shared Google Places `searchText` request                                               |
+| `booking.ts`          | Hotels and flights: SerpApi, then a Google Places estimate for hotels, or fixtures      |
+| `serpapi.ts`          | SerpApi Google Hotels and Google Flights with a shared monthly quota and cache          |
+| `airports.ts`         | City to IATA code lookup for flight searches                                            |
+| `weather.ts`          | `WeatherPort`: Google Weather, Open-Meteo or climate context by date distance           |
+| `mock-server.mjs`     | Optional stub HTTP server (`pnpm mock-server`); the app never calls it                  |
 
 ## Configuration
 
 `USE_MOCK_TOOLS` sets the default mode; a request can override it with the `x-trip-data-mode`
-header. Live mode reads `MAPS_PROVIDER`, `MAPS_API_KEY`, `OSM_USER_AGENT`, `NOMINATIM_BASE_URL`,
-`OSRM_BASE_URL`, `MAPS_API_BASE_URL`, `SERPAPI_KEY` and `WEATHER_API_KEY`. Each is described in
+header. Gateway creation snapshots `MAPS_PROVIDER`, `MAPS_API_KEY`, `OSM_USER_AGENT`,
+`NOMINATIM_BASE_URL`, `OSRM_BASE_URL`, `MAPS_API_BASE_URL`, `SERPAPI_KEY` and `WEATHER_API_KEY` once
+for the Planning Run; changing process environment later cannot switch that gateway's policy. Each is described in
 [`.env.example`](../../.env.example) and [development.md](../../docs/development.md#environment-variables).
+
+The Maps port owns provider capabilities and fallback policy. Google supplies routes, places and
+concurrent route options; OpenStreetMap supplies Nominatim places plus OSRM driving estimates and
+rejects unsupported route options only when called. Google transit-to-driving and inter-city
+SerpApi rail fallback decisions remain internal to the port.
 
 ## Contracts
 
@@ -41,4 +50,6 @@ header. Live mode reads `MAPS_PROVIDER`, `MAPS_API_KEY`, `OSM_USER_AGENT`, `NOMI
 
 ## Tests
 
-`pnpm --filter @trip/tools test`. Tests stub `fetch`; none needs a key or spends provider quota.
+`pnpm --filter @trip/tools test`. Tests stub `fetch`; none needs a key or spends provider quota. The
+provider matrix exercises the public gateway ports with injected configuration, network and time,
+then writes its reviewable summary to `output/e2e/tool-gateway-provider-matrix/summary.json`.
