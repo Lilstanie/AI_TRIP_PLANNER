@@ -9,6 +9,8 @@ import { useSegmentIndicator } from "../ui/motion";
 import { useAccount } from "./AccountProvider";
 import { useSettings } from "./SettingsProvider";
 import { useLocale } from "./LocaleProvider";
+import { SUPPORTED_CURRENCIES } from "@trip/shared";
+import { CurrencyNotice } from "./CurrencyNotice";
 import type { MessageKey } from "@/lib/i18n/locale";
 
 /**
@@ -893,7 +895,17 @@ function RegionSection({ onDataMode }: { onDataMode(mode: DataMode): void }) {
       </p>
       <SettingRow label={t("Region")} value={`🇦🇺 ${t("Australia")}`} />
       <h3 className="settings-group">{t("Advanced")}</h3>
-      <SettingRow label={t("Currency")} value="AUD" />
+      <SettingRow label={t("Display currency")} value={settings.displayCurrency}>
+        {() => (
+          <Segmented
+            label={t("Display currency")}
+            options={SUPPORTED_CURRENCIES.map((code) => [code, code] as const)}
+            value={settings.displayCurrency}
+            onChange={(displayCurrency) => displayCurrency && update({ displayCurrency })}
+          />
+        )}
+      </SettingRow>
+      <CurrencyNotice currency={settings.displayCurrency} />
       <SettingRow label={t("Units")} value={t("Metric (°C, km)")} />
       <SettingRow label={t("Trip data")} value={DATA_LABEL[settings.dataMode]}>
         {() => (

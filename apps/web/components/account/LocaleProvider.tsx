@@ -11,14 +11,18 @@ import {
 } from "@/lib/i18n/locale";
 import { useSettings } from "./SettingsProvider";
 
+import type { Currency, TripBrief } from "@trip/shared";
+
 type LocaleState = {
   locale: AppLocale;
   t(text: MessageKey): string;
-  money(amount: number): string;
+  currency: Currency;
+  money(amount: number, source?: TripBrief["budgetSource"]): string;
 };
 
 const LocaleContext = createContext<LocaleState>({
   locale: "en",
+  currency: "AUD",
   t: (text) => text,
   money: (amount) => formatAudForDisplay(amount, "AUD", "en"),
 });
@@ -34,7 +38,15 @@ export function useInterfaceLocale(): AppLocale {
   return settings.language ?? browser;
 }
 
-export function LocaleProvider({ children }: { children: ReactNode }) {
+export function LocaleProvider({
+  children,
+  brief,
+}: {
+  children: ReactNode;
+  brief?: Pick<TripBrief, "budgetSource">;
+}) {
+  const { settings } = useSettings();
+  const currency = brief?.budgetSource?.currency ?? settings.displayCurrency;
   const locale = useInterfaceLocale();
   useEffect(() => {
     document.documentElement.lang = intlLocale(locale);
@@ -43,9 +55,11 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
     () => ({
       locale,
       t: (text) => translate(locale, text),
-      money: (amount) => formatAudForDisplay(amount, "AUD", locale),
+      currency,
+      money: (amount, source) =>
+        formatAudForDisplay(amount, currency, locale, undefined, undefined, source),
     }),
-    [locale],
+    [locale, currency],
   );
   return <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>;
 }

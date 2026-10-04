@@ -1,6 +1,8 @@
+import { fromAud, type Currency } from "@trip/shared";
+
 export const LOCALES = ["en", "zh"] as const;
 export type AppLocale = (typeof LOCALES)[number];
-export type CurrencyCode = "AUD";
+export type CurrencyCode = Currency;
 
 /** With no saved choice the interface follows the browser: any `zh*` language means Chinese. */
 export function browserLocale(languages: readonly string[]): AppLocale {
@@ -10,13 +12,14 @@ export function browserLocale(languages: readonly string[]): AppLocale {
 /** The BCP 47 tag for `<html lang>` and `Intl` formatters. */
 export const intlLocale = (locale: AppLocale) => (locale === "zh" ? "zh-CN" : "en-AU");
 
-/** Format existing AUD amounts in the selected interface language, without conversion. */
+/** One formatter for AUD planning amounts; source amounts can be displayed without a round trip. */
 export function formatAudForDisplay(
   amount: number,
   currency: CurrencyCode,
   locale: AppLocale,
-  maximumFractionDigits = 2,
-  minimumFractionDigits = 2,
+  maximumFractionDigits = currency === "JPY" ? 0 : 2,
+  minimumFractionDigits = currency === "JPY" ? 0 : 2,
+  source?: { amount: number; currency: Currency },
 ): string {
   return new Intl.NumberFormat(intlLocale(locale), {
     style: "currency",
@@ -24,7 +27,7 @@ export function formatAudForDisplay(
     currencyDisplay: "code",
     minimumFractionDigits,
     maximumFractionDigits,
-  }).format(amount);
+  }).format(source?.currency === currency ? source.amount : fromAud(amount, currency));
 }
 
 const ZH = {
@@ -40,6 +43,9 @@ const ZH = {
   Australia: "澳大利亚",
   Advanced: "高级设置",
   Currency: "货币",
+  "Display currency": "显示币种",
+  "Approximate converted amounts; planning totals stay in AUD. Rates as of {date}.":
+    "换算金额仅供估算；规划总额仍使用 AUD。汇率参考日期：{date}。",
   Units: "单位",
   "Metric (°C, km)": "公制（°C、公里）",
   "Trip data": "行程数据",

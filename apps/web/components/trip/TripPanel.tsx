@@ -1,8 +1,9 @@
 import { useRef, type ReactNode } from "react";
 import type { TripPlan } from "@trip/shared";
+import { CurrencyNotice } from "../account/CurrencyNotice";
 import { TripSection } from "./TripSection";
 import { statusForPlan } from "@/lib/workspace/catalog";
-import { budgetHint, itineraryActivities } from "@/lib/workspace";
+import { itineraryActivities } from "@/lib/workspace";
 import { useSegmentIndicator } from "../ui/motion";
 import { useLocale } from "../account/LocaleProvider";
 
@@ -90,7 +91,7 @@ export function TripPanel({
         >
           {delta === undefined
             ? "Budget not set"
-            : `${money(Math.abs(delta))} ${delta < 0 ? "over" : "under"} the ${money(budget!)}${budgetHint(plan.brief)} budget`}
+            : `${money(Math.abs(delta))} ${delta < 0 ? "over" : "under"} the ${money(budget!, plan.brief.budgetSource)} budget`}
         </p>
         {unpriced > 0 && (
           <p className="trip__budget-note">
@@ -98,6 +99,7 @@ export function TripPanel({
             published price.
           </p>
         )}
+        <CurrencyNotice />
       </section>
       <div ref={tabList} className="trip-tabs segmented" role="tablist" aria-label="Trip views">
         {tabs.map(([id, label]) => (

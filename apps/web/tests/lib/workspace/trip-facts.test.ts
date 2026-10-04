@@ -43,7 +43,7 @@ describe("trip facts", () => {
       where: "Sydney",
       when: "1 Oct – 4 Oct · 4 days",
       who: "2 travellers",
-      budget: expect.stringMatching(/^AUD\s2,000$/),
+      budget: expect.stringMatching(/^AUD\s2,000\.00$/),
     });
     expect(factLabels({ ...blankDraft(), groupSize: "1", budgetTotal: "1999.5" })).toMatchObject({
       who: "1 traveller",
@@ -51,11 +51,11 @@ describe("trip facts", () => {
     });
   });
 
-  it("explains a converted budget only while it still matches the plan", () => {
+  it("formats budgets in the selected display currency", () => {
     const brief = { ...plan.brief, budgetSource: { amount: 10000, currency: "CNY" as const } };
-    expect(factLabels(draftFor(brief), brief).budget).toMatch(/^AUD\s2,000 \(≈ .+\)$/);
+    expect(factLabels(draftFor(brief), brief).budget).toMatch(/^AUD\s2,000\.00$/);
     expect(factLabels({ ...draftFor(brief), budgetTotal: "2500" }, brief).budget).toMatch(
-      /^AUD\s2,500$/,
+      /^AUD\s2,500\.00$/,
     );
   });
 

@@ -1,5 +1,6 @@
 "use client";
-import { BASE_CURRENCY, moneyIn, type FlightAnswer } from "@trip/shared";
+import { type FlightAnswer } from "@trip/shared";
+import { useLocale } from "../account/LocaleProvider";
 import { FlightItineraryCard } from "./FlightItineraryCard";
 
 function duration(minutes: number | undefined): string | undefined {
@@ -22,6 +23,7 @@ function stops(count: number | undefined): string | undefined {
  * of these numbers would be wrong by the size of the group.
  */
 export function FlightResults({ answer }: { answer: FlightAnswer }) {
+  const { money } = useLocale();
   const party = answer.passengers === 1 ? "1 traveller" : `${answer.passengers} travellers`;
   return (
     <section className="flight-results" aria-label={`Fares from ${answer.from} to ${answer.to}`}>
@@ -63,9 +65,7 @@ export function FlightResults({ answer }: { answer: FlightAnswer }) {
                 <li key={`${option.carrier}-${index}`} className="flight-results__row">
                   <span className="flight-results__carrier">{option.carrier}</span>
                   {detail && <span className="flight-results__detail">{detail}</span>}
-                  <span className="flight-results__price">
-                    {moneyIn(option.price, BASE_CURRENCY)}
-                  </span>
+                  <span className="flight-results__price">{money(option.price)}</span>
                 </li>
               );
             })}

@@ -1,11 +1,9 @@
 import { z } from "zod";
 
 // ---------------------------------------------------------------------------
-// Money. This product stores every amount in a single currency; nothing
-// downstream — agents, budget guardrails, the UI — carries a currency, because
-// there is only ever one. Travellers may state a budget in any
-// SUPPORTED_CURRENCIES value; it is converted once, where it is read out of
-// their message, and never again.
+// Money. Planning amounts and guardrails stay in AUD. Stated budgets convert
+// to AUD once; the workspace converts AUD totals for display through the same
+// rate table. Display conversions never feed back into planning.
 //
 // BASE_CURRENCY is that one currency. Provider-native fares (such as a Google
 // transit fare) may still carry their own currency because they are displayed
@@ -29,7 +27,8 @@ export const BASE_CURRENCY: Currency = "AUD";
  * right level, not quotes: nobody checked them against a market on RATES_AS_OF.
  * They are deliberately given to two significant figures so they do not read as
  * more precise than they are. That is fine for sizing a holiday budget, and not
- * fine for anything else — do not grow a second use for this table.
+ * fine for financial transactions. The workspace may also use these figures
+ * for approximate display conversion, with a visible notice and RATES_AS_OF.
  *
  * Review them when RATES_AS_OF looks old, or when a budget converts to something
  * a traveller would call wrong. Major currencies can drift 10% in a year.
@@ -56,6 +55,12 @@ export function toAud(amount: number, from: Currency): number {
   const converted = Math.round(amount * AUD_PER[from] * 100) / 100;
   if (converted <= 0) throw new Error("That amount is too small to convert.");
   return converted;
+}
+
+/** Convert an AUD planning amount for display, allowing zero costs and signed differences. */
+export function fromAud(amount: number, to: Currency): number {
+  if (!Number.isFinite(amount)) throw new Error("A display amount must be finite.");
+  return amount / AUD_PER[to];
 }
 
 /**

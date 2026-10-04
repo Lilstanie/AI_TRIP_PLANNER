@@ -66,9 +66,10 @@ type Props = {
  */
 export function TripFactChips(props: Props) {
   const { draft, plan, open, onOpen, onClose, preferencesChip } = props;
-  const { locale, t } = useLocale();
+  const { locale, t, currency } = useLocale();
   const labels = factLabels(draft, plan?.brief, {
     locale,
+    currency,
   });
   // The editor stays mounted briefly after it closes so it can sink away instead of vanishing.
   const shown = usePresence(open, 220);

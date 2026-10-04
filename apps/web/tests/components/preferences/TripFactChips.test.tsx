@@ -75,7 +75,7 @@ describe("TripFactChips", () => {
     expect(button("Destination: Sydney")).toBeTruthy();
     expect(button("Dates: 1 Oct – 4 Oct · 4 days")).toBeTruthy();
     expect(button("Travellers: 2 travellers")).toBeTruthy();
-    expect(button(/^Budget: AUD\s2,000$/)).toBeTruthy();
+    expect(button(/^Budget: AUD\s2,000\.00$/)).toBeTruthy();
   });
 
   it("opens a labelled editor for one fact, focuses its field and returns focus on Escape", () => {

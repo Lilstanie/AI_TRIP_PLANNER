@@ -252,7 +252,7 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     destination: item.snapshot.plan.brief.destination,
     subtitle: `${item.snapshot.plan.brief.dates.join(" – ")} · ${formatAudForDisplay(
       item.snapshot.plan.estTotal,
-      "AUD",
+      item.snapshot.plan.brief.budgetSource?.currency ?? settings.displayCurrency,
       locale,
     )}`,
     status: item.status === "needs_review" ? ("Needs review" as const) : ("Draft" as const),

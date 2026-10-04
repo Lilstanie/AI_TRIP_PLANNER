@@ -1,5 +1,6 @@
 "use client";
-import { BASE_CURRENCY, moneyIn, type FlightAnswerOption, type FlightLeg } from "@trip/shared";
+import type { FlightAnswerOption, FlightLeg } from "@trip/shared";
+import { useLocale } from "../account/LocaleProvider";
 
 /** "17h 20m" — the shape a timetable uses, not 1040 minutes. */
 function hoursAndMinutes(minutes: number): string {
@@ -105,6 +106,7 @@ export function FlightItineraryCard({
   option: FlightAnswerOption;
   cheapest?: boolean;
 }) {
+  const { money } = useLocale();
   const outbound = option.outbound;
   if (!outbound) return null;
   const first = outbound.segments[0]!;
@@ -140,7 +142,7 @@ export function FlightItineraryCard({
         </p>
       )}
       <footer className="itinerary__footer">
-        <span className="itinerary__price">{moneyIn(option.price, BASE_CURRENCY)}</span>
+        <span className="itinerary__price">{money(option.price)}</span>
         <span className="itinerary__price-note">whole party</span>
       </footer>
     </article>
