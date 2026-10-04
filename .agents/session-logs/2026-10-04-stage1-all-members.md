@@ -12,10 +12,11 @@ contract-impact: none
 ## What changed
 
 - Merged member D's branch (#142), A's `docs/stage1-member-a-behaviour` and B's `docs/member-b-uml-review`;
-  added E's AH-E1, R-E1–R-E6, UC-E1 and diagram text from issue #139 (`04-member-e-behaviour.md` + zh).
+  added E's AH-E1, R-E1–R-E6, UC-E1 and diagram text from issue #139 (`04-member-e-behaviour.md` + zh);
+  E's three diagrams cropped from a PDF Joey supplied into `docs/design/diagrams/member-e/`.
 - `docs/design/stage1/`: §1.3 and §2.2 regrouped per member A–E; README lists each member's items.
-- Report parts (02, 04, 08, 09, 00 §1.4) regenerated from the docs; §8 reordered A–E; PDF rebuilt (60 pp).
-- Deck: `behaviour_slide()` builds slides 5 (A), 9 (B), 19 (D) from full diagrams in `mmd-src/`; member
+- Report parts (02, 04, 08, 09, 00 §1.4) regenerated from the docs; §8 reordered A–E; PDF rebuilt (62 pp).
+- Deck: `behaviour_slide()` builds slides 5 (A), 9 (B), 19 (D), 23 (E) from full diagrams in `mmd-src/`; member
   pills and the A–E speaker badges removed from slide headers; notes per slide with no speakers.
 - `video-script.md` regenerated from the deck notes (about 7:52).
 
@@ -34,5 +35,6 @@ routing and round control" instead of "conflict detection", which is C's.
 
 ## Notes for the next person
 
-E's three diagrams were only posted as GitHub image attachments, which this session could not fetch;
-§8.5 has no figures and slide 23 is still the placeholder template.
+E's diagrams are images with Chinese labels (no Mermaid source was supplied). They show the chat LLM
+producing a structured suggestion that becomes an `EditRequest`, while E's own text and UC-E1 say the chat
+LLM never creates one; E should reconcile the two before the interview.

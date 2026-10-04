@@ -688,11 +688,13 @@ for a in assume:
     xx += w + 0.12
 
 # ---------------------------------------------------------------- 23 E template
-behaviour_template(23, 'E', "UC-E1 edits an existing trip through the timeline or map while keeping routes, budget and uncertain prices "
+behaviour_slide(23, 'E', 'UC-E1 Edit Itinerary (Timeline / Map)', 'Edits are previewed and checked before they apply',
+                'AH-E1: change my trip in the timeline or map; check conflicts, routes and budget',
+                "UC-E1 edits an existing trip through the timeline or map while keeping routes, budget and uncertain prices "
                    "visible. Timeline and map operations go to a deterministic preview endpoint, which validates the schema "
                    "and version, checks routes and conflicts, recalculates costs, and marks changed prices as unverified. "
                    "The chat LLM can update the brief or replan, but it does not create an edit request. The state machine "
-                   "ends in Applied only after the browser accepts the validated preview.")
+                   "ends in Applied only after the browser accepts the validated preview.", 'e')
 
 # ---------------------------------------------------------------- 24 summary
 s = slide(24, None, None, '', "In short: models choose, code decides, and the traveller stays in control. Thank you for watching.")

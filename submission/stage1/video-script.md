@@ -4,10 +4,6 @@
 课程没有要求每个人出镜或出声，所以讲稿按幻灯片逐页写，不分讲者，谁讲都可以。估时按每分钟 140 个英文单词，每页加 3 秒翻页，合计约 7:52（24 页）。
 每页讲稿和 PPT 备注里的一致，改讲稿时两边一起改（见 `slides-source/build_deck.py`）。
 
-## 还要补的
-
-- 第 23 页是 E 的个人行为模型页，讲稿已写好，三张图到了再放进去。
-
 ## 录制建议
 
 - 打开 PPT 的演示模式，用 Zoom/Teams 或系统录屏录一遍画外音，不需要开摄像头。录完看时长，超了就删减讲稿，不要加快语速。
@@ -148,7 +144,7 @@ It deploys as one serverless Next.js app. Memory, account sync and sign-in are o
 
 A change must trace to a requirement; a change to shared contracts needs a written decision. A pull request is accepted when CI passes, an end-to-end artifact exists, use case postconditions hold and the models are updated.
 
-### 23. [E's use case]: activity, sequence and state machine
+### 23. Edits are previewed and checked before they apply
 
 约 36 秒
 
