@@ -26,6 +26,10 @@ workspace in a script, run the dev server without the Clerk keys, which is the s
 
 - Reach the changed UI the way a user would, including one example trip from the blank chat.
 - Check the states the change touches: empty, loading, error, degraded source badges, long text.
+- Switch the interface to 中文 with the top-bar language button and look again: Chinese labels are
+  shorter but wrap differently, and an untranslated string shows up as English. When the change
+  shows money, also pick a non-AUD display currency in Settings (JPY has no decimals).
+  `ui-language.e2e.mjs` and `display-currency.e2e.mjs` cover the existing paths.
 - Keyboard: Tab order, visible focus, Escape closes dialogs and returns focus to the trigger.
 - Watch the browser console for errors and React warnings.
 - What "right" looks like is owned by [better-accessibility](../better-accessibility/SKILL.md),

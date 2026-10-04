@@ -21,6 +21,17 @@ Each item below is a defect this project has hit; the source is in brackets.
   Prefer an E2E assertion; when isolation is necessary, check that failure modes were enumerated
   before implementation and that the focused check covers them.
   [SerpApi and Places notes](../../notes/implemented/feature/2026-09-20-serpapi-live-prices.md)
+- **Display is not storage.** Agents, guardrails and stored totals stay in AUD; only the web layer
+  converts, through `fromAud` and the single `money()` formatter. A budget entered in another
+  currency keeps `budgetSource` beside its AUD total. Flag a hand-built amount string, a conversion
+  inside an agent, or a stored amount in the display currency.
+  [display currency](../../notes/implemented/feature/2026-10-04-workspace-display-currency.md),
+  [source budget](../../notes/implemented/feature/2026-10-04-source-budget-entry.md)
+- **Interface strings go through `t()`.** A literal in JSX or an `aria-label` that bypasses `t()` stays
+  English in the Chinese interface; the typecheck only catches keys without a Chinese entry, not
+  strings that never reach `t()`. Generated replies are not translated afterwards; the reply
+  language is a prompt rule. [interface language](../../notes/implemented/feature/2026-10-04-interface-language-only.md),
+  [reply language](../../notes/implemented/feature/2026-10-04-assistant-reply-language.md)
 - **Data provenance tells the truth.** Each specialist sets `source.kind` in the branch that actually
   ran, including its fallback `catch`. A label derived from configuration is wrong exactly when a call
   degrades. [source kind](../../notes/implemented/bug-fix/2026-09-21-proposal-source-kind.md)
