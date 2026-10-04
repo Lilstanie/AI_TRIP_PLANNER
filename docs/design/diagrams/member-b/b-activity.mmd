@@ -1,0 +1,42 @@
+flowchart TB
+  S(( )) --> A("Receive UC-B1 transport dispatch")
+  subgraph TR["Transport specialist / deterministic code"]
+    A --> M{"Model configured?"}
+    G("Gather fares and routes via ToolGateway")
+    V{"Selection valid?"}
+    F("Use deterministic evidence-based plan")
+    P("Validate route and day fit, copy evidence prices, record gaps")
+    G0("Gather evidence without a model")
+  end
+  subgraph LM["Transport LLM"]
+    L("Call search_transport_evidence")
+    C("Choose offered flight IDs and hop departure slots")
+  end
+  M -- "[yes]" --> L --> G --> C --> V
+  M -- "[no]" --> G0 --> F
+  L -- "[model failure]" --> H("Reuse evidence or gather it if absent") --> F
+  C -- "[model failure]" --> H
+  V -- "[invalid IDs, coverage, day or time]" --> F
+  V -- "[valid]" --> P
+  F --> P
+  subgraph WF["Workflow / planning board / related specialists"]
+    B("Validate proposal schema and store on board")
+    I("Coordinate itinerary with transport and stays, verify route gaps")
+    D("Detect budget, time and geography conflicts")
+    R{"Conflicts and feasible budget and round below 3?"}
+    T("Increment round, invoke only targeted revisable specialists")
+    Q{"Whole-plan score improves?"}
+    K("Keep revised proposals")
+    O("Restore previous proposals and stop")
+    Z("Build draft or needs_you sections, retain pricing warnings")
+  end
+  P --> B --> I --> D --> R
+  R -- "[yes]" --> T --> Q
+  Q -- "[yes]" --> K --> D
+  Q -- "[no]" --> O --> Z
+  R -- "[no]" --> Z --> E(((●)))
+  B -- "[schema rejected]" --> X("Report run failure") --> E
+  G -- "[unrecoverable error]" --> X
+  G0 -- "[unrecoverable error]" --> X
+  style S fill:#18334d,stroke:#18334d
+  style E fill:#ffffff,stroke:#18334d

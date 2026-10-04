@@ -1,0 +1,36 @@
+stateDiagram-v2
+  [*] --> Dispatched : dispatch
+  Dispatched --> Gathering : invoke / validate brief and read preferences
+  Gathering --> Selecting : evidenceReady [model configured]
+  Gathering --> LocalPlan : evidenceReady [no model]
+  Selecting --> Checking : selectionReturned
+  Selecting --> LocalPlan : modelFailed / reuse or gather evidence
+  Checking --> LocalPlan : validationComplete [invalid] / reject selection
+  Checking --> Assembling : validationComplete [valid] / resolve candidate IDs
+  LocalPlan --> Assembling : planSelected / use evidence-based choices
+  Assembling --> UnderReview : proposalAccepted [initial round] / post proposal
+  Assembling --> ReviewingRound : proposalAccepted [revision round]
+  Gathering --> Failed : unrecoverableError
+  Assembling --> Failed : proposalRejected
+  UnderReview --> Revising : reviewComplete [transport targeted and feasible and round below 3]
+  Revising --> Gathering : revisionDispatched / increment round and pass constraints
+  ReviewingRound --> UnderReview : scored [scoreAfter less than scoreBefore] / retain and recheck
+  ReviewingRound --> Finalising : scored [scoreAfter not less than scoreBefore] / restore previous and stop
+  UnderReview --> Finalising : loopStopped
+  Finalising --> NeedsYou : assembled [request targets transport]
+  Finalising --> Draft : assembled [no request targets transport]
+  Draft --> [*]
+  NeedsYou --> [*]
+  Failed --> [*]
+  note right of Selecting
+    LLM selects, code checks and prices.
+    Internal states are design abstractions.
+  end note
+  note right of ReviewingRound
+    Scoring belongs to the whole workflow.
+    Other sections are abstracted here.
+  end note
+  note right of Draft
+    draft is not booked or fully priced.
+    Unknown ground fares remain warnings.
+  end note

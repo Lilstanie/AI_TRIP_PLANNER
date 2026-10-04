@@ -33,11 +33,14 @@
 
 每位成员的活动图、时序图和状态机图必须来自**自己的** ad hoc 需求和用例规格。A、B、E 每人还需补充：
 每位成员的活动图、时序图和状态机图必须来自**自己的** ad hoc 需求和用例规格。B、D、E 每人还需补充：
+每位成员的活动图、时序图和状态机图必须来自**自己的** ad hoc 需求和用例规格。A、D、E 每人还需补充：
 
 1. 在 [01-requirements.md §1.2](01-requirements.zh.md#12-ad-hoc-requirements-individual-at-least-one-per-member) 中写一条 ad hoc 需求。
 2. 按 §2.3 的模板，在 [02-use-cases.md](02-use-cases.zh.md) 中写至少一个用例规格。
 3. 基于该用例画一张活动图、一张时序图和一张状态机图，放在新的
    `04-member-<x>-behaviour.md` 页面中。
+
+成员 B：[AH-B1 与需求分类](01-requirements.zh.md#15-member-b-requirement-classification)、[UC-B1](02-use-cases.zh.md#24-uc-b1-arrange-transportation)及[三张行为模型](04-member-b-behaviour.zh.md)。
 
 <a id="contribution-table-fill-in-before-submitting"></a>
 

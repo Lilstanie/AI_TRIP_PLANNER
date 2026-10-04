@@ -1,0 +1,37 @@
+{
+  "sourceCommit": "7033a57",
+  "renderer": "Mermaid 10.9.3 in headless Chromium",
+  "models": [
+    {
+      "name": "b-activity",
+      "parsed": true,
+      "box": {
+        "x": 0,
+        "y": 0,
+        "width": 1702.953125,
+        "height": 2650.03125
+      }
+    },
+    {
+      "name": "b-sequence",
+      "parsed": true,
+      "box": {
+        "x": 24,
+        "y": 0,
+        "width": 1465,
+        "height": 3484
+      }
+    },
+    {
+      "name": "b-state",
+      "parsed": true,
+      "box": {
+        "x": 0,
+        "y": 0,
+        "width": 2477.40625,
+        "height": 1345
+      }
+    }
+  ],
+  "review": "Rendered PNGs inspected; sources and bilingual fenced diagrams compared. No production code changed."
+}
