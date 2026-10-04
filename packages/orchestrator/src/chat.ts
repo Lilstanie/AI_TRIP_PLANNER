@@ -13,6 +13,7 @@ import {
   toAud,
   type ChatRequest,
   type AssistantSettings,
+  type InterfaceLanguage,
   type ChatResponse,
   type AgentProgressEvent,
   type Attachment,
@@ -516,6 +517,21 @@ function styleRule(assistant: AssistantSettings | undefined): string {
   return text || memory ? `\n\nCommunication style: ${text}${memory}` : "";
 }
 
+const LANGUAGE_NAME: Record<InterfaceLanguage, string> = {
+  en: "English",
+  zh: "Simplified Chinese",
+};
+
+/**
+ * Which language to reply in when the latest message does not show one. Without an interface
+ * language the coordinator prompt's own rule (the latest message's language) stands alone.
+ */
+function replyLanguageRule(language: InterfaceLanguage | undefined): string {
+  return language
+    ? `\n\nReply language: the language of the traveller's latest message, else ${LANGUAGE_NAME[language]}, the language of their interface. Use ${LANGUAGE_NAME[language]} only when the message's language is unclear, for example when it is only a place name, dates or numbers.`
+    : "";
+}
+
 /** What an assistant turn said when it ended by throwing rather than replying. */
 function turnEndingReply(error: unknown): string | undefined {
   if (error instanceof AskUserError) {
@@ -608,7 +624,10 @@ async function runConversationAgent(
     name: "trip_conversation",
     model: streamingModel,
     tools: [updateTripBrief, replanTrip, askUserQuestion],
-    systemPrompt: COORDINATOR_PROMPT + styleRule(request.assistant),
+    systemPrompt:
+      COORDINATOR_PROMPT +
+      styleRule(request.assistant) +
+      replyLanguageRule(request.interfaceLanguage),
   });
   // The envelope is unchanged whatever is attached: text files are inlined into `message` under
   // their own delimiter, and images ride beside the envelope as their own content blocks.

@@ -209,6 +209,7 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     plan,
     dataMode: dataMode.mode,
     assistant: settings.assistant,
+    interfaceLanguage: locale,
     draft,
     input,
     planRef,

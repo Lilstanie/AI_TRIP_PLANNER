@@ -147,6 +147,15 @@ export const AssistantSettings = z.object({
 });
 export type AssistantSettings = z.infer<typeof AssistantSettings>;
 
+/**
+ * The interface language the traveller is reading. The assistant still replies in the language of
+ * the traveller's latest message; this is only the fallback when that language is unclear, such
+ * as a message that is only a place name or numbers.
+ */
+export const INTERFACE_LANGUAGES = ["en", "zh"] as const;
+export const InterfaceLanguage = z.enum(INTERFACE_LANGUAGES);
+export type InterfaceLanguage = z.infer<typeof InterfaceLanguage>;
+
 export const ChatRequest = z
   .object({
     tripId: z.string(),
@@ -173,6 +182,7 @@ export const ChatRequest = z
     // the coordinator sees them, and specialists keep their current inputs.
     attachments: z.array(Attachment).max(MAX_ATTACHMENTS_PER_MESSAGE).optional(),
     assistant: AssistantSettings.optional(),
+    interfaceLanguage: InterfaceLanguage.optional(),
   })
   .refine((request) => request.message.trim() !== "" || (request.attachments?.length ?? 0) > 0, {
     message: "Send a message or at least one attachment",

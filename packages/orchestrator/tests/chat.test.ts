@@ -209,6 +209,27 @@ describe("the conversation agent decides what to do", () => {
   });
 });
 
+describe("the reply language", () => {
+  // FakeToolCallingModel's reply joins everything it was shown, the system prompt included.
+  const shown = (request: Parameters<typeof runTripChat>[0]) =>
+    run(request, scriptedModel(), memoryStore().mem)
+      .catch((error: unknown) => error)
+      .then((failure) => (failure as IncompleteBriefError).message);
+
+  it("falls back to the interface language when the client sends one", async () => {
+    const prompt = await shown({ tripId: "blank", message: "Tokyo", interfaceLanguage: "zh" });
+    expect(prompt).toContain(
+      "Reply language: the language of the traveller's latest message, else Simplified Chinese",
+    );
+  });
+
+  it("adds no fallback for a client that does not send the field", async () => {
+    const prompt = await shown({ tripId: "blank", message: "Tokyo" });
+    expect(prompt).toContain("reply in that exact same language");
+    expect(prompt).not.toContain("Reply language:");
+  });
+});
+
 describe("currency in the brief update tool", () => {
   it("converts what the traveller said and keeps the original for display", async () => {
     const { mem } = memoryStore();
