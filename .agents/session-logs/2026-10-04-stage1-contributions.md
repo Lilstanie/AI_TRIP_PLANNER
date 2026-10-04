@@ -11,7 +11,7 @@ contract-impact: none
 
 ## What changed
 
-- `submission/stage1/report-source/parts/09-closing.md`: §13.1 contribution percentages.
+- `submission/stage1/report-source/parts/09-closing.md`: §13.1 contribution percentages (equal, 20% each).
 - `submission/stage1/report-source/parts/00-front.md`: cover video link https://youtu.be/x9cKzPXNB1U.
 - Rebuilt `submission/stage1/ELEC5620_Stage1_Report.pdf` (still 64 pages).
 - `docs/design/stage1/README.md` and `.zh.md`: the same percentages for the four group diagrams.
@@ -19,8 +19,7 @@ contract-impact: none
 
 ## Why
 
-Joey gave the link and asked for a near-even split: C most, A (repository owner) second, the rest
-equal. Every row is A 21%, B 17%, C 28%, D 17%, E 17%. Closes the remaining items of #135
+Joey gave the link and asked for an equal split: every row is 20% for each of A to E. Closes the remaining items of #135
 apart from the Canvas submission.
 
 ## Validation

@@ -76,18 +76,18 @@ the affected package (§5.3) assesses it against three questions:
 
 ## 13.1 Individual contributions to group tasks
 
-Each member's share of each group task, as agreed by the group. Each row adds up to 100%.
+The group shared every group task equally.
 
 | Group task                                            | A   | B   | C   | D   | E   |
 | ----------------------------------------------------- | --- | --- | --- | --- | --- |
-| Project requirements and classification (§1–2)        | 21% | 17% | 28% | 17% | 17% |
-| Feature diagram (§3)                                  | 21% | 17% | 28% | 17% | 17% |
-| Overall use case diagram (§4.1)                       | 21% | 17% | 28% | 17% | 17% |
-| Architecture, package and deployment (§5)             | 21% | 17% | 28% | 17% | 17% |
-| Class model (§6)                                      | 21% | 17% | 28% | 17% | 17% |
-| Object diagram, collaboration, structured class (§7)  | 21% | 17% | 28% | 17% | 17% |
-| Relationships, rationale, change, assumptions (§9–12) | 21% | 17% | 28% | 17% | 17% |
-| Video presentation                                    | 21% | 17% | 28% | 17% | 17% |
+| Project requirements and classification (§1–2)        | 20% | 20% | 20% | 20% | 20% |
+| Feature diagram (§3)                                  | 20% | 20% | 20% | 20% | 20% |
+| Overall use case diagram (§4.1)                       | 20% | 20% | 20% | 20% | 20% |
+| Architecture, package and deployment (§5)             | 20% | 20% | 20% | 20% | 20% |
+| Class model (§6)                                      | 20% | 20% | 20% | 20% | 20% |
+| Object diagram, collaboration, structured class (§7)  | 20% | 20% | 20% | 20% | 20% |
+| Relationships, rationale, change, assumptions (§9–12) | 20% | 20% | 20% | 20% | 20% |
+| Video presentation                                    | 20% | 20% | 20% | 20% | 20% |
 
 ## 13.2 Individual tasks
 
