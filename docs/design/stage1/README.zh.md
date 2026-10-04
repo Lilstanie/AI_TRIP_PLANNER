@@ -41,16 +41,18 @@
 | D (`@jbia0391`)       | [AH-D1, R-Dx](01-requirements.zh.md#member-d-ah-d1) | [UC-D1](02-use-cases.zh.md#uc-d1-view-weather-based-clothing-recommendation) | [04-member-d-behaviour.zh.md](04-member-d-behaviour.zh.md) |
 | E (`@WhW0591`)        | [AH-E1, R-Ex](01-requirements.zh.md#member-e-ah-e1) | [UC-E1](02-use-cases.zh.md#uc-e1-edit-itinerary-timeline--map)               | [04-member-e-behaviour.zh.md](04-member-e-behaviour.zh.md) |
 
-<a id="contribution-table-fill-in-before-submitting"></a>
+<a id="contribution-table"></a>
 
-## 贡献表（提交前填写）
+## 贡献表
+
+每位成员在各项小组任务中的占比，每行合计 100%。完整表格见报告 §13.1。
 
 | 项目                     | A   | B   | C   | D   | E   |
 | ------------------------ | --- | --- | --- | --- | --- |
-| 特征图                   |     |     |     |     |     |
-| 用例图                   |     |     |     |     |     |
-| 类图                     |     |     |     |     |     |
-| 对象图 / 协作 / 结构化类 |     |     |     |     |     |
+| 特征图                   | 20% | 20% | 20% | 20% | 20% |
+| 用例图                   | 20% | 20% | 20% | 20% | 20% |
+| 类图                     | 20% | 20% | 20% | 20% | 20% |
+| 对象图 / 协作 / 结构化类 | 20% | 20% | 20% | 20% | 20% |
 
 <a id="generative-ai-acknowledgement"></a>
 

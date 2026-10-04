@@ -39,14 +39,16 @@ requirement and use case specification.
 | D (`@jbia0391`)       | [AH-D1, R-Dx](01-requirements.md#member-d-ah-d1) | [UC-D1](02-use-cases.md#uc-d1-view-weather-based-clothing-recommendation) | [04-member-d-behaviour.md](04-member-d-behaviour.md) |
 | E (`@WhW0591`)        | [AH-E1, R-Ex](01-requirements.md#member-e-ah-e1) | [UC-E1](02-use-cases.md#uc-e1-edit-itinerary-timeline--map)               | [04-member-e-behaviour.md](04-member-e-behaviour.md) |
 
-## Contribution table (fill in before submitting)
+## Contribution table
+
+Each member's share of each group item; each row adds up to 100%. The full table is in report §13.1.
 
 | Item                                      | A   | B   | C   | D   | E   |
 | ----------------------------------------- | --- | --- | --- | --- | --- |
-| Feature diagram                           |     |     |     |     |     |
-| Use case diagram                          |     |     |     |     |     |
-| Class diagram                             |     |     |     |     |     |
-| Object / collaboration / structured class |     |     |     |     |     |
+| Feature diagram                           | 20% | 20% | 20% | 20% | 20% |
+| Use case diagram                          | 20% | 20% | 20% | 20% | 20% |
+| Class diagram                             | 20% | 20% | 20% | 20% | 20% |
+| Object / collaboration / structured class | 20% | 20% | 20% | 20% | 20% |
 
 ## Generative AI acknowledgement
 
