@@ -648,7 +648,7 @@ describe("Workspace interactions", () => {
     expect((screen.getByLabelText("Message AI Trip Planner") as HTMLInputElement).value).toBe(
       "unfinished request",
     );
-    expect(chip(/^Budget: AUD\s2,000$/)).toBeTruthy();
+    expect(chip(/^Budget: AUD\s2,000\.00$/)).toBeTruthy();
     expect(historyButton(/^Sydney · 2026-10-01/).getAttribute("aria-current")).toBe("true");
     expect(historyButton(/^Trip to Sydney$/).getAttribute("aria-current")).toBe("true");
   });
@@ -990,7 +990,7 @@ describe("Workspace navigation", () => {
       /^Destination: Sydney$/,
       /^Dates: 1 Oct – 4 Oct · 4 days$/,
       /^Travellers: 2 travellers$/,
-      /^Budget: AUD\s2,000$/,
+      /^Budget: AUD\s2,000\.00$/,
     ])
       expect(within(facts).getByRole("button", { name }).getAttribute("aria-haspopup")).toBe(
         "dialog",
@@ -1066,7 +1066,9 @@ describe("Workspace map places", () => {
     const places = () =>
       within(drawer("trip")).getByRole("list", { name: "Stops, Day 1 · 2026-10-01" });
     await waitFor(() =>
-      expect(within(places()).getByRole("button", { name: /^Stop \d+: To-ji Temple/ })).toBeTruthy(),
+      expect(
+        within(places()).getByRole("button", { name: /^Stop \d+: To-ji Temple/ }),
+      ).toBeTruthy(),
     );
     const map = document.querySelector<HTMLElement>(".workspace-panel--map")!;
     await waitFor(() =>
@@ -1082,7 +1084,9 @@ describe("Workspace map places", () => {
     );
     expect(within(places()).getByRole("button", { name: /^Stop \d+: To-ji Temple/ })).toBeTruthy();
     // The failed stop stays listed, without a map selection, instead of disappearing.
-    expect(within(places()).getAllByText(/Gallery afternoon|Kyoto Gallery/).length).toBeGreaterThan(0);
+    expect(within(places()).getAllByText(/Gallery afternoon|Kyoto Gallery/).length).toBeGreaterThan(
+      0,
+    );
   });
 
   it("shows a neutral placeholder instead of a world map when the destination cannot be located", async () => {

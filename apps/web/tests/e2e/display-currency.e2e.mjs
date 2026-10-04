@@ -43,12 +43,32 @@ try {
       await setCurrency(currency);
       await page.getByRole("button", { name: "Open your trip" }).click();
       const total = page.locator(".trip__budget strong");
+      const plan = await page.evaluate(
+        () => JSON.parse(localStorage.getItem("trip-workspace-v1")).plan,
+      );
+      const rate = { CNY: 0.21, USD: 1.5, JPY: 0.01 }[currency];
+      const expected = (amount) =>
+        new Intl.NumberFormat("en-AU", {
+          style: "currency",
+          currency,
+          currencyDisplay: "code",
+          minimumFractionDigits: currency === "JPY" ? 0 : 2,
+          maximumFractionDigits: currency === "JPY" ? 0 : 2,
+        }).format(amount / rate);
       await total.waitFor();
       check(
         (await total.textContent()).includes(currency),
         `${width}: trip total uses ${currency}`,
       );
+      check(
+        (await total.textContent()) === expected(plan.estTotal),
+        `${width}: numeric total uses shared ${currency} direction`,
+      );
       const chip = page.getByRole("button", { name: /^Budget:/ });
+      check(
+        (await chip.textContent()).includes(expected(plan.brief.budgetTotal)),
+        `${width}: original AUD budget converts to expected ${currency} number`,
+      );
       check(
         (await chip.textContent()).includes(currency),
         `${width}: budget chip uses ${currency}`,
@@ -56,6 +76,15 @@ try {
       check(
         await page.locator(".trip-panel .currency-notice").isVisible(),
         `${width}: dated estimate notice visible`,
+      );
+      check(
+        (await page.locator(".trip-panel .currency-notice").textContent()).includes("2026-09-20"),
+        `${width}: rate date shown`,
+      );
+      const sectionCosts = await page.locator(".section__row .cost").allTextContents();
+      check(
+        plan.sections.every((section, index) => sectionCosts[index] === expected(section.estCost)),
+        `${width}: section stay and transport amounts all converted`,
       );
       if (currency === "JPY")
         check(!/\.\d/.test(await total.textContent()), `${width}: JPY has no decimals`);

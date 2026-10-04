@@ -71,8 +71,8 @@ now. Implementation history and browser acceptance for each phase are in the
   Mindtrip's trip bar; the [preference chips Agent Note](../.agents/notes/implemented/feature/2026-09-24-preference-chips.md) records why.
   - The chips read the preferences draft, so they show only what the traveller stated: a value
     ("Sydney", "1 Oct – 4 Oct · 4 days", "2 adults, 1 child", "AUD 2,000"), or the bare fact name —
-    "Where", "When", "Who" and "Budget" — while it is missing. A converted budget keeps its
-    "(≈ ¥3,000)" hint while it still matches the plan. The chips form a `role="group"` named Trip
+    "Where", "When", "Who" and "Budget" — while it is missing. The budget uses the open trip's
+    stated currency, or the Settings display currency when none was stated. The chips form a `role="group"` named Trip
     details; a filled chip's accessible name leads with its fact ("Destination: Sydney").
   - Each chip is a button with `aria-haspopup="dialog"`, `aria-expanded` and `aria-controls`, and
     opens its own editor: Where (destinations and departing from), When (a full inline calendar), Who
