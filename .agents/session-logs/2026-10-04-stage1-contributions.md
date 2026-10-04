@@ -19,8 +19,8 @@ contract-impact: none
 
 ## Why
 
-Joey gave the link and said C did most of the group work; the split for A, B, D and E follows
-each member's area (A higher on architecture and class model). Closes the remaining items of #135
+Joey gave the link and asked for a near-even split: C most, A (repository owner) second, the rest
+equal. Every row is A 21%, B 17%, C 28%, D 17%, E 17%. Closes the remaining items of #135
 apart from the Canvas submission.
 
 ## Validation

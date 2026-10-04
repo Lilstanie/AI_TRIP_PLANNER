@@ -80,14 +80,14 @@ Each member's share of each group task, as agreed by the group. Each row adds up
 
 | Group task                                            | A   | B   | C   | D   | E   |
 | ----------------------------------------------------- | --- | --- | --- | --- | --- |
-| Project requirements and classification (§1–2)        | 15% | 10% | 50% | 10% | 15% |
-| Feature diagram (§3)                                  | 15% | 10% | 50% | 15% | 10% |
-| Overall use case diagram (§4.1)                       | 15% | 15% | 40% | 15% | 15% |
-| Architecture, package and deployment (§5)             | 25% | 10% | 45% | 10% | 10% |
-| Class model (§6)                                      | 20% | 10% | 50% | 10% | 10% |
-| Object diagram, collaboration, structured class (§7)  | 15% | 10% | 55% | 10% | 10% |
-| Relationships, rationale, change, assumptions (§9–12) | 15% | 10% | 55% | 10% | 10% |
-| Video presentation                                    | 10% | 10% | 60% | 10% | 10% |
+| Project requirements and classification (§1–2)        | 21% | 17% | 28% | 17% | 17% |
+| Feature diagram (§3)                                  | 21% | 17% | 28% | 17% | 17% |
+| Overall use case diagram (§4.1)                       | 21% | 17% | 28% | 17% | 17% |
+| Architecture, package and deployment (§5)             | 21% | 17% | 28% | 17% | 17% |
+| Class model (§6)                                      | 21% | 17% | 28% | 17% | 17% |
+| Object diagram, collaboration, structured class (§7)  | 21% | 17% | 28% | 17% | 17% |
+| Relationships, rationale, change, assumptions (§9–12) | 21% | 17% | 28% | 17% | 17% |
+| Video presentation                                    | 21% | 17% | 28% | 17% | 17% |
 
 ## 13.2 Individual tasks
 

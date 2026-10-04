@@ -45,10 +45,10 @@ Each member's share of each group item; each row adds up to 100%. The full table
 
 | Item                                      | A   | B   | C   | D   | E   |
 | ----------------------------------------- | --- | --- | --- | --- | --- |
-| Feature diagram                           | 15% | 10% | 50% | 15% | 10% |
-| Use case diagram                          | 15% | 15% | 40% | 15% | 15% |
-| Class diagram                             | 20% | 10% | 50% | 10% | 10% |
-| Object / collaboration / structured class | 15% | 10% | 55% | 10% | 10% |
+| Feature diagram                           | 21% | 17% | 28% | 17% | 17% |
+| Use case diagram                          | 21% | 17% | 28% | 17% | 17% |
+| Class diagram                             | 21% | 17% | 28% | 17% | 17% |
+| Object / collaboration / structured class | 21% | 17% | 28% | 17% | 17% |
 
 ## Generative AI acknowledgement
 
