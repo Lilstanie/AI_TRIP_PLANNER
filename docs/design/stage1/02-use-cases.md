@@ -108,12 +108,12 @@ Open-Meteo).
 | **Source** | AH-A1; R-A1 … R-A12 |
 | **Primary actor** | Traveler |
 | **Secondary actors** | LLM (DeepSeek) as coordinator, supervisor and reply writer; the five specialist agents; Maps / Routes, Hotel / Flight Search and Weather APIs through the specialists |
-| **Goal** | A free-text message becomes one validated, internally consistent `TripPlan`, or a plain statement of what is missing or impossible. |
+| **Goal** | Turn a free-text message into a validated, internally consistent `TripPlan`, or state what is missing or why the trip cannot be planned. |
 | **Trigger** | The traveller sends a chat message to `POST /api/chat`. |
-| **Preconditions** | The message is non-empty or carries an attachment. Nothing else is required: facts missing from the brief are what this use case resolves. |
-| **Postconditions (success)** | A `TripPlan` exists with five sections, each `draft` or `needs_you`, `estTotal` and `overrunPct` computed, and a reply naming what the traveller must still decide. Every costed item came from a specialist's evidence. |
-| **Postconditions (partial)** | A `needs_info` or `ask_user` frame is returned with the facts understood so far, and no plan is invented. |
-| **Postconditions (failure)** | An error frame naming the specialist that failed. No partial plan is presented as a plan. |
+| **Preconditions** | The message is non-empty or carries an attachment. Nothing else is required, because resolving the missing facts is part of this use case. |
+| **Postconditions (success)** | A `TripPlan` exists with five sections, each `draft` or `needs_you`, `estTotal` and `overrunPct` computed, and a reply naming what the traveller must still decide. Every costed item comes from a specialist's evidence. |
+| **Postconditions (partial)** | A `needs_info` or `ask_user` frame is returned with the facts understood so far, and no plan is produced. |
+| **Postconditions (failure)** | An error frame naming the specialist that failed. No partial plan is returned. |
 
 **Main success scenario**
 
@@ -130,19 +130,19 @@ Open-Meteo).
 **Extensions**
 
 - 2a. *No model configured, or off-schema output*: no patch is applied; the turn proceeds on the facts already stated, and the reply is written by `fallbackReplyFor` (R-A11).
-- 3a. *A required fact is still missing* (destination, dates, group size or budget): the turn ends with `IncompleteBriefError` naming the missing fields, carrying `known` so the traveller need not repeat the rest. Nothing is defaulted (R-A2).
+- 3a. *A required fact is still missing* (destination, dates, group size or budget): the turn ends with `IncompleteBriefError` naming the missing fields, carrying `known` so the traveller does not repeat the rest. No default values are used (R-A2).
 - 3b. *Dates are unreal, reversed, or shorter than one night per city*: the brief is rejected with the reason; planning does not start.
 - 3c. *The traveller states a lasting wish, a travel mode or a booked stay*: it is recorded on the brief (`learnedPreferences`, `legModes`, `bookedStay`) and the plan is re-run with it.
 - 4a. *The traveller asked a question the plan already answers*: the coordinator answers from the plan and does not replan.
-- 5a. *The coordinator would rather ask than guess*: it calls `ask_user_question` with 2-4 options in the traveller's language, recommended option first, and the turn ends there; no other tool runs after it (R-A3).
-- 5b. *Supervisor unavailable or off-schema*: all five specialists are dispatched deterministically; the itinerary specialist is never skipped (R-A11).
-- 6a. *A specialist throws*: the run stops and the error frame names it; no partial plan is returned.
+- 5a. *The coordinator would rather ask than guess*: it calls `ask_user_question` with 2-4 options in the traveller's language, recommended option first. The turn ends there, and no other tool runs after it (R-A3).
+- 5b. *Supervisor unavailable or off-schema*: all five specialists are dispatched deterministically, and the itinerary specialist is never skipped (R-A11).
+- 6a. *A specialist throws*: the run stops and the error frame names it. No partial plan is returned.
 - 7a. *Conflicts remain, a round is left, and none is `infeasible budget`*: `revise_conflicts` re-invokes only the targeted specialists, each with its previous proposal and any `targetSaving`, then returns to step 7 (R-A6).
-- 7b. *`planScore` did not improve after a revision*: the round is discarded, the earlier proposals are kept, `stalled` is set and the flow goes to step 8 — a revision can never make the plan worse (R-A7).
+- 7b. *`planScore` did not improve after a revision*: the round is discarded, the earlier proposals are kept, `stalled` is set, and the flow goes to step 8 (R-A7).
 - 7c. *Three rounds have run and conflicts remain*: the plan is built with each still-targeted section marked `needs_you` and `conflicts` listing what is unresolved (R-A9).
 - 7d. *`infeasible budget`*: the revision loop is skipped entirely and the reply names the minimum budget needed (member C's UC-C2, extension 2b).
 
-**Special requirements**: R-A10 (a model-proposed change is re-validated before it plans anything), R-A11 (every LLM step has a deterministic fallback), R-A12 (the above is replayed under injected faults in `agent-lab`).
+**Special requirements**: R-A10 (a model-proposed change is re-validated before planning starts), R-A11 (every LLM step has a deterministic fallback), R-A12 (the behaviour above is replayed under injected faults in `agent-lab`).
 
 ## 2.4 Template for the other members
 

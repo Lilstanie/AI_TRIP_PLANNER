@@ -34,20 +34,20 @@
       "translationSha256": "ea2e79620e1a5f2ee201521e20348af83ae325d4a936433d4db454c71747cf7c"
     },
     "docs/design/stage1/01-requirements.md": {
-      "sourceSha256": "75d2149933531a1978240cfafa2d22a9b24eda4eb8995af9cd40c2534f274c9a",
-      "translationSha256": "7348011a8af9ef852c7f9506e5163894926c5d7caf7c7547aa4fa23ca8458074"
+      "sourceSha256": "536aa6a313268ae31fb6f0eee41d95aa196ecff4c1f4f7cfeb4b7f1890deeae0",
+      "translationSha256": "ed6b6bf8e400dc187075fad6d159d7cfdd5e4f5daf893f6904c2aa129cbfdcda"
     },
     "docs/design/stage1/02-use-cases.md": {
-      "sourceSha256": "ebe0944c808fc078731dc830a34a6023d3fd5d8da312eb36730cf69f7734fb40",
-      "translationSha256": "519cdd439bc2ccb4bf998b333e656bc1b98cb8ee3e5aea9cb3541e17f443c050"
+      "sourceSha256": "ce2829c6a296aba2a5adefe9a1476de15e6474dcc49cdf1d60eebb7693acb403",
+      "translationSha256": "86fd9ede05b963c07bf0c407d54a0da9c295cb1cfe853417253615b7c1951324"
     },
     "docs/design/stage1/03-structure.md": {
       "sourceSha256": "17433045dceaf1406d5e51d28cb290dc1f3080aaa5b69fb012149a1db1032c3f",
       "translationSha256": "71c1808cbdb82c1882d7ed506dadade89383a860b9313ae5a09635c0a5c6f80d"
     },
     "docs/design/stage1/04-member-a-behaviour.md": {
-      "sourceSha256": "1f8c69fde44057ebd5b8ca92f45c9c473847137b21e93385ddbe0e4e78c5c214",
-      "translationSha256": "89a73bde33913cedc3de940ef7a9840ad8b4cd2183be605bee027d317c6cec42"
+      "sourceSha256": "3423013f986a55eee871c9d6256eacce8147d7a73f8e03c0d98276c265042f50",
+      "translationSha256": "e0acb4c6b728e3fe5236d18eb42463fdc6cdc03bc5c252f257a7aa56b17350f9"
     },
     "docs/design/stage1/04-member-c-behaviour.md": {
       "sourceSha256": "dc0db819b0beacd7c4e604abc1089fa559e445d5cf21f4b5f3e5e91e87385e9c",
