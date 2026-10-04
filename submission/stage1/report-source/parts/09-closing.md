@@ -76,19 +76,18 @@ the affected package (§5.3) assesses it against three questions:
 
 ## 13.1 Individual contributions to group tasks
 
-_Fill in before submitting: the part of each diagram each member did, or a percentage. Each row
-adds up to 100%._
+Each member's share of each group task, as agreed by the group. Each row adds up to 100%.
 
 | Group task                                            | A   | B   | C   | D   | E   |
 | ----------------------------------------------------- | --- | --- | --- | --- | --- |
-| Project requirements and classification (§1–2)        |     |     |     |     |     |
-| Feature diagram (§3)                                  |     |     |     |     |     |
-| Overall use case diagram (§4.1)                       |     |     |     |     |     |
-| Architecture, package and deployment (§5)             |     |     |     |     |     |
-| Class model (§6)                                      |     |     |     |     |     |
-| Object diagram, collaboration, structured class (§7)  |     |     |     |     |     |
-| Relationships, rationale, change, assumptions (§9–12) |     |     |     |     |     |
-| Video presentation                                    |     |     |     |     |     |
+| Project requirements and classification (§1–2)        | 15% | 10% | 50% | 10% | 15% |
+| Feature diagram (§3)                                  | 15% | 10% | 50% | 15% | 10% |
+| Overall use case diagram (§4.1)                       | 15% | 15% | 40% | 15% | 15% |
+| Architecture, package and deployment (§5)             | 25% | 10% | 45% | 10% | 10% |
+| Class model (§6)                                      | 20% | 10% | 50% | 10% | 10% |
+| Object diagram, collaboration, structured class (§7)  | 15% | 10% | 55% | 10% | 10% |
+| Relationships, rationale, change, assumptions (§9–12) | 15% | 10% | 55% | 10% | 10% |
+| Video presentation                                    | 10% | 10% | 60% | 10% | 10% |
 
 ## 13.2 Individual tasks
 

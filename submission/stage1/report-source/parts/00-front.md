@@ -18,7 +18,7 @@ Group: Mon 10-12 Group 14
 
 Repository: https://github.com/Lilstanie/AI_TRIP_PLANNER
 
-Video: _YouTube link_
+Video: <https://youtu.be/x9cKzPXNB1U>
 
 </div>
 
