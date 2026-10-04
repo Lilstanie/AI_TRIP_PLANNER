@@ -2,7 +2,7 @@
 date: 2026-10-04
 author: Claude Code (for Joey)
 branch: docs/stage1-functions-slide
-pr: TBD
+pr: 159
 area: submission/stage1
 contract-impact: none
 ---
