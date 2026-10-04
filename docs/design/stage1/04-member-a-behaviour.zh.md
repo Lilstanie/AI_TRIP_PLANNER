@@ -25,58 +25,42 @@
 
 ```mermaid
 flowchart TB
-  start((●)) --> recv
+  start((●)) --> msg
 
-  subgraph T["Traveller / Web workspace"]
-    recv["Send chat message"]
-    answer["Answer the question"]
+  subgraph T["Traveller"]
+    msg["Send message"]
     read["Read reply and plan"]
   end
 
-  subgraph CO["Coordinator (runTripChat)"]
-    merge["Merge message onto known facts"]
-    patch["Validate patch: BriefPatchSchema, applyBriefPatch, TripBrief"]
-    complete{"Required facts present?"}
-    needs["Return needs_info naming what is missing"]
-    asked{"Coordinator asked a question?"}
-    digest["Build plan digest for the reply"]
-    emit["Return reply plus plan"]
+  subgraph CO["Coordinator (deterministic)"]
+    validate["Validate patch against TripBrief"]
+    ok{"Brief complete?"}
+    missing["Return needs_info, naming what is missing"]
+    reply["Return reply and plan"]
   end
 
-  subgraph LLM["LLM (DeepSeek)"]
-    extract["Extract stated facts, call update_trip_brief"]
-    ask["ask_user_question: 2-4 options, traveller's language"]
-    delegate["Choose specialists and write each objective"]
-    write["Write the reply from the digest"]
+  subgraph L["LLM"]
+    extract["Extract stated facts"]
+    write["Write the reply"]
   end
 
-  subgraph WF["LangGraph workflow"]
-    dispatch["dispatch_specialists over the staged board"]
-    detect["detect_conflicts"]
-    route{"Conflicts, round < 3, none infeasible?"}
-    revise["revise_conflicts: only targeted agents"]
-    improved{"planScore improved?"}
-    keepOld["Discard round, mark stalled"]
-    build["build_plan: sections draft or needs_you"]
+  subgraph WF["LangGraph workflow (deterministic)"]
+    dispatch["Dispatch specialists"]
+    detect["Detect conflicts"]
+    again{"Conflicts and round < 3?"}
+    revise["Revise targeted sections only"]
+    better{"planScore improved?"}
+    build["Build plan"]
   end
 
-  subgraph SP["Five specialist agents"]
-    work["Plan own section, post proposal"]
-    rework["Re-plan the targeted section from its previous proposal"]
-  end
-
-  recv --> merge --> extract --> patch --> complete
-  complete -- no --> needs --> answer --> merge
-  complete -- yes --> asked
-  asked -- yes --> ask --> answer
-  asked -- no --> dispatch
-  dispatch --> delegate --> work --> detect
-  detect --> route
-  route -- yes --> revise --> rework --> improved
-  improved -- yes --> detect
-  improved -- no --> keepOld --> build
-  route -- no --> build
-  build --> digest --> write --> emit --> read --> stop((◉))
+  msg --> extract --> validate --> ok
+  ok -- no --> missing --> read
+  ok -- yes --> dispatch --> detect --> again
+  again -- yes --> revise --> better
+  better -- yes --> detect
+  better -- no --> build
+  again -- no --> build
+  build --> write --> reply --> read --> stop((◉))
 ```
 
 缺少模型 key 时，只有那三个 LLM 方框消失：抽取退回到"只用已陈述事实"的路径，委派改为派发全部五个专家，回复由 `fallbackReplyFor` 写出。
@@ -92,53 +76,37 @@ flowchart TB
 sequenceDiagram
   autonumber
   actor T as Traveller
-  participant UI as Web workspace
-  participant CH as runTripChat (A)
-  participant LLM as LLM (DeepSeek)
-  participant WF as LangGraph workflow (A)
-  participant SUP as Supervisor (A)
-  participant IT as Itinerary agent
+  participant CH as Coordinator (A)
+  participant LLM as LLM
+  participant WF as Workflow (A)
+  participant SP as Specialists
   participant CP as ConflictPolicy (C)
 
-  T->>UI: "Tokyo and Kyoto, 10-17 Nov, 2 of us"
-  UI->>CH: POST /api/chat {mode: start}
+  T->>CH: "Tokyo and Kyoto, 10-17 Nov, 2 of us"
   CH->>LLM: extract stated facts
-  LLM-->>CH: update_trip_brief(destination, dates, groupSize)
-  CH->>CH: applyBriefPatch, TripBrief parse: budgetTotal missing
-  CH-->>UI: needs_info "include the total budget"
-  UI-->>T: question shown in chat
+  LLM-->>CH: destination, dates, group size
+  CH-->>T: needs_info: the budget is missing
 
-  T->>UI: "about AUD 9,000"
-  UI->>CH: POST /api/chat {message, known}
-  CH->>LLM: extract, with knownSoFar
-  LLM-->>CH: update_trip_brief(budgetTotal 9000)
-  CH->>CH: brief now complete
+  T->>CH: "about AUD 9,000"
+  CH->>LLM: extract, with what is already known
+  LLM-->>CH: budget
   CH->>WF: run(brief)
 
-  WF->>SUP: dispatch_specialists(brief, board)
-  SUP->>LLM: which specialists, which objectives
-  LLM-->>SUP: five delegations with objectives
-  SUP->>IT: invoke(brief, board)
-  IT-->>WF: itinerary proposal
-  Note over WF: transport, accommodation, guide and dining post theirs too
-  WF-->>UI: progress events per subagent
+  WF->>SP: dispatch with one objective each
+  SP-->>WF: five proposals
+  WF->>CP: detectConflicts
+  CP-->>WF: geography conflict, targets itinerary
 
-  WF->>CP: detectConflicts(proposals, brief)
-  CP-->>WF: geography conflict on day 4, targets itinerary
-  WF->>WF: planScore before = over-budget + 10% per other conflict
-
-  WF->>IT: invoke(brief, revision, previous)
-  IT-->>WF: revised proposal, stops reordered
-  WF->>CP: detectConflicts(revised)
-  CP-->>WF: no conflicts
+  WF->>SP: revise itinerary only
+  SP-->>WF: revised proposal
+  WF->>CP: detectConflicts
+  CP-->>WF: none left
   WF->>WF: planScore improved, keep the round
-  WF->>WF: build_plan: every section draft
-  WF-->>CH: TripPlan
 
-  CH->>LLM: write reply from plan digest
+  WF-->>CH: TripPlan
+  CH->>LLM: write the reply
   LLM-->>CH: reply text
-  CH-->>UI: final frame {reply, plan}
-  UI-->>T: plan, total against budget
+  CH-->>T: reply and plan
 ```
 
 若分数没有改善，`revise_conflicts` 会置 `stalled` 并保留此前的提案，因此一次修订永远不会让计划变差。若冲突是 `infeasible budget`，`routeAfterDetection` 会直接跳过整个循环。
