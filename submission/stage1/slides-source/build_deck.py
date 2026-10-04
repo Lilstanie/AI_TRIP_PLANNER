@@ -31,7 +31,7 @@ MEMBERS = {
     'D': ('Jiahang Bian', 'Destination and dining', '2E7D4F'),
     'E': ('Weihao Wang', 'Workspace and memory', '2F5DA8'),
 }
-TOTAL = 24
+TOTAL = 25
 ML, MR = 0.6, 12.733          # content left / right edge (inches)
 CT, CB = 1.62, 6.82           # content top / bottom
 
@@ -433,16 +433,34 @@ for i, (m, uc, rel) in enumerate(ucs):
     if rel:
         text(s, X + 5.0, y, MR - X - 5.15, 0.58, rel, size=11.5, color=MUTED, anchor='m', align='r')
 
-# ---------------------------------------------------------------- 9 B template
-behaviour_slide(9, 'B', 'UC-B1 Arrange Transportation', 'The LLM picks offered fares; code checks every hop',
+# ---------------------------------------------------------------- 9 functions
+s = slide(9, None, 'Functions', 'Five specialists, five sections of one plan',
+          "Every plan comes back in five sections, one per specialist: the day plan, getting around, the stay, "
+          "a destination guide for customs, safety and weather, and food within a meal budget.")
+for i, (ic, name, agent, desc) in enumerate((
+        ('calendar-days', 'Day plan', 'itinerary', 'Stops per day, with the journey between them timed and named'),
+        ('plane', 'Getting around', 'transport', 'Flight in, inter-city hops, and how you cross each city'),
+        ('bed-double', 'Stay', 'accommodation', 'Rooms from the party size, one segment per city'),
+        ('compass', 'Destination guide', 'destination-guide', 'Customs, safety, entry and health, weather and packing'),
+        ('utensils', 'Food & dining', 'dining', 'A meal budget envelope, with dietary constraints respected'))):
+    y = CT + i * 1.0
+    card(s, ML, y, MR - ML, 0.88, accent=ORANGE)
+    box(s, ML + 0.3, y + 0.16, 0.52, 0.52, fill=PEACH, line=None, r=0.1)
+    icon(s, ic, ML + 0.41, y + 0.27, 0.3, NAVY)
+    text(s, ML + 1.0, y + 0.1, 2.6, 0.7, name, size=17, font=HEAD, bold=True, color=NAVY, anchor='m')
+    pill(s, ML + 3.5, y + 0.29, agent, 'E7E9EE', fg=MUTED, size=10)
+    text(s, ML + 5.3, y + 0.1, MR - ML - 5.6, 0.7, desc, size=14, color=INK, anchor='m')
+
+# ---------------------------------------------------------------- 10 B template
+behaviour_slide(10, 'B', 'UC-B1 Arrange Transportation', 'The LLM picks offered fares; code checks every hop',
                 'AH-B1: use real fares and times; honour my train choice or say it is unavailable',
                 "UC-B1 arranges flights and moves between cities. The transport LLM only selects offered flight ids and a "
                 "departure slot for each hop. Code then checks every choice against the evidence, one fare per hop, day "
                 "bounds and route fit, and takes prices and durations from the providers. A missing fare stays unknown, "
                 "never free, and an invalid choice falls back to a deterministic plan.", 'b')
 
-# ---------------------------------------------------------------- 10 member C intro
-s = slide(10, 'C', 'Accommodation and budget', 'From one ad hoc requirement to two use cases',
+# ---------------------------------------------------------------- 11 member C intro
+s = slide(11, 'C', 'Accommodation and budget', 'From one ad hoc requirement to two use cases',
           "Member C owns accommodation and budget. The ad hoc requirement: the hotel must fit "
           "the money left after flights, a budget overrun should swap to a cheaper hotel that still meets the traveller's rules, and "
           "an impossible budget should name the minimum. That gave two use cases.")
@@ -469,8 +487,8 @@ for i, (ic, h, items) in enumerate((('bed-double', 'UC-C1  Arrange Accommodation
         icon(s, 'check', x + 0.4, yy + 0.04, 0.24, ORANGE)
         text(s, x + 0.8, yy, uw - 1.1, 0.35, it, size=14, color=INK, anchor='m')
 
-# ---------------------------------------------------------------- 11 object diagram
-s = slide(11, 'C', 'Complex structure', 'Object diagram: a Tokyo trip that is AUD 640 over budget',
+# ---------------------------------------------------------------- 12 object diagram
+s = slide(12, 'C', 'Complex structure', 'Object diagram: a Tokyo trip that is AUD 640 over budget',
           "The object diagram snapshots the planning board for a Tokyo trip that is 640 dollars over budget. "
           "The hotel prices are real fixture values; transport and dining are illustrative. Accommodation is asked to "
           "save 379 dollars, so it moves to the saver hotel.")
@@ -487,8 +505,8 @@ for i, (n, h, big, sub) in enumerate(stats):
     text(s, x + 0.22, y + 0.55, sw - 0.4, 0.45, big, size=20, bold=True, color=NAVY, font=HEAD)
     text(s, x + 0.22, y + 0.97, sw - 0.4, 0.3, sub, size=11.5, color=MUTED)
 
-# ---------------------------------------------------------------- 12 collaboration + structured class
-s = slide(12, 'C', 'Complex structure', 'Collaboration and structured class',
+# ---------------------------------------------------------------- 13 collaboration + structured class
+s = slide(13, 'C', 'Complex structure', 'Collaboration and structured class',
           "The collaboration shows roles, not classes: the budget code plays the judge that turns proposals "
           "into targeted revisions. The structured class shows the workflow's parts and its injected ports.")
 LW = 8.6
@@ -502,8 +520,8 @@ for i, (h, b) in enumerate((('Roles, not classes', 'My budget code plays the jud
                             ('Injected ports', 'Plan, progress, tools, memory and model enter only through ports, so tests swap them.'))):
     note(s, i + 1, X, CT + 0.1 + i * 1.65, MR - X, h, b, size=13, h=1.5)
 
-# ---------------------------------------------------------------- 13 activity
-s = slide(13, 'C', 'Activity diagram · UC-C1', 'The LLM chooses once; code checks before any price',
+# ---------------------------------------------------------------- 14 activity
+s = slide(14, 'C', 'Activity diagram · UC-C1', 'The LLM chooses once; code checks before any price',
           "In this activity diagram the LLM appears once, choosing one candidate id. Around it everything is "
           "deterministic: invalid output falls back to a rule, a booked stay skips the search, and prices are in cents.")
 figure(s, 'c-activity.png', ML, CT, MR - ML, 4.05, callouts=[(1, 0.80, 0.70), (2, 0.31, 0.32), (3, 0.13, 0.08), (4, 0.67, 0.33)])
@@ -515,8 +533,8 @@ aw = (MR - ML - 0.6) / 4
 for i, (h, b) in enumerate(acts):
     note(s, i + 1, ML + i * (aw + 0.2), CT + 4.3, aw, h, b, size=12.5, h=0.95)
 
-# ---------------------------------------------------------------- 14 sequence
-s = slide(14, 'C', 'Sequence diagram · UC-C2', 'Budget overrun and a targeted revision',
+# ---------------------------------------------------------------- 15 sequence
+s = slide(15, 'C', 'Sequence diagram · UC-C2', 'Budget overrun and a targeted revision',
           "The sequence diagram shows an overrun: detectConflicts sends a revision only to the agents that "
           "can cut, and round two is kept only because the plan score improved.")
 px, py, pw, ph = figure(s, 'c-sequence.png', ML, CT, 7.9, CB - CT, callouts=[(1, 0.88, 0.415), (2, 0.6, 0.53), (3, 0.62, 0.62), (4, 0.33, 0.77)])
@@ -527,8 +545,8 @@ for i, (h, b) in enumerate((('Round 1', 'The total is over budget.'),
                             ('Kept only if better', 'Otherwise the previous proposals stay. Infeasible: one conflict naming the minimum budget.'))):
     note(s, i + 1, X, CT + 0.1 + i * 1.25, MR - X, h, b, size=13, h=1.15)
 
-# ---------------------------------------------------------------- 15 state machine
-s = slide(15, 'C', 'State machine', 'The accommodation section within one planning turn',
+# ---------------------------------------------------------------- 16 state machine
+s = slide(16, 'C', 'State machine', 'The accommodation section within one planning turn',
           "The state machine follows the accommodation section through one turn, and maps its internal states "
           "onto the three statuses the traveller sees.")
 figure(s, 'c-state.png', ML, CT, 5.4, CB - CT)
@@ -554,8 +572,8 @@ for states, ui, bg, fg in maps:
     pill(s, MR - 1.95, y + h / 2 - 0.19, ui, fill=bg, fg=fg, size=12, w=1.7, h=0.38)
     y += h + 0.2
 
-# ---------------------------------------------------------------- 16 class spine
-s = slide(16, 'D', 'Elementary structure', 'Six class diagrams drawn from the code',
+# ---------------------------------------------------------------- 17 class spine
+s = slide(17, 'D', 'Elementary structure', 'Six class diagrams drawn from the code',
           "Our class model has six diagrams drawn from the code. The spine runs "
           "from the workspace, through the coordinator and workflow, to specialists that reach tools and memory only "
           "through injected interfaces.")
@@ -569,8 +587,8 @@ for i, h in enumerate(six):
     text(s, x + 0.2, y + 0.12, 1, 0.4, str(i + 1), size=20, font=HEAD, bold=True, color='F2A65A' if on else MEMBERS['D'][2])
     text(s, x + 0.2, y + 0.5, w6 - 0.3, 0.35, h, size=12.5, bold=True, color='FFFFFF' if on else NAVY)
 
-# ---------------------------------------------------------------- 17 specialists
-s = slide(17, 'D', 'Elementary structure', 'One Specialist interface, five realisations',
+# ---------------------------------------------------------------- 18 specialists
+s = slide(18, 'D', 'Elementary structure', 'One Specialist interface, five realisations',
           "Every agent realises one Specialist interface, so the graph loops over them without knowing their "
           "models. The registry aggregates agents, while a plan is composed of its sections.")
 figure(s, 'class-specialists.png', ML, CT, MR - ML, 3.4, callouts=[(1, 0.395, 0.48), (2, 0.425, 0.355)])
@@ -587,8 +605,8 @@ for i, (n, h, k, b) in enumerate(rels):
     pill(s, x + 0.22, y + 0.62, k, fill=TINT, fg=NAVY, size=10.5, bold=False)
     text(s, x + 0.22, y + 1.05, rw - 0.4, 0.5, b, size=12, color=INK)
 
-# ---------------------------------------------------------------- 18 rationale
-s = slide(18, 'D', 'Design rationale', 'What we chose, and what we discarded',
+# ---------------------------------------------------------------- 19 rationale
+s = slide(19, 'D', 'Design rationale', 'What we chose, and what we discarded',
           "We discarded a model-driven loop and free agent-to-agent chat, because limits and costs must be "
           "testable. We dropped approval checkpoints, since confirming applied nothing, and chose DeepSeek because it was "
           "about three times faster.")
@@ -613,16 +631,16 @@ for i, (d, ch, dis, why) in enumerate(dec):
     text(s, c2 + 0.55, y, MR - c2 - 0.7, 0.68, [[(dis, {'bold': True, 'color': NAVY}), ('  ' + why, {'color': MUTED})]],
          size=12.5, anchor='m')
 
-# ---------------------------------------------------------------- 19 D behaviour
-behaviour_slide(19, 'D', 'UC-D1 Weather-based clothing + dining', 'Evidence first; the LLM drafts, code decides',
+# ---------------------------------------------------------------- 20 D behaviour
+behaviour_slide(20, 'D', 'UC-D1 Weather-based clothing + dining', 'Evidence first; the LLM drafts, code decides',
                 'AH-D1: pack for my real Kyoto dates; vegetarian, peanut allergy; never claim allergy-safe unless confirmed',
                 "UC-D1 shows both specialists working from evidence: the guide uses map coordinates and weather data; "
                 "dining uses restaurant candidates and confirmed dietary preferences. The LLM drafts guidance, while "
                 "deterministic code validates its output and budget. Forecasts are distinguished from climate context, "
                 "and unavailable weather is disclosed.", 'd')
 
-# ---------------------------------------------------------------- 20 package
-s = slide(20, 'E', 'Package diagram', 'Dependencies point inward to the shared contracts',
+# ---------------------------------------------------------------- 21 package
+s = slide(21, 'E', 'Package diagram', 'Dependencies point inward to the shared contracts',
           "Six packages, each with an owner, all depend inward on the shared "
           "contracts, which depend on nothing. New specialists, providers or stores plug in behind existing interfaces.")
 figure(s, 'package.png', ML, CT, MR - ML, 3.3, callouts=[(1, 0.92, 0.47), (2, 0.025, 0.53)])
@@ -640,8 +658,8 @@ for i, (ic, h, b, n) in enumerate(pts20):
     text(s, x + 0.25, y + 0.68, pw4 - 0.4, 0.35, h, size=13.5, bold=True, color=NAVY)
     text(s, x + 0.25, y + 1.06, pw4 - 0.4, 0.6, b, size=12, color=INK)
 
-# ---------------------------------------------------------------- 21 deployment
-s = slide(21, 'E', 'Deployment', 'One serverless app, optional cloud services',
+# ---------------------------------------------------------------- 22 deployment
+s = slide(22, 'E', 'Deployment', 'One serverless app, optional cloud services',
           "It deploys as one serverless Next.js app. Memory, account sync and sign-in are optional, and "
           "without keys the same build runs fully on mock data.")
 figure(s, 'deployment.png', ML, CT, 6.9, CB - CT, callouts=[(1, 0.03, 0.47), (2, 0.5, 0.35), (3, 0.83, 0.54)])
@@ -660,8 +678,8 @@ for i, (n, h, b) in enumerate(dep):
         text(s, X + 0.85, y + 0.1, MR - X - 1.0, 0.95, [[(h + '  ', {'bold': True, 'color': 'F2A65A'}), (b, {})]],
              size=14, color='FFFFFF', anchor='m')
 
-# ---------------------------------------------------------------- 22 change assessment
-s = slide(22, 'E', 'Change assessment and acceptance', 'How a change gets in',
+# ---------------------------------------------------------------- 23 change assessment
+s = slide(23, 'E', 'Change assessment and acceptance', 'How a change gets in',
           "A change must trace to a requirement; a change to shared contracts needs a written decision. A pull "
           "request is accepted when CI passes, an end-to-end artifact exists, use case postconditions hold and the models are updated.")
 cols = [('git-pull-request', 'Assess', ['Trace it to a requirement and use case', 'Shared contract touched? Write a decision note and tell every owner', 'Reversing a decision? Supersede it in writing']),
@@ -687,21 +705,19 @@ for a in assume:
     w = pill(s, xx, y + 0.62, a, fill='243457', fg='FFFFFF', size=11.5, bold=False, h=0.4)
     xx += w + 0.12
 
-# ---------------------------------------------------------------- 23 E template
-behaviour_slide(23, 'E', 'UC-E1 Edit Itinerary (Timeline / Map)', 'Edits are previewed and checked before they apply',
+# ---------------------------------------------------------------- 24 E template
+behaviour_slide(24, 'E', 'UC-E1 Edit Itinerary (Timeline / Map)', 'Edits are previewed and checked before they apply',
                 'AH-E1: change my trip in the timeline or map; check conflicts, routes and budget',
-                "UC-E1 edits an existing trip through the timeline or map while keeping routes, budget and uncertain prices "
-                   "visible. Timeline and map operations go to a deterministic preview endpoint, which validates the schema "
-                   "and version, checks routes and conflicts, recalculates costs, and marks changed prices as unverified. "
-                   "The chat LLM can update the brief or replan, but it does not create an edit request. The state machine "
-                   "ends in Applied only after the browser accepts the validated preview.", 'e')
+                "UC-E1 edits a trip on the timeline or map. Each edit goes to a deterministic preview endpoint that "
+                   "checks the version, re-times routes, recomputes conflicts and costs, and flags changed prices. "
+                   "The chat LLM has no edit tool. The browser applies a preview only if the plan has not changed since.", 'e')
 
-# ---------------------------------------------------------------- 24 summary
-s = slide(24, None, None, '', "In short: models choose, code decides, and the traveller stays in control. Thank you for watching.")
+# ---------------------------------------------------------------- 25 summary
+s = slide(25, None, None, '', "In short: models choose, code decides, and the traveller stays in control. Thank you for watching.")
 s.background.fill.solid(); s.background.fill.fore_color.rgb = rgb(NAVY)
 text(s, 0.9, 1.3, 6, 0.3, 'SUMMARY', size=12, color='F2A65A', bold=True)
 for i, (a, b) in enumerate((('Models', ' choose.'), ('Code', ' decides.'), ('The traveller', ' stays in control.'))):
-    text(s, 0.9, 1.85 + i * 0.95, 11, 0.9, [[(a, {'color': 'F2A65A'}), (b, {})]], size=48, font=HEAD, bold=True, color='FFFFFF')
+    text(s, 0.9, 1.85 + i * 0.95, 11.8, 0.9, [[(a, {'color': 'F2A65A'}), (b, {})]], size=42, font=HEAD, bold=True, color='FFFFFF')
 box(s, 0.92, 4.85, 0.9, 0.06, fill=ORANGE, line=None, r=0)
 text(s, 0.9, 5.15, 11, 0.4, 'Stage 2: verify live providers end to end, extend the Agent Lab, and track the work in Jira.',
      size=17, color='C9D3E3')
