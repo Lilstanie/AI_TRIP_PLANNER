@@ -30,7 +30,7 @@ describe("workspace catalog", () => {
     const saved = [JSON.parse(JSON.stringify(snapshot))];
     const before = JSON.stringify(saved);
     const catalog = parseCatalog(JSON.stringify(saved));
-    expect(catalog.trips[0].snapshot.version).toBe(3);
+    expect(catalog.trips[0].snapshot.version).toBe(4);
     expect(JSON.stringify(saved)).toBe(before);
   });
 

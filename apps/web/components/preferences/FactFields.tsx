@@ -1,7 +1,10 @@
 "use client";
 import dynamic from "next/dynamic";
 import type { DateRange } from "react-day-picker";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { fromAud, toAud } from "@trip/shared";
+import { statedBudgetSource } from "@/lib/workspace";
+import { CurrencyNotice } from "../account/CurrencyNotice";
 import { groupSizeFromParty, partyFor, type Draft, type Party } from "@/lib/workspace";
 import { toIsoDate } from "@/lib/planning/date-range";
 import { datesLabel, PARTY_ROWS, type FactKey } from "@/lib/workspace/trip-facts";
@@ -73,44 +76,6 @@ function Field({
         </small>
       )}
     </div>
-  );
-}
-
-function TextField({
-  name,
-  label,
-  hint,
-  error,
-  type = "text",
-  value,
-  onChange,
-  inputProps,
-}: {
-  name: keyof Draft;
-  label: string;
-  hint?: string;
-  error?: string;
-  type?: string;
-  value: Draft;
-  onChange(next: Draft): void;
-  inputProps?: Record<string, string | number>;
-}) {
-  const id = `fact-${name}`;
-  return (
-    <Field id={id} label={label} hint={hint} error={error}>
-      {(describedBy) => (
-        <Input
-          id={id}
-          className="field"
-          type={type}
-          value={String(value[name])}
-          onChange={(event) => onChange({ ...value, [name]: event.target.value })}
-          aria-invalid={!!error}
-          aria-describedby={describedBy}
-          {...inputProps}
-        />
-      )}
-    </Field>
   );
 }
 
@@ -219,14 +184,15 @@ function WhoFields({ value, onChange, errors }: FieldsProps) {
  *  its open end. Selecting one sets `budgetTotal` to it; the card reads as chosen only while the
  *  draft's amount still equals it exactly. */
 const BUDGET_PRESETS = [
-  { name: "Budget|tier", hint: "under AUD 1,000", value: 900 },
-  { name: "Moderate", hint: "AUD 1,000–3,000", value: 3000 },
-  { name: "Comfort", hint: "AUD 3,000–6,000", value: 6000 },
-  { name: "Luxury", hint: "AUD 6,000+", value: 10000 },
+  { name: "Budget|tier", value: 900 },
+  { name: "Moderate", value: 3000 },
+  { name: "Comfort", value: 6000 },
+  { name: "Luxury", value: 10000 },
 ] as const;
 
 function BudgetFields({ value, onChange, errors }: FieldsProps) {
-  const { t } = useLocale();
+  const { t, currency, money, notice: localizeNotice } = useLocale();
+  const source = statedBudgetSource(value);
   const current = value.budgetTotal.trim() ? Number(value.budgetTotal) : undefined;
   return (
     <div className="fact-budget">
@@ -241,26 +207,98 @@ function BudgetFields({ value, onChange, errors }: FieldsProps) {
               aria-checked={checked}
               className="fact-budget__preset"
               data-checked={checked ? "true" : undefined}
-              onClick={() => onChange({ ...value, budgetTotal: String(preset.value) })}
+              onClick={() =>
+                onChange({
+                  ...value,
+                  budgetTotal: String(preset.value),
+                  budgetSource: { amount: fromAud(preset.value, currency), currency },
+                })
+              }
             >
               <span className="fact-budget__preset-name">{t(preset.name)}</span>
-              <span className="fact-budget__preset-hint">
-                {preset.hint.replace("under", t("under"))}
-              </span>
+              <span className="fact-budget__preset-hint">{money(preset.value)}</span>
             </button>
           );
         })}
       </div>
-      <TextField
-        name="budgetTotal"
-        label={`${t("Or enter an amount")} (AUD)`}
-        hint={t("For the whole group and the whole trip, in {currency}.", { currency: "AUD" })}
-        type="number"
-        error={errors.budgetTotal}
-        value={value}
-        onChange={onChange}
-        inputProps={{ min: 0.01, step: 0.01, inputMode: "decimal" }}
-      />
+      <Field
+        id="fact-budgetTotal"
+        label={`${t("Or enter an amount")} (${currency})`}
+        hint={t("For the whole group and the whole trip, in {currency}.").replace(
+          "{currency}",
+          currency,
+        )}
+        error={localizeNotice(errors.budgetTotal)}
+      >
+        {(describedBy) => (
+          <BudgetInput
+            value={value}
+            currency={currency}
+            source={source}
+            describedBy={describedBy}
+            invalid={!!errors.budgetTotal}
+            onChange={onChange}
+          />
+        )}
+      </Field>
+      <CurrencyNotice />
     </div>
+  );
+}
+
+/** Keep invalid and partially typed values local instead of letting a conversion exception escape. */
+function BudgetInput({
+  value,
+  currency,
+  source,
+  describedBy,
+  invalid,
+  onChange,
+}: {
+  value: Draft;
+  currency: import("@trip/shared").Currency;
+  source?: Draft["budgetSource"];
+  describedBy?: string;
+  invalid: boolean;
+  onChange(next: Draft): void;
+}) {
+  const displayed =
+    value.budgetTotal.trim() && Number.isFinite(Number(value.budgetTotal))
+      ? source?.currency === currency
+        ? source.amount
+        : fromAud(Number(value.budgetTotal), currency)
+      : "";
+  const [input, setInput] = useState(String(displayed));
+  useEffect(() => {
+    if (value.budgetTotal !== "invalid") setInput(String(displayed));
+  }, [displayed, value.budgetTotal]);
+  return (
+    <Input
+      id="fact-budgetTotal"
+      className="field"
+      type="number"
+      value={input}
+      min={currency === "JPY" ? 1 : 0.01}
+      step={currency === "JPY" ? 1 : 0.01}
+      inputMode="decimal"
+      aria-invalid={invalid}
+      aria-describedby={describedBy}
+      onChange={(event) => {
+        const text = event.target.value;
+        setInput(text);
+        const amount = Number(text);
+        let aud = "";
+        try {
+          aud = String(toAud(amount, currency));
+        } catch {
+          /* A non-empty invalid amount fails normal form validation below. */
+        }
+        onChange({
+          ...value,
+          budgetTotal: aud || (text.trim() ? "invalid" : ""),
+          budgetSource: aud ? { amount, currency } : undefined,
+        });
+      }}
+    />
   );
 }

@@ -35,7 +35,7 @@ Web 应用（`apps/web`）是单用户规划工作区。本文描述其当前行
   - Logo 是 `apps/web/public/brand/ai-trip-planner-logo.svg`，通过 URL 引用。产品名称旁的替代文本为空，单独显示时为“AI Trip Planner”。
   - 底部把保存状态放在占满侧栏宽度的个人资料行上方；资料行包含头像、两行身份信息和末尾的更多按钮。
 - **行程事实。** 行程需求通过顶栏标签逐项编辑，参考 Mindtrip 的行程栏；[偏好标签 Agent Note](../.agents/notes/implemented/feature/2026-09-24-preference-chips.md) 记录了原因。
-  - 标签读取偏好草稿，只显示旅客明确陈述的内容：已有值（“Sydney”、“1 Oct – 4 Oct · 4 days”、“2 adults, 1 child”、“AUD 2,000”），或缺失时只显示事实名称：“Where”、“When”、“Who”和“Budget”。预算使用已打开行程明确陈述的币种；没有原始币种时使用设置中的显示币种。标签组成名为 Trip details 的 `role="group"`；有值标签的无障碍名称以其事实类型开头（“Destination: Sydney”）。
+  - 标签读取偏好草稿，只显示旅客明确陈述的内容：已有值（“Sydney”、“1 Oct – 4 Oct · 4 days”、“2 adults, 1 child”、“AUD 2,000”），或缺失时只显示事实名称：“Where”、“When”、“Who”和“Budget”。预算使用本行程明确陈述的币种；没有原始币种时使用设置中的显示币种。标签组成名为 Trip details 的 `role="group"`；有值标签的无障碍名称以其事实类型开头（“Destination: Sydney”）。
   - 每个标签都是带 `aria-haspopup="dialog"`、`aria-expanded` 和 `aria-controls` 的按钮，打开各自的编辑器：Where（目的地和出发地）、When（完整内嵌日历）、Who（每类旅客一个步进器）、Budget（预设范围卡片和自定义金额），以及 Trip preferences（旅客自己的列表）。
   - 每个编辑器都像 Mindtrip 一样，在遮罩上作为居中模态对话框（`aria-modal="true"`）打开，与顶部保持固定距离，新增行向下扩展。面板本身无内边距：头部左侧为关闭按钮，中间为 20 px 半粗体标题；内容内缩 `--space-5`；右下角有一个 Apple 蓝色胶囊形主操作按钮（`--accent-fill` 填充、`--on-accent` 文字、168 × 40）：Save、Trip preferences 中的 Done，或已有方案时的 Update trip。Trip preferences 头部下方有细线，其他编辑器没有。面板宽 512 px；Who 和 Budget 的较短行采用 420 px；When 的双月日历采用 680 px（全部受 `min(…, 100vw - 2 × --space-4)` 限制）。面板为 28 px 圆角的 Liquid Glass sheet，以弹性动效进入、下沉动效退出（200 ms，`usePresence` 保持挂载），列表行使用 `--radius`（12 px）。
   - Where 按访问顺序将目的地显示为卡片：`--surface-2` 上的 48 px 方形图标区域对应 Mindtrip 中的照片位置（这里不获取照片）；名称为 15 px 半粗体；从建议中选择地点后，名称下显示区域信息；另有 28 px 圆形移除按钮。目的地以“ & ”连接成一个字符串存储。列表下方的 Add destination 胶囊按钮可变成全宽胶囊形搜索框，内部带清除按钮。Enter 添加输入的内容（“Sydney & Melbourne”添加两个，重复项跳过），Save 会保留仍在输入框中的文字。实时数据模式且配置 Maps 时，输入框是 combobox：输入达到 3 个字符且停顿 350 ms 后，从 `/api/places/search` 获取地点建议，每个查询在单次编辑器会话中只请求一次，每个名称中与输入匹配的部分加粗；mock 模式不查询。Escape 先关闭建议，再把输入框收回胶囊按钮（丢弃输入文字），最后才关闭编辑器。
@@ -44,7 +44,7 @@ Web 应用（`apps/web`）是单用户规划工作区。本文描述其当前行
   - Who 为每类旅客提供一个步进器（− 数量 +）：Adults（13–64）、Children（2–12）、Infants（2 岁以下）、Seniors（65+）和 Pets，各自有减／加按钮和实时数量。草稿保存该分类（`Draft.party`），每次变化都将 `groupSize` 同步为 `adults + children + infants +
 seniors`（宠物不计为旅客）；`groupSize` 仍是校验字段，因此至少需要一人。在尚无分类的草稿上打开 Who（保存时还未引入步进器），所有已陈述的旅客起初都计为成年人。
   - 分类以 `TripBrief.party`（方案生成前为 `known.party`）传给规划器，与 `groupSize` 并列。每个 specialist 的共享规则要求它在证据允许时为儿童、婴儿、老年人和宠物规划，并在无法确认适宜性时说明；所有费用计算仍使用 `groupSize`。分类合计不再等于 `groupSize` 时（例如聊天后来得知“we're three now”），会丢弃分类，不再发送。[旅客分类 Agent Note](../.agents/notes/implemented/architecture/2026-09-24-traveller-party.md) 记录了原因。
-  - Budget 在一个 `role="radiogroup"` 中提供四个预设范围卡片：Budget（低于 AUD 1,000，设置为 AUD 900）、Moderate（AUD 1,000–3,000，设置为 AUD 3,000）、Comfort（AUD 3,000–6,000，设置为 AUD 6,000）和 Luxury（AUD 6,000+，设置为 AUD 10,000）。各卡片为 `role="radio"`，仅当 `budgetTotal` 与其值完全相等时显示选中（`aria-checked="true"`）。下方“Or enter an amount (AUD)”可直接把 `budgetTotal` 设为任意金额；除非恰好匹配某个预设，否则取消所有预设的选中状态。
+  - Budget 在一个 `role="radiogroup"` 中提供四个预设卡片：经济（AUD 900）、适中（AUD 3,000）、舒适（AUD 6,000）和豪华（AUD 10,000）。每张卡片按行程的有效币种显示金额，仅当 `budgetTotal` 等于其 AUD 值时选中。自定义金额字段使用 `budgetSource.currency`；没有原始币种时使用设置中的显示币种。保存时，`budgetSource` 保留输入的原始金额和币种，再通过 shared 的 `toAud` 换算一次写入 `budgetTotal`。显示币种与原始币种一致时直接显示原始金额，避免来回换算。行程币种不会改动设置；新行程重新使用设置中的币种。agent 和预算检查仍读取 AUD。
   - Trip preferences 打开时显示填充背景的输入框（`--surface-2`、无边框、15 px），Enter 添加偏好；下方每项偏好是一行带移除按钮的填充背景行，最多 12 项，每项最多 200 字符。点击偏好文字可原地编辑（Enter 或离开输入框保存，Escape 只取消此次编辑）；没有铅笔按钮。重复项会被拒绝并显示提示，Done 会保留输入框中尚未提交的文字，添加和移除通过状态区域播报。国籍、房间分配、最低住客评分和免费取消已不再可编辑；已存储行程需求中的值原样透传，已存储但不符合 schema 的评分视为“no minimum”。
   - 列表下方的“Learned from your chats”在有内容时显示助手从对话中记录的内容：
     - 每条学到的偏好；
@@ -98,7 +98,7 @@ seniors`（宠物不计为旅客）；`groupSize` 仍是校验字段，因此至
   - 切换聊天或行程，或 New chat 时，先落盘待执行的自动保存，再中止进行中的请求，并清空进度、错误、选择和地图路线。晚到的响应被忽略。
 - **存储。**
   - 所有内容仅保存在浏览器中，侧边栏显示经过防抖的自动保存状态。
-  - 目录（`trip-workspace-catalog-v3`）分别保存对话和行程，关联稳定，并可带对话 `draft`。旧版 1 和 2 的快照会迁移。
+  - 目录（`trip-workspace-catalog-v3`）分别保存对话和行程，关联稳定，并可带对话 `draft`。快照写入版本 4；版本 3（AUD）快照仍可读取，草稿预算与方案一致时恢复原始预算来源。AUD 之前的版本 1、2 仍被拒绝；目录版本及存储键不变。
   - 布局始终存储侧边栏的 `collapsed`，但只在调整大小后存储 `width`，因此未动过的工作区在各视口尺寸下继续遵循样式表。
   - 损坏的数据绝不自动覆盖；布局字段回退到默认值，不会导致历史记录无法读取。
   - 存储已满或不可用时，方案留在内存中，并显示重试操作。
@@ -269,7 +269,7 @@ Data mode 默认是 Fixture data。只有部署启用后才能选择 Live data�
     Advanced 下的 Trip data（站点默认、实时价格或示例数据）。
     顶栏语言切换位于示例数据旁，修改同一项已保存的语言设置。聊天控件、时间线与提案标签、设置、提示、对话框、无障碍名称及日期随之显示；
     旅客文字、agent 生成的内容及提供方错误不会被翻译。未保存选择时跟随浏览器语言（`zh*` 打开为中文）。桌面侧栏与主内容之间保留 8 px 间距。
-    行程金额通过同一个适配语言的格式化器和 shared 中的估算汇率表显示。换算结果附带汇率参考日期；JPY 不显示小数，其他币种显示两位小数。规划和预算检查仍使用 AUD。提供方原生票价保留自己的币种。
+    行程金额通过同一个适配语言的格式化器和 shared 中的估算汇率表显示。换算结果附带汇率参考日期；JPY 不显示小数，其他币种显示两位小数。本行程原始预算币种优先于设置。规划和预算检查仍使用 AUD。提供方原生票价保留自己的币种。
   - **Connected accounts：** 通过 Clerk 关联的 Google、GitHub 或 Apple 登录方式，并有一个按钮打开 Clerk 进行更改。
 - 未登录时，设置保存在当前浏览器；登录后，浏览器和账号中较新的副本为准，之后的改动保存到账号。
 

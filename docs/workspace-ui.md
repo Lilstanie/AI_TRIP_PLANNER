@@ -71,7 +71,7 @@ now. Implementation history and browser acceptance for each phase are in the
   Mindtrip's trip bar; the [preference chips Agent Note](../.agents/notes/implemented/feature/2026-09-24-preference-chips.md) records why.
   - The chips read the preferences draft, so they show only what the traveller stated: a value
     ("Sydney", "1 Oct – 4 Oct · 4 days", "2 adults, 1 child", "AUD 2,000"), or the bare fact name —
-    "Where", "When", "Who" and "Budget" — while it is missing. The budget uses the open trip's
+    "Where", "When", "Who" and "Budget" — while it is missing. The budget uses the trip's
     stated currency, or the Settings display currency when none was stated. The chips form a `role="group"` named Trip
     details; a filled chip's accessible name leads with its fact ("Destination: Sydney").
   - Each chip is a button with `aria-haspopup="dialog"`, `aria-expanded` and `aria-controls`, and
@@ -124,12 +124,14 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     (say, the chat later learns "we're three now") is dropped rather than sent. The
     [traveller party Agent Note](../.agents/notes/implemented/architecture/2026-09-24-traveller-party.md)
     records why.
-  - Budget offers four preset range cards in a `role="radiogroup"` — Budget (under AUD 1,000, sets AUD
-    900), Moderate (AUD 1,000–3,000, sets AUD 3,000), Comfort (AUD 3,000–6,000, sets AUD 6,000) and
-    Luxury (AUD 6,000+, sets AUD 10,000) — each `role="radio"` and shown selected
-    (`aria-checked="true"`) exactly while `budgetTotal` equals its value. Below them, "Or enter an
-    amount (AUD)" sets `budgetTotal` directly to any figure, which deselects every preset unless it
-    happens to match one.
+  - Budget offers four preset cards in a `role="radiogroup"`: Budget (AUD 900), Moderate
+    (AUD 3,000), Comfort (AUD 6,000) and Luxury (AUD 10,000). Each shows its amount in the
+    trip's effective currency and is selected exactly while `budgetTotal` equals its AUD value.
+    The custom amount field shows and accepts `budgetSource.currency`, or the Settings display
+    currency when no source exists. Saving preserves the typed amount and currency in
+    `budgetSource` and converts once with shared `toAud` into `budgetTotal`. Matching source
+    currency displays the original amount rather than a round trip. Trip currency never changes
+    Settings; a new trip uses Settings again. Agents and guardrails still read AUD.
   - Trip preferences opens on a filled field (`--surface-2`, no border, 15 px) that adds a preference
     with Enter; below it each preference is a filled row with a remove button, up to 12 of up to 200
     characters. Clicking a preference's text edits it in place (Enter or leaving the field keeps it,
@@ -281,7 +283,9 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
 - **Storage.**
   - Everything is saved in the browser only, with a debounced autosave state in the sidebar.
   - The catalog (`trip-workspace-catalog-v3`) keeps conversations and trips separately, with stable
-    links and an optional conversation `draft`. Legacy version 1 and 2 snapshots are migrated.
+    links and an optional conversation `draft`. Snapshots write version 4; version 3 (AUD) snapshots
+    remain readable and recover their budget source when the draft still matches the plan.
+    Pre-AUD versions 1 and 2 remain rejected; the catalog version and storage keys stay unchanged.
   - Layout stores the sidebar's `collapsed` always and its `width` only after a resize, so an
     untouched workspace keeps following the stylesheet at every viewport size.
   - Corrupt data is never overwritten automatically, and layout fields fall back to defaults instead
@@ -617,7 +621,8 @@ the account section explains that everything stays in this browser.
     names and dates follow it. Traveller text, agent-produced content and provider errors are not
     translated. With no saved choice it follows the browser language (`zh*` opens in Chinese). The desktop sidebar and main content have an 8 px gutter.
     Trip amounts use one locale-aware formatter and the shared approximate rate table. Converted
-    displays carry its as-of date; JPY has no decimals, other currencies have two. Planning and
+    displays carry its as-of date; JPY has no decimals, other currencies have two. The trip's stated budget currency takes
+    precedence over Settings. Planning and
     guardrails keep AUD values. Provider-native fares retain their own currency.
   - **Connected accounts:** the Google, GitHub or Apple sign-ins linked through Clerk, with a button
     that opens Clerk to change them.

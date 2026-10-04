@@ -69,7 +69,7 @@ export function useWorkspaceStorage({
           });
         } else {
           const current = {
-            version: 3,
+            version: 4,
             id: conversationId.replace(/^conversation:/, ""),
             savedAt: new Date().toISOString(),
             plan,

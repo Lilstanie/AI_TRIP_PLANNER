@@ -8,6 +8,7 @@ import {
   FlightAnswer,
   LegModeChoice,
   moneyIn,
+  toAud,
   PartialTripBrief,
   partyPeople,
   TripBrief,
@@ -56,6 +57,8 @@ export type Draft = {
   end: string;
   groupSize: string;
   budgetTotal: string;
+  /** Original typed or chatted budget; budgetTotal stays AUD. */
+  budgetSource?: TripBrief["budgetSource"];
   /**
    * The traveller's own trip preferences, in their words. Optional so a draft stored before the
    * list existed still loads; read it through `draftPreferences`.
@@ -140,6 +143,7 @@ export function draftFor(brief: TripBrief): Draft {
     groupSize: String(brief.groupSize),
     ...(brief.party && partyPeople(brief.party) === brief.groupSize ? { party: brief.party } : {}),
     budgetTotal: String(brief.budgetTotal),
+    ...(brief.budgetSource ? { budgetSource: brief.budgetSource } : {}),
     preferences: brief.preferences ?? [],
     ...(brief.learnedPreferences?.length ? { learnedPreferences: brief.learnedPreferences } : {}),
     ...(brief.excludeFlights ? { excludeFlights: true } : {}),
@@ -182,8 +186,9 @@ export function isDraft(value: unknown): value is Draft {
       (Array.isArray(value.learnedPreferences) &&
         value.learnedPreferences.every((item) => typeof item === "string"))) &&
     (value.excludeFlights === undefined || typeof value.excludeFlights === "boolean") &&
-    (value.legModes === undefined ||
-      LegModeChoice.array().safeParse(value.legModes).success) &&
+    (value.legModes === undefined || LegModeChoice.array().safeParse(value.legModes).success) &&
+    (value.budgetSource === undefined ||
+      TripBrief.shape.budgetSource.unwrap().safeParse(value.budgetSource).success) &&
     (value.bookedStay === undefined || BookedStay.safeParse(value.bookedStay).success)
   );
 }
@@ -202,9 +207,7 @@ export function parseDraft(draft: Draft, current: Pick<TripBrief, "tripId"> & Pa
     // Spreading `current` would otherwise keep a breakdown the traveller has since changed.
     party: statedParty(draft),
     budgetTotal: Number(draft.budgetTotal),
-    // The form is base-currency only, so a budget typed here has no source to explain.
-    // Spreading `current` would otherwise carry a stale one past an edit.
-    budgetSource: undefined,
+    budgetSource: statedBudgetSource(draft),
     // An emptied list clears the brief's, rather than letting `current` carry the old one.
     preferences: preferences.length ? preferences : undefined,
     // Like the list above, each is read from the draft so a removal clears the brief's copy.
@@ -235,6 +238,7 @@ export function knownFromDraft(draft: Draft): PartialTripBrief {
     groupSize: number(draft.groupSize),
     party: statedParty(draft),
     budgetTotal: number(draft.budgetTotal),
+    budgetSource: statedBudgetSource(draft),
     nationality: draft.nationality.trim() || undefined,
     preferences: statedPreferences(draftPreferences(draft)),
     learnedPreferences: statedPreferences(draft.learnedPreferences ?? []),
@@ -254,6 +258,19 @@ function statedParty(draft: Pick<Draft, "party" | "groupSize">): Party | undefin
   return party && partyPeople(party) > 0 && partyPeople(party) === Number(draft.groupSize)
     ? party
     : undefined;
+}
+
+/** A stale original amount must never describe an edited AUD total. */
+export function statedBudgetSource(draft: Pick<Draft, "budgetSource" | "budgetTotal">) {
+  const source = TripBrief.shape.budgetSource.unwrap().safeParse(draft.budgetSource);
+  if (!source.success) return undefined;
+  try {
+    return toAud(source.data.amount, source.data.currency) === Number(draft.budgetTotal)
+      ? source.data
+      : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 /** A list the schema would reject is left out, so it cannot drop the other stated facts. */
@@ -277,6 +294,7 @@ export function draftWithKnown(draft: Draft, known: PartialTripBrief): Draft {
       groupSize: String(known.groupSize ?? draft.groupSize),
     }),
     budgetTotal: known.budgetTotal === undefined ? draft.budgetTotal : String(known.budgetTotal),
+    budgetSource: known.budgetTotal === undefined ? draft.budgetSource : known.budgetSource,
     nationality: known.nationality ?? draft.nationality,
     preferences: known.preferences ?? draft.preferences,
     learnedPreferences: known.learnedPreferences ?? draft.learnedPreferences,
@@ -287,14 +305,14 @@ export function draftWithKnown(draft: Draft, known: PartialTripBrief): Draft {
 }
 
 /**
- * `version` 3 is the AUD base-currency snapshot. Versions 1 and 2 are rejected rather
+ * Version 4 preserves the original budget in drafts. Version 3 AUD snapshots upgrade on read. Versions 1 and 2 are rejected rather
  * than migrated: their stay candidates carry the old `pricePerNightUsd` field, so they
  * cannot be parsed at all, and their amounts meant USD. Rejecting is honest -- there is
  * no defensible rate for a snapshot of unknown date. This is a single-user local
  * workspace, so the cost is that saved trips from before the change do not reopen.
  */
 export type Snapshot = {
-  version: 3;
+  version: 3 | 4;
   id: string;
   savedAt: string;
   plan: TripPlan;
@@ -309,7 +327,7 @@ const object = (value: unknown): value is Record<string, unknown> =>
 export function parseSnapshot(value: unknown): Snapshot {
   if (
     !object(value) ||
-    value.version !== 3 ||
+    (value.version !== 3 && value.version !== 4) ||
     typeof value.id !== "string" ||
     typeof value.savedAt !== "string" ||
     !Number.isFinite(Date.parse(value.savedAt))
@@ -339,7 +357,14 @@ export function parseSnapshot(value: unknown): Snapshot {
     throw new Error("Saved budget history is invalid.");
   return {
     ...value,
-    version: 3,
+    version: 4,
+    draft:
+      value.version === 3 &&
+      !value.draft.budgetSource &&
+      Number(value.draft.budgetTotal) === plan.brief.budgetTotal &&
+      plan.brief.budgetSource
+        ? { ...value.draft, budgetSource: plan.brief.budgetSource }
+        : value.draft,
     plan,
     messages: withValidAttachments(withValidActivity(value.messages as Message[])),
   } as Snapshot;

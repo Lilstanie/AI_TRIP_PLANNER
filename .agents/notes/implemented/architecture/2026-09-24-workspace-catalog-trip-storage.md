@@ -16,7 +16,8 @@ was.
 The catalog in `apps/web/lib/workspace/catalog.ts` is the only store for chats and trips, written
 by the debounced autosave in `apps/web/components/workspace/useWorkspaceStorage.ts`. The active
 trip's snapshot is still mirrored to `trip-workspace-v1` and read only as migration input when no
-catalog exists yet. Snapshots carry `version` 3 and are schema-validated on load; corrupt data,
+catalog exists yet. Snapshots write `version` 4 and accept AUD version 3, recovering a matching draft budget source;
+see [source budget entry](../feature/2026-10-04-source-budget-entry.md). They are schema-validated on load; corrupt data,
 unknown versions and quota failures are reported and never overwritten automatically.
 
 There is no Save trip button, Saved trips dialog, `save`, `loadSaved` or `restore`, and no

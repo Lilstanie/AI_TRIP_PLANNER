@@ -56,7 +56,7 @@ export function Workspace({ initialPlan }: { initialPlan?: TripPlan }) {
 function WorkspaceContent({ restored }: { restored: RestoredWorkspace }) {
   const model = useWorkspaceController({ restored });
   return (
-    <LocaleProvider brief={model.plan?.brief}>
+    <LocaleProvider brief={model.draft}>
       <WorkspaceView model={model} />
     </LocaleProvider>
   );
