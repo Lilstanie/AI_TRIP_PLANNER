@@ -80,7 +80,7 @@ describe("workspace boundaries", () => {
   it("round-trips unfinished forms while rejecting corrupt or incompatible snapshots", () => {
     const unfinished = { ...snapshot, draft: { ...snapshot.draft, budgetTotal: "" } };
     expect(parseSnapshot(JSON.parse(JSON.stringify(unfinished)))).toMatchObject({
-      version: 3,
+      version: 4,
       draft: unfinished.draft,
     });
     for (const invalid of [

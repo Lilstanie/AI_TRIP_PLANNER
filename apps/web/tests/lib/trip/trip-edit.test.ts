@@ -50,7 +50,7 @@ describe("P3 edit boundary", () => {
     // Migration from older snapshots is gone: they carry the pre-AUD `pricePerNightUsd`
     // field and USD amounts, so parseSnapshot rejects them outright.
     const migrated = parseSnapshot(snapshot);
-    expect(migrated.version).toBe(3);
+    expect(migrated.version).toBe(4);
     const id = migrated.plan.sections[0]!.proposal!.items[0]!.id;
     expect(id).toBeTruthy();
     expect(

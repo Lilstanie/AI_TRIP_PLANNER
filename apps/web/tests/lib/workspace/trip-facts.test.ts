@@ -51,9 +51,15 @@ describe("trip facts", () => {
     });
   });
 
-  it("formats budgets in the selected display currency", () => {
-    const brief = { ...plan.brief, budgetSource: { amount: 10000, currency: "CNY" as const } };
-    expect(factLabels(draftFor(brief), brief).budget).toMatch(/^AUD\s2,000\.00$/);
+  it("uses matching original budgets and converts edited budgets", () => {
+    const brief = {
+      ...plan.brief,
+      budgetTotal: 2100,
+      budgetSource: { amount: 10000, currency: "CNY" as const },
+    };
+    expect(factLabels(draftFor(brief), brief, { currency: "CNY" }).budget).toMatch(
+      /^CNY\s10,000\.00$/,
+    );
     expect(factLabels({ ...draftFor(brief), budgetTotal: "2500" }, brief).budget).toMatch(
       /^AUD\s2,500\.00$/,
     );

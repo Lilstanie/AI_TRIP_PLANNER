@@ -4,7 +4,7 @@ import {
   MAX_TRIP_PREFERENCES,
   type TripBrief,
 } from "@trip/shared";
-import { parseDraft, type Draft } from "./workspace";
+import { parseDraft, statedBudgetSource, type Draft } from "./workspace";
 import { formatAudForDisplay, intlLocale, translate, type AppLocale } from "../i18n/locale";
 
 /** Age labels shown beside each Who stepper; also the order the chip summary lists them in. */
@@ -165,7 +165,14 @@ export function factLabels(
     who: validTravellers ? whoLabel(draft, travellers, locale) : undefined,
     budget:
       draft.budgetTotal.trim() && Number.isFinite(budget) && budget > 0
-        ? formatAudForDisplay(budget, currency, locale)
+        ? formatAudForDisplay(
+            budget,
+            currency,
+            locale,
+            undefined,
+            undefined,
+            statedBudgetSource(draft),
+          )
         : undefined,
   };
 }
