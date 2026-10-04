@@ -171,18 +171,9 @@ def note(s, n, x, y, w, head, body, color=ORANGE, size=12.5, h=0.75):
 
 def chrome(s, idx, member, section, title):
     s.background.fill.solid(); s.background.fill.fore_color.rgb = rgb(PAPER)
-    col = MEMBERS[member][2] if member else ORANGE
+    col = ORANGE
     box(s, 0, 0, 0.11, 7.5, fill=col, line=None, r=0)
-    x = ML
-    if member:
-        name = MEMBERS[member][0]
-        x += pill(s, ML, 0.38, f'{member} · {name}', col, size=10) + 0.16
-    text(s, x, 0.38, 6.5, 0.3, section.upper(), size=10, color=col, bold=True, anchor='m')
-    # progress: which member is speaking
-    for i, m in enumerate('ABCDE'):
-        on = m == member
-        badge(s, MR - (5 - i) * 0.36 + 0.06, 0.38, m, fill=MEMBERS[m][2] if on else 'E7E9EE',
-              fg='FFFFFF' if on else '8A93A6', d=0.3, size=10, ring=False)
+    text(s, ML, 0.38, 6.5, 0.3, section.upper(), size=10, color=col, bold=True, anchor='m')
     text(s, ML, 0.8, MR - ML, 0.62, title, size=26, color=NAVY, font=HEAD, bold=True, anchor='m')
     box(s, ML, 7.0, MR - ML, 0.012, fill='DDDAD0', line=None, r=0)
     text(s, ML, 7.08, 8, 0.25, 'AI Trip Planner  ·  ELEC5620 Stage 1  ·  Mon 10-12 Group 14',
