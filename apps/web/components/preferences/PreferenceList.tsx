@@ -1,10 +1,7 @@
 "use client";
+import { useLocale } from "@/components/account/LocaleProvider";
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
-import {
-  MAX_TRIP_PREFERENCE_LENGTH,
-  MAX_TRIP_PREFERENCES,
-  type LegModeChoice,
-} from "@trip/shared";
+import { MAX_TRIP_PREFERENCE_LENGTH, MAX_TRIP_PREFERENCES, type LegModeChoice } from "@trip/shared";
 import { draftPreferences, type Draft } from "@/lib/workspace";
 import { CloseIcon } from "../ui/icons";
 import { Input } from "../ui/input";
@@ -24,6 +21,7 @@ const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
  * in the add field counts, so Save keeps a preference the traveller typed but did not add.
  */
 export function PreferenceList({ value, onChange, errors }: Props) {
+  const { t, notice: localizeNotice } = useLocale();
   const [items, setItems] = useState(() => draftPreferences(value));
   const [pending, setPending] = useState("");
   const [editing, setEditing] = useState<{ index: number; text: string }>();
@@ -73,13 +71,13 @@ export function PreferenceList({ value, onChange, errors }: Props) {
     const text = clean(pending);
     if (!text) return;
     if (items.some((item) => same(item, text))) {
-      setProblem("That preference is already on the list.");
+      setProblem(t("That preference is already on the list."));
       return;
     }
     const next = [...items, text];
     setItems(next);
     setPending("");
-    setNotice(`Added “${text}”.`);
+    setNotice(t("Added “{text}”.", { text }));
     publish(next, "");
   };
   const remove = (index: number) => {
@@ -87,7 +85,7 @@ export function PreferenceList({ value, onChange, errors }: Props) {
     const next = items.filter((_, at) => at !== index);
     setItems(next);
     setEditing(undefined);
-    setNotice(`Removed “${removed}”.`);
+    setNotice(t("Removed “{text}”.", { text: removed ?? "" }));
     publish(next, pending, undefined);
     setFocusNext(next.length ? { row: index, part: "edit" } : "add");
   };
@@ -103,7 +101,7 @@ export function PreferenceList({ value, onChange, errors }: Props) {
     const duplicate = items.some((item, at) => at !== index && same(item, text));
     if (keep && !text) return remove(index);
     const next = keep && !duplicate ? items.map((item, at) => (at === index ? text : item)) : items;
-    setProblem(keep && duplicate ? "That preference is already on the list." : "");
+    setProblem(keep && duplicate ? t("That preference is already on the list.") : "");
     setItems(next);
     setEditing(undefined);
     publish(next, pending, undefined);
@@ -122,9 +120,9 @@ export function PreferenceList({ value, onChange, errors }: Props) {
 
   const error = errors.preferences || problem;
   return (
-    <section className="fact-section" aria-label="Your preferences">
+    <section className="fact-section" aria-label={t("Your preferences")}>
       <label className="sr-only" htmlFor="fact-preference">
-        Add a preference
+        {t("Add a preference")}
       </label>
       <Input
         ref={addInput}
@@ -135,7 +133,7 @@ export function PreferenceList({ value, onChange, errors }: Props) {
         disabled={full}
         data-autofocus=""
         enterKeyHint="enter"
-        placeholder={full ? "The list is full" : "Add a trip preference…"}
+        placeholder={full ? t("The list is full") : t("Add a trip preference…")}
         aria-invalid={!!error || undefined}
         aria-describedby={
           error ? "fact-preference-error" : full ? "fact-preference-hint" : undefined
@@ -154,17 +152,19 @@ export function PreferenceList({ value, onChange, errors }: Props) {
       />
       {error ? (
         <small className="error-text fact-form__error" id="fact-preference-error">
-          {error}
+          {localizeNotice(error)}
         </small>
       ) : (
         full && (
           <small className="muted form-field__hint" id="fact-preference-hint">
-            {`You have ${MAX_TRIP_PREFERENCES} preferences, the most a trip keeps. Remove one to add another.`}
+            {t("You have {v0} preferences, the most a trip keeps. Remove one to add another.", {
+              v0: MAX_TRIP_PREFERENCES,
+            })}
           </small>
         )
       )}
       {items.length > 0 && (
-        <ul ref={list} className="pref-list" aria-label="Your preferences">
+        <ul ref={list} className="pref-list" aria-label={t("Your preferences")}>
           {items.map((item, index) =>
             editing?.index === index ? (
               <li key={index} className="pref-row pref-row--editing">
@@ -172,7 +172,7 @@ export function PreferenceList({ value, onChange, errors }: Props) {
                   className="field pref-row__field"
                   value={editing.text}
                   maxLength={MAX_TRIP_PREFERENCE_LENGTH}
-                  aria-label={`Edit preference ${index + 1}`}
+                  aria-label={t("Edit preference {v0}", { v0: index + 1 })}
                   onChange={(event) => {
                     const next = { index, text: event.target.value };
                     setEditing(next);
@@ -188,7 +188,7 @@ export function PreferenceList({ value, onChange, errors }: Props) {
                 <button
                   type="button"
                   className="pref-row__text pref-row__edit"
-                  aria-label={`Edit “${item}”`}
+                  aria-label={t("Edit “{v0}”", { v0: item })}
                   disabled={!!editing}
                   onClick={() => startEdit(index)}
                 >
@@ -197,7 +197,7 @@ export function PreferenceList({ value, onChange, errors }: Props) {
                 <button
                   type="button"
                   className="pref-row__remove"
-                  aria-label={`Remove “${item}”`}
+                  aria-label={t("Remove “{v0}”", { v0: item })}
                   onClick={() => remove(index)}
                 >
                   <CloseIcon />
@@ -209,7 +209,7 @@ export function PreferenceList({ value, onChange, errors }: Props) {
       )}
       <LearnedList value={value} onChange={onChange} onNotice={setNotice} />
       <p className="sr-only" role="status">
-        {notice}
+        {localizeNotice(notice)}
       </p>
     </section>
   );
@@ -241,6 +241,7 @@ function LearnedList({
   onChange(next: Draft): void;
   onNotice(text: string): void;
 }) {
+  const { t, notice: localizeNotice } = useLocale();
   const learned = value.learnedPreferences ?? [];
   const rows: { key: string; text: string; remove(): Draft }[] = [
     ...learned.map((text, index) => ({
@@ -280,7 +281,7 @@ function LearnedList({
   return (
     <div className="pref-learned">
       <h3 className="pref-learned__title" id="pref-learned-title">
-        Learned from your chats
+        {t("Learned from your chats")}
       </h3>
       <ul className="pref-list" aria-labelledby="pref-learned-title">
         {rows.map((row) => (
@@ -289,7 +290,7 @@ function LearnedList({
             <button
               type="button"
               className="pref-row__remove"
-              aria-label={`Remove “${row.text}”`}
+              aria-label={t("Remove “{v0}”", { v0: row.text })}
               onClick={() => {
                 onChange(row.remove());
                 onNotice(`Removed “${row.text}”.`);

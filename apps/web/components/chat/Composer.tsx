@@ -82,7 +82,7 @@ export function Composer({
   /** One short line under the chips: why a file was refused, or that the limit is reached. */
   attachNotice?: string;
 }) {
-  const { t } = useLocale();
+  const { t, notice: localizeNotice } = useLocale();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
   // A drag over a child fires dragleave on the parent; count the entries so the
@@ -177,7 +177,7 @@ export function Composer({
         // A status line, not a toast: a rejected file is something to read and
         // act on, and it stays until the next pick replaces it.
         <p className="composer__notice" role="status">
-          {attachNotice}
+          {localizeNotice(attachNotice)}
         </p>
       )}
       <textarea

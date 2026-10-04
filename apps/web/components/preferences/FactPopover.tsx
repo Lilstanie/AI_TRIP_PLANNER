@@ -1,4 +1,5 @@
 "use client";
+import { useLocale } from "@/components/account/LocaleProvider";
 import {
   useEffect,
   useLayoutEffect,
@@ -50,6 +51,7 @@ export function FactPopover({
   leaving?: boolean;
   children: ReactNode;
 }) {
+  const { t } = useLocale();
   const panel = useRef<HTMLElement>(null);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
@@ -168,7 +170,7 @@ export function FactPopover({
           <button
             type="button"
             className="fact-popover__close"
-            aria-label={`Close ${title.toLowerCase()}`}
+            aria-label={t("Close {v0}", { v0: title.toLowerCase() })}
             onClick={() => onClose("dismiss")}
           >
             <CloseIcon />

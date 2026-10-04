@@ -1,15 +1,10 @@
 "use client";
+import { useLocale } from "@/components/account/LocaleProvider";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import type { TripPlan } from "@trip/shared";
 import type { RouteResult } from "@/lib/integrations/google";
 import type { TripPlaces } from "../map/useTripPlaces";
-import {
-  connectionBetween,
-  dayCount,
-  dayLabel,
-  dayRows,
-  stayingAt,
-} from "@/lib/trip/timeline";
+import { connectionBetween, dayCount, dayLabel, dayRows, stayingAt } from "@/lib/trip/timeline";
 import { useSegmentIndicator } from "../ui/motion";
 import { FlowStayIcon } from "../ui/flow-icons";
 import { DayStrip } from "./timeline/DayStrip";
@@ -47,12 +42,13 @@ export function TripEditor({
   /** Routes to draw on the map: the open preview's routes, otherwise the last verified ones. */
   onRoutesChange?(routes: RouteResult[]): void;
 }) {
+  const { t, locale, notice: localizeNotice } = useLocale();
   const { activities, places, placeIdFor, locationStatus } = tripPlaces;
   const edits = useTimelineEdits({ plan, activities, onApply, onPending, onRoutesChange });
   const days = dayCount(plan);
   const labels = useMemo(
-    () => Array.from({ length: days }, (_, index) => dayLabel(plan, index + 1)),
-    [plan, days],
+    () => Array.from({ length: days }, (_, index) => dayLabel(plan, index + 1, locale)),
+    [plan, days, locale],
   );
   const [day, setDay] = useState(1);
   useEffect(() => setDay((value) => Math.min(Math.max(1, value), days)), [days]);
@@ -68,7 +64,7 @@ export function TripEditor({
     () => activities.filter((activity) => activity.day === day),
     [activities, day],
   );
-  const rows = useMemo(() => dayRows(plan, day, daily), [plan, day, daily]);
+  const rows = useMemo(() => dayRows(plan, day, daily, locale), [plan, day, daily, locale]);
   const unconfirmed = daily.filter((activity) => !activity.placeId).length;
   const staying = stayingAt(plan, day);
   const locked = disabled || edits.busy;
@@ -93,17 +89,21 @@ export function TripEditor({
   let shown = 0;
   let previous: (typeof daily)[number] | undefined;
   return (
-    <section className="trip-editor" aria-label="Trip timeline">
+    <section className="trip-editor" aria-label={t("Trip timeline")}>
       <DayStrip days={strip} selected={day} onSelect={setDay} />
 
-      <div className="route-check" aria-label="Route check" role="group">
+      <div className="route-check" aria-label={t("Route check")} role="group">
         <div className="route-check__controls">
-          <div ref={modes} className="segmented route-check__modes" aria-label="Travel between stops by">
+          <div
+            ref={modes}
+            className="segmented route-check__modes"
+            aria-label={t("Travel between stops by")}
+          >
             {(
               [
                 ["WALK", "Walk"],
                 ["TRANSIT", "Public transport"],
-              ] as [RouteMode, string][]
+              ] as [RouteMode, "Walk" | "Public transport"][]
             ).map(([value, label]) => (
               <button
                 key={value}
@@ -112,7 +112,7 @@ export function TripEditor({
                 disabled={locked}
                 onClick={() => edits.setMode(value)}
               >
-                {label}
+                {t(label)}
               </button>
             ))}
           </div>
@@ -121,52 +121,60 @@ export function TripEditor({
             disabled={locked || daily.length < 2 || unconfirmed > 0}
             onClick={() => void edits.edit({ kind: "verify", day })}
           >
-            Check routes for Day {day}
+            {t("Check routes for Day {day}", { day })}
           </button>
         </div>
         <p className="route-check__hint">
           {daily.length < 2
-            ? "Routes are checked between stops; this day has fewer than two."
+            ? t("Routes are checked between stops; this day has fewer than two.")
             : unconfirmed > 0
-              ? `Confirm the place for ${unconfirmed} ${unconfirmed === 1 ? "stop" : "stops"} first — select a stop to confirm or search for it.`
-              : `Real ${edits.mode === "WALK" ? "walking" : "public transport"} times from Google, leaving when each stop ends, plus 15 minutes to arrive.`}
+              ? t(
+                  "Confirm the place for {count} stops first — select a stop to confirm or search for it.",
+                  { count: unconfirmed },
+                )
+              : t(
+                  "Real {mode} times from Google, leaving when each stop ends, plus 15 minutes to arrive.",
+                  { mode: t(edits.mode === "WALK" ? "walking" : "public transport") },
+                )}
         </p>
       </div>
 
       {edits.working && (
         <p className="timeline-status" role="status">
-          {edits.working === "search" ? "Searching Google Maps…" : "Checking the change…"}
+          {edits.working === "search" ? t("Searching Google Maps…") : t("Checking the change…")}
         </p>
       )}
       {edits.error && (
         <p className="timeline-status timeline-status--error" role="alert">
-          {edits.error}
+          {localizeNotice(edits.error)}
         </p>
       )}
 
       <div className="timeline-day">
         <h3 className="timeline-day__title">
-          Day {day} <span>{labels[day - 1]}</span>
+          {t("Day {v0}", { v0: day })} <span>{labels[day - 1]}</span>
         </h3>
         {staying && (
           <p className="timeline-day__staying">
-            <FlowStayIcon size={13} /> Staying at {staying}
+            <FlowStayIcon size={13} /> {t("Staying at {place}", { place: staying })}
           </p>
         )}
         {rows.length ? (
-          <ol key={day} className="timeline tab-panel-enter" aria-label={`Day ${day} timeline`}>
+          <ol
+            key={day}
+            className="timeline tab-panel-enter"
+            aria-label={t("Day {v0} timeline", { v0: day })}
+          >
             {rows.map((row, position) => {
               if (row.type === "fixed") return <FixedTimelineRow key={row.key} row={row} />;
               const activity = row.activity;
               const placeId = placeIdFor(activity);
-              const connection = connectionBetween(previous, activity, edits.routes);
+              const connection = connectionBetween(previous, activity, edits.routes, locale);
               const number = ++shown;
               previous = activity;
               return (
                 <Fragment key={activity.id ?? position}>
-                  {connection && (
-                    <ConnectionRow key={connection.status} connection={connection} />
-                  )}
+                  {connection && <ConnectionRow key={connection.status} connection={connection} />}
                   <TimelineStop
                     activity={activity}
                     number={number}
@@ -187,12 +195,15 @@ export function TripEditor({
           </ol>
         ) : (
           <p className="timeline-empty">
-            Nothing planned for this day yet. Ask in the chat to add something, or move a stop here
-            from another day.
+            {t(
+              "Nothing planned for this day yet. Ask in the chat to add something, or move a stop here from another day.",
+            )}
           </p>
         )}
         {daily.length > 1 && (
-          <p className="timeline-day__tip">Drag a stop to reorder the day, or select it to edit.</p>
+          <p className="timeline-day__tip">
+            {t("Drag a stop to reorder the day, or select it to edit.")}
+          </p>
         )}
       </div>
 
@@ -207,9 +218,9 @@ export function TripEditor({
       )}
       {edits.undo && !edits.preview && (
         <div className="timeline-undo">
-          <span>Change applied.</span>
+          <span>{t("Change applied.")}</span>
           <button type="button" disabled={locked} onClick={() => void edits.edit(edits.undo!)}>
-            Undo last change
+            {t("Undo last change")}
           </button>
         </div>
       )}

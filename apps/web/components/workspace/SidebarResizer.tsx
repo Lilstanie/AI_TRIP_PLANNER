@@ -1,4 +1,5 @@
 "use client";
+import { useLocale } from "@/components/account/LocaleProvider";
 import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import { SIDEBAR_WIDTH, clampSidebarWidth } from "@/lib/workspace/catalog";
 
@@ -19,6 +20,7 @@ export function SidebarResizer({
   width?: number;
   onChange(width: number | undefined): void;
 }) {
+  const { t } = useLocale();
   const drag = useRef<{
     app: HTMLElement;
     left: number;
@@ -107,12 +109,12 @@ export function SidebarResizer({
       className="sidebar-resizer"
       role="separator"
       aria-orientation="vertical"
-      aria-label="Resize sidebar"
+      aria-label={t("Resize sidebar")}
       aria-valuemin={SIDEBAR_WIDTH.min}
       aria-valuemax={SIDEBAR_WIDTH.max}
       aria-valuenow={width ?? rendered ?? SIDEBAR_WIDTH.default}
       tabIndex={0}
-      title="Drag to resize · double-click to reset"
+      title={t("Drag to resize · double-click to reset")}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={endDrag}

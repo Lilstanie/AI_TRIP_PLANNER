@@ -1,4 +1,5 @@
 "use client";
+import { useLocale } from "@/components/account/LocaleProvider";
 import { useEffect, useRef } from "react";
 
 /**
@@ -15,6 +16,7 @@ export function DayStrip({
   selected: number;
   onSelect(day: number): void;
 }) {
+  const { t } = useLocale();
   const strip = useRef<HTMLDivElement>(null);
   useEffect(() => {
     strip.current
@@ -27,7 +29,7 @@ export function DayStrip({
     strip.current?.querySelector<HTMLElement>(`[data-day="${next}"]`)?.focus();
   };
   return (
-    <div className="day-strip" role="tablist" aria-label="Trip days" ref={strip}>
+    <div className="day-strip" role="tablist" aria-label={t("Trip days")} ref={strip}>
       {days.map(({ day, date, stops, attention }) => (
         <button
           key={day}
@@ -47,13 +49,14 @@ export function DayStrip({
             event.preventDefault();
           }}
         >
-          <span className="day-strip__title">Day {day}</span>
+          <span className="day-strip__title">{t("Day {v0}", { v0: day })}</span>
           <span className="day-strip__date">{date}</span>
           <span className="day-strip__meta">
-            {stops ? `${stops} ${stops === 1 ? "stop" : "stops"}` : "Free day"}
+            {stops ? `${stops} ${stops === 1 ? t("stop") : t("stops")}` : t("Free day")}
             {attention && (
               <span className="day-strip__flag">
-                <span aria-hidden="true"> · </span>needs a place
+                <span aria-hidden="true"> · </span>
+                {t("needs a place")}
               </span>
             )}
           </span>

@@ -1,4 +1,6 @@
 "use client";
+import { intlLocale, type AppLocale, type MessageKey } from "@/lib/i18n/locale";
+import { useLocale } from "@/components/account/LocaleProvider";
 import { useMemo, useRef, useState, type KeyboardEvent } from "react";
 import type { TripRecord } from "@/lib/workspace/catalog";
 import { ChevronIcon, PlusIcon } from "../ui/icons";
@@ -6,7 +8,7 @@ import { useSegmentIndicator } from "../ui/motion";
 import { TripCover, coverColours } from "./TripCover";
 
 type Tab = "trips" | "calendar";
-const TABS: { id: Tab; label: string }[] = [
+const TABS: { id: Tab; label: MessageKey }[] = [
   { id: "trips", label: "Trips" },
   { id: "calendar", label: "Calendar" },
 ];
@@ -21,7 +23,6 @@ const days = (trip: TripRecord) => {
   const [start, end] = trip.snapshot.plan.brief.dates;
   return Math.max(1, Math.round((utc(end) - utc(start)) / DAY) + 1);
 };
-const tripName = (trip: TripRecord) => `Trip to ${trip.snapshot.plan.brief.destination}`;
 
 /**
  * Your trips, opened from the sidebar's Trips button as on Mindtrip: every saved trip as a card,
@@ -38,6 +39,7 @@ export function TripsPage({
   onOpenTrip(id: string): void;
   onNewTrip(): void;
 }) {
+  const { t } = useLocale();
   const [tab, setTab] = useState<Tab>("trips");
   const tabRefs = useRef<Partial<Record<Tab, HTMLButtonElement | null>>>({});
   const tabList = useRef<HTMLDivElement>(null);
@@ -55,17 +57,17 @@ export function TripsPage({
     <div className="trips-page">
       <div className="trips-page__inner">
         <header className="trips-page__head">
-          <h1>Your trips</h1>
+          <h1>{t("Your trips")}</h1>
           <button type="button" className="trips-page__new" onClick={onNewTrip}>
             <PlusIcon />
-            <span>New trip</span>
+            <span>{t("New trip")}</span>
           </button>
         </header>
         <div
           ref={tabList}
           className="trips-page__tabs segmented"
           role="tablist"
-          aria-label="Your trips"
+          aria-label={t("Your trips")}
         >
           {TABS.map((item) => (
             <button
@@ -82,7 +84,7 @@ export function TripsPage({
               onClick={() => setTab(item.id)}
               onKeyDown={onTabKey}
             >
-              {item.label}
+              {t(item.label)}
             </button>
           ))}
         </div>
@@ -113,6 +115,7 @@ function TripCards({
   activeTripId?: string;
   onOpenTrip(id: string): void;
 }) {
+  const { t, locale } = useLocale();
   const groups = useMemo(() => {
     const today = todayUtc();
     const byStart = [...trips].sort(
@@ -120,11 +123,11 @@ function TripCards({
     );
     return [
       {
-        title: "Upcoming",
+        title: "Upcoming" as const,
         items: byStart.filter((trip) => utc(trip.snapshot.plan.brief.dates[1]) >= today),
       },
       {
-        title: "Past",
+        title: "Past" as const,
         items: byStart.filter((trip) => utc(trip.snapshot.plan.brief.dates[1]) < today).reverse(),
       },
     ].filter((group) => group.items.length);
@@ -133,13 +136,13 @@ function TripCards({
   if (!trips.length)
     return (
       <p className="trips-page__empty">
-        No trips yet. Start one with New trip, or describe where you want to go in a chat.
+        {t("No trips yet. Start one with New trip, or describe where you want to go in a chat.")}
       </p>
     );
 
   return groups.map((group) => (
-    <section key={group.title} className="trips-page__group" aria-label={group.title}>
-      <h2>{group.title}</h2>
+    <section key={group.title} className="trips-page__group" aria-label={t(group.title)}>
+      <h2>{t(group.title)}</h2>
       <ul className="trip-cards">
         {group.items.map((trip) => {
           const { destination } = trip.snapshot.plan.brief;
@@ -154,9 +157,13 @@ function TripCards({
               >
                 <TripCover destination={destination} size="card" />
                 <span className="trip-card__text">
-                  <span className="trip-card__title">{tripName(trip)}</span>
+                  <span className="trip-card__title">
+                    {t("Trip to {destination}", {
+                      destination: trip.snapshot.plan.brief.destination,
+                    })}
+                  </span>
                   <span className="trip-card__meta">
-                    {destination} · {length} {length === 1 ? "day" : "days"}
+                    {destination} · {length} {length === 1 ? t("day") : t("days")}
                   </span>
                 </span>
               </button>
@@ -169,10 +176,12 @@ function TripCards({
 }
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-const monthLabel = (year: number, month: number) =>
-  new Intl.DateTimeFormat("en-AU", { month: "long", year: "numeric", timeZone: "UTC" }).format(
-    new Date(Date.UTC(year, month, 1)),
-  );
+const monthLabel = (year: number, month: number, locale: AppLocale) =>
+  new Intl.DateTimeFormat(intlLocale(locale), {
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(Date.UTC(year, month, 1)));
 
 /** A month grid (weeks start on Monday) with each trip drawn over the days it covers. */
 function TripCalendar({
@@ -182,6 +191,7 @@ function TripCalendar({
   trips: TripRecord[];
   onOpenTrip(id: string): void;
 }) {
+  const { t, locale } = useLocale();
   // Open on the month of the next trip that has not ended, or this month.
   const [cursor, setCursor] = useState(() => {
     const today = todayUtc();
@@ -212,9 +222,9 @@ function TripCalendar({
   return (
     <div className="trip-calendar">
       <div className="trip-calendar__head">
-        <h2 aria-live="polite">{monthLabel(cursor.year, cursor.month)}</h2>
+        <h2 aria-live="polite">{monthLabel(cursor.year, cursor.month, locale)}</h2>
         <div className="trip-calendar__nav">
-          <button type="button" aria-label="Previous month" onClick={() => shift(-1)}>
+          <button type="button" aria-label={t("Previous month")} onClick={() => shift(-1)}>
             <span className="trip-calendar__prev">
               <ChevronIcon />
             </span>
@@ -227,9 +237,9 @@ function TripCalendar({
               setCursor({ year: now.getUTCFullYear(), month: now.getUTCMonth() });
             }}
           >
-            Today
+            {t("Today")}
           </button>
-          <button type="button" aria-label="Next month" onClick={() => shift(1)}>
+          <button type="button" aria-label={t("Next month")} onClick={() => shift(1)}>
             <span className="trip-calendar__next">
               <ChevronIcon />
             </span>
@@ -239,10 +249,10 @@ function TripCalendar({
       <div
         className="trip-calendar__grid"
         role="grid"
-        aria-label={monthLabel(cursor.year, cursor.month)}
+        aria-label={monthLabel(cursor.year, cursor.month, locale)}
       >
         <div role="row" className="trip-calendar__weekdays">
-          {WEEKDAYS.map((day) => (
+          {(locale === "zh" ? ["一", "二", "三", "四", "五", "六", "日"] : WEEKDAYS).map((day) => (
             <span role="columnheader" key={day}>
               {day}
             </span>
@@ -278,11 +288,21 @@ function TripCalendar({
                         data-start={time === utc(start) ? "true" : undefined}
                         data-end={time === utc(end) ? "true" : undefined}
                         style={{ background: `color-mix(in srgb, ${from}, ${to})` }}
-                        aria-label={`${tripName(trip)}, ${start} to ${end}`}
+                        aria-label={t("{name}: {start} to {end}", {
+                          name: t("Trip to {destination}", {
+                            destination: trip.snapshot.plan.brief.destination,
+                          }),
+                          start,
+                          end,
+                        })}
                         tabIndex={labelled ? 0 : -1}
                         onClick={() => onOpenTrip(trip.id)}
                       >
-                        {labelled ? tripName(trip) : " "}
+                        {labelled
+                          ? t("Trip to {destination}", {
+                              destination: trip.snapshot.plan.brief.destination,
+                            })
+                          : " "}
                       </button>
                     );
                   })}
@@ -293,7 +313,7 @@ function TripCalendar({
         ))}
       </div>
       {!trips.length && (
-        <p className="trips-page__empty">Trips you plan will appear on the calendar.</p>
+        <p className="trips-page__empty">{t("Trips you plan will appear on the calendar.")}</p>
       )}
     </div>
   );

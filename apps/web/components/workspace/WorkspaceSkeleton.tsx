@@ -1,3 +1,5 @@
+"use client";
+import { useLocale } from "@/components/account/LocaleProvider";
 import { BrandMark } from "./BrandMark";
 
 // First paint while the client reads local history. Mirrors the workspace layout (sidebar,
@@ -5,6 +7,7 @@ import { BrandMark } from "./BrandMark";
 const HISTORY_WIDTHS = ["82%", "64%", "74%"];
 
 export function WorkspaceSkeleton() {
+  const { t } = useLocale();
   return (
     <div className="workspace-app" aria-busy="true">
       <aside className="workspace-sidebar" aria-hidden="true">
@@ -25,7 +28,7 @@ export function WorkspaceSkeleton() {
           <section className="workspace-panel workspace-panel--chat">
             <div className="panel chat">
               <p className="skeleton__status" role="status">
-                Opening your workspace…
+                {t("Opening your workspace…")}
               </p>
             </div>
           </section>

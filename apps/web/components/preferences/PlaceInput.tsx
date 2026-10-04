@@ -1,4 +1,5 @@
 "use client";
+import { useLocale } from "@/components/account/LocaleProvider";
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type RefObject } from "react";
 import { CloseIcon, MapPinIcon } from "../ui/icons";
 import { Input } from "../ui/input";
@@ -117,6 +118,7 @@ export function PlaceInput({
   inputRef?: RefObject<HTMLInputElement | null>;
   autoFocus?: boolean;
 }) {
+  const { t } = useLocale();
   const listId = useId();
   const ownRef = useRef<HTMLInputElement>(null);
   const field = inputRef ?? ownRef;
@@ -183,7 +185,7 @@ export function PlaceInput({
         <button
           type="button"
           className="place-input__clear"
-          aria-label="Clear"
+          aria-label={t("Clear")}
           // Keep focus in the field.
           onMouseDown={(event) => event.preventDefault()}
           onClick={() => {

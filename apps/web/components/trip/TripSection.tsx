@@ -6,9 +6,10 @@ import { ProposalDetails } from "./ProposalDetails";
 import { SourceBadge } from "./SourceBadge";
 import { useState } from "react";
 import type { TripSection as TripSectionData } from "@trip/shared";
+import type { MessageKey } from "@/lib/i18n/locale";
 import { useLocale } from "../account/LocaleProvider";
 
-const STATUS_LABEL: Record<string, string> = {
+const STATUS_LABEL: Record<string, MessageKey> = {
   planning: "Planning",
   draft: "Draft",
   needs_you: "Needs you",
@@ -23,7 +24,7 @@ export function TripSection({
   onEdit: () => void;
   onReview: () => void;
 }) {
-  const { money } = useLocale();
+  const { t, money } = useLocale();
   const [open, setOpen] = useState(false);
   const bodyId = `section-details-${section.id}`;
 
@@ -40,7 +41,7 @@ export function TripSection({
           <small>{section.summary}</small>
         </span>
         <span className={`chip chip--${section.status}`}>
-          {STATUS_LABEL[section.status] ?? section.status}
+          {STATUS_LABEL[section.status] ? t(STATUS_LABEL[section.status]!) : section.status}
         </span>
         <span className="cost">{money(section.estCost)}</span>
         <span className="section__chevron" aria-hidden>
@@ -52,20 +53,23 @@ export function TripSection({
         <div className="section__body" id={bodyId}>
           {section.proposal ? (
             <>
-              <div className="source-note" aria-label="Result source">
+              <div className="source-note" aria-label={t("Result source")}>
                 <div className="source-note__head">
                   <SourceBadge source={section.proposal.source} />
-                  <strong>{section.proposal.source?.label ?? "Source not recorded"}</strong>
+                  <strong>{section.proposal.source?.label ?? t("Source not recorded")}</strong>
                 </div>
                 <p>
-                  {section.proposal.source?.freshness ?? "These estimates are not live verified."}
+                  {section.proposal.source?.freshness ??
+                    t("These estimates are not live verified.")}
                 </p>
               </div>
               <ProposalDetails section={section} onReview={onReview} />
-              <button onClick={onEdit}>Change trip preferences</button>
+              <button onClick={onEdit}>{t("Change trip preferences")}</button>
               {section.proposal.assumptions.length > 0 && (
                 <details className="assumptions">
-                  <summary>Important notes ({section.proposal.assumptions.length})</summary>
+                  <summary>
+                    {t("Important notes ({count})", { count: section.proposal.assumptions.length })}
+                  </summary>
                   <ul>
                     {section.proposal.assumptions.map((assumption, index) => (
                       <li key={index}>{assumption}</li>
@@ -75,7 +79,7 @@ export function TripSection({
               )}
             </>
           ) : (
-            <p className="section__empty">Details are still being prepared.</p>
+            <p className="section__empty">{t("Details are still being prepared.")}</p>
           )}
         </div>
       )}

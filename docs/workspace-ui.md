@@ -613,7 +613,8 @@ the account section explains that everything stays in this browser.
   - **Language & region:** interface language (English or Simplified Chinese; chat in any language), region, display currency (AUD, CNY, USD or JPY; default AUD), units (metric), and Trip data (the site's default, live prices or sample data)
     under Advanced.
     The top-bar language switch sits beside Mock data and updates the same saved language setting.
-    Navigation, controls and dates follow it; agent replies and traveller text are not
+    Authored chat controls, timeline and proposal labels, settings, notices, dialogs, accessible
+    names and dates follow it. Traveller text, agent-produced content and provider errors are not
     translated. With no saved choice it follows the browser language (`zh*` opens in Chinese). The desktop sidebar and main content have an 8 px gutter.
     Trip amounts use one locale-aware formatter and the shared approximate rate table. Converted
     displays carry its as-of date; JPY has no decimals, other currencies have two. Planning and

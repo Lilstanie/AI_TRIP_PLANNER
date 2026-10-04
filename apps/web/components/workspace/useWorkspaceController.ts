@@ -39,7 +39,7 @@ import type { SettingsSection } from "../account/SettingsDialog";
 import { useComposerAttachments } from "./useComposerAttachments";
 import type { PendingAsk } from "@/lib/workspace/ask-user";
 import { firstFactWithError, firstMissingFact, type FactKey } from "@/lib/workspace/trip-facts";
-import { formatAudForDisplay } from "@/lib/i18n/locale";
+import { formatAudForDisplay, translate } from "@/lib/i18n/locale";
 export function useWorkspaceController({ restored }: { restored: RestoredWorkspace }) {
   const [plan, setPlan] = useState<TripPlan | undefined>(restored.plan);
   const [draft, setDraft] = useState(restored.draft);
@@ -62,6 +62,10 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
   const [catalog, setCatalog] = useState<WorkspaceCatalog>(restored.catalog);
   const { settings } = useSettings();
   const locale = useInterfaceLocale();
+  const t = (
+    text: import("@/lib/i18n/locale").MessageKey,
+    params?: Record<string, string | number>,
+  ) => translate(locale, text, params);
   const [historyQuery, setHistoryQuery] = useState("");
   // The top-bar chip whose editor is open; Preferences is one of them.
   const [openFact, setOpenFact] = useState<FactKey>();
@@ -242,13 +246,15 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     return {
       id: item.id,
       title: item.title,
-      subtitle: trip ? `Trip to ${trip.snapshot.plan.brief.destination}` : undefined,
+      subtitle: trip
+        ? t("Trip to {destination}", { destination: trip.snapshot.plan.brief.destination })
+        : undefined,
       active: item.id === catalog.activeConversationId,
     };
   });
   const historyTrips = filteredHistory.trips.map((item) => ({
     id: item.id,
-    title: `Trip to ${item.snapshot.plan.brief.destination}`,
+    title: t("Trip to {destination}", { destination: item.snapshot.plan.brief.destination }),
     destination: item.snapshot.plan.brief.destination,
     subtitle: `${item.snapshot.plan.brief.dates.join(" – ")} · ${formatAudForDisplay(
       item.snapshot.plan.estTotal,
@@ -361,7 +367,7 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     }
     requestAnimationFrame(() =>
       document
-        .querySelector<HTMLInputElement>('[aria-label="Message AI Trip Planner"]')
+        .querySelector<HTMLInputElement>(".composer textarea")
         ?.focus({ preventScroll: true }),
     );
   }
@@ -375,7 +381,7 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
   function renameChat(id: string) {
     const existing = catalog.conversations.find((item) => item.id === id);
     if (!existing) return;
-    const title = window.prompt("Rename chat", existing.title)?.trim();
+    const title = window.prompt(t("Rename chat"), existing.title)?.trim();
     if (!title) return;
     setCatalog((current) => ({
       ...current,
@@ -400,7 +406,12 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
   }
   function deleteChat(id: string) {
     const existing = catalog.conversations.find((item) => item.id === id);
-    if (!existing || !window.confirm(`Delete “${existing.title}”? The linked trip will be kept.`))
+    if (
+      !existing ||
+      !window.confirm(
+        t("Delete “{title}”? The linked trip will be kept.", { title: existing.title }),
+      )
+    )
       return;
     // Deleting the open chat has to remove it and open a fresh one in a single update. Splitting
     // it in two let `newChat` read the pre-delete catalog, reuse the deleted conversation's id and

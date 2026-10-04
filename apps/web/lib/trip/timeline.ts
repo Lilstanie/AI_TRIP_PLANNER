@@ -1,3 +1,4 @@
+import { translate, intlLocale, type AppLocale, type MessageKey } from "../i18n/locale";
 import type { ArriveBy, ProposalItem, TripPlan } from "@trip/shared";
 import type { RouteResult } from "../integrations/google";
 
@@ -14,6 +15,7 @@ export type FixedRow = {
   type: "fixed";
   key: string;
   kind: FixedKind;
+  mode?: string;
   title: string;
   /** One line under the title: carrier, mode and duration, or nights. */
   detail: string;
@@ -36,10 +38,10 @@ export function dayCount(plan: TripPlan) {
 }
 
 /** "Sat 17 Oct" for a trip day, in UTC so the label never shifts with the viewer's zone. */
-export function dayLabel(plan: TripPlan, day: number) {
+export function dayLabel(plan: TripPlan, day: number, locale: AppLocale = "en") {
   const time = Date.parse(`${plan.brief.dates[0]}T00:00:00Z`) + (day - 1) * 86400000;
-  if (!Number.isFinite(time)) return `Day ${day}`;
-  return new Intl.DateTimeFormat("en-AU", {
+  if (!Number.isFinite(time)) return translate(locale, "Day {v0}", { v0: day });
+  return new Intl.DateTimeFormat(intlLocale(locale), {
     weekday: "short",
     day: "numeric",
     month: "short",
@@ -47,23 +49,32 @@ export function dayLabel(plan: TripPlan, day: number) {
   }).format(time);
 }
 
-function transportRow(item: ProposalItem, index: number): FixedRow {
+function transportRow(item: ProposalItem, index: number, locale: AppLocale): FixedRow {
   const title = item.location ?? item.detail.split(/[:;]/)[0]!.trim();
   // A timed transport item is a ground hop the planner scheduled; an untimed one is a flight.
   if (item.startTime) {
     const mode = /^(\w+) from /i.exec(item.detail)?.[1]?.toLowerCase();
     const duration = /(\d+) minutes/.exec(item.detail)?.[1];
-    const label = mode === "drive" ? "Drive" : mode ? mode[0]!.toUpperCase() + mode.slice(1) : "Transfer";
     return {
       type: "fixed",
       key: `transport-${index}`,
       kind: "ground",
+      mode,
       title,
-      detail: [label, duration && formatDuration(Number(duration))].filter(Boolean).join(" · "),
+      detail: [
+        MODE_LABELS[mode ?? ""]
+          ? translate(locale, MODE_LABELS[mode!]!)
+          : translate(locale, "Transfer"),
+        duration && formatDuration(Number(duration), locale),
+      ]
+        .filter(Boolean)
+        .join(" · "),
       startTime: item.startTime,
       endTime: item.endTime,
       cost: item.estCost,
-      costNote: /fare unavailable/i.test(item.detail) ? "Fare not published" : undefined,
+      costNote: /fare unavailable/i.test(item.detail)
+        ? translate(locale, "Fare not published")
+        : undefined,
     };
   }
   const carrier = item.detail.includes(":") ? item.detail.split(":")[0]!.trim() : undefined;
@@ -73,14 +84,18 @@ function transportRow(item: ProposalItem, index: number): FixedRow {
     key: `transport-${index}`,
     kind: "flight",
     title,
-    detail: [carrier, returning ? `return flight ${returning}` : undefined, "whole group"]
+    detail: [
+      carrier,
+      returning ? translate(locale, "return flight {date}", { date: returning }) : undefined,
+      translate(locale, "whole group"),
+    ]
       .filter(Boolean)
       .join(" · "),
     cost: item.estCost,
   };
 }
 
-function stayRow(item: ProposalItem, index: number): FixedRow {
+function stayRow(item: ProposalItem, index: number, locale: AppLocale): FixedRow {
   const name = item.detail.split(" — ")[0]!.trim();
   const nights = /(\d+) night/.exec(item.detail)?.[1];
   // Stay details read "rating 4.5/5"; plans saved before carry "/10", shown out of 5 too.
@@ -96,9 +111,12 @@ function stayRow(item: ProposalItem, index: number): FixedRow {
     kind: "stay",
     title: name,
     detail: [
-      "Check in",
-      nights && `${nights} ${nights === "1" ? "night" : "nights"}`,
-      rating && `rated ${rating}/5`,
+      translate(locale, "Check in"),
+      nights &&
+        (locale === "en" && nights === "1"
+          ? "1 night"
+          : translate(locale, "{count} nights", { count: nights })),
+      rating && translate(locale, "rated {rating}/5", { rating }),
     ]
       .filter(Boolean)
       .join(" · "),
@@ -125,17 +143,18 @@ export function dayRows<A extends { startTime?: string }>(
   plan: TripPlan,
   day: number,
   activities: A[],
+  locale: AppLocale = "en",
 ): TimelineRow<A>[] {
   const fixed = (id: string) =>
     plan.sections.find((section) => section.id === id)?.proposal?.items ?? [];
   const transport = fixed("transport")
     .map((item, index) => [item, index] as const)
     .filter(([item]) => item.day === day)
-    .map(([item, index]) => transportRow(item, index));
+    .map(([item, index]) => transportRow(item, index, locale));
   const stays = fixed("accommodation")
     .map((item, index) => [item, index] as const)
     .filter(([item]) => item.day === day && item.kind === "hotel")
-    .map(([item, index]) => stayRow(item, index));
+    .map(([item, index]) => stayRow(item, index, locale));
   const timed: TimelineRow<A>[] = [
     ...transport.filter((row) => row.startTime),
     ...activities.map((activity) => ({ type: "stop" as const, activity })),
@@ -146,13 +165,15 @@ export function dayRows<A extends { startTime?: string }>(
 const startOf = <A extends { startTime?: string }>(row: TimelineRow<A>) =>
   minutes(row.type === "fixed" ? row.startTime : row.activity.startTime);
 
-export function formatDuration(total: number) {
+export function formatDuration(total: number, locale: AppLocale = "en") {
   const hours = Math.floor(total / 60);
   const rest = Math.round(total % 60);
+  if (locale === "zh")
+    return hours ? `${hours} 小时${rest ? ` ${rest} 分钟` : ""}` : `${rest} 分钟`;
   return hours ? `${hours} h${rest ? ` ${rest} min` : ""}` : `${rest} min`;
 }
 
-const MODE_LABELS: Record<string, string> = {
+const MODE_LABELS: Record<string, MessageKey> = {
   walk: "Walk",
   WALK: "Walk",
   bus: "Bus",
@@ -181,6 +202,7 @@ export function connectionBetween(
   previous: { placeId?: string } | undefined,
   current: { placeId?: string; arriveBy?: ArriveBy },
   routes: RouteResult[],
+  locale: AppLocale = "en",
 ): Connection | undefined {
   const route =
     previous?.placeId && current.placeId
@@ -188,10 +210,10 @@ export function connectionBetween(
       : undefined;
   if (route) {
     if (route.status !== "ok" || route.durationMin === undefined)
-      return { mode: route.mode, label: "No route found", status: "failed" };
+      return { mode: route.mode, label: translate(locale, "No route found"), status: "failed" };
     return {
       mode: route.mode,
-      label: `${MODE_LABELS[route.mode] ?? route.mode} · ${formatDuration(route.durationMin)}`,
+      label: `${MODE_LABELS[route.mode] ? translate(locale, MODE_LABELS[route.mode]!) : route.mode} · ${formatDuration(route.durationMin, locale)}`,
       status: "checked",
       // The provider's own currency: not converted and not counted in the AUD budget.
       fare: route.fare ? `${route.fare.currency} ${route.fare.amount.toFixed(2)}` : undefined,
@@ -201,7 +223,7 @@ export function connectionBetween(
   const { mode, line, durationMin } = current.arriveBy;
   return {
     mode,
-    label: `${MODE_LABELS[mode] ?? mode}${line ? ` ${line}` : ""} · ${formatDuration(durationMin)}`,
+    label: `${MODE_LABELS[mode] ? translate(locale, MODE_LABELS[mode]!) : mode}${line ? ` ${line}` : ""} · ${formatDuration(durationMin, locale)}`,
     status: "planned",
   };
 }

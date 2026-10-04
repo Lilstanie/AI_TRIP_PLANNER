@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { TripPlan, type ChatRequest } from "@trip/shared";
-import { budgetHint, money, type Message } from "@/lib/workspace";
+import { budgetHint, money, WELCOME_MESSAGE, type Message } from "@/lib/workspace";
 
 /** Every turn is a chat turn: there is no "apply a decision" request. */
 export type Task = { kind: "chat"; request: ChatRequest };
@@ -36,7 +36,7 @@ export function tripFacts(plan: TripPlan) {
 export const seed: Message[] = [
   {
     role: "agent",
-    text: "Edit your trip preferences or tell me what to change. I'll build the plan here, and you can ask for changes in this chat at any time.",
+    text: WELCOME_MESSAGE,
   },
 ];
 export const STORAGE_FULL =

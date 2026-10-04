@@ -5,6 +5,7 @@ import {
   browserLocale,
   formatAudForDisplay,
   intlLocale,
+  interfaceNotice,
   translate,
   type AppLocale,
   type MessageKey,
@@ -15,15 +16,17 @@ import type { Currency, TripBrief } from "@trip/shared";
 
 type LocaleState = {
   locale: AppLocale;
-  t(text: MessageKey): string;
+  t(text: MessageKey, params?: Record<string, string | number>): string;
   currency: Currency;
+  notice(text: string | undefined): string;
   money(amount: number, source?: TripBrief["budgetSource"]): string;
 };
 
 const LocaleContext = createContext<LocaleState>({
   locale: "en",
   currency: "AUD",
-  t: (text) => text,
+  notice: (text) => interfaceNotice("en", text ?? ""),
+  t: (text, params) => translate("en", text, params),
   money: (amount) => formatAudForDisplay(amount, "AUD", "en"),
 });
 
@@ -54,8 +57,9 @@ export function LocaleProvider({
   const value = useMemo<LocaleState>(
     () => ({
       locale,
-      t: (text) => translate(locale, text),
+      t: (text, params) => translate(locale, text, params),
       currency,
+      notice: (text) => interfaceNotice(locale, text ?? ""),
       money: (amount, source) =>
         formatAudForDisplay(amount, currency, locale, undefined, undefined, source),
     }),

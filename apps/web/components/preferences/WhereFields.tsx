@@ -35,7 +35,7 @@ function withPlaces(list: string[], added: string[]) {
  * one string joined with " & ", in list order, which is also the order the trip visits them.
  */
 export function WhereFields({ value, onChange, errors, suggestPlaces }: Props) {
-  const { t } = useLocale();
+  const { t, notice: localizeNotice } = useLocale();
   const [stops, setStops] = useState(() => destinationCities(value.destination));
   // The region line of a place picked from a suggestion. Kept for this editor only: the brief
   // stores names, and a typed place has no region to show.
@@ -107,7 +107,7 @@ export function WhereFields({ value, onChange, errors, suggestPlaces }: Props) {
                 <button
                   type="button"
                   className="stop-card__remove"
-                  aria-label={`Remove ${stop}`}
+                  aria-label={t("Remove {v0}", { v0: stop })}
                   onClick={() => remove(index)}
                 >
                   <CloseIcon />
@@ -161,7 +161,7 @@ export function WhereFields({ value, onChange, errors, suggestPlaces }: Props) {
         )}
         {error && (
           <small className="error-text fact-form__error" id="fact-destination-error">
-            {error}
+            {localizeNotice(error)}
           </small>
         )}
       </div>
@@ -181,7 +181,7 @@ export function WhereFields({ value, onChange, errors, suggestPlaces }: Props) {
         />
         {errors.origin ? (
           <small className="error-text fact-form__error" id="fact-origin-error">
-            {errors.origin}
+            {localizeNotice(errors.origin)}
           </small>
         ) : (
           <small className="muted form-field__hint" id="fact-origin-hint">

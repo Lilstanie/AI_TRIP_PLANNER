@@ -1,7 +1,8 @@
+import type { MessageKey } from "@/lib/i18n/locale";
 import { toIsoDate } from "./date-range";
 
 /** A one-click example trip: a short button label, and the message it sends. */
-export type QuickPrompt = { label: string; text: string };
+export type QuickPrompt = { label: MessageKey; text: string };
 
 /**
  * Ready-to-run example trips for the blank chat.

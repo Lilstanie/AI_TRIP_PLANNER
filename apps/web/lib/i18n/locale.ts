@@ -1,5 +1,7 @@
 import { fromAud, type Currency } from "@trip/shared";
 
+import { WORKSPACE_ZH } from "./workspace-messages";
+
 export const LOCALES = ["en", "zh"] as const;
 export type AppLocale = (typeof LOCALES)[number];
 export type CurrencyCode = Currency;
@@ -31,6 +33,7 @@ export function formatAudForDisplay(
 }
 
 const ZH = {
+  ...WORKSPACE_ZH,
   "Edit profile": "编辑个人资料",
   "Your account": "你的账户",
   Personalization: "个性化",
@@ -92,6 +95,8 @@ const ZH = {
   "Planning…": "正在规划…",
   "Budget range": "预算范围",
   "Or enter an amount": "输入金额",
+  "For the whole group and the whole trip, in {currency}.":
+    "请输入整个团队整趟旅行的总预算，币种为 {currency}。",
   "For the whole group and the whole trip.": "请输入整个团队整趟旅行的总预算。",
   Adults: "成人",
   Children: "儿童",
@@ -177,7 +182,39 @@ export type MessageKey = keyof typeof ZH;
  * carry a `|context` suffix when one English word needs two translations ("Budget|tier"); English
  * shows only the part before it.
  */
-export function translate(locale: AppLocale, text: MessageKey): string {
+export function translate(
+  locale: AppLocale,
+  text: MessageKey,
+  params: Record<string, string | number> = {},
+): string {
   const zh = locale === "zh" ? (ZH as Record<string, string>)[text] : undefined;
-  return zh || text.split("|")[0]!;
+  let result = zh || text.split("|")[0]!;
+  for (const [key, value] of Object.entries(params))
+    result = result.replaceAll(`{${key}}`, String(value));
+  return result;
+}
+
+/** Recognized authored notices only; unrecognized provider errors pass through unchanged. */
+export function interfaceNotice(locale: AppLocale, text: string): string {
+  if (Object.hasOwn(ZH, text)) return translate(locale, text as MessageKey);
+  const status = /^Request failed \((\d{3})\)\.$/.exec(text);
+  if (status) return translate(locale, "Request failed ({status}).", { status: status[1]! });
+  const count = /^only (\d+) files can be attached to one message$/.exec(text);
+  if (count)
+    return translate(locale, "only {count} files can be attached to one message", {
+      count: count[1]!,
+    });
+  const size =
+    /^(text files over|these files together would pass the) (.+?) (can't be attached|one message can carry)$/.exec(
+      text,
+    );
+  if (size)
+    return translate(
+      locale,
+      size[1] === "text files over"
+        ? "text files over {size} can't be attached"
+        : "these files together would pass the {size} one message can carry",
+      { size: size[2]! },
+    );
+  return text;
 }

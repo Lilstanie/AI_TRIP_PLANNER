@@ -24,7 +24,7 @@ import { usePresence, useSegmentIndicator, viewTransition } from "../ui/motion";
 import { useLocale } from "../account/LocaleProvider";
 
 export function WorkspaceView({ model }: { model: WorkspaceController }) {
-  const { t } = useLocale();
+  const { t, notice: localizeNotice } = useLocale();
   const {
     plan,
     draft,
@@ -262,7 +262,7 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
           id="chats-panel"
           className={`chats-panel${chatsOpen ? " is-open" : ""}`}
           role="region"
-          aria-label="Chats"
+          aria-label={t("Chats")}
           inert={!chatsOpen}
         >
           {chatsContent(chatsSearch)}
@@ -288,7 +288,7 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
                 type="button"
                 tabIndex={-1}
                 className="workspace-drawer-backdrop"
-                aria-label="Close open panel"
+                aria-label={t("Close open panel")}
                 onClick={() => {
                   setNavOpen(false);
                   navToggle.current?.focus({ preventScroll: true });
@@ -378,24 +378,24 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
             <CurrencyNotice />
             {error && (
               <div className="error-banner" role="alert">
-                {error}{" "}
+                {localizeNotice(error)}{" "}
                 {retry && (
                   <button disabled={busy} onClick={() => void run(retry)}>
-                    Retry update
+                    {t("Retry update")}
                   </button>
                 )}
               </div>
             )}
             {storageError && (
               <div className="error-banner" role="alert">
-                {storageError}{" "}
+                {localizeNotice(storageError)}{" "}
                 <button
                   onClick={() => {
                     setStorageError("");
                     setStorageEnabled(true);
                   }}
                 >
-                  Retry / replace workspace storage
+                  {t("Retry / replace workspace storage")}
                 </button>
               </div>
             )}
@@ -404,9 +404,9 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
             )}
             {notice && (
               <p role="status" className="notice">
-                {notice}{" "}
-                <button onClick={() => setNotice("")} aria-label="Dismiss notification">
-                  Dismiss
+                {localizeNotice(notice)}{" "}
+                <button onClick={() => setNotice("")} aria-label={t("Dismiss notification")}>
+                  {t("Dismiss")}
                 </button>
               </p>
             )}
@@ -432,7 +432,7 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
                 busy={busy}
                 locked={editPending}
                 activity={activity}
-                error={error}
+                error={localizeNotice(error)}
                 onCancel={onCancel}
                 onSend={send}
                 ask={ask}
@@ -467,7 +467,7 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
                 className="workspace-drawer-backdrop"
                 data-leaving={backdrop.leaving || undefined}
                 aria-hidden={backdrop.leaving || undefined}
-                aria-label="Close open panel"
+                aria-label={t("Close open panel")}
                 onClick={() => {
                   const trigger = tripOpen ? tripToggle : navToggle;
                   closeTrip();
@@ -480,12 +480,12 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
             <Drawer
               side="right"
               open={tripOpen}
-              title="Your trip"
-              closeLabel="Close your trip"
+              title={t("Your trip")}
+              closeLabel={t("Close your trip")}
               onClose={closeTrip}
               returnFocus={tripToggle}
               className="workspace-drawer workspace-drawer--trip"
-              meta={plan && <span className="trip__meta">{tripStatus(plan)}</span>}
+              meta={plan && <span className="trip__meta">{t(tripStatus(plan))}</span>}
             >
               {plan ? (
                 <TripPanel
@@ -531,11 +531,12 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
               ) : (
                 <div className="trip-drawer-empty">
                   <p>
-                    No trip yet. Describe where you want to go in the chat, or add your trip
-                    details. Your itinerary and budget will appear here.
+                    {t(
+                      "No trip yet. Describe where you want to go in the chat, or add your trip details. Your itinerary and budget will appear here.",
+                    )}
                   </p>
                   <button type="button" onClick={edit}>
-                    Add trip details
+                    {t("Add trip details")}
                   </button>
                 </div>
               )}

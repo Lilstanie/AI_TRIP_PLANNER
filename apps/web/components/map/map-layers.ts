@@ -1,4 +1,5 @@
 "use client";
+import { translate, type AppLocale } from "@/lib/i18n/locale";
 import {
   coveredByItinerary,
   curvedPath,
@@ -39,8 +40,13 @@ export function markerContent(place: GooglePlace, order: number, day?: number) {
   return content;
 }
 
-export function markerTitle(place: GooglePlace, order: number, day?: number) {
-  return `${order}. ${placeName(place)}${day ? ` · Day ${day}` : ""}`;
+export function markerTitle(
+  place: GooglePlace,
+  order: number,
+  day?: number,
+  locale: AppLocale = "en",
+) {
+  return `${order}. ${placeName(place)}${day ? ` · ${translate(locale, "Day {v0}", { v0: day })}` : ""}`;
 }
 
 const DAY_COLOURS = 7;

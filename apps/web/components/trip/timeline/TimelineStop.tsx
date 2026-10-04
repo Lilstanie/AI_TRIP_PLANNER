@@ -4,13 +4,13 @@ import type { ProposalItem } from "@trip/shared";
 import type { GooglePlace } from "@/lib/integrations/google";
 import type { LocationStatus } from "../../map/useTripPlaces";
 import type { TimelineEdits } from "./useTimelineEdits";
+import type { MessageKey } from "@/lib/i18n/locale";
 import { useLocale } from "../../account/LocaleProvider";
 import { SearchIcon } from "../../ui/icons";
 
 type Activity = ProposalItem & { id?: string };
 
-const STATUS_TEXT: Record<LocationStatus, string> = {
-  located: "",
+const STATUS_TEXT: Partial<Record<LocationStatus, MessageKey>> = {
   loading: "Finding this place…",
   unconfirmed: "Location to be confirmed",
   unavailable: "Place lookup failed — retry from the map",
@@ -51,7 +51,7 @@ export function TimelineStop({
   edits: TimelineEdits;
   onSelect(): void;
 }) {
-  const { money } = useLocale();
+  const { t, money } = useLocale();
   const id = activity.id!;
   const name = place?.displayName?.text ?? activity.location ?? activity.detail;
   const confirmed = !!activity.placeId;
@@ -116,14 +116,18 @@ export function TimelineStop({
           )}
           <span className="timeline-stop__meta">
             {confirmed ? (
-              <span className="timeline-tag timeline-tag--ok">Place confirmed</span>
+              <span className="timeline-tag timeline-tag--ok">{t("Place confirmed")}</span>
             ) : matched ? (
-              <span className="timeline-tag timeline-tag--warn">Map match · not confirmed</span>
+              <span className="timeline-tag timeline-tag--warn">
+                {t("Map match · not confirmed")}
+              </span>
             ) : (
-              <span className="timeline-tag timeline-tag--warn">{STATUS_TEXT[status]}</span>
+              <span className="timeline-tag timeline-tag--warn">
+                {STATUS_TEXT[status] ? t(STATUS_TEXT[status]!) : ""}
+              </span>
             )}
             {activity.priceNeedsReview && (
-              <span className="timeline-tag timeline-tag--warn">Price needs checking</span>
+              <span className="timeline-tag timeline-tag--warn">{t("Price needs checking")}</span>
             )}
           </span>
         </button>
@@ -132,9 +136,10 @@ export function TimelineStop({
             {matched && (
               <div className="stop-editor__group stop-editor__confirm">
                 <p>
-                  The map matched this stop to <strong>{name}</strong>
-                  {place?.formattedAddress ? `, ${place.formattedAddress}` : ""}. Confirm it so its
-                  routes can be checked.
+                  {t("The map matched this stop to")}
+                  <strong>{name}</strong>
+                  {place?.formattedAddress ? `, ${place.formattedAddress}` : ""}
+                  {t(". Confirm it so its routes can be checked.")}
                 </p>
                 <button
                   type="button"
@@ -142,7 +147,7 @@ export function TimelineStop({
                   disabled={locked}
                   onClick={() => void edits.edit({ kind: "place", id, placeId: place!.id })}
                 >
-                  Use this place
+                  {t("Use this place")}
                 </button>
               </div>
             )}
@@ -155,7 +160,7 @@ export function TimelineStop({
               }}
             >
               <label>
-                Start
+                {t("Start")}
                 <input
                   type="time"
                   required
@@ -165,7 +170,7 @@ export function TimelineStop({
                 />
               </label>
               <label>
-                End
+                {t("End")}
                 <input
                   type="time"
                   required
@@ -175,9 +180,9 @@ export function TimelineStop({
                 />
               </label>
               <button type="submit" disabled={locked || !timeChanged || !validTime}>
-                Preview time change
+                {t("Preview time change")}
               </button>
-              {!validTime && <p className="stop-editor__hint">End must be after start.</p>}
+              {!validTime && <p className="stop-editor__hint">{t("End must be after start.")}</p>}
             </form>
             <div className="stop-editor__group stop-editor__order">
               <button
@@ -187,7 +192,7 @@ export function TimelineStop({
                   void edits.edit({ kind: "move", id, day: activity.day!, index: index - 1 })
                 }
               >
-                Move earlier
+                {t("Move earlier")}
               </button>
               <button
                 type="button"
@@ -196,10 +201,10 @@ export function TimelineStop({
                   void edits.edit({ kind: "move", id, day: activity.day!, index: index + 1 })
                 }
               >
-                Move later
+                {t("Move later")}
               </button>
               <label>
-                Move to
+                {t("Move to")}
                 <select
                   disabled={locked}
                   value={activity.day}
@@ -209,7 +214,7 @@ export function TimelineStop({
                 >
                   {Array.from({ length: days }, (_, d) => (
                     <option key={d} value={d + 1}>
-                      Day {d + 1} · {dayLabels[d]}
+                      {t("Day {v0}", { v0: d + 1 })} · {dayLabels[d]}
                     </option>
                   ))}
                 </select>
@@ -224,37 +229,37 @@ export function TimelineStop({
               }}
             >
               <label>
-                {confirmed || matched ? "Replace with another place" : "Find this place"}
+                {confirmed || matched ? t("Replace with another place") : t("Find this place")}
                 <span className="stop-editor__search-field">
                   <SearchIcon />
                   <input
                     type="search"
                     value={query}
-                    placeholder="Search Google Maps"
+                    placeholder={t("Search Google Maps")}
                     disabled={locked}
                     onChange={(event) => setQuery(event.target.value)}
                   />
                 </span>
               </label>
               <button type="submit" disabled={locked || !query.trim()}>
-                Search
+                {t("Search")}
               </button>
             </form>
             {!!edits.results.length && (
-              <ul className="stop-editor__results" aria-label="Place results">
+              <ul className="stop-editor__results" aria-label={t("Place results")}>
                 {edits.results.map((result) => (
                   <li key={result.id}>
                     <span>
-                      <strong>{result.displayName?.text ?? "Unnamed place"}</strong>
-                      <small>{result.formattedAddress ?? "Address unavailable"}</small>
+                      <strong>{result.displayName?.text ?? t("Unnamed place")}</strong>
+                      <small>{result.formattedAddress ?? t("Address unavailable")}</small>
                     </span>
                     <button
                       type="button"
                       disabled={locked}
-                      aria-label={`Use ${result.displayName?.text ?? "this place"}`}
+                      aria-label={t("Use {v0}", { v0: result.displayName?.text ?? "this place" })}
                       onClick={() => void edits.edit({ kind: "place", id, placeId: result.id })}
                     >
-                      Use
+                      {t("Use")}
                     </button>
                   </li>
                 ))}
@@ -262,9 +267,9 @@ export function TimelineStop({
             )}
             {place?.googleMapsUri && (
               <p className="stop-editor__footnote">
-                {place.rating ? `Google rating ${place.rating} · ` : ""}
+                {place.rating ? t("Google rating {v0} · ", { v0: place.rating }) : ""}
                 <a href={place.googleMapsUri} target="_blank" rel="noreferrer">
-                  Open in Google Maps
+                  {t("Open in Google Maps")}
                 </a>
               </p>
             )}
@@ -272,7 +277,7 @@ export function TimelineStop({
         )}
       </div>
       <span className="timeline-row__cost">
-        {activity.estCost === undefined ? "Price unknown" : money(activity.estCost)}
+        {activity.estCost === undefined ? t("Price unknown") : money(activity.estCost)}
       </span>
     </li>
   );

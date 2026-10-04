@@ -1,3 +1,4 @@
+import { translate, type AppLocale, type MessageKey } from "@/lib/i18n/locale";
 import {
   AGENT_NAMES,
   type AgentName,
@@ -16,7 +17,7 @@ import {
 export type ActivityStatus =
   "queued" | "running" | "revising" | "completed" | "failed" | "interrupted" | "unknown";
 
-export const labels: Record<AgentName, string> = {
+export const labels: Record<AgentName, MessageKey> = {
   itinerary: "Day plan",
   transport: "Getting around",
   accommodation: "Stay",
@@ -24,7 +25,7 @@ export const labels: Record<AgentName, string> = {
   dining: "Food & dining",
 };
 
-export const statusLabels: Record<ActivityStatus, string> = {
+export const statusLabels: Record<ActivityStatus, MessageKey> = {
   queued: "Waiting",
   running: "Thinking",
   revising: "Revising",
@@ -449,13 +450,21 @@ export function countActivity(activity: AgentProgressEvent[]): Counts {
 }
 
 /** `N tool calls · M subagents · K rounds`, omitting parts with nothing to count. */
-export function countLine(counts: Counts): string {
+export function countLine(counts: Counts, locale: AppLocale = "en"): string {
   const parts: string[] = [];
   if (counts.toolCalls > 0)
-    parts.push(`${counts.toolCalls} tool ${counts.toolCalls === 1 ? "call" : "calls"}`);
+    parts.push(
+      translate(locale, counts.toolCalls === 1 ? "{count} tool call" : "{count} tool calls", {
+        count: counts.toolCalls,
+      }),
+    );
   if (counts.subagents > 0)
-    parts.push(`${counts.subagents} ${counts.subagents === 1 ? "subagent" : "subagents"}`);
-  if (counts.rounds > 1) parts.push(`${counts.rounds} rounds`);
+    parts.push(
+      translate(locale, counts.subagents === 1 ? "{count} subagent" : "{count} subagents", {
+        count: counts.subagents,
+      }),
+    );
+  if (counts.rounds > 1) parts.push(translate(locale, "{count} rounds", { count: counts.rounds }));
   return parts.join(" · ");
 }
 
@@ -495,20 +504,28 @@ function activeTool(activity: AgentProgressEvent[]): StartedEvent | undefined {
 }
 
 /** What the turn row says while work is in flight and no model is mid-thought. */
-function liveSummary(activity: AgentProgressEvent[]): string {
+function liveSummary(activity: AgentProgressEvent[], locale: AppLocale): string {
   const tool = activeTool(activity);
-  if (tool) return `${labels[tool.agent]} · ${tool.summary}`;
+  if (tool) return `${translate(locale, labels[tool.agent])} · ${tool.summary}`;
   const waiting = runningCount(activity);
   if (waiting > 0) {
     const agent = activeAgent(activity);
-    if (agent) return `Working with ${labels[agent]}`;
-    return `Waiting for ${waiting} ${waiting === 1 ? "subagent" : "subagents"}`;
+    if (agent)
+      return translate(locale, "Working with {agent}", { agent: translate(locale, labels[agent]) });
+    return translate(
+      locale,
+      waiting === 1 ? "Waiting for {count} subagent" : "Waiting for {count} subagents",
+      { count: waiting },
+    );
   }
   const coordinator = [...activity].reverse().find((event) => event.type === "coordinator");
   if (coordinator) return coordinator.summary;
   const started = [...activity].reverse().find((event) => event.type === "agent_started");
-  if (started?.type === "agent_started") return `Working with ${labels[started.agent]}`;
-  return "Preparing your request.";
+  if (started?.type === "agent_started")
+    return translate(locale, "Working with {agent}", {
+      agent: translate(locale, labels[started.agent]),
+    });
+  return translate(locale, "Preparing your request.");
 }
 
 /**
@@ -522,6 +539,7 @@ export function turnSummary(
   counts: Counts,
   busy: boolean,
   error?: string,
+  locale: AppLocale = "en",
 ): { text: string; streaming: boolean } {
   if (busy) {
     // Reasoning leads only while it is the newest work in the turn; once any
@@ -534,10 +552,11 @@ export function turnSummary(
     const stream = streamingBlock(mergeReasoning(activity, true));
     if (stream && stream.last === newest)
       return { text: reasoningSummary(stream.text, true), streaming: true };
-    return { text: liveSummary(activity), streaming: false };
+    return { text: liveSummary(activity, locale), streaming: false };
   }
   return {
-    text: countLine(counts) || (error ? "Needs attention" : "Trip plan ready"),
+    text:
+      countLine(counts, locale) || translate(locale, error ? "Needs attention" : "Trip plan ready"),
     streaming: false,
   };
 }

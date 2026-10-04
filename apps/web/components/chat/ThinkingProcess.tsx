@@ -1,4 +1,5 @@
 "use client";
+import { useLocale } from "@/components/account/LocaleProvider";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AgentProgressEvent } from "@trip/shared";
 import { FlowThinkIcon } from "../ui/flow-icons";
@@ -57,13 +58,14 @@ export function ThinkingProcess({
   busy: boolean;
   error?: string;
 }) {
+  const { t, locale, notice: localizeNotice } = useLocale();
   const open = useOpenRows();
   const elapsed = useElapsedMs(busy);
   const counts = useMemo(() => countActivity(activity), [activity]);
   const groups = useMemo(() => roundGroups(activity, busy), [activity, busy]);
   const summary = useMemo(
-    () => turnSummary(activity, counts, busy, error),
-    [activity, counts, busy, error],
+    () => turnSummary(activity, counts, busy, error, locale),
+    [activity, counts, busy, error, locale],
   );
   const multiRound = groups.length > 1;
   const failed = !busy && Boolean(error);
@@ -73,7 +75,7 @@ export function ThinkingProcess({
       <Disclosure
         className="thinking-turn"
         icon={busy ? <ThinkingOrbIcon activity={activity} /> : <FlowThinkIcon />}
-        title="Think"
+        title={t("Think")}
         state={busy ? "running" : failed ? "error" : "ok"}
         open={open.isOpen("turn")}
         expandable
@@ -99,7 +101,7 @@ export function ThinkingProcess({
               <div
                 className="thinking-subagents"
                 role="list"
-                aria-label="Subagents thinking together"
+                aria-label={t("Subagents thinking together")}
               >
                 {group.subagents.map((model) => (
                   <SubagentRow key={model.id} model={model} open={open} />
@@ -107,7 +109,7 @@ export function ThinkingProcess({
               </div>
             </div>
           ))}
-          {failed && <p className="thinking-error">{error}</p>}
+          {failed && <p className="thinking-error">{localizeNotice(error)}</p>}
         </Children>
       </Disclosure>
       {/* Exactly one live line for the whole turn, only while it is in flight. */}

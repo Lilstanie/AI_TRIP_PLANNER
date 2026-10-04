@@ -1,4 +1,5 @@
 "use client";
+import { useLocale } from "@/components/account/LocaleProvider";
 import { useId, useRef, type Ref } from "react";
 import { CloseIcon, ComposeIcon, NewTripIcon, SearchIcon } from "../ui/icons";
 import { HistoryMenu, type HistoryItem } from "./WorkspaceSidebar";
@@ -34,6 +35,7 @@ export function ChatsPanel({
   onDeleteChat(id: string): void;
   searchRef?: Ref<HTMLInputElement>;
 }) {
+  const { t } = useLocale();
   const searchId = useId();
   const localSearch = useRef<HTMLInputElement | null>(null);
   const searching = query.trim() !== "";
@@ -43,7 +45,7 @@ export function ChatsPanel({
       <div className="sidebar-search">
         <SearchIcon />
         <label className="sr-only" htmlFor={searchId}>
-          Search chats and trips
+          {t("Search chats and trips")}
         </label>
         <input
           ref={(node) => {
@@ -54,7 +56,7 @@ export function ChatsPanel({
           id={searchId}
           className="field sidebar-search__input"
           type="search"
-          placeholder="Search…"
+          placeholder={t("Search…")}
           autoComplete="off"
           value={query}
           onChange={(event) => onQuery(event.target.value)}
@@ -63,7 +65,7 @@ export function ChatsPanel({
           <button
             type="button"
             className="sidebar-search__clear"
-            aria-label="Clear search"
+            aria-label={t("Clear search")}
             onClick={() => {
               onQuery("");
               localSearch.current?.focus();
@@ -77,17 +79,17 @@ export function ChatsPanel({
       <div className="chats-panel__actions">
         <button type="button" className="chats-panel__action" onClick={onNewChat}>
           <ComposeIcon />
-          <span>New chat</span>
+          <span>{t("New chat")}</span>
         </button>
         <button type="button" className="chats-panel__action" onClick={onNewTrip}>
           <NewTripIcon />
-          <span>New trip</span>
+          <span>{t("New trip")}</span>
         </button>
       </div>
 
       <section className="chats-panel__section" aria-labelledby={`${searchId}-trips`}>
         <h2 className="sidebar-history__title" id={`${searchId}-trips`}>
-          Trips
+          {t("Trips")}
         </h2>
         <div className="history-list">
           {trips.map((item) => (
@@ -109,7 +111,7 @@ export function ChatsPanel({
           ))}
           {!trips.length && (
             <p className="history-empty">
-              {searching ? "No matching trips." : "No trips yet. Start one with New trip."}
+              {searching ? t("No matching trips.") : t("No trips yet. Start one with New trip.")}
             </p>
           )}
         </div>
@@ -117,7 +119,7 @@ export function ChatsPanel({
 
       <section className="chats-panel__section" aria-labelledby={`${searchId}-chats`}>
         <h2 className="sidebar-history__title" id={`${searchId}-chats`}>
-          Chats
+          {t("Chats")}
         </h2>
         <div className="history-list">
           {chats.map((item) => (
@@ -143,7 +145,9 @@ export function ChatsPanel({
             </article>
           ))}
           {!chats.length && (
-            <p className="history-empty">{searching ? "No matching chats." : "No chats yet."}</p>
+            <p className="history-empty">
+              {searching ? t("No matching chats.") : t("No chats yet.")}
+            </p>
           )}
         </div>
       </section>

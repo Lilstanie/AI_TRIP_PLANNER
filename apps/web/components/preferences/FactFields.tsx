@@ -55,6 +55,7 @@ function Field({
   hint?: string;
   children: (describedBy: string | undefined) => ReactNode;
 }) {
+  const { notice: localizeNotice } = useLocale();
   const describedBy =
     [error ? `${id}-error` : "", hint ? `${id}-hint` : ""].filter(Boolean).join(" ") || undefined;
   return (
@@ -68,7 +69,7 @@ function Field({
       )}
       {error && (
         <small className="error-text" id={`${id}-error`}>
-          {error}
+          {localizeNotice(error)}
         </small>
       )}
     </div>
@@ -120,7 +121,7 @@ const parseIsoDate = (iso: string) => {
 };
 
 function WhenFields({ value, onChange, errors }: FieldsProps) {
-  const { locale, t } = useLocale();
+  const { locale, t, notice: localizeNotice } = useLocale();
   const range: DateRange | undefined = value.start
     ? { from: parseIsoDate(value.start), to: value.end ? parseIsoDate(value.end) : undefined }
     : undefined;
@@ -152,7 +153,7 @@ function WhenFields({ value, onChange, errors }: FieldsProps) {
       <TripCalendar range={range} onSelect={handleSelect} numberOfMonths={2} />
       {errors.dates && (
         <small className="error-text fact-form__error" id="fact-dates-error">
-          {errors.dates}
+          {localizeNotice(errors.dates)}
         </small>
       )}
     </div>
@@ -160,7 +161,7 @@ function WhenFields({ value, onChange, errors }: FieldsProps) {
 }
 
 function WhoFields({ value, onChange, errors }: FieldsProps) {
-  const { t } = useLocale();
+  const { t, locale, notice: localizeNotice } = useLocale();
   const party = partyFor(value);
   const setParty = (next: Party) =>
     onChange({ ...value, party: next, groupSize: String(groupSizeFromParty(next)) });
@@ -178,7 +179,10 @@ function WhoFields({ value, onChange, errors }: FieldsProps) {
               <button
                 type="button"
                 className="fact-stepper__button"
-                aria-label={`Remove ${article} ${singular}`}
+                aria-label={t("Remove {v0} {v1}", {
+                  v0: locale === "zh" ? "" : article,
+                  v1: locale === "zh" ? t(label) : singular,
+                })}
                 disabled={count <= 0}
                 onClick={() => setParty({ ...party, [key]: Math.max(0, count - 1) })}
               >
@@ -190,7 +194,10 @@ function WhoFields({ value, onChange, errors }: FieldsProps) {
               <button
                 type="button"
                 className="fact-stepper__button"
-                aria-label={`Add ${article} ${singular}`}
+                aria-label={t("Add {v0} {v1}", {
+                  v0: locale === "zh" ? "" : article,
+                  v1: locale === "zh" ? t(label) : singular,
+                })}
                 onClick={() => setParty({ ...party, [key]: count + 1 })}
               >
                 <PlusIcon />
@@ -201,7 +208,7 @@ function WhoFields({ value, onChange, errors }: FieldsProps) {
       })}
       {errors.groupSize && (
         <small className="error-text fact-form__error" id="fact-groupSize-error">
-          {errors.groupSize}
+          {localizeNotice(errors.groupSize)}
         </small>
       )}
     </div>
@@ -237,15 +244,17 @@ function BudgetFields({ value, onChange, errors }: FieldsProps) {
               onClick={() => onChange({ ...value, budgetTotal: String(preset.value) })}
             >
               <span className="fact-budget__preset-name">{t(preset.name)}</span>
-              <span className="fact-budget__preset-hint">{preset.hint}</span>
+              <span className="fact-budget__preset-hint">
+                {preset.hint.replace("under", t("under"))}
+              </span>
             </button>
           );
         })}
       </div>
       <TextField
         name="budgetTotal"
-        label="Or enter an amount (AUD)"
-        hint="For the whole group and the whole trip, in Australian dollars."
+        label={`${t("Or enter an amount")} (AUD)`}
+        hint={t("For the whole group and the whole trip, in {currency}.", { currency: "AUD" })}
         type="number"
         error={errors.budgetTotal}
         value={value}
