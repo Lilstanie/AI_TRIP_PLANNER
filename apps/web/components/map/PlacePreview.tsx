@@ -1,4 +1,5 @@
 "use client";
+import { useLocale } from "@/components/account/LocaleProvider";
 import { useState, type ReactNode } from "react";
 import type { GooglePlace } from "@/lib/integrations/google";
 import { CloseIcon, MapPinIcon } from "../ui/icons";
@@ -30,6 +31,7 @@ export function PlacePreview({
   /** Extra actions for this place, shown under its details (for example a route lookup). */
   actions?: ReactNode;
 }) {
+  const { t } = useLocale();
   const photo = showPhoto ? place.photos?.[0] : undefined;
   const [failed, setFailed] = useState<string>();
   const visible = photo && failed !== photo.name ? photo : undefined;
@@ -37,7 +39,7 @@ export function PlacePreview({
   const authors = (visible?.authorAttributions ?? []).filter((author) => author.displayName);
 
   return (
-    <article className="place-preview" aria-label={`Selected place: ${name}`}>
+    <article className="place-preview" aria-label={t("Selected place: {v0}", { v0: name })}>
       <div className="place-preview__photo">
         <span className="place-preview__fallback" aria-hidden="true">
           <MapPinIcon />
@@ -60,7 +62,7 @@ export function PlacePreview({
         <button
           type="button"
           className="place-preview__close"
-          aria-label="Close place details"
+          aria-label={t("Close place details")}
           onClick={onClose}
         >
           <CloseIcon />
@@ -73,11 +75,14 @@ export function PlacePreview({
           <p className="place-preview__address">{place.formattedAddress}</p>
         )}
         {place.rating !== undefined && (
-          <p className="place-preview__rating">Google rating {place.rating.toFixed(1)} / 5</p>
+          <p className="place-preview__rating">
+            {t("Google rating")}
+            {place.rating.toFixed(1)} / 5
+          </p>
         )}
         {authors.length > 0 && (
           <p className="place-preview__credit">
-            Photo:{" "}
+            {t("Photo:")}{" "}
             {authors.map((author, index) => (
               <span key={`${author.displayName}-${index}`}>
                 {index > 0 && ", "}
@@ -99,7 +104,7 @@ export function PlacePreview({
             target="_blank"
             rel="noopener noreferrer"
           >
-            Open in Google Maps
+            {t("Open in Google Maps")}
           </a>
         )}
         {actions && <div className="place-preview__actions">{actions}</div>}

@@ -71,7 +71,7 @@ export function ChatPanel({
   /** Dismisses the question card and brings the composer back. */
   onDismissAsk?: () => void;
 }) {
-  const { t } = useLocale();
+  const { t, notice: localizeNotice } = useLocale();
   const stream = useRef<HTMLDivElement>(null);
   /** Messages already on screen when the panel mounted -- a transcript restored
    *  from storage after a reload. Only a reply that arrives after them is new,
@@ -101,9 +101,9 @@ export function ChatPanel({
             <div className="chat-empty__suggestions" aria-label={t("Example trips")}>
               {prompts.map(({ label, text }) => (
                 <button
-                  key={label}
+                  key={t(label)}
                   type="button"
-                  title={text}
+                  title={t(label)}
                   disabled={busy || locked}
                   onClick={() => onSend(text)}
                 >
@@ -131,7 +131,7 @@ export function ChatPanel({
             className={`agent-activity${error && !busy ? " agent-activity--error" : ""}`}
             aria-label={t("Thinking process")}
           >
-            <ThinkingProcess activity={activity} busy={busy} error={error} />
+            <ThinkingProcess activity={activity} busy={busy} error={localizeNotice(error)} />
           </section>
         )}
       </div>

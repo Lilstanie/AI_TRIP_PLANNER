@@ -23,7 +23,7 @@ export function EditPreviewPanel({
   onApply(): void;
   onCancel(): void;
 }) {
-  const { money } = useLocale();
+  const { t, money, locale } = useLocale();
   const root = useRef<HTMLDivElement>(null);
   useEffect(() => root.current?.focus(), []);
   const change = preview.plan.estTotal - plan.estTotal;
@@ -38,7 +38,7 @@ export function EditPreviewPanel({
       tabIndex={-1}
       className="edit-preview"
       role="region"
-      aria-label="Edit preview"
+      aria-label={t("Edit preview")}
       onKeyDown={(event) => {
         if (event.key !== "Escape") return;
         event.preventDefault();
@@ -47,14 +47,16 @@ export function EditPreviewPanel({
       }}
     >
       <div className="edit-preview__head">
-        <h3>{blocked ? "This change can't be applied" : "Review this change"}</h3>
+        <h3>{blocked ? t("This change can't be applied") : t("Review this change")}</h3>
         <p className="edit-preview__total">
           <strong>{money(preview.plan.estTotal)}</strong>{" "}
           <span className={change > 0 ? "is-up" : change < 0 ? "is-down" : undefined}>
-            {change === 0 ? "no change" : `${change > 0 ? "+" : "−"}${money(Math.abs(change))}`}
+            {change === 0 ? t("no change") : `${change > 0 ? "+" : "−"}${money(Math.abs(change))}`}
           </span>
           <small>
-            {left >= 0 ? `${money(left)} left in budget` : `${money(-left)} over budget`}
+            {left >= 0
+              ? t("{amount} left in budget", { amount: money(left) })
+              : t("{amount} over budget", { amount: money(-left) })}
           </small>
         </p>
       </div>
@@ -69,34 +71,34 @@ export function EditPreviewPanel({
         {preview.differences.map((difference) => (
           <li key={difference}>{difference}</li>
         ))}
-        {!preview.differences.length && !blocked && <li>Stop order and routes updated.</li>}
+        {!preview.differences.length && !blocked && <li>{t("Stop order and routes updated.")}</li>}
       </ul>
       {!!preview.routes.length && (
         <div className="edit-preview__routes">
-          <h4>Routes checked</h4>
+          <h4>{t("Routes checked")}</h4>
           <ul className="edit-preview__list">
             {preview.routes.map((route, index) => (
               <li key={`${route.from}-${route.to}-${index}`}>
                 {route.status === "ok" && route.durationMin !== undefined
-                  ? `${route.mode === "WALK" ? "Walk" : "Public transport"} · ${formatDuration(route.durationMin)}`
-                  : (route.error ?? "No route found")}
+                  ? `${route.mode === "WALK" ? t("Walk") : t("Public transport")} · ${formatDuration(route.durationMin, locale)}`
+                  : (route.error ?? t("No route found"))}
                 {route.fare
                   ? ` · ${route.fare.currency} ${route.fare.amount.toFixed(2)}`
                   : route.status === "ok"
-                    ? " · fare not published"
+                    ? t(" · fare not published")
                     : ""}
               </li>
             ))}
           </ul>
           <p className="edit-preview__note">
-            Fares are in the provider&apos;s currency and are not added to the AUD budget.
+            {t("Fares are in the provider's currency and are not added to the AUD budget.")}
           </p>
         </div>
       )}
       {!!conflicts.length && (
         <ul
           className="edit-preview__list edit-preview__list--conflicts"
-          aria-label="New problems this change would leave"
+          aria-label={t("New problems this change would leave")}
         >
           {conflicts.map((conflict) => (
             <li key={conflict.reason}>{conflict.reason}</li>
@@ -105,10 +107,10 @@ export function EditPreviewPanel({
       )}
       <div className="edit-preview__actions">
         <button type="button" className="primary" disabled={disabled || blocked} onClick={onApply}>
-          Apply changes
+          {t("Apply changes")}
         </button>
         <button type="button" onClick={onCancel}>
-          {blocked ? "Close" : "Cancel"}
+          {blocked ? t("Close") : t("Cancel")}
         </button>
       </div>
     </div>

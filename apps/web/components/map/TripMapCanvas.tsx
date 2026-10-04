@@ -9,8 +9,13 @@ import { MapPinIcon } from "../ui/icons";
 
 const TripMap = dynamic(() => import("./TripMap").then((m) => m.TripMap), {
   ssr: false,
-  loading: () => <p className="trip-map-loading">Loading map…</p>,
+  loading: MapLoading,
 });
+
+function MapLoading() {
+  const { t } = useLocale();
+  return <p className="trip-map-loading">{t("Loading map…")}</p>;
+}
 
 /**
  * The persistent map canvas. It shows only the map, markers, map status and map controls —
@@ -72,21 +77,23 @@ export function TripMapCanvas({
             {!destination
               ? t("Your map will appear here")
               : locating
-                ? `Locating ${destination}…`
-                : `${destination} could not be shown on the map yet`}
+                ? t("Locating {v0}…", { v0: destination })
+                : t("{destination} could not be shown on the map yet", { destination })}
           </h2>
           <p>
             {!destination
               ? t("Tell us a destination and dates in the chat, or add them in the bar at the top.")
               : locating
-                ? "Your itinerary stays available while places load."
+                ? t("Your itinerary stays available while places load.")
                 : unavailable || destinationsUnavailable
-                  ? "Google Places is temporarily unavailable. Your plan is unchanged."
-                  : "Your plan is unchanged. Activities appear once they have a confirmed place."}
+                  ? t("Google Places is temporarily unavailable. Your plan is unchanged.")
+                  : t(
+                      "Your plan is unchanged. Activities appear once they have a confirmed place.",
+                    )}
           </p>
           {destination && !locating && (unavailable > 0 || destinationsUnavailable) && (
             <button type="button" onClick={retry}>
-              Retry places
+              {t("Retry places")}
             </button>
           )}
         </div>
@@ -95,7 +102,7 @@ export function TripMapCanvas({
   }
 
   return (
-    <section className="trip-map-canvas" aria-label="Trip map">
+    <section className="trip-map-canvas" aria-label={t("Trip map")}>
       <TripMap
         stops={stops}
         destinations={destinations}
@@ -114,7 +121,7 @@ export function TripMapCanvas({
         <div className="trip-map-status trip-map-status--partial" role="status">
           <p>
             {loading
-              ? "Finding places…"
+              ? t("Finding places…")
               : [
                   unconfirmed > 0 &&
                     `${unconfirmed} ${unconfirmed === 1 ? "activity has" : "activities have"} no confirmed place yet`,
@@ -125,7 +132,7 @@ export function TripMapCanvas({
           </p>
           {!loading && unavailable > 0 && (
             <button type="button" onClick={retry}>
-              Retry places
+              {t("Retry places")}
             </button>
           )}
         </div>

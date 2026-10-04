@@ -51,8 +51,8 @@ export function DataModeToggle({
       )}
       <span className="sr-only">
         {live
-          ? ". Currently using live provider data. Activate to switch to mock fixtures."
-          : ". Currently using mock fixtures. Activate to switch to live provider data."}
+          ? t(". Currently using live provider data. Activate to switch to mock fixtures.")
+          : t(". Currently using mock fixtures. Activate to switch to live provider data.")}
       </span>
     </button>
   );

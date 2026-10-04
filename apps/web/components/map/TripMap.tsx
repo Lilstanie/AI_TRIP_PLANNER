@@ -1,4 +1,5 @@
 "use client";
+import { useLocale } from "@/components/account/LocaleProvider";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { GooglePlace, RouteResult } from "@/lib/integrations/google";
@@ -74,6 +75,7 @@ export function TripMap({
   showPhotos?: boolean;
   userLocation: UserLocation;
 }) {
+  const { t, locale, notice: localizeNotice } = useLocale();
   const root = useRef<HTMLDivElement>(null);
   const onSelectRef = useRef(onSelect);
   const view = useRef<MapViewController | null>(null);
@@ -258,7 +260,7 @@ export function TripMap({
       const marker = new maps.marker.AdvancedMarkerElement({
         map,
         position,
-        title: markerTitle(stop.place, stop.order, stop.day),
+        title: markerTitle(stop.place, stop.order, stop.day, locale),
         content,
         // Required for gmp-click: an advanced marker is inert until asked to
         // be clickable, unlike the legacy marker it replaced.
@@ -287,7 +289,7 @@ export function TripMap({
       });
       created.clear();
     };
-  }, [runtime, mapped]);
+  }, [runtime, mapped, locale]);
 
   useEffect(() => {
     markers.current.forEach(({ marker, content }, placeId) => {
@@ -355,12 +357,12 @@ export function TripMap({
     const content = document.createElement("span");
     content.className = "trip-map-user-marker";
     content.textContent = "●";
-    content.setAttribute("aria-label", "Your current location");
+    content.setAttribute("aria-label", t("Your current location"));
 
     const marker = new runtime.maps.marker.AdvancedMarkerElement({
       map: runtime.map,
       position: location.position,
-      title: "Your current location",
+      title: t("Your current location"),
       content,
     });
     if (panOnLocate.current) {
@@ -372,7 +374,7 @@ export function TripMap({
     return () => {
       marker.map = null;
     };
-  }, [runtime, location]);
+  }, [runtime, location, t]);
 
   // Locate: centre on the traveller now when their position is known, otherwise ask for it and
   // centre once it arrives. Either way it is a manual move the trip framing then respects.
@@ -404,7 +406,7 @@ export function TripMap({
 
   const locationMessage =
     location.status === "loading"
-      ? "Finding your location…"
+      ? t("Finding your location…")
       : location.status === "success" || location.status === "error"
         ? location.message
         : "";
@@ -442,7 +444,7 @@ export function TripMap({
   return (
     <section
       className="trip-map"
-      aria-label="Trip map"
+      aria-label={t("Trip map")}
       onKeyDown={(event) => {
         // Escape closes the place popup from inside it or from the marker that opened it.
         if (event.key !== "Escape" || !popupOpen) return;
@@ -450,8 +452,8 @@ export function TripMap({
         closePopup();
       }}
     >
-      <div ref={root} className="google-map" aria-label="Google activity map" tabIndex={-1} />
-      {loading && <p role="status">Loading Google Maps…</p>}
+      <div ref={root} className="google-map" aria-label={t("Google activity map")} tabIndex={-1} />
+      {loading && <p role="status">{t("Loading Google Maps…")}</p>}
       {popupOpen && selectedStop && (
         <div
           ref={popup}
@@ -465,7 +467,7 @@ export function TripMap({
             place={selectedStop.place}
             showPhoto={showPhotos}
             headingId="trip-map-popup-title"
-            meta={`Stop ${selectedStop.order}${selectedStop.day ? ` · Day ${selectedStop.day}` : ""}`}
+            meta={`${t("Stop")} ${selectedStop.order}${selectedStop.day ? ` · ${t("Day {v0}", { v0: selectedStop.day })}` : ""}`}
             onClose={closePopup}
             actions={
               location.status === "success" && (
@@ -474,25 +476,27 @@ export function TripMap({
                   onClick={() => void routeFromLocation()}
                   disabled={nearbyRoute?.status === "loading"}
                 >
-                  {nearbyRoute?.status === "loading" ? "Checking route…" : "Route from my location"}
+                  {nearbyRoute?.status === "loading"
+                    ? t("Checking route…")
+                    : t("Route from my location")}
                 </button>
               )
             }
           />
         </div>
       )}
-      <div className="map-controls" role="group" aria-label="Map controls">
+      <div className="map-controls" role="group" aria-label={t("Map controls")}>
         <button
           type="button"
           className="map-control"
           aria-label={
             location.status === "loading"
-              ? "Finding your location"
+              ? t("Finding your location")
               : location.status === "error"
-                ? "Retry my location"
-                : "Show my location"
+                ? t("Retry my location")
+                : t("Show my location")
           }
-          data-tooltip-left={location.status === "error" ? "Retry my location" : "My location"}
+          data-tooltip-left={t(location.status === "error" ? "Retry my location" : "My location")}
           aria-busy={location.status === "loading" || undefined}
           data-active={location.status === "success" || undefined}
           onClick={showMyLocation}
@@ -502,9 +506,9 @@ export function TripMap({
         <button
           type="button"
           className="map-control"
-          aria-label="Satellite view"
+          aria-label={t("Satellite view")}
           aria-pressed={satellite}
-          data-tooltip-left={satellite ? "Map view" : "Satellite view"}
+          data-tooltip-left={t(satellite ? "Map view" : "Satellite view")}
           onClick={toggleSatellite}
           disabled={!runtime}
         >
@@ -514,7 +518,7 @@ export function TripMap({
           <button
             type="button"
             className="map-control"
-            aria-label="Zoom in"
+            aria-label={t("Zoom in")}
             onClick={() => zoomBy(1)}
             disabled={!runtime}
           >
@@ -523,7 +527,7 @@ export function TripMap({
           <button
             type="button"
             className="map-control"
-            aria-label="Zoom out"
+            aria-label={t("Zoom out")}
             onClick={() => zoomBy(-1)}
             disabled={!runtime}
           >
@@ -536,20 +540,22 @@ export function TripMap({
         data-quiet={location.status === "success" || undefined}
         aria-live="polite"
       >
-        {locationMessage}
+        {localizeNotice(locationMessage)}
       </p>
       {nearbyRoute?.status === "ok" && (
         <p className="trip-map-location-status" role="status">
-          Google Routes verified · {nearbyRoute.mode === "WALK" ? "Walking" : "Public transit"} ·{" "}
-          {nearbyRoute.durationMin} min
+          {t("Google Routes verified ·")}
+          {nearbyRoute.mode === "WALK" ? t("Walking") : t("Public transit")} ·{" "}
+          {nearbyRoute.durationMin} {t("min")}
           {nearbyRoute.distanceMeters !== undefined
             ? ` · ${(nearbyRoute.distanceMeters / 1000).toFixed(1)} km`
-            : " · Distance unavailable"}
+            : t(" · Distance unavailable")}
         </p>
       )}
       {nearbyRoute?.status === "unavailable" && (
         <p className="trip-map-location-status" role="alert">
-          Route could not be verified. {nearbyRoute.error}
+          {t("Route could not be verified.")}
+          {localizeNotice(nearbyRoute.error)}
         </p>
       )}
       {nearbyRoute?.status === "error" && (
@@ -559,13 +565,13 @@ export function TripMap({
       )}
       {error && (
         <div className="trip-map-fallback" role="alert">
-          <p>{error}</p>
+          <p>{localizeNotice(error)}</p>
           <button type="button" onClick={() => setRetry((value) => value + 1)}>
-            Retry map
+            {t("Retry map")}
           </button>
           {mapped.length > 0 && (
-            <div aria-label="Mapped places">
-              <p>Trip places remain available:</p>
+            <div aria-label={t("Mapped places")}>
+              <p>{t("Trip places remain available:")}</p>
               <ol>
                 {mapped.map((stop) => (
                   <li key={stop.place.id}>

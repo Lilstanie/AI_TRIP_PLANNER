@@ -1,18 +1,23 @@
 "use client";
+import { formatDuration } from "@/lib/trip/timeline";
+import { translate, type AppLocale } from "@/lib/i18n/locale";
 import { type FlightAnswer } from "@trip/shared";
 import { useLocale } from "../account/LocaleProvider";
 import { FlightItineraryCard } from "./FlightItineraryCard";
 
-function duration(minutes: number | undefined): string | undefined {
+function duration(minutes: number | undefined, locale: AppLocale): string | undefined {
   if (!minutes) return undefined;
+  if (locale === "zh") return formatDuration(minutes, locale);
   const hours = Math.floor(minutes / 60);
   const rest = minutes % 60;
   return hours ? `${hours}h${rest ? ` ${rest}m` : ""}` : `${rest}m`;
 }
 
-function stops(count: number | undefined): string | undefined {
+function stops(count: number | undefined, locale: AppLocale): string | undefined {
   if (count === undefined) return undefined;
-  return count === 0 ? "Nonstop" : count === 1 ? "1 stop" : `${count} stops`;
+  return count === 0
+    ? translate(locale, "Nonstop")
+    : translate(locale, count === 1 ? "{count} stop" : "{count} stops", { count });
 }
 
 /**
@@ -23,10 +28,15 @@ function stops(count: number | undefined): string | undefined {
  * of these numbers would be wrong by the size of the group.
  */
 export function FlightResults({ answer }: { answer: FlightAnswer }) {
-  const { money } = useLocale();
-  const party = answer.passengers === 1 ? "1 traveller" : `${answer.passengers} travellers`;
+  const { t, money, locale } = useLocale();
+  const party = t(answer.passengers === 1 ? "{count} traveller" : "{count} travellers", {
+    count: answer.passengers,
+  });
   return (
-    <section className="flight-results" aria-label={`Fares from ${answer.from} to ${answer.to}`}>
+    <section
+      className="flight-results"
+      aria-label={t("Fares from {v0} to {v1}", { v0: answer.from, v1: answer.to })}
+    >
       <header className="flight-results__head">
         <strong>
           {answer.from} → {answer.to}
@@ -58,7 +68,7 @@ export function FlightResults({ answer }: { answer: FlightAnswer }) {
             .filter((option) => !option.outbound)
             .slice(0, 6)
             .map((option, index) => {
-              const detail = [stops(option.stops), duration(option.durationMin)]
+              const detail = [stops(option.stops, locale), duration(option.durationMin, locale)]
                 .filter(Boolean)
                 .join(" · ");
               return (
@@ -71,11 +81,12 @@ export function FlightResults({ answer }: { answer: FlightAnswer }) {
             })}
         </ol>
       ) : answer.options.length === 0 ? (
-        <p className="muted">No fares were returned for this search.</p>
+        <p className="muted">{t("No fares were returned for this search.")}</p>
       ) : null}
       <p className="flight-results__note">
-        Whole-party totals. {answer.source?.freshness ?? "Prices change without notice."} Nothing
-        here makes a booking.
+        {t("Whole-party totals.")}
+        {answer.source?.freshness ?? t("Prices change without notice.")}{" "}
+        {t("Nothing here makes a booking.")}
       </p>
     </section>
   );

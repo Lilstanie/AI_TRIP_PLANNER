@@ -1,4 +1,6 @@
 "use client";
+import { useInterfaceLocale } from "../account/LocaleProvider";
+import { translate, interfaceNotice } from "@/lib/i18n/locale";
 import { useCallback, useRef, useState } from "react";
 import { MAX_ATTACHMENTS_PER_MESSAGE } from "@trip/shared";
 import {
@@ -31,6 +33,7 @@ export type ComposerAttachments = {
  * `render` is injected in tests, where jsdom has no canvas.
  */
 export function useComposerAttachments({ render }: { render?: ImageRenderer } = {}) {
+  const locale = useInterfaceLocale();
   const [attachments, setAttachments] = useState<PreparedAttachment[]>([]);
   const [notice, setNotice] = useState("");
   // The count and payload at the moment a pick starts. Preparation is
@@ -59,7 +62,12 @@ export function useComposerAttachments({ render }: { render?: ImageRenderer } = 
           setNotice(
             rejections.length
               ? rejections
-                  .map(({ name, reason }) => `${name} wasn't attached — ${reason}.`)
+                  .map(({ name, reason }) =>
+                    translate(locale, "{name} wasn't attached — {reason}.", {
+                      name,
+                      reason: interfaceNotice(locale, reason),
+                    }),
+                  )
                   .join(" ")
               : "",
           );
@@ -76,7 +84,7 @@ export function useComposerAttachments({ render }: { render?: ImageRenderer } = 
           setNotice("Those files couldn't be read. Please try again.");
         });
     },
-    [render],
+    [render, locale],
   );
 
   const removeAttachment = useCallback((id: string) => {

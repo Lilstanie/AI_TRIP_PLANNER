@@ -1,4 +1,5 @@
 "use client";
+import { useLocale } from "@/components/account/LocaleProvider";
 import { useRef, type KeyboardEvent, type PointerEvent } from "react";
 import { CHAT_SHARE, clampChatShare } from "@/lib/workspace/catalog";
 
@@ -19,6 +20,7 @@ export function SplitResizer({
   share?: number;
   onChange(share: number | undefined): void;
 }) {
+  const { t } = useLocale();
   const drag = useRef<{
     shell: HTMLElement;
     left: number;
@@ -95,13 +97,13 @@ export function SplitResizer({
       className="split-resizer"
       role="separator"
       aria-orientation="vertical"
-      aria-label="Resize chat and map"
+      aria-label={t("Resize chat and map")}
       aria-valuemin={Math.round(CHAT_SHARE.min * 100)}
       aria-valuemax={Math.round(CHAT_SHARE.max * 100)}
       aria-valuenow={now}
       aria-valuetext={`Chat ${now}% of the width`}
       tabIndex={0}
-      title="Drag to resize · double-click to reset"
+      title={t("Drag to resize · double-click to reset")}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={endDrag}

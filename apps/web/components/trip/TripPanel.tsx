@@ -1,3 +1,4 @@
+"use client";
 import { useRef, type ReactNode } from "react";
 import type { TripPlan } from "@trip/shared";
 import { CurrencyNotice } from "../account/CurrencyNotice";
@@ -5,6 +6,7 @@ import { TripSection } from "./TripSection";
 import { statusForPlan } from "@/lib/workspace/catalog";
 import { itineraryActivities } from "@/lib/workspace";
 import { useSegmentIndicator } from "../ui/motion";
+import type { MessageKey } from "@/lib/i18n/locale";
 import { useLocale } from "../account/LocaleProvider";
 
 export type TripTab = "overview" | "timeline";
@@ -38,7 +40,7 @@ export function TripPanel({
   onReview: () => void;
   onEdit: () => void;
 }) {
-  const { money } = useLocale();
+  const { t, money } = useLocale();
   const estimated =
     Number.isFinite(plan.estTotal) && plan.estTotal >= 0 ? plan.estTotal : undefined;
   const budget =
@@ -52,7 +54,7 @@ export function TripPanel({
   const unpriced = itineraryActivities(plan).filter((item) => item.estCost === undefined).length;
   const tabList = useRef<HTMLDivElement>(null);
   useSegmentIndicator(tabList, tab);
-  const tabs: [TripTab, string][] = [
+  const tabs: [TripTab, MessageKey][] = [
     ["overview", "Itinerary"],
     ["timeline", "Timeline & routes"],
   ];
@@ -60,26 +62,28 @@ export function TripPanel({
     <div className="trip-panel">
       <p className="trip__sub">
         {plan.brief.destination} · {plan.brief.dates.join(" – ")} · {plan.brief.groupSize}{" "}
-        {plan.brief.groupSize === 1 ? "traveller" : "travellers"}
+        {plan.brief.groupSize === 1 ? t("traveller") : t("travellers")}
       </p>
-      <section className="trip-panel__budget-summary" aria-label="Trip budget">
+      <section className="trip-panel__budget-summary" aria-label={t("Trip budget")}>
         <div className="trip__budget-head">
           <div className="trip__budget">
-            <span>Estimated total</span>
-            <strong>{estimated === undefined ? "Estimate unavailable" : money(estimated)}</strong>
+            <span>{t("Estimated total")}</span>
+            <strong>
+              {estimated === undefined ? t("Estimate unavailable") : money(estimated)}
+            </strong>
           </div>
           <span className={`budget-status budget-status--${budgetState}`}>
             {budgetState === "over"
-              ? "Over budget"
+              ? t("Over budget")
               : budgetState === "within"
-                ? "Within budget"
-                : "Budget not set"}
+                ? t("Within budget")
+                : t("Budget not set")}
           </span>
         </div>
         <div
           className={`bar${delta !== undefined && delta < 0 ? " bar--over" : ""}`}
           role="progressbar"
-          aria-label="Budget used"
+          aria-label={t("Budget used")}
           aria-valuemin={0}
           aria-valuemax={100}
           aria-valuenow={pct}
@@ -90,18 +94,29 @@ export function TripPanel({
           className={`trip__budget-delta${delta !== undefined && delta < 0 ? " trip__budget-delta--over" : ""}`}
         >
           {delta === undefined
-            ? "Budget not set"
-            : `${money(Math.abs(delta))} ${delta < 0 ? "over" : "under"} the ${money(budget!, plan.brief.budgetSource)} budget`}
+            ? t("Budget not set")
+            : t(
+                delta < 0
+                  ? "{amount} over the {budget} budget"
+                  : "{amount} under the {budget} budget",
+                { amount: money(Math.abs(delta)), budget: money(budget!, plan.brief.budgetSource) },
+              )}
         </p>
         {unpriced > 0 && (
           <p className="trip__budget-note">
-            Not included: admission for {unpriced} {unpriced === 1 ? "stop" : "stops"} with no
-            published price.
+            {t("Not included: admission for {count} stops with no published price.", {
+              count: unpriced,
+            })}
           </p>
         )}
         <CurrencyNotice />
       </section>
-      <div ref={tabList} className="trip-tabs segmented" role="tablist" aria-label="Trip views">
+      <div
+        ref={tabList}
+        className="trip-tabs segmented"
+        role="tablist"
+        aria-label={t("Trip views")}
+      >
         {tabs.map(([id, label]) => (
           <button
             key={id}
@@ -118,7 +133,7 @@ export function TripPanel({
               document.getElementById(`trip-tab-${next}`)?.focus();
             }}
           >
-            {label}
+            {t(label)}
           </button>
         ))}
       </div>
@@ -143,7 +158,7 @@ export function TripPanel({
               ))
             ) : (
               <p className="section__empty">
-                No itinerary yet. Fill in your preferences and select Update trip.
+                {t("No itinerary yet. Fill in your preferences and select Update trip.")}
               </p>
             )}
           </>
@@ -153,7 +168,7 @@ export function TripPanel({
       </div>
       <div className="actions trip-panel__footer">
         <button className="primary" disabled={!plan.sections.length} onClick={onReview}>
-          Review plan
+          {t("Review plan")}
         </button>
       </div>
     </div>

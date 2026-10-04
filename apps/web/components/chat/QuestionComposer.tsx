@@ -1,4 +1,5 @@
 "use client";
+import { useLocale } from "@/components/account/LocaleProvider";
 import { useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
 import {
   parseRecommendedLabel,
@@ -175,6 +176,7 @@ export function QuestionComposer({
   onSubmit: (answers: QuestionAnswer[]) => void;
   onCancel: () => void;
 }) {
+  const { t } = useLocale();
   const questions = request.questions;
   const [index, setIndex] = useState(0);
   const [drafts, setDrafts] = useState<Draft[]>(() =>
@@ -301,8 +303,8 @@ export function QuestionComposer({
             <button
               type="button"
               className="question__icon-button"
-              aria-label={minimized ? copy.maximize : copy.minimize}
-              title={minimized ? copy.maximize : copy.minimize}
+              aria-label={t(minimized ? copy.maximize : copy.minimize)}
+              title={t(minimized ? copy.maximize : copy.minimize)}
               aria-expanded={!minimized}
               onClick={() => setMinimized((current) => !current)}
             >
@@ -311,8 +313,8 @@ export function QuestionComposer({
             <button
               type="button"
               className="question__icon-button"
-              aria-label={copy.cancel}
-              title={copy.cancel}
+              aria-label={t(copy.cancel)}
+              title={t(copy.cancel)}
               onClick={onCancel}
             >
               <IconClose />
@@ -362,7 +364,7 @@ export function QuestionComposer({
                             <span className="question__description">{option.description}</span>
                           )}
                           {display.recommended && (
-                            <span className="question__badge">{copy.recommended}</span>
+                            <span className="question__badge">{t(copy.recommended)}</span>
                           )}
                         </span>
                       </span>
@@ -389,8 +391,8 @@ export function QuestionComposer({
                     <AnswerField
                       variant="inline"
                       value={draft.custom}
-                      label="Other answer"
-                      placeholder={copy.placeholder}
+                      label={t("Other answer")}
+                      placeholder={t(copy.placeholder)}
                       onChange={draftCustom}
                       onKeyDown={continueFromCustom}
                     />
@@ -401,8 +403,8 @@ export function QuestionComposer({
                     autoFocus={!focusedQuestions.current.has(index)}
                     variant="block"
                     value={draft.custom}
-                    label="Your answer"
-                    placeholder={copy.placeholder}
+                    label={t("Your answer")}
+                    placeholder={t(copy.placeholder)}
                     onFocus={() => focusedQuestions.current.add(index)}
                     onChange={draftCustom}
                     onKeyDown={continueFromCustom}
@@ -416,7 +418,7 @@ export function QuestionComposer({
                 <button
                   type="button"
                   className="question__icon-button"
-                  aria-label={copy.prev}
+                  aria-label={t(copy.prev)}
                   disabled={index === 0}
                   onClick={() => {
                     replaceProgress(index - 1, drafts);
@@ -431,7 +433,7 @@ export function QuestionComposer({
                 <button
                   type="button"
                   className="question__icon-button"
-                  aria-label={copy.next}
+                  aria-label={t(copy.next)}
                   disabled={last}
                   onClick={() => {
                     replaceProgress(index + 1, drafts);
@@ -442,7 +444,7 @@ export function QuestionComposer({
                 </button>
               </div>
               <div className="question__feedback" role="status">
-                {feedback === null ? null : copy[feedback]}
+                {feedback === null ? null : t(copy[feedback])}
               </div>
               <div className="question__footer-actions">
                 <button
@@ -450,7 +452,7 @@ export function QuestionComposer({
                   className="question__button question__button--outline"
                   onClick={skipQuestion}
                 >
-                  {copy.skip}
+                  {t(copy.skip)}
                 </button>
                 <button
                   type="button"
@@ -458,7 +460,7 @@ export function QuestionComposer({
                   disabled={!answered(draft)}
                   onClick={continueFlow}
                 >
-                  {last ? copy.submit : copy.advance}
+                  {t(last ? copy.submit : copy.advance)}
                 </button>
               </div>
             </footer>

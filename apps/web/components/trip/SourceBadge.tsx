@@ -1,7 +1,10 @@
+"use client";
+import { useLocale } from "../account/LocaleProvider";
+import type { MessageKey } from "@/lib/i18n/locale";
 import type { AgentProposalSource } from "@trip/shared";
 import { Badge } from "../ui/badge";
 
-const SOURCE_KIND_LABEL: Record<AgentProposalSource["kind"] | "unknown", string> = {
+const SOURCE_KIND_LABEL: Record<AgentProposalSource["kind"] | "unknown", MessageKey> = {
   live: "Live data",
   estimated: "Estimated data",
   mock: "Mock data",
@@ -18,6 +21,7 @@ export function SourceBadge({
   source?: AgentProposalSource;
   compact?: boolean;
 }) {
+  const { t } = useLocale();
   const kind = source?.kind ?? "unknown";
   return (
     <Badge
@@ -25,7 +29,7 @@ export function SourceBadge({
       className={`source-kind source-kind--${kind}${compact ? " source-kind--compact" : ""}`}
       role="status"
     >
-      {SOURCE_KIND_LABEL[kind]}
+      {t(SOURCE_KIND_LABEL[kind])}
     </Badge>
   );
 }

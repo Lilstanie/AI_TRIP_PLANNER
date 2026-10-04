@@ -6,10 +6,9 @@ import type { WorkspaceController } from "./useWorkspaceController";
 import { useLocale } from "../account/LocaleProvider";
 
 export function WorkspaceDialogs({ model }: { model: WorkspaceController }) {
-  const { money } = useLocale();
+  const { t, money, notice: localizeNotice } = useLocale();
   const {
     dialog,
-    dialogTitle,
     plan,
     previousTotal,
     error,
@@ -24,19 +23,24 @@ export function WorkspaceDialogs({ model }: { model: WorkspaceController }) {
   return (
     <>
       {dialog && (
-        <Dialog title={dialogTitle} onClose={() => setDialog(undefined)}>
+        <Dialog
+          title={t(dialog === "review" ? "Review plan" : "Settings")}
+          onClose={() => setDialog(undefined)}
+        >
           {dialog === "review" && plan && (
             <>
               <p>
-                {plan.brief.destination} · {money(plan.estTotal)} estimated /{" "}
-                {money(plan.budgetTotal)} budget
+                {plan.brief.destination} · {money(plan.estTotal)} {t("estimated /")}{" "}
+                {money(plan.budgetTotal)} {t("budget")}
               </p>
               <p>
                 {previousTotal === undefined
-                  ? "No previous plan to compare."
-                  : `Change from the previous estimate: ${money(plan.estTotal - previousTotal)}.`}
+                  ? t("No previous plan to compare.")
+                  : t("Change from the previous estimate: {v0}.", {
+                      v0: money(plan.estTotal - previousTotal),
+                    })}
               </p>
-              <h3>Conflicts</h3>
+              <h3>{t("Conflicts")}</h3>
               {plan.conflicts?.length ? (
                 <ul>
                   {plan.conflicts.map((c, i) => (
@@ -51,19 +55,21 @@ export function WorkspaceDialogs({ model }: { model: WorkspaceController }) {
                   ))}
                 </ul>
               ) : (
-                <p>No detected schedule conflicts.</p>
+                <p>{t("No detected schedule conflicts.")}</p>
               )}
               {error && (
                 <div className="error-text" role="alert">
-                  {error}
+                  {localizeNotice(error)}
                   {retry && (
                     <button disabled={busy} onClick={() => void run(retry)}>
-                      Retry update
+                      {t("Retry update")}
                     </button>
                   )}
                 </div>
               )}
-              {!plan.sections.length && <p>No plan yet. Update your trip preferences to start.</p>}
+              {!plan.sections.length && (
+                <p>{t("No plan yet. Update your trip preferences to start.")}</p>
+              )}
             </>
           )}
           {dialog === "settings" && (

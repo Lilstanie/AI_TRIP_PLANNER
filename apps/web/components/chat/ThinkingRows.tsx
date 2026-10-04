@@ -1,4 +1,5 @@
 "use client";
+import { useLocale } from "@/components/account/LocaleProvider";
 import { useState, type CSSProperties, type HTMLAttributes, type ReactNode } from "react";
 import type { ToolResultKind, ToolResultRow } from "@trip/shared";
 import { cn } from "@/lib/utils";
@@ -62,14 +63,15 @@ export function Children({ children, ...rest }: HTMLAttributes<HTMLDivElement>) 
 
 /** One model call's thinking. Running: the newest line, right-anchored. Settled: the first line. */
 export function ReasoningRow({ block, open }: { block: ReasoningBlock; open: OpenRows }) {
+  const { t } = useLocale();
   const summary = reasoningSummary(block.text, block.running);
   return (
     <>
-      {block.running && <VisuallyHidden>Running</VisuallyHidden>}
+      {block.running && <VisuallyHidden>{t("Running")}</VisuallyHidden>}
       <Disclosure
         className="thinking-reasoning"
         icon={<FlowThinkIcon />}
-        title="Think"
+        title={t("Think")}
         state={block.running ? "running" : "ok"}
         open={open.isOpen(block.id)}
         expandable
@@ -94,18 +96,19 @@ export function ReasoningRow({ block, open }: { block: ReasoningBlock; open: Ope
  * Wollongong, 2026-11-24" instead of the arrows.
  */
 function ToolArgs({ args }: { args: Record<string, string> }) {
+  const { t } = useLocale();
   const { journey, date, chips } = argLine(args);
   if (!journey && !date && chips.length === 0) return null;
   return (
     <p className="thinking-tool__args">
       {journey && (
         <span className="thinking-tool__arg-journey">
-          <VisuallyHidden>from </VisuallyHidden>
+          <VisuallyHidden>{t("from")} </VisuallyHidden>
           <span className="thinking-tool__arg-value">{journey.from}</span>
           <span className="thinking-tool__arg-sep" aria-hidden="true">
             →
           </span>
-          <VisuallyHidden>to </VisuallyHidden>
+          <VisuallyHidden> {t("to")} </VisuallyHidden>
           <span className="thinking-tool__arg-value">{journey.to}</span>
         </span>
       )}
@@ -174,6 +177,7 @@ function ResultRowIcon({ row, kind }: { row: ToolResultRow; kind: ToolResultKind
 const TOOL_STATE_LABEL = { running: "running", completed: "completed", failed: "failed" } as const;
 
 export function ToolRow({ row, open }: { row: ToolRowModel; open: OpenRows }) {
+  const { t } = useLocale();
   const id = `tool:${row.started.callId}`;
   const hasArgs = Boolean(row.args && Object.keys(row.args).length > 0);
   // Arguments and result rows are the only detail a tool row has; without
@@ -181,7 +185,7 @@ export function ToolRow({ row, open }: { row: ToolRowModel; open: OpenRows }) {
   const expandable = hasArgs || Boolean(row.resultRows?.length);
   const tool = row.started.tool;
   return (
-    <div role="group" aria-label={`${row.started.label} ${TOOL_STATE_LABEL[row.state]}`}>
+    <div role="group" aria-label={`${row.started.label} ${t(TOOL_STATE_LABEL[row.state])}`}>
       <Disclosure
         className={cn("thinking-tool", `thinking-tool--${row.state}`)}
         // The icon says what the call is; a failure swaps it for the error dot.
@@ -223,7 +227,10 @@ export function ToolRow({ row, open }: { row: ToolRowModel; open: OpenRows }) {
             )}
             {row.resultTruncated && (
               <p className="thinking-tool__truncated">
-                {`Showing the first ${row.resultRows?.length ?? 0} of ${row.resultCount ?? row.resultRows?.length ?? 0}`}
+                {t("Showing the first {v0} of {v1}", {
+                  v0: row.resultRows?.length ?? 0,
+                  v1: row.resultCount ?? row.resultRows?.length ?? 0,
+                })}
               </p>
             )}
           </div>
@@ -242,6 +249,7 @@ function ChoiceBlock({
   expanded: boolean;
   onToggle: () => void;
 }) {
+  const { t } = useLocale();
   return (
     <div className="thinking-choice">
       <p className="thinking-choice__title">{choice.title}</p>
@@ -266,7 +274,7 @@ function ChoiceBlock({
             <span className="thinking-choice__chevron" aria-hidden="true">
               <FlowChevronDownIcon />
             </span>
-            {`Other options (${choice.alternatives.length})`}
+            {t("Other options ({v0})", { v0: choice.alternatives.length })}
           </button>
           {expanded && (
             <ul className="thinking-choice__alternatives">
@@ -286,6 +294,7 @@ function ChoiceBlock({
 
 /** What the coordinator asked of the subagent and what it produced. */
 function SubagentNotes({ model, open }: { model: SubagentModel; open: OpenRows }) {
+  const { t } = useLocale();
   const hasNotes = Boolean(
     model.objective ||
     model.constraints ||
@@ -311,7 +320,7 @@ function SubagentNotes({ model, open }: { model: SubagentModel; open: OpenRows }
         </div>
       )}
       {model.objective && (
-        <p className="thinking-note__summary">{`Asked for: ${model.objective}`}</p>
+        <p className="thinking-note__summary">{t("Asked for: {v0}", { v0: model.objective })}</p>
       )}
       {model.constraints && (
         <ul className="thinking-note__list">
@@ -335,19 +344,20 @@ function SubagentNotes({ model, open }: { model: SubagentModel; open: OpenRows }
 
 /** `Subagent · <name> · <summary>` and, when open, its notes, thinking and tool calls. */
 export function SubagentRow({ model, open }: { model: SubagentModel; open: OpenRows }) {
-  const label = labels[model.name];
+  const { t } = useLocale();
+  const label = t(labels[model.name]);
   const running = model.status === "running" || model.status === "revising";
   return (
     <div
       className={cn("thinking-subagent", `thinking-subagent--${model.status}`)}
       data-status={model.status}
       role="listitem"
-      aria-label={`${label} ${statusLabels[model.status]}`}
+      aria-label={`${label} ${t(statusLabels[model.status])}`}
     >
       <Disclosure
         className="thinking-subagent__row"
         icon={running ? <SubagentOrbIcon model={model} /> : <FlowSubagentIcon />}
-        title="Subagent"
+        title={t("Subagent")}
         state={running ? "running" : model.status === "failed" ? "error" : "ok"}
         open={open.isOpen(model.id)}
         expandable={subagentHasBody(model)}
@@ -365,7 +375,7 @@ export function SubagentRow({ model, open }: { model: SubagentModel; open: OpenR
             />
             <span className="thinking-subagent__status">
               <StatusDot state={dotState(model.status)} />
-              <VisuallyHidden>{statusLabels[model.status]}</VisuallyHidden>
+              <VisuallyHidden>{t(statusLabels[model.status])}</VisuallyHidden>
             </span>
           </>
         }
@@ -394,9 +404,10 @@ export function RoundHeading({
   summary: string;
   constraints?: string[];
 }) {
+  const { t } = useLocale();
   return (
     <div className="thinking-round">
-      <p className="thinking-round__title">{`Round ${round} · ${summary}`}</p>
+      <p className="thinking-round__title">{t("Round {v0} · {v1}", { v0: round, v1: summary })}</p>
       {constraints && constraints.length > 0 && (
         <ul className="thinking-round__list">
           {constraints.map((constraint, index) => (

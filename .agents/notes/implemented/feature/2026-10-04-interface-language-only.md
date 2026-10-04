@@ -35,7 +35,9 @@ This supplements [the settings layout](2026-09-27-mindtrip-settings.md); its oth
 Language persists locally and through the existing settings sync. Old settings follow the
 browser language until the traveller chooses;
 stored trips and demo intake remain compatible. Unmapped labels stay English rather than being
-invented. Display currency, address UI and reverse lookup will be separate subsequent PRs.
+invented. Display currency is covered by [approximate display conversion](2026-10-04-workspace-display-currency.md).
+Workspace-authored copy, notices and accessible labels use the same dictionary; model content and
+provider errors remain unchanged. Address UI and reverse lookup remain separate work.
 
 ## Sources
 

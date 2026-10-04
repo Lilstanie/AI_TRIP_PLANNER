@@ -1,4 +1,5 @@
 "use client";
+import { useLocale } from "@/components/account/LocaleProvider";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { TripPlan } from "@trip/shared";
 import { itineraryOrder } from "@/lib/map/itinerary-route";
@@ -41,6 +42,7 @@ function ItemEditor({
   onSubmit(action: ItemAction): void;
   onCancel(): void;
 }) {
+  const { t, notice: localizeNotice } = useLocale();
   const [detail, setDetail] = useState(activity.detail);
   const [location, setLocation] = useState(activity.location ?? "");
   const [note, setNote] = useState(activity.note ?? "");
@@ -65,40 +67,50 @@ function ItemEditor({
       {editing.mode === "details" && (
         <>
           <label>
-            Place name
-            <input ref={first} value={location} maxLength={120} onChange={(e) => setLocation(e.target.value)} />
+            {t("Place name")}
+            <input
+              ref={first}
+              value={location}
+              maxLength={120}
+              onChange={(e) => setLocation(e.target.value)}
+            />
           </label>
           <label>
-            What you will do
-            <textarea value={detail} maxLength={500} rows={2} onChange={(e) => setDetail(e.target.value)} />
+            {t("What you will do")}
+            <textarea
+              value={detail}
+              maxLength={500}
+              rows={2}
+              onChange={(e) => setDetail(e.target.value)}
+            />
           </label>
         </>
       )}
       {editing.mode === "note" && (
         <label>
-          Note
+          {t("Note")}
           <textarea
             ref={first}
             value={note}
             maxLength={500}
             rows={2}
-            placeholder="e.g. Book tickets a day ahead"
+            placeholder={t("e.g. Book tickets a day ahead")}
             onChange={(e) => setNote(e.target.value)}
           />
         </label>
       )}
       {editing.mode === "schedule" && (
         <label>
-          Day
+          {t("Day")}
           <select
             ref={first}
-            aria-label="Day"
+            aria-label={t("Day")}
             value={day}
             onChange={(e) => setDay(Number(e.target.value))}
           >
             {Array.from({ length: days }, (_, index) => (
               <option key={index} value={index + 1}>
-                Day {index + 1} · {labels[index]}
+                {t("Day {v0}", { v0: index + 1 })} · {labels[index]}
               </option>
             ))}
           </select>
@@ -106,10 +118,10 @@ function ItemEditor({
       )}
       <div className="item-editor__actions">
         <button type="submit" className="primary">
-          {editing.mode === "schedule" ? "Schedule" : "Save"}
+          {editing.mode === "schedule" ? t("Schedule") : t("Save")}
         </button>
         <button type="button" onClick={onCancel}>
-          Cancel
+          {t("Cancel")}
         </button>
       </div>
     </form>
@@ -143,6 +155,7 @@ export function TripPlaceList({
   onAdjust?(activityId: string): void;
   disabled?: boolean;
 }) {
+  const { t, locale, notice: localizeNotice } = useLocale();
   const { activities, markers, places, placeIdFor, locationStatus } = tripPlaces;
   const list = useRef<HTMLElement>(null);
   const [editing, setEditing] = useState<Editing>();
@@ -165,8 +178,9 @@ export function TripPlaceList({
   }, [activities]);
   const total = plan ? dayCount(plan) : 0;
   const labels = useMemo(
-    () => (plan ? Array.from({ length: total }, (_, index) => dayLabel(plan, index + 1)) : []),
-    [plan, total],
+    () =>
+      plan ? Array.from({ length: total }, (_, index) => dayLabel(plan, index + 1, locale)) : [],
+    [plan, total, locale],
   );
 
   // A plan that arrives from elsewhere (chat, restore) ends the chance to undo.
@@ -200,54 +214,84 @@ export function TripPlaceList({
     const edit = (mode: Editing["mode"]) => () => setEditing({ id: activity.id!, mode });
     const items: ActionMenuItem[] = [];
     if (scheduled && onAdjust)
-      items.push({ label: "Adjust schedule", icon: <CalendarIcon />, onSelect: () => onAdjust(activity.id!) });
+      items.push({
+        label: t("Adjust schedule"),
+        icon: <CalendarIcon />,
+        onSelect: () => onAdjust(activity.id!),
+      });
     if (!scheduled)
-      items.push({ label: "Schedule on a day", icon: <CalendarIcon />, onSelect: edit("schedule") });
+      items.push({
+        label: t("Schedule on a day"),
+        icon: <CalendarIcon />,
+        onSelect: edit("schedule"),
+      });
     items.push(
-      { label: "Edit details", icon: <ComposeIcon />, onSelect: edit("details") },
-      { label: activity.note ? "Edit note" : "Add a note", icon: <ChatIcon />, onSelect: edit("note") },
+      { label: t("Edit details"), icon: <ComposeIcon />, onSelect: edit("details") },
+      {
+        label: t(activity.note ? "Edit note" : "Add a note"),
+        icon: <ChatIcon />,
+        onSelect: edit("note"),
+      },
     );
     if (scheduled)
       items.push(
         {
-          label: "Move to ideas",
+          label: t("Move to ideas"),
           icon: <SuitcaseIcon />,
           separated: true,
-          onSelect: () => act(activity, { kind: "idea" }, `${name} moved to Ideas.`),
+          onSelect: () => act(activity, { kind: "idea" }, t("{name} moved to Ideas.", { name })),
         },
         {
-          label: "Move to previous day",
-          icon: <span className="action-menu__up"><ChevronIcon /></span>,
+          label: t("Move to previous day"),
+          icon: (
+            <span className="action-menu__up">
+              <ChevronIcon />
+            </span>
+          ),
           disabled: activity.day! <= 1,
           onSelect: () =>
-            act(activity, { kind: "day", day: activity.day! - 1 }, `${name} moved to Day ${activity.day! - 1}.`),
+            act(
+              activity,
+              { kind: "day", day: activity.day! - 1 },
+              t("{name} moved to Day {day}.", { name, day: activity.day! - 1 }),
+            ),
         },
         {
-          label: "Move to next day",
-          icon: <span className="action-menu__down"><ChevronIcon /></span>,
+          label: t("Move to next day"),
+          icon: (
+            <span className="action-menu__down">
+              <ChevronIcon />
+            </span>
+          ),
           disabled: activity.day! >= total,
           onSelect: () =>
-            act(activity, { kind: "day", day: activity.day! + 1 }, `${name} moved to Day ${activity.day! + 1}.`),
+            act(
+              activity,
+              { kind: "day", day: activity.day! + 1 },
+              t("{name} moved to Day {day}.", { name, day: activity.day! + 1 }),
+            ),
         },
       );
     items.push(
       {
-        label: activity.booked ? "Mark as not booked" : "Mark as booked",
+        label: t(activity.booked ? "Mark as not booked" : "Mark as booked"),
         icon: <CheckIcon />,
         separated: true,
         onSelect: () =>
           act(
             activity,
             { kind: "booked", booked: !activity.booked },
-            activity.booked ? `${name} marked as not booked.` : `${name} marked as booked.`,
+            activity.booked
+              ? t("{name} marked as not booked.", { name })
+              : t("{name} marked as booked.", { name }),
           ),
       },
       {
-        label: "Remove",
+        label: t("Remove"),
         icon: <CloseIcon />,
         tone: "danger",
         separated: true,
-        onSelect: () => act(activity, { kind: "remove" }, `${name} removed.`),
+        onSelect: () => act(activity, { kind: "remove" }, t("{name} removed.", { name })),
       },
     );
     return items.map((item) => (disabled ? { ...item, disabled: true } : item));
@@ -256,7 +300,7 @@ export function TripPlaceList({
   if (!activities.length) return null;
   return (
     <section className="trip-places" aria-labelledby="trip-places-title" ref={list}>
-      <h3 id="trip-places-title">Stops</h3>
+      <h3 id="trip-places-title">{t("Stops")}</h3>
       {undo && (
         <div className="item-undo" role="status">
           <span>{undo.message}</span>
@@ -269,25 +313,30 @@ export function TripPlaceList({
               setUndo(undefined);
             }}
           >
-            Undo
+            {t("Undo")}
           </button>
         </div>
       )}
       {problem && (
         <p className="item-problem" role="alert">
-          {problem}
+          {localizeNotice(problem)}
         </p>
       )}
       {days.map(([day, items]) => {
         const date = day === undefined ? undefined : dayDate(startDate, day);
-        const title = day === undefined ? "Ideas" : `Day ${day}${date ? ` · ${date}` : ""}`;
+        const title =
+          day === undefined
+            ? t("Ideas")
+            : `${t("Day {v0}", { v0: day })}${date ? ` · ${date}` : ""}`;
         return (
           <div className="trip-places__day" key={day ?? "ideas"}>
             <h4>{title}</h4>
             {day === undefined && (
-              <p className="trip-places__hint">Set aside for later. Schedule one on a day from its menu.</p>
+              <p className="trip-places__hint">
+                {t("Set aside for later. Schedule one on a day from its menu.")}
+              </p>
             )}
-            <ol aria-label={`Stops, ${title}`}>
+            <ol aria-label={t("Stops, {v0}", { v0: title })}>
               {items.map((activity, index) => {
                 const placeId = placeIdFor(activity);
                 const place = placeId ? places[placeId] : undefined;
@@ -299,7 +348,7 @@ export function TripPlaceList({
                 const status = locationStatus(activity);
                 const extras = (
                   <>
-                    {activity.booked && <span className="trip-places__tag">Booked</span>}
+                    {activity.booked && <span className="trip-places__tag">{t("Booked")}</span>}
                     {activity.note && <span className="trip-places__note">{activity.note}</span>}
                   </>
                 );
@@ -318,7 +367,9 @@ export function TripPlaceList({
                           </span>
                           <span className="trip-places__text">
                             <span className="trip-places__name">
-                              <span className="sr-only">Stop {order}: </span>
+                              <span className="sr-only">
+                                {t("Stop")} {order}:{" "}
+                              </span>
                               {name}
                             </span>
                             <small>
@@ -339,10 +390,10 @@ export function TripPlaceList({
                                 time,
                                 activity.detail !== name && activity.detail,
                                 status === "loading"
-                                  ? "Finding this place…"
+                                  ? t("Finding this place…")
                                   : status === "unavailable"
-                                    ? "Place could not be loaded right now"
-                                    : "Location to be confirmed",
+                                    ? t("Place could not be loaded right now")
+                                    : t("Location to be confirmed"),
                               ]
                                 .filter(Boolean)
                                 .join(" · ")}
@@ -353,7 +404,10 @@ export function TripPlaceList({
                       )}
                       {plan && onApply && activity.id && (
                         <ActionMenu
-                          label={`Actions for ${name}, ${day === undefined ? "idea" : `Day ${day}${time ? ` ${time}` : ""}`}`}
+                          label={t("Actions for {v0}, {v1}", {
+                            v0: name,
+                            v1: day === undefined ? "idea" : `Day ${day}${time ? ` ${time}` : ""}`,
+                          })}
                           items={menuFor(activity, name)}
                         />
                       )}

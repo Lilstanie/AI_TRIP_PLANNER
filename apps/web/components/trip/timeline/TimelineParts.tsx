@@ -1,3 +1,4 @@
+"use client";
 import type { ReactNode } from "react";
 import type { Connection, FixedRow } from "@/lib/trip/timeline";
 import { useLocale } from "../../account/LocaleProvider";
@@ -19,9 +20,8 @@ const FIXED_LABEL = { flight: "Flight", ground: "Transfer", stay: "Stay" } as co
 
 /** A flight, inter-city hop or stay: part of the day, but changed through the chat, not here. */
 export function FixedTimelineRow({ row }: { row: FixedRow }) {
-  const { money } = useLocale();
-  const Icon =
-    row.kind === "ground" && /^Drive/.test(row.detail) ? FlowDriveIcon : FIXED_ICON[row.kind];
+  const { t, money } = useLocale();
+  const Icon = row.kind === "ground" && row.mode === "drive" ? FlowDriveIcon : FIXED_ICON[row.kind];
   return (
     <li className={`timeline-row timeline-fixed timeline-fixed--${row.kind}`}>
       <span className="timeline-row__time">
@@ -37,13 +37,13 @@ export function FixedTimelineRow({ row }: { row: FixedRow }) {
       </span>
       <div className="timeline-fixed__body">
         <p className="timeline-fixed__title">
-          <span className="sr-only">{FIXED_LABEL[row.kind]}: </span>
+          <span className="sr-only">{t(FIXED_LABEL[row.kind])}: </span>
           {row.title}
         </p>
         <p className="timeline-row__meta">{row.detail}</p>
       </div>
       <span className="timeline-row__cost">
-        {row.cost !== undefined ? money(row.cost) : (row.costNote ?? "Price unknown")}
+        {row.cost !== undefined ? money(row.cost) : (row.costNote ?? t("Price unknown"))}
       </span>
     </li>
   );
@@ -57,6 +57,7 @@ const CONNECTION_ICON: Record<string, (props: { size?: number }) => ReactNode> =
 
 /** The journey between two stops, drawn as part of the line rather than as another card. */
 export function ConnectionRow({ connection }: { connection: Connection }) {
+  const { t } = useLocale();
   const Icon = CONNECTION_ICON[connection.mode] ?? FlowTransitIcon;
   return (
     // Keyed by status in the parent, so a journey that becomes checked mounts again and draws in.
@@ -69,10 +70,10 @@ export function ConnectionRow({ connection }: { connection: Connection }) {
         {connection.fare && <span>· {connection.fare}</span>}
         <span className="timeline-connection__status">
           {connection.status === "checked"
-            ? "checked"
+            ? t("checked")
             : connection.status === "planned"
-              ? "estimate"
-              : "check failed"}
+              ? t("estimate")
+              : t("check failed")}
         </span>
       </p>
     </li>

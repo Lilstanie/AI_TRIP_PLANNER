@@ -1,18 +1,22 @@
 "use client";
+import { formatDuration } from "@/lib/trip/timeline";
+import { intlLocale, type AppLocale } from "@/lib/i18n/locale";
 import type { FlightAnswerOption, FlightLeg } from "@trip/shared";
 import { useLocale } from "../account/LocaleProvider";
 
 /** "17h 20m" — the shape a timetable uses, not 1040 minutes. */
-function hoursAndMinutes(minutes: number): string {
+function hoursAndMinutes(minutes: number, locale: AppLocale): string {
+  if (locale === "zh") return formatDuration(minutes, locale);
   const hours = Math.floor(minutes / 60);
   const rest = minutes % 60;
   return hours ? `${hours}h${rest ? ` ${rest}m` : ""}` : `${rest}m`;
 }
 
 /** The clock part of a provider's "YYYY-MM-DD HH:mm", in the airport's own time. */
-function clock(value: string): string {
+function clock(value: string, locale: AppLocale): string {
   const [, time] = value.split(" ");
   if (!time) return value;
+  if (locale === "zh") return time;
   const [hour, minute] = time.split(":").map(Number);
   if (hour === undefined || minute === undefined) return time;
   const suffix = hour < 12 ? "am" : "pm";
@@ -30,11 +34,11 @@ function dayOffset(departsAt: string, arrivesAt: string): string {
   return `+${Math.round((to - from) / 86_400_000)}`;
 }
 
-function shortDate(value: string): string {
+function shortDate(value: string, locale: AppLocale): string {
   const parsed = new Date(`${dayOf(value)}T00:00:00Z`);
   return Number.isNaN(parsed.getTime())
     ? dayOf(value)
-    : parsed.toLocaleDateString("en-AU", {
+    : parsed.toLocaleDateString(intlLocale(locale), {
         weekday: "short",
         day: "numeric",
         month: "short",
@@ -51,6 +55,7 @@ function shortDate(value: string): string {
  * reader's timezone would be a different, wrong number.
  */
 function Leg({ leg, label }: { leg: FlightLeg; label: string }) {
+  const { t, locale } = useLocale();
   const first = leg.segments[0]!;
   const last = leg.segments[leg.segments.length - 1]!;
   const offset = dayOffset(first.departsAt, last.arrivesAt);
@@ -68,24 +73,27 @@ function Leg({ leg, label }: { leg: FlightLeg; label: string }) {
       <div className="itinerary-leg__route">
         <span className="itinerary-leg__code">{first.from.code}</span>
         <span className="itinerary-leg__rail" aria-hidden="true" />
-        <span className="itinerary-leg__duration">{hoursAndMinutes(leg.durationMin)}</span>
+        <span className="itinerary-leg__duration">{hoursAndMinutes(leg.durationMin, locale)}</span>
         <span className="itinerary-leg__rail" aria-hidden="true" />
         <span className="itinerary-leg__code">{last.to.code}</span>
       </div>
       <div className="itinerary-leg__times">
-        <span>{clock(first.departsAt)}</span>
+        <span>{clock(first.departsAt, locale)}</span>
         <span>
-          {clock(last.arrivesAt)}
+          {clock(last.arrivesAt, locale)}
           {offset && <sup className="itinerary-leg__offset">{offset}</sup>}
         </span>
       </div>
       <p className="itinerary-leg__stops">
         {stops === 0
-          ? "Nonstop"
-          : `${stops} stop${stops === 1 ? "" : "s"} (${leg.layovers.map((stop) => stop.place.code).join(", ")})`}
+          ? t("Nonstop")
+          : `${t(stops === 1 ? "{count} stop" : "{count} stops", { count: stops })} (${leg.layovers.map((stop) => stop.place.code).join(", ")})`}
       </p>
       <span className="sr-only">
-        {label}: {first.from.name} to {last.to.name}, departing {clock(first.departsAt)}.
+        {label}: {first.from.name} {t("to")}
+        {last.to.name}
+        {t(", departing")}
+        {clock(first.departsAt, locale)}.
       </span>
     </div>
   );
@@ -106,7 +114,7 @@ export function FlightItineraryCard({
   option: FlightAnswerOption;
   cheapest?: boolean;
 }) {
-  const { money } = useLocale();
+  const { t, money, locale } = useLocale();
   const outbound = option.outbound;
   if (!outbound) return null;
   const first = outbound.segments[0]!;
@@ -114,36 +122,43 @@ export function FlightItineraryCard({
   const stops = outbound.layovers.length;
   const returning = option.inbound?.segments[option.inbound.segments.length - 1];
   return (
-    <article className="itinerary" aria-label={`${first.from.name} to ${last.to.name}`}>
+    <article
+      className="itinerary"
+      aria-label={t("From {from} to {to}", { from: first.from.name, to: last.to.name })}
+    >
       <header className="itinerary__badges">
-        {cheapest && <span className="itinerary__badge itinerary__badge--best">Cheapest</span>}
+        {cheapest && (
+          <span className="itinerary__badge itinerary__badge--best">{t("Cheapest")}</span>
+        )}
         <span className="itinerary__badge">
-          {stops === 0 ? "Nonstop" : `${stops} stop${stops === 1 ? "" : "s"}`}
+          {stops === 0
+            ? t("Nonstop")
+            : t(stops === 1 ? "{count} stop" : "{count} stops", { count: stops })}
         </span>
       </header>
       <p className="itinerary__route">
         {first.from.name.replace(/ Airport$/, "")} → {last.to.name.replace(/ Airport$/, "")}
       </p>
       <p className="itinerary__dates">
-        {shortDate(first.departsAt)}
-        {returning ? ` – ${shortDate(returning.arrivesAt)}` : ""}
+        {shortDate(first.departsAt, locale)}
+        {returning ? ` – ${shortDate(returning.arrivesAt, locale)}` : ""}
       </p>
       <p className="itinerary__class">
-        {option.roundTrip ? "Round trip" : "One way"}
+        {option.roundTrip ? t("Round trip") : t("One way")}
         {first.cabin ? ` · ${first.cabin}` : ""}
       </p>
       <div className="itinerary__legs">
-        <Leg leg={outbound} label="Outbound" />
-        {option.inbound && <Leg leg={option.inbound} label="Return" />}
+        <Leg leg={outbound} label={t("Outbound")} />
+        {option.inbound && <Leg leg={option.inbound} label={t("Return")} />}
       </div>
       {option.roundTrip && !option.inbound && (
         <p className="itinerary__pending">
-          Return flights not looked up; the price covers the way home.
+          {t("Return flights not looked up; the price covers the way home.")}
         </p>
       )}
       <footer className="itinerary__footer">
         <span className="itinerary__price">{money(option.price)}</span>
-        <span className="itinerary__price-note">whole party</span>
+        <span className="itinerary__price-note">{t("whole party")}</span>
       </footer>
     </article>
   );

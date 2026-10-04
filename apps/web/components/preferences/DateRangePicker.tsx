@@ -1,4 +1,5 @@
 "use client";
+import { useLocale } from "@/components/account/LocaleProvider";
 import { useState } from "react";
 import type { DateRange } from "react-day-picker";
 import { isoDateRange } from "@/lib/planning/date-range";
@@ -22,6 +23,7 @@ export function DateRangePicker({
   onConfirm: (range: { start: string; end: string }) => void;
   onClose: () => void;
 }) {
+  const { t } = useLocale();
   const [range, setRange] = useState<DateRange>();
   const iso = range ? isoDateRange(range) : undefined;
 
@@ -32,7 +34,7 @@ export function DateRangePicker({
       </div>
       <div className="date-picker__actions">
         <button type="button" onClick={onClose}>
-          Cancel
+          {t("Cancel")}
         </button>
         <button
           type="button"
@@ -43,7 +45,7 @@ export function DateRangePicker({
             onClose();
           }}
         >
-          Use these dates
+          {t("Use these dates")}
         </button>
       </div>
     </Dialog>

@@ -1,4 +1,5 @@
 "use client";
+import { useLocale } from "@/components/account/LocaleProvider";
 import { CloseIcon, FileIcon } from "../ui/icons";
 import { fileExtension, formatBytes } from "@/lib/chat/attachments";
 
@@ -36,6 +37,7 @@ export function AttachmentChip({
   /** Present in the composer; absent once the message has been sent. */
   onRemove?: () => void;
 }) {
+  const { t } = useLocale();
   const meta = [
     fileExtension(name),
     bytes === undefined ? "" : formatBytes(bytes),
@@ -66,7 +68,7 @@ export function AttachmentChip({
         <button
           type="button"
           className="attachment-chip__remove"
-          aria-label={`Remove ${name}`}
+          aria-label={t("Remove {v0}", { v0: name })}
           // Removing a file must not pull focus out of the draft.
           onMouseDown={(event) => event.preventDefault()}
           onClick={onRemove}

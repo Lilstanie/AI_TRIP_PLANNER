@@ -78,6 +78,7 @@ export function HistoryMenu({
   onRename(): void;
   onDelete(): void;
 }) {
+  const { t } = useLocale();
   const [open, setOpen] = useState(false);
   const wrap = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
@@ -129,7 +130,7 @@ export function HistoryMenu({
         ref={trigger}
         type="button"
         className="history-item__more"
-        aria-label={`Actions for ${title}`}
+        aria-label={t("Actions for {v0}", { v0: title })}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((current) => !current)}
@@ -137,12 +138,16 @@ export function HistoryMenu({
         <MoreIcon />
       </button>
       {open && (
-        <div className="history-item__menu" role="menu" aria-label={`Actions for ${title}`}>
+        <div
+          className="history-item__menu"
+          role="menu"
+          aria-label={t("Actions for {v0}", { v0: title })}
+        >
           <button ref={firstItem} type="button" role="menuitem" onClick={() => act(onRename)}>
-            Rename
+            {t("Rename")}
           </button>
           <button type="button" role="menuitem" onClick={() => act(onDelete)}>
-            Delete
+            {t("Delete")}
           </button>
         </div>
       )}
