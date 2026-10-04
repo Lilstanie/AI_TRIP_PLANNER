@@ -1,8 +1,8 @@
 ---
 date: 2026-10-04
 author: Claude Code (for Joey)
-branch: claude/project-thread-sjvton
-pr: 156
+branch: docs/stage1-all-members
+pr: 157
 area: docs/design/stage1, submission/stage1
 contract-impact: none
 ---
