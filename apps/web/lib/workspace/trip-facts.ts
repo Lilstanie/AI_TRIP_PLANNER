@@ -1,10 +1,10 @@
 import {
-  BASE_CURRENCY,
+  type Currency,
   MAX_TRIP_PREFERENCE_LENGTH,
   MAX_TRIP_PREFERENCES,
   type TripBrief,
 } from "@trip/shared";
-import { budgetHint, parseDraft, type Draft } from "./workspace";
+import { parseDraft, type Draft } from "./workspace";
 import { formatAudForDisplay, intlLocale, translate, type AppLocale } from "../i18n/locale";
 
 /** Age labels shown beside each Who stepper; also the order the chip summary lists them in. */
@@ -143,35 +143,21 @@ export function datesLabel(start: string, end: string, locale: AppLocale = "en")
   };
 }
 
-/** Cents only when the amount has them: "AUD 2,000", but "AUD 1,999.50". */
-const chipMoney = (amount: number, locale: AppLocale) =>
-  locale === "en"
-    ? new Intl.NumberFormat("en-AU", {
-        style: "currency",
-        currency: BASE_CURRENCY,
-        currencyDisplay: "code",
-        minimumFractionDigits: Number.isInteger(amount) ? 0 : 2,
-        maximumFractionDigits: Number.isInteger(amount) ? 0 : 2,
-      }).format(amount)
-    : formatAudForDisplay(
-        amount,
-        "AUD",
-        locale,
-        Number.isInteger(amount) ? 0 : 2,
-        Number.isInteger(amount) ? 0 : 2,
-      );
-
 /**
  * What each chip shows. Only values the traveller stated appear; anything missing reads as an
  * invitation to add it, never as a guess. `brief` is the planned trip's, used only to explain a
  * converted budget that still matches the draft.
  */
-export function factLabels(draft: Draft, brief?: TripBrief, display: { locale?: AppLocale } = {}) {
+export function factLabels(
+  draft: Draft,
+  brief?: TripBrief,
+  display: { locale?: AppLocale; currency?: Currency } = {},
+) {
   const locale = display.locale ?? "en";
   const travellers = Number(draft.groupSize);
   const budget = Number(draft.budgetTotal);
   const dates = datesLabel(draft.start, draft.end, locale);
-  const hint = brief && budget === brief.budgetTotal ? budgetHint(brief) : "";
+  const currency = display.currency ?? "AUD";
   const validTravellers = draft.groupSize.trim() && Number.isInteger(travellers) && travellers > 0;
   return {
     where: draft.destination.trim() || undefined,
@@ -179,7 +165,7 @@ export function factLabels(draft: Draft, brief?: TripBrief, display: { locale?: 
     who: validTravellers ? whoLabel(draft, travellers, locale) : undefined,
     budget:
       draft.budgetTotal.trim() && Number.isFinite(budget) && budget > 0
-        ? `${chipMoney(budget, locale)}${hint}`
+        ? formatAudForDisplay(budget, currency, locale)
         : undefined,
   };
 }

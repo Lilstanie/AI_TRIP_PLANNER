@@ -1,0 +1,86 @@
+// Failure inventory: currency choice not saved, one amount stays AUD, inverted conversion,
+// JPY decimals, missing dated estimate notice, or horizontal overflow on phone.
+import { mkdirSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
+import { resolve } from "node:path";
+const require = createRequire(import.meta.url);
+const { chromium } = require(process.env.PLAYWRIGHT ?? "playwright");
+const out = resolve("output/playwright/display-currency");
+mkdirSync(out, { recursive: true });
+const results = [];
+const check = (ok, name) => {
+  results.push({ ok, name });
+  console.log(`${ok ? "ok" : "FAIL"} ${name}`);
+};
+const browser = await chromium.launch({ channel: process.env.CHANNEL });
+try {
+  for (const width of [1440, 390]) {
+    const context = await browser.newContext({
+      locale: "en-AU",
+      viewport: { width, height: width === 390 ? 844 : 1000 },
+    });
+    const page = await context.newPage();
+    const errors = [];
+    page.on("pageerror", (error) => errors.push(String(error)));
+    await page.goto(process.env.BASE_URL ?? "http://localhost:3000");
+    await page.locator(".workspace-app").waitFor();
+    await page.locator(".chat-empty__suggestions button").first().click();
+    await page.locator(".msg-item--agent .msg-item__body").first().waitFor({ timeout: 180000 });
+    const setCurrency = async (currency) => {
+      if (width === 390)
+        await page.getByRole("button", { name: "Open navigation", exact: true }).click();
+      await page.locator('button[aria-label^="Account settings:"]:visible').first().click();
+      const dialog = page.getByRole("dialog");
+      await dialog.getByRole("tab", { name: "Language & region" }).click();
+      await dialog.getByRole("button", { name: "Change Display currency" }).click();
+      await dialog
+        .getByRole("group", { name: "Display currency", exact: true })
+        .getByRole("button", { name: currency, exact: true })
+        .click();
+      await page.keyboard.press("Escape");
+    };
+    for (const currency of ["CNY", "USD", "JPY"]) {
+      await setCurrency(currency);
+      await page.getByRole("button", { name: "Open your trip" }).click();
+      const total = page.locator(".trip__budget strong");
+      await total.waitFor();
+      check(
+        (await total.textContent()).includes(currency),
+        `${width}: trip total uses ${currency}`,
+      );
+      const chip = page.getByRole("button", { name: /^Budget:/ });
+      check(
+        (await chip.textContent()).includes(currency),
+        `${width}: budget chip uses ${currency}`,
+      );
+      check(
+        await page.locator(".trip-panel .currency-notice").isVisible(),
+        `${width}: dated estimate notice visible`,
+      );
+      if (currency === "JPY")
+        check(!/\.\d/.test(await total.textContent()), `${width}: JPY has no decimals`);
+      await page.screenshot({ path: `${out}/${width}-${currency}.png`, fullPage: true });
+      await page.keyboard.press("Escape");
+    }
+    await page.reload();
+    await page.locator(".workspace-app").waitFor();
+    check(
+      await page.evaluate(
+        () => JSON.parse(localStorage.getItem("trip.settings.v1")).displayCurrency === "JPY",
+      ),
+      `${width}: choice persists`,
+    );
+    check(
+      await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+      `${width}: no horizontal overflow`,
+    );
+    check(errors.length === 0, `${width}: no page errors ${errors.join(" | ")}`);
+    await context.close();
+  }
+} catch (error) {
+  check(false, String(error));
+} finally {
+  await browser.close();
+  writeFileSync(`${out}/report.json`, JSON.stringify(results, null, 2));
+}
+if (results.some((item) => !item.ok)) process.exit(1);

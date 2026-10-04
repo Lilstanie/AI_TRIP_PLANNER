@@ -18,6 +18,7 @@ import { MenuIcon, RouteIcon } from "../ui/icons";
 import type { WorkspaceController } from "./useWorkspaceController";
 import { WorkspaceDialogs } from "./WorkspaceDialogs";
 import { DataModeToggle } from "./DataModeToggle";
+import { CurrencyNotice } from "../account/CurrencyNotice";
 import { LanguageToggle } from "./LanguageToggle";
 import { usePresence, useSegmentIndicator, viewTransition } from "../ui/motion";
 import { useLocale } from "../account/LocaleProvider";
@@ -374,6 +375,7 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
             </div>
           </header>
           <div className="workspace-notices">
+            <CurrencyNotice />
             {error && (
               <div className="error-banner" role="alert">
                 {error}{" "}
