@@ -549,4 +549,8 @@ export const WORKSPACE_ZH = {
   "From 1 to 20.": "请输入 1 至 20 的人数。",
   "Enter an amount above 0.": "请输入大于 0 的金额。",
   "Request failed ({status}).": "请求失败（{status}）。",
+  "Edit your trip preferences or tell me what to change. I'll build the plan here, and you can ask for changes in this chat at any time.":
+    "编辑行程偏好，或告诉我要改什么。我会在这里生成计划，你随时可以在此对话中要求修改。",
+  "Browser storage is unavailable or full. Your current plan is still in this tab. Retry after freeing space.":
+    "浏览器存储不可用或已满。当前计划仍保留在此标签页中。请释放空间后重试。",
 } as const;
