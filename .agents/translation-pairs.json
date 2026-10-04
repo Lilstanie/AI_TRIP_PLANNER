@@ -34,24 +34,28 @@
       "translationSha256": "ea2e79620e1a5f2ee201521e20348af83ae325d4a936433d4db454c71747cf7c"
     },
     "docs/design/stage1/01-requirements.md": {
-      "sourceSha256": "7f093fe553c0500e9ae08f2c78344f9a0e96f633ec5a635081d33d966839c81c",
-      "translationSha256": "4a91dcd7f8465bd361e5e2dea20a8456fce2fcf1cd03442d4b81867ddfc1d344"
+      "sourceSha256": "75d2149933531a1978240cfafa2d22a9b24eda4eb8995af9cd40c2534f274c9a",
+      "translationSha256": "7348011a8af9ef852c7f9506e5163894926c5d7caf7c7547aa4fa23ca8458074"
     },
     "docs/design/stage1/02-use-cases.md": {
-      "sourceSha256": "79f8de7ee2510aa1da9ac81069be7ff1d9f33fbd2acd242ea4afd1203b0aeeb5",
-      "translationSha256": "c077fc989127ecb7bdb15842e7ffc0527b76876b2c6f9c676cf9091a33d21f00"
+      "sourceSha256": "ebe0944c808fc078731dc830a34a6023d3fd5d8da312eb36730cf69f7734fb40",
+      "translationSha256": "519cdd439bc2ccb4bf998b333e656bc1b98cb8ee3e5aea9cb3541e17f443c050"
     },
     "docs/design/stage1/03-structure.md": {
       "sourceSha256": "17433045dceaf1406d5e51d28cb290dc1f3080aaa5b69fb012149a1db1032c3f",
       "translationSha256": "71c1808cbdb82c1882d7ed506dadade89383a860b9313ae5a09635c0a5c6f80d"
+    },
+    "docs/design/stage1/04-member-a-behaviour.md": {
+      "sourceSha256": "d52603d63394a64ed224a1f572b8f9a12318543cd6035f019b90bf64d38cf2f5",
+      "translationSha256": "0570f91baaba9be5075a19a3a3fd640561c9be38d255a41855cca6a14aaa8f20"
     },
     "docs/design/stage1/04-member-c-behaviour.md": {
       "sourceSha256": "dc0db819b0beacd7c4e604abc1089fa559e445d5cf21f4b5f3e5e91e87385e9c",
       "translationSha256": "d248f1f41c02c49af66b559a54fc3bd4ce798641aef8ac2d9170a0283884009c"
     },
     "docs/design/stage1/README.md": {
-      "sourceSha256": "698bd829da6f8013c821d287d005a964c35f52402623c05e98ba802aa7064abc",
-      "translationSha256": "ac72742119891d486e8ed3ad1af36cf2fcf9a2d70faafef188d507e07f3c059d"
+      "sourceSha256": "e1a14298e07486573aa84aa88821776aee99da294e1f8e26c7ee48c97d0c2d21",
+      "translationSha256": "8047df488098bcc4dd7b60e8d47067131c41e6e6dc5e4ee1c9b825eca4fdd48e"
     },
     "docs/design/ui-guidelines.md": {
       "sourceSha256": "31f328abad78da71fc093515d9b212eec712b3d443b48ddb793eb2d5862a3a6d",

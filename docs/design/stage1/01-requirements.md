@@ -19,7 +19,7 @@ Informal statements in the stakeholder's own words, before any modelling.
 | ID | Member | Ad hoc requirement |
 | --- | --- | --- |
 | AH-C1 | C (`@HeadmasterEggy`) | "We're five friends going to Tokyo on a fixed budget. I want the planner to work out how many rooms we need, whether we share or each get our own, and pick a hotel I'd actually stay in: decent rating, free cancellation if I asked for it. Flights get paid first, so the hotel has to fit in whatever money is left. If the whole trip ends up over budget, I want the hotel swapped for a cheaper one that still meets my rules rather than being told nothing fits. If no hotel can ever fit, tell me the minimum I'd need instead of making up a cheap one. And if I've already booked somewhere, just keep it." |
-| AH-A1 | A | _to be written by A_ |
+| AH-A1 | A (`@Lilstanie`) | "I don't want to fill in a form. I want to type 'me and my partner, Tokyo and Kyoto, 10th to 17th of November, about nine grand' and have it understood. If something's genuinely missing, ask me — once, with a few options I can click, not a page of questions, and don't invent a budget I never said. While it works I want to see what it's actually doing, not a spinner. If the plan comes back clashing with itself — two places an hour apart booked back to back — go and fix that part rather than handing me the problem. Fix it a couple of times, and if it's not getting better, stop and give me the best version you had instead of churning. And if it genuinely can't be done on my money, say so plainly." |
 | AH-B1 | B | _to be written by B_ |
 | AH-D1 | D | _to be written by D_ |
 | AH-E1 | E | _to be written by E_ |
@@ -47,6 +47,23 @@ C = constraint.
 | R-C9 | NFR (integrity) | The model may choose only among searched candidate ids; it never invents a property, rate or policy. | accommodation system prompt |
 | R-C10 | NFR (availability) | With no model key, or an off-schema answer, a deterministic fallback still produces a valid proposal. | `planStays` fallback |
 | R-C11 | C | At most three revision rounds; a round is kept only if the plan score improves. | `workflow.ts` |
+
+AH-A1 is broken down below. FR = functional, NFR = non-functional, C = constraint.
+
+| ID | Type | Requirement | Traced to |
+| --- | --- | --- | --- |
+| R-A1 | FR | Turn a free-text message into a validated `TripBrief`, merging it onto the facts earlier turns already stated. | `chat.ts: runTripChat`, `update_trip_brief` |
+| R-A2 | FR | Record only facts the traveller stated; report a missing required field instead of defaulting it. | `IncompleteBriefError`, coordinator prompt |
+| R-A3 | FR | Ask at most one clarifying question per turn, with 2-4 options written in the traveller's language. | `ask_user_question`, `ASK_USER_MAX_QUESTIONS` |
+| R-A4 | FR | Delegate to the specialists over a staged planning board, each with a concrete objective. | `supervisor.ts`, `board.ts`, `dispatch_specialists` |
+| R-A5 | FR | Stream one progress event per specialist so the traveller sees the work as it happens. | `AgentProgressEvent`, `withProgressTools` |
+| R-A6 | FR | Route a round on the detected conflicts: revise only the targeted sections, and only while a round remains. | `workflow.ts: routeAfterDetection`, `reviseConflicts` |
+| R-A7 | FR | Keep a revision round only if `planScore` improves; otherwise discard it and keep the earlier proposals. | `planScore`, `stalled`, `routeAfterRevision` |
+| R-A8 | FR | Assemble the plan from validated proposals and mark each section `draft` or `needs_you`. | `build_plan`, `toSection` |
+| R-A9 | C | At most three revision rounds per turn. | `DEFAULT_MAX_ROUNDS` |
+| R-A10 | NFR (integrity) | A model-proposed brief change is re-validated through the Zod contract before any planning runs; the plan prose is never the plan. | `BriefPatchSchema`, `applyBriefPatch` |
+| R-A11 | NFR (availability) | With no model key, or an off-schema answer, extraction, delegation and the reply each fall back to deterministic code and the turn still completes. | `fallbackReplyFor`, supervisor fallback |
+| R-A12 | NFR (verifiability) | Orchestrator behaviour under injected model and provider faults is replayable and scored, so these rules are checked when the LLM misbehaves. | `orchestrator/src/agent-lab/` |
 
 ## 1.4 Feature diagram (group)
 
