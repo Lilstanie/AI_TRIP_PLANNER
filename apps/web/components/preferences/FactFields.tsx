@@ -212,7 +212,7 @@ function WhoFields({ value, onChange, errors }: FieldsProps) {
  *  its open end. Selecting one sets `budgetTotal` to it; the card reads as chosen only while the
  *  draft's amount still equals it exactly. */
 const BUDGET_PRESETS = [
-  { name: "Budget", hint: "under AUD 1,000", value: 900 },
+  { name: "Budget|tier", hint: "under AUD 1,000", value: 900 },
   { name: "Moderate", hint: "AUD 1,000–3,000", value: 3000 },
   { name: "Comfort", hint: "AUD 3,000–6,000", value: 6000 },
   { name: "Luxury", hint: "AUD 6,000+", value: 10000 },

@@ -51,10 +51,6 @@ function applyAppearance(appearance: UserSettings["appearance"]) {
   else root.dataset.theme = appearance;
 }
 
-function applyLanguage(language: UserSettings["language"]) {
-  document.documentElement.lang = language;
-}
-
 const newer = (a: UserSettings, b: UserSettings) =>
   Date.parse(a.updatedAt) > Date.parse(b.updatedAt);
 
@@ -79,7 +75,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   // Read after hydration so server and first client render match.
   useEffect(() => setSettings(readLocal()), []);
   useEffect(() => applyAppearance(settings.appearance), [settings.appearance]);
-  useEffect(() => applyLanguage(settings.language), [settings.language]);
 
   const signedIn = account.status === "signed-in" ? account.userId : undefined;
   // On sign-in the newer copy wins: the account's, or this browser's if it changed since.

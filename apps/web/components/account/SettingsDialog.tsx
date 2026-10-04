@@ -9,6 +9,7 @@ import { useSegmentIndicator } from "../ui/motion";
 import { useAccount } from "./AccountProvider";
 import { useSettings } from "./SettingsProvider";
 import { useLocale } from "./LocaleProvider";
+import type { MessageKey } from "@/lib/i18n/locale";
 
 /**
  * Settings follows Mindtrip's settings page: a quiet list of sections on the left, one section on
@@ -18,7 +19,7 @@ import { useLocale } from "./LocaleProvider";
 export type SettingsSection = "profile" | "account" | "personalization" | "region" | "connected";
 type Section = SettingsSection;
 type AccountModalProps = { onAccountModal(open: () => void): void };
-const SECTIONS: [Section, string][] = [
+const SECTIONS: [Section, MessageKey][] = [
   ["profile", "Edit profile"],
   ["account", "Your account"],
   ["personalization", "Personalization"],
@@ -56,7 +57,7 @@ function SettingRow({
 }: {
   label: string;
   value: ReactNode;
-  action?: string;
+  action?: MessageKey;
   children?: (close: () => void) => ReactNode;
 }) {
   const [open, setOpen] = useState(false);
@@ -866,8 +867,8 @@ function PersonalizationSection() {
 
 function RegionSection({ onDataMode }: { onDataMode(mode: DataMode): void }) {
   const { settings, update } = useSettings();
-  const { t } = useLocale();
-  const languageLabel = settings.language === "zh-CN" ? "简体中文" : "English";
+  const { locale, t } = useLocale();
+  const languageLabel = locale === "zh" ? "简体中文" : "English";
   return (
     <div className="settings-form">
       <SettingRow label={t("Language")} value={languageLabel}>
@@ -877,16 +878,16 @@ function RegionSection({ onDataMode }: { onDataMode(mode: DataMode): void }) {
             options={
               [
                 ["en", "English"],
-                ["zh-CN", "简体中文"],
+                ["zh", "简体中文"],
               ] as const
             }
-            value={settings.language}
+            value={locale}
             onChange={(language) => language && update({ language })}
           />
         )}
       </SettingRow>
       <p className="settings-hint">
-        {settings.language === "zh-CN"
+        {locale === "zh"
           ? "界面使用简体中文。你可以用任何语言聊天，规划助手会使用你的语言回复。"
           : "The interface follows this setting. Chat in any language: the planner replies in yours."}
       </p>

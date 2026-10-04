@@ -1,6 +1,15 @@
-export const LOCALES = ["en", "zh-CN"] as const;
+export const LOCALES = ["en", "zh"] as const;
 export type AppLocale = (typeof LOCALES)[number];
 export type CurrencyCode = "AUD";
+
+/** With no saved choice the interface follows the browser: any `zh*` language means Chinese. */
+export function browserLocale(languages: readonly string[]): AppLocale {
+  return languages[0]?.toLowerCase().startsWith("zh") ? "zh" : "en";
+}
+
+/** The BCP 47 tag for `<html lang>` and `Intl` formatters. */
+export const intlLocale = (locale: AppLocale) => (locale === "zh" ? "zh-CN" : "en-AU");
+
 /** Format existing AUD amounts in the selected interface language, without conversion. */
 export function formatAudForDisplay(
   amount: number,
@@ -9,7 +18,7 @@ export function formatAudForDisplay(
   maximumFractionDigits = 2,
   minimumFractionDigits = 2,
 ): string {
-  return new Intl.NumberFormat(locale === "zh-CN" ? "zh-CN" : "en-AU", {
+  return new Intl.NumberFormat(intlLocale(locale), {
     style: "currency",
     currency,
     currencyDisplay: "code",
@@ -18,7 +27,7 @@ export function formatAudForDisplay(
   }).format(amount);
 }
 
-const ZH: Record<string, string> = {
+const ZH = {
   "Edit profile": "编辑个人资料",
   "Your account": "你的账户",
   Personalization: "个性化",
@@ -132,8 +141,37 @@ const ZH: Record<string, string> = {
   "Your map will appear here": "地图将在这里显示",
   "Tell us a destination and dates in the chat, or add them in the bar at the top.":
     "在聊天中告诉我们目的地和日期，或在顶部栏中添加。",
-};
+  "Sign in": "登录",
+  Account: "账户",
+  "Keep your trips in sync": "登录后在各设备间同步行程",
+  "Checking account…": "正在检查账户…",
+  "Your travel workspace": "你的旅行工作区",
+  "View profile": "查看个人资料",
+  "Sign out": "退出登录",
+  "Account and settings": "账户与设置",
+  "Saved in this browser.": "已保存在此浏览器中。",
+  "Saving to your account…": "正在保存到你的账户…",
+  "Saved to your account.": "已保存到你的账户。",
+  "Could not reach your account; saved in this browser and will retry.":
+    "暂时无法连接你的账户；已保存在此浏览器中，稍后会重试。",
+  "65+": "65 岁及以上",
+  "Budget|tier": "经济",
+  Moderate: "适中",
+  Comfort: "舒适",
+  Luxury: "豪华",
+  Manage: "管理",
+  Export: "导出",
+} as const satisfies Record<string, string>;
 
-export function translate(locale: AppLocale, text: string): string {
-  return locale === "zh-CN" ? (ZH[text] ?? text) : text;
+/** An English interface string that has a Chinese entry; `t()` accepts nothing else. */
+export type MessageKey = keyof typeof ZH;
+
+/**
+ * English is the key itself, so a missing or empty Chinese entry falls back to English. A key may
+ * carry a `|context` suffix when one English word needs two translations ("Budget|tier"); English
+ * shows only the part before it.
+ */
+export function translate(locale: AppLocale, text: MessageKey): string {
+  const zh = locale === "zh" ? (ZH as Record<string, string>)[text] : undefined;
+  return zh || text.split("|")[0]!;
 }

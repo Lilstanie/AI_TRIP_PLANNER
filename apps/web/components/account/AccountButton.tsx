@@ -31,7 +31,7 @@ export function AccountButton({
   const subtitle = signedIn
     ? account.username
       ? `@${account.username}`
-      : "Your travel workspace"
+      : t("Your travel workspace")
     : account.status === "signed-out"
       ? t("Keep your trips in sync")
       : account.status === "loading"
@@ -139,7 +139,7 @@ export function AccountButton({
         <button
           type="button"
           className="account-button__profile"
-          aria-label={`${t(signedIn ? "View profile" : "Account settings")}${locale === "zh-CN" ? "：" : ": "}${name}`}
+          aria-label={`${t(signedIn ? "View profile" : "Account settings")}${locale === "zh" ? "：" : ": "}${name}`}
           aria-busy={account.status === "loading" || undefined}
           onClick={() => onSettings(signedIn ? "profile" : "account")}
         >

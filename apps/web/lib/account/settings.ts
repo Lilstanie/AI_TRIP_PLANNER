@@ -74,8 +74,8 @@ export const UserSettings = z.object({
   /** "default" follows the deployment's own setting. */
   dataMode: z.enum(["default", "live", "mock"]),
   appearance: z.enum(["system", "light", "dark"]),
-  /** Interface language; defaulted so settings saved before localisation still load. */
-  language: z.enum(LOCALES).default("en"),
+  /** Interface language. Absent means follow the browser, so settings saved before it still load. */
+  language: z.enum(LOCALES).optional(),
   /** When these settings last changed; the newer copy wins between browser and account. */
   updatedAt: z.string().datetime(),
 });
@@ -90,7 +90,6 @@ export const defaultSettings = (): UserSettings => ({
   assistant: { style: "neutral", memory: true },
   dataMode: "default",
   appearance: "system",
-  language: "en",
   // The epoch, so any settings the traveller actually saved are newer than the defaults.
   updatedAt: new Date(0).toISOString(),
 });

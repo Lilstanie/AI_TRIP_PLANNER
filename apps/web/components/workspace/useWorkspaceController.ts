@@ -33,6 +33,7 @@ import {
 import { useDataMode } from "@/lib/workspace/data-mode";
 import { draftDefaults } from "@/lib/account/settings";
 import { useSettings } from "../account/SettingsProvider";
+import { useInterfaceLocale } from "../account/LocaleProvider";
 import { useAccountSync } from "../account/useAccountSync";
 import type { SettingsSection } from "../account/SettingsDialog";
 import { useComposerAttachments } from "./useComposerAttachments";
@@ -60,6 +61,7 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
   const [notice, setNotice] = useState("");
   const [catalog, setCatalog] = useState<WorkspaceCatalog>(restored.catalog);
   const { settings } = useSettings();
+  const locale = useInterfaceLocale();
   const [historyQuery, setHistoryQuery] = useState("");
   // The top-bar chip whose editor is open; Preferences is one of them.
   const [openFact, setOpenFact] = useState<FactKey>();
@@ -251,7 +253,7 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     subtitle: `${item.snapshot.plan.brief.dates.join(" – ")} · ${formatAudForDisplay(
       item.snapshot.plan.estTotal,
       "AUD",
-      settings.language,
+      locale,
     )}`,
     status: item.status === "needs_review" ? ("Needs review" as const) : ("Draft" as const),
     active: !blank && item.id === catalog.activeTripId,

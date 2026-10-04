@@ -14,22 +14,23 @@ import { FactFields } from "./FactFields";
 import { FactPopover, type CloseReason } from "./FactPopover";
 import { usePresence } from "../ui/motion";
 import { useLocale } from "../account/LocaleProvider";
+import type { MessageKey } from "@/lib/i18n/locale";
 
-const TITLES: Record<FactKey, string> = {
+const TITLES: Record<FactKey, MessageKey> = {
   where: "Where",
   when: "When",
   who: "Who",
   budget: "Budget",
   preferences: "Trip preferences",
 };
-const EMPTY: Record<Exclude<FactKey, "preferences">, string> = {
+const EMPTY: Record<Exclude<FactKey, "preferences">, MessageKey> = {
   where: "Where",
   when: "When",
   who: "Who",
   budget: "Budget",
 };
 /** Spoken before a filled chip's value, so "Sydney" is announced as "Destination: Sydney". */
-const NAMES: Record<Exclude<FactKey, "preferences">, string> = {
+const NAMES: Record<Exclude<FactKey, "preferences">, MessageKey> = {
   where: "Destination",
   when: "Dates",
   who: "Travellers",
@@ -163,7 +164,7 @@ export function TripFactChips(props: Props) {
                 <>
                   <span className="sr-only">
                     {t(NAMES[fact])}
-                    {locale === "zh-CN" ? "：" : ": "}
+                    {locale === "zh" ? "：" : ": "}
                   </span>
                   {label}
                 </>

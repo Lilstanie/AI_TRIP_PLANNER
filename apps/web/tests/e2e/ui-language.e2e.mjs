@@ -1,5 +1,6 @@
-// Failure inventory: switch absent, fails to translate, language lost on reload,
-// sidebar overlaps main, narrow layout scrolls horizontally, or unrelated currency/address UI leaks in.
+// Failure inventory: switch absent, fails to translate, language lost on reload, browser language
+// ignored with no saved choice or overriding a saved one, sidebar overlaps main, narrow layout
+// scrolls horizontally, or unrelated currency/address UI leaks in.
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
@@ -13,15 +14,39 @@ const check = (ok, name) => {
   console.log(`${ok ? "ok" : "FAIL"} ${name}`);
 };
 const browser = await chromium.launch({ channel: process.env.CHANNEL });
+const baseUrl = process.env.BASE_URL ?? "http://localhost:3000";
+const htmlLang = (page) => page.locator("html").getAttribute("lang");
 try {
-  const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+  // No saved choice: a zh-CN browser opens in Chinese, then a saved English choice beats it.
+  const zhContext = await browser.newContext({
+    locale: "zh-CN",
+    viewport: { width: 1440, height: 1000 },
+  });
+  const zhPage = await zhContext.newPage();
+  await zhPage.goto(baseUrl);
+  await zhPage.getByRole("button", { name: "切换至 English" }).waitFor();
+  check((await htmlLang(zhPage)) === "zh-CN", "zh-CN browser opens in Chinese");
+  await zhPage.screenshot({ path: `${out}/desktop-zh-browser-default.png`, fullPage: true });
+  await zhPage.getByRole("button", { name: "切换至 English" }).click();
+  await zhPage.reload();
+  await zhPage.getByRole("button", { name: "Switch language to 简体中文" }).waitFor();
+  check((await htmlLang(zhPage)) === "en-AU", "saved English overrides a zh-CN browser");
+  await zhContext.close();
+
+  const context = await browser.newContext({
+    locale: "en-AU",
+    viewport: { width: 1440, height: 1000 },
+  });
+  const page = await context.newPage();
   const errors = [];
   page.on("pageerror", (error) => errors.push(String(error)));
-  await page.goto(process.env.BASE_URL ?? "http://localhost:3000");
+  await page.goto(baseUrl);
   await page.locator(".workspace-app").waitFor();
   await page.locator(".data-mode").waitFor();
   const toggle = page.getByRole("button", { name: "Switch language to 简体中文" });
+  await toggle.waitFor({ timeout: 5000 }).catch(() => {});
   check((await toggle.count()) === 1, "language switch is present");
+  check((await htmlLang(page)) === "en-AU", "en-AU browser opens in English");
   if ((await toggle.count()) !== 1) throw new Error("Missing language switch");
   check(
     (await page.locator(".data-mode + .language-toggle").count()) === 1,
@@ -60,10 +85,7 @@ try {
     "phone has no horizontal overflow",
   );
   await page.getByRole("button", { name: "切换至 English" }).click();
-  check(
-    (await page.locator("html").getAttribute("lang")) === "en",
-    "switch returns to English on phone",
-  );
+  check((await htmlLang(page)) === "en-AU", "switch returns to English on phone");
   await page.screenshot({ path: `${out}/phone-en.png`, fullPage: true });
   await page.getByRole("button", { name: "Where", exact: true }).click();
   check(

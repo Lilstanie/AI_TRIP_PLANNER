@@ -615,7 +615,7 @@ the account section explains that everything stays in this browser.
     under Advanced.
     The top-bar language switch sits beside Mock data and updates the same saved language setting.
     Navigation, controls, dates and AUD amounts follow it; agent replies and traveller text are not
-    translated. Old settings default to English. The desktop sidebar and main content have an 8 px gutter.
+    translated. With no saved choice it follows the browser language (`zh*` opens in Chinese). The desktop sidebar and main content have an 8 px gutter.
   - **Connected accounts:** the Google, GitHub or Apple sign-ins linked through Clerk, with a button
     that opens Clerk to change them.
 - Signed out, settings are kept in this browser; signed in, the newer copy of browser and account

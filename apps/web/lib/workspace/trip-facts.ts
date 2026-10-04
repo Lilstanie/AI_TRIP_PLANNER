@@ -5,7 +5,7 @@ import {
   type TripBrief,
 } from "@trip/shared";
 import { budgetHint, parseDraft, type Draft } from "./workspace";
-import { formatAudForDisplay, translate, type AppLocale } from "../i18n/locale";
+import { formatAudForDisplay, intlLocale, translate, type AppLocale } from "../i18n/locale";
 
 /** Age labels shown beside each Who stepper; also the order the chip summary lists them in. */
 export const PARTY_ROWS = [
@@ -120,7 +120,7 @@ export function briefErrors(issues: readonly { path: readonly PropertyKey[]; mes
 }
 
 const shortDate = (iso: string, withYear: boolean, locale: AppLocale) =>
-  new Intl.DateTimeFormat(locale === "zh-CN" ? "zh-CN" : "en-AU", {
+  new Intl.DateTimeFormat(intlLocale(locale), {
     day: "numeric",
     month: "short",
     ...(withYear ? { year: "numeric" } : {}),
@@ -139,7 +139,7 @@ export function datesLabel(start: string, end: string, locale: AppLocale = "en")
   const range = `${shortDate(start, !sameYear, locale)} – ${shortDate(end, !sameYear, locale)}`;
   return {
     range,
-    days: locale === "zh-CN" ? `${days} 天` : `${days} ${days === 1 ? "day" : "days"}`,
+    days: locale === "zh" ? `${days} 天` : `${days} ${days === 1 ? "day" : "days"}`,
   };
 }
 
@@ -190,7 +190,7 @@ export function factLabels(draft: Draft, brief?: TripBrief, display: { locale?: 
  */
 function whoLabel(draft: Draft, travellers: number, locale: AppLocale) {
   const plain =
-    locale === "zh-CN"
+    locale === "zh"
       ? `${travellers} 位旅行人员`
       : `${travellers} ${travellers === 1 ? "traveller" : "travellers"}`;
   const party = draft.party;
@@ -198,7 +198,7 @@ function whoLabel(draft: Draft, travellers: number, locale: AppLocale) {
   const parts = PARTY_ROWS.map(({ key, singular, label }) => {
     const count = party[key];
     return count > 0
-      ? locale === "zh-CN"
+      ? locale === "zh"
         ? `${count} ${translate(locale, label)}`
         : `${count} ${count === 1 ? singular : `${singular}s`}`
       : undefined;
