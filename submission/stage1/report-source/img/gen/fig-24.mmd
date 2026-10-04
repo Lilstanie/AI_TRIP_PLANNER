@@ -1,0 +1,26 @@
+stateDiagram-v2
+  [*] --> Requested : traveller edits a stop
+  Requested --> Previewing : POST EditRequest
+  state Previewing {
+    Validating --> Routing : [schema, version, IDs, segment ok]
+    Routing --> Recomputing : affected days re-timed
+  }
+  Validating --> Rejected : [invalid or stale] / 400 with reason
+  Previewing --> Shown : preview returned
+  Shown --> Blocked : [blockers present] / apply disabled
+  Shown --> Ready : [no blockers]
+  Blocked --> Cancelled : cancel
+  Ready --> Cancelled : cancel
+  Ready --> Stale : apply [preview.baseVersion ≠ editVersion]
+  Ready --> Applied : apply [versions match] / save locally, keep undo
+  Shown --> Stale : new plan arrives (chat, restore)
+  Rejected --> [*]
+  Cancelled --> [*]
+  Stale --> [*]
+  Applied --> [*]
+
+  note right of Previewing
+    Deterministic code only.
+    The chat LLM has no edit tool
+    and never enters this machine.
+  end note

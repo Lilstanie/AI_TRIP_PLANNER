@@ -1,0 +1,44 @@
+sequenceDiagram
+  autonumber
+  actor T as Traveller
+  participant W as Web workspace
+  participant P as /api/trip/preview-edit
+  participant G as Google Maps / Places
+  participant CC as Chat coordinator (LLM)
+
+  T->>W: Move, retime or swap a stop
+  W->>P: EditRequest (plan, baseVersion, operation, mode)
+  P->>P: Parse schema, check editVersion = baseVersion, IDs, segment
+  alt Invalid or stale
+    P-->>W: 400 with reason
+    W-->>T: Error, plan unchanged
+  else Valid
+    loop Each stop on an affected day
+      P->>G: placeDetails, timeZone, route(previous, current)
+      G-->>P: Duration or error
+      P->>P: Start no earlier than route + 15 min, or record a blocker
+    end
+    P->>P: detectConflicts, rollUpCost, price flags, editVersion = base + 1
+    P-->>W: Preview: plan, differences, routes, blockers
+    W-->>T: Show preview
+    alt Blockers present
+      Note over T,W: Apply is disabled
+      T->>W: Cancel
+    else Traveller cancels
+      T->>W: Cancel
+      W->>W: Drop preview
+    else Traveller applies
+      T->>W: Apply
+      W->>W: Compare preview.baseVersion with current editVersion
+      alt Plan changed meanwhile
+        W-->>T: The trip changed, make the change again
+      else Same version
+        W->>W: Keep undo step, save new plan locally
+        W-->>T: Updated Timeline / Map
+      end
+    end
+  end
+
+  Note over T,CC: Chat is a separate path
+  T->>CC: Chat message
+  CC-->>T: Updated brief or a replan (UC-A1), never an EditRequest

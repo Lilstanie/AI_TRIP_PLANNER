@@ -1,0 +1,50 @@
+flowchart TB
+  start(( )) --> how{"Edit on Timeline / Map, or ask in chat?"}
+  how -- edit --> pick
+  how -- chat --> chat
+
+  subgraph T["Traveller"]
+    how
+    pick["Move, retime or swap a stop on Timeline / Map"]
+    choose{"Apply or cancel?"}
+    chat["Ask for a change in chat"]
+  end
+
+  subgraph W["Web workspace (browser)"]
+    send["POST EditRequest: plan, baseVersion, operation"]
+    show["Show preview: differences, routes, blockers"]
+    blocked{"Any blockers?"}
+    fresh{"preview.baseVersion = current editVersion?"}
+    apply["Apply previewed plan, keep one undo step, save locally"]
+    stale["Drop preview: the trip changed"]
+    err["Show error; plan unchanged"]
+  end
+
+  subgraph P["Preview route (deterministic)"]
+    check{"Schema, version, IDs and segment rules pass?"}
+    retime["Re-time affected days: route time + 15 min buffer"]
+    recompute["Recompute conflicts, cost roll-up, price flags; editVersion + 1"]
+  end
+
+  subgraph G["Google Maps / Places"]
+    maps["Place details, time zone, route duration"]
+  end
+
+  subgraph C["Chat coordinator (LLM, UC-A1)"]
+    replan["Update brief or replan; has no edit tool"]
+  end
+
+  pick --> send --> check
+  check -- no --> err --> stop(((●)))
+  check -- yes --> retime
+  retime <--> maps
+  retime --> recompute --> show --> blocked
+  blocked -- yes --> err
+  blocked -- no --> choose
+  choose -- cancel --> stop
+  choose -- apply --> fresh
+  fresh -- no --> stale --> stop
+  fresh -- yes --> apply --> stop
+  chat --> replan --> stop
+  style start fill:#14213D,stroke:#14213D
+  style stop fill:#FFFFFF,stroke:#14213D
