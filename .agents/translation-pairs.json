@@ -34,24 +34,40 @@
       "translationSha256": "ea2e79620e1a5f2ee201521e20348af83ae325d4a936433d4db454c71747cf7c"
     },
     "docs/design/stage1/01-requirements.md": {
-      "sourceSha256": "7f093fe553c0500e9ae08f2c78344f9a0e96f633ec5a635081d33d966839c81c",
-      "translationSha256": "4a91dcd7f8465bd361e5e2dea20a8456fce2fcf1cd03442d4b81867ddfc1d344"
+      "sourceSha256": "9065aea6c1ad47e7647e9fa39b32e3fad5e56992f4a35b038dd4f29c7aea488d",
+      "translationSha256": "cdea0c05c220274655a35e16465aef4d44680837508e6c67c9ab5305c1d067ce"
     },
     "docs/design/stage1/02-use-cases.md": {
-      "sourceSha256": "79f8de7ee2510aa1da9ac81069be7ff1d9f33fbd2acd242ea4afd1203b0aeeb5",
-      "translationSha256": "c077fc989127ecb7bdb15842e7ffc0527b76876b2c6f9c676cf9091a33d21f00"
+      "sourceSha256": "2ec490e2c8dc7f66df6e83d58dacf3615021399f7180f3cc73b5b9019c83573a",
+      "translationSha256": "eb9229e9ae30e724c4c242587d49f076b3f7bbf18c73913bed349e81c5b41b8f"
     },
     "docs/design/stage1/03-structure.md": {
       "sourceSha256": "17433045dceaf1406d5e51d28cb290dc1f3080aaa5b69fb012149a1db1032c3f",
       "translationSha256": "71c1808cbdb82c1882d7ed506dadade89383a860b9313ae5a09635c0a5c6f80d"
     },
+    "docs/design/stage1/04-member-a-behaviour.md": {
+      "sourceSha256": "3423013f986a55eee871c9d6256eacce8147d7a73f8e03c0d98276c265042f50",
+      "translationSha256": "e0acb4c6b728e3fe5236d18eb42463fdc6cdc03bc5c252f257a7aa56b17350f9"
+    },
+    "docs/design/stage1/04-member-b-behaviour.md": {
+      "sourceSha256": "8b59774f73d812548ba67ced2e160b993261765e022e5bff3ddd3a0d35dc1200",
+      "translationSha256": "18997f6e73dff9bca498fe3387dae51a3bd0f14df5eccf81e7e5778500f787f0"
+    },
     "docs/design/stage1/04-member-c-behaviour.md": {
       "sourceSha256": "dc0db819b0beacd7c4e604abc1089fa559e445d5cf21f4b5f3e5e91e87385e9c",
       "translationSha256": "d248f1f41c02c49af66b559a54fc3bd4ce798641aef8ac2d9170a0283884009c"
     },
+    "docs/design/stage1/04-member-d-behaviour.md": {
+      "sourceSha256": "1069f4fe719c16a2c0e82b7e2c6dd2265e8f3045953962e2a5270e556e600ef1",
+      "translationSha256": "5b31a7912c73ae698d394c0a95c884298b52c8eddb26d1321c81a9e9fa668bef"
+    },
+    "docs/design/stage1/04-member-e-behaviour.md": {
+      "sourceSha256": "304494f901c1a9691c80aa83f8507c4a50b38df62160fec791f836dedb16710e",
+      "translationSha256": "15ffaa25247bb440f37efddfd438f1f29fb7bdaa7a418f5f9ba91ae04b207f4d"
+    },
     "docs/design/stage1/README.md": {
-      "sourceSha256": "698bd829da6f8013c821d287d005a964c35f52402623c05e98ba802aa7064abc",
-      "translationSha256": "ac72742119891d486e8ed3ad1af36cf2fcf9a2d70faafef188d507e07f3c059d"
+      "sourceSha256": "fa56ef7370960077b6c24b2e8ecf5f87c2020076d28e5b4c089594900f13068f",
+      "translationSha256": "f268ed9e60e68363174ed82ea2b9092ac6e19e3325d311f630f6ed0ac5de5c4c"
     },
     "docs/design/ui-guidelines.md": {
       "sourceSha256": "31f328abad78da71fc093515d9b212eec712b3d443b48ddb793eb2d5862a3a6d",

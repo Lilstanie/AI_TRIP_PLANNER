@@ -11,19 +11,19 @@ confirmed preference; deterministic code checks every model output.
 
 **Mandatory capabilities** (the product is not acceptable without them):
 
-| ID | Capability | Owner |
-| --- | --- | --- |
-| M1 | Chat intake that extracts a structured trip brief and asks for missing facts | A |
-| M2 | LangGraph planning loop: dispatch, conflict detection, targeted revision (at most 3 rounds), build plan | A |
-| M3 | Day-by-day itinerary with route-feasibility checks | B |
-| M4 | Transport between and within cities, with times and fares | B |
-| M5 | Accommodation for individuals or groups within the stay allocation | C |
-| M6 | Budget roll-up in AUD, overrun spreading and infeasible-budget detection | C |
-| M7 | Grounded destination guide | D |
-| M8 | Dining recommendations that respect dietary needs | D |
-| M9 | Workspace with timeline and map views and plan editing | E |
-| M10 | Preference and session memory | E |
-| M11 | Provenance label on every section; deterministic fallback when a model or provider fails | All |
+| ID  | Capability                                                                                              | Owner |
+| --- | ------------------------------------------------------------------------------------------------------- | ----- |
+| M1  | Chat intake that extracts a structured trip brief and asks for missing facts                            | A     |
+| M2  | LangGraph planning loop: dispatch, conflict detection, targeted revision (at most 3 rounds), build plan | A     |
+| M3  | Day-by-day itinerary with route-feasibility checks                                                      | B     |
+| M4  | Transport between and within cities, with times and fares                                               | B     |
+| M5  | Accommodation for individuals or groups within the stay allocation                                      | C     |
+| M6  | Budget roll-up in AUD, overrun spreading and infeasible-budget detection                                | C     |
+| M7  | Grounded destination guide                                                                              | D     |
+| M8  | Dining recommendations that respect dietary needs                                                       | D     |
+| M9  | Workspace with timeline and map views and plan editing                                                  | E     |
+| M10 | Preference and session memory                                                                           | E     |
+| M11 | Provenance label on every section; deterministic fallback when a model or provider fails                | All   |
 
 **Optional features** (add value; the product is acceptable without them): Agent Lab and Failure
 Lab (A); traveller-chosen leg mode and own flights (B); keep a booked stay (C); weather-based
@@ -33,39 +33,94 @@ packing advice (D); accounts and cloud sync (E); attachments in chat; place phot
 
 Informal statements in the stakeholder's own words, before any modelling.
 
-| ID | Member | Ad hoc requirement |
-| --- | --- | --- |
-| AH-C1 | C (`@HeadmasterEggy`) | "We're five friends going to Tokyo on a fixed budget. I want the planner to work out how many rooms we need, whether we share or each get our own, and pick a hotel I'd actually stay in: decent rating, free cancellation if I asked for it. Flights get paid first, so the hotel has to fit in whatever money is left. If the whole trip ends up over budget, I want the hotel swapped for a cheaper one that still meets my rules rather than being told nothing fits. If no hotel can ever fit, tell me the minimum I'd need instead of making up a cheap one. And if I've already booked somewhere, just keep it." |
-| AH-A1 | A | _to be written by A_ |
-| AH-B1 | B | _to be written by B_ |
-| AH-D1 | D | _to be written by D_ |
-| AH-E1 | E | _to be written by E_ |
+| ID    | Member                | Ad hoc requirement                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| ----- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AH-A1 | A (`@Lilstanie`)      | "I don't want to fill in a form. I want to type 'me and my partner, Tokyo and Kyoto, 10th to 17th November, about nine grand' and have it work out the rest. If something's actually missing, ask me once, with a few options I can click. Don't make up a budget I never gave you. While it's working I want to see what it's doing, not a loading spinner. If the plan comes back with two places an hour apart booked back to back, fix that yourself instead of handing it to me. Try a couple of times, and if it's not improving, give me the best version you got. If it can't be done on my budget, just say so." |
+| AH-B1 | B (`@fonever2`)       | “I'm travelling from Sydney to Tokyo and Kyoto with a friend, on fixed dates and a shared budget. Help us choose flights and work out when to move between cities, so the daily sightseeing fits around the journey. Use fares and journey times you actually found. If I ask for a train on one leg, use it if it is offered, or tell me clearly if it isn't. If a fare is missing, say it is unknown rather than treating it as free. If the trip is too expensive or the times clash, try a suitable cheaper option or adjust the schedule; if it still cannot work, show me what needs to change.”                    |
+| AH-C1 | C (`@HeadmasterEggy`) | "We're five friends going to Tokyo on a fixed budget. I want the planner to work out how many rooms we need, whether we share or each get our own, and pick a hotel I'd actually stay in: decent rating, free cancellation if I asked for it. Flights get paid first, so the hotel has to fit in whatever money is left. If the whole trip ends up over budget, I want the hotel swapped for a cheaper one that still meets my rules rather than being told nothing fits. If no hotel can ever fit, tell me the minimum I'd need instead of making up a cheap one. And if I've already booked somewhere, just keep it."   |
+| AH-D1 | D (`@jbia0391`)       | “I’m planning a few days in Kyoto and want the guide to help me pack for the actual dates, not just guess from the season. I’m vegetarian and have a peanut allergy, so I also want restaurant ideas that take those preferences into account. Please use real place and weather evidence when it is available, tell me when a forecast is only historical climate context or unavailable, and never assure me that a restaurant is allergy-safe unless the venue confirms it.”                                                                                                                                           |
+| AH-E1 | E (`@WhW0591`)        | "I want to plan a trip, not just from scratch on this platform, but also with an assistant helping me organize my itinerary. I'd like to easily modify various details of the trip, while having the assistant verify for conflicts, offer suggestions, check routes and timing, and help confirm the budget. After all the creation and adjustments, I'd finally like to receive a clear and well-organized travel schedule."                                                                                                                                                                                            |
+| ID    | Type                | Requirement                                                                                                                                         | Traced to                                             |
+| ----- | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| ID   | Type                | Requirement                                                                                                                                                                                                              | Current implementation evidence                                                                                                                                                                                                                                                                                                                                                                                            |
+| ID    | Type               | Requirement                                                                                                                                 | Traced to                          |
+| ----- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| ID   | Type               | Requirement                                                                                                                                                                                             | Traced to                                                                                                             |
+| ID   | Type    | Requirement                                                                                                                    | Traced to                                          |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------- |
 
 Group-level needs gathered in early lab discussion (from the team's design doc): clothing advice
 from the weather, accommodation for individuals or groups, food recommendations, day-by-day
 scheduling, luggage rules, transport, a budget, a chat window that splits a request into tasks and
 merges the answers, and filters for party size, area and budget.
 
-## 2.3 Classified requirements: member C
+## 2.3 Classified requirements
 
-AH-C1 is broken down into classified requirements below. FR = functional, NFR = non-functional,
-C = constraint.
+Each ad hoc requirement is broken down below. FR = functional, NFR = non-functional, C = constraint.
 
-| ID | Type | Requirement | Traced to |
-| --- | --- | --- | --- |
-| R-C1 | FR | Compute the room count from party size and room allocation: `individual` gives one room per guest, `shared` gives ⌈guests / 2⌉. | `accommodation/index.ts` |
-| R-C2 | FR | Filter stay candidates by minimum rating and, when requested, free cancellation; these are hard rules that a budget revision may not relax. | `planning.ts: eligibleOptions` |
-| R-C3 | FR | Choose the first stay preferring rating ≥ 8 and free cancellation, within the stay allocation left after transport. | `chooseInitial`, board allocation |
-| R-C4 | FR | Roll up section costs in AUD and compare the total with `budgetTotal`. | `budget.ts: rollUpCost` |
-| R-C5 | FR | On any overrun, spread the required saving over the sections that can still be cut, and send each a targeted revision request. | `conflicts.ts: detectConflicts` |
-| R-C6 | FR | When the cheapest options already exceed the budget, report one `infeasible budget` conflict naming the minimum, and stop revising. | `minimumCost`, `INFEASIBLE_BUDGET` |
-| R-C7 | FR | Keep a stay the traveller has already booked, unpriced and without a search. | `bookedStayProposal` |
-| R-C8 | NFR (accuracy) | Money is summed in integer cents so totals never drift. | `sumMoney`, `stayCost` |
-| R-C9 | NFR (integrity) | The model may choose only among searched candidate ids; it never invents a property, rate or policy. | accommodation system prompt |
-| R-C10 | NFR (availability) | With no model key, or an off-schema answer, a deterministic fallback still produces a valid proposal. | `planStays` fallback |
-| R-C11 | C | At most three revision rounds; a round is kept only if the plan score improves. | `workflow.ts` |
+### 2.3.1 Member A (AH-A1)
 
+| ID    | Type                | Requirement                                                                                                                                         | Traced to                                             |
+| ----- | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| R-A1  | FR                  | Turn a free-text message into a validated `TripBrief`, merging it onto the facts earlier turns already stated.                                      | `chat.ts: runTripChat`, `update_trip_brief`           |
+| R-A2  | FR                  | Record only facts the traveller stated; report a missing required field instead of defaulting it.                                                   | `IncompleteBriefError`, coordinator prompt            |
+| R-A3  | FR                  | Ask at most one clarifying question per turn, with 2-4 options written in the traveller's language.                                                 | `ask_user_question`, `ASK_USER_MAX_QUESTIONS`         |
+| R-A4  | FR                  | Delegate to the specialists over a staged planning board, each with a concrete objective.                                                           | `supervisor.ts`, `board.ts`, `dispatch_specialists`   |
+| R-A5  | FR                  | Stream one progress event per specialist so the traveller sees the work as it happens.                                                              | `AgentProgressEvent`, `withProgressTools`             |
+| R-A6  | FR                  | Route a round on the detected conflicts: revise only the targeted sections, and only while a round remains.                                         | `workflow.ts: routeAfterDetection`, `reviseConflicts` |
+| R-A7  | FR                  | Keep a revision round only if `planScore` improves; otherwise discard it and keep the earlier proposals.                                            | `planScore`, `stalled`, `routeAfterRevision`          |
+| R-A8  | FR                  | Assemble the plan from validated proposals and mark each section `draft` or `needs_you`.                                                            | `build_plan`, `toSection`                             |
+| R-A9  | C                   | At most three revision rounds per turn.                                                                                                             | `DEFAULT_MAX_ROUNDS`                                  |
+| R-A10 | NFR (integrity)     | A model-proposed brief change is re-validated through the Zod contract before planning starts. The reply text is never treated as the plan.         | `BriefPatchSchema`, `applyBriefPatch`                 |
+| R-A11 | NFR (availability)  | With no model key, or an off-schema answer, extraction, delegation and the reply each fall back to deterministic code and the turn still completes. | `fallbackReplyFor`, supervisor fallback               |
+| R-A12 | NFR (verifiability) | Orchestrator behaviour under injected model and provider faults is replayable and scored, so these rules are checked under failure conditions.      | `orchestrator/src/agent-lab/`                         |
 
-**Classified requirements for members A, B, D and E.** _Each member adds a table in the same
-format (FR, NFR, C) for their own ad hoc requirement._
+### 2.3.2 Member B (AH-B1)
 
+AH-B1 is a coursework stakeholder-style statement, not an interview quotation. Its six classified requirements trace to the current transport and itinerary implementation.
+
+| ID   | Type                | Requirement                                                                                                                                                                                                              | Current implementation evidence                                                                                                                                                                                                                                                                                                                                                                                            |
+| ---- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R-B1 | FR                  | Derive ordered journey hops from origin, destinations and dates; gather flight and ground-route options and produce a timed transport proposal for the party.                                                            | [packages/agents/src/transport/index.ts:87](https://github.com/Lilstanie/AI_TRIP_PLANNER/blob/c59f751fc04766db9fcbcfe82d4a0c5b6ec3c0c6/packages/agents/src/transport/index.ts#L87); `journeyLegs` in `transport/legs.ts`                                                                                                                                                                                                   |
+| R-B2 | FR                  | Use the transport schedule when planning daily activities and check that travel between different activity locations fits the available gap, including a 15-minute arrival buffer.                                       | [packages/orchestrator/src/board.ts:15](https://github.com/Lilstanie/AI_TRIP_PLANNER/blob/c59f751fc04766db9fcbcfe82d4a0c5b6ec3c0c6/packages/orchestrator/src/board.ts#L15); `citiesByDay`, `travelConflicts`: [packages/agents/src/itinerary/index.ts:342](https://github.com/Lilstanie/AI_TRIP_PLANNER/blob/c59f751fc04766db9fcbcfe82d4a0c5b6ec3c0c6/packages/agents/src/itinerary/index.ts#L342)                         |
+| R-B3 | FR                  | Apply a traveller's per-hop mode choice when supported; explicitly report an unavailable choice and the route used instead.                                                                                              | `chosenModeFor`: [packages/agents/src/transport/legs.ts:106](https://github.com/Lilstanie/AI_TRIP_PLANNER/blob/c59f751fc04766db9fcbcfe82d4a0c5b6ec3c0c6/packages/agents/src/transport/legs.ts#L106); `scheduledLegs` and `layOutHop`: [packages/agents/src/transport/index.ts:306](https://github.com/Lilstanie/AI_TRIP_PLANNER/blob/c59f751fc04766db9fcbcfe82d4a0c5b6ec3c0c6/packages/agents/src/transport/index.ts#L306) |
+| R-B4 | NFR — integrity     | Select only returned fare candidates; derive costs and durations from evidence. Preserve absent ground fares as unpriced and report unavailable required flights without inventing a price.                              | `planTransport`: [packages/agents/src/transport/index.ts:685](https://github.com/Lilstanie/AI_TRIP_PLANNER/blob/c59f751fc04766db9fcbcfe82d4a0c5b6ec3c0c6/packages/agents/src/transport/index.ts#L685); `assembleTransportProposal`: [packages/agents/src/transport/index.ts:470](https://github.com/Lilstanie/AI_TRIP_PLANNER/blob/c59f751fc04766db9fcbcfe82d4a0c5b6ec3c0c6/packages/agents/src/transport/index.ts#L470)   |
+| R-B5 | NFR — resilience    | When no model is configured or its selection is invalid, use a deterministic evidence-based plan; retain availability gaps and source labels. Unrecoverable input/provider errors may still fail the run.                | `deterministicPlan`, `planTransport` catch path: [packages/agents/src/transport/index.ts:685](https://github.com/Lilstanie/AI_TRIP_PLANNER/blob/c59f751fc04766db9fcbcfe82d4a0c5b6ec3c0c6/packages/agents/src/transport/index.ts#L685)                                                                                                                                                                                      |
+| R-B6 | C — bounded control | Under the default workflow, allow at most three total planning rounds (initial round plus at most two revision rounds); rerun only targeted revisable specialists and retain a revision only if the plan score improves. | [packages/orchestrator/src/workflow.ts:141](https://github.com/Lilstanie/AI_TRIP_PLANNER/blob/c59f751fc04766db9fcbcfe82d4a0c5b6ec3c0c6/packages/orchestrator/src/workflow.ts#L141); [packages/orchestrator/src/conflicts.ts:24](https://github.com/Lilstanie/AI_TRIP_PLANNER/blob/c59f751fc04766db9fcbcfe82d4a0c5b6ec3c0c6/packages/orchestrator/src/conflicts.ts#L24)                                                     |
+
+### 2.3.3 Member C (AH-C1)
+
+| ID    | Type               | Requirement                                                                                                                                 | Traced to                          |
+| ----- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| R-C1  | FR                 | Compute the room count from party size and room allocation: `individual` gives one room per guest, `shared` gives ⌈guests / 2⌉.             | `accommodation/index.ts`           |
+| R-C2  | FR                 | Filter stay candidates by minimum rating and, when requested, free cancellation; these are hard rules that a budget revision may not relax. | `planning.ts: eligibleOptions`     |
+| R-C3  | FR                 | Choose the first stay preferring rating ≥ 8 and free cancellation, within the stay allocation left after transport.                         | `chooseInitial`, board allocation  |
+| R-C4  | FR                 | Roll up section costs in AUD and compare the total with `budgetTotal`.                                                                      | `budget.ts: rollUpCost`            |
+| R-C5  | FR                 | On any overrun, spread the required saving over the sections that can still be cut, and send each a targeted revision request.              | `conflicts.ts: detectConflicts`    |
+| R-C6  | FR                 | When the cheapest options already exceed the budget, report one `infeasible budget` conflict naming the minimum, and stop revising.         | `minimumCost`, `INFEASIBLE_BUDGET` |
+| R-C7  | FR                 | Keep a stay the traveller has already booked, unpriced and without a search.                                                                | `bookedStayProposal`               |
+| R-C8  | NFR (accuracy)     | Money is summed in integer cents so totals never drift.                                                                                     | `sumMoney`, `stayCost`             |
+| R-C9  | NFR (integrity)    | The model may choose only among searched candidate ids; it never invents a property, rate or policy.                                        | accommodation system prompt        |
+| R-C10 | NFR (availability) | With no model key, or an off-schema answer, a deterministic fallback still produces a valid proposal.                                       | `planStays` fallback               |
+| R-C11 | C                  | At most three revision rounds; a round is kept only if the plan score improves.                                                             | `workflow.ts`                      |
+
+### 2.3.4 Member D (AH-D1)
+
+| ID   | Type               | Requirement                                                                                                                                                                                             | Traced to                                                                                                             |
+| ---- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| R-D1 | FR                 | For a valid trip date and destination coordinates, request weather evidence and include weather-based packing guidance in the destination-guide proposal.                                               | `destination-guide/index.ts:planDestinationGuide`                                                                     |
+| R-D2 | NFR (accuracy)     | Label weather by its actual horizon: forecasts cover up to 14 days; later dates use climate context, never a forecast. Preserve provider, observation time and forecast validity where supplied.        | `weather.ts:weather.forecast`; `destination-guide/index.ts:planDestinationGuide`                                      |
+| R-D3 | FR                 | Use grounded restaurant candidates and relevant stored dietary preferences to produce dining suggestions within the meal-budget ceiling.                                                                | `dining/index.ts:dietaryPreferences`; `dining/index.ts:budgetCeiling`                                                 |
+| R-D4 | NFR (integrity)    | Accept attraction and restaurant names only when they match map candidates; do not claim menus, allergen safety or dietary suitability as verified facts.                                               | `destination-guide/index.ts:validateDraft`; `dining/index.ts:validateDraft`; `dining/index.ts:createMiniMaxGenerator` |
+| R-D5 | NFR (availability) | If weather or model evidence is unavailable or invalid, return deterministic guidance where possible and label unavailable weather or fallback provenance rather than presenting it as a live forecast. | `destination-guide/index.ts:fallbackDraft`; `destination-guide/index.ts:planDestinationGuide`                         |
+
+### 2.3.5 Member E (AH-E1)
+
+| ID   | Type    | Requirement                                                                                                                    | Traced to                                          |
+| ---- | ------- | ------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------- |
+| R-E1 | FR      | Accept timeline/map edits, including moving, retiming, replacing, route checking and undo.                                     | `EditRequest`; `TripEditor`; `useTimelineEdits`    |
+| R-E2 | FR      | Show a preview before applying, including differences, routes, blockers, conflicts, costs and budget status.                   | `EditPreview`; `EditPreviewPanel`; `previewEdit`   |
+| R-E3 | FR      | Preserve unchanged activities and ideas, share selection between timeline and map, and flag unverified prices.                 | `TripPlan.editIssues`; shared selected activity id |
+| R-E4 | NFR     | Recalculate routes, schedule conflicts, section conflicts, costs and budget deterministically after edits.                     | `detectConflicts`; `rollUpCost`; Maps / Routes API |
+| R-E5 | NFR     | Keep trip facts separate from preferences. The current chat LLM updates briefs or replans; it does not call the edit boundary. | `TripBrief`; coordinator tools; memory service     |
+| R-E6 | C / NFR | Enforce destination-segment rules and reject malformed or stale previews without inventing route, price or place.              | `baseVersion`; Zod; identity and segment checks    |

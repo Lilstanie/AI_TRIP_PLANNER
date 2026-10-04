@@ -21,7 +21,7 @@ and what is still missing; this skill says which copies a change touches.
 ## Rules the history taught
 
 - **Regenerate the deck.** Put a member's diagram source in `slides-source/mmd-src/`, render it into
-  `slides-source/assets/diagrams/`, fill that member's `behaviour_template` call in `build_deck.py`,
+  `slides-source/assets/diagrams/`, replace that member's `behaviour_template` call with `behaviour_slide` in `build_deck.py`,
   then run the script. A hand-edited `.pptx` is lost on the next run; #142 had to rebuild slide 19 from the generator.
 - **One copy of each image.** Diagrams for the deck live only in `slides-source/assets/diagrams/`,
   with their source in `mmd-src/`. Do not add a parallel `diagrams` folder elsewhere under `submission/stage1/`, or

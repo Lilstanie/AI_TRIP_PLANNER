@@ -1,0 +1,34 @@
+stateDiagram-v2
+  [*] --> WaitingForTransport : dispatch
+  WaitingForTransport --> Kept : [bookedStay]
+  WaitingForTransport --> Searching : transport posted / allocation computed
+
+  state Planning {
+    Searching --> Choosing : candidates found
+    Searching --> Failed : [no eligible candidate]
+    Choosing --> Choosing : [model output invalid] / deterministic pick
+    Choosing --> Priced : choice validated
+  }
+
+  Priced --> UnderReview : post proposal / detectConflicts
+  Kept --> UnderReview : post proposal
+
+  UnderReview --> Draft : [within budget]
+  UnderReview --> Revising : [over budget and feasible and round < 3] / targetSaving
+  UnderReview --> NeedsYou : [infeasible budget] / report minimum
+  UnderReview --> NeedsYou : [round = 3 and still targeted]
+
+  Revising --> Searching : revision request (preferences kept)
+  Revising --> NeedsYou : [score not improved] / keep previous proposal
+
+  Draft --> [*]
+  NeedsYou --> [*]
+  Failed --> [*]
+
+  note right of Planning
+    UI shows "planning"
+  end note
+  note right of NeedsYou
+    UI shows "needs_you" while a
+    RevisionRequest still targets it
+  end note

@@ -12,42 +12,45 @@
 
 \* 表示个人项：每位成员各写自己的。
 
-| 评分项 | 分值 | 位置 |
-| --- | --- | --- |
-| Ad hoc 需求\* | 0.5 | [01-requirements.md §1.2](01-requirements.zh.md#12-ad-hoc-requirements-individual-at-least-one-per-member) |
-| 特征图（含非功能需求） | 1 | [01-requirements.md §1.4](01-requirements.zh.md#14-feature-diagram-group) |
-| 总体用例图 | 1 | [use-case-diagram.svg](../diagrams/use-case-diagram.svg) |
-| 用例规格\* | 2 | [02-use-cases.md](02-use-cases.zh.md) |
-| 类图：泛化、组合、聚合、接口、多重性 | 3 | [class-diagram.md](../class-diagram.zh.md) 图 1–5，以及 [03-structure.md §3.1](03-structure.zh.md#31-elementary-structure-generalisation-added-to-the-class-model) 中的图 6 |
-| 对象图、协作、结构化类 | 3 | [03-structure.md §3.2–3.4](03-structure.zh.md#32-object-diagram) |
-| 活动图\* | 1.5 | 成员 C：[04-member-c-behaviour.md §4.1](04-member-c-behaviour.zh.md#41-activity-diagram-arrange-accommodation-uc-c1) |
-| 时序图\* | 1.5 | 成员 C：[§4.2](04-member-c-behaviour.zh.md#42-sequence-diagram-budget-overrun-and-targeted-revision-uc-c2-extension-2a) |
-| 状态机图\* | 1.5 | 成员 C：[§4.3](04-member-c-behaviour.zh.md#43-state-machine-accommodation-section-within-a-planning-turn-uc-c1-and-uc-c2) |
-| 架构视图（可选） | — | [架构图](../../architecture-diagrams.zh.md)：系统概览、agent 协作、聊天流时序、行程区段生命周期、存储同步 |
+| 评分项                               | 分值 | 位置                                                                                                                                                                        |
+| ------------------------------------ | ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Ad hoc 需求\*                        | 0.5  | [01-requirements.md §1.2](01-requirements.zh.md#12-ad-hoc-requirements-individual-at-least-one-per-member)                                                                  |
+| 特征图（含非功能需求）               | 1    | [01-requirements.md §1.4](01-requirements.zh.md#14-feature-diagram-group)                                                                                                   |
+| 总体用例图                           | 1    | [use-case-diagram.svg](../diagrams/use-case-diagram.svg)                                                                                                                    |
+| 用例规格\*                           | 2    | [02-use-cases.md](02-use-cases.zh.md)                                                                                                                                       |
+| 类图：泛化、组合、聚合、接口、多重性 | 3    | [class-diagram.md](../class-diagram.zh.md) 图 1–5，以及 [03-structure.md §3.1](03-structure.zh.md#31-elementary-structure-generalisation-added-to-the-class-model) 中的图 6 |
+| 对象图、协作、结构化类               | 3    | [03-structure.md §3.2–3.4](03-structure.zh.md#32-object-diagram)                                                                                                            |
+| 活动图\*                             | 1.5  | [个人项](#individual-items)                                                                                                                                                 |
+| 时序图\*                             | 1.5  | [个人项](#individual-items)                                                                                                                                                 |
+| 状态机图\*                           | 1.5  | [个人项](#individual-items)                                                                                                                                                 |
+| 架构视图（可选）                     | —    | [架构图](../../architecture-diagrams.zh.md)：系统概览、agent 协作、聊天流时序、行程区段生命周期、存储同步                                                                   |
 
 需求图和结构图的 SVG 和 PNG 渲染文件在 [`../diagrams/`](../diagrams/)。成员 C 的活动图、时序图和状态机图以 Archify 视图形式渲染，放在 [`../../architecture-diagrams/stage1-member-c/`](../../architecture-diagrams.zh.md#elec5620-stage-1-member-c-behaviour)。
 
-<a id="what-each-other-member-still-has-to-write"></a>
+<a id="individual-items"></a>
 
-## 其他成员还需要写的内容
+## 个人项
 
-每位成员的活动图、时序图和状态机图必须来自**自己的** ad hoc 需求和用例规格。A、B、D、E 每人还需补充：
+每位成员的活动图、时序图和状态机图都来自**自己的** ad hoc 需求和用例规格。
 
-1. 在 [01-requirements.md §1.2](01-requirements.zh.md#12-ad-hoc-requirements-individual-at-least-one-per-member) 中写一条 ad hoc 需求。
-2. 按 §2.3 的模板，在 [02-use-cases.md](02-use-cases.zh.md) 中写至少一个用例规格。
-3. 基于该用例画一张活动图、一张时序图和一张状态机图，放在新的
-   `04-member-<x>-behaviour.md` 页面中。
+| 成员                  | Ad hoc 需求与分类                                   | 用例                                                                         | 行为模型                                                   |
+| --------------------- | --------------------------------------------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| A (`@Lilstanie`)      | [AH-A1, R-Ax](01-requirements.zh.md#member-a-ah-a1) | [UC-A1](02-use-cases.zh.md#uc-a1-generate-itinerary)                         | [04-member-a-behaviour.zh.md](04-member-a-behaviour.zh.md) |
+| B (`@fonever2`)       | [AH-B1, R-Bx](01-requirements.zh.md#member-b-ah-b1) | [UC-B1](02-use-cases.zh.md#uc-b1-arrange-transportation)                     | [04-member-b-behaviour.zh.md](04-member-b-behaviour.zh.md) |
+| C (`@HeadmasterEggy`) | [AH-C1, R-Cx](01-requirements.zh.md#member-c-ah-c1) | [UC-C1, UC-C2](02-use-cases.zh.md#uc-c1-arrange-accommodation)               | [04-member-c-behaviour.zh.md](04-member-c-behaviour.zh.md) |
+| D (`@jbia0391`)       | [AH-D1, R-Dx](01-requirements.zh.md#member-d-ah-d1) | [UC-D1](02-use-cases.zh.md#uc-d1-view-weather-based-clothing-recommendation) | [04-member-d-behaviour.zh.md](04-member-d-behaviour.zh.md) |
+| E (`@WhW0591`)        | [AH-E1, R-Ex](01-requirements.zh.md#member-e-ah-e1) | [UC-E1](02-use-cases.zh.md#uc-e1-edit-itinerary-timeline--map)               | [04-member-e-behaviour.zh.md](04-member-e-behaviour.zh.md) |
 
 <a id="contribution-table-fill-in-before-submitting"></a>
 
 ## 贡献表（提交前填写）
 
-| 项目 | A | B | C | D | E |
-| --- | --- | --- | --- | --- | --- |
-| 特征图 | | | | | |
-| 用例图 | | | | | |
-| 类图 | | | | | |
-| 对象图 / 协作 / 结构化类 | | | | | |
+| 项目                     | A   | B   | C   | D   | E   |
+| ------------------------ | --- | --- | --- | --- | --- |
+| 特征图                   |     |     |     |     |     |
+| 用例图                   |     |     |     |     |     |
+| 类图                     |     |     |     |     |     |
+| 对象图 / 协作 / 结构化类 |     |     |     |     |     |
 
 <a id="generative-ai-acknowledgement"></a>
 

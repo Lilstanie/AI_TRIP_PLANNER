@@ -11,7 +11,7 @@ let n=0;
 md=md.replace(/```mermaid\n([\s\S]*?)```/g,(_,code)=>{
   n++; const base=`${dir}/img/gen/fig-${String(n).padStart(2,'0')}`;
   fs.writeFileSync(base+'.mmd',code);
-  if(!fs.existsSync(base+'.svg')||fs.readFileSync(base+'.mmd.done','utf8').toString()!==code){
+  if(!fs.existsSync(base+'.svg')||!fs.existsSync(base+'.mmd.done')||fs.readFileSync(base+'.mmd.done','utf8').toString()!==code){
     execFileSync(MMD+'/node_modules/.bin/mmdc',['-p',MMD+'/pc.json','-i',base+'.mmd','-o',base+'.svg','-b','white'],{stdio:'inherit'});
     fs.writeFileSync(base+'.mmd.done',code);
   }

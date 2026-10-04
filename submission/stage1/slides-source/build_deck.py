@@ -171,18 +171,9 @@ def note(s, n, x, y, w, head, body, color=ORANGE, size=12.5, h=0.75):
 
 def chrome(s, idx, member, section, title):
     s.background.fill.solid(); s.background.fill.fore_color.rgb = rgb(PAPER)
-    col = MEMBERS[member][2] if member else ORANGE
+    col = ORANGE
     box(s, 0, 0, 0.11, 7.5, fill=col, line=None, r=0)
-    x = ML
-    if member:
-        name = MEMBERS[member][0]
-        x += pill(s, ML, 0.38, f'{member} · {name}', col, size=10) + 0.16
-    text(s, x, 0.38, 6.5, 0.3, section.upper(), size=10, color=col, bold=True, anchor='m')
-    # progress: which member is speaking
-    for i, m in enumerate('ABCDE'):
-        on = m == member
-        badge(s, MR - (5 - i) * 0.36 + 0.06, 0.38, m, fill=MEMBERS[m][2] if on else 'E7E9EE',
-              fg='FFFFFF' if on else '8A93A6', d=0.3, size=10, ring=False)
+    text(s, ML, 0.38, 6.5, 0.3, section.upper(), size=10, color=col, bold=True, anchor='m')
     text(s, ML, 0.8, MR - ML, 0.62, title, size=26, color=NAVY, font=HEAD, bold=True, anchor='m')
     box(s, ML, 7.0, MR - ML, 0.012, fill='DDDAD0', line=None, r=0)
     text(s, ML, 7.08, 8, 0.25, 'AI Trip Planner  ·  ELEC5620 Stage 1  ·  Mon 10-12 Group 14',
@@ -205,11 +196,11 @@ def card(s, x, y, w, h, fill=CARD, shad=True, accent=None):
     return b
 
 
-def behaviour_template(idx, m):
+def behaviour_template(idx, m, notes=None):
     name, role, col = MEMBERS[m]
     s = slide(idx, m, 'Individual behaviour models', f"[{m}'s use case]: activity, sequence and state machine",
-              f"Speaker {m}. [About 25 seconds. Name your ad hoc requirement and use case, then point to where "
-              "the LLM sits in each diagram and which code checks it. Replace the three placeholders with your diagrams.]")
+              notes or f"[About 25 seconds. Name member {m}'s ad hoc requirement and use case, then point to where "
+              "the LLM sits in each diagram and which code checks it. Replace the three placeholders with the diagrams.]")
     card(s, ML, CT, MR - ML, 0.62, accent=col)
     text(s, ML + 0.3, CT + 0.1, MR - ML - 0.5, 0.42,
          [[('Ad hoc requirement  ', {'bold': True, 'color': col}), ('[AH-' + m + '1, one line in the traveller\'s words]', {'italic': True}),
@@ -234,9 +225,27 @@ def behaviour_template(idx, m):
              size=10, color=MUTED, align='c')
 
 
+def behaviour_slide(idx, m, uc, title, ah, notes, prefix):
+    col = MEMBERS[m][2]
+    s = slide(idx, m, 'Individual behaviour models · ' + uc.split()[0], title, notes)
+    card(s, ML, CT, MR - ML, 0.62, accent=col)
+    text(s, ML + 0.3, CT + 0.1, MR - ML - 0.5, 0.42,
+         [[('Ad hoc requirement  ', {'bold': True, 'color': col}), (ah, {}),
+           ('      Use case  ', {'bold': True, 'color': col}), (uc, {})]],
+         size=12, anchor='m', color=INK)
+    w = (MR - ML - 0.4) / 3
+    y = CT + 0.82
+    for i, (lab, kind) in enumerate((('ACTIVITY', 'activity'), ('SEQUENCE', 'sequence'),
+                                     ('STATE MACHINE', 'state'))):
+        x = ML + i * (w + 0.2)
+        text(s, x, y, w, 0.3, lab, size=11, bold=True, color=MUTED)
+        figure(s, f'{prefix}-{kind}.png', x, y + 0.35, w, CB - y - 0.35)
+    return s
+
+
 # ---------------------------------------------------------------- 1 cover
-s = slide(1, None, None, '', "Speaker A. Hi, I'm Ziqi He, member A. We are Group 14 from the Monday 10 to 12 class, and "
-          "this is AI Trip Planner, a one-person AI travel agency. Each of us will present our own part.")
+s = slide(1, None, None, '', "Hi, we are Group 14 from the Monday 10 to 12 class, and "
+          "this is AI Trip Planner, a one-person AI travel agency.")
 s.background.fill.solid(); s.background.fill.fore_color.rgb = rgb(NAVY)
 # decorative route: five stops in member colours joined by a dashed path
 pts = [(8.9, 1.25), (10.25, 0.85), (11.55, 1.6), (10.6, 2.55), (12.05, 3.05)]
@@ -262,7 +271,7 @@ for i, m in enumerate('ABCDE'):
 
 # ---------------------------------------------------------------- 2 problem
 s = slide(2, 'A', 'The problem', 'Every travel choice constrains the others',
-          "Speaker A. Planning a trip means juggling many sites, and every choice constrains the others. A chatbot "
+          "Planning a trip means juggling many sites, and every choice constrains the others. A chatbot "
           "can write an itinerary, but it invents prices and never checks that the parts fit. So we built an agency "
           "where specialist agents plan together on real data, and code checks their work.")
 cards = [('layers', 'Too many sites', 'Flights, hotels, maps, food blogs and a budget spreadsheet, each on its own.', False),
@@ -281,7 +290,7 @@ for i, (ic, h, b, hi) in enumerate(cards):
 
 # ---------------------------------------------------------------- 3 roles
 s = slide(3, 'A', 'Users and AI roles', 'Two humans, seven AI roles',
-          "Speaker A. There are two humans: the traveller, our customer, and the founder who runs the agency and tests "
+          "There are two humans: the traveller, our customer, and the founder who runs the agency and tests "
           "the agents in our Agent Lab. Then seven AI roles: a coordinator that talks to the traveller, a supervisor "
           "that assigns work, and five specialists, each with its own prompt and tools.")
 text(s, ML, CT, 3.0, 0.3, 'HUMANS', size=11, bold=True, color=MUTED)
@@ -319,7 +328,7 @@ for i, (ic, h, b, m) in enumerate(specs):
 
 # ---------------------------------------------------------------- 4 architecture
 s = slide(4, 'A', 'Architecture', 'The graph drives the agents, not the other way round',
-          "Speaker A. Our key design choice: the LangGraph workflow drives the agents, not the other way round. "
+          "Our key design choice: the LangGraph workflow drives the agents, not the other way round. "
           "Specialists plan in stages on a shared board, code detects budget, time and route conflicts, and only the "
           "agents involved revise, for at most three rounds. If a model fails, a validated fallback keeps planning working.")
 LW = 8.05
@@ -334,14 +343,19 @@ text(s, ML + LW + 0.3, CT, 4, 0.3, 'REQUEST PATH', size=11, bold=True, color=MUT
 figure(s, 'architecture.png', ML + LW + 0.3, CT + 0.35, MR - ML - LW - 0.3, CB - CT - 0.35)
 
 # ---------------------------------------------------------------- 5 A template
-behaviour_template(5, 'A')
+behaviour_slide(5, 'A', 'UC-A1 Generate Itinerary', 'Three LLM calls, each fenced by code',
+                'AH-A1: understand my one-line request; ask once if something is missing; fix clashes',
+                "UC-A1 turns one free-text message into a validated plan. The LLM acts three times: it extracts the "
+                "stated facts, the supervisor delegates to specialists, and it writes the reply. Code fences each step: "
+                "the Zod contract validates the brief, a missing fact ends the turn with one question instead of a "
+                "default, and at most three revision rounds run, each kept only if the plan score improves.", 'a')
 
 # ---------------------------------------------------------------- 6 classification
 s = slide(6, 'B', 'Requirement classification', 'Each member owns two core features and one optional',
-          "Speaker B. I'm Tingsong Jin, member B. We classified requirements into the agreed scope, mandatory "
+          "We classified requirements into the agreed scope, mandatory "
           "capabilities and optional features. Each member owns two core features and one optional one, shown here. "
           "Every member also wrote an ad hoc requirement and broke it into functional, non-functional and constraint requirements.")
-rows = [('A', 'Brief extraction and clarifying questions', 'Orchestration, conflicts, targeted revision', 'Agent Lab and Failure Lab'),
+rows = [('A', 'Brief extraction and clarifying questions', 'Orchestration, revision routing, round control', 'Agent Lab and Failure Lab'),
         ('B', 'Itinerary with route feasibility', 'Flights, rail and local transport', 'Traveller-chosen leg mode'),
         ('C', 'Accommodation, individual or group', 'Budget management', 'Keep a booked stay'),
         ('D', 'Destination guide', 'Dining with dietary needs', 'Weather-based packing'),
@@ -368,7 +382,7 @@ text(s, ML + 4.4, y + 0.1, MR - ML - 4.7, 0.9,
 
 # ---------------------------------------------------------------- 7 feature model
 s = slide(7, 'B', 'Feature model', 'Seven feature groups with their constraints',
-          "Speaker B. The feature diagram groups the system into seven areas, with mandatory, optional and alternative "
+          "The feature diagram groups the system into seven areas, with mandatory, optional and alternative "
           "features, such as shared or individual rooms. We added cross-tree constraints and attached non-functional "
           "requirements, like money in integer cents.")
 groups = [('messages-square', 'Conversation', ['● Chat intake', '● Brief extraction', '   ⊕ LLM | rule parser', '● Clarifying questions', '○ Attachments']),
@@ -399,7 +413,7 @@ text(s, ML, CB - 0.32, MR - ML, 0.3,
 
 # ---------------------------------------------------------------- 8 use cases
 s = slide(8, 'B', 'Use cases', 'Ten use cases, one traveller, three external systems',
-          "Speaker B. The use case diagram has one traveller and three external systems. Each member wrote at least "
+          "The use case diagram has one traveller and three external systems. Each member wrote at least "
           "one full specification, and our behaviour diagrams come from those.")
 figure(s, 'use-case.png', ML, CT, 4.3, CB - CT)
 ucs = [('A', 'Generate Itinerary', '«include» three use cases'),
@@ -420,13 +434,18 @@ for i, (m, uc, rel) in enumerate(ucs):
         text(s, X + 5.0, y, MR - X - 5.15, 0.58, rel, size=11.5, color=MUTED, anchor='m', align='r')
 
 # ---------------------------------------------------------------- 9 B template
-behaviour_template(9, 'B')
+behaviour_slide(9, 'B', 'UC-B1 Arrange Transportation', 'The LLM picks offered fares; code checks every hop',
+                'AH-B1: use real fares and times; honour my train choice or say it is unavailable',
+                "UC-B1 arranges flights and moves between cities. The transport LLM only selects offered flight ids and a "
+                "departure slot for each hop. Code then checks every choice against the evidence, one fare per hop, day "
+                "bounds and route fit, and takes prices and durations from the providers. A missing fare stays unknown, "
+                "never free, and an invalid choice falls back to a deterministic plan.", 'b')
 
 # ---------------------------------------------------------------- 10 member C intro
 s = slide(10, 'C', 'Accommodation and budget', 'From one ad hoc requirement to two use cases',
-          "Speaker C. I'm Yi Qiao, member C. I own accommodation and budget. My ad hoc requirement: the hotel must fit "
-          "the money left after flights, a budget overrun should swap to a cheaper hotel that still meets my rules, and "
-          "an impossible budget should name the minimum. That gave my two use cases.")
+          "Member C owns accommodation and budget. The ad hoc requirement: the hotel must fit "
+          "the money left after flights, a budget overrun should swap to a cheaper hotel that still meets the traveller's rules, and "
+          "an impossible budget should name the minimum. That gave two use cases.")
 card(s, ML, CT, MR - ML, 1.95, fill=NAVY)
 icon(s, 'quote', ML + 0.35, CT + 0.3, 0.55, 'F2A65A')
 text(s, ML + 1.2, CT + 0.25, MR - ML - 1.6, 1.3,
@@ -452,7 +471,7 @@ for i, (ic, h, items) in enumerate((('bed-double', 'UC-C1  Arrange Accommodation
 
 # ---------------------------------------------------------------- 11 object diagram
 s = slide(11, 'C', 'Complex structure', 'Object diagram: a Tokyo trip that is AUD 640 over budget',
-          "Speaker C. The object diagram snapshots the planning board for a Tokyo trip that is 640 dollars over budget. "
+          "The object diagram snapshots the planning board for a Tokyo trip that is 640 dollars over budget. "
           "The hotel prices are real fixture values; transport and dining are illustrative. Accommodation is asked to "
           "save 379 dollars, so it moves to the saver hotel.")
 figure(s, 'object.png', ML, CT, MR - ML, 3.7, callouts=[(1, 0.29, 0.64), (2, 0.004, 0.55), (3, 0.885, 0.02)])
@@ -470,7 +489,7 @@ for i, (n, h, big, sub) in enumerate(stats):
 
 # ---------------------------------------------------------------- 12 collaboration + structured class
 s = slide(12, 'C', 'Complex structure', 'Collaboration and structured class',
-          "Speaker C. The collaboration shows roles, not classes: my budget code plays the judge that turns proposals "
+          "The collaboration shows roles, not classes: the budget code plays the judge that turns proposals "
           "into targeted revisions. The structured class shows the workflow's parts and its injected ports.")
 LW = 8.6
 text(s, ML, CT, LW, 0.3, 'COLLABORATION  ·  NEGOTIATE TRIP PLAN', size=11, bold=True, color=MUTED)
@@ -485,7 +504,7 @@ for i, (h, b) in enumerate((('Roles, not classes', 'My budget code plays the jud
 
 # ---------------------------------------------------------------- 13 activity
 s = slide(13, 'C', 'Activity diagram · UC-C1', 'The LLM chooses once; code checks before any price',
-          "Speaker C. In my activity diagram the LLM appears once, choosing one candidate id. Around it everything is "
+          "In this activity diagram the LLM appears once, choosing one candidate id. Around it everything is "
           "deterministic: invalid output falls back to a rule, a booked stay skips the search, and prices are in cents.")
 figure(s, 'c-activity.png', ML, CT, MR - ML, 4.05, callouts=[(1, 0.80, 0.70), (2, 0.31, 0.32), (3, 0.13, 0.08), (4, 0.67, 0.33)])
 acts = [('LLM, once', 'Chooses one candidate id per stay.'),
@@ -498,7 +517,7 @@ for i, (h, b) in enumerate(acts):
 
 # ---------------------------------------------------------------- 14 sequence
 s = slide(14, 'C', 'Sequence diagram · UC-C2', 'Budget overrun and a targeted revision',
-          "Speaker C. The sequence diagram shows an overrun: my detectConflicts sends a revision only to the agents that "
+          "The sequence diagram shows an overrun: detectConflicts sends a revision only to the agents that "
           "can cut, and round two is kept only because the plan score improved.")
 px, py, pw, ph = figure(s, 'c-sequence.png', ML, CT, 7.9, CB - CT, callouts=[(1, 0.88, 0.415), (2, 0.6, 0.53), (3, 0.62, 0.62), (4, 0.33, 0.77)])
 X = ML + 8.2
@@ -510,8 +529,8 @@ for i, (h, b) in enumerate((('Round 1', 'The total is over budget.'),
 
 # ---------------------------------------------------------------- 15 state machine
 s = slide(15, 'C', 'State machine', 'The accommodation section within one planning turn',
-          "Speaker C. The state machine follows the accommodation section through one turn, and maps its internal states "
-          "onto the three statuses the traveller sees. Over to D.")
+          "The state machine follows the accommodation section through one turn, and maps its internal states "
+          "onto the three statuses the traveller sees.")
 figure(s, 'c-state.png', ML, CT, 5.4, CB - CT)
 X = ML + 5.75
 text(s, X, CT, 4, 0.3, 'INTERNAL STATE', size=11, bold=True, color=MUTED)
@@ -537,7 +556,7 @@ for states, ui, bg, fg in maps:
 
 # ---------------------------------------------------------------- 16 class spine
 s = slide(16, 'D', 'Elementary structure', 'Six class diagrams drawn from the code',
-          "Speaker D. I'm Jiahang Bian, member D. Our class model has six diagrams drawn from the code. The spine runs "
+          "Our class model has six diagrams drawn from the code. The spine runs "
           "from the workspace, through the coordinator and workflow, to specialists that reach tools and memory only "
           "through injected interfaces.")
 figure(s, 'class-spine.png', ML, CT, MR - ML, 4.15)
@@ -552,7 +571,7 @@ for i, h in enumerate(six):
 
 # ---------------------------------------------------------------- 17 specialists
 s = slide(17, 'D', 'Elementary structure', 'One Specialist interface, five realisations',
-          "Speaker D. Every agent realises one Specialist interface, so the graph loops over them without knowing their "
+          "Every agent realises one Specialist interface, so the graph loops over them without knowing their "
           "models. The registry aggregates agents, while a plan is composed of its sections.")
 figure(s, 'class-specialists.png', ML, CT, MR - ML, 3.4, callouts=[(1, 0.395, 0.48), (2, 0.425, 0.355)])
 rels = [('1', 'Specialist interface', 'realisation × 5', 'The graph loops over agents without knowing their models.'),
@@ -570,7 +589,7 @@ for i, (n, h, k, b) in enumerate(rels):
 
 # ---------------------------------------------------------------- 18 rationale
 s = slide(18, 'D', 'Design rationale', 'What we chose, and what we discarded',
-          "Speaker D. We discarded a model-driven loop and free agent-to-agent chat, because limits and costs must be "
+          "We discarded a model-driven loop and free agent-to-agent chat, because limits and costs must be "
           "testable. We dropped approval checkpoints, since confirming applied nothing, and chose DeepSeek because it was "
           "about three times faster.")
 dec = [('Who drives the loop', 'Deterministic LangGraph', 'Model-driven loop', 'limits and costs must be testable'),
@@ -594,12 +613,17 @@ for i, (d, ch, dis, why) in enumerate(dec):
     text(s, c2 + 0.55, y, MR - c2 - 0.7, 0.68, [[(dis, {'bold': True, 'color': NAVY}), ('  ' + why, {'color': MUTED})]],
          size=12.5, anchor='m')
 
-# ---------------------------------------------------------------- 19 D template
-behaviour_template(19, 'D')
+# ---------------------------------------------------------------- 19 D behaviour
+behaviour_slide(19, 'D', 'UC-D1 Weather-based clothing + dining', 'Evidence first; the LLM drafts, code decides',
+                'AH-D1: pack for my real Kyoto dates; vegetarian, peanut allergy; never claim allergy-safe unless confirmed',
+                "UC-D1 shows both specialists working from evidence: the guide uses map coordinates and weather data; "
+                "dining uses restaurant candidates and confirmed dietary preferences. The LLM drafts guidance, while "
+                "deterministic code validates its output and budget. Forecasts are distinguished from climate context, "
+                "and unavailable weather is disclosed.", 'd')
 
 # ---------------------------------------------------------------- 20 package
 s = slide(20, 'E', 'Package diagram', 'Dependencies point inward to the shared contracts',
-          "Speaker E. I'm Weihao Wang, member E. Six packages, each with an owner, all depend inward on the shared "
+          "Six packages, each with an owner, all depend inward on the shared "
           "contracts, which depend on nothing. New specialists, providers or stores plug in behind existing interfaces.")
 figure(s, 'package.png', ML, CT, MR - ML, 3.3, callouts=[(1, 0.92, 0.47), (2, 0.025, 0.53)])
 pts20 = [('package', 'Six packages', 'One monorepo, each package with an owner.', ''),
@@ -618,7 +642,7 @@ for i, (ic, h, b, n) in enumerate(pts20):
 
 # ---------------------------------------------------------------- 21 deployment
 s = slide(21, 'E', 'Deployment', 'One serverless app, optional cloud services',
-          "Speaker E. It deploys as one serverless Next.js app. Memory, account sync and sign-in are optional, and "
+          "It deploys as one serverless Next.js app. Memory, account sync and sign-in are optional, and "
           "without keys the same build runs fully on mock data.")
 figure(s, 'deployment.png', ML, CT, 6.9, CB - CT, callouts=[(1, 0.03, 0.47), (2, 0.5, 0.35), (3, 0.83, 0.54)])
 X = ML + 7.2
@@ -638,7 +662,7 @@ for i, (n, h, b) in enumerate(dep):
 
 # ---------------------------------------------------------------- 22 change assessment
 s = slide(22, 'E', 'Change assessment and acceptance', 'How a change gets in',
-          "Speaker E. A change must trace to a requirement; a change to shared contracts needs a written decision. A pull "
+          "A change must trace to a requirement; a change to shared contracts needs a written decision. A pull "
           "request is accepted when CI passes, an end-to-end artifact exists, use case postconditions hold and the models are updated.")
 cols = [('git-pull-request', 'Assess', ['Trace it to a requirement and use case', 'Shared contract touched? Write a decision note and tell every owner', 'Reversing a decision? Supersede it in writing']),
         ('clipboard-check', 'Accept', ['CI green: types, lint, tests, build, docs', 'End-to-end test leaves a repeatable artifact', 'Use case postconditions still hold', 'Docs and models updated in the same pull request'])]
@@ -664,10 +688,16 @@ for a in assume:
     xx += w + 0.12
 
 # ---------------------------------------------------------------- 23 E template
-behaviour_template(23, 'E')
+behaviour_slide(23, 'E', 'UC-E1 Edit Itinerary (Timeline / Map)', 'Edits are previewed and checked before they apply',
+                'AH-E1: change my trip in the timeline or map; check conflicts, routes and budget',
+                "UC-E1 edits an existing trip through the timeline or map while keeping routes, budget and uncertain prices "
+                   "visible. Timeline and map operations go to a deterministic preview endpoint, which validates the schema "
+                   "and version, checks routes and conflicts, recalculates costs, and marks changed prices as unverified. "
+                   "The chat LLM can update the brief or replan, but it does not create an edit request. The state machine "
+                   "ends in Applied only after the browser accepts the validated preview.", 'e')
 
 # ---------------------------------------------------------------- 24 summary
-s = slide(24, None, None, '', "Speaker E. In short: models choose, code decides, and the traveller stays in control. Thank you for watching.")
+s = slide(24, None, None, '', "In short: models choose, code decides, and the traveller stays in control. Thank you for watching.")
 s.background.fill.solid(); s.background.fill.fore_color.rgb = rgb(NAVY)
 text(s, 0.9, 1.3, 6, 0.3, 'SUMMARY', size=12, color='F2A65A', bold=True)
 for i, (a, b) in enumerate((('Models', ' choose.'), ('Code', ' decides.'), ('The traveller', ' stays in control.'))):

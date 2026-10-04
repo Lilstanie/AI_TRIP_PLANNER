@@ -1,0 +1,27 @@
+stateDiagram-v2
+  [*] --> AwaitingBrief
+  AwaitingBrief --> GatheringEvidence : dispatch with validated TripBrief
+  GatheringEvidence --> WeatherLookup : candidate coordinate and WeatherPort available
+  GatheringEvidence --> Drafting : no coordinates or no WeatherPort / use month context
+  WeatherLookup --> Drafting : forecast result with provenance
+  WeatherLookup --> Drafting : climate result marked not a forecast
+  WeatherLookup --> Drafting : provider error / mark weather unavailable
+  GatheringEvidence --> Failed : MapsPort or MemoryStore fails
+  Drafting --> Validating : LLM returns structured draft
+  Drafting --> DeterministicFallback : no model or model call fails
+  Validating --> Ready : schema valid and attractions match candidates
+  Validating --> DeterministicFallback : invalid schema or ungrounded attraction
+  DeterministicFallback --> Ready : build guidance from available evidence
+  Ready --> [*] : proposal includes source and freshness
+  Failed --> [*] : workflow reports specialist failure
+
+  note right of WeatherLookup
+    Forecast: at most 14 days
+    Later dates: climate context
+    Never label climate as forecast
+  end note
+
+  note right of DeterministicFallback
+    No invented attractions
+    Weather fallback is not a forecast
+  end note

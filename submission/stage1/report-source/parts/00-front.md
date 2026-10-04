@@ -102,10 +102,9 @@ answering everything.
 
 | Member | Core feature 1 | Core feature 2 | Optional feature |
 | --- | --- | --- | --- |
-| A | Conversational brief extraction and clarifying questions | Multi-agent orchestration with conflict detection and targeted revision | Agent Lab comparison and Failure Lab |
+| A | Conversational brief extraction and clarifying questions | Orchestration: brief validation, supervisor delegation, revision routing and round control | Agent Lab comparison and Failure Lab |
 | B | Itinerary scheduling with route feasibility | Transport: flights, inter-city rail and local routes | Traveller-chosen leg mode and own flights |
 | C | Accommodation for individuals or groups | Budget management with targeted savings | Keep a stay already booked |
 | D | Destination guide: attractions, customs, safety, entry | Dining with dietary constraints | Weather-based packing advice |
 | E | Chat workspace with timeline and map editing | Preferences and memory | Accounts and cloud sync |
 
-_Each member: check your row matches what you implement in Stage 2._

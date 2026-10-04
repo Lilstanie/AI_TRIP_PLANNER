@@ -16,14 +16,14 @@
 | [`ELEC5620_Stage1_Report.pdf`](ELEC5620_Stage1_Report.pdf) | 报告，13 章，覆盖评分表每一项 |
 | [`ELEC5620_Stage1_Slides.pptx`](ELEC5620_Stage1_Slides.pptx) | 录视频用的 PowerPoint，24 页，按 A→B→C→D→E 每人一段。每页顶部有成员色标，图上有编号标注；字体用 Georgia 和 Arial，Windows 和 Mac 打开不会跑版。每页备注里是讲稿 |
 | [`slides-source/`](slides-source/) | 幻灯片生成脚本 `build_deck.py`、按幻灯片配色重新渲染的图（源文件在 `mmd-src/`）和图标 |
-| [`video-script.md`](video-script.md) | 逐页英文讲稿和每人时长，约 7:46 |
+| [`video-script.md`](video-script.md) | 逐页英文讲稿，不分讲者，约 7:52 |
 | [`report-source/`](report-source/) | 报告源文件：`parts/*.md` 按章节，`build.mjs` 生成 PDF |
 
 报告的模型和 [`docs/design/stage1/`](../../docs/design/stage1/README.md) 一致，那里是模型的主页面。
 
 ## 还缺什么
 
-个人项（每人 7 分）由各自完成，进度在 issue 里跟踪：#136 A、#137 B、#138 D、#139 E。全组的事在 #135：贡献比例表（报告 §13.1）、录视频、视频的 YouTube 链接（报告封面）。
+五个人的个人项（ad hoc 需求、用例规格、三张行为图）都已放进报告和幻灯片。还缺全组的事，在 #135：贡献比例表（报告 §13.1）、录视频、视频的 YouTube 链接（报告封面）。
 
 ## 重新生成 PDF
 
@@ -31,4 +31,4 @@
 
 ## 重新生成幻灯片
 
-安装 `python-pptx` 后运行 `python3 submission/stage1/slides-source/build_deck.py`，会覆盖 `ELEC5620_Stage1_Slides.pptx`。A、B、D、E 的行为模型页是带虚线框的模板：可以直接在 PowerPoint 里把图拖进去，也可以把图放进 `slides-source/assets/diagrams/` 再改脚本里对应的 `behaviour_template`。
+安装 `python-pptx` 后运行 `python3 submission/stage1/slides-source/build_deck.py`，会覆盖 `ELEC5620_Stage1_Slides.pptx`。个人行为模型页由 `behaviour_slide` 生成：把 Mermaid 源放进 `slides-source/mmd-src/<成员>-<activity|sequence|state>.mmd`，用 `mmd-src/cfg.json` 渲染到 `slides-source/assets/diagrams/`，再在脚本里调用 `behaviour_slide`。还没有图的成员用 `behaviour_template`（虚线占位框）。

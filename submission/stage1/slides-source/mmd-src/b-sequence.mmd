@@ -1,0 +1,60 @@
+sequenceDiagram
+  autonumber
+  actor T as Traveler
+  participant W as Workflow / supervisor
+  participant B as Planning board
+  participant TR as Transport specialist
+  participant L as Transport LLM
+  participant G as ToolGateway
+  participant C as Conflict policy
+  T->>W: Arrange transportation with validated brief
+  W->>B: run(transport)
+  B->>TR: invoke(brief, context)
+  alt Model configured
+    TR->>L: Select flights and hop slots using evidence tool
+    L->>TR: search_transport_evidence()
+    TR->>G: searchFlights / route / optional routeOptions
+    G-->>TR: Offered fares, durations and availability
+    TR-->>L: Candidate IDs and route evidence
+    L-->>TR: Structured selection or model failure
+    TR->>TR: Check schema, candidate IDs, hop coverage and times
+    alt Model failed or selection invalid
+      opt Evidence not yet gathered
+        TR->>G: Gather missing evidence
+        G-->>TR: Available evidence and gaps
+      end
+      TR->>TR: deterministicPlan(evidence)
+    else Selection valid
+      TR->>TR: Resolve chosen IDs to returned fare data
+    end
+  else No model configured
+    TR->>G: Gather transport evidence
+    G-->>TR: Available evidence and gaps
+    TR->>TR: deterministicPlan(evidence)
+  end
+  TR->>TR: Assemble proposal, validate route/day fit, retain unknown fares
+  TR-->>B: Transport proposal (schema checked by workflow boundary)
+  Note over W,B: Other dispatched specialists finish, itinerary checks connections and buffer
+  B-->>W: Collected proposals
+  W->>C: detectConflicts(proposals, brief)
+  C-->>W: Revision requests
+  loop Conflicts remain AND feasible AND round below 3 AND not stalled
+    W->>W: Increment round
+    opt Transport is targeted and supports revision
+      W->>TR: invoke(brief, context, revision, previous, allocation)
+      Note over TR,G: Repeat evidence, model/fallback selection and validation
+      TR-->>W: Revised proposal
+    end
+    Note over W,B: Other targeted specialists also revise, untargeted proposals remain
+    W->>W: Compare whole-plan score
+    alt Score strictly improves
+      W->>W: Keep revised proposals
+      W->>C: detectConflicts(revised proposals, brief)
+      C-->>W: Remaining requests
+    else Score does not improve
+      W->>W: Restore previous proposals and set stalled
+      Note over W,C: No conflict recheck, stalled disables the next loop iteration
+    end
+  end
+  W->>W: build_plan from best retained proposals and conflicts
+  W-->>T: draft / needs_you, known estimate and pricing gaps
