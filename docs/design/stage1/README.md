@@ -30,6 +30,7 @@ Rendered SVG and PNG files for the requirement and structure diagrams are in [`.
 
 Each member's activity, sequence and state machine diagrams must come from **their own** ad hoc
 requirement and use case specification. A, B and E still need to add:
+requirement and use case specification. B, D and E each still need to add:
 
 1. One ad hoc requirement in [01-requirements.md §1.2](01-requirements.md#12-ad-hoc-requirements-individual-at-least-one-per-member).
 2. At least one use case specification in [02-use-cases.md](02-use-cases.md), from the template in §2.3.

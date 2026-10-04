@@ -138,7 +138,53 @@ Open-Meteo).
 
 **Special requirements**: R-C8; overrun percentages are compared unrounded.
 
-## 2.3 Template for the other members
+## 2.3 Use case specifications: member A
+
+### UC-A1 Generate Itinerary
+
+| Field | Content |
+| --- | --- |
+| **ID / name** | UC-A1 Generate Itinerary |
+| **Source** | AH-A1; R-A1 … R-A12 |
+| **Primary actor** | Traveler |
+| **Secondary actors** | LLM (DeepSeek) as coordinator, supervisor and reply writer; the five specialist agents; Maps / Routes, Hotel / Flight Search and Weather APIs through the specialists |
+| **Goal** | A free-text message becomes one validated, internally consistent `TripPlan`, or a plain statement of what is missing or impossible. |
+| **Trigger** | The traveller sends a chat message to `POST /api/chat`. |
+| **Preconditions** | The message is non-empty or carries an attachment. Nothing else is required: facts missing from the brief are what this use case resolves. |
+| **Postconditions (success)** | A `TripPlan` exists with five sections, each `draft` or `needs_you`, `estTotal` and `overrunPct` computed, and a reply naming what the traveller must still decide. Every costed item came from a specialist's evidence. |
+| **Postconditions (partial)** | A `needs_info` or `ask_user` frame is returned with the facts understood so far, and no plan is invented. |
+| **Postconditions (failure)** | An error frame naming the specialist that failed. No partial plan is presented as a plan. |
+
+**Main success scenario**
+
+1. Coordinator merges the message onto the facts earlier turns stated (`known`).
+2. The LLM reads the merged context and calls `update_trip_brief` with only the facts this message states.
+3. Coordinator validates the patch through `BriefPatchSchema`, applies it with `applyBriefPatch`, and parses the result as a `TripBrief`; the dates must be real and ordered, with at least one night per city.
+4. Coordinator starts the LangGraph workflow with the validated brief.
+5. `dispatch_specialists` asks the supervisor which specialists to call; the supervisor writes one concrete objective per specialist, naming the trip facts it must respect.
+6. Each specialist plans its own section and posts an `AgentProposal` on the staged planning board; one progress event per specialist reaches the browser as it works.
+7. `detect_conflicts` rolls up the costs and collects every proposal's conflicts (member C's `detectConflicts`).
+8. No conflicts remain: `build_plan` assembles the plan, marking each section `draft`.
+9. Coordinator builds a digest of the plan, the LLM writes the reply from it, and the final frame carries both reply and plan.
+
+**Extensions**
+
+- 2a. *No model configured, or off-schema output*: no patch is applied; the turn proceeds on the facts already stated, and the reply is written by `fallbackReplyFor` (R-A11).
+- 3a. *A required fact is still missing* (destination, dates, group size or budget): the turn ends with `IncompleteBriefError` naming the missing fields, carrying `known` so the traveller need not repeat the rest. Nothing is defaulted (R-A2).
+- 3b. *Dates are unreal, reversed, or shorter than one night per city*: the brief is rejected with the reason; planning does not start.
+- 3c. *The traveller states a lasting wish, a travel mode or a booked stay*: it is recorded on the brief (`learnedPreferences`, `legModes`, `bookedStay`) and the plan is re-run with it.
+- 4a. *The traveller asked a question the plan already answers*: the coordinator answers from the plan and does not replan.
+- 5a. *The coordinator would rather ask than guess*: it calls `ask_user_question` with 2-4 options in the traveller's language, recommended option first, and the turn ends there; no other tool runs after it (R-A3).
+- 5b. *Supervisor unavailable or off-schema*: all five specialists are dispatched deterministically; the itinerary specialist is never skipped (R-A11).
+- 6a. *A specialist throws*: the run stops and the error frame names it; no partial plan is returned.
+- 7a. *Conflicts remain, a round is left, and none is `infeasible budget`*: `revise_conflicts` re-invokes only the targeted specialists, each with its previous proposal and any `targetSaving`, then returns to step 7 (R-A6).
+- 7b. *`planScore` did not improve after a revision*: the round is discarded, the earlier proposals are kept, `stalled` is set and the flow goes to step 8 — a revision can never make the plan worse (R-A7).
+- 7c. *Three rounds have run and conflicts remain*: the plan is built with each still-targeted section marked `needs_you` and `conflicts` listing what is unresolved (R-A9).
+- 7d. *`infeasible budget`*: the revision loop is skipped entirely and the reply names the minimum budget needed (member C's UC-C2, extension 2b).
+
+**Special requirements**: R-A10 (a model-proposed change is re-validated before it plans anything), R-A11 (every LLM step has a deterministic fallback), R-A12 (the above is replayed under injected faults in `agent-lab`).
+
+## 2.4 Template for the other members
 
 Copy this for at least one use case each; the group needs 5–10 in total.
 

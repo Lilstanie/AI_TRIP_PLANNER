@@ -32,6 +32,7 @@
 ## 其他成员还需要写的内容
 
 每位成员的活动图、时序图和状态机图必须来自**自己的** ad hoc 需求和用例规格。A、B、E 每人还需补充：
+每位成员的活动图、时序图和状态机图必须来自**自己的** ad hoc 需求和用例规格。B、D、E 每人还需补充：
 
 1. 在 [01-requirements.md §1.2](01-requirements.zh.md#12-ad-hoc-requirements-individual-at-least-one-per-member) 中写一条 ad hoc 需求。
 2. 按 §2.3 的模板，在 [02-use-cases.md](02-use-cases.zh.md) 中写至少一个用例规格。
