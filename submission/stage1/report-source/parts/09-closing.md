@@ -101,6 +101,6 @@ The group shared every group task equally.
 
 ## 13.3 Use of generative AI
 
-Parts of this report were drafted with AI assistants from the group's repository and design notes,
-and then reviewed by the group. The models were checked against the code on `main`. Each member can
-explain their own diagrams in the interview.
+Parts of this report were drafted with Claude (Anthropic) from the group's repository and design
+notes, and then reviewed by the group. The models were checked against the code on `main`, and each
+member can explain their own diagrams.
