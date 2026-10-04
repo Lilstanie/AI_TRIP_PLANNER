@@ -52,6 +52,5 @@ Each member's share of each group item; each row adds up to 100%. The full table
 
 ## Generative AI acknowledgement
 
-Parts of these pages were drafted with an AI assistant from the repository code. The Canvas
-compliance statement requires any use of generative AI to be acknowledged, so say so in the report.
-Every member should also be able to explain their own diagrams in the week 11/12 interview.
+Parts of these pages were drafted with Claude (Anthropic) from the repository code. The Canvas
+compliance statement requires any use of generative AI to be acknowledged; report §13.3 says so.
