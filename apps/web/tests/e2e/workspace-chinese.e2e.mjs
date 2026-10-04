@@ -1,5 +1,5 @@
 // Failure inventory: English controls in Chinese sidebar, chat, trip, timeline or settings;
-// untranslated accessible names; raw traveller/model text altered; overflow at phone width.
+// untranslated accessible names or storage-full notice; raw traveller/model text altered; overflow at phone width.
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
@@ -98,6 +98,23 @@ try {
     );
     await context.close();
   }
+  // Storage that refuses every write must still explain itself in Chinese.
+  const full = await browser.newContext({
+    locale: "zh-CN",
+    viewport: { width: 1440, height: 1000 },
+  });
+  await full.addInitScript(() => {
+    Storage.prototype.setItem = () => {
+      throw new DOMException("full", "QuotaExceededError");
+    };
+  });
+  const fullPage = await full.newPage();
+  await fullPage.goto(process.env.BASE_URL ?? "http://localhost:3000");
+  const storageError = fullPage.getByText("浏览器存储不可用或已满", { exact: false }).first();
+  await storageError.waitFor();
+  check(await storageError.isVisible(), "storage-full notice Chinese");
+  await fullPage.screenshot({ path: `${out}/1440-storage-full.png` });
+  await full.close();
 } catch (error) {
   check(false, String(error));
 } finally {

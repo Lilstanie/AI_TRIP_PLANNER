@@ -1,4 +1,11 @@
 /**
+ * The assistant's opening line in a restored workspace. It is stored with the transcript in
+ * English, so `MessageItem` recognises it and shows it in the interface language.
+ */
+export const WELCOME_MESSAGE =
+  "Edit your trip preferences or tell me what to change. I'll build the plan here, and you can ask for changes in this chat at any time.";
+
+/**
  * Compact local timestamp for a chat message, ported from DSH's
  * `formatMessageClock` (`ui-chat/src/client/chat/message-chrome.ts`). Same
  * calendar day as `now` → `HH:mm`; any other day → a short date plus the

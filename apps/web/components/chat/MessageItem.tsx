@@ -1,7 +1,8 @@
 "use client";
 import { useLocale } from "@/components/account/LocaleProvider";
 import type { Components } from "react-markdown";
-import { formatMessageClock, type Message } from "@/lib/workspace";
+import { intlLocale } from "@/lib/i18n/locale";
+import { formatMessageClock, WELCOME_MESSAGE, type Message } from "@/lib/workspace";
 import { AttachmentChip } from "./AttachmentChip";
 import { FlightResults } from "./FlightResults";
 import { RevealedText } from "./RevealedText";
@@ -34,10 +35,12 @@ const markdownComponents: Components = {
  * it on mount so the reveal never replays.
  */
 export function MessageItem({ message, animate }: { message: Message; animate?: boolean }) {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const clock =
     message.at === undefined ? null : (
-      <span className="msg-item__clock">{formatMessageClock(message.at)}</span>
+      <span className="msg-item__clock">
+        {formatMessageClock(message.at, Date.now(), intlLocale(locale))}
+      </span>
     );
   if (message.role === "user") {
     return (
@@ -72,7 +75,7 @@ export function MessageItem({ message, animate }: { message: Message; animate?: 
       )}
       <div className="msg-item__body">
         <RevealedText
-          text={message.text}
+          text={message.text === WELCOME_MESSAGE ? t(WELCOME_MESSAGE) : message.text}
           components={markdownComponents}
           {...(animate ? { animate } : {})}
         />
