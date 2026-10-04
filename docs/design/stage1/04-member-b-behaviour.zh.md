@@ -4,7 +4,7 @@
 
 [English](04-member-b-behaviour.md) | 中文
 
-这些模型源自[需求](01-requirements.zh.md#15-member-b-requirement-classification)中的 **AH-B1 / R-B1–R-B6** 和[用例](02-use-cases.zh.md#24-uc-b1-arrange-transportation)中的 **UC-B1 Arrange Transportation**。它们描述 B 所分配领域的当前团队实现，不代表代码完全由 B 编写。specialist 边界为 `Specialist.invoke`。
+这些模型源自[需求](01-requirements.zh.md#member-b-ah-b1)中的 **AH-B1 / R-B1–R-B6** 和[用例](02-use-cases.zh.md#uc-b1-arrange-transportation)中的 **UC-B1 Arrange Transportation**。它们描述 B 所分配领域的当前团队实现，不代表代码完全由 B 编写。specialist 边界为 `Specialist.invoke`。
 
 <a id="41-activity-diagram"></a>
 

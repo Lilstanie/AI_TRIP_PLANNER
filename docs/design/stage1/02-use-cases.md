@@ -22,7 +22,98 @@ Open-Meteo).
 | View Food / Cuisine Recommendation         | D     | —                                                                      |
 | View Itinerary Output                      | E     | «alternative» Timeline / Map                                           |
 
-## 2.2 Use case specifications: members C and D
+## 2.2 Use case specifications
+
+One specification per member at least (C wrote two); seven in total. Each comes from that member's ad hoc requirement in [01-requirements.md §1.2](01-requirements.md#12-ad-hoc-requirements-individual-at-least-one-per-member).
+
+### UC-A1 Generate Itinerary
+
+| Field                        | Content                                                                                                                                                                                                                  |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **ID / name**                | UC-A1 Generate Itinerary                                                                                                                                                                                                 |
+| **Source**                   | AH-A1; R-A1 … R-A12                                                                                                                                                                                                      |
+| **Primary actor**            | Traveler                                                                                                                                                                                                                 |
+| **Secondary actors**         | LLM (DeepSeek) as coordinator, supervisor and reply writer; the five specialist agents; Maps / Routes, Hotel / Flight Search and Weather APIs through the specialists                                                    |
+| **Goal**                     | A free-text message becomes one validated, internally consistent `TripPlan`, or a plain statement of what is missing or impossible.                                                                                      |
+| **Trigger**                  | The traveller sends a chat message to `POST /api/chat`.                                                                                                                                                                  |
+| **Preconditions**            | The message is non-empty or carries an attachment. Nothing else is required: facts missing from the brief are what this use case resolves.                                                                               |
+| **Postconditions (success)** | A `TripPlan` exists with five sections, each `draft` or `needs_you`, `estTotal` and `overrunPct` computed, and a reply naming what the traveller must still decide. Every costed item came from a specialist's evidence. |
+| **Postconditions (partial)** | A `needs_info` or `ask_user` frame is returned with the facts understood so far, and no plan is invented.                                                                                                                |
+| **Postconditions (failure)** | An error frame naming the specialist that failed. No partial plan is presented as a plan.                                                                                                                                |
+
+**Main success scenario**
+
+1. Coordinator merges the message onto the facts earlier turns stated (`known`).
+2. The LLM reads the merged context and calls `update_trip_brief` with only the facts this message states.
+3. Coordinator validates the patch through `BriefPatchSchema`, applies it with `applyBriefPatch`, and parses the result as a `TripBrief`; the dates must be real and ordered, with at least one night per city.
+4. Coordinator starts the LangGraph workflow with the validated brief.
+5. `dispatch_specialists` asks the supervisor which specialists to call; the supervisor writes one concrete objective per specialist, naming the trip facts it must respect.
+6. Each specialist plans its own section and posts an `AgentProposal` on the staged planning board; one progress event per specialist reaches the browser as it works.
+7. `detect_conflicts` rolls up the costs and collects every proposal's conflicts (member C's `detectConflicts`).
+8. No conflicts remain: `build_plan` assembles the plan, marking each section `draft`.
+9. Coordinator builds a digest of the plan, the LLM writes the reply from it, and the final frame carries both reply and plan.
+
+**Extensions**
+
+- 2a. _No model configured, or off-schema output_: no patch is applied; the turn proceeds on the facts already stated, and the reply is written by `fallbackReplyFor` (R-A11).
+- 3a. _A required fact is still missing_ (destination, dates, group size or budget): the turn ends with `IncompleteBriefError` naming the missing fields, carrying `known` so the traveller need not repeat the rest. Nothing is defaulted (R-A2).
+- 3b. _Dates are unreal, reversed, or shorter than one night per city_: the brief is rejected with the reason; planning does not start.
+- 3c. _The traveller states a lasting wish, a travel mode or a booked stay_: it is recorded on the brief (`learnedPreferences`, `legModes`, `bookedStay`) and the plan is re-run with it.
+- 4a. _The traveller asked a question the plan already answers_: the coordinator answers from the plan and does not replan.
+- 5a. _The coordinator would rather ask than guess_: it calls `ask_user_question` with 2-4 options in the traveller's language, recommended option first, and the turn ends there; no other tool runs after it (R-A3).
+- 5b. _Supervisor unavailable or off-schema_: all five specialists are dispatched deterministically; the itinerary specialist is never skipped (R-A11).
+- 6a. _A specialist throws_: the run stops and the error frame names it; no partial plan is returned.
+- 7a. _Conflicts remain, a round is left, and none is `infeasible budget`_: `revise_conflicts` re-invokes only the targeted specialists, each with its previous proposal and any `targetSaving`, then returns to step 7 (R-A6).
+- 7b. _`planScore` did not improve after a revision_: the round is discarded, the earlier proposals are kept, `stalled` is set and the flow goes to step 8 — a revision can never make the plan worse (R-A7).
+- 7c. _Three rounds have run and conflicts remain_: the plan is built with each still-targeted section marked `needs_you` and `conflicts` listing what is unresolved (R-A9).
+- 7d. _`infeasible budget`_: the revision loop is skipped entirely and the reply names the minimum budget needed (member C's UC-C2, extension 2b).
+
+**Special requirements**: R-A10 (a model-proposed change is re-validated before it plans anything), R-A11 (every LLM step has a deterministic fallback), R-A12 (the above is replayed under injected faults in `agent-lab`).
+
+### UC-B1 Arrange Transportation
+
+| Field                        | Content                                                                                                                                                                                                                                                                                                              |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ID / name                    | UC-B1 Arrange Transportation                                                                                                                                                                                                                                                                                         |
+| Source                       | AH-B1; R-B1–R-B6                                                                                                                                                                                                                                                                                                     |
+| Primary actor                | Traveler                                                                                                                                                                                                                                                                                                             |
+| Secondary external actors    | Flight search provider; Maps / Routes providers; model service when configured                                                                                                                                                                                                                                       |
+| Internal collaborating roles | Workflow / supervisor, Transport specialist, planning board, Itinerary specialist, conflict policy. These are internal system roles, not additional human actors.                                                                                                                                                    |
+| Goal                         | Obtain evidence-based transport recommendations coordinated with the daily itinerary, with known prices and any unresolved availability, timing or budget problems made explicit.                                                                                                                                    |
+| Trigger                      | The traveler requests a trip plan or a transport-related change; the workflow dispatches Transport, or routes a targeted revision to it.                                                                                                                                                                             |
+| Preconditions                | A schema-valid TripBrief exists with valid ordered ISO dates, destination, positive group size and budget. Maps, Booking and Memory ports are injected. A usable model is optional. Normal scenario supplies an explicit origin.                                                                                     |
+| Success postconditions       | A schema-valid transport proposal contains provider-based fare choices and scheduled ground legs, is available to downstream planning, and is incorporated into TripPlan. No unresolved request targets transport. Relevant activities have been checked against route evidence. No booking or payment is performed. |
+| Partial postconditions       | The best retained proposal preserves known prices, unpriced warnings, unavailable choices and/or conflicts. Transport is `needs_you` only while an unresolved request targets it; otherwise `draft`, including when a ground fare is unknown.                                                                        |
+| Failure postconditions       | Invalid input, cancellation or an unrecoverable error stops the run; no successful plan is claimed. Invalid model output alone normally falls back rather than failing.                                                                                                                                              |
+
+**Main success scenario**
+
+1. The traveler supplies origin, destinations, dates, party size, budget and any per-leg mode choice. Chat intake produces a validated brief upstream of this use case.
+2. The workflow dispatches `transportAgent.invoke` through its specialist boundary and planning board, with injected tools and memory.
+3. Transport validates the dates, derives the ordered journey and reads any relevant origin preference. It gathers offered flight fares and ground routes, plus route alternatives when the port supports them.
+4. With a configured model, the Transport LLM calls `search_transport_evidence`, then selects offered flight IDs and a planning day/local departure time for each routed hop. It does not supply prices or durations.
+5. Deterministic code resolves selected IDs against the evidence, requires exactly one fare per hop with offered fares, checks required hop coverage, planning-day bounds and HH:mm syntax. It checks route validity and whether each scheduled hop fits within its planning day.
+6. Code assembles the proposal from provider prices and durations, applies supported mode preferences, and records assumptions, a cost floor, available flight alternatives and a source label. If an allocation is exceeded, the chosen flights give way to the cheapest returned fares.
+7. The workflow validates the proposal schema; the planning board stores it. In the staged first round, itinerary planning can read transport and accommodation proposals when those dependencies were dispatched. It grounds activities, validates its draft and checks connections using route duration plus a 15-minute buffer.
+8. Once dispatched proposals are collected, deterministic conflict policy checks known budget totals, reported route problems and scheduled-item overlaps.
+9. With no unresolved conflict, the workflow assembles the plan and returns transport as `draft`, together with the known estimate and source information. The traveler can inspect or change it in chat/editor.
+
+**Extensions**
+
+- **1a — Invalid input:** schema/date validation rejects an invalid brief or unordered dates. Correct the input; do not claim a valid plan.
+- **3a — Origin omitted:** current resolution is brief origin, then `transport.origin` memory, then Sydney. The proposal discloses the resolved origin; this fallback is not a user-confirmation step.
+- **3b — Traveler arranges flights:** `excludeFlights` skips flight searches/pricing and does not raise a missing-fare conflict for those self-arranged flights.
+- **3c — Required flight unavailable or empty:** retain a missing-flight conflict and an incomplete estimate; never fabricate a fallback fare.
+- **3d — No usable ground route or route cannot fit:** omit the invalid scheduled hop and record a geography/time conflict. For an unchosen, overlong inter-city ground hop, evidence gathering may first seek a flight instead; an explicit ground-mode choice is not silently overridden for this reason.
+- **4a/5a — Model absent, fails or returns an invalid selection:** use a deterministic plan from gathered evidence (gather it if needed). Model-error fallback is labelled `Local fallback`; the no-model path uses normal evidence provenance. Fallback cannot create missing provider evidence.
+- **6a — Ground fare unavailable:** omit `estCost`, count the unpriced leg and describe the known estimate as a lower bound. This alone does not trigger a conflict or a revision.
+- **6b — Chosen ground mode unavailable:** retain the provider's route and explicitly state the requested mode was unavailable. This alone is a warning, not a revision request.
+- **8a — Feasible conflict:** invoke only the targeted revisable specialist(s), passing previous proposals, revision constraints and an allocation where applicable. Repeat evidence gathering, selection and validation. Activity overlaps target itinerary so it moves around transport rather than forcing both to move. Keep a round only if `planScore` strictly improves, then recheck.
+- **8b — Infeasible budget:** stop revision and report the evidence-based minimum. The conflict targets the largest-cost section; transport is not necessarily that section.
+- **8c — Default third round reached or score does not improve:** return the best retained plan; mark only still-targeted sections `needs_you`. A non-improving round is discarded.
+- **Any step — Cancellation/unrecoverable failure:** stop, report the failure and allow a later retry. A future chat/edit starts a new interaction; there is no `confirmed` or `booked` state in this use case.
+
+**Special requirements:** R-B4–R-B6. Trip dates use the current end-exclusive planning interval. Transport estimates are in AUD and are not reservations. Ground-provider durations are gathered before model scheduling; changing the chosen departure time does not automatically re-query time-sensitive transit schedules. Availability gaps must remain visible; `draft` is not a guarantee of complete pricing.
 
 ### UC-C1 Arrange Accommodation
 
@@ -62,6 +153,41 @@ Open-Meteo).
 - _Any step_. _Revision request received_ (from UC-C2): see UC-C2 step 6.
 
 **Special requirements**: R-C8 (cent arithmetic), R-C9 (no invented properties), R-C10 (fallback).
+
+### UC-C2 Manage Budget
+
+| Field                        | Content                                                                                                                                |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| **ID / name**                | UC-C2 Manage Budget                                                                                                                    |
+| **Source**                   | AH-C1; R-C4, R-C5, R-C6, R-C11                                                                                                         |
+| **Primary actor**            | Traveler                                                                                                                               |
+| **Secondary actors**         | Orchestrator, the five specialist agents                                                                                               |
+| **Goal**                     | The plan the traveller receives fits the budget, or says plainly by how much it cannot.                                                |
+| **Trigger**                  | All dispatched specialists have put a proposal on the board (`detect_conflicts`), or the traveller edits the plan.                     |
+| **Preconditions**            | `budgetTotal` ≥ AUD 0.01; at least one proposal exists.                                                                                |
+| **Postconditions (success)** | `TripPlan.estTotal` ≤ `budgetTotal`; no budget conflict remains.                                                                       |
+| **Postconditions (partial)** | The plan is returned with the best total found; each section still targeted is marked `needs_you`, and `conflicts` lists what remains. |
+
+**Main success scenario**
+
+1. Orchestrator rolls up every proposal's item costs in AUD cents and computes `overrunPct`.
+2. Total is within budget: no budget conflict is raised.
+3. Orchestrator builds the plan, marks each section `draft` and returns it with `estTotal` and `overrunPct`.
+
+**Extensions**
+
+- 2a. _Total over budget, but the sum of floor costs fits_:
+  1. Orchestrator computes each section's room to cut (its cost less its `floorCost`).
+  2. It spreads the overrun over those sections in proportion, creating one `RevisionRequest` per section with a `targetSaving`.
+  3. Orchestrator runs `revise_conflicts` for those agents only, giving each its previous proposal and a new allocation (last cost less saving).
+  4. Accommodation, on a budget revision, keeps the confirmed preferences and picks the cheapest eligible stay within the new allocation.
+  5. Orchestrator re-runs detection and computes the plan score (AUD over budget + 10% of budget per other conflict).
+  6. Score improved: keep the round and go back to step 1 of the main scenario. Score not improved: discard the round and go to 2c.
+- 2b. _Sum of floor costs already exceeds the budget_: Orchestrator raises one `infeasible budget` conflict naming the minimum, stops revising, and the reply tells the traveller to raise the budget to at least that amount or change dates, origin or destination.
+- 2c. _Three rounds reached, or no improvement_: the best plan so far is returned; sections still targeted are `needs_you`.
+- _Traveller edits the plan_: costs are re-checked in the editor and a `price_unverified` issue is shown for any unpriced change.
+
+**Special requirements**: R-C8; overrun percentages are compared unrounded.
 
 ### UC-D1 View Weather-based Clothing Recommendation
 
@@ -103,152 +229,55 @@ Open-Meteo).
 
 **Special requirements**: R-D2 (forecast horizon and provenance), R-D4 (grounded names and dietary safety), R-D5 (visible degradation and fallback).
 
-### UC-C2 Manage Budget
+### UC-E1 Edit Itinerary (Timeline / Map)
 
-| Field                        | Content                                                                                                                                |
-| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| **ID / name**                | UC-C2 Manage Budget                                                                                                                    |
-| **Source**                   | AH-C1; R-C4, R-C5, R-C6, R-C11                                                                                                         |
-| **Primary actor**            | Traveler                                                                                                                               |
-| **Secondary actors**         | Orchestrator, the five specialist agents                                                                                               |
-| **Goal**                     | The plan the traveller receives fits the budget, or says plainly by how much it cannot.                                                |
-| **Trigger**                  | All dispatched specialists have put a proposal on the board (`detect_conflicts`), or the traveller edits the plan.                     |
-| **Preconditions**            | `budgetTotal` ≥ AUD 0.01; at least one proposal exists.                                                                                |
-| **Postconditions (success)** | `TripPlan.estTotal` ≤ `budgetTotal`; no budget conflict remains.                                                                       |
-| **Postconditions (partial)** | The plan is returned with the best total found; each section still targeted is marked `needs_you`, and `conflicts` lists what remains. |
-
-**Main success scenario**
-
-1. Orchestrator rolls up every proposal's item costs in AUD cents and computes `overrunPct`.
-2. Total is within budget: no budget conflict is raised.
-3. Orchestrator builds the plan, marks each section `draft` and returns it with `estTotal` and `overrunPct`.
-
-**Extensions**
-
-- 2a. _Total over budget, but the sum of floor costs fits_:
-  1. Orchestrator computes each section's room to cut (its cost less its `floorCost`).
-  2. It spreads the overrun over those sections in proportion, creating one `RevisionRequest` per section with a `targetSaving`.
-  3. Orchestrator runs `revise_conflicts` for those agents only, giving each its previous proposal and a new allocation (last cost less saving).
-  4. Accommodation, on a budget revision, keeps the confirmed preferences and picks the cheapest eligible stay within the new allocation.
-  5. Orchestrator re-runs detection and computes the plan score (AUD over budget + 10% of budget per other conflict).
-  6. Score improved: keep the round and go back to step 1 of the main scenario. Score not improved: discard the round and go to 2c.
-- 2b. _Sum of floor costs already exceeds the budget_: Orchestrator raises one `infeasible budget` conflict naming the minimum, stops revising, and the reply tells the traveller to raise the budget to at least that amount or change dates, origin or destination.
-- 2c. _Three rounds reached, or no improvement_: the best plan so far is returned; sections still targeted are `needs_you`.
-- _Traveller edits the plan_: costs are re-checked in the editor and a `price_unverified` issue is shown for any unpriced change.
-
-**Special requirements**: R-C8; overrun percentages are compared unrounded.
-
-## 2.3 Use case specifications: member A
-
-### UC-A1 Generate Itinerary
-
-| Field | Content |
-| --- | --- |
-| **ID / name** | UC-A1 Generate Itinerary |
-| **Source** | AH-A1; R-A1 … R-A12 |
-| **Primary actor** | Traveler |
-| **Secondary actors** | LLM (DeepSeek) as coordinator, supervisor and reply writer; the five specialist agents; Maps / Routes, Hotel / Flight Search and Weather APIs through the specialists |
-| **Goal** | A free-text message becomes one validated, internally consistent `TripPlan`, or a plain statement of what is missing or impossible. |
-| **Trigger** | The traveller sends a chat message to `POST /api/chat`. |
-| **Preconditions** | The message is non-empty or carries an attachment. Nothing else is required: facts missing from the brief are what this use case resolves. |
-| **Postconditions (success)** | A `TripPlan` exists with five sections, each `draft` or `needs_you`, `estTotal` and `overrunPct` computed, and a reply naming what the traveller must still decide. Every costed item came from a specialist's evidence. |
-| **Postconditions (partial)** | A `needs_info` or `ask_user` frame is returned with the facts understood so far, and no plan is invented. |
-| **Postconditions (failure)** | An error frame naming the specialist that failed. No partial plan is presented as a plan. |
+| Field                                  | Content                                                                                                                                                               |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **ID / name**                          | UC-E1 Edit Itinerary (Timeline / Map)                                                                                                                                 |
+| **Source**                             | AH-E1; R-E1–R-E6                                                                                                                                                      |
+| **Primary actor**                      | Traveler                                                                                                                                                              |
+| **Secondary actors**                   | Web workspace, deterministic itinerary editor, Maps / Routes / Places API, browser local storage; the chat LLM is a separate path and is not invoked by this use case |
+| **Goal**                               | Change a scheduled activity while preserving a valid, explainable and current trip plan.                                                                              |
+| **Trigger**                            | The traveller selects or drags a stop in the timeline/map, changes its time/place, requests a route check, or chooses undo.                                           |
+| **Preconditions**                      | A `TripPlan` is open; it has an itinerary proposal; activities have unique IDs and complete schedule data; the client holds the current `editVersion`.                |
+| **Postconditions (success)**           | The validated preview is applied to client state and autosaved in browser storage; routes, conflicts, costs and edit issues are shown.                                |
+| **Postconditions (blocked / failure)** | The current client plan remains unchanged and the preview reports an invalid operation, unavailable route, unverified price or stale preview.                         |
 
 **Main success scenario**
 
-1. Coordinator merges the message onto the facts earlier turns stated (`known`).
-2. The LLM reads the merged context and calls `update_trip_brief` with only the facts this message states.
-3. Coordinator validates the patch through `BriefPatchSchema`, applies it with `applyBriefPatch`, and parses the result as a `TripBrief`; the dates must be real and ordered, with at least one night per city.
-4. Coordinator starts the LangGraph workflow with the validated brief.
-5. `dispatch_specialists` asks the supervisor which specialists to call; the supervisor writes one concrete objective per specialist, naming the trip facts it must respect.
-6. Each specialist plans its own section and posts an `AgentProposal` on the staged planning board; one progress event per specialist reaches the browser as it works.
-7. `detect_conflicts` rolls up the costs and collects every proposal's conflicts (member C's `detectConflicts`).
-8. No conflicts remain: `build_plan` assembles the plan, marking each section `draft`.
-9. Coordinator builds a digest of the plan, the LLM writes the reply from it, and the final frame carries both reply and plan.
+1. The traveller selects a stop in the timeline or map, changes its time/place, requests a route check, or chooses undo.
+2. The workspace identifies the activity by stable ID and builds a typed `EditRequest`.
+3. The workspace sends the plan, `baseVersion`, operation and route mode to `/api/trip/preview-edit`.
+4. The deterministic editor parses the request, checks plan identity and rejects a stale `baseVersion`.
+5. The editor applies the operation to a copy and checks day, time, ID and destination-segment rules.
+6. For affected days, Maps / Routes is queried for travel time between consecutive places.
+7. The editor recomputes route blockers, conflicts, section costs, total cost and budget status.
+8. A changed place receives a `price_unverified` issue; route verification does not currently clear that price issue.
+9. The workspace shows a preview with differences, route results, blockers and budget consequences.
+10. The client compares `preview.baseVersion` with the current plan version, then applies the plan to React state and autosaves it to localStorage.
 
 **Extensions**
 
-- 2a. *No model configured, or off-schema output*: no patch is applied; the turn proceeds on the facts already stated, and the reply is written by `fallbackReplyFor` (R-A11).
-- 3a. *A required fact is still missing* (destination, dates, group size or budget): the turn ends with `IncompleteBriefError` naming the missing fields, carrying `known` so the traveller need not repeat the rest. Nothing is defaulted (R-A2).
-- 3b. *Dates are unreal, reversed, or shorter than one night per city*: the brief is rejected with the reason; planning does not start.
-- 3c. *The traveller states a lasting wish, a travel mode or a booked stay*: it is recorded on the brief (`learnedPreferences`, `legModes`, `bookedStay`) and the plan is re-run with it.
-- 4a. *The traveller asked a question the plan already answers*: the coordinator answers from the plan and does not replan.
-- 5a. *The coordinator would rather ask than guess*: it calls `ask_user_question` with 2-4 options in the traveller's language, recommended option first, and the turn ends there; no other tool runs after it (R-A3).
-- 5b. *Supervisor unavailable or off-schema*: all five specialists are dispatched deterministically; the itinerary specialist is never skipped (R-A11).
-- 6a. *A specialist throws*: the run stops and the error frame names it; no partial plan is returned.
-- 7a. *Conflicts remain, a round is left, and none is `infeasible budget`*: `revise_conflicts` re-invokes only the targeted specialists, each with its previous proposal and any `targetSaving`, then returns to step 7 (R-A6).
-- 7b. *`planScore` did not improve after a revision*: the round is discarded, the earlier proposals are kept, `stalled` is set and the flow goes to step 8 — a revision can never make the plan worse (R-A7).
-- 7c. *Three rounds have run and conflicts remain*: the plan is built with each still-targeted section marked `needs_you` and `conflicts` listing what is unresolved (R-A9).
-- 7d. *`infeasible budget`*: the revision loop is skipped entirely and the reply names the minimum budget needed (member C's UC-C2, extension 2b).
+- _Chat path_: the coordinator may update the trip brief, replan, answer a question, or return the existing plan. It does not create an `EditRequest` for this use case.
+- 4a. _Stale plan at preview time_: return "Start from the current plan"; keep the current client plan unchanged.
+- 5a. _Move crosses destination accommodation segments_: reject the move because the destination stay would no longer match the itinerary.
+- 6a. _End time is not after start time, the day is outside the trip, or IDs are not unique_: return a blocker and do not apply.
+- 7a. _A place is missing_: ask the traveller to confirm/search for the place before checking routes.
+- 7b. _The route provider fails_: show `route_unavailable`; preserve the preview but do not claim the route is valid.
+- 8a. _The edit causes a schedule or budget conflict_: show the conflict and mark the affected section `needs_you`.
+- 9a. _A place change affects cost_: show `price_unverified`; the current verify operation rechecks routes but does not implement separate price clearance.
+- 11a. _The traveller cancels the preview_: discard the preview and keep the old plan.
+- 12a. _Undo is requested_: restore the saved activity snapshot, rerun validation and create another plan version.
 
-**Special requirements**: R-A10 (a model-proposed change is re-validated before it plans anything), R-A11 (every LLM step has a deterministic fallback), R-A12 (the above is replayed under injected faults in `agent-lab`).
+**LLM versus deterministic control**
 
-## 2.4 Template for the other members
+| Concern           | Current LLM / chat behaviour                                                  | Current deterministic responsibility                                                                       |
+| ----------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Chat request      | Updates the brief, replans, asks a question or answers; no `EditRequest` tool | N/A for this edit boundary                                                                                 |
+| Timeline/map edit | Not invoked                                                                   | Parse and validate `EditRequest`, IDs, dates, times and segments                                           |
+| Route and budget  | Not invoked                                                                   | Query providers; compute routes, blockers, conflicts, costs and status                                     |
+| Price uncertainty | May explain the result                                                        | Set `price_unverified`; no complete price-clearance operation yet                                          |
+| Memory            | Drops learned preferences when the setting is off                             | Long-term memory service stores/reads preferences; specialist read gating is not fully tied to the setting |
+| Apply changes     | No direct write access to the edit endpoint                                   | Client version check, React state update and localStorage autosave                                         |
 
-Copy this for at least one use case each; the group needs 5–10 in total.
-
-| Field                                  | Content               |
-| -------------------------------------- | --------------------- |
-| **ID / name**                          |                       |
-| **Source**                             | your AH-x and R-x ids |
-| **Primary actor**                      |                       |
-| **Secondary actors**                   |                       |
-| **Goal**                               |                       |
-| **Trigger**                            |                       |
-| **Preconditions**                      |                       |
-| **Postconditions (success / failure)** |                       |
-
-**Main success scenario**: numbered steps.
-
-**Extensions**: `<step><letter>. <condition>: <steps>`.
-
-**Special requirements**: the NFRs that apply.
-
-Suggested use cases from the existing diagram: A, Generate Itinerary; B, Arrange Transportation;
-D, View Weather-based Clothing Recommendation; E, Edit Itinerary (Timeline / Map).
-
-## 2.4 UC-B1 Arrange Transportation
-
-| Field                        | Content                                                                                                                                                                                                                                                                                                              |
-| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| ID / name                    | UC-B1 Arrange Transportation                                                                                                                                                                                                                                                                                         |
-| Source                       | AH-B1; R-B1–R-B6                                                                                                                                                                                                                                                                                                     |
-| Primary actor                | Traveler                                                                                                                                                                                                                                                                                                             |
-| Secondary external actors    | Flight search provider; Maps / Routes providers; model service when configured                                                                                                                                                                                                                                       |
-| Internal collaborating roles | Workflow / supervisor, Transport specialist, planning board, Itinerary specialist, conflict policy. These are internal system roles, not additional human actors.                                                                                                                                                    |
-| Goal                         | Obtain evidence-based transport recommendations coordinated with the daily itinerary, with known prices and any unresolved availability, timing or budget problems made explicit.                                                                                                                                    |
-| Trigger                      | The traveler requests a trip plan or a transport-related change; the workflow dispatches Transport, or routes a targeted revision to it.                                                                                                                                                                             |
-| Preconditions                | A schema-valid TripBrief exists with valid ordered ISO dates, destination, positive group size and budget. Maps, Booking and Memory ports are injected. A usable model is optional. Normal scenario supplies an explicit origin.                                                                                     |
-| Success postconditions       | A schema-valid transport proposal contains provider-based fare choices and scheduled ground legs, is available to downstream planning, and is incorporated into TripPlan. No unresolved request targets transport. Relevant activities have been checked against route evidence. No booking or payment is performed. |
-| Partial postconditions       | The best retained proposal preserves known prices, unpriced warnings, unavailable choices and/or conflicts. Transport is `needs_you` only while an unresolved request targets it; otherwise `draft`, including when a ground fare is unknown.                                                                        |
-| Failure postconditions       | Invalid input, cancellation or an unrecoverable error stops the run; no successful plan is claimed. Invalid model output alone normally falls back rather than failing.                                                                                                                                              |
-
-### Main success scenario
-
-1. The traveler supplies origin, destinations, dates, party size, budget and any per-leg mode choice. Chat intake produces a validated brief upstream of this use case.
-2. The workflow dispatches `transportAgent.invoke` through its specialist boundary and planning board, with injected tools and memory.
-3. Transport validates the dates, derives the ordered journey and reads any relevant origin preference. It gathers offered flight fares and ground routes, plus route alternatives when the port supports them.
-4. With a configured model, the Transport LLM calls `search_transport_evidence`, then selects offered flight IDs and a planning day/local departure time for each routed hop. It does not supply prices or durations.
-5. Deterministic code resolves selected IDs against the evidence, requires exactly one fare per hop with offered fares, checks required hop coverage, planning-day bounds and HH:mm syntax. It checks route validity and whether each scheduled hop fits within its planning day.
-6. Code assembles the proposal from provider prices and durations, applies supported mode preferences, and records assumptions, a cost floor, available flight alternatives and a source label. If an allocation is exceeded, the chosen flights give way to the cheapest returned fares.
-7. The workflow validates the proposal schema; the planning board stores it. In the staged first round, itinerary planning can read transport and accommodation proposals when those dependencies were dispatched. It grounds activities, validates its draft and checks connections using route duration plus a 15-minute buffer.
-8. Once dispatched proposals are collected, deterministic conflict policy checks known budget totals, reported route problems and scheduled-item overlaps.
-9. With no unresolved conflict, the workflow assembles the plan and returns transport as `draft`, together with the known estimate and source information. The traveler can inspect or change it in chat/editor.
-
-### Extensions
-
-- **1a — Invalid input:** schema/date validation rejects an invalid brief or unordered dates. Correct the input; do not claim a valid plan.
-- **3a — Origin omitted:** current resolution is brief origin, then `transport.origin` memory, then Sydney. The proposal discloses the resolved origin; this fallback is not a user-confirmation step.
-- **3b — Traveler arranges flights:** `excludeFlights` skips flight searches/pricing and does not raise a missing-fare conflict for those self-arranged flights.
-- **3c — Required flight unavailable or empty:** retain a missing-flight conflict and an incomplete estimate; never fabricate a fallback fare.
-- **3d — No usable ground route or route cannot fit:** omit the invalid scheduled hop and record a geography/time conflict. For an unchosen, overlong inter-city ground hop, evidence gathering may first seek a flight instead; an explicit ground-mode choice is not silently overridden for this reason.
-- **4a/5a — Model absent, fails or returns an invalid selection:** use a deterministic plan from gathered evidence (gather it if needed). Model-error fallback is labelled `Local fallback`; the no-model path uses normal evidence provenance. Fallback cannot create missing provider evidence.
-- **6a — Ground fare unavailable:** omit `estCost`, count the unpriced leg and describe the known estimate as a lower bound. This alone does not trigger a conflict or a revision.
-- **6b — Chosen ground mode unavailable:** retain the provider's route and explicitly state the requested mode was unavailable. This alone is a warning, not a revision request.
-- **8a — Feasible conflict:** invoke only the targeted revisable specialist(s), passing previous proposals, revision constraints and an allocation where applicable. Repeat evidence gathering, selection and validation. Activity overlaps target itinerary so it moves around transport rather than forcing both to move. Keep a round only if `planScore` strictly improves, then recheck.
-- **8b — Infeasible budget:** stop revision and report the evidence-based minimum. The conflict targets the largest-cost section; transport is not necessarily that section.
-- **8c — Default third round reached or score does not improve:** return the best retained plan; mark only still-targeted sections `needs_you`. A non-improving round is discarded.
-- **Any step — Cancellation/unrecoverable failure:** stop, report the failure and allow a later retry. A future chat/edit starts a new interaction; there is no `confirmed` or `booked` state in this use case.
-
-**Special requirements:** R-B4–R-B6. Trip dates use the current end-exclusive planning interval. Transport estimates are in AUD and are not reservations. Ground-provider durations are gathered before model scheduling; changing the chosen departure time does not automatically re-query time-sensitive transit schedules. Availability gaps must remain visible; `draft` is not a guarantee of complete pricing.
+**Special requirements**: R-E4 (deterministic recalculation), R-E6 (stale or malformed previews are rejected without inventing a route, price or place).

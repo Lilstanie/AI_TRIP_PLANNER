@@ -2,7 +2,7 @@
 
 English | [中文](04-member-b-behaviour.zh.md)
 
-These models derive from **AH-B1 / R-B1–R-B6** in [Requirements](01-requirements.md#15-member-b-requirement-classification) and **UC-B1 Arrange Transportation** in [Use cases](02-use-cases.md#24-uc-b1-arrange-transportation). They describe the current team implementation in B's assigned domain, not exclusive code authorship. The specialist boundary is `Specialist.invoke`.
+These models derive from **AH-B1 / R-B1–R-B6** in [Requirements](01-requirements.md#member-b-ah-b1) and **UC-B1 Arrange Transportation** in [Use cases](02-use-cases.md#uc-b1-arrange-transportation). They describe the current team implementation in B's assigned domain, not exclusive code authorship. The specialist boundary is `Specialist.invoke`.
 
 ## 4.1 Activity diagram
 
