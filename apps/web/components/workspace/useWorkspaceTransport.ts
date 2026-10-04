@@ -1,6 +1,12 @@
 "use client";
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
-import { TripPlan, type AgentProgressEvent, type AssistantSettings, type Attachment } from "@trip/shared";
+import {
+  TripPlan,
+  type AgentProgressEvent,
+  type AssistantSettings,
+  type Attachment,
+  type InterfaceLanguage,
+} from "@trip/shared";
 import type { RouteResult } from "@/lib/integrations/google";
 import {
   identifyActivities,
@@ -55,6 +61,11 @@ type WorkspaceTransportOptions = {
   onReject(fields: Record<string, string>): void;
   /** Settings → Personalization: reply style and whether chat memory is on. */
   assistant?: AssistantSettings;
+  /**
+   * The interface language. The assistant replies in the language of the message itself and falls
+   * back to this one only when the message does not show a language.
+   */
+  interfaceLanguage: InterfaceLanguage;
 };
 
 export function useWorkspaceTransport({
@@ -83,6 +94,7 @@ export function useWorkspaceTransport({
   onReject,
   dataMode,
   assistant,
+  interfaceLanguage,
 }: WorkspaceTransportOptions) {
   async function run(task: Task) {
     if (active.current) return;
@@ -105,7 +117,11 @@ export function useWorkspaceTransport({
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "content-type": "application/json", ...dataModeHeaders(dataMode) },
-        body: JSON.stringify(assistant ? { ...task.request, assistant } : task.request),
+        body: JSON.stringify({
+          ...task.request,
+          ...(assistant ? { assistant } : {}),
+          interfaceLanguage,
+        }),
         signal: controller.signal,
       });
       const result = await readPlanStream(response, (event) => {

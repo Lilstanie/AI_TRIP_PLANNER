@@ -78,6 +78,14 @@ Optional `assistant`: `{ style, memory }` from Settings → Personalization (`As
 
 Without the field, the behaviour is `neutral` with memory on.
 
+Optional `interfaceLanguage`: `en` or `zh` (`InterfaceLanguage` in `packages/shared/src/chat.ts`),
+the language the traveller's interface is showing. The web app sends its current locale with every
+chat request. The coordinator always replies in the language of the traveller's latest message; this
+field only chooses the language when that message does not show one, such as a message that is only
+a place name, dates or numbers. It never changes the interface language. Without the field the
+coordinator has no fallback language and follows the latest message as before. Specialists do not
+receive it.
+
 Optional `attachments`: up to 4 files the traveller attached to this message.
 
 ```json

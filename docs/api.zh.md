@@ -79,6 +79,11 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 
 不传该字段时，行为等同于 `neutral` 且开启记忆。
 
+可选的 `interfaceLanguage`：`en` 或 `zh`（`packages/shared/src/chat.ts` 中的 `InterfaceLanguage`），
+即旅行者界面当前显示的语言。网页端在每次聊天请求中发送当前的界面语言。协调器始终使用旅行者最新一条消息的语言回复；
+只有当这条消息看不出语言时（例如只有地名、日期或数字），才由该字段决定回复语言。它不会改变界面语言。
+不传该字段时，协调器没有回退语言，仍像以前一样跟随最新消息的语言。specialist 不会收到该字段。
+
 可选的 `attachments`：旅行者附加到这条消息的文件，最多 4 个。
 
 ```json
