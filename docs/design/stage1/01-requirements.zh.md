@@ -18,13 +18,13 @@ AI Trip Planner 是一家“一人 AI 旅行社”。唯一的人类旅行者同
 
 建模之前，用利益相关者自己的话写下的非正式陈述。
 
-| 编号 | 成员 | Ad hoc 需求 |
-| --- | --- | --- |
+| 编号  | 成员                  | Ad hoc 需求                                                                                                                                                                                                                                                                                                                                                                                    |
+| ----- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | AH-C1 | C (`@HeadmasterEggy`) | “我们五个朋友去东京，预算是固定的。我希望规划器算出我们需要几间房、是合住还是每人一间，并挑一家我真愿意住的酒店：评分要过得去，我要求了的话还要能免费取消。机票先付，所以酒店得放进剩下的钱里。如果整趟行程超预算，我希望把酒店换成一家更便宜、但仍符合我规则的，而不是告诉我没有合适的。如果怎么都放不下，就告诉我至少需要多少钱，而不是编一家便宜的出来。要是我已经订好了住处，就直接保留。” |
-| AH-A1 | A | _由 A 填写_ |
-| AH-B1 | B | _由 B 填写_ |
-| AH-D1 | D | _由 D 填写_ |
-| AH-E1 | E | _由 E 填写_ |
+| AH-A1 | A                     | _由 A 填写_                                                                                                                                                                                                                                                                                                                                                                                    |
+| AH-B1 | B (Tingsong Jin)      | “我和一位朋友打算从悉尼去东京和京都，日期固定，共用一份预算。请帮我们挑选航班，并安排城市间的移动时间，让每天的观光与交通衔接起来。票价和行程时间要用实际查到的数据。如果我指定某一段坐火车，有这个选项就采用，没有就明确告诉我。查不到票价时要说价格未知，不能当作免费。如果总价太高或时间冲突，就尝试合适的便宜选项或调整日程；如果仍然不可行，请告诉我需要改什么。”                         |
+| AH-D1 | D                     | _由 D 填写_                                                                                                                                                                                                                                                                                                                                                                                    |
+| AH-E1 | E                     | _由 E 填写_                                                                                                                                                                                                                                                                                                                                                                                    |
 
 早期实验课讨论中收集到的组级需求（来自小组设计文档）：根据天气给穿衣建议、个人或团体住宿、美食推荐、逐日日程、行李规定、交通、预算、能把需求拆成任务并汇总答案的聊天窗口，以及人数、区域和预算筛选。
 
@@ -34,19 +34,19 @@ AI Trip Planner 是一家“一人 AI 旅行社”。唯一的人类旅行者同
 
 下面把 AH-C1 拆分为已分类的需求。FR = 功能需求，NFR = 非功能需求，C = 约束。
 
-| 编号 | 类型 | 需求 | 追溯到 |
-| --- | --- | --- | --- |
-| R-C1 | FR | 根据人数和分房方式计算房间数：`individual` 每位住客一间，`shared` 为 ⌈住客数 / 2⌉。 | `accommodation/index.ts` |
-| R-C2 | FR | 按最低评分筛选住宿候选，要求时还按免费取消筛选；这些是硬性规则，预算修订不得放宽。 | `planning.ts: eligibleOptions` |
-| R-C3 | FR | 首选评分 ≥ 8 且可免费取消的住宿，并控制在交通之后剩余的住宿分配额内。 | `chooseInitial`，看板分配额 |
-| R-C4 | FR | 以澳元汇总各区段费用，并与 `budgetTotal` 比较。 | `budget.ts: rollUpCost` |
-| R-C5 | FR | 一旦超支，把需要节省的金额分摊到仍可削减的区段，并向每个区段发出定向修订请求。 | `conflicts.ts: detectConflicts` |
-| R-C6 | FR | 当最便宜的选项已经超出预算时，报告一个写明最低金额的 `infeasible budget` 冲突，并停止修订。 | `minimumCost`, `INFEASIBLE_BUDGET` |
-| R-C7 | FR | 保留旅行者已预订的住处，不定价、不搜索。 | `bookedStayProposal` |
-| R-C8 | NFR（准确性） | 金额以整数分为单位求和，总额不会漂移。 | `sumMoney`, `stayCost` |
-| R-C9 | NFR（完整性） | 模型只能在搜索到的候选 id 中选择，从不编造酒店、价格或政策。 | 住宿系统提示词 |
-| R-C10 | NFR（可用性） | 没有模型密钥或回答不符合 schema 时，确定性回退仍会产出有效提案。 | `planStays` 回退 |
-| R-C11 | C | 最多三轮修订；只有规划评分改善时才保留该轮。 | `workflow.ts` |
+| 编号  | 类型          | 需求                                                                                        | 追溯到                             |
+| ----- | ------------- | ------------------------------------------------------------------------------------------- | ---------------------------------- |
+| R-C1  | FR            | 根据人数和分房方式计算房间数：`individual` 每位住客一间，`shared` 为 ⌈住客数 / 2⌉。         | `accommodation/index.ts`           |
+| R-C2  | FR            | 按最低评分筛选住宿候选，要求时还按免费取消筛选；这些是硬性规则，预算修订不得放宽。          | `planning.ts: eligibleOptions`     |
+| R-C3  | FR            | 首选评分 ≥ 8 且可免费取消的住宿，并控制在交通之后剩余的住宿分配额内。                       | `chooseInitial`，看板分配额        |
+| R-C4  | FR            | 以澳元汇总各区段费用，并与 `budgetTotal` 比较。                                             | `budget.ts: rollUpCost`            |
+| R-C5  | FR            | 一旦超支，把需要节省的金额分摊到仍可削减的区段，并向每个区段发出定向修订请求。              | `conflicts.ts: detectConflicts`    |
+| R-C6  | FR            | 当最便宜的选项已经超出预算时，报告一个写明最低金额的 `infeasible budget` 冲突，并停止修订。 | `minimumCost`, `INFEASIBLE_BUDGET` |
+| R-C7  | FR            | 保留旅行者已预订的住处，不定价、不搜索。                                                    | `bookedStayProposal`               |
+| R-C8  | NFR（准确性） | 金额以整数分为单位求和，总额不会漂移。                                                      | `sumMoney`, `stayCost`             |
+| R-C9  | NFR（完整性） | 模型只能在搜索到的候选 id 中选择，从不编造酒店、价格或政策。                                | 住宿系统提示词                     |
+| R-C10 | NFR（可用性） | 没有模型密钥或回答不符合 schema 时，确定性回退仍会产出有效提案。                            | `planStays` 回退                   |
+| R-C11 | C             | 最多三轮修订；只有规划评分改善时才保留该轮。                                                | `workflow.ts`                      |
 
 <a id="14-feature-diagram-group"></a>
 
@@ -123,20 +123,35 @@ flowchart LR
 
 **跨树约束**
 
-1. *Targeted revision* 需要 *Conflict detection*。
-2. *Budget overrun* 需要 *Cost roll-up in AUD*；*Infeasible budget* 需要 *Minimum-cost floor*。
-3. *Keep booked stay* 排除该行程中 *Accommodation* 的搜索与定价。
-4. *Traveller arranges flights* 排除 *Transport* 的机票搜索以及任何机票价格冲突。
-5. *Live providers* 需要数据提供方密钥；没有密钥时系统选择 *Mock fixtures*。
-6. *Accounts & cloud sync* 需要 *Long-term preferences*。
+1. _Targeted revision_ 需要 _Conflict detection_。
+2. _Budget overrun_ 需要 _Cost roll-up in AUD_；_Infeasible budget_ 需要 _Minimum-cost floor_。
+3. _Keep booked stay_ 排除该行程中 _Accommodation_ 的搜索与定价。
+4. _Traveller arranges flights_ 排除 _Transport_ 的机票搜索以及任何机票价格冲突。
+5. _Live providers_ 需要数据提供方密钥；没有密钥时系统选择 _Mock fixtures_。
+6. _Accounts & cloud sync_ 需要 _Long-term preferences_。
 
 **附加在特征上的非功能需求**
 
-| 特征 | NFR |
-| --- | --- |
-| Multi-agent planning | 每个提案在图的每个边界都会按共享 Zod schema 重新校验。 |
-| Specialist roles | 模型缺失或输出不符合 schema 时，每个 specialist 回退到确定性输出，所以请求总能完成。 |
-| Budget management | 以整数分计算澳元；超支百分比不经四舍五入直接比较。 |
-| Evidence & tools | 价格和地点只来自工具；每个区段都标明数据是实时、估算、模拟数据还是回退。 |
-| Workspace | 规划进度以 NDJSON 流式输出，旅行者能看到每个阶段的进展。 |
-| Agent Lab | fixture 运行永远不会调用付费模型或数据提供方。 |
+| 特征                 | NFR                                                                                  |
+| -------------------- | ------------------------------------------------------------------------------------ |
+| Multi-agent planning | 每个提案在图的每个边界都会按共享 Zod schema 重新校验。                               |
+| Specialist roles     | 模型缺失或输出不符合 schema 时，每个 specialist 回退到确定性输出，所以请求总能完成。 |
+| Budget management    | 以整数分计算澳元；超支百分比不经四舍五入直接比较。                                   |
+| Evidence & tools     | 价格和地点只来自工具；每个区段都标明数据是实时、估算、模拟数据还是回退。             |
+| Workspace            | 规划进度以 NDJSON 流式输出，旅行者能看到每个阶段的进展。                             |
+| Agent Lab            | fixture 运行永远不会调用付费模型或数据提供方。                                       |
+
+<a id="15-member-b-requirement-classification"></a>
+
+## 1.5 成员 B 的需求分类
+
+AH-B1 是课程作业中以利益相关者口吻撰写的陈述，不是访谈引语。其六条分类需求追溯到当前交通和日程实现。
+
+| 编号 | 类型         | 需求                                                                                                                             | 当前实现依据                                                                                                                                                                                                                                                                                                                                                                                                              |
+| ---- | ------------ | -------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R-B1 | FR           | 根据出发地、目的地和日期生成有序行程段；收集航班和地面路线选项，为全体出行者生成带时间安排的交通提案。                           | [packages/agents/src/transport/index.ts:87](https://github.com/Lilstanie/AI_TRIP_PLANNER/blob/c59f751fc04766db9fcbcfe82d4a0c5b6ec3c0c6/packages/agents/src/transport/index.ts#L87); `journeyLegs`，位于 `transport/legs.ts`                                                                                                                                                                                               |
+| R-B2 | FR           | 规划每日活动时使用交通日程，并检查不同活动地点间的移动能否放进可用时间间隔，包括 15 分钟的到达缓冲。                             | [packages/orchestrator/src/board.ts:15](https://github.com/Lilstanie/AI_TRIP_PLANNER/blob/c59f751fc04766db9fcbcfe82d4a0c5b6ec3c0c6/packages/orchestrator/src/board.ts#L15); `citiesByDay`, `travelConflicts`: [packages/agents/src/itinerary/index.ts:342](https://github.com/Lilstanie/AI_TRIP_PLANNER/blob/c59f751fc04766db9fcbcfe82d4a0c5b6ec3c0c6/packages/agents/src/itinerary/index.ts#L342)                        |
+| R-B3 | FR           | 支持时采用旅行者为每段行程指定的交通方式；不可用时明确说明，并告知实际采用的路线。                                               | `chosenModeFor`: [packages/agents/src/transport/legs.ts:106](https://github.com/Lilstanie/AI_TRIP_PLANNER/blob/c59f751fc04766db9fcbcfe82d4a0c5b6ec3c0c6/packages/agents/src/transport/legs.ts#L106); `scheduledLegs` 和 `layOutHop`: [packages/agents/src/transport/index.ts:306](https://github.com/Lilstanie/AI_TRIP_PLANNER/blob/c59f751fc04766db9fcbcfe82d4a0c5b6ec3c0c6/packages/agents/src/transport/index.ts#L306) |
+| R-B4 | NFR — 完整性 | 只选择返回的票价候选；费用和时长均来自证据。地面交通缺失的票价保持未定价；必需航班不可用时明确报告，不编造价格。                 | `planTransport`: [packages/agents/src/transport/index.ts:685](https://github.com/Lilstanie/AI_TRIP_PLANNER/blob/c59f751fc04766db9fcbcfe82d4a0c5b6ec3c0c6/packages/agents/src/transport/index.ts#L685); `assembleTransportProposal`: [packages/agents/src/transport/index.ts:470](https://github.com/Lilstanie/AI_TRIP_PLANNER/blob/c59f751fc04766db9fcbcfe82d4a0c5b6ec3c0c6/packages/agents/src/transport/index.ts#L470)  |
+| R-B5 | NFR — 韧性   | 未配置模型或模型选择无效时，使用基于证据的确定性计划；保留可用性缺口和来源标签。无法恢复的输入或数据提供方错误仍可能使运行失败。 | `deterministicPlan`, `planTransport` 捕获异常后的路径： [packages/agents/src/transport/index.ts:685](https://github.com/Lilstanie/AI_TRIP_PLANNER/blob/c59f751fc04766db9fcbcfe82d4a0c5b6ec3c0c6/packages/agents/src/transport/index.ts#L685)                                                                                                                                                                              |
+| R-B6 | C — 有界控制 | 默认工作流总共最多运行三轮（首轮加最多两轮修订）；仅重新运行被定向请求且支持修订的 specialist，只有规划评分改善时才保留修订。    | [packages/orchestrator/src/workflow.ts:141](https://github.com/Lilstanie/AI_TRIP_PLANNER/blob/c59f751fc04766db9fcbcfe82d4a0c5b6ec3c0c6/packages/orchestrator/src/workflow.ts#L141); [packages/orchestrator/src/conflicts.ts:24](https://github.com/Lilstanie/AI_TRIP_PLANNER/blob/c59f751fc04766db9fcbcfe82d4a0c5b6ec3c0c6/packages/orchestrator/src/conflicts.ts#L24)                                                    |
