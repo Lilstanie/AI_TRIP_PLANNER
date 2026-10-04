@@ -1,7 +1,7 @@
 import { Fragment } from "react";
 import type { ProposalItem, TripSection } from "@trip/shared";
-import { money } from "@/lib/workspace";
 import { SourceBadge } from "./SourceBadge";
+import { useLocale } from "../account/LocaleProvider";
 
 const titles: Record<string, string> = {
   hotel: "Accommodation",
@@ -52,6 +52,7 @@ function Connection({ arriveBy }: { arriveBy: NonNullable<ProposalItem["arriveBy
 }
 
 function ItemCard({ item }: { item: ProposalItem }) {
+  const { money } = useLocale();
   const informational = ["customs", "safety", "entry-health", "weather-packing", "note"].includes(
     item.kind,
   );
@@ -86,6 +87,7 @@ export function ProposalDetails({
   section: TripSection;
   onReview: () => void;
 }) {
+  const { money } = useLocale();
   const proposal = section.proposal;
   if (!proposal) return <p className="section__empty">Details are still being prepared.</p>;
   if (section.id === "accommodation" && proposal.stays?.length)

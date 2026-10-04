@@ -12,6 +12,7 @@ import {
 import { PlusIcon, SendIcon } from "../ui/icons";
 import { AttachmentChip } from "./AttachmentChip";
 import type { PreparedAttachment } from "@/lib/chat/attachments";
+import { useLocale } from "../account/LocaleProvider";
 
 /**
  * The chat composer, built as one card like DeepSeek Harness's input bar: the
@@ -81,6 +82,7 @@ export function Composer({
   /** One short line under the chips: why a file was refused, or that the limit is reached. */
   attachNotice?: string;
 }) {
+  const { t } = useLocale();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
   // A drag over a child fires dragleave on the parent; count the entries so the
@@ -157,7 +159,7 @@ export function Composer({
       {...dragProps}
     >
       {attachments.length > 0 && (
-        <ul className="attachment-chips composer__attachments" aria-label="Attached files">
+        <ul className="attachment-chips composer__attachments" aria-label={t("Attached files")}>
           {attachments.map((attachment) => (
             <AttachmentChip
               key={attachment.id}
@@ -181,7 +183,7 @@ export function Composer({
       <textarea
         ref={inputRef}
         className="composer__input"
-        aria-label="Message AI Trip Planner"
+        aria-label={t("Message AI Trip Planner")}
         placeholder={placeholder}
         rows={1}
         value={value}
@@ -195,8 +197,8 @@ export function Composer({
           <button
             type="button"
             className="composer__add"
-            aria-label="Upload files"
-            title="Upload files"
+            aria-label={t("Upload files")}
+            title={t("Upload files")}
             disabled={busy || !canAttach}
             // The pick target must not steal the draft's focus (DSH's keepFocus).
             onMouseDown={(event) => event.preventDefault()}
@@ -208,7 +210,7 @@ export function Composer({
             ref={fileInputRef}
             className="composer__file-input"
             type="file"
-            aria-label="Add files"
+            aria-label={t("Add files")}
             multiple
             // Visually hidden rather than `hidden`, so the field stays in the
             // accessibility tree for a reader that drives the input directly.
@@ -223,7 +225,7 @@ export function Composer({
             <button
               type="button"
               className="composer__primary composer__primary--stop"
-              aria-label="Stop planning"
+              aria-label={t("Stop planning")}
               disabled={!canCancel}
               onClick={onCancel}
             >
@@ -233,7 +235,7 @@ export function Composer({
             <button
               type="button"
               className="composer__primary"
-              aria-label="Send"
+              aria-label={t("Send")}
               disabled={!canSend}
               // Not `onClick={onSend}`: the caller's send() reads an optional message
               // argument, and a click event is not one.

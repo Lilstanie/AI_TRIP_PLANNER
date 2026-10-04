@@ -4,9 +4,9 @@
 // expanded body exposes that agent's structured proposal in a readable form.
 import { ProposalDetails } from "./ProposalDetails";
 import { SourceBadge } from "./SourceBadge";
-import { money } from "@/lib/workspace";
 import { useState } from "react";
 import type { TripSection as TripSectionData } from "@trip/shared";
+import { useLocale } from "../account/LocaleProvider";
 
 const STATUS_LABEL: Record<string, string> = {
   planning: "Planning",
@@ -23,6 +23,7 @@ export function TripSection({
   onEdit: () => void;
   onReview: () => void;
 }) {
+  const { money } = useLocale();
   const [open, setOpen] = useState(false);
   const bodyId = `section-details-${section.id}`;
 

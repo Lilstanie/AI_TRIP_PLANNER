@@ -1,6 +1,7 @@
 "use client";
 import { useMemo } from "react";
 import dynamic from "next/dynamic";
+import { useLocale } from "../account/LocaleProvider";
 import type { RouteResult } from "@/lib/integrations/google";
 import type { TripPlaces } from "./useTripPlaces";
 import type { UserLocation } from "./useUserLocation";
@@ -40,6 +41,7 @@ export function TripMapCanvas({
   /** The traveller's position, shared with the workspace's location question. */
   userLocation: UserLocation;
 }) {
+  const { t } = useLocale();
   const {
     markers,
     destinations,
@@ -61,21 +63,21 @@ export function TripMapCanvas({
   if (!destination || !canShowMap) {
     const locating = !!destination && (!destinationsSettled || loading);
     return (
-      <section className="trip-map-canvas trip-map-canvas--empty" aria-label="Trip map">
+      <section className="trip-map-canvas trip-map-canvas--empty" aria-label={t("Trip map")}>
         <div className="map-placeholder" role="status">
           <span className="map-placeholder__icon" aria-hidden="true">
             <MapPinIcon />
           </span>
           <h2>
             {!destination
-              ? "Your map will appear here"
+              ? t("Your map will appear here")
               : locating
                 ? `Locating ${destination}…`
                 : `${destination} could not be shown on the map yet`}
           </h2>
           <p>
             {!destination
-              ? "Tell us a destination and dates in the chat, or add them in the bar at the top."
+              ? t("Tell us a destination and dates in the chat, or add them in the bar at the top.")
               : locating
                 ? "Your itinerary stays available while places load."
                 : unavailable || destinationsUnavailable

@@ -12,7 +12,6 @@ import {
   itineraryActivities,
   blankDraft,
   draftFor,
-  money,
   type Message,
   type Snapshot,
 } from "@/lib/workspace";
@@ -34,11 +33,13 @@ import {
 import { useDataMode } from "@/lib/workspace/data-mode";
 import { draftDefaults } from "@/lib/account/settings";
 import { useSettings } from "../account/SettingsProvider";
+import { useInterfaceLocale } from "../account/LocaleProvider";
 import { useAccountSync } from "../account/useAccountSync";
 import type { SettingsSection } from "../account/SettingsDialog";
 import { useComposerAttachments } from "./useComposerAttachments";
 import type { PendingAsk } from "@/lib/workspace/ask-user";
 import { firstFactWithError, firstMissingFact, type FactKey } from "@/lib/workspace/trip-facts";
+import { formatAudForDisplay } from "@/lib/i18n/locale";
 export function useWorkspaceController({ restored }: { restored: RestoredWorkspace }) {
   const [plan, setPlan] = useState<TripPlan | undefined>(restored.plan);
   const [draft, setDraft] = useState(restored.draft);
@@ -60,6 +61,7 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
   const [notice, setNotice] = useState("");
   const [catalog, setCatalog] = useState<WorkspaceCatalog>(restored.catalog);
   const { settings } = useSettings();
+  const locale = useInterfaceLocale();
   const [historyQuery, setHistoryQuery] = useState("");
   // The top-bar chip whose editor is open; Preferences is one of them.
   const [openFact, setOpenFact] = useState<FactKey>();
@@ -248,7 +250,11 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     id: item.id,
     title: `Trip to ${item.snapshot.plan.brief.destination}`,
     destination: item.snapshot.plan.brief.destination,
-    subtitle: `${item.snapshot.plan.brief.dates.join(" – ")} · ${money(item.snapshot.plan.estTotal)}`,
+    subtitle: `${item.snapshot.plan.brief.dates.join(" – ")} · ${formatAudForDisplay(
+      item.snapshot.plan.estTotal,
+      "AUD",
+      locale,
+    )}`,
     status: item.status === "needs_review" ? ("Needs review" as const) : ("Draft" as const),
     active: !blank && item.id === catalog.activeTripId,
   }));

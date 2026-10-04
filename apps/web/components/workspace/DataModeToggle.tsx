@@ -1,5 +1,6 @@
 "use client";
 import type { DataMode, DataModeProviders } from "@/lib/workspace/data-mode";
+import { useLocale } from "../account/LocaleProvider";
 
 /**
  * Switches the planner between bundled fixtures and the real providers.
@@ -19,6 +20,7 @@ export function DataModeToggle({
   onChange: (mode: DataMode) => void;
   disabled?: boolean;
 }) {
+  const { t } = useLocale();
   // Until the server reports its default, showing "Mock" would be a guess that
   // visibly flips a moment later.
   if (!mode) return null;
@@ -41,7 +43,7 @@ export function DataModeToggle({
       onClick={() => onChange(live ? "mock" : "live")}
     >
       <span className="data-mode__dot" aria-hidden="true" />
-      <span className="topbar-button__label">{live ? "Live data" : "Mock data"}</span>
+      <span className="topbar-button__label">{t(live ? "Live data" : "Mock data")}</span>
       {live && !keyed && (
         <span className="data-mode__warn" aria-hidden="true">
           !

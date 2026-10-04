@@ -5,6 +5,7 @@ import {
   MAX_TRIP_PREFERENCES,
 } from "@trip/shared";
 import { blankDraft, type Draft } from "../workspace/workspace";
+import { LOCALES } from "../i18n/locale";
 
 /**
  * A traveller's settings. Signed out they live in this browser (`SETTINGS_KEY`); signed in they
@@ -73,6 +74,8 @@ export const UserSettings = z.object({
   /** "default" follows the deployment's own setting. */
   dataMode: z.enum(["default", "live", "mock"]),
   appearance: z.enum(["system", "light", "dark"]),
+  /** Interface language. Absent means follow the browser, so settings saved before it still load. */
+  language: z.enum(LOCALES).optional(),
   /** When these settings last changed; the newer copy wins between browser and account. */
   updatedAt: z.string().datetime(),
 });

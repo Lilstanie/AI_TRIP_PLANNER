@@ -8,6 +8,8 @@ import { PreferenceList } from "../preferences/PreferenceList";
 import { useSegmentIndicator } from "../ui/motion";
 import { useAccount } from "./AccountProvider";
 import { useSettings } from "./SettingsProvider";
+import { useLocale } from "./LocaleProvider";
+import type { MessageKey } from "@/lib/i18n/locale";
 
 /**
  * Settings follows Mindtrip's settings page: a quiet list of sections on the left, one section on
@@ -17,7 +19,7 @@ import { useSettings } from "./SettingsProvider";
 export type SettingsSection = "profile" | "account" | "personalization" | "region" | "connected";
 type Section = SettingsSection;
 type AccountModalProps = { onAccountModal(open: () => void): void };
-const SECTIONS: [Section, string][] = [
+const SECTIONS: [Section, MessageKey][] = [
   ["profile", "Edit profile"],
   ["account", "Your account"],
   ["personalization", "Personalization"],
@@ -55,10 +57,11 @@ function SettingRow({
 }: {
   label: string;
   value: ReactNode;
-  action?: string;
+  action?: MessageKey;
   children?: (close: () => void) => ReactNode;
 }) {
   const [open, setOpen] = useState(false);
+  const { t } = useLocale();
   return (
     <div className="settings-row-item">
       <div className="settings-row-item__line">
@@ -71,10 +74,10 @@ function SettingRow({
             type="button"
             className="settings-pill"
             aria-expanded={open}
-            aria-label={`${open ? "Close" : action} ${label}`}
+            aria-label={`${t(open ? "Close" : action)} ${label}`}
             onClick={() => setOpen(!open)}
           >
-            {open ? "Done" : action}
+            {t(open ? "Done" : action)}
           </button>
         )}
       </div>
@@ -864,21 +867,35 @@ function PersonalizationSection() {
 
 function RegionSection({ onDataMode }: { onDataMode(mode: DataMode): void }) {
   const { settings, update } = useSettings();
+  const { locale, t } = useLocale();
+  const languageLabel = locale === "zh" ? "简体中文" : "English";
   return (
     <div className="settings-form">
-      <SettingRow label="Language" value="English" />
+      <SettingRow label={t("Language")} value={languageLabel}>
+        {() => (
+          <Segmented
+            label={t("Language")}
+            options={
+              [
+                ["en", "English"],
+                ["zh", "简体中文"],
+              ] as const
+            }
+            value={locale}
+            onChange={(language) => language && update({ language })}
+          />
+        )}
+      </SettingRow>
       <p className="settings-hint">
-        The interface is in English. Chat in any language: the planner replies in yours.
+        {locale === "zh"
+          ? "界面使用简体中文。你可以用任何语言聊天，规划助手会使用你的语言回复。"
+          : "The interface follows this setting. Chat in any language: the planner replies in yours."}
       </p>
-      <SettingRow label="Region" value="🇦🇺 Australia" />
-      <h3 className="settings-group">Advanced</h3>
-      <SettingRow label="Currency" value="AUD (A$) — Australian Dollar" />
-      <p className="settings-hint">
-        Every total is in AUD. A budget stated in another currency in chat is converted and shown
-        next to it.
-      </p>
-      <SettingRow label="Units" value="Metric (°C, km)" />
-      <SettingRow label="Trip data" value={DATA_LABEL[settings.dataMode]}>
+      <SettingRow label={t("Region")} value={`🇦🇺 ${t("Australia")}`} />
+      <h3 className="settings-group">{t("Advanced")}</h3>
+      <SettingRow label={t("Currency")} value="AUD" />
+      <SettingRow label={t("Units")} value={t("Metric (°C, km)")} />
+      <SettingRow label={t("Trip data")} value={DATA_LABEL[settings.dataMode]}>
         {() => (
           <>
             <Segmented
@@ -960,10 +977,11 @@ export function SettingsDialog({
 } & AccountModalProps) {
   const [section, setSection] = useState<Section>(initial);
   const { syncState } = useSettings();
-  const title = SECTIONS.find(([id]) => id === section)![1];
+  const { t } = useLocale();
+  const title = t(SECTIONS.find(([id]) => id === section)![1]);
   return (
     <div className="settings">
-      <nav className="settings-nav" aria-label="Settings sections">
+      <nav className="settings-nav" aria-label={t("Settings sections")}>
         <ul role="tablist" aria-orientation="vertical">
           {SECTIONS.map(([id, label]) => (
             <li key={id}>
@@ -988,7 +1006,7 @@ export function SettingsDialog({
                   document.getElementById(`settings-tab-${next}`)?.focus();
                 }}
               >
-                {label}
+                {t(label)}
               </button>
             </li>
           ))}
@@ -1008,7 +1026,7 @@ export function SettingsDialog({
         {section === "region" && <RegionSection onDataMode={onDataMode} />}
         {section === "connected" && <ConnectedSection onAccountModal={onAccountModal} />}
         <p className="settings-sync" role="status">
-          {SYNC_TEXT[syncState]}
+          {t(SYNC_TEXT[syncState])}
         </p>
       </div>
     </div>

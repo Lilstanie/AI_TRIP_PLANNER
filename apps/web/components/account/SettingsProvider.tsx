@@ -1,5 +1,13 @@
 "use client";
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { SETTINGS_KEY, UserSettings, defaultSettings } from "@/lib/account/settings";
 import { useAccount } from "./AccountProvider";
 
@@ -43,7 +51,8 @@ function applyAppearance(appearance: UserSettings["appearance"]) {
   else root.dataset.theme = appearance;
 }
 
-const newer = (a: UserSettings, b: UserSettings) => Date.parse(a.updatedAt) > Date.parse(b.updatedAt);
+const newer = (a: UserSettings, b: UserSettings) =>
+  Date.parse(a.updatedAt) > Date.parse(b.updatedAt);
 
 async function putSettings(settings: UserSettings): Promise<UserSettings | undefined> {
   const response = await fetch("/api/account/settings", {
