@@ -1,0 +1,55 @@
+sequenceDiagram
+  autonumber
+  actor T as Traveler
+  participant UI as Web workspace
+  participant CH as runTripChat
+  participant WF as LangGraph workflow
+  participant BD as PlanningBoard
+  participant TR as Transport agent
+  participant AC as Accommodation agent
+  participant BK as BookingPort
+  participant LLM as LLM (DeepSeek)
+  participant CP as ConflictPolicy (C)
+
+  T->>UI: "Tokyo 10–14 Nov, 2 people, AUD 2,300"
+  UI->>CH: POST /api/chat
+  CH->>LLM: extract TripBrief
+  LLM-->>CH: structured brief
+  CH->>WF: run(brief)
+  WF->>TR: invoke(brief)
+  TR-->>BD: transport proposal
+  WF->>BD: allocationFor(accommodation)
+  BD-->>WF: 40% of the budget left after transport
+  WF->>AC: invoke(brief, board, allocation)
+  AC->>BK: searchStays(Tokyo, 10–14 Nov, 2 guests)
+  BK-->>AC: candidates
+  AC->>LLM: choose candidate ids (allocation as maxTotalCost)
+  LLM-->>AC: selection
+  AC->>AC: validate ids, price in cents, compute floorCost
+  AC-->>BD: accommodation proposal
+  Note over WF,BD: itinerary, dining and the destination guide post their proposals too
+  WF->>CP: detectConflicts(proposals, brief)
+  CP->>CP: rollUpCost → estTotal, overrunPct
+  CP->>CP: minimumCost(proposals) ≤ budget, so the plan is feasible
+  CP-->>WF: RevisionRequest[] with targetSaving per section
+
+  loop round < 3 and score improves
+    WF-->>UI: progress: "revising accommodation"
+    WF->>AC: invoke(brief, revision, previous, allocation − saving)
+    AC->>BK: searchStays(…)
+    BK-->>AC: candidates
+    AC->>AC: budget revision: cheapest eligible, preferences kept
+    AC-->>BD: revised proposal
+    WF->>CP: detectConflicts(revised proposals, brief)
+    CP-->>WF: remaining conflicts and planScore
+    alt score not improved
+      WF->>WF: keep previous proposals, stop
+    end
+  end
+
+  WF->>WF: build_plan: sections draft or needs_you
+  WF-->>CH: TripPlan
+  CH->>LLM: write reply from plan digest
+  LLM-->>CH: reply text
+  CH-->>UI: final frame { reply, plan }
+  UI-->>T: plan with total vs budget

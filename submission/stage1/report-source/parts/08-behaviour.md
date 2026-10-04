@@ -2,13 +2,374 @@
 
 Each member's activity, sequence and state machine diagrams come from their own ad hoc requirement and use case specification, and show where the LLM sits and which deterministic code checks it.
 
-## 8.1 Member C (`@HeadmasterEggy`, accommodation and budget)
+## 8.1 Member A (`@Lilstanie`, coordination and orchestration)
+
+
+All three diagrams come from ad hoc requirement **AH-A1** and the use case specification **UC-A1
+Generate Itinerary** (§2.2, §4.2). Each marks where the LLM acts and
+which deterministic code checks it, as the brief asks.
+
+Three LLM calls happen in one planning turn, and each is fenced by code that can replace it:
+
+| LLM call | What it decides | Deterministic guard |
+| --- | --- | --- |
+| Brief extraction (`update_trip_brief`) | Which trip facts the message states | `BriefPatchSchema` → `applyBriefPatch` → `TripBrief` Zod parse; unstated facts are reported missing, never inferred |
+| Supervisor delegation | Which specialists to call, with what objective | Fixed specialist registry; the itinerary specialist is always delegated; a failed supervisor falls back to dispatching all five |
+| Reply writing | The prose the traveller reads | `fallbackReplyFor(plan)` writes it from the plan when the model is absent or silent |
+
+The plan itself is never written by a model: `build_plan` assembles it from validated proposals.
+
+### 8.1.1 Activity diagram: Generate Itinerary (UC-A1)
+
+Swimlanes are the five participants. Rounds 2–3 re-enter *Detect conflicts*.
+
+```mermaid
+flowchart TB
+  start((●)) --> msg
+
+  subgraph T["Traveller"]
+    msg["Send message"]
+    read["Read reply and plan"]
+  end
+
+  subgraph CO["Coordinator (deterministic)"]
+    validate["Validate patch against TripBrief"]
+    ok{"Brief complete?"}
+    missing["Return needs_info, naming what is missing"]
+    reply["Return reply and plan"]
+  end
+
+  subgraph L["LLM"]
+    extract["Extract stated facts"]
+    write["Write the reply"]
+  end
+
+  subgraph WF["LangGraph workflow (deterministic)"]
+    dispatch["Dispatch specialists"]
+    detect["Detect conflicts"]
+    again{"Conflicts and round < 3?"}
+    revise["Revise targeted sections only"]
+    better{"planScore improved?"}
+    build["Build plan"]
+  end
+
+  msg --> extract --> validate --> ok
+  ok -- no --> missing --> read
+  ok -- yes --> dispatch --> detect --> again
+  again -- yes --> revise --> better
+  better -- yes --> detect
+  better -- no --> build
+  again -- no --> build
+  build --> write --> reply --> read --> stop((◉))
+```
+
+A missing model key removes the three LLM boxes only: extraction falls to the stated-facts path,
+delegation dispatches all five specialists, and `fallbackReplyFor` writes the reply.
+
+### 8.1.2 Sequence diagram: one turn with a clarifying question, then a revised plan (UC-A1, extensions 3a and 7a)
+
+The traveller's first message omits the budget, so the coordinator asks before planning. The first
+round then returns a geography conflict, one targeted revision fixes it, and the score improves.
+
+```mermaid
+sequenceDiagram
+  autonumber
+  actor T as Traveller
+  participant CH as Coordinator (A)
+  participant LLM as LLM
+  participant WF as Workflow (A)
+  participant SP as Specialists
+  participant CP as ConflictPolicy (C)
+
+  T->>CH: "Tokyo and Kyoto, 10-17 Nov, 2 of us"
+  CH->>LLM: extract stated facts
+  LLM-->>CH: destination, dates, group size
+  CH-->>T: needs_info: the budget is missing
+
+  T->>CH: "about AUD 9,000"
+  CH->>LLM: extract, with what is already known
+  LLM-->>CH: budget
+  CH->>WF: run(brief)
+
+  WF->>SP: dispatch with one objective each
+  SP-->>WF: five proposals
+  WF->>CP: detectConflicts
+  CP-->>WF: geography conflict, targets itinerary
+
+  WF->>SP: revise itinerary only
+  SP-->>WF: revised proposal
+  WF->>CP: detectConflicts
+  CP-->>WF: none left
+  WF->>WF: planScore improved, keep the round
+
+  WF-->>CH: TripPlan
+  CH->>LLM: write the reply
+  LLM-->>CH: reply text
+  CH-->>T: reply and plan
+```
+
+Had the score not improved, `revise_conflicts` would set `stalled` and the previous proposals would
+be kept, so a revision can never make the plan worse. Had the conflict been `infeasible budget`,
+`routeAfterDetection` would skip the loop entirely.
+
+### 8.1.3 State machine: one planning turn (UC-A1)
+
+The turn as the orchestrator sees it. Member C's state machine covers one *section* inside
+`Detecting`; this one covers the turn that contains it.
+
+```mermaid
+stateDiagram-v2
+  [*] --> Intake : chat message
+
+  state Coordinating {
+    Extracting --> NeedsInfo : [required fact missing]
+    Extracting --> Asking : [ask_user_question called]
+    Extracting --> Ready : [brief validates]
+  }
+
+  Intake --> Extracting : merge message onto known
+  NeedsInfo --> [*] : needs_info frame
+  Asking --> [*] : ask_user frame
+
+  Ready --> Dispatching : run(brief)
+
+  state Planning {
+    Dispatching --> Detecting : all proposals posted
+    Detecting --> Revising : [conflicts and round < 3 and not infeasible]
+    Revising --> Detecting : [planScore improved]
+    Revising --> Stalled : [planScore not improved] / keep previous
+  }
+
+  Detecting --> Built : [no conflicts]
+  Detecting --> Built : [infeasible budget] / skip the loop
+  Detecting --> Built : [round = 3]
+  Stalled --> Built
+  Dispatching --> Failed : [a specialist threw]
+
+  Built --> Replying : build_plan
+  Replying --> [*] : reply plus plan
+  Failed --> [*] : error frame naming the specialist
+
+  note right of Coordinating
+    The LLM acts here (extraction,
+    questions); the Zod contract
+    decides whether it may proceed
+  end note
+  note right of Planning
+    At most 3 rounds. A round is
+    kept only if the score improves
+  end note
+```
+
+| State | What the traveller sees | Entry / exit behaviour |
+| --- | --- | --- |
+| Intake, Extracting | "thinking" | The message is merged onto `known` so a follow-up need not repeat earlier facts. |
+| NeedsInfo | The question in chat | No plan exists yet; `IncompleteBriefError` names the missing fields. Required facts are never defaulted. |
+| Asking | 2–4 clickable options | At most one question per turn; no other tool runs after it. |
+| Dispatching | A progress row per subagent | The supervisor chooses who runs; the itinerary specialist always does. |
+| Detecting | "checking budget and schedules" | Member C's `detectConflicts` returns the revision requests. |
+| Revising | "revising affected sections" | Only targeted agents re-run, each given its previous proposal. |
+| Stalled | — | The round is discarded; the better earlier proposals are kept. |
+| Built | Sections `draft` or `needs_you` | The plan is assembled from validated proposals, never written by a model. |
+| Failed | Error naming the specialist | Nothing partial is presented as a plan. |
+
+### 8.1.4 How this behaviour is measured
+
+`packages/orchestrator/src/agent-lab/` replays fixed scenarios against the orchestrator with faults
+injected on purpose — a specialist timing out, a provider failing, a model returning off-schema
+output — and records rounds, conflicts, token usage and an evaluator score per run (R-A11). It is
+how the transitions above are shown to hold when the LLM misbehaves, rather than only when it
+behaves.
+
+## 8.2 Member B (`@fonever2`, itinerary and transport)
+
+
+These models derive from **AH-B1 / R-B1–R-B6** (§2.3.2) and **UC-B1 Arrange Transportation** (§4.2). They describe the current team implementation in B's assigned domain, not exclusive code authorship. The specialist boundary is `Specialist.invoke`.
+
+### 8.2.1 Activity diagram
+
+Rounded actions, guarded decisions, a filled initial node and a double-ring final node express the activity model in Mermaid. Responsibility regions separate the Transport LLM from deterministic code and the workflow. The revision action expands the targeted specialist's planning operation; it does not imply rerunning every agent. Cancellation can terminate any executing action and is omitted for readability.
+
+
+
+```mermaid
+flowchart TB
+  S(( )) --> A("Receive UC-B1 transport dispatch")
+  subgraph TR["Transport specialist / deterministic code"]
+    A --> M{"Model configured?"}
+    G("Gather fares and routes via ToolGateway")
+    V{"Selection valid?"}
+    F("Use deterministic evidence-based plan")
+    P("Validate route and day fit, copy evidence prices, record gaps")
+    G0("Gather evidence without a model")
+  end
+  subgraph LM["Transport LLM"]
+    L("Call search_transport_evidence")
+    C("Choose offered flight IDs and hop departure slots")
+  end
+  M -- "[yes]" --> L --> G --> C --> V
+  M -- "[no]" --> G0 --> F
+  L -- "[model failure]" --> H("Reuse evidence or gather it if absent") --> F
+  C -- "[model failure]" --> H
+  V -- "[invalid IDs, coverage, day or time]" --> F
+  V -- "[valid]" --> P
+  F --> P
+  subgraph WF["Workflow / planning board / related specialists"]
+    B("Validate proposal schema and store on board")
+    I("Coordinate itinerary with transport and stays, verify route gaps")
+    D("Detect budget, time and geography conflicts")
+    R{"Conflicts and feasible budget and round below 3?"}
+    T("Increment round, invoke only targeted revisable specialists")
+    Q{"Whole-plan score improves?"}
+    K("Keep revised proposals")
+    O("Restore previous proposals and stop")
+    Z("Build draft or needs_you sections, retain pricing warnings")
+  end
+  P --> B --> I --> D --> R
+  R -- "[yes]" --> T --> Q
+  Q -- "[yes]" --> K --> D
+  Q -- "[no]" --> O --> Z
+  R -- "[no]" --> Z --> E(((●)))
+  B -- "[schema rejected]" --> X("Report run failure") --> E
+  G -- "[unrecoverable error]" --> X
+  G0 -- "[unrecoverable error]" --> X
+  style S fill:#18334d,stroke:#18334d
+  style E fill:#ffffff,stroke:#18334d
+```
+
+### 8.2.2 Sequence diagram
+
+The model-call branch shows rejected output falling back after validation. A separate no-model branch gathers evidence directly. The nested optional fragment invokes Transport only when targeted. A non-improving revision restores the previous proposals and exits the revision loop before final assembly; it does not recheck rejected proposals. A model failure before its search tool is called skips that tool exchange and gathers evidence in the fallback. Provider and cancellation errors that end the run are specified in UC-B1 rather than expanded here.
+
+
+
+```mermaid
+sequenceDiagram
+  autonumber
+  actor T as Traveler
+  participant W as Workflow / supervisor
+  participant B as Planning board
+  participant TR as Transport specialist
+  participant L as Transport LLM
+  participant G as ToolGateway
+  participant C as Conflict policy
+  T->>W: Arrange transportation with validated brief
+  W->>B: run(transport)
+  B->>TR: invoke(brief, context)
+  alt Model configured
+    TR->>L: Select flights and hop slots using evidence tool
+    L->>TR: search_transport_evidence()
+    TR->>G: searchFlights / route / optional routeOptions
+    G-->>TR: Offered fares, durations and availability
+    TR-->>L: Candidate IDs and route evidence
+    L-->>TR: Structured selection or model failure
+    TR->>TR: Check schema, candidate IDs, hop coverage and times
+    alt Model failed or selection invalid
+      opt Evidence not yet gathered
+        TR->>G: Gather missing evidence
+        G-->>TR: Available evidence and gaps
+      end
+      TR->>TR: deterministicPlan(evidence)
+    else Selection valid
+      TR->>TR: Resolve chosen IDs to returned fare data
+    end
+  else No model configured
+    TR->>G: Gather transport evidence
+    G-->>TR: Available evidence and gaps
+    TR->>TR: deterministicPlan(evidence)
+  end
+  TR->>TR: Assemble proposal, validate route/day fit, retain unknown fares
+  TR-->>B: Transport proposal (schema checked by workflow boundary)
+  Note over W,B: Other dispatched specialists finish, itinerary checks connections and buffer
+  B-->>W: Collected proposals
+  W->>C: detectConflicts(proposals, brief)
+  C-->>W: Revision requests
+  loop Conflicts remain AND feasible AND round below 3 AND not stalled
+    W->>W: Increment round
+    opt Transport is targeted and supports revision
+      W->>TR: invoke(brief, context, revision, previous, allocation)
+      Note over TR,G: Repeat evidence, model/fallback selection and validation
+      TR-->>W: Revised proposal
+    end
+    Note over W,B: Other targeted specialists also revise, untargeted proposals remain
+    W->>W: Compare whole-plan score
+    alt Score strictly improves
+      W->>W: Keep revised proposals
+      W->>C: detectConflicts(revised proposals, brief)
+      C-->>W: Remaining requests
+    else Score does not improve
+      W->>W: Restore previous proposals and set stalled
+      Note over W,C: No conflict recheck, stalled disables the next loop iteration
+    end
+  end
+  W->>W: build_plan from best retained proposals and conflicts
+  W-->>T: draft / needs_you, known estimate and pricing gaps
+```
+
+### 8.2.3 State machine
+
+The subject is the transport proposal within one planning run. Transition labels follow event [guard] / action. Internal states are conceptual, not persisted enums; only `draft` and `needs_you` map to final section status. Whole-plan score comparison and round limits belong to the workflow. While other sections revise, an untargeted transport proposal remains under review until the workflow stops. An abort can terminate any non-final state; those repeated transitions are omitted.
+
+
+
+```mermaid
+stateDiagram-v2
+  [*] --> Dispatched : dispatch
+  Dispatched --> Gathering : invoke / validate brief and read preferences
+  Gathering --> Selecting : evidenceReady [model configured]
+  Gathering --> LocalPlan : evidenceReady [no model]
+  Selecting --> Checking : selectionReturned
+  Selecting --> LocalPlan : modelFailed / reuse or gather evidence
+  Checking --> LocalPlan : validationComplete [invalid] / reject selection
+  Checking --> Assembling : validationComplete [valid] / resolve candidate IDs
+  LocalPlan --> Assembling : planSelected / use evidence-based choices
+  Assembling --> UnderReview : proposalAccepted [initial round] / post proposal
+  Assembling --> ReviewingRound : proposalAccepted [revision round]
+  Gathering --> Failed : unrecoverableError
+  Assembling --> Failed : proposalRejected
+  UnderReview --> Revising : reviewComplete [transport targeted and feasible and round below 3]
+  Revising --> Gathering : revisionDispatched / increment round and pass constraints
+  ReviewingRound --> UnderReview : scored [scoreAfter less than scoreBefore] / retain and recheck
+  ReviewingRound --> Finalising : scored [scoreAfter not less than scoreBefore] / restore previous and stop
+  UnderReview --> Finalising : loopStopped
+  Finalising --> NeedsYou : assembled [request targets transport]
+  Finalising --> Draft : assembled [no request targets transport]
+  Draft --> [*]
+  NeedsYou --> [*]
+  Failed --> [*]
+  note right of Selecting
+    LLM selects, code checks and prices.
+    Internal states are design abstractions.
+  end note
+  note right of ReviewingRound
+    Scoring belongs to the whole workflow.
+    Other sections are abstracted here.
+  end note
+  note right of Draft
+    draft is not booked or fully priced.
+    Unknown ground fares remain warnings.
+  end note
+```
+
+### 8.2.4 Implementation boundaries
+
+- The LLM chooses offered flight IDs and hop departure slots. Deterministic code checks candidate membership, one fare per priced hop, required hop coverage, day bounds, time format and route/day fit before assembling a proposal.
+- Unknown ground fares omit `estCost` and remain warnings; a required flight without a valid fare still records a conflict. Traveller-arranged flights are exempt. An unavailable chosen ground mode is explicitly disclosed rather than silently substituted.
+- Itinerary planning checks connections against provider durations plus a 15-minute arrival buffer. Transport durations are gathered before model scheduling; a model-changed departure time does not trigger another time-sensitive route search.
+- The default limit is three total rounds, including the first. Only targeted revisable specialists rerun. Non-improving rounds are discarded. There is no purchase, booking or approval checkpoint in this use case.
+- Generated figures are for full-size report viewing; use the SVGs for zooming. Their detailed labels are not intended to be read as three tiny slide thumbnails.
+
+### 8.2.5 AI acknowledgement
+
+OpenAI Codex assisted with source inspection, the requirement and use-case draft, and diagram preparation. Tingsong Jin must review the individual submission and be able to explain the models. This statement does not assert that all current team code was implemented by B.
+
+## 8.3 Member C (`@HeadmasterEggy`, accommodation and budget)
 
 All three diagrams come from ad hoc requirement **AH-C1** and the use case specifications **UC-C1
-Arrange Accommodation** and **UC-C2 Manage Budget** (`01-requirements.md`, `02-use-cases.md`). Each
+Arrange Accommodation** and **UC-C2 Manage Budget** (§2.2, §4.2). Each
 focuses on where the LLM sits and what deterministic code guards it, as the brief asks.
 
-### 8.1.1 Activity diagram: Arrange Accommodation (UC-C1)
+### 8.3.1 Activity diagram: Arrange Accommodation (UC-C1)
 
 Swimlanes are the four participants. The LLM is used once, in _Choose one candidate id per segment_, and
 its output is checked before anything is priced.
@@ -67,7 +428,7 @@ flowchart TB
   price --> post --> stop((◉))
 ```
 
-### 8.1.2 Sequence diagram: budget overrun and targeted revision (UC-C2, extension 2a)
+### 8.3.2 Sequence diagram: budget overrun and targeted revision (UC-C2, extension 2a)
 
 One planning turn in which the first round goes over budget and the accommodation agent is asked to
 cut its cost.
@@ -133,7 +494,7 @@ sequenceDiagram
 If `minimumCost` is above the budget (extension 2b), `detectConflicts` instead returns one
 `infeasible budget` conflict, the loop is skipped, and the reply names the minimum budget needed.
 
-### 8.1.3 State machine: accommodation section within a planning turn (UC-C1 and UC-C2)
+### 8.3.3 State machine: accommodation section within a planning turn (UC-C1 and UC-C2)
 
 The section's visible status (`planning`, `draft`, `needs_you`) is derived from these internal
 states.
@@ -185,14 +546,6 @@ stateDiagram-v2
 | Draft                       | draft     | No revision request targets the section.                                                 |
 | NeedsYou                    | needs_you | The traveller decides: raise the budget, change dates or edit the plan.                  |
 | Failed                      | —         | The run stops and names accommodation as the failing specialist.                         |
-
-## 8.2 Member A
-
-_Activity, sequence and state machine diagrams from AH-A1 and A's use case specification._
-
-## 8.3 Member B
-
-_Activity, sequence and state machine diagrams from AH-B1 and B's use case specification._
 
 ## 8.4 Member D
 
@@ -372,6 +725,28 @@ stateDiagram-v2
   end note
 ```
 
-## 8.5 Member E
+## 8.5 Member E (`@WhW0591`, chat workspace, timeline and map editing)
 
-_Activity, sequence and state machine diagrams from AH-E1 and E's use case specification._
+
+These models derive from **AH-E1 / R-E1–R-E6** (§2.3.5) and
+**UC-E1 Edit Itinerary (Timeline / Map)** (§4.2).
+The chat coordinator can update the brief or replan, but it has no edit tool; the timeline and map edit
+path is deterministic from preview through local application.
+
+### 8.5.1 Activity diagram: Edit Itinerary (UC-E1)
+
+The activity diagram separates the current chat path from the implemented Timeline/Map edit path. The
+chat coordinator can update the brief or replan, but it does not produce an `EditRequest`. The edit path
+is deterministic from preview through local application.
+
+### 8.5.2 Sequence diagram: Timeline/Map edit with preview and version check (UC-E1)
+
+The sequence diagram shows the implemented Timeline/Map path and marks chat as a separate coordinator
+path. The important control point is the browser-side comparison of `preview.baseVersion` and the
+current plan version; persistence is local and there is no server-side atomic commit.
+
+### 8.5.3 State machine: Timeline/Map edit lifecycle (UC-E1)
+
+The state machine models the implemented Timeline/Map edit lifecycle. It does not include chat
+interpretation because the current chat coordinator has no edit tool. The preview is either blocked,
+cancelled or applied after the client-side version check; the resulting plan is then saved locally.

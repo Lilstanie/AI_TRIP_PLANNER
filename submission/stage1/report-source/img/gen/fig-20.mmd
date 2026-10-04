@@ -1,0 +1,51 @@
+sequenceDiagram
+  autonumber
+  actor T as Traveler
+  participant UI as Web workspace
+  participant WF as LangGraph workflow
+  participant DG as Destination Guide agent
+  participant DN as Dining agent
+  participant MP as MapsPort
+  participant WP as WeatherPort
+  participant MEM as MemoryStore
+  participant LLM as Configured LLM
+  participant BD as Planning board
+
+  T->>UI: Submit destination, dates, party and dietary needs
+  UI->>WF: run(validated TripBrief)
+  par Destination guide
+    WF->>DG: invoke(brief, AgentContext)
+    DG->>MP: places(destination, sight and museum)
+    MP-->>DG: grounded place candidates
+    DG->>MEM: getLongTerm(userId)
+    MEM-->>DG: saved preferences
+    alt Candidate coordinates and WeatherPort available
+      DG->>WP: forecast(location, first travel date)
+      alt Date within forecast horizon
+        WP-->>DG: forecast + provider + observedAt + validUntil
+      else Date beyond 14 days
+        WP-->>DG: climate context, not a forecast
+      end
+    else No coordinates, port or weather result
+      DG->>DG: use month context and record unavailable weather
+    end
+    DG->>LLM: read-only evidence tool: brief, month, places, preferences
+    LLM-->>DG: structured destination and packing draft
+    DG->>DG: fit schema, validate grounded names, deduplicate or fallback
+    DG->>BD: destination-guide proposal + source and freshness
+  and Dining
+    WF->>DN: invoke(brief, AgentContext)
+    DN->>MP: places(destination, restaurant)
+    MP-->>DN: grounded restaurant candidates
+    DN->>MEM: getLongTerm(userId)
+    MEM-->>DN: saved preferences
+    DN->>DN: deduplicate candidates, filter dietary needs, compute ceiling
+    DN->>LLM: read-only evidence tool: candidates, preferences, ceiling
+    LLM-->>DN: structured dining draft
+    DN->>DN: fit schema, validate names and ceiling or fallback
+    DN->>BD: dining proposal + meal budget, allergy confirmation caveat
+  end
+  WF->>BD: validate proposals and assemble TripPlan
+  BD-->>WF: destination-guide and dining sections
+  WF-->>UI: final plan with source labels and assumptions
+  UI-->>T: Show packing context and dietary-aware venue candidates

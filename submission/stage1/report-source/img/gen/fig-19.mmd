@@ -1,0 +1,69 @@
+flowchart TB
+  start((Start)) --> request
+
+  subgraph TRAVELLER["Traveler"]
+    request["Submit destination, dates, party and dietary needs"]
+    view["View assembled trip plan"]
+  end
+
+  subgraph ORCH["Orchestrator"]
+    dispatch["Validate TripBrief and dispatch specialists"]
+    assemble["Validate AgentProposals and assemble TripPlan"]
+  end
+
+  subgraph GUIDE["Destination Guide"]
+    guideStart["Read brief; fetch sight and museum candidates plus preferences"]
+    coords{"Candidate coordinates and WeatherPort available?"}
+    weatherEvidence["Request weather for first travel date"]
+    horizon{"Weather result horizon?"}
+    contextOnly["Use month context; mark forecast unavailable or not applicable"]
+    guideEvidence["Give validated brief, weather and map evidence to LLM"]
+    guideModel{"LLM configured and responds?"}
+    guideLLM["LLM drafts destination and packing guidance"]
+    guideCheck["Fit schema; validate and deduplicate attraction names"]
+    guideValid{"Draft valid and grounded?"}
+    guideFallback["Build deterministic guide from available map evidence"]
+    guideProposal["Return destination-guide proposal with provenance"]
+  end
+
+  subgraph DINING["Dining"]
+    diningStart["Fetch restaurant candidates and saved preferences"]
+    diningPrepare["Deduplicate venues; filter dietary preferences; compute meal ceiling"]
+    diningModel{"LLM configured and responds?"}
+    diningLLM["LLM drafts venue suggestions from evidence"]
+    diningCheck["Fit schema; validate candidate names and meal ceiling"]
+    diningValid{"Draft valid and grounded?"}
+    diningFallback["Build deterministic venue suggestions and budget envelope"]
+    diningProposal["Return dining proposal; disclose direct allergy confirmation"]
+  end
+
+  subgraph WEATHER["Maps / Weather ports"]
+    forecast["Forecast for days 0–14; climate context after day 14"]
+  end
+
+  subgraph LLM["Configured LLM"]
+    guideDraft["Structured destination guide draft"]
+    diningDraft["Structured dining draft"]
+  end
+
+  request --> dispatch
+  dispatch --> guideStart
+  dispatch --> diningStart
+  guideStart --> coords
+  coords -- yes --> weatherEvidence --> forecast --> horizon
+  horizon -- forecast or climate --> guideEvidence
+  horizon -- missing result --> contextOnly --> guideEvidence
+  coords -- no --> contextOnly
+  guideEvidence --> guideModel
+  guideModel -- yes --> guideLLM --> guideDraft --> guideCheck --> guideValid
+  guideModel -- no --> guideFallback
+  guideValid -- yes --> guideProposal
+  guideValid -- no --> guideFallback --> guideProposal
+  diningStart --> diningPrepare --> diningModel
+  diningModel -- yes --> diningLLM --> diningDraft --> diningCheck --> diningValid
+  diningModel -- no --> diningFallback
+  diningValid -- yes --> diningProposal
+  diningValid -- no --> diningFallback --> diningProposal
+  guideProposal --> assemble
+  diningProposal --> assemble
+  assemble --> view

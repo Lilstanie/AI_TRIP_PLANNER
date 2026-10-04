@@ -196,10 +196,10 @@ def card(s, x, y, w, h, fill=CARD, shad=True, accent=None):
     return b
 
 
-def behaviour_template(idx, m):
+def behaviour_template(idx, m, notes=None):
     name, role, col = MEMBERS[m]
     s = slide(idx, m, 'Individual behaviour models', f"[{m}'s use case]: activity, sequence and state machine",
-              f"[About 25 seconds. Name member {m}'s ad hoc requirement and use case, then point to where "
+              notes or f"[About 25 seconds. Name member {m}'s ad hoc requirement and use case, then point to where "
               "the LLM sits in each diagram and which code checks it. Replace the three placeholders with the diagrams.]")
     card(s, ML, CT, MR - ML, 0.62, accent=col)
     text(s, ML + 0.3, CT + 0.1, MR - ML - 0.5, 0.42,
@@ -223,6 +223,24 @@ def behaviour_template(idx, m):
              [[('LLM step  ', {'bold': True, 'color': col}), ('[where it sits]  ', {'italic': True}),
                ('Code check  ', {'bold': True, 'color': col}), ('[what validates it]', {'italic': True})]],
              size=10, color=MUTED, align='c')
+
+
+def behaviour_slide(idx, m, uc, title, ah, notes, prefix):
+    col = MEMBERS[m][2]
+    s = slide(idx, m, 'Individual behaviour models · ' + uc.split()[0], title, notes)
+    card(s, ML, CT, MR - ML, 0.62, accent=col)
+    text(s, ML + 0.3, CT + 0.1, MR - ML - 0.5, 0.42,
+         [[('Ad hoc requirement  ', {'bold': True, 'color': col}), (ah, {}),
+           ('      Use case  ', {'bold': True, 'color': col}), (uc, {})]],
+         size=12, anchor='m', color=INK)
+    w = (MR - ML - 0.4) / 3
+    y = CT + 0.82
+    for i, (lab, kind) in enumerate((('ACTIVITY', 'activity'), ('SEQUENCE', 'sequence'),
+                                     ('STATE MACHINE', 'state'))):
+        x = ML + i * (w + 0.2)
+        text(s, x, y, w, 0.3, lab, size=11, bold=True, color=MUTED)
+        figure(s, f'{prefix}-{kind}.png', x, y + 0.35, w, CB - y - 0.35)
+    return s
 
 
 # ---------------------------------------------------------------- 1 cover
@@ -325,14 +343,19 @@ text(s, ML + LW + 0.3, CT, 4, 0.3, 'REQUEST PATH', size=11, bold=True, color=MUT
 figure(s, 'architecture.png', ML + LW + 0.3, CT + 0.35, MR - ML - LW - 0.3, CB - CT - 0.35)
 
 # ---------------------------------------------------------------- 5 A template
-behaviour_template(5, 'A')
+behaviour_slide(5, 'A', 'UC-A1 Generate Itinerary', 'Three LLM calls, each fenced by code',
+                'AH-A1: understand my one-line request; ask once if something is missing; fix clashes',
+                "UC-A1 turns one free-text message into a validated plan. The LLM acts three times: it extracts the "
+                "stated facts, the supervisor delegates to specialists, and it writes the reply. Code fences each step: "
+                "the Zod contract validates the brief, a missing fact ends the turn with one question instead of a "
+                "default, and at most three revision rounds run, each kept only if the plan score improves.", 'a')
 
 # ---------------------------------------------------------------- 6 classification
 s = slide(6, 'B', 'Requirement classification', 'Each member owns two core features and one optional',
           "We classified requirements into the agreed scope, mandatory "
           "capabilities and optional features. Each member owns two core features and one optional one, shown here. "
           "Every member also wrote an ad hoc requirement and broke it into functional, non-functional and constraint requirements.")
-rows = [('A', 'Brief extraction and clarifying questions', 'Orchestration, conflicts, targeted revision', 'Agent Lab and Failure Lab'),
+rows = [('A', 'Brief extraction and clarifying questions', 'Orchestration, revision routing, round control', 'Agent Lab and Failure Lab'),
         ('B', 'Itinerary with route feasibility', 'Flights, rail and local transport', 'Traveller-chosen leg mode'),
         ('C', 'Accommodation, individual or group', 'Budget management', 'Keep a booked stay'),
         ('D', 'Destination guide', 'Dining with dietary needs', 'Weather-based packing'),
@@ -411,7 +434,12 @@ for i, (m, uc, rel) in enumerate(ucs):
         text(s, X + 5.0, y, MR - X - 5.15, 0.58, rel, size=11.5, color=MUTED, anchor='m', align='r')
 
 # ---------------------------------------------------------------- 9 B template
-behaviour_template(9, 'B')
+behaviour_slide(9, 'B', 'UC-B1 Arrange Transportation', 'The LLM picks offered fares; code checks every hop',
+                'AH-B1: use real fares and times; honour my train choice or say it is unavailable',
+                "UC-B1 arranges flights and moves between cities. The transport LLM only selects offered flight ids and a "
+                "departure slot for each hop. Code then checks every choice against the evidence, one fare per hop, day "
+                "bounds and route fit, and takes prices and durations from the providers. A missing fare stays unknown, "
+                "never free, and an invalid choice falls back to a deterministic plan.", 'b')
 
 # ---------------------------------------------------------------- 10 member C intro
 s = slide(10, 'C', 'Accommodation and budget', 'From one ad hoc requirement to two use cases',
@@ -586,25 +614,12 @@ for i, (d, ch, dis, why) in enumerate(dec):
          size=12.5, anchor='m')
 
 # ---------------------------------------------------------------- 19 D behaviour
-s = slide(19, 'D', 'Individual behaviour models · UC-D1', 'Evidence first; the LLM drafts, code decides',
-          "Speaker D. I'm Jiahang Bian, member D. UC-D1 shows both specialists working from evidence: the guide uses "
-          "map coordinates and weather data; dining uses restaurant candidates and confirmed dietary preferences. The "
-          "LLM drafts guidance, while deterministic code validates its output and budget. Forecasts are distinguished "
-          "from climate context, and unavailable weather is disclosed. Over to E.")
-col = MEMBERS['D'][2]
-card(s, ML, CT, MR - ML, 0.62, accent=col)
-text(s, ML + 0.3, CT + 0.1, MR - ML - 0.5, 0.42,
-     [[('Ad hoc requirement  ', {'bold': True, 'color': col}),
-       ('AH-D1: pack for my real Kyoto dates; vegetarian, peanut allergy; never claim allergy-safe unless confirmed', {}),
-       ('      Use case  ', {'bold': True, 'color': col}), ('UC-D1 Weather-based clothing + dining', {})]],
-     size=12, anchor='m', color=INK)
-w = (MR - ML - 0.4) / 3
-y = CT + 0.82
-for i, (lab, name) in enumerate((('ACTIVITY', 'd-activity.png'), ('SEQUENCE', 'd-sequence.png'),
-                                 ('STATE MACHINE', 'd-state.png'))):
-    x = ML + i * (w + 0.2)
-    text(s, x, y, w, 0.3, lab, size=11, bold=True, color=MUTED)
-    figure(s, name, x, y + 0.35, w, CB - y - 0.35)
+behaviour_slide(19, 'D', 'UC-D1 Weather-based clothing + dining', 'Evidence first; the LLM drafts, code decides',
+                'AH-D1: pack for my real Kyoto dates; vegetarian, peanut allergy; never claim allergy-safe unless confirmed',
+                "UC-D1 shows both specialists working from evidence: the guide uses map coordinates and weather data; "
+                "dining uses restaurant candidates and confirmed dietary preferences. The LLM drafts guidance, while "
+                "deterministic code validates its output and budget. Forecasts are distinguished from climate context, "
+                "and unavailable weather is disclosed.", 'd')
 
 # ---------------------------------------------------------------- 20 package
 s = slide(20, 'E', 'Package diagram', 'Dependencies point inward to the shared contracts',
@@ -673,7 +688,11 @@ for a in assume:
     xx += w + 0.12
 
 # ---------------------------------------------------------------- 23 E template
-behaviour_template(23, 'E')
+behaviour_template(23, 'E', "UC-E1 edits an existing trip through the timeline or map while keeping routes, budget and uncertain prices "
+                   "visible. Timeline and map operations go to a deterministic preview endpoint, which validates the schema "
+                   "and version, checks routes and conflicts, recalculates costs, and marks changed prices as unverified. "
+                   "The chat LLM can update the brief or replan, but it does not create an edit request. The state machine "
+                   "ends in Applied only after the browser accepts the validated preview.")
 
 # ---------------------------------------------------------------- 24 summary
 s = slide(24, None, None, '', "In short: models choose, code decides, and the traveller stays in control. Thank you for watching.")

@@ -1,12 +1,12 @@
 # ELEC5620 Stage 1 视频稿 / Video script
 
 要求：≤ 8 分钟，介绍项目、主要 AI 角色、功能、用例和设计模型（Canvas: Stage One Video Presentation Submission）。
-课程没有要求每个人出镜或出声，所以讲稿按幻灯片逐页写，不分讲者，谁讲都可以。估时按每分钟 140 个英文单词，每页加 3 秒翻页，合计约 7:31（24 页）。
+课程没有要求每个人出镜或出声，所以讲稿按幻灯片逐页写，不分讲者，谁讲都可以。估时按每分钟 140 个英文单词，每页加 3 秒翻页，合计约 7:52（24 页）。
 每页讲稿和 PPT 备注里的一致，改讲稿时两边一起改（见 `slides-source/build_deck.py`）。
 
 ## 还要补的
 
-- 第 5、9、19、23 页是 A、B、D、E 的个人行为模型页（现在是虚线占位框）。各自把活动图、时序图、状态机放进去，再写约 25 秒讲稿：说出 ad hoc 需求和用例，指出 LLM 在图里的位置、由哪段确定性代码把关。
+- 第 23 页是 E 的个人行为模型页，讲稿已写好，三张图到了再放进去。
 
 ## 录制建议
 
@@ -40,11 +40,11 @@ There are two humans: the traveller, our customer, and the founder who runs the 
 
 Our key design choice: the LangGraph workflow drives the agents, not the other way round. Specialists plan in stages on a shared board, code detects budget, time and route conflicts, and only the agents involved revise, for at most three rounds. If a model fails, a validated fallback keeps planning working.
 
-### 5. [A's use case]: activity, sequence and state machine
+### 5. Three LLM calls, each fenced by code
 
-约 25 秒
+约 32 秒
 
-[About 25 seconds. Name member A's ad hoc requirement and use case, then point to where the LLM sits in each diagram and which code checks it. Replace the three placeholders with the diagrams.]
+UC-A1 turns one free-text message into a validated plan. The LLM acts three times: it extracts the stated facts, the supervisor delegates to specialists, and it writes the reply. Code fences each step: the Zod contract validates the brief, a missing fact ends the turn with one question instead of a default, and at most three revision rounds run, each kept only if the plan score improves.
 
 ### 6. Each member owns two core features and one optional
 
@@ -64,11 +64,11 @@ The feature diagram groups the system into seven areas, with mandatory, optional
 
 The use case diagram has one traveller and three external systems. Each member wrote at least one full specification, and our behaviour diagrams come from those.
 
-### 9. [B's use case]: activity, sequence and state machine
+### 9. The LLM picks offered fares; code checks every hop
 
-约 25 秒
+约 30 秒
 
-[About 25 seconds. Name member B's ad hoc requirement and use case, then point to where the LLM sits in each diagram and which code checks it. Replace the three placeholders with the diagrams.]
+UC-B1 arranges flights and moves between cities. The transport LLM only selects offered flight ids and a departure slot for each hop. Code then checks every choice against the evidence, one fare per hop, day bounds and route fit, and takes prices and durations from the providers. A missing fare stays unknown, never free, and an invalid choice falls back to a deterministic plan.
 
 ### 10. From one ad hoc requirement to two use cases
 
@@ -124,11 +124,11 @@ Every agent realises one Specialist interface, so the graph loops over them with
 
 We discarded a model-driven loop and free agent-to-agent chat, because limits and costs must be testable. We dropped approval checkpoints, since confirming applied nothing, and chose DeepSeek because it was about three times faster.
 
-### 19. [D's use case]: activity, sequence and state machine
+### 19. Evidence first; the LLM drafts, code decides
 
-约 25 秒
+约 23 秒
 
-[About 25 seconds. Name member D's ad hoc requirement and use case, then point to where the LLM sits in each diagram and which code checks it. Replace the three placeholders with the diagrams.]
+UC-D1 shows both specialists working from evidence: the guide uses map coordinates and weather data; dining uses restaurant candidates and confirmed dietary preferences. The LLM drafts guidance, while deterministic code validates its output and budget. Forecasts are distinguished from climate context, and unavailable weather is disclosed.
 
 ### 20. Dependencies point inward to the shared contracts
 
@@ -150,9 +150,9 @@ A change must trace to a requirement; a change to shared contracts needs a writt
 
 ### 23. [E's use case]: activity, sequence and state machine
 
-约 25 秒
+约 36 秒
 
-[About 25 seconds. Name member E's ad hoc requirement and use case, then point to where the LLM sits in each diagram and which code checks it. Replace the three placeholders with the diagrams.]
+UC-E1 edits an existing trip through the timeline or map while keeping routes, budget and uncertain prices visible. Timeline and map operations go to a deterministic preview endpoint, which validates the schema and version, checks routes and conflicts, recalculates costs, and marks changed prices as unverified. The chat LLM can update the brief or replan, but it does not create an edit request. The state machine ends in Applied only after the browser accepts the validated preview.
 
 ### 24. Models choose. Code decides. The traveller stays in control.
 
