@@ -141,6 +141,46 @@ docker compose up
 
 Compose 文件在 3000 端口启动 Web 应用（读取 `.env.local`），在 4000 端口启动 stub mock 服务器。Redis 是可选的，目前被注释掉。
 
+<a id="installable-app"></a>
+
+## 可安装应用
+
+网站是一个 PWA（渐进式 Web 应用），所以同一个部署可以安装到所有设备上；原因见
+[Agent Note](../.agents/notes/implemented/feature/2026-10-05-installable-app.md)。
+
+- **电脑**：Chrome 或 Edge 地址栏会出现"安装"按钮。
+- **iPhone**：Safari 的分享菜单，选择"添加到主屏幕"。
+- **Android**：`apps/android-twa/` 里的 Trusted Web Activity（TWA），一个 Bubblewrap 工程，全屏打开
+  `elec5620-ai-trip-planner.vercel.app`。
+
+网站这一侧是 `apps/web/app/manifest.ts`、`apps/web/public/icons/` 里的图标、`apps/web/public/sw.js`
+（页面导航失败时回退到 `public/offline.html`，不缓存任何动态内容）和
+`apps/web/public/.well-known/assetlinks.json`。Service worker 只在生产构建中注册。用生产服务器检查可安装性：
+
+```bash
+pnpm --filter @trip/web build && pnpm --filter @trip/web start   # in another terminal
+node apps/web/tests/e2e/installable-app.e2e.mjs
+```
+
+它把截图和 `summary.json` 写到 `output/playwright/installable-app/`。
+
+<a id="building-the-android-apk"></a>
+
+### 构建 Android APK
+
+负责发布的人把签名密钥保存在自己的电脑上；`*.keystore` 已被 Git 忽略。构建需要 Node 22 和
+`npm i -g @bubblewrap/cli`；Bubblewrap 第一次运行时会安装 JDK 和 Android SDK。
+
+1. 先部署网站改动：Bubblewrap 读取线上的 manifest 和图标。
+2. 在 `apps/android-twa/` 中，仅第一次需要用
+   `keytool -genkeypair -v -keystore android.keystore -alias android -keyalg RSA -keysize 2048 -validity 10000`
+   创建密钥。
+3. 运行 `bubblewrap build`。它会生成 `app-release-signed.apk` 并打印密钥的 SHA-256 指纹。
+4. 运行 `bubblewrap fingerprint add <SHA-256>` 和 `bubblewrap fingerprint generateAssetLinks`，再把结果复制到
+   `apps/web/public/.well-known/assetlinks.json`，两个文件一起提交并部署。在部署的文件写入这个密钥之前，
+   Android 会在应用顶部显示地址栏。
+5. 用 `adb install app-release-signed.apk` 安装 APK，或者把它附到 GitHub Release。
+
 <a id="agent-workflows"></a>
 
 ## Agent 工作流

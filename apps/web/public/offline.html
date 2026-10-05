@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Offline · AI Trip Planner</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --page: #f5f5f7;
+        --text: #1d1d1f;
+        --text-dim: #6e6e73;
+        --accent-fill: #0071e3;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --page: #000000;
+          --text: #f5f5f7;
+          --text-dim: #98989d;
+        }
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 16px;
+        box-sizing: border-box;
+        background: var(--page);
+        color: var(--text);
+        font-family:
+          -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "PingFang SC",
+          "Hiragino Sans GB", "Segoe UI", system-ui, sans-serif;
+        text-align: center;
+      }
+      img {
+        width: 72px;
+        height: 72px;
+      }
+      h1 {
+        font-size: 1.25rem;
+        margin: 16px 0 8px;
+      }
+      p {
+        margin: 4px 0;
+        color: var(--text-dim);
+        font-size: 0.875rem;
+      }
+      button {
+        margin-top: 24px;
+        padding: 10px 20px;
+        border: 0;
+        border-radius: 999px;
+        background: var(--accent-fill);
+        color: #fff;
+        font: inherit;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <img src="/icons/icon-192.png" alt="" />
+      <h1>You're offline</h1>
+      <p>Trip planning needs an internet connection. Reconnect and try again.</p>
+      <p lang="zh-CN">当前离线。规划行程需要联网，请连接网络后重试。</p>
+      <button type="button" onclick="location.reload()">Try again · 重试</button>
+    </main>
+  </body>
+</html>
