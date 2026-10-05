@@ -377,11 +377,16 @@ describes current behaviour except the absences.
 - **Itinerary item menu** ([Agent Note](../.agents/notes/implemented/feature/2026-09-27-itinerary-item-actions.md)).
   Each stop's "…" menu (`ActionMenu`, a `role="menu"`; arrow keys move, Escape closes it and returns
   focus without closing the drawer) offers Adjust schedule (opens the Timeline on that stop), Edit
-  details (place name and description), Add or Edit note, Move to ideas, Move to previous or next
-  day, Mark as booked, and Remove. An idea offers Schedule on a day, which puts it after that day's
+  details (place name and description), Add or Edit note, Move earlier and Move later, Move to
+  ideas, Move to previous or next day, Mark as booked, and Remove. Move earlier and Move later swap
+  the stop with its neighbour on the same day: each takes the other's start time and keeps its own
+  duration, the second starting later if the first would overlap it, and a swap that would end past
+  23:59 is refused with a message. The first stop of a day has no Move earlier, the last has no Move
+  later, and an idea has neither. An idea offers Schedule on a day, which puts it after that day's
   last stop. These apply at once, show "Booked" and the note on the row, and offer Undo until the
-  next plan arrives from chat. Day moves keep the stop's duration and do not re-check routes; the
-  Timeline's route check does. Missing or zero budgets state that no budget is set; invalid totals never render
+  next plan arrives from chat. Day moves and swaps keep each stop's duration and do not re-check
+  routes; the Timeline's route check does. At phone width (520px and below) the menu's trigger and
+  items are at least 44 px. Missing or zero budgets state that no budget is set; invalid totals never render
   `NaN`, a negative bar, or a bar wider than its container.
 - **Location.** When the workspace opens it asks in its own words, in the notices strip, whether to
   show the traveller's location (`components/map/useUserLocation.ts`, `LocationPrompt`). The

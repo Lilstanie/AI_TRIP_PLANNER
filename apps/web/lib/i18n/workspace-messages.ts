@@ -440,6 +440,10 @@ export const WORKSPACE_ZH = {
   "Edit details": "编辑详情",
   "Edit note": "编辑备注",
   "Add a note": "添加备注",
+  "{name} moved earlier.": "已将 {name} 提前。",
+  "{name} moved later.": "已将 {name} 延后。",
+  "Swapping these stops would run past 23:59; shorten one of them first.":
+    "交换这两个停靠点会超过 23:59；请先缩短其中一个。",
   "Move to ideas": "移至备选地点",
   "Move to previous day": "移至前一天",
   "Move to next day": "移至后一天",

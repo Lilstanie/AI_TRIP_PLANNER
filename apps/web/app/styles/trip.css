@@ -782,3 +782,15 @@ button.action-menu__trigger[aria-expanded="true"] {
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }
+/* Phone: the stop menu's trigger and items meet the 44 px minimum touch target. */
+@media (max-width: 520px) {
+  button.action-menu__trigger {
+    width: 44px;
+    min-height: 44px !important;
+    height: 44px;
+    margin-top: 0;
+  }
+  .action-menu__list button[role="menuitem"] {
+    min-height: 44px !important;
+  }
+}
