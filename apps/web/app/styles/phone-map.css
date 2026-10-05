@@ -1,1 +1,207 @@
-/* Phone shell: map. */
+/* Phone map fills its tab. Map gestures stay inside the canvas; each sheet scrolls independently. */
+.workspace-app[data-phone] .workspace-panel--map {
+  position: relative;
+  overflow: hidden;
+  min-height: 0;
+}
+.workspace-app[data-phone] .trip-map-canvas,
+.workspace-app[data-phone] .trip-map,
+.workspace-app[data-phone] .google-map {
+  height: 100%;
+  min-height: 0;
+  touch-action: none;
+  overscroll-behavior: none;
+}
+.workspace-app[data-phone] .map-controls {
+  top: var(--space-3);
+  bottom: auto;
+  right: var(--space-3);
+  display: flex;
+  flex-direction: row;
+  gap: var(--space-2);
+  z-index: 5;
+}
+.workspace-app[data-phone] .map-control-group {
+  display: flex;
+  flex-direction: row;
+}
+.workspace-app[data-phone] .map-control {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+}
+.phone-map-sheet {
+  position: absolute;
+  inset: auto 0 0;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  height: 50%;
+  max-height: calc(100% - 72px);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  background: var(--glass-bg-strong);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  color: var(--text);
+  border: 1px solid var(--glass-border);
+  box-shadow:
+    var(--glass-highlight),
+    0 0 0 0.5px var(--glass-edge),
+    var(--shadow-lg);
+  overflow: hidden;
+  transition: height var(--duration-fast) var(--ease-out);
+}
+.phone-map-sheet[data-snap="handle"] {
+  height: 56px;
+}
+.phone-map-sheet[data-snap="full"] {
+  height: calc(100% - 72px);
+}
+.phone-map-sheet__handle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 56px;
+  flex-shrink: 0;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-weight: 600;
+  touch-action: none;
+  cursor: ns-resize;
+}
+.phone-map-sheet__grip {
+  width: 34px;
+  height: 4px;
+  border-radius: 4px;
+  background: currentColor;
+  opacity: 0.3;
+}
+.phone-map-sheet__body {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 var(--space-3) var(--space-3);
+}
+.phone-map-sheet__body[hidden] {
+  display: none;
+}
+.phone-map-sheet__days {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: var(--space-2);
+}
+.phone-map-sheet__days button {
+  flex-shrink: 0;
+  min-height: 44px;
+  min-width: 64px;
+  border-radius: var(--radius-pill);
+}
+.phone-map-sheet button[aria-pressed="true"] {
+  background: var(--accent-bg) !important;
+  color: var(--accent);
+}
+.phone-map-sheet__stops {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.phone-map-sheet__stops button {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  text-align: left;
+  width: 100%;
+  min-height: 56px;
+  padding: var(--space-2);
+  border: 0;
+  background: transparent;
+  color: inherit;
+  border-radius: var(--radius) !important;
+}
+.phone-map-sheet__stops small {
+  display: block;
+  opacity: 0.65;
+  margin-top: var(--space-1);
+}
+.phone-map-sheet__number {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent-bg);
+}
+.phone-map-sheet__empty {
+  padding: var(--space-3);
+  line-height: 1.6;
+}
+.workspace-app[data-phone] .phone-map-details {
+  inset: auto 0 0;
+  width: 100%;
+  max-width: none;
+  max-height: calc(100% - 72px);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  z-index: 7;
+}
+.workspace-app[data-phone] .phone-map-details .place-preview__close {
+  width: 44px;
+  height: 44px;
+}
+.workspace-app[data-phone] .workspace-panel--map:has(.phone-map-details) .phone-map-sheet {
+  visibility: hidden;
+}
+.workspace-app[data-phone] .trip-map-fallback {
+  top: 72px;
+  bottom: 56px;
+  z-index: 4;
+  max-height: calc(100% - 128px);
+  overflow: auto;
+}
+@media (prefers-reduced-motion: reduce) {
+  .phone-map-sheet {
+    transition: none;
+  }
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .phone-map-sheet {
+    background: var(--surface);
+    border-color: var(--border);
+  }
+}
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .phone-map-sheet {
+    background: var(--surface);
+    border-color: var(--border);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+@media (forced-colors: active) {
+  .phone-map-sheet {
+    background: Canvas;
+    color: CanvasText;
+    border-color: CanvasText;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    box-shadow: none;
+  }
+  .phone-map-sheet button[aria-pressed="true"] {
+    background: Highlight !important;
+    color: HighlightText;
+    outline: 1px solid Highlight;
+  }
+  .phone-map-sheet__number {
+    background: Canvas;
+    color: CanvasText;
+    border: 1px solid CanvasText;
+  }
+}

@@ -180,10 +180,10 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     slide on the iOS sheet curve in 380 ms, and the backdrop fades out with them (kept mounted by
     `usePresence`). All of it respects `prefers-reduced-motion`.
   - Opening another chat or trip, New chat, New trip and the Your trips page cross-fade the main
-    column through the View Transitions API (`viewTransition`); the phone Chat/Map switch slides.
+    column through the View Transitions API (`viewTransition`); phone tab switches use the same transition helper.
     The column carries its `view-transition-name` only while a transition runs: a named element is
     a backdrop root, and a permanent name left the chat sharp behind the drawers' glass.
-- **Narrow screens (≤1000 px).**
+- **Narrow screens (521–1000 px).**
   - The top bar keeps the menu, the fact chips and Trip on one row, with a Chat/Map switch below.
     When the chips do not fit they scroll sideways inside their row, which fades at the edge that
     has more chips behind it; the page itself never scrolls sideways.
@@ -191,9 +191,34 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     title row: it opens on the sidebar's own logo row with the close button at its end, and the
     dialog keeps "Navigation" as its accessible name through a visually hidden heading
     (`Drawer`'s `hideTitle`).
-  - At ≤520 px the top-bar buttons show icons only but keep their accessible names, chips are 44 px
-    tall, and every editor, the modal ones included, opens as a bottom sheet over a scrim with 44 px
-    row buttons.
+- **Phones (≤520 px).** The [phone shell decision](../.agents/notes/implemented/feature/2026-10-05-phone-shell.md)
+  applies only at this width; desktop and tablets keep their existing navigation.
+  - A safe-area-aware bottom tab bar exposes Chat, Map, Trip and Mine as keyboard-operable tabs.
+    One panel is visible at a time; panels stay mounted to preserve their scroll position. The saved
+    layout restores the last tab, including older Chat/Map choices.
+  - The single-row top bar shows the destination and dates, or New trip. Its title opens Trip details:
+    Where, When, Who, Budget and Preferences as rows. Each row opens the existing editor; saving or
+    closing returns focus to the title. Editors are bottom sheets with 44 px targets.
+  - Trip shows Your Trip in place, with Budget, Itinerary, Timeline & routes and Review plan. Before
+    planning it explains the empty state and offers Plan in Chat. A plan created or changed while
+    another tab is selected adds an accessible update dot to Trip; opening Trip clears it. Read revisions are tracked per trip,
+    so switching between unchanged saved trips does not create a new notification.
+  - Mine contains search, New chat, New trip, Trips/Calendar, the chats list and Settings & account.
+    Search filters chats and trips; opening or starting either selects Chat. Each chat has a visible
+    Rename/Delete row menu on touch. Data mode and interface language live here.
+  - Map fills the space between the bars. Its day-stops sheet has collapsed, half and full heights,
+    selected by dragging or using its handle with pointer or keyboard. Changing day filters the map's
+    markers and routes; selecting a stop focuses it. Without a Maps key the sheet and stops still
+    work, while the map explains its unavailable state. Place details open in a bottom sheet; desktop
+    keeps its popup. The 44 px map controls stay above the stops sheet, and panning does not scroll
+    the page.
+  - With the composer focused and the visual viewport shortened by the keyboard, the shell follows
+    that viewport, keeps the latest message visible and hides the tab bar. Closing the keyboard or
+    blurring restores it. Browser Back closes the active sheet or editor before leaving the workspace.
+  - New labels use the English/Chinese dictionary and motion respects reduced-motion preferences.
+    Browser evidence is produced by `phone-shell.e2e.mjs` and its Mine, Map and state companion walks
+    under `apps/web/tests/e2e/`. Real installed-app safe areas and keyboard behavior still require the
+    device checks in issue #182.
 
 ## Conversations, trips and storage
 

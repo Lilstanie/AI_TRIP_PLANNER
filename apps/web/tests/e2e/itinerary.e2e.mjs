@@ -28,6 +28,8 @@ async function openItinerary(browser, { width, height }) {
   const errors = [];
   page.on("pageerror", (error) => errors.push(String(error)));
   page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
+  // Explicit no-match Places fixture: this UI walk never spends provider quota.
+  await page.route("**/api/places/search", (route) => route.fulfill({ json: { places: [] } }));
   await page.goto(BASE);
   await page.waitForSelector(".workspace-app");
   await page.waitForLoadState("networkidle");
@@ -52,9 +54,15 @@ async function openItinerary(browser, { width, height }) {
 async function run(browser, { width, height, tag }) {
   const { context, page, errors } = await openItinerary(browser, { width, height });
   const drawer = page.locator(".workspace-drawer--trip, #phone-panel-trip");
-  check((await drawer.getByRole("tab", { name: "Itinerary" }).getAttribute("aria-selected")) === "true", `${tag}: Itinerary is the first tab`);
+  check(
+    (await drawer.getByRole("tab", { name: "Itinerary" }).getAttribute("aria-selected")) === "true",
+    `${tag}: Itinerary is the first tab`,
+  );
   const menus = drawer.getByRole("button", { name: /^Actions for / });
-  check((await menus.count()) >= 2, `${tag}: every stop has an action menu (${await menus.count()})`);
+  check(
+    (await menus.count()) >= 2,
+    `${tag}: every stop has an action menu (${await menus.count()})`,
+  );
   // Follow one stop: the first until it has a note, then the row carrying that note.
   const NOTE = "Buy tickets online";
   const row = async () => {
@@ -73,8 +81,11 @@ async function run(browser, { width, height, tag }) {
   const dayList = (day) => drawer.getByRole("list", { name: new RegExp(`^Stops, Day ${day}\\b`) });
   // Mock stops share a name, so a day's order is read from which row carries the note.
   const notedAt = async (day) =>
-    (await dayList(day).locator(".trip-places__item").allInnerTexts()).findIndex((text) => text.includes(NOTE));
-  const dayText = async (day) => (await dayList(day).locator(".trip-places__item").allInnerTexts()).join("|");
+    (await dayList(day).locator(".trip-places__item").allInnerTexts()).findIndex((text) =>
+      text.includes(NOTE),
+    );
+  const dayText = async (day) =>
+    (await dayList(day).locator(".trip-places__item").allInnerTexts()).join("|");
   const menuLabels = async (item) => {
     await item.getByRole("button", { name: /^Actions for / }).click();
     await drawer.getByRole("menu").waitFor();
@@ -93,57 +104,103 @@ async function run(browser, { width, height, tag }) {
   await openMenu();
   const labels = await drawer.getByRole("menuitem").allInnerTexts();
   check(
-    ["Adjust schedule", "Edit details", "Add a note", "Move to ideas", "Move to previous day", "Move to next day", "Mark as booked", "Remove"].every((l) => labels.some((x) => x.trim() === l)),
+    [
+      "Adjust schedule",
+      "Edit details",
+      "Add a note",
+      "Move to ideas",
+      "Move to previous day",
+      "Move to next day",
+      "Mark as booked",
+      "Remove",
+    ].every((l) => labels.some((x) => x.trim() === l)),
     `${tag}: menu lists every action (${labels.map((l) => l.trim()).join(", ")})`,
   );
-  check(await drawer.getByRole("menuitem", { name: "Move to previous day" }).isDisabled(), `${tag}: day 1 cannot move earlier`);
+  check(
+    await drawer.getByRole("menuitem", { name: "Move to previous day" }).isDisabled(),
+    `${tag}: day 1 cannot move earlier`,
+  );
   await page.screenshot({ path: `${OUT}/${tag}-01-menu.png` });
   await page.keyboard.press("ArrowDown");
   await page.keyboard.press("Escape");
   await settle(page, 300);
   check(!(await drawer.getByRole("menu").count()), `${tag}: Escape closes the menu`);
-  check(await page.evaluate(() => document.activeElement?.getAttribute("aria-label")?.startsWith("Actions for")), `${tag}: focus returns to the trigger`);
+  check(
+    await page.evaluate(() =>
+      document.activeElement?.getAttribute("aria-label")?.startsWith("Actions for"),
+    ),
+    `${tag}: focus returns to the trigger`,
+  );
   check(await drawer.isVisible(), `${tag}: Escape does not close the drawer`);
 
   // Booked and a note show on the row.
   await choose("Mark as booked");
-  check((await drawer.locator(".trip-places__tag", { hasText: "Booked" }).count()) === 1, `${tag}: booked shows a tag`);
+  check(
+    (await drawer.locator(".trip-places__tag", { hasText: "Booked" }).count()) === 1,
+    `${tag}: booked shows a tag`,
+  );
   await choose("Add a note");
   await drawer.getByLabel("Note").fill("Buy tickets online");
   await drawer.getByRole("button", { name: "Save" }).click();
   await settle(page, 400);
-  check(await drawer.getByText("Buy tickets online").isVisible(), `${tag}: the note shows under the stop`);
+  check(
+    await drawer.getByText("Buy tickets online").isVisible(),
+    `${tag}: the note shows under the stop`,
+  );
 
   // Edit details renames the stop.
   await choose("Edit details");
   await drawer.getByLabel("What you will do").fill("Morning walk and coffee");
   await drawer.getByRole("button", { name: "Save" }).click();
   await settle(page, 400);
-  check(await drawer.getByText("Morning walk and coffee").first().isVisible(), `${tag}: details change`);
+  check(
+    await drawer.getByText("Morning walk and coffee").first().isVisible(),
+    `${tag}: details change`,
+  );
   await page.screenshot({ path: `${OUT}/${tag}-02-booked-note.png` });
 
   // Next day, then Ideas, then back onto a day.
   await choose("Move to next day");
   check(
-    (await drawer.getByRole("list", { name: /Stops, Day 2/ }).getByText("Buy tickets online").count()) === 1,
+    (await drawer
+      .getByRole("list", { name: /Stops, Day 2/ })
+      .getByText("Buy tickets online")
+      .count()) === 1,
     `${tag}: next day moves the stop to Day 2`,
   );
 
   // Day 2 now holds its own stop, then the noted one. Move earlier / Move later reorder them
   // without dragging, and Undo restores the order.
   const day2 = dayList(2).locator(".trip-places__item");
-  check((await day2.count()) === 2 && (await notedAt(2)) === 1, `${tag}: Day 2 has two stops, the noted one last`);
+  check(
+    (await day2.count()) === 2 && (await notedAt(2)) === 1,
+    `${tag}: Day 2 has two stops, the noted one last`,
+  );
   const firstLabels = await menuLabels(day2.first());
-  check(!firstLabels.includes("Move earlier") && firstLabels.includes("Move later"), `${tag}: the first stop of a day offers Move later only`);
+  check(
+    !firstLabels.includes("Move earlier") && firstLabels.includes("Move later"),
+    `${tag}: the first stop of a day offers Move later only`,
+  );
   const lastLabels = await menuLabels(day2.last());
-  check(lastLabels.includes("Move earlier") && !lastLabels.includes("Move later"), `${tag}: the last stop of a day offers Move earlier only`);
+  check(
+    lastLabels.includes("Move earlier") && !lastLabels.includes("Move later"),
+    `${tag}: the last stop of a day offers Move earlier only`,
+  );
   if (tag === "phone") {
     const trigger = day2.first().getByRole("button", { name: /^Actions for / });
     const box = await trigger.boundingBox();
-    check(box && box.width >= 44 && box.height >= 44, `${tag}: menu trigger is at least 44 px (${box?.width}x${box?.height})`);
+    check(
+      box && box.width >= 44 && box.height >= 44,
+      `${tag}: menu trigger is at least 44 px (${box?.width}x${box?.height})`,
+    );
     await trigger.click();
-    const sizes = await drawer.getByRole("menuitem").evaluateAll((items) => items.map((i) => i.getBoundingClientRect().height));
-    check(sizes.length > 0 && sizes.every((h) => h >= 44), `${tag}: menu items are at least 44 px tall (min ${Math.min(...sizes)})`);
+    const sizes = await drawer
+      .getByRole("menuitem")
+      .evaluateAll((items) => items.map((i) => i.getBoundingClientRect().height));
+    check(
+      sizes.length > 0 && sizes.every((h) => h >= 44),
+      `${tag}: menu items are at least 44 px tall (min ${Math.min(...sizes)})`,
+    );
     await page.screenshot({ path: `${OUT}/${tag}-03a-touch-menu.png` });
     await page.keyboard.press("Escape");
     await settle(page, 200);
@@ -161,16 +218,25 @@ async function run(browser, { width, height, tag }) {
   check((await notedAt(2)) === 1, `${tag}: Move later puts it back`);
   await choose("Move to ideas");
   const ideas = drawer.getByRole("list", { name: "Stops, Ideas" });
-  check((await ideas.getByText("Buy tickets online").count()) === 1, `${tag}: the stop is in Ideas`);
+  check(
+    (await ideas.getByText("Buy tickets online").count()) === 1,
+    `${tag}: the stop is in Ideas`,
+  );
   const ideaLabels = await menuLabels(await row());
-  check(!ideaLabels.includes("Move earlier") && !ideaLabels.includes("Move later"), `${tag}: an idea offers neither Move earlier nor Move later`);
+  check(
+    !ideaLabels.includes("Move earlier") && !ideaLabels.includes("Move later"),
+    `${tag}: an idea offers neither Move earlier nor Move later`,
+  );
   await page.screenshot({ path: `${OUT}/${tag}-03-ideas.png` });
   await choose("Schedule on a day");
   await drawer.getByLabel("Day", { exact: true }).selectOption("3");
   await drawer.getByRole("button", { name: "Schedule", exact: true }).click();
   await settle(page, 400);
   check(
-    (await drawer.getByRole("list", { name: /Stops, Day 3/ }).getByText("Buy tickets online").count()) === 1,
+    (await drawer
+      .getByRole("list", { name: /Stops, Day 3/ })
+      .getByText("Buy tickets online")
+      .count()) === 1,
     `${tag}: an idea is scheduled back onto a day`,
   );
 
@@ -185,15 +251,18 @@ async function run(browser, { width, height, tag }) {
   // Adjust schedule opens the Timeline on that stop.
   await choose("Adjust schedule");
   check(
-    (await drawer.getByRole("tab", { name: /Timeline/ }).getAttribute("aria-selected")) === "true" &&
-      (await drawer.getByRole("button", { name: /Preview time change/ }).count()) === 1,
+    (await drawer.getByRole("tab", { name: /Timeline/ }).getAttribute("aria-selected")) ===
+      "true" && (await drawer.getByRole("button", { name: /Preview time change/ }).count()) === 1,
     `${tag}: adjust schedule opens the stop's time editor in the Timeline`,
   );
   await page.screenshot({ path: `${OUT}/${tag}-04-adjust.png` });
 
   // A swap that would run past 23:59 is refused and leaves the plan unchanged. The noted stop is
   // last on Day 3; set it to 22:30-23:50 in the Timeline, then move it earlier.
-  await drawer.getByLabel(/^Start/).first().fill("22:30");
+  await drawer
+    .getByLabel(/^Start/)
+    .first()
+    .fill("22:30");
   await drawer.getByLabel(/^End/).first().fill("23:50");
   await drawer.getByRole("button", { name: /Preview time change/ }).click();
   const preview = page.getByRole("region", { name: "Edit preview" });
@@ -203,7 +272,10 @@ async function run(browser, { width, height, tag }) {
   await drawer.getByRole("tab", { name: "Itinerary" }).click();
   await settle(page, 400);
   const day3 = await dayText(3);
-  check((await notedAt(3)) === 1 && day3.includes("22:30–23:50"), `${tag}: the noted stop is last on Day 3 at 22:30–23:50`);
+  check(
+    (await notedAt(3)) === 1 && day3.includes("22:30–23:50"),
+    `${tag}: the noted stop is last on Day 3 at 22:30–23:50`,
+  );
   await choose("Move earlier");
   const refusal = drawer.locator(".item-problem");
   check(
@@ -213,8 +285,14 @@ async function run(browser, { width, height, tag }) {
   check((await dayText(3)) === day3, `${tag}: the refused swap leaves Day 3 unchanged`);
   await page.screenshot({ path: `${OUT}/${tag}-05-refused.png` });
 
-  check(!(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)), `${tag}: no sideways scroll`);
-  check(!errors.length, `${tag}: no console errors${errors.length ? `: ${errors.join(" | ").slice(0, 300)}` : ""}`);
+  check(
+    !(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)),
+    `${tag}: no sideways scroll`,
+  );
+  check(
+    !errors.length,
+    `${tag}: no console errors${errors.length ? `: ${errors.join(" | ").slice(0, 300)}` : ""}`,
+  );
   await context.close();
 }
 

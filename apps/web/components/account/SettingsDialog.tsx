@@ -736,7 +736,7 @@ function RegionSection({ onDataMode }: { onDataMode(mode: DataMode): void }) {
             />
             <small className="settings-hint">
               {t(
-                "Live prices search real hotels and flights and spend the shared monthly allowance; sample data spends nothing. The switch in the top bar changes it for this browser.",
+                "Live prices search real hotels and flights and spend the shared monthly allowance; sample data spends nothing. The data switch in the workspace changes it for this browser.",
               )}
             </small>
           </>

@@ -1,6 +1,6 @@
 "use client";
 import { useLocale } from "@/components/account/LocaleProvider";
-import { useId, useRef, type Ref } from "react";
+import { useId, useRef, type Ref, type ReactNode } from "react";
 import { CloseIcon, ComposeIcon, NewTripIcon, SearchIcon } from "../ui/icons";
 import { HistoryMenu, type HistoryItem } from "./WorkspaceSidebar";
 import { TripCover } from "./TripCover";
@@ -22,6 +22,7 @@ export function ChatsPanel({
   onRenameChat,
   onDeleteChat,
   searchRef,
+  tripsContent,
 }: {
   query: string;
   onQuery(value: string): void;
@@ -34,6 +35,8 @@ export function ChatsPanel({
   onRenameChat(id: string): void;
   onDeleteChat(id: string): void;
   searchRef?: Ref<HTMLInputElement>;
+  /** Mine embeds the Trips / Calendar view in the existing trip section. */
+  tripsContent?: ReactNode;
 }) {
   const { t } = useLocale();
   const searchId = useId();
@@ -91,30 +94,32 @@ export function ChatsPanel({
         <h2 className="sidebar-history__title" id={`${searchId}-trips`}>
           {t("Trips")}
         </h2>
-        <div className="history-list">
-          {trips.map((item) => (
-            <article
-              className={`history-item history-item--trip${item.active ? " history-item--active" : ""}`}
-              key={item.id}
-            >
-              <button
-                type="button"
-                className="history-item__open"
-                aria-current={item.active ? "true" : undefined}
-                title={item.title}
-                onClick={() => onOpenTrip(item.id)}
+        {tripsContent ?? (
+          <div className="history-list">
+            {trips.map((item) => (
+              <article
+                className={`history-item history-item--trip${item.active ? " history-item--active" : ""}`}
+                key={item.id}
               >
-                <TripCover destination={item.destination ?? item.title} size="thumb" />
-                <span className="history-item__title">{item.title}</span>
-              </button>
-            </article>
-          ))}
-          {!trips.length && (
-            <p className="history-empty">
-              {searching ? t("No matching trips.") : t("No trips yet. Start one with New trip.")}
-            </p>
-          )}
-        </div>
+                <button
+                  type="button"
+                  className="history-item__open"
+                  aria-current={item.active ? "true" : undefined}
+                  title={item.title}
+                  onClick={() => onOpenTrip(item.id)}
+                >
+                  <TripCover destination={item.destination ?? item.title} size="thumb" />
+                  <span className="history-item__title">{item.title}</span>
+                </button>
+              </article>
+            ))}
+            {!trips.length && (
+              <p className="history-empty">
+                {searching ? t("No matching trips.") : t("No trips yet. Start one with New trip.")}
+              </p>
+            )}
+          </div>
+        )}
       </section>
 
       <section className="chats-panel__section" aria-labelledby={`${searchId}-chats`}>

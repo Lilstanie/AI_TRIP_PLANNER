@@ -33,8 +33,14 @@ export function TripMapCanvas({
   routes,
   showPhotos = false,
   userLocation,
+  phone = false,
+  focusedDay,
+  focusRequest,
 }: {
   /** The trip destination, or undefined for a blank conversation. */
+  phone?: boolean;
+  focusedDay?: number;
+  focusRequest?: number;
   destination?: string;
   viewKey?: string;
   tripPlaces: TripPlaces;
@@ -59,9 +65,17 @@ export function TripMapCanvas({
     activityForPlace,
   } = tripPlaces;
   const stops = useMemo(
-    () => markers.map(({ place, order, day }) => ({ place, order, day })),
-    [markers],
+    () =>
+      markers
+        .filter((marker) => focusedDay === undefined || (marker.day ?? 1) === focusedDay)
+        .map(({ place, order, day }) => ({ place, order, day })),
+    [markers, focusedDay],
   );
+  const dayRoutes = useMemo(() => {
+    if (focusedDay === undefined) return routes;
+    const ids = new Set(stops.map((stop) => stop.place.id));
+    return routes.filter((route) => ids.has(route.from) && ids.has(route.to));
+  }, [routes, stops, focusedDay]);
   const selected = markers.find((marker) => marker.activityId === selectedActivity)?.place.id;
   const canShowMap = destinations.length > 0 || markers.length > 0;
 
@@ -105,14 +119,16 @@ export function TripMapCanvas({
     <section className="trip-map-canvas" aria-label={t("Trip map")}>
       <TripMap
         stops={stops}
+        phone={phone}
+        focusRequest={focusRequest}
         destinations={destinations}
         selected={selected}
         onSelect={(placeId) => {
           const activityId = activityForPlace(placeId);
           if (activityId) onSelectActivity(activityId);
         }}
-        routes={routes}
-        viewKey={viewKey}
+        routes={dayRoutes}
+        viewKey={focusedDay === undefined ? viewKey : `${viewKey}:day:${focusedDay}`}
         showPhotos={showPhotos}
         userLocation={userLocation}
       />

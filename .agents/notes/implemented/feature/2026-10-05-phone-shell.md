@@ -25,7 +25,20 @@ asked for a phone-first design. Spec: issue #174.
   their editors still open (as bottom sheets) from the trip facts sheet the title opens.
 - **Trip tab** renders Your Trip in place; `openTrip()` selects the tab on a phone instead of
   opening the drawer, and the drawers are closed whenever the phone shell takes over.
-- **Mine tab** holds what the navigation drawer held, plus data mode and language.
+- **Mine tab** reuses ChatsPanel and an embedded TripsPage, including its calendar. Search filters
+  both lists, every open/new action returns to Chat, and touch row menus stay visible. Settings &
+  account, data mode and language live here.
+- **Map tab** fills its panel and filters markers/routes by the day chosen in PhoneMapSheet. Its
+  handle supports three snap heights through pointer gestures and keyboard actions. Place details
+  become a bottom sheet on phones; no-key users can still browse the stops.
+- **Keyboard** follows VisualViewport height and offset; a focused chat/question field plus a
+  contracted viewport hides navigation. Only the transcript scrolls to keep the last reply visible.
+- **Updates** track read plan content per trip, with object keys normalized so restored snapshots
+  match their live plans. Existing saved history is the baseline; switching unchanged trips does not
+  mark them updated. Replanning and manual edits on the same trip/round both mark Trip unread. The
+  dot clears on Trip and never changes the selected tab.
+- **Back** adds one temporary same-URL history entry while an editor, dialog or expanded map stops sheet is visible. Back uses
+  the existing cancel/Escape close paths, and normal closes consume the temporary entry.
 - **Safe areas**: the viewport uses `viewport-fit=cover`; every layout pads with
   `env(safe-area-inset-*)`, and on phones the top bar and tab bar carry the insets.
 - Phone styles live in `app/styles/phone*.css`, loaded last; strings in `lib/i18n/phone-messages.ts`.
@@ -49,5 +62,6 @@ asked for a phone-first design. Spec: issue #174.
 - Two layouts share one component tree, so a new workspace control must decide where it lives on a
   phone (top bar, a tab, or Mine) as well as on desktop.
 - `phone-shell.e2e.mjs` at 390 × 844 and 360 × 800 is the regression check for the shell; it runs
-  against a production build because dev-server reloads interrupt long walks.
+  against a production build because dev-server reloads interrupt long walks. The same command runs
+  the bounded phone-mine, phone-map and phone-state walks and combines their reports.
 - Safe areas and the real on-screen keyboard are checked by hand on devices (#182).

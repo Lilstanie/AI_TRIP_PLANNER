@@ -33,11 +33,13 @@ export function TripsPage({
   activeTripId,
   onOpenTrip,
   onNewTrip,
+  embedded = false,
 }: {
   trips: TripRecord[];
   activeTripId?: string;
   onOpenTrip(id: string): void;
   onNewTrip(): void;
+  embedded?: boolean;
 }) {
   const { t } = useLocale();
   const [tab, setTab] = useState<Tab>("trips");
@@ -56,13 +58,15 @@ export function TripsPage({
   return (
     <div className="trips-page">
       <div className="trips-page__inner">
-        <header className="trips-page__head">
-          <h1>{t("Your trips")}</h1>
-          <button type="button" className="trips-page__new" onClick={onNewTrip}>
-            <PlusIcon />
-            <span>{t("New trip")}</span>
-          </button>
-        </header>
+        {!embedded && (
+          <header className="trips-page__head">
+            <h1>{t("Your trips")}</h1>
+            <button type="button" className="trips-page__new" onClick={onNewTrip}>
+              <PlusIcon />
+              <span>{t("New trip")}</span>
+            </button>
+          </header>
+        )}
         <div
           ref={tabList}
           className="trips-page__tabs segmented"
@@ -98,7 +102,7 @@ export function TripsPage({
           {tab === "trips" ? (
             <TripCards trips={trips} activeTripId={activeTripId} onOpenTrip={onOpenTrip} />
           ) : (
-            <TripCalendar trips={trips} onOpenTrip={onOpenTrip} />
+            <TripCalendar trips={trips} onOpenTrip={onOpenTrip} compact={embedded} />
           )}
         </div>
       </div>
@@ -187,8 +191,10 @@ const monthLabel = (year: number, month: number, locale: AppLocale) =>
 function TripCalendar({
   trips,
   onOpenTrip,
+  compact = false,
 }: {
   trips: TripRecord[];
+  compact?: boolean;
   onOpenTrip(id: string): void;
 }) {
   const { t, locale } = useLocale();
@@ -299,9 +305,11 @@ function TripCalendar({
                         onClick={() => onOpenTrip(trip.id)}
                       >
                         {labelled
-                          ? t("Trip to {destination}", {
-                              destination: trip.snapshot.plan.brief.destination,
-                            })
+                          ? compact
+                            ? trip.snapshot.plan.brief.destination
+                            : t("Trip to {destination}", {
+                                destination: trip.snapshot.plan.brief.destination,
+                              })
                           : " "}
                       </button>
                     );

@@ -43,6 +43,8 @@ async function openTimeline(browser, { width, height, scheme }) {
   page.on("console", (message) => {
     if (message.type() !== "error") return;
     const text = message.text();
+    // Chrome probes the legacy favicon even though the application exposes icon.svg.
+    if (message.location().url === `${BASE}/favicon.ico` && text.includes("404")) return;
     if (/status of 502/.test(text) && [...upstream].every((path) => path === "/api/places/search"))
       return;
     errors.push(text);

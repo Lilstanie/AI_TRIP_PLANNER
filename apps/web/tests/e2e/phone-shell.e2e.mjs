@@ -18,8 +18,9 @@
 //
 //   pnpm --filter @trip/web dev            # in another terminal
 //   [BASE_URL=http://localhost:3000] [PLAYWRIGHT=<path>] node apps/web/tests/e2e/phone-shell.e2e.mjs
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
+import { spawnSync } from "node:child_process";
 import { resolve } from "node:path";
 
 const require = createRequire(import.meta.url);
@@ -49,14 +50,9 @@ async function open(browser, { width, height }, { touch = true } = {}) {
   const page = await context.newPage();
   const errors = [];
   page.on("pageerror", (error) => errors.push(String(error)));
-  // Failed requests are not shell errors: mock mode has no Places key, so place lookups answer 502.
-  page.on(
-    "console",
-    (m) =>
-      m.type() === "error" &&
-      !m.text().startsWith("Failed to load resource") &&
-      errors.push(m.text()),
-  );
+  page.on("console", (message) => message.type() === "error" && errors.push(message.text()));
+  // Explicit no-match Places fixture keeps shell checks independent of optional provider keys.
+  await page.route("**/api/places/search", (route) => route.fulfill({ json: { places: [] } }));
   await page.goto(BASE);
   await page.waitForSelector(".workspace-app");
   await page.waitForLoadState("networkidle");
@@ -186,9 +182,6 @@ async function shell(page, tag) {
     `${tag}: ArrowRight from Mine wraps to Chat`,
   );
 }
-
-// ---- #177 Mine ----
-async function mine(_page, _tag) {}
 
 const titleButton = (page) => page.locator(".phone-topbar__title-button");
 const factsSheet = (page) => page.getByRole("dialog", { name: "Trip details", exact: true });
@@ -326,15 +319,6 @@ async function facts(page, tag) {
   check(/^Sydney · /.test(restored), `${tag}: Where is back to Sydney (${restored})`);
 }
 
-// ---- #179 map ----
-async function map(_page, _tag) {}
-
-// ---- #180 keyboard ----
-async function keyboard(_page, _tag) {}
-
-// ---- #181 updates, last tab and back ----
-async function updates(_page, _tag) {}
-
 async function wide(browser) {
   for (const { tag, width, height, switchRow } of [
     { tag: "desktop", width: 1280, height: 860, switchRow: false },
@@ -365,11 +349,7 @@ try {
     await useMockData(page);
     await selectTab(page, "Chat");
     await shell(page, size.tag);
-    await mine(page, size.tag);
     await facts(page, size.tag);
-    await map(page, size.tag);
-    await keyboard(page, size.tag);
-    await updates(page, size.tag);
     check(errors.length === 0, `${size.tag}: no console errors (${errors.join(" | ")})`);
     await context.close();
   }
@@ -378,6 +358,21 @@ try {
   await browser.close();
   writeFileSync(`${OUT}/summary.json`, JSON.stringify({ base: BASE, results }, null, 2));
 }
+// One command covers the complete phone shell; bounded files keep each failure inventory readable.
+for (const name of ["phone-mine", "phone-map", "phone-state"]) {
+  const run = spawnSync(process.execPath, [`apps/web/tests/e2e/${name}.e2e.mjs`], {
+    env: process.env,
+    stdio: "inherit",
+  });
+  check(run.status === 0, `${name}: companion walk completed`);
+  if (run.status === 0) {
+    const report = JSON.parse(
+      readFileSync(resolve(`output/playwright/${name}/summary.json`), "utf8"),
+    );
+    results.push(...report.results);
+  }
+}
+writeFileSync(`${OUT}/summary.json`, JSON.stringify({ base: BASE, results }, null, 2));
 const failed = results.filter((result) => !result.ok);
 console.log(`\n${results.length - failed.length}/${results.length} checks passed`);
 process.exitCode = failed.length ? 1 : 0;

@@ -1,21 +1,57 @@
 "use client";
-import type { ReactNode } from "react";
 import { GearIcon } from "../ui/icons";
 import { useLocale } from "../account/LocaleProvider";
 import { DataModeToggle } from "./DataModeToggle";
 import { LanguageToggle } from "./LanguageToggle";
+import { ChatsPanel } from "./ChatsPanel";
+import { TripsPage } from "./TripsPage";
 import type { WorkspaceController } from "./useWorkspaceController";
 
-/**
- * The phone shell's Mine tab: everything the navigation drawer held. `chats` is the Chats panel
- * content (search, New chat, New trip, trips and chats), built by the workspace view.
- */
-export function PhoneMine({ model, chats }: { model: WorkspaceController; chats: ReactNode }) {
+/** The phone history and account hub, reusing desktop history and calendar controls. */
+export function PhoneMine({ model }: { model: WorkspaceController }) {
   const { t } = useLocale();
   const { dataMode, busy, openSettings } = model;
+  const visibleTrips = new Set(model.historyTrips.map((trip) => trip.id));
+  const open =
+    <T,>(action: (value: T) => void) =>
+    (value: T) => {
+      action(value);
+      model.setPage("workspace");
+      model.setMobileView("chat");
+      model.setNavOpen(false);
+      model.setChatsOpen(false);
+    };
+  const newChat = () => open(model.newChat)(undefined);
+  const newTrip = () => open(model.newTrip)(undefined);
+  const openTrip = open(model.selectTrip);
+
   return (
     <div className="phone-mine">
-      {chats}
+      <ChatsPanel
+        query={model.historyQuery}
+        onQuery={model.setHistoryQuery}
+        chats={model.historyChats}
+        trips={model.historyTrips}
+        onNewChat={newChat}
+        onNewTrip={newTrip}
+        onOpenChat={open(model.selectConversation)}
+        onOpenTrip={openTrip}
+        onRenameChat={model.renameChat}
+        onDeleteChat={model.deleteChat}
+        tripsContent={
+          model.historyQuery.trim() && !visibleTrips.size ? (
+            <p className="history-empty">{t("No matching trips.")}</p>
+          ) : (
+            <TripsPage
+              embedded
+              trips={model.catalog.trips.filter((trip) => visibleTrips.has(trip.id))}
+              activeTripId={model.catalog.activeTripId}
+              onOpenTrip={openTrip}
+              onNewTrip={newTrip}
+            />
+          )
+        }
+      />
       <div
         className="phone-mine__controls"
         role="group"
@@ -31,7 +67,7 @@ export function PhoneMine({ model, chats }: { model: WorkspaceController; chats:
       </div>
       <button type="button" className="phone-mine__settings" onClick={() => openSettings()}>
         <GearIcon />
-        <span>{t("Settings")}</span>
+        <span>{t("Settings & account")}</span>
       </button>
     </div>
   );

@@ -70,8 +70,8 @@ export const WORKSPACE_ZH = {
   "Anything else every trip should respect?": "每次旅行还有哪些需要遵循的偏好？",
   "Save preferences": "保存偏好",
   "Default trip data": "默认行程数据",
-  "Live prices search real hotels and flights and spend the shared monthly allowance; sample data spends nothing. The switch in the top bar changes it for this browser.":
-    "实时价格会搜索真实酒店与航班并消耗共享月度额度；示例数据不消耗额度。顶部开关可更改此浏览器中的模式。",
+  "Live prices search real hotels and flights and spend the shared monthly allowance; sample data spends nothing. The data switch in the workspace changes it for this browser.":
+    "实时价格会搜索真实酒店与航班并消耗共享月度额度；示例数据不消耗额度。工作区的数据开关可更改此浏览器中的模式。",
   "Accounts you can sign in with.": "可用于登录的已关联账户。",
   "No connected accounts. You sign in with email.": "没有已关联账户。你使用邮箱登录。",
   "Connect or disconnect": "关联或取消关联",

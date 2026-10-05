@@ -1,1 +1,43 @@
-/* Phone shell: keyboard. */
+/* The phone frame follows VisualViewport rather than the screen behind the keyboard. The
+   transcript remains the only scroll container; focusing cannot scroll the workspace page. */
+.workspace-app[data-phone] {
+  position: fixed;
+  inset: var(--phone-viewport-top, 0px) 0 auto;
+  width: 100%;
+  height: var(--phone-viewport-height, 100dvh);
+  min-height: 0;
+}
+[data-phone][data-phone-keyboard] .workspace-panel--chat {
+  padding-bottom: 0;
+}
+[data-phone][data-phone-keyboard] .chat__form {
+  flex: none;
+  padding-bottom: 0;
+}
+[data-phone][data-phone-keyboard] .chat > .disclaimer {
+  display: none;
+}
+/* The question card replaces the composer. Its choices scroll within the shortened screen,
+   leaving the header, custom answer and submit controls reachable above the keyboard. */
+[data-phone][data-phone-keyboard] .question {
+  flex: 0 1 auto;
+  min-height: 0;
+  max-height: calc(var(--phone-viewport-height) - 80px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+[data-phone] .workspace-panel--chat > .chat {
+  min-height: 0;
+}
+[data-phone][data-phone-keyboard] .workspace-panel--chat > .chat {
+  padding-bottom: 0;
+  overflow: hidden;
+}
+[data-phone] .chat__stream {
+  min-height: 0;
+  max-height: none;
+}
+[data-phone][data-phone-keyboard] .question__card {
+  max-height: calc(var(--phone-viewport-height) - 110px);
+  min-height: 0;
+}

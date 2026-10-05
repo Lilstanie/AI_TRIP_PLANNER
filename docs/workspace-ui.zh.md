@@ -64,11 +64,18 @@ seniors`（宠物不计为旅客）；`groupSize` 仍是校验字段，因此至
   - `Drawer` 提供 `role="dialog"`、`aria-modal`，关闭时提供 `aria-hidden` 和 `inert`，打开时聚焦关闭按钮，支持 Tab 循环、Escape（嵌套编辑预览和原生对话框优先），并将焦点返回触发按钮。
   - 同时只打开一个抽屉。关闭的抽屉完全平移到视口外，shell 使用 `overflow: clip`，无法通过滚动使它们出现。
   - 抽屉为悬浮 Liquid Glass sheet，四周内缩 `--space-2`，圆角为 `--radius-xl`。它们沿 iOS sheet 曲线在 380 ms 内滑动，背景遮罩同步淡出（`usePresence` 保持挂载）。所有动效都遵循 `prefers-reduced-motion`。
-  - 打开其他聊天或行程、New chat、New trip 和 Your trips 页面时，通过 View Transitions API（`viewTransition`）使主栏交叉淡入淡出；手机上的 Chat/Map 切换采用滑动。主栏只在过渡运行时携带 `view-transition-name`：具名元素是 backdrop root，永久保留名称会导致抽屉玻璃后方的聊天仍然清晰。
-- **窄屏（≤1000 px）。**
+  - 打开其他聊天或行程、New chat、New trip 和 Your trips 页面时，通过 View Transitions API（`viewTransition`）使主栏交叉淡入淡出；手机 Tab 切换使用同一过渡辅助函数。主栏只在过渡运行时携带 `view-transition-name`：具名元素是 backdrop root，永久保留名称会导致抽屉玻璃后方的聊天仍然清晰。
+- **窄屏（521–1000 px）。**
   - 顶栏把菜单、事实标签和 Trip 保留在一行，下方为 Chat/Map 切换。标签放不下时在自身行内横向滚动，仍有隐藏标签的一侧边缘渐隐；页面本身从不横向滚动。
   - 导航作为抽屉打开，Trip 占满内容宽度。导航抽屉无标题行：它从侧边栏自己的 Logo 行开始，关闭按钮位于行末，对话框通过视觉隐藏的标题（`Drawer` 的 `hideTitle`）保留“Navigation”无障碍名称。
-  - ≤520 px 时，顶栏按钮只显示图标，但保留无障碍名称；标签高 44 px；所有编辑器，包括模态编辑器，都作为遮罩上的底部 sheet 打开，行按钮为 44 px。
+- **手机（≤520 px）。** [手机外壳决策](../.agents/notes/implemented/feature/2026-10-05-phone-shell.md)仅适用于这一宽度；桌面和平板保留既有导航。
+  - 适配安全区的底部 Tab 栏提供 Chat、Map、Trip 和 Mine，并支持键盘操作。每次只显示一个面板；面板保持挂载以保留滚动位置。已保存的布局恢复上次使用的 Tab，也兼容旧的 Chat/Map 选择。
+  - 单行顶栏显示目的地和日期，未填写时显示 New trip。点击标题打开 Trip details，按行列出 Where、When、Who、Budget 和 Preferences。每行打开既有编辑器；保存或关闭后，焦点返回标题。编辑器为底部 sheet，点击目标至少为 44 px。
+  - Trip 直接显示 Your Trip，包含 Budget、Itinerary、Timeline & routes 和 Review plan。规划前说明空状态并提供 Plan in Chat。在其他 Tab 中创建或修改方案时，Trip 显示带无障碍说明的更新小红点；打开 Trip 后清除。按行程记录已读版本，因此切换未修改的已保存行程不会产生新通知。
+  - Mine 包含搜索、New chat、New trip、Trips/Calendar、聊天列表和 Settings & account。搜索同时筛选聊天和行程；打开或新建任一种内容都会切到 Chat。触摸界面始终显示每个聊天的 Rename/Delete 行菜单入口。数据模式和界面语言切换位于这里。
+  - Map 填满两栏之间的空间。当天停靠点 sheet 有收起、半高和全高三档，可拖动或通过手柄用指针、键盘选择。切换日期筛选地图标记和路线；选择停靠点使地图聚焦。未配置 Maps key 时，sheet 和停靠点仍可使用，地图说明不可用状态。地点详情以底部 sheet 打开，桌面保留弹窗。地图控件至少为 44 px，位于停靠点 sheet 上方，平移地图不会滚动页面。
+  - 输入框聚焦且键盘缩短可视视口时，外壳跟随该视口，保持最新消息可见并隐藏 Tab 栏。关闭键盘或失焦后恢复 Tab 栏。浏览器返回先关闭当前 sheet 或编辑器，再离开工作区。
+  - 新标签使用中英文字典，动效遵循减少动态效果偏好。`apps/web/tests/e2e/` 下的 `phone-shell.e2e.mjs` 及 Mine、Map、状态配套脚本产生浏览器证据。真实安装应用的安全区和键盘行为仍需完成 issue #182 的设备检查。
 
 <a id="conversations-trips-and-storage"></a>
 

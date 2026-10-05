@@ -12,12 +12,18 @@ export const PHONE_ZH = {
   "Plan in Chat": "去聊天规划",
 
   // Mine tab
+  "Settings & account": "设置与账户",
 
   // Trip facts sheet
 
   // Map tab
+  "Day stops": "当日站点",
+  "Resize day stops": "调整当日站点面板",
+  "Choose map day": "选择地图日期",
+  "Plan a trip in Chat to see your day stops here.": "在聊天里规划行程后，这里会显示当日站点。",
 
   // Keyboard
 
   // Trip updates and back button
+  "Trip updated": "行程已更新",
 } as const;

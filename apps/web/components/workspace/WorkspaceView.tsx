@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { TripFactChips } from "../preferences/TripFactChips";
 import { ChatPanel } from "../chat/ChatPanel";
 import { TripEditor } from "../trip/TripEditor";
@@ -124,6 +124,12 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
     deleteChat,
   } = model;
   const userLocation = useUserLocation();
+  const [phoneMapDay, setPhoneMapDay] = useState<number>();
+  const [phoneMapFocusRequest, setPhoneMapFocusRequest] = useState(0);
+  const selectMapActivity = (id: string) => {
+    setSelectedActivity(id);
+    if (phone) setPhoneMapFocusRequest((request) => request + 1);
+  };
   const { keyboardOpen } = usePhoneKeyboard(phone);
   const { tripUpdated } = usePhoneTripUpdates(model);
   const chatsButton = useRef<HTMLButtonElement>(null);
@@ -547,12 +553,22 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
                 viewKey={plan ? `${plan.tripId}|${plan.brief.destination}` : undefined}
                 tripPlaces={tripPlaces}
                 selectedActivity={selectedActivity}
-                onSelectActivity={setSelectedActivity}
+                onSelectActivity={selectMapActivity}
                 routes={mapRoutes}
+                focusedDay={phone ? phoneMapDay : undefined}
+                focusRequest={phone ? phoneMapFocusRequest : undefined}
+                phone={phone}
                 showPhotos={dataMode.mode === "live" && !!dataMode.providers?.maps}
                 userLocation={userLocation}
               />
-              {phone && <PhoneMapSheet model={model} />}
+              {phone && (
+                <PhoneMapSheet
+                  model={model}
+                  day={phoneMapDay}
+                  onDayChange={setPhoneMapDay}
+                  onSelectStop={selectMapActivity}
+                />
+              )}
             </div>
             {phone && (
               <div className="workspace-panel workspace-panel--trip" {...phonePanel("trip")}>
@@ -567,7 +583,7 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
             )}
             {phone && (
               <div className="workspace-panel workspace-panel--mine" {...phonePanel("mine")}>
-                <PhoneMine model={model} chats={chatsContent()} />
+                <PhoneMine model={model} />
               </div>
             )}
             {backdrop.value && (

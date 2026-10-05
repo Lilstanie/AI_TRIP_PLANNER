@@ -333,7 +333,7 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     setNavOpen(false);
     setChatsOpen(false);
     setPage("workspace");
-    setMobileView("chat");
+    if (phone) setMobileView("chat");
   }
   /**
    * `base` is the catalog this new chat is derived from. `deleteChat` passes the already-pruned

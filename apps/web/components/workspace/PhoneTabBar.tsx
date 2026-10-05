@@ -74,6 +74,7 @@ export function PhoneTabBar({ view, onSelect, badges, hidden }: Props) {
               role="tab"
               id={`phone-tab-${tab}`}
               aria-selected={selected}
+              aria-label={tab === "trip" && badges?.trip ? t("Trip updated") : undefined}
               aria-controls={phonePanelId(tab)}
               tabIndex={selected ? 0 : -1}
               className="phone-tabbar__tab"

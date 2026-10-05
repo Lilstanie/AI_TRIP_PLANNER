@@ -74,8 +74,8 @@ try {
   const settings = page.getByRole("dialog");
   await settings.getByRole("tab", { name: "语言与地区" }).click();
   check(
-    (await settings.getByRole("button", { name: "更改 显示币种" }).count()) === 0,
-    "currency selector is deferred",
+    (await settings.getByRole("button", { name: "更改 显示币种" }).count()) === 1,
+    "currency selector remains available",
   );
   await page.keyboard.press("Escape");
   await page.screenshot({ path: `${out}/desktop-zh.png`, fullPage: true });
@@ -84,10 +84,12 @@ try {
     await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
     "phone has no horizontal overflow",
   );
+  await page.getByRole("tab", { name: "我的", exact: true }).click();
   await page.getByRole("button", { name: "切换至 English" }).click();
   check((await htmlLang(page)) === "en-AU", "switch returns to English on phone");
   await page.screenshot({ path: `${out}/phone-en.png`, fullPage: true });
-  await page.getByRole("button", { name: "Where", exact: true }).click();
+  await page.locator(".phone-topbar__title-button").click();
+  await page.locator('.facts-sheet__row[data-fact="where"]').click();
   check(
     await page.getByLabel("Add a destination").isVisible(),
     "legacy address entry remains unchanged",
