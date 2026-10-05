@@ -1,0 +1,10 @@
+# The signing key stays on the release builder's machine; only its public fingerprint is committed.
+*.keystore
+*.jks
+# Build output: the APK goes to a GitHub Release, not the repository.
+*.apk
+*.aab
+*.idsig
+build/
+.gradle/
+local.properties
