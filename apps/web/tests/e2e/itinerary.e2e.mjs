@@ -40,14 +40,18 @@ async function openItinerary(browser, { width, height }) {
   await page.locator(".chat-empty__suggestions button").first().click();
   await page.locator(".msg-item--agent .msg-item__body").first().waitFor({ timeout: 180_000 });
   await settle(page, 1500);
-  await page.getByRole("button", { name: "Open your trip" }).click();
+  // Phones show Your Trip on the Trip tab; wider screens open it as a drawer.
+  const tripTab = page.getByRole("tab", { name: /^Trip/ });
+  if (await tripTab.count()) {
+    await tripTab.click();
+  } else await page.getByRole("button", { name: "Open your trip" }).click();
   await settle(page, 700);
   return { context, page, errors };
 }
 
 async function run(browser, { width, height, tag }) {
   const { context, page, errors } = await openItinerary(browser, { width, height });
-  const drawer = page.locator(".workspace-drawer--trip");
+  const drawer = page.locator(".workspace-drawer--trip, #phone-panel-trip");
   check((await drawer.getByRole("tab", { name: "Itinerary" }).getAttribute("aria-selected")) === "true", `${tag}: Itinerary is the first tab`);
   const menus = drawer.getByRole("button", { name: /^Actions for / });
   check((await menus.count()) >= 2, `${tag}: every stop has an action menu (${await menus.count()})`);

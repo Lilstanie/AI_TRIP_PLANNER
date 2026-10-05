@@ -43,7 +43,8 @@ async function openTimeline(browser, { width, height, scheme }) {
   page.on("console", (message) => {
     if (message.type() !== "error") return;
     const text = message.text();
-    if (/status of 502/.test(text) && [...upstream].every((path) => path === "/api/places/search")) return;
+    if (/status of 502/.test(text) && [...upstream].every((path) => path === "/api/places/search"))
+      return;
     errors.push(text);
   });
   page.on("pageerror", (error) => errors.push(String(error)));
@@ -52,6 +53,12 @@ async function openTimeline(browser, { width, height, scheme }) {
   // Mock data: no provider requests. The toggle only works once the page has hydrated, so retry
   // until it reports mock rather than clicking once and planning with live providers.
   await page.waitForLoadState("networkidle");
+  // On phones the data mode toggle lives on the Mine tab.
+  const mineTab = page.getByRole("tab", { name: /^Mine/ });
+  if (await mineTab.count()) {
+    await mineTab.click();
+    await settle(page, 500);
+  }
   for (let attempt = 0; attempt < 5; attempt += 1) {
     const live = page.getByRole("button", { name: /^Live data/ });
     if (!(await live.count())) break;
@@ -62,13 +69,18 @@ async function openTimeline(browser, { width, height, scheme }) {
     (await page.getByRole("button", { name: /^Mock data/ }).count()) === 1,
     `${width}px ${scheme}: planning with mock data`,
   );
+  const chatTab = page.getByRole("tab", { name: /^Chat/ });
+  if (await chatTab.count()) {
+    await chatTab.click();
+    await settle(page, 500);
+  }
   await page.locator(".chat-empty__suggestions button").first().click();
-  await page
-    .locator(".msg-item--agent .msg-item__body")
-    .first()
-    .waitFor({ timeout: 180_000 });
+  await page.locator(".msg-item--agent .msg-item__body").first().waitFor({ timeout: 180_000 });
   await settle(page, 1500);
-  await page.getByRole("button", { name: "Open your trip" }).click();
+  // Phones show Your Trip on the Trip tab; wider screens open it as a drawer.
+  const tripTab = page.getByRole("tab", { name: /^Trip/ });
+  if (await tripTab.count()) await tripTab.click();
+  else await page.getByRole("button", { name: "Open your trip" }).click();
   await settle(page, 700);
   await page.getByRole("tab", { name: /Timeline/ }).click();
   await settle(page, 700);
@@ -79,13 +91,18 @@ async function shots(browser, width, height, tag) {
   for (const scheme of ["light", "dark"]) {
     const { context, page, errors } = await openTimeline(browser, { width, height, scheme });
     await page.screenshot({ path: `${OUT}/${tag}-${scheme}-01-timeline.png` });
-    const drawer = page.locator(".workspace-drawer--trip .drawer__body, .workspace-drawer--trip");
+    const drawer = page.locator(
+      ".workspace-drawer--trip .drawer__body, .workspace-drawer--trip, #phone-panel-trip",
+    );
     await drawer.first().screenshot({ path: `${OUT}/${tag}-${scheme}-02-drawer.png` });
     check(
       await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
       `${tag} ${scheme}: no horizontal page scroll`,
     );
-    check(!errors.length, `${tag} ${scheme}: no console errors${errors.length ? `: ${errors.join(" | ")}` : ""}`);
+    check(
+      !errors.length,
+      `${tag} ${scheme}: no console errors${errors.length ? `: ${errors.join(" | ")}` : ""}`,
+    );
     await context.close();
   }
 }
@@ -128,19 +145,29 @@ async function interactions(browser) {
   // A stop is compact until selected; selecting it opens its editor.
   const stop = timeline.locator(".timeline-stop").first();
   check((await stop.count()) === 1, "day shows its stops");
-  check(!(await timeline.getByRole("button", { name: /Preview time change/ }).count()), "editors stay closed until a stop is selected");
+  check(
+    !(await timeline.getByRole("button", { name: /Preview time change/ }).count()),
+    "editors stay closed until a stop is selected",
+  );
   await stop.locator(".timeline-stop__main").click();
   await settle(page);
-  check(await timeline.getByRole("button", { name: /Preview time change/ }).isVisible(), "selecting a stop opens its editor");
+  check(
+    await timeline.getByRole("button", { name: /Preview time change/ }).isVisible(),
+    "selecting a stop opens its editor",
+  );
   await page.screenshot({ path: `${OUT}/interact-01-stop-open.png` });
 
   // A time edit goes through a preview that can be applied, then undone.
   const start = timeline.getByLabel(/^Start/).first();
   const [hour, minute] = (await start.inputValue()).split(":").map(Number);
-  await start.fill(`${String(Math.min(hour + 1, 20)).padStart(2, "0")}:${String(minute).padStart(2, "0")}`);
+  await start.fill(
+    `${String(Math.min(hour + 1, 20)).padStart(2, "0")}:${String(minute).padStart(2, "0")}`,
+  );
   const end = timeline.getByLabel(/^End/).first();
   const [endHour, endMinute] = (await end.inputValue()).split(":").map(Number);
-  await end.fill(`${String(Math.min(endHour + 1, 22)).padStart(2, "0")}:${String(endMinute).padStart(2, "0")}`);
+  await end.fill(
+    `${String(Math.min(endHour + 1, 22)).padStart(2, "0")}:${String(endMinute).padStart(2, "0")}`,
+  );
   await timeline.getByRole("button", { name: /Preview time change/ }).click();
   const preview = page.getByRole("region", { name: "Edit preview" });
   await preview.waitFor({ timeout: 30_000 });
@@ -158,8 +185,10 @@ async function interactions(browser) {
   const flashed = timeline.locator(".timeline-stop.is-changed");
   check((await flashed.count()) >= 1, "an applied edit marks the changed stop");
   check(
-    (await flashed.first().locator(".timeline-stop__main").evaluate((el) => getComputedStyle(el).animationName)) ===
-      "stop-changed",
+    (await flashed
+      .first()
+      .locator(".timeline-stop__main")
+      .evaluate((el) => getComputedStyle(el).animationName)) === "stop-changed",
     "the changed stop plays its highlight",
   );
   const undo = timeline.getByRole("button", { name: /Undo/ });
@@ -175,8 +204,13 @@ async function interactions(browser) {
   // Confirming a stop's map match needs real place results. Without a map key the search answers 502, so
   // from here this reports a skip, never a pass; everything above still ran.
   if (upstream.has("/api/places/search")) {
-    console.log("skip  route check: the place search needs a map key (it answered 502), so stops cannot be matched");
-    check(!errors.length, `interactions: no console errors${errors.length ? `: ${errors.join(" | ")}` : ""}`);
+    console.log(
+      "skip  route check: the place search needs a map key (it answered 502), so stops cannot be matched",
+    );
+    check(
+      !errors.length,
+      `interactions: no console errors${errors.length ? `: ${errors.join(" | ")}` : ""}`,
+    );
     await context.close();
     return;
   }
@@ -188,7 +222,11 @@ async function interactions(browser) {
       break;
     }
   }
-  const LANDMARKS = ["Sydney Opera House", "Royal Botanic Garden Sydney", "Art Gallery of New South Wales"];
+  const LANDMARKS = [
+    "Sydney Opera House",
+    "Royal Botanic Garden Sydney",
+    "Art Gallery of New South Wales",
+  ];
   let searches = 0;
   // Confirm every stop's map match on a day: a move or a route check needs real places.
   async function confirmDay(index) {
@@ -234,7 +272,10 @@ async function interactions(browser) {
     await confirmDay(routeDay);
     const stops = timeline.locator(".timeline-stop");
     const confirmed = await timeline.locator(".timeline-stop .timeline-tag--ok").count();
-    check(confirmed === (await stops.count()), `every stop on the day is confirmed (${confirmed}/${await stops.count()})`);
+    check(
+      confirmed === (await stops.count()),
+      `every stop on the day is confirmed (${confirmed}/${await stops.count()})`,
+    );
     const checkRoutes = timeline.getByRole("button", { name: /Check routes for Day/ });
     check(await checkRoutes.isEnabled(), "route check is enabled once places are confirmed");
     await checkRoutes.click();
@@ -263,7 +304,10 @@ async function interactions(browser) {
     await page.screenshot({ path: `${OUT}/interact-05-routes-checked.png` });
   }
 
-  check(!errors.length, `interactions: no console errors${errors.length ? `: ${errors.join(" | ")}` : ""}`);
+  check(
+    !errors.length,
+    `interactions: no console errors${errors.length ? `: ${errors.join(" | ")}` : ""}`,
+  );
   await context.close();
 }
 
