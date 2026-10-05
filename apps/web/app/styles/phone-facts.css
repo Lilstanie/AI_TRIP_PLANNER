@@ -1,1 +1,118 @@
-/* Phone shell: facts. */
+/* Phone shell: the trip title opens the trip facts sheet, which stands in for the chip row. */
+
+/* The title is a button that reads as the heading it sits in, with a chevron hinting at more. */
+.phone-topbar__title-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  max-width: 100%;
+  min-height: 44px !important;
+  padding: 0 var(--space-2) !important;
+  margin-left: calc(-1 * var(--space-2));
+  border: 0 !important;
+  border-radius: var(--radius-pill) !important;
+  background: transparent !important;
+  color: var(--text);
+  font: inherit;
+  font-weight: inherit !important;
+  line-height: 1.3;
+  text-align: left;
+  -webkit-tap-highlight-color: transparent;
+}
+.phone-topbar__title-button:active {
+  background: var(--fill-press) !important;
+  scale: 1;
+}
+.phone-topbar__title-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.phone-topbar__title-button .icon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  color: var(--text-dim);
+  rotate: 90deg;
+  transition: rotate var(--transition);
+}
+.phone-topbar__title-button[aria-expanded="true"] .icon {
+  rotate: -90deg;
+}
+
+/* The sheet: one row per fact, name leading and the stated value trailing. */
+.fact-popover--facts .fact-popover__head {
+  padding-bottom: var(--space-2);
+}
+.facts-sheet {
+  display: grid;
+  margin: 0;
+  padding: 0 var(--space-2) var(--space-3);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  list-style: none;
+}
+.facts-sheet__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 52px !important;
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3) !important;
+  border: 0 !important;
+  border-radius: var(--radius) !important;
+  background: transparent !important;
+  color: var(--text);
+  font-size: var(--font-size-body);
+  text-align: left;
+  -webkit-tap-highlight-color: transparent;
+}
+.facts-sheet__row:active {
+  background: var(--fill-press) !important;
+  scale: 1;
+}
+/* A hairline between rows, inset to the text so it never meets a row's rounded press fill. */
+.facts-sheet li {
+  position: relative;
+}
+.facts-sheet li + li::before {
+  position: absolute;
+  top: 0;
+  right: var(--space-3);
+  left: var(--space-3);
+  height: 1px;
+  background: var(--border);
+  content: "";
+}
+.facts-sheet__name {
+  flex: none;
+  font-weight: 600;
+}
+.facts-sheet__value {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--text-dim);
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.facts-sheet__row[data-empty] .facts-sheet__name {
+  flex: 1 1 auto;
+}
+.facts-sheet__row .icon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  color: var(--text-dim);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .phone-topbar__title-button .icon {
+    transition: none;
+  }
+}
+@media (forced-colors: active) {
+  .facts-sheet li + li::before {
+    background: CanvasText;
+  }
+}

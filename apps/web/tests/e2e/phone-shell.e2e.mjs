@@ -12,6 +12,9 @@
 // - desktop or the 521–1000 px layout grows a tab bar or loses its own controls;
 // - the browser console reports an error.
 // Later sections (Mine, trip facts, map, keyboard, updates) add their own failures below.
+// - #178: the title is not a dialog button, or opens no labelled sheet; a facts row shows other text
+//   than its chip, is under 44 px or opens no editor; Update trip leaves the row or title stale;
+//   Escape leaves the sheet open; focus falls to the page instead of returning to the title.
 //
 //   pnpm --filter @trip/web dev            # in another terminal
 //   [BASE_URL=http://localhost:3000] [PLAYWRIGHT=<path>] node apps/web/tests/e2e/phone-shell.e2e.mjs
@@ -187,8 +190,141 @@ async function shell(page, tag) {
 // ---- #177 Mine ----
 async function mine(_page, _tag) {}
 
+const titleButton = (page) => page.locator(".phone-topbar__title-button");
+const factsSheet = (page) => page.getByRole("dialog", { name: "Trip details", exact: true });
+const focusIsOnTitle = (page) =>
+  page.evaluate(() => document.activeElement?.classList.contains("phone-topbar__title-button"));
+const waitForPlanning = (page) =>
+  page.waitForFunction(
+    () => document.querySelector(".workspace-shell")?.getAttribute("aria-busy") !== "true",
+    undefined,
+    { timeout: 180_000 },
+  );
+async function openFacts(page) {
+  await titleButton(page).click();
+  await factsSheet(page).waitFor();
+  await settle(page, 450);
+}
+/** From the facts sheet, replace Where's only stop with `to` and press Update trip. */
+async function editWhere(page, from, to) {
+  await openFacts(page);
+  await factsSheet(page).locator('.facts-sheet__row[data-fact="where"]').click();
+  const where = page.getByRole("dialog", { name: "Where", exact: true });
+  await where.waitFor();
+  await where.getByRole("button", { name: `Remove ${from}` }).click();
+  await where.locator("#fact-destination").fill(to);
+  await where.getByRole("button", { name: "Update trip" }).click();
+  await where.waitFor({ state: "detached" });
+  await settle(page, 300);
+}
+
 // ---- #178 trip facts sheet ----
-async function facts(_page, _tag) {}
+async function facts(page, tag) {
+  await selectTab(page, "Chat");
+  const button = titleButton(page);
+  const name = (await button.getAttribute("aria-label")) ?? "";
+  check(
+    /^Trip details: Sydney · /.test(name) &&
+      (await button.getAttribute("aria-haspopup")) === "dialog",
+    `${tag}: the title is a dialog button named "${name}"`,
+  );
+  check(
+    (await smallTargets(page, ".phone-topbar__title-button")).length === 0,
+    `${tag}: title button is at least 44 px`,
+  );
+
+  await openFacts(page);
+  const sheet = factsSheet(page);
+  check(
+    (await sheet.isVisible()) && (await sheet.getAttribute("aria-modal")) === "true",
+    `${tag}: the title opens the Trip details sheet as a modal dialog`,
+  );
+  check(
+    await sheet.evaluate((node) => node.contains(document.activeElement)),
+    `${tag}: focus moves into the facts sheet`,
+  );
+  const rows = await sheet.locator(".facts-sheet__row").evaluateAll((nodes) =>
+    nodes.map((node) => ({
+      fact: node.dataset.fact,
+      name: node.querySelector(".facts-sheet__name")?.textContent ?? "",
+      value: node.querySelector(".facts-sheet__value")?.textContent ?? "",
+    })),
+  );
+  check(
+    rows.map((row) => row.name).join(",") === "Where,When,Who,Budget,Preferences",
+    `${tag}: the sheet lists Where, When, Who, Budget and Preferences`,
+  );
+  // The hidden chips still render; a row shows what its chip shows, minus the spoken prefix.
+  const chips = await page.locator(".fact-chip").evaluateAll((nodes) =>
+    nodes.map((node) => {
+      const copy = node.cloneNode(true);
+      copy.querySelectorAll(".sr-only").forEach((hidden) => hidden.remove());
+      return { empty: node.dataset.empty === "true", text: copy.textContent.trim() };
+    }),
+  );
+  const mismatched = rows.filter((row, index) => {
+    const chip = chips[index];
+    if (!chip) return true;
+    if (row.fact === "preferences") return chip.text !== row.name;
+    return chip.empty ? row.value !== "" || chip.text !== row.name : row.value !== chip.text;
+  });
+  check(
+    rows.length === 5 && mismatched.length === 0,
+    `${tag}: each row shows its chip's text (${rows.map((row) => row.value || row.name).join(" | ")})`,
+  );
+  check(
+    (await smallTargets(page, ".facts-sheet__row")).length === 0,
+    `${tag}: every facts row is at least 44 px`,
+  );
+  check(await noSideScroll(page), `${tag}: facts sheet has no horizontal scroll`);
+  await page.screenshot({ path: `${OUT}/${tag}-20-facts.png` });
+
+  await page.keyboard.press("Escape");
+  await sheet.waitFor({ state: "detached" });
+  check(!(await sheet.count()), `${tag}: Escape closes the facts sheet`);
+  check(await focusIsOnTitle(page), `${tag}: Escape returns focus to the title`);
+
+  // A row hands over to its editor; closing it comes back to the title.
+  await openFacts(page);
+  await sheet.locator('.facts-sheet__row[data-fact="where"]').click();
+  const where = page.getByRole("dialog", { name: "Where", exact: true });
+  await where.waitFor();
+  await settle(page, 450);
+  check(
+    (await where.isVisible()) && !(await sheet.count()),
+    `${tag}: the Where row closes the sheet and opens the Where editor`,
+  );
+  await page.screenshot({ path: `${OUT}/${tag}-21-facts-where.png` });
+  await page.keyboard.press("Escape");
+  await where.waitFor({ state: "detached" });
+  await settle(page, 300);
+  check(await focusIsOnTitle(page), `${tag}: closing the editor returns focus to the title`);
+
+  // Update trip changes the title at once and the row once the sheet reopens.
+  await editWhere(page, "Sydney", "Melbourne");
+  const updated = (await button.innerText()).trim();
+  check(
+    /^Melbourne · /.test(updated),
+    `${tag}: Update trip puts Melbourne in the title (${updated})`,
+  );
+  check(await focusIsOnTitle(page), `${tag}: saving the editor returns focus to the title`);
+  await waitForPlanning(page);
+  await openFacts(page);
+  const value = await sheet
+    .locator('.facts-sheet__row[data-fact="where"] .facts-sheet__value')
+    .innerText();
+  check(value === "Melbourne", `${tag}: the Where row shows Melbourne (${value})`);
+  await page.screenshot({ path: `${OUT}/${tag}-22-facts-updated.png` });
+  await page.keyboard.press("Escape");
+  await sheet.waitFor({ state: "detached" });
+
+  // Back to Sydney, so the sections after this one start from the trip they expect.
+  await editWhere(page, "Melbourne", "Sydney");
+  await waitForPlanning(page);
+  await settle(page, 1000);
+  const restored = (await button.innerText()).trim();
+  check(/^Sydney · /.test(restored), `${tag}: Where is back to Sydney (${restored})`);
+}
 
 // ---- #179 map ----
 async function map(_page, _tag) {}
