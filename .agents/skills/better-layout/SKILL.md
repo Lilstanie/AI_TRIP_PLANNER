@@ -8,9 +8,11 @@ description: Arrange content inside the apps/web workspace of AI_TRIP_PLANNER fo
 Position, spacing and alignment show hierarchy before anyone reads a word. This skill applies
 **inside** the workspace's regions. The regions themselves are fixed by the
 [design contract](../../../docs/design/ui-guidelines.md): the sidebar, chat and map grid, the overlay
-drawers, the breakpoints, the sidebar resizing and the narrow-screen Chat/Map switch. Their current
-behaviour is in [workspace-ui.md](../../../docs/workspace-ui.md). A layout finding never proposes
-changing those regions. If a region really does need to change, raise it as a design decision.
+drawers, the breakpoints and the sidebar resizing. Follow the layout for the viewport: the
+narrow-screen Chat/Map switch, or the phone Chat, Map, Trip and Mine tabs on branches containing
+[the phone shell](https://github.com/Lilstanie/AI_TRIP_PLANNER/pull/183). Their current behaviour is
+in [workspace-ui.md](../../../docs/workspace-ui.md). A layout finding never proposes changing
+those regions. If a region really does need to change, raise it as a design decision.
 
 ## Project values win
 
@@ -43,8 +45,8 @@ changing those regions. If a region really does need to change, raise it as a de
   of view.
 - **Disclosure has a cue.** Collapsed timeline sections, thinking rows and the drawer's Places list show
   what is hidden and how many items it holds.
-- **Logical properties in new code.** The UI is English-only today, so do not churn existing
-  `left`/`right` for this reason alone. New code uses `inline-start` and `inline-end`.
+- **Logical properties in new code.** The interface supports English and Chinese. New code uses
+  `inline-start` and `inline-end`; do not churn existing `left`/`right` solely for this convention.
 
 ## Verify
 
