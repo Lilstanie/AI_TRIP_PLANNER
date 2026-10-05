@@ -132,8 +132,8 @@ function ItemEditor({
  * The trip's stops in visiting order, grouped by day, at the top of the Itinerary tab, then its
  * Ideas. It is the keyboard path to every map marker: a located stop is a button that selects it on
  * the map. With `plan` and `onApply` each stop also has an action menu (adjust schedule, edit
- * details, note, ideas, previous or next day, booked, remove); actions apply at once and can be
- * undone (lib/trip/item-actions.ts).
+ * details, note, earlier or later on its day, ideas, previous or next day, booked, remove); actions
+ * apply at once and can be undone (lib/trip/item-actions.ts).
  */
 export function TripPlaceList({
   tripPlaces,
@@ -233,12 +233,37 @@ export function TripPlaceList({
         onSelect: edit("note"),
       },
     );
-    if (scheduled)
+    if (scheduled) {
+      // Neighbours on this day in the order the list shows; the transform uses the same order.
+      const sameDay = (days.find(([day]) => day === activity.day)?.[1] ?? []).filter(
+        (other) => !!other.startTime,
+      );
+      const position = sameDay.indexOf(activity);
+      const move = (direction: -1 | 1): ActionMenuItem => ({
+        label: t(direction < 0 ? "Move earlier" : "Move later"),
+        icon: (
+          <span className={direction < 0 ? "action-menu__up" : "action-menu__down"}>
+            <ChevronIcon />
+          </span>
+        ),
+        separated: direction < 0 || position === 0,
+        onSelect: () =>
+          act(
+            activity,
+            { kind: "move", direction },
+            direction < 0
+              ? t("{name} moved earlier.", { name })
+              : t("{name} moved later.", { name }),
+          ),
+      });
+      if (position > 0) items.push(move(-1));
+      if (position >= 0 && position < sameDay.length - 1) items.push(move(1));
+      const grouped = position > 0 || (position >= 0 && position < sameDay.length - 1);
       items.push(
         {
           label: t("Move to ideas"),
           icon: <SuitcaseIcon />,
-          separated: true,
+          separated: !grouped,
           onSelect: () => act(activity, { kind: "idea" }, t("{name} moved to Ideas.", { name })),
         },
         {
@@ -272,6 +297,7 @@ export function TripPlaceList({
             ),
         },
       );
+    }
     items.push(
       {
         label: t(activity.booked ? "Mark as not booked" : "Mark as booked"),

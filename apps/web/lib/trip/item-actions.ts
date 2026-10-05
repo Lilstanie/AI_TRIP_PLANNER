@@ -1,11 +1,12 @@
 import { TripPlan, type ProposalItem } from "@trip/shared";
+import { itineraryOrder } from "../map/itinerary-route";
 import { dayCount } from "./timeline";
 
 /**
  * Edits a traveller makes to one itinerary item from its action menu. Each is a pure transform of
- * the plan: details, a note, booked, remove, set aside as an idea, or put on a day. None changes
- * a route or a price the server checks, so they apply at once; schedule changes that need route
- * checks go through the Timeline's preview instead.
+ * the plan: details, a note, booked, remove, set aside as an idea, put on a day, or swap places with
+ * the stop before or after it on its day. None changes a route or a price the server checks, so they
+ * apply at once; schedule changes that need route checks go through the Timeline's preview instead.
  */
 export type ItemAction =
   | { kind: "details"; detail: string; location: string }
@@ -13,10 +14,12 @@ export type ItemAction =
   | { kind: "booked"; booked: boolean }
   | { kind: "remove" }
   | { kind: "idea" }
-  | { kind: "day"; day: number };
+  | { kind: "day"; day: number }
+  | { kind: "move"; direction: -1 | 1 };
 
 const DEFAULT_MINUTES = 120;
 const DAY_START = 9 * 60;
+const DAY_END = 23 * 60 + 59;
 const minutes = (time: string) => Number(time.slice(0, 2)) * 60 + Number(time.slice(3, 5));
 const clock = (value: number) =>
   `${String(Math.floor(value / 60)).padStart(2, "0")}:${String(value % 60).padStart(2, "0")}`;
@@ -68,11 +71,18 @@ export function applyItemAction(plan: TripPlan, id: string, action: ItemAction):
           : DEFAULT_MINUTES;
       const others = items.filter(
         (other): other is ProposalItem & { endTime: string } =>
-          other !== item && other.kind === "activity" && other.day === action.day && !!other.endTime,
+          other !== item &&
+          other.kind === "activity" &&
+          other.day === action.day &&
+          !!other.endTime,
       );
-      const start = others.length ? Math.max(...others.map((other) => minutes(other.endTime))) : DAY_START;
-      if (start + duration > 23 * 60 + 59)
-        throw new Error(`Day ${action.day} has no room left for this stop; shorten another stop first.`);
+      const start = others.length
+        ? Math.max(...others.map((other) => minutes(other.endTime)))
+        : DAY_START;
+      if (start + duration > DAY_END)
+        throw new Error(
+          `Day ${action.day} has no room left for this stop; shorten another stop first.`,
+        );
       item.day = action.day;
       item.startTime = clock(start);
       item.endTime = clock(start + duration);
@@ -87,6 +97,47 @@ export function applyItemAction(plan: TripPlan, id: string, action: ItemAction):
           minutes(other.startTime) > start,
       );
       items.splice(after < 0 ? items.length : after, 0, item);
+      break;
+    }
+    case "move": {
+      if (item.day === undefined || !item.startTime)
+        throw new Error("Only a stop scheduled on a day can move earlier or later.");
+      // The same order the list shows: start time, then plan order. Each stop takes the other's
+      // start time and keeps its duration; the second starts later if the first would overlap it.
+      const day = itineraryOrder(
+        items.filter(
+          (other) => other.kind === "activity" && other.day === item.day && !!other.startTime,
+        ),
+      );
+      const neighbour = day[day.indexOf(item) + action.direction];
+      if (!neighbour)
+        throw new Error(
+          action.direction < 0
+            ? "This is already the first stop of its day."
+            : "This is already the last stop of its day.",
+        );
+      const [first, second] = action.direction < 0 ? [item, neighbour] : [neighbour, item];
+      const [earlier, later] = action.direction < 0 ? [neighbour, item] : [item, neighbour];
+      const length = (stop: ProposalItem) =>
+        stop.startTime && stop.endTime
+          ? minutes(stop.endTime) - minutes(stop.startTime)
+          : DEFAULT_MINUTES;
+      const firstStart = minutes(earlier.startTime!);
+      const firstEnd = firstStart + length(first);
+      const secondStart = Math.max(firstEnd, minutes(later.startTime!));
+      const secondEnd = secondStart + length(second);
+      if (firstEnd > DAY_END || secondEnd > DAY_END)
+        throw new Error("Swapping these stops would run past 23:59; shorten one of them first.");
+      first.startTime = clock(firstStart);
+      first.endTime = clock(firstEnd);
+      second.startTime = clock(secondStart);
+      second.endTime = clock(secondEnd);
+      delete first.arriveBy;
+      delete second.arriveBy;
+      // Keep the plan in time order, which is the order the Timeline edits by.
+      const a = items.indexOf(first);
+      const b = items.indexOf(second);
+      if (a > b) [items[a], items[b]] = [items[b]!, items[a]!];
       break;
     }
   }
