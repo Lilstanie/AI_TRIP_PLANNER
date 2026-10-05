@@ -17,6 +17,8 @@ contract-impact: none
   transitions, Back, focus, keyboard and repeated-place day filtering.
 - Distinguish production browser walks from real-device and live-map evidence.
 - Keep the currency and typed translation rules already proposed by PR #167.
+- `pre-push-checks`: add a row for the installable app from #169 (manifest, service worker,
+  `.well-known`, Android TWA), which runs `installable-app.e2e.mjs` against a production build.
 
 ## Validation
 
