@@ -1,0 +1,137 @@
+/* Phone shell frame: top bar, tab panels and the bottom tab bar. */
+
+/* The installed app draws under the notch and home indicator (viewport-fit=cover), so every
+   layout keeps its content inside the safe area; on a phone the top and tab bars carry it. */
+.workspace-app {
+  padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+.workspace-app[data-phone] {
+  padding: 0;
+}
+
+/* One row: the trip title, nothing else. */
+[data-phone] .workspace-topbar {
+  display: flex;
+  min-height: 0;
+  padding: calc(env(safe-area-inset-top) + var(--space-2))
+    max(var(--space-4), env(safe-area-inset-right)) var(--space-2)
+    max(var(--space-4), env(safe-area-inset-left));
+}
+/* The chips give way to the title; their editors stay mounted and open as bottom sheets. */
+[data-phone] .fact-chips {
+  display: contents;
+}
+[data-phone] .fact-chips__scroller {
+  display: none;
+}
+.phone-topbar__title {
+  flex: 1;
+  min-width: 0;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 44px;
+}
+
+/* One panel per tab fills the space between the bars. */
+[data-phone] .workspace-shell {
+  display: block;
+}
+[data-phone] .workspace-shell > .workspace-panel {
+  height: 100%;
+}
+[data-phone] .workspace-panel[hidden] {
+  display: none !important;
+}
+[data-phone] .workspace-panel--map {
+  margin: 0;
+}
+.workspace-panel--trip,
+.workspace-panel--mine {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 max(var(--space-3), env(safe-area-inset-right)) var(--space-4)
+    max(var(--space-3), env(safe-area-inset-left));
+}
+.phone-trip__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-1);
+}
+.phone-trip__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--font-size-title);
+  line-height: var(--line-height-title);
+}
+.workspace-panel--trip .trip-drawer-empty button {
+  min-height: 44px;
+}
+
+/* The bottom tab bar: four equal tabs above the home indicator. */
+.phone-tabbar {
+  flex: none;
+  padding: var(--space-1) max(var(--space-2), env(safe-area-inset-right))
+    max(var(--space-1), env(safe-area-inset-bottom)) max(var(--space-2), env(safe-area-inset-left));
+  border-top: 1px solid var(--glass-edge);
+  background: var(--glass-bg-strong);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+}
+.phone-tabbar[data-hidden] {
+  display: none;
+}
+.phone-tabbar__list {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.phone-tabbar__tab {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  min-height: 50px;
+  padding: var(--space-1) 0 !important;
+  border: 0 !important;
+  border-radius: var(--radius) !important;
+  background: transparent !important;
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 500;
+  -webkit-tap-highlight-color: transparent;
+}
+.phone-tabbar__tab[aria-selected="true"] {
+  color: var(--accent);
+  font-weight: 600;
+}
+.phone-tabbar__tab:active {
+  background: var(--fill-press) !important;
+}
+.phone-tabbar__icon {
+  display: grid;
+  height: 24px;
+  place-items: center;
+}
+.phone-tabbar__icon .icon {
+  width: 24px;
+  height: 24px;
+}
+.phone-tabbar__dot {
+  position: absolute;
+  top: 6px;
+  left: calc(50% + 10px);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-fill);
+}
+@media (forced-colors: active) {
+  .phone-tabbar {
+    background: Canvas;
+    border-color: CanvasText;
+  }
+  .phone-tabbar__tab[aria-selected="true"] {
+    color: Highlight;
+  }
+}

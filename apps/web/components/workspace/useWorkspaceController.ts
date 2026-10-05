@@ -24,8 +24,10 @@ import {
   type WorkspaceCatalog,
 } from "@/lib/workspace/catalog";
 import {
+  PHONE_VIEWS,
   seed,
   useIsNarrow,
+  useIsPhone,
   type DialogKind,
   type MobileView,
   type Task,
@@ -74,8 +76,8 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
   const [tripTab, setTripTab] = useState<TripTab>(
     restored.catalog.layout.editorView === "timeline" ? "timeline" : "overview",
   );
-  const [mobileView, setMobileView] = useState<MobileView>(
-    restored.catalog.layout.view === "map" ? "map" : "chat",
+  const [storedView, setMobileView] = useState<MobileView>(() =>
+    PHONE_VIEWS.includes(restored.catalog.layout.view) ? restored.catalog.layout.view : "chat",
   );
   const [sidebarCollapsed, setSidebarCollapsed] = useState(
     restored.catalog.layout.sidebar.collapsed,
@@ -88,6 +90,10 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
   const [chatsOpen, setChatsOpen] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
   const narrow = useIsNarrow();
+  const phone = useIsPhone();
+  // Trip and Mine are phone tabs; between 521 and 1000 px only chat and map are views.
+  const mobileView: MobileView =
+    phone || storedView === "chat" || storedView === "map" ? storedView : "chat";
   const [selectedActivity, setSelectedActivity] = useState<string>();
   const [mapRoutes, setMapRoutes] = useState<RouteResult[]>([]);
   const activeConversation = useRef(
@@ -133,12 +139,19 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
           chatShare,
           preferences: { ...current.layout.preferences, open: preferencesOpen },
           trip: { ...current.layout.trip, open: tripOpen },
-          view: mobileView,
+          view: storedView,
           editorView: tripTab,
         },
       }),
     );
-  }, [preferencesOpen, tripOpen, mobileView, tripTab, sidebarCollapsed, sidebarWidth, chatShare]);
+  }, [preferencesOpen, tripOpen, storedView, tripTab, sidebarCollapsed, sidebarWidth, chatShare]);
+
+  // The phone shell has no drawers: Your Trip is a tab and navigation lives in Mine.
+  useEffect(() => {
+    if (!phone) return;
+    setTripOpen(false);
+    setNavOpen(false);
+  }, [phone]);
 
   // Leaving the narrow layout closes its navigation drawer.
   useEffect(() => {
@@ -182,7 +195,9 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
   function openTrip() {
     setOpenFact(undefined);
     setNavOpen(false);
-    setTripOpen(true);
+    // On a phone Your Trip is a tab, not a drawer.
+    if (phone) setMobileView("trip");
+    else setTripOpen(true);
   }
   function closeTrip() {
     setTripOpen(false);
@@ -318,6 +333,7 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     setNavOpen(false);
     setChatsOpen(false);
     setPage("workspace");
+    setMobileView("chat");
   }
   /**
    * `base` is the catalog this new chat is derived from. `deleteChat` passes the already-pruned
@@ -461,6 +477,7 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     chatsOpen,
     navOpen,
     narrow,
+    phone,
     selectedActivity,
     mapRoutes,
     tripPlaces,

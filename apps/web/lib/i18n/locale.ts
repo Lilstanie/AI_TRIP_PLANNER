@@ -1,5 +1,6 @@
 import { fromAud, type Currency } from "@trip/shared";
 
+import { PHONE_ZH } from "./phone-messages";
 import { WORKSPACE_ZH } from "./workspace-messages";
 
 export const LOCALES = ["en", "zh"] as const;
@@ -34,6 +35,7 @@ export function formatAudForDisplay(
 
 const ZH = {
   ...WORKSPACE_ZH,
+  ...PHONE_ZH,
   "Edit profile": "编辑个人资料",
   "Your account": "你的账户",
   Personalization: "个性化",
