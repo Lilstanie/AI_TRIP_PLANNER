@@ -4,10 +4,12 @@
 // - start times that disagree with plan order make the views list a day in plan order;
 // - a day whose stops have no located place disappears from the day list or draws markers;
 // - a displayed position is sent to the edit preview as if it were the plan's index.
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { ProposalItem, TripPlan } from "@trip/shared";
 import type { GooglePlace } from "@/lib/integrations/google";
 import { buildItinerary } from "@/lib/trip/itinerary";
+import { previewEdit } from "@/lib/trip/trip-edit";
+import { plan as fixture } from "@/tests/fixtures/workspace";
 
 type Item = ProposalItem & { id: string };
 const stop = (id: string, day: number | undefined, startTime?: string): Item => ({
@@ -130,15 +132,119 @@ describe("Itinerary", () => {
     it("moves a stop before the stop shown at that position, not the plan's", () => {
       // Moving c to the top of the day lands before a, first in plan order once c is lifted out.
       expect(itinerary.planIndex("c", 1, 0)).toBe(0);
-      // Moving a one later lands before c, shown at position 1 once a is lifted out (b, c).
-      expect(itinerary.planIndex("a", 1, 1)).toBe(0);
+      // Moving a one later lands just after b, the stop it moved past (plan index 2 among c, b).
+      expect(itinerary.planIndex("a", 1, 1)).toBe(2);
       // Moving b earlier, before a: a is plan index 1 among the day's others (c, a).
       expect(itinerary.planIndex("b", 1, 0)).toBe(1);
     });
 
     it("moves a stop to the end of a day when the position is past its last stop", () => {
       expect(itinerary.planIndex("a", 1, 2)).toBe(2);
+      expect(itinerary.planIndex("a", 1, 9)).toBe(2);
       expect(itinerary.planIndex("a", 2, 0)).toBe(0);
     });
+
+    it("keeps a position before the first stop at the start of the day", () => {
+      expect(itinerary.planIndex("c", 1, -1)).toBe(0);
+    });
+  });
+});
+
+// Ways a timeline move could fail through the unchanged edit preview endpoint, written before the fix:
+// - start times that disagree with plan order: "Move later" leaves the stop where it was, or "Move
+//   earlier" lands it before the wrong neighbour, because the shown position was read as a plan
+//   position;
+// - the first stop of a day moved later, or the last moved earlier, does not swap with its neighbour;
+// - a day that visits one place twice: the repeat visit moves past the wrong stop or loses the
+//   place's first number.
+describe("timeline moves through the edit preview", () => {
+  type Timed = Item & { placeId: string; startTime: string; endTime: string };
+  const timed = (id: string, start: string, placeId = `place-${id}`): Timed => ({
+    id,
+    kind: "activity",
+    detail: id,
+    day: 1,
+    startTime: start,
+    endTime: `${start.slice(0, 2)}:30`,
+    placeId,
+  });
+  const fixturePlan = (items: Timed[]): TripPlan => {
+    const p = structuredClone(fixture);
+    p.sections.find((section) => section.id === "itinerary")!.proposal!.items = items;
+    return p;
+  };
+  const located = (activity: { placeId?: string }) =>
+    activity.placeId ? place(activity.placeId) : undefined;
+  const routes = () => ({
+    placeDetails: vi.fn(async (id: string) => place(id)),
+    timeZone: vi.fn(async () => "Australia/Sydney"),
+    googleRoute: vi.fn(
+      async (from: string, to: string, _departure: string, mode: "WALK" | "TRANSIT") => ({
+        from,
+        to,
+        mode,
+        status: "ok" as const,
+        durationMin: 20,
+      }),
+    ),
+  });
+  /** Move a stop by `step` shown positions, as the timeline's buttons do, and read the previewed day. */
+  async function move(items: Timed[], id: string, step: -1 | 1) {
+    const plan = fixturePlan(items);
+    const itinerary = buildItinerary(plan, located);
+    const shown = itinerary.stopsOn(1).findIndex((entry) => entry.activity.id === id);
+    const index = itinerary.planIndex(id, 1, shown + step);
+    const result = await previewEdit(
+      { plan, baseVersion: plan.editVersion ?? 0, operation: { kind: "move", id, day: 1, index } },
+      routes(),
+    );
+    expect(result.blockers).toEqual([]);
+    return buildItinerary(result.plan, located).stopsOn(1);
+  }
+
+  it("moves the first stop later past its neighbour", async () => {
+    const day = await move([timed("a", "09:00"), timed("b", "11:00"), timed("c", "13:00")], "a", 1);
+    expect(ids(day)).toEqual(["b", "a", "c"]);
+  });
+
+  it("moves the last stop earlier past its neighbour", async () => {
+    const day = await move(
+      [timed("a", "09:00"), timed("b", "11:00"), timed("c", "13:00")],
+      "c",
+      -1,
+    );
+    expect(ids(day)).toEqual(["a", "c", "b"]);
+  });
+
+  it("moves a stop later past the stop shown after it when start times disagree with plan order", async () => {
+    // Plan order c, a, b; shown a, b, c.
+    const day = await move([timed("c", "15:00"), timed("a", "09:00"), timed("b", "12:00")], "a", 1);
+    const order = ids(day);
+    expect(order.indexOf("a")).toBeGreaterThan(order.indexOf("b"));
+  });
+
+  it("moves a stop earlier past the stop shown before it when start times disagree with plan order", async () => {
+    // Plan order b, c, a; shown a, b, c.
+    const day = await move(
+      [timed("b", "12:00"), timed("c", "15:00"), timed("a", "09:00")],
+      "c",
+      -1,
+    );
+    const order = ids(day);
+    expect(order.indexOf("c")).toBeLessThan(order.indexOf("b"));
+  });
+
+  it("moves a repeat visit earlier and keeps the place's first number", async () => {
+    const day = await move(
+      [
+        timed("temple", "09:00", "senso-ji"),
+        timed("market", "11:00"),
+        timed("again", "14:00", "senso-ji"),
+      ],
+      "again",
+      -1,
+    );
+    expect(ids(day)).toEqual(["temple", "again", "market"]);
+    expect(day.map((entry) => entry.number)).toEqual([1, 1, 2]);
   });
 });

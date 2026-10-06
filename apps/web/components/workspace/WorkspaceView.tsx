@@ -28,6 +28,7 @@ import { PhoneMine } from "./PhoneMine";
 import { PhoneMapSheet } from "./PhoneMapSheet";
 import { usePhoneKeyboard } from "./usePhoneKeyboard";
 import { usePhoneTripUpdates } from "./usePhoneTripUpdates";
+import { usePhoneBack } from "./usePhoneBack";
 import type { MobileView } from "./workspace-helpers";
 
 export function WorkspaceView({ model }: { model: WorkspaceController }) {
@@ -85,20 +86,14 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
     setInput,
     setPreviousTotal,
     setEditPending,
-    setDialog,
     setStorageError,
     setStorageEnabled,
     setNotice,
     setHistoryQuery,
-    setTripOpen,
     setTripTab,
-    setMobileView,
     setSidebarCollapsed,
     setSidebarWidth,
     setChatShare,
-    setPage,
-    setChatsOpen,
-    setNavOpen,
     setSelectedActivity,
     setMapRoutes,
     openPreferences,
@@ -106,6 +101,9 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
     openTrip,
     closeTrip,
     openDialog,
+    openNav,
+    closeDrawer,
+    toggleChats,
     edit,
     saveFacts,
     planWith,
@@ -139,6 +137,7 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
   }, [phone, selectedDay]);
   const { keyboardOpen } = usePhoneKeyboard(phone);
   const { tripUpdated } = usePhoneTripUpdates(model);
+  usePhoneBack(phone);
   const chatsButton = useRef<HTMLButtonElement>(null);
   const chatsSearch = useRef<HTMLInputElement>(null);
   const chatsPanel = useRef<HTMLDivElement>(null);
@@ -166,13 +165,13 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
       )
         return;
       event.preventDefault();
-      setChatsOpen(false);
+      closeDrawer();
       chatsButton.current?.focus({ preventScroll: true });
     };
     const onPointerDown = (event: PointerEvent) => {
       const target = event.target as Node;
       if (chatsPanel.current?.contains(target) || chatsButton.current?.contains(target)) return;
-      setChatsOpen(false);
+      closeDrawer();
     };
     window.addEventListener("keydown", onKeyDown);
     document.addEventListener("pointerdown", onPointerDown);
@@ -180,7 +179,7 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
       window.removeEventListener("keydown", onKeyDown);
       document.removeEventListener("pointerdown", onPointerDown);
     };
-  }, [chatsOpen, setChatsOpen]);
+  }, [chatsOpen, closeDrawer]);
 
   const chatsContent = (searchRef?: typeof chatsSearch) => (
     <ChatsPanel
@@ -197,17 +196,10 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
       searchRef={searchRef}
     />
   );
-  const showTrips = () =>
-    viewTransition(() => {
-      setChatsOpen(false);
-      setNavOpen(false);
-      closePreferences();
-      setTripOpen(false);
-      setPage("trips");
-    });
+  const showTrips = () => viewTransition(model.showTrips);
 
   const selectView = (view: MobileView) =>
-    view !== mobileView && viewTransition(() => setMobileView(view), `to-${view}`);
+    view !== mobileView && viewTransition(() => model.selectView(view), `to-${view}`);
   // A phone tab's panel: labelled by its tab, and only the selected one is shown.
   const phonePanel = (view: MobileView) =>
     phone
@@ -226,7 +218,7 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
       title={t("Navigation")}
       hideTitle
       closeLabel={t("Close navigation")}
-      onClose={() => setNavOpen(false)}
+      onClose={closeDrawer}
       returnFocus={navToggle}
       className="workspace-drawer workspace-drawer--nav"
     >
@@ -255,11 +247,7 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
       aria-label={t("Open navigation")}
       aria-expanded={navOpen}
       aria-haspopup="dialog"
-      onClick={() => {
-        closePreferences();
-        setTripOpen(false);
-        setNavOpen(true);
-      }}
+      onClick={openNav}
     >
       <MenuIcon />
     </button>
@@ -272,7 +260,7 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
           plan={plan}
           tab={tripTab}
           onTab={setTripTab}
-          onReview={() => setDialog("review")}
+          onReview={() => openDialog("review")}
           onEdit={edit}
           places={
             <TripPlaceList
@@ -351,7 +339,7 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
           chatCount={catalog.conversations.length}
           tripCount={catalog.trips.length}
           chatsButton={chatsButton}
-          onChats={() => setChatsOpen((open) => !open)}
+          onChats={toggleChats}
           onTrips={showTrips}
           onSettings={openSettings}
           saveState={saveState}
@@ -392,7 +380,7 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
                 className="workspace-drawer-backdrop"
                 aria-label={t("Close open panel")}
                 onClick={() => {
-                  setNavOpen(false);
+                  closeDrawer();
                   navToggle.current?.focus({ preventScroll: true });
                 }}
               />
@@ -603,8 +591,7 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
                 aria-label={t("Close open panel")}
                 onClick={() => {
                   const trigger = tripOpen ? tripToggle : navToggle;
-                  closeTrip();
-                  setNavOpen(false);
+                  closeDrawer();
                   trigger.current?.focus({ preventScroll: true });
                 }}
               />

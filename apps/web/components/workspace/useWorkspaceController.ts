@@ -1,6 +1,5 @@
 "use client";
 import { useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
-import type { WorkspacePage } from "./WorkspaceSidebar";
 import type { TripTab } from "../trip/TripPanel";
 import { useWorkspaceStorage } from "./useWorkspaceStorage";
 import { useWorkspaceTransport } from "./useWorkspaceTransport";
@@ -14,14 +13,8 @@ import {
   type RestoredWorkspace,
   type WorkspaceCatalog,
 } from "@/lib/workspace/catalog";
-import {
-  PHONE_VIEWS,
-  seed,
-  useIsNarrow,
-  useIsPhone,
-  type DialogKind,
-  type MobileView,
-} from "./workspace-helpers";
+import { seed, type DialogKind, type MobileView } from "./workspace-helpers";
+import { useWorkspaceLayout } from "./useWorkspaceLayout";
 import {
   idleSession,
   session,
@@ -82,7 +75,6 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
   const { setPlan, setDraft, setMessages, setInput, setPreviousTotal } = setters;
   const { setSelectedActivity, setMapRoutes, setAsk } = setters;
   const [editPending, setEditPending] = useState(false);
-  const [dialog, setDialog] = useState<DialogKind>();
   const [settingsSection, setSettingsSection] = useState<SettingsSection>("personalization");
   const [notice, setNotice] = useState("");
   const [catalog, setCatalog] = useState<WorkspaceCatalog>(restored.catalog);
@@ -93,31 +85,26 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     params?: Record<string, string | number>,
   ) => translate(locale, text, params);
   const [historyQuery, setHistoryQuery] = useState("");
-  // The top-bar chip whose editor is open; Preferences is one of them.
-  const [openFact, setOpenFact] = useState<FactKey>();
+  // What is open on screen: page, view, the one open panel and a dialog (lib/workspace/layout).
+  const {
+    surface,
+    phone,
+    narrow,
+    dispatch: layout,
+  } = useWorkspaceLayout(restored.catalog.layout.view);
+  const { page, dialog, fact: openFact, view: mobileView } = surface;
   const preferencesOpen = openFact !== undefined;
-  const [tripOpen, setTripOpen] = useState(false);
+  const tripOpen = surface.drawer === "trip";
+  const navOpen = surface.drawer === "nav";
+  const chatsOpen = surface.drawer === "chats";
   const [tripTab, setTripTab] = useState<TripTab>(
     restored.catalog.layout.editorView === "timeline" ? "timeline" : "overview",
-  );
-  const [storedView, setMobileView] = useState<MobileView>(() =>
-    PHONE_VIEWS.includes(restored.catalog.layout.view) ? restored.catalog.layout.view : "chat",
   );
   const [sidebarCollapsed, setSidebarCollapsed] = useState(
     restored.catalog.layout.sidebar.collapsed,
   );
   const [sidebarWidth, setSidebarWidth] = useState(restored.catalog.layout.sidebar.width);
   const [chatShare, setChatShare] = useState(restored.catalog.layout.chatShare);
-  // The main area shows either the chat-and-map workspace or the Your trips overview.
-  const [page, setPage] = useState<WorkspacePage>("workspace");
-  // The Chats panel that slides out beside the sidebar.
-  const [chatsOpen, setChatsOpen] = useState(false);
-  const [navOpen, setNavOpen] = useState(false);
-  const narrow = useIsNarrow();
-  const phone = useIsPhone();
-  // Trip and Mine are phone tabs; between 521 and 1000 px only chat and map are views.
-  const mobileView: MobileView =
-    phone || storedView === "chat" || storedView === "map" ? storedView : "chat";
   const activeConversation = useRef(
     restored.conversationId ?? `conversation:${crypto.randomUUID()}`,
   );
@@ -157,34 +144,12 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
         layout: {
           sidebar: { collapsed: sidebarCollapsed, width: sidebarWidth },
           chatShare,
-          preferences: { ...current.layout.preferences, open: preferencesOpen },
-          trip: { ...current.layout.trip, open: tripOpen },
-          view: storedView,
+          view: mobileView,
           editorView: tripTab,
         },
       }),
     );
-  }, [preferencesOpen, tripOpen, storedView, tripTab, sidebarCollapsed, sidebarWidth, chatShare]);
-
-  // The phone shell has no drawers: Your Trip is a tab and navigation lives in Mine.
-  useEffect(() => {
-    if (!phone) return;
-    setTripOpen(false);
-    setNavOpen(false);
-  }, [phone]);
-
-  // The phone shell has no Your trips page or navigation outside the tab bar: entering phone
-  // width from Your trips continues in the Mine tab, which lists the same trips (#184).
-  useEffect(() => {
-    if (!phone || page !== "trips") return;
-    setPage("workspace");
-    setMobileView("mine");
-  }, [phone, page]);
-
-  // Leaving the narrow layout closes its navigation drawer.
-  useEffect(() => {
-    if (!narrow) setNavOpen(false);
-  }, [narrow]);
+  }, [mobileView, tripTab, sidebarCollapsed, sidebarWidth, chatShare]);
 
   /** Stop in-flight work and clear state that belongs to the previous chat or trip. */
   function resetTransient() {
@@ -193,7 +158,6 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     active.current?.abort();
     active.current = null;
     dispatch({ kind: "left" });
-    setDialog(undefined);
     // Files picked for a message that was never sent belong to the chat being left.
     composerAttachments.clearAttachments();
   }
@@ -205,32 +169,16 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     setPreviousTotal(snapshot.previousTotal);
   }
   function openPreferences(fact: FactKey = "preferences") {
-    setDialog(undefined);
-    setTripOpen(false);
-    setNavOpen(false);
-    setOpenFact(fact);
+    layout({ type: "open-fact", fact });
   }
-  function closePreferences() {
-    setOpenFact(undefined);
-  }
-  function openTrip() {
-    setOpenFact(undefined);
-    setNavOpen(false);
-    // On a phone Your Trip is a tab, not a drawer.
-    if (phone) setMobileView("trip");
-    else setTripOpen(true);
-  }
-  function closeTrip() {
-    setTripOpen(false);
-  }
+  const closePreferences = () => layout({ type: "close-fact" });
+  const openTrip = () => layout({ type: "open-trip" });
+  const closeTrip = () => layout({ type: "close-trip" });
   function openSettings(section: SettingsSection = "personalization") {
     setSettingsSection(section);
     openDialog("settings");
   }
-  function openDialog(kind: DialogKind) {
-    setNavOpen(false);
-    setDialog(kind);
-  }
+  const openDialog = (kind: DialogKind) => layout({ type: "open-dialog", dialog: kind });
   /**
    * Opens the chip editor for the first fact still missing, or the one a rejected submission
    * points at. Called from buttons too, so anything that is not a fact key (a click event) is
@@ -313,10 +261,7 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
       if (!conversation.tripId) delete next.activeTripId;
       return next;
     });
-    setNavOpen(false);
-    setChatsOpen(false);
-    setPage("workspace");
-    setMobileView("chat");
+    layout({ type: "chat-opened" });
   }
   function selectTrip(id: string) {
     const trip = catalog.trips.find((item) => item.id === id);
@@ -337,10 +282,7 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
         ...(conversation ? { activeConversationId: conversation.id } : {}),
       }),
     );
-    setNavOpen(false);
-    setChatsOpen(false);
-    setPage("workspace");
-    if (phone) setMobileView("chat");
+    layout({ type: "trip-opened" });
   }
   /**
    * `base` is the catalog this new chat is derived from. `deleteChat` passes the already-pruned
@@ -369,11 +311,6 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     setInput("");
     setPreviousTotal(undefined);
     setNotice("");
-    setOpenFact(undefined);
-    setTripOpen(false);
-    setNavOpen(false);
-    setChatsOpen(false);
-    setPage("workspace");
     setCatalog((current) =>
       upsertConversationDraft(base ?? current, {
         id,
@@ -383,12 +320,9 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
         title: kind === "trip" ? "New trip" : "New chat",
       }),
     );
-    setMobileView("chat");
     // A new trip starts from its destination; the Where editor moves focus to its own field.
-    if (kind === "trip") {
-      setOpenFact("where");
-      return;
-    }
+    layout({ type: "chat-started", fact: kind === "trip" ? "where" : undefined });
+    if (kind === "trip") return;
     requestAnimationFrame(() =>
       document
         .querySelector<HTMLInputElement>(".composer textarea")
@@ -447,6 +381,21 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
   // review" on the drawer itself and in Review plan.
   const tripStops = tripPlaces.itinerary.stopCount;
   const dialogTitle = dialog === "review" ? "Review plan" : "Settings";
+  // Stable, so effects in the view can depend on them.
+  const layoutActions = useMemo(
+    () => ({
+      closeDialog: () => layout({ type: "close-dialog" }),
+      openNav: () => layout({ type: "open-nav" }),
+      /** Closes the Trip drawer, the navigation drawer or the Chats panel, whichever is open. */
+      closeDrawer: () => layout({ type: "close-drawer" }),
+      toggleChats: () => layout({ type: "toggle-chats" }),
+      showTrips: () => layout({ type: "show-trips" }),
+      selectView: (view: MobileView) => layout({ type: "select-view", view }),
+      openFactsSheet: () => layout({ type: "open-sheet" }),
+      closeFactsSheet: () => layout({ type: "close-sheet" }),
+    }),
+    [layout],
+  );
   // Chip editors are popovers, not drawers: they bring no drawer backdrop.
   const drawerOpen = tripOpen || navOpen;
 
@@ -505,27 +454,23 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     setInput,
     setPreviousTotal,
     setEditPending,
-    setDialog,
     setStorageError,
     setStorageEnabled,
     setNotice,
     setHistoryQuery,
-    setTripOpen,
     setTripTab,
-    setMobileView,
     setSidebarCollapsed,
     setSidebarWidth,
     setChatShare,
-    setPage,
-    setChatsOpen,
-    setNavOpen,
     setSelectedActivity,
     setMapRoutes,
+    surface,
     openPreferences,
     closePreferences,
     openTrip,
     closeTrip,
     openDialog,
+    ...layoutActions,
     edit,
     /** Keeps a chip's edit in the draft without planning. */
     saveFacts: (next: typeof draft) => setDraft(next),

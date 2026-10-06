@@ -1,6 +1,7 @@
 import { TripPlan, type ProposalItem } from "@trip/shared";
 import { visitingOrder } from "./itinerary";
 import { dayCount } from "./timeline";
+import { NoticeError } from "../i18n/notice";
 
 /**
  * Edits a traveller makes to one itinerary item from its action menu. Each is a pure transform of
@@ -29,13 +30,13 @@ export function applyItemAction(plan: TripPlan, id: string, action: ItemAction):
   const section = next.sections.find((item) => item.id === "itinerary");
   const items = section?.proposal?.items;
   const index = items?.findIndex((item) => item.kind === "activity" && item.id === id) ?? -1;
-  if (!items || index < 0) throw new Error("That stop is no longer in this trip.");
+  if (!items || index < 0) throw new NoticeError({ key: "That stop is no longer in this trip." });
   const item = items[index]!;
 
   switch (action.kind) {
     case "details": {
       const detail = action.detail.trim();
-      if (!detail) throw new Error("Give the stop a description.");
+      if (!detail) throw new NoticeError({ key: "Give the stop a description." });
       item.detail = detail.slice(0, 500);
       const location = action.location.trim();
       if (location) item.location = location.slice(0, 120);
@@ -64,7 +65,7 @@ export function applyItemAction(plan: TripPlan, id: string, action: ItemAction):
       break;
     case "day": {
       if (!Number.isInteger(action.day) || action.day < 1 || action.day > dayCount(plan))
-        throw new Error("That day is not part of this trip.");
+        throw new NoticeError({ key: "That day is not part of this trip." });
       const duration =
         item.startTime && item.endTime
           ? minutes(item.endTime) - minutes(item.startTime)
@@ -80,9 +81,10 @@ export function applyItemAction(plan: TripPlan, id: string, action: ItemAction):
         ? Math.max(...others.map((other) => minutes(other.endTime)))
         : DAY_START;
       if (start + duration > DAY_END)
-        throw new Error(
-          `Day ${action.day} has no room left for this stop; shorten another stop first.`,
-        );
+        throw new NoticeError({
+          key: "Day {day} has no room left for this stop; shorten another stop first.",
+          params: { day: action.day },
+        });
       item.day = action.day;
       item.startTime = clock(start);
       item.endTime = clock(start + duration);
@@ -101,7 +103,7 @@ export function applyItemAction(plan: TripPlan, id: string, action: ItemAction):
     }
     case "move": {
       if (item.day === undefined || !item.startTime)
-        throw new Error("Only a stop scheduled on a day can move earlier or later.");
+        throw new NoticeError({ key: "Only a stop scheduled on a day can move earlier or later." });
       // The same order the list shows: start time, then plan order. Each stop takes the other's
       // start time and keeps its duration; the second starts later if the first would overlap it.
       const day = visitingOrder(
@@ -111,11 +113,12 @@ export function applyItemAction(plan: TripPlan, id: string, action: ItemAction):
       );
       const neighbour = day[day.indexOf(item) + action.direction];
       if (!neighbour)
-        throw new Error(
-          action.direction < 0
-            ? "This is already the first stop of its day."
-            : "This is already the last stop of its day.",
-        );
+        throw new NoticeError({
+          key:
+            action.direction < 0
+              ? "This is already the first stop of its day."
+              : "This is already the last stop of its day.",
+        });
       const [first, second] = action.direction < 0 ? [item, neighbour] : [neighbour, item];
       const [earlier, later] = action.direction < 0 ? [neighbour, item] : [item, neighbour];
       const length = (stop: ProposalItem) =>
@@ -127,12 +130,14 @@ export function applyItemAction(plan: TripPlan, id: string, action: ItemAction):
       const secondStart = Math.max(firstEnd, minutes(later.startTime!));
       const secondEnd = secondStart + length(second);
       if (firstEnd > DAY_END || secondEnd > DAY_END)
-        throw new Error("Swapping these stops would run past 23:59; shorten one of them first.");
+        throw new NoticeError({
+          key: "Swapping these stops would run past 23:59; shorten one of them first.",
+        });
       const next = day[day.indexOf(later) + 1];
       if (next?.startTime && secondEnd > minutes(next.startTime))
-        throw new Error(
-          "Swapping these stops would overlap the next stop; shorten one of them first.",
-        );
+        throw new NoticeError({
+          key: "Swapping these stops would overlap the next stop; shorten one of them first.",
+        });
       first.startTime = clock(firstStart);
       first.endTime = clock(firstEnd);
       second.startTime = clock(secondStart);

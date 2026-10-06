@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { factLabels, type FactKey } from "@/lib/workspace/trip-facts";
 import { useLocale } from "../account/LocaleProvider";
 import { TRIP_FACTS_SHEET_ID, TripFactsSheet } from "../preferences/TripFactsSheet";
@@ -24,16 +24,13 @@ export function usePhoneTripTitle(model: Pick<WorkspaceController, "draft" | "pl
 export function PhoneTripTitle({ model }: { model: WorkspaceController }) {
   const { t } = useLocale();
   const title = usePhoneTripTitle(model);
-  const { draft, plan, openFact, openPreferences } = model;
+  const { draft, plan, openFact, openPreferences, openFactsSheet, closeFactsSheet } = model;
   const button = useRef<HTMLButtonElement>(null);
-  const [open, setOpen] = useState(false);
+  // The sheet is a panel: opening an editor (here, from the chat's Edit, or a rejected brief)
+  // takes its place.
+  const open = model.surface.sheet === "facts";
   // The sheet stays mounted briefly after it closes so it can sink away, as the editors do.
   const sheet = usePresence(open || undefined, 220);
-
-  // Another surface opening an editor (the chat's Edit, a rejected brief) takes the sheet's place.
-  useEffect(() => {
-    if (openFact) setOpen(false);
-  }, [openFact]);
 
   // A fact editor just closed. Its chip is hidden, so its focus would fall to the page.
   const editing = useRef(openFact);
@@ -50,7 +47,7 @@ export function PhoneTripTitle({ model }: { model: WorkspaceController }) {
   }, [openFact]);
 
   const close = (reason: CloseReason) => {
-    setOpen(false);
+    closeFactsSheet();
     if (reason === "dismiss") button.current?.focus({ preventScroll: true });
   };
 
@@ -65,7 +62,7 @@ export function PhoneTripTitle({ model }: { model: WorkspaceController }) {
           aria-haspopup="dialog"
           aria-expanded={open}
           aria-controls={open ? TRIP_FACTS_SHEET_ID : undefined}
-          onClick={() => setOpen((value) => !value)}
+          onClick={open ? closeFactsSheet : openFactsSheet}
         >
           <span className="phone-topbar__title-text">{title}</span>
           <ChevronIcon />
@@ -80,10 +77,7 @@ export function PhoneTripTitle({ model }: { model: WorkspaceController }) {
           anchor={button}
           leaving={sheet.leaving}
           onClose={close}
-          onPick={(fact: FactKey) => {
-            setOpen(false);
-            openPreferences(fact);
-          }}
+          onPick={(fact: FactKey) => openPreferences(fact)}
         />
       )}
     </>

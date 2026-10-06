@@ -174,8 +174,13 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
   - `Drawer` provides `role="dialog"`, `aria-modal`, `aria-hidden` and `inert` when closed, focus on
     the close button, a Tab loop, Escape (nested edit previews and native dialogs first) and focus
     return to the trigger.
-  - Only one drawer is open at a time. Closed drawers are translated fully outside the viewport, and
-    the shell uses `overflow: clip` so they cannot be scrolled into view.
+  - At most one panel is open at a time: a drawer (Trip, navigation or the desktop Chats panel), the
+    phone Trip details sheet or one chip editor. Opening one closes the others; Settings and Review
+    open on top of it and return to it when they close. One pure function, `layout()` in
+    `apps/web/lib/workspace/layout.ts`, decides what is open; see the
+    [layout Agent Note](../.agents/notes/implemented/architecture/2026-10-06-workspace-layout-reducer.md).
+    A reload starts with every panel closed. Closed drawers are translated fully outside the
+    viewport, and the shell uses `overflow: clip` so they cannot be scrolled into view.
   - Drawers are floating Liquid Glass sheets inset by `--space-2` with `--radius-xl` corners. They
     slide on the iOS sheet curve in 380 ms, and the backdrop fades out with them (kept mounted by
     `usePresence`). All of it respects `prefers-reduced-motion`.
@@ -205,8 +210,12 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     so switching between unchanged saved trips does not create a new notification.
   - Mine contains search, New chat, New trip, Trips/Calendar, the chats list and Settings & account.
     Search filters chats and trips; opening or starting either selects Chat. Each chat has a visible
-    Rename/Delete row menu on touch. Data mode and interface language live here. Narrowing the
-    window to phone width while Your trips is open continues in Mine, so the tab bar stays available.
+    Rename/Delete row menu on touch. Data mode and interface language live here.
+  - Crossing the phone width keeps the traveller on the same thing: narrowing with Your trips open
+    continues in Mine, so the tab bar stays available, and narrowing with the Trip drawer open shows
+    the Trip tab. Widening from Mine shows Your trips, widening from Trip opens the Trip drawer over
+    Chat (unless a chip editor is open), and Chat and Map stay as they are. Settings, Review and chip
+    editors stay open across the crossing; Trip details closes when the phone top bar goes away.
   - Map fills the space between the bars. Its day-stops sheet has collapsed, half and full heights,
     selected by dragging or using its handle with pointer or keyboard. Changing day filters the map's
     markers and routes to that day's stops, so a place visited on several days appears on each of
@@ -466,7 +475,9 @@ no LLM calls.
   trip-wide stop number, the same as on the map and in the Trip drawer; an unlocated stop shows
   none. Move earlier, Move later, Move to another day and drag and drop name a position as shown;
   the Itinerary turns it into the plan index `preview-edit` expects, which counts the day's other
-  stops in plan order.
+  stops in plan order. When start times disagree with plan order, a stop moved later lands just
+  after the stop it moved past and any other move lands just before it, so the preview keeps the
+  swap the traveller asked for; the endpoint then re-times the rest of the day after it.
 - **Editing.** A stop is compact until selected, here or on the map; selecting it opens its editor:
   start and end time ("Preview time change"), Move earlier / Move later, Move to another day, and a
   Google Maps search to replace the place. A stop the map matched by name but not confirmed offers
@@ -673,9 +684,9 @@ the account section explains that everything stays in this browser.
     translated. Authored text that carries a value (the attachment limit, a timeline edit preview's
     differences and blockers, a stop that cannot move) is translated with `{placeholders}`: through
     `t()`; as a keyed `Notice` (`apps/web/lib/i18n/notice.ts`) that the view translates once when it
-    is shown, as the attachment notices are; or, for an English notice a route or plan still returns,
-    through a pattern in `interfaceNotice` (`apps/web/lib/i18n/locale.ts`). Edit preview differences
-    arrive as values, not sentences. With no saved choice it follows the browser language (`zh*` opens in Chinese). The desktop sidebar and main content have an 8 px gutter.
+    is shown, as the attachment notices and edit preview blockers and refusals are; or, for an
+    English notice a route or plan still returns, through a pattern in `interfaceNotice`
+    (`apps/web/lib/i18n/locale.ts`). Edit preview differences arrive as values, not sentences. With no saved choice it follows the browser language (`zh*` opens in Chinese). The desktop sidebar and main content have an 8 px gutter.
     Every workspace amount goes through the Money module (`apps/web/lib/money.ts`, read through
     `useLocale()`) and the shared approximate rate table. Converted displays carry its as-of date;
     JPY has no decimals, other currencies have two. The trip's stated budget currency takes

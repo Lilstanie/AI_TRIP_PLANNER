@@ -12,18 +12,10 @@ export function PhoneMine({ model }: { model: WorkspaceController }) {
   const { t } = useLocale();
   const { dataMode, busy, openSettings } = model;
   const visibleTrips = new Set(model.historyTrips.map((trip) => trip.id));
-  const open =
-    <T,>(action: (value: T) => void) =>
-    (value: T) => {
-      action(value);
-      model.setPage("workspace");
-      model.setMobileView("chat");
-      model.setNavOpen(false);
-      model.setChatsOpen(false);
-    };
-  const newChat = () => open(model.newChat)(undefined);
-  const newTrip = () => open(model.newTrip)(undefined);
-  const openTrip = open(model.selectTrip);
+  // Opening or starting a chat or trip returns to Chat; the workspace's layout decides that.
+  const newChat = () => model.newChat();
+  const newTrip = () => model.newTrip();
+  const openTrip = model.selectTrip;
 
   return (
     <div className="phone-mine">
@@ -34,7 +26,7 @@ export function PhoneMine({ model }: { model: WorkspaceController }) {
         trips={model.historyTrips}
         onNewChat={newChat}
         onNewTrip={newTrip}
-        onOpenChat={open(model.selectConversation)}
+        onOpenChat={model.selectConversation}
         onOpenTrip={openTrip}
         onRenameChat={model.renameChat}
         onDeleteChat={model.deleteChat}
