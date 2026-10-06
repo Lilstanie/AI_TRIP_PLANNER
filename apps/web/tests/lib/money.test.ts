@@ -7,8 +7,12 @@
 // - a budget gap words "over" and "under" differently, uses a negative amount, or reports a gap
 //   when the budget or estimate is missing;
 // - either interface language formats the same amount differently.
+// - Agent Lab (#203) loses its `A$3,960` look: a code instead of the symbol, cents, a sign after
+//   the symbol, or a different symbol in Chinese;
+// - the planner sentence follows the interface language or the display currency, or drops the
+//   cents the planner has always been sent.
 import { describe, expect, it } from "vitest";
-import { moneyDisplay } from "@/lib/money";
+import { moneyDisplay, plannerAud } from "@/lib/money";
 import { translate } from "@/lib/i18n/locale";
 
 // Intl separates the code from the number with a no-break space; compare on plain spaces.
@@ -137,5 +141,37 @@ describe("budgetGap: under or over budget", () => {
     [-1, 200],
   ])("has no gap for estimate %s and budget %s", (estimate, budget) => {
     expect(aud.budgetGap(estimate, budget)).toBeUndefined();
+  });
+});
+
+describe("symbol: Agent Lab's whole Australian dollars", () => {
+  const lab = moneyDisplay({ currency: "AUD", locale: "en", whole: true, symbol: true });
+
+  it.each([
+    [3960, "A$3,960"],
+    [6000, "A$6,000"],
+    [1234.56, "A$1,235"],
+    [0.4, "A$0"],
+  ])("shows %d as %s", (aud, expected) => {
+    expect(lab.money(aud)).toBe(expected);
+  });
+
+  it("puts the typographic minus before the symbol", () => {
+    expect(lab.money(-30)).toBe("−A$30");
+  });
+
+  it("keeps the same symbol in Chinese", () => {
+    const zh = moneyDisplay({ currency: "AUD", locale: "zh", whole: true, symbol: true });
+    expect(zh.money(3960)).toBe("A$3,960");
+  });
+});
+
+describe("plannerAud: the amount in the sentence sent to the planner", () => {
+  it.each([
+    [2000, "AUD 2,000.00"],
+    [1234.5, "AUD 1,234.50"],
+    [0, "AUD 0.00"],
+  ])("writes %d as %s", (aud, expected) => {
+    expect(plain(plannerAud(aud))).toBe(expected);
   });
 });
