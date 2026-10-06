@@ -205,7 +205,8 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     so switching between unchanged saved trips does not create a new notification.
   - Mine contains search, New chat, New trip, Trips/Calendar, the chats list and Settings & account.
     Search filters chats and trips; opening or starting either selects Chat. Each chat has a visible
-    Rename/Delete row menu on touch. Data mode and interface language live here.
+    Rename/Delete row menu on touch. Data mode and interface language live here. Narrowing the
+    window to phone width while Your trips is open continues in Mine, so the tab bar stays available.
   - Map fills the space between the bars. Its day-stops sheet has collapsed, half and full heights,
     selected by dragging or using its handle with pointer or keyboard. Changing day filters the map's
     markers and routes; selecting a stop focuses it. Without a Maps key the sheet and stops still
