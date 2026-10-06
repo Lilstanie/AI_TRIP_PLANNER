@@ -473,7 +473,8 @@ no LLM calls.
   "Use this place". Drag and drop still reorders the day.
 - **Route check.** A Walk / Public transport switch and "Check routes for Day N", enabled once the
   day has two stops with confirmed places; the hint under it says which is missing.
-- **Review.** Every edit opens "Review this change": the new total and difference, one line per
+- **Review.** Every edit opens "Review this change": the new total, signed difference and budget
+  gap, one line per
   moved stop, the routes checked, blockers, and only the conflicts the change would add. Apply
   changes applies it; Cancel or Escape closes only the preview. An applied edit shows "Undo last
   change", which is previewed the same way.
@@ -675,11 +676,14 @@ the account section explains that everything stays in this browser.
     is shown, as the attachment notices are; or, for an English notice a route or plan still returns,
     through a pattern in `interfaceNotice` (`apps/web/lib/i18n/locale.ts`). Edit preview differences
     arrive as values, not sentences. With no saved choice it follows the browser language (`zh*` opens in Chinese). The desktop sidebar and main content have an 8 px gutter.
-    Trip amounts use one locale-aware formatter and the shared approximate rate table. Converted
-    displays carry its as-of date; JPY has no decimals, other currencies have two. The trip's stated budget currency takes
-    precedence over Settings. Planning and
-    guardrails keep AUD values. Provider-native fares retain their own currency, with that currency's
-    decimal places (`JPY 230`, `AUD 12.50`; `formatProviderAmount`), and are never converted.
+    Every workspace amount goes through the Money module (`apps/web/lib/money.ts`, read through
+    `useLocale()`) and the shared approximate rate table. Converted displays carry its as-of date;
+    JPY has no decimals, other currencies have two. The trip's stated budget currency takes
+    precedence over Settings. Planning and guardrails keep AUD values. `money()` converts a planning
+    amount; `fare()` keeps a provider-native fare in its own currency with that currency's decimal
+    places (`JPY 230`, `AUD 12.50`, `KRW 14,000`) and never converts it; `delta()` signs a
+    difference (`+AUD 12.00`, `−AUD 30.00`, no sign on zero); `budgetGap()` gives the one
+    "{amount} under/over the {budget} budget" sentence the trip panel and edit preview share.
   - **Connected accounts:** the Google, GitHub or Apple sign-ins linked through Clerk, with a button
     that opens Clerk to change them.
 - Signed out, settings are kept in this browser; signed in, the newer copy of browser and account

@@ -161,7 +161,7 @@ Timeline & routes 标签页（由 `TripEditor` 组合 `components/trip/timeline/
 - **顺序和编号。** 当天停靠点按访问顺序列出，每个停靠点的节点显示其全程编号，与地图和 Trip 抽屉一致；未定位的停靠点不显示编号。Move earlier、Move later、Move to another day 和拖放都按显示的位置指定目标，由 Itinerary 换算成 `preview-edit` 所需的方案索引（该索引按方案顺序计算当天其他停靠点）。
 - **编辑。** 停靠点在此处或地图上被选中前保持紧凑；选择后打开编辑器：开始和结束时间（“Preview time change”）、Move earlier / Move later、Move to another day，以及用于替换地点的 Google Maps 搜索。地图按名称匹配但尚未确认的停靠点提供“Use this place”。仍支持拖放调整当天顺序。
 - **路线检查。** 提供 Walk / Public transport 切换和“Check routes for Day N”；当天有两个地点已确认的停靠点时启用，下方提示说明缺少哪个条件。
-- **审查。** 每次编辑打开“Review this change”：显示新总额和差额、每个移动停靠点一行、已检查路线、阻断项，以及仅由此次变化新增的冲突。Apply changes 应用修改；Cancel 或 Escape 只关闭预览。应用编辑后显示“Undo last change”，撤销也用同样方式预览。
+- **审查。** 每次编辑打开“Review this change”：显示新总额、带符号的差额和预算余量、每个移动停靠点一行、已检查路线、阻断项，以及仅由此次变化新增的冲突。Apply changes 应用修改；Cancel 或 Escape 只关闭预览。应用编辑后显示“Undo last change”，撤销也用同样方式预览。
 - **动效。** 切换日期时当天列表淡入；站点编辑器和审阅面板上浮出现；应用编辑后，被改动的站点短暂以强调色高亮；路线检查确认的行程沿时间线自上而下绘出。每种动效同时有文字或颜色信号，在减弱动态效果设置下都不播放。
 - 编辑待处理时，聊天输入区无法发送（`ChatPanel` `locked`），但聊天不显示思考行或停止按钮：待处理编辑不是聊天请求。
 
@@ -279,7 +279,7 @@ Data mode 默认是 Fixture data。只有部署启用后才能选择 Live data�
     顶栏语言切换位于示例数据旁，修改同一项已保存的语言设置。聊天控件、时间线与提案标签、设置、提示、对话框、无障碍名称及日期随之显示；
     旅客文字、agent 生成的内容及提供方错误不会被翻译。带有数值的固定文案（附件数量上限、时间线修改预览的变更与阻碍、无法移动的站点）使用 `{placeholders}` 翻译：
     通过 `t()`；或作为带 key 的 `Notice`（`apps/web/lib/i18n/notice.ts`），由视图在显示时翻译一次，附件提示即如此；或者对于路由或行程仍返回的英文提示，通过 `interfaceNotice`（`apps/web/lib/i18n/locale.ts`）中的模式匹配。修改预览的变更以数值而非句子返回。未保存选择时跟随浏览器语言（`zh*` 打开为中文）。桌面侧栏与主内容之间保留 8 px 间距。
-    行程金额通过同一个适配语言的格式化器和 shared 中的估算汇率表显示。换算结果附带汇率参考日期；JPY 不显示小数，其他币种显示两位小数。本行程原始预算币种优先于设置。规划和预算检查仍使用 AUD。提供方原生票价保留自己的币种及该币种的小数位（`JPY 230`、`AUD 12.50`；`formatProviderAmount`），且从不换算。
+    工作区的所有金额都经过 Money 模块（`apps/web/lib/money.ts`，通过 `useLocale()` 读取）和 shared 中的估算汇率表显示。换算结果附带汇率参考日期；JPY 不显示小数，其他币种显示两位小数。本行程原始预算币种优先于设置。规划和预算检查仍使用 AUD。`money()` 换算规划金额；`fare()` 让提供方原生票价保留自己的币种及该币种的小数位（`JPY 230`、`AUD 12.50`、`KRW 14,000`），且从不换算；`delta()` 给差额加正负号（`+AUD 12.00`、`−AUD 30.00`，零不带符号）；`budgetGap()` 给出行程面板和修改预览共用的“{amount} under/over the {budget} budget”预算句。
   - **Connected accounts：** 通过 Clerk 关联的 Google、GitHub 或 Apple 登录方式，并有一个按钮打开 Clerk 进行更改。
 - 未登录时，设置保存在当前浏览器；登录后，浏览器和账号中较新的副本为准，之后的改动保存到账号。
 

@@ -550,8 +550,6 @@ export const WORKSPACE_ZH = {
     "无法读取上次的工作区。原数据已保留，历史记录可能不完整。请重试存储，或明确选择替换无法读取的工作区。",
   "Workspace history could not be read. Existing stored data was kept; you can still plan a new trip.":
     "无法读取工作区历史。现有数据已保留；你仍可规划新行程。",
-  "{amount} left in budget": "剩余预算 {amount}",
-  "{amount} over budget": "超出预算 {amount}",
   "From 1 to 20.": "请输入 1 至 20 的人数。",
   "Enter an amount above 0.": "请输入大于 0 的金额。",
   "Request failed ({status}).": "请求失败（{status}）。",

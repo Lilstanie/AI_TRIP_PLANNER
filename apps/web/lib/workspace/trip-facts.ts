@@ -5,7 +5,8 @@ import {
   type TripBrief,
 } from "@trip/shared";
 import { parseDraft, statedBudgetSource, type Draft } from "./workspace";
-import { formatAudForDisplay, intlLocale, translate, type AppLocale } from "../i18n/locale";
+import { intlLocale, translate, type AppLocale } from "../i18n/locale";
+import { moneyDisplay } from "../money";
 
 /** Age labels shown beside each Who stepper; also the order the chip summary lists them in. */
 export const PARTY_ROWS = [
@@ -165,14 +166,7 @@ export function factLabels(
     who: validTravellers ? whoLabel(draft, travellers, locale) : undefined,
     budget:
       draft.budgetTotal.trim() && Number.isFinite(budget) && budget > 0
-        ? formatAudForDisplay(
-            budget,
-            currency,
-            locale,
-            undefined,
-            undefined,
-            statedBudgetSource(draft),
-          )
+        ? moneyDisplay({ currency, locale }).money(budget, statedBudgetSource(draft))
         : undefined,
   };
 }
