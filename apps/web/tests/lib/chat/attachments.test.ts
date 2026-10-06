@@ -13,7 +13,13 @@ import {
   prepareAttachments,
   truncateText,
   type ImageRenderer,
+  MAX_TEXT_FILE_BYTES,
 } from "@/lib/chat/attachments";
+import { noticeText, type Notice } from "@/lib/i18n/notice";
+
+/** A rejection's reason as the traveller reads it in each interface language. */
+const read = (reason: Notice | undefined) =>
+  reason ? { en: noticeText("en", reason), zh: noticeText("zh", reason) } : undefined;
 
 /** Base64 of `length` characters, which is what the payload limits are measured in. */
 const payload = (length: number) => "A".repeat(length - (length % 4));
@@ -117,7 +123,7 @@ describe("prepareAttachments", () => {
 
     expect(attachments).toEqual([]);
     expect(rejections[0]?.name).toBe("kyoto.png");
-    expect(rejections[0]?.reason).toContain("too large");
+    expect(read(rejections[0]?.reason)?.en).toContain("too large");
   });
 
   it("refuses a type this app cannot send, and keeps the rest of the pick", async () => {
@@ -129,8 +135,11 @@ describe("prepareAttachments", () => {
 
     const { attachments, rejections } = await prepareAttachments(files, options(render));
 
-    expect(rejections).toEqual([
-      { name: "itinerary.exe", reason: "that file type can't be attached" },
+    expect(rejections.map(({ name, reason }) => ({ name, reason: read(reason) }))).toEqual([
+      {
+        name: "itinerary.exe",
+        reason: { en: "that file type can't be attached", zh: "无法添加此类型文件" },
+      },
     ]);
     expect(attachments.map((a) => a.name)).toEqual(["notes.md"]);
     expect(attachments[0]?.data).toBe("day one");
@@ -159,7 +168,10 @@ describe("prepareAttachments", () => {
 
     expect(attachments).toHaveLength(1);
     expect(rejections).toHaveLength(2);
-    expect(rejections[0]?.reason).toContain(String(MAX_ATTACHMENTS_PER_MESSAGE));
+    expect(read(rejections[0]?.reason)).toEqual({
+      en: "only 4 files can be attached to one message",
+      zh: "每条消息最多添加 4 个文件",
+    });
   });
 
   it("spends a shared payload budget across the message, scaling further before refusing", async () => {
@@ -192,7 +204,23 @@ describe("prepareAttachments", () => {
 
     expect(attachments).toHaveLength(1);
     expect(rejections[0]?.name).toBe("two.png");
-    expect(rejections[0]?.reason).toContain("one message can carry");
+    expect(read(rejections[0]?.reason)).toEqual({
+      en: "these files together would pass the 3.8 MB one message can carry",
+      zh: "这些文件合计超过单条消息的 3.8 MB 限制",
+    });
+  });
+
+  it("refuses a text file too large to read, naming the limit", async () => {
+    const huge = textFile("dump.csv", "text/csv", "x");
+    Object.defineProperty(huge, "size", { value: MAX_TEXT_FILE_BYTES + 1 });
+
+    const { attachments, rejections } = await prepareAttachments([huge], options(fakeRenderer(() => 800)));
+
+    expect(attachments).toEqual([]);
+    expect(read(rejections[0]?.reason)).toEqual({
+      en: "text files over 2.0 MB can't be attached",
+      zh: "无法添加超过 2.0 MB 的文本文件",
+    });
   });
 
   it("reads a .md picked with no declared type from its extension", () => {
@@ -202,12 +230,16 @@ describe("prepareAttachments", () => {
   });
 
   it("reports a file that could not be read instead of dropping it silently", async () => {
-    const render = vi.fn().mockRejectedValue(new Error("the image could not be read"));
+    // A browser failure's own message is not written for travellers, so it is not shown.
+    const render = vi.fn().mockRejectedValue(new DOMException("EncodingError: decode failed"));
 
     const { attachments, rejections } = await prepareAttachments([image()], options(render));
 
     expect(attachments).toEqual([]);
-    expect(rejections[0]?.reason).toBe("the image could not be read");
+    expect(read(rejections[0]?.reason)).toEqual({
+      en: "the file could not be read",
+      zh: "无法读取文件",
+    });
   });
 });
 
