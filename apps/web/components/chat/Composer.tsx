@@ -12,6 +12,7 @@ import {
 import { PlusIcon, SendIcon } from "../ui/icons";
 import { AttachmentChip } from "./AttachmentChip";
 import type { PreparedAttachment } from "@/lib/chat/attachments";
+import type { Notice } from "@/lib/i18n/notice";
 import { useLocale } from "../account/LocaleProvider";
 
 /**
@@ -57,7 +58,7 @@ export function Composer({
   attachments = [],
   onRemoveAttachment,
   canAttach = true,
-  attachNotice,
+  attachNotices = [],
 }: {
   value: string;
   placeholder: string;
@@ -77,10 +78,10 @@ export function Composer({
   attachments?: PreparedAttachment[];
   /** Drops one held file by id. */
   onRemoveAttachment?: (id: string) => void;
-  /** False once the per-message limit is reached; `attachNotice` says why. */
+  /** False once the per-message limit is reached; `attachNotices` says why. */
   canAttach?: boolean;
-  /** One short line under the chips: why a file was refused, or that the limit is reached. */
-  attachNotice?: string;
+  /** One short line under the chips: why each file was refused, or that the limit is reached. */
+  attachNotices?: readonly Notice[];
 }) {
   const { t, notice: localizeNotice } = useLocale();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -173,11 +174,11 @@ export function Composer({
           ))}
         </ul>
       )}
-      {attachNotice && (
+      {attachNotices.length > 0 && (
         // A status line, not a toast: a rejected file is something to read and
         // act on, and it stays until the next pick replaces it.
         <p className="composer__notice" role="status">
-          {localizeNotice(attachNotice)}
+          {attachNotices.map((notice) => localizeNotice(notice)).join(" ")}
         </p>
       )}
       <textarea

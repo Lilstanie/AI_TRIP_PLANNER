@@ -316,6 +316,11 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     Google rating is already out of 5 and shown as it is.
 - **Requests.**
   - `Workspace` owns chat, plan and decision requests. Failures keep the current plan and offer retry.
+  - A planning turn ends in one outcome: plan applied, needs information, planner asked a question,
+    fares answered, failed or cancelled. `requestTurn` in `lib/workspace/session.ts` only sends the
+    request and reads the stream; the pure `session(state, event)` there applies the outcome, so the
+    reset rules (previous total, selected stop, map routes, field errors, question card) live in one
+    place and are tested without React in `tests/lib/workspace/session.test.ts`.
   - Switching chat or trip, or New chat, first flushes the pending autosave, then aborts in-flight
     requests and clears progress, errors, selection and map routes. Late responses are ignored.
 - **Storage.**
@@ -663,10 +668,11 @@ the account section explains that everything stays in this browser.
     Authored chat controls, timeline and proposal labels, settings, notices, dialogs, accessible
     names and dates follow it. Traveller text, agent-produced content and provider errors are not
     translated. Authored text that carries a value (the attachment limit, a timeline edit preview's
-    differences and blockers, a stop that cannot move) is translated with `{placeholders}`: either
-    through `t()` or, for an English notice a route or plan returns, through a pattern in
-    `interfaceNotice` (`apps/web/lib/i18n/locale.ts`). Edit preview differences arrive as values, not
-    sentences. With no saved choice it follows the browser language (`zh*` opens in Chinese). The desktop sidebar and main content have an 8 px gutter.
+    differences and blockers, a stop that cannot move) is translated with `{placeholders}`: through
+    `t()`; as a keyed `Notice` (`apps/web/lib/i18n/notice.ts`) that the view translates once when it
+    is shown, as the attachment notices are; or, for an English notice a route or plan still returns,
+    through a pattern in `interfaceNotice` (`apps/web/lib/i18n/locale.ts`). Edit preview differences
+    arrive as values, not sentences. With no saved choice it follows the browser language (`zh*` opens in Chinese). The desktop sidebar and main content have an 8 px gutter.
     Trip amounts use one locale-aware formatter and the shared approximate rate table. Converted
     displays carry its as-of date; JPY has no decimals, other currencies have two. The trip's stated budget currency takes
     precedence over Settings. Planning and

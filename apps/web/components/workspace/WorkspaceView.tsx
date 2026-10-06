@@ -538,7 +538,7 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
                 attachments={composerAttachments.attachments}
                 onRemoveAttachment={composerAttachments.removeAttachment}
                 canAttach={composerAttachments.canAttach}
-                attachNotice={composerAttachments.notice}
+                attachNotices={composerAttachments.notices}
               />
             </div>
             {!narrow && <SplitResizer share={chatShare} onChange={setChatShare} />}

@@ -1,9 +1,7 @@
 "use client";
-import { TripPlan, type ChatRequest } from "@trip/shared";
+import { TripPlan } from "@trip/shared";
 import { budgetHint, money, WELCOME_MESSAGE, type Message } from "@/lib/workspace";
 
-/** Every turn is a chat turn: there is no "apply a decision" request. */
-export type Task = { kind: "chat"; request: ChatRequest };
 export { PHONE_VIEWS, type DialogKind, type MobileView } from "@/lib/workspace/layout";
 
 /** Topbar facts from the plan only; nothing is shown for values the trip does not have. */

@@ -36,8 +36,10 @@ every panel.
 - `pnpm --filter @trip/web typecheck`: passed.
 - `pnpm --filter @trip/web test`: 46 files, 485 tests passed.
 - `node apps/web/tests/e2e/phone-shell.e2e.mjs` against `next dev` (mock tools), which also runs
-  phone-mine, phone-map and phone-state: 289/289 checks passed. A first run on a cold dev server
-  had one phone-map timeout; phone-map alone and the re-run both passed.
+  phone-mine, phone-map and phone-state: 289/289 checks passed, before and after merging
+  `refactor/workspace-deepening` (48 files, 509 unit tests after the merge). One step in phone-map
+  (clicking a day-2 stop at 360 px) timed out in 2 of 4 phone-shell runs; phone-map alone passed 4
+  of 4, so it looks flaky under load, not caused by this change.
 - `pnpm verify:docs`: valid. `pnpm verify:protected`: rules hold. Pair check: passes after `--record`.
 
 ## Notes for the next person

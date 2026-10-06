@@ -1,19 +1,10 @@
 "use client";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { TripPlan, type AgentProgressEvent } from "@trip/shared";
+import { useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import type { TripTab } from "../trip/TripPanel";
 import { useWorkspaceStorage } from "./useWorkspaceStorage";
 import { useWorkspaceTransport } from "./useWorkspaceTransport";
 import { useTripPlaces } from "../map/useTripPlaces";
-import type { RouteResult } from "@/lib/integrations/google";
-import {
-  identifyActivities,
-  itineraryActivities,
-  blankDraft,
-  draftFor,
-  type Message,
-  type Snapshot,
-} from "@/lib/workspace";
+import { itineraryActivities, blankDraft, draftFor, type Snapshot } from "@/lib/workspace";
 import {
   reusableBlankConversation,
   searchCatalog,
@@ -22,8 +13,14 @@ import {
   type RestoredWorkspace,
   type WorkspaceCatalog,
 } from "@/lib/workspace/catalog";
-import { seed, type DialogKind, type MobileView, type Task } from "./workspace-helpers";
+import { seed, type DialogKind, type MobileView } from "./workspace-helpers";
 import { useWorkspaceLayout } from "./useWorkspaceLayout";
+import {
+  idleSession,
+  session,
+  type SessionEvent,
+  type SessionState,
+} from "@/lib/workspace/session";
 import { useDataMode } from "@/lib/workspace/data-mode";
 import { draftDefaults } from "@/lib/account/settings";
 import { useSettings } from "../account/SettingsProvider";
@@ -31,25 +28,52 @@ import { useInterfaceLocale } from "../account/LocaleProvider";
 import { useAccountSync } from "../account/useAccountSync";
 import type { SettingsSection } from "../account/SettingsDialog";
 import { useComposerAttachments } from "./useComposerAttachments";
-import type { PendingAsk } from "@/lib/workspace/ask-user";
 import { firstFactWithError, firstMissingFact, type FactKey } from "@/lib/workspace/trip-facts";
 import { formatAudForDisplay, translate } from "@/lib/i18n/locale";
+/** A React setter for one session field, so callers that still set fields directly keep working. */
+function sessionField<K extends keyof SessionState>(
+  setSession: Dispatch<SetStateAction<SessionState>>,
+  key: K,
+): Dispatch<SetStateAction<SessionState[K]>> {
+  return (value) =>
+    setSession((current) => ({
+      ...current,
+      [key]:
+        typeof value === "function"
+          ? (value as (previous: SessionState[K]) => SessionState[K])(current[key])
+          : value,
+    }));
+}
+
 export function useWorkspaceController({ restored }: { restored: RestoredWorkspace }) {
-  const [plan, setPlan] = useState<TripPlan | undefined>(restored.plan);
-  const [draft, setDraft] = useState(restored.draft);
-  const [messages, setMessages] = useState<Message[]>(
-    () => restored.messages ?? (restored.plan ? seed : []),
+  // The conversation and trip a planning turn changes; only `session()` moves it on a turn.
+  // The question card is in memory only: a reload drops it, and the question stays in the chat.
+  const [state, setSession] = useState<SessionState>(() =>
+    idleSession({
+      plan: restored.plan,
+      draft: restored.draft,
+      messages: restored.messages ?? (restored.plan ? seed : []),
+      input: restored.input,
+      previousTotal: restored.previousTotal,
+    }),
   );
-  const [input, setInput] = useState(restored.input);
-  const [previousTotal, setPreviousTotal] = useState(restored.previousTotal);
+  const { plan, draft, messages, input, previousTotal, busy, activity, error, errors, retry, ask } =
+    state;
+  const { selectedActivity, mapRoutes } = state;
+  const dispatch = (event: SessionEvent) => setSession((current) => session(current, event));
+  const [setters] = useState(() => ({
+    setPlan: sessionField(setSession, "plan"),
+    setDraft: sessionField(setSession, "draft"),
+    setMessages: sessionField(setSession, "messages"),
+    setInput: sessionField(setSession, "input"),
+    setPreviousTotal: sessionField(setSession, "previousTotal"),
+    setSelectedActivity: sessionField(setSession, "selectedActivity"),
+    setMapRoutes: sessionField(setSession, "mapRoutes"),
+    setAsk: sessionField(setSession, "ask"),
+  }));
+  const { setPlan, setDraft, setMessages, setInput, setPreviousTotal } = setters;
+  const { setSelectedActivity, setMapRoutes, setAsk } = setters;
   const [editPending, setEditPending] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [activity, setActivity] = useState<AgentProgressEvent[]>([]);
-  const [error, setError] = useState("");
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [retry, setRetry] = useState<Task>();
-  // In memory only: a reload drops the card, and the question stays in the chat.
-  const [ask, setAsk] = useState<PendingAsk>();
   const [settingsSection, setSettingsSection] = useState<SettingsSection>("personalization");
   const [notice, setNotice] = useState("");
   const [catalog, setCatalog] = useState<WorkspaceCatalog>(restored.catalog);
@@ -80,15 +104,11 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
   );
   const [sidebarWidth, setSidebarWidth] = useState(restored.catalog.layout.sidebar.width);
   const [chatShare, setChatShare] = useState(restored.catalog.layout.chatShare);
-  const [selectedActivity, setSelectedActivity] = useState<string>();
-  const [mapRoutes, setMapRoutes] = useState<RouteResult[]>([]);
   const activeConversation = useRef(
     restored.conversationId ?? `conversation:${crypto.randomUUID()}`,
   );
   // The trip ID a blank conversation will use once it produces its first plan.
   const freshTripId = useRef(crypto.randomUUID());
-  const planRef = useRef(plan);
-  planRef.current = plan;
   const active = useRef<AbortController | null>(null);
   const preferencesToggle = useRef<HTMLButtonElement>(null);
   const tripToggle = useRef<HTMLButtonElement>(null);
@@ -136,14 +156,7 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     flushSave();
     active.current?.abort();
     active.current = null;
-    setBusy(false);
-    setActivity([]);
-    setError("");
-    setErrors({});
-    setRetry(undefined);
-    setAsk(undefined);
-    setSelectedActivity(undefined);
-    setMapRoutes([]);
+    dispatch({ kind: "left" });
     // Files picked for a message that was never sent belong to the chat being left.
     composerAttachments.clearAttachments();
   }
@@ -186,25 +199,12 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     interfaceLanguage: locale,
     draft,
     input,
-    planRef,
     freshTripId,
     active,
-    setBusy,
-    setActivity,
-    setError,
-    setRetry,
-    setMessages,
-    setInput,
-    setPreviousTotal,
-    setPlan,
-    setDraft,
-    setErrors,
-    setSelectedActivity,
-    setMapRoutes,
+    dispatch,
     attachments: composerAttachments.attachments,
     clearAttachments: composerAttachments.clearAttachments,
     ask,
-    setAsk,
     onReject: (fields) => openPreferences(firstFactWithError(fields) ?? "preferences"),
   });
 

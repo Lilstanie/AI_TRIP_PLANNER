@@ -9,6 +9,7 @@ import { MessageItem } from "./MessageItem";
 import { QuestionComposer } from "./QuestionComposer";
 import type { PendingAsk, QuestionAnswer } from "@/lib/workspace/ask-user";
 import type { PreparedAttachment } from "@/lib/chat/attachments";
+import type { Notice } from "@/lib/i18n/notice";
 import { useLocale } from "../account/LocaleProvider";
 
 export function ChatPanel({
@@ -28,7 +29,7 @@ export function ChatPanel({
   attachments,
   onRemoveAttachment,
   canAttach,
-  attachNotice,
+  attachNotices,
   ask,
   onAnswer,
   onDismissAsk,
@@ -62,8 +63,8 @@ export function ChatPanel({
   onRemoveAttachment?: (id: string) => void;
   /** False at the per-message attachment limit. */
   canAttach?: boolean;
-  /** One line under the chips explaining a refusal or the limit. */
-  attachNotice?: string;
+  /** One line under the chips explaining each refusal or the limit. */
+  attachNotices?: readonly Notice[];
   /** A structured question awaiting an answer; its card takes the composer's seat. */
   ask?: PendingAsk;
   /** Receives the question card's answers. */
@@ -161,7 +162,7 @@ export function ChatPanel({
             {...(attachments ? { attachments } : {})}
             {...(onRemoveAttachment ? { onRemoveAttachment } : {})}
             {...(canAttach === undefined ? {} : { canAttach })}
-            {...(attachNotice ? { attachNotice } : {})}
+            {...(attachNotices ? { attachNotices } : {})}
           />
         </form>
       )}
