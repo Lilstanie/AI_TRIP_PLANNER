@@ -5,8 +5,8 @@ import { intlLocale, type AppLocale, type MessageKey } from "./i18n/locale";
 /**
  * Every amount the web app shows. Planning amounts are AUD numbers and convert to the display
  * currency with the shared rate table; fares are a provider's own-currency price and never convert.
- * Nothing here feeds back into planning, and the sentence sent to the planner is not a display
- * amount.
+ * Nothing here feeds back into planning. The sentence sent to the planner is not a display amount:
+ * it has its own formatter, `plannerAud`.
  */
 export type Money = {
   /** A planning amount in the display currency; a source budget in that currency shows as stated. */
@@ -72,24 +72,47 @@ export function fare(
 const MINUS = "−";
 
 /**
+ * An AUD amount in the sentence the workspace sends to the planner: `AUD 2,000.00`. Always English
+ * and AUD with cents, whatever the interface language or display currency, because the planner
+ * reads it as text and it is not shown as a display amount.
+ */
+export function plannerAud(aud: number): string {
+  return new Intl.NumberFormat("en-AU", {
+    style: "currency",
+    currency: "AUD",
+    currencyDisplay: "code",
+  }).format(aud);
+}
+
+/** The currency's international English symbol, `A$` for AUD, the same in every language. */
+const currencySymbol = (currency: string) =>
+  new Intl.NumberFormat("en", { style: "currency", currency, currencyDisplay: "symbol" })
+    .formatToParts(0)
+    .find((part) => part.type === "currency")?.value ?? currency;
+
+/**
  * Formatters for one display currency and interface language. `whole` rounds to whole units, for
- * views that compare amounts on one coarse scale.
+ * views that compare amounts on one coarse scale. `symbol` writes the currency's international
+ * symbol against the number (`A$3,960`) instead of its code (`AUD 3,960`); Agent Lab uses both.
  */
 export function moneyDisplay({
   currency,
   locale,
   whole = false,
+  symbol = false,
 }: {
   currency: Currency;
   locale: AppLocale;
   whole?: boolean;
+  symbol?: boolean;
 }): Money {
   const digits = whole ? 0 : currencyDigits(currency);
+  const sign = symbol ? currencySymbol(currency) : undefined;
   const amountFormat = (signDisplay: "auto" | "exceptZero") =>
     new Intl.NumberFormat(intlLocale(locale), {
       style: "currency",
       currency,
-      currencyDisplay: "code",
+      currencyDisplay: symbol ? "symbol" : "code",
       minimumFractionDigits: digits,
       maximumFractionDigits: digits,
       signDisplay,
@@ -100,7 +123,10 @@ export function moneyDisplay({
   const format = (formatter: Intl.NumberFormat, value: number) =>
     formatter
       .formatToParts(Math.round(value * 10 ** digits) === 0 ? 0 : value)
-      .map((part) => (part.type === "minusSign" ? MINUS : part.value))
+      .filter((part) => !(sign && part.type === "literal" && !part.value.trim()))
+      .map((part) =>
+        part.type === "minusSign" ? MINUS : sign && part.type === "currency" ? sign : part.value,
+      )
       .join("");
   const money = (aud: number, source?: SourceBudget) =>
     format(plainFormat, source?.currency === currency ? source.amount : fromAud(aud, currency));

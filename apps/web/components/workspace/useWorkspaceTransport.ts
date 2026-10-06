@@ -6,7 +6,8 @@ import {
   type Attachment,
   type InterfaceLanguage,
 } from "@trip/shared";
-import { knownFromDraft, money, parseDraft, type Draft } from "@/lib/workspace";
+import { plannerAud } from "@/lib/money";
+import { knownFromDraft, parseDraft, type Draft } from "@/lib/workspace";
 import { requestTurn, type SessionEvent, type Task } from "@/lib/workspace/session";
 import { dataModeHeaders, type DataMode } from "@/lib/workspace/data-mode";
 import { formatAskAnswers, type PendingAsk, type QuestionAnswer } from "@/lib/workspace/ask-user";
@@ -102,7 +103,7 @@ export function useWorkspaceTransport({
       return false;
     }
     const brief = parsed.data;
-    const message = `Plan ${brief.destination}, ${brief.dates.join(" to ")}, ${brief.groupSize} travellers, ${money(brief.budgetTotal)} total, with the submitted accommodation preferences.`;
+    const message = `Plan ${brief.destination}, ${brief.dates.join(" to ")}, ${brief.groupSize} travellers, ${plannerAud(brief.budgetTotal)} total, with the submitted accommodation preferences.`;
     dispatch({
       kind: "sent",
       message: { role: "user", text: message, at: Date.now() },

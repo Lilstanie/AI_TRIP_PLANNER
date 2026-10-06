@@ -1,3 +1,12 @@
 {
-  "extends": "next/core-web-vitals"
+  "extends": "next/core-web-vitals",
+  "rules": {
+    "no-restricted-syntax": [
+      "error",
+      {
+        "selector": "CallExpression[callee.property.name='toFixed'][arguments.0.value=2]",
+        "message": "Format amounts with the Money module (@/lib/money): useLocale().money / fare / delta, labMoney in Agent Lab, or plannerAud for the planner sentence."
+      }
+    ]
+  }
 }
