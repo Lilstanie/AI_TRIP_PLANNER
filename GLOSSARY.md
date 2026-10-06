@@ -36,6 +36,28 @@ _Avoid_: iteration, attempt
 How far a plan is from usable: the AUD over budget plus a tenth of the budget for each other conflict. Lower is better, and a revision is kept only when it lowers it.
 _Avoid_: quality score
 
+## Trip
+
+**Stop**:
+A place in the itinerary that is scheduled on a day. Only stops are counted, numbered and drawn on the map.
+_Avoid_: activity (in prose), item, point
+
+**Idea**:
+A place kept in the itinerary without a day. It is not a stop until the traveller schedules it.
+_Avoid_: unscheduled stop, saved place, backlog
+
+**Visit**:
+One stop at one place; a place on two days has two visits.
+_Avoid_: occurrence, repeat stop
+
+**Stop number**:
+The number a place carries across the whole trip, given in visiting order. A place visited again keeps its first number, and the map, the trip list and the timeline all show the same number.
+_Avoid_: index, order (in prose), per-day number
+
+**Visiting order**:
+The order stops are shown everywhere: by day, then start time, then their order in the plan.
+_Avoid_: plan order, sort order
+
 ## Agent Lab
 
 **Agent Lab**:
