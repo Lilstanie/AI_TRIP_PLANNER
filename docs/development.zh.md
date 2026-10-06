@@ -162,7 +162,9 @@ pnpm --filter @trip/web build && pnpm --filter @trip/web start   # in another te
 node apps/web/tests/e2e/installable-app.e2e.mjs
 ```
 
-它把截图和 `summary.json` 写到 `output/playwright/installable-app/`。
+它把截图和 `summary.json` 写到 `output/playwright/installable-app/`。Chrome 的可安装性检查在完整
+Chromium（`CHANNEL=chrome` 时改用 Chrome）和一个用完即删的持久化配置文件中运行，并确认它能报告移除了
+manifest 链接的页面。
 
 <a id="building-the-android-apk"></a>
 

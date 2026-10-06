@@ -31,8 +31,10 @@ asked for a phone-first design. Spec: issue #174.
 - **Map tab** fills its panel and filters markers/routes by the day chosen in PhoneMapSheet. Its
   handle supports three snap heights through pointer gestures and keyboard actions. Place details
   become a bottom sheet on phones; no-key users can still browse the stops.
-- **Keyboard** follows VisualViewport height and offset; a focused chat/question field plus a
-  contracted viewport hides navigation. Only the transcript scrolls to keep the last reply visible.
+- **Keyboard** follows VisualViewport height and offset; a focused chat, question, trip-fact
+  editor or stop editor field plus a contracted viewport hides navigation. Only the transcript
+  scrolls to keep the last reply visible; fact sheets rest on the keyboard and the focused field
+  (or whole stop editor) is revealed in its own scroll container.
 - **Updates** track read plan content per trip, with object keys normalized so restored snapshots
   match their live plans. Existing saved history is the baseline; switching unchanged trips does not
   mark them updated. Replanning and manual edits on the same trip/round both mark Trip unread. The
