@@ -15,7 +15,7 @@ import {
 export const CATALOG_KEY = "trip-workspace-catalog-v3";
 
 export type TripStatus = "draft" | "needs_review";
-export type WorkspaceView = "chat" | "map" | "trip";
+export type WorkspaceView = "chat" | "map" | "trip" | "mine";
 
 export type ConversationRecord = {
   id: string;
@@ -131,7 +131,10 @@ function normalizeLayout(value: unknown): PanelLayout {
     };
   };
   const sidebar = isObject(layout.sidebar) ? layout.sidebar : {};
-  const view = layout.view === "map" || layout.view === "trip" ? layout.view : "chat";
+  const view =
+    layout.view === "map" || layout.view === "trip" || layout.view === "mine"
+      ? layout.view
+      : "chat";
   const editorView =
     layout.editorView === "overview" || layout.editorView === "timeline"
       ? layout.editorView

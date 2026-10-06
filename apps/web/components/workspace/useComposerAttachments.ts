@@ -112,7 +112,12 @@ export function useComposerAttachments({ render }: { render?: ImageRenderer } = 
     clearAttachments,
     canAttach: !full,
     notice:
-      notice || (full ? `You can attach ${MAX_ATTACHMENTS_PER_MESSAGE} files to one message.` : ""),
+      notice ||
+      (full
+        ? translate(locale, "You can attach {count} files to one message.", {
+            count: MAX_ATTACHMENTS_PER_MESSAGE,
+          })
+        : ""),
   } satisfies ComposerAttachments;
 }
 

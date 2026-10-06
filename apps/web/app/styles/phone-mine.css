@@ -1,0 +1,105 @@
+/* Mine shares desktop history/calendar behavior, with thumb-sized controls on phones. */
+@media (max-width: 520px) {
+  .phone-mine {
+    min-width: 0;
+    padding: 16px 12px 24px;
+  }
+  .phone-mine .chats-panel__content {
+    padding: 0;
+    overflow: visible;
+  }
+  .phone-mine .sidebar-search {
+    min-height: 44px !important;
+  }
+  .phone-mine .sidebar-search__input {
+    min-height: 44px !important;
+    font-size: 16px;
+  }
+  .phone-mine .sidebar-search__clear,
+  .phone-mine .history-item__more {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    opacity: 1;
+  }
+  .phone-mine .history-item__open,
+  .phone-mine .chats-panel__action,
+  .phone-mine .history-item__menu button,
+  .phone-mine .trips-page__tabs button,
+  .phone-mine .trip-calendar__nav button {
+    min-width: 44px;
+    min-height: 44px !important;
+  }
+  .phone-mine .history-item__menu {
+    z-index: 5;
+  }
+  .phone-mine .trips-page {
+    padding: 0;
+  }
+  .phone-mine .trips-page__inner {
+    max-width: none;
+  }
+  .phone-mine .trips-page__tabs {
+    margin-top: 0;
+  }
+  .phone-mine .trip-cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .phone-mine .trip-calendar__head {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .phone-mine .trip-calendar__weekdays span {
+    padding-inline: 0;
+  }
+  .phone-mine .trip-calendar__grid {
+    overflow-x: auto;
+  }
+  .phone-mine .trip-calendar__week,
+  .phone-mine .trip-calendar__weekdays {
+    min-width: 315px;
+  }
+  .phone-mine .trip-calendar__trip {
+    min-height: 44px !important;
+    min-width: 44px;
+    width: 100%;
+    margin-left: 0;
+    padding-inline: 2px !important;
+    line-height: 44px;
+    font-size: 11px;
+  }
+  .phone-mine__controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+  .phone-mine__controls button,
+  .phone-mine__settings {
+    min-width: 44px;
+    min-height: 44px !important;
+  }
+  .phone-mine__controls .topbar-button__label {
+    display: inline;
+  }
+  .phone-mine__settings {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    margin-top: 12px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--surface-2);
+    color: var(--text);
+    text-align: left;
+  }
+  .phone-mine__settings .icon {
+    width: 20px;
+    height: 20px;
+  }
+}

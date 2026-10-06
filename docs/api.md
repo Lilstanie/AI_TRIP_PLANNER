@@ -291,7 +291,10 @@ Contract: `EditRequest` and `EditPreview` in `apps/web/lib/trip/trip-edit.ts`.
 
 `operation.kind` is `verify` (a day's routes), `move`, `time`, `place` or `undo`. Only activities with a
 day are routed and re-timed; ideas (activities without a day) pass through unchanged. The response is
-`{ plan, baseVersion, routes, differences, blockers }`. It is a preview only: the client applies it
+`{ plan, baseVersion, routes, differences, blockers }`. Each difference is a value object
+`{ stop, days?: { from, to }, before, after, placeChanged }` that the interface words in the chosen
+language; blockers are English sentences that the interface localises when it recognises them. It is
+a preview only: the client applies it
 when the user confirms and rejects it if `baseVersion` no longer matches. Invalid edits return 400.
 
 ## Account routes

@@ -64,11 +64,18 @@ seniors`（宠物不计为旅客）；`groupSize` 仍是校验字段，因此至
   - `Drawer` 提供 `role="dialog"`、`aria-modal`，关闭时提供 `aria-hidden` 和 `inert`，打开时聚焦关闭按钮，支持 Tab 循环、Escape（嵌套编辑预览和原生对话框优先），并将焦点返回触发按钮。
   - 同时只打开一个抽屉。关闭的抽屉完全平移到视口外，shell 使用 `overflow: clip`，无法通过滚动使它们出现。
   - 抽屉为悬浮 Liquid Glass sheet，四周内缩 `--space-2`，圆角为 `--radius-xl`。它们沿 iOS sheet 曲线在 380 ms 内滑动，背景遮罩同步淡出（`usePresence` 保持挂载）。所有动效都遵循 `prefers-reduced-motion`。
-  - 打开其他聊天或行程、New chat、New trip 和 Your trips 页面时，通过 View Transitions API（`viewTransition`）使主栏交叉淡入淡出；手机上的 Chat/Map 切换采用滑动。主栏只在过渡运行时携带 `view-transition-name`：具名元素是 backdrop root，永久保留名称会导致抽屉玻璃后方的聊天仍然清晰。
-- **窄屏（≤1000 px）。**
+  - 打开其他聊天或行程、New chat、New trip 和 Your trips 页面时，通过 View Transitions API（`viewTransition`）使主栏交叉淡入淡出；手机 Tab 切换使用同一过渡辅助函数。主栏只在过渡运行时携带 `view-transition-name`：具名元素是 backdrop root，永久保留名称会导致抽屉玻璃后方的聊天仍然清晰。
+- **窄屏（521–1000 px）。**
   - 顶栏把菜单、事实标签和 Trip 保留在一行，下方为 Chat/Map 切换。标签放不下时在自身行内横向滚动，仍有隐藏标签的一侧边缘渐隐；页面本身从不横向滚动。
   - 导航作为抽屉打开，Trip 占满内容宽度。导航抽屉无标题行：它从侧边栏自己的 Logo 行开始，关闭按钮位于行末，对话框通过视觉隐藏的标题（`Drawer` 的 `hideTitle`）保留“Navigation”无障碍名称。
-  - ≤520 px 时，顶栏按钮只显示图标，但保留无障碍名称；标签高 44 px；所有编辑器，包括模态编辑器，都作为遮罩上的底部 sheet 打开，行按钮为 44 px。
+- **手机（≤520 px）。** [手机外壳决策](../.agents/notes/implemented/feature/2026-10-05-phone-shell.md)仅适用于这一宽度；桌面和平板保留既有导航。
+  - 适配安全区的底部 Tab 栏提供 Chat、Map、Trip 和 Mine，并支持键盘操作。每次只显示一个面板；面板保持挂载以保留滚动位置。已保存的布局恢复上次使用的 Tab，也兼容旧的 Chat/Map 选择。
+  - 单行顶栏显示目的地和日期，未填写时显示 New trip。点击标题打开 Trip details，按行列出 Where、When、Who、Budget 和 Preferences。每行打开既有编辑器；保存或关闭后，焦点返回标题。编辑器为底部 sheet，点击目标至少为 44 px。
+  - Trip 直接显示 Your Trip，包含 Budget、Itinerary、Timeline & routes 和 Review plan。规划前说明空状态并提供 Plan in Chat。在其他 Tab 中创建或修改方案时，Trip 显示带无障碍说明的更新小红点；打开 Trip 后清除。按行程记录已读版本，因此切换未修改的已保存行程不会产生新通知。
+  - Mine 包含搜索、New chat、New trip、Trips/Calendar、聊天列表和 Settings & account。搜索同时筛选聊天和行程；打开或新建任一种内容都会切到 Chat。触摸界面始终显示每个聊天的 Rename/Delete 行菜单入口。数据模式和界面语言切换位于这里。在 Your trips 页面把窗口缩小到手机宽度时，会继续显示在 Mine 中，底部 Tab 栏保持可用。
+  - Map 填满两栏之间的空间。当天停靠点 sheet 有收起、半高和全高三档，可拖动或通过手柄用指针、键盘选择。切换日期把地图标记和路线筛选为当天的停靠点，因此多天到访的地点会出现在每一天，并沿用其全程编号；在 sheet 或地图上选择停靠点，都会聚焦当天的这次到访。未配置 Maps key 时，sheet 和停靠点仍可使用，地图说明不可用状态。地点详情以底部 sheet 打开，桌面保留弹窗。地图控件至少为 44 px，位于停靠点 sheet 上方，平移地图不会滚动页面。
+  - 输入框聚焦且键盘缩短可视视口时，外壳跟随该视口，保持最新消息可见并隐藏 Tab 栏。聚焦行程信息编辑器或停靠点编辑器的字段时同样隐藏 Tab 栏；信息 sheet 停在键盘上方，该字段及其 Save 按钮保持可见。关闭键盘或失焦后恢复 Tab 栏。浏览器返回先关闭当前 sheet 或编辑器，再离开工作区。
+  - 新标签使用中英文字典，动效遵循减少动态效果偏好。`apps/web/tests/e2e/` 下的 `phone-shell.e2e.mjs` 及 Mine、Map、状态配套脚本产生浏览器证据。真实安装应用的安全区和键盘行为仍需完成 issue #182 的设备检查。
 
 <a id="conversations-trips-and-storage"></a>
 
@@ -138,7 +145,7 @@ seniors`（宠物不计为旅客）；`groupSize` 仍是校验字段，因此至
 - **地点弹窗。** 点击标记或标签，或 Trip 抽屉中的地点，会在地图左下方打开地点详情：停靠点编号和日期、首张 Google 照片、名称、地址、Google 评分、照片作者署名和 Open in Google Maps 链接；得知旅客位置后，还显示 Route from my location。只有实时数据模式且配置了服务端 Maps 密钥时才加载照片，每次选择一张。其他情况下，以及 Google 没有照片或图片加载失败时，固定 16:9 区域显示图钉。点击标记会将焦点移入弹窗；关闭按钮、Escape 或点击地图会关闭弹窗，并将焦点返回标记。抽屉中选择的地点若在地图视野外，会平移到视野内，该行为不算用户移动。
 - **选择。** 选择标记或抽屉地点，会选中时间线中的活动并跳到对应日期；反向操作同样有效。选中标记使用较大的轮廓徽章和带边框标签，抽屉对应行除 `aria-pressed` 外，还在左侧增加内缩线并加粗；颜色不是唯一提示。其他日期的停靠点弱化为无标签的灰色徽章。
 - **Trip 抽屉。** 阅读顺序为标题和摘要、预算，然后是 Itinerary 标签页：Stops 列表（按天及访问顺序列出每个行程活动，之后是 Ideas；已定位停靠点是按钮，可通过键盘访问各标记；其他项说明为何不在地图上）、各部分方案，再到展开详情。
-- **行程项菜单**（[Agent Note](../.agents/notes/implemented/feature/2026-09-27-itinerary-item-actions.md)）。每个停靠点的「…」菜单（`ActionMenu`，`role="menu"`；方向键移动，Escape 关闭并返回焦点，不会关闭抽屉）提供 Adjust schedule（在 Timeline 中打开该停靠点）、Edit details（地点名称和描述）、Add 或 Edit note、Move to ideas、Move to previous 或 next day、Mark as booked 和 Remove。Ideas 中的项提供 Schedule on a day，把它排在当天最后一个停靠点之后。这些操作立即生效，在行上显示「Booked」和备注，并在聊天带来新方案之前提供 Undo。按天移动保留停靠点时长，不重新检查路线；由 Timeline 的路线检查负责。预算缺失或为零时，说明未设置预算；无效总额绝不显示为 `NaN`、负值进度条，或超出容器宽度的条形。
+- **行程项菜单**（[Agent Note](../.agents/notes/implemented/feature/2026-09-27-itinerary-item-actions.md)）。每个停靠点的「…」菜单（`ActionMenu`，`role="menu"`；方向键移动，Escape 关闭并返回焦点，不会关闭抽屉）提供 Adjust schedule（在 Timeline 中打开该停靠点）、Edit details（地点名称和描述）、Add 或 Edit note、Move earlier 和 Move later、Move to ideas、Move to previous 或 next day、Mark as booked 和 Remove。Move earlier 和 Move later 把停靠点与同一天相邻的停靠点交换：两者互换开始时间并各自保留时长，若前一个会与后一个重叠，后一个顺延开始；交换后若会超过 23:59 结束或与下一个停靠点重叠，则拒绝并显示提示。当天第一个停靠点没有 Move earlier，最后一个没有 Move later，Ideas 中的项两者都没有。Ideas 中的项提供 Schedule on a day，把它排在当天最后一个停靠点之后。这些操作立即生效，在行上显示「Booked」和备注，并在聊天带来新方案之前提供 Undo。按天移动和交换保留每个停靠点的时长，不重新检查路线；由 Timeline 的路线检查负责。在手机宽度（520px 及以下）下，菜单按钮和菜单项至少为 44 px。预算缺失或为零时，说明未设置预算；无效总额绝不显示为 `NaN`、负值进度条，或超出容器宽度的条形。
 - **位置。** 工作区打开时，在通知条中用自己的文字询问是否显示旅客位置（`components/map/useUserLocation.ts`、`LocationPrompt`）。只有点击 Allow location 或 Show my location 后，才显示浏览器权限提示。Not now 会记录在此浏览器中（`trip.locationPrompt`），问题不再出现；点击 Allow 且浏览器仍授予权限后，后续访问直接显示位置，不再询问。浏览器已经阻止定位时，跳过提问。拒绝、不可用、超时和不支持的情况在地图上解释。只存储回答：位置留在内存中，绝不保存或写入方案。Route from my location 请求到所选地点的已验证时长和距离。见[位置提示 Agent Note](../.agents/notes/implemented/feature/2026-09-24-location-prompt-and-itinerary-map.md)。
 - **控件。** 右下角堆叠圆形玻璃按钮，参考 Mindtrip 和 Apple Maps：Show my location（定位箭头；请求位置，已知位置时将其居中并缩放到 14 或更近；位置显示时图标填充，失败后名称为 Retry my location）、Satellite view（`aria-pressed`，在道路地图和混合影像间切换），以及合为一个胶囊的 Zoom in / Zoom out。旅客位置是 Apple 风格的蓝点，带缓慢变化的光晕。Google 自带控件全部禁用（`disableDefaultUI`），滚轮缩放和单指平移无需修饰键（`gestureHandling: "greedy"`）；仅开发环境的 `/debug/map` 页面使用固定悉尼停靠点显示地图，不请求 Places 或价格。
 
@@ -268,8 +275,9 @@ Data mode 默认是 Fixture data。只有部署启用后才能选择 Live data�
   - **Language & region：** 界面语言（英语或简体中文；可用任何语言聊天）、地区、显示币种（AUD、CNY、USD 或 JPY；默认 AUD）、单位（公制），以及
     Advanced 下的 Trip data（站点默认、实时价格或示例数据）。
     顶栏语言切换位于示例数据旁，修改同一项已保存的语言设置。聊天控件、时间线与提案标签、设置、提示、对话框、无障碍名称及日期随之显示；
-    旅客文字、agent 生成的内容及提供方错误不会被翻译。未保存选择时跟随浏览器语言（`zh*` 打开为中文）。桌面侧栏与主内容之间保留 8 px 间距。
-    行程金额通过同一个适配语言的格式化器和 shared 中的估算汇率表显示。换算结果附带汇率参考日期；JPY 不显示小数，其他币种显示两位小数。本行程原始预算币种优先于设置。规划和预算检查仍使用 AUD。提供方原生票价保留自己的币种。
+    旅客文字、agent 生成的内容及提供方错误不会被翻译。带有数值的固定文案（附件数量上限、时间线修改预览的变更与阻碍、无法移动的站点）使用 `{placeholders}` 翻译：
+    通过 `t()`，或者对于路由或行程返回的英文提示，通过 `interfaceNotice`（`apps/web/lib/i18n/locale.ts`）中的模式匹配。修改预览的变更以数值而非句子返回。未保存选择时跟随浏览器语言（`zh*` 打开为中文）。桌面侧栏与主内容之间保留 8 px 间距。
+    行程金额通过同一个适配语言的格式化器和 shared 中的估算汇率表显示。换算结果附带汇率参考日期；JPY 不显示小数，其他币种显示两位小数。本行程原始预算币种优先于设置。规划和预算检查仍使用 AUD。提供方原生票价保留自己的币种及该币种的小数位（`JPY 230`、`AUD 12.50`；`formatProviderAmount`），且从不换算。
   - **Connected accounts：** 通过 Clerk 关联的 Google、GitHub 或 Apple 登录方式，并有一个按钮打开 Clerk 进行更改。
 - 未登录时，设置保存在当前浏览器；登录后，浏览器和账号中较新的副本为准，之后的改动保存到账号。
 

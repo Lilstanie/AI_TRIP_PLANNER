@@ -1,6 +1,7 @@
 // End-to-end walk through the Timeline & routes tab with mock data: day switching, the fixed
 // transport and stay rows, selecting and editing a stop, confirming its map match, checking the
-// day's routes, applying a previewed edit and undoing it. Screenshots at desktop and phone widths,
+// day's routes, applying a previewed edit and undoing it, and provider transit fares keeping their
+// own currency's decimal places (JPY 230, KRW 1400, AUD 12.50). Screenshots at desktop and phone widths,
 // light and dark, land under output/playwright/timeline/<label>/ as a repeatable artifact.
 //
 //   pnpm --filter @trip/web dev            # in another terminal; a map key is optional (see the 502 note below)
@@ -43,15 +44,26 @@ async function openTimeline(browser, { width, height, scheme }) {
   page.on("console", (message) => {
     if (message.type() !== "error") return;
     const text = message.text();
-    if (/status of 502/.test(text) && [...upstream].every((path) => path === "/api/places/search")) return;
+    // Chrome probes the legacy favicon even though the application exposes icon.svg.
+    if (message.location().url === `${BASE}/favicon.ico` && text.includes("404")) return;
+    if (/status of 502/.test(text) && [...upstream].every((path) => path === "/api/places/search"))
+      return;
     errors.push(text);
   });
   page.on("pageerror", (error) => errors.push(String(error)));
   await page.goto(BASE);
   await page.waitForSelector(".workspace-app");
+  // The dev-mode indicator sits over the phone tab bar and would take the tab clicks.
+  await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
   // Mock data: no provider requests. The toggle only works once the page has hydrated, so retry
   // until it reports mock rather than clicking once and planning with live providers.
   await page.waitForLoadState("networkidle");
+  // On phones the data mode toggle lives on the Mine tab.
+  const mineTab = page.getByRole("tab", { name: /^Mine/ });
+  if (await mineTab.count()) {
+    await mineTab.click();
+    await settle(page, 500);
+  }
   for (let attempt = 0; attempt < 5; attempt += 1) {
     const live = page.getByRole("button", { name: /^Live data/ });
     if (!(await live.count())) break;
@@ -62,13 +74,18 @@ async function openTimeline(browser, { width, height, scheme }) {
     (await page.getByRole("button", { name: /^Mock data/ }).count()) === 1,
     `${width}px ${scheme}: planning with mock data`,
   );
+  const chatTab = page.getByRole("tab", { name: /^Chat/ });
+  if (await chatTab.count()) {
+    await chatTab.click();
+    await settle(page, 500);
+  }
   await page.locator(".chat-empty__suggestions button").first().click();
-  await page
-    .locator(".msg-item--agent .msg-item__body")
-    .first()
-    .waitFor({ timeout: 180_000 });
+  await page.locator(".msg-item--agent .msg-item__body").first().waitFor({ timeout: 180_000 });
   await settle(page, 1500);
-  await page.getByRole("button", { name: "Open your trip" }).click();
+  // Phones show Your Trip on the Trip tab; wider screens open it as a drawer.
+  const tripTab = page.getByRole("tab", { name: /^Trip/ });
+  if (await tripTab.count()) await tripTab.click();
+  else await page.getByRole("button", { name: "Open your trip" }).click();
   await settle(page, 700);
   await page.getByRole("tab", { name: /Timeline/ }).click();
   await settle(page, 700);
@@ -79,13 +96,18 @@ async function shots(browser, width, height, tag) {
   for (const scheme of ["light", "dark"]) {
     const { context, page, errors } = await openTimeline(browser, { width, height, scheme });
     await page.screenshot({ path: `${OUT}/${tag}-${scheme}-01-timeline.png` });
-    const drawer = page.locator(".workspace-drawer--trip .drawer__body, .workspace-drawer--trip");
+    const drawer = page.locator(
+      ".workspace-drawer--trip .drawer__body, .workspace-drawer--trip, #phone-panel-trip",
+    );
     await drawer.first().screenshot({ path: `${OUT}/${tag}-${scheme}-02-drawer.png` });
     check(
       await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
       `${tag} ${scheme}: no horizontal page scroll`,
     );
-    check(!errors.length, `${tag} ${scheme}: no console errors${errors.length ? `: ${errors.join(" | ")}` : ""}`);
+    check(
+      !errors.length,
+      `${tag} ${scheme}: no console errors${errors.length ? `: ${errors.join(" | ")}` : ""}`,
+    );
     await context.close();
   }
 }
@@ -128,19 +150,29 @@ async function interactions(browser) {
   // A stop is compact until selected; selecting it opens its editor.
   const stop = timeline.locator(".timeline-stop").first();
   check((await stop.count()) === 1, "day shows its stops");
-  check(!(await timeline.getByRole("button", { name: /Preview time change/ }).count()), "editors stay closed until a stop is selected");
+  check(
+    !(await timeline.getByRole("button", { name: /Preview time change/ }).count()),
+    "editors stay closed until a stop is selected",
+  );
   await stop.locator(".timeline-stop__main").click();
   await settle(page);
-  check(await timeline.getByRole("button", { name: /Preview time change/ }).isVisible(), "selecting a stop opens its editor");
+  check(
+    await timeline.getByRole("button", { name: /Preview time change/ }).isVisible(),
+    "selecting a stop opens its editor",
+  );
   await page.screenshot({ path: `${OUT}/interact-01-stop-open.png` });
 
   // A time edit goes through a preview that can be applied, then undone.
   const start = timeline.getByLabel(/^Start/).first();
   const [hour, minute] = (await start.inputValue()).split(":").map(Number);
-  await start.fill(`${String(Math.min(hour + 1, 20)).padStart(2, "0")}:${String(minute).padStart(2, "0")}`);
+  await start.fill(
+    `${String(Math.min(hour + 1, 20)).padStart(2, "0")}:${String(minute).padStart(2, "0")}`,
+  );
   const end = timeline.getByLabel(/^End/).first();
   const [endHour, endMinute] = (await end.inputValue()).split(":").map(Number);
-  await end.fill(`${String(Math.min(endHour + 1, 22)).padStart(2, "0")}:${String(endMinute).padStart(2, "0")}`);
+  await end.fill(
+    `${String(Math.min(endHour + 1, 22)).padStart(2, "0")}:${String(endMinute).padStart(2, "0")}`,
+  );
   await timeline.getByRole("button", { name: /Preview time change/ }).click();
   const preview = page.getByRole("region", { name: "Edit preview" });
   await preview.waitFor({ timeout: 30_000 });
@@ -158,8 +190,10 @@ async function interactions(browser) {
   const flashed = timeline.locator(".timeline-stop.is-changed");
   check((await flashed.count()) >= 1, "an applied edit marks the changed stop");
   check(
-    (await flashed.first().locator(".timeline-stop__main").evaluate((el) => getComputedStyle(el).animationName)) ===
-      "stop-changed",
+    (await flashed
+      .first()
+      .locator(".timeline-stop__main")
+      .evaluate((el) => getComputedStyle(el).animationName)) === "stop-changed",
     "the changed stop plays its highlight",
   );
   const undo = timeline.getByRole("button", { name: /Undo/ });
@@ -175,8 +209,13 @@ async function interactions(browser) {
   // Confirming a stop's map match needs real place results. Without a map key the search answers 502, so
   // from here this reports a skip, never a pass; everything above still ran.
   if (upstream.has("/api/places/search")) {
-    console.log("skip  route check: the place search needs a map key (it answered 502), so stops cannot be matched");
-    check(!errors.length, `interactions: no console errors${errors.length ? `: ${errors.join(" | ")}` : ""}`);
+    console.log(
+      "skip  route check: the place search needs a map key (it answered 502), so stops cannot be matched",
+    );
+    check(
+      !errors.length,
+      `interactions: no console errors${errors.length ? `: ${errors.join(" | ")}` : ""}`,
+    );
     await context.close();
     return;
   }
@@ -188,7 +227,11 @@ async function interactions(browser) {
       break;
     }
   }
-  const LANDMARKS = ["Sydney Opera House", "Royal Botanic Garden Sydney", "Art Gallery of New South Wales"];
+  const LANDMARKS = [
+    "Sydney Opera House",
+    "Royal Botanic Garden Sydney",
+    "Art Gallery of New South Wales",
+  ];
   let searches = 0;
   // Confirm every stop's map match on a day: a move or a route check needs real places.
   async function confirmDay(index) {
@@ -234,7 +277,10 @@ async function interactions(browser) {
     await confirmDay(routeDay);
     const stops = timeline.locator(".timeline-stop");
     const confirmed = await timeline.locator(".timeline-stop .timeline-tag--ok").count();
-    check(confirmed === (await stops.count()), `every stop on the day is confirmed (${confirmed}/${await stops.count()})`);
+    check(
+      confirmed === (await stops.count()),
+      `every stop on the day is confirmed (${confirmed}/${await stops.count()})`,
+    );
     const checkRoutes = timeline.getByRole("button", { name: /Check routes for Day/ });
     check(await checkRoutes.isEnabled(), "route check is enabled once places are confirmed");
     await checkRoutes.click();
@@ -263,7 +309,93 @@ async function interactions(browser) {
     await page.screenshot({ path: `${OUT}/interact-05-routes-checked.png` });
   }
 
-  check(!errors.length, `interactions: no console errors${errors.length ? `: ${errors.join(" | ")}` : ""}`);
+  check(
+    !errors.length,
+    `interactions: no console errors${errors.length ? `: ${errors.join(" | ")}` : ""}`,
+  );
+  await context.close();
+}
+
+// Provider transit fares stay in their own currency with that currency's decimal places: yen has
+// and won have no minor unit. The route provider is a system boundary, so the preview response is
+// given three checked transit legs (JPY, AUD, KRW) between four stops moved onto the first day.
+async function fareDecimals(browser) {
+  const { context, page, errors, upstream } = await openTimeline(browser, {
+    width: 1440,
+    height: 1000,
+    scheme: "light",
+  });
+  await page.route("**/api/trip/preview-edit", async (route) => {
+    const response = await route.fetch();
+    const body = await response.json();
+    const items = body.plan.sections.find((s) => s.id === "itinerary").proposal.items;
+    const stops = items.filter((i) => i.kind === "activity" && i.day !== undefined).slice(0, 4);
+    stops.forEach((stop, index) => {
+      stop.day = stops[0].day;
+      stop.placeId = `e2e-fare-${index}`;
+      stop.startTime = `${String(9 + index * 2).padStart(2, "0")}:00`;
+      stop.endTime = `${String(10 + index * 2).padStart(2, "0")}:00`;
+    });
+    const leg = (from, to, fare) => ({
+      from: `e2e-fare-${from}`,
+      to: `e2e-fare-${to}`,
+      mode: "TRANSIT",
+      status: "ok",
+      durationMin: 25,
+      fare,
+    });
+    body.routes = [
+      leg(0, 1, { amount: 230, currency: "JPY" }),
+      leg(1, 2, { amount: 12.5, currency: "AUD" }),
+      leg(2, 3, { amount: 1400, currency: "KRW" }),
+    ];
+    body.blockers = [];
+    await route.fulfill({ response, json: body });
+  });
+  const timeline = page.getByRole("region", { name: "Trip timeline" });
+  await timeline.locator(".timeline-stop .timeline-stop__main").first().click();
+  await settle(page);
+  // Any edit will do: move the end time so the preview button is enabled.
+  const end = timeline.getByLabel(/^End/).first();
+  const [endHour, endMinute] = (await end.inputValue()).split(":").map(Number);
+  await end.fill(
+    `${String(Math.min(endHour + 1, 22)).padStart(2, "0")}:${String(endMinute).padStart(2, "0")}`,
+  );
+  await timeline.getByRole("button", { name: /Preview time change/ }).click();
+  const preview = page.getByRole("region", { name: "Edit preview" });
+  await preview.waitFor({ timeout: 30_000 });
+  await settle(page);
+  const routes = await preview.locator(".edit-preview__routes").innerText();
+  const jpy = (text) => text.match(/JPY [\d.]+/)?.[0];
+  check(/JPY 230(?![.\d])/.test(routes), `preview: JPY fare has no decimals (${jpy(routes)})`);
+  check(/AUD 12\.50(?!\d)/.test(routes), "preview: AUD fare keeps two decimals");
+  check(/KRW 1400(?![.\d])/.test(routes), "preview: KRW fare has no decimals");
+  check(
+    /not added to the AUD budget/.test(routes),
+    "preview: fares are labelled as outside the AUD budget",
+  );
+  await page.screenshot({ path: `${OUT}/fare-01-preview.png` });
+  await preview.getByRole("button", { name: "Apply changes" }).click();
+  await settle(page, 800);
+  const legs = await timeline.locator(".timeline-connection--checked").allInnerTexts();
+  const text = legs.join(" | ");
+  check(legs.length === 3, `timeline: all three checked legs shown (${legs.length})`);
+  check(/JPY 230(?![.\d])/.test(text), `timeline: JPY fare has no decimals (${jpy(text)})`);
+  check(/AUD 12\.50(?!\d)/.test(text), "timeline: AUD fare keeps two decimals");
+  check(/KRW 1400(?![.\d])/.test(text), "timeline: KRW fare has no decimals");
+  await timeline.locator(".timeline-connection--checked").first().scrollIntoViewIfNeeded();
+  await page.screenshot({ path: `${OUT}/fare-02-timeline.png` });
+  // The stand-in place ids have no place details, so those lookups answer 502 like the search.
+  const unexpected = errors.filter(
+    (text) =>
+      !(
+        /status of 502/.test(text) && [...upstream].every((path) => path.startsWith("/api/places/"))
+      ),
+  );
+  check(
+    !unexpected.length,
+    `fare decimals: no console errors${unexpected.length ? `: ${unexpected.join(" | ")}` : ""}`,
+  );
   await context.close();
 }
 
@@ -271,7 +403,10 @@ const browser = await chromium.launch({ channel: process.env.CHANNEL });
 try {
   await shots(browser, 1440, 1000, "desktop");
   await shots(browser, 390, 844, "phone");
-  if (!SHOTS_ONLY) await interactions(browser);
+  if (!SHOTS_ONLY) {
+    await fareDecimals(browser);
+    await interactions(browser);
+  }
 } finally {
   await browser.close();
 }

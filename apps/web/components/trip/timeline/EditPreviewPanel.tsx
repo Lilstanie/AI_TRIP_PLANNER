@@ -3,6 +3,7 @@ import { useEffect, useRef } from "react";
 import type { TripPlan } from "@trip/shared";
 import type { EditPreview } from "@/lib/trip/trip-edit";
 import { formatDuration } from "@/lib/trip/timeline";
+import { formatProviderAmount } from "@/lib/i18n/locale";
 import { useLocale } from "../../account/LocaleProvider";
 
 /**
@@ -23,7 +24,7 @@ export function EditPreviewPanel({
   onApply(): void;
   onCancel(): void;
 }) {
-  const { t, money, locale } = useLocale();
+  const { t, money, locale, notice } = useLocale();
   const root = useRef<HTMLDivElement>(null);
   useEffect(() => root.current?.focus(), []);
   const change = preview.plan.estTotal - plan.estTotal;
@@ -63,13 +64,24 @@ export function EditPreviewPanel({
       {!!preview.blockers.length && (
         <ul className="edit-preview__list edit-preview__list--blockers" role="alert">
           {preview.blockers.map((blocker) => (
-            <li key={blocker}>{blocker}</li>
+            <li key={blocker}>{notice(blocker)}</li>
           ))}
         </ul>
       )}
       <ul className="edit-preview__list">
-        {preview.differences.map((difference) => (
-          <li key={difference}>{difference}</li>
+        {preview.differences.map(({ stop, days, before, after, placeChanged }, index) => (
+          <li key={`${stop}-${index}`}>
+            {days
+              ? t("{stop}: day {fromDay} → day {toDay}, {before} → {after}", {
+                  stop,
+                  fromDay: days.from,
+                  toDay: days.to,
+                  before,
+                  after,
+                })
+              : t("{stop}: {before} → {after}", { stop, before, after })}
+            {placeChanged && t(" · place changed; price unverified")}
+          </li>
         ))}
         {!preview.differences.length && !blocked && <li>{t("Stop order and routes updated.")}</li>}
       </ul>
@@ -81,9 +93,11 @@ export function EditPreviewPanel({
               <li key={`${route.from}-${route.to}-${index}`}>
                 {route.status === "ok" && route.durationMin !== undefined
                   ? `${route.mode === "WALK" ? t("Walk") : t("Public transport")} · ${formatDuration(route.durationMin, locale)}`
-                  : (route.error ?? t("No route found"))}
+                  : route.error
+                    ? notice(route.error)
+                    : t("No route found")}
                 {route.fare
-                  ? ` · ${route.fare.currency} ${route.fare.amount.toFixed(2)}`
+                  ? ` · ${formatProviderAmount(route.fare)}`
                   : route.status === "ok"
                     ? t(" · fare not published")
                     : ""}

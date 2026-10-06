@@ -15,6 +15,8 @@ export const metadata: Metadata = {
 
 // Matches the `--page` token in each theme so the installed app's title bar blends in.
 export const viewport: Viewport = {
+  // The installed app draws under the notch and home indicator; layouts pad with safe-area insets.
+  viewportFit: "cover",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#f5f5f7" },
     { media: "(prefers-color-scheme: dark)", color: "#000000" },

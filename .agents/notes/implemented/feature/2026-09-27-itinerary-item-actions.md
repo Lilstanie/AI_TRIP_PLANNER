@@ -13,8 +13,8 @@ allows.
 ## Decision
 
 - The drawer's first tab is **Itinerary**. Each stop in `TripPlaceList` has an action menu
-  (`components/ui/ActionMenu.tsx`): Adjust schedule, Edit details, Add a note, Move to ideas, Move to
-  previous day, Move to next day, Mark as booked, Remove. A stop in **Ideas** (no day) offers
+  (`components/ui/ActionMenu.tsx`): Adjust schedule, Edit details, Add a note, Move earlier, Move
+  later, Move to ideas, Move to previous day, Move to next day, Mark as booked, Remove. A stop in **Ideas** (no day) offers
   Schedule on a day, Edit details, Add a note and Remove.
 - **Contract** (`packages/shared/src/contracts.ts`): `ProposalItem` gains optional `note` (up to 500
   characters) and `booked`. An activity without `day` and times is an idea.
@@ -23,6 +23,13 @@ allows.
   which restores the previous plan. A stop moved to another day or scheduled from Ideas keeps its
   duration and starts after that day's last stop (09:00 on an empty day). Adjust schedule opens the
   Timeline tab on that stop, whose edits still go through `POST /api/trip/preview-edit`.
+- **Move earlier / Move later** (issue #176) reorder a stop within its day without dragging. The
+  neighbour is the adjacent scheduled stop on that day by start time, the order the list shows. The
+  pair swaps places: the stop that ends up first starts at the pair's earlier start time, the other
+  starts when it ends or at its own later start if that is later, and each keeps its own duration.
+  Both lose `arriveBy`, since their connections changed. The first stop of a day has no Move
+  earlier, the last has no Move later, and an idea has neither. On phones (max-width 520px) the
+  menu trigger and its items are at least 44 px, the minimum touch target.
 - `previewEdit` schedules only activities with a day and keeps ideas unchanged.
 
 Ways this can fail, written before the code: an unknown item id → the action is refused with a
@@ -31,6 +38,17 @@ plan unchanged; a note or name over its limit → trimmed to the limit by the fo
 schema otherwise; removing the last stop of a day → the day stays with no stops; undo after the
 plan changed elsewhere (chat replanning) → Undo is cleared when a new plan arrives; route checks on
 a day after a move → reported by the Timeline's route check, not silently re-timed.
+
+Ways Move earlier / Move later can fail, written before the code: the stop has no neighbour in
+that direction (first or last of its day) → the menu does not offer the item, and the transform
+refuses with a message if called anyway; the stop is an idea or has no start time → refused, plan
+unchanged; the swapped pair's later stop would end past 23:59 or overlap the stop after the pair →
+refused with a message, plan unchanged; two stops share a start time → the list's order (start time, then plan order) decides
+the neighbour, so the transform uses the same order; a stop without an end time → treated as 120
+minutes, as day moves do; the moved pair now overlaps the next stop → kept, and the Timeline's
+checks report it rather than re-timing other stops; the plan array order drifts from time order →
+the pair also swaps places in the plan so the Timeline edits in the new order; Undo after a swap →
+restores the previous plan like any other action.
 
 ## Alternatives considered
 

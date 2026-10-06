@@ -60,9 +60,14 @@ export function TripMap({
   destinations = [],
   showPhotos = false,
   userLocation,
+  phone = false,
+  focusRequest,
 }: {
   /** Located stops in visiting order; each becomes a labelled marker. */
   stops: MapStop[];
+  phone?: boolean;
+  /** Each explicit stop press asks to centre and open details, even for the same stop. */
+  focusRequest?: number;
   /** Destination city places; the map centres on them before any activity is mapped. */
   destinations?: GooglePlace[];
   selected?: string;
@@ -109,6 +114,10 @@ export function TripMap({
   const focusDay = selectedStop?.day;
   const popupOpen = !!selectedStop && closedFor !== selected;
 
+  useEffect(() => {
+    if (focusRequest !== undefined) setClosedFor(undefined);
+  }, [focusRequest]);
+
   // A route estimate belongs to one selected place; never show it for another.
   useEffect(() => {
     routeRequest.current?.abort();
@@ -125,9 +134,21 @@ export function TripMap({
     setClosedFor(selected);
     const target = returnFocus.current;
     returnFocus.current = null;
-    if (popup.current?.contains(document.activeElement))
-      (target?.isConnected ? target : root.current)?.focus?.();
-  }, [selected]);
+    if (popup.current?.contains(document.activeElement)) {
+      const restore = () =>
+        (target?.isConnected && target.getClientRects().length
+          ? target
+          : phone
+            ? (root.current
+                ?.closest(".workspace-panel--map")
+                ?.querySelector<HTMLButtonElement>(".phone-map-sheet__handle") ?? root.current)
+            : root.current
+        )?.focus?.();
+      // The stops handle becomes visible after the details sheet leaves the tree.
+      if (phone) requestAnimationFrame(restore);
+      else restore();
+    }
+  }, [selected, phone]);
   const closeRef = useRef(closePopup);
   closeRef.current = closePopup;
 
@@ -333,24 +354,26 @@ export function TripMap({
   // programmatic move, so it does not count as the traveller moving the map.
   useEffect(() => {
     const position = selectedStop && coordinate(selectedStop.place);
-    if (!runtime || !position || runtime.map.getBounds()?.contains(position) !== false) return;
+    if (!runtime || !position || (!phone && runtime.map.getBounds()?.contains(position) !== false))
+      return;
     moving.current = true;
-    runtime.map.panTo(position);
+    if (reducedMotion) runtime.map.setCenter(position);
+    else runtime.map.panTo(position);
     runtime.maps.event.addListenerOnce(runtime.map, "idle", () => {
       moving.current = false;
     });
     // Only on a new selection, not when the stop list is rebuilt.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [runtime, selected]);
+  }, [runtime, selected, focusRequest]);
 
   // Selecting a new place reopens its popup; a marker press also moves focus into it.
   useEffect(() => {
-    if (!popupOpen || !focusPopup.current) return;
+    if (!popupOpen || (!focusPopup.current && !phone)) return;
     focusPopup.current = false;
     // After the marker's own key handling, which otherwise keeps focus on the marker.
     const timer = window.setTimeout(() => popup.current?.focus());
     return () => window.clearTimeout(timer);
-  }, [popupOpen, selected]);
+  }, [popupOpen, selected, phone, focusRequest]);
 
   useEffect(() => {
     if (!runtime || location.status !== "success") return;
@@ -457,7 +480,7 @@ export function TripMap({
       {popupOpen && selectedStop && (
         <div
           ref={popup}
-          className="trip-map-popup"
+          className={phone ? "trip-map-popup phone-map-details" : "trip-map-popup"}
           role="dialog"
           aria-labelledby="trip-map-popup-title"
           tabIndex={-1}
@@ -560,7 +583,7 @@ export function TripMap({
       )}
       {nearbyRoute?.status === "error" && (
         <p className="trip-map-location-status" role="alert">
-          {nearbyRoute.error}
+          {localizeNotice(nearbyRoute.error)}
         </p>
       )}
       {error && (
@@ -575,7 +598,15 @@ export function TripMap({
               <ol>
                 {mapped.map((stop) => (
                   <li key={stop.place.id}>
-                    <button type="button" onClick={() => onSelectRef.current(stop.place.id)}>
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        returnFocus.current = event.currentTarget;
+                        focusPopup.current = true;
+                        setClosedFor(undefined);
+                        onSelectRef.current(stop.place.id);
+                      }}
+                    >
                       {placeName(stop.place)}
                     </button>
                   </li>

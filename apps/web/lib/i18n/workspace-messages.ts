@@ -70,8 +70,8 @@ export const WORKSPACE_ZH = {
   "Anything else every trip should respect?": "每次旅行还有哪些需要遵循的偏好？",
   "Save preferences": "保存偏好",
   "Default trip data": "默认行程数据",
-  "Live prices search real hotels and flights and spend the shared monthly allowance; sample data spends nothing. The switch in the top bar changes it for this browser.":
-    "实时价格会搜索真实酒店与航班并消耗共享月度额度；示例数据不消耗额度。顶部开关可更改此浏览器中的模式。",
+  "Live prices search real hotels and flights and spend the shared monthly allowance; sample data spends nothing. The data switch in the workspace changes it for this browser.":
+    "实时价格会搜索真实酒店与航班并消耗共享月度额度；示例数据不消耗额度。工作区的数据开关可更改此浏览器中的模式。",
   "Accounts you can sign in with.": "可用于登录的已关联账户。",
   "No connected accounts. You sign in with email.": "没有已关联账户。你使用邮箱登录。",
   "Connect or disconnect": "关联或取消关联",
@@ -440,6 +440,12 @@ export const WORKSPACE_ZH = {
   "Edit details": "编辑详情",
   "Edit note": "编辑备注",
   "Add a note": "添加备注",
+  "{name} moved earlier.": "已将 {name} 提前。",
+  "{name} moved later.": "已将 {name} 延后。",
+  "Swapping these stops would run past 23:59; shorten one of them first.":
+    "交换这两个停靠点会超过 23:59；请先缩短其中一个。",
+  "Swapping these stops would overlap the next stop; shorten one of them first.":
+    "交换这两个停靠点会与下一个停靠点时间重叠；请先缩短其中一个。",
   "Move to ideas": "移至备选地点",
   "Move to previous day": "移至前一天",
   "Move to next day": "移至后一天",
@@ -553,4 +559,36 @@ export const WORKSPACE_ZH = {
     "编辑行程偏好，或告诉我要改什么。我会在这里生成计划，你随时可以在此对话中要求修改。",
   "Browser storage is unavailable or full. Your current plan is still in this tab. Retry after freeing space.":
     "浏览器存储不可用或已满。当前计划仍保留在此标签页中。请释放空间后重试。",
+  // Authored notices built in code or returned by the app's own routes (#189).
+  "You can attach {count} files to one message.": "每条消息最多可添加 {count} 个文件。",
+  "Chats, trips and settings sync to this account.": "聊天、行程和设置会同步到此账户。",
+  "Your account could not be deleted. Try again.": "无法删除你的账户，请重试。",
+  "The returned plan was invalid. Please retry.": "返回的行程方案无效，请重试。",
+  "The assistant's question was invalid. Please retry.": "助手提出的问题无效，请重试。",
+  "The returned fares were invalid. Please retry.": "返回的票价无效，请重试。",
+  "Planning failed. Please retry.": "规划失败，请重试。",
+  "Preview failed. Try the change again.": "预览失败，请重新尝试此修改。",
+  "Search failed. Try again.": "搜索失败，请重试。",
+  "That change could not be made.": "无法进行此修改。",
+  "That stop is no longer in this trip.": "该站点已不在此行程中。",
+  "Give the stop a description.": "请为该站点填写描述。",
+  "That day is not part of this trip.": "该日期不在此行程内。",
+  "Day {day} has no room left for this stop; shorten another stop first.":
+    "第 {day} 天已没有空余时间安排此站点；请先缩短其他站点。",
+  "Only a stop scheduled on a day can move earlier or later.":
+    "只有已安排到某一天的站点才能提前或推后。",
+  "This is already the first stop of its day.": "这已是当天的第一个站点。",
+  "This is already the last stop of its day.": "这已是当天的最后一个站点。",
+  "Day {day}: confirm the place for every stop first, so travel times between them can be checked.":
+    "第 {day} 天：请先确认每个站点的地点，才能核查站点间的交通时间。",
+  "Day {day}: {stop} needs at least {minutes} minutes after the previous activity.":
+    "第 {day} 天：{stop} 需与上一项活动至少间隔 {minutes} 分钟。",
+  "Day {day}: activity would extend beyond the day.": "第 {day} 天：活动将超出当天时间。",
+  "Route unavailable": "路线不可用",
+  "Route verification failed": "路线核查失败",
+  "Changed activity price requires verification": "已更改活动的价格需要核实",
+  "{stop}: {before} → {after}": "{stop}：{before} → {after}",
+  "{stop}: day {fromDay} → day {toDay}, {before} → {after}":
+    "{stop}：第 {fromDay} 天 → 第 {toDay} 天，{before} → {after}",
+  " · place changed; price unverified": " · 地点已更改；价格未核实",
 } as const;

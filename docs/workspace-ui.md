@@ -180,10 +180,10 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     slide on the iOS sheet curve in 380 ms, and the backdrop fades out with them (kept mounted by
     `usePresence`). All of it respects `prefers-reduced-motion`.
   - Opening another chat or trip, New chat, New trip and the Your trips page cross-fade the main
-    column through the View Transitions API (`viewTransition`); the phone Chat/Map switch slides.
+    column through the View Transitions API (`viewTransition`); phone tab switches use the same transition helper.
     The column carries its `view-transition-name` only while a transition runs: a named element is
     a backdrop root, and a permanent name left the chat sharp behind the drawers' glass.
-- **Narrow screens (≤1000 px).**
+- **Narrow screens (521–1000 px).**
   - The top bar keeps the menu, the fact chips and Trip on one row, with a Chat/Map switch below.
     When the chips do not fit they scroll sideways inside their row, which fades at the edge that
     has more chips behind it; the page itself never scrolls sideways.
@@ -191,9 +191,38 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     title row: it opens on the sidebar's own logo row with the close button at its end, and the
     dialog keeps "Navigation" as its accessible name through a visually hidden heading
     (`Drawer`'s `hideTitle`).
-  - At ≤520 px the top-bar buttons show icons only but keep their accessible names, chips are 44 px
-    tall, and every editor, the modal ones included, opens as a bottom sheet over a scrim with 44 px
-    row buttons.
+- **Phones (≤520 px).** The [phone shell decision](../.agents/notes/implemented/feature/2026-10-05-phone-shell.md)
+  applies only at this width; desktop and tablets keep their existing navigation.
+  - A safe-area-aware bottom tab bar exposes Chat, Map, Trip and Mine as keyboard-operable tabs.
+    One panel is visible at a time; panels stay mounted to preserve their scroll position. The saved
+    layout restores the last tab, including older Chat/Map choices.
+  - The single-row top bar shows the destination and dates, or New trip. Its title opens Trip details:
+    Where, When, Who, Budget and Preferences as rows. Each row opens the existing editor; saving or
+    closing returns focus to the title. Editors are bottom sheets with 44 px targets.
+  - Trip shows Your Trip in place, with Budget, Itinerary, Timeline & routes and Review plan. Before
+    planning it explains the empty state and offers Plan in Chat. A plan created or changed while
+    another tab is selected adds an accessible update dot to Trip; opening Trip clears it. Read revisions are tracked per trip,
+    so switching between unchanged saved trips does not create a new notification.
+  - Mine contains search, New chat, New trip, Trips/Calendar, the chats list and Settings & account.
+    Search filters chats and trips; opening or starting either selects Chat. Each chat has a visible
+    Rename/Delete row menu on touch. Data mode and interface language live here. Narrowing the
+    window to phone width while Your trips is open continues in Mine, so the tab bar stays available.
+  - Map fills the space between the bars. Its day-stops sheet has collapsed, half and full heights,
+    selected by dragging or using its handle with pointer or keyboard. Changing day filters the map's
+    markers and routes to that day's stops, so a place visited on several days appears on each of
+    them with its trip-wide number; selecting a stop, in the sheet or on the map, focuses that day's
+    visit. Without a Maps key the sheet and stops still
+    work, while the map explains its unavailable state. Place details open in a bottom sheet; desktop
+    keeps its popup. The 44 px map controls stay above the stops sheet, and panning does not scroll
+    the page.
+  - With the composer focused and the visual viewport shortened by the keyboard, the shell follows
+    that viewport, keeps the latest message visible and hides the tab bar. A focused trip-fact editor
+    or stop editor field also hides the tab bar; the fact sheet rests on the keyboard, and the field
+    and its Save button stay in view. Closing the keyboard or blurring restores it. Browser Back closes the active sheet or editor before leaving the workspace.
+  - New labels use the English/Chinese dictionary and motion respects reduced-motion preferences.
+    Browser evidence is produced by `phone-shell.e2e.mjs` and its Mine, Map and state companion walks
+    under `apps/web/tests/e2e/`. Real installed-app safe areas and keyboard behavior still require the
+    device checks in issue #182.
 
 ## Conversations, trips and storage
 
@@ -377,11 +406,16 @@ describes current behaviour except the absences.
 - **Itinerary item menu** ([Agent Note](../.agents/notes/implemented/feature/2026-09-27-itinerary-item-actions.md)).
   Each stop's "…" menu (`ActionMenu`, a `role="menu"`; arrow keys move, Escape closes it and returns
   focus without closing the drawer) offers Adjust schedule (opens the Timeline on that stop), Edit
-  details (place name and description), Add or Edit note, Move to ideas, Move to previous or next
-  day, Mark as booked, and Remove. An idea offers Schedule on a day, which puts it after that day's
+  details (place name and description), Add or Edit note, Move earlier and Move later, Move to
+  ideas, Move to previous or next day, Mark as booked, and Remove. Move earlier and Move later swap
+  the stop with its neighbour on the same day: each takes the other's start time and keeps its own
+  duration, the second starting later if the first would overlap it, and a swap that would end past
+  23:59 or overlap the next stop is refused with a message. The first stop of a day has no Move earlier, the last has no Move
+  later, and an idea has neither. An idea offers Schedule on a day, which puts it after that day's
   last stop. These apply at once, show "Booked" and the note on the row, and offer Undo until the
-  next plan arrives from chat. Day moves keep the stop's duration and do not re-check routes; the
-  Timeline's route check does. Missing or zero budgets state that no budget is set; invalid totals never render
+  next plan arrives from chat. Day moves and swaps keep each stop's duration and do not re-check
+  routes; the Timeline's route check does. At phone width (520px and below) the menu's trigger and
+  items are at least 44 px. Missing or zero budgets state that no budget is set; invalid totals never render
   `NaN`, a negative bar, or a bar wider than its container.
 - **Location.** When the workspace opens it asks in its own words, in the notices strip, whether to
   show the traveller's location (`components/map/useUserLocation.ts`, `LocationPrompt`). The
@@ -619,11 +653,16 @@ the account section explains that everything stays in this browser.
     The top-bar language switch sits beside Mock data and updates the same saved language setting.
     Authored chat controls, timeline and proposal labels, settings, notices, dialogs, accessible
     names and dates follow it. Traveller text, agent-produced content and provider errors are not
-    translated. With no saved choice it follows the browser language (`zh*` opens in Chinese). The desktop sidebar and main content have an 8 px gutter.
+    translated. Authored text that carries a value (the attachment limit, a timeline edit preview's
+    differences and blockers, a stop that cannot move) is translated with `{placeholders}`: either
+    through `t()` or, for an English notice a route or plan returns, through a pattern in
+    `interfaceNotice` (`apps/web/lib/i18n/locale.ts`). Edit preview differences arrive as values, not
+    sentences. With no saved choice it follows the browser language (`zh*` opens in Chinese). The desktop sidebar and main content have an 8 px gutter.
     Trip amounts use one locale-aware formatter and the shared approximate rate table. Converted
     displays carry its as-of date; JPY has no decimals, other currencies have two. The trip's stated budget currency takes
     precedence over Settings. Planning and
-    guardrails keep AUD values. Provider-native fares retain their own currency.
+    guardrails keep AUD values. Provider-native fares retain their own currency, with that currency's
+    decimal places (`JPY 230`, `AUD 12.50`; `formatProviderAmount`), and are never converted.
   - **Connected accounts:** the Google, GitHub or Apple sign-ins linked through Clerk, with a button
     that opens Clerk to change them.
 - Signed out, settings are kept in this browser; signed in, the newer copy of browser and account

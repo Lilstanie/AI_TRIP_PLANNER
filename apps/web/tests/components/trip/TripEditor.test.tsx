@@ -17,6 +17,7 @@ function fixture() {
 const places = (plan: TripPlan): TripPlaces => ({
   activities: itineraryActivities(plan),
   markers: [],
+  visits: [],
   places: {},
   loading: false,
   destinations: [],
@@ -36,7 +37,9 @@ const response = (plan: TripPlan) =>
       plan: { ...plan, editVersion: 1 },
       baseVersion: 0,
       routes: [],
-      differences: ["Time changed"],
+      differences: [
+        { stop: "Museum", before: "10:00–11:00", after: "11:00–12:00", placeChanged: false },
+      ],
       blockers: [],
     }),
   );

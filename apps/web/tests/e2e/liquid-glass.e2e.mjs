@@ -34,11 +34,17 @@ async function open(browser, { width, height, scheme, video }) {
   const errors = [];
   page.on("console", (message) => message.type() === "error" && errors.push(message.text()));
   page.on("pageerror", (error) => errors.push(String(error)));
+  // Explicit no-match Places fixture: this UI walk never spends provider quota.
+  await page.route("**/api/places/search", (route) => route.fulfill({ json: { places: [] } }));
   await page.goto(BASE);
   await page.waitForSelector(".workspace-app");
   // Mock data: no provider requests and a deterministic plan.
   const live = page.getByRole("button", { name: /Live data/ });
-  if (await live.count()) await live.click();
+  if (await live.count()) {
+    if (width <= 520) await page.getByRole("tab", { name: "Mine", exact: true }).click();
+    await live.click();
+    if (width <= 520) await page.getByRole("tab", { name: "Chat", exact: true }).click();
+  }
   return { context, page, errors };
 }
 
@@ -147,10 +153,35 @@ async function desktop(browser, scheme) {
 async function map(browser, scheme) {
   const { context, page, errors } = await open(browser, { width: 1000, height: 800, scheme });
   const tag = `map-${scheme}`;
-  await page.goto(`${BASE}/debug/map`);
+  const response = await page.goto(`${BASE}/debug/map`);
+  if (response?.status() === 404) {
+    console.log(`skip ${tag}: debug map is intentionally unavailable in production`);
+    await context.close();
+    return;
+  }
   await page.waitForSelector(".trip-map-marker", { timeout: 30_000 }).catch(() => undefined);
   await settle(page, 2500);
   await shot(page, `${tag}-01-routes`);
+  // Only a missing browser key may skip the live checks; a key that fails to load the SDK must
+  // still fail "eight stops are marked" below.
+  if (
+    !process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY &&
+    !(await page.locator(".trip-map-marker").count()) &&
+    (await page.locator(".trip-map-fallback").isVisible())
+  ) {
+    check(
+      (await page.locator(".trip-map-fallback ol li").count()) === 8,
+      `${tag}: no-key fallback lists eight stops`,
+    );
+    check(await noSideScroll(page), `${tag}: fallback has no horizontal scroll`);
+    check(
+      !errors.length,
+      `${tag}: no console errors${errors.length ? `: ${errors.join(" | ")}` : ""}`,
+    );
+    console.log(`skip ${tag}: live tiles/marker/controls require a browser Maps key`);
+    await context.close();
+    return;
+  }
   check((await page.locator(".trip-map-marker").count()) === 8, `${tag}: eight stops are marked`);
   const controls = page.getByRole("group", { name: "Map controls" });
   const box = await controls.boundingBox();
@@ -178,17 +209,18 @@ async function phone(browser, scheme) {
   const tag = `phone-${scheme}`;
   await settle(page);
   await shot(page, `${tag}-01-chat`);
-  await page.getByRole("button", { name: "Map", exact: true }).click();
+  await page.getByRole("tab", { name: "Map", exact: true }).click();
   await settle(page, 600);
   await shot(page, `${tag}-02-map`);
-  await page.getByRole("button", { name: "Chat", exact: true }).click();
+  await page.getByRole("tab", { name: "Chat", exact: true }).click();
   await settle(page, 400);
-  await page.getByRole("button", { name: /^Who|^Travellers:/ }).click();
+  await page.locator(".phone-topbar__title-button").click();
+  await page.locator('.facts-sheet__row[data-fact="who"]').click();
   await settle(page, 600);
   await shot(page, `${tag}-03-who-sheet`);
   await page.keyboard.press("Escape");
   await settle(page, 400);
-  await page.getByRole("button", { name: "Open navigation" }).click();
+  await page.getByRole("tab", { name: "Mine", exact: true }).click();
   await settle(page, 600);
   await shot(page, `${tag}-04-navigation`);
   check(await noSideScroll(page), `${tag}: no horizontal page scroll`);

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { TripFactChips } from "../preferences/TripFactChips";
 import { ChatPanel } from "../chat/ChatPanel";
 import { TripEditor } from "../trip/TripEditor";
@@ -22,6 +22,13 @@ import { CurrencyNotice } from "../account/CurrencyNotice";
 import { LanguageToggle } from "./LanguageToggle";
 import { usePresence, useSegmentIndicator, viewTransition } from "../ui/motion";
 import { useLocale } from "../account/LocaleProvider";
+import { PhoneTabBar, phonePanelId } from "./PhoneTabBar";
+import { PhoneTripTitle } from "./PhoneTripTitle";
+import { PhoneMine } from "./PhoneMine";
+import { PhoneMapSheet } from "./PhoneMapSheet";
+import { usePhoneKeyboard } from "./usePhoneKeyboard";
+import { usePhoneTripUpdates } from "./usePhoneTripUpdates";
+import type { MobileView } from "./workspace-helpers";
 
 export function WorkspaceView({ model }: { model: WorkspaceController }) {
   const { t, notice: localizeNotice } = useLocale();
@@ -57,6 +64,7 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
     chatsOpen,
     navOpen,
     narrow,
+    phone,
     selectedActivity,
     mapRoutes,
     tripPlaces,
@@ -116,6 +124,21 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
     deleteChat,
   } = model;
   const userLocation = useUserLocation();
+  const [phoneMapDay, setPhoneMapDay] = useState<number>();
+  const [phoneMapFocusRequest, setPhoneMapFocusRequest] = useState(0);
+  const selectMapActivity = (id: string) => {
+    setSelectedActivity(id);
+    if (phone) setPhoneMapFocusRequest((request) => request + 1);
+  };
+  // A stop selected elsewhere (the Trip tab's itinerary) shows on its own day when Map opens.
+  const selectedDay = model.tripPlaces.activities.find(
+    (activity) => activity.id === model.selectedActivity,
+  )?.day;
+  useEffect(() => {
+    if (phone && selectedDay !== undefined) setPhoneMapDay(selectedDay);
+  }, [phone, selectedDay]);
+  const { keyboardOpen } = usePhoneKeyboard(phone);
+  const { tripUpdated } = usePhoneTripUpdates(model);
   const chatsButton = useRef<HTMLButtonElement>(null);
   const chatsSearch = useRef<HTMLInputElement>(null);
   const chatsPanel = useRef<HTMLDivElement>(null);
@@ -183,7 +206,20 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
       setPage("trips");
     });
 
-  const navDrawer = narrow && (
+  const selectView = (view: MobileView) =>
+    view !== mobileView && viewTransition(() => setMobileView(view), `to-${view}`);
+  // A phone tab's panel: labelled by its tab, and only the selected one is shown.
+  const phonePanel = (view: MobileView) =>
+    phone
+      ? {
+          id: phonePanelId(view),
+          role: "tabpanel",
+          "aria-labelledby": `phone-tab-${view}`,
+          hidden: mobileView !== view,
+        }
+      : {};
+
+  const navDrawer = narrow && !phone && (
     <Drawer
       side="left"
       open={navOpen}
@@ -211,7 +247,7 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
       </WorkspaceSidebar>
     </Drawer>
   );
-  const menuButton = narrow && (
+  const menuButton = narrow && !phone && (
     <button
       ref={navToggle}
       type="button"
@@ -229,11 +265,77 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
     </button>
   );
 
+  const tripContent = (
+    <>
+      {plan ? (
+        <TripPanel
+          plan={plan}
+          tab={tripTab}
+          onTab={setTripTab}
+          onReview={() => setDialog("review")}
+          onEdit={edit}
+          places={
+            <TripPlaceList
+              tripPlaces={tripPlaces}
+              startDate={plan.brief.dates[0]}
+              selected={selectedActivity}
+              onSelect={setSelectedActivity}
+              plan={plan}
+              disabled={busy || editPending}
+              onApply={(next) => {
+                setPreviousTotal(plan.estTotal);
+                setPlan(next);
+              }}
+              onAdjust={(id) => {
+                setSelectedActivity(id);
+                setTripTab("timeline");
+              }}
+            />
+          }
+          timeline={
+            <TripEditor
+              plan={plan}
+              disabled={busy}
+              onPending={setEditPending}
+              tripPlaces={tripPlaces}
+              selected={selectedActivity}
+              onSelect={setSelectedActivity}
+              onRoutesChange={setMapRoutes}
+              onApply={(next) => {
+                setPreviousTotal(plan.estTotal);
+                setPlan(next);
+              }}
+            />
+          }
+        />
+      ) : (
+        <div className="trip-drawer-empty">
+          <p>
+            {phone
+              ? t("No trip yet. Plan one in Chat and your itinerary and budget will appear here.")
+              : t(
+                  "No trip yet. Describe where you want to go in the chat, or add your trip details. Your itinerary and budget will appear here.",
+                )}
+          </p>
+          {phone && (
+            <button type="button" onClick={() => selectView("chat")}>
+              {t("Plan in Chat")}
+            </button>
+          )}
+          <button type="button" onClick={edit}>
+            {t("Add trip details")}
+          </button>
+        </div>
+      )}
+    </>
+  );
+
   return (
     <div
       className="workspace-app"
       data-sidebar-collapsed={!narrow && sidebarCollapsed}
       data-narrow={narrow}
+      data-phone={phone || undefined}
       style={
         !narrow && sidebarWidth !== undefined
           ? ({ "--sidebar-width": `${sidebarWidth}px` } as CSSProperties)
@@ -302,9 +404,13 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
         <div className="workspace-main">
           <header className="workspace-topbar">
             {menuButton}
-            <div className="topbar-summary">
-              <h1 className="topbar-title">{plan ? plan.brief.destination : t("New trip")}</h1>
-            </div>
+            {phone ? (
+              <PhoneTripTitle model={model} />
+            ) : (
+              <div className="topbar-summary">
+                <h1 className="topbar-title">{plan ? plan.brief.destination : t("New trip")}</h1>
+              </div>
+            )}
             <TripFactChips
               draft={draft}
               plan={plan}
@@ -318,7 +424,7 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
               preferencesChip={preferencesToggle}
               suggestPlaces={dataMode.mode === "live" && !!dataMode.providers?.maps}
             />
-            {narrow && (
+            {narrow && !phone && (
               <div
                 ref={viewSwitch}
                 className="topbar-views segmented"
@@ -330,49 +436,49 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
                     key={view}
                     type="button"
                     aria-pressed={mobileView === view}
-                    onClick={() =>
-                      view !== mobileView && viewTransition(() => setMobileView(view), `to-${view}`)
-                    }
+                    onClick={() => selectView(view)}
                   >
                     {t(view === "chat" ? "Chat" : "Map")}
                   </button>
                 ))}
               </div>
             )}
-            <div className="topbar-actions">
-              <div
-                className="topbar-control-cluster"
-                role="group"
-                aria-label={t("Data and language controls")}
-              >
-                <DataModeToggle
-                  mode={dataMode.mode}
-                  providers={dataMode.providers}
-                  onChange={dataMode.choose}
-                  disabled={busy}
-                />
-                <LanguageToggle />
+            {!phone && (
+              <div className="topbar-actions">
+                <div
+                  className="topbar-control-cluster"
+                  role="group"
+                  aria-label={t("Data and language controls")}
+                >
+                  <DataModeToggle
+                    mode={dataMode.mode}
+                    providers={dataMode.providers}
+                    onChange={dataMode.choose}
+                    disabled={busy}
+                  />
+                  <LanguageToggle />
+                </div>
+                <button
+                  ref={tripToggle}
+                  type="button"
+                  className="topbar-button trip-trigger"
+                  aria-label={t("Open your trip")}
+                  aria-describedby={tripStops ? "trip-trigger-count" : undefined}
+                  aria-expanded={tripOpen}
+                  aria-haspopup="dialog"
+                  onClick={() => (tripOpen ? closeTrip() : openTrip())}
+                >
+                  <RouteIcon />
+                  <span className="topbar-button__label">{t("Trip")}</span>
+                  {tripStops > 0 && (
+                    <span className="trip-trigger__count" id="trip-trigger-count">
+                      {tripStops}
+                      <span className="sr-only"> {t(tripStops === 1 ? "stop" : "stops")}</span>
+                    </span>
+                  )}
+                </button>
               </div>
-              <button
-                ref={tripToggle}
-                type="button"
-                className="topbar-button trip-trigger"
-                aria-label={t("Open your trip")}
-                aria-describedby={tripStops ? "trip-trigger-count" : undefined}
-                aria-expanded={tripOpen}
-                aria-haspopup="dialog"
-                onClick={() => (tripOpen ? closeTrip() : openTrip())}
-              >
-                <RouteIcon />
-                <span className="topbar-button__label">{t("Trip")}</span>
-                {tripStops > 0 && (
-                  <span className="trip-trigger__count" id="trip-trigger-count">
-                    {tripStops}
-                    <span className="sr-only"> {t(tripStops === 1 ? "stop" : "stops")}</span>
-                  </span>
-                )}
-              </button>
-            </div>
+            )}
           </header>
           <div className="workspace-notices">
             <CurrencyNotice />
@@ -423,7 +529,7 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
             data-trip-open={tripOpen}
             data-mobile-view={mobileView}
           >
-            <div className="workspace-panel workspace-panel--chat">
+            <div className="workspace-panel workspace-panel--chat" {...phonePanel("chat")}>
               <ChatPanel
                 plan={plan}
                 messages={messages}
@@ -448,18 +554,45 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
               />
             </div>
             {!narrow && <SplitResizer share={chatShare} onChange={setChatShare} />}
-            <div className="workspace-panel workspace-panel--map">
+            <div className="workspace-panel workspace-panel--map" {...phonePanel("map")}>
               <TripMapCanvas
                 destination={plan?.brief.destination}
                 viewKey={plan ? `${plan.tripId}|${plan.brief.destination}` : undefined}
                 tripPlaces={tripPlaces}
                 selectedActivity={selectedActivity}
-                onSelectActivity={setSelectedActivity}
+                onSelectActivity={selectMapActivity}
                 routes={mapRoutes}
+                focusedDay={phone ? phoneMapDay : undefined}
+                focusRequest={phone ? phoneMapFocusRequest : undefined}
+                phone={phone}
                 showPhotos={dataMode.mode === "live" && !!dataMode.providers?.maps}
                 userLocation={userLocation}
               />
+              {phone && (
+                <PhoneMapSheet
+                  model={model}
+                  day={phoneMapDay}
+                  onDayChange={setPhoneMapDay}
+                  onSelectStop={selectMapActivity}
+                />
+              )}
             </div>
+            {phone && (
+              <div className="workspace-panel workspace-panel--trip" {...phonePanel("trip")}>
+                {plan && (
+                  <div className="phone-trip__head">
+                    <h2 className="phone-trip__title">{t("Your trip")}</h2>
+                    <span className="trip__meta">{t(tripStatus(plan))}</span>
+                  </div>
+                )}
+                {tripContent}
+              </div>
+            )}
+            {phone && (
+              <div className="workspace-panel workspace-panel--mine" {...phonePanel("mine")}>
+                <PhoneMine model={model} />
+              </div>
+            )}
             {backdrop.value && (
               <button
                 type="button"
@@ -477,71 +610,31 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
               />
             )}
             {navDrawer}
-            <Drawer
-              side="right"
-              open={tripOpen}
-              title={t("Your trip")}
-              closeLabel={t("Close your trip")}
-              onClose={closeTrip}
-              returnFocus={tripToggle}
-              className="workspace-drawer workspace-drawer--trip"
-              meta={plan && <span className="trip__meta">{t(tripStatus(plan))}</span>}
-            >
-              {plan ? (
-                <TripPanel
-                  plan={plan}
-                  tab={tripTab}
-                  onTab={setTripTab}
-                  onReview={() => setDialog("review")}
-                  onEdit={edit}
-                  places={
-                    <TripPlaceList
-                      tripPlaces={tripPlaces}
-                      startDate={plan.brief.dates[0]}
-                      selected={selectedActivity}
-                      onSelect={setSelectedActivity}
-                      plan={plan}
-                      disabled={busy || editPending}
-                      onApply={(next) => {
-                        setPreviousTotal(plan.estTotal);
-                        setPlan(next);
-                      }}
-                      onAdjust={(id) => {
-                        setSelectedActivity(id);
-                        setTripTab("timeline");
-                      }}
-                    />
-                  }
-                  timeline={
-                    <TripEditor
-                      plan={plan}
-                      disabled={busy}
-                      onPending={setEditPending}
-                      tripPlaces={tripPlaces}
-                      selected={selectedActivity}
-                      onSelect={setSelectedActivity}
-                      onRoutesChange={setMapRoutes}
-                      onApply={(next) => {
-                        setPreviousTotal(plan.estTotal);
-                        setPlan(next);
-                      }}
-                    />
-                  }
-                />
-              ) : (
-                <div className="trip-drawer-empty">
-                  <p>
-                    {t(
-                      "No trip yet. Describe where you want to go in the chat, or add your trip details. Your itinerary and budget will appear here.",
-                    )}
-                  </p>
-                  <button type="button" onClick={edit}>
-                    {t("Add trip details")}
-                  </button>
-                </div>
-              )}
-            </Drawer>
+            {!phone && (
+              <Drawer
+                side="right"
+                open={tripOpen}
+                title={t("Your trip")}
+                closeLabel={t("Close your trip")}
+                onClose={closeTrip}
+                returnFocus={tripToggle}
+                className="workspace-drawer workspace-drawer--trip"
+                meta={plan && <span className="trip__meta">{t(tripStatus(plan))}</span>}
+              >
+                {tripContent}
+              </Drawer>
+            )}
           </main>
+          {phone && (
+            <PhoneTabBar
+              view={mobileView}
+              onSelect={selectView}
+              hidden={keyboardOpen}
+              badges={{
+                trip: tripUpdated && <span className="phone-tabbar__dot" aria-hidden="true" />,
+              }}
+            />
+          )}
         </div>
       )}
       <WorkspaceDialogs model={model} />

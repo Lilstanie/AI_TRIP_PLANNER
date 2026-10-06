@@ -22,14 +22,17 @@ try {
     const page = await context.newPage();
     const errors = [];
     page.on("pageerror", (error) => errors.push(String(error)));
+    // Explicit no-match Places fixture: this UI walk never spends provider quota.
+    await page.route("**/api/places/search", (route) => route.fulfill({ json: { places: [] } }));
     await page.goto(process.env.BASE_URL ?? "http://localhost:3000");
     await page.locator(".workspace-app").waitFor();
     await page.locator(".chat-empty__suggestions button").first().click();
     await page.locator(".msg-item--agent .msg-item__body").first().waitFor({ timeout: 180000 });
     const setCurrency = async (currency) => {
-      if (width === 390)
-        await page.getByRole("button", { name: "Open navigation", exact: true }).click();
-      await page.locator('button[aria-label^="Account settings:"]:visible').first().click();
+      if (width <= 520) {
+        await page.getByRole("tab", { name: "Mine", exact: true }).click();
+        await page.locator(".phone-mine__settings").click();
+      } else await page.locator('button[aria-label^="Account settings:"]:visible').first().click();
       const dialog = page.getByRole("dialog");
       await dialog.getByRole("tab", { name: "Language & region" }).click();
       await dialog.getByRole("button", { name: "Change Display currency" }).click();
@@ -41,7 +44,9 @@ try {
     };
     for (const currency of ["CNY", "USD", "JPY"]) {
       await setCurrency(currency);
-      await page.getByRole("button", { name: "Open your trip" }).click();
+      if (width <= 520)
+        await page.locator(".phone-tabbar").getByRole("tab", { name: /^Trip/ }).click();
+      else await page.getByRole("button", { name: "Open your trip" }).click();
       const total = page.locator(".trip__budget strong");
       const plan = await page.evaluate(
         () => JSON.parse(localStorage.getItem("trip-workspace-v1")).plan,
@@ -64,7 +69,11 @@ try {
         (await total.textContent()) === expected(plan.estTotal),
         `${width}: numeric total uses shared ${currency} direction`,
       );
-      const chip = page.getByRole("button", { name: /^Budget:/ });
+      if (width <= 520) await page.locator(".phone-topbar__title-button").click();
+      const chip =
+        width <= 520
+          ? page.locator('.facts-sheet__row[data-fact="budget"]')
+          : page.getByRole("button", { name: /^Budget:/ });
       check(
         (await chip.textContent()).includes(expected(plan.brief.budgetTotal)),
         `${width}: original AUD budget converts to expected ${currency} number`,
@@ -73,6 +82,10 @@ try {
         (await chip.textContent()).includes(currency),
         `${width}: budget chip uses ${currency}`,
       );
+      if (width <= 520) {
+        await page.keyboard.press("Escape");
+        await page.locator(".facts-sheet").waitFor({ state: "detached" });
+      }
       check(
         await page.locator(".trip-panel .currency-notice").isVisible(),
         `${width}: dated estimate notice visible`,
