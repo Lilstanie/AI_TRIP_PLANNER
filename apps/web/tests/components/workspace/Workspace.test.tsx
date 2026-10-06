@@ -129,9 +129,11 @@ describe("Workspace interactions", () => {
     expect(trip.getAttribute("aria-hidden")).toBe("true");
     expect(document.activeElement).toBe(trigger);
     await waitFor(() => {
-      const catalog = parseCatalog(localStorage.getItem(CATALOG_KEY));
-      expect(catalog.layout.preferences.open).toBe(false);
-      expect(catalog.layout.trip.open).toBe(false);
+      // A reload starts with every panel closed, so whether one is open is never stored.
+      const stored = JSON.parse(localStorage.getItem(CATALOG_KEY)!);
+      expect(stored.layout.view).toBe("chat");
+      expect(stored.layout.preferences).not.toHaveProperty("open");
+      expect(stored.layout.trip).not.toHaveProperty("open");
     });
   });
   it("keeps the Trip drawer and a chip editor apart and returns focus from Preferences", () => {
