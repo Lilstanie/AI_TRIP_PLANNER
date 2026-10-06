@@ -653,7 +653,8 @@ the account section explains that everything stays in this browser.
     Trip amounts use one locale-aware formatter and the shared approximate rate table. Converted
     displays carry its as-of date; JPY has no decimals, other currencies have two. The trip's stated budget currency takes
     precedence over Settings. Planning and
-    guardrails keep AUD values. Provider-native fares retain their own currency.
+    guardrails keep AUD values. Provider-native fares retain their own currency, with that currency's
+    decimal places (`JPY 230`, `AUD 12.50`; `formatProviderAmount`), and are never converted.
   - **Connected accounts:** the Google, GitHub or Apple sign-ins linked through Clerk, with a button
     that opens Clerk to change them.
 - Signed out, settings are kept in this browser; signed in, the newer copy of browser and account
