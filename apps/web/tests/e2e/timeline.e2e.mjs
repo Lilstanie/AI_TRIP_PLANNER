@@ -4,11 +4,20 @@
 // own currency's decimal places (JPY 230, KRW 1,400, AUD 12.50). Screenshots at desktop and phone widths,
 // light and dark, land under output/playwright/timeline/<label>/ as a repeatable artifact.
 //
+// Stop numbers and visiting order (#196): with a plan whose Day 2 start times disagree with plan
+// order and whose Day 2 revisits Day 1's first place, the failures this checks are:
+// - a view numbers each day from 1, or counts plan order instead of visiting order (#185, #186);
+// - the revisited place gets a new number instead of keeping its first one;
+// - the timeline, the Trip drawer list, the map (fallback list and popup) and the phone map sheet
+//   disagree on a stop's number or on the order of a day's stops;
+// - Move later on the first Day 2 stop does not swap it with the stop shown below it.
+// The numbers each view showed are written to numbers-summary.json beside the screenshots.
+//
 //   pnpm --filter @trip/web dev            # in another terminal; a map key is optional (see the 502 note below)
 //   [PLAYWRIGHT=<path to playwright>] [LABEL=after] [SHOTS_ONLY=1] node apps/web/tests/e2e/timeline.e2e.mjs
 //
 // SHOTS_ONLY=1 skips the interaction checks, for capturing a baseline of an older build.
-import { mkdirSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
 
@@ -27,13 +36,14 @@ const check = (ok, message) => {
 };
 const settle = (page, ms = 500) => page.waitForTimeout(ms);
 
-async function openTimeline(browser, { width, height, scheme }) {
+async function openTimeline(browser, { width, height, scheme, setup }) {
   const context = await browser.newContext({
     viewport: { width, height },
     colorScheme: scheme,
     deviceScaleFactor: 2,
   });
   const page = await context.newPage();
+  await setup?.(page);
   const errors = [];
   // Without a map key the place search answers 502 ("other upstream failure"), and the browser logs that as a
   // console error with no URL. That one case is expected; any other failed request is still an error.
@@ -400,11 +410,307 @@ async function fareDecimals(browser) {
   await context.close();
 }
 
+// ---- Stop numbers and visiting order (#196) ----
+// Day 1: Alpha 12:00, Bravo 15:00 (after the mock arrival). Day 2 in plan order: Charlie 15:00, Alpha 09:00 (a revisit),
+// Delta 11:00. Visiting order puts Day 2 as Alpha, Delta, Charlie; trip-wide numbers are one per
+// place in visiting order, and the revisit keeps Alpha's 1.
+const NUMBERED = [
+  { id: "e2e-alpha-1", place: "Alpha Museum", day: 1, start: "12:00", end: "13:00" },
+  { id: "e2e-bravo", place: "Bravo Gardens", day: 1, start: "15:00", end: "16:00" },
+  { id: "e2e-charlie", place: "Charlie Gallery", day: 2, start: "15:00", end: "16:00" },
+  { id: "e2e-alpha-2", place: "Alpha Museum", day: 2, start: "09:00", end: "10:00" },
+  { id: "e2e-delta", place: "Delta Market", day: 2, start: "11:00", end: "12:00" },
+];
+const NUMBER = { "Alpha Museum": 1, "Bravo Gardens": 2, "Delta Market": 3, "Charlie Gallery": 4 };
+const DAY_2 = ["Alpha Museum", "Delta Market", "Charlie Gallery"];
+const placeIdOf = (name) => `e2e-place-${name.split(" ")[0].toLowerCase()}`;
+const shown = (rows) => rows.map(({ number, name }) => `${number} ${name}`).join(", ");
+const expectedDay2 = shown(DAY_2.map((name) => ({ number: NUMBER[name], name })));
+
+/** Real planning, then this file's itinerary; place lookups answer from fixed fixtures. */
+async function numberedPlan(page) {
+  await page.route("**/api/places/search", (route) => route.fulfill({ json: { places: [] } }));
+  await page.route("**/api/places/details", async (route) => {
+    const { placeId } = route.request().postDataJSON();
+    const index = Object.keys(NUMBER).findIndex((name) => placeIdOf(name) === placeId);
+    const name = Object.keys(NUMBER)[index] ?? placeId;
+    await route.fulfill({
+      json: {
+        place: {
+          id: placeId,
+          displayName: { text: name },
+          formattedAddress: `${name}, Sydney`,
+          location: { latitude: -33.86 + index * 0.004, longitude: 151.2 + index * 0.004 },
+        },
+      },
+    });
+  });
+  await page.route("**/api/chat", async (route) => {
+    const response = await route.fetch();
+    const body = (await response.text())
+      .split("\n")
+      .map((line) => {
+        if (!line.trim()) return line;
+        const frame = JSON.parse(line);
+        const section = frame.response?.plan?.sections.find((s) => s.id === "itinerary");
+        if (!section?.proposal) return line;
+        const items = section.proposal.items;
+        const template = items.find((item) => item.kind === "activity");
+        const activities = NUMBERED.map(({ id, place, day, start, end }) => {
+          const item = { ...structuredClone(template), id, day, startTime: start, endTime: end };
+          for (const key of ["arriveBy", "note", "booked", "conflictsWith"]) delete item[key];
+          return { ...item, detail: place, location: place, placeId: placeIdOf(place) };
+        });
+        section.proposal.items = [...items.filter((item) => item.kind !== "activity"), ...activities];
+        return JSON.stringify(frame);
+      })
+      .join("\n");
+    await route.fulfill({ response, body });
+  });
+}
+
+/** Number and name of each row, with screen-reader-only text removed. */
+const readRows = (rows, numberSelector, nameSelector) =>
+  rows.evaluateAll(
+    (nodes, [numberSel, nameSel]) =>
+      nodes.map((node) => {
+        const name = node.querySelector(nameSel)?.cloneNode(true);
+        name?.querySelectorAll(".sr-only, small").forEach((hidden) => hidden.remove());
+        return {
+          number: node.querySelector(numberSel)?.textContent.trim() ?? "",
+          name: name?.textContent.trim() ?? "",
+        };
+      }),
+    [numberSelector, nameSelector],
+  );
+
+async function stopNumbers(browser) {
+  const summary = {};
+  // Desktop: the timeline, the Trip drawer list and the map agree on Day 2.
+  {
+    const { context, page, errors } = await openTimeline(browser, {
+      width: 1440,
+      height: 1000,
+      scheme: "light",
+      setup: numberedPlan,
+    });
+    const timeline = page.getByRole("region", { name: "Trip timeline" });
+    const days = timeline.getByRole("tab");
+    const timelineDay = async (index) => {
+      await days.nth(index).click();
+      await settle(page);
+      return readRows(
+        timeline.locator(".timeline-stop"),
+        ".timeline-stop__node",
+        ".timeline-stop__name",
+      );
+    };
+    // Place lookups finish after the first render; wait until every stop has its number.
+    await page
+      .waitForFunction(
+        () =>
+          [...document.querySelectorAll(".timeline-stop__node")].every((node) =>
+            node.textContent.trim(),
+          ),
+        undefined,
+        { timeout: 15_000 },
+      )
+      .catch(() => undefined);
+    const day1 = await timelineDay(0);
+    summary.desktopTimelineDay1 = shown(day1);
+    check(
+      shown(day1) === "1 Alpha Museum, 2 Bravo Gardens",
+      `numbers: timeline Day 1 reads ${shown(day1)}`,
+    );
+    const day2 = await timelineDay(1);
+    summary.desktopTimelineDay2 = shown(day2);
+    check(
+      shown(day2) === expectedDay2,
+      `numbers: timeline Day 2 is in visiting order with trip-wide numbers and the revisit keeps 1 (${shown(day2)})`,
+    );
+    await page.screenshot({ path: `${OUT}/numbers-01-timeline-day2.png` });
+
+    // The Trip drawer's Itinerary list.
+    const drawer = page.locator(".workspace-drawer--trip");
+    await drawer.getByRole("tab", { name: "Itinerary" }).click();
+    await settle(page, 500);
+    const listDay = (day) =>
+      readRows(
+        drawer
+          .getByRole("list", { name: new RegExp(`^Stops, Day ${day}\\b`) })
+          .locator(".trip-places__item"),
+        ".trip-places__order",
+        ".trip-places__name",
+      );
+    const list2 = await listDay(2);
+    summary.desktopTripListDay2 = shown(list2);
+    check(
+      shown(list2) === expectedDay2,
+      `numbers: Trip drawer Day 2 matches the timeline (${shown(list2)})`,
+    );
+    summary.desktopTripListDay1 = shown(await listDay(1));
+    check(
+      summary.desktopTripListDay1 === "1 Alpha Museum, 2 Bravo Gardens",
+      `numbers: Trip drawer Day 1 matches the timeline (${summary.desktopTripListDay1})`,
+    );
+    await drawer.screenshot({ path: `${OUT}/numbers-02-trip-list.png` });
+
+    // The map: without a map key its fallback lists the markers in order, and each place's popup
+    // names its stop number. With a key the markers are drawn on a canvas this script cannot read.
+    // The Trip drawer is modal at this width, so it closes while the map is read.
+    await page.keyboard.press("Escape");
+    await drawer.waitFor({ state: "hidden" });
+    await settle(page, 400);
+    const fallback = page.locator(".trip-map-fallback ol button");
+    if (await fallback.count()) {
+      const names = (await fallback.allInnerTexts()).map((text) => text.trim());
+      const orders = {
+        4: ["Alpha Museum", "Bravo Gardens", "Delta Market", "Charlie Gallery"],
+        3: DAY_2,
+        2: ["Alpha Museum", "Bravo Gardens"],
+      };
+      check(
+        names.join(",") === (orders[names.length] ?? []).join(","),
+        `numbers: map markers are in visiting order (${names.join(", ")})`,
+      );
+      const metas = [];
+      for (let index = 0; index < names.length; index += 1) {
+        await fallback.nth(index).click();
+        const popup = page.locator(".trip-map-popup");
+        await popup.waitFor({ timeout: 5_000 });
+        metas.push(`${await popup.locator(".place-preview__meta").innerText()} ${names[index]}`);
+        await page.keyboard.press("Escape");
+        await settle(page, 200);
+      }
+      summary.desktopMapPopups = metas;
+      check(
+        metas.every((meta, index) => meta.startsWith(`Stop ${NUMBER[names[index]]} `)),
+        `numbers: each map marker carries its trip-wide stop number (${metas.join(" | ")})`,
+      );
+    } else console.log("skip  map marker numbers: the map drew real markers (a map key is set)");
+
+    // Move later on the first Day 2 stop (Alpha) moves it past the stop shown below it (Delta).
+    // From the timeline, the preview endpoint re-times the day from real routes, which the fixture
+    // places do not have, so this checks the position the timeline asks for: just after Delta in
+    // plan order (Charlie, Delta), not after the second stop of the plan's day.
+    let moveRequest;
+    await page.route("**/api/trip/preview-edit", async (route) => {
+      moveRequest = route.request().postDataJSON().operation;
+      await route.continue();
+    });
+    await page.getByRole("button", { name: "Open your trip" }).click();
+    await settle(page, 700);
+    await drawer.getByRole("tab", { name: /Timeline/ }).click();
+    await settle(page, 500);
+    await days.nth(1).click();
+    await settle(page);
+    await timeline.locator(".timeline-stop").first().locator(".timeline-stop__main").click();
+    await settle(page);
+    await timeline.getByRole("button", { name: "Move later", exact: true }).click();
+    const preview = page.getByRole("region", { name: "Edit preview" });
+    await preview.waitFor({ timeout: 30_000 });
+    summary.desktopTimelineMoveLater = moveRequest;
+    check(
+      moveRequest?.id === "e2e-alpha-2" && moveRequest.day === 2 && moveRequest.index === 2,
+      `numbers: timeline Move later asks for the place after Delta (${JSON.stringify(moveRequest)})`,
+    );
+    await preview.getByRole("button", { name: /Cancel|Close/ }).first().click();
+    await settle(page, 400);
+
+    // From the Trip list the swap is applied in the browser: every view then shows Delta first,
+    // and each place keeps its number.
+    await drawer.getByRole("tab", { name: "Itinerary" }).click();
+    await settle(page, 500);
+    const day2List = drawer
+      .getByRole("list", { name: /^Stops, Day 2\b/ })
+      .locator(".trip-places__item");
+    await day2List.first().getByRole("button", { name: /^Actions for / }).click();
+    await drawer.getByRole("menuitem", { name: "Move later", exact: true }).click();
+    await settle(page, 600);
+    const swapped = "3 Delta Market, 1 Alpha Museum, 4 Charlie Gallery";
+    summary.desktopTripListDay2AfterMoveLater = shown(await listDay(2));
+    check(
+      summary.desktopTripListDay2AfterMoveLater === swapped,
+      `numbers: Trip list Move later swaps Alpha with Delta below it (${summary.desktopTripListDay2AfterMoveLater})`,
+    );
+    await drawer.getByRole("tab", { name: /Timeline/ }).click();
+    await settle(page, 500);
+    const afterMove = await timelineDay(1);
+    summary.desktopTimelineDay2AfterMoveLater = shown(afterMove);
+    check(
+      shown(afterMove) === swapped,
+      `numbers: the timeline follows the swap (${shown(afterMove)})`,
+    );
+    await page.screenshot({ path: `${OUT}/numbers-03-move-later.png` });
+    const unexpected = errors.filter((text) => !/status of 502/.test(text));
+    check(
+      !unexpected.length,
+      `numbers desktop: no console errors${unexpected.length ? `: ${unexpected.join(" | ")}` : ""}`,
+    );
+    await context.close();
+  }
+
+  // Phone: the timeline and the Map tab's stops sheet agree on Day 2.
+  {
+    const { context, page, errors } = await openTimeline(browser, {
+      width: 390,
+      height: 844,
+      scheme: "light",
+      setup: numberedPlan,
+    });
+    const timeline = page.getByRole("region", { name: "Trip timeline" });
+    await page
+      .waitForFunction(
+        () =>
+          [...document.querySelectorAll(".timeline-stop__node")].every((node) =>
+            node.textContent.trim(),
+          ),
+        undefined,
+        { timeout: 15_000 },
+      )
+      .catch(() => undefined);
+    await timeline.getByRole("tab").nth(1).click();
+    await settle(page);
+    const day2 = await readRows(
+      timeline.locator(".timeline-stop"),
+      ".timeline-stop__node",
+      ".timeline-stop__name",
+    );
+    summary.phoneTimelineDay2 = shown(day2);
+    check(shown(day2) === expectedDay2, `numbers phone: timeline Day 2 (${shown(day2)})`);
+    await page.getByRole("tab", { name: /^Map/ }).click();
+    await settle(page, 700);
+    const sheet = page.locator(".phone-map-sheet");
+    await sheet.getByRole("button", { name: "Resize day stops" }).press("End");
+    await sheet.locator(".phone-map-sheet__days button").nth(1).click();
+    await settle(page);
+    const stops = await readRows(
+      sheet.locator(".phone-map-sheet__stops button"),
+      ".phone-map-sheet__number",
+      ".phone-map-sheet__number + span",
+    );
+    summary.phoneMapSheetDay2 = shown(stops);
+    check(
+      shown(stops) === expectedDay2,
+      `numbers phone: map sheet Day 2 matches the timeline (${shown(stops)})`,
+    );
+    await page.screenshot({ path: `${OUT}/numbers-04-phone-map-day2.png` });
+    const unexpected = errors.filter((text) => !/status of 502/.test(text));
+    check(
+      !unexpected.length,
+      `numbers phone: no console errors${unexpected.length ? `: ${unexpected.join(" | ")}` : ""}`,
+    );
+    await context.close();
+  }
+  writeFileSync(`${OUT}/numbers-summary.json`, JSON.stringify(summary, null, 2));
+}
+
 const browser = await chromium.launch({ channel: process.env.CHANNEL });
 try {
   await shots(browser, 1440, 1000, "desktop");
   await shots(browser, 390, 844, "phone");
   if (!SHOTS_ONLY) {
+    await stopNumbers(browser);
     await fareDecimals(browser);
     await interactions(browser);
   }
