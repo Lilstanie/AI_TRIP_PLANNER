@@ -205,16 +205,20 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     so switching between unchanged saved trips does not create a new notification.
   - Mine contains search, New chat, New trip, Trips/Calendar, the chats list and Settings & account.
     Search filters chats and trips; opening or starting either selects Chat. Each chat has a visible
-    Rename/Delete row menu on touch. Data mode and interface language live here.
+    Rename/Delete row menu on touch. Data mode and interface language live here. Narrowing the
+    window to phone width while Your trips is open continues in Mine, so the tab bar stays available.
   - Map fills the space between the bars. Its day-stops sheet has collapsed, half and full heights,
     selected by dragging or using its handle with pointer or keyboard. Changing day filters the map's
-    markers and routes; selecting a stop focuses it. Without a Maps key the sheet and stops still
+    markers and routes to that day's stops, so a place visited on several days appears on each of
+    them with its trip-wide number; selecting a stop, in the sheet or on the map, focuses that day's
+    visit. Without a Maps key the sheet and stops still
     work, while the map explains its unavailable state. Place details open in a bottom sheet; desktop
     keeps its popup. The 44 px map controls stay above the stops sheet, and panning does not scroll
     the page.
   - With the composer focused and the visual viewport shortened by the keyboard, the shell follows
-    that viewport, keeps the latest message visible and hides the tab bar. Closing the keyboard or
-    blurring restores it. Browser Back closes the active sheet or editor before leaving the workspace.
+    that viewport, keeps the latest message visible and hides the tab bar. A focused trip-fact editor
+    or stop editor field also hides the tab bar; the fact sheet rests on the keyboard, and the field
+    and its Save button stay in view. Closing the keyboard or blurring restores it. Browser Back closes the active sheet or editor before leaving the workspace.
   - New labels use the English/Chinese dictionary and motion respects reduced-motion preferences.
     Browser evidence is produced by `phone-shell.e2e.mjs` and its Mine, Map and state companion walks
     under `apps/web/tests/e2e/`. Real installed-app safe areas and keyboard behavior still require the
@@ -649,11 +653,16 @@ the account section explains that everything stays in this browser.
     The top-bar language switch sits beside Mock data and updates the same saved language setting.
     Authored chat controls, timeline and proposal labels, settings, notices, dialogs, accessible
     names and dates follow it. Traveller text, agent-produced content and provider errors are not
-    translated. With no saved choice it follows the browser language (`zh*` opens in Chinese). The desktop sidebar and main content have an 8 px gutter.
+    translated. Authored text that carries a value (the attachment limit, a timeline edit preview's
+    differences and blockers, a stop that cannot move) is translated with `{placeholders}`: either
+    through `t()` or, for an English notice a route or plan returns, through a pattern in
+    `interfaceNotice` (`apps/web/lib/i18n/locale.ts`). Edit preview differences arrive as values, not
+    sentences. With no saved choice it follows the browser language (`zh*` opens in Chinese). The desktop sidebar and main content have an 8 px gutter.
     Trip amounts use one locale-aware formatter and the shared approximate rate table. Converted
     displays carry its as-of date; JPY has no decimals, other currencies have two. The trip's stated budget currency takes
     precedence over Settings. Planning and
-    guardrails keep AUD values. Provider-native fares retain their own currency.
+    guardrails keep AUD values. Provider-native fares retain their own currency, with that currency's
+    decimal places (`JPY 230`, `AUD 12.50`; `formatProviderAmount`), and are never converted.
   - **Connected accounts:** the Google, GitHub or Apple sign-ins linked through Clerk, with a button
     that opens Clerk to change them.
 - Signed out, settings are kept in this browser; signed in, the newer copy of browser and account

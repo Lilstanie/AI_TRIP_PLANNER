@@ -13,8 +13,8 @@ behavioral test and leave a repeatable artifact. This is guidance: check what th
 
 Start the `web` configuration from `.claude/launch.json` (`pnpm --filter @trip/web dev`, port 3000).
 If a production build is running at the same time, start dev with `NEXT_DIST_DIR=.next-dev`.
-Use mock data unless the change concerns live providers; the top-bar toggle switches per request, so
-you can check both without redeploying.
+Use mock data unless the change concerns live providers. The data-mode toggle switches per request:
+use the top bar, or Mine on branches with the phone shell, to check both without redeploying.
 
 Accounts are optional. With `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` set, anonymous page navigation is
 redirected to `/sign-in` before the workspace renders, and signing in goes through Clerk's hosted
@@ -26,6 +26,10 @@ workspace in a script, run the dev server without the Clerk keys, which is the s
 
 - Reach the changed UI the way a user would, including one example trip from the blank chat.
 - Check the states the change touches: empty, loading, error, degraded source badges, long text.
+- Switch the interface to 中文 and look again: use the top-bar language button, Settings → Language
+  & region, or Mine on a phone with the phone shell. Check wrapping and untranslated English labels.
+  When the change shows money, also pick a non-AUD display currency in Settings (JPY has no decimals).
+  `ui-language.e2e.mjs` and `display-currency.e2e.mjs` cover the existing paths.
 - Keyboard: Tab order, visible focus, Escape closes dialogs and returns focus to the trigger.
 - Watch the browser console for errors and React warnings.
 - What "right" looks like is owned by [better-accessibility](../better-accessibility/SKILL.md),
@@ -47,6 +51,27 @@ For a complex path, a script under `apps/web/tests/e2e/` does steps 2 and 3 repe
 that covers your change or add one, following
 [Testing approach](../../../docs/development.md#testing-approach). Motion changes also need the
 reduced-motion state, as in `thinking-orb.e2e.mjs`.
+
+On branches containing [the phone shell](https://github.com/Lilstanie/AI_TRIP_PLANNER/pull/183),
+also check the transitions the change touches:
+
+- Cross the 520/521 px boundary with a workspace tab, Your trips or an overlay open. Navigation and
+  the selected content remain reachable.
+- Open controls through Chat, Map, Trip and Mine. Browser Back closes the active sheet or editor
+  before leaving; closing returns focus to its trigger.
+- Focus the composer, custom question input, a trip-fact editor field and a stop editor field while
+  the keyboard contracts the viewport. Send or Save and the focused input remain visible; the tab
+  bar hides while typing and returns afterwards.
+- Change the map day and select a stop, including a place visited on more than one day. Its marker
+  and details correspond to the selected day.
+
+The phone-shell.e2e.mjs script runs against a production build and combines phone-mine.e2e.mjs,
+phone-map.e2e.mjs and phone-state.e2e.mjs. Select the relevant walk for a focused change or the combined script for a
+shell change; their source and invocation live in [PR #183](https://github.com/Lilstanie/AI_TRIP_PLANNER/pull/183)
+until it merges. Browser viewport simulation does not verify installed-app safe areas or the real
+on-screen keyboard: retain iPhone and Android device evidence separately, or record the outstanding
+checks in [#182](https://github.com/Lilstanie/AI_TRIP_PLANNER/issues/182). Without a Maps key, report
+real map panning and route rendering as unverified.
 
 ## 4. Record evidence
 

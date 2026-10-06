@@ -1,5 +1,7 @@
 // Failure inventory: English controls in Chinese sidebar, chat, trip, timeline or settings;
-// untranslated accessible names or storage-full notice; raw traveller/model text altered; overflow at phone width.
+// untranslated accessible names or storage-full notice; raw traveller/model text altered; overflow at phone width;
+// authored notices that skip the dictionary (attachment limit, unreadable stream frames, edit preview
+// differences and blockers, failed preview or place search) still showing in English.
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
@@ -23,14 +25,18 @@ try {
     const errors = [];
     page.on("pageerror", (e) => errors.push(String(e)));
     await page.goto(process.env.BASE_URL ?? "http://localhost:3000");
-    await page.getByRole("button", { name: "切换至 English" }).waitFor();
+    // At phone width the language switch lives on the Mine tab; the document language shows the choice.
+    await page.waitForFunction(() => document.documentElement.lang === "zh-CN");
+    await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
+    const phone = width === 390;
     check(
       await page.getByRole("textbox", { name: "向 AI 旅行规划助手发送消息" }).isVisible(),
       `${width}: chat accessible name Chinese`,
     );
     await page.locator(".chat-empty__suggestions button").first().click();
     await page.locator(".msg-item--agent .msg-item__body").first().waitFor({ timeout: 180000 });
-    await page.getByRole("button", { name: "打开你的行程" }).click();
+    if (phone) await page.getByRole("tab", { name: /^行程/ }).click();
+    else await page.getByRole("button", { name: "打开你的行程" }).click();
     await page.locator(".trip-panel").waitFor();
     check(
       await page.getByText("预计总额", { exact: true }).isVisible(),
@@ -61,8 +67,10 @@ try {
       );
     await page.screenshot({ path: `${out}/${width}-timeline.png`, fullPage: true });
     await page.keyboard.press("Escape");
-    if (width === 390) await page.getByRole("button", { name: "打开导航", exact: true }).click();
-    await page.locator('button[aria-label^="账户设置："]:visible').first().click();
+    if (phone) {
+      await page.getByRole("tab", { name: /^我的/ }).click();
+      await page.getByRole("button", { name: "设置与账户", exact: true }).click();
+    } else await page.locator('button[aria-label^="账户设置："]:visible').first().click();
     const dialog = page.getByRole("dialog");
     for (const tab of ["编辑个人资料", "你的账户", "个性化", "语言与地区", "已连接账户"]) {
       await dialog.getByRole("tab", { name: tab, exact: true }).click();
@@ -82,6 +90,7 @@ try {
       );
     await page.screenshot({ path: `${out}/${width}-settings.png`, fullPage: true });
     await page.keyboard.press("Escape");
+    if (phone) await page.getByRole("tab", { name: /^聊天/ }).click();
     await page.route("**/api/chat", (route) =>
       route.fulfill({ status: 503, contentType: "text/plain", body: "unavailable" }),
     );
@@ -115,6 +124,125 @@ try {
   check(await storageError.isVisible(), "storage-full notice Chinese");
   await fullPage.screenshot({ path: `${out}/1440-storage-full.png` });
   await full.close();
+  // Authored notices built in code rather than passed through t() still read in Chinese (#189).
+  const notices = await browser.newContext({
+    locale: "zh-CN",
+    viewport: { width: 1440, height: 1000 },
+  });
+  const np = await notices.newPage();
+  const noticeErrors = [];
+  np.on("pageerror", (e) => noticeErrors.push(String(e)));
+  await np.goto(process.env.BASE_URL ?? "http://localhost:3000");
+  await np.getByRole("button", { name: "切换至 English" }).waitFor();
+  // A real mock plan, then a time edit previewed through the real route.
+  await np.locator(".chat-empty__suggestions button").first().click();
+  await np.locator(".msg-item--agent .msg-item__body").first().waitFor({ timeout: 180000 });
+  await np.getByRole("button", { name: "打开你的行程" }).click();
+  await np.getByRole("tab", { name: "时间线与路线", exact: true }).click();
+  const timeline = np.getByRole("region", { name: "行程时间线" });
+  await timeline.locator(".timeline-stop .timeline-stop__main").first().click();
+  const end = timeline.getByLabel(/^结束/).first();
+  const [endHour, endMinute] = (await end.inputValue()).split(":").map(Number);
+  await end.fill(
+    `${String(Math.min(endHour + 1, 22)).padStart(2, "0")}:${String(endMinute).padStart(2, "0")}`,
+  );
+  const previewTime = () => timeline.getByRole("button", { name: "预览时间修改" }).click();
+  await previewTime();
+  const preview = np.getByRole("region", { name: "修改预览" });
+  await preview.waitFor({ timeout: 30000 });
+  const differences = await preview.locator(".edit-preview__list").last().innerText();
+  check(
+    /：\d\d:\d\d–\d\d:\d\d → \d\d:\d\d–\d\d:\d\d/.test(differences) &&
+      !/: \d\d:\d\d|day \d|place changed/.test(differences),
+    `edit preview difference Chinese (${differences.trim()})`,
+  );
+  await preview.getByRole("button", { name: "取消" }).click();
+  // Blockers as the preview route words them: each reads in Chinese, the stop name unchanged.
+  await np.route("**/api/trip/preview-edit", async (route) => {
+    const response = await route.fetch();
+    const body = await response.json();
+    body.blockers = [
+      "Day 2: confirm the place for every stop first, so travel times between them can be checked.",
+      "Day 1: Senso-ji Temple needs at least 40 minutes after the previous activity.",
+      "Day 3: activity would extend beyond the day.",
+      "Route unavailable",
+      "Route verification failed",
+    ];
+    await route.fulfill({ response, json: body });
+  });
+  await previewTime();
+  await preview.waitFor({ timeout: 30000 });
+  const blockers = await preview.locator(".edit-preview__list--blockers").innerText();
+  check(
+    [
+      "第 2 天：请先确认每个站点的地点，才能核查站点间的交通时间。",
+      "第 1 天：Senso-ji Temple 需与上一项活动至少间隔 40 分钟。",
+      "第 3 天：活动将超出当天时间。",
+      "路线不可用",
+      "路线核查失败",
+    ].every((line) => blockers.includes(line)) && !/Day \d|Route|minutes/.test(blockers),
+    `edit preview blockers Chinese (${blockers.replaceAll("\n", " | ")})`,
+  );
+  await np.screenshot({ path: `${out}/1440-edit-preview-blockers.png` });
+  await preview.getByRole("button", { name: "关闭" }).click();
+  await np.unroute("**/api/trip/preview-edit");
+  // A failed preview or place search with no server wording falls back to authored notices.
+  await np.route("**/api/trip/preview-edit", (route) =>
+    route.fulfill({ status: 500, contentType: "application/json", body: "{}" }),
+  );
+  await previewTime();
+  const previewFailed = np.getByText("预览失败，请重新尝试此修改。").first();
+  await previewFailed.waitFor({ timeout: 10000 }).catch(() => {});
+  check(await previewFailed.isVisible(), "failed preview notice Chinese");
+  await np.unroute("**/api/trip/preview-edit");
+  await np.route("**/api/places/search", (route) =>
+    route.fulfill({ status: 500, contentType: "application/json", body: "{}" }),
+  );
+  await timeline.getByRole("searchbox").first().fill("museum");
+  await timeline.getByRole("button", { name: "搜索", exact: true }).first().click();
+  const searchFailed = np.getByText("搜索失败，请重试。").first();
+  await searchFailed.waitFor({ timeout: 10000 }).catch(() => {});
+  check(await searchFailed.isVisible(), "failed place search notice Chinese");
+  await np.screenshot({ path: `${out}/1440-search-failed.png` });
+  await np.unroute("**/api/places/search");
+  await np.keyboard.press("Escape");
+  await np.getByLabel("添加文件").setInputFiles(
+    [1, 2, 3, 4].map((n) => ({
+      name: `note-${n}.txt`,
+      mimeType: "text/plain",
+      buffer: Buffer.from(`note ${n}`),
+    })),
+  );
+  const limit = np.getByRole("status").filter({ hasText: "每条消息最多可添加 4 个文件。" });
+  await limit.waitFor({ timeout: 10000 }).catch(() => {});
+  check(await limit.isVisible(), "attachment limit notice Chinese");
+  await np.reload();
+  await np.getByRole("button", { name: "切换至 English" }).waitFor();
+  // The planning stream is a system boundary: frames the client cannot use get authored notices.
+  for (const [frame, text, name] of [
+    [{ type: "complete", response: {} }, "返回的行程方案无效，请重试。", "invalid plan frame"],
+    [{ type: "ask_user" }, "助手提出的问题无效，请重试。", "invalid question frame"],
+    [{ type: "flight_answer" }, "返回的票价无效，请重试。", "invalid fares frame"],
+    [{ type: "error" }, "规划失败，请重试。", "error frame without text"],
+  ]) {
+    await np.route("**/api/chat", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/x-ndjson",
+        body: `${JSON.stringify(frame)}\n`,
+      }),
+    );
+    await np.getByRole("textbox", { name: "向 AI 旅行规划助手发送消息" }).fill(name);
+    await np.getByRole("button", { name: "发送", exact: true }).click();
+    const alert = np.getByText(text, { exact: false }).first();
+    await alert.waitFor({ timeout: 10000 }).catch(() => {});
+    check(await alert.isVisible(), `${name} notice Chinese`);
+    await np.unroute("**/api/chat");
+    await np.reload();
+    await np.getByRole("button", { name: "切换至 English" }).waitFor();
+  }
+  check(noticeErrors.length === 0, `notices: no page errors ${noticeErrors.join(" | ")}`);
+  await notices.close();
 } catch (error) {
   check(false, String(error));
 } finally {

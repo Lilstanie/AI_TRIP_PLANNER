@@ -153,6 +153,14 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     setNavOpen(false);
   }, [phone]);
 
+  // The phone shell has no Your trips page or navigation outside the tab bar: entering phone
+  // width from Your trips continues in the Mine tab, which lists the same trips (#184).
+  useEffect(() => {
+    if (!phone || page !== "trips") return;
+    setPage("workspace");
+    setMobileView("mine");
+  }, [phone, page]);
+
   // Leaving the narrow layout closes its navigation drawer.
   useEffect(() => {
     if (!narrow) setNavOpen(false);

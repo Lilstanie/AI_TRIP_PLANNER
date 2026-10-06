@@ -16,8 +16,23 @@ Read the copy around your change before you write. It establishes these conventi
   preferences". "Your Trip" is the one established title.
 - **Australian and British spelling** in prose: "traveller", "colour". Code identifiers
   keep their existing spelling.
-- **Money in the AUD base currency**, written `A$1,234`. Never invent a converted amount the data
-  does not hold. See the [AUD base-currency note](../../notes/implemented/architecture/2026-09-20-aud-base-currency.md).
+- **Money goes through one formatter.** Amounts are stored and planned in AUD and shown in the
+  traveller's display currency by `money()` from `useLocale()`, which writes a currency code
+  (`AUD 1,234.00`, `JPY 98,000`). Never format an amount by hand or prefix `A$`. A converted amount
+  carries the "approximate, not live" estimate notice, and provider-native fare evidence stays in
+  its own currency through `formatProviderAmount()` (`JPY 230`, `AUD 12.50`). Never invent a converted amount the data does not hold. See the
+  [AUD base-currency](../../notes/implemented/architecture/2026-09-20-aud-base-currency.md) and
+  [display currency](../../notes/implemented/feature/2026-10-04-workspace-display-currency.md) notes.
+- **Every interface string is bilingual.** Write the English text as a key passed to `t()` from
+  `useLocale()` and add its Chinese entry to the dictionary in `apps/web/lib/i18n/` (`workspace-messages.ts` for workspace strings); `t()` only
+  accepts keys that have a Chinese entry, so a missing one fails the typecheck. When one English word
+  needs two translations, add a `|context` suffix (`"Budget|tier"`). Use `{name}` placeholders, not
+  concatenation. An English notice built outside a component (a thrown `Error`, a route's `error`,
+  a plan blocker) is shown through `notice()` from `useLocale()`: give it a dictionary entry, and
+  when it carries a value, a pattern in `interfaceNotice` (`apps/web/lib/i18n/locale.ts`). Prefer
+  returning values over sentences when the interface builds the line. Traveller text and agent
+  replies are never translated by the interface. See the
+  [interface language note](../../notes/implemented/feature/2026-10-04-interface-language-only.md).
 - **Honest provenance.** When a provider falls back to mock, estimated or cached data, the copy says
   so in plain words, and the source badge carries text, not colour alone. Never write copy that
   makes an estimate read like a live price. This defect has shipped before; see the
@@ -44,7 +59,7 @@ Read the copy around your change before you write. It establishes these conventi
 - **No sentences built from fragments.** Write a full template with real plurals: "1 stop" / "3
   stops". Concatenated fragments break on translation and plurals.
 - **Accessible names match visible text.** An icon-only button's `aria-label` is written in the same
-  voice as the visible labels.
+  voice as the visible labels and goes through `t()` like any visible string.
 - **Placeholders show an example**, like `Kyoto` or `DD/MM/YYYY`. They are never the only label.
 
 ## Reporting
@@ -55,5 +70,5 @@ Reviewing the source is enough; this skill needs no browser. Order findings by s
 | -------- | -------- | ------ | ----- | --- |
 
 - `HIGH`: misleads the traveller about data or price, or hides how to recover.
-- `MEDIUM`: breaks voice, terminology or capitalisation consistency.
+- `MEDIUM`: breaks voice, terminology or capitalisation consistency, or a string bypasses `t()`.
 - `LOW`: isolated wording polish.

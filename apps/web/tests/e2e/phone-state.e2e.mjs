@@ -8,6 +8,8 @@
 //   the chat viewport; focus/blur scrolls the document; keyboard viewport panning is ignored.
 // - Structured question controls overflow the shortened viewport or cannot be tapped; its focused
 //   custom-answer field is clipped inside the option list or covered by the fixed question footer.
+// - A trip-fact editor (Where, Budget) or the stop editor keeps its focused field or its Save
+//   button below the keyboard, leaves the tab bar over it, or scrolls the document (#187).
 // - Planning changes tabs, no update dot appears, its name has no update announcement, or a
 //   second plan with unchanged trip id/round is ignored; opening Trip fails to clear the dot.
 // - Reload loses any of four saved tabs, legacy Chat/Map values fail, or switching panels resets
@@ -45,6 +47,43 @@ async function viewport(page, height, offsetTop = 0) {
     { height, offsetTop },
   );
   await settle(page);
+}
+// The keyboard is simulated by shrinking the fake visualViewport; everything the traveller needs
+// while typing must sit inside [0, height] and be the topmost element at its centre.
+async function editorAboveKeyboard(page, prefix, name, height) {
+  await viewport(page, height);
+  const g = await page.evaluate(() => {
+    const field = document.activeElement;
+    const editor = field?.closest(".fact-popover, .item-editor");
+    const confirm = editor?.querySelector('.fact-form__primary, button[type="submit"]');
+    const box = (node) => {
+      const r = node.getBoundingClientRect();
+      const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      return { top: Math.round(r.top), bottom: Math.round(r.bottom), hit: node.contains(hit) };
+    };
+    const tabbar = document.querySelector(".phone-tabbar");
+    return {
+      typing: field?.matches("input, textarea") && !!editor,
+      field: field ? box(field) : null,
+      confirm: confirm ? box(confirm) : null,
+      tabbar: tabbar?.checkVisibility() ? box(tabbar) : null,
+      pageTop: scrollY,
+    };
+  });
+  const inside = (b) => !!b && b.hit && b.top >= -1 && b.bottom <= height + 1;
+  check(
+    g.typing && inside(g.field),
+    `${prefix}: ${name} field stays above keyboard (${JSON.stringify(g.field)})`,
+  );
+  check(
+    inside(g.confirm),
+    `${prefix}: ${name} Save stays above keyboard (${JSON.stringify(g.confirm)})`,
+  );
+  check(!g.tabbar, `${prefix}: tab bar does not cover ${name} while typing`);
+  check(g.pageTop === 0, `${prefix}: typing in ${name} does not scroll document`);
+  await page.screenshot({ path: `${OUT}/${prefix}-${name.replace(/\W+/g, "-")}-keyboard.png` });
+  await page.evaluate(() => document.activeElement?.blur());
+  await viewport(page, page.viewportSize().height);
 }
 async function run(browser, size) {
   const context = await browser.newContext({ viewport: size, hasTouch: true, isMobile: true });
@@ -195,6 +234,18 @@ async function run(browser, size) {
     (await page.locator(".phone-tabbar__dot").count()) === 0,
     `${prefix}: opening revised Trip clears dot again`,
   );
+  // The last stop sits lowest in the list; its editor must still clear the keyboard (#187).
+  await page
+    .getByRole("button", { name: /^Actions for/ })
+    .last()
+    .click();
+  await page.getByRole("menuitem", { name: "Edit details", exact: true }).click();
+  await page.locator(".item-editor input").first().waitFor();
+  await settle(page);
+  await page.locator(".item-editor input").first().focus();
+  await editorAboveKeyboard(page, prefix, "stop editor", shortened);
+  await page.locator(".item-editor").getByRole("button", { name: "Cancel", exact: true }).click();
+  await settle(page);
   // Existing stop editor closes through its Escape path; Back must not leave the workspace.
   const actions = page.getByRole("button", { name: /^Actions for/ }).first();
   await actions.click();
@@ -350,6 +401,17 @@ async function run(browser, size) {
       new URL(page.url()).pathname === "/",
     `${prefix}: Back closes facts sheet in workspace`,
   );
+  // Fact editors are bottom sheets; their focused field and Save must clear the keyboard (#187).
+  for (const fact of ["where", "budget"]) {
+    await title.click();
+    await page.locator("#trip-facts-sheet").waitFor();
+    await page.locator(`.facts-sheet__row[data-fact="${fact}"]`).click();
+    await settle(page);
+    await page.locator(".fact-popover:not([data-leaving]) input").first().focus();
+    await editorAboveKeyboard(page, prefix, `${fact} editor`, shortened);
+    await page.keyboard.press("Escape");
+    await settle(page);
+  }
   await title.click();
   await page.locator("#trip-facts-sheet").waitFor();
   await page.locator('.facts-sheet__row[data-fact="budget"]').click();
