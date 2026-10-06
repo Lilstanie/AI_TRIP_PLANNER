@@ -1,7 +1,7 @@
 // End-to-end walk through the Timeline & routes tab with mock data: day switching, the fixed
 // transport and stay rows, selecting and editing a stop, confirming its map match, checking the
 // day's routes, applying a previewed edit and undoing it, and provider transit fares keeping their
-// own currency's decimal places (JPY 230, KRW 1400, AUD 12.50). Screenshots at desktop and phone widths,
+// own currency's decimal places (JPY 230, KRW 1,400, AUD 12.50). Screenshots at desktop and phone widths,
 // light and dark, land under output/playwright/timeline/<label>/ as a repeatable artifact.
 //
 //   pnpm --filter @trip/web dev            # in another terminal; a map key is optional (see the 502 note below)
@@ -370,7 +370,7 @@ async function fareDecimals(browser) {
   const jpy = (text) => text.match(/JPY [\d.]+/)?.[0];
   check(/JPY 230(?![.\d])/.test(routes), `preview: JPY fare has no decimals (${jpy(routes)})`);
   check(/AUD 12\.50(?!\d)/.test(routes), "preview: AUD fare keeps two decimals");
-  check(/KRW 1400(?![.\d])/.test(routes), "preview: KRW fare has no decimals");
+  check(/KRW 1,400(?![.\d])/.test(routes), "preview: KRW fare has no decimals");
   check(
     /not added to the AUD budget/.test(routes),
     "preview: fares are labelled as outside the AUD budget",
@@ -383,7 +383,7 @@ async function fareDecimals(browser) {
   check(legs.length === 3, `timeline: all three checked legs shown (${legs.length})`);
   check(/JPY 230(?![.\d])/.test(text), `timeline: JPY fare has no decimals (${jpy(text)})`);
   check(/AUD 12\.50(?!\d)/.test(text), "timeline: AUD fare keeps two decimals");
-  check(/KRW 1400(?![.\d])/.test(text), "timeline: KRW fare has no decimals");
+  check(/KRW 1,400(?![.\d])/.test(text), "timeline: KRW fare has no decimals");
   await timeline.locator(".timeline-connection--checked").first().scrollIntoViewIfNeeded();
   await page.screenshot({ path: `${OUT}/fare-02-timeline.png` });
   // The stand-in place ids have no place details, so those lookups answer 502 like the search.

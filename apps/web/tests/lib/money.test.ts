@@ -1,6 +1,7 @@
 // Failure inventory, written before the module:
 // - a JPY or KRW fare gains decimals, or an AUD fare loses its cents (#190);
 // - a fare is converted into the display currency, or grouped differently by language;
+// - a four-digit fare is left ungrouped (`KRW 1400`) where the spec asks for `KRW 1,400`;
 // - a planning amount converts in the wrong direction, or JPY shows decimals;
 // - a zero, negative zero or rounds-to-zero difference shows a sign, or a negative one a hyphen;
 // - a source budget in another currency is shown verbatim under the wrong code;
@@ -22,7 +23,8 @@ const aud = moneyDisplay({ currency: "AUD", locale: "en" });
 describe("fare: a provider's price in its own currency", () => {
   it.each([
     [{ amount: 230, currency: "JPY" }, "JPY 230"],
-    [{ amount: 1400, currency: "KRW" }, "KRW 1400"],
+    [{ amount: 1400, currency: "KRW" }, "KRW 1,400"],
+    [{ amount: 999, currency: "KRW" }, "KRW 999"],
     [{ amount: 14000, currency: "KRW" }, "KRW 14,000"],
     [{ amount: 12.5, currency: "AUD" }, "AUD 12.50"],
     [{ amount: 3, currency: "USD" }, "USD 3.00"],

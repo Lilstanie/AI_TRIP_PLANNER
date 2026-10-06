@@ -698,7 +698,8 @@ the account section explains that everything stays in this browser.
     JPY has no decimals, other currencies have two. The trip's stated budget currency takes
     precedence over Settings. Planning and guardrails keep AUD values. `money()` converts a planning
     amount; `fare()` keeps a provider-native fare in its own currency with that currency's decimal
-    places (`JPY 230`, `AUD 12.50`, `KRW 14,000`) and never converts it; `delta()` signs a
+    places, grouping thousands from four digits up (`JPY 230`, `AUD 12.50`, `KRW 1,400`), and never
+    converts it; `delta()` signs a
     difference (`+AUD 12.00`, `−AUD 30.00`, no sign on zero); `budgetGap()` gives the one
     "{amount} under/over the {budget} budget" sentence the trip panel and edit preview share.
     Agent Lab uses the same module with fixed AUD and whole dollars (`A$3,960`, `labMoney` in

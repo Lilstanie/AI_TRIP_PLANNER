@@ -11,7 +11,7 @@ import { intlLocale, type AppLocale, type MessageKey } from "./i18n/locale";
 export type Money = {
   /** A planning amount in the display currency; a source budget in that currency shows as stated. */
   money(aud: number, source?: SourceBudget): string;
-  /** A provider's price in its own currency: `JPY 230`, `AUD 12.50`, `KRW 14,000`. */
+  /** A provider's price in its own currency: `JPY 230`, `AUD 12.50`, `KRW 1,400`. */
   fare(fare: { amount: number; currency: string }): string;
   /** A signed planning difference: `+AUD 12.00`, `−AUD 30.00`; zero after rounding has no sign. */
   delta(aud: number): string;
@@ -52,8 +52,7 @@ export function currencyDigits(currency: string): number {
 
 /**
  * A provider's price in its own currency, never converted, for code outside React. The number
- * follows the interface language and groups only from five digits, so a four-digit fare stays
- * `KRW 1400`.
+ * follows the interface language and groups thousands from four digits up: `KRW 1,400`.
  */
 export function fare(
   { amount, currency }: { amount: number; currency: string },
@@ -63,7 +62,7 @@ export function fare(
   const number = new Intl.NumberFormat(intlLocale(locale), {
     minimumFractionDigits: digits,
     maximumFractionDigits: digits,
-    useGrouping: Math.abs(amount) >= 10_000,
+    useGrouping: true,
   }).format(amount);
   return `${currency} ${number}`;
 }
