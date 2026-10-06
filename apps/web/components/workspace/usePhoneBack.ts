@@ -2,7 +2,7 @@
 import { useEffect } from "react";
 
 const OVERLAYS =
-  'dialog[open], [role="dialog"], .item-editor, .edit-preview, .phone-map-sheet:not([data-snap="handle"])';
+  'dialog[open], [role="dialog"], [role="menu"], .item-editor, .edit-preview, .phone-map-sheet[data-snap="full"]';
 const HISTORY_KEY = "tripPhoneOverlay";
 
 /** Existing editors already own Escape/cancel and their focus restoration. A temporary history
@@ -10,7 +10,11 @@ const HISTORY_KEY = "tripPhoneOverlay";
 export function usePhoneBack(enabled: boolean) {
   useEffect(() => {
     if (!enabled) return;
-    let guarded = history.state?.[HISTORY_KEY] === true;
+    // An entry marked before a reload belongs to the previous document: going back from it
+    // reloads the page instead of firing popstate, so drop the mark and start unguarded.
+    if (history.state?.[HISTORY_KEY])
+      history.replaceState({ ...history.state, [HISTORY_KEY]: undefined }, "", location.href);
+    let guarded = false;
     let removing = false;
     let frame = 0;
     const visibleOverlays = () =>

@@ -37,8 +37,9 @@ asked for a phone-first design. Spec: issue #174.
   match their live plans. Existing saved history is the baseline; switching unchanged trips does not
   mark them updated. Replanning and manual edits on the same trip/round both mark Trip unread. The
   dot clears on Trip and never changes the selected tab.
-- **Back** adds one temporary same-URL history entry while an editor, dialog or expanded map stops sheet is visible. Back uses
-  the existing cancel/Escape close paths, and normal closes consume the temporary entry.
+- **Back** adds one temporary same-URL history entry while an editor, dialog, menu or fully
+  expanded map stops sheet is visible. Back uses the existing cancel/Escape close paths, and normal
+  closes consume the temporary entry; an entry left over from before a reload is dropped.
 - **Safe areas**: the viewport uses `viewport-fit=cover`; every layout pads with
   `env(safe-area-inset-*)`, and on phones the top bar and tab bar carry the insets.
 - Phone styles live in `app/styles/phone*.css`, loaded last; strings in `lib/i18n/phone-messages.ts`.

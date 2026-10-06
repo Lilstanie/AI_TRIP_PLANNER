@@ -406,7 +406,7 @@ describes current behaviour except the absences.
   ideas, Move to previous or next day, Mark as booked, and Remove. Move earlier and Move later swap
   the stop with its neighbour on the same day: each takes the other's start time and keeps its own
   duration, the second starting later if the first would overlap it, and a swap that would end past
-  23:59 is refused with a message. The first stop of a day has no Move earlier, the last has no Move
+  23:59 or overlap the next stop is refused with a message. The first stop of a day has no Move earlier, the last has no Move
   later, and an idea has neither. An idea offers Schedule on a day, which puts it after that day's
   last stop. These apply at once, show "Booked" and the note on the row, and offer Undo until the
   next plan arrives from chat. Day moves and swaps keep each stop's duration and do not re-check

@@ -162,7 +162,10 @@ async function map(browser, scheme) {
   await page.waitForSelector(".trip-map-marker", { timeout: 30_000 }).catch(() => undefined);
   await settle(page, 2500);
   await shot(page, `${tag}-01-routes`);
+  // Only a missing browser key may skip the live checks; a key that fails to load the SDK must
+  // still fail "eight stops are marked" below.
   if (
+    !process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY &&
     !(await page.locator(".trip-map-marker").count()) &&
     (await page.locator(".trip-map-fallback").isVisible())
   ) {
@@ -171,6 +174,10 @@ async function map(browser, scheme) {
       `${tag}: no-key fallback lists eight stops`,
     );
     check(await noSideScroll(page), `${tag}: fallback has no horizontal scroll`);
+    check(
+      !errors.length,
+      `${tag}: no console errors${errors.length ? `: ${errors.join(" | ")}` : ""}`,
+    );
     console.log(`skip ${tag}: live tiles/marker/controls require a browser Maps key`);
     await context.close();
     return;

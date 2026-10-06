@@ -24,15 +24,22 @@ export function PhoneMapSheet({
   const drag = useRef<{ y: number; snap: Snap; moved: boolean } | null>(null);
   const ignoreClick = useRef(false);
   const activities = useMemo(
-    () => itineraryOrder(model.tripPlaces.activities),
+    // Ideas have no day and are not stops on the map.
+    () =>
+      itineraryOrder(model.tripPlaces.activities.filter((activity) => activity.day !== undefined)),
     [model.tripPlaces.activities],
   );
-  const days = [...new Set(activities.map((activity) => activity.day ?? 1))].sort((a, b) => a - b);
+  // The number each located stop carries on its map marker and in its details.
+  const orderFor = useMemo(
+    () => new Map(model.tripPlaces.markers.map((marker) => [marker.activityId, marker.order])),
+    [model.tripPlaces.markers],
+  );
+  const days = [...new Set(activities.map((activity) => activity.day!))].sort((a, b) => a - b);
   const selectedDay = days.includes(day ?? -1) ? day : days[0];
   useEffect(() => {
     if (selectedDay !== day) onDayChange(selectedDay);
   }, [selectedDay, day, onDayChange]);
-  const stops = activities.filter((activity) => (activity.day ?? 1) === selectedDay);
+  const stops = activities.filter((activity) => activity.day === selectedDay);
   const changeSnap = (step: number) =>
     setSnap((value) => snaps[Math.max(0, Math.min(2, snaps.indexOf(value) + step))]!);
   return (
@@ -114,29 +121,33 @@ export function PhoneMapSheet({
         )}
         {stops.length > 0 ? (
           <ol className="phone-map-sheet__stops">
-            {stops.map((stop, index) => (
-              <li key={stop.id ?? index}>
-                <button
-                  type="button"
-                  aria-pressed={model.selectedActivity === stop.id}
-                  onClick={() => {
-                    if (stop.id) (onSelectStop ?? model.setSelectedActivity)(stop.id);
-                    setSnap("handle");
-                  }}
-                >
-                  <span className="phone-map-sheet__number" aria-hidden="true">
-                    {index + 1}
-                  </span>
-                  <span>
-                    {stop.detail}
-                    <small>
-                      {stop.startTime}
-                      {stop.location ? ` · ${stop.location}` : ""}
-                    </small>
-                  </span>
-                </button>
-              </li>
-            ))}
+            {stops.map((stop, index) => {
+              const order = stop.id ? orderFor.get(stop.id) : undefined;
+              return (
+                <li key={stop.id ?? index}>
+                  <button
+                    type="button"
+                    aria-pressed={model.selectedActivity === stop.id}
+                    onClick={() => {
+                      if (stop.id) (onSelectStop ?? model.setSelectedActivity)(stop.id);
+                      // A stop without a map location has nothing to centre on, so the list stays.
+                      if (order !== undefined) setSnap("handle");
+                    }}
+                  >
+                    <span className="phone-map-sheet__number" aria-hidden="true">
+                      {order ?? ""}
+                    </span>
+                    <span>
+                      {stop.detail}
+                      <small>
+                        {stop.startTime}
+                        {stop.location ? ` · ${stop.location}` : ""}
+                      </small>
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
           </ol>
         ) : (
           <p className="phone-map-sheet__empty">

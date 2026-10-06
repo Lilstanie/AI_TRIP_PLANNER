@@ -16,12 +16,14 @@
 //   than its chip, is under 44 px or opens no editor; Update trip leaves the row or title stale;
 //   Escape leaves the sheet open; focus falls to the page instead of returning to the title.
 //
-//   pnpm --filter @trip/web dev            # in another terminal
+//   pnpm --filter @trip/web build && pnpm --filter @trip/web start   # in another terminal; a
+//   production server, because dev-server reloads interrupt the long walks
 //   [BASE_URL=http://localhost:3000] [PLAYWRIGHT=<path>] node apps/web/tests/e2e/phone-shell.e2e.mjs
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { spawnSync } from "node:child_process";
 import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT ?? "playwright");
@@ -360,10 +362,14 @@ try {
 }
 // One command covers the complete phone shell; bounded files keep each failure inventory readable.
 for (const name of ["phone-mine", "phone-map", "phone-state"]) {
-  const run = spawnSync(process.execPath, [`apps/web/tests/e2e/${name}.e2e.mjs`], {
-    env: process.env,
-    stdio: "inherit",
-  });
+  const run = spawnSync(
+    process.execPath,
+    [fileURLToPath(new URL(`./${name}.e2e.mjs`, import.meta.url))],
+    {
+      env: process.env,
+      stdio: "inherit",
+    },
+  );
   check(run.status === 0, `${name}: companion walk completed`);
   if (run.status === 0) {
     const report = JSON.parse(

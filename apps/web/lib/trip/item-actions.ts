@@ -128,6 +128,11 @@ export function applyItemAction(plan: TripPlan, id: string, action: ItemAction):
       const secondEnd = secondStart + length(second);
       if (firstEnd > DAY_END || secondEnd > DAY_END)
         throw new Error("Swapping these stops would run past 23:59; shorten one of them first.");
+      const next = day[day.indexOf(later) + 1];
+      if (next?.startTime && secondEnd > minutes(next.startTime))
+        throw new Error(
+          "Swapping these stops would overlap the next stop; shorten one of them first.",
+        );
       first.startTime = clock(firstStart);
       first.endTime = clock(firstEnd);
       second.startTime = clock(secondStart);

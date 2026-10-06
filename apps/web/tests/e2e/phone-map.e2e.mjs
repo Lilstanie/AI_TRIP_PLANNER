@@ -34,6 +34,8 @@ try {
       reducedMotion: "reduce",
     });
     const page = await context.newPage();
+    const errors = [];
+    page.on("pageerror", (error) => errors.push(String(error)));
     // Controlled place responses exercise marker/fallback details without a provider key.
     await page.route("**/api/places/search", async (route) => {
       const { text } = route.request().postDataJSON();
@@ -204,6 +206,7 @@ try {
       `${width}: desktop retains popup`,
     );
     await page.screenshot({ path: `${OUT}/${width}-desktop-popup.png` });
+    check(!errors.length, `${width}: no page errors (${errors.join(", ")})`);
     await context.close();
   }
 } finally {

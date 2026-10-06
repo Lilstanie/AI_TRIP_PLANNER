@@ -29,8 +29,12 @@ export function usePhoneKeyboard(enabled: boolean) {
       // Browser chrome and pinch zoom are not a keyboard. Focus plus a substantial contraction
       // is required; focusing with a hardware keyboard leaves navigation available.
       const open = typing && (viewport?.scale ?? 1) === 1 && baseline - height > 120;
-      app.style.setProperty("--phone-viewport-height", `${height}px`);
-      app.style.setProperty("--phone-viewport-top", `${offset}px`);
+      // Pinch zoom shrinks the visual viewport too; following it would shrink the whole app
+      // instead of magnifying it, so the shell keeps its last unzoomed size while zoomed.
+      if ((viewport?.scale ?? 1) === 1) {
+        app.style.setProperty("--phone-viewport-height", `${height}px`);
+        app.style.setProperty("--phone-viewport-top", `${offset}px`);
+      }
       app.toggleAttribute("data-phone-keyboard", open);
       setKeyboardOpen(open);
       if (open) {

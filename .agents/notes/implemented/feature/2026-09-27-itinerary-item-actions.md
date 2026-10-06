@@ -42,8 +42,8 @@ a day after a move → reported by the Timeline's route check, not silently re-t
 Ways Move earlier / Move later can fail, written before the code: the stop has no neighbour in
 that direction (first or last of its day) → the menu does not offer the item, and the transform
 refuses with a message if called anyway; the stop is an idea or has no start time → refused, plan
-unchanged; the swapped pair's later stop would end past 23:59 → refused with a message, plan
-unchanged; two stops share a start time → the list's order (start time, then plan order) decides
+unchanged; the swapped pair's later stop would end past 23:59 or overlap the stop after the pair →
+refused with a message, plan unchanged; two stops share a start time → the list's order (start time, then plan order) decides
 the neighbour, so the transform uses the same order; a stop without an end time → treated as 120
 minutes, as day moves do; the moved pair now overlaps the next stop → kept, and the Timeline's
 checks report it rather than re-timing other stops; the plan array order drifts from time order →

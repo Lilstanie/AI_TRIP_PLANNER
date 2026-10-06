@@ -130,6 +130,13 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
     setSelectedActivity(id);
     if (phone) setPhoneMapFocusRequest((request) => request + 1);
   };
+  // A stop selected elsewhere (the Trip tab's itinerary) shows on its own day when Map opens.
+  const selectedDay = model.tripPlaces.activities.find(
+    (activity) => activity.id === model.selectedActivity,
+  )?.day;
+  useEffect(() => {
+    if (phone && selectedDay !== undefined) setPhoneMapDay(selectedDay);
+  }, [phone, selectedDay]);
   const { keyboardOpen } = usePhoneKeyboard(phone);
   const { tripUpdated } = usePhoneTripUpdates(model);
   const chatsButton = useRef<HTMLButtonElement>(null);

@@ -67,7 +67,7 @@ export function TripMapCanvas({
   const stops = useMemo(
     () =>
       markers
-        .filter((marker) => focusedDay === undefined || (marker.day ?? 1) === focusedDay)
+        .filter((marker) => focusedDay === undefined || marker.day === focusedDay)
         .map(({ place, order, day }) => ({ place, order, day })),
     [markers, focusedDay],
   );
