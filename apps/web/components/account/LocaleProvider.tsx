@@ -10,6 +10,7 @@ import {
   type MessageKey,
 } from "@/lib/i18n/locale";
 import { moneyDisplay, type Money } from "@/lib/money";
+import { noticeText, type Notice } from "@/lib/i18n/notice";
 import { useSettings } from "./SettingsProvider";
 
 import type { Currency, TripBrief } from "@trip/shared";
@@ -19,13 +20,17 @@ type LocaleState = Money & {
   locale: AppLocale;
   t(text: MessageKey, params?: Record<string, string | number>): string;
   currency: Currency;
-  notice(text: string | undefined): string;
+  /**
+   * A notice in the interface language. A string is English the app has not yet converted to a
+   * keyed `Notice`, matched against the dictionary and the remaining notice patterns.
+   */
+  notice(notice: Notice | string | undefined): string;
 };
 
 const LocaleContext = createContext<LocaleState>({
   locale: "en",
   currency: "AUD",
-  notice: (text) => interfaceNotice("en", text ?? ""),
+  notice: (notice) => localNotice("en", notice),
   t: (text, params) => translate("en", text, params),
   ...moneyDisplay({ currency: "AUD", locale: "en" }),
 });
@@ -59,7 +64,7 @@ export function LocaleProvider({
       locale,
       t: (text, params) => translate(locale, text, params),
       currency,
-      notice: (text) => interfaceNotice(locale, text ?? ""),
+      notice: (notice) => localNotice(locale, notice),
       ...moneyDisplay({ currency, locale }),
     }),
     [locale, currency],
@@ -68,3 +73,6 @@ export function LocaleProvider({
 }
 
 export const useLocale = () => useContext(LocaleContext);
+
+const localNotice = (locale: AppLocale, notice: Notice | string | undefined) =>
+  typeof notice === "object" ? noticeText(locale, notice) : interfaceNotice(locale, notice ?? "");

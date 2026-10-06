@@ -29,9 +29,12 @@ Read the copy around your change before you write. It establishes these conventi
   `useLocale()` and add its Chinese entry to the dictionary in `apps/web/lib/i18n/` (`workspace-messages.ts` for workspace strings); `t()` only
   accepts keys that have a Chinese entry, so a missing one fails the typecheck. When one English word
   needs two translations, add a `|context` suffix (`"Budget|tier"`). Use `{name}` placeholders, not
-  concatenation. An English notice built outside a component (a thrown `Error`, a route's `error`,
-  a plan blocker) is shown through `notice()` from `useLocale()`: give it a dictionary entry, and
-  when it carries a value, a pattern in `interfaceNotice` (`apps/web/lib/i18n/locale.ts`). Prefer
+  concatenation. A notice built outside a component is carried as a keyed `Notice`
+  (`{ key, params }`, `apps/web/lib/i18n/notice.ts`; code that throws uses `NoticeError`) and shown
+  through `notice()` from `useLocale()`, which translates it once; `{ raw }` is only for provider or
+  model text. The compiler rejects a key without a Chinese entry and a missing or unexpected value.
+  Producers not yet converted (a route's `error`, a plan blocker) still send English, matched by a
+  dictionary entry or a pattern in `interfaceNotice` (`apps/web/lib/i18n/locale.ts`). Prefer
   returning values over sentences when the interface builds the line. Traveller text and agent
   replies are never translated by the interface. See the
   [interface language note](../../notes/implemented/feature/2026-10-04-interface-language-only.md).
