@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import { createRef, useRef } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { MAX_ATTACHMENTS_PER_MESSAGE } from "@trip/shared";
+import { LocaleProvider } from "@/components/account/LocaleProvider";
 import { Composer } from "@/components/chat/Composer";
 import { useComposerAttachments } from "@/components/workspace/useComposerAttachments";
 import type { ImageRenderer, PreparedAttachment } from "@/lib/chat/attachments";
@@ -56,7 +57,7 @@ function LiveComposer() {
       attachments={attachments.attachments}
       onRemoveAttachment={attachments.removeAttachment}
       canAttach={attachments.canAttach}
-      attachNotice={attachments.notice}
+      attachNotices={attachments.notices}
     />
   );
 }
@@ -139,7 +140,11 @@ describe("composer attachments", () => {
   });
 
   it("holds picked files, then stops and explains itself at the limit", async () => {
-    const { container } = render(<LiveComposer />);
+    const { container } = render(
+      <LocaleProvider>
+        <LiveComposer />
+      </LocaleProvider>,
+    );
 
     await act(async () => {
       pick(
@@ -182,5 +187,28 @@ describe("composer attachments", () => {
       ),
     );
     expect(screen.queryByRole("list", { name: "Attached files" })).toBeNull();
+  });
+
+  it("names the per-message limit in the Chinese interface when a pick passes it", async () => {
+    vi.spyOn(navigator, "languages", "get").mockReturnValue(["zh-CN"]);
+    const { container } = render(
+      <LocaleProvider>
+        <LiveComposer />
+      </LocaleProvider>,
+    );
+
+    await act(async () => {
+      pick(
+        container,
+        Array.from({ length: MAX_ATTACHMENTS_PER_MESSAGE + 1 }, (_, index) => png(`photo-${index}.png`)),
+      );
+    });
+
+    await waitFor(() =>
+      expect(screen.getByRole("status").textContent).toBe(
+        "未添加 photo-4.png——每条消息最多添加 4 个文件。",
+      ),
+    );
+    vi.restoreAllMocks();
   });
 });
