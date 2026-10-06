@@ -1,7 +1,7 @@
 // End-to-end walk through the Timeline & routes tab with mock data: day switching, the fixed
 // transport and stay rows, selecting and editing a stop, confirming its map match, checking the
 // day's routes, applying a previewed edit and undoing it, and provider transit fares keeping their
-// own currency's decimal places (JPY 230, AUD 12.50). Screenshots at desktop and phone widths,
+// own currency's decimal places (JPY 230, KRW 1400, AUD 12.50). Screenshots at desktop and phone widths,
 // light and dark, land under output/playwright/timeline/<label>/ as a repeatable artifact.
 //
 //   pnpm --filter @trip/web dev            # in another terminal; a map key is optional (see the 502 note below)
@@ -317,8 +317,8 @@ async function interactions(browser) {
 }
 
 // Provider transit fares stay in their own currency with that currency's decimal places: yen has
-// no minor unit. The route provider is a system boundary, so the preview response is given two
-// checked transit legs (one JPY, one AUD) between three stops moved onto the first day.
+// and won have no minor unit. The route provider is a system boundary, so the preview response is
+// given three checked transit legs (JPY, AUD, KRW) between four stops moved onto the first day.
 async function fareDecimals(browser) {
   const { context, page, errors, upstream } = await openTimeline(browser, {
     width: 1440,
@@ -329,7 +329,7 @@ async function fareDecimals(browser) {
     const response = await route.fetch();
     const body = await response.json();
     const items = body.plan.sections.find((s) => s.id === "itinerary").proposal.items;
-    const stops = items.filter((i) => i.kind === "activity" && i.day !== undefined).slice(0, 3);
+    const stops = items.filter((i) => i.kind === "activity" && i.day !== undefined).slice(0, 4);
     stops.forEach((stop, index) => {
       stop.day = stops[0].day;
       stop.placeId = `e2e-fare-${index}`;
@@ -347,6 +347,7 @@ async function fareDecimals(browser) {
     body.routes = [
       leg(0, 1, { amount: 230, currency: "JPY" }),
       leg(1, 2, { amount: 12.5, currency: "AUD" }),
+      leg(2, 3, { amount: 1400, currency: "KRW" }),
     ];
     body.blockers = [];
     await route.fulfill({ response, json: body });
@@ -368,6 +369,7 @@ async function fareDecimals(browser) {
   const jpy = (text) => text.match(/JPY [\d.]+/)?.[0];
   check(/JPY 230(?![.\d])/.test(routes), `preview: JPY fare has no decimals (${jpy(routes)})`);
   check(/AUD 12\.50(?!\d)/.test(routes), "preview: AUD fare keeps two decimals");
+  check(/KRW 1400(?![.\d])/.test(routes), "preview: KRW fare has no decimals");
   check(
     /not added to the AUD budget/.test(routes),
     "preview: fares are labelled as outside the AUD budget",
@@ -377,9 +379,10 @@ async function fareDecimals(browser) {
   await settle(page, 800);
   const legs = await timeline.locator(".timeline-connection--checked").allInnerTexts();
   const text = legs.join(" | ");
-  check(legs.length === 2, `timeline: both checked legs shown (${legs.length})`);
+  check(legs.length === 3, `timeline: all three checked legs shown (${legs.length})`);
   check(/JPY 230(?![.\d])/.test(text), `timeline: JPY fare has no decimals (${jpy(text)})`);
   check(/AUD 12\.50(?!\d)/.test(text), "timeline: AUD fare keeps two decimals");
+  check(/KRW 1400(?![.\d])/.test(text), "timeline: KRW fare has no decimals");
   await timeline.locator(".timeline-connection--checked").first().scrollIntoViewIfNeeded();
   await page.screenshot({ path: `${OUT}/fare-02-timeline.png` });
   // The stand-in place ids have no place details, so those lookups answer 502 like the search.

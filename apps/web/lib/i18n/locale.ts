@@ -15,8 +15,20 @@ export function browserLocale(languages: readonly string[]): AppLocale {
 /** The BCP 47 tag for `<html lang>` and `Intl` formatters. */
 export const intlLocale = (locale: AppLocale) => (locale === "zh" ? "zh-CN" : "en-AU");
 
-/** Decimal places shown for a currency: yen has no minor unit, the others have two. */
-export const currencyDigits = (currency: string) => (currency === "JPY" ? 0 : 2);
+/**
+ * Decimal places shown for a currency, from its ISO 4217 minor unit: `JPY` and `KRW` have none,
+ * `AUD` has two. An unknown code keeps two.
+ */
+export function currencyDigits(currency: string): number {
+  try {
+    return (
+      new Intl.NumberFormat("en", { style: "currency", currency }).resolvedOptions()
+        .maximumFractionDigits ?? 2
+    );
+  } catch {
+    return 2;
+  }
+}
 
 /**
  * A provider-native amount (such as a transit fare) in its own currency, never converted:

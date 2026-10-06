@@ -93,7 +93,9 @@ export function EditPreviewPanel({
               <li key={`${route.from}-${route.to}-${index}`}>
                 {route.status === "ok" && route.durationMin !== undefined
                   ? `${route.mode === "WALK" ? t("Walk") : t("Public transport")} · ${formatDuration(route.durationMin, locale)}`
-                  : (route.error ?? t("No route found"))}
+                  : route.error
+                    ? notice(route.error)
+                    : t("No route found")}
                 {route.fare
                   ? ` · ${formatProviderAmount(route.fare)}`
                   : route.status === "ok"
