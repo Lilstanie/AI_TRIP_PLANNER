@@ -277,8 +277,10 @@ writing implementation code. If a system must be tested in isolation, first enum
 could fail, then write the code and derive the isolated checks from that list.
 
 This describes the preferred approach for new work. CI runs the Vitest suites through `pnpm test` and
-the repository script tests (`scripts/*.test.mjs`) through `pnpm test:scripts`. It does not run the E2E
-scripts, so run the relevant one yourself before pushing.
+the repository script tests (`scripts/*.test.mjs`) through `pnpm test:scripts`. Its `e2e` job runs the
+browser scripts that pass without provider keys against a production build and uploads their
+`output/playwright/` folders; the list is in `.github/workflows/ci.yml`. Run the relevant script yourself
+before pushing, and add a script to that list once it passes without keys.
 
 The E2E scripts live in `apps/web/tests/e2e/` and run by hand against a running dev server:
 
@@ -286,6 +288,10 @@ The E2E scripts live in `apps/web/tests/e2e/` and run by hand against a running 
 pnpm --filter @trip/web dev            # in another terminal
 node apps/web/tests/e2e/<name>.e2e.mjs
 ```
+
+The web app's `dev` and `start` scripts read `PORT` (default 3000), so several worktrees can each run
+a server: `PORT=3101 pnpm --filter @trip/web dev`, then `BASE_URL=http://localhost:3101`. Stop only
+your own server, not every Next process on the machine.
 
 - **API scripts** (`plan-quality`, `conversation-scope`) post to `/api/chat` with `DATA_MODE=live`
   (default) or `mock`. `plan-quality` plans three fixed briefs and checks budget, unresolved conflicts,

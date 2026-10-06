@@ -224,7 +224,7 @@ node .agents/skills/translate-docs/scripts/check-pairs.mjs
 
 复杂功能应优先只用端到端（E2E）测试验证行为：走完整用户路径，并留下可复现、可审查的产物，例如报告、trace 或截图。记录复现所需的命令、步骤或 fixture。绝不在编写实现代码之后再编写单元测试。如果必须隔离测试一个系统，先列举它所有可能的失败方式，再编写代码，并从这份清单推导隔离检查。
 
-这是新工作的首选方式。CI 通过 `pnpm test` 运行 Vitest 测试套件，通过 `pnpm test:scripts` 运行仓库脚本测试（`scripts/*.test.mjs`）。CI 不运行 E2E 脚本，因此推送前应自行运行相关脚本。
+这是新工作的首选方式。CI 通过 `pnpm test` 运行 Vitest 测试套件，通过 `pnpm test:scripts` 运行仓库脚本测试（`scripts/*.test.mjs`）。CI 的 `e2e` 任务会对生产构建运行无需提供方密钥即可通过的浏览器脚本，并上传它们的 `output/playwright/` 目录；脚本列表在 `.github/workflows/ci.yml` 中。推送前仍应自行运行相关脚本；某个脚本在没有密钥时也能通过后，再把它加入该列表。
 
 E2E 脚本位于 `apps/web/tests/e2e/`，需手动对运行中的开发服务器执行：
 
@@ -232,6 +232,8 @@ E2E 脚本位于 `apps/web/tests/e2e/`，需手动对运行中的开发服务器
 pnpm --filter @trip/web dev            # in another terminal
 node apps/web/tests/e2e/<name>.e2e.mjs
 ```
+
+Web 应用的 `dev` 和 `start` 脚本读取 `PORT`（默认 3000），因此多个 worktree 可以各自运行一个服务器：`PORT=3101 pnpm --filter @trip/web dev`，再设置 `BASE_URL=http://localhost:3101`。只停止自己的服务器，不要停止机器上所有 Next 进程。
 
 - **API 脚本**（`plan-quality`、`conversation-scope`）向 `/api/chat` 发请求，`DATA_MODE=live` 为默认值，也可设为 `mock`。`plan-quality` 提交三个固定行程需求，并检查预算、未解决冲突、行程来源、重复停靠点和泛化停靠点；实时模型输出会变化，因此应比较多次运行。每次运行把 NDJSON 流、方案和 `summary.json` 写入 `output/e2e/<name>/<run>/`。
 - **浏览器脚本**（其余所有脚本，包括八个 `agent-lab-*`）用 Playwright 在桌面和手机宽度下运行，并把截图写入 `output/playwright/<name>/`；Agent Lab 的脚本还会写入原始 NDJSON 和 artifact。`CHANNEL=chrome` 与 `PLAYWRIGHT=<path>` 用于选择浏览器和 Playwright 包；服务器不在 `http://localhost:3000` 时用 `BASE_URL` 指定。

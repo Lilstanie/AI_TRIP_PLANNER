@@ -39,3 +39,59 @@ jobs:
       - run: node scripts/verify-docs.mjs
 
       - run: node .agents/skills/translate-docs/scripts/check-pairs.mjs
+
+  # Browser E2E walks that need no provider keys, against a production build in fixture data mode.
+  # Each script prints `ok`/`FAIL` lines and exits non-zero on a failure; screenshots and
+  # summary.json files are uploaded as the run's artifact. Add a script here once it passes
+  # without keys; see docs/development.md#testing-approach.
+  e2e:
+    runs-on: ubuntu-latest
+    env:
+      BASE_URL: http://localhost:3000
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright and Chromium
+        run: |
+          npm install --global playwright@1.56.1
+          npx --yes playwright@1.56.1 install --with-deps chromium
+          echo "PLAYWRIGHT=$(npm root --global)/playwright" >> "$GITHUB_ENV"
+
+      - run: pnpm --filter @trip/web build
+
+      - name: Start the web app
+        run: |
+          pnpm --filter @trip/web start > web.log 2>&1 &
+          npx --yes wait-on@8 --timeout 60000 "$BASE_URL"
+
+      - name: Run E2E scripts
+        run: |
+          status=0
+          for name in \
+            display-currency source-budget timeline workspace-chinese reply-language installable-app \
+            agent-lab-benchmarks agent-lab-comparison agent-lab-live-gate agent-lab-release \
+            agent-lab-revision agent-lab-single-agent
+          do
+            echo "::group::$name"
+            node "apps/web/tests/e2e/$name.e2e.mjs" || { status=1; echo "::error::$name failed"; }
+            echo "::endgroup::"
+          done
+          exit $status
+
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-output
+          path: |
+            output/playwright/
+            web.log
+          if-no-files-found: ignore

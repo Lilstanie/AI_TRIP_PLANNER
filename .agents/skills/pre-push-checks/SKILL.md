@@ -8,8 +8,9 @@ description: Pick the smallest set of commands that would catch a regression in 
 Run relevant evidence once before a push, and report only commands you actually ran with their real
 results. CI (`.github/workflows/ci.yml`) already runs `typecheck`, `lint`, `test`, `test:scripts` and `build`
 for the whole repository, plus the protected-file, `verify:docs` and translation-pair checks on pull
-requests. It does not run the E2E scripts, so those are local evidence only; local runs exist to catch the failure
-before CI does, not to repeat CI. Prefer an E2E test as the sole behavioral check for complex new
+requests. Its `e2e` job runs only the browser scripts listed there that pass without provider keys; every
+other E2E script is local evidence only. Local runs exist to catch the failure before CI does, not to
+repeat CI. Prefer an E2E test as the sole behavioral check for complex new
 features, with a repeatable artifact. Do not write unit tests after implementation code. If isolated
 testing is necessary, enumerate the failure modes before writing the code, then choose focused checks
 from that list. This is guidance, not a script: every behaviour change needs the narrowest evidence
@@ -49,6 +50,9 @@ The web test script sets `NODE_OPTIONS` with POSIX syntax; on Windows run it fro
 For ordinary `docs/` Markdown changes, synchronize both languages with
 [translate-docs](../translate-docs/SKILL.md), record only reviewed pairs and run
 `pnpm verify:pairs` (the same command). CI runs it for pull requests, so a stale pair fails the build.
+A merge goes stale the same way: when both sides re-recorded the same pair, the merged files match
+neither record, so after reviewing the merged pair re-run
+`node .agents/skills/translate-docs/scripts/check-pairs.mjs --record <English path>`.
 
 ## 3. Report
 
