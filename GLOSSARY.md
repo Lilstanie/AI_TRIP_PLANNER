@@ -58,6 +58,12 @@ _Avoid_: index, order (in prose), per-day number
 The order stops are shown everywhere: by day, then start time, then their order in the plan.
 _Avoid_: plan order, sort order
 
+## Workspace
+
+**Notice**:
+A short message the workspace itself writes to the traveller, such as an error or a confirmation, shown in the interface language. Model replies and provider text are not notices and are shown as received.
+_Avoid_: toast, alert, error string
+
 ## Money
 
 **Planning amount**:
