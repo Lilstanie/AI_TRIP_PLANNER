@@ -307,6 +307,11 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     Google rating is already out of 5 and shown as it is.
 - **Requests.**
   - `Workspace` owns chat, plan and decision requests. Failures keep the current plan and offer retry.
+  - A planning turn ends in one outcome: plan applied, needs information, planner asked a question,
+    fares answered, failed or cancelled. `requestTurn` in `lib/workspace/session.ts` only sends the
+    request and reads the stream; the pure `session(state, event)` there applies the outcome, so the
+    reset rules (previous total, selected stop, map routes, field errors, question card) live in one
+    place and are tested without React in `tests/lib/workspace/session.test.ts`.
   - Switching chat or trip, or New chat, first flushes the pending autosave, then aborts in-flight
     requests and clears progress, errors, selection and map routes. Late responses are ignored.
 - **Storage.**
