@@ -215,8 +215,9 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     keeps its popup. The 44 px map controls stay above the stops sheet, and panning does not scroll
     the page.
   - With the composer focused and the visual viewport shortened by the keyboard, the shell follows
-    that viewport, keeps the latest message visible and hides the tab bar. Closing the keyboard or
-    blurring restores it. Browser Back closes the active sheet or editor before leaving the workspace.
+    that viewport, keeps the latest message visible and hides the tab bar. A focused trip-fact editor
+    or stop editor field also hides the tab bar; the fact sheet rests on the keyboard, and the field
+    and its Save button stay in view. Closing the keyboard or blurring restores it. Browser Back closes the active sheet or editor before leaving the workspace.
   - New labels use the English/Chinese dictionary and motion respects reduced-motion preferences.
     Browser evidence is produced by `phone-shell.e2e.mjs` and its Mine, Map and state companion walks
     under `apps/web/tests/e2e/`. Real installed-app safe areas and keyboard behavior still require the
@@ -655,7 +656,8 @@ the account section explains that everything stays in this browser.
     Trip amounts use one locale-aware formatter and the shared approximate rate table. Converted
     displays carry its as-of date; JPY has no decimals, other currencies have two. The trip's stated budget currency takes
     precedence over Settings. Planning and
-    guardrails keep AUD values. Provider-native fares retain their own currency.
+    guardrails keep AUD values. Provider-native fares retain their own currency, with that currency's
+    decimal places (`JPY 230`, `AUD 12.50`; `formatProviderAmount`), and are never converted.
   - **Connected accounts:** the Google, GitHub or Apple sign-ins linked through Clerk, with a button
     that opens Clerk to change them.
 - Signed out, settings are kept in this browser; signed in, the newer copy of browser and account

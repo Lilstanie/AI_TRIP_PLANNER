@@ -41,3 +41,16 @@
   max-height: calc(var(--phone-viewport-height) - 110px);
   min-height: 0;
 }
+/* Fact editors are fixed bottom sheets on the layout viewport, which the keyboard does not
+   shrink. While typing, each rests on the keyboard instead, fits the visible height, and lets
+   its fields scroll so the focused field and Save stay in view (#187). */
+[data-phone][data-phone-keyboard] .fact-popover,
+[data-phone][data-phone-keyboard] .fact-popover.fact-popover--modal {
+  bottom: var(--phone-keyboard-inset, 0px);
+  max-height: calc(var(--phone-viewport-height) - var(--space-4));
+  padding-bottom: var(--space-4);
+}
+/* The keyboard covers the home indicator, so the sheet drops its safe-area padding. */
+[data-phone][data-phone-keyboard] .fact-popover.fact-popover--modal {
+  padding-bottom: 0;
+}

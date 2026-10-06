@@ -15,13 +15,23 @@ export function browserLocale(languages: readonly string[]): AppLocale {
 /** The BCP 47 tag for `<html lang>` and `Intl` formatters. */
 export const intlLocale = (locale: AppLocale) => (locale === "zh" ? "zh-CN" : "en-AU");
 
+/** Decimal places shown for a currency: yen has no minor unit, the others have two. */
+export const currencyDigits = (currency: string) => (currency === "JPY" ? 0 : 2);
+
+/**
+ * A provider-native amount (such as a transit fare) in its own currency, never converted:
+ * `JPY 230`, `AUD 12.50`.
+ */
+export const formatProviderAmount = ({ amount, currency }: { amount: number; currency: string }) =>
+  `${currency} ${amount.toFixed(currencyDigits(currency))}`;
+
 /** One formatter for AUD planning amounts; source amounts can be displayed without a round trip. */
 export function formatAudForDisplay(
   amount: number,
   currency: CurrencyCode,
   locale: AppLocale,
-  maximumFractionDigits = currency === "JPY" ? 0 : 2,
-  minimumFractionDigits = currency === "JPY" ? 0 : 2,
+  maximumFractionDigits = currencyDigits(currency),
+  minimumFractionDigits = currencyDigits(currency),
   source?: { amount: number; currency: Currency },
 ): string {
   return new Intl.NumberFormat(intlLocale(locale), {

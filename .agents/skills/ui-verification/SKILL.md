@@ -59,8 +59,9 @@ also check the transitions the change touches:
   the selected content remain reachable.
 - Open controls through Chat, Map, Trip and Mine. Browser Back closes the active sheet or editor
   before leaving; closing returns focus to its trigger.
-- Focus the composer and custom question input while the keyboard contracts the viewport. Send and
-  the focused input remain visible; the tab bar hides while typing and returns afterwards.
+- Focus the composer, custom question input, a trip-fact editor field and a stop editor field while
+  the keyboard contracts the viewport. Send or Save and the focused input remain visible; the tab
+  bar hides while typing and returns afterwards.
 - Change the map day and select a stop, including a place visited on more than one day. Its marker
   and details correspond to the selected day.
 
