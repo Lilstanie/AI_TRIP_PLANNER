@@ -58,6 +58,24 @@ _Avoid_: index, order (in prose), per-day number
 The order stops are shown everywhere: by day, then start time, then their order in the plan.
 _Avoid_: plan order, sort order
 
+## Money
+
+**Planning amount**:
+A cost, budget or total in AUD, the one currency specialists plan and check budgets in.
+_Avoid_: base amount, raw price
+
+**Display currency**:
+The currency the traveller reads planning amounts in; a converted amount is an approximation and never feeds back into planning.
+_Avoid_: local currency, user currency
+
+**Source budget**:
+The budget exactly as the traveller stated it, in the currency they used, kept beside its planning amount.
+_Avoid_: original budget, input budget
+
+**Fare**:
+A provider's price in the provider's own currency, shown as evidence and never converted or added to planning amounts.
+_Avoid_: provider amount, native price
+
 ## Agent Lab
 
 **Agent Lab**:
