@@ -279,7 +279,7 @@ function AccountSection({ onAccountModal }: AccountModalProps) {
       {theme}
       <SettingRow
         label={t("Your data")}
-        value="Chats, trips and settings sync to this account."
+        value={t("Chats, trips and settings sync to this account.")}
         action="Export"
       >
         {() => (

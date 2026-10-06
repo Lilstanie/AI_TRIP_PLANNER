@@ -206,27 +206,60 @@ export function translate(
   return result;
 }
 
+/**
+ * Authored notices that carry a value. Each pattern matches the English the app builds, and its
+ * capture groups fill the named placeholders of the dictionary key in order.
+ */
+const NOTICE_PATTERNS: readonly [RegExp, MessageKey, readonly string[]][] = [
+  [/^Request failed \((\d{3})\)\.$/, "Request failed ({status}).", ["status"]],
+  [
+    /^only (\d+) files can be attached to one message$/,
+    "only {count} files can be attached to one message",
+    ["count"],
+  ],
+  [
+    /^text files over (.+?) can't be attached$/,
+    "text files over {size} can't be attached",
+    ["size"],
+  ],
+  [
+    /^these files together would pass the (.+?) one message can carry$/,
+    "these files together would pass the {size} one message can carry",
+    ["size"],
+  ],
+  [
+    /^Day (\d+) has no room left for this stop; shorten another stop first\.$/,
+    "Day {day} has no room left for this stop; shorten another stop first.",
+    ["day"],
+  ],
+  [
+    /^Day (\d+): confirm the place for every stop first, so travel times between them can be checked\.$/,
+    "Day {day}: confirm the place for every stop first, so travel times between them can be checked.",
+    ["day"],
+  ],
+  [
+    /^Day (\d+): (.+) needs at least (\d+) minutes after the previous activity\.$/s,
+    "Day {day}: {stop} needs at least {minutes} minutes after the previous activity.",
+    ["day", "stop", "minutes"],
+  ],
+  [
+    /^Day (\d+): activity would extend beyond the day\.$/,
+    "Day {day}: activity would extend beyond the day.",
+    ["day"],
+  ],
+];
+
 /** Recognized authored notices only; unrecognized provider errors pass through unchanged. */
 export function interfaceNotice(locale: AppLocale, text: string): string {
   if (Object.hasOwn(ZH, text)) return translate(locale, text as MessageKey);
-  const status = /^Request failed \((\d{3})\)\.$/.exec(text);
-  if (status) return translate(locale, "Request failed ({status}).", { status: status[1]! });
-  const count = /^only (\d+) files can be attached to one message$/.exec(text);
-  if (count)
-    return translate(locale, "only {count} files can be attached to one message", {
-      count: count[1]!,
-    });
-  const size =
-    /^(text files over|these files together would pass the) (.+?) (can't be attached|one message can carry)$/.exec(
-      text,
-    );
-  if (size)
-    return translate(
-      locale,
-      size[1] === "text files over"
-        ? "text files over {size} can't be attached"
-        : "these files together would pass the {size} one message can carry",
-      { size: size[2]! },
-    );
+  for (const [pattern, key, names] of NOTICE_PATTERNS) {
+    const match = pattern.exec(text);
+    if (match)
+      return translate(
+        locale,
+        key,
+        Object.fromEntries(names.map((name, index) => [name, match[index + 1]!])),
+      );
+  }
   return text;
 }

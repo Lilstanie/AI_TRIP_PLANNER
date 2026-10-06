@@ -583,7 +583,7 @@ export function TripMap({
       )}
       {nearbyRoute?.status === "error" && (
         <p className="trip-map-location-status" role="alert">
-          {nearbyRoute.error}
+          {localizeNotice(nearbyRoute.error)}
         </p>
       )}
       {error && (

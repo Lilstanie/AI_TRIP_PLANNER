@@ -40,11 +40,27 @@ export const EditRequest = z.object({
   ]),
 });
 export type EditInput = z.input<typeof EditRequest>;
+/**
+ * One stop an edit moves, as values rather than a sentence so the interface can word it in either
+ * language. `days` is present only when the stop changes day.
+ */
+export type EditDifference = {
+  stop: string;
+  days?: { from: number; to: number };
+  before: string;
+  after: string;
+  placeChanged: boolean;
+};
+
+/**
+ * Blockers stay English sentences: unresolved ones are also kept on the plan. The interface
+ * localises the authored ones through `interfaceNotice`; route provider errors pass through.
+ */
 export type EditPreview = {
   plan: TripPlan;
   baseVersion: number;
   routes: RouteResult[];
-  differences: string[];
+  differences: EditDifference[];
   blockers: string[];
 };
 const mins = (value: string) => Number(value.slice(0, 2)) * 60 + Number(value.slice(3));
@@ -175,7 +191,9 @@ export async function previewEdit(
       const previous = daily[index - 1];
       if (previous) {
         if (!previous.placeId || !current.placeId) {
-          blockers.push(`Day ${day}: confirm the place for every stop first, so travel times between them can be checked.`);
+          blockers.push(
+            `Day ${day}: confirm the place for every stop first, so travel times between them can be checked.`,
+          );
           break;
         }
         try {
@@ -287,15 +305,21 @@ export async function previewEdit(
   // already disagreed by float dust, and converted budgets make fractional cents routine.
   Object.assign(plan, rollUpCost(plan.sections, plan.budgetTotal));
   plan.editVersion = baseVersion + 1;
-  const differences = activities.flatMap((a) => {
+  const differences = activities.flatMap((a): EditDifference[] => {
     const old = before.find((b) => b.id === a.id)!;
     return old.day !== a.day ||
       old.startTime !== a.startTime ||
       old.endTime !== a.endTime ||
       old.placeId !== a.placeId
       ? [
-          // The stop's name, not its whole description: the preview lists one line per stop.
-          `${a.location ?? a.detail}: ${old.day === a.day ? "" : `day ${old.day} → day ${a.day}, `}${old.startTime}–${old.endTime} → ${a.startTime}–${a.endTime}${old.placeId !== a.placeId ? " · place changed; price unverified" : ""}`,
+          {
+            // The stop's name, not its whole description: the preview lists one line per stop.
+            stop: a.location ?? a.detail,
+            ...(old.day === a.day ? {} : { days: { from: old.day!, to: a.day! } }),
+            before: `${old.startTime}–${old.endTime}`,
+            after: `${a.startTime}–${a.endTime}`,
+            placeChanged: old.placeId !== a.placeId,
+          },
         ]
       : [];
   });
