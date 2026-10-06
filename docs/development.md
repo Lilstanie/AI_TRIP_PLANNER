@@ -198,7 +198,9 @@ pnpm --filter @trip/web build && pnpm --filter @trip/web start   # in another te
 node apps/web/tests/e2e/installable-app.e2e.mjs
 ```
 
-It writes screenshots and `summary.json` to `output/playwright/installable-app/`.
+It writes screenshots and `summary.json` to `output/playwright/installable-app/`. Chrome's
+installability check runs in full Chromium (`CHANNEL=chrome` uses Chrome instead) with a throwaway
+persistent profile, and also confirms it reports a page whose manifest link is removed.
 
 ### Building the Android APK
 
