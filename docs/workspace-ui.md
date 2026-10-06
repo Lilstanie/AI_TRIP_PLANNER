@@ -322,7 +322,11 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     reset rules (previous total, selected stop, map routes, field errors, question card) live in one
     place and are tested without React in `tests/lib/workspace/session.test.ts`.
   - Switching chat or trip, or New chat, first flushes the pending autosave, then aborts in-flight
-    requests and clears progress, errors, selection and map routes. Late responses are ignored.
+    requests and clears progress, errors, selection and map routes in one `opened` session event.
+    Late responses are ignored.
+  - Applying an edit from the trip list or the timeline is `applyEdit(next)`, which records the
+    previous total for Review plan's "changed by" figure. Views get these as actions from
+    `useWorkspace`, never as state setters ([architecture](architecture.md#workspace-state)).
 - **Storage.**
   - Everything is saved in the browser only, with a debounced autosave state in the sidebar.
   - The catalog (`trip-workspace-catalog-v3`) keeps conversations and trips separately, with stable

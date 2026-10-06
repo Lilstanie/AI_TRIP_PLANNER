@@ -285,6 +285,25 @@ Maps、Booking 或 Weather 适配器。生产环境中的 specialist 通过 `ctx
 
 不要在未通知团队的情况下更改 `packages/shared`；每个包都依赖它。
 
+<a id="workspace-state"></a>
+
+## 工作区状态
+
+规划工作区（`apps/web/components/workspace/useWorkspace.ts`）向视图提供四组内容，不暴露任何原始
+状态 setter：
+
+- `session`：当前打开的聊天和行程及其操作（`send`、`answer`、`retry`、`applyEdit`、`selectTrip`、
+  `selectConversation`、`newChat`、`newTrip`、选择站点）。所有变化都经过
+  `apps/web/lib/workspace/session.ts` 中的纯函数 `session(state, event)`；`applyEdit(next)` 记录被替换的
+  总价，打开聊天或行程通过一个事件重置会话。
+- `layout`：来自 `apps/web/lib/workspace/layout.ts` 中 `layout()` 的 Surface、其操作、面板尺寸和手机
+  地图当前日期。
+- `itinerary`：当前行程的 Itinerary（`apps/web/lib/trip/itinerary.ts`）。
+- `history`：已保存的聊天和行程、搜索、重命名、删除以及存储状态。
+
+同时改变两组内容的操作，例如打开行程（同时决定屏幕上显示什么）或在手机地图上选择日期（取消
+其他日期上选中的站点），只在该 hook 中写一次。手机组件调用这些操作，而不是直接设置状态。
+
 <a id="design-rules"></a>
 
 ## 设计规则
