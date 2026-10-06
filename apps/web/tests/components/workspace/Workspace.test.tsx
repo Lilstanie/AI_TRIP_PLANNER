@@ -600,9 +600,9 @@ describe("Workspace interactions", () => {
     // The Trip drawer's place list, not an overlay on the map, lists the trip's places.
     fireEvent.click(screen.getByRole("button", { name: "Open your trip" }));
     const list = await within(drawer("trip")).findByRole("list", { name: "Stops, Ideas" });
-    await waitFor(() =>
-      expect(within(list).getByRole("button", { name: /Stop 1: Louvre/ })).toBeTruthy(),
-    );
+    await waitFor(() => expect(within(list).getAllByText("Louvre").length).toBeGreaterThan(0));
+    // An idea has no day, so it is never numbered or selectable as a stop.
+    expect(within(list).queryByRole("button", { name: /Stop \d/ })).toBeNull();
     expect(within(list).queryByText(/Sydney museum/)).toBeNull();
   });
   it("opens blank on first visit without requesting a demo plan", async () => {

@@ -20,13 +20,13 @@ export function placeName(place: GooglePlace) {
  * A marker's content: the stop number in a round badge and a label pill with the place's category
  * icon and name. Built as plain DOM because Google renders marker content outside React.
  */
-export function markerContent(place: GooglePlace, order: number, day?: number) {
+export function markerContent(place: GooglePlace, number: number, day?: number) {
   const name = placeName(place);
   const content = document.createElement("span");
   content.className = "trip-map-marker";
   const badge = document.createElement("span");
   badge.className = "trip-map-marker__badge";
-  badge.textContent = String(order);
+  badge.textContent = String(number);
   const label = document.createElement("span");
   label.className = "trip-map-marker__label";
   label.appendChild(categoryIcon(placeCategory(place.primaryType)));
@@ -42,11 +42,11 @@ export function markerContent(place: GooglePlace, order: number, day?: number) {
 
 export function markerTitle(
   place: GooglePlace,
-  order: number,
+  number: number,
   day?: number,
   locale: AppLocale = "en",
 ) {
-  return `${order}. ${placeName(place)}${day ? ` · ${translate(locale, "Day {v0}", { v0: day })}` : ""}`;
+  return `${number}. ${placeName(place)}${day ? ` · ${translate(locale, "Day {v0}", { v0: day })}` : ""}`;
 }
 
 const DAY_COLOURS = 7;
