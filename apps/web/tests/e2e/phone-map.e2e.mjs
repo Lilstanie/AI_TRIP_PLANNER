@@ -5,7 +5,8 @@
 // - selected day retains another day's stops or map route; selecting a stop loses selection;
 // - phone marker details use a desktop popup or cover map controls;
 // - touch controls are smaller than 44 px; strings are missing in Chinese;
-// - reduced motion still animates the sheet; desktop popup changes.
+// - reduced motion still animates the sheet; desktop popup changes;
+// - an idea (no day) is listed or numbered as a Day 1 stop (#186).
 // Run against a production server. Screenshots + summary: output/playwright/phone-map.
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -81,6 +82,12 @@ try {
                 item.placeId = `phone-map-place-${item.day ?? 1}-${index}`;
                 item.location = `Museum ${index + 1}`;
               }
+              // The last stop becomes an idea (no day), as Move to ideas leaves it (#186).
+              const idea = section.proposal.items.at(-1);
+              if (idea) {
+                for (const key of ["day", "startTime", "endTime", "arriveBy"]) delete idea[key];
+                idea.location = "Idea Gallery";
+              }
             }
           return JSON.stringify(frame);
         })
@@ -129,6 +136,12 @@ try {
     await sheet.locator(".phone-map-sheet__stops button").first().waitFor();
     const days = sheet.locator(".phone-map-sheet__days button");
     check((await days.count()) > 1, `${width}: day switcher`);
+    let ideaListed = false;
+    for (let index = 0; index < (await days.count()); index += 1) {
+      await days.nth(index).click();
+      if ((await sheet.innerText()).includes("Idea Gallery")) ideaListed = true;
+    }
+    check(!ideaListed, `${width}: an idea is not listed as a stop of any day`);
     await days.nth(1).click();
     check((await days.nth(1).getAttribute("aria-pressed")) === "true", `${width}: selected day`);
     const canvas = await page.locator(".trip-map-canvas").boundingBox();

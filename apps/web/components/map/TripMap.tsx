@@ -601,11 +601,9 @@ export function TripMap({
                     <button
                       type="button"
                       onClick={(event) => {
-                        if (phone) {
-                          returnFocus.current = event.currentTarget;
-                          focusPopup.current = true;
-                          setClosedFor(undefined);
-                        }
+                        returnFocus.current = event.currentTarget;
+                        focusPopup.current = true;
+                        setClosedFor(undefined);
                         onSelectRef.current(stop.place.id);
                       }}
                     >

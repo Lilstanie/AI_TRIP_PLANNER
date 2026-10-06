@@ -16,20 +16,22 @@ contract-impact: none
 - `PhoneMapSheet.tsx`, `TripMapCanvas.tsx`: Ideas are no longer listed or mapped as Day 1 stops;
   sheet numbers match the map markers; a stop without a location keeps the sheet open.
   `WorkspaceView.tsx` follows a stop selected on the Trip tab to its day on the Map tab.
-- `TripMap.tsx`: the error fallback's place list behaves as before on desktop.
 - `usePhoneKeyboard.ts`: pinch zoom no longer shrinks the shell. `usePhoneBack.ts`: a guard entry
   left by a reload is dropped; open menus are closed by Back; only the full map sheet is guarded.
 - E2E: liquid-glass skips live map checks only without a browser key and checks console errors;
-  phone-map records page errors; phone-shell finds its companions from its own path.
+  phone-map records page errors and checks that an idea is not listed as a day stop (#186);
+  phone-shell finds its companions from its own path.
 
 ## Validation
 
 - `pnpm typecheck`, `pnpm lint`, `pnpm test`, `verify:docs`, `verify:protected`, `verify:pairs` pass.
-- Production build on :3300: `phone-shell.e2e.mjs` 246/246; itinerary, timeline, settings and
+- Production build on :3300: `phone-shell.e2e.mjs` 248/248; itinerary, timeline, settings and
   liquid-glass report no failures (map route and debug-map checks skip without a Maps key).
 
 ## Notes for the next person
 
 - The overlap refusal has no E2E check: the mock plan has no day with three stops to reach it.
+- The map fallback's place list now reopens and focuses a closed popup on desktop too (from
+  92ae5bb); kept, because gating it to phones made `phone-map`'s desktop popup check fail.
 - Not fixed (minor): a plan read on desktop still shows the Trip dot after resizing to a phone;
   the phone shell saves the desktop trip drawer as closed.
