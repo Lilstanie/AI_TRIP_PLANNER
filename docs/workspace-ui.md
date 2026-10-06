@@ -684,6 +684,10 @@ the account section explains that everything stays in this browser.
     places (`JPY 230`, `AUD 12.50`, `KRW 14,000`) and never converts it; `delta()` signs a
     difference (`+AUD 12.00`, `−AUD 30.00`, no sign on zero); `budgetGap()` gives the one
     "{amount} under/over the {budget} budget" sentence the trip panel and edit preview share.
+    Agent Lab uses the same module with fixed AUD and whole dollars (`A$3,960`, `labMoney` in
+    `apps/web/lib/agent-lab/money.ts`). The sentence sent to the planner is not a display amount:
+    `plannerAud()` writes it in English AUD with cents whatever the language or currency. The web
+    app's ESLint config rejects `.toFixed(2)`, so an amount is never formatted by hand.
   - **Connected accounts:** the Google, GitHub or Apple sign-ins linked through Clerk, with a button
     that opens Clerk to change them.
 - Signed out, settings are kept in this browser; signed in, the newer copy of browser and account

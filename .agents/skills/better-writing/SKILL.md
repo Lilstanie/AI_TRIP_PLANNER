@@ -18,8 +18,9 @@ Read the copy around your change before you write. It establishes these conventi
   keep their existing spelling.
 - **Money goes through one module.** Amounts are stored and planned in AUD and shown in the
   traveller's display currency by `money()` from `useLocale()` (`apps/web/lib/money.ts`), which
-  writes a currency code (`AUD 1,234.00`, `JPY 98,000`). Never format an amount by hand, prefix
-  `A$`, or build a sign or "over/under" wording with `Math.abs`: use `delta()` for a signed
+  writes a currency code (`AUD 1,234.00`, `JPY 98,000`). Agent Lab's whole-dollar `A$3,960` comes
+  from `labMoney` and the planner sentence from `plannerAud()`, both in the same module. Never
+  format an amount by hand (ESLint rejects `.toFixed(2)` in `apps/web`), prefix `A$`, or build a sign or "over/under" wording with `Math.abs`: use `delta()` for a signed
   difference and `budgetGap()` for the budget sentence. A converted amount carries the
   "approximate, not live" estimate notice, and provider-native fare evidence stays in its own
   currency through `fare()` (`JPY 230`, `AUD 12.50`). Never invent a converted amount the data does not hold. See the
