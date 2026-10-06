@@ -31,7 +31,13 @@ export type LocationStatus = "located" | "loading" | "unconfirmed" | "unavailabl
 
 export type TripPlaces = {
   activities: Activity[];
+  /** One marker per place, at its first visit; the whole-trip map. */
   markers: TripMarker[];
+  /**
+   * Every located activity in visiting order, including repeat visits to a place. A repeat visit
+   * carries its place marker's `order`; build a single day's map from these (#185).
+   */
+  visits: TripMarker[];
   places: Record<string, GooglePlace>;
   /** Resolved destination city places, used to frame the map before activities load. */
   destinations: GooglePlace[];
@@ -46,11 +52,18 @@ export type TripPlaces = {
   unavailable: number;
   locationStatus(activity: Activity): LocationStatus;
   placeIdFor(activity: Activity): string | undefined;
-  activityForPlace(placeId: string): string | undefined;
+  /** The activity a place's marker stands for; with `day`, that day's visit to the place. */
+  activityForPlace(placeId: string, day?: number): string | undefined;
   rememberPlace(place: GooglePlace): void;
   /** Retry only lookups that failed for a retryable reason. */
   retry(): void;
 };
+
+/** Keep each place's first visit, so a place gets one marker. */
+export function firstVisits(visits: TripMarker[]): TripMarker[] {
+  const seen = new Set<string>();
+  return visits.filter((visit) => !seen.has(visit.place.id) && !!seen.add(visit.place.id));
+}
 
 type Outcome = { status: "found"; placeId: string } | { status: "notFound" | "unavailable" };
 
@@ -203,24 +216,26 @@ export function useTripPlaces(plan: TripPlan | undefined): TripPlaces {
     [lookupKey, outcomes, pending, places],
   );
 
-  const markers = useMemo(() => {
-    const seen = new Set<string>();
-    const located = itineraryOrder(activities).flatMap((activity) => {
+  const visits = useMemo(() => {
+    const orders = new Map<string, number>();
+    return itineraryOrder(activities).flatMap((activity): TripMarker[] => {
       const placeId = placeIdFor(activity);
       const place = placeId ? places[placeId] : undefined;
-      if (!activity.id || !place?.location || seen.has(place.id)) return [];
-      seen.add(place.id);
-      return [{ activity, place }];
+      if (!activity.id || !place?.location) return [];
+      if (!orders.has(place.id)) orders.set(place.id, orders.size + 1);
+      return [
+        {
+          activityId: activity.id,
+          place,
+          verified: !!activity.placeId,
+          order: orders.get(place.id)!,
+          day: activity.day,
+          startTime: activity.startTime,
+        },
+      ];
     });
-    return located.map(({ activity, place }, index): TripMarker => ({
-      activityId: activity.id!,
-      place,
-      verified: !!activity.placeId,
-      order: index + 1,
-      day: activity.day,
-      startTime: activity.startTime,
-    }));
   }, [activities, places, placeIdFor]);
+  const markers = useMemo(() => firstVisits(visits), [visits]);
 
   const destinations = useMemo(
     () =>
@@ -241,8 +256,11 @@ export function useTripPlaces(plan: TripPlan | undefined): TripPlaces {
   );
   const statuses = activities.map(locationStatus);
   const activityForPlace = useCallback(
-    (placeId: string) => markers.find((marker) => marker.place.id === placeId)?.activityId,
-    [markers],
+    (placeId: string, day?: number) =>
+      (day === undefined ? markers : visits).find(
+        (marker) => marker.place.id === placeId && (day === undefined || marker.day === day),
+      )?.activityId,
+    [markers, visits],
   );
   const rememberPlace = useCallback((place: GooglePlace) => {
     setPlaces((old) => ({ ...old, [place.id]: place }));
@@ -252,6 +270,7 @@ export function useTripPlaces(plan: TripPlan | undefined): TripPlaces {
   return {
     activities,
     markers,
+    visits,
     places,
     destinations,
     destinationsSettled,

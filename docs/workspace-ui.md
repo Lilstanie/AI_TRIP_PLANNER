@@ -208,7 +208,9 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     Rename/Delete row menu on touch. Data mode and interface language live here.
   - Map fills the space between the bars. Its day-stops sheet has collapsed, half and full heights,
     selected by dragging or using its handle with pointer or keyboard. Changing day filters the map's
-    markers and routes; selecting a stop focuses it. Without a Maps key the sheet and stops still
+    markers and routes to that day's stops, so a place visited on several days appears on each of
+    them with its trip-wide number; selecting a stop, in the sheet or on the map, focuses that day's
+    visit. Without a Maps key the sheet and stops still
     work, while the map explains its unavailable state. Place details open in a bottom sheet; desktop
     keeps its popup. The 44 px map controls stay above the stops sheet, and panning does not scroll
     the page.

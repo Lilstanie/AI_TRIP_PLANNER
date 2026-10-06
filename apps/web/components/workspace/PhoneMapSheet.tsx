@@ -29,10 +29,11 @@ export function PhoneMapSheet({
       itineraryOrder(model.tripPlaces.activities.filter((activity) => activity.day !== undefined)),
     [model.tripPlaces.activities],
   );
-  // The number each located stop carries on its map marker and in its details.
+  // The number each located stop carries on its map marker and in its details; a repeat visit
+  // carries its place's number.
   const orderFor = useMemo(
-    () => new Map(model.tripPlaces.markers.map((marker) => [marker.activityId, marker.order])),
-    [model.tripPlaces.markers],
+    () => new Map(model.tripPlaces.visits.map((visit) => [visit.activityId, visit.order])),
+    [model.tripPlaces.visits],
   );
   const days = [...new Set(activities.map((activity) => activity.day!))].sort((a, b) => a - b);
   const selectedDay = days.includes(day ?? -1) ? day : days[0];
