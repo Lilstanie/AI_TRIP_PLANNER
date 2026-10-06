@@ -350,6 +350,7 @@ async function fareDecimals(browser) {
       leg(2, 3, { amount: 1400, currency: "KRW" }),
     ];
     body.blockers = [];
+    body.blockerNotices = [];
     await route.fulfill({ response, json: body });
   });
   const timeline = page.getByRole("region", { name: "Trip timeline" });

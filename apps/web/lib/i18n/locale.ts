@@ -225,26 +225,6 @@ export function translate(
  */
 const NOTICE_PATTERNS: readonly [RegExp, MessageKey, readonly string[]][] = [
   [/^Request failed \((\d{3})\)\.$/, "Request failed ({status}).", ["status"]],
-  [
-    /^Day (\d+) has no room left for this stop; shorten another stop first\.$/,
-    "Day {day} has no room left for this stop; shorten another stop first.",
-    ["day"],
-  ],
-  [
-    /^Day (\d+): confirm the place for every stop first, so travel times between them can be checked\.$/,
-    "Day {day}: confirm the place for every stop first, so travel times between them can be checked.",
-    ["day"],
-  ],
-  [
-    /^Day (\d+): (.+) needs at least (\d+) minutes after the previous activity\.$/s,
-    "Day {day}: {stop} needs at least {minutes} minutes after the previous activity.",
-    ["day", "stop", "minutes"],
-  ],
-  [
-    /^Day (\d+): activity would extend beyond the day\.$/,
-    "Day {day}: activity would extend beyond the day.",
-    ["day"],
-  ],
 ];
 
 /** Recognized authored notices only; unrecognized provider errors pass through unchanged. */

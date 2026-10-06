@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { TripPlan } from "@trip/shared";
 import { itineraryOrder } from "@/lib/map/itinerary-route";
 import { applyItemAction, type ItemAction } from "@/lib/trip/item-actions";
+import { NoticeError, type Notice } from "@/lib/i18n/notice";
 import { dayCount, dayLabel } from "@/lib/trip/timeline";
 import type { TripPlaces } from "../map/useTripPlaces";
 import { ActionMenu, type ActionMenuItem } from "../ui/ActionMenu";
@@ -160,7 +161,7 @@ export function TripPlaceList({
   const list = useRef<HTMLElement>(null);
   const [editing, setEditing] = useState<Editing>();
   const [undo, setUndo] = useState<{ previous: TripPlan; message: string }>();
-  const [problem, setProblem] = useState("");
+  const [problem, setProblem] = useState<Notice | "">("");
   const applied = useRef<TripPlan | null>(null);
   const orderFor = useMemo(
     () => new Map(markers.map((marker) => [marker.activityId, marker.order])),
@@ -205,7 +206,9 @@ export function TripPlaceList({
       setEditing(undefined);
       onApply(next);
     } catch (error) {
-      setProblem(error instanceof Error ? error.message : "That change could not be made.");
+      setProblem(
+        error instanceof NoticeError ? error.notice : { key: "That change could not be made." },
+      );
     }
   };
 

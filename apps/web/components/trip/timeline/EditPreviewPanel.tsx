@@ -29,7 +29,7 @@ export function EditPreviewPanel({
   useEffect(() => root.current?.focus(), []);
   const change = preview.plan.estTotal - plan.estTotal;
   const left = preview.plan.budgetTotal - preview.plan.estTotal;
-  const blocked = preview.blockers.length > 0;
+  const blocked = preview.blockerNotices.length > 0;
   // Problems the plan already had are in Review plan; here only what this change would add.
   const existing = new Set((plan.conflicts ?? []).map((conflict) => conflict.reason));
   const conflicts = (preview.plan.conflicts ?? []).filter((c) => !existing.has(c.reason));
@@ -61,10 +61,10 @@ export function EditPreviewPanel({
           </small>
         </p>
       </div>
-      {!!preview.blockers.length && (
+      {blocked && (
         <ul className="edit-preview__list edit-preview__list--blockers" role="alert">
-          {preview.blockers.map((blocker) => (
-            <li key={blocker}>{notice(blocker)}</li>
+          {preview.blockerNotices.map((blocker, index) => (
+            <li key={index}>{notice(blocker)}</li>
           ))}
         </ul>
       )}
