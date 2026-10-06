@@ -9,7 +9,6 @@ import { useTripPlaces } from "../map/useTripPlaces";
 import type { RouteResult } from "@/lib/integrations/google";
 import {
   identifyActivities,
-  itineraryActivities,
   blankDraft,
   draftFor,
   type Message,
@@ -444,9 +443,9 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     if (activeConversation.current === id) startBlankChat(withoutConversation(catalog, id));
     else setCatalog((current) => withoutConversation(current, id));
   }
-  // The trip badge counts the stops in the trip; unresolved problems show as "Needs review" on
-  // the drawer itself and in Review plan.
-  const tripStops = itineraryActivities(plan).length;
+  // The trip badge counts the stops in the trip, never ideas; unresolved problems show as "Needs
+  // review" on the drawer itself and in Review plan.
+  const tripStops = tripPlaces.itinerary.stopCount;
   const dialogTitle = dialog === "review" ? "Review plan" : "Settings";
   // Chip editors are popovers, not drawers: they bring no drawer backdrop.
   const drawerOpen = tripOpen || navOpen;

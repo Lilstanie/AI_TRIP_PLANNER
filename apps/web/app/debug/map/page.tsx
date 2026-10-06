@@ -23,28 +23,28 @@ const place = (
 const STOPS: MapStop[] = [
   {
     place: place("qvb", "Queen Victoria Building", -33.8718, 151.2067, "shopping_mall"),
-    order: 1,
+    number: 1,
     day: 1,
   },
   {
     place: place("tower", "Sydney Tower Eye", -33.8705, 151.2089, "tourist_attraction"),
-    order: 2,
+    number: 2,
     day: 1,
   },
   {
     place: place("darling", "Darling Harbour", -33.8748, 151.1987, "tourist_attraction"),
-    order: 3,
+    number: 3,
     day: 1,
   },
   {
     place: place("opera", "Sydney Opera House", -33.8568, 151.2153, "performing_arts_theater"),
-    order: 4,
+    number: 4,
     day: 2,
   },
-  { place: place("gardens", "Royal Botanic Garden", -33.8642, 151.2166, "park"), order: 5, day: 2 },
-  { place: place("rocks", "The Rocks Markets", -33.8599, 151.209, "market"), order: 6, day: 2 },
-  { place: place("bondi", "Bondi Beach", -33.8908, 151.2743, "beach"), order: 7, day: 3 },
-  { place: place("coogee", "Coogee Beach", -33.9205, 151.2577, "beach"), order: 8, day: 3 },
+  { place: place("gardens", "Royal Botanic Garden", -33.8642, 151.2166, "park"), number: 5, day: 2 },
+  { place: place("rocks", "The Rocks Markets", -33.8599, 151.209, "market"), number: 6, day: 2 },
+  { place: place("bondi", "Bondi Beach", -33.8908, 151.2743, "beach"), number: 7, day: 3 },
+  { place: place("coogee", "Coogee Beach", -33.9205, 151.2577, "beach"), number: 8, day: 3 },
 ];
 
 /**

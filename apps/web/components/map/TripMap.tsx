@@ -21,8 +21,8 @@ import { useSettings } from "../account/SettingsProvider";
 
 type Coordinate = { lat: number; lng: number };
 
-/** A located itinerary stop. `order` is its 1-based number across the trip, in visiting order. */
-export type MapStop = { place: GooglePlace; order: number; day?: number };
+/** A located stop with its trip-wide stop number (lib/trip/itinerary.ts). */
+export type MapStop = { place: GooglePlace; number: number; day?: number };
 
 /** Below this zoom only the selected marker keeps its name label, so labels do not pile up. */
 const LABEL_ZOOM = 12;
@@ -277,11 +277,11 @@ export function TripMap({
     const created = markers.current;
     mapped.forEach((stop) => {
       const position = coordinate(stop.place)!;
-      const content = markerContent(stop.place, stop.order, stop.day);
+      const content = markerContent(stop.place, stop.number, stop.day);
       const marker = new maps.marker.AdvancedMarkerElement({
         map,
         position,
-        title: markerTitle(stop.place, stop.order, stop.day, locale),
+        title: markerTitle(stop.place, stop.number, stop.day, locale),
         content,
         // Required for gmp-click: an advanced marker is inert until asked to
         // be clickable, unlike the legacy marker it replaced.
@@ -330,7 +330,6 @@ export function TripMap({
         mapped.map((stop): RouteStop => ({
           placeId: stop.place.id,
           day: stop.day,
-          order: stop.order,
           position: coordinate(stop.place)!,
         })),
         routes,
@@ -490,7 +489,7 @@ export function TripMap({
             place={selectedStop.place}
             showPhoto={showPhotos}
             headingId="trip-map-popup-title"
-            meta={`${t("Stop")} ${selectedStop.order}${selectedStop.day ? ` · ${t("Day {v0}", { v0: selectedStop.day })}` : ""}`}
+            meta={`${t("Stop")} ${selectedStop.number}${selectedStop.day ? ` · ${t("Day {v0}", { v0: selectedStop.day })}` : ""}`}
             onClose={closePopup}
             actions={
               location.status === "success" && (

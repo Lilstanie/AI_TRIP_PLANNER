@@ -3,11 +3,10 @@ import { drawItineraryRoutes, markerContent, markerTitle } from "@/components/ma
 import type { MapRuntime } from "@/components/map/google-maps-sdk";
 import { dayRoutes, type RouteStop } from "@/lib/map/itinerary-route";
 
-const stop = (placeId: string, order: number, day: number): RouteStop => ({
+const stop = (placeId: string, at: number, day: number): RouteStop => ({
   placeId,
-  order,
   day,
-  position: { lat: order, lng: order },
+  position: { lat: at, lng: at },
 });
 
 function fakeRuntime() {

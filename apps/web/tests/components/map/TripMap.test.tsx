@@ -13,7 +13,7 @@ function Map({ places, days = [], ...props }: MapProps) {
   const userLocation = useUserLocation();
   const stops: MapStop[] = places.map((place, index) => ({
     place,
-    order: index + 1,
+    number: index + 1,
     day: days[index],
   }));
   return <TripMap {...props} stops={stops} userLocation={userLocation} />;

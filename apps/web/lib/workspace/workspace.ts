@@ -526,14 +526,7 @@ export async function readPlanStream(
   return result;
 }
 
-/** Itinerary activities in plan order; hotels and transport are never mapped. */
-export function itineraryActivities(plan: TripPlan | undefined) {
-  return (
-    plan?.sections
-      .find((section) => section.id === "itinerary")
-      ?.proposal?.items.filter((item) => item.kind === "activity") ?? []
-  );
-}
+export { itineraryActivities } from "../trip/itinerary";
 
 /** Allocate IDs only for legacy/new items; never derive identity from array position. */
 export function identifyActivities(plan: TripPlan): TripPlan {
