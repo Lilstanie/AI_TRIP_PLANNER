@@ -1,7 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { WorkspaceController } from "./useWorkspaceController";
-import { usePhoneBack } from "./usePhoneBack";
 
 // Catalog validation rebuilds objects in schema order. Sort object keys so a restored snapshot
 // and the same live plan have one revision, regardless of property insertion order.
@@ -38,6 +37,5 @@ export function usePhoneTripUpdates(model: WorkspaceController) {
     if (mobileView === "trip") read.current!.set(plan.tripId, revision);
     setTripUpdated(read.current!.get(plan.tripId) !== revision);
   }, [plan, revision, phone, mobileView]);
-  usePhoneBack(phone);
   return { tripUpdated: tripUpdated && mobileView !== "trip" };
 }

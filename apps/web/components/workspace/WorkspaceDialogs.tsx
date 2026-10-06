@@ -14,7 +14,7 @@ export function WorkspaceDialogs({ model }: { model: WorkspaceController }) {
     error,
     retry,
     busy,
-    setDialog,
+    closeDialog,
     run,
     settingsSection,
     dataMode,
@@ -23,10 +23,7 @@ export function WorkspaceDialogs({ model }: { model: WorkspaceController }) {
   return (
     <>
       {dialog && (
-        <Dialog
-          title={t(dialog === "review" ? "Review plan" : "Settings")}
-          onClose={() => setDialog(undefined)}
-        >
+        <Dialog title={t(dialog === "review" ? "Review plan" : "Settings")} onClose={closeDialog}>
           {dialog === "review" && plan && (
             <>
               <p>
@@ -78,7 +75,7 @@ export function WorkspaceDialogs({ model }: { model: WorkspaceController }) {
               onDataMode={dataMode.choose}
               onAccountModal={(open) => {
                 // Close the native dialog's top layer before Clerk mounts its DOM portal.
-                flushSync(() => setDialog(undefined));
+                flushSync(closeDialog);
                 open();
               }}
             />
