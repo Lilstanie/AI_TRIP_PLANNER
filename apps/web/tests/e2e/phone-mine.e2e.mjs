@@ -287,6 +287,54 @@ try {
     "800: selecting a trip preserves the tablet Map view",
   );
   await tabletPage.screenshot({ path: `${OUT}/800-trip-retains-map.png` });
+  // #184: Your trips crossing into phone width must keep Chat, Mine and Settings reachable
+  // without opening or creating a trip.
+  await tabletPage.getByRole("button", { name: "Open navigation" }).click();
+  await tabletPage
+    .locator(".drawer")
+    .getByRole("button", { name: /^Trips/ })
+    .click();
+  await tabletPage.getByRole("heading", { name: "Your trips", exact: true }).waitFor();
+  await tabletPage.setViewportSize({ width: 390, height: 844 });
+  const tabs = tabletPage.getByRole("tablist", { name: "Workspace sections" });
+  const tripsMine = tabletPage.locator(".phone-mine");
+  await tabletPage.addStyleTag({ content: "nextjs-portal { display:none !important; }" });
+  check(
+    await tabs
+      .waitFor({ timeout: 5000 })
+      .then(() => true)
+      .catch(() => false),
+    "800->390: phone tab bar shown after leaving Your trips at tablet width",
+  );
+  const shown = (locator) =>
+    locator
+      .first()
+      .waitFor({ timeout: 5000 })
+      .then(() => true)
+      .catch(() => false);
+  check(
+    (await shown(tabletPage.locator('[role="tab"][aria-selected="true"]#phone-tab-mine'))) &&
+      (await shown(tripsMine.locator(".trip-card"))),
+    "800->390: Your trips continues as the Mine tab with trips listed",
+  );
+  await tabletPage.waitForTimeout(500);
+  await tabletPage.screenshot({ path: `${OUT}/800-to-390-trips-mine.png` });
+  await tripsMine
+    .getByRole("button", { name: "Settings & account", exact: true })
+    .click({ timeout: 3000 });
+  check(
+    await shown(tabletPage.getByRole("dialog", { name: "Settings", exact: true })),
+    "800->390: Settings reachable",
+  );
+  await tabletPage.keyboard.press("Escape");
+  await tabs.getByRole("tab", { name: "Chat", exact: true }).click({ timeout: 3000 });
+  check(
+    (await shown(tabletPage.locator('[role="tab"][aria-selected="true"]#phone-tab-chat'))) &&
+      (await shown(tabletPage.locator(".workspace-panel--chat"))),
+    "800->390: Chat reachable",
+  );
+  await tabletPage.waitForTimeout(500);
+  await tabletPage.screenshot({ path: `${OUT}/800-to-390-chat.png` });
   await tablet.close();
 } catch (error) {
   check(false, String(error));
