@@ -1,10 +1,5 @@
-import {
-  translate,
-  intlLocale,
-  formatProviderAmount,
-  type AppLocale,
-  type MessageKey,
-} from "../i18n/locale";
+import { translate, intlLocale, type AppLocale, type MessageKey } from "../i18n/locale";
+import { fare } from "../money";
 import type { ArriveBy, ProposalItem, TripPlan } from "@trip/shared";
 import type { RouteResult } from "../integrations/google";
 
@@ -222,7 +217,7 @@ export function connectionBetween(
       label: `${MODE_LABELS[route.mode] ? translate(locale, MODE_LABELS[route.mode]!) : route.mode} · ${formatDuration(route.durationMin, locale)}`,
       status: "checked",
       // The provider's own currency: not converted and not counted in the AUD budget.
-      fare: route.fare ? formatProviderAmount(route.fare) : undefined,
+      fare: route.fare ? fare(route.fare, locale) : undefined,
     };
   }
   if (!previous || !current.arriveBy) return undefined;

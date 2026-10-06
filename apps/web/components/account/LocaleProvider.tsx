@@ -3,23 +3,23 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   browserLocale,
-  formatAudForDisplay,
   intlLocale,
   interfaceNotice,
   translate,
   type AppLocale,
   type MessageKey,
 } from "@/lib/i18n/locale";
+import { moneyDisplay, type Money } from "@/lib/money";
 import { useSettings } from "./SettingsProvider";
 
 import type { Currency, TripBrief } from "@trip/shared";
 
-type LocaleState = {
+/** Language, display currency and the Money formatters for both. */
+type LocaleState = Money & {
   locale: AppLocale;
   t(text: MessageKey, params?: Record<string, string | number>): string;
   currency: Currency;
   notice(text: string | undefined): string;
-  money(amount: number, source?: TripBrief["budgetSource"]): string;
 };
 
 const LocaleContext = createContext<LocaleState>({
@@ -27,7 +27,7 @@ const LocaleContext = createContext<LocaleState>({
   currency: "AUD",
   notice: (text) => interfaceNotice("en", text ?? ""),
   t: (text, params) => translate("en", text, params),
-  money: (amount) => formatAudForDisplay(amount, "AUD", "en"),
+  ...moneyDisplay({ currency: "AUD", locale: "en" }),
 });
 
 /**
@@ -60,8 +60,7 @@ export function LocaleProvider({
       t: (text, params) => translate(locale, text, params),
       currency,
       notice: (text) => interfaceNotice(locale, text ?? ""),
-      money: (amount, source) =>
-        formatAudForDisplay(amount, currency, locale, undefined, undefined, source),
+      ...moneyDisplay({ currency, locale }),
     }),
     [locale, currency],
   );

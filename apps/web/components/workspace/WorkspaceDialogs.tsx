@@ -6,7 +6,7 @@ import type { WorkspaceController } from "./useWorkspaceController";
 import { useLocale } from "../account/LocaleProvider";
 
 export function WorkspaceDialogs({ model }: { model: WorkspaceController }) {
-  const { t, money, notice: localizeNotice } = useLocale();
+  const { t, money, delta, notice: localizeNotice } = useLocale();
   const {
     dialog,
     plan,
@@ -31,13 +31,13 @@ export function WorkspaceDialogs({ model }: { model: WorkspaceController }) {
             <>
               <p>
                 {plan.brief.destination} · {money(plan.estTotal)} {t("estimated /")}{" "}
-                {money(plan.budgetTotal)} {t("budget")}
+                {money(plan.budgetTotal, plan.brief.budgetSource)} {t("budget")}
               </p>
               <p>
                 {previousTotal === undefined
                   ? t("No previous plan to compare.")
                   : t("Change from the previous estimate: {v0}.", {
-                      v0: money(plan.estTotal - previousTotal),
+                      v0: delta(plan.estTotal - previousTotal),
                     })}
               </p>
               <h3>{t("Conflicts")}</h3>
