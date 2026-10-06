@@ -158,7 +158,7 @@ Timeline & routes 标签页（由 `TripEditor` 组合 `components/trip/timeline/
 
 - **布局。** 日期标签条（`Day 2 · Sun, 18 Oct · 3 stops`，停靠点需要地点时带标记）用于选择日期。当天按时间顺序呈现为竖线（`lib/trip/timeline.ts`）：无具体时间的航班在最前，带时间的城际路段和停靠点按开始时间排列，当晚入住在最后，后续夜晚显示“Staying at …”。固定行显示图标、标题、一行详情及费用（“Fare not published”或“Price unknown”，而非 AUD 0）。两站之间的路程显示路线检查得到的“Walk · 6 min · checked”，或以规划器的 `arriveBy` 作为估计。
 - **价格。** 没有提供方公布门票价格，因此行程停靠点不带 `estCost`，显示“Price unknown”；预算卡补充“Not included: admission for N stops with no published price”，避免把总额理解为全部费用。
-- **顺序和编号。** 当天停靠点按访问顺序列出，每个停靠点的节点显示其全程编号，与地图和 Trip 抽屉一致；未定位的停靠点不显示编号。Move earlier、Move later、Move to another day 和拖放都按显示的位置指定目标，由 Itinerary 换算成 `preview-edit` 所需的方案索引（该索引按方案顺序计算当天其他停靠点）。
+- **顺序和编号。** 当天停靠点按访问顺序列出，每个停靠点的节点显示其全程编号，与地图和 Trip 抽屉一致；未定位的停靠点不显示编号。Move earlier、Move later、Move to another day 和拖放都按显示的位置指定目标，由 Itinerary 换算成 `preview-edit` 所需的方案索引（该索引按方案顺序计算当天其他停靠点）。开始时间与方案顺序不一致时，向后移动的停靠点落在它越过的那个停靠点之后，其他移动则落在目标停靠点之前，因此预览保留旅行者要求的交换；之后端点会重新安排当天其余停靠点的时间。
 - **编辑。** 停靠点在此处或地图上被选中前保持紧凑；选择后打开编辑器：开始和结束时间（“Preview time change”）、Move earlier / Move later、Move to another day，以及用于替换地点的 Google Maps 搜索。地图按名称匹配但尚未确认的停靠点提供“Use this place”。仍支持拖放调整当天顺序。
 - **路线检查。** 提供 Walk / Public transport 切换和“Check routes for Day N”；当天有两个地点已确认的停靠点时启用，下方提示说明缺少哪个条件。
 - **审查。** 每次编辑打开“Review this change”：显示新总额和差额、每个移动停靠点一行、已检查路线、阻断项，以及仅由此次变化新增的冲突。Apply changes 应用修改；Cancel 或 Escape 只关闭预览。应用编辑后显示“Undo last change”，撤销也用同样方式预览。

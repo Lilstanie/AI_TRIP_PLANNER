@@ -33,7 +33,10 @@ bugs #185 and #186 were each fixed in one caller only.
 - The Trip button badge shows `stopCount`, so ideas no longer inflate it.
 - The edit preview endpoint (`POST /api/trip/preview-edit`) is unchanged and still indexes the day's
   other stops in plan order. Timeline moves name a position as shown, and `planIndex` translates it
-  into the index the endpoint needs.
+  into the index the endpoint needs. The endpoint inserts in plan order and re-times the day from
+  the inserted stop, so `planIndex` anchors a move on the neighbour the traveller moved past: a
+  stop moved later on its own day goes just after the stop shown above the target, any other move
+  just before the stop shown at the target, and the end of the day after every other stop (#202).
 
 ## Alternatives considered
 
@@ -48,7 +51,9 @@ Both were weighed in the design interview for spec #196 (questions Q4 and Q5):
 ## Consequences
 
 - Every view agrees by construction, and day, numbering and ordering rules are tested without a
-  browser in `apps/web/tests/lib/trip/itinerary.test.ts`.
+  browser in `apps/web/tests/lib/trip/itinerary.test.ts`, which also runs Move earlier and Move
+  later through the real `previewEdit` (start times out of plan order, first and last stops, a
+  repeat visit).
 - The Trip badge is smaller for plans with ideas, and a timeline day can start at a number other
   than 1. Both are intended behaviour changes.
 - `itineraryOrder`, `firstVisits`, `activityForPlace`, `TripMarker` and `markers`/`visits` on
@@ -61,5 +66,6 @@ Both were weighed in the design interview for spec #196 (questions Q4 and Q5):
 
 ## Sources
 
-- Spec #196 and ticket #197.
-- Session log `.agents/session-logs/2026-10-06-itinerary-module.md`.
+- Spec #196 and tickets #197 and #202.
+- Session logs `.agents/session-logs/2026-10-06-itinerary-module.md` and
+  `.agents/session-logs/2026-10-06-itinerary-timeline.md`.

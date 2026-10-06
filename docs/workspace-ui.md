@@ -466,7 +466,9 @@ no LLM calls.
   trip-wide stop number, the same as on the map and in the Trip drawer; an unlocated stop shows
   none. Move earlier, Move later, Move to another day and drag and drop name a position as shown;
   the Itinerary turns it into the plan index `preview-edit` expects, which counts the day's other
-  stops in plan order.
+  stops in plan order. When start times disagree with plan order, a stop moved later lands just
+  after the stop it moved past and any other move lands just before it, so the preview keeps the
+  swap the traveller asked for; the endpoint then re-times the rest of the day after it.
 - **Editing.** A stop is compact until selected, here or on the map; selecting it opens its editor:
   start and end time ("Preview time change"), Move earlier / Move later, Move to another day, and a
   Google Maps search to replace the place. A stop the map matched by name but not confirmed offers
