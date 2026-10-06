@@ -3,6 +3,7 @@ import { useEffect, useRef } from "react";
 import type { TripPlan } from "@trip/shared";
 import type { EditPreview } from "@/lib/trip/trip-edit";
 import { formatDuration } from "@/lib/trip/timeline";
+import { formatProviderAmount } from "@/lib/i18n/locale";
 import { useLocale } from "../../account/LocaleProvider";
 
 /**
@@ -83,7 +84,7 @@ export function EditPreviewPanel({
                   ? `${route.mode === "WALK" ? t("Walk") : t("Public transport")} · ${formatDuration(route.durationMin, locale)}`
                   : (route.error ?? t("No route found"))}
                 {route.fare
-                  ? ` · ${route.fare.currency} ${route.fare.amount.toFixed(2)}`
+                  ? ` · ${formatProviderAmount(route.fare)}`
                   : route.status === "ok"
                     ? t(" · fare not published")
                     : ""}

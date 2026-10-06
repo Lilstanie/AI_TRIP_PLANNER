@@ -20,7 +20,7 @@ Read the copy around your change before you write. It establishes these conventi
   traveller's display currency by `money()` from `useLocale()`, which writes a currency code
   (`AUD 1,234.00`, `JPY 98,000`). Never format an amount by hand or prefix `A$`. A converted amount
   carries the "approximate, not live" estimate notice, and provider-native fare evidence stays in
-  its own currency. Never invent a converted amount the data does not hold. See the
+  its own currency through `formatProviderAmount()` (`JPY 230`, `AUD 12.50`). Never invent a converted amount the data does not hold. See the
   [AUD base-currency](../../notes/implemented/architecture/2026-09-20-aud-base-currency.md) and
   [display currency](../../notes/implemented/feature/2026-10-04-workspace-display-currency.md) notes.
 - **Every interface string is bilingual.** Write the English text as a key passed to `t()` from

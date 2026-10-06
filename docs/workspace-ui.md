@@ -208,7 +208,9 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     Rename/Delete row menu on touch. Data mode and interface language live here.
   - Map fills the space between the bars. Its day-stops sheet has collapsed, half and full heights,
     selected by dragging or using its handle with pointer or keyboard. Changing day filters the map's
-    markers and routes; selecting a stop focuses it. Without a Maps key the sheet and stops still
+    markers and routes to that day's stops, so a place visited on several days appears on each of
+    them with its trip-wide number; selecting a stop, in the sheet or on the map, focuses that day's
+    visit. Without a Maps key the sheet and stops still
     work, while the map explains its unavailable state. Place details open in a bottom sheet; desktop
     keeps its popup. The 44 px map controls stay above the stops sheet, and panning does not scroll
     the page.
@@ -654,7 +656,8 @@ the account section explains that everything stays in this browser.
     Trip amounts use one locale-aware formatter and the shared approximate rate table. Converted
     displays carry its as-of date; JPY has no decimals, other currencies have two. The trip's stated budget currency takes
     precedence over Settings. Planning and
-    guardrails keep AUD values. Provider-native fares retain their own currency.
+    guardrails keep AUD values. Provider-native fares retain their own currency, with that currency's
+    decimal places (`JPY 230`, `AUD 12.50`; `formatProviderAmount`), and are never converted.
   - **Connected accounts:** the Google, GitHub or Apple sign-ins linked through Clerk, with a button
     that opens Clerk to change them.
 - Signed out, settings are kept in this browser; signed in, the newer copy of browser and account

@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import dynamic from "next/dynamic";
 import { useLocale } from "../account/LocaleProvider";
 import type { RouteResult } from "@/lib/integrations/google";
-import type { TripPlaces } from "./useTripPlaces";
+import { firstVisits, type TripPlaces } from "./useTripPlaces";
 import type { UserLocation } from "./useUserLocation";
 import { MapPinIcon } from "../ui/icons";
 
@@ -55,6 +55,7 @@ export function TripMapCanvas({
   const { t } = useLocale();
   const {
     markers,
+    visits,
     destinations,
     destinationsSettled,
     destinationsUnavailable,
@@ -64,19 +65,21 @@ export function TripMapCanvas({
     retry,
     activityForPlace,
   } = tripPlaces;
+  // A day's map is built from that day's visits, so a place seen on an earlier day stays on it.
   const stops = useMemo(
     () =>
-      markers
-        .filter((marker) => focusedDay === undefined || marker.day === focusedDay)
-        .map(({ place, order, day }) => ({ place, order, day })),
-    [markers, focusedDay],
+      (focusedDay === undefined
+        ? markers
+        : firstVisits(visits.filter((visit) => visit.day === focusedDay))
+      ).map(({ place, order, day }) => ({ place, order, day })),
+    [markers, visits, focusedDay],
   );
   const dayRoutes = useMemo(() => {
     if (focusedDay === undefined) return routes;
     const ids = new Set(stops.map((stop) => stop.place.id));
     return routes.filter((route) => ids.has(route.from) && ids.has(route.to));
   }, [routes, stops, focusedDay]);
-  const selected = markers.find((marker) => marker.activityId === selectedActivity)?.place.id;
+  const selected = visits.find((visit) => visit.activityId === selectedActivity)?.place.id;
   const canShowMap = destinations.length > 0 || markers.length > 0;
 
   if (!destination || !canShowMap) {
@@ -124,7 +127,7 @@ export function TripMapCanvas({
         destinations={destinations}
         selected={selected}
         onSelect={(placeId) => {
-          const activityId = activityForPlace(placeId);
+          const activityId = activityForPlace(placeId, focusedDay);
           if (activityId) onSelectActivity(activityId);
         }}
         routes={dayRoutes}

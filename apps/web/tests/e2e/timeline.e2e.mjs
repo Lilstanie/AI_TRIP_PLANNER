@@ -1,6 +1,7 @@
 // End-to-end walk through the Timeline & routes tab with mock data: day switching, the fixed
 // transport and stay rows, selecting and editing a stop, confirming its map match, checking the
-// day's routes, applying a previewed edit and undoing it. Screenshots at desktop and phone widths,
+// day's routes, applying a previewed edit and undoing it, and provider transit fares keeping their
+// own currency's decimal places (JPY 230, AUD 12.50). Screenshots at desktop and phone widths,
 // light and dark, land under output/playwright/timeline/<label>/ as a repeatable artifact.
 //
 //   pnpm --filter @trip/web dev            # in another terminal; a map key is optional (see the 502 note below)
@@ -52,6 +53,8 @@ async function openTimeline(browser, { width, height, scheme }) {
   page.on("pageerror", (error) => errors.push(String(error)));
   await page.goto(BASE);
   await page.waitForSelector(".workspace-app");
+  // The dev-mode indicator sits over the phone tab bar and would take the tab clicks.
+  await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
   // Mock data: no provider requests. The toggle only works once the page has hydrated, so retry
   // until it reports mock rather than clicking once and planning with live providers.
   await page.waitForLoadState("networkidle");
@@ -313,11 +316,94 @@ async function interactions(browser) {
   await context.close();
 }
 
+// Provider transit fares stay in their own currency with that currency's decimal places: yen has
+// no minor unit. The route provider is a system boundary, so the preview response is given two
+// checked transit legs (one JPY, one AUD) between three stops moved onto the first day.
+async function fareDecimals(browser) {
+  const { context, page, errors, upstream } = await openTimeline(browser, {
+    width: 1440,
+    height: 1000,
+    scheme: "light",
+  });
+  await page.route("**/api/trip/preview-edit", async (route) => {
+    const response = await route.fetch();
+    const body = await response.json();
+    const items = body.plan.sections.find((s) => s.id === "itinerary").proposal.items;
+    const stops = items.filter((i) => i.kind === "activity" && i.day !== undefined).slice(0, 3);
+    stops.forEach((stop, index) => {
+      stop.day = stops[0].day;
+      stop.placeId = `e2e-fare-${index}`;
+      stop.startTime = `${String(9 + index * 2).padStart(2, "0")}:00`;
+      stop.endTime = `${String(10 + index * 2).padStart(2, "0")}:00`;
+    });
+    const leg = (from, to, fare) => ({
+      from: `e2e-fare-${from}`,
+      to: `e2e-fare-${to}`,
+      mode: "TRANSIT",
+      status: "ok",
+      durationMin: 25,
+      fare,
+    });
+    body.routes = [
+      leg(0, 1, { amount: 230, currency: "JPY" }),
+      leg(1, 2, { amount: 12.5, currency: "AUD" }),
+    ];
+    body.blockers = [];
+    await route.fulfill({ response, json: body });
+  });
+  const timeline = page.getByRole("region", { name: "Trip timeline" });
+  await timeline.locator(".timeline-stop .timeline-stop__main").first().click();
+  await settle(page);
+  // Any edit will do: move the end time so the preview button is enabled.
+  const end = timeline.getByLabel(/^End/).first();
+  const [endHour, endMinute] = (await end.inputValue()).split(":").map(Number);
+  await end.fill(
+    `${String(Math.min(endHour + 1, 22)).padStart(2, "0")}:${String(endMinute).padStart(2, "0")}`,
+  );
+  await timeline.getByRole("button", { name: /Preview time change/ }).click();
+  const preview = page.getByRole("region", { name: "Edit preview" });
+  await preview.waitFor({ timeout: 30_000 });
+  await settle(page);
+  const routes = await preview.locator(".edit-preview__routes").innerText();
+  const jpy = (text) => text.match(/JPY [\d.]+/)?.[0];
+  check(/JPY 230(?![.\d])/.test(routes), `preview: JPY fare has no decimals (${jpy(routes)})`);
+  check(/AUD 12\.50(?!\d)/.test(routes), "preview: AUD fare keeps two decimals");
+  check(
+    /not added to the AUD budget/.test(routes),
+    "preview: fares are labelled as outside the AUD budget",
+  );
+  await page.screenshot({ path: `${OUT}/fare-01-preview.png` });
+  await preview.getByRole("button", { name: "Apply changes" }).click();
+  await settle(page, 800);
+  const legs = await timeline.locator(".timeline-connection--checked").allInnerTexts();
+  const text = legs.join(" | ");
+  check(legs.length === 2, `timeline: both checked legs shown (${legs.length})`);
+  check(/JPY 230(?![.\d])/.test(text), `timeline: JPY fare has no decimals (${jpy(text)})`);
+  check(/AUD 12\.50(?!\d)/.test(text), "timeline: AUD fare keeps two decimals");
+  await timeline.locator(".timeline-connection--checked").first().scrollIntoViewIfNeeded();
+  await page.screenshot({ path: `${OUT}/fare-02-timeline.png` });
+  // The stand-in place ids have no place details, so those lookups answer 502 like the search.
+  const unexpected = errors.filter(
+    (text) =>
+      !(
+        /status of 502/.test(text) && [...upstream].every((path) => path.startsWith("/api/places/"))
+      ),
+  );
+  check(
+    !unexpected.length,
+    `fare decimals: no console errors${unexpected.length ? `: ${unexpected.join(" | ")}` : ""}`,
+  );
+  await context.close();
+}
+
 const browser = await chromium.launch({ channel: process.env.CHANNEL });
 try {
   await shots(browser, 1440, 1000, "desktop");
   await shots(browser, 390, 844, "phone");
-  if (!SHOTS_ONLY) await interactions(browser);
+  if (!SHOTS_ONLY) {
+    await fareDecimals(browser);
+    await interactions(browser);
+  }
 } finally {
   await browser.close();
 }
