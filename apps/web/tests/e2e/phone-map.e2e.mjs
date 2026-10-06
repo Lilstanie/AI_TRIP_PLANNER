@@ -6,7 +6,9 @@
 // - phone marker details use a desktop popup or cover map controls;
 // - touch controls are smaller than 44 px; strings are missing in Chinese;
 // - reduced motion still animates the sheet; desktop popup changes;
-// - an idea (no day) is listed or numbered as a Day 1 stop (#186).
+// - an idea (no day) is listed or numbered as a Day 1 stop (#186);
+// - a place visited on two days is missing from the later day's map, or selecting the later
+//   day's stop neither resolves to that day's visit nor opens its details (#185).
 // Run against a production server. Screenshots + summary: output/playwright/phone-map.
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -36,6 +38,7 @@ try {
     });
     const page = await context.newPage();
     const errors = [];
+    let revisited = "";
     page.on("pageerror", (error) => errors.push(String(error)));
     // Controlled place responses exercise marker/fallback details without a provider key.
     await page.route("**/api/places/search", async (route) => {
@@ -81,6 +84,15 @@ try {
               for (const [index, item] of section.proposal.items.entries()) {
                 item.placeId = `phone-map-place-${item.day ?? 1}-${index}`;
                 item.location = `Museum ${index + 1}`;
+              }
+              // Day 2's first stop revisits day 1's first place (#185).
+              const items = section.proposal.items;
+              const first = items.find((item) => item.day === 1);
+              const revisit = items.find((item) => item.day === 2);
+              if (first && revisit) {
+                revisit.placeId = first.placeId;
+                revisit.location = first.location;
+                revisited = first.placeId; // its fixture name, from /api/places/details
               }
               // The last stop becomes an idea (no day), as Move to ideas leaves it (#186).
               const idea = section.proposal.items.at(-1);
@@ -142,16 +154,45 @@ try {
       if ((await sheet.innerText()).includes("Idea Gallery")) ideaListed = true;
     }
     check(!ideaListed, `${width}: an idea is not listed as a stop of any day`);
+    // No map key in mock mode: the fallback's "Mapped places" list is the day's filtered map.
+    const mappedPlaces = page.locator(".trip-map-fallback ol");
+    const mapText = async () => ((await mappedPlaces.count()) ? mappedPlaces.innerText() : "");
+    await days.nth(0).click();
+    check((await mapText()).includes(revisited), `${width}: a repeated place is on day 1's map`);
+    await days.nth(1).click();
+    check(
+      (await mapText()).includes(revisited),
+      `${width}: a repeated place is still on day 2's map`,
+    );
     await days.nth(1).click();
     check((await days.nth(1).getAttribute("aria-pressed")) === "true", `${width}: selected day`);
     const canvas = await page.locator(".trip-map-canvas").boundingBox();
     const panel = await page.locator(".workspace-panel--map").boundingBox();
     check(canvas.height >= panel.height - 2 && canvas.height > 500, `${width}: canvas fills tab`);
-    await sheet.locator(".phone-map-sheet__stops button").first().click();
+    check(!!revisited, `${width}: fixture has a place visited on days 1 and 2`);
+    // Choosing the place on day 2's map resolves to day 2's visit, not day 1's.
+    const revisitButton = mappedPlaces.getByRole("button", { name: revisited, exact: true });
+    await handle.press("Home"); // the map, not the sheet, is pressed
+    if (await revisitButton.count()) await revisitButton.click();
+    const day2Stops = sheet.locator(".phone-map-sheet__stops button");
+    const pressed = await day2Stops.evaluateAll((nodes) =>
+      nodes.findIndex((node) => node.getAttribute("aria-pressed") === "true"),
+    );
+    check(pressed >= 0, `${width}: day 2 map place selects day 2's stop`);
+    const openDetails = page.locator(".phone-map-details");
+    if (await openDetails.isVisible())
+      await openDetails.getByRole("button", { name: "Close place details" }).click();
+    await handle.press("End");
+    await day2Stops.nth(Math.max(0, pressed)).click();
     check((await sheet.getAttribute("data-snap")) === "handle", `${width}: stop exposes map`);
     const popup = page.locator(".phone-map-details");
     await popup.waitFor();
     check(await popup.isVisible(), `${width}: no-key fallback details use bottom sheet`);
+    const details = await popup.innerText();
+    check(
+      details.includes(revisited) && details.includes("Day 2"),
+      `${width}: day 2's repeated stop opens day 2 details`,
+    );
     const controls = await page.locator(".map-control").evaluateAll((nodes) =>
       nodes.map((node) => {
         const b = node.getBoundingClientRect();

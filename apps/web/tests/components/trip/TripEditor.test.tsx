@@ -17,6 +17,7 @@ function fixture() {
 const places = (plan: TripPlan): TripPlaces => ({
   activities: itineraryActivities(plan),
   markers: [],
+  visits: [],
   places: {},
   loading: false,
   destinations: [],
