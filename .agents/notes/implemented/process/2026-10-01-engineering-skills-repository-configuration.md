@@ -16,11 +16,11 @@ Repository-level engineering skill configuration lives under `docs/agents/`. Git
 `Lilstanie/AI_TRIP_PLANNER` are the issue tracker, the five canonical triage labels map directly to
 same-named GitHub labels, and pull requests are not a triage request surface.
 
-Domain documentation uses a single-context layout: skills read a future root `CONTEXT.md` glossary
-and root `docs/adr/` decisions when present. The configuration does not create either path eagerly;
-domain-modeling workflows create them only when a real term or decision needs recording. Existing
-product documentation, Agent Notes, protected-file rules, and the E2E-first testing policy remain
-authoritative.
+Domain documentation uses a single-context layout: skills read a root `GLOSSARY.md` glossary (named
+`CONTEXT.md` until upstream v1.3.0 renamed the convention) and root `docs/adr/` decisions when
+present. The configuration does not create either path eagerly; domain-modeling workflows create
+them only when a real term or decision needs recording. Existing product documentation, Agent Notes,
+protected-file rules, and the E2E-first testing policy remain authoritative.
 
 This note partially supersedes only the context-and-ADR conclusion in
 [the earlier Matt Pocock skills decision](../../archived/process/2026-09-26-matt-pocock-skills.md). Its decision to

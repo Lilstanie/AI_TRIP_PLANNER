@@ -2,8 +2,8 @@
   "version": 1,
   "pairs": {
     "docs/agents/domain.md": {
-      "sourceSha256": "88e9e72c226a81aea2b5f515535481ca34179ef9b16194e006bc459c8cc153fe",
-      "translationSha256": "db41f42177bd94b04163162406ce06523d294ab3a3a1fa2bfabdb72481895fe9"
+      "sourceSha256": "e93863a20dd7d4b4fa45b2da086262d206882d122061ec8e3dbb8c13237ef26a",
+      "translationSha256": "1481973b78e8384207bd0ca385220e96188f4f5a72333773a3f9696facfe450b"
     },
     "docs/agents/issue-tracker.md": {
       "sourceSha256": "afd6852a80185217bd28aa5cbe456bef1e85be25be7bd1fba382d5b8ee428325",
@@ -78,8 +78,8 @@
       "translationSha256": "d6243996e1e6077e1beb86b22a65eaa2630713023d252f16ca56999ad7e984e9"
     },
     "docs/i18n.md": {
-      "sourceSha256": "006d1efdd6fda97bace63eb32c768c600cef538bd27cc50e0f685bf37f7ea56c",
-      "translationSha256": "7f7ecb66d6cbfba1fb1e8e23d3479b563b622f5505320f64ebe89c32024d3024"
+      "sourceSha256": "f68257c7bce1af3e72475fb48e9c4b9a88985b500297d04431ab39211a2bb479",
+      "translationSha256": "7ec74c59ad4c65af4f29b5264d9b6593907af43d03bd9a30afb4ae37d0d9f63d"
     },
     "docs/README.md": {
       "sourceSha256": "c383a2ace70edf2f4add165bea9c5b1d652a16e251e66251c7a0d928c095790a",
