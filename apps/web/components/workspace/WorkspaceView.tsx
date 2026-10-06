@@ -49,7 +49,6 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
     selectedActivity,
     mapRoutes,
     places: tripPlaces,
-    notice,
     attachments: composerAttachments,
     blank,
     ask,
@@ -433,14 +432,6 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
             )}
             {userLocation.asking && (
               <LocationPrompt onAllow={userLocation.allow} onDismiss={userLocation.dismiss} />
-            )}
-            {notice && (
-              <p role="status" className="notice">
-                {localizeNotice(notice)}{" "}
-                <button onClick={session.dismissNotice} aria-label={t("Dismiss notification")}>
-                  {t("Dismiss")}
-                </button>
-              </p>
             )}
           </div>
           <main

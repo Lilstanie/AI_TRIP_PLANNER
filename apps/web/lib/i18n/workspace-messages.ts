@@ -187,8 +187,6 @@ export const WORKSPACE_ZH = {
   "No plan yet. Update your trip preferences to start.": "尚无计划。请填写旅行偏好以开始。",
   "Close open panel": "关闭面板",
   "Retry / replace workspace storage": "重试保存工作区",
-  "Dismiss notification": "关闭通知",
-  Dismiss: "关闭",
   "Your trip": "你的行程",
   "No trip yet. Describe where you want to go in the chat, or add your trip details. Your itinerary and budget will appear here.":
     "尚无行程。在聊天中描述目的地，或填写行程信息。日程和预算将在这里显示。",

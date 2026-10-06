@@ -34,7 +34,6 @@ import { useComposerAttachments } from "./useComposerAttachments";
 import { firstFactWithError, firstMissingFact, type FactKey } from "@/lib/workspace/trip-facts";
 import { translate } from "@/lib/i18n/locale";
 import { moneyDisplay } from "@/lib/money";
-import type { Notice } from "@/lib/i18n/notice";
 /**
  * The workspace the views read and act on, in four groups: `session` (the open chat and trip and
  * what a traveller can do with them), `layout` (what is open on screen), `itinerary` (the open
@@ -61,7 +60,6 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
   );
   const [editPending, setEditPending] = useState(false);
   const [settingsSection, setSettingsSection] = useState<SettingsSection>("personalization");
-  const [notice, setNotice] = useState<Notice>();
   const [catalog, setCatalog] = useState<WorkspaceCatalog>(restored.catalog);
   const { settings } = useSettings();
   const locale = useInterfaceLocale();
@@ -156,7 +154,6 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
     active.current?.abort();
     active.current = null;
     dispatch({ kind: "opened", saved });
-    setNotice(undefined);
     // Files picked for a message that was never sent belong to the chat being left.
     composerAttachments.clearAttachments();
   }
@@ -371,7 +368,6 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
       /** A timeline edit is being previewed; planning waits until it is applied or dropped. */
       trackEdit: (pending: boolean) => setEditPending(pending),
       dismissAsk: () => dispatch({ kind: "dismissed" }),
-      dismissNotice: () => setNotice(undefined),
       cancel: () => active.current?.abort(),
     },
     layout: {
@@ -426,7 +422,6 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
       selectedActivity,
       mapRoutes: state.mapRoutes,
       editPending,
-      notice,
       blank,
       dataMode,
       /** The open trip's places, looked up once for the map, the trip list and the timeline. */
