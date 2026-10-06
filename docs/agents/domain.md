@@ -4,7 +4,7 @@ This repository uses a single-context domain-document layout. The engineering sk
 
 ## Before exploring, read these
 
-- **`CONTEXT.md`** at the repository root.
+- **`GLOSSARY.md`** at the repository root.
 - **`docs/adr/`**: read ADRs that touch the area you are about to work in.
 
 If these files do not exist, **proceed silently**. Do not flag their absence or suggest creating them upfront. The `/domain-modeling` skill—reached through `/grill-with-docs` and `/improve-codebase-architecture`—creates them lazily when terms or decisions are actually resolved.
@@ -13,7 +13,7 @@ If these files do not exist, **proceed silently**. Do not flag their absence or 
 
 ```text
 /
-├── CONTEXT.md
+├── GLOSSARY.md
 ├── docs/
 │   └── adr/
 ├── apps/
@@ -22,7 +22,7 @@ If these files do not exist, **proceed silently**. Do not flag their absence or 
 
 ## Use the glossary's vocabulary
 
-When your output names a domain concept—in an issue title, refactor proposal, hypothesis, or test name—use the term as defined in `CONTEXT.md`. Do not drift to synonyms the glossary explicitly avoids.
+When your output names a domain concept—in an issue title, refactor proposal, hypothesis, or test name—use the term as defined in `GLOSSARY.md`. Do not drift to synonyms the glossary explicitly avoids.
 
 If the concept you need is not in the glossary yet, that is a signal: either you are inventing language the project does not use, or there is a real gap to note for `/domain-modeling`.
 

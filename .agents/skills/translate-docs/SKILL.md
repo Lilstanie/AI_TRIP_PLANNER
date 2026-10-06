@@ -29,7 +29,7 @@ the mandatory pairs. Never edit frozen history or generated code to make a trans
 
 Read a paragraph for meaning, then write natural technical Chinese or English. Compare the finished
 translation clause by clause for actors, conditions, ordering, exceptions, units and failure
-semantics. Read it alone once for clarity. Use the terminology table in the pairing guide, which gives the Chinese form of the terms in the root `CONTEXT.md`; keep ambiguous
+semantics. Read it alone once for clarity. Use the terminology table in the pairing guide, which gives the Chinese form of the terms in the root `GLOSSARY.md`; keep ambiguous
 technical identifiers in English and report unresolved terminology.
 
 Keep heading levels, list types, table structure, inline code and code fences. Code fences, including
