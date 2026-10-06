@@ -1,17 +1,20 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { factLabels, type FactKey } from "@/lib/workspace/trip-facts";
 import { useLocale } from "../account/LocaleProvider";
 import { TRIP_FACTS_SHEET_ID, TripFactsSheet } from "../preferences/TripFactsSheet";
 import type { CloseReason } from "../preferences/FactPopover";
 import { ChevronIcon } from "../ui/icons";
 import { usePresence } from "../ui/motion";
-import type { WorkspaceController } from "./useWorkspaceController";
+import type { WorkspaceModel } from "./useWorkspace";
 
 /** "Sydney · 1 Oct – 4 Oct" from what the traveller stated, or "New trip" before anything is. */
-export function usePhoneTripTitle(model: Pick<WorkspaceController, "draft" | "plan">) {
+export function usePhoneTripTitle({
+  draft,
+  plan,
+}: Pick<WorkspaceModel["session"], "draft" | "plan">) {
   const { locale, currency, t } = useLocale();
-  const labels = factLabels(model.draft, model.plan?.brief, { locale, currency });
+  const labels = factLabels(draft, plan?.brief, { locale, currency });
   const range = labels.when?.split(" · ")[0];
   return [labels.where, range].filter(Boolean).join(" · ") || t("New trip");
 }
@@ -21,19 +24,17 @@ export function usePhoneTripTitle(model: Pick<WorkspaceController, "draft" | "pl
  * The chips are hidden on a phone, so focus that a closing fact editor would hand back to its chip
  * comes back here instead.
  */
-export function PhoneTripTitle({ model }: { model: WorkspaceController }) {
+export function PhoneTripTitle({ model }: { model: WorkspaceModel }) {
   const { t } = useLocale();
-  const title = usePhoneTripTitle(model);
-  const { draft, plan, openFact, openPreferences } = model;
+  const { draft, plan } = model.session;
+  const title = usePhoneTripTitle(model.session);
+  const { openFact, openPreferences, openFactsSheet, closeFactsSheet } = model.layout;
   const button = useRef<HTMLButtonElement>(null);
-  const [open, setOpen] = useState(false);
+  // The sheet is a panel: opening an editor (here, from the chat's Edit, or a rejected brief)
+  // takes its place.
+  const open = model.layout.surface.sheet === "facts";
   // The sheet stays mounted briefly after it closes so it can sink away, as the editors do.
   const sheet = usePresence(open || undefined, 220);
-
-  // Another surface opening an editor (the chat's Edit, a rejected brief) takes the sheet's place.
-  useEffect(() => {
-    if (openFact) setOpen(false);
-  }, [openFact]);
 
   // A fact editor just closed. Its chip is hidden, so its focus would fall to the page.
   const editing = useRef(openFact);
@@ -50,7 +51,7 @@ export function PhoneTripTitle({ model }: { model: WorkspaceController }) {
   }, [openFact]);
 
   const close = (reason: CloseReason) => {
-    setOpen(false);
+    closeFactsSheet();
     if (reason === "dismiss") button.current?.focus({ preventScroll: true });
   };
 
@@ -65,7 +66,7 @@ export function PhoneTripTitle({ model }: { model: WorkspaceController }) {
           aria-haspopup="dialog"
           aria-expanded={open}
           aria-controls={open ? TRIP_FACTS_SHEET_ID : undefined}
-          onClick={() => setOpen((value) => !value)}
+          onClick={open ? closeFactsSheet : openFactsSheet}
         >
           <span className="phone-topbar__title-text">{title}</span>
           <ChevronIcon />
@@ -80,10 +81,7 @@ export function PhoneTripTitle({ model }: { model: WorkspaceController }) {
           anchor={button}
           leaving={sheet.leaving}
           onClose={close}
-          onPick={(fact: FactKey) => {
-            setOpen(false);
-            openPreferences(fact);
-          }}
+          onPick={(fact: FactKey) => openPreferences(fact)}
         />
       )}
     </>

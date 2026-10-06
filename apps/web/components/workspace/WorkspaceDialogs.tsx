@@ -2,31 +2,18 @@
 import { flushSync } from "react-dom";
 import { Dialog } from "../ui/Dialog";
 import { SettingsDialog } from "../account/SettingsDialog";
-import type { WorkspaceController } from "./useWorkspaceController";
+import type { WorkspaceModel } from "./useWorkspace";
 import { useLocale } from "../account/LocaleProvider";
 
-export function WorkspaceDialogs({ model }: { model: WorkspaceController }) {
+export function WorkspaceDialogs({ model }: { model: WorkspaceModel }) {
   const { t, money, delta, notice: localizeNotice } = useLocale();
-  const {
-    dialog,
-    plan,
-    previousTotal,
-    error,
-    retry,
-    busy,
-    setDialog,
-    run,
-    settingsSection,
-    dataMode,
-  } = model;
+  const { plan, previousTotal, error, canRetry, busy, retry, dataMode } = model.session;
+  const { dialog, closeDialog, settingsSection } = model.layout;
 
   return (
     <>
       {dialog && (
-        <Dialog
-          title={t(dialog === "review" ? "Review plan" : "Settings")}
-          onClose={() => setDialog(undefined)}
-        >
+        <Dialog title={t(dialog === "review" ? "Review plan" : "Settings")} onClose={closeDialog}>
           {dialog === "review" && plan && (
             <>
               <p>
@@ -60,8 +47,8 @@ export function WorkspaceDialogs({ model }: { model: WorkspaceController }) {
               {error && (
                 <div className="error-text" role="alert">
                   {localizeNotice(error)}
-                  {retry && (
-                    <button disabled={busy} onClick={() => void run(retry)}>
+                  {canRetry && (
+                    <button disabled={busy} onClick={retry}>
                       {t("Retry update")}
                     </button>
                   )}
@@ -78,7 +65,7 @@ export function WorkspaceDialogs({ model }: { model: WorkspaceController }) {
               onDataMode={dataMode.choose}
               onAccountModal={(open) => {
                 // Close the native dialog's top layer before Clerk mounts its DOM portal.
-                flushSync(() => setDialog(undefined));
+                flushSync(closeDialog);
                 open();
               }}
             />

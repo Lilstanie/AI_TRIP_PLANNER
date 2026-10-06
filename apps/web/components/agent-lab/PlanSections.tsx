@@ -1,5 +1,5 @@
 import type { AgentLabCompletedRunArtifact } from "@trip/shared";
-import { money } from "@/lib/agent-lab/format";
+import { labMoney } from "@/lib/agent-lab/money";
 
 type Plan = AgentLabCompletedRunArtifact["plan"];
 
@@ -12,11 +12,11 @@ export function PlanSummary({ plan }: { plan: Plan }) {
       </div>
       <div>
         <span>Budget</span>
-        <strong>{money(plan.budgetTotal)}</strong>
+        <strong>{labMoney.money(plan.budgetTotal)}</strong>
       </div>
       <div>
         <span>Estimated</span>
-        <strong>{money(plan.estTotal)}</strong>
+        <strong>{labMoney.money(plan.estTotal)}</strong>
       </div>
     </div>
   );
@@ -31,7 +31,7 @@ export function PlanSections({ plan }: { plan: Plan }) {
             <span>{section.label}</span>
             <strong>{section.summary}</strong>
           </div>
-          <b>{money(section.estCost)}</b>
+          <b>{labMoney.money(section.estCost)}</b>
         </article>
       ))}
     </div>

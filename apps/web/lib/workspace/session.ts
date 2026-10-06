@@ -95,8 +95,23 @@ export type SessionEvent =
   | { kind: "progress"; event: AgentProgressEvent }
   /** The brief was not sent: `fields` holds one message per invalid field. */
   | { kind: "rejected"; fields: Record<string, Notice> }
-  /** The traveller left this chat or trip: in-flight and selection state goes with it. */
-  | { kind: "left" };
+  /**
+   * The traveller opened another chat or trip (or a blank one): in-flight and selection state from
+   * the one they left goes, and only what was saved with the new one shows.
+   */
+  | { kind: "opened"; saved: SavedSession }
+  /** The traveller applied an edit to the open trip by hand. */
+  | { kind: "edited"; plan: TripPlan }
+  /** The composer's unsent text changed. */
+  | { kind: "typed"; input: string }
+  /** The trip details form changed without planning. */
+  | { kind: "drafted"; draft: Draft }
+  /** A stop was selected on the map, the trip list or the timeline; none clears the selection. */
+  | { kind: "selected"; activity: string | undefined }
+  /** The timeline drew the selected day's routes. */
+  | { kind: "routed"; routes: RouteResult[] }
+  /** The traveller closed the question card without answering. */
+  | { kind: "dismissed" };
 
 /** The first progress line of every turn, shown before the server says anything. */
 export const PREPARING: AgentProgressEvent = {
@@ -109,11 +124,12 @@ export const PREPARING: AgentProgressEvent = {
 export const REJECTED_BRIEF: Notice = { key: "Check the highlighted trip details." };
 const FAILED: Notice = { key: "Unable to update the trip. Please retry." };
 
+/** What a saved or blank conversation brings into the session when it is opened. */
+export type SavedSession = Pick<SessionState, "draft" | "messages" | "input"> &
+  Partial<Pick<SessionState, "plan" | "previousTotal">>;
+
 /** A session with no turn in flight, opened on a saved or blank conversation. */
-export function idleSession(
-  saved: Pick<SessionState, "draft" | "messages" | "input"> &
-    Partial<Pick<SessionState, "plan" | "previousTotal">>,
-): SessionState {
+export function idleSession(saved: SavedSession): SessionState {
   return {
     plan: saved.plan,
     draft: saved.draft,
@@ -186,18 +202,20 @@ export function session(state: SessionState, event: SessionEvent): SessionState 
       return { ...state, activity: [...state.activity, event.event] };
     case "rejected":
       return { ...state, errors: event.fields, error: REJECTED_BRIEF };
-    case "left":
-      return {
-        ...state,
-        busy: false,
-        activity: [],
-        error: undefined,
-        errors: {},
-        retry: undefined,
-        ask: undefined,
-        selectedActivity: undefined,
-        mapRoutes: [],
-      };
+    case "opened":
+      return idleSession(event.saved);
+    case "typed":
+      return { ...state, input: event.input };
+    case "drafted":
+      return { ...state, draft: event.draft };
+    case "selected":
+      return { ...state, selectedActivity: event.activity };
+    case "routed":
+      return { ...state, mapRoutes: event.routes };
+    case "dismissed":
+      return { ...state, ask: undefined };
+    case "edited":
+      return { ...state, previousTotal: state.plan?.estTotal, plan: event.plan };
     case "planned":
       return {
         ...replied(state, reply(event.reply, event.transcript, event.at)),

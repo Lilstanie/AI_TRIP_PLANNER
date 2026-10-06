@@ -51,8 +51,11 @@ export type Itinerary = {
   stop(activityId: string): Stop | undefined;
   /**
    * The index the edit preview endpoint needs to move `activityId` onto `day` at `position`, where
-   * `position` counts that day's stops as shown (visiting order) without the moved stop. The
-   * endpoint indexes the day's other stops in plan order, so the two can differ.
+   * `position` counts that day's stops as shown (visiting order) without the moved stop, clamped to
+   * the day. The endpoint indexes the day's other stops in plan order, so the two can differ: a stop
+   * moved later on its own day lands just after the stop shown above `position`, any other move just
+   * before the stop shown at it, so it passes the neighbour the traveller moved it past; the end of
+   * the day is after every other stop in the plan.
    */
   planIndex(activityId: string, day: number, position: number): number;
 };
@@ -133,12 +136,20 @@ export function buildItinerary(
     markersFor,
     stop: (activityId) => stops.find((entry) => entry.activity.id === activityId),
     planIndex(activityId, day, position) {
-      const shown = (byDay.get(day) ?? []).filter((entry) => entry.activity.id !== activityId);
+      const all = byDay.get(day) ?? [];
+      const shown = all.filter((entry) => entry.activity.id !== activityId);
       const inPlan = scheduled.filter(
         (activity) => activity.day === day && activity.id !== activityId,
       );
-      const before = shown[position];
-      return before ? inPlan.indexOf(before.activity) : inPlan.length;
+      const target = Math.min(Math.max(0, position), shown.length);
+      const from = all.findIndex((entry) => entry.activity.id === activityId);
+      // The endpoint inserts in plan order and re-times the day from there, so a stop lands next to
+      // the neighbour it moved past: later goes just after the stop shown above the target, earlier
+      // (or onto another day) just before the stop shown at it.
+      // The end of the day is the end of the plan's day, after every other stop.
+      if (target === shown.length) return inPlan.length;
+      if (from >= 0 && target > from) return inPlan.indexOf(shown[target - 1]!.activity) + 1;
+      return inPlan.indexOf(shown[target]!.activity);
     },
   };
 }

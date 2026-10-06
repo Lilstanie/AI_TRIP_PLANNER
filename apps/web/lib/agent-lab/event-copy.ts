@@ -1,5 +1,6 @@
 import type { AgentLabRunEvent } from "@trip/shared";
 import { stopReasonLabel } from "./comparison";
+import { labMoney } from "./money";
 
 /** Which part of the system produced an event, so the inspector can tell them apart. */
 export type EventKind = "run" | "graph" | "specialist" | "tool";
@@ -66,7 +67,7 @@ export function eventCopy(runEvent: AgentLabRunEvent): EventCopy {
                 (conflict) =>
                   `${agentName(conflict.agent)}: ${conflict.reason}${
                     conflict.targetSaving !== undefined
-                      ? ` (asked to save AUD ${conflict.targetSaving.toFixed(2)})`
+                      ? ` (asked to save ${labMoney.money(conflict.targetSaving)})`
                       : ""
                   }`,
               ),

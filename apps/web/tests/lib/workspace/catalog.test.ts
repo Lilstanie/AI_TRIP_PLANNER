@@ -257,6 +257,17 @@ describe("workspace catalog", () => {
     });
   });
 
+  it("ignores whether panels were open in a catalog written by an older version", () => {
+    const catalog = parseCatalog({
+      version: 4,
+      conversations: [],
+      trips: [],
+      layout: { preferences: { open: true, width: 300 }, trip: { open: true, width: 400 } },
+    });
+    expect(catalog.layout.preferences).toEqual({ width: 300 });
+    expect(catalog.layout.trip).toEqual({ width: 400 });
+  });
+
   it("falls back to default layout values instead of rejecting history", () => {
     const catalog = parseCatalog({
       version: 4,
@@ -265,7 +276,7 @@ describe("workspace catalog", () => {
       layout: { sidebar: { collapsed: "yes" }, trip: { open: 1 }, view: "nowhere" },
     });
     expect(catalog.layout.sidebar.collapsed).toBe(false);
-    expect(catalog.layout.trip).toEqual({ open: true, width: 340 });
+    expect(catalog.layout.trip).toEqual({ width: 340 });
     expect(catalog.layout.view).toBe("chat");
     const collapsed = updateCatalog(catalog, { layout: { sidebar: { collapsed: true } } });
     expect(parseCatalog(serializeCatalog(collapsed)).layout.sidebar.collapsed).toBe(true);

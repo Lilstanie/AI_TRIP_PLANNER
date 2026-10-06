@@ -323,6 +323,24 @@ records this boundary and its deliberately unchanged shared contracts.
 
 Do not change `packages/shared` without telling the team; every package depends on it.
 
+## Workspace state
+
+The planning workspace (`apps/web/components/workspace/useWorkspace.ts`) hands its views four
+groups and no raw state setters:
+
+- `session`: the open chat and trip and its actions (`send`, `answer`, `retry`, `applyEdit`,
+  `selectTrip`, `selectConversation`, `newChat`, `newTrip`, stop selection). Every change goes
+  through the pure `session(state, event)` in `apps/web/lib/workspace/session.ts`; `applyEdit(next)`
+  records the total it replaced, and opening a chat or trip resets the session in one event.
+- `layout`: the Surface from `layout()` in `apps/web/lib/workspace/layout.ts`, its actions, panel
+  sizes and the phone map's day.
+- `itinerary`: the open trip's Itinerary (`apps/web/lib/trip/itinerary.ts`).
+- `history`: saved chats and trips, search, rename, delete and the storage state.
+
+An action that changes two groups, such as opening a trip (which also decides what is on screen) or
+picking a phone map day (which drops a stop selected on another day), is written once in the hook.
+Phone components call these actions instead of setting state.
+
 ## Design rules
 
 1. Use LangChain JS/TypeScript `createAgent`; do not add a Python runtime or another agent framework.

@@ -62,7 +62,7 @@ seniors`（宠物不计为旅客）；`groupSize` 仍是校验字段，因此至
   - Your Trip 和窄屏导航是顶栏下方的覆盖式抽屉。它们从不遮住 Logo 或顶栏按钮，聊天和地图保持原宽度。
   - 桌面上的 Trip 抽屉宽度为 `(1 - --chat-share) × 100%`，无论分隔条在哪里，都恰好覆盖地图。
   - `Drawer` 提供 `role="dialog"`、`aria-modal`，关闭时提供 `aria-hidden` 和 `inert`，打开时聚焦关闭按钮，支持 Tab 循环、Escape（嵌套编辑预览和原生对话框优先），并将焦点返回触发按钮。
-  - 同时只打开一个抽屉。关闭的抽屉完全平移到视口外，shell 使用 `overflow: clip`，无法通过滚动使它们出现。
+  - 同时最多打开一个面板：一个抽屉（Trip、导航或桌面端 Chats 面板）、手机端 Trip details 底部面板，或一个 chip 编辑器。打开其中一个会关闭其他面板；Settings 和 Review 叠在它上方打开，关闭后回到该面板。打开什么由一个纯函数决定，即 `apps/web/lib/workspace/layout.ts` 中的 `layout()`；见[布局 Agent Note](../.agents/notes/implemented/architecture/2026-10-06-workspace-layout-reducer.md)。刷新后所有面板都处于关闭状态。关闭的抽屉完全平移到视口外，shell 使用 `overflow: clip`，无法通过滚动使它们出现。
   - 抽屉为悬浮 Liquid Glass sheet，四周内缩 `--space-2`，圆角为 `--radius-xl`。它们沿 iOS sheet 曲线在 380 ms 内滑动，背景遮罩同步淡出（`usePresence` 保持挂载）。所有动效都遵循 `prefers-reduced-motion`。
   - 打开其他聊天或行程、New chat、New trip 和 Your trips 页面时，通过 View Transitions API（`viewTransition`）使主栏交叉淡入淡出；手机 Tab 切换使用同一过渡辅助函数。主栏只在过渡运行时携带 `view-transition-name`：具名元素是 backdrop root，永久保留名称会导致抽屉玻璃后方的聊天仍然清晰。
 - **窄屏（521–1000 px）。**
@@ -72,7 +72,8 @@ seniors`（宠物不计为旅客）；`groupSize` 仍是校验字段，因此至
   - 适配安全区的底部 Tab 栏提供 Chat、Map、Trip 和 Mine，并支持键盘操作。每次只显示一个面板；面板保持挂载以保留滚动位置。已保存的布局恢复上次使用的 Tab，也兼容旧的 Chat/Map 选择。
   - 单行顶栏显示目的地和日期，未填写时显示 New trip。点击标题打开 Trip details，按行列出 Where、When、Who、Budget 和 Preferences。每行打开既有编辑器；保存或关闭后，焦点返回标题。编辑器为底部 sheet，点击目标至少为 44 px。
   - Trip 直接显示 Your Trip，包含 Budget、Itinerary、Timeline & routes 和 Review plan。规划前说明空状态并提供 Plan in Chat。在其他 Tab 中创建或修改方案时，Trip 显示带无障碍说明的更新小红点；打开 Trip 后清除。按行程记录已读版本，因此切换未修改的已保存行程不会产生新通知。
-  - Mine 包含搜索、New chat、New trip、Trips/Calendar、聊天列表和 Settings & account。搜索同时筛选聊天和行程；打开或新建任一种内容都会切到 Chat。触摸界面始终显示每个聊天的 Rename/Delete 行菜单入口。数据模式和界面语言切换位于这里。在 Your trips 页面把窗口缩小到手机宽度时，会继续显示在 Mine 中，底部 Tab 栏保持可用。
+  - Mine 包含搜索、New chat、New trip、Trips/Calendar、聊天列表和 Settings & account。搜索同时筛选聊天和行程；打开或新建任一种内容都会切到 Chat。触摸界面始终显示每个聊天的 Rename/Delete 行菜单入口。数据模式和界面语言切换位于这里。
+  - 跨越手机宽度时，旅客看到的仍是同一内容：在 Your trips 页面缩小到手机宽度会继续显示在 Mine 中，底部 Tab 栏保持可用；打开 Trip 抽屉时缩小会显示 Trip Tab。从 Mine 放宽显示 Your trips，从 Trip 放宽会在 Chat 上方打开 Trip 抽屉（chip 编辑器打开时除外），Chat 和 Map 保持不变。Settings、Review 和 chip 编辑器在跨越时保持打开；手机顶栏消失时 Trip details 会关闭。
   - Map 填满两栏之间的空间。当天停靠点 sheet 有收起、半高和全高三档，可拖动或通过手柄用指针、键盘选择。切换日期把地图标记和路线筛选为当天的停靠点，因此多天到访的地点会出现在每一天，并沿用其全程编号；在 sheet 或地图上选择停靠点，都会聚焦当天的这次到访。未配置 Maps key 时，sheet 和停靠点仍可使用，地图说明不可用状态。地点详情以底部 sheet 打开，桌面保留弹窗。地图控件至少为 44 px，位于停靠点 sheet 上方，平移地图不会滚动页面。
   - 输入框聚焦且键盘缩短可视视口时，外壳跟随该视口，保持最新消息可见并隐藏 Tab 栏。聚焦行程信息编辑器或停靠点编辑器的字段时同样隐藏 Tab 栏；信息 sheet 停在键盘上方，该字段及其 Save 按钮保持可见。关闭键盘或失焦后恢复 Tab 栏。浏览器返回先关闭当前 sheet 或编辑器，再离开工作区。
   - 新标签使用中英文字典，动效遵循减少动态效果偏好。`apps/web/tests/e2e/` 下的 `phone-shell.e2e.mjs` 及 Mine、Map、状态配套脚本产生浏览器证据。真实安装应用的安全区和键盘行为仍需完成 issue #182 的设备检查。
@@ -103,7 +104,8 @@ seniors`（宠物不计为旅客）；`groupSize` 仍是校验字段，因此至
 - **请求。**
   - `Workspace` 负责聊天、方案和决策请求。失败时保留当前方案，并提供重试。
   - 一次规划回合以一种结果结束：方案已应用、缺信息、规划器追问、回答了票价、失败或已取消。`lib/workspace/session.ts` 中的 `requestTurn` 只负责发请求和读取流；同一文件中的纯函数 `session(state, event)` 应用结果，因此重置规则（上一次总价、选中的站点、地图路线、字段错误、问题卡片）只在一处，并在 `tests/lib/workspace/session.test.ts` 中脱离 React 测试。
-  - 切换聊天或行程，或 New chat 时，先落盘待执行的自动保存，再中止进行中的请求，并清空进度、错误、选择和地图路线。晚到的响应被忽略。
+  - 切换聊天或行程，或 New chat 时，先落盘待执行的自动保存，再中止进行中的请求，并通过一个 `opened` 会话事件清空进度、错误、选择和地图路线。晚到的响应被忽略。
+  - 从行程列表或时间线应用修改即调用 `applyEdit(next)`，它记录上一次总价，供 Review plan 的“变化”数字使用。视图从 `useWorkspace` 获得这些操作，而不是状态 setter（[架构](architecture.zh.md#workspace-state)）。
 - **存储。**
   - 所有内容仅保存在浏览器中，侧边栏显示经过防抖的自动保存状态。
   - 目录（`trip-workspace-catalog-v3`）分别保存对话和行程，关联稳定，并可带对话 `draft`。快照写入版本 4；版本 3（AUD）快照仍可读取，草稿预算与方案一致时恢复原始预算来源。AUD 之前的版本 1、2 仍被拒绝；目录版本及存储键不变。
@@ -158,7 +160,7 @@ Timeline & routes 标签页（由 `TripEditor` 组合 `components/trip/timeline/
 
 - **布局。** 日期标签条（`Day 2 · Sun, 18 Oct · 3 stops`，停靠点需要地点时带标记）用于选择日期。当天按时间顺序呈现为竖线（`lib/trip/timeline.ts`）：无具体时间的航班在最前，带时间的城际路段和停靠点按开始时间排列，当晚入住在最后，后续夜晚显示“Staying at …”。固定行显示图标、标题、一行详情及费用（“Fare not published”或“Price unknown”，而非 AUD 0）。两站之间的路程显示路线检查得到的“Walk · 6 min · checked”，或以规划器的 `arriveBy` 作为估计。
 - **价格。** 没有提供方公布门票价格，因此行程停靠点不带 `estCost`，显示“Price unknown”；预算卡补充“Not included: admission for N stops with no published price”，避免把总额理解为全部费用。
-- **顺序和编号。** 当天停靠点按访问顺序列出，每个停靠点的节点显示其全程编号，与地图和 Trip 抽屉一致；未定位的停靠点不显示编号。Move earlier、Move later、Move to another day 和拖放都按显示的位置指定目标，由 Itinerary 换算成 `preview-edit` 所需的方案索引（该索引按方案顺序计算当天其他停靠点）。
+- **顺序和编号。** 当天停靠点按访问顺序列出，每个停靠点的节点显示其全程编号，与地图和 Trip 抽屉一致；未定位的停靠点不显示编号。Move earlier、Move later、Move to another day 和拖放都按显示的位置指定目标，由 Itinerary 换算成 `preview-edit` 所需的方案索引（该索引按方案顺序计算当天其他停靠点）。开始时间与方案顺序不一致时，向后移动的停靠点落在它越过的那个停靠点之后，其他移动则落在目标停靠点之前，因此预览保留旅行者要求的交换；之后端点会重新安排当天其余停靠点的时间。
 - **编辑。** 停靠点在此处或地图上被选中前保持紧凑；选择后打开编辑器：开始和结束时间（“Preview time change”）、Move earlier / Move later、Move to another day，以及用于替换地点的 Google Maps 搜索。地图按名称匹配但尚未确认的停靠点提供“Use this place”。仍支持拖放调整当天顺序。
 - **路线检查。** 提供 Walk / Public transport 切换和“Check routes for Day N”；当天有两个地点已确认的停靠点时启用，下方提示说明缺少哪个条件。
 - **审查。** 每次编辑打开“Review this change”：显示新总额、带符号的差额和预算余量、每个移动停靠点一行、已检查路线、阻断项，以及仅由此次变化新增的冲突。Apply changes 应用修改；Cancel 或 Escape 只关闭预览。应用编辑后显示“Undo last change”，撤销也用同样方式预览。
@@ -279,7 +281,7 @@ Data mode 默认是 Fixture data。只有部署启用后才能选择 Live data�
     顶栏语言切换位于示例数据旁，修改同一项已保存的语言设置。聊天控件、时间线与提案标签、设置、提示、对话框、无障碍名称及日期随之显示；
     旅客文字、agent 生成的内容及提供方错误不会被翻译。带有数值的固定文案（附件数量上限、时间线修改预览的变更与阻碍、无法移动的站点）使用 `{placeholders}` 翻译：
     通过 `t()` 或作为带 key 的 `Notice`（`apps/web/lib/i18n/notice.ts`），由视图在显示时翻译一次。工作区和设置显示的每条提示都是 `Notice`：字段错误、请求和存储失败、地图和位置消息，以及应用自身路由在英文 `error` 旁返回的 `notice`。响应体中没有 `notice` 时按原样显示（`{ raw }`）；没有可读响应体时显示“请求失败（{status}）。”不再把英文文本反向匹配为 key。修改预览的变更以数值而非句子返回。未保存选择时跟随浏览器语言（`zh*` 打开为中文）。桌面侧栏与主内容之间保留 8 px 间距。
-    工作区的所有金额都经过 Money 模块（`apps/web/lib/money.ts`，通过 `useLocale()` 读取）和 shared 中的估算汇率表显示。换算结果附带汇率参考日期；JPY 不显示小数，其他币种显示两位小数。本行程原始预算币种优先于设置。规划和预算检查仍使用 AUD。`money()` 换算规划金额；`fare()` 让提供方原生票价保留自己的币种及该币种的小数位（`JPY 230`、`AUD 12.50`、`KRW 14,000`），且从不换算；`delta()` 给差额加正负号（`+AUD 12.00`、`−AUD 30.00`，零不带符号）；`budgetGap()` 给出行程面板和修改预览共用的“{amount} under/over the {budget} budget”预算句。
+    工作区的所有金额都经过 Money 模块（`apps/web/lib/money.ts`，通过 `useLocale()` 读取）和 shared 中的估算汇率表显示。换算结果附带汇率参考日期；JPY 不显示小数，其他币种显示两位小数。本行程原始预算币种优先于设置。规划和预算检查仍使用 AUD。`money()` 换算规划金额；`fare()` 让提供方原生票价保留自己的币种及该币种的小数位（`JPY 230`、`AUD 12.50`、`KRW 14,000`），且从不换算；`delta()` 给差额加正负号（`+AUD 12.00`、`−AUD 30.00`，零不带符号）；`budgetGap()` 给出行程面板和修改预览共用的“{amount} under/over the {budget} budget”预算句。Agent Lab 使用同一模块，固定 AUD、取整到元（`A$3,960`，见 `apps/web/lib/agent-lab/money.ts` 中的 `labMoney`）。发给规划器的句子不是显示金额：`plannerAud()` 始终用英文 AUD 加两位小数书写，不受界面语言和显示币种影响。web 应用的 ESLint 配置禁止 `.toFixed(2)`，金额不得手工格式化。
   - **Connected accounts：** 通过 Clerk 关联的 Google、GitHub 或 Apple 登录方式，并有一个按钮打开 Clerk 进行更改。
 - 未登录时，设置保存在当前浏览器；登录后，浏览器和账号中较新的副本为准，之后的改动保存到账号。
 

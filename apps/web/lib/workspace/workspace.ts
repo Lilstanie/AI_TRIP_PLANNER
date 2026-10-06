@@ -1,13 +1,11 @@
 import {
   AgentProgressEvent,
-  BASE_CURRENCY,
   BookedStay,
   ChatAskUser,
   ChatNeedsInfo,
   ChatResponse,
   FlightAnswer,
   LegModeChoice,
-  moneyIn,
   toAud,
   PartialTripBrief,
   partyPeople,
@@ -121,20 +119,6 @@ export function partyFor(draft: Pick<Draft, "party" | "groupSize">): Party {
 }
 /** `groupSize` the planner receives: people only — pets never count as travellers. */
 export const groupSizeFromParty = (party: Party) => partyPeople(party);
-export const money = (value: number) =>
-  new Intl.NumberFormat("en-AU", {
-    style: "currency",
-    currency: BASE_CURRENCY,
-    currencyDisplay: "code",
-  }).format(value);
-/**
- * "(≈ ¥3,000)" beside a converted budget, so a traveller who said 3000 人民币 can see where
- * A$630 came from. Empty when they stated it in the base currency: there is nothing to explain.
- */
-export const budgetHint = (brief: Pick<TripBrief, "budgetSource">) =>
-  brief.budgetSource && brief.budgetSource.currency !== BASE_CURRENCY
-    ? ` (≈ ${moneyIn(brief.budgetSource.amount, brief.budgetSource.currency)})`
-    : "";
 export function draftFor(brief: TripBrief): Draft {
   return {
     destination: brief.destination,
