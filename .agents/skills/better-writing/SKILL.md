@@ -33,9 +33,10 @@ Read the copy around your change before you write. It establishes these conventi
   (`{ key, params }`, `apps/web/lib/i18n/notice.ts`; code that throws uses `NoticeError`) and shown
   through `notice()` from `useLocale()`, which translates it once; `{ raw }` is only for provider or
   model text. The compiler rejects a key without a Chinese entry and a missing or unexpected value.
-  A route answers with `notice` beside its English `error`, as `/api/trip/preview-edit` does.
-  Producers not yet converted (other routes' `error`, a blocker saved on a plan) still send English,
-  matched by a dictionary entry or a pattern in `interfaceNotice` (`apps/web/lib/i18n/locale.ts`). Prefer
+  A route answers with `noticeBody(notice)`, its `notice` beside the English `error`; the client reads
+  a failed response with `failureNotice(body, fallback)` and a caught error with `errorNotice`.
+  `notice()` accepts only a `Notice`: there is no lookup from English back to a key, so English
+  passed as `{ raw }` stays English. A blocker saved on a plan is still an English string. Prefer
   returning values over sentences when the interface builds the line. Traveller text and agent
   replies are never translated by the interface. See the
   [interface language note](../../notes/implemented/feature/2026-10-04-interface-language-only.md).

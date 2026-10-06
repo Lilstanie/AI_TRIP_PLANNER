@@ -29,7 +29,8 @@ is `{ key, params }`; a route provider's text is `{ raw }`; a failure with no wo
 The timeline shows `blockerNotices` and the refusal's `notice` through `useLocale().notice()`. A
 blocker the edit leaves unresolved is still saved on the plan (`conflictsWith`, `editIssues`) as an
 English sentence, since `TripPlan` in `packages/shared` stores strings. The four trip-edit patterns
-left `NOTICE_PATTERNS` in `apps/web/lib/i18n/locale.ts`.
+left `NOTICE_PATTERNS`, which was later deleted with the rest of the English lookup (see the
+[keyed notices note](2026-10-06-keyed-notices-everywhere.md)).
 
 ## Alternatives considered
 
@@ -45,7 +46,8 @@ left `NOTICE_PATTERNS` in `apps/web/lib/i18n/locale.ts`.
 - Each new authored blocker or refusal is a dictionary key; the typecheck rejects one without a
   Chinese entry or with missing values.
 - The response carries every blocker twice until the English fields can be dropped.
-- Blockers saved on the plan, and route provider errors, still reach the traveller in English.
+- Blockers saved on the plan still reach the traveller in English. Route lookup failures became
+  keyed when the Google integration began throwing `NoticeError` (#205).
 
 ## Sources
 
