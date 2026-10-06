@@ -25,6 +25,8 @@ export function TimelineStop({
   activity,
   number,
   index,
+  planIndex,
+  dropIndex,
   count,
   days,
   dayLabels,
@@ -36,10 +38,14 @@ export function TimelineStop({
   onSelect,
 }: {
   activity: Activity;
-  /** Position shown in the day, from 1. */
-  number: number;
-  /** Position in the plan's order for the day, which moves are indexed by. */
+  /** The place's trip-wide stop number; none until the place is located. */
+  number?: number;
+  /** Position shown in the day, in visiting order, from 0. */
   index: number;
+  /** The plan index the preview endpoint needs to move a stop to a shown position on a day. */
+  planIndex(id: string, day: number, position: number): number;
+  /** The plan index that puts a dropped stop just before this one. */
+  dropIndex(moved: string): number;
   count: number;
   days: number;
   dayLabels: string[];
@@ -86,8 +92,14 @@ export function TimelineStop({
       onDrop={(event) => {
         event.preventDefault();
         const moved = event.dataTransfer.getData("text/plain");
+        // The dropped stop lands just before this one, as shown.
         if (!locked && moved && moved !== id)
-          void edits.edit({ kind: "move", id: moved, day: activity.day!, index });
+          void edits.edit({
+            kind: "move",
+            id: moved,
+            day: activity.day!,
+            index: dropIndex(moved),
+          });
       }}
     >
       <span className="timeline-row__time">
@@ -95,7 +107,7 @@ export function TimelineStop({
         <span className="timeline-row__end">{activity.endTime}</span>
       </span>
       <span className="timeline-row__node timeline-stop__node" aria-hidden="true">
-        {number}
+        {number ?? ""}
       </span>
       <div className="timeline-stop__body">
         <button
@@ -189,7 +201,12 @@ export function TimelineStop({
                 type="button"
                 disabled={locked || index === 0}
                 onClick={() =>
-                  void edits.edit({ kind: "move", id, day: activity.day!, index: index - 1 })
+                  void edits.edit({
+                    kind: "move",
+                    id,
+                    day: activity.day!,
+                    index: planIndex(id, activity.day!, index - 1),
+                  })
                 }
               >
                 {t("Move earlier")}
@@ -198,7 +215,12 @@ export function TimelineStop({
                 type="button"
                 disabled={locked || index === count - 1}
                 onClick={() =>
-                  void edits.edit({ kind: "move", id, day: activity.day!, index: index + 1 })
+                  void edits.edit({
+                    kind: "move",
+                    id,
+                    day: activity.day!,
+                    index: planIndex(id, activity.day!, index + 1),
+                  })
                 }
               >
                 {t("Move later")}
@@ -209,7 +231,12 @@ export function TimelineStop({
                   disabled={locked}
                   value={activity.day}
                   onChange={(event) =>
-                    void edits.edit({ kind: "move", id, day: Number(event.target.value), index: 0 })
+                    void edits.edit({
+                      kind: "move",
+                      id,
+                      day: Number(event.target.value),
+                      index: planIndex(id, Number(event.target.value), 0),
+                    })
                   }
                 >
                   {Array.from({ length: days }, (_, d) => (

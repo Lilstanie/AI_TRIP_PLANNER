@@ -1,10 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
-import { TripPlan, type ChatRequest } from "@trip/shared";
+import { TripPlan } from "@trip/shared";
 import { budgetHint, money, WELCOME_MESSAGE, type Message } from "@/lib/workspace";
 
-/** Every turn is a chat turn: there is no "apply a decision" request. */
-export type Task = { kind: "chat"; request: ChatRequest };
 export type DialogKind = "review" | "settings";
 /**
  * Narrow screens show one view at a time. Up to 1000 px that is chat or map, with trip and

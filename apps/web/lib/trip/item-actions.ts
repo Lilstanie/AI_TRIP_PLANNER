@@ -1,5 +1,5 @@
 import { TripPlan, type ProposalItem } from "@trip/shared";
-import { itineraryOrder } from "../map/itinerary-route";
+import { visitingOrder } from "./itinerary";
 import { dayCount } from "./timeline";
 import { NoticeError } from "../i18n/notice";
 
@@ -106,7 +106,7 @@ export function applyItemAction(plan: TripPlan, id: string, action: ItemAction):
         throw new NoticeError({ key: "Only a stop scheduled on a day can move earlier or later." });
       // The same order the list shows: start time, then plan order. Each stop takes the other's
       // start time and keeps its duration; the second starts later if the first would overlap it.
-      const day = itineraryOrder(
+      const day = visitingOrder(
         items.filter(
           (other) => other.kind === "activity" && other.day === item.day && !!other.startTime,
         ),

@@ -307,6 +307,11 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     Google rating is already out of 5 and shown as it is.
 - **Requests.**
   - `Workspace` owns chat, plan and decision requests. Failures keep the current plan and offer retry.
+  - A planning turn ends in one outcome: plan applied, needs information, planner asked a question,
+    fares answered, failed or cancelled. `requestTurn` in `lib/workspace/session.ts` only sends the
+    request and reads the stream; the pure `session(state, event)` there applies the outcome, so the
+    reset rules (previous total, selected stop, map routes, field errors, question card) live in one
+    place and are tested without React in `tests/lib/workspace/session.test.ts`.
   - Switching chat or trip, or New chat, first flushes the pending autosave, then aborts in-flight
     requests and clears progress, errors, selection and map routes. Late responses are ignored.
 - **Storage.**
@@ -370,8 +375,13 @@ describes current behaviour except the absences.
     instead. Container resizes keep the centre.
 - **Markers** (`components/map/map-layers.ts`, `lib/map/place-category.ts`). Each located stop is a
   numbered badge in its day's colour (`--day-1` … `--day-7`) on the place with a label pill beside it: a category icon from Google's
-  `primaryType` and the place name, cut to 22 characters (26 when selected). Stops are numbered in
-  visiting order, by day and then start time. Below zoom 12 only the selected stop keeps its label,
+  `primaryType` and the place name, cut to 22 characters (26 when selected). Stop numbers come from
+  the Itinerary (`lib/trip/itinerary.ts`), the one reading of the plan that the maps, the Trip
+  drawer, the timeline, the phone map and the Trip button share
+  ([Agent Note](../.agents/notes/implemented/architecture/2026-10-06-one-itinerary.md)): numbers are
+  trip-wide, one per place in visiting order (day, then start time, then plan position), and a
+  place visited again keeps its first number. Ideas (activities without a day) are never numbered,
+  counted or mapped. Below zoom 12 only the selected stop keeps its label,
   and when the map settles a label that would overlap one already shown is hidden (the selected stop
   wins, then visiting order). Markers never load place photos.
 - **Itinerary lines** (`lib/map/itinerary-route.ts`, `components/map/map-layers.ts`). Each day's
@@ -400,8 +410,9 @@ describes current behaviour except the absences.
   bordered label, and its drawer row adds a leading inset line and weight alongside `aria-pressed`;
   color is not the sole cue. Stops on other days step back to grey badges without labels.
 - **Trip drawer.** The reading order is heading and summary, budget, then the Itinerary tab: the
-  Stops list (every itinerary activity by day in visiting order, then Ideas; located stops are
-  buttons, the keyboard path to each marker, and the others say why they are not on the map),
+  Stops list (each day's stops in visiting order with the number their place carries on the map,
+  including a repeat visit; then Ideas, unnumbered; located stops are buttons, the keyboard path to
+  each marker, and the others say why they are not on the map),
   sections, then expanded detail.
 - **Itinerary item menu** ([Agent Note](../.agents/notes/implemented/feature/2026-09-27-itinerary-item-actions.md)).
   Each stop's "…" menu (`ActionMenu`, a `role="menu"`; arrow keys move, Escape closes it and returns
@@ -451,13 +462,19 @@ no LLM calls.
 - **Prices.** No provider publishes admission prices, so itinerary stops carry no `estCost` and show
   "Price unknown"; the budget card adds "Not included: admission for N stops with no published
   price" so the total is not read as the whole cost.
+- **Order and numbers.** A day's stops are listed in visiting order, and each stop's node shows its
+  trip-wide stop number, the same as on the map and in the Trip drawer; an unlocated stop shows
+  none. Move earlier, Move later, Move to another day and drag and drop name a position as shown;
+  the Itinerary turns it into the plan index `preview-edit` expects, which counts the day's other
+  stops in plan order.
 - **Editing.** A stop is compact until selected, here or on the map; selecting it opens its editor:
   start and end time ("Preview time change"), Move earlier / Move later, Move to another day, and a
   Google Maps search to replace the place. A stop the map matched by name but not confirmed offers
   "Use this place". Drag and drop still reorders the day.
 - **Route check.** A Walk / Public transport switch and "Check routes for Day N", enabled once the
   day has two stops with confirmed places; the hint under it says which is missing.
-- **Review.** Every edit opens "Review this change": the new total and difference, one line per
+- **Review.** Every edit opens "Review this change": the new total, signed difference and budget
+  gap, one line per
   moved stop, the routes checked, blockers, and only the conflicts the change would add. Apply
   changes applies it; Cancel or Escape closes only the preview. An applied edit shows "Undo last
   change", which is previewed the same way.
@@ -659,11 +676,14 @@ the account section explains that everything stays in this browser.
     is shown, as the attachment notices and edit preview blockers and refusals are; or, for an
     English notice a route or plan still returns, through a pattern in `interfaceNotice`
     (`apps/web/lib/i18n/locale.ts`). Edit preview differences arrive as values, not sentences. With no saved choice it follows the browser language (`zh*` opens in Chinese). The desktop sidebar and main content have an 8 px gutter.
-    Trip amounts use one locale-aware formatter and the shared approximate rate table. Converted
-    displays carry its as-of date; JPY has no decimals, other currencies have two. The trip's stated budget currency takes
-    precedence over Settings. Planning and
-    guardrails keep AUD values. Provider-native fares retain their own currency, with that currency's
-    decimal places (`JPY 230`, `AUD 12.50`; `formatProviderAmount`), and are never converted.
+    Every workspace amount goes through the Money module (`apps/web/lib/money.ts`, read through
+    `useLocale()`) and the shared approximate rate table. Converted displays carry its as-of date;
+    JPY has no decimals, other currencies have two. The trip's stated budget currency takes
+    precedence over Settings. Planning and guardrails keep AUD values. `money()` converts a planning
+    amount; `fare()` keeps a provider-native fare in its own currency with that currency's decimal
+    places (`JPY 230`, `AUD 12.50`, `KRW 14,000`) and never converts it; `delta()` signs a
+    difference (`+AUD 12.00`, `−AUD 30.00`, no sign on zero); `budgetGap()` gives the one
+    "{amount} under/over the {budget} budget" sentence the trip panel and edit preview share.
   - **Connected accounts:** the Google, GitHub or Apple sign-ins linked through Clerk, with a button
     that opens Clerk to change them.
 - Signed out, settings are kept in this browser; signed in, the newer copy of browser and account
@@ -705,8 +725,8 @@ after implementation. `pnpm typecheck`, `pnpm lint`, `pnpm test` and `pnpm build
 repository checks. Component tests cover drawers, the trip fact chips and their editors, blank start,
 history restore, sidebar collapse, place lookup failures, request races and storage recovery, the
 location question, the drawer's place list and the place popup;
-`lib/map/map-view.test.ts`, `lib/map/place-query.test.ts` and `lib/map/itinerary-route.test.ts`
-cover framing, lookup rules, visiting order and the reduced-motion branch of the line animation. Live
+`lib/map/map-view.test.ts`, `lib/map/place-query.test.ts`, `lib/trip/itinerary.test.ts` and
+`lib/map/itinerary-route.test.ts` cover framing, lookup rules, stop numbers and visiting order, and the reduced-motion branch of the line animation. Live
 Google checks are reported separately in session logs and are never inferred from mocks. The
 historical P0–P3 plan is in [`.agents/archive/p3-implementation.md`](../.agents/archive/p3-implementation.md) and the
 session logs.

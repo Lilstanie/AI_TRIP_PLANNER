@@ -1,20 +1,11 @@
 "use client";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { TripPlan, type AgentProgressEvent } from "@trip/shared";
+import { useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import type { WorkspacePage } from "./WorkspaceSidebar";
 import type { TripTab } from "../trip/TripPanel";
 import { useWorkspaceStorage } from "./useWorkspaceStorage";
 import { useWorkspaceTransport } from "./useWorkspaceTransport";
 import { useTripPlaces } from "../map/useTripPlaces";
-import type { RouteResult } from "@/lib/integrations/google";
-import {
-  identifyActivities,
-  itineraryActivities,
-  blankDraft,
-  draftFor,
-  type Message,
-  type Snapshot,
-} from "@/lib/workspace";
+import { blankDraft, draftFor, type Snapshot } from "@/lib/workspace";
 import {
   reusableBlankConversation,
   searchCatalog,
@@ -30,8 +21,13 @@ import {
   useIsPhone,
   type DialogKind,
   type MobileView,
-  type Task,
 } from "./workspace-helpers";
+import {
+  idleSession,
+  session,
+  type SessionEvent,
+  type SessionState,
+} from "@/lib/workspace/session";
 import { useDataMode } from "@/lib/workspace/data-mode";
 import { draftDefaults } from "@/lib/account/settings";
 import { useSettings } from "../account/SettingsProvider";
@@ -39,25 +35,53 @@ import { useInterfaceLocale } from "../account/LocaleProvider";
 import { useAccountSync } from "../account/useAccountSync";
 import type { SettingsSection } from "../account/SettingsDialog";
 import { useComposerAttachments } from "./useComposerAttachments";
-import type { PendingAsk } from "@/lib/workspace/ask-user";
 import { firstFactWithError, firstMissingFact, type FactKey } from "@/lib/workspace/trip-facts";
-import { formatAudForDisplay, translate } from "@/lib/i18n/locale";
+import { translate } from "@/lib/i18n/locale";
+import { moneyDisplay } from "@/lib/money";
+/** A React setter for one session field, so callers that still set fields directly keep working. */
+function sessionField<K extends keyof SessionState>(
+  setSession: Dispatch<SetStateAction<SessionState>>,
+  key: K,
+): Dispatch<SetStateAction<SessionState[K]>> {
+  return (value) =>
+    setSession((current) => ({
+      ...current,
+      [key]:
+        typeof value === "function"
+          ? (value as (previous: SessionState[K]) => SessionState[K])(current[key])
+          : value,
+    }));
+}
+
 export function useWorkspaceController({ restored }: { restored: RestoredWorkspace }) {
-  const [plan, setPlan] = useState<TripPlan | undefined>(restored.plan);
-  const [draft, setDraft] = useState(restored.draft);
-  const [messages, setMessages] = useState<Message[]>(
-    () => restored.messages ?? (restored.plan ? seed : []),
+  // The conversation and trip a planning turn changes; only `session()` moves it on a turn.
+  // The question card is in memory only: a reload drops it, and the question stays in the chat.
+  const [state, setSession] = useState<SessionState>(() =>
+    idleSession({
+      plan: restored.plan,
+      draft: restored.draft,
+      messages: restored.messages ?? (restored.plan ? seed : []),
+      input: restored.input,
+      previousTotal: restored.previousTotal,
+    }),
   );
-  const [input, setInput] = useState(restored.input);
-  const [previousTotal, setPreviousTotal] = useState(restored.previousTotal);
+  const { plan, draft, messages, input, previousTotal, busy, activity, error, errors, retry, ask } =
+    state;
+  const { selectedActivity, mapRoutes } = state;
+  const dispatch = (event: SessionEvent) => setSession((current) => session(current, event));
+  const [setters] = useState(() => ({
+    setPlan: sessionField(setSession, "plan"),
+    setDraft: sessionField(setSession, "draft"),
+    setMessages: sessionField(setSession, "messages"),
+    setInput: sessionField(setSession, "input"),
+    setPreviousTotal: sessionField(setSession, "previousTotal"),
+    setSelectedActivity: sessionField(setSession, "selectedActivity"),
+    setMapRoutes: sessionField(setSession, "mapRoutes"),
+    setAsk: sessionField(setSession, "ask"),
+  }));
+  const { setPlan, setDraft, setMessages, setInput, setPreviousTotal } = setters;
+  const { setSelectedActivity, setMapRoutes, setAsk } = setters;
   const [editPending, setEditPending] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [activity, setActivity] = useState<AgentProgressEvent[]>([]);
-  const [error, setError] = useState("");
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [retry, setRetry] = useState<Task>();
-  // In memory only: a reload drops the card, and the question stays in the chat.
-  const [ask, setAsk] = useState<PendingAsk>();
   const [dialog, setDialog] = useState<DialogKind>();
   const [settingsSection, setSettingsSection] = useState<SettingsSection>("personalization");
   const [notice, setNotice] = useState("");
@@ -94,15 +118,11 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
   // Trip and Mine are phone tabs; between 521 and 1000 px only chat and map are views.
   const mobileView: MobileView =
     phone || storedView === "chat" || storedView === "map" ? storedView : "chat";
-  const [selectedActivity, setSelectedActivity] = useState<string>();
-  const [mapRoutes, setMapRoutes] = useState<RouteResult[]>([]);
   const activeConversation = useRef(
     restored.conversationId ?? `conversation:${crypto.randomUUID()}`,
   );
   // The trip ID a blank conversation will use once it produces its first plan.
   const freshTripId = useRef(crypto.randomUUID());
-  const planRef = useRef(plan);
-  planRef.current = plan;
   const active = useRef<AbortController | null>(null);
   const preferencesToggle = useRef<HTMLButtonElement>(null);
   const tripToggle = useRef<HTMLButtonElement>(null);
@@ -172,15 +192,8 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     flushSave();
     active.current?.abort();
     active.current = null;
-    setBusy(false);
-    setActivity([]);
-    setError("");
-    setErrors({});
-    setRetry(undefined);
-    setAsk(undefined);
+    dispatch({ kind: "left" });
     setDialog(undefined);
-    setSelectedActivity(undefined);
-    setMapRoutes([]);
     // Files picked for a message that was never sent belong to the chat being left.
     composerAttachments.clearAttachments();
   }
@@ -239,25 +252,12 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     interfaceLanguage: locale,
     draft,
     input,
-    planRef,
     freshTripId,
     active,
-    setBusy,
-    setActivity,
-    setError,
-    setRetry,
-    setMessages,
-    setInput,
-    setPreviousTotal,
-    setPlan,
-    setDraft,
-    setErrors,
-    setSelectedActivity,
-    setMapRoutes,
+    dispatch,
     attachments: composerAttachments.attachments,
     clearAttachments: composerAttachments.clearAttachments,
     ask,
-    setAsk,
     onReject: (fields) => openPreferences(firstFactWithError(fields) ?? "preferences"),
   });
 
@@ -280,11 +280,10 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     id: item.id,
     title: t("Trip to {destination}", { destination: item.snapshot.plan.brief.destination }),
     destination: item.snapshot.plan.brief.destination,
-    subtitle: `${item.snapshot.plan.brief.dates.join(" – ")} · ${formatAudForDisplay(
-      item.snapshot.plan.estTotal,
-      item.snapshot.plan.brief.budgetSource?.currency ?? settings.displayCurrency,
+    subtitle: `${item.snapshot.plan.brief.dates.join(" – ")} · ${moneyDisplay({
+      currency: item.snapshot.plan.brief.budgetSource?.currency ?? settings.displayCurrency,
       locale,
-    )}`,
+    }).money(item.snapshot.plan.estTotal)}`,
     status: item.status === "needs_review" ? ("Needs review" as const) : ("Draft" as const),
     active: !blank && item.id === catalog.activeTripId,
   }));
@@ -444,9 +443,9 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     if (activeConversation.current === id) startBlankChat(withoutConversation(catalog, id));
     else setCatalog((current) => withoutConversation(current, id));
   }
-  // The trip badge counts the stops in the trip; unresolved problems show as "Needs review" on
-  // the drawer itself and in Review plan.
-  const tripStops = itineraryActivities(plan).length;
+  // The trip badge counts the stops in the trip, never ideas; unresolved problems show as "Needs
+  // review" on the drawer itself and in Review plan.
+  const tripStops = tripPlaces.itinerary.stopCount;
   const dialogTitle = dialog === "review" ? "Review plan" : "Settings";
   // Chip editors are popovers, not drawers: they bring no drawer backdrop.
   const drawerOpen = tripOpen || navOpen;

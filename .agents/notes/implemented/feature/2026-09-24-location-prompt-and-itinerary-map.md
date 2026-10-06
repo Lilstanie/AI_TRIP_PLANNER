@@ -28,8 +28,9 @@ counter before lists or markers multiply them.
   Only the answer is stored. The position stays in memory, is never written into a plan, and leaves
   the browser only for Route from my location. Locating from the question does not pan the map, so
   it never undoes the trip framing; Show my location still pans.
-- **Itinerary lines.** `lib/map/itinerary-route.ts` orders stops by day, then start time, then plan
-  order, and draws one line per day. A leg uses a verified Google Routes polyline from the timeline
+- **Itinerary lines.** `lib/map/itinerary-route.ts` draws one line per day through stops given in
+  visiting order (day, then start time, then plan order), which the
+  [Itinerary](../architecture/2026-10-06-one-itinerary.md) provides. A leg uses a verified Google Routes polyline from the timeline
   editor when one exists for that exact pair of places, otherwise a gentle arc (`curvedPath`); nothing calls
   Routes just to draw. The focused day (the selected stop's day, or every day with no selection)
   is drawn in its day colour (`--day-N`) over a casing, with a direction chevron per leg and dashed Symbol icons whose `offset` advances in one

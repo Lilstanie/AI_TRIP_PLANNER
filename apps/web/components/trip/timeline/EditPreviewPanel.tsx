@@ -3,7 +3,6 @@ import { useEffect, useRef } from "react";
 import type { TripPlan } from "@trip/shared";
 import type { EditPreview } from "@/lib/trip/trip-edit";
 import { formatDuration } from "@/lib/trip/timeline";
-import { formatProviderAmount } from "@/lib/i18n/locale";
 import { useLocale } from "../../account/LocaleProvider";
 
 /**
@@ -24,11 +23,15 @@ export function EditPreviewPanel({
   onApply(): void;
   onCancel(): void;
 }) {
-  const { t, money, locale, notice } = useLocale();
+  const { t, money, delta, fare, budgetGap, locale, notice } = useLocale();
   const root = useRef<HTMLDivElement>(null);
   useEffect(() => root.current?.focus(), []);
   const change = preview.plan.estTotal - plan.estTotal;
-  const left = preview.plan.budgetTotal - preview.plan.estTotal;
+  const gap = budgetGap(
+    preview.plan.estTotal,
+    preview.plan.budgetTotal,
+    preview.plan.brief.budgetSource,
+  );
   const blocked = preview.blockerNotices.length > 0;
   // Problems the plan already had are in Review plan; here only what this change would add.
   const existing = new Set((plan.conflicts ?? []).map((conflict) => conflict.reason));
@@ -52,13 +55,9 @@ export function EditPreviewPanel({
         <p className="edit-preview__total">
           <strong>{money(preview.plan.estTotal)}</strong>{" "}
           <span className={change > 0 ? "is-up" : change < 0 ? "is-down" : undefined}>
-            {change === 0 ? t("no change") : `${change > 0 ? "+" : "−"}${money(Math.abs(change))}`}
+            {change === 0 ? t("no change") : delta(change)}
           </span>
-          <small>
-            {left >= 0
-              ? t("{amount} left in budget", { amount: money(left) })
-              : t("{amount} over budget", { amount: money(-left) })}
-          </small>
+          {gap && <small>{t(gap.key, gap.params)}</small>}
         </p>
       </div>
       {blocked && (
@@ -97,7 +96,7 @@ export function EditPreviewPanel({
                     ? notice(route.error)
                     : t("No route found")}
                 {route.fare
-                  ? ` · ${formatProviderAmount(route.fare)}`
+                  ? ` · ${fare(route.fare)}`
                   : route.status === "ok"
                     ? t(" · fare not published")
                     : ""}
