@@ -36,7 +36,8 @@ import { useAccountSync } from "../account/useAccountSync";
 import type { SettingsSection } from "../account/SettingsDialog";
 import { useComposerAttachments } from "./useComposerAttachments";
 import { firstFactWithError, firstMissingFact, type FactKey } from "@/lib/workspace/trip-facts";
-import { formatAudForDisplay, translate } from "@/lib/i18n/locale";
+import { translate } from "@/lib/i18n/locale";
+import { moneyDisplay } from "@/lib/money";
 /** A React setter for one session field, so callers that still set fields directly keep working. */
 function sessionField<K extends keyof SessionState>(
   setSession: Dispatch<SetStateAction<SessionState>>,
@@ -279,11 +280,10 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     id: item.id,
     title: t("Trip to {destination}", { destination: item.snapshot.plan.brief.destination }),
     destination: item.snapshot.plan.brief.destination,
-    subtitle: `${item.snapshot.plan.brief.dates.join(" – ")} · ${formatAudForDisplay(
-      item.snapshot.plan.estTotal,
-      item.snapshot.plan.brief.budgetSource?.currency ?? settings.displayCurrency,
+    subtitle: `${item.snapshot.plan.brief.dates.join(" – ")} · ${moneyDisplay({
+      currency: item.snapshot.plan.brief.budgetSource?.currency ?? settings.displayCurrency,
       locale,
-    )}`,
+    }).money(item.snapshot.plan.estTotal)}`,
     status: item.status === "needs_review" ? ("Needs review" as const) : ("Draft" as const),
     active: !blank && item.id === catalog.activeTripId,
   }));

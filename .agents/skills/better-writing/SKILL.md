@@ -16,11 +16,13 @@ Read the copy around your change before you write. It establishes these conventi
   preferences". "Your Trip" is the one established title.
 - **Australian and British spelling** in prose: "traveller", "colour". Code identifiers
   keep their existing spelling.
-- **Money goes through one formatter.** Amounts are stored and planned in AUD and shown in the
-  traveller's display currency by `money()` from `useLocale()`, which writes a currency code
-  (`AUD 1,234.00`, `JPY 98,000`). Never format an amount by hand or prefix `A$`. A converted amount
-  carries the "approximate, not live" estimate notice, and provider-native fare evidence stays in
-  its own currency through `formatProviderAmount()` (`JPY 230`, `AUD 12.50`). Never invent a converted amount the data does not hold. See the
+- **Money goes through one module.** Amounts are stored and planned in AUD and shown in the
+  traveller's display currency by `money()` from `useLocale()` (`apps/web/lib/money.ts`), which
+  writes a currency code (`AUD 1,234.00`, `JPY 98,000`). Never format an amount by hand, prefix
+  `A$`, or build a sign or "over/under" wording with `Math.abs`: use `delta()` for a signed
+  difference and `budgetGap()` for the budget sentence. A converted amount carries the
+  "approximate, not live" estimate notice, and provider-native fare evidence stays in its own
+  currency through `fare()` (`JPY 230`, `AUD 12.50`). Never invent a converted amount the data does not hold. See the
   [AUD base-currency](../../notes/implemented/architecture/2026-09-20-aud-base-currency.md) and
   [display currency](../../notes/implemented/feature/2026-10-04-workspace-display-currency.md) notes.
 - **Every interface string is bilingual.** Write the English text as a key passed to `t()` from
@@ -31,8 +33,9 @@ Read the copy around your change before you write. It establishes these conventi
   (`{ key, params }`, `apps/web/lib/i18n/notice.ts`; code that throws uses `NoticeError`) and shown
   through `notice()` from `useLocale()`, which translates it once; `{ raw }` is only for provider or
   model text. The compiler rejects a key without a Chinese entry and a missing or unexpected value.
-  Producers not yet converted (a route's `error`, a plan blocker) still send English, matched by a
-  dictionary entry or a pattern in `interfaceNotice` (`apps/web/lib/i18n/locale.ts`). Prefer
+  A route answers with `notice` beside its English `error`, as `/api/trip/preview-edit` does.
+  Producers not yet converted (other routes' `error`, a blocker saved on a plan) still send English,
+  matched by a dictionary entry or a pattern in `interfaceNotice` (`apps/web/lib/i18n/locale.ts`). Prefer
   returning values over sentences when the interface builds the line. Traveller text and agent
   replies are never translated by the interface. See the
   [interface language note](../../notes/implemented/feature/2026-10-04-interface-language-only.md).

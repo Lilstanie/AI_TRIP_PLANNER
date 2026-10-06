@@ -1,11 +1,8 @@
-import { fromAud, type Currency } from "@trip/shared";
-
 import { PHONE_ZH } from "./phone-messages";
 import { WORKSPACE_ZH } from "./workspace-messages";
 
 export const LOCALES = ["en", "zh"] as const;
 export type AppLocale = (typeof LOCALES)[number];
-export type CurrencyCode = Currency;
 
 /** With no saved choice the interface follows the browser: any `zh*` language means Chinese. */
 export function browserLocale(languages: readonly string[]): AppLocale {
@@ -14,46 +11,6 @@ export function browserLocale(languages: readonly string[]): AppLocale {
 
 /** The BCP 47 tag for `<html lang>` and `Intl` formatters. */
 export const intlLocale = (locale: AppLocale) => (locale === "zh" ? "zh-CN" : "en-AU");
-
-/**
- * Decimal places shown for a currency, from its ISO 4217 minor unit: `JPY` and `KRW` have none,
- * `AUD` has two. An unknown code keeps two.
- */
-export function currencyDigits(currency: string): number {
-  try {
-    return (
-      new Intl.NumberFormat("en", { style: "currency", currency }).resolvedOptions()
-        .maximumFractionDigits ?? 2
-    );
-  } catch {
-    return 2;
-  }
-}
-
-/**
- * A provider-native amount (such as a transit fare) in its own currency, never converted:
- * `JPY 230`, `AUD 12.50`.
- */
-export const formatProviderAmount = ({ amount, currency }: { amount: number; currency: string }) =>
-  `${currency} ${amount.toFixed(currencyDigits(currency))}`;
-
-/** One formatter for AUD planning amounts; source amounts can be displayed without a round trip. */
-export function formatAudForDisplay(
-  amount: number,
-  currency: CurrencyCode,
-  locale: AppLocale,
-  maximumFractionDigits = currencyDigits(currency),
-  minimumFractionDigits = currencyDigits(currency),
-  source?: { amount: number; currency: Currency },
-): string {
-  return new Intl.NumberFormat(intlLocale(locale), {
-    style: "currency",
-    currency,
-    currencyDisplay: "code",
-    minimumFractionDigits,
-    maximumFractionDigits,
-  }).format(source?.currency === currency ? source.amount : fromAud(amount, currency));
-}
 
 const ZH = {
   ...WORKSPACE_ZH,
@@ -225,26 +182,6 @@ export function translate(
  */
 const NOTICE_PATTERNS: readonly [RegExp, MessageKey, readonly string[]][] = [
   [/^Request failed \((\d{3})\)\.$/, "Request failed ({status}).", ["status"]],
-  [
-    /^Day (\d+) has no room left for this stop; shorten another stop first\.$/,
-    "Day {day} has no room left for this stop; shorten another stop first.",
-    ["day"],
-  ],
-  [
-    /^Day (\d+): confirm the place for every stop first, so travel times between them can be checked\.$/,
-    "Day {day}: confirm the place for every stop first, so travel times between them can be checked.",
-    ["day"],
-  ],
-  [
-    /^Day (\d+): (.+) needs at least (\d+) minutes after the previous activity\.$/s,
-    "Day {day}: {stop} needs at least {minutes} minutes after the previous activity.",
-    ["day", "stop", "minutes"],
-  ],
-  [
-    /^Day (\d+): activity would extend beyond the day\.$/,
-    "Day {day}: activity would extend beyond the day.",
-    ["day"],
-  ],
 ];
 
 /** Recognized authored notices only; unrecognized provider errors pass through unchanged. */

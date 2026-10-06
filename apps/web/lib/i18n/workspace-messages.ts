@@ -550,8 +550,6 @@ export const WORKSPACE_ZH = {
     "无法读取上次的工作区。原数据已保留，历史记录可能不完整。请重试存储，或明确选择替换无法读取的工作区。",
   "Workspace history could not be read. Existing stored data was kept; you can still plan a new trip.":
     "无法读取工作区历史。现有数据已保留；你仍可规划新行程。",
-  "{amount} left in budget": "剩余预算 {amount}",
-  "{amount} over budget": "超出预算 {amount}",
   "From 1 to 20.": "请输入 1 至 20 的人数。",
   "Enter an amount above 0.": "请输入大于 0 的金额。",
   "Request failed ({status}).": "请求失败（{status}）。",
@@ -584,6 +582,19 @@ export const WORKSPACE_ZH = {
   "Day {day}: {stop} needs at least {minutes} minutes after the previous activity.":
     "第 {day} 天：{stop} 需与上一项活动至少间隔 {minutes} 分钟。",
   "Day {day}: activity would extend beyond the day.": "第 {day} 天：活动将超出当天时间。",
+  "This edit is stale. Start from the current plan.": "此修改已过时，请基于当前行程重新修改。",
+  "Plan identifiers do not match. Restore or replan first.": "行程标识不一致，请先恢复或重新规划。",
+  "There are no activities to edit.": "没有可修改的活动。",
+  "Activities need unique IDs and a complete schedule before editing.":
+    "修改前，每项活动都需要唯一标识和完整的时间安排。",
+  "Undo activities do not match this plan.": "要撤销的活动与此行程不一致。",
+  "Undo cannot change destination segments.": "撤销不能更改目的地分段。",
+  "Activity not found.": "未找到该活动。",
+  "Move must stay within the same destination accommodation segment.":
+    "移动只能在同一目的地的住宿时段内进行。",
+  "Invalid activity position.": "活动位置无效。",
+  "End time must be after start time on the same day.": "结束时间必须晚于同一天的开始时间。",
+  "Activity day is outside trip dates.": "活动日期不在行程日期内。",
   "Route unavailable": "路线不可用",
   "Route verification failed": "路线核查失败",
   "Changed activity price requires verification": "已更改活动的价格需要核实",

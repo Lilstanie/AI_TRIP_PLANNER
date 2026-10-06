@@ -291,11 +291,15 @@ Contract: `EditRequest` and `EditPreview` in `apps/web/lib/trip/trip-edit.ts`.
 
 `operation.kind` is `verify` (a day's routes), `move`, `time`, `place` or `undo`. Only activities with a
 day are routed and re-timed; ideas (activities without a day) pass through unchanged. The response is
-`{ plan, baseVersion, routes, differences, blockers }`. Each difference is a value object
-`{ stop, days?: { from, to }, before, after, placeChanged }` that the interface words in the chosen
-language; blockers are English sentences that the interface localises when it recognises them. It is
-a preview only: the client applies it
-when the user confirms and rejects it if `baseVersion` no longer matches. Invalid edits return 400.
+`{ plan, baseVersion, routes, differences, blockers, blockerNotices }`. Each difference is a value
+object `{ stop, days?: { from, to }, before, after, placeChanged }` that the interface words in the
+chosen language. `blockerNotices` lists what stops the edit as Notices (`{ key, params }` for the
+app's own wording, `{ raw }` for a route provider's text), which the interface shows in the chosen
+language; `blockers` repeats them as English sentences for older clients. It is a preview only: the
+client applies it when the user confirms and rejects it if `baseVersion` no longer matches. An
+invalid edit returns 400 with `{ error, notice }`: `error` is the English sentence older clients
+read and `notice` the same refusal as a Notice; an error that is not one of the app's own refusals,
+such as a malformed body, comes back as `{ raw }`.
 
 ## Account routes
 

@@ -157,17 +157,25 @@ try {
     `edit preview difference Chinese (${differences.trim()})`,
   );
   await preview.getByRole("button", { name: "取消" }).click();
-  // Blockers as the preview route words them: each reads in Chinese, the stop name unchanged.
+  // Blockers as the preview route sends them, as notices: each reads in Chinese, the stop name
+  // unchanged. The English `blockers` beside them are for older clients and must not be shown.
   await np.route("**/api/trip/preview-edit", async (route) => {
     const response = await route.fetch();
     const body = await response.json();
-    body.blockers = [
-      "Day 2: confirm the place for every stop first, so travel times between them can be checked.",
-      "Day 1: Senso-ji Temple needs at least 40 minutes after the previous activity.",
-      "Day 3: activity would extend beyond the day.",
-      "Route unavailable",
-      "Route verification failed",
+    body.blockerNotices = [
+      {
+        key: "Day {day}: confirm the place for every stop first, so travel times between them can be checked.",
+        params: { day: 2 },
+      },
+      {
+        key: "Day {day}: {stop} needs at least {minutes} minutes after the previous activity.",
+        params: { day: 1, stop: "Senso-ji Temple", minutes: 40 },
+      },
+      { key: "Day {day}: activity would extend beyond the day.", params: { day: 3 } },
+      { key: "Route unavailable" },
+      { key: "Route verification failed" },
     ];
+    body.blockers = ["English blocker for older clients"];
     await route.fulfill({ response, json: body });
   });
   await previewTime();
@@ -180,7 +188,8 @@ try {
       "第 3 天：活动将超出当天时间。",
       "路线不可用",
       "路线核查失败",
-    ].every((line) => blockers.includes(line)) && !/Day \d|Route|minutes/.test(blockers),
+    ].every((line) => blockers.includes(line)) &&
+      !/Day \d|Route|minutes|English blocker/.test(blockers),
     `edit preview blockers Chinese (${blockers.replaceAll("\n", " | ")})`,
   );
   await np.screenshot({ path: `${out}/1440-edit-preview-blockers.png` });
@@ -194,6 +203,22 @@ try {
   const previewFailed = np.getByText("预览失败，请重新尝试此修改。").first();
   await previewFailed.waitFor({ timeout: 10000 }).catch(() => {});
   check(await previewFailed.isVisible(), "failed preview notice Chinese");
+  await np.unroute("**/api/trip/preview-edit");
+  // A refusal the route words as a notice reads in Chinese, not its English `error`.
+  await np.route("**/api/trip/preview-edit", (route) =>
+    route.fulfill({
+      status: 400,
+      contentType: "application/json",
+      body: JSON.stringify({
+        error: "This edit is stale. Start from the current plan.",
+        notice: { key: "This edit is stale. Start from the current plan." },
+      }),
+    }),
+  );
+  await previewTime();
+  const previewRefused = np.getByText("此修改已过时，请基于当前行程重新修改。").first();
+  await previewRefused.waitFor({ timeout: 10000 }).catch(() => {});
+  check(await previewRefused.isVisible(), "refused preview notice Chinese");
   await np.unroute("**/api/trip/preview-edit");
   await np.route("**/api/places/search", (route) =>
     route.fulfill({ status: 500, contentType: "application/json", body: "{}" }),
