@@ -1,4 +1,4 @@
-import { NoticeError, noticeText, type Notice } from "@/lib/i18n/notice";
+import { errorNotice, noticeBody } from "@/lib/i18n/notice";
 import { previewEdit } from "@/lib/trip/trip-edit";
 
 /**
@@ -11,12 +11,7 @@ export async function POST(request: Request) {
       headers: { "Cache-Control": "no-store" },
     });
   } catch (error) {
-    const notice: Notice =
-      error instanceof NoticeError
-        ? error.notice
-        : error instanceof Error
-          ? { raw: error.message }
-          : { key: "Preview failed. Try the change again." };
-    return Response.json({ error: noticeText("en", notice), notice }, { status: 400 });
+    const notice = errorNotice(error, { key: "Preview failed. Try the change again." });
+    return Response.json(noticeBody(notice), { status: 400 });
   }
 }

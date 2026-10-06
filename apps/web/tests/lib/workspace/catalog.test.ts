@@ -252,7 +252,9 @@ describe("workspace catalog", () => {
     const restored = restoreWorkspace({ getItem: (key) => storage.get(key) ?? null });
     expect(restored.plan).toBeUndefined();
     expect(restored.storageEnabled).toBe(false);
-    expect(restored.storageError).toMatch(/history could not be read/);
+    expect(restored.storageError).toEqual({
+      key: "Workspace history could not be read. Existing stored data was kept; you can still plan a new trip.",
+    });
   });
 
   it("falls back to default layout values instead of rejecting history", () => {

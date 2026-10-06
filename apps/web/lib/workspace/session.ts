@@ -6,6 +6,7 @@ import type {
   PartialTripBrief,
   TripPlan,
 } from "@trip/shared";
+import { errorNotice, type Notice } from "@/lib/i18n/notice";
 import type { RouteResult } from "@/lib/integrations/google";
 import type { PendingAsk } from "./ask-user";
 import {
@@ -38,10 +39,10 @@ export type SessionState = {
   busy: boolean;
   /** Progress of the turn in flight. */
   activity: AgentProgressEvent[];
-  /** The failure shown above the composer; empty when there is none. */
-  error: string;
-  /** One message per brief field the last submission got wrong. */
-  errors: Record<string, string>;
+  /** The failure shown above the composer, if any. */
+  error: Notice | undefined;
+  /** One notice per brief field the last submission got wrong. */
+  errors: Record<string, Notice>;
   /** The turn a Retry button sends again. */
   retry: Task | undefined;
   /** The structured question waiting for an answer. */
@@ -81,7 +82,7 @@ export type TurnOutcome =
   /** A fare question answered with fares; the open trip is not part of it. */
   | { kind: "answered"; flights: FlightAnswer; transcript: AgentProgressEvent[]; at: number }
   /** The request or the planner failed; `task` is what Retry sends again. */
-  | { kind: "failed"; message: string; task: Task }
+  | { kind: "failed"; message: Notice; task: Task }
   /** The traveller cancelled the turn. */
   | { kind: "cancelled" };
 
@@ -93,7 +94,7 @@ export type SessionEvent =
   | { kind: "sent"; message: Message; brief?: boolean }
   | { kind: "progress"; event: AgentProgressEvent }
   /** The brief was not sent: `fields` holds one message per invalid field. */
-  | { kind: "rejected"; fields: Record<string, string> }
+  | { kind: "rejected"; fields: Record<string, Notice> }
   /** The traveller left this chat or trip: in-flight and selection state goes with it. */
   | { kind: "left" };
 
@@ -105,8 +106,8 @@ export const PREPARING: AgentProgressEvent = {
   summary: "Preparing your request.",
 };
 
-export const REJECTED_BRIEF = "Check the highlighted trip details.";
-const FAILED = "Unable to update the trip. Please retry.";
+export const REJECTED_BRIEF: Notice = { key: "Check the highlighted trip details." };
+const FAILED: Notice = { key: "Unable to update the trip. Please retry." };
 
 /** A session with no turn in flight, opened on a saved or blank conversation. */
 export function idleSession(
@@ -121,7 +122,7 @@ export function idleSession(
     previousTotal: saved.previousTotal,
     busy: false,
     activity: [],
-    error: "",
+    error: undefined,
     errors: {},
     retry: undefined,
     ask: undefined,
@@ -170,7 +171,7 @@ export function session(state: SessionState, event: SessionEvent): SessionState 
       return {
         ...state,
         busy: true,
-        error: "",
+        error: undefined,
         retry: undefined,
         ask: undefined,
         activity: [PREPARING],
@@ -190,7 +191,7 @@ export function session(state: SessionState, event: SessionEvent): SessionState 
         ...state,
         busy: false,
         activity: [],
-        error: "",
+        error: undefined,
         errors: {},
         retry: undefined,
         ask: undefined,
@@ -294,7 +295,8 @@ export async function requestTurn(
     }
     return {
       kind: "failed",
-      message: failure instanceof Error ? failure.message : FAILED,
+      // An error the app did not author, such as a dropped connection, is shown as raised.
+      message: errorNotice(failure, FAILED),
       task,
     };
   }

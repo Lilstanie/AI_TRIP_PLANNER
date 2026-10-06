@@ -5,11 +5,12 @@ import { destinationCities } from "@/lib/map/place-query";
 import { CloseIcon, MapPinIcon, PlusIcon } from "../ui/icons";
 import { PlaceInput } from "./PlaceInput";
 import { useLocale } from "../account/LocaleProvider";
+import type { Notice } from "@/lib/i18n/notice";
 
 type Props = {
   value: Draft;
   onChange(next: Draft): void;
-  errors: Record<string, string>;
+  errors: Record<string, Notice>;
   /** Offer place suggestions while typing (live data with Maps configured). */
   suggestPlaces: boolean;
 };

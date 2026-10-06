@@ -6,6 +6,7 @@ import { FlowThinkIcon } from "../ui/flow-icons";
 import { ThinkingOrbIcon } from "./ThinkingOrbIcon";
 import { Disclosure, RowSeparator, RowSummary } from "./Disclosure";
 import { countActivity, roundGroups, turnSummary } from "./thinking-model";
+import type { Notice } from "@/lib/i18n/notice";
 import { Children, RoundHeading, RunningLine, SubagentRow, type OpenRows } from "./ThinkingRows";
 
 // ---------------------------------------------------------------------------
@@ -56,7 +57,7 @@ export function ThinkingProcess({
 }: {
   activity: AgentProgressEvent[];
   busy: boolean;
-  error?: string;
+  error?: Notice;
 }) {
   const { t, locale, notice: localizeNotice } = useLocale();
   const open = useOpenRows();
@@ -64,7 +65,7 @@ export function ThinkingProcess({
   const counts = useMemo(() => countActivity(activity), [activity]);
   const groups = useMemo(() => roundGroups(activity, busy), [activity, busy]);
   const summary = useMemo(
-    () => turnSummary(activity, counts, busy, error, locale),
+    () => turnSummary(activity, counts, busy, Boolean(error), locale),
     [activity, counts, busy, error, locale],
   );
   const multiRound = groups.length > 1;

@@ -41,3 +41,32 @@ export class NoticeError extends Error {
     this.name = "NoticeError";
   }
 }
+
+/** A route's JSON failure body: English `error` for logs and older clients, plus the notice. */
+export const noticeBody = (notice: Notice) => ({ error: noticeText("en", notice), notice });
+
+/**
+ * The notice to show for a failed response body. A route's keyed `notice` wins; an `error` with no
+ * notice did not come from an authored producer and is shown as received; anything else, such as a
+ * missing or malformed body, shows `fallback`.
+ */
+export function failureNotice(body: unknown, fallback: Notice): Notice {
+  if (!body || typeof body !== "object") return fallback;
+  const { notice, error } = body as { notice?: unknown; error?: unknown };
+  if (notice && typeof notice === "object") {
+    if (typeof (notice as { key?: unknown }).key === "string") return notice as Notice;
+    if (typeof (notice as { raw?: unknown }).raw === "string") return notice as Notice;
+  }
+  return typeof error === "string" && error ? { raw: error } : fallback;
+}
+
+/**
+ * The notice for something caught: an authored `NoticeError` keeps its notice, any other error is
+ * shown exactly as raised, and a thrown non-error shows `fallback`.
+ */
+export const errorNotice = (error: unknown, fallback: Notice): Notice =>
+  error instanceof NoticeError
+    ? error.notice
+    : error instanceof Error
+      ? { raw: error.message }
+      : fallback;

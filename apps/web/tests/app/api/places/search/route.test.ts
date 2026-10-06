@@ -3,7 +3,9 @@ import { GoogleRequestError } from "@/lib/integrations/google";
 import { POST } from "@/app/api/places/search/route";
 
 vi.mock("@/lib/integrations/google", async () => {
-  const actual = await vi.importActual<typeof import("@/lib/integrations/google")>("@/lib/integrations/google");
+  const actual = await vi.importActual<typeof import("@/lib/integrations/google")>(
+    "@/lib/integrations/google",
+  );
   return { ...actual, searchPlaces: vi.fn() };
 });
 
@@ -46,6 +48,7 @@ describe("POST /api/places/search", () => {
     expect(response.status).toBe(429);
     await expect(response.json()).resolves.toEqual({
       error: "Google Places is busy. Please retry shortly.",
+      notice: { key: "Google Places is busy. Please retry shortly." },
     });
   });
 
@@ -58,5 +61,16 @@ describe("POST /api/places/search", () => {
     expect(response.status).toBe(502);
     const body = await response.json();
     expect(body.error).not.toMatch(/500|GoogleRequestError/);
+    expect(body.notice).toEqual({ key: "Google Places is temporarily unavailable. Please retry." });
+  });
+
+  it("refuses an empty search with a keyed notice", async () => {
+    const response = await POST(request({ text: " " }));
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: "Enter a place name to search.",
+      notice: { key: "Enter a place name to search." },
+    });
   });
 });

@@ -497,7 +497,7 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
                 {localizeNotice(storageError)}{" "}
                 <button
                   onClick={() => {
-                    setStorageError("");
+                    setStorageError(undefined);
                     setStorageEnabled(true);
                   }}
                 >
@@ -511,7 +511,7 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
             {notice && (
               <p role="status" className="notice">
                 {localizeNotice(notice)}{" "}
-                <button onClick={() => setNotice("")} aria-label={t("Dismiss notification")}>
+                <button onClick={() => setNotice(undefined)} aria-label={t("Dismiss notification")}>
                   {t("Dismiss")}
                 </button>
               </p>
@@ -538,7 +538,7 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
                 busy={busy}
                 locked={editPending}
                 activity={activity}
-                error={localizeNotice(error)}
+                error={error}
                 onCancel={onCancel}
                 onSend={send}
                 ask={ask}

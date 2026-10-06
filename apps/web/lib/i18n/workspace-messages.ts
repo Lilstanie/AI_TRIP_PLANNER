@@ -453,6 +453,9 @@ export const WORKSPACE_ZH = {
   "Mark as booked": "标记为已预订",
   "{name} moved to Ideas.": "已将 {name} 移至备选地点。",
   "{name} moved to Day {day}.": "已将 {name} 移至第 {day} 天。",
+  "{name} scheduled on Day {day}.": "已将 {name} 安排在第 {day} 天。",
+  "Note saved.": "备注已保存。",
+  "Details saved.": "详情已保存。",
   "{name} marked as not booked.": "已将 {name} 标记为未预订。",
   "{name} marked as booked.": "已将 {name} 标记为已预订。",
   "{name} removed.": "已移除 {name}。",
@@ -526,8 +529,8 @@ export const WORKSPACE_ZH = {
   "Your current location": "你的当前位置",
   "My location": "我的位置",
   "Map view": "地图视图",
-  "Keep to 12 preferences of up to 200 characters each.":
-    "最多添加 12 条偏好，每条不超过 200 个字符。",
+  "Keep to {count} preferences of up to {length} characters each.":
+    "最多添加 {count} 条偏好，每条不超过 {length} 个字符。",
   "Unable to update the trip. Please retry.": "无法更新行程，请重试。",
   "Check the highlighted trip details.": "请检查标出的行程信息。",
   "Google Maps could not load.": "无法加载 Google 地图。",
@@ -567,6 +570,45 @@ export const WORKSPACE_ZH = {
   "Planning failed. Please retry.": "规划失败，请重试。",
   "Preview failed. Try the change again.": "预览失败，请重新尝试此修改。",
   "Search failed. Try again.": "搜索失败，请重试。",
+  "Enter a place name to search.": "输入地点名称后再搜索。",
+  "A place ID is required.": "需要提供地点 ID。",
+  "Unknown photo.": "未知的照片。",
+  "This photo is no longer available.": "此照片已不可用。",
+  "This saved place is no longer available.": "此已保存地点已不可用。",
+  "Google Places is busy. Please retry shortly.": "Google 地点服务繁忙，请稍后重试。",
+  "Google Places is temporarily unavailable. Please retry.": "Google 地点服务暂不可用，请重试。",
+  "Google Maps is not configured. Add the server MAPS_API_KEY.":
+    "未配置 Google 地图。请在服务器上添加 MAPS_API_KEY。",
+  "Google request failed ({status}). Please retry.": "Google 请求失败（{status}），请重试。",
+  "This place has no verified coordinates.": "此地点没有已核实的坐标。",
+  "Destination time zone could not be verified.": "无法核实目的地时区。",
+  "Local time is ambiguous or nonexistent due to daylight saving. Choose another time.":
+    "因夏令时调整，该当地时间不明确或不存在，请选择其他时间。",
+  "Transit departure is outside Google's supported date window.":
+    "公共交通出发时间超出 Google 支持的日期范围。",
+  "No verified route was returned.": "未返回已核实的路线。",
+  "Invalid route duration.": "路线时长无效。",
+  "End date must follow start date, with at least one night per destination.":
+    "结束日期须晚于开始日期，且每个目的地至少住一晚。",
+  "Your data was deleted, but the sign-in account could not be. Try again.":
+    "你的数据已删除，但登录账户未能删除，请重试。",
+  "Accounts are not available on this deployment.": "此部署未启用账户功能。",
+  "Sign in to use your account.": "请登录后使用账户。",
+  "Those settings are not valid.": "这些设置无效。",
+  "Invalid sync request.": "同步请求无效。",
+  "The request was invalid. Please retry.": "请求无效，请重试。",
+  "Attachment rejected: {reason}": "附件被拒绝：{reason}",
+  "No stays match your accommodation preferences. Lower the minimum rating or change cancellation preferences, then retry.":
+    "没有符合住宿偏好的住处。请降低最低评分或更改取消政策偏好后重试。",
+  "Unable to update this trip. Check the request and try again.":
+    "无法更新此行程，请检查请求后重试。",
+  "Map unavailable: configure the browser Google Maps key.":
+    "地图不可用：请配置浏览器端 Google 地图密钥。",
+  "Google Maps took too long to load. Check your connection and retry.":
+    "Google 地图加载超时。请检查网络连接后重试。",
+  "Google Maps could not load. Check your connection and retry.":
+    "无法加载 Google 地图。请检查网络连接后重试。",
+  "Your current location is shown on the map.": "你的当前位置已显示在地图上。",
   "That change could not be made.": "无法进行此修改。",
   "That stop is no longer in this trip.": "该站点已不在此行程中。",
   "Give the stop a description.": "请为该站点填写描述。",

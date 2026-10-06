@@ -8,7 +8,7 @@ import {
   localInstant,
   type RouteResult,
 } from "../integrations/google";
-import { NoticeError, noticeText, type Notice } from "../i18n/notice";
+import { errorNotice, NoticeError, noticeText, type Notice } from "../i18n/notice";
 
 const clock = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
 export const EditRequest = z.object({
@@ -220,7 +220,9 @@ export async function previewEdit(
             !Number.isFinite(route.durationMin) ||
             route.durationMin <= 0
           ) {
-            blockers.push(route.error ? { raw: route.error } : { key: "Route unavailable" });
+            blockers.push(
+              route.notice ?? (route.error ? { raw: route.error } : { key: "Route unavailable" }),
+            );
             break;
           }
           const earliest = mins(previous.endTime!) + route.durationMin + 15;
@@ -237,13 +239,7 @@ export async function previewEdit(
               });
           } else start = Math.max(start, earliest);
         } catch (error) {
-          blockers.push(
-            error instanceof NoticeError
-              ? error.notice
-              : error instanceof Error
-                ? { raw: error.message }
-                : { key: "Route verification failed" },
-          );
+          blockers.push(errorNotice(error, { key: "Route verification failed" }));
           break;
         }
       }

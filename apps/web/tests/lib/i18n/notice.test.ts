@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { NoticeError, noticeText, type Notice } from "@/lib/i18n/notice";
+import {
+  errorNotice,
+  failureNotice,
+  NoticeError,
+  noticeText,
+  type Notice,
+} from "@/lib/i18n/notice";
 
 describe("noticeText", () => {
   it("shows a keyed notice in the interface language with its values filled in", () => {
@@ -73,5 +79,54 @@ describe("NoticeError", () => {
     expect(error).toBeInstanceOf(Error);
     expect(error.message).toBe("text files over 2.0 MB can't be attached");
     expect(noticeText("zh", error.notice)).toBe("无法添加超过 2.0 MB 的文本文件");
+  });
+});
+
+describe("failureNotice", () => {
+  const fallback: Notice = { key: "Request failed ({status}).", params: { status: 502 } };
+
+  it("shows the keyed notice a route returned, in the interface language", () => {
+    const body = {
+      error: "Enter a place name to search.",
+      notice: { key: "Enter a place name to search." },
+    };
+
+    expect(noticeText("zh", failureNotice(body, fallback))).toBe("输入地点名称后再搜索。");
+  });
+
+  it("shows an error with no notice exactly as received, since nothing says it was authored", () => {
+    const notice = failureNotice({ error: "Gateway exploded" }, fallback);
+
+    expect(notice).toEqual({ raw: "Gateway exploded" });
+    expect(noticeText("zh", notice)).toBe("Gateway exploded");
+  });
+
+  it("falls back when the response had no readable body", () => {
+    expect(noticeText("zh", failureNotice(undefined, fallback))).toBe("请求失败（502）。");
+    expect(noticeText("zh", failureNotice("<html>", fallback))).toBe("请求失败（502）。");
+  });
+
+  it("ignores a malformed notice rather than showing `undefined`", () => {
+    expect(failureNotice({ notice: { key: 5 } }, fallback)).toBe(fallback);
+    expect(failureNotice({ notice: "plain", error: 7 }, fallback)).toBe(fallback);
+  });
+});
+
+describe("errorNotice", () => {
+  const fallback: Notice = { key: "Route unavailable" };
+
+  it("keeps an authored error's notice", () => {
+    const error = new NoticeError({ key: "No verified route was returned." });
+    expect(noticeText("zh", errorNotice(error, fallback))).toBe("未返回已核实的路线。");
+  });
+
+  it("shows any other error's message exactly as raised", () => {
+    expect(errorNotice(new TypeError("Failed to fetch"), fallback)).toEqual({
+      raw: "Failed to fetch",
+    });
+  });
+
+  it("uses the fallback for a thrown value that is not an error", () => {
+    expect(errorNotice("nope", fallback)).toBe(fallback);
   });
 });

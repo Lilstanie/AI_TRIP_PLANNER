@@ -3,7 +3,9 @@ import { GoogleRequestError } from "@/lib/integrations/google";
 import { POST } from "@/app/api/places/details/route";
 
 vi.mock("@/lib/integrations/google", async () => {
-  const actual = await vi.importActual<typeof import("@/lib/integrations/google")>("@/lib/integrations/google");
+  const actual = await vi.importActual<typeof import("@/lib/integrations/google")>(
+    "@/lib/integrations/google",
+  );
   return { ...actual, placeDetails: vi.fn() };
 });
 
@@ -47,12 +49,13 @@ describe("POST /api/places/details", () => {
       expect(response.status).toBe(404);
       await expect(response.json()).resolves.toEqual({
         error: "This saved place is no longer available.",
+        notice: { key: "This saved place is no longer available." },
       });
     },
   );
 
   it("maps a 429 to a retryable 429", async () => {
-      const { placeDetails } = await import("@/lib/integrations/google");
+    const { placeDetails } = await import("@/lib/integrations/google");
     vi.mocked(placeDetails).mockRejectedValue(new GoogleRequestError(429));
 
     const response = await POST(request({ placeId: "p1" }));
@@ -61,7 +64,7 @@ describe("POST /api/places/details", () => {
   });
 
   it("maps an unexpected upstream failure to 502", async () => {
-      const { placeDetails } = await import("@/lib/integrations/google");
+    const { placeDetails } = await import("@/lib/integrations/google");
     vi.mocked(placeDetails).mockRejectedValue(new GoogleRequestError(503));
 
     const response = await POST(request({ placeId: "p1" }));

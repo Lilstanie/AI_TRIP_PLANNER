@@ -1,5 +1,6 @@
 "use client";
 import type { FramableMap } from "@/lib/map/map-view";
+import { NoticeError } from "@/lib/i18n/notice";
 
 export type Coordinate = { lat: number; lng: number };
 
@@ -48,7 +49,7 @@ export function loadMaps() {
   sdk = new Promise<MapsSDK>((resolve, reject) => {
     const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
     if (!key) {
-      reject(new Error("Map unavailable: configure the browser Google Maps key."));
+      reject(new NoticeError({ key: "Map unavailable: configure the browser Google Maps key." }));
       return;
     }
     const script = document.createElement("script");
@@ -59,7 +60,11 @@ export function loadMaps() {
     const timeout = window.setTimeout(() => {
       delete host.tripGoogleMapsReady;
       script.remove();
-      reject(new Error("Google Maps took too long to load. Check your connection and retry."));
+      reject(
+        new NoticeError({
+          key: "Google Maps took too long to load. Check your connection and retry.",
+        }),
+      );
     }, 10_000);
     host.tripGoogleMapsReady = () => {
       window.clearTimeout(timeout);
@@ -73,7 +78,9 @@ export function loadMaps() {
       window.clearTimeout(timeout);
       delete host.tripGoogleMapsReady;
       script.remove();
-      reject(new Error("Google Maps could not load. Check your connection and retry."));
+      reject(
+        new NoticeError({ key: "Google Maps could not load. Check your connection and retry." }),
+      );
     };
     document.head.appendChild(script);
   }).catch((error) => {

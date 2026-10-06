@@ -38,6 +38,7 @@ import { useComposerAttachments } from "./useComposerAttachments";
 import { firstFactWithError, firstMissingFact, type FactKey } from "@/lib/workspace/trip-facts";
 import { translate } from "@/lib/i18n/locale";
 import { moneyDisplay } from "@/lib/money";
+import type { Notice } from "@/lib/i18n/notice";
 /** A React setter for one session field, so callers that still set fields directly keep working. */
 function sessionField<K extends keyof SessionState>(
   setSession: Dispatch<SetStateAction<SessionState>>,
@@ -84,7 +85,7 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
   const [editPending, setEditPending] = useState(false);
   const [dialog, setDialog] = useState<DialogKind>();
   const [settingsSection, setSettingsSection] = useState<SettingsSection>("personalization");
-  const [notice, setNotice] = useState("");
+  const [notice, setNotice] = useState<Notice>();
   const [catalog, setCatalog] = useState<WorkspaceCatalog>(restored.catalog);
   const { settings } = useSettings();
   const locale = useInterfaceLocale();
@@ -304,7 +305,7 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     activeConversation.current = id;
     setMessages(conversation.messages);
     setInput(conversation.input);
-    setNotice("");
+    setNotice(undefined);
     setCatalog((current) => {
       const next = updateCatalog(current, {
         activeConversationId: id,
@@ -330,7 +331,7 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
       setMessages(conversation.messages);
       setInput(conversation.input);
     }
-    setNotice("");
+    setNotice(undefined);
     setCatalog((current) =>
       updateCatalog(current, {
         activeTripId: id,
@@ -368,7 +369,7 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     setMessages([]);
     setInput("");
     setPreviousTotal(undefined);
-    setNotice("");
+    setNotice(undefined);
     setOpenFact(undefined);
     setTripOpen(false);
     setNavOpen(false);

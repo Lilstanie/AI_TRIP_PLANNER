@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { TripPlan } from "@trip/shared";
 import type { GooglePlace, RouteResult } from "@/lib/integrations/google";
 import type { EditInput, EditPreview } from "@/lib/trip/trip-edit";
-import { NoticeError, type Notice } from "@/lib/i18n/notice";
+import { errorNotice, failureNotice, NoticeError, type Notice } from "@/lib/i18n/notice";
 import type { TripPlaces } from "../../map/useTripPlaces";
 
 export type RouteMode = "WALK" | "TRANSIT";
@@ -30,8 +30,7 @@ export function useTimelineEdits({
 }) {
   const [mode, setMode] = useState<RouteMode>("WALK");
   const [results, setResults] = useState<GooglePlace[]>([]);
-  // A preview refusal is a Notice; place search errors are still English text until they are keyed.
-  const [error, setError] = useState<Notice | string>("");
+  const [error, setError] = useState<Notice>();
   const [working, setWorking] = useState<"" | "preview" | "search">("");
   const [preview, setPreview] = useState<EditPreview>();
   const [undo, setUndo] = useState<Operation>();
@@ -97,18 +96,12 @@ export function useTimelineEdits({
     const controller = new AbortController();
     request.current = controller;
     setWorking(kind);
-    setError("");
+    setError(undefined);
     try {
       return await call(controller.signal);
     } catch (e) {
       if (!controller.signal.aborted)
-        setError(
-          e instanceof NoticeError
-            ? e.notice
-            : e instanceof Error
-              ? e.message
-              : { key: "Something went wrong. Try again." },
-        );
+        setError(errorNotice(e, { key: "Something went wrong. Try again." }));
       return undefined;
     } finally {
       if (request.current === controller) setWorking("");
@@ -126,11 +119,10 @@ export function useTimelineEdits({
         body: JSON.stringify({ plan, baseVersion: plan.editVersion ?? 0, operation, mode }),
         signal,
       });
-      const body = await response.json();
+      const body = await response.json().catch(() => null);
       if (!response.ok)
         throw new NoticeError(
-          body.notice ??
-            (body.error ? { raw: body.error } : { key: "Preview failed. Try the change again." }),
+          failureNotice(body, { key: "Preview failed. Try the change again." }),
         );
       // A plan that changed while the preview was in flight makes the preview stale.
       if (!signal.aborted && current.current === base)
@@ -147,8 +139,9 @@ export function useTimelineEdits({
         body: JSON.stringify({ text, destination: plan.brief.destination }),
         signal,
       });
-      const body = await response.json();
-      if (!response.ok) throw new Error(body.error ?? "Search failed. Try again.");
+      const body = await response.json().catch(() => null);
+      if (!response.ok)
+        throw new NoticeError(failureNotice(body, { key: "Search failed. Try again." }));
       if (!signal.aborted) {
         setResults(body.places);
         if (!body.places.length) setError({ key: "No places found. Try different words." });

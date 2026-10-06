@@ -159,7 +159,7 @@ export function TripPlaceList({
   const { activities, itinerary, places, placeIdFor, locationStatus } = tripPlaces;
   const list = useRef<HTMLElement>(null);
   const [editing, setEditing] = useState<Editing>();
-  const [undo, setUndo] = useState<{ previous: TripPlan; message: string }>();
+  const [undo, setUndo] = useState<{ previous: TripPlan; message: Notice }>();
   const [problem, setProblem] = useState<Notice | "">("");
   const applied = useRef<TripPlan | null>(null);
   // Scheduled days in visiting order, then Ideas.
@@ -194,7 +194,7 @@ export function TripPlaceList({
     row?.scrollIntoView?.({ block: "nearest" });
   }, [selected]);
 
-  const act = (activity: Activity, action: ItemAction, message: string) => {
+  const act = (activity: Activity, action: ItemAction, message: Notice) => {
     if (!plan || !onApply || !activity.id) return;
     try {
       const next = applyItemAction(plan, activity.id, action);
@@ -253,8 +253,8 @@ export function TripPlaceList({
             activity,
             { kind: "move", direction },
             direction < 0
-              ? t("{name} moved earlier.", { name })
-              : t("{name} moved later.", { name }),
+              ? { key: "{name} moved earlier.", params: { name } }
+              : { key: "{name} moved later.", params: { name } },
           ),
       });
       if (position > 0) items.push(move(-1));
@@ -265,7 +265,8 @@ export function TripPlaceList({
           label: t("Move to ideas"),
           icon: <SuitcaseIcon />,
           separated: !grouped,
-          onSelect: () => act(activity, { kind: "idea" }, t("{name} moved to Ideas.", { name })),
+          onSelect: () =>
+            act(activity, { kind: "idea" }, { key: "{name} moved to Ideas.", params: { name } }),
         },
         {
           label: t("Move to previous day"),
@@ -279,7 +280,7 @@ export function TripPlaceList({
             act(
               activity,
               { kind: "day", day: activity.day! - 1 },
-              t("{name} moved to Day {day}.", { name, day: activity.day! - 1 }),
+              { key: "{name} moved to Day {day}.", params: { name, day: activity.day! - 1 } },
             ),
         },
         {
@@ -294,7 +295,7 @@ export function TripPlaceList({
             act(
               activity,
               { kind: "day", day: activity.day! + 1 },
-              t("{name} moved to Day {day}.", { name, day: activity.day! + 1 }),
+              { key: "{name} moved to Day {day}.", params: { name, day: activity.day! + 1 } },
             ),
         },
       );
@@ -309,8 +310,8 @@ export function TripPlaceList({
             activity,
             { kind: "booked", booked: !activity.booked },
             activity.booked
-              ? t("{name} marked as not booked.", { name })
-              : t("{name} marked as booked.", { name }),
+              ? { key: "{name} marked as not booked.", params: { name } }
+              : { key: "{name} marked as booked.", params: { name } },
           ),
       },
       {
@@ -318,7 +319,8 @@ export function TripPlaceList({
         icon: <CloseIcon />,
         tone: "danger",
         separated: true,
-        onSelect: () => act(activity, { kind: "remove" }, t("{name} removed.", { name })),
+        onSelect: () =>
+          act(activity, { kind: "remove" }, { key: "{name} removed.", params: { name } }),
       },
     );
     return items.map((item) => (disabled ? { ...item, disabled: true } : item));
@@ -330,7 +332,7 @@ export function TripPlaceList({
       <h3 id="trip-places-title">{t("Stops")}</h3>
       {undo && (
         <div className="item-undo" role="status">
-          <span>{undo.message}</span>
+          <span>{localizeNotice(undo.message)}</span>
           <button
             type="button"
             disabled={disabled}
@@ -455,10 +457,13 @@ export function TripPlaceList({
                             activity,
                             action,
                             action.kind === "day"
-                              ? `${name} scheduled on Day ${action.day}.`
+                              ? {
+                                  key: "{name} scheduled on Day {day}.",
+                                  params: { name, day: action.day },
+                                }
                               : action.kind === "note"
-                                ? "Note saved."
-                                : "Details saved.",
+                                ? { key: "Note saved." }
+                                : { key: "Details saved." },
                           )
                         }
                       />

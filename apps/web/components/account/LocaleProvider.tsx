@@ -4,7 +4,6 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import {
   browserLocale,
   intlLocale,
-  interfaceNotice,
   translate,
   type AppLocale,
   type MessageKey,
@@ -20,11 +19,8 @@ type LocaleState = Money & {
   locale: AppLocale;
   t(text: MessageKey, params?: Record<string, string | number>): string;
   currency: Currency;
-  /**
-   * A notice in the interface language. A string is English the app has not yet converted to a
-   * keyed `Notice`, matched against the dictionary and the remaining notice patterns.
-   */
-  notice(notice: Notice | string | undefined): string;
+  /** A notice in the interface language; nothing to show is an empty string. */
+  notice(notice: Notice | undefined): string;
 };
 
 const LocaleContext = createContext<LocaleState>({
@@ -74,5 +70,5 @@ export function LocaleProvider({
 
 export const useLocale = () => useContext(LocaleContext);
 
-const localNotice = (locale: AppLocale, notice: Notice | string | undefined) =>
-  typeof notice === "object" ? noticeText(locale, notice) : interfaceNotice(locale, notice ?? "");
+const localNotice = (locale: AppLocale, notice: Notice | undefined) =>
+  notice ? noticeText(locale, notice) : "";

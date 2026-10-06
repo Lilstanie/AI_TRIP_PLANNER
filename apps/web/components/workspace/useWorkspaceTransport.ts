@@ -13,6 +13,7 @@ import { formatAskAnswers, type PendingAsk, type QuestionAnswer } from "@/lib/wo
 import type { PreparedAttachment } from "@/lib/chat/attachments";
 import { storedAttachments } from "./useComposerAttachments";
 import { briefErrors } from "@/lib/workspace/trip-facts";
+import type { Notice } from "@/lib/i18n/notice";
 
 type WorkspaceTransportOptions = {
   plan: TripPlan | undefined;
@@ -31,7 +32,7 @@ type WorkspaceTransportOptions = {
   /** The structured question awaiting an answer, if the coordinator asked one. */
   ask: PendingAsk | undefined;
   /** A submission was rejected; `fields` holds one message per invalid field. */
-  onReject(fields: Record<string, string>): void;
+  onReject(fields: Record<string, Notice>): void;
   /** Settings → Personalization: reply style and whether chat memory is on. */
   assistant?: AssistantSettings;
   /**

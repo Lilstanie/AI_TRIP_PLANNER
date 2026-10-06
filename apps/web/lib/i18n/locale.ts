@@ -174,27 +174,3 @@ export function translate(
     result = result.replaceAll(`{${key}}`, String(value));
   return result;
 }
-
-/**
- * Authored notices that carry a value and are still built as English. Each pattern matches the
- * English the app builds, and its capture groups fill the named placeholders of the dictionary key
- * in order. A producer converted to a keyed `Notice` (see `notice.ts`) loses its entry here.
- */
-const NOTICE_PATTERNS: readonly [RegExp, MessageKey, readonly string[]][] = [
-  [/^Request failed \((\d{3})\)\.$/, "Request failed ({status}).", ["status"]],
-];
-
-/** Recognized authored notices only; unrecognized provider errors pass through unchanged. */
-export function interfaceNotice(locale: AppLocale, text: string): string {
-  if (Object.hasOwn(ZH, text)) return translate(locale, text as MessageKey);
-  for (const [pattern, key, names] of NOTICE_PATTERNS) {
-    const match = pattern.exec(text);
-    if (match)
-      return translate(
-        locale,
-        key,
-        Object.fromEntries(names.map((name, index) => [name, match[index + 1]!])),
-      );
-  }
-  return text;
-}

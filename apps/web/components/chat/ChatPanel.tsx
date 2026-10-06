@@ -54,7 +54,7 @@ export function ChatPanel({
   /** Cancels the active request without changing the current plan. */
   onCancel?: () => void;
   /** High-level request error shown in the workspace. */
-  error?: string;
+  error?: Notice;
   /** Receives files picked, dropped or pasted into the composer. */
   onAttachFiles?: (files: File[]) => void;
   /** Files held for the next message, drawn as chips inside the composer. */
@@ -72,7 +72,7 @@ export function ChatPanel({
   /** Dismisses the question card and brings the composer back. */
   onDismissAsk?: () => void;
 }) {
-  const { t, notice: localizeNotice } = useLocale();
+  const { t } = useLocale();
   const stream = useRef<HTMLDivElement>(null);
   /** Messages already on screen when the panel mounted -- a transcript restored
    *  from storage after a reload. Only a reply that arrives after them is new,
@@ -132,7 +132,7 @@ export function ChatPanel({
             className={`agent-activity${error && !busy ? " agent-activity--error" : ""}`}
             aria-label={t("Thinking process")}
           >
-            <ThinkingProcess activity={activity} busy={busy} error={localizeNotice(error)} />
+            <ThinkingProcess activity={activity} busy={busy} error={error} />
           </section>
         )}
       </div>

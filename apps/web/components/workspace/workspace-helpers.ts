@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { TripPlan } from "@trip/shared";
 import { budgetHint, money, WELCOME_MESSAGE, type Message } from "@/lib/workspace";
+import type { Notice } from "@/lib/i18n/notice";
 
 export type DialogKind = "review" | "settings";
 /**
@@ -46,5 +47,6 @@ export const seed: Message[] = [
     text: WELCOME_MESSAGE,
   },
 ];
-export const STORAGE_FULL =
-  "Browser storage is unavailable or full. Your current plan is still in this tab. Retry after freeing space.";
+export const STORAGE_FULL: Notice = {
+  key: "Browser storage is unavailable or full. Your current plan is still in this tab. Retry after freeing space.",
+};

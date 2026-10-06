@@ -7,6 +7,7 @@ import {
 import { parseDraft, statedBudgetSource, type Draft } from "./workspace";
 import { intlLocale, translate, type AppLocale } from "../i18n/locale";
 import { moneyDisplay } from "../money";
+import type { Notice } from "../i18n/notice";
 
 /** Age labels shown beside each Who stepper; also the order the chip summary lists them in. */
 export const PARTY_ROWS = [
@@ -59,7 +60,7 @@ export function factForError(key: string): FactKey {
 }
 
 /** The first fact holding one of these errors, in top-bar order. */
-export function firstFactWithError(errors: Record<string, string>): FactKey | undefined {
+export function firstFactWithError(errors: Record<string, Notice>): FactKey | undefined {
   const keys = Object.keys(errors);
   return FACTS.find((fact) => keys.some((key) => factForError(key) === fact));
 }
@@ -82,17 +83,17 @@ export function factErrors(
   draft: Draft,
   current: Pick<TripBrief, "tripId"> & Partial<TripBrief>,
   requireAll: boolean,
-): Record<string, string> {
+): Record<string, Notice> {
   if (!requireAll && FACT_FIELDS[fact].every((field) => isBlank(draft[field]))) return {};
   if (fact === "when" && !requireAll && (!draft.start || !draft.end))
-    return { dates: "Choose both a start and an end date." };
+    return { dates: { key: "Choose both a start and an end date." } };
   // The dates rule counts a night per destination city. With no destination yet, check the dates
   // against a single city rather than reporting the missing destination as a date error.
   const checked =
     fact === "when" && !draft.destination.trim() ? { ...draft, destination: "?" } : draft;
   const parsed = parseDraft(checked, current);
   if (parsed.success) return {};
-  const errors: Record<string, string> = {};
+  const errors: Record<string, Notice> = {};
   for (const [key, message] of Object.entries(briefErrors(parsed.error.issues)))
     if (FACT_ERRORS[fact].includes(key)) errors[key] = message;
   return errors;
@@ -102,20 +103,33 @@ const isBlank = (value: Draft[keyof Draft]) =>
   Array.isArray(value) ? value.length === 0 : String(value ?? "").trim() === "";
 
 /** Schema messages ("expected number, received NaN") rewritten as how to fix the field. */
-const FIX: Record<string, string> = {
-  destination: "Enter a destination.",
-  origin: "Enter where you are departing from, or leave it blank.",
-  groupSize: "Enter a whole number of travellers, 1 or more.",
-  budgetTotal: "Enter a total budget above zero.",
-  preferences: `Keep to ${MAX_TRIP_PREFERENCES} preferences of up to ${MAX_TRIP_PREFERENCE_LENGTH} characters each.`,
+const FIX: Record<string, Notice> = {
+  destination: { key: "Enter a destination." },
+  origin: { key: "Enter where you are departing from, or leave it blank." },
+  groupSize: { key: "Enter a whole number of travellers, 1 or more." },
+  budgetTotal: { key: "Enter a total budget above zero." },
+  preferences: {
+    key: "Keep to {count} preferences of up to {length} characters each.",
+    params: { count: MAX_TRIP_PREFERENCES, length: MAX_TRIP_PREFERENCE_LENGTH },
+  },
 };
 
-/** One message per field, keyed like the old preferences form's errors. */
+const CHECK_DETAILS: Notice = { key: "Check the highlighted trip details." };
+const DATES_ORDER = "End date must follow start date, with at least one night per destination.";
+
+/** The brief's own dates rule is already a sentence; any other date issue is a missing date. */
+const datesFix = (message: string): Notice =>
+  message === DATES_ORDER ? { key: DATES_ORDER } : { key: "Choose both a start and an end date." };
+
+/**
+ * One notice per field, keyed like the old preferences form's errors. A field with no rewrite
+ * (the form builds it, so the traveller cannot cause it) asks them to check the trip details.
+ */
 export function briefErrors(issues: readonly { path: readonly PropertyKey[]; message: string }[]) {
-  const errors: Record<string, string> = {};
+  const errors: Record<string, Notice> = {};
   for (const issue of issues) {
     const key = String(issue.path[0]);
-    errors[key] ??= FIX[key] ?? issue.message;
+    errors[key] ??= key === "dates" ? datesFix(issue.message) : (FIX[key] ?? CHECK_DETAILS);
   }
   return errors;
 }

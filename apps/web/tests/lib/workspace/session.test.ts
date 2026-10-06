@@ -40,7 +40,7 @@ function openTrip(): SessionState {
     busy: true,
     selectedActivity: "stop-1",
     mapRoutes: [{ mode: "walk" } as never],
-    errors: { destination: "Required" },
+    errors: { destination: { key: "Enter a destination." } },
   };
 }
 
@@ -173,8 +173,12 @@ describe("session after a planning turn", () => {
 
   it("failed: shows the error, keeps the unsent text and the trip, and offers a retry", () => {
     const before = { ...openTrip(), input: "half-typed" };
-    const next = session(before, { kind: "failed", message: "Planning failed.", task });
-    expect(next.error).toBe("Planning failed.");
+    const next = session(before, {
+      kind: "failed",
+      message: { key: "Planning failed. Please retry." },
+      task,
+    });
+    expect(next.error).toEqual({ key: "Planning failed. Please retry." });
     expect(next.retry).toBe(task);
     expect(next.input).toBe("half-typed");
     expect(next.plan).toBe(before.plan);
@@ -189,9 +193,13 @@ describe("session after a planning turn", () => {
   });
 
   it("a retry after a failure clears the error, and its success leaves no retry behind", () => {
-    const failed = session(openTrip(), { kind: "failed", message: "Planning failed.", task });
+    const failed = session(openTrip(), {
+      kind: "failed",
+      message: { key: "Planning failed. Please retry." },
+      task,
+    });
     const retrying = session(failed, { kind: "started" });
-    expect(retrying.error).toBe("");
+    expect(retrying.error).toBeUndefined();
     expect(retrying.retry).toBeUndefined();
     expect(retrying.busy).toBe(true);
     const done = session(retrying, {
@@ -201,7 +209,7 @@ describe("session after a planning turn", () => {
       transcript: [],
       at: 6,
     });
-    expect(done.error).toBe("");
+    expect(done.error).toBeUndefined();
     expect(done.retry).toBeUndefined();
     expect(done.plan?.estTotal).toBe(450);
   });
@@ -210,7 +218,7 @@ describe("session after a planning turn", () => {
     const message = { role: "user" as const, text: "Hi" };
     expect(session(openTrip(), { kind: "sent", message, brief: true }).errors).toEqual({});
     const chatted = session(openTrip(), { kind: "sent", message });
-    expect(chatted.errors).toEqual({ destination: "Required" });
+    expect(chatted.errors).toEqual({ destination: { key: "Enter a destination." } });
     expect(chatted.messages.at(-1)).toBe(message);
   });
 
@@ -269,7 +277,50 @@ describe("requestTurn", () => {
       async () => new Response(JSON.stringify({ error: "Planner is down." }), { status: 503 }),
       { signal: new AbortController().signal },
     );
-    expect(outcome).toEqual({ kind: "failed", message: "Planner is down.", task });
+    // No notice came with the error, so nothing says it was authored: it is shown as received.
+    expect(outcome).toEqual({ kind: "failed", message: { raw: "Planner is down." }, task });
+  });
+
+  it("returns a route's keyed refusal as that notice, so it shows in the interface language", async () => {
+    const notice = { key: "Planning failed. Please retry." } as const;
+    const outcome = await requestTurn(
+      task,
+      async () =>
+        Response.json({ error: "Planning failed. Please retry.", notice }, { status: 400 }),
+      { signal: new AbortController().signal },
+    );
+    expect(outcome).toEqual({ kind: "failed", message: notice, task });
+  });
+
+  it("names the status when a failed response has no readable body", async () => {
+    const outcome = await requestTurn(task, async () => new Response("<html>", { status: 502 }), {
+      signal: new AbortController().signal,
+    });
+    expect(outcome).toEqual({
+      kind: "failed",
+      message: { key: "Request failed ({status}).", params: { status: 502 } },
+      task,
+    });
+  });
+
+  it("returns an error frame's keyed notice from the stream", async () => {
+    const notice = { key: "Unable to update this trip. Check the request and try again." } as const;
+    const frame = JSON.stringify({ type: "error", error: "Unable to update this trip.", notice });
+    const outcome = await requestTurn(task, async () => new Response(`${frame}\n`), {
+      signal: new AbortController().signal,
+    });
+    expect(outcome).toEqual({ kind: "failed", message: notice, task });
+  });
+
+  it("keys the planner's own stream failures", async () => {
+    const outcome = await requestTurn(task, async () => new Response(""), {
+      signal: new AbortController().signal,
+    });
+    expect(outcome).toEqual({
+      kind: "failed",
+      message: { key: "Connection ended before the plan was ready. Please retry." },
+      task,
+    });
   });
 
   it("returns an aborted request as cancelled, not as a failure", async () => {
