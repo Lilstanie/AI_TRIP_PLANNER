@@ -2,23 +2,13 @@
 import { flushSync } from "react-dom";
 import { Dialog } from "../ui/Dialog";
 import { SettingsDialog } from "../account/SettingsDialog";
-import type { WorkspaceController } from "./useWorkspaceController";
+import type { WorkspaceModel } from "./useWorkspace";
 import { useLocale } from "../account/LocaleProvider";
 
-export function WorkspaceDialogs({ model }: { model: WorkspaceController }) {
+export function WorkspaceDialogs({ model }: { model: WorkspaceModel }) {
   const { t, money, delta, notice: localizeNotice } = useLocale();
-  const {
-    dialog,
-    plan,
-    previousTotal,
-    error,
-    retry,
-    busy,
-    closeDialog,
-    run,
-    settingsSection,
-    dataMode,
-  } = model;
+  const { plan, previousTotal, error, canRetry, busy, retry, dataMode } = model.session;
+  const { dialog, closeDialog, settingsSection } = model.layout;
 
   return (
     <>
@@ -57,8 +47,8 @@ export function WorkspaceDialogs({ model }: { model: WorkspaceController }) {
               {error && (
                 <div className="error-text" role="alert">
                   {localizeNotice(error)}
-                  {retry && (
-                    <button disabled={busy} onClick={() => void run(retry)}>
+                  {canRetry && (
+                    <button disabled={busy} onClick={retry}>
                       {t("Retry update")}
                     </button>
                   )}

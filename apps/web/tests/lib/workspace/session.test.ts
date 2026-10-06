@@ -23,6 +23,13 @@ import { plan } from "@/tests/fixtures/workspace";
  * - a cancelled turn shows a failure, or leaves the workspace busy;
  * - a retry after a failure keeps the old error on screen, or the next success keeps a retry button;
  * - the transport reports an aborted request as a failure, or a server error as a plan.
+ *
+ * How a change the traveller makes by hand can go wrong, written before the code:
+ *
+ * - an applied edit leaves "changed by" comparing against an older total, or against nothing;
+ * - an applied edit drops the selected stop or the routes it was edited beside;
+ * - opening another chat or trip keeps the old trip's selected stop, routes, error, retry, question
+ *   card or busy state, or mixes the old chat's messages and unsent text into the new one.
  */
 
 const task: Task = { kind: "chat", request: { tripId: "test-trip", message: "Plan Sydney" } };
@@ -286,5 +293,48 @@ describe("requestTurn", () => {
     );
     controller.abort();
     expect(await pending).toEqual({ kind: "cancelled" });
+  });
+});
+
+describe("session after a change made by hand", () => {
+  it("an applied edit records the total it replaced, and keeps the selected stop and routes", () => {
+    const before = { ...openTrip(), busy: false, previousTotal: 100 };
+    const next = session(before, { kind: "edited", plan: replanned });
+    expect(next.plan?.estTotal).toBe(450);
+    expect(next.previousTotal).toBe(200);
+    expect(next.selectedActivity).toBe("stop-1");
+    expect(next.mapRoutes).toEqual(before.mapRoutes);
+  });
+
+  it("opening another chat or trip shows only what was saved with it", () => {
+    const before = {
+      ...openTrip(),
+      input: "half typed",
+      error: "Planning failed.",
+      retry: task,
+      ask: { key: "a", questions: [], known: {} },
+      activity: [PREPARING],
+    };
+    const blank = { draft: draftFor(plan.brief), messages: [], input: "" };
+    expect(session(before, { kind: "opened", saved: blank })).toEqual({
+      plan: undefined,
+      previousTotal: undefined,
+      draft: draftFor(plan.brief),
+      messages: [],
+      input: "",
+      busy: false,
+      activity: [],
+      error: "",
+      errors: {},
+      retry: undefined,
+      ask: undefined,
+      selectedActivity: undefined,
+      mapRoutes: [],
+    });
+    const saved = { ...blank, plan: replanned, previousTotal: 300, input: "next" };
+    const reopened = session(before, { kind: "opened", saved });
+    expect(reopened.plan).toBe(replanned);
+    expect(reopened.previousTotal).toBe(300);
+    expect(reopened.input).toBe("next");
   });
 });

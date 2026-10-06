@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, type CSSProperties } from "react";
 import { TripFactChips } from "../preferences/TripFactChips";
 import { ChatPanel } from "../chat/ChatPanel";
 import { TripEditor } from "../trip/TripEditor";
@@ -15,7 +15,7 @@ import { SplitResizer } from "./SplitResizer";
 import { ChatsPanel } from "./ChatsPanel";
 import { TripsPage } from "./TripsPage";
 import { MenuIcon, RouteIcon } from "../ui/icons";
-import type { WorkspaceController } from "./useWorkspaceController";
+import type { WorkspaceModel } from "./useWorkspace";
 import { WorkspaceDialogs } from "./WorkspaceDialogs";
 import { DataModeToggle } from "./DataModeToggle";
 import { CurrencyNotice } from "../account/CurrencyNotice";
@@ -31,71 +31,49 @@ import { usePhoneTripUpdates } from "./usePhoneTripUpdates";
 import { usePhoneBack } from "./usePhoneBack";
 import type { MobileView } from "./workspace-helpers";
 
-export function WorkspaceView({ model }: { model: WorkspaceController }) {
+export function WorkspaceView({ model }: { model: WorkspaceModel }) {
   const { t, notice: localizeNotice } = useLocale();
+  const { session, layout, itinerary, history } = model;
   const {
     plan,
     draft,
     dataMode,
     messages,
     input,
-    previousTotal,
     editPending,
     busy,
     activity,
     error,
     errors,
-    retry,
+    canRetry,
+    selectedActivity,
+    mapRoutes,
+    places: tripPlaces,
+    notice,
+    attachments: composerAttachments,
+    blank,
+    ask,
+  } = session;
+  const {
     dialog,
-    storageError,
-    storageEnabled,
-    saveState,
-    syncStatus,
-    openSettings,
-    catalog,
-    historyQuery,
+    page,
+    mobileView,
     preferencesOpen,
     tripOpen,
     tripTab,
-    mobileView,
     sidebarCollapsed,
     sidebarWidth,
     chatShare,
-    page,
     chatsOpen,
     navOpen,
     narrow,
     phone,
-    selectedActivity,
-    mapRoutes,
-    tripPlaces,
-    historyChats,
-    historyTrips,
-    notice,
-    composerAttachments,
-    blank,
-    tripStops,
-    dialogTitle,
     drawerOpen,
     openFact,
     preferencesToggle,
     tripToggle,
     navToggle,
-    setPlan,
-    setDraft,
-    setInput,
-    setPreviousTotal,
-    setEditPending,
-    setStorageError,
-    setStorageEnabled,
-    setNotice,
-    setHistoryQuery,
-    setTripTab,
-    setSidebarCollapsed,
-    setSidebarWidth,
-    setChatShare,
-    setSelectedActivity,
-    setMapRoutes,
+    openSettings,
     openPreferences,
     closePreferences,
     openTrip,
@@ -105,36 +83,10 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
     closeDrawer,
     toggleChats,
     edit,
-    saveFacts,
-    planWith,
-    run,
-    submit,
-    send,
-    ask,
-    answer,
-    dismissAsk,
-    onCancel,
-    newChat,
-    newTrip,
-    selectConversation,
-    selectTrip,
-    renameChat,
-    deleteChat,
-  } = model;
+  } = layout;
+  const { catalog, saveState, syncStatus, storageError } = history;
+  const tripStops = itinerary.stopCount;
   const userLocation = useUserLocation();
-  const [phoneMapDay, setPhoneMapDay] = useState<number>();
-  const [phoneMapFocusRequest, setPhoneMapFocusRequest] = useState(0);
-  const selectMapActivity = (id: string) => {
-    setSelectedActivity(id);
-    if (phone) setPhoneMapFocusRequest((request) => request + 1);
-  };
-  // A stop selected elsewhere (the Trip tab's itinerary) shows on its own day when Map opens.
-  const selectedDay = model.selectedActivity
-    ? model.tripPlaces.itinerary.stop(model.selectedActivity)?.day
-    : undefined;
-  useEffect(() => {
-    if (phone && selectedDay !== undefined) setPhoneMapDay(selectedDay);
-  }, [phone, selectedDay]);
   const { keyboardOpen } = usePhoneKeyboard(phone);
   const { tripUpdated } = usePhoneTripUpdates(model);
   usePhoneBack(phone);
@@ -183,23 +135,23 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
 
   const chatsContent = (searchRef?: typeof chatsSearch) => (
     <ChatsPanel
-      query={historyQuery}
-      onQuery={setHistoryQuery}
-      chats={historyChats}
-      trips={historyTrips}
-      onNewChat={swap(newChat)}
-      onNewTrip={swap(newTrip)}
-      onOpenChat={swap(selectConversation)}
-      onOpenTrip={swap(selectTrip)}
-      onRenameChat={renameChat}
-      onDeleteChat={deleteChat}
+      query={history.query}
+      onQuery={history.search}
+      chats={history.chats}
+      trips={history.trips}
+      onNewChat={swap(session.newChat)}
+      onNewTrip={swap(session.newTrip)}
+      onOpenChat={swap(session.selectConversation)}
+      onOpenTrip={swap(session.selectTrip)}
+      onRenameChat={history.rename}
+      onDeleteChat={history.delete}
       searchRef={searchRef}
     />
   );
-  const showTrips = () => viewTransition(model.showTrips);
+  const showTrips = () => viewTransition(layout.showTrips);
 
   const selectView = (view: MobileView) =>
-    view !== mobileView && viewTransition(() => model.selectView(view), `to-${view}`);
+    view !== mobileView && viewTransition(() => layout.selectView(view), `to-${view}`);
   // A phone tab's panel: labelled by its tab, and only the selected one is shown.
   const phonePanel = (view: MobileView) =>
     phone
@@ -259,7 +211,7 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
         <TripPanel
           plan={plan}
           tab={tripTab}
-          onTab={setTripTab}
+          onTab={layout.showTripTab}
           onReview={() => openDialog("review")}
           onEdit={edit}
           places={
@@ -267,32 +219,23 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
               tripPlaces={tripPlaces}
               startDate={plan.brief.dates[0]}
               selected={selectedActivity}
-              onSelect={setSelectedActivity}
+              onSelect={session.selectStop}
               plan={plan}
               disabled={busy || editPending}
-              onApply={(next) => {
-                setPreviousTotal(plan.estTotal);
-                setPlan(next);
-              }}
-              onAdjust={(id) => {
-                setSelectedActivity(id);
-                setTripTab("timeline");
-              }}
+              onApply={session.applyEdit}
+              onAdjust={session.adjustStop}
             />
           }
           timeline={
             <TripEditor
               plan={plan}
               disabled={busy}
-              onPending={setEditPending}
+              onPending={session.trackEdit}
               tripPlaces={tripPlaces}
               selected={selectedActivity}
-              onSelect={setSelectedActivity}
-              onRoutesChange={setMapRoutes}
-              onApply={(next) => {
-                setPreviousTotal(plan.estTotal);
-                setPlan(next);
-              }}
+              onSelect={session.selectStop}
+              onRoutesChange={session.showRoutes}
+              onApply={session.applyEdit}
             />
           }
         />
@@ -332,7 +275,7 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
     >
       {!narrow && (
         <WorkspaceSidebar
-          onToggleCollapsed={() => setSidebarCollapsed((value) => !value)}
+          onToggleCollapsed={layout.toggleSidebar}
           collapsed={sidebarCollapsed}
           page={page}
           chatsOpen={chatsOpen}
@@ -359,7 +302,7 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
         </div>
       )}
       {!narrow && !sidebarCollapsed && (
-        <SidebarResizer width={sidebarWidth} onChange={setSidebarWidth} />
+        <SidebarResizer width={sidebarWidth} onChange={layout.resizeSidebar} />
       )}
       {page === "trips" ? (
         <div className="workspace-main">
@@ -370,8 +313,8 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
             <TripsPage
               trips={catalog.trips}
               activeTripId={blank ? undefined : catalog.activeTripId}
-              onOpenTrip={swap(selectTrip)}
-              onNewTrip={swap(newTrip)}
+              onOpenTrip={swap(session.selectTrip)}
+              onNewTrip={swap(session.newTrip)}
             />
             {navOpen && (
               <button
@@ -407,8 +350,8 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
               open={openFact}
               onOpen={openPreferences}
               onClose={closePreferences}
-              onSave={saveFacts}
-              onPlan={planWith}
+              onSave={session.saveFacts}
+              onPlan={session.planWith}
               preferencesChip={preferencesToggle}
               suggestPlaces={dataMode.mode === "live" && !!dataMode.providers?.maps}
             />
@@ -473,8 +416,8 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
             {error && (
               <div className="error-banner" role="alert">
                 {localizeNotice(error)}{" "}
-                {retry && (
-                  <button disabled={busy} onClick={() => void run(retry)}>
+                {canRetry && (
+                  <button disabled={busy} onClick={session.retry}>
                     {t("Retry update")}
                   </button>
                 )}
@@ -483,12 +426,7 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
             {storageError && (
               <div className="error-banner" role="alert">
                 {localizeNotice(storageError)}{" "}
-                <button
-                  onClick={() => {
-                    setStorageError("");
-                    setStorageEnabled(true);
-                  }}
-                >
+                <button onClick={history.retryStorage}>
                   {t("Retry / replace workspace storage")}
                 </button>
               </div>
@@ -499,7 +437,7 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
             {notice && (
               <p role="status" className="notice">
                 {localizeNotice(notice)}{" "}
-                <button onClick={() => setNotice("")} aria-label={t("Dismiss notification")}>
+                <button onClick={session.dismissNotice} aria-label={t("Dismiss notification")}>
                   {t("Dismiss")}
                 </button>
               </p>
@@ -522,16 +460,16 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
                 plan={plan}
                 messages={messages}
                 input={input}
-                onInput={setInput}
+                onInput={session.type}
                 busy={busy}
                 locked={editPending}
                 activity={activity}
                 error={localizeNotice(error)}
-                onCancel={onCancel}
-                onSend={send}
+                onCancel={session.cancel}
+                onSend={session.send}
                 ask={ask}
-                onAnswer={answer}
-                onDismissAsk={dismissAsk}
+                onAnswer={session.answer}
+                onDismissAsk={session.dismissAsk}
                 onEdit={edit}
                 onStart={edit}
                 onAttachFiles={composerAttachments.addFiles}
@@ -541,29 +479,22 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
                 attachNotices={composerAttachments.notices}
               />
             </div>
-            {!narrow && <SplitResizer share={chatShare} onChange={setChatShare} />}
+            {!narrow && <SplitResizer share={chatShare} onChange={layout.resizeChat} />}
             <div className="workspace-panel workspace-panel--map" {...phonePanel("map")}>
               <TripMapCanvas
                 destination={plan?.brief.destination}
                 viewKey={plan ? `${plan.tripId}|${plan.brief.destination}` : undefined}
                 tripPlaces={tripPlaces}
                 selectedActivity={selectedActivity}
-                onSelectActivity={selectMapActivity}
+                onSelectActivity={session.showStop}
                 routes={mapRoutes}
-                focusedDay={phone ? phoneMapDay : undefined}
-                focusRequest={phone ? phoneMapFocusRequest : undefined}
+                focusedDay={phone ? layout.mapDay : undefined}
+                focusRequest={phone ? layout.mapFocus : undefined}
                 phone={phone}
                 showPhotos={dataMode.mode === "live" && !!dataMode.providers?.maps}
                 userLocation={userLocation}
               />
-              {phone && (
-                <PhoneMapSheet
-                  model={model}
-                  day={phoneMapDay}
-                  onDayChange={setPhoneMapDay}
-                  onSelectStop={selectMapActivity}
-                />
-              )}
+              {phone && <PhoneMapSheet model={model} />}
             </div>
             {phone && (
               <div className="workspace-panel workspace-panel--trip" {...phonePanel("trip")}>

@@ -5,39 +5,38 @@ import { DataModeToggle } from "./DataModeToggle";
 import { LanguageToggle } from "./LanguageToggle";
 import { ChatsPanel } from "./ChatsPanel";
 import { TripsPage } from "./TripsPage";
-import type { WorkspaceController } from "./useWorkspaceController";
+import type { WorkspaceModel } from "./useWorkspace";
 
 /** The phone history and account hub, reusing desktop history and calendar controls. */
-export function PhoneMine({ model }: { model: WorkspaceController }) {
+export function PhoneMine({ model }: { model: WorkspaceModel }) {
   const { t } = useLocale();
-  const { dataMode, busy, openSettings } = model;
-  const visibleTrips = new Set(model.historyTrips.map((trip) => trip.id));
-  // Opening or starting a chat or trip returns to Chat; the workspace's layout decides that.
-  const newChat = () => model.newChat();
-  const newTrip = () => model.newTrip();
-  const openTrip = model.selectTrip;
+  const { session, history } = model;
+  const { dataMode, busy } = session;
+  const visibleTrips = new Set(history.trips.map((trip) => trip.id));
+  // Opening or starting a chat or trip returns to Chat; the workspace decides that.
+  const { newChat, newTrip, selectTrip: openTrip } = session;
 
   return (
     <div className="phone-mine">
       <ChatsPanel
-        query={model.historyQuery}
-        onQuery={model.setHistoryQuery}
-        chats={model.historyChats}
-        trips={model.historyTrips}
+        query={history.query}
+        onQuery={history.search}
+        chats={history.chats}
+        trips={history.trips}
         onNewChat={newChat}
         onNewTrip={newTrip}
-        onOpenChat={model.selectConversation}
+        onOpenChat={session.selectConversation}
         onOpenTrip={openTrip}
-        onRenameChat={model.renameChat}
-        onDeleteChat={model.deleteChat}
+        onRenameChat={history.rename}
+        onDeleteChat={history.delete}
         tripsContent={
-          model.historyQuery.trim() && !visibleTrips.size ? (
+          history.query.trim() && !visibleTrips.size ? (
             <p className="history-empty">{t("No matching trips.")}</p>
           ) : (
             <TripsPage
               embedded
-              trips={model.catalog.trips.filter((trip) => visibleTrips.has(trip.id))}
-              activeTripId={model.catalog.activeTripId}
+              trips={history.catalog.trips.filter((trip) => visibleTrips.has(trip.id))}
+              activeTripId={history.catalog.activeTripId}
               onOpenTrip={openTrip}
               onNewTrip={newTrip}
             />
@@ -57,7 +56,11 @@ export function PhoneMine({ model }: { model: WorkspaceController }) {
         />
         <LanguageToggle />
       </div>
-      <button type="button" className="phone-mine__settings" onClick={() => openSettings()}>
+      <button
+        type="button"
+        className="phone-mine__settings"
+        onClick={() => model.layout.openSettings()}
+      >
         <GearIcon />
         <span>{t("Settings & account")}</span>
       </button>

@@ -1,34 +1,25 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { useLocale } from "../account/LocaleProvider";
-import type { WorkspaceController } from "./useWorkspaceController";
+import type { WorkspaceModel } from "./useWorkspace";
 
 type Snap = "handle" | "half" | "full";
 const snaps: Snap[] = ["handle", "half", "full"];
 
 /** Phone map's day selector and stops remain available even without a map provider key. */
-export function PhoneMapSheet({
-  model,
-  day,
-  onDayChange,
-  onSelectStop,
-}: {
-  model: WorkspaceController;
-  day?: number;
-  onDayChange(day: number | undefined): void;
-  onSelectStop?(id: string): void;
-}) {
+export function PhoneMapSheet({ model }: { model: WorkspaceModel }) {
   const { t } = useLocale();
   const [snap, setSnap] = useState<Snap>("half");
   const drag = useRef<{ y: number; snap: Snap; moved: boolean } | null>(null);
   const ignoreClick = useRef(false);
   // Only days with stops are offered; ideas have no day and are never stops (#186).
-  const { itinerary } = model.tripPlaces;
+  const { itinerary, session } = model;
+  const { mapDay: day, showMapDay } = model.layout;
   const days = itinerary.days();
   const selectedDay = days.includes(day ?? -1) ? day : days[0];
   useEffect(() => {
-    if (selectedDay !== day) onDayChange(selectedDay);
-  }, [selectedDay, day, onDayChange]);
+    if (selectedDay !== day) showMapDay(selectedDay);
+  }, [selectedDay, day, showMapDay]);
   const stops = selectedDay === undefined ? [] : itinerary.stopsOn(selectedDay);
   const changeSnap = (step: number) =>
     setSnap((value) => snaps[Math.max(0, Math.min(2, snaps.indexOf(value) + step))]!);
@@ -99,10 +90,7 @@ export function PhoneMapSheet({
                 type="button"
                 key={value}
                 aria-pressed={value === selectedDay}
-                onClick={() => {
-                  onDayChange(value);
-                  model.setSelectedActivity(undefined);
-                }}
+                onClick={() => model.layout.pickMapDay(value)}
               >
                 {t("Day {v0}", { v0: value })}
               </button>
@@ -116,9 +104,9 @@ export function PhoneMapSheet({
                 <li key={stop.id ?? index}>
                   <button
                     type="button"
-                    aria-pressed={model.selectedActivity === stop.id}
+                    aria-pressed={session.selectedActivity === stop.id}
                     onClick={() => {
-                      if (stop.id) (onSelectStop ?? model.setSelectedActivity)(stop.id);
+                      if (stop.id) session.showStop(stop.id);
                       // A stop without a map location has nothing to centre on, so the list stays.
                       if (number !== undefined) setSnap("handle");
                     }}

@@ -6,12 +6,15 @@ import { TRIP_FACTS_SHEET_ID, TripFactsSheet } from "../preferences/TripFactsShe
 import type { CloseReason } from "../preferences/FactPopover";
 import { ChevronIcon } from "../ui/icons";
 import { usePresence } from "../ui/motion";
-import type { WorkspaceController } from "./useWorkspaceController";
+import type { WorkspaceModel } from "./useWorkspace";
 
 /** "Sydney · 1 Oct – 4 Oct" from what the traveller stated, or "New trip" before anything is. */
-export function usePhoneTripTitle(model: Pick<WorkspaceController, "draft" | "plan">) {
+export function usePhoneTripTitle({
+  draft,
+  plan,
+}: Pick<WorkspaceModel["session"], "draft" | "plan">) {
   const { locale, currency, t } = useLocale();
-  const labels = factLabels(model.draft, model.plan?.brief, { locale, currency });
+  const labels = factLabels(draft, plan?.brief, { locale, currency });
   const range = labels.when?.split(" · ")[0];
   return [labels.where, range].filter(Boolean).join(" · ") || t("New trip");
 }
@@ -21,14 +24,15 @@ export function usePhoneTripTitle(model: Pick<WorkspaceController, "draft" | "pl
  * The chips are hidden on a phone, so focus that a closing fact editor would hand back to its chip
  * comes back here instead.
  */
-export function PhoneTripTitle({ model }: { model: WorkspaceController }) {
+export function PhoneTripTitle({ model }: { model: WorkspaceModel }) {
   const { t } = useLocale();
-  const title = usePhoneTripTitle(model);
-  const { draft, plan, openFact, openPreferences, openFactsSheet, closeFactsSheet } = model;
+  const { draft, plan } = model.session;
+  const title = usePhoneTripTitle(model.session);
+  const { openFact, openPreferences, openFactsSheet, closeFactsSheet } = model.layout;
   const button = useRef<HTMLButtonElement>(null);
   // The sheet is a panel: opening an editor (here, from the chat's Edit, or a rejected brief)
   // takes its place.
-  const open = model.surface.sheet === "facts";
+  const open = model.layout.surface.sheet === "facts";
   // The sheet stays mounted briefly after it closes so it can sink away, as the editors do.
   const sheet = usePresence(open || undefined, 220);
 

@@ -1,10 +1,12 @@
 "use client";
-import { useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { TripTab } from "../trip/TripPanel";
 import { useWorkspaceStorage } from "./useWorkspaceStorage";
 import { useWorkspaceTransport } from "./useWorkspaceTransport";
 import { useTripPlaces } from "../map/useTripPlaces";
-import { blankDraft, draftFor, type Snapshot } from "@/lib/workspace";
+import type { TripPlan } from "@trip/shared";
+import type { RouteResult } from "@/lib/integrations/google";
+import { blankDraft, type Draft } from "@/lib/workspace";
 import {
   reusableBlankConversation,
   searchCatalog,
@@ -17,7 +19,8 @@ import { seed, type DialogKind, type MobileView } from "./workspace-helpers";
 import { useWorkspaceLayout } from "./useWorkspaceLayout";
 import {
   idleSession,
-  session,
+  session as nextSession,
+  type SavedSession,
   type SessionEvent,
   type SessionState,
 } from "@/lib/workspace/session";
@@ -31,23 +34,15 @@ import { useComposerAttachments } from "./useComposerAttachments";
 import { firstFactWithError, firstMissingFact, type FactKey } from "@/lib/workspace/trip-facts";
 import { translate } from "@/lib/i18n/locale";
 import { moneyDisplay } from "@/lib/money";
-/** A React setter for one session field, so callers that still set fields directly keep working. */
-function sessionField<K extends keyof SessionState>(
-  setSession: Dispatch<SetStateAction<SessionState>>,
-  key: K,
-): Dispatch<SetStateAction<SessionState[K]>> {
-  return (value) =>
-    setSession((current) => ({
-      ...current,
-      [key]:
-        typeof value === "function"
-          ? (value as (previous: SessionState[K]) => SessionState[K])(current[key])
-          : value,
-    }));
-}
-
-export function useWorkspaceController({ restored }: { restored: RestoredWorkspace }) {
-  // The conversation and trip a planning turn changes; only `session()` moves it on a turn.
+/**
+ * The workspace the views read and act on, in four groups: `session` (the open chat and trip and
+ * what a traveller can do with them), `layout` (what is open on screen), `itinerary` (the open
+ * trip's stops and ideas) and `history` (saved chats and trips). No raw state setter leaves this
+ * hook; where one action changes two groups (opening a trip also decides what is on screen), the
+ * link is written here once.
+ */
+export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
+  // The conversation and trip a planning turn changes; only `session()` moves it.
   // The question card is in memory only: a reload drops it, and the question stays in the chat.
   const [state, setSession] = useState<SessionState>(() =>
     idleSession({
@@ -58,22 +53,11 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
       previousTotal: restored.previousTotal,
     }),
   );
-  const { plan, draft, messages, input, previousTotal, busy, activity, error, errors, retry, ask } =
-    state;
-  const { selectedActivity, mapRoutes } = state;
-  const dispatch = (event: SessionEvent) => setSession((current) => session(current, event));
-  const [setters] = useState(() => ({
-    setPlan: sessionField(setSession, "plan"),
-    setDraft: sessionField(setSession, "draft"),
-    setMessages: sessionField(setSession, "messages"),
-    setInput: sessionField(setSession, "input"),
-    setPreviousTotal: sessionField(setSession, "previousTotal"),
-    setSelectedActivity: sessionField(setSession, "selectedActivity"),
-    setMapRoutes: sessionField(setSession, "mapRoutes"),
-    setAsk: sessionField(setSession, "ask"),
-  }));
-  const { setPlan, setDraft, setMessages, setInput, setPreviousTotal } = setters;
-  const { setSelectedActivity, setMapRoutes, setAsk } = setters;
+  const { plan, draft, messages, input, previousTotal, ask, selectedActivity } = state;
+  // Stable, so effects in the views can depend on the actions built from it.
+  const [dispatch] = useState(
+    () => (event: SessionEvent) => setSession((current) => nextSession(current, event)),
+  );
   const [editPending, setEditPending] = useState(false);
   const [settingsSection, setSettingsSection] = useState<SettingsSection>("personalization");
   const [notice, setNotice] = useState("");
@@ -92,11 +76,9 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     narrow,
     dispatch: layout,
   } = useWorkspaceLayout(restored.catalog.layout.view);
-  const { page, dialog, fact: openFact, view: mobileView } = surface;
-  const preferencesOpen = openFact !== undefined;
+  const { dialog, fact: openFact, view: mobileView } = surface;
   const tripOpen = surface.drawer === "trip";
   const navOpen = surface.drawer === "nav";
-  const chatsOpen = surface.drawer === "chats";
   const [tripTab, setTripTab] = useState<TripTab>(
     restored.catalog.layout.editorView === "timeline" ? "timeline" : "overview",
   );
@@ -105,6 +87,11 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
   );
   const [sidebarWidth, setSidebarWidth] = useState(restored.catalog.layout.sidebar.width);
   const [chatShare, setChatShare] = useState(restored.catalog.layout.chatShare);
+  // The phone map's day, and a counter the map watches to centre on the selected stop.
+  const [mapDay, setMapDay] = useState<number>();
+  const [mapFocus, setMapFocus] = useState(0);
+  const isPhone = useRef(phone);
+  isPhone.current = phone;
   const activeConversation = useRef(
     restored.conversationId ?? `conversation:${crypto.randomUUID()}`,
   );
@@ -115,6 +102,7 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
   const tripToggle = useRef<HTMLButtonElement>(null);
   const navToggle = useRef<HTMLButtonElement>(null);
   const tripPlaces = useTripPlaces(plan);
+  const { itinerary } = tripPlaces;
   const { storageError, storageEnabled, saveState, setStorageError, setStorageEnabled, flushSave } =
     useWorkspaceStorage({
       restored,
@@ -151,34 +139,33 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     );
   }, [mobileView, tripTab, sidebarCollapsed, sidebarWidth, chatShare]);
 
-  /** Stop in-flight work and clear state that belongs to the previous chat or trip. */
-  function resetTransient() {
+  // A stop selected anywhere (the Trip tab's itinerary too) shows on its own day on the phone map.
+  const selectedDay = selectedActivity ? itinerary.stop(selectedActivity)?.day : undefined;
+  useEffect(() => {
+    if (phone && selectedDay !== undefined) setMapDay(selectedDay);
+  }, [phone, selectedDay]);
+
+  /**
+   * Leaves the open chat or trip for `saved`: stops in-flight work and drops state that belonged
+   * to the one being left.
+   */
+  function open(saved: SavedSession) {
     // Persist the outgoing conversation now; its debounced save would otherwise be dropped.
     flushSave();
     active.current?.abort();
     active.current = null;
-    dispatch({ kind: "left" });
+    dispatch({ kind: "opened", saved });
+    setNotice("");
     // Files picked for a message that was never sent belong to the chat being left.
     composerAttachments.clearAttachments();
-  }
-  function applySnapshot(snapshot: Snapshot) {
-    setPlan(snapshot.plan);
-    setDraft(snapshot.draft);
-    setMessages(snapshot.messages);
-    setInput(snapshot.input);
-    setPreviousTotal(snapshot.previousTotal);
   }
   function openPreferences(fact: FactKey = "preferences") {
     layout({ type: "open-fact", fact });
   }
-  const closePreferences = () => layout({ type: "close-fact" });
-  const openTrip = () => layout({ type: "open-trip" });
-  const closeTrip = () => layout({ type: "close-trip" });
   function openSettings(section: SettingsSection = "personalization") {
     setSettingsSection(section);
-    openDialog("settings");
+    layout({ type: "open-dialog", dialog: "settings" });
   }
-  const openDialog = (kind: DialogKind) => layout({ type: "open-dialog", dialog: kind });
   /**
    * Opens the chip editor for the first fact still missing, or the one a rejected submission
    * points at. Called from buttons too, so anything that is not a fact key (a click event) is
@@ -238,21 +225,19 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
   function selectConversation(id: string) {
     const conversation = catalog.conversations.find((item) => item.id === id);
     if (!conversation) return;
-    resetTransient();
     const source =
       conversation.snapshot ??
       catalog.trips.find((item) => item.id === conversation.tripId)?.snapshot;
-    if (source) applySnapshot(source);
-    else {
-      setPlan(undefined);
-      setDraft(conversation.draft ?? blankDraft());
-      setPreviousTotal(undefined);
-      freshTripId.current = crypto.randomUUID();
-    }
+    if (!source) freshTripId.current = crypto.randomUUID();
+    open({
+      ...(source
+        ? { plan: source.plan, previousTotal: source.previousTotal }
+        : { plan: undefined, previousTotal: undefined }),
+      draft: source ? source.draft : (conversation.draft ?? blankDraft()),
+      messages: conversation.messages,
+      input: conversation.input,
+    });
     activeConversation.current = id;
-    setMessages(conversation.messages);
-    setInput(conversation.input);
-    setNotice("");
     setCatalog((current) => {
       const next = updateCatalog(current, {
         activeConversationId: id,
@@ -266,16 +251,13 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
   function selectTrip(id: string) {
     const trip = catalog.trips.find((item) => item.id === id);
     if (!trip) return;
-    resetTransient();
-    applySnapshot(trip.snapshot);
     const conversationId = trip.conversationIds.at(-1);
     const conversation = catalog.conversations.find((item) => item.id === conversationId);
+    open({
+      ...trip.snapshot,
+      ...(conversation ? { messages: conversation.messages, input: conversation.input } : {}),
+    });
     activeConversation.current = conversation?.id ?? `conversation:${trip.snapshot.id}`;
-    if (conversation) {
-      setMessages(conversation.messages);
-      setInput(conversation.input);
-    }
-    setNotice("");
     setCatalog((current) =>
       updateCatalog(current, {
         activeTripId: id,
@@ -296,21 +278,15 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
    * the composer, a trip at the Where editor. Both are the same blank conversation underneath.
    */
   function startBlankChat(base?: WorkspaceCatalog, kind: "chat" | "trip" = "chat") {
-    resetTransient();
     // Reuse an untouched conversation so repeated New chat presses cannot stack blank history
     // entries. Only a conversation holding nothing the user wrote is safe to reuse.
     const defaults = draftDefaults(settings);
     const id =
       reusableBlankConversation(base ?? catalog, defaults)?.id ??
       `conversation:${crypto.randomUUID()}`;
+    open({ plan: undefined, previousTotal: undefined, draft: defaults, messages: [], input: "" });
     activeConversation.current = id;
     freshTripId.current = crypto.randomUUID();
-    setPlan(undefined);
-    setDraft(defaults);
-    setMessages([]);
-    setInput("");
-    setPreviousTotal(undefined);
-    setNotice("");
     setCatalog((current) =>
       upsertConversationDraft(base ?? current, {
         id,
@@ -328,13 +304,6 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
         .querySelector<HTMLInputElement>(".composer textarea")
         ?.focus({ preventScroll: true }),
     );
-  }
-  function newChat() {
-    startBlankChat();
-  }
-  /** A blank trip: the same fresh conversation as New chat, opened on the Where editor. */
-  function newTrip() {
-    startBlankChat(undefined, "trip");
   }
   function renameChat(id: string) {
     const existing = catalog.conversations.find((item) => item.id === id);
@@ -377,13 +346,34 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
     if (activeConversation.current === id) startBlankChat(withoutConversation(catalog, id));
     else setCatalog((current) => withoutConversation(current, id));
   }
-  // The trip badge counts the stops in the trip, never ideas; unresolved problems show as "Needs
-  // review" on the drawer itself and in Review plan.
-  const tripStops = tripPlaces.itinerary.stopCount;
-  const dialogTitle = dialog === "review" ? "Review plan" : "Settings";
-  // Stable, so effects in the view can depend on them.
-  const layoutActions = useMemo(
-    () => ({
+
+  // Stable, so effects in the views can depend on them.
+  const [stable] = useState(() => ({
+    session: {
+      /** Applies a change made by hand and records the total it replaced. */
+      applyEdit: (next: TripPlan) => dispatch({ kind: "edited", plan: next }),
+      type: (text: string) => dispatch({ kind: "typed", input: text }),
+      /** Keeps a chip's edit in the draft without planning. */
+      saveFacts: (next: Draft) => dispatch({ kind: "drafted", draft: next }),
+      selectStop: (id: string | undefined) => dispatch({ kind: "selected", activity: id }),
+      /** Selects a stop on the map and, on a phone, centres the map on it. */
+      showStop: (id: string) => {
+        dispatch({ kind: "selected", activity: id });
+        if (isPhone.current) setMapFocus((request) => request + 1);
+      },
+      /** Opens the timeline on a stop so its time can be adjusted. */
+      adjustStop: (id: string) => {
+        dispatch({ kind: "selected", activity: id });
+        setTripTab("timeline");
+      },
+      showRoutes: (routes: RouteResult[]) => dispatch({ kind: "routed", routes }),
+      /** A timeline edit is being previewed; planning waits until it is applied or dropped. */
+      trackEdit: (pending: boolean) => setEditPending(pending),
+      dismissAsk: () => dispatch({ kind: "dismissed" }),
+      dismissNotice: () => setNotice(""),
+      cancel: () => active.current?.abort(),
+    },
+    layout: {
       closeDialog: () => layout({ type: "close-dialog" }),
       openNav: () => layout({ type: "open-nav" }),
       /** Closes the Trip drawer, the navigation drawer or the Chats panel, whichever is open. */
@@ -393,104 +383,115 @@ export function useWorkspaceController({ restored }: { restored: RestoredWorkspa
       selectView: (view: MobileView) => layout({ type: "select-view", view }),
       openFactsSheet: () => layout({ type: "open-sheet" }),
       closeFactsSheet: () => layout({ type: "close-sheet" }),
-    }),
-    [layout],
-  );
-  // Chip editors are popovers, not drawers: they bring no drawer backdrop.
-  const drawerOpen = tripOpen || navOpen;
+      closePreferences: () => layout({ type: "close-fact" }),
+      openTrip: () => layout({ type: "open-trip" }),
+      closeTrip: () => layout({ type: "close-trip" }),
+      openDialog: (kind: DialogKind) => layout({ type: "open-dialog", dialog: kind }),
+      showTripTab: (tab: TripTab) => setTripTab(tab),
+      toggleSidebar: () => setSidebarCollapsed((value) => !value),
+      resizeSidebar: (width: number | undefined) => setSidebarWidth(width),
+      resizeChat: (share: number | undefined) => setChatShare(share),
+      /** Shows a day on the phone map; the selected stop stays. */
+      showMapDay: (day: number | undefined) => setMapDay(day),
+      /** The traveller picked a day on the phone map: the stop selected on another day goes. */
+      pickMapDay: (day: number) => {
+        setMapDay(day);
+        dispatch({ kind: "selected", activity: undefined });
+      },
+    },
+    history: {
+      search: (query: string) => setHistoryQuery(query),
+      retryStorage: () => {
+        setStorageError("");
+        setStorageEnabled(true);
+      },
+    },
+  }));
 
   return {
-    plan,
-    dataMode,
-    draft,
-    messages,
-    input,
-    previousTotal,
-    editPending,
-    busy,
-    activity,
-    error,
-    errors,
-    retry,
-    ask,
-    dialog,
-    storageError,
-    storageEnabled,
-    saveState,
-    syncStatus,
-    settingsSection,
-    openSettings,
-    catalog,
-    historyQuery,
-    preferencesOpen,
-    tripOpen,
-    tripTab,
-    mobileView,
-    sidebarCollapsed,
-    sidebarWidth,
-    chatShare,
-    page,
-    chatsOpen,
-    navOpen,
-    narrow,
-    phone,
-    selectedActivity,
-    mapRoutes,
-    tripPlaces,
-    historyChats,
-    historyTrips,
-    notice,
-    composerAttachments,
-    blank,
-    tripStops,
-    dialogTitle,
-    drawerOpen,
-    openFact,
-    preferencesToggle,
-    tripToggle,
-    navToggle,
-    setPlan,
-    setDraft,
-    setInput,
-    setPreviousTotal,
-    setEditPending,
-    setStorageError,
-    setStorageEnabled,
-    setNotice,
-    setHistoryQuery,
-    setTripTab,
-    setSidebarCollapsed,
-    setSidebarWidth,
-    setChatShare,
-    setSelectedActivity,
-    setMapRoutes,
-    surface,
-    openPreferences,
-    closePreferences,
-    openTrip,
-    closeTrip,
-    openDialog,
-    ...layoutActions,
-    edit,
-    /** Keeps a chip's edit in the draft without planning. */
-    saveFacts: (next: typeof draft) => setDraft(next),
-    /** Keeps a chip's edit and plans with the whole brief; false when it was rejected. */
-    planWith: (next: typeof draft) => {
-      setDraft(next);
-      return submit(next);
+    session: {
+      plan,
+      draft,
+      messages,
+      input,
+      previousTotal,
+      busy: state.busy,
+      activity: state.activity,
+      error: state.error,
+      errors: state.errors,
+      /** Whether the last failed turn can be sent again. */
+      canRetry: state.retry !== undefined,
+      ask,
+      selectedActivity,
+      mapRoutes: state.mapRoutes,
+      editPending,
+      notice,
+      blank,
+      dataMode,
+      /** The open trip's places, looked up once for the map, the trip list and the timeline. */
+      places: tripPlaces,
+      attachments: composerAttachments,
+      ...stable.session,
+      send,
+      answer,
+      /** Sends the last failed turn again. */
+      retry: () => {
+        if (state.retry) void run(state.retry);
+      },
+      /** Keeps a chip's edit and plans with the whole brief; false when it was rejected. */
+      planWith: (next: Draft) => {
+        dispatch({ kind: "drafted", draft: next });
+        return submit(next);
+      },
+      selectTrip,
+      selectConversation,
+      newChat: () => startBlankChat(),
+      /** A blank trip: the same fresh conversation as New chat, opened on the Where editor. */
+      newTrip: () => startBlankChat(undefined, "trip"),
     },
-    run,
-    submit,
-    send,
-    answer,
-    dismissAsk: () => setAsk(undefined),
-    newChat,
-    newTrip,
-    selectConversation,
-    selectTrip,
-    renameChat,
-    deleteChat,
-    onCancel: () => active.current?.abort(),
+    layout: {
+      surface,
+      phone,
+      narrow,
+      page: surface.page,
+      mobileView,
+      dialog,
+      openFact,
+      preferencesOpen: openFact !== undefined,
+      tripOpen,
+      navOpen,
+      chatsOpen: surface.drawer === "chats",
+      // Chip editors are popovers, not drawers: they bring no drawer backdrop.
+      drawerOpen: tripOpen || navOpen,
+      tripTab,
+      sidebarCollapsed,
+      sidebarWidth,
+      chatShare,
+      mapDay,
+      mapFocus,
+      settingsSection,
+      preferencesToggle,
+      tripToggle,
+      navToggle,
+      ...stable.layout,
+      openPreferences,
+      openSettings,
+      edit,
+    },
+    /** The open trip's stops and ideas; the trip badge counts its stops, never ideas. */
+    itinerary,
+    history: {
+      catalog,
+      query: historyQuery,
+      chats: historyChats,
+      trips: historyTrips,
+      saveState,
+      syncStatus,
+      storageError,
+      ...stable.history,
+      rename: renameChat,
+      delete: deleteChat,
+    },
   };
 }
-export type WorkspaceController = ReturnType<typeof useWorkspaceController>;
+export type WorkspaceModel = ReturnType<typeof useWorkspace>;

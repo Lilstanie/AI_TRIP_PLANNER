@@ -1,19 +1,8 @@
 "use client";
-import { TripPlan } from "@trip/shared";
-import { budgetHint, money, WELCOME_MESSAGE, type Message } from "@/lib/workspace";
+import { WELCOME_MESSAGE, type Message } from "@/lib/workspace";
 
 export { PHONE_VIEWS, type DialogKind, type MobileView } from "@/lib/workspace/layout";
 
-/** Topbar facts from the plan only; nothing is shown for values the trip does not have. */
-export function tripFacts(plan: TripPlan) {
-  const { dates, groupSize, budgetTotal } = plan.brief;
-  const days = (Date.parse(dates[1]) - Date.parse(dates[0])) / 86400000 + 1;
-  return [
-    Number.isFinite(days) && days > 0 ? `${days} ${days === 1 ? "day" : "days"}` : undefined,
-    `${groupSize} ${groupSize === 1 ? "traveller" : "travellers"}`,
-    `${money(budgetTotal)}${budgetHint(plan.brief)} budget`,
-  ].filter(Boolean);
-}
 export const seed: Message[] = [
   {
     role: "agent",
