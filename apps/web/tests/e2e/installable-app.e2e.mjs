@@ -6,18 +6,22 @@
 // - an icon the manifest names is not served as a PNG, or there is no maskable icon for Android;
 // - iPhone gets no apple-touch-icon or theme colour, so Add to Home Screen shows a page snapshot;
 // - Chrome reports installability errors, so no Install button appears on a computer;
+// - the installability probe cannot see a defect: Playwright's default headless shell never reports
+//   installability errors, and full Chromium in a `newContext()` (off the record) always reports
+//   `in-incognito`, so the probe runs in full Chromium with a persistent profile;
 // - the service worker never controls the page, so offline navigation shows the browser error;
 // - offline navigation shows the browser's error page instead of the offline page, or the
 //   offline page's icon is not cached and shows as broken;
 // - /.well-known/assetlinks.json redirects to sign-in or is not JSON, so Android shows a URL bar.
 //
 //   pnpm --filter @trip/web build && pnpm --filter @trip/web start   # in another terminal
-//   [PLAYWRIGHT=<path to playwright>] node apps/web/tests/e2e/installable-app.e2e.mjs
+//   [CHANNEL=chrome] [PLAYWRIGHT=<path to playwright>] node apps/web/tests/e2e/installable-app.e2e.mjs
 //
 // Writes screenshots and summary.json under output/playwright/installable-app/.
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
-import { resolve } from "node:path";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 
 // Playwright's offline switch does not reach a service worker's own fetches, so offline is
 // simulated by aborting routed requests, which needs service-worker network events turned on.
@@ -34,14 +38,37 @@ const check = (ok, message) => {
   console.log(`${ok ? "ok  " : "FAIL"} ${message}`);
 };
 
-const browser = await chromium.launch();
+// Asks Chrome why the page at BASE could not be installed. Runs in a persistent profile so Chrome
+// does not add `in-incognito`, and in full Chromium (not the headless shell, which reports nothing).
+// `prepare` may change the loaded page first, to show the probe can see a defect.
+const installabilityErrors = async (prepare) => {
+  const profile = mkdtempSync(join(tmpdir(), "installable-app-"));
+  const context = await chromium.launchPersistentContext(profile, {
+    channel: process.env.CHANNEL ?? "chromium",
+  });
+  try {
+    const page = context.pages()[0] ?? (await context.newPage());
+    await page.goto(BASE);
+    await page.waitForLoadState("networkidle");
+    await prepare?.(page);
+    const cdp = await context.newCDPSession(page);
+    const { installabilityErrors: errors } = await cdp.send("Page.getInstallabilityErrors");
+    return errors.map((error) => error.errorId);
+  } finally {
+    await context.close();
+    rmSync(profile, { recursive: true, force: true });
+  }
+};
+
+const browser = await chromium.launch({ channel: process.env.CHANNEL });
 try {
   const request = (await browser.newContext()).request;
 
   // Manifest and icons.
   const manifestResponse = await request.get(`${BASE}/manifest.webmanifest`);
   check(manifestResponse.ok(), "manifest is served");
-  const manifest = await manifestResponse.json();
+  // A missing manifest fails the checks below instead of stopping the run before installability.
+  const manifest = await manifestResponse.json().catch(() => ({}));
   check(
     manifest.name === "AI Trip Planner" && manifest.short_name,
     "manifest has a name and short name",
@@ -100,14 +127,6 @@ try {
       `${tag}: service worker controls the page`,
     );
 
-    if (tag === "desktop") {
-      const cdp = await context.newCDPSession(page);
-      const { installabilityErrors } = await cdp.send("Page.getInstallabilityErrors");
-      check(
-        installabilityErrors.length === 0,
-        `desktop: Chrome reports no installability errors${installabilityErrors.length ? ` (${installabilityErrors.map((e) => e.errorId).join(", ")})` : ""}`,
-      );
-    }
     await page.screenshot({ path: `${OUT}/${tag}-01-online.png` });
 
     // Offline navigation falls back to the offline page.
@@ -127,6 +146,20 @@ try {
 } finally {
   await browser.close();
 }
+
+// Installability, as Chrome decides whether to show the Install button on a computer.
+const errors = await installabilityErrors();
+check(
+  errors.length === 0,
+  `desktop: Chrome reports no installability errors${errors.length ? ` (${errors.join(", ")})` : ""}`,
+);
+const withoutManifest = await installabilityErrors((page) =>
+  page.evaluate(() => document.querySelector('link[rel="manifest"]')?.remove()),
+);
+check(
+  withoutManifest.includes("no-manifest"),
+  `desktop: the installability probe sees a page without a manifest link (${withoutManifest.join(", ") || "no errors"})`,
+);
 
 const failed = results.filter((result) => !result.ok);
 writeFileSync(
