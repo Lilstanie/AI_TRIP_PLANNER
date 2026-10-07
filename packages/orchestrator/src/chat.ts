@@ -126,6 +126,12 @@ export const BriefUpdate = z.object({
   groupSize: z.union([z.number(), z.string()]).nullish(),
   budgetAmount: z.union([z.number(), z.string()]).nullish().describe("the number they said"),
   budgetCurrency: z.string().nullish().describe("AUD, CNY, USD or JPY, as they said it"),
+  displayCurrency: z
+    .string()
+    .nullish()
+    .describe(
+      'AUD, CNY, USD or JPY, when the traveller names a currency to read the trip in, with or without a budget ("show it in yen", "用人民币给我算"). Never guess it from their language or the destination.',
+    ),
   nationality: z.string().nullish(),
   learnedPreferences: z
     .array(z.string())
@@ -225,6 +231,12 @@ function toPatch(update: z.infer<typeof BriefUpdate>): BriefPatch {
     patch.budgetTotal = toAud(budgetAmount, currency);
     if (currency !== "AUD") patch.budgetSource = { amount: budgetAmount, currency };
   }
+  // A currency the traveller named, with a budget or alone, is the trip's display currency; an
+  // explicit request outranks the currency of the budget. A bare number names none.
+  const display = Currency.safeParse(text(update.displayCurrency)?.toUpperCase());
+  const budgetNamed = Currency.safeParse(text(update.budgetCurrency)?.toUpperCase());
+  const named = display.success ? display.data : budgetNamed.success ? budgetNamed.data : undefined;
+  if (named) patch.displayCurrency = named;
   return patch;
 }
 
@@ -341,6 +353,7 @@ Dates:
 
 Money:
 - budgetAmount is the number the traveller said and budgetCurrency is the currency they said it in. Never convert it yourself; leave budgetCurrency out when they gave a bare number.
+- When the traveller names a currency to read the trip in without stating a budget ("show it in yen", "用人民币给我算"), pass displayCurrency alone. The latest currency they name wins, including AUD. If they name none, leave it out: never infer it from the language they write in.
 
 Replying:
 - Detect the language of the traveller's latest message and reply in that exact same language.

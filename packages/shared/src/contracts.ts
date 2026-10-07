@@ -122,6 +122,11 @@ export const TripBrief = z
     // there is nothing to explain. Optional on purpose: every brief saved before
     // this field existed still parses.
     budgetSource: z.object({ amount: z.number().positive(), currency: Currency }).optional(),
+    // The last currency the traveller named for this trip, with a budget or on its own. Read it
+    // through `effectiveCurrency`. Absent until one is named, and in every brief saved before this
+    // field existed. Display only: planning stays in BASE_CURRENCY and `budgetSource` is never
+    // rewritten when this changes.
+    displayCurrency: Currency.optional(),
     nationality: z.string().optional(),
     accommodation: AccommodationPreferences.optional(),
     // Optional and additive: briefs saved before it existed still parse, and an absent list

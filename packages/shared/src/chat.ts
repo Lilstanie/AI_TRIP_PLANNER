@@ -35,6 +35,8 @@ export const PartialTripBrief = z.object({
   // Travels with `budgetTotal` so a half-built brief can still explain the
   // conversion it came from. See TripBrief.budgetSource.
   budgetSource: z.object({ amount: z.number().positive(), currency: Currency }).optional(),
+  // See TripBrief.displayCurrency.
+  displayCurrency: Currency.optional(),
   nationality: z.string().optional(),
   // The traveller's own trip preferences, stated in the editor before a plan exists.
   // See TripBrief.preferences.

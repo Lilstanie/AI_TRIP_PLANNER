@@ -71,6 +71,16 @@ Three more optional fields on `brief` and `known` come from the conversation:
 
 The traveller can remove these from Trip preferences, and the client then sends them without them.
 
+`brief.displayCurrency` and `known.displayCurrency` are optional too: one of `AUD`, `CNY`, `USD` or `JPY`
+(`Currency` in `packages/shared/src/money.ts`), the last currency the traveller named for the trip, with
+a budget or on its own. The coordinator's `update_trip_brief` tool takes it as `displayCurrency` without
+an amount; with no key, the offline extractor sets it from any currency it detects in the message, with
+or without a budget. A later naming replaces it, naming AUD sets AUD, and a message that names none
+leaves it as it was. It is display only: planning stays in AUD and `budgetSource` is not rewritten.
+Absent until a currency is named, and in briefs saved before the field existed; the client then reads
+`effectiveCurrency(brief, settings.displayCurrency)`, which falls back to `budgetSource.currency` and
+then to the Settings currency. Settings never travels in the request and is never written by a trip.
+
 `brief.party` and `known.party` are optional too: `{ adults, children, infants, seniors, pets }`,
 whole numbers from 0 to 99 (`TravellerParty` in `packages/shared/src/contracts.ts`), set by the Who
 editor's steppers. They break `groupSize` down and add pets, who are not counted in it; `groupSize`

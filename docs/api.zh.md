@@ -73,6 +73,14 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 
 旅行者可以在 Trip preferences 中移除这些字段，客户端随后发送的行程需求不再包含它们。
 
+`brief.displayCurrency` 和 `known.displayCurrency` 同样是可选字段：取 `AUD`、`CNY`、`USD` 或 `JPY` 之一
+（`packages/shared/src/money.ts` 中的 `Currency`），表示旅行者最近一次为该行程指定的币种，无论连同预算还是单独说出。
+协调器的 `update_trip_brief` 工具以 `displayCurrency` 接收它，可以不带金额；没有密钥时，离线提取器会把消息中检测到的任何币种
+（无论是否带预算）写入该字段。后一次指定会替换前一次，指定 AUD 就是 AUD，没有指定币种的消息则保持原值。它只用于显示：
+规划仍使用 AUD，`budgetSource` 不会被改写。在指定币种之前以及该字段出现之前保存的行程中，它都不存在；此时客户端读取
+`effectiveCurrency(brief, settings.displayCurrency)`，先回退到 `budgetSource.currency`，再回退到设置中的币种。
+设置不会随请求发送，也不会被行程写入。
+
 `brief.party` 和 `known.party` 也是可选字段，格式为 `{ adults, children, infants, seniors, pets }`，
 各项为 0 到 99 的整数（`packages/shared/src/contracts.ts` 中的 `TravellerParty`），
 由 Who 编辑器的步进控件设置。它们细分 `groupSize` 并补充宠物数量；宠物不计入其中。

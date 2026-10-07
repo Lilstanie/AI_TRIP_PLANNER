@@ -64,6 +64,19 @@ export function fromAud(amount: number, to: Currency): number {
 }
 
 /**
+ * The currency a trip is read in: the one the traveller last named for it, otherwise the one they
+ * stated the budget in (which is how a trip saved before `displayCurrency` existed keeps reading),
+ * otherwise `fallback`, the Settings display currency. One rule for every place that picks a
+ * currency, so the panels, the trip list and the budget field cannot disagree.
+ */
+export function effectiveCurrency(
+  brief: { displayCurrency?: Currency; budgetSource?: { currency: Currency } } | undefined,
+  fallback: Currency,
+): Currency {
+  return brief?.displayCurrency ?? brief?.budgetSource?.currency ?? fallback;
+}
+
+/**
  * Order matters. 美元, 日元 and 澳元 all end in 元, so the qualified names have to
  * be tested before the bare 元 that means CNY — the same trap as 人民币 being
  * read as a traveller count because it contains 人.

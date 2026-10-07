@@ -250,6 +250,15 @@ was understood, and sends those fields back as `ChatRequest.known` with the next
 merged under that message's own extraction. So "悉尼三日游" is answered with a question about dates,
 travellers and budget, and the reply only has to supply those.
 
+`TripBrief.displayCurrency` (and the same field on `known`) is the last currency the traveller named for
+the trip, with a budget or on its own. Both extraction paths set it: the coordinator's brief update takes
+a currency without an amount, and the offline extractor uses `detectCurrency` on the message. The
+browser reads one rule everywhere it picks a currency, `effectiveCurrency()` in
+`packages/shared/src/money.ts`: `displayCurrency`, else `budgetSource.currency`, else the Settings
+display currency. Planning, guardrails and stored amounts stay AUD; `budgetSource` keeps the stated
+amount and currency; a trip never writes Settings. Text the server writes still uses AUD until the
+follow-up ticket moves it to the trip's currency.
+
 `TripBrief.preferences` (and the same field on `known`) carries the traveller's own trip
 preferences, written in the top bar's Trip preferences editor. The coordinator's `update_trip_brief`
 tool has no field for them, so a model cannot rewrite the list; `BriefPatchSchema` carries them from
