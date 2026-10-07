@@ -34,7 +34,6 @@ Domain docs use a single-context layout. See `docs/agents/domain.md`.
    product status.
 3. Check `.agents/notes/implemented/` for a decision covering the area you are changing. Do not reverse
    an implemented decision silently; propose a superseding note instead.
-4. Inspect the existing implementation and tests before proposing a new abstraction.
 
 ## Protected files
 
@@ -55,7 +54,7 @@ checks the frozen and shared-contract rules.
 
 ## Working rules
 
-- Keep changes focused and preserve established package boundaries.
+- Preserve established package boundaries.
 - Production code belongs under `apps/web/components`, `apps/web/lib`, or a package's `src` domain;
   tests belong under `apps/web/tests` or the package's `tests` directory.
 - Keep external credentials in environment variables. Never commit keys or copy them into project

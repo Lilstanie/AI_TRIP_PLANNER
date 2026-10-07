@@ -194,8 +194,7 @@ and `apps/web/public/.well-known/assetlinks.json`. The service worker registers 
 builds. Check installability against a production server:
 
 ```bash
-pnpm --filter @trip/web build && pnpm --filter @trip/web start   # in another terminal
-node apps/web/tests/e2e/installable-app.e2e.mjs
+pnpm --filter @trip/web e2e installable-app --prod
 ```
 
 It writes screenshots and `summary.json` to `output/playwright/installable-app/`. Chrome's
@@ -282,12 +281,24 @@ This describes the preferred approach for new work. CI runs the Vitest suites th
 the repository script tests (`scripts/*.test.mjs`) through `pnpm test:scripts`. It does not run the E2E
 scripts, so run the relevant one yourself before pushing.
 
-The E2E scripts live in `apps/web/tests/e2e/` and run by hand against a running dev server:
+The E2E scripts live in `apps/web/tests/e2e/`. Run them through the runner, which starts a server on
+a free port, runs each named script against it from the repository root and stops only the server it
+started:
 
 ```bash
-pnpm --filter @trip/web dev            # in another terminal
-node apps/web/tests/e2e/<name>.e2e.mjs
+pnpm --filter @trip/web e2e timeline display-currency     # names without .e2e.mjs; 'phone-*' works
+pnpm --filter @trip/web e2e phone-shell --prod            # next build + next start, for scripts that ask for it
+BASE_URL=http://localhost:3000 pnpm --filter @trip/web e2e settings   # against a server already running
 ```
+
+The environment reaches both the server and the scripts, so set `DATA_MODE` and provider variables as
+each script's header says. Each concurrent run in one worktree builds into its own folder
+(`apps/web/.next-e2e`, then `-2` to `-4`), so runs side by side, and beside `pnpm dev`, never share
+`.next`; the folder keeps its compiled output for the next run. The runner exits non-zero when any
+script fails and writes a summary to `output/e2e/runner/<time>.json`. Playwright is an `apps/web`
+dev dependency; on a new machine run `pnpm --filter @trip/web exec playwright install chromium` once.
+Scripts that need two servers (`agent-lab-live-gate`) still run by hand as their header describes.
+`pnpm dev` and `pnpm start` use port 3000 unless `PORT` is set.
 
 - **API scripts** (`plan-quality`, `conversation-scope`) post to `/api/chat` with `DATA_MODE=live`
   (default) or `mock`. `plan-quality` plans three fixed briefs and checks budget, unresolved conflicts,
@@ -296,7 +307,7 @@ node apps/web/tests/e2e/<name>.e2e.mjs
 - **Browser scripts** (every other script, including the eight `agent-lab-*` ones) drive Playwright at
   desktop and phone widths and write screenshots, and for Agent Lab the raw NDJSON and artifacts, to
   `output/playwright/<name>/`. `CHANNEL=chrome` and `PLAYWRIGHT=<path>` select the browser and the
-  Playwright package; `BASE_URL` points at a server other than `http://localhost:3000`.
+  Playwright package.
 
 `output/e2e/` and `output/playwright/` are Git-ignored. Each script's header lists the failure inventory it was written from and
 any server environment it needs. Fixture runs are isolated from the deployment's keys and data-mode default, so the
@@ -312,8 +323,7 @@ says it in chat); without a model key that one reports `skip` rather than failin
 `output/e2e/leg-mode-choice/<run>/`.
 
 ```bash
-pnpm --filter @trip/web dev          # in another terminal
-DATA_MODE=mock node apps/web/tests/e2e/leg-mode-choice.e2e.mjs
+DATA_MODE=mock pnpm --filter @trip/web e2e leg-mode-choice
 ```
 
 ```bash
