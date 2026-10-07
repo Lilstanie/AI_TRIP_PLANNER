@@ -16,18 +16,17 @@ import { TraceOverview } from "./TraceOverview";
 /** Distance from the bottom, in px, that still counts as "at the bottom" (fractional scroll positions). */
 const BOTTOM_TOLERANCE = 8;
 
+/** The round an event belongs to, when its payload names one. Run-level facts name none. */
+const roundOf = (runEvent: AgentLabRunEvent): number | undefined =>
+  "round" in runEvent.event ? runEvent.event.round : undefined;
+
 /**
  * The ordered trace of one run, with each event labelled by the part of the system that produced it.
  * The list scrolls inside its own bounded box. The box follows the newest event while it sits at the
  * bottom; scrolling up suspends following, and returning to the bottom resumes it. The follow scroll is
  * always instant: a smooth animation would fire scroll events away from the bottom and suspend itself,
  * and it would ignore a visitor's reduced-motion setting.
- */
-/** The round an event belongs to, when its payload names one. Run-level facts name none. */
-const roundOf = (runEvent: AgentLabRunEvent): number | undefined =>
-  "round" in runEvent.event ? runEvent.event.round : undefined;
-
-/**
+ *
  * Two folds change the list only: Rounds hides every row that belongs to a round (leaving a heading per
  * round) and Calls hides every tool row. Run-level rows never fold. Fold state is local to one list, so
  * each side of the Compare view folds on its own, and neither fold touches the event count or the
@@ -65,13 +64,22 @@ export function RunTimeline({
 
   // Bring a row into the box and mark it for a moment. The scroll is instant under reduced motion. Either
   // way it leaves the bottom, so following suspends until the visitor returns there. A row hidden by a
-  // fold has no element, so the jump does nothing.
+  // fold is unfolded first.
   const highlightTimer = useRef<number | undefined>(undefined);
   useEffect(() => () => window.clearTimeout(highlightTimer.current), []);
+  const [pendingJump, setPendingJump] = useState<number | null>(null);
   const jumpTo = useCallback((sequence: number) => {
     const el = box.current;
     const row = el?.querySelector<HTMLElement>(`[data-trace-row="${sequence}"]`);
-    if (!el || !row) return;
+    if (!el) return;
+    if (!row) {
+      // The row is folded away. The bar still shows its record, so open both folds and jump once the row
+      // is drawn rather than leave the click without effect.
+      setRoundsFolded(false);
+      setCallsFolded(false);
+      setPendingJump(sequence);
+      return;
+    }
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     following.current = false;
     el.scrollTo({
@@ -88,6 +96,13 @@ export function RunTimeline({
       1800,
     );
   }, []);
+
+  useEffect(() => {
+    if (pendingJump === null) return;
+    setPendingJump(null);
+    // A sequence with no row at all (not just a folded one) is dropped, so this cannot loop.
+    if (box.current?.querySelector(`[data-trace-row="${pendingJump}"]`)) jumpTo(pendingJump);
+  }, [pendingJump, jumpTo]);
 
   useEffect(() => {
     onJumpReady?.(jumpTo);

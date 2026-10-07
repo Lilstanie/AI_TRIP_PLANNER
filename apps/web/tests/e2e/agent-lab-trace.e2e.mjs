@@ -69,6 +69,13 @@
 //   stale bar remains;
 // - the Compare view scrolls horizontally at 390 px, or the stacked bars overflow the screen there;
 // - Compare shows a bar inside each column as well as in the stack.
+//
+// --- review fixes: failure inventory, written before the fixes ---------------------------------------
+// - clicking a time-bar block whose row a fold hides does nothing, so the bar and the list disagree;
+// - time-bar blocks are shorter than 24 px on desktop or 44 px at phone width (WCAG 2.5.8);
+// - a failed block differs from a healthy one by colour alone (no shape), or a block loses its border in
+//   forced-colors mode and vanishes.
+// --- end review fixes inventory
 // --- end #222 failure inventory ---------------------------------------------------------------
 //
 //   pnpm --filter @trip/web e2e agent-lab-trace   (fixture mode needs no keys)
@@ -297,13 +304,14 @@ async function checkJump(page, tag, bar) {
 
 async function open(
   browser,
-  { width, height, tag, reducedMotion = "no-preference", touch = false },
+  { width, height, tag, reducedMotion = "no-preference", touch = false, forcedColors = "none" },
 ) {
   const context = await browser.newContext({
     viewport: { width, height },
     colorScheme: "light",
     reducedMotion,
     hasTouch: touch,
+    forcedColors,
   });
   const page = await context.newPage();
   const errors = [];
@@ -777,6 +785,42 @@ async function folds(browser) {
     `${tag}: Tab moves from Rounds to Calls`,
   );
 
+  // A block whose row a fold hides unfolds that fold and brings the row into view instead of doing nothing.
+  const toolBlock = page.locator('[data-trace-block][data-kind="tool"]').first();
+  const toolSequence = await toolBlock.getAttribute("data-sequence");
+  await page.locator('[data-agent-lab-fold="calls"]').first().click();
+  check(
+    (await page.locator(`[data-trace-row="${toolSequence}"]`).count()) === 0,
+    `${tag}: Calls fold hides the tool row`,
+  );
+  await toolBlock.click();
+  await page.waitForFunction(
+    (n) => document.querySelector(`[data-trace-row="${n}"]`),
+    toolSequence,
+    { timeout: 3000 },
+  );
+  check(
+    (await page.locator('[data-agent-lab-fold="calls"]').first().getAttribute("aria-pressed")) ===
+      "false",
+    `${tag}: jumping to a folded row opens the fold`,
+  );
+  const blockHeight = (await toolBlock.boundingBox()).height;
+  check(blockHeight >= 24, `${tag}: bar blocks are at least 24px tall (${blockHeight}px)`);
+  const forced = await open(browser, {
+    width: 1440,
+    height: 1000,
+    tag: `${tag}-forced`,
+    forcedColors: "active",
+  });
+  await forced.page.getByRole("button", { name: "Run experiment" }).click();
+  await complete(forced.page);
+  const border = await forced.page
+    .locator("[data-trace-block]")
+    .first()
+    .evaluate((n) => getComputedStyle(n).borderTopWidth);
+  check(parseFloat(border) >= 1, `${tag}: blocks keep a border in forced-colors mode (${border})`);
+  await closeOut(forced);
+
   // A folded list still follows: fold Calls, run again, and the last row is in view.
   await page.locator('[data-agent-lab-fold="calls"]').first().click();
   await page.getByRole("button", { name: "Run experiment" }).click();
@@ -825,6 +869,8 @@ async function foldsPhone(browser) {
   });
   check(bar.left >= 0 && bar.right <= 390, `${tag}: the toolbar fits the screen`);
   check(bar.height >= 44, `${tag}: fold buttons are touch-sized (${Math.round(bar.height)}px)`);
+  const phoneBlock = (await page.locator("[data-trace-block]").first().boundingBox()).height;
+  check(phoneBlock >= 44, `${tag}: bar blocks are 44px tall at phone width (${phoneBlock}px)`);
   await first.tap();
   await page.screenshot({ path: `${OUT}/${tag}.png`, fullPage: true });
   await closeOut(session);

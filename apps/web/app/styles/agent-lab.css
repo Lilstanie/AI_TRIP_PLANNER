@@ -316,7 +316,7 @@
   display: grid;
   grid-template-columns: repeat(var(--trace-steps), minmax(0, 1fr));
   gap: 1px;
-  height: 20px;
+  height: 24px;
   border-radius: var(--radius-pill);
   background: var(--fill-hover);
 }
@@ -387,6 +387,46 @@
   outline-offset: -2px;
 }
 
+/* Failure is shown by shape as well as by colour: a failed block carries a diagonal stripe. */
+.agent-lab__trace-block[data-error="true"] {
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent 0 3px,
+    color-mix(in srgb, var(--text) 55%, transparent) 3px 4px
+  );
+}
+
+/* Forced colours drop background fills, so every block keeps a visible border and states kind by it. */
+@media (forced-colors: active) {
+  .agent-lab__trace-block {
+    border: 1px solid CanvasText;
+    background: ButtonFace;
+    forced-color-adjust: none;
+  }
+
+  .agent-lab__trace-block[data-kind="tool"] {
+    border-style: dotted;
+  }
+
+  .agent-lab__trace-block[data-error="true"] {
+    border: 2px solid Mark;
+    background: Canvas;
+  }
+
+  .agent-lab__trace-block[data-in-flight="true"] {
+    border-style: dashed;
+    background: Canvas;
+  }
+
+  .agent-lab__trace-block:focus-visible {
+    outline-color: Highlight;
+  }
+
+  .agent-lab__timeline > li[data-trace-highlight] {
+    outline-color: Highlight;
+  }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .agent-lab__timeline > li[data-trace-highlight] {
     animation: agent-lab-trace-highlight 1.8s ease-out;
@@ -402,6 +442,15 @@
 @media (max-width: 520px) {
   .agent-lab__trace-overview {
     --trace-label: 2.75rem;
+  }
+
+  /* Phone: the tallest hit area the lane can hold; width is set by the equal step slots. */
+  .agent-lab__trace-track {
+    height: 44px;
+  }
+
+  .agent-lab__trace-axis .agent-lab__trace-track {
+    height: 14px;
   }
 
   .agent-lab__trace-lane-full {

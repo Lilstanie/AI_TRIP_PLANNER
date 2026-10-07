@@ -585,10 +585,11 @@ side of the Compare view and each Failure Lab trace use the same box.
 Above the box, a time bar shows the whole run as lanes of equal-width blocks, one step per record: Run,
 Coordinator, one lane per specialist (or a single Baseline lane), with empty lanes omitted. A tool call's start
 and result form one block, and failed tool calls, failed specialists and rejected output are drawn in the error
-colour. A dashed line with an R2, R3 tag marks each round boundary. The bar grows as events stream or replay.
+colour and with a diagonal stripe, so failure never rests on colour alone. A dashed line with an R2, R3 tag marks each round boundary. The bar grows as events stream or replay.
 Every block is a button named with its lane, title and step; clicking it or pressing Enter scrolls the box to
-that row and highlights it for a moment (instantly under reduced motion). At phone width the bar fits the screen
-and lane labels shorten (Coord, Trans, Guide, Stay, Itin, Dine, Base). In the Compare view the three
+that row and highlights it for a moment (instantly under reduced motion); if a fold hides that row, the folds
+open first. Blocks are 24 px tall (44 px at phone width) and keep a visible border in forced-colors mode. At
+phone width the bar fits the screen and lane labels shorten (Coord, Trans, Guide, Stay, Itin, Dine, Base). In the Compare view the three
 strategies' bars are stacked above the columns in strategy order on one shared step axis sized to the longest
 run, so shapes line up and a shorter run ends earlier; a strategy that never ran has no bar. The
 [trace end-to-end script](../apps/web/tests/e2e/agent-lab-trace.e2e.mjs) checks it at desktop and phone width.
