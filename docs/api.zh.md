@@ -228,8 +228,8 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 `destination` 是可选字段；查找城市本身时省略它。响应为 `{ "places": GooglePlace[] }`。
 工作区只发送保存的地点名称、明确的活动位置或本身就是地点名称的标题
 （`apps/web/lib/map/place-query.ts`），绝不发送描述性的活动文本。
-错误：400 表示输入无效，429 表示 Google 限流，502 表示其他上游失败，响应体均为
-[`{ error, notice }`](#failure-bodies)。错误消息不包含查询内容或提供方详情。
+错误：400 表示输入无效，429 表示 Google 限流，502 表示其他上游失败，503 表示该部署没有配置 Google 密钥（重试无法解决），
+响应体均为 [`{ error, notice }`](#failure-bodies)。错误消息不包含查询内容或提供方详情。
 
 <a id="post-apiplacesdetails"></a>
 
@@ -240,7 +240,7 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 ```
 
 返回 `{ "place": GooglePlace }`。错误：400 表示输入无效，404 表示地点 ID 已不可用，
-429 表示限流，502 表示其他上游失败，响应体均为 [`{ error, notice }`](#failure-bodies)。
+429 表示限流，502 表示其他上游失败，503 表示未配置 Google 密钥，响应体均为 [`{ error, notice }`](#failure-bodies)。
 
 这两个路由返回的 `GooglePlace.photos` 都包含 Google 照片名称和作者署名。
 它们只保留在浏览器内存中，绝不写入计划，因为 Google 禁止缓存这些数据。
@@ -259,7 +259,7 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 路由向 Google 请求图片 URL，再以 `302` 响应重定向到 `googleusercontent.com` URL，
 并设置 `Cache-Control: no-store`，因此 `<img>` 可以指向它，而不会让服务端密钥进入浏览器。
 每次调用都是一次计费的 Google 照片请求。错误：400 表示输入无效，404 表示照片已过期或未知，
-429 表示限流，502 表示其他上游失败或缺少密钥，响应体均为 [`{ error, notice }`](#failure-bodies)。
+429 表示限流，502 表示其他上游失败，503 表示未配置 Google 密钥，响应体均为 [`{ error, notice }`](#failure-bodies)。
 
 <a id="post-apiroutesfrom-location"></a>
 
