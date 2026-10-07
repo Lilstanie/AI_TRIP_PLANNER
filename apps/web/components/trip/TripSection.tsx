@@ -2,7 +2,7 @@
 
 // Each row represents one specialist agent. The row stays compact, while its
 // expanded body exposes that agent's structured proposal in a readable form.
-import { ProposalDetails } from "./ProposalDetails";
+import { ProposalDetails, type DayConnection } from "./ProposalDetails";
 import { SourceBadge } from "./SourceBadge";
 import { useState } from "react";
 import type { TripSection as TripSectionData } from "@trip/shared";
@@ -18,10 +18,12 @@ const STATUS_LABEL: Record<string, MessageKey> = {
 export function TripSection({
   section,
   onEdit,
+  connections,
   onChoose,
 }: {
   section: TripSectionData;
   onEdit: () => void;
+  connections?: readonly DayConnection[];
   /** The section names itself, so nothing has to infer it from a selection id. */
   onChoose?: (sectionId: string, selectionId: string, candidateId: string) => void;
 }) {
@@ -66,6 +68,7 @@ export function TripSection({
               </div>
               <ProposalDetails
                 section={section}
+                {...(connections ? { connections } : {})}
                 {...(onChoose
                   ? {
                       onChoose: (selectionId: string, candidateId: string) =>

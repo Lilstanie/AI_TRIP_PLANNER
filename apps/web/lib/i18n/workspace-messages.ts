@@ -286,6 +286,7 @@ export const WORKSPACE_ZH = {
   "Source not recorded": "来源未记录",
   "These estimates are not live verified.": "这些估算未经实时验证。",
   " from {v0}": "，从{v0}出发",
+  " to {v0}": "到 {v0}",
   "Planning detail": "规划详情",
   "Free cancellation": "免费取消",
   "No free cancellation": "不支持免费取消",

@@ -25,6 +25,58 @@ describe("Trip drawer details", () => {
     expect(container.querySelector(".bar > span")?.getAttribute("style")).not.toMatch(/NaN|-/);
   });
 
+  it("gives the day plan's legs to Getting around, not to the day plan", () => {
+    const trip = structuredClone(plan);
+    const itinerary = trip.sections.find((s) => s.id === "itinerary")!;
+    itinerary.proposal!.items = [
+      { kind: "activity", day: 1, startTime: "09:00", endTime: "11:00", detail: "A", location: "Museum" },
+      {
+        kind: "activity",
+        day: 1,
+        startTime: "12:00",
+        endTime: "15:00",
+        detail: "B",
+        location: "Harbour",
+        arriveBy: { mode: "bus", durationMin: 20, from: "Museum" },
+      },
+    ];
+    // The fixture plan has only a day plan; Getting around has to exist to receive the legs.
+    trip.sections = [
+      ...trip.sections,
+      {
+        id: "transport",
+        label: "Getting around",
+        summary: "No hops",
+        status: "draft",
+        estCost: 0,
+        proposal: {
+          agent: "transport",
+          summary: "No hops",
+          assumptions: [],
+          conflictsWith: [],
+          items: [],
+        },
+      },
+    ];
+    const { container } = render(
+      <TripPanel
+        plan={trip}
+        tab="overview"
+        onTab={() => {}}
+        timeline={null}
+        onEdit={() => {}}
+        onReview={() => {}}
+      />,
+    );
+    // Open every section so both candidates for the connector are rendered.
+    for (const toggle of screen.getAllByRole("button", { expanded: false })) fireEvent.click(toggle);
+    expect(container.querySelectorAll(".proposal-items--itinerary .proposal-connection")).toHaveLength(0);
+    expect(
+      container.querySelectorAll(".proposal-items--transport .proposal-connection").length,
+    ).toBeGreaterThan(0);
+    expect(screen.getByText(/Bus · 20 min from Museum to Harbour/)).toBeTruthy();
+  });
+
   it("shows chronological day groups, missing prices and honest source fallback", () => {
     const section = structuredClone(plan.sections[0]!);
     section.proposal!.source = {

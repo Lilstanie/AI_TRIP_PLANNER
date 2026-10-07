@@ -3,6 +3,7 @@ import { useRef, type ReactNode } from "react";
 import type { TripPlan } from "@trip/shared";
 import { CurrencyNotice } from "../account/CurrencyNotice";
 import { TripSection } from "./TripSection";
+import { dayConnections } from "./ProposalDetails";
 import { statusForPlan } from "@/lib/workspace/catalog";
 import { itineraryActivities } from "@/lib/workspace";
 import { useSegmentIndicator } from "../ui/motion";
@@ -44,6 +45,9 @@ export function TripPanel({
   onChoose?: (sectionId: string, selectionId: string, candidateId: string) => void;
 }) {
   const { t, money } = useLocale();
+  // Worked out by the itinerary specialist, shown by Getting around, which owns
+  // every movement of the trip.
+  const connections = dayConnections(plan.sections);
   const estimated =
     Number.isFinite(plan.estTotal) && plan.estTotal >= 0 ? plan.estTotal : undefined;
   const budget =
@@ -155,6 +159,7 @@ export function TripPanel({
                 <TripSection
                   key={section.id}
                   section={section}
+                  {...(section.id === "transport" ? { connections } : {})}
                   {...(onChoose ? { onChoose } : {})}
                   onEdit={onEdit}
                 />

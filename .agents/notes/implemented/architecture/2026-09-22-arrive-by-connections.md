@@ -39,3 +39,7 @@ already looked up, doubling provider calls to recompute a number the server alre
 - The fallback day plan now schedules two stops a day where there are grounded places for both, so
   there is something to connect. The day's activity allowance is split across its stops rather than
   spent on each, so a second stop does not double the itinerary budget.
+- The connector is drawn in the Getting around section, which covers every movement of the trip,
+  rather than beside the stop it arrives at. The decision here is unchanged — it is still a line
+  between two places, not a third place, and still carries no cost. Only where it is drawn moved;
+  see 2026-10-07-intra-city-legs-in-getting-around.
