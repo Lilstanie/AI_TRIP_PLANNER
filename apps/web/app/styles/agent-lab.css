@@ -250,6 +250,38 @@
   list-style: none;
 }
 
+/* The trace scrolls in its own box so the plan result and metrics stay on screen. The scrollbar is styled
+   so it is always drawn: an overlay scrollbar (macOS default) hides itself and the list looks fixed. */
+.agent-lab__trace-box {
+  max-height: clamp(260px, calc(100vh - 22rem), 760px);
+  max-height: clamp(260px, calc(100dvh - 22rem), 760px);
+  margin-top: var(--space-3);
+  padding-inline-end: var(--space-2);
+  overflow-x: hidden;
+  overflow-y: scroll;
+  overscroll-behavior: contain;
+  scroll-behavior: auto;
+  scrollbar-gutter: stable;
+}
+
+.agent-lab__trace-box::-webkit-scrollbar {
+  width: 10px;
+}
+
+.agent-lab__trace-box::-webkit-scrollbar-track {
+  border-radius: var(--radius-pill);
+  background: var(--fill-hover);
+}
+
+.agent-lab__trace-box::-webkit-scrollbar-thumb {
+  border-radius: var(--radius-pill);
+  background: var(--text-mut);
+}
+
+.agent-lab__trace-box > .agent-lab__timeline {
+  margin-top: 0;
+}
+
 .agent-lab__timeline > li {
   display: grid;
   grid-template-columns: 28px minmax(0, 1fr);

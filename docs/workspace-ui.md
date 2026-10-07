@@ -574,6 +574,15 @@ Specialist or Tool. Specialist events show the bounded objective, constraints an
 runs add Graph stage events for the conflict check (the conflicts and their targets), the revision
 (objective and previous outcome), its score before and after, and the reason the loop stopped.
 
+The event list sits in a bounded trace box: its height follows the viewport (at most about the
+viewport minus 22 rem, between 260 and 760 px) and it scrolls on its own, with a scrollbar that is always
+drawn, so the plan result and run metrics stay on screen. The box is a focusable region named for the run, so
+arrow keys scroll it. While a run streams or an artifact replays, the box follows the newest event; scrolling
+up suspends following so new events do not move the position being read, and scrolling back to the bottom
+resumes it. The follow scroll is always instant, so reduced motion needs no separate path. The Run view, each
+side of the Compare view and each Failure Lab trace use the same box. The
+[trace end-to-end script](../apps/web/tests/e2e/agent-lab-trace.e2e.mjs) checks it at desktop and phone width.
+
 The comparison view shows a table of measured figures (latency, rounds, tool calls, fallbacks, failed
 agents, budget, unresolved conflicts, checks, grounded sections, repeated and generic stops,
 multi-city consistency, stopping reason, conflict outcome and token and model cost), the three plans and the three
