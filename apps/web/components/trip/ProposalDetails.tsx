@@ -42,7 +42,14 @@ const MODE_LABELS: Record<string, MessageKey> = {
  * own: the journey is a line between two places, not a third place, and a full
  * card for every hop would bury the day's actual plan.
  */
-function Connection({ arriveBy }: { arriveBy: NonNullable<ProposalItem["arriveBy"]> }) {
+function Connection({
+  arriveBy,
+  to,
+}: {
+  arriveBy: NonNullable<ProposalItem["arriveBy"]>;
+  /** Where it arrives. Given in Getting around, where the stop is not beside it. */
+  to?: string;
+}) {
   const { t, locale } = useLocale();
   const hours = Math.floor(arriveBy.durationMin / 60);
   const minutes = arriveBy.durationMin % 60;
@@ -60,6 +67,7 @@ function Connection({ arriveBy }: { arriveBy: NonNullable<ProposalItem["arriveBy
         {mode}
         {arriveBy.line ? ` ${arriveBy.line}` : ""} · {time}
         {arriveBy.from ? t(" from {v0}", { v0: arriveBy.from }) : ""}
+        {to ? t(" to {v0}", { v0: to }) : ""}
       </span>
     </p>
   );
@@ -217,12 +225,51 @@ function FlightCard({
   );
 }
 
+/**
+ * One journey between two stops of the same day, lifted out of the day plan.
+ *
+ * Getting around covers every movement of the trip, so these belong here even
+ * though the itinerary specialist works them out. They stay connectors rather
+ * than becoming items on the transport proposal: an item with a time would
+ * enter the cross-agent overlap check and report the same squeezed gap the
+ * itinerary already reports, from a second direction.
+ */
+export type DayConnection = {
+  day: number;
+  /** When the traveller arrives, which is what orders it against the hops. */
+  arrivesAt: string;
+  to: string;
+  arriveBy: NonNullable<ProposalItem["arriveBy"]>;
+};
+
+/** The connections a plan's day sections describe, for Getting around to show. */
+export function dayConnections(sections: readonly TripSection[]): DayConnection[] {
+  return sections
+    .filter((section) => section.id === "itinerary")
+    .flatMap((section) => section.proposal?.items ?? [])
+    .flatMap((item) =>
+      item.arriveBy && item.day !== undefined && item.startTime
+        ? [
+            {
+              day: item.day,
+              arrivesAt: item.startTime,
+              to: item.location ?? item.detail,
+              arriveBy: item.arriveBy,
+            },
+          ]
+        : [],
+    );
+}
+
 /** Section-specific grouping uses structured metadata only, never parses prose as facts. */
 export function ProposalDetails({
   section,
+  connections,
   onChoose,
 }: {
   section: TripSection;
+  /** Intra-city legs to show in Getting around; see dayConnections. */
+  connections?: readonly DayConnection[];
   /** Swap a stay or fare for one the specialist already found. */
   onChoose?: (selectionId: string, candidateId: string) => void;
 }) {
@@ -300,12 +347,15 @@ export function ProposalDetails({
         })}
       </div>
     );
-  if (!proposal.items.length)
+  const legs = section.id === "transport" ? (connections ?? []) : [];
+  // A trip with no inter-city hop still moves the traveller around the city, so
+  // Getting around is only empty when it has neither items nor legs.
+  if (!proposal.items.length && !legs.length)
     return <p className="section__empty">{t("No detailed items were returned.")}</p>;
   if (section.id === "itinerary" || section.id === "transport") {
-    const days = [...new Set(proposal.items.map((item) => item.day))].sort(
-      (a, b) => (a ?? Infinity) - (b ?? Infinity),
-    );
+    const days = [
+      ...new Set([...proposal.items.map((item) => item.day), ...legs.map((leg) => leg.day)]),
+    ].sort((a, b) => (a ?? Infinity) - (b ?? Infinity));
     return (
       <div className={`proposal-items proposal-items--${section.id}`}>
         {/* Flights first: they are the fixed points the rest of the days hang from. */}
@@ -323,13 +373,22 @@ export function ProposalDetails({
           <section className="proposal-day" key={day ?? "unscheduled"}>
             <h3>{day === undefined ? t("Unscheduled suggestions") : t("Day {v0}", { v0: day })}</h3>
             <div className="proposal-items">
-              {proposal.items
-                .filter((item) => item.day === day)
-                .sort((a, b) => (a.startTime ?? "").localeCompare(b.startTime ?? ""))
-                .map((item, index) => (
+              {[
+                ...proposal.items
+                  .filter((item) => item.day === day)
+                  .map((item) => ({ at: item.startTime ?? "", item, leg: undefined })),
+                ...legs
+                  .filter((leg) => leg.day === day)
+                  .map((leg) => ({ at: leg.arrivesAt, item: undefined, leg })),
+              ]
+                .sort((a, b) => a.at.localeCompare(b.at))
+                .map(({ item, leg }, index) => (
                   <Fragment key={index}>
-                    {item.arriveBy && <Connection arriveBy={item.arriveBy} />}
-                    <ItemCard item={item} />
+                    {leg ? (
+                      <Connection arriveBy={leg.arriveBy} to={leg.to} />
+                    ) : (
+                      <ItemCard item={item!} />
+                    )}
                   </Fragment>
                 ))}
             </div>

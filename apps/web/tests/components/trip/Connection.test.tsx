@@ -1,9 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { ProposalDetails } from "@/components/trip/ProposalDetails";
+import { dayConnections, ProposalDetails } from "@/components/trip/ProposalDetails";
 import type { ArriveBy, TripSection as TripSectionModel } from "@trip/shared";
 
-const section = (arriveBy?: ArriveBy): TripSectionModel => ({
+const dayPlan = (arriveBy?: ArriveBy): TripSectionModel => ({
   id: "itinerary",
   label: "Day plan",
   summary: "Two activities",
@@ -36,13 +36,42 @@ const section = (arriveBy?: ArriveBy): TripSectionModel => ({
   },
 });
 
-const show = (arriveBy?: ArriveBy) =>
-  render(<ProposalDetails section={section(arriveBy)} />);
+const gettingAround: TripSectionModel = {
+  id: "transport",
+  label: "Getting around",
+  summary: "One hop",
+  status: "draft",
+  estCost: 0,
+  proposal: {
+    agent: "transport",
+    summary: "One hop",
+    assumptions: [],
+    conflictsWith: [],
+    items: [
+      {
+        kind: "transport",
+        detail: "Melbourne to Sydney",
+        day: 1,
+        location: "Melbourne → Sydney",
+        startTime: "06:00",
+        endTime: "07:35",
+      },
+    ],
+  },
+};
 
-describe("connection between activities", () => {
-  it("says how the traveller gets from one activity to the next", () => {
+/** Getting around is given the legs the day plan worked out, as TripPanel gives them. */
+const show = (arriveBy?: ArriveBy) =>
+  render(
+    <ProposalDetails section={gettingAround} connections={dayConnections([dayPlan(arriveBy)])} />,
+  );
+
+describe("intra-city legs in Getting around", () => {
+  it("says how the traveller gets from one stop to the next, and where it ends", () => {
     show({ mode: "bus", durationMin: 45, line: "333", from: "Sydney Opera House" });
-    expect(screen.getByText(/Bus 333 · 45 min from Sydney Opera House/)).toBeTruthy();
+    expect(
+      screen.getByText(/Bus 333 · 45 min from Sydney Opera House to Bondi Beach/),
+    ).toBeTruthy();
   });
 
   it("reads an hour as hours, not as 75 minutes", () => {
@@ -50,10 +79,27 @@ describe("connection between activities", () => {
     expect(screen.getByText(/Train · 1h 15m/)).toBeTruthy();
   });
 
-  it("shows nothing between activities the planner could not connect", () => {
+  it("shows nothing for stops the planner could not connect", () => {
     const { container } = show();
     expect(container.querySelector(".proposal-connection")).toBeNull();
-    // The activities themselves are unaffected.
-    expect(screen.getByText("Bondi Beach walk")).toBeTruthy();
+    // The hop itself is unaffected.
+    expect(screen.getByText("Melbourne → Sydney")).toBeTruthy();
+  });
+
+  it("orders a leg against the hops by when the traveller arrives", () => {
+    const { container } = show({ mode: "bus", durationMin: 45, from: "Sydney Opera House" });
+    const rows = [...container.querySelectorAll(".proposal-item, .proposal-connection")];
+    // The 06:00 flight comes before the stop reached at 12:00.
+    expect(rows[0]?.className).toContain("proposal-item");
+    expect(rows[1]?.className).toContain("proposal-connection");
+  });
+
+  it("leaves the day plan without connectors, so a leg is shown once", () => {
+    const { container } = render(
+      <ProposalDetails
+        section={dayPlan({ mode: "bus", durationMin: 45, from: "Sydney Opera House" })}
+      />,
+    );
+    expect(container.querySelector(".proposal-connection")).toBeNull();
   });
 });
