@@ -1,6 +1,5 @@
 "use client";
-import { useInterfaceLocale } from "../account/LocaleProvider";
-import { translate, interfaceNotice } from "@/lib/i18n/locale";
+import type { Notice } from "@/lib/i18n/notice";
 import { useCallback, useRef, useState } from "react";
 import { MAX_ATTACHMENTS_PER_MESSAGE } from "@trip/shared";
 import {
@@ -18,10 +17,13 @@ export type ComposerAttachments = {
   removeAttachment: (id: string) => void;
   /** Drops everything held — after a send, or when the conversation changes. */
   clearAttachments: () => void;
-  /** False at the per-message limit; `notice` then says so. */
+  /** False at the per-message limit; `notices` then says so. */
   canAttach: boolean;
-  /** One line for the composer: what was refused, or that the limit is reached. */
-  notice: string;
+  /**
+   * One line for the composer, untranslated: why each refused file was refused, or that the limit
+   * is reached. The composer translates it when it is shown.
+   */
+  notices: Notice[];
 };
 
 /**
@@ -33,9 +35,8 @@ export type ComposerAttachments = {
  * `render` is injected in tests, where jsdom has no canvas.
  */
 export function useComposerAttachments({ render }: { render?: ImageRenderer } = {}) {
-  const locale = useInterfaceLocale();
   const [attachments, setAttachments] = useState<PreparedAttachment[]>([]);
-  const [notice, setNotice] = useState("");
+  const [notices, setNotices] = useState<Notice[]>([]);
   // The count and payload at the moment a pick starts. Preparation is
   // asynchronous, so a second pick that begins before the first finishes must
   // still see what the first one is adding, or a limit could be passed.
@@ -59,17 +60,11 @@ export function useComposerAttachments({ render }: { render?: ImageRenderer } = 
             spent.current = payloadOf(next);
             return next;
           });
-          setNotice(
-            rejections.length
-              ? rejections
-                  .map(({ name, reason }) =>
-                    translate(locale, "{name} wasn't attached — {reason}.", {
-                      name,
-                      reason: interfaceNotice(locale, reason),
-                    }),
-                  )
-                  .join(" ")
-              : "",
+          setNotices(
+            rejections.map(({ name, reason }) => ({
+              key: "{name} wasn't attached — {reason}.",
+              params: { name, reason },
+            })),
           );
         })
         .catch(() => {
@@ -81,10 +76,10 @@ export function useComposerAttachments({ render }: { render?: ImageRenderer } = 
             spent.current = payloadOf(current);
             return current;
           });
-          setNotice("Those files couldn't be read. Please try again.");
+          setNotices([{ key: "Those files couldn't be read. Please try again." }]);
         });
     },
-    [render, locale],
+    [render],
   );
 
   const removeAttachment = useCallback((id: string) => {
@@ -94,14 +89,14 @@ export function useComposerAttachments({ render }: { render?: ImageRenderer } = 
       spent.current = payloadOf(next);
       return next;
     });
-    setNotice("");
+    setNotices([]);
   }, []);
 
   const clearAttachments = useCallback(() => {
     held.current = 0;
     spent.current = 0;
     setAttachments([]);
-    setNotice("");
+    setNotices([]);
   }, []);
 
   const full = attachments.length >= MAX_ATTACHMENTS_PER_MESSAGE;
@@ -111,13 +106,15 @@ export function useComposerAttachments({ render }: { render?: ImageRenderer } = 
     removeAttachment,
     clearAttachments,
     canAttach: !full,
-    notice:
-      notice ||
-      (full
-        ? translate(locale, "You can attach {count} files to one message.", {
-            count: MAX_ATTACHMENTS_PER_MESSAGE,
-          })
-        : ""),
+    notices:
+      notices.length || !full
+        ? notices
+        : [
+            {
+              key: "You can attach {count} files to one message.",
+              params: { count: MAX_ATTACHMENTS_PER_MESSAGE },
+            },
+          ],
   } satisfies ComposerAttachments;
 }
 

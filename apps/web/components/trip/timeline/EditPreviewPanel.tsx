@@ -3,7 +3,6 @@ import { useEffect, useRef } from "react";
 import type { TripPlan } from "@trip/shared";
 import type { EditPreview } from "@/lib/trip/trip-edit";
 import { formatDuration } from "@/lib/trip/timeline";
-import { formatProviderAmount } from "@/lib/i18n/locale";
 import { useLocale } from "../../account/LocaleProvider";
 
 /**
@@ -24,12 +23,16 @@ export function EditPreviewPanel({
   onApply(): void;
   onCancel(): void;
 }) {
-  const { t, money, locale, notice } = useLocale();
+  const { t, money, delta, fare, budgetGap, locale, notice } = useLocale();
   const root = useRef<HTMLDivElement>(null);
   useEffect(() => root.current?.focus(), []);
   const change = preview.plan.estTotal - plan.estTotal;
-  const left = preview.plan.budgetTotal - preview.plan.estTotal;
-  const blocked = preview.blockers.length > 0;
+  const gap = budgetGap(
+    preview.plan.estTotal,
+    preview.plan.budgetTotal,
+    preview.plan.brief.budgetSource,
+  );
+  const blocked = preview.blockerNotices.length > 0;
   // Problems the plan already had are in Review plan; here only what this change would add.
   const existing = new Set((plan.conflicts ?? []).map((conflict) => conflict.reason));
   const conflicts = (preview.plan.conflicts ?? []).filter((c) => !existing.has(c.reason));
@@ -52,19 +55,15 @@ export function EditPreviewPanel({
         <p className="edit-preview__total">
           <strong>{money(preview.plan.estTotal)}</strong>{" "}
           <span className={change > 0 ? "is-up" : change < 0 ? "is-down" : undefined}>
-            {change === 0 ? t("no change") : `${change > 0 ? "+" : "−"}${money(Math.abs(change))}`}
+            {change === 0 ? t("no change") : delta(change)}
           </span>
-          <small>
-            {left >= 0
-              ? t("{amount} left in budget", { amount: money(left) })
-              : t("{amount} over budget", { amount: money(-left) })}
-          </small>
+          {gap && <small>{t(gap.key, gap.params)}</small>}
         </p>
       </div>
-      {!!preview.blockers.length && (
+      {blocked && (
         <ul className="edit-preview__list edit-preview__list--blockers" role="alert">
-          {preview.blockers.map((blocker) => (
-            <li key={blocker}>{notice(blocker)}</li>
+          {preview.blockerNotices.map((blocker, index) => (
+            <li key={index}>{notice(blocker)}</li>
           ))}
         </ul>
       )}
@@ -93,11 +92,11 @@ export function EditPreviewPanel({
               <li key={`${route.from}-${route.to}-${index}`}>
                 {route.status === "ok" && route.durationMin !== undefined
                   ? `${route.mode === "WALK" ? t("Walk") : t("Public transport")} · ${formatDuration(route.durationMin, locale)}`
-                  : route.error
-                    ? notice(route.error)
+                  : route.notice || route.error
+                    ? notice(route.notice ?? { raw: route.error! })
                     : t("No route found")}
                 {route.fare
-                  ? ` · ${formatProviderAmount(route.fare)}`
+                  ? ` · ${fare(route.fare)}`
                   : route.status === "ok"
                     ? t(" · fare not published")
                     : ""}

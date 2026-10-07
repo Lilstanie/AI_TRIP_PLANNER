@@ -16,20 +16,28 @@ Read the copy around your change before you write. It establishes these conventi
   preferences". "Your Trip" is the one established title.
 - **Australian and British spelling** in prose: "traveller", "colour". Code identifiers
   keep their existing spelling.
-- **Money goes through one formatter.** Amounts are stored and planned in AUD and shown in the
-  traveller's display currency by `money()` from `useLocale()`, which writes a currency code
-  (`AUD 1,234.00`, `JPY 98,000`). Never format an amount by hand or prefix `A$`. A converted amount
-  carries the "approximate, not live" estimate notice, and provider-native fare evidence stays in
-  its own currency through `formatProviderAmount()` (`JPY 230`, `AUD 12.50`). Never invent a converted amount the data does not hold. See the
+- **Money goes through one module.** Amounts are stored and planned in AUD and shown in the
+  traveller's display currency by `money()` from `useLocale()` (`apps/web/lib/money.ts`), which
+  writes a currency code (`AUD 1,234.00`, `JPY 98,000`). Agent Lab's whole-dollar `A$3,960` comes
+  from `labMoney` and the planner sentence from `plannerAud()`, both in the same module. Never
+  format an amount by hand (ESLint rejects `.toFixed(2)` in `apps/web`), prefix `A$`, or build a sign or "over/under" wording with `Math.abs`: use `delta()` for a signed
+  difference and `budgetGap()` for the budget sentence. A converted amount carries the
+  "approximate, not live" estimate notice, and provider-native fare evidence stays in its own
+  currency through `fare()` (`JPY 230`, `AUD 12.50`). Never invent a converted amount the data does not hold. See the
   [AUD base-currency](../../notes/implemented/architecture/2026-09-20-aud-base-currency.md) and
   [display currency](../../notes/implemented/feature/2026-10-04-workspace-display-currency.md) notes.
 - **Every interface string is bilingual.** Write the English text as a key passed to `t()` from
   `useLocale()` and add its Chinese entry to the dictionary in `apps/web/lib/i18n/` (`workspace-messages.ts` for workspace strings); `t()` only
   accepts keys that have a Chinese entry, so a missing one fails the typecheck. When one English word
   needs two translations, add a `|context` suffix (`"Budget|tier"`). Use `{name}` placeholders, not
-  concatenation. An English notice built outside a component (a thrown `Error`, a route's `error`,
-  a plan blocker) is shown through `notice()` from `useLocale()`: give it a dictionary entry, and
-  when it carries a value, a pattern in `interfaceNotice` (`apps/web/lib/i18n/locale.ts`). Prefer
+  concatenation. A notice built outside a component is carried as a keyed `Notice`
+  (`{ key, params }`, `apps/web/lib/i18n/notice.ts`; code that throws uses `NoticeError`) and shown
+  through `notice()` from `useLocale()`, which translates it once; `{ raw }` is only for provider or
+  model text. The compiler rejects a key without a Chinese entry and a missing or unexpected value.
+  A route answers with `noticeBody(notice)`, its `notice` beside the English `error`; the client reads
+  a failed response with `failureNotice(body, fallback)` and a caught error with `errorNotice`.
+  `notice()` accepts only a `Notice`: there is no lookup from English back to a key, so English
+  passed as `{ raw }` stays English. A blocker saved on a plan is still an English string. Prefer
   returning values over sentences when the interface builds the line. Traveller text and agent
   replies are never translated by the interface. See the
   [interface language note](../../notes/implemented/feature/2026-10-04-interface-language-only.md).

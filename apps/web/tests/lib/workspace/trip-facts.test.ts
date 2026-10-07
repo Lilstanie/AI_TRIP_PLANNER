@@ -25,7 +25,12 @@ describe("trip facts", () => {
     expect(factErrors("preferences", blankDraft(), blank, false)).toEqual({});
     expect(
       factErrors("preferences", { ...blankDraft(), preferences: ["x".repeat(201)] }, blank, false),
-    ).toEqual({ preferences: expect.stringMatching(/^Keep to 12 preferences/) });
+    ).toEqual({
+      preferences: {
+        key: "Keep to {count} preferences of up to {length} characters each.",
+        params: { count: 12, length: 200 },
+      },
+    });
   });
 
   it("labels only stated values", () => {
@@ -74,10 +79,10 @@ describe("trip facts", () => {
   it("checks one fact's own fields, and lets a blank trip leave them empty", () => {
     expect(factErrors("budget", blankDraft(), blank, false)).toEqual({});
     expect(factErrors("budget", blankDraft(), blank, true)).toEqual({
-      budgetTotal: "Enter a total budget above zero.",
+      budgetTotal: { key: "Enter a total budget above zero." },
     });
     expect(factErrors("who", { ...blankDraft(), groupSize: "0" }, blank, false)).toEqual({
-      groupSize: "Enter a whole number of travellers, 1 or more.",
+      groupSize: { key: "Enter a whole number of travellers, 1 or more." },
     });
     // Dates are checked without a destination instead of blaming the missing destination.
     expect(
@@ -85,13 +90,19 @@ describe("trip facts", () => {
     ).toEqual({});
     expect(
       factErrors("when", { ...blankDraft(), start: "2026-10-04", end: "2026-10-01" }, blank, false),
-    ).toHaveProperty("dates");
+    ).toEqual({
+      dates: { key: "End date must follow start date, with at least one night per destination." },
+    });
+    expect(factErrors("when", { ...blankDraft(), start: "2026-10-01" }, blank, false)).toEqual({
+      dates: { key: "Choose both a start and an end date." },
+    });
   });
 
   it("points a rejected brief at the first fact in top-bar order", () => {
-    expect(firstFactWithError({ preferences: "x", budgetTotal: "y" })).toBe("budget");
-    expect(firstFactWithError({ preferences: "x" })).toBe("preferences");
-    expect(firstFactWithError({ dates: "x" })).toBe("when");
+    const x = { key: "Check the highlighted trip details." } as const;
+    expect(firstFactWithError({ preferences: x, budgetTotal: x })).toBe("budget");
+    expect(firstFactWithError({ preferences: x })).toBe("preferences");
+    expect(firstFactWithError({ dates: x })).toBe("when");
     expect(firstFactWithError({})).toBeUndefined();
     expect(firstMissingFact(blankDraft())).toBe("where");
     expect(firstMissingFact(draftFor(plan.brief))).toBeUndefined();

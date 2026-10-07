@@ -42,7 +42,7 @@ export function useWorkspaceStorage({
   setCatalog,
   activeConversation,
 }: WorkspaceStorageOptions) {
-  const [storageError, setStorageError] = useState(restored.storageError ?? "");
+  const [storageError, setStorageError] = useState(restored.storageError);
   const [storageEnabled, setStorageEnabled] = useState(restored.storageEnabled);
   const [saveState, setSaveState] = useState<"saving" | "saved" | "failed">("saved");
   const catalogRef = useRef(catalog);

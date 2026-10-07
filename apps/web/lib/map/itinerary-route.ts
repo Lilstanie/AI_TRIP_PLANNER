@@ -1,34 +1,22 @@
 /**
- * Itinerary order and route lines for the map, free of the Google Maps SDK so they can be tested.
+ * Route lines for the map, free of the Google Maps SDK so they can be tested.
  *
- * Stops are ordered by day, then start time, then their position in the plan. Each day becomes one
- * line through its stops. A leg uses a verified Google Routes polyline when one exists for that
- * exact pair of places; otherwise it is a straight segment. No route is requested just to draw.
+ * Stops arrive in visiting order (lib/trip/itinerary.ts). Each day becomes one line through its
+ * stops in that order. A leg uses a verified Google Routes polyline when one exists for that exact
+ * pair of places; otherwise it is a gentle arc. No route is requested just to draw.
  */
 
-type Orderable = { day?: number; startTime?: string };
-
-/** Sort itinerary activities into visiting order without mutating the input. */
-export function itineraryOrder<T extends Orderable>(items: readonly T[]): T[] {
-  return items
-    .map((item, index) => ({ item, index }))
-    .sort(
-      (a, b) =>
-        (a.item.day ?? Number.MAX_SAFE_INTEGER) - (b.item.day ?? Number.MAX_SAFE_INTEGER) ||
-        (a.item.startTime ?? "99:99").localeCompare(b.item.startTime ?? "99:99") ||
-        a.index - b.index,
-    )
-    .map(({ item }) => item);
-}
-
 export type Coordinate = { lat: number; lng: number };
-/** One located stop on the map, in visiting order. `order` is 1-based across the whole trip. */
-export type RouteStop = { placeId: string; day?: number; order: number; position: Coordinate };
+/** One located stop on the map. */
+export type RouteStop = { placeId: string; day?: number; position: Coordinate };
 export type RouteLeg = { from: RouteStop; to: RouteStop; polyline?: string };
 export type DayRoute = { day?: number; legs: RouteLeg[] };
 type VerifiedRoute = { from: string; to: string; status: string; polyline?: string };
 
-/** Group stops into per-day lines; a day with a single stop has no line. */
+/**
+ * Group stops, given in visiting order, into per-day lines; a day with a single stop has no line.
+ * Stop numbers are not an order: a place visited again keeps its first number.
+ */
 export function dayRoutes(
   stops: readonly RouteStop[],
   routes: readonly VerifiedRoute[] = [],
@@ -39,7 +27,7 @@ export function dayRoutes(
       .map((route) => [`${route.from}>${route.to}`, route.polyline!]),
   );
   const days = new Map<number | undefined, RouteStop[]>();
-  for (const stop of [...stops].sort((a, b) => a.order - b.order)) {
+  for (const stop of stops) {
     const list = days.get(stop.day) ?? [];
     list.push(stop);
     days.set(stop.day, list);

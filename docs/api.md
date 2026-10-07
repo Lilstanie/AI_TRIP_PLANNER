@@ -26,6 +26,14 @@ storage. On the server, `packages/services` records chat turns, preferences and 
 the Redis REST store when `KV_REST_API_URL` and `KV_REST_API_TOKEN` are set, and in process memory
 otherwise.
 
+<a id="failure-bodies"></a>
+
+Failure bodies of the app's own routes (`/api/chat`, the places routes, `/api/routes/from-location`,
+`/api/trip/preview-edit` and the account routes) are `{ error, notice }`. `error` is the English
+sentence for logs and older clients; `notice` is the same failure as a `Notice` that the interface
+shows in the chosen language: `{ key, params }` for the app's own wording, or `{ raw }` for text
+passed on exactly as raised (`apps/web/lib/i18n/notice.ts`). Agent Lab keeps its own error shape.
+
 ## `POST /api/chat`
 
 Contract: `ChatRequest`, `ChatResponse` and `AgentProgressEvent` in `packages/shared/src/chat.ts`.
@@ -114,7 +122,8 @@ text itself for `kind: "text"`. Limits, as the named constants in `packages/shar
 | `TEXT_MEDIA_TYPES`            | `text/plain`, `text/markdown`, `text/csv`, `application/json` |
 
 A media type outside its kind's allow-list, an oversized file or an image that is not bare base64 is
-rejected before any provider is called, as HTTP 400 with `{ "error": "Attachment rejected: …" }`.
+rejected before any provider is called, as HTTP 400 with
+`{ "error": "Attachment rejected: …", "notice": { "key": "Attachment rejected: {reason}", … } }`.
 The whole request body is still bound by the platform: a Vercel serverless function rejects a body
 over 4.5 MB with its own 413 before the handler runs, so three maximum-size images in one message is
 the practical ceiling regardless of the per-file limits above.
@@ -139,9 +148,11 @@ The response is `application/x-ndjson`, one JSON object per line:
 
 - progress events with `type` `coordinator`, `agent_started`, `agent_completed` or `agent_failed`;
 - a final `{ "type": "complete", "response": { "reply": "…", "plan": { … } } }`;
-- or `{ "type": "error", "error": "…" }` with a user-facing message.
+- or `{ "type": "error", "error": "…", "notice": { … } }`, the failure in the
+  [`{ error, notice }`](#failure-bodies) form.
 
-An invalid request body returns HTTP 400 JSON before streaming starts.
+An invalid request body, or `mode: "plan"` without a brief, returns HTTP 400 before streaming starts
+with `{ "error": "The request was invalid. Please retry.", "notice": { … } }`.
 
 An optional `x-trip-data-mode` header of `mock` or `live` chooses fixtures or live providers for this
 request only; any other value, or no header, uses the deployment default.
@@ -237,8 +248,9 @@ Implementation: `searchPlaces` in `apps/web/lib/integrations/google.ts` (require
 `destination` is optional; omit it to look up a city itself. The response is
 `{ "places": GooglePlace[] }`. The workspace only sends saved place names, explicit activity locations
 or titles that are themselves place names (`apps/web/lib/map/place-query.ts`), never descriptive activity
-text. Errors: 400 invalid input, 429 Google rate limit, 502 other upstream failures. Error messages do
-not include the query or provider details.
+text. Errors: 400 invalid input, 429 Google rate limit, 502 other upstream failures, each with a
+[`{ error, notice }`](#failure-bodies) body. Error messages do not include the query or provider
+details.
 
 ## `POST /api/places/details`
 
@@ -247,7 +259,8 @@ not include the query or provider details.
 ```
 
 Returns `{ "place": GooglePlace }`. Errors: 400 invalid input, 404 the place ID is no longer
-available, 429 rate limit, 502 other upstream failures.
+available, 429 rate limit, 502 other upstream failures, each with a
+[`{ error, notice }`](#failure-bodies) body.
 
 `GooglePlace.photos` from either route carries Google's photo names and author attributions. They
 stay in browser memory and are never written into a plan, because Google forbids caching them.
@@ -264,7 +277,8 @@ Implementation: `placePhotoUri` in `apps/web/lib/integrations/google.ts`.
 The route asks Google for the image URL and answers `302` to a `googleusercontent.com` URL with
 `Cache-Control: no-store`, so an `<img>` can point at it without the server key reaching the
 browser. Each call is a billed Google photo request. Errors: 400 invalid input, 404 an expired or
-unknown photo, 429 rate limit, 502 other upstream failures or a missing key.
+unknown photo, 429 rate limit, 502 other upstream failures or a missing key, each with a
+[`{ error, notice }`](#failure-bodies) body.
 
 ## `POST /api/routes/from-location`
 
@@ -274,7 +288,9 @@ unknown photo, 429 rate limit, 502 other upstream failures or a missing key.
 
 Returns a `RouteResult` (`status` `ok` with `durationMin` and `distanceMeters`, or `unavailable` with
 `error`). The coordinate is sent only after the user asks for their location; it is not stored or
-written into the plan. Invalid input returns 400.
+written into the plan. Invalid input or a failed lookup returns 400 with
+[`{ error, notice }`](#failure-bodies): invalid input reads "Route lookup failed.", and the app's
+own refusals keep their key while any other error is passed on as `{ raw }`.
 
 ## `POST /api/trip/preview-edit`
 
@@ -291,16 +307,21 @@ Contract: `EditRequest` and `EditPreview` in `apps/web/lib/trip/trip-edit.ts`.
 
 `operation.kind` is `verify` (a day's routes), `move`, `time`, `place` or `undo`. Only activities with a
 day are routed and re-timed; ideas (activities without a day) pass through unchanged. The response is
-`{ plan, baseVersion, routes, differences, blockers }`. Each difference is a value object
-`{ stop, days?: { from, to }, before, after, placeChanged }` that the interface words in the chosen
-language; blockers are English sentences that the interface localises when it recognises them. It is
-a preview only: the client applies it
-when the user confirms and rejects it if `baseVersion` no longer matches. Invalid edits return 400.
+`{ plan, baseVersion, routes, differences, blockers, blockerNotices }`. Each difference is a value
+object `{ stop, days?: { from, to }, before, after, placeChanged }` that the interface words in the
+chosen language. `blockerNotices` lists what stops the edit as Notices (`{ key, params }` for the
+app's own wording, `{ raw }` for a route provider's text), which the interface shows in the chosen
+language; `blockers` repeats them as English sentences for older clients. It is a preview only: the
+client applies it when the user confirms and rejects it if `baseVersion` no longer matches. An
+invalid edit returns 400 with `{ error, notice }`: `error` is the English sentence older clients
+read and `notice` the same refusal as a Notice; an error that is not one of the app's own refusals,
+such as a malformed body, comes back as `{ raw }`.
 
 ## Account routes
 
 Every account route needs a Clerk session and answers 401 without one, and 503 when Clerk or
-`DATABASE_URL` is not configured. Queries use the session's user id, never an id from the body.
+`DATABASE_URL` is not configured. Every failure body, including the 400s and the 502 below, is
+[`{ error, notice }`](#failure-bodies). Queries use the session's user id, never an id from the body.
 Contracts: `UserSettings` in `apps/web/lib/account/settings.ts`, `SyncedRecord` and `SyncPush` in
 `apps/web/lib/account/sync.ts`.
 

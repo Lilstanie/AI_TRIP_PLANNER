@@ -1,13 +1,11 @@
 import {
   AgentProgressEvent,
-  BASE_CURRENCY,
   BookedStay,
   ChatAskUser,
   ChatNeedsInfo,
   ChatResponse,
   FlightAnswer,
   LegModeChoice,
-  moneyIn,
   toAud,
   PartialTripBrief,
   partyPeople,
@@ -16,6 +14,7 @@ import {
   TripPreferences,
   type TravellerParty,
 } from "@trip/shared";
+import { failureNotice, NoticeError, type Notice } from "../i18n/notice";
 
 /**
  * What a sent message keeps about one attachment. Deliberately not the sent
@@ -120,20 +119,6 @@ export function partyFor(draft: Pick<Draft, "party" | "groupSize">): Party {
 }
 /** `groupSize` the planner receives: people only — pets never count as travellers. */
 export const groupSizeFromParty = (party: Party) => partyPeople(party);
-export const money = (value: number) =>
-  new Intl.NumberFormat("en-AU", {
-    style: "currency",
-    currency: BASE_CURRENCY,
-    currencyDisplay: "code",
-  }).format(value);
-/**
- * "(≈ ¥3,000)" beside a converted budget, so a traveller who said 3000 人民币 can see where
- * A$630 came from. Empty when they stated it in the base currency: there is nothing to explain.
- */
-export const budgetHint = (brief: Pick<TripBrief, "budgetSource">) =>
-  brief.budgetSource && brief.budgetSource.currency !== BASE_CURRENCY
-    ? ` (≈ ${moneyIn(brief.budgetSource.amount, brief.budgetSource.currency)})`
-    : "";
 export function draftFor(brief: TripBrief): Draft {
   return {
     destination: brief.destination,
@@ -462,9 +447,15 @@ export async function readPlanStream(
 ): Promise<ChatResponse> {
   if (!response.ok) {
     const body = await response.json().catch(() => null);
-    throw new Error(body?.error ?? `Request failed (${response.status}).`);
+    throw new NoticeError(
+      failureNotice(body, {
+        key: "Request failed ({status}).",
+        params: { status: response.status },
+      }),
+    );
   }
-  if (!response.body) throw new Error("No progress stream was received. Please retry.");
+  if (!response.body)
+    throw new NoticeError({ key: "No progress stream was received. Please retry." });
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
@@ -472,7 +463,7 @@ export async function readPlanStream(
   let needsInfo: ChatNeedsInfo | undefined;
   let askUser: ChatAskUser | undefined;
   let flights: FlightAnswer | undefined;
-  let error: string | undefined;
+  let error: Notice | undefined;
   const frame = (line: string) => {
     if (!line.trim()) return;
     let data: unknown;
@@ -485,21 +476,21 @@ export async function readPlanStream(
     if (data.type === "complete") {
       const parsed = ChatResponse.safeParse(data.response);
       if (parsed.success) result = parsed.data;
-      else error = "The returned plan was invalid. Please retry.";
+      else error = { key: "The returned plan was invalid. Please retry." };
     } else if (data.type === "needs_info") {
       const parsed = ChatNeedsInfo.safeParse(data);
       if (parsed.success) needsInfo = parsed.data;
-      else error = "The assistant's question was invalid. Please retry.";
+      else error = { key: "The assistant's question was invalid. Please retry." };
     } else if (data.type === "ask_user") {
       const parsed = ChatAskUser.safeParse(data);
       if (parsed.success) askUser = parsed.data;
-      else error = "The assistant's question was invalid. Please retry.";
+      else error = { key: "The assistant's question was invalid. Please retry." };
     } else if (data.type === "flight_answer") {
       const parsed = FlightAnswer.safeParse(data);
       if (parsed.success) flights = parsed.data;
-      else error = "The returned fares were invalid. Please retry.";
+      else error = { key: "The returned fares were invalid. Please retry." };
     } else if (data.type === "error")
-      error = typeof data.error === "string" ? data.error : "Planning failed. Please retry.";
+      error = failureNotice(data, { key: "Planning failed. Please retry." });
     else {
       const parsed = AgentProgressEvent.safeParse(data);
       if (parsed.success) onProgress(parsed.data);
@@ -518,22 +509,16 @@ export async function readPlanStream(
   } finally {
     reader.releaseLock();
   }
-  if (error) throw new Error(error);
+  if (error) throw new NoticeError(error);
   if (needsInfo) throw new NeedsInfoError(needsInfo);
   if (askUser) throw new AskUserError(askUser);
   if (flights) throw new FlightAnswerError(flights);
-  if (!result) throw new Error("Connection ended before the plan was ready. Please retry.");
+  if (!result)
+    throw new NoticeError({ key: "Connection ended before the plan was ready. Please retry." });
   return result;
 }
 
-/** Itinerary activities in plan order; hotels and transport are never mapped. */
-export function itineraryActivities(plan: TripPlan | undefined) {
-  return (
-    plan?.sections
-      .find((section) => section.id === "itinerary")
-      ?.proposal?.items.filter((item) => item.kind === "activity") ?? []
-  );
-}
+export { itineraryActivities } from "../trip/itinerary";
 
 /** Allocate IDs only for legacy/new items; never derive identity from array position. */
 export function identifyActivities(plan: TripPlan): TripPlan {

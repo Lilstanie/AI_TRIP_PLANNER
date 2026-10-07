@@ -14,7 +14,7 @@ asked for a phone-first design. Spec: issue #174.
 
 ## Decision
 
-- **Phones only.** `useIsPhone()` matches `(max-width: 520px)` and sets `data-phone` on
+- **Phones only.** `useWorkspaceLayout()` matches `(max-width: 520px)` and the workspace sets `data-phone` on
   `.workspace-app`. Desktop and the 521–1000 px narrow layout keep their own controls.
 - **Bottom tab bar** (`PhoneTabBar`): Chat, Map, Trip and Mine, a `tablist` whose tabs control one
   `tabpanel` each in the workspace shell. It replaces the menu button, the navigation drawer, the
@@ -24,7 +24,10 @@ asked for a phone-first design. Spec: issue #174.
 - **One-row top bar** with the trip title. The fact chips are hidden on phones but stay mounted, so
   their editors still open (as bottom sheets) from the trip facts sheet the title opens.
 - **Trip tab** renders Your Trip in place; `openTrip()` selects the tab on a phone instead of
-  opening the drawer, and the drawers are closed whenever the phone shell takes over.
+  opening the drawer. When the phone shell takes over, an open Trip drawer becomes the Trip tab and
+  the other drawers close; widening from the Trip tab opens the drawer again. The
+  [layout reducer note](../architecture/2026-10-06-workspace-layout-reducer.md) owns these
+  crossings.
 - **Mine tab** reuses ChatsPanel and an embedded TripsPage, including its calendar. Search filters
   both lists, every open/new action returns to Chat, and touch row menus stay visible. Settings &
   account, data mode and language live here.

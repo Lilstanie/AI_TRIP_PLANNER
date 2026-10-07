@@ -9,6 +9,7 @@ import { MessageItem } from "./MessageItem";
 import { QuestionComposer } from "./QuestionComposer";
 import type { PendingAsk, QuestionAnswer } from "@/lib/workspace/ask-user";
 import type { PreparedAttachment } from "@/lib/chat/attachments";
+import type { Notice } from "@/lib/i18n/notice";
 import { useLocale } from "../account/LocaleProvider";
 
 export function ChatPanel({
@@ -28,7 +29,7 @@ export function ChatPanel({
   attachments,
   onRemoveAttachment,
   canAttach,
-  attachNotice,
+  attachNotices,
   ask,
   onAnswer,
   onDismissAsk,
@@ -53,7 +54,7 @@ export function ChatPanel({
   /** Cancels the active request without changing the current plan. */
   onCancel?: () => void;
   /** High-level request error shown in the workspace. */
-  error?: string;
+  error?: Notice;
   /** Receives files picked, dropped or pasted into the composer. */
   onAttachFiles?: (files: File[]) => void;
   /** Files held for the next message, drawn as chips inside the composer. */
@@ -62,8 +63,8 @@ export function ChatPanel({
   onRemoveAttachment?: (id: string) => void;
   /** False at the per-message attachment limit. */
   canAttach?: boolean;
-  /** One line under the chips explaining a refusal or the limit. */
-  attachNotice?: string;
+  /** One line under the chips explaining each refusal or the limit. */
+  attachNotices?: readonly Notice[];
   /** A structured question awaiting an answer; its card takes the composer's seat. */
   ask?: PendingAsk;
   /** Receives the question card's answers. */
@@ -71,7 +72,7 @@ export function ChatPanel({
   /** Dismisses the question card and brings the composer back. */
   onDismissAsk?: () => void;
 }) {
-  const { t, notice: localizeNotice } = useLocale();
+  const { t } = useLocale();
   const stream = useRef<HTMLDivElement>(null);
   /** Messages already on screen when the panel mounted -- a transcript restored
    *  from storage after a reload. Only a reply that arrives after them is new,
@@ -131,7 +132,7 @@ export function ChatPanel({
             className={`agent-activity${error && !busy ? " agent-activity--error" : ""}`}
             aria-label={t("Thinking process")}
           >
-            <ThinkingProcess activity={activity} busy={busy} error={localizeNotice(error)} />
+            <ThinkingProcess activity={activity} busy={busy} error={error} />
           </section>
         )}
       </div>
@@ -161,7 +162,7 @@ export function ChatPanel({
             {...(attachments ? { attachments } : {})}
             {...(onRemoveAttachment ? { onRemoveAttachment } : {})}
             {...(canAttach === undefined ? {} : { canAttach })}
-            {...(attachNotice ? { attachNotice } : {})}
+            {...(attachNotices ? { attachNotices } : {})}
           />
         </form>
       )}

@@ -5,11 +5,12 @@ import { MAX_TRIP_PREFERENCE_LENGTH, MAX_TRIP_PREFERENCES, type LegModeChoice } 
 import { draftPreferences, type Draft } from "@/lib/workspace";
 import { CloseIcon } from "../ui/icons";
 import { Input } from "../ui/input";
+import type { Notice } from "@/lib/i18n/notice";
 
 type Props = {
   value: Draft;
   onChange(next: Draft): void;
-  errors: Record<string, string>;
+  errors: Record<string, Notice>;
 };
 
 const clean = (text: string) => text.trim().replace(/\s+/g, " ");
@@ -25,9 +26,9 @@ export function PreferenceList({ value, onChange, errors }: Props) {
   const [items, setItems] = useState(() => draftPreferences(value));
   const [pending, setPending] = useState("");
   const [editing, setEditing] = useState<{ index: number; text: string }>();
-  const [notice, setNotice] = useState("");
+  const [notice, setNotice] = useState<Notice>();
   // A duplicate is refused where the traveller can see why, next to the field.
-  const [problem, setProblem] = useState("");
+  const [problem, setProblem] = useState<Notice>();
   const addInput = useRef<HTMLInputElement>(null);
   const list = useRef<HTMLUListElement>(null);
   const [focusNext, setFocusNext] = useState<"add" | { row: number; part: "edit" | "field" }>();
@@ -71,13 +72,13 @@ export function PreferenceList({ value, onChange, errors }: Props) {
     const text = clean(pending);
     if (!text) return;
     if (items.some((item) => same(item, text))) {
-      setProblem(t("That preference is already on the list."));
+      setProblem({ key: "That preference is already on the list." });
       return;
     }
     const next = [...items, text];
     setItems(next);
     setPending("");
-    setNotice(t("Added “{text}”.", { text }));
+    setNotice({ key: "Added “{text}”.", params: { text } });
     publish(next, "");
   };
   const remove = (index: number) => {
@@ -85,7 +86,7 @@ export function PreferenceList({ value, onChange, errors }: Props) {
     const next = items.filter((_, at) => at !== index);
     setItems(next);
     setEditing(undefined);
-    setNotice(t("Removed “{text}”.", { text: removed ?? "" }));
+    setNotice({ key: "Removed “{text}”.", params: { text: removed ?? "" } });
     publish(next, pending, undefined);
     setFocusNext(next.length ? { row: index, part: "edit" } : "add");
   };
@@ -101,7 +102,7 @@ export function PreferenceList({ value, onChange, errors }: Props) {
     const duplicate = items.some((item, at) => at !== index && same(item, text));
     if (keep && !text) return remove(index);
     const next = keep && !duplicate ? items.map((item, at) => (at === index ? text : item)) : items;
-    setProblem(keep && duplicate ? t("That preference is already on the list.") : "");
+    setProblem(keep && duplicate ? { key: "That preference is already on the list." } : undefined);
     setItems(next);
     setEditing(undefined);
     publish(next, pending, undefined);
@@ -140,8 +141,8 @@ export function PreferenceList({ value, onChange, errors }: Props) {
         }
         onChange={(event) => {
           setPending(event.target.value);
-          setNotice("");
-          setProblem("");
+          setNotice(undefined);
+          setProblem(undefined);
           publish(items, event.target.value);
         }}
         onKeyDown={(event) => {
@@ -239,7 +240,7 @@ function LearnedList({
 }: {
   value: Draft;
   onChange(next: Draft): void;
-  onNotice(text: string): void;
+  onNotice(notice: Notice): void;
 }) {
   const { t, notice: localizeNotice } = useLocale();
   const learned = value.learnedPreferences ?? [];
@@ -293,7 +294,7 @@ function LearnedList({
               aria-label={t("Remove “{v0}”", { v0: row.text })}
               onClick={() => {
                 onChange(row.remove());
-                onNotice(`Removed “${row.text}”.`);
+                onNotice({ key: "Removed “{text}”.", params: { text: row.text } });
               }}
             >
               <CloseIcon />
