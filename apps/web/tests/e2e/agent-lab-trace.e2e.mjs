@@ -38,6 +38,21 @@
 //   does not highlight the row;
 // - the bar is wider than the screen at 390 px, or lane labels do not abbreviate there.
 //
+// --- #221 folds: failure inventory, written before implementation -------------------------------
+// - the trace panel has no Rounds or Calls fold, or a fold is not a button with a pressed state a
+//   keyboard user can reach and toggle;
+// - Rounds folded still shows rows that belong to a round, hides run-level rows, or leaves no heading per
+//   round (the outline), or the headings' round numbers differ from the rounds the artifact records;
+// - Calls folded still shows a tool row, or hides specialist and coordinator rows with the tools;
+// - unfolding does not restore every row (rows after unfold differ from the events delivered);
+// - folding changes the event count or the Fixture/Live label in the panel heading;
+// - folding both at once hides a row neither fold names, or one fold's state leaks into the other;
+// - after folding, the box stops following the newest event or strands the visitor past the list end;
+// - a fold on one Compare side changes another side's list;
+// - the toolbar makes the page scroll horizontally at 390 px;
+// - a fold changes the time bar (a block count or any block differs from before the fold).
+// --- end #221 failure inventory ---------------------------------------------------------------
+//
 //   pnpm --filter @trip/web e2e agent-lab-trace   (fixture mode needs no keys)
 //   [CHANNEL=chrome] [PLAYWRIGHT=<path to playwright>] node apps/web/tests/e2e/agent-lab-trace.e2e.mjs
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -326,13 +341,13 @@ async function desktop(browser) {
   const state = await boxState(page);
   const docHeight = await page.evaluate(() => document.documentElement.scrollHeight);
   const headerHeight = await page.locator(".agent-lab__header").evaluate((n) => n.offsetHeight);
-  const barHeight = await page
-    .locator(BAR)
-    .first()
-    .evaluate((n) => n.offsetHeight);
+  // The bar and the fold toolbar sit above the box, so they are allowed on top of the box's own height.
+  const aboveBox = await page
+    .locator(`${BAR}, .agent-lab__trace-toolbar`)
+    .evaluateAll((nodes) => nodes.reduce((sum, n) => sum + n.offsetHeight, 0));
   check(
-    docHeight <= 1000 + headerHeight + barHeight + HEIGHT_SLACK,
-    `${tag}: document is ${docHeight}px, within one viewport plus the header (${headerHeight}px) and the bar (${barHeight}px)`,
+    docHeight <= 1000 + headerHeight + aboveBox + HEIGHT_SLACK,
+    `${tag}: document is ${docHeight}px, within one viewport plus the header (${headerHeight}px) and the bar and toolbar (${aboveBox}px)`,
   );
   check(
     state.rows === events,
@@ -632,6 +647,172 @@ async function phone(browser) {
   await closeOut(session);
 }
 
+// ===== #221 folds: Rounds and Calls toolbar (start) ==================================================
+const eventsOf = (body) => completeOf(body).artifact.events;
+const TOOL_TYPES = new Set([
+  "tool_started",
+  "tool_completed",
+  "tool_failed",
+  "lab_tool_started",
+  "lab_tool_completed",
+]);
+const roundOf = (runEvent) => runEvent.event.round;
+const panelHeading = (page) =>
+  page.locator(".agent-lab__panel-heading [data-agent-lab-provenance]").first().innerText();
+
+async function foldChecks(page, tag, artifactEvents, scope = "") {
+  const total = artifactEvents.length;
+  const roundNumbers = [...new Set(artifactEvents.map(roundOf).filter((n) => n !== undefined))];
+  const runLevel = artifactEvents.filter((e) => roundOf(e) === undefined).length;
+  const tools = artifactEvents.filter((e) => TOOL_TYPES.has(e.event.type)).length;
+  const rounds = page.locator(`${scope} [data-agent-lab-fold="rounds"]`).first();
+  const calls = page.locator(`${scope} [data-agent-lab-fold="calls"]`).first();
+  const rows = () => page.locator(`${scope} [data-agent-lab-event]`).count();
+  const headings = () =>
+    page.locator(`${scope} [data-agent-lab-round]`).evaluateAll((n) => n.map((x) => x.textContent));
+  const heading = await panelHeading(page);
+  // The time bar always shows the whole run: no fold may change a block (#221 acceptance).
+  const barBefore = JSON.stringify(await readBar(page, scope));
+  const barUnchanged = async (when) => {
+    const now = await readBar(page, scope);
+    check(
+      JSON.stringify(now) === barBefore,
+      `${tag}: the time bar is identical ${when} (${now.lanes.reduce((n, l) => n + l.blocks.length, 0)} blocks)`,
+    );
+  };
+
+  check(
+    (await rounds.getAttribute("aria-pressed")) === "false" &&
+      (await calls.getAttribute("aria-pressed")) === "false",
+    `${tag}: both folds start unpressed`,
+  );
+  check((await rows()) === total, `${tag}: unfolded list shows all ${total} rows`);
+
+  // Rounds folded: only run-level rows remain, one heading per recorded round.
+  await rounds.click();
+  check((await rounds.getAttribute("aria-pressed")) === "true", `${tag}: Rounds shows pressed`);
+  check(
+    (await rows()) === runLevel,
+    `${tag}: Rounds folded leaves only the ${runLevel} run-level rows (got ${await rows()})`,
+  );
+  const folded = await headings();
+  check(
+    folded.length === roundNumbers.length &&
+      roundNumbers.every((n, i) => folded[i]?.includes(`Round ${n}`)),
+    `${tag}: Rounds folded keeps one heading per round (${roundNumbers.join(", ")}): ${folded.join(" | ")}`,
+  );
+  check((await panelHeading(page)) === heading, `${tag}: folding leaves the panel heading alone`);
+  await barUnchanged("with Rounds folded");
+  await rounds.click();
+  check((await rows()) === total, `${tag}: unfolding Rounds restores every row`);
+
+  // Calls folded: no tool rows, everything else stays.
+  if (tools) {
+    await calls.click();
+    check((await calls.getAttribute("aria-pressed")) === "true", `${tag}: Calls shows pressed`);
+    check(
+      (await page.locator(`${scope} [data-agent-lab-event][data-event-kind="tool"]`).count()) === 0,
+      `${tag}: Calls folded shows no tool rows`,
+    );
+    check(
+      (await rows()) === total - tools,
+      `${tag}: Calls folded keeps the ${total - tools} non-tool rows (got ${await rows()})`,
+    );
+    check((await headings()).length === roundNumbers.length, `${tag}: Calls leaves round headings`);
+    await barUnchanged("with Calls folded");
+    // Both folds together: only rows that are run-level and not tools.
+    await rounds.click();
+    const both = artifactEvents.filter(
+      (e) => roundOf(e) === undefined && !TOOL_TYPES.has(e.event.type),
+    ).length;
+    check((await rows()) === both, `${tag}: both folds leave ${both} rows (got ${await rows()})`);
+    await barUnchanged("with both folds on");
+    await rounds.click();
+    await calls.click();
+    check((await rows()) === total, `${tag}: unfolding both restores every row`);
+  }
+  await barUnchanged("after unfolding");
+  check((await panelHeading(page)) === heading, `${tag}: panel heading unchanged after folds`);
+  return { total, runLevel, tools, rounds: roundNumbers, folded };
+}
+
+async function folds(browser) {
+  const tag = "folds-desktop";
+  const session = await open(browser, { width: 1440, height: 1000, tag });
+  const { page, bodies } = session;
+  await page.getByRole("button", { name: "Run experiment" }).click();
+  await complete(page);
+  const artifactEvents = eventsOf(await bodies[0]);
+  summary[tag] = await foldChecks(page, tag, artifactEvents);
+
+  // Keyboard: the Rounds button takes focus and toggles with Enter and Space; Tab reaches Calls.
+  const rounds = page.locator('[data-agent-lab-fold="rounds"]').first();
+  await rounds.focus();
+  await page.keyboard.press("Enter");
+  check((await rounds.getAttribute("aria-pressed")) === "true", `${tag}: Enter toggles Rounds`);
+  await page.keyboard.press("Space");
+  check((await rounds.getAttribute("aria-pressed")) === "false", `${tag}: Space toggles Rounds`);
+  await page.keyboard.press("Tab");
+  check(
+    (await page.evaluate(() => document.activeElement?.getAttribute("data-agent-lab-fold"))) ===
+      "calls",
+    `${tag}: Tab moves from Rounds to Calls`,
+  );
+
+  // A folded list still follows: fold Calls, run again, and the last row is in view.
+  await page.locator('[data-agent-lab-fold="calls"]').first().click();
+  await page.getByRole("button", { name: "Run experiment" }).click();
+  await complete(page);
+  const after = await boxState(page);
+  check(after.lastInView, `${tag}: a folded list still follows the newest event`);
+  await page.screenshot({ path: `${OUT}/${tag}.png`, fullPage: true });
+  await closeOut(session);
+}
+
+async function foldsCompare(browser) {
+  const tag = "folds-compare";
+  const session = await open(browser, { width: 1440, height: 1000, tag });
+  const { page, bodies } = session;
+  await page.getByRole("button", { name: "Compare all strategies" }).click();
+  await complete(page);
+  const sides = (await Promise.all(bodies)).map(eventsOf);
+  const articles = page.locator("[data-agent-lab-compare-side]");
+  const toggles = page.locator('.agent-lab__compare [data-agent-lab-fold="calls"]');
+  check((await toggles.count()) === 3, `${tag}: each side has its own folds`);
+  await toggles.nth(1).click();
+  const counts = [];
+  for (let i = 0; i < 3; i += 1)
+    counts.push(await articles.nth(i).locator("[data-agent-lab-event]").count());
+  const toolsOf = (events) => events.filter((e) => TOOL_TYPES.has(e.event.type)).length;
+  check(
+    counts[0] === sides[0].length &&
+      counts[2] === sides[2].length &&
+      counts[1] === sides[1].length - toolsOf(sides[1]),
+    `${tag}: folding side 2 changes only side 2 (${counts.join(", ")})`,
+  );
+  summary[tag] = counts;
+  await closeOut(session);
+}
+
+async function foldsPhone(browser) {
+  const tag = "folds-phone";
+  const session = await open(browser, { width: 390, height: 844, tag, touch: true });
+  const { page } = session;
+  await page.getByRole("button", { name: "Run experiment" }).click();
+  await complete(page);
+  const first = page.locator('[data-agent-lab-fold="rounds"]').first();
+  const bar = await first.evaluate((n) => {
+    const r = n.getBoundingClientRect();
+    return { left: r.left, right: r.right, height: r.height };
+  });
+  check(bar.left >= 0 && bar.right <= 390, `${tag}: the toolbar fits the screen`);
+  check(bar.height >= 44, `${tag}: fold buttons are touch-sized (${Math.round(bar.height)}px)`);
+  await first.tap();
+  await page.screenshot({ path: `${OUT}/${tag}.png`, fullPage: true });
+  await closeOut(session);
+}
+// ===== #221 folds (end) ==============================================================================
+
 const browser = await chromium.launch({ channel: process.env.CHANNEL });
 try {
   await desktop(browser);
@@ -641,6 +822,9 @@ try {
   await reducedMotion(browser);
   await compare(browser);
   await phone(browser);
+  await folds(browser); // #221
+  await foldsCompare(browser); // #221
+  await foldsPhone(browser); // #221
 } finally {
   await browser.close();
 }

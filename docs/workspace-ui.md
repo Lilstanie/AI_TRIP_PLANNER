@@ -591,6 +591,13 @@ that row and highlights it for a moment (instantly under reduced motion). At pho
 and lane labels shorten (Coord, Trans, Guide, Stay, Itin, Dine, Base). The
 [trace end-to-end script](../apps/web/tests/e2e/agent-lab-trace.e2e.mjs) checks it at desktop and phone width.
 
+Above the box, a toolbar offers two folds, **Fold rounds** and **Fold calls**, each a button with a pressed
+state that works from the keyboard. Fold rounds hides every row that belongs to a round and leaves one
+heading per round (for example "Round 2 · 9 events"), so only the headings and the run-level rows remain and
+a long run reads as an outline. Fold calls hides every tool row, so specialist and coordinator rows read
+without tool noise. The folds change only the list: the event count and the Fixture or Live label in the
+panel heading stay as they are. Each list, including each side of the Compare view, folds on its own.
+
 The comparison view shows a table of measured figures (latency, rounds, tool calls, fallbacks, failed
 agents, budget, unresolved conflicts, checks, grounded sections, repeated and generic stops,
 multi-city consistency, stopping reason, conflict outcome and token and model cost), the three plans and the three

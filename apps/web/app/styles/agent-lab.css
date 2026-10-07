@@ -413,6 +413,44 @@
   }
 }
 
+/* Folds: pressed is stated by weight and an outline as well as by fill, like the view switcher. */
+.agent-lab__trace-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+/* A fixed height, because the shared 36px min-height floor in forms.css outranks a min-height here. */
+.agent-lab__trace-toolbar button {
+  height: 44px;
+  padding-inline: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-weight: 650;
+  touch-action: manipulation;
+}
+
+.agent-lab__trace-toolbar button[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+  color: var(--accent);
+  font-weight: 750;
+}
+
+.agent-lab__timeline > li.agent-lab__round-heading {
+  display: block;
+  padding: var(--space-2) var(--space-3);
+  background: none;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-dim);
+  font-size: var(--font-size-meta);
+  font-weight: 750;
+}
+
 .agent-lab__timeline > li {
   display: grid;
   grid-template-columns: 28px minmax(0, 1fr);

@@ -26,8 +26,10 @@ The axis is steps, not time: `elapsedMs` includes the 90 ms pacing delay. See th
 
 ## Validation
 
-- `pnpm --filter @trip/web e2e agent-lab-trace`: passes.
-- Other checks: see the final report of the implementing session.
+- After merging #221: `pnpm --filter @trip/web e2e agent-lab-trace` and `agent-lab-replay` pass; comparison,
+  revision, failures and single-agent pass. `agent-lab-replay` timed out on the file chooser twice when run
+  after other scripts in one runner call, and passed when run alone or with the trace script.
+- `typecheck`, `lint`, `verify:docs`, `verify:pairs`, `verify:protected`: pass.
 
 ## Notes for the next person
 
