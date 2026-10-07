@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useLayoutEffect, useRef, type WheelEvent } from "react";
+import { Fragment, useCallback, useLayoutEffect, useRef, useState, type WheelEvent } from "react";
 import type { AgentLabRunEvent } from "@trip/shared";
 import { eventCopy, eventKindLabel } from "@/lib/agent-lab/event-copy";
 
@@ -14,6 +14,16 @@ const BOTTOM_TOLERANCE = 8;
  * always instant: a smooth animation would fire scroll events away from the bottom and suspend itself,
  * and it would ignore a visitor's reduced-motion setting.
  */
+/** The round an event belongs to, when its payload names one. Run-level facts name none. */
+const roundOf = (runEvent: AgentLabRunEvent): number | undefined =>
+  "round" in runEvent.event ? runEvent.event.round : undefined;
+
+/**
+ * Two folds change the list only: Rounds hides every row that belongs to a round (leaving a heading per
+ * round) and Calls hides every tool row. Run-level rows never fold. Fold state is local to one list, so
+ * each side of the Compare view folds on its own, and neither fold touches the event count or the
+ * fixture or live label that the panel shows.
+ */
 export function RunTimeline({
   events,
   label,
@@ -24,6 +34,8 @@ export function RunTimeline({
   const box = useRef<HTMLDivElement>(null);
   const following = useRef(true);
   const seen = useRef(0);
+  const [roundsFolded, setRoundsFolded] = useState(false);
+  const [callsFolded, setCallsFolded] = useState(false);
 
   const onScroll = useCallback(() => {
     const el = box.current;
@@ -43,62 +55,101 @@ export function RunTimeline({
     if (events.length < seen.current) following.current = true;
     seen.current = events.length;
     if (following.current) el.scrollTop = el.scrollHeight;
-  }, [events.length]);
+  }, [events.length, roundsFolded, callsFolded]);
+
+  // One heading per round, always drawn (even while its rows are folded), so a long run reads as an outline.
+  const roundSizes = new Map<number, number>();
+  for (const runEvent of events) {
+    const round = roundOf(runEvent);
+    if (round !== undefined) roundSizes.set(round, (roundSizes.get(round) ?? 0) + 1);
+  }
+  let headed: number | undefined;
 
   return (
-    // Focusable so a keyboard user can scroll the box with the arrow keys.
-    <div
-      className="agent-lab__trace-box"
-      data-agent-lab-trace-box
-      ref={box}
-      role="region"
-      aria-label={label}
-      tabIndex={0}
-      onScroll={onScroll}
-      onWheel={onWheel}
-    >
-      <ol className="agent-lab__timeline">
-        {events.map((runEvent) => {
-          const copy = eventCopy(runEvent);
-          return (
-            <li
-              key={`${runEvent.runId}-${runEvent.sequence}`}
-              data-agent-lab-event
-              data-event-kind={copy.kind}
-            >
-              <span className="agent-lab__sequence">{runEvent.sequence}</span>
-              <div>
-                <span className="agent-lab__kind" data-kind={copy.kind}>
-                  {eventKindLabel[copy.kind]}
-                </span>
-                <strong>{copy.title}</strong>
-                <p>{copy.detail}</p>
-                {copy.constraints ? (
-                  <div className="agent-lab__list">
-                    <span>Constraints</span>
-                    <ul className="agent-lab__constraints" aria-label="Constraints">
-                      {copy.constraints.map((constraint) => (
-                        <li key={constraint}>{constraint}</li>
-                      ))}
-                    </ul>
-                  </div>
+    <>
+      <div className="agent-lab__trace-toolbar" role="group" aria-label="Trace folds">
+        <button
+          type="button"
+          data-agent-lab-fold="rounds"
+          aria-pressed={roundsFolded}
+          onClick={() => setRoundsFolded((folded) => !folded)}
+        >
+          Fold rounds
+        </button>
+        <button
+          type="button"
+          data-agent-lab-fold="calls"
+          aria-pressed={callsFolded}
+          onClick={() => setCallsFolded((folded) => !folded)}
+        >
+          Fold calls
+        </button>
+      </div>
+      {/* Focusable so a keyboard user can scroll the box with the arrow keys. */}
+      <div
+        className="agent-lab__trace-box"
+        data-agent-lab-trace-box
+        ref={box}
+        role="region"
+        aria-label={label}
+        tabIndex={0}
+        onScroll={onScroll}
+        onWheel={onWheel}
+      >
+        <ol className="agent-lab__timeline">
+          {events.map((runEvent) => {
+            const copy = eventCopy(runEvent);
+            const round = roundOf(runEvent);
+            const heading = round !== undefined && round !== headed ? round : undefined;
+            if (round !== undefined) headed = round;
+            const hidden =
+              (roundsFolded && round !== undefined) || (callsFolded && copy.kind === "tool");
+            return (
+              <Fragment key={`${runEvent.runId}-${runEvent.sequence}`}>
+                {heading !== undefined ? (
+                  <li className="agent-lab__round-heading" data-agent-lab-round={heading}>
+                    Round {heading} · {roundSizes.get(heading)}{" "}
+                    {roundSizes.get(heading) === 1 ? "event" : "events"}
+                  </li>
                 ) : null}
-                {copy.list ? (
-                  <div className="agent-lab__list">
-                    <span>{copy.list.heading}</span>
-                    <ul className="agent-lab__constraints" aria-label={copy.list.heading}>
-                      {copy.list.lines.map((line) => (
-                        <li key={line}>{line}</li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : null}
-                <small>+{runEvent.elapsedMs} ms</small>
-              </div>
-            </li>
-          );
-        })}
-      </ol>
-    </div>
+                {hidden ? null : (
+                  <li data-agent-lab-event data-event-kind={copy.kind}>
+                    <span className="agent-lab__sequence">{runEvent.sequence}</span>
+                    <div>
+                      <span className="agent-lab__kind" data-kind={copy.kind}>
+                        {eventKindLabel[copy.kind]}
+                      </span>
+                      <strong>{copy.title}</strong>
+                      <p>{copy.detail}</p>
+                      {copy.constraints ? (
+                        <div className="agent-lab__list">
+                          <span>Constraints</span>
+                          <ul className="agent-lab__constraints" aria-label="Constraints">
+                            {copy.constraints.map((constraint) => (
+                              <li key={constraint}>{constraint}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : null}
+                      {copy.list ? (
+                        <div className="agent-lab__list">
+                          <span>{copy.list.heading}</span>
+                          <ul className="agent-lab__constraints" aria-label={copy.list.heading}>
+                            {copy.list.lines.map((line) => (
+                              <li key={line}>{line}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : null}
+                      <small>+{runEvent.elapsedMs} ms</small>
+                    </div>
+                  </li>
+                )}
+              </Fragment>
+            );
+          })}
+        </ol>
+      </div>
+    </>
   );
 }
