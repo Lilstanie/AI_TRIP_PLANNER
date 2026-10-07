@@ -2,6 +2,13 @@ import { z } from "zod";
 import { TripPlan, type ProposalItem } from "@trip/shared";
 import { detectConflicts, rollUpCost } from "@trip/orchestrator";
 import {
+  BASE_CURRENCY,
+  describeFlightChoice,
+  describeStayChoice,
+  moneyIn,
+  stayChoiceCost,
+} from "@trip/shared";
+import {
   googleRoute,
   placeDetails,
   timeZone,
@@ -25,6 +32,12 @@ export const EditRequest = z.object({
     }),
     z.object({ kind: z.literal("time"), id: z.string(), startTime: clock, endTime: clock }),
     z.object({ kind: z.literal("place"), id: z.string(), placeId: z.string().min(1).max(300) }),
+    z.object({
+      kind: z.literal("choose"),
+      section: z.enum(["accommodation", "transport"]),
+      selectionId: z.string().min(1).max(100),
+      candidateId: z.string().min(1).max(100),
+    }),
     z.object({
       kind: z.literal("undo"),
       activities: z.array(
@@ -71,6 +84,115 @@ const outsideDay = (blocker: Notice) => "key" in blocker && blocker.key === BEYO
 const mins = (value: string) => Number(value.slice(0, 2)) * 60 + Number(value.slice(3));
 const hhmm = (value: number) =>
   `${String(Math.floor(value / 60)).padStart(2, "0")}:${String(value % 60).padStart(2, "0")}`;
+/**
+ * Recompute everything an edit can move: conflicts, section status, costs and
+ * the version. Every operation ends here, so a new one cannot quietly skip the
+ * budget roll-up or leave a stale conflict behind.
+ */
+function settle(plan: TripPlan, baseVersion: number): void {
+  plan.conflicts = detectConflicts(
+    plan.sections.flatMap((s) => (s.proposal ? [s.proposal] : [])),
+    plan.brief,
+  );
+  // A section is unresolved when the recomputed conflicts still target it — the
+  // same rule the orchestrator uses. An edit no longer rebuilds a decision list.
+  plan.sections.forEach((section) => {
+    section.status = plan.conflicts?.some((c) => c.targetAgent === section.id)
+      ? "needs_you"
+      : "draft";
+  });
+  // Recompute from item evidence, never trust client totals.
+  plan.sections.forEach((s) => {
+    if (s.proposal) s.estCost = s.proposal.items.reduce((sum, i) => sum + (i.estCost ?? 0), 0);
+  });
+  plan.budgetTotal = plan.brief.budgetTotal;
+  // Share the orchestrator's calculator rather than keeping a float copy of it here. The two
+  // already disagreed by float dust, and converted budgets make fractional cents routine.
+  Object.assign(plan, rollUpCost(plan.sections, plan.budgetTotal));
+  plan.editVersion = baseVersion + 1;
+}
+
+/**
+ * Take a different stay or fare from the ones the specialist already found.
+ *
+ * Deliberately not part of the activity path above: that path exists to re-time
+ * and re-route stops, and none of it applies to swapping a priced choice. The
+ * item is found by `selectionId` rather than by day, because a day can carry
+ * both a flight and a ground hop.
+ */
+/** The preview shows amounts in the base currency; the interface re-formats them. */
+const aud = (amount: number) => moneyIn(amount, BASE_CURRENCY);
+
+function chooseCandidate(
+  plan: TripPlan,
+  baseVersion: number,
+  operation: { section: "accommodation" | "transport"; selectionId: string; candidateId: string },
+): EditPreview {
+  const section = plan.sections.find((s) => s.id === operation.section);
+  const proposal = section?.proposal;
+  if (!proposal)
+    throw new NoticeError({ key: "That part of the plan has nothing to choose from." });
+  const item = proposal.items.find((i) => i.selectionId === operation.selectionId);
+  if (!item) throw new NoticeError({ key: "That choice is no longer part of the plan." });
+
+  let before: string;
+  let after: string;
+  let label: string;
+
+  if (operation.section === "accommodation") {
+    const stay = proposal.stays?.find((s) => s.id === operation.selectionId);
+    const chosen = stay?.candidates.find((c) => c.id === operation.candidateId);
+    const was = stay?.candidates.find((c) => c.id === stay.selectedId);
+    if (!stay || !chosen || !was)
+      throw new NoticeError({ key: "That stay option is no longer offered." });
+    const cost = stayChoiceCost(chosen.pricePerNight, stay.rooms, stay.nights);
+    label = stay.city;
+    before = `${was.name}, ${aud(stayChoiceCost(was.pricePerNight, stay.rooms, stay.nights))}`;
+    after = `${chosen.name}, ${aud(cost)}`;
+    stay.selectedId = chosen.id;
+    item.estCost = cost;
+    item.detail = describeStayChoice({
+      ...chosen,
+      checkIn: stay.checkIn,
+      checkOut: stay.checkOut,
+      rooms: stay.rooms,
+      nights: stay.nights,
+      cost,
+    });
+  } else {
+    const flight = proposal.flights?.find((f) => f.id === operation.selectionId);
+    const chosen = flight?.candidates.find((c) => c.id === operation.candidateId);
+    const was = flight?.candidates.find((c) => c.id === flight.selectedId);
+    if (!flight || !chosen || !was)
+      throw new NoticeError({ key: "That fare is no longer offered." });
+    label = `${flight.from} → ${flight.to}`;
+    before = `${was.carrier}, ${aud(was.price)}`;
+    after = `${chosen.carrier}, ${aud(chosen.price)}`;
+    flight.selectedId = chosen.id;
+    item.estCost = chosen.price;
+    // The transport agent prices the first hop as a return fare, so its sentence names the
+    // return date; a swapped fare has to say the same thing.
+    const returning = flight.id === "flight-0" ? plan.brief.dates[1] : undefined;
+    item.detail = describeFlightChoice({
+      from: flight.from,
+      to: flight.to,
+      carrier: chosen.carrier,
+      ...(chosen.note ? { note: chosen.note } : {}),
+      ...(returning ? { returning } : {}),
+    });
+  }
+
+  settle(plan, baseVersion);
+  return {
+    plan: TripPlan.parse(plan),
+    baseVersion,
+    routes: [],
+    differences: [{ stop: label, before, after, placeChanged: false }],
+    blockers: [],
+    blockerNotices: [],
+  };
+}
+
 export async function previewEdit(
   input: unknown,
   deps = { googleRoute, placeDetails, timeZone },
@@ -83,6 +205,7 @@ export async function previewEdit(
     plan.sections.some((s) => s.proposal && s.proposal.agent !== s.id)
   )
     throw new NoticeError({ key: "Plan identifiers do not match. Restore or replan first." });
+  if (operation.kind === "choose") return chooseCandidate(plan, baseVersion, operation);
   const section = plan.sections.find((s) => s.id === "itinerary");
   if (!section?.proposal) throw new NoticeError({ key: "There are no activities to edit." });
   // Ideas (activities with no day) are set aside and kept as they are: only scheduled stops are
@@ -299,26 +422,7 @@ export async function previewEdit(
         activityIds: [a.id!],
       })),
   ];
-  plan.conflicts = detectConflicts(
-    plan.sections.flatMap((s) => (s.proposal ? [s.proposal] : [])),
-    plan.brief,
-  );
-  // A section is unresolved when the recomputed conflicts still target it — the
-  // same rule the orchestrator uses. An edit no longer rebuilds a decision list.
-  plan.sections.forEach((section) => {
-    section.status = plan.conflicts?.some((c) => c.targetAgent === section.id)
-      ? "needs_you"
-      : "draft";
-  });
-  // Recompute from item evidence, never trust client totals.
-  plan.sections.forEach((s) => {
-    if (s.proposal) s.estCost = s.proposal.items.reduce((sum, i) => sum + (i.estCost ?? 0), 0);
-  });
-  plan.budgetTotal = plan.brief.budgetTotal;
-  // Share the orchestrator's calculator rather than keeping a float copy of it here. The two
-  // already disagreed by float dust, and converted budgets make fractional cents routine.
-  Object.assign(plan, rollUpCost(plan.sections, plan.budgetTotal));
-  plan.editVersion = baseVersion + 1;
+  settle(plan, baseVersion);
   const differences = activities.flatMap((a): EditDifference[] => {
     const old = before.find((b) => b.id === a.id)!;
     return old.day !== a.day ||

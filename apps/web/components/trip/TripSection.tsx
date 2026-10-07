@@ -18,9 +18,12 @@ const STATUS_LABEL: Record<string, MessageKey> = {
 export function TripSection({
   section,
   onEdit,
+  onChoose,
 }: {
   section: TripSectionData;
   onEdit: () => void;
+  /** The section names itself, so nothing has to infer it from a selection id. */
+  onChoose?: (sectionId: string, selectionId: string, candidateId: string) => void;
 }) {
   const { t, money } = useLocale();
   const [open, setOpen] = useState(false);
@@ -61,7 +64,15 @@ export function TripSection({
                     t("These estimates are not live verified.")}
                 </p>
               </div>
-              <ProposalDetails section={section} />
+              <ProposalDetails
+                section={section}
+                {...(onChoose
+                  ? {
+                      onChoose: (selectionId: string, candidateId: string) =>
+                        onChoose(section.id, selectionId, candidateId),
+                    }
+                  : {})}
+              />
               <button onClick={onEdit}>{t("Change trip preferences")}</button>
               {section.proposal.assumptions.length > 0 && (
                 <details className="assumptions">

@@ -1,5 +1,6 @@
 // Owner: C — lodging proposals and price revisions via injected tools and memory.
 import {
+  describeStayChoice,
   AgentProposal as AgentProposalSchema,
   type AgentProposal,
   type TripBrief,
@@ -223,8 +224,16 @@ function assembleStayProposal(
     items: selections.map(({ segment, chosen, cost }) => ({
       kind: "hotel",
       day: segment.day,
+      selectionId: `stay-${segment.day}`,
       estCost: cost,
-      detail: `${chosen.name} — ${chosen.area}; ${segment.checkIn} to ${segment.checkOut}; ${rooms} room(s) × ${segment.nights} night(s) × AUD ${chosen.pricePerNight.toFixed(2)} per room/night = AUD ${cost.toFixed(2)}; rating ${(chosen.rating / 2).toFixed(1)}/5; ${chosen.freeCancellation ? "free cancellation" : "no free cancellation"}.`,
+      detail: describeStayChoice({
+        ...chosen,
+        checkIn: segment.checkIn,
+        checkOut: segment.checkOut,
+        rooms,
+        nights: segment.nights,
+        cost,
+      }),
     })),
     assumptions,
     conflictsWith: [],

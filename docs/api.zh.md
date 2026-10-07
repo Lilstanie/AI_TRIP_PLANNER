@@ -290,13 +290,17 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 }
 ```
 
-`operation.kind` 为 `verify`（检查某一天的路线）、`move`、`time`、`place` 或 `undo`。只有带日期的活动会被规划路线和重新排时；ideas（没有日期的活动）原样保留。
+`operation.kind` 为 `verify`（检查某一天的路线）、`move`、`time`、`place`、`choose` 或 `undo`。只有带日期的活动会被规划路线和重新排时；ideas（没有日期的活动）原样保留。
 响应为 `{ plan, baseVersion, routes, differences, blockers, blockerNotices }`。每条 difference 是数值对象
 `{ stop, days?: { from, to }, before, after, placeChanged }`，由界面按所选语言组织文字。`blockerNotices` 以 Notice
 列出阻止此修改的原因（应用自身的措辞为 `{ key, params }`，路线服务商的文字为 `{ raw }`），界面按所选语言显示；
 `blockers` 以英文句子重复同样内容，供旧版客户端使用。它只是预览：客户端在用户确认后才应用它，若 `baseVersion`
 已不匹配则拒绝应用。无效编辑返回 400 和 `{ error, notice }`：`error` 是旧版客户端读取的英文句子，`notice`
 是同一拒绝原因的 Notice；不属于应用自身拒绝原因的错误（例如格式错误的请求体）以 `{ raw }` 返回。
+
+`choose` 接收 `{ section: "accommodation" | "transport", selectionId, candidateId }`，把住宿或机票换成专员已经找到的另一个候选。
+系统按 `selectionId` 找到对应条目，用与专员相同的措辞重新定价和描述，并像其他修改一样重新计算费用、冲突和版本号。
+界面会直接应用 `choose` 的预览而不先询问，因为变化的只是旅行者刚看到的价格。条目带有 `selectionId` 之前保存的方案会被拒绝，不会去猜。
 
 <a id="related-contracts"></a>
 

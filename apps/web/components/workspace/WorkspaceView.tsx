@@ -3,6 +3,7 @@ import { useEffect, useRef, type CSSProperties } from "react";
 import { TripFactChips } from "../preferences/TripFactChips";
 import { ChatPanel } from "../chat/ChatPanel";
 import { TripEditor } from "../trip/TripEditor";
+import { useChooseCandidate } from "../trip/useChooseCandidate";
 import { TripMapCanvas } from "../map/TripMapCanvas";
 import { TripPanel, tripStatus } from "../trip/TripPanel";
 import { TripPlaceList } from "../trip/TripPlaceList";
@@ -89,6 +90,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
   const { keyboardOpen } = usePhoneKeyboard(phone);
   const { tripUpdated } = usePhoneTripUpdates(model);
   usePhoneBack(phone);
+  const chooser = useChooseCandidate(plan, session.applyEdit, session.trackEdit);
   const chatsButton = useRef<HTMLButtonElement>(null);
   const chatsSearch = useRef<HTMLInputElement>(null);
   const chatsPanel = useRef<HTMLDivElement>(null);
@@ -213,6 +215,8 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
           onTab={layout.showTripTab}
           onReview={() => openDialog("review")}
           onEdit={edit}
+          {...(busy || editPending || chooser.working ? {} : { onChoose: chooser.choose })}
+          {...(chooser.problem ? { problem: chooser.problem } : {})}
           places={
             <TripPlaceList
               tripPlaces={tripPlaces}

@@ -7,6 +7,7 @@ import { statusForPlan } from "@/lib/workspace/catalog";
 import { itineraryActivities } from "@/lib/workspace";
 import { useSegmentIndicator } from "../ui/motion";
 import type { MessageKey } from "@/lib/i18n/locale";
+import type { Notice } from "@/lib/i18n/notice";
 import { useLocale } from "../account/LocaleProvider";
 
 export type TripTab = "overview" | "timeline";
@@ -30,6 +31,8 @@ export function TripPanel({
   places,
   onReview,
   onEdit,
+  onChoose,
+  problem,
 }: {
   plan: TripPlan;
   tab: TripTab;
@@ -39,8 +42,12 @@ export function TripPanel({
   places?: ReactNode;
   onReview: () => void;
   onEdit: () => void;
+  /** Swap a stay or fare inside a section; absent while the plan is busy. */
+  onChoose?: (sectionId: string, selectionId: string, candidateId: string) => void;
+  /** Why the last swap could not be made. */
+  problem?: Notice;
 }) {
-  const { t, money, budgetGap } = useLocale();
+  const { t, money, budgetGap, notice: localizeNotice } = useLocale();
   const estimated =
     Number.isFinite(plan.estTotal) && plan.estTotal >= 0 ? plan.estTotal : undefined;
   const budget =
@@ -137,11 +144,17 @@ export function TripPanel({
         {tab === "overview" ? (
           <>
             {places}
+            {problem && (
+              <p className="item-problem" role="alert">
+                {localizeNotice(problem)}
+              </p>
+            )}
             {plan.sections.length ? (
               plan.sections.map((section) => (
                 <TripSection
                   key={section.id}
                   section={section}
+                  {...(onChoose ? { onChoose } : {})}
                   onEdit={onEdit}
                 />
               ))

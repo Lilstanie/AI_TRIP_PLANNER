@@ -516,11 +516,35 @@
   gap: 4px;
   font-size: 12px;
 }
-.alternatives__list li {
+.alternatives__row,
+.alternatives__pick {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: baseline;
   gap: 8px;
+  width: 100%;
+}
+.alternatives__pick {
+  padding: 4px 6px;
+  margin: -4px -6px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.alternatives__pick:hover,
+.alternatives__pick:focus-visible {
+  background: var(--surface-2, rgb(255 255 255 / 6%));
+}
+/* A row of 12px text is about 24px tall, which is a poor finger target. Give it
+   the usual minimum where the pointer is coarse, and leave the mouse alone. */
+@media (pointer: coarse) {
+  .alternatives__pick {
+    min-height: 44px;
+  }
 }
 .alternatives__label {
   overflow: hidden;

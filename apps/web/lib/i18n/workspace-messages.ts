@@ -145,6 +145,7 @@ export const WORKSPACE_ZH = {
   "Rooms / nights": "房间 / 晚数",
   "Room per night": "每间每晚",
   "Also found": "其他可选",
+  "Take {v0} instead, {v1}": "改选 {v0}，{v1}",
   "This flight needs a new selection.": "这趟航班需要重新选择。",
   Depart: "出发",
   Travellers: "出行人数",
@@ -630,6 +631,10 @@ export const WORKSPACE_ZH = {
   "This edit is stale. Start from the current plan.": "此修改已过时，请基于当前行程重新修改。",
   "Plan identifiers do not match. Restore or replan first.": "行程标识不一致，请先恢复或重新规划。",
   "There are no activities to edit.": "没有可修改的活动。",
+  "That part of the plan has nothing to choose from.": "这部分方案没有可选项。",
+  "That choice is no longer part of the plan.": "这个选项已不在方案中。",
+  "That stay option is no longer offered.": "这个住宿选项已不可选。",
+  "That fare is no longer offered.": "这个票价已不可选。",
   "Activities need unique IDs and a complete schedule before editing.":
     "修改前，每项活动都需要唯一标识和完整的时间安排。",
   "Undo activities do not match this plan.": "要撤销的活动与此行程不一致。",

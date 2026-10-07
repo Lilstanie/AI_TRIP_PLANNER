@@ -306,7 +306,7 @@ Contract: `EditRequest` and `EditPreview` in `apps/web/lib/trip/trip-edit.ts`.
 }
 ```
 
-`operation.kind` is `verify` (a day's routes), `move`, `time`, `place` or `undo`. Only activities with a
+`operation.kind` is `verify` (a day's routes), `move`, `time`, `place`, `choose` or `undo`. Only activities with a
 day are routed and re-timed; ideas (activities without a day) pass through unchanged. The response is
 `{ plan, baseVersion, routes, differences, blockers, blockerNotices }`. Each difference is a value
 object `{ stop, days?: { from, to }, before, after, placeChanged }` that the interface words in the
@@ -317,6 +317,13 @@ client applies it when the user confirms and rejects it if `baseVersion` no long
 invalid edit returns 400 with `{ error, notice }`: `error` is the English sentence older clients
 read and `notice` the same refusal as a Notice; an error that is not one of the app's own refusals,
 such as a malformed body, comes back as `{ raw }`.
+
+`choose` takes `{ section: "accommodation" | "transport", selectionId, candidateId }` and swaps a
+stay or fare for another candidate the specialist already found. The item is found by its
+`selectionId`, re-priced and re-described in the same words the specialist uses, and the costs,
+conflicts and version are recomputed as for any other edit. The interface applies a `choose`
+preview straight away rather than asking first, because only the price the traveller just read
+changes. A plan saved before items carried `selectionId` is refused rather than guessed at.
 
 ## Account routes
 

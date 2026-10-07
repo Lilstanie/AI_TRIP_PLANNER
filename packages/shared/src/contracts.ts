@@ -194,6 +194,16 @@ export const ProposalItem = z
     location: z.string().trim().min(1).optional(),
     /** The connection into this item from the previous one on the same day. */
     arriveBy: ArriveBy.optional(),
+    /**
+     * The `StaySelection` or `FlightSelection` this item was priced from.
+     *
+     * A section's items and its selections are built from the same list, in the
+     * same order, but nothing recorded which went with which: an editor that
+     * swapped a fare had to guess the item by day, and a day carrying both a
+     * flight and a ground hop guesses wrong. Optional, because most items are
+     * not priced from a selection at all.
+     */
+    selectionId: z.string().min(1).optional(),
     /** The traveller's own note on this item. */
     note: z.string().trim().max(500).optional(),
     /** The traveller has booked this item themselves. */
