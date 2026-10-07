@@ -19,7 +19,7 @@ any count reaches its threshold, or when a skill names a path or command that no
 
 | Signal                                                                                                                                                      | Default | Flag            |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | --------------- |
-| Merged pull requests (squash commits ending in `(#N)`)                                                                                                      | 8       | `--prs`         |
+| Merged pull requests (squash commits ending in `(#N)` or `Merge pull request #N` commits)                                                                   | 8       | `--prs`         |
 | Issues closed                                                                                                                                               | 5       | `--issues`      |
 | Pull requests closed without merging (a rejected or redone change)                                                                                          | 2       | `--unmerged`    |
 | Commits on convention files (AGENTS.md, development and team-workflow docs, CI, verify scripts, root `package.json`, Prettier, TypeScript and Turbo config) | 1       | `--conventions` |

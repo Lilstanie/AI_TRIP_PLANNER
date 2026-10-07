@@ -9,8 +9,8 @@ Position, spacing and alignment show hierarchy before anyone reads a word. This 
 **inside** the workspace's regions. The regions themselves are fixed by the
 [design contract](../../../docs/design/ui-guidelines.md): the sidebar, chat and map grid, the overlay
 drawers, the breakpoints and the sidebar resizing. Follow the layout for the viewport: the
-narrow-screen Chat/Map switch, or the phone Chat, Map, Trip and Mine tabs on branches containing
-[the phone shell](https://github.com/Lilstanie/AI_TRIP_PLANNER/pull/183). Their current behaviour is
+narrow-screen Chat/Map switch, or the phone shell's Chat, Map, Trip and Mine tabs at 520 px and
+below. Their current behaviour is
 in [workspace-ui.md](../../../docs/workspace-ui.md). A layout finding never proposes changing
 those regions. If a region really does need to change, raise it as a design decision.
 
