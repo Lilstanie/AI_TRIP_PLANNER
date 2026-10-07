@@ -120,3 +120,34 @@ export function moneyIn(amount: number, currency: Currency): string {
     currencyDisplay: "narrowSymbol",
   }).format(amount);
 }
+
+/** How many decimals each currency shows. JPY has no minor unit; the rest show cents. */
+const MINOR_DIGITS: Record<Currency, number> = { AUD: 2, CNY: 2, USD: 2, JPY: 0 };
+
+/**
+ * `cents`: `AUD 12.50`, the default. `whole`: `AUD 1,582`, grouped, for headline figures.
+ * `plain`: `AUD 4000`, the amount as typed; it only differs from `cents` in AUD, where it keeps
+ * a budget exactly as the traveller wrote it. Other currencies are converted, so they show as `cents`.
+ */
+export type MoneyStyle = "cents" | "whole" | "plain";
+
+/**
+ * An AUD planning amount as traveller-facing text in `currency`, converted through AUD_PER.
+ *
+ * This is the one place generated text spells an amount. The orchestrator and the specialists
+ * hold every amount in AUD and pass the trip's display currency here; AUD output is byte-for-byte
+ * `AUD ${amount.toFixed(2)}` (or the whole/plain variants). Amounts inside model prompts that
+ * drive planning do not use it. Throws on a non-finite amount rather than printing `AUD NaN`.
+ */
+export function formatMoney(
+  amountAud: number,
+  currency: Currency,
+  style: MoneyStyle = "cents",
+): string {
+  if (!Number.isFinite(amountAud)) throw new Error("A display amount must be finite.");
+  if (currency === BASE_CURRENCY && style === "plain") return `${currency} ${amountAud}`;
+  const value = currency === BASE_CURRENCY ? amountAud : fromAud(amountAud, currency);
+  if (style === "whole")
+    return `${currency} ${value.toLocaleString("en-AU", { maximumFractionDigits: 0 })}`;
+  return `${currency} ${value.toFixed(MINOR_DIGITS[currency])}`;
+}

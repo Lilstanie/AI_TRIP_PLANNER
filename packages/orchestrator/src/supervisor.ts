@@ -1,4 +1,5 @@
 import {
+  formatMoney,
   AgentProposal as AgentProposalSchema,
   MAX_TRIP_PREFERENCES,
   type AgentContext,
@@ -54,7 +55,7 @@ export function choiceFor(proposal: AgentProposal): ToolChoice | undefined {
     if (!selected) return undefined;
     const describe = (candidate: (typeof flight.candidates)[number]) =>
       [
-        `AUD ${candidate.price.toFixed(2)} total`,
+        `${formatMoney(candidate.price, "AUD")} total`,
         candidate.stops === undefined
           ? undefined
           : candidate.stops === 0
@@ -86,7 +87,7 @@ export function choiceFor(proposal: AgentProposal): ToolChoice | undefined {
       label: selected.name,
       detail: [
         selected.area,
-        `AUD ${cost.toFixed(2)} total`,
+        `${formatMoney(cost, "AUD")} total`,
         outOfFive(selected.rating),
         selected.freeCancellation ? "Free cancellation" : "No free cancellation",
       ].join(" · "),
@@ -98,7 +99,7 @@ export function choiceFor(proposal: AgentProposal): ToolChoice | undefined {
         label: candidate.name,
         detail: [
           candidate.area,
-          `AUD ${(candidate.pricePerNight * stay.nights * stay.rooms).toFixed(2)} total`,
+          `${formatMoney((candidate.pricePerNight * stay.nights * stay.rooms), "AUD")} total`,
           outOfFive(candidate.rating),
           candidate.freeCancellation ? "Free cancellation" : "No free cancellation",
         ].join(" · "),
@@ -161,7 +162,7 @@ export function createSupervisorTools(
     tool(
       async ({ objective }) => {
         options.onProgress?.({
-          summary: `${options.brief.destination} · ${options.brief.dates.join(" to ")} · ${options.brief.groupSize} people · AUD ${options.brief.budgetTotal}`,
+          summary: `${options.brief.destination} · ${options.brief.dates.join(" to ")} · ${options.brief.groupSize} people · ${formatMoney(options.brief.budgetTotal, "AUD", "plain")}`,
           objective,
           type: "agent_started",
           agent: specialist.name,
@@ -232,7 +233,7 @@ export function createRevisionTools(
       tool(
         async ({ objective }) => {
           options.onProgress?.({
-            summary: `${options.brief.destination} · ${options.brief.dates.join(" to ")} · ${options.brief.groupSize} people · AUD ${options.brief.budgetTotal}`,
+            summary: `${options.brief.destination} · ${options.brief.dates.join(" to ")} · ${options.brief.groupSize} people · ${formatMoney(options.brief.budgetTotal, "AUD", "plain")}`,
             objective,
             constraints: request.constraints,
             type: "agent_started",

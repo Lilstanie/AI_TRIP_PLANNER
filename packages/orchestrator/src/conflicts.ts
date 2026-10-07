@@ -1,3 +1,4 @@
+import { formatMoney } from "@trip/shared";
 import type { AgentName, AgentProposal, TripBrief, RevisionRequest } from "@trip/shared";
 import { assessBudget, costOf, NEGOTIATION_OVERRUN_PCT } from "./budget";
 
@@ -8,7 +9,7 @@ export const isInfeasible = (request: RevisionRequest) =>
   request.reason.startsWith(INFEASIBLE_BUDGET);
 
 const cents = (amount: number) => Math.ceil(amount * 100) / 100;
-const aud = (amount: number) => `AUD ${amount.toFixed(2)}`;
+const aud = (amount: number) => formatMoney(amount, "AUD");
 
 /**
  * The lowest the plan can cost from the options the specialists found: each

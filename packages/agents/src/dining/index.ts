@@ -1,4 +1,5 @@
 import {
+  formatMoney,
   TripBrief as TripBriefSchema,
   type AgentContext,
   type AgentProposal,
@@ -219,7 +220,7 @@ export function fitDiningDraft(
     assumptions: [
       ...(capped
         ? [
-            `Meal estimate of AUD ${draft.dailyBudgetPerPerson.toFixed(2)} per person/day capped at the AUD ${maxDailyPerPerson.toFixed(2)} this plan leaves for meals.`,
+            `Meal estimate of ${formatMoney(draft.dailyBudgetPerPerson, "AUD")} per person/day capped at the ${formatMoney(maxDailyPerPerson, "AUD")} this plan leaves for meals.`,
           ]
         : []),
       ...draft.assumptions,
@@ -324,11 +325,11 @@ async function planDining(
   // Keep venue picks informational; only the whole-trip meal envelope is priced.
   return {
     agent: "dining",
-    summary: `${draft.summary} · AUD ${total.toFixed(2)} meal budget`,
+    summary: `${draft.summary} · ${formatMoney(total, "AUD")} meal budget`,
     items: [
       {
         kind: "meal-budget",
-        detail: `${days} planning day(s) × ${brief.groupSize} traveller(s) × AUD ${draft.dailyBudgetPerPerson.toFixed(2)} per person/day.`,
+        detail: `${days} planning day(s) × ${brief.groupSize} traveller(s) × ${formatMoney(draft.dailyBudgetPerPerson, "AUD")} per person/day.`,
         estCost: total,
       },
       ...draft.picks.map((pick) => ({

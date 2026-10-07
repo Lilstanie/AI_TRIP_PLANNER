@@ -1,3 +1,4 @@
+import { formatMoney } from "@trip/shared";
 import { allSpecialists } from "@trip/agents";
 import type {
   AgentLabEventPayload,
@@ -56,7 +57,7 @@ function decisionEvent(decision: WorkflowDecision): AgentLabEventPayload {
         round: decision.round,
         agent: decision.agent,
         objective: decision.objective,
-        previousOutcome: `${decision.previousSummary} · AUD ${decision.previousCost.toFixed(2)}`,
+        previousOutcome: `${decision.previousSummary} · ${formatMoney(decision.previousCost, "AUD")}`,
       };
     case "revision_scored":
       return {
