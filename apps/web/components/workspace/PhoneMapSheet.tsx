@@ -1,46 +1,26 @@
 "use client";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocale } from "../account/LocaleProvider";
-import { itineraryOrder } from "@/lib/map/itinerary-route";
-import type { WorkspaceController } from "./useWorkspaceController";
+import type { WorkspaceModel } from "./useWorkspace";
 
 type Snap = "handle" | "half" | "full";
 const snaps: Snap[] = ["handle", "half", "full"];
 
 /** Phone map's day selector and stops remain available even without a map provider key. */
-export function PhoneMapSheet({
-  model,
-  day,
-  onDayChange,
-  onSelectStop,
-}: {
-  model: WorkspaceController;
-  day?: number;
-  onDayChange(day: number | undefined): void;
-  onSelectStop?(id: string): void;
-}) {
+export function PhoneMapSheet({ model }: { model: WorkspaceModel }) {
   const { t } = useLocale();
   const [snap, setSnap] = useState<Snap>("half");
   const drag = useRef<{ y: number; snap: Snap; moved: boolean } | null>(null);
   const ignoreClick = useRef(false);
-  const activities = useMemo(
-    // Ideas have no day and are not stops on the map.
-    () =>
-      itineraryOrder(model.tripPlaces.activities.filter((activity) => activity.day !== undefined)),
-    [model.tripPlaces.activities],
-  );
-  // The number each located stop carries on its map marker and in its details; a repeat visit
-  // carries its place's number.
-  const orderFor = useMemo(
-    () => new Map(model.tripPlaces.visits.map((visit) => [visit.activityId, visit.order])),
-    [model.tripPlaces.visits],
-  );
-  const days = [...new Set(activities.map((activity) => activity.day!))].sort((a, b) => a - b);
+  // Only days with stops are offered; ideas have no day and are never stops (#186).
+  const { itinerary, session } = model;
+  const { mapDay: day, showMapDay } = model.layout;
+  const days = itinerary.days();
   const selectedDay = days.includes(day ?? -1) ? day : days[0];
   useEffect(() => {
-    if (selectedDay !== day) onDayChange(selectedDay);
-  }, [selectedDay, day, onDayChange]);
-  const stops = activities.filter((activity) => activity.day === selectedDay);
+    if (selectedDay !== day) showMapDay(selectedDay);
+  }, [selectedDay, day, showMapDay]);
+  const stops = selectedDay === undefined ? [] : itinerary.stopsOn(selectedDay);
   const changeSnap = (step: number) =>
     setSnap((value) => snaps[Math.max(0, Math.min(2, snaps.indexOf(value) + step))]!);
   return (
@@ -110,10 +90,7 @@ export function PhoneMapSheet({
                 type="button"
                 key={value}
                 aria-pressed={value === selectedDay}
-                onClick={() => {
-                  onDayChange(value);
-                  model.setSelectedActivity(undefined);
-                }}
+                onClick={() => model.layout.pickMapDay(value)}
               >
                 {t("Day {v0}", { v0: value })}
               </button>
@@ -122,21 +99,20 @@ export function PhoneMapSheet({
         )}
         {stops.length > 0 ? (
           <ol className="phone-map-sheet__stops">
-            {stops.map((stop, index) => {
-              const order = stop.id ? orderFor.get(stop.id) : undefined;
+            {stops.map(({ activity: stop, number }, index) => {
               return (
                 <li key={stop.id ?? index}>
                   <button
                     type="button"
-                    aria-pressed={model.selectedActivity === stop.id}
+                    aria-pressed={session.selectedActivity === stop.id}
                     onClick={() => {
-                      if (stop.id) (onSelectStop ?? model.setSelectedActivity)(stop.id);
+                      if (stop.id) session.showStop(stop.id);
                       // A stop without a map location has nothing to centre on, so the list stays.
-                      if (order !== undefined) setSnap("handle");
+                      if (number !== undefined) setSnap("handle");
                     }}
                   >
                     <span className="phone-map-sheet__number" aria-hidden="true">
-                      {order ?? ""}
+                      {number ?? ""}
                     </span>
                     <span>
                       {stop.detail}

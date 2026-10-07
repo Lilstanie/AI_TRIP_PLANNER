@@ -1,5 +1,5 @@
 import type { AgentLabCompletedRunArtifact } from "@trip/shared";
-import { money } from "./format";
+import { labMoney } from "./money";
 
 export interface ComparisonRow {
   id: string;
@@ -62,8 +62,8 @@ const rows: readonly { id: string; label: string; read: (metrics: Metrics) => st
     label: "Budget",
     read: (m) =>
       m.withinBudget
-        ? `Within budget, ${money(m.budgetHeadroom)} remaining`
-        : `Over budget by ${money(-m.budgetHeadroom)}`,
+        ? `Within budget, ${labMoney.money(m.budgetHeadroom)} remaining`
+        : `Over budget by ${labMoney.money(-m.budgetHeadroom)}`,
   },
   { id: "conflicts", label: "Unresolved conflicts", read: (m) => String(m.unresolvedConflicts) },
   { id: "conflict-outcome", label: "Conflict outcome", read: conflictOutcomeLabel },

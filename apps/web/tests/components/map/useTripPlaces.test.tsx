@@ -9,7 +9,13 @@ const withActivity = (tripId: string, detail: string): TripPlan => {
   const plan = identifyActivities(structuredClone(seed));
   plan.tripId = tripId;
   plan.brief.tripId = tripId;
-  plan.sections[0]!.proposal!.items[0]!.detail = detail;
+  // A stop on Day 1: only stops are mapped, never ideas.
+  Object.assign(plan.sections[0]!.proposal!.items[0]!, {
+    detail,
+    day: 1,
+    startTime: "09:00",
+    endTime: "10:00",
+  });
   return plan;
 };
 const place = (id: string, name: string) => ({
@@ -19,7 +25,8 @@ const place = (id: string, name: string) => ({
 });
 
 function Probe({ plan }: { plan?: TripPlan }) {
-  const { markers, loading } = useTripPlaces(plan);
+  const { itinerary, loading } = useTripPlaces(plan);
+  const markers = itinerary.markersFor();
   return (
     <p data-testid="markers" data-loading={loading}>
       {markers.map((marker) => marker.place.displayName?.text).join(",")}
@@ -88,7 +95,8 @@ describe("trip place resolution", () => {
       }),
     );
     function Destinations({ plan }: { plan: TripPlan }) {
-      const { destinations, destinationsSettled, unconfirmed, markers } = useTripPlaces(plan);
+      const { destinations, destinationsSettled, unconfirmed, itinerary } = useTripPlaces(plan);
+      const markers = itinerary.markersFor();
       return (
         <p data-testid="state">
           {JSON.stringify({

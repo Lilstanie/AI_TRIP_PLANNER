@@ -20,6 +20,8 @@ import {
   type Attachment,
 } from "@trip/shared";
 
+import { NoticeError, type Notice } from "@/lib/i18n/notice";
+
 /** Longest side of a sent image, in CSS pixels; DSH's intake uses the same order. */
 export const IMAGE_MAX_EDGE = 1024;
 /** Longest side of the thumbnail kept for the chip and the stored message. */
@@ -56,7 +58,7 @@ export type PreparedAttachment = Attachment & {
 };
 
 /** One file that could not be attached, with the reason to show beside the composer. */
-export type AttachmentRejection = { name: string; reason: string };
+export type AttachmentRejection = { name: string; reason: Notice };
 
 export type PrepareResult = {
   attachments: PreparedAttachment[];
@@ -170,7 +172,7 @@ export function truncateText(
 /** Splits `data:image/jpeg;base64,AAA` into its media type and its payload. */
 export function parseDataUrl(url: string): { mediaType: string; data: string } {
   const match = /^data:([^;,]+)(;base64)?,(.*)$/s.exec(url);
-  if (!match) throw new Error("The image could not be read.");
+  if (!match) throw new NoticeError({ key: "The image could not be read." });
   const [, mediaType = "", base64, payload = ""] = match;
   if (base64) return { mediaType, data: payload };
   // A renderer may hand back an unencoded data URL; the contract wants base64.
@@ -208,14 +210,17 @@ export async function prepareAttachments(
     if (held + attachments.length >= MAX_ATTACHMENTS_PER_MESSAGE) {
       rejections.push({
         name: file.name,
-        reason: `only ${MAX_ATTACHMENTS_PER_MESSAGE} files can be attached to one message`,
+        reason: {
+          key: "only {count} files can be attached to one message",
+          params: { count: MAX_ATTACHMENTS_PER_MESSAGE },
+        },
       });
       continue;
     }
     const mediaType = mediaTypeOf(file);
     const kind = attachmentKind(mediaType);
     if (!kind) {
-      rejections.push({ name: file.name, reason: "that file type can't be attached" });
+      rejections.push({ name: file.name, reason: { key: "that file type can't be attached" } });
       continue;
     }
     // What is left of the message's shared budget decides how hard this file is
@@ -224,7 +229,10 @@ export async function prepareAttachments(
     if (budget <= MIN_TEXT_BUDGET) {
       rejections.push({
         name: file.name,
-        reason: `these files together would pass the ${formatBytes(MAX_TOTAL_ATTACHMENT_PAYLOAD)} one message can carry`,
+        reason: {
+          key: "these files together would pass the {size} one message can carry",
+          params: { size: formatBytes(MAX_TOTAL_ATTACHMENT_PAYLOAD) },
+        },
       });
       continue;
     }
@@ -238,7 +246,9 @@ export async function prepareAttachments(
     } catch (failure) {
       rejections.push({
         name: file.name,
-        reason: failure instanceof Error ? failure.message : "the file could not be read",
+        // A browser failure's own message is not written for travellers.
+        reason:
+          failure instanceof NoticeError ? failure.notice : { key: "the file could not be read" },
       });
     }
   }
@@ -262,10 +272,10 @@ async function prepareImage(
     }
   }
   if (!encoded)
-    throw new Error(
+    throw new NoticeError(
       cap < MAX_IMAGE_BASE64_LENGTH
-        ? "there isn't room left on this message for another image"
-        : "the image is too large to send, even after it was scaled down",
+        ? { key: "there isn't room left on this message for another image" }
+        : { key: "the image is too large to send, even after it was scaled down" },
     );
   // The thumbnail is what the chip shows and what the sent message keeps in
   // storage; the full image is never written there.
@@ -293,7 +303,10 @@ async function prepareTextFile(
   budget: number,
 ): Promise<PreparedAttachment> {
   if (file.size > MAX_TEXT_FILE_BYTES)
-    throw new Error(`text files over ${formatBytes(MAX_TEXT_FILE_BYTES)} can't be attached`);
+    throw new NoticeError({
+      key: "text files over {size} can't be attached",
+      params: { size: formatBytes(MAX_TEXT_FILE_BYTES) },
+    });
   const { text, truncated } = truncateText(
     await readFileText(file),
     file.name || "the file",
@@ -338,7 +351,7 @@ export const renderImageInBrowser: ImageRenderer = async (file, { maxEdge, quali
   canvas.width = width;
   canvas.height = height;
   const context = canvas.getContext("2d");
-  if (!context) throw new Error("this browser could not read the image");
+  if (!context) throw new NoticeError({ key: "this browser could not read the image" });
   const keepAlpha = format === "auto" && mayHaveAlpha(file.type);
   if (!keepAlpha) {
     context.fillStyle = "#ffffff";

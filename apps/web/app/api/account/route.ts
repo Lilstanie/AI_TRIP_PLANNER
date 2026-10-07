@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { accountUser, noStore } from "@/lib/account/server";
 import { getDb } from "@/lib/db/client";
 import { conversations, trips, userSettings } from "@/lib/db/schema";
+import { noticeBody } from "@/lib/i18n/notice";
 
 /**
  * Deletes the account: its data first, then the Clerk user. If Clerk fails the data is already
@@ -19,7 +20,9 @@ export async function DELETE() {
     await (await clerkClient()).users.deleteUser(user.userId);
   } catch {
     return Response.json(
-      { error: "Your data was deleted, but the sign-in account could not be. Try again." },
+      noticeBody({
+        key: "Your data was deleted, but the sign-in account could not be. Try again.",
+      }),
       { status: 502, headers: noStore },
     );
   }

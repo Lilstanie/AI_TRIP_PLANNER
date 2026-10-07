@@ -17,8 +17,8 @@ describe("Trip drawer details", () => {
         tab="overview"
         onTab={() => {}}
         timeline={null}
-        onReview={() => {}}
         onEdit={() => {}}
+        onReview={() => {}}
       />,
     );
     expect(screen.getByLabelText("Trip budget").textContent).toMatch(expected);
@@ -36,7 +36,7 @@ describe("Trip drawer details", () => {
       { kind: "activity", day: 2, detail: "Second day", location: "Park" },
       { kind: "activity", day: 1, detail: "First day", location: "Museum", estCost: 0.01 },
     ];
-    render(<TripSection section={section} onEdit={() => {}} onReview={() => {}} />);
+    render(<TripSection section={section} onEdit={() => {}} />);
     fireEvent.click(screen.getByRole("button", { expanded: false }));
     expect(screen.getAllByRole("heading", { level: 3 }).map((h) => h.textContent)).toEqual([
       "Day 1",
@@ -54,7 +54,7 @@ describe("Trip drawer details", () => {
       { kind: "meal-budget", detail: "Whole trip", estCost: 150 },
       { kind: "meal", location: "Example cafe", detail: "Suggested venue" },
     ];
-    render(<TripSection section={section} onEdit={() => {}} onReview={() => {}} />);
+    render(<TripSection section={section} onEdit={() => {}} />);
     fireEvent.click(screen.getByRole("button", { expanded: false }));
     expect(screen.getByText(/not added again to the total/)).toBeTruthy();
     expect(screen.getByText("Price unknown")).toBeTruthy();
@@ -91,8 +91,7 @@ describe("Trip drawer details", () => {
         ],
       },
     ];
-    const review = vi.fn();
-    render(<TripSection section={section} onEdit={() => {}} onReview={review} />);
+    render(<TripSection section={section} onEdit={() => {}} />);
     fireEvent.click(screen.getByRole("button", { expanded: false }));
     expect(screen.getByText(/AUD\s*600.00/)).toBeTruthy();
     expect(screen.getByText("2026-10-04")).toBeTruthy();
@@ -101,7 +100,8 @@ describe("Trip drawer details", () => {
     expect(screen.getByRole("link", { name: "View property details" }).getAttribute("href")).toBe(
       "https://example.test/hotel",
     );
-    fireEvent.click(screen.getByRole("button", { name: "Review hotel choices" }));
-    expect(review).toHaveBeenCalledOnce();
+    // The button promised a chooser and opened the plan summary. The stay now
+    // shows what it beat instead, which is the information that button implied.
+    expect(screen.queryByRole("button", { name: "Review hotel choices" })).toBeNull();
   });
 });

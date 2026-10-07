@@ -8,6 +8,7 @@ import {
   localInstant,
   type RouteResult,
 } from "../integrations/google";
+import { errorNotice, NoticeError, noticeText, type Notice } from "../i18n/notice";
 
 const clock = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
 export const EditRequest = z.object({
@@ -53,8 +54,9 @@ export type EditDifference = {
 };
 
 /**
- * Blockers stay English sentences: unresolved ones are also kept on the plan. The interface
- * localises the authored ones through `interfaceNotice`; route provider errors pass through.
+ * What stops an edit, twice: `blockerNotices` for the interface to show in either language, and
+ * `blockers`, the same notices in English, for clients older than the notices. A blocker the
+ * edit leaves unresolved is kept on the plan in English. Route provider wording is a raw notice.
  */
 export type EditPreview = {
   plan: TripPlan;
@@ -62,7 +64,10 @@ export type EditPreview = {
   routes: RouteResult[];
   differences: EditDifference[];
   blockers: string[];
+  blockerNotices: Notice[];
 };
+const BEYOND_DAY = "Day {day}: activity would extend beyond the day.";
+const outsideDay = (blocker: Notice) => "key" in blocker && blocker.key === BEYOND_DAY;
 const mins = (value: string) => Number(value.slice(0, 2)) * 60 + Number(value.slice(3));
 const hhmm = (value: number) =>
   `${String(Math.floor(value / 60)).padStart(2, "0")}:${String(value % 60).padStart(2, "0")}`;
@@ -72,14 +77,14 @@ export async function previewEdit(
 ): Promise<EditPreview> {
   const { plan, baseVersion, operation, mode } = EditRequest.parse(input);
   if ((plan.editVersion ?? 0) !== baseVersion)
-    throw new Error("This edit is stale. Start from the current plan.");
+    throw new NoticeError({ key: "This edit is stale. Start from the current plan." });
   if (
     plan.tripId !== plan.brief.tripId ||
     plan.sections.some((s) => s.proposal && s.proposal.agent !== s.id)
   )
-    throw new Error("Plan identifiers do not match. Restore or replan first.");
+    throw new NoticeError({ key: "Plan identifiers do not match. Restore or replan first." });
   const section = plan.sections.find((s) => s.id === "itinerary");
-  if (!section?.proposal) throw new Error("There are no activities to edit.");
+  if (!section?.proposal) throw new NoticeError({ key: "There are no activities to edit." });
   // Ideas (activities with no day) are set aside and kept as they are: only scheduled stops are
   // routed and re-timed.
   const ideas = section.proposal.items.filter((i) => i.kind === "activity" && i.day === undefined);
@@ -91,7 +96,9 @@ export async function previewEdit(
     activities.some((i) => !i.id || !i.day || !i.startTime || !i.endTime) ||
     new Set(activities.map((i) => i.id)).size !== activities.length
   )
-    throw new Error("Activities need unique IDs and a complete schedule before editing.");
+    throw new NoticeError({
+      key: "Activities need unique IDs and a complete schedule before editing.",
+    });
   const days = (Date.parse(plan.brief.dates[1]) - Date.parse(plan.brief.dates[0])) / 86400000;
   const dateFor = (day: number) =>
     new Date(Date.parse(plan.brief.dates[0]) + (day - 1) * 86400000).toISOString().slice(0, 10);
@@ -109,11 +116,11 @@ export async function previewEdit(
       operation.activities.length !== activities.length ||
       new Set(operation.activities.map((a) => a.id)).size !== activities.length
     )
-      throw new Error("Undo activities do not match this plan.");
+      throw new NoticeError({ key: "Undo activities do not match this plan." });
     const restored: ProposalItem[] = operation.activities.map((saved) => {
       const item = activities.find((a) => a.id === saved.id);
       if (!item || !segment(item.day!) || segment(saved.day) !== segment(item.day!))
-        throw new Error("Undo cannot change destination segments.");
+        throw new NoticeError({ key: "Undo cannot change destination segments." });
       affected.add(saved.day);
       affected.add(item.day!);
       return {
@@ -126,7 +133,7 @@ export async function previewEdit(
     activities.splice(0, activities.length, ...restored);
   } else {
     const item = activities.find((a) => a.id === operation.id);
-    if (!item) throw new Error("Activity not found.");
+    if (!item) throw new NoticeError({ key: "Activity not found." });
     affected.add(item.day!);
     if (operation.kind === "move") {
       if (
@@ -134,9 +141,12 @@ export async function previewEdit(
         !segment(item.day!) ||
         segment(item.day!) !== segment(operation.day)
       )
-        throw new Error("Move must stay within the same destination accommodation segment.");
+        throw new NoticeError({
+          key: "Move must stay within the same destination accommodation segment.",
+        });
       const target = activities.filter((a) => a.day === operation.day && a.id !== item.id);
-      if (operation.index > target.length) throw new Error("Invalid activity position.");
+      if (operation.index > target.length)
+        throw new NoticeError({ key: "Invalid activity position." });
       anchor = {
         day: operation.day,
         index: operation.index,
@@ -154,7 +164,7 @@ export async function previewEdit(
       affected.add(operation.day);
     } else if (operation.kind === "time") {
       if (operation.endTime <= operation.startTime)
-        throw new Error("End time must be after start time on the same day.");
+        throw new NoticeError({ key: "End time must be after start time on the same day." });
       item.startTime = operation.startTime;
       item.endTime = operation.endTime;
     } else {
@@ -165,9 +175,10 @@ export async function previewEdit(
     }
   }
   const routes: RouteResult[] = [],
-    blockers: string[] = [];
+    blockers: Notice[] = [];
   for (const day of affected) {
-    if (day < 1 || day > days) throw new Error("Activity day is outside trip dates.");
+    if (day < 1 || day > days)
+      throw new NoticeError({ key: "Activity day is outside trip dates." });
     const daily = activities.filter((a) => a.day === day);
     const original = before.filter((a) => a.day === day);
     const changedIndex =
@@ -191,9 +202,10 @@ export async function previewEdit(
       const previous = daily[index - 1];
       if (previous) {
         if (!previous.placeId || !current.placeId) {
-          blockers.push(
-            `Day ${day}: confirm the place for every stop first, so travel times between them can be checked.`,
-          );
+          blockers.push({
+            key: "Day {day}: confirm the place for every stop first, so travel times between them can be checked.",
+            params: { day },
+          });
           break;
         }
         try {
@@ -208,7 +220,9 @@ export async function previewEdit(
             !Number.isFinite(route.durationMin) ||
             route.durationMin <= 0
           ) {
-            blockers.push(route.error ?? "Route unavailable");
+            blockers.push(
+              route.notice ?? (route.error ? { raw: route.error } : { key: "Route unavailable" }),
+            );
             break;
           }
           const earliest = mins(previous.endTime!) + route.durationMin + 15;
@@ -219,33 +233,33 @@ export async function previewEdit(
             (operation.kind === "time" && index === changedIndex);
           if (keepExact) {
             if (start < earliest)
-              blockers.push(
-                `Day ${day}: ${current.detail} needs at least ${route.durationMin + 15} minutes after the previous activity.`,
-              );
+              blockers.push({
+                key: "Day {day}: {stop} needs at least {minutes} minutes after the previous activity.",
+                params: { day, stop: current.detail, minutes: route.durationMin + 15 },
+              });
           } else start = Math.max(start, earliest);
         } catch (error) {
-          blockers.push(error instanceof Error ? error.message : "Route verification failed");
+          blockers.push(errorNotice(error, { key: "Route verification failed" }));
           break;
         }
       }
       if (start + duration >= 1440) {
-        blockers.push(`Day ${day}: activity would extend beyond the day.`);
+        blockers.push({ key: BEYOND_DAY, params: { day } });
         break;
       }
       current.startTime = hhmm(start);
       current.endTime = hhmm(start + duration);
     }
   }
+  // Outside a move, only running past midnight blocks; the rest stays on the plan, in English.
   const unresolved =
     operation.kind !== "move"
-      ? blockers.filter((message) => !message.includes("beyond the day"))
+      ? blockers
+          .filter((blocker) => !outsideDay(blocker))
+          .map((blocker) => noticeText("en", blocker))
       : [];
   if (operation.kind !== "move")
-    blockers.splice(
-      0,
-      blockers.length,
-      ...blockers.filter((message) => message.includes("beyond the day")),
-    );
+    blockers.splice(0, blockers.length, ...blockers.filter(outsideDay));
   section.proposal.items = [
     ...section.proposal.items.filter((i) => i.kind !== "activity"),
     ...activities,
@@ -323,5 +337,12 @@ export async function previewEdit(
         ]
       : [];
   });
-  return { plan: TripPlan.parse(plan), baseVersion, routes, differences, blockers };
+  return {
+    plan: TripPlan.parse(plan),
+    baseVersion,
+    routes,
+    differences,
+    blockers: blockers.map((blocker) => noticeText("en", blocker)),
+    blockerNotices: blockers,
+  };
 }

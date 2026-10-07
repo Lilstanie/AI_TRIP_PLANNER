@@ -228,3 +228,5 @@ for (const { id } of SCENARIOS) {
   );
 }
 console.log(`\nArtifacts: ${OUT}`);
+// A failed check or a planning error fails the run, so the runner and any caller see it.
+if (summary.some((row) => !row.passed)) process.exitCode = 1;

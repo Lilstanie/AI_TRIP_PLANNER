@@ -1,10 +1,12 @@
 import { z } from "zod";
+import { noticeBody } from "@/lib/i18n/notice";
 import {
   GoogleNotConfiguredError,
   GoogleRequestError,
   PHOTO_NAME,
   PHOTO_WIDTHS,
   placePhotoUri,
+  placesUnavailable,
   type PhotoWidth,
 } from "@/lib/integrations/google";
 
@@ -23,7 +25,7 @@ const PhotoRequest = z.object({
 export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
   const parsed = PhotoRequest.safeParse({ name: params.get("name"), width: params.get("width") });
-  if (!parsed.success) return Response.json({ error: "Unknown photo." }, { status: 400 });
+  if (!parsed.success) return Response.json(noticeBody({ key: "Unknown photo." }), { status: 400 });
   try {
     const location = await placePhotoUri(parsed.data.name, parsed.data.width);
     return new Response(null, {
@@ -34,22 +36,17 @@ export async function GET(request: Request) {
     // A missing key is permanent: every retry fails the same way, so the message
     // must not invite one. 503 says the deployment, not the request, is at fault.
     if (error instanceof GoogleNotConfiguredError)
-      return Response.json(
-        { error: "Google Places is not set up for this app." },
-        { status: 503 },
-      );
+      return Response.json(noticeBody({ key: "Google Places is not set up for this app." }), {
+        status: 503,
+      });
     const upstream = error instanceof GoogleRequestError ? error.status : undefined;
     // An expired or unknown name reads as "no photo", which the card already handles.
     if (upstream === 400 || upstream === 404)
-      return Response.json({ error: "This photo is no longer available." }, { status: 404 });
-    return Response.json(
-      {
-        error:
-          upstream === 429
-            ? "Google Places is busy. Please retry shortly."
-            : "Google Places is temporarily unavailable. Please retry.",
-      },
-      { status: upstream === 429 ? 429 : 502 },
-    );
+      return Response.json(noticeBody({ key: "This photo is no longer available." }), {
+        status: 404,
+      });
+    return Response.json(noticeBody(placesUnavailable(upstream)), {
+      status: upstream === 429 ? 429 : 502,
+    });
   }
 }

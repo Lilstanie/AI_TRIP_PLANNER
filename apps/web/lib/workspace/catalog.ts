@@ -10,6 +10,7 @@ import {
   withValidAttachments,
   type Snapshot,
 } from "./workspace";
+import type { Notice } from "../i18n/notice";
 
 /** Storage key for the multi-chat/multi-trip workspace catalog. */
 export const CATALOG_KEY = "trip-workspace-catalog-v3";
@@ -50,8 +51,12 @@ export type PanelLayout = {
    * divider. Without it the stylesheet's default applies (chat slightly wider than the map).
    */
   chatShare?: number;
-  preferences: { open: boolean; width: number };
-  trip: { open: boolean; width: number };
+  /**
+   * Panel widths. Whether the Trip drawer or a chip editor is open is not stored: a reload starts
+   * with every panel closed, and an `open` value written by older versions is ignored when read.
+   */
+  preferences: { width: number };
+  trip: { width: number };
   view: WorkspaceView;
   day?: string;
   editorView: "overview" | "timeline" | "map";
@@ -76,8 +81,8 @@ export const clampSidebarWidth = (width: number) =>
 
 const DEFAULT_LAYOUT: PanelLayout = {
   sidebar: { collapsed: false },
-  preferences: { open: true, width: 280 },
-  trip: { open: true, width: 340 },
+  preferences: { width: 280 },
+  trip: { width: 340 },
   view: "chat",
   editorView: "map",
 };
@@ -123,7 +128,6 @@ function normalizeLayout(value: unknown): PanelLayout {
     const fallback = DEFAULT_LAYOUT[key];
     if (!isObject(item)) return { ...fallback };
     return {
-      open: typeof item.open === "boolean" ? item.open : fallback.open,
       width:
         typeof item.width === "number" && Number.isFinite(item.width)
           ? Math.min(720, Math.max(180, item.width))
@@ -367,13 +371,16 @@ export function isUntouchedConversation(
 ): boolean {
   // Facts still equal to the traveller's own defaults (Settings → Travel defaults) were not typed
   // for this chat, so they do not make it touched.
-  const same = (key: "destination" | "start" | "end" | "groupSize" | "budgetTotal" | "nationality") =>
-    (item.draft?.[key] ?? "").trim() === (defaults[key] ?? "").trim();
+  const same = (
+    key: "destination" | "start" | "end" | "groupSize" | "budgetTotal" | "nationality",
+  ) => (item.draft?.[key] ?? "").trim() === (defaults[key] ?? "").trim();
   return (
     isBlankConversation(item) &&
     !item.messages.length &&
     !item.input.trim() &&
-    (["destination", "start", "end", "groupSize", "budgetTotal", "nationality"] as const).every(same) &&
+    (["destination", "start", "end", "groupSize", "budgetTotal", "nationality"] as const).every(
+      same,
+    ) &&
     JSON.stringify(item.draft?.preferences ?? []) === JSON.stringify(defaults.preferences ?? [])
   );
 }
@@ -475,7 +482,7 @@ export type RestoredWorkspace = {
   /** The blank conversation to continue, when the last active conversation had no trip yet. */
   conversationId?: string;
   storageEnabled: boolean;
-  storageError?: string;
+  storageError?: Notice;
 };
 
 /**
@@ -498,8 +505,9 @@ export function restoreWorkspace(storage: Pick<Storage, "getItem">): RestoredWor
     if (raw) current = parseSnapshot(JSON.parse(raw));
   } catch {
     result.storageEnabled = false;
-    result.storageError =
-      "Your last workspace could not be read. It was kept unchanged; your history may be incomplete. Retry storage or explicitly replace the unreadable workspace.";
+    result.storageError = {
+      key: "Your last workspace could not be read. It was kept unchanged; your history may be incomplete. Retry storage or explicitly replace the unreadable workspace.",
+    };
   }
   try {
     const catalog = parseCatalog(storage.getItem(CATALOG_KEY), current);
@@ -521,8 +529,9 @@ export function restoreWorkspace(storage: Pick<Storage, "getItem">): RestoredWor
     result.catalog = catalog;
   } catch {
     result.storageEnabled = false;
-    result.storageError =
-      "Workspace history could not be read. Existing stored data was kept; you can still plan a new trip.";
+    result.storageError = {
+      key: "Workspace history could not be read. Existing stored data was kept; you can still plan a new trip.",
+    };
   }
   return result;
 }

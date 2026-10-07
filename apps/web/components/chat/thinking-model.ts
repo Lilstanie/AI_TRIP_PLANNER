@@ -538,7 +538,7 @@ export function turnSummary(
   activity: AgentProgressEvent[],
   counts: Counts,
   busy: boolean,
-  error?: string,
+  failed = false,
   locale: AppLocale = "en",
 ): { text: string; streaming: boolean } {
   if (busy) {
@@ -556,7 +556,8 @@ export function turnSummary(
   }
   return {
     text:
-      countLine(counts, locale) || translate(locale, error ? "Needs attention" : "Trip plan ready"),
+      countLine(counts, locale) ||
+      translate(locale, failed ? "Needs attention" : "Trip plan ready"),
     streaming: false,
   };
 }

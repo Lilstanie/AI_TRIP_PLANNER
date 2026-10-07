@@ -27,7 +27,8 @@ any count reaches its threshold, or when a skill names a path or command that no
 
 Issue and pull request counts come from the GitHub API through `curl`; when it is unreachable they
 print as unavailable and the git signals still decide. Any skill change resets every count, so run it
-on the latest `main`. When nothing is due, stop here.
+on the latest `main`. Issues named in the commits of that skill change (a merged branch's own
+commits) are not counted, because the change already absorbed them. When nothing is due, stop here.
 
 ## 1. Run the drift report
 

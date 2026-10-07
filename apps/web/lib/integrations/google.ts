@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { errorNotice, NoticeError, type Notice } from "@/lib/i18n/notice";
 
 export const PlaceDetails = z.object({
   id: z.string().min(1),
@@ -42,9 +43,9 @@ const fields =
  * operator adds one. Separate from `GoogleRequestError` because a route that
  * cannot tell them apart offers the traveller a retry that can never succeed.
  */
-export class GoogleNotConfiguredError extends Error {
+export class GoogleNotConfiguredError extends NoticeError {
   constructor() {
-    super("Google Maps is not configured. Add the server MAPS_API_KEY.");
+    super({ key: "Google Maps is not configured. Add the server MAPS_API_KEY." });
     this.name = "GoogleNotConfiguredError";
   }
 }
@@ -53,12 +54,18 @@ function key() {
   return process.env.MAPS_API_KEY;
 }
 /** An upstream Google failure; `status` lets routes tell rate limits from other errors. */
-export class GoogleRequestError extends Error {
+export class GoogleRequestError extends NoticeError {
   constructor(readonly status: number) {
-    super(`Google request failed (${status}). Please retry.`);
+    super({ key: "Google request failed ({status}). Please retry.", params: { status } });
     this.name = "GoogleRequestError";
   }
 }
+
+/** What a places route tells the traveller when Google failed: busy on a 429, else unavailable. */
+export const placesUnavailable = (status: number | undefined): Notice =>
+  status === 429
+    ? { key: "Google Places is busy. Please retry shortly." }
+    : { key: "Google Places is temporarily unavailable. Please retry." };
 async function request(url: string, mask?: string, body?: unknown) {
   const response = await fetch(url, {
     method: body ? "POST" : "GET",
@@ -122,7 +129,7 @@ export async function placePhotoUri(name: string, maxWidthPx: PhotoWidth) {
   return parsed.toString();
 }
 export async function timeZone(place: GooglePlace, date: string) {
-  if (!place.location) throw new Error("This place has no verified coordinates.");
+  if (!place.location) throw new NoticeError({ key: "This place has no verified coordinates." });
   const { latitude, longitude } = place.location;
   const url = new URL("https://maps.googleapis.com/maps/api/timezone/json");
   url.search = new URLSearchParams({
@@ -132,7 +139,7 @@ export async function timeZone(place: GooglePlace, date: string) {
   }).toString();
   const data = await request(url.toString());
   if (data.status !== "OK" || typeof data.timeZoneId !== "string")
-    throw new Error("Destination time zone could not be verified.");
+    throw new NoticeError({ key: "Destination time zone could not be verified." });
   return data.timeZoneId as string;
 }
 /** Enumerate possible offsets: reject ambiguous/nonexistent local times at DST transitions. */
@@ -154,9 +161,9 @@ export function localInstant(date: string, time: string, zone: string) {
     if (formatter.format(new Date(instant)).replace(" ", "T") === target) matches.push(instant);
   }
   if (matches.length !== 1)
-    throw new Error(
-      "Local time is ambiguous or nonexistent due to daylight saving. Choose another time.",
-    );
+    throw new NoticeError({
+      key: "Local time is ambiguous or nonexistent due to daylight saving. Choose another time.",
+    });
   return new Date(matches[0]!).toISOString();
 }
 export type RouteResult = {
@@ -168,7 +175,10 @@ export type RouteResult = {
   distanceMeters?: number;
   polyline?: string;
   fare?: { amount: number; currency: string };
+  /** Why the route is unavailable, in English for logs and the planner. */
   error?: string;
+  /** The same reason as a notice for the traveller; absent on routes saved before it existed. */
+  notice?: Notice;
 };
 export async function googleRoute(
   from: string,
@@ -180,7 +190,9 @@ export async function googleRoute(
   try {
     const delta = Date.parse(departure) - Date.now();
     if (mode === "TRANSIT" && (delta < -7 * 86400000 || delta > 100 * 86400000))
-      throw new Error("Transit departure is outside Google's supported date window.");
+      throw new NoticeError({
+        key: "Transit departure is outside Google's supported date window.",
+      });
     const data = await request(
       "https://routes.googleapis.com/directions/v2:computeRoutes",
       "routes.duration,routes.polyline.encodedPolyline,routes.travelAdvisory.transitFare",
@@ -193,10 +205,10 @@ export async function googleRoute(
     );
     const route = data.routes?.[0];
     if (!route || !/^\d+(\.\d+)?s$/.test(route.duration))
-      throw new Error("No verified route was returned.");
+      throw new NoticeError({ key: "No verified route was returned." });
     const durationMin = Math.ceil(Number(route.duration.slice(0, -1)) / 60);
     if (!Number.isFinite(durationMin) || durationMin <= 0)
-      throw new Error("Invalid route duration.");
+      throw new NoticeError({ key: "Invalid route duration." });
     const fare = route.travelAdvisory?.transitFare;
     const amount = Number(fare?.units ?? 0) + Number(fare?.nanos ?? 0) / 1e9;
     return {
@@ -213,6 +225,7 @@ export async function googleRoute(
       ...base,
       status: "unavailable",
       error: error instanceof Error ? error.message : "Route unavailable",
+      notice: errorNotice(error, { key: "Route unavailable" }),
     };
   }
 }
@@ -237,11 +250,11 @@ export async function googleRouteFromCoordinates(
     );
     const route = data.routes?.[0];
     if (!route || !/^\d+(\.\d+)?s$/.test(route.duration))
-      throw new Error("No verified route was returned.");
+      throw new NoticeError({ key: "No verified route was returned." });
     const durationMin = Math.ceil(Number(route.duration.slice(0, -1)) / 60);
     const distanceMeters = Number(route.distanceMeters);
     if (!Number.isFinite(durationMin) || durationMin <= 0)
-      throw new Error("Invalid route duration.");
+      throw new NoticeError({ key: "Invalid route duration." });
     const fare = route.travelAdvisory?.transitFare;
     const amount = Number(fare?.units ?? 0) + Number(fare?.nanos ?? 0) / 1e9;
     return {
@@ -258,6 +271,7 @@ export async function googleRouteFromCoordinates(
       ...base,
       status: "unavailable",
       error: error instanceof Error ? error.message : "Route unavailable",
+      notice: errorNotice(error, { key: "Route unavailable" }),
     };
   }
 }

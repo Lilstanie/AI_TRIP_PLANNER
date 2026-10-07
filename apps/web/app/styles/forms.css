@@ -265,11 +265,3 @@ button:not(.cl-button):not(.section__row):not(.stay-option):not(.primary):not(.t
 .error-banner button {
   margin-left: 8px;
 }
-.notice {
-  margin: 0;
-  padding: 8px 20px;
-  background: var(--accent-bg);
-}
-.notice button {
-  margin-left: 8px;
-}

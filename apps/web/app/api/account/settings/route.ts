@@ -21,7 +21,7 @@ export async function PUT(request: Request) {
   const user = await accountUser();
   if ("response" in user) return user.response;
   const parsed = UserSettings.safeParse(await request.json().catch(() => undefined));
-  if (!parsed.success) return badRequest("Those settings are not valid.");
+  if (!parsed.success) return badRequest({ key: "Those settings are not valid." });
   const settings = parsed.data;
   const [row] = await getDb()
     .insert(userSettings)

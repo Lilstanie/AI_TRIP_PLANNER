@@ -436,7 +436,7 @@
 .cost {
   font-size: 12px;
 }
-:where(.panel, .dialog, .notice, .error-banner) {
+:where(.panel, .dialog, .error-banner) {
   overflow-wrap: anywhere;
 }
 .proposal-items--dining .proposal-item {
@@ -492,6 +492,51 @@
 }
 .stay-facts dd {
   margin: 0;
+}
+/* What the chosen stay or fare beat. Quiet by default: the choice is the
+   headline, and these are the evidence behind it. */
+.alternatives {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+.alternatives__title {
+  margin: 0 0 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.alternatives__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+}
+.alternatives__list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: baseline;
+  gap: 8px;
+}
+.alternatives__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.alternatives__price {
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+.alternatives__delta {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-dim);
+}
+.alternatives__delta.is-cheaper {
+  color: var(--ok);
 }
 .proposal-item > button {
   margin-top: 10px;

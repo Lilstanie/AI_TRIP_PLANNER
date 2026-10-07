@@ -144,8 +144,12 @@ export const WORKSPACE_ZH = {
   "Check-out": "退房",
   "Rooms / nights": "房间 / 晚数",
   "Room per night": "每间每晚",
+  "Also found": "其他可选",
+  "This flight needs a new selection.": "这趟航班需要重新选择。",
+  Depart: "出发",
+  Travellers: "出行人数",
+  "Flight time": "飞行时长",
   "View property details": "查看酒店详情",
-  "Review hotel choices": "检查酒店选择",
   "No detailed items were returned.": "未返回详细项目。",
   "Restaurant suggestions are included in the meal budget envelope; they are not added again to the total.":
     "餐厅建议已包含在餐饮预算中，不会重复计入总额。",
@@ -187,8 +191,6 @@ export const WORKSPACE_ZH = {
   "No plan yet. Update your trip preferences to start.": "尚无计划。请填写旅行偏好以开始。",
   "Close open panel": "关闭面板",
   "Retry / replace workspace storage": "重试保存工作区",
-  "Dismiss notification": "关闭通知",
-  Dismiss: "关闭",
   "Your trip": "你的行程",
   "No trip yet. Describe where you want to go in the chat, or add your trip details. Your itinerary and budget will appear here.":
     "尚无行程。在聊天中描述目的地，或填写行程信息。日程和预算将在这里显示。",
@@ -300,8 +302,6 @@ export const WORKSPACE_ZH = {
   "Locating {v0}…": "正在定位{v0}…",
   "Your itinerary stays available while places load.": "地点加载期间仍可查看日程。",
   "Google Places is not set up for this app.": "此应用未配置 Google Places。",
-  "Google Places is busy. Please retry shortly.": "Google Places 繁忙，请稍后重试。",
-  "Google Places is temporarily unavailable. Please retry.": "Google Places 暂时不可用，请重试。",
   "Google Places is temporarily unavailable. Your plan is unchanged.":
     "Google 地点服务暂不可用。计划未改变。",
   "Your plan is unchanged. Activities appear once they have a confirmed place.":
@@ -456,6 +456,9 @@ export const WORKSPACE_ZH = {
   "Mark as booked": "标记为已预订",
   "{name} moved to Ideas.": "已将 {name} 移至备选地点。",
   "{name} moved to Day {day}.": "已将 {name} 移至第 {day} 天。",
+  "{name} scheduled on Day {day}.": "已将 {name} 安排在第 {day} 天。",
+  "Note saved.": "备注已保存。",
+  "Details saved.": "详情已保存。",
   "{name} marked as not booked.": "已将 {name} 标记为未预订。",
   "{name} marked as booked.": "已将 {name} 标记为已预订。",
   "{name} removed.": "已移除 {name}。",
@@ -529,8 +532,8 @@ export const WORKSPACE_ZH = {
   "Your current location": "你的当前位置",
   "My location": "我的位置",
   "Map view": "地图视图",
-  "Keep to 12 preferences of up to 200 characters each.":
-    "最多添加 12 条偏好，每条不超过 200 个字符。",
+  "Keep to {count} preferences of up to {length} characters each.":
+    "最多添加 {count} 条偏好，每条不超过 {length} 个字符。",
   "Unable to update the trip. Please retry.": "无法更新行程，请重试。",
   "Check the highlighted trip details.": "请检查标出的行程信息。",
   "Google Maps could not load.": "无法加载 Google 地图。",
@@ -553,8 +556,6 @@ export const WORKSPACE_ZH = {
     "无法读取上次的工作区。原数据已保留，历史记录可能不完整。请重试存储，或明确选择替换无法读取的工作区。",
   "Workspace history could not be read. Existing stored data was kept; you can still plan a new trip.":
     "无法读取工作区历史。现有数据已保留；你仍可规划新行程。",
-  "{amount} left in budget": "剩余预算 {amount}",
-  "{amount} over budget": "超出预算 {amount}",
   "From 1 to 20.": "请输入 1 至 20 的人数。",
   "Enter an amount above 0.": "请输入大于 0 的金额。",
   "Request failed ({status}).": "请求失败（{status}）。",
@@ -572,6 +573,45 @@ export const WORKSPACE_ZH = {
   "Planning failed. Please retry.": "规划失败，请重试。",
   "Preview failed. Try the change again.": "预览失败，请重新尝试此修改。",
   "Search failed. Try again.": "搜索失败，请重试。",
+  "Enter a place name to search.": "输入地点名称后再搜索。",
+  "A place ID is required.": "需要提供地点 ID。",
+  "Unknown photo.": "未知的照片。",
+  "This photo is no longer available.": "此照片已不可用。",
+  "This saved place is no longer available.": "此已保存地点已不可用。",
+  "Google Places is busy. Please retry shortly.": "Google 地点服务繁忙，请稍后重试。",
+  "Google Places is temporarily unavailable. Please retry.": "Google 地点服务暂不可用，请重试。",
+  "Google Maps is not configured. Add the server MAPS_API_KEY.":
+    "未配置 Google 地图。请在服务器上添加 MAPS_API_KEY。",
+  "Google request failed ({status}). Please retry.": "Google 请求失败（{status}），请重试。",
+  "This place has no verified coordinates.": "此地点没有已核实的坐标。",
+  "Destination time zone could not be verified.": "无法核实目的地时区。",
+  "Local time is ambiguous or nonexistent due to daylight saving. Choose another time.":
+    "因夏令时调整，该当地时间不明确或不存在，请选择其他时间。",
+  "Transit departure is outside Google's supported date window.":
+    "公共交通出发时间超出 Google 支持的日期范围。",
+  "No verified route was returned.": "未返回已核实的路线。",
+  "Invalid route duration.": "路线时长无效。",
+  "End date must follow start date, with at least one night per destination.":
+    "结束日期须晚于开始日期，且每个目的地至少住一晚。",
+  "Your data was deleted, but the sign-in account could not be. Try again.":
+    "你的数据已删除，但登录账户未能删除，请重试。",
+  "Accounts are not available on this deployment.": "此部署未启用账户功能。",
+  "Sign in to use your account.": "请登录后使用账户。",
+  "Those settings are not valid.": "这些设置无效。",
+  "Invalid sync request.": "同步请求无效。",
+  "The request was invalid. Please retry.": "请求无效，请重试。",
+  "Attachment rejected: {reason}": "附件被拒绝：{reason}",
+  "No stays match your accommodation preferences. Lower the minimum rating or change cancellation preferences, then retry.":
+    "没有符合住宿偏好的住处。请降低最低评分或更改取消政策偏好后重试。",
+  "Unable to update this trip. Check the request and try again.":
+    "无法更新此行程，请检查请求后重试。",
+  "Map unavailable: configure the browser Google Maps key.":
+    "地图不可用：请配置浏览器端 Google 地图密钥。",
+  "Google Maps took too long to load. Check your connection and retry.":
+    "Google 地图加载超时。请检查网络连接后重试。",
+  "Google Maps could not load. Check your connection and retry.":
+    "无法加载 Google 地图。请检查网络连接后重试。",
+  "Your current location is shown on the map.": "你的当前位置已显示在地图上。",
   "That change could not be made.": "无法进行此修改。",
   "That stop is no longer in this trip.": "该站点已不在此行程中。",
   "Give the stop a description.": "请为该站点填写描述。",
@@ -587,6 +627,19 @@ export const WORKSPACE_ZH = {
   "Day {day}: {stop} needs at least {minutes} minutes after the previous activity.":
     "第 {day} 天：{stop} 需与上一项活动至少间隔 {minutes} 分钟。",
   "Day {day}: activity would extend beyond the day.": "第 {day} 天：活动将超出当天时间。",
+  "This edit is stale. Start from the current plan.": "此修改已过时，请基于当前行程重新修改。",
+  "Plan identifiers do not match. Restore or replan first.": "行程标识不一致，请先恢复或重新规划。",
+  "There are no activities to edit.": "没有可修改的活动。",
+  "Activities need unique IDs and a complete schedule before editing.":
+    "修改前，每项活动都需要唯一标识和完整的时间安排。",
+  "Undo activities do not match this plan.": "要撤销的活动与此行程不一致。",
+  "Undo cannot change destination segments.": "撤销不能更改目的地分段。",
+  "Activity not found.": "未找到该活动。",
+  "Move must stay within the same destination accommodation segment.":
+    "移动只能在同一目的地的住宿时段内进行。",
+  "Invalid activity position.": "活动位置无效。",
+  "End time must be after start time on the same day.": "结束时间必须晚于同一天的开始时间。",
+  "Activity day is outside trip dates.": "活动日期不在行程日期内。",
   "Route unavailable": "路线不可用",
   "Route verification failed": "路线核查失败",
   "Changed activity price requires verification": "已更改活动的价格需要核实",

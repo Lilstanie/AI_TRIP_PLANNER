@@ -60,7 +60,10 @@ export async function POST(request: Request) {
   const user = await accountUser();
   if ("response" in user) return user.response;
   const parsed = SyncPush.safeParse(await request.json().catch(() => undefined));
-  if (!parsed.success) return badRequest(parsed.error.issues[0]?.message ?? "Invalid sync request.");
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0]?.message;
+    return badRequest(issue ? { raw: issue } : { key: "Invalid sync request." });
+  }
   await upsert(trips, user.userId, parsed.data.trips);
   await upsert(conversations, user.userId, parsed.data.conversations);
   return Response.json({ ok: true }, { headers: noStore });
