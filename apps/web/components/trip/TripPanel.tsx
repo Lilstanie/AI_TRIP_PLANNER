@@ -143,7 +143,6 @@ export function TripPanel({
                   key={section.id}
                   section={section}
                   onEdit={onEdit}
-                  onReview={onReview}
                 />
               ))
             ) : (

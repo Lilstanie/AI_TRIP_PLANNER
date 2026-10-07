@@ -37,7 +37,7 @@ const section = (arriveBy?: ArriveBy): TripSectionModel => ({
 });
 
 const show = (arriveBy?: ArriveBy) =>
-  render(<ProposalDetails section={section(arriveBy)} onReview={() => {}} />);
+  render(<ProposalDetails section={section(arriveBy)} />);
 
 describe("connection between activities", () => {
   it("says how the traveller gets from one activity to the next", () => {
