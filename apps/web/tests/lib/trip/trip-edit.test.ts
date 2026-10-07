@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { previewEdit } from "@/lib/trip/trip-edit";
+import { NoticeError } from "@/lib/i18n/notice";
 import { localInstant, googleRoute, searchPlaces } from "@/lib/integrations/google";
 import { plan as fixture, snapshot } from "@/tests/fixtures/workspace";
 import { identifyActivities, parseSnapshot } from "@/lib/workspace/workspace";
@@ -254,5 +255,119 @@ describe("P3 edit boundary", () => {
     expect(result.plan.conflicts?.some((c) => c.reason.includes("Day 2 route unavailable"))).toBe(
       true,
     );
+  });
+});
+
+// Blockers and refusals reach the interface as Notices, so a Chinese traveller reads them in
+// Chinese. The English `blockers` stay beside them for older clients and for the saved plan.
+describe("edit preview notices", () => {
+  const verify = (p = plan(), deps = dependencies()) =>
+    previewEdit({ plan: p, baseVersion: 0, operation: { kind: "verify", day: 1 } }, deps);
+
+  it("names the day when a stop has no confirmed place", async () => {
+    const p = plan();
+    delete p.sections[0]!.proposal!.items[1]!.placeId;
+    const result = await previewEdit(
+      { plan: p, baseVersion: 0, operation: { kind: "move", id: "b", day: 1, index: 0 } },
+      dependencies(),
+    );
+    expect(result.blockerNotices).toEqual([
+      {
+        key: "Day {day}: confirm the place for every stop first, so travel times between them can be checked.",
+        params: { day: 1 },
+      },
+    ]);
+    expect(result.blockers).toEqual([
+      "Day 1: confirm the place for every stop first, so travel times between them can be checked.",
+    ]);
+  });
+
+  it("keeps an unresolved travel-time gap on the saved plan in English", async () => {
+    // A verify keeps the stops' exact times; the gap stays on the plan for Review plan instead of
+    // blocking the preview.
+    const result = await verify();
+    expect(result.blockerNotices).toEqual([]);
+    expect(result.plan.sections[0]!.proposal!.conflictsWith).toContain(
+      "Day 1: Park needs at least 35 minutes after the previous activity.",
+    );
+  });
+
+  it("names the day when a stop would run past midnight", async () => {
+    const p = plan();
+    p.sections[0]!.proposal!.items[0]!.startTime = "22:00";
+    p.sections[0]!.proposal!.items[0]!.endTime = "23:00";
+    const result = await previewEdit(
+      { plan: p, baseVersion: 0, operation: { kind: "move", id: "b", day: 1, index: 1 } },
+      dependencies(),
+    );
+    expect(result.blockerNotices).toEqual([
+      { key: "Day {day}: activity would extend beyond the day.", params: { day: 1 } },
+    ]);
+  });
+
+  it("keys a route with no provider wording and keeps provider wording raw", async () => {
+    const move = { kind: "move", id: "b", day: 1, index: 0 } as const;
+    const silent = dependencies();
+    silent.googleRoute.mockImplementation(async (from, to, _date, mode) => ({
+      from,
+      to,
+      mode,
+      status: "unavailable" as never,
+      durationMin: undefined as never,
+    }));
+    expect(
+      (await previewEdit({ plan: plan(), baseVersion: 0, operation: move }, silent)).blockerNotices,
+    ).toEqual([{ key: "Route unavailable" }]);
+    const worded = dependencies();
+    worded.googleRoute.mockImplementation(async (from, to, _date, mode) => ({
+      from,
+      to,
+      mode,
+      status: "unavailable" as never,
+      durationMin: undefined as never,
+      error: "Transit departure is outside Google's supported date window.",
+    }));
+    expect(
+      (await previewEdit({ plan: plan(), baseVersion: 0, operation: move }, worded)).blockerNotices,
+    ).toEqual([{ raw: "Transit departure is outside Google's supported date window." }]);
+  });
+
+  it("keeps a thrown provider error raw and keys a failure with no wording", async () => {
+    const move = { kind: "move", id: "b", day: 1, index: 0 } as const;
+    const failing = dependencies();
+    failing.placeDetails.mockRejectedValue(new Error("Google request failed (429). Please retry."));
+    expect(
+      (await previewEdit({ plan: plan(), baseVersion: 0, operation: move }, failing))
+        .blockerNotices,
+    ).toEqual([{ raw: "Google request failed (429). Please retry." }]);
+    const wordless = dependencies();
+    wordless.placeDetails.mockRejectedValue("boom");
+    expect(
+      (await previewEdit({ plan: plan(), baseVersion: 0, operation: move }, wordless))
+        .blockerNotices,
+    ).toEqual([{ key: "Route verification failed" }]);
+  });
+
+  it.each([
+    [
+      { baseVersion: 3, operation: { kind: "verify", day: 1 } },
+      "This edit is stale. Start from the current plan.",
+    ],
+    [{ operation: { kind: "move", id: "missing", day: 1, index: 0 } }, "Activity not found."],
+    [{ operation: { kind: "move", id: "a", day: 1, index: 9 } }, "Invalid activity position."],
+    [
+      { operation: { kind: "time", id: "a", startTime: "10:00", endTime: "09:00" } },
+      "End time must be after start time on the same day.",
+    ],
+    [{ operation: { kind: "verify", day: 9 } }, "Activity day is outside trip dates."],
+    [{ operation: { kind: "undo", activities: [] } }, "Undo activities do not match this plan."],
+  ])("refuses %o with a keyed notice", async (input, key) => {
+    const error = await previewEdit(
+      { plan: plan(), baseVersion: 0, ...input },
+      dependencies(),
+    ).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(NoticeError);
+    expect((error as NoticeError).notice).toEqual({ key });
+    expect((error as NoticeError).message).toBe(key);
   });
 });

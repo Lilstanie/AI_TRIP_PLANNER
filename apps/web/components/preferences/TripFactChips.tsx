@@ -15,6 +15,7 @@ import { FactPopover, type CloseReason } from "./FactPopover";
 import { usePresence } from "../ui/motion";
 import { useLocale } from "../account/LocaleProvider";
 import type { MessageKey } from "@/lib/i18n/locale";
+import type { Notice } from "@/lib/i18n/notice";
 
 const TITLES: Record<FactKey, MessageKey> = {
   where: "Where",
@@ -42,7 +43,7 @@ type Props = {
   plan: TripPlan | undefined;
   busy: boolean;
   /** Errors from the last rejected submission, keyed like `parseDraft`'s issues. */
-  errors: Record<string, string>;
+  errors: Record<string, Notice>;
   open: FactKey | undefined;
   onOpen(fact: FactKey): void;
   onClose(): void;
@@ -208,7 +209,7 @@ function FactForm({
 }: Props & { fact: FactKey; onDone(): void }) {
   const { t } = useLocale();
   const [value, setValue] = useState(draft);
-  const [local, setLocal] = useState<Record<string, string>>();
+  const [local, setLocal] = useState<Record<string, Notice>>();
   const form = useRef<HTMLFormElement>(null);
   // A rejected submission's errors show until this editor checks its own fields again.
   const shown =

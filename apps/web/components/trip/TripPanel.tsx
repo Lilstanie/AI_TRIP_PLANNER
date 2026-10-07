@@ -7,6 +7,7 @@ import { statusForPlan } from "@/lib/workspace/catalog";
 import { itineraryActivities } from "@/lib/workspace";
 import { useSegmentIndicator } from "../ui/motion";
 import type { MessageKey } from "@/lib/i18n/locale";
+import type { Notice } from "@/lib/i18n/notice";
 import { useLocale } from "../account/LocaleProvider";
 
 export type TripTab = "overview" | "timeline";
@@ -31,6 +32,7 @@ export function TripPanel({
   onReview,
   onEdit,
   onChoose,
+  problem,
 }: {
   plan: TripPlan;
   tab: TripTab;
@@ -42,16 +44,19 @@ export function TripPanel({
   onEdit: () => void;
   /** Swap a stay or fare inside a section; absent while the plan is busy. */
   onChoose?: (sectionId: string, selectionId: string, candidateId: string) => void;
+  /** Why the last swap could not be made. */
+  problem?: Notice;
 }) {
-  const { t, money } = useLocale();
+  const { t, money, budgetGap, notice: localizeNotice } = useLocale();
   const estimated =
     Number.isFinite(plan.estTotal) && plan.estTotal >= 0 ? plan.estTotal : undefined;
   const budget =
     Number.isFinite(plan.budgetTotal) && plan.budgetTotal > 0 ? plan.budgetTotal : undefined;
   const pct =
     budget && estimated !== undefined ? Math.min(100, Math.round((estimated / budget) * 100)) : 0;
-  const delta = budget && estimated !== undefined ? budget - estimated : undefined;
-  const budgetState = delta === undefined ? "unavailable" : delta < 0 ? "over" : "within";
+  const gap =
+    estimated === undefined ? undefined : budgetGap(estimated, budget, plan.brief.budgetSource);
+  const over = gap?.direction === "over";
   // Admission prices are published nowhere the planner can read, so these stops add nothing to the
   // total. Saying so keeps the total from reading as the whole cost of the trip.
   const unpriced = itineraryActivities(plan).filter((item) => item.estCost === undefined).length;
@@ -75,16 +80,14 @@ export function TripPanel({
               {estimated === undefined ? t("Estimate unavailable") : money(estimated)}
             </strong>
           </div>
-          <span className={`budget-status budget-status--${budgetState}`}>
-            {budgetState === "over"
-              ? t("Over budget")
-              : budgetState === "within"
-                ? t("Within budget")
-                : t("Budget not set")}
+          <span
+            className={`budget-status budget-status--${!gap ? "unavailable" : over ? "over" : "within"}`}
+          >
+            {!gap ? t("Budget not set") : over ? t("Over budget") : t("Within budget")}
           </span>
         </div>
         <div
-          className={`bar${delta !== undefined && delta < 0 ? " bar--over" : ""}`}
+          className={`bar${over ? " bar--over" : ""}`}
           role="progressbar"
           aria-label={t("Budget used")}
           aria-valuemin={0}
@@ -93,17 +96,8 @@ export function TripPanel({
         >
           <span style={{ width: `${pct}%` }} />
         </div>
-        <p
-          className={`trip__budget-delta${delta !== undefined && delta < 0 ? " trip__budget-delta--over" : ""}`}
-        >
-          {delta === undefined
-            ? t("Budget not set")
-            : t(
-                delta < 0
-                  ? "{amount} over the {budget} budget"
-                  : "{amount} under the {budget} budget",
-                { amount: money(Math.abs(delta)), budget: money(budget!, plan.brief.budgetSource) },
-              )}
+        <p className={`trip__budget-delta${over ? " trip__budget-delta--over" : ""}`}>
+          {gap ? t(gap.key, gap.params) : t("Budget not set")}
         </p>
         {unpriced > 0 && (
           <p className="trip__budget-note">
@@ -150,6 +144,11 @@ export function TripPanel({
         {tab === "overview" ? (
           <>
             {places}
+            {problem && (
+              <p className="item-problem" role="alert">
+                {localizeNotice(problem)}
+              </p>
+            )}
             {plan.sections.length ? (
               plan.sections.map((section) => (
                 <TripSection

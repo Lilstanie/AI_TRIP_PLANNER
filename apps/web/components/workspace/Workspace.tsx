@@ -8,7 +8,7 @@ import { AccountProvider } from "../account/AccountProvider";
 import { SettingsProvider } from "../account/SettingsProvider";
 import { LocaleProvider } from "../account/LocaleProvider";
 import { WorkspaceView } from "./WorkspaceView";
-import { useWorkspaceController } from "./useWorkspaceController";
+import { useWorkspace } from "./useWorkspace";
 
 function readableStorage(): Pick<Storage, "getItem"> {
   try {
@@ -54,9 +54,9 @@ export function Workspace({ initialPlan }: { initialPlan?: TripPlan }) {
 }
 
 function WorkspaceContent({ restored }: { restored: RestoredWorkspace }) {
-  const model = useWorkspaceController({ restored });
+  const model = useWorkspace({ restored });
   return (
-    <LocaleProvider brief={model.draft}>
+    <LocaleProvider brief={model.session.draft}>
       <WorkspaceView model={model} />
     </LocaleProvider>
   );

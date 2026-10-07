@@ -2,7 +2,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { POST } from "@/app/api/routes/from-location/route";
 
 vi.mock("@/lib/integrations/google", async () => {
-  const actual = await vi.importActual<typeof import("@/lib/integrations/google")>("@/lib/integrations/google");
+  const actual = await vi.importActual<typeof import("@/lib/integrations/google")>(
+    "@/lib/integrations/google",
+  );
   return { ...actual, googleRouteFromCoordinates: vi.fn() };
 });
 
@@ -54,13 +56,28 @@ describe("POST /api/routes/from-location", () => {
     expect(googleRouteFromCoordinates).not.toHaveBeenCalled();
   });
 
-  it("returns 400 with the original message when the lookup itself fails", async () => {
+  it("returns 400 with the original message, shown as received, when the lookup itself fails", async () => {
     const { googleRouteFromCoordinates } = await import("@/lib/integrations/google");
     vi.mocked(googleRouteFromCoordinates).mockRejectedValue(new Error("boom"));
 
     const response = await POST(request(validBody));
 
     expect(response.status).toBe(400);
-    await expect(response.json()).resolves.toEqual({ error: "boom" });
+    await expect(response.json()).resolves.toEqual({ error: "boom", notice: { raw: "boom" } });
+  });
+
+  it("returns an authored route failure as a keyed notice", async () => {
+    const { googleRouteFromCoordinates } = await import("@/lib/integrations/google");
+    const { NoticeError } = await import("@/lib/i18n/notice");
+    vi.mocked(googleRouteFromCoordinates).mockRejectedValue(
+      new NoticeError({ key: "No verified route was returned." }),
+    );
+
+    const response = await POST(request(validBody));
+
+    await expect(response.json()).resolves.toEqual({
+      error: "No verified route was returned.",
+      notice: { key: "No verified route was returned." },
+    });
   });
 });

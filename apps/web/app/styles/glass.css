@@ -24,7 +24,6 @@
 .trip-card__text,
 .trip-calendar__grid,
 .location-prompt,
-.workspace-notices .notice,
 .workspace-notices .error-banner,
 .agent-lab__toolbar {
   --glass-fill: var(--glass-bg);
@@ -109,7 +108,6 @@
   padding: 0 var(--float-gap) var(--float-gap) 0;
 }
 .location-prompt,
-.workspace-notices .notice,
 .workspace-notices .error-banner {
   border-radius: var(--radius-lg);
   padding: var(--space-2) var(--space-3) var(--space-2) var(--space-4);

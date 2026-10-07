@@ -5,6 +5,7 @@ import type { TripPlaces } from "@/components/map/useTripPlaces";
 import { plan as seed } from "@/tests/fixtures/workspace";
 import { identifyActivities, itineraryActivities } from "@/lib/workspace";
 import { TripPlan } from "@trip/shared";
+import { buildItinerary } from "@/lib/trip/itinerary";
 function fixture() {
   const plan = identifyActivities(structuredClone(seed));
   Object.assign(plan.sections[0]!.proposal!.items[0]!, {
@@ -16,8 +17,7 @@ function fixture() {
 }
 const places = (plan: TripPlan): TripPlaces => ({
   activities: itineraryActivities(plan),
-  markers: [],
-  visits: [],
+  itinerary: buildItinerary(plan, () => undefined),
   places: {},
   loading: false,
   destinations: [],
@@ -27,7 +27,6 @@ const places = (plan: TripPlan): TripPlaces => ({
   unavailable: 0,
   locationStatus: () => "unconfirmed",
   placeIdFor: (activity) => activity.placeId,
-  activityForPlace: () => undefined,
   rememberPlace: vi.fn(),
   retry: vi.fn(),
 });
@@ -41,6 +40,7 @@ const response = (plan: TripPlan) =>
         { stop: "Museum", before: "10:00–11:00", after: "11:00–12:00", placeChanged: false },
       ],
       blockers: [],
+      blockerNotices: [],
     }),
   );
 describe("editor request lifecycle", () => {

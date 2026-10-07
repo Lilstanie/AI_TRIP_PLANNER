@@ -12,6 +12,7 @@ import { useLocale } from "./LocaleProvider";
 import { SUPPORTED_CURRENCIES } from "@trip/shared";
 import { CurrencyNotice } from "./CurrencyNotice";
 import type { MessageKey } from "@/lib/i18n/locale";
+import { failureNotice, type Notice } from "@/lib/i18n/notice";
 
 /**
  * Settings follows Mindtrip's settings page: a quiet list of sections on the left, one section on
@@ -177,7 +178,7 @@ function AccountSection({ onAccountModal }: AccountModalProps) {
   const account = useAccount();
   const { settings, update } = useSettings();
   const [deleting, setDeleting] = useState<"idle" | "confirm" | "working" | "failed">("idle");
-  const [problem, setProblem] = useState("");
+  const [problem, setProblem] = useState<Notice>();
 
   const theme = (
     <SettingRow label={t("Theme")} value={t(THEME_LABEL[settings.appearance])}>
@@ -241,14 +242,14 @@ function AccountSection({ onAccountModal }: AccountModalProps) {
   const { signOut } = account;
   async function remove() {
     setDeleting("working");
-    setProblem("");
+    setProblem(undefined);
     const response = await fetch("/api/account", { method: "DELETE" }).catch(() => undefined);
     if (response?.ok) {
       await signOut();
       return;
     }
     const body = await response?.json().catch(() => undefined);
-    setProblem(body?.error ?? "Your account could not be deleted. Try again.");
+    setProblem(failureNotice(body, { key: "Your account could not be deleted. Try again." }));
     setDeleting("failed");
   }
 
@@ -527,7 +528,7 @@ function PersonalizationSection() {
               validate={(value) =>
                 value &&
                 !(Number.isInteger(Number(value)) && Number(value) >= 1 && Number(value) <= 20)
-                  ? t("From 1 to 20.")
+                  ? { key: "From 1 to 20." }
                   : undefined
               }
               onSave={(value) => {
@@ -617,7 +618,7 @@ function PersonalizationSection() {
               numeric
               initial={travel.budget?.toString() ?? ""}
               validate={(value) =>
-                value && !(Number(value) > 0) ? t("Enter an amount above 0.") : undefined
+                value && !(Number(value) > 0) ? { key: "Enter an amount above 0." } : undefined
               }
               onSave={(value) => {
                 const { budget: _old, ...rest } = travel;

@@ -1,12 +1,13 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
+import type { Notice } from "@/lib/i18n/notice";
 
 export type Coordinate = { lat: number; lng: number };
 export type LocationState =
   | { status: "idle" }
   | { status: "loading" }
-  | { status: "success"; position: Coordinate; message: string }
-  | { status: "error"; message: string };
+  | { status: "success"; position: Coordinate; message: Notice }
+  | { status: "error"; message: Notice };
 
 /** The traveller's answer to the in-app location question, remembered in this browser only. */
 export const LOCATION_CHOICE_KEY = "trip.locationPrompt";
@@ -50,13 +51,15 @@ async function permissionState(): Promise<PermissionState | undefined> {
   }
 }
 
-export function geolocationError(error: GeolocationPositionError) {
+export function geolocationError(error: GeolocationPositionError): Notice {
   if (error.code === 1)
-    return "Location permission was denied. You can retry after allowing it in your browser settings.";
+    return {
+      key: "Location permission was denied. You can retry after allowing it in your browser settings.",
+    };
   if (error.code === 2)
-    return "Your current location is unavailable. Check your device settings and retry.";
-  if (error.code === 3) return "Finding your location timed out. Please retry.";
-  return "Your current location could not be found. Please retry.";
+    return { key: "Your current location is unavailable. Check your device settings and retry." };
+  if (error.code === 3) return { key: "Finding your location timed out. Please retry." };
+  return { key: "Your current location could not be found. Please retry." };
 }
 
 /**
@@ -73,7 +76,10 @@ export function useUserLocation(): UserLocation {
 
   const request = useCallback(() => {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
-      setLocation({ status: "error", message: "Location is not supported by this browser." });
+      setLocation({
+        status: "error",
+        message: { key: "Location is not supported by this browser." },
+      });
       return;
     }
     setLocation({ status: "loading" });
@@ -82,7 +88,7 @@ export function useUserLocation(): UserLocation {
         setLocation({
           status: "success",
           position: { lat: coords.latitude, lng: coords.longitude },
-          message: "Your current location is shown on the map.",
+          message: { key: "Your current location is shown on the map." },
         }),
       (cause) => setLocation({ status: "error", message: geolocationError(cause) }),
       { enableHighAccuracy: false, timeout: 10_000, maximumAge: 60_000 },
