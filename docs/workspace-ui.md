@@ -734,6 +734,9 @@ the account section explains that everything stays in this browser.
     `apps/web/lib/agent-lab/money.ts`). The sentence sent to the planner is not a display amount:
     `plannerAud()` writes it in English AUD with cents whatever the language or currency. The web
     app's ESLint config rejects `.toFixed(2)`, so an amount is never formatted by hand.
+    Amounts in text the server generates (summaries, conflict reasons, progress lines) go through
+    `formatMoney(amountAud, currency, style?)` in `packages/shared/src/money.ts`, which converts with
+    the same rate table and shows JPY without decimals; every caller currently passes AUD.
   - **Connected accounts:** the Google, GitHub or Apple sign-ins linked through Clerk, with a button
     that opens Clerk to change them.
 - Signed out, settings are kept in this browser; signed in, the newer copy of browser and account

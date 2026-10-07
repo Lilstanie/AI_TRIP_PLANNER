@@ -10,6 +10,7 @@ import type { BaseChatModel } from "@langchain/core/language_models/chat_models"
 import { allSpecialists } from "@trip/agents";
 import { memory } from "@trip/services";
 import {
+  formatMoney,
   AgentProposal as AgentProposalSchema,
   TripBrief as TripBriefSchema,
   TripPlan as TripPlanSchema,
@@ -188,7 +189,7 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
       type: "agent_started",
       agent: specialist.name,
       round: request.context.round,
-      summary: `${request.brief.destination} · ${request.brief.dates.join(" to ")} · ${request.brief.groupSize} people · AUD ${request.brief.budgetTotal}`,
+      summary: `${request.brief.destination} · ${request.brief.dates.join(" to ")} · ${request.brief.groupSize} people · ${formatMoney(request.brief.budgetTotal, "AUD", "plain")}`,
       objective: request.revision
         ? `Fix: ${request.revision.reason}`
         : `Produce the ${specialist.label} section for this trip.`,
@@ -353,7 +354,7 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
           ? {
               allocation: {
                 budget: Math.max(0, Math.floor((cost - saving) * 100) / 100),
-                basis: `AUD ${cost.toFixed(2)} last round, less the AUD ${saving.toFixed(2)} this section must save for the plan to fit the budget`,
+                basis: `${formatMoney(cost, "AUD")} last round, less the ${formatMoney(saving, "AUD")} this section must save for the plan to fit the budget`,
               },
             }
           : {}),

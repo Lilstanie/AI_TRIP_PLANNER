@@ -1,6 +1,7 @@
 import { CAPABILITIES, createRoutedChatModel } from "@trip/agents";
 import { memory } from "@trip/services";
 import {
+  formatMoney,
   ASK_USER_MAX_OPTIONS,
   ASK_USER_MAX_QUESTIONS,
   ChatTurn,
@@ -375,8 +376,7 @@ function planDigest(plan: TripPlan) {
 function fallbackReplyFor(plan: TripPlan): string {
   // An impossible budget is the one thing the traveller must hear first.
   if (plan.conflicts?.some(isInfeasible)) {
-    const aud = (amount: number) =>
-      `AUD ${Math.ceil(amount).toLocaleString("en-AU", { maximumFractionDigits: 0 })}`;
+    const aud = (amount: number) => formatMoney(Math.ceil(amount), "AUD", "whole");
     const floor = minimumCost(plan.sections.flatMap((section) => section.proposal ?? []));
     return `The cheapest travel and stays found already come to about ${aud(floor)}, above your ${aud(plan.budgetTotal)} budget, so no version of this plan fits it. To go ahead, raise the budget to at least ${aud(floor)} before activities and meals, or change the dates, origin or destination.`;
   }
