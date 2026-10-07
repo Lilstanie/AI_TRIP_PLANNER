@@ -40,3 +40,5 @@ output/playwright/
 
 .next-dev/
 output/e2e/
+.next-e2e*/
+.next-e2e*.lock
