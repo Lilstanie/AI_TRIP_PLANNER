@@ -121,9 +121,20 @@ seniors`（宠物不计为旅客）；`groupSize` 仍是校验字段，因此至
 下文提到已移除界面的名称，只用于解释移除情况；除了这些功能不存在之外，本节不描述其他当前行为。
 
 - **没有需要审批的决策。** `HitlCheckpoint`、`TripPlan.hitl`、检查点卡片、approve/reject/defer 操作和 `POST /api/hitl` 都已移除。应用尚不能应用旅客的决策，因此不会请求决策：展示待确认事项列表会暗示并不存在的能力。
-- **方案已经作出的决定会报告，而不再询问。** 住宿 specialist 比较全部符合条件的候选项，并选定一个；transcript 显示该选择及比较过的备选项，Trip 抽屉显示各部分及费用。旅客想要不同结果时，在聊天中说明，或在 Timeline & routes 中编辑行程。
+- **方案已经作出的决定会报告，而不再询问。** 住宿 specialist 比较全部符合条件的候选项，并选定一个；transcript 显示该选择及比较过的备选项，Trip 抽屉显示各部分及费用。旅客想换航班或住宿时，直接在对应部分里选（见[行程部分](#trip-sections)）；其他改动在聊天中说明，或在 Timeline & routes 中编辑行程。
 - **冲突是信息。** orchestrator 发现冲突时，会在编排轮次预算内重试受影响的部分；仍未解决的内容继续显示在方案中，不会变成等待确认的卡片，因为没有机制记录这种确认。
 - 客户端不是供应商事实的来源：总额从提案条目重新计算，结果标记为 SerpApi 实时搜索、Google Places 估价或模拟 fixture。它们都不会创建预订。
+
+<a id="trip-sections"></a>
+
+## 行程部分
+
+Trip 抽屉在 Stops 列表下方显示每个 specialist 的部分（`TripSection`、`ProposalDetails`）。
+
+- **Getting around（出行交通）** 列出行程中的所有移动，按天分组、按到达时间排序：抵达的航班、城市之间的移动，以及一天内各站之间的路段（`dayConnections`）。Day plan 部分只显示地点和时间，所以每段路只出现一次。单城市行程中交通 specialist 没有返回内容时，Getting around 仍可列出路段；其摘要行只统计该 specialist 自己的条目。见 [Agent Note](../.agents/notes/implemented/architecture/2026-10-07-intra-city-legs-in-getting-around.md)。
+- **航班卡片。** 方案计价的每个航班显示航司、出发时间、出行人数、经停（没有时显示 "Nonstop"）和飞行时长。航班已无法对应选择时显示 "This flight needs a new selection."。住宿卡片显示所选酒店的评分、入住和退房日期、房间数和晚数、每晚价格以及取消条款。
+- **其他可选（Also found）。** 两种卡片都列出被所选航班或住宿比下去的备选项，各带价格及与所选项的差额；更便宜的差额显示为绿色，并带负号。
+- **改选。** 每一行其他可选都是按钮（"Take … instead, …"，粗指针下至少 44 px 高）。按下后直接应用，不预览：它通过 `POST /api/trip/preview-edit` 发送 `choose` 编辑（[API](api.zh.md#post-apitrippreview-edit)），由服务器重写条目的说明、部分费用和方案总额。想换回原来的选项，就再从同一列表选一次。另一项修改进行中时，这些行是纯文本。改选失败时在 Trip 面板显示通知；旅客已打开其他方案后才到达的响应会被丢弃。条目带 `selectionId` 之前保存的方案无法重新计价，需要重新规划。见 [Agent Note](../.agents/notes/implemented/architecture/2026-10-07-selection-id-on-proposal-items.md)。
 
 <a id="map-and-places"></a>
 

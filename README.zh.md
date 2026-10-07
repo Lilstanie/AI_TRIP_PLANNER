@@ -39,11 +39,11 @@ pnpm dev                     # http://localhost:3000
 
 ```text
 apps/web/                 Next.js workspace UI and API routes
-  components/{workspace,chat,trip,map,preferences,ui}
+  components/{workspace,chat,trip,map,preferences,account,agent-lab,pwa,ui}
                           UI grouped by feature and shared primitives
-  lib/{integrations,map,planning,trip,workspace}
+  lib/{workspace,chat,trip,map,planning,i18n,account,agent-lab,auth,db,integrations}, money.ts
                           integrations and domain rules grouped by responsibility
-  tests/{app,components,lib,fixtures}
+  tests/{app,components,lib,e2e,fixtures}
                           web tests kept separate from production code
 packages/agents/          Five specialist LangChain agents, model routing and fallbacks
   src/                    production agent code by domain
@@ -58,18 +58,17 @@ docs/                     Documentation of the current system; each package also
 
 ## 文档
 
-完整技术文档见[中文文档索引](docs/README.zh.md)。
+完整技术文档见[中文文档索引](docs/README.zh.md)。领域术语见[术语表](GLOSSARY.md)（英文）。
 
-| 文档                                              | 内容                                           |
-| ------------------------------------------------- | ---------------------------------------------- |
-| [架构](docs/architecture.zh.md)                   | 运行流程、LangGraph 工作流、agents、模型和契约 |
-| [API](docs/api.zh.md)                             | 六个 API 路由的请求、响应和错误                |
-| [开发](docs/development.zh.md)                    | 环境配置、环境变量、Docker 和验证              |
-| [工作区界面](docs/workspace-ui.zh.md)             | 当前界面行为、存储、地图和编辑规则             |
-| [路线图](docs/roadmap.zh.md)                      | MVP 阶段和当前状态                             |
-| [团队工作流](docs/team-workflow.zh.md)            | 职责、分支、审查和 session logs                |
-| [UI 设计指南](docs/design/ui-guidelines.zh.md)    | 视觉 tokens、布局和组件设计规则                |
-| [DSH 思考界面](docs/design/dsh-thinking-ui.zh.md) | 本项目参考的思考界面及当前差距                 |
+| 文档                                           | 内容                                           |
+| ---------------------------------------------- | ---------------------------------------------- |
+| [架构](docs/architecture.zh.md)                | 运行流程、LangGraph 工作流、agents、模型和契约 |
+| [API](docs/api.zh.md)                          | 全部 API 路由的请求、响应和错误                |
+| [开发](docs/development.zh.md)                 | 环境配置、环境变量、Docker 和验证              |
+| [工作区界面](docs/workspace-ui.zh.md)          | 当前界面行为、存储、地图和编辑规则             |
+| [路线图](docs/roadmap.zh.md)                   | MVP 阶段和当前状态                             |
+| [团队工作流](docs/team-workflow.zh.md)         | 职责、分支、审查和 session logs                |
+| [UI 设计指南](docs/design/ui-guidelines.zh.md) | 视觉 tokens、布局和组件设计规则                |
 
 ELEC5620 UML 设计模型和 SVG 图表位于 [`docs/design/`](docs/design/class-diagram.zh.md)。决策记录、session logs 和 AI 工具技能位于 [`.agents/`](.agents/README.md)；各类内容的归属说明见 [`docs/AGENTS.md`](docs/AGENTS.md)。
 

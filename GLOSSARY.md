@@ -58,6 +58,10 @@ _Avoid_: index, order (in prose), per-day number
 The order stops are shown everywhere: by day, then start time, then their order in the plan.
 _Avoid_: plan order, sort order
 
+**Alternative**:
+A flight or stay the specialist found and priced but did not pick, which the traveller can take instead.
+_Avoid_: candidate, option, other choice
+
 ## Workspace
 
 **Notice**:

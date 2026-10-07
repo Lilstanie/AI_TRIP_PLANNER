@@ -7,7 +7,7 @@ recommendations, edit the plan, save it and use it while travelling.
 
 ## Status
 
-Status as of 2026-10-01 on `main`; see [workspace UI](workspace-ui.md) for current behaviour.
+Status as of 2026-10-07 on `main`; see [workspace UI](workspace-ui.md) for current behaviour.
 
 **Done**
 
@@ -24,6 +24,12 @@ Status as of 2026-10-01 on `main`; see [workspace UI](workspace-ui.md) for curre
 - Streaming planning progress and a thinking transcript in the chat.
 - Accounts (Clerk) with a dedicated login page required when configured, syncing chats, trips and settings to Neon Postgres, and a Settings
   dialog with a travel profile that prefills new trips.
+- Phone layout at 520 px and below: a bottom tab bar (Chat, Map, Trip, Mine), sheets and an
+  installable web app manifest. Real-device checks are still open in issue #182.
+- Interface language (English or Simplified Chinese) from Settings or the top bar, and a display
+  currency (AUD, CNY, USD or JPY) while every plan is still priced in AUD.
+- Flights and stays: Getting around shows the flight card and every movement, including legs inside a
+  city, and the traveller can take an alternative flight or stay the specialist found without replanning.
 - Public Agent Lab: a fixed Tokyo fixture exposes a single-agent trace, validated plan and
   deterministic metrics without provider keys, and compares it with five specialists running one
   round without revision and with bounded targeted revision on a tight-budget variant. Completed runs

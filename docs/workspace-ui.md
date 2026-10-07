@@ -354,14 +354,42 @@ describes current behaviour except the absences.
   offer a capability that does not exist.
 - **What the plan does decide is reported, not asked.** The accommodation specialist compares every
   eligible candidate and names one; the transcript shows that choice with the alternatives it
-  compared, and the Trip drawer shows the sections and their cost. A traveller who wants something
-  different says so in chat, or edits the trip in Timeline & routes.
+  compared, and the Trip drawer shows the sections and their cost. A traveller who wants a different
+  flight or stay picks it from that section (see [Trip sections](#trip-sections)); anything else is
+  said in chat or edited in Timeline & routes.
 - **Conflicts are information.** When the orchestrator detects a conflict it retries the affected
   sections within its round budget, and anything still unresolved stays visible on the plan rather
   than becoming a card that waits for an acknowledgement nothing can record.
 - The client is not a source of supplier facts: totals are recomputed from proposal items, and
   results are labelled as SerpApi live search, Google Places estimates or simulated fixtures. None
   of them creates a reservation.
+
+## Trip sections
+
+Below the Stops list the Trip drawer shows each specialist's section (`TripSection`,
+`ProposalDetails`).
+
+- **Getting around** lists every movement of the trip, grouped by day and ordered by arrival: the
+  flight in, the hops between cities and the legs between a day's stops (`dayConnections`). The Day
+  plan section shows places and times only, so each leg appears once. Getting around can list legs
+  on a single-city trip whose transport specialist returned nothing; its summary line still counts
+  only that specialist's items. See the
+  [Agent Note](../.agents/notes/implemented/architecture/2026-10-07-intra-city-legs-in-getting-around.md).
+- **Flight card.** Each flight the plan priced shows its carrier, departure, travellers, stops
+  ("Nonstop" when none) and flight time. A plan whose flight no longer matches a selection says
+  "This flight needs a new selection." The stay card shows the chosen hotel's rating, check-in and
+  check-out, rooms and nights, nightly price and cancellation terms.
+- **Also found.** Both cards list the alternatives the chosen flight or stay beat, each with its price and
+  its difference from the chosen one; a cheaper difference is green and also carries a minus sign.
+- **Choosing another.** Each Also found row is a button ("Take … instead, …", at least 44 px tall
+  under a coarse pointer). Pressing it applies at once, with no preview: it sends a `choose` edit
+  through `POST /api/trip/preview-edit` ([API](api.md#post-apitrippreview-edit)), so the server
+  rewrites the item's sentence, the section cost and the plan total. Taking the earlier option back
+  is another choice from the same list. While another change is in flight the rows are plain text. A failed swap shows a notice
+  in the Trip panel, and a response that arrives after the traveller opened another plan is
+  dropped. Plans saved before items carried a `selectionId` cannot be re-priced and must be
+  replanned. See the
+  [Agent Note](../.agents/notes/implemented/architecture/2026-10-07-selection-id-on-proposal-items.md).
 
 ## Map and places
 
