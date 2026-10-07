@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { GoogleRequestError } from "@/lib/integrations/google";
+import { GoogleNotConfiguredError, GoogleRequestError } from "@/lib/integrations/google";
 import { POST } from "@/app/api/places/search/route";
 
 vi.mock("@/lib/integrations/google", async () => {
@@ -50,6 +50,19 @@ describe("POST /api/places/search", () => {
       error: "Google Places is busy. Please retry shortly.",
       notice: { key: "Google Places is busy. Please retry shortly." },
     });
+  });
+
+  it("tells a missing key apart from an outage, and does not ask for a retry", async () => {
+    const { searchPlaces } = await import("@/lib/integrations/google");
+    vi.mocked(searchPlaces).mockRejectedValue(new GoogleNotConfiguredError());
+
+    const response = await POST(request({ text: "temple" }));
+
+    // 503, not 502: the deployment is at fault, and no retry can fix it.
+    expect(response.status).toBe(503);
+    const body = await response.json();
+    expect(body.error).not.toMatch(/retry/i);
+    expect(body.error).not.toMatch(/MAPS_API_KEY/);
   });
 
   it("maps every other upstream failure to 502 without leaking provider details", async () => {
