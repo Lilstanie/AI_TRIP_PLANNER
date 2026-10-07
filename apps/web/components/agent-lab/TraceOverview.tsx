@@ -14,7 +14,10 @@ export function TraceOverview({
   onSelect,
   domainSteps,
   label = "Trace overview",
+  blockPrefix,
 }: {
+  /** Names the run in each block's accessible name when several bars share a page. */
+  blockPrefix?: string;
   events: readonly AgentLabRunEvent[];
   /** Asked to bring the list row with this sequence into view. */
   onSelect?: (sequence: number) => void;
@@ -84,7 +87,7 @@ export function TraceOverview({
                 data-error={record.error}
                 data-in-flight={record.inFlight}
                 style={{ gridColumn: record.step }}
-                aria-label={`${lane.label}, ${record.title}, step ${record.step}${
+                aria-label={`${blockPrefix ? `${blockPrefix}, ` : ""}${lane.label}, ${record.title}, step ${record.step}${
                   record.error ? ", failed" : record.inFlight ? ", in progress" : ""
                 }`}
                 onClick={() => onSelect?.(record.sequence)}

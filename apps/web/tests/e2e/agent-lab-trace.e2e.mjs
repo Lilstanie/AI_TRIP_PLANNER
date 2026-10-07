@@ -53,6 +53,24 @@
 // - a fold changes the time bar (a block count or any block differs from before the fold).
 // --- end #221 failure inventory ---------------------------------------------------------------
 //
+// --- #222 Compare bars: failure inventory, written before implementation --------------------------
+// - after "Compare all strategies" there are not three stacked bars (one per strategy, in strategy order:
+//   baseline, no revision, targeted revision), or a bar is not labelled with its strategy, or they sit
+//   side by side instead of stacked vertically;
+// - a step at the same index sits at a different horizontal position in different bars (the bars do not
+//   share one step axis), or the bars have different widths or left edges;
+// - the longest run's bar does not fill the axis to its right edge, or a shorter run's last block reaches
+//   as far (a shorter run must visibly end earlier);
+// - a bar has more or fewer blocks than its own side's records, or a block is not a button named with its
+//   strategy, lane and step;
+// - clicking a block (or pressing Enter) does not bring that row into view in that side's own trace box,
+//   or scrolls or highlights a row in another side's box;
+// - a cancelled comparison draws a bar for a strategy that never ran (a side with no events), or a
+//   stale bar remains;
+// - the Compare view scrolls horizontally at 390 px, or the stacked bars overflow the screen there;
+// - Compare shows a bar inside each column as well as in the stack.
+// --- end #222 failure inventory ---------------------------------------------------------------
+//
 //   pnpm --filter @trip/web e2e agent-lab-trace   (fixture mode needs no keys)
 //   [CHANNEL=chrome] [PLAYWRIGHT=<path to playwright>] node apps/web/tests/e2e/agent-lab-trace.e2e.mjs
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -294,7 +312,7 @@ async function open(
   const bodies = [];
   page.on("response", (response) => {
     if (response.url() === `${BASE}/api/agent-lab/runs` && response.request().method() === "POST")
-      bodies.push(response.text());
+      bodies.push(response.text().catch(() => ""));
   });
   await page.goto(`${BASE}/agent-lab`);
   await page.getByRole("heading", { name: "Agent Lab", level: 1 }).waitFor();
@@ -813,6 +831,186 @@ async function foldsPhone(browser) {
 }
 // ===== #221 folds (end) ==============================================================================
 
+// ===== #222 Compare bars (start) =====================================================================
+const STACK = ".agent-lab__compare [data-trace-compare-bars]";
+
+const readStack = (page) =>
+  page.locator(`${STACK} ${BAR}`).evaluateAll((bars) =>
+    bars.map((bar) => {
+      const track = bar.querySelector(".agent-lab__trace-track").getBoundingClientRect();
+      const frame = bar.getBoundingClientRect();
+      return {
+        label: bar.getAttribute("aria-label"),
+        top: frame.top,
+        left: frame.left,
+        width: frame.width,
+        trackRight: track.right,
+        blocks: [...bar.querySelectorAll("[data-trace-block]")].map((b) => {
+          const r = b.getBoundingClientRect();
+          return {
+            step: Number(b.dataset.step),
+            sequence: Number(b.dataset.sequence),
+            left: r.left,
+            right: r.right,
+            name: b.getAttribute("aria-label"),
+            tag: b.tagName,
+          };
+        }),
+      };
+    }),
+  );
+
+const inBox = (row) => {
+  const f = row.closest("[data-agent-lab-trace-box]").getBoundingClientRect();
+  const b = row.getBoundingClientRect();
+  return b.top >= f.top - 1 && b.bottom <= f.bottom + 1;
+};
+
+async function compareBars(browser) {
+  const tag = "compare-bars";
+  const session = await open(browser, { width: 1440, height: 1000, tag });
+  const { page, bodies } = session;
+  await page.getByRole("button", { name: "Compare all strategies" }).click();
+  await complete(page);
+  const sides = (await Promise.all(bodies)).map(eventsOf);
+  const bars = await readStack(page);
+  check(bars.length === 3, `${tag}: three bars are visible (${bars.length})`);
+  check(
+    (await page.locator(`.agent-lab__compare-columns ${BAR}`).count()) === 0,
+    `${tag}: no second bar inside the columns`,
+  );
+  const labels = await page.locator("[data-agent-lab-compare-side] h3").allTextContents();
+  check(
+    bars.length === 3 && bars.every((b, i) => b.label?.includes(labels[i])),
+    `${tag}: bars are labelled by strategy, in strategy order (${bars.map((b) => b.label).join(" | ")})`,
+  );
+  check(
+    bars.every((b, i) => i === 0 || b.top > bars[i - 1].top),
+    `${tag}: the bars are stacked vertically`,
+  );
+  check(
+    bars.every((b) => Math.abs(b.left - bars[0].left) < 1 && Math.abs(b.width - bars[0].width) < 1),
+    `${tag}: every bar has the same left edge and width`,
+  );
+  // Records per side, from the artifact alone: events minus the completions merged into their starts.
+  const records = sides.map((events) => expectedBar({ events }).records);
+  check(
+    bars.length === 3 && bars.every((b, i) => b.blocks.length === records[i]),
+    `${tag}: blocks per bar ${bars.map((b) => b.blocks.length).join(", ")} match records ${records.join(", ")}`,
+  );
+  check(
+    bars.every((b, i) =>
+      b.blocks.every(
+        (k) =>
+          k.tag === "BUTTON" && k.name.includes(labels[i]) && k.name.includes(`step ${k.step}`),
+      ),
+    ),
+    `${tag}: every block is a button named with strategy and step`,
+  );
+  // One shared axis: the same step sits at the same x in every bar.
+  const xOf = (bar, step) => bar.blocks.find((k) => k.step === step)?.left;
+  const shared = Math.min(...records);
+  let aligned = bars.length === 3;
+  for (let step = 1; aligned && step <= shared; step += 1)
+    for (const bar of bars.slice(1))
+      if (!(Math.abs(xOf(bar, step) - xOf(bars[0], step)) <= 1)) aligned = false;
+  check(aligned, `${tag}: a step at the same index sits at the same position in every bar`);
+  const longest = records.indexOf(Math.max(...records));
+  const lastRight = (bar) => Math.max(...bar.blocks.map((k) => k.right));
+  check(
+    bars.length === 3 && Math.abs(lastRight(bars[longest]) - bars[longest].trackRight) <= 2,
+    `${tag}: the longest run fills the axis`,
+  );
+  check(
+    bars.length === 3 &&
+      bars.every(
+        (b, i) => records[i] === records[longest] || lastRight(b) < lastRight(bars[longest]) - 2,
+      ),
+    `${tag}: shorter runs end before the longest`,
+  );
+
+  // Clicking and Enter scroll that side's own box, and only that one.
+  const boxes = page.locator(`.agent-lab__compare ${BOX}`);
+  for (const [mode, side] of [
+    ["click", 0],
+    ["Enter", 2],
+  ]) {
+    const block = bars[side]?.blocks.at(mode === "click" ? 0 : -1);
+    if (!block) {
+      check(false, `${tag}: ${mode} on side ${side + 1} has a block to use`);
+      continue;
+    }
+    await boxes.nth(side).evaluate((b, down) => {
+      b.scrollTop = down ? b.scrollHeight : 0;
+    }, mode === "click");
+    const others = [];
+    for (let i = 0; i < 3; i += 1)
+      others.push(i === side ? null : await boxes.nth(i).evaluate((b) => b.scrollTop));
+    const button = page.locator(`${STACK} ${BAR}`).nth(side).locator(`[data-step="${block.step}"]`);
+    if (mode === "click") await button.click();
+    else {
+      await button.focus();
+      await page.keyboard.press("Enter");
+    }
+    const row = boxes.nth(side).locator(`[data-trace-row="${block.sequence}"]`);
+    await page.waitForTimeout(900);
+    check(
+      (await row.count()) === 1 && (await row.evaluate(inBox)),
+      `${tag}: ${mode} on side ${side + 1} step ${block.step} brings its row into its own box`,
+    );
+    check(
+      (await row.count()) === 1 &&
+        (await row.evaluate((r) => r.hasAttribute("data-trace-highlight"))),
+      `${tag}: ${mode} highlights the row in side ${side + 1}`,
+    );
+    let untouched = true;
+    for (let i = 0; i < 3; i += 1)
+      if (i !== side && (await boxes.nth(i).evaluate((b) => b.scrollTop)) !== others[i])
+        untouched = false;
+    check(untouched, `${tag}: ${mode} leaves the other sides' boxes where they were`);
+  }
+  await page.screenshot({ path: `${OUT}/${tag}.png`, fullPage: true });
+  summary[tag] = { records, bars: bars.map((b) => ({ label: b.label, blocks: b.blocks.length })) };
+  await closeOut(session);
+}
+
+async function compareBarsCancelled(browser) {
+  const tag = "compare-bars-cancelled";
+  const session = await open(browser, { width: 1440, height: 1000, tag });
+  const { page } = session;
+  await page.getByRole("button", { name: "Compare all strategies" }).click();
+  const cancel = page.getByRole("button", { name: "Cancel run" });
+  await cancel.waitFor();
+  await cancel.click();
+  await page.getByRole("status").getByText("Run cancelled", { exact: true }).waitFor();
+  const barCount = await page.locator(`${STACK} ${BAR}`).count();
+  const withEvents = await page
+    .locator("[data-agent-lab-compare-side]")
+    .evaluateAll((a) => a.filter((n) => n.querySelector("[data-agent-lab-event]")).length);
+  check(
+    barCount === withEvents && barCount < 3,
+    `${tag}: ${barCount} bars for ${withEvents} strategies that produced events; none for a strategy that never ran`,
+  );
+  summary[tag] = { barCount, withEvents };
+  await closeOut(session);
+}
+
+async function compareBarsPhone(browser) {
+  const tag = "compare-bars-phone";
+  const session = await open(browser, { width: 390, height: 844, tag, touch: true });
+  const { page } = session;
+  await page.getByRole("button", { name: "Compare all strategies" }).click();
+  await complete(page);
+  const bars = await readStack(page);
+  check(
+    bars.length === 3 && bars.every((b) => b.left >= 0 && b.left + b.width <= 390),
+    `${tag}: three stacked bars fit the screen`,
+  );
+  await page.screenshot({ path: `${OUT}/${tag}.png`, fullPage: true });
+  await closeOut(session);
+}
+// ===== #222 Compare bars (end) =======================================================================
+
 const browser = await chromium.launch({ channel: process.env.CHANNEL });
 try {
   await desktop(browser);
@@ -825,6 +1023,9 @@ try {
   await folds(browser); // #221
   await foldsCompare(browser); // #221
   await foldsPhone(browser); // #221
+  await compareBars(browser); // #222
+  await compareBarsCancelled(browser); // #222
+  await compareBarsPhone(browser); // #222
 } finally {
   await browser.close();
 }

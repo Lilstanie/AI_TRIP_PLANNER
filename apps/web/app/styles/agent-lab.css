@@ -720,6 +720,22 @@
   color: var(--text-mut);
 }
 
+.agent-lab__compare-bars {
+  display: grid;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  min-width: 0;
+}
+
+.agent-lab__compare-bar {
+  min-width: 0;
+}
+
+.agent-lab__compare-bar h3 {
+  margin: 0;
+  font-size: var(--font-size-meta);
+}
+
 .agent-lab__compare-columns {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

@@ -36,9 +36,15 @@ const roundOf = (runEvent: AgentLabRunEvent): number | undefined =>
 export function RunTimeline({
   events,
   label,
+  showOverview = true,
+  onJumpReady,
 }: {
   events: readonly AgentLabRunEvent[];
   label: string;
+  /** False when the caller draws this list's bar elsewhere (the Compare view's shared stack). */
+  showOverview?: boolean;
+  /** Hands the caller this list's jump-to-row function (null on unmount), for a bar drawn outside. */
+  onJumpReady?: (jump: ((sequence: number) => void) | null) => void;
 }) {
   const box = useRef<HTMLDivElement>(null);
   const following = useRef(true);
@@ -83,6 +89,11 @@ export function RunTimeline({
     );
   }, []);
 
+  useEffect(() => {
+    onJumpReady?.(jumpTo);
+    return () => onJumpReady?.(null);
+  }, [onJumpReady, jumpTo]);
+
   useLayoutEffect(() => {
     const el = box.current;
     if (!el) return;
@@ -102,7 +113,7 @@ export function RunTimeline({
 
   return (
     <>
-      <TraceOverview events={events} onSelect={jumpTo} />
+      {showOverview ? <TraceOverview events={events} onSelect={jumpTo} /> : null}
       <div className="agent-lab__trace-toolbar" role="group" aria-label="Trace folds">
         <button
           type="button"

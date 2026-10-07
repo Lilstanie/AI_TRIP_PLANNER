@@ -1,10 +1,15 @@
+"use client";
+
+import { useMemo, useRef } from "react";
 import type { AgentLabCompletedRunArtifact, AgentLabRunEvent } from "@trip/shared";
 import { buildComparisonRows, NO_RESULT } from "@/lib/agent-lab/comparison";
 import { faultOutcome } from "@/lib/agent-lab/fault-outcome";
+import { deriveTraceOverview } from "@/lib/agent-lab/trace-overview";
 import { DownloadArtifactButton } from "./DownloadArtifactButton";
 import { OutcomeBadge } from "./OutcomeBadge";
 import { PlanSections, PlanSummary } from "./PlanSections";
 import { RunTimeline } from "./RunTimeline";
+import { TraceOverview } from "./TraceOverview";
 
 export interface ComparisonSide {
   label: string;
@@ -28,6 +33,24 @@ export function ComparisonPanel({
   onDownloaded: (filename: string) => void;
 }) {
   const rows = buildComparisonRows(...sides.map((side) => side.artifact));
+  // Each side's list registers its jump here, so a block in the stack scrolls only that side's own box.
+  const jumps = useRef<(((sequence: number) => void) | null)[]>([]);
+  const registrars = useMemo(
+    () =>
+      Array.from(
+        { length: sides.length },
+        (_, index) => (jump: ((sequence: number) => void) | null) => {
+          jumps.current[index] = jump;
+        },
+      ),
+    [sides.length],
+  );
+  // One step axis for every bar: the longest run's record count. A strategy that never ran has no events
+  // and so no bar.
+  const domainSteps = Math.max(
+    1,
+    ...sides.map((side) => deriveTraceOverview(side.events).records.length),
+  );
   return (
     <section className="agent-lab__compare" aria-labelledby="agent-lab-compare-title">
       <div className="agent-lab__panel-heading">
@@ -75,8 +98,26 @@ export function ComparisonPanel({
           </tbody>
         </table>
       </div>
+      {sides.some((side) => side.events.length) ? (
+        <div className="agent-lab__compare-bars" data-trace-compare-bars>
+          {sides.map((side, index) =>
+            side.events.length ? (
+              <div key={side.label} className="agent-lab__compare-bar">
+                <h3>{side.label}</h3>
+                <TraceOverview
+                  events={side.events}
+                  domainSteps={domainSteps}
+                  label={`${side.label} trace overview`}
+                  blockPrefix={side.label}
+                  onSelect={(sequence) => jumps.current[index]?.(sequence)}
+                />
+              </div>
+            ) : null,
+          )}
+        </div>
+      ) : null}
       <div className="agent-lab__compare-columns" data-sides={sides.length}>
-        {sides.map((side) => (
+        {sides.map((side, index) => (
           <article key={side.label} aria-label={side.label} data-agent-lab-compare-side>
             <h3>{side.label}</h3>
             {side.artifact ? <OutcomeBadge outcome={faultOutcome(side.artifact)} /> : null}
@@ -96,7 +137,12 @@ export function ComparisonPanel({
               <p className="agent-lab__compare-empty">{NO_RESULT}</p>
             )}
             {side.events.length ? (
-              <RunTimeline events={side.events} label={`${side.label} run events`} />
+              <RunTimeline
+                events={side.events}
+                label={`${side.label} run events`}
+                showOverview={false}
+                onJumpReady={registrars[index]}
+              />
             ) : null}
           </article>
         ))}

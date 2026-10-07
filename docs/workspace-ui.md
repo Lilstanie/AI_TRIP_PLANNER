@@ -588,7 +588,9 @@ and result form one block, and failed tool calls, failed specialists and rejecte
 colour. A dashed line with an R2, R3 tag marks each round boundary. The bar grows as events stream or replay.
 Every block is a button named with its lane, title and step; clicking it or pressing Enter scrolls the box to
 that row and highlights it for a moment (instantly under reduced motion). At phone width the bar fits the screen
-and lane labels shorten (Coord, Trans, Guide, Stay, Itin, Dine, Base). The
+and lane labels shorten (Coord, Trans, Guide, Stay, Itin, Dine, Base). In the Compare view the three
+strategies' bars are stacked above the columns in strategy order on one shared step axis sized to the longest
+run, so shapes line up and a shorter run ends earlier; a strategy that never ran has no bar. The
 [trace end-to-end script](../apps/web/tests/e2e/agent-lab-trace.e2e.mjs) checks it at desktop and phone width.
 
 Above the box, a toolbar offers two folds, **Fold rounds** and **Fold calls**, each a button with a pressed

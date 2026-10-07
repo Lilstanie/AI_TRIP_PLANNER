@@ -156,8 +156,11 @@ block (an in-flight call is a start marker only), failed tool calls, failed spec
 error colour, and round boundaries are marked. The axis is steps, not time, because every event's `elapsedMs`
 includes the stream's pacing delay; the [Agent Note](../.agents/notes/implemented/architecture/2026-10-07-agent-lab-trace-step-axis.md)
 records why. Each block is a focusable button, and activating it scrolls the box to that record's row
-(`data-trace-row`) and highlights it briefly. The bar component takes an optional shared step domain so the Compare
-view can stack bars on one axis.
+(`data-trace-row`) and highlights it briefly. In the Compare view each strategy that produced events gets its own bar,
+stacked in strategy order (baseline, no revision, targeted revision) above the columns on one shared step axis
+sized to the longest run (the bar component's `domainSteps`). A step at the same index sits at the same horizontal
+position in every bar, a shorter run visibly ends earlier, and a strategy that never ran (a cancelled comparison)
+has no bar. Clicking a block scrolls only that strategy's own trace box. The panel still never ranks the strategies.
 
 ## LangGraph workflow
 
