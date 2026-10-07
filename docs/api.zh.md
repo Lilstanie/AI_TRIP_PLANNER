@@ -27,6 +27,13 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 `packages/services` 在配置了 `KV_REST_API_URL` 和 `KV_REST_API_TOKEN` 时，将聊天轮次、
 偏好和生成的计划记录到 Redis REST 存储中；否则记录到进程内存中。
 
+<a id="failure-bodies"></a>
+
+应用自身路由（`/api/chat`、地点路由、`/api/routes/from-location`、`/api/trip/preview-edit` 和账号路由）
+的失败响应体为 `{ error, notice }`。`error` 是供日志和旧版客户端读取的英文句子；`notice` 是同一失败的
+`Notice`，界面以所选语言显示：应用自身的措辞为 `{ key, params }`，按原样转交的文本为 `{ raw }`
+（`apps/web/lib/i18n/notice.ts`）。Agent Lab 保留自己的错误格式。
+
 <a id="post-apichat"></a>
 
 ## `POST /api/chat`
@@ -113,7 +120,8 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 | `TEXT_MEDIA_TYPES`            | `text/plain`, `text/markdown`, `text/csv`, `application/json` |
 
 媒体类型不在该类别的允许列表中、文件过大或图片不是无前缀 base64 时，请求会在调用任何提供方之前
-被拒绝，返回 HTTP 400 和 `{ "error": "Attachment rejected: …" }`。
+被拒绝，返回 HTTP 400 和
+`{ "error": "Attachment rejected: …", "notice": { "key": "Attachment rejected: {reason}", … } }`。
 整个请求体仍受平台限制：Vercel serverless function 在处理器运行之前，就会以自己的 413 响应
 拒绝超过 4.5 MB 的请求体。因此，无论上面的单文件限制如何，一条消息实际最多可包含三张达到最大尺寸的图片。
 
@@ -133,9 +141,11 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 
 - `type` 为 `coordinator`、`agent_started`、`agent_completed` 或 `agent_failed` 的进度事件；
 - 最终帧 `{ "type": "complete", "response": { "reply": "…", "plan": { … } } }`；
-- 或带有面向用户消息的 `{ "type": "error", "error": "…" }`。
+- 或 `{ "type": "error", "error": "…", "notice": { … } }`，即
+  [`{ error, notice }`](#failure-bodies) 形式的失败。
 
-无效请求体会在流式响应开始前返回 HTTP 400 JSON。
+请求体无效，或 `mode: "plan"` 却没有行程需求时，会在流式响应开始前返回 HTTP 400 和
+`{ "error": "The request was invalid. Please retry.", "notice": { … } }`。
 
 可选的 `x-trip-data-mode` 请求头值为 `mock` 或 `live`，仅为本次请求选择 fixture（测试前置数据）
 或实时提供方；其他值或未提供请求头时，使用部署默认值。
@@ -218,8 +228,8 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 `destination` 是可选字段；查找城市本身时省略它。响应为 `{ "places": GooglePlace[] }`。
 工作区只发送保存的地点名称、明确的活动位置或本身就是地点名称的标题
 （`apps/web/lib/map/place-query.ts`），绝不发送描述性的活动文本。
-错误：400 表示输入无效，429 表示 Google 限流，502 表示其他上游失败。
-错误消息不包含查询内容或提供方详情。
+错误：400 表示输入无效，429 表示 Google 限流，502 表示其他上游失败，响应体均为
+[`{ error, notice }`](#failure-bodies)。错误消息不包含查询内容或提供方详情。
 
 <a id="post-apiplacesdetails"></a>
 
@@ -230,7 +240,7 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 ```
 
 返回 `{ "place": GooglePlace }`。错误：400 表示输入无效，404 表示地点 ID 已不可用，
-429 表示限流，502 表示其他上游失败。
+429 表示限流，502 表示其他上游失败，响应体均为 [`{ error, notice }`](#failure-bodies)。
 
 这两个路由返回的 `GooglePlace.photos` 都包含 Google 照片名称和作者署名。
 它们只保留在浏览器内存中，绝不写入计划，因为 Google 禁止缓存这些数据。
@@ -249,7 +259,7 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 路由向 Google 请求图片 URL，再以 `302` 响应重定向到 `googleusercontent.com` URL，
 并设置 `Cache-Control: no-store`，因此 `<img>` 可以指向它，而不会让服务端密钥进入浏览器。
 每次调用都是一次计费的 Google 照片请求。错误：400 表示输入无效，404 表示照片已过期或未知，
-429 表示限流，502 表示其他上游失败或缺少密钥。
+429 表示限流，502 表示其他上游失败或缺少密钥，响应体均为 [`{ error, notice }`](#failure-bodies)。
 
 <a id="post-apiroutesfrom-location"></a>
 
@@ -261,7 +271,9 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 
 返回 `RouteResult`（`status` 为 `ok` 时带有 `durationMin` 和 `distanceMeters`，
 为 `unavailable` 时带有 `error`）。只有用户请求获取自身位置后才会发送坐标；
-坐标不会被存储，也不会写入计划。输入无效时返回 400。
+坐标不会被存储，也不会写入计划。输入无效或查询失败时返回 400 和
+[`{ error, notice }`](#failure-bodies)：输入无效时为“Route lookup failed.”，应用自身的拒绝原因保留其键，
+其他错误以 `{ raw }` 原样转交。
 
 <a id="post-apitrippreview-edit"></a>
 
@@ -278,16 +290,24 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 }
 ```
 
-`operation.kind` 为 `verify`（检查某一天的路线）、`move`、`time`、`place` 或 `undo`。只有带日期的活动会被规划路线和重新排时；ideas（没有日期的活动）原样保留。
-响应为 `{ plan, baseVersion, routes, differences, blockers }`。每条 difference 是数值对象
-`{ stop, days?: { from, to }, before, after, placeChanged }`，由界面按所选语言组织文字；blockers 为英文句子，界面识别后会本地化。它只是预览：
-客户端在用户确认后才应用它，若 `baseVersion` 已不匹配则拒绝应用。无效编辑返回 400。
+`operation.kind` 为 `verify`（检查某一天的路线）、`move`、`time`、`place`、`choose` 或 `undo`。只有带日期的活动会被规划路线和重新排时；ideas（没有日期的活动）原样保留。
+响应为 `{ plan, baseVersion, routes, differences, blockers, blockerNotices }`。每条 difference 是数值对象
+`{ stop, days?: { from, to }, before, after, placeChanged }`，由界面按所选语言组织文字。`blockerNotices` 以 Notice
+列出阻止此修改的原因（应用自身的措辞为 `{ key, params }`，路线服务商的文字为 `{ raw }`），界面按所选语言显示；
+`blockers` 以英文句子重复同样内容，供旧版客户端使用。它只是预览：客户端在用户确认后才应用它，若 `baseVersion`
+已不匹配则拒绝应用。无效编辑返回 400 和 `{ error, notice }`：`error` 是旧版客户端读取的英文句子，`notice`
+是同一拒绝原因的 Notice；不属于应用自身拒绝原因的错误（例如格式错误的请求体）以 `{ raw }` 返回。
+
+`choose` 接收 `{ section: "accommodation" | "transport", selectionId, candidateId }`，把住宿或机票换成专员已经找到的另一个候选。
+系统按 `selectionId` 找到对应条目，用与专员相同的措辞重新定价和描述，并像其他修改一样重新计算费用、冲突和版本号。
+界面会直接应用 `choose` 的预览而不先询问，因为变化的只是旅行者刚看到的价格。条目带有 `selectionId` 之前保存的方案会被拒绝，不会去猜。
 
 <a id="related-contracts"></a>
 
 ## 账号路由
 
-所有账号路由都需要 Clerk 会话，没有会话时返回 401；未配置 Clerk 或 `DATABASE_URL` 时返回 503。查询使用会话中的用户
+所有账号路由都需要 Clerk 会话，没有会话时返回 401；未配置 Clerk 或 `DATABASE_URL` 时返回 503。所有失败响应体（包括 400 和下文的 502）
+均为 [`{ error, notice }`](#failure-bodies)。查询使用会话中的用户
 id，绝不使用请求体中的 id。约定：`apps/web/lib/account/settings.ts` 中的 `UserSettings`，
 `apps/web/lib/account/sync.ts` 中的 `SyncedRecord` 和 `SyncPush`。
 

@@ -10,6 +10,8 @@
 // - a change to a convention file (AGENTS.md, CI, lint or format config) does not trigger a review,
 //   although every skill that repeats a convention may now be wrong;
 // - pull requests are counted as issues (the GitHub issues endpoint returns both);
+// - issues closed by the very merge that changed the skills (closed seconds after the baseline
+//   commit) are counted as new work, so a review comes due the day after a skill update;
 // - Node's fetch ignores the HTTPS proxy and a stale GITHUB_TOKEN is rejected, so the issue signals
 //   vanish in environments where curl works;
 // - ISO dates in different offsets (+08:00 from git, Z from GitHub) compared as strings;
@@ -78,6 +80,15 @@ const baselineLine = git(
 );
 if (!baselineLine) throw new Error("No commit has touched .agents/skills on this branch");
 const [baseline, baselineDate] = baselineLine.split("\t");
+// Issues the baseline's own commits name (a merge brings in its branch) were closed by work the
+// skill change already absorbed.
+const [firstParent, ...mergedParents] = git("rev-list", "--parents", "-n", "1", baseline)
+  .split(" ")
+  .slice(1);
+const baselineRange = mergedParents.length ? [`${firstParent}..${baseline}`] : ["-1", baseline];
+const absorbedIssues = new Set(
+  [...git("log", "--format=%B", ...baselineRange).matchAll(/#(\d+)/g)].map((m) => Number(m[1])),
+);
 
 const commits = (...paths) => {
   const out = git(
@@ -144,7 +155,10 @@ function githubSignals() {
   }
   // `since` filters by update time; keep only items actually closed after the baseline.
   const since = Date.parse(baselineDate);
-  const closedAfter = items.filter((item) => item.closed_at && Date.parse(item.closed_at) > since);
+  const closedAfter = items.filter(
+    (item) =>
+      item.closed_at && Date.parse(item.closed_at) > since && !absorbedIssues.has(item.number),
+  );
   return {
     available: true,
     closedIssues: closedAfter

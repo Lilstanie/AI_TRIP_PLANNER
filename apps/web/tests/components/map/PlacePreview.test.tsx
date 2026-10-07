@@ -27,7 +27,7 @@ const noLocation: UserLocation = {
   dismiss() {},
 };
 const stops = (...places: GooglePlace[]) =>
-  places.map((item, index) => ({ place: item, order: index + 1 }));
+  places.map((item, index) => ({ place: item, number: index + 1 }));
 
 const photo = (container: HTMLElement) => container.querySelector("img");
 

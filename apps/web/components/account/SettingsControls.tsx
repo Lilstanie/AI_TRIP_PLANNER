@@ -1,6 +1,7 @@
 "use client";
 import { useRef, useState, type ReactNode } from "react";
 import type { MessageKey } from "@/lib/i18n/locale";
+import type { Notice } from "@/lib/i18n/notice";
 import { useSegmentIndicator } from "../ui/motion";
 import { useLocale } from "./LocaleProvider";
 
@@ -188,7 +189,7 @@ export function TextEditor({
   label: string;
   initial: string;
   numeric?: boolean;
-  validate?(value: string): string | undefined;
+  validate?(value: string): Notice | undefined;
   onSave(value: string): void;
 }) {
   const { t, notice: localizeNotice } = useLocale();

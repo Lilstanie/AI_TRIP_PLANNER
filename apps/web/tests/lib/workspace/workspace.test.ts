@@ -2,11 +2,9 @@ import { describe, it, expect } from "vitest";
 import {
   AskUserError,
   blankDraft,
-  budgetHint,
   draftFor,
   draftWithKnown,
   knownFromDraft,
-  money,
   NeedsInfoError,
   parseDraft,
   parseSnapshot,
@@ -297,22 +295,7 @@ describe("stored message attachments", () => {
   });
 });
 
-describe("budget display", () => {
-  it("formats amounts in the base currency", () => {
-    expect(money(2000)).toMatch(/AUD\s*2,000\.00/);
-  });
-
-  it("explains a converted budget, and says nothing when there is nothing to explain", () => {
-    expect(budgetHint({ budgetSource: { amount: 3000, currency: "CNY" } })).toMatch(/¥3,000/);
-    expect(budgetHint({})).toBe("");
-    // Stated in the base currency: converting it back would be noise.
-    expect(budgetHint({ budgetSource: { amount: 3000, currency: "AUD" } })).toBe("");
-  });
-
-  it("drops the minor unit for a currency that has none", () => {
-    expect(budgetHint({ budgetSource: { amount: 50000, currency: "JPY" } })).not.toMatch(/\./);
-  });
-
+describe("budget source", () => {
   it("does not carry a stale source past a form edit", () => {
     // The preferences form is base-currency only, so a budget typed there has no source.
     const current = { ...plan.brief, budgetSource: { amount: 3000, currency: "CNY" as const } };

@@ -15,7 +15,7 @@ import {
   AgentLabRunError,
   readAgentLabStream,
 } from "@/lib/agent-lab/stream";
-import { money } from "@/lib/agent-lab/format";
+import { labMoney } from "@/lib/agent-lab/money";
 import { readReplayFile, replayEvents } from "@/lib/agent-lab/replay";
 import {
   emptyRun,
@@ -649,7 +649,7 @@ export function AgentLabClient({
                 <p className="agent-lab__kicker">Outcome</p>
                 <h2 id="agent-lab-plan-title">Plan result</h2>
               </div>
-              {selected.artifact ? <span>{money(selected.artifact.plan.estTotal)}</span> : null}
+              {selected.artifact ? <span>{labMoney.money(selected.artifact.plan.estTotal)}</span> : null}
             </div>
             {selected.artifact ? (
               <>

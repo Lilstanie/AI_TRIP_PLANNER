@@ -3,6 +3,8 @@ import { describe, expect, it, vi } from "vitest";
 import { TripPlaceList } from "@/components/trip/TripPlaceList";
 import type { TripPlaces } from "@/components/map/useTripPlaces";
 import type { GooglePlace } from "@/lib/integrations/google";
+import type { TripPlan } from "@trip/shared";
+import { buildItinerary } from "@/lib/trip/itinerary";
 
 const place = (id: string, name: string): GooglePlace => ({
   id,
@@ -34,19 +36,27 @@ const activities = [
     startTime: "10:00",
     endTime: "11:00",
   },
+  {
+    id: "a4",
+    kind: "activity",
+    detail: "Ferry back to the quay",
+    day: 2,
+    startTime: "12:00",
+    endTime: "13:00",
+  },
 ];
 const places: Record<string, GooglePlace> = {
   gallery: place("gallery", "Art Gallery"),
   quay: place("quay", "Circular Quay"),
 };
-const placeFor: Record<string, string> = { a1: "gallery", a3: "quay" };
+const placeFor: Record<string, string> = { a1: "gallery", a3: "quay", a4: "quay" };
+const plan = {
+  sections: [{ id: "itinerary", proposal: { items: activities } }],
+} as unknown as TripPlan;
 const tripPlaces = {
   activities,
   places,
-  markers: [
-    { activityId: "a1", place: places.gallery!, verified: true, order: 1, day: 1 },
-    { activityId: "a3", place: places.quay!, verified: false, order: 2, day: 1 },
-  ],
+  itinerary: buildItinerary(plan, (activity) => places[placeFor[activity.id!] ?? ""]),
   placeIdFor: (activity: { id?: string }) => placeFor[activity.id!],
   locationStatus: (activity: { id?: string }) =>
     placeFor[activity.id!] ? "located" : "unconfirmed",
@@ -74,9 +84,12 @@ describe("TripPlaceList", () => {
     fireEvent.click(stops[0]!);
     expect(onSelect).toHaveBeenCalledWith("a1");
 
-    // A stop without a place is listed but has nothing to select on the map.
+    // A stop without a place is listed but has nothing to select on the map; a place visited
+    // again keeps its first number, as on the maps.
     const day2 = screen.getByRole("list", { name: "Stops, Day 2 · 2026-10-02" });
-    expect(within(day2).queryByRole("button")).toBeNull();
+    expect(within(day2).getAllByRole("button").map((button) => button.textContent)).toEqual([
+      "2Stop 2: Circular Quay12:00–13:00 · Ferry back to the quay",
+    ]);
     expect(within(day2).getByText(/Location to be confirmed/)).toBeTruthy();
   });
 });

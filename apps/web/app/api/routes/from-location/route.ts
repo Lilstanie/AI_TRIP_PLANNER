@@ -1,4 +1,5 @@
-import { z } from "zod";
+import { z, ZodError } from "zod";
+import { errorNotice, noticeBody } from "@/lib/i18n/notice";
 import { googleRouteFromCoordinates } from "@/lib/integrations/google";
 
 const Input = z.object({
@@ -20,9 +21,10 @@ export async function POST(request: Request) {
       { headers: { "Cache-Control": "no-store" } },
     );
   } catch (error) {
-    return Response.json(
-      { error: error instanceof Error ? error.message : "Route lookup failed" },
-      { status: 400 },
-    );
+    // An authored refusal is keyed; anything else is passed on exactly as it was raised.
+    const notice = errorNotice(error instanceof ZodError ? undefined : error, {
+      key: "Route lookup failed.",
+    });
+    return Response.json(noticeBody(notice), { status: 400 });
   }
 }

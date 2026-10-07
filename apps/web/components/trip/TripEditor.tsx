@@ -43,7 +43,7 @@ export function TripEditor({
   onRoutesChange?(routes: RouteResult[]): void;
 }) {
   const { t, locale, notice: localizeNotice } = useLocale();
-  const { activities, places, placeIdFor, locationStatus } = tripPlaces;
+  const { activities, itinerary, places, placeIdFor, locationStatus } = tripPlaces;
   const edits = useTimelineEdits({ plan, activities, onApply, onPending, onRoutesChange });
   const days = dayCount(plan);
   const labels = useMemo(
@@ -60,9 +60,10 @@ export function TripEditor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected]);
 
+  // The day's stops in visiting order, numbered as on the map and the trip list.
   const daily = useMemo(
-    () => activities.filter((activity) => activity.day === day),
-    [activities, day],
+    () => itinerary.stopsOn(day).map((stop) => stop.activity),
+    [itinerary, day],
   );
   const rows = useMemo(() => dayRows(plan, day, daily, locale), [plan, day, daily, locale]);
   const unconfirmed = daily.filter((activity) => !activity.placeId).length;
@@ -73,7 +74,7 @@ export function TripEditor({
   const strip = useMemo(
     () =>
       labels.map((date, index) => {
-        const stops = activities.filter((activity) => activity.day === index + 1);
+        const stops = itinerary.stopsOn(index + 1).map((stop) => stop.activity);
         return {
           day: index + 1,
           date,
@@ -81,12 +82,11 @@ export function TripEditor({
           attention: stops.some((activity) => locationStatus(activity) !== "located"),
         };
       }),
-    [labels, activities, locationStatus],
+    [labels, itinerary, locationStatus],
   );
 
-  // Stops are numbered and connected in the order shown; moves use the plan's own order for the
-  // day, which is what the preview endpoint indexes.
-  let shown = 0;
+  // Stops are connected in the order shown and carry their trip-wide stop number. Moves name a
+  // shown position; the Itinerary turns it into the plan index the preview endpoint needs.
   let previous: (typeof daily)[number] | undefined;
   return (
     <section className="trip-editor" aria-label={t("Trip timeline")}>
@@ -170,15 +170,22 @@ export function TripEditor({
               const activity = row.activity;
               const placeId = placeIdFor(activity);
               const connection = connectionBetween(previous, activity, edits.routes, locale);
-              const number = ++shown;
               previous = activity;
               return (
                 <Fragment key={activity.id ?? position}>
                   {connection && <ConnectionRow key={connection.status} connection={connection} />}
                   <TimelineStop
                     activity={activity}
-                    number={number}
+                    number={itinerary.stop(activity.id!)?.number}
                     index={daily.indexOf(activity)}
+                    planIndex={itinerary.planIndex}
+                    dropIndex={(moved) =>
+                      itinerary.planIndex(
+                        moved,
+                        day,
+                        daily.filter((other) => other.id !== moved).indexOf(activity),
+                      )
+                    }
                     count={daily.length}
                     days={days}
                     dayLabels={labels}

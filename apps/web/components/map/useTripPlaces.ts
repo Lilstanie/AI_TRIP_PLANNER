@@ -4,22 +4,9 @@ import type { TripPlan } from "@trip/shared";
 import type { GooglePlace } from "@/lib/integrations/google";
 import { itineraryActivities } from "@/lib/workspace";
 import { destinationCities, placeQueryFor } from "@/lib/map/place-query";
-import { itineraryOrder } from "@/lib/map/itinerary-route";
+import { buildItinerary, type Itinerary } from "@/lib/trip/itinerary";
 
 type Activity = ReturnType<typeof itineraryActivities>[number];
-
-/**
- * One numbered map marker and the activity that owns it. Markers come in visiting order (day, then
- * start time); `order` is the 1-based stop number across the trip.
- */
-export type TripMarker = {
-  activityId: string;
-  place: GooglePlace;
-  verified: boolean;
-  order: number;
-  day?: number;
-  startTime?: string;
-};
 
 /**
  * - `located`: the activity has a place on the map.
@@ -30,14 +17,10 @@ export type TripMarker = {
 export type LocationStatus = "located" | "loading" | "unconfirmed" | "unavailable";
 
 export type TripPlaces = {
+  /** Every itinerary activity, stops and ideas, in plan order. */
   activities: Activity[];
-  /** One marker per place, at its first visit; the whole-trip map. */
-  markers: TripMarker[];
-  /**
-   * Every located activity in visiting order, including repeat visits to a place. A repeat visit
-   * carries its place marker's `order`; build a single day's map from these (#185).
-   */
-  visits: TripMarker[];
+  /** Stops, ideas, stop numbers and visiting order for every view, from the places found so far. */
+  itinerary: Itinerary;
   places: Record<string, GooglePlace>;
   /** Resolved destination city places, used to frame the map before activities load. */
   destinations: GooglePlace[];
@@ -52,18 +35,10 @@ export type TripPlaces = {
   unavailable: number;
   locationStatus(activity: Activity): LocationStatus;
   placeIdFor(activity: Activity): string | undefined;
-  /** The activity a place's marker stands for; with `day`, that day's visit to the place. */
-  activityForPlace(placeId: string, day?: number): string | undefined;
   rememberPlace(place: GooglePlace): void;
   /** Retry only lookups that failed for a retryable reason. */
   retry(): void;
 };
-
-/** Keep each place's first visit, so a place gets one marker. */
-export function firstVisits(visits: TripMarker[]): TripMarker[] {
-  const seen = new Set<string>();
-  return visits.filter((visit) => !seen.has(visit.place.id) && !!seen.add(visit.place.id));
-}
 
 type Outcome = { status: "found"; placeId: string } | { status: "notFound" | "unavailable" };
 
@@ -216,26 +191,14 @@ export function useTripPlaces(plan: TripPlan | undefined): TripPlaces {
     [lookupKey, outcomes, pending, places],
   );
 
-  const visits = useMemo(() => {
-    const orders = new Map<string, number>();
-    return itineraryOrder(activities).flatMap((activity): TripMarker[] => {
-      const placeId = placeIdFor(activity);
-      const place = placeId ? places[placeId] : undefined;
-      if (!activity.id || !place?.location) return [];
-      if (!orders.has(place.id)) orders.set(place.id, orders.size + 1);
-      return [
-        {
-          activityId: activity.id,
-          place,
-          verified: !!activity.placeId,
-          order: orders.get(place.id)!,
-          day: activity.day,
-          startTime: activity.startTime,
-        },
-      ];
-    });
-  }, [activities, places, placeIdFor]);
-  const markers = useMemo(() => firstVisits(visits), [visits]);
+  const itinerary = useMemo(
+    () =>
+      buildItinerary(plan, (activity) => {
+        const placeId = placeIdFor(activity);
+        return placeId ? places[placeId] : undefined;
+      }),
+    [plan, places, placeIdFor],
+  );
 
   const destinations = useMemo(
     () =>
@@ -255,13 +218,6 @@ export function useTripPlaces(plan: TripPlan | undefined): TripPlaces {
     (city) => outcomes[keyFor("city", city)]?.status === "unavailable",
   );
   const statuses = activities.map(locationStatus);
-  const activityForPlace = useCallback(
-    (placeId: string, day?: number) =>
-      (day === undefined ? markers : visits).find(
-        (marker) => marker.place.id === placeId && (day === undefined || marker.day === day),
-      )?.activityId,
-    [markers, visits],
-  );
   const rememberPlace = useCallback((place: GooglePlace) => {
     setPlaces((old) => ({ ...old, [place.id]: place }));
   }, []);
@@ -269,8 +225,7 @@ export function useTripPlaces(plan: TripPlan | undefined): TripPlaces {
 
   return {
     activities,
-    markers,
-    visits,
+    itinerary,
     places,
     destinations,
     destinationsSettled,
@@ -280,7 +235,6 @@ export function useTripPlaces(plan: TripPlan | undefined): TripPlaces {
     unavailable: statuses.filter((status) => status === "unavailable").length,
     locationStatus,
     placeIdFor,
-    activityForPlace,
     rememberPlace,
     retry,
   };

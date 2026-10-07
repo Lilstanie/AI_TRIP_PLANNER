@@ -36,6 +36,52 @@ _Avoid_: iteration, attempt
 How far a plan is from usable: the AUD over budget plus a tenth of the budget for each other conflict. Lower is better, and a revision is kept only when it lowers it.
 _Avoid_: quality score
 
+## Trip
+
+**Stop**:
+A place in the itinerary that is scheduled on a day. Only stops are counted, numbered and drawn on the map.
+_Avoid_: activity (in prose), item, point
+
+**Idea**:
+A place kept in the itinerary without a day. It is not a stop until the traveller schedules it.
+_Avoid_: unscheduled stop, saved place, backlog
+
+**Visit**:
+One stop at one place; a place on two days has two visits.
+_Avoid_: occurrence, repeat stop
+
+**Stop number**:
+The number a place carries across the whole trip, given in visiting order. A place visited again keeps its first number, and the map, the trip list and the timeline all show the same number.
+_Avoid_: index, order (in prose), per-day number
+
+**Visiting order**:
+The order stops are shown everywhere: by day, then start time, then their order in the plan.
+_Avoid_: plan order, sort order
+
+## Workspace
+
+**Notice**:
+A short message the workspace itself writes to the traveller, such as an error or a confirmation, shown in the interface language. Model replies and provider text are not notices and are shown as received.
+_Avoid_: toast, alert, error string
+
+## Money
+
+**Planning amount**:
+A cost, budget or total in AUD, the one currency specialists plan and check budgets in.
+_Avoid_: base amount, raw price
+
+**Display currency**:
+The currency the traveller reads planning amounts in; a converted amount is an approximation and never feeds back into planning.
+_Avoid_: local currency, user currency
+
+**Source budget**:
+The budget exactly as the traveller stated it, in the currency they used, kept beside its planning amount.
+_Avoid_: original budget, input budget
+
+**Fare**:
+A provider's price in the provider's own currency, shown as evidence and never converted or added to planning amounts.
+_Avoid_: provider amount, native price
+
 ## Agent Lab
 
 **Agent Lab**:

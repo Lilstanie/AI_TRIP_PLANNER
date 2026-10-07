@@ -4,44 +4,20 @@ import {
   dayRoutes,
   flowOffset,
   FLOW_REPEAT_PX,
-  itineraryOrder,
   startFlow,
   type RouteStop,
 } from "@/lib/map/itinerary-route";
 import { placeCategory } from "@/lib/map/place-category";
 
-const stop = (placeId: string, order: number, day?: number): RouteStop => ({
+const stop = (placeId: string, at: number, day?: number): RouteStop => ({
   placeId,
-  order,
   day,
-  position: { lat: order, lng: order },
-});
-
-describe("itineraryOrder", () => {
-  it("orders by day, then start time, keeping plan order for ties and undated items last", () => {
-    const items = [
-      { id: "late", day: 1, startTime: "15:00" },
-      { id: "undated" },
-      { id: "day2", day: 2, startTime: "09:00" },
-      { id: "early", day: 1, startTime: "09:00" },
-      { id: "untimed-a", day: 1 },
-      { id: "untimed-b", day: 1 },
-    ];
-    expect(itineraryOrder(items).map((item) => item.id)).toEqual([
-      "early",
-      "late",
-      "untimed-a",
-      "untimed-b",
-      "day2",
-      "undated",
-    ]);
-    expect(items[0]!.id).toBe("late"); // input untouched
-  });
+  position: { lat: at, lng: at },
 });
 
 describe("dayRoutes", () => {
-  it("draws one line per day through its stops in order, skipping single-stop days", () => {
-    const lines = dayRoutes([stop("c", 3, 1), stop("a", 1, 1), stop("b", 2, 1), stop("d", 4, 2)]);
+  it("draws one line per day through its stops in the order given, skipping single-stop days", () => {
+    const lines = dayRoutes([stop("a", 1, 1), stop("b", 2, 1), stop("c", 3, 1), stop("d", 4, 2)]);
     expect(lines).toHaveLength(1);
     expect(lines[0]!.day).toBe(1);
     expect(lines[0]!.legs.map((leg) => `${leg.from.placeId}>${leg.to.placeId}`)).toEqual([

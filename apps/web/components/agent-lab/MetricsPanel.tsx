@@ -1,6 +1,6 @@
 import type { AgentLabCompletedRunArtifact } from "@trip/shared";
 import { multiCityLabel, stopReasonLabel, usageLabel } from "@/lib/agent-lab/comparison";
-import { money } from "@/lib/agent-lab/format";
+import { labMoney } from "@/lib/agent-lab/money";
 
 export function MetricsList({ artifact }: { artifact: AgentLabCompletedRunArtifact }) {
   const { metrics } = artifact;
@@ -13,8 +13,8 @@ export function MetricsList({ artifact }: { artifact: AgentLabCompletedRunArtifa
           <dd>{metrics.withinBudget ? "Within budget" : "Over budget"}</dd>
           <small>
             {metrics.withinBudget
-              ? `${money(metrics.budgetHeadroom)} remaining`
-              : `${money(-metrics.budgetHeadroom)} over`}
+              ? `${labMoney.money(metrics.budgetHeadroom)} remaining`
+              : `${labMoney.money(-metrics.budgetHeadroom)} over`}
           </small>
         </div>
         <div>

@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { TripPlan } from "@trip/shared";
 import type { GooglePlace, RouteResult } from "@/lib/integrations/google";
 import type { EditInput, EditPreview } from "@/lib/trip/trip-edit";
+import { errorNotice, failureNotice, NoticeError, type Notice } from "@/lib/i18n/notice";
 import type { TripPlaces } from "../../map/useTripPlaces";
 
 export type RouteMode = "WALK" | "TRANSIT";
@@ -29,7 +30,7 @@ export function useTimelineEdits({
 }) {
   const [mode, setMode] = useState<RouteMode>("WALK");
   const [results, setResults] = useState<GooglePlace[]>([]);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<Notice>();
   const [working, setWorking] = useState<"" | "preview" | "search">("");
   const [preview, setPreview] = useState<EditPreview>();
   const [undo, setUndo] = useState<Operation>();
@@ -95,12 +96,12 @@ export function useTimelineEdits({
     const controller = new AbortController();
     request.current = controller;
     setWorking(kind);
-    setError("");
+    setError(undefined);
     try {
       return await call(controller.signal);
     } catch (e) {
       if (!controller.signal.aborted)
-        setError(e instanceof Error ? e.message : "Something went wrong. Try again.");
+        setError(errorNotice(e, { key: "Something went wrong. Try again." }));
       return undefined;
     } finally {
       if (request.current === controller) setWorking("");
@@ -118,8 +119,11 @@ export function useTimelineEdits({
         body: JSON.stringify({ plan, baseVersion: plan.editVersion ?? 0, operation, mode }),
         signal,
       });
-      const body = await response.json();
-      if (!response.ok) throw new Error(body.error ?? "Preview failed. Try the change again.");
+      const body = await response.json().catch(() => null);
+      if (!response.ok)
+        throw new NoticeError(
+          failureNotice(body, { key: "Preview failed. Try the change again." }),
+        );
       // A plan that changed while the preview was in flight makes the preview stale.
       if (!signal.aborted && current.current === base)
         setPreview({ ...body, plan: TripPlan.parse(body.plan) });
@@ -135,11 +139,12 @@ export function useTimelineEdits({
         body: JSON.stringify({ text, destination: plan.brief.destination }),
         signal,
       });
-      const body = await response.json();
-      if (!response.ok) throw new Error(body.error ?? "Search failed. Try again.");
+      const body = await response.json().catch(() => null);
+      if (!response.ok)
+        throw new NoticeError(failureNotice(body, { key: "Search failed. Try again." }));
       if (!signal.aborted) {
         setResults(body.places);
-        if (!body.places.length) setError("No places found. Try different words.");
+        if (!body.places.length) setError({ key: "No places found. Try different words." });
       }
     });
   }
@@ -147,7 +152,7 @@ export function useTimelineEdits({
   function apply() {
     if (!preview) return;
     if (preview.baseVersion !== (plan.editVersion ?? 0)) {
-      setError("The trip changed while this was being checked. Make the change again.");
+      setError({ key: "The trip changed while this was being checked. Make the change again." });
       setPreview(undefined);
       return;
     }
@@ -165,10 +170,9 @@ export function useTimelineEdits({
     });
     setVerifiedRoutes(preview.routes);
     const after = new Map(
-      (preview.plan.sections.find((s) => s.id === "itinerary")?.proposal?.items ?? []).map((item) => [
-        item.id,
-        item,
-      ]),
+      (preview.plan.sections.find((s) => s.id === "itinerary")?.proposal?.items ?? []).map(
+        (item) => [item.id, item],
+      ),
     );
     setChanged(
       new Set(

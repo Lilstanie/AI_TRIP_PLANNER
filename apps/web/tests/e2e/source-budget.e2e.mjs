@@ -1,5 +1,8 @@
 // Failure inventory: source amount lost on save/reload, settings overwritten by trip currency,
 // chat and form differ, invalid input escapes, or a new trip inherits the previous source.
+// The 1440 px pass uses the top bar, the fact chips and the Chats panel. The 390 px pass uses the
+// phone shell instead: Settings and the chats live on the Mine tab, and the budget is read and
+// edited through the trip-title sheet (Trip details), since the chips are hidden there.
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
@@ -19,14 +22,65 @@ try {
       locale: "en-AU",
       viewport: { width, height: width === 390 ? 844 : 1000 },
     });
+    // On a dev server the Next.js dev-tools button sits over the phone Chat tab and swallows the
+    // tap. Hide it on every load, the reloads included, as the other phone scripts do.
+    await context.addInitScript(() =>
+      document.addEventListener("DOMContentLoaded", () => {
+        const style = document.createElement("style");
+        style.textContent = "nextjs-portal { display: none !important; }";
+        document.head.append(style);
+      }),
+    );
     const page = await context.newPage();
     const errors = [];
     page.on("pageerror", (e) => errors.push(String(e)));
+    const phone = width === 390;
+    const mine = page.locator(".phone-mine");
+    const selectTab = async (name) => {
+      await page
+        .getByRole("tablist", { name: "Workspace sections" })
+        .getByRole("tab", { name: new RegExp(`^${name}`) })
+        .click();
+      await page.waitForTimeout(400);
+    };
+    const factsSheet = page.getByRole("dialog", { name: "Trip details", exact: true });
+    const openFacts = async () => {
+      await page.locator(".phone-topbar__title-button").click();
+      await factsSheet.waitFor();
+    };
+    const openSettings = async () => {
+      if (phone) {
+        await selectTab("Mine");
+        await mine.getByRole("button", { name: "Settings & account", exact: true }).click();
+      } else await page.locator('button[aria-label^="Account settings:"]:visible').first().click();
+    };
+    /** Opens the budget editor: the chip on desktop, the Budget row of Trip details on a phone. */
+    const openBudget = async (empty = false) => {
+      if (phone) {
+        await openFacts();
+        await factsSheet.locator('.facts-sheet__row[data-fact="budget"]').click();
+      } else if (empty) await page.getByRole("button", { name: "Budget", exact: true }).click();
+      else await page.getByRole("button", { name: /^Budget:/ }).click();
+    };
+    /** The budget as the trip shows it: the chip on desktop, the Budget row on a phone. */
+    const budgetText = async () => {
+      if (!phone) return page.getByRole("button", { name: /^Budget:/ }).textContent();
+      await openFacts();
+      const text = await factsSheet
+        .locator('.facts-sheet__row[data-fact="budget"] .facts-sheet__value')
+        .textContent();
+      await page.keyboard.press("Escape");
+      await factsSheet.waitFor({ state: "detached" });
+      return text;
+    };
+    const showChats = async () => {
+      if (phone) await selectTab("Mine");
+      else await page.getByRole("button", { name: /^Chats/ }).click();
+    };
+    const chats = phone ? mine : page;
     await page.goto(process.env.BASE_URL ?? "http://localhost:3000");
     await page.locator(".workspace-app").waitFor();
-    if (width === 390)
-      await page.getByRole("button", { name: "Open navigation", exact: true }).click();
-    await page.locator('button[aria-label^="Account settings:"]:visible').first().click();
+    await openSettings();
     const dialog = page.getByRole("dialog");
     await dialog.getByRole("tab", { name: "Language & region" }).click();
     await dialog.getByRole("button", { name: "Change Display currency" }).click();
@@ -35,13 +89,12 @@ try {
       .getByRole("button", { name: "CNY", exact: true })
       .click();
     await page.keyboard.press("Escape");
-    await page.getByRole("button", { name: "Budget", exact: true }).click();
+    if (phone) await selectTab("Chat");
+    await openBudget(true);
     await page.getByLabel("Or enter an amount (CNY)").fill("5000");
     await page.getByRole("button", { name: "Save", exact: true }).click();
     check(
-      (await page.getByRole("button", { name: /^Budget:/ }).textContent())
-        .replace(/\s/g, " ")
-        .includes("CNY 5,000.00"),
+      (await budgetText()).replace(/\s/g, " ").includes("CNY 5,000.00"),
       `${width}: source budget shown verbatim`,
     );
     const input = page.getByRole("textbox", { name: "Message AI Trip Planner" });
@@ -60,11 +113,15 @@ try {
     );
     await page.reload();
     await page.locator(".workspace-app").waitFor();
-    if (width === 390)
-      await page.getByRole("button", { name: "Open navigation", exact: true }).click();
-    if (width !== 390) await page.getByRole("button", { name: /^Chats/ }).click();
-    await page.locator(".history-item__open").first().click();
-    await page.getByRole("button", { name: /^Budget:/ }).click();
+    await showChats();
+    // Mine also lists the blank chat the phone pass started from; open the planned one.
+    await (phone
+      ? mine.locator('.history-item__open[title^="Plan Sydney"]')
+      : page.locator(".history-item__open")
+    )
+      .first()
+      .click();
+    await openBudget();
     check(
       (await page.getByLabel("Or enter an amount (CNY)").inputValue()) === "5000",
       `${width}: reload preserves original input`,
@@ -78,9 +135,7 @@ try {
       `${width}: settings unchanged`,
     );
     // A setting change does not rewrite this trip's CNY source.
-    if (width === 390)
-      await page.getByRole("button", { name: "Open navigation", exact: true }).click();
-    await page.locator('button[aria-label^="Account settings:"]:visible').first().click();
+    await openSettings();
     await dialog.getByRole("tab", { name: "Language & region" }).click();
     await dialog.getByRole("button", { name: "Change Display currency" }).click();
     await dialog
@@ -88,11 +143,9 @@ try {
       .getByRole("button", { name: "USD", exact: true })
       .click();
     await page.keyboard.press("Escape");
-    check(
-      (await page.getByRole("button", { name: /^Budget:/ }).textContent()).includes("CNY"),
-      `${width}: trip source overrides new USD setting`,
-    );
-    await page.getByRole("button", { name: /^Budget:/ }).click();
+    if (phone) await selectTab("Chat");
+    check((await budgetText()).includes("CNY"), `${width}: trip source overrides new USD setting`);
+    await openBudget();
     const replacement = page.getByLabel("Or enter an amount (CNY)");
     await replacement.fill("");
     await replacement.fill("6000");
@@ -101,17 +154,15 @@ try {
       `${width}: replacing source budget keeps CNY despite USD setting`,
     );
     await page.keyboard.press("Escape");
-    if (width === 390)
-      await page.getByRole("button", { name: "Open navigation", exact: true }).click();
-    else await page.getByRole("button", { name: /^Chats/ }).click();
-    await page
+    await showChats();
+    await chats
       .locator(".chats-panel__actions")
       .getByRole("button", { name: "New trip", exact: true })
       .click();
     await page.getByRole("dialog", { name: "Where", exact: true }).waitFor();
     await page.keyboard.press("Escape");
     await page.getByRole("dialog", { name: "Where", exact: true }).waitFor({ state: "hidden" });
-    await page.getByRole("button", { name: "Budget", exact: true }).click();
+    await openBudget(true);
     check(
       await page.getByLabel("Or enter an amount (USD)").isVisible(),
       `${width}: new trip returns to USD settings`,
@@ -126,10 +177,7 @@ try {
         JSON.parse(localStorage.getItem("trip-workspace-v1") ?? "null")?.plan?.brief?.budgetSource
           ?.amount === 10000,
     );
-    check(
-      (await page.getByRole("button", { name: /^Budget:/ }).textContent()).includes("CNY"),
-      `${width}: chat source controls trip display`,
-    );
+    check((await budgetText()).includes("CNY"), `${width}: chat source controls trip display`);
     check(
       await page.evaluate(
         () => JSON.parse(localStorage.getItem("trip.settings.v1")).displayCurrency === "USD",

@@ -48,7 +48,7 @@ At phone width confirm there is no horizontal page scroll: `document.documentEle
 must equal the viewport width. Check dark and light theme when colours changed.
 
 For a complex path, a script under `apps/web/tests/e2e/` does steps 2 and 3 repeatably; run the one
-that covers your change or add one, following
+that covers your change with `pnpm --filter @trip/web e2e <name>` or add one, following
 [Testing approach](../../../docs/development.md#testing-approach). Motion changes also need the
 reduced-motion state, as in `thinking-orb.e2e.mjs`.
 

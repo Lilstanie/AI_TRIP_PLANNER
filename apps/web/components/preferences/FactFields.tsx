@@ -13,6 +13,7 @@ import { Input } from "../ui/input";
 import { PreferenceList } from "./PreferenceList";
 import { WhereFields } from "./WhereFields";
 import { useLocale } from "../account/LocaleProvider";
+import type { Notice } from "@/lib/i18n/notice";
 
 // react-day-picker and its stylesheet load only once the traveller opens the When editor.
 const TripCalendar = dynamic(() => import("./TripCalendar").then((m) => m.TripCalendar), {
@@ -22,7 +23,7 @@ const TripCalendar = dynamic(() => import("./TripCalendar").then((m) => m.TripCa
 type FieldsProps = {
   value: Draft;
   onChange(next: Draft): void;
-  errors: Record<string, string>;
+  errors: Record<string, Notice>;
 };
 
 /** The fields one chip edits. */
@@ -54,7 +55,7 @@ function Field({
 }: {
   id: string;
   label: string;
-  error?: string;
+  error?: Notice;
   hint?: string;
   children: (describedBy: string | undefined) => ReactNode;
 }) {
@@ -191,7 +192,7 @@ const BUDGET_PRESETS = [
 ] as const;
 
 function BudgetFields({ value, onChange, errors }: FieldsProps) {
-  const { t, currency, money, notice: localizeNotice } = useLocale();
+  const { t, currency, money } = useLocale();
   const source = statedBudgetSource(value);
   const current = value.budgetTotal.trim() ? Number(value.budgetTotal) : undefined;
   return (
@@ -228,7 +229,7 @@ function BudgetFields({ value, onChange, errors }: FieldsProps) {
           "{currency}",
           currency,
         )}
-        error={localizeNotice(errors.budgetTotal)}
+        error={errors.budgetTotal}
       >
         {(describedBy) => (
           <BudgetInput

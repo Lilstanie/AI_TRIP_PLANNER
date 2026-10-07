@@ -3,31 +3,32 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   browserLocale,
-  formatAudForDisplay,
   intlLocale,
-  interfaceNotice,
   translate,
   type AppLocale,
   type MessageKey,
 } from "@/lib/i18n/locale";
+import { moneyDisplay, type Money } from "@/lib/money";
+import { noticeText, type Notice } from "@/lib/i18n/notice";
 import { useSettings } from "./SettingsProvider";
 
 import type { Currency, TripBrief } from "@trip/shared";
 
-type LocaleState = {
+/** Language, display currency and the Money formatters for both. */
+type LocaleState = Money & {
   locale: AppLocale;
   t(text: MessageKey, params?: Record<string, string | number>): string;
   currency: Currency;
-  notice(text: string | undefined): string;
-  money(amount: number, source?: TripBrief["budgetSource"]): string;
+  /** A notice in the interface language; nothing to show is an empty string. */
+  notice(notice: Notice | undefined): string;
 };
 
 const LocaleContext = createContext<LocaleState>({
   locale: "en",
   currency: "AUD",
-  notice: (text) => interfaceNotice("en", text ?? ""),
+  notice: (notice) => localNotice("en", notice),
   t: (text, params) => translate("en", text, params),
-  money: (amount) => formatAudForDisplay(amount, "AUD", "en"),
+  ...moneyDisplay({ currency: "AUD", locale: "en" }),
 });
 
 /**
@@ -59,9 +60,8 @@ export function LocaleProvider({
       locale,
       t: (text, params) => translate(locale, text, params),
       currency,
-      notice: (text) => interfaceNotice(locale, text ?? ""),
-      money: (amount, source) =>
-        formatAudForDisplay(amount, currency, locale, undefined, undefined, source),
+      notice: (notice) => localNotice(locale, notice),
+      ...moneyDisplay({ currency, locale }),
     }),
     [locale, currency],
   );
@@ -69,3 +69,6 @@ export function LocaleProvider({
 }
 
 export const useLocale = () => useContext(LocaleContext);
+
+const localNotice = (locale: AppLocale, notice: Notice | undefined) =>
+  notice ? noticeText(locale, notice) : "";

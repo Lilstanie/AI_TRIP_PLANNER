@@ -1,9 +1,9 @@
 "use client";
-import { TripPlan } from "@trip/shared";
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, type CSSProperties } from "react";
 import { TripFactChips } from "../preferences/TripFactChips";
 import { ChatPanel } from "../chat/ChatPanel";
 import { TripEditor } from "../trip/TripEditor";
+import { useChooseCandidate } from "../trip/useChooseCandidate";
 import { TripMapCanvas } from "../map/TripMapCanvas";
 import { TripPanel, tripStatus } from "../trip/TripPanel";
 import { TripPlaceList } from "../trip/TripPlaceList";
@@ -16,7 +16,7 @@ import { SplitResizer } from "./SplitResizer";
 import { ChatsPanel } from "./ChatsPanel";
 import { TripsPage } from "./TripsPage";
 import { MenuIcon, RouteIcon } from "../ui/icons";
-import type { WorkspaceController } from "./useWorkspaceController";
+import type { WorkspaceModel } from "./useWorkspace";
 import { WorkspaceDialogs } from "./WorkspaceDialogs";
 import { DataModeToggle } from "./DataModeToggle";
 import { CurrencyNotice } from "../account/CurrencyNotice";
@@ -29,117 +29,68 @@ import { PhoneMine } from "./PhoneMine";
 import { PhoneMapSheet } from "./PhoneMapSheet";
 import { usePhoneKeyboard } from "./usePhoneKeyboard";
 import { usePhoneTripUpdates } from "./usePhoneTripUpdates";
+import { usePhoneBack } from "./usePhoneBack";
 import type { MobileView } from "./workspace-helpers";
 
-export function WorkspaceView({ model }: { model: WorkspaceController }) {
+export function WorkspaceView({ model }: { model: WorkspaceModel }) {
   const { t, notice: localizeNotice } = useLocale();
+  const { session, layout, itinerary, history } = model;
   const {
     plan,
     draft,
     dataMode,
     messages,
     input,
-    previousTotal,
     editPending,
     busy,
     activity,
     error,
     errors,
-    retry,
+    canRetry,
+    selectedActivity,
+    mapRoutes,
+    places: tripPlaces,
+    attachments: composerAttachments,
+    blank,
+    ask,
+  } = session;
+  const {
     dialog,
-    storageError,
-    storageEnabled,
-    saveState,
-    syncStatus,
-    openSettings,
-    catalog,
-    historyQuery,
+    page,
+    mobileView,
     preferencesOpen,
     tripOpen,
     tripTab,
-    mobileView,
     sidebarCollapsed,
     sidebarWidth,
     chatShare,
-    page,
     chatsOpen,
     navOpen,
     narrow,
     phone,
-    selectedActivity,
-    mapRoutes,
-    tripPlaces,
-    historyChats,
-    historyTrips,
-    notice,
-    composerAttachments,
-    blank,
-    tripStops,
-    dialogTitle,
     drawerOpen,
     openFact,
     preferencesToggle,
     tripToggle,
     navToggle,
-    setPlan,
-    setDraft,
-    setInput,
-    setPreviousTotal,
-    setEditPending,
-    setDialog,
-    setStorageError,
-    setStorageEnabled,
-    setNotice,
-    setHistoryQuery,
-    setTripOpen,
-    setTripTab,
-    setMobileView,
-    setSidebarCollapsed,
-    setSidebarWidth,
-    setChatShare,
-    setPage,
-    setChatsOpen,
-    setNavOpen,
-    setSelectedActivity,
-    setMapRoutes,
+    openSettings,
     openPreferences,
     closePreferences,
     openTrip,
     closeTrip,
     openDialog,
+    openNav,
+    closeDrawer,
+    toggleChats,
     edit,
-    saveFacts,
-    planWith,
-    run,
-    submit,
-    send,
-    ask,
-    answer,
-    dismissAsk,
-    onCancel,
-    newChat,
-    newTrip,
-    selectConversation,
-    selectTrip,
-    renameChat,
-    deleteChat,
-  } = model;
+  } = layout;
+  const { catalog, saveState, syncStatus, storageError } = history;
+  const tripStops = itinerary.stopCount;
   const userLocation = useUserLocation();
-  const [phoneMapDay, setPhoneMapDay] = useState<number>();
-  const [phoneMapFocusRequest, setPhoneMapFocusRequest] = useState(0);
-  const selectMapActivity = (id: string) => {
-    setSelectedActivity(id);
-    if (phone) setPhoneMapFocusRequest((request) => request + 1);
-  };
-  // A stop selected elsewhere (the Trip tab's itinerary) shows on its own day when Map opens.
-  const selectedDay = model.tripPlaces.activities.find(
-    (activity) => activity.id === model.selectedActivity,
-  )?.day;
-  useEffect(() => {
-    if (phone && selectedDay !== undefined) setPhoneMapDay(selectedDay);
-  }, [phone, selectedDay]);
   const { keyboardOpen } = usePhoneKeyboard(phone);
   const { tripUpdated } = usePhoneTripUpdates(model);
+  usePhoneBack(phone);
+  const chooser = useChooseCandidate(plan, session.applyEdit, session.trackEdit);
   const chatsButton = useRef<HTMLButtonElement>(null);
   const chatsSearch = useRef<HTMLInputElement>(null);
   const chatsPanel = useRef<HTMLDivElement>(null);
@@ -167,13 +118,13 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
       )
         return;
       event.preventDefault();
-      setChatsOpen(false);
+      closeDrawer();
       chatsButton.current?.focus({ preventScroll: true });
     };
     const onPointerDown = (event: PointerEvent) => {
       const target = event.target as Node;
       if (chatsPanel.current?.contains(target) || chatsButton.current?.contains(target)) return;
-      setChatsOpen(false);
+      closeDrawer();
     };
     window.addEventListener("keydown", onKeyDown);
     document.addEventListener("pointerdown", onPointerDown);
@@ -181,34 +132,27 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
       window.removeEventListener("keydown", onKeyDown);
       document.removeEventListener("pointerdown", onPointerDown);
     };
-  }, [chatsOpen, setChatsOpen]);
+  }, [chatsOpen, closeDrawer]);
 
   const chatsContent = (searchRef?: typeof chatsSearch) => (
     <ChatsPanel
-      query={historyQuery}
-      onQuery={setHistoryQuery}
-      chats={historyChats}
-      trips={historyTrips}
-      onNewChat={swap(newChat)}
-      onNewTrip={swap(newTrip)}
-      onOpenChat={swap(selectConversation)}
-      onOpenTrip={swap(selectTrip)}
-      onRenameChat={renameChat}
-      onDeleteChat={deleteChat}
+      query={history.query}
+      onQuery={history.search}
+      chats={history.chats}
+      trips={history.trips}
+      onNewChat={swap(session.newChat)}
+      onNewTrip={swap(session.newTrip)}
+      onOpenChat={swap(session.selectConversation)}
+      onOpenTrip={swap(session.selectTrip)}
+      onRenameChat={history.rename}
+      onDeleteChat={history.delete}
       searchRef={searchRef}
     />
   );
-  const showTrips = () =>
-    viewTransition(() => {
-      setChatsOpen(false);
-      setNavOpen(false);
-      closePreferences();
-      setTripOpen(false);
-      setPage("trips");
-    });
+  const showTrips = () => viewTransition(layout.showTrips);
 
   const selectView = (view: MobileView) =>
-    view !== mobileView && viewTransition(() => setMobileView(view), `to-${view}`);
+    view !== mobileView && viewTransition(() => layout.selectView(view), `to-${view}`);
   // A phone tab's panel: labelled by its tab, and only the selected one is shown.
   const phonePanel = (view: MobileView) =>
     phone
@@ -227,7 +171,7 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
       title={t("Navigation")}
       hideTitle
       closeLabel={t("Close navigation")}
-      onClose={() => setNavOpen(false)}
+      onClose={closeDrawer}
       returnFocus={navToggle}
       className="workspace-drawer workspace-drawer--nav"
     >
@@ -256,53 +200,11 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
       aria-label={t("Open navigation")}
       aria-expanded={navOpen}
       aria-haspopup="dialog"
-      onClick={() => {
-        closePreferences();
-        setTripOpen(false);
-        setNavOpen(true);
-      }}
+      onClick={openNav}
     >
       <MenuIcon />
     </button>
   );
-
-  /**
-   * Swap a stay or fare for one the specialist already found.
-   *
-   * Through the edit route rather than in the browser: the server owns the
-   * budget roll-up and the conflict check, and "never trust client totals"
-   * applies to a price the traveller picked as much as to one they typed.
-   */
-  const chooseCandidate = async (
-    sectionId: string,
-    selectionId: string,
-    candidateId: string,
-  ) => {
-    if (!plan || editPending) return;
-    setEditPending(true);
-    try {
-      const response = await fetch("/api/trip/preview-edit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          plan,
-          baseVersion: plan.editVersion ?? 0,
-          operation: { kind: "choose", section: sectionId, selectionId, candidateId },
-        }),
-      });
-      const body = await response.json();
-      if (!response.ok) {
-        setNotice(body.error ?? "That change could not be made.");
-        return;
-      }
-      setPreviousTotal(plan.estTotal);
-      setPlan(TripPlan.parse(body.plan));
-    } catch {
-      setNotice("That change could not be made.");
-    } finally {
-      setEditPending(false);
-    }
-  };
 
   const tripContent = (
     <>
@@ -310,41 +212,33 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
         <TripPanel
           plan={plan}
           tab={tripTab}
-          onTab={setTripTab}
-          onReview={() => setDialog("review")}
+          onTab={layout.showTripTab}
+          onReview={() => openDialog("review")}
           onEdit={edit}
-          {...(editPending ? {} : { onChoose: chooseCandidate })}
+          {...(busy || editPending || chooser.working ? {} : { onChoose: chooser.choose })}
+          {...(chooser.problem ? { problem: chooser.problem } : {})}
           places={
             <TripPlaceList
               tripPlaces={tripPlaces}
               startDate={plan.brief.dates[0]}
               selected={selectedActivity}
-              onSelect={setSelectedActivity}
+              onSelect={session.selectStop}
               plan={plan}
               disabled={busy || editPending}
-              onApply={(next) => {
-                setPreviousTotal(plan.estTotal);
-                setPlan(next);
-              }}
-              onAdjust={(id) => {
-                setSelectedActivity(id);
-                setTripTab("timeline");
-              }}
+              onApply={session.applyEdit}
+              onAdjust={session.adjustStop}
             />
           }
           timeline={
             <TripEditor
               plan={plan}
               disabled={busy}
-              onPending={setEditPending}
+              onPending={session.trackEdit}
               tripPlaces={tripPlaces}
               selected={selectedActivity}
-              onSelect={setSelectedActivity}
-              onRoutesChange={setMapRoutes}
-              onApply={(next) => {
-                setPreviousTotal(plan.estTotal);
-                setPlan(next);
-              }}
+              onSelect={session.selectStop}
+              onRoutesChange={session.showRoutes}
+              onApply={session.applyEdit}
             />
           }
         />
@@ -384,14 +278,14 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
     >
       {!narrow && (
         <WorkspaceSidebar
-          onToggleCollapsed={() => setSidebarCollapsed((value) => !value)}
+          onToggleCollapsed={layout.toggleSidebar}
           collapsed={sidebarCollapsed}
           page={page}
           chatsOpen={chatsOpen}
           chatCount={catalog.conversations.length}
           tripCount={catalog.trips.length}
           chatsButton={chatsButton}
-          onChats={() => setChatsOpen((open) => !open)}
+          onChats={toggleChats}
           onTrips={showTrips}
           onSettings={openSettings}
           saveState={saveState}
@@ -411,7 +305,7 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
         </div>
       )}
       {!narrow && !sidebarCollapsed && (
-        <SidebarResizer width={sidebarWidth} onChange={setSidebarWidth} />
+        <SidebarResizer width={sidebarWidth} onChange={layout.resizeSidebar} />
       )}
       {page === "trips" ? (
         <div className="workspace-main">
@@ -422,8 +316,8 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
             <TripsPage
               trips={catalog.trips}
               activeTripId={blank ? undefined : catalog.activeTripId}
-              onOpenTrip={swap(selectTrip)}
-              onNewTrip={swap(newTrip)}
+              onOpenTrip={swap(session.selectTrip)}
+              onNewTrip={swap(session.newTrip)}
             />
             {navOpen && (
               <button
@@ -432,7 +326,7 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
                 className="workspace-drawer-backdrop"
                 aria-label={t("Close open panel")}
                 onClick={() => {
-                  setNavOpen(false);
+                  closeDrawer();
                   navToggle.current?.focus({ preventScroll: true });
                 }}
               />
@@ -459,8 +353,8 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
               open={openFact}
               onOpen={openPreferences}
               onClose={closePreferences}
-              onSave={saveFacts}
-              onPlan={planWith}
+              onSave={session.saveFacts}
+              onPlan={session.planWith}
               preferencesChip={preferencesToggle}
               suggestPlaces={dataMode.mode === "live" && !!dataMode.providers?.maps}
             />
@@ -525,8 +419,8 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
             {error && (
               <div className="error-banner" role="alert">
                 {localizeNotice(error)}{" "}
-                {retry && (
-                  <button disabled={busy} onClick={() => void run(retry)}>
+                {canRetry && (
+                  <button disabled={busy} onClick={session.retry}>
                     {t("Retry update")}
                   </button>
                 )}
@@ -535,26 +429,13 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
             {storageError && (
               <div className="error-banner" role="alert">
                 {localizeNotice(storageError)}{" "}
-                <button
-                  onClick={() => {
-                    setStorageError("");
-                    setStorageEnabled(true);
-                  }}
-                >
+                <button onClick={history.retryStorage}>
                   {t("Retry / replace workspace storage")}
                 </button>
               </div>
             )}
             {userLocation.asking && (
               <LocationPrompt onAllow={userLocation.allow} onDismiss={userLocation.dismiss} />
-            )}
-            {notice && (
-              <p role="status" className="notice">
-                {localizeNotice(notice)}{" "}
-                <button onClick={() => setNotice("")} aria-label={t("Dismiss notification")}>
-                  {t("Dismiss")}
-                </button>
-              </p>
             )}
           </div>
           <main
@@ -574,48 +455,41 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
                 plan={plan}
                 messages={messages}
                 input={input}
-                onInput={setInput}
+                onInput={session.type}
                 busy={busy}
                 locked={editPending}
                 activity={activity}
-                error={localizeNotice(error)}
-                onCancel={onCancel}
-                onSend={send}
+                error={error}
+                onCancel={session.cancel}
+                onSend={session.send}
                 ask={ask}
-                onAnswer={answer}
-                onDismissAsk={dismissAsk}
+                onAnswer={session.answer}
+                onDismissAsk={session.dismissAsk}
                 onEdit={edit}
                 onStart={edit}
                 onAttachFiles={composerAttachments.addFiles}
                 attachments={composerAttachments.attachments}
                 onRemoveAttachment={composerAttachments.removeAttachment}
                 canAttach={composerAttachments.canAttach}
-                attachNotice={composerAttachments.notice}
+                attachNotices={composerAttachments.notices}
               />
             </div>
-            {!narrow && <SplitResizer share={chatShare} onChange={setChatShare} />}
+            {!narrow && <SplitResizer share={chatShare} onChange={layout.resizeChat} />}
             <div className="workspace-panel workspace-panel--map" {...phonePanel("map")}>
               <TripMapCanvas
                 destination={plan?.brief.destination}
                 viewKey={plan ? `${plan.tripId}|${plan.brief.destination}` : undefined}
                 tripPlaces={tripPlaces}
                 selectedActivity={selectedActivity}
-                onSelectActivity={selectMapActivity}
+                onSelectActivity={session.showStop}
                 routes={mapRoutes}
-                focusedDay={phone ? phoneMapDay : undefined}
-                focusRequest={phone ? phoneMapFocusRequest : undefined}
+                focusedDay={phone ? layout.mapDay : undefined}
+                focusRequest={phone ? layout.mapFocus : undefined}
                 phone={phone}
                 showPhotos={dataMode.mode === "live" && !!dataMode.providers?.maps}
                 userLocation={userLocation}
               />
-              {phone && (
-                <PhoneMapSheet
-                  model={model}
-                  day={phoneMapDay}
-                  onDayChange={setPhoneMapDay}
-                  onSelectStop={selectMapActivity}
-                />
-              )}
+              {phone && <PhoneMapSheet model={model} />}
             </div>
             {phone && (
               <div className="workspace-panel workspace-panel--trip" {...phonePanel("trip")}>
@@ -643,8 +517,7 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
                 aria-label={t("Close open panel")}
                 onClick={() => {
                   const trigger = tripOpen ? tripToggle : navToggle;
-                  closeTrip();
-                  setNavOpen(false);
+                  closeDrawer();
                   trigger.current?.focus({ preventScroll: true });
                 }}
               />

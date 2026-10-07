@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import dynamic from "next/dynamic";
 import { useLocale } from "../account/LocaleProvider";
 import type { RouteResult } from "@/lib/integrations/google";
-import { firstVisits, type TripPlaces } from "./useTripPlaces";
+import type { TripPlaces } from "./useTripPlaces";
 import type { UserLocation } from "./useUserLocation";
 import { MapPinIcon } from "../ui/icons";
 
@@ -54,8 +54,7 @@ export function TripMapCanvas({
 }) {
   const { t } = useLocale();
   const {
-    markers,
-    visits,
+    itinerary,
     destinations,
     destinationsSettled,
     destinationsUnavailable,
@@ -63,24 +62,16 @@ export function TripMapCanvas({
     unconfirmed,
     unavailable,
     retry,
-    activityForPlace,
   } = tripPlaces;
-  // A day's map is built from that day's visits, so a place seen on an earlier day stays on it.
-  const stops = useMemo(
-    () =>
-      (focusedDay === undefined
-        ? markers
-        : firstVisits(visits.filter((visit) => visit.day === focusedDay))
-      ).map(({ place, order, day }) => ({ place, order, day })),
-    [markers, visits, focusedDay],
-  );
+  // A day's map holds that day's visits, so a place seen on an earlier day stays on it (#185).
+  const markers = useMemo(() => itinerary.markersFor(focusedDay), [itinerary, focusedDay]);
   const dayRoutes = useMemo(() => {
     if (focusedDay === undefined) return routes;
-    const ids = new Set(stops.map((stop) => stop.place.id));
+    const ids = new Set(markers.map((marker) => marker.place.id));
     return routes.filter((route) => ids.has(route.from) && ids.has(route.to));
-  }, [routes, stops, focusedDay]);
-  const selected = visits.find((visit) => visit.activityId === selectedActivity)?.place.id;
-  const canShowMap = destinations.length > 0 || markers.length > 0;
+  }, [routes, markers, focusedDay]);
+  const selected = selectedActivity ? itinerary.stop(selectedActivity)?.place?.id : undefined;
+  const canShowMap = destinations.length > 0 || itinerary.markersFor().length > 0;
 
   if (!destination || !canShowMap) {
     const locating = !!destination && (!destinationsSettled || loading);
@@ -121,13 +112,13 @@ export function TripMapCanvas({
   return (
     <section className="trip-map-canvas" aria-label={t("Trip map")}>
       <TripMap
-        stops={stops}
+        stops={markers}
         phone={phone}
         focusRequest={focusRequest}
         destinations={destinations}
         selected={selected}
         onSelect={(placeId) => {
-          const activityId = activityForPlace(placeId, focusedDay);
+          const activityId = markers.find((marker) => marker.place.id === placeId)?.activityId;
           if (activityId) onSelectActivity(activityId);
         }}
         routes={dayRoutes}
