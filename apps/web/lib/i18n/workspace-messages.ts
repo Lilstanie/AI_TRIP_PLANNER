@@ -144,8 +144,12 @@ export const WORKSPACE_ZH = {
   "Check-out": "退房",
   "Rooms / nights": "房间 / 晚数",
   "Room per night": "每间每晚",
+  "Also found": "其他可选",
+  "This flight needs a new selection.": "这趟航班需要重新选择。",
+  Depart: "出发",
+  Travellers: "出行人数",
+  "Flight time": "飞行时长",
   "View property details": "查看酒店详情",
-  "Review hotel choices": "检查酒店选择",
   "No detailed items were returned.": "未返回详细项目。",
   "Restaurant suggestions are included in the meal budget envelope; they are not added again to the total.":
     "餐厅建议已包含在餐饮预算中，不会重复计入总额。",

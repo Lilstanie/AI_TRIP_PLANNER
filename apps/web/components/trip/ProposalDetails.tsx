@@ -1,7 +1,12 @@
 "use client";
 import { formatDuration } from "@/lib/trip/timeline";
 import { Fragment } from "react";
-import type { ProposalItem, TripSection } from "@trip/shared";
+import type {
+  AgentProposalSource,
+  FlightSelection,
+  ProposalItem,
+  TripSection,
+} from "@trip/shared";
 import { SourceBadge } from "./SourceBadge";
 import type { MessageKey } from "@/lib/i18n/locale";
 import { useLocale } from "../account/LocaleProvider";
@@ -88,14 +93,113 @@ function ItemCard({ item }: { item: ProposalItem }) {
   );
 }
 
-/** Section-specific grouping uses structured metadata only, never parses prose as facts. */
-export function ProposalDetails({
-  section,
-  onReview,
+/**
+ * What the chosen option beat, and by how much.
+ *
+ * The specialists already search several candidates and ship them on the plan;
+ * until now nothing rendered them, so the traveller saw one price with no way
+ * to tell whether it was the cheap one or the expensive one.
+ */
+function Alternatives({
+  chosen,
+  others,
 }: {
-  section: TripSection;
-  onReview: () => void;
+  chosen: number;
+  others: { id: string; label: string; price: number }[];
 }) {
+  const { t, money } = useLocale();
+  if (!others.length) return null;
+  return (
+    <div className="alternatives">
+      <h5 className="alternatives__title">{t("Also found")}</h5>
+      <ul className="alternatives__list">
+        {others.map((other) => {
+          const delta = Math.round((other.price - chosen) * 100) / 100;
+          return (
+            <li key={other.id}>
+              <span className="alternatives__label">{other.label}</span>
+              <span className="alternatives__price">{money(other.price)}</span>
+              {delta !== 0 && (
+                <span className={`alternatives__delta${delta < 0 ? " is-cheaper" : ""}`}>
+                  {delta < 0 ? "−" : "+"}
+                  {money(Math.abs(delta))}
+                </span>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+/**
+ * One flown hop: the fare the planner took, and the fares it beat.
+ *
+ * Getting around described flights in a sentence while the structured
+ * selection sat unread on the plan. The stay has had a card since the
+ * beginning; this gives the flight the same standing.
+ */
+function FlightCard({
+  flight,
+  source,
+}: {
+  flight: FlightSelection;
+  source?: AgentProposalSource;
+}) {
+  const { t, locale, money } = useLocale();
+  const selected = flight.candidates.find((candidate) => candidate.id === flight.selectedId);
+  if (!selected) return <p>{t("This flight needs a new selection.")}</p>;
+  const others = flight.candidates.filter((candidate) => candidate.id !== flight.selectedId);
+  return (
+    <article className="proposal-item result-card result-card--flight">
+      <div className="result-card__head">
+        <div className="proposal-item__meta">
+          <span>
+            {flight.from} → {flight.to}
+          </span>
+          <SourceBadge source={source} compact />
+        </div>
+        <strong>{money(selected.price)}</strong>
+      </div>
+      <h4>{selected.carrier}</h4>
+      <dl className="stay-facts">
+        <div>
+          <dt>{t("Depart")}</dt>
+          <dd>{flight.depart}</dd>
+        </div>
+        <div>
+          <dt>{t("Travellers")}</dt>
+          <dd>{flight.passengers}</dd>
+        </div>
+        {selected.stops !== undefined && (
+          <div>
+            <dt>{t("Stops")}</dt>
+            <dd>{selected.stops === 0 ? t("Nonstop") : selected.stops}</dd>
+          </div>
+        )}
+        {selected.durationMin !== undefined && (
+          <div>
+            <dt>{t("Flight time")}</dt>
+            <dd>{formatDuration(selected.durationMin, locale)}</dd>
+          </div>
+        )}
+      </dl>
+      {selected.note && <p>{selected.note}</p>}
+      <Alternatives
+        chosen={selected.price}
+        others={others.map((candidate) => ({
+          id: candidate.id,
+          label: candidate.carrier,
+          price: candidate.price,
+        }))}
+      />
+    </article>
+  );
+}
+
+/** Section-specific grouping uses structured metadata only, never parses prose as facts. */
+export function ProposalDetails({ section }: { section: TripSection }) {
   const { t, money } = useLocale();
   const proposal = section.proposal;
   if (!proposal) return <p className="section__empty">{t("Details are still being prepared.")}</p>;
@@ -152,7 +256,16 @@ export function ProposalDetails({
                   {t("View property details")}
                 </a>
               )}
-              <button onClick={onReview}>{t("Review hotel choices")}</button>
+              <Alternatives
+                chosen={selected.pricePerNight * stay.rooms * stay.nights}
+                others={stay.candidates
+                  .filter((candidate) => candidate.id !== stay.selectedId)
+                  .map((candidate) => ({
+                    id: candidate.id,
+                    label: candidate.name,
+                    price: candidate.pricePerNight * stay.rooms * stay.nights,
+                  }))}
+              />
             </article>
           );
         })}
@@ -166,6 +279,10 @@ export function ProposalDetails({
     );
     return (
       <div className={`proposal-items proposal-items--${section.id}`}>
+        {/* Flights first: they are the fixed points the rest of the days hang from. */}
+        {proposal.flights?.map((flight) => (
+          <FlightCard key={flight.id} flight={flight} source={proposal.source} />
+        ))}
         {days.map((day) => (
           <section className="proposal-day" key={day ?? "unscheduled"}>
             <h3>{day === undefined ? t("Unscheduled suggestions") : t("Day {v0}", { v0: day })}</h3>

@@ -18,11 +18,9 @@ const STATUS_LABEL: Record<string, MessageKey> = {
 export function TripSection({
   section,
   onEdit,
-  onReview,
 }: {
   section: TripSectionData;
   onEdit: () => void;
-  onReview: () => void;
 }) {
   const { t, money } = useLocale();
   const [open, setOpen] = useState(false);
@@ -63,7 +61,7 @@ export function TripSection({
                     t("These estimates are not live verified.")}
                 </p>
               </div>
-              <ProposalDetails section={section} onReview={onReview} />
+              <ProposalDetails section={section} />
               <button onClick={onEdit}>{t("Change trip preferences")}</button>
               {section.proposal.assumptions.length > 0 && (
                 <details className="assumptions">
