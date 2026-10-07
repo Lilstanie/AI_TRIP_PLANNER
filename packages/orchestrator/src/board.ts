@@ -1,6 +1,7 @@
 import { formatMoney } from "@trip/shared";
 import type {
   AgentName,
+  Currency,
   AgentProposal,
   BudgetAllocation,
   PlanningBoard,
@@ -31,7 +32,6 @@ const SHARES: Partial<Record<AgentName, number>> = {
   dining: 0.2,
 };
 
-const aud = (amount: number) => formatMoney(amount, "AUD", "whole");
 
 /**
  * The spending ceiling for `agent`, from the budget and the proposals already on
@@ -41,7 +41,9 @@ export function allocationFor(
   agent: AgentName,
   brief: TripBrief,
   proposals: ReadonlyMap<AgentName, AgentProposal>,
+  currency: Currency = "AUD",
 ): BudgetAllocation | undefined {
+  const aud = (amount: number) => formatMoney(amount, currency, "whole");
   const share = SHARES[agent];
   if (share === undefined) return undefined;
   const settled = (WAITS_FOR[agent] ?? []).filter((name) => proposals.has(name));
@@ -66,7 +68,7 @@ export function allocationFor(
  * already started, so a specialist the supervisor never calls cannot deadlock
  * the rest — and then hands it the board and its allocation.
  */
-export function createPlanningBoard(brief: TripBrief) {
+export function createPlanningBoard(brief: TripBrief, currency: Currency = "AUD") {
   const proposals = new Map<AgentName, AgentProposal>();
   const running = new Map<AgentName, Promise<unknown>>();
 
@@ -92,7 +94,7 @@ export function createPlanningBoard(brief: TripBrief) {
             return pending ? [pending] : [];
           }),
         );
-        const allocation = allocationFor(agent, brief, proposals);
+        const allocation = allocationFor(agent, brief, proposals, currency);
         const proposal = await invoke({
           board: view(agent),
           ...(allocation ? { allocation } : {}),

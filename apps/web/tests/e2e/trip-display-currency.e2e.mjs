@@ -1,6 +1,6 @@
-// Trip display currency (spec #225, ticket #227). Mock data mode, no model keys: the offline
-// extractor reads every message. Run at 1440 px and 390 px; screenshots and a JSON summary go to
-// output/playwright/trip-display-currency.
+// Trip display currency (spec #225, tickets #227 and #228). Mock data mode, no model keys: the
+// offline extractor reads every message. Run at 1440 px and 390 px; screenshots and a JSON summary
+// go to output/playwright/trip-display-currency.
 //
 // Failure inventory, written before the code. Each line is a way this feature can fail, and the
 // check named after it:
@@ -19,8 +19,24 @@
 //   budget currency fallback;
 // - JPY shows decimals;
 // - horizontal page scroll at 390 px, or a page error.
-// Out of scope here (ticket #228): server-written text such as specialist summaries, conflict
-// reasons, the thinking transcript and the assistant's reply.
+//
+// Ticket #228, text the server writes. More ways this can fail:
+// - a CNY trip's specialist summaries, thinking transcript, conflict reasons or the assistant's
+//   fallback reply still say "AUD" (a hard-coded currency left at any of the ~29 call sites);
+// - a summary quotes an amount that differs from the same section's amount on the panel
+//   (converted twice, rounded differently, or not grouped like the panel);
+// - the tight-budget CNY trip's conflict text or impossible-budget reply names the shortfall or the
+//   needed budget in AUD, or the plan fits when it should not (guardrails drifted from AUD);
+// - generated text drops the estimate marking a converted amount needs;
+// - the request field is required (an older client without it breaks) or accepts an unsupported
+//   currency, or an absent field stops meaning AUD;
+// - the request's Settings currency outranks the trip's own display currency or source budget on
+//   the server (the browser's rule and the server's must be the same);
+// - the Settings currency is never sent, so a trip that named none reads AUD on the server while
+//   the panel shows Settings (the browser sends it with every request);
+// - JPY text shows decimals;
+// - a provider fare is converted (fares stay in the provider's currency: asserted by the display-
+//   currency and source-budget scripts, and not touched by this change).
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
@@ -37,6 +53,68 @@ const check = (ok, name) => {
 const SETTINGS_KEY = "trip.settings.v1";
 const CURRENT_KEY = "trip-workspace-v1";
 const SYDNEY = "Plan Sydney, 2026-11-10 to 2026-11-13, 2 travellers, Budget 3000 人民币";
+
+// The request field, at the API boundary: optional (an older client sends none), limited to the
+// supported currencies, and absent means AUD. The brief's own currency outranks it.
+const baseUrl = process.env.BASE_URL ?? "http://localhost:3000";
+const apiBrief = {
+  tripId: "display-currency-api-e2e",
+  destination: "Sydney",
+  dates: ["2026-11-10", "2026-11-13"],
+  groupSize: 2,
+  budgetTotal: 630,
+};
+const apiPlan = async (extra, brief = apiBrief) => {
+  const response = await fetch(`${baseUrl}/api/chat`, {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-trip-data-mode": "mock" },
+    body: JSON.stringify({
+      tripId: brief.tripId,
+      message: "Plan it",
+      mode: "plan",
+      brief,
+      ...extra,
+    }),
+  });
+  if (response.status !== 200) return { status: response.status, text: "" };
+  const frames = (await response.text())
+    .trim()
+    .split("\n")
+    .map((line) => JSON.parse(line));
+  const done = frames.find((frame) => frame.type === "complete");
+  const text = JSON.stringify([
+    done?.response.reply,
+    done?.response.plan.sections.map((section) => section.summary),
+  ]);
+  return { status: 200, text };
+};
+{
+  const older = await apiPlan({});
+  check(
+    older.status === 200 && older.text.includes("AUD") && !older.text.includes("CNY"),
+    "API: a request without the field is written in AUD (older client)",
+  );
+  const cny = await apiPlan({ displayCurrency: "CNY" });
+  check(
+    cny.status === 200 && cny.text.includes("CNY") && !cny.text.includes("AUD"),
+    "API: displayCurrency CNY writes the text in CNY",
+  );
+  const bad = await apiPlan({ displayCurrency: "XYZ" });
+  check(bad.status === 400, `API: an unsupported displayCurrency is rejected (${bad.status})`);
+  const own = await apiPlan({ displayCurrency: "CNY" }, { ...apiBrief, displayCurrency: "JPY" });
+  check(
+    own.status === 200 && own.text.includes("JPY") && !own.text.includes("CNY"),
+    "API: the trip's own display currency outranks the request's",
+  );
+  const source = await apiPlan(
+    { displayCurrency: "USD" },
+    { ...apiBrief, budgetSource: { amount: 3000, currency: "CNY" } },
+  );
+  check(
+    source.status === 200 && source.text.includes("CNY") && !source.text.includes("USD"),
+    "API: the source budget's currency outranks the request's",
+  );
+}
 
 const browser = await chromium.launch({ channel: process.env.CHANNEL });
 const hideDevTools = (context) =>
@@ -190,6 +268,39 @@ try {
       await page.getByRole("dialog", { name: "Where", exact: true }).waitFor({ state: "hidden" });
       if (phone) await selectTab("Chat");
     };
+    const flat = (text) => text.replace(/\s+/g, " ").trim();
+    const lastReply = async () =>
+      flat(await page.locator(".msg-item--agent .msg-item__body").last().textContent());
+    /** Each section row of the plan panel: label, the specialist's summary and its cost. */
+    const sectionRows = async () => {
+      await showTripPanel();
+      return page.locator(".section__row").evaluateAll((rows) =>
+        rows.map((row) => ({
+          label: row.querySelector("strong")?.textContent ?? "",
+          summary: (row.querySelector("small")?.textContent ?? "").replace(/\s+/g, " ").trim(),
+          cost: (row.querySelector(".cost")?.textContent ?? "").replace(/\s+/g, " ").trim(),
+        })),
+      );
+    };
+    /** The thinking transcript of the latest turn, every row opened. */
+    const thinkingText = async () => {
+      if (phone) await selectTab("Chat");
+      // A trip drawer left open on a desktop screen covers the chat.
+      const backdrop = page.locator(".workspace-drawer-backdrop");
+      if (await backdrop.isVisible()) await backdrop.click({ force: true });
+      const turn = page.locator(".thinking-process").last();
+      const line = turn.locator(".thinking-turn > .thinking-row__line");
+      if ((await line.getAttribute("aria-expanded")) !== "true") await line.click();
+      for (let pass = 0; pass < 3; pass++) {
+        const closed = turn.locator('.thinking-row__line[aria-expanded="false"]');
+        const count = await closed.count();
+        if (!count) break;
+        for (let i = count - 1; i >= 0; i--) await closed.nth(i).click({ force: true });
+      }
+      return flat(await turn.textContent());
+    };
+    const storedPlan = () =>
+      page.evaluate((key) => JSON.parse(localStorage.getItem(key) ?? "null")?.plan, CURRENT_KEY);
     const has = (text, code) => text.includes(code);
     const only = (texts, code) => texts.length > 0 && texts.every((text) => has(text, code));
 
@@ -214,6 +325,39 @@ try {
       tag(`trip card total is CNY (${texts[0]})`),
     );
     check((await settingsCurrency()) === "AUD", tag("Settings unchanged by a CNY budget"));
+
+    // 1b. Text the server wrote for that CNY trip speaks CNY, and agrees with the panel.
+    const rows = await sectionRows();
+    log.rows = rows;
+    check(
+      rows.length >= 3 && rows.every((row) => !has(row.summary, "AUD")),
+      tag(`no specialist summary says AUD (${rows.map((row) => row.summary).join(" | ")})`),
+    );
+    check(
+      rows.filter((row) => has(row.summary, "CNY")).length >= 2,
+      tag("specialist summaries quote amounts in CNY"),
+    );
+    check(
+      rows.some((row) => row.summary.includes(row.cost)) &&
+        rows
+          .filter((row) => has(row.summary, "CNY"))
+          .every((row) => /CNY [\d,]+\.\d\d/.test(row.summary)),
+      tag(`a summary's amount is the panel's amount (${rows.map((r) => r.cost).join(", ")})`),
+    );
+    const reply1 = await lastReply();
+    log.reply = reply1;
+    check(!has(reply1, "AUD"), tag(`the assistant's reply says no AUD (${reply1.slice(0, 160)})`));
+    const thinking1 = await thinkingText();
+    log.thinking = thinking1.slice(0, 600);
+    check(thinking1.length > 40, tag("the thinking transcript opens and has text"));
+    check(
+      !has(thinking1, "AUD") && has(thinking1, "CNY"),
+      tag("the thinking transcript quotes amounts in CNY, none in AUD"),
+    );
+    check(
+      (await storedPlan()).brief.budgetTotal === 630,
+      tag("planning stays AUD: the stored budget is still 630"),
+    );
     let brief = await storedBrief();
     check(brief.displayCurrency === "CNY", tag("brief records display currency CNY"));
     const legacy = await page.evaluate((key) => localStorage.getItem(key), CURRENT_KEY);
@@ -238,6 +382,16 @@ try {
         brief.budgetSource?.currency === "CNY" &&
         brief.budgetTotal === 630,
       tag("source budget still reads 3000 CNY (630 AUD planning)"),
+    );
+    const yenRows = await sectionRows();
+    check(
+      yenRows.every((row) => !has(row.summary, "AUD") && !has(row.summary, "CNY")) &&
+        yenRows.some((row) => has(row.summary, "JPY")),
+      tag(`summaries follow the switch to JPY (${yenRows.map((row) => row.summary).join(" | ")})`),
+    );
+    check(
+      yenRows.every((row) => !/JPY [\d,]+\.\d/.test(row.summary)),
+      tag("JPY text has no decimals"),
     );
     await page.screenshot({ path: `${out}/${width}-yen.png`, fullPage: true });
 
@@ -323,6 +477,60 @@ try {
     );
     await openChat("Plan Sydney");
     check(has((await panel()).total, "AUD"), tag("the reopened first trip is still AUD"));
+
+    // 9. A tight budget in CNY: the conflict and the impossible-budget reply name CNY amounts.
+    await setSettingsCurrency("AUD");
+    await newTrip();
+    await send("Plan Sydney, 2026-11-10 to 2026-11-13, 2 travellers, Budget 300 人民币");
+    const tight = await storedPlan();
+    const tightReply = await lastReply();
+    const tightText = JSON.stringify(tight.conflicts ?? []);
+    log.tight = { reply: tightReply, conflicts: tight.conflicts };
+    check(
+      tight.conflicts?.length > 0,
+      tag("a 300 CNY budget leaves a conflict (guardrails still AUD)"),
+    );
+    check(
+      tight.brief.budgetTotal === 63 &&
+        tight.conflicts.some((c) => c.reason.startsWith("infeasible budget")),
+      tag("the 300 CNY budget is 63 AUD and infeasible"),
+    );
+    check(
+      !has(tightText, "AUD") && has(tightText, "CNY"),
+      tag(`conflict reason and constraints name CNY, not AUD (${tightText.slice(0, 200)})`),
+    );
+    check(
+      has(tightReply, "CNY") &&
+        !has(tightReply, "AUD") &&
+        /raise the budget to at least CNY [\d,]+/.test(tightReply),
+      tag(`the impossible-budget reply names the shortfall in CNY (${tightReply.slice(0, 200)})`),
+    );
+    check(
+      /above your CNY 300(\.00)? budget/.test(tightReply),
+      tag("the reply quotes the 300 CNY budget as the traveller said it"),
+    );
+    check(
+      /(estimate|approximate)/i.test(tightReply),
+      tag("generated text marks converted amounts as estimates"),
+    );
+    check((await settingsCurrency()) === "AUD", tag("Settings stays AUD after a tight CNY trip"));
+    const tightThinking = await thinkingText();
+    check(!has(tightThinking, "AUD"), tag("the tight trip's thinking transcript says no AUD"));
+
+    // 10. The Settings currency reaches the server: a trip that never named a currency is
+    //     written in it, the same currency the panel shows.
+    await setSettingsCurrency("USD");
+    await newTrip();
+    await send("去悉尼旅行，2026-11-10到2026-11-13，2人，预算3000");
+    const usdRows = await sectionRows();
+    check(
+      usdRows.some((row) => has(row.summary, "USD")) &&
+        usdRows.every((row) => !has(row.summary, "AUD")),
+      tag(
+        `a trip with no named currency is written in Settings USD (${usdRows.map((row) => row.summary).join(" | ")})`,
+      ),
+    );
+    check(!has(await lastReply(), "AUD"), tag("and its reply does not say AUD"));
 
     check(
       await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),

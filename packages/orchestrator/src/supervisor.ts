@@ -1,5 +1,7 @@
 import {
+  displayCurrencyOf,
   formatMoney,
+  type Currency,
   AgentProposal as AgentProposalSchema,
   MAX_TRIP_PREFERENCES,
   type AgentContext,
@@ -48,14 +50,17 @@ export function specialistBrief(brief: TripBrief): TripBrief {
  * Published on `agent_completed` so the transcript shows the choice and its
  * alternatives instead of asking the traveller to make it from scratch.
  */
-export function choiceFor(proposal: AgentProposal): ToolChoice | undefined {
+export function choiceFor(
+  proposal: AgentProposal,
+  currency: Currency = "AUD",
+): ToolChoice | undefined {
   const flight = proposal.flights?.[0];
   if (flight) {
     const selected = flight.candidates.find((candidate) => candidate.id === flight.selectedId);
     if (!selected) return undefined;
     const describe = (candidate: (typeof flight.candidates)[number]) =>
       [
-        `${formatMoney(candidate.price, "AUD")} total`,
+        `${formatMoney(candidate.price, currency)} total`,
         candidate.stops === undefined
           ? undefined
           : candidate.stops === 0
@@ -87,7 +92,7 @@ export function choiceFor(proposal: AgentProposal): ToolChoice | undefined {
       label: selected.name,
       detail: [
         selected.area,
-        `${formatMoney(cost, "AUD")} total`,
+        `${formatMoney(cost, currency)} total`,
         outOfFive(selected.rating),
         selected.freeCancellation ? "Free cancellation" : "No free cancellation",
       ].join(" · "),
@@ -99,7 +104,7 @@ export function choiceFor(proposal: AgentProposal): ToolChoice | undefined {
         label: candidate.name,
         detail: [
           candidate.area,
-          `${formatMoney((candidate.pricePerNight * stay.nights * stay.rooms), "AUD")} total`,
+          `${formatMoney(candidate.pricePerNight * stay.nights * stay.rooms, currency)} total`,
           outOfFive(candidate.rating),
           candidate.freeCancellation ? "Free cancellation" : "No free cancellation",
         ].join(" · "),
@@ -158,11 +163,12 @@ export function createSupervisorTools(
   options: Omit<SupervisorDispatchOptions, "model">,
   onProposal: (proposal: AgentProposal) => void,
 ) {
+  const currency = displayCurrencyOf(options.brief, options.context);
   return options.specialists.map((specialist) =>
     tool(
       async ({ objective }) => {
         options.onProgress?.({
-          summary: `${options.brief.destination} · ${options.brief.dates.join(" to ")} · ${options.brief.groupSize} people · ${formatMoney(options.brief.budgetTotal, "AUD", "plain")}`,
+          summary: `${options.brief.destination} · ${options.brief.dates.join(" to ")} · ${options.brief.groupSize} people · ${formatMoney(options.brief.budgetTotal, currency, "plain")}`,
           objective,
           type: "agent_started",
           agent: specialist.name,
@@ -181,6 +187,7 @@ export function createSupervisorTools(
                       specialist.name,
                       options.context.round,
                       options.onProgress,
+                      currency,
                     )
                   : options.context.tools,
               },
@@ -201,7 +208,7 @@ export function createSupervisorTools(
         options.onProgress?.({
           summary: proposal.summary,
           outcome: outcomeFor(proposal, undefined),
-          ...(choiceFor(proposal) ? { choice: choiceFor(proposal)! } : {}),
+          ...(choiceFor(proposal, currency) ? { choice: choiceFor(proposal, currency)! } : {}),
           type: "agent_completed",
           agent: specialist.name,
           round: options.context.round,
@@ -223,6 +230,7 @@ export function createRevisionTools(
   options: Omit<SupervisorRevisionOptions, "model" | "proposals">,
   onProposal: (proposal: AgentProposal) => void,
 ) {
+  const currency = displayCurrencyOf(options.brief, options.context);
   const specialists = new Map(
     options.specialists.map((specialist) => [specialist.name, specialist]),
   );
@@ -233,7 +241,7 @@ export function createRevisionTools(
       tool(
         async ({ objective }) => {
           options.onProgress?.({
-            summary: `${options.brief.destination} · ${options.brief.dates.join(" to ")} · ${options.brief.groupSize} people · ${formatMoney(options.brief.budgetTotal, "AUD", "plain")}`,
+            summary: `${options.brief.destination} · ${options.brief.dates.join(" to ")} · ${options.brief.groupSize} people · ${formatMoney(options.brief.budgetTotal, currency, "plain")}`,
             objective,
             constraints: request.constraints,
             type: "agent_started",
@@ -253,6 +261,7 @@ export function createRevisionTools(
                         specialist.name,
                         options.context.round,
                         options.onProgress,
+                        currency,
                       )
                     : options.context.tools,
                 },
@@ -272,7 +281,7 @@ export function createRevisionTools(
           options.onProgress?.({
             summary: proposal.summary,
             outcome: outcomeFor(proposal, request),
-            ...(choiceFor(proposal) ? { choice: choiceFor(proposal)! } : {}),
+            ...(choiceFor(proposal, currency) ? { choice: choiceFor(proposal, currency)! } : {}),
             type: "agent_completed",
             agent: specialist.name,
             round: options.context.round,

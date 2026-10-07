@@ -186,7 +186,7 @@ describe("formatMoney", () => {
   });
 
   it("shows JPY without decimals", () => {
-    expect(formatMoney(12.5, "JPY")).toBe("JPY 1250");
+    expect(formatMoney(12.5, "JPY")).toBe("JPY 1,250"); // grouped like the panels (#228)
     expect(formatMoney(12.504, "JPY", "whole")).toBe("JPY 1,250");
     expect(formatMoney(0.004, "JPY")).toBe("JPY 0");
   });

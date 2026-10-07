@@ -1,11 +1,13 @@
 // Owner: C — lodging proposals and price revisions via injected tools and memory.
 import {
+  displayCurrencyOf,
   formatMoney,
   describeStayChoice,
   AgentProposal as AgentProposalSchema,
   type AgentProposal,
   type TripBrief,
   type AgentContext,
+  type Currency,
   type RevisionRequest,
   type Specialist,
   type ProviderProvenance,
@@ -24,6 +26,8 @@ import { TRAVELLER_PREFERENCES_RULE } from "../prompts/traveller-preferences";
 const candidateId = (day: number, index: number) => `stay-${day}-${index}`;
 
 interface StayEvidence {
+  /** The currency the text spells amounts in; planning amounts stay AUD. */
+  currency: Currency;
   /** The graph's spending ceiling for every stay together, when it set one. */
   allocation?: BudgetAllocation;
   segments: ReturnType<typeof splitStay>;
@@ -85,6 +89,7 @@ async function gatherStayEvidence(
     }),
   );
   return {
+    currency: displayCurrencyOf(brief, ctx),
     segments,
     rooms,
     roomAllocation: prefs.roomAllocation,
@@ -108,8 +113,16 @@ function assembleStayProposal(
   pick: (segmentDay: number, options: StayOption[]) => StayOption,
   sourceKind: "estimated" | "mock" | "fallback" = "estimated",
 ): AgentProposal {
-  const { segments, rooms, roomAllocation, groupSize, budgetRevision, searched, allocation } =
-    evidence;
+  const {
+    segments,
+    rooms,
+    roomAllocation,
+    groupSize,
+    budgetRevision,
+    searched,
+    allocation,
+    currency,
+  } = evidence;
   const picked = searched.map(({ segment, options }) => pick(segment.day, options));
   const pickedTotal = searched.reduce(
     (sum, { segment }, index) => sum + stayCost(picked[index]!, segment.nights, rooms),
@@ -166,7 +179,7 @@ function assembleStayProposal(
         options
           .map(
             (option) =>
-              `${option.name} (${formatMoney(stayCost(option, segment.nights, rooms), "AUD")} total, ${(option.rating / 2).toFixed(1)}/5, ${option.freeCancellation ? "free cancellation" : "no free cancellation"})`,
+              `${option.name} (${formatMoney(stayCost(option, segment.nights, rooms), currency)} total, ${(option.rating / 2).toFixed(1)}/5, ${option.freeCancellation ? "free cancellation" : "no free cancellation"})`,
           )
           .join("; ") +
         ". Only the selected option is charged.",
@@ -183,7 +196,7 @@ function assembleStayProposal(
     );
     assumptions.push(
       budgetRevision
-        ? `Selected the cheapest eligible stays; saved ${formatMoney(savings, "AUD")} against the initial selection for these inputs. Dates, guest count and confirmed preferences are unchanged.`
+        ? `Selected the cheapest eligible stays; saved ${formatMoney(savings, currency)} against the initial selection for these inputs. Dates, guest count and confirmed preferences are unchanged.`
         : "No supported price revision was requested; the initial selection is retained. Time/geography changes require an updated brief.",
     );
     if (budgetRevision) {
@@ -193,7 +206,7 @@ function assembleStayProposal(
       if (match && Number(match[1]) >= 0 && Number(match[1]) <= 100) {
         const target = Math.round(initialTotal * (1 - Number(match[1]) / 100) * 100) / 100;
         assumptions.push(
-          `Requested target: ${formatMoney(target, "AUD")} or less. ${total <= target ? "Target met." : "Target cannot be met by eligible candidates; further budget decisions belong to the orchestrator."}`,
+          `Requested target: ${formatMoney(target, currency)} or less. ${total <= target ? "Target met." : "Target cannot be met by eligible candidates; further budget decisions belong to the orchestrator."}`,
         );
       }
       if (savings === 0)
@@ -221,7 +234,7 @@ function assembleStayProposal(
         id: candidateId(segment.day, index),
       })),
     })),
-    summary: `${rooms} room(s), ${segments.reduce((sum, segment) => sum + segment.nights, 0)} nights in ${segments.map((segment) => segment.city).join(" & ")} · ${formatMoney(total, "AUD")}${budgetRevision ? " (lowest eligible cost)" : ""}`,
+    summary: `${rooms} room(s), ${segments.reduce((sum, segment) => sum + segment.nights, 0)} nights in ${segments.map((segment) => segment.city).join(" & ")} · ${formatMoney(total, currency)}${budgetRevision ? " (lowest eligible cost)" : ""}`,
     items: selections.map(({ segment, chosen, cost }) => ({
       kind: "hotel",
       day: segment.day,
@@ -234,6 +247,7 @@ function assembleStayProposal(
         rooms,
         nights: segment.nights,
         cost,
+        currency,
       }),
     })),
     assumptions,

@@ -183,6 +183,7 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
     dataMode: dataMode.mode,
     assistant: settings.assistant,
     interfaceLanguage: locale,
+    displayCurrency: settings.displayCurrency,
     draft,
     input,
     freshTripId,

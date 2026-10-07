@@ -7,10 +7,7 @@
 // them already depend on, so the sentences live here.
 // Owner: A.
 
-import { formatMoney } from "./money";
-
-/** A whole-trip amount in BASE_CURRENCY, as these sentences spell it. */
-const aud = (amount: number) => formatMoney(amount, "AUD");
+import { formatMoney, type Currency } from "./money";
 
 export function describeFlightChoice(input: {
   from: string;
@@ -40,7 +37,10 @@ export function describeStayChoice(input: {
   freeCancellation: boolean;
   /** rooms × nights × pricePerNight, already rounded by the caller. */
   cost: number;
+  /** The trip's display currency; AUD when absent. The amounts passed in are AUD planning amounts. */
+  currency?: Currency;
 }): string {
+  const aud = (amount: number) => formatMoney(amount, input.currency ?? "AUD");
   return (
     `${input.name} — ${input.area}; ${input.checkIn} to ${input.checkOut}; ` +
     `${input.rooms} room(s) × ${input.nights} night(s) × ${aud(input.pricePerNight)} per room/night ` +

@@ -185,6 +185,11 @@ export const ChatRequest = z
     attachments: z.array(Attachment).max(MAX_ATTACHMENTS_PER_MESSAGE).optional(),
     assistant: AssistantSettings.optional(),
     interfaceLanguage: InterfaceLanguage.optional(),
+    // The Settings display currency, sent with every request like the interface language. It is
+    // only the last step of `effectiveCurrency` (after the brief's display currency and its source
+    // budget's currency); absent means AUD, so an older client is written to in AUD. The server
+    // never writes Settings.
+    displayCurrency: Currency.optional(),
   })
   .refine((request) => request.message.trim() !== "" || (request.attachments?.length ?? 0) > 0, {
     message: "Send a message or at least one attachment",

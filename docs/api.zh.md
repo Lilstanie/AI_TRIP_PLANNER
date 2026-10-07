@@ -79,7 +79,13 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 （无论是否带预算）写入该字段。后一次指定会替换前一次，指定 AUD 就是 AUD，没有指定币种的消息则保持原值。它只用于显示：
 规划仍使用 AUD，`budgetSource` 不会被改写。在指定币种之前以及该字段出现之前保存的行程中，它都不存在；此时客户端读取
 `effectiveCurrency(brief, settings.displayCurrency)`，先回退到 `budgetSource.currency`，再回退到设置中的币种。
-设置不会随请求发送，也不会被行程写入。
+行程从不写入设置。
+
+请求本身还有可选的 `displayCurrency`：取 `AUD`、`CNY`、`USD` 或 `JPY` 之一，即设置中的显示币种。网页端与 `interfaceLanguage`
+一样，在每次聊天请求中发送它。服务器只把它用作同一条 `effectiveCurrency` 规则的最后一步（排在 `brief.displayCurrency` 和
+`brief.budgetSource.currency` 之后），用来书写服务器生成文字中的金额：specialist 摘要、冲突原因和约束、进度行、预算分配依据以及回复。
+不传该字段时回退为 AUD，旧客户端得到的文字与以前一致；不支持的币种代码会返回 400。服务器从不写入设置。
+规划金额、预算检查、冲突检测和规划评分仍为 AUD，提供方票价保留提供方币种。
 
 `brief.party` 和 `known.party` 也是可选字段，格式为 `{ adults, children, infants, seniors, pets }`，
 各项为 0 到 99 的整数（`packages/shared/src/contracts.ts` 中的 `TravellerParty`），

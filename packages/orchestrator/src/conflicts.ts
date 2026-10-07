@@ -1,5 +1,5 @@
 import { formatMoney } from "@trip/shared";
-import type { AgentName, AgentProposal, TripBrief, RevisionRequest } from "@trip/shared";
+import type { AgentName, Currency, AgentProposal, TripBrief, RevisionRequest } from "@trip/shared";
 import { assessBudget, costOf, NEGOTIATION_OVERRUN_PCT } from "./budget";
 
 /** Reason prefix of the one conflict that ends the loop: no revision can meet the budget. */
@@ -9,7 +9,6 @@ export const isInfeasible = (request: RevisionRequest) =>
   request.reason.startsWith(INFEASIBLE_BUDGET);
 
 const cents = (amount: number) => Math.ceil(amount * 100) / 100;
-const aud = (amount: number) => formatMoney(amount, "AUD");
 
 /**
  * The lowest the plan can cost from the options the specialists found: each
@@ -20,7 +19,16 @@ export function minimumCost(proposals: AgentProposal[]): number {
   return proposals.reduce((sum, proposal) => sum + Math.min(costOf(proposal), proposal.floorCost ?? 0), 0);
 }
 
-export function detectConflicts(proposals: AgentProposal[], brief: TripBrief): RevisionRequest[] {
+/**
+ * Revision requests for what the proposals get wrong. Amounts are judged in AUD; `currency` only
+ * decides how the reasons and constraints spell them, so the traveller reads the trip's own currency.
+ */
+export function detectConflicts(
+  proposals: AgentProposal[],
+  brief: TripBrief,
+  currency: Currency = "AUD",
+): RevisionRequest[] {
+  const aud = (amount: number) => formatMoney(amount, currency);
   const { estTotal, overrunPct } = assessBudget(proposals.map(costOf), brief.budgetTotal);
   const pending = new Map<AgentName, { reasons: string[]; constraints: string[]; targetSaving?: number }>();
   const add = (agent: AgentName, reason: string, constraint: string, targetSaving?: number) => {

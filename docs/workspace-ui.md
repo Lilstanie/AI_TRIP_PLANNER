@@ -735,7 +735,9 @@ the account section explains that everything stays in this browser.
     app's ESLint config rejects `.toFixed(2)`, so an amount is never formatted by hand.
     Amounts in text the server generates (summaries, conflict reasons, progress lines) go through
     `formatMoney(amountAud, currency, style?)` in `packages/shared/src/money.ts`, which converts with
-    the same rate table and shows JPY without decimals; every caller currently passes AUD.
+    the same rate table and shows JPY without decimals, grouping thousands in converted amounts like the
+    panels (`CNY 3,000.00`); callers pass the trip's display currency (AUD in Agent Lab, whose scenarios
+    name none). `estimateNote(currency)` is the estimate marking for generated text, empty for AUD.
   - **Connected accounts:** the Google, GitHub or Apple sign-ins linked through Clerk, with a button
     that opens Clerk to change them.
 - Signed out, settings are kept in this browser; signed in, the newer copy of browser and account

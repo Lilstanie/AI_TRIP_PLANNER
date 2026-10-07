@@ -149,5 +149,20 @@ export function formatMoney(
   const value = currency === BASE_CURRENCY ? amountAud : fromAud(amountAud, currency);
   if (style === "whole")
     return `${currency} ${value.toLocaleString("en-AU", { maximumFractionDigits: 0 })}`;
-  return `${currency} ${value.toFixed(MINOR_DIGITS[currency])}`;
+  const digits = MINOR_DIGITS[currency];
+  // AUD keeps its ungrouped, byte-for-byte spelling. A converted amount groups thousands the way
+  // the panels do (`CNY 3,000.00`), so a figure in generated text matches the one beside it.
+  if (currency === BASE_CURRENCY) return `${currency} ${value.toFixed(digits)}`;
+  return `${currency} ${value.toLocaleString("en-AU", { minimumFractionDigits: digits, maximumFractionDigits: digits })}`;
+}
+
+/**
+ * The sentence that marks converted amounts in generated text as estimates, the counterpart of the
+ * panels' currency notice. Empty for AUD, where nothing is converted. It names no currency code
+ * other than the display currency's, so text for a CNY trip never says AUD.
+ */
+export function estimateNote(currency: Currency): string {
+  return currency === BASE_CURRENCY
+    ? ""
+    : `Amounts in ${currency} are approximate conversions at fixed rates (as of ${RATES_AS_OF}), not live quotes.`;
 }

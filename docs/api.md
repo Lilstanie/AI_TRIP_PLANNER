@@ -79,7 +79,16 @@ or without a budget. A later naming replaces it, naming AUD sets AUD, and a mess
 leaves it as it was. It is display only: planning stays in AUD and `budgetSource` is not rewritten.
 Absent until a currency is named, and in briefs saved before the field existed; the client then reads
 `effectiveCurrency(brief, settings.displayCurrency)`, which falls back to `budgetSource.currency` and
-then to the Settings currency. Settings never travels in the request and is never written by a trip.
+then to the Settings currency. A trip never writes Settings.
+
+Optional `displayCurrency` on the request itself: one of `AUD`, `CNY`, `USD` or `JPY`, the Settings display
+currency. The web app sends it with every chat request, like `interfaceLanguage`. The server uses it only as
+the last step of the same `effectiveCurrency` rule (after `brief.displayCurrency` and
+`brief.budgetSource.currency`) to spell amounts in text it writes: specialist summaries, conflict reasons
+and constraints, progress lines, budget allocation bases and replies. Without the field the fallback is AUD,
+so an older client gets the text it always got; an unsupported code is rejected with 400. The server never
+writes Settings. Planning amounts, guardrails, conflict detection and the plan score stay AUD, and provider
+fares stay in the provider's currency.
 
 `brief.party` and `known.party` are optional too: `{ adults, children, infants, seniors, pets }`,
 whole numbers from 0 to 99 (`TravellerParty` in `packages/shared/src/contracts.ts`), set by the Who

@@ -37,5 +37,5 @@ receives them, so converting there would mean parsing amounts back out of prose.
 - A new traveller-facing amount in generated text goes through `formatMoney`; hand-built `AUD ${...}`
   strings are the defect this removes.
 - The currency argument is required, so a later caller cannot forget it. Passing the trip's display
-  currency is the follow-up work (#228).
+  currency is done (#228, see [the display currency note](../feature/2026-10-07-trip-display-currency.md)).
 - `NaN` or infinite amounts now fail loudly where they used to print `AUD NaN`.

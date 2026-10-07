@@ -4,6 +4,7 @@ import {
   TripPlan,
   type AssistantSettings,
   type Attachment,
+  type Currency,
   type InterfaceLanguage,
 } from "@trip/shared";
 import { plannerAud } from "@/lib/money";
@@ -41,6 +42,11 @@ type WorkspaceTransportOptions = {
    * back to this one only when the message does not show a language.
    */
   interfaceLanguage: InterfaceLanguage;
+  /**
+   * The Settings display currency, sent with every request so the server writes in the currency
+   * the panels show for a trip that named none. The server never writes it back.
+   */
+  displayCurrency: Currency;
 };
 
 /**
@@ -61,6 +67,7 @@ export function useWorkspaceTransport({
   dataMode,
   assistant,
   interfaceLanguage,
+  displayCurrency,
 }: WorkspaceTransportOptions) {
   async function run(task: Task) {
     if (active.current) return;
@@ -77,6 +84,7 @@ export function useWorkspaceTransport({
             ...task.request,
             ...(assistant ? { assistant } : {}),
             interfaceLanguage,
+            displayCurrency,
           }),
           signal,
         }),

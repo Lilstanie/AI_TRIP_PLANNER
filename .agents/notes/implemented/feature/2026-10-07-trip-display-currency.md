@@ -37,6 +37,30 @@ source currency, else Settings). That note's storage, AUD recovery and "a trip n
 rules stay in force. It extends [display conversion](2026-10-04-workspace-display-currency.md), whose
 shared rate table and estimate notice are unchanged.
 
+## Request field
+
+`ChatRequest` gains an optional `displayCurrency` (a supported `Currency`): the Settings display
+currency, sent by the browser with every request the way `interfaceLanguage` is. It is only the last
+step of `effectiveCurrency` on the server (`brief.displayCurrency`, else `budgetSource.currency`, else
+the request's value); absent means AUD, so an older client is written to in AUD, and an unsupported
+code is a 400. The server never writes Settings.
+
+Every traveller-facing amount the server writes goes through `formatMoney(amountAud, currency)` with
+that currency: specialist summaries and notes that carry an amount, conflict reasons and constraints,
+coordinator and specialist progress lines, budget allocation bases and the fallback replies, the
+impossible-budget reply included. The orchestrator hands the currency to specialists as
+`AgentContext.displayCurrency` (`displayCurrencyOf(brief, context)` reads it) and to the conflict, board
+and progress helpers as an argument defaulting to AUD, so Agent Lab (fixed AUD scenarios, no currency
+named) is byte-for-byte unchanged. The facts handed to the reply model carry amounts already converted
+and formatted, plus an `amountsNote`, and the prompt says to quote them as given and never convert.
+Converted amounts group thousands like the panels (`CNY 3,000.00`; AUD keeps its ungrouped spelling),
+the budget quotes the stated amount when it is in the display currency, and `estimateNote()` marks the
+fallback replies and the reply facts as estimates. Planning amounts, guardrails, conflict detection, the
+plan score and provider fares are untouched and stay AUD or in the provider's own currency.
+
+Left as it was: the plan editor's preview (`apps/web/lib/trip/trip-edit.ts`) and static notes that name
+the unit without an amount ("AUD per room per night"), which still say AUD.
+
 ## Alternatives considered
 
 - Keep source currency, else Settings: leaves a currency named alone, and any later request, ignored.
@@ -49,13 +73,13 @@ shared rate table and estimate notice are unchanged.
 
 Several trips and chats open at once cannot conflict, because the currency lives on each brief and
 Settings is only the default. A Settings change reaches only trips that never named a currency.
-`effectiveCurrency` is exported for the server too; text the server writes (specialist summaries,
-conflict reasons, progress lines, replies) still says AUD until the follow-up ticket (#228) formats it
-through it. The offline detector reads any currency marker, so a stray marker in a message (bare 元)
+`effectiveCurrency` is exported for the server too, and the server uses it for the text it writes
+(see Request field below). The offline detector reads any currency marker, so a stray marker in a message (bare 元)
 names a currency. The Your trips cards now end with each trip's total in its own currency.
 
 ## Sources
 
 - [Spec #225](https://github.com/Lilstanie/AI_TRIP_PLANNER/issues/225)
 - [Ticket #227](https://github.com/Lilstanie/AI_TRIP_PLANNER/issues/227)
+- [Ticket #228](https://github.com/Lilstanie/AI_TRIP_PLANNER/issues/228)
 - Joey approved the `packages/shared` change in the project thread on 2026-10-07.

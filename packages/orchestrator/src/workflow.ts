@@ -10,6 +10,7 @@ import type { BaseChatModel } from "@langchain/core/language_models/chat_models"
 import { allSpecialists } from "@trip/agents";
 import { memory } from "@trip/services";
 import {
+  effectiveCurrency,
   formatMoney,
   AgentProposal as AgentProposalSchema,
   TripBrief as TripBriefSchema,
@@ -18,6 +19,7 @@ import {
   type AgentName,
   type AgentProposal,
   type AgentProgressEvent,
+  type Currency,
   type MemoryStore,
   type RevisionRequest,
   type Specialist,
@@ -53,6 +55,12 @@ export interface OrchestratorOptions {
    * through the supervisor and falls back to deterministic dispatch if it fails.
    */
   supervisorModel?: BaseChatModel;
+  /**
+   * The Settings display currency, the last step of `effectiveCurrency` after the brief's own
+   * display currency and its source budget's currency. Absent means AUD. It only changes how text
+   * spells amounts; planning, guardrails and the plan score stay in AUD.
+   */
+  displayCurrency?: Currency;
 }
 
 const OrchestratorState = new StateSchema({
@@ -126,6 +134,7 @@ function resolveOptions(options: OrchestratorOptions) {
     onProgress: options.onProgress,
     onDecision: options.onDecision,
     supervisorModel: options.supervisorModel,
+    settingsCurrency: options.displayCurrency ?? ("AUD" as const),
   };
 }
 
@@ -149,7 +158,9 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
     onProgress,
     onDecision,
     supervisorModel,
+    settingsCurrency,
   } = resolveOptions(options);
+  const currencyFor = (brief: TripBrief) => effectiveCurrency(brief, settingsCurrency);
   // Injected specialists are the deterministic seam, unless a supervisor model was injected as well.
   const delegates = !injected || supervisorModel !== undefined;
 
@@ -165,7 +176,11 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
   const context = (brief: TripBrief, round: number, agent?: AgentName): AgentContext => ({
     tripId: brief.tripId,
     round,
-    tools: agent && onProgress ? withProgressTools(tools, agent, round, onProgress) : tools,
+    displayCurrency: currencyFor(brief),
+    tools:
+      agent && onProgress
+        ? withProgressTools(tools, agent, round, onProgress, currencyFor(brief))
+        : tools,
     mem: brief.accommodation
       ? {
           ...mem,
@@ -189,7 +204,7 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
       type: "agent_started",
       agent: specialist.name,
       round: request.context.round,
-      summary: `${request.brief.destination} · ${request.brief.dates.join(" to ")} · ${request.brief.groupSize} people · ${formatMoney(request.brief.budgetTotal, "AUD", "plain")}`,
+      summary: `${request.brief.destination} · ${request.brief.dates.join(" to ")} · ${request.brief.groupSize} people · ${formatMoney(request.brief.budgetTotal, currencyFor(request.brief), "plain")}`,
       objective: request.revision
         ? `Fix: ${request.revision.reason}`
         : `Produce the ${specialist.label} section for this trip.`,
@@ -202,7 +217,9 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
         outcome: request.revision
           ? `Revised ${proposal.agent} after: ${request.revision.reason}.`
           : `Produced ${proposal.agent} section.`,
-        ...(choiceFor(proposal) ? { choice: choiceFor(proposal)! } : {}),
+        ...(choiceFor(proposal, currencyFor(request.brief))
+          ? { choice: choiceFor(proposal, currencyFor(request.brief))! }
+          : {}),
         type: "agent_completed",
         agent: specialist.name,
         round: request.context.round,
@@ -253,7 +270,7 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
     // Every specialist runs through the board, so the stay knows what flights
     // cost and the day plan knows where the stay is, on either dispatch path.
     const staged = () => {
-      const board = createPlanningBoard(state.brief);
+      const board = createPlanningBoard(state.brief, currencyFor(state.brief));
       return Promise.all(
         specialists.map((specialist) =>
           board.run(specialist.name, (extra) =>
@@ -275,7 +292,7 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
           context: agentContext,
           ...(supervisorModel ? { model: supervisorModel } : {}),
           onProgress,
-          run: createPlanningBoard(state.brief).run,
+          run: createPlanningBoard(state.brief, currencyFor(state.brief)).run,
         });
       } catch (error) {
         const reason = error instanceof Error ? error.message : "unknown supervisor error";
@@ -290,7 +307,7 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
   };
 
   const detectProposalConflicts: WorkflowNode = (state) => {
-    const conflicts = detectConflicts(state.proposals, state.brief);
+    const conflicts = detectConflicts(state.proposals, state.brief, currencyFor(state.brief));
     onProgress?.({
       type: "coordinator",
       phase: "conflicts",
@@ -354,7 +371,7 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
           ? {
               allocation: {
                 budget: Math.max(0, Math.floor((cost - saving) * 100) / 100),
-                basis: `${formatMoney(cost, "AUD")} last round, less the ${formatMoney(saving, "AUD")} this section must save for the plan to fit the budget`,
+                basis: `${formatMoney(cost, currencyFor(state.brief))} last round, less the ${formatMoney(saving, currencyFor(state.brief))} this section must save for the plan to fit the budget`,
               },
             }
           : {}),
