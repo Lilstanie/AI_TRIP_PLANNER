@@ -11,7 +11,9 @@ Contributors: when you vendor or port code from another project, add an entry he
 - Upstream: <https://github.com/deepseek-ai/deepseek-harness> (`deepseek-ai/deepseek-harness`)
 - Licence: MIT
 - Copyright: Copyright (c) 2026 DeepSeek
-- Files in this repository: none yet. Issue #220 lists them when the code is ported.
+- Files in this repository: none yet. The Trace view (#218, #220) borrows the idea of a lane overview from its
+  Trajectory view but was written from scratch, so no DeepSeek Harness code is vendored. List any file that is
+  ported here.
 
 ```text
 MIT License

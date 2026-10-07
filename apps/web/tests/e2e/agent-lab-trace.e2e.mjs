@@ -1,6 +1,6 @@
 // End-to-end contract for the Agent Lab Trace view (#218). This first slice (#219) covers the bounded,
-// independently scrolling trace box; later tickets extend this script with the time bar, folds and
-// jump-to-record. A visitor runs scenarios from the public /agent-lab page in fixture mode. Raw NDJSON,
+// independently scrolling trace box; #220 adds the time bar and jump-to-record; later tickets add the
+// folds and Compare's shared axis. A visitor runs scenarios from the public /agent-lab page in fixture mode. Raw NDJSON,
 // desktop and phone screenshots and a JSON summary land under output/playwright/agent-lab-trace/.
 //
 // Failure inventory, written before implementation:
@@ -17,6 +17,26 @@
 // - in Compare a side's list is not in its own bounded box, so one long trace stretches the table;
 // - the box hides events (fewer rows than the events the stream delivered) or loses its accessible name;
 // - a page error or console error appears, or the run touches workspace storage.
+//
+// Time bar (#220), failure inventory written before implementation:
+// - the bar shows a lane for an actor with no records, lanes out of the fixed order (Run, Coordinator,
+//   transport, destination guide, accommodation, itinerary, dining, Baseline), or five specialist
+//   lanes (or a Coordinator lane) for the single-agent baseline;
+// - the bar has more or fewer blocks than records (events minus the completions merged into their
+//   starts), or its tool blocks differ from the distinct tool calls the received artifact records;
+// - a tool call's start and result draw two blocks, or an in-flight call is drawn as a finished span;
+// - in tokyo-couple-tight-budget under targeted revision, accommodation's first round 1 block does not
+//   come after transport's last, itinerary's or dining's first does not come after accommodation's
+//   last, or a round 2 specialist block lands outside the transport lane;
+// - the round 2 boundary is not marked;
+// - a failed tool call, failed specialist or rejected output (Failure Lab) is not in the error colour,
+//   or a healthy block is;
+// - the bar does not grow while events stream, or a replay of the downloaded artifact draws a
+//   different bar from the live run;
+// - a block is not a focusable button with an accessible name carrying lane, title and step;
+// - clicking a block, or pressing Enter on it, does not bring its row into view in the trace box, or
+//   does not highlight the row;
+// - the bar is wider than the screen at 390 px, or lane labels do not abbreviate there.
 //
 //   pnpm --filter @trip/web e2e agent-lab-trace   (fixture mode needs no keys)
 //   [CHANNEL=chrome] [PLAYWRIGHT=<path to playwright>] node apps/web/tests/e2e/agent-lab-trace.e2e.mjs
@@ -74,6 +94,173 @@ const boxState = (page, selector = BOX, index = 0) =>
         lastInView: last ? last.bottom <= frame.bottom + 1 && last.top >= frame.top - 1 : false,
       };
     });
+
+// ---- Time bar helpers (#220) ----------------------------------------------------------------
+const LANE_ORDER = [
+  "Run",
+  "Coordinator",
+  "transport",
+  "destination guide",
+  "accommodation",
+  "itinerary",
+  "dining",
+  "Baseline",
+];
+const BAR = "[data-trace-overview]";
+
+// What the received artifact says the bar must hold, worked out from its events alone.
+function expectedBar(artifact) {
+  const types = artifact.events.map((e) => e.event.type);
+  const done = types.filter((t) =>
+    ["tool_completed", "tool_failed", "lab_tool_completed"].includes(t),
+  ).length;
+  // One call per start event: a call id can repeat within a run, so ids alone undercount.
+  const calls = artifact.events.filter((e) =>
+    ["tool_started", "lab_tool_started"].includes(e.event.type),
+  );
+  const failed = types.filter((t) =>
+    ["tool_failed", "agent_failed", "lab_agent_output_rejected"].includes(t),
+  ).length;
+  return { records: artifact.events.length - done, tools: calls.length, failed };
+}
+
+// Everything a visitor can read from the bar, in a form two runs can be compared by.
+const readBar = (page, scope = "") =>
+  page
+    .locator(`${scope} ${BAR}`.trim())
+    .first()
+    .evaluate((bar) => ({
+      lanes: [...bar.querySelectorAll("[data-trace-lane]")].map((lane) => ({
+        lane: lane.dataset.traceLane,
+        label: lane.querySelector("[data-trace-lane-label]")?.innerText.trim(),
+        blocks: [...lane.querySelectorAll("[data-trace-block]")].map((b) => ({
+          step: Number(b.dataset.step),
+          sequence: Number(b.dataset.sequence),
+          kind: b.dataset.kind,
+          round: b.dataset.round ? Number(b.dataset.round) : null,
+          error: b.dataset.error === "true",
+          inFlight: b.dataset.inFlight === "true",
+          name: b.getAttribute("aria-label"),
+          tag: b.tagName,
+        })),
+      })),
+      boundaries: [...bar.querySelectorAll("[data-trace-round-boundary]")].map((m) =>
+        Number(m.dataset.traceRoundBoundary),
+      ),
+      width: bar.getBoundingClientRect().width,
+    }));
+
+const blockCount = (page) => page.locator(`${BAR} [data-trace-block]`).count();
+
+const rowState = (page, sequence) =>
+  page
+    .locator(BOX)
+    .first()
+    .evaluate((box, seq) => {
+      const row = box.querySelector(`[data-trace-row="${seq}"]`);
+      if (!row) return { found: false };
+      const r = row.getBoundingClientRect();
+      const f = box.getBoundingClientRect();
+      return {
+        found: true,
+        inView: r.top >= f.top - 1 && r.bottom <= f.bottom + 1,
+        highlighted: row.hasAttribute("data-trace-highlight"),
+      };
+    }, sequence);
+
+const blocksOf = (bar, lane, round) =>
+  (bar.lanes.find((l) => l.lane === lane)?.blocks ?? []).filter(
+    (b) => round === undefined || b.round === round,
+  );
+const firstStep = (blocks) => Math.min(...blocks.map((b) => b.step));
+const lastStep = (blocks) => Math.max(...blocks.map((b) => b.step));
+
+async function checkBar(page, tag, artifact, { baseline = false } = {}) {
+  const bar = await readBar(page);
+  const want = expectedBar(artifact);
+  const lanes = bar.lanes.map((l) => l.lane);
+  const all = bar.lanes.flatMap((l) => l.blocks);
+  check(
+    lanes.every((l) => LANE_ORDER.includes(l)) &&
+      lanes.every((l, i) => i === 0 || LANE_ORDER.indexOf(l) > LANE_ORDER.indexOf(lanes[i - 1])),
+    `${tag}: lanes are in the fixed order (${lanes.join(", ")})`,
+  );
+  check(
+    bar.lanes.every((l) => l.blocks.length > 0),
+    `${tag}: no lane is empty`,
+  );
+  if (baseline)
+    check(
+      JSON.stringify(lanes) === JSON.stringify(["Run", "Baseline"]),
+      `${tag}: the baseline shows only Run and Baseline lanes (${lanes.join(", ")})`,
+    );
+  check(all.length === want.records, `${tag}: ${all.length} blocks for ${want.records} records`);
+  const tools = all.filter((b) => b.kind === "tool").length;
+  check(tools === want.tools, `${tag}: ${tools} tool blocks for ${want.tools} recorded tool calls`);
+  const errors = all.filter((b) => b.error).length;
+  check(errors === want.failed, `${tag}: ${errors} error blocks for ${want.failed} failed records`);
+  check(
+    all.every((b) => b.tag === "BUTTON" && b.name && b.name.includes(`step ${b.step}`)),
+    `${tag}: every block is a button named with its step`,
+  );
+  check(
+    all
+      .map((b) => b.step)
+      .sort((a, b) => a - b)
+      .every((s, i) => s === i + 1),
+    `${tag}: each record takes exactly one step slot`,
+  );
+  return bar;
+}
+
+// Click a block far from where the box is scrolled, then do the same with Enter from the keyboard.
+async function checkJump(page, tag, bar) {
+  const sorted = bar.lanes.flatMap((l) => l.blocks).sort((a, b) => a.step - b.step);
+  const cases = [
+    { mode: "click", block: sorted[0], scrollTo: "bottom" },
+    { mode: "Enter", block: sorted.at(-1), scrollTo: "top" },
+  ];
+  for (const { mode, block, scrollTo } of cases) {
+    await page
+      .locator(BOX)
+      .first()
+      .evaluate((box, to) => {
+        box.scrollTop = to === "top" ? 0 : box.scrollHeight;
+      }, scrollTo);
+    const before = await rowState(page, block.sequence);
+    const button = page.locator(`${BAR} [data-trace-block][data-step="${block.step}"]`);
+    if (mode === "click") await button.click();
+    else {
+      await button.focus();
+      await page.keyboard.press("Enter");
+    }
+    await page
+      .waitForFunction(
+        (seq) => {
+          const row = document.querySelector(
+            `[data-agent-lab-trace-box] [data-trace-row="${seq}"]`,
+          );
+          if (!row) return false;
+          const f = row.closest("[data-agent-lab-trace-box]").getBoundingClientRect();
+          const r = row.getBoundingClientRect();
+          return r.top >= f.top - 1 && r.bottom <= f.bottom + 1;
+        },
+        block.sequence,
+        { timeout: 4000 },
+      )
+      .catch(() => {});
+    const after = await rowState(page, block.sequence);
+    check(
+      before.found && !before.inView,
+      `${tag}: before ${mode}, row ${block.sequence} was out of view`,
+    );
+    check(
+      after.found && after.inView,
+      `${tag}: ${mode} on step ${block.step} brings row ${block.sequence} into the box`,
+    );
+    check(after.highlighted, `${tag}: ${mode} highlights row ${block.sequence}`);
+  }
+}
 
 async function open(
   browser,
@@ -139,9 +326,13 @@ async function desktop(browser) {
   const state = await boxState(page);
   const docHeight = await page.evaluate(() => document.documentElement.scrollHeight);
   const headerHeight = await page.locator(".agent-lab__header").evaluate((n) => n.offsetHeight);
+  const barHeight = await page
+    .locator(BAR)
+    .first()
+    .evaluate((n) => n.offsetHeight);
   check(
-    docHeight <= 1000 + headerHeight + HEIGHT_SLACK,
-    `${tag}: document is ${docHeight}px, within one viewport plus the header (${headerHeight}px)`,
+    docHeight <= 1000 + headerHeight + barHeight + HEIGHT_SLACK,
+    `${tag}: document is ${docHeight}px, within one viewport plus the header (${headerHeight}px) and the bar (${barHeight}px)`,
   );
   check(
     state.rows === events,
@@ -163,12 +354,56 @@ async function desktop(browser) {
   await page.screenshot({ path: `${OUT}/${tag}.run.png`, fullPage: true });
   summary[tag] = { events, docHeight, headerHeight, box: state };
 
+  // 1b. The time bar for the same run.
+  const liveArtifact = completeOf(await bodies[0]).artifact;
+  const bar = await checkBar(page, tag, liveArtifact);
+  summary[tag].bar = bar;
+  check(
+    bar.lanes.some((l) => l.lane === "Run") && bar.lanes.some((l) => l.lane === "Coordinator"),
+    `${tag}: the bar has Run and Coordinator lanes`,
+  );
+  check(
+    bar.lanes.find((l) => l.lane === "Coordinator")?.label === "Coordinator",
+    `${tag}: desktop lane labels are written in full`,
+  );
+  const transport1 = blocksOf(bar, "transport", 1);
+  const accommodation1 = blocksOf(bar, "accommodation", 1);
+  check(
+    transport1.length > 0 &&
+      accommodation1.length > 0 &&
+      firstStep(accommodation1) > lastStep(transport1),
+    `${tag}: accommodation starts after transport's last round 1 block`,
+  );
+  for (const lane of ["itinerary", "dining"])
+    check(
+      blocksOf(bar, lane, 1).length > 0 &&
+        firstStep(blocksOf(bar, lane, 1)) > lastStep(accommodation1),
+      `${tag}: ${lane} starts after accommodation's last block`,
+    );
+  const round2 = bar.lanes
+    .filter((l) => !["Run", "Coordinator"].includes(l.lane))
+    .map((l) => [l.lane, l.blocks.filter((b) => (b.round ?? 0) >= 2).length]);
+  check(
+    round2
+      .filter(([, n]) => n > 0)
+      .map(([lane]) => lane)
+      .join() === "transport",
+    `${tag}: round 2 specialist blocks are only in transport (${JSON.stringify(round2)})`,
+  );
+  check(bar.boundaries.includes(2), `${tag}: the round 2 boundary is marked`);
+  await checkJump(page, tag, bar);
+
   // 2. Scroll up mid-run: later events must not move the box. Scrolling to the bottom resumes following.
   await page.getByRole("button", { name: "Run experiment" }).click();
   await page.waitForFunction(
     () => document.querySelectorAll("[data-agent-lab-event]").length >= 14,
   );
   const before = await boxState(page);
+  const midBlocks = await blockCount(page);
+  check(
+    midBlocks > 0 && midBlocks < 46,
+    `${tag}: the bar is partway through the run while events stream (${midBlocks} blocks)`,
+  );
   check(
     before.scrollTop > 0,
     `${tag}: the box was already following mid-run (scrollTop ${before.scrollTop})`,
@@ -210,6 +445,89 @@ async function desktop(browser) {
     `${tag}: scrolling to the bottom resumes following; the last event is in view at completion`,
   );
   summary[tag].scrolledUp = { rowsAtScroll, held, resumed };
+  check(
+    (await blockCount(page)) > midBlocks,
+    `${tag}: the bar grew while the run streamed (${midBlocks} to ${await blockCount(page)} blocks)`,
+  );
+  await page.screenshot({ path: `${OUT}/${tag}.bar.png`, fullPage: true });
+  await closeOut(session);
+}
+
+async function baseline(browser) {
+  const tag = "baseline";
+  const session = await open(browser, { width: 1440, height: 1000, tag });
+  const { page, bodies } = session;
+  await page.getByLabel("Strategy").selectOption("single-agent-baseline");
+  await page.getByRole("button", { name: "Run experiment" }).click();
+  await complete(page);
+  const artifact = completeOf(await bodies[0]).artifact;
+  const bar = await checkBar(page, tag, artifact, { baseline: true });
+  summary[tag] = { bar };
+  await page.screenshot({ path: `${OUT}/${tag}.png`, fullPage: true });
+  await closeOut(session);
+}
+
+async function replay(browser) {
+  const tag = "replay";
+  const session = await open(browser, { width: 1440, height: 1000, tag });
+  const { page } = session;
+  await page.getByRole("button", { name: "Run experiment" }).click();
+  await complete(page);
+  const live = await readBar(page);
+  const label = await page
+    .getByLabel("Strategy")
+    .locator(`option[value="${REVISION}"]`)
+    .innerText();
+  const [file] = await Promise.all([
+    page.waitForEvent("download"),
+    page.getByRole("button", { name: `Download artifact for ${label}` }).click(),
+  ]);
+  const path = await file.path();
+  await page.getByLabel("Strategy").selectOption("single-agent-baseline");
+  await page.locator("input[data-agent-lab-replay-input]").setInputFiles(path);
+  await page.getByRole("status").getByText("Replaying recorded run", { exact: true }).waitFor();
+  await page
+    .getByRole("status")
+    .getByText("Replay complete", { exact: true })
+    .waitFor({ timeout: 90000 });
+  const replayed = await readBar(page);
+  check(
+    JSON.stringify(replayed) === JSON.stringify(live),
+    `${tag}: replaying the downloaded artifact draws the same bar as the live run`,
+  );
+  summary[tag] = { blocks: replayed.lanes.reduce((n, l) => n + l.blocks.length, 0) };
+  await closeOut(session);
+}
+
+async function failureLab(browser) {
+  const tag = "failure-lab";
+  const session = await open(browser, { width: 1440, height: 1000, tag });
+  const { page, bodies } = session;
+  await page.getByRole("group", { name: "View" }).getByRole("button", { name: "Failures" }).click();
+  await page.getByRole("button", { name: "Run fault profile: Empty stay search" }).click();
+  await page.locator("[data-agent-lab-outcome]").first().waitFor({ timeout: 90000 });
+  await page.getByText(/^Trace \(\d+ events\)$/).click();
+  const artifact = completeOf(await bodies[0]).artifact;
+  const bar = await checkBar(page, tag, artifact);
+  const failed = bar.lanes.flatMap((l) => l.blocks).filter((b) => b.error).length;
+  check(failed > 0, `${tag}: the injected fault left failed records in the bar (${failed})`);
+  // The error colour is the one a visitor sees: a failed block must not look like a healthy one.
+  const colours = await page.evaluate((selector) => {
+    const colour = (node) => (node ? getComputedStyle(node).backgroundColor : null);
+    return {
+      error: colour(document.querySelector(`${selector} [data-trace-block][data-error="true"]`)),
+      healthy: colour(
+        document.querySelector(
+          `${selector} [data-trace-block][data-error="false"][data-kind="specialist"]`,
+        ),
+      ),
+    };
+  }, BAR);
+  check(
+    colours.error && colours.healthy && colours.error !== colours.healthy,
+    `${tag}: failed blocks use their own colour (${colours.error} against ${colours.healthy})`,
+  );
+  summary[tag] = { failed, colours };
   await closeOut(session);
 }
 
@@ -271,6 +589,11 @@ async function phone(browser) {
   await page.getByRole("button", { name: "Run experiment" }).click();
   await complete(page);
   const events = eventCountOf(await bodies[0]);
+  const bar = await checkBar(page, tag, completeOf(await bodies[0]).artifact);
+  check(bar.width <= 390, `${tag}: the bar fits the screen (${Math.round(bar.width)}px)`);
+  const longest = Math.max(...bar.lanes.map((l) => (l.label ?? "").length));
+  check(longest <= 5, `${tag}: lane labels abbreviate (longest is ${longest} characters)`);
+  summary[tag] = { bar };
   await page.locator(BOX).scrollIntoViewIfNeeded();
   const state = await boxState(page);
   check(state.rows === events, `${tag}: the box holds every event`);
@@ -305,13 +628,16 @@ async function phone(browser) {
     `${tag}: the box scrolls by touch (${Math.round(state.scrollTop)}px to ${Math.round(after.scrollTop)}px)`,
   );
   await page.screenshot({ path: `${OUT}/${tag}.png`, fullPage: true });
-  summary[tag] = { events, before: state, after };
+  summary[tag] = { ...summary[tag], events, before: state, after };
   await closeOut(session);
 }
 
 const browser = await chromium.launch({ channel: process.env.CHANNEL });
 try {
   await desktop(browser);
+  await baseline(browser);
+  await replay(browser);
+  await failureLab(browser);
   await reducedMotion(browser);
   await compare(browser);
   await phone(browser);

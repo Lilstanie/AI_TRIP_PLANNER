@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useLayoutEffect, useRef, type WheelEvent } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, type WheelEvent } from "react";
 import type { AgentLabRunEvent } from "@trip/shared";
 import { eventCopy, eventKindLabel } from "@/lib/agent-lab/event-copy";
+import { TraceOverview } from "./TraceOverview";
 
 /** Distance from the bottom, in px, that still counts as "at the bottom" (fractional scroll positions). */
 const BOTTOM_TOLERANCE = 8;
@@ -36,6 +37,31 @@ export function RunTimeline({
     if (event.deltaY < 0) following.current = false;
   }, []);
 
+  // Bring a row into the box and mark it for a moment. The scroll is instant under reduced motion. Either
+  // way it leaves the bottom, so following suspends until the visitor returns there.
+  const highlightTimer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(highlightTimer.current), []);
+  const jumpTo = useCallback((sequence: number) => {
+    const el = box.current;
+    const row = el?.querySelector<HTMLElement>(`[data-trace-row="${sequence}"]`);
+    if (!el || !row) return;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    following.current = false;
+    el.scrollTo({
+      top: el.scrollTop + row.getBoundingClientRect().top - el.getBoundingClientRect().top,
+      behavior: reduced ? "auto" : "smooth",
+    });
+    el.querySelectorAll("[data-trace-highlight]").forEach((n) =>
+      n.removeAttribute("data-trace-highlight"),
+    );
+    row.setAttribute("data-trace-highlight", "");
+    window.clearTimeout(highlightTimer.current);
+    highlightTimer.current = window.setTimeout(
+      () => row.removeAttribute("data-trace-highlight"),
+      1800,
+    );
+  }, []);
+
   useLayoutEffect(() => {
     const el = box.current;
     if (!el) return;
@@ -45,7 +71,7 @@ export function RunTimeline({
     if (following.current) el.scrollTop = el.scrollHeight;
   }, [events.length]);
 
-  return (
+  const list = (
     // Focusable so a keyboard user can scroll the box with the arrow keys.
     <div
       className="agent-lab__trace-box"
@@ -64,6 +90,7 @@ export function RunTimeline({
             <li
               key={`${runEvent.runId}-${runEvent.sequence}`}
               data-agent-lab-event
+              data-trace-row={runEvent.sequence}
               data-event-kind={copy.kind}
             >
               <span className="agent-lab__sequence">{runEvent.sequence}</span>
@@ -100,5 +127,12 @@ export function RunTimeline({
         })}
       </ol>
     </div>
+  );
+
+  return (
+    <>
+      <TraceOverview events={events} onSelect={jumpTo} />
+      {list}
+    </>
   );
 }

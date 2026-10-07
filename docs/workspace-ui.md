@@ -580,7 +580,15 @@ drawn, so the plan result and run metrics stay on screen. The box is a focusable
 arrow keys scroll it. While a run streams or an artifact replays, the box follows the newest event; scrolling
 up suspends following so new events do not move the position being read, and scrolling back to the bottom
 resumes it. The follow scroll is always instant, so reduced motion needs no separate path. The Run view, each
-side of the Compare view and each Failure Lab trace use the same box. The
+side of the Compare view and each Failure Lab trace use the same box.
+
+Above the box, a time bar shows the whole run as lanes of equal-width blocks, one step per record: Run,
+Coordinator, one lane per specialist (or a single Baseline lane), with empty lanes omitted. A tool call's start
+and result form one block, and failed tool calls, failed specialists and rejected output are drawn in the error
+colour. A dashed line with an R2, R3 tag marks each round boundary. The bar grows as events stream or replay.
+Every block is a button named with its lane, title and step; clicking it or pressing Enter scrolls the box to
+that row and highlights it for a moment (instantly under reduced motion). At phone width the bar fits the screen
+and lane labels shorten (Coord, Trans, Guide, Stay, Itin, Dine, Base). The
 [trace end-to-end script](../apps/web/tests/e2e/agent-lab-trace.e2e.mjs) checks it at desktop and phone width.
 
 The comparison view shows a table of measured figures (latency, rounds, tool calls, fallbacks, failed

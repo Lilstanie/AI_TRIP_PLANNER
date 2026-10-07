@@ -144,6 +144,21 @@ plan leaves the best known plan and stops with `no_improvement`. A run a fault s
 artifact that keeps its trace and names the failing specialist, and that artifact downloads and replays like
 any other. The [Agent Note](../.agents/notes/implemented/architecture/2026-10-02-agent-lab-failure-lab.md) records the decision.
 
+The Trace view is the Agent Lab's reading surface for a run's ordered events. It lives only in the Agent Lab (the
+chat's Think tree is unchanged) and changes no contract: everything is derived in the browser from the
+`AgentLabRunEvent` envelopes the page already holds, so a replayed artifact draws the same view as the live run.
+The events sit in a bounded, independently scrolling box that follows the newest event until the visitor scrolls
+up. Above it, a time bar built by `apps/web/lib/agent-lab/trace-overview.ts` and drawn by
+`apps/web/components/agent-lab/TraceOverview.tsx` shows the whole run as lanes in a fixed order (Run,
+Coordinator, one lane per specialist, or a single Baseline lane for the single-agent strategy; empty lanes are
+omitted). Each record takes one equal-width step: a tool call's start and its completion or failure merge into one
+block (an in-flight call is a start marker only), failed tool calls, failed specialists and rejected output use the
+error colour, and round boundaries are marked. The axis is steps, not time, because every event's `elapsedMs`
+includes the stream's pacing delay; the [Agent Note](../.agents/notes/implemented/architecture/2026-10-07-agent-lab-trace-step-axis.md)
+records why. Each block is a focusable button, and activating it scrolls the box to that record's row
+(`data-trace-row`) and highlights it briefly. The bar component takes an optional shared step domain so the Compare
+view can stack bars on one axis.
+
 ## LangGraph workflow
 
 ```mermaid
