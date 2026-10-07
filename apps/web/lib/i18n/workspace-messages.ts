@@ -302,6 +302,7 @@ export const WORKSPACE_ZH = {
   " · Distance unavailable": " · 暂无距离",
   "Locating {v0}…": "正在定位{v0}…",
   "Your itinerary stays available while places load.": "地点加载期间仍可查看日程。",
+  "Google Places is not set up for this app.": "此应用未配置 Google Places。",
   "Google Places is temporarily unavailable. Your plan is unchanged.":
     "Google 地点服务暂不可用。计划未改变。",
   "Your plan is unchanged. Activities appear once they have a confirmed place.":
