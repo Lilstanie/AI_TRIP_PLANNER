@@ -302,7 +302,8 @@ Scripts that need two servers (`agent-lab-live-gate`) still run by hand as their
 
 - **API scripts** (`plan-quality`, `conversation-scope`) post to `/api/chat` with `DATA_MODE=live`
   (default) or `mock`. `plan-quality` plans three fixed briefs and checks budget, unresolved conflicts,
-  itinerary source, repeated and generic stops; live model output varies, so compare several runs.
+  itinerary source, repeated and generic stops, and exits non-zero when any check fails or a plan
+  errors; live model output varies, so compare several runs.
   Each run writes the NDJSON streams, plans and `summary.json` to `output/e2e/<name>/<run>/`.
 - **Browser scripts** (every other script, including the eight `agent-lab-*` ones) drive Playwright at
   desktop and phone widths and write screenshots, and for Agent Lab the raw NDJSON and artifacts, to

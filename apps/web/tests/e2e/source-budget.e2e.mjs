@@ -22,6 +22,15 @@ try {
       locale: "en-AU",
       viewport: { width, height: width === 390 ? 844 : 1000 },
     });
+    // On a dev server the Next.js dev-tools button sits over the phone Chat tab and swallows the
+    // tap. Hide it on every load, the reloads included, as the other phone scripts do.
+    await context.addInitScript(() =>
+      document.addEventListener("DOMContentLoaded", () => {
+        const style = document.createElement("style");
+        style.textContent = "nextjs-portal { display: none !important; }";
+        document.head.append(style);
+      }),
+    );
     const page = await context.newPage();
     const errors = [];
     page.on("pageerror", (e) => errors.push(String(e)));

@@ -237,7 +237,7 @@ BASE_URL=http://localhost:3000 pnpm --filter @trip/web e2e settings   # against 
 
 环境变量会同时传给服务器和脚本，因此请按各脚本头部的说明设置 `DATA_MODE` 和数据源变量。同一工作树中并发的每次运行各自构建到独立的文件夹（`apps/web/.next-e2e`，其次是 `-2` 到 `-4`），因此并行运行之间、以及与 `pnpm dev` 之间都不会共用 `.next`；该文件夹会保留编译结果供下次运行使用。任一脚本失败时运行器以非零状态退出，并把摘要写入 `output/e2e/runner/<time>.json`。Playwright 是 `apps/web` 的开发依赖；在新机器上先运行一次 `pnpm --filter @trip/web exec playwright install chromium`。需要两个服务器的脚本（`agent-lab-live-gate`）仍按其头部说明手动运行。`pnpm dev` 和 `pnpm start` 默认使用 3000 端口，设置 `PORT` 可更改。
 
-- **API 脚本**（`plan-quality`、`conversation-scope`）向 `/api/chat` 发请求，`DATA_MODE=live` 为默认值，也可设为 `mock`。`plan-quality` 提交三个固定行程需求，并检查预算、未解决冲突、行程来源、重复停靠点和泛化停靠点；实时模型输出会变化，因此应比较多次运行。每次运行把 NDJSON 流、方案和 `summary.json` 写入 `output/e2e/<name>/<run>/`。
+- **API 脚本**（`plan-quality`、`conversation-scope`）向 `/api/chat` 发请求，`DATA_MODE=live` 为默认值，也可设为 `mock`。`plan-quality` 提交三个固定行程需求，并检查预算、未解决冲突、行程来源、重复停靠点和泛化停靠点，任一检查失败或规划出错时以非零状态退出；实时模型输出会变化，因此应比较多次运行。每次运行把 NDJSON 流、方案和 `summary.json` 写入 `output/e2e/<name>/<run>/`。
 - **浏览器脚本**（其余所有脚本，包括八个 `agent-lab-*`）用 Playwright 在桌面和手机宽度下运行，并把截图写入 `output/playwright/<name>/`；Agent Lab 的脚本还会写入原始 NDJSON 和 artifact。`CHANNEL=chrome` 与 `PLAYWRIGHT=<path>` 用于选择浏览器和 Playwright 包。
 
 `output/e2e/` 和 `output/playwright/` 已被 Git 忽略。每个脚本的文件头列出它所依据的失败清单和所需的服务器环境，fixture 运行与部署的密钥和默认数据模式相互隔离，因此无论环境中有什么，Agent Lab 的脚本都能通过；`agent-lab-live-gate` 还会使用两个启用了实时运行的服务（见其文件头）。`agent-lab-release` 走完整个公开流程并写出发布证据：原始 NDJSON、带版本的产物、对比摘要、报告，以及一组截图矩阵（浅色与深色、桌面与窄屏、减少动态效果）。
