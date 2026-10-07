@@ -103,9 +103,12 @@ function ItemCard({ item }: { item: ProposalItem }) {
 function Alternatives({
   chosen,
   others,
+  onChoose,
 }: {
   chosen: number;
   others: { id: string; label: string; price: number }[];
+  /** Absent while another change is in flight, which makes the rows plain text. */
+  onChoose?: (candidateId: string) => void;
 }) {
   const { t, money } = useLocale();
   if (!others.length) return null;
@@ -115,15 +118,28 @@ function Alternatives({
       <ul className="alternatives__list">
         {others.map((other) => {
           const delta = Math.round((other.price - chosen) * 100) / 100;
-          return (
-            <li key={other.id}>
+          const body = (
+            <>
               <span className="alternatives__label">{other.label}</span>
               <span className="alternatives__price">{money(other.price)}</span>
-              {delta !== 0 && (
-                <span className={`alternatives__delta${delta < 0 ? " is-cheaper" : ""}`}>
-                  {delta < 0 ? "−" : "+"}
-                  {money(Math.abs(delta))}
-                </span>
+              <span className={`alternatives__delta${delta < 0 ? " is-cheaper" : ""}`}>
+                {delta === 0 ? "" : delta < 0 ? `−${money(-delta)}` : `+${money(delta)}`}
+              </span>
+            </>
+          );
+          return (
+            <li key={other.id}>
+              {onChoose ? (
+                <button
+                  type="button"
+                  className="alternatives__pick"
+                  onClick={() => onChoose(other.id)}
+                  aria-label={t("Take {v0} instead, {v1}", { v0: other.label, v1: money(other.price) })}
+                >
+                  {body}
+                </button>
+              ) : (
+                <span className="alternatives__row">{body}</span>
               )}
             </li>
           );
@@ -143,9 +159,11 @@ function Alternatives({
 function FlightCard({
   flight,
   source,
+  onChoose,
 }: {
   flight: FlightSelection;
   source?: AgentProposalSource;
+  onChoose?: (candidateId: string) => void;
 }) {
   const { t, locale, money } = useLocale();
   const selected = flight.candidates.find((candidate) => candidate.id === flight.selectedId);
@@ -193,13 +211,21 @@ function FlightCard({
           label: candidate.carrier,
           price: candidate.price,
         }))}
+        {...(onChoose ? { onChoose } : {})}
       />
     </article>
   );
 }
 
 /** Section-specific grouping uses structured metadata only, never parses prose as facts. */
-export function ProposalDetails({ section }: { section: TripSection }) {
+export function ProposalDetails({
+  section,
+  onChoose,
+}: {
+  section: TripSection;
+  /** Swap a stay or fare for one the specialist already found. */
+  onChoose?: (selectionId: string, candidateId: string) => void;
+}) {
   const { t, money } = useLocale();
   const proposal = section.proposal;
   if (!proposal) return <p className="section__empty">{t("Details are still being prepared.")}</p>;
@@ -257,6 +283,9 @@ export function ProposalDetails({ section }: { section: TripSection }) {
                 </a>
               )}
               <Alternatives
+                {...(onChoose
+                  ? { onChoose: (candidateId: string) => onChoose(stay.id, candidateId) }
+                  : {})}
                 chosen={selected.pricePerNight * stay.rooms * stay.nights}
                 others={stay.candidates
                   .filter((candidate) => candidate.id !== stay.selectedId)
@@ -281,7 +310,14 @@ export function ProposalDetails({ section }: { section: TripSection }) {
       <div className={`proposal-items proposal-items--${section.id}`}>
         {/* Flights first: they are the fixed points the rest of the days hang from. */}
         {proposal.flights?.map((flight) => (
-          <FlightCard key={flight.id} flight={flight} source={proposal.source} />
+          <FlightCard
+            key={flight.id}
+            flight={flight}
+            source={proposal.source}
+            {...(onChoose
+              ? { onChoose: (candidateId: string) => onChoose(flight.id, candidateId) }
+              : {})}
+          />
         ))}
         {days.map((day) => (
           <section className="proposal-day" key={day ?? "unscheduled"}>

@@ -1,4 +1,5 @@
 "use client";
+import { TripPlan } from "@trip/shared";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { TripFactChips } from "../preferences/TripFactChips";
 import { ChatPanel } from "../chat/ChatPanel";
@@ -265,6 +266,44 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
     </button>
   );
 
+  /**
+   * Swap a stay or fare for one the specialist already found.
+   *
+   * Through the edit route rather than in the browser: the server owns the
+   * budget roll-up and the conflict check, and "never trust client totals"
+   * applies to a price the traveller picked as much as to one they typed.
+   */
+  const chooseCandidate = async (
+    sectionId: string,
+    selectionId: string,
+    candidateId: string,
+  ) => {
+    if (!plan || editPending) return;
+    setEditPending(true);
+    try {
+      const response = await fetch("/api/trip/preview-edit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          plan,
+          baseVersion: plan.editVersion ?? 0,
+          operation: { kind: "choose", section: sectionId, selectionId, candidateId },
+        }),
+      });
+      const body = await response.json();
+      if (!response.ok) {
+        setNotice(body.error ?? "That change could not be made.");
+        return;
+      }
+      setPreviousTotal(plan.estTotal);
+      setPlan(TripPlan.parse(body.plan));
+    } catch {
+      setNotice("That change could not be made.");
+    } finally {
+      setEditPending(false);
+    }
+  };
+
   const tripContent = (
     <>
       {plan ? (
@@ -274,6 +313,7 @@ export function WorkspaceView({ model }: { model: WorkspaceController }) {
           onTab={setTripTab}
           onReview={() => setDialog("review")}
           onEdit={edit}
+          {...(editPending ? {} : { onChoose: chooseCandidate })}
           places={
             <TripPlaceList
               tripPlaces={tripPlaces}

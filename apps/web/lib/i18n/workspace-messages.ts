@@ -145,6 +145,7 @@ export const WORKSPACE_ZH = {
   "Rooms / nights": "房间 / 晚数",
   "Room per night": "每间每晚",
   "Also found": "其他可选",
+  "Take {v0} instead, {v1}": "改选 {v0}，{v1}",
   "This flight needs a new selection.": "这趟航班需要重新选择。",
   Depart: "出发",
   Travellers: "出行人数",

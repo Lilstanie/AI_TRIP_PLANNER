@@ -3,6 +3,7 @@
 
 export * from "./money";
 export * from "./contracts";
+export * from "./describe";
 export * from "./ports";
 export * from "./agent";
 export * from "./plan";

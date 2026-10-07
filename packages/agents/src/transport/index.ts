@@ -1,4 +1,5 @@
 import {
+  describeFlightChoice,
   AgentProposal as AgentProposalSchema,
   TripBrief as TripBriefSchema,
   type AgentContext,
@@ -508,13 +509,20 @@ function assembleTransportProposal(
   const flightItems = plan.flights.flatMap((fare) => {
     const leg = evidence.flights.find(({ leg: flown }) => flown.index === fare.legIndex)?.leg;
     if (!leg) return [];
-    const returning = leg.index === 0 ? `, returning ${brief.dates[1]}` : "";
+    const returning = leg.index === 0 ? brief.dates[1] : undefined;
     return [
       {
         kind: "transport" as const,
         day: leg.day,
+        selectionId: `flight-${leg.index}`,
         location: `${leg.from} → ${leg.to}`,
-        detail: `${fare.carrier}: ${leg.from} to ${leg.to}${returning}; whole-group fare${fare.note ? `; ${fare.note}` : ""}.`,
+        detail: describeFlightChoice({
+          from: leg.from,
+          to: leg.to,
+          carrier: fare.carrier,
+          ...(fare.note ? { note: fare.note } : {}),
+          ...(returning ? { returning } : {}),
+        }),
         estCost: fare.price,
       },
     ];

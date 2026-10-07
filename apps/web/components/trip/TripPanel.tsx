@@ -30,6 +30,7 @@ export function TripPanel({
   places,
   onReview,
   onEdit,
+  onChoose,
 }: {
   plan: TripPlan;
   tab: TripTab;
@@ -39,6 +40,8 @@ export function TripPanel({
   places?: ReactNode;
   onReview: () => void;
   onEdit: () => void;
+  /** Swap a stay or fare inside a section; absent while the plan is busy. */
+  onChoose?: (sectionId: string, selectionId: string, candidateId: string) => void;
 }) {
   const { t, money } = useLocale();
   const estimated =
@@ -152,6 +155,7 @@ export function TripPanel({
                 <TripSection
                   key={section.id}
                   section={section}
+                  {...(onChoose ? { onChoose } : {})}
                   onEdit={onEdit}
                 />
               ))
