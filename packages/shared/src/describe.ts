@@ -7,8 +7,10 @@
 // them already depend on, so the sentences live here.
 // Owner: A.
 
+import { formatMoney } from "./money";
+
 /** A whole-trip amount in BASE_CURRENCY, as these sentences spell it. */
-const aud = (amount: number) => `AUD ${amount.toFixed(2)}`;
+const aud = (amount: number) => formatMoney(amount, "AUD");
 
 export function describeFlightChoice(input: {
   from: string;

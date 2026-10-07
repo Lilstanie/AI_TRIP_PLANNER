@@ -1,4 +1,5 @@
 import {
+  formatMoney,
   BOUNDED_RESULT_ROWS,
   type AgentName,
   type AgentProgressEvent,
@@ -138,7 +139,7 @@ const outOfFive = (rating: number) => `${(rating / 2).toFixed(1)}/5`;
 function stayDetail(option: StayOption): string {
   return [
     option.area,
-    `AUD ${option.pricePerNight.toFixed(2)}/night`,
+    `${formatMoney(option.pricePerNight, "AUD")}/night`,
     outOfFive(option.rating),
     option.freeCancellation ? "Free cancellation" : "No free cancellation",
   ].join(" · ");
@@ -146,7 +147,7 @@ function stayDetail(option: StayOption): string {
 
 function flightDetail(option: FlightOption): string {
   return [
-    `AUD ${option.price.toFixed(2)}`,
+    `${formatMoney(option.price, "AUD")}`,
     option.stops === undefined ? undefined : option.stops === 0 ? "Nonstop" : plural(option.stops, "stop"),
     option.durationMin === undefined
       ? undefined
@@ -172,8 +173,8 @@ function optionDetail(option: RouteOption): string {
     option.priceBasis === "unavailable"
       ? "fare not published"
       : option.priceBasis === "partial"
-        ? `from AUD ${option.price.toFixed(2)}`
-        : `AUD ${option.price.toFixed(2)}`;
+        ? `from ${formatMoney(option.price, "AUD")}`
+        : `${formatMoney(option.price, "AUD")}`;
   return [`${hours ? `${hours}h ` : ""}${minutes}m`, cost, option.note].filter(Boolean).join(" · ");
 }
 
@@ -183,7 +184,7 @@ function routeDetail(leg: RouteLeg): string {
   return [
     leg.mode,
     `${hours ? `${hours}h ` : ""}${minutes}m`,
-    `AUD ${leg.price.toFixed(2)}`,
+    `${formatMoney(leg.price, "AUD")}`,
     leg.note,
   ]
     .filter((part): part is string => Boolean(part))

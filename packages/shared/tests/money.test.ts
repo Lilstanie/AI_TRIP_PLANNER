@@ -4,6 +4,7 @@ import {
   BASE_CURRENCY,
   SUPPORTED_CURRENCIES,
   detectCurrency,
+  formatMoney,
   moneyIn,
   toAud,
 } from "../src/money";
@@ -153,5 +154,50 @@ describe("moneyIn", () => {
   it("keeps cents for currencies that have them", () => {
     expect(moneyIn(3000, "CNY")).toMatch(/3,000\.00/);
     expect(moneyIn(3000, "USD")).toMatch(/3,000\.00/);
+  });
+});
+
+// Failure inventory for formatMoney, written before the code:
+// - an AUD amount no longer reads exactly as the inline `AUD ${n.toFixed(2)}` it replaces (trace text drifts);
+// - the whole-dollar and as-typed styles (`AUD 4,000`, `AUD 4000`) lose their exact shape;
+// - a non-AUD currency shows the AUD number under another code (conversion skipped or inverted);
+// - JPY shows decimals, or rounds in the wrong direction;
+// - negative, zero or fractional amounts lose sign or precision;
+// - a non-finite amount is printed as "AUD NaN" instead of failing loudly.
+describe("formatMoney", () => {
+  it("writes AUD exactly as the specialists' inline strings did", () => {
+    expect(formatMoney(12.5, "AUD")).toBe("AUD 12.50");
+    expect(formatMoney(1400, "AUD")).toBe("AUD 1400.00");
+    expect(formatMoney(0, "AUD")).toBe("AUD 0.00");
+    expect(formatMoney(1234.567, "AUD")).toBe("AUD 1234.57");
+  });
+
+  it("keeps the whole-dollar and as-typed styles", () => {
+    expect(formatMoney(4000, "AUD", "whole")).toBe("AUD 4,000");
+    expect(formatMoney(1582.4, "AUD", "whole")).toBe("AUD 1,582");
+    expect(formatMoney(4000, "AUD", "plain")).toBe("AUD 4000");
+    expect(formatMoney(4000.5, "AUD", "plain")).toBe("AUD 4000.5");
+  });
+
+  it("converts through the static rate table for other currencies", () => {
+    // AUD 30 at 1.5 AUD per USD is USD 20; at 0.21 AUD per CNY it is CNY 142.86.
+    expect(formatMoney(30, "USD")).toBe("USD 20.00");
+    expect(formatMoney(30, "CNY")).toBe("CNY 142.86");
+  });
+
+  it("shows JPY without decimals", () => {
+    expect(formatMoney(12.5, "JPY")).toBe("JPY 1250");
+    expect(formatMoney(12.504, "JPY", "whole")).toBe("JPY 1,250");
+    expect(formatMoney(0.004, "JPY")).toBe("JPY 0");
+  });
+
+  it("keeps the sign of a signed difference", () => {
+    expect(formatMoney(-30, "AUD")).toBe("AUD -30.00");
+    expect(formatMoney(-30, "USD")).toBe("USD -20.00");
+  });
+
+  it("refuses a non-finite amount", () => {
+    expect(() => formatMoney(Number.NaN, "AUD")).toThrow();
+    expect(() => formatMoney(Number.POSITIVE_INFINITY, "USD")).toThrow();
   });
 });

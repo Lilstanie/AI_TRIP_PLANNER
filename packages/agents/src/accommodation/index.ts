@@ -1,5 +1,6 @@
 // Owner: C — lodging proposals and price revisions via injected tools and memory.
 import {
+  formatMoney,
   describeStayChoice,
   AgentProposal as AgentProposalSchema,
   type AgentProposal,
@@ -165,7 +166,7 @@ function assembleStayProposal(
         options
           .map(
             (option) =>
-              `${option.name} (AUD ${stayCost(option, segment.nights, rooms).toFixed(2)} total, ${(option.rating / 2).toFixed(1)}/5, ${option.freeCancellation ? "free cancellation" : "no free cancellation"})`,
+              `${option.name} (${formatMoney(stayCost(option, segment.nights, rooms), "AUD")} total, ${(option.rating / 2).toFixed(1)}/5, ${option.freeCancellation ? "free cancellation" : "no free cancellation"})`,
           )
           .join("; ") +
         ". Only the selected option is charged.",
@@ -182,7 +183,7 @@ function assembleStayProposal(
     );
     assumptions.push(
       budgetRevision
-        ? `Selected the cheapest eligible stays; saved AUD ${savings.toFixed(2)} against the initial selection for these inputs. Dates, guest count and confirmed preferences are unchanged.`
+        ? `Selected the cheapest eligible stays; saved ${formatMoney(savings, "AUD")} against the initial selection for these inputs. Dates, guest count and confirmed preferences are unchanged.`
         : "No supported price revision was requested; the initial selection is retained. Time/geography changes require an updated brief.",
     );
     if (budgetRevision) {
@@ -192,7 +193,7 @@ function assembleStayProposal(
       if (match && Number(match[1]) >= 0 && Number(match[1]) <= 100) {
         const target = Math.round(initialTotal * (1 - Number(match[1]) / 100) * 100) / 100;
         assumptions.push(
-          `Requested target: AUD ${target.toFixed(2)} or less. ${total <= target ? "Target met." : "Target cannot be met by eligible candidates; further budget decisions belong to the orchestrator."}`,
+          `Requested target: ${formatMoney(target, "AUD")} or less. ${total <= target ? "Target met." : "Target cannot be met by eligible candidates; further budget decisions belong to the orchestrator."}`,
         );
       }
       if (savings === 0)
@@ -220,7 +221,7 @@ function assembleStayProposal(
         id: candidateId(segment.day, index),
       })),
     })),
-    summary: `${rooms} room(s), ${segments.reduce((sum, segment) => sum + segment.nights, 0)} nights in ${segments.map((segment) => segment.city).join(" & ")} · AUD ${total.toFixed(2)}${budgetRevision ? " (lowest eligible cost)" : ""}`,
+    summary: `${rooms} room(s), ${segments.reduce((sum, segment) => sum + segment.nights, 0)} nights in ${segments.map((segment) => segment.city).join(" & ")} · ${formatMoney(total, "AUD")}${budgetRevision ? " (lowest eligible cost)" : ""}`,
     items: selections.map(({ segment, chosen, cost }) => ({
       kind: "hotel",
       day: segment.day,

@@ -1,3 +1,4 @@
+import { formatMoney } from "@trip/shared";
 import type {
   AgentName,
   AgentProposal,
@@ -30,8 +31,7 @@ const SHARES: Partial<Record<AgentName, number>> = {
   dining: 0.2,
 };
 
-const aud = (amount: number) =>
-  `AUD ${amount.toLocaleString("en-AU", { maximumFractionDigits: 0 })}`;
+const aud = (amount: number) => formatMoney(amount, "AUD", "whole");
 
 /**
  * The spending ceiling for `agent`, from the budget and the proposals already on
