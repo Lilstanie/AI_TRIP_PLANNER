@@ -51,11 +51,11 @@ Environment variables, Google Maps setup, the optional mock server, Docker and t
 
 ```text
 apps/web/                 Next.js workspace UI and API routes
-  components/{workspace,chat,trip,map,preferences,ui}
+  components/{workspace,chat,trip,map,preferences,account,agent-lab,pwa,ui}
                           UI grouped by feature and shared primitives
-  lib/{integrations,map,planning,trip,workspace}
+  lib/{workspace,chat,trip,map,planning,i18n,account,agent-lab,auth,db,integrations}, money.ts
                           integrations and domain rules grouped by responsibility
-  tests/{app,components,lib,fixtures}
+  tests/{app,components,lib,e2e,fixtures}
                           web tests kept separate from production code
 packages/agents/          Five specialist LangChain agents, model routing and fallbacks
   src/                    production agent code by domain
@@ -70,18 +70,17 @@ docs/                     Documentation of the current system; each package also
 
 ## Documentation
 
-Browse the [documentation index](docs/README.md) for the full technical guides.
+Browse the [documentation index](docs/README.md) for the full technical guides. Domain terms are defined in the [glossary](GLOSSARY.md).
 
-| Document                                          | Contents                                                            |
-| ------------------------------------------------- | ------------------------------------------------------------------- |
-| [Architecture](docs/architecture.md)              | Runtime flow, LangGraph workflow, agents, models, contracts         |
-| [API](docs/api.md)                                | The six API routes with requests, responses and errors              |
-| [Development](docs/development.md)                | Setup, environment variables, Docker, verification                  |
-| [Workspace UI](docs/workspace-ui.md)              | Current UI behaviour, storage, map and editing rules                |
-| [Roadmap](docs/roadmap.md)                        | MVP sequence and status                                             |
-| [Team workflow](docs/team-workflow.md)            | Ownership, branches, reviews and session logs                       |
-| [UI guidelines](docs/design/ui-guidelines.md)     | Visual tokens, layout and component design rules                    |
-| [DSH thinking UI](docs/design/dsh-thinking-ui.md) | The thinking surface this project imitates, and the gaps against it |
+| Document                                      | Contents                                                    |
+| --------------------------------------------- | ----------------------------------------------------------- |
+| [Architecture](docs/architecture.md)          | Runtime flow, LangGraph workflow, agents, models, contracts |
+| [API](docs/api.md)                            | Every API route with requests, responses and errors         |
+| [Development](docs/development.md)            | Setup, environment variables, Docker, verification          |
+| [Workspace UI](docs/workspace-ui.md)          | Current UI behaviour, storage, map and editing rules        |
+| [Roadmap](docs/roadmap.md)                    | MVP sequence and status                                     |
+| [Team workflow](docs/team-workflow.md)        | Ownership, branches, reviews and session logs               |
+| [UI guidelines](docs/design/ui-guidelines.md) | Visual tokens, layout and component design rules            |
 
 The ELEC5620 UML design model and SVG diagrams are in [`docs/design/`](docs/design/class-diagram.md).
 Decision records, session logs and AI-tool skills are in [`.agents/`](.agents/README.md); where each
