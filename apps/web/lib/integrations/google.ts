@@ -37,9 +37,19 @@ export type GooglePlacePhoto = NonNullable<GooglePlace["photos"]>[number];
 // raise the cost of a lookup; only fetching an image (placePhotoUri) is billed on its own.
 const fields =
   "id,displayName,formattedAddress,location,googleMapsUri,rating,primaryType,attributions,photos";
+/**
+ * The deployment has no key, so every call will fail the same way until an
+ * operator adds one. Separate from `GoogleRequestError` because a route that
+ * cannot tell them apart offers the traveller a retry that can never succeed.
+ */
+export class GoogleNotConfiguredError extends Error {
+  constructor() {
+    super("Google Maps is not configured. Add the server MAPS_API_KEY.");
+    this.name = "GoogleNotConfiguredError";
+  }
+}
 function key() {
-  if (!process.env.MAPS_API_KEY)
-    throw new Error("Google Maps is not configured. Add the server MAPS_API_KEY.");
+  if (!process.env.MAPS_API_KEY) throw new GoogleNotConfiguredError();
   return process.env.MAPS_API_KEY;
 }
 /** An upstream Google failure; `status` lets routes tell rate limits from other errors. */

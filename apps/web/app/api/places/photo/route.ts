@@ -1,5 +1,6 @@
 import { z } from "zod";
 import {
+  GoogleNotConfiguredError,
   GoogleRequestError,
   PHOTO_NAME,
   PHOTO_WIDTHS,
@@ -30,6 +31,13 @@ export async function GET(request: Request) {
       headers: { Location: location, "Cache-Control": "no-store" },
     });
   } catch (error) {
+    // A missing key is permanent: every retry fails the same way, so the message
+    // must not invite one. 503 says the deployment, not the request, is at fault.
+    if (error instanceof GoogleNotConfiguredError)
+      return Response.json(
+        { error: "Google Places is not set up for this app." },
+        { status: 503 },
+      );
     const upstream = error instanceof GoogleRequestError ? error.status : undefined;
     // An expired or unknown name reads as "no photo", which the card already handles.
     if (upstream === 400 || upstream === 404)

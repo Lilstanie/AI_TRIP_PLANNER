@@ -237,7 +237,8 @@ Implementation: `searchPlaces` in `apps/web/lib/integrations/google.ts` (require
 `destination` is optional; omit it to look up a city itself. The response is
 `{ "places": GooglePlace[] }`. The workspace only sends saved place names, explicit activity locations
 or titles that are themselves place names (`apps/web/lib/map/place-query.ts`), never descriptive activity
-text. Errors: 400 invalid input, 429 Google rate limit, 502 other upstream failures. Error messages do
+text. Errors: 400 invalid input, 429 Google rate limit, 502 other upstream failures, 503 when the
+deployment has no Google key, which no retry can fix. Error messages do
 not include the query or provider details.
 
 ## `POST /api/places/details`
@@ -247,7 +248,7 @@ not include the query or provider details.
 ```
 
 Returns `{ "place": GooglePlace }`. Errors: 400 invalid input, 404 the place ID is no longer
-available, 429 rate limit, 502 other upstream failures.
+available, 429 rate limit, 502 other upstream failures, 503 no Google key configured.
 
 `GooglePlace.photos` from either route carries Google's photo names and author attributions. They
 stay in browser memory and are never written into a plan, because Google forbids caching them.
@@ -264,7 +265,7 @@ Implementation: `placePhotoUri` in `apps/web/lib/integrations/google.ts`.
 The route asks Google for the image URL and answers `302` to a `googleusercontent.com` URL with
 `Cache-Control: no-store`, so an `<img>` can point at it without the server key reaching the
 browser. Each call is a billed Google photo request. Errors: 400 invalid input, 404 an expired or
-unknown photo, 429 rate limit, 502 other upstream failures or a missing key.
+unknown photo, 429 rate limit, 502 other upstream failures, 503 no Google key configured.
 
 ## `POST /api/routes/from-location`
 
