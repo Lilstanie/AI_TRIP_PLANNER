@@ -32,7 +32,6 @@ const SHARES: Partial<Record<AgentName, number>> = {
   dining: 0.2,
 };
 
-
 /**
  * The spending ceiling for `agent`, from the budget and the proposals already on
  * the board. Undefined for a specialist with no share (transport, the guide).

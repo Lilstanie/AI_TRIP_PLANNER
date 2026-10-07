@@ -35,6 +35,11 @@
 // - the Settings currency is never sent, so a trip that named none reads AUD on the server while
 //   the panel shows Settings (the browser sends it with every request);
 // - JPY text shows decimals;
+// - a plan-editor swap of a stay rewrites the item's sentence and the plan's conflicts in AUD in
+//   a CNY trip (the editor re-spells text the specialists wrote; it has to follow the same
+//   currency), or an old client's edit request (no currency) stops meaning AUD;
+// - the source and assumption notes a CNY plan carries ("All amounts are AUD", "AUD per room per
+//   night") contradict the CNY amounts beside them;
 // - a provider fare is converted (fares stay in the provider's currency: asserted by the display-
 //   currency and source-budget scripts, and not touched by this change).
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -113,6 +118,96 @@ const apiPlan = async (extra, brief = apiBrief) => {
   check(
     source.status === 200 && source.text.includes("CNY") && !source.text.includes("USD"),
     "API: the source budget's currency outranks the request's",
+  );
+
+  // The plan editor re-spells text after a swap: the item sentence and the recomputed conflicts.
+  const fullPlan = async (brief, extra) => {
+    const response = await fetch(`${baseUrl}/api/chat`, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-trip-data-mode": "mock" },
+      body: JSON.stringify({
+        tripId: brief.tripId,
+        message: "Plan it",
+        mode: "plan",
+        brief,
+        ...extra,
+      }),
+    });
+    const frames = (await response.text())
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line));
+    return frames.find((frame) => frame.type === "complete")?.response.plan;
+  };
+  const swap = async (plan, extra) => {
+    const stay = plan.sections.find((section) => section.id === "accommodation").proposal.stays[0];
+    const other = stay.candidates.find((candidate) => candidate.id !== stay.selectedId);
+    const response = await fetch(`${baseUrl}/api/trip/preview-edit`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        plan,
+        baseVersion: plan.editVersion ?? 0,
+        operation: {
+          kind: "choose",
+          section: "accommodation",
+          selectionId: stay.id,
+          candidateId: other.id,
+        },
+        ...extra,
+      }),
+    });
+    const body = await response.json();
+    return { status: response.status, body, id: stay.id };
+  };
+  const tightBrief = { ...apiBrief, tripId: "display-currency-edit-e2e", budgetTotal: 63 };
+  const cnyPlan = await fullPlan(tightBrief, { displayCurrency: "CNY" });
+  const detailOf = (body, id) =>
+    JSON.stringify(
+      body.plan.sections.flatMap((section) =>
+        (section.proposal?.items ?? [])
+          .filter((item) => item.selectionId === id)
+          .map((item) => item.detail),
+      ),
+    );
+  const swapped = await swap(cnyPlan, { displayCurrency: "CNY" });
+  check(
+    swapped.status === 200 &&
+      detailOf(swapped.body, swapped.id).includes("CNY") &&
+      !detailOf(swapped.body, swapped.id).includes("AUD"),
+    `API edit: a stay swap in a CNY trip spells the item in CNY (${detailOf(swapped.body, swapped.id).slice(0, 120)})`,
+  );
+  const conflictText = JSON.stringify(swapped.body.plan.conflicts ?? []);
+  check(
+    conflictText.includes("CNY") && !conflictText.includes("AUD"),
+    `API edit: the conflicts recomputed after a swap name CNY, not AUD (${conflictText.slice(0, 120)})`,
+  );
+  const named = await fullPlan(
+    { ...tightBrief, tripId: "display-currency-edit-named-e2e", displayCurrency: "CNY" },
+    {},
+  );
+  const legacy = await swap(named, {});
+  check(
+    legacy.status === 200 &&
+      detailOf(legacy.body, legacy.id).includes("CNY") &&
+      !detailOf(legacy.body, legacy.id).includes("AUD"),
+    "API edit: a request without the field still follows the trip's own currency",
+  );
+  const audPlan = await fullPlan({ ...apiBrief, tripId: "display-currency-edit-aud-e2e" }, {});
+  const audSwap = await swap(audPlan, {});
+  check(
+    audSwap.status === 200 && detailOf(audSwap.body, audSwap.id).includes("AUD"),
+    "API edit: an AUD trip's swap still reads AUD",
+  );
+  const noteText = JSON.stringify(
+    cnyPlan.sections.map((section) => [
+      section.proposal?.source?.freshness,
+      section.proposal?.assumptions,
+    ]),
+  );
+  check(
+    !noteText.includes("All amounts are AUD") && !noteText.includes("AUD per room"),
+    "API: a CNY plan's source and assumption notes do not call its amounts AUD",
   );
 }
 

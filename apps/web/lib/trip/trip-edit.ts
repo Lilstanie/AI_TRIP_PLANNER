@@ -2,10 +2,11 @@ import { z } from "zod";
 import { TripPlan, type ProposalItem } from "@trip/shared";
 import { detectConflicts, rollUpCost } from "@trip/orchestrator";
 import {
-  BASE_CURRENCY,
+  Currency,
   describeFlightChoice,
   describeStayChoice,
-  moneyIn,
+  effectiveCurrency,
+  formatMoney,
   stayChoiceCost,
 } from "@trip/shared";
 import {
@@ -22,6 +23,9 @@ export const EditRequest = z.object({
   plan: TripPlan,
   baseVersion: z.number().int().nonnegative(),
   mode: z.enum(["WALK", "TRANSIT"]).default("WALK"),
+  // The Settings display currency, the last step of `effectiveCurrency`; absent means AUD. It only
+  // chooses how the sentences an edit rewrites spell amounts; the plan stays in AUD.
+  displayCurrency: Currency.optional(),
   operation: z.discriminatedUnion("kind", [
     z.object({ kind: z.literal("verify"), day: z.number().int().positive() }),
     z.object({
@@ -89,10 +93,11 @@ const hhmm = (value: number) =>
  * the version. Every operation ends here, so a new one cannot quietly skip the
  * budget roll-up or leave a stale conflict behind.
  */
-function settle(plan: TripPlan, baseVersion: number): void {
+function settle(plan: TripPlan, baseVersion: number, currency: Currency): void {
   plan.conflicts = detectConflicts(
     plan.sections.flatMap((s) => (s.proposal ? [s.proposal] : [])),
     plan.brief,
+    currency,
   );
   // A section is unresolved when the recomputed conflicts still target it — the
   // same rule the orchestrator uses. An edit no longer rebuilds a decision list.
@@ -120,14 +125,14 @@ function settle(plan: TripPlan, baseVersion: number): void {
  * item is found by `selectionId` rather than by day, because a day can carry
  * both a flight and a ground hop.
  */
-/** The preview shows amounts in the base currency; the interface re-formats them. */
-const aud = (amount: number) => moneyIn(amount, BASE_CURRENCY);
-
 function chooseCandidate(
   plan: TripPlan,
   baseVersion: number,
   operation: { section: "accommodation" | "transport"; selectionId: string; candidateId: string },
+  currency: Currency,
 ): EditPreview {
+  // Amounts are AUD planning amounts; the sentences spell them in the trip's currency.
+  const aud = (amount: number) => formatMoney(amount, currency);
   const section = plan.sections.find((s) => s.id === operation.section);
   const proposal = section?.proposal;
   if (!proposal)
@@ -158,6 +163,7 @@ function chooseCandidate(
       rooms: stay.rooms,
       nights: stay.nights,
       cost,
+      currency,
     });
   } else {
     const flight = proposal.flights?.find((f) => f.id === operation.selectionId);
@@ -182,7 +188,7 @@ function chooseCandidate(
     });
   }
 
-  settle(plan, baseVersion);
+  settle(plan, baseVersion, currency);
   return {
     plan: TripPlan.parse(plan),
     baseVersion,
@@ -197,7 +203,8 @@ export async function previewEdit(
   input: unknown,
   deps = { googleRoute, placeDetails, timeZone },
 ): Promise<EditPreview> {
-  const { plan, baseVersion, operation, mode } = EditRequest.parse(input);
+  const { plan, baseVersion, operation, mode, displayCurrency } = EditRequest.parse(input);
+  const currency = effectiveCurrency(plan.brief, displayCurrency ?? "AUD");
   if ((plan.editVersion ?? 0) !== baseVersion)
     throw new NoticeError({ key: "This edit is stale. Start from the current plan." });
   if (
@@ -205,7 +212,7 @@ export async function previewEdit(
     plan.sections.some((s) => s.proposal && s.proposal.agent !== s.id)
   )
     throw new NoticeError({ key: "Plan identifiers do not match. Restore or replan first." });
-  if (operation.kind === "choose") return chooseCandidate(plan, baseVersion, operation);
+  if (operation.kind === "choose") return chooseCandidate(plan, baseVersion, operation, currency);
   const section = plan.sections.find((s) => s.id === "itinerary");
   if (!section?.proposal) throw new NoticeError({ key: "There are no activities to edit." });
   // Ideas (activities with no day) are set aside and kept as they are: only scheduled stops are
@@ -422,7 +429,7 @@ export async function previewEdit(
         activityIds: [a.id!],
       })),
   ];
-  settle(plan, baseVersion);
+  settle(plan, baseVersion, currency);
   const differences = activities.flatMap((a): EditDifference[] => {
     const old = before.find((b) => b.id === a.id)!;
     return old.day !== a.day ||

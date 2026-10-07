@@ -58,8 +58,11 @@ the budget quotes the stated amount when it is in the display currency, and `est
 fallback replies and the reply facts as estimates. Planning amounts, guardrails, conflict detection, the
 plan score and provider fares are untouched and stay AUD or in the provider's own currency.
 
-Left as it was: the plan editor's preview (`apps/web/lib/trip/trip-edit.ts`) and static notes that name
-the unit without an amount ("AUD per room per night"), which still say AUD.
+The plan editor follows the same rule: `EditRequest.displayCurrency` carries the Settings currency, and a
+swapped stay's sentence, the recomputed conflicts and the before and after use `effectiveCurrency`. The
+unit notes ("per room per night", "All amounts are ...", the fare freshness line) name the display currency
+and add `estimateNote()` when it is not AUD. The budget objects in the stay and transport model prompts keep
+`maxTotalCost` in AUD and label it, with the currency their `basis` text uses.
 
 ## Alternatives considered
 

@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { TripPlan } from "@trip/shared";
+import { useSettings } from "@/components/account/SettingsProvider";
 import { failureNotice, type Notice } from "@/lib/i18n/notice";
 
 /**
@@ -22,6 +23,7 @@ export function useChooseCandidate(
   onApply: (next: TripPlan) => void,
   onPending: (pending: boolean) => void,
 ) {
+  const { settings } = useSettings();
   const [working, setWorking] = useState(false);
   const [problem, setProblem] = useState<Notice>();
   const request = useRef<AbortController | undefined>(undefined);
@@ -44,6 +46,7 @@ export function useChooseCandidate(
           plan,
           baseVersion: plan.editVersion ?? 0,
           operation: { kind: "choose", section, selectionId, candidateId },
+          displayCurrency: settings.displayCurrency,
         }),
         signal: controller.signal,
       });

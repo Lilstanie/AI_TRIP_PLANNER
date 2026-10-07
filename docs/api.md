@@ -344,6 +344,12 @@ conflicts and version are recomputed as for any other edit. The interface applie
 preview straight away rather than asking first, because only the price the traveller just read
 changes. A plan saved before items carried `selectionId` is refused rather than guessed at.
 
+The request may carry `displayCurrency` (`AUD`, `CNY`, `USD` or `JPY`), the Settings display currency; the
+browser sends it with every edit. It is the last step of `effectiveCurrency`, after the brief's own
+`displayCurrency` and `budgetSource` currency, and absent means AUD. It only chooses how the sentences an edit
+rewrites spell amounts (a swapped stay's description, the recomputed conflicts, the before and after in
+`differences`); the plan stays in AUD.
+
 ## Account routes
 
 Every account route needs a Clerk session and answers 401 without one, and 503 when Clerk or

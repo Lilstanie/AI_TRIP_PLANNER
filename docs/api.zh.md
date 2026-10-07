@@ -316,6 +316,10 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 系统按 `selectionId` 找到对应条目，用与专员相同的措辞重新定价和描述，并像其他修改一样重新计算费用、冲突和版本号。
 界面会直接应用 `choose` 的预览而不先询问，因为变化的只是旅行者刚看到的价格。条目带有 `selectionId` 之前保存的方案会被拒绝，不会去猜。
 
+请求可以携带 `displayCurrency`（`AUD`、`CNY`、`USD` 或 `JPY`），即设置中的显示币种；浏览器在每次编辑时都会发送。
+它是 `effectiveCurrency` 的最后一步，排在行程自身的 `displayCurrency` 和 `budgetSource` 币种之后，缺省视为 AUD。
+它只决定编辑所重写的句子如何书写金额（换掉的住宿描述、重新计算的冲突、`differences` 中的前后对比）；方案本身仍以 AUD 计。
+
 <a id="related-contracts"></a>
 
 ## 账号路由

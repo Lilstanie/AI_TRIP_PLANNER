@@ -1,5 +1,6 @@
 import {
   displayCurrencyOf,
+  estimateNote,
   formatMoney,
   describeFlightChoice,
   AgentProposal as AgentProposalSchema,
@@ -449,7 +450,8 @@ function transportSource(
       kind: allLive ? "live" : "estimated",
       label: providers.join(" + "),
       freshness: [
-        `Flight fares are ${allLive ? "live" : "estimated"} search results in AUD; availability can change.`,
+        `Flight fares are ${allLive ? "live" : "estimated"} search results in ${evidence.currency}; availability can change.`,
+        estimateNote(evidence.currency),
         queriedAt.length ? `Queried at ${queriedAt.join(", ")}.` : "",
         fallback
           ? `${fallback.fallbackFrom} was unavailable (${fallback.fallbackReason}); a fallback provider was used.`
@@ -768,7 +770,16 @@ async function planTransport(
             },
             revision: revision && { reason: revision.reason, constraints: revision.constraints },
             ...(allocation
-              ? { transportBudget: { maxTotalCost: allocation.budget, basis: allocation.basis } }
+              ? {
+                  transportBudget: {
+                    maxTotalCost: allocation.budget,
+                    // The number is AUD; the basis (and a revision's wording) may spell amounts in
+                    // the trip's display currency, which would otherwise read as a mismatch.
+                    currency: "AUD",
+                    basis: allocation.basis,
+                    basisCurrency: displayCurrencyOf(brief, ctx),
+                  },
+                }
               : {}),
           }),
         },
