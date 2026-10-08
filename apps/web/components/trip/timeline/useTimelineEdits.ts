@@ -13,6 +13,26 @@ import { requestPreview } from "../previewRequest";
 type Operation = EditInput["operation"];
 
 /**
+ * The days a server edit routes: the day of the stop it names, both days of a move, and the saved days of an
+ * undo. A place saved with `routeLater` is routed afterwards by a verify, so it touches no day here.
+ */
+function touchedDays(operation: Operation, activities: TripPlaces["activities"]): number[] {
+  const dayOf = (id: string) => activities.find((stop) => stop.id === id)?.day;
+  const days = new Set<number>();
+  if (operation.kind === "time" || operation.kind === "leg") add(dayOf(operation.id));
+  else if (operation.kind === "place") {
+    if (!operation.routeLater) add(dayOf(operation.id));
+  } else if (operation.kind === "move") {
+    add(dayOf(operation.id));
+    days.add(operation.day);
+  } else if (operation.kind === "undo") for (const stop of operation.activities) days.add(stop.day);
+  function add(day: number | undefined) {
+    if (day !== undefined) days.add(day);
+  }
+  return [...days];
+}
+
+/**
  * Everything the timeline asks the server: edits, the travel mode of one leg, and place search. An edit
  * is sent to `/api/trip/preview-edit`, which recomputes routes, budget and conflicts. When the server
  * accepts it, the plan it returns is applied at once and the routes it verified are handed to the
@@ -110,10 +130,9 @@ export function useTimelineEdits({
         setErrors(answer.blockers);
         return;
       }
-      if (operation.kind === "leg") {
-        const day = activities.find((stop) => stop.id === operation.id)?.day;
-        if (day !== undefined) onLegApplied?.(answer.plan!, day);
-      }
+      // The server routed every day this edit touched, so those days are recorded as checked. Otherwise the
+      // workspace checks them again, and that second plan replaces this one and drops its Undo step.
+      for (const day of touchedDays(operation, activities)) onLegApplied?.(answer.plan!, day);
       commit(answer.plan!, answer.routes);
     });
   }

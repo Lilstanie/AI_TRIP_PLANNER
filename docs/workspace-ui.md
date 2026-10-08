@@ -577,7 +577,8 @@ browser, as the Itinerary list did. The checks are deterministic and make no LLM
   refused edit leaves the plan unchanged and lists its blockers as an alert above the day. A place change
   on a day with an unconfirmed neighbour is accepted: that pair has no route until both places are
   confirmed, and other edits on such a day are refused until every stop has a place. An applied edit
-  shows "Undo last change", which runs the same check and applies the same way. A plan that arrives from
+  shows "Undo last change", which runs the same check and applies the same way. The leg check that
+  follows an applied edit does not replace the plan, so the undo step stays. A plan that arrives from
   chat clears the undo step.
 - **Motion.** A day's list fades in when the day changes; a stop's place card rises in; an applied edit
   washes the stops it changed with the accent for a moment; a leg the provider verified draws down
@@ -603,6 +604,29 @@ browser, as the Itinerary list did. The checks are deterministic and make no LLM
   more than twice the driving time is returned as a driving leg (`mode: "drive"`) and says so, rather
   than reported as unroutable. A hop between two trip cities first tries Google Maps transit through
   SerpApi (Tokyo → Kyoto: a Shinkansen with its fare), and drives only if that finds nothing.
+
+## Drawer walkthrough
+
+`apps/web/tests/e2e/drawer-walkthrough.e2e.mjs` walks the Trip drawer as a traveller uses it, in mock
+data mode, at 1440×1000 and 390×844, in English and in Chinese. It plans a simulated trip, moves two
+stops onto Day 1 and checks the rules in this section: no confirm or status label, each leg's mode
+and duration with no button, a leg change that re-times the stops after it and Undo that restores them,
+a time edit that applies at once and Undo, an overlap marked on its stop, a stay Alternative that changes
+the total, a restaurant from Ideas scheduled and undone, travel tips that fold (and stay folded after a
+reload on desktop), no horizontal page scroll, no console error, and no English label in the Chinese
+drawer except plan text, model text and the exact strings in the script's `KNOWN_EXCEPTIONS`.
+
+```bash
+DATA_MODE=mock pnpm --filter @trip/web e2e drawer-walkthrough
+```
+
+The runner starts its own server. The walk needs no map key: places are stubbed at the browser boundary
+and the server answers each edit with its simulated legs, so no check is skipped. A reload starts a blank
+chat, so the reload check reopens the saved trip from Trips. Each run writes
+`output/playwright/drawer-walkthrough/<time>/summary.json`, which lists every check with its result, the
+times and leg labels it read and any known exception, and one screenshot per stage beside it. The
+runner's own summary is `output/e2e/runner/<time>.json`. Set `LABEL` to name the artifact folder, or
+`BASE_URL` to test a server already running.
 
 ## Google Maps configuration
 
