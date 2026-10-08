@@ -5,6 +5,8 @@
 // turns with the current brief and plan). Every NDJSON stream, the final plans and summary.json
 // land under output/e2e/conversation-scope/<run>/ as a repeatable, reviewable artifact.
 //
+// requires-env: DEEPSEEK_API_KEY
+//
 //   pnpm --filter @trip/web dev            # in another terminal
 //   [DATA_MODE=live|mock] [BASE_URL=...] node apps/web/tests/e2e/conversation-scope.e2e.mjs
 import { mkdirSync, writeFileSync } from "node:fs";

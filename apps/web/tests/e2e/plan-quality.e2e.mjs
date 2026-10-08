@@ -3,6 +3,8 @@
 // unresolved conflicts). Every NDJSON stream, final plan and a summary.json land under
 // output/e2e/plan-quality/<run>/ as a repeatable, reviewable artifact.
 //
+// requires-env: DEEPSEEK_API_KEY
+//
 //   pnpm --filter @trip/web dev            # in another terminal
 //   [DATA_MODE=live|mock] [RUNS=3] [ONLY=id,id] [BASE_URL=...] node apps/web/tests/e2e/plan-quality.e2e.mjs
 import { mkdirSync, writeFileSync } from "node:fs";

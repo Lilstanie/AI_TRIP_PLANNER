@@ -12,6 +12,12 @@
 // root, so their output lands in output/ there. A summary of each run is written to
 // output/e2e/runner/<time>.json.
 //
+// A script names the environment variables it cannot run without in a header line, before its code:
+//   // requires-env: DEEPSEEK_API_KEY[, OTHER_KEY]
+// A variable that is unset or empty makes the runner report the script as "skipped: needs KEY" instead
+// of running it, so a missing key never reads as a regression. Skips do not change the exit code; a
+// failed script still does. If every named script is skipped, no server is started.
+//
 // Failure inventory this runner was written from:
 // - the port is already held by another server, so the scripts test someone else's build;
 // - the server exits before it is ready (compile error, bad env) and the runner waits forever;
@@ -22,7 +28,9 @@
 // - a misspelt script name matches nothing and the run reports success;
 // - a script writes its output under apps/web, where `next dev` watches and reloads;
 // - Playwright cannot be resolved from the scripts;
-// - the runner exits 0 while a script failed.
+// - the runner exits 0 while a script failed;
+// - a script that needs a live key is run without it and its failure is mistaken for a regression;
+// - a skip is reported as a pass, or hides a script that failed in the same run.
 import { spawn } from "node:child_process";
 import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
@@ -60,6 +68,33 @@ for (const pattern of patterns) {
   if (matched.length === 0)
     fail(`no script matches "${pattern}". Available:\n  ${available.join("\n  ")}`);
   for (const script of matched) if (!scripts.includes(script)) scripts.push(script);
+}
+
+const KEY_NAME = /^[A-Z][A-Z0-9_]*$/;
+
+// The keys named by a script's `requires-env` header line, or []. A malformed line is a runner error,
+// not a silent run: a typo must not turn a skip into a failure or the reverse.
+function requiredKeys(script) {
+  const file = `${script}.e2e.mjs`;
+  for (const line of readFileSync(resolve(HERE, file), "utf8").split("\n")) {
+    if (!line.startsWith("//")) {
+      if (line.trim() === "") continue;
+      break;
+    }
+    const match = line.match(/^\/\/\s*requires-env:\s*(.*?)\s*$/);
+    if (!match) continue;
+    const keys = match[1].split(",").map((key) => key.trim());
+    if (!keys.every((key) => KEY_NAME.test(key)))
+      fail(`${file}: bad requires-env line "${line}". Use "// requires-env: KEY[, KEY]".`);
+    return keys;
+  }
+  return [];
+}
+
+/** "needs KEY[, KEY]" when a key the script declares is unset or empty, else undefined. */
+function skipReason(script) {
+  const missing = requiredKeys(script).filter((key) => !process.env[key]);
+  return missing.length ? `needs ${missing.join(", ")}` : undefined;
 }
 
 try {
@@ -211,10 +246,18 @@ async function startServer() {
 }
 
 const started = new Date();
-const baseUrl = process.env.BASE_URL ?? (await startServer());
+const skips = new Map(scripts.map((script) => [script, skipReason(script)]));
+const toRun = scripts.filter((script) => !skips.get(script));
+const baseUrl = toRun.length === 0 ? undefined : (process.env.BASE_URL ?? (await startServer()));
 const results = [];
 for (const script of scripts) {
   console.log(`\ne2e: ── ${script} ──`);
+  const skipped = skips.get(script);
+  if (skipped) {
+    console.log(`e2e: skipped: ${skipped}`);
+    results.push({ script, ok: null, skipped, exitCode: null, seconds: 0 });
+    continue;
+  }
   const begin = Date.now();
   const code = await run(process.execPath, [resolve(HERE, `${script}.e2e.mjs`)], {
     cwd: ROOT,
@@ -238,8 +281,11 @@ writeFileSync(
 
 console.log("\ne2e: summary");
 for (const result of results) {
-  console.log(`  ${result.ok ? "ok  " : "FAIL"} ${result.script} (${result.seconds}s)`);
+  const label = result.skipped ? "skip" : result.ok ? "ok  " : "FAIL";
+  console.log(
+    `  ${label} ${result.script} (${result.skipped ? `skipped: ${result.skipped}` : `${result.seconds}s`})`,
+  );
 }
 console.log(`  written to ${summaryFile.slice(ROOT.length + 1)}`);
 await stopServer();
-process.exit(results.every((result) => result.ok) ? 0 : 1);
+process.exit(results.some((result) => result.ok === false) ? 1 : 0);
