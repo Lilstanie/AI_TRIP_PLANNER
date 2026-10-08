@@ -72,6 +72,12 @@ async function openTimeline(browser, { width, height, scheme, setup }) {
   // Mock data: no provider requests. The toggle only works once the page has hydrated, so retry
   // until it reports mock rather than clicking once and planning with live providers.
   await page.waitForLoadState("networkidle");
+  // A cold dev server can settle the network before the data-mode toggle has rendered.
+  await page
+    .getByRole("button", { name: /^(Live|Mock) data/ })
+    .first()
+    .waitFor({ timeout: 30_000 })
+    .catch(() => undefined);
   // On phones the data mode toggle lives on the Mine tab.
   const mineTab = page.getByRole("tab", { name: /^Mine/ });
   if (await mineTab.count()) {
@@ -177,6 +183,7 @@ async function interactions(browser) {
   await page.screenshot({ path: `${OUT}/interact-01-stop-open.png` });
 
   // A time edit applies at once and can be undone; there is no review step.
+  const stopBefore = await timeline.locator(".timeline-stop").first().innerText();
   const start = timeline.getByLabel(/^Start/).first();
   const [hour, minute] = (await start.inputValue()).split(":").map(Number);
   await start.fill(
@@ -209,9 +216,10 @@ async function interactions(browser) {
   await page.screenshot({ path: `${OUT}/interact-03-applied.png` });
   await undo.click();
   await settle(page, 800);
+  // Undo replays the earlier activities, so the stop reads as it did before the edit.
   check(
-    !(await timeline.getByRole("button", { name: /Undo/ }).count()),
-    "undo restores the earlier plan and clears the step",
+    (await timeline.locator(".timeline-stop").first().innerText()) === stopBefore,
+    "undo restores the stop's earlier time",
   );
 
   // The whole route check: pick a day with two or more stops, confirm each stop's map match, then
