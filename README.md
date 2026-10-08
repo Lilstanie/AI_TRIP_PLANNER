@@ -95,5 +95,6 @@ editing, social features, payments and booking fulfilment are out of scope.
 
 ## License
 
-This is an ELEC5620 course project. No licence file is included, so no open-source licence has been
-granted.
+This project is released under the MIT licence; see [LICENSE](LICENSE). Copyright is held by the AI Trip
+Planner contributors (ELEC5620 group). Third-party code and its licences are listed in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

@@ -120,6 +120,19 @@ specialist 走确定性路径，工具返回 mock fixture；它们不读取或�
 不委派任何人的 supervisor 会回退到确定性分发；无法改善计划的修订保留最佳已知计划并以 `no_improvement` 停止。
 被故障终止的运行会结束于一个 `failed` 产物，它保留轨迹并指明失败的 specialist，并且像其他产物一样可下载、可回放。决策见 [Agent Note](../.agents/notes/implemented/architecture/2026-10-02-agent-lab-failure-lab.md)。
 
+Trace 视图是 Agent Lab 阅读一次运行有序事件的界面。它只存在于 Agent Lab（聊天中的 Think 树不变），也不改动任何约定：
+一切都在浏览器中由页面已持有的 `AgentLabRunEvent` 信封推导而来，因此回放产物与实时运行画出相同的视图。
+事件位于一个有界、可独立滚动的框中，该框跟随最新事件，直到访客向上滚动。框上方是一条时间条，由
+`apps/web/lib/agent-lab/trace-overview.ts` 推导、`apps/web/components/agent-lab/TraceOverview.tsx` 绘制，
+把整次运行画成按固定顺序排列的泳道（Run、Coordinator、每个 specialist 一条，单 agent 策略则只有一条 Baseline 泳道；
+没有记录的泳道省略）。每条记录占一个等宽步长：一次工具调用的开始与其完成或失败合并为一个块（未完成的调用只是起点标记），
+失败的工具调用、失败的 specialist 和被拒绝的输出使用错误色，轮次边界有标记。横轴是步数而不是时间，因为每个事件的 `elapsedMs`
+包含流的节奏延迟；原因见 [Agent Note](../.agents/notes/implemented/architecture/2026-10-07-agent-lab-trace-step-axis.md)。
+每个块都是可聚焦的按钮，激活后轨迹框滚动到对应记录的行（`data-trace-row`）并短暂高亮。在 Compare 视图中，每个产生了事件的策略各有一条时间条，
+按策略顺序（基线、无修订、定向修订）叠放在各列上方，共用一条以最长运行为准的步数轴（条形组件的 `domainSteps`）。
+相同序号的步骤在每条时间条中位于相同的水平位置，较短的运行明显更早结束，从未运行的策略（例如被取消的对比）没有时间条。
+点击某个块只会滚动该策略自己的轨迹框。面板仍不对策略排名。
+
 <a id="langgraph-workflow"></a>
 
 ## LangGraph 工作流
