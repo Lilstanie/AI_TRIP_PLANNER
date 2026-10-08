@@ -8,7 +8,6 @@ import {
   type AgentLabRunArtifact as AgentLabRunArtifactValue,
   type AgentLabRunEvent as AgentLabRunEventValue,
   type AgentLabRunRequest,
-  type TripPlan,
 } from "@trip/shared";
 import {
   createUsageCollector,

@@ -25,6 +25,18 @@ When set to `yes`, PRs run through the same labels and states as issues, using t
 
 GitHub shares one number space across issues and PRs, so a bare `#42` may be either: resolve with `gh pr view 42` and fall back to `gh issue view 42`.
 
+## Writing a ticket
+
+- **Protected files.** A ticket whose change reaches a protected path (`packages/shared/src`, `.github/**`,
+  root `package.json` or another root config file listed in `AGENTS.md`) carries a `Protected files:` line
+  naming them. Whoever implements a batch of tickets collects these lines into one question to the user
+  before work starts, since approval written only in an issue does not count.
+- **Shared contracts.** Any change under `packages/shared/src`, including one new export, needs an Agent Note
+  and `contract-impact: packages/shared` in the session log (`pnpm verify:protected` enforces it). A ticket
+  never says otherwise.
+- **Closing.** The pull request that finishes a ticket says `Closes #<number>`, so merging it closes the
+  ticket.
+
 ## When a skill says "publish to the issue tracker"
 
 Create a GitHub issue.

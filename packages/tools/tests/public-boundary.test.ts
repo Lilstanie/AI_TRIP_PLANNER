@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars -- the type imports below are unused on purpose; each must stay a type error. */
 // Boundary failure inventory, recorded before the export change (#131):
 // - a raw provider namespace remains reachable through the production package entry point;
 // - a future refactor accidentally restores one of those exports;

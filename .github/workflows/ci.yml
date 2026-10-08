@@ -10,6 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: pnpm/action-setup@v4
 
@@ -19,6 +21,14 @@ jobs:
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
+
+      # Only files this change touched: the repository still holds unformatted files, so a
+      # whole-repo check would fail on code nobody edited. Pull requests compare against the base
+      # branch, pushes against the previous tip (all zeros on a new branch, which the script handles).
+      - name: Prettier (changed files)
+        run: node scripts/format-check-changed.mjs "$BASE"
+        env:
+          BASE: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || github.event.before }}
 
       - run: pnpm typecheck
       - run: pnpm lint
