@@ -7,7 +7,7 @@ import { useAutoSavePlaces } from "../trip/useAutoSavePlaces";
 import { useLegRoutes } from "../trip/useLegRoutes";
 import { useChooseCandidate } from "../trip/useChooseCandidate";
 import { TripMapCanvas } from "../map/TripMapCanvas";
-import { TripPanel, tripStatus } from "../trip/TripPanel";
+import { TripPanel } from "../trip/TripPanel";
 import { LocationPrompt } from "../map/LocationPrompt";
 import { useUserLocation } from "../map/useUserLocation";
 import { Drawer } from "../ui/Drawer";
@@ -34,7 +34,7 @@ import { usePhoneBack } from "./usePhoneBack";
 import type { MobileView } from "./workspace-helpers";
 
 export function WorkspaceView({ model }: { model: WorkspaceModel }) {
-  const { t, notice: localizeNotice } = useLocale();
+  const { t, delta, notice: localizeNotice } = useLocale();
   const { session, layout, itinerary, history } = model;
   const {
     plan,
@@ -54,6 +54,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
     attachments: composerAttachments,
     blank,
     ask,
+    estimateChange,
   } = session;
   const {
     dialog,
@@ -78,7 +79,6 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
     closePreferences,
     openTrip,
     closeTrip,
-    openDialog,
     openNav,
     closeDrawer,
     toggleChats,
@@ -228,7 +228,6 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
       {plan ? (
         <TripPanel
           plan={plan}
-          onReview={() => openDialog("review")}
           {...(chooser.problem ? { problem: chooser.problem } : {})}
           timeline={
             <TripEditor
@@ -424,6 +423,20 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
           </header>
           <div className="workspace-notices">
             <CurrencyNotice />
+            {estimateChange !== undefined && (
+              <div className="estimate-notice" role="status">
+                <span>
+                  {Math.abs(estimateChange) < 0.005
+                    ? t("Estimate unchanged from the previous plan.")
+                    : t("Estimate changed by {change} from the previous plan.", {
+                        change: delta(estimateChange),
+                      })}
+                </span>
+                <button type="button" onClick={session.dismissEstimate}>
+                  {t("Dismiss")}
+                </button>
+              </div>
+            )}
             {error && (
               <div className="error-banner" role="alert">
                 {localizeNotice(error)}{" "}
@@ -504,7 +517,6 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                 {plan && (
                   <div className="phone-trip__head">
                     <h2 className="phone-trip__title">{t("Your trip")}</h2>
-                    <span className="trip__meta">{t(tripStatus(plan))}</span>
                   </div>
                 )}
                 {tripContent}
@@ -540,7 +552,6 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                 onClose={closeTrip}
                 returnFocus={tripToggle}
                 className="workspace-drawer workspace-drawer--trip"
-                meta={plan && <span className="trip__meta">{t(tripStatus(plan))}</span>}
               >
                 {tripContent}
               </Drawer>

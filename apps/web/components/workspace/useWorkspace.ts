@@ -14,7 +14,7 @@ import {
   type RestoredWorkspace,
   type WorkspaceCatalog,
 } from "@/lib/workspace/catalog";
-import { seed, type DialogKind, type MobileView } from "./workspace-helpers";
+import { seed, type MobileView } from "./workspace-helpers";
 import { useWorkspaceLayout } from "./useWorkspaceLayout";
 import {
   idleSession,
@@ -213,7 +213,6 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
       currency: effectiveCurrency(item.snapshot.plan.brief, settings.displayCurrency),
       locale,
     }).money(item.snapshot.plan.estTotal)}`,
-    status: item.status === "needs_review" ? ("Needs review" as const) : ("Draft" as const),
     active: !blank && item.id === catalog.activeTripId,
   }));
   function selectConversation(id: string) {
@@ -359,6 +358,7 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
       /** A timeline edit is being previewed; planning waits until it is applied or dropped. */
       trackEdit: (pending: boolean) => setEditPending(pending),
       dismissAsk: () => dispatch({ kind: "dismissed" }),
+      dismissEstimate: () => dispatch({ kind: "estimateDismissed" }),
       cancel: () => active.current?.abort(),
     },
     layout: {
@@ -374,7 +374,6 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
       closePreferences: () => layout({ type: "close-fact" }),
       openTrip: () => layout({ type: "open-trip" }),
       closeTrip: () => layout({ type: "close-trip" }),
-      openDialog: (kind: DialogKind) => layout({ type: "open-dialog", dialog: kind }),
       toggleSidebar: () => setSidebarCollapsed((value) => !value),
       resizeSidebar: (width: number | undefined) => setSidebarWidth(width),
       resizeChat: (share: number | undefined) => setChatShare(share),
@@ -411,6 +410,7 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
       ask,
       selectedActivity,
       mapRoutes: state.mapRoutes,
+      estimateChange: state.estimateChange,
       editPending,
       blank,
       dataMode,

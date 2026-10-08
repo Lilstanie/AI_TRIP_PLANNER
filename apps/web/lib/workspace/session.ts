@@ -51,6 +51,11 @@ export type SessionState = {
   selectedActivity: string | undefined;
   /** Routes drawn on the map for the selected day. */
   mapRoutes: RouteResult[];
+  /**
+   * The signed change in the estimate from the last chat replan, shown once as a Notice. Undefined
+   * when there was no earlier plan, after a timeline edit, and once it is dismissed.
+   */
+  estimateChange: number | undefined;
 };
 
 /**
@@ -111,7 +116,9 @@ export type SessionEvent =
   /** The timeline drew the selected day's routes. */
   | { kind: "routed"; routes: RouteResult[] }
   /** The traveller closed the question card without answering. */
-  | { kind: "dismissed" };
+  | { kind: "dismissed" }
+  /** The traveller closed the estimate-change notice. */
+  | { kind: "estimateDismissed" };
 
 /** The first progress line of every turn, shown before the server says anything. */
 export const PREPARING: AgentProgressEvent = {
@@ -144,6 +151,7 @@ export function idleSession(saved: SavedSession): SessionState {
     ask: undefined,
     selectedActivity: undefined,
     mapRoutes: [],
+    estimateChange: undefined,
   };
 }
 
@@ -226,11 +234,20 @@ export function session(state: SessionState, event: SessionEvent): SessionState 
     case "dismissed":
       return { ...state, ask: undefined };
     case "edited":
-      return { ...state, previousTotal: state.plan?.estTotal, plan: event.plan };
+      return {
+        ...state,
+        previousTotal: state.plan?.estTotal,
+        plan: event.plan,
+        estimateChange: undefined,
+      };
+    case "estimateDismissed":
+      return { ...state, estimateChange: undefined };
     case "planned":
       return {
         ...replied(state, reply(event.reply, event.transcript, event.at)),
         previousTotal: state.plan?.estTotal,
+        // The change is measured from the plan the chat replaced; a first plan has nothing to compare.
+        estimateChange: state.plan ? event.plan.estTotal - state.plan.estTotal : undefined,
         plan: identifyActivities(event.plan),
         draft: draftFor(event.plan.brief),
         selectedActivity: undefined,

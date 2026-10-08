@@ -1,9 +1,24 @@
 /* Trip sections, proposals, checkpoints, editor, and shared trip UI. */
 /* ---- trip panel ---- */
-.trip__meta {
-  font-size: 12px;
-  color: var(--text-mut);
-  white-space: nowrap;
+/* Conflicts that name a stop, a day or the budget: a short warning list under the place they concern. */
+.trip-panel__conflicts,
+.timeline-day__conflicts,
+.timeline-stop__conflicts {
+  display: grid;
+  gap: var(--space-1);
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.trip-panel__conflicts li,
+.timeline-day__conflicts li,
+.timeline-stop__conflicts li {
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--warn-bg);
+  color: var(--warn);
+  font-size: var(--font-size-meta);
+  overflow-wrap: anywhere;
 }
 .trip__budget {
   display: flex;
@@ -429,9 +444,6 @@
 }
 .msg--user {
   margin-left: auto;
-}
-.trip__meta {
-  white-space: normal;
 }
 .cost {
   font-size: 12px;

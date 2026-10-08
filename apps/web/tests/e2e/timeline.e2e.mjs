@@ -120,6 +120,29 @@ async function shots(browser, width, height, tag) {
       ".workspace-drawer--trip .drawer__body, .workspace-drawer--trip, #phone-panel-trip",
     );
     await drawer.first().screenshot({ path: `${OUT}/${tag}-${scheme}-02-drawer.png` });
+    await noStatusLabels(page, `${tag} ${scheme}`);
+    // Each stop time is its start and end, one line each. A column too narrow for the digits would
+    // break them into one-character lines, so every line must be wide enough to hold a time.
+    const stopTimes = await page.locator(".timeline-stop__time").evaluateAll((buttons) =>
+      buttons.map((button) => {
+        // Only the text runs count: element boxes such as the end span repeat a line's position.
+        const doc = button.ownerDocument;
+        const walker = doc.createTreeWalker(button, NodeFilter.SHOW_TEXT);
+        const boxes = [];
+        for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+          if (!node.textContent.trim()) continue;
+          const range = doc.createRange();
+          range.selectNodeContents(node);
+          boxes.push(...Array.from(range.getClientRects()).filter((rect) => rect.width > 0));
+        }
+        const tops = new Set(boxes.map((rect) => Math.round(rect.top)));
+        return { lines: tops.size, narrowest: Math.min(...boxes.map((rect) => rect.width)) };
+      }),
+    );
+    check(
+      stopTimes.length > 0 && stopTimes.every((time) => time.lines <= 2 && time.narrowest >= 18),
+      `${tag} ${scheme}: each stop time sits on two lines and its digits do not stack (${JSON.stringify(stopTimes.slice(0, 3))})`,
+    );
     check(
       await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
       `${tag} ${scheme}: no horizontal page scroll`,
@@ -868,6 +891,179 @@ async function bareTripView(browser) {
   await context.close();
 }
 
+// The Trip drawer, the phone shell and the trip list carry no review or draft label: nothing the traveller
+// cannot act on is named "Needs review", "Needs you", "Draft" or "Review plan".
+const STATUS_LABEL = /^(Needs review|Needs you|Draft|Review plan)$/;
+async function noStatusLabels(page, where) {
+  const found = await page.getByText(STATUS_LABEL).count();
+  check(
+    found === 0,
+    `${where}: no review or draft label is shown${found ? ` (${found} found)` : ""}`,
+  );
+}
+
+// Answers the chat through the real route. Each planned frame's plan goes to `change(plan, turn)`, where
+// turn counts the chat requests of this page from 1 (the suggestion that opens the trip).
+async function stubChat(page, change) {
+  let turn = 0;
+  await page.route("**/api/chat", async (route) => {
+    const response = await route.fetch();
+    turn += 1;
+    const body = (await response.text())
+      .split("\n")
+      .map((line) => {
+        if (!line.trim()) return line;
+        const frame = JSON.parse(line);
+        if (frame.response?.plan) change(frame.response.plan, turn);
+        return JSON.stringify(frame);
+      })
+      .join("\n");
+    await route.fulfill({ response, body });
+  });
+}
+
+// A plan with an over-budget conflict and an overlap on Day 1. The overlap is in the times: the second
+// stop of Day 1 is given the first stop's window, so both stops overlap and the workspace marks them.
+async function conflictsPlan(browser) {
+  const { context, page, errors } = await openTimeline(browser, {
+    width: 1440,
+    height: 1000,
+    scheme: "light",
+    setup: (page) =>
+      stubChat(page, (plan) => {
+        const tripId = plan.tripId;
+        const items = plan.sections.find((s) => s.id === "itinerary").proposal.items;
+        // Two activities moved onto Day 1, the day the timeline opens on.
+        const [first, second] = items
+          .filter((i) => i.kind === "activity" && i.startTime)
+          .slice(0, 2);
+        first.day = 1;
+        second.day = 1;
+        second.startTime = first.startTime;
+        second.endTime = first.endTime;
+        plan.conflicts = [
+          {
+            tripId,
+            targetAgent: "itinerary",
+            reason: "plan is 12.00% (AUD 300.00) over budget",
+            constraints: ["cut itinerary cost by AUD 300.00"],
+            targetSaving: 300,
+          },
+          {
+            tripId,
+            targetAgent: "itinerary",
+            reason: `time overlap on day 1: ${first.startTime}-${first.endTime} conflicts with ${second.startTime}-${second.endTime}`,
+            constraints: [`on day 1 keep clear of ${first.startTime}-${first.endTime}`],
+          },
+        ];
+      }),
+  });
+  const drawer = page.locator(".workspace-drawer--trip");
+  const budgetConflicts = drawer.locator(".trip-panel__budget-summary .trip-panel__conflicts");
+  check(
+    (await budgetConflicts.count()) === 1 &&
+      /over the budget/.test(await budgetConflicts.innerText()),
+    "an over-budget conflict is listed under the budget bar",
+  );
+  const barBox = await drawer.locator(".trip-panel__budget-summary .bar").boundingBox();
+  const listBox = await budgetConflicts.boundingBox();
+  check(
+    !!barBox && !!listBox && listBox.y > barBox.y,
+    "the over-budget conflict sits below the budget bar",
+  );
+  const marked = drawer.locator(".timeline-stop__conflicts");
+  check(
+    (await marked.count()) === 2 &&
+      (await marked.allInnerTexts()).every((text) => /Overlaps .+ on this day\./.test(text)),
+    "the overlapping Day 1 stops each show the overlap",
+  );
+  check(
+    (await drawer.locator(".timeline-day__conflicts").count()) === 0,
+    "an overlap between stops is marked on the stops, not under the day",
+  );
+  await noStatusLabels(page, "conflicts plan");
+  // The trip list: the same trip, without a status label.
+  await page.keyboard.press("Escape");
+  await settle(page, 400);
+  await page
+    .getByRole("button", { name: /^Trips\b/ })
+    .first()
+    .click();
+  await settle(page, 600);
+  check((await page.getByText(/Trip to /).count()) >= 1, "the trip list shows the planned trip");
+  await noStatusLabels(page, "trip list");
+  const unexpected = errors.filter((text) => !PLACES_DOWN_LOG.test(text));
+  check(
+    !unexpected.length,
+    `conflicts plan: no console errors${unexpected.length ? `: ${unexpected.join(" | ")}` : ""}`,
+  );
+  await context.close();
+}
+
+// A chat replan changes the estimate by a known amount: the notice shows the signed change once, and
+// Dismiss removes it. The first plan has nothing to compare, so it shows no notice.
+async function replanNotice(browser, width, height) {
+  let base = 0;
+  const { context, page, errors } = await openTimeline(browser, {
+    width,
+    height,
+    scheme: "light",
+    setup: (page) =>
+      stubChat(page, (plan, turn) => {
+        if (turn === 1) base = plan.estTotal;
+        if (turn === 2) plan.estTotal = base + 120;
+      }),
+  });
+  const tag = `replan ${width}px`;
+  check(
+    (await page.locator(".estimate-notice").count()) === 0,
+    `${tag}: a first plan shows no estimate notice`,
+  );
+  // The Trip drawer covers the chat on desktop; Escape closes it before the chat is used.
+  if (width >= 520) {
+    await page.keyboard.press("Escape");
+    await settle(page, 400);
+  }
+  if (width < 520) {
+    const chat = page.getByRole("tab", { name: /^Chat/ });
+    if (await chat.count()) await chat.click();
+    await settle(page, 300);
+  }
+  await page
+    .getByRole("textbox", { name: "Message AI Trip Planner" })
+    .fill("Plan Sydney, 2026-11-10 to 2026-11-13, 2 travellers.");
+  await page.getByRole("button", { name: "Send", exact: true }).click();
+  await page.locator(".msg-item--agent .msg-item__body").nth(1).waitFor({ timeout: 180_000 });
+  await settle(page, 800);
+  const notice = page.locator(".estimate-notice");
+  check((await notice.count()) === 1, `${tag}: a chat replan shows one estimate notice`);
+  const text = ((await notice.count()) ? await notice.first().innerText() : "").replace(
+    /\s+/g,
+    " ",
+  );
+  check(
+    /Estimate changed by \+AUD\s?120\.00 from the previous plan\./.test(text),
+    `${tag}: the notice shows the signed change (${text})`,
+  );
+  check(
+    (await page.getByText(/^Estimate changed by/).count()) === 1,
+    `${tag}: the change is shown once`,
+  );
+  await page.screenshot({ path: `${OUT}/replan-${width}px-notice.png` });
+  await notice.getByRole("button", { name: "Dismiss", exact: true }).click();
+  await settle(page, 300);
+  check(
+    (await page.locator(".estimate-notice").count()) === 0,
+    `${tag}: Dismiss removes the notice`,
+  );
+  const unexpected = errors.filter((message) => !PLACES_DOWN_LOG.test(message));
+  check(
+    !unexpected.length,
+    `${tag}: no console errors${unexpected.length ? `: ${unexpected.join(" | ")}` : ""}`,
+  );
+  await context.close();
+}
+
 const browser = await chromium.launch({ channel: process.env.CHANNEL });
 try {
   await shots(browser, 1440, 1000, "desktop");
@@ -877,6 +1073,9 @@ try {
     await fareDecimals(browser);
     await interactions(browser);
     await bareTripView(browser);
+    await conflictsPlan(browser);
+    await replanNotice(browser, 1440, 1000);
+    await replanNotice(browser, 390, 844);
   }
 } finally {
   await browser.close();

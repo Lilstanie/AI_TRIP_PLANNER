@@ -281,7 +281,7 @@ describe("edit preview notices", () => {
   });
 
   it("keeps an unresolved travel-time gap on the saved plan in English", async () => {
-    // A verify keeps the stops' exact times; the gap stays on the plan for Review plan instead of
+    // A verify keeps the stops' exact times; the gap stays on the plan for the conflicts list instead of
     // blocking the preview.
     const result = await verify();
     expect(result.blockerNotices).toEqual([]);

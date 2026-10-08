@@ -43,7 +43,7 @@ try {
       `${width}: trip summary Chinese`,
     );
     const english =
-      /Estimated total|Within budget|Over budget|Timeline & routes|Review plan|View details|Price unknown|Estimated data|Mock data|Edit itinerary|Travel tips|Also found|Schedule on a day|Restaurant suggestion|Night \d+ of/;
+      /Estimated total|Within budget|Over budget|Timeline & routes|Needs review|Needs you|Review plan|View details|Price unknown|Estimated data|Mock data|Edit itinerary|Travel tips|Also found|Schedule on a day|Restaurant suggestion|Night \d+ of/;
     check(
       !english.test(await page.locator(".trip-panel").innerText()),
       `${width}: no English authored trip labels`,

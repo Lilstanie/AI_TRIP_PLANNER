@@ -11,6 +11,7 @@ import { NoticeError, type Notice } from "@/lib/i18n/notice";
 import type { DataMode } from "@/lib/workspace/data-mode";
 import { FlowStayIcon } from "../ui/flow-icons";
 import { restaurantSuggestions } from "@/lib/trip/restaurants";
+import { placeConflicts } from "@/lib/trip/conflicts";
 import { DayStrip } from "./timeline/DayStrip";
 import { BookingRow, type ChooseCandidate } from "./timeline/BookingRow";
 import { FixedTimelineRow, LegRow } from "./timeline/TimelineParts";
@@ -87,6 +88,8 @@ export function TripEditor({
     onLegApplied,
   });
   const days = dayCount(plan);
+  // Unresolved conflicts that name a stop or a day, shown on that stop or under that day's title.
+  const conflicts = useMemo(() => placeConflicts(plan), [plan]);
   const labels = useMemo(
     () => Array.from({ length: days }, (_, index) => dayLabel(plan, index + 1, locale)),
     [plan, days, locale],
@@ -194,6 +197,7 @@ export function TripEditor({
           : "") as "" | "saving" | "failed",
       onSelect: () => onSelect(selected === activity.id ? "" : activity.id!),
       onOpen: () => onSelect(activity.id!),
+      conflicts: (activity.id && conflicts.stops.get(activity.id)) || [],
       onItem: (action: ItemAction, message: Notice) => act(activity, action, message),
     };
   };
@@ -269,6 +273,13 @@ export function TripEditor({
           <p className="timeline-day__staying">
             <FlowStayIcon size={13} /> {t("Staying at {place}", { place: staying })}
           </p>
+        )}
+        {!!conflicts.days.get(day)?.length && (
+          <ul className="timeline-day__conflicts" aria-label={t("Open conflicts")}>
+            {conflicts.days.get(day)!.map((notice, index) => (
+              <li key={index}>{localizeNotice(notice)}</li>
+            ))}
+          </ul>
         )}
         {rows.length ? (
           <ol

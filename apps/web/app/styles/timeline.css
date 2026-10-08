@@ -656,6 +656,10 @@ button.timeline-stop__time {
   color: inherit;
   font: inherit;
   text-align: end;
+  /* The time is short and fixed: never break inside a digit pair, even under the trip editor's
+     inherited overflow-wrap: anywhere, which stacked "09:00" one digit per line. */
+  white-space: nowrap;
+  overflow-wrap: normal;
   cursor: pointer;
 }
 button.timeline-stop__time:hover:not(:disabled),

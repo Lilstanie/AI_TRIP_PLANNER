@@ -55,6 +55,7 @@ export function TimelineStop({
   edits,
   showPhotos,
   suggestion = false,
+  conflicts = [],
   onSelect,
   onOpen,
   onItem,
@@ -85,6 +86,8 @@ export function TimelineStop({
    * status, and its menu offers only scheduling it or removing it.
    */
   suggestion?: boolean;
+  /** Unresolved conflicts that name this stop: an overlap with another item, or a leg that was not checked. */
+  conflicts?: Notice[];
   /** Toggles this stop's selection; the main button uses it. */
   onSelect(): void;
   /** Selects this stop without toggling it, for the menu's forms. */
@@ -92,7 +95,7 @@ export function TimelineStop({
   /** Applies a client-side item action; false when it was refused (the refusal is shown above). */
   onItem(action: ItemAction, message: Notice): boolean;
 }) {
-  const { t, money } = useLocale();
+  const { t, money, notice: localizeNotice } = useLocale();
   const id = activity.id!;
   const idea = activity.day === undefined;
   const name = place?.displayName?.text ?? activity.location ?? activity.detail;
@@ -361,6 +364,13 @@ export function TimelineStop({
             items={menu()}
           />
         </div>
+        {conflicts.length > 0 && (
+          <ul className="timeline-stop__conflicts" aria-label={t("Open conflicts")}>
+            {conflicts.map((notice, index) => (
+              <li key={index}>{localizeNotice(notice)}</li>
+            ))}
+          </ul>
+        )}
         {timing && !idea && (
           <TimeForm
             id={id}

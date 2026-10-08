@@ -2,37 +2,26 @@
 import type { ReactNode } from "react";
 import type { TripPlan } from "@trip/shared";
 import { CurrencyNotice } from "../account/CurrencyNotice";
-import { statusForPlan } from "@/lib/workspace/catalog";
 import { itineraryActivities } from "@/lib/workspace";
 import { restaurantIds } from "@/lib/trip/restaurants";
+import { placeConflicts } from "@/lib/trip/conflicts";
 import type { Notice } from "@/lib/i18n/notice";
 import { useLocale } from "../account/LocaleProvider";
 
 /**
- * The drawer's one-line state. A plan is "Needs review" only while it still
- * reports an unresolved revision request or a budget overrun; otherwise it is a
- * draft. Nothing can mark it confirmed, so that label is gone.
- */
-export function tripStatus(plan: TripPlan) {
-  if (!plan.sections.length) return "No plan yet";
-  return statusForPlan(plan) === "needs_review" ? "Needs review" : "Draft";
-}
-
-/**
  * Body of the Your Trip drawer; the drawer supplies the heading and close button. One view: the budget,
  * then the day view (the travel tips, the day strip, the day's stops, flights and stays, Ideas). The
- * specialists' cards are not shown; their content is in that view.
+ * specialists' cards are not shown; their content is in that view. Conflicts that name no stop or day
+ * are listed under the budget bar.
  */
 export function TripPanel({
   plan,
   timeline,
-  onReview,
   problem,
 }: {
   plan: TripPlan;
   /** The day view: tips, day strip, the chosen day's stops and bookings, and Ideas. */
   timeline: ReactNode;
-  onReview: () => void;
   /** Why the last swap could not be made. */
   problem?: Notice;
 }) {
@@ -50,6 +39,7 @@ export function TripPanel({
   // total. Saying so keeps the total from reading as the whole cost of the trip.
   // A restaurant scheduled from Ideas is not an admission, so it is not counted here.
   const picks = restaurantIds(plan);
+  const budgetConflicts = placeConflicts(plan).budget;
   const unpriced = itineraryActivities(plan).filter(
     (item) => item.estCost === undefined && !(item.id && picks.has(item.id)),
   ).length;
@@ -86,6 +76,13 @@ export function TripPanel({
         <p className={`trip__budget-delta${over ? " trip__budget-delta--over" : ""}`}>
           {gap ? t(gap.key, gap.params) : t("Budget not set")}
         </p>
+        {budgetConflicts.length > 0 && (
+          <ul className="trip-panel__conflicts" aria-label={t("Open conflicts")}>
+            {budgetConflicts.map((notice, index) => (
+              <li key={index}>{localizeNotice(notice)}</li>
+            ))}
+          </ul>
+        )}
         {unpriced > 0 && (
           <p className="trip__budget-note">
             {t("Not included: admission for {count} stops with no published price.", {
@@ -106,11 +103,6 @@ export function TripPanel({
           {t("No itinerary yet. Fill in your preferences and select Update trip.")}
         </p>
       )}
-      <div className="actions trip-panel__footer">
-        <button className="primary" disabled={!plan.sections.length} onClick={onReview}>
-          {t("Review plan")}
-        </button>
-      </div>
     </div>
   );
 }

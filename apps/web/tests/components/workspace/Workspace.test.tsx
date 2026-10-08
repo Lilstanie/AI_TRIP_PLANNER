@@ -111,7 +111,7 @@ describe("Workspace interactions", () => {
     expect(document.activeElement).toBe(screen.getByRole("button", { name: "Close your trip" }));
     // The drawer overlays the map; the map canvas stays mounted in its own column.
     expect(document.querySelector(".workspace-panel--map")).toBe(map);
-    expect(within(trip).getByRole("button", { name: "Review plan" })).toBeTruthy();
+    expect(within(trip).queryByRole("button", { name: "Review plan" })).toBeNull();
     // Every planned trip is already kept in Your trips; there is no separate snapshot button.
     expect(within(trip).queryByRole("button", { name: "Save trip" })).toBeNull();
 

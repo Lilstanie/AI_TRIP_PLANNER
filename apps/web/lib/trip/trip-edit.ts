@@ -18,6 +18,7 @@ import {
   type RouteResult,
 } from "../integrations/google";
 import { errorNotice, NoticeError, noticeText, type Notice } from "../i18n/notice";
+import { PRICE_CHECK_MESSAGE } from "./conflicts";
 import {
   defaultLegRoute,
   LEG_MODES,
@@ -489,17 +490,14 @@ export async function previewEdit(
   );
   const oldIssueMessages = new Set((plan.editIssues ?? []).map((issue) => issue.message));
   const retainedLegacy = section.proposal.conflictsWith.filter((message) => {
-    if (oldIssueMessages.has(message) || message === "Changed activity price requires verification")
-      return false;
+    if (oldIssueMessages.has(message) || message === PRICE_CHECK_MESSAGE) return false;
     const namedDay = /day (\d+)/i.exec(message);
     return namedDay ? !affected.has(Number(namedDay[1])) : activities.some((a) => !a.placeId);
   });
   section.proposal.conflictsWith = [
     ...new Set([...retainedLegacy, ...retainedIssues.map((issue) => issue.message)]),
     ...unresolved,
-    ...(activities.some((a) => a.priceNeedsReview)
-      ? ["Changed activity price requires verification"]
-      : []),
+    ...(activities.some((a) => a.priceNeedsReview) ? [PRICE_CHECK_MESSAGE] : []),
   ];
   plan.editIssues = [
     ...retainedIssues,
@@ -512,7 +510,7 @@ export async function previewEdit(
       .filter((a) => a.priceNeedsReview)
       .map((a) => ({
         code: "price_unverified" as const,
-        message: "Changed activity price requires verification",
+        message: PRICE_CHECK_MESSAGE,
         activityIds: [a.id!],
       })),
   ];
