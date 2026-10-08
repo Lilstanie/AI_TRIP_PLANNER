@@ -61,6 +61,9 @@ actions slow. Actions that change schedules still have the Timeline's previewed 
 - Travellers shape the plan directly; the planner's next replan from chat still replaces manual
   activities, as before.
 - Day moves from the menu do not re-check routes; the Timeline's route check does.
+- Dated 2026-10-08: item actions (move, Ideas, details, notes, booked, remove) end with the same settle step as server
+  edits (`apps/web/lib/trip/settle.ts`), so budget totals and conflicts are recomputed in the browser. A move clears the
+  following stop's `arriveBy`, and the Timeline's day pass routes that day again. The first bullet above still holds.
 
 ## Sources
 

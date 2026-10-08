@@ -145,3 +145,12 @@ change:
 - [Map-found places are saved automatically](../../implemented/feature/2026-10-08-auto-save-stop-places.md): auto-saved
   places are sent with `routeLater`, and their day is routed once after the last save, not with walking routes on
   each save.
+
+Dated 2026-10-08 (fix/trip-drawer-review-233):
+
+- Open discrepancy, not decided here. Failure mode 6 says a provider outage refuses the edit. The code keeps an outage
+  on a non-move edit as a keyed notice on the destination stop and refuses only moves
+  (`apps/web/lib/trip/trip-edit.ts`), and `docs/workspace-ui.md` describes the code. The owner decides whether the
+  note or the code changes.
+- A day is recorded as routed only after its verify succeeds. A day whose stops already carry arrival times counts as
+  routed on first sight unless it was edited while its places were unsaved (`useLegRoutes.ts`).

@@ -49,6 +49,10 @@ never reaches the traveller.
   issue from the account sync schema) is shown unchanged in both languages.
 - Agent progress errors, Agent Lab text and blockers saved on a plan (`conflictsWith`, `editIssues`)
   remain English strings; they are agent or stored content, not interface notices.
+- Dated 2026-10-08: `editIssues[].message` now stores a keyed notice, encoded as `"notice:" + encodeURIComponent(JSON)`
+  and read back by `readStoredNotice` (`apps/web/lib/i18n/notice.ts`), so a stored leg or timing notice shows in the
+  traveller's language. `conflictsWith` stays English because the orchestrator chat reads it. The `editIssues` part of
+  the bullet above is superseded; the rest stands.
 
 ## Sources
 

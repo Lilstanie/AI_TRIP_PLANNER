@@ -59,3 +59,8 @@ Partly superseded by [Remove status labels and Review plan](2026-10-08-remove-st
 (#240). The "Review plan" button and its dialog, the "Needs review" and "Draft" labels in the Trip drawer, the
 phone shell and the trip list are removed. The "conflict shown in the timeline status, not on the stop" statement
 above no longer holds: an unresolved conflict is shown on the stop, leg or day it targets, or under the budget bar.
+
+Dated 2026-10-08 (fix/trip-drawer-review-233): Undo covers the scheduled stops of the day; a stop moved to Ideas does
+not block Undo of a later time edit. A background leg check or place save that is running when an edit starts is
+cancelled and asked again once the edit has settled, so its result cannot replace the plan being checked
+(`apps/web/components/trip/useLegRoutes.ts`, `useAutoSavePlaces.ts`). The decision above is unchanged.

@@ -476,12 +476,15 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
 - **Conflicts in place.** Each unresolved conflict of the plan is shown where it applies, derived from the
   plan on every render by `placeConflicts()` (`apps/web/lib/trip/conflicts.ts`):
   - on the stop it names: a time overlap marks each stop of that day that overlaps another scheduled item,
-    and a leg the route check could not confirm is listed on its stop;
+    and a leg's route or timing notice is listed on the stop the leg leads into (its destination), never on
+    the other stops of the day;
   - under the title of the day it names, when no stop of that day is involved (a flight or stay overlaps,
     or the pair is no longer on the plan);
   - under the budget bar when it names neither stop nor day, such as the over-budget or infeasible-budget
     sentence.
-    An edit that resolves a conflict removes it from the view.
+    An edit that resolves a conflict removes it from the view. A notice the plan keeps is stored with its
+    key and values and shown in the traveller's language; the English sentence kept for the chat is not
+    shown beside it.
 - **Estimate change after a replan.** After a chat replan that had an earlier estimate, a notice in the
   notices strip says the signed change, "Estimate changed by +AUD 120.00 from the previous plan.", or
   "Estimate unchanged from the previous plan." It has a Dismiss button and shows once. A timeline edit or
@@ -493,7 +496,9 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   Replace place (opens the place search in the card), Edit details, Add or Edit note, Mark as booked and
   Remove. An idea offers Schedule on a day instead of the moves, and a restaurant suggestion offers only
   Schedule on a day and Remove. Moves, Ideas, details, notes, booked and
-  Remove apply in the browser at once. Move earlier and Move later swap the stop with its neighbour on the
+  Remove apply in the browser at once, and each settles the plan the way a server edit does: the budget
+  total and the conflicts are recomputed at once, with the same roll-up the server uses
+  (`lib/trip/settle.ts`). Move earlier and Move later swap the stop with its neighbour on the
   same day: each takes the other's start time and keeps its own duration, the second starting later if the
   first would overlap it, and a swap that would end past 23:59 or overlap the next stop is refused with a
   message. Move to another day puts the stop after that day's last stop. Undo offers the last such change
@@ -559,18 +564,20 @@ browser, as the Itinerary list did. The checks are deterministic and make no LLM
   save the server does not accept reads "Place not saved yet" and the card says to search for the
   place. A stop the map cannot find reads "Not found on the map", and its card offers a search that
   saves the picked result. A lookup that failed for a retryable reason is not saved; "Retry places"
-  on the map runs it again. Saves run one at a time and wait while chat or another edit is running.
+  on the map runs it again. Saves run one at a time and wait while chat or another edit is running. A
+  save that a traveller's edit or chat overtakes is cancelled and sent again once saving is enabled.
   The traveller replaces a saved place from the card's search.
 - **Legs.** Each journey between two stops of a day is a leg ([Leg](../GLOSSARY.md)). There is no button:
-  a day's legs are routed once every stop on it has a confirmed place, and again whenever an applied
-  edit changes its stops or times. Changing one leg's mode (a select with Walk, Public transport or
+  a day's legs are routed once every stop on it has a confirmed place, including a day whose stops
+  already carry the planner's arrival times, and again whenever an applied edit changes its stops or times. Changing one leg's mode (a select with Walk, Public transport or
   Drive; "Not checked yet" until the leg has a mode) routes that leg alone; the rest of the day is
   re-timed with the stored times of its other legs. The chosen mode is kept through later re-timing,
   and Undo restores the previous mode. A leg the traveller has not chosen walks when the walk takes
   20 minutes or less, and otherwise uses public transport when the provider finds one.
   A leg with no route between its two places reads "No route found" and adds no time to the day.
-  A provider outage refuses the edit that needed the route and shows a notice; the plan stays as it
-  was. In mock data mode the server answers with fixture legs marked "estimate", never "checked".
+  A provider outage on a leg is a notice, not a refusal: the stop keeps its time, the leg adds no time,
+  and the notice shows on the stop the leg leads into. A move that needs that route is refused instead,
+  and the plan stays as it was. In mock data mode the server answers with fixture legs marked "estimate", never "checked".
   A reload shows the stored legs as estimates, and a "No route found" result is not kept across a
   reload. Confirming a stop's place still needs a Maps key or a stub.
 - **Applied at once.** An edit applies as soon as the server accepts it, with no review step. A
@@ -578,8 +585,13 @@ browser, as the Itinerary list did. The checks are deterministic and make no LLM
   on a day with an unconfirmed neighbour is accepted: that pair has no route until both places are
   confirmed, and other edits on such a day are refused until every stop has a place. An applied edit
   shows "Undo last change", which runs the same check and applies the same way. The leg check that
-  follows an applied edit does not replace the plan, so the undo step stays. A plan that arrives from
-  chat clears the undo step.
+  follows an applied edit does not replace the plan, so the undo step stays. The undo step covers the
+  scheduled stops the edit re-times; an Idea in the plan stays as it is and does not block Undo. A plan
+  that arrives from chat clears the undo step.
+- **Edits and background work.** A leg check or place save that is running when an edit starts is
+  cancelled, and it is asked again once the edit has finished, so its answer never replaces the plan the
+  edit is checking. A check answered after the plan changed is dropped, and the alert asks the traveller
+  to try the change again.
 - **Motion.** A day's list fades in when the day changes; a stop's place card rises in; an applied edit
   washes the stops it changed with the accent for a moment; a leg the provider verified draws down
   the line. Each has a text or colour signal too, and none plays under reduced motion.
@@ -591,8 +603,8 @@ browser, as the Itinerary list did. The checks are deterministic and make no LLM
 - Moves, time changes and place replacements preserve activity duration. Following activities start
   at the later of their original start or previous end + route duration + 15 minutes. Empty target
   days start at 09:00 local, and moves stay within the same lodging destination segment.
-- A provider outage on a leg blocks the edit that needed it, so no time is shifted on a guess; a leg
-  with no route adds no travel time. Overflow beyond the day blocks apply. Fixed transport and stays are read-only; an overlap with a stop is marked on that stop.
+- A provider outage on a leg does not shift the stop's time on a guess: the leg's notice is kept on its
+  stop (see Legs). A leg with no route adds no travel time. Overflow beyond the day blocks apply. Fixed transport and stays are read-only; an overlap with a stop is marked on that stop.
 - Replacing a place marks the activity price for verification. Route fares are separate estimates,
   never added to transport twice, and an unknown fare is not zero.
 - Edits invalidate itinerary and final confirmation and regenerate conflicts, keeping unaffected brief
@@ -828,7 +840,10 @@ the account section explains that everything stays in this browser.
     storage failures, map and location messages, and the `notice` the app's own routes return beside
     their English `error`. A response whose body has no `notice` is shown as received (`{ raw }`);
     one with no readable body shows "Request failed ({status})." Nothing matches English text back to
-    a key. Edit preview differences arrive as values, not sentences. With no saved choice it follows the browser language (`zh*` opens in Chinese). The desktop sidebar and main content have an 8 px gutter.
+    a key. Edit preview differences arrive as values, not sentences. A notice kept on the plan (a leg or
+    timing notice) is stored as its key and values inside the plan's text (`storeNotice` and
+    `readStoredNotice`, same file), so it is shown in the traveller's language; the English sentence in
+    the plan's `conflictsWith` is written for the chat and is not shown. With no saved choice it follows the browser language (`zh*` opens in Chinese). The desktop sidebar and main content have an 8 px gutter.
     Every workspace amount goes through the Money module (`apps/web/lib/money.ts`, read through
     `useLocale()`) and the shared approximate rate table. Converted displays carry its as-of date;
     JPY has no decimals, other currencies have two. The trip's effective currency
