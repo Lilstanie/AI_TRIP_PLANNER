@@ -6,7 +6,8 @@
 // Failure inventory, written before implementation:
 // - the baseline is wrong: a branch that has not merged the latest skill change counts work the skills
 //   already absorbed, or a skill edit inside an unmerged branch resets the count for everyone;
-// - squash-merged pull requests are not recognised, so the count stays at zero;
+// - squash-merged pull requests (`... (#N)`) or merge commits (`Merge pull request #N from ...`) are
+//   not recognised, so the count stays at zero;
 // - a change to a convention file (AGENTS.md, CI, lint or format config) does not trigger a review,
 //   although every skill that repeats a convention may now be wrong;
 // - pull requests are counted as issues (the GitHub issues endpoint returns both);
@@ -102,7 +103,7 @@ const commits = (...paths) => {
   return out ? out.split("\n").map((line) => line.split("\t")) : [];
 };
 const all = commits(".");
-const merged = all.filter(([, subject]) => /\(#\d+\)\s*$/.test(subject));
+const merged = all.filter(([, subject]) => /\(#\d+\)\s*$|^Merge pull request #\d+ /.test(subject));
 const conventions = commits(...CONVENTION_PATHS);
 const notes = commits(...NOTE_PATHS);
 
