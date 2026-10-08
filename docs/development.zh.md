@@ -268,6 +268,8 @@ CI（`.github/workflows/ci.yml`）在拉取请求和推送到 `main` 时，用 N
 
 CI 还会运行 `node scripts/format-check-changed.mjs <base>`（即 `pnpm format:check-changed`），只检查相对拉取请求基线（推送时为上一个提交）发生变化的文件的 Prettier 格式。仓库中仍有从未格式化的文件，所以请只对你修改的文件运行 Prettier（`npx prettier --write <file>`），不要对目录运行，也不要使用 `pnpm format`。
 
+在拉取请求上，`protected-files` 任务会运行 `node scripts/verify-protected-files.mjs`、`node scripts/verify-docs.mjs`、配对检查，以及 `node scripts/verify-branch-name.mjs <head-branch>`。分支名检查会在源分支不以 `feature/`、`fix/`、`refactor/`、`docs/`、`chore/` 或 `test/` 开头，或包含 AI 工具名时失败；Dependabot 分支不受限制。
+
 使用 `pnpm --filter @trip/agents test`、`pnpm --filter @trip/orchestrator test` 或 `pnpm --filter @trip/web test` 针对特定包运行测试。Web 测试脚本使用 POSIX shell 语法设置 `NODE_OPTIONS`；Windows 上应从 WSL 或 Git Bash 运行。
 
 如果在 `pnpm dev` 运行时执行 `pnpm build`，启动开发服务器时应设置 `NEXT_DIST_DIR=.next-dev`，避免二者共用 `.next` 输出目录。
