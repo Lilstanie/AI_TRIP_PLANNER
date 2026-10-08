@@ -1,6 +1,6 @@
 # Agent Note: Save the map's place for each stop automatically
 
-Status: proposed
+Status: implemented
 Owner: spec #233, ticket #236
 
 ## Problem
@@ -11,7 +11,7 @@ routes for its day cannot be checked. Spec #233 removes confirmations; this conf
 The immediate place edit from #235 already saves a place without a review step, so the map's match
 can be saved through it.
 
-## Proposal
+## Decision
 
 When the map locates a stop by name and the stop has no saved place, the workspace saves that place on
 the stop through `POST /api/trip/preview-edit` with a `place` operation, once per stop. The server's
@@ -53,32 +53,27 @@ timeline tab is open.
 - Retry failed saves on a timer: rejected. A timer keeps sending while the network is down, and the
   traveller can save the place through search at any time.
 
-## Acceptance criteria
+## Consequences
 
-- After planning a simulated trip, every stop the map located has a saved place without any traveller
-  action, and no stop shows a "not confirmed" badge.
-- Auto-saves for one plan are sent once per stop and do not loop or fight a stale version. A newer plan
-  from chat cancels pending saves.
-- A stop the map cannot find shows a not-found message and a search. Picking a result saves it.
-- Retryable failures stay retryable and are not saved.
-- The traveller can still replace a saved place.
-- The E2E scripts that used "Use this place" are updated and pass. `docs/workspace-ui.md` and its
-  Chinese pair are updated, and a session log is added.
-
-## Risks
-
-- A day with a stop the map cannot find keeps a travel-time conflict on the plan until that stop is
-  saved. The server stores that gap as a conflict and does not refuse the other saves, because
-  `apps/web/lib/trip/trip-edit.ts` turns non-move blockers into `conflictsWith`.
+- Covered by the E2E `auto-save-places` script (21 checks, mock data mode, Places and preview endpoints
+  stubbed at the browser boundary): a located stop is saved without a traveller action, a stop the map
+  cannot find shows its search and saves a picked result, retryable failures are not saved, and the
+  traveller can still replace a saved place.
+- Not covered by E2E: a newer plan from chat cancelling pending saves (failure mode 6), and the real
+  Google Places save path, because no map key is available in the repository's E2E environment.
+- The "Use this place" E2E steps were replaced; the timeline and itinerary scripts pass in the same run.
+  The timeline's route-check section is skipped without a map key, as before.
 - A save sets `priceNeedsReview` on the stop, as the immediate place edit does today, so the "Price
   needs checking" tag appears on auto-saved stops until the price is checked.
 - Each auto-save re-times the stop's day with walking routes (the workspace does not know the timeline's
   Walk / Public transport choice). A day the traveller checked by transit can shift when a place lands.
-- Google Places is not available without a map key, so the live auto-save path cannot run in the
-  repository's E2E environment. The E2E stubs the Places and preview endpoints at the browser boundary.
+- A day with a stop the map cannot find keeps a travel-time conflict on the plan until that stop is
+  saved. The server stores that gap as a conflict and does not refuse the other saves, because
+  `apps/web/lib/trip/trip-edit.ts` turns non-move blockers into `conflictsWith`.
+- `docs/workspace-ui.md` and its Chinese pair describe the behaviour.
 
 ## Supersession
 
-Partly superseded by [One day view in the Trip drawer](../../implemented/feature/2026-10-08-one-day-trip-view.md)
+Partly superseded by [One day view in the Trip drawer](2026-10-08-one-day-trip-view.md)
 (#238). The stop editor described above is now the compact place card, and the "Use this place" box it
-mentions is gone. The automatic save, the save states and "Retry places" stay as proposed here.
+mentions is gone. The automatic save, the save states and "Retry places" are unchanged.

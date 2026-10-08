@@ -48,8 +48,8 @@ try {
       !english.test(await page.locator(".trip-panel").innerText()),
       `${width}: no English authored trip labels`,
     );
-    const timeline = page.getByRole("tab", { name: "时间线与路线", exact: true });
-    await timeline.click();
+    // The day's timeline is part of the Trip drawer; there is no separate tab.
+    await page.getByRole("region", { name: "行程时间线" }).waitFor();
     check(
       (await page.getByRole("button", { name: /检查.*路线/ }).count()) > 0,
       `${width}: timeline controls Chinese`,
@@ -61,7 +61,7 @@ try {
       `${width}: no English authored timeline labels`,
     );
     await page
-      .locator(".trip-tabpanel")
+      .getByRole("region", { name: "行程时间线" })
       .evaluate((el) =>
         Promise.all(el.getAnimations().map((animation) => animation.finished.catch(() => {}))),
       );
@@ -138,15 +138,22 @@ try {
   await np.locator(".chat-empty__suggestions button").first().click();
   await np.locator(".msg-item--agent .msg-item__body").first().waitFor({ timeout: 180000 });
   await np.getByRole("button", { name: "打开你的行程" }).click();
-  await np.getByRole("tab", { name: "时间线与路线", exact: true }).click();
   const timeline = np.getByRole("region", { name: "行程时间线" });
+  await timeline.waitFor();
   await timeline.locator(".timeline-stop .timeline-stop__main").first().click();
+  // Tapping the time opens its Start and End form.
+  await timeline.locator(".timeline-stop__time").first().click();
   const end = timeline.getByLabel(/^结束/).first();
   const [endHour, endMinute] = (await end.inputValue()).split(":").map(Number);
   await end.fill(
     `${String(Math.min(endHour + 1, 22)).padStart(2, "0")}:${String(endMinute).padStart(2, "0")}`,
   );
-  const changeTime = () => timeline.getByRole("button", { name: "修改时间" }).click();
+  // A refused edit can leave the time form closed; tapping the time opens it again.
+  const changeTime = async () => {
+    const submit = timeline.getByRole("button", { name: "修改时间", exact: true });
+    if (!(await submit.isVisible())) await timeline.locator(".timeline-stop__time").first().click();
+    await submit.click();
+  };
   // A refused edit leaves the plan unchanged and lists its blockers as alerts in the timeline.
   await np.route("**/api/trip/preview-edit", async (route) => {
     const response = await route.fetch();
