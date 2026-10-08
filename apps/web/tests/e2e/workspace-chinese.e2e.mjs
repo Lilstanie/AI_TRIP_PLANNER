@@ -50,8 +50,12 @@ try {
     );
     // The day's timeline is part of the Trip drawer; there is no separate tab.
     await page.getByRole("region", { name: "行程时间线" }).waitFor();
+    // A stop's action menu is the timeline's Chinese control (the day has no route check any more).
     check(
-      (await page.getByRole("button", { name: /检查.*路线/ }).count()) > 0,
+      (await page
+        .getByRole("region", { name: "行程时间线" })
+        .getByRole("button", { name: /的操作/ })
+        .count()) > 0,
       `${width}: timeline controls Chinese`,
     );
     check(

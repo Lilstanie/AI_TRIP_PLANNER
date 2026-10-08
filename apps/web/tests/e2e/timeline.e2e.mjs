@@ -1,7 +1,8 @@
 // End-to-end walk through the one day view in the Trip drawer with mock data: day switching, the fixed
 // transport and stay rows, selecting and editing a stop, confirming its place (a map match is saved on
-// its stop by the workspace, see auto-save-places), checking the day's routes, applying an edit at once
-// and undoing it, and provider transit fares keeping their own currency's decimal places (JPY 230,
+// its stop by the workspace, see auto-save-places), reading each leg between stops as checked on its own
+// (no button), changing one leg's mode, applying an edit at once and undoing it, an unroutable leg read
+// as "No route found", and provider transit fares keeping their own currency's decimal places (JPY 230,
 // KRW 1,400, AUD 12.50). Screenshots at desktop and phone widths,
 // light and dark, land under output/playwright/timeline/<label>/ as a repeatable artifact.
 //
@@ -145,11 +146,45 @@ async function applyEdit(page, label) {
   return true;
 }
 
+/** A fixed place for a search text; the lookups answer from these, so no map key is needed. */
+function placeFor(text) {
+  const offset = text.length * 0.001;
+  return {
+    id: `e2e-place-${text.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+    displayName: { text },
+    formattedAddress: `${text}, Sydney NSW, Australia`,
+    location: { latitude: -33.8568 + offset, longitude: 151.2153 + offset },
+    googleMapsUri: `https://maps.google.com/?q=${encodeURIComponent(text)}`,
+  };
+}
+
+/** Place search and lookup at the browser boundary: every stop finds a place and saves it. */
+async function installPlaces(page) {
+  await page.route("**/api/places/search", (route) => {
+    const { text } = route.request().postDataJSON();
+    return route.fulfill({ json: { places: [placeFor(text)] } });
+  });
+  await page.route("**/api/places/details", (route) => {
+    const { placeId } = route.request().postDataJSON();
+    return route.fulfill({ json: { place: { ...placeFor(placeId), id: placeId } } });
+  });
+}
+
+/** Polls until the test passes or the time runs out; resolves to whether it passed. */
+async function until(page, test, ms = 10_000) {
+  for (let waited = 0; waited < ms; waited += 200) {
+    if (await test()) return true;
+    await settle(page, 200);
+  }
+  return test();
+}
+
 async function interactions(browser) {
-  const { context, page, errors, upstream } = await openTimeline(browser, {
+  const { context, page, errors } = await openTimeline(browser, {
     width: 1440,
     height: 1000,
     scheme: "light",
+    setup: installPlaces,
   });
   const timeline = page.getByRole("region", { name: "Trip timeline" });
 
@@ -223,21 +258,18 @@ async function interactions(browser) {
     "undo restores the stop's earlier time",
   );
 
-  // The whole route check: pick a day with two or more stops, confirm each stop's map match, then
-  // check the day's routes and see checked journeys between the stops.
-  // Confirming a stop's map match needs real place results. Without a map key the search answers 503, so
-  // from here this reports a skip, never a pass; everything above still ran.
-  if (upstream.has("/api/places/search")) {
-    console.log(
-      "skip  route check: the place search needs a map key (it answered 503 or 502), so stops cannot be matched",
-    );
-    check(
-      !errors.length,
-      `interactions: no console errors${errors.length ? `: ${errors.join(" | ")}` : ""}`,
-    );
-    await context.close();
-    return;
-  }
+  // Routes between stops. A day's legs are checked once its places are saved and again when the day's
+  // stops or times change; each leg's mode can be changed on its own, with no button. Places are stubbed
+  // at the browser boundary, so this runs without a map key. In mock mode the server answers with
+  // simulated legs, which read as estimates, never as checked.
+  const ops = [];
+  page.on("request", (request) => {
+    if (request.url().endsWith("/api/trip/preview-edit"))
+      ops.push(request.postDataJSON().operation);
+  });
+  const legRows = timeline.locator(".timeline-connection");
+  const modes = timeline.locator(".timeline-connection__mode");
+  const labels = timeline.locator(".timeline-connection__label");
   const dayTabs = await days.count();
   let routeDay = -1;
   for (let index = 0; index < dayTabs; index += 1) {
@@ -269,7 +301,7 @@ async function interactions(browser) {
         .waitFor({ timeout: 8_000 })
         .catch(() => undefined);
       if (!(await saved.count())) {
-        // No map match (mock names are not real places): find a real one with the stop's search.
+        // No map match: find a place with the stop's search.
         await row.getByRole("searchbox").fill(LANDMARKS[searches++ % LANDMARKS.length]);
         await row.getByRole("button", { name: "Search", exact: true }).click();
         const result = row.getByRole("button", { name: /^Use / }).first();
@@ -305,29 +337,142 @@ async function interactions(browser) {
       confirmed === (await stops.count()),
       `every stop on the day is confirmed (${confirmed}/${await stops.count()})`,
     );
-    const checkRoutes = timeline.getByRole("button", { name: /Check routes for Day/ });
-    check(await checkRoutes.isEnabled(), "route check is enabled once places are confirmed");
-    await checkRoutes.click();
-    await settle(page, 800);
-    await page.screenshot({ path: `${OUT}/interact-04-route-check.png` });
+    // The day's legs appear once its places are saved: one verify for the day, no button.
+    await until(
+      page,
+      async () => (await modes.count()) > 0 && ops.some((op) => op.kind === "verify"),
+    );
+    const legCount = await modes.count();
     check(
-      (await timeline.locator(".timeline-connection--checked").count()) > 0,
-      "the route check applies its journeys between the stops",
+      legCount === (await stops.count()) - 1,
+      `each journey between two stops is a leg (${legCount} legs, ${await stops.count()} stops)`,
     );
     check(
-      (await timeline
-        .locator(".timeline-connection--checked .timeline-connection__rail")
-        .first()
-        .evaluate((el) => getComputedStyle(el).animationName)) === "rail-draw",
-      "a checked journey draws itself down the line",
+      !(await timeline.getByRole("button", { name: /Check routes/ }).count()),
+      "no Check routes button: the legs are checked on their own",
+    );
+    const legTexts = await labels.allInnerTexts();
+    check(
+      legTexts.every((text) => /(Walk|Public transport|Drive) · \d+\s*(min|h)/.test(text)),
+      `each leg shows its mode and duration (${legTexts.join(" | ")})`,
+    );
+    check(
+      (await timeline.locator(".timeline-connection--planned").count()) === legCount,
+      "simulated legs read as estimates, not as checked",
+    );
+    await page.screenshot({ path: `${OUT}/interact-04-route-check.png` });
+
+    // Changing one leg's mode sends one leg operation, and only that leg is routed.
+    const first = modes.first();
+    const before = await first.inputValue();
+    const target = before === "drive" ? "transit" : "drive";
+    const legsBefore = await labels.allInnerTexts();
+    const [changed] = await Promise.all([
+      page.waitForResponse(
+        (r) =>
+          r.url().endsWith("/api/trip/preview-edit") &&
+          r.request().postDataJSON().operation.kind === "leg",
+      ),
+      first.selectOption(target),
+    ]);
+    await settle(page, 800);
+    const routed = (await changed.json()).routes;
+    check(
+      routed.length === 1,
+      `a leg change routes only that leg (${routed.length} leg(s) routed)`,
+    );
+    check((await first.inputValue()) === target, `the leg now travels by ${target}`);
+    const legsAfter = await labels.allInnerTexts();
+    check(
+      legsBefore.slice(1).every((text, index) => text === legsAfter[index + 1]),
+      "the other legs keep their modes and times",
     );
     await page.screenshot({ path: `${OUT}/interact-05-routes-checked.png` });
+
+    // Undo puts the leg back.
+    await timeline.getByRole("button", { name: /Undo/ }).click();
+    await settle(page, 800);
+    check((await first.inputValue()) === before, `undo restores the leg to ${before}`);
+
+    // A chosen mode survives a later time edit of the day's first stop, which re-times the day.
+    await first.selectOption(target);
+    await settle(page, 800);
+    await timeline.locator(".timeline-stop__time").first().click();
+    const start = timeline.getByLabel(/^Start/).first();
+    const [hour, minute] = (await start.inputValue()).split(":").map(Number);
+    await start.fill(
+      `${String(Math.min(hour + 1, 20)).padStart(2, "0")}:${String(minute).padStart(2, "0")}`,
+    );
+    const end = timeline.getByLabel(/^End/).first();
+    const [endHour, endMinute] = (await end.inputValue()).split(":").map(Number);
+    await end.fill(
+      `${String(Math.min(endHour + 1, 22)).padStart(2, "0")}:${String(endMinute).padStart(2, "0")}`,
+    );
+    const verifiesBefore = ops.filter((op) => op.kind === "verify").length;
+    await Promise.all([
+      page.waitForResponse(
+        (r) =>
+          r.url().endsWith("/api/trip/preview-edit") &&
+          r.request().postDataJSON().operation.kind === "time",
+      ),
+      timeline.getByRole("button", { name: "Change time", exact: true }).click(),
+    ]);
+    // The edit changed the day, so its legs are routed again (one verify), then the mode is read.
+    check(
+      await until(
+        page,
+        async () => ops.filter((op) => op.kind === "verify").length > verifiesBefore,
+        10_000,
+      ),
+      "a time edit that changes the day routes its legs again",
+    );
+    await settle(page, 800);
+    check(
+      (await modes.first().inputValue()) === target,
+      `a chosen mode survives a later time edit (${target})`,
+    );
+
+    // An unroutable leg: the server answers no route for it, which reads as "No route found".
+    await page.route("**/api/trip/preview-edit", async (route) => {
+      const request = route.request().postDataJSON();
+      if (request.operation.kind !== "leg") return route.continue();
+      const response = await route.fetch();
+      const body = await response.json();
+      const items = body.plan.sections.find((s) => s.id === "itinerary").proposal.items;
+      delete items.find((item) => item.id === request.operation.id).arriveBy;
+      body.routes = body.routes.map((r) => ({
+        from: r.from,
+        to: r.to,
+        mode: r.mode,
+        status: "no_route",
+      }));
+      return route.fulfill({ response, json: body });
+    });
+    const unroutable = (await modes.first().inputValue()) === "walk" ? "drive" : "walk";
+    await Promise.all([
+      page.waitForResponse((r) => r.url().endsWith("/api/trip/preview-edit")),
+      modes.first().selectOption(unroutable),
+    ]);
+    await settle(page, 800);
+    check(
+      (await timeline.getByText("No route found").count()) > 0,
+      "an unroutable leg shows No route found",
+    );
+    check(
+      (await timeline.locator(".timeline-connection--failed").count()) === 1,
+      "only the unroutable leg is marked failed",
+    );
+    await page.screenshot({ path: `${OUT}/interact-06-no-route.png` });
+    await page.unroute("**/api/trip/preview-edit");
   }
+
+  await page.waitForLoadState("networkidle");
 
   check(
     !errors.length,
     `interactions: no console errors${errors.length ? `: ${errors.join(" | ")}` : ""}`,
   );
+  await page.unrouteAll({ behavior: "ignoreErrors" });
   await context.close();
 }
 
@@ -404,6 +549,9 @@ async function fareDecimals(browser) {
     !unexpected.length,
     `fare decimals: no console errors${unexpected.length ? `: ${unexpected.join(" | ")}` : ""}`,
   );
+  // A routing request the time edit started may still be in flight: let it finish before the context closes.
+  await page.waitForLoadState("networkidle");
+  await page.unrouteAll({ behavior: "ignoreErrors" });
   await context.close();
 }
 
