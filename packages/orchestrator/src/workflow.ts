@@ -30,7 +30,7 @@ import {
 } from "@trip/shared";
 import { createToolGateway } from "@trip/tools";
 import { z } from "zod/v4";
-import { assessBudget, costOf, rollUpCost, NEGOTIATION_OVERRUN_PCT } from "./budget";
+import { assessBudget, costOf, rollUpCost } from "./budget";
 import { detectConflicts, isInfeasible } from "./conflicts";
 export { detectConflicts } from "./conflicts";
 import { createPlanningBoard } from "./board";

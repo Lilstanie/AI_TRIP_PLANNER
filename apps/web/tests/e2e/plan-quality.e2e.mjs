@@ -3,6 +3,8 @@
 // unresolved conflicts). Every NDJSON stream, final plan and a summary.json land under
 // output/e2e/plan-quality/<run>/ as a repeatable, reviewable artifact.
 //
+// requires-env: DEEPSEEK_API_KEY
+//
 //   pnpm --filter @trip/web dev            # in another terminal
 //   [DATA_MODE=live|mock] [RUNS=3] [ONLY=id,id] [BASE_URL=...] node apps/web/tests/e2e/plan-quality.e2e.mjs
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -100,7 +102,8 @@ async function plan({ id, brief }, run) {
     .map((line) => JSON.parse(line));
   const final = frames.find((f) => f.type === "complete" || f.type === "error");
   const ms = Date.now() - started;
-  if (!final || final.type === "error") return { id, ms, error: final?.error ?? `HTTP ${res.status}` };
+  if (!final || final.type === "error")
+    return { id, ms, error: final?.error ?? `HTTP ${res.status}` };
   const p = final.response.plan;
   writeFileSync(`${OUT}/${id}-${run}.plan.json`, JSON.stringify(p, null, 2));
   return { id, ms, plan: p, reply: final.response.reply, frames };
@@ -113,17 +116,25 @@ function checks({ plan: p, frames, reply }, { brief, infeasible }) {
   check(p.sections.length === 5, `5 sections (got ${ids.join(", ")})`);
   if (infeasible) {
     const only = p.conflicts?.length === 1 ? p.conflicts[0] : undefined;
-    check(/infeasible budget/.test(only?.reason ?? ""), `reported infeasible (${JSON.stringify(p.conflicts ?? []).slice(0, 160)})`);
+    check(
+      /infeasible budget/.test(only?.reason ?? ""),
+      `reported infeasible (${JSON.stringify(p.conflicts ?? []).slice(0, 160)})`,
+    );
     check(p.round === 1, `stopped in round 1 (${p.round})`);
     // The traveller has to hear the number, not just "over budget".
     const minimum = Number(/AUD ([\d.]+)/.exec(only?.constraints?.[0] ?? "")?.[1]);
-    const said = [...(reply ?? "").matchAll(/\d[\d,]*(?:\.\d+)?/g)].map((m) => Number(m[0].replaceAll(",", "")));
+    const said = [...(reply ?? "").matchAll(/\d[\d,]*(?:\.\d+)?/g)].map((m) =>
+      Number(m[0].replaceAll(",", "")),
+    );
     check(
       Number.isFinite(minimum) && said.some((n) => Math.abs(n - minimum) <= minimum * 0.05),
       `reply names the minimum budget ~${minimum} (${JSON.stringify(reply).slice(0, 200)})`,
     );
   } else {
-    check(p.overrunPct <= 0, `within budget (est ${p.estTotal} / ${p.budgetTotal}, ${p.overrunPct.toFixed(1)}%)`);
+    check(
+      p.overrunPct <= 0,
+      `within budget (est ${p.estTotal} / ${p.budgetTotal}, ${p.overrunPct.toFixed(1)}%)`,
+    );
     check(!p.conflicts?.length, `no unresolved conflicts (${p.conflicts?.length ?? 0})`);
   }
   check(
@@ -142,7 +153,10 @@ function checks({ plan: p, frames, reply }, { brief, infeasible }) {
     const json = JSON.stringify(s.proposal ?? {});
     const dates = [...json.matchAll(/20\d\d-\d\d-\d\d(?!T)/g)].map((m) => m[0]);
     const outside = dates.filter((d) => d < brief.dates[0] || d > brief.dates[1]);
-    check(!outside.length, `${s.id} dates inside the trip (${[...new Set(outside)].join(", ") || "ok"})`);
+    check(
+      !outside.length,
+      `${s.id} dates inside the trip (${[...new Set(outside)].join(", ") || "ok"})`,
+    );
     const prov = [...json.matchAll(/"(?:provenance|source|dataSource)":"(\w+)"/g)].map((m) => m[1]);
     check(!prov.includes("mock") || MODE === "mock", `${s.id} has no mock data in live mode`);
   }
@@ -150,23 +164,37 @@ function checks({ plan: p, frames, reply }, { brief, infeasible }) {
   // falling back to a template or repeating a stop, so quality is checked too.
   const itinerary = p.sections.find((s) => s.id === "itinerary")?.proposal;
   const stops = itinerary?.items ?? [];
-  check(itinerary?.source?.kind !== "fallback", `itinerary is model-planned (${itinerary?.source?.kind})`);
+  check(
+    itinerary?.source?.kind !== "fallback",
+    `itinerary is model-planned (${itinerary?.source?.kind})`,
+  );
   const guide = p.sections.find((s) => s.id === "destination-guide")?.proposal;
-  check(guide?.source?.kind !== "fallback", `destination guide is model-written (${guide?.source?.kind})`);
+  check(
+    guide?.source?.kind !== "fallback",
+    `destination guide is model-written (${guide?.source?.kind})`,
+  );
   const dining = p.sections.find((s) => s.id === "dining")?.proposal;
   check(dining?.source?.kind !== "fallback", `dining is model-written (${dining?.source?.kind})`);
   if (MODE === "live") {
     // A fixture under a provider label is the provenance lie this suite exists to catch.
     const fixtures = frames.filter((f) => /fixture/i.test(f.resultSummary ?? ""));
-    check(!fixtures.length, `no fixture data in live mode (${fixtures.map((f) => f.resultSummary).join(", ") || "ok"})`);
+    check(
+      !fixtures.length,
+      `no fixture data in live mode (${fixtures.map((f) => f.resultSummary).join(", ") || "ok"})`,
+    );
   }
   const repeats = stops.filter(
     (a, i) => stops.findIndex((b) => b.day === a.day && b.location === a.location) !== i,
   );
-  check(!repeats.length, `no place repeated within a day (${repeats.map((a) => `d${a.day} ${a.location}`).join(", ") || "ok"})`);
-  const generic = stops.filter((a) =>
-    [brief.destination, "neighborhood", "neighbourhood"].includes(a.location.trim().toLowerCase()) ||
-    a.location.trim().toLowerCase() === brief.destination.toLowerCase(),
+  check(
+    !repeats.length,
+    `no place repeated within a day (${repeats.map((a) => `d${a.day} ${a.location}`).join(", ") || "ok"})`,
+  );
+  const generic = stops.filter(
+    (a) =>
+      [brief.destination, "neighborhood", "neighbourhood"].includes(
+        a.location.trim().toLowerCase(),
+      ) || a.location.trim().toLowerCase() === brief.destination.toLowerCase(),
   );
   check(!generic.length, `no generic stops (${generic.map((a) => a.location).join(", ") || "ok"})`);
   if (brief.destination.includes("&")) {
@@ -196,28 +224,28 @@ function checks({ plan: p, frames, reply }, { brief, infeasible }) {
 
 const summary = [];
 for (let run = 1; run <= RUNS; run += 1)
-for (const scenario of SCENARIOS) {
-  console.log(`\n== ${scenario.id} (run ${run})`);
-  const result = await plan(scenario, run);
-  if (result.error) {
-    console.log(`FAIL planning error: ${result.error}`);
-    summary.push({ id: scenario.id, run, ms: result.ms, error: result.error });
-    continue;
+  for (const scenario of SCENARIOS) {
+    console.log(`\n== ${scenario.id} (run ${run})`);
+    const result = await plan(scenario, run);
+    if (result.error) {
+      console.log(`FAIL planning error: ${result.error}`);
+      summary.push({ id: scenario.id, run, ms: result.ms, error: result.error });
+      continue;
+    }
+    const list = checks(result, scenario);
+    for (const c of list) console.log(`${c.ok ? "ok  " : "FAIL"} ${c.message}`);
+    summary.push({
+      id: scenario.id,
+      run,
+      passed: list.every((c) => c.ok),
+      ms: result.ms,
+      round: result.plan.round,
+      estTotal: result.plan.estTotal,
+      budgetTotal: result.plan.budgetTotal,
+      conflicts: result.plan.conflicts ?? [],
+      checks: list,
+    });
   }
-  const list = checks(result, scenario);
-  for (const c of list) console.log(`${c.ok ? "ok  " : "FAIL"} ${c.message}`);
-  summary.push({
-    id: scenario.id,
-    run,
-    passed: list.every((c) => c.ok),
-    ms: result.ms,
-    round: result.plan.round,
-    estTotal: result.plan.estTotal,
-    budgetTotal: result.plan.budgetTotal,
-    conflicts: result.plan.conflicts ?? [],
-    checks: list,
-  });
-}
 writeFileSync(`${OUT}/summary.json`, JSON.stringify(summary, null, 2));
 console.log("\nscenario            passed  median s  rounds");
 for (const { id } of SCENARIOS) {

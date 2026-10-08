@@ -13,7 +13,7 @@
 // - Move later on the first Day 2 stop does not swap it with the stop shown below it.
 // The numbers each view showed are written to numbers-summary.json beside the screenshots.
 //
-//   pnpm --filter @trip/web dev            # in another terminal; a map key is optional (see the 502 note below)
+//   pnpm --filter @trip/web dev            # in another terminal; a map key is optional (see the 503 note below)
 //   [PLAYWRIGHT=<path to playwright>] [LABEL=after] [SHOTS_ONLY=1] node apps/web/tests/e2e/timeline.e2e.mjs
 //
 // SHOTS_ONLY=1 skips the interaction checks, for capturing a baseline of an older build.
@@ -25,6 +25,9 @@ const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT ?? "playwright");
 const BASE = process.env.BASE_URL ?? "http://localhost:3000";
 const LABEL = process.env.LABEL ?? "after";
+// Status codes of the place routes when Google Places is unavailable: 503 no key configured, 502 upstream failure.
+const PLACES_DOWN = new Set([502, 503]);
+const PLACES_DOWN_LOG = /status of 50[23]/;
 const SHOTS_ONLY = process.env.SHOTS_ONLY === "1";
 const OUT = resolve(process.cwd(), "output/playwright/timeline", LABEL);
 mkdirSync(OUT, { recursive: true });
@@ -45,18 +48,19 @@ async function openTimeline(browser, { width, height, scheme, setup }) {
   const page = await context.newPage();
   await setup?.(page);
   const errors = [];
-  // Without a map key the place search answers 502 ("other upstream failure"), and the browser logs that as a
-  // console error with no URL. That one case is expected; any other failed request is still an error.
+  // Without a map key the place routes answer 503 (no key configured; they answered 502 before commit 2ca5570), and
+  // the browser logs that as a console error with no URL. That one case is expected; any other failed
+  // request is still an error.
   const upstream = new Set();
   page.on("response", (response) => {
-    if (response.status() === 502) upstream.add(new URL(response.url()).pathname);
+    if (PLACES_DOWN.has(response.status())) upstream.add(new URL(response.url()).pathname);
   });
   page.on("console", (message) => {
     if (message.type() !== "error") return;
     const text = message.text();
     // Chrome probes the legacy favicon even though the application exposes icon.svg.
     if (message.location().url === `${BASE}/favicon.ico` && text.includes("404")) return;
-    if (/status of 502/.test(text) && [...upstream].every((path) => path === "/api/places/search"))
+    if (PLACES_DOWN_LOG.test(text) && [...upstream].every((path) => path === "/api/places/search"))
       return;
     errors.push(text);
   });
@@ -216,11 +220,11 @@ async function interactions(browser) {
 
   // The whole route check: pick a day with two or more stops, confirm each stop's map match, then
   // check the day's routes and see checked journeys between the stops.
-  // Confirming a stop's map match needs real place results. Without a map key the search answers 502, so
+  // Confirming a stop's map match needs real place results. Without a map key the search answers 503, so
   // from here this reports a skip, never a pass; everything above still ran.
   if (upstream.has("/api/places/search")) {
     console.log(
-      "skip  route check: the place search needs a map key (it answered 502), so stops cannot be matched",
+      "skip  route check: the place search needs a map key (it answered 503 or 502), so stops cannot be matched",
     );
     check(
       !errors.length,
@@ -396,11 +400,11 @@ async function fareDecimals(browser) {
   check(/KRW 1,400(?![.\d])/.test(text), "timeline: KRW fare has no decimals");
   await timeline.locator(".timeline-connection--checked").first().scrollIntoViewIfNeeded();
   await page.screenshot({ path: `${OUT}/fare-02-timeline.png` });
-  // The stand-in place ids have no place details, so those lookups answer 502 like the search.
+  // The stand-in place ids have no place details, so those lookups answer 503 (or 502) like the search.
   const unexpected = errors.filter(
     (text) =>
       !(
-        /status of 502/.test(text) && [...upstream].every((path) => path.startsWith("/api/places/"))
+        PLACES_DOWN_LOG.test(text) && [...upstream].every((path) => path.startsWith("/api/places/"))
       ),
   );
   check(
@@ -461,7 +465,10 @@ async function numberedPlan(page) {
           for (const key of ["arriveBy", "note", "booked", "conflictsWith"]) delete item[key];
           return { ...item, detail: place, location: place, placeId: placeIdOf(place) };
         });
-        section.proposal.items = [...items.filter((item) => item.kind !== "activity"), ...activities];
+        section.proposal.items = [
+          ...items.filter((item) => item.kind !== "activity"),
+          ...activities,
+        ];
         return JSON.stringify(frame);
       })
       .join("\n");
@@ -614,7 +621,10 @@ async function stopNumbers(browser) {
       moveRequest?.id === "e2e-alpha-2" && moveRequest.day === 2 && moveRequest.index === 2,
       `numbers: timeline Move later asks for the place after Delta (${JSON.stringify(moveRequest)})`,
     );
-    await preview.getByRole("button", { name: /Cancel|Close/ }).first().click();
+    await preview
+      .getByRole("button", { name: /Cancel|Close/ })
+      .first()
+      .click();
     await settle(page, 400);
 
     // From the Trip list the swap is applied in the browser: every view then shows Delta first,
@@ -624,7 +634,10 @@ async function stopNumbers(browser) {
     const day2List = drawer
       .getByRole("list", { name: /^Stops, Day 2\b/ })
       .locator(".trip-places__item");
-    await day2List.first().getByRole("button", { name: /^Actions for / }).click();
+    await day2List
+      .first()
+      .getByRole("button", { name: /^Actions for / })
+      .click();
     await drawer.getByRole("menuitem", { name: "Move later", exact: true }).click();
     await settle(page, 600);
     const swapped = "3 Delta Market, 1 Alpha Museum, 4 Charlie Gallery";
@@ -642,7 +655,7 @@ async function stopNumbers(browser) {
       `numbers: the timeline follows the swap (${shown(afterMove)})`,
     );
     await page.screenshot({ path: `${OUT}/numbers-03-move-later.png` });
-    const unexpected = errors.filter((text) => !/status of 502/.test(text));
+    const unexpected = errors.filter((text) => !PLACES_DOWN_LOG.test(text));
     check(
       !unexpected.length,
       `numbers desktop: no console errors${unexpected.length ? `: ${unexpected.join(" | ")}` : ""}`,
@@ -695,7 +708,7 @@ async function stopNumbers(browser) {
       `numbers phone: map sheet Day 2 matches the timeline (${shown(stops)})`,
     );
     await page.screenshot({ path: `${OUT}/numbers-04-phone-map-day2.png` });
-    const unexpected = errors.filter((text) => !/status of 502/.test(text));
+    const unexpected = errors.filter((text) => !PLACES_DOWN_LOG.test(text));
     check(
       !unexpected.length,
       `numbers phone: no console errors${unexpected.length ? `: ${unexpected.join(" | ")}` : ""}`,

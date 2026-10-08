@@ -4,7 +4,6 @@ import {
   estimateNote,
   formatMoney,
   describeStayChoice,
-  AgentProposal as AgentProposalSchema,
   type AgentProposal,
   type TripBrief,
   type AgentContext,

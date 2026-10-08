@@ -307,6 +307,14 @@ dev dependency; on a new machine run `pnpm --filter @trip/web exec playwright in
 Scripts that need two servers (`agent-lab-live-gate`) still run by hand as their header describes.
 `pnpm dev` and `pnpm start` use port 3000 unless `PORT` is set.
 
+A script that cannot run without a key says so in its header, before its code:
+`// requires-env: DEEPSEEK_API_KEY` (several keys are separated by commas). When a named variable is unset
+or empty the runner does not run the script. It reports `skipped: needs DEEPSEEK_API_KEY`, records the skip
+in the summary, and still exits 0 if nothing else failed; a script that ran and failed still exits non-zero.
+If every named script is skipped, no server is started. `plan-quality` and `conversation-scope` declare
+`DEEPSEEK_API_KEY`, because they check what the model produces and fail on the rule-based fallback.
+A malformed `requires-env` line stops the runner with an error instead of running the script.
+
 - **API scripts** (`plan-quality`, `conversation-scope`) post to `/api/chat` with `DATA_MODE=live`
   (default) or `mock`. `plan-quality` plans three fixed briefs and checks budget, unresolved conflicts,
   itinerary source, repeated and generic stops, and exits non-zero when any check fails or a plan
@@ -344,6 +352,15 @@ pnpm build
 
 CI (`.github/workflows/ci.yml`) runs these five commands on Node 22 for pull requests and pushes
 to `main`.
+
+`pnpm lint` covers `apps/web` (`next lint`, config in `apps/web/.eslintrc.json`) and every package under
+`packages/` (ESLint with the shared flat config `eslint.config.mjs` at the repository root). Unlike
+`apps/web`, the packages do not ban `.toFixed(2)`, because that rule points at the web Money module.
+
+CI also runs `node scripts/format-check-changed.mjs <base>` (`pnpm format:check-changed`), which checks
+Prettier formatting only on files that changed against the pull request base, or against the previous tip on
+a push. The repository still holds files that were never formatted, so run Prettier on the files you
+changed (`npx prettier --write <file>`), never on a directory or with `pnpm format`.
 
 Run focused packages with `pnpm --filter @trip/agents test`, `pnpm --filter @trip/orchestrator test`
 or `pnpm --filter @trip/web test`. The web test script sets `NODE_OPTIONS` with POSIX shell syntax;
