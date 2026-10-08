@@ -62,11 +62,12 @@ timeline tab is open.
 - Not covered by E2E: a newer plan from chat cancelling pending saves (failure mode 6), and the real
   Google Places save path, because no map key is available in the repository's E2E environment.
 - The "Use this place" E2E steps were replaced; the timeline and itinerary scripts pass in the same run.
-  The timeline's route-check section is skipped without a map key, as before.
+  The timeline script's route section runs with places stubbed at the browser boundary, so it needs no map key.
 - A save sets `priceNeedsReview` on the stop, as the immediate place edit does today, so the "Price
   needs checking" tag appears on auto-saved stops until the price is checked.
-- Each auto-save re-times the stop's day with walking routes (the workspace does not know the timeline's
-  Walk / Public transport choice). A day the traveller checked by transit can shift when a place lands.
+- Each auto-save is sent with `routeLater`, so it routes nothing. The day's legs are routed once its places are
+  all saved, and a leg keeps the mode the traveller chose (see the proposed
+  [leg travel times](../../proposed/feature/2026-10-08-leg-travel-times.md) note).
 - A day with a stop the map cannot find keeps a travel-time conflict on the plan until that stop is
   saved. The server stores that gap as a conflict and does not refuse the other saves, because
   `apps/web/lib/trip/trip-edit.ts` turns non-move blockers into `conflictsWith`.
@@ -77,3 +78,7 @@ timeline tab is open.
 Partly superseded by [One day view in the Trip drawer](2026-10-08-one-day-trip-view.md)
 (#238). The stop editor described above is now the compact place card, and the "Use this place" box it
 mentions is gone. The automatic save, the save states and "Retry places" are unchanged.
+
+Routing consequences are partly superseded by the proposed
+[leg travel times](../../proposed/feature/2026-10-08-leg-travel-times.md) note (#237): the day is routed once
+after its last save, not with walking routes on each save.

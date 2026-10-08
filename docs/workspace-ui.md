@@ -463,7 +463,7 @@ Below the day view the Trip drawer shows each specialist's section (`TripSection
   same day: each takes the other's start time and keeps its own duration, the second starting later if the
   first would overlap it, and a swap that would end past 23:59 or overlap the next stop is refused with a
   message. Move to another day puts the stop after that day's last stop. Undo offers the last such change
-  until the next plan arrives from chat. Moves do not re-check routes; the Timeline's route check does. At
+  until the next plan arrives from chat. A move changes the day's times, so the day's legs are routed again (see Legs under Timeline editing). At
   phone width (520px and below) the menu's trigger and items are at least 44 px. Missing or zero budgets
   state that no budget is set; invalid totals never render `NaN`, a negative bar, or a bar wider than its
   container.
@@ -498,7 +498,8 @@ browser, as the Itinerary list did. The checks are deterministic and make no LLM
   untimed flight first, timed inter-city hops and stops by start time, the night's check-in last,
   and "Staying at …" on later nights. Fixed rows show an icon, a title, one detail line and their
   cost ("Fare not published" or "Price unknown" rather than AUD 0). Between two stops the journey
-  reads "Walk · 6 min · checked" from a route check, or the planner's `arriveBy` as an estimate.
+  is a leg (see Legs below): its mode and duration, marked "checked" when the provider verified it and
+  "estimate" when it is the planner's `arriveBy` or a simulated fixture.
 - **Prices.** No provider publishes admission prices, so itinerary stops carry no `estCost` and show
   "Price unknown"; the budget card adds "Not included: admission for N stops with no published
   price" so the total is not read as the whole cost.
@@ -525,8 +526,18 @@ browser, as the Itinerary list did. The checks are deterministic and make no LLM
   saves the picked result. A lookup that failed for a retryable reason is not saved; "Retry places"
   on the map runs it again. Saves run one at a time and wait while chat or another edit is running.
   The traveller replaces a saved place from the card's search.
-- **Route check.** A Walk / Public transport switch and "Check routes for Day N", enabled once the
-  day has two stops with confirmed places; the hint under it says which is missing.
+- **Legs.** Each journey between two stops of a day is a leg ([Leg](../GLOSSARY.md)). There is no button:
+  a day's legs are routed once every stop on it has a confirmed place, and again whenever an applied
+  edit changes its stops or times. Changing one leg's mode (a select with Walk, Public transport or
+  Drive; "Not checked yet" until the leg has a mode) routes that leg alone; the rest of the day is
+  re-timed with the stored times of its other legs. The chosen mode is kept through later re-timing,
+  and Undo restores the previous mode. A leg the traveller has not chosen walks when the walk takes
+  20 minutes or less, and otherwise uses public transport when the provider finds one.
+  A leg with no route between its two places reads "No route found" and adds no time to the day.
+  A provider outage refuses the edit that needed the route and shows a notice; the plan stays as it
+  was. In mock data mode the server answers with fixture legs marked "estimate", never "checked".
+  A reload shows the stored legs as estimates, and a "No route found" result is not kept across a
+  reload. Confirming a stop's place still needs a Maps key or a stub.
 - **Applied at once.** An edit applies as soon as the server accepts it, with no review step. A
   refused edit leaves the plan unchanged and lists its blockers as an alert above the day. A place change
   on a day with an unconfirmed neighbour is accepted: that pair has no route until both places are
@@ -534,7 +545,7 @@ browser, as the Itinerary list did. The checks are deterministic and make no LLM
   shows "Undo last change", which runs the same check and applies the same way. A plan that arrives from
   chat clears the undo step.
 - **Motion.** A day's list fades in when the day changes; a stop's place card rises in; an applied edit
-  washes the stops it changed with the accent for a moment; a journey a route check verified draws down
+  washes the stops it changed with the accent for a moment; a leg the provider verified draws down
   the line. Each has a text or colour signal too, and none plays under reduced motion.
 - While an edit is pending the chat composer cannot send (`ChatPanel` `locked`), but the chat shows
   no thinking row or stop button: a pending edit is not a chat request.
@@ -544,8 +555,8 @@ browser, as the Itinerary list did. The checks are deterministic and make no LLM
 - Moves, time changes and place replacements preserve activity duration. Following activities start
   at the later of their original start or previous end + route duration + 15 minutes. Empty target
   days start at 09:00 local, and moves stay within the same lodging destination segment.
-- An unknown route blocks automatic shifting (users can adjust time or mode). Overflow beyond the day
-  blocks apply. Fixed transport and stays are read-only, and overlaps stay visible in review.
+- A provider outage on a leg blocks the edit that needed it, so no time is shifted on a guess; a leg
+  with no route adds no travel time. Overflow beyond the day blocks apply. Fixed transport and stays are read-only, and overlaps stay visible in review.
 - Replacing a place marks the activity price for verification. Route fares are separate estimates,
   never added to transport twice, and an unknown fare is not zero.
 - Edits invalidate itinerary and final confirmation and regenerate conflicts, keeping unaffected brief

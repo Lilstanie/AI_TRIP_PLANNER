@@ -159,7 +159,7 @@ Trip 抽屉在日视图下方显示每个 specialist 的部分（`TripSection`�
 - **地点弹窗。** 点击标记或标签，或 Trip 抽屉中的地点，会在地图左下方打开地点详情：停靠点编号和日期、首张 Google 照片、名称、地址、Google 评分、照片作者署名和 Open in Google Maps 链接；得知旅客位置后，还显示 Route from my location。只有实时数据模式且配置了服务端 Maps 密钥时才加载照片，每次选择一张。其他情况下，以及 Google 没有照片或图片加载失败时，固定 16:9 区域显示图钉。点击标记会将焦点移入弹窗；关闭按钮、Escape 或点击地图会关闭弹窗，并将焦点返回标记。抽屉中选择的地点若在地图视野外，会平移到视野内，该行为不算用户移动。
 - **选择。** 选择标记或抽屉地点，会选中时间线中的活动并跳到对应日期；反向操作同样有效。选中标记使用较大的轮廓徽章和带边框标签，抽屉对应行除 `aria-pressed` 外，还在左侧增加内缩线并加粗；颜色不是唯一提示。其他日期的停靠点弱化为无标签的灰色徽章。
 - **Trip 抽屉。** 只有一个视图，没有标签页：标题和摘要、预算，然后是日视图：日期条、所选日期的停靠点（按访问顺序排列，并显示其地点在地图上的编号，再次到访也保留该编号），之后是不编号的 Ideas。其下为各部分方案和 Review plan。手机端 Trip 标签页显示同一视图。
-- **停靠点菜单**（[Agent Note](../.agents/notes/implemented/feature/2026-10-08-one-day-trip-view.md)）。每个停靠点的「…」菜单（`ActionMenu`，`role="menu"`；方向键移动，Escape 关闭并把焦点返回触发按钮，不会关闭抽屉）提供 Move earlier 和 Move later（当天第一个停靠点没有 Move earlier，最后一个没有 Move later）、Move to another day（在地点卡片中打开日期选择）、Move to ideas、Replace place（在卡片中打开地点搜索）、Edit details、Add 或 Edit note、Mark as booked 和 Remove。Ideas 中的项提供 Schedule on a day，不提供移动。移动、Ideas、详情、备注、已预订和 Remove 立即在浏览器中生效。Move earlier 和 Move later 与同一天相邻的停靠点交换：双方互换开始时间并各自保留时长，若前一个会与后一个重叠，后一个顺延开始；交换后若会超过 23:59 结束或与下一个停靠点重叠，则拒绝并显示提示。Move to another day 把停靠点放到该天最后一个停靠点之后。在聊天带来新方案之前，Undo 提供最近一次此类更改。移动不重新检查路线，由 Timeline 的路线检查负责。在手机宽度（520px 及以下）下，菜单按钮和菜单项至少为 44 px。预算缺失或为零时，说明未设置预算；无效总额绝不显示为 `NaN`、负值进度条，或超出容器宽度的条形。
+- **停靠点菜单**（[Agent Note](../.agents/notes/implemented/feature/2026-10-08-one-day-trip-view.md)）。每个停靠点的「…」菜单（`ActionMenu`，`role="menu"`；方向键移动，Escape 关闭并把焦点返回触发按钮，不会关闭抽屉）提供 Move earlier 和 Move later（当天第一个停靠点没有 Move earlier，最后一个没有 Move later）、Move to another day（在地点卡片中打开日期选择）、Move to ideas、Replace place（在卡片中打开地点搜索）、Edit details、Add 或 Edit note、Mark as booked 和 Remove。Ideas 中的项提供 Schedule on a day，不提供移动。移动、Ideas、详情、备注、已预订和 Remove 立即在浏览器中生效。Move earlier 和 Move later 与同一天相邻的停靠点交换：双方互换开始时间并各自保留时长，若前一个会与后一个重叠，后一个顺延开始；交换后若会超过 23:59 结束或与下一个停靠点重叠，则拒绝并显示提示。Move to another day 把停靠点放到该天最后一个停靠点之后。在聊天带来新方案之前，Undo 提供最近一次此类更改。移动会改变当天的时间，因此当天的路段会再次核查（见时间线编辑中的“路段”）。在手机宽度（520px 及以下）下，菜单按钮和菜单项至少为 44 px。预算缺失或为零时，说明未设置预算；无效总额绝不显示为 `NaN`、负值进度条，或超出容器宽度的条形。
 - **位置。** 工作区打开时，在通知条中用自己的文字询问是否显示旅客位置（`components/map/useUserLocation.ts`、`LocationPrompt`）。只有点击 Allow location 或 Show my location 后，才显示浏览器权限提示。Not now 会记录在此浏览器中（`trip.locationPrompt`），问题不再出现；点击 Allow 且浏览器仍授予权限后，后续访问直接显示位置，不再询问。浏览器已经阻止定位时，跳过提问。拒绝、不可用、超时和不支持的情况在地图上解释。只存储回答：位置留在内存中，绝不保存或写入方案。Route from my location 请求到所选地点的已验证时长和距离。见[位置提示 Agent Note](../.agents/notes/implemented/feature/2026-09-24-location-prompt-and-itinerary-map.md)。
 - **控件。** 右下角堆叠圆形玻璃按钮，参考 Mindtrip 和 Apple Maps：Show my location（定位箭头；请求位置，已知位置时将其居中并缩放到 14 或更近；位置显示时图标填充，失败后名称为 Retry my location）、Satellite view（`aria-pressed`，在道路地图和混合影像间切换），以及合为一个胶囊的 Zoom in / Zoom out。旅客位置是 Apple 风格的蓝点，带缓慢变化的光晕。Google 自带控件全部禁用（`disableDefaultUI`），滚轮缩放和单指平移无需修饰键（`gestureHandling: "greedy"`）；仅开发环境的 `/debug/map` 页面使用固定悉尼停靠点显示地图，不请求 Places 或价格。
 
@@ -169,20 +169,20 @@ Trip 抽屉在日视图下方显示每个 specialist 的部分（`TripSection`�
 
 日视图（`TripEditor` 组合 `components/trip/timeline/`）一次显示一天，通过 `POST /api/trip/preview-edit` 变更活动。服务器检查每次变更，客户端对被接受的变更立即应用。移动、Ideas、详情、备注和已预订在浏览器中应用，与此前 Itinerary 列表一致。检查是确定性的，不调用 LLM（大语言模型）。
 
-- **布局。** 日期标签条（`Day 2 · Sun, 18 Oct · 3 stops`，停靠点需要地点时带标记）用于选择日期。当天按时间顺序呈现为竖线（`lib/trip/timeline.ts`）：无具体时间的航班在最前，带时间的城际路段和停靠点按开始时间排列，当晚入住在最后，后续夜晚显示“Staying at …”。固定行显示图标、标题、一行详情及费用（“Fare not published”或“Price unknown”，而非 AUD 0）。两站之间的路程显示路线检查得到的“Walk · 6 min · checked”，或以规划器的 `arriveBy` 作为估计。
+- **布局。** 日期标签条（`Day 2 · Sun, 18 Oct · 3 stops`，停靠点需要地点时带标记）用于选择日期。当天按时间顺序呈现为竖线（`lib/trip/timeline.ts`）：无具体时间的航班在最前，带时间的城际路段和停靠点按开始时间排列，当晚入住在最后，后续夜晚显示“Staying at …”。固定行显示图标、标题、一行详情及费用（“Fare not published”或“Price unknown”，而非 AUD 0）。两站之间的每段行程是一个路段（[Leg](../GLOSSARY.md)），显示出行方式和时长：服务商核实后标为“checked”，规划器的 `arriveBy` 估计或模拟数据标为“estimate”。见下文“路段”。
 - **价格。** 没有提供方公布门票价格，因此行程停靠点不带 `estCost`，显示“Price unknown”；预算卡补充“Not included: admission for N stops with no published price”，避免把总额理解为全部费用。
 - **顺序和编号。** 当天停靠点按访问顺序列出，每个停靠点的节点显示其全程编号，与地图和 Trip 抽屉一致；未定位的停靠点不显示编号。Move earlier、Move later、Move to another day 和拖放都按显示的位置指定目标，由 Itinerary 换算成 `preview-edit` 所需的方案索引（该索引按方案顺序计算当天其他停靠点）。开始时间与方案顺序不一致时，向后移动的停靠点落在它越过的那个停靠点之后，其他移动则落在目标停靠点之前，因此预览保留旅行者要求的交换；之后端点会重新安排当天其余停靠点的时间。
 - **时间和地点。** 点击停靠点的时间会打开开始和结束时间表单；“Change time”把变更交给服务器检查。在此处或地图上选中停靠点后，会打开其地点卡片：地点的第一张照片（实时数据且有地图密钥时）、评分、地址和 Open in Google Maps 链接。停靠点菜单中的 Replace place 在卡片中打开 Google Places 搜索；选中的结果通过服务器检查保存。Escape 关闭打开的表单或卡片，并把焦点返回停靠点。仍支持拖放调整当天顺序。
 - **编辑。** 停靠点在此处或地图上被选中前保持紧凑；选择后打开编辑器：开始和结束时间（“Change time”）、Move earlier / Move later、Move to another day，以及用于替换地点的 Google Maps 搜索。仍支持拖放调整当天顺序。
 - **地图地点自动保存。** 地图按名称找到停靠点的地点、而该停靠点尚未保存地点时，工作区会通过即时地点编辑（见上文）自动为该停靠点保存此地点一次，无需旅行者操作。保存期间停靠点显示“Saving place…”；服务器未接受时显示“Place not saved yet”，地点卡片提示改为搜索该地点。地图找不到的停靠点显示“Not found on the map”，地点卡片提供搜索，选中结果即保存。因可重试的原因查询失败的地点不会保存，可在地图上用“Retry places”重试。保存逐个进行，聊天或其他编辑进行时等待。旅行者可在地点卡片的搜索中替换已保存的地点。
-- **路线检查。** 提供 Walk / Public transport 切换和“Check routes for Day N”；当天有两个地点已确认的停靠点时启用，下方提示说明缺少哪个条件。
+- **路段。** 没有按钮：当天每个停靠点都有已确认的地点时，该天的路段被核查一次；此后每次应用的编辑改变了该天的停靠点或时间，就再次核查。修改某一路段的出行方式（下拉框含 Walk、Public transport、Drive；选择前显示“Not checked yet”）只核查该路段，其余路段保留已存储的时长，当天按这些时长重新排时。之后的重新排时保留所选方式，撤销恢复先前的方式。旅行者未选择的路段，步行不超过 20 分钟则步行，否则在服务商找到路线时使用公共交通。两地之间没有路线时显示“No route found”，且不增加当天的时间。服务商故障会拒绝需要该路线的编辑并显示提示，行程保持不变。模拟数据模式下，服务器返回标为“estimate”的固定路段，绝不标为“checked”。重新加载后，已存储的路段显示为估计，“No route found”结果不会跨重新加载保留。确认停靠点地点仍需要 Maps key 或替身。
 - **立即应用。** 服务器接受编辑后立即应用，没有审阅步骤。被拒绝的编辑不改变方案，阻碍项以提示显示在当天上方。应用编辑后显示“Undo last change”，撤销以同样的检查和方式应用。来自聊天的新方案会清除撤销步骤。
-- **动效。** 切换日期时当天列表淡入；地点卡片和审阅面板上浮出现；应用编辑后，被改动的站点短暂以强调色高亮；路线检查确认的行程沿时间线自上而下绘出。每种动效同时有文字或颜色信号，在减弱动态效果设置下都不播放。
+- **动效。** 切换日期时当天列表淡入；地点卡片和审阅面板上浮出现；应用编辑后，被改动的站点短暂以强调色高亮；服务商核实的路段沿时间线自上而下绘出。每种动效同时有文字或颜色信号，在减弱动态效果设置下都不播放。
 - 编辑待处理时，聊天输入区无法发送（`ChatPanel` `locked`），但聊天不显示思考行或停止按钮：待处理编辑不是聊天请求。
 
 - 活动只分配一次稳定 ID，重排和恢复时保留。`editVersion` 独立于 orchestrator 的编排轮次，只有基础版本仍匹配时才能应用编辑。
 - 移动、时间变化和地点替换保留活动时长。后续活动开始时间取原开始时间与前项结束时间 + 路线时长 + 15 分钟中的较晚值。空目标日期从当地 09:00 开始，移动不跨越同一住宿目的地区段。
-- 未知路线阻止自动顺延（用户可调整时间或模式）。超出当天范围会阻止应用。固定交通和住宿只读，重叠在审查中保持可见。
+- 服务商故障会阻止需要该路线的编辑，不会据猜测顺延时间；没有路线的路段不增加旅行时间。超出当天范围会阻止应用。固定交通和住宿只读，重叠在审查中保持可见。
 - 替换地点会将活动价格标记为待验证。路线票价是独立估计，不会在交通费用中重复计入，未知票价不等于零。
 - 编辑使行程和最终确认失效，并重新生成冲突，保留未受影响的行程需求和酒店决策。撤销会重新验证，而非恢复旧审批。聊天重新规划会替换手动活动。
 - 路线使用 Google Time Zone API 提供的真实当地出发时间；有歧义或不存在的夏令时时刻会被拒绝。公共交通查询遵循 Google 支持的出发时间窗口。
