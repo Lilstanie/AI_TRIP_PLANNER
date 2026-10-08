@@ -78,6 +78,8 @@ Each item below is a defect this project has hit; the source is in brackets.
 - **Secrets.** No key in code, fixtures, logs, docs or test output.
 - **Documentation.** Affected `docs/` pages and Agent Notes change in the same PR; no frozen file is
   touched (`pnpm verify:protected`).
+- **Licence and notice files.** A new or changed `LICENSE`, `NOTICE` or `THIRD_PARTY_NOTICES` file agrees
+  with every existing notice (`git ls-files '*NOTICE*' '*LICENSE*'`); ported code is listed in each.
 
 ## Evidence
 

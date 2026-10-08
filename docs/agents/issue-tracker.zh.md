@@ -33,6 +33,15 @@ GitHub 的问题和 PR 共用同一编号空间，因此仅有 `#42` 时，它�
 
 <a id="when-a-skill-says-publish-to-the-issue-tracker"></a>
 
+## 编写工单
+
+- **受保护文件。** 如果工单的改动涉及受保护路径（`packages/shared/src`、`.github/**`、根目录 `package.json`
+  或 `AGENTS.md` 列出的其他根目录配置文件），工单要有一行 `Protected files:` 列出这些路径。实现一批工单的人在开工前
+  把这些行汇总成一个问题问用户，因为只写在 issue 里的授权不算数。
+- **共享契约。** `packages/shared/src` 下的任何改动（哪怕只新增一个导出）都需要 Agent Note，并在会话日志里写
+  `contract-impact: packages/shared`（由 `pnpm verify:protected` 强制检查）。工单不能写相反的要求。
+- **关闭。** 完成工单的拉取请求要写 `Closes #<number>`，这样合并时会自动关闭工单。
+
 ## 当技能要求“发布到问题跟踪器”（“publish to the issue tracker”）时
 
 创建一个 GitHub Issue。
