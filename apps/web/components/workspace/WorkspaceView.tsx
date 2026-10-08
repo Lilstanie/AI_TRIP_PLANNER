@@ -7,7 +7,6 @@ import { useAutoSavePlaces } from "../trip/useAutoSavePlaces";
 import { useChooseCandidate } from "../trip/useChooseCandidate";
 import { TripMapCanvas } from "../map/TripMapCanvas";
 import { TripPanel, tripStatus } from "../trip/TripPanel";
-import { TripPlaceList } from "../trip/TripPlaceList";
 import { LocationPrompt } from "../map/LocationPrompt";
 import { useUserLocation } from "../map/useUserLocation";
 import { Drawer } from "../ui/Drawer";
@@ -61,7 +60,6 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
     mobileView,
     preferencesOpen,
     tripOpen,
-    tripTab,
     sidebarCollapsed,
     sidebarWidth,
     chatShare,
@@ -220,34 +218,21 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
       {plan ? (
         <TripPanel
           plan={plan}
-          tab={tripTab}
-          onTab={layout.showTripTab}
           onReview={() => openDialog("review")}
           onEdit={edit}
           {...(busy || editPending || chooser.working ? {} : { onChoose: chooser.choose })}
           {...(chooser.problem ? { problem: chooser.problem } : {})}
-          places={
-            <TripPlaceList
-              tripPlaces={tripPlaces}
-              startDate={plan.brief.dates[0]}
-              selected={selectedActivity}
-              onSelect={session.selectStop}
-              plan={plan}
-              disabled={busy || editPending}
-              onApply={session.applyEdit}
-              onAdjust={session.adjustStop}
-            />
-          }
           timeline={
             <TripEditor
               plan={plan}
-              disabled={busy}
+              disabled={busy || editPending}
               onPending={session.trackEdit}
               tripPlaces={tripPlaces}
               selected={selectedActivity}
               onSelect={session.selectStop}
               onRoutesChange={session.showRoutes}
               onApply={session.applyEdit}
+              showPhotos={dataMode.mode === "live" && !!dataMode.providers?.maps}
               saves={autoSaves}
             />
           }

@@ -12,14 +12,7 @@ describe("Trip drawer details", () => {
   ])("keeps a %s budget safe", (budgetTotal, expected) => {
     const trip = { ...plan, budgetTotal: budgetTotal as number, estTotal: 200 };
     const { container } = render(
-      <TripPanel
-        plan={trip}
-        tab="overview"
-        onTab={() => {}}
-        timeline={null}
-        onEdit={() => {}}
-        onReview={() => {}}
-      />,
+      <TripPanel plan={trip} timeline={null} onEdit={() => {}} onReview={() => {}} />,
     );
     expect(screen.getByLabelText("Trip budget").textContent).toMatch(expected);
     expect(container.querySelector(".bar > span")?.getAttribute("style")).not.toMatch(/NaN|-/);
@@ -29,7 +22,14 @@ describe("Trip drawer details", () => {
     const trip = structuredClone(plan);
     const itinerary = trip.sections.find((s) => s.id === "itinerary")!;
     itinerary.proposal!.items = [
-      { kind: "activity", day: 1, startTime: "09:00", endTime: "11:00", detail: "A", location: "Museum" },
+      {
+        kind: "activity",
+        day: 1,
+        startTime: "09:00",
+        endTime: "11:00",
+        detail: "A",
+        location: "Museum",
+      },
       {
         kind: "activity",
         day: 1,
@@ -59,18 +59,14 @@ describe("Trip drawer details", () => {
       },
     ];
     const { container } = render(
-      <TripPanel
-        plan={trip}
-        tab="overview"
-        onTab={() => {}}
-        timeline={null}
-        onEdit={() => {}}
-        onReview={() => {}}
-      />,
+      <TripPanel plan={trip} timeline={null} onEdit={() => {}} onReview={() => {}} />,
     );
     // Open every section so both candidates for the connector are rendered.
-    for (const toggle of screen.getAllByRole("button", { expanded: false })) fireEvent.click(toggle);
-    expect(container.querySelectorAll(".proposal-items--itinerary .proposal-connection")).toHaveLength(0);
+    for (const toggle of screen.getAllByRole("button", { expanded: false }))
+      fireEvent.click(toggle);
+    expect(
+      container.querySelectorAll(".proposal-items--itinerary .proposal-connection"),
+    ).toHaveLength(0);
     expect(
       container.querySelectorAll(".proposal-items--transport .proposal-connection").length,
     ).toBeGreaterThan(0);

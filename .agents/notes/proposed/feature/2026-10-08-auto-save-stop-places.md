@@ -76,3 +76,9 @@ timeline tab is open.
   Walk / Public transport choice). A day the traveller checked by transit can shift when a place lands.
 - Google Places is not available without a map key, so the live auto-save path cannot run in the
   repository's E2E environment. The E2E stubs the Places and preview endpoints at the browser boundary.
+
+## Supersession
+
+Partly superseded by [One day view in the Trip drawer](../../implemented/feature/2026-10-08-one-day-trip-view.md)
+(#238). The stop editor described above is now the compact place card, and the "Use this place" box it
+mentions is gone. The automatic save, the save states and "Retry places" stay as proposed here.

@@ -212,7 +212,8 @@ async function openTrip(browser, { width, height, stub }) {
   if (await tripTab.count()) await tripTab.click();
   else await page.getByRole("button", { name: "Open your trip" }).click();
   await settle(page, 700);
-  await page.getByRole("tab", { name: /Timeline/ }).click();
+  // The day view is the Trip drawer's only view, so it is there once the drawer opens.
+  await page.getByRole("region", { name: "Trip timeline" }).waitFor({ timeout: 30_000 });
   await settle(page, 700);
   return { context, page, errors, previewRequests };
 }
@@ -266,7 +267,12 @@ async function openStop(page, stop) {
   return row;
 }
 
-async function searchAndUse(row, text) {
+async function searchAndUse(page, row, text) {
+  if (!(await row.getByRole("searchbox").count())) {
+    await row.getByRole("button", { name: /^Actions for / }).click();
+    await page.getByRole("menuitem", { name: "Replace place", exact: true }).click();
+    await settle(page, 300);
+  }
   await row.getByRole("searchbox").fill(text);
   await row.getByRole("button", { name: "Search", exact: true }).click();
   const result = row.getByRole("button", { name: `Use ${text}` });
@@ -338,7 +344,7 @@ async function main() {
         !savedNames.includes(missing.name),
         "a stop the map cannot find is not saved automatically",
       );
-      await searchAndUse(row, PICK);
+      await searchAndUse(page, row, PICK);
       await waitForQuiet(page, stub);
       stops = await scanStops(page);
       const after = stops.find((stop) => sameStop(stop, missing));
@@ -355,7 +361,7 @@ async function main() {
     const saved = stops.find((stop) => isConfirmed(stop) && !sameStop(stop, missing ?? {}));
     if (saved) {
       const row = await openStop(page, saved);
-      await searchAndUse(row, REPLACE);
+      await searchAndUse(page, row, REPLACE);
       await waitForQuiet(page, stub);
       check(
         stub.saves.filter((save) => save.placeId === `stub:${REPLACE}`).length === 1,
