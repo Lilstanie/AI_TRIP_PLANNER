@@ -265,7 +265,12 @@ async function run(browser, { width, height, tag }) {
     .fill("22:30");
   await drawer.getByLabel(/^End/).first().fill("23:50");
   await drawer.getByRole("button", { name: /Change time/ }).click();
-  await settle(page, 800);
+  // The edit applies once the server answers: wait for the changed stop or for a refusal notice.
+  await drawer
+    .locator(".timeline-stop.is-changed, .timeline-status--error")
+    .first()
+    .waitFor({ timeout: 30_000 });
+  await settle(page, 400);
   await drawer.getByRole("tab", { name: "Itinerary" }).click();
   await settle(page, 400);
   const day3 = await dayText(3);
