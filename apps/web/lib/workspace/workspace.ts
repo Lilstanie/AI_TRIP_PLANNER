@@ -4,6 +4,7 @@ import {
   ChatAskUser,
   ChatNeedsInfo,
   ChatResponse,
+  Currency,
   FlightAnswer,
   LegModeChoice,
   toAud,
@@ -58,6 +59,11 @@ export type Draft = {
   budgetTotal: string;
   /** Original typed or chatted budget; budgetTotal stays AUD. */
   budgetSource?: TripBrief["budgetSource"];
+  /**
+   * The last currency the traveller named for this trip, with a budget or on its own; see
+   * `TripBrief.displayCurrency`. Optional so a draft stored before it existed still loads.
+   */
+  displayCurrency?: Currency;
   /**
    * The traveller's own trip preferences, in their words. Optional so a draft stored before the
    * list existed still loads; read it through `draftPreferences`.
@@ -129,6 +135,7 @@ export function draftFor(brief: TripBrief): Draft {
     ...(brief.party && partyPeople(brief.party) === brief.groupSize ? { party: brief.party } : {}),
     budgetTotal: String(brief.budgetTotal),
     ...(brief.budgetSource ? { budgetSource: brief.budgetSource } : {}),
+    ...(brief.displayCurrency ? { displayCurrency: brief.displayCurrency } : {}),
     preferences: brief.preferences ?? [],
     ...(brief.learnedPreferences?.length ? { learnedPreferences: brief.learnedPreferences } : {}),
     ...(brief.excludeFlights ? { excludeFlights: true } : {}),
@@ -174,6 +181,7 @@ export function isDraft(value: unknown): value is Draft {
     (value.legModes === undefined || LegModeChoice.array().safeParse(value.legModes).success) &&
     (value.budgetSource === undefined ||
       TripBrief.shape.budgetSource.unwrap().safeParse(value.budgetSource).success) &&
+    (value.displayCurrency === undefined || Currency.safeParse(value.displayCurrency).success) &&
     (value.bookedStay === undefined || BookedStay.safeParse(value.bookedStay).success)
   );
 }
@@ -193,6 +201,7 @@ export function parseDraft(draft: Draft, current: Pick<TripBrief, "tripId"> & Pa
     party: statedParty(draft),
     budgetTotal: Number(draft.budgetTotal),
     budgetSource: statedBudgetSource(draft),
+    displayCurrency: draft.displayCurrency,
     // An emptied list clears the brief's, rather than letting `current` carry the old one.
     preferences: preferences.length ? preferences : undefined,
     // Like the list above, each is read from the draft so a removal clears the brief's copy.
@@ -224,6 +233,7 @@ export function knownFromDraft(draft: Draft): PartialTripBrief {
     party: statedParty(draft),
     budgetTotal: number(draft.budgetTotal),
     budgetSource: statedBudgetSource(draft),
+    displayCurrency: draft.displayCurrency,
     nationality: draft.nationality.trim() || undefined,
     preferences: statedPreferences(draftPreferences(draft)),
     learnedPreferences: statedPreferences(draft.learnedPreferences ?? []),
@@ -280,6 +290,7 @@ export function draftWithKnown(draft: Draft, known: PartialTripBrief): Draft {
     }),
     budgetTotal: known.budgetTotal === undefined ? draft.budgetTotal : String(known.budgetTotal),
     budgetSource: known.budgetTotal === undefined ? draft.budgetSource : known.budgetSource,
+    displayCurrency: known.displayCurrency ?? draft.displayCurrency,
     nationality: known.nationality ?? draft.nationality,
     preferences: known.preferences ?? draft.preferences,
     learnedPreferences: known.learnedPreferences ?? draft.learnedPreferences,

@@ -120,6 +120,19 @@ specialist 走确定性路径，工具返回 mock fixture；它们不读取或�
 不委派任何人的 supervisor 会回退到确定性分发；无法改善计划的修订保留最佳已知计划并以 `no_improvement` 停止。
 被故障终止的运行会结束于一个 `failed` 产物，它保留轨迹并指明失败的 specialist，并且像其他产物一样可下载、可回放。决策见 [Agent Note](../.agents/notes/implemented/architecture/2026-10-02-agent-lab-failure-lab.md)。
 
+Trace 视图是 Agent Lab 阅读一次运行有序事件的界面。它只存在于 Agent Lab（聊天中的 Think 树不变），也不改动任何约定：
+一切都在浏览器中由页面已持有的 `AgentLabRunEvent` 信封推导而来，因此回放产物与实时运行画出相同的视图。
+事件位于一个有界、可独立滚动的框中，该框跟随最新事件，直到访客向上滚动。框上方是一条时间条，由
+`apps/web/lib/agent-lab/trace-overview.ts` 推导、`apps/web/components/agent-lab/TraceOverview.tsx` 绘制，
+把整次运行画成按固定顺序排列的泳道（Run、Coordinator、每个 specialist 一条，单 agent 策略则只有一条 Baseline 泳道；
+没有记录的泳道省略）。每条记录占一个等宽步长：一次工具调用的开始与其完成或失败合并为一个块（未完成的调用只是起点标记），
+失败的工具调用、失败的 specialist 和被拒绝的输出使用错误色，轮次边界有标记。横轴是步数而不是时间，因为每个事件的 `elapsedMs`
+包含流的节奏延迟；原因见 [Agent Note](../.agents/notes/implemented/architecture/2026-10-07-agent-lab-trace-step-axis.md)。
+每个块都是可聚焦的按钮，激活后轨迹框滚动到对应记录的行（`data-trace-row`）并短暂高亮。在 Compare 视图中，每个产生了事件的策略各有一条时间条，
+按策略顺序（基线、无修订、定向修订）叠放在各列上方，共用一条以最长运行为准的步数轴（条形组件的 `domainSteps`）。
+相同序号的步骤在每条时间条中位于相同的水平位置，较短的运行明显更早结束，从未运行的策略（例如被取消的对比）没有时间条。
+点击某个块只会滚动该策略自己的轨迹框。面板仍不对策略排名。
+
 <a id="langgraph-workflow"></a>
 
 ## LangGraph 工作流
@@ -215,6 +228,16 @@ Google Places 不提供门票价格，因此活动的 `estCost` 保持未设置�
 顶栏旅行信息标签；下一条消息会将这些字段作为 `ChatRequest.known` 发回，
 以该条消息自身的提取结果为优先进行合并。因此，“悉尼三日游”会得到关于日期、旅行者和预算的追问，
 用户回复只需补充这些信息。
+
+`TripBrief.displayCurrency`（以及 `known` 中的同名字段）是旅行者最近一次为该行程指定的币种，无论连同预算还是单独说出。
+两条提取路径都会写入它：协调器的行程更新接受不带金额的币种，离线提取器对消息使用 `detectCurrency`。浏览器在所有需要选择币种的地方
+读取同一条规则，即 `packages/shared/src/money.ts` 中的 `effectiveCurrency()`：先取 `displayCurrency`，再取 `budgetSource.currency`，
+最后取设置中的显示币种。规划、预算检查和存储的金额仍为 AUD；`budgetSource` 保留所述金额和币种；行程从不写入设置。
+服务器对它写出的文字使用同一条规则：设置币种来自聊天请求中可选的 `displayCurrency`（不传即 AUD），服务器取
+`effectiveCurrency(brief, request.displayCurrency ?? "AUD")`，并把结果传给每一处调用 `formatMoney` 的位置（specialist 摘要、冲突原因和约束、
+协调器与 specialist 的进度行、预算分配依据以及兜底回复）。specialist 通过 `AgentContext.displayCurrency` 收到该币种。
+交给回复模型的事实中，金额已经换算并格式化，提示词要求按原样引用。换算后的金额与面板一样按千位分组，
+非 AUD 行程的生成文字末尾附带估算说明。规划、预算检查、冲突检测和规划评分仍为 AUD，提供方票价保留自己的币种。
 
 `TripBrief.preferences`（以及 `known` 中的同名字段）携带旅行者自己的旅行偏好，
 通过顶栏的 Trip preferences 编辑器填写。协调器的 `update_trip_brief` 工具没有这些偏好的字段，

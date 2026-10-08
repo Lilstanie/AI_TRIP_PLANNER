@@ -64,6 +64,19 @@ export function fromAud(amount: number, to: Currency): number {
 }
 
 /**
+ * The currency a trip is read in: the one the traveller last named for it, otherwise the one they
+ * stated the budget in (which is how a trip saved before `displayCurrency` existed keeps reading),
+ * otherwise `fallback`, the Settings display currency. One rule for every place that picks a
+ * currency, so the panels, the trip list and the budget field cannot disagree.
+ */
+export function effectiveCurrency(
+  brief: { displayCurrency?: Currency; budgetSource?: { currency: Currency } } | undefined,
+  fallback: Currency,
+): Currency {
+  return brief?.displayCurrency ?? brief?.budgetSource?.currency ?? fallback;
+}
+
+/**
  * Order matters. 美元, 日元 and 澳元 all end in 元, so the qualified names have to
  * be tested before the bare 元 that means CNY — the same trap as 人民币 being
  * read as a traveller count because it contains 人.
@@ -106,4 +119,50 @@ export function moneyIn(amount: number, currency: Currency): string {
     currency,
     currencyDisplay: "narrowSymbol",
   }).format(amount);
+}
+
+/** How many decimals each currency shows. JPY has no minor unit; the rest show cents. */
+const MINOR_DIGITS: Record<Currency, number> = { AUD: 2, CNY: 2, USD: 2, JPY: 0 };
+
+/**
+ * `cents`: `AUD 12.50`, the default. `whole`: `AUD 1,582`, grouped, for headline figures.
+ * `plain`: `AUD 4000`, the amount as typed; it only differs from `cents` in AUD, where it keeps
+ * a budget exactly as the traveller wrote it. Other currencies are converted, so they show as `cents`.
+ */
+export type MoneyStyle = "cents" | "whole" | "plain";
+
+/**
+ * An AUD planning amount as traveller-facing text in `currency`, converted through AUD_PER.
+ *
+ * This is the one place generated text spells an amount. The orchestrator and the specialists
+ * hold every amount in AUD and pass the trip's display currency here; AUD output is byte-for-byte
+ * `AUD ${amount.toFixed(2)}` (or the whole/plain variants). Amounts inside model prompts that
+ * drive planning do not use it. Throws on a non-finite amount rather than printing `AUD NaN`.
+ */
+export function formatMoney(
+  amountAud: number,
+  currency: Currency,
+  style: MoneyStyle = "cents",
+): string {
+  if (!Number.isFinite(amountAud)) throw new Error("A display amount must be finite.");
+  if (currency === BASE_CURRENCY && style === "plain") return `${currency} ${amountAud}`;
+  const value = currency === BASE_CURRENCY ? amountAud : fromAud(amountAud, currency);
+  if (style === "whole")
+    return `${currency} ${value.toLocaleString("en-AU", { maximumFractionDigits: 0 })}`;
+  const digits = MINOR_DIGITS[currency];
+  // AUD keeps its ungrouped, byte-for-byte spelling. A converted amount groups thousands the way
+  // the panels do (`CNY 3,000.00`), so a figure in generated text matches the one beside it.
+  if (currency === BASE_CURRENCY) return `${currency} ${value.toFixed(digits)}`;
+  return `${currency} ${value.toLocaleString("en-AU", { minimumFractionDigits: digits, maximumFractionDigits: digits })}`;
+}
+
+/**
+ * The sentence that marks converted amounts in generated text as estimates, the counterpart of the
+ * panels' currency notice. Empty for AUD, where nothing is converted. It names no currency code
+ * other than the display currency's, so text for a CNY trip never says AUD.
+ */
+export function estimateNote(currency: Currency): string {
+  return currency === BASE_CURRENCY
+    ? ""
+    : `Amounts in ${currency} are approximate conversions at fixed rates (as of ${RATES_AS_OF}), not live quotes.`;
 }

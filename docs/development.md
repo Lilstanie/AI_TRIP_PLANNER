@@ -217,6 +217,13 @@ run.
    the deployed file names the key, Android shows a URL bar at the top of the app.
 5. Install the APK with `adb install app-release-signed.apk`, or attach it to a GitHub Release.
 
+## Licence and third-party code
+
+The repository is MIT licensed (see [LICENSE](../LICENSE)), and every `package.json` declares
+`"license": "MIT"`. When you vendor or port code from another project, keep its header notice and record it in
+[THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md) in the same pull request: name, upstream URL, licence,
+copyright line and the files that contain it.
+
 ## Agent workflows
 
 Project skills live directly under `.agents/skills/<name>/SKILL.md`. The categories below are

@@ -78,4 +78,4 @@ ELEC5620 UML 设计模型和 SVG 图表位于 [`docs/design/`](docs/design/class
 
 ## 许可
 
-这是 ELEC5620 课程项目。仓库未附带许可文件，因此未授予开源许可。
+本项目以 MIT 许可发布，见 [LICENSE](LICENSE)。版权归 AI Trip Planner 贡献者（ELEC5620 小组）所有。第三方代码及其许可见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。

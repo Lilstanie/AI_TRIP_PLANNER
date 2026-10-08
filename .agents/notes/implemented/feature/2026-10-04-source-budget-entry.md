@@ -18,6 +18,8 @@ is unchanged. A trip never writes the Settings currency. New trips return to Set
 
 Snapshots write version 4. Version 3 already contains AUD, so it remains readable; when its draft
 budget matches its plan, the plan's source is recovered. Pre-AUD versions 1 and 2 remain rejected.
+The currency choice in the first paragraph is superseded by
+[trip display currency](2026-10-07-trip-display-currency.md): a named currency comes first.
 This supplements [catalog storage](../architecture/2026-09-24-workspace-catalog-trip-storage.md)
 and [display conversion](2026-10-04-workspace-display-currency.md); their other rules stay in force.
 

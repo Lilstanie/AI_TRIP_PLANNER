@@ -1,4 +1,5 @@
 import type { TripBrief, AgentProposal, RevisionRequest, AgentName } from "./contracts";
+import { effectiveCurrency, type Currency } from "./money";
 import type { ToolGateway, MemoryStore } from "./ports";
 
 // Context the Orchestrator passes into every agent call. The Orchestrator
@@ -12,6 +13,19 @@ export interface AgentContext {
   /** short / long-term memory store */
   mem: MemoryStore;
   signal?: AbortSignal;
+  /**
+   * The currency the traveller reads this trip in (`effectiveCurrency`), for the amounts a
+   * specialist writes into text. Planning amounts stay AUD whatever this is. Absent means AUD.
+   */
+  displayCurrency?: Currency;
+}
+
+/**
+ * The currency a specialist writes amounts in: the context's, else the brief's own rule with AUD
+ * as the Settings fallback. Planning amounts stay AUD; this only chooses how text spells them.
+ */
+export function displayCurrencyOf(brief: TripBrief, context?: AgentContext): Currency {
+  return context?.displayCurrency ?? effectiveCurrency(brief, "AUD");
 }
 
 /**

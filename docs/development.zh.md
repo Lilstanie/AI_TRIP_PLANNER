@@ -184,6 +184,10 @@ manifest 链接的页面。
 
 <a id="agent-workflows"></a>
 
+## 许可与第三方代码
+
+仓库采用 MIT 许可（见 [LICENSE](../LICENSE)），每个 `package.json` 都声明 `"license": "MIT"`。引入或移植其他项目的代码时，请保留其文件头声明，并在同一个拉取请求中记录到 [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md)：名称、上游 URL、许可、版权行以及包含该代码的文件。
+
 ## Agent 工作流
 
 项目 skill 直接位于 `.agents/skills/<name>/SKILL.md`。下表按用途组织导航；每个 skill 保留独立的可发现入口，并按需加载参考文件。

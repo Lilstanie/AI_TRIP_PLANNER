@@ -72,7 +72,7 @@ now. Implementation history and browser acceptance for each phase are in the
   - The chips read the preferences draft, so they show only what the traveller stated: a value
     ("Sydney", "1 Oct – 4 Oct · 4 days", "2 adults, 1 child", "AUD 2,000"), or the bare fact name —
     "Where", "When", "Who" and "Budget" — while it is missing. The budget uses the trip's
-    stated currency, or the Settings display currency when none was stated. The chips form a `role="group"` named Trip
+    effective currency (below). The chips form a `role="group"` named Trip
     details; a filled chip's accessible name leads with its fact ("Destination: Sydney").
   - Each chip is a button with `aria-haspopup="dialog"`, `aria-expanded` and `aria-controls`, and
     opens its own editor: Where (destinations and departing from), When (a full inline calendar), Who
@@ -127,11 +127,10 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
   - Budget offers four preset cards in a `role="radiogroup"`: Budget (AUD 900), Moderate
     (AUD 3,000), Comfort (AUD 6,000) and Luxury (AUD 10,000). Each shows its amount in the
     trip's effective currency and is selected exactly while `budgetTotal` equals its AUD value.
-    The custom amount field shows and accepts `budgetSource.currency`, or the Settings display
-    currency when no source exists. Saving preserves the typed amount and currency in
+    The custom amount field shows and accepts the trip's effective currency. Saving preserves the typed amount and currency in
     `budgetSource` and converts once with shared `toAud` into `budgetTotal`. Matching source
     currency displays the original amount rather than a round trip. Trip currency never changes
-    Settings; a new trip uses Settings again. Agents and guardrails still read AUD.
+    Settings; a new trip uses Settings again. The trip's **effective currency** is one rule, `effectiveCurrency()` in `packages/shared/src/money.ts`, read by the locale provider (plan panel, chips, budget field), the trip cards and the trip list: `TripBrief.displayCurrency` (the last currency the traveller named for the trip, with a budget or on its own, such as "show it in yen" or "用人民币给我算"), otherwise `budgetSource.currency` (so a trip saved before the field existed reads as before), otherwise the Settings display currency. A later naming overrides an earlier one, including the budget's currency, and naming AUD sets AUD. `budgetSource` keeps the amount and currency as stated and is not rewritten when the display currency changes. Chatting in Chinese without naming a currency keeps the Settings currency. Settings changes reach only trips that never named a currency. Each card on the Your trips page ends with its trip's estimated total in that trip's own effective currency. Agents and guardrails still read AUD.
   - Trip preferences opens on a filled field (`--surface-2`, no border, 15 px) that adds a preference
     with Enter; below it each preference is a filled row with a remove button, up to 12 of up to 200
     characters. Clicking a preference's text edits it in place (Enter or leaving the field keeps it,
@@ -574,6 +573,33 @@ Specialist or Tool. Specialist events show the bounded objective, constraints an
 runs add Graph stage events for the conflict check (the conflicts and their targets), the revision
 (objective and previous outcome), its score before and after, and the reason the loop stopped.
 
+The event list sits in a bounded trace box: its height follows the viewport (at most about the
+viewport minus 22 rem, between 260 and 760 px) and it scrolls on its own, with a scrollbar that is always
+drawn, so the plan result and run metrics stay on screen. The box is a focusable region named for the run, so
+arrow keys scroll it. While a run streams or an artifact replays, the box follows the newest event; scrolling
+up suspends following so new events do not move the position being read, and scrolling back to the bottom
+resumes it. The follow scroll is always instant, so reduced motion needs no separate path. The Run view, each
+side of the Compare view and each Failure Lab trace use the same box.
+
+Above the box, a time bar shows the whole run as lanes of equal-width blocks, one step per record: Run,
+Coordinator, one lane per specialist (or a single Baseline lane), with empty lanes omitted. A tool call's start
+and result form one block, and failed tool calls, failed specialists and rejected output are drawn in the error
+colour and with a diagonal stripe, so failure never rests on colour alone. A dashed line with an R2, R3 tag marks each round boundary. The bar grows as events stream or replay.
+Every block is a button named with its lane, title and step; clicking it or pressing Enter scrolls the box to
+that row and highlights it for a moment (instantly under reduced motion); if a fold hides that row, the folds
+open first. Blocks are 24 px tall (44 px at phone width) and keep a visible border in forced-colors mode. At
+phone width the bar fits the screen and lane labels shorten (Coord, Trans, Guide, Stay, Itin, Dine, Base). In the Compare view the three
+strategies' bars are stacked above the columns in strategy order on one shared step axis sized to the longest
+run, so shapes line up and a shorter run ends earlier; a strategy that never ran has no bar. The
+[trace end-to-end script](../apps/web/tests/e2e/agent-lab-trace.e2e.mjs) checks it at desktop and phone width.
+
+Above the box, a toolbar offers two folds, **Fold rounds** and **Fold calls**, each a button with a pressed
+state that works from the keyboard. Fold rounds hides every row that belongs to a round and leaves one
+heading per round (for example "Round 2 · 9 events"), so only the headings and the run-level rows remain and
+a long run reads as an outline. Fold calls hides every tool row, so specialist and coordinator rows read
+without tool noise. The folds change only the list: the event count and the Fixture or Live label in the
+panel heading stay as they are. Each list, including each side of the Compare view, folds on its own.
+
 The comparison view shows a table of measured figures (latency, rounds, tool calls, fallbacks, failed
 agents, budget, unresolved conflicts, checks, grounded sections, repeated and generic stops,
 multi-city consistency, stopping reason, conflict outcome and token and model cost), the three plans and the three
@@ -723,8 +749,8 @@ the account section explains that everything stays in this browser.
     a key. Edit preview differences arrive as values, not sentences. With no saved choice it follows the browser language (`zh*` opens in Chinese). The desktop sidebar and main content have an 8 px gutter.
     Every workspace amount goes through the Money module (`apps/web/lib/money.ts`, read through
     `useLocale()`) and the shared approximate rate table. Converted displays carry its as-of date;
-    JPY has no decimals, other currencies have two. The trip's stated budget currency takes
-    precedence over Settings. Planning and guardrails keep AUD values. `money()` converts a planning
+    JPY has no decimals, other currencies have two. The trip's effective currency
+    (`displayCurrency`, else the stated budget currency) takes precedence over Settings. Planning and guardrails keep AUD values. `money()` converts a planning
     amount; `fare()` keeps a provider-native fare in its own currency with that currency's decimal
     places, grouping thousands from four digits up (`JPY 230`, `AUD 12.50`, `KRW 1,400`), and never
     converts it; `delta()` signs a
@@ -734,6 +760,11 @@ the account section explains that everything stays in this browser.
     `apps/web/lib/agent-lab/money.ts`). The sentence sent to the planner is not a display amount:
     `plannerAud()` writes it in English AUD with cents whatever the language or currency. The web
     app's ESLint config rejects `.toFixed(2)`, so an amount is never formatted by hand.
+    Amounts in text the server generates (summaries, conflict reasons, progress lines) go through
+    `formatMoney(amountAud, currency, style?)` in `packages/shared/src/money.ts`, which converts with
+    the same rate table and shows JPY without decimals, grouping thousands in converted amounts like the
+    panels (`CNY 3,000.00`); callers pass the trip's display currency (AUD in Agent Lab, whose scenarios
+    name none). `estimateNote(currency)` is the estimate marking for generated text, empty for AUD.
   - **Connected accounts:** the Google, GitHub or Apple sign-ins linked through Clerk, with a button
     that opens Clerk to change them.
 - Signed out, settings are kept in this browser; signed in, the newer copy of browser and account

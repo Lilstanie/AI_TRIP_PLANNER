@@ -12,6 +12,10 @@ export type QuickPrompt = { label: MessageKey; text: string };
  * That is both a better first impression and the fastest way to exercise the
  * whole planning path by hand while developing.
  *
+ * The budget names no currency on purpose: naming one (even AUD) fixes the trip's display
+ * currency, and an example should follow the traveller's Settings instead. A bare amount is an
+ * AUD planning amount, as before.
+ *
  * Dates are offsets from today, never literals: a hardcoded date quietly
  * becomes a past date, and live provider searches reject those — the prompt
  * would keep looking fine while only ever failing.
@@ -35,18 +39,18 @@ export function quickPrompts(today: Date = new Date()): QuickPrompt[] {
     {
       // One city: two stops a day, each connected by real local transport.
       label: "Sydney · 4 days",
-      text: `Plan a 4-day trip to Sydney for 2 people from ${inDays(21)} to ${inDays(25)}, total budget 4000 AUD.`,
+      text: `Plan a 4-day trip to Sydney for 2 people from ${inDays(21)} to ${inDays(25)}, total budget 4000.`,
     },
     {
       // A to B: states an origin, so the arrival is a priced flight.
       label: "Melbourne → Sydney · 5 days",
-      text: `Plan a 5-day trip from Melbourne to Sydney for 2 people from ${inDays(30)} to ${inDays(35)}, total budget 5000 AUD.`,
+      text: `Plan a 5-day trip from Melbourne to Sydney for 2 people from ${inDays(30)} to ${inDays(35)}, total budget 5000.`,
     },
     {
       // Hops far enough apart that the ground journey cannot fit a planning
       // day, so each is flown: Sydney to Brisbane is 15 hours by coach.
       label: "Melbourne → Sydney & Brisbane · 9 days",
-      text: `Plan a 9-day trip from Melbourne to Sydney & Brisbane for 2 people from ${inDays(45)} to ${inDays(54)}, total budget 9000 AUD.`,
+      text: `Plan a 9-day trip from Melbourne to Sydney & Brisbane for 2 people from ${inDays(45)} to ${inDays(54)}, total budget 9000.`,
     },
     {
       // Close enough to stay on the ground: 95 minutes by train, so the hop is
@@ -54,7 +58,7 @@ export function quickPrompts(today: Date = new Date()): QuickPrompt[] {
       // intercity rail everywhere — Tokyo to Kyoto returns nothing at all —
       // so this example uses a pair it can actually answer.
       label: "Sydney & Wollongong · 5 days",
-      text: `Plan a 5-day trip to Sydney & Wollongong for 2 people from ${inDays(60)} to ${inDays(65)}, total budget 4500 AUD.`,
+      text: `Plan a 5-day trip to Sydney & Wollongong for 2 people from ${inDays(60)} to ${inDays(65)}, total budget 4500.`,
     },
   ];
 }

@@ -26,7 +26,8 @@ Each item below is a defect this project has hit; the source is in brackets.
   currency keeps `budgetSource` beside its AUD total. Flag a hand-built amount string, a conversion
   inside an agent, or a stored amount in the display currency.
   [display currency](../../notes/implemented/feature/2026-10-04-workspace-display-currency.md),
-  [source budget](../../notes/implemented/feature/2026-10-04-source-budget-entry.md)
+  [source budget](../../notes/implemented/feature/2026-10-04-source-budget-entry.md),
+  [trip display currency](../../notes/implemented/feature/2026-10-07-trip-display-currency.md)
 - **Interface strings go through `t()`.** A literal in JSX or an `aria-label` that bypasses `t()` stays
   English in the Chinese interface; the typecheck only catches keys without a Chinese entry, not
   strings that never reach `t()`. Generated replies are not translated afterwards; the reply

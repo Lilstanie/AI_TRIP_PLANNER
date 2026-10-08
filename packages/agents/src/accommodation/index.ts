@@ -1,9 +1,13 @@
 // Owner: C — lodging proposals and price revisions via injected tools and memory.
 import {
+  displayCurrencyOf,
+  estimateNote,
+  formatMoney,
   describeStayChoice,
   type AgentProposal,
   type TripBrief,
   type AgentContext,
+  type Currency,
   type RevisionRequest,
   type Specialist,
   type ProviderProvenance,
@@ -22,6 +26,8 @@ import { TRAVELLER_PREFERENCES_RULE } from "../prompts/traveller-preferences";
 const candidateId = (day: number, index: number) => `stay-${day}-${index}`;
 
 interface StayEvidence {
+  /** The currency the text spells amounts in; planning amounts stay AUD. */
+  currency: Currency;
   /** The graph's spending ceiling for every stay together, when it set one. */
   allocation?: BudgetAllocation;
   segments: ReturnType<typeof splitStay>;
@@ -83,6 +89,7 @@ async function gatherStayEvidence(
     }),
   );
   return {
+    currency: displayCurrencyOf(brief, ctx),
     segments,
     rooms,
     roomAllocation: prefs.roomAllocation,
@@ -106,8 +113,16 @@ function assembleStayProposal(
   pick: (segmentDay: number, options: StayOption[]) => StayOption,
   sourceKind: "estimated" | "mock" | "fallback" = "estimated",
 ): AgentProposal {
-  const { segments, rooms, roomAllocation, groupSize, budgetRevision, searched, allocation } =
-    evidence;
+  const {
+    segments,
+    rooms,
+    roomAllocation,
+    groupSize,
+    budgetRevision,
+    searched,
+    allocation,
+    currency,
+  } = evidence;
   const picked = searched.map(({ segment, options }) => pick(segment.day, options));
   const pickedTotal = searched.reduce(
     (sum, { segment }, index) => sum + stayCost(picked[index]!, segment.nights, rooms),
@@ -142,14 +157,14 @@ function assembleStayProposal(
   // A real property does not imply a live price. Use the adapter's provenance
   // metadata so SerpApi rates and Google Places estimates cannot share a label.
   const grounded = selections.every(({ options }) => options.every((option) => option.grounded));
-  const source = staySource(selections, sourceKind, grounded);
+  const source = staySource(selections, sourceKind, grounded, currency);
   const fixtureRates = selections.every(({ chosen }) => chosen.provenance?.kind === "mock");
   const assumptions = [
     source.kind === "live"
-      ? "AUD per room per night; rates came from a live search and can change before booking."
+      ? `${currency} per room per night; rates came from a live search and can change before booking.`
       : source.kind === "estimated"
-        ? "AUD per room per night; property data is grounded but the nightly price is an estimate, not a live quote."
-        : "Booking mock convention: AUD per room per night; at most 2 guests per room; availability is simulated.",
+        ? `${currency} per room per night; property data is grounded but the nightly price is an estimate, not a live quote.`
+        : `Booking mock convention: ${currency} per room per night; at most 2 guests per room; availability is simulated.`,
     `${roomAllocation} allocation: ${rooms} room(s) for ${groupSize} guest(s); check-out day is not charged.`,
     fixtureRates
       ? "Only selected stays contribute to estCost. Taxes/fees are assumed included in mock rates."
@@ -164,7 +179,7 @@ function assembleStayProposal(
         options
           .map(
             (option) =>
-              `${option.name} (AUD ${stayCost(option, segment.nights, rooms).toFixed(2)} total, ${(option.rating / 2).toFixed(1)}/5, ${option.freeCancellation ? "free cancellation" : "no free cancellation"})`,
+              `${option.name} (${formatMoney(stayCost(option, segment.nights, rooms), currency)} total, ${(option.rating / 2).toFixed(1)}/5, ${option.freeCancellation ? "free cancellation" : "no free cancellation"})`,
           )
           .join("; ") +
         ". Only the selected option is charged.",
@@ -181,7 +196,7 @@ function assembleStayProposal(
     );
     assumptions.push(
       budgetRevision
-        ? `Selected the cheapest eligible stays; saved AUD ${savings.toFixed(2)} against the initial selection for these inputs. Dates, guest count and confirmed preferences are unchanged.`
+        ? `Selected the cheapest eligible stays; saved ${formatMoney(savings, currency)} against the initial selection for these inputs. Dates, guest count and confirmed preferences are unchanged.`
         : "No supported price revision was requested; the initial selection is retained. Time/geography changes require an updated brief.",
     );
     if (budgetRevision) {
@@ -191,7 +206,7 @@ function assembleStayProposal(
       if (match && Number(match[1]) >= 0 && Number(match[1]) <= 100) {
         const target = Math.round(initialTotal * (1 - Number(match[1]) / 100) * 100) / 100;
         assumptions.push(
-          `Requested target: AUD ${target.toFixed(2)} or less. ${total <= target ? "Target met." : "Target cannot be met by eligible candidates; further budget decisions belong to the orchestrator."}`,
+          `Requested target: ${formatMoney(target, currency)} or less. ${total <= target ? "Target met." : "Target cannot be met by eligible candidates; further budget decisions belong to the orchestrator."}`,
         );
       }
       if (savings === 0)
@@ -219,7 +234,7 @@ function assembleStayProposal(
         id: candidateId(segment.day, index),
       })),
     })),
-    summary: `${rooms} room(s), ${segments.reduce((sum, segment) => sum + segment.nights, 0)} nights in ${segments.map((segment) => segment.city).join(" & ")} · AUD ${total.toFixed(2)}${budgetRevision ? " (lowest eligible cost)" : ""}`,
+    summary: `${rooms} room(s), ${segments.reduce((sum, segment) => sum + segment.nights, 0)} nights in ${segments.map((segment) => segment.city).join(" & ")} · ${formatMoney(total, currency)}${budgetRevision ? " (lowest eligible cost)" : ""}`,
     items: selections.map(({ segment, chosen, cost }) => ({
       kind: "hotel",
       day: segment.day,
@@ -232,6 +247,7 @@ function assembleStayProposal(
         rooms,
         nights: segment.nights,
         cost,
+        currency,
       }),
     })),
     assumptions,
@@ -243,6 +259,7 @@ function staySource(
   selections: Array<{ options: StayOption[] }>,
   sourceKind: "estimated" | "mock" | "fallback",
   grounded: boolean,
+  currency: Currency,
 ): NonNullable<AgentProposal["source"]> {
   if (sourceKind === "fallback") {
     return {
@@ -285,7 +302,8 @@ function staySource(
     kind,
     label: providers.join(" + "),
     freshness: [
-      `All amounts are AUD; ${kind === "live" ? "live rates" : kind === "estimated" ? "estimated prices" : "fixture prices"} can change or are not verified.`,
+      `All amounts are ${currency}; ${kind === "live" ? "live rates" : kind === "estimated" ? "estimated prices" : "fixture prices"} can change or are not verified.`,
+      estimateNote(currency),
       queriedAt.length ? `Queried at ${queriedAt.join(", ")}.` : "",
       fallback
         ? `${fallback.fallbackFrom} was unavailable (${fallback.fallbackReason}); Google Places estimate was used.`
@@ -401,7 +419,16 @@ async function planStays(
             // What the rest of the plan has settled, so the stay is chosen
             // against what is actually left rather than the whole budget.
             ...(allocation
-              ? { stayBudget: { maxTotalCost: allocation.budget, basis: allocation.basis } }
+              ? {
+                  stayBudget: {
+                    maxTotalCost: allocation.budget,
+                    // The number is AUD; the basis (and a revision's wording) may spell amounts in
+                    // the trip's display currency, which would otherwise read as a mismatch.
+                    currency: "AUD",
+                    basis: allocation.basis,
+                    basisCurrency: displayCurrencyOf(brief, ctx),
+                  },
+                }
               : {}),
             ...(board?.proposals.length
               ? { otherSections: board.proposals.map(({ agent, summary }) => ({ agent, summary })) }

@@ -10,10 +10,10 @@ describe("quickPrompts", () => {
       // the limit is here to stop a whole sentence becoming one.
       expect(label.length, label).toBeLessThan(40);
       expect(text, label).toMatch(ISO);
-      expect(text, label).toMatch(/\d+ AUD/);
+      expect(text, label).toMatch(/total budget \d+\./);
       // Either a party size or an explicit solo trip.
       expect(text, label).toMatch(/\d+ people|solo/);
-      expect(text, label).toMatch(/\d+ AUD/);
+      expect(text, label).toMatch(/total budget \d+\./);
     }
   });
 

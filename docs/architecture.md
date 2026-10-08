@@ -144,6 +144,24 @@ plan leaves the best known plan and stops with `no_improvement`. A run a fault s
 artifact that keeps its trace and names the failing specialist, and that artifact downloads and replays like
 any other. The [Agent Note](../.agents/notes/implemented/architecture/2026-10-02-agent-lab-failure-lab.md) records the decision.
 
+The Trace view is the Agent Lab's reading surface for a run's ordered events. It lives only in the Agent Lab (the
+chat's Think tree is unchanged) and changes no contract: everything is derived in the browser from the
+`AgentLabRunEvent` envelopes the page already holds, so a replayed artifact draws the same view as the live run.
+The events sit in a bounded, independently scrolling box that follows the newest event until the visitor scrolls
+up. Above it, a time bar built by `apps/web/lib/agent-lab/trace-overview.ts` and drawn by
+`apps/web/components/agent-lab/TraceOverview.tsx` shows the whole run as lanes in a fixed order (Run,
+Coordinator, one lane per specialist, or a single Baseline lane for the single-agent strategy; empty lanes are
+omitted). Each record takes one equal-width step: a tool call's start and its completion or failure merge into one
+block (an in-flight call is a start marker only), failed tool calls, failed specialists and rejected output use the
+error colour, and round boundaries are marked. The axis is steps, not time, because every event's `elapsedMs`
+includes the stream's pacing delay; the [Agent Note](../.agents/notes/implemented/architecture/2026-10-07-agent-lab-trace-step-axis.md)
+records why. Each block is a focusable button, and activating it scrolls the box to that record's row
+(`data-trace-row`) and highlights it briefly. In the Compare view each strategy that produced events gets its own bar,
+stacked in strategy order (baseline, no revision, targeted revision) above the columns on one shared step axis
+sized to the longest run (the bar component's `domainSteps`). A step at the same index sits at the same horizontal
+position in every bar, a shorter run visibly ends earlier, and a strategy that never ran (a cancelled comparison)
+has no bar. Clicking a block scrolls only that strategy's own trace box. The panel still never ranks the strategies.
+
 ## LangGraph workflow
 
 ```mermaid
@@ -249,6 +267,22 @@ question written by the reply model in the traveller's own language. `/api/chat`
 was understood, and sends those fields back as `ChatRequest.known` with the next message, which is
 merged under that message's own extraction. So "悉尼三日游" is answered with a question about dates,
 travellers and budget, and the reply only has to supply those.
+
+`TripBrief.displayCurrency` (and the same field on `known`) is the last currency the traveller named for
+the trip, with a budget or on its own. Both extraction paths set it: the coordinator's brief update takes
+a currency without an amount, and the offline extractor uses `detectCurrency` on the message. The
+browser reads one rule everywhere it picks a currency, `effectiveCurrency()` in
+`packages/shared/src/money.ts`: `displayCurrency`, else `budgetSource.currency`, else the Settings
+display currency. Planning, guardrails and stored amounts stay AUD; `budgetSource` keeps the stated
+amount and currency; a trip never writes Settings. The server applies the same rule to the text it
+writes: it takes the Settings currency from the chat request's optional `displayCurrency` (absent means
+AUD), picks `effectiveCurrency(brief, request.displayCurrency ?? "AUD")` and passes the result to
+`formatMoney` at every call site (specialist summaries, conflict reasons and constraints, coordinator
+and specialist progress lines, budget allocation bases and the fallback replies). Specialists receive it
+as `AgentContext.displayCurrency`. The facts handed to the reply model carry amounts already converted
+and formatted, and its prompt says to quote them as given. Converted amounts group thousands like the
+panels, and generated text for a non-AUD trip ends with an estimate note. Planning, guardrails,
+conflict detection and the plan score stay AUD, and provider fares keep their own currency.
 
 `TripBrief.preferences` (and the same field on `known`) carries the traveller's own trip
 preferences, written in the top bar's Trip preferences editor. The coordinator's `update_trip_brief`

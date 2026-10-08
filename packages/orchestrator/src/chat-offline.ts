@@ -53,6 +53,11 @@ export function extractBriefPatchLocally(message: string): BriefPatch {
     if (currency && currency !== "AUD") patch.budgetSource = { amount: stated, currency };
   }
 
+  // A currency named with or without a budget ("show it in yen") is the trip's display currency.
+  // The latest naming wins, and naming AUD sets AUD like any other.
+  const named = detectCurrency(message);
+  if (named) patch.displayCurrency = named;
+
   // `人` must not match the 人 inside 人民币 — that read "3000 人民币" as a party
   // of 3000. The same trap as 元 inside 美元; see detectCurrency.
   const group = message.match(/(\d+)\s*(?:people|persons?|travell?ers?|人(?!民))/i);
