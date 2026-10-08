@@ -1,7 +1,7 @@
 // End-to-end walk through the Timeline & routes tab with mock data: day switching, the fixed
-// transport and stay rows, selecting and editing a stop, confirming its map match, checking the
-// day's routes, applying an edit at once and undoing it, and provider transit fares keeping their
-// own currency's decimal places (JPY 230, KRW 1,400, AUD 12.50). Screenshots at desktop and phone widths,
+// transport and stay rows, selecting and editing a stop, confirming its place (a map match is saved
+// on its stop by the workspace), checking the day's routes, applying an edit at once and undoing it,
+// and provider transit fares keeping their own currency's decimal places (JPY 230, KRW 1,400, AUD 12.50). Screenshots at desktop and phone widths,
 // light and dark, land under output/playwright/timeline/<label>/ as a repeatable artifact.
 //
 // Stop numbers and visiting order (#196): with a plan whose Day 2 start times disagree with plan
@@ -251,7 +251,8 @@ async function interactions(browser) {
     "Art Gallery of New South Wales",
   ];
   let searches = 0;
-  // Confirm every stop's map match on a day: a move or a route check needs real places.
+  // Confirm every stop's place on a day: a map match is saved on its stop by the workspace, so the
+  // stop is confirmed once that save lands; a stop with no map match is found with its search.
   async function confirmDay(index) {
     await days.nth(index).click();
     await settle(page);
@@ -261,10 +262,12 @@ async function interactions(browser) {
       if (await row.locator(".timeline-tag--ok").count()) continue;
       if (!(await row.locator(".stop-editor").count()))
         await row.locator(".timeline-stop__main").click();
-      const use = row.getByRole("button", { name: "Use this place" });
-      await use.waitFor({ timeout: 8_000 }).catch(() => undefined);
-      if (await use.count()) await use.click();
-      else {
+      const saved = row.locator(".timeline-tag--ok");
+      await saved
+        .first()
+        .waitFor({ timeout: 8_000 })
+        .catch(() => undefined);
+      if (!(await saved.count())) {
         // No map match (mock names are not real places): find a real one with the stop's search.
         await row.getByRole("searchbox").fill(LANDMARKS[searches++ % LANDMARKS.length]);
         await row.getByRole("button", { name: "Search", exact: true }).click();

@@ -3,6 +3,7 @@ import { useEffect, useRef, type CSSProperties } from "react";
 import { TripFactChips } from "../preferences/TripFactChips";
 import { ChatPanel } from "../chat/ChatPanel";
 import { TripEditor } from "../trip/TripEditor";
+import { useAutoSavePlaces } from "../trip/useAutoSavePlaces";
 import { useChooseCandidate } from "../trip/useChooseCandidate";
 import { TripMapCanvas } from "../map/TripMapCanvas";
 import { TripPanel, tripStatus } from "../trip/TripPanel";
@@ -91,6 +92,14 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
   const { tripUpdated } = usePhoneTripUpdates(model);
   usePhoneBack(phone);
   const chooser = useChooseCandidate(plan, session.applyEdit, session.trackEdit);
+  // Map-found places are saved on their stops from here, so they are saved whether or not the
+  // timeline tab is open.
+  const autoSaves = useAutoSavePlaces({
+    plan,
+    tripPlaces,
+    onApply: session.applyEdit,
+    enabled: !(busy || editPending),
+  });
   const chatsButton = useRef<HTMLButtonElement>(null);
   const chatsSearch = useRef<HTMLInputElement>(null);
   const chatsPanel = useRef<HTMLDivElement>(null);
@@ -239,6 +248,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
               onSelect={session.selectStop}
               onRoutesChange={session.showRoutes}
               onApply={session.applyEdit}
+              saves={autoSaves}
             />
           }
         />

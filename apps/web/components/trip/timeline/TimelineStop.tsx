@@ -12,7 +12,7 @@ type Activity = ProposalItem & { id?: string };
 
 const STATUS_TEXT: Partial<Record<LocationStatus, MessageKey>> = {
   loading: "Finding this place…",
-  unconfirmed: "Location to be confirmed",
+  unconfirmed: "Not found on the map",
   unavailable: "Place lookup failed — retry from the map",
 };
 
@@ -34,6 +34,7 @@ export function TimelineStop({
   locked,
   place,
   status,
+  saveState,
   edits,
   onSelect,
 }: {
@@ -54,6 +55,8 @@ export function TimelineStop({
   /** The Google place this stop resolves to, confirmed or matched by name on the map. */
   place?: GooglePlace;
   status: LocationStatus;
+  /** Whether the map's place is being saved on this stop, or the server did not accept it. */
+  saveState: "" | "saving" | "failed";
   edits: TimelineEdits;
   onSelect(): void;
 }) {
@@ -129,10 +132,10 @@ export function TimelineStop({
           <span className="timeline-stop__meta">
             {confirmed ? (
               <span className="timeline-tag timeline-tag--ok">{t("Place confirmed")}</span>
+            ) : matched && saveState === "failed" ? (
+              <span className="timeline-tag timeline-tag--warn">{t("Place not saved yet")}</span>
             ) : matched ? (
-              <span className="timeline-tag timeline-tag--warn">
-                {t("Map match · not confirmed")}
-              </span>
+              <span className="timeline-tag">{t("Saving place…")}</span>
             ) : (
               <span className="timeline-tag timeline-tag--warn">
                 {STATUS_TEXT[status] ? t(STATUS_TEXT[status]!) : ""}
@@ -145,23 +148,15 @@ export function TimelineStop({
         </button>
         {selected && (
           <div className="stop-editor" id={`stop-editor-${id}`} ref={editor}>
-            {matched && (
-              <div className="stop-editor__group stop-editor__confirm">
-                <p>
-                  {t("The map matched this stop to")}
-                  <strong>{name}</strong>
-                  {place?.formattedAddress ? `, ${place.formattedAddress}` : ""}
-                  {t(". Confirm it so its routes can be checked.")}
-                </p>
-                <button
-                  type="button"
-                  className="primary"
-                  disabled={locked}
-                  onClick={() => void edits.edit({ kind: "place", id, placeId: place!.id })}
-                >
-                  {t("Use this place")}
-                </button>
-              </div>
+            {!confirmed && status === "unconfirmed" && (
+              <p className="stop-editor__hint">
+                {t("The map could not find this place. Search for it to save it.")}
+              </p>
+            )}
+            {matched && saveState === "failed" && (
+              <p className="stop-editor__hint">
+                {t("This place could not be saved. Search for it to try again.")}
+              </p>
             )}
             <form
               className="stop-editor__group stop-editor__time"

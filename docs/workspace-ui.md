@@ -511,8 +511,15 @@ the client applies an accepted one at once. The checks are deterministic and mak
   swap the traveller asked for; the endpoint then re-times the rest of the day after it.
 - **Editing.** A stop is compact until selected, here or on the map; selecting it opens its editor:
   start and end time ("Change time"), Move earlier / Move later, Move to another day, and a
-  Google Maps search to replace the place. A stop the map matched by name but not confirmed offers
-  "Use this place". Drag and drop still reorders the day.
+  Google Maps search to replace the place. Drag and drop still reorders the day.
+- **Places from the map.** When the map finds a stop's place by name and the stop has no saved
+  place, the workspace saves that place on the stop itself, once, through the immediate place edit
+  below; no traveller action is needed. While it is being saved the stop reads "Saving place…"; a
+  save the server does not accept reads "Place not saved yet" and the editor says to search for the
+  place. A stop the map cannot find reads "Not found on the map", and its editor offers a search that
+  saves the picked result. A lookup that failed for a retryable reason is not saved; "Retry places"
+  on the map runs it again. Saves run one at a time and wait while chat or another edit is running.
+  The traveller replaces a saved place from the editor's search.
 - **Route check.** A Walk / Public transport switch and "Check routes for Day N", enabled once the
   day has two stops with confirmed places; the hint under it says which is missing.
 - **Applied at once.** An edit applies as soon as the server accepts it, with no review step. A
