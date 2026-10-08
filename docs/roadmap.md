@@ -28,8 +28,8 @@ Status as of 2026-10-07 on `main`; see [workspace UI](workspace-ui.md) for curre
   installable web app manifest. Real-device checks are still open in issue #182.
 - Interface language (English or Simplified Chinese) from Settings or the top bar, and a display
   currency (AUD, CNY, USD or JPY) while every plan is still priced in AUD.
-- Flights and stays: Getting around shows the flight card and every movement, including legs inside a
-  city, and the traveller can take an alternative flight or stay the specialist found without replanning.
+- Flights and stays: the day view shows each flight and each night's stay as rows that open to their
+  card, and the traveller can take an alternative flight or stay the specialist found without replanning.
 - Public Agent Lab: a fixed Tokyo fixture exposes a single-agent trace, validated plan and
   deterministic metrics without provider keys, and compares it with five specialists running one
   round without revision and with bounded targeted revision on a tight-budget variant. Completed runs

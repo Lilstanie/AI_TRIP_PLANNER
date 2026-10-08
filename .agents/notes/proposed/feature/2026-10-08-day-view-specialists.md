@@ -41,22 +41,22 @@ No model-written working notes (section summaries, assumptions) are shown.
 
 ## Failure modes
 
-| Failure                                                                    | Where it would show                          | Guard                                                                                        |
-| -------------------------------------------------------------------------- | -------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| A middle night of a multi-night stay has no row                            | Day 2 of a 4-night stay                      | Rows derived per night from `StaySelection.day` and `nights`; E2E counts rows per day        |
-| Flight out appears on a trip with no return, or is missing when it has one | Last day                                     | Derived only from the arrival item's `returning` date, which must equal `brief.dates[1]`     |
-| A flight item is drawn twice, as a fixed row and as a flight row           | Day 1 or the last day                        | Transport items whose `selectionId` matches a flight selection are not also fixed rows      |
-| A legacy hotel item with no stay selection is dropped                      | Plans saved before `stays` existed           | Hotel items with no matching selection keep the check-in-day fixed row                       |
-| Alternative swap posts the wrong selection                                 | Taking a room or fare changes another hop    | The row passes its own section id and `selectionId` to `choose`                              |
-| Tips fold state read throws in a private window                            | Tips block fails to render                   | Read and write wrapped in try/catch; default is expanded                                     |
-| Tips fold state from one trip shows in another                             | Opening a second trip folded                 | The storage key includes `tripId`                                                            |
-| Restaurant suggestion shows "Finding this place" forever                   | Ideas                                        | Suggestions skip the place lookup and show no location status                                |
-| Scheduled restaurant appears again as a suggestion                         | Ideas after scheduling                       | Suggestions are the dining items whose id is not in the itinerary                            |
-| Removed restaurant appears again as a suggestion                           | Ideas after Remove                           | Remove also deletes the dining item                                                          |
-| Restaurant with no id (plan loaded before this change)                     | Schedule fails with "no longer in this trip" | `identifyActivities` allocates ids to `meal` items in the dining section on load             |
-| Scheduled restaurant counted as admission in the unpriced note             | Budget summary                               | Suggestion-origin ids are left out of that count                                             |
-| Undo after scheduling leaves the restaurant scheduled                      | Ideas and day                                | Undo restores the snapshot from before the action, as for every item action                  |
-| A plan with no guide, no stay or no flight shows an empty block            | Drawer                                       | Each block renders only when it has content                                                  |
+| Failure                                                                    | Where it would show                          | Guard                                                                                    |
+| -------------------------------------------------------------------------- | -------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| A middle night of a multi-night stay has no row                            | Day 2 of a 4-night stay                      | Rows derived per night from `StaySelection.day` and `nights`; E2E counts rows per day    |
+| Flight out appears on a trip with no return, or is missing when it has one | Last day                                     | Derived only from the arrival item's `returning` date, which must equal `brief.dates[1]` |
+| A flight item is drawn twice, as a fixed row and as a flight row           | Day 1 or the last day                        | Transport items whose `selectionId` matches a flight selection are not also fixed rows   |
+| A legacy hotel item with no stay selection is dropped                      | Plans saved before `stays` existed           | Hotel items with no matching selection keep the check-in-day fixed row                   |
+| Alternative swap posts the wrong selection                                 | Taking a room or fare changes another hop    | The row passes its own section id and `selectionId` to `choose`                          |
+| Tips fold state read throws in a private window                            | Tips block fails to render                   | Read and write wrapped in try/catch; default is expanded                                 |
+| Tips fold state from one trip shows in another                             | Opening a second trip folded                 | The storage key includes `tripId`                                                        |
+| Restaurant suggestion shows "Finding this place" forever                   | Ideas                                        | Suggestions skip the place lookup and show no location status                            |
+| Scheduled restaurant appears again as a suggestion                         | Ideas after scheduling                       | Suggestions are the dining items whose id is not in the itinerary                        |
+| Removed restaurant appears again as a suggestion                           | Ideas after Remove                           | Remove also deletes the dining item                                                      |
+| Restaurant with no id (plan loaded before this change)                     | Schedule fails with "no longer in this trip" | `identifyActivities` allocates ids to `meal` items in the dining section on load         |
+| Scheduled restaurant counted as admission in the unpriced note             | Budget summary                               | Suggestion-origin ids are left out of that count                                         |
+| Undo after scheduling leaves the restaurant scheduled                      | Ideas and day                                | Undo restores the snapshot from before the action, as for every item action              |
+| A plan with no guide, no stay or no flight shows an empty block            | Drawer                                       | Each block renders only when it has content                                              |
 
 ## Alternatives considered
 
