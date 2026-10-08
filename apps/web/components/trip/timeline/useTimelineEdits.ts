@@ -180,8 +180,7 @@ export function useTimelineEdits({
         throw new NoticeError(failureNotice(body, { key: "Search failed. Try again." }));
       if (!signal.aborted) {
         setResults(body.places);
-        if (!body.places.length)
-          setErrors([{ key: "No places found. Try different words." }]);
+        if (!body.places.length) setErrors([{ key: "No places found. Try different words." }]);
       }
     });
   }

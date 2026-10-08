@@ -19,15 +19,15 @@ component is removed.
 
 Failure modes, written before the code:
 
-| # | Situation | Behaviour |
-| - | --------- | --------- |
-| 1 | The plan changed (chat replan, restore) while the preview was in flight | Preview is discarded; plan unchanged; no apply. Existing behaviour kept. |
-| 2 | The server refuses the edit (blocker: stop past the end of the day, unknown route) | Plan unchanged; a keyed Notice lists the blockers. The edit is refused, not stored as a conflict. |
-| 3 | The preview request fails (network, 5xx, provider outage) | Plan unchanged; a keyed Notice "Preview failed. Try the change again." |
-| 4 | Two edits in quick succession | The earlier request is aborted; only the latest preview may apply. A response for a stale base is ignored. |
-| 5 | The server accepts but the edit creates a conflict (for example over budget) | Applied; the conflict is stored on the plan and shown in the timeline status. Not refused. |
-| 6 | Undo after a chat replan | Undo is cleared when a plan arrives from chat; nothing to undo. |
-| 7 | Undo itself | Undo is an edit: it goes through the same preview and apply path, and replaces the undo step with the edit it reverts. |
+| #   | Situation                                                                          | Behaviour                                                                                                              |
+| --- | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| 1   | The plan changed (chat replan, restore) while the preview was in flight            | Preview is discarded; plan unchanged; no apply. Existing behaviour kept.                                               |
+| 2   | The server refuses the edit (blocker: stop past the end of the day, unknown route) | Plan unchanged; a keyed Notice lists the blockers. The edit is refused, not stored as a conflict.                      |
+| 3   | The preview request fails (network, 5xx, provider outage)                          | Plan unchanged; a keyed Notice "Preview failed. Try the change again."                                                 |
+| 4   | Two edits in quick succession                                                      | The earlier request is aborted; only the latest preview may apply. A response for a stale base is ignored.             |
+| 5   | The server accepts but the edit creates a conflict (for example over budget)       | Applied; the conflict is stored on the plan and shown in the timeline status. Not refused.                             |
+| 6   | Undo after a chat replan                                                           | Undo is cleared when a plan arrives from chat; nothing to undo.                                                        |
+| 7   | Undo itself                                                                        | Undo is an edit: it goes through the same preview and apply path, and replaces the undo step with the edit it reverts. |
 
 Blockers from failure mode 2 are refused, not stored as conflicts. This is the per-blocker decision the
 spec asks for: a stop past the end of the day and an unknown route both refuse the edit.

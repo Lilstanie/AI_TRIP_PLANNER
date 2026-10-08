@@ -177,6 +177,16 @@ async function interactions(browser) {
   await page.screenshot({ path: `${OUT}/interact-01-stop-open.png` });
 
   // A time edit applies at once and can be undone; there is no review step.
+  const start = timeline.getByLabel(/^Start/).first();
+  const [hour, minute] = (await start.inputValue()).split(":").map(Number);
+  await start.fill(
+    `${String(Math.min(hour + 1, 20)).padStart(2, "0")}:${String(minute).padStart(2, "0")}`,
+  );
+  const end = timeline.getByLabel(/^End/).first();
+  const [endHour, endMinute] = (await end.inputValue()).split(":").map(Number);
+  await end.fill(
+    `${String(Math.min(endHour + 1, 22)).padStart(2, "0")}:${String(endMinute).padStart(2, "0")}`,
+  );
   await timeline.getByRole("button", { name: /Change time/ }).click();
   await settle(page);
   check(
