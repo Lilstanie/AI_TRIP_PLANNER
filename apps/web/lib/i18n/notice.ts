@@ -70,3 +70,33 @@ export const errorNotice = (error: unknown, fallback: Notice): Notice =>
     : error instanceof Error
       ? { raw: error.message }
       : fallback;
+
+const STORED_PREFIX = "notice:";
+
+/**
+ * A notice kept on a plan. The plan stores strings (`editIssues[].message`, shared with packages/shared),
+ * so a keyed notice is written as its key and params, encoded in one string, and read back in the
+ * interface language. The English sentence stays in `conflictsWith`, which the chat reads.
+ */
+export function storeNotice(notice: Notice): string {
+  return STORED_PREFIX + encodeURIComponent(JSON.stringify(notice));
+}
+
+/**
+ * The notice a stored plan string holds. A string that was not written by `storeNotice` (a plan saved
+ * before notices were keyed, or an agent's sentence) is shown as received, as `{ raw }`.
+ */
+export function readStoredNotice(text: string): Notice {
+  if (text.startsWith(STORED_PREFIX)) {
+    try {
+      const parsed: unknown = JSON.parse(decodeURIComponent(text.slice(STORED_PREFIX.length)));
+      if (parsed && typeof parsed === "object") {
+        if (typeof (parsed as { key?: unknown }).key === "string") return parsed as Notice;
+        if (typeof (parsed as { raw?: unknown }).raw === "string") return parsed as Notice;
+      }
+    } catch {
+      // Not a stored notice after all: shown as the text it is.
+    }
+  }
+  return { raw: text };
+}

@@ -1,14 +1,17 @@
-import { TripPlan, type ProposalItem } from "@trip/shared";
+import { effectiveCurrency, TripPlan, type Currency, type ProposalItem } from "@trip/shared";
 import { visitingOrder } from "./itinerary";
 import { dayCount } from "./timeline";
+import { settlePlan } from "./settle";
 import { NoticeError } from "../i18n/notice";
 
 /**
- * Edits a traveller makes to one itinerary item from its action menu. Each is a pure transform of
- * the plan: details, a note, booked, remove, set aside as an idea, put on a day, or swap places with
- * the stop before or after it on its day. None changes a route or a price the server checks, so they
- * apply at once; schedule changes that need route checks go through the Timeline's preview instead.
- * A restaurant pick from dining (see ./restaurants) takes the same actions as an idea.
+ * Edits a traveller makes to one itinerary item from its action menu. Each is a transform of the plan:
+ * details, a note, booked, remove, set aside as an idea, put on a day, or swap places with the stop
+ * before or after it on its day. None changes a route or a price the server checks, so they apply at
+ * once. Like every edit, the result is settled (budget roll-up, conflicts, version) with the same
+ * function the server uses (./settle). Schedule changes that need route checks go through the
+ * Timeline's preview instead. A restaurant pick from dining (see ./restaurants) takes the same actions
+ * as an idea.
  */
 export type ItemAction =
   | { kind: "details"; detail: string; location: string }
@@ -35,7 +38,16 @@ function followerOf(items: ProposalItem[], stop: ProposalItem): ProposalItem | u
   return day[day.indexOf(stop) + 1];
 }
 
-export function applyItemAction(plan: TripPlan, id: string, action: ItemAction): TripPlan {
+/**
+ * Applies one action to the stop `id` and returns the settled plan. `displayCurrency` is the traveller's
+ * Settings currency, which the server also takes, so the conflicts it names read the same in both places.
+ */
+export function applyItemAction(
+  plan: TripPlan,
+  id: string,
+  action: ItemAction,
+  displayCurrency?: Currency,
+): TripPlan {
   const next = structuredClone(plan);
   const section = next.sections.find((item) => item.id === "itinerary");
   const items = section?.proposal?.items;
@@ -170,8 +182,8 @@ export function applyItemAction(plan: TripPlan, id: string, action: ItemAction):
         throw new NoticeError({
           key: "Swapping these stops would run past 23:59; shorten one of them first.",
         });
-      const next = day[day.indexOf(later) + 1];
-      if (next?.startTime && secondEnd > minutes(next.startTime))
+      const following = day[day.indexOf(later) + 1];
+      if (following?.startTime && secondEnd > minutes(following.startTime))
         throw new NoticeError({
           key: "Swapping these stops would overlap the next stop; shorten one of them first.",
         });
@@ -181,6 +193,9 @@ export function applyItemAction(plan: TripPlan, id: string, action: ItemAction):
       second.endTime = clock(secondEnd);
       delete first.arriveBy;
       delete second.arriveBy;
+      // The stop after the pair now follows the other stop of the pair, so the leg it had from its old
+      // predecessor is no longer the journey it describes.
+      if (following) delete following.arriveBy;
       // Keep the plan in time order, which is the order the Timeline edits by.
       const a = items.indexOf(first);
       const b = items.indexOf(second);
@@ -188,6 +203,6 @@ export function applyItemAction(plan: TripPlan, id: string, action: ItemAction):
       break;
     }
   }
-  next.editVersion = (plan.editVersion ?? 0) + 1;
+  settlePlan(next, plan.editVersion ?? 0, effectiveCurrency(plan.brief, displayCurrency ?? "AUD"));
   return TripPlan.parse(next);
 }

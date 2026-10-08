@@ -231,11 +231,27 @@ async function interactions(browser) {
     !(await timeline.locator(".stop-place-card").count()),
     "the place card stays closed until a stop is selected",
   );
-  await stop.locator(".timeline-stop__main").click();
+  // A control names only an element that is on the page: the closed time form and the closed place card
+  // name nothing, and the open place card is the one the stop's button names.
+  const mainButton = stop.locator(".timeline-stop__main");
+  check(
+    (await mainButton.getAttribute("aria-controls")) === null,
+    "a closed place card is not named by its stop's button",
+  );
+  check(
+    (await stop.locator(".timeline-stop__time").getAttribute("aria-controls")) === null,
+    "a closed time form is not named by its time button",
+  );
+  await mainButton.click();
   await settle(page);
   check(
     await timeline.locator(".stop-place-card").isVisible(),
     "selecting a stop opens its place card",
+  );
+  const controlled = await mainButton.getAttribute("aria-controls");
+  check(
+    controlled !== null && (await page.evaluate((id) => !!document.getElementById(id), controlled)),
+    `an open place card is named by its stop's button (${controlled})`,
   );
   await page.screenshot({ path: `${OUT}/interact-01-stop-open.png` });
 
@@ -434,7 +450,7 @@ async function interactions(browser) {
       `${String(Math.min(endHour + 1, 22)).padStart(2, "0")}:${String(endMinute).padStart(2, "0")}`,
     );
     const verifiesBefore = ops.filter((op) => op.kind === "verify").length;
-    await Promise.all([
+    const [timed] = await Promise.all([
       page.waitForResponse(
         (r) =>
           r.url().endsWith("/api/trip/preview-edit") &&
@@ -442,16 +458,19 @@ async function interactions(browser) {
       ),
       timeline.getByRole("button", { name: "Change time", exact: true }).click(),
     ]);
-    // The edit changed the day, so its legs are routed again (one verify), then the mode is read.
+    // A time edit re-times the day, so the server routes every leg of that day in the same answer: one
+    // route per leg. The day is then recorded as routed, so the workspace sends no second verify (that
+    // second answer would replace the plan and drop its Undo step; see the immediate timeline edits note).
+    const timedRoutes = (await timed.json()).routes;
     check(
-      await until(
-        page,
-        async () => ops.filter((op) => op.kind === "verify").length > verifiesBefore,
-        10_000,
-      ),
-      "a time edit that changes the day routes its legs again",
+      timedRoutes.length === legCount,
+      `a time edit that changes the day routes its legs again (${timedRoutes.length} of ${legCount} legs)`,
     );
     await settle(page, 800);
+    check(
+      ops.filter((op) => op.kind === "verify").length === verifiesBefore,
+      "the edited day is not verified a second time after a time edit",
+    );
     check(
       (await modes.first().inputValue()) === target,
       `a chosen mode survives a later time edit (${target})`,
@@ -489,6 +508,53 @@ async function interactions(browser) {
     );
     await page.screenshot({ path: `${OUT}/interact-06-no-route.png` });
     await page.unroute("**/api/trip/preview-edit");
+
+    // An Idea in the plan does not break Undo: the undo step covers the scheduled stops, and the Idea is
+    // kept as it is. The first stop moves to Ideas, the next stop's time changes, and Undo restores that time.
+    await timeline
+      .getByRole("button", { name: /^Actions for / })
+      .first()
+      .click();
+    await timeline.getByRole("menuitem", { name: "Move to ideas", exact: true }).click();
+    await settle(page, 800);
+    check(
+      (await timeline.locator(".timeline-ideas .timeline-stop").count()) >= 1,
+      "a stop moved to Ideas is listed there",
+    );
+    const remaining = timeline.locator(".timeline-day .timeline-stop").first();
+    const timeBeforeEdit = await remaining.innerText();
+    await remaining.locator(".timeline-stop__time").click();
+    const ideaStart = timeline.getByLabel(/^Start/).first();
+    const [ideaHour, ideaMinute] = (await ideaStart.inputValue()).split(":").map(Number);
+    await ideaStart.fill(
+      `${String(Math.min(ideaHour + 1, 20)).padStart(2, "0")}:${String(ideaMinute).padStart(2, "0")}`,
+    );
+    const ideaEnd = timeline.getByLabel(/^End/).first();
+    const [ideaEndHour, ideaEndMinute] = (await ideaEnd.inputValue()).split(":").map(Number);
+    await ideaEnd.fill(
+      `${String(Math.min(ideaEndHour + 1, 22)).padStart(2, "0")}:${String(ideaEndMinute).padStart(2, "0")}`,
+    );
+    await timeline.getByRole("button", { name: "Change time", exact: true }).click();
+    await settle(page, 800);
+    check(
+      !(await timeline.locator(".timeline-status--error").count()),
+      "a time edit with an Idea in the plan is applied without an error",
+    );
+    await timeline.getByRole("button", { name: "Undo last change" }).click();
+    await settle(page, 800);
+    check(
+      !(await timeline.locator(".timeline-status--error").count()),
+      "Undo with an Idea in the plan shows no error",
+    );
+    check(
+      (await timeline.locator(".timeline-day .timeline-stop").first().innerText()) ===
+        timeBeforeEdit,
+      "Undo restores the time with an Idea in the plan",
+    );
+    check(
+      (await timeline.locator(".timeline-ideas .timeline-stop").count()) >= 1,
+      "the Idea is still in Ideas after Undo",
+    );
   }
 
   await page.waitForLoadState("networkidle");

@@ -198,6 +198,43 @@ try {
     `refused edit blockers Chinese (${blockers.replaceAll("\n", " | ")})`,
   );
   await np.screenshot({ path: `${out}/1440-edit-blockers.png` });
+  // A timing notice the plan keeps (stored by the server as a keyed notice, see lib/i18n/notice.ts) reads in
+  // Chinese, on the stop its leg leads into, and the English sentence kept for the chat is not shown.
+  await np.unroute("**/api/trip/preview-edit");
+  await np.route("**/api/trip/preview-edit", async (route) => {
+    const response = await route.fetch();
+    const body = await response.json();
+    const stop = route.request().postDataJSON().operation.id;
+    const notice = {
+      key: "Day {day}: {stop} needs at least {minutes} minutes after the previous activity.",
+      params: { day: 1, stop: "Senso-ji Temple", minutes: 40 },
+    };
+    body.plan.editIssues = [
+      {
+        code: "route_unavailable",
+        message: `notice:${encodeURIComponent(JSON.stringify(notice))}`,
+        activityIds: [stop],
+      },
+    ];
+    await route.fulfill({ response, json: body });
+  });
+  await changeTime();
+  await timeline.locator(".timeline-stop__conflicts li").first().waitFor({ timeout: 30000 });
+  const stored = await timeline.locator(".timeline-stop__conflicts").allInnerTexts();
+  check(
+    stored.length === 1 &&
+      stored[0].includes("第 1 天：Senso-ji Temple 需与上一项活动至少间隔 40 分钟。") &&
+      !/needs at least|Day \d/.test(stored.join(" ")),
+    `a stored timing notice shows on its stop in Chinese (${stored.join(" | ").replace(/\s+/g, " ")})`,
+  );
+  await np.screenshot({ path: `${out}/1440-stored-notice.png` });
+  // The applied edit closed the time form; the next block needs a changed end time to submit.
+  await timeline.locator(".timeline-stop__time").first().click();
+  const endAgain = timeline.getByLabel(/^结束/).first();
+  const [endAgainHour, endAgainMinute] = (await endAgain.inputValue()).split(":").map(Number);
+  await endAgain.fill(
+    `${String(Math.min(endAgainHour + 1, 22)).padStart(2, "0")}:${String(endAgainMinute).padStart(2, "0")}`,
+  );
   await np.unroute("**/api/trip/preview-edit");
   // A failed preview or place search with no server wording falls back to authored notices.
   await np.route("**/api/trip/preview-edit", (route) =>

@@ -11,11 +11,15 @@ import { requestPreview } from "./previewRequest";
 export type LegState = {
   /** A day's legs are being routed now. */
   working: boolean;
-  /** Why the last routing of a day was refused or failed; cleared by the next routing. */
+  /**
+   * Why the last routing of a day was refused or failed. Shown only while that day's stops are the same
+   * as when it was asked: a change to them makes the problem stale, and the day is asked again.
+   */
   problems: Notice[];
   /**
-   * Records that a day is current with an applied leg change: that change routed its own leg only,
-   * so the day's other legs are not asked for again.
+   * Records that a day is current with an applied edit that routed it on the server: a leg change routes
+   * its own leg only, and a time, move or undo edit routes every leg of its day, so the day's legs are
+   * not asked for again.
    */
   noteLeg(plan: TripPlan, day: number): void;
 };
@@ -39,22 +43,39 @@ function signature(plan: TripPlan, day: number) {
     .join(";");
 }
 
+/** What the day-by-day check remembers between plans. */
+type Memory = {
+  /** The signature each day's legs were last routed for, by a verify that succeeded or an applied edit. */
+  routed: Map<number, string>;
+  /** The signature a day's verify was refused or failed for: not asked again until its stops change. */
+  refused: Map<number, string>;
+  /** Days seen with a stop that has no saved place. Their stored legs are the planner's, not checked. */
+  unsaved: Set<number>;
+};
+
 /**
  * The first day that needs its legs routed: every stop on it has its place saved, and its stops or
- * times differ from the last state it was routed (or found already routed) in. A day whose stops
- * changed by an applied edit is routed again, even when its legs still have stored times. A day
- * never seen before whose legs are all stored is recorded as current without a request, so a page
- * load does not route every day again.
+ * times differ from the last state it was routed (or refused) in. A day whose places were all saved
+ * when it was first seen, with every leg already stored, is recorded as routed without a request, so a
+ * page load does not route every day again. A day that was seen with an unsaved place is never recorded
+ * that way: its stored legs are only the planner's estimates, so it is verified once its places are saved.
  */
-function dayNeedingLegs(plan: TripPlan, asked: Map<number, string>) {
+function dayNeedingLegs(plan: TripPlan, memory: Memory) {
   for (let day = 1; day <= dayCount(plan); day += 1) {
     const stops = stopsOn(plan, day);
-    if (stops.length < 2 || stops.some((stop) => !stop.placeId)) continue;
+    if (stops.length < 2) continue;
+    if (stops.some((stop) => !stop.placeId)) {
+      memory.unsaved.add(day);
+      continue;
+    }
     const now = signature(plan, day);
-    const was = asked.get(day);
-    if (was === now) continue;
-    if (was === undefined && stops.slice(1).every((stop) => stop.arriveBy)) {
-      asked.set(day, now);
+    if (memory.routed.get(day) === now || memory.refused.get(day) === now) continue;
+    if (
+      memory.routed.get(day) === undefined &&
+      !memory.unsaved.has(day) &&
+      stops.slice(1).every((stop) => stop.arriveBy)
+    ) {
+      memory.routed.set(day, now);
       continue;
     }
     return day;
@@ -68,9 +89,11 @@ function dayNeedingLegs(plan: TripPlan, asked: Map<number, string>) {
  * times, and a render never routes anything. Runs whether or not the Trip timeline is open, as the
  * place saves do. See the Agent Note on leg travel times.
  *
- * - One day is routed at a time; a newer plan (chat, a timeline edit) cancels the one in flight and
- *   the day is asked again for the plan that is current.
- * - A refusal or failure is shown as a problem and the day is not asked again until its stops change.
+ * - One day is routed at a time. A newer plan (chat, a timeline edit) cancels the one in flight, and so
+ *   does a user edit starting (`enabled` turns false); the day is then asked again for the plan that is
+ *   current, so a background result never replaces a plan an edit is working on.
+ * - A day is recorded as routed only when its verify succeeds, or when an applied edit already routed it.
+ * - A refusal or failure is shown as a problem, and the day is not asked again until its stops change.
  * - `onRoutes` receives the routes the answer verified, which the workspace keeps for the legs and the map.
  */
 export function useLegRoutes({
@@ -88,10 +111,12 @@ export function useLegRoutes({
   onRoutes(routes: RouteResult[]): void;
 }): LegState {
   const { settings } = useSettings();
-  const [state, setState] = useState<Omit<LegState, "noteLeg">>({ working: false, problems: [] });
+  const [state, setState] = useState<
+    Pick<LegState, "working" | "problems"> & { problemDay?: number; problemSig?: string }
+  >({ working: false, problems: [] });
   // Bumped when a day's request was cancelled, so the day is looked at again.
   const [again, setAgain] = useState(0);
-  const asked = useRef(new Map<number, string>());
+  const memory = useRef<Memory>({ routed: new Map(), refused: new Map(), unsaved: new Set() });
   const flight = useRef<AbortController | null>(null);
   const latest = useRef(plan);
   latest.current = plan;
@@ -116,12 +141,19 @@ export function useLegRoutes({
     },
     [],
   );
+  // A user edit (or chat) starting cancels the routing in flight. Its result would replace the plan the
+  // edit is checking; the day is asked again once routing is enabled.
+  useEffect(() => {
+    if (enabled) return;
+    flight.current?.abort();
+    flight.current = null;
+  }, [enabled]);
 
   useEffect(() => {
     if (!enabled || !plan || flight.current) return;
-    const day = dayNeedingLegs(plan, asked.current);
+    const day = dayNeedingLegs(plan, memory.current);
     if (day === undefined) return;
-    asked.current.set(day, signature(plan, day));
+    const sig = signature(plan, day);
     const controller = new AbortController();
     flight.current = controller;
     setState((old) => ({ ...old, working: true }));
@@ -135,40 +167,47 @@ export function useLegRoutes({
       (answer) => {
         if (flight.current === controller) flight.current = null;
         if (controller.signal.aborted || latest.current !== plan) {
-          // Replaced by a newer plan: the day is looked at again for that plan.
-          asked.current.delete(day);
+          // Cancelled or replaced by a newer plan: the day is asked again for the plan that is current.
           setAgain((value) => value + 1);
           setState((old) => ({ ...old, working: false }));
           return;
         }
         if (!answer.plan) {
-          setState({ working: false, problems: answer.blockers });
+          memory.current.refused.set(day, sig);
+          setState({ working: false, problems: answer.blockers, problemDay: day, problemSig: sig });
           return;
         }
         routesRef.current(answer.routes);
-        asked.current.set(day, signature(answer.plan, day));
+        memory.current.routed.set(day, signature(answer.plan, day));
         setState({ working: false, problems: [] });
         applyRef.current(answer.plan);
       },
       (error: unknown) => {
         if (flight.current === controller) flight.current = null;
         if (controller.signal.aborted) {
-          asked.current.delete(day);
           setAgain((value) => value + 1);
           setState((old) => ({ ...old, working: false }));
           return;
         }
+        memory.current.refused.set(day, sig);
         setState({
           working: false,
           problems: [errorNotice(error, { key: "Route check failed. Try again." })],
+          problemDay: day,
+          problemSig: sig,
         });
       },
     );
   }, [plan, enabled, dataMode, currency, again]);
 
   function noteLeg(next: TripPlan, day: number) {
-    asked.current.set(day, signature(next, day));
+    memory.current.routed.set(day, signature(next, day));
   }
 
-  return { ...state, noteLeg };
+  // A problem belongs to the stops it was found for; once those change it is no longer shown.
+  const stale =
+    state.problemDay === undefined ||
+    !plan ||
+    signature(plan, state.problemDay) !== state.problemSig;
+  return { working: state.working, problems: stale ? [] : state.problems, noteLeg };
 }

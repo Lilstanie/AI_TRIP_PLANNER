@@ -1,5 +1,5 @@
 import type { ProposalItem, TripPlan } from "@trip/shared";
-import type { Notice } from "../i18n/notice";
+import { noticeText, readStoredNotice, type Notice } from "../i18n/notice";
 
 /**
  * The price note `trip-edit` writes on a stop whose price was changed. The stop's "Price needs
@@ -62,13 +62,17 @@ export function placeConflicts(plan: TripPlan): ConflictPlacement {
     .flatMap((section) => section.proposal?.items ?? [])
     .filter((item) => item.day !== undefined && item.startTime && item.endTime);
   // Stop-level issues name their stops by id, so their wording is not repeated under a day or the budget.
+  // A stored issue's English sentence is also in conflictsWith (and so in plan.conflicts); that copy is
+  // skipped here, and the issue is shown in the traveller's language.
   const issues = (plan.editIssues ?? []).filter((issue) => issue.code !== "price_unverified");
-  const issueMessages = new Set(issues.map((issue) => issue.message));
+  const issueSentences = new Set(
+    issues.map((issue) => noticeText("en", readStoredNotice(issue.message))),
+  );
 
   const overlapDays = new Set<number>();
   for (const conflict of plan.conflicts ?? []) {
     for (const reason of conflict.reason.split("; ").map((part) => part.trim())) {
-      if (reason === PRICE_CHECK_MESSAGE || issueMessages.has(reason)) continue;
+      if (reason === PRICE_CHECK_MESSAGE || issueSentences.has(reason)) continue;
       const overlap = OVERLAP.exec(reason);
       const day = DAY.exec(reason);
       if (reason.startsWith(INFEASIBLE))
@@ -105,6 +109,7 @@ export function placeConflicts(plan: TripPlan): ConflictPlacement {
 
   for (const issue of issues)
     for (const id of issue.activityIds)
-      if (stops.some((stop) => stop.id === id)) addTo(placement.stops, id, { raw: issue.message });
+      if (stops.some((stop) => stop.id === id))
+        addTo(placement.stops, id, readStoredNotice(issue.message));
   return placement;
 }

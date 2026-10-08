@@ -46,6 +46,21 @@ const REPLACE = "Manly Beach";
 const UNCONFIRMED = "Not found on the map";
 const RETRYABLE = "Place lookup failed — retry from the map";
 
+// Scenario 4: a Day 1 of five stops, each with the planner's arrival time (`arriveBy`) from the stop before it.
+// The planner's walk is 37 minutes, longer than any simulated walk (6 to 30 minutes), so a verified leg is
+// never mistaken for the planner's estimate. Each gap between stops is 90 minutes, enough for a leg and its
+// 15-minute buffer, so the first routing raises no timing notice.
+const SEEDED_STOPS = [
+  { name: "Sydney Opera House", start: "09:00", end: "10:00" },
+  { name: "Royal Botanic Garden Sydney", start: "11:30", end: "12:30" },
+  { name: "Bondi Beach", start: "14:00", end: "15:00" },
+  { name: "The Rocks", start: "16:30", end: "17:30" },
+  { name: "Darling Harbour", start: "19:00", end: "20:00" },
+];
+const PLANNER_WALK_MIN = 37;
+// The stop price the scenario gives one stop, as the server would answer a priced stop.
+const PRICE = 40;
+
 const failures = [];
 const check = (ok, message) => {
   if (!ok) failures.push(message);
@@ -72,6 +87,11 @@ function newStub() {
     inFlight: 0,
     maxInFlight: 0,
     releaseFlaky: false,
+    // Scenario 4 holds an answer until the test releases it: a verify, a time edit, or the next time
+    // edit's answer is priced (`priceNextTime`).
+    holdVerify: undefined,
+    holdTime: undefined,
+    priceNextTime: false,
   };
 }
 
@@ -100,7 +120,29 @@ async function installStubs(page, stub) {
   // and the plan's version moves on. A base version the plan has already left is refused.
   await page.route("**/api/trip/preview-edit", async (route) => {
     const body = route.request().postDataJSON();
-    if (body.operation.kind !== "place") return route.continue();
+    if (body.operation.kind === "verify" && stub.holdVerify) await stub.holdVerify;
+    if (body.operation.kind === "time" && stub.holdTime) await stub.holdTime;
+    if (body.operation.kind === "time" && stub.priceNextTime) {
+      // The server's answer for a stop that carries a price: the stop, its section and the total.
+      stub.priceNextTime = false;
+      const response = await route.fetch();
+      const json = await response.json();
+      const section = json.plan.sections.find((s) => s.id === "itinerary");
+      const item = section.proposal.items.find((i) => i.id === body.operation.id);
+      item.estCost = PRICE;
+      section.estCost = (section.estCost ?? 0) + PRICE;
+      json.plan.estTotal += PRICE;
+      return route.fulfill({ response, json });
+    }
+    if (body.operation.kind !== "place") {
+      // A verify or time edit the test has held may be abandoned by the page: its answer is then not
+      // needed, and continuing an aborted request is refused.
+      try {
+        return await route.continue();
+      } catch {
+        return undefined;
+      }
+    }
     stub.inFlight += 1;
     stub.maxInFlight = Math.max(stub.maxInFlight, stub.inFlight);
     await sleep(250);
@@ -135,7 +177,7 @@ async function installStubs(page, stub) {
 }
 
 /** Gives the plan's activities the STOP_NAMES, without a place, as a real plan from chat would have. */
-async function installStopNames(page) {
+async function installStopNames(page, { seeded = false } = {}) {
   await page.route("**/api/chat", async (route) => {
     const response = await route.fetch();
     const body = (await response.text())
@@ -145,6 +187,33 @@ async function installStopNames(page) {
         const frame = JSON.parse(line);
         const section = frame.response?.plan?.sections.find((s) => s.id === "itinerary");
         if (!section?.proposal) return line;
+        if (seeded) {
+          // Scenario 4: the five stops on Day 1, unsaved, each with the planner's arrival time from the stop
+          // before it. Ids are set here so the stops can be told apart in the test.
+          const kept = section.proposal.items.filter((item) => item.kind !== "activity");
+          section.proposal.items = [
+            ...kept,
+            ...SEEDED_STOPS.map((stop, index) => ({
+              id: `seed-stop-${index + 1}`,
+              kind: "activity",
+              day: 1,
+              startTime: stop.start,
+              endTime: stop.end,
+              location: stop.name,
+              detail: stop.name,
+              ...(index
+                ? {
+                    arriveBy: {
+                      mode: "walk",
+                      durationMin: PLANNER_WALK_MIN,
+                      from: SEEDED_STOPS[index - 1].name,
+                    },
+                  }
+                : {}),
+            })),
+          ];
+          return JSON.stringify(frame);
+        }
         let index = 0;
         for (const item of section.proposal.items) {
           if (item.kind !== "activity" || item.day === undefined) continue;
@@ -161,13 +230,17 @@ async function installStopNames(page) {
   });
 }
 
-async function openTrip(browser, { width, height, stub }) {
+async function openTrip(browser, { width, height, stub, seeded = false }) {
   const context = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: 1 });
   const page = await context.newPage();
   const errors = [];
   const previewRequests = [];
+  // The kind of each edit the page asks the server for, in order (place, verify, time, ...).
+  const operations = [];
   page.on("request", (request) => {
-    if (request.url().endsWith("/api/trip/preview-edit")) previewRequests.push(request.url());
+    if (!request.url().endsWith("/api/trip/preview-edit")) return;
+    previewRequests.push(request.url());
+    operations.push(request.postDataJSON().operation.kind);
   });
   page.on("console", (message) => {
     if (message.type() !== "error") return;
@@ -179,7 +252,7 @@ async function openTrip(browser, { width, height, stub }) {
   page.on("pageerror", (error) => errors.push(String(error)));
   if (stub) {
     await installStubs(page, stub);
-    await installStopNames(page);
+    await installStopNames(page, { seeded });
   }
   await page.goto(BASE);
   await page.waitForSelector(".workspace-app");
@@ -215,7 +288,16 @@ async function openTrip(browser, { width, height, stub }) {
   // The day view is the Trip drawer's only view, so it is there once the drawer opens.
   await page.getByRole("region", { name: "Trip timeline" }).waitFor({ timeout: 30_000 });
   await settle(page, 700);
-  return { context, page, errors, previewRequests };
+  return { context, page, errors, previewRequests, operations };
+}
+
+/** Polls `test` for up to `ms`; resolves to whether it passed. */
+async function waitUntil(test, ms = 8000) {
+  for (let waited = 0; waited < ms; waited += 200) {
+    if (await test()) return true;
+    await sleep(200);
+  }
+  return test();
 }
 
 /** Waits until no save is running and the number of saves has stopped changing. */
@@ -400,6 +482,163 @@ async function main() {
     summary.saves = stub.saves;
     summary.maxInFlight = stub.maxInFlight;
     await context.close();
+
+    // 4. A day whose stops already carry the planner's arrival times (`arriveBy`). Its places are saved one by
+    //    one; the day is then verified once, and its legs read as routed. An edit started while that verify is
+    //    in flight is applied and not replaced by the verify's answer. A timing notice sits on its stop only,
+    //    and removing a priced stop takes its price off the estimate at once.
+    const seeded = newStub();
+    const day = await openTrip(browser, { width: 1440, height: 1000, stub: seeded, seeded: true });
+    const seededPage = day.page;
+    const trip = (page) => page.getByRole("region", { name: "Trip timeline" });
+    const dayOne = () => trip(seededPage).locator(".timeline-day .timeline-stop");
+    const stopRow = (position) => dayOne().nth(position - 1);
+    const legs = () => trip(seededPage).locator(".timeline-connection");
+    await waitForQuiet(seededPage, seeded);
+    const seededStops = (await scanStops(seededPage)).filter((stop) => stop.day === 1);
+    const seededSaved = seededStops.filter(isConfirmed).length;
+    check(
+      seededStops.length === SEEDED_STOPS.length && seededSaved === SEEDED_STOPS.length,
+      `Day 1 of five stops: every stop's place is saved (${seededSaved}/${seededStops.length})`,
+    );
+    await trip(seededPage).getByRole("tab").nth(0).click();
+    await settle(seededPage, 600);
+    check(
+      day.operations.includes("verify"),
+      `the day is verified once its places are saved (${day.operations.join(", ")})`,
+    );
+    const legLabels = await trip(seededPage).locator(".timeline-connection__label").allInnerTexts();
+    check(
+      legLabels.length === SEEDED_STOPS.length - 1 &&
+        legLabels.every((text) => /(Walk|Public transport|Drive) · \d+\s*(min|h)/.test(text)),
+      `the four legs show their mode and time (${legLabels.join(" | ")})`,
+    );
+    check(
+      (await legs().filter({ hasText: "estimate" }).count()) === SEEDED_STOPS.length - 1,
+      "the legs read as estimates, never as checked",
+    );
+    check(
+      !legLabels.some((text) => text.includes(`· ${PLANNER_WALK_MIN} min`)),
+      `no leg keeps the planner's ${PLANNER_WALK_MIN}-minute estimate`,
+    );
+
+    // The edit: stop 3 moves earlier, which changes the day, so its legs are verified again. That verify is
+    // held; a time edit of stop 1 starts while it is in flight, and the verify is answered before the edit.
+    let releaseVerify = () => {};
+    let releaseTime = () => {};
+    seeded.holdVerify = new Promise((done) => (releaseVerify = done));
+    await stopRow(3)
+      .getByRole("button", { name: /^Actions for / })
+      .click();
+    await seededPage.getByRole("menuitem", { name: "Move earlier", exact: true }).click();
+    check(
+      await waitUntil(
+        async () => (await seededPage.getByText("Checking travel times…").count()) > 0,
+      ),
+      "a leg verify is in flight when the time edit starts",
+    );
+    seeded.holdTime = new Promise((done) => (releaseTime = done));
+    await stopRow(1).locator(".timeline-stop__time").click();
+    await trip(seededPage)
+      .getByLabel(/^Start/)
+      .first()
+      .fill("09:15");
+    await trip(seededPage).getByLabel(/^End/).first().fill("10:15");
+    await trip(seededPage).getByRole("button", { name: "Change time", exact: true }).click();
+    await settle(seededPage, 400);
+    releaseVerify();
+    await settle(seededPage, 800);
+    releaseTime();
+    await settle(seededPage, 1200);
+    const firstTime = (await stopRow(1).locator(".timeline-stop__time").innerText()).replace(
+      /\s+/g,
+      " ",
+    );
+    check(
+      firstTime.includes("09:15"),
+      `a time edit started during a leg verify is applied, not lost (${firstTime})`,
+    );
+    check(
+      !(await trip(seededPage).locator(".timeline-status--error").count()),
+      "the edit started during the verify shows no error",
+    );
+    check(
+      (await legs().count()) === SEEDED_STOPS.length - 1,
+      `the day's legs are still shown after the edit (${await legs().count()})`,
+    );
+
+    // A timing notice: stop 3 starts 5 minutes after stop 2 ends, which is not enough for its leg. The notice
+    // sits on stop 3 only; no other stop of the day shows it.
+    await stopRow(3).locator(".timeline-stop__time").click();
+    await trip(seededPage)
+      .getByLabel(/^Start/)
+      .first()
+      .fill("12:35");
+    await trip(seededPage).getByLabel(/^End/).first().fill("13:35");
+    await trip(seededPage).getByRole("button", { name: "Change time", exact: true }).click();
+    await settle(seededPage, 1000);
+    // Each stop's notices. The mock's own Day 1 flight can overlap a stop, which shows that stop an
+    // "Overlaps" notice of its own; only the timing notice is counted here.
+    const noticeRows = await dayOne().evaluateAll((rows) =>
+      rows.map((row) =>
+        [...row.querySelectorAll(".timeline-stop__conflicts li")].map((item) =>
+          item.textContent.trim(),
+        ),
+      ),
+    );
+    const timingNotices = noticeRows.map(
+      (notices) => notices.filter((text) => /needs at least/.test(text)).length,
+    );
+    summary.seededDay = { ...(summary.seededDay ?? {}), noticeRows };
+    check(
+      timingNotices.join(",") === "0,0,1,0,0",
+      `the timing notice shows on its stop only (per stop: ${timingNotices.join(",")}; all notices: ${JSON.stringify(noticeRows)})`,
+    );
+    const noticeText = await stopRow(3).locator(".timeline-stop__conflicts").innerText();
+    check(
+      /needs at least \d+ minutes after the previous activity/.test(noticeText),
+      `the notice says why (${noticeText.replace(/\s+/g, " ")})`,
+    );
+
+    // A priced stop: removing it takes its price off the estimate at once, with no server answer.
+    const total = seededPage.locator(".trip__budget strong");
+    const totalBefore = (await total.innerText()).trim();
+    seeded.priceNextTime = true;
+    await stopRow(5).locator(".timeline-stop__time").click();
+    await trip(seededPage)
+      .getByLabel(/^Start/)
+      .first()
+      .fill("19:05");
+    await trip(seededPage).getByLabel(/^End/).first().fill("20:05");
+    await trip(seededPage).getByRole("button", { name: "Change time", exact: true }).click();
+    await settle(seededPage, 1000);
+    const totalPriced = (await total.innerText()).trim();
+    check(
+      totalPriced !== totalBefore,
+      `the priced stop raises the estimate (${totalBefore} → ${totalPriced})`,
+    );
+    await stopRow(5)
+      .getByRole("button", { name: /^Actions for / })
+      .click();
+    await seededPage.getByRole("menuitem", { name: "Remove", exact: true }).click();
+    await settle(seededPage, 400);
+    const totalRemoved = (await total.innerText()).trim();
+    check(
+      totalRemoved === totalBefore,
+      `removing the priced stop takes its price off the estimate at once (${totalRemoved}, was ${totalBefore})`,
+    );
+    check(
+      !day.errors.length,
+      `scenario 4: no console errors${day.errors.length ? `: ${day.errors.join(" | ")}` : ""}`,
+    );
+    summary.seededDay = {
+      stops: seededStops,
+      operations: day.operations,
+      noticeRows,
+      totals: { totalBefore, totalPriced, totalRemoved },
+    };
+    await seededPage.screenshot({ path: `${OUT}/04-seeded-day.png` });
+    await day.context.close();
 
     // 5. With no map places (no stub, so every lookup answers 503), nothing is saved.
     const bare = await openTrip(browser, { width: 1440, height: 1000 });

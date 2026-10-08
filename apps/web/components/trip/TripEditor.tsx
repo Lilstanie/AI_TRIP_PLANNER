@@ -1,5 +1,6 @@
 "use client";
 import { useLocale } from "@/components/account/LocaleProvider";
+import { useSettings } from "@/components/account/SettingsProvider";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import type { TripPlan } from "@trip/shared";
 import type { RouteResult } from "@/lib/integrations/google";
@@ -77,6 +78,7 @@ export function TripEditor({
   onChoose?: ChooseCandidate;
 }) {
   const { t, locale, notice: localizeNotice } = useLocale();
+  const { settings } = useSettings();
   const { activities, itinerary, places, placeIdFor, locationStatus } = tripPlaces;
   const edits = useTimelineEdits({
     plan,
@@ -159,7 +161,7 @@ export function TripEditor({
   const act = (activity: Activity, action: ItemAction, message: Notice): boolean => {
     if (!activity.id) return false;
     try {
-      const next = applyItemAction(plan, activity.id, action);
+      const next = applyItemAction(plan, activity.id, action, settings.displayCurrency);
       applied.current = next;
       setItemUndo({ previous: plan, message });
       setProblem("");

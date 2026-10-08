@@ -1,6 +1,5 @@
 import { z } from "zod";
 import { ArriveBy, TripPlan, type ProposalItem } from "@trip/shared";
-import { detectConflicts, rollUpCost } from "@trip/orchestrator";
 import {
   Currency,
   describeFlightChoice,
@@ -17,8 +16,16 @@ import {
   type GooglePlace,
   type RouteResult,
 } from "../integrations/google";
-import { errorNotice, NoticeError, noticeText, type Notice } from "../i18n/notice";
+import {
+  errorNotice,
+  NoticeError,
+  noticeText,
+  readStoredNotice,
+  storeNotice,
+  type Notice,
+} from "../i18n/notice";
 import { PRICE_CHECK_MESSAGE } from "./conflicts";
+import { settlePlan } from "./settle";
 import {
   defaultLegRoute,
   LEG_MODES,
@@ -108,35 +115,6 @@ const mins = (value: string) => Number(value.slice(0, 2)) * 60 + Number(value.sl
 const hhmm = (value: number) =>
   `${String(Math.floor(value / 60)).padStart(2, "0")}:${String(value % 60).padStart(2, "0")}`;
 /**
- * Recompute everything an edit can move: conflicts, section status, costs and
- * the version. Every operation ends here, so a new one cannot quietly skip the
- * budget roll-up or leave a stale conflict behind.
- */
-function settle(plan: TripPlan, baseVersion: number, currency: Currency): void {
-  plan.conflicts = detectConflicts(
-    plan.sections.flatMap((s) => (s.proposal ? [s.proposal] : [])),
-    plan.brief,
-    currency,
-  );
-  // A section is unresolved when the recomputed conflicts still target it — the
-  // same rule the orchestrator uses. An edit no longer rebuilds a decision list.
-  plan.sections.forEach((section) => {
-    section.status = plan.conflicts?.some((c) => c.targetAgent === section.id)
-      ? "needs_you"
-      : "draft";
-  });
-  // Recompute from item evidence, never trust client totals.
-  plan.sections.forEach((s) => {
-    if (s.proposal) s.estCost = s.proposal.items.reduce((sum, i) => sum + (i.estCost ?? 0), 0);
-  });
-  plan.budgetTotal = plan.brief.budgetTotal;
-  // Share the orchestrator's calculator rather than keeping a float copy of it here. The two
-  // already disagreed by float dust, and converted budgets make fractional cents routine.
-  Object.assign(plan, rollUpCost(plan.sections, plan.budgetTotal));
-  plan.editVersion = baseVersion + 1;
-}
-
-/**
  * Take a different stay or fare from the ones the specialist already found.
  *
  * Deliberately not part of the activity path above: that path exists to re-time
@@ -207,7 +185,7 @@ function chooseCandidate(
     });
   }
 
-  settle(plan, baseVersion, currency);
+  settlePlan(plan, baseVersion, currency);
   return {
     plan: TripPlan.parse(plan),
     baseVersion,
@@ -356,6 +334,13 @@ export async function previewEdit(
   }
   const routes: RouteResult[] = [],
     blockers: Notice[] = [];
+  // The stop a route or timing blocker belongs to: the stop its leg leads into. Its notice is shown on
+  // that stop only, not under every stop of the day.
+  const blockedStop = new Map<Notice, string>();
+  const block = (notice: Notice, stop: string | undefined) => {
+    blockers.push(notice);
+    if (stop) blockedStop.set(notice, stop);
+  };
   // A place saved with `routeLater` changes no time and asks for no route; its day is routed once
   // afterwards by a `verify`.
   const routed = !(operation.kind === "place" && operation.routeLater);
@@ -392,10 +377,13 @@ export async function previewEdit(
       // Confirming a place is how a pair gets its route, so a place edit is not refused for an
       // unconfirmed neighbour; that pair keeps its time until both places are confirmed.
       if (previous && (!previous.placeId || !current.placeId) && operation.kind !== "place") {
-        blockers.push({
-          key: "Day {day}: confirm the place for every stop first, so travel times between them can be checked.",
-          params: { day },
-        });
+        block(
+          {
+            key: "Day {day}: confirm the place for every stop first, so travel times between them can be checked.",
+            params: { day },
+          },
+          current.id,
+        );
         break;
       }
       if (previous && previous.placeId && current.placeId) {
@@ -426,8 +414,9 @@ export async function previewEdit(
                   !Number.isFinite(route.durationMin) ||
                   route.durationMin <= 0))
             ) {
-              blockers.push(
+              block(
                 route.notice ?? (route.error ? { raw: route.error } : { key: "Route unavailable" }),
+                current.id,
               );
               break;
             }
@@ -450,14 +439,17 @@ export async function previewEdit(
               (operation.kind === "time" && index === changedIndex);
             if (keepExact) {
               if (start < earliest)
-                blockers.push({
-                  key: "Day {day}: {stop} needs at least {minutes} minutes after the previous activity.",
-                  params: { day, stop: current.detail, minutes: travel + 15 },
-                });
+                block(
+                  {
+                    key: "Day {day}: {stop} needs at least {minutes} minutes after the previous activity.",
+                    params: { day, stop: current.detail, minutes: travel + 15 },
+                  },
+                  current.id,
+                );
             } else start = Math.max(start, earliest);
           }
         } catch (error) {
-          blockers.push(errorNotice(error, { key: "Route verification failed" }));
+          block(errorNotice(error, { key: "Route verification failed" }), current.id);
           break;
         }
       }
@@ -469,13 +461,10 @@ export async function previewEdit(
       current.endTime = hhmm(start + duration);
     }
   }
-  // Outside a move, only running past midnight blocks; the rest stays on the plan, in English.
-  const unresolved =
-    operation.kind !== "move"
-      ? blockers
-          .filter((blocker) => !outsideDay(blocker))
-          .map((blocker) => noticeText("en", blocker))
-      : [];
+  // Outside a move, only running past midnight blocks; the rest stays on the plan. Its English sentence is
+  // kept in conflictsWith, which the chat reads; its keyed notice is kept in editIssues, on its stop.
+  const kept = operation.kind !== "move" ? blockers.filter((blocker) => !outsideDay(blocker)) : [];
+  const unresolved = kept.map((blocker) => noticeText("en", blocker));
   if (operation.kind !== "move")
     blockers.splice(0, blockers.length, ...blockers.filter(outsideDay));
   section.proposal.items = [
@@ -488,23 +477,27 @@ export async function previewEdit(
     (issue) =>
       issue.code !== "price_unverified" && !issue.activityIds.some((id) => affectedIds.has(id)),
   );
-  const oldIssueMessages = new Set((plan.editIssues ?? []).map((issue) => issue.message));
+  // conflictsWith holds the English sentence of each issue; editIssues holds the keyed notice.
+  const sentenceOf = (message: string) => noticeText("en", readStoredNotice(message));
+  const oldIssueSentences = new Set(
+    (plan.editIssues ?? []).map((issue) => sentenceOf(issue.message)),
+  );
   const retainedLegacy = section.proposal.conflictsWith.filter((message) => {
-    if (oldIssueMessages.has(message) || message === PRICE_CHECK_MESSAGE) return false;
+    if (oldIssueSentences.has(message) || message === PRICE_CHECK_MESSAGE) return false;
     const namedDay = /day (\d+)/i.exec(message);
     return namedDay ? !affected.has(Number(namedDay[1])) : activities.some((a) => !a.placeId);
   });
   section.proposal.conflictsWith = [
-    ...new Set([...retainedLegacy, ...retainedIssues.map((issue) => issue.message)]),
+    ...new Set([...retainedLegacy, ...retainedIssues.map((issue) => sentenceOf(issue.message))]),
     ...unresolved,
     ...(activities.some((a) => a.priceNeedsReview) ? [PRICE_CHECK_MESSAGE] : []),
   ];
   plan.editIssues = [
     ...retainedIssues,
-    ...unresolved.map((message) => ({
+    ...kept.map((blocker) => ({
       code: "route_unavailable" as const,
-      message,
-      activityIds: activities.filter((a) => affected.has(a.day!)).map((a) => a.id!),
+      message: storeNotice(blocker),
+      activityIds: blockedStop.has(blocker) ? [blockedStop.get(blocker)!] : [],
     })),
     ...activities
       .filter((a) => a.priceNeedsReview)
@@ -514,7 +507,7 @@ export async function previewEdit(
         activityIds: [a.id!],
       })),
   ];
-  settle(plan, baseVersion, currency);
+  settlePlan(plan, baseVersion, currency);
   const differences = activities.flatMap((a): EditDifference[] => {
     const old = before.find((b) => b.id === a.id)!;
     return old.day !== a.day ||

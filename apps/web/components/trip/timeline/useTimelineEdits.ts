@@ -123,8 +123,16 @@ export function useTimelineEdits({
         dataMode,
         signal,
       });
-      // A plan that changed while the request was in flight makes the result stale.
-      if (signal.aborted || current.current !== base) return;
+      // A newer request superseded this one: its answer is not wanted.
+      if (signal.aborted) return;
+      // A plan that changed while the request was in flight (from chat or a restore) makes the answer stale.
+      // It is dropped, and the traveller is told so instead of seeing nothing happen.
+      if (current.current !== base) {
+        setErrors([
+          { key: "The plan changed while this change was being checked. Try the change again." },
+        ]);
+        return;
+      }
       // Refused: the plan stays as it is and the blockers say why.
       if (answer.blockers.length) {
         setErrors(answer.blockers);
@@ -139,15 +147,19 @@ export function useTimelineEdits({
 
   // Applies a plan the server accepted, and records the step that undoes it.
   function commit(next: TripPlan, routes: RouteResult[]) {
-    const before = activities.map((a) => ({
-      id: a.id!,
-      day: a.day!,
-      startTime: a.startTime!,
-      endTime: a.endTime!,
-      placeId: a.placeId,
-      priceNeedsReview: a.priceNeedsReview,
-      ...(a.arriveBy ? { arriveBy: a.arriveBy } : {}),
-    }));
+    // The undo step covers the scheduled stops the server re-times. Ideas have no day or times, and the
+    // server keeps them as they are, so they are not part of the step.
+    const before = activities
+      .filter((a) => a.day !== undefined && a.startTime && a.endTime)
+      .map((a) => ({
+        id: a.id!,
+        day: a.day!,
+        startTime: a.startTime!,
+        endTime: a.endTime!,
+        placeId: a.placeId,
+        priceNeedsReview: a.priceNeedsReview,
+        ...(a.arriveBy ? { arriveBy: a.arriveBy } : {}),
+      }));
     const after = new Map(
       (next.sections.find((s) => s.id === "itinerary")?.proposal?.items ?? []).map((item) => [
         item.id,

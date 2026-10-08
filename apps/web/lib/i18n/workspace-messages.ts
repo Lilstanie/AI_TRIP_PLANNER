@@ -623,6 +623,8 @@ export const WORKSPACE_ZH = {
     "第 {day} 天：{stop} 需与上一项活动至少间隔 {minutes} 分钟。",
   "Day {day}: activity would extend beyond the day.": "第 {day} 天：活动将超出当天时间。",
   "This edit is stale. Start from the current plan.": "此修改已过时，请基于当前行程重新修改。",
+  "The plan changed while this change was being checked. Try the change again.":
+    "此修改检查期间行程已变化，请重新尝试此修改。",
   "Plan identifiers do not match. Restore or replan first.": "行程标识不一致，请先恢复或重新规划。",
   "There are no activities to edit.": "没有可修改的活动。",
   "That part of the plan has nothing to choose from.": "这部分方案没有可选项。",

@@ -692,9 +692,12 @@ async function walk(browser, { width, lang }) {
       ? /^与 \d{2}:\d{2}–\d{2}:\d{2} 时段重叠。$/
       : /^Overlaps \d{2}:\d{2}–\d{2}:\d{2} on this day\.$/;
   const overlapMarker = overlapped.conflicts.find((text) => markerText.test(text));
-  const bufferMessage = overlapped.conflicts.find((text) =>
-    /needs at least \d+ minutes after the previous activity\.$/.test(text),
-  );
+  // A stored notice is shown in the traveller's language (keyed notice), so the Chinese page reads the Chinese sentence.
+  const bufferPattern =
+    lang === "zh"
+      ? /需与上一项活动至少间隔 \d+ 分钟。$/
+      : /needs at least \d+ minutes after the previous activity\.$/;
+  const bufferMessage = overlapped.conflicts.find((text) => bufferPattern.test(text));
   check(
     Boolean(overlapMarker) && Boolean(bufferMessage),
     `${run}: the overlapping stop is marked with its conflicts (${JSON.stringify(overlapped.conflicts)})`,

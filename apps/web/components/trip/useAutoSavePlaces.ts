@@ -66,6 +66,13 @@ export function useAutoSavePlaces({
     },
     [plan],
   );
+  // A user edit (or chat) starting cancels a save in flight: its result would replace the plan the edit
+  // is checking. The stop is tried again once saving is enabled.
+  useEffect(() => {
+    if (enabled) return;
+    flight.current?.abort();
+    flight.current = null;
+  }, [enabled]);
 
   useEffect(() => {
     if (seen.current !== plan) {
@@ -90,6 +97,8 @@ export function useAutoSavePlaces({
       // attempt so a later run may send it again.
       if (controller.signal.aborted || (accepted && accepted.base !== latest.current)) {
         tried.current.delete(key);
+        // Re-run the search: the stop is saved once saving is enabled again, even when nothing else changed.
+        setAdvance((value) => value + 1);
         return;
       }
       if (accepted) {

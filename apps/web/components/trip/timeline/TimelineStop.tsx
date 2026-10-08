@@ -299,7 +299,7 @@ export function TimelineStop({
           type="button"
           className="timeline-row__time timeline-stop__time"
           aria-expanded={timing}
-          aria-controls={`stop-time-${id}`}
+          aria-controls={timing ? `stop-time-${id}` : undefined}
           aria-label={`${t("Change time")}, ${range}`}
           disabled={locked}
           onClick={() => setTiming((open) => !open)}
@@ -321,7 +321,7 @@ export function TimelineStop({
             type="button"
             className="timeline-stop__main"
             aria-expanded={selected}
-            aria-controls={`stop-place-card-${id}`}
+            aria-controls={selected ? `stop-place-card-${id}` : undefined}
             onClick={onSelect}
           >
             <span className="timeline-stop__name">
