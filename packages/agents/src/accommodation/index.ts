@@ -1,7 +1,6 @@
 // Owner: C — lodging proposals and price revisions via injected tools and memory.
 import {
   describeStayChoice,
-  AgentProposal as AgentProposalSchema,
   type AgentProposal,
   type TripBrief,
   type AgentContext,

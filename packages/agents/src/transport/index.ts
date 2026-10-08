@@ -1,6 +1,5 @@
 import {
   describeFlightChoice,
-  AgentProposal as AgentProposalSchema,
   TripBrief as TripBriefSchema,
   type AgentContext,
   type AgentProposal,

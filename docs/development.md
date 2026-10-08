@@ -338,6 +338,15 @@ pnpm build
 CI (`.github/workflows/ci.yml`) runs these five commands on Node 22 for pull requests and pushes
 to `main`.
 
+`pnpm lint` covers `apps/web` (`next lint`, config in `apps/web/.eslintrc.json`) and every package under
+`packages/` (ESLint with the shared flat config `eslint.config.mjs` at the repository root). Unlike
+`apps/web`, the packages do not ban `.toFixed(2)`, because that rule points at the web Money module.
+
+CI also runs `node scripts/format-check-changed.mjs <base>` (`pnpm format:check-changed`), which checks
+Prettier formatting only on files that changed against the pull request base, or against the previous tip on
+a push. The repository still holds files that were never formatted, so run Prettier on the files you
+changed (`npx prettier --write <file>`), never on a directory or with `pnpm format`.
+
 Run focused packages with `pnpm --filter @trip/agents test`, `pnpm --filter @trip/orchestrator test`
 or `pnpm --filter @trip/web test`. The web test script sets `NODE_OPTIONS` with POSIX shell syntax;
 on Windows, run it from WSL or Git Bash.

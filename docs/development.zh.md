@@ -258,6 +258,10 @@ pnpm build
 
 CI（`.github/workflows/ci.yml`）在拉取请求和推送到 `main` 时，用 Node 22 运行这五条命令。
 
+`pnpm lint` 覆盖 `apps/web`（`next lint`，配置在 `apps/web/.eslintrc.json`）以及 `packages/` 下的每个包（使用仓库根目录的共享 flat 配置 `eslint.config.mjs` 运行 ESLint）。与 `apps/web` 不同，各包不禁止 `.toFixed(2)`，因为该规则指向的是 Web 的 Money 模块。
+
+CI 还会运行 `node scripts/format-check-changed.mjs <base>`（即 `pnpm format:check-changed`），只检查相对拉取请求基线（推送时为上一个提交）发生变化的文件的 Prettier 格式。仓库中仍有从未格式化的文件，所以请只对你修改的文件运行 Prettier（`npx prettier --write <file>`），不要对目录运行，也不要使用 `pnpm format`。
+
 使用 `pnpm --filter @trip/agents test`、`pnpm --filter @trip/orchestrator test` 或 `pnpm --filter @trip/web test` 针对特定包运行测试。Web 测试脚本使用 POSIX shell 语法设置 `NODE_OPTIONS`；Windows 上应从 WSL 或 Git Bash 运行。
 
 如果在 `pnpm dev` 运行时执行 `pnpm build`，启动开发服务器时应设置 `NEXT_DIST_DIR=.next-dev`，避免二者共用 `.next` 输出目录。
