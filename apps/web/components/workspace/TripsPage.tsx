@@ -1,6 +1,9 @@
 "use client";
 import { intlLocale, type AppLocale, type MessageKey } from "@/lib/i18n/locale";
 import { useLocale } from "@/components/account/LocaleProvider";
+import { useSettings } from "@/components/account/SettingsProvider";
+import { moneyDisplay } from "@/lib/money";
+import { effectiveCurrency } from "@trip/shared";
 import { useMemo, useRef, useState, type KeyboardEvent } from "react";
 import type { TripRecord } from "@/lib/workspace/catalog";
 import { ChevronIcon, PlusIcon } from "../ui/icons";
@@ -120,6 +123,7 @@ function TripCards({
   onOpenTrip(id: string): void;
 }) {
   const { t, locale } = useLocale();
+  const { settings } = useSettings();
   const groups = useMemo(() => {
     const today = todayUtc();
     const byStart = [...trips].sort(
@@ -151,6 +155,11 @@ function TripCards({
         {group.items.map((trip) => {
           const { destination } = trip.snapshot.plan.brief;
           const length = days(trip);
+          // Each card reads in its own trip's currency, not the open trip's.
+          const total = moneyDisplay({
+            currency: effectiveCurrency(trip.snapshot.plan.brief, settings.displayCurrency),
+            locale,
+          }).money(trip.snapshot.plan.estTotal);
           return (
             <li key={trip.id}>
               <button
@@ -167,7 +176,7 @@ function TripCards({
                     })}
                   </span>
                   <span className="trip-card__meta">
-                    {destination} · {length} {length === 1 ? t("day") : t("days")}
+                    {destination} · {length} {length === 1 ? t("day") : t("days")} · {total}
                   </span>
                 </span>
               </button>

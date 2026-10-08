@@ -268,6 +268,22 @@ was understood, and sends those fields back as `ChatRequest.known` with the next
 merged under that message's own extraction. So "悉尼三日游" is answered with a question about dates,
 travellers and budget, and the reply only has to supply those.
 
+`TripBrief.displayCurrency` (and the same field on `known`) is the last currency the traveller named for
+the trip, with a budget or on its own. Both extraction paths set it: the coordinator's brief update takes
+a currency without an amount, and the offline extractor uses `detectCurrency` on the message. The
+browser reads one rule everywhere it picks a currency, `effectiveCurrency()` in
+`packages/shared/src/money.ts`: `displayCurrency`, else `budgetSource.currency`, else the Settings
+display currency. Planning, guardrails and stored amounts stay AUD; `budgetSource` keeps the stated
+amount and currency; a trip never writes Settings. The server applies the same rule to the text it
+writes: it takes the Settings currency from the chat request's optional `displayCurrency` (absent means
+AUD), picks `effectiveCurrency(brief, request.displayCurrency ?? "AUD")` and passes the result to
+`formatMoney` at every call site (specialist summaries, conflict reasons and constraints, coordinator
+and specialist progress lines, budget allocation bases and the fallback replies). Specialists receive it
+as `AgentContext.displayCurrency`. The facts handed to the reply model carry amounts already converted
+and formatted, and its prompt says to quote them as given. Converted amounts group thousands like the
+panels, and generated text for a non-AUD trip ends with an estimate note. Planning, guardrails,
+conflict detection and the plan score stay AUD, and provider fares keep their own currency.
+
 `TripBrief.preferences` (and the same field on `known`) carries the traveller's own trip
 preferences, written in the top bar's Trip preferences editor. The coordinator's `update_trip_brief`
 tool has no field for them, so a model cannot rewrite the list; `BriefPatchSchema` carries them from

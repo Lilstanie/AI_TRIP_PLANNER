@@ -1,9 +1,13 @@
 import {
+  displayCurrencyOf,
+  estimateNote,
+  formatMoney,
   describeFlightChoice,
   AgentProposal as AgentProposalSchema,
   TripBrief as TripBriefSchema,
   type AgentContext,
   type AgentProposal,
+  type Currency,
   type RevisionRequest,
   type BudgetAllocation,
   type ProposalItem,
@@ -61,6 +65,8 @@ interface RouteQuery {
 
 interface TransportEvidence {
   brief: TripBrief;
+  /** The currency the text spells amounts in; planning amounts stay AUD. */
+  currency: Currency;
   origin: string;
   destinations: string[];
   /** Every hop in travel order; the single source of truth for the itinerary. */
@@ -231,6 +237,7 @@ async function gatherTransportEvidence(
 
   return {
     brief,
+    currency: displayCurrencyOf(brief, ctx),
     origin,
     destinations,
     legs,
@@ -443,7 +450,8 @@ function transportSource(
       kind: allLive ? "live" : "estimated",
       label: providers.join(" + "),
       freshness: [
-        `Flight fares are ${allLive ? "live" : "estimated"} search results in AUD; availability can change.`,
+        `Flight fares are ${allLive ? "live" : "estimated"} search results in ${evidence.currency}; availability can change.`,
+        estimateNote(evidence.currency),
         queriedAt.length ? `Queried at ${queriedAt.join(", ")}.` : "",
         fallback
           ? `${fallback.fallbackFrom} was unavailable (${fallback.fallbackReason}); a fallback provider was used.`
@@ -473,7 +481,8 @@ function assembleTransportProposal(
   chosenPlan: TransportPlan,
   degraded = false,
 ): AgentProposal {
-  const { origin, destinations, brief, budgetRevision, scheduleRevision, allocation } = evidence;
+  const { origin, destinations, brief, budgetRevision, scheduleRevision, allocation, currency } =
+    evidence;
   const conflicts = [...evidence.conflicts];
   // Choices the provider could not meet: reported, never silently dropped, and
   // never sent round the revision loop. See layOutHop.
@@ -574,7 +583,7 @@ function assembleTransportProposal(
   const unpriced = items.filter((item) => item.estCost === undefined).length;
   return {
     agent: "transport",
-    summary: `${items.length} transport option(s) for ${origin} ↔ ${destinations.join(" → ")} · known estimate AUD ${total.toFixed(2)}${unpriced ? ` · ${unpriced} leg(s) unpriced` : ""}${unmet.length ? ` · ${unmet.length} travel choice(s) unavailable` : ""}${conflicts.length ? " (incomplete/unverified)" : ""}`,
+    summary: `${items.length} transport option(s) for ${origin} ↔ ${destinations.join(" → ")} · known estimate ${formatMoney(total, currency)}${unpriced ? ` · ${unpriced} leg(s) unpriced` : ""}${unmet.length ? ` · ${unmet.length} travel choice(s) unavailable` : ""}${conflicts.length ? " (incomplete/unverified)" : ""}`,
     items,
     assumptions: [
       "Route arrays are consecutive legs; calculator preserves adapter AUD amounts as group totals, matching the current integration. Per-person providers must normalize fares before returning them.",
@@ -761,7 +770,16 @@ async function planTransport(
             },
             revision: revision && { reason: revision.reason, constraints: revision.constraints },
             ...(allocation
-              ? { transportBudget: { maxTotalCost: allocation.budget, basis: allocation.basis } }
+              ? {
+                  transportBudget: {
+                    maxTotalCost: allocation.budget,
+                    // The number is AUD; the basis (and a revision's wording) may spell amounts in
+                    // the trip's display currency, which would otherwise read as a mismatch.
+                    currency: "AUD",
+                    basis: allocation.basis,
+                    basisCurrency: displayCurrencyOf(brief, ctx),
+                  },
+                }
               : {}),
           }),
         },

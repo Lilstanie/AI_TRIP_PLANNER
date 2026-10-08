@@ -1,4 +1,6 @@
 import {
+  formatMoney,
+  type Currency,
   BOUNDED_RESULT_ROWS,
   type AgentName,
   type AgentProgressEvent,
@@ -134,19 +136,19 @@ export function travelKind(mode: string): ToolResultKind {
 /** Stays keep a 0–10 rating internally; travellers read it out of 5, like Google's own stars. */
 const outOfFive = (rating: number) => `${(rating / 2).toFixed(1)}/5`;
 
-/** `AUD 210.00 · 4.5/5 · free cancellation`. */
-function stayDetail(option: StayOption): string {
+/** `AUD 210.00 · 4.5/5 · free cancellation`, in the trip's display currency. */
+function stayDetail(option: StayOption, currency: Currency): string {
   return [
     option.area,
-    `AUD ${option.pricePerNight.toFixed(2)}/night`,
+    `${formatMoney(option.pricePerNight, currency)}/night`,
     outOfFive(option.rating),
     option.freeCancellation ? "Free cancellation" : "No free cancellation",
   ].join(" · ");
 }
 
-function flightDetail(option: FlightOption): string {
+function flightDetail(option: FlightOption, currency: Currency): string {
   return [
-    `AUD ${option.price.toFixed(2)}`,
+    `${formatMoney(option.price, currency)}`,
     option.stops === undefined ? undefined : option.stops === 0 ? "Nonstop" : plural(option.stops, "stop"),
     option.durationMin === undefined
       ? undefined
@@ -165,25 +167,25 @@ function placeDetail(place: Place): string | undefined {
 }
 
 /** A travel option in one line, with the cost qualified by how much is known. */
-function optionDetail(option: RouteOption): string {
+function optionDetail(option: RouteOption, currency: Currency): string {
   const hours = Math.floor(option.durationMin / 60);
   const minutes = option.durationMin % 60;
   const cost =
     option.priceBasis === "unavailable"
       ? "fare not published"
       : option.priceBasis === "partial"
-        ? `from AUD ${option.price.toFixed(2)}`
-        : `AUD ${option.price.toFixed(2)}`;
+        ? `from ${formatMoney(option.price, currency)}`
+        : `${formatMoney(option.price, currency)}`;
   return [`${hours ? `${hours}h ` : ""}${minutes}m`, cost, option.note].filter(Boolean).join(" · ");
 }
 
-function routeDetail(leg: RouteLeg): string {
+function routeDetail(leg: RouteLeg, currency: Currency): string {
   const hours = Math.floor(leg.durationMin / 60);
   const minutes = leg.durationMin % 60;
   return [
     leg.mode,
     `${hours ? `${hours}h ` : ""}${minutes}m`,
-    `AUD ${leg.price.toFixed(2)}`,
+    `${formatMoney(leg.price, currency)}`,
     leg.note,
   ]
     .filter((part): part is string => Boolean(part))
@@ -204,6 +206,8 @@ export function withProgressTools(
   agent: AgentName,
   round: number,
   onProgress?: ProgressWriter,
+  /** How amounts in the progress rows are spelled; planning amounts are AUD whatever this is. */
+  currency: Currency = "AUD",
 ): ToolGateway {
   let sequence = 0;
 
@@ -302,7 +306,7 @@ export function withProgressTools(
           const { rows, truncated } = bounded(
             result.map((leg) => ({
               label: leg.mode,
-              detail: routeDetail(leg),
+              detail: routeDetail(leg, currency),
               kind: travelKind(leg.mode),
             })),
           );
@@ -327,7 +331,7 @@ export function withProgressTools(
                 const { rows, truncated } = bounded(
                   result.map((option) => ({
                     label: option.mode,
-                    detail: optionDetail(option),
+                    detail: optionDetail(option, currency),
                     kind: travelKind(option.mode),
                   })),
                 );
@@ -363,7 +367,7 @@ export function withProgressTools(
           const { rows, truncated } = bounded(
             result.map((option) => ({
               label: option.name,
-              detail: stayDetail(option),
+              detail: stayDetail(option, currency),
               kind: "stay" as const,
               // Whatever page the provider published for the property: its own
               // site from Google Places, the details page from SerpApi.
@@ -395,7 +399,7 @@ export function withProgressTools(
           const { rows, truncated } = bounded(
             result.map((option) => ({
               label: option.carrier,
-              detail: flightDetail(option),
+              detail: flightDetail(option, currency),
               kind: "flight" as const,
             })),
           );

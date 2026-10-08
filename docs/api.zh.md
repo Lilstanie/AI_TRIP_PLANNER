@@ -73,6 +73,20 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 
 旅行者可以在 Trip preferences 中移除这些字段，客户端随后发送的行程需求不再包含它们。
 
+`brief.displayCurrency` 和 `known.displayCurrency` 同样是可选字段：取 `AUD`、`CNY`、`USD` 或 `JPY` 之一
+（`packages/shared/src/money.ts` 中的 `Currency`），表示旅行者最近一次为该行程指定的币种，无论连同预算还是单独说出。
+协调器的 `update_trip_brief` 工具以 `displayCurrency` 接收它，可以不带金额；没有密钥时，离线提取器会把消息中检测到的任何币种
+（无论是否带预算）写入该字段。后一次指定会替换前一次，指定 AUD 就是 AUD，没有指定币种的消息则保持原值。它只用于显示：
+规划仍使用 AUD，`budgetSource` 不会被改写。在指定币种之前以及该字段出现之前保存的行程中，它都不存在；此时客户端读取
+`effectiveCurrency(brief, settings.displayCurrency)`，先回退到 `budgetSource.currency`，再回退到设置中的币种。
+行程从不写入设置。
+
+请求本身还有可选的 `displayCurrency`：取 `AUD`、`CNY`、`USD` 或 `JPY` 之一，即设置中的显示币种。网页端与 `interfaceLanguage`
+一样，在每次聊天请求中发送它。服务器只把它用作同一条 `effectiveCurrency` 规则的最后一步（排在 `brief.displayCurrency` 和
+`brief.budgetSource.currency` 之后），用来书写服务器生成文字中的金额：specialist 摘要、冲突原因和约束、进度行、预算分配依据以及回复。
+不传该字段时回退为 AUD，旧客户端得到的文字与以前一致；不支持的币种代码会返回 400。服务器从不写入设置。
+规划金额、预算检查、冲突检测和规划评分仍为 AUD，提供方票价保留提供方币种。
+
 `brief.party` 和 `known.party` 也是可选字段，格式为 `{ adults, children, infants, seniors, pets }`，
 各项为 0 到 99 的整数（`packages/shared/src/contracts.ts` 中的 `TravellerParty`），
 由 Who 编辑器的步进控件设置。它们细分 `groupSize` 并补充宠物数量；宠物不计入其中。
@@ -301,6 +315,10 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 `choose` 接收 `{ section: "accommodation" | "transport", selectionId, candidateId }`，把住宿或机票换成专员已经找到的另一个候选。
 系统按 `selectionId` 找到对应条目，用与专员相同的措辞重新定价和描述，并像其他修改一样重新计算费用、冲突和版本号。
 界面会直接应用 `choose` 的预览而不先询问，因为变化的只是旅行者刚看到的价格。条目带有 `selectionId` 之前保存的方案会被拒绝，不会去猜。
+
+请求可以携带 `displayCurrency`（`AUD`、`CNY`、`USD` 或 `JPY`），即设置中的显示币种；浏览器在每次编辑时都会发送。
+它是 `effectiveCurrency` 的最后一步，排在行程自身的 `displayCurrency` 和 `budgetSource` 币种之后，缺省视为 AUD。
+它只决定编辑所重写的句子如何书写金额（换掉的住宿描述、重新计算的冲突、`differences` 中的前后对比）；方案本身仍以 AUD 计。
 
 <a id="related-contracts"></a>
 

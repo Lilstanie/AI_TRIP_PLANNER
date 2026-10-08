@@ -35,6 +35,8 @@ export const PartialTripBrief = z.object({
   // Travels with `budgetTotal` so a half-built brief can still explain the
   // conversion it came from. See TripBrief.budgetSource.
   budgetSource: z.object({ amount: z.number().positive(), currency: Currency }).optional(),
+  // See TripBrief.displayCurrency.
+  displayCurrency: Currency.optional(),
   nationality: z.string().optional(),
   // The traveller's own trip preferences, stated in the editor before a plan exists.
   // See TripBrief.preferences.
@@ -183,6 +185,11 @@ export const ChatRequest = z
     attachments: z.array(Attachment).max(MAX_ATTACHMENTS_PER_MESSAGE).optional(),
     assistant: AssistantSettings.optional(),
     interfaceLanguage: InterfaceLanguage.optional(),
+    // The Settings display currency, sent with every request like the interface language. It is
+    // only the last step of `effectiveCurrency` (after the brief's display currency and its source
+    // budget's currency); absent means AUD, so an older client is written to in AUD. The server
+    // never writes Settings.
+    displayCurrency: Currency.optional(),
   })
   .refine((request) => request.message.trim() !== "" || (request.attachments?.length ?? 0) > 0, {
     message: "Send a message or at least one attachment",
