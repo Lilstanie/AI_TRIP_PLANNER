@@ -83,11 +83,13 @@ export const WORKSPACE_ZH = {
   "Fares are in the provider's currency and are not added to the AUD budget.":
     "票价保留提供方币种，不计入 AUD 预算。",
   "Place confirmed": "地点已确认",
-  "Map match · not confirmed": "地图匹配 · 待确认",
+  "Saving place…": "正在保存地点…",
+  "Place not saved yet": "地点尚未保存",
+  "Not found on the map": "地图上未找到",
+  "The map could not find this place. Search for it to save it.":
+    "地图未找到此地点。搜索后即可保存。",
+  "This place could not be saved. Search for it to try again.": "此地点未能保存。请搜索后重试。",
   "Price needs checking": "价格待核实",
-  "The map matched this stop to": "地图将此停靠点匹配为",
-  "Confirm it so its routes can be checked.": "确认地点后即可检查路线。",
-  "Use this place": "使用此地点",
   Start: "开始",
   End: "结束",
   "Change time": "修改时间",
@@ -220,7 +222,6 @@ export const WORKSPACE_ZH = {
   "Learned from your chats": "从聊天中了解到的偏好",
   "Use these dates": "使用这些日期",
   "Google Routes verified ·": "Google 路线已验证 ·",
-  ". Confirm it so its routes can be checked.": "。确认地点后即可检查路线。",
   ", departing": "，出发",
   "Edit {v0}": "修改{v0}",
   "Accounts are not set up on this site, so your profile stays in this browser.":

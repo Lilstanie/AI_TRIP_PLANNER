@@ -11,6 +11,7 @@ import { DayStrip } from "./timeline/DayStrip";
 import { ConnectionRow, FixedTimelineRow } from "./timeline/TimelineParts";
 import { TimelineStop } from "./timeline/TimelineStop";
 import { useTimelineEdits, type RouteMode } from "./timeline/useTimelineEdits";
+import { IDLE_AUTO_SAVE, type AutoSaveState } from "./useAutoSavePlaces";
 
 /**
  * The Timeline & routes tab: one day at a time, in the order the traveller lives it — the flight or
@@ -31,6 +32,7 @@ export function TripEditor({
   selected = "",
   onSelect,
   onRoutesChange,
+  saves = IDLE_AUTO_SAVE,
 }: {
   plan: TripPlan;
   disabled: boolean;
@@ -41,6 +43,8 @@ export function TripEditor({
   onSelect(activityId: string): void;
   /** Routes to draw on the map: the routes verified for the current plan. */
   onRoutesChange?(routes: RouteResult[]): void;
+  /** Which stop's map place is being saved, or failed to save, on the workspace. */
+  saves?: AutoSaveState;
 }) {
   const { t, locale, notice: localizeNotice } = useLocale();
   const { activities, itinerary, places, placeIdFor, locationStatus } = tripPlaces;
@@ -195,6 +199,13 @@ export function TripEditor({
                     locked={locked}
                     place={placeId ? places[placeId] : undefined}
                     status={locationStatus(activity)}
+                    saveState={
+                      saves.saving === activity.id
+                        ? "saving"
+                        : saves.failed.has(activity.id!)
+                          ? "failed"
+                          : ""
+                    }
                     edits={edits}
                     onSelect={() => onSelect(selected === activity.id ? "" : activity.id!)}
                   />
