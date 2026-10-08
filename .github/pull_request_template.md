@@ -1,6 +1,6 @@
 ## Motivation
 
-<!-- One sentence on the problem. Link the issue or TODO item. -->
+<!-- One sentence on the problem. Link each issue it finishes with `Closes #N`, or name the TODO item. -->
 
 ## Changes
 

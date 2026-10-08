@@ -58,6 +58,9 @@ or person reviewed the pair, not proof supplied by a translator or a semantic eq
 Never record a stale translation just to make the check pass. For deleted pairs, use
 `--remove docs/old-page.md` only after both files are removed.
 
+On a merge conflict in `.agents/translation-pairs.json`, take either side, then re-run `--record` for
+each page that both branches changed.
+
 Follow [pre-push-checks](../pre-push-checks/SKILL.md) for docs, protection and formatting. Run the
 pairing check locally for documentation changes (`pnpm verify:pairs` is the same command); CI runs it
 after `verify-docs`, so an unreviewed or unrecorded pair fails the pull request.
