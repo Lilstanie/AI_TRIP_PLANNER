@@ -9,18 +9,22 @@ import { applyItemAction, type ItemAction } from "@/lib/trip/item-actions";
 import { NoticeError, type Notice } from "@/lib/i18n/notice";
 import { useSegmentIndicator } from "../ui/motion";
 import { FlowStayIcon } from "../ui/flow-icons";
+import { restaurantSuggestions } from "@/lib/trip/restaurants";
 import { DayStrip } from "./timeline/DayStrip";
+import { BookingRow, type ChooseCandidate } from "./timeline/BookingRow";
 import { ConnectionRow, FixedTimelineRow } from "./timeline/TimelineParts";
 import { TimelineStop } from "./timeline/TimelineStop";
 import { useTimelineEdits, type RouteMode } from "./timeline/useTimelineEdits";
+import { TripTips } from "./TripTips";
 import { IDLE_AUTO_SAVE, type AutoSaveState } from "./useAutoSavePlaces";
 
 type Activity = TripPlaces["activities"][number];
 
 /**
- * The one view of the trip's days, in the Your Trip drawer and on the phone Trip tab: the day strip,
- * the chosen day's stops in the order the traveller lives them, each with the journey to the next,
- * and then Ideas, the stops with no day yet.
+ * The one view of the trip's days, in the Your Trip drawer and on the phone Trip tab: the destination's
+ * travel tips, the day strip, the chosen day's stops in the order the traveller lives them, each with the
+ * journey to the next, the day's flights and stays (each opened to its Alternatives), and then Ideas: the
+ * stops with no day yet and the restaurants dining found that are not scheduled.
  *
  * Time and place changes, and moves between or within a day, are checked by the server, which
  * re-checks routes, budget and conflicts, and applied at once when accepted; a refused edit leaves the
@@ -39,6 +43,7 @@ export function TripEditor({
   onRoutesChange,
   showPhotos = false,
   saves = IDLE_AUTO_SAVE,
+  onChoose,
 }: {
   plan: TripPlan;
   disabled: boolean;
@@ -53,6 +58,8 @@ export function TripEditor({
   showPhotos?: boolean;
   /** Which stop's map place is being saved, or failed to save, on the workspace. */
   saves?: AutoSaveState;
+  /** Swap a flight or stay for one the specialist already found; absent while the plan is busy. */
+  onChoose?: ChooseCandidate;
 }) {
   const { t, locale, notice: localizeNotice } = useLocale();
   const { activities, itinerary, places, placeIdFor, locationStatus } = tripPlaces;
@@ -77,8 +84,16 @@ export function TripEditor({
     () => itinerary.stopsOn(day).map((stop) => stop.activity),
     [itinerary, day],
   );
-  const ideas = useMemo(() => itinerary.ideas(), [itinerary]);
+  // Ideas are the stops with no day, then the restaurant picks dining found that are not scheduled.
+  const suggestions = useMemo(() => restaurantSuggestions(plan), [plan]);
+  const suggested = useMemo(() => new Set(suggestions.map((item) => item.id)), [suggestions]);
+  const ideas = useMemo(
+    () => [...itinerary.ideas(), ...suggestions] as Activity[],
+    [itinerary, suggestions],
+  );
   const rows = useMemo(() => dayRows(plan, day, daily, locale), [plan, day, daily, locale]);
+  const sourceOf = (sectionId: "accommodation" | "transport") =>
+    plan.sections.find((section) => section.id === sectionId)?.proposal?.source;
   const unconfirmed = daily.filter((activity) => !activity.placeId).length;
   const staying = stayingAt(plan, day);
   const locked = disabled || edits.busy;
@@ -152,6 +167,7 @@ export function TripEditor({
       status: locationStatus(activity),
       edits,
       showPhotos,
+      suggestion: !!activity.id && suggested.has(activity.id),
       saveState: (saves.saving === activity.id
         ? "saving"
         : saves.failed.has(activity.id!)
@@ -168,6 +184,7 @@ export function TripEditor({
   let previous: (typeof daily)[number] | undefined;
   return (
     <section className="trip-editor" aria-label={t("Trip timeline")}>
+      <TripTips key={plan.tripId} plan={plan} />
       <DayStrip days={strip} selected={day} onSelect={setDay} />
 
       <div className="route-check" aria-label={t("Route check")} role="group">
@@ -277,6 +294,15 @@ export function TripEditor({
           >
             {rows.map((row, position) => {
               if (row.type === "fixed") return <FixedTimelineRow key={row.key} row={row} />;
+              if (row.type === "booking")
+                return (
+                  <BookingRow
+                    key={row.key}
+                    row={row}
+                    source={sourceOf(row.sectionId)}
+                    {...(onChoose ? { onChoose } : {})}
+                  />
+                );
               const activity = row.activity;
               const connection = connectionBetween(previous, activity, edits.routes, locale);
               previous = activity;

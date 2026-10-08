@@ -54,6 +54,7 @@ export function TimelineStop({
   saveState,
   edits,
   showPhotos,
+  suggestion = false,
   onSelect,
   onOpen,
   onItem,
@@ -79,6 +80,11 @@ export function TimelineStop({
   edits: TimelineEdits;
   /** Show the place's first Google photo in its card (live data with a Maps key). */
   showPhotos: boolean;
+  /**
+   * A restaurant pick from dining, not yet scheduled. It has no place lookup, so it shows no location
+   * status, and its menu offers only scheduling it or removing it.
+   */
+  suggestion?: boolean;
   /** Toggles this stop's selection; the main button uses it. */
   onSelect(): void;
   /** Selects this stop without toggling it, for the menu's forms. */
@@ -143,6 +149,25 @@ export function TimelineStop({
 
   const menu = (): ActionMenuItem[] => {
     const items: ActionMenuItem[] = [];
+    if (suggestion) {
+      items.push(
+        {
+          label: t("Schedule on a day"),
+          icon: <CalendarIcon />,
+          disabled: locked,
+          onSelect: () => open("schedule"),
+        },
+        {
+          label: t("Remove"),
+          icon: <CloseIcon />,
+          tone: "danger",
+          separated: true,
+          disabled: locked,
+          onSelect: () => act({ kind: "remove" }, { key: "{name} removed.", params: { name } }),
+        },
+      );
+      return items;
+    }
     if (!idea) {
       if (index > 0)
         items.push({
@@ -309,7 +334,9 @@ export function TimelineStop({
             )}
             {activity.note && <span className="timeline-stop__note">{activity.note}</span>}
             <span className="timeline-stop__meta">
-              {confirmed ? (
+              {suggestion ? (
+                <span className="timeline-tag">{t("Restaurant suggestion")}</span>
+              ) : confirmed ? (
                 <span className="timeline-tag timeline-tag--ok">{t("Place confirmed")}</span>
               ) : matched && saveState === "failed" ? (
                 <span className="timeline-tag timeline-tag--warn">{t("Place not saved yet")}</span>
@@ -369,7 +396,7 @@ export function TimelineStop({
             ) : (
               <div className="stop-place-card__bare">
                 <h4 id={`stop-place-card-title-${id}`}>{name}</h4>
-                {STATUS_TEXT[status] && <p>{t(STATUS_TEXT[status]!)}</p>}
+                {!suggestion && STATUS_TEXT[status] && <p>{t(STATUS_TEXT[status]!)}</p>}
                 <button
                   type="button"
                   className="stop-place-card__close"

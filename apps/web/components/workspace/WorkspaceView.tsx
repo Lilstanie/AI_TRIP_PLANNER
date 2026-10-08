@@ -219,8 +219,6 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
         <TripPanel
           plan={plan}
           onReview={() => openDialog("review")}
-          onEdit={edit}
-          {...(busy || editPending || chooser.working ? {} : { onChoose: chooser.choose })}
           {...(chooser.problem ? { problem: chooser.problem } : {})}
           timeline={
             <TripEditor
@@ -234,6 +232,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
               onApply={session.applyEdit}
               showPhotos={dataMode.mode === "live" && !!dataMode.providers?.maps}
               saves={autoSaves}
+              {...(busy || editPending || chooser.working ? {} : { onChoose: chooser.choose })}
             />
           }
         />

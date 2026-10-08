@@ -531,7 +531,10 @@ export async function readPlanStream(
 
 export { itineraryActivities } from "../trip/itinerary";
 
-/** Allocate IDs only for legacy/new items; never derive identity from array position. */
+/**
+ * Allocate IDs only for legacy/new items; never derive identity from array position. Activities
+ * need one to be edited, and dining's restaurant picks need one to be scheduled from Ideas.
+ */
 export function identifyActivities(plan: TripPlan): TripPlan {
   return {
     ...plan,
@@ -542,7 +545,10 @@ export function identifyActivities(plan: TripPlan): TripPlan {
         ? {
             ...section.proposal,
             items: section.proposal.items.map((item) =>
-              item.kind === "activity" && !item.id ? { ...item, id: crypto.randomUUID() } : item,
+              (item.kind === "activity" || (section.id === "dining" && item.kind === "meal")) &&
+              !item.id
+                ? { ...item, id: crypto.randomUUID() }
+                : item,
             ),
           }
         : undefined,

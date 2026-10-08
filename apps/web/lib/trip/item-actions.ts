@@ -8,6 +8,7 @@ import { NoticeError } from "../i18n/notice";
  * the plan: details, a note, booked, remove, set aside as an idea, put on a day, or swap places with
  * the stop before or after it on its day. None changes a route or a price the server checks, so they
  * apply at once; schedule changes that need route checks go through the Timeline's preview instead.
+ * A restaurant pick from dining (see ./restaurants) takes the same actions as an idea.
  */
 export type ItemAction =
   | { kind: "details"; detail: string; location: string }
@@ -29,8 +30,18 @@ export function applyItemAction(plan: TripPlan, id: string, action: ItemAction):
   const next = structuredClone(plan);
   const section = next.sections.find((item) => item.id === "itinerary");
   const items = section?.proposal?.items;
-  const index = items?.findIndex((item) => item.kind === "activity" && item.id === id) ?? -1;
-  if (!items || index < 0) throw new NoticeError({ key: "That stop is no longer in this trip." });
+  if (!items) throw new NoticeError({ key: "That stop is no longer in this trip." });
+  let index = items.findIndex((item) => item.kind === "activity" && item.id === id);
+  // A restaurant pick from dining is an Idea until an action touches it: the first action copies it
+  // into the itinerary under the same id, and the action then applies as it would to any idea.
+  if (index < 0) {
+    const pick = next.sections
+      .find((item) => item.id === "dining")
+      ?.proposal?.items.find((item) => item.kind === "meal" && item.id === id);
+    if (!pick) throw new NoticeError({ key: "That stop is no longer in this trip." });
+    items.push({ ...structuredClone(pick), kind: "activity" });
+    index = items.length - 1;
+  }
   const item = items[index]!;
 
   switch (action.kind) {
@@ -53,9 +64,14 @@ export function applyItemAction(plan: TripPlan, id: string, action: ItemAction):
       if (action.booked) item.booked = true;
       else delete item.booked;
       break;
-    case "remove":
+    case "remove": {
       items.splice(index, 1);
+      // A restaurant removed from the trip is removed as a suggestion too, or it would be listed again.
+      const dining = next.sections.find((section) => section.id === "dining")?.proposal?.items;
+      const pick = dining?.findIndex((other) => other.kind === "meal" && other.id === id) ?? -1;
+      if (dining && pick >= 0) dining.splice(pick, 1);
       break;
+    }
     case "idea":
       // An idea has no day or times; its connection belonged to the day it left.
       delete item.day;

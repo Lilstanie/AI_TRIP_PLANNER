@@ -1,6 +1,12 @@
 import { translate, intlLocale, type AppLocale, type MessageKey } from "../i18n/locale";
 import { fare } from "../money";
-import type { ArriveBy, ProposalItem, TripPlan } from "@trip/shared";
+import type {
+  ArriveBy,
+  FlightSelection,
+  ProposalItem,
+  StaySelection,
+  TripPlan,
+} from "@trip/shared";
 import type { RouteResult } from "../integrations/google";
 
 /**
@@ -27,8 +33,29 @@ export type FixedRow = {
   costNote?: string;
 };
 
+/**
+ * A flight or one night of a stay, opened to its card with the Alternatives the specialist found. The
+ * selection is the plan's own, so taking another candidate swaps it in the same section.
+ */
+export type BookingRow = {
+  type: "booking";
+  key: string;
+  kind: "stay" | "flight";
+  /**
+   * `in`: the flight the day starts with. `out`: the return of the same round-trip selection, on the
+   * last day. `night`: one night of a stay, `index` of `of`, counted from the check-in night.
+   */
+  role: "in" | "out" | "night";
+  night?: { index: number; of: number };
+  /** The section whose selection the card's Alternatives swap. */
+  sectionId: "accommodation" | "transport";
+  selection: StaySelection | FlightSelection;
+  /** Set for `in` and `out`: the date the flight leaves. */
+  date?: string;
+};
+
 export type StopRow<A> = { type: "stop"; activity: A };
-export type TimelineRow<A> = FixedRow | StopRow<A>;
+export type TimelineRow<A> = FixedRow | BookingRow | StopRow<A>;
 
 const minutes = (time?: string) =>
   time ? Number(time.slice(0, 2)) * 60 + Number(time.slice(3, 5)) : undefined;
@@ -146,25 +173,97 @@ export function dayRows<A extends { startTime?: string }>(
   activities: A[],
   locale: AppLocale = "en",
 ): TimelineRow<A>[] {
-  const fixed = (id: string) =>
-    plan.sections.find((section) => section.id === id)?.proposal?.items ?? [];
-  const transport = fixed("transport")
+  const proposal = (id: string) => plan.sections.find((section) => section.id === id)?.proposal;
+  const transportItems = proposal("transport")?.items ?? [];
+  const flights = proposal("transport")?.flights ?? [];
+  const stays = proposal("accommodation")?.stays ?? [];
+  const flightIds = new Set(flights.map((flight) => flight.id));
+  const stayIds = new Set(stays.map((stay) => stay.id));
+  const last = dayCount(plan);
+  // The planner's round trip: the arrival flight's item names the return date, and that date is the
+  // trip's last day, so the flight out is the same selection leaving on the last day.
+  const returnOf = (flightId: string) => {
+    const item = transportItems.find((candidate) => candidate.selectionId === flightId);
+    const date = item ? /returning (\d{4}-\d{2}-\d{2})/.exec(item.detail)?.[1] : undefined;
+    return date && date === plan.brief.dates[1] ? date : undefined;
+  };
+
+  // Transport and hotel items the selections above do not account for keep their plain rows.
+  const transport = transportItems
     .map((item, index) => [item, index] as const)
-    .filter(([item]) => item.day === day)
+    .filter(([item]) => item.day === day && !(item.selectionId && flightIds.has(item.selectionId)))
     .map(([item, index]) => transportRow(item, index, locale));
-  const stays = fixed("accommodation")
+  const legacyStays = (proposal("accommodation")?.items ?? [])
     .map((item, index) => [item, index] as const)
-    .filter(([item]) => item.day === day && item.kind === "hotel")
+    .filter(
+      ([item]) =>
+        item.day === day &&
+        item.kind === "hotel" &&
+        !(item.selectionId && stayIds.has(item.selectionId)),
+    )
     .map(([item, index]) => stayRow(item, index, locale));
+  const flightsIn: BookingRow[] = flights
+    .filter((flight) => flight.day === day)
+    .map((flight) => ({
+      type: "booking",
+      key: `flight-in-${flight.id}`,
+      kind: "flight",
+      role: "in",
+      sectionId: "transport",
+      selection: flight,
+      date: flight.depart,
+    }));
+  const nights: BookingRow[] = stays.flatMap((stay) =>
+    Array.from({ length: stay.nights }, (_, offset) => offset)
+      .filter((offset) => stay.day + offset === day)
+      .map((offset) => ({
+        type: "booking" as const,
+        key: `stay-${stay.id}-night-${offset + 1}`,
+        kind: "stay" as const,
+        role: "night" as const,
+        night: { index: offset + 1, of: stay.nights },
+        sectionId: "accommodation" as const,
+        selection: stay,
+      })),
+  );
+  const flightsOut: BookingRow[] =
+    day === last
+      ? flights.flatMap((flight) => {
+          const date = returnOf(flight.id);
+          return date
+            ? [
+                {
+                  type: "booking" as const,
+                  key: `flight-out-${flight.id}`,
+                  kind: "flight" as const,
+                  role: "out" as const,
+                  sectionId: "transport" as const,
+                  selection: flight,
+                  date,
+                },
+              ]
+            : [];
+        })
+      : [];
   const timed: TimelineRow<A>[] = [
     ...transport.filter((row) => row.startTime),
     ...activities.map((activity) => ({ type: "stop" as const, activity })),
   ].sort((left, right) => (startOf(left) ?? 0) - (startOf(right) ?? 0));
-  return [...transport.filter((row) => !row.startTime), ...timed, ...stays];
+  // The day starts with the flight in and ends with the night's stay, or with the flight out.
+  return [
+    ...transport.filter((row) => !row.startTime),
+    ...flightsIn,
+    ...timed,
+    ...nights,
+    ...legacyStays,
+    ...flightsOut,
+  ];
 }
 
 const startOf = <A extends { startTime?: string }>(row: TimelineRow<A>) =>
-  minutes(row.type === "fixed" ? row.startTime : row.activity.startTime);
+  minutes(
+    row.type === "fixed" ? row.startTime : row.type === "stop" ? row.activity.startTime : undefined,
+  );
 
 export function formatDuration(total: number, locale: AppLocale = "en") {
   const hours = Math.floor(total / 60);
