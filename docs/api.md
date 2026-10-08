@@ -71,6 +71,25 @@ Three more optional fields on `brief` and `known` come from the conversation:
 
 The traveller can remove these from Trip preferences, and the client then sends them without them.
 
+`brief.displayCurrency` and `known.displayCurrency` are optional too: one of `AUD`, `CNY`, `USD` or `JPY`
+(`Currency` in `packages/shared/src/money.ts`), the last currency the traveller named for the trip, with
+a budget or on its own. The coordinator's `update_trip_brief` tool takes it as `displayCurrency` without
+an amount; with no key, the offline extractor sets it from any currency it detects in the message, with
+or without a budget. A later naming replaces it, naming AUD sets AUD, and a message that names none
+leaves it as it was. It is display only: planning stays in AUD and `budgetSource` is not rewritten.
+Absent until a currency is named, and in briefs saved before the field existed; the client then reads
+`effectiveCurrency(brief, settings.displayCurrency)`, which falls back to `budgetSource.currency` and
+then to the Settings currency. A trip never writes Settings.
+
+Optional `displayCurrency` on the request itself: one of `AUD`, `CNY`, `USD` or `JPY`, the Settings display
+currency. The web app sends it with every chat request, like `interfaceLanguage`. The server uses it only as
+the last step of the same `effectiveCurrency` rule (after `brief.displayCurrency` and
+`brief.budgetSource.currency`) to spell amounts in text it writes: specialist summaries, conflict reasons
+and constraints, progress lines, budget allocation bases and replies. Without the field the fallback is AUD,
+so an older client gets the text it always got; an unsupported code is rejected with 400. The server never
+writes Settings. Planning amounts, guardrails, conflict detection and the plan score stay AUD, and provider
+fares stay in the provider's currency.
+
 `brief.party` and `known.party` are optional too: `{ adults, children, infants, seniors, pets }`,
 whole numbers from 0 to 99 (`TravellerParty` in `packages/shared/src/contracts.ts`), set by the Who
 editor's steppers. They break `groupSize` down and add pets, who are not counted in it; `groupSize`
@@ -324,6 +343,12 @@ stay or fare for another candidate the specialist already found. The item is fou
 conflicts and version are recomputed as for any other edit. The interface applies a `choose`
 preview straight away rather than asking first, because only the price the traveller just read
 changes. A plan saved before items carried `selectionId` is refused rather than guessed at.
+
+The request may carry `displayCurrency` (`AUD`, `CNY`, `USD` or `JPY`), the Settings display currency; the
+browser sends it with every edit. It is the last step of `effectiveCurrency`, after the brief's own
+`displayCurrency` and `budgetSource` currency, and absent means AUD. It only chooses how the sentences an edit
+rewrites spell amounts (a swapped stay's description, the recomputed conflicts, the before and after in
+`differences`); the plan stays in AUD.
 
 ## Account routes
 

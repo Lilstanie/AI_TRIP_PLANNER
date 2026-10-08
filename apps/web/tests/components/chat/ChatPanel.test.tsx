@@ -90,7 +90,7 @@ describe("ChatPanel", () => {
     // offline extractor and has had to change once already.
     expect(sent).toMatch(/Sydney/);
     expect(sent).toMatch(/2 people/);
-    expect(sent).toMatch(/total budget 4000 AUD/);
+    expect(sent).toMatch(/total budget 4000\./);
     // Complete enough to plan outright, so no follow-up question is needed.
     expect(sent).toMatch(/\d{4}-\d{2}-\d{2} to \d{4}-\d{2}-\d{2}/);
   });

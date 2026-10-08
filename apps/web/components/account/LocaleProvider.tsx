@@ -12,7 +12,7 @@ import { moneyDisplay, type Money } from "@/lib/money";
 import { noticeText, type Notice } from "@/lib/i18n/notice";
 import { useSettings } from "./SettingsProvider";
 
-import type { Currency, TripBrief } from "@trip/shared";
+import { effectiveCurrency, type Currency, type TripBrief } from "@trip/shared";
 
 /** Language, display currency and the Money formatters for both. */
 type LocaleState = Money & {
@@ -47,10 +47,10 @@ export function LocaleProvider({
   brief,
 }: {
   children: ReactNode;
-  brief?: Pick<TripBrief, "budgetSource">;
+  brief?: Pick<TripBrief, "budgetSource" | "displayCurrency">;
 }) {
   const { settings } = useSettings();
-  const currency = brief?.budgetSource?.currency ?? settings.displayCurrency;
+  const currency = effectiveCurrency(brief, settings.displayCurrency);
   const locale = useInterfaceLocale();
   useEffect(() => {
     document.documentElement.lang = intlLocale(locale);

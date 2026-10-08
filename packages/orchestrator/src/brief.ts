@@ -21,6 +21,7 @@ export const BriefPatchSchema = z.object({
   groupSize: z.number().int().positive().optional(),
   budgetTotal: z.number().positive().optional(),
   budgetSource: z.object({ amount: z.number().positive(), currency: Currency }).optional(),
+  displayCurrency: Currency.optional(),
   nationality: z.string().trim().min(1).optional(),
   // Set only by the trip preferences editor and carried in `known`; the coordinator's
   // update_trip_brief tool has no field for it, so a model cannot rewrite the traveller's list.

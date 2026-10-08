@@ -18,6 +18,7 @@ JPY has zero decimal places; other currencies have two. Converted amounts show a
 with RATES_AS_OF. Provider-native fare evidence stays unconverted. Rates are approximate planning
 figures, not market quotes.
 
+A trip's effective currency is now chosen by [trip display currency](2026-10-07-trip-display-currency.md).
 This extends the display restriction in [AUD base currency](../architecture/2026-09-20-aud-base-currency.md)
 and [interface language](2026-10-04-interface-language-only.md); their planning and language decisions
 remain in force. Only the display direction gains a second use; agents and guardrails stay in AUD.

@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { TripPlan } from "@trip/shared";
+import { useSettings } from "@/components/account/SettingsProvider";
 import type { GooglePlace, RouteResult } from "@/lib/integrations/google";
 import type { EditInput, EditPreview } from "@/lib/trip/trip-edit";
 import { errorNotice, failureNotice, NoticeError, type Notice } from "@/lib/i18n/notice";
@@ -28,6 +29,7 @@ export function useTimelineEdits({
   onPending(value: boolean): void;
   onRoutesChange?(routes: RouteResult[]): void;
 }) {
+  const { settings } = useSettings();
   const [mode, setMode] = useState<RouteMode>("WALK");
   const [results, setResults] = useState<GooglePlace[]>([]);
   const [error, setError] = useState<Notice>();
@@ -116,7 +118,13 @@ export function useTimelineEdits({
       const response = await fetch("/api/trip/preview-edit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan, baseVersion: plan.editVersion ?? 0, operation, mode }),
+        body: JSON.stringify({
+          plan,
+          baseVersion: plan.editVersion ?? 0,
+          operation,
+          mode,
+          displayCurrency: settings.displayCurrency,
+        }),
         signal,
       });
       const body = await response.json().catch(() => null);

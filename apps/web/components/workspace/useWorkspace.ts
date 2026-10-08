@@ -4,7 +4,7 @@ import type { TripTab } from "../trip/TripPanel";
 import { useWorkspaceStorage } from "./useWorkspaceStorage";
 import { useWorkspaceTransport } from "./useWorkspaceTransport";
 import { useTripPlaces } from "../map/useTripPlaces";
-import type { TripPlan } from "@trip/shared";
+import { effectiveCurrency, type TripPlan } from "@trip/shared";
 import type { RouteResult } from "@/lib/integrations/google";
 import { blankDraft, type Draft } from "@/lib/workspace";
 import {
@@ -183,6 +183,7 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
     dataMode: dataMode.mode,
     assistant: settings.assistant,
     interfaceLanguage: locale,
+    displayCurrency: settings.displayCurrency,
     draft,
     input,
     freshTripId,
@@ -214,7 +215,7 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
     title: t("Trip to {destination}", { destination: item.snapshot.plan.brief.destination }),
     destination: item.snapshot.plan.brief.destination,
     subtitle: `${item.snapshot.plan.brief.dates.join(" – ")} · ${moneyDisplay({
-      currency: item.snapshot.plan.brief.budgetSource?.currency ?? settings.displayCurrency,
+      currency: effectiveCurrency(item.snapshot.plan.brief, settings.displayCurrency),
       locale,
     }).money(item.snapshot.plan.estTotal)}`,
     status: item.status === "needs_review" ? ("Needs review" as const) : ("Draft" as const),

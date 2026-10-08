@@ -1,7 +1,10 @@
 import {
+  displayCurrencyOf,
+  formatMoney,
   TripBrief as TripBriefSchema,
   type AgentContext,
   type AgentProposal,
+  type Currency,
   type Place,
   type RevisionRequest,
   type Specialist,
@@ -48,6 +51,8 @@ export interface DiningGenerator {
     dietaryPreferences: UserPreference[];
     maxDailyPerPerson: number;
     revision?: RevisionRequest;
+    /** The currency the draft's text spells amounts in; absent means AUD. */
+    currency?: Currency;
   }): Promise<DiningDraft>;
 }
 
@@ -206,6 +211,7 @@ const ModelDiningDraft = z.object({
 export function fitDiningDraft(
   draft: z.infer<typeof ModelDiningDraft>,
   maxDailyPerPerson: number,
+  currency: Currency = "AUD",
 ): DiningDraft {
   const capped = draft.dailyBudgetPerPerson > maxDailyPerPerson;
   return DiningDraft.parse({
@@ -219,7 +225,7 @@ export function fitDiningDraft(
     assumptions: [
       ...(capped
         ? [
-            `Meal estimate of AUD ${draft.dailyBudgetPerPerson.toFixed(2)} per person/day capped at the AUD ${maxDailyPerPerson.toFixed(2)} this plan leaves for meals.`,
+            `Meal estimate of ${formatMoney(draft.dailyBudgetPerPerson, currency)} per person/day capped at the ${formatMoney(maxDailyPerPerson, currency)} this plan leaves for meals.`,
           ]
         : []),
       ...draft.assumptions,
@@ -267,6 +273,7 @@ function createMiniMaxGenerator(): DiningGenerator | undefined {
       return fitDiningDraft(
         readStructuredResponse("dining", ModelDiningDraft, result),
         input.maxDailyPerPerson,
+        input.currency,
       );
     },
   };
@@ -292,6 +299,7 @@ async function planDining(
   const places = uniquePlaces(candidatePlaces);
   const preferences = dietaryPreferences(allPreferences);
   const ceiling = budgetCeiling(brief, days, revision, allocation);
+  const currency = displayCurrencyOf(brief, ctx);
   const generator =
     options.generator === false ? undefined : (options.generator ?? createMiniMaxGenerator());
   let draft: DiningDraft;
@@ -306,6 +314,7 @@ async function planDining(
           dietaryPreferences: preferences,
           maxDailyPerPerson: ceiling,
           revision,
+          currency,
         }),
         places,
         ceiling,
@@ -324,11 +333,11 @@ async function planDining(
   // Keep venue picks informational; only the whole-trip meal envelope is priced.
   return {
     agent: "dining",
-    summary: `${draft.summary} · AUD ${total.toFixed(2)} meal budget`,
+    summary: `${draft.summary} · ${formatMoney(total, currency)} meal budget`,
     items: [
       {
         kind: "meal-budget",
-        detail: `${days} planning day(s) × ${brief.groupSize} traveller(s) × AUD ${draft.dailyBudgetPerPerson.toFixed(2)} per person/day.`,
+        detail: `${days} planning day(s) × ${brief.groupSize} traveller(s) × ${formatMoney(draft.dailyBudgetPerPerson, currency)} per person/day.`,
         estCost: total,
       },
       ...draft.picks.map((pick) => ({
