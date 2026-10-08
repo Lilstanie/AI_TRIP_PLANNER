@@ -369,7 +369,7 @@ The Trip drawer does not render the specialists' cards (Day plan, Getting around
 guide and Food & dining). Their content is in the day view. Plan sections stay in the data; no section
 summary, assumption or model-written working note is shown. Day plan and Getting around have no
 replacement, because their content is the stops and legs. The Trip drawer's cost and total still
-include every section. Why: [Agent Note](../.agents/notes/proposed/feature/2026-10-08-day-view-specialists.md).
+include every section. Why: [Agent Note](../.agents/notes/implemented/feature/2026-10-08-day-view-specialists.md).
 
 - **Stay rows.** A stay has one row at the end of each night's day, so a four-night stay gives four
   rows, and the checkout day has none. A row names the stay and its city, with "Night n of N"; its cost

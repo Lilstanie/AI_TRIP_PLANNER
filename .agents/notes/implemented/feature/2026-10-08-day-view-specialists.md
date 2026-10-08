@@ -1,6 +1,6 @@
 # Agent Note: Specialist content moves into the one day view
 
-Status: proposed
+Status: implemented
 Owner: spec #233, ticket #239
 
 ## Problem
@@ -16,7 +16,7 @@ This supersedes one part of the one day view note: its decision that the trip se
 sit after Ideas as the surface for stay and fare choices. Those choices move onto the day's own rows. The rest of
 that note stands.
 
-## Proposal
+## Decision
 
 Stop rendering the five specialist cards. Plan sections stay in the data; only their card rendering goes.
 No model-written working notes (section summaries, assumptions) are shown.
@@ -72,17 +72,6 @@ No model-written working notes (section summaries, assumptions) are shown.
   day view.
 - Store the tips fold state in the plan: rejected. It is a per-viewer preference, and plan data is shared.
 
-## Acceptance criteria
-
-- No specialist card and no section summary is rendered in the Trip drawer or on the phone Trip tab.
-- A simulated trip shows the stay row at the end of each night and flight rows on the first and last day. Taking
-  an Alternative stay or flight from those rows updates the cost and the estimated total.
-- The tips block shows the destination guide, starts expanded, and stays folded for that trip after it is folded
-  and the page reloads.
-- Restaurants appear under Ideas; one can be scheduled on a day and the change can be undone.
-- Plans with no flight, no stay or no guide render without empty rows or blocks.
-- `docs/workspace-ui.md` and its Chinese pair describe the new view.
-
 ## Risks
 
 - The dining card's meal-budget envelope and the "Important notes" assumptions are no longer shown anywhere. The
@@ -93,6 +82,19 @@ No model-written working notes (section summaries, assumptions) are shown.
   return separately, the row must read the return's own candidate.
 
 ## Consequences
+
+Checked by the E2E scripts (mock data mode):
+
+- No specialist card and no section summary is rendered in the Trip drawer or on the phone Trip tab.
+- A simulated trip shows the stay row at the end of each night and flight rows on the first and last day. Taking
+  an Alternative stay or flight from those rows updates the cost and the estimated total.
+- The tips block shows the destination guide, starts expanded, and stays folded for that trip after it is folded
+  and the page reloads.
+- Restaurants appear under Ideas; one can be scheduled on a day and the change can be undone.
+- Plans with no flight, no stay or no guide render without empty rows or blocks.
+- `docs/workspace-ui.md` and its Chinese pair describe the new view.
+
+Also:
 
 - The trip section components (`TripSection`, `ProposalDetails`) and their component tests are removed. Their checks
   move to the E2E scripts that drive the day view.

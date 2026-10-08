@@ -129,7 +129,7 @@ seniors`（宠物不计为旅客）；`groupSize` 仍是校验字段，因此至
 
 ## 航班、住宿与提示
 
-Trip 抽屉不再显示 specialist 卡片（Day plan、Getting around、Stay、Destination guide 和 Food & dining）。它们的内容已在日视图中。方案部分仍保留在数据中；不显示部分摘要、假设或模型撰写的工作笔记。Day plan 和 Getting around 没有替代内容，因为它们的内容就是停靠点和路段。Trip 抽屉的费用和总额仍包含所有部分。原因见 [Agent Note](../.agents/notes/proposed/feature/2026-10-08-day-view-specialists.md)。
+Trip 抽屉不再显示 specialist 卡片（Day plan、Getting around、Stay、Destination guide 和 Food & dining）。它们的内容已在日视图中。方案部分仍保留在数据中；不显示部分摘要、假设或模型撰写的工作笔记。Day plan 和 Getting around 没有替代内容，因为它们的内容就是停靠点和路段。Trip 抽屉的费用和总额仍包含所有部分。原因见 [Agent Note](../.agents/notes/implemented/feature/2026-10-08-day-view-specialists.md)。
 
 - **住宿行。** 每个夜晚所在那天的末尾有一行住宿，因此四晚住宿有四行，退房当天没有。该行显示住宿名称和城市，以及“第 n 晚，共 N 晚”；费用是房间的每晚价格。展开即显示住宿卡片。
 - **航班行。** 方案计价的航班是其所在日的一行，第一天从抵达航班开始。城际航班是其所在日的行。到达航班是往返票时，返程是日期条最后一天末尾的返程行，显示返程日期；它与到达航班共用同一选择，不另计费（“含在去程票价中”）。带时间的地面路段仍为固定行。没有航班、住宿或指南的行程不显示空行或空块。
