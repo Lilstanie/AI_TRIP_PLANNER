@@ -1,6 +1,5 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { TripTab } from "../trip/TripPanel";
 import { useWorkspaceStorage } from "./useWorkspaceStorage";
 import { useWorkspaceTransport } from "./useWorkspaceTransport";
 import { useTripPlaces } from "../map/useTripPlaces";
@@ -78,9 +77,6 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
   const { dialog, fact: openFact, view: mobileView } = surface;
   const tripOpen = surface.drawer === "trip";
   const navOpen = surface.drawer === "nav";
-  const [tripTab, setTripTab] = useState<TripTab>(
-    restored.catalog.layout.editorView === "timeline" ? "timeline" : "overview",
-  );
   const [sidebarCollapsed, setSidebarCollapsed] = useState(
     restored.catalog.layout.sidebar.collapsed,
   );
@@ -132,11 +128,10 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
           sidebar: { collapsed: sidebarCollapsed, width: sidebarWidth },
           chatShare,
           view: mobileView,
-          editorView: tripTab,
         },
       }),
     );
-  }, [mobileView, tripTab, sidebarCollapsed, sidebarWidth, chatShare]);
+  }, [mobileView, sidebarCollapsed, sidebarWidth, chatShare]);
 
   // A stop selected anywhere (the Trip tab's itinerary too) shows on its own day on the phone map.
   const selectedDay = selectedActivity ? itinerary.stop(selectedActivity)?.day : undefined;
@@ -360,11 +355,6 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
         dispatch({ kind: "selected", activity: id });
         if (isPhone.current) setMapFocus((request) => request + 1);
       },
-      /** Opens the timeline on a stop so its time can be adjusted. */
-      adjustStop: (id: string) => {
-        dispatch({ kind: "selected", activity: id });
-        setTripTab("timeline");
-      },
       showRoutes: (routes: RouteResult[]) => dispatch({ kind: "routed", routes }),
       /** A timeline edit is being previewed; planning waits until it is applied or dropped. */
       trackEdit: (pending: boolean) => setEditPending(pending),
@@ -385,7 +375,6 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
       openTrip: () => layout({ type: "open-trip" }),
       closeTrip: () => layout({ type: "close-trip" }),
       openDialog: (kind: DialogKind) => layout({ type: "open-dialog", dialog: kind }),
-      showTripTab: (tab: TripTab) => setTripTab(tab),
       toggleSidebar: () => setSidebarCollapsed((value) => !value),
       resizeSidebar: (width: number | undefined) => setSidebarWidth(width),
       resizeChat: (share: number | undefined) => setChatShare(share),
@@ -460,7 +449,6 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
       chatsOpen: surface.drawer === "chats",
       // Chip editors are popovers, not drawers: they bring no drawer backdrop.
       drawerOpen: tripOpen || navOpen,
-      tripTab,
       sidebarCollapsed,
       sidebarWidth,
       chatShare,

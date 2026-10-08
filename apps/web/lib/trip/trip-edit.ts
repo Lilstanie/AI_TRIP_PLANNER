@@ -330,14 +330,16 @@ export async function previewEdit(
           ? mins(anchor.time)
           : mins(current.startTime!);
       const previous = daily[index - 1];
-      if (previous) {
-        if (!previous.placeId || !current.placeId) {
-          blockers.push({
-            key: "Day {day}: confirm the place for every stop first, so travel times between them can be checked.",
-            params: { day },
-          });
-          break;
-        }
+      // Confirming a place is how a pair gets its route, so a place edit is not refused for an
+      // unconfirmed neighbour; that pair keeps its time until both places are confirmed.
+      if (previous && (!previous.placeId || !current.placeId) && operation.kind !== "place") {
+        blockers.push({
+          key: "Day {day}: confirm the place for every stop first, so travel times between them can be checked.",
+          params: { day },
+        });
+        break;
+      }
+      if (previous && previous.placeId && current.placeId) {
         try {
           const place = await deps.placeDetails(previous.placeId);
           const zone = await deps.timeZone(place, dateFor(day));

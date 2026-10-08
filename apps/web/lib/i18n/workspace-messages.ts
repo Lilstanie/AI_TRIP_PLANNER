@@ -446,6 +446,8 @@ export const WORKSPACE_ZH = {
   "Swapping these stops would overlap the next stop; shorten one of them first.":
     "交换这两个停靠点会与下一个停靠点时间重叠；请先缩短其中一个。",
   "Move to ideas": "移至备选地点",
+  "Move to another day": "移至其他一天",
+  "Replace place": "更换地点",
   "Move to previous day": "移至前一天",
   "Move to next day": "移至后一天",
   "Mark as not booked": "标记为未预订",

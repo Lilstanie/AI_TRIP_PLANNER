@@ -1,4 +1,4 @@
-// End-to-end walk through the Timeline & routes tab with mock data: day switching, the fixed
+// End-to-end walk through the one day view in the Trip drawer with mock data: day switching, the fixed
 // transport and stay rows, selecting and editing a stop, confirming its map match, checking the
 // day's routes, applying an edit at once and undoing it, and provider transit fares keeping their
 // own currency's decimal places (JPY 230, KRW 1,400, AUD 12.50). Screenshots at desktop and phone widths,
@@ -107,8 +107,6 @@ async function openTimeline(browser, { width, height, scheme, setup }) {
   if (await tripTab.count()) await tripTab.click();
   else await page.getByRole("button", { name: "Open your trip" }).click();
   await settle(page, 700);
-  await page.getByRole("tab", { name: /Timeline/ }).click();
-  await settle(page, 700);
   return { context, page, errors, upstream };
 }
 
@@ -167,23 +165,25 @@ async function interactions(browser) {
   const text = await timeline.innerText();
   check(!/undefined|· ·/.test(text), "no raw undefined or empty separators");
 
-  // A stop is compact until selected; selecting it opens its editor.
+  // A stop is compact until selected; selecting it opens its place card.
   const stop = timeline.locator(".timeline-stop").first();
   check((await stop.count()) === 1, "day shows its stops");
   check(
-    !(await timeline.getByRole("button", { name: /Change time/ }).count()),
-    "editors stay closed until a stop is selected",
+    !(await timeline.locator(".stop-place-card").count()),
+    "the place card stays closed until a stop is selected",
   );
   await stop.locator(".timeline-stop__main").click();
   await settle(page);
   check(
-    await timeline.getByRole("button", { name: /Change time/ }).isVisible(),
-    "selecting a stop opens its editor",
+    await timeline.locator(".stop-place-card").isVisible(),
+    "selecting a stop opens its place card",
   );
   await page.screenshot({ path: `${OUT}/interact-01-stop-open.png` });
 
   // A time edit applies at once and can be undone; there is no review step.
   const stopBefore = await timeline.locator(".timeline-stop").first().innerText();
+  // Tapping the time opens its Start and End form.
+  await timeline.locator(".timeline-stop__time").first().click();
   const start = timeline.getByLabel(/^Start/).first();
   const [hour, minute] = (await start.inputValue()).split(":").map(Number);
   await start.fill(
@@ -194,7 +194,7 @@ async function interactions(browser) {
   await end.fill(
     `${String(Math.min(endHour + 1, 22)).padStart(2, "0")}:${String(endMinute).padStart(2, "0")}`,
   );
-  await timeline.getByRole("button", { name: /Change time/ }).click();
+  await timeline.getByRole("button", { name: "Change time", exact: true }).click();
   await settle(page);
   check(
     !(await page.getByRole("region", { name: "Edit preview" }).count()) &&
@@ -259,7 +259,7 @@ async function interactions(browser) {
     for (let stop = 0; stop < (await stops.count()); stop += 1) {
       const row = stops.nth(stop);
       if (await row.locator(".timeline-tag--ok").count()) continue;
-      if (!(await row.locator(".stop-editor").count()))
+      if (!(await row.locator(".stop-place-card").count()))
         await row.locator(".timeline-stop__main").click();
       const use = row.getByRole("button", { name: "Use this place" });
       await use.waitFor({ timeout: 8_000 }).catch(() => undefined);
@@ -281,9 +281,13 @@ async function interactions(browser) {
     await confirmDay(1);
     await days.nth(1).click();
     await settle(page);
-    if (!(await timeline.locator(".stop-editor").count()))
-      await timeline.locator(".timeline-stop__main").first().click();
-    await timeline.getByLabel("Move to").selectOption("1");
+    // Moves are in the stop's menu; the day picker opens in its place card.
+    await timeline
+      .getByRole("button", { name: /^Actions for / })
+      .first()
+      .click();
+    await timeline.getByRole("menuitem", { name: "Move to another day", exact: true }).click();
+    await timeline.locator(".stop-place-card select").selectOption("1");
     await applyEdit(page, "move to day 1");
     check(/2 stops/.test(await days.nth(0).innerText()), "moving a stop to another day");
     routeDay = /2 stops/.test(await days.nth(0).innerText()) ? 0 : -1;
@@ -363,14 +367,18 @@ async function fareDecimals(browser) {
   const timeline = page.getByRole("region", { name: "Trip timeline" });
   await timeline.locator(".timeline-stop .timeline-stop__main").first().click();
   await settle(page);
-  // Any edit will do: move the end time so the change button is enabled.
+  // Any edit will do: tap the time, then move the end so the change button is enabled.
+  await timeline.locator(".timeline-stop__time").first().click();
   const end = timeline.getByLabel(/^End/).first();
   const [endHour, endMinute] = (await end.inputValue()).split(":").map(Number);
   await end.fill(
     `${String(Math.min(endHour + 1, 22)).padStart(2, "0")}:${String(endMinute).padStart(2, "0")}`,
   );
-  await timeline.getByRole("button", { name: /Change time/ }).click();
-  await settle(page, 800);
+  // The server answers the time edit before the legs can show: wait for that answer, not a delay.
+  const answered = page.waitForResponse((r) => r.url().includes("/api/trip/preview-edit"));
+  await timeline.getByRole("button", { name: "Change time", exact: true }).click();
+  await answered;
+  await settle(page, 300);
   // The fares arrive with the applied edit and show on the checked legs, as the checks below read.
   const jpy = (text) => text.match(/JPY [\d.]+/)?.[0];
   const legs = await timeline.locator(".timeline-connection--checked").allInnerTexts();
@@ -518,29 +526,8 @@ async function stopNumbers(browser) {
     );
     await page.screenshot({ path: `${OUT}/numbers-01-timeline-day2.png` });
 
-    // The Trip drawer's Itinerary list.
+    // The Trip drawer is this same view, so its day was read above; its screenshot is kept.
     const drawer = page.locator(".workspace-drawer--trip");
-    await drawer.getByRole("tab", { name: "Itinerary" }).click();
-    await settle(page, 500);
-    const listDay = (day) =>
-      readRows(
-        drawer
-          .getByRole("list", { name: new RegExp(`^Stops, Day ${day}\\b`) })
-          .locator(".trip-places__item"),
-        ".trip-places__order",
-        ".trip-places__name",
-      );
-    const list2 = await listDay(2);
-    summary.desktopTripListDay2 = shown(list2);
-    check(
-      shown(list2) === expectedDay2,
-      `numbers: Trip drawer Day 2 matches the timeline (${shown(list2)})`,
-    );
-    summary.desktopTripListDay1 = shown(await listDay(1));
-    check(
-      summary.desktopTripListDay1 === "1 Alpha Museum, 2 Bravo Gardens",
-      `numbers: Trip drawer Day 1 matches the timeline (${summary.desktopTripListDay1})`,
-    );
     await drawer.screenshot({ path: `${OUT}/numbers-02-trip-list.png` });
 
     // The map: without a map key its fallback lists the markers in order, and each place's popup
@@ -581,49 +568,20 @@ async function stopNumbers(browser) {
     // From the timeline, the preview endpoint re-times the day from real routes, which the fixture
     // places do not have, so this checks the position the timeline asks for: just after Delta in
     // plan order (Charlie, Delta), not after the second stop of the plan's day.
-    let moveRequest;
-    await page.route("**/api/trip/preview-edit", async (route) => {
-      moveRequest = route.request().postDataJSON().operation;
-      await route.continue();
-    });
     await page.getByRole("button", { name: "Open your trip" }).click();
     await settle(page, 700);
-    await drawer.getByRole("tab", { name: /Timeline/ }).click();
-    await settle(page, 500);
+    // Move later on the first Day 2 stop (Alpha) swaps it with the stop shown below it (Delta). The
+    // browser swaps their start times, so the day then shows Delta first and each place keeps its number.
     await days.nth(1).click();
     await settle(page);
-    await timeline.locator(".timeline-stop").first().locator(".timeline-stop__main").click();
-    await settle(page);
-    await timeline.getByRole("button", { name: "Move later", exact: true }).click();
-    await settle(page, 800);
-    summary.desktopTimelineMoveLater = moveRequest;
-    check(
-      moveRequest?.id === "e2e-alpha-2" && moveRequest.day === 2 && moveRequest.index === 2,
-      `numbers: timeline Move later asks for the place after Delta (${JSON.stringify(moveRequest)})`,
-    );
-    await settle(page, 400);
-
-    // From the Trip list the swap is applied in the browser: every view then shows Delta first,
-    // and each place keeps its number.
-    await drawer.getByRole("tab", { name: "Itinerary" }).click();
-    await settle(page, 500);
-    const day2List = drawer
-      .getByRole("list", { name: /^Stops, Day 2\b/ })
-      .locator(".trip-places__item");
-    await day2List
+    await timeline
+      .locator(".timeline-stop")
       .first()
       .getByRole("button", { name: /^Actions for / })
       .click();
     await drawer.getByRole("menuitem", { name: "Move later", exact: true }).click();
-    await settle(page, 600);
+    await settle(page, 800);
     const swapped = "3 Delta Market, 1 Alpha Museum, 4 Charlie Gallery";
-    summary.desktopTripListDay2AfterMoveLater = shown(await listDay(2));
-    check(
-      summary.desktopTripListDay2AfterMoveLater === swapped,
-      `numbers: Trip list Move later swaps Alpha with Delta below it (${summary.desktopTripListDay2AfterMoveLater})`,
-    );
-    await drawer.getByRole("tab", { name: /Timeline/ }).click();
-    await settle(page, 500);
     const afterMove = await timelineDay(1);
     summary.desktopTimelineDay2AfterMoveLater = shown(afterMove);
     check(

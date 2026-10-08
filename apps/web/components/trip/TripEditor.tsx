@@ -5,6 +5,8 @@ import type { TripPlan } from "@trip/shared";
 import type { RouteResult } from "@/lib/integrations/google";
 import type { TripPlaces } from "../map/useTripPlaces";
 import { connectionBetween, dayCount, dayLabel, dayRows, stayingAt } from "@/lib/trip/timeline";
+import { applyItemAction, type ItemAction } from "@/lib/trip/item-actions";
+import { NoticeError, type Notice } from "@/lib/i18n/notice";
 import { useSegmentIndicator } from "../ui/motion";
 import { FlowStayIcon } from "../ui/flow-icons";
 import { DayStrip } from "./timeline/DayStrip";
@@ -12,15 +14,18 @@ import { ConnectionRow, FixedTimelineRow } from "./timeline/TimelineParts";
 import { TimelineStop } from "./timeline/TimelineStop";
 import { useTimelineEdits, type RouteMode } from "./timeline/useTimelineEdits";
 
+type Activity = TripPlaces["activities"][number];
+
 /**
- * The Timeline & routes tab: one day at a time, in the order the traveller lives it — the flight or
- * transfer that starts it, each stop with the journey to the next, and the night's check-in.
+ * The one view of the trip's days, in the Your Trip drawer and on the phone Trip tab: the day strip,
+ * the chosen day's stops in the order the traveller lives them, each with the journey to the next,
+ * and then Ideas, the stops with no day yet.
  *
- * Stops are edited here (time, order, day, place). Each edit is checked by the server, which
- * re-checks routes, budget and conflicts, and applies at once when accepted; a refused edit leaves the
- * plan unchanged and says why. "Check routes" asks Google for real walking or public-transport times
- * between the day's confirmed places. Selection is shared with the map: choosing a stop in either
- * place highlights it in both.
+ * Time and place changes, and moves between or within a day, are checked by the server, which
+ * re-checks routes, budget and conflicts, and applied at once when accepted; a refused edit leaves the
+ * plan unchanged and says why. Details, notes, booked and Remove apply in the browser. "Check routes"
+ * asks Google for real walking or public-transport times between the day's confirmed places. Selection
+ * is shared with the map: choosing a stop in either place highlights it in both and opens its card.
  */
 export function TripEditor({
   plan,
@@ -31,6 +36,7 @@ export function TripEditor({
   selected = "",
   onSelect,
   onRoutesChange,
+  showPhotos = false,
 }: {
   plan: TripPlan;
   disabled: boolean;
@@ -41,6 +47,8 @@ export function TripEditor({
   onSelect(activityId: string): void;
   /** Routes to draw on the map: the routes verified for the current plan. */
   onRoutesChange?(routes: RouteResult[]): void;
+  /** Show each place's first Google photo in its card (live data with a Maps key). */
+  showPhotos?: boolean;
 }) {
   const { t, locale, notice: localizeNotice } = useLocale();
   const { activities, itinerary, places, placeIdFor, locationStatus } = tripPlaces;
@@ -60,11 +68,12 @@ export function TripEditor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected]);
 
-  // The day's stops in visiting order, numbered as on the map and the trip list.
+  // The day's stops in visiting order, numbered as on the map.
   const daily = useMemo(
     () => itinerary.stopsOn(day).map((stop) => stop.activity),
     [itinerary, day],
   );
+  const ideas = useMemo(() => itinerary.ideas(), [itinerary]);
   const rows = useMemo(() => dayRows(plan, day, daily, locale), [plan, day, daily, locale]);
   const unconfirmed = daily.filter((activity) => !activity.placeId).length;
   const staying = stayingAt(plan, day);
@@ -84,6 +93,66 @@ export function TripEditor({
       }),
     [labels, itinerary, locationStatus],
   );
+
+  // Item actions (details, note, booked, Ideas, Remove, scheduling) apply in the browser and can be
+  // undone until the plan changes from elsewhere.
+  const [itemUndo, setItemUndo] = useState<{ previous: TripPlan; message: Notice }>();
+  const [problem, setProblem] = useState<Notice | "">("");
+  const applied = useRef<TripPlan | null>(null);
+  // The stop an action or move is taking off this day; focus returns to the day heading once it is gone.
+  const leaving = useRef<string | undefined>(undefined);
+  const dayTitle = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    if (applied.current !== plan) setItemUndo(undefined);
+    applied.current = null;
+  }, [plan]);
+  useEffect(() => {
+    const id = leaving.current;
+    leaving.current = undefined;
+    if (id !== undefined && !daily.some((activity) => activity.id === id))
+      dayTitle.current?.focus({ preventScroll: true });
+    // Runs when the plan changes; the stop list it reads comes from the same render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [plan]);
+
+  const act = (activity: Activity, action: ItemAction, message: Notice): boolean => {
+    if (!activity.id) return false;
+    try {
+      const next = applyItemAction(plan, activity.id, action);
+      applied.current = next;
+      setItemUndo({ previous: plan, message });
+      setProblem("");
+      if (action.kind === "day" || action.kind === "idea" || action.kind === "remove")
+        leaving.current = activity.id;
+      onApply(next);
+      return true;
+    } catch (error) {
+      setProblem(
+        error instanceof NoticeError ? error.notice : { key: "That change could not be made." },
+      );
+      return false;
+    }
+  };
+
+  // Everything a stop row needs from this view, for a stop on the day or an idea.
+  const stopProps = (activity: Activity) => {
+    const placeId = placeIdFor(activity);
+    return {
+      activity,
+      number: activity.id ? itinerary.stop(activity.id)?.number : undefined,
+      days,
+      dayLabels: labels,
+      selected: selected === activity.id,
+      locked,
+      place: placeId ? places[placeId] : undefined,
+      status: locationStatus(activity),
+      edits,
+      showPhotos,
+      onSelect: () => onSelect(selected === activity.id ? "" : activity.id!),
+      onOpen: () => onSelect(activity.id!),
+      onItem: (action: ItemAction, message: Notice) => act(activity, action, message),
+    };
+  };
 
   // Stops are connected in the order shown and carry their trip-wide stop number. Moves name a
   // shown position; the Itinerary turns it into the plan index the preview endpoint needs.
@@ -151,9 +220,39 @@ export function TripEditor({
           ))}
         </ul>
       )}
+      {problem && (
+        <p className="item-problem" role="alert">
+          {localizeNotice(problem)}
+        </p>
+      )}
+      {itemUndo ? (
+        <div className="item-undo" role="status">
+          <span>{localizeNotice(itemUndo.message)}</span>
+          <button
+            type="button"
+            disabled={locked}
+            onClick={() => {
+              applied.current = itemUndo.previous;
+              onApply(itemUndo.previous);
+              setItemUndo(undefined);
+            }}
+          >
+            {t("Undo")}
+          </button>
+        </div>
+      ) : (
+        edits.undo && (
+          <div className="timeline-undo">
+            <span>{t("Change applied.")}</span>
+            <button type="button" disabled={locked} onClick={() => void edits.edit(edits.undo!)}>
+              {t("Undo last change")}
+            </button>
+          </div>
+        )
+      )}
 
       <div className="timeline-day">
-        <h3 className="timeline-day__title">
+        <h3 ref={dayTitle} id="timeline-day-title" tabIndex={-1} className="timeline-day__title">
           {t("Day {v0}", { v0: day })} <span>{labels[day - 1]}</span>
         </h3>
         {staying && (
@@ -170,17 +269,15 @@ export function TripEditor({
             {rows.map((row, position) => {
               if (row.type === "fixed") return <FixedTimelineRow key={row.key} row={row} />;
               const activity = row.activity;
-              const placeId = placeIdFor(activity);
               const connection = connectionBetween(previous, activity, edits.routes, locale);
               previous = activity;
               return (
                 <Fragment key={activity.id ?? position}>
                   {connection && <ConnectionRow key={connection.status} connection={connection} />}
                   <TimelineStop
-                    activity={activity}
-                    number={itinerary.stop(activity.id!)?.number}
+                    {...stopProps(activity)}
                     index={daily.indexOf(activity)}
-                    planIndex={itinerary.planIndex}
+                    count={daily.length}
                     dropIndex={(moved) =>
                       itinerary.planIndex(
                         moved,
@@ -188,15 +285,6 @@ export function TripEditor({
                         daily.filter((other) => other.id !== moved).indexOf(activity),
                       )
                     }
-                    count={daily.length}
-                    days={days}
-                    dayLabels={labels}
-                    selected={selected === activity.id}
-                    locked={locked}
-                    place={placeId ? places[placeId] : undefined}
-                    status={locationStatus(activity)}
-                    edits={edits}
-                    onSelect={() => onSelect(selected === activity.id ? "" : activity.id!)}
                   />
                 </Fragment>
               );
@@ -216,13 +304,25 @@ export function TripEditor({
         )}
       </div>
 
-      {edits.undo && (
-        <div className="timeline-undo">
-          <span>{t("Change applied.")}</span>
-          <button type="button" disabled={locked} onClick={() => void edits.edit(edits.undo!)}>
-            {t("Undo last change")}
-          </button>
-        </div>
+      {ideas.length > 0 && (
+        <section className="timeline-ideas" aria-labelledby="timeline-ideas-title">
+          <h4 id="timeline-ideas-title" tabIndex={-1} className="timeline-ideas__title">
+            {t("Ideas")}
+          </h4>
+          <p className="timeline-ideas__hint">
+            {t("Set aside for later. Schedule one on a day from its menu.")}
+          </p>
+          <ol className="timeline" aria-label={t("Stops, {v0}", { v0: t("Ideas") })}>
+            {ideas.map((idea, position) => (
+              <TimelineStop
+                key={idea.id ?? `idea-${position}`}
+                {...stopProps(idea)}
+                index={0}
+                count={1}
+              />
+            ))}
+          </ol>
+        </section>
       )}
     </section>
   );

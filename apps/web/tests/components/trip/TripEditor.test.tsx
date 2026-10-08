@@ -72,7 +72,7 @@ describe("editor request lifecycle", () => {
         onSelect={select}
       />,
     );
-    fireEvent.click(screen.getByRole("button", { name: /09:00–10:00 · .*Museum/ }));
+    fireEvent.click(document.querySelector<HTMLElement>(".timeline-stop__main")!);
     expect(select).toHaveBeenCalledWith(itineraryActivities(plan)[0]!.id);
   });
   it("discards a late preview after workspace restore", async () => {
@@ -100,6 +100,7 @@ describe("editor request lifecycle", () => {
         onSelect={vi.fn()}
       />,
     );
+    fireEvent.click(screen.getByRole("button", { name: /^Change time, / }));
     fireEvent.change(screen.getByLabelText("End"), { target: { value: "10:30" } });
     fireEvent.click(screen.getByRole("button", { name: "Change time" }));
     const restored = { ...original, tripId: "restored" };

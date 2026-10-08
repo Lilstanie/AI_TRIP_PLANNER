@@ -1,17 +1,14 @@
 "use client";
-import { useRef, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import type { TripPlan } from "@trip/shared";
 import { CurrencyNotice } from "../account/CurrencyNotice";
 import { TripSection } from "./TripSection";
 import { dayConnections } from "./ProposalDetails";
 import { statusForPlan } from "@/lib/workspace/catalog";
 import { itineraryActivities } from "@/lib/workspace";
-import { useSegmentIndicator } from "../ui/motion";
 import type { MessageKey } from "@/lib/i18n/locale";
 import type { Notice } from "@/lib/i18n/notice";
 import { useLocale } from "../account/LocaleProvider";
-
-export type TripTab = "overview" | "timeline";
 
 /**
  * The drawer's one-line state. A plan is "Needs review" only while it still
@@ -23,24 +20,21 @@ export function tripStatus(plan: TripPlan) {
   return statusForPlan(plan) === "needs_review" ? "Needs review" : "Draft";
 }
 
-/** Body of the Your Trip drawer; the drawer supplies the heading and close button. */
+/**
+ * Body of the Your Trip drawer; the drawer supplies the heading and close button. One view: the budget,
+ * then the day timeline (day strip, the day's stops, Ideas), then the trip's sections.
+ */
 export function TripPanel({
   plan,
-  tab,
-  onTab,
   timeline,
-  places,
   onReview,
   onEdit,
   onChoose,
   problem,
 }: {
   plan: TripPlan;
-  tab: TripTab;
-  onTab(tab: TripTab): void;
+  /** The day view: day strip, the chosen day's stops and Ideas. */
   timeline: ReactNode;
-  /** The trip's stops in visiting order, shown first in the Itinerary tab. */
-  places?: ReactNode;
   onReview: () => void;
   onEdit: () => void;
   /** Swap a stay or fare inside a section; absent while the plan is busy. */
@@ -64,12 +58,6 @@ export function TripPanel({
   // Admission prices are published nowhere the planner can read, so these stops add nothing to the
   // total. Saying so keeps the total from reading as the whole cost of the trip.
   const unpriced = itineraryActivities(plan).filter((item) => item.estCost === undefined).length;
-  const tabList = useRef<HTMLDivElement>(null);
-  useSegmentIndicator(tabList, tab);
-  const tabs: [TripTab, MessageKey][] = [
-    ["overview", "Itinerary"],
-    ["timeline", "Timeline & routes"],
-  ];
   return (
     <div className="trip-panel">
       <p className="trip__sub">
@@ -112,67 +100,29 @@ export function TripPanel({
         )}
         <CurrencyNotice />
       </section>
-      <div
-        ref={tabList}
-        className="trip-tabs segmented"
-        role="tablist"
-        aria-label={t("Trip views")}
-      >
-        {tabs.map(([id, label]) => (
-          <button
-            key={id}
-            id={`trip-tab-${id}`}
-            role="tab"
-            aria-selected={tab === id}
-            aria-controls={`trip-tabpanel-${id}`}
-            tabIndex={tab === id ? 0 : -1}
-            onClick={() => onTab(id)}
-            onKeyDown={(event) => {
-              if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
-              const next = tabs[(tabs.findIndex(([item]) => item === id) + 1) % tabs.length]![0];
-              onTab(next);
-              document.getElementById(`trip-tab-${next}`)?.focus();
-            }}
-          >
-            {t(label)}
-          </button>
-        ))}
-      </div>
-      <div
-        key={tab}
-        className="trip-tabpanel tab-panel-enter"
-        role="tabpanel"
-        id={`trip-tabpanel-${tab}`}
-        aria-labelledby={`trip-tab-${tab}`}
-      >
-        {tab === "overview" ? (
-          <>
-            {places}
-            {problem && (
-              <p className="item-problem" role="alert">
-                {localizeNotice(problem)}
-              </p>
-            )}
-            {plan.sections.length ? (
-              plan.sections.map((section) => (
-                <TripSection
-                  key={section.id}
-                  section={section}
-                  {...(section.id === "transport" ? { connections } : {})}
-                  {...(onChoose ? { onChoose } : {})}
-                  onEdit={onEdit}
-                />
-              ))
-            ) : (
-              <p className="section__empty">
-                {t("No itinerary yet. Fill in your preferences and select Update trip.")}
-              </p>
-            )}
-          </>
-        ) : (
-          timeline
-        )}
-      </div>
+      {timeline}
+      {problem && (
+        <p className="item-problem" role="alert">
+          {localizeNotice(problem)}
+        </p>
+      )}
+      {plan.sections.length ? (
+        <div className="trip-panel__sections">
+          {plan.sections.map((section) => (
+            <TripSection
+              key={section.id}
+              section={section}
+              {...(section.id === "transport" ? { connections } : {})}
+              {...(onChoose ? { onChoose } : {})}
+              onEdit={onEdit}
+            />
+          ))}
+        </div>
+      ) : (
+        <p className="section__empty">
+          {t("No itinerary yet. Fill in your preferences and select Update trip.")}
+        </p>
+      )}
       <div className="actions trip-panel__footer">
         <button className="primary" disabled={!plan.sections.length} onClick={onReview}>
           {t("Review plan")}

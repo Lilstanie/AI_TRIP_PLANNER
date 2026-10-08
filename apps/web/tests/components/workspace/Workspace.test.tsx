@@ -176,7 +176,6 @@ describe("Workspace interactions", () => {
     expect(within(map).queryByRole("button", { name: "Review plan" })).toBeNull();
     expect(within(map).queryByText(/Estimated total/)).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Open your trip" }));
-    fireEvent.click(screen.getByRole("tab", { name: "Timeline & routes" }));
     const trip = drawer("trip");
     expect(within(trip).getByRole("button", { name: /Check routes for Day/ })).toBeTruthy();
     expect(within(map).queryByRole("button", { name: /Check routes for Day/ })).toBeNull();
@@ -1036,7 +1035,6 @@ describe("Workspace map places", () => {
     expect(within(map).queryByText(/No Google place matched/)).toBeNull();
     expect(within(map).queryByRole("button", { name: "Retry places" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Open your trip" }));
-    fireEvent.click(screen.getByRole("tab", { name: "Timeline & routes" }));
     expect(within(drawer("trip")).getAllByText(/Location to be confirmed/).length).toBeGreaterThan(
       0,
     );
@@ -1065,8 +1063,7 @@ describe("Workspace map places", () => {
       />,
     );
     fireEvent.click(screen.getByRole("button", { name: "Open your trip" }));
-    const places = () =>
-      within(drawer("trip")).getByRole("list", { name: "Stops, Day 1 · 2026-10-01" });
+    const places = () => within(drawer("trip")).getByRole("list", { name: "Day 1 timeline" });
     await waitFor(() =>
       expect(
         within(places()).getByRole("button", { name: /^Stop \d+: To-ji Temple/ }),

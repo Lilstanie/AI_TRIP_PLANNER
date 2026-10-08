@@ -1,11 +1,13 @@
-// End-to-end walk through the Itinerary tab's item menu with mock data: move earlier and later
-// within a day (and undo), booked, note, details, next day, ideas and back, remove and undo, adjust
-// schedule, a swap refused past 23:59, keyboard handling and 44 px phone targets. Screenshots at
-// desktop and phone widths land under output/playwright/itinerary/ as a repeatable artifact.
+// End-to-end walk through the one day view in the Trip drawer with mock data: the stop's menu (move to
+// another day, earlier and later, Ideas, booked, note, details, Remove and Undo), a Replace place search
+// that saves the picked place, a time changed by tapping it, the place card opened from a stop and closed
+// by keyboard with focus back on the stop, and 44 px phone targets at 390 and 360 px wide with no sideways
+// scroll. Screenshots at desktop and phone widths land under output/playwright/itinerary/ as a repeatable
+// artifact, with a JSON summary of each check.
 //
-//   pnpm --filter @trip/web dev            # in another terminal
-//   [CHANNEL=chrome] [PLAYWRIGHT=<path to playwright>] node apps/web/tests/e2e/itinerary.e2e.mjs
-import { mkdirSync } from "node:fs";
+//   DATA_MODE=mock pnpm --filter @trip/web e2e itinerary
+//   [CHANNEL=chrome] [PLAYWRIGHT=<path to playwright>] BASE_URL=http://localhost:3000 node apps/web/tests/e2e/itinerary.e2e.mjs
+import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
 
@@ -16,20 +18,70 @@ const OUT = resolve(process.cwd(), "output/playwright/itinerary");
 mkdirSync(OUT, { recursive: true });
 
 const failures = [];
+const results = [];
 const check = (ok, message) => {
   if (!ok) failures.push(message);
+  results.push({ ok: !!ok, message });
   console.log(`${ok ? "ok  " : "FAIL"} ${message}`);
 };
 const settle = (page, ms = 500) => page.waitForTimeout(ms);
+const MIN_TARGET = 44;
 
-async function openItinerary(browser, { width, height }) {
+// The places search answers from this fixture; a test can change it before it searches.
+let searchReply = { places: [] };
+const REPLACEMENT = {
+  id: "e2e-replacement-museum",
+  displayName: { text: "Replacement Museum" },
+  formattedAddress: "1 Test Street, Sydney",
+};
+
+async function openTrip(browser, { width, height }) {
   const context = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: 2 });
   const page = await context.newPage();
   const errors = [];
+  const saves = [];
   page.on("pageerror", (error) => errors.push(String(error)));
-  page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
-  // Explicit no-match Places fixture: this UI walk never spends provider quota.
-  await page.route("**/api/places/search", (route) => route.fulfill({ json: { places: [] } }));
+  // Without a Maps key the place routes answer 503; the browser logs that with no URL. Only that case
+  // is expected; any other console error is still reported.
+  const placesDown = { seen: false };
+  page.on("response", (response) => {
+    if (response.status() === 503 && new URL(response.url()).pathname.startsWith("/api/places/"))
+      placesDown.seen = true;
+  });
+  page.on("console", (m) => {
+    if (m.type() !== "error") return;
+    if (placesDown.seen && /status of 503/.test(m.text())) return;
+    errors.push(m.text());
+  });
+  page.on("request", (request) => {
+    if (request.url().includes("/api/trip/preview-edit")) saves.push(request.postDataJSON());
+  });
+  // A place edit looks the place up at Google, which needs the server Maps key this run does not have.
+  // That lookup is the provider boundary: the edit is re-sent as a time edit at the stop's own times,
+  // so the server still checks the day, and the picked place is then recorded on the returned stop.
+  await page.route("**/api/trip/preview-edit", async (route) => {
+    const body = route.request().postDataJSON();
+    if (body.operation?.kind !== "place") return route.continue();
+    const items = body.plan.sections.find((s) => s.id === "itinerary").proposal.items;
+    const stop = items.find((item) => item.id === body.operation.id);
+    const response = await route.fetch({
+      postData: JSON.stringify({
+        ...body,
+        operation: {
+          kind: "time",
+          id: stop.id,
+          startTime: stop.startTime,
+          endTime: stop.endTime,
+        },
+      }),
+    });
+    const json = await response.json();
+    const returned = json.plan?.sections.find((s) => s.id === "itinerary").proposal.items;
+    const picked = returned?.find((item) => item.id === body.operation.id);
+    if (picked) picked.placeId = body.operation.placeId;
+    await route.fulfill({ response, json });
+  });
+  await page.route("**/api/places/search", (route) => route.fulfill({ json: searchReply }));
   await page.goto(BASE);
   await page.waitForSelector(".workspace-app");
   await page.waitForLoadState("networkidle");
@@ -48,80 +100,74 @@ async function openItinerary(browser, { width, height }) {
     await tripTab.click();
   } else await page.getByRole("button", { name: "Open your trip" }).click();
   await settle(page, 700);
-  return { context, page, errors };
+  return { context, page, errors, saves };
 }
 
 async function run(browser, { width, height, tag }) {
-  const { context, page, errors } = await openItinerary(browser, { width, height });
+  const { context, page, errors, saves } = await openTrip(browser, { width, height });
   const drawer = page.locator(".workspace-drawer--trip, #phone-panel-trip");
-  check(
-    (await drawer.getByRole("tab", { name: "Itinerary" }).getAttribute("aria-selected")) === "true",
-    `${tag}: Itinerary is the first tab`,
-  );
-  const menus = drawer.getByRole("button", { name: /^Actions for / });
-  check(
-    (await menus.count()) >= 2,
-    `${tag}: every stop has an action menu (${await menus.count()})`,
-  );
-  // Follow one stop: the first until it has a note, then the row carrying that note.
   const NOTE = "Buy tickets online";
-  const row = async () => {
-    const noted = drawer.locator(".trip-places__item").filter({ hasText: NOTE });
-    return (await noted.count()) ? noted.first() : drawer.locator(".trip-places__item").first();
+  // The day view shows one day at a time, chosen on the day strip.
+  const showDay = async (day) => {
+    const tab = drawer.getByRole("tab", { name: new RegExp(`^Day ${day}\\b`) });
+    if ((await tab.getAttribute("aria-selected")) !== "true") await tab.click();
+    await settle(page, 300);
   };
-  const openMenu = async () => {
-    await (await row()).getByRole("button", { name: /^Actions for / }).click();
-    await drawer.getByRole("menu").waitFor();
-  };
-  const choose = async (label) => {
-    await openMenu();
-    await drawer.getByRole("menuitem", { name: label }).click();
-    await settle(page, 400);
-  };
-  const dayList = (day) => drawer.getByRole("list", { name: new RegExp(`^Stops, Day ${day}\\b`) });
-  // Mock stops share a name, so a day's order is read from which row carries the note.
-  const notedAt = async (day) =>
-    (await dayList(day).locator(".trip-places__item").allInnerTexts()).findIndex((text) =>
-      text.includes(NOTE),
-    );
-  const dayText = async (day) =>
-    (await dayList(day).locator(".trip-places__item").allInnerTexts()).join("|");
-  const menuLabels = async (item) => {
-    await item.getByRole("button", { name: /^Actions for / }).click();
+  const dayList = (day) => drawer.getByRole("list", { name: new RegExp(`^Day ${day} timeline$`) });
+  const ideasList = () => drawer.getByRole("list", { name: "Stops, Ideas" });
+  const stopsIn = (list) => list.locator(".timeline-stop");
+  const noted = () => drawer.locator(".timeline-stop").filter({ hasText: NOTE }).first();
+  const firstStop = (day) => stopsIn(dayList(day)).first();
+  const menuOf = (row) => row.getByRole("button", { name: /^Actions for / });
+  const menuLabels = async (row) => {
+    await menuOf(row).click();
     await drawer.getByRole("menu").waitFor();
     const found = (await drawer.getByRole("menuitem").allInnerTexts()).map((l) => l.trim());
     await page.keyboard.press("Escape");
     await settle(page, 200);
     return found;
   };
-  const chooseOn = async (item, label) => {
-    await item.getByRole("button", { name: /^Actions for / }).click();
+  const choose = async (row, label) => {
+    await menuOf(row).click();
     await drawer.getByRole("menuitem", { name: label, exact: true }).click();
-    await settle(page, 400);
+    await settle(page, 500);
   };
+  const rowsText = async (list) => (await stopsIn(list).allInnerTexts()).join("|");
+  const notedIndex = async (list) =>
+    (await stopsIn(list).allInnerTexts()).findIndex((text) => text.includes(NOTE));
 
-  // The menu opens, lists Mindtrip's actions, and Escape returns focus to its trigger.
-  await openMenu();
-  const labels = await drawer.getByRole("menuitem").allInnerTexts();
+  // The one view: no tab switch, and the day, stops and Ideas are on screen together.
+  check(
+    !(await drawer.getByRole("tab", { name: /Itinerary|Timeline & routes/ }).count()),
+    `${tag}: the Trip drawer has no Itinerary or Timeline tab (one view)`,
+  );
+  check(await dayList(1).isVisible(), `${tag}: Day 1 timeline is shown`);
+  check(
+    (await drawer.locator(".timeline-stop").count()) >= 1,
+    `${tag}: every stop of the day has a row (${await drawer.locator(".timeline-stop").count()})`,
+  );
+  check(
+    (await drawer.getByRole("button", { name: /^Actions for / }).count()) >= 1,
+    `${tag}: every stop has an action menu`,
+  );
+
+  // The menu lists the stop's actions; Escape closes it and returns focus to its trigger.
+  await menuOf(firstStop(1)).click();
+  const labels = (await drawer.getByRole("menuitem").allInnerTexts()).map((l) => l.trim());
   check(
     [
-      "Adjust schedule",
+      "Move to another day",
+      "Move to ideas",
+      "Replace place",
       "Edit details",
       "Add a note",
-      "Move to ideas",
-      "Move to previous day",
-      "Move to next day",
       "Mark as booked",
       "Remove",
-    ].every((l) => labels.some((x) => x.trim() === l)),
-    `${tag}: menu lists every action (${labels.map((l) => l.trim()).join(", ")})`,
+    ].every((label) => labels.includes(label)),
+    `${tag}: menu lists every action (${labels.join(", ")})`,
   );
-  check(
-    await drawer.getByRole("menuitem", { name: "Move to previous day" }).isDisabled(),
-    `${tag}: day 1 cannot move earlier`,
-  );
+  check(!labels.includes("Move earlier"), `${tag}: the first stop of a day offers no Move earlier`);
   await page.screenshot({ path: `${OUT}/${tag}-01-menu.png` });
-  await page.keyboard.press("ArrowDown");
   await page.keyboard.press("Escape");
   await settle(page, 300);
   check(!(await drawer.getByRole("menu").count()), `${tag}: Escape closes the menu`);
@@ -129,29 +175,42 @@ async function run(browser, { width, height, tag }) {
     await page.evaluate(() =>
       document.activeElement?.getAttribute("aria-label")?.startsWith("Actions for"),
     ),
-    `${tag}: focus returns to the trigger`,
+    `${tag}: focus returns to the menu trigger`,
   );
   check(await drawer.isVisible(), `${tag}: Escape does not close the drawer`);
 
-  // Booked and a note show on the row.
-  await choose("Mark as booked");
+  // Booked shows on the row; a note opens a form in the place card and shows under the stop.
+  await choose(firstStop(1), "Mark as booked");
   check(
-    (await drawer.locator(".trip-places__tag", { hasText: "Booked" }).count()) === 1,
+    (await drawer.locator(".timeline-tag", { hasText: "Booked" }).count()) === 1,
     `${tag}: booked shows a tag`,
   );
-  await choose("Add a note");
-  await drawer.getByLabel("Note").fill("Buy tickets online");
-  await drawer.getByRole("button", { name: "Save" }).click();
-  await settle(page, 400);
+  await choose(firstStop(1), "Add a note");
   check(
-    await drawer.getByText("Buy tickets online").isVisible(),
-    `${tag}: the note shows under the stop`,
+    await drawer.locator(".stop-place-card").isVisible(),
+    `${tag}: a menu form opens in the place card`,
   );
+  await drawer.getByLabel("Note", { exact: true }).fill(NOTE);
+  await drawer.getByRole("button", { name: "Save", exact: true }).click();
+  await settle(page, 400);
+  check(await drawer.getByText(NOTE).first().isVisible(), `${tag}: the note shows under the stop`);
 
-  // Edit details renames the stop.
-  await choose("Edit details");
+  // Edit details renames the stop; Escape in its form closes the form and keeps the stop as it was.
+  await choose(noted(), "Edit details");
   await drawer.getByLabel("What you will do").fill("Morning walk and coffee");
-  await drawer.getByRole("button", { name: "Save" }).click();
+  await page.keyboard.press("Escape");
+  await settle(page, 300);
+  check(
+    !(await drawer.getByLabel("What you will do").count()),
+    `${tag}: Escape closes the details form`,
+  );
+  check(
+    await page.evaluate(() => document.activeElement?.classList.contains("timeline-stop__main")),
+    `${tag}: focus returns to the stop when its form closes`,
+  );
+  await choose(noted(), "Edit details");
+  await drawer.getByLabel("What you will do").fill("Morning walk and coffee");
+  await drawer.getByRole("button", { name: "Save", exact: true }).click();
   await settle(page, 400);
   check(
     await drawer.getByText("Morning walk and coffee").first().isVisible(),
@@ -159,138 +218,220 @@ async function run(browser, { width, height, tag }) {
   );
   await page.screenshot({ path: `${OUT}/${tag}-02-booked-note.png` });
 
-  // Next day, then Ideas, then back onto a day.
-  await choose("Move to next day");
+  // Move to another day: the card's day picker moves the stop through the server check.
+  await choose(noted(), "Move to another day");
+  await drawer.locator(".stop-place-card select").selectOption("2");
+  await settle(page, 600);
+  await showDay(2);
   check(
-    (await drawer
-      .getByRole("list", { name: /Stops, Day 2/ })
-      .getByText("Buy tickets online")
-      .count()) === 1,
-    `${tag}: next day moves the stop to Day 2`,
+    (await stopsIn(dayList(2)).filter({ hasText: NOTE }).count()) === 1,
+    `${tag}: Move to another day puts the stop on Day 2`,
   );
 
-  // Day 2 now holds its own stop, then the noted one. Move earlier / Move later reorder them
-  // without dragging, and Undo restores the order.
-  const day2 = dayList(2).locator(".trip-places__item");
+  // Day 2 has its own stop and the noted one. Move earlier and later reorder them through the
+  // server check; Undo restores the order the traveller had before.
+  const day2 = dayList(2);
+  const before2 = await rowsText(day2);
   check(
-    (await day2.count()) === 2 && (await notedAt(2)) === 1,
+    (await stopsIn(day2).count()) === 2 && (await notedIndex(day2)) === 1,
     `${tag}: Day 2 has two stops, the noted one last`,
   );
-  const firstLabels = await menuLabels(day2.first());
+  const firstLabels = await menuLabels(stopsIn(day2).first());
   check(
     !firstLabels.includes("Move earlier") && firstLabels.includes("Move later"),
     `${tag}: the first stop of a day offers Move later only`,
   );
-  const lastLabels = await menuLabels(day2.last());
+  const lastLabels = await menuLabels(stopsIn(day2).last());
   check(
     lastLabels.includes("Move earlier") && !lastLabels.includes("Move later"),
     `${tag}: the last stop of a day offers Move earlier only`,
   );
   if (tag === "phone") {
-    const trigger = day2.first().getByRole("button", { name: /^Actions for / });
+    const trigger = menuOf(stopsIn(day2).first());
     const box = await trigger.boundingBox();
     check(
-      box && box.width >= 44 && box.height >= 44,
-      `${tag}: menu trigger is at least 44 px (${box?.width}x${box?.height})`,
+      box && box.width >= MIN_TARGET && box.height >= MIN_TARGET,
+      `${tag}: menu trigger is at least ${MIN_TARGET} px (${box?.width}x${box?.height})`,
     );
     await trigger.click();
     const sizes = await drawer
       .getByRole("menuitem")
       .evaluateAll((items) => items.map((i) => i.getBoundingClientRect().height));
     check(
-      sizes.length > 0 && sizes.every((h) => h >= 44),
-      `${tag}: menu items are at least 44 px tall (min ${Math.min(...sizes)})`,
+      sizes.length > 0 && sizes.every((h) => h >= MIN_TARGET),
+      `${tag}: menu items are at least ${MIN_TARGET} px tall (min ${Math.min(...sizes)})`,
     );
     await page.screenshot({ path: `${OUT}/${tag}-03a-touch-menu.png` });
     await page.keyboard.press("Escape");
     await settle(page, 200);
   }
-  const before2 = await dayText(2);
-  await chooseOn(day2.first(), "Move later");
-  check((await notedAt(2)) === 0, `${tag}: Move later puts the other stop after the noted one`);
+  await choose(stopsIn(day2).first(), "Move later");
+  check(
+    (await notedIndex(day2)) === 0,
+    `${tag}: Move later puts the other stop after the noted one`,
+  );
   await page.screenshot({ path: `${OUT}/${tag}-03b-moved-later.png` });
-  await drawer.getByRole("button", { name: "Undo" }).click();
-  await settle(page, 400);
-  check((await dayText(2)) === before2, `${tag}: Undo restores Day 2's order and times`);
-  await chooseOn(day2.last(), "Move earlier");
-  check((await notedAt(2)) === 0, `${tag}: Move earlier puts the noted stop first`);
-  await chooseOn(day2.first(), "Move later");
-  check((await notedAt(2)) === 1, `${tag}: Move later puts it back`);
-  await choose("Move to ideas");
-  const ideas = drawer.getByRole("list", { name: "Stops, Ideas" });
+  await drawer.getByRole("button", { name: /^Undo/ }).click();
+  await settle(page, 500);
+  check((await rowsText(day2)) === before2, `${tag}: Undo restores Day 2's order and times`);
+  await choose(stopsIn(day2).last(), "Move earlier");
+  check((await notedIndex(day2)) === 0, `${tag}: Move earlier puts the noted stop first`);
+  await drawer.getByRole("button", { name: /^Undo/ }).click();
+  await settle(page, 500);
+
+  // Move to Ideas: the stop leaves the day and appears under Ideas, unnumbered, with no time menu.
+  await choose(noted(), "Move to ideas");
+  check((await ideasList().getByText(NOTE).count()) === 1, `${tag}: the stop is in Ideas`);
+  const ideaRow = ideasList().locator(".timeline-stop").filter({ hasText: NOTE });
+  const ideaLabels = await menuLabels(ideaRow);
   check(
-    (await ideas.getByText("Buy tickets online").count()) === 1,
-    `${tag}: the stop is in Ideas`,
+    !ideaLabels.includes("Move earlier") &&
+      !ideaLabels.includes("Move later") &&
+      ideaLabels.includes("Schedule on a day"),
+    `${tag}: an idea offers Schedule on a day and neither Move earlier nor Move later`,
   );
-  const ideaLabels = await menuLabels(await row());
   check(
-    !ideaLabels.includes("Move earlier") && !ideaLabels.includes("Move later"),
-    `${tag}: an idea offers neither Move earlier nor Move later`,
+    !(await ideaRow.locator(".timeline-stop__time").count()),
+    `${tag}: an idea has no time button`,
   );
-  await page.screenshot({ path: `${OUT}/${tag}-03-ideas.png` });
-  await choose("Schedule on a day");
+  await page.screenshot({ path: `${OUT}/${tag}-04-ideas.png` });
+  await choose(ideaRow, "Schedule on a day");
   await drawer.getByLabel("Day", { exact: true }).selectOption("3");
   await drawer.getByRole("button", { name: "Schedule", exact: true }).click();
-  await settle(page, 400);
+  await settle(page, 500);
+  await showDay(3);
   check(
-    (await drawer
-      .getByRole("list", { name: /Stops, Day 3/ })
-      .getByText("Buy tickets online")
-      .count()) === 1,
+    (await stopsIn(dayList(3)).filter({ hasText: NOTE }).count()) === 1,
     `${tag}: an idea is scheduled back onto a day`,
   );
 
+  // Tapping the time opens Start and End; the change applies at once and can be undone.
+  const timed = stopsIn(dayList(3)).filter({ hasText: NOTE }).first();
+  await timed.getByRole("button", { name: /^Change time, / }).click();
+  await drawer.getByLabel("Start", { exact: true }).fill("22:30");
+  await drawer.getByLabel("End", { exact: true }).fill("23:50");
+  await drawer.getByRole("button", { name: "Change time", exact: true }).click();
+  await drawer.locator(".timeline-stop.is-changed, .timeline-status--error").first().waitFor({
+    timeout: 30_000,
+  });
+  await settle(page, 400);
+  check(
+    (await stopsIn(dayList(3)).filter({ hasText: NOTE }).first().innerText()).includes("22:30"),
+    `${tag}: the time applies at once (22:30–23:50)`,
+  );
+  check(
+    !(await drawer.getByRole("button", { name: "Change time", exact: true }).count()),
+    `${tag}: the time form closes once the change is sent`,
+  );
+
+  // Replace place: the menu opens the place search in the card; a picked result is saved.
+  searchReply = { places: [REPLACEMENT] };
+  await choose(stopsIn(dayList(3)).filter({ hasText: NOTE }).first(), "Replace place");
+  await drawer.getByRole("searchbox").fill("museum");
+  await drawer.getByRole("button", { name: "Search", exact: true }).click();
+  await drawer.getByRole("button", { name: "Use Replacement Museum" }).waitFor({ timeout: 15_000 });
+  await page.screenshot({ path: `${OUT}/${tag}-05-replace-results.png` });
+  const placed = page.waitForResponse((r) => r.url().includes("/api/trip/preview-edit"));
+  await drawer.getByRole("button", { name: "Use Replacement Museum" }).click();
+  await placed;
+  await settle(page, 800);
+  const placeSave = saves.findLast((body) => body.operation?.kind === "place");
+  check(
+    placeSave?.operation?.placeId === REPLACEMENT.id,
+    `${tag}: the picked place is sent to the server (${placeSave?.operation?.placeId})`,
+  );
+  check(
+    (await stopsIn(dayList(3))
+      .filter({ hasText: NOTE })
+      .first()
+      .locator(".timeline-tag--ok")
+      .count()) === 1,
+    `${tag}: the picked place is saved and confirmed`,
+  );
+  searchReply = { places: [] };
+
   // Remove, then Undo.
-  const before = await menus.count();
-  await choose("Remove");
-  check((await menus.count()) === before - 1, `${tag}: remove drops the stop`);
-  await drawer.getByRole("button", { name: "Undo" }).click();
-  await settle(page, 400);
-  check((await menus.count()) === before, `${tag}: undo restores it`);
-
-  // Adjust schedule opens the Timeline on that stop.
-  await choose("Adjust schedule");
+  const total = await drawer.locator(".timeline-stop").count();
+  await choose(stopsIn(dayList(3)).filter({ hasText: NOTE }).first(), "Remove");
   check(
-    (await drawer.getByRole("tab", { name: /Timeline/ }).getAttribute("aria-selected")) ===
-      "true" && (await drawer.getByRole("button", { name: /Change time/ }).count()) === 1,
-    `${tag}: adjust schedule opens the stop's time editor in the Timeline`,
+    (await drawer.locator(".timeline-stop").count()) === total - 1,
+    `${tag}: remove drops the stop`,
   );
-  await page.screenshot({ path: `${OUT}/${tag}-04-adjust.png` });
+  await drawer.getByRole("button", { name: /^Undo/ }).click();
+  await settle(page, 500);
+  check((await drawer.locator(".timeline-stop").count()) === total, `${tag}: undo restores it`);
 
-  // A swap that would run past 23:59 is refused and leaves the plan unchanged. The noted stop is
-  // last on Day 3; set it to 22:30-23:50 in the Timeline, then move it earlier.
-  await drawer
-    .getByLabel(/^Start/)
-    .first()
-    .fill("22:30");
-  await drawer.getByLabel(/^End/).first().fill("23:50");
-  await drawer.getByRole("button", { name: /Change time/ }).click();
-  // The edit applies once the server answers: wait for the changed stop or for a refusal notice.
-  await drawer
-    .locator(".timeline-stop.is-changed, .timeline-status--error")
-    .first()
-    .waitFor({ timeout: 30_000 });
-  await settle(page, 400);
-  await drawer.getByRole("tab", { name: "Itinerary" }).click();
-  await settle(page, 400);
-  const day3 = await dayText(3);
+  // A place card opens from the stop and closes by Escape with focus back on the stop.
+  const card = stopsIn(dayList(3)).filter({ hasText: NOTE }).first();
+  // The stop may still be selected from the steps above; a second press would close its card.
+  if ((await card.locator(".timeline-stop__main").getAttribute("aria-expanded")) !== "true")
+    await card.locator(".timeline-stop__main").click();
+  await drawer.locator(".stop-place-card").waitFor();
   check(
-    (await notedAt(3)) === 1 && day3.includes("22:30–23:50"),
-    `${tag}: the noted stop is last on Day 3 at 22:30–23:50`,
+    (await drawer.locator(".stop-place-card").getByRole("heading").count()) >= 1,
+    `${tag}: the place card has a heading`,
   );
-  await choose("Move earlier");
-  const refusal = drawer.locator(".item-problem");
+  await page.screenshot({ path: `${OUT}/${tag}-06-place-card.png` });
+  // Escape is pressed from the keyboard position of the stop: its main button has focus.
+  await card.locator(".timeline-stop__main").focus();
+  await page.keyboard.press("Escape");
+  await settle(page, 300);
   check(
-    (await refusal.count()) === 1 && /past 23:59/.test(await refusal.innerText()),
-    `${tag}: a swap past 23:59 is refused with a message`,
+    !(await drawer.locator(".stop-place-card").count()),
+    `${tag}: Escape closes the place card`,
   );
-  check((await dayText(3)) === day3, `${tag}: the refused swap leaves Day 3 unchanged`);
-  await page.screenshot({ path: `${OUT}/${tag}-05-refused.png` });
+  check(
+    await page.evaluate(() => document.activeElement?.classList.contains("timeline-stop__main")),
+    `${tag}: focus returns to the stop when its card closes`,
+  );
 
+  // Phone and desktop alike: no sideways scroll, and the view stays inside the viewport.
   check(
     !(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)),
     `${tag}: no sideways scroll`,
   );
+  if (tag === "phone") {
+    const timeBox = await drawer.locator(".timeline-stop__time").first().boundingBox();
+    check(
+      timeBox && timeBox.height >= MIN_TARGET,
+      `${tag}: the time button is at least ${MIN_TARGET} px tall (${timeBox?.height})`,
+    );
+  }
+  check(
+    !errors.length,
+    `${tag}: no console errors${errors.length ? `: ${errors.join(" | ").slice(0, 300)}` : ""}`,
+  );
+  await context.close();
+}
+
+// A narrow phone: the same view opens, a stop's card fits, and its targets are at least 44 px.
+async function narrowPhone(browser) {
+  const tag = "phone-360";
+  const { context, page, errors } = await openTrip(browser, { width: 360, height: 800 });
+  const drawer = page.locator("#phone-panel-trip");
+  const first = drawer.locator(".timeline-stop").first();
+  await first.locator(".timeline-stop__main").click();
+  await drawer.locator(".stop-place-card").waitFor();
+  await settle(page, 300);
+  const targets = await drawer
+    .locator(".stop-place-card button, .timeline-stop__time, .action-menu__trigger")
+    .evaluateAll((nodes) =>
+      nodes.map((node) => ({
+        height: node.getBoundingClientRect().height,
+        name: `${node.className} "${node.textContent.trim().slice(0, 30)}"`,
+      })),
+    );
+  const sizes = targets.map((target) => target.height);
+  const small = targets.filter((target) => target.height < MIN_TARGET).map((t) => t.name);
+  check(
+    sizes.length > 0 && small.length === 0,
+    `${tag}: stop targets are at least ${MIN_TARGET} px tall (min ${Math.min(...sizes)}${small.length ? `; short: ${small.join(", ")}` : ""})`,
+  );
+  check(
+    !(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)),
+    `${tag}: no sideways scroll`,
+  );
+  await page.screenshot({ path: `${OUT}/${tag}-card.png` });
   check(
     !errors.length,
     `${tag}: no console errors${errors.length ? `: ${errors.join(" | ").slice(0, 300)}` : ""}`,
@@ -302,9 +443,18 @@ const browser = await chromium.launch({ channel: process.env.CHANNEL });
 try {
   await run(browser, { width: 1440, height: 1000, tag: "desktop" });
   await run(browser, { width: 390, height: 844, tag: "phone" });
+  await narrowPhone(browser);
 } finally {
   await browser.close();
 }
+writeFileSync(
+  `${OUT}/summary.json`,
+  JSON.stringify(
+    { passed: results.filter((r) => r.ok).length, failed: failures.length, checks: results },
+    null,
+    2,
+  ),
+);
 console.log(`\nScreenshots: ${OUT}`);
 if (failures.length) {
   console.log(`${failures.length} check(s) failed`);
