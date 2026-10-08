@@ -8,16 +8,16 @@ now. Implementation history and browser acceptance for each phase are in the
 
 ## Layout
 
-| Area              | Content                                                                                                                                     | Implementation                                                                                              |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| Sidebar           | Logo, Chats and Trips with counts, save or sync status, Settings & account                                                                  | `WorkspaceSidebar`, `BrandMark`, `icons.tsx`                                                                |
-| Chats panel       | Slides out beside the sidebar: search, New chat, New trip, then trips and chats                                                             | `ChatsPanel`, `TripCover`                                                                                   |
-| Your trips        | Opened by Trips in place of chat and map: trip cards (Upcoming, Past) and a Calendar tab; New trip                                          | `TripsPage`, `TripCover`                                                                                    |
-| Top bar           | Trip title; trip fact chips (destination, dates, travellers, budget, Preferences); data mode; Trip with its stop count, rightmost           | `WorkspaceView`, `TripFactChips`                                                                            |
-| Trip fact editors | One editor per chip, every one a centred dialog; Preferences holds the traveller's own list                                                 | `FactPopover`, `FactFields`, `TripCalendar`, `WhereFields`, `PreferenceList`, `lib/workspace/trip-facts.ts` |
-| Chat              | Conversation, the planning transcript, the composer; starter suggestions in a blank chat; no visible heading                                | `ChatPanel`                                                                                                 |
-| Map               | Only the map, labelled markers, curved day-coloured itinerary lines, the place popup, map status, and the locate / map type / zoom controls | `TripMapCanvas`, `TripMap`                                                                                  |
-| Your Trip drawer  | Budget; the day view (day strip, the chosen day's stops with their place cards and ⋯ menus, then Ideas); trip sections; Review plan         | `Drawer`, `TripPanel`, `TripEditor`, `timeline/TimelineStop`                                                |
+| Area              | Content                                                                                                                                              | Implementation                                                                                              |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Sidebar           | Logo, Chats and Trips with counts, save or sync status, Settings & account                                                                           | `WorkspaceSidebar`, `BrandMark`, `icons.tsx`                                                                |
+| Chats panel       | Slides out beside the sidebar: search, New chat, New trip, then trips and chats                                                                      | `ChatsPanel`, `TripCover`                                                                                   |
+| Your trips        | Opened by Trips in place of chat and map: trip cards (Upcoming, Past) and a Calendar tab; New trip                                                   | `TripsPage`, `TripCover`                                                                                    |
+| Top bar           | Trip title; trip fact chips (destination, dates, travellers, budget, Preferences); data mode; Trip with its stop count, rightmost                    | `WorkspaceView`, `TripFactChips`                                                                            |
+| Trip fact editors | One editor per chip, every one a centred dialog; Preferences holds the traveller's own list                                                          | `FactPopover`, `FactFields`, `TripCalendar`, `WhereFields`, `PreferenceList`, `lib/workspace/trip-facts.ts` |
+| Chat              | Conversation, the planning transcript, the composer; starter suggestions in a blank chat; no visible heading                                         | `ChatPanel`                                                                                                 |
+| Map               | Only the map, labelled markers, curved day-coloured itinerary lines, the place popup, map status, and the locate / map type / zoom controls          | `TripMapCanvas`, `TripMap`                                                                                  |
+| Your Trip drawer  | Budget; the day view (travel tips, day strip, the chosen day's stops with their place cards and ⋯ menus, flights and stays, then Ideas); Review plan | `Drawer`, `TripPanel`, `TripEditor`, `TripTips`, `timeline/TimelineStop`, `timeline/BookingRow`             |
 
 - **Sidebar.**
   - Expands to 240 px (220 px below 1250 px) or collapses to a 64 px icon rail. The toggle uses
@@ -353,9 +353,9 @@ describes current behaviour except the absences.
   offer a capability that does not exist.
 - **What the plan does decide is reported, not asked.** The accommodation specialist compares every
   eligible candidate and names one; the transcript shows that choice with the alternatives it
-  compared, and the Trip drawer shows the sections and their cost. A traveller who wants a different
-  flight or stay picks it from that section (see [Trip sections](#trip-sections)); anything else is
-  said in chat or edited in the Trip drawer's day view.
+  compared, and the Trip drawer's day view shows that flight or stay with its cost. A traveller who
+  wants a different one opens its row and picks it (see [Flights, stays and tips](#flights-stays-and-tips));
+  anything else is said in chat or edited in the day view.
 - **Conflicts are information.** When the orchestrator detects a conflict it retries the affected
   sections within its round budget, and anything still unresolved stays visible on the plan rather
   than becoming a card that waits for an acknowledgement nothing can record.
@@ -363,24 +363,31 @@ describes current behaviour except the absences.
   results are labelled as SerpApi live search, Google Places estimates or simulated fixtures. None
   of them creates a reservation.
 
-## Trip sections
+## Flights, stays and tips
 
-Below the day view the Trip drawer shows each specialist's section (`TripSection`,
-`ProposalDetails`).
+The Trip drawer does not render the specialists' cards (Day plan, Getting around, Stay, Destination
+guide and Food & dining). Their content is in the day view. Plan sections stay in the data; no section
+summary, assumption or model-written working note is shown. Day plan and Getting around have no
+replacement, because their content is the stops and legs. The Trip drawer's cost and total still
+include every section. Why: [Agent Note](../.agents/notes/implemented/feature/2026-10-08-day-view-specialists.md).
 
-- **Getting around** lists every movement of the trip, grouped by day and ordered by arrival: the
-  flight in, the hops between cities and the legs between a day's stops (`dayConnections`). The Day
-  plan section shows places and times only, so each leg appears once. Getting around can list legs
-  on a single-city trip whose transport specialist returned nothing; its summary line still counts
-  only that specialist's items. See the
-  [Agent Note](../.agents/notes/implemented/architecture/2026-10-07-intra-city-legs-in-getting-around.md).
-- **Flight card.** Each flight the plan priced shows its carrier, departure, travellers, stops
-  ("Nonstop" when none) and flight time. A plan whose flight no longer matches a selection says
-  "This flight needs a new selection." The stay card shows the chosen hotel's rating, check-in and
-  check-out, rooms and nights, nightly price and cancellation terms.
-- **Also found.** Both cards list the alternatives the chosen flight or stay beat, each with its price and
+- **Stay rows.** A stay has one row at the end of each night's day, so a four-night stay gives four
+  rows, and the checkout day has none. A row names the stay and its city, with "Night n of N"; its cost
+  is the nightly price for the rooms. Opening it shows the stay card.
+- **Flight rows.** A flight the plan priced is a row on its day, and the first day starts with the
+  flight in. Inter-city flights are rows on their day. When the arrival flight is a round trip, its
+  return is a flight out at the end of the last day of the day strip, showing the return date; it shares
+  the arrival flight's selection and costs nothing more ("Included in the flight in"). Timed ground hops
+  stay as fixed rows. A trip with no flight, no stay or no guide shows no empty row or block.
+- **Stay card.** Rating, check-in and check-out, rooms and nights, nightly price, cancellation terms,
+  the source note, and a link to the property's details when the planner has one. A stay whose
+  selection no longer matches says "This stay needs a new selection."
+- **Flight card.** Each flight shows its carrier, departure (or return), travellers, stops ("Nonstop"
+  when none) and flight time. A flight whose selection no longer matches says "This flight needs a new
+  selection."
+- **Also found.** Each card lists the alternatives the chosen flight or stay beat, each with its price and
   its difference from the chosen one; a cheaper difference is green and also carries a minus sign.
-- **Choosing another.** Each Also found row is a button ("Take … instead, …", at least 44 px tall
+- **Choosing another.** In a stay or flight card, each Also found row is a button ("Take … instead, …", at least 44 px tall
   under a coarse pointer). Pressing it applies at once, with no preview: it sends a `choose` edit
   through `POST /api/trip/preview-edit` ([API](api.md#post-apitrippreview-edit)), so the server
   rewrites the item's sentence, the section cost and the plan total. Taking the earlier option back
@@ -389,6 +396,15 @@ Below the day view the Trip drawer shows each specialist's section (`TripSection
   dropped. Plans saved before items carried a `selectionId` cannot be re-priced and must be
   replanned. See the
   [Agent Note](../.agents/notes/implemented/architecture/2026-10-07-selection-id-on-proposal-items.md).
+- **Travel tips.** The destination guide's advice (customs and etiquette, safety, entry and health,
+  weather and packing, and places to explore) is a collapsible block at the top of the day view. It
+  opens the first time. Whether this viewer folded it is remembered for that trip in this browser
+  (`localStorage`, key `trip-tips-folded:<tripId>`); where storage is blocked it opens each time. The
+  block is absent when the plan has no guide.
+- **Restaurants.** The restaurants the dining specialist found are listed under Ideas, marked
+  "Restaurant suggestion". Schedule on a day copies one into the day as a stop, with no price, and the
+  change can be undone; Remove deletes the suggestion. The dining meal budget stays in the plan's
+  estimate and total, and is not shown as a card.
 
 ## Map and places
 
@@ -449,16 +465,19 @@ Below the day view the Trip drawer shows each specialist's section (`TripSection
   to its day, and the reverse also works. The selected marker has a larger outlined badge and a
   bordered label, and its drawer row adds a leading inset line and weight alongside `aria-pressed`;
   color is not the sole cue. Stops on other days step back to grey badges without labels.
-- **Trip drawer.** One view, with no tabs: heading and summary, budget, then the day view: the day
-  strip, the chosen day's stops in visiting order with the number their place carries on the map (a
-  repeat visit keeps it), then Ideas, unnumbered. The trip sections and Review plan follow. The phone
-  Trip tab shows the same view.
+- **Trip drawer.** One view, with no tabs: heading and summary, budget, then the day view: the travel
+  tips (when the plan has a destination guide), the day strip, the chosen day's stops in visiting order
+  with the number their place carries on the map (a repeat visit keeps it), the day's flights and stay
+  rows, then Ideas, unnumbered. Review plan follows and opens the plan review. The phone Trip tab shows
+  the same view.
+  The specialists' cards are not rendered; see [Flights, stays and tips](#flights-stays-and-tips).
 - **Stop menu** ([Agent Note](../.agents/notes/implemented/feature/2026-10-08-one-day-trip-view.md)).
   Each stop's "…" menu (`ActionMenu`, a `role="menu"`; arrow keys move, Escape closes it and returns
   focus to its trigger without closing the drawer) offers Move earlier and Move later (not on the first
   or last stop of a day), Move to another day (opens a day picker in the place card), Move to ideas,
   Replace place (opens the place search in the card), Edit details, Add or Edit note, Mark as booked and
-  Remove. An idea offers Schedule on a day instead of the moves. Moves, Ideas, details, notes, booked and
+  Remove. An idea offers Schedule on a day instead of the moves, and a restaurant suggestion offers only
+  Schedule on a day and Remove. Moves, Ideas, details, notes, booked and
   Remove apply in the browser at once. Move earlier and Move later swap the stop with its neighbour on the
   same day: each takes the other's start time and keeps its own duration, the second starting later if the
   first would overlap it, and a swap that would end past 23:59 or overlap the next stop is refused with a
@@ -495,11 +514,12 @@ browser, as the Itinerary list did. The checks are deterministic and make no LLM
 
 - **Layout.** A day strip of tabs (`Day 2 · Sun, 18 Oct · 3 stops`, flagged when a stop needs a
   place) picks the day. The day is a vertical line in time order (`lib/trip/timeline.ts`): an
-  untimed flight first, timed inter-city hops and stops by start time, the night's check-in last,
-  and "Staying at …" on later nights. Fixed rows show an icon, a title, one detail line and their
-  cost ("Fare not published" or "Price unknown" rather than AUD 0). Between two stops the journey
-  is a leg (see Legs below): its mode and duration, marked "checked" when the provider verified it and
-  "estimate" when it is the planner's `arriveBy` or a simulated fixture.
+  flight in first (untimed flights and hops), timed inter-city hops and stops by start time, then one
+  stay row per night, and on the last day the flight out, which ends the day. "Staying at …" shows on
+  later nights. Fixed rows show an icon, a title, one detail line and their cost ("Fare not published"
+  or "Price unknown" rather than AUD 0). Flight and stay rows open to their card. Between two stops the
+  journey is a leg (see Legs below): its mode and duration, marked "checked" when the provider verified
+  it and "estimate" when it is the planner's `arriveBy` or a simulated fixture.
 - **Prices.** No provider publishes admission prices, so itinerary stops carry no `estCost` and show
   "Price unknown"; the budget card adds "Not included: admission for N stops with no published
   price" so the total is not read as the whole cost.

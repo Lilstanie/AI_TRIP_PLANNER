@@ -237,7 +237,7 @@ async function scanStops(page) {
   for (let day = 0; day < (await days.count()); day += 1) {
     await days.nth(day).click();
     await settle(page, 400);
-    const rows = timeline.locator(".timeline-stop");
+    const rows = timeline.locator(".timeline-day .timeline-stop");
     for (let row = 0; row < (await rows.count()); row += 1) {
       const item = rows.nth(row);
       const name = await item
@@ -260,7 +260,7 @@ async function openStop(page, stop) {
     .nth(stop.day - 1)
     .click();
   await settle(page, 400);
-  const row = timeline.locator(".timeline-stop").nth(stop.row);
+  const row = timeline.locator(".timeline-day .timeline-stop").nth(stop.row);
   if (!(await row.locator(".stop-editor").count()))
     await row.locator(".timeline-stop__main").click();
   await settle(page, 300);

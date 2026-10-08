@@ -26,6 +26,9 @@ const check = (ok, message) => {
 };
 const settle = (page, ms = 500) => page.waitForTimeout(ms);
 const MIN_TARGET = 44;
+// The plan as the browser stored it; the workspace keeps the trip here.
+const storedPlan = (page) =>
+  page.evaluate(() => JSON.parse(localStorage.getItem("trip-workspace-v1") ?? "null")?.plan);
 
 // The places search answers from this fixture; a test can change it before it searches.
 let searchReply = { places: [] };
@@ -390,7 +393,165 @@ async function run(browser, { width, height, tag }) {
     !(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)),
     `${tag}: no sideways scroll`,
   );
+  // The day view carries the trip's rows (#239). The plan's own shape says which rows to expect, so a
+  // trip without a stay, a flight or a guide is not a failure of the rows that are not there.
+  const planNow = await storedPlan(page);
+  const sectionOf = (id) => planNow?.sections.find((section) => section.id === id)?.proposal;
+  const lastDay = await drawer.getByRole("tab", { name: /^Day \d+\b/ }).count();
+  check(
+    (await drawer.locator(".section__row").count()) === 0,
+    `${tag}: no specialist card is rendered (no section rows in the drawer)`,
+  );
+  const drawerText = await drawer.innerText();
+  const SPECIALIST_TEXT = ["Day plan", "Getting around", "Destination guide", "Food & dining"];
+  check(
+    !SPECIALIST_TEXT.some((label) => drawerText.includes(label)),
+    `${tag}: no specialist card title is written in the drawer`,
+  );
+
+  // Each night of a stay ends its day with a stay row; a stay row opens to its card and Alternatives.
+  const nights = new Map();
+  for (const stay of sectionOf("accommodation")?.stays ?? [])
+    for (let offset = 0; offset < stay.nights; offset += 1)
+      nights.set(stay.day + offset, (nights.get(stay.day + offset) ?? 0) + 1);
+  for (let day = 1; day <= lastDay; day += 1) {
+    await showDay(day);
+    const expected = nights.get(day) ?? 0;
+    const shown = await dayList(day).locator("li.timeline-fixed--stay").count();
+    check(
+      shown === expected,
+      `${tag}: Day ${day} shows ${shown} stay row(s) for ${expected} night(s) in the plan`,
+    );
+    if (expected) {
+      const last = await dayList(day).locator("li").last().getAttribute("class");
+      check(
+        last?.includes("timeline-fixed--stay"),
+        `${tag}: Day ${day} ends with its night's stay row`,
+      );
+    }
+  }
+
+  // Flights: the flight in starts the first day, and the return of a round trip ends the last day.
+  const flights = sectionOf("transport")?.flights ?? [];
+  const returning = (sectionOf("transport")?.items ?? []).some(
+    (item) =>
+      flights.some((flight) => flight.id === item.selectionId) &&
+      /returning \d{4}/.test(item.detail),
+  );
+  await showDay(1);
+  const inCount = flights.filter((flight) => flight.day === 1).length;
+  check(
+    (await dayList(1).locator("li.timeline-fixed--flight").count()) === inCount,
+    `${tag}: Day 1 shows the ${inCount} flight in row(s) the plan has`,
+  );
+  if (inCount)
+    check(
+      (await dayList(1).locator("li").first().getAttribute("class"))?.includes(
+        "timeline-fixed--flight",
+      ),
+      `${tag}: Day 1 starts with the flight in`,
+    );
+  if (returning) {
+    await showDay(lastDay);
+    const outRow = dayList(lastDay).locator("li").last();
+    check(
+      (await outRow.getAttribute("class"))?.includes("timeline-fixed--flight") &&
+        (await outRow.innerText()).includes("return flight"),
+      `${tag}: the last day ends with the flight out`,
+    );
+    await outRow.locator("button.timeline-booking__open").click();
+    check(
+      (await outRow.locator(".result-card--flight").count()) === 1,
+      `${tag}: the flight out opens to its flight card`,
+    );
+    await outRow.locator("button.timeline-booking__open").click();
+    await showDay(1);
+  }
+
+  // A restaurant pick from dining is listed under Ideas; scheduling it moves it onto the day, and
+  // Undo puts it back.
+  const picks = () =>
+    ideasList().locator(".timeline-stop").filter({ hasText: "Restaurant suggestion" });
+  const pickCount = await picks().count();
+  check(pickCount >= 1, `${tag}: a dining pick is listed under Ideas (${pickCount})`);
+  if (pickCount) {
+    const before = { day: await stopsIn(dayList(1)).count(), ideas: await picks().count() };
+    const pick = picks().first();
+    const pickMenu = await menuLabels(pick);
+    check(
+      pickMenu.join("|") === "Schedule on a day|Remove",
+      `${tag}: a pick offers only Schedule on a day and Remove (${pickMenu.join(", ")})`,
+    );
+    await choose(pick, "Schedule on a day");
+    await drawer
+      .locator("form.item-editor")
+      .getByRole("button", { name: "Schedule", exact: true })
+      .click();
+    await settle(page, 600);
+    const scheduled = { day: await stopsIn(dayList(1)).count(), ideas: await picks().count() };
+    check(
+      scheduled.day === before.day + 1 && scheduled.ideas === before.ideas - 1,
+      `${tag}: the pick is scheduled on Day 1 and leaves Ideas`,
+    );
+    await drawer.locator(".item-undo").getByRole("button", { name: "Undo" }).click();
+    await settle(page, 600);
+    const undone = { day: await stopsIn(dayList(1)).count(), ideas: await picks().count() };
+    check(
+      undone.day === before.day && undone.ideas === before.ideas,
+      `${tag}: Undo returns the pick to Ideas`,
+    );
+  }
+
+  // The destination guide's tips open once, and stay folded for this trip after a reload.
+  const tips = drawer.locator("details.trip-tips");
+  const guide = sectionOf("destination-guide")?.items ?? [];
+  check(
+    (await tips.count()) === (guide.length ? 1 : 0),
+    `${tag}: the tips block is shown exactly when the plan has a destination guide`,
+  );
+  if (guide.length) {
+    check(await tips.evaluate((el) => el.open), `${tag}: the tips block starts expanded`);
+    await tips.locator("summary").click();
+    await settle(page, 300);
+    check(!(await tips.evaluate((el) => el.open)), `${tag}: the tips block folds`);
+    // Only the desktop run reloads: a reload starts a blank chat, and the saved trip is reopened from Trips.
+    if (tag === "desktop") {
+      await page.reload();
+      await page.waitForSelector(".workspace-app");
+      await page.waitForLoadState("networkidle");
+      await page
+        .getByRole("button", { name: /^Trips/ })
+        .first()
+        .click();
+      await page
+        .getByRole("button", { name: /\d+ days · AUD/ })
+        .first()
+        .click();
+      await settle(page, 700);
+      if (
+        !(await drawer
+          .first()
+          .isVisible()
+          .catch(() => false))
+      ) {
+        await page.getByRole("button", { name: "Open your trip" }).click();
+        await settle(page, 700);
+      }
+      check(
+        !(await drawer.locator("details.trip-tips").evaluate((el) => el.open)),
+        `${tag}: the folded tips stay folded after a reload`,
+      );
+    }
+  }
+
   if (tag === "phone") {
+    // The checks above moved stops between days; the time button is on a day that has stops.
+    await drawer
+      .getByRole("tab")
+      .filter({ hasText: /\d+ stops?\b/ })
+      .first()
+      .click();
+    await settle(page, 300);
     const timeBox = await drawer.locator(".timeline-stop__time").first().boundingBox();
     check(
       timeBox && timeBox.height >= MIN_TARGET,

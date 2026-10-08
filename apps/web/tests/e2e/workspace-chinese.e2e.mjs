@@ -43,10 +43,14 @@ try {
       `${width}: trip summary Chinese`,
     );
     const english =
-      /Estimated total|Within budget|Over budget|Timeline & routes|Review plan|View details|Price unknown|Estimated data|Mock data|Edit itinerary/;
+      /Estimated total|Within budget|Over budget|Timeline & routes|Review plan|View details|Price unknown|Estimated data|Mock data|Edit itinerary|Travel tips|Also found|Schedule on a day|Restaurant suggestion|Night \d+ of/;
     check(
       !english.test(await page.locator(".trip-panel").innerText()),
       `${width}: no English authored trip labels`,
+    );
+    check(
+      (await page.locator(".trip-tips summary", { hasText: "旅行提示" }).count()) === 1,
+      `${width}: the travel tips heading is Chinese`,
     );
     // The day's timeline is part of the Trip drawer; there is no separate tab.
     await page.getByRole("region", { name: "行程时间线" }).waitFor();

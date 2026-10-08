@@ -2,11 +2,9 @@
 import type { ReactNode } from "react";
 import type { TripPlan } from "@trip/shared";
 import { CurrencyNotice } from "../account/CurrencyNotice";
-import { TripSection } from "./TripSection";
-import { dayConnections } from "./ProposalDetails";
 import { statusForPlan } from "@/lib/workspace/catalog";
 import { itineraryActivities } from "@/lib/workspace";
-import type { MessageKey } from "@/lib/i18n/locale";
+import { restaurantIds } from "@/lib/trip/restaurants";
 import type { Notice } from "@/lib/i18n/notice";
 import { useLocale } from "../account/LocaleProvider";
 
@@ -22,30 +20,23 @@ export function tripStatus(plan: TripPlan) {
 
 /**
  * Body of the Your Trip drawer; the drawer supplies the heading and close button. One view: the budget,
- * then the day timeline (day strip, the day's stops, Ideas), then the trip's sections.
+ * then the day view (the travel tips, the day strip, the day's stops, flights and stays, Ideas). The
+ * specialists' cards are not shown; their content is in that view.
  */
 export function TripPanel({
   plan,
   timeline,
   onReview,
-  onEdit,
-  onChoose,
   problem,
 }: {
   plan: TripPlan;
-  /** The day view: day strip, the chosen day's stops and Ideas. */
+  /** The day view: tips, day strip, the chosen day's stops and bookings, and Ideas. */
   timeline: ReactNode;
   onReview: () => void;
-  onEdit: () => void;
-  /** Swap a stay or fare inside a section; absent while the plan is busy. */
-  onChoose?: (sectionId: string, selectionId: string, candidateId: string) => void;
   /** Why the last swap could not be made. */
   problem?: Notice;
 }) {
   const { t, money, budgetGap, notice: localizeNotice } = useLocale();
-  // Worked out by the itinerary specialist, shown by Getting around, which owns
-  // every movement of the trip.
-  const connections = dayConnections(plan.sections);
   const estimated =
     Number.isFinite(plan.estTotal) && plan.estTotal >= 0 ? plan.estTotal : undefined;
   const budget =
@@ -57,7 +48,11 @@ export function TripPanel({
   const over = gap?.direction === "over";
   // Admission prices are published nowhere the planner can read, so these stops add nothing to the
   // total. Saying so keeps the total from reading as the whole cost of the trip.
-  const unpriced = itineraryActivities(plan).filter((item) => item.estCost === undefined).length;
+  // A restaurant scheduled from Ideas is not an admission, so it is not counted here.
+  const picks = restaurantIds(plan);
+  const unpriced = itineraryActivities(plan).filter(
+    (item) => item.estCost === undefined && !(item.id && picks.has(item.id)),
+  ).length;
   return (
     <div className="trip-panel">
       <p className="trip__sub">
@@ -106,19 +101,7 @@ export function TripPanel({
           {localizeNotice(problem)}
         </p>
       )}
-      {plan.sections.length ? (
-        <div className="trip-panel__sections">
-          {plan.sections.map((section) => (
-            <TripSection
-              key={section.id}
-              section={section}
-              {...(section.id === "transport" ? { connections } : {})}
-              {...(onChoose ? { onChoose } : {})}
-              onEdit={onEdit}
-            />
-          ))}
-        </div>
-      ) : (
+      {!plan.sections.length && (
         <p className="section__empty">
           {t("No itinerary yet. Fill in your preferences and select Update trip.")}
         </p>

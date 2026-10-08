@@ -289,7 +289,7 @@ async function interactions(browser) {
   async function confirmDay(index) {
     await days.nth(index).click();
     await settle(page);
-    const stops = timeline.locator(".timeline-stop");
+    const stops = timeline.locator(".timeline-day .timeline-stop");
     for (let stop = 0; stop < (await stops.count()); stop += 1) {
       const row = stops.nth(stop);
       if (await row.locator(".timeline-tag--ok").count()) continue;
@@ -331,8 +331,10 @@ async function interactions(browser) {
   check(routeDay >= 0, "a day has at least two stops to route between");
   if (routeDay >= 0) {
     await confirmDay(routeDay);
-    const stops = timeline.locator(".timeline-stop");
-    const confirmed = await timeline.locator(".timeline-stop .timeline-tag--ok").count();
+    const stops = timeline.locator(".timeline-day .timeline-stop");
+    const confirmed = await timeline
+      .locator(".timeline-day .timeline-stop .timeline-tag--ok")
+      .count();
     check(
       confirmed === (await stops.count()),
       `every stop on the day is confirmed (${confirmed}/${await stops.count()})`,
@@ -617,6 +619,10 @@ async function numberedPlan(page) {
   });
 }
 
+// The chosen day's stops only: Ideas (unscheduled stops and dining's restaurant picks) are a second list.
+const dayStops = (timeline) =>
+  timeline.getByRole("list", { name: /^Day \d+ timeline$/ }).locator(".timeline-stop");
+
 /** Number and name of each row, with screen-reader-only text removed. */
 const readRows = (rows, numberSelector, nameSelector) =>
   rows.evaluateAll(
@@ -647,19 +653,17 @@ async function stopNumbers(browser) {
     const timelineDay = async (index) => {
       await days.nth(index).click();
       await settle(page);
-      return readRows(
-        timeline.locator(".timeline-stop"),
-        ".timeline-stop__node",
-        ".timeline-stop__name",
-      );
+      return readRows(dayStops(timeline), ".timeline-stop__node", ".timeline-stop__name");
     };
     // Place lookups finish after the first render; wait until every stop has its number.
     await page
       .waitForFunction(
         () =>
-          [...document.querySelectorAll(".timeline-stop__node")].every((node) =>
-            node.textContent.trim(),
-          ),
+          [
+            ...document.querySelectorAll(
+              ".timeline-stop:not(.timeline-stop--idea) .timeline-stop__node",
+            ),
+          ].every((node) => node.textContent.trim()),
         undefined,
         { timeout: 15_000 },
       )
@@ -726,8 +730,7 @@ async function stopNumbers(browser) {
     // browser swaps their start times, so the day then shows Delta first and each place keeps its number.
     await days.nth(1).click();
     await settle(page);
-    await timeline
-      .locator(".timeline-stop")
+    await dayStops(timeline)
       .first()
       .getByRole("button", { name: /^Actions for / })
       .click();
@@ -761,20 +764,18 @@ async function stopNumbers(browser) {
     await page
       .waitForFunction(
         () =>
-          [...document.querySelectorAll(".timeline-stop__node")].every((node) =>
-            node.textContent.trim(),
-          ),
+          [
+            ...document.querySelectorAll(
+              ".timeline-stop:not(.timeline-stop--idea) .timeline-stop__node",
+            ),
+          ].every((node) => node.textContent.trim()),
         undefined,
         { timeout: 15_000 },
       )
       .catch(() => undefined);
     await timeline.getByRole("tab").nth(1).click();
     await settle(page);
-    const day2 = await readRows(
-      timeline.locator(".timeline-stop"),
-      ".timeline-stop__node",
-      ".timeline-stop__name",
-    );
+    const day2 = await readRows(dayStops(timeline), ".timeline-stop__node", ".timeline-stop__name");
     summary.phoneTimelineDay2 = shown(day2);
     check(shown(day2) === expectedDay2, `numbers phone: timeline Day 2 (${shown(day2)})`);
     await page.getByRole("tab", { name: /^Map/ }).click();
@@ -804,6 +805,69 @@ async function stopNumbers(browser) {
   writeFileSync(`${OUT}/numbers-summary.json`, JSON.stringify(summary, null, 2));
 }
 
+/**
+ * A trip with no flight, no stay and no destination guide: the day view shows none of those rows or
+ * blocks, and the day still renders its stops and Ideas (#239).
+ */
+async function bareTripView(browser) {
+  const { context, page, errors } = await openTimeline(browser, {
+    width: 1440,
+    height: 1000,
+    scheme: "light",
+    setup: async (page) => {
+      await page.route("**/api/chat", async (route) => {
+        const response = await route.fetch();
+        const body = (await response.text())
+          .split("\n")
+          .map((line) => {
+            if (!line.trim()) return line;
+            const frame = JSON.parse(line);
+            const plan = frame.response?.plan;
+            if (!plan) return line;
+            plan.sections = plan.sections
+              .filter(
+                (section) => section.id !== "destination-guide" && section.id !== "accommodation",
+              )
+              .map((section) =>
+                section.id === "transport" && section.proposal
+                  ? {
+                      ...section,
+                      proposal: {
+                        ...section.proposal,
+                        flights: undefined,
+                        items: section.proposal.items.filter((item) => item.startTime),
+                      },
+                    }
+                  : section,
+              );
+            return JSON.stringify(frame);
+          })
+          .join("\n");
+        await route.fulfill({ response, body });
+      });
+    },
+  });
+  const drawer = page.locator(".workspace-drawer--trip, #phone-panel-trip");
+  check(
+    (await drawer.locator("details.trip-tips").count()) === 0,
+    "bare trip: no travel tips block when the plan has no destination guide",
+  );
+  check(
+    (await drawer.locator(".timeline-fixed--stay, .timeline-fixed--flight").count()) === 0,
+    "bare trip: no stay or flight row when the plan has neither",
+  );
+  check(
+    (await drawer.locator(".timeline-stop").count()) >= 1,
+    "bare trip: the day still shows its stops",
+  );
+  const unexpected = errors.filter((text) => !PLACES_DOWN_LOG.test(text));
+  check(
+    !unexpected.length,
+    `bare trip: no console errors${unexpected.length ? `: ${unexpected.join(" | ")}` : ""}`,
+  );
+  await context.close();
+}
+
 const browser = await chromium.launch({ channel: process.env.CHANNEL });
 try {
   await shots(browser, 1440, 1000, "desktop");
@@ -812,6 +876,7 @@ try {
     await stopNumbers(browser);
     await fareDecimals(browser);
     await interactions(browser);
+    await bareTripView(browser);
   }
 } finally {
   await browser.close();
