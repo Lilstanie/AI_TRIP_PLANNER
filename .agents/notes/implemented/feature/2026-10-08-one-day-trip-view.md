@@ -50,3 +50,9 @@ Review plan. The phone Trip tab renders the same component tree. The tabs and th
 - The catalog field `editorView` stays in `lib/workspace/catalog.ts` although no tab writes it.
 - Tests: `apps/web/tests/e2e/timeline.e2e.mjs` and `itinerary.e2e.mjs` drive this view at 390x844 and
   360x800 and write `output/playwright/*/summary.json`.
+
+## Supersession
+
+Partly superseded by [Remove status labels and Review plan](../../proposed/feature/2026-10-08-remove-status-labels.md)
+(#240). The Trip drawer no longer ends with a "Review plan" button, and its header no longer shows "Needs review" or
+"Draft". Unresolved conflicts are shown on the stop, leg or day they target, or under the budget bar.

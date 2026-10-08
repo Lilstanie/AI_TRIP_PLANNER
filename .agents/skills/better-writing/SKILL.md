@@ -12,7 +12,7 @@ redesigned so that the error cannot happen.
 
 Read the copy around your change before you write. It establishes these conventions:
 
-- **Sentence case** for labels, buttons and headings: "Update trip", "Review plan", "Change trip
+- **Sentence case** for labels, buttons and headings: "Update trip", "Dismiss", "Change trip
   preferences". "Your Trip" is the one established title.
 - **Australian and British spelling** in prose: "traveller", "colour". Code identifiers
   keep their existing spelling.

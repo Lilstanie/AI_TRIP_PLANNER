@@ -52,3 +52,10 @@ route both refuse the edit.
   no route reads "No route found" and adds no time. Only a provider failure refuses an edit (failure mode 2 above).
 - `apps/web/tests/e2e/timeline.e2e.mjs`, `itinerary.e2e.mjs` and `workspace-chinese.e2e.mjs` check the immediate
   apply, the refused-edit alert and Undo.
+
+## Supersession
+
+Partly superseded by [Remove status labels and Review plan](../../proposed/feature/2026-10-08-remove-status-labels.md)
+(#240). The "Review plan" button and its dialog, the "Needs review" and "Draft" labels in the Trip drawer, the
+phone shell and the trip list are removed. The "conflict shown in the timeline status, not on the stop" statement
+above no longer holds: an unresolved conflict is shown on the stop, leg or day it targets, or under the budget bar.

@@ -10,16 +10,16 @@ Web 应用（`apps/web`）是单用户规划工作区。本文描述其当前行
 
 ## 布局
 
-| 区域           | 内容                                                                                                           | 实现                                                                                                        |
-| -------------- | -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| 侧边栏         | Logo、带数量的 Chats 和 Trips、保存或同步状态、Settings & account                                              | `WorkspaceSidebar`、`BrandMark`、`icons.tsx`                                                                |
-| Chats 面板     | 在侧边栏旁滑出：搜索、New chat、New trip，然后是行程和聊天                                                     | `ChatsPanel`、`TripCover`                                                                                   |
-| Your trips     | 通过 Trips 打开，替代聊天和地图：行程卡片（Upcoming、Past）、Calendar 标签页和 New trip                        | `TripsPage`、`TripCover`                                                                                    |
-| 顶栏           | 行程标题；行程事实标签（目的地、日期、旅客、预算、Preferences）；数据模式；最右侧显示站点数的 Trip             | `WorkspaceView`、`TripFactChips`                                                                            |
-| 行程事实编辑器 | 每个标签对应一个编辑器，全部为居中对话框；Preferences 保存旅客自己的列表                                       | `FactPopover`、`FactFields`、`TripCalendar`、`WhereFields`、`PreferenceList`、`lib/workspace/trip-facts.ts` |
-| 聊天           | 对话、规划 transcript（文本记录）、输入区；空白聊天中的起始建议；没有可见标题                                  | `ChatPanel`                                                                                                 |
-| 地图           | 仅包含地图、带标签的标记、按天着色的弧形行程线、地点弹窗、地图状态，以及定位／地图类型／缩放控件               | `TripMapCanvas`、`TripMap`                                                                                  |
-| Your Trip 抽屉 | 预算；日视图（旅行提示、日期条、所选日期的停靠点及其地点卡片和 ⋯ 菜单、航班和住宿，然后是 Ideas）；Review plan | `Drawer`、`TripPanel`、`TripEditor`、`TripTips`、`timeline/TimelineStop`、`timeline/BookingRow`             |
+| 区域           | 内容                                                                                                              | 实现                                                                                                        |
+| -------------- | ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| 侧边栏         | Logo、带数量的 Chats 和 Trips、保存或同步状态、Settings & account                                                 | `WorkspaceSidebar`、`BrandMark`、`icons.tsx`                                                                |
+| Chats 面板     | 在侧边栏旁滑出：搜索、New chat、New trip，然后是行程和聊天                                                        | `ChatsPanel`、`TripCover`                                                                                   |
+| Your trips     | 通过 Trips 打开，替代聊天和地图：行程卡片（Upcoming、Past）、Calendar 标签页和 New trip                           | `TripsPage`、`TripCover`                                                                                    |
+| 顶栏           | 行程标题；行程事实标签（目的地、日期、旅客、预算、Preferences）；数据模式；最右侧显示站点数的 Trip                | `WorkspaceView`、`TripFactChips`                                                                            |
+| 行程事实编辑器 | 每个标签对应一个编辑器，全部为居中对话框；Preferences 保存旅客自己的列表                                          | `FactPopover`、`FactFields`、`TripCalendar`、`WhereFields`、`PreferenceList`、`lib/workspace/trip-facts.ts` |
+| 聊天           | 对话、规划 transcript（文本记录）、输入区；空白聊天中的起始建议；没有可见标题                                     | `ChatPanel`                                                                                                 |
+| 地图           | 仅包含地图、带标签的标记、按天着色的弧形行程线、地点弹窗、地图状态，以及定位／地图类型／缩放控件                  | `TripMapCanvas`、`TripMap`                                                                                  |
+| Your Trip 抽屉 | 预算及其未解决的冲突；日视图（旅行提示、日期条、所选日期的停靠点及其地点卡片和 ⋯ 菜单、航班和住宿，然后是 Ideas） | `Drawer`、`TripPanel`、`TripEditor`、`TripTips`、`timeline/TimelineStop`、`timeline/BookingRow`             |
 
 - **侧边栏。**
   - 展开宽度为 240 px（视口小于 1250 px 时为 220 px），或折叠成 64 px 的图标栏。切换按钮使用 `aria-expanded`，偏好保存在目录布局中。
@@ -62,7 +62,7 @@ seniors`（宠物不计为旅客）；`groupSize` 仍是校验字段，因此至
   - Your Trip 和窄屏导航是顶栏下方的覆盖式抽屉。它们从不遮住 Logo 或顶栏按钮，聊天和地图保持原宽度。
   - 桌面上的 Trip 抽屉宽度为 `(1 - --chat-share) × 100%`，无论分隔条在哪里，都恰好覆盖地图。
   - `Drawer` 提供 `role="dialog"`、`aria-modal`，关闭时提供 `aria-hidden` 和 `inert`，打开时聚焦关闭按钮，支持 Tab 循环、Escape（嵌套编辑预览和原生对话框优先），并将焦点返回触发按钮。
-  - 同时最多打开一个面板：一个抽屉（Trip、导航或桌面端 Chats 面板）、手机端 Trip details 底部面板，或一个 chip 编辑器。打开其中一个会关闭其他面板；Settings 和 Review 叠在它上方打开，关闭后回到该面板。打开什么由一个纯函数决定，即 `apps/web/lib/workspace/layout.ts` 中的 `layout()`；见[布局 Agent Note](../.agents/notes/implemented/architecture/2026-10-06-workspace-layout-reducer.md)。刷新后所有面板都处于关闭状态。关闭的抽屉完全平移到视口外，shell 使用 `overflow: clip`，无法通过滚动使它们出现。
+  - 同时最多打开一个面板：一个抽屉（Trip、导航或桌面端 Chats 面板）、手机端 Trip details 底部面板，或一个 chip 编辑器。打开其中一个会关闭其他面板；Settings 叠在它上方打开，关闭后回到该面板。打开什么由一个纯函数决定，即 `apps/web/lib/workspace/layout.ts` 中的 `layout()`；见[布局 Agent Note](../.agents/notes/implemented/architecture/2026-10-06-workspace-layout-reducer.md)。刷新后所有面板都处于关闭状态。关闭的抽屉完全平移到视口外，shell 使用 `overflow: clip`，无法通过滚动使它们出现。
   - 抽屉为悬浮 Liquid Glass sheet，四周内缩 `--space-2`，圆角为 `--radius-xl`。它们沿 iOS sheet 曲线在 380 ms 内滑动，背景遮罩同步淡出（`usePresence` 保持挂载）。所有动效都遵循 `prefers-reduced-motion`。
   - 打开其他聊天或行程、New chat、New trip 和 Your trips 页面时，通过 View Transitions API（`viewTransition`）使主栏交叉淡入淡出；手机 Tab 切换使用同一过渡辅助函数。主栏只在过渡运行时携带 `view-transition-name`：具名元素是 backdrop root，永久保留名称会导致抽屉玻璃后方的聊天仍然清晰。
 - **窄屏（521–1000 px）。**
@@ -71,7 +71,7 @@ seniors`（宠物不计为旅客）；`groupSize` 仍是校验字段，因此至
 - **手机（≤520 px）。** [手机外壳决策](../.agents/notes/implemented/feature/2026-10-05-phone-shell.md)仅适用于这一宽度；桌面和平板保留既有导航。
   - 适配安全区的底部 Tab 栏提供 Chat、Map、Trip 和 Mine，并支持键盘操作。每次只显示一个面板；面板保持挂载以保留滚动位置。已保存的布局恢复上次使用的 Tab，也兼容旧的 Chat/Map 选择。
   - 单行顶栏显示目的地和日期，未填写时显示 New trip。点击标题打开 Trip details，按行列出 Where、When、Who、Budget 和 Preferences。每行打开既有编辑器；保存或关闭后，焦点返回标题。编辑器为底部 sheet，点击目标至少为 44 px。
-  - Trip 直接显示 Your Trip，包含 Budget、日视图和 Review plan。规划前说明空状态并提供 Plan in Chat。在其他 Tab 中创建或修改方案时，Trip 显示带无障碍说明的更新小红点；打开 Trip 后清除。按行程记录已读版本，因此切换未修改的已保存行程不会产生新通知。
+  - Trip 直接显示 Your Trip，包含 Budget 和日视图。规划前说明空状态并提供 Plan in Chat。在其他 Tab 中创建或修改方案时，Trip 显示带无障碍说明的更新小红点；打开 Trip 后清除。按行程记录已读版本，因此切换未修改的已保存行程不会产生新通知。
   - Mine 包含搜索、New chat、New trip、Trips/Calendar、聊天列表和 Settings & account。搜索同时筛选聊天和行程；打开或新建任一种内容都会切到 Chat。触摸界面始终显示每个聊天的 Rename/Delete 行菜单入口。数据模式和界面语言切换位于这里。
   - 跨越手机宽度时，旅客看到的仍是同一内容：在 Your trips 页面缩小到手机宽度会继续显示在 Mine 中，底部 Tab 栏保持可用；打开 Trip 抽屉时缩小会显示 Trip Tab。从 Mine 放宽显示 Your trips，从 Trip 放宽会在 Chat 上方打开 Trip 抽屉（chip 编辑器打开时除外），Chat 和 Map 保持不变。Settings、Review 和 chip 编辑器在跨越时保持打开；手机顶栏消失时 Trip details 会关闭。
   - Map 填满两栏之间的空间。当天停靠点 sheet 有收起、半高和全高三档，可拖动或通过手柄用指针、键盘选择。切换日期把地图标记和路线筛选为当天的停靠点，因此多天到访的地点会出现在每一天，并沿用其全程编号；在 sheet 或地图上选择停靠点，都会聚焦当天的这次到访。未配置 Maps key 时，sheet 和停靠点仍可使用，地图说明不可用状态。地点详情以底部 sheet 打开，桌面保留弹窗。地图控件至少为 44 px，位于停靠点 sheet 上方，平移地图不会滚动页面。
@@ -105,7 +105,7 @@ seniors`（宠物不计为旅客）；`groupSize` 仍是校验字段，因此至
   - `Workspace` 负责聊天、方案和决策请求。失败时保留当前方案，并提供重试。
   - 一次规划回合以一种结果结束：方案已应用、缺信息、规划器追问、回答了票价、失败或已取消。`lib/workspace/session.ts` 中的 `requestTurn` 只负责发请求和读取流；同一文件中的纯函数 `session(state, event)` 应用结果，因此重置规则（上一次总价、选中的站点、地图路线、字段错误、问题卡片）只在一处，并在 `tests/lib/workspace/session.test.ts` 中脱离 React 测试。
   - 切换聊天或行程，或 New chat 时，先落盘待执行的自动保存，再中止进行中的请求，并通过一个 `opened` 会话事件清空进度、错误、选择和地图路线。晚到的响应被忽略。
-  - 从行程列表或时间线应用修改即调用 `applyEdit(next)`，它记录上一次总价，供 Review plan 的“变化”数字使用。视图从 `useWorkspace` 获得这些操作，而不是状态 setter（[架构](architecture.zh.md#workspace-state)）。
+  - 从行程列表或时间线应用修改即调用 `applyEdit(next)`，它记录上一次总价。聊天重新规划会把 `estimateChange` 设为相对被替换方案的带符号变化，时间线编辑则清除它。视图从 `useWorkspace` 获得这些操作，而不是状态 setter（[架构](architecture.zh.md#workspace-state)）。
 - **存储。**
   - 所有内容仅保存在浏览器中，侧边栏显示经过防抖的自动保存状态。
   - 目录（`trip-workspace-catalog-v3`）分别保存对话和行程，关联稳定，并可带对话 `draft`。快照写入版本 4；版本 3（AUD）快照仍可读取，草稿预算与方案一致时恢复原始预算来源。AUD 之前的版本 1、2 仍被拒绝；目录版本及存储键不变。
@@ -122,7 +122,7 @@ seniors`（宠物不计为旅客）；`groupSize` 仍是校验字段，因此至
 
 - **没有需要审批的决策。** `HitlCheckpoint`、`TripPlan.hitl`、检查点卡片、approve/reject/defer 操作和 `POST /api/hitl` 都已移除。应用尚不能应用旅客的决策，因此不会请求决策：展示待确认事项列表会暗示并不存在的能力。
 - **方案已经作出的决定会报告，而不再询问。** 住宿 specialist 比较全部符合条件的候选项，并选定一个；transcript 显示该选择及比较过的备选项，Trip 抽屉的日视图显示该住宿及费用。旅客想换航班或住宿时，打开对应的行后选择（见[航班、住宿与提示](#flights-stays-and-tips)）；其他改动在聊天中说明，或在日视图中编辑行程。
-- **冲突是信息。** orchestrator 发现冲突时，会在编排轮次预算内重试受影响的部分；仍未解决的内容继续显示在方案中，不会变成等待确认的卡片，因为没有机制记录这种确认。
+- **冲突是信息。** orchestrator 发现冲突时，会在编排轮次预算内重试受影响的部分；仍未解决的内容继续显示在方案中，即它所涉及的停靠点、那一天的标题或预算条下，不会变成等待确认的卡片，因为没有机制记录这种确认。
 - 客户端不是供应商事实的来源：总额从提案条目重新计算，结果标记为 SerpApi 实时搜索、Google Places 估价或模拟 fixture。它们都不会创建预订。
 
 <a id="flights-stays-and-tips"></a>
@@ -162,7 +162,13 @@ Trip 抽屉不再显示 specialist 卡片（Day plan、Getting around、Stay、D
 - **行程线**（`lib/map/itinerary-route.ts`、`components/map/map-layers.ts`）。每天的停靠点按访问顺序连接。如果准确对应这两个地点的已验证 Google Routes 折线存在，该路段沿折线绘制；否则使用柔和弧线（`curvedPath`，Web Mercator 中向行进方向左侧弯曲的二次曲线），让一天呈现为连贯路径，而非锯齿线。不会仅为画线而请求路线。聚焦的日期（选中停靠点所在日期，未选中时为所有日期）采用 Apple Maps 风格，以当天颜色绘制在 `--route-casing` 上；每段中点有指向下一停靠点的白色 chevron，并有从一站流向下一站的白色虚线；其他日期显示为细的静态 `--text-dim` 线。虚线通过单个 `requestAnimationFrame` 循环运动，限速约每秒 30 帧；线条重绘或地图卸载时停止。`prefers-reduced-motion: reduce` 下虚线静止，不运行循环。不是行程路段的已验证路线，例如编辑预览，保持实线。地图遵循系统浅色或深色方案。
 - **地点弹窗。** 点击标记或标签，或 Trip 抽屉中的地点，会在地图左下方打开地点详情：停靠点编号和日期、首张 Google 照片、名称、地址、Google 评分、照片作者署名和 Open in Google Maps 链接；得知旅客位置后，还显示 Route from my location。只有实时数据模式且配置了服务端 Maps 密钥时才加载照片，每次选择一张。其他情况下，以及 Google 没有照片或图片加载失败时，固定 16:9 区域显示图钉。点击标记会将焦点移入弹窗；关闭按钮、Escape 或点击地图会关闭弹窗，并将焦点返回标记。抽屉中选择的地点若在地图视野外，会平移到视野内，该行为不算用户移动。
 - **选择。** 选择标记或抽屉地点，会选中时间线中的活动并跳到对应日期；反向操作同样有效。选中标记使用较大的轮廓徽章和带边框标签，抽屉对应行除 `aria-pressed` 外，还在左侧增加内缩线并加粗；颜色不是唯一提示。其他日期的停靠点弱化为无标签的灰色徽章。
-- **Trip 抽屉。** 只有一个视图，没有标签页：标题和摘要、预算，然后是日视图：旅行提示（方案有目的地指南时）、日期条、所选日期的停靠点（按访问顺序排列，并显示其地点在地图上的编号，再次到访也保留该编号）、当天的航班和住宿行，之后是不编号的 Ideas。其下为 Review plan，它打开方案审阅。手机端 Trip 标签页显示同一视图。specialist 卡片不再显示（见[航班、住宿与提示](#flights-stays-and-tips)）。
+- **Trip 抽屉。** 只有一个视图，没有标签页：标题和摘要、预算，然后是日视图：旅行提示（方案有目的地指南时）、日期条、所选日期的停靠点（按访问顺序排列，并显示其地点在地图上的编号，再次到访也保留该编号）、当天的航班和住宿行，之后是不编号的 Ideas。手机端 Trip 标签页显示同一视图。抽屉不显示状态标签：“Needs review”、“Draft”和“Review plan”已移除（[Agent Note](../.agents/notes/proposed/feature/2026-10-08-remove-status-labels.md)）。specialist 卡片不再显示（见[航班、住宿与提示](#flights-stays-and-tips)）。
+- **冲突就地显示。** 方案中每个未解决的冲突都显示在它所涉及的位置。该显示由 `apps/web/lib/trip/conflicts.ts` 中的 `placeConflicts()` 根据方案在每次渲染时计算：
+  - 显示在它指明的停靠点上：时间重叠会标记当天与其他已安排项目重叠的每个停靠点；路线检查未能确认的路段会列在其停靠点上；
+  - 显示在它指明的那一天的标题下：当天没有停靠点涉及时（航班或住宿重叠，或该组合已不在方案中）；
+  - 显示在预算条下：既不指明停靠点也不指明某一天时，例如超出预算或预算不可行的说明。
+    编辑解决某个冲突后，它会从视图中移除。
+- **重新规划后的估算变化。** 聊天重新规划且此前有估算时，通知条中会显示一条通知，说明带符号的变化：“估算较上一版方案变化 +AUD 120.00。”，或“估算与上一版方案相比没有变化。”。它有关闭按钮，且只显示一次。时间线编辑或打开其他聊天会清除它，刷新后不会恢复。
 - **停靠点菜单**（[Agent Note](../.agents/notes/implemented/feature/2026-10-08-one-day-trip-view.md)）。每个停靠点的「…」菜单（`ActionMenu`，`role="menu"`；方向键移动，Escape 关闭并把焦点返回触发按钮，不会关闭抽屉）提供 Move earlier 和 Move later（当天第一个停靠点没有 Move earlier，最后一个没有 Move later）、Move to another day（在地点卡片中打开日期选择）、Move to ideas、Replace place（在卡片中打开地点搜索）、Edit details、Add 或 Edit note、Mark as booked 和 Remove。Ideas 中的项提供 Schedule on a day，不提供移动；餐厅建议只提供 Schedule on a day 和 Remove。移动、Ideas、详情、备注、已预订和 Remove 立即在浏览器中生效。Move earlier 和 Move later 与同一天相邻的停靠点交换：双方互换开始时间并各自保留时长，若前一个会与后一个重叠，后一个顺延开始；交换后若会超过 23:59 结束或与下一个停靠点重叠，则拒绝并显示提示。Move to another day 把停靠点放到该天最后一个停靠点之后。在聊天带来新方案之前，Undo 提供最近一次此类更改。移动会改变当天的时间，因此当天的路段会再次核查（见时间线编辑中的“路段”）。在手机宽度（520px 及以下）下，菜单按钮和菜单项至少为 44 px。预算缺失或为零时，说明未设置预算；无效总额绝不显示为 `NaN`、负值进度条，或超出容器宽度的条形。
 - **位置。** 工作区打开时，在通知条中用自己的文字询问是否显示旅客位置（`components/map/useUserLocation.ts`、`LocationPrompt`）。只有点击 Allow location 或 Show my location 后，才显示浏览器权限提示。Not now 会记录在此浏览器中（`trip.locationPrompt`），问题不再出现；点击 Allow 且浏览器仍授予权限后，后续访问直接显示位置，不再询问。浏览器已经阻止定位时，跳过提问。拒绝、不可用、超时和不支持的情况在地图上解释。只存储回答：位置留在内存中，绝不保存或写入方案。Route from my location 请求到所选地点的已验证时长和距离。见[位置提示 Agent Note](../.agents/notes/implemented/feature/2026-09-24-location-prompt-and-itinerary-map.md)。
 - **控件。** 右下角堆叠圆形玻璃按钮，参考 Mindtrip 和 Apple Maps：Show my location（定位箭头；请求位置，已知位置时将其居中并缩放到 14 或更近；位置显示时图标填充，失败后名称为 Retry my location）、Satellite view（`aria-pressed`，在道路地图和混合影像间切换），以及合为一个胶囊的 Zoom in / Zoom out。旅客位置是 Apple 风格的蓝点，带缓慢变化的光晕。Google 自带控件全部禁用（`disableDefaultUI`），滚轮缩放和单指平移无需修饰键（`gestureHandling: "greedy"`）；仅开发环境的 `/debug/map` 页面使用固定悉尼停靠点显示地图，不请求 Places 或价格。
@@ -186,7 +192,7 @@ Trip 抽屉不再显示 specialist 卡片（Day plan、Getting around、Stay、D
 
 - 活动只分配一次稳定 ID，重排和恢复时保留。`editVersion` 独立于 orchestrator 的编排轮次，只有基础版本仍匹配时才能应用编辑。
 - 移动、时间变化和地点替换保留活动时长。后续活动开始时间取原开始时间与前项结束时间 + 路线时长 + 15 分钟中的较晚值。空目标日期从当地 09:00 开始，移动不跨越同一住宿目的地区段。
-- 服务商故障会阻止需要该路线的编辑，不会据猜测顺延时间；没有路线的路段不增加旅行时间。超出当天范围会阻止应用。固定交通和住宿只读，重叠在审查中保持可见。
+- 服务商故障会阻止需要该路线的编辑，不会据猜测顺延时间；没有路线的路段不增加旅行时间。超出当天范围会阻止应用。固定交通和住宿只读，重叠的停靠点会在该停靠点上标记。
 - 替换地点会将活动价格标记为待验证。路线票价是独立估计，不会在交通费用中重复计入，未知票价不等于零。
 - 编辑使行程和最终确认失效，并重新生成冲突，保留未受影响的行程需求和酒店决策。撤销会重新验证，而非恢复旧审批。聊天重新规划会替换手动活动。
 - 路线使用 Google Time Zone API 提供的真实当地出发时间；有歧义或不存在的夏令时时刻会被拒绝。公共交通查询遵循 Google 支持的出发时间窗口。

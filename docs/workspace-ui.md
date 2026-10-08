@@ -8,16 +8,16 @@ now. Implementation history and browser acceptance for each phase are in the
 
 ## Layout
 
-| Area              | Content                                                                                                                                              | Implementation                                                                                              |
-| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| Sidebar           | Logo, Chats and Trips with counts, save or sync status, Settings & account                                                                           | `WorkspaceSidebar`, `BrandMark`, `icons.tsx`                                                                |
-| Chats panel       | Slides out beside the sidebar: search, New chat, New trip, then trips and chats                                                                      | `ChatsPanel`, `TripCover`                                                                                   |
-| Your trips        | Opened by Trips in place of chat and map: trip cards (Upcoming, Past) and a Calendar tab; New trip                                                   | `TripsPage`, `TripCover`                                                                                    |
-| Top bar           | Trip title; trip fact chips (destination, dates, travellers, budget, Preferences); data mode; Trip with its stop count, rightmost                    | `WorkspaceView`, `TripFactChips`                                                                            |
-| Trip fact editors | One editor per chip, every one a centred dialog; Preferences holds the traveller's own list                                                          | `FactPopover`, `FactFields`, `TripCalendar`, `WhereFields`, `PreferenceList`, `lib/workspace/trip-facts.ts` |
-| Chat              | Conversation, the planning transcript, the composer; starter suggestions in a blank chat; no visible heading                                         | `ChatPanel`                                                                                                 |
-| Map               | Only the map, labelled markers, curved day-coloured itinerary lines, the place popup, map status, and the locate / map type / zoom controls          | `TripMapCanvas`, `TripMap`                                                                                  |
-| Your Trip drawer  | Budget; the day view (travel tips, day strip, the chosen day's stops with their place cards and ⋯ menus, flights and stays, then Ideas); Review plan | `Drawer`, `TripPanel`, `TripEditor`, `TripTips`, `timeline/TimelineStop`, `timeline/BookingRow`             |
+| Area              | Content                                                                                                                                                          | Implementation                                                                                              |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Sidebar           | Logo, Chats and Trips with counts, save or sync status, Settings & account                                                                                       | `WorkspaceSidebar`, `BrandMark`, `icons.tsx`                                                                |
+| Chats panel       | Slides out beside the sidebar: search, New chat, New trip, then trips and chats                                                                                  | `ChatsPanel`, `TripCover`                                                                                   |
+| Your trips        | Opened by Trips in place of chat and map: trip cards (Upcoming, Past) and a Calendar tab; New trip                                                               | `TripsPage`, `TripCover`                                                                                    |
+| Top bar           | Trip title; trip fact chips (destination, dates, travellers, budget, Preferences); data mode; Trip with its stop count, rightmost                                | `WorkspaceView`, `TripFactChips`                                                                            |
+| Trip fact editors | One editor per chip, every one a centred dialog; Preferences holds the traveller's own list                                                                      | `FactPopover`, `FactFields`, `TripCalendar`, `WhereFields`, `PreferenceList`, `lib/workspace/trip-facts.ts` |
+| Chat              | Conversation, the planning transcript, the composer; starter suggestions in a blank chat; no visible heading                                                     | `ChatPanel`                                                                                                 |
+| Map               | Only the map, labelled markers, curved day-coloured itinerary lines, the place popup, map status, and the locate / map type / zoom controls                      | `TripMapCanvas`, `TripMap`                                                                                  |
+| Your Trip drawer  | Budget, with its open conflicts; the day view (travel tips, day strip, the chosen day's stops with their place cards and ⋯ menus, flights and stays, then Ideas) | `Drawer`, `TripPanel`, `TripEditor`, `TripTips`, `timeline/TimelineStop`, `timeline/BookingRow`             |
 
 - **Sidebar.**
   - Expands to 240 px (220 px below 1250 px) or collapses to a 64 px icon rail. The toggle uses
@@ -174,8 +174,8 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     the close button, a Tab loop, Escape (nested edit previews and native dialogs first) and focus
     return to the trigger.
   - At most one panel is open at a time: a drawer (Trip, navigation or the desktop Chats panel), the
-    phone Trip details sheet or one chip editor. Opening one closes the others; Settings and Review
-    open on top of it and return to it when they close. One pure function, `layout()` in
+    phone Trip details sheet or one chip editor. Opening one closes the others; Settings
+    opens on top of it and return to it when they close. One pure function, `layout()` in
     `apps/web/lib/workspace/layout.ts`, decides what is open; see the
     [layout Agent Note](../.agents/notes/implemented/architecture/2026-10-06-workspace-layout-reducer.md).
     A reload starts with every panel closed. Closed drawers are translated fully outside the
@@ -203,7 +203,7 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
   - The single-row top bar shows the destination and dates, or New trip. Its title opens Trip details:
     Where, When, Who, Budget and Preferences as rows. Each row opens the existing editor; saving or
     closing returns focus to the title. Editors are bottom sheets with 44 px targets.
-  - Trip shows Your Trip in place, with Budget, the day view and Review plan. Before
+  - Trip shows Your Trip in place, with Budget and the day view. Before
     planning it explains the empty state and offers Plan in Chat. A plan created or changed while
     another tab is selected adds an accessible update dot to Trip; opening Trip clears it. Read revisions are tracked per trip,
     so switching between unchanged saved trips does not create a new notification.
@@ -213,7 +213,7 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
   - Crossing the phone width keeps the traveller on the same thing: narrowing with Your trips open
     continues in Mine, so the tab bar stays available, and narrowing with the Trip drawer open shows
     the Trip tab. Widening from Mine shows Your trips, widening from Trip opens the Trip drawer over
-    Chat (unless a chip editor is open), and Chat and Map stay as they are. Settings, Review and chip
+    Chat (unless a chip editor is open), and Chat and Map stay as they are. Settings and chip
     editors stay open across the crossing; Trip details closes when the phone top bar goes away.
   - Map fills the space between the bars. Its day-stops sheet has collapsed, half and full heights,
     selected by dragging or using its handle with pointer or keyboard. Changing day filters the map's
@@ -324,7 +324,8 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     requests and clears progress, errors, selection and map routes in one `opened` session event.
     Late responses are ignored.
   - Applying an edit from the trip list or the timeline is `applyEdit(next)`, which records the
-    previous total for Review plan's "changed by" figure. Views get these as actions from
+    previous total. A chat replan sets `estimateChange` to the signed change from the plan it replaced,
+    and a timeline edit clears it. Views get these as actions from
     `useWorkspace`, never as state setters ([architecture](architecture.md#workspace-state)).
 - **Storage.**
   - Everything is saved in the browser only, with a debounced autosave state in the sidebar.
@@ -358,7 +359,8 @@ describes current behaviour except the absences.
   anything else is said in chat or edited in the day view.
 - **Conflicts are information.** When the orchestrator detects a conflict it retries the affected
   sections within its round budget, and anything still unresolved stays visible on the plan rather
-  than becoming a card that waits for an acknowledgement nothing can record.
+  than becoming a card that waits for an acknowledgement nothing can record. It is shown on the stop,
+  day or budget bar it concerns (see Conflicts in place under the Trip drawer above).
 - The client is not a source of supplier facts: totals are recomputed from proposal items, and
   results are labelled as SerpApi live search, Google Places estimates or simulated fixtures. None
   of them creates a reservation.
@@ -468,9 +470,22 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
 - **Trip drawer.** One view, with no tabs: heading and summary, budget, then the day view: the travel
   tips (when the plan has a destination guide), the day strip, the chosen day's stops in visiting order
   with the number their place carries on the map (a repeat visit keeps it), the day's flights and stay
-  rows, then Ideas, unnumbered. Review plan follows and opens the plan review. The phone Trip tab shows
-  the same view.
+  rows, then Ideas, unnumbered. The phone Trip tab shows the same view. The drawer has no status label:
+  "Needs review", "Draft" and "Review plan" are removed ([Agent Note](../.agents/notes/proposed/feature/2026-10-08-remove-status-labels.md)).
   The specialists' cards are not rendered; see [Flights, stays and tips](#flights-stays-and-tips).
+- **Conflicts in place.** Each unresolved conflict of the plan is shown where it applies, derived from the
+  plan on every render by `placeConflicts()` (`apps/web/lib/trip/conflicts.ts`):
+  - on the stop it names: a time overlap marks each stop of that day that overlaps another scheduled item,
+    and a leg the route check could not confirm is listed on its stop;
+  - under the title of the day it names, when no stop of that day is involved (a flight or stay overlaps,
+    or the pair is no longer on the plan);
+  - under the budget bar when it names neither stop nor day, such as the over-budget or infeasible-budget
+    sentence.
+    An edit that resolves a conflict removes it from the view.
+- **Estimate change after a replan.** After a chat replan that had an earlier estimate, a notice in the
+  notices strip says the signed change, "Estimate changed by +AUD 120.00 from the previous plan.", or
+  "Estimate unchanged from the previous plan." It has a Dismiss button and shows once. A timeline edit or
+  opening another chat clears it, and a reload does not restore it.
 - **Stop menu** ([Agent Note](../.agents/notes/implemented/feature/2026-10-08-one-day-trip-view.md)).
   Each stop's "…" menu (`ActionMenu`, a `role="menu"`; arrow keys move, Escape closes it and returns
   focus to its trigger without closing the drawer) offers Move earlier and Move later (not on the first
@@ -576,7 +591,7 @@ browser, as the Itinerary list did. The checks are deterministic and make no LLM
   at the later of their original start or previous end + route duration + 15 minutes. Empty target
   days start at 09:00 local, and moves stay within the same lodging destination segment.
 - A provider outage on a leg blocks the edit that needed it, so no time is shifted on a guess; a leg
-  with no route adds no travel time. Overflow beyond the day blocks apply. Fixed transport and stays are read-only, and overlaps stay visible in review.
+  with no route adds no travel time. Overflow beyond the day blocks apply. Fixed transport and stays are read-only; an overlap with a stop is marked on that stop.
 - Replacing a place marks the activity price for verification. Route fares are separate estimates,
   never added to transport twice, and an unknown fare is not zero.
 - Edits invalidate itinerary and final confirmation and regenerate conflicts, keeping unaffected brief
