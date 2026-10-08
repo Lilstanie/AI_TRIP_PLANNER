@@ -89,9 +89,7 @@ export function extractBriefPatchLocally(message: string): BriefPatch {
   const chineseOrigin = message.match(
     /从\s*([\p{Script=Han}A-Za-z][\p{Script=Han}A-Za-z&·\- ]*?)(?=\s*(?:出发|飞|到|去|，|,|。|$))/u,
   );
-  const origin = cleanDestination(
-    fromTo?.[1] ?? departing?.[1] ?? chineseOrigin?.[1] ?? "",
-  );
+  const origin = cleanDestination(fromTo?.[1] ?? departing?.[1] ?? chineseOrigin?.[1] ?? "");
   if (origin) patch.origin = origin;
 
   const englishDestination = message.match(

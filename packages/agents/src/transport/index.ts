@@ -26,14 +26,7 @@ import {
   EARLY_DEPARTURE_MINUTES,
   DEFAULT_DEPARTURE_MINUTES,
 } from "./validation";
-import {
-  cities,
-  journeyLegs,
-  flightLegs,
-  groundLegs,
-  flownInstead,
-  type JourneyLeg,
-} from "./legs";
+import { cities, journeyLegs, flightLegs, groundLegs, flownInstead, type JourneyLeg } from "./legs";
 import { mockEnabled } from "@trip/tools";
 import { TRAVELLER_PREFERENCES_RULE } from "../prompts/traveller-preferences";
 
@@ -203,15 +196,21 @@ async function gatherTransportEvidence(
   const promotedKeys = new Set(promoted.map(({ query }) => `${query.from}|${query.to}`));
   const promotedFlights = await Promise.all(
     promoted.map(({ query }) => {
-      const leg = legs.find((candidate) => candidate.from === query.from && candidate.to === query.to);
-      return priceFlight(flownInstead(leg ?? {
-        index: legs.length,
-        from: query.from,
-        to: query.to,
-        date: query.date,
-        day: query.day,
-        mode: "ground",
-      }));
+      const leg = legs.find(
+        (candidate) => candidate.from === query.from && candidate.to === query.to,
+      );
+      return priceFlight(
+        flownInstead(
+          leg ?? {
+            index: legs.length,
+            from: query.from,
+            to: query.to,
+            date: query.date,
+            day: query.day,
+            mode: "ground",
+          },
+        ),
+      );
     }),
   );
   ctx.signal?.throwIfAborted();
@@ -435,7 +434,9 @@ function transportSource(
     .filter((value): value is NonNullable<FlightOption["provenance"]> => value !== undefined);
   if (flightProvenance.length) {
     const providers = [...new Set(flightProvenance.map((value) => value.provider))];
-    const queriedAt = [...new Set(flightProvenance.map((value) => value.queriedAt).filter(Boolean))];
+    const queriedAt = [
+      ...new Set(flightProvenance.map((value) => value.queriedAt).filter(Boolean)),
+    ];
     const allLive = flightProvenance.every((value) => value.kind === "live");
     const fallback = flightProvenance.find((value) => value.fallbackFrom);
     return {
@@ -456,7 +457,8 @@ function transportSource(
     return {
       kind: "live",
       label: "SerpApi Google Flights + Maps",
-      freshness: "Flight fares are live search results at query time; route timings remain provider estimates and availability can change.",
+      freshness:
+        "Flight fares are live search results at query time; route timings remain provider estimates and availability can change.",
     };
   }
   return {
@@ -792,7 +794,10 @@ async function planTransport(
     // unpriced, more would double-count one hop in the budget.
     const flownHops = new Set(offered.map(({ leg }) => leg.index));
     const pricedHops = new Set(flights.map((fare) => fare.legIndex));
-    if (pricedHops.size !== flownHops.size || [...flownHops].some((index) => !pricedHops.has(index)))
+    if (
+      pricedHops.size !== flownHops.size ||
+      [...flownHops].some((index) => !pricedHops.has(index))
+    )
       throw new Error("Transport specialist did not choose one fare for each flown hop.");
     if (flights.length !== pricedHops.size)
       throw new Error("Transport specialist chose more than one fare for a hop.");
@@ -826,7 +831,8 @@ async function planTransport(
       source: {
         kind: "fallback",
         label: "Local fallback",
-        freshness: "The model schedule was unavailable; a deterministic transport plan was used from the gathered evidence.",
+        freshness:
+          "The model schedule was unavailable; a deterministic transport plan was used from the gathered evidence.",
       },
     };
   }
