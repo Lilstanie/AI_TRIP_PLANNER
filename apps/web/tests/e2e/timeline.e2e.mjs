@@ -1,6 +1,6 @@
 // End-to-end walk through the Timeline & routes tab with mock data: day switching, the fixed
 // transport and stay rows, selecting and editing a stop, confirming its map match, checking the
-// day's routes, applying a previewed edit and undoing it, and provider transit fares keeping their
+// day's routes, applying an edit at once and undoing it, and provider transit fares keeping their
 // own currency's decimal places (JPY 230, KRW 1,400, AUD 12.50). Screenshots at desktop and phone widths,
 // light and dark, land under output/playwright/timeline/<label>/ as a repeatable artifact.
 //
@@ -126,17 +126,17 @@ async function shots(browser, width, height, tag) {
   }
 }
 
-async function applyPreview(page, preview, label) {
-  const apply = preview.getByRole("button", { name: "Apply changes" });
-  if (!(await apply.isEnabled())) {
+// An accepted edit applies at once. A refused one leaves the plan unchanged and shows its blockers
+// as an alert in the timeline, which this helper reports as a failure.
+async function applyEdit(page, label) {
+  await settle(page, 800);
+  const alert = page.locator(".timeline-status--error");
+  if (await alert.count()) {
+    const text = (await alert.first().innerText()).replace(/\s+/g, " ").slice(0, 300);
     await page.screenshot({ path: `${OUT}/blocked-${label}.png` });
-    const text = (await preview.innerText()).replace(/\s+/g, " ").slice(0, 300);
-    check(false, `${label}: preview blocked — ${text}`);
-    await preview.getByRole("button", { name: /Cancel|Close/ }).click();
+    check(false, `${label}: edit refused — ${text}`);
     return false;
   }
-  await apply.click();
-  await settle(page, 800);
   return true;
 }
 
@@ -165,41 +165,25 @@ async function interactions(browser) {
   const stop = timeline.locator(".timeline-stop").first();
   check((await stop.count()) === 1, "day shows its stops");
   check(
-    !(await timeline.getByRole("button", { name: /Preview time change/ }).count()),
+    !(await timeline.getByRole("button", { name: /Change time/ }).count()),
     "editors stay closed until a stop is selected",
   );
   await stop.locator(".timeline-stop__main").click();
   await settle(page);
   check(
-    await timeline.getByRole("button", { name: /Preview time change/ }).isVisible(),
+    await timeline.getByRole("button", { name: /Change time/ }).isVisible(),
     "selecting a stop opens its editor",
   );
   await page.screenshot({ path: `${OUT}/interact-01-stop-open.png` });
 
-  // A time edit goes through a preview that can be applied, then undone.
-  const start = timeline.getByLabel(/^Start/).first();
-  const [hour, minute] = (await start.inputValue()).split(":").map(Number);
-  await start.fill(
-    `${String(Math.min(hour + 1, 20)).padStart(2, "0")}:${String(minute).padStart(2, "0")}`,
-  );
-  const end = timeline.getByLabel(/^End/).first();
-  const [endHour, endMinute] = (await end.inputValue()).split(":").map(Number);
-  await end.fill(
-    `${String(Math.min(endHour + 1, 22)).padStart(2, "0")}:${String(endMinute).padStart(2, "0")}`,
-  );
-  await timeline.getByRole("button", { name: /Preview time change/ }).click();
-  const preview = page.getByRole("region", { name: "Edit preview" });
-  await preview.waitFor({ timeout: 30_000 });
+  // A time edit applies at once and can be undone; there is no review step.
+  await timeline.getByRole("button", { name: /Change time/ }).click();
   await settle(page);
-  await page.screenshot({ path: `${OUT}/interact-02-preview.png` });
-  // A pending edit pauses sending but is not a chat request: no thinking row, no stop button.
   check(
-    !(await page.getByText("Preparing your request.").count()) &&
-      !(await page.getByRole("button", { name: /Stop/ }).count()),
-    "an open preview does not pose as a chat request",
+    !(await page.getByRole("region", { name: "Edit preview" }).count()) &&
+      !(await page.getByRole("button", { name: "Apply changes" }).count()),
+    "a time edit has no review step or Apply button",
   );
-  await preview.getByRole("button", { name: "Apply changes" }).click();
-  await settle(page, 800);
   // The stop the edit changed flashes once, and only while motion is allowed.
   const flashed = timeline.locator(".timeline-stop.is-changed");
   check((await flashed.count()) >= 1, "an applied edit marks the changed stop");
@@ -214,9 +198,11 @@ async function interactions(browser) {
   check(await undo.isVisible(), "an applied edit can be undone");
   await page.screenshot({ path: `${OUT}/interact-03-applied.png` });
   await undo.click();
-  await preview.waitFor({ timeout: 30_000 });
-  await preview.getByRole("button", { name: "Apply changes" }).click();
   await settle(page, 800);
+  check(
+    !(await timeline.getByRole("button", { name: /Undo/ }).count()),
+    "undo restores the earlier plan and clears the step",
+  );
 
   // The whole route check: pick a day with two or more stops, confirm each stop's map match, then
   // check the day's routes and see checked journeys between the stops.
@@ -268,8 +254,7 @@ async function interactions(browser) {
         await result.waitFor({ timeout: 20_000 });
         await result.click();
       }
-      await preview.waitFor({ timeout: 30_000 });
-      await applyPreview(page, preview, `confirm day ${index + 1} stop ${stop + 1}`);
+      await applyEdit(page, `confirm day ${index + 1} stop ${stop + 1}`);
     }
   }
   if (routeDay < 0) {
@@ -281,8 +266,7 @@ async function interactions(browser) {
     if (!(await timeline.locator(".stop-editor").count()))
       await timeline.locator(".timeline-stop__main").first().click();
     await timeline.getByLabel("Move to").selectOption("1");
-    await preview.waitFor({ timeout: 30_000 });
-    await applyPreview(page, preview, "move to day 1");
+    await applyEdit(page, "move to day 1");
     check(/2 stops/.test(await days.nth(0).innerText()), "moving a stop to another day");
     routeDay = /2 stops/.test(await days.nth(0).innerText()) ? 0 : -1;
   }
@@ -298,28 +282,19 @@ async function interactions(browser) {
     const checkRoutes = timeline.getByRole("button", { name: /Check routes for Day/ });
     check(await checkRoutes.isEnabled(), "route check is enabled once places are confirmed");
     await checkRoutes.click();
-    await preview.waitFor({ timeout: 60_000 });
-    await settle(page);
-    await page.screenshot({ path: `${OUT}/interact-04-route-preview.png` });
+    await settle(page, 800);
+    await page.screenshot({ path: `${OUT}/interact-04-route-check.png` });
     check(
-      (await preview.getByText(/Walk · |No route found|Public transport · /).count()) > 0,
-      "the route check reports each journey",
+      (await timeline.locator(".timeline-connection--checked").count()) > 0,
+      "the route check applies its journeys between the stops",
     );
-    if (await preview.getByRole("button", { name: "Apply changes" }).isEnabled()) {
-      await preview.getByRole("button", { name: "Apply changes" }).click();
-      await settle(page, 800);
-      check(
-        (await timeline.locator(".timeline-connection--checked").count()) > 0,
-        "checked journeys appear between the stops",
-      );
-      check(
-        (await timeline
-          .locator(".timeline-connection--checked .timeline-connection__rail")
-          .first()
-          .evaluate((el) => getComputedStyle(el).animationName)) === "rail-draw",
-        "a checked journey draws itself down the line",
-      );
-    }
+    check(
+      (await timeline
+        .locator(".timeline-connection--checked .timeline-connection__rail")
+        .first()
+        .evaluate((el) => getComputedStyle(el).animationName)) === "rail-draw",
+      "a checked journey draws itself down the line",
+    );
     await page.screenshot({ path: `${OUT}/interact-05-routes-checked.png` });
   }
 
@@ -370,28 +345,16 @@ async function fareDecimals(browser) {
   const timeline = page.getByRole("region", { name: "Trip timeline" });
   await timeline.locator(".timeline-stop .timeline-stop__main").first().click();
   await settle(page);
-  // Any edit will do: move the end time so the preview button is enabled.
+  // Any edit will do: move the end time so the change button is enabled.
   const end = timeline.getByLabel(/^End/).first();
   const [endHour, endMinute] = (await end.inputValue()).split(":").map(Number);
   await end.fill(
     `${String(Math.min(endHour + 1, 22)).padStart(2, "0")}:${String(endMinute).padStart(2, "0")}`,
   );
-  await timeline.getByRole("button", { name: /Preview time change/ }).click();
-  const preview = page.getByRole("region", { name: "Edit preview" });
-  await preview.waitFor({ timeout: 30_000 });
-  await settle(page);
-  const routes = await preview.locator(".edit-preview__routes").innerText();
-  const jpy = (text) => text.match(/JPY [\d.]+/)?.[0];
-  check(/JPY 230(?![.\d])/.test(routes), `preview: JPY fare has no decimals (${jpy(routes)})`);
-  check(/AUD 12\.50(?!\d)/.test(routes), "preview: AUD fare keeps two decimals");
-  check(/KRW 1,400(?![.\d])/.test(routes), "preview: KRW fare has no decimals");
-  check(
-    /not added to the AUD budget/.test(routes),
-    "preview: fares are labelled as outside the AUD budget",
-  );
-  await page.screenshot({ path: `${OUT}/fare-01-preview.png` });
-  await preview.getByRole("button", { name: "Apply changes" }).click();
+  await timeline.getByRole("button", { name: /Change time/ }).click();
   await settle(page, 800);
+  // The fares arrive with the applied edit and show on the checked legs, as the checks below read.
+  const jpy = (text) => text.match(/JPY [\d.]+/)?.[0];
   const legs = await timeline.locator(".timeline-connection--checked").allInnerTexts();
   const text = legs.join(" | ");
   check(legs.length === 3, `timeline: all three checked legs shown (${legs.length})`);
@@ -614,17 +577,12 @@ async function stopNumbers(browser) {
     await timeline.locator(".timeline-stop").first().locator(".timeline-stop__main").click();
     await settle(page);
     await timeline.getByRole("button", { name: "Move later", exact: true }).click();
-    const preview = page.getByRole("region", { name: "Edit preview" });
-    await preview.waitFor({ timeout: 30_000 });
+    await settle(page, 800);
     summary.desktopTimelineMoveLater = moveRequest;
     check(
       moveRequest?.id === "e2e-alpha-2" && moveRequest.day === 2 && moveRequest.index === 2,
       `numbers: timeline Move later asks for the place after Delta (${JSON.stringify(moveRequest)})`,
     );
-    await preview
-      .getByRole("button", { name: /Cancel|Close/ })
-      .first()
-      .click();
     await settle(page, 400);
 
     // From the Trip list the swap is applied in the browser: every view then shows Delta first,

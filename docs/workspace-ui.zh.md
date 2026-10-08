@@ -167,18 +167,18 @@ Trip 抽屉在 Stops 列表下方显示每个 specialist 的部分（`TripSectio
 
 ## 时间线编辑
 
-Timeline & routes 标签页（由 `TripEditor` 组合 `components/trip/timeline/`）一次显示一天，通过 `POST /api/trip/preview-edit` 编辑活动。预览是确定性的，不调用 LLM（大语言模型）。
+Timeline & routes 标签页（由 `TripEditor` 组合 `components/trip/timeline/`）一次显示一天，通过 `POST /api/trip/preview-edit` 编辑活动。服务器检查每次编辑，客户端对被接受的编辑立即应用。检查是确定性的，不调用 LLM（大语言模型）。
 
 - **布局。** 日期标签条（`Day 2 · Sun, 18 Oct · 3 stops`，停靠点需要地点时带标记）用于选择日期。当天按时间顺序呈现为竖线（`lib/trip/timeline.ts`）：无具体时间的航班在最前，带时间的城际路段和停靠点按开始时间排列，当晚入住在最后，后续夜晚显示“Staying at …”。固定行显示图标、标题、一行详情及费用（“Fare not published”或“Price unknown”，而非 AUD 0）。两站之间的路程显示路线检查得到的“Walk · 6 min · checked”，或以规划器的 `arriveBy` 作为估计。
 - **价格。** 没有提供方公布门票价格，因此行程停靠点不带 `estCost`，显示“Price unknown”；预算卡补充“Not included: admission for N stops with no published price”，避免把总额理解为全部费用。
 - **顺序和编号。** 当天停靠点按访问顺序列出，每个停靠点的节点显示其全程编号，与地图和 Trip 抽屉一致；未定位的停靠点不显示编号。Move earlier、Move later、Move to another day 和拖放都按显示的位置指定目标，由 Itinerary 换算成 `preview-edit` 所需的方案索引（该索引按方案顺序计算当天其他停靠点）。开始时间与方案顺序不一致时，向后移动的停靠点落在它越过的那个停靠点之后，其他移动则落在目标停靠点之前，因此预览保留旅行者要求的交换；之后端点会重新安排当天其余停靠点的时间。
-- **编辑。** 停靠点在此处或地图上被选中前保持紧凑；选择后打开编辑器：开始和结束时间（“Preview time change”）、Move earlier / Move later、Move to another day，以及用于替换地点的 Google Maps 搜索。地图按名称匹配但尚未确认的停靠点提供“Use this place”。仍支持拖放调整当天顺序。
+- **编辑。** 停靠点在此处或地图上被选中前保持紧凑；选择后打开编辑器：开始和结束时间（“Change time”）、Move earlier / Move later、Move to another day，以及用于替换地点的 Google Maps 搜索。地图按名称匹配但尚未确认的停靠点提供“Use this place”。仍支持拖放调整当天顺序。
 - **路线检查。** 提供 Walk / Public transport 切换和“Check routes for Day N”；当天有两个地点已确认的停靠点时启用，下方提示说明缺少哪个条件。
-- **审查。** 每次编辑打开“Review this change”：显示新总额、带符号的差额和预算余量、每个移动停靠点一行、已检查路线、阻断项，以及仅由此次变化新增的冲突。Apply changes 应用修改；Cancel 或 Escape 只关闭预览。应用编辑后显示“Undo last change”，撤销也用同样方式预览。
+- **立即应用。** 服务器接受编辑后立即应用，没有审阅步骤。被拒绝的编辑不改变方案，阻碍项以提示显示在当天上方。应用编辑后显示“Undo last change”，撤销以同样的检查和方式应用。来自聊天的新方案会清除撤销步骤。
 - **动效。** 切换日期时当天列表淡入；站点编辑器和审阅面板上浮出现；应用编辑后，被改动的站点短暂以强调色高亮；路线检查确认的行程沿时间线自上而下绘出。每种动效同时有文字或颜色信号，在减弱动态效果设置下都不播放。
 - 编辑待处理时，聊天输入区无法发送（`ChatPanel` `locked`），但聊天不显示思考行或停止按钮：待处理编辑不是聊天请求。
 
-- 活动只分配一次稳定 ID，重排和恢复时保留。`editVersion` 独立于 orchestrator 的编排轮次，只有基础版本仍匹配时才能应用预览。
+- 活动只分配一次稳定 ID，重排和恢复时保留。`editVersion` 独立于 orchestrator 的编排轮次，只有基础版本仍匹配时才能应用编辑。
 - 移动、时间变化和地点替换保留活动时长。后续活动开始时间取原开始时间与前项结束时间 + 路线时长 + 15 分钟中的较晚值。空目标日期从当地 09:00 开始，移动不跨越同一住宿目的地区段。
 - 未知路线阻止自动顺延（用户可调整时间或模式）。超出当天范围会阻止应用。固定交通和住宿只读，重叠在审查中保持可见。
 - 替换地点会将活动价格标记为待验证。路线票价是独立估计，不会在交通费用中重复计入，未知票价不等于零。
@@ -309,9 +309,9 @@ Data mode 默认是 Fixture data。只有部署启用后才能选择 Live data�
   - **Language & region：** 界面语言（英语或简体中文；可用任何语言聊天）、地区、显示币种（AUD、CNY、USD 或 JPY；默认 AUD）、单位（公制），以及
     Advanced 下的 Trip data（站点默认、实时价格或示例数据）。
     顶栏语言切换位于示例数据旁，修改同一项已保存的语言设置。聊天控件、时间线与提案标签、设置、提示、对话框、无障碍名称及日期随之显示；
-    旅客文字、agent 生成的内容及提供方错误不会被翻译。带有数值的固定文案（附件数量上限、时间线修改预览的变更与阻碍、无法移动的站点）使用 `{placeholders}` 翻译：
-    通过 `t()` 或作为带 key 的 `Notice`（`apps/web/lib/i18n/notice.ts`），由视图在显示时翻译一次。工作区和设置显示的每条提示都是 `Notice`：字段错误、请求和存储失败、地图和位置消息，以及应用自身路由在英文 `error` 旁返回的 `notice`。响应体中没有 `notice` 时按原样显示（`{ raw }`）；没有可读响应体时显示“请求失败（{status}）。”不再把英文文本反向匹配为 key。修改预览的变更以数值而非句子返回。未保存选择时跟随浏览器语言（`zh*` 打开为中文）。桌面侧栏与主内容之间保留 8 px 间距。
-    工作区的所有金额都经过 Money 模块（`apps/web/lib/money.ts`，通过 `useLocale()` 读取）和 shared 中的估算汇率表显示。换算结果附带汇率参考日期；JPY 不显示小数，其他币种显示两位小数。本行程的有效币种（`displayCurrency`，否则为原始预算币种）优先于设置。规划和预算检查仍使用 AUD。`money()` 换算规划金额；`fare()` 让提供方原生票价保留自己的币种及该币种的小数位，四位数起按千位分组（`JPY 230`、`AUD 12.50`、`KRW 1,400`），且从不换算；`delta()` 给差额加正负号（`+AUD 12.00`、`−AUD 30.00`，零不带符号）；`budgetGap()` 给出行程面板和修改预览共用的“{amount} under/over the {budget} budget”预算句。Agent Lab 使用同一模块，固定 AUD、取整到元（`A$3,960`，见 `apps/web/lib/agent-lab/money.ts` 中的 `labMoney`）。发给规划器的句子不是显示金额：`plannerAud()` 始终用英文 AUD 加两位小数书写，不受界面语言和显示币种影响。web 应用的 ESLint 配置禁止 `.toFixed(2)`，金额不得手工格式化。服务端生成的文字（摘要、冲突原因、进度）中的金额统一经过 `packages/shared/src/money.ts` 的 `formatMoney(amountAud, currency, style?)`，按同一汇率表换算，JPY 不显示小数，换算后的金额与面板一样按千位分组（`CNY 3,000.00`）；调用方传入行程的显示币种（Agent Lab 的场景不指定币种，仍为 AUD）。`estimateNote(currency)` 是生成文字的估算标记，AUD 时为空。
+    旅客文字、agent 生成的内容及提供方错误不会被翻译。带有数值的固定文案（附件数量上限、时间线编辑的阻碍项、无法移动的站点）使用 `{placeholders}` 翻译：
+    通过 `t()` 或作为带 key 的 `Notice`（`apps/web/lib/i18n/notice.ts`），由视图在显示时翻译一次。工作区和设置显示的每条提示都是 `Notice`：字段错误、请求和存储失败、地图和位置消息，以及应用自身路由在英文 `error` 旁返回的 `notice`。响应体中没有 `notice` 时按原样显示（`{ raw }`）；没有可读响应体时显示“请求失败（{status}）。”不再把英文文本反向匹配为 key。未保存选择时跟随浏览器语言（`zh*` 打开为中文）。桌面侧栏与主内容之间保留 8 px 间距。
+    工作区的所有金额都经过 Money 模块（`apps/web/lib/money.ts`，通过 `useLocale()` 读取）和 shared 中的估算汇率表显示。换算结果附带汇率参考日期；JPY 不显示小数，其他币种显示两位小数。本行程的有效币种（`displayCurrency`，否则为原始预算币种）优先于设置。规划和预算检查仍使用 AUD。`money()` 换算规划金额；`fare()` 让提供方原生票价保留自己的币种及该币种的小数位，四位数起按千位分组（`JPY 230`、`AUD 12.50`、`KRW 1,400`），且从不换算；`delta()` 给差额加正负号（`+AUD 12.00`、`−AUD 30.00`，零不带符号）；`budgetGap()` 给出行程面板共用的“{amount} under/over the {budget} budget”预算句。Agent Lab 使用同一模块，固定 AUD、取整到元（`A$3,960`，见 `apps/web/lib/agent-lab/money.ts` 中的 `labMoney`）。发给规划器的句子不是显示金额：`plannerAud()` 始终用英文 AUD 加两位小数书写，不受界面语言和显示币种影响。web 应用的 ESLint 配置禁止 `.toFixed(2)`，金额不得手工格式化。服务端生成的文字（摘要、冲突原因、进度）中的金额统一经过 `packages/shared/src/money.ts` 的 `formatMoney(amountAud, currency, style?)`，按同一汇率表换算，JPY 不显示小数，换算后的金额与面板一样按千位分组（`CNY 3,000.00`）；调用方传入行程的显示币种（Agent Lab 的场景不指定币种，仍为 AUD）。`estimateNote(currency)` 是生成文字的估算标记，AUD 时为空。
   - **Connected accounts：** 通过 Clerk 关联的 Google、GitHub 或 Apple 登录方式，并有一个按钮打开 Clerk 进行更改。
 - 未登录时，设置保存在当前浏览器；登录后，浏览器和账号中较新的副本为准，之后的改动保存到账号。
 

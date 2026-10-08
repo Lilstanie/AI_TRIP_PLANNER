@@ -252,7 +252,7 @@ async function run(browser, { width, height, tag }) {
   await choose("Adjust schedule");
   check(
     (await drawer.getByRole("tab", { name: /Timeline/ }).getAttribute("aria-selected")) ===
-      "true" && (await drawer.getByRole("button", { name: /Preview time change/ }).count()) === 1,
+      "true" && (await drawer.getByRole("button", { name: /Change time/ }).count()) === 1,
     `${tag}: adjust schedule opens the stop's time editor in the Timeline`,
   );
   await page.screenshot({ path: `${OUT}/${tag}-04-adjust.png` });
@@ -264,10 +264,7 @@ async function run(browser, { width, height, tag }) {
     .first()
     .fill("22:30");
   await drawer.getByLabel(/^End/).first().fill("23:50");
-  await drawer.getByRole("button", { name: /Preview time change/ }).click();
-  const preview = page.getByRole("region", { name: "Edit preview" });
-  await preview.waitFor({ timeout: 30_000 });
-  await preview.getByRole("button", { name: "Apply changes" }).click();
+  await drawer.getByRole("button", { name: /Change time/ }).click();
   await settle(page, 800);
   await drawer.getByRole("tab", { name: "Itinerary" }).click();
   await settle(page, 400);

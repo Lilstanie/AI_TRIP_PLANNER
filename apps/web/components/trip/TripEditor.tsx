@@ -8,7 +8,6 @@ import { connectionBetween, dayCount, dayLabel, dayRows, stayingAt } from "@/lib
 import { useSegmentIndicator } from "../ui/motion";
 import { FlowStayIcon } from "../ui/flow-icons";
 import { DayStrip } from "./timeline/DayStrip";
-import { EditPreviewPanel } from "./timeline/EditPreviewPanel";
 import { ConnectionRow, FixedTimelineRow } from "./timeline/TimelineParts";
 import { TimelineStop } from "./timeline/TimelineStop";
 import { useTimelineEdits, type RouteMode } from "./timeline/useTimelineEdits";
@@ -17,10 +16,11 @@ import { useTimelineEdits, type RouteMode } from "./timeline/useTimelineEdits";
  * The Timeline & routes tab: one day at a time, in the order the traveller lives it — the flight or
  * transfer that starts it, each stop with the journey to the next, and the night's check-in.
  *
- * Stops are edited here (time, order, day, place) and every edit is previewed by the server, which
- * re-checks routes, budget and conflicts before anything changes. "Check routes" asks Google for
- * real walking or public-transport times between the day's confirmed places. Selection is shared
- * with the map: choosing a stop in either place highlights it in both.
+ * Stops are edited here (time, order, day, place). Each edit is checked by the server, which
+ * re-checks routes, budget and conflicts, and applies at once when accepted; a refused edit leaves the
+ * plan unchanged and says why. "Check routes" asks Google for real walking or public-transport times
+ * between the day's confirmed places. Selection is shared with the map: choosing a stop in either
+ * place highlights it in both.
  */
 export function TripEditor({
   plan,
@@ -39,7 +39,7 @@ export function TripEditor({
   tripPlaces: TripPlaces;
   selected?: string;
   onSelect(activityId: string): void;
-  /** Routes to draw on the map: the open preview's routes, otherwise the last verified ones. */
+  /** Routes to draw on the map: the routes verified for the current plan. */
   onRoutesChange?(routes: RouteResult[]): void;
 }) {
   const { t, locale, notice: localizeNotice } = useLocale();
@@ -144,10 +144,12 @@ export function TripEditor({
           {edits.working === "search" ? t("Searching Google Maps…") : t("Checking the change…")}
         </p>
       )}
-      {edits.error && (
-        <p className="timeline-status timeline-status--error" role="alert">
-          {localizeNotice(edits.error)}
-        </p>
+      {!!edits.errors.length && (
+        <ul className="timeline-status timeline-status--error" role="alert">
+          {edits.errors.map((error, index) => (
+            <li key={index}>{localizeNotice(error)}</li>
+          ))}
+        </ul>
       )}
 
       <div className="timeline-day">
@@ -214,16 +216,7 @@ export function TripEditor({
         )}
       </div>
 
-      {edits.preview && (
-        <EditPreviewPanel
-          plan={plan}
-          preview={edits.preview}
-          disabled={disabled}
-          onApply={edits.apply}
-          onCancel={edits.cancel}
-        />
-      )}
-      {edits.undo && !edits.preview && (
+      {edits.undo && (
         <div className="timeline-undo">
           <span>{t("Change applied.")}</span>
           <button type="button" disabled={locked} onClick={() => void edits.edit(edits.undo!)}>

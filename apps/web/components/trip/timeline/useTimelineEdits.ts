@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { TripPlan } from "@trip/shared";
 import { useSettings } from "@/components/account/SettingsProvider";
 import type { GooglePlace, RouteResult } from "@/lib/integrations/google";
-import type { EditInput, EditPreview } from "@/lib/trip/trip-edit";
+import type { EditInput } from "@/lib/trip/trip-edit";
 import { errorNotice, failureNotice, NoticeError, type Notice } from "@/lib/i18n/notice";
 import type { TripPlaces } from "../../map/useTripPlaces";
 
@@ -11,10 +11,11 @@ export type RouteMode = "WALK" | "TRANSIT";
 type Operation = EditInput["operation"];
 
 /**
- * Everything the timeline asks the server: edit previews, place search, and the routes last
- * verified. An edit never touches the plan directly — it is previewed by `/api/trip/preview-edit`
- * (routes, budget and conflicts recomputed) and only `apply` hands the previewed plan to the
- * workspace. The previous activities are kept so the last applied edit can be undone the same way.
+ * Everything the timeline asks the server: edits, place search, and the routes last verified.
+ * An edit is sent to `/api/trip/preview-edit`, which recomputes routes, budget and conflicts. When
+ * the server accepts it, the plan it returns is applied at once; a refused edit leaves the plan
+ * unchanged and its blockers are shown as notices. "Undo last change" replays the previous
+ * activities through the same path. See the Agent Note on immediate timeline edits.
  */
 export function useTimelineEdits({
   plan,
@@ -32,9 +33,8 @@ export function useTimelineEdits({
   const { settings } = useSettings();
   const [mode, setMode] = useState<RouteMode>("WALK");
   const [results, setResults] = useState<GooglePlace[]>([]);
-  const [error, setError] = useState<Notice>();
-  const [working, setWorking] = useState<"" | "preview" | "search">("");
-  const [preview, setPreview] = useState<EditPreview>();
+  const [errors, setErrors] = useState<Notice[]>([]);
+  const [working, setWorking] = useState<"" | "edit" | "search">("");
   const [undo, setUndo] = useState<Operation>();
   const [verifiedRoutes, setVerifiedRoutes] = useState<RouteResult[]>([]);
   // Stops an applied edit moved, retimed or re-placed, flashed once so the eye finds them.
@@ -45,16 +45,14 @@ export function useTimelineEdits({
     return () => window.clearTimeout(timer);
   }, [changed]);
   const applied = useRef<TripPlan | null>(null);
-  const returnFocus = useRef<HTMLElement | null>(null);
   const request = useRef<AbortController | null>(null);
   const current = useRef(plan);
   current.current = plan;
 
-  // A new plan (from chat, a restore, or our own apply) ends any preview in flight. Only a plan
-  // that did not come from `apply` forgets the undo step and the routes verified for the old one.
+  // A new plan (from chat, a restore, or our own apply) ends any edit in flight. Only a plan that
+  // did not come from an edit forgets the undo step and the routes verified for the old one.
   useEffect(() => {
     request.current?.abort();
-    setPreview(undefined);
     if (applied.current !== plan) {
       setUndo(undefined);
       setVerifiedRoutes([]);
@@ -63,18 +61,8 @@ export function useTimelineEdits({
     setWorking("");
   }, [plan]);
   useEffect(() => {
-    onPending(!!preview || working !== "");
-  }, [preview, working, onPending]);
-  // Closing a preview returns focus to the control that opened it, once that control is enabled
-  // again on the next render.
-  const hadPreview = useRef(false);
-  useEffect(() => {
-    if (preview) hadPreview.current = true;
-    else if (hadPreview.current) {
-      hadPreview.current = false;
-      returnFocus.current?.focus();
-    }
-  }, [preview]);
+    onPending(working !== "");
+  }, [working, onPending]);
   const routesSynced = useRef(false);
   useEffect(() => {
     // Skip the mount: reopening the timeline must not erase routes already on the map.
@@ -82,8 +70,8 @@ export function useTimelineEdits({
       routesSynced.current = true;
       return;
     }
-    onRoutesChange?.(preview?.routes ?? verifiedRoutes);
-  }, [preview, verifiedRoutes, onRoutesChange]);
+    onRoutesChange?.(verifiedRoutes);
+  }, [verifiedRoutes, onRoutesChange]);
   useEffect(
     () => () => {
       request.current?.abort();
@@ -93,17 +81,17 @@ export function useTimelineEdits({
     [],
   );
 
-  async function run<T>(kind: "preview" | "search", call: (signal: AbortSignal) => Promise<T>) {
+  async function run<T>(kind: "edit" | "search", call: (signal: AbortSignal) => Promise<T>) {
     request.current?.abort();
     const controller = new AbortController();
     request.current = controller;
     setWorking(kind);
-    setError(undefined);
+    setErrors([]);
     try {
       return await call(controller.signal);
     } catch (e) {
       if (!controller.signal.aborted)
-        setError(errorNotice(e, { key: "Something went wrong. Try again." }));
+        setErrors([errorNotice(e, { key: "Something went wrong. Try again." })]);
       return undefined;
     } finally {
       if (request.current === controller) setWorking("");
@@ -111,10 +99,8 @@ export function useTimelineEdits({
   }
 
   async function edit(operation: Operation) {
-    returnFocus.current = document.activeElement as HTMLElement;
     const base = plan;
-    setPreview(undefined);
-    await run("preview", async (signal) => {
+    await run("edit", async (signal) => {
       const response = await fetch("/api/trip/preview-edit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -132,10 +118,52 @@ export function useTimelineEdits({
         throw new NoticeError(
           failureNotice(body, { key: "Preview failed. Try the change again." }),
         );
-      // A plan that changed while the preview was in flight makes the preview stale.
-      if (!signal.aborted && current.current === base)
-        setPreview({ ...body, plan: TripPlan.parse(body.plan) });
+      // A plan that changed while the request was in flight makes the result stale.
+      if (signal.aborted || current.current !== base) return;
+      const blockers: Notice[] = body.blockerNotices ?? [];
+      if (blockers.length) {
+        // Refused: the plan stays as it is and the blockers say why.
+        setErrors(blockers);
+        return;
+      }
+      commit(TripPlan.parse(body.plan), body.routes ?? []);
     });
+  }
+
+  // Applies a plan the server accepted, and records the step that undoes it.
+  function commit(next: TripPlan, routes: RouteResult[]) {
+    const before = activities.map((a) => ({
+      id: a.id!,
+      day: a.day!,
+      startTime: a.startTime!,
+      endTime: a.endTime!,
+      placeId: a.placeId,
+      priceNeedsReview: a.priceNeedsReview,
+    }));
+    const after = new Map(
+      (next.sections.find((s) => s.id === "itinerary")?.proposal?.items ?? []).map((item) => [
+        item.id,
+        item,
+      ]),
+    );
+    applied.current = next;
+    setUndo({ kind: "undo", activities: before });
+    setVerifiedRoutes(routes);
+    setChanged(
+      new Set(
+        activities.flatMap((stop) => {
+          const now = stop.id ? after.get(stop.id) : undefined;
+          return now &&
+            (now.day !== stop.day ||
+              now.startTime !== stop.startTime ||
+              now.endTime !== stop.endTime ||
+              now.placeId !== stop.placeId)
+            ? [stop.id!]
+            : [];
+        }),
+      ),
+    );
+    onApply(next);
   }
 
   async function search(text: string) {
@@ -152,56 +180,10 @@ export function useTimelineEdits({
         throw new NoticeError(failureNotice(body, { key: "Search failed. Try again." }));
       if (!signal.aborted) {
         setResults(body.places);
-        if (!body.places.length) setError({ key: "No places found. Try different words." });
+        if (!body.places.length)
+          setErrors([{ key: "No places found. Try different words." }]);
       }
     });
-  }
-
-  function apply() {
-    if (!preview) return;
-    if (preview.baseVersion !== (plan.editVersion ?? 0)) {
-      setError({ key: "The trip changed while this was being checked. Make the change again." });
-      setPreview(undefined);
-      return;
-    }
-    applied.current = preview.plan;
-    setUndo({
-      kind: "undo",
-      activities: activities.map((a) => ({
-        id: a.id!,
-        day: a.day!,
-        startTime: a.startTime!,
-        endTime: a.endTime!,
-        placeId: a.placeId,
-        priceNeedsReview: a.priceNeedsReview,
-      })),
-    });
-    setVerifiedRoutes(preview.routes);
-    const after = new Map(
-      (preview.plan.sections.find((s) => s.id === "itinerary")?.proposal?.items ?? []).map(
-        (item) => [item.id, item],
-      ),
-    );
-    setChanged(
-      new Set(
-        activities.flatMap((before) => {
-          const now = before.id ? after.get(before.id) : undefined;
-          return now &&
-            (now.day !== before.day ||
-              now.startTime !== before.startTime ||
-              now.endTime !== before.endTime ||
-              now.placeId !== before.placeId)
-            ? [before.id!]
-            : [];
-        }),
-      ),
-    );
-    onApply(preview.plan);
-    setPreview(undefined);
-  }
-
-  function cancel() {
-    setPreview(undefined);
   }
 
   return {
@@ -209,17 +191,14 @@ export function useTimelineEdits({
     setMode,
     results,
     clearResults: () => setResults([]),
-    error,
+    errors,
     working,
-    preview,
     undo,
-    routes: preview?.routes ?? verifiedRoutes,
+    routes: verifiedRoutes,
     changed,
-    busy: working !== "" || !!preview,
+    busy: working !== "",
     edit,
     search,
-    apply,
-    cancel,
   };
 }
 

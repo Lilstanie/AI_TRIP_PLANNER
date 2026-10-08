@@ -192,7 +192,7 @@ export function TimelineStop({
                 />
               </label>
               <button type="submit" disabled={locked || !timeChanged || !validTime}>
-                {t("Preview time change")}
+                {t("Change time")}
               </button>
               {!validTime && <p className="stop-editor__hint">{t("End must be after start.")}</p>}
             </form>

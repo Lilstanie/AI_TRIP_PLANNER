@@ -1,7 +1,7 @@
 // Failure inventory: English controls in Chinese sidebar, chat, trip, timeline or settings;
 // untranslated accessible names or storage-full notice; raw traveller/model text altered; overflow at phone width;
-// authored notices that skip the dictionary (attachment limit, unreadable stream frames, edit preview
-// differences and blockers, failed preview or place search) still showing in English.
+// authored notices that skip the dictionary (attachment limit, unreadable stream frames, edit blockers,
+// failed preview or place search) still showing in English.
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
@@ -146,19 +146,8 @@ try {
   await end.fill(
     `${String(Math.min(endHour + 1, 22)).padStart(2, "0")}:${String(endMinute).padStart(2, "0")}`,
   );
-  const previewTime = () => timeline.getByRole("button", { name: "预览时间修改" }).click();
-  await previewTime();
-  const preview = np.getByRole("region", { name: "修改预览" });
-  await preview.waitFor({ timeout: 30000 });
-  const differences = await preview.locator(".edit-preview__list").last().innerText();
-  check(
-    /：\d\d:\d\d–\d\d:\d\d → \d\d:\d\d–\d\d:\d\d/.test(differences) &&
-      !/: \d\d:\d\d|day \d|place changed/.test(differences),
-    `edit preview difference Chinese (${differences.trim()})`,
-  );
-  await preview.getByRole("button", { name: "取消" }).click();
-  // Blockers as the preview route sends them, as notices: each reads in Chinese, the stop name
-  // unchanged. The English `blockers` beside them are for older clients and must not be shown.
+  const changeTime = () => timeline.getByRole("button", { name: "修改时间" }).click();
+  // A refused edit leaves the plan unchanged and lists its blockers as alerts in the timeline.
   await np.route("**/api/trip/preview-edit", async (route) => {
     const response = await route.fetch();
     const body = await response.json();
@@ -178,9 +167,10 @@ try {
     body.blockers = ["English blocker for older clients"];
     await route.fulfill({ response, json: body });
   });
-  await previewTime();
-  await preview.waitFor({ timeout: 30000 });
-  const blockers = await preview.locator(".edit-preview__list--blockers").innerText();
+  await changeTime();
+  const alert = timeline.locator(".timeline-status--error");
+  await alert.first().waitFor({ timeout: 30000 });
+  const blockers = await alert.innerText();
   check(
     [
       "第 2 天：请先确认每个站点的地点，才能核查站点间的交通时间。",
@@ -190,16 +180,15 @@ try {
       "路线核查失败",
     ].every((line) => blockers.includes(line)) &&
       !/Day \d|Route|minutes|English blocker/.test(blockers),
-    `edit preview blockers Chinese (${blockers.replaceAll("\n", " | ")})`,
+    `refused edit blockers Chinese (${blockers.replaceAll("\n", " | ")})`,
   );
-  await np.screenshot({ path: `${out}/1440-edit-preview-blockers.png` });
-  await preview.getByRole("button", { name: "关闭" }).click();
+  await np.screenshot({ path: `${out}/1440-edit-blockers.png` });
   await np.unroute("**/api/trip/preview-edit");
   // A failed preview or place search with no server wording falls back to authored notices.
   await np.route("**/api/trip/preview-edit", (route) =>
     route.fulfill({ status: 500, contentType: "application/json", body: "{}" }),
   );
-  await previewTime();
+  await changeTime();
   const previewFailed = np.getByText("预览失败，请重新尝试此修改。").first();
   await previewFailed.waitFor({ timeout: 10000 }).catch(() => {});
   check(await previewFailed.isVisible(), "failed preview notice Chinese");
@@ -215,7 +204,7 @@ try {
       }),
     }),
   );
-  await previewTime();
+  await changeTime();
   const previewRefused = np.getByText("此修改已过时，请基于当前行程重新修改。").first();
   await previewRefused.waitFor({ timeout: 10000 }).catch(() => {});
   check(await previewRefused.isVisible(), "refused preview notice Chinese");

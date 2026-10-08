@@ -490,8 +490,8 @@ Below the Stops list the Trip drawer shows each specialist's section (`TripSecti
 ## Timeline editing
 
 The Timeline & routes tab (`TripEditor` composing `components/trip/timeline/`) shows one day at a
-time and edits activities through `POST /api/trip/preview-edit`. Previews are deterministic and make
-no LLM calls.
+time and edits activities through `POST /api/trip/preview-edit`. The server checks each edit and
+the client applies an accepted one at once. The checks are deterministic and make no LLM calls.
 
 - **Layout.** A day strip of tabs (`Day 2 · Sun, 18 Oct · 3 stops`, flagged when a stop needs a
   place) picks the day. The day is a vertical line in time order (`lib/trip/timeline.ts`): an
@@ -510,16 +510,15 @@ no LLM calls.
   after the stop it moved past and any other move lands just before it, so the preview keeps the
   swap the traveller asked for; the endpoint then re-times the rest of the day after it.
 - **Editing.** A stop is compact until selected, here or on the map; selecting it opens its editor:
-  start and end time ("Preview time change"), Move earlier / Move later, Move to another day, and a
+  start and end time ("Change time"), Move earlier / Move later, Move to another day, and a
   Google Maps search to replace the place. A stop the map matched by name but not confirmed offers
   "Use this place". Drag and drop still reorders the day.
 - **Route check.** A Walk / Public transport switch and "Check routes for Day N", enabled once the
   day has two stops with confirmed places; the hint under it says which is missing.
-- **Review.** Every edit opens "Review this change": the new total, signed difference and budget
-  gap, one line per
-  moved stop, the routes checked, blockers, and only the conflicts the change would add. Apply
-  changes applies it; Cancel or Escape closes only the preview. An applied edit shows "Undo last
-  change", which is previewed the same way.
+- **Applied at once.** An edit applies as soon as the server accepts it, with no review step. A
+  refused edit leaves the plan unchanged and lists its blockers as an alert above the day. An applied
+  edit shows "Undo last change", which runs the same check and applies the same way. A plan that
+  arrives from chat clears the undo step.
 - **Motion.** A day's list fades in when the day changes; a stop's editor and the review panel rise
   in; an applied edit washes the stops it changed with the accent for a moment; a journey a route
   check verified draws down the line. Each has a text or colour signal too, and none plays under
@@ -528,7 +527,7 @@ no LLM calls.
   no thinking row or stop button: a pending edit is not a chat request.
 
 - Activities receive stable IDs once, retained on reorder and restore. `editVersion` is independent of
-  the orchestrator round, and a preview applies only if its base version still matches.
+  the orchestrator round, and an edit applies only if its base version still matches.
 - Moves, time changes and place replacements preserve activity duration. Following activities start
   at the later of their original start or previous end + route duration + 15 minutes. Empty target
   days start at 09:00 local, and moves stay within the same lodging destination segment.

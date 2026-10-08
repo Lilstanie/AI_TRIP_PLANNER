@@ -101,7 +101,7 @@ describe("editor request lifecycle", () => {
       />,
     );
     fireEvent.change(screen.getByLabelText("End"), { target: { value: "10:30" } });
-    fireEvent.click(screen.getByRole("button", { name: "Preview time change" }));
+    fireEvent.click(screen.getByRole("button", { name: "Change time" }));
     const restored = { ...original, tripId: "restored" };
     rerender(
       <TripEditor
@@ -115,41 +115,7 @@ describe("editor request lifecycle", () => {
       />,
     );
     finish(response(original));
-    await waitFor(() => expect(screen.queryByRole("button", { name: "Apply changes" })).toBeNull());
+    await waitFor(() => expect(pending).toHaveBeenLastCalledWith(false));
     expect(apply).not.toHaveBeenCalled();
-  });
-  it("Escape cancels only the preview and restores keyboard focus", async () => {
-    const plan = fixture();
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () => response(plan)),
-    );
-    const outer = vi.fn();
-    window.addEventListener("keydown", outer);
-    render(
-      <TripEditor
-        plan={plan}
-        disabled={false}
-        onApply={vi.fn()}
-        onPending={vi.fn()}
-        tripPlaces={places(plan)}
-        selected={itineraryActivities(plan)[0]!.id}
-        onSelect={vi.fn()}
-      />,
-    );
-    fireEvent.change(screen.getByLabelText("End"), { target: { value: "10:30" } });
-    const trigger = screen.getByRole("button", { name: "Preview time change" });
-    trigger.focus();
-    fireEvent.click(trigger);
-    await screen.findByRole("button", { name: "Apply changes" });
-    const region = screen.getByRole("region", { name: "Edit preview" });
-    // Focus moves in an effect after the preview commits; on a slow runner the button can appear
-    // before that effect has run, so wait for focus rather than asserting it on the same tick.
-    await waitFor(() => expect(document.activeElement).toBe(region));
-    fireEvent.keyDown(region, { key: "Escape" });
-    expect(screen.queryByRole("button", { name: "Apply changes" })).toBeNull();
-    expect(document.activeElement).toBe(trigger);
-    expect(outer).not.toHaveBeenCalled();
-    window.removeEventListener("keydown", outer);
   });
 });
