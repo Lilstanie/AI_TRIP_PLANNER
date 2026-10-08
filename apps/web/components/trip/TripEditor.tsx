@@ -6,27 +6,30 @@ import type { RouteResult } from "@/lib/integrations/google";
 import type { TripPlaces } from "../map/useTripPlaces";
 import { connectionBetween, dayCount, dayLabel, dayRows, stayingAt } from "@/lib/trip/timeline";
 import { applyItemAction, type ItemAction } from "@/lib/trip/item-actions";
+import type { LegMode } from "@/lib/trip/leg-routes";
 import { NoticeError, type Notice } from "@/lib/i18n/notice";
-import { useSegmentIndicator } from "../ui/motion";
+import type { DataMode } from "@/lib/workspace/data-mode";
 import { FlowStayIcon } from "../ui/flow-icons";
 import { DayStrip } from "./timeline/DayStrip";
-import { ConnectionRow, FixedTimelineRow } from "./timeline/TimelineParts";
+import { FixedTimelineRow, LegRow } from "./timeline/TimelineParts";
 import { TimelineStop } from "./timeline/TimelineStop";
-import { useTimelineEdits, type RouteMode } from "./timeline/useTimelineEdits";
+import { useTimelineEdits } from "./timeline/useTimelineEdits";
 import { IDLE_AUTO_SAVE, type AutoSaveState } from "./useAutoSavePlaces";
+import type { LegState } from "./useLegRoutes";
 
 type Activity = TripPlaces["activities"][number];
 
 /**
  * The one view of the trip's days, in the Your Trip drawer and on the phone Trip tab: the day strip,
- * the chosen day's stops in the order the traveller lives them, each with the journey to the next,
- * and then Ideas, the stops with no day yet.
+ * the chosen day's stops in the order the traveller lives them, each with the leg into it, and then
+ * Ideas, the stops with no day yet.
  *
  * Time and place changes, and moves between or within a day, are checked by the server, which
  * re-checks routes, budget and conflicts, and applied at once when accepted; a refused edit leaves the
- * plan unchanged and says why. Details, notes, booked and Remove apply in the browser. "Check routes"
- * asks Google for real walking or public-transport times between the day's confirmed places. Selection
- * is shared with the map: choosing a stop in either place highlights it in both and opens its card.
+ * plan unchanged and says why. The travel time of each leg is worked out by the workspace once a day's
+ * places are saved (`routes`), and a leg's mode is changed here, for that leg alone. Details, notes,
+ * booked and Remove apply in the browser. Selection is shared with the map: choosing a stop in either
+ * place highlights it in both and opens its card.
  */
 export function TripEditor({
   plan,
@@ -37,6 +40,10 @@ export function TripEditor({
   selected = "",
   onSelect,
   onRoutesChange,
+  routes = [],
+  legs,
+  onLegApplied,
+  dataMode,
   showPhotos = false,
   saves = IDLE_AUTO_SAVE,
 }: {
@@ -47,8 +54,15 @@ export function TripEditor({
   tripPlaces: TripPlaces;
   selected?: string;
   onSelect(activityId: string): void;
-  /** Routes to draw on the map: the routes verified for the current plan. */
+  /** Routes an applied edit verified; the workspace keeps them for the legs and the map. */
   onRoutesChange?(routes: RouteResult[]): void;
+  /** The routes verified for the current plan: each leg's travel time and mode come from these. */
+  routes?: RouteResult[];
+  /** The workspace's routing of the day's legs: whether it is running, and why it stopped. */
+  legs?: LegState;
+  /** An applied leg change: its day is current, so the other legs are not routed again. */
+  onLegApplied?(plan: TripPlan, day: number): void;
+  dataMode: DataMode | undefined;
   /** Show each place's first Google photo in its card (live data with a Maps key). */
   showPhotos?: boolean;
   /** Which stop's map place is being saved, or failed to save, on the workspace. */
@@ -56,7 +70,15 @@ export function TripEditor({
 }) {
   const { t, locale, notice: localizeNotice } = useLocale();
   const { activities, itinerary, places, placeIdFor, locationStatus } = tripPlaces;
-  const edits = useTimelineEdits({ plan, activities, onApply, onPending, onRoutesChange });
+  const edits = useTimelineEdits({
+    plan,
+    activities,
+    dataMode,
+    onApply,
+    onPending,
+    onRoutesChange,
+    onLegApplied,
+  });
   const days = dayCount(plan);
   const labels = useMemo(
     () => Array.from({ length: days }, (_, index) => dayLabel(plan, index + 1, locale)),
@@ -79,11 +101,8 @@ export function TripEditor({
   );
   const ideas = useMemo(() => itinerary.ideas(), [itinerary]);
   const rows = useMemo(() => dayRows(plan, day, daily, locale), [plan, day, daily, locale]);
-  const unconfirmed = daily.filter((activity) => !activity.placeId).length;
   const staying = stayingAt(plan, day);
   const locked = disabled || edits.busy;
-  const modes = useRef<HTMLDivElement>(null);
-  useSegmentIndicator(modes, edits.mode);
   const strip = useMemo(
     () =>
       labels.map((date, index) => {
@@ -170,53 +189,11 @@ export function TripEditor({
     <section className="trip-editor" aria-label={t("Trip timeline")}>
       <DayStrip days={strip} selected={day} onSelect={setDay} />
 
-      <div className="route-check" aria-label={t("Route check")} role="group">
-        <div className="route-check__controls">
-          <div
-            ref={modes}
-            className="segmented route-check__modes"
-            aria-label={t("Travel between stops by")}
-          >
-            {(
-              [
-                ["WALK", "Walk"],
-                ["TRANSIT", "Public transport"],
-              ] as [RouteMode, "Walk" | "Public transport"][]
-            ).map(([value, label]) => (
-              <button
-                key={value}
-                type="button"
-                aria-pressed={edits.mode === value}
-                disabled={locked}
-                onClick={() => edits.setMode(value)}
-              >
-                {t(label)}
-              </button>
-            ))}
-          </div>
-          <button
-            type="button"
-            disabled={locked || daily.length < 2 || unconfirmed > 0}
-            onClick={() => void edits.edit({ kind: "verify", day })}
-          >
-            {t("Check routes for Day {day}", { day })}
-          </button>
-        </div>
-        <p className="route-check__hint">
-          {daily.length < 2
-            ? t("Routes are checked between stops; this day has fewer than two.")
-            : unconfirmed > 0
-              ? t(
-                  "Confirm the place for {count} stops first — select a stop to confirm or search for it.",
-                  { count: unconfirmed },
-                )
-              : t(
-                  "Real {mode} times from Google, leaving when each stop ends, plus 15 minutes to arrive.",
-                  { mode: t(edits.mode === "WALK" ? "walking" : "public transport") },
-                )}
+      {legs?.working && (
+        <p className="timeline-status" role="status">
+          {t("Checking travel times…")}
         </p>
-      </div>
-
+      )}
       {edits.working && (
         <p className="timeline-status" role="status">
           {edits.working === "search" ? t("Searching Google Maps…") : t("Checking the change…")}
@@ -225,6 +202,13 @@ export function TripEditor({
       {!!edits.errors.length && (
         <ul className="timeline-status timeline-status--error" role="alert">
           {edits.errors.map((error, index) => (
+            <li key={index}>{localizeNotice(error)}</li>
+          ))}
+        </ul>
+      )}
+      {!!legs?.problems.length && (
+        <ul className="timeline-status timeline-status--error" role="alert">
+          {legs.problems.map((error, index) => (
             <li key={index}>{localizeNotice(error)}</li>
           ))}
         </ul>
@@ -251,7 +235,7 @@ export function TripEditor({
         </div>
       ) : (
         edits.undo && (
-          <div className="timeline-undo">
+          <div className="timeline-undo" role="status">
             <span>{t("Change applied.")}</span>
             <button type="button" disabled={locked} onClick={() => void edits.edit(edits.undo!)}>
               {t("Undo last change")}
@@ -278,11 +262,28 @@ export function TripEditor({
             {rows.map((row, position) => {
               if (row.type === "fixed") return <FixedTimelineRow key={row.key} row={row} />;
               const activity = row.activity;
-              const connection = connectionBetween(previous, activity, edits.routes, locale);
+              const connection = connectionBetween(previous, activity, routes, locale);
+              const from = previous;
               previous = activity;
+              // A leg has a control once both of its stops have saved places: only then is it routable.
+              const routable = !!(from?.placeId && activity.placeId);
               return (
                 <Fragment key={activity.id ?? position}>
-                  {connection && <ConnectionRow key={connection.status} connection={connection} />}
+                  {connection && (
+                    // Keyed by status in the parent, so a journey that becomes checked mounts again and draws in.
+                    <LegRow
+                      key={connection.status}
+                      connection={connection}
+                      from={from ? (from.location ?? from.detail) : ""}
+                      to={activity.location ?? activity.detail}
+                      {...(routable && activity.id
+                        ? {
+                            locked,
+                            onChoose: (mode: LegMode) => void edits.leg(activity.id!, mode),
+                          }
+                        : {})}
+                    />
+                  )}
                   <TimelineStop
                     {...stopProps(activity)}
                     index={daily.indexOf(activity)}

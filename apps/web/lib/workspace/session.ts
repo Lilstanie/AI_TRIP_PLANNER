@@ -175,6 +175,17 @@ function replied(state: SessionState, message: Message): SessionState {
 }
 
 /**
+ * The routes kept for the plan, with each newer answer for a pair of places replacing the older one.
+ * A day's legs are routed a day at a time, so a day's answer must not drop another day's routes.
+ */
+export function mergeRoutes(kept: RouteResult[], fresh: RouteResult[]): RouteResult[] {
+  if (!fresh.length) return kept;
+  const byPair = new Map(kept.map((route) => [`${route.from}>${route.to}`, route]));
+  for (const route of fresh) byPair.set(`${route.from}>${route.to}`, route);
+  return [...byPair.values()];
+}
+
+/**
  * Applies one turn event to the session. Pure: every rule about what a turn resets lives here.
  * @param state - the session before the event.
  * @param event - a turn's start, progress or outcome, or the traveller leaving the chat.
@@ -211,7 +222,7 @@ export function session(state: SessionState, event: SessionEvent): SessionState 
     case "selected":
       return { ...state, selectedActivity: event.activity };
     case "routed":
-      return { ...state, mapRoutes: event.routes };
+      return { ...state, mapRoutes: mergeRoutes(state.mapRoutes, event.routes) };
     case "dismissed":
       return { ...state, ask: undefined };
     case "edited":

@@ -4,6 +4,7 @@ import { TripFactChips } from "../preferences/TripFactChips";
 import { ChatPanel } from "../chat/ChatPanel";
 import { TripEditor } from "../trip/TripEditor";
 import { useAutoSavePlaces } from "../trip/useAutoSavePlaces";
+import { useLegRoutes } from "../trip/useLegRoutes";
 import { useChooseCandidate } from "../trip/useChooseCandidate";
 import { TripMapCanvas } from "../map/TripMapCanvas";
 import { TripPanel, tripStatus } from "../trip/TripPanel";
@@ -97,6 +98,15 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
     tripPlaces,
     onApply: session.applyEdit,
     enabled: !(busy || editPending),
+    dataMode: dataMode.mode,
+  });
+  // A day's legs are routed once its places are saved, whether or not the Trip timeline is open.
+  const legs = useLegRoutes({
+    plan,
+    enabled: !(busy || editPending),
+    dataMode: dataMode.mode,
+    onApply: session.applyEdit,
+    onRoutes: session.showRoutes,
   });
   const chatsButton = useRef<HTMLButtonElement>(null);
   const chatsSearch = useRef<HTMLInputElement>(null);
@@ -232,6 +242,10 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
               onSelect={session.selectStop}
               onRoutesChange={session.showRoutes}
               onApply={session.applyEdit}
+              routes={mapRoutes}
+              legs={legs}
+              onLegApplied={legs.noteLeg}
+              dataMode={dataMode.mode}
               showPhotos={dataMode.mode === "live" && !!dataMode.providers?.maps}
               saves={autoSaves}
             />

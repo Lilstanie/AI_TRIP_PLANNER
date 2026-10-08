@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { previewEdit } from "@/lib/trip/trip-edit";
 import { NoticeError } from "@/lib/i18n/notice";
-import { localInstant, googleRoute, searchPlaces } from "@/lib/integrations/google";
+import { localInstant, googleRoute, searchPlaces, type RouteMode } from "@/lib/integrations/google";
 import { plan as fixture, snapshot } from "@/tests/fixtures/workspace";
 import { identifyActivities, parseSnapshot } from "@/lib/workspace/workspace";
 function plan() {
@@ -36,15 +36,13 @@ const dependencies = () => ({
     location: { latitude: -33.8, longitude: 151.2 },
   })),
   timeZone: vi.fn(async () => "Australia/Sydney"),
-  googleRoute: vi.fn(
-    async (from: string, to: string, _departure: string, mode: "WALK" | "TRANSIT") => ({
-      from,
-      to,
-      mode,
-      status: "ok" as const,
-      durationMin: 20,
-    }),
-  ),
+  googleRoute: vi.fn(async (from: string, to: string, _departure: string, mode: RouteMode) => ({
+    from,
+    to,
+    mode,
+    status: "ok" as const,
+    durationMin: 20,
+  })),
 });
 describe("P3 edit boundary", () => {
   it("preserves IDs across repeated serialization and reordering", () => {

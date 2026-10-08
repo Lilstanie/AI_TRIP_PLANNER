@@ -166,11 +166,19 @@ export function localInstant(date: string, time: string, zone: string) {
     });
   return new Date(matches[0]!).toISOString();
 }
+/** A route request's travel mode, as the Routes API names it. */
+export type RouteMode = "WALK" | "TRANSIT" | "DRIVE";
+
+/**
+ * One leg as the provider answered it. `ok`: a route with its duration. `no_route`: the provider
+ * answered without a route between the two places, which is a fact about the leg. `unavailable`: the
+ * provider could not answer (an HTTP error, a network failure, a missing key), so nothing is known.
+ */
 export type RouteResult = {
   from: string;
   to: string;
-  mode: "WALK" | "TRANSIT";
-  status: "ok" | "unavailable";
+  mode: RouteMode;
+  status: "ok" | "no_route" | "unavailable";
   durationMin?: number;
   distanceMeters?: number;
   polyline?: string;
@@ -179,12 +187,14 @@ export type RouteResult = {
   error?: string;
   /** The same reason as a notice for the traveller; absent on routes saved before it existed. */
   notice?: Notice;
+  /** A fixture from simulated mode, never a provider answer. */
+  simulated?: true;
 };
 export async function googleRoute(
   from: string,
   to: string,
   departure: string,
-  mode: "WALK" | "TRANSIT",
+  mode: RouteMode,
 ): Promise<RouteResult> {
   const base = { from, to, mode };
   try {
@@ -203,8 +213,10 @@ export async function googleRoute(
         ...(mode === "TRANSIT" ? { departureTime: departure } : {}),
       },
     );
-    const route = data.routes?.[0];
-    if (!route || !/^\d+(\.\d+)?s$/.test(route.duration))
+    // An answer with no route is a fact about this leg, not a failed request.
+    if (!data.routes?.length) return { ...base, status: "no_route" };
+    const route = data.routes[0];
+    if (!/^\d+(\.\d+)?s$/.test(route.duration))
       throw new NoticeError({ key: "No verified route was returned." });
     const durationMin = Math.ceil(Number(route.duration.slice(0, -1)) / 60);
     if (!Number.isFinite(durationMin) || durationMin <= 0)

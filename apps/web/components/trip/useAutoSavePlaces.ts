@@ -2,7 +2,9 @@
 import { useEffect, useRef, useState } from "react";
 import { TripPlan } from "@trip/shared";
 import { useSettings } from "@/components/account/SettingsProvider";
+import type { DataMode } from "@/lib/workspace/data-mode";
 import type { TripPlaces } from "../map/useTripPlaces";
+import { requestPreview } from "./previewRequest";
 
 export type AutoSaveState = {
   /** The stop whose place is being saved now, or "". */
@@ -31,12 +33,14 @@ export function useAutoSavePlaces({
   tripPlaces,
   onApply,
   enabled,
+  dataMode,
 }: {
   plan: TripPlan | undefined;
   tripPlaces: TripPlaces;
   onApply(plan: TripPlan): void;
   /** False while chat or a timeline edit is running; saves wait for it. */
   enabled: boolean;
+  dataMode: DataMode | undefined;
 }): AutoSaveState {
   const { settings } = useSettings();
   const { activities, placeIdFor, locationStatus } = tripPlaces;
@@ -79,7 +83,7 @@ export function useAutoSavePlaces({
     flight.current = controller;
     tried.current.add(key);
     setState((old) => ({ ...old, saving: stop.id! }));
-    void save(plan, stop.id!, placeId, currency, controller.signal).then((accepted) => {
+    void save(plan, stop.id!, placeId, currency, dataMode, controller.signal).then((accepted) => {
       if (flight.current === controller) flight.current = null;
       setState((old) => ({ ...old, saving: "" }));
       // Superseded by a newer request or plan, or sent for a plan that has since changed: forget the
@@ -100,7 +104,7 @@ export function useAutoSavePlaces({
     });
     // `advance` re-runs the search for the next stop after a save that did not commit.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [plan, activities, placeIdFor, locationStatus, enabled, advance, currency]);
+  }, [plan, activities, placeIdFor, locationStatus, enabled, advance, currency, dataMode]);
 
   useEffect(
     () => () => {
@@ -132,32 +136,27 @@ function nextStop(
 }
 
 /**
- * Sends one place edit. Resolves to the accepted plan, or to `undefined` when the server refused
- * it, failed, or the request was aborted. The caller decides whether the plan still applies.
+ * Sends one place edit, without routing its day: the day's legs are routed once after its last save
+ * (see useLegRoutes). Resolves to the accepted plan, or to `undefined` when the server refused it,
+ * failed, or the request was aborted. The caller decides whether the plan still applies.
  */
 async function save(
   base: TripPlan,
   id: string,
   placeId: string,
   displayCurrency: string | undefined,
+  dataMode: DataMode | undefined,
   signal: AbortSignal,
 ): Promise<{ plan: TripPlan; base: TripPlan } | undefined> {
   try {
-    const response = await fetch("/api/trip/preview-edit", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        plan: base,
-        baseVersion: base.editVersion ?? 0,
-        operation: { kind: "place", id, placeId },
-        mode: "WALK",
-        displayCurrency,
-      }),
+    const answer = await requestPreview({
+      plan: base,
+      operation: { kind: "place", id, placeId, routeLater: true },
+      displayCurrency,
+      dataMode,
       signal,
     });
-    const body = await response.json().catch(() => null);
-    if (!response.ok || !body?.plan || (body.blockerNotices ?? []).length) return undefined;
-    return { plan: TripPlan.parse(body.plan), base };
+    return answer.plan ? { plan: answer.plan, base } : undefined;
   } catch {
     return undefined;
   }

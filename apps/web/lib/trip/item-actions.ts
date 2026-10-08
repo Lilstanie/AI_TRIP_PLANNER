@@ -25,6 +25,15 @@ const minutes = (time: string) => Number(time.slice(0, 2)) * 60 + Number(time.sl
 const clock = (value: number) =>
   `${String(Math.floor(value / 60)).padStart(2, "0")}:${String(value % 60).padStart(2, "0")}`;
 
+/**
+ * The stop after `stop` on its day, in plan order. Its leg starts from `stop`, so when `stop` leaves
+ * or moves that leg is no longer the same journey and loses its stored mode and time.
+ */
+function followerOf(items: ProposalItem[], stop: ProposalItem): ProposalItem | undefined {
+  const day = items.filter((other) => other.kind === "activity" && other.day === stop.day);
+  return day[day.indexOf(stop) + 1];
+}
+
 export function applyItemAction(plan: TripPlan, id: string, action: ItemAction): TripPlan {
   const next = structuredClone(plan);
   const section = next.sections.find((item) => item.id === "itinerary");
@@ -53,11 +62,17 @@ export function applyItemAction(plan: TripPlan, id: string, action: ItemAction):
       if (action.booked) item.booked = true;
       else delete item.booked;
       break;
-    case "remove":
+    case "remove": {
+      const follower = followerOf(items, item);
+      if (follower) delete follower.arriveBy;
       items.splice(index, 1);
       break;
+    }
     case "idea":
-      // An idea has no day or times; its connection belonged to the day it left.
+      // An idea has no day or times; its connection belonged to the day it left, and so does the
+      // leg of the stop that followed it.
+      const follower = followerOf(items, item);
+      if (follower) delete follower.arriveBy;
       delete item.day;
       delete item.startTime;
       delete item.endTime;
@@ -85,6 +100,10 @@ export function applyItemAction(plan: TripPlan, id: string, action: ItemAction):
           key: "Day {day} has no room left for this stop; shorten another stop first.",
           params: { day: action.day },
         });
+      // Its old follower loses the leg that started here, and the stop after it on the new day loses
+      // the leg that would have started from the stop before.
+      const oldFollower = followerOf(items, item);
+      if (oldFollower) delete oldFollower.arriveBy;
       item.day = action.day;
       item.startTime = clock(start);
       item.endTime = clock(start + duration);
@@ -99,6 +118,8 @@ export function applyItemAction(plan: TripPlan, id: string, action: ItemAction):
           minutes(other.startTime) > start,
       );
       items.splice(after < 0 ? items.length : after, 0, item);
+      const newFollower = followerOf(items, item);
+      if (newFollower) delete newFollower.arriveBy;
       break;
     }
     case "move": {

@@ -103,9 +103,11 @@ export const WORKSPACE_ZH = {
   Use: "使用",
   "Open in Google Maps": "在 Google 地图打开",
   "Trip timeline": "行程时间线",
-  "Route check": "路线检查",
-  "Travel between stops by": "停靠点间出行方式",
-  "Check routes for Day": "检查当天路线",
+  "Checking travel times…": "正在检查行程时间…",
+  "Travel from {from} to {to} by": "{from}到{to}的出行方式",
+  "Not checked yet": "尚未检查",
+  "Route check failed. Try again.": "路线检查失败，请重试。",
+  "This stop has no journey before it.": "这一站之前没有行程。",
   "Staying at": "入住",
   "Nothing planned for this day yet. Ask in the chat to add something, or move a stop here from another day.":
     "当天尚无安排。可在聊天中添加活动，或将其他日期的停靠点移到这里。",
@@ -243,7 +245,6 @@ export const WORKSPACE_ZH = {
   Connected: "已关联",
   checked: "已检查",
   estimate: "估算",
-  "check failed": "检查失败",
   "Free day": "自由活动",
   "no change": "无变化",
   Walk: "步行",
@@ -256,8 +257,6 @@ export const WORKSPACE_ZH = {
   "Address unavailable": "地址不可用",
   "Use {v0}": "使用{v0}",
   "Google rating {v0} · ": "Google 评分 {v0} · ",
-  "Routes are checked between stops; this day has fewer than two.":
-    "路线检查需要至少两个停靠点；当天停靠点不足两个。",
   "Confirm the place for {v0} {v1} first — select a stop to confirm or search for it.":
     "请先确认 {v0} 个{v1}的位置，可选中停靠点确认或搜索。",
   "Real {v0} times from Google, leaving when each stop ends, plus 15 minutes to arrive.":
@@ -421,14 +420,7 @@ export const WORKSPACE_ZH = {
   Flight: "航班",
   Itinerary: "行程概览",
   "Timeline & routes": "时间线与路线",
-  "Check routes for Day {day}": "检查第 {day} 天路线",
   "Staying at {place}": "入住 {place}",
-  "Confirm the place for {count} stops first — select a stop to confirm or search for it.":
-    "请先确认 {count} 个停靠点的位置——选择停靠点进行确认或搜索。",
-  "Real {mode} times from Google, leaving when each stop ends, plus 15 minutes to arrive.":
-    "使用 Google 查询实际{mode}时间，每个停靠点结束后出发，并预留 15 分钟到达。",
-  walking: "步行",
-  "public transport": "公共交通",
   "Fare not published": "票价未公布",
   "return flight {date}": "返程航班 {date}",
   "whole group": "整个团队",

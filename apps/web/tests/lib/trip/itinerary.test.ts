@@ -6,7 +6,7 @@
 // - a displayed position is sent to the edit preview as if it were the plan's index.
 import { describe, expect, it, vi } from "vitest";
 import type { ProposalItem, TripPlan } from "@trip/shared";
-import type { GooglePlace } from "@/lib/integrations/google";
+import type { GooglePlace, RouteMode } from "@/lib/integrations/google";
 import { buildItinerary } from "@/lib/trip/itinerary";
 import { previewEdit } from "@/lib/trip/trip-edit";
 import { plan as fixture } from "@/tests/fixtures/workspace";
@@ -178,15 +178,13 @@ describe("timeline moves through the edit preview", () => {
   const routes = () => ({
     placeDetails: vi.fn(async (id: string) => place(id)),
     timeZone: vi.fn(async () => "Australia/Sydney"),
-    googleRoute: vi.fn(
-      async (from: string, to: string, _departure: string, mode: "WALK" | "TRANSIT") => ({
-        from,
-        to,
-        mode,
-        status: "ok" as const,
-        durationMin: 20,
-      }),
-    ),
+    googleRoute: vi.fn(async (from: string, to: string, _departure: string, mode: RouteMode) => ({
+      from,
+      to,
+      mode,
+      status: "ok" as const,
+      durationMin: 20,
+    })),
   });
   /** Move a stop by `step` shown positions, as the timeline's buttons do, and read the previewed day. */
   async function move(items: Timed[], id: string, step: -1 | 1) {

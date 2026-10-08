@@ -57,29 +57,6 @@ button.day-strip__day[aria-selected="true"] {
   color: var(--warn);
 }
 
-/* ---- route check ---- */
-.route-check {
-  display: grid;
-  gap: var(--space-2);
-  padding: var(--space-3);
-  border-radius: var(--radius);
-  background: var(--fill-hover);
-}
-.route-check__controls {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2) var(--space-3);
-}
-.route-check__modes {
-  background: var(--fill-press);
-}
-.route-check__hint {
-  margin: 0;
-  color: var(--text-dim);
-  font-size: var(--font-size-meta);
-}
-
 .timeline-status {
   margin: 0;
   color: var(--text-dim);
@@ -294,14 +271,33 @@ button.timeline-stop__main:hover {
 .timeline-connection--failed .timeline-connection__rail {
   background: var(--warn);
 }
-.timeline-connection__label {
+.timeline-connection__body {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-1) var(--space-2);
   grid-column: 3 / -1;
+  min-width: 0;
+}
+.timeline-connection__label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
   margin: 0;
   color: var(--text-dim);
+  font-size: var(--font-size-meta);
+}
+/* The leg's mode control: a native select, so it is keyboard reachable and announced; 44 px tall. */
+.timeline-connection__mode {
+  min-height: 44px;
+  max-width: 100%;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
   font-size: var(--font-size-meta);
 }
 .timeline-connection__status {

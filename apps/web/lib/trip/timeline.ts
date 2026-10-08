@@ -2,6 +2,7 @@ import { translate, intlLocale, type AppLocale, type MessageKey } from "../i18n/
 import { fare } from "../money";
 import type { ArriveBy, ProposalItem, TripPlan } from "@trip/shared";
 import type { RouteResult } from "../integrations/google";
+import { LEG_MODES, legModeOf, type LegMode } from "./leg-routes";
 
 /**
  * What the Timeline tab shows for one day, derived from the plan alone: the fixed transport and
@@ -182,22 +183,32 @@ const MODE_LABELS: Record<string, MessageKey> = {
   tram: "Tram",
   ferry: "Ferry",
   drive: "Drive",
+  DRIVE: "Drive",
   transit: "Public transport",
   TRANSIT: "Public transport",
   flight: "Fly",
 };
 
 export type Connection = {
+  /** The mode the leg icon is drawn for: a route's mode, or the planner's `arriveBy` mode. */
   mode: string;
   label: string;
-  /** `checked`: a route check found it; `planned`: the planner's estimate; `failed`: no route. */
+  /**
+   * `checked`: a route the provider verified; `planned`: the planner's estimate, or a simulated
+   * route; `failed`: the provider found no route between the two places.
+   */
   status: "checked" | "planned" | "failed";
   fare?: string;
+  /**
+   * The mode the leg's control shows: the one it was routed with, or the estimate's mode when that is
+   * one a traveller can choose. Undefined for a planner estimate such as a bus.
+   */
+  choice?: LegMode;
 };
 
 /**
- * How the traveller gets from one stop to the next: the route a check verified between their two
- * places when there is one, otherwise the planner's own estimate.
+ * How the traveller gets from one stop to the next: the route the workspace verified between their
+ * two places when there is one, otherwise the leg's stored `arriveBy` as an estimate.
  */
 export function connectionBetween(
   previous: { placeId?: string } | undefined,
@@ -210,14 +221,22 @@ export function connectionBetween(
       ? routes.find((r) => r.from === previous.placeId && r.to === current.placeId)
       : undefined;
   if (route) {
+    const choice = legModeOf(route.mode);
     if (route.status !== "ok" || route.durationMin === undefined)
-      return { mode: route.mode, label: translate(locale, "No route found"), status: "failed" };
+      return {
+        mode: route.mode,
+        label: translate(locale, "No route found"),
+        status: "failed",
+        choice,
+      };
     return {
       mode: route.mode,
       label: `${MODE_LABELS[route.mode] ? translate(locale, MODE_LABELS[route.mode]!) : route.mode} · ${formatDuration(route.durationMin, locale)}`,
-      status: "checked",
+      // A simulated route is a fixture, so it reads as an estimate, never as checked.
+      status: route.simulated ? "planned" : "checked",
       // The provider's own currency: not converted and not counted in the AUD budget.
       fare: route.fare ? fare(route.fare, locale) : undefined,
+      choice,
     };
   }
   if (!previous || !current.arriveBy) return undefined;
@@ -226,5 +245,6 @@ export function connectionBetween(
     mode,
     label: `${MODE_LABELS[mode] ? translate(locale, MODE_LABELS[mode]!) : mode}${line ? ` ${line}` : ""} · ${formatDuration(durationMin, locale)}`,
     status: "planned",
+    choice: (LEG_MODES as readonly string[]).includes(mode) ? (mode as LegMode) : undefined,
   };
 }

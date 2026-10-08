@@ -4,39 +4,46 @@ import { TripPlan } from "@trip/shared";
 import { useSettings } from "@/components/account/SettingsProvider";
 import type { GooglePlace, RouteResult } from "@/lib/integrations/google";
 import type { EditInput } from "@/lib/trip/trip-edit";
+import type { LegMode } from "@/lib/trip/leg-routes";
 import { errorNotice, failureNotice, NoticeError, type Notice } from "@/lib/i18n/notice";
+import type { DataMode } from "@/lib/workspace/data-mode";
 import type { TripPlaces } from "../../map/useTripPlaces";
+import { requestPreview } from "../previewRequest";
 
-export type RouteMode = "WALK" | "TRANSIT";
 type Operation = EditInput["operation"];
 
 /**
- * Everything the timeline asks the server: edits, place search, and the routes last verified.
- * An edit is sent to `/api/trip/preview-edit`, which recomputes routes, budget and conflicts. When
- * the server accepts it, the plan it returns is applied at once; a refused edit leaves the plan
- * unchanged and its blockers are shown as notices. "Undo last change" replays the previous
- * activities through the same path. See the Agent Note on immediate timeline edits.
+ * Everything the timeline asks the server: edits, the travel mode of one leg, and place search. An edit
+ * is sent to `/api/trip/preview-edit`, which recomputes routes, budget and conflicts. When the server
+ * accepts it, the plan it returns is applied at once and the routes it verified are handed to the
+ * workspace; a refused edit leaves the plan unchanged and its blockers are shown as notices. "Undo last
+ * change" replays the previous activities, legs included, through the same path. See the Agent Notes
+ * on immediate timeline edits and on leg travel times.
  */
 export function useTimelineEdits({
   plan,
   activities,
+  dataMode,
   onApply,
   onPending,
   onRoutesChange,
+  onLegApplied,
 }: {
   plan: TripPlan;
   activities: TripPlaces["activities"];
+  dataMode: DataMode | undefined;
   onApply(plan: TripPlan): void;
   onPending(value: boolean): void;
+  /** Routes an applied edit verified; the workspace keeps them for the legs and the map. */
   onRoutesChange?(routes: RouteResult[]): void;
+  /** An applied leg change: its day is current, so the day's other legs are not routed again. */
+  onLegApplied?(plan: TripPlan, day: number): void;
 }) {
   const { settings } = useSettings();
-  const [mode, setMode] = useState<RouteMode>("WALK");
   const [results, setResults] = useState<GooglePlace[]>([]);
   const [errors, setErrors] = useState<Notice[]>([]);
   const [working, setWorking] = useState<"" | "edit" | "search">("");
   const [undo, setUndo] = useState<Operation>();
-  const [verifiedRoutes, setVerifiedRoutes] = useState<RouteResult[]>([]);
   // Stops an applied edit moved, retimed or re-placed, flashed once so the eye finds them.
   const [changed, setChanged] = useState<ReadonlySet<string>>(new Set());
   useEffect(() => {
@@ -50,28 +57,16 @@ export function useTimelineEdits({
   current.current = plan;
 
   // A new plan (from chat, a restore, or our own apply) ends any edit in flight. Only a plan that
-  // did not come from an edit forgets the undo step and the routes verified for the old one.
+  // did not come from an edit forgets the undo step.
   useEffect(() => {
     request.current?.abort();
-    if (applied.current !== plan) {
-      setUndo(undefined);
-      setVerifiedRoutes([]);
-    }
+    if (applied.current !== plan) setUndo(undefined);
     applied.current = null;
     setWorking("");
   }, [plan]);
   useEffect(() => {
     onPending(working !== "");
   }, [working, onPending]);
-  const routesSynced = useRef(false);
-  useEffect(() => {
-    // Skip the mount: reopening the timeline must not erase routes already on the map.
-    if (!routesSynced.current) {
-      routesSynced.current = true;
-      return;
-    }
-    onRoutesChange?.(verifiedRoutes);
-  }, [verifiedRoutes, onRoutesChange]);
   useEffect(
     () => () => {
       request.current?.abort();
@@ -101,32 +96,25 @@ export function useTimelineEdits({
   async function edit(operation: Operation) {
     const base = plan;
     await run("edit", async (signal) => {
-      const response = await fetch("/api/trip/preview-edit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          plan,
-          baseVersion: plan.editVersion ?? 0,
-          operation,
-          mode,
-          displayCurrency: settings.displayCurrency,
-        }),
+      const answer = await requestPreview({
+        plan,
+        operation,
+        displayCurrency: settings.displayCurrency,
+        dataMode,
         signal,
       });
-      const body = await response.json().catch(() => null);
-      if (!response.ok)
-        throw new NoticeError(
-          failureNotice(body, { key: "Preview failed. Try the change again." }),
-        );
       // A plan that changed while the request was in flight makes the result stale.
       if (signal.aborted || current.current !== base) return;
-      const blockers: Notice[] = body.blockerNotices ?? [];
-      if (blockers.length) {
-        // Refused: the plan stays as it is and the blockers say why.
-        setErrors(blockers);
+      // Refused: the plan stays as it is and the blockers say why.
+      if (answer.blockers.length) {
+        setErrors(answer.blockers);
         return;
       }
-      commit(TripPlan.parse(body.plan), body.routes ?? []);
+      if (operation.kind === "leg") {
+        const day = activities.find((stop) => stop.id === operation.id)?.day;
+        if (day !== undefined) onLegApplied?.(answer.plan!, day);
+      }
+      commit(answer.plan!, answer.routes);
     });
   }
 
@@ -139,6 +127,7 @@ export function useTimelineEdits({
       endTime: a.endTime!,
       placeId: a.placeId,
       priceNeedsReview: a.priceNeedsReview,
+      ...(a.arriveBy ? { arriveBy: a.arriveBy } : {}),
     }));
     const after = new Map(
       (next.sections.find((s) => s.id === "itinerary")?.proposal?.items ?? []).map((item) => [
@@ -148,7 +137,7 @@ export function useTimelineEdits({
     );
     applied.current = next;
     setUndo({ kind: "undo", activities: before });
-    setVerifiedRoutes(routes);
+    onRoutesChange?.(routes);
     setChanged(
       new Set(
         activities.flatMap((stop) => {
@@ -157,13 +146,19 @@ export function useTimelineEdits({
             (now.day !== stop.day ||
               now.startTime !== stop.startTime ||
               now.endTime !== stop.endTime ||
-              now.placeId !== stop.placeId)
+              now.placeId !== stop.placeId ||
+              now.arriveBy?.mode !== stop.arriveBy?.mode)
             ? [stop.id!]
             : [];
         }),
       ),
     );
     onApply(next);
+  }
+
+  /** Routes only the leg into `id` with the traveller's mode; the rest of the day is re-timed. */
+  function leg(id: string, mode: LegMode) {
+    return edit({ kind: "leg", id, mode });
   }
 
   async function search(text: string) {
@@ -186,17 +181,15 @@ export function useTimelineEdits({
   }
 
   return {
-    mode,
-    setMode,
     results,
     clearResults: () => setResults([]),
     errors,
     working,
     undo,
-    routes: verifiedRoutes,
     changed,
     busy: working !== "",
     edit,
+    leg,
     search,
   };
 }

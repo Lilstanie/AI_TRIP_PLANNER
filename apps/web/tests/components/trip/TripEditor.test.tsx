@@ -53,10 +53,13 @@ describe("editor request lifecycle", () => {
         onApply={vi.fn()}
         onPending={vi.fn()}
         tripPlaces={places(plan)}
+        dataMode={undefined}
         onSelect={vi.fn()}
       />,
     );
-    expect(screen.getByRole("button", { name: "Check routes for Day 1" })).toBeTruthy();
+    // The day has no route check and no day-wide travel mode: each leg is checked on its own.
+    expect(screen.queryByRole("button", { name: /Check routes/ })).toBeNull();
+    expect(screen.queryByRole("group", { name: "Travel between stops by" })).toBeNull();
     expect(screen.queryByLabelText("Google activity map")).toBeNull();
   });
   it("shares activity selection with the map", () => {
@@ -69,6 +72,7 @@ describe("editor request lifecycle", () => {
         onApply={vi.fn()}
         onPending={vi.fn()}
         tripPlaces={places(plan)}
+        dataMode={undefined}
         onSelect={select}
       />,
     );
@@ -96,6 +100,7 @@ describe("editor request lifecycle", () => {
         onApply={apply}
         onPending={pending}
         tripPlaces={places(original)}
+        dataMode={undefined}
         selected={itineraryActivities(original)[0]!.id}
         onSelect={vi.fn()}
       />,
@@ -111,6 +116,7 @@ describe("editor request lifecycle", () => {
         onApply={apply}
         onPending={pending}
         tripPlaces={places(restored)}
+        dataMode={undefined}
         selected={itineraryActivities(restored)[0]!.id}
         onSelect={vi.fn()}
       />,

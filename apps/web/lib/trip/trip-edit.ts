@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { TripPlan, type ProposalItem } from "@trip/shared";
+import { ArriveBy, TripPlan, type ProposalItem } from "@trip/shared";
 import { detectConflicts, rollUpCost } from "@trip/orchestrator";
 import {
   Currency,
@@ -14,15 +14,23 @@ import {
   placeDetails,
   timeZone,
   localInstant,
+  type GooglePlace,
   type RouteResult,
 } from "../integrations/google";
 import { errorNotice, NoticeError, noticeText, type Notice } from "../i18n/notice";
+import {
+  defaultLegRoute,
+  LEG_MODES,
+  legModeOf,
+  routeModeOf,
+  simulatedRoute,
+  storedRouteMode,
+} from "./leg-routes";
 
 const clock = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
 export const EditRequest = z.object({
   plan: TripPlan,
   baseVersion: z.number().int().nonnegative(),
-  mode: z.enum(["WALK", "TRANSIT"]).default("WALK"),
   // The Settings display currency, the last step of `effectiveCurrency`; absent means AUD. It only
   // chooses how the sentences an edit rewrites spell amounts; the plan stays in AUD.
   displayCurrency: Currency.optional(),
@@ -35,7 +43,16 @@ export const EditRequest = z.object({
       index: z.number().int().nonnegative(),
     }),
     z.object({ kind: z.literal("time"), id: z.string(), startTime: clock, endTime: clock }),
-    z.object({ kind: z.literal("place"), id: z.string(), placeId: z.string().min(1).max(300) }),
+    z.object({
+      kind: z.literal("place"),
+      id: z.string(),
+      placeId: z.string().min(1).max(300),
+      // Set by the workspace when it saves the map's place on a stop: the day's legs are routed
+      // once after its last save (`verify`), not once per save.
+      routeLater: z.boolean().optional(),
+    }),
+    // The traveller's mode for the leg into stop `id`, from the stop before it on the same day.
+    z.object({ kind: z.literal("leg"), id: z.string(), mode: z.enum(LEG_MODES) }),
     z.object({
       kind: z.literal("choose"),
       section: z.enum(["accommodation", "transport"]),
@@ -52,6 +69,7 @@ export const EditRequest = z.object({
           endTime: clock,
           placeId: z.string().optional(),
           priceNeedsReview: z.boolean().optional(),
+          arriveBy: ArriveBy.optional(),
         }),
       ),
     }),
@@ -199,11 +217,26 @@ function chooseCandidate(
   };
 }
 
+/** The providers a live edit asks: Google's Places, Time Zone and Routes. */
+export const LIVE_EDIT_DEPS = { googleRoute, placeDetails, timeZone };
+/**
+ * Simulated mode: no provider is called. Places are placeholders and every leg is a fixture, so a plan
+ * with saved places routes the same way on every run. Chosen by the request's data mode, never by a
+ * missing key.
+ */
+export const SIMULATED_EDIT_DEPS = {
+  googleRoute: simulatedRoute,
+  placeDetails: async (id: string) =>
+    ({ id, location: { latitude: 0, longitude: 0 } }) as GooglePlace,
+  timeZone: async () => "UTC",
+};
+export type EditDependencies = typeof LIVE_EDIT_DEPS;
+
 export async function previewEdit(
   input: unknown,
-  deps = { googleRoute, placeDetails, timeZone },
+  deps: EditDependencies = LIVE_EDIT_DEPS,
 ): Promise<EditPreview> {
-  const { plan, baseVersion, operation, mode, displayCurrency } = EditRequest.parse(input);
+  const { plan, baseVersion, operation, displayCurrency } = EditRequest.parse(input);
   const currency = effectiveCurrency(plan.brief, displayCurrency ?? "AUD");
   if ((plan.editVersion ?? 0) !== baseVersion)
     throw new NoticeError({ key: "This edit is stale. Start from the current plan." });
@@ -253,12 +286,16 @@ export async function previewEdit(
         throw new NoticeError({ key: "Undo cannot change destination segments." });
       affected.add(saved.day);
       affected.add(item.day!);
-      return {
+      const restoredItem: ProposalItem = {
         ...item,
         ...saved,
         placeId: saved.placeId,
         priceNeedsReview: saved.priceNeedsReview,
       };
+      // The leg a stop had before the edit comes back with its mode, or is removed if it had none.
+      if (saved.arriveBy) restoredItem.arriveBy = saved.arriveBy;
+      else delete restoredItem.arriveBy;
+      return restoredItem;
     });
     activities.splice(0, activities.length, ...restored);
   } else {
@@ -282,6 +319,11 @@ export async function previewEdit(
         index: operation.index,
         time: target[operation.index]?.startTime ?? target.at(-1)?.endTime ?? "09:00",
       };
+      // A leg is the journey from the stop before it. Moving a stop changes its own leg and the leg of
+      // the stop that followed it, in both places, so those lose their stored legs; the defaults apply
+      // until the day's legs are routed again.
+      const sameDay = activities.filter((a) => a.day === item.day);
+      const oldFollower = sameDay[sameDay.indexOf(item) + 1];
       activities.splice(activities.indexOf(item), 1);
       item.day = operation.day;
       const next = target[operation.index];
@@ -291,12 +333,19 @@ export async function previewEdit(
           ? activities.indexOf(target.at(-1)!) + 1
           : activities.length;
       activities.splice(insert, 0, item);
+      delete item.arriveBy;
+      if (oldFollower) delete oldFollower.arriveBy;
+      if (next) delete next.arriveBy;
       affected.add(operation.day);
     } else if (operation.kind === "time") {
       if (operation.endTime <= operation.startTime)
         throw new NoticeError({ key: "End time must be after start time on the same day." });
       item.startTime = operation.startTime;
       item.endTime = operation.endTime;
+    } else if (operation.kind === "leg") {
+      // The first stop of a day has nothing before it, so it has no leg to choose.
+      if (activities.filter((a) => a.day === item.day)[0] === item)
+        throw new NoticeError({ key: "This stop has no journey before it." });
     } else {
       await deps.placeDetails(operation.placeId);
       item.placeId = operation.placeId;
@@ -306,7 +355,16 @@ export async function previewEdit(
   }
   const routes: RouteResult[] = [],
     blockers: Notice[] = [];
-  for (const day of affected) {
+  // A place saved with `routeLater` changes no time and asks for no route; its day is routed once
+  // afterwards by a `verify`.
+  const routed = !(operation.kind === "place" && operation.routeLater);
+  // The departure a leg is routed from: the previous stop's end, in its place's local time.
+  const departureFor = async (from: ProposalItem, day: number) => {
+    const place = await deps.placeDetails(from.placeId!);
+    const zone = await deps.timeZone(place, dateFor(day));
+    return localInstant(dateFor(day), from.endTime!, zone);
+  };
+  for (const day of routed ? affected : []) {
     if (day < 1 || day > days)
       throw new NoticeError({ key: "Activity day is outside trip dates." });
     const daily = activities.filter((a) => a.day === day);
@@ -319,7 +377,7 @@ export async function previewEdit(
               daily.findIndex((a) => a.id === operation.id),
             ].filter((i) => i >= 0),
           )
-        : operation.kind === "time" || operation.kind === "place"
+        : operation.kind === "time" || operation.kind === "place" || operation.kind === "leg"
           ? daily.findIndex((a) => a.id === operation.id)
           : 0;
     for (let index = 0; index < daily.length; index++) {
@@ -341,35 +399,62 @@ export async function previewEdit(
       }
       if (previous && previous.placeId && current.placeId) {
         try {
-          const place = await deps.placeDetails(previous.placeId);
-          const zone = await deps.timeZone(place, dateFor(day));
-          const departure = localInstant(dateFor(day), previous.endTime!, zone);
-          const route = await deps.googleRoute(previous.placeId, current.placeId, departure, mode);
-          routes.push(route);
-          if (
-            route.status !== "ok" ||
-            route.durationMin === undefined ||
-            !Number.isFinite(route.durationMin) ||
-            route.durationMin <= 0
-          ) {
-            blockers.push(
-              route.notice ?? (route.error ? { raw: route.error } : { key: "Route unavailable" }),
-            );
-            break;
+          // The leg into this stop. The traveller's choice is requested alone; a leg they did not
+          // change keeps its stored duration; any other leg is requested with its stored mode, or
+          // with the default when it has none.
+          const choice =
+            operation.kind === "leg" && operation.id === current.id ? operation.mode : undefined;
+          const stored = storedRouteMode(current);
+          let travel: number | undefined;
+          if (operation.kind === "leg" && !choice && stored && current.arriveBy) {
+            travel = current.arriveBy.durationMin;
+          } else {
+            const from = previous.placeId;
+            const to = current.placeId;
+            const departure = await departureFor(previous, day);
+            const route = choice
+              ? await deps.googleRoute(from, to, departure, routeModeOf(choice))
+              : stored
+                ? await deps.googleRoute(from, to, departure, stored)
+                : await defaultLegRoute(deps.googleRoute, from, to, departure);
+            routes.push(route);
+            if (
+              route.status === "unavailable" ||
+              (route.status === "ok" &&
+                (route.durationMin === undefined ||
+                  !Number.isFinite(route.durationMin) ||
+                  route.durationMin <= 0))
+            ) {
+              blockers.push(
+                route.notice ?? (route.error ? { raw: route.error } : { key: "Route unavailable" }),
+              );
+              break;
+            }
+            // Google answered without a route: the leg says so, and adds no time to the day.
+            if (route.status === "ok") {
+              travel = route.durationMin;
+              current.arriveBy = {
+                mode: legModeOf(route.mode),
+                durationMin: route.durationMin!,
+                from: previous.location ?? previous.detail,
+              };
+            } else delete current.arriveBy;
           }
-          const earliest = mins(previous.endTime!) + route.durationMin + 15;
-          const keepExact =
-            operation.kind === "undo" ||
-            operation.kind === "verify" ||
-            index < changedIndex ||
-            (operation.kind === "time" && index === changedIndex);
-          if (keepExact) {
-            if (start < earliest)
-              blockers.push({
-                key: "Day {day}: {stop} needs at least {minutes} minutes after the previous activity.",
-                params: { day, stop: current.detail, minutes: route.durationMin + 15 },
-              });
-          } else start = Math.max(start, earliest);
+          if (travel !== undefined) {
+            const earliest = mins(previous.endTime!) + travel + 15;
+            const keepExact =
+              operation.kind === "undo" ||
+              operation.kind === "verify" ||
+              index < changedIndex ||
+              (operation.kind === "time" && index === changedIndex);
+            if (keepExact) {
+              if (start < earliest)
+                blockers.push({
+                  key: "Day {day}: {stop} needs at least {minutes} minutes after the previous activity.",
+                  params: { day, stop: current.detail, minutes: travel + 15 },
+                });
+            } else start = Math.max(start, earliest);
+          }
         } catch (error) {
           blockers.push(errorNotice(error, { key: "Route verification failed" }));
           break;
