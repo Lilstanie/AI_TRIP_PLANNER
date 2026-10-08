@@ -1035,9 +1035,7 @@ describe("Workspace map places", () => {
     expect(within(map).queryByText(/No Google place matched/)).toBeNull();
     expect(within(map).queryByRole("button", { name: "Retry places" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Open your trip" }));
-    expect(within(drawer("trip")).getAllByText(/Location to be confirmed/).length).toBeGreaterThan(
-      0,
-    );
+    expect(within(drawer("trip")).getAllByText(/Not found on the map/).length).toBeGreaterThan(0);
   });
 
   it("keeps located places when another lookup fails and retries only the failed one", async () => {

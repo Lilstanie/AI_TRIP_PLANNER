@@ -13,6 +13,7 @@ import { DayStrip } from "./timeline/DayStrip";
 import { ConnectionRow, FixedTimelineRow } from "./timeline/TimelineParts";
 import { TimelineStop } from "./timeline/TimelineStop";
 import { useTimelineEdits, type RouteMode } from "./timeline/useTimelineEdits";
+import { IDLE_AUTO_SAVE, type AutoSaveState } from "./useAutoSavePlaces";
 
 type Activity = TripPlaces["activities"][number];
 
@@ -37,6 +38,7 @@ export function TripEditor({
   onSelect,
   onRoutesChange,
   showPhotos = false,
+  saves = IDLE_AUTO_SAVE,
 }: {
   plan: TripPlan;
   disabled: boolean;
@@ -49,6 +51,8 @@ export function TripEditor({
   onRoutesChange?(routes: RouteResult[]): void;
   /** Show each place's first Google photo in its card (live data with a Maps key). */
   showPhotos?: boolean;
+  /** Which stop's map place is being saved, or failed to save, on the workspace. */
+  saves?: AutoSaveState;
 }) {
   const { t, locale, notice: localizeNotice } = useLocale();
   const { activities, itinerary, places, placeIdFor, locationStatus } = tripPlaces;
@@ -148,6 +152,11 @@ export function TripEditor({
       status: locationStatus(activity),
       edits,
       showPhotos,
+      saveState: (saves.saving === activity.id
+        ? "saving"
+        : saves.failed.has(activity.id!)
+          ? "failed"
+          : "") as "" | "saving" | "failed",
       onSelect: () => onSelect(selected === activity.id ? "" : activity.id!),
       onOpen: () => onSelect(activity.id!),
       onItem: (action: ItemAction, message: Notice) => act(activity, action, message),
