@@ -1,6 +1,6 @@
 # Agent Note: each leg shows its travel time, and the traveller picks its mode
 
-Status: proposed
+Status: implemented
 Owner: spec #233, ticket #237
 
 ## Problem
@@ -14,7 +14,7 @@ answer; this one is the last of them.
 The planner's own legs (`ProposalItem.arriveBy`, see [connections](../../implemented/architecture/2026-09-22-arrive-by-connections.md))
 are estimates from the planning run. They go stale as soon as a stop moves, and nothing re-checks them.
 
-## Proposal
+## Decision
 
 **A leg is the journey into a stop from the stop before it on the same day.** Its mode and time live on the
 destination stop in the existing `arriveBy` field (`mode`, `durationMin`, `from`). No field is added to
@@ -105,7 +105,9 @@ refused time edit because one pair has no transit is the behaviour the ticket re
 **Fall back to the planner's estimate when a route fails.** Rejected. It would show a time Google did not verify,
 labelled as the mode the traveller chose.
 
-## Acceptance criteria
+## Consequences
+
+Checked by the E2E scripts (mock data mode):
 
 - After a simulated trip's stops have saved places, each pair of consecutive stops shows its mode and duration without
   a button.

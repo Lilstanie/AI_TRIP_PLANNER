@@ -66,8 +66,8 @@ timeline tab is open.
 - A save sets `priceNeedsReview` on the stop, as the immediate place edit does today, so the "Price
   needs checking" tag appears on auto-saved stops until the price is checked.
 - Each auto-save is sent with `routeLater`, so it routes nothing. The day's legs are routed once its places are
-  all saved, and a leg keeps the mode the traveller chose (see the proposed
-  [leg travel times](../../proposed/feature/2026-10-08-leg-travel-times.md) note).
+  all saved, and a leg keeps the mode the traveller chose (see the
+  [leg travel times](2026-10-08-leg-travel-times.md) note).
 - A day with a stop the map cannot find keeps a travel-time conflict on the plan until that stop is
   saved. The server stores that gap as a conflict and does not refuse the other saves, because
   `apps/web/lib/trip/trip-edit.ts` turns non-move blockers into `conflictsWith`.
@@ -79,6 +79,6 @@ Partly superseded by [One day view in the Trip drawer](2026-10-08-one-day-trip-v
 (#238). The stop editor described above is now the compact place card, and the "Use this place" box it
 mentions is gone. The automatic save, the save states and "Retry places" are unchanged.
 
-Routing consequences are partly superseded by the proposed
-[leg travel times](../../proposed/feature/2026-10-08-leg-travel-times.md) note (#237): the day is routed once
+Routing consequences are partly superseded by the
+[leg travel times](2026-10-08-leg-travel-times.md) note (#237): the day is routed once
 after its last save, not with walking routes on each save.

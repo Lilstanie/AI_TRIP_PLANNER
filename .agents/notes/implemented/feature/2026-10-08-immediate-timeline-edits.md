@@ -47,7 +47,7 @@ route both refuse the edit.
   stop-level markers.
 - Routes checked by a route check still reach the map and the connection rows; the fare and route text that the
   preview panel showed is no longer shown in a panel.
-- Partly superseded by the proposed [leg travel times](../../proposed/feature/2026-10-08-leg-travel-times.md) note:
+- Partly superseded by the [leg travel times](2026-10-08-leg-travel-times.md) note:
   the route check button this note mentions is removed, each leg is routed automatically, and a Google answer with
   no route reads "No route found" and adds no time. Only a provider failure refuses an edit (failure mode 2 above).
 - `apps/web/tests/e2e/timeline.e2e.mjs`, `itinerary.e2e.mjs` and `workspace-chinese.e2e.mjs` check the immediate
