@@ -1,6 +1,6 @@
 # Agent Note: Remove status labels and Review plan; show conflicts where they apply
 
-Status: proposed
+Status: implemented
 Owner: spec #233, ticket #240
 
 ## Problem
@@ -17,7 +17,7 @@ but nothing renders it. Removing the label removes the field as well.
 After a replan from chat, the traveller sees the new estimate and has no reading of how far it moved. The
 dialog gave that figure only to someone who opened it.
 
-## Proposal
+## Decision
 
 - Remove the "Needs review" / "Draft" label from the Trip drawer and the phone Trip tab, the trip list's
   status field, the "Review plan" button and the review dialog. `TripStatus`, `statusForPlan`, `tripStatus`,
@@ -75,7 +75,9 @@ preferences to start.`, `No detected schedule conflicts.`, `Change from the prev
 - Keep a hidden `status` in the catalog for future use: rejected. Nothing reads it, and the derived value would
   drift from the plan.
 
-## Acceptance criteria
+## Consequences
+
+Checked by the E2E scripts (mock data mode):
 
 - No "Needs review", "Draft", "Needs you" or "Review plan" text is rendered in the Trip drawer, the trip list or
   the phone shell, at either width and in either language.

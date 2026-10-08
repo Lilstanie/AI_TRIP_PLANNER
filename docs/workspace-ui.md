@@ -471,7 +471,7 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   tips (when the plan has a destination guide), the day strip, the chosen day's stops in visiting order
   with the number their place carries on the map (a repeat visit keeps it), the day's flights and stay
   rows, then Ideas, unnumbered. The phone Trip tab shows the same view. The drawer has no status label:
-  "Needs review", "Draft" and "Review plan" are removed ([Agent Note](../.agents/notes/proposed/feature/2026-10-08-remove-status-labels.md)).
+  "Needs review", "Draft" and "Review plan" are removed ([Agent Note](../.agents/notes/implemented/feature/2026-10-08-remove-status-labels.md)).
   The specialists' cards are not rendered; see [Flights, stays and tips](#flights-stays-and-tips).
 - **Conflicts in place.** Each unresolved conflict of the plan is shown where it applies, derived from the
   plan on every render by `placeConflicts()` (`apps/web/lib/trip/conflicts.ts`):

@@ -55,7 +55,7 @@ route both refuse the edit.
 
 ## Supersession
 
-Partly superseded by [Remove status labels and Review plan](../../proposed/feature/2026-10-08-remove-status-labels.md)
+Partly superseded by [Remove status labels and Review plan](2026-10-08-remove-status-labels.md)
 (#240). The "Review plan" button and its dialog, the "Needs review" and "Draft" labels in the Trip drawer, the
 phone shell and the trip list are removed. The "conflict shown in the timeline status, not on the stop" statement
 above no longer holds: an unresolved conflict is shown on the stop, leg or day it targets, or under the budget bar.

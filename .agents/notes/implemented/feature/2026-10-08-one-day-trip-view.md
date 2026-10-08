@@ -53,6 +53,6 @@ Review plan. The phone Trip tab renders the same component tree. The tabs and th
 
 ## Supersession
 
-Partly superseded by [Remove status labels and Review plan](../../proposed/feature/2026-10-08-remove-status-labels.md)
+Partly superseded by [Remove status labels and Review plan](2026-10-08-remove-status-labels.md)
 (#240). The Trip drawer no longer ends with a "Review plan" button, and its header no longer shows "Needs review" or
 "Draft". Unresolved conflicts are shown on the stop, leg or day they target, or under the budget bar.
