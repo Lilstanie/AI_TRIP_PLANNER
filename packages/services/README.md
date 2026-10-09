@@ -11,7 +11,6 @@ generated-plan storage, and the key-value store behind them. Owner: E (@WhW0591)
 | `tripStore`                    | Stores and reads the latest generated `TripPlan` by trip ID                      |
 | `jsonStore`, `createJsonStore` | Key-value JSON store with `get`, `set`, `increment` and `decrement`              |
 | `durableStoreConfigured()`     | Whether the Redis REST store is configured                                       |
-| `notify`, `auth`               | Stubs: notifications are not sent, and every request is the demo user            |
 
 ## Configuration
 
