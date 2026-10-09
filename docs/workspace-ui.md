@@ -439,7 +439,7 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   ([Agent Note](../.agents/notes/implemented/architecture/2026-10-06-one-itinerary.md)): numbers are
   trip-wide, one per place in visiting order (day, then start time, then plan position), and a
   place visited again keeps its first number. Ideas (activities without a day) are never numbered,
-  counted or mapped. Below zoom 12 only the selected stop keeps its label,
+  counted or mapped. An Idea's price is not part of the estimate or the budget total, and moving a priced stop to Ideas lowers the total at once. Below zoom 12 only the selected stop keeps its label,
   and when the map settles a label that would overlap one already shown is hidden (the selected stop
   wins, then visiting order). Markers never load place photos.
 - **Itinerary lines** (`lib/map/itinerary-route.ts`, `components/map/map-layers.ts`). Each day's
