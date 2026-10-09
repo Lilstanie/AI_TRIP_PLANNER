@@ -15,15 +15,4 @@
  */
 package app.vercel.elec5620_ai_trip_planner.twa;
 
-
-
-public class Application extends android.app.Application {
-
-  
-
-  @Override
-  public void onCreate() {
-      super.onCreate();
-      
-  }
-}
+public class Application extends android.app.Application {}
