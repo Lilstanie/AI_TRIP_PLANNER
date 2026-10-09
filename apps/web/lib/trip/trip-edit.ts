@@ -9,13 +9,12 @@ import {
   stayChoiceCost,
 } from "@trip/shared";
 import {
-  googleRoute,
-  placeDetails,
-  timeZone,
   localInstant,
   type GooglePlace,
+  type RouteMode,
   type RouteResult,
 } from "../integrations/google";
+import { mapProvider, routeLeg } from "../map-provider";
 import {
   errorNotice,
   NoticeError,
@@ -234,15 +233,24 @@ function chooseCandidate(
   };
 }
 
-/** The providers a live edit asks: Google's Places, Time Zone and Routes. */
-export const LIVE_EDIT_DEPS = { googleRoute, placeDetails, timeZone };
+/**
+ * The providers a live edit asks: places, time zones and routes from the web map provider (Google
+ * first, OSM when Google cannot answer). A route failure is an `unavailable` leg, never a throw.
+ */
+export const LIVE_EDIT_DEPS = {
+  route: (from: string, to: string, departure: string, mode: RouteMode) =>
+    routeLeg(mapProvider(), from, to, departure, mode),
+  placeDetails: async (id: string) => (await mapProvider().placeDetails(id)).value,
+  timeZone: async (place: GooglePlace, date: string) =>
+    (await mapProvider().timeZone(place, date)).value,
+};
 /**
  * Simulated mode: no provider is called. Places are placeholders and every leg is a fixture, so a plan
  * with saved places routes the same way on every run. Chosen by the request's data mode, never by a
  * missing key.
  */
 export const SIMULATED_EDIT_DEPS = {
-  googleRoute: simulatedRoute,
+  route: simulatedRoute,
   placeDetails: async (id: string) =>
     ({ id, location: { latitude: 0, longitude: 0 } }) as GooglePlace,
   timeZone: async () => "UTC",
@@ -465,10 +473,10 @@ export async function previewEdit(
             const to = current.placeId;
             const departure = await departureFor(previous, day);
             const route = choice
-              ? await deps.googleRoute(from, to, departure, routeModeOf(choice))
+              ? await deps.route(from, to, departure, routeModeOf(choice))
               : stored
-                ? await deps.googleRoute(from, to, departure, stored)
-                : await defaultLegRoute(deps.googleRoute, from, to, departure);
+                ? await deps.route(from, to, departure, stored)
+                : await defaultLegRoute(deps.route, from, to, departure);
             routes.push(route);
             if (
               route.status === "unavailable" ||

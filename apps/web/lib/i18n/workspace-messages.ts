@@ -575,6 +575,7 @@ export const WORKSPACE_ZH = {
   "This saved place is no longer available.": "此已保存地点已不可用。",
   "Google Places is busy. Please retry shortly.": "Google 地点服务繁忙，请稍后重试。",
   "Google Places is temporarily unavailable. Please retry.": "Google 地点服务暂不可用，请重试。",
+  "The map service is temporarily unavailable. Please retry.": "地图服务暂不可用，请重试。",
   "Google Maps is not configured. Add the server MAPS_API_KEY.":
     "未配置 Google 地图。请在服务器上添加 MAPS_API_KEY。",
   "Google request failed ({status}). Please retry.": "Google 请求失败（{status}），请重试。",

@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { resetMapProviders } from "@/lib/map-provider";
 import { GoogleRequestError } from "@/lib/integrations/google";
 import { GET } from "@/app/api/places/photo/route";
 
@@ -15,7 +16,12 @@ function request(query: string) {
   return new Request(`http://localhost/api/places/photo?${query}`);
 }
 
-afterEach(() => vi.clearAllMocks());
+// The fallback provider remembers a Google quota or access failure for a cool-down; start each case
+// with Google untried.
+afterEach(() => {
+  vi.clearAllMocks();
+  resetMapProviders();
+});
 
 describe("GET /api/places/photo", () => {
   it.each([
@@ -42,6 +48,7 @@ describe("GET /api/places/photo", () => {
     expect(response.status).toBe(302);
     expect(response.headers.get("location")).toBe("https://lh3.googleusercontent.com/x=w400");
     expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(response.headers.get("x-map-provider")).toBe("google");
   });
 
   it.each([

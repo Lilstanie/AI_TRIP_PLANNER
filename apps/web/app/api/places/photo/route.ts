@@ -5,10 +5,11 @@ import {
   GoogleRequestError,
   PHOTO_NAME,
   PHOTO_WIDTHS,
-  placePhotoUri,
   placesUnavailable,
   type PhotoWidth,
 } from "@/lib/integrations/google";
+import { mapProvider } from "@/lib/map-provider";
+import { MapProviderUnavailableError } from "@/lib/map-provider/osm";
 
 const PhotoRequest = z.object({
   name: z.string().regex(PHOTO_NAME),
@@ -27,12 +28,17 @@ export async function GET(request: Request) {
   const parsed = PhotoRequest.safeParse({ name: params.get("name"), width: params.get("width") });
   if (!parsed.success) return Response.json(noticeBody({ key: "Unknown photo." }), { status: 400 });
   try {
-    const location = await placePhotoUri(parsed.data.name, parsed.data.width);
+    const { value, source } = await mapProvider(request).placePhoto(
+      parsed.data.name,
+      parsed.data.width,
+    );
     return new Response(null, {
       status: 302,
-      headers: { Location: location, "Cache-Control": "no-store" },
+      headers: { Location: value, "Cache-Control": "no-store", "X-Map-Provider": source },
     });
   } catch (error) {
+    if (error instanceof MapProviderUnavailableError)
+      return Response.json(noticeBody(error.notice), { status: 503 });
     // A missing key is permanent: every retry fails the same way, so the message
     // must not invite one. 503 says the deployment, not the request, is at fault.
     if (error instanceof GoogleNotConfiguredError)

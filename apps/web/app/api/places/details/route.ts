@@ -4,8 +4,9 @@ import {
   GoogleNotConfiguredError,
   GoogleRequestError,
   placesUnavailable,
-  placeDetails,
 } from "@/lib/integrations/google";
+import { mapProvider } from "@/lib/map-provider";
+import { MapProviderUnavailableError } from "@/lib/map-provider/osm";
 
 const DetailsRequest = z.object({ placeId: z.string().min(1).max(300) });
 
@@ -14,11 +15,11 @@ export async function POST(request: Request) {
   if (!parsed.success)
     return Response.json(noticeBody({ key: "A place ID is required." }), { status: 400 });
   try {
-    return Response.json(
-      { place: await placeDetails(parsed.data.placeId) },
-      { headers: { "Cache-Control": "no-store" } },
-    );
+    const { value, source } = await mapProvider(request).placeDetails(parsed.data.placeId);
+    return Response.json({ place: value, source }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
+    if (error instanceof MapProviderUnavailableError)
+      return Response.json(noticeBody(error.notice), { status: 503 });
     // A missing key is permanent: every retry fails the same way, so the message
     // must not invite one. 503 says the deployment, not the request, is at fault.
     if (error instanceof GoogleNotConfiguredError)

@@ -36,7 +36,7 @@ const dependencies = () => ({
     location: { latitude: -33.8, longitude: 151.2 },
   })),
   timeZone: vi.fn(async () => "Australia/Sydney"),
-  googleRoute: vi.fn(async (from: string, to: string, _departure: string, mode: RouteMode) => ({
+  route: vi.fn(async (from: string, to: string, _departure: string, mode: RouteMode) => ({
     from,
     to,
     mode,
@@ -67,7 +67,7 @@ describe("P3 edit boundary", () => {
     expect(result.blockers).toEqual([]);
     expect(result.plan.sections[0]!.proposal!.items.map((a) => a.id)).toEqual(["b", "a"]);
     expect(result.plan.sections[0]!.proposal!.items[1]!.startTime).toBe("10:35");
-    expect(deps.googleRoute.mock.calls[0]![2]).toBe("2026-10-01T00:00:00.000Z");
+    expect(deps.route.mock.calls[0]![2]).toBe("2026-10-01T00:00:00.000Z");
     // A clean edit leaves no unresolved request, so the section stays a draft.
     expect(result.plan.conflicts).toEqual([]);
     expect(result.plan.sections[0]!.status).toBe("draft");
@@ -90,7 +90,7 @@ describe("P3 edit boundary", () => {
   });
   it("blocks unknown automatic routes and day overflow without changing input", async () => {
     const deps = dependencies();
-    deps.googleRoute.mockImplementation(async (from, to, _date, mode) => ({
+    deps.route.mockImplementation(async (from, to, _date, mode) => ({
       from,
       to,
       mode,
@@ -203,7 +203,7 @@ describe("P3 edit boundary", () => {
     "rejects invalid duration %s at the preview boundary",
     async (durationMin) => {
       const deps = dependencies();
-      deps.googleRoute.mockImplementation(async (from, to, _date, mode) => ({
+      deps.route.mockImplementation(async (from, to, _date, mode) => ({
         from,
         to,
         mode,
@@ -306,7 +306,7 @@ describe("edit preview notices", () => {
   it("keys a route with no provider wording and keeps provider wording raw", async () => {
     const move = { kind: "move", id: "b", day: 1, index: 0 } as const;
     const silent = dependencies();
-    silent.googleRoute.mockImplementation(async (from, to, _date, mode) => ({
+    silent.route.mockImplementation(async (from, to, _date, mode) => ({
       from,
       to,
       mode,
@@ -319,7 +319,7 @@ describe("edit preview notices", () => {
       { key: "{stop}: {reason}", params: { stop: "Museum", reason: { key: "Route unavailable" } } },
     ]);
     const worded = dependencies();
-    worded.googleRoute.mockImplementation(async (from, to, _date, mode) => ({
+    worded.route.mockImplementation(async (from, to, _date, mode) => ({
       from,
       to,
       mode,

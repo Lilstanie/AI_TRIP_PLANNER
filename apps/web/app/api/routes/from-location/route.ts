@@ -1,6 +1,6 @@
 import { z, ZodError } from "zod";
 import { errorNotice, noticeBody } from "@/lib/i18n/notice";
-import { googleRouteFromCoordinates } from "@/lib/integrations/google";
+import { mapProvider, routeFromLocation } from "@/lib/map-provider";
 
 const Input = z.object({
   latitude: z.number().min(-90).max(90),
@@ -13,7 +13,8 @@ export async function POST(request: Request) {
   try {
     const input = Input.parse(await request.json());
     return Response.json(
-      await googleRouteFromCoordinates(
+      await routeFromLocation(
+        mapProvider(request),
         { latitude: input.latitude, longitude: input.longitude },
         input.placeId,
         input.mode,
