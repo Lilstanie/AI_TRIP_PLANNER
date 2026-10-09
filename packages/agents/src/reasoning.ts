@@ -18,20 +18,6 @@ import type { AIMessageChunk, BaseMessage } from "@langchain/core/messages";
 /** Receives the model's private reasoning as it is produced. */
 export type ReasoningListener = (text: string) => void;
 
-/** Coerce one delta chunk's content into text, ignoring non-text parts. */
-function chunkText(content: unknown): string {
-  if (typeof content === "string") return content;
-  if (!Array.isArray(content)) return "";
-  return content
-    .map((part) => {
-      if (typeof part === "string") return part;
-      if (part && typeof part === "object" && "text" in part)
-        return String((part as { text: unknown }).text ?? "");
-      return "";
-    })
-    .join("");
-}
-
 /** The reasoning text carried by one chunk, if any. */
 function reasoningText(chunk: AIMessageChunk): string {
   const value = chunk.additional_kwargs?.reasoning_content;
@@ -94,17 +80,4 @@ export function withReasoningStream(
     },
   });
   return proxy;
-}
-
-/** Assemble streamed chunks the same way `invoke` would. Exported for tests. */
-export function assembleChunks(chunks: AIMessageChunk[]): AIMessageChunk | undefined {
-  return chunks.reduce<AIMessageChunk | undefined>(
-    (assembled, chunk) => (assembled === undefined ? chunk : assembled.concat(chunk)),
-    undefined,
-  );
-}
-
-/** Text of an assembled chunk, for callers that only want the answer. */
-export function messageText(chunk: AIMessageChunk | undefined): string {
-  return chunkText(chunk?.content);
 }

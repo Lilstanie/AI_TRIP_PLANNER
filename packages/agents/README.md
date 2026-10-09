@@ -9,7 +9,7 @@ The five specialist agents and the model routing they share. Each agent turns a 
 - `allSpecialists`: the registry the orchestrator dispatches to, in a stable order.
 - Each agent and its factory: `itineraryAgent` / `createItineraryAgent`, and likewise for
   transport, accommodation, destination guide and dining, with their option and draft types.
-- `models.ts`: `MODEL_ROUTING`, `createRoutedChatModel()` and `createRoutedStructuredInvoker()`, plus the request-scoped
+- `models.ts`: `MODEL_ROUTING`, `createRoutedChatModel()`, plus the request-scoped
   `runWithModelsDisabled()` (no model is built inside it) and `createUsageCollector()` / `runWithUsageCollector()` (the
   token usage the provider returned for each call).
 
@@ -24,7 +24,7 @@ The five specialist agents and the model routing they share. Each agent turns a 
 ## Configuration
 
 `DEEPSEEK_API_KEY`, `DEEPSEEK_MODEL` and `DEEPSEEK_BASE_URL` configure every model call. MiniMax
-(`MINIMAX_*`) is wired but not routed; see the [model routing note](../../.agents/notes/implemented/architecture/2026-09-09-deepseek-model-routing.md).
+(`MINIMAX_*`) is wired but not routed; see the [model routing note](../../.agents/notes/implemented/architecture/2026-10-10-active-specialist-model-path.md).
 
 ## Contracts
 

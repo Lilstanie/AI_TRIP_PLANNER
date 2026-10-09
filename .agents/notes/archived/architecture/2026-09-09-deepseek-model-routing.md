@@ -1,6 +1,7 @@
 # Agent Note: Route specialist models to DeepSeek, keep MiniMax wired
 
 Status: implemented
+Archived: 2026-10-10
 Owner: A (@Lilstanie)
 
 ## Problem
