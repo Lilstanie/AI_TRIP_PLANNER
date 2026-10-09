@@ -233,7 +233,9 @@ async function stopRow(page, day, position) {
     .nth(day - 1)
     .click();
   await settle(page, 400);
-  return trip(page).locator(".timeline-day .timeline-stop").nth(position - 1);
+  return trip(page)
+    .locator(".timeline-day .timeline-stop")
+    .nth(position - 1);
 }
 
 /** Opens a stop's time editor, sets its start and end, and applies it with Change time. */
@@ -289,7 +291,10 @@ async function showTimeline(page) {
 async function startNewTrip(page) {
   await page.keyboard.press("Escape");
   await settle(page, 300);
-  await page.getByRole("button", { name: /^Chats/ }).first().click();
+  await page
+    .getByRole("button", { name: /^Chats/ })
+    .first()
+    .click();
   await settle(page, 400);
   await page.getByRole("button", { name: "New chat", exact: true }).click();
   await settle(page, 400);
@@ -300,7 +305,10 @@ async function startNewTrip(page) {
 
 /** Opens the first trip in the Chats panel's Trips list that is not the open one. */
 async function openOtherTrip(page) {
-  await page.getByRole("button", { name: /^Chats/ }).first().click();
+  await page
+    .getByRole("button", { name: /^Chats/ })
+    .first()
+    .click();
   await settle(page, 400);
   const items = page.locator(".history-item--trip");
   const count = await items.count();
@@ -345,7 +353,10 @@ async function main() {
       );
       summary.undoWithIdea = { before, restored };
       await page.screenshot({ path: `${OUT}/01-undo-with-idea.png` });
-      check(!run.errors.length, `1: no console errors${run.errors.length ? `: ${run.errors.join(" | ")}` : ""}`);
+      check(
+        !run.errors.length,
+        `1: no console errors${run.errors.length ? `: ${run.errors.join(" | ")}` : ""}`,
+      );
       await run.context.close();
     }
 
@@ -357,29 +368,43 @@ async function main() {
       // The second stop starts a minute after the first one ends: the leg to it needs travel and a buffer.
       await changeTime(page, 1, 2, "10:01", "11:01");
       await settleChecks(page);
-      const notice = trip(page).locator(".timeline-stop__conflicts li", { hasText: "needs at least" });
-      check((await notice.count()) === 1, `2: one travel-buffer notice is shown (${await notice.count()})`);
+      const notice = trip(page).locator(".timeline-stop__conflicts li", {
+        hasText: "needs at least",
+      });
+      check(
+        (await notice.count()) === 1,
+        `2: one travel-buffer notice is shown (${await notice.count()})`,
+      );
       const owner = await rowNamed(page, 1, "Royal Botanic Garden Sydney");
       check(
-        (await owner.locator(".timeline-stop__conflicts li", { hasText: "needs at least" }).count()) === 1,
+        (await owner
+          .locator(".timeline-stop__conflicts li", { hasText: "needs at least" })
+          .count()) === 1,
         "2: the notice is under the stop it is about",
       );
       for (const other of ["Sydney Opera House", "Bondi Beach"]) {
         const row = await rowNamed(page, 1, other);
         check(
-          (await row.locator(".timeline-stop__conflicts li", { hasText: "needs at least" }).count()) === 0,
+          (await row
+            .locator(".timeline-stop__conflicts li", { hasText: "needs at least" })
+            .count()) === 0,
           `2: the notice is not under ${other}`,
         );
       }
       check(
-        (await trip(page).locator(".timeline-day__conflicts li", { hasText: "needs at least" }).count()) === 0,
+        (await trip(page)
+          .locator(".timeline-day__conflicts li", { hasText: "needs at least" })
+          .count()) === 0,
         "2: the notice is not under the day title",
       );
       summary.noticeUnderStop = {
         notices: await notice.allInnerTexts(),
       };
       await page.screenshot({ path: `${OUT}/02-notice-under-stop.png` });
-      check(!run.errors.length, `2: no console errors${run.errors.length ? `: ${run.errors.join(" | ")}` : ""}`);
+      check(
+        !run.errors.length,
+        `2: no console errors${run.errors.length ? `: ${run.errors.join(" | ")}` : ""}`,
+      );
       await run.context.close();
     }
 
@@ -402,13 +427,13 @@ async function main() {
         (await startOf(page, 1, 2)).includes("11:00"),
         "3: the refused edit leaves the plan unchanged",
       );
-      check(
-        (await startOf(page, 1, 3)) === lateBefore,
-        "3: the stop past midnight keeps its time",
-      );
+      check((await startOf(page, 1, 3)) === lateBefore, "3: the stop past midnight keeps its time");
       summary.refusedNames = { alerts };
       await page.screenshot({ path: `${OUT}/03-refused-names-stop.png` });
-      check(!run.errors.length, `3: no console errors${run.errors.length ? `: ${run.errors.join(" | ")}` : ""}`);
+      check(
+        !run.errors.length,
+        `3: no console errors${run.errors.length ? `: ${run.errors.join(" | ")}` : ""}`,
+      );
       await run.context.close();
     }
 
@@ -436,14 +461,21 @@ async function main() {
       await settle(page, 1500);
       await settleChecks(page);
       check(
-        (await trip(page).locator(".timeline-status--error li", { hasText: TRY_AGAIN }).count()) === 1,
+        (await trip(page).locator(".timeline-status--error li", { hasText: TRY_AGAIN }).count()) ===
+          1,
         "4: a change whose plan moved on says to try the change again",
       );
       const other = await startOf(page, 1, 1);
-      check(other === first, `4: the stale change is not applied to the other trip (${other}, was ${first})`);
+      check(
+        other === first,
+        `4: the stale change is not applied to the other trip (${other}, was ${first})`,
+      );
       summary.planChanged = { first, other };
       await page.screenshot({ path: `${OUT}/04-plan-changed-during-check.png` });
-      check(!run.errors.length, `4: no console errors${run.errors.length ? `: ${run.errors.join(" | ")}` : ""}`);
+      check(
+        !run.errors.length,
+        `4: no console errors${run.errors.length ? `: ${run.errors.join(" | ")}` : ""}`,
+      );
       await run.context.close();
     }
 
@@ -477,7 +509,10 @@ async function main() {
       );
       summary.moveEarlier = { operations: kinds };
       await page.screenshot({ path: `${OUT}/05-move-clears-travel-time.png` });
-      check(!run.errors.length, `5: no console errors${run.errors.length ? `: ${run.errors.join(" | ")}` : ""}`);
+      check(
+        !run.errors.length,
+        `5: no console errors${run.errors.length ? `: ${run.errors.join(" | ")}` : ""}`,
+      );
       await run.context.close();
     }
 
@@ -491,16 +526,25 @@ async function main() {
       await trip(page).getByRole("menuitem", { name: "Move to ideas", exact: true }).click();
       await settleChecks(page);
       const toIdeas = stub.operations.map((op) => op.kind);
-      check(toIdeas.includes("idea"), `6: moving a stop to Ideas is sent to the check (${toIdeas.join(", ")})`);
+      check(
+        toIdeas.includes("idea"),
+        `6: moving a stop to Ideas is sent to the check (${toIdeas.join(", ")})`,
+      );
       const second = await rowNamed(page, 1, "Bondi Beach");
       await second.getByRole("button", { name: /^Actions for / }).click();
       await trip(page).getByRole("menuitem", { name: "Remove", exact: true }).click();
       await settleChecks(page);
       const removed = stub.operations.map((op) => op.kind);
-      check(removed.includes("remove"), `6: removing a stop is sent to the check (${removed.join(", ")})`);
+      check(
+        removed.includes("remove"),
+        `6: removing a stop is sent to the check (${removed.join(", ")})`,
+      );
       summary.removeAndIdeas = { operations: removed };
       await page.screenshot({ path: `${OUT}/06-remove-and-ideas.png` });
-      check(!run.errors.length, `6: no console errors${run.errors.length ? `: ${run.errors.join(" | ")}` : ""}`);
+      check(
+        !run.errors.length,
+        `6: no console errors${run.errors.length ? `: ${run.errors.join(" | ")}` : ""}`,
+      );
       await run.context.close();
     }
 
@@ -514,7 +558,9 @@ async function main() {
       if (await page.getByRole("tab", { name: /^Chat/ }).count())
         await page.getByRole("tab", { name: /^Chat/ }).click();
       await settle(page, 400);
-      await page.getByRole("textbox", { name: "Message AI Trip Planner" }).fill("Make day 1 a little slower");
+      await page
+        .getByRole("textbox", { name: "Message AI Trip Planner" })
+        .fill("Make day 1 a little slower");
       await page.getByRole("textbox", { name: "Message AI Trip Planner" }).press("Enter");
       await page.locator(".msg-item--agent .msg-item__body").nth(1).waitFor({ timeout: 180_000 });
       await settle(page, 1000);
@@ -524,7 +570,10 @@ async function main() {
       );
       summary.replanAfterEdit = { notice: await page.getByText(REPLACED).count() };
       await page.screenshot({ path: `${OUT}/07-replan-after-edit.png` });
-      check(!run.errors.length, `7: no console errors${run.errors.length ? `: ${run.errors.join(" | ")}` : ""}`);
+      check(
+        !run.errors.length,
+        `7: no console errors${run.errors.length ? `: ${run.errors.join(" | ")}` : ""}`,
+      );
       await run.context.close();
     }
     {
@@ -534,7 +583,9 @@ async function main() {
       if (await page.getByRole("tab", { name: /^Chat/ }).count())
         await page.getByRole("tab", { name: /^Chat/ }).click();
       await settle(page, 400);
-      await page.getByRole("textbox", { name: "Message AI Trip Planner" }).fill("Make day 1 a little slower");
+      await page
+        .getByRole("textbox", { name: "Message AI Trip Planner" })
+        .fill("Make day 1 a little slower");
       await page.getByRole("textbox", { name: "Message AI Trip Planner" }).press("Enter");
       await page.locator(".msg-item--agent .msg-item__body").nth(1).waitFor({ timeout: 180_000 });
       await settle(page, 1000);
