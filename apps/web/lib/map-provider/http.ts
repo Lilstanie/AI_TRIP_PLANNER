@@ -23,15 +23,16 @@ export function nominatimRequest<T>(run: () => Promise<T>): Promise<T> {
   return next;
 }
 
-export async function providerJson(url: string, fetcher: ProviderFetch = fetch): Promise<unknown> {
+export async function providerResponse(
+  url: string,
+  fetcher: ProviderFetch = fetch,
+): Promise<Response> {
   try {
-    const response = await fetcher(url, {
-      headers: { "User-Agent": contact(), Accept: "application/json" },
+    return await fetcher(url, {
+      headers: { "user-agent": contact(), Accept: "application/json" },
       signal: AbortSignal.timeout(8000),
       cache: "no-store",
     });
-    if (!response.ok) throw new MapProviderUnavailableError("osm", "upstream");
-    return await response.json();
   } catch (error) {
     if (error instanceof MapProviderUnavailableError) throw error;
     const name = (error as { name?: string })?.name;
@@ -42,19 +43,27 @@ export async function providerJson(url: string, fetcher: ProviderFetch = fetch):
   }
 }
 
+export async function providerJson(url: string, fetcher: ProviderFetch = fetch): Promise<unknown> {
+  const response = await providerResponse(url, fetcher);
+  if (!response.ok) throw new MapProviderUnavailableError("osm", "upstream");
+  return response.json().catch(() => {
+    throw new MapProviderUnavailableError("osm", "upstream");
+  });
+}
+
 /** Cache successful answers and coalesce in-flight calls; failures are never cached. */
-export function providerCache<T>(ttl = 600_000) {
+export function providerCache<T>(ttl = 600_000, now = Date.now) {
   const values = new Map<string, { at: number; value: T }>();
   const pending = new Map<string, Promise<T>>();
   return (key: string, run: () => Promise<T>): Promise<T> => {
     const hit = values.get(key);
-    if (hit && Date.now() - hit.at < ttl) return Promise.resolve(hit.value);
+    if (hit && now() - hit.at < ttl) return Promise.resolve(hit.value);
     const flight = pending.get(key);
     if (flight) return flight;
     const next = run()
       .then((value) => {
         if (values.size >= 500) values.delete(values.keys().next().value!);
-        values.set(key, { at: Date.now(), value });
+        values.set(key, { at: now(), value });
         return value;
       })
       .finally(() => pending.delete(key));

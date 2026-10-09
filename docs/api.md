@@ -275,7 +275,7 @@ details.
 ## `POST /api/places/details`
 
 ```json
-{ "placeId": "ChIJ…" }
+{ "placeId": "ChIJ…", "language": "zh" }
 ```
 
 Returns `{ "place": GooglePlace, "source": "google" | "osm" }`. Errors: 400 invalid input, 404 the place ID is no longer
@@ -399,7 +399,7 @@ Deletes the account's rows, then the Clerk user. If Clerk fails after the rows a
 - Trip plan and its unresolved conflicts: `packages/shared/src/plan.ts`
 - Specialist contract: `packages/shared/src/agent.ts`
 
-Place search also accepts optional `language: "en" | "zh"`. OSM cards have no rating; optional
+Place search and details accept optional `language: "en" | "zh"`; OSM details default to English and cache separately by language. Leg edits accept `mode: "cycle"`, saved as `arriveBy.mode: "cycle"`, with route mode `BICYCLE`. OSM cards have no rating; optional
 `source`, `osmUri`, `websiteUri`, `phone`, `openingHours` and photo license fields are web-only details.
 Only `savedPlace` name/address/coordinates are persisted with an activity. OSM routes name OSRM or
 Transitous in `source`; `no_route` and `unavailable` never supply an invented transit duration.

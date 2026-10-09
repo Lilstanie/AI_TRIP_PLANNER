@@ -250,7 +250,7 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 ## `POST /api/places/details`
 
 ```json
-{ "placeId": "ChIJ…" }
+{ "placeId": "ChIJ…", "language": "zh" }
 ```
 
 返回 `{ "place": GooglePlace, "source": "google" | "osm" }`。错误：400 表示输入无效，404 表示地点 ID 已不可用，
@@ -354,6 +354,6 @@ id，绝不使用请求体中的 id。约定：`apps/web/lib/account/settings.ts
 - 旅行计划及其未解决冲突：`packages/shared/src/plan.ts`
 - Specialist 约定：`packages/shared/src/agent.ts`
 
-地点搜索还接受可选的 `language: "en" | "zh"`。OSM 卡片不含评分；可选的 `source`、`osmUri`、`websiteUri`、`phone`、`openingHours` 和照片许可字段属于网页详情。活动只持久化 `savedPlace` 的名称、地址和坐标。OSM 路线的 `source` 标注 OSRM 或 Transitous；`no_route` 和 `unavailable` 都不产生虚构公交时长。`/api/data-mode` 的 `providers.maps` 包含免费回退；`webMapsProvider` 和 `mockGoogleUnavailable` 让浏览器遵循部署选择，且不暴露密钥。
+地点搜索和详情接受可选的 `language: "en" | "zh"`；OSM 详情默认使用英语，并按语言分别缓存。路段编辑接受 `mode: "cycle"`，保存为 `arriveBy.mode: "cycle"`，对应路线方式 `BICYCLE`。OSM 卡片不含评分；可选的 `source`、`osmUri`、`websiteUri`、`phone`、`openingHours` 和照片许可字段属于网页详情。活动只持久化 `savedPlace` 的名称、地址和坐标。OSM 路线的 `source` 标注 OSRM 或 Transitous；`no_route` 和 `unavailable` 都不产生虚构公交时长。`/api/data-mode` 的 `providers.maps` 包含免费回退；`webMapsProvider` 和 `mockGoogleUnavailable` 让浏览器遵循部署选择，且不暴露密钥。
 
 `/api/routes/from-location` 接受已保存目的地的可选 `toLocation: { latitude, longitude }`。这些坐标让 OSM 能为 Google 保存的站点规划路线，而不查询其 ID。

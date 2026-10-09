@@ -3,10 +3,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { TripPlan } from "@trip/shared";
 import { useSettings } from "@/components/account/SettingsProvider";
 import type { EditInput } from "@/lib/trip/trip-edit";
-import type { Notice } from "@/lib/i18n/notice";
+import { NoticeError, type Notice } from "@/lib/i18n/notice";
 import type { DataMode } from "@/lib/workspace/data-mode";
 import {
   withTabPlan,
+  STALE_PLAN,
   publishTabPlan,
   seedTabPlan,
   isCurrentTabPlan,
@@ -56,6 +57,8 @@ export type PlanRevisions = {
    * work paused or resumed. A hook that wants a job reads it in an effect that depends on this value.
    */
   tick: number;
+  /** The current plan was replaced in another tab; background work waits for a fresh plan. */
+  stale?: Notice;
   /**
    * Offers a background job. It starts only when no other job is in flight for the trip, no edit or chat turn
    * is running, and the job's plan is still the current one. Resolves to whether it started.
@@ -108,6 +111,8 @@ export function usePlanRevision({
   const { settings } = useSettings();
   const currency = settings.displayCurrency;
   const [tick, setTick] = useState(0);
+  const [stalePlan, setStalePlan] = useState<TripPlan>();
+  const refusedPlan = useRef<TripPlan | undefined>(undefined);
   const published = useRef<TripPlan | undefined>(undefined);
   useEffect(() => {
     if (plan) {
@@ -145,10 +150,16 @@ export function usePlanRevision({
   const finish = useCallback(
     (job: BackgroundJob, run: { controller: AbortController }, outcome: JobOutcome) => {
       if (flight.current === run) flight.current = undefined;
-      const stillCurrent =
-        !run.controller.signal.aborted && job.plan === latest.current && isCurrentTabPlan(job.plan);
-      if (!stillCurrent) job.settled({ kind: "discarded" });
-      else if (outcome.kind === "answer") {
+      const locallyReplaced = run.controller.signal.aborted || job.plan !== latest.current;
+      if (locallyReplaced) job.settled({ kind: "discarded" });
+      else if (!isCurrentTabPlan(job.plan)) {
+        refusedPlan.current = job.plan;
+        setStalePlan(job.plan);
+        job.settled({
+          kind: "failed",
+          error: new NoticeError(STALE_PLAN),
+        });
+      } else if (outcome.kind === "answer") {
         job.settled(outcome);
         if (outcome.answer.plan) {
           publishTabPlan(outcome.answer.plan);
@@ -162,7 +173,13 @@ export function usePlanRevision({
 
   const offer = useCallback(
     (job: BackgroundJob) => {
-      if (flight.current || heldNow.current || editsInFlight.current || job.plan !== latest.current)
+      if (
+        flight.current ||
+        heldNow.current ||
+        editsInFlight.current ||
+        job.plan !== latest.current ||
+        job.plan === refusedPlan.current
+      )
         return false;
       const run = { controller: new AbortController() };
       flight.current = run;
@@ -223,5 +240,6 @@ export function usePlanRevision({
     [bump],
   );
 
-  return useMemo(() => ({ tick, offer, edit }), [tick, offer, edit]);
+  const stale: Notice | undefined = stalePlan && stalePlan === plan ? STALE_PLAN : undefined;
+  return useMemo(() => ({ tick, offer, edit, stale }), [tick, offer, edit, stale]);
 }

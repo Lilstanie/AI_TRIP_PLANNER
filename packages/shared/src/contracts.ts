@@ -80,6 +80,7 @@ export const TravelModes = [
   "tram",
   "ferry",
   "drive",
+  "cycle",
 ] as const;
 export const TravelMode = z.enum(TravelModes);
 export type TravelMode = z.infer<typeof TravelMode>;

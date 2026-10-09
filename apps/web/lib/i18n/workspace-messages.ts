@@ -424,6 +424,7 @@ export const WORKSPACE_ZH = {
   Tram: "有轨电车",
   Ferry: "渡轮",
   Drive: "驾车",
+  Cycle: "骑行",
   Fly: "飞行",
   Upcoming: "即将出发",
   Past: "过往行程",

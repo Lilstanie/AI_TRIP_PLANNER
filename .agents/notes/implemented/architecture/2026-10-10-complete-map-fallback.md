@@ -11,7 +11,7 @@ browser tabs could overwrite each other's edits despite their local revision che
 ## Decision
 
 Complete the existing web provider with Photon/Nominatim search and details, optional licensed
-Commons photos, OSRM walking/driving, Transitous public transport and offline time zones. The browser
+Commons photos, OSRM walking/cycling/driving, Transitous public transport and offline time zones. The browser
 tries Google then MapLibre/OpenFreeMap, or selects OSM directly. Place IDs stay provider-scoped;
 no Google ID is queried against OSM. Optional `ProposalItem.savedPlace` stores only name, address
 and coordinates when a place is saved, and Undo restores it. Older plans remain valid. Without
@@ -39,6 +39,9 @@ and blocked scheduling. This preserves user-entered times without inventing a fa
   Google's photo-name lifetime. Only the minimum display and routing snapshot is stored.
 - Describe `baseVersion` as a server revision: the endpoint validates the supplied plan only; there
   is no server-owned plan revision against which to compare it.
+
+The [review fixes](2026-10-10-map-fallback-review-fixes.md) extend cycling and clarify terminal
+cross-tab stale background work, localized details and the OSM photo exception.
 
 ## Consequences
 

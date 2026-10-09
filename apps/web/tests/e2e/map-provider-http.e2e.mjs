@@ -62,7 +62,14 @@ const server = createServer((req, res) => {
   }
   if (u.pathname === "/lookup") {
     const id = Number((u.searchParams.get("osm_ids") || "N0").slice(1));
-    return res.end(JSON.stringify([place(id, id === 99 ? 0 : 35)]));
+    return res.end(
+      JSON.stringify([
+        {
+          ...place(id, id === 99 ? 0 : 35),
+          name: u.searchParams.get("accept-language") === "zh" ? "京都站" : "Kyoto Station",
+        },
+      ]),
+    );
   }
   if (u.pathname === "/api/v6/plan") {
     const none = u.searchParams.get("toPlace").startsWith("0,");
@@ -125,6 +132,17 @@ try {
   check(
     calls.filter((c) => c.path === "/lookup").length === beforeCache,
     "duplicate details use the cache",
+  );
+  // Failure inventory: details lose the requested locale; the first language poisons the cache.
+  const chinese = await post("/api/places/details", { placeId: "osm:node/25", language: "zh" });
+  const english = await post("/api/places/details", { placeId: "osm:node/25", language: "en" });
+  check(
+    chinese.body.place?.displayName?.text === "京都站",
+    "Chinese details keep the localized name",
+  );
+  check(
+    english.body.place?.displayName?.text === "Kyoto Station",
+    "details cache separates languages",
   );
   const error = await post("/api/places/search", { text: "broken" });
   check(error.status === 503, "both search providers failing is retryable unavailable");

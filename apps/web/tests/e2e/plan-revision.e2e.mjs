@@ -542,6 +542,50 @@ async function main() {
       await stale.screenshot({ path: `${OUT}/04-stale-tab.png` });
       await run.context.close();
     }
+    // 5. A background check queued behind another tab's edit terminates as stale, without retrying.
+    {
+      const stub = newStub();
+      const run = await openTrip(browser, { days: { 1: DAY_ONE }, stub });
+      await waitForQuiet(run.page, stub);
+      let release;
+      stub.holdTime = new Promise((done) => {
+        release = done;
+      });
+      await changeTime(run.page, 1, 1, "09:20", "10:20");
+      const stale = await run.context.newPage();
+      await stale.addInitScript(() => {
+        const request = navigator.locks.request.bind(navigator.locks);
+        window.lockAttempts = 0;
+        navigator.locks.request = (...args) => {
+          window.lockAttempts++;
+          return request(...args);
+        };
+      });
+      await installStubs(stale, stub);
+      await stale.goto(BASE);
+      await stale
+        .locator(".sidebar-nav")
+        .getByRole("button", { name: /^Trips/ })
+        .click();
+      await stale.locator(".trips-page .trip-card").first().click();
+      await stale.getByRole("button", { name: "Open your trip" }).click();
+      await trip(stale).waitFor();
+      await waitUntil(async () => await stale.evaluate(() => window.lockAttempts > 0));
+      release();
+      await waitUntil(async () => (await firstStopTime(run.page)).includes("09:20"));
+      await settle(stale, 800);
+      const before = await stale.evaluate(() => window.lockAttempts);
+      await settle(stale, 500);
+      const after = await stale.evaluate(() => window.lockAttempts);
+      check(after === before, `5: stale background work stops retrying (${before} → ${after})`);
+      const notice = await stale
+        .getByText("This edit is stale. Start from the current plan.", { exact: true })
+        .count();
+      check(notice > 0, "5: stale background check shows a current-plan notice");
+      summary.staleBackground = { before, after, notice: notice > 0 };
+      await stale.screenshot({ path: `${OUT}/05-stale-background.png` });
+      await run.context.close();
+    }
   } finally {
     await browser.close();
   }

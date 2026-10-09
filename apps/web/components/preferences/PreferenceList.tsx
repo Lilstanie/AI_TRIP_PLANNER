@@ -226,6 +226,7 @@ const MODE_PHRASE: Record<LegModeChoice["mode"], string> = {
   tram: "Tram",
   ferry: "Ferry",
   drive: "Drive",
+  cycle: "Cycle",
 };
 
 /**

@@ -15,6 +15,7 @@ const ROUTE_MODES: Record<TravelMode, true> = {
   tram: true,
   ferry: true,
   drive: true,
+  cycle: true,
 };
 
 /** Preserve main's end-exclusive planning interval; do not change team date semantics. */

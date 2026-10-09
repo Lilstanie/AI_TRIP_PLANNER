@@ -77,6 +77,8 @@ export function useTripPlaces(
   const [outcomes, setOutcomes] = useState<Record<string, Outcome>>({});
   const [pending, setPending] = useState<ReadonlySet<string>>(new Set());
   const [attempt, setAttempt] = useState(0);
+  const loadedContexts = useRef(new Map<string, string>());
+  const detailContext = `${dataMode ?? "default"}:${language ?? "en"}`;
   const known = useRef({ places, outcomes });
   known.current = { places, outcomes };
 
@@ -117,7 +119,15 @@ export function useTripPlaces(
       if (!response.ok) throw new LookupError(false);
       return json;
     };
-    const needs = (key: string) => !done[key] || done[key]!.status === "unavailable";
+    const needs = (key: string) => {
+      const outcome = done[key];
+      return (
+        !outcome ||
+        outcome.status === "unavailable" ||
+        (outcome.status === "found" &&
+          loadedContexts.current.get(outcome.placeId) !== detailContext)
+      );
+    };
     for (const city of cities) {
       const key = contextKey("city", city);
       if (needs(key))
@@ -132,11 +142,16 @@ export function useTripPlaces(
       const query = placeQueryFor(activity);
       const key = lookupKey(activity);
       if (!key || !needs(key) || wanted.has(key)) continue;
-      if (query.kind === "id" && loaded[query.placeId]) continue; // chosen in the editor
+      if (
+        query.kind === "id" &&
+        loaded[query.placeId] &&
+        loadedContexts.current.get(query.placeId) === detailContext
+      )
+        continue; // chosen in the editor
       if (query.kind === "id")
         wanted.set(key, async () => {
           try {
-            const body = await post("/api/places/details", { placeId: query.placeId });
+            const body = await post("/api/places/details", { placeId: query.placeId, language });
             return body.place as GooglePlace;
           } catch (error) {
             if (!activity.savedPlace) throw error;
@@ -160,7 +175,7 @@ export function useTripPlaces(
           if (!place) throw new LookupError(false);
           if (place.id.startsWith("osm:")) {
             try {
-              return (await post("/api/places/details", { placeId: place.id }))
+              return (await post("/api/places/details", { placeId: place.id, language }))
                 .place as GooglePlace;
             } catch {
               return place;
@@ -179,7 +194,10 @@ export function useTripPlaces(
       void run()
         .then(
           (place): Outcome => {
-            if (!controller.signal.aborted) setPlaces((old) => ({ ...old, [place.id]: place }));
+            if (!controller.signal.aborted) {
+              loadedContexts.current.set(place.id, detailContext);
+              setPlaces((old) => ({ ...old, [place.id]: place }));
+            }
             return { status: "found", placeId: place.id };
           },
           (reason): Outcome => {
@@ -199,7 +217,17 @@ export function useTripPlaces(
     }
     return () => controller.abort();
     // `attempt` re-runs lookups that previously failed for a retryable reason.
-  }, [activities, cities, destination, attempt, lookupKey, dataMode, language, contextKey]);
+  }, [
+    activities,
+    cities,
+    destination,
+    attempt,
+    lookupKey,
+    dataMode,
+    language,
+    contextKey,
+    detailContext,
+  ]);
 
   const placeIdFor = useCallback(
     (activity: Activity) => {
@@ -253,9 +281,13 @@ export function useTripPlaces(
     (city) => outcomes[contextKey("city", city)]?.status === "unavailable",
   );
   const statuses = activities.map(locationStatus);
-  const rememberPlace = useCallback((place: GooglePlace) => {
-    setPlaces((old) => ({ ...old, [place.id]: place }));
-  }, []);
+  const rememberPlace = useCallback(
+    (place: GooglePlace) => {
+      loadedContexts.current.set(place.id, detailContext);
+      setPlaces((old) => ({ ...old, [place.id]: place }));
+    },
+    [detailContext],
+  );
   const retry = useCallback(() => setAttempt((value) => value + 1), []);
 
   return {

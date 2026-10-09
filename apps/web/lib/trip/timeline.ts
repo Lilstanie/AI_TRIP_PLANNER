@@ -283,6 +283,8 @@ const MODE_LABELS: Record<string, MessageKey> = {
   ferry: "Ferry",
   drive: "Drive",
   DRIVE: "Drive",
+  cycle: "Cycle",
+  BICYCLE: "Cycle",
   transit: "Public transport",
   TRANSIT: "Public transport",
   flight: "Fly",

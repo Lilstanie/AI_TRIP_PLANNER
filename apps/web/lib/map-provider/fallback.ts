@@ -89,10 +89,10 @@ export function fallbackMapProvider(
         () => google.searchPlaces(query),
         () => osm.searchPlaces(query),
       ),
-    placeDetails: (id) =>
+    placeDetails: (id, language) =>
       providerOfPlaceId(id) === "osm"
-        ? osm.placeDetails(id)
-        : googleThenOsm(() => google.placeDetails(id), undefined),
+        ? osm.placeDetails(id, language)
+        : googleThenOsm(() => google.placeDetails(id, language), undefined),
     placePhoto: (name, width) =>
       providerOfPhotoName(name) === "osm"
         ? osm.placePhoto(name, width)

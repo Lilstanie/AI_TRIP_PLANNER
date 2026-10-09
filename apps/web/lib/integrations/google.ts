@@ -210,7 +210,7 @@ export function localInstant(date: string, time: string, zone: string) {
   return new Date(matches[0]!).toISOString();
 }
 /** A route request's travel mode, as the Routes API names it. */
-export type RouteMode = "WALK" | "TRANSIT" | "DRIVE";
+export type RouteMode = "WALK" | "TRANSIT" | "DRIVE" | "BICYCLE";
 
 /**
  * One leg as the provider answered it. `ok`: a route with its duration. `no_route`: the provider

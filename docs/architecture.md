@@ -68,11 +68,11 @@ step.
 The web workspace's place search, place details, place photos, leg routes, route from the
 traveller's location and destination time zone go through one `MapProvider` interface in
 `apps/web/lib/map-provider/`. Google Maps Platform answers first. When Google cannot answer, a free
-OpenStreetMap-based provider answers instead. Its walking and driving routes and its time zone are
-live (ticket #273); its search and details (#272), photos (#275) and public transport (#276) arrive
-with the later tickets of spec #270, and until then they report themselves unavailable, so the
-traveller sees Google's own failure. The [decision note](../.agents/notes/implemented/architecture/2026-10-09-web-map-provider-fallback.md)
-records why.
+OpenStreetMap-based provider answers instead: Photon/Nominatim supply search and details, Commons
+supplies optional licensed photos, OSRM supplies walking/cycling/driving, Transitous supplies public
+transport, and coordinates resolve time zones offline. The
+[completion decision](../.agents/notes/implemented/architecture/2026-10-10-complete-map-fallback.md)
+records the boundary.
 
 - **Unavailable** means: no `MAPS_API_KEY`; Google refuses access (401, 403, an invalid key, the API
   disabled or billing off); the quota is exhausted (429, or a Time Zone `OVER_QUERY_LIMIT`); a Google
@@ -102,8 +102,9 @@ records why.
   `OSRM_BASE_URL` (default `https://router.project-osrm.org`). The public demo server routes cars only
   and ignores the profile it is asked for, so it is never used for walking. Either base URL can point at
   a self-hosted or paid OSRM instance.
-- **Cycling is not offered.** A leg has three modes (walk, transit, drive), and a cycling mode would
-  change the shared leg contract, so it waits for a leg mode of its own.
+- **Cycling** uses the bike profile of `OSRM_BIKE_BASE_URL` (default
+  `https://routing.openstreetmap.de/routed-bike`), independently of the foot and car instances.
+  The timeline stores the chosen mode as `cycle`; Google receives `BICYCLE` when available.
 - **Transit** uses Transitous/MOTIS `GET /api/v6/plan`, with coordinates and a departure instant.
   Only an itinerary containing a transit leg supplies a duration; walking-only results mean no route.
   Empty results and provider failures never become estimated transit times. Transitous answers carry
@@ -499,7 +500,7 @@ MapLibre workers are bundled locally. Mock fallback maps use a tile-free local s
 Photon searches are scoped to the resolved destination. Photon failures use Nominatim; valid empty
 answers stay empty. Chinese requests use Nominatim with `accept-language=zh`. Nominatim search and
 lookup share a process-wide queue with starts at least one second apart, a ten-minute answer cache,
-and an identifying contact header. Multi-instance deployments need a shared limiter or a self-hosted
+and an identifying contact header. Details receive the interface language too, and their cache keys include it. Multi-instance deployments need a shared limiter or a self-hosted
 endpoint. `PHOTON_BASE_URL`, `NOMINATIM_BASE_URL` and `OSM_USER_AGENT` configure them.
 
 OSM cards expose only available address, category, opening hours, website and phone, with OSM credit;

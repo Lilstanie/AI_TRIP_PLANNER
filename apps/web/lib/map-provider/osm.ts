@@ -64,8 +64,8 @@ export function osmMapProvider(options: OsmProviderOptions = {}): MapProvider {
       }
       return { value: await photos.url(name, width), source: "osm" };
     },
-    placeDetails: async (id) => {
-      const place = mock ? mockPlaceFor(id) : await places.details(id);
+    placeDetails: async (id, language) => {
+      const place = mock ? mockPlaceFor(id) : await places.details(id, language);
       if (!place) throw new NoticeError({ key: "This saved place is no longer available." });
       return { value: mock ? place : await photos.enrich(place), source: "osm" };
     },

@@ -34,7 +34,7 @@ export type RouteHints = { fromLocation?: Coordinates; toLocation?: Coordinates 
  */
 export interface MapProvider {
   searchPlaces(query: PlaceSearch): Promise<Answered<MapPlace[]>>;
-  placeDetails(id: string): Promise<Answered<MapPlace>>;
+  placeDetails(id: string, language?: "en" | "zh"): Promise<Answered<MapPlace>>;
   /** A short-lived image URL to redirect the browser to, for a photo name from a place lookup. */
   placePhoto(name: string, width: PhotoWidth): Promise<Answered<string>>;
   /**

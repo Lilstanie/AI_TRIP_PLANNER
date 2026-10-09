@@ -1,6 +1,8 @@
 "use client";
 import type { TripPlan } from "@trip/shared";
-import { NoticeError } from "@/lib/i18n/notice";
+import { NoticeError, type Notice } from "@/lib/i18n/notice";
+export const STALE_PLAN: Notice = { key: "This edit is stale. Start from the current plan." };
+
 const keyFor = (tripId: string) => `trip.revision:${tripId}`;
 const fingerprint = (plan: TripPlan) => JSON.stringify(plan);
 
@@ -34,8 +36,7 @@ export async function withTabPlan<T>(
 ): Promise<T> {
   const checked = async () => {
     signal.throwIfAborted();
-    if (!isCurrentTabPlan(plan))
-      throw new NoticeError({ key: "This edit is stale. Start from the current plan." });
+    if (!isCurrentTabPlan(plan)) throw new NoticeError(STALE_PLAN);
     return run();
   };
   if (typeof navigator !== "undefined" && navigator.locks)

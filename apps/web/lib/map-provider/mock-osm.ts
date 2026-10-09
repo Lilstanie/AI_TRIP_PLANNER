@@ -117,8 +117,8 @@ export async function mockOsrmFetch(input: string): Promise<Response> {
   if (!from || !to || !Number.isFinite(from.latitude) || !Number.isFinite(to.latitude))
     return Response.json({ code: "InvalidQuery" }, { status: 400 });
   const distance = metresBetween(from, to);
-  if (profile === "foot") {
-    const seconds = distance / WALK_METRES_PER_SECOND;
+  if (profile === "foot" || profile === "bike") {
+    const seconds = distance / (profile === "bike" ? 4.2 : WALK_METRES_PER_SECOND);
     return Response.json({
       code: "Ok",
       routes: [{ duration: seconds, distance, geometry: encodePolyline([from, to]) }],

@@ -8,14 +8,20 @@ import {
 import { mapProvider } from "@/lib/map-provider";
 import { MapProviderUnavailableError } from "@/lib/map-provider/errors";
 
-const DetailsRequest = z.object({ placeId: z.string().min(1).max(300) });
+const DetailsRequest = z.object({
+  placeId: z.string().min(1).max(300),
+  language: z.enum(["en", "zh"]).optional(),
+});
 
 export async function POST(request: Request) {
   const parsed = DetailsRequest.safeParse(await request.json().catch(() => null));
   if (!parsed.success)
     return Response.json(noticeBody({ key: "A place ID is required." }), { status: 400 });
   try {
-    const { value, source } = await mapProvider(request).placeDetails(parsed.data.placeId);
+    const { value, source } = await mapProvider(request).placeDetails(
+      parsed.data.placeId,
+      parsed.data.language,
+    );
     return Response.json({ place: value, source }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     if (

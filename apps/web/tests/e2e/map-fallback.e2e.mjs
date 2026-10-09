@@ -302,6 +302,29 @@ async function main() {
         },
       });
       const body = await transit.json();
+      // Failure inventory: rejected mode, driving profile used for cycling, stored choice lost.
+      const cycling = await page.request.post(`${BASE}/api/trip/preview-edit`, {
+        headers: { "content-type": "application/json", "x-trip-data-mode": "mock" },
+        data: {
+          plan,
+          baseVersion: plan.editVersion ?? 0,
+          operation: { kind: "leg", id: stop.id, mode: "cycle" },
+        },
+      });
+      const cyclingBody = await cycling.json();
+      const cycleRoute = cyclingBody.routes?.find((r) => r.mode === "BICYCLE");
+      check(
+        cycling.status() === 200 && cycleRoute?.status === "ok" && cycleRoute.source === "osrm",
+        "cycling leg uses the bicycle-capable OSRM path",
+      );
+      const cycleStop = cyclingBody.plan?.sections
+        .find((s) => s.id === "itinerary")
+        ?.proposal?.items.find((i) => i.id === stop.id);
+      check(
+        cycleStop?.arriveBy?.mode === "cycle",
+        "cycling choice survives shared plan validation",
+      );
+      summary.cyclingLeg = cyclingBody;
       summary.transitLeg = body.routes;
       const route = (body.routes ?? []).find((r) => r.mode === "TRANSIT");
       check(
@@ -333,10 +356,67 @@ async function main() {
       "Commons photo credits are visible",
     );
     await page.screenshot({ animations: "disabled", path: resolve(OUT, "place-card-desktop.png") });
+    // The same saved OSM id must be looked up again for each interface language.
+    const detailLanguages = [];
+    await page.route("**/api/places/details", async (route) => {
+      const { language } = route.request().postDataJSON();
+      detailLanguages.push(language);
+      const response = await route.fetch();
+      const json = await response.json();
+      if (json.place?.id === "osm:way/2002")
+        json.place.displayName.text = language === "zh" ? "东寺" : "To-ji Temple";
+      await route.fulfill({ response, json });
+    });
+    await page.getByRole("button", { name: "Switch language to 简体中文" }).click();
+    await page
+      .locator(".place-preview__body h3")
+      .filter({ hasText: "东寺" })
+      .first()
+      .waitFor({ timeout: 15000 });
+    check(detailLanguages.includes("zh"), "language switch refetches saved OSM details in Chinese");
+    await page.screenshot({ animations: "disabled", path: resolve(OUT, "place-card-chinese.png") });
+    await page.getByRole("button", { name: "切换至 English" }).click();
+    await page
+      .locator(".place-preview__body h3")
+      .filter({ hasText: "To-ji Temple" })
+      .first()
+      .waitFor({ timeout: 15000 });
+    check(
+      detailLanguages.includes("en"),
+      "switching back restores English details rather than cached Chinese",
+    );
+    summary.detailLanguages = detailLanguages;
+
     await page
       .locator(".stop-place-card")
       .getByRole("button", { name: "Close place details" })
       .click();
+    const cycleChoice = page.locator(".timeline-connection__mode").first();
+    await cycleChoice.selectOption("cycle");
+    await page
+      .locator(".timeline-connection__label")
+      .filter({ hasText: /Cycle.*OSRM/ })
+      .first()
+      .waitFor();
+    check(
+      (await cycleChoice.inputValue()) === "cycle",
+      "desktop cycling choice is applied in the timeline",
+    );
+    await page.screenshot({ animations: "disabled", path: resolve(OUT, "cycling-desktop.png") });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await settle(page);
+    const phoneTrip = page.getByRole("tab", { name: /^Trip/ });
+    if (await phoneTrip.count()) await phoneTrip.click();
+    check(
+      (await page.locator(".timeline-connection__mode").first().inputValue()) === "cycle",
+      "phone keeps the cycling choice",
+    );
+    check(
+      await page.evaluate(() => document.documentElement.scrollWidth === innerWidth),
+      "phone cycling controls do not overflow",
+    );
+    await page.screenshot({ animations: "disabled", path: resolve(OUT, "cycling-phone.png") });
+    await page.setViewportSize({ width: 1440, height: 1000 });
     await page.getByRole("button", { name: "Close your trip" }).click();
     await page.locator(".google-map[data-provider=osm] canvas").waitFor({ timeout: 30_000 });
     check(

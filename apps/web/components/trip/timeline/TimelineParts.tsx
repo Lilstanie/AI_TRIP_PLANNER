@@ -6,6 +6,7 @@ import type { MessageKey } from "@/lib/i18n/locale";
 import { useLocale } from "../../account/LocaleProvider";
 import {
   FlowDriveIcon,
+  FlowCycleIcon,
   FlowFlightIcon,
   FlowStayIcon,
   FlowTransitIcon,
@@ -56,6 +57,8 @@ const CONNECTION_ICON: Record<string, (props: { size?: number }) => ReactNode> =
   WALK: FlowWalkIcon,
   drive: FlowDriveIcon,
   DRIVE: FlowDriveIcon,
+  cycle: FlowCycleIcon,
+  BICYCLE: FlowCycleIcon,
 };
 
 /** The modes a traveller can choose for a leg, in the order the control lists them. */
@@ -63,6 +66,7 @@ const LEG_CHOICES: { mode: LegMode; label: MessageKey }[] = [
   { mode: "walk", label: "Walk" },
   { mode: "transit", label: "Public transport" },
   { mode: "drive", label: "Drive" },
+  { mode: "cycle", label: "Cycle" },
 ];
 
 /**

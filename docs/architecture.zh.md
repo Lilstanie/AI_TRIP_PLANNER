@@ -74,10 +74,9 @@ supervisor 只选择某个节点需要哪些 specialist 工具。控制路径、
 
 Web 工作区的地点搜索、地点详情、地点照片、行程段路线、从旅行者当前位置出发的路线以及目的地时区，
 都通过 `apps/web/lib/map-provider/` 中的同一个 `MapProvider` 接口完成。Google Maps Platform 优先应答。
-Google 无法应答时，改由基于 OpenStreetMap 的免费提供方应答。它的步行和驾车路线以及时区已可用（工单 #273）；
-它的搜索和详情（#272）、照片（#275）和公共交通（#276）由规格 #270 的后续工单实现，在此之前它们报告自身不可用，
-因此旅行者看到的仍是 Google 自己的失败。
-[决策记录](../.agents/notes/implemented/architecture/2026-10-09-web-map-provider-fallback.md)说明了原因。
+Google 无法应答时，改由基于 OpenStreetMap 的免费提供方应答：Photon/Nominatim 提供搜索和详情，Commons
+提供可选的许可照片，OSRM 提供步行、骑行及驾车，Transitous 提供公共交通，坐标在离线状态下解析时区。
+[完成决策](../.agents/notes/implemented/architecture/2026-10-10-complete-map-fallback.md)记录了边界。
 
 - **不可用**指：没有 `MAPS_API_KEY`；Google 拒绝访问（401、403、无效密钥、API 已停用或未开通结算）；
   配额耗尽（429，或 Time Zone 返回 `OVER_QUERY_LIMIT`）；Google 服务端错误（5xx）；超时或网络故障。
@@ -104,7 +103,9 @@ Google 无法应答时，改由基于 OpenStreetMap 的免费提供方应答。�
   `https://routing.openstreetmap.de/routed-foot`，即 FOSSGIS 的步行实例），驾车请求 `OSRM_BASE_URL`
   （默认 `https://router.project-osrm.org`）。公共演示服务器只提供汽车路线，并忽略请求的配置，因此绝不用于步行。
   两个基础 URL 都可以指向自建或付费的 OSRM 实例。
-- **不提供骑行。**路段只有三种方式（步行、公共交通、驾车）；增加骑行方式会改变共享的路段契约，因此等待路段方式的单独扩展。
+- **骑行**使用 `OSRM_BIKE_BASE_URL` 的自行车（bike）配置（默认
+  `https://routing.openstreetmap.de/routed-bike`），与步行和驾车实例独立。
+  时间线将所选方式保存为 `cycle`；Google 可用时收到 `BICYCLE`。
 - **公共交通**使用 Transitous/MOTIS `GET /api/v6/plan`，发送坐标和出发时刻。只有包含公共交通路段的方案才提供时长；仅步行的结果表示没有路线。空结果和服务故障都不会变成估算公交时间。Transitous 应答带有 `source: "transitous"`，界面链接其数据来源。
 - **来源标注：**由 OSRM 应答的路线带有 `source: "osrm"`，时间线上的时间标为 `OSRM`（Google 的时间标为 `Google`）。
   从旅行者当前位置出发的路线在地图上标为 `OSRM routes`。已保存在行程中的路段不保留服务标签，因为 `arriveBy` 没有提供方字段，
@@ -439,6 +440,6 @@ specialist 与编排、端口与适配器、带用例的类模型、综合架构
 
 浏览器先尝试 Google；密钥、SDK 或授权失败时，加载 MapLibre 和 OpenFreeMap 矢量瓦片。明确选择 OSM 会跳过 Google。两个渲染器共用取景、编号标记、选择、附近路线、响应式调整和主题控制；卫星图仅适用于 Google。MapLibre worker 在本地打包。模拟回退地图使用不请求瓦片的本地样式。
 
-Photon 搜索限定在已解析的目的地范围内。Photon 失败时使用 Nominatim；有效空结果保持为空。中文请求使用 Nominatim 并携带 `accept-language=zh`。Nominatim 搜索和详情共用进程级队列，请求启动间隔至少一秒，成功结果缓存十分钟，并发送项目联系信息。多实例部署需要共享限流器或自建端点。相关设置为 `PHOTON_BASE_URL`、`NOMINATIM_BASE_URL` 和 `OSM_USER_AGENT`。
+Photon 搜索限定在已解析的目的地范围内。Photon 失败时使用 Nominatim；有效空结果保持为空。中文请求使用 Nominatim 并携带 `accept-language=zh`。Nominatim 搜索和详情共用进程级队列，请求启动间隔至少一秒，成功结果缓存十分钟，并发送项目联系信息。地点详情也接收界面语言，缓存键包含该语言。多实例部署需要共享限流器或自建端点。相关设置为 `PHOTON_BASE_URL`、`NOMINATIM_BASE_URL` 和 `OSM_USER_AGENT`。
 
 OSM 卡片只展示已有的地址、分类、营业时间、网站和电话，并注明 OSM 来源，不显示评分。带标签的 Wikimedia 文件或 Wikidata P18 图片是可选项，必须有作者、许可和许可链接。照片失败时保留完整文字卡片。照片名称和元数据仅留在内存中。已保存站点只保留提供方 ID 及 `savedPlace` 名称、地址和坐标，因此 Google 不可用时仍能显示 Google 站点并按坐标规划路线。
