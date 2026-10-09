@@ -17,6 +17,8 @@ export type Answered<T> = { value: T; source: MapProviderId };
 
 export type PlaceSearch = {
   text: string;
+  /** Typing suggestions: must never reach Nominatim, whose policy forbids autocomplete. */
+  autocomplete?: boolean;
   /** The trip's destination, to narrow the search to it ("To-ji Temple" + "Kyoto"). */
   destination?: string;
   /** The interface language (`en`, `zh`), for providers that can name places in it. */

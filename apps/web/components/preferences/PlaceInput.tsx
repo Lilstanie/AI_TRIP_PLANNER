@@ -41,7 +41,11 @@ export function usePlaceSuggestions(query: string, enabled: boolean) {
         const response = await fetch("/api/places/search", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text, ...(locale === "zh" ? { language: locale } : {}) }),
+          body: JSON.stringify({
+            text,
+            autocomplete: true,
+            ...(locale === "zh" ? { language: locale } : {}),
+          }),
           signal: controller.signal,
         });
         if (!response.ok) throw new Error("lookup failed");

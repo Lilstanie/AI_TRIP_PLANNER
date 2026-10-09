@@ -17,6 +17,9 @@ timeline shows a keyed stale-plan Notice. Loading a fresh plan permits work agai
 OSM details receive `language`, defaulting to English. Provider caches include the language; browser
 lookups track both data mode and language and refetch a saved ID after either changes. Manual
 replacement searches also carry locale and data mode; preference suggestions key their cache by locale.
+Typing requests carry `autocomplete: true`. The free provider answers them through Photon only;
+unsupported Chinese suggestions or a Photon failure return no suggestions, never Nominatim. Explicit
+searches still use the language-aware Nominatim path. This enforces its no-autocomplete policy.
 
 Extend the shared `TravelModes` with `cycle`, preserving all existing modes. The leg chooser maps it
 to Google's `BICYCLE` or the independent OSRM bike instance configured by `OSRM_BIKE_BASE_URL`.

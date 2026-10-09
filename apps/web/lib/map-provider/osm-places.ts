@@ -105,6 +105,15 @@ export function osmPlaces(fetcher?: ProviderFetch) {
     });
   }
   async function search(query: PlaceSearch): Promise<MapPlace[]> {
+    if (query.autocomplete) {
+      // Photon has no Chinese index here; typing never falls back to Nominatim in any language.
+      if (query.language === "zh") return [];
+      try {
+        return await photon(query);
+      } catch {
+        return [];
+      }
+    }
     let bounds: number[] | undefined;
     if (query.destination && query.destination !== query.text) {
       const city = (await search({ text: query.destination, language: query.language }))[0];

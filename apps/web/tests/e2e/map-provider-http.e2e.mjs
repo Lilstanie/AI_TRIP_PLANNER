@@ -120,6 +120,14 @@ try {
     ),
     "Nominatim keeps bounds and language",
   );
+  // Failure inventory: debounced suggestions must never reach Nominatim, even when Photon fails.
+  const beforeSuggestions = calls.filter((c) => c.path === "/search").length;
+  await post("/api/places/search", { text: "suggest-outage", autocomplete: true });
+  await post("/api/places/search", { text: "中文建议", language: "zh", autocomplete: true });
+  check(
+    calls.filter((c) => c.path === "/search").length === beforeSuggestions,
+    "autocomplete never falls back to Nominatim",
+  );
   const concurrent = await Promise.all(
     [22, 23, 24].map((id) => post("/api/places/details", { placeId: `osm:node/${id}` })),
   );

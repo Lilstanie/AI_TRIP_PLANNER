@@ -399,6 +399,8 @@ Deletes the account's rows, then the Clerk user. If Clerk fails after the rows a
 - Trip plan and its unresolved conflicts: `packages/shared/src/plan.ts`
 - Specialist contract: `packages/shared/src/agent.ts`
 
+Place search accepts `autocomplete: true` for typing suggestions. The free provider uses Photon only; unsupported languages or a Photon failure return an empty list, never Nominatim. Explicit searches omit the flag.
+
 Place search and details accept optional `language: "en" | "zh"`; OSM details default to English and cache separately by language. Leg edits accept `mode: "cycle"`, saved as `arriveBy.mode: "cycle"`, with route mode `BICYCLE`. OSM cards have no rating; optional
 `source`, `osmUri`, `websiteUri`, `phone`, `openingHours` and photo license fields are web-only details.
 Only `savedPlace` name/address/coordinates are persisted with an activity. OSM routes name OSRM or
