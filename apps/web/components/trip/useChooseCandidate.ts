@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { TripPlan } from "@trip/shared";
 import { NoticeError, type Notice } from "@/lib/i18n/notice";
-import type { PlanRevisions } from "./plan-revision";
+import { PLAN_CHANGED, type PlanRevisions } from "./plan-revision";
 
 /**
  * Swap a stay or fare for one the specialist already found.
@@ -27,8 +27,9 @@ export function useChooseCandidate(
   const [problem, setProblem] = useState<Notice>();
   const request = useRef<AbortController | undefined>(undefined);
 
-  // Any newer plan, another trip's included, makes an in-flight swap stale.
-  useEffect(() => () => request.current?.abort(), [plan]);
+  // A swap in flight when the plan changes is judged when it answers: the plan revision owner refuses it as stale
+  // and the chooser says so. It is only abandoned when the chooser itself goes away.
+  useEffect(() => () => request.current?.abort(), []);
 
   async function choose(section: string, selectionId: string, candidateId: string) {
     // The server checks the section name and answers an unknown one with its own notice.
@@ -47,6 +48,7 @@ export function useChooseCandidate(
       // Refused, or stale: the swap is not applied and the traveller is told why.
       if (result.kind === "refused")
         setProblem(result.blockers[0] ?? { key: "That change could not be made." });
+      else if (result.kind === "stale") setProblem(PLAN_CHANGED);
     } catch (error) {
       if (!controller.signal.aborted)
         setProblem(

@@ -56,6 +56,17 @@ export type SessionState = {
    * when there was no earlier plan, after a timeline edit, and once it is dismissed.
    */
   estimateChange: number | undefined;
+  /**
+   * True while a change the traveller made on the timeline is in the plan: set when the timeline applies a change,
+   * cleared when it is undone or a chat plan replaces the trip. Kept here, not in the timeline, so it survives the
+   * Trip drawer closing. Undefined otherwise.
+   */
+  timelineChanged?: boolean;
+  /**
+   * Set by a chat replan that replaced a change the traveller made on the timeline, so the change is not kept
+   * silently. Undefined otherwise, and once it is dismissed.
+   */
+  replacedChange?: boolean;
 };
 
 /**
@@ -118,7 +129,11 @@ export type SessionEvent =
   /** The traveller closed the question card without answering. */
   | { kind: "dismissed" }
   /** The traveller closed the estimate-change notice. */
-  | { kind: "estimateDismissed" };
+  | { kind: "estimateDismissed" }
+  /** A change on the timeline was applied, or undone (see `timelineChanged`). */
+  | { kind: "timelineChanged"; changed: boolean }
+  /** The traveller closed the notice that a chat replan replaced their timeline change. */
+  | { kind: "replacedDismissed" };
 
 /** The first progress line of every turn, shown before the server says anything. */
 export const PREPARING: AgentProgressEvent = {
@@ -242,12 +257,20 @@ export function session(state: SessionState, event: SessionEvent): SessionState 
       };
     case "estimateDismissed":
       return { ...state, estimateChange: undefined };
+    case "timelineChanged":
+      if (!!state.timelineChanged === event.changed) return state;
+      return { ...state, timelineChanged: event.changed || undefined };
+    case "replacedDismissed":
+      return { ...state, replacedChange: undefined };
     case "planned":
       return {
         ...replied(state, reply(event.reply, event.transcript, event.at)),
         previousTotal: state.plan?.estTotal,
         // The change is measured from the plan the chat replaced; a first plan has nothing to compare.
         estimateChange: state.plan ? event.plan.estTotal - state.plan.estTotal : undefined,
+        // A timeline change still in the plan is replaced by this one, and the traveller is told so.
+        replacedChange: state.timelineChanged && state.plan ? true : undefined,
+        timelineChanged: undefined,
         plan: identifyActivities(event.plan),
         draft: draftFor(event.plan.brief),
         selectedActivity: undefined,

@@ -617,11 +617,14 @@ export const WORKSPACE_ZH = {
     "只有已安排到某一天的站点才能提前或推后。",
   "This is already the first stop of its day.": "这已是当天的第一个站点。",
   "This is already the last stop of its day.": "这已是当天的最后一个站点。",
-  "Day {day}: confirm the place for every stop first, so travel times between them can be checked.":
-    "第 {day} 天：请先确认每个站点的地点，才能核查站点间的交通时间。",
+  "Day {day}: confirm the place for {stop} first, so its travel time can be checked.":
+    "第 {day} 天：请先确认 {stop} 的地点，才能核查其交通时间。",
   "Day {day}: {stop} needs at least {minutes} minutes after the previous activity.":
     "第 {day} 天：{stop} 需与上一项活动至少间隔 {minutes} 分钟。",
-  "Day {day}: activity would extend beyond the day.": "第 {day} 天：活动将超出当天时间。",
+  "Day {day}: {stop} would extend beyond the day.": "第 {day} 天：{stop} 将超出当天时间。",
+  "{stop}: {reason}": "{stop}：{reason}",
+  "The new plan replaced your last change to the timeline.":
+    "新行程替换了你在时间线上的最后一次修改。",
   "This edit is stale. Start from the current plan.": "此修改已过时，请基于当前行程重新修改。",
   "The plan changed while this change was being checked. Try the change again.":
     "此修改检查期间行程已变化，请重新尝试此修改。",

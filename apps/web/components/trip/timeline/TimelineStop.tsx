@@ -92,8 +92,11 @@ export function TimelineStop({
   onSelect(): void;
   /** Selects this stop without toggling it, for the menu's forms. */
   onOpen(): void;
-  /** Applies a client-side item action; false when it was refused (the refusal is shown above). */
-  onItem(action: ItemAction, message: Notice): boolean;
+  /**
+   * Applies an item action: at once in the browser, or once the server has checked it. Resolves to false when it
+   * was refused (the refusal is shown above the timeline).
+   */
+  onItem(action: ItemAction, message: Notice): boolean | Promise<boolean>;
 }) {
   const { t, money, notice: localizeNotice } = useLocale();
   const id = activity.id!;
@@ -134,9 +137,11 @@ export function TimelineStop({
     setPanel("");
     mainButton.current?.focus({ preventScroll: true });
   };
-  // Moves and Ideas apply in the browser, as the Itinerary list did; time and place go to the server.
+  // The panel closes once the action is applied; a refused one keeps the panel open with the refusal above.
   const act = (action: ItemAction, message: Notice) => {
-    if (onItem(action, message)) closePanel();
+    void Promise.resolve(onItem(action, message)).then((done) => {
+      if (done) closePanel();
+    });
   };
   const moveTo = (direction: -1 | 1) =>
     onItem(

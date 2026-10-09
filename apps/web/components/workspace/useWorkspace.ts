@@ -359,6 +359,9 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
       trackEdit: (pending: boolean) => setEditPending(pending),
       dismissAsk: () => dispatch({ kind: "dismissed" }),
       dismissEstimate: () => dispatch({ kind: "estimateDismissed" }),
+      /** A change on the timeline was applied, or undone; a chat replan that follows says it replaced the change. */
+      setTimelineChanged: (changed: boolean) => dispatch({ kind: "timelineChanged", changed }),
+      dismissReplaced: () => dispatch({ kind: "replacedDismissed" }),
       cancel: () => active.current?.abort(),
     },
     layout: {
@@ -411,6 +414,7 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
       selectedActivity,
       mapRoutes: state.mapRoutes,
       estimateChange: state.estimateChange,
+      replacedChange: state.replacedChange,
       editPending,
       blank,
       dataMode,
