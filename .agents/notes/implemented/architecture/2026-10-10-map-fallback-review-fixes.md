@@ -15,7 +15,8 @@ plan is a terminal failure for background work: the revision owner stops offerin
 timeline shows a keyed stale-plan Notice. Loading a fresh plan permits work again.
 
 OSM details receive `language`, defaulting to English. Provider caches include the language; browser
-lookups track both data mode and language and refetch a saved ID after either changes.
+lookups track both data mode and language and refetch a saved ID after either changes. Manual
+replacement searches also carry locale and data mode; preference suggestions key their cache by locale.
 
 Extend the shared `TravelModes` with `cycle`, preserving all existing modes. The leg chooser maps it
 to Google's `BICYCLE` or the independent OSRM bike instance configured by `OSRM_BIKE_BASE_URL`.
@@ -23,7 +24,8 @@ The default is `https://routing.openstreetmap.de/routed-bike`; neither foot nor 
 cycling. Existing plans remain valid and Undo keeps the chosen mode. HTTP timeout/contact handling
 and successful-answer caching are shared with other free providers; concurrent identical legs coalesce.
 
-This partly supersedes [the completed fallback decision](2026-10-10-complete-map-fallback.md).
+This partly supersedes [the completed fallback decision](2026-10-10-complete-map-fallback.md)
+and the cycling restriction in [the original OSRM decision](2026-10-09-osrm-routes-offline-time-zone.md).
 It also partly supersedes [the photo decision](../feature/2026-09-24-place-photos.md): OSM-linked
 Commons photos require author, license and license link; without one the OSM card omits the photo
 slot. Google cards retain their category-icon fallback. Neither path persists photo data.

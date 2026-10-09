@@ -415,6 +415,7 @@ async function main() {
       await page.evaluate(() => document.documentElement.scrollWidth === innerWidth),
       "phone cycling controls do not overflow",
     );
+    await page.locator(".timeline-connection__mode").first().scrollIntoViewIfNeeded();
     await page.screenshot({ animations: "disabled", path: resolve(OUT, "cycling-phone.png") });
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.getByRole("button", { name: "Close your trip" }).click();
@@ -453,6 +454,38 @@ async function main() {
     await page
       .getByRole("region", { name: "Trip timeline" })
       .screenshot({ path: resolve(OUT, "timeline-desktop.png") });
+    // Failure inventory: the manual replacement path drops the locale or mock/live context.
+    await page.getByRole("button", { name: "Switch language to 简体中文" }).click();
+    let manualSearch;
+    await page.route("**/api/places/search", async (route) => {
+      const data = route.request().postDataJSON();
+      if (data.text !== "manual-localized-place") return route.fallback();
+      manualSearch = { ...data, dataMode: route.request().headers()["x-trip-data-mode"] };
+      await route.fulfill({
+        json: {
+          places: [
+            {
+              ...fixturePlace("To-ji Temple"),
+              displayName: { text: data.language === "zh" ? "东寺候选" : "To-ji candidate" },
+            },
+          ],
+        },
+      });
+    });
+    await page.locator(".timeline-stop__head").nth(1).getByRole("button").last().click();
+    await page.getByRole("menuitem", { name: "更换地点", exact: true }).click();
+    await page.getByPlaceholder("搜索 Google 地图").fill("manual-localized-place");
+    await page.getByRole("button", { name: "搜索", exact: true }).click();
+    await page.locator(".stop-editor__results").waitFor();
+    check(
+      manualSearch?.language === "zh" &&
+        (await page.getByText("东寺候选", { exact: true }).count()) > 0,
+      "manual replacement search keeps Chinese locale",
+    );
+    check(manualSearch?.dataMode === "mock", "manual replacement search preserves mock data mode");
+    summary.manualSearch = manualSearch;
+    await page.screenshot({ path: resolve(OUT, "manual-search-chinese.png") });
+    check(errors.length === 0, `no console errors after manual search (${errors.length})`);
   } finally {
     summary.failures = failures;
     writeFileSync(resolve(OUT, "summary.json"), JSON.stringify(summary, null, 2));

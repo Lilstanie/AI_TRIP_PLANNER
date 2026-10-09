@@ -1,4 +1,6 @@
 "use client";
+import { useLocale } from "@/components/account/LocaleProvider";
+import { dataModeHeaders, type DataMode } from "@/lib/workspace/data-mode";
 import { useEffect, useRef, useState } from "react";
 import { TripPlan } from "@trip/shared";
 import type { GooglePlace, RouteResult } from "@/lib/integrations/google";
@@ -47,6 +49,7 @@ function touchedDays(operation: Operation, activities: TripPlaces["activities"])
  */
 export function useTimelineEdits({
   plan,
+  dataMode,
   activities,
   revisions,
   onPending,
@@ -55,6 +58,7 @@ export function useTimelineEdits({
   onTimelineChange,
 }: {
   plan: TripPlan;
+  dataMode?: DataMode;
   activities: TripPlaces["activities"];
   revisions: PlanRevisions;
   onPending(value: boolean): void;
@@ -65,6 +69,7 @@ export function useTimelineEdits({
   /** An applied edit is a change on the timeline (true); "Undo last change" puts it back (false). */
   onTimelineChange?(changed: boolean): void;
 }) {
+  const { locale } = useLocale();
   const [results, setResults] = useState<GooglePlace[]>([]);
   const [errors, setErrors] = useState<Notice[]>([]);
   const [working, setWorking] = useState<"" | "edit" | "search">("");
@@ -209,8 +214,8 @@ export function useTimelineEdits({
     await run("search", async (signal) => {
       const response = await fetch("/api/places/search", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, destination: plan.brief.destination }),
+        headers: { "Content-Type": "application/json", ...dataModeHeaders(dataMode) },
+        body: JSON.stringify({ text, destination: plan.brief.destination, language: locale }),
         signal,
       });
       const body = await response.json().catch(() => null);

@@ -11,6 +11,10 @@ cars only and ignores the profile it is asked for, so a walk sent there comes ba
 
 ## Decision
 
+The cycling restriction below is partly superseded by the
+[review-fix decision](2026-10-10-map-fallback-review-fixes.md), which adds the shared `cycle` mode
+and an independent bike instance. The profile separation and offline time-zone decisions still apply.
+
 - **Walking and driving only.** Walking asks the foot profile of `OSRM_FOOT_BASE_URL`, defaulting to
   the FOSSGIS foot instance (`https://routing.openstreetmap.de/routed-foot`). Driving asks
   `OSRM_BASE_URL`, defaulting to the demo server, which is correct for cars. Each profile has its own

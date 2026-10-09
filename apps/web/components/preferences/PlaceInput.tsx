@@ -18,6 +18,7 @@ export type PlaceSuggestion = { id: string; name: string; address?: string };
  * shows nothing: typing the name by hand always works.
  */
 export function usePlaceSuggestions(query: string, enabled: boolean) {
+  const { locale } = useLocale();
   const [results, setResults] = useState<PlaceSuggestion[]>([]);
   const cache = useRef(new Map<string, PlaceSuggestion[]>());
   const text = query.trim();
@@ -28,7 +29,7 @@ export function usePlaceSuggestions(query: string, enabled: boolean) {
       setResults([]);
       return;
     }
-    const key = text.toLowerCase();
+    const key = `${locale}:${text.toLowerCase()}`;
     const cached = cache.current.get(key);
     if (cached) {
       setResults(cached);
@@ -40,7 +41,7 @@ export function usePlaceSuggestions(query: string, enabled: boolean) {
         const response = await fetch("/api/places/search", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text }),
+          body: JSON.stringify({ text, ...(locale === "zh" ? { language: locale } : {}) }),
           signal: controller.signal,
         });
         if (!response.ok) throw new Error("lookup failed");
@@ -62,7 +63,7 @@ export function usePlaceSuggestions(query: string, enabled: boolean) {
       controller.abort();
       window.clearTimeout(timer);
     };
-  }, [active, text]);
+  }, [active, text, locale]);
 
   return active ? results : [];
 }

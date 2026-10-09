@@ -108,6 +108,7 @@ export function TripEditor({
   const { activities, itinerary, places, placeIdFor, locationStatus } = tripPlaces;
   const edits = useTimelineEdits({
     plan,
+    dataMode: tripPlaces.dataMode,
     activities,
     revisions,
     onPending,
