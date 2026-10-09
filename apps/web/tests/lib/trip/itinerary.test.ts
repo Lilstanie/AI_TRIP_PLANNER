@@ -178,7 +178,7 @@ describe("timeline moves through the edit preview", () => {
   const routes = () => ({
     placeDetails: vi.fn(async (id: string) => place(id)),
     timeZone: vi.fn(async () => "Australia/Sydney"),
-    googleRoute: vi.fn(async (from: string, to: string, _departure: string, mode: RouteMode) => ({
+    route: vi.fn(async (from: string, to: string, _departure: string, mode: RouteMode) => ({
       from,
       to,
       mode,

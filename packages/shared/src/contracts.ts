@@ -80,6 +80,7 @@ export const TravelModes = [
   "tram",
   "ferry",
   "drive",
+  "cycle",
 ] as const;
 export const TravelMode = z.enum(TravelModes);
 export type TravelMode = z.infer<typeof TravelMode>;
@@ -187,6 +188,17 @@ export const ProposalItem = z
   .object({
     id: z.string().min(1).optional(),
     placeId: z.string().min(1).optional(),
+    /** Minimal saved display and coordinates; fresh provider details and photo names stay in memory. */
+    savedPlace: z
+      .object({
+        name: z.string(),
+        address: z.string().optional(),
+        location: z.object({
+          latitude: z.number().min(-90).max(90),
+          longitude: z.number().min(-180).max(180),
+        }),
+      })
+      .optional(),
     priceNeedsReview: z.boolean().optional(),
     kind: z.string(), // "transport" | "hotel" | "activity" | "meal" | "note" ...
     detail: z.string(),

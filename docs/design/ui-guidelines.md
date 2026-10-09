@@ -95,15 +95,15 @@ Region swaps (another chat or trip, the Your trips page, the phone Chat/Map swit
 
 ### Place photos
 
-Photos are allowed only as **content about a specific place**, and only when they come from that place's data provider (Google Places). They may appear in place cards, place previews and place detail, as itinerary and place-list thumbnails, and as photo markers on the map. They are never decorative: no hero banners, no page or panel backgrounds, no stock or generated imagery.
+Photos are allowed only as **content about a specific place**, and only when they come from that place's data provider (Google Places, or an OSM-linked Commons file with author, license and license link). They may appear in place cards, place previews and place detail, as itinerary and place-list thumbnails, and as photo markers on the map. They are never decorative: no hero banners, no page or panel backgrounds, no stock or generated imagery.
 
 - Show the attribution the provider's terms require, such as Google's author attributions for a place photo. Persist only the place ID. Never store photo names or image bytes, because Google forbids caching photo names and they expire; fetch the names fresh from a Places response each time photos are shown.
-- Every photo slot has a fixed aspect ratio so nothing shifts while images load. It loads lazily, and without a photo it shows the place's category icon on `--surface-2`.
+- Every photo slot has a fixed aspect ratio so nothing shifts while images load. It loads lazily, and without a Google photo it shows the place's category icon on `--surface-2`. OSM cards without a usable licensed photo omit the photo slot and keep the text details.
 - Photos use the radius of their container and a 1px inner hairline (`--border`). Text never sits directly on a photo; captions sit below it or on a glass or opaque chip.
 - Alt text is the place name, or empty when the name is visible next to the photo.
-- Photo requests count against provider quota and follow the provider rules in the [add-provider skill](../../.agents/skills/add-provider/SKILL.md). Mock mode serves the fallback state, never a network photo.
+- Photo requests count against provider quota and follow the provider rules in the [add-provider skill](../../.agents/skills/add-provider/SKILL.md). Mock mode serves a local fixture or the fallback state, never a network photo.
 
-The [place photos Agent Note](../../.agents/notes/implemented/feature/2026-09-24-place-photos.md) explains the scope. The map's place preview is the first surface that shows them.
+The [place photos Agent Note](../../.agents/notes/implemented/feature/2026-09-24-place-photos.md) explains the Google scope; the [fallback review decision](../../.agents/notes/implemented/architecture/2026-10-10-map-fallback-review-fixes.md) adds the OSM exception. The map's place preview is the first surface that shows them.
 
 ## Shapes
 

@@ -1,4 +1,5 @@
 "use client";
+import { dataModeHeaders } from "@/lib/workspace/data-mode";
 import { useLocale } from "@/components/account/LocaleProvider";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -7,7 +8,7 @@ import { errorNotice, failureNotice, NoticeError, type Notice } from "@/lib/i18n
 import { MapViewController } from "@/lib/map/map-view";
 import { dayRoutes, type RouteStop } from "@/lib/map/itinerary-route";
 import { PlacePreview } from "./PlacePreview";
-import { framable, loadMaps, type MapMarker, type MapRuntime } from "./google-maps-sdk";
+import { framable, type MapMarker, type MapRuntime } from "./google-maps-sdk";
 import {
   declutterLabels,
   drawItineraryRoutes,
@@ -19,6 +20,8 @@ import {
 import type { UserLocation } from "./useUserLocation";
 import { LayersIcon, LocateIcon, MinusIcon, PlusIcon } from "../ui/icons";
 import { useSettings } from "../account/SettingsProvider";
+
+import { loadRenderer } from "./map-renderer";
 
 type Coordinate = { lat: number; lng: number };
 
@@ -52,6 +55,9 @@ function useMediaQuery(query: string) {
 }
 
 export function TripMap({
+  mockData = false,
+  forceOsmProvider = false,
+  allowOsmFallback = true,
   stops,
   selected,
   onSelect,
@@ -64,6 +70,9 @@ export function TripMap({
   phone = false,
   focusRequest,
 }: {
+  mockData?: boolean;
+  forceOsmProvider?: boolean;
+  allowOsmFallback?: boolean;
   /** Located stops in visiting order; each becomes a labelled marker. */
   stops: MapStop[];
   phone?: boolean;
@@ -94,6 +103,7 @@ export function TripMap({
   const [error, setError] = useState<Notice>();
   const [loading, setLoading] = useState(true);
   const [retry, setRetry] = useState(0);
+  const [forceOsm, setForceOsm] = useState(false);
   const [runtime, setRuntime] = useState<MapRuntime>();
   const [closedFor, setClosedFor] = useState<string>();
   const [satellite, setSatellite] = useState(false);
@@ -171,12 +181,23 @@ export function TripMap({
     const listeners: { remove(): void }[] = [];
     setError(undefined);
     setLoading(true);
-    void loadMaps()
-      .then((maps) => {
+    let created: MapRuntime | undefined;
+    const host = window as unknown as { gm_authFailure?: () => void };
+    const previousAuthFailure = host.gm_authFailure;
+    host.gm_authFailure = () => {
+      if (allowOsmFallback) setForceOsm(true);
+      else setError({ key: "The map could not load. Try again." });
+      previousAuthFailure?.();
+    };
+    const mock = mockData;
+    void loadRenderer(forceOsm || forceOsmProvider, allowOsmFallback)
+      .then(({ maps, provider }) => {
         if (disposed || !root.current) return;
         const start = positions(initialFocus.current)[0];
         const map = new maps.Map(root.current, {
           // Created only once the trip has somewhere to show, never as a tiled world map.
+          dark,
+          mock,
           center: start ?? { lat: 0, lng: 0 },
           zoom: start ? 12 : 3,
           // Our own glass controls (locate, map type, zoom) sit bottom-right, as on Mindtrip and
@@ -193,7 +214,9 @@ export function TripMap({
           colorScheme: "FOLLOW_SYSTEM",
           mapId: process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || "DEMO_MAP_ID",
         });
-        const next = { maps, map };
+        const next = { maps, map, provider };
+        created = next;
+        root.current.dataset.provider = provider;
         view.current = new MapViewController(framable(next, moving));
         const userMoved = () => {
           if (!moving.current) view.current?.markUserMoved();
@@ -204,6 +227,7 @@ export function TripMap({
         };
         labels();
         listeners.push(
+          map.addListener("error", () => setError({ key: "The map could not load. Try again." })),
           map.addListener("dragstart", () => view.current?.markUserMoved()),
           map.addListener("zoom_changed", () => {
             userMoved();
@@ -219,17 +243,25 @@ export function TripMap({
       })
       .catch((cause: unknown) => {
         if (!disposed) {
-          setError(errorNotice(cause, { key: "Google Maps could not load." }));
+          setError(errorNotice(cause, { key: "The map could not load. Try again." }));
           setLoading(false);
         }
       });
     return () => {
       disposed = true;
       listeners.forEach((listener) => listener.remove());
+      created?.map.destroy?.();
+      host.gm_authFailure = previousAuthFailure;
       view.current = null;
       setRuntime(undefined);
     };
-  }, [retry]);
+    // The renderer is created once; appearance updates below preserve the camera.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [retry, forceOsm, forceOsmProvider, mockData, allowOsmFallback]);
+
+  useEffect(() => {
+    if (runtime?.provider === "osm") runtime.map.setOptions({ dark });
+  }, [runtime, dark]);
 
   // Frame the trip: destination first, then its places once. Never on unrelated re-renders.
   const destinationKey = destinations.map((place) => place.id).join("|");
@@ -256,6 +288,7 @@ export function TripMap({
       if (!center) return;
       frame = requestAnimationFrame(() => {
         // A map shown after being hidden (the phone Chat/Map switch) lays its labels out now.
+        runtime.map.resize?.();
         declutterRef.current();
         moving.current = true;
         runtime.map.setCenter({ lat: center.lat(), lng: center.lng() });
@@ -444,11 +477,15 @@ export function TripMap({
       const response = await fetch("/api/routes/from-location", {
         signal: controller.signal,
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...dataModeHeaders(mockData ? "mock" : "live"),
+        },
         body: JSON.stringify({
           latitude: location.position.lat,
           longitude: location.position.lng,
           placeId: selected,
+          toLocation: selectedStop?.place.location,
           mode,
         }),
       });
@@ -462,7 +499,7 @@ export function TripMap({
         notice: errorNotice(cause, { key: "Route lookup failed." }),
       });
     }
-  }, [location, mode, selected]);
+  }, [location, mode, selected, selectedStop, mockData]);
 
   return (
     <section
@@ -475,8 +512,8 @@ export function TripMap({
         closePopup();
       }}
     >
-      <div ref={root} className="google-map" aria-label={t("Google activity map")} tabIndex={-1} />
-      {loading && <p role="status">{t("Loading Google Maps…")}</p>}
+      <div ref={root} className="google-map" aria-label={t("Trip map")} tabIndex={-1} />
+      {loading && <p role="status">{t("Loading map…")}</p>}
       {popupOpen && selectedStop && (
         <div
           ref={popup}
@@ -533,7 +570,7 @@ export function TripMap({
           aria-pressed={satellite}
           data-tooltip-left={t(satellite ? "Map view" : "Satellite view")}
           onClick={toggleSatellite}
-          disabled={!runtime}
+          disabled={!runtime || runtime.provider === "osm"}
         >
           <LayersIcon />
         </button>
@@ -567,7 +604,15 @@ export function TripMap({
       </p>
       {nearbyRoute?.status === "ok" && (
         <p className="trip-map-location-status" role="status">
-          {t("Google Routes verified ·")}
+          {nearbyRoute.source === "transitous" ? (
+            <a href="https://transitous.org/sources/" target="_blank" rel="noreferrer">
+              Transitous ·
+            </a>
+          ) : nearbyRoute.source === "osrm" ? (
+            t("OSRM routes ·")
+          ) : (
+            t("Google Routes verified ·")
+          )}
           {nearbyRoute.mode === "WALK" ? t("Walking") : t("Public transit")} ·{" "}
           {nearbyRoute.durationMin} {t("min")}
           {nearbyRoute.distanceMeters !== undefined

@@ -108,6 +108,7 @@ export function TripEditor({
   const { activities, itinerary, places, placeIdFor, locationStatus } = tripPlaces;
   const edits = useTimelineEdits({
     plan,
+    dataMode: tripPlaces.dataMode,
     activities,
     revisions,
     onPending,
@@ -270,9 +271,9 @@ export function TripEditor({
           ))}
         </ul>
       )}
-      {!!legs?.problems.length && (
+      {!!(revisions.stale || legs?.problems.length) && (
         <ul className="timeline-status timeline-status--error" role="alert">
-          {legs.problems.map((error, index) => (
+          {(revisions.stale ? [revisions.stale] : legs!.problems).map((error, index) => (
             <li key={index}>{localizeNotice(error)}</li>
           ))}
         </ul>

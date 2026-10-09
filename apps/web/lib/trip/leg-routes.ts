@@ -11,16 +11,27 @@ import type { RouteMode, RouteResult } from "../integrations/google";
 export const WALK_LIMIT_MIN = 20;
 
 /** The modes a traveller can choose for one leg, as `arriveBy.mode` stores them. */
-export const LEG_MODES = ["walk", "transit", "drive"] as const;
+export const LEG_MODES = ["walk", "transit", "drive", "cycle"] as const;
 export type LegMode = (typeof LEG_MODES)[number];
 
-const ROUTE_MODE: Record<LegMode, RouteMode> = { walk: "WALK", transit: "TRANSIT", drive: "DRIVE" };
+const ROUTE_MODE: Record<LegMode, RouteMode> = {
+  walk: "WALK",
+  transit: "TRANSIT",
+  drive: "DRIVE",
+  cycle: "BICYCLE",
+};
 
 export const routeModeOf = (mode: LegMode): RouteMode => ROUTE_MODE[mode];
 
 /** The stored mode of a route, in `arriveBy` spelling. */
 export const legModeOf = (mode: RouteMode): LegMode =>
-  mode === "WALK" ? "walk" : mode === "TRANSIT" ? "transit" : "drive";
+  mode === "WALK"
+    ? "walk"
+    : mode === "TRANSIT"
+      ? "transit"
+      : mode === "BICYCLE"
+        ? "cycle"
+        : "drive";
 
 /**
  * The route mode a stop's leg was last verified with, or undefined when the leg is unrouted or only
@@ -28,7 +39,9 @@ export const legModeOf = (mode: RouteMode): LegMode =>
  */
 export function storedRouteMode(item: ProposalItem): RouteMode | undefined {
   const mode = item.arriveBy?.mode;
-  return mode === "walk" || mode === "transit" || mode === "drive" ? routeModeOf(mode) : undefined;
+  return mode === "walk" || mode === "transit" || mode === "drive" || mode === "cycle"
+    ? routeModeOf(mode)
+    : undefined;
 }
 
 export type LegRouter = (

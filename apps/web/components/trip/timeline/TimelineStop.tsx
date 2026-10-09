@@ -355,6 +355,7 @@ export function TimelineStop({
                   {STATUS_TEXT[status] ? t(STATUS_TEXT[status]!) : ""}
                 </span>
               )}
+              {place?.id.startsWith("osm:") && <span className="timeline-tag">OpenStreetMap</span>}
               {activity.booked && <span className="timeline-tag">{t("Booked")}</span>}
               {activity.priceNeedsReview && (
                 <span className="timeline-tag timeline-tag--warn">{t("Price needs checking")}</span>

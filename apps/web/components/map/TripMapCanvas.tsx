@@ -94,7 +94,7 @@ export function TripMapCanvas({
               : locating
                 ? t("Your itinerary stays available while places load.")
                 : unavailable || destinationsUnavailable
-                  ? t("Google Places is temporarily unavailable. Your plan is unchanged.")
+                  ? t("Map places are temporarily unavailable. Your plan is unchanged.")
                   : t(
                       "Your plan is unchanged. Activities appear once they have a confirmed place.",
                     )}
@@ -112,6 +112,9 @@ export function TripMapCanvas({
   return (
     <section className="trip-map-canvas" aria-label={t("Trip map")}>
       <TripMap
+        mockData={tripPlaces.dataMode === "mock"}
+        forceOsmProvider={tripPlaces.forceOsm}
+        allowOsmFallback={tripPlaces.allowFallback}
         stops={markers}
         phone={phone}
         focusRequest={focusRequest}
@@ -135,7 +138,7 @@ export function TripMapCanvas({
               : [
                   unconfirmed > 0 &&
                     `${unconfirmed} ${unconfirmed === 1 ? "activity has" : "activities have"} no confirmed place yet`,
-                  unavailable > 0 && `${unavailable} could not be loaded from Google Places`,
+                  unavailable > 0 && `${unavailable} could not be loaded from the map service`,
                 ]
                   .filter(Boolean)
                   .join(" · ")}

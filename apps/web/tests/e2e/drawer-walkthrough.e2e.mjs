@@ -397,7 +397,8 @@ async function clickUndo(page) {
   await settle(page, 900);
 }
 
-const dayTab = (page, day) => page.locator(".day-strip [role=tab]").nth(day - 1);
+const dayTab = (page, day) =>
+  page.locator(TRIP_SELECTOR(page)).locator(`.day-strip [data-day="${day}"]`);
 
 /** Plans the simulated trip and opens the drawer at this width and language. */
 async function plan(browser, { width, lang, run }) {

@@ -14,6 +14,10 @@ project already uses can supply photos for the places it returns.
 
 ## Decision
 
+The [fallback review decision](../architecture/2026-10-10-map-fallback-review-fixes.md) partly
+supersedes this decision for OSM-linked Commons photos and their absent-photo state. The Google
+photo rules below remain in effect.
+
 Photos are allowed as **content about a specific place**, sourced only from that place's provider.
 They may appear in place cards, previews and detail, in itinerary and place-list thumbnails, and on
 map markers. Decorative photography stays banned: hero banners, backgrounds, and stock or generated

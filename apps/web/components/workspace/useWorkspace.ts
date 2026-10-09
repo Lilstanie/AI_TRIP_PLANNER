@@ -96,7 +96,15 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
   const preferencesToggle = useRef<HTMLButtonElement>(null);
   const tripToggle = useRef<HTMLButtonElement>(null);
   const navToggle = useRef<HTMLButtonElement>(null);
-  const tripPlaces = useTripPlaces(plan);
+  const dataMode = useDataMode(settings.dataMode === "default" ? undefined : settings.dataMode);
+  const tripPlaces = useTripPlaces(
+    plan,
+    dataMode.mode,
+    locale,
+    dataMode.providers?.webMapsProvider === "osm" ||
+      (dataMode.mode === "mock" && dataMode.providers?.mockGoogleUnavailable),
+    dataMode.providers?.webMapsProvider !== "google",
+  );
   const { itinerary } = tripPlaces;
   const { storageError, storageEnabled, saveState, setStorageError, setStorageEnabled, flushSave } =
     useWorkspaceStorage({
@@ -169,7 +177,6 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
       typeof fact === "string" ? (fact as FactKey) : (firstMissingFact(draft) ?? "preferences"),
     );
   }
-  const dataMode = useDataMode(settings.dataMode === "default" ? undefined : settings.dataMode);
   // Files held for the next message. In memory only: a reload drops them, the
   // same way an unanswered question card is dropped.
   const composerAttachments = useComposerAttachments();

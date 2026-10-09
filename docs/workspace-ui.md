@@ -416,8 +416,8 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   - Descriptive activity text and mock placeholders (“Mock attraction near …”) are never sent to
     Places, and nothing is invented.
   - Destination cities (split on `&`) are looked up separately for framing.
-  - Results are applied one by one and stay in memory; provider details and coordinates are not
-    persisted.
+  - Results are applied one by one. Photo metadata stays in memory; saved stops keep only
+    their name, address and coordinates in `savedPlace` alongside their provider ID.
 - **Failure handling.**
   - Activities without a usable name or a Google match are “no confirmed place yet”; the timeline
     shows “Location to be confirmed”.
@@ -577,7 +577,7 @@ moves. Details, notes and booked apply in the browser. The checks are determinis
   a day's legs are checked once every stop on it has a confirmed place, including a day whose stops
   already carry the planner's arrival times. That check also runs on each reload, because a stored leg is
   only an estimate until it is checked. A day is asked again whenever an applied edit changes its stops or times. Changing one leg's mode (a select with Walk, Public transport or
-  Drive; "Not checked yet" until the leg has a mode) routes that leg alone; the rest of the day is
+  Drive or Cycle; "Not checked yet" until the leg has a mode) routes that leg alone; the rest of the day is
   re-timed with the stored times of its other legs. The chosen mode is kept through later re-timing,
   and Undo restores the previous mode. A leg the traveller has not chosen walks when the walk takes
   20 minutes or less, and otherwise uses public transport when the provider finds one.
@@ -619,7 +619,10 @@ moves. Details, notes and booked apply in the browser. The checks are determinis
   and hotel decisions. Undo revalidates instead of restoring old approvals. Chat replanning replaces
   manual activities.
 - Routes use real local departure times from the Google Time Zone API; ambiguous or nonexistent DST
-  times are rejected. Transit queries respect Google's supported departure window.
+  times are rejected. When that call fails, the zone is worked out offline from the place's coordinates.
+  Transit queries respect Google's supported departure window.
+- Each travel time says which service gave it: `Google`, `Transitous` for public transport, or `OSRM` for a walk, cycle or drive answered by the
+  free fallback (see [Routes and time zones without Google](architecture.md#routes-and-time-zones-without-google)).
 - A hop with no Google transit answer (Japan has no transit data) or with transit over 90 minutes and
   more than twice the driving time is returned as a driving leg (`mode: "drive"`) and says so, rather
   than reported as unroutable. A hop between two trip cities first tries Google Maps transit through
@@ -657,7 +660,11 @@ runner's own summary is `output/e2e/runner/<time>.json`. Set `LABEL` to name the
 | `NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID`  | Browser: vector map ID for advanced markers (falls back to `DEMO_MAP_ID`) |
 
 Restrict the browser key by HTTP referrer and the server key by API. Map loading never delays the
-first render; without a browser key the map shows a fallback and the itinerary stays usable.
+first render; without a browser key the map loads MapLibre/OpenFreeMap and the itinerary stays usable.
+
+Without Google, walking and driving times come from OSRM: `OSRM_FOOT_BASE_URL` (default the FOSSGIS
+foot instance) for walking and `OSRM_BASE_URL` (default `router.project-osrm.org`, cars only) for
+driving. Cycling uses `OSRM_BIKE_BASE_URL` (default the FOSSGIS bike instance) and is saved as `cycle`.
 
 ## Agent Lab
 
@@ -917,3 +924,11 @@ location question, the drawer's place list and the place popup;
 Google checks are reported separately in session logs and are never inferred from mocks. The
 historical P0–P3 plan is in [`.agents/archive/p3-implementation.md`](../.agents/archive/p3-implementation.md) and the
 session logs.
+
+OSM place cards show available text details and optional licensed Commons photos, with source and
+photo attribution, and no invented rating. Missing photos leave no empty photo slot. MapLibre keeps
+the same stop selection and framing on desktop and phone. Failed map tiles show a retry notice.
+Same-browser tabs serialize edits and background checks; an old tab must reload before changing a
+plan updated in another tab. Cancelled work does not publish a new plan revision.
+
+A background save or route check refused because another tab changed the plan stops for that plan and shows a stale-plan Notice; it resumes only after a fresh plan is loaded. Place details follow the current interface language, including after a language switch.

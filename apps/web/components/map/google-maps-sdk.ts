@@ -16,6 +16,8 @@ export type MapsSDK = {
     el: HTMLElement,
     options: object,
   ) => {
+    resize?(): void;
+    destroy?(): void;
     fitBounds(bounds: unknown, padding?: number): void;
     panTo(position: Coordinate): void;
     setCenter(position: Coordinate): void;
@@ -40,7 +42,11 @@ export type MapsSDK = {
   geometry: { encoding: { decodePath(value: string): Coordinate[] } };
 };
 
-export type MapRuntime = { maps: MapsSDK; map: InstanceType<MapsSDK["Map"]> };
+export type MapRuntime = {
+  maps: MapsSDK;
+  map: InstanceType<MapsSDK["Map"]>;
+  provider?: "google" | "osm";
+};
 
 let sdk: Promise<MapsSDK> | undefined;
 

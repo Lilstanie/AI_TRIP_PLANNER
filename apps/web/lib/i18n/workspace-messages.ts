@@ -1,5 +1,10 @@
 /** Authored workspace copy only. Traveller, model and provider content remains verbatim. */
 export const WORKSPACE_ZH = {
+  "The map could not load. Try again.": "地图暂时无法加载，请重试。",
+  Website: "官方网站",
+  "Open in OpenStreetMap": "在 OpenStreetMap 中打开",
+  "Map places are temporarily unavailable. Your plan is unchanged.":
+    "地点服务暂时不可用，你的行程未改变。",
   "Open conflicts": "未解决的冲突",
   "The estimate is over the budget. Ask in the chat to cut part of the plan.":
     "估算超出预算。请在聊天中让我削减部分行程。",
@@ -234,6 +239,7 @@ export const WORKSPACE_ZH = {
   "Learned from your chats": "从聊天中了解到的偏好",
   "Use these dates": "使用这些日期",
   "Google Routes verified ·": "Google 路线已验证 ·",
+  "OSRM routes ·": "OSRM 路线 ·",
   ", departing": "，出发",
   "Edit {v0}": "修改{v0}",
   "Accounts are not set up on this site, so your profile stays in this browser.":
@@ -418,6 +424,7 @@ export const WORKSPACE_ZH = {
   Tram: "有轨电车",
   Ferry: "渡轮",
   Drive: "驾车",
+  Cycle: "骑行",
   Fly: "飞行",
   Upcoming: "即将出发",
   Past: "过往行程",
@@ -575,6 +582,7 @@ export const WORKSPACE_ZH = {
   "This saved place is no longer available.": "此已保存地点已不可用。",
   "Google Places is busy. Please retry shortly.": "Google 地点服务繁忙，请稍后重试。",
   "Google Places is temporarily unavailable. Please retry.": "Google 地点服务暂不可用，请重试。",
+  "The map service is temporarily unavailable. Please retry.": "地图服务暂不可用，请重试。",
   "Google Maps is not configured. Add the server MAPS_API_KEY.":
     "未配置 Google 地图。请在服务器上添加 MAPS_API_KEY。",
   "Google request failed ({status}). Please retry.": "Google 请求失败（{status}），请重试。",

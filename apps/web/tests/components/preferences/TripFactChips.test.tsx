@@ -331,7 +331,10 @@ describe("TripFactChips Where", () => {
     await vi.advanceTimersByTimeAsync(400);
     // Debounced: only the last query is sent.
     expect(fetcher).toHaveBeenCalledTimes(1);
-    expect(JSON.parse(fetcher.mock.calls[0]![1]!.body as string)).toEqual({ text: "Lisb" });
+    expect(JSON.parse(fetcher.mock.calls[0]![1]!.body as string)).toEqual({
+      text: "Lisb",
+      autocomplete: true,
+    });
     const options = await screen.findAllByRole("option");
     expect(options.map((option) => option.textContent)).toEqual([
       "LisbonLisbon, Portugal",
