@@ -53,7 +53,6 @@ no total, so there is nothing to agree with; it is not given one here.
   and the agent lab, which see no activities without a day; a change there would reach fixtures and unit tests for no
   traveller benefit. The settle applies the rule to the trip's own plan only.
 
-
 ## Risks
 
 - A plan from chat with an activity that has no day would change its total on the first edit, by that stop's price.
@@ -67,22 +66,22 @@ no total, so there is nothing to agree with; it is not given one here.
 
 Each row is a scenario in `apps/web/tests/e2e/settle-path.e2e.mjs`, or is named as not changed.
 
-| #   | Situation                                                                               | Behaviour                                                                                                                            |
-| --- | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| 1   | Remove a priced stop from a day with two stops                                          | The total falls by the stop's price at once; the day keeps one stop (B).                                                             |
-| 2   | Remove a priced stop from a day with two stops, the other stop priced                   | Same as 1; the price of the stop left stays in the total (C).                                                                        |
-| 3   | Remove the last stop of a day                                                           | The total falls by its price; the day shows no stop; no error (F).                                                                   |
-| 4   | Move a priced stop to Ideas                                                             | The total falls by its price at once; the stop is listed under Ideas with its price on its row (D).                                 |
-| 5   | Schedule an Idea on a day                                                               | The total rises by the Idea's price at once (E).                                                                                     |
-| 6   | Arrow move (move earlier) of a priced stop                                              | The total is unchanged; the drawer shows the server's total (A).                                                                     |
-| 7   | Refused edit (schedule with no room)                                                    | Plan and total unchanged; the alert names the stop. Not in this script; covered by check-entry-point.                               |
-| 8   | Details, note or booked                                                                 | Applied in the browser; the shared settle runs; the total is unchanged. Covered by drawer-walkthrough.                              |
-| 9   | Budget conflict after a move to Ideas drops the estimate under the budget               | The conflict is recomputed from the same estimate and clears with the total. Not in this script.                                    |
-| 10  | Trip list card after the changes                                                        | Shows the drawer's total (G).                                                                                                        |
-| 11  | Map                                                                                     | No budget total is shown on the map; nothing changes.                                                                                |
-| 12  | Chinese interface                                                                       | No new text. Existing strings unchanged.                                                                                             |
-| 13  | Undo of a move to Ideas (item undo)                                                     | Restores the plan as it was, with its total. Not in this script; covered by check-entry-point.                                       |
-| 14  | Simulated (mock) data mode                                                              | The same rules; no provider request.                                                                                                 |
+| #   | Situation                                                                 | Behaviour                                                                                              |
+| --- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| 1   | Remove a priced stop from a day with two stops                            | The total falls by the stop's price at once; the day keeps one stop (B).                               |
+| 2   | Remove a priced stop from a day with two stops, the other stop priced     | Same as 1; the price of the stop left stays in the total (C).                                          |
+| 3   | Remove the last stop of a day                                             | The total falls by its price; the day shows no stop; no error (F).                                     |
+| 4   | Move a priced stop to Ideas                                               | The total falls by its price at once; the stop is listed under Ideas with its price on its row (D).    |
+| 5   | Schedule an Idea on a day                                                 | The total rises by the Idea's price at once (E).                                                       |
+| 6   | Arrow move (move earlier) of a priced stop                                | The total is unchanged; the drawer shows the server's total (A).                                       |
+| 7   | Refused edit (schedule with no room)                                      | Plan and total unchanged; the alert names the stop. Not in this script; covered by check-entry-point.  |
+| 8   | Details, note or booked                                                   | Applied in the browser; the shared settle runs; the total is unchanged. Covered by drawer-walkthrough. |
+| 9   | Budget conflict after a move to Ideas drops the estimate under the budget | The conflict is recomputed from the same estimate and clears with the total. Not in this script.       |
+| 10  | Trip list card after the changes                                          | Shows the drawer's total (G).                                                                          |
+| 11  | Map                                                                       | No budget total is shown on the map; nothing changes.                                                  |
+| 12  | Chinese interface                                                         | No new text. Existing strings unchanged.                                                               |
+| 13  | Undo of a move to Ideas (item undo)                                       | Restores the plan as it was, with its total. Not in this script; covered by check-entry-point.         |
+| 14  | Simulated (mock) data mode                                                | The same rules; no provider request.                                                                   |
 
 ## Consequences
 
@@ -99,7 +98,6 @@ Acceptance criteria, as met:
 7. `DATA_MODE=mock pnpm --filter @trip/web e2e` passes for the scripts listed in the ticket.
 8. No unit tests are added; `packages/shared/src` is not changed.
 
-
 - The estimate of a section sums its scheduled items only. An activity with no day (an Idea, including a restaurant
   pick not yet scheduled) does not count toward the estimate or the budget total. Moving a priced stop to Ideas lowers
   the total at once, and scheduling the Idea back raises it. This one rule in `settlePlan` covers the server's
@@ -112,4 +110,3 @@ Acceptance criteria, as met:
   the total stayed at 1475 when the priced stop moved to Ideas. Green after the change.
 - No unit test was added; `packages/shared/src` is unchanged; the response shape is unchanged.
 - Known limitation: an Idea's price is still shown on its own card under Ideas, which is the intended place for it.
-
