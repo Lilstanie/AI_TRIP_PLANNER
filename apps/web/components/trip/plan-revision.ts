@@ -9,6 +9,11 @@ import { requestPreview, type PreviewAnswer } from "./previewRequest";
 
 export type EditOperation = EditInput["operation"];
 
+/** Shown when a traveller's edit was checked against a plan that has since changed from elsewhere. */
+export const PLAN_CHANGED: Notice = {
+  key: "The plan changed while this change was being checked. Try the change again.",
+};
+
 /** What became of a background job, as the hook that offered it hears it. */
 export type JobOutcome =
   /** The server answered for the revision the job was offered for: accepted (with a plan) or refused. */

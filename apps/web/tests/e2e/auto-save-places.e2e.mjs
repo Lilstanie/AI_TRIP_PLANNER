@@ -87,10 +87,11 @@ function newStub() {
     inFlight: 0,
     maxInFlight: 0,
     releaseFlaky: false,
-    // Scenario 4 holds an answer until the test releases it: a verify, a time edit, or the next time
-    // edit's answer is priced (`priceNextTime`).
+    // Scenario 4 holds an answer until the test releases it: a verify or a move (a swap, checked by the
+    // server since the check entry point), or the next time edit's answer is priced (`priceNextTime`).
+    // `holdSeen` is set once the held request has arrived.
     holdVerify: undefined,
-    holdTime: undefined,
+    holdSeen: false,
     priceNextTime: false,
   };
 }
@@ -120,8 +121,10 @@ async function installStubs(page, stub) {
   // and the plan's version moves on. A base version the plan has already left is refused.
   await page.route("**/api/trip/preview-edit", async (route) => {
     const body = route.request().postDataJSON();
-    if (body.operation.kind === "verify" && stub.holdVerify) await stub.holdVerify;
-    if (body.operation.kind === "time" && stub.holdTime) await stub.holdTime;
+    if (["verify", "swap"].includes(body.operation.kind) && stub.holdVerify) {
+      stub.holdSeen = true;
+      await stub.holdVerify;
+    }
     if (body.operation.kind === "time" && stub.priceNextTime) {
       // The server's answer for a stop that carries a price: the stop, its section and the total.
       stub.priceNextTime = false;
@@ -522,49 +525,32 @@ async function main() {
       `no leg keeps the planner's ${PLANNER_WALK_MIN}-minute estimate`,
     );
 
-    // The edit: stop 3 moves earlier, which changes the day, so its legs are verified again. That verify is
-    // held; a time edit of stop 1 starts while it is in flight, and the verify is answered before the edit.
+    // The edit: stop 3 moves earlier, which the server checks as a swap (routes included). That request is
+    // held; a time edit of stop 1 starts while it is in flight, and the held answer arrives before the edit.
     let releaseVerify = () => {};
-    let releaseTime = () => {};
     seeded.holdVerify = new Promise((done) => (releaseVerify = done));
     await stopRow(3)
       .getByRole("button", { name: /^Actions for / })
       .click();
     await seededPage.getByRole("menuitem", { name: "Move earlier", exact: true }).click();
     check(
-      await waitUntil(
-        async () => (await seededPage.getByText("Checking travel times…").count()) > 0,
-      ),
-      "a leg verify is in flight when the time edit starts",
+      await waitUntil(async () => seeded.holdSeen),
+      "a move is in flight when the time edit starts",
     );
-    seeded.holdTime = new Promise((done) => (releaseTime = done));
-    await stopRow(1).locator(".timeline-stop__time").click();
-    await trip(seededPage)
-      .getByLabel(/^Start/)
-      .first()
-      .fill("09:15");
-    await trip(seededPage).getByLabel(/^End/).first().fill("10:15");
-    await trip(seededPage).getByRole("button", { name: "Change time", exact: true }).click();
-    await settle(seededPage, 400);
-    releaseVerify();
-    await settle(seededPage, 800);
-    releaseTime();
-    await settle(seededPage, 1200);
-    const firstTime = (await stopRow(1).locator(".timeline-stop__time").innerText()).replace(
-      /\s+/g,
-      " ",
-    );
+    // While a checked edit is pending the timeline is locked, so a second edit waits for the answer.
     check(
-      firstTime.includes("09:15"),
-      `a time edit started during a leg verify is applied, not lost (${firstTime})`,
+      await waitUntil(async () => stopRow(1).locator(".timeline-stop__time").isDisabled()),
+      "the timeline is locked while a checked move is in flight",
     );
+    releaseVerify();
+    await settle(seededPage, 1200);
     check(
       !(await trip(seededPage).locator(".timeline-status--error").count()),
-      "the edit started during the verify shows no error",
+      "the held move shows no error once its answer arrives",
     );
     check(
       (await legs().count()) === SEEDED_STOPS.length - 1,
-      `the day's legs are still shown after the edit (${await legs().count()})`,
+      `the day's legs are still shown after the move (${await legs().count()})`,
     );
 
     // A timing notice: stop 3 starts 5 minutes after stop 2 ends, which is not enough for its leg. The notice

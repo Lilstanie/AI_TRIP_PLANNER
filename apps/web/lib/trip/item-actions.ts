@@ -7,11 +7,11 @@ import { NoticeError } from "../i18n/notice";
 /**
  * Edits a traveller makes to one itinerary item from its action menu. Each is a transform of the plan:
  * details, a note, booked, remove, set aside as an idea, put on a day, or swap places with the stop
- * before or after it on its day. None changes a route or a price the server checks, so they apply at
- * once. Like every edit, the result is settled (budget roll-up, conflicts, version) with the same
- * function the server uses (./settle). Schedule changes that need route checks go through the
- * Timeline's preview instead. A restaurant pick from dining (see ./restaurants) takes the same actions
- * as an idea.
+ * before or after it on its day. The browser applies details, a note and booked, which change no route
+ * or price. Remove, idea, day and swap are checked by the server (`previewEdit` in ../trip/trip-edit),
+ * which runs this same transform on the plan it checks and then routes the days it touched. Like every
+ * edit, the result is settled (budget roll-up, conflicts, version) with the same function the server uses
+ * (./settle). A restaurant pick from dining (see ./restaurants) takes the same actions as an idea.
  */
 export type ItemAction =
   | { kind: "details"; detail: string; location: string }

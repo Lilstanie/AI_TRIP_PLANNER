@@ -26,6 +26,7 @@ import {
 } from "../i18n/notice";
 import { PRICE_CHECK_MESSAGE } from "./conflicts";
 import { settlePlan } from "./settle";
+import { applyItemAction, type ItemAction } from "./item-actions";
 import {
   defaultLegRoute,
   LEG_MODES,
@@ -66,6 +67,16 @@ export const EditRequest = z.object({
       section: z.enum(["accommodation", "transport"]),
       selectionId: z.string().min(1).max(100),
       candidateId: z.string().min(1).max(100),
+    }),
+    // A stop taken off the trip, set aside as an Idea, or put at the end of a day (keeping its duration).
+    z.object({ kind: z.literal("remove"), id: z.string() }),
+    z.object({ kind: z.literal("idea"), id: z.string() }),
+    z.object({ kind: z.literal("schedule"), id: z.string(), day: z.number().int().positive() }),
+    // An arrow move: the stop trades start times with the stop before it (-1) or after it (1).
+    z.object({
+      kind: z.literal("swap"),
+      id: z.string(),
+      direction: z.union([z.literal(-1), z.literal(1)]),
     }),
     z.object({
       kind: z.literal("undo"),
@@ -109,8 +120,35 @@ export type EditPreview = {
   blockers: string[];
   blockerNotices: Notice[];
 };
-const BEYOND_DAY = "Day {day}: activity would extend beyond the day.";
+const BEYOND_DAY = "Day {day}: {stop} would extend beyond the day.";
+const CONFIRM_PLACE =
+  "Day {day}: confirm the place for {stop} first, so its travel time can be checked.";
+const NAMED_REASON = "{stop}: {reason}";
 const outsideDay = (blocker: Notice) => "key" in blocker && blocker.key === BEYOND_DAY;
+/** The name a stop is known by in a notice: its place, else the first part of its description. */
+const stopName = (item: ProposalItem) => item.location ?? item.detail.split(/[:;]/)[0]!.trim();
+/** The operations that change a stop's day, order or existence, on the item transform of `applyItemAction`. */
+type StructuralOperation = Extract<
+  EditInput["operation"],
+  { kind: "remove" | "idea" | "schedule" | "swap" }
+>;
+const isStructural = (operation: EditInput["operation"]): operation is StructuralOperation =>
+  operation.kind === "remove" ||
+  operation.kind === "idea" ||
+  operation.kind === "schedule" ||
+  operation.kind === "swap";
+function actionOf(operation: StructuralOperation): ItemAction {
+  switch (operation.kind) {
+    case "remove":
+      return { kind: "remove" };
+    case "idea":
+      return { kind: "idea" };
+    case "schedule":
+      return { kind: "day", day: operation.day };
+    case "swap":
+      return { kind: "move", direction: operation.direction };
+  }
+}
 const mins = (value: string) => Number(value.slice(0, 2)) * 60 + Number(value.slice(3));
 const hhmm = (value: number) =>
   `${String(Math.floor(value / 60)).padStart(2, "0")}:${String(value % 60).padStart(2, "0")}`;
@@ -225,12 +263,12 @@ export async function previewEdit(
   )
     throw new NoticeError({ key: "Plan identifiers do not match. Restore or replan first." });
   if (operation.kind === "choose") return chooseCandidate(plan, baseVersion, operation, currency);
-  const section = plan.sections.find((s) => s.id === "itinerary");
+  let section = plan.sections.find((s) => s.id === "itinerary");
   if (!section?.proposal) throw new NoticeError({ key: "There are no activities to edit." });
   // Ideas (activities with no day) are set aside and kept as they are: only scheduled stops are
   // routed and re-timed.
-  const ideas = section.proposal.items.filter((i) => i.kind === "activity" && i.day === undefined);
-  const activities = section.proposal.items.filter(
+  let ideas = section.proposal.items.filter((i) => i.kind === "activity" && i.day === undefined);
+  let activities = section.proposal.items.filter(
     (i) => i.kind === "activity" && i.day !== undefined,
   );
   const before = structuredClone(activities);
@@ -241,6 +279,16 @@ export async function previewEdit(
     throw new NoticeError({
       key: "Activities need unique IDs and a complete schedule before editing.",
     });
+  // A remove, Idea, schedule or arrow move is the item transform of `applyItemAction`, applied here so the
+  // plan it checks is the plan it would leave. Its days are then routed like any other edit's.
+  if (isStructural(operation)) {
+    const moved = applyItemAction(plan, operation.id, actionOf(operation), currency);
+    plan.sections = moved.sections;
+    section = plan.sections.find((s) => s.id === "itinerary");
+    if (!section?.proposal) throw new NoticeError({ key: "There are no activities to edit." });
+    ideas = section.proposal.items.filter((i) => i.kind === "activity" && i.day === undefined);
+    activities = section.proposal.items.filter((i) => i.kind === "activity" && i.day !== undefined);
+  }
   const days = (Date.parse(plan.brief.dates[1]) - Date.parse(plan.brief.dates[0])) / 86400000;
   const dateFor = (day: number) =>
     new Date(Date.parse(plan.brief.dates[0]) + (day - 1) * 86400000).toISOString().slice(0, 10);
@@ -277,6 +325,13 @@ export async function previewEdit(
       return restoredItem;
     });
     activities.splice(0, activities.length, ...restored);
+  } else if (isStructural(operation)) {
+    // The day the stop left and the day it is on now are routed; the stop after it on either is one of their legs.
+    for (const stop of [
+      before.find((a) => a.id === operation.id),
+      activities.find((a) => a.id === operation.id),
+    ])
+      if (stop?.day !== undefined) affected.add(stop.day);
   } else {
     const item = activities.find((a) => a.id === operation.id);
     if (!item) throw new NoticeError({ key: "Activity not found." });
@@ -337,9 +392,14 @@ export async function previewEdit(
   // The stop a route or timing blocker belongs to: the stop its leg leads into. Its notice is shown on
   // that stop only, not under every stop of the day.
   const blockedStop = new Map<Notice, string>();
-  const block = (notice: Notice, stop: string | undefined) => {
+  // A route failure's stop name, which a refusal shows in front of the provider's reason.
+  const reasonOf = new Map<Notice, string>();
+  // The place notices that only keep the stop's time open; a schedule is not refused for them.
+  const unconfirmed = new Set<Notice>();
+  const block = (notice: Notice, stop: string | undefined, name?: string) => {
     blockers.push(notice);
     if (stop) blockedStop.set(notice, stop);
+    if (name) reasonOf.set(notice, name);
   };
   // A place saved with `routeLater` changes no time and asks for no route; its day is routed once
   // afterwards by a `verify`.
@@ -355,17 +415,21 @@ export async function previewEdit(
       throw new NoticeError({ key: "Activity day is outside trip dates." });
     const daily = activities.filter((a) => a.day === day);
     const original = before.filter((a) => a.day === day);
+    // A swap keeps the start times it traded: none of its stops is re-timed, and a leg that does not fit them is a
+    // notice on its stop, as a time change's is.
     const changedIndex =
-      operation.kind === "move"
-        ? Math.min(
-            ...[
-              original.findIndex((a) => a.id === operation.id),
-              daily.findIndex((a) => a.id === operation.id),
-            ].filter((i) => i >= 0),
-          )
-        : operation.kind === "time" || operation.kind === "place" || operation.kind === "leg"
-          ? daily.findIndex((a) => a.id === operation.id)
-          : 0;
+      operation.kind === "swap"
+        ? Number.POSITIVE_INFINITY
+        : operation.kind === "move" || isStructural(operation)
+          ? Math.min(
+              ...[
+                original.findIndex((a) => a.id === operation.id),
+                daily.findIndex((a) => a.id === operation.id),
+              ].filter((i) => i >= 0),
+            )
+          : operation.kind === "time" || operation.kind === "place" || operation.kind === "leg"
+            ? daily.findIndex((a) => a.id === operation.id)
+            : 0;
     for (let index = 0; index < daily.length; index++) {
       const current = daily[index]!;
       const duration = mins(current.endTime!) - mins(current.startTime!);
@@ -377,13 +441,12 @@ export async function previewEdit(
       // Confirming a place is how a pair gets its route, so a place edit is not refused for an
       // unconfirmed neighbour; that pair keeps its time until both places are confirmed.
       if (previous && (!previous.placeId || !current.placeId) && operation.kind !== "place") {
-        block(
-          {
-            key: "Day {day}: confirm the place for every stop first, so travel times between them can be checked.",
-            params: { day },
-          },
-          current.id,
-        );
+        const notice: Notice = {
+          key: CONFIRM_PLACE,
+          params: { day, stop: stopName(previous.placeId ? current : previous) },
+        };
+        unconfirmed.add(notice);
+        block(notice, current.id);
         break;
       }
       if (previous && previous.placeId && current.placeId) {
@@ -417,6 +480,7 @@ export async function previewEdit(
               block(
                 route.notice ?? (route.error ? { raw: route.error } : { key: "Route unavailable" }),
                 current.id,
+                stopName(current),
               );
               break;
             }
@@ -449,30 +513,53 @@ export async function previewEdit(
             } else start = Math.max(start, earliest);
           }
         } catch (error) {
-          block(errorNotice(error, { key: "Route verification failed" }), current.id);
+          block(
+            errorNotice(error, { key: "Route verification failed" }),
+            current.id,
+            stopName(current),
+          );
           break;
         }
       }
       if (start + duration >= 1440) {
-        blockers.push({ key: BEYOND_DAY, params: { day } });
+        blockers.push({ key: BEYOND_DAY, params: { day, stop: stopName(current) } });
         break;
       }
       current.startTime = hhmm(start);
       current.endTime = hhmm(start + duration);
     }
   }
-  // Outside a move, only running past midnight blocks; the rest stays on the plan. Its English sentence is
-  // kept in conflictsWith, which the chat reads; its keyed notice is kept in editIssues, on its stop.
-  const kept = operation.kind !== "move" ? blockers.filter((blocker) => !outsideDay(blocker)) : [];
+  // What refuses the edit: a stop running past midnight; for a move or a swap any blocker; for a schedule any
+  // blocker but an unconfirmed place. Every other blocker stays on the plan: its English sentence is kept in
+  // conflictsWith, which the chat reads, and its keyed notice in editIssues, on its stop.
+  const refusesAll = operation.kind === "move";
+  const refuses = (blocker: Notice) =>
+    outsideDay(blocker) ||
+    refusesAll ||
+    (operation.kind === "schedule" && !unconfirmed.has(blocker));
+  const kept = blockers.filter((blocker) => !refuses(blocker));
   const unresolved = kept.map((blocker) => noticeText("en", blocker));
-  if (operation.kind !== "move")
-    blockers.splice(0, blockers.length, ...blockers.filter(outsideDay));
+  // A refusal that is a route failure names its stop before the provider's reason.
+  blockers.splice(
+    0,
+    blockers.length,
+    ...blockers.filter(refuses).map((blocker): Notice =>
+      reasonOf.has(blocker)
+        ? {
+            key: NAMED_REASON,
+            params: { stop: reasonOf.get(blocker)!, reason: blocker },
+          }
+        : blocker,
+    ),
+  );
   section.proposal.items = [
     ...section.proposal.items.filter((i) => i.kind !== "activity"),
     ...activities,
     ...ideas,
   ];
   const affectedIds = new Set(activities.filter((a) => affected.has(a.day!)).map((a) => a.id!));
+  // A stop taken off its day (removed, or an Idea) keeps none of the notices it had there.
+  if (isStructural(operation)) affectedIds.add(operation.id);
   const retainedIssues = (plan.editIssues ?? []).filter(
     (issue) =>
       issue.code !== "price_unverified" && !issue.activityIds.some((id) => affectedIds.has(id)),
@@ -509,7 +596,17 @@ export async function previewEdit(
   ];
   settlePlan(plan, baseVersion, currency);
   const differences = activities.flatMap((a): EditDifference[] => {
-    const old = before.find((b) => b.id === a.id)!;
+    const old = before.find((b) => b.id === a.id);
+    // A stop that was an Idea, or was not on a day, has no earlier time to compare.
+    if (!old)
+      return [
+        {
+          stop: a.location ?? a.detail,
+          before: "—",
+          after: `${a.startTime}–${a.endTime}`,
+          placeChanged: false,
+        },
+      ];
     return old.day !== a.day ||
       old.startTime !== a.startTime ||
       old.endTime !== a.endTime ||

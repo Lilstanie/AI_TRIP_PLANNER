@@ -325,8 +325,14 @@ Contract: `EditRequest` and `EditPreview` in `apps/web/lib/trip/trip-edit.ts`.
 }
 ```
 
-`operation.kind` is `verify` (a day's routes), `move`, `time`, `place`, `choose` or `undo`. Only activities with a
-day are routed and re-timed; ideas (activities without a day) pass through unchanged. The response is
+`operation.kind` is `verify` (a day's routes), `move` (a drag: `day` and `index`), `time`, `place`, `leg`, `choose`,
+`undo`, or one of the four item actions the timeline's menu sends: `remove` (`id`), `idea` (`id`, takes the stop off its
+day), `schedule` (`id`, `day`: the end of that day) and `swap` (`id`, `direction` -1 or 1: an arrow move). The item
+actions are applied by the same transform the browser's item actions use, then their days are routed. A `move` is
+refused by any blocker it raises, and a `schedule` by any blocker but an unconfirmed place. A `swap` keeps the start
+times it traded, is refused only for a stop running past midnight, and a leg that does not fit those times is a notice on
+its stop.
+Only activities with a day are routed and re-timed; ideas (activities without a day) pass through unchanged. The response is
 `{ plan, baseVersion, routes, differences, blockers, blockerNotices }`. Each difference is a value
 object `{ stop, days?: { from, to }, before, after, placeChanged }` that the interface words in the
 chosen language. `blockerNotices` lists what stops the edit as Notices (`{ key, params }` for the

@@ -102,7 +102,7 @@ describe("P3 edit boundary", () => {
       { plan: p, baseVersion: 0, operation: { kind: "move", id: "b", day: 1, index: 0 } },
       deps,
     );
-    expect(result.blockers).toContain("Route unavailable");
+    expect(result.blockers).toContain("Museum: Route unavailable");
     expect(p).toEqual(plan());
   });
   it("allows binding an initially unresolved place as a reviewable draft", async () => {
@@ -214,7 +214,7 @@ describe("P3 edit boundary", () => {
         { plan: plan(), baseVersion: 0, operation: { kind: "move", id: "b", day: 1, index: 0 } },
         deps,
       );
-      expect(result.blockers).toContain("Route unavailable");
+      expect(result.blockers).toContain("Museum: Route unavailable");
     },
   );
   it("keeps an edited section unresolved while its change is unverified", async () => {
@@ -271,12 +271,12 @@ describe("edit preview notices", () => {
     );
     expect(result.blockerNotices).toEqual([
       {
-        key: "Day {day}: confirm the place for every stop first, so travel times between them can be checked.",
-        params: { day: 1 },
+        key: "Day {day}: confirm the place for {stop} first, so its travel time can be checked.",
+        params: { day: 1, stop: "Park" },
       },
     ]);
     expect(result.blockers).toEqual([
-      "Day 1: confirm the place for every stop first, so travel times between them can be checked.",
+      "Day 1: confirm the place for Park first, so its travel time can be checked.",
     ]);
   });
 
@@ -299,7 +299,7 @@ describe("edit preview notices", () => {
       dependencies(),
     );
     expect(result.blockerNotices).toEqual([
-      { key: "Day {day}: activity would extend beyond the day.", params: { day: 1 } },
+      { key: "Day {day}: {stop} would extend beyond the day.", params: { day: 1, stop: "Park" } },
     ]);
   });
 
@@ -315,7 +315,9 @@ describe("edit preview notices", () => {
     }));
     expect(
       (await previewEdit({ plan: plan(), baseVersion: 0, operation: move }, silent)).blockerNotices,
-    ).toEqual([{ key: "Route unavailable" }]);
+    ).toEqual([
+      { key: "{stop}: {reason}", params: { stop: "Museum", reason: { key: "Route unavailable" } } },
+    ]);
     const worded = dependencies();
     worded.googleRoute.mockImplementation(async (from, to, _date, mode) => ({
       from,
@@ -327,7 +329,15 @@ describe("edit preview notices", () => {
     }));
     expect(
       (await previewEdit({ plan: plan(), baseVersion: 0, operation: move }, worded)).blockerNotices,
-    ).toEqual([{ raw: "Transit departure is outside Google's supported date window." }]);
+    ).toEqual([
+      {
+        key: "{stop}: {reason}",
+        params: {
+          stop: "Museum",
+          reason: { raw: "Transit departure is outside Google's supported date window." },
+        },
+      },
+    ]);
   });
 
   it("keeps a thrown provider error raw and keys a failure with no wording", async () => {
@@ -337,13 +347,23 @@ describe("edit preview notices", () => {
     expect(
       (await previewEdit({ plan: plan(), baseVersion: 0, operation: move }, failing))
         .blockerNotices,
-    ).toEqual([{ raw: "Google request failed (429). Please retry." }]);
+    ).toEqual([
+      {
+        key: "{stop}: {reason}",
+        params: { stop: "Museum", reason: { raw: "Google request failed (429). Please retry." } },
+      },
+    ]);
     const wordless = dependencies();
     wordless.placeDetails.mockRejectedValue("boom");
     expect(
       (await previewEdit({ plan: plan(), baseVersion: 0, operation: move }, wordless))
         .blockerNotices,
-    ).toEqual([{ key: "Route verification failed" }]);
+    ).toEqual([
+      {
+        key: "{stop}: {reason}",
+        params: { stop: "Museum", reason: { key: "Route verification failed" } },
+      },
+    ]);
   });
 
   it.each([

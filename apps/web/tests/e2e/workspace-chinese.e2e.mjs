@@ -168,14 +168,17 @@ try {
     const body = await response.json();
     body.blockerNotices = [
       {
-        key: "Day {day}: confirm the place for every stop first, so travel times between them can be checked.",
-        params: { day: 2 },
+        key: "Day {day}: confirm the place for {stop} first, so its travel time can be checked.",
+        params: { day: 2, stop: "Senso-ji Temple" },
       },
       {
         key: "Day {day}: {stop} needs at least {minutes} minutes after the previous activity.",
         params: { day: 1, stop: "Senso-ji Temple", minutes: 40 },
       },
-      { key: "Day {day}: activity would extend beyond the day.", params: { day: 3 } },
+      {
+        key: "Day {day}: {stop} would extend beyond the day.",
+        params: { day: 3, stop: "Senso-ji Temple" },
+      },
       { key: "Route unavailable" },
       { key: "Route verification failed" },
     ];
@@ -188,9 +191,9 @@ try {
   const blockers = await alert.innerText();
   check(
     [
-      "第 2 天：请先确认每个站点的地点，才能核查站点间的交通时间。",
+      "第 2 天：请先确认 Senso-ji Temple 的地点，才能核查其交通时间。",
       "第 1 天：Senso-ji Temple 需与上一项活动至少间隔 40 分钟。",
-      "第 3 天：活动将超出当天时间。",
+      "第 3 天：Senso-ji Temple 将超出当天时间。",
       "路线不可用",
       "路线核查失败",
     ].every((line) => blockers.includes(line)) &&

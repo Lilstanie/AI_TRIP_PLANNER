@@ -20,9 +20,28 @@ import { useTimelineEdits } from "./timeline/useTimelineEdits";
 import { TripTips } from "./TripTips";
 import { IDLE_AUTO_SAVE, type AutoSaveState } from "./useAutoSavePlaces";
 import type { LegState } from "./useLegRoutes";
-import type { PlanRevisions } from "./plan-revision";
+import type { EditOperation, PlanRevisions } from "./plan-revision";
 
 type Activity = TripPlaces["activities"][number];
+
+/**
+ * The server operation an item action is checked as, or undefined for an action that stays in the browser.
+ * Remove, Ideas, scheduling on a day and the arrow moves are checked by the server like every other edit.
+ */
+function checkedAs(id: string, action: ItemAction): EditOperation | undefined {
+  switch (action.kind) {
+    case "remove":
+      return { kind: "remove", id };
+    case "idea":
+      return { kind: "idea", id };
+    case "day":
+      return { kind: "schedule", id, day: action.day };
+    case "move":
+      return { kind: "swap", id, direction: action.direction };
+    default:
+      return undefined;
+  }
+}
 
 /**
  * The one view of the trip's days, in the Your Trip drawer and on the phone Trip tab: the destination's
@@ -30,9 +49,9 @@ type Activity = TripPlaces["activities"][number];
  * leg into it, the day's flights and stays (each opened to its Alternatives), and then Ideas: the stops
  * with no day yet and the restaurants dining found that are not scheduled.
  *
- * Time and place changes, and moves between or within a day, are checked by the server, which
- * re-checks routes, budget and conflicts, and applied at once when accepted; a refused edit leaves the
- * plan unchanged and says why. The travel time of each leg is worked out by the workspace once a day's
+ * Every change to a stop's day, time, place, order or leg is checked by the server, which re-checks routes,
+ * budget and conflicts, and applied at once when accepted; a refused edit leaves the plan unchanged and names
+ * the stop it is about. The travel time of each leg is worked out by the workspace once a day's
  * places are saved (`routes`), and a leg's mode is changed here, for that leg alone. Details, notes,
  * booked and Remove apply in the browser. Selection is shared with the map: choosing a stop in either
  * place highlights it in both and opens its card.
@@ -53,6 +72,7 @@ export function TripEditor({
   showPhotos = false,
   saves = IDLE_AUTO_SAVE,
   onChoose,
+  onTimelineChange,
 }: {
   plan: TripPlan;
   disabled: boolean;
@@ -77,6 +97,11 @@ export function TripEditor({
   saves?: AutoSaveState;
   /** Swap a flight or stay for one the specialist already found; absent while the plan is busy. */
   onChoose?: ChooseCandidate;
+  /**
+   * A change applied on the timeline (true), or undone (false). The workspace keeps it, so a chat plan that
+   * replaces the trip afterwards says that it replaced the change.
+   */
+  onTimelineChange?(changed: boolean): void;
 }) {
   const { t, locale, notice: localizeNotice } = useLocale();
   const { settings } = useSettings();
@@ -88,6 +113,7 @@ export function TripEditor({
     onPending,
     onRoutesChange,
     onLegApplied,
+    onTimelineChange,
   });
   const days = dayCount(plan);
   // Unresolved conflicts that name a stop or a day, shown on that stop or under that day's title.
@@ -158,15 +184,30 @@ export function TripEditor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [plan]);
 
-  const act = (activity: Activity, action: ItemAction, message: Notice): boolean => {
+  // Remove, Ideas, scheduling and the arrow moves are checked by the server; a checked action that is applied
+  // offers the item undo, and a refused one leaves the plan as it was and says why in the timeline.
+  const act = (
+    activity: Activity,
+    action: ItemAction,
+    message: Notice,
+  ): boolean | Promise<boolean> => {
     if (!activity.id) return false;
+    const id = activity.id;
+    const operation = checkedAs(id, action);
+    if (operation)
+      return edits.edit(operation, (previous, next) => {
+        applied.current = next;
+        setItemUndo({ previous, message });
+        setProblem("");
+        if (action.kind === "day" || action.kind === "idea" || action.kind === "remove")
+          leaving.current = id;
+      });
     try {
-      const next = applyItemAction(plan, activity.id, action, settings.displayCurrency);
+      const next = applyItemAction(plan, id, action, settings.displayCurrency);
       applied.current = next;
       setItemUndo({ previous: plan, message });
       setProblem("");
-      if (action.kind === "day" || action.kind === "idea" || action.kind === "remove")
-        leaving.current = activity.id;
+      onTimelineChange?.(true);
       onApply(next);
       return true;
     } catch (error) {
@@ -251,6 +292,7 @@ export function TripEditor({
               applied.current = itemUndo.previous;
               onApply(itemUndo.previous);
               setItemUndo(undefined);
+              onTimelineChange?.(false);
             }}
           >
             {t("Undo")}

@@ -498,14 +498,15 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   or last stop of a day), Move to another day (opens a day picker in the place card), Move to ideas,
   Replace place (opens the place search in the card), Edit details, Add or Edit note, Mark as booked and
   Remove. An idea offers Schedule on a day instead of the moves, and a restaurant suggestion offers only
-  Schedule on a day and Remove. Moves, Ideas, details, notes, booked and
-  Remove apply in the browser at once, and each settles the plan the way a server edit does: the budget
+  Schedule on a day and Remove. Details, notes and booked apply in the browser at once. Move earlier, Move later, Move to
+  another day, Move to ideas and Remove are checked by the server like any timeline edit, and an accepted one
+  applies at once. Each settles the plan the way a server edit does: the budget
   total and the conflicts are recomputed at once, with the same roll-up the server uses
   (`lib/trip/settle.ts`). Move earlier and Move later swap the stop with its neighbour on the
   same day: each takes the other's start time and keeps its own duration, the second starting later if the
   first would overlap it, and a swap that would end past 23:59 or overlap the next stop is refused with a
-  message. Move to another day puts the stop after that day's last stop. Undo offers the last such change
-  until the next plan arrives from chat. A move changes the day's times, so the day's legs are routed again (see Legs under Timeline editing). At
+  message. Move to another day puts the stop after that day's last stop. Undo offers the last change
+  until the next plan arrives from chat; an item action is undone the same way, restoring the plan as it was before it. A move changes the day's times, so the day's legs are routed again (see Legs under Timeline editing). At
   phone width (520px and below) the menu's trigger and items are at least 44 px. Missing or zero budgets
   state that no budget is set; invalid totals never render `NaN`, a negative bar, or a bar wider than its
   container.
@@ -532,8 +533,9 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
 
 The day view (`TripEditor` composing `components/trip/timeline/`) shows one day at a
 time and edits activities through `POST /api/trip/preview-edit`. The server checks each edit and
-the client applies an accepted one at once. Moves, Ideas, details, notes and booked apply in the
-browser, as the Itinerary list did. The checks are deterministic and make no LLM calls.
+the client applies an accepted one at once. Every change to a stop's day, time, place, order or leg is
+checked by the server: time, place, leg, a drag, Remove, Move to ideas, Move to another day and the arrow
+moves. Details, notes and booked apply in the browser. The checks are deterministic and make no LLM calls.
 
 - **Layout.** A day strip of tabs (`Day 2 · Sun, 18 Oct · 3 stops`, flagged when a stop needs a
   place) picks the day. The day is a vertical line in time order (`lib/trip/timeline.ts`): an
@@ -586,17 +588,18 @@ browser, as the Itinerary list did. The checks are deterministic and make no LLM
   A reload shows the stored legs as estimates, and a "No route found" result is not kept across a
   reload. Confirming a stop's place still needs a Maps key or a stub.
 - **Applied at once.** An edit applies as soon as the server accepts it, with no review step. A
-  refused edit leaves the plan unchanged and lists its blockers as an alert above the day. A place change
+  refused edit leaves the plan unchanged and lists its blockers as an alert above the day, each naming the stop it is about. A place change
   on a day with an unconfirmed neighbour is accepted: that pair has no route until both places are
   confirmed, and other edits on such a day are refused until every stop has a place. An applied edit
   shows "Undo last change", which runs the same check and applies the same way. The leg check that
   follows an applied edit does not replace the plan, so the undo step stays. The undo step covers the
   scheduled stops the edit re-times; an Idea in the plan stays as it is and does not block Undo. A plan
-  that arrives from chat clears the undo step.
+  that arrives from chat clears the undo step; if a change was still in the plan, the chat says that it replaced the change
+  ("The new plan replaced your last change to the timeline.", with a Dismiss button).
 - **Edits and background work.** A leg check or place save that is running when an edit starts is
   cancelled, and it is asked again once the edit has finished, so its answer never replaces the plan the
-  edit is checking. A check answered after the plan changed is dropped, and the alert asks the traveller
-  to try the change again.
+  edit is checking. An edit in flight is not cancelled when the plan changes from elsewhere: its answer is refused as stale,
+  and the alert asks the traveller to try the change again.
 - **Motion.** A day's list fades in when the day changes; a stop's place card rises in; an applied edit
   washes the stops it changed with the accent for a moment; a leg the provider verified draws down
   the line. Each has a text or colour signal too, and none plays under reduced motion.
@@ -609,7 +612,7 @@ browser, as the Itinerary list did. The checks are deterministic and make no LLM
   at the later of their original start or previous end + route duration + 15 minutes. Empty target
   days start at 09:00 local, and moves stay within the same lodging destination segment.
 - A provider outage on a leg does not shift the stop's time on a guess: the leg's notice is kept on its
-  stop (see Legs). A leg with no route adds no travel time. Overflow beyond the day blocks apply. Fixed transport and stays are read-only; an overlap with a stop is marked on that stop.
+  stop (see Legs). A leg with no route adds no travel time. Overflow beyond the day blocks apply, and the alert names the stop. Fixed transport and stays are read-only; an overlap with a stop is marked on that stop.
 - Replacing a place marks the activity price for verification. Route fares are separate estimates,
   never added to transport twice, and an unknown fare is not zero.
 - Edits invalidate itinerary and final confirmation and regenerate conflicts, keeping unaffected brief

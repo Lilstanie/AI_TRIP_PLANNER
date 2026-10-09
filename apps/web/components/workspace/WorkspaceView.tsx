@@ -56,6 +56,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
     blank,
     ask,
     estimateChange,
+    replacedChange,
   } = session;
   const {
     dialog,
@@ -240,6 +241,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
               routes={mapRoutes}
               legs={legs}
               onLegApplied={legs.noteLeg}
+              onTimelineChange={session.setTimelineChanged}
               showPhotos={dataMode.mode === "live" && !!dataMode.providers?.maps}
               saves={autoSaves}
               {...(busy || editPending || chooser.working ? {} : { onChoose: chooser.choose })}
@@ -430,6 +432,14 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                       })}
                 </span>
                 <button type="button" onClick={session.dismissEstimate}>
+                  {t("Dismiss")}
+                </button>
+              </div>
+            )}
+            {replacedChange && (
+              <div className="replaced-notice" role="status">
+                <span>{t("The new plan replaced your last change to the timeline.")}</span>
+                <button type="button" onClick={session.dismissReplaced}>
                   {t("Dismiss")}
                 </button>
               </div>

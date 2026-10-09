@@ -131,6 +131,22 @@
   min-height: 44px;
   flex: none;
 }
+/* A chat replan that replaced the traveller's timeline change: the same card, in the attention colour. */
+.workspace-notices .replaced-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  border-radius: var(--radius-lg);
+  padding: var(--space-2) var(--space-3) var(--space-2) var(--space-4);
+  --glass-fill: color-mix(in srgb, var(--warn-bg, var(--ok-bg)) 80%, transparent);
+  color: var(--warn, var(--ok));
+  font-size: var(--font-size-meta);
+}
+.workspace-notices .replaced-notice button {
+  min-height: 44px;
+  flex: none;
+}
 .trip__budget {
   gap: var(--space-2);
 }
