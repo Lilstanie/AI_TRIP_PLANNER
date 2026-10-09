@@ -33,6 +33,8 @@ The five specialist agents and the model routing they share. Each agent turns a 
   The orchestrator supplies memory; agents have no direct services dependency.
 - Without a key, or when a model call fails or returns off-schema output, an agent falls back to
   validated deterministic output and sets `source.kind` to `fallback` in that branch.
+- Dining and destination guide share internal name matching and first-entry deduplication;
+  each keeps its own schema and rejects names outside provider candidates.
 - Models never supply prices, routes or properties: transport and accommodation compute them.
 - Every structured response is validated against its Zod schema, and prompts restate hard limits
   because providers treat schema limits as advisory.

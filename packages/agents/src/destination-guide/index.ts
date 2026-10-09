@@ -12,6 +12,7 @@ import { createAgent, tool } from "langchain";
 import { createRoutedChatModel, readStructuredResponse } from "../models";
 import { mockEnabled } from "@trip/tools";
 import { clip } from "../clip";
+import { normalize, canonicalPlaceName, dedupeEntries } from "../place-names";
 import { TRAVELLER_PREFERENCES_RULE } from "../prompts/traveller-preferences";
 
 // The guide schema keeps model output bounded and makes every downstream item
@@ -87,26 +88,6 @@ export interface DestinationGuideGenerator {
 export interface DestinationGuideAgentOptions {
   /** Pass false to force the grounded deterministic guide. */
   generator?: DestinationGuideGenerator | false;
-}
-
-/** Normalize names before comparing model output with map evidence. */
-function normalize(value: string): string {
-  return value.trim().replace(/\s+/g, " ").toLocaleLowerCase();
-}
-
-function canonicalPlaceName(name: string, places: Place[]): string {
-  const match = places.find((place) => normalize(place.name) === normalize(name));
-  return match?.name ?? name.trim();
-}
-
-function dedupeEntries<T extends { name: string }>(items: T[]): T[] {
-  const seen = new Set<string>();
-  return items.filter((item) => {
-    const key = normalize(item.name);
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
 }
 
 /** Turn the trip start date into month-only context (not a weather forecast). */
@@ -225,10 +206,7 @@ async function planDestinationGuide(
     ctx.mem.getLongTerm(brief.userId),
   ]);
   ctx.signal?.throwIfAborted();
-  const places = [...sights, ...museums].filter(
-    (place, index, all) =>
-      all.findIndex((candidate) => normalize(candidate.name) === normalize(place.name)) === index,
-  );
+  const places = dedupeEntries([...sights, ...museums]);
   const weatherLocation = places.find((place) => place.location)?.location;
   let weatherResult:
     Awaited<ReturnType<NonNullable<AgentContext["tools"]["weather"]>["forecast"]>> | undefined;
