@@ -94,10 +94,15 @@ try {
         (await page.locator(".trip-panel .currency-notice").textContent()).includes("2026-09-20"),
         `${width}: rate date shown`,
       );
-      const sectionCosts = await page.locator(".section__row .cost").allTextContents();
+      // The specialist section rows were removed (#239); every amount the Trip drawer shows (budget,
+      // stays, flights and stops) must be in the selected currency.
+      const amounts =
+        (await page.locator(".trip-panel").first().innerText()).match(
+          /\b(?:AUD|CNY|USD|JPY)[\s\u00a0][\d,]+(?:\.\d+)?/g,
+        ) ?? [];
       check(
-        plan.sections.every((section, index) => sectionCosts[index] === expected(section.estCost)),
-        `${width}: section stay and transport amounts all converted`,
+        amounts.length > 0 && amounts.every((amount) => amount.startsWith(currency)),
+        `${width}: every drawer amount is converted (${amounts.slice(0, 6).join(", ")})`,
       );
       if (currency === "JPY")
         check(!/\.\d/.test(await total.textContent()), `${width}: JPY has no decimals`);

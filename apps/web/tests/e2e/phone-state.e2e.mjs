@@ -235,7 +235,12 @@ async function run(browser, size) {
     `${prefix}: opening revised Trip clears dot again`,
   );
   // The last stop sits lowest in the list; its editor must still clear the keyboard (#187).
+  // Scoped to the day's stops: the Mine tab's trip list has "Actions for" menus too, and an Idea below
+  // the day has no details to edit.
   await page
+    .locator("#phone-panel-trip")
+    .getByRole("list", { name: /^Day \d+ timeline$/ })
+    .locator(".timeline-stop")
     .getByRole("button", { name: /^Actions for/ })
     .last()
     .click();
@@ -247,7 +252,12 @@ async function run(browser, size) {
   await page.locator(".item-editor").getByRole("button", { name: "Cancel", exact: true }).click();
   await settle(page);
   // Existing stop editor closes through its Escape path; Back must not leave the workspace.
-  const actions = page.getByRole("button", { name: /^Actions for/ }).first();
+  const actions = page
+    .locator("#phone-panel-trip")
+    .getByRole("list", { name: /^Day \d+ timeline$/ })
+    .locator(".timeline-stop")
+    .getByRole("button", { name: /^Actions for/ })
+    .first();
   await actions.click();
   await page.getByRole("menuitem", { name: "Edit details", exact: true }).click();
   await page.locator(".item-editor").waitFor();

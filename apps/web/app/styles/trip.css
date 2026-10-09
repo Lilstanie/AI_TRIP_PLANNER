@@ -650,6 +650,14 @@
   display: flex;
   gap: var(--space-2);
 }
+/* Phone keyboard: a stop editor taller than the space left above the keyboard keeps Save in view. */
+.workspace-app[data-phone-keyboard] .item-editor__actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  padding-block: var(--space-2);
+  background: var(--surface-2);
+}
 
 .action-menu {
   position: relative;

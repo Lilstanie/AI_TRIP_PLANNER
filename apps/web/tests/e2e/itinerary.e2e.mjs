@@ -226,6 +226,11 @@ async function run(browser, { width, height, tag }) {
   await drawer.locator(".stop-place-card select").selectOption("2");
   await settle(page, 600);
   await showDay(2);
+  // The move goes through the server check, which a cold dev server compiles on first use.
+  await stopsIn(dayList(2))
+    .filter({ hasText: NOTE })
+    .waitFor({ timeout: 30_000 })
+    .catch(() => undefined);
   check(
     (await stopsIn(dayList(2)).filter({ hasText: NOTE }).count()) === 1,
     `${tag}: Move to another day puts the stop on Day 2`,

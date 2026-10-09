@@ -74,9 +74,12 @@ async function openTimeline(browser, { width, height, scheme, setup }) {
   // Mock data: no provider requests. The toggle only works once the page has hydrated, so retry
   // until it reports mock rather than clicking once and planning with live providers.
   await page.waitForLoadState("networkidle");
-  // A cold dev server can settle the network before the data-mode toggle has rendered.
+  // A cold dev server can settle the network before the data-mode toggle has rendered. On phones the
+  // toggle is on the Mine tab, so the tab is waited for instead (waiting for the toggle there would
+  // sit out the whole timeout).
   await page
     .getByRole("button", { name: /^(Live|Mock) data/ })
+    .or(page.getByRole("tab", { name: /^Mine/ }))
     .first()
     .waitFor({ timeout: 30_000 })
     .catch(() => undefined);
