@@ -1,6 +1,6 @@
 # Agent Note: one settle path for every plan change
 
-Status: proposed
+Status: implemented
 Owner: spec #259, ticket #263
 
 ## Problem
@@ -19,7 +19,7 @@ The drawer, the trip list and the map read the same plan field, but only the dra
 The map shows no budget total. The trip list reads the snapshot the workspace stores after each change
 (`useWorkspaceStorage`, saved 350 ms after a change).
 
-## Proposal
+## Decision
 
 **The settle is the only place a total is computed.** `settlePlan` in `apps/web/lib/trip/settle.ts` rolls up each
 section's estimate, the plan total, the budget conflicts and the version. Every path that changes a plan ends in it:
@@ -53,18 +53,6 @@ no total, so there is nothing to agree with; it is not given one here.
   and the agent lab, which see no activities without a day; a change there would reach fixtures and unit tests for no
   traveller benefit. The settle applies the rule to the trip's own plan only.
 
-## Acceptance criteria
-
-1. Removing a priced stop lowers the Estimated total at once, from a day that keeps one stop and from a day that is
-   then empty (`settle-path.e2e.mjs`, scenarios B, C and F).
-2. Moving a priced stop to Ideas lowers the total at once; scheduling the Idea on a day raises it back by the same
-   amount (scenarios D and E).
-3. An arrow move leaves the total as it was, and the drawer shows the total the server answered (scenario A).
-4. The open trip's card on Your trips shows the drawer's total after those changes (scenario G). The map shows no total.
-5. No browser path sums a price: `apps/web/lib/trip/settle.ts` is the only function that rolls up a section or the plan.
-6. `pnpm --filter @trip/web build` resolves `@trip/orchestrator/plan-totals` in the browser bundle.
-7. `DATA_MODE=mock pnpm --filter @trip/web e2e` passes for the scripts listed in the ticket.
-8. No unit tests are added; `packages/shared/src` is not changed.
 
 ## Risks
 
@@ -98,4 +86,30 @@ Each row is a scenario in `apps/web/tests/e2e/settle-path.e2e.mjs`, or is named 
 
 ## Consequences
 
-To be written when the code lands (promotion to implemented).
+Acceptance criteria, as met:
+
+1. Removing a priced stop lowers the Estimated total at once, from a day that keeps one stop and from a day that is
+   then empty (`settle-path.e2e.mjs`, scenarios B, C and F).
+2. Moving a priced stop to Ideas lowers the total at once; scheduling the Idea on a day raises it back by the same
+   amount (scenarios D and E).
+3. An arrow move leaves the total as it was, and the drawer shows the total the server answered (scenario A).
+4. The open trip's card on Your trips shows the drawer's total after those changes (scenario G). The map shows no total.
+5. No browser path sums a price: `apps/web/lib/trip/settle.ts` is the only function that rolls up a section or the plan.
+6. `pnpm --filter @trip/web build` resolves `@trip/orchestrator/plan-totals` in the browser bundle.
+7. `DATA_MODE=mock pnpm --filter @trip/web e2e` passes for the scripts listed in the ticket.
+8. No unit tests are added; `packages/shared/src` is not changed.
+
+
+- The estimate of a section sums its scheduled items only. An activity with no day (an Idea, including a restaurant
+  pick not yet scheduled) does not count toward the estimate or the budget total. Moving a priced stop to Ideas lowers
+  the total at once, and scheduling the Idea back raises it. This one rule in `settlePlan` covers the server's
+  operations and the browser's details, note and booked edits, so the two paths read the same.
+- The orchestrator's `costOf` is unchanged. Flights and stays are not activities and still count.
+- There is no budget total on the map in this codebase. The total appears in the Trip drawer and on the Your trips
+  cards, and the E2E checks that the card matches the drawer after an edit (scenario G). Criterion 3's map half has
+  nothing to match and was not invented.
+- Evidence: `apps/web/tests/e2e/settle-path.e2e.mjs` (seven scenarios, mock data mode). Red at 720a123: D and E failed,
+  the total stayed at 1475 when the priced stop moved to Ideas. Green after the change.
+- No unit test was added; `packages/shared/src` is unchanged; the response shape is unchanged.
+- Known limitation: an Idea's price is still shown on its own card under Ideas, which is the intended place for it.
+

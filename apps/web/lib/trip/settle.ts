@@ -21,9 +21,13 @@ export function settlePlan(plan: TripPlan, baseVersion: number, currency: Curren
       ? "needs_you"
       : "draft";
   });
-  // Recompute from item evidence, never trust client totals.
+  // Recompute from item evidence, never trust client totals. An Idea (an activity with no day) is not in the
+  // plan's days, so its price is not part of the estimate.
   plan.sections.forEach((s) => {
-    if (s.proposal) s.estCost = s.proposal.items.reduce((sum, i) => sum + (i.estCost ?? 0), 0);
+    if (s.proposal)
+      s.estCost = s.proposal.items
+        .filter((i) => !(i.kind === "activity" && i.day === undefined))
+        .reduce((sum, i) => sum + (i.estCost ?? 0), 0);
   });
   plan.budgetTotal = plan.brief.budgetTotal;
   // Share the orchestrator's calculator rather than keeping a float copy of it here. The two
