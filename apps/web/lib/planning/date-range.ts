@@ -23,14 +23,3 @@ export function isoDateRange(range: DateRange): { start: string; end: string } |
     range.from.getTime() <= range.to.getTime() ? [range.from, range.to] : [range.to, range.from];
   return { start: toIsoDate(start), end: toIsoDate(end) };
 }
-
-/**
- * Format a calendar-picked range into the exact "YYYY-MM-DD to YYYY-MM-DD"
- * shape `extractBriefPatchLocally` (@trip/orchestrator) already recognizes —
- * picking dates needs no backend change, it just produces the same message
- * shape a traveller could have typed by hand.
- */
-export function formatTravelDatesMessage(range: DateRange): string | undefined {
-  const iso = isoDateRange(range);
-  return iso && `Travel dates: ${iso.start} to ${iso.end}`;
-}
