@@ -3,7 +3,12 @@ import { useCallback, useEffect, useState } from "react";
 
 export type DataMode = "mock" | "live";
 
-export type DataModeProviders = { hotelsAndFlights: boolean; maps: boolean };
+export type DataModeProviders = {
+  hotelsAndFlights: boolean;
+  maps: boolean;
+  webMapsProvider?: "google" | "osm" | "google-with-fallback";
+  mockGoogleUnavailable?: boolean;
+};
 
 const STORAGE_KEY = "trip.dataMode";
 

@@ -1,9 +1,12 @@
 "use client";
 import type { ReactNode } from "react";
 import type { Connection, FixedRow } from "@/lib/trip/timeline";
+import type { LegMode } from "@/lib/trip/leg-routes";
+import type { MessageKey } from "@/lib/i18n/locale";
 import { useLocale } from "../../account/LocaleProvider";
 import {
   FlowDriveIcon,
+  FlowCycleIcon,
   FlowFlightIcon,
   FlowStayIcon,
   FlowTransitIcon,
@@ -53,10 +56,39 @@ const CONNECTION_ICON: Record<string, (props: { size?: number }) => ReactNode> =
   walk: FlowWalkIcon,
   WALK: FlowWalkIcon,
   drive: FlowDriveIcon,
+  DRIVE: FlowDriveIcon,
+  cycle: FlowCycleIcon,
+  BICYCLE: FlowCycleIcon,
 };
 
-/** The journey between two stops, drawn as part of the line rather than as another card. */
-export function ConnectionRow({ connection }: { connection: Connection }) {
+/** The modes a traveller can choose for a leg, in the order the control lists them. */
+const LEG_CHOICES: { mode: LegMode; label: MessageKey }[] = [
+  { mode: "walk", label: "Walk" },
+  { mode: "transit", label: "Public transport" },
+  { mode: "drive", label: "Drive" },
+  { mode: "cycle", label: "Cycle" },
+];
+
+/**
+ * The journey between two stops, drawn as part of the line rather than as another card. When both
+ * stops have saved places the leg has a mode control: changing it routes this leg alone, and a leg
+ * whose stops are not both saved yet shows only its estimate.
+ */
+export function LegRow({
+  connection,
+  from,
+  to,
+  locked = false,
+  onChoose,
+}: {
+  connection: Connection;
+  /** The stop the leg starts from and the stop it reaches, for the control's name. */
+  from: string;
+  to: string;
+  locked?: boolean;
+  /** Routes the leg with the chosen mode; absent while the leg cannot be routed. */
+  onChoose?(mode: LegMode): void;
+}) {
   const { t } = useLocale();
   const Icon = CONNECTION_ICON[connection.mode] ?? FlowTransitIcon;
   return (
@@ -64,18 +96,50 @@ export function ConnectionRow({ connection }: { connection: Connection }) {
     <li className={`timeline-connection timeline-connection--${connection.status}`}>
       <span className="timeline-row__time" />
       <span className="timeline-connection__rail" aria-hidden="true" />
-      <p className="timeline-connection__label">
-        <Icon size={13} />
-        <span>{connection.label}</span>
-        {connection.fare && <span>· {connection.fare}</span>}
-        <span className="timeline-connection__status">
-          {connection.status === "checked"
-            ? t("checked")
-            : connection.status === "planned"
-              ? t("estimate")
-              : t("check failed")}
-        </span>
-      </p>
+      <div className="timeline-connection__body">
+        <p className="timeline-connection__label">
+          <Icon size={13} />
+          <span>{connection.label}</span>
+          {connection.fare && <span>· {connection.fare}</span>}
+          {connection.service && (
+            <span>
+              ·{" "}
+              {connection.service === "Transitous" ? (
+                <a href="https://transitous.org/sources/" target="_blank" rel="noreferrer">
+                  Transitous
+                </a>
+              ) : (
+                connection.service
+              )}
+            </span>
+          )}
+          {connection.status !== "failed" && (
+            <span className="timeline-connection__status">
+              {connection.status === "checked" ? t("checked") : t("estimate")}
+            </span>
+          )}
+        </p>
+        {onChoose && (
+          <select
+            className="timeline-connection__mode"
+            aria-label={t("Travel from {from} to {to} by", { from, to })}
+            value={connection.choice ?? ""}
+            disabled={locked}
+            onChange={(event) => onChoose(event.target.value as LegMode)}
+          >
+            {connection.choice === undefined && (
+              <option value="" disabled>
+                {t("Not checked yet")}
+              </option>
+            )}
+            {LEG_CHOICES.map((choice) => (
+              <option key={choice.mode} value={choice.mode}>
+                {t(choice.label)}
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
     </li>
   );
 }

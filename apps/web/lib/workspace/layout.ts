@@ -6,7 +6,7 @@ import type { FactKey } from "./trip-facts";
  */
 export type MobileView = "chat" | "map" | "trip" | "mine";
 export const PHONE_VIEWS: readonly MobileView[] = ["chat", "map", "trip", "mine"];
-export type DialogKind = "review" | "settings";
+export type DialogKind = "settings";
 /**
  * Panels that slide over the workspace: Your Trip, the 521–1000 px navigation and the desktop
  * Chats panel beside the sidebar.
@@ -19,7 +19,7 @@ export type Media = { phone: boolean; narrow: boolean };
  * What is open on screen. `page` is the workspace or the Your trips page; `view` is the selected
  * phone tab or narrow-layout view, kept while Your trips is shown so returning restores it.
  * At most one panel (`drawer`, the phone trip facts `sheet`, or the chip editor `fact`) is open;
- * Settings or Review (`dialog`) may sit on top of it. Your trips never has a chip editor, the
+ * Settings (`dialog`) may sit on top of it. Your trips never has a chip editor, the
  * facts sheet or the Trip drawer, and a phone never shows Your trips or a drawer.
  */
 export type Surface = {
@@ -93,7 +93,7 @@ export function layout(surface: Surface, event: LayoutEvent, media: Media): Surf
     case "close-drawer":
       return without(surface, "drawer");
     case "open-fact":
-      // An editor replaces a dialog too: a rejected brief can open one from Review.
+      // An editor replaces a dialog too, so a chip editor opened while Settings is up takes its place.
       return only(without(surface, "dialog"), { page: "workspace", fact: event.fact });
     case "close-fact":
       return without(surface, "fact");

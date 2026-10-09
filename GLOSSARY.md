@@ -62,6 +62,10 @@ _Avoid_: plan order, sort order
 A flight or stay the specialist found and priced but did not pick, which the traveller can take instead.
 _Avoid_: candidate, option, other choice
 
+**Leg**:
+The journey from one stop to the next on the same day, with its own travel mode and time.
+_Avoid_: connection, transfer, hop
+
 ## Workspace
 
 **Notice**:
@@ -75,8 +79,8 @@ A cost, budget or total in AUD, the one currency specialists plan and check budg
 _Avoid_: base amount, raw price
 
 **Display currency**:
-The currency the traveller reads planning amounts in; a converted amount is an approximation and never feeds back into planning.
-_Avoid_: local currency, user currency
+The currency the traveller reads a trip's planning amounts in: the last currency they named for that trip, whether with a budget or on its own, otherwise the Settings currency. A converted amount is an approximation and never feeds back into planning.
+_Avoid_: local currency, user currency, trip currency
 
 **Source budget**:
 The budget exactly as the traveller stated it, in the currency they used, kept beside its planning amount.

@@ -17,6 +17,7 @@ import {
   type RestoredWorkspace,
   type WorkspaceCatalog,
 } from "@/lib/workspace/catalog";
+import { isCurrentTabPlan } from "@/lib/trip/tab-revision";
 import { STORAGE_FULL } from "./workspace-helpers";
 
 type WorkspaceStorageOptions = {
@@ -58,6 +59,7 @@ export function useWorkspaceStorage({
     setSaveState("saving");
     const persist = () => {
       pendingSave.current = null;
+      if (plan && !isCurrentTabPlan(plan)) return;
       try {
         let nextCatalog: WorkspaceCatalog;
         if (!plan) {
@@ -102,13 +104,14 @@ export function useWorkspaceStorage({
   useEffect(() => {
     if (!storageEnabled) return;
     try {
+      if (plan && !isCurrentTabPlan(plan)) return;
       localStorage.setItem(CATALOG_KEY, serializeCatalog(catalog));
     } catch {
       setSaveState("failed");
       setStorageEnabled(false);
       setStorageError(STORAGE_FULL);
     }
-  }, [catalog, storageEnabled]);
+  }, [catalog, storageEnabled, plan]);
 
   function flushSave() {
     pendingSave.current?.();

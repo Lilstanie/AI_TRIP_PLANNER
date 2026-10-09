@@ -40,7 +40,7 @@ those regions. If a region really does need to change, raise it as a design deci
   English, Chinese or mixed. Do not set a fixed width or height on text. Let rows wrap. Clamp long
   names and keep the full text reachable. A one-word button label is the riskiest string on screen.
   See [spacing-and-adaptivity.md](references/spacing-and-adaptivity.md).
-- **Never clip a critical action.** Review plan and the composer send button stay in stable
+- **Never clip a critical action.** The composer send button and Update trip stay in stable
   chrome or in normal flow. They must never sit at the bottom of a pane that can scroll out
   of view.
 - **Disclosure has a cue.** Collapsed timeline sections, thinking rows and the drawer's Places list show

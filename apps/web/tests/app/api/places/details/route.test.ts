@@ -1,4 +1,5 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
+import { resetMapProviders } from "@/lib/map-provider";
 import { GoogleRequestError } from "@/lib/integrations/google";
 import { POST } from "@/app/api/places/details/route";
 
@@ -12,11 +13,19 @@ vi.mock("@/lib/integrations/google", async () => {
 function request(body: unknown) {
   return new Request("http://localhost/api/places/details", {
     method: "POST",
+    headers: { "x-trip-data-mode": "live" },
     body: JSON.stringify(body),
   });
 }
 
-afterEach(() => vi.clearAllMocks());
+// The fallback provider remembers a Google quota or access failure for a cool-down; start each case
+// with Google untried.
+beforeEach(() => vi.stubEnv("WEB_MAPS_PROVIDER", "google"));
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.clearAllMocks();
+  resetMapProviders();
+});
 
 describe("POST /api/places/details", () => {
   it("rejects a missing place id before calling Google", async () => {
@@ -35,7 +44,7 @@ describe("POST /api/places/details", () => {
 
     expect(placeDetails).toHaveBeenCalledWith("p1");
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({ place: { id: "p1" } });
+    await expect(response.json()).resolves.toEqual({ place: { id: "p1" }, source: "google" });
   });
 
   it.each([400, 404])(

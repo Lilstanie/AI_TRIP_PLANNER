@@ -1,11 +1,24 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
+import { type ComponentProps } from "react";
 import { TripEditor } from "@/components/trip/TripEditor";
+import { usePlanRevision } from "@/components/trip/plan-revision";
 import type { TripPlaces } from "@/components/map/useTripPlaces";
 import { plan as seed } from "@/tests/fixtures/workspace";
 import { identifyActivities, itineraryActivities } from "@/lib/workspace";
 import { TripPlan } from "@trip/shared";
 import { buildItinerary } from "@/lib/trip/itinerary";
+/** The editor with the plan revision owner the workspace gives it, which sends and applies its edits. */
+function Editor(props: Omit<ComponentProps<typeof TripEditor>, "revisions">) {
+  const revisions = usePlanRevision({
+    plan: props.plan,
+    held: props.disabled,
+    dataMode: undefined,
+    onApply: props.onApply,
+  });
+  return <TripEditor {...props} revisions={revisions} />;
+}
+
 function fixture() {
   const plan = identifyActivities(structuredClone(seed));
   Object.assign(plan.sections[0]!.proposal!.items[0]!, {
@@ -47,7 +60,7 @@ describe("editor request lifecycle", () => {
   it("renders the timeline only, without an embedded map", () => {
     const plan = fixture();
     render(
-      <TripEditor
+      <Editor
         plan={plan}
         disabled={false}
         onApply={vi.fn()}
@@ -56,14 +69,16 @@ describe("editor request lifecycle", () => {
         onSelect={vi.fn()}
       />,
     );
-    expect(screen.getByRole("button", { name: "Check routes for Day 1" })).toBeTruthy();
+    // The day has no route check and no day-wide travel mode: each leg is checked on its own.
+    expect(screen.queryByRole("button", { name: /Check routes/ })).toBeNull();
+    expect(screen.queryByRole("group", { name: "Travel between stops by" })).toBeNull();
     expect(screen.queryByLabelText("Google activity map")).toBeNull();
   });
   it("shares activity selection with the map", () => {
     const plan = fixture();
     const select = vi.fn();
     render(
-      <TripEditor
+      <Editor
         plan={plan}
         disabled={false}
         onApply={vi.fn()}
@@ -72,7 +87,7 @@ describe("editor request lifecycle", () => {
         onSelect={select}
       />,
     );
-    fireEvent.click(screen.getByRole("button", { name: /09:00–10:00 · .*Museum/ }));
+    fireEvent.click(document.querySelector<HTMLElement>(".timeline-stop__main")!);
     expect(select).toHaveBeenCalledWith(itineraryActivities(plan)[0]!.id);
   });
   it("discards a late preview after workspace restore", async () => {
@@ -90,7 +105,7 @@ describe("editor request lifecycle", () => {
       apply = vi.fn(),
       pending = vi.fn();
     const { rerender } = render(
-      <TripEditor
+      <Editor
         plan={original}
         disabled={false}
         onApply={apply}
@@ -100,11 +115,12 @@ describe("editor request lifecycle", () => {
         onSelect={vi.fn()}
       />,
     );
+    fireEvent.click(screen.getByRole("button", { name: /^Change time, / }));
     fireEvent.change(screen.getByLabelText("End"), { target: { value: "10:30" } });
-    fireEvent.click(screen.getByRole("button", { name: "Preview time change" }));
+    fireEvent.click(screen.getByRole("button", { name: "Change time" }));
     const restored = { ...original, tripId: "restored" };
     rerender(
-      <TripEditor
+      <Editor
         plan={restored}
         disabled={false}
         onApply={apply}
@@ -115,41 +131,7 @@ describe("editor request lifecycle", () => {
       />,
     );
     finish(response(original));
-    await waitFor(() => expect(screen.queryByRole("button", { name: "Apply changes" })).toBeNull());
+    await waitFor(() => expect(pending).toHaveBeenLastCalledWith(false));
     expect(apply).not.toHaveBeenCalled();
-  });
-  it("Escape cancels only the preview and restores keyboard focus", async () => {
-    const plan = fixture();
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () => response(plan)),
-    );
-    const outer = vi.fn();
-    window.addEventListener("keydown", outer);
-    render(
-      <TripEditor
-        plan={plan}
-        disabled={false}
-        onApply={vi.fn()}
-        onPending={vi.fn()}
-        tripPlaces={places(plan)}
-        selected={itineraryActivities(plan)[0]!.id}
-        onSelect={vi.fn()}
-      />,
-    );
-    fireEvent.change(screen.getByLabelText("End"), { target: { value: "10:30" } });
-    const trigger = screen.getByRole("button", { name: "Preview time change" });
-    trigger.focus();
-    fireEvent.click(trigger);
-    await screen.findByRole("button", { name: "Apply changes" });
-    const region = screen.getByRole("region", { name: "Edit preview" });
-    // Focus moves in an effect after the preview commits; on a slow runner the button can appear
-    // before that effect has run, so wait for focus rather than asserting it on the same tick.
-    await waitFor(() => expect(document.activeElement).toBe(region));
-    fireEvent.keyDown(region, { key: "Escape" });
-    expect(screen.queryByRole("button", { name: "Apply changes" })).toBeNull();
-    expect(document.activeElement).toBe(trigger);
-    expect(outer).not.toHaveBeenCalled();
-    window.removeEventListener("keydown", outer);
   });
 });

@@ -60,7 +60,9 @@ checks the frozen and shared-contract rules.
 - Keep external credentials in environment variables. Never commit keys or copy them into project
   documentation, fixtures, or source code.
 - Use standard branch names such as `feature/<short-name>`, `fix/<short-name>`, `refactor/<short-name>`,
-  or `docs/<short-name>`; do not encode the name of an AI tool in a branch name.
+  or `docs/<short-name>`; do not encode the name of an AI tool in a branch name. This applies even when
+  a tool or harness assigns a branch: branch from `origin/main` with a proper name before the first push
+  (CI runs `scripts/verify-branch-name.mjs` on pull requests).
 - Documentation accompanies every change: update the affected pages under `docs/`, Agent Notes and
   skills in the same pull request. A skill that names a command, path or threshold you changed is now
   wrong. `pnpm verify:docs` checks note format, skill frontmatter and Markdown links.

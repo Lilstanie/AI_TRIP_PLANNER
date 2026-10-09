@@ -271,6 +271,14 @@ export const FlowMuseumIcon = (props: FlowIconProps) => (
   </LineSvg>
 );
 
+export const FlowCycleIcon = (props: FlowIconProps) => (
+  <LineSvg {...props}>
+    <circle cx="5" cy="17" r="4" />
+    <circle cx="19" cy="17" r="4" />
+    <path d="m5 17 5-9 5 9H5m5-9h6l3 9M8 5h4m4 3-1-4h3" />
+  </LineSvg>
+);
+
 export const FlowDriveIcon = (props: FlowIconProps) => (
   <LineSvg {...props}>
     <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2" />

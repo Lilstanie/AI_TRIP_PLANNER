@@ -1,6 +1,5 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { TripTab } from "../trip/TripPanel";
 import { useWorkspaceStorage } from "./useWorkspaceStorage";
 import { useWorkspaceTransport } from "./useWorkspaceTransport";
 import { useTripPlaces } from "../map/useTripPlaces";
@@ -15,7 +14,7 @@ import {
   type RestoredWorkspace,
   type WorkspaceCatalog,
 } from "@/lib/workspace/catalog";
-import { seed, type DialogKind, type MobileView } from "./workspace-helpers";
+import { seed, type MobileView } from "./workspace-helpers";
 import { useWorkspaceLayout } from "./useWorkspaceLayout";
 import {
   idleSession,
@@ -78,9 +77,6 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
   const { dialog, fact: openFact, view: mobileView } = surface;
   const tripOpen = surface.drawer === "trip";
   const navOpen = surface.drawer === "nav";
-  const [tripTab, setTripTab] = useState<TripTab>(
-    restored.catalog.layout.editorView === "timeline" ? "timeline" : "overview",
-  );
   const [sidebarCollapsed, setSidebarCollapsed] = useState(
     restored.catalog.layout.sidebar.collapsed,
   );
@@ -100,7 +96,15 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
   const preferencesToggle = useRef<HTMLButtonElement>(null);
   const tripToggle = useRef<HTMLButtonElement>(null);
   const navToggle = useRef<HTMLButtonElement>(null);
-  const tripPlaces = useTripPlaces(plan);
+  const dataMode = useDataMode(settings.dataMode === "default" ? undefined : settings.dataMode);
+  const tripPlaces = useTripPlaces(
+    plan,
+    dataMode.mode,
+    locale,
+    dataMode.providers?.webMapsProvider === "osm" ||
+      (dataMode.mode === "mock" && dataMode.providers?.mockGoogleUnavailable),
+    dataMode.providers?.webMapsProvider !== "google",
+  );
   const { itinerary } = tripPlaces;
   const { storageError, storageEnabled, saveState, setStorageError, setStorageEnabled, flushSave } =
     useWorkspaceStorage({
@@ -132,11 +136,10 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
           sidebar: { collapsed: sidebarCollapsed, width: sidebarWidth },
           chatShare,
           view: mobileView,
-          editorView: tripTab,
         },
       }),
     );
-  }, [mobileView, tripTab, sidebarCollapsed, sidebarWidth, chatShare]);
+  }, [mobileView, sidebarCollapsed, sidebarWidth, chatShare]);
 
   // A stop selected anywhere (the Trip tab's itinerary too) shows on its own day on the phone map.
   const selectedDay = selectedActivity ? itinerary.stop(selectedActivity)?.day : undefined;
@@ -174,7 +177,6 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
       typeof fact === "string" ? (fact as FactKey) : (firstMissingFact(draft) ?? "preferences"),
     );
   }
-  const dataMode = useDataMode(settings.dataMode === "default" ? undefined : settings.dataMode);
   // Files held for the next message. In memory only: a reload drops them, the
   // same way an unanswered question card is dropped.
   const composerAttachments = useComposerAttachments();
@@ -218,7 +220,6 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
       currency: effectiveCurrency(item.snapshot.plan.brief, settings.displayCurrency),
       locale,
     }).money(item.snapshot.plan.estTotal)}`,
-    status: item.status === "needs_review" ? ("Needs review" as const) : ("Draft" as const),
     active: !blank && item.id === catalog.activeTripId,
   }));
   function selectConversation(id: string) {
@@ -360,15 +361,14 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
         dispatch({ kind: "selected", activity: id });
         if (isPhone.current) setMapFocus((request) => request + 1);
       },
-      /** Opens the timeline on a stop so its time can be adjusted. */
-      adjustStop: (id: string) => {
-        dispatch({ kind: "selected", activity: id });
-        setTripTab("timeline");
-      },
       showRoutes: (routes: RouteResult[]) => dispatch({ kind: "routed", routes }),
       /** A timeline edit is being previewed; planning waits until it is applied or dropped. */
       trackEdit: (pending: boolean) => setEditPending(pending),
       dismissAsk: () => dispatch({ kind: "dismissed" }),
+      dismissEstimate: () => dispatch({ kind: "estimateDismissed" }),
+      /** A change on the timeline was applied, or undone; a chat replan that follows says it replaced the change. */
+      setTimelineChanged: (changed: boolean) => dispatch({ kind: "timelineChanged", changed }),
+      dismissReplaced: () => dispatch({ kind: "replacedDismissed" }),
       cancel: () => active.current?.abort(),
     },
     layout: {
@@ -384,8 +384,6 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
       closePreferences: () => layout({ type: "close-fact" }),
       openTrip: () => layout({ type: "open-trip" }),
       closeTrip: () => layout({ type: "close-trip" }),
-      openDialog: (kind: DialogKind) => layout({ type: "open-dialog", dialog: kind }),
-      showTripTab: (tab: TripTab) => setTripTab(tab),
       toggleSidebar: () => setSidebarCollapsed((value) => !value),
       resizeSidebar: (width: number | undefined) => setSidebarWidth(width),
       resizeChat: (share: number | undefined) => setChatShare(share),
@@ -422,6 +420,8 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
       ask,
       selectedActivity,
       mapRoutes: state.mapRoutes,
+      estimateChange: state.estimateChange,
+      replacedChange: state.replacedChange,
       editPending,
       blank,
       dataMode,
@@ -460,7 +460,6 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
       chatsOpen: surface.drawer === "chats",
       // Chip editors are popovers, not drawers: they bring no drawer backdrop.
       drawerOpen: tripOpen || navOpen,
-      tripTab,
       sidebarCollapsed,
       sidebarWidth,
       chatShare,

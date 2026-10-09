@@ -258,14 +258,14 @@ whether `SERPAPI_KEY` and `MAPS_API_KEY` are set, never their values. The respon
 
 ## `POST /api/places/search`
 
-Implementation: `searchPlaces` in `apps/web/lib/integrations/google.ts` (requires the server `MAPS_API_KEY`).
+Implementation: `MapProvider.searchPlaces` in `apps/web/lib/map-provider/` (Google first, free fallback by default).
 
 ```json
 { "text": "To-ji Temple", "destination": "Kyoto" }
 ```
 
 `destination` is optional; omit it to look up a city itself. The response is
-`{ "places": GooglePlace[] }`. The workspace only sends saved place names, explicit activity locations
+`{ "places": GooglePlace[], "source": "google" | "osm" }`. The workspace only sends saved place names, explicit activity locations
 or titles that are themselves place names (`apps/web/lib/map/place-query.ts`), never descriptive activity
 text. Errors: 400 invalid input, 429 Google rate limit, 502 other upstream failures, 503 when the
 deployment has no Google key, which no retry can fix, each with a
@@ -275,10 +275,10 @@ details.
 ## `POST /api/places/details`
 
 ```json
-{ "placeId": "ChIJ…" }
+{ "placeId": "ChIJ…", "language": "zh" }
 ```
 
-Returns `{ "place": GooglePlace }`. Errors: 400 invalid input, 404 the place ID is no longer
+Returns `{ "place": GooglePlace, "source": "google" | "osm" }`. Errors: 400 invalid input, 404 the place ID is no longer
 available, 429 rate limit, 502 other upstream failures, 503 no Google key configured, each with a
 [`{ error, notice }`](#failure-bodies) body.
 
@@ -293,10 +293,12 @@ Implementation: `placePhotoUri` in `apps/web/lib/integrations/google.ts`.
 /api/places/photo?name=places/ChIJ…/photos/Aa…&width=400
 ```
 
-`name` must be a `places/{id}/photos/{id}` name from a fresh lookup, and `width` is 160, 400 or 800.
+A Google `name` must be a `places/{id}/photos/{id}` name from a fresh lookup, and `width` is 160, 400 or 800.
 The route asks Google for the image URL and answers `302` to a `googleusercontent.com` URL with
 `Cache-Control: no-store`, so an `<img>` can point at it without the server key reaching the
-browser. Each call is a billed Google photo request. Errors: 400 invalid input, 404 an expired or
+browser. Each Google photo call is billed. OSM photos use `osm:commons/{encoded filename}` and redirect
+to validated Wikimedia hosts; mock fixture names (`osm:fixture/Toji`) return a local SVG.
+Commons photos require author and license attribution and are never billed to Google. Errors: 400 invalid input, 404 an expired or
 unknown photo, 429 rate limit, 502 other upstream failures, 503 no Google key configured, each with
 a [`{ error, notice }`](#failure-bodies) body.
 
@@ -325,14 +327,23 @@ Contract: `EditRequest` and `EditPreview` in `apps/web/lib/trip/trip-edit.ts`.
 }
 ```
 
-`operation.kind` is `verify` (a day's routes), `move`, `time`, `place`, `choose` or `undo`. Only activities with a
-day are routed and re-timed; ideas (activities without a day) pass through unchanged. The response is
+`operation.kind` is `verify` (a day's routes), `move` (a drag: `day` and `index`), `time`, `place`, `leg`, `choose`,
+`undo`, or one of the four item actions the timeline's menu sends: `remove` (`id`), `idea` (`id`, takes the stop off its
+day), `schedule` (`id`, `day`: the end of that day) and `swap` (`id`, `direction` -1 or 1: an arrow move). The item
+actions are applied by the same transform the browser's item actions use, then their days are routed. A `move` is
+refused by any blocker it raises, and a `schedule` by any blocker but an unconfirmed place. A `swap` keeps the start
+times it traded, is refused only for a stop running past midnight, and a leg that does not fit those times is a notice on
+its stop.
+Only activities with a day are routed and re-timed; ideas (activities without a day) pass through unchanged. The response is
 `{ plan, baseVersion, routes, differences, blockers, blockerNotices }`. Each difference is a value
 object `{ stop, days?: { from, to }, before, after, placeChanged }` that the interface words in the
 chosen language. `blockerNotices` lists what stops the edit as Notices (`{ key, params }` for the
 app's own wording, `{ raw }` for a route provider's text), which the interface shows in the chosen
 language; `blockers` repeats them as English sentences for older clients. It is a preview only: the
-client applies it when the user confirms and rejects it if `baseVersion` no longer matches. An
+client applies an accepted edit immediately, offers Undo and rejects stale results. `baseVersion`
+checks the submitted plan, not an authoritative server revision. Same-browser tabs share a Web Lock
+and a persisted plan fingerprint; stale tabs cannot edit or autosave over the newer plan. This does
+not provide cross-device concurrency control. An
 invalid edit returns 400 with `{ error, notice }`: `error` is the English sentence older clients
 read and `notice` the same refusal as a Notice; an error that is not one of the app's own refusals,
 such as a malformed body, comes back as `{ raw }`.
@@ -387,3 +398,14 @@ Deletes the account's rows, then the Clerk user. If Clerk fails after the rows a
 - Trip brief, proposals and ports: `packages/shared/src/contracts.ts`, `packages/shared/src/ports.ts`
 - Trip plan and its unresolved conflicts: `packages/shared/src/plan.ts`
 - Specialist contract: `packages/shared/src/agent.ts`
+
+Place search accepts `autocomplete: true` for typing suggestions. The free provider uses Photon only; unsupported languages or a Photon failure return an empty list, never Nominatim. Explicit searches omit the flag.
+
+Place search and details accept optional `language: "en" | "zh"`; OSM details default to English and cache separately by language. Leg edits accept `mode: "cycle"`, saved as `arriveBy.mode: "cycle"`, with route mode `BICYCLE`. OSM cards have no rating; optional
+`source`, `osmUri`, `websiteUri`, `phone`, `openingHours` and photo license fields are web-only details.
+Only `savedPlace` name/address/coordinates are persisted with an activity. OSM routes name OSRM or
+Transitous in `source`; `no_route` and `unavailable` never supply an invented transit duration.
+`providers.maps` in `/api/data-mode` includes the free fallback; `webMapsProvider` and
+`mockGoogleUnavailable` let the browser follow the deployment selection without exposing keys.
+
+`/api/routes/from-location` accepts optional `toLocation: { latitude, longitude }` for a saved destination. These coordinates let OSM route to a Google-saved stop without looking up its ID.

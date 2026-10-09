@@ -233,13 +233,13 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 
 ## `POST /api/places/search`
 
-实现：`apps/web/lib/integrations/google.ts` 中的 `searchPlaces`（需要服务端的 `MAPS_API_KEY`）。
+实现：`apps/web/lib/map-provider/` 中的 `MapProvider.searchPlaces`（默认先 Google，失败时免费回退）。
 
 ```json
 { "text": "To-ji Temple", "destination": "Kyoto" }
 ```
 
-`destination` 是可选字段；查找城市本身时省略它。响应为 `{ "places": GooglePlace[] }`。
+`destination` 是可选字段；查找城市本身时省略它。响应为 `{ "places": GooglePlace[], "source": "google" | "osm" }`。
 工作区只发送保存的地点名称、明确的活动位置或本身就是地点名称的标题
 （`apps/web/lib/map/place-query.ts`），绝不发送描述性的活动文本。
 错误：400 表示输入无效，429 表示 Google 限流，502 表示其他上游失败，503 表示该部署没有配置 Google 密钥（重试无法解决），
@@ -250,10 +250,10 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 ## `POST /api/places/details`
 
 ```json
-{ "placeId": "ChIJ…" }
+{ "placeId": "ChIJ…", "language": "zh" }
 ```
 
-返回 `{ "place": GooglePlace }`。错误：400 表示输入无效，404 表示地点 ID 已不可用，
+返回 `{ "place": GooglePlace, "source": "google" | "osm" }`。错误：400 表示输入无效，404 表示地点 ID 已不可用，
 429 表示限流，502 表示其他上游失败，503 表示未配置 Google 密钥，响应体均为 [`{ error, notice }`](#failure-bodies)。
 
 这两个路由返回的 `GooglePlace.photos` 都包含 Google 照片名称和作者署名。
@@ -269,10 +269,10 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 /api/places/photo?name=places/ChIJ…/photos/Aa…&width=400
 ```
 
-`name` 必须是从最新查询中获得的 `places/{id}/photos/{id}` 名称，`width` 为 160、400 或 800。
+Google `name` 必须是从最新查询中获得的 `places/{id}/photos/{id}` 名称，`width` 为 160、400 或 800。
 路由向 Google 请求图片 URL，再以 `302` 响应重定向到 `googleusercontent.com` URL，
 并设置 `Cache-Control: no-store`，因此 `<img>` 可以指向它，而不会让服务端密钥进入浏览器。
-每次调用都是一次计费的 Google 照片请求。错误：400 表示输入无效，404 表示照片已过期或未知，
+每次 Google 照片调用均计费。OSM 照片使用 `osm:commons/{encoded filename}` 并重定向到经过验证的 Wikimedia 主机；模拟名称 `osm:fixture/Toji` 返回本地 SVG。Commons 照片必须注明作者和许可，不产生 Google 费用。错误：400 表示输入无效，404 表示照片已过期或未知，
 429 表示限流，502 表示其他上游失败，503 表示未配置 Google 密钥，响应体均为 [`{ error, notice }`](#failure-bodies)。
 
 <a id="post-apiroutesfrom-location"></a>
@@ -304,12 +304,11 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 }
 ```
 
-`operation.kind` 为 `verify`（检查某一天的路线）、`move`、`time`、`place`、`choose` 或 `undo`。只有带日期的活动会被规划路线和重新排时；ideas（没有日期的活动）原样保留。
+`operation.kind` 为 `verify`（检查某一天的路线）、`move`（拖动：`day` 和 `index`）、`time`、`place`、`leg`、`choose`、`undo`，或时间线菜单发出的四种停靠点操作之一：`remove`（`id`）、`idea`（`id`，将停靠点移出其日期）、`schedule`（`id`、`day`：放到该天末尾）和 `swap`（`id`、`direction` 为 -1 或 1：箭头移动）。停靠点操作与浏览器中的停靠点操作使用同一变换，随后检查其所涉及的日期。`move` 遇到任何阻碍项即被拒绝，`schedule` 遇到除未确认地点以外的阻碍项即被拒绝。`swap` 保留其交换后的开始时间，只因站点超过午夜而被拒绝；不合这些时间的路段以通知显示在其停靠点上。只有带日期的活动会被规划路线和重新排时；ideas（没有日期的活动）原样保留。
 响应为 `{ plan, baseVersion, routes, differences, blockers, blockerNotices }`。每条 difference 是数值对象
 `{ stop, days?: { from, to }, before, after, placeChanged }`，由界面按所选语言组织文字。`blockerNotices` 以 Notice
 列出阻止此修改的原因（应用自身的措辞为 `{ key, params }`，路线服务商的文字为 `{ raw }`），界面按所选语言显示；
-`blockers` 以英文句子重复同样内容，供旧版客户端使用。它只是预览：客户端在用户确认后才应用它，若 `baseVersion`
-已不匹配则拒绝应用。无效编辑返回 400 和 `{ error, notice }`：`error` 是旧版客户端读取的英文句子，`notice`
+`blockers` 以英文句子重复同样内容，供旧版客户端使用。它只是预览：客户端立即应用有效修改并提供撤销，拒绝过时结果。`baseVersion` 检查提交的计划，并非权威服务端版本。同一浏览器的标签页共用 Web Lock 和持久化计划指纹；旧标签页不能编辑或自动保存覆盖新计划。这不提供跨设备并发控制。无效编辑返回 400 和 `{ error, notice }`：`error` 是旧版客户端读取的英文句子，`notice`
 是同一拒绝原因的 Notice；不属于应用自身拒绝原因的错误（例如格式错误的请求体）以 `{ raw }` 返回。
 
 `choose` 接收 `{ section: "accommodation" | "transport", selectionId, candidateId }`，把住宿或机票换成专员已经找到的另一个候选。
@@ -354,3 +353,9 @@ id，绝不使用请求体中的 id。约定：`apps/web/lib/account/settings.ts
 - 行程需求、提案和端口：`packages/shared/src/contracts.ts`、`packages/shared/src/ports.ts`
 - 旅行计划及其未解决冲突：`packages/shared/src/plan.ts`
 - Specialist 约定：`packages/shared/src/agent.ts`
+
+地点搜索接受 `autocomplete: true` 表示输入建议。免费提供方只使用 Photon；不支持的语言或 Photon 故障返回空列表，绝不访问 Nominatim。显式提交的搜索不传此标志。
+
+地点搜索和详情接受可选的 `language: "en" | "zh"`；OSM 详情默认使用英语，并按语言分别缓存。路段编辑接受 `mode: "cycle"`，保存为 `arriveBy.mode: "cycle"`，对应路线方式 `BICYCLE`。OSM 卡片不含评分；可选的 `source`、`osmUri`、`websiteUri`、`phone`、`openingHours` 和照片许可字段属于网页详情。活动只持久化 `savedPlace` 的名称、地址和坐标。OSM 路线的 `source` 标注 OSRM 或 Transitous；`no_route` 和 `unavailable` 都不产生虚构公交时长。`/api/data-mode` 的 `providers.maps` 包含免费回退；`webMapsProvider` 和 `mockGoogleUnavailable` 让浏览器遵循部署选择，且不暴露密钥。
+
+`/api/routes/from-location` 接受已保存目的地的可选 `toLocation: { latitude, longitude }`。这些坐标让 OSM 能为 Google 保存的站点规划路线，而不查询其 ID。

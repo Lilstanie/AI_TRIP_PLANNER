@@ -158,7 +158,7 @@ async function shell(page, tag) {
   );
   const trip = page.locator("#phone-panel-trip");
   check(
-    await trip.getByRole("tab", { name: "Itinerary" }).isVisible(),
+    await trip.getByRole("region", { name: "Trip timeline" }).isVisible(),
     `${tag}: Trip tab shows Your Trip in place`,
   );
   check(await noSideScroll(page), `${tag}: Trip tab has no horizontal scroll`);

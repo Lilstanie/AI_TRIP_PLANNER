@@ -1,24 +1,37 @@
 import { z } from "zod";
-import { noticeBody } from "@/lib/i18n/notice";
+import { NoticeError, noticeBody } from "@/lib/i18n/notice";
 import {
   GoogleNotConfiguredError,
   GoogleRequestError,
   placesUnavailable,
-  placeDetails,
 } from "@/lib/integrations/google";
+import { mapProvider } from "@/lib/map-provider";
+import { MapProviderUnavailableError } from "@/lib/map-provider/errors";
 
-const DetailsRequest = z.object({ placeId: z.string().min(1).max(300) });
+const DetailsRequest = z.object({
+  placeId: z.string().min(1).max(300),
+  language: z.enum(["en", "zh"]).optional(),
+});
 
 export async function POST(request: Request) {
   const parsed = DetailsRequest.safeParse(await request.json().catch(() => null));
   if (!parsed.success)
     return Response.json(noticeBody({ key: "A place ID is required." }), { status: 400 });
   try {
-    return Response.json(
-      { place: await placeDetails(parsed.data.placeId) },
-      { headers: { "Cache-Control": "no-store" } },
+    const { value, source } = await mapProvider(request).placeDetails(
+      parsed.data.placeId,
+      parsed.data.language,
     );
+    return Response.json({ place: value, source }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
+    if (
+      error instanceof NoticeError &&
+      !(error instanceof GoogleRequestError) &&
+      !(error instanceof GoogleNotConfiguredError)
+    )
+      return Response.json(noticeBody(error.notice), { status: 404 });
+    if (error instanceof MapProviderUnavailableError)
+      return Response.json(noticeBody(error.notice), { status: 503 });
     // A missing key is permanent: every retry fails the same way, so the message
     // must not invite one. 503 says the deployment, not the request, is at fault.
     if (error instanceof GoogleNotConfiguredError)

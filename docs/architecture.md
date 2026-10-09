@@ -61,7 +61,90 @@ step.
 3. Progress events stream to the browser as NDJSON; the final frame carries `{ reply, plan }`.
 4. There is no confirmation step: the traveller changes a plan by saying so in chat or editing the
    itinerary, and nothing in the product asks them to approve a checkpoint. Map lookups and itinerary
-   edit previews use the Google routes in `apps/web` and never re-run the planner.
+   edit previews use the map routes in `apps/web` and never re-run the planner.
+
+## Web map providers
+
+The web workspace's place search, place details, place photos, leg routes, route from the
+traveller's location and destination time zone go through one `MapProvider` interface in
+`apps/web/lib/map-provider/`. Google Maps Platform answers first. When Google cannot answer, a free
+OpenStreetMap-based provider answers instead: Photon/Nominatim supply search and details, Commons
+supplies optional licensed photos, OSRM supplies walking/cycling/driving, Transitous supplies public
+transport, and coordinates resolve time zones offline. The
+[completion decision](../.agents/notes/implemented/architecture/2026-10-10-complete-map-fallback.md)
+records the boundary.
+
+- **Unavailable** means: no `MAPS_API_KEY`; Google refuses access (401, 403, an invalid key, the API
+  disabled or billing off); the quota is exhausted (429, or a Time Zone `OVER_QUERY_LIMIT`); a Google
+  server error (5xx); a timeout or network failure. An empty search, an unknown place (400 or 404) or
+  an authored refusal is an answer and never falls back.
+- **Cool-down:** after an access or quota failure the server skips Google for
+  `GOOGLE_MAPS_COOLDOWN_SECONDS` (default 300) and then tries it again. The cool-down is held in each
+  server process's memory.
+- **Selection:** `WEB_MAPS_PROVIDER` is `google-with-fallback` (default), `google` (never falls
+  back) or `osm`. It is separate from the agents' `MAPS_PROVIDER`.
+- **Place ids** are provider-scoped strings: `osm:node/123`, `osm:way/456`, `osm:relation/789`; an id
+  without a prefix is Google's. Details, photos and routes for an id go only to the provider that
+  issued it.
+- **Provenance:** `/api/places/search` and `/api/places/details` answer with a `source` field
+  (`google` or `osm`), `/api/places/photo` sends an `X-Map-Provider` header with its redirect, and
+  every route result carries `source`. Paths and the rest of each response are unchanged.
+- **Mock data mode:** `MOCK_GOOGLE_MAPS=unavailable` makes the Google provider fail as unavailable
+  without calling Google, for requests in mock data mode (the `x-trip-data-mode` header, else
+  `USE_MOCK_TOOLS`). It is ignored in live mode. Edit previews in mock mode keep their placeholder
+  fixtures and never reach a provider, unless Google is simulated down or `WEB_MAPS_PROVIDER=osm`;
+  then the provider answers from the OpenStreetMap fixtures and still calls nothing.
+
+### Routes and time zones without Google
+
+- **Walking and driving** come from OSRM. Walking asks the foot profile of `OSRM_FOOT_BASE_URL`
+  (default `https://routing.openstreetmap.de/routed-foot`, the FOSSGIS foot instance) and driving asks
+  `OSRM_BASE_URL` (default `https://router.project-osrm.org`). The public demo server routes cars only
+  and ignores the profile it is asked for, so it is never used for walking. Either base URL can point at
+  a self-hosted or paid OSRM instance.
+- **Cycling** uses the bike profile of `OSRM_BIKE_BASE_URL` (default
+  `https://routing.openstreetmap.de/routed-bike`), independently of the foot and car instances.
+  The timeline stores the chosen mode as `cycle`; Google receives `BICYCLE` when available.
+- **Transit** uses Transitous/MOTIS `GET /api/v6/plan`, with coordinates and a departure instant.
+  Only an itinerary containing a transit leg supplies a duration; walking-only results mean no route.
+  Empty results and provider failures never become estimated transit times. Transitous answers carry
+  `source: "transitous"` and link its data sources in the interface.
+- **Provenance:** a route answered by OSRM says `source: "osrm"`, and the timeline labels its time
+  `OSRM` (Google's times are labelled `Google`). The route from the traveller's position says
+  `OSRM routes` on the map. A leg saved in the plan keeps no service label, because `arriveBy` has no
+  provider field, which would be a shared contract change; only routes answered by the current edit
+  carry one.
+- **Failures:** OSRM answering `NoRoute` is an answer, a leg with no route. A server error, a timeout,
+  a network failure or an answer with no duration is unavailable; the leg keeps no time and shows a
+  notice with a retry. Nothing is estimated in its place.
+- **Cache and limits:** an answered leg is kept in server memory for 10 minutes, and a failure is not
+  cached. The OSRM policy asks for at most one request a second; this client does not throttle itself,
+  so the cache is the only brake, and a busy deployment should self-host.
+- **Time zones** are worked out offline with `@photostructure/tz-lookup` (CC0 data, no network call)
+  when Google's Time Zone call fails. Its borders are simplified, so a point a few kilometres from a
+  border can get the neighbouring zone. A place without coordinates has no zone and is refused, never
+  assumed to be UTC.
+- **Mock data mode:** with `MOCK_GOOGLE_MAPS=unavailable`, edit previews route and time their legs
+  through the provider, which answers OSRM from fixtures (straight-line distance at a walking or driving
+  pace, `apps/web/lib/map-provider/mock-osm.ts`) and places from the same file. No OSRM request is sent.
+
+### Free services: limits and terms
+
+Checked on 2026-10-09 against each operator's published policy. These services offer no SLA, and
+every one of them can throttle or block a client that ignores its policy.
+
+| Service                                                                                                       | Used for                            | Limits and terms                                                                                                                                                                                                                                                        |
+| ------------------------------------------------------------------------------------------------------------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [OpenFreeMap](https://openfreemap.org/)                                                                       | Vector map tiles (MapLibre)         | No key, no registration and no published request limit; commercial use allowed; no SLA. MapLibre's attribution control satisfies the credit; other clients show "OpenFreeMap © OpenMapTiles Data from OpenStreetMap".                                                   |
+| [Photon](https://github.com/komoot/photon) (`photon.komoot.io`)                                               | Place search                        | Free "as long as the number of requests stay in a reasonable limit"; extensive use is throttled or banned; no numeric limit published; no availability guarantee. Self-host for volume.                                                                                 |
+| [Nominatim](https://operations.osmfoundation.org/policies/nominatim/)                                         | Search behind Photon, place details | At most 1 request per second for the whole application, all users together; an identifying `User-Agent` or `Referer` (library defaults refused); cache results; no client-side autocomplete; no bulk or systematic queries; ODbL attribution.                           |
+| [OSRM demo server](https://github.com/Project-OSRM/osrm-backend/wiki/Demo-server) (`router.project-osrm.org`) | Driving times (cars only)           | At most 1 request per second; reasonable, non-commercial use only; no uptime or data-freshness guarantee.                                                                                                                                                               |
+| [FOSSGIS OSRM](https://routing.openstreetmap.de/) (`routing.openstreetmap.de/routed-foot`)                    | Walking times                       | Public instance for fair, non-commercial use; no uptime or data-freshness guarantee; OpenStreetMap attribution. Answers are cached for 10 minutes; self-host for volume.                                                                                                |
+| [Transitous](https://transitous.org/api/) (`api.transitous.org`)                                              | Public transport times              | Non-commercial, open-source projects only; a `User-Agent` naming the app, its version and a contact; ask the maintainers before heavy routing use; link [transitous.org/sources](https://transitous.org/sources/) visibly; service can stop for any client at any time. |
+
+OpenStreetMap data is © OpenStreetMap contributors under the ODbL, so every surface that shows it
+credits OpenStreetMap. The public OSRM demo and Transitous rule out commercial use: a commercial
+deployment needs self-hosted or paid instances, which the base URL settings of spec #270 allow.
 
 ## Agent Lab
 
@@ -406,3 +489,22 @@ The ELEC5620 UML design model is in [`design/class-diagram.md`](design/class-dia
 rendered diagrams in [`design/diagrams/`](design/diagrams/): structural spine, domain model,
 specialists and orchestration, ports and adapters, class model with use cases, combined architecture
 map and use-case diagram.
+
+### Completed free map path
+
+The browser tries Google first, then loads MapLibre with OpenFreeMap vector tiles when its key, SDK or
+authorization fails. Explicit OSM selection bypasses Google. Both renderers share framing, numbered
+markers, selection, nearby routes, responsive resizing and theme controls; satellite is Google-only.
+MapLibre workers are bundled locally. Mock fallback maps use a tile-free local style.
+
+Photon searches are scoped to the resolved destination. Photon failures use Nominatim; valid empty
+answers stay empty. Chinese requests use Nominatim with `accept-language=zh`. Nominatim search and
+lookup share a process-wide queue with starts at least one second apart, a ten-minute answer cache,
+and an identifying contact header. Details receive the interface language too, and their cache keys include it. Multi-instance deployments need a shared limiter or a self-hosted
+endpoint. `PHOTON_BASE_URL`, `NOMINATIM_BASE_URL` and `OSM_USER_AGENT` configure them.
+
+OSM cards expose only available address, category, opening hours, website and phone, with OSM credit;
+ratings are absent. A tagged Wikimedia file or Wikidata P18 image is optional and requires an author,
+license and license link. Photo failures leave a complete text card. Photo names and metadata remain
+in memory. A saved stop keeps only its provider ID and `savedPlace` name, address and coordinates, so
+a Google stop can still be displayed and routed by coordinates while Google is unavailable.
