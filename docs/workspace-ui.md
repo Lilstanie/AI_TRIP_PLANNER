@@ -564,12 +564,14 @@ browser, as the Itinerary list did. The checks are deterministic and make no LLM
   save the server does not accept reads "Place not saved yet" and the card says to search for the
   place. A stop the map cannot find reads "Not found on the map", and its card offers a search that
   saves the picked result. A lookup that failed for a retryable reason is not saved; "Retry places"
-  on the map runs it again. Saves run one at a time and wait while chat or another edit is running. A
-  save that a traveller's edit or chat overtakes is cancelled and sent again once saving is enabled.
+  on the map runs it again. Saves and leg checks share one queue: one background request
+  for the trip at a time, and both wait while chat, a place search or another edit is running. A save or
+  check that a traveller's edit or chat overtakes is discarded and asked again for the edited plan.
   The traveller replaces a saved place from the card's search.
 - **Legs.** Each journey between two stops of a day is a leg ([Leg](../GLOSSARY.md)). There is no button:
-  a day's legs are routed once every stop on it has a confirmed place, including a day whose stops
-  already carry the planner's arrival times, and again whenever an applied edit changes its stops or times. Changing one leg's mode (a select with Walk, Public transport or
+  a day's legs are checked once every stop on it has a confirmed place, including a day whose stops
+  already carry the planner's arrival times. That check also runs on each reload, because a stored leg is
+  only an estimate until it is checked. A day is asked again whenever an applied edit changes its stops or times. Changing one leg's mode (a select with Walk, Public transport or
   Drive; "Not checked yet" until the leg has a mode) routes that leg alone; the rest of the day is
   re-timed with the stored times of its other legs. The chosen mode is kept through later re-timing,
   and Undo restores the previous mode. A leg the traveller has not chosen walks when the walk takes

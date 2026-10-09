@@ -25,12 +25,15 @@ export async function requestPreview({
   displayCurrency,
   dataMode,
   signal,
+  failure = { key: "Preview failed. Try the change again." },
 }: {
   plan: TripPlan;
   operation: EditInput["operation"];
   displayCurrency?: string;
   dataMode: DataMode | undefined;
   signal: AbortSignal;
+  /** The notice for a failed request that says nothing of its own. */
+  failure?: Notice;
 }): Promise<PreviewAnswer> {
   const response = await fetch("/api/trip/preview-edit", {
     method: "POST",
@@ -44,8 +47,7 @@ export async function requestPreview({
     signal,
   });
   const body = await response.json().catch(() => null);
-  if (!response.ok)
-    throw new NoticeError(failureNotice(body, { key: "Preview failed. Try the change again." }));
+  if (!response.ok) throw new NoticeError(failureNotice(body, failure));
   const blockers: Notice[] = body.blockerNotices ?? [];
   const routes: RouteResult[] = body.routes ?? [];
   if (blockers.length) return { blockers, routes };
