@@ -64,7 +64,51 @@ supervisor 只选择某个节点需要哪些 specialist 工具。控制路径、
    `conflicts` 列出仍未解决的请求。
 3. 进度事件以 NDJSON 流式发送到浏览器；最终帧携带 `{ reply, plan }`。
 4. 没有确认步骤：旅行者通过聊天说明或编辑行程来修改计划，产品不会要求他们批准某个检查点。
-   地图查询和行程编辑预览使用 `apps/web` 中的 Google 路由，绝不会重新运行规划器。
+   地图查询和行程编辑预览使用 `apps/web` 中的地图路由，绝不会重新运行规划器。
+
+<a id="web-map-providers"></a>
+
+## Web 地图提供方
+
+Web 工作区的地点搜索、地点详情、地点照片、行程段路线、从旅行者当前位置出发的路线以及目的地时区，
+都通过 `apps/web/lib/map-provider/` 中的同一个 `MapProvider` 接口完成。Google Maps Platform 优先应答。
+Google 无法应答时，改由基于 OpenStreetMap 的免费提供方应答；它的搜索、照片、路线和时区由规格 #270
+的后续工单实现，在此之前它报告自身不可用，因此旅行者看到的仍是 Google 自己的失败。
+[决策记录](../.agents/notes/implemented/architecture/2026-10-09-web-map-provider-fallback.md)说明了原因。
+
+- **不可用**指：没有 `MAPS_API_KEY`；Google 拒绝访问（401、403、无效密钥、API 已停用或未开通结算）；
+  配额耗尽（429，或 Time Zone 返回 `OVER_QUERY_LIMIT`）；Google 服务端错误（5xx）；超时或网络故障。
+  空的搜索结果、未知地点（400 或 404）或明确的拒绝都是应答，绝不触发回退。
+- **冷却期：**发生访问或配额失败后，服务器在 `GOOGLE_MAPS_COOLDOWN_SECONDS`（默认 300）内跳过 Google，
+  之后再重试。冷却状态保存在每个服务器进程的内存中。
+- **选择：**`WEB_MAPS_PROVIDER` 可取 `google-with-fallback`（默认）、`google`（绝不回退）或 `osm`。
+  它与 agent 使用的 `MAPS_PROVIDER` 相互独立。
+- **地点 ID** 是带提供方前缀的字符串：`osm:node/123`、`osm:way/456`、`osm:relation/789`；没有前缀的 ID
+  属于 Google。某个 ID 的详情、照片和路线只发给签发它的提供方。
+- **来源标注：**`/api/places/search` 和 `/api/places/details` 的应答带有 `source` 字段（`google` 或
+  `osm`），`/api/places/photo` 在重定向中发送 `X-Map-Provider` 头，每个路线结果都带有 `source`。
+  路径和应答的其余部分保持不变。
+- **模拟数据模式：**`MOCK_GOOGLE_MAPS=unavailable` 让 Google 提供方在不调用 Google 的情况下以不可用失败，
+  仅对处于模拟数据模式的请求生效（取 `x-trip-data-mode` 请求头，否则取 `USE_MOCK_TOOLS`）。实时模式下忽略。
+  模拟模式下的编辑预览仍使用 fixture，不调用任何地图提供方。
+
+<a id="free-services-limits-and-terms"></a>
+
+### 免费服务：限制与条款
+
+2026-10-09 依据各运营方公布的政策核对。这些服务都没有 SLA，任何一家都可能限流或封禁不遵守其政策的客户端。
+
+| 服务                                                                                                          | 用途                        | 限制与条款                                                                                                                                                                                                    |
+| ------------------------------------------------------------------------------------------------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [OpenFreeMap](https://openfreemap.org/)                                                                       | 矢量地图瓦片（MapLibre）    | 无需密钥、无需注册，未公布请求上限；允许商业使用；无 SLA。MapLibre 的署名控件即满足署名要求；其他客户端需显示 "OpenFreeMap © OpenMapTiles Data from OpenStreetMap"。                                          |
+| [Photon](https://github.com/komoot/photon)（`photon.komoot.io`）                                              | 地点搜索                    | 只要请求量保持在合理范围内即可免费使用；大量使用会被限流或封禁；未公布具体数值；不保证可用性。量大时应自行部署。                                                                                              |
+| [Nominatim](https://operations.osmfoundation.org/policies/nominatim/)                                         | Photon 之后的搜索、地点详情 | 整个应用（所有用户合计）每秒最多 1 个请求；必须带有可识别的 `User-Agent` 或 `Referer`（不接受库的默认值）；须缓存结果；禁止客户端自动补全；禁止批量或系统性查询；遵守 ODbL 署名。                             |
+| [OSRM 演示服务器](https://github.com/Project-OSRM/osrm-backend/wiki/Demo-server)（`router.project-osrm.org`） | 步行、骑行和驾车时间        | 每秒最多 1 个请求；仅限合理的非商业用途；不保证在线时间和数据更新。                                                                                                                                           |
+| [Transitous](https://transitous.org/api/)（`api.transitous.org`）                                             | 公共交通时间                | 仅限非商业的开源项目；`User-Agent` 须写明应用名称、版本和联系方式；大量路线请求前须先联系维护者；须在显眼位置链接 [transitous.org/sources](https://transitous.org/sources/)；服务可随时停止对任何客户端提供。 |
+
+OpenStreetMap 数据 © OpenStreetMap 贡献者，采用 ODbL 许可，因此每个展示这些数据的界面都要注明
+OpenStreetMap。公共 OSRM 演示服务器和 Transitous 不允许商业使用：商业部署需要自建或付费实例，
+规格 #270 的基础 URL 设置支持这一点。
 
 <a id="agent-lab"></a>
 

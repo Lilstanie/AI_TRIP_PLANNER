@@ -61,7 +61,54 @@ step.
 3. Progress events stream to the browser as NDJSON; the final frame carries `{ reply, plan }`.
 4. There is no confirmation step: the traveller changes a plan by saying so in chat or editing the
    itinerary, and nothing in the product asks them to approve a checkpoint. Map lookups and itinerary
-   edit previews use the Google routes in `apps/web` and never re-run the planner.
+   edit previews use the map routes in `apps/web` and never re-run the planner.
+
+## Web map providers
+
+The web workspace's place search, place details, place photos, leg routes, route from the
+traveller's location and destination time zone go through one `MapProvider` interface in
+`apps/web/lib/map-provider/`. Google Maps Platform answers first. When Google cannot answer, a free
+OpenStreetMap-based provider answers instead; its search, photos, routes and time zone arrive with
+the later tickets of spec #270, and until then it reports itself unavailable, so the traveller sees
+Google's own failure. The [decision note](../.agents/notes/implemented/architecture/2026-10-09-web-map-provider-fallback.md)
+records why.
+
+- **Unavailable** means: no `MAPS_API_KEY`; Google refuses access (401, 403, an invalid key, the API
+  disabled or billing off); the quota is exhausted (429, or a Time Zone `OVER_QUERY_LIMIT`); a Google
+  server error (5xx); a timeout or network failure. An empty search, an unknown place (400 or 404) or
+  an authored refusal is an answer and never falls back.
+- **Cool-down:** after an access or quota failure the server skips Google for
+  `GOOGLE_MAPS_COOLDOWN_SECONDS` (default 300) and then tries it again. The cool-down is held in each
+  server process's memory.
+- **Selection:** `WEB_MAPS_PROVIDER` is `google-with-fallback` (default), `google` (never falls
+  back) or `osm`. It is separate from the agents' `MAPS_PROVIDER`.
+- **Place ids** are provider-scoped strings: `osm:node/123`, `osm:way/456`, `osm:relation/789`; an id
+  without a prefix is Google's. Details, photos and routes for an id go only to the provider that
+  issued it.
+- **Provenance:** `/api/places/search` and `/api/places/details` answer with a `source` field
+  (`google` or `osm`), `/api/places/photo` sends an `X-Map-Provider` header with its redirect, and
+  every route result carries `source`. Paths and the rest of each response are unchanged.
+- **Mock data mode:** `MOCK_GOOGLE_MAPS=unavailable` makes the Google provider fail as unavailable
+  without calling Google, for requests in mock data mode (the `x-trip-data-mode` header, else
+  `USE_MOCK_TOOLS`). It is ignored in live mode. Edit previews in mock mode keep using fixtures and
+  never call any map provider.
+
+### Free services: limits and terms
+
+Checked on 2026-10-09 against each operator's published policy. These services offer no SLA, and
+every one of them can throttle or block a client that ignores its policy.
+
+| Service                                                                                                       | Used for                            | Limits and terms                                                                                                                                                                                                                                                        |
+| ------------------------------------------------------------------------------------------------------------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [OpenFreeMap](https://openfreemap.org/)                                                                       | Vector map tiles (MapLibre)         | No key, no registration and no published request limit; commercial use allowed; no SLA. MapLibre's attribution control satisfies the credit; other clients show "OpenFreeMap © OpenMapTiles Data from OpenStreetMap".                                                   |
+| [Photon](https://github.com/komoot/photon) (`photon.komoot.io`)                                               | Place search                        | Free "as long as the number of requests stay in a reasonable limit"; extensive use is throttled or banned; no numeric limit published; no availability guarantee. Self-host for volume.                                                                                 |
+| [Nominatim](https://operations.osmfoundation.org/policies/nominatim/)                                         | Search behind Photon, place details | At most 1 request per second for the whole application, all users together; an identifying `User-Agent` or `Referer` (library defaults refused); cache results; no client-side autocomplete; no bulk or systematic queries; ODbL attribution.                           |
+| [OSRM demo server](https://github.com/Project-OSRM/osrm-backend/wiki/Demo-server) (`router.project-osrm.org`) | Walking, cycling and driving times  | At most 1 request per second; reasonable, non-commercial use only; no uptime or data-freshness guarantee.                                                                                                                                                               |
+| [Transitous](https://transitous.org/api/) (`api.transitous.org`)                                              | Public transport times              | Non-commercial, open-source projects only; a `User-Agent` naming the app, its version and a contact; ask the maintainers before heavy routing use; link [transitous.org/sources](https://transitous.org/sources/) visibly; service can stop for any client at any time. |
+
+OpenStreetMap data is © OpenStreetMap contributors under the ODbL, so every surface that shows it
+credits OpenStreetMap. The public OSRM demo and Transitous rule out commercial use: a commercial
+deployment needs self-hosted or paid instances, which the base URL settings of spec #270 allow.
 
 ## Agent Lab
 
