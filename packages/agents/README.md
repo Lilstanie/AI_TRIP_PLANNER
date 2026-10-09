@@ -30,6 +30,7 @@ The five specialist agents and the model routing they share. Each agent turns a 
 
 - `invoke({ brief, context, revision? })` is the only entry point, for first plans and revisions.
 - Agents use `ctx.tools` and `ctx.mem` from `AgentContext`, never imported singletons.
+  The orchestrator supplies memory; agents have no direct services dependency.
 - Without a key, or when a model call fails or returns off-schema output, an agent falls back to
   validated deterministic output and sets `source.kind` to `fallback` in that branch.
 - Models never supply prices, routes or properties: transport and accommodation compute them.
