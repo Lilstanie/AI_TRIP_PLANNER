@@ -74,8 +74,8 @@
       "translationSha256": "d963c05d8280166881723dedead0bcf9608d98275e0a1eee083a8233448f75b7"
     },
     "docs/development.md": {
-      "sourceSha256": "d6fb3150d0c3aa668a326ebb2b0e436edf3ef5de89d52bc8dde312b0dbe2a5e4",
-      "translationSha256": "fceada352b0fe0f06f9d2110873d957dd11ce8521ef8814cc210f7129de8299b"
+      "sourceSha256": "5461868bb2617f429ee91abedb59397ab5c4279a7da1a7139739d499864a2fc3",
+      "translationSha256": "d235a35a3e372a692dc43b3259d0136e0be66331b69019c59597e757373e629e"
     },
     "docs/e2e-known-failures.md": {
       "sourceSha256": "6da77b4be1fd55ee3345fa1ccf7910e473bf53f741003b00e45983072dcc12d3",

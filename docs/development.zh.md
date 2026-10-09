@@ -253,7 +253,9 @@ BASE_URL=http://localhost:3000 pnpm --filter @trip/web e2e settings   # against 
 - **API 脚本**（`plan-quality`、`conversation-scope`）向 `/api/chat` 发请求，`DATA_MODE=live` 为默认值，也可设为 `mock`。`plan-quality` 提交三个固定行程需求，并检查预算、未解决冲突、行程来源、重复停靠点和泛化停靠点，任一检查失败或规划出错时以非零状态退出；实时模型输出会变化，因此应比较多次运行。每次运行把 NDJSON 流、方案和 `summary.json` 写入 `output/e2e/<name>/<run>/`。
 - **浏览器脚本**（其余所有脚本，包括八个 `agent-lab-*`）用 Playwright 在桌面和手机宽度下运行，并把截图写入 `output/playwright/<name>/`；Agent Lab 的脚本还会写入原始 NDJSON 和 artifact。`CHANNEL=chrome` 与 `PLAYWRIGHT=<path>` 用于选择浏览器和 Playwright 包。
 
-`output/e2e/` 和 `output/playwright/` 已被 Git 忽略。每个脚本的文件头列出它所依据的失败清单和所需的服务器环境，fixture 运行与部署的密钥和默认数据模式相互隔离，因此无论环境中有什么，Agent Lab 的脚本都能通过；`agent-lab-live-gate` 还会使用两个启用了实时运行的服务（见其文件头）。`agent-lab-release` 走完整个公开流程并写出发布证据：原始 NDJSON、带版本的产物、对比摘要、报告，以及一组截图矩阵（浅色与深色、桌面与窄屏、减少动态效果）。
+`output/e2e/` 和 `output/playwright/` 已被 Git 忽略。每个脚本的文件头列出它所依据的失败清单和所需的服务器环境，fixture 运行与部署的密钥和默认数据模式相互隔离，因此无论环境中有什么，Agent Lab 的脚本都能通过；`agent-lab-live-gate` 还会使用两个启用了实时运行的服务（见其文件头）。`agent-lab-release` 走完整个公开流程并写出发布证据：原始 NDJSON、带版本的产物、对比摘要、报告，以及一组截图矩阵（浅色与深色、桌面与窄屏、减少动态效果）。发布冒烟测试保留 `provider-empty-result` 作为有代表性的故障路径；`agent-lab-failures` 负责全部五个已注册故障 profile 的结果、下载、离线回放，以及 Run all 的顺序和取消。修改 Failure Lab 行为时应运行这两个脚本。
+
+`auto-save-places`、`plan-revision` 和 `check-entry-point` 只通过 `apps/web/tests/e2e/trip-setup.mjs` 共用地点 fixture、工作区启动、按天数据到计划的转换和轮询。每个脚本仍负责自己的场景断言、请求拦截、挂起响应和截图；并发与取消的设置留在它们验证的场景旁。[覆盖归属说明](../.agents/notes/implemented/simplification/2026-10-10-repository-surface-reduction.md)记录了断言合并的边界。
 
 `apps/web/tests/e2e/leg-mode-choice.e2e.mjs` 检查：旅行者为某一程选择的出行方式（`TripBrief.legModes`）确实是计划所采用的方式，或者被如实报告为不可用，绝不会被悄悄替换。四个场景不需要模型（选择通过简报传入），一个需要模型（旅行者在聊天中说出）；没有模型密钥时，这一个会报告 `skip` 而不是失败。产物写入 `output/e2e/leg-mode-choice/<run>/`。
 
