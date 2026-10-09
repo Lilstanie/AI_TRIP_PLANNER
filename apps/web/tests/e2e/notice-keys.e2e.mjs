@@ -50,9 +50,13 @@ const LANGS = {
     chatTab: /^Chat/,
     moveToDay: "Move to another day",
     chatCopy: (name) =>
-      new RegExp(`^Day 1: ${escapeRe(name)} needs at least \\d+ minutes after the previous activity\\.$`),
+      new RegExp(
+        `^Day 1: ${escapeRe(name)} needs at least \\d+ minutes after the previous activity\\.$`,
+      ),
     shown: (name) =>
-      new RegExp(`^Day 1: ${escapeRe(name)} needs at least \\d+ minutes after the previous activity\\.$`),
+      new RegExp(
+        `^Day 1: ${escapeRe(name)} needs at least \\d+ minutes after the previous activity\\.$`,
+      ),
   },
   zh: {
     locale: "zh-CN",
@@ -62,7 +66,9 @@ const LANGS = {
     chatTab: /^聊天/,
     moveToDay: "移至其他一天",
     chatCopy: (name) =>
-      new RegExp(`^Day 1: ${escapeRe(name)} needs at least \\d+ minutes after the previous activity\\.$`),
+      new RegExp(
+        `^Day 1: ${escapeRe(name)} needs at least \\d+ minutes after the previous activity\\.$`,
+      ),
     shown: (name) => new RegExp(`^第 1 天：${escapeRe(name)} 需与上一项活动至少间隔 \\d+ 分钟。$`),
   },
 };
@@ -167,7 +173,8 @@ const readDay = (page, rootSelector) =>
           .map((node) => node.textContent)
           .join("")
           .trim();
-        const times = li.querySelector(".timeline-stop__time")?.textContent.match(/\d{2}:\d{2}/g) ?? [];
+        const times =
+          li.querySelector(".timeline-stop__time")?.textContent.match(/\d{2}:\d{2}/g) ?? [];
         return {
           name,
           start: times[0] ?? null,
@@ -307,12 +314,14 @@ function answerEdits(page, state) {
       );
     // What the client is given: the English copy the chat reads, and the stored keys that remain.
     state.answer = {
-      conflictsWith: body.plan?.sections.find((s) => s.id === "itinerary")?.proposal?.conflictsWith ?? [],
+      conflictsWith:
+        body.plan?.sections.find((s) => s.id === "itinerary")?.proposal?.conflictsWith ?? [],
       conflicts: (body.plan?.conflicts ?? []).flatMap((conflict) =>
         conflict.reason.split("; ").map((part) => part.trim()),
       ),
-      storedKeys: (body.plan?.editIssues ?? []).filter((issue) => issue.code === "route_unavailable")
-        .length,
+      storedKeys: (body.plan?.editIssues ?? []).filter(
+        (issue) => issue.code === "route_unavailable",
+      ).length,
     };
     return route.fulfill({ response, json: body });
   });
@@ -342,10 +351,7 @@ async function walk(browser, { width, lang }) {
     const duration = toMinutes(second.end) - toMinutes(second.start);
     const start = toMinutes(first.start) + offset;
     await editTime(page, stopRows(page).nth(1), start, start + duration);
-    await until(
-      async () => (await readDay(page, root)).stops[1].start === hhmm(start),
-      15_000,
-    );
+    await until(async () => (await readDay(page, root)).stops[1].start === hhmm(start), 15_000);
     const day = await readDay(page, root);
     const name = second.name;
     const shown = L.shown(name);
@@ -380,7 +386,9 @@ async function walk(browser, { width, lang }) {
         `${run} ${phase}: the Chinese drawer shows no English travel-buffer text (${JSON.stringify(english)})`,
       );
     } else {
-      const sentence = (state.answer?.conflictsWith ?? []).find((text) => L.chatCopy(name).test(text));
+      const sentence = (state.answer?.conflictsWith ?? []).find((text) =>
+        L.chatCopy(name).test(text),
+      );
       check(
         Boolean(sentence) && day.stops[1].conflicts.includes(sentence),
         `${run} ${phase}: the English sentence keeps its wording under the stop (${day.stops[1].conflicts.join(" | ")})`,
@@ -418,7 +426,8 @@ async function walk(browser, { width, lang }) {
 
 const browser = await chromium.launch({ channel: process.env.CHANNEL });
 try {
-  for (const width of [1440, 390]) for (const lang of ["en", "zh"]) await walk(browser, { width, lang });
+  for (const width of [1440, 390])
+    for (const lang of ["en", "zh"]) await walk(browser, { width, lang });
 } finally {
   await browser.close();
   summary.failures = failures;
