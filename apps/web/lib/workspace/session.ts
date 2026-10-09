@@ -57,11 +57,12 @@ export type SessionState = {
    */
   estimateChange: number | undefined;
   /**
-   * True while a change the traveller made on the timeline is in the plan: set when the timeline applies a change,
-   * cleared when it is undone or a chat plan replaces the trip. Kept here, not in the timeline, so it survives the
-   * Trip drawer closing. Undefined otherwise.
+   * How many changes the traveller made on the timeline are still in the plan: one more when the timeline applies a
+   * change, one fewer when one is undone, cleared when a chat plan replaces the trip. Undo takes back one change, so
+   * a count, not a flag, keeps an earlier change known after a later one is undone. Kept here, not in the timeline,
+   * so it survives the Trip drawer closing. Undefined when none.
    */
-  timelineChanged?: boolean;
+  timelineChanges?: number;
   /**
    * Set by a chat replan that replaced a change the traveller made on the timeline, so the change is not kept
    * silently. Undefined otherwise, and once it is dismissed.
@@ -130,7 +131,7 @@ export type SessionEvent =
   | { kind: "dismissed" }
   /** The traveller closed the estimate-change notice. */
   | { kind: "estimateDismissed" }
-  /** A change on the timeline was applied, or undone (see `timelineChanged`). */
+  /** A change on the timeline was applied, or undone (see `timelineChanges`). */
   | { kind: "timelineChanged"; changed: boolean }
   /** The traveller closed the notice that a chat replan replaced their timeline change. */
   | { kind: "replacedDismissed" };
@@ -257,9 +258,10 @@ export function session(state: SessionState, event: SessionEvent): SessionState 
       };
     case "estimateDismissed":
       return { ...state, estimateChange: undefined };
-    case "timelineChanged":
-      if (!!state.timelineChanged === event.changed) return state;
-      return { ...state, timelineChanged: event.changed || undefined };
+    case "timelineChanged": {
+      const changes = Math.max(0, (state.timelineChanges ?? 0) + (event.changed ? 1 : -1));
+      return { ...state, timelineChanges: changes || undefined };
+    }
     case "replacedDismissed":
       return { ...state, replacedChange: undefined };
     case "planned":
@@ -269,8 +271,8 @@ export function session(state: SessionState, event: SessionEvent): SessionState 
         // The change is measured from the plan the chat replaced; a first plan has nothing to compare.
         estimateChange: state.plan ? event.plan.estTotal - state.plan.estTotal : undefined,
         // A timeline change still in the plan is replaced by this one, and the traveller is told so.
-        replacedChange: state.timelineChanged && state.plan ? true : undefined,
-        timelineChanged: undefined,
+        replacedChange: state.timelineChanges && state.plan ? true : undefined,
+        timelineChanges: undefined,
         plan: identifyActivities(event.plan),
         draft: draftFor(event.plan.brief),
         selectedActivity: undefined,

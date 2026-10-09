@@ -24,10 +24,14 @@ contract-impact: none
   Trip list. The place card made the editor taller than the space above the keyboard on 360 x 800, which hid Save.
   This restores the behaviour `docs/workspace-ui.md` already describes.
 
+- Code review fix, `lib/workspace/session.ts`: the workspace counts the timeline changes still in the plan instead
+  of keeping one flag. Undo takes back one change, so after two changes and one Undo a chat replan said nothing
+  about the first change it replaced. `check-entry-point` scenario 7 covers both orders (red before the fix).
+
 ## Validation
 
 `DATA_MODE=mock pnpm --filter @trip/web e2e display-currency trip-display-currency itinerary phone-shell phone-state`
-all pass; `timeline` passed in 126 s.
+all pass; `timeline` passed in 126 s; `check-entry-point` passes; `pnpm --filter @trip/web test` 581 pass.
 
 ## Known limitations
 

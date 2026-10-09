@@ -10,7 +10,8 @@
 // 5. Moving a stop with the arrows goes through the check, and the stop after it has no travel time from the old
 //    neighbour (its leg is routed again from the new one, or shown with no time).
 // 6. Removing a stop and moving a stop to Ideas go through the check too.
-// 7. A chat replan after a timeline change says that it replaced it; a replan with no change says nothing.
+// 7. A chat replan after a timeline change says that it replaced it; a replan with no change, or with every change
+//    undone, says nothing.
 //
 // Places and route checks run in mock data mode: the server answers the legs with simulated routes and no provider
 // is called. Map place lookups are stubbed at the browser boundary, as in plan-revision.e2e.mjs. The artifact is
@@ -573,6 +574,38 @@ async function main() {
       check(
         !run.errors.length,
         `7: no console errors${run.errors.length ? `: ${run.errors.join(" | ")}` : ""}`,
+      );
+      await run.context.close();
+    }
+    // Undo takes back one change only: after two changes and one Undo, the first change is still in the plan, so
+    // a replan still says it replaced it. After one change and its Undo, nothing of the traveller's is replaced.
+    for (const [changes, expected] of [
+      [2, 1],
+      [1, 0],
+    ]) {
+      const stub = newStub();
+      const run = await openTrip(browser, { days: { 1: DAY_ONE }, stub });
+      const { page } = run;
+      await changeTime(page, 1, 1, "09:15", "10:15");
+      await settleChecks(page);
+      if (changes === 2) {
+        await changeTime(page, 1, 1, "09:30", "10:30");
+        await settleChecks(page);
+      }
+      await trip(page).getByRole("button", { name: "Undo last change" }).click();
+      await settleChecks(page);
+      if (await page.getByRole("tab", { name: /^Chat/ }).count())
+        await page.getByRole("tab", { name: /^Chat/ }).click();
+      await settle(page, 400);
+      await page
+        .getByRole("textbox", { name: "Message AI Trip Planner" })
+        .fill("Make day 1 a little slower");
+      await page.getByRole("textbox", { name: "Message AI Trip Planner" }).press("Enter");
+      await page.locator(".msg-item--agent .msg-item__body").nth(1).waitFor({ timeout: 180_000 });
+      await settle(page, 1000);
+      check(
+        (await page.getByText(REPLACED).count()) === expected,
+        `7: after ${changes} change(s) and one Undo, a replan ${expected ? "says it replaced the change" : "says nothing"}`,
       );
       await run.context.close();
     }
