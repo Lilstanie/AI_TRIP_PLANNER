@@ -145,3 +145,11 @@ changed.
   routed again on each of these edits, as a move's are today.
 - Known limitation: a stored "confirm the place" notice written before this change keeps its English sentence in the
   Chinese interface, because its key changed.
+- The timeline is locked while a checked edit is pending (remove, Ideas, scheduling and the arrow moves join time
+  and place edits in this). A second edit waits for the answer; the lock is the busy state the timeline already shows
+  for time edits, so this is a visible change for the arrow moves and remove only while the server answers.
+- The authored-sentence read-back (`AUTHORED_KEYS`) leaves out keys that start with a placeholder. The refusal key
+  "{stop}: {reason}" matched any English sentence with a colon, so "time overlap on day 1: ..." was shown raw under the
+  budget instead of marking its stops. Its English copy is still in `conflictsWith` for the chat.
+- The auto-save scenario "a move is in flight when the time edit starts" now holds the server's swap, not a verify, and
+  asserts the lock. The workspace-chinese blocker stub uses the new keys and their stop name.
