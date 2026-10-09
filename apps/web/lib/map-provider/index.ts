@@ -1,6 +1,7 @@
 import { configuredDataMode, parseDataMode, type DataMode } from "@trip/tools";
 import { unavailableRoute, type RouteMode, type RouteResult } from "@/lib/integrations/google";
 import { fallbackMapProvider } from "./fallback";
+import { mockGoogleProvider } from "./mock-google";
 import { googleMapProvider } from "./google";
 import { osmMapProvider } from "./osm";
 import type { Coordinates, MapProvider, MapProviderSetting, RouteHints } from "./types";
@@ -45,9 +46,13 @@ export type MapProviderOptions = {
 export function createMapProvider(options: MapProviderOptions): MapProvider {
   const osm = options.osm ?? osmMapProvider({ dataMode: options.dataMode });
   if (options.setting === "osm") return osm;
-  const google = googleMapProvider({
-    simulateOutage: options.dataMode === "mock" && process.env.MOCK_GOOGLE_MAPS === "unavailable",
-  });
+  const google =
+    options.dataMode === "mock" && process.env.MOCK_GOOGLE_MAPS !== "unavailable"
+      ? mockGoogleProvider()
+      : googleMapProvider({
+          simulateOutage:
+            options.dataMode === "mock" && process.env.MOCK_GOOGLE_MAPS === "unavailable",
+        });
   if (options.setting === "google") return google;
   return fallbackMapProvider(google, osm, { cooldownMs: options.cooldownMs, now: options.now });
 }
@@ -98,9 +103,10 @@ export async function routeFromLocation(
   origin: Coordinates,
   to: string,
   mode: "WALK" | "TRANSIT",
+  toLocation?: Coordinates,
 ): Promise<RouteResult> {
   try {
-    return await provider.routeFromLocation(origin, to, mode);
+    return await provider.routeFromLocation(origin, to, mode, toLocation);
   } catch (error) {
     return unavailableRoute({ from: "current-location", to, mode }, error);
   }

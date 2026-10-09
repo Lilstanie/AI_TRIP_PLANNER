@@ -104,12 +104,12 @@ export function fallbackMapProvider(
             () => google.route(from, to, departure, mode, hints),
             () => osm.route(from, to, departure, mode, hints),
           ),
-    routeFromLocation: (origin, to, mode) =>
+    routeFromLocation: (origin, to, mode, toLocation) =>
       providerOfPlaceId(to) === "osm"
-        ? osm.routeFromLocation(origin, to, mode)
+        ? osm.routeFromLocation(origin, to, mode, toLocation)
         : googleThenOsm(
             () => google.routeFromLocation(origin, to, mode),
-            () => osm.routeFromLocation(origin, to, mode),
+            () => osm.routeFromLocation(origin, to, mode, toLocation),
           ),
     timeZone: (place, date) =>
       googleThenOsm(

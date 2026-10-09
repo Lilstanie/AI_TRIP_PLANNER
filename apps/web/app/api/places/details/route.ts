@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { noticeBody } from "@/lib/i18n/notice";
+import { NoticeError, noticeBody } from "@/lib/i18n/notice";
 import {
   GoogleNotConfiguredError,
   GoogleRequestError,
@@ -18,6 +18,12 @@ export async function POST(request: Request) {
     const { value, source } = await mapProvider(request).placeDetails(parsed.data.placeId);
     return Response.json({ place: value, source }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
+    if (
+      error instanceof NoticeError &&
+      !(error instanceof GoogleRequestError) &&
+      !(error instanceof GoogleNotConfiguredError)
+    )
+      return Response.json(noticeBody(error.notice), { status: 404 });
     if (error instanceof MapProviderUnavailableError)
       return Response.json(noticeBody(error.notice), { status: 503 });
     // A missing key is permanent: every retry fails the same way, so the message

@@ -39,6 +39,24 @@ export function mockPlaceFor(id: string): MapPlace | undefined {
   if (!place) return undefined;
   return {
     id,
+    source: "osm",
+    osmUri: `https://www.openstreetmap.org/${id.slice(4)}`,
+    primaryType: "tourist_attraction",
+    ...(id === "osm:way/2002"
+      ? {
+          websiteUri: "https://toji.or.jp",
+          phone: "+81 75 691 3325",
+          openingHours: "Mo-Su 08:00-17:00",
+          photos: [
+            {
+              name: "osm:fixture/Toji",
+              authorAttributions: [{ displayName: "Fixture photographer" }],
+              license: "CC BY-SA 4.0",
+              licenseUri: "https://creativecommons.org/licenses/by-sa/4.0/",
+            },
+          ],
+        }
+      : {}),
     displayName: { text: place.name },
     formattedAddress: place.address,
     location: place.location,
@@ -114,4 +132,23 @@ export async function mockOsrmFetch(input: string): Promise<Response> {
     });
   }
   return Response.json({ code: "InvalidQuery" }, { status: 400 });
+}
+
+/** A fixed place search, including the destination, with no upstream calls. */
+export function mockSearchPlaces(text: string): MapPlace[] {
+  const query = text.toLowerCase().trim();
+  if (/unknown|unfindable|not-a-place/.test(query)) return [];
+  const matches = Object.entries(PLACES).filter(
+    ([, p]) => query.includes(p.name.toLowerCase()) || p.name.toLowerCase().includes(query),
+  );
+  if (matches.length) return matches.map(([id]) => mockPlaceFor(id)!);
+  if (/kyoto|京都/.test(query)) return [mockPlaceFor("osm:node/2001")!];
+  return [];
+}
+export async function mockTransitFetch(input: string): Promise<Response> {
+  const url = new URL(input);
+  const to = url.searchParams.get("toPlace") || "";
+  return Response.json({
+    itineraries: to.startsWith("0,") ? [] : [{ duration: 1200, legs: [{ mode: "BUS" }] }],
+  });
 }

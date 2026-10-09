@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ArriveBy, TripPlan, type ProposalItem } from "@trip/shared";
+import { ArriveBy, TripPlan, ProposalItem } from "@trip/shared";
 import {
   Currency,
   describeFlightChoice,
@@ -88,6 +88,7 @@ export const EditRequest = z.object({
           startTime: clock,
           endTime: clock,
           placeId: z.string().optional(),
+          savedPlace: ProposalItem.shape.savedPlace,
           priceNeedsReview: z.boolean().optional(),
           arriveBy: ArriveBy.optional(),
         }),
@@ -300,7 +301,20 @@ export async function previewEdit(
   const details = new Map<string, Promise<GooglePlace>>();
   const placeOf = (id: string) => {
     let place = details.get(id);
-    if (!place) details.set(id, (place = deps.placeDetails(id)));
+    if (!place)
+      details.set(
+        id,
+        (place = deps.placeDetails(id).catch((error) => {
+          const saved = activities.find((a) => a.placeId === id)?.savedPlace;
+          if (!saved) throw error;
+          return {
+            id,
+            displayName: { text: saved.name },
+            formattedAddress: saved.address,
+            location: saved.location,
+          };
+        })),
+      );
     return place;
   };
   if (
@@ -350,6 +364,8 @@ export async function previewEdit(
         placeId: saved.placeId,
         priceNeedsReview: saved.priceNeedsReview,
       };
+      if (saved.savedPlace) restoredItem.savedPlace = saved.savedPlace;
+      else if (saved.placeId !== item.placeId) delete restoredItem.savedPlace;
       // The leg a stop had before the edit comes back with its mode, or is removed if it had none.
       if (saved.arriveBy) restoredItem.arriveBy = saved.arriveBy;
       else delete restoredItem.arriveBy;
@@ -412,8 +428,14 @@ export async function previewEdit(
       if (activities.filter((a) => a.day === item.day)[0] === item)
         throw new NoticeError({ key: "This stop has no journey before it." });
     } else {
-      await placeOf(operation.placeId);
+      const place = await placeOf(operation.placeId);
       item.placeId = operation.placeId;
+      if (place.location)
+        item.savedPlace = {
+          name: place.displayName?.text || item.location || item.detail,
+          address: place.formattedAddress,
+          location: place.location,
+        };
       item.priceNeedsReview = true;
       // Provider display text is deliberately kept outside the persisted plan.
     }

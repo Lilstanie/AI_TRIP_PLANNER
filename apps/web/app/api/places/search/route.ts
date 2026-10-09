@@ -10,6 +10,7 @@ import { MapProviderUnavailableError } from "@/lib/map-provider/errors";
 
 const SearchRequest = z.object({
   text: z.string().trim().min(1).max(200),
+  language: z.enum(["en", "zh"]).optional(),
   destination: z.string().trim().min(1).max(200).optional(),
 });
 

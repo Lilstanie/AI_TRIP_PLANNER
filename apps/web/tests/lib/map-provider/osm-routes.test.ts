@@ -137,14 +137,15 @@ describe("legs from OSRM", () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
-  it("does not route public transport", async () => {
+  it("never interprets an OSRM response as public transport", async () => {
     const fetch = osrmAnswers(() => ok(600));
     const osm = osmMapProvider({ fetch });
 
     await expect(osm.route("a", "b", DEPART, "TRANSIT", hints)).rejects.toMatchObject({
       name: "MapProviderUnavailableError",
     });
-    expect(fetch).not.toHaveBeenCalled();
+    expect(fetch).toHaveBeenCalledOnce();
+    expect(fetch.mock.calls[0]?.[0]).toContain("/api/v6/plan");
   });
 
   it("answers the same leg again from its cache, but asks again after a failure", async () => {

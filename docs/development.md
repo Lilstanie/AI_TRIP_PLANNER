@@ -379,3 +379,17 @@ on Windows, run it from WSL or Git Bash.
 
 If you run `pnpm build` while `pnpm dev` is running, start the dev server with
 `NEXT_DIST_DIR=.next-dev` so the two do not share the `.next` output directory.
+
+Free map endpoints are configurable with `PHOTON_BASE_URL` (default `https://photon.komoot.io`),
+`NOMINATIM_BASE_URL` (default `https://nominatim.openstreetmap.org`) and `TRANSITOUS_BASE_URL`
+(default `https://api.transitous.org`). Set `OSM_USER_AGENT` to a real project contact. Public service
+limits and deployment boundaries are in [architecture](architecture.md#free-services-limits-and-terms).
+
+Repeat fallback UI checks with `CHANNEL=chrome DATA_MODE=mock USE_MOCK_TOOLS=true MOCK_GOOGLE_MAPS=unavailable pnpm --filter @trip/web e2e map-fallback`. Clear all model, Maps and
+Clerk key variables when testing locally. Screenshots and summary are in
+`output/playwright/map-fallback/after`. `map-provider-http` tests real API handlers against local
+upstreams: set `MAP_STUB_PORT` to a free port and all three base URLs above to
+`http://127.0.0.1:$MAP_STUB_PORT`, with `WEB_MAPS_PROVIDER=osm`; it records throttle timestamps,
+cache hits, language, bounds and transit parsing in `output/e2e/map-provider-http/summary.json`.
+
+`RUN_LIVE_MAP_CHECK=1 WEB_MAPS_PROVIDER=osm CHANNEL=chrome USE_MOCK_TOOLS=true pnpm --filter @trip/web e2e map-fallback-live` opts into real free services. The chat reply alone uses fixtures; place lookup, tiles and the walking route are live. Results and desktop/phone screenshots are in `output/playwright/map-fallback-live/after`. This does not establish transit coverage in every destination.

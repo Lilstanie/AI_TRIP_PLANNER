@@ -9,15 +9,10 @@
 // for walking and driving, an offline time zone). Nothing leaves the machine: every request to another
 // origin is aborted and listed in the artifact, and the OSRM client answers from fixtures in mock mode.
 //
-// What is stubbed: the browser's place search only, because OpenStreetMap search is ticket #272 and
-// returns nothing until it lands. The stub answers with the same fixture places the server knows.
-//
-// Checks: stops are saved to OpenStreetMap places, legs show a walk or drive time labelled OSRM and no
-// Google label, a fallback route from the traveller's position comes back labelled OSRM, a fixture
-// place's details come from its OSM id, and a transit leg no provider can route is unavailable and
-// keeps no time. The artifact is output/playwright/map-fallback/<LABEL>/summary.json with screenshots.
-//
-//   DATA_MODE=mock MOCK_GOOGLE_MAPS=unavailable LABEL=after node apps/web/tests/e2e/map-fallback.e2e.mjs
+// The chat response only supplies four named Kyoto stops; search, details, photos, auto-save,
+// routes and MapLibre all run through real app paths with server fixtures. All external calls are blocked.
+// Failure inventory: missing key, Google outage, lost source label, invented rating, absent credits,
+// missing markers, broken phone layout, transit replaced by walking, and unintended upstream traffic.
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
@@ -92,7 +87,14 @@ async function installStopNames(page) {
           item.endTime = slots[index][1];
           item.location = name;
           item.detail = name;
-          delete item.placeId;
+          if (index === 0) {
+            item.placeId = "google-saved-kyoto-station";
+            item.savedPlace = {
+              name,
+              address: `${name}, Kyoto, Japan`,
+              location: fixturePlace(name).location,
+            };
+          } else delete item.placeId;
           delete item.arriveBy;
         });
         return JSON.stringify(frame);
@@ -134,16 +136,6 @@ async function openTrip(browser, { width, height, edits, searches, external }) {
   await page.route(/^https?:\/\//, (route) => {
     if (route.request().url().startsWith(LOCAL)) return route.continue();
     return route.abort();
-  });
-  await page.route("**/api/places/search", async (route) => {
-    const { text } = route.request().postDataJSON();
-    searches.push(text);
-    const place = FIXTURE_PLACES[text];
-    return route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({ places: place ? [fixturePlace(text)] : [] }),
-    });
   });
   await installStopNames(page);
   await page.goto(BASE);
@@ -238,6 +230,18 @@ async function main() {
       .filter((edit) => edit.body.operation.kind === "place" && edit.response?.plan)
       .map((edit) => edit.body.operation.placeId);
     summary.saves = saves;
+    const mixed = [...edits].reverse().find((edit) => edit.response?.plan)?.response.plan;
+    const mixedItems = mixed?.sections.find((s) => s.id === "itinerary")?.proposal?.items ?? [];
+    check(
+      mixedItems.some(
+        (s) => s.placeId === "google-saved-kyoto-station" && s.savedPlace?.name === "Kyoto Station",
+      ),
+      "Google-saved stop keeps its name and coordinates during outage",
+    );
+    check(
+      mixedItems.some((s) => s.placeId?.startsWith("osm:")),
+      "new OSM stops coexist with the Google-saved stop",
+    );
     check(saves.length > 0, "stops are saved to OpenStreetMap places");
     check(
       saves.every((id) => id?.startsWith("osm:")),
@@ -249,8 +253,8 @@ async function main() {
       .flatMap((edit) => edit.response?.routes ?? [])
       .filter((route) => route.status === "ok");
     check(
-      routed.length > 0 && routed.every((route) => route.source === "osrm"),
-      "routes in the plan's answer come from OSRM",
+      routed.length > 0 && routed.every((route) => ["osrm", "transitous"].includes(route.source)),
+      "routes in the plan's answer come from OSRM or Transitous",
     );
 
     // A fallback route from the traveller's position: the same server path the map's button uses.
@@ -284,7 +288,7 @@ async function main() {
     );
 
     // A transit leg no provider can route: the leg is unavailable, with a notice, and keeps no time.
-    const plan = lastEdit?.body.plan;
+    const plan = lastEdit?.response?.plan;
     const items = plan?.sections.find((s) => s.id === "itinerary")?.proposal?.items ?? [];
     const dayItems = items.filter((i) => i.kind === "activity" && i.day === 1 && i.placeId);
     if (dayItems.length >= 2) {
@@ -301,19 +305,60 @@ async function main() {
       summary.transitLeg = body.routes;
       const route = (body.routes ?? []).find((r) => r.mode === "TRANSIT");
       check(
-        transit.status() === 200 && route?.status === "unavailable" && !!route.notice,
-        "a transit leg no provider can route is unavailable, with a notice",
+        transit.status() === 200 && route?.status === "ok" && route.source === "transitous",
+        "a transit leg is answered by Transitous fixtures",
       );
       const after = body.plan?.sections
         .find((s) => s.id === "itinerary")
         ?.proposal?.items.find((i) => i.id === stop.id);
-      check(
-        after?.arriveBy?.mode !== "transit",
-        "the unroutable transit leg is not given a transit time",
-      );
+      check(after?.arriveBy?.mode === "transit", "the chosen transit time is kept on the stop");
     } else {
       check(false, "the plan has two saved stops on day 1 to check a transit leg");
     }
+
+    await page.getByRole("region", { name: "Trip timeline" }).getByRole("tab").first().click();
+    const stopButton = page.locator(".timeline-stop__head > button").nth(1);
+    if (await stopButton.count()) await stopButton.click();
+    await page.locator(".place-preview").first().waitFor();
+    check(
+      (await page.locator(".place-preview").first().innerText()).includes("OpenStreetMap"),
+      "OSM place card shows its source",
+    );
+    check(
+      (await page.locator(".place-preview__rating").count()) === 0,
+      "OSM cards never invent ratings",
+    );
+    check(
+      (await page.locator(".place-preview__credit").count()) > 0,
+      "Commons photo credits are visible",
+    );
+    await page.screenshot({ animations: "disabled", path: resolve(OUT, "place-card-desktop.png") });
+    await page
+      .locator(".stop-place-card")
+      .getByRole("button", { name: "Close place details" })
+      .click();
+    await page.getByRole("button", { name: "Close your trip" }).click();
+    await page.locator(".google-map[data-provider=osm] canvas").waitFor({ timeout: 30_000 });
+    check(
+      (await page.locator("trip-libre-marker").count()) >= 4,
+      "MapLibre renders numbered stop markers",
+    );
+    await page.screenshot({ animations: "disabled", path: resolve(OUT, "map-desktop.png") });
+    await page.setViewportSize({ width: 390, height: 844 });
+    const mapTab = page.getByRole("tab", { name: /^Map/ });
+    await mapTab.waitFor();
+    await mapTab.click();
+    await page.waitForFunction(
+      () => document.getElementById("phone-tab-map")?.getAttribute("aria-selected") === "true",
+    );
+    await page.waitForTimeout(500);
+    await page.locator(".google-map[data-provider=osm] canvas").waitFor();
+    check(
+      await page.evaluate(() => document.documentElement.scrollWidth === innerWidth),
+      "phone has no horizontal overflow",
+    );
+    await page.screenshot({ animations: "disabled", path: resolve(OUT, "map-phone.png") });
+    await page.setViewportSize({ width: 1440, height: 1000 });
 
     // Fonts and other static assets may be requested from outside; no map, route or place service may be.
     const mapService =
@@ -323,6 +368,8 @@ async function main() {
     summary.externalBlocked = external;
     check(errors.length === 0, `no unexpected console or page errors (${errors.length})`);
     summary.errors = errors;
+    if (!(await page.getByRole("region", { name: "Trip timeline" }).isVisible()))
+      await page.getByRole("button", { name: "Open your trip" }).click();
     await page
       .getByRole("region", { name: "Trip timeline" })
       .screenshot({ path: resolve(OUT, "timeline-desktop.png") });

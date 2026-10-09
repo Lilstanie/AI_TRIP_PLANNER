@@ -6,6 +6,9 @@ const Input = z.object({
   latitude: z.number().min(-90).max(90),
   longitude: z.number().min(-180).max(180),
   placeId: z.string().min(1),
+  toLocation: z
+    .object({ latitude: z.number().min(-90).max(90), longitude: z.number().min(-180).max(180) })
+    .optional(),
   mode: z.enum(["WALK", "TRANSIT"]),
 });
 
@@ -18,6 +21,7 @@ export async function POST(request: Request) {
         { latitude: input.latitude, longitude: input.longitude },
         input.placeId,
         input.mode,
+        input.toLocation,
       ),
       { headers: { "Cache-Control": "no-store" } },
     );

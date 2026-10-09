@@ -104,8 +104,10 @@ records why.
   a self-hosted or paid OSRM instance.
 - **Cycling is not offered.** A leg has three modes (walk, transit, drive), and a cycling mode would
   change the shared leg contract, so it waits for a leg mode of its own.
-- **Transit** is not OSRM's. Until Transitous answers it (ticket #276), a transit leg that Google cannot
-  route is unavailable, and the traveller is shown the notice and can choose another mode.
+- **Transit** uses Transitous/MOTIS `GET /api/v6/plan`, with coordinates and a departure instant.
+  Only an itinerary containing a transit leg supplies a duration; walking-only results mean no route.
+  Empty results and provider failures never become estimated transit times. Transitous answers carry
+  `source: "transitous"` and link its data sources in the interface.
 - **Provenance:** a route answered by OSRM says `source: "osrm"`, and the timeline labels its time
   `OSRM` (Google's times are labelled `Google`). The route from the traveller's position says
   `OSRM routes` on the map. A leg saved in the plan keeps no service label, because `arriveBy` has no
@@ -486,3 +488,22 @@ The ELEC5620 UML design model is in [`design/class-diagram.md`](design/class-dia
 rendered diagrams in [`design/diagrams/`](design/diagrams/): structural spine, domain model,
 specialists and orchestration, ports and adapters, class model with use cases, combined architecture
 map and use-case diagram.
+
+### Completed free map path
+
+The browser tries Google first, then loads MapLibre with OpenFreeMap vector tiles when its key, SDK or
+authorization fails. Explicit OSM selection bypasses Google. Both renderers share framing, numbered
+markers, selection, nearby routes, responsive resizing and theme controls; satellite is Google-only.
+MapLibre workers are bundled locally. Mock fallback maps use a tile-free local style.
+
+Photon searches are scoped to the resolved destination. Photon failures use Nominatim; valid empty
+answers stay empty. Chinese requests use Nominatim with `accept-language=zh`. Nominatim search and
+lookup share a process-wide queue with starts at least one second apart, a ten-minute answer cache,
+and an identifying contact header. Multi-instance deployments need a shared limiter or a self-hosted
+endpoint. `PHOTON_BASE_URL`, `NOMINATIM_BASE_URL` and `OSM_USER_AGENT` configure them.
+
+OSM cards expose only available address, category, opening hours, website and phone, with OSM credit;
+ratings are absent. A tagged Wikimedia file or Wikidata P18 image is optional and requires an author,
+license and license link. Photo failures leave a complete text card. Photo names and metadata remain
+in memory. A saved stop keeps only its provider ID and `savedPlace` name, address and coordinates, so
+a Google stop can still be displayed and routed by coordinates while Google is unavailable.

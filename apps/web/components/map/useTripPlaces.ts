@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { TripPlan } from "@trip/shared";
 import type { GooglePlace } from "@/lib/integrations/google";
+import { dataModeHeaders, type DataMode } from "@/lib/workspace/data-mode";
 import { itineraryActivities } from "@/lib/workspace";
 import { destinationCities, placeQueryFor } from "@/lib/map/place-query";
 import { buildItinerary, type Itinerary } from "@/lib/trip/itinerary";
@@ -17,6 +18,9 @@ type Activity = ReturnType<typeof itineraryActivities>[number];
 export type LocationStatus = "located" | "loading" | "unconfirmed" | "unavailable";
 
 export type TripPlaces = {
+  dataMode?: DataMode;
+  forceOsm?: boolean;
+  allowFallback?: boolean;
   /** Every itinerary activity, stops and ideas, in plan order. */
   activities: Activity[];
   /** Stops, ideas, stop numbers and visiting order for every view, from the places found so far. */
@@ -59,7 +63,13 @@ class LookupError extends Error {
  * live only in memory and are never written into the plan. Changing the plan aborts in-flight
  * lookups, so a response for a previous trip or chat cannot add markers to the current one.
  */
-export function useTripPlaces(plan: TripPlan | undefined): TripPlaces {
+export function useTripPlaces(
+  plan: TripPlan | undefined,
+  dataMode?: DataMode,
+  language?: "en" | "zh",
+  forceOsm?: boolean,
+  allowFallback = true,
+): TripPlaces {
   const activities = useMemo(() => itineraryActivities(plan), [plan]);
   const destination = plan?.brief.destination ?? "";
   const cities = useMemo(() => destinationCities(destination), [destination]);
@@ -70,14 +80,19 @@ export function useTripPlaces(plan: TripPlan | undefined): TripPlaces {
   const known = useRef({ places, outcomes });
   known.current = { places, outcomes };
 
+  const contextKey = useCallback(
+    (kind: string, text: string, city = "") =>
+      keyFor(`${kind}:${dataMode ?? "default"}:${language ?? "en"}`, text, city),
+    [dataMode, language],
+  );
   const lookupKey = useCallback(
     (activity: Activity) => {
       const query = placeQueryFor(activity);
-      if (query.kind === "id") return keyFor("id", query.placeId);
-      if (query.kind === "search") return keyFor("search", query.text, destination);
+      if (query.kind === "id") return contextKey("id", query.placeId);
+      if (query.kind === "search") return contextKey("search", query.text, destination);
       return undefined;
     },
-    [destination],
+    [destination, contextKey],
   );
 
   useEffect(() => {
@@ -89,7 +104,7 @@ export function useTripPlaces(plan: TripPlan | undefined): TripPlaces {
       try {
         response = await fetch(url, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...dataModeHeaders(dataMode) },
           body: JSON.stringify(body),
           signal: controller.signal,
         });
@@ -104,10 +119,10 @@ export function useTripPlaces(plan: TripPlan | undefined): TripPlaces {
     };
     const needs = (key: string) => !done[key] || done[key]!.status === "unavailable";
     for (const city of cities) {
-      const key = keyFor("city", city);
+      const key = contextKey("city", city);
       if (needs(key))
         wanted.set(key, async () => {
-          const body = await post("/api/places/search", { text: city });
+          const body = await post("/api/places/search", { text: city, language });
           const place = (body.places as GooglePlace[] | undefined)?.find((item) => item.location);
           if (!place) throw new LookupError(false);
           return place;
@@ -120,17 +135,37 @@ export function useTripPlaces(plan: TripPlan | undefined): TripPlaces {
       if (query.kind === "id" && loaded[query.placeId]) continue; // chosen in the editor
       if (query.kind === "id")
         wanted.set(key, async () => {
-          const body = await post("/api/places/details", { placeId: query.placeId });
-          return body.place as GooglePlace;
+          try {
+            const body = await post("/api/places/details", { placeId: query.placeId });
+            return body.place as GooglePlace;
+          } catch (error) {
+            if (!activity.savedPlace) throw error;
+            return {
+              id: query.placeId,
+              displayName: { text: activity.savedPlace.name },
+              formattedAddress: activity.savedPlace.address,
+              location: activity.savedPlace.location,
+              source: query.placeId.startsWith("osm:") ? "osm" : "google",
+            };
+          }
         });
       else if (query.kind === "search")
         wanted.set(key, async () => {
           const body = await post("/api/places/search", {
             text: query.text,
+            language,
             ...(destination ? { destination } : {}),
           });
           const place = (body.places as GooglePlace[] | undefined)?.find((item) => item.location);
           if (!place) throw new LookupError(false);
+          if (place.id.startsWith("osm:")) {
+            try {
+              return (await post("/api/places/details", { placeId: place.id }))
+                .place as GooglePlace;
+            } catch {
+              return place;
+            }
+          }
           return place;
         });
     }
@@ -164,7 +199,7 @@ export function useTripPlaces(plan: TripPlan | undefined): TripPlaces {
     }
     return () => controller.abort();
     // `attempt` re-runs lookups that previously failed for a retryable reason.
-  }, [activities, cities, destination, attempt, lookupKey]);
+  }, [activities, cities, destination, attempt, lookupKey, dataMode, language, contextKey]);
 
   const placeIdFor = useCallback(
     (activity: Activity) => {
@@ -203,19 +238,19 @@ export function useTripPlaces(plan: TripPlan | undefined): TripPlaces {
   const destinations = useMemo(
     () =>
       cities.flatMap((city) => {
-        const outcome = outcomes[keyFor("city", city)];
+        const outcome = outcomes[contextKey("city", city)];
         const place = outcome?.status === "found" ? places[outcome.placeId] : undefined;
         return place?.location ? [place] : [];
       }),
-    [cities, outcomes, places],
+    [cities, outcomes, places, contextKey],
   );
   const destinationsSettled = cities.every((city) => {
-    const key = keyFor("city", city);
+    const key = contextKey("city", city);
     return !pending.has(key) && !!outcomes[key];
   });
 
   const destinationsUnavailable = cities.some(
-    (city) => outcomes[keyFor("city", city)]?.status === "unavailable",
+    (city) => outcomes[contextKey("city", city)]?.status === "unavailable",
   );
   const statuses = activities.map(locationStatus);
   const rememberPlace = useCallback((place: GooglePlace) => {
@@ -224,6 +259,9 @@ export function useTripPlaces(plan: TripPlan | undefined): TripPlaces {
   const retry = useCallback(() => setAttempt((value) => value + 1), []);
 
   return {
+    dataMode,
+    forceOsm,
+    allowFallback,
     activities,
     itinerary,
     places,

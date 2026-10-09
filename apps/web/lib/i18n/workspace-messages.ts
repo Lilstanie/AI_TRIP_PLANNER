@@ -1,5 +1,10 @@
 /** Authored workspace copy only. Traveller, model and provider content remains verbatim. */
 export const WORKSPACE_ZH = {
+  "The map could not load. Try again.": "地图暂时无法加载，请重试。",
+  Website: "官方网站",
+  "Open in OpenStreetMap": "在 OpenStreetMap 中打开",
+  "Map places are temporarily unavailable. Your plan is unchanged.":
+    "地点服务暂时不可用，你的行程未改变。",
   "Open conflicts": "未解决的冲突",
   "The estimate is over the budget. Ask in the chat to cut part of the plan.":
     "估算超出预算。请在聊天中让我削减部分行程。",

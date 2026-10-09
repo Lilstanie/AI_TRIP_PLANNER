@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 import { resetMapProviders } from "@/lib/map-provider";
 import { GoogleRequestError } from "@/lib/integrations/google";
 import { POST } from "@/app/api/places/details/route";
@@ -13,13 +13,16 @@ vi.mock("@/lib/integrations/google", async () => {
 function request(body: unknown) {
   return new Request("http://localhost/api/places/details", {
     method: "POST",
+    headers: { "x-trip-data-mode": "live" },
     body: JSON.stringify(body),
   });
 }
 
 // The fallback provider remembers a Google quota or access failure for a cool-down; start each case
 // with Google untried.
+beforeEach(() => vi.stubEnv("WEB_MAPS_PROVIDER", "google"));
 afterEach(() => {
+  vi.unstubAllEnvs();
   vi.clearAllMocks();
   resetMapProviders();
 });

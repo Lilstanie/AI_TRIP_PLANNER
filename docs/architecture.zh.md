@@ -105,7 +105,7 @@ Google 无法应答时，改由基于 OpenStreetMap 的免费提供方应答。�
   （默认 `https://router.project-osrm.org`）。公共演示服务器只提供汽车路线，并忽略请求的配置，因此绝不用于步行。
   两个基础 URL 都可以指向自建或付费的 OSRM 实例。
 - **不提供骑行。**路段只有三种方式（步行、公共交通、驾车）；增加骑行方式会改变共享的路段契约，因此等待路段方式的单独扩展。
-- **公共交通**不由 OSRM 提供。在 Transitous 应答之前（工单 #276），Google 无法规划的公共交通路段不可用，旅行者会看到说明，并可选择其他方式。
+- **公共交通**使用 Transitous/MOTIS `GET /api/v6/plan`，发送坐标和出发时刻。只有包含公共交通路段的方案才提供时长；仅步行的结果表示没有路线。空结果和服务故障都不会变成估算公交时间。Transitous 应答带有 `source: "transitous"`，界面链接其数据来源。
 - **来源标注：**由 OSRM 应答的路线带有 `source: "osrm"`，时间线上的时间标为 `OSRM`（Google 的时间标为 `Google`）。
   从旅行者当前位置出发的路线在地图上标为 `OSRM routes`。已保存在行程中的路段不保留服务标签，因为 `arriveBy` 没有提供方字段，
   增加它会改变共享契约；只有当前编辑应答的路线带有标签。
@@ -432,3 +432,13 @@ pnpm build
 ELEC5620 UML 设计模型位于 [`design/class-diagram.md`](design/class-diagram.zh.md)，
 渲染后的图位于 [`design/diagrams/`](design/diagrams/)：结构主干、领域模型、
 specialist 与编排、端口与适配器、带用例的类模型、综合架构图和用例图。
+
+<a id="completed-free-map-path"></a>
+
+### 完整免费地图路径
+
+浏览器先尝试 Google；密钥、SDK 或授权失败时，加载 MapLibre 和 OpenFreeMap 矢量瓦片。明确选择 OSM 会跳过 Google。两个渲染器共用取景、编号标记、选择、附近路线、响应式调整和主题控制；卫星图仅适用于 Google。MapLibre worker 在本地打包。模拟回退地图使用不请求瓦片的本地样式。
+
+Photon 搜索限定在已解析的目的地范围内。Photon 失败时使用 Nominatim；有效空结果保持为空。中文请求使用 Nominatim 并携带 `accept-language=zh`。Nominatim 搜索和详情共用进程级队列，请求启动间隔至少一秒，成功结果缓存十分钟，并发送项目联系信息。多实例部署需要共享限流器或自建端点。相关设置为 `PHOTON_BASE_URL`、`NOMINATIM_BASE_URL` 和 `OSM_USER_AGENT`。
+
+OSM 卡片只展示已有的地址、分类、营业时间、网站和电话，并注明 OSM 来源，不显示评分。带标签的 Wikimedia 文件或 Wikidata P18 图片是可选项，必须有作者、许可和许可链接。照片失败时保留完整文字卡片。照片名称和元数据仅留在内存中。已保存站点只保留提供方 ID 及 `savedPlace` 名称、地址和坐标，因此 Google 不可用时仍能显示 Google 站点并按坐标规划路线。

@@ -54,6 +54,7 @@ export interface MapProvider {
     origin: Coordinates,
     to: string,
     mode: "WALK" | "TRANSIT",
+    toLocation?: Coordinates,
   ): Promise<RouteResult>;
   /** The IANA time zone at a place on a date. */
   timeZone(place: MapPlace, date: string): Promise<Answered<string>>;

@@ -14,7 +14,11 @@ export function motionAllowed() {
 }
 
 type ViewTransitionDocument = Document & {
-  startViewTransition?: (update: () => void) => { finished: Promise<void> };
+  startViewTransition?: (update: () => void) => {
+    finished: Promise<void>;
+    ready?: Promise<void>;
+    updateCallbackDone?: Promise<void>;
+  };
 };
 
 /**
@@ -31,9 +35,13 @@ export function viewTransition(update: () => void, kind = "swap") {
   const root = doc.documentElement;
   root.dataset.transition = kind;
   const transition = doc.startViewTransition(() => flushSync(update));
-  void transition.finished.finally(() => {
+  const cleanup = () => {
     if (root.dataset.transition === kind) delete root.dataset.transition;
-  });
+  };
+  // A skipped or timed-out animation does not undo the already-applied state change.
+  void transition.finished.then(cleanup, cleanup);
+  void transition.ready?.catch(() => undefined);
+  void transition.updateCallbackDone?.catch(() => undefined);
 }
 
 /**

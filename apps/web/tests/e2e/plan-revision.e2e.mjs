@@ -491,6 +491,57 @@ async function main() {
       );
       await run.context.close();
     }
+    // 4. A second tab cannot send or autosave an old plan over a completed edit.
+    {
+      const stub = newStub();
+      const run = await openTrip(browser, { days: { 1: DAY_ONE }, stub });
+      await waitForQuiet(run.page, stub);
+      const stale = await run.context.newPage();
+      await installStubs(stale, stub);
+      let staleTimeRequests = 0;
+      await stale.route("**/api/trip/preview-edit", async (route) => {
+        if (route.request().postDataJSON().operation.kind === "time") staleTimeRequests++;
+        await route.abort(); // Background work in this tab must not change the seeded revision.
+      });
+      await stale.goto(BASE);
+      await stale
+        .locator(".sidebar-nav")
+        .getByRole("button", { name: /^Trips/ })
+        .click();
+      await stale.locator(".trips-page .trip-card").first().click();
+      await stale.getByRole("button", { name: "Open your trip" }).click();
+      await trip(stale).waitFor();
+      const oldTime = await firstStopTime(stale);
+      await changeTime(run.page, 1, 1, "09:20", "10:20");
+      await waitUntil(async () => (await firstStopTime(run.page)).includes("09:20"));
+      const canonical = await run.page.evaluate(() =>
+        Object.keys(localStorage)
+          .filter((k) => k.startsWith("trip.revision:"))
+          .map((k) => localStorage.getItem(k)),
+      );
+      await changeTime(stale, 1, 1, "09:40", "10:40");
+      await settle(stale, 1200);
+      check(staleTimeRequests === 0, "4: stale tab refuses the edit before sending it");
+      check(
+        (await firstStopTime(stale)) === oldTime,
+        "4: refused stale edit leaves the old tab's plan unchanged",
+      );
+      const after = await stale.evaluate(() =>
+        Object.keys(localStorage)
+          .filter((k) => k.startsWith("trip.revision:"))
+          .map((k) => localStorage.getItem(k)),
+      );
+      check(
+        JSON.stringify(canonical) === JSON.stringify(after),
+        "4: stale tab cannot overwrite the published plan fingerprint",
+      );
+      summary.crossTab = {
+        staleTimeRequests,
+        unchanged: JSON.stringify(canonical) === JSON.stringify(after),
+      };
+      await stale.screenshot({ path: `${OUT}/04-stale-tab.png` });
+      await run.context.close();
+    }
   } finally {
     await browser.close();
   }

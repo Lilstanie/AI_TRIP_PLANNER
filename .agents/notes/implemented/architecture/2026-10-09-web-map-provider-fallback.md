@@ -24,8 +24,8 @@ it (`Answered<T>.source`, or `RouteResult.source` for routes), as `"google"` or 
 
 - **Google** (`google.ts`) holds today's code from `lib/integrations/google.ts`, unchanged in what it
   asks Google and how it reads the answer.
-- **OSM** (`osm.ts`) is the free provider. Until tickets #272–#277 fill it in, every operation
-  reports itself unavailable, so a traveller sees the same Google failures as before.
+- **OSM** (`osm.ts`) is the free provider. Search, details, photos, routes and time zones are now
+  implemented; see [the completion decision](2026-10-10-complete-map-fallback.md).
 - **Fallback** (`fallback.ts`) wraps the two. It calls Google first and calls OSM only when Google is
   _unavailable_: not configured; access denied, API disabled, billing off, an invalid key or quota
   exhausted (HTTP 401, 403, 429, a 400 whose reason is `API_KEY_INVALID`, or a Time Zone status of
@@ -39,7 +39,7 @@ it (`Answered<T>.source`, or `RouteResult.source` for routes), as `"google"` or 
   a cool-down; a missing key is detected without a request.
 - Ids are provider-scoped strings: `osm:node/123`, `osm:way/456`, `osm:relation/789`; an id without a
   prefix is a Google id, as before. Details, photos and routes for an OSM id never go to Google, and a
-  Google id is never sent to OSM. `packages/shared/src` does not change.
+  Google id is never sent to OSM. The completion adds an optional `savedPlace` snapshot to the shared activity contract.
 - `WEB_MAPS_PROVIDER` selects `google-with-fallback` (the default), `google` (never falls back) or
   `osm`. It is separate from the agents' `MAPS_PROVIDER`, whose `.env.example` value is `osm`; sharing
   one setting is left to review of spec #270.
@@ -65,8 +65,8 @@ same provider through `LIVE_EDIT_DEPS` (`route`, `placeDetails`, `timeZone`).
 
 ## Consequences
 
-- Later tickets add OSM search and details (#272), photos (#275), OSRM routes and an offline time
-  zone (#273) and Transitous (#276) as methods of `osm.ts`, without reshaping routes or callers.
+- OSM search/details, photos, OSRM/offline time zones and Transitous implement the same provider
+  seam; the completion note records saved-place persistence and browser rendering.
 - During a cool-down with no OSM answer, the traveller sees the failure that started the cool-down
   for up to five minutes, even if Google recovers sooner.
 - The cool-down lives in server memory; each server instance learns Google's state on its own and a

@@ -157,3 +157,7 @@ Dated 2026-10-08 (fix/trip-drawer-review-233):
 - Dated 2026-10-09 (refactor/plan-revision-owner): the first-sight rule above is removed. A day is recorded as checked only
   when its check succeeds, so a day whose stops already carry arrival times is checked once per page load, and once after its
   places are saved. See [one owner for plan revisions and background work](2026-10-09-plan-revision-owner.md).
+
+Dated 2026-10-10: [the completion decision](../architecture/2026-10-10-complete-map-fallback.md)
+resolves the discrepancy above in favor of the existing code: non-move edits retain their route
+notice, blocked moves and scheduling are refused. Failure mode 6 is superseded for non-move edits.

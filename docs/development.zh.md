@@ -279,3 +279,9 @@ CI 还会运行 `node scripts/format-check-changed.mjs <base>`（即 `pnpm forma
 使用 `pnpm --filter @trip/agents test`、`pnpm --filter @trip/orchestrator test` 或 `pnpm --filter @trip/web test` 针对特定包运行测试。Web 测试脚本使用 POSIX shell 语法设置 `NODE_OPTIONS`；Windows 上应从 WSL 或 Git Bash 运行。
 
 如果在 `pnpm dev` 运行时执行 `pnpm build`，启动开发服务器时应设置 `NEXT_DIST_DIR=.next-dev`，避免二者共用 `.next` 输出目录。
+
+免费地图端点可通过 `PHOTON_BASE_URL`（默认 `https://photon.komoot.io`）、`NOMINATIM_BASE_URL`（默认 `https://nominatim.openstreetmap.org`）和 `TRANSITOUS_BASE_URL`（默认 `https://api.transitous.org`）配置。将 `OSM_USER_AGENT` 设为真实项目联系方式。公共服务限制和部署边界见[架构说明](architecture.zh.md#free-services-limits-and-terms)。
+
+通过 `CHANNEL=chrome DATA_MODE=mock USE_MOCK_TOOLS=true MOCK_GOOGLE_MAPS=unavailable pnpm --filter @trip/web e2e map-fallback` 重跑回退界面检查。本地测试时清空模型、Maps 和 Clerk 密钥变量。截图和摘要位于 `output/playwright/map-fallback/after`。`map-provider-http` 使用本地上游测试真实 API 处理器：将 `MAP_STUB_PORT` 设为空闲端口，将上述三个基础 URL 设为 `http://127.0.0.1:$MAP_STUB_PORT`，并设 `WEB_MAPS_PROVIDER=osm`；限流时间戳、缓存命中、语言、范围和公交解析记录在 `output/e2e/map-provider-http/summary.json`。
+
+`RUN_LIVE_MAP_CHECK=1 WEB_MAPS_PROVIDER=osm CHANNEL=chrome USE_MOCK_TOOLS=true pnpm --filter @trip/web e2e map-fallback-live` 显式启用真实免费服务检查。只有聊天回复使用固定数据；地点查询、瓦片和步行路线均为实时请求。结果及桌面／手机截图位于 `output/playwright/map-fallback-live/after`。这不代表公共交通覆盖所有目的地。

@@ -289,7 +289,7 @@ const MODE_LABELS: Record<string, MessageKey> = {
 };
 
 /** The service a verified travel time came from, as the traveller reads it. */
-const SERVICE_NAMES = { google: "Google", osrm: "OSRM" } as const;
+const SERVICE_NAMES = { google: "Google", osrm: "OSRM", transitous: "Transitous" } as const;
 
 export type Connection = {
   /** The mode the leg icon is drawn for: a route's mode, or the planner's `arriveBy` mode. */

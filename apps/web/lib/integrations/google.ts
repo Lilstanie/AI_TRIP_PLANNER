@@ -9,6 +9,13 @@ export const PlaceDetails = z.object({
     .object({ latitude: z.number().min(-90).max(90), longitude: z.number().min(-180).max(180) })
     .optional(),
   googleMapsUri: z.string().url().optional(),
+  source: z.enum(["google", "osm"]).optional(),
+  osmUri: z.string().url().optional(),
+  websiteUri: z.string().url().optional(),
+  phone: z.string().optional(),
+  openingHours: z.string().optional(),
+  wikidata: z.string().optional(),
+  commonsFile: z.string().optional(),
   rating: z.number().optional(),
   /** Google's main type for the place, such as `museum`; picks the icon on its map label. */
   primaryType: z.string().optional(),
@@ -23,6 +30,8 @@ export const PlaceDetails = z.object({
     .array(
       z.object({
         name: z.string().min(1),
+        license: z.string().optional(),
+        licenseUri: z.string().url().optional(),
         widthPx: z.number().optional(),
         heightPx: z.number().optional(),
         authorAttributions: z
@@ -227,7 +236,7 @@ export type RouteResult = {
    * The service that answered: Google, or OSRM for walking and driving on the free fallback (ticket
    * #276 adds Transitous). Absent on routes saved before it existed.
    */
-  source?: "google" | "osrm";
+  source?: "google" | "osrm" | "transitous";
 };
 
 /** A route nobody could answer, with the reason as an English error and a notice. */

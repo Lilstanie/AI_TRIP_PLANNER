@@ -5,6 +5,12 @@ import { useSettings } from "@/components/account/SettingsProvider";
 import type { EditInput } from "@/lib/trip/trip-edit";
 import type { Notice } from "@/lib/i18n/notice";
 import type { DataMode } from "@/lib/workspace/data-mode";
+import {
+  withTabPlan,
+  publishTabPlan,
+  seedTabPlan,
+  isCurrentTabPlan,
+} from "@/lib/trip/tab-revision";
 import { requestPreview, type PreviewAnswer } from "./previewRequest";
 
 export type EditOperation = EditInput["operation"];
@@ -102,6 +108,14 @@ export function usePlanRevision({
   const { settings } = useSettings();
   const currency = settings.displayCurrency;
   const [tick, setTick] = useState(0);
+  const published = useRef<TripPlan | undefined>(undefined);
+  useEffect(() => {
+    if (plan) {
+      if (!published.current || published.current.tripId !== plan.tripId) seedTabPlan(plan);
+      else if (published.current !== plan) publishTabPlan(plan);
+    }
+    published.current = plan;
+  }, [plan]);
   const latest = useRef(plan);
   latest.current = plan;
   const heldNow = useRef(held);
@@ -131,11 +145,15 @@ export function usePlanRevision({
   const finish = useCallback(
     (job: BackgroundJob, run: { controller: AbortController }, outcome: JobOutcome) => {
       if (flight.current === run) flight.current = undefined;
-      const stillCurrent = !run.controller.signal.aborted && job.plan === latest.current;
+      const stillCurrent =
+        !run.controller.signal.aborted && job.plan === latest.current && isCurrentTabPlan(job.plan);
       if (!stillCurrent) job.settled({ kind: "discarded" });
       else if (outcome.kind === "answer") {
         job.settled(outcome);
-        if (outcome.answer.plan) applyRef.current(outcome.answer.plan);
+        if (outcome.answer.plan) {
+          publishTabPlan(outcome.answer.plan);
+          applyRef.current(outcome.answer.plan);
+        }
       } else job.settled(outcome);
       bump();
     },
@@ -149,14 +167,17 @@ export function usePlanRevision({
       const run = { controller: new AbortController() };
       flight.current = run;
       const { currency: displayCurrency, dataMode: mode } = requestContext.current;
-      requestPreview({
-        plan: job.plan,
-        operation: job.operation,
-        displayCurrency,
-        dataMode: mode,
-        signal: run.controller.signal,
+      withTabPlan(job.plan, run.controller.signal, async () => {
+        const answer = await requestPreview({
+          plan: job.plan,
+          operation: job.operation,
+          displayCurrency,
+          dataMode: mode,
+          signal: run.controller.signal,
+        });
+        finish(job, run, { kind: "answer", answer });
       }).then(
-        (answer) => finish(job, run, { kind: "answer", answer }),
+        () => undefined,
         (error: unknown) => finish(job, run, { kind: "failed", error }),
       );
       return true;
@@ -173,21 +194,24 @@ export function usePlanRevision({
       editsInFlight.current += 1;
       try {
         const { currency: displayCurrency, dataMode: mode } = requestContext.current;
-        const answer = await requestPreview({
-          plan: base,
-          operation,
-          displayCurrency,
-          dataMode: mode,
-          signal,
-          failure,
+        return await withTabPlan(base, signal, async (): Promise<EditResult> => {
+          const answer = await requestPreview({
+            plan: base,
+            operation,
+            displayCurrency,
+            dataMode: mode,
+            signal,
+            failure,
+          });
+          if (signal.aborted) return { kind: "superseded" };
+          if (latest.current !== base || !isCurrentTabPlan(base)) return { kind: "stale" };
+          if (answer.blockers.length) return { kind: "refused", blockers: answer.blockers };
+          const accepted = { ...answer, plan: answer.plan! };
+          beforeApply?.(accepted);
+          publishTabPlan(accepted.plan);
+          applyRef.current(accepted.plan);
+          return { kind: "applied", answer: accepted };
         });
-        if (signal.aborted) return { kind: "superseded" };
-        if (latest.current !== base) return { kind: "stale" };
-        if (answer.blockers.length) return { kind: "refused", blockers: answer.blockers };
-        const accepted = { ...answer, plan: answer.plan! };
-        beforeApply?.(accepted);
-        applyRef.current(accepted.plan);
-        return { kind: "applied", answer: accepted };
       } catch (error) {
         if (signal.aborted) return { kind: "superseded" };
         throw error;

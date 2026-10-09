@@ -148,7 +148,7 @@ Trip 抽屉不再显示 specialist 卡片（Day plan、Getting around、Stay、D
   - 查询依次采用已保存的 `placeId`、活动的 `location`，或本身就是地点名称的标题。
   - 活动描述文字和 mock 占位内容（“Mock attraction near …”）绝不发送给 Places，也不虚构内容。
   - 目的地城市（按 `&` 拆分）分别查询，以确定地图视野。
-  - 结果逐项应用并留在内存中；提供方详情和坐标不持久化。
+  - 结果逐项应用。照片元数据留在内存中；已保存站点在提供方 ID 之外只保留 `savedPlace` 中的名称、地址和坐标。
 - **失败处理。**
   - 没有可用名称或 Google 匹配的活动属于“no confirmed place yet”；时间线显示“Location to be confirmed”。
   - 限流、超时和服务中断可重试，Retry places 只重复这些查询。
@@ -197,7 +197,7 @@ Trip 抽屉不再显示 specialist 卡片（Day plan、Getting around、Stay、D
 - 替换地点会将活动价格标记为待验证。路线票价是独立估计，不会在交通费用中重复计入，未知票价不等于零。
 - 编辑使行程和最终确认失效，并重新生成冲突，保留未受影响的行程需求和酒店决策。撤销会重新验证，而非恢复旧审批。聊天重新规划会替换手动活动。
 - 路线使用 Google Time Zone API 提供的真实当地出发时间；有歧义或不存在的夏令时时刻会被拒绝。该调用失败时，时区会根据地点坐标离线计算。公共交通查询遵循 Google 支持的出发时间窗口。
-- 每个出行时间都会标明来源服务：`Google`，或免费回退路径中由 OSRM 应答的步行或驾车时间 `OSRM`（见[没有 Google 时的路线与时区](architecture.zh.md#routes-and-time-zones-without-google)）。
+- 每个出行时间都会标明来源服务：`Google`、公共交通的 `Transitous`，或免费回退路径中由 OSRM 应答的步行或驾车时间 `OSRM`（见[没有 Google 时的路线与时区](architecture.zh.md#routes-and-time-zones-without-google)）。
 - Google 无公共交通回答的路段（日本没有公共交通数据），或公共交通超过 90 分钟且超过驾车时长两倍的路段，会返回为驾车路段（`mode: "drive"`）并明确说明，不报告为无法规划路线。两个行程城市之间的路段先通过 SerpApi 尝试 Google Maps 公共交通（Tokyo → Kyoto：含票价的新干线），只有找不到结果时才驾车。
 
 ## 抽屉演练
@@ -220,7 +220,7 @@ DATA_MODE=mock pnpm --filter @trip/web e2e drawer-walkthrough
 | `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | 浏览器：Maps JavaScript API                                 |
 | `NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID`  | 浏览器：供高级标记使用的矢量地图 ID（回退到 `DEMO_MAP_ID`） |
 
-按 HTTP referrer 限制浏览器密钥，按 API 限制服务端密钥。地图加载从不延迟首次渲染；没有浏览器密钥时，地图显示回退界面，行程仍可使用。
+按 HTTP referrer 限制浏览器密钥，按 API 限制服务端密钥。地图加载从不延迟首次渲染；没有浏览器密钥时，地图加载 MapLibre/OpenFreeMap，行程仍可使用。
 
 没有 Google 时，步行和驾车时间来自 OSRM：步行使用 `OSRM_FOOT_BASE_URL`（默认 FOSSGIS 步行实例），驾车使用 `OSRM_BASE_URL`（默认 `router.project-osrm.org`，仅汽车）。在路段支持骑行方式之前不提供骑行。
 
@@ -373,3 +373,5 @@ Data mode 默认是 Fixture data。只有部署启用后才能选择 Live data�
 复杂 UI 功能优先只使用 E2E 测试验证行为：走完整旅客流程，并留下可复现的产物。上文要求的浏览器截图是有用的审查证据；同时记录复现 E2E 运行所需步骤和命令。
 
 以下是当前回归测试清单，不是要求在实现之后新增组件测试。`pnpm typecheck`、`pnpm lint`、`pnpm test` 和 `pnpm build` 是仓库当前检查。组件测试覆盖抽屉、行程事实标签及其编辑器、空白起始、历史恢复、侧边栏折叠、地点查询失败、请求竞争和存储恢复、位置询问、抽屉地点列表和地点弹窗；`lib/map/map-view.test.ts`、`lib/map/place-query.test.ts`、`lib/trip/itinerary.test.ts` 和 `lib/map/itinerary-route.test.ts` 覆盖视野定位、查询规则、停靠点编号与访问顺序和线条动画的减少动态效果分支。真实 Google 检查在会话日志中单独报告，绝不从 mock 推断。历史 P0–P3 方案见 [`.agents/archive/p3-implementation.md`](../.agents/archive/p3-implementation.md) 和会话日志。
+
+OSM 地点卡展示已有文字详情和可选的许可 Commons 照片，注明来源及照片署名，不编造评分。缺少照片时不保留空白照片区域。MapLibre 在桌面和手机保留相同的站点选择和取景。地图瓦片失败时显示重试提示。同一浏览器的标签页串行执行编辑和后台检查；行程在其他标签页更新后，旧标签页需重新加载才能修改。取消的任务不会发布新计划版本。

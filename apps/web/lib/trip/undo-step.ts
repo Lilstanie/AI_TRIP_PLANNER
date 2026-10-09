@@ -25,6 +25,7 @@ export function undoStepOf(plan: TripPlan): UndoStep {
         endTime: item.endTime!,
         placeId: item.placeId,
         priceNeedsReview: item.priceNeedsReview,
+        ...(item.savedPlace ? { savedPlace: item.savedPlace } : {}),
         ...(item.arriveBy ? { arriveBy: item.arriveBy } : {}),
       })),
   };

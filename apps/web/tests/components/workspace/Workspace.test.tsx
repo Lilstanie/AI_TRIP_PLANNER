@@ -1026,7 +1026,7 @@ describe("Workspace map places", () => {
         ])}
       />,
     );
-    await waitFor(() => expect(bodies).toEqual([{ text: "Kyoto" }]));
+    await waitFor(() => expect(bodies).toEqual([{ text: "Kyoto", language: "en" }]));
     const map = document.querySelector<HTMLElement>(".workspace-panel--map")!;
     await waitFor(() =>
       expect(within(map).getByText(/2 activities have no confirmed place yet/)).toBeTruthy(),
@@ -1069,7 +1069,7 @@ describe("Workspace map places", () => {
     );
     const map = document.querySelector<HTMLElement>(".workspace-panel--map")!;
     await waitFor(() =>
-      expect(within(map).getByText(/1 could not be loaded from Google Places/)).toBeTruthy(),
+      expect(within(map).getByText(/1 could not be loaded from the map service/)).toBeTruthy(),
     );
     expect(map.querySelector(".trip-map-status")!.getAttribute("role")).toBe("status");
     failGallery = false;

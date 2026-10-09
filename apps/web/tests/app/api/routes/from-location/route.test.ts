@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 import { resetMapProviders } from "@/lib/map-provider";
 import { POST } from "@/app/api/routes/from-location/route";
 
@@ -12,11 +12,14 @@ vi.mock("@/lib/integrations/google", async () => {
 function request(body: unknown) {
   return new Request("http://localhost/api/routes/from-location", {
     method: "POST",
+    headers: { "x-trip-data-mode": "live" },
     body: JSON.stringify(body),
   });
 }
 
+beforeEach(() => vi.stubEnv("WEB_MAPS_PROVIDER", "google"));
 afterEach(() => {
+  vi.unstubAllEnvs();
   vi.clearAllMocks();
   resetMapProviders();
 });

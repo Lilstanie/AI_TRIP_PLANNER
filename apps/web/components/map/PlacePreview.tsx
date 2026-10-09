@@ -32,7 +32,8 @@ export function PlacePreview({
   actions?: ReactNode;
 }) {
   const { t } = useLocale();
-  const photo = showPhoto ? place.photos?.[0] : undefined;
+  const osm = place.id.startsWith("osm:");
+  const photo = showPhoto || osm ? place.photos?.[0] : undefined;
   const [failed, setFailed] = useState<string>();
   const visible = photo && failed !== photo.name ? photo : undefined;
   const name = place.displayName?.text ?? place.formattedAddress ?? "Selected place";
@@ -40,24 +41,26 @@ export function PlacePreview({
 
   return (
     <article className="place-preview" aria-label={t("Selected place: {v0}", { v0: name })}>
-      <div className="place-preview__photo">
-        <span className="place-preview__fallback" aria-hidden="true">
-          <MapPinIcon />
-        </span>
-        {visible && (
-          // Not next/image: its optimizer would fetch and cache Google's photo on our server,
-          // and the provider's terms allow neither.
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            key={visible.name}
-            src={`/api/places/photo?name=${encodeURIComponent(visible.name)}&width=400`}
-            alt=""
-            loading="lazy"
-            decoding="async"
-            onError={() => setFailed(visible.name)}
-          />
-        )}
-      </div>
+      {(!osm || visible) && (
+        <div className="place-preview__photo">
+          <span className="place-preview__fallback" aria-hidden="true">
+            <MapPinIcon />
+          </span>
+          {visible && (
+            // Not next/image: its optimizer would fetch and cache Google's photo on our server,
+            // and the provider's terms allow neither.
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              key={visible.name}
+              src={`/api/places/photo?name=${encodeURIComponent(visible.name)}&width=400`}
+              alt=""
+              loading="lazy"
+              decoding="async"
+              onError={() => setFailed(visible.name)}
+            />
+          )}
+        </div>
+      )}
       {onClose && (
         <button
           type="button"
@@ -74,7 +77,19 @@ export function PlacePreview({
         {place.formattedAddress && place.formattedAddress !== name && (
           <p className="place-preview__address">{place.formattedAddress}</p>
         )}
-        {place.rating !== undefined && (
+        {osm && (
+          <p className="place-preview__meta">
+            OpenStreetMap{place.primaryType ? ` · ${place.primaryType.replace(/_/g, " ")}` : ""}
+          </p>
+        )}
+        {osm && place.openingHours && <p>{place.openingHours}</p>}
+        {osm && place.phone && <p>{place.phone}</p>}
+        {osm && place.websiteUri && (
+          <a href={place.websiteUri} target="_blank" rel="noopener noreferrer">
+            {t("Website")}
+          </a>
+        )}
+        {!osm && place.rating !== undefined && (
           <p className="place-preview__rating">
             {t("Google rating")}
             {place.rating.toFixed(1)} / 5
@@ -96,6 +111,24 @@ export function PlacePreview({
               </span>
             ))}
           </p>
+        )}
+        {visible?.license && (
+          <p className="place-preview__credit">
+            <a href={visible.licenseUri} target="_blank" rel="noopener noreferrer">
+              {visible.license}
+            </a>{" "}
+            · Wikimedia Commons
+          </p>
+        )}
+        {osm && place.osmUri && (
+          <a
+            className="place-preview__link"
+            href={place.osmUri}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {t("Open in OpenStreetMap")}
+          </a>
         )}
         {place.googleMapsUri && (
           <a
