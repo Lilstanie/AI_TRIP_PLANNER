@@ -286,7 +286,8 @@ could fail, then write the code and derive the isolated checks from that list.
 
 This describes the preferred approach for new work. CI runs the Vitest suites through `pnpm test` and
 the repository script tests (`scripts/*.test.mjs`) through `pnpm test:scripts`. It does not run the E2E
-scripts, so run the relevant one yourself before pushing. It does run `pnpm verify:e2e-selectors`, which
+scripts, so run the relevant one yourself before pushing; scripts that already fail on `main` are listed in
+[e2e-known-failures.md](e2e-known-failures.md). CI does run `pnpm verify:e2e-selectors`, which
 fails when an E2E script selects a CSS class (`.section__row`) that no component, page or library file under
 `apps/web` renders any more; a rule left in a stylesheet does not count. It needs no server and takes well
 under a second. A line that checks a removed class stays gone ends with `// e2e-selectors: absent`; a class
