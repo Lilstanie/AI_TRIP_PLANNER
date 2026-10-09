@@ -154,3 +154,6 @@ Dated 2026-10-08 (fix/trip-drawer-review-233):
   note or the code changes.
 - A day is recorded as routed only after its verify succeeds. A day whose stops already carry arrival times counts as
   routed on first sight unless it was edited while its places were unsaved (`useLegRoutes.ts`).
+- Dated 2026-10-09 (refactor/plan-revision-owner): the first-sight rule above is removed. A day is recorded as checked only
+  when its check succeeds, so a day whose stops already carry arrival times is checked once per page load, and once after its
+  places are saved. See [one owner for plan revisions and background work](2026-10-09-plan-revision-owner.md).

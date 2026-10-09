@@ -1,14 +1,12 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { TripPlan } from "@trip/shared";
-import { useSettings } from "@/components/account/SettingsProvider";
 import type { GooglePlace, RouteResult } from "@/lib/integrations/google";
 import type { EditInput } from "@/lib/trip/trip-edit";
 import type { LegMode } from "@/lib/trip/leg-routes";
 import { errorNotice, failureNotice, NoticeError, type Notice } from "@/lib/i18n/notice";
-import type { DataMode } from "@/lib/workspace/data-mode";
 import type { TripPlaces } from "../../map/useTripPlaces";
-import { requestPreview } from "../previewRequest";
+import type { PlanRevisions } from "../plan-revision";
 
 type Operation = EditInput["operation"];
 
@@ -34,32 +32,29 @@ function touchedDays(operation: Operation, activities: TripPlaces["activities"])
 
 /**
  * Everything the timeline asks the server: edits, the travel mode of one leg, and place search. An edit
- * is sent to `/api/trip/preview-edit`, which recomputes routes, budget and conflicts. When the server
- * accepts it, the plan it returns is applied at once and the routes it verified are handed to the
- * workspace; a refused edit leaves the plan unchanged and its blockers are shown as notices. "Undo last
- * change" replays the previous activities, legs included, through the same path. See the Agent Notes
- * on immediate timeline edits and on leg travel times.
+ * is sent through the plan revision owner, which applies an accepted plan at once; the routes it verified
+ * are handed to the workspace, and the day's undo step is recorded. A refused edit leaves the plan
+ * unchanged and its blockers are shown as notices. "Undo last change" replays the previous activities,
+ * legs included, through the same path. See the Agent Notes on immediate timeline edits, on leg travel
+ * times and on one owner for plan revisions.
  */
 export function useTimelineEdits({
   plan,
   activities,
-  dataMode,
-  onApply,
+  revisions,
   onPending,
   onRoutesChange,
   onLegApplied,
 }: {
   plan: TripPlan;
   activities: TripPlaces["activities"];
-  dataMode: DataMode | undefined;
-  onApply(plan: TripPlan): void;
+  revisions: PlanRevisions;
   onPending(value: boolean): void;
   /** Routes an applied edit verified; the workspace keeps them for the legs and the map. */
   onRoutesChange?(routes: RouteResult[]): void;
   /** An applied leg change: its day is current, so the day's other legs are not routed again. */
   onLegApplied?(plan: TripPlan, day: number): void;
 }) {
-  const { settings } = useSettings();
   const [results, setResults] = useState<GooglePlace[]>([]);
   const [errors, setErrors] = useState<Notice[]>([]);
   const [working, setWorking] = useState<"" | "edit" | "search">("");
@@ -73,8 +68,6 @@ export function useTimelineEdits({
   }, [changed]);
   const applied = useRef<TripPlan | null>(null);
   const request = useRef<AbortController | null>(null);
-  const current = useRef(plan);
-  current.current = plan;
 
   // A new plan (from chat, a restore, or our own apply) ends any edit in flight. Only a plan that
   // did not come from an edit forgets the undo step.
@@ -114,39 +107,29 @@ export function useTimelineEdits({
   }
 
   async function edit(operation: Operation) {
-    const base = plan;
     await run("edit", async (signal) => {
-      const answer = await requestPreview({
-        plan,
-        operation,
-        displayCurrency: settings.displayCurrency,
-        dataMode,
+      const result = await revisions.edit(operation, {
         signal,
+        beforeApply: (answer) => {
+          // The server routed every day this edit touched, so those days are recorded as checked. Otherwise the
+          // workspace checks them again, and that second plan replaces this one and drops its Undo step.
+          for (const day of touchedDays(operation, activities)) onLegApplied?.(answer.plan, day);
+          recordUndo(answer.plan, answer.routes);
+        },
       });
-      // A newer request superseded this one: its answer is not wanted.
-      if (signal.aborted) return;
       // A plan that changed while the request was in flight (from chat or a restore) makes the answer stale.
       // It is dropped, and the traveller is told so instead of seeing nothing happen.
-      if (current.current !== base) {
+      if (result.kind === "stale") {
         setErrors([
           { key: "The plan changed while this change was being checked. Try the change again." },
         ]);
-        return;
-      }
-      // Refused: the plan stays as it is and the blockers say why.
-      if (answer.blockers.length) {
-        setErrors(answer.blockers);
-        return;
-      }
-      // The server routed every day this edit touched, so those days are recorded as checked. Otherwise the
-      // workspace checks them again, and that second plan replaces this one and drops its Undo step.
-      for (const day of touchedDays(operation, activities)) onLegApplied?.(answer.plan!, day);
-      commit(answer.plan!, answer.routes);
+        // Refused: the plan stays as it is and the blockers say why.
+      } else if (result.kind === "refused") setErrors(result.blockers);
     });
   }
 
-  // Applies a plan the server accepted, and records the step that undoes it.
-  function commit(next: TripPlan, routes: RouteResult[]) {
+  // Records the step that undoes an applied plan. The plan itself is applied by the owner, after this.
+  function recordUndo(next: TripPlan, routes: RouteResult[]) {
     // The undo step covers the scheduled stops the server re-times. Ideas have no day or times, and the
     // server keeps them as they are, so they are not part of the step.
     const before = activities
@@ -184,7 +167,6 @@ export function useTimelineEdits({
         }),
       ),
     );
-    onApply(next);
   }
 
   /** Routes only the leg into `id` with the traveller's mode; the rest of the day is re-timed. */

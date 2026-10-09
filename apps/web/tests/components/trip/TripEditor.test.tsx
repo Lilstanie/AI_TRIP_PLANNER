@@ -1,11 +1,24 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
+import { type ComponentProps } from "react";
 import { TripEditor } from "@/components/trip/TripEditor";
+import { usePlanRevision } from "@/components/trip/plan-revision";
 import type { TripPlaces } from "@/components/map/useTripPlaces";
 import { plan as seed } from "@/tests/fixtures/workspace";
 import { identifyActivities, itineraryActivities } from "@/lib/workspace";
 import { TripPlan } from "@trip/shared";
 import { buildItinerary } from "@/lib/trip/itinerary";
+/** The editor with the plan revision owner the workspace gives it, which sends and applies its edits. */
+function Editor(props: Omit<ComponentProps<typeof TripEditor>, "revisions">) {
+  const revisions = usePlanRevision({
+    plan: props.plan,
+    held: props.disabled,
+    dataMode: undefined,
+    onApply: props.onApply,
+  });
+  return <TripEditor {...props} revisions={revisions} />;
+}
+
 function fixture() {
   const plan = identifyActivities(structuredClone(seed));
   Object.assign(plan.sections[0]!.proposal!.items[0]!, {
@@ -47,13 +60,12 @@ describe("editor request lifecycle", () => {
   it("renders the timeline only, without an embedded map", () => {
     const plan = fixture();
     render(
-      <TripEditor
+      <Editor
         plan={plan}
         disabled={false}
         onApply={vi.fn()}
         onPending={vi.fn()}
         tripPlaces={places(plan)}
-        dataMode={undefined}
         onSelect={vi.fn()}
       />,
     );
@@ -66,13 +78,12 @@ describe("editor request lifecycle", () => {
     const plan = fixture();
     const select = vi.fn();
     render(
-      <TripEditor
+      <Editor
         plan={plan}
         disabled={false}
         onApply={vi.fn()}
         onPending={vi.fn()}
         tripPlaces={places(plan)}
-        dataMode={undefined}
         onSelect={select}
       />,
     );
@@ -94,13 +105,12 @@ describe("editor request lifecycle", () => {
       apply = vi.fn(),
       pending = vi.fn();
     const { rerender } = render(
-      <TripEditor
+      <Editor
         plan={original}
         disabled={false}
         onApply={apply}
         onPending={pending}
         tripPlaces={places(original)}
-        dataMode={undefined}
         selected={itineraryActivities(original)[0]!.id}
         onSelect={vi.fn()}
       />,
@@ -110,13 +120,12 @@ describe("editor request lifecycle", () => {
     fireEvent.click(screen.getByRole("button", { name: "Change time" }));
     const restored = { ...original, tripId: "restored" };
     rerender(
-      <TripEditor
+      <Editor
         plan={restored}
         disabled={false}
         onApply={apply}
         onPending={pending}
         tripPlaces={places(restored)}
-        dataMode={undefined}
         selected={itineraryActivities(restored)[0]!.id}
         onSelect={vi.fn()}
       />,

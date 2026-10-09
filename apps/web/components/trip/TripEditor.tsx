@@ -9,7 +9,6 @@ import { connectionBetween, dayCount, dayLabel, dayRows, stayingAt } from "@/lib
 import { applyItemAction, type ItemAction } from "@/lib/trip/item-actions";
 import type { LegMode } from "@/lib/trip/leg-routes";
 import { NoticeError, type Notice } from "@/lib/i18n/notice";
-import type { DataMode } from "@/lib/workspace/data-mode";
 import { FlowStayIcon } from "../ui/flow-icons";
 import { restaurantSuggestions } from "@/lib/trip/restaurants";
 import { placeConflicts } from "@/lib/trip/conflicts";
@@ -21,6 +20,7 @@ import { useTimelineEdits } from "./timeline/useTimelineEdits";
 import { TripTips } from "./TripTips";
 import { IDLE_AUTO_SAVE, type AutoSaveState } from "./useAutoSavePlaces";
 import type { LegState } from "./useLegRoutes";
+import type { PlanRevisions } from "./plan-revision";
 
 type Activity = TripPlaces["activities"][number];
 
@@ -49,7 +49,7 @@ export function TripEditor({
   routes = [],
   legs,
   onLegApplied,
-  dataMode,
+  revisions,
   showPhotos = false,
   saves = IDLE_AUTO_SAVE,
   onChoose,
@@ -69,7 +69,8 @@ export function TripEditor({
   legs?: LegState;
   /** An applied leg change: its day is current, so the other legs are not routed again. */
   onLegApplied?(plan: TripPlan, day: number): void;
-  dataMode: DataMode | undefined;
+  /** The plan revision owner: the timeline's edits are sent and applied through it. */
+  revisions: PlanRevisions;
   /** Show each place's first Google photo in its card (live data with a Maps key). */
   showPhotos?: boolean;
   /** Which stop's map place is being saved, or failed to save, on the workspace. */
@@ -83,8 +84,7 @@ export function TripEditor({
   const edits = useTimelineEdits({
     plan,
     activities,
-    dataMode,
-    onApply,
+    revisions,
     onPending,
     onRoutesChange,
     onLegApplied,

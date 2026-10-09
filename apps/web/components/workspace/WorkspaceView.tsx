@@ -5,6 +5,7 @@ import { ChatPanel } from "../chat/ChatPanel";
 import { TripEditor } from "../trip/TripEditor";
 import { useAutoSavePlaces } from "../trip/useAutoSavePlaces";
 import { useLegRoutes } from "../trip/useLegRoutes";
+import { usePlanRevision } from "../trip/plan-revision";
 import { useChooseCandidate } from "../trip/useChooseCandidate";
 import { TripMapCanvas } from "../map/TripMapCanvas";
 import { TripPanel } from "../trip/TripPanel";
@@ -90,24 +91,20 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
   const { keyboardOpen } = usePhoneKeyboard(phone);
   const { tripUpdated } = usePhoneTripUpdates(model);
   usePhoneBack(phone);
-  const chooser = useChooseCandidate(plan, session.applyEdit, session.trackEdit);
+  // The one owner of the plan's revisions and its background work: a traveller's edit wins over the route
+  // checks and place saves, which are offered to it and run only when they still apply.
+  const revisions = usePlanRevision({
+    plan,
+    held: busy || editPending,
+    dataMode: dataMode.mode,
+    onApply: session.applyEdit,
+  });
+  const chooser = useChooseCandidate(plan, revisions, session.trackEdit);
   // Map-found places are saved on their stops from here, so they are saved whether or not the
   // timeline tab is open.
-  const autoSaves = useAutoSavePlaces({
-    plan,
-    tripPlaces,
-    onApply: session.applyEdit,
-    enabled: !(busy || editPending),
-    dataMode: dataMode.mode,
-  });
+  const autoSaves = useAutoSavePlaces({ plan, tripPlaces, revisions });
   // A day's legs are routed once its places are saved, whether or not the Trip timeline is open.
-  const legs = useLegRoutes({
-    plan,
-    enabled: !(busy || editPending),
-    dataMode: dataMode.mode,
-    onApply: session.applyEdit,
-    onRoutes: session.showRoutes,
-  });
+  const legs = useLegRoutes({ plan, revisions, onRoutes: session.showRoutes });
   const chatsButton = useRef<HTMLButtonElement>(null);
   const chatsSearch = useRef<HTMLInputElement>(null);
   const chatsPanel = useRef<HTMLDivElement>(null);
@@ -239,10 +236,10 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
               onSelect={session.selectStop}
               onRoutesChange={session.showRoutes}
               onApply={session.applyEdit}
+              revisions={revisions}
               routes={mapRoutes}
               legs={legs}
               onLegApplied={legs.noteLeg}
-              dataMode={dataMode.mode}
               showPhotos={dataMode.mode === "live" && !!dataMode.providers?.maps}
               saves={autoSaves}
               {...(busy || editPending || chooser.working ? {} : { onChoose: chooser.choose })}

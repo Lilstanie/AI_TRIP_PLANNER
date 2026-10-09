@@ -1,10 +1,8 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { TripPlan } from "@trip/shared";
-import { useSettings } from "@/components/account/SettingsProvider";
-import type { DataMode } from "@/lib/workspace/data-mode";
+import type { TripPlan } from "@trip/shared";
 import type { TripPlaces } from "../map/useTripPlaces";
-import { requestPreview } from "./previewRequest";
+import type { PlanRevisions } from "./plan-revision";
 
 export type AutoSaveState = {
   /** The stop whose place is being saved now, or "". */
@@ -19,60 +17,33 @@ type Stop = TripPlaces["activities"][number];
 
 /**
  * Saves the place the map found by name for each scheduled stop that has none saved, through the
- * immediate place edit (`POST /api/trip/preview-edit`, `place` operation). See the Agent Note on
- * auto-saved stop places for the failure modes this is written against.
+ * immediate place edit (`POST /api/trip/preview-edit`, `place` operation). The rules for when a save
+ * applies, and for an edit that lands first, are the plan revision owner's (`plan-revision.ts`). See the
+ * Agent Note on auto-saved stop places for the failure modes this is written against.
  *
- * - One save is in flight at a time; the next stop is tried after the previous one settles.
+ * - One save is in flight at a time for the trip; the next stop is tried once the previous one settles.
  * - Each stop and place is sent once per plan. A plan that did not come from one of these saves
  *   (a chat replan, a restore, the traveller's own edit) starts a new set of attempts.
  * - A save the server refuses or fails is not retried automatically; the stop is marked failed.
- * - A save aborted by a newer request is not marked failed and may be sent again.
+ * - A save discarded by an edit or a newer plan is not marked failed; the stop is sent again for the
+ *   current plan.
  */
 export function useAutoSavePlaces({
   plan,
   tripPlaces,
-  onApply,
-  enabled,
-  dataMode,
+  revisions,
 }: {
   plan: TripPlan | undefined;
   tripPlaces: TripPlaces;
-  onApply(plan: TripPlan): void;
-  /** False while chat or a timeline edit is running; saves wait for it. */
-  enabled: boolean;
-  dataMode: DataMode | undefined;
+  revisions: PlanRevisions;
 }): AutoSaveState {
-  const { settings } = useSettings();
   const { activities, placeIdFor, locationStatus } = tripPlaces;
+  const { tick, offer } = revisions;
   const [state, setState] = useState<AutoSaveState>(IDLE_AUTO_SAVE);
-  // Bumped after a save that did not commit, so the next stop is tried.
-  const [advance, setAdvance] = useState(0);
-  const flight = useRef<AbortController | null>(null);
   const tried = useRef(new Set<string>());
   const seen = useRef<TripPlan | undefined>(undefined);
-  // The last plan this runner applied: its own apply does not start a new set of attempts.
+  // The last plan this hook saved a place into: its own apply does not start a new set of attempts.
   const own = useRef<TripPlan | undefined>(undefined);
-  const latest = useRef(plan);
-  latest.current = plan;
-  const applyRef = useRef(onApply);
-  applyRef.current = onApply;
-  const currency = settings.displayCurrency;
-
-  // A newer plan from chat, a restore or a timeline edit cancels a save still in flight.
-  useEffect(
-    () => () => {
-      flight.current?.abort();
-      flight.current = null;
-    },
-    [plan],
-  );
-  // A user edit (or chat) starting cancels a save in flight: its result would replace the plan the edit
-  // is checking. The stop is tried again once saving is enabled.
-  useEffect(() => {
-    if (enabled) return;
-    flight.current?.abort();
-    flight.current = null;
-  }, [enabled]);
 
   useEffect(() => {
     if (seen.current !== plan) {
@@ -82,46 +53,33 @@ export function useAutoSavePlaces({
         setState((old) => (old.failed.size ? { ...old, failed: new Set() } : old));
       }
     }
-    if (!enabled || !plan || flight.current) return;
+    if (!plan) return;
     const next = nextStop(activities, placeIdFor, locationStatus, tried.current);
     if (!next) return;
     const { stop, placeId, key } = next;
-    const controller = new AbortController();
-    flight.current = controller;
     tried.current.add(key);
-    setState((old) => ({ ...old, saving: stop.id! }));
-    void save(plan, stop.id!, placeId, currency, dataMode, controller.signal).then((accepted) => {
-      if (flight.current === controller) flight.current = null;
-      setState((old) => ({ ...old, saving: "" }));
-      // Superseded by a newer request or plan, or sent for a plan that has since changed: forget the
-      // attempt so a later run may send it again.
-      if (controller.signal.aborted || (accepted && accepted.base !== latest.current)) {
-        tried.current.delete(key);
-        // Re-run the search: the stop is saved once saving is enabled again, even when nothing else changed.
-        setAdvance((value) => value + 1);
-        return;
-      }
-      if (accepted) {
-        // Applied at once; the effect for the new plan picks up the next stop.
-        own.current = accepted.plan;
-        applyRef.current(accepted.plan);
-        return;
-      }
-      // Refused or failed: the stop stays unsaved for this plan and the next stop is tried.
-      setState((old) => ({ ...old, failed: new Set(old.failed).add(stop.id!) }));
-      setAdvance((value) => value + 1);
+    const started = offer({
+      key: `save|${key}`,
+      plan,
+      // Sent with `routeLater`: the day is checked once after its last save, not on each save.
+      operation: { kind: "place", id: stop.id!, placeId, routeLater: true },
+      settled(outcome) {
+        setState((old) => ({ ...old, saving: "" }));
+        if (outcome.kind === "discarded") {
+          tried.current.delete(key);
+          return;
+        }
+        if (outcome.kind === "answer" && outcome.answer.plan) {
+          own.current = outcome.answer.plan;
+          return;
+        }
+        // Refused or failed: the stop stays unsaved for this plan and the next stop is tried.
+        setState((old) => ({ ...old, failed: new Set(old.failed).add(stop.id!) }));
+      },
     });
-    // `advance` re-runs the search for the next stop after a save that did not commit.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [plan, activities, placeIdFor, locationStatus, enabled, advance, currency, dataMode]);
-
-  useEffect(
-    () => () => {
-      flight.current?.abort();
-      flight.current = null;
-    },
-    [],
-  );
+    if (started) setState((old) => ({ ...old, saving: stop.id! }));
+    else tried.current.delete(key);
+  }, [plan, activities, placeIdFor, locationStatus, tick, offer]);
 
   return state;
 }
@@ -142,31 +100,4 @@ function nextStop(
     if (!tried.has(key)) return { stop, placeId, key };
   }
   return undefined;
-}
-
-/**
- * Sends one place edit, without routing its day: the day's legs are routed once after its last save
- * (see useLegRoutes). Resolves to the accepted plan, or to `undefined` when the server refused it,
- * failed, or the request was aborted. The caller decides whether the plan still applies.
- */
-async function save(
-  base: TripPlan,
-  id: string,
-  placeId: string,
-  displayCurrency: string | undefined,
-  dataMode: DataMode | undefined,
-  signal: AbortSignal,
-): Promise<{ plan: TripPlan; base: TripPlan } | undefined> {
-  try {
-    const answer = await requestPreview({
-      plan: base,
-      operation: { kind: "place", id, placeId, routeLater: true },
-      displayCurrency,
-      dataMode,
-      signal,
-    });
-    return answer.plan ? { plan: answer.plan, base } : undefined;
-  } catch {
-    return undefined;
-  }
 }
