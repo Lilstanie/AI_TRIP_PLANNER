@@ -159,6 +159,14 @@ const ZH = {
 export type MessageKey = keyof typeof ZH;
 
 /**
+ * Every English key with a Chinese entry, without a `|context` suffix. A sentence the app wrote in English
+ * before its notices were keyed is matched against these to recover the key (see `notice.ts`).
+ */
+export const AUTHORED_KEYS: readonly MessageKey[] = Object.keys(ZH).filter(
+  (key) => !key.includes("|"),
+) as MessageKey[];
+
+/**
  * English is the key itself, so a missing or empty Chinese entry falls back to English. A key may
  * carry a `|context` suffix when one English word needs two translations ("Budget|tier"); English
  * shows only the part before it.

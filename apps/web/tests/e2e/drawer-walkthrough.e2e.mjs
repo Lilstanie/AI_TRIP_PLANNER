@@ -50,8 +50,6 @@ const STOP_NAMES = [
 // the walk. Model replies and provider text (the plan's own words) are excluded by content, not listed here.
 const KNOWN_EXCEPTIONS = {
   zh: [
-    // Open item: the travel-buffer message is written in English by trip-edit.ts (noticeText("en", blocker)).
-    "Day 1: Royal Botanic Garden Sydney needs at least 22 minutes after the previous activity.",
     // Brand name inside a Chinese label ("open in Google Maps"), not an English label.
     "在 Google 地图打开",
   ],

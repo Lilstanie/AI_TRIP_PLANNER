@@ -1,5 +1,11 @@
 import type { ProposalItem, TripPlan } from "@trip/shared";
-import { noticeText, readStoredNotice, type Notice } from "../i18n/notice";
+import {
+  keyOfAuthoredSentence,
+  noticeText,
+  readStoredNotice,
+  type Notice,
+  type NoticeValue,
+} from "../i18n/notice";
 
 /**
  * The price note `trip-edit` writes on a stop whose price was changed. The stop's "Price needs
@@ -69,10 +75,29 @@ export function placeConflicts(plan: TripPlan): ConflictPlacement {
     issues.map((issue) => noticeText("en", readStoredNotice(issue.message))),
   );
 
+  // A notice the app wrote in English before it was keyed: placed as its key, on the stop its sentence names
+  // when that stop is on the day, else under the day title, else under the budget.
+  const placeAuthored = (notice: Notice) => {
+    const params = ("params" in notice ? notice.params : undefined) as
+      Record<string, NoticeValue> | undefined;
+    const day = params?.day === undefined ? undefined : Number(params.day);
+    if (day !== undefined && params?.stop !== undefined) {
+      const stop = stops.find((item) => item.day === day && item.detail === params.stop);
+      if (stop) return addTo(placement.stops, stop.id!, notice);
+    }
+    if (day !== undefined) addTo(placement.days, day, notice);
+    else addOnce(placement.budget, notice);
+  };
+
   const overlapDays = new Set<number>();
   for (const conflict of plan.conflicts ?? []) {
     for (const reason of conflict.reason.split("; ").map((part) => part.trim())) {
       if (reason === PRICE_CHECK_MESSAGE || issueSentences.has(reason)) continue;
+      const authored = keyOfAuthoredSentence(reason);
+      if (authored) {
+        placeAuthored(authored);
+        continue;
+      }
       const overlap = OVERLAP.exec(reason);
       const day = DAY.exec(reason);
       if (reason.startsWith(INFEASIBLE))
