@@ -9,7 +9,7 @@ import {
   type PhotoWidth,
 } from "@/lib/integrations/google";
 import { mapProvider } from "@/lib/map-provider";
-import { MapProviderUnavailableError } from "@/lib/map-provider/osm";
+import { MapProviderUnavailableError } from "@/lib/map-provider/errors";
 
 const PhotoRequest = z.object({
   name: z.string().regex(PHOTO_NAME),

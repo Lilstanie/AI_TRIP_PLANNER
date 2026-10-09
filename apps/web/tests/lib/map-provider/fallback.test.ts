@@ -52,7 +52,7 @@ function answeringOsm() {
         mode,
         status: "ok" as const,
         durationMin: 12,
-        source: "osm" as const,
+        source: "osrm" as const,
       }),
     ),
     routeFromLocation: vi.fn(async (_origin, to: string, mode: "WALK" | "TRANSIT") => ({
@@ -61,7 +61,7 @@ function answeringOsm() {
       mode,
       status: "ok" as const,
       durationMin: 9,
-      source: "osm" as const,
+      source: "osrm" as const,
     })),
     timeZone: vi.fn(async () => ({ value: "Asia/Tokyo", source: "osm" as const })),
   } satisfies MapProvider;
@@ -152,7 +152,7 @@ describe("which Google failures fall back to OSM", () => {
 
     const leg = await fallback().route("g1", "g2", "2026-11-01T09:00:00Z", "WALK");
 
-    expect(leg).toMatchObject({ status: "ok", durationMin: 12, source: "osm" });
+    expect(leg).toMatchObject({ status: "ok", durationMin: 12, source: "osrm" });
   });
 });
 

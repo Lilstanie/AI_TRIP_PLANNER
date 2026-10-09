@@ -6,7 +6,7 @@ import {
   placesUnavailable,
 } from "@/lib/integrations/google";
 import { mapProvider } from "@/lib/map-provider";
-import { MapProviderUnavailableError } from "@/lib/map-provider/osm";
+import { MapProviderUnavailableError } from "@/lib/map-provider/errors";
 
 const DetailsRequest = z.object({ placeId: z.string().min(1).max(300) });
 

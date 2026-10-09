@@ -619,7 +619,10 @@ moves. Details, notes and booked apply in the browser. The checks are determinis
   and hotel decisions. Undo revalidates instead of restoring old approvals. Chat replanning replaces
   manual activities.
 - Routes use real local departure times from the Google Time Zone API; ambiguous or nonexistent DST
-  times are rejected. Transit queries respect Google's supported departure window.
+  times are rejected. When that call fails, the zone is worked out offline from the place's coordinates.
+  Transit queries respect Google's supported departure window.
+- Each travel time says which service gave it: `Google`, or `OSRM` for a walk or drive answered by the
+  free fallback (see [Routes and time zones without Google](architecture.md#routes-and-time-zones-without-google)).
 - A hop with no Google transit answer (Japan has no transit data) or with transit over 90 minutes and
   more than twice the driving time is returned as a driving leg (`mode: "drive"`) and says so, rather
   than reported as unroutable. A hop between two trip cities first tries Google Maps transit through
@@ -658,6 +661,10 @@ runner's own summary is `output/e2e/runner/<time>.json`. Set `LABEL` to name the
 
 Restrict the browser key by HTTP referrer and the server key by API. Map loading never delays the
 first render; without a browser key the map shows a fallback and the itinerary stays usable.
+
+Without Google, walking and driving times come from OSRM: `OSRM_FOOT_BASE_URL` (default the FOSSGIS
+foot instance) for walking and `OSRM_BASE_URL` (default `router.project-osrm.org`, cars only) for
+driving. Cycling is not offered until legs have a cycling mode.
 
 ## Agent Lab
 

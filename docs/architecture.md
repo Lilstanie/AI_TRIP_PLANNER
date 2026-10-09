@@ -68,9 +68,10 @@ step.
 The web workspace's place search, place details, place photos, leg routes, route from the
 traveller's location and destination time zone go through one `MapProvider` interface in
 `apps/web/lib/map-provider/`. Google Maps Platform answers first. When Google cannot answer, a free
-OpenStreetMap-based provider answers instead; its search, photos, routes and time zone arrive with
-the later tickets of spec #270, and until then it reports itself unavailable, so the traveller sees
-Google's own failure. The [decision note](../.agents/notes/implemented/architecture/2026-10-09-web-map-provider-fallback.md)
+OpenStreetMap-based provider answers instead. Its walking and driving routes and its time zone are
+live (ticket #273); its search and details (#272), photos (#275) and public transport (#276) arrive
+with the later tickets of spec #270, and until then they report themselves unavailable, so the
+traveller sees Google's own failure. The [decision note](../.agents/notes/implemented/architecture/2026-10-09-web-map-provider-fallback.md)
 records why.
 
 - **Unavailable** means: no `MAPS_API_KEY`; Google refuses access (401, 403, an invalid key, the API
@@ -90,8 +91,39 @@ records why.
   every route result carries `source`. Paths and the rest of each response are unchanged.
 - **Mock data mode:** `MOCK_GOOGLE_MAPS=unavailable` makes the Google provider fail as unavailable
   without calling Google, for requests in mock data mode (the `x-trip-data-mode` header, else
-  `USE_MOCK_TOOLS`). It is ignored in live mode. Edit previews in mock mode keep using fixtures and
-  never call any map provider.
+  `USE_MOCK_TOOLS`). It is ignored in live mode. Edit previews in mock mode keep their placeholder
+  fixtures and never reach a provider, unless Google is simulated down or `WEB_MAPS_PROVIDER=osm`;
+  then the provider answers from the OpenStreetMap fixtures and still calls nothing.
+
+### Routes and time zones without Google
+
+- **Walking and driving** come from OSRM. Walking asks the foot profile of `OSRM_FOOT_BASE_URL`
+  (default `https://routing.openstreetmap.de/routed-foot`, the FOSSGIS foot instance) and driving asks
+  `OSRM_BASE_URL` (default `https://router.project-osrm.org`). The public demo server routes cars only
+  and ignores the profile it is asked for, so it is never used for walking. Either base URL can point at
+  a self-hosted or paid OSRM instance.
+- **Cycling is not offered.** A leg has three modes (walk, transit, drive), and a cycling mode would
+  change the shared leg contract, so it waits for a leg mode of its own.
+- **Transit** is not OSRM's. Until Transitous answers it (ticket #276), a transit leg that Google cannot
+  route is unavailable, and the traveller is shown the notice and can choose another mode.
+- **Provenance:** a route answered by OSRM says `source: "osrm"`, and the timeline labels its time
+  `OSRM` (Google's times are labelled `Google`). The route from the traveller's position says
+  `OSRM routes` on the map. A leg saved in the plan keeps no service label, because `arriveBy` has no
+  provider field, which would be a shared contract change; only routes answered by the current edit
+  carry one.
+- **Failures:** OSRM answering `NoRoute` is an answer, a leg with no route. A server error, a timeout,
+  a network failure or an answer with no duration is unavailable; the leg keeps no time and shows a
+  notice with a retry. Nothing is estimated in its place.
+- **Cache and limits:** an answered leg is kept in server memory for 10 minutes, and a failure is not
+  cached. The OSRM policy asks for at most one request a second; this client does not throttle itself,
+  so the cache is the only brake, and a busy deployment should self-host.
+- **Time zones** are worked out offline with `@photostructure/tz-lookup` (CC0 data, no network call)
+  when Google's Time Zone call fails. Its borders are simplified, so a point a few kilometres from a
+  border can get the neighbouring zone. A place without coordinates has no zone and is refused, never
+  assumed to be UTC.
+- **Mock data mode:** with `MOCK_GOOGLE_MAPS=unavailable`, edit previews route and time their legs
+  through the provider, which answers OSRM from fixtures (straight-line distance at a walking or driving
+  pace, `apps/web/lib/map-provider/mock-osm.ts`) and places from the same file. No OSRM request is sent.
 
 ### Free services: limits and terms
 
@@ -103,7 +135,8 @@ every one of them can throttle or block a client that ignores its policy.
 | [OpenFreeMap](https://openfreemap.org/)                                                                       | Vector map tiles (MapLibre)         | No key, no registration and no published request limit; commercial use allowed; no SLA. MapLibre's attribution control satisfies the credit; other clients show "OpenFreeMap © OpenMapTiles Data from OpenStreetMap".                                                   |
 | [Photon](https://github.com/komoot/photon) (`photon.komoot.io`)                                               | Place search                        | Free "as long as the number of requests stay in a reasonable limit"; extensive use is throttled or banned; no numeric limit published; no availability guarantee. Self-host for volume.                                                                                 |
 | [Nominatim](https://operations.osmfoundation.org/policies/nominatim/)                                         | Search behind Photon, place details | At most 1 request per second for the whole application, all users together; an identifying `User-Agent` or `Referer` (library defaults refused); cache results; no client-side autocomplete; no bulk or systematic queries; ODbL attribution.                           |
-| [OSRM demo server](https://github.com/Project-OSRM/osrm-backend/wiki/Demo-server) (`router.project-osrm.org`) | Walking, cycling and driving times  | At most 1 request per second; reasonable, non-commercial use only; no uptime or data-freshness guarantee.                                                                                                                                                               |
+| [OSRM demo server](https://github.com/Project-OSRM/osrm-backend/wiki/Demo-server) (`router.project-osrm.org`) | Driving times (cars only)           | At most 1 request per second; reasonable, non-commercial use only; no uptime or data-freshness guarantee.                                                                                                                                                               |
+| [FOSSGIS OSRM](https://routing.openstreetmap.de/) (`routing.openstreetmap.de/routed-foot`)                    | Walking times                       | Public instance for fair, non-commercial use; no uptime or data-freshness guarantee; OpenStreetMap attribution. Answers are cached for 10 minutes; self-host for volume.                                                                                                |
 | [Transitous](https://transitous.org/api/) (`api.transitous.org`)                                              | Public transport times              | Non-commercial, open-source projects only; a `User-Agent` naming the app, its version and a contact; ask the maintainers before heavy routing use; link [transitous.org/sources](https://transitous.org/sources/) visibly; service can stop for any client at any time. |
 
 OpenStreetMap data is © OpenStreetMap contributors under the ODbL, so every surface that shows it

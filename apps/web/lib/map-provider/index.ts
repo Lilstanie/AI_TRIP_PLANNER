@@ -16,6 +16,15 @@ export function mapProviderSetting(): MapProviderSetting {
   return value && SETTINGS.includes(value) ? value : "google-with-fallback";
 }
 
+/**
+ * Whether a mock-data-mode request may still use the map provider. It may only when no Google call can
+ * happen: Google is simulated down (`MOCK_GOOGLE_MAPS=unavailable`) or the setting is OSM alone. Otherwise
+ * a mock edit keeps its placeholder fixtures and never reaches Google.
+ */
+export function mockUsesProvider(): boolean {
+  return process.env.MOCK_GOOGLE_MAPS === "unavailable" || mapProviderSetting() === "osm";
+}
+
 /** `GOOGLE_MAPS_COOLDOWN_SECONDS`: how long Google is skipped after an access or quota failure. */
 function cooldownMs() {
   const seconds = Number(process.env.GOOGLE_MAPS_COOLDOWN_SECONDS);
@@ -34,7 +43,7 @@ export type MapProviderOptions = {
 
 /** The provider for a setting. The fallback's cool-down lives in the returned object. */
 export function createMapProvider(options: MapProviderOptions): MapProvider {
-  const osm = options.osm ?? osmMapProvider();
+  const osm = options.osm ?? osmMapProvider({ dataMode: options.dataMode });
   if (options.setting === "osm") return osm;
   const google = googleMapProvider({
     simulateOutage: options.dataMode === "mock" && process.env.MOCK_GOOGLE_MAPS === "unavailable",

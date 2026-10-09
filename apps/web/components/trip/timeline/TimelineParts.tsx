@@ -97,6 +97,7 @@ export function LegRow({
           <Icon size={13} />
           <span>{connection.label}</span>
           {connection.fare && <span>· {connection.fare}</span>}
+          {connection.service && <span>· {connection.service}</span>}
           {connection.status !== "failed" && (
             <span className="timeline-connection__status">
               {connection.status === "checked" ? t("checked") : t("estimate")}

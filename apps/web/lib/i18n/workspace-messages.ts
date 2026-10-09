@@ -234,6 +234,7 @@ export const WORKSPACE_ZH = {
   "Learned from your chats": "从聊天中了解到的偏好",
   "Use these dates": "使用这些日期",
   "Google Routes verified ·": "Google 路线已验证 ·",
+  "OSRM routes ·": "OSRM 路线 ·",
   ", departing": "，出发",
   "Edit {v0}": "修改{v0}",
   "Accounts are not set up on this site, so your profile stays in this browser.":

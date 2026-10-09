@@ -68,12 +68,15 @@ supervisor 只选择某个节点需要哪些 specialist 工具。控制路径、
 
 <a id="web-map-providers"></a>
 
+<a id="web-map-providers"></a>
+
 ## Web 地图提供方
 
 Web 工作区的地点搜索、地点详情、地点照片、行程段路线、从旅行者当前位置出发的路线以及目的地时区，
 都通过 `apps/web/lib/map-provider/` 中的同一个 `MapProvider` 接口完成。Google Maps Platform 优先应答。
-Google 无法应答时，改由基于 OpenStreetMap 的免费提供方应答；它的搜索、照片、路线和时区由规格 #270
-的后续工单实现，在此之前它报告自身不可用，因此旅行者看到的仍是 Google 自己的失败。
+Google 无法应答时，改由基于 OpenStreetMap 的免费提供方应答。它的步行和驾车路线以及时区已可用（工单 #273）；
+它的搜索和详情（#272）、照片（#275）和公共交通（#276）由规格 #270 的后续工单实现，在此之前它们报告自身不可用，
+因此旅行者看到的仍是 Google 自己的失败。
 [决策记录](../.agents/notes/implemented/architecture/2026-10-09-web-map-provider-fallback.md)说明了原因。
 
 - **不可用**指：没有 `MAPS_API_KEY`；Google 拒绝访问（401、403、无效密钥、API 已停用或未开通结算）；
@@ -90,7 +93,31 @@ Google 无法应答时，改由基于 OpenStreetMap 的免费提供方应答；�
   路径和应答的其余部分保持不变。
 - **模拟数据模式：**`MOCK_GOOGLE_MAPS=unavailable` 让 Google 提供方在不调用 Google 的情况下以不可用失败，
   仅对处于模拟数据模式的请求生效（取 `x-trip-data-mode` 请求头，否则取 `USE_MOCK_TOOLS`）。实时模式下忽略。
-  模拟模式下的编辑预览仍使用 fixture，不调用任何地图提供方。
+  模拟模式下的编辑预览保持占位 fixture，且不会触达任何提供方，除非 Google 被模拟为不可用或 `WEB_MAPS_PROVIDER=osm`；
+  此时提供方从 OpenStreetMap fixture 应答，同样不调用任何外部服务。
+
+<a id="routes-and-time-zones-without-google"></a>
+
+### 没有 Google 时的路线与时区
+
+- **步行和驾车**来自 OSRM。步行请求 `OSRM_FOOT_BASE_URL` 的步行（foot）配置（默认
+  `https://routing.openstreetmap.de/routed-foot`，即 FOSSGIS 的步行实例），驾车请求 `OSRM_BASE_URL`
+  （默认 `https://router.project-osrm.org`）。公共演示服务器只提供汽车路线，并忽略请求的配置，因此绝不用于步行。
+  两个基础 URL 都可以指向自建或付费的 OSRM 实例。
+- **不提供骑行。**路段只有三种方式（步行、公共交通、驾车）；增加骑行方式会改变共享的路段契约，因此等待路段方式的单独扩展。
+- **公共交通**不由 OSRM 提供。在 Transitous 应答之前（工单 #276），Google 无法规划的公共交通路段不可用，旅行者会看到说明，并可选择其他方式。
+- **来源标注：**由 OSRM 应答的路线带有 `source: "osrm"`，时间线上的时间标为 `OSRM`（Google 的时间标为 `Google`）。
+  从旅行者当前位置出发的路线在地图上标为 `OSRM routes`。已保存在行程中的路段不保留服务标签，因为 `arriveBy` 没有提供方字段，
+  增加它会改变共享契约；只有当前编辑应答的路线带有标签。
+- **失败处理：**OSRM 返回 `NoRoute` 是一个应答，即该路段没有路线。服务器错误、超时、网络故障或没有时长的应答都是不可用；
+  该路段不保留时间，并显示带重试的提示，不以估计值代替。
+- **缓存与限制：**已应答的路段在服务器内存中保留 10 分钟，失败的结果不缓存。OSRM 政策要求每秒最多一个请求；
+  本客户端不做自我限流，因此缓存是唯一的节流手段，请求量大的部署应自建 OSRM。
+- **时区**在 Google 时区调用失败时，通过 `@photostructure/tz-lookup`（CC0 数据，不发起网络请求）离线计算。
+  其边界经过简化，距离边界几公里内的地点可能得到相邻时区。没有坐标的地点没有时区，会被拒绝，绝不假定为 UTC。
+- **模拟数据模式：**在 `MOCK_GOOGLE_MAPS=unavailable` 下，编辑预览通过提供方为路段规划路线和时间；提供方以 fixture
+  应答 OSRM（按直线距离、步行或驾车速度计算，见 `apps/web/lib/map-provider/mock-osm.ts`），地点也取自同一文件。
+  不发出任何 OSRM 请求。
 
 <a id="free-services-limits-and-terms"></a>
 
@@ -103,7 +130,8 @@ Google 无法应答时，改由基于 OpenStreetMap 的免费提供方应答；�
 | [OpenFreeMap](https://openfreemap.org/)                                                                       | 矢量地图瓦片（MapLibre）    | 无需密钥、无需注册，未公布请求上限；允许商业使用；无 SLA。MapLibre 的署名控件即满足署名要求；其他客户端需显示 "OpenFreeMap © OpenMapTiles Data from OpenStreetMap"。                                          |
 | [Photon](https://github.com/komoot/photon)（`photon.komoot.io`）                                              | 地点搜索                    | 只要请求量保持在合理范围内即可免费使用；大量使用会被限流或封禁；未公布具体数值；不保证可用性。量大时应自行部署。                                                                                              |
 | [Nominatim](https://operations.osmfoundation.org/policies/nominatim/)                                         | Photon 之后的搜索、地点详情 | 整个应用（所有用户合计）每秒最多 1 个请求；必须带有可识别的 `User-Agent` 或 `Referer`（不接受库的默认值）；须缓存结果；禁止客户端自动补全；禁止批量或系统性查询；遵守 ODbL 署名。                             |
-| [OSRM 演示服务器](https://github.com/Project-OSRM/osrm-backend/wiki/Demo-server)（`router.project-osrm.org`） | 步行、骑行和驾车时间        | 每秒最多 1 个请求；仅限合理的非商业用途；不保证在线时间和数据更新。                                                                                                                                           |
+| [OSRM 演示服务器](https://github.com/Project-OSRM/osrm-backend/wiki/Demo-server)（`router.project-osrm.org`） | 驾车时间（仅汽车）          | 每秒最多 1 个请求；仅限合理的非商业用途；不保证在线时间和数据更新。                                                                                                                                           |
+| [FOSSGIS OSRM](https://routing.openstreetmap.de/)（`routing.openstreetmap.de/routed-foot`）                   | 步行时间                    | 面向公平、非商业用途的公共实例；不保证在线时间和数据更新；需注明 OpenStreetMap。应答缓存 10 分钟；请求量大时请自建。                                                                                          |
 | [Transitous](https://transitous.org/api/)（`api.transitous.org`）                                             | 公共交通时间                | 仅限非商业的开源项目；`User-Agent` 须写明应用名称、版本和联系方式；大量路线请求前须先联系维护者；须在显眼位置链接 [transitous.org/sources](https://transitous.org/sources/)；服务可随时停止对任何客户端提供。 |
 
 OpenStreetMap 数据 © OpenStreetMap 贡献者，采用 ODbL 许可，因此每个展示这些数据的界面都要注明

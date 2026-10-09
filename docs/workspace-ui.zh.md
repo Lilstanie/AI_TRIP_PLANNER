@@ -196,7 +196,8 @@ Trip 抽屉不再显示 specialist 卡片（Day plan、Getting around、Stay、D
 - 服务商故障不会据猜测顺延停靠点时间：该路段的通知保留在其停靠点上（见“路段”）；没有路线的路段不增加旅行时间。超出当天范围会阻止应用，并写明该停靠点。固定交通和住宿只读，重叠的停靠点会在该停靠点上标记。
 - 替换地点会将活动价格标记为待验证。路线票价是独立估计，不会在交通费用中重复计入，未知票价不等于零。
 - 编辑使行程和最终确认失效，并重新生成冲突，保留未受影响的行程需求和酒店决策。撤销会重新验证，而非恢复旧审批。聊天重新规划会替换手动活动。
-- 路线使用 Google Time Zone API 提供的真实当地出发时间；有歧义或不存在的夏令时时刻会被拒绝。公共交通查询遵循 Google 支持的出发时间窗口。
+- 路线使用 Google Time Zone API 提供的真实当地出发时间；有歧义或不存在的夏令时时刻会被拒绝。该调用失败时，时区会根据地点坐标离线计算。公共交通查询遵循 Google 支持的出发时间窗口。
+- 每个出行时间都会标明来源服务：`Google`，或免费回退路径中由 OSRM 应答的步行或驾车时间 `OSRM`（见[没有 Google 时的路线与时区](architecture.zh.md#routes-and-time-zones-without-google)）。
 - Google 无公共交通回答的路段（日本没有公共交通数据），或公共交通超过 90 分钟且超过驾车时长两倍的路段，会返回为驾车路段（`mode: "drive"`）并明确说明，不报告为无法规划路线。两个行程城市之间的路段先通过 SerpApi 尝试 Google Maps 公共交通（Tokyo → Kyoto：含票价的新干线），只有找不到结果时才驾车。
 
 ## 抽屉演练
@@ -220,6 +221,8 @@ DATA_MODE=mock pnpm --filter @trip/web e2e drawer-walkthrough
 | `NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID`  | 浏览器：供高级标记使用的矢量地图 ID（回退到 `DEMO_MAP_ID`） |
 
 按 HTTP referrer 限制浏览器密钥，按 API 限制服务端密钥。地图加载从不延迟首次渲染；没有浏览器密钥时，地图显示回退界面，行程仍可使用。
+
+没有 Google 时，步行和驾车时间来自 OSRM：步行使用 `OSRM_FOOT_BASE_URL`（默认 FOSSGIS 步行实例），驾车使用 `OSRM_BASE_URL`（默认 `router.project-osrm.org`，仅汽车）。在路段支持骑行方式之前不提供骑行。
 
 <a id="agent-lab"></a>
 

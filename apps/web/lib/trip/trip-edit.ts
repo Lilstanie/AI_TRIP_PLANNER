@@ -14,7 +14,8 @@ import {
   type RouteMode,
   type RouteResult,
 } from "../integrations/google";
-import { mapProvider, routeLeg } from "../map-provider";
+import { mapProvider, mockUsesProvider, routeLeg } from "../map-provider";
+import type { MapProvider, RouteHints } from "../map-provider/types";
 import {
   errorNotice,
   NoticeError,
@@ -29,6 +30,7 @@ import { applyItemAction, type ItemAction } from "./item-actions";
 import {
   defaultLegRoute,
   LEG_MODES,
+  type LegRouter,
   legModeOf,
   routeModeOf,
   simulatedRoute,
@@ -233,29 +235,43 @@ function chooseCandidate(
   };
 }
 
+export type EditDependencies = {
+  /** A leg between two saved places; `hints` carry their coordinates for a provider that needs them. */
+  route(
+    from: string,
+    to: string,
+    departure: string,
+    mode: RouteMode,
+    hints?: RouteHints,
+  ): Promise<RouteResult>;
+  placeDetails(id: string): Promise<GooglePlace>;
+  timeZone(place: GooglePlace, date: string): Promise<string>;
+};
+
 /**
  * The providers a live edit asks: places, time zones and routes from the web map provider (Google
- * first, OSM when Google cannot answer). A route failure is an `unavailable` leg, never a throw.
+ * first, OSM when Google cannot answer). A route failure is an `unavailable` leg, never a throw. The
+ * provider is read per call, so a request's data mode decides which one answers.
  */
-export const LIVE_EDIT_DEPS = {
-  route: (from: string, to: string, departure: string, mode: RouteMode) =>
-    routeLeg(mapProvider(), from, to, departure, mode),
-  placeDetails: async (id: string) => (await mapProvider().placeDetails(id)).value,
-  timeZone: async (place: GooglePlace, date: string) =>
-    (await mapProvider().timeZone(place, date)).value,
-};
+export function liveEditDeps(provider: () => MapProvider = mapProvider): EditDependencies {
+  return {
+    route: (from, to, departure, mode, hints) =>
+      routeLeg(provider(), from, to, departure, mode, hints),
+    placeDetails: async (id) => (await provider().placeDetails(id)).value,
+    timeZone: async (place, date) => (await provider().timeZone(place, date)).value,
+  };
+}
+export const LIVE_EDIT_DEPS = liveEditDeps();
 /**
  * Simulated mode: no provider is called. Places are placeholders and every leg is a fixture, so a plan
  * with saved places routes the same way on every run. Chosen by the request's data mode, never by a
- * missing key.
+ * missing key. Used only while Google is not simulated down (see `mockUsesProvider`).
  */
-export const SIMULATED_EDIT_DEPS = {
+export const SIMULATED_EDIT_DEPS: EditDependencies = {
   route: simulatedRoute,
-  placeDetails: async (id: string) =>
-    ({ id, location: { latitude: 0, longitude: 0 } }) as GooglePlace,
+  placeDetails: async (id) => ({ id, location: { latitude: 0, longitude: 0 } }) as GooglePlace,
   timeZone: async () => "UTC",
 };
-export type EditDependencies = typeof LIVE_EDIT_DEPS;
 
 export async function previewEdit(
   input: unknown,
@@ -280,6 +296,13 @@ export async function previewEdit(
     (i) => i.kind === "activity" && i.day !== undefined,
   );
   const before = structuredClone(activities);
+  // Each place's details are asked once per edit: a stop is both the arrival of one leg and the departure of the next.
+  const details = new Map<string, Promise<GooglePlace>>();
+  const placeOf = (id: string) => {
+    let place = details.get(id);
+    if (!place) details.set(id, (place = deps.placeDetails(id)));
+    return place;
+  };
   if (
     activities.some((i) => !i.id || !i.day || !i.startTime || !i.endTime) ||
     new Set(activities.map((i) => i.id)).size !== activities.length
@@ -389,7 +412,7 @@ export async function previewEdit(
       if (activities.filter((a) => a.day === item.day)[0] === item)
         throw new NoticeError({ key: "This stop has no journey before it." });
     } else {
-      await deps.placeDetails(operation.placeId);
+      await placeOf(operation.placeId);
       item.placeId = operation.placeId;
       item.priceNeedsReview = true;
       // Provider display text is deliberately kept outside the persisted plan.
@@ -414,9 +437,14 @@ export async function previewEdit(
   const routed = !(operation.kind === "place" && operation.routeLater);
   // The departure a leg is routed from: the previous stop's end, in its place's local time.
   const departureFor = async (from: ProposalItem, day: number) => {
-    const place = await deps.placeDetails(from.placeId!);
+    const place = await placeOf(from.placeId!);
     const zone = await deps.timeZone(place, dateFor(day));
     return localInstant(dateFor(day), from.endTime!, zone);
+  };
+  // The coordinates of a leg's two places, for a provider that routes by location (OSRM) rather than by place id.
+  const legHints = async (from: string, to: string): Promise<RouteHints> => {
+    const [origin, destination] = await Promise.all([placeOf(from), placeOf(to)]);
+    return { fromLocation: origin.location, toLocation: destination.location };
   };
   for (const day of routed ? affected : []) {
     if (day < 1 || day > days)
@@ -472,11 +500,13 @@ export async function previewEdit(
             const from = previous.placeId;
             const to = current.placeId;
             const departure = await departureFor(previous, day);
+            const legRouter: LegRouter = async (a, b, when, mode) =>
+              deps.route(a, b, when, mode, await legHints(a, b));
             const route = choice
-              ? await deps.route(from, to, departure, routeModeOf(choice))
+              ? await legRouter(from, to, departure, routeModeOf(choice))
               : stored
-                ? await deps.route(from, to, departure, stored)
-                : await defaultLegRoute(deps.route, from, to, departure);
+                ? await legRouter(from, to, departure, stored)
+                : await defaultLegRoute(legRouter, from, to, departure);
             routes.push(route);
             if (
               route.status === "unavailable" ||

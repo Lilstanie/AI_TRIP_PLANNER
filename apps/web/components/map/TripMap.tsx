@@ -567,7 +567,7 @@ export function TripMap({
       </p>
       {nearbyRoute?.status === "ok" && (
         <p className="trip-map-location-status" role="status">
-          {t("Google Routes verified ·")}
+          {nearbyRoute.source === "osrm" ? t("OSRM routes ·") : t("Google Routes verified ·")}
           {nearbyRoute.mode === "WALK" ? t("Walking") : t("Public transit")} ·{" "}
           {nearbyRoute.durationMin} {t("min")}
           {nearbyRoute.distanceMeters !== undefined

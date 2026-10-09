@@ -223,8 +223,11 @@ export type RouteResult = {
   notice?: Notice;
   /** A fixture from simulated mode, never a provider answer. */
   simulated?: true;
-  /** The map provider that answered; absent on routes saved before it existed. */
-  source?: "google" | "osm";
+  /**
+   * The service that answered: Google, or OSRM for walking and driving on the free fallback (ticket
+   * #276 adds Transitous). Absent on routes saved before it existed.
+   */
+  source?: "google" | "osrm";
 };
 
 /** A route nobody could answer, with the reason as an English error and a notice. */

@@ -288,10 +288,15 @@ const MODE_LABELS: Record<string, MessageKey> = {
   flight: "Fly",
 };
 
+/** The service a verified travel time came from, as the traveller reads it. */
+const SERVICE_NAMES = { google: "Google", osrm: "OSRM" } as const;
+
 export type Connection = {
   /** The mode the leg icon is drawn for: a route's mode, or the planner's `arriveBy` mode. */
   mode: string;
   label: string;
+  /** The service that gave a verified time (`Google`, `OSRM`); absent for an estimate or a failure. */
+  service?: string;
   /**
    * `checked`: a route the provider verified; `planned`: the planner's estimate, or a simulated
    * route; `failed`: the provider found no route between the two places.
@@ -335,6 +340,7 @@ export function connectionBetween(
       status: route.simulated ? "planned" : "checked",
       // The provider's own currency: not converted and not counted in the AUD budget.
       fare: route.fare ? fare(route.fare, locale) : undefined,
+      service: route.source && !route.simulated ? SERVICE_NAMES[route.source] : undefined,
       choice,
     };
   }
