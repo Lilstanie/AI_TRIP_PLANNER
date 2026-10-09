@@ -164,20 +164,11 @@ html[data-transition="to-chat"]::view-transition-new(workspace-main) {
   background: var(--surface) !important;
 }
 /* The tab lists were underlined rows; as segmented controls they drop the rule. */
-.trips-page__tabs.segmented,
-.trip-tabs.segmented {
+.trips-page__tabs.segmented {
   border-bottom: 0;
 }
 .trips-page__tabs.segmented {
   margin-top: var(--space-5);
-}
-.trip-tabs.segmented {
-  display: flex;
-  margin: var(--space-4) 0 var(--space-2);
-}
-.trip-tabs.segmented > button {
-  flex: 1;
-  margin: 0;
 }
 .topbar-views.segmented {
   display: flex;
@@ -313,12 +304,6 @@ html[data-transition="to-chat"]::view-transition-new(workspace-main) {
 .msg-item--user {
   transform-origin: bottom right;
 }
-.section__body {
-  animation: panel-in var(--duration) var(--ease-out);
-}
-.section__chevron {
-  transition: transform var(--duration) var(--ease-spring);
-}
 .history-item__menu {
   transform-origin: top right;
   animation: menu-in var(--duration) var(--ease-spring);
@@ -360,7 +345,6 @@ html[data-transition="to-chat"]::view-transition-new(workspace-main) {
   .fact-popover-scrim,
   .msg-item,
   .tab-panel-enter,
-  .section__body,
   .history-item__menu,
   .dialog[open] {
     animation: none !important;
