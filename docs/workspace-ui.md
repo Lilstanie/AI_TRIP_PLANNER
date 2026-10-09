@@ -484,7 +484,10 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
     sentence.
     An edit that resolves a conflict removes it from the view. A notice the plan keeps is stored with its
     key and values and shown in the traveller's language; the English sentence kept for the chat is not
-    shown beside it.
+    shown beside it. A sentence the app wrote in English before its notice was keyed (a plan saved earlier)
+    is read back as its key when it matches the app's English text, and placed as above: on the stop it
+    names when that stop is on its day, under the day title otherwise. A sentence that matches no app text
+    is shown as received ([Agent Note](../.agents/notes/implemented/feature/2026-10-09-notice-keys.md)).
 - **Estimate change after a replan.** After a chat replan that had an earlier estimate, a notice in the
   notices strip says the signed change, "Estimate changed by +AUD 120.00 from the previous plan.", or
   "Estimate unchanged from the previous plan." It has a Dismiss button and shows once. A timeline edit or
@@ -841,8 +844,9 @@ the account section explains that everything stays in this browser.
     is shown. Every notice the workspace and Settings show is a `Notice`: field errors, request and
     storage failures, map and location messages, and the `notice` the app's own routes return beside
     their English `error`. A response whose body has no `notice` is shown as received (`{ raw }`);
-    one with no readable body shows "Request failed ({status})." Nothing matches English text back to
-    a key. Edit preview differences arrive as values, not sentences. A notice kept on the plan (a leg or
+    one with no readable body shows "Request failed ({status})." Only a sentence the app wrote on a plan
+    before its notice was keyed is matched back to a key (`keyOfAuthoredSentence`, the drawer's conflicts);
+    no response text is matched. Edit preview differences arrive as values, not sentences. A notice kept on the plan (a leg or
     timing notice) is stored as its key and values inside the plan's text (`storeNotice` and
     `readStoredNotice`, same file), so it is shown in the traveller's language; the English sentence in
     the plan's `conflictsWith` is written for the chat and is not shown. With no saved choice it follows the browser language (`zh*` opens in Chinese). The desktop sidebar and main content have an 8 px gutter.
