@@ -74,8 +74,12 @@
       "translationSha256": "d963c05d8280166881723dedead0bcf9608d98275e0a1eee083a8233448f75b7"
     },
     "docs/development.md": {
-      "sourceSha256": "3d894fc1e70fe16bf7524724a65ff85a9d1013e4aece260e29f6d0c382af4aa0",
-      "translationSha256": "db4a22aef38a557d2f43b363c1f8f7cb7e93bc31dc0a6366fe43e13e0b48afc4"
+      "sourceSha256": "d6fb3150d0c3aa668a326ebb2b0e436edf3ef5de89d52bc8dde312b0dbe2a5e4",
+      "translationSha256": "fceada352b0fe0f06f9d2110873d957dd11ce8521ef8814cc210f7129de8299b"
+    },
+    "docs/e2e-known-failures.md": {
+      "sourceSha256": "6da77b4be1fd55ee3345fa1ccf7910e473bf53f741003b00e45983072dcc12d3",
+      "translationSha256": "d48c6491d98f32beae22893cca45a90f279d03a959fbe6094226857091718954"
     },
     "docs/i18n.md": {
       "sourceSha256": "f68257c7bce1af3e72475fb48e9c4b9a88985b500297d04431ab39211a2bb479",

@@ -236,7 +236,7 @@ node .agents/skills/translate-docs/scripts/check-pairs.mjs
 
 复杂功能应优先只用端到端（E2E）测试验证行为：走完整用户路径，并留下可复现、可审查的产物，例如报告、trace 或截图。记录复现所需的命令、步骤或 fixture。绝不在编写实现代码之后再编写单元测试。如果必须隔离测试一个系统，先列举它所有可能的失败方式，再编写代码，并从这份清单推导隔离检查。
 
-这是新工作的首选方式。CI 通过 `pnpm test` 运行 Vitest 测试套件，通过 `pnpm test:scripts` 运行仓库脚本测试（`scripts/*.test.mjs`）。CI 不运行 E2E 脚本，因此推送前应自行运行相关脚本。
+这是新工作的首选方式。CI 通过 `pnpm test` 运行 Vitest 测试套件，通过 `pnpm test:scripts` 运行仓库脚本测试（`scripts/*.test.mjs`）。CI 不运行 E2E 脚本，因此推送前应自行运行相关脚本；已经在 `main` 上失败的脚本列在 [e2e-known-failures.zh.md](e2e-known-failures.zh.md) 中。不过 CI 会运行 `pnpm verify:e2e-selectors`：如果某个 E2E 脚本选择的 CSS 类（如 `.section__row`）在 `apps/web` 下已没有任何组件、页面或库文件渲染，它就会失败；只留在样式表里的规则不算。它不需要服务器，不到一秒即可完成。专门检查某个已删除的类不再出现的那一行，末尾加上 `// e2e-selectors: absent`；只由第三方库设置的类写进 `scripts/verify-e2e-selectors.mjs` 的 `ALLOWED`，并注明原因。
 
 E2E 脚本位于 `apps/web/tests/e2e/`。通过运行器执行：它在空闲端口上启动服务器，从仓库根目录依次对其运行指定的脚本，结束后只停止它自己启动的服务器：
 
@@ -246,7 +246,7 @@ pnpm --filter @trip/web e2e phone-shell --prod            # next build + next st
 BASE_URL=http://localhost:3000 pnpm --filter @trip/web e2e settings   # against a server already running
 ```
 
-环境变量会同时传给服务器和脚本，因此请按各脚本头部的说明设置 `DATA_MODE` 和数据源变量。同一工作树中并发的每次运行各自构建到独立的文件夹（`apps/web/.next-e2e`，其次是 `-2` 到 `-4`），因此并行运行之间、以及与 `pnpm dev` 之间都不会共用 `.next`；该文件夹会保留编译结果供下次运行使用。任一脚本失败时运行器以非零状态退出，并把摘要写入 `output/e2e/runner/<time>.json`。Playwright 是 `apps/web` 的开发依赖；在新机器上先运行一次 `pnpm --filter @trip/web exec playwright install chromium`。需要两个服务器的脚本（`agent-lab-live-gate`）仍按其头部说明手动运行。`pnpm dev` 和 `pnpm start` 默认使用 3000 端口，设置 `PORT` 可更改。
+环境变量会同时传给服务器和脚本，因此请按各脚本头部的说明设置 `DATA_MODE` 和数据源变量。同一工作树中并发的每次运行各自构建到独立的文件夹（`apps/web/.next-e2e`，其次是 `-2` 到 `-4`），因此并行运行之间、以及与 `pnpm dev` 之间都不会共用 `.next`；该文件夹会保留编译结果供下次运行使用。任一脚本失败时运行器以非零状态退出，并把摘要写入 `output/e2e/runner/<time>.json`。每个脚本有 `E2E_SCRIPT_TIMEOUT_MS`（默认 600000，即十分钟）的时间完成；超时仍在运行的脚本会连同它启动的浏览器一起被停止，在摘要中显示为 `TIME`（JSON 中为 `"timedOut": true`），然后继续运行下一个脚本。超时同样会让运行以非零状态退出。Playwright 是 `apps/web` 的开发依赖；在新机器上先运行一次 `pnpm --filter @trip/web exec playwright install chromium`。需要两个服务器的脚本（`agent-lab-live-gate`）仍按其头部说明手动运行。`pnpm dev` 和 `pnpm start` 默认使用 3000 端口，设置 `PORT` 可更改。
 
 缺少密钥就无法运行的脚本在文件头（代码之前）声明：`// requires-env: DEEPSEEK_API_KEY`（多个密钥用逗号分隔）。所列变量未设置或为空时，运行器不会运行该脚本，而是报告 `skipped: needs DEEPSEEK_API_KEY`，把跳过记录到摘要中；若没有其他失败，仍以 0 退出；实际运行后失败的脚本仍使退出码非零。若所有指定脚本都被跳过，则不会启动服务器。`plan-quality` 和 `conversation-scope` 声明了 `DEEPSEEK_API_KEY`，因为它们检查的是模型的产出，在规则回退下会失败。格式错误的 `requires-env` 行会让运行器报错退出，而不是运行该脚本。
 
@@ -269,11 +269,11 @@ pnpm test:scripts
 pnpm build
 ```
 
-CI（`.github/workflows/ci.yml`）在拉取请求和推送到 `main` 时，用 Node 22 运行这五条命令。
+CI（`.github/workflows/ci.yml`）在拉取请求和推送到 `main` 时，用 Node 22 运行这五条命令，在此之前先运行 `pnpm verify:e2e-selectors`。
 
 `pnpm lint` 覆盖 `apps/web`（`next lint`，配置在 `apps/web/.eslintrc.json`）以及 `packages/` 下的每个包（使用仓库根目录的共享 flat 配置 `eslint.config.mjs` 运行 ESLint）。与 `apps/web` 不同，各包不禁止 `.toFixed(2)`，因为该规则指向的是 Web 的 Money 模块。
 
-CI 还会运行 `node scripts/format-check-changed.mjs <base>`（即 `pnpm format:check-changed`），只检查相对拉取请求基线（推送时为上一个提交）发生变化的文件的 Prettier 格式。仓库中仍有从未格式化的文件，所以请只对你修改的文件运行 Prettier（`npx prettier --write <file>`），不要对目录运行，也不要使用 `pnpm format`。
+CI 还会运行 `node scripts/format-check-changed.mjs <base>`（即 `pnpm format:check-changed`），只检查相对拉取请求基线（推送时为上一个提交）发生变化的文件的 Prettier 格式。仓库中仍有从未格式化的文件，所以请只对你修改的文件运行 Prettier（`npx prettier --write <file>`），不要对目录运行，也不要使用 `pnpm format`。`pnpm install` 会让 Git 使用 `.githooks/`（通过 `scripts/install-git-hooks.mjs` 设置 `core.hooksPath`），其中的 `pre-push` 钩子以 `origin/main` 为基线运行同一检查，有未格式化文件时拒绝推送。`git push --no-verify` 可以跳过一次。在 CI 中或不在 Git 仓库里时安装脚本什么也不做；如果已为其他工具设置了钩子路径，它也不会覆盖。
 
 在拉取请求上，`protected-files` 任务会运行 `node scripts/verify-protected-files.mjs`、`node scripts/verify-docs.mjs`、配对检查，以及 `node scripts/verify-branch-name.mjs <head-branch>`。分支名检查会在源分支不以 `feature/`、`fix/`、`refactor/`、`docs/`、`chore/` 或 `test/` 开头，或包含 AI 工具名时失败；Dependabot 分支不受限制。
 

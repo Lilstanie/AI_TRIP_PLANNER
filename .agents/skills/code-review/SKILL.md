@@ -72,6 +72,15 @@ Each item below is a defect this project has hit; the source is in brackets.
 - **Observers never steer.** A hook or trace that reports a decision (`onDecision`, Agent Lab events)
   must not change the plan, must cost nothing when no one listens, and must survive a consumer that
   throws. A versioned artifact keeps its `schemaVersion` only while nothing released reads the old shape.
+- **E2E waits name a state.** A wait in an E2E script waits for a locator or a request, never a fixed
+  sleep, and every branch of an `.or()` or a `.catch()` it waits on exists on each layout the script runs
+  (desktop and phone). A wait for a control a phone does not render sits out its whole timeout on every phone
+  run; a fixed sleep fails on a cold dev server. `timeline` waited 30 s per phone run, and `itinerary` failed
+  when the first server check compiled cold. [PR #258](https://github.com/Lilstanie/AI_TRIP_PLANNER/pull/258)
+- **Undo with more than one change.** State that an undo or a cancel reverses (a flag, a count, a notice) is
+  tested with two changes and one undo, not only one change and its undo. A flag cleared by the undo of the
+  second change hid the first from the replan notice, and the single-change test passed.
+  [PR #258](https://github.com/Lilstanie/AI_TRIP_PLANNER/pull/258)
 - **Late responses.** Editing, switching or starting trips must abort or ignore in-flight requests so
   a late response cannot overwrite newer state.
 - **Boundaries.** Agents reach providers only through ports; `route.ts` files stay thin adapters;

@@ -9,7 +9,10 @@ Run relevant evidence once before a push, and report only commands you actually 
 results. CI (`.github/workflows/ci.yml`) already runs `typecheck`, `lint`, `test`, `test:scripts` and `build`
 for the whole repository, plus the protected-file, `verify:docs` and translation-pair checks on pull
 requests. It does not run the E2E scripts, so those are local evidence only; local runs exist to catch the failure
-before CI does, not to repeat CI. Which kind of test to write is the Testing approach at the top of
+before CI does, not to repeat CI. It does run `pnpm verify:e2e-selectors`, which fails when an E2E script
+selects a class no component renders, so removing or renaming a class means updating the scripts that use it. A
+script that fails may already fail on `main`: read [e2e-known-failures](../../../docs/e2e-known-failures.md)
+before calling a failure yours or not, and update it when you find or fix one. Which kind of test to write is the Testing approach at the top of
 `AGENTS.md`. This is guidance, not a script: every behaviour change needs the narrowest evidence
 that would expose its regression.
 

@@ -293,7 +293,12 @@ could fail, then write the code and derive the isolated checks from that list.
 
 This describes the preferred approach for new work. CI runs the Vitest suites through `pnpm test` and
 the repository script tests (`scripts/*.test.mjs`) through `pnpm test:scripts`. It does not run the E2E
-scripts, so run the relevant one yourself before pushing.
+scripts, so run the relevant one yourself before pushing; scripts that already fail on `main` are listed in
+[e2e-known-failures.md](e2e-known-failures.md). CI does run `pnpm verify:e2e-selectors`, which
+fails when an E2E script selects a CSS class (`.section__row`) that no component, page or library file under
+`apps/web` renders any more; a rule left in a stylesheet does not count. It needs no server and takes well
+under a second. A line that checks a removed class stays gone ends with `// e2e-selectors: absent`; a class
+only a third-party library sets goes in `ALLOWED` in `scripts/verify-e2e-selectors.mjs`, with its reason.
 
 The E2E scripts live in `apps/web/tests/e2e/`. Run them through the runner, which starts a server on
 a free port, runs each named script against it from the repository root and stops only the server it
@@ -309,7 +314,10 @@ The environment reaches both the server and the scripts, so set `DATA_MODE` and 
 each script's header says. Each concurrent run in one worktree builds into its own folder
 (`apps/web/.next-e2e`, then `-2` to `-4`), so runs side by side, and beside `pnpm dev`, never share
 `.next`; the folder keeps its compiled output for the next run. The runner exits non-zero when any
-script fails and writes a summary to `output/e2e/runner/<time>.json`. Playwright is an `apps/web`
+script fails and writes a summary to `output/e2e/runner/<time>.json`. Each script has
+`E2E_SCRIPT_TIMEOUT_MS` (default 600000, ten minutes) to finish; a script still running then is stopped with
+the browsers it launched, shown as `TIME` in the summary (`"timedOut": true` in the JSON), and the next script
+runs. A timeout also makes the run exit non-zero. Playwright is an `apps/web`
 dev dependency; on a new machine run `pnpm --filter @trip/web exec playwright install chromium` once.
 Scripts that need two servers (`agent-lab-live-gate`) still run by hand as their header describes.
 `pnpm dev` and `pnpm start` use port 3000 unless `PORT` is set.
@@ -358,7 +366,7 @@ pnpm build
 ```
 
 CI (`.github/workflows/ci.yml`) runs these five commands on Node 22 for pull requests and pushes
-to `main`.
+to `main`, after `pnpm verify:e2e-selectors`.
 
 `pnpm lint` covers `apps/web` (`next lint`, config in `apps/web/.eslintrc.json`) and every package under
 `packages/` (ESLint with the shared flat config `eslint.config.mjs` at the repository root). Unlike
@@ -367,7 +375,10 @@ to `main`.
 CI also runs `node scripts/format-check-changed.mjs <base>` (`pnpm format:check-changed`), which checks
 Prettier formatting only on files that changed against the pull request base, or against the previous tip on
 a push. The repository still holds files that were never formatted, so run Prettier on the files you
-changed (`npx prettier --write <file>`), never on a directory or with `pnpm format`.
+changed (`npx prettier --write <file>`), never on a directory or with `pnpm format`. `pnpm install` points Git
+at `.githooks/` (`core.hooksPath`, through `scripts/install-git-hooks.mjs`), whose `pre-push` hook runs the same
+check against `origin/main` and refuses a push with unformatted files. `git push --no-verify` skips it once. The
+installer does nothing in CI or outside a Git checkout, and leaves a hooks path set for another tool alone.
 
 On pull requests, the `protected-files` job runs `node scripts/verify-protected-files.mjs`,
 `node scripts/verify-docs.mjs`, the pair check and `node scripts/verify-branch-name.mjs <head-branch>`. The

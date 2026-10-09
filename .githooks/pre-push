@@ -1,0 +1,13 @@
+#!/bin/sh
+# Runs the same changed-files Prettier check as CI before a push, so a formatting-only CI failure does not
+# happen. Installed by scripts/install-git-hooks.mjs on `pnpm install`. Skip it once with `git push --no-verify`.
+root=$(git rev-parse --show-toplevel) || exit 0
+cd "$root" || exit 0
+if [ ! -d node_modules/prettier ]; then
+  echo "pre-push: dependencies are not installed, so formatting was not checked (CI still checks it)." >&2
+  exit 0
+fi
+node scripts/format-check-changed.mjs origin/main || {
+  echo "pre-push: format the files above with 'npx prettier --write <file>', or push with --no-verify." >&2
+  exit 1
+}

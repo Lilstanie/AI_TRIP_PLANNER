@@ -30,6 +30,8 @@ jobs:
         env:
           BASE: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || github.event.before }}
 
+      # E2E scripts do not run in CI; this catches one that targets a class no component renders any more.
+      - run: pnpm verify:e2e-selectors
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm test
