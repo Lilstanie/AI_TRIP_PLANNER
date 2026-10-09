@@ -404,7 +404,7 @@ async function run(browser, { width, height, tag }) {
   const sectionOf = (id) => planNow?.sections.find((section) => section.id === id)?.proposal;
   const lastDay = await drawer.getByRole("tab", { name: /^Day \d+\b/ }).count();
   check(
-    (await drawer.locator(".section__row").count()) === 0,
+    (await drawer.locator(".section__row").count()) === 0, // e2e-selectors: absent
     `${tag}: no specialist card is rendered (no section rows in the drawer)`,
   );
   const drawerText = await drawer.innerText();
