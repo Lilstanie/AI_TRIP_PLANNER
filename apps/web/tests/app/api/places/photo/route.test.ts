@@ -1,5 +1,6 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 import { resetMapProviders } from "@/lib/map-provider";
+import { MapProviderUnavailableError } from "@/lib/map-provider/errors";
 import { GoogleRequestError } from "@/lib/integrations/google";
 import { GET } from "@/app/api/places/photo/route";
 
@@ -28,6 +29,22 @@ afterEach(() => {
 });
 
 describe("GET /api/places/photo", () => {
+  // A provider outage is retryable, even though its authored error also extends NoticeError.
+  it("keeps provider unavailability distinct from a missing resource", async () => {
+    const { placePhotoUri } = await import("@/lib/integrations/google");
+    vi.mocked(placePhotoUri).mockRejectedValue(
+      new MapProviderUnavailableError("google", "upstream"),
+    );
+
+    const response = await GET(request(`name=${encodeURIComponent(NAME)}&width=160`));
+
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toEqual({
+      error: "The map service is temporarily unavailable. Please retry.",
+      notice: { key: "The map service is temporarily unavailable. Please retry." },
+    });
+  });
+
   it.each([
     "",
     `name=${encodeURIComponent(NAME)}`,

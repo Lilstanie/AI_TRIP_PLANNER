@@ -1,16 +1,9 @@
 import { z } from "zod";
-import { NoticeError, noticeBody } from "@/lib/i18n/notice";
-import {
-  GoogleNotConfiguredError,
-  GoogleRequestError,
-  PHOTO_NAME,
-  PHOTO_WIDTHS,
-  placesUnavailable,
-  type PhotoWidth,
-} from "@/lib/integrations/google";
+import { noticeBody } from "@/lib/i18n/notice";
+import { PHOTO_NAME, PHOTO_WIDTHS, type PhotoWidth } from "@/lib/integrations/google";
 import { COMMONS_NAME } from "@/lib/map-provider/commons";
 import { mapProvider } from "@/lib/map-provider";
-import { MapProviderUnavailableError } from "@/lib/map-provider/errors";
+import { placeErrorResponse } from "@/lib/map-provider/place-error-response";
 
 const PhotoRequest = z.object({
   name: z
@@ -55,28 +48,6 @@ export async function GET(request: Request) {
       headers: { Location: value, "Cache-Control": "no-store", "X-Map-Provider": source },
     });
   } catch (error) {
-    if (
-      error instanceof NoticeError &&
-      !(error instanceof GoogleRequestError) &&
-      !(error instanceof GoogleNotConfiguredError)
-    )
-      return Response.json(noticeBody(error.notice), { status: 404 });
-    if (error instanceof MapProviderUnavailableError)
-      return Response.json(noticeBody(error.notice), { status: 503 });
-    // A missing key is permanent: every retry fails the same way, so the message
-    // must not invite one. 503 says the deployment, not the request, is at fault.
-    if (error instanceof GoogleNotConfiguredError)
-      return Response.json(noticeBody({ key: "Google Places is not set up for this app." }), {
-        status: 503,
-      });
-    const upstream = error instanceof GoogleRequestError ? error.status : undefined;
-    // An expired or unknown name reads as "no photo", which the card already handles.
-    if (upstream === 400 || upstream === 404)
-      return Response.json(noticeBody({ key: "This photo is no longer available." }), {
-        status: 404,
-      });
-    return Response.json(noticeBody(placesUnavailable(upstream)), {
-      status: upstream === 429 ? 429 : 502,
-    });
+    return placeErrorResponse(error, { key: "This photo is no longer available." });
   }
 }

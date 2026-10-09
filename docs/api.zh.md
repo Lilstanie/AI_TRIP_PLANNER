@@ -242,7 +242,7 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 `destination` 是可选字段；查找城市本身时省略它。响应为 `{ "places": GooglePlace[], "source": "google" | "osm" }`。
 工作区只发送保存的地点名称、明确的活动位置或本身就是地点名称的标题
 （`apps/web/lib/map/place-query.ts`），绝不发送描述性的活动文本。
-错误：400 表示输入无效，429 表示 Google 限流，502 表示其他上游失败，503 表示该部署没有配置 Google 密钥（重试无法解决），
+错误：400 表示输入无效，429 表示 Google 限流，502 表示其他上游失败，503 表示所选服务不可用或仅 Google 模式未配置密钥，
 响应体均为 [`{ error, notice }`](#failure-bodies)。错误消息不包含查询内容或提供方详情。
 
 <a id="post-apiplacesdetails"></a>
@@ -254,7 +254,7 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 ```
 
 返回 `{ "place": GooglePlace, "source": "google" | "osm" }`。错误：400 表示输入无效，404 表示地点 ID 已不可用，
-429 表示限流，502 表示其他上游失败，503 表示未配置 Google 密钥，响应体均为 [`{ error, notice }`](#failure-bodies)。
+429 表示限流，502 表示其他上游失败，503 表示所选服务不可用或仅 Google 模式未配置密钥，响应体均为 [`{ error, notice }`](#failure-bodies)。
 
 这两个路由返回的 `GooglePlace.photos` 都包含 Google 照片名称和作者署名。
 它们只保留在浏览器内存中，绝不写入计划，因为 Google 禁止缓存这些数据。
@@ -273,7 +273,7 @@ Google `name` 必须是从最新查询中获得的 `places/{id}/photos/{id}` 名
 路由向 Google 请求图片 URL，再以 `302` 响应重定向到 `googleusercontent.com` URL，
 并设置 `Cache-Control: no-store`，因此 `<img>` 可以指向它，而不会让服务端密钥进入浏览器。
 每次 Google 照片调用均计费。OSM 照片使用 `osm:commons/{encoded filename}` 并重定向到经过验证的 Wikimedia 主机；模拟名称 `osm:fixture/Toji` 返回本地 SVG。Commons 照片必须注明作者和许可，不产生 Google 费用。错误：400 表示输入无效，404 表示照片已过期或未知，
-429 表示限流，502 表示其他上游失败，503 表示未配置 Google 密钥，响应体均为 [`{ error, notice }`](#failure-bodies)。
+429 表示限流，502 表示其他上游失败，503 表示所选服务不可用或仅 Google 模式未配置密钥，响应体均为 [`{ error, notice }`](#failure-bodies)。
 
 <a id="post-apiroutesfrom-location"></a>
 
