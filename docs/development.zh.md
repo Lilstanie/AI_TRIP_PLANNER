@@ -239,7 +239,7 @@ pnpm --filter @trip/web e2e phone-shell --prod            # next build + next st
 BASE_URL=http://localhost:3000 pnpm --filter @trip/web e2e settings   # against a server already running
 ```
 
-环境变量会同时传给服务器和脚本，因此请按各脚本头部的说明设置 `DATA_MODE` 和数据源变量。同一工作树中并发的每次运行各自构建到独立的文件夹（`apps/web/.next-e2e`，其次是 `-2` 到 `-4`），因此并行运行之间、以及与 `pnpm dev` 之间都不会共用 `.next`；该文件夹会保留编译结果供下次运行使用。任一脚本失败时运行器以非零状态退出，并把摘要写入 `output/e2e/runner/<time>.json`。Playwright 是 `apps/web` 的开发依赖；在新机器上先运行一次 `pnpm --filter @trip/web exec playwright install chromium`。需要两个服务器的脚本（`agent-lab-live-gate`）仍按其头部说明手动运行。`pnpm dev` 和 `pnpm start` 默认使用 3000 端口，设置 `PORT` 可更改。
+环境变量会同时传给服务器和脚本，因此请按各脚本头部的说明设置 `DATA_MODE` 和数据源变量。同一工作树中并发的每次运行各自构建到独立的文件夹（`apps/web/.next-e2e`，其次是 `-2` 到 `-4`），因此并行运行之间、以及与 `pnpm dev` 之间都不会共用 `.next`；该文件夹会保留编译结果供下次运行使用。任一脚本失败时运行器以非零状态退出，并把摘要写入 `output/e2e/runner/<time>.json`。每个脚本有 `E2E_SCRIPT_TIMEOUT_MS`（默认 600000，即十分钟）的时间完成；超时仍在运行的脚本会连同它启动的浏览器一起被停止，在摘要中显示为 `TIME`（JSON 中为 `"timedOut": true`），然后继续运行下一个脚本。超时同样会让运行以非零状态退出。Playwright 是 `apps/web` 的开发依赖；在新机器上先运行一次 `pnpm --filter @trip/web exec playwright install chromium`。需要两个服务器的脚本（`agent-lab-live-gate`）仍按其头部说明手动运行。`pnpm dev` 和 `pnpm start` 默认使用 3000 端口，设置 `PORT` 可更改。
 
 缺少密钥就无法运行的脚本在文件头（代码之前）声明：`// requires-env: DEEPSEEK_API_KEY`（多个密钥用逗号分隔）。所列变量未设置或为空时，运行器不会运行该脚本，而是报告 `skipped: needs DEEPSEEK_API_KEY`，把跳过记录到摘要中；若没有其他失败，仍以 0 退出；实际运行后失败的脚本仍使退出码非零。若所有指定脚本都被跳过，则不会启动服务器。`plan-quality` 和 `conversation-scope` 声明了 `DEEPSEEK_API_KEY`，因为它们检查的是模型的产出，在规则回退下会失败。格式错误的 `requires-env` 行会让运行器报错退出，而不是运行该脚本。
 

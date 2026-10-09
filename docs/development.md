@@ -302,7 +302,10 @@ The environment reaches both the server and the scripts, so set `DATA_MODE` and 
 each script's header says. Each concurrent run in one worktree builds into its own folder
 (`apps/web/.next-e2e`, then `-2` to `-4`), so runs side by side, and beside `pnpm dev`, never share
 `.next`; the folder keeps its compiled output for the next run. The runner exits non-zero when any
-script fails and writes a summary to `output/e2e/runner/<time>.json`. Playwright is an `apps/web`
+script fails and writes a summary to `output/e2e/runner/<time>.json`. Each script has
+`E2E_SCRIPT_TIMEOUT_MS` (default 600000, ten minutes) to finish; a script still running then is stopped with
+the browsers it launched, shown as `TIME` in the summary (`"timedOut": true` in the JSON), and the next script
+runs. A timeout also makes the run exit non-zero. Playwright is an `apps/web`
 dev dependency; on a new machine run `pnpm --filter @trip/web exec playwright install chromium` once.
 Scripts that need two servers (`agent-lab-live-gate`) still run by hand as their header describes.
 `pnpm dev` and `pnpm start` use port 3000 unless `PORT` is set.

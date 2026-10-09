@@ -12,6 +12,10 @@
 // root, so their output lands in output/ there. A summary of each run is written to
 // output/e2e/runner/<time>.json.
 //
+// Each script has E2E_SCRIPT_TIMEOUT_MS (default 600000, ten minutes) to finish. A script still running
+// then is stopped with its browsers, reported as "timeout" rather than a failure of its checks, and the
+// next script runs. A timeout makes the run exit 1, as a failure does.
+//
 // A script names the environment variables it cannot run without in a header line, before its code:
 //   // requires-env: DEEPSEEK_API_KEY[, OTHER_KEY]
 // A variable that is unset or empty makes the runner report the script as "skipped: needs KEY" instead
@@ -30,7 +34,11 @@
 // - Playwright cannot be resolved from the scripts;
 // - the runner exits 0 while a script failed;
 // - a script that needs a live key is run without it and its failure is mistaken for a regression;
-// - a skip is reported as a pass, or hides a script that failed in the same run.
+// - a skip is reported as a pass, or hides a script that failed in the same run;
+// - a script that never finishes (a wait with no timeout) holds the whole run until its caller gives up,
+//   and every result is lost;
+// - a stopped script leaves its browser processes running;
+// - a timeout is reported as an ordinary failure, or not at all.
 import { spawn } from "node:child_process";
 import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
@@ -43,6 +51,14 @@ const WEB = resolve(HERE, "../..");
 const ROOT = resolve(WEB, "../..");
 const NEXT = resolve(WEB, "node_modules/.bin/next");
 const READY_TIMEOUT_MS = 5 * 60_000;
+const SCRIPT_TIMEOUT_MS = (() => {
+  const raw = process.env.E2E_SCRIPT_TIMEOUT_MS;
+  if (raw === undefined || raw === "") return 10 * 60_000;
+  const value = Number(raw);
+  if (!Number.isInteger(value) || value <= 0)
+    fail(`E2E_SCRIPT_TIMEOUT_MS must be a positive whole number of milliseconds, not "${raw}"`);
+  return value;
+})();
 
 const args = process.argv.slice(2);
 const prod = args.includes("--prod");
@@ -181,26 +197,54 @@ async function stopServer() {
   releaseDist();
 }
 
+// A script runs in its own process group too, so stopping it also stops the browsers it launched.
+function signalScript(signal) {
+  if (!current) return;
+  try {
+    process.kill(-current.pid, signal);
+  } catch {
+    current.kill(signal);
+  }
+}
+
 for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"]) {
   process.on(signal, async () => {
-    current?.kill("SIGTERM");
+    signalScript("SIGTERM");
     await stopServer();
     process.exit(130);
   });
 }
 // Last resort for an exit that skipped stopServer (fail(), an uncaught error): stop, never wait.
 process.on("exit", () => {
-  current?.kill("SIGKILL");
+  signalScript("SIGKILL");
   if (serverRunning()) signalServer("SIGKILL");
   releaseDist();
 });
 
-function run(command, commandArgs, options) {
+/** Resolves to the exit code, or to "timeout" when `timeoutMs` passed first and the process group was stopped. */
+function run(command, commandArgs, { timeoutMs, ...options } = {}) {
   return new Promise((done) => {
-    current = spawn(command, commandArgs, { stdio: "inherit", ...options });
+    let timedOut = false;
+    current = spawn(command, commandArgs, {
+      stdio: "inherit",
+      ...options,
+      detached: timeoutMs !== undefined,
+    });
+    const timer =
+      timeoutMs === undefined
+        ? undefined
+        : setTimeout(() => {
+            timedOut = true;
+            console.error(`e2e: still running after ${timeoutMs / 1000}s; stopping it`);
+            signalScript("SIGTERM");
+            setTimeout(() => signalScript("SIGKILL"), 10_000).unref();
+          }, timeoutMs);
     current.on("exit", (code, signal) => {
+      clearTimeout(timer);
+      // Browsers the script launched may outlive it; its group is stopped either way.
+      if (timeoutMs !== undefined) signalScript("SIGKILL");
       current = undefined;
-      done(code ?? (signal ? 1 : 0));
+      done(timedOut ? "timeout" : (code ?? (signal ? 1 : 0)));
     });
   });
 }
@@ -262,11 +306,12 @@ for (const script of scripts) {
   const code = await run(process.execPath, [resolve(HERE, `${script}.e2e.mjs`)], {
     cwd: ROOT,
     env: { ...process.env, BASE_URL: baseUrl },
+    timeoutMs: SCRIPT_TIMEOUT_MS,
   });
   results.push({
     script,
     ok: code === 0,
-    exitCode: code,
+    ...(code === "timeout" ? { timedOut: true, exitCode: null } : { exitCode: code }),
     seconds: Math.round((Date.now() - begin) / 1000),
   });
 }
@@ -281,9 +326,9 @@ writeFileSync(
 
 console.log("\ne2e: summary");
 for (const result of results) {
-  const label = result.skipped ? "skip" : result.ok ? "ok  " : "FAIL";
+  const label = result.skipped ? "skip" : result.ok ? "ok  " : result.timedOut ? "TIME" : "FAIL";
   console.log(
-    `  ${label} ${result.script} (${result.skipped ? `skipped: ${result.skipped}` : `${result.seconds}s`})`,
+    `  ${label} ${result.script} (${result.skipped ? `skipped: ${result.skipped}` : result.timedOut ? `timeout after ${result.seconds}s` : `${result.seconds}s`})`,
   );
 }
 console.log(`  written to ${summaryFile.slice(ROOT.length + 1)}`);
