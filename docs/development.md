@@ -367,7 +367,10 @@ to `main`, after `pnpm verify:e2e-selectors`.
 CI also runs `node scripts/format-check-changed.mjs <base>` (`pnpm format:check-changed`), which checks
 Prettier formatting only on files that changed against the pull request base, or against the previous tip on
 a push. The repository still holds files that were never formatted, so run Prettier on the files you
-changed (`npx prettier --write <file>`), never on a directory or with `pnpm format`.
+changed (`npx prettier --write <file>`), never on a directory or with `pnpm format`. `pnpm install` points Git
+at `.githooks/` (`core.hooksPath`, through `scripts/install-git-hooks.mjs`), whose `pre-push` hook runs the same
+check against `origin/main` and refuses a push with unformatted files. `git push --no-verify` skips it once. The
+installer does nothing in CI or outside a Git checkout, and leaves a hooks path set for another tool alone.
 
 Run focused packages with `pnpm --filter @trip/agents test`, `pnpm --filter @trip/orchestrator test`
 or `pnpm --filter @trip/web test`. The web test script sets `NODE_OPTIONS` with POSIX shell syntax;
