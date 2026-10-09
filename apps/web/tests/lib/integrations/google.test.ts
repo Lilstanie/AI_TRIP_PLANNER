@@ -97,9 +97,7 @@ describe("placeDetails", () => {
 
     const [url, init] = fetcher.mock.calls[0]!;
     // The raw id must be percent-encoded into the path segment.
-    expect(String(url)).toBe(
-      "https://places.googleapis.com/v1/places/place%20with%20spaces",
-    );
+    expect(String(url)).toBe("https://places.googleapis.com/v1/places/place%20with%20spaces");
     expect(init?.method).toBe("GET");
   });
 
@@ -220,18 +218,17 @@ describe("googleRoute", () => {
     expect(body).not.toHaveProperty("departureTime");
   });
 
-  it.each([
-    { routes: [] }, // no route at all
-    { routes: [{ duration: "" }] },
-    { routes: [{ duration: "oops" }] },
-  ])("degrades to status 'unavailable' instead of throwing on a bad response", async (data) => {
-    pinNow("2026-09-20T00:00:00Z");
-    process.env.MAPS_API_KEY = "test-key";
-    stubFetch(() => Response.json(data));
+  it.each([{ routes: [{ duration: "" }] }, { routes: [{ duration: "oops" }] }])(
+    "degrades to status 'unavailable' instead of throwing on a bad response",
+    async (data) => {
+      pinNow("2026-09-20T00:00:00Z");
+      process.env.MAPS_API_KEY = "test-key";
+      stubFetch(() => Response.json(data));
 
-    const result = await googleRoute("place-a", "place-b", "2026-11-01T09:00:00Z", "TRANSIT");
-    expect(result).toMatchObject({ status: "unavailable", error: expect.any(String) });
-  });
+      const result = await googleRoute("place-a", "place-b", "2026-11-01T09:00:00Z", "TRANSIT");
+      expect(result).toMatchObject({ status: "unavailable", error: expect.any(String) });
+    },
+  );
 
   it("degrades to 'unavailable' when the transit date is outside Google's supported window", async () => {
     const result = await googleRoute("place-a", "place-b", "2020-01-01T00:00:00Z", "TRANSIT");

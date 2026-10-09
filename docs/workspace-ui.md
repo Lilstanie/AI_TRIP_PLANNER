@@ -8,16 +8,16 @@ now. Implementation history and browser acceptance for each phase are in the
 
 ## Layout
 
-| Area              | Content                                                                                                                                     | Implementation                                                                                              |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| Sidebar           | Logo, Chats and Trips with counts, save or sync status, Settings & account                                                                  | `WorkspaceSidebar`, `BrandMark`, `icons.tsx`                                                                |
-| Chats panel       | Slides out beside the sidebar: search, New chat, New trip, then trips and chats                                                             | `ChatsPanel`, `TripCover`                                                                                   |
-| Your trips        | Opened by Trips in place of chat and map: trip cards (Upcoming, Past) and a Calendar tab; New trip                                          | `TripsPage`, `TripCover`                                                                                    |
-| Top bar           | Trip title; trip fact chips (destination, dates, travellers, budget, Preferences); data mode; Trip with its stop count, rightmost           | `WorkspaceView`, `TripFactChips`                                                                            |
-| Trip fact editors | One editor per chip, every one a centred dialog; Preferences holds the traveller's own list                                                 | `FactPopover`, `FactFields`, `TripCalendar`, `WhereFields`, `PreferenceList`, `lib/workspace/trip-facts.ts` |
-| Chat              | Conversation, the planning transcript, the composer; starter suggestions in a blank chat; no visible heading                                | `ChatPanel`                                                                                                 |
-| Map               | Only the map, labelled markers, curved day-coloured itinerary lines, the place popup, map status, and the locate / map type / zoom controls | `TripMapCanvas`, `TripMap`                                                                                  |
-| Your Trip drawer  | Budget; Itinerary (stops by day with an action menu, Ideas, sections); Timeline & routes (day strip, timeline, stop editor); Review plan    | `Drawer`, `TripPanel`, `TripPlaceList`, `TripEditor`                                                        |
+| Area              | Content                                                                                                                                                          | Implementation                                                                                              |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Sidebar           | Logo, Chats and Trips with counts, save or sync status, Settings & account                                                                                       | `WorkspaceSidebar`, `BrandMark`, `icons.tsx`                                                                |
+| Chats panel       | Slides out beside the sidebar: search, New chat, New trip, then trips and chats                                                                                  | `ChatsPanel`, `TripCover`                                                                                   |
+| Your trips        | Opened by Trips in place of chat and map: trip cards (Upcoming, Past) and a Calendar tab; New trip                                                               | `TripsPage`, `TripCover`                                                                                    |
+| Top bar           | Trip title; trip fact chips (destination, dates, travellers, budget, Preferences); data mode; Trip with its stop count, rightmost                                | `WorkspaceView`, `TripFactChips`                                                                            |
+| Trip fact editors | One editor per chip, every one a centred dialog; Preferences holds the traveller's own list                                                                      | `FactPopover`, `FactFields`, `TripCalendar`, `WhereFields`, `PreferenceList`, `lib/workspace/trip-facts.ts` |
+| Chat              | Conversation, the planning transcript, the composer; starter suggestions in a blank chat; no visible heading                                                     | `ChatPanel`                                                                                                 |
+| Map               | Only the map, labelled markers, curved day-coloured itinerary lines, the place popup, map status, and the locate / map type / zoom controls                      | `TripMapCanvas`, `TripMap`                                                                                  |
+| Your Trip drawer  | Budget, with its open conflicts; the day view (travel tips, day strip, the chosen day's stops with their place cards and ⋯ menus, flights and stays, then Ideas) | `Drawer`, `TripPanel`, `TripEditor`, `TripTips`, `timeline/TimelineStop`, `timeline/BookingRow`             |
 
 - **Sidebar.**
   - Expands to 240 px (220 px below 1250 px) or collapses to a 64 px icon rail. The toggle uses
@@ -174,8 +174,8 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     the close button, a Tab loop, Escape (nested edit previews and native dialogs first) and focus
     return to the trigger.
   - At most one panel is open at a time: a drawer (Trip, navigation or the desktop Chats panel), the
-    phone Trip details sheet or one chip editor. Opening one closes the others; Settings and Review
-    open on top of it and return to it when they close. One pure function, `layout()` in
+    phone Trip details sheet or one chip editor. Opening one closes the others; Settings
+    opens on top of it and return to it when they close. One pure function, `layout()` in
     `apps/web/lib/workspace/layout.ts`, decides what is open; see the
     [layout Agent Note](../.agents/notes/implemented/architecture/2026-10-06-workspace-layout-reducer.md).
     A reload starts with every panel closed. Closed drawers are translated fully outside the
@@ -203,7 +203,7 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
   - The single-row top bar shows the destination and dates, or New trip. Its title opens Trip details:
     Where, When, Who, Budget and Preferences as rows. Each row opens the existing editor; saving or
     closing returns focus to the title. Editors are bottom sheets with 44 px targets.
-  - Trip shows Your Trip in place, with Budget, Itinerary, Timeline & routes and Review plan. Before
+  - Trip shows Your Trip in place, with Budget and the day view. Before
     planning it explains the empty state and offers Plan in Chat. A plan created or changed while
     another tab is selected adds an accessible update dot to Trip; opening Trip clears it. Read revisions are tracked per trip,
     so switching between unchanged saved trips does not create a new notification.
@@ -213,7 +213,7 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
   - Crossing the phone width keeps the traveller on the same thing: narrowing with Your trips open
     continues in Mine, so the tab bar stays available, and narrowing with the Trip drawer open shows
     the Trip tab. Widening from Mine shows Your trips, widening from Trip opens the Trip drawer over
-    Chat (unless a chip editor is open), and Chat and Map stay as they are. Settings, Review and chip
+    Chat (unless a chip editor is open), and Chat and Map stay as they are. Settings and chip
     editors stay open across the crossing; Trip details closes when the phone top bar goes away.
   - Map fills the space between the bars. Its day-stops sheet has collapsed, half and full heights,
     selected by dragging or using its handle with pointer or keyboard. Changing day filters the map's
@@ -324,7 +324,8 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     requests and clears progress, errors, selection and map routes in one `opened` session event.
     Late responses are ignored.
   - Applying an edit from the trip list or the timeline is `applyEdit(next)`, which records the
-    previous total for Review plan's "changed by" figure. Views get these as actions from
+    previous total. A chat replan sets `estimateChange` to the signed change from the plan it replaced,
+    and a timeline edit clears it. Views get these as actions from
     `useWorkspace`, never as state setters ([architecture](architecture.md#workspace-state)).
 - **Storage.**
   - Everything is saved in the browser only, with a debounced autosave state in the sidebar.
@@ -353,34 +354,42 @@ describes current behaviour except the absences.
   offer a capability that does not exist.
 - **What the plan does decide is reported, not asked.** The accommodation specialist compares every
   eligible candidate and names one; the transcript shows that choice with the alternatives it
-  compared, and the Trip drawer shows the sections and their cost. A traveller who wants a different
-  flight or stay picks it from that section (see [Trip sections](#trip-sections)); anything else is
-  said in chat or edited in Timeline & routes.
+  compared, and the Trip drawer's day view shows that flight or stay with its cost. A traveller who
+  wants a different one opens its row and picks it (see [Flights, stays and tips](#flights-stays-and-tips));
+  anything else is said in chat or edited in the day view.
 - **Conflicts are information.** When the orchestrator detects a conflict it retries the affected
   sections within its round budget, and anything still unresolved stays visible on the plan rather
-  than becoming a card that waits for an acknowledgement nothing can record.
+  than becoming a card that waits for an acknowledgement nothing can record. It is shown on the stop,
+  day or budget bar it concerns (see Conflicts in place under the Trip drawer above).
 - The client is not a source of supplier facts: totals are recomputed from proposal items, and
   results are labelled as SerpApi live search, Google Places estimates or simulated fixtures. None
   of them creates a reservation.
 
-## Trip sections
+## Flights, stays and tips
 
-Below the Stops list the Trip drawer shows each specialist's section (`TripSection`,
-`ProposalDetails`).
+The Trip drawer does not render the specialists' cards (Day plan, Getting around, Stay, Destination
+guide and Food & dining). Their content is in the day view. Plan sections stay in the data; no section
+summary, assumption or model-written working note is shown. Day plan and Getting around have no
+replacement, because their content is the stops and legs. The Trip drawer's cost and total still
+include every section. Why: [Agent Note](../.agents/notes/implemented/feature/2026-10-08-day-view-specialists.md).
 
-- **Getting around** lists every movement of the trip, grouped by day and ordered by arrival: the
-  flight in, the hops between cities and the legs between a day's stops (`dayConnections`). The Day
-  plan section shows places and times only, so each leg appears once. Getting around can list legs
-  on a single-city trip whose transport specialist returned nothing; its summary line still counts
-  only that specialist's items. See the
-  [Agent Note](../.agents/notes/implemented/architecture/2026-10-07-intra-city-legs-in-getting-around.md).
-- **Flight card.** Each flight the plan priced shows its carrier, departure, travellers, stops
-  ("Nonstop" when none) and flight time. A plan whose flight no longer matches a selection says
-  "This flight needs a new selection." The stay card shows the chosen hotel's rating, check-in and
-  check-out, rooms and nights, nightly price and cancellation terms.
-- **Also found.** Both cards list the alternatives the chosen flight or stay beat, each with its price and
+- **Stay rows.** A stay has one row at the end of each night's day, so a four-night stay gives four
+  rows, and the checkout day has none. A row names the stay and its city, with "Night n of N"; its cost
+  is the nightly price for the rooms. Opening it shows the stay card.
+- **Flight rows.** A flight the plan priced is a row on its day, and the first day starts with the
+  flight in. Inter-city flights are rows on their day. When the arrival flight is a round trip, its
+  return is a flight out at the end of the last day of the day strip, showing the return date; it shares
+  the arrival flight's selection and costs nothing more ("Included in the flight in"). Timed ground hops
+  stay as fixed rows. A trip with no flight, no stay or no guide shows no empty row or block.
+- **Stay card.** Rating, check-in and check-out, rooms and nights, nightly price, cancellation terms,
+  the source note, and a link to the property's details when the planner has one. A stay whose
+  selection no longer matches says "This stay needs a new selection."
+- **Flight card.** Each flight shows its carrier, departure (or return), travellers, stops ("Nonstop"
+  when none) and flight time. A flight whose selection no longer matches says "This flight needs a new
+  selection."
+- **Also found.** Each card lists the alternatives the chosen flight or stay beat, each with its price and
   its difference from the chosen one; a cheaper difference is green and also carries a minus sign.
-- **Choosing another.** Each Also found row is a button ("Take … instead, …", at least 44 px tall
+- **Choosing another.** In a stay or flight card, each Also found row is a button ("Take … instead, …", at least 44 px tall
   under a coarse pointer). Pressing it applies at once, with no preview: it sends a `choose` edit
   through `POST /api/trip/preview-edit` ([API](api.md#post-apitrippreview-edit)), so the server
   rewrites the item's sentence, the section cost and the plan total. Taking the earlier option back
@@ -389,6 +398,15 @@ Below the Stops list the Trip drawer shows each specialist's section (`TripSecti
   dropped. Plans saved before items carried a `selectionId` cannot be re-priced and must be
   replanned. See the
   [Agent Note](../.agents/notes/implemented/architecture/2026-10-07-selection-id-on-proposal-items.md).
+- **Travel tips.** The destination guide's advice (customs and etiquette, safety, entry and health,
+  weather and packing, and places to explore) is a collapsible block at the top of the day view. It
+  opens the first time. Whether this viewer folded it is remembered for that trip in this browser
+  (`localStorage`, key `trip-tips-folded:<tripId>`); where storage is blocked it opens each time. The
+  block is absent when the plan has no guide.
+- **Restaurants.** The restaurants the dining specialist found are listed under Ideas, marked
+  "Restaurant suggestion". Schedule on a day copies one into the day as a stop, with no price, and the
+  change can be undone; Remove deletes the suggestion. The dining meal budget stays in the plan's
+  estimate and total, and is not shown as a card.
 
 ## Map and places
 
@@ -421,7 +439,7 @@ Below the Stops list the Trip drawer shows each specialist's section (`TripSecti
   ([Agent Note](../.agents/notes/implemented/architecture/2026-10-06-one-itinerary.md)): numbers are
   trip-wide, one per place in visiting order (day, then start time, then plan position), and a
   place visited again keeps its first number. Ideas (activities without a day) are never numbered,
-  counted or mapped. Below zoom 12 only the selected stop keeps its label,
+  counted or mapped. An Idea's price is not part of the estimate or the budget total, and moving a priced stop to Ideas lowers the total at once. Below zoom 12 only the selected stop keeps its label,
   and when the map settles a label that would overlap one already shown is hidden (the selected stop
   wins, then visiting order). Markers never load place photos.
 - **Itinerary lines** (`lib/map/itinerary-route.ts`, `components/map/map-layers.ts`). Each day's
@@ -449,25 +467,49 @@ Below the Stops list the Trip drawer shows each specialist's section (`TripSecti
   to its day, and the reverse also works. The selected marker has a larger outlined badge and a
   bordered label, and its drawer row adds a leading inset line and weight alongside `aria-pressed`;
   color is not the sole cue. Stops on other days step back to grey badges without labels.
-- **Trip drawer.** The reading order is heading and summary, budget, then the Itinerary tab: the
-  Stops list (each day's stops in visiting order with the number their place carries on the map,
-  including a repeat visit; then Ideas, unnumbered; located stops are buttons, the keyboard path to
-  each marker, and the others say why they are not on the map),
-  sections, then expanded detail.
-- **Itinerary item menu** ([Agent Note](../.agents/notes/implemented/feature/2026-09-27-itinerary-item-actions.md)).
+- **Trip drawer.** One view, with no tabs: heading and summary, budget, then the day view: the travel
+  tips (when the plan has a destination guide), the day strip, the chosen day's stops in visiting order
+  with the number their place carries on the map (a repeat visit keeps it), the day's flights and stay
+  rows, then Ideas, unnumbered. The phone Trip tab shows the same view. The drawer has no status label:
+  "Needs review", "Draft" and "Review plan" are removed ([Agent Note](../.agents/notes/implemented/feature/2026-10-08-remove-status-labels.md)).
+  The specialists' cards are not rendered; see [Flights, stays and tips](#flights-stays-and-tips).
+- **Conflicts in place.** Each unresolved conflict of the plan is shown where it applies, derived from the
+  plan on every render by `placeConflicts()` (`apps/web/lib/trip/conflicts.ts`):
+  - on the stop it names: a time overlap marks each stop of that day that overlaps another scheduled item,
+    and a leg's route or timing notice is listed on the stop the leg leads into (its destination), never on
+    the other stops of the day;
+  - under the title of the day it names, when no stop of that day is involved (a flight or stay overlaps,
+    or the pair is no longer on the plan);
+  - under the budget bar when it names neither stop nor day, such as the over-budget or infeasible-budget
+    sentence.
+    An edit that resolves a conflict removes it from the view. A notice the plan keeps is stored with its
+    key and values and shown in the traveller's language; the English sentence kept for the chat is not
+    shown beside it. A sentence the app wrote in English before its notice was keyed (a plan saved earlier)
+    is read back as its key when it matches the app's English text, and placed as above: on the stop it
+    names when that stop is on its day, under the day title otherwise. A sentence that matches no app text
+    is shown as received ([Agent Note](../.agents/notes/implemented/feature/2026-10-09-notice-keys.md)).
+- **Estimate change after a replan.** After a chat replan that had an earlier estimate, a notice in the
+  notices strip says the signed change, "Estimate changed by +AUD 120.00 from the previous plan.", or
+  "Estimate unchanged from the previous plan." It has a Dismiss button and shows once. A timeline edit or
+  opening another chat clears it, and a reload does not restore it.
+- **Stop menu** ([Agent Note](../.agents/notes/implemented/feature/2026-10-08-one-day-trip-view.md)).
   Each stop's "…" menu (`ActionMenu`, a `role="menu"`; arrow keys move, Escape closes it and returns
-  focus without closing the drawer) offers Adjust schedule (opens the Timeline on that stop), Edit
-  details (place name and description), Add or Edit note, Move earlier and Move later, Move to
-  ideas, Move to previous or next day, Mark as booked, and Remove. Move earlier and Move later swap
-  the stop with its neighbour on the same day: each takes the other's start time and keeps its own
-  duration, the second starting later if the first would overlap it, and a swap that would end past
-  23:59 or overlap the next stop is refused with a message. The first stop of a day has no Move earlier, the last has no Move
-  later, and an idea has neither. An idea offers Schedule on a day, which puts it after that day's
-  last stop. These apply at once, show "Booked" and the note on the row, and offer Undo until the
-  next plan arrives from chat. Day moves and swaps keep each stop's duration and do not re-check
-  routes; the Timeline's route check does. At phone width (520px and below) the menu's trigger and
-  items are at least 44 px. Missing or zero budgets state that no budget is set; invalid totals never render
-  `NaN`, a negative bar, or a bar wider than its container.
+  focus to its trigger without closing the drawer) offers Move earlier and Move later (not on the first
+  or last stop of a day), Move to another day (opens a day picker in the place card), Move to ideas,
+  Replace place (opens the place search in the card), Edit details, Add or Edit note, Mark as booked and
+  Remove. An idea offers Schedule on a day instead of the moves, and a restaurant suggestion offers only
+  Schedule on a day and Remove. Details, notes and booked apply in the browser at once. Move earlier, Move later, Move to
+  another day, Move to ideas and Remove are checked by the server like any timeline edit, and an accepted one
+  applies at once. Each settles the plan the way a server edit does: the budget
+  total and the conflicts are recomputed at once, with the same roll-up the server uses
+  (`lib/trip/settle.ts`). Move earlier and Move later swap the stop with its neighbour on the
+  same day: each takes the other's start time and keeps its own duration, the second starting later if the
+  first would overlap it, and a swap that would end past 23:59 or overlap the next stop is refused with a
+  message. Move to another day puts the stop after that day's last stop. Undo offers the last change
+  until the next plan arrives from chat; an item action is undone the same way, restoring the plan as it was before it. A move changes the day's times, so the day's legs are routed again (see Legs under Timeline editing). At
+  phone width (520px and below) the menu's trigger and items are at least 44 px. Missing or zero budgets
+  state that no budget is set; invalid totals never render `NaN`, a negative bar, or a bar wider than its
+  container.
 - **Location.** When the workspace opens it asks in its own words, in the notices strip, whether to
   show the traveller's location (`components/map/useUserLocation.ts`, `LocationPrompt`). The
   browser's permission prompt appears only after Allow location or Show my location is pressed.
@@ -489,16 +531,20 @@ Below the Stops list the Trip drawer shows each specialist's section (`TripSecti
 
 ## Timeline editing
 
-The Timeline & routes tab (`TripEditor` composing `components/trip/timeline/`) shows one day at a
-time and edits activities through `POST /api/trip/preview-edit`. Previews are deterministic and make
-no LLM calls.
+The day view (`TripEditor` composing `components/trip/timeline/`) shows one day at a
+time and edits activities through `POST /api/trip/preview-edit`. The server checks each edit and
+the client applies an accepted one at once. Every change to a stop's day, time, place, order or leg is
+checked by the server: time, place, leg, a drag, Remove, Move to ideas, Move to another day and the arrow
+moves. Details, notes and booked apply in the browser. The checks are deterministic and make no LLM calls.
 
 - **Layout.** A day strip of tabs (`Day 2 · Sun, 18 Oct · 3 stops`, flagged when a stop needs a
   place) picks the day. The day is a vertical line in time order (`lib/trip/timeline.ts`): an
-  untimed flight first, timed inter-city hops and stops by start time, the night's check-in last,
-  and "Staying at …" on later nights. Fixed rows show an icon, a title, one detail line and their
-  cost ("Fare not published" or "Price unknown" rather than AUD 0). Between two stops the journey
-  reads "Walk · 6 min · checked" from a route check, or the planner's `arriveBy` as an estimate.
+  flight in first (untimed flights and hops), timed inter-city hops and stops by start time, then one
+  stay row per night, and on the last day the flight out, which ends the day. "Staying at …" shows on
+  later nights. Fixed rows show an icon, a title, one detail line and their cost ("Fare not published"
+  or "Price unknown" rather than AUD 0). Flight and stay rows open to their card. Between two stops the
+  journey is a leg (see Legs below): its mode and duration, marked "checked" when the provider verified
+  it and "estimate" when it is the planner's `arriveBy` or a simulated fixture.
 - **Prices.** No provider publishes admission prices, so itinerary stops carry no `estCost` and show
   "Price unknown"; the budget card adds "Not included: admission for N stops with no published
   price" so the total is not read as the whole cost.
@@ -509,31 +555,64 @@ no LLM calls.
   stops in plan order. When start times disagree with plan order, a stop moved later lands just
   after the stop it moved past and any other move lands just before it, so the preview keeps the
   swap the traveller asked for; the endpoint then re-times the rest of the day after it.
+- **Time and place.** Tapping a stop's time opens its Start and End form; "Change time" sends the change
+  to the server check. Selecting a stop, here or on the map, opens its place card: the place's first
+  photo (live data with a Maps key), rating, address and an Open in Google Maps link. Replace place in the stop's menu opens a
+  Google Places search in the card; a picked result is saved through the server check. Escape closes an
+  open form or the card and returns focus to the stop. Drag and drop still reorders the day.
 - **Editing.** A stop is compact until selected, here or on the map; selecting it opens its editor:
-  start and end time ("Preview time change"), Move earlier / Move later, Move to another day, and a
-  Google Maps search to replace the place. A stop the map matched by name but not confirmed offers
-  "Use this place". Drag and drop still reorders the day.
-- **Route check.** A Walk / Public transport switch and "Check routes for Day N", enabled once the
-  day has two stops with confirmed places; the hint under it says which is missing.
-- **Review.** Every edit opens "Review this change": the new total, signed difference and budget
-  gap, one line per
-  moved stop, the routes checked, blockers, and only the conflicts the change would add. Apply
-  changes applies it; Cancel or Escape closes only the preview. An applied edit shows "Undo last
-  change", which is previewed the same way.
-- **Motion.** A day's list fades in when the day changes; a stop's editor and the review panel rise
-  in; an applied edit washes the stops it changed with the accent for a moment; a journey a route
-  check verified draws down the line. Each has a text or colour signal too, and none plays under
-  reduced motion.
+  start and end time ("Change time"), Move earlier / Move later, Move to another day, and a
+  Google Maps search to replace the place. Drag and drop still reorders the day.
+- **Places from the map.** When the map finds a stop's place by name and the stop has no saved
+  place, the workspace saves that place on the stop itself, once, through the immediate place edit
+  below; no traveller action is needed. While it is being saved the stop reads "Saving place…"; a
+  save the server does not accept reads "Place not saved yet" and the card says to search for the
+  place. A stop the map cannot find reads "Not found on the map", and its card offers a search that
+  saves the picked result. A lookup that failed for a retryable reason is not saved; "Retry places"
+  on the map runs it again. Saves and leg checks share one queue: one background request
+  for the trip at a time, and both wait while chat, a place search or another edit is running. A save or
+  check that a traveller's edit or chat overtakes is discarded and asked again for the edited plan.
+  The traveller replaces a saved place from the card's search.
+- **Legs.** Each journey between two stops of a day is a leg ([Leg](../GLOSSARY.md)). There is no button:
+  a day's legs are checked once every stop on it has a confirmed place, including a day whose stops
+  already carry the planner's arrival times. That check also runs on each reload, because a stored leg is
+  only an estimate until it is checked. A day is asked again whenever an applied edit changes its stops or times. Changing one leg's mode (a select with Walk, Public transport or
+  Drive; "Not checked yet" until the leg has a mode) routes that leg alone; the rest of the day is
+  re-timed with the stored times of its other legs. The chosen mode is kept through later re-timing,
+  and Undo restores the previous mode. A leg the traveller has not chosen walks when the walk takes
+  20 minutes or less, and otherwise uses public transport when the provider finds one.
+  A leg with no route between its two places reads "No route found" and adds no time to the day.
+  A provider outage on a leg is a notice, not a refusal: the stop keeps its time, the leg adds no time,
+  and the notice shows on the stop the leg leads into. A move that needs that route is refused instead,
+  and the plan stays as it was. In mock data mode the server answers with fixture legs marked "estimate", never "checked".
+  A reload shows the stored legs as estimates, and a "No route found" result is not kept across a
+  reload. Confirming a stop's place still needs a Maps key or a stub.
+- **Applied at once.** An edit applies as soon as the server accepts it, with no review step. A
+  refused edit leaves the plan unchanged and lists its blockers as an alert above the day, each naming the stop it is about. A place change
+  on a day with an unconfirmed neighbour is accepted: that pair has no route until both places are
+  confirmed, and other edits on such a day are refused until every stop has a place. An applied edit
+  shows "Undo last change", which runs the same check and applies the same way. The leg check that
+  follows an applied edit does not replace the plan, so the undo step stays. The undo step covers the
+  scheduled stops the edit re-times; an Idea in the plan stays as it is and does not block Undo. A plan
+  that arrives from chat clears the undo step; if a change was still in the plan, the chat says that it replaced the change
+  ("The new plan replaced your last change to the timeline.", with a Dismiss button).
+- **Edits and background work.** A leg check or place save that is running when an edit starts is
+  cancelled, and it is asked again once the edit has finished, so its answer never replaces the plan the
+  edit is checking. An edit in flight is not cancelled when the plan changes from elsewhere: its answer is refused as stale,
+  and the alert asks the traveller to try the change again.
+- **Motion.** A day's list fades in when the day changes; a stop's place card rises in; an applied edit
+  washes the stops it changed with the accent for a moment; a leg the provider verified draws down
+  the line. Each has a text or colour signal too, and none plays under reduced motion.
 - While an edit is pending the chat composer cannot send (`ChatPanel` `locked`), but the chat shows
   no thinking row or stop button: a pending edit is not a chat request.
 
 - Activities receive stable IDs once, retained on reorder and restore. `editVersion` is independent of
-  the orchestrator round, and a preview applies only if its base version still matches.
+  the orchestrator round, and an edit applies only if its base version still matches.
 - Moves, time changes and place replacements preserve activity duration. Following activities start
   at the later of their original start or previous end + route duration + 15 minutes. Empty target
   days start at 09:00 local, and moves stay within the same lodging destination segment.
-- An unknown route blocks automatic shifting (users can adjust time or mode). Overflow beyond the day
-  blocks apply. Fixed transport and stays are read-only, and overlaps stay visible in review.
+- A provider outage on a leg does not shift the stop's time on a guess: the leg's notice is kept on its
+  stop (see Legs). A leg with no route adds no travel time. Overflow beyond the day blocks apply, and the alert names the stop. Fixed transport and stays are read-only; an overlap with a stop is marked on that stop.
 - Replacing a place marks the activity price for verification. Route fares are separate estimates,
   never added to transport twice, and an unknown fare is not zero.
 - Edits invalidate itinerary and final confirmation and regenerate conflicts, keeping unaffected brief
@@ -545,6 +624,29 @@ no LLM calls.
   more than twice the driving time is returned as a driving leg (`mode: "drive"`) and says so, rather
   than reported as unroutable. A hop between two trip cities first tries Google Maps transit through
   SerpApi (Tokyo → Kyoto: a Shinkansen with its fare), and drives only if that finds nothing.
+
+## Drawer walkthrough
+
+`apps/web/tests/e2e/drawer-walkthrough.e2e.mjs` walks the Trip drawer as a traveller uses it, in mock
+data mode, at 1440×1000 and 390×844, in English and in Chinese. It plans a simulated trip, moves two
+stops onto Day 1 and checks the rules in this section: no confirm or status label, each leg's mode
+and duration with no button, a leg change that re-times the stops after it and Undo that restores them,
+a time edit that applies at once and Undo, an overlap marked on its stop, a stay Alternative that changes
+the total, a restaurant from Ideas scheduled and undone, travel tips that fold (and stay folded after a
+reload on desktop), no horizontal page scroll, no console error, and no English label in the Chinese
+drawer except plan text, model text and the exact strings in the script's `KNOWN_EXCEPTIONS`.
+
+```bash
+DATA_MODE=mock pnpm --filter @trip/web e2e drawer-walkthrough
+```
+
+The runner starts its own server. The walk needs no map key: places are stubbed at the browser boundary
+and the server answers each edit with its simulated legs, so no check is skipped. A reload starts a blank
+chat, so the reload check reopens the saved trip from Trips. Each run writes
+`output/playwright/drawer-walkthrough/<time>/summary.json`, which lists every check with its result, the
+times and leg labels it read and any known exception, and one screenshot per stage beside it. The
+runner's own summary is `output/e2e/runner/<time>.json`. Set `LABEL` to name the artifact folder, or
+`BASE_URL` to test a server already running.
 
 ## Google Maps configuration
 
@@ -745,8 +847,12 @@ the account section explains that everything stays in this browser.
     is shown. Every notice the workspace and Settings show is a `Notice`: field errors, request and
     storage failures, map and location messages, and the `notice` the app's own routes return beside
     their English `error`. A response whose body has no `notice` is shown as received (`{ raw }`);
-    one with no readable body shows "Request failed ({status})." Nothing matches English text back to
-    a key. Edit preview differences arrive as values, not sentences. With no saved choice it follows the browser language (`zh*` opens in Chinese). The desktop sidebar and main content have an 8 px gutter.
+    one with no readable body shows "Request failed ({status})." Only a sentence the app wrote on a plan
+    before its notice was keyed is matched back to a key (`keyOfAuthoredSentence`, the drawer's conflicts);
+    no response text is matched. Edit preview differences arrive as values, not sentences. A notice kept on the plan (a leg or
+    timing notice) is stored as its key and values inside the plan's text (`storeNotice` and
+    `readStoredNotice`, same file), so it is shown in the traveller's language; the English sentence in
+    the plan's `conflictsWith` is written for the chat and is not shown. With no saved choice it follows the browser language (`zh*` opens in Chinese). The desktop sidebar and main content have an 8 px gutter.
     Every workspace amount goes through the Money module (`apps/web/lib/money.ts`, read through
     `useLocale()`) and the shared approximate rate table. Converted displays carry its as-of date;
     JPY has no decimals, other currencies have two. The trip's effective currency

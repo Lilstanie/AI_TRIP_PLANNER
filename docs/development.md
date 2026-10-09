@@ -362,6 +362,11 @@ Prettier formatting only on files that changed against the pull request base, or
 a push. The repository still holds files that were never formatted, so run Prettier on the files you
 changed (`npx prettier --write <file>`), never on a directory or with `pnpm format`.
 
+On pull requests, the `protected-files` job runs `node scripts/verify-protected-files.mjs`,
+`node scripts/verify-docs.mjs`, the pair check and `node scripts/verify-branch-name.mjs <head-branch>`. The
+branch check fails when the head branch does not start with `feature/`, `fix/`, `refactor/`, `docs/`,
+`chore/` or `test/`, or contains an AI tool name; Dependabot branches are exempt.
+
 Run focused packages with `pnpm --filter @trip/agents test`, `pnpm --filter @trip/orchestrator test`
 or `pnpm --filter @trip/web test`. The web test script sets `NODE_OPTIONS` with POSIX shell syntax;
 on Windows, run it from WSL or Git Bash.

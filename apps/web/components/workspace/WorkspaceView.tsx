@@ -3,10 +3,12 @@ import { useEffect, useRef, type CSSProperties } from "react";
 import { TripFactChips } from "../preferences/TripFactChips";
 import { ChatPanel } from "../chat/ChatPanel";
 import { TripEditor } from "../trip/TripEditor";
+import { useAutoSavePlaces } from "../trip/useAutoSavePlaces";
+import { useLegRoutes } from "../trip/useLegRoutes";
+import { usePlanRevision } from "../trip/plan-revision";
 import { useChooseCandidate } from "../trip/useChooseCandidate";
 import { TripMapCanvas } from "../map/TripMapCanvas";
-import { TripPanel, tripStatus } from "../trip/TripPanel";
-import { TripPlaceList } from "../trip/TripPlaceList";
+import { TripPanel } from "../trip/TripPanel";
 import { LocationPrompt } from "../map/LocationPrompt";
 import { useUserLocation } from "../map/useUserLocation";
 import { Drawer } from "../ui/Drawer";
@@ -33,7 +35,7 @@ import { usePhoneBack } from "./usePhoneBack";
 import type { MobileView } from "./workspace-helpers";
 
 export function WorkspaceView({ model }: { model: WorkspaceModel }) {
-  const { t, notice: localizeNotice } = useLocale();
+  const { t, delta, notice: localizeNotice } = useLocale();
   const { session, layout, itinerary, history } = model;
   const {
     plan,
@@ -53,6 +55,8 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
     attachments: composerAttachments,
     blank,
     ask,
+    estimateChange,
+    replacedChange,
   } = session;
   const {
     dialog,
@@ -60,7 +64,6 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
     mobileView,
     preferencesOpen,
     tripOpen,
-    tripTab,
     sidebarCollapsed,
     sidebarWidth,
     chatShare,
@@ -78,7 +81,6 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
     closePreferences,
     openTrip,
     closeTrip,
-    openDialog,
     openNav,
     closeDrawer,
     toggleChats,
@@ -90,7 +92,20 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
   const { keyboardOpen } = usePhoneKeyboard(phone);
   const { tripUpdated } = usePhoneTripUpdates(model);
   usePhoneBack(phone);
-  const chooser = useChooseCandidate(plan, session.applyEdit, session.trackEdit);
+  // The one owner of the plan's revisions and its background work: a traveller's edit wins over the route
+  // checks and place saves, which are offered to it and run only when they still apply.
+  const revisions = usePlanRevision({
+    plan,
+    held: busy || editPending,
+    dataMode: dataMode.mode,
+    onApply: session.applyEdit,
+  });
+  const chooser = useChooseCandidate(plan, revisions, session.trackEdit);
+  // Map-found places are saved on their stops from here, so they are saved whether or not the
+  // timeline tab is open.
+  const autoSaves = useAutoSavePlaces({ plan, tripPlaces, revisions });
+  // A day's legs are routed once its places are saved, whether or not the Trip timeline is open.
+  const legs = useLegRoutes({ plan, revisions, onRoutes: session.showRoutes });
   const chatsButton = useRef<HTMLButtonElement>(null);
   const chatsSearch = useRef<HTMLInputElement>(null);
   const chatsPanel = useRef<HTMLDivElement>(null);
@@ -211,34 +226,25 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
       {plan ? (
         <TripPanel
           plan={plan}
-          tab={tripTab}
-          onTab={layout.showTripTab}
-          onReview={() => openDialog("review")}
-          onEdit={edit}
-          {...(busy || editPending || chooser.working ? {} : { onChoose: chooser.choose })}
           {...(chooser.problem ? { problem: chooser.problem } : {})}
-          places={
-            <TripPlaceList
-              tripPlaces={tripPlaces}
-              startDate={plan.brief.dates[0]}
-              selected={selectedActivity}
-              onSelect={session.selectStop}
-              plan={plan}
-              disabled={busy || editPending}
-              onApply={session.applyEdit}
-              onAdjust={session.adjustStop}
-            />
-          }
           timeline={
             <TripEditor
               plan={plan}
-              disabled={busy}
+              disabled={busy || editPending}
               onPending={session.trackEdit}
               tripPlaces={tripPlaces}
               selected={selectedActivity}
               onSelect={session.selectStop}
               onRoutesChange={session.showRoutes}
               onApply={session.applyEdit}
+              revisions={revisions}
+              routes={mapRoutes}
+              legs={legs}
+              onLegApplied={legs.noteLeg}
+              onTimelineChange={session.setTimelineChanged}
+              showPhotos={dataMode.mode === "live" && !!dataMode.providers?.maps}
+              saves={autoSaves}
+              {...(busy || editPending || chooser.working ? {} : { onChoose: chooser.choose })}
             />
           }
         />
@@ -416,6 +422,28 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
           </header>
           <div className="workspace-notices">
             <CurrencyNotice />
+            {estimateChange !== undefined && (
+              <div className="estimate-notice" role="status">
+                <span>
+                  {Math.abs(estimateChange) < 0.005
+                    ? t("Estimate unchanged from the previous plan.")
+                    : t("Estimate changed by {change} from the previous plan.", {
+                        change: delta(estimateChange),
+                      })}
+                </span>
+                <button type="button" onClick={session.dismissEstimate}>
+                  {t("Dismiss")}
+                </button>
+              </div>
+            )}
+            {replacedChange && (
+              <div className="replaced-notice" role="status">
+                <span>{t("The new plan replaced your last change to the timeline.")}</span>
+                <button type="button" onClick={session.dismissReplaced}>
+                  {t("Dismiss")}
+                </button>
+              </div>
+            )}
             {error && (
               <div className="error-banner" role="alert">
                 {localizeNotice(error)}{" "}
@@ -496,7 +524,6 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                 {plan && (
                   <div className="phone-trip__head">
                     <h2 className="phone-trip__title">{t("Your trip")}</h2>
-                    <span className="trip__meta">{t(tripStatus(plan))}</span>
                   </div>
                 )}
                 {tripContent}
@@ -532,7 +559,6 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                 onClose={closeTrip}
                 returnFocus={tripToggle}
                 className="workspace-drawer workspace-drawer--trip"
-                meta={plan && <span className="trip__meta">{t(tripStatus(plan))}</span>}
               >
                 {tripContent}
               </Drawer>

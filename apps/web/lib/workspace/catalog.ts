@@ -15,7 +15,6 @@ import type { Notice } from "../i18n/notice";
 /** Storage key for the multi-chat/multi-trip workspace catalog. */
 export const CATALOG_KEY = "trip-workspace-catalog-v3";
 
-export type TripStatus = "draft" | "needs_review";
 export type WorkspaceView = "chat" | "map" | "trip" | "mine";
 
 export type ConversationRecord = {
@@ -35,7 +34,6 @@ export type TripRecord = {
   id: string;
   title: string;
   updatedAt: string;
-  status: TripStatus;
   conversationIds: string[];
   snapshot: Snapshot;
 };
@@ -103,21 +101,6 @@ function titleFor(snapshot: Snapshot): string {
 }
 
 /**
- * The one honest trip label. A plan is "needs review" while it still reports an
- * unresolved revision request or an overrun, and a draft otherwise. Nothing can
- * confirm a plan any more, so `status` never says "confirmed" — a stored value
- * from before this change is recomputed from the snapshot on read.
- */
-export function statusForPlan(plan: TripPlan): TripStatus {
-  const unresolved = plan.conflicts?.length ?? 0;
-  return unresolved > 0 || plan.overrunPct > 0 ? "needs_review" : "draft";
-}
-
-function statusFor(snapshot: Snapshot): TripStatus {
-  return statusForPlan(snapshot.plan);
-}
-
-/**
  * Layout is a preference, not user data: invalid or legacy values fall back to defaults per
  * field instead of making the whole catalog (and its chats and trips) unreadable.
  */
@@ -179,7 +162,6 @@ function tripFrom(snapshot: Snapshot, conversationId?: string): TripRecord {
     id,
     title: titleFor(snapshot),
     updatedAt: snapshot.savedAt,
-    status: statusFor(snapshot),
     conversationIds: conversationId ? [conversationId] : [],
     snapshot: clone(parseSnapshot(snapshot)),
   };
@@ -316,9 +298,6 @@ export function parseTrip(value: unknown): TripRecord {
     id: value.id,
     title: value.title,
     updatedAt: value.updatedAt,
-    // `status` is derived, not stored state: a legacy "confirmed" (or any other
-    // stored value) is recomputed from the plan so an old catalog keeps loading.
-    status: statusFor(snapshot),
     conversationIds: [...value.conversationIds],
     snapshot,
   };

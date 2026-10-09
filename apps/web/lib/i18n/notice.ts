@@ -1,4 +1,4 @@
-import { translate, type AppLocale, type MessageKey } from "./locale";
+import { AUTHORED_KEYS, translate, type AppLocale, type MessageKey } from "./locale";
 
 /** The `{name}` placeholders of a dictionary key, as a union of names. */
 type Placeholders<Key extends string> = Key extends `${string}{${infer Name}}${infer Rest}`
@@ -70,3 +70,70 @@ export const errorNotice = (error: unknown, fallback: Notice): Notice =>
     : error instanceof Error
       ? { raw: error.message }
       : fallback;
+
+type AuthoredPattern = { key: MessageKey; names: string[]; sentence: RegExp };
+let authoredPatterns: AuthoredPattern[] | undefined;
+
+/** One pattern per English key: each `{name}` becomes a group, the rest of the key matches itself. */
+function patternsOf(): AuthoredPattern[] {
+  authoredPatterns ??= AUTHORED_KEYS.map((key) => {
+    const names: string[] = [];
+    const source = key
+      .split(/(\{[A-Za-z]+\})/)
+      .map((part) => {
+        const placeholder = /^\{([A-Za-z]+)\}$/.exec(part);
+        if (!placeholder) return part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        names.push(placeholder[1]!);
+        return "(.+?)";
+      })
+      .join("");
+    return { key, names, sentence: new RegExp(`^${source}$`) };
+  });
+  return authoredPatterns;
+}
+
+/**
+ * The notice an English sentence was built from, when the app wrote that sentence: each placeholder's value is read
+ * back from it, so `Day 1: Park needs at least 35 minutes after the previous activity.` is the travel-buffer notice
+ * with day 1, stop Park and 35 minutes. Undefined for any other text, which is then shown as received.
+ */
+export function keyOfAuthoredSentence(sentence: string): Notice | undefined {
+  for (const { key, names, sentence: pattern } of patternsOf()) {
+    const match = pattern.exec(sentence);
+    if (!match) continue;
+    if (!names.length) return { key } as Notice;
+    const params = Object.fromEntries(names.map((name, index) => [name, match[index + 1]!]));
+    return { key, params } as Notice;
+  }
+  return undefined;
+}
+
+const STORED_PREFIX = "notice:";
+
+/**
+ * A notice kept on a plan. The plan stores strings (`editIssues[].message`, shared with packages/shared),
+ * so a keyed notice is written as its key and params, encoded in one string, and read back in the
+ * interface language. The English sentence stays in `conflictsWith`, which the chat reads.
+ */
+export function storeNotice(notice: Notice): string {
+  return STORED_PREFIX + encodeURIComponent(JSON.stringify(notice));
+}
+
+/**
+ * The notice a stored plan string holds. A string that was not written by `storeNotice` (a plan saved
+ * before notices were keyed, or an agent's sentence) is shown as received, as `{ raw }`.
+ */
+export function readStoredNotice(text: string): Notice {
+  if (text.startsWith(STORED_PREFIX)) {
+    try {
+      const parsed: unknown = JSON.parse(decodeURIComponent(text.slice(STORED_PREFIX.length)));
+      if (parsed && typeof parsed === "object") {
+        if (typeof (parsed as { key?: unknown }).key === "string") return parsed as Notice;
+        if (typeof (parsed as { raw?: unknown }).raw === "string") return parsed as Notice;
+      }
+    } catch {
+      // Not a stored notice after all: shown as the text it is.
+    }
+  }
+  return { raw: text };
+}

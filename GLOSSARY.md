@@ -62,6 +62,10 @@ _Avoid_: plan order, sort order
 A flight or stay the specialist found and priced but did not pick, which the traveller can take instead.
 _Avoid_: candidate, option, other choice
 
+**Leg**:
+The journey from one stop to the next on the same day, with its own travel mode and time.
+_Avoid_: connection, transfer, hop
+
 ## Workspace
 
 **Notice**:

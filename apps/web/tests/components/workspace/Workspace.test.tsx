@@ -111,7 +111,7 @@ describe("Workspace interactions", () => {
     expect(document.activeElement).toBe(screen.getByRole("button", { name: "Close your trip" }));
     // The drawer overlays the map; the map canvas stays mounted in its own column.
     expect(document.querySelector(".workspace-panel--map")).toBe(map);
-    expect(within(trip).getByRole("button", { name: "Review plan" })).toBeTruthy();
+    expect(within(trip).queryByRole("button", { name: "Review plan" })).toBeNull();
     // Every planned trip is already kept in Your trips; there is no separate snapshot button.
     expect(within(trip).queryByRole("button", { name: "Save trip" })).toBeNull();
 
@@ -172,14 +172,13 @@ describe("Workspace interactions", () => {
   it("keeps the timeline and editors out of the map canvas", () => {
     render(<Workspace initialPlan={plan} />);
     const map = document.querySelector<HTMLElement>(".workspace-panel--map")!;
-    expect(within(map).queryByRole("button", { name: /Check routes for Day/ })).toBeNull();
     expect(within(map).queryByRole("button", { name: "Review plan" })).toBeNull();
     expect(within(map).queryByText(/Estimated total/)).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Open your trip" }));
-    fireEvent.click(screen.getByRole("tab", { name: "Timeline & routes" }));
     const trip = drawer("trip");
-    expect(within(trip).getByRole("button", { name: /Check routes for Day/ })).toBeTruthy();
-    expect(within(map).queryByRole("button", { name: /Check routes for Day/ })).toBeNull();
+    expect(within(trip).getByRole("region", { name: "Trip timeline" })).toBeTruthy();
+    expect(within(map).queryByRole("region", { name: "Trip timeline" })).toBeNull();
+    expect(within(trip).queryByRole("button", { name: /Check routes/ })).toBeNull();
   });
   it("starts a blank conversation instead of carrying the demo trip into New chat", async () => {
     vi.stubGlobal("fetch", withPlaceRequests());
@@ -1036,10 +1035,7 @@ describe("Workspace map places", () => {
     expect(within(map).queryByText(/No Google place matched/)).toBeNull();
     expect(within(map).queryByRole("button", { name: "Retry places" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Open your trip" }));
-    fireEvent.click(screen.getByRole("tab", { name: "Timeline & routes" }));
-    expect(within(drawer("trip")).getAllByText(/Location to be confirmed/).length).toBeGreaterThan(
-      0,
-    );
+    expect(within(drawer("trip")).getAllByText(/Not found on the map/).length).toBeGreaterThan(0);
   });
 
   it("keeps located places when another lookup fails and retries only the failed one", async () => {
@@ -1065,8 +1061,7 @@ describe("Workspace map places", () => {
       />,
     );
     fireEvent.click(screen.getByRole("button", { name: "Open your trip" }));
-    const places = () =>
-      within(drawer("trip")).getByRole("list", { name: "Stops, Day 1 · 2026-10-01" });
+    const places = () => within(drawer("trip")).getByRole("list", { name: "Day 1 timeline" });
     await waitFor(() =>
       expect(
         within(places()).getByRole("button", { name: /^Stop \d+: To-ji Temple/ }),

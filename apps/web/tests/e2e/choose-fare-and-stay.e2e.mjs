@@ -48,9 +48,11 @@ try {
           .click();
       else await page.getByRole("button", { name: "Open your trip" }).click();
     };
-    const expand = async (label) => {
-      const row = page.locator(".section__row", { hasText: label }).first();
-      if ((await row.getAttribute("aria-expanded")) !== "true") await row.click();
+    // The flight and the night's stay are rows in the day view; each opens to its card.
+    const openBooking = async (kind) => {
+      const row = page.locator(`li.timeline-fixed--${kind}`).first();
+      const open = row.locator("button.timeline-booking__open");
+      if ((await open.getAttribute("aria-expanded")) !== "true") await open.click();
     };
 
     await page.goto(process.env.BASE_URL ?? "http://localhost:3000");
@@ -76,7 +78,50 @@ try {
     check(fare && was, `${width}: the planner found more than one fare`);
 
     await openTrip();
-    await expand("Getting around");
+    // The day view: Day 1 starts with the flight in, each night of the stay ends its day, and the last
+    // day ends with the return flight of the same round trip.
+    const dayList = async (day) => {
+      await page.getByRole("tab", { name: new RegExp(`^Day ${day}\\b`) }).click();
+      await page.waitForTimeout(300);
+      return page.getByRole("list", { name: new RegExp(`^Day ${day} timeline$`) });
+    };
+    // The day strip has one day per night, from the first date to the return date (not counted).
+    const lastDay = Math.max(
+      1,
+      Math.round(
+        (Date.parse(`${planned.brief.dates[1]}T00:00:00Z`) -
+          Date.parse(`${planned.brief.dates[0]}T00:00:00Z`)) /
+          86400000,
+      ),
+    );
+    const nights = new Map();
+    for (const stay of section(planned, "accommodation").stays)
+      for (let offset = 0; offset < stay.nights; offset += 1)
+        nights.set(stay.day + offset, (nights.get(stay.day + offset) ?? 0) + 1);
+    const first = await dayList(1);
+    check(
+      (await first.locator("li").first().getAttribute("class"))?.includes("timeline-fixed--flight"),
+      `${width}: Day 1 starts with the flight in`,
+    );
+    for (let day = 1; day < lastDay; day += 1) {
+      const list = await dayList(day);
+      const last = await list.locator("li").last().innerText();
+      check(
+        (await list.locator("li").last().getAttribute("class"))?.includes("timeline-fixed--stay") &&
+          (await list.locator("li.timeline-fixed--stay").count()) === (nights.get(day) ?? 0),
+        `${width}: Day ${day} ends with its night's stay row (last: "${last.slice(0, 50)}")`,
+      );
+    }
+    const end = await dayList(lastDay);
+    const endText = await end.locator("li").last().innerText();
+    check(
+      (await end.locator("li").last().getAttribute("class"))?.includes("timeline-fixed--flight") &&
+        endText.includes("return flight") &&
+        (await end.locator("li.timeline-fixed--stay").count()) === (nights.get(lastDay) ?? 0),
+      `${width}: the last day ends with the flight out (last: "${endText.slice(0, 50)}")`,
+    );
+    await dayList(1);
+    await openBooking("flight");
     await page
       .getByRole("button", { name: new RegExp(`^Take ${fare.carrier} instead`) })
       .first()
@@ -109,7 +154,7 @@ try {
 
     const stay = section(afterFare, "accommodation").stays[0];
     const room = stay.candidates.find((c) => c.id !== stay.selectedId);
-    await expand("Stay");
+    await openBooking("stay");
     await page
       .getByRole("button", { name: new RegExp(`^Take ${room.name} instead`) })
       .first()

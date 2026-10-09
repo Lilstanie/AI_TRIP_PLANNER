@@ -159,6 +159,16 @@ const ZH = {
 export type MessageKey = keyof typeof ZH;
 
 /**
+ * Every English key with a Chinese entry, without a `|context` suffix, that starts with fixed text. A sentence
+ * the app wrote in English before its notices were keyed is matched against these to recover the key (see
+ * `notice.ts`). A key that starts with a placeholder ("{stop}: {reason}") would match any sentence with a colon,
+ * so it is left out: a notice of that kind is stored as its key, and its English copy is not read back.
+ */
+export const AUTHORED_KEYS: readonly MessageKey[] = Object.keys(ZH).filter(
+  (key) => !key.includes("|") && !key.startsWith("{"),
+) as MessageKey[];
+
+/**
  * English is the key itself, so a missing or empty Chinese entry falls back to English. A key may
  * carry a `|context` suffix when one English word needs two translations ("Budget|tier"); English
  * shows only the part before it.

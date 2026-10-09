@@ -83,11 +83,15 @@ describe("crossing the phone width", () => {
       view: "trip",
       dialog: "settings",
     });
-    const review = layout(workspace("mine"), { type: "open-dialog", dialog: "review" }, PHONE);
-    expect(play(review, resize(PHONE, TABLET))).toEqual({
+    const withSettings = layout(
+      workspace("mine"),
+      { type: "open-dialog", dialog: "settings" },
+      PHONE,
+    );
+    expect(play(withSettings, resize(PHONE, TABLET))).toEqual({
       page: "trips",
       view: "chat",
-      dialog: "review",
+      dialog: "settings",
     });
   });
 
@@ -193,7 +197,7 @@ describe("one open panel", () => {
     expect(
       play(
         workspace(),
-        [{ type: "open-dialog", dialog: "review" }, DESKTOP],
+        [{ type: "open-dialog", dialog: "settings" }, DESKTOP],
         [{ type: "open-fact", fact: "budget" }, DESKTOP],
       ),
     ).toEqual({ page: "workspace", view: "chat", fact: "budget" });
@@ -261,7 +265,7 @@ describe("pages and views", () => {
       page: "workspace",
       view: "map",
       drawer: "trip",
-      dialog: "review",
+      dialog: "settings",
     };
     expect(layout(busy, { type: "chat-started" }, DESKTOP)).toEqual(workspace("chat"));
     expect(layout(busy, { type: "chat-started", fact: "where" }, DESKTOP)).toEqual({

@@ -300,12 +300,18 @@ try {
         await page.getByRole("button", { name: "Open your trip" }).click();
       await page.locator(".trip__budget strong").waitFor();
     };
-    /** What the plan panel shows: the total, each section's cost and the budget line. */
+    /**
+     * What the plan panel shows: the total, every amount in the Trip drawer (budget, stays, flights and
+     * stops; the specialist section rows were removed in #239) and the budget line.
+     */
     const panel = async () => {
       await showTripPanel();
       return {
         total: (await page.locator(".trip__budget strong").textContent()).trim(),
-        costs: await page.locator(".section__row .cost").allTextContents(),
+        costs:
+          (await page.locator(".trip-panel").first().innerText()).match(
+            /\b(?:AUD|CNY|USD|JPY)[\s\u00a0][\d,]+(?:\.\d+)?/g,
+          ) ?? [],
         budgetLine: (await page.locator(".trip__budget-delta").textContent()).trim(),
       };
     };
@@ -366,16 +372,16 @@ try {
     const flat = (text) => text.replace(/\s+/g, " ").trim();
     const lastReply = async () =>
       flat(await page.locator(".msg-item--agent .msg-item__body").last().textContent());
-    /** Each section row of the plan panel: label, the specialist's summary and its cost. */
+    /**
+     * Each section the specialists wrote: its id and summary, as the server stored them. The drawer no
+     * longer shows section rows (#239); the summaries still reach the chat, so their wording is checked.
+     */
     const sectionRows = async () => {
-      await showTripPanel();
-      return page.locator(".section__row").evaluateAll((rows) =>
-        rows.map((row) => ({
-          label: row.querySelector("strong")?.textContent ?? "",
-          summary: (row.querySelector("small")?.textContent ?? "").replace(/\s+/g, " ").trim(),
-          cost: (row.querySelector(".cost")?.textContent ?? "").replace(/\s+/g, " ").trim(),
-        })),
-      );
+      const plan = await storedPlan();
+      return (plan?.sections ?? []).map((section) => ({
+        label: section.id,
+        summary: (section.summary ?? "").replace(/\s+/g, " ").trim(),
+      }));
     };
     /** The thinking transcript of the latest turn, every row opened. */
     const thinkingText = async () => {
@@ -433,11 +439,10 @@ try {
       tag("specialist summaries quote amounts in CNY"),
     );
     check(
-      rows.some((row) => row.summary.includes(row.cost)) &&
-        rows
-          .filter((row) => has(row.summary, "CNY"))
-          .every((row) => /CNY [\d,]+\.\d\d/.test(row.summary)),
-      tag(`a summary's amount is the panel's amount (${rows.map((r) => r.cost).join(", ")})`),
+      rows
+        .filter((row) => has(row.summary, "CNY"))
+        .every((row) => /CNY [\d,]+\.\d\d/.test(row.summary)),
+      tag(`a summary's CNY amount has two decimals (${rows.map((r) => r.summary).join(" | ")})`),
     );
     const reply1 = await lastReply();
     log.reply = reply1;

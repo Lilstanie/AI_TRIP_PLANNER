@@ -1,7 +1,7 @@
 // Failure inventory: English controls in Chinese sidebar, chat, trip, timeline or settings;
 // untranslated accessible names or storage-full notice; raw traveller/model text altered; overflow at phone width;
-// authored notices that skip the dictionary (attachment limit, unreadable stream frames, edit preview
-// differences and blockers, failed preview or place search) still showing in English.
+// authored notices that skip the dictionary (attachment limit, unreadable stream frames, edit blockers,
+// failed preview or place search) still showing in English.
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
@@ -43,15 +43,23 @@ try {
       `${width}: trip summary Chinese`,
     );
     const english =
-      /Estimated total|Within budget|Over budget|Timeline & routes|Review plan|View details|Price unknown|Estimated data|Mock data|Edit itinerary/;
+      /Estimated total|Within budget|Over budget|Timeline & routes|Needs review|Needs you|Review plan|View details|Price unknown|Estimated data|Mock data|Edit itinerary|Travel tips|Also found|Schedule on a day|Restaurant suggestion|Night \d+ of/;
     check(
       !english.test(await page.locator(".trip-panel").innerText()),
       `${width}: no English authored trip labels`,
     );
-    const timeline = page.getByRole("tab", { name: "时间线与路线", exact: true });
-    await timeline.click();
     check(
-      (await page.getByRole("button", { name: /检查.*路线/ }).count()) > 0,
+      (await page.locator(".trip-tips summary", { hasText: "旅行提示" }).count()) === 1,
+      `${width}: the travel tips heading is Chinese`,
+    );
+    // The day's timeline is part of the Trip drawer; there is no separate tab.
+    await page.getByRole("region", { name: "行程时间线" }).waitFor();
+    // A stop's action menu is the timeline's Chinese control (the day has no route check any more).
+    check(
+      (await page
+        .getByRole("region", { name: "行程时间线" })
+        .getByRole("button", { name: /的操作/ })
+        .count()) > 0,
       `${width}: timeline controls Chinese`,
     );
     check(
@@ -61,7 +69,7 @@ try {
       `${width}: no English authored timeline labels`,
     );
     await page
-      .locator(".trip-tabpanel")
+      .getByRole("region", { name: "行程时间线" })
       .evaluate((el) =>
         Promise.all(el.getAnimations().map((animation) => animation.finished.catch(() => {}))),
       );
@@ -138,68 +146,104 @@ try {
   await np.locator(".chat-empty__suggestions button").first().click();
   await np.locator(".msg-item--agent .msg-item__body").first().waitFor({ timeout: 180000 });
   await np.getByRole("button", { name: "打开你的行程" }).click();
-  await np.getByRole("tab", { name: "时间线与路线", exact: true }).click();
   const timeline = np.getByRole("region", { name: "行程时间线" });
+  await timeline.waitFor();
   await timeline.locator(".timeline-stop .timeline-stop__main").first().click();
+  // Tapping the time opens its Start and End form.
+  await timeline.locator(".timeline-stop__time").first().click();
   const end = timeline.getByLabel(/^结束/).first();
   const [endHour, endMinute] = (await end.inputValue()).split(":").map(Number);
   await end.fill(
     `${String(Math.min(endHour + 1, 22)).padStart(2, "0")}:${String(endMinute).padStart(2, "0")}`,
   );
-  const previewTime = () => timeline.getByRole("button", { name: "预览时间修改" }).click();
-  await previewTime();
-  const preview = np.getByRole("region", { name: "修改预览" });
-  await preview.waitFor({ timeout: 30000 });
-  const differences = await preview.locator(".edit-preview__list").last().innerText();
-  check(
-    /：\d\d:\d\d–\d\d:\d\d → \d\d:\d\d–\d\d:\d\d/.test(differences) &&
-      !/: \d\d:\d\d|day \d|place changed/.test(differences),
-    `edit preview difference Chinese (${differences.trim()})`,
-  );
-  await preview.getByRole("button", { name: "取消" }).click();
-  // Blockers as the preview route sends them, as notices: each reads in Chinese, the stop name
-  // unchanged. The English `blockers` beside them are for older clients and must not be shown.
+  // A refused edit can leave the time form closed; tapping the time opens it again.
+  const changeTime = async () => {
+    const submit = timeline.getByRole("button", { name: "修改时间", exact: true });
+    if (!(await submit.isVisible())) await timeline.locator(".timeline-stop__time").first().click();
+    await submit.click();
+  };
+  // A refused edit leaves the plan unchanged and lists its blockers as alerts in the timeline.
   await np.route("**/api/trip/preview-edit", async (route) => {
     const response = await route.fetch();
     const body = await response.json();
     body.blockerNotices = [
       {
-        key: "Day {day}: confirm the place for every stop first, so travel times between them can be checked.",
-        params: { day: 2 },
+        key: "Day {day}: confirm the place for {stop} first, so its travel time can be checked.",
+        params: { day: 2, stop: "Senso-ji Temple" },
       },
       {
         key: "Day {day}: {stop} needs at least {minutes} minutes after the previous activity.",
         params: { day: 1, stop: "Senso-ji Temple", minutes: 40 },
       },
-      { key: "Day {day}: activity would extend beyond the day.", params: { day: 3 } },
+      {
+        key: "Day {day}: {stop} would extend beyond the day.",
+        params: { day: 3, stop: "Senso-ji Temple" },
+      },
       { key: "Route unavailable" },
       { key: "Route verification failed" },
     ];
     body.blockers = ["English blocker for older clients"];
     await route.fulfill({ response, json: body });
   });
-  await previewTime();
-  await preview.waitFor({ timeout: 30000 });
-  const blockers = await preview.locator(".edit-preview__list--blockers").innerText();
+  await changeTime();
+  const alert = timeline.locator(".timeline-status--error");
+  await alert.first().waitFor({ timeout: 30000 });
+  const blockers = await alert.innerText();
   check(
     [
-      "第 2 天：请先确认每个站点的地点，才能核查站点间的交通时间。",
+      "第 2 天：请先确认 Senso-ji Temple 的地点，才能核查其交通时间。",
       "第 1 天：Senso-ji Temple 需与上一项活动至少间隔 40 分钟。",
-      "第 3 天：活动将超出当天时间。",
+      "第 3 天：Senso-ji Temple 将超出当天时间。",
       "路线不可用",
       "路线核查失败",
     ].every((line) => blockers.includes(line)) &&
       !/Day \d|Route|minutes|English blocker/.test(blockers),
-    `edit preview blockers Chinese (${blockers.replaceAll("\n", " | ")})`,
+    `refused edit blockers Chinese (${blockers.replaceAll("\n", " | ")})`,
   );
-  await np.screenshot({ path: `${out}/1440-edit-preview-blockers.png` });
-  await preview.getByRole("button", { name: "关闭" }).click();
+  await np.screenshot({ path: `${out}/1440-edit-blockers.png` });
+  // A timing notice the plan keeps (stored by the server as a keyed notice, see lib/i18n/notice.ts) reads in
+  // Chinese, on the stop its leg leads into, and the English sentence kept for the chat is not shown.
+  await np.unroute("**/api/trip/preview-edit");
+  await np.route("**/api/trip/preview-edit", async (route) => {
+    const response = await route.fetch();
+    const body = await response.json();
+    const stop = route.request().postDataJSON().operation.id;
+    const notice = {
+      key: "Day {day}: {stop} needs at least {minutes} minutes after the previous activity.",
+      params: { day: 1, stop: "Senso-ji Temple", minutes: 40 },
+    };
+    body.plan.editIssues = [
+      {
+        code: "route_unavailable",
+        message: `notice:${encodeURIComponent(JSON.stringify(notice))}`,
+        activityIds: [stop],
+      },
+    ];
+    await route.fulfill({ response, json: body });
+  });
+  await changeTime();
+  await timeline.locator(".timeline-stop__conflicts li").first().waitFor({ timeout: 30000 });
+  const stored = await timeline.locator(".timeline-stop__conflicts").allInnerTexts();
+  check(
+    stored.length === 1 &&
+      stored[0].includes("第 1 天：Senso-ji Temple 需与上一项活动至少间隔 40 分钟。") &&
+      !/needs at least|Day \d/.test(stored.join(" ")),
+    `a stored timing notice shows on its stop in Chinese (${stored.join(" | ").replace(/\s+/g, " ")})`,
+  );
+  await np.screenshot({ path: `${out}/1440-stored-notice.png` });
+  // The applied edit closed the time form; the next block needs a changed end time to submit.
+  await timeline.locator(".timeline-stop__time").first().click();
+  const endAgain = timeline.getByLabel(/^结束/).first();
+  const [endAgainHour, endAgainMinute] = (await endAgain.inputValue()).split(":").map(Number);
+  await endAgain.fill(
+    `${String(Math.min(endAgainHour + 1, 22)).padStart(2, "0")}:${String(endAgainMinute).padStart(2, "0")}`,
+  );
   await np.unroute("**/api/trip/preview-edit");
   // A failed preview or place search with no server wording falls back to authored notices.
   await np.route("**/api/trip/preview-edit", (route) =>
     route.fulfill({ status: 500, contentType: "application/json", body: "{}" }),
   );
-  await previewTime();
+  await changeTime();
   const previewFailed = np.getByText("预览失败，请重新尝试此修改。").first();
   await previewFailed.waitFor({ timeout: 10000 }).catch(() => {});
   check(await previewFailed.isVisible(), "failed preview notice Chinese");
@@ -215,7 +259,7 @@ try {
       }),
     }),
   );
-  await previewTime();
+  await changeTime();
   const previewRefused = np.getByText("此修改已过时，请基于当前行程重新修改。").first();
   await previewRefused.waitFor({ timeout: 10000 }).catch(() => {});
   check(await previewRefused.isVisible(), "refused preview notice Chinese");
