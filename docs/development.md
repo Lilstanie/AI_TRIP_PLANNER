@@ -286,7 +286,11 @@ could fail, then write the code and derive the isolated checks from that list.
 
 This describes the preferred approach for new work. CI runs the Vitest suites through `pnpm test` and
 the repository script tests (`scripts/*.test.mjs`) through `pnpm test:scripts`. It does not run the E2E
-scripts, so run the relevant one yourself before pushing.
+scripts, so run the relevant one yourself before pushing. It does run `pnpm verify:e2e-selectors`, which
+fails when an E2E script selects a CSS class (`.section__row`) that no component, page or library file under
+`apps/web` renders any more; a rule left in a stylesheet does not count. It needs no server and takes well
+under a second. A line that checks a removed class stays gone ends with `// e2e-selectors: absent`; a class
+only a third-party library sets goes in `ALLOWED` in `scripts/verify-e2e-selectors.mjs`, with its reason.
 
 The E2E scripts live in `apps/web/tests/e2e/`. Run them through the runner, which starts a server on
 a free port, runs each named script against it from the repository root and stops only the server it
@@ -354,7 +358,7 @@ pnpm build
 ```
 
 CI (`.github/workflows/ci.yml`) runs these five commands on Node 22 for pull requests and pushes
-to `main`.
+to `main`, after `pnpm verify:e2e-selectors`.
 
 `pnpm lint` covers `apps/web` (`next lint`, config in `apps/web/.eslintrc.json`) and every package under
 `packages/` (ESLint with the shared flat config `eslint.config.mjs` at the repository root). Unlike

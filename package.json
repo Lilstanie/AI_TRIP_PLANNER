@@ -18,6 +18,7 @@
     "format:check-changed": "node scripts/format-check-changed.mjs",
     "verify:protected": "node scripts/verify-protected-files.mjs",
     "verify:docs": "node scripts/verify-docs.mjs",
+    "verify:e2e-selectors": "node scripts/verify-e2e-selectors.mjs",
     "verify:pairs": "node .agents/skills/translate-docs/scripts/check-pairs.mjs",
     "test:scripts": "node --test \"scripts/*.test.mjs\""
   },
