@@ -11,13 +11,14 @@ import {
 import { createServer } from "node:net";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { SUPPORTED_SCRIPT_NAMES } from "./discovery.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const WEB = resolve(HERE, "../..");
 const ROOT = resolve(WEB, "../..");
 const NEXT = resolve(WEB, "node_modules/.bin/next");
 const ROOT_OUTPUT = resolve(ROOT, "output/e2e/local-test-cli");
-const SUPPORTED = new Set(["agent-lab-single-agent"]);
+const SUPPORTED = new Set(SUPPORTED_SCRIPT_NAMES);
 const CREDENTIALS = [
   "DEEPSEEK_API_KEY",
   "MINIMAX_API_KEY",
