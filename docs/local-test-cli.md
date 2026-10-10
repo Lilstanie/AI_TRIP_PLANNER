@@ -54,6 +54,29 @@ pnpm --filter @trip/web e2e agent-lab-replay
 Raw scripts retain their existing environment and server-reuse behavior. Use the isolated `run`
 command when the fixture-only environment and per-invocation evidence are required.
 
+## Repeat runs
+
+Repeat a supported selection serially with a positive whole number:
+
+```bash
+pnpm --filter @trip/web e2e run agent-lab-single-agent --repeat 3
+pnpm --filter @trip/web e2e run agent-lab-single-agent --dev --repeat 3
+pnpm --silent --filter @trip/web e2e run agent-lab-single-agent --repeat 3 --json
+```
+
+Every attempt starts a fresh local CLI invocation with its own build, server, browser process, fixture
+execution and evidence directory. The repeat summary records the requested count and each started
+attempt's outcome, reproduction command, child summary and evidence paths. A failed, blocked,
+unsupported, timed-out or interrupted attempt keeps the repeat outcome nonzero even when a later
+attempt passes. The requested number of attempts runs serially; this is not an automatic retry.
+Invalid counts are rejected before an invocation starts. If the repeat command is interrupted,
+completed summaries and available evidence remain, the active child is asked to clean up, and the
+summary reports how many requested attempts did not start.
+
+JSON output includes `requestedRepeatCount`, `attempts` and `results` alongside the usual summary
+paths. Without `--json`, the command prints a readable outcome and summary path. Each child invocation
+still writes its own summary and evidence under `output/e2e/local-test-cli/`.
+
 ## Check readiness and discover support
 
 Run the offline doctor and list commands from the same entry point:

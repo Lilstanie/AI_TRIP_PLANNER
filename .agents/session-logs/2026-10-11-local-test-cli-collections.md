@@ -24,6 +24,7 @@ contract-impact: none
 - `node apps/web/tests/cli-e2e/local-cli-collections.e2e.mjs` — passed smoke, replay, multiple, all, unsupported and timeout cases.
 - `node apps/web/tests/cli-e2e/local-test-cli.e2e.mjs` — passed foundation compatibility, cleanup and timeout/interruption checks.
 - `node apps/web/tests/cli-e2e/discovery.e2e.mjs` — passed; verified doctor and the 43-script listing.
+- `node apps/web/tests/cli-e2e/local-test-cli-repeat.e2e.mjs` — passed after preserving `evidence/<script>/` paths.
 - `pnpm verify:docs`, `pnpm verify:protected`, `pnpm verify:pairs` — passed.
 
 ## Notes for the next person

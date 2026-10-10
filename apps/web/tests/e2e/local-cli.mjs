@@ -288,8 +288,7 @@ export async function runLocalCli(args) {
   const id = invocationId();
   const directory = resolve(ROOT_OUTPUT, id);
   const evidenceDirectory = resolve(directory, "evidence");
-  const journeyEvidenceDirectory = (script) =>
-    resolve(evidenceDirectory, options.scripts.length === 1 ? "" : script);
+  const journeyEvidenceDirectory = (script) => resolve(evidenceDirectory, script);
   const distDir = `.next-e2e-local-${id}`;
   const tsconfigPath = `.tsconfig-e2e-local-${id}.json`;
   const tsconfigFile = resolve(WEB, tsconfigPath);
