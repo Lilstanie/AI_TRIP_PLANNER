@@ -51,9 +51,12 @@ remain in `map-fallback` because they exercise distinct boundaries.
 
 Against baseline `42fded7`, the tracked code inventory (TS/TSX/JS/JSX/MJS/CJS/CSS/Java, including tests,
 tooling and submission builders; blank lines/comments included) falls from 475 files / 89,208 physical
-lines to 474 / 88,465: one fewer file and 743 fewer lines. The total includes the new 29-line route
+lines to 474 / 88,474: one fewer file and 734 fewer lines. The total includes the new 29-line route
 error helper, 20-line place-name helper, 119-line trip setup helper, imports and 34 added regression
-lines. Documentation, notes and generated lock metadata are outside this code count; the PR diff
+lines plus a four-line deterministic Date setup for existing route tests. The test clock keeps the
+fixed departure fixture within its supported window without changing production validation; five
+additional lines come from formatting the touched test file. Explicit
+DST and out-of-window test clocks still override it. Documentation, notes and generated lock metadata are outside this code count; the PR diff
 reports their additional cost. No runtime speed improvement is inferred from line reduction.
 
 Existing runner names, artifact paths and the dedicated five-fault script remain. Browser evidence
