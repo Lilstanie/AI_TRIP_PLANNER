@@ -9,12 +9,19 @@ import {
 } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  captureIdentity,
+  createRepeatOwnershipRecord,
+  writeOwnershipRecord,
+} from "./resource-ownership.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const WEB = resolve(HERE, "../..");
 const ROOT = resolve(WEB, "../..");
 const ROOT_OUTPUT = resolve(ROOT, "output/e2e/local-test-cli");
 const CLI = resolve(HERE, "run.mjs");
+const CHILD_SUMMARY_PATH =
+  /^output\/e2e\/local-test-cli\/(\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z-\d+-[a-z0-9]{6})\/summary\.json$/;
 
 function invocationId() {
   return `repeat-${new Date().toISOString().replaceAll(/[:.]/g, "-")}-${process.pid}-${Math.random().toString(36).slice(2, 8)}`;
@@ -126,6 +133,7 @@ export async function runLocalRepeatCli(args) {
   mkdirSync(resolve(directory, "evidence"), { recursive: true });
   const command = `pnpm --filter @trip/web e2e run ${parsed.childArgs.join(" ")}`;
   const summary = {
+    schemaVersion: 1,
     recordType: "repeat",
     invocationId: id,
     startedAt: new Date().toISOString(),
@@ -231,6 +239,42 @@ export async function runLocalRepeatCli(args) {
   summary.completedAt = new Date().toISOString();
   if (diagnostic) summary.diagnostic = diagnostic;
   const saved = writeSummary(directory, summary);
+  const children = saved.attempts.map((attempt) => {
+    if (!attempt.summaryFile) return null;
+    try {
+      const match = CHILD_SUMMARY_PATH.exec(attempt.summaryFile);
+      if (!match || match[0] !== attempt.summaryFile) return null;
+      const childId = match[1];
+      const childSummaryPath = resolve(ROOT_OUTPUT, childId, "summary.json");
+      const childOwnershipPath = resolve(ROOT_OUTPUT, childId, "ownership.json");
+      const childSummary = JSON.parse(readFileSync(childSummaryPath, "utf8"));
+      if (childSummary.invocationId !== childId || childSummary.recordType !== "run") return null;
+      return {
+        invocationId: childId,
+        summaryFile: attempt.summaryFile,
+        summaryIdentity: captureIdentity(childSummaryPath, "file"),
+        ownershipIdentity: captureIdentity(childOwnershipPath, "file"),
+      };
+    } catch {
+      return null;
+    }
+  });
+  if (children.some((child) => !child)) {
+    diagnostic = "One or more repeat attempts have no finalized child ownership record.";
+    outcome = interrupted ? "interrupted" : "failed";
+    summary.outcome = outcome;
+    summary.diagnostic = diagnostic;
+    writeSummary(directory, summary);
+  }
+  const ownerRecord = createRepeatOwnershipRecord({
+    invocationId: id,
+    createdAt: summary.startedAt,
+    directoryIdentity: captureIdentity(directory, "directory"),
+    evidenceIdentity: captureIdentity(resolve(directory, "evidence"), "directory"),
+    summaryIdentity: captureIdentity(resolve(directory, "summary.json"), "file"),
+    children,
+  });
+  writeOwnershipRecord(directory, ownerRecord);
   outputResult(
     {
       outcome,

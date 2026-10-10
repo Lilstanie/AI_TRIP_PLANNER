@@ -128,3 +128,29 @@ Repeat reports retain every attempt in order, including failures before a later 
 summaries, interrupted attempts and missing evidence are marked incomplete instead of being presented
 as passing coverage. Unknown IDs, malformed summaries and paths outside the saved local CLI records
 return nonzero; JSON errors do not include saved file contents.
+
+## Clean up an invocation
+
+Remove the temporary resources owned by one completed invocation while keeping its report and
+diagnostic evidence:
+
+```bash
+pnpm --filter @trip/web e2e cleanup <invocation-id>
+pnpm --silent --filter @trip/web e2e cleanup <invocation-id> --json
+```
+
+The command derives the only removable paths from the invocation ID, then checks the saved summary,
+separate ownership record, resource type and filesystem identity. For a repeated run, it also checks
+that the parent record links to each child run's own verified summary and ownership record. It removes
+a resource only when those records agree and the resource still has the recorded identity. Unknown
+IDs and missing, forged, stale, replaced or symlinked resources are reported as `not_found`,
+`invalid` or `blocked`; they are left untouched. Running cleanup again on an already-cleaned
+invocation succeeds with `already_clean`.
+
+Cleanup retains `summary.json`, ownership metadata, logs, screenshots, traces and other evidence. It
+does not terminate processes, delete arbitrary paths, or remove another invocation's files. A
+partially written invocation without a verifiable ownership record is not cleanable by this command.
+The records provide an integrity and consistency check, not cryptographic authentication against
+someone who can rewrite both records and create matching resources.
+The JSON result reports the outcome, each resource's action, any removed paths and the retained
+summary path.
