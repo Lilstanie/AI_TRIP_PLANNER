@@ -5,7 +5,10 @@ import { resolve } from "node:path";
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT ?? "playwright");
 const BASE = process.env.BASE_URL ?? "http://localhost:3000";
-const OUT = resolve(process.cwd(), "output/playwright/agent-lab-replay");
+const OUT = resolve(
+  process.cwd(),
+  process.env.E2E_OUTPUT_DIR ?? "output/playwright/agent-lab-replay",
+);
 mkdirSync(OUT, { recursive: true });
 
 const SCENARIO = "tokyo-couple-tight-budget";

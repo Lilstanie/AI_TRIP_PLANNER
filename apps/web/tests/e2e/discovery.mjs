@@ -3,14 +3,16 @@ import { accessSync, constants, readFileSync, readdirSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { LOCAL_JOURNEYS, SUPPORTED_JOURNEYS } from "./local-cli-collections.mjs";
 
 const HERE = new URL(".", import.meta.url);
 const E2E = fileURLToPath(HERE);
 const WEB = resolve(E2E, "../..");
 const ROOT = resolve(WEB, "../..");
 const REQUIRE = createRequire(import.meta.url);
-export const SUPPORTED_SCRIPT_NAMES = ["agent-lab-single-agent"];
+export const SUPPORTED_SCRIPT_NAMES = SUPPORTED_JOURNEYS;
 const SUPPORTED = new Set(SUPPORTED_SCRIPT_NAMES);
+const JOURNEY_BY_NAME = new Map(LOCAL_JOURNEYS.map((journey) => [journey.name, journey]));
 const EXCLUSIONS = {
   "agent-lab-live-gate":
     "Requires multiple app servers; the isolated local runner owns one server.",
@@ -183,8 +185,7 @@ function discoverScripts() {
               : ["script-specific prerequisites are not verified"],
         ...(supported
           ? {
-              description:
-                "Complete desktop and phone Agent Lab fixture journey with browser, API, keyboard, storage, and browser-error assertions.",
+              description: JOURNEY_BY_NAME.get(name).description,
             }
           : {
               reason:

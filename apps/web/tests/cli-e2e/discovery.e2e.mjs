@@ -124,9 +124,14 @@ const listed = await run("list", ["--json"]);
 assert.equal(listed.status, 0, listed.stderr);
 const listing = JSON.parse(listed.stdout);
 assert.equal(listing.command, "list");
-assert.deepEqual(listing.supported, ["agent-lab-single-agent"]);
+assert.deepEqual(listing.supported, ["agent-lab-replay", "agent-lab-single-agent"]);
 const script = (name) => listing.scripts.find((entry) => entry.name === name);
 assert.equal(script("agent-lab-single-agent").status, "supported");
+assert.equal(script("agent-lab-replay").status, "supported");
+assert.match(
+  script("agent-lab-replay").description,
+  /tight-budget fixture.*artifact download.*replay.*comparison/i,
+);
 assert.match(script("leg-mode-choice").reason, /model-dependent.*SKIP/i);
 assert.match(script("agent-lab-live-gate").reason, /multiple app servers/i);
 assert.match(script("map-provider-http").reason, /multiple-server/i);
