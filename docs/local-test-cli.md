@@ -66,3 +66,33 @@ summary reports how many requested attempts did not start.
 JSON output includes `requestedRepeatCount`, `attempts` and `results` alongside the usual summary
 paths. Without `--json`, the command prints a readable outcome and summary path. Each child invocation
 still writes its own summary and evidence under `output/e2e/local-test-cli/`.
+
+## Check readiness and discover support
+
+Run the offline doctor and list commands from the same entry point:
+
+```bash
+pnpm --filter @trip/web e2e doctor
+pnpm --silent --filter @trip/web e2e doctor --json
+pnpm --filter @trip/web e2e list
+pnpm --silent --filter @trip/web e2e list --json
+```
+
+If pnpm itself is unavailable, run `node apps/web/tests/e2e/run.mjs doctor --json` from the repository
+root to see the blocked package-manager check.
+
+`doctor` checks the Node.js and pinned pnpm versions, the web Next.js executable, Playwright and its
+Chromium executable, and whether app dotenv files are present. It never starts the application or a
+test server, contacts a provider, or reads or changes dotenv contents. Provider credentials are not
+required for the local fixture profile. Missing required tools are `blocked`, include a remediation,
+and return nonzero. JSON output is one object with `schemaVersion`, `command`, `outcome` and `checks`;
+each check has an id, status and summary, with remediation when blocked.
+
+`list` shows every raw E2E script with its support status, known prerequisites and an exclusion reason.
+Its JSON object includes `supported`, the unsupported count and a `scripts` array. Only
+`agent-lab-single-agent` is supported initially. `leg-mode-choice` remains excluded because one
+model-dependent scenario can skip while the script still exits successfully. `agent-lab-live-gate`
+and `map-provider-http` need multiple servers. `plan-quality` and `conversation-scope` default to live
+data and need `DEEPSEEK_API_KEY`. Scripts that have not been audited for complete fixture-only
+execution and isolated state remain unsupported, with unverified prerequisites called out. A listed
+script is not a claim that its assertions passed.
