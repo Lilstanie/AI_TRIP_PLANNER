@@ -207,6 +207,78 @@ const humanSummary = JSON.parse(readFileSync(resolve(root, humanSummaryPath), "u
 assert.equal(humanSummary.attempts[0].status, "passed");
 assert.equal(await (await fetch(unrelatedUrl)).text(), "still running");
 assert.equal(readFileSync(unrelatedData, "utf8"), "keep repeat test data\n");
+
+const beforeParentInterrupt = new Set(readdirSync(invocationRoot));
+const interruptedRepeat = spawn(
+  process.execPath,
+  [cliEntry, "run", "agent-lab-single-agent", "--dev", "--repeat", "2", "--json"],
+  { cwd: root, env, stdio: ["ignore", "pipe", "pipe"] },
+);
+let interruptedRepeatOutput = "";
+interruptedRepeat.stdout.on("data", (chunk) => (interruptedRepeatOutput += String(chunk)));
+interruptedRepeat.stderr.on("data", (chunk) => (interruptedRepeatOutput += String(chunk)));
+const parentInterruptStart = Date.now();
+let activeChildInvocation;
+let activeChildPid;
+while (Date.now() - parentInterruptStart < 4 * 60_000 && !activeChildPid) {
+  const childInvocation = readdirSync(invocationRoot).find(
+    (name) => !beforeParentInterrupt.has(name) && !name.startsWith("repeat-"),
+  );
+  if (childInvocation) {
+    const journeyLog = resolve(invocationRoot, childInvocation, "journey.log");
+    const browserEvidence = resolve(
+      invocationRoot,
+      childInvocation,
+      "evidence/agent-lab-single-agent/desktop.ndjson",
+    );
+    if (
+      existsSync(journeyLog) &&
+      existsSync(browserEvidence) &&
+      statSync(browserEvidence).size > 0
+    ) {
+      const processLine = ps().find((line) => {
+        const fields = line.match(/^(\d+)\s+(\d+)\s+(.+)$/);
+        return (
+          fields?.[2] === String(interruptedRepeat.pid) &&
+          fields[3].includes("run.mjs run agent-lab-single-agent --dev --json")
+        );
+      });
+      if (processLine) {
+        activeChildInvocation = childInvocation;
+        activeChildPid = processLine.match(/^(\d+)/)?.[1];
+      }
+    }
+  }
+  if (!activeChildPid) await new Promise((wait) => setTimeout(wait, 100));
+}
+assert.ok(
+  activeChildInvocation,
+  `Parent-signal attempt did not reach browser evidence: ${interruptedRepeatOutput}`,
+);
+assert.ok(activeChildPid, `Could not identify the active repeat child: ${interruptedRepeatOutput}`);
+interruptedRepeat.kill("SIGTERM");
+const interruptedRepeatExit = await new Promise((done) =>
+  interruptedRepeat.once("close", (code, signal) => done({ code, signal })),
+);
+assert.notEqual(interruptedRepeatExit.code, 0);
+const interruptedRepeatResult = JSON.parse(interruptedRepeatOutput.trim().split("\n").at(-1));
+assert.equal(interruptedRepeatResult.outcome, "interrupted");
+assert.equal(interruptedRepeatResult.attempts.length, 1);
+assert.equal(interruptedRepeatResult.attempts[0].status, "interrupted");
+assert.equal(interruptedRepeatResult.requestedRepeatCount, 2);
+const interruptedRepeatSummary = JSON.parse(
+  readFileSync(resolve(root, interruptedRepeatResult.summaryFile), "utf8"),
+);
+assert.equal(interruptedRepeatSummary.remainingAttempts, 1);
+assert.equal(interruptedRepeatSummary.completedAttempts, 1);
+const activeChildSummary = JSON.parse(
+  readFileSync(resolve(root, interruptedRepeatResult.attempts[0].summaryFile), "utf8"),
+);
+assert.equal(activeChildSummary.outcome, "interrupted");
+await assert.rejects(fetch(activeChildSummary.server.url));
+assert.ok(existsSync(resolve(root, activeChildSummary.results[0].evidenceDirectory)));
+assert.equal(await (await fetch(unrelatedUrl)).text(), "still running");
+assert.equal(readFileSync(unrelatedData, "utf8"), "keep repeat test data\n");
 await new Promise((done) => unrelatedServer.close(done));
 unlinkSync(unrelatedData);
 console.log(`Repeat CLI E2E passed: ${result.summaryFile}`);
