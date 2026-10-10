@@ -35,6 +35,25 @@ pnpm --filter @trip/web e2e agent-lab-single-agent
 
 原始脚本保留既有环境变量和复用服务器的行为。需要 fixture 隔离和每次运行独立证据时，请使用新的 `run` 命令。
 
+<a id="repeat-runs"></a>
+
+## 串行重复运行
+
+使用正整数按顺序重复执行受支持的选择：
+
+```bash
+pnpm --filter @trip/web e2e run agent-lab-single-agent --repeat 3
+pnpm --filter @trip/web e2e run agent-lab-single-agent --dev --repeat 3
+pnpm --silent --filter @trip/web e2e run agent-lab-single-agent --repeat 3 --json
+```
+
+每次运行都会启动全新的本地 CLI 调用，并使用独立构建、服务器、浏览器进程、fixture 执行和证据目录。重复运行摘要会记录
+请求次数、每次已启动运行的结果、复现命令、子调用摘要和证据路径。如果某次运行失败、受阻、不受支持、超时或被中断，后续
+运行即使成功，整体结果仍返回非零状态码。请求的运行次数会按顺序执行；这不是自动重试。无效次数会在启动调用前被拒绝。
+如果重复运行命令收到中断信号，已完成的摘要和现有证据会保留，当前子调用会收到清理请求，摘要会记录还有多少次请求的运行尚未开始。
+
+JSON 输出除常规摘要路径外，还包含 `requestedRepeatCount`、`attempts` 和 `results`。不使用 `--json` 时，命令会输出易读的结果和摘要路径。每次子调用仍会在 `output/e2e/local-test-cli/` 下写入自己的摘要和证据。
+
 ## 检查环境并查看支持范围 {#check-readiness-and-discover-support}
 
 可以从同一入口运行离线 doctor 和 list 命令：
