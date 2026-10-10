@@ -25,10 +25,8 @@ import { loadRenderer } from "./map-renderer";
 
 type Coordinate = { lat: number; lng: number };
 
-/** A located stop with its trip-wide stop number (lib/trip/itinerary.ts). */
 export type MapStop = { place: GooglePlace; number: number; day?: number };
 
-/** Below this zoom only the selected marker keeps its name label, so labels do not pile up. */
 const LABEL_ZOOM = 12;
 
 function coordinate(place: GooglePlace): Coordinate | undefined {
@@ -40,7 +38,6 @@ function positions(places: GooglePlace[]) {
   return places.flatMap((place) => coordinate(place) ?? []);
 }
 
-/** Follow a media query without per-frame state; false where matchMedia is unavailable. */
 function useMediaQuery(query: string) {
   const [matches, setMatches] = useState(false);
   useEffect(() => {
@@ -73,20 +70,20 @@ export function TripMap({
   mockData?: boolean;
   forceOsmProvider?: boolean;
   allowOsmFallback?: boolean;
-  /** Located stops in visiting order; each becomes a labelled marker. */
+
   stops: MapStop[];
   phone?: boolean;
-  /** Each explicit stop press asks to centre and open details, even for the same stop. */
+
   focusRequest?: number;
-  /** Destination city places; the map centres on them before any activity is mapped. */
+
   destinations?: GooglePlace[];
   selected?: string;
   onSelect(id: string): void;
   routes: RouteResult[];
   mode?: "WALK" | "TRANSIT";
-  /** Trip identity and destination: changing it reframes the map once for the new trip. */
+
   viewKey?: string;
-  /** Load Google place photos. Only in live data mode: every image is billed. */
+
   showPhotos?: boolean;
   userLocation: UserLocation;
 }) {
@@ -109,7 +106,7 @@ export function TripMap({
   const [satellite, setSatellite] = useState(false);
   const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
   const systemDark = useMediaQuery("(prefers-color-scheme: dark)");
-  // Settings → Appearance overrides the system; outside the workspace it stays "system".
+
   const { appearance } = useSettings().settings;
   const dark = appearance === "system" ? systemDark : appearance === "dark";
   const { location, request: requestLocation } = userLocation;
@@ -129,7 +126,6 @@ export function TripMap({
     if (focusRequest !== undefined) setClosedFor(undefined);
   }, [focusRequest]);
 
-  // A route estimate belongs to one selected place; never show it for another.
   useEffect(() => {
     routeRequest.current?.abort();
     routeRequest.current = null;
@@ -155,7 +151,7 @@ export function TripMap({
                 ?.querySelector<HTMLButtonElement>(".phone-map-sheet__handle") ?? root.current)
             : root.current
         )?.focus?.();
-      // The stops handle becomes visible after the details sheet leaves the tree.
+
       if (phone) requestAnimationFrame(restore);
       else restore();
     }
@@ -163,8 +159,6 @@ export function TripMap({
   const closeRef = useRef(closePopup);
   closeRef.current = closePopup;
 
-  // Measure labels shortly after a change: Google attaches and positions marker content in its own
-  // render pass, a frame or more after the marker is created.
   const declutterTimer = useRef<number | undefined>(undefined);
   const declutterRef = useRef((attempt = 0) => {
     window.clearTimeout(declutterTimer.current);
@@ -195,21 +189,18 @@ export function TripMap({
         if (disposed || !root.current) return;
         const start = positions(initialFocus.current)[0];
         const map = new maps.Map(root.current, {
-          // Created only once the trip has somewhere to show, never as a tiled world map.
           dark,
           mock,
           center: start ?? { lat: 0, lng: 0 },
           zoom: start ? 12 : 3,
-          // Our own glass controls (locate, map type, zoom) sit bottom-right, as on Mindtrip and
-          // Apple Maps; Google's would duplicate them, and browser fullscreen would cover the
-          // workspace top bar.
+
           disableDefaultUI: true,
           mapTypeControl: false,
           streetViewControl: false,
           fullscreenControl: false,
           zoomControl: false,
           cameraControl: false,
-          // One-finger pans and wheel zoom without a modifier: the map is the whole panel.
+
           gestureHandling: "greedy",
           colorScheme: "FOLLOW_SYSTEM",
           mapId: process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || "DEMO_MAP_ID",
@@ -235,7 +226,7 @@ export function TripMap({
           }),
           map.addListener("center_changed", userMoved),
           map.addListener("idle", () => declutterRef.current()),
-          // A press on the map itself dismisses the place popup, as on other map apps.
+
           map.addListener("click", () => closeRef.current()),
         );
         setRuntime(next);
@@ -255,7 +246,7 @@ export function TripMap({
       view.current = null;
       setRuntime(undefined);
     };
-    // The renderer is created once; appearance updates below preserve the camera.
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [retry, forceOsm, forceOsmProvider, mockData, allowOsmFallback]);
 
@@ -263,7 +254,6 @@ export function TripMap({
     if (runtime?.provider === "osm") runtime.map.setOptions({ dark });
   }, [runtime, dark]);
 
-  // Frame the trip: destination first, then its places once. Never on unrelated re-renders.
   const destinationKey = destinations.map((place) => place.id).join("|");
   const placesKey = mappedPlaces.map((place) => place.id).join("|");
   useEffect(() => {
@@ -273,11 +263,10 @@ export function TripMap({
       destinations: positions(destinations),
       places: positions(mappedPlaces),
     });
-    // Keyed by identities so new array instances with the same places do not reframe.
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [runtime, viewKey, destinationKey, placesKey]);
 
-  // Sidebar and drawer animations resize the container; keep the centre instead of drifting.
   useEffect(() => {
     const element = root.current;
     if (!runtime || !element || typeof ResizeObserver === "undefined") return;
@@ -287,7 +276,6 @@ export function TripMap({
       const center = runtime.map.getCenter();
       if (!center) return;
       frame = requestAnimationFrame(() => {
-        // A map shown after being hidden (the phone Chat/Map switch) lays its labels out now.
         runtime.map.resize?.();
         declutterRef.current();
         moving.current = true;
@@ -304,7 +292,6 @@ export function TripMap({
     };
   }, [runtime]);
 
-  // Labelled markers, created once per set of stops; selection only restyles them below.
   useEffect(() => {
     if (!runtime) return;
     const { maps, map } = runtime;
@@ -317,12 +304,10 @@ export function TripMap({
         position,
         title: markerTitle(stop.place, stop.number, stop.day, locale),
         content,
-        // Required for gmp-click: an advanced marker is inert until asked to
-        // be clickable, unlike the legacy marker it replaced.
+
         gmpClickable: true,
       });
-      // "gmp-click", not addListener("click"): Google warns in the console that
-      // the legacy listener on advanced markers is going away.
+
       const select = () => {
         returnFocus.current = marker;
         focusPopup.current = true;
@@ -330,8 +315,7 @@ export function TripMap({
         onSelectRef.current(stop.place.id);
       };
       marker.addEventListener("gmp-click", select);
-      // The name label hangs outside the marker's own hit area, so it listens for itself and
-      // keeps the press from reaching the map, which would close the popup again.
+
       content.querySelector(".trip-map-marker__label")?.addEventListener("click", (event) => {
         event.stopPropagation();
         select();
@@ -357,7 +341,6 @@ export function TripMap({
     declutterRef.current();
   }, [runtime, mapped, selected, focusDay]);
 
-  // Itinerary lines: one per day, the focused day's dashes flowing in visiting order.
   const lines = useMemo(
     () =>
       dayRoutes(
@@ -380,11 +363,8 @@ export function TripMap({
       colors: routeColors(root.current),
       reducedMotion,
     });
-    // `dark` re-reads the token colours when the theme changes.
   }, [runtime, lines, routes, focusDay, reducedMotion, dark]);
 
-  // A place chosen elsewhere (the Trip drawer) is brought into view if it is off the map. This is a
-  // programmatic move, so it does not count as the traveller moving the map.
   useEffect(() => {
     const position = selectedStop && coordinate(selectedStop.place);
     if (!runtime || !position || (!phone && runtime.map.getBounds()?.contains(position) !== false))
@@ -395,15 +375,14 @@ export function TripMap({
     runtime.maps.event.addListenerOnce(runtime.map, "idle", () => {
       moving.current = false;
     });
-    // Only on a new selection, not when the stop list is rebuilt.
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [runtime, selected, focusRequest]);
 
-  // Selecting a new place reopens its popup; a marker press also moves focus into it.
   useEffect(() => {
     if (!popupOpen || (!focusPopup.current && !phone)) return;
     focusPopup.current = false;
-    // After the marker's own key handling, which otherwise keeps focus on the marker.
+
     const timer = window.setTimeout(() => popup.current?.focus());
     return () => window.clearTimeout(timer);
   }, [popupOpen, selected, phone, focusRequest]);
@@ -422,7 +401,6 @@ export function TripMap({
       content,
     });
     if (panOnLocate.current) {
-      // The user asked to see their location: that is a manual move the trip framing respects.
       view.current?.markUserMoved();
       runtime.map.panTo(location.position);
       panOnLocate.current = false;
@@ -432,8 +410,6 @@ export function TripMap({
     };
   }, [runtime, location, t]);
 
-  // Locate: centre on the traveller now when their position is known, otherwise ask for it and
-  // centre once it arrives. Either way it is a manual move the trip framing then respects.
   const showMyLocation = useCallback(() => {
     if (runtime && location.status === "success") {
       view.current?.markUserMoved();
@@ -506,7 +482,6 @@ export function TripMap({
       className="trip-map"
       aria-label={t("Trip map")}
       onKeyDown={(event) => {
-        // Escape closes the place popup from inside it or from the marker that opened it.
         if (event.key !== "Escape" || !popupOpen) return;
         event.stopPropagation();
         closePopup();

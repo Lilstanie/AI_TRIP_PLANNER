@@ -21,7 +21,6 @@ const FIXED_ICON = {
 
 const FIXED_LABEL = { flight: "Flight", ground: "Transfer", stay: "Stay" } as const;
 
-/** A flight, inter-city hop or stay: part of the day, but changed through the chat, not here. */
 export function FixedTimelineRow({ row }: { row: FixedRow }) {
   const { t, money } = useLocale();
   const Icon = row.kind === "ground" && row.mode === "drive" ? FlowDriveIcon : FIXED_ICON[row.kind];
@@ -61,7 +60,6 @@ const CONNECTION_ICON: Record<string, (props: { size?: number }) => ReactNode> =
   BICYCLE: FlowCycleIcon,
 };
 
-/** The modes a traveller can choose for a leg, in the order the control lists them. */
 const LEG_CHOICES: { mode: LegMode; label: MessageKey }[] = [
   { mode: "walk", label: "Walk" },
   { mode: "transit", label: "Public transport" },
@@ -69,11 +67,6 @@ const LEG_CHOICES: { mode: LegMode; label: MessageKey }[] = [
   { mode: "cycle", label: "Cycle" },
 ];
 
-/**
- * The journey between two stops, drawn as part of the line rather than as another card. When both
- * stops have saved places the leg has a mode control: changing it routes this leg alone, and a leg
- * whose stops are not both saved yet shows only its estimate.
- */
 export function LegRow({
   connection,
   from,
@@ -82,17 +75,16 @@ export function LegRow({
   onChoose,
 }: {
   connection: Connection;
-  /** The stop the leg starts from and the stop it reaches, for the control's name. */
+
   from: string;
   to: string;
   locked?: boolean;
-  /** Routes the leg with the chosen mode; absent while the leg cannot be routed. */
+
   onChoose?(mode: LegMode): void;
 }) {
   const { t } = useLocale();
   const Icon = CONNECTION_ICON[connection.mode] ?? FlowTransitIcon;
   return (
-    // Keyed by status in the parent, so a journey that becomes checked mounts again and draws in.
     <li className={`timeline-connection timeline-connection--${connection.status}`}>
       <span className="timeline-row__time" />
       <span className="timeline-connection__rail" aria-hidden="true" />

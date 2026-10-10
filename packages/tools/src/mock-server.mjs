@@ -1,7 +1,3 @@
-// Owner: A — local mock API server so nobody needs real keys in dev.
-// TODO: expand the canned responses as B / C flesh out their adapters.
-// Run: pnpm --filter @trip/tools mock-server   (or `pnpm mock-server` from the repo root)
-
 import { createServer } from "node:http";
 
 const PORT = Number(process.env.MOCK_API_PORT ?? 4000);
@@ -26,7 +22,10 @@ createServer((req, res) => {
     return json(res, [{ carrier: "StubAir", price: 1246 }]);
   }
   if (url === "/" || url.startsWith("/health")) {
-    return json(res, { ok: true, routes: ["/maps/route", "/maps/places", "/booking/stays", "/booking/flights"] });
+    return json(res, {
+      ok: true,
+      routes: ["/maps/route", "/maps/places", "/booking/stays", "/booking/flights"],
+    });
   }
   res.writeHead(404, { "content-type": "application/json" });
   res.end(JSON.stringify({ error: "not found", url }));

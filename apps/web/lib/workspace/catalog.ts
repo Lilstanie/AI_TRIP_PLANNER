@@ -12,7 +12,6 @@ import {
 } from "./workspace";
 import type { Notice } from "../i18n/notice";
 
-/** Storage key for the multi-chat/multi-trip workspace catalog. */
 export const CATALOG_KEY = "trip-workspace-catalog-v3";
 
 export type WorkspaceView = "chat" | "map" | "trip" | "mine";
@@ -26,7 +25,7 @@ export type ConversationRecord = {
   input: string;
   renamed?: boolean;
   snapshot?: Snapshot;
-  /** Unfinished preferences of a conversation that has not produced a trip yet. */
+
   draft?: Draft;
 };
 
@@ -39,20 +38,10 @@ export type TripRecord = {
 };
 
 export type PanelLayout = {
-  /**
-   * Desktop sidebar preference. Older catalogs have no value and start expanded. `width` is only
-   * set once the user drags the edge; without it the stylesheet's responsive default applies.
-   */
   sidebar: { collapsed: boolean; width?: number };
-  /**
-   * The chat column's share of the chat-and-map area on desktop, set once the traveller drags the
-   * divider. Without it the stylesheet's default applies (chat slightly wider than the map).
-   */
+
   chatShare?: number;
-  /**
-   * Panel widths. Whether the Trip drawer or a chip editor is open is not stored: a reload starts
-   * with every panel closed, and an `open` value written by older versions is ignored when read.
-   */
+
   preferences: { width: number };
   trip: { width: number };
   view: WorkspaceView;
@@ -70,7 +59,7 @@ export type WorkspaceCatalog = {
 };
 
 export const SIDEBAR_WIDTH = { min: 200, default: 240, max: 420 } as const;
-/** Bounds for the chat column's share of the chat-and-map area; the default is in the stylesheet. */
+
 export const CHAT_SHARE = { min: 0.3, default: 0.56, max: 0.75 } as const;
 export const clampChatShare = (share: number) =>
   Math.round(Math.min(CHAT_SHARE.max, Math.max(CHAT_SHARE.min, share)) * 1000) / 1000;
@@ -100,10 +89,6 @@ function titleFor(snapshot: Snapshot): string {
     : "Untitled trip";
 }
 
-/**
- * Layout is a preference, not user data: invalid or legacy values fall back to defaults per
- * field instead of making the whole catalog (and its chats and trips) unreadable.
- */
 function normalizeLayout(value: unknown): PanelLayout {
   const layout = isObject(value) ? value : {};
   const panel = (key: "preferences" | "trip") => {
@@ -167,7 +152,6 @@ function tripFrom(snapshot: Snapshot, conversationId?: string): TripRecord {
   };
 }
 
-/** Build a fresh catalog from an optional current snapshot and saved snapshots. */
 export function createCatalog(current?: Snapshot, saved: Snapshot[] = []): WorkspaceCatalog {
   const snapshots = [current, ...saved].filter((item): item is Snapshot => item !== undefined);
   const catalog: WorkspaceCatalog = {
@@ -193,7 +177,6 @@ export function createCatalog(current?: Snapshot, saved: Snapshot[] = []): Works
   return catalog;
 }
 
-/** Parse and migrate catalog JSON or a decoded value. This never writes to storage or mutates its input. */
 export function parseCatalog(
   raw: string | unknown | null,
   legacyCurrent?: unknown,
@@ -214,10 +197,7 @@ export function parseCatalog(
       value.map((item) => parseSnapshot(item)),
     );
   if (!isObject(value)) throw new Error("Workspace catalog is invalid.");
-  // Version 4 is the AUD base-currency catalog. Earlier versions held plans whose stay
-  // candidates carry the old `pricePerNightUsd` field and whose amounts meant USD, so
-  // they cannot be parsed and there is no honest rate to migrate them with. They are
-  // rejected here rather than half-read further down.
+
   if (value.version !== 4) throw new Error("Workspace catalog version is invalid.");
   if (!Array.isArray(value.conversations) || !Array.isArray(value.trips))
     throw new Error("Workspace catalog records are invalid.");
@@ -335,21 +315,14 @@ export function upsertCurrent(
   return next;
 }
 
-/** A conversation that has not produced a trip yet. */
 function isBlankConversation(item: ConversationRecord): boolean {
   return !item.tripId && !item.snapshot;
 }
 
-/**
- * An untouched conversation is blank and holds nothing the user wrote. Filter defaults do not
- * count, so only the fields a person can type are read.
- */
 export function isUntouchedConversation(
   item: ConversationRecord,
   defaults: Draft = blankDraft(),
 ): boolean {
-  // Facts still equal to the traveller's own defaults (Settings → Travel defaults) were not typed
-  // for this chat, so they do not make it touched.
   const same = (
     key: "destination" | "start" | "end" | "groupSize" | "budgetTotal" | "nationality",
   ) => (item.draft?.[key] ?? "").trim() === (defaults[key] ?? "").trim();
@@ -364,10 +337,6 @@ export function isUntouchedConversation(
   );
 }
 
-/**
- * The untouched conversation a new chat should reuse, or undefined when one has to be created.
- * Reusing is what keeps repeated `New chat` presses from stacking blank entries in the history.
- */
 export function reusableBlankConversation(
   catalog: WorkspaceCatalog,
   defaults?: Draft,
@@ -389,8 +358,7 @@ export function upsertConversationDraft(
   const existing = next.conversations.findIndex((item) => item.id === conversation.id);
   const record: ConversationRecord = {
     id: conversation.id,
-    // An autosave passes no title, so it keeps the one the conversation started with ("New chat"
-    // or "New trip"); only an explicit title replaces it.
+
     title: conversation.title?.trim() || next.conversations[existing]?.title || "New chat",
     updatedAt: now,
     messages: clone(conversation.messages),
@@ -449,27 +417,19 @@ export function updateCatalog(
   return next;
 }
 
-/** Everything the workspace needs for its first render, read from one storage pass. */
 export type RestoredWorkspace = {
-  /** Only set when a caller explicitly opens a plan; storage never opens a trip by itself. */
   plan?: TripPlan;
   draft: Draft;
   messages?: Message[];
   input: string;
   previousTotal?: number;
   catalog: WorkspaceCatalog;
-  /** The blank conversation to continue, when the last active conversation had no trip yet. */
+
   conversationId?: string;
   storageEnabled: boolean;
   storageError?: Notice;
 };
 
-/**
- * Read history for a fresh start. The workspace always opens on a blank planning entry: a
- * previously active trip stays in Chats/Trips until the user chooses it, while an unfinished
- * blank conversation (form and input, no trip yet) is continued. Reading never writes, and
- * unreadable data stays in storage and is reported.
- */
 export function restoreWorkspace(storage: Pick<Storage, "getItem">): RestoredWorkspace {
   const result: RestoredWorkspace = {
     draft: blankDraft(),
@@ -480,7 +440,7 @@ export function restoreWorkspace(storage: Pick<Storage, "getItem">): RestoredWor
   let current: Snapshot | undefined;
   try {
     const raw = storage.getItem(CURRENT_KEY);
-    // The legacy snapshot is only migration input for history; it is not reopened.
+
     if (raw) current = parseSnapshot(JSON.parse(raw));
   } catch {
     result.storageEnabled = false;
@@ -491,8 +451,7 @@ export function restoreWorkspace(storage: Pick<Storage, "getItem">): RestoredWor
   try {
     const catalog = parseCatalog(storage.getItem(CATALOG_KEY), current);
     const active = catalog.conversations.find((item) => item.id === catalog.activeConversationId);
-    // Continue the active blank chat; otherwise reuse an untouched one instead of adding
-    // another empty "New chat" on every refresh.
+
     const conversation =
       active && isBlankConversation(active) ? active : reusableBlankConversation(catalog);
     if (conversation) {

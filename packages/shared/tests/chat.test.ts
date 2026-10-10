@@ -77,8 +77,7 @@ describe("result row kind", () => {
       ToolResultRow.safeParse({ label: "Harbour Hotel", url: "https://harbourhotel.example/" })
         .success,
     ).toBe(true);
-    // Absent for a provider that reported no page; never a bare host or a
-    // fragment a client would have to repair.
+
     expect(ToolResultRow.safeParse({ label: "Harbour Hotel" }).success).toBe(true);
     expect(ToolResultRow.safeParse({ label: "Harbour Hotel", url: "harbourhotel" }).success).toBe(
       false,
@@ -117,7 +116,7 @@ const note = (data: string) => ({
   kind: "text" as const,
   data,
 });
-/** Valid base64 of exactly `length` characters. */
+
 const base64 = (length: number) => "A".repeat(length);
 
 describe("message attachments", () => {
@@ -131,8 +130,7 @@ describe("message attachments", () => {
     expect(Attachment.safeParse({ ...note("x"), mediaType: "application/pdf" }).success).toBe(
       false,
     );
-    // An image's type is not a text type and the other way round, so `kind` cannot be
-    // mislabelled to smuggle a format past the allow-list.
+
     expect(Attachment.safeParse({ ...png("AAAA"), mediaType: "text/plain" }).success).toBe(false);
     expect(Attachment.safeParse({ ...note("x"), mediaType: "image/png" }).success).toBe(false);
   });
@@ -142,7 +140,7 @@ describe("message attachments", () => {
       false,
     );
     expect(Attachment.safeParse({ ...png("iVBO Rw0K") }).success).toBe(false);
-    // Base64 is whole groups of four; a truncated payload is a broken image.
+
     expect(Attachment.safeParse({ ...png("iVBOR") }).success).toBe(false);
   });
 
@@ -153,7 +151,7 @@ describe("message attachments", () => {
     expect(Attachment.safeParse(note("a".repeat(MAX_TEXT_ATTACHMENT_BYTES + 1))).success).toBe(
       false,
     );
-    // The cap is bytes, not characters: a multi-byte language fills it sooner.
+
     expect(Attachment.safeParse(note("東".repeat(MAX_TEXT_ATTACHMENT_BYTES / 3 + 1))).success).toBe(
       false,
     );
@@ -167,7 +165,7 @@ describe("message attachments", () => {
     });
     expect(ChatRequest.safeParse(request(MAX_ATTACHMENTS_PER_MESSAGE)).success).toBe(true);
     expect(ChatRequest.safeParse(request(MAX_ATTACHMENTS_PER_MESSAGE + 1)).success).toBe(false);
-    // Absent is the ordinary case and stays valid.
+
     expect(ChatRequest.safeParse({ tripId: "trip-1", message: "hi" }).success).toBe(true);
   });
 

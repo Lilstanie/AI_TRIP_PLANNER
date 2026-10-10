@@ -2,31 +2,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { localInstant } from "@/lib/integrations/google";
 import { osmMapProvider } from "@/lib/map-provider/osm";
 
-/*
- * Failure modes, written before the OSRM routes and the offline time zone (CLAUDE.md, ticket #273):
- *
- * Routing (OSRM):
- *  1. a walk sent to the car-only public demo server comes back as a car route: walking must use its
- *     own foot-capable base URL (`OSRM_FOOT_BASE_URL`), driving `OSRM_BASE_URL`;
- *  2. OSRM takes lon,lat; sending lat,lon routes somewhere else entirely;
- *  3. OSRM answers `NoRoute` (HTTP 400 with a code): that is a fact about the leg (`no_route`), not an
- *     outage;
- *  4. OSRM answers 5xx, times out or the network fails: the leg is unavailable (a throw the caller
- *     turns into an `unavailable` leg), never a guessed time;
- *  5. OSRM answers 200 with no usable duration: unavailable, not a zero-minute leg;
- *  6. a duration in seconds is shown in whole minutes, rounded up, never 0;
- *  7. a place OSRM cannot locate (a Google id with no coordinates given): unavailable, not guessed;
- *  8. public transport is not OSRM's: a transit leg is unavailable from OSRM (Transitous is #276);
- *  9. the same leg asked twice in a short time is answered from the cache; a failure is not cached;
- * 10. the request carries the contact user agent the free services require;
- * 11. route from my location: the traveller's position to a saved place, walking, by OSRM foot.
- * Time zone (offline):
- * 12. a place with no coordinates has no time zone (a notice, never UTC);
- * 13. a destination just across the date line (Apia) gets its own zone, not its neighbour's;
- * 14. a DST destination's local time maps to the right instant on both sides of the change, and a
- *     local time skipped by the change is refused.
- */
-
 type Call = { url: string; headers: Record<string, string> };
 let calls: Call[];
 function osrmAnswers(respond: (url: string) => Response | Promise<Response>) {
@@ -207,7 +182,7 @@ describe("time zone without Google", () => {
 
     expect(source).toBe("osm");
     expect(value).toBe("Pacific/Apia");
-    // Apia is UTC+13: 09:00 on 1 November is 20:00 on 31 October in UTC.
+
     expect(localInstant("2026-11-01", "09:00", value)).toBe("2026-10-31T20:00:00.000Z");
   });
 
@@ -215,10 +190,10 @@ describe("time zone without Google", () => {
     const { value } = await osmMapProvider().timeZone(at(-33.8688, 151.2093), "2026-10-04");
 
     expect(value).toBe("Australia/Sydney");
-    // 3 October is still AEST (UTC+10); 5 October is AEDT (UTC+11).
+
     expect(localInstant("2026-10-03", "09:00", value)).toBe("2026-10-02T23:00:00.000Z");
     expect(localInstant("2026-10-05", "09:00", value)).toBe("2026-10-04T22:00:00.000Z");
-    // 02:30 on 4 October does not exist in Sydney.
+
     expect(() => localInstant("2026-10-04", "02:30", value)).toThrow(/daylight saving/);
   });
 });

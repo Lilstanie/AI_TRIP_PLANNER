@@ -10,7 +10,7 @@ const googlePlace = (p: MapPlace): MapPlace => ({
   osmUri: undefined,
   photos: undefined,
 });
-/** Healthy Google fixtures. A mock request never uses a real key, even when the deployment has one. */
+
 export function mockGoogleProvider(): MapProvider {
   const osm = osmMapProvider({ dataMode: "mock" });
   return {

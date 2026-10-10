@@ -1,5 +1,3 @@
-// Failure inventory: typed source discarded, stale source used after an AUD edit, invalid amount
-// sent, reload loses source, or an old AUD snapshot cannot reopen. Public draft/snapshot seam.
 import { describe, expect, it } from "vitest";
 import { draftFor, knownFromDraft, parseDraft, parseSnapshot } from "@/lib/workspace";
 import { plan, snapshot } from "@/tests/fixtures/workspace";

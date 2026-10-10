@@ -6,7 +6,6 @@ import {
   type AgentLabRunEvent,
 } from "@trip/shared";
 
-/** The run failed after streaming started; `artifact` holds the events recorded before the failure. */
 export class AgentLabRunError extends Error {
   constructor(
     message: string,
@@ -17,10 +16,6 @@ export class AgentLabRunError extends Error {
   }
 }
 
-/**
- * The server turned the request away before any run started: live is not enabled, the strategy has no live
- * implementation, or a limit was reached. It is not a failure of the experiment and carries no artifact.
- */
 export class AgentLabRejectedError extends Error {
   constructor(
     message: string,
@@ -46,13 +41,11 @@ function parseFrame(line: string): AgentLabStreamFrame {
   return parsed.data;
 }
 
-/** Reads the NDJSON run stream, delivering each validated event and returning the completed artifact. */
 export async function readAgentLabStream(
   response: Response,
   onEvent: (event: AgentLabRunEvent) => void,
 ): Promise<AgentLabCompletedRunArtifact> {
   if (!response.ok && response.body) {
-    // A rejection is a single frame in a non-200 body; anything else is an unreadable failure.
     const text = await response.text();
     try {
       const frame = parseFrame(text.split("\n").find((line) => line.trim()) ?? "");

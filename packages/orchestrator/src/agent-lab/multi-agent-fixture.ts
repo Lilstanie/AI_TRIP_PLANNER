@@ -15,13 +15,11 @@ import type { AgentLabScenario } from "./scenarios";
 import type { AgentLabStrategy } from "./strategy";
 
 export interface MultiAgentFixtureOptions {
-  /** Replaces the five registered specialists; tests use it to inject a failing one. */
   specialists?: Specialist[];
-  /** Allow bounded, targeted revision of conflicts. Without it the graph plays one round and stops. */
+
   revise?: boolean;
 }
 
-/** The workflow's own default; the revision strategy keeps the established bound. */
 const REVISION_ROUNDS = 3;
 
 const score = (value: number) => value.toLocaleString("en-AU", { maximumFractionDigits: 2 });
@@ -37,7 +35,6 @@ const stopSummary = {
     "Stopped: the revision did not improve the plan, so the earlier proposals stand.",
 } as const;
 
-/** The loop's typed decisions, as lab trace events a reader can follow. */
 function decisionEvent(decision: WorkflowDecision): AgentLabEventPayload {
   switch (decision.type) {
     case "conflicts_detected":
@@ -100,7 +97,6 @@ function decisionEvent(decision: WorkflowDecision): AgentLabEventPayload {
   }
 }
 
-/** A read-only memory holding only the scenario's own preferences; nothing is stored or read from disk. */
 function scenarioMemory(preferences: UserPreference[]): MemoryStore {
   return {
     getShortTerm: async () => [],
@@ -111,10 +107,6 @@ function scenarioMemory(preferences: UserPreference[]): MemoryStore {
   };
 }
 
-/**
- * The graph's deterministic dispatch hands each specialist the plain gateway. Wrapping each one here
- * attributes its tool calls to it in the trace without changing the production workflow.
- */
 function withToolTrace(specialist: Specialist, publish: (event: AgentLabEventPayload) => void) {
   return {
     ...specialist,
@@ -136,16 +128,6 @@ function withToolTrace(specialist: Specialist, publish: (event: AgentLabEventPay
 
 type Outcome = { plan: TripPlan } | { error: unknown };
 
-/**
- * The five registered specialists coordinated by the real LangGraph workflow. The graph still decides
- * the order (the planning board), detects conflicts and assembles the plan. Without `revise` it plays
- * exactly one round and never reaches the revision node, so conflicts are reported, not repaired. With
- * it, the established loop runs: targeted routing to the specialists a conflict names, best-so-far
- * scoring, the infeasible-budget stop and a bounded round limit.
- *
- * Fixture mode relies on the environment having no model or provider keys, where the specialists take
- * their deterministic path and the tools return mock fixtures.
- */
 export function createMultiAgentFixtureStrategy(
   options: MultiAgentFixtureOptions = {},
 ): AgentLabStrategy {
@@ -172,21 +154,17 @@ export function createMultiAgentFixtureStrategy(
         constraints: constraintsFor(scenario, revise),
       });
 
-      // The graph produces events faster than the stream paces them, so they queue here and are
-      // published in order with the same pacing as every other strategy.
       const queue: AgentLabEventPayload[] = [];
       let outcome: Outcome | undefined;
       let wake: (() => void) | undefined;
       const publish = (event: AgentLabEventPayload) => {
-        // The trace carries bounded operational summaries. A model's own reasoning text is never published,
-        // whichever mode the run is in.
         if (event.type === "agent_reasoning") return;
         queue.push(event);
         wake?.();
       };
 
       const traced = specialists.map((specialist) => withToolTrace(specialist, publish));
-      // The fault sits outside the trace, so its failures are seen by the same progress tools.
+
       const faulted = fault ? applyAgentLabFault(fault, traced) : traced;
       void runOrchestrator(scenario.brief, {
         specialists: faulted,

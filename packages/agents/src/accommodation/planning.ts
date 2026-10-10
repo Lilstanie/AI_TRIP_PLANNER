@@ -1,11 +1,8 @@
 import type { ScheduledHop } from "../transport/legs";
 import type { StayOption, TripBrief, UserPreference } from "@trip/shared";
 
-// Accommodation planning is deliberately deterministic: the model may narrate
-// a proposal, but these helpers own dates, preference filtering and costing.
 const DAY_MS = 86_400_000;
 
-/** One contiguous stay segment derived from the trip's destination string. */
 export interface StaySegment {
   city: string;
   checkIn: string;
@@ -14,14 +11,12 @@ export interface StaySegment {
   day: number;
 }
 
-/** Validated lodging preferences used by filtering and room-count calculations. */
 export interface StayPreferences {
   roomAllocation: "shared" | "individual";
   minRating: number;
   freeCancellation: boolean;
 }
 
-/** Convert persisted key/value preferences into validated lodging constraints. */
 export function readPreferences(prefs: UserPreference[]): StayPreferences {
   const values = new Map(prefs.map((pref) => [pref.key, pref.value]));
   const roomAllocation = values.get("accommodation.roomAllocation") ?? "shared";
@@ -40,7 +35,6 @@ export function readPreferences(prefs: UserPreference[]): StayPreferences {
   return { roomAllocation, minRating, freeCancellation: cancellation === "true" };
 }
 
-/** Parse a calendar date strictly so timezone parsing cannot shift a stay. */
 function parseDate(date: string): number {
   const value = Date.parse(`${date}T00:00:00.000Z`);
   if (
@@ -53,11 +47,6 @@ function parseDate(date: string): number {
   return value;
 }
 
-/**
- * Split a multi-city trip into overnight segments. When transport has scheduled the inter-city hops,
- * each city's nights run from the day the traveller arrives to the day they leave; otherwise the
- * nights are spread evenly, extra nights going to earlier cities.
- */
 export function splitStay(brief: TripBrief, hops: ScheduledHop[] = []): StaySegment[] {
   if (!Number.isSafeInteger(brief.groupSize) || brief.groupSize <= 0) {
     throw new Error("Accommodation requires a positive integer group size.");
@@ -65,7 +54,7 @@ export function splitStay(brief: TripBrief, hops: ScheduledHop[] = []): StaySegm
   const start = parseDate(brief.dates[0]);
   const nights = (parseDate(brief.dates[1]) - start) / DAY_MS;
   if (nights <= 0) throw new Error("Accommodation check-out must be after check-in.");
-  // Temporary convention for the existing demo string, pending B's structured city schedule.
+
   const cities = brief.destination.split("&").map((city) => city.trim());
   if (cities.some((city) => !city)) throw new Error("Accommodation requires non-empty cities.");
   if (nights < cities.length)
@@ -88,10 +77,6 @@ export function splitStay(brief: TripBrief, hops: ScheduledHop[] = []): StaySegm
   });
 }
 
-/**
- * Nights per city from the scheduled hops, or undefined when the hops do not describe this trip:
- * one hop into each later city, in order, leaving every city at least one night.
- */
 function hopNights(cities: string[], nights: number, hops: ScheduledHop[]): number[] | undefined {
   if (cities.length < 2 || hops.length !== cities.length - 1) return undefined;
   const arrivals = [1];
@@ -104,8 +89,6 @@ function hopNights(cities: string[], nights: number, hops: ScheduledHop[]): numb
 }
 
 export function eligibleOptions(options: StayOption[], prefs: StayPreferences): StayOption[] {
-  // Remove malformed or preference-incompatible records, then sort cheapest-first
-  // so budget revisions can select the first eligible option deterministically.
   return options
     .filter(
       (option) =>
@@ -127,13 +110,10 @@ export function eligibleOptions(options: StayOption[], prefs: StayPreferences): 
     );
 }
 
-/** Apply the soft quality defaults after mandatory preferences have been filtered. */
 export function chooseInitial(options: StayOption[]): StayOption {
-  // Rating >=8 and cancellation are soft defaults; confirmed preferences are filtered first.
   return options.find((option) => option.rating >= 8 && option.freeCancellation) ?? options[0]!;
 }
 
-/** Price rooms × nights using cents to avoid floating-point drift. */
 export function stayCost(option: StayOption, nights: number, rooms: number): number {
   const nightlyCents = Math.round((option.pricePerNight + Number.EPSILON) * 100);
   const cents = nightlyCents * nights * rooms;

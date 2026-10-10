@@ -53,12 +53,6 @@ const figureRows = (figures: ReturnType<typeof faultOutcome>["figures"]) =>
     ],
   ] as const;
 
-/**
- * The registered faults, each run on its own scenario and strategy. A card says where the fault is
- * injected and, once it has run, how the workflow met it: it carried on with less, kept a partial result
- * or stopped. Everything shown is read from the run's artifact, so a live run, a download and a replay of
- * it read the same.
- */
 export function FailureLab({
   profiles,
   scenarioTitle,

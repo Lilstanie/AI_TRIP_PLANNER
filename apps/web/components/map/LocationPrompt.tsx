@@ -2,10 +2,6 @@
 import { MapPinIcon } from "../ui/icons";
 import { useLocale } from "../account/LocaleProvider";
 
-/**
- * The in-app question asked when the workspace opens. It explains the use before the browser's own
- * permission prompt, which appears only after Allow location is pressed.
- */
 export function LocationPrompt({ onAllow, onDismiss }: { onAllow(): void; onDismiss(): void }) {
   const { t } = useLocale();
   return (

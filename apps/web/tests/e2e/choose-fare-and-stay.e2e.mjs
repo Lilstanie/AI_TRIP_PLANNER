@@ -1,10 +1,3 @@
-// Failure inventory: taking another fare or stay leaves the old price in the total, the swapped
-// item reads differently from a planned one (the outbound fare loses its return date), the card
-// keeps showing the old choice, a reload brings the old choice back, the Chinese interface shows an
-// English label, or the page overflows at phone width.
-// Runs in mock data mode, where the planner always finds more than one fare and stay.
-//
-//   DATA_MODE=mock pnpm --filter @trip/web e2e choose-fare-and-stay
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
@@ -29,7 +22,7 @@ try {
       locale: "en-AU",
       viewport: { width, height: phone ? 844 : 1000 },
     });
-    // The Next.js dev-tools button covers the phone Chat tab on a dev server.
+
     await context.addInitScript(() =>
       document.addEventListener("DOMContentLoaded", () => {
         const style = document.createElement("style");
@@ -48,7 +41,7 @@ try {
           .click();
       else await page.getByRole("button", { name: "Open your trip" }).click();
     };
-    // The flight and the night's stay are rows in the day view; each opens to its card.
+
     const openBooking = async (kind) => {
       const row = page.locator(`li.timeline-fixed--${kind}`).first();
       const open = row.locator("button.timeline-booking__open");
@@ -78,14 +71,13 @@ try {
     check(fare && was, `${width}: the planner found more than one fare`);
 
     await openTrip();
-    // The day view: Day 1 starts with the flight in, each night of the stay ends its day, and the last
-    // day ends with the return flight of the same round trip.
+
     const dayList = async (day) => {
       await page.getByRole("tab", { name: new RegExp(`^Day ${day}\\b`) }).click();
       await page.waitForTimeout(300);
       return page.getByRole("list", { name: new RegExp(`^Day ${day} timeline$`) });
     };
-    // The day strip has one day per night, from the first date to the return date (not counted).
+
     const lastDay = Math.max(
       1,
       Math.round(

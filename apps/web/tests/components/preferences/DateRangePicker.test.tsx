@@ -2,11 +2,9 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DateRangePicker } from "@/components/preferences/DateRangePicker";
 
-// Pin "today" so which dates are enabled/disabled — and which accessible
-// names exist to click — doesn't drift as real time passes.
 beforeEach(() => {
   vi.useFakeTimers();
-  vi.setSystemTime(new Date(2026, 8, 20)); // 2026-09-20
+  vi.setSystemTime(new Date(2026, 8, 20));
 });
 afterEach(() => vi.useRealTimers());
 

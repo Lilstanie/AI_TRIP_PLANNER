@@ -3,40 +3,8 @@ import { GoogleNotConfiguredError, GoogleRequestError } from "@/lib/integrations
 import { createMapProvider, routeLeg } from "@/lib/map-provider";
 import type { MapProvider } from "@/lib/map-provider/types";
 
-/*
- * Failure modes, written before the fallback provider (CLAUDE.md, spec #270):
- *
- * Classification — Google counts as unavailable, and OSM is asked, when:
- *  1. there is no server key (Google is never called);
- *  2. Google answers 401 or 403 (access denied, API disabled, billing off);
- *  3. Google answers 400 with reason API_KEY_INVALID (a bad key is a 400 on Places, not a 403);
- *  4. Google answers 429 (quota exhausted);
- *  5. Google answers 5xx;
- *  6. the request times out or the network fails;
- *  7. the Time Zone API answers 200 with REQUEST_DENIED or OVER_QUERY_LIMIT.
- * Google is NOT unavailable, and OSM must not be asked, when:
- *  8. a search answers with no places (an empty result is an answer);
- *  9. Google answers 400 for another reason, or 404 (an unknown place);
- * 10. the place or photo id belongs to Google and only Google can read it.
- * Outcome:
- * 11. when OSM cannot answer either, the Google failure is what the caller sees (unchanged notices);
- * 12. a route that neither provider can answer is `unavailable` with Google's notice, never a throw.
- * Cool-down:
- * 13. after an access or quota failure Google is skipped until the cool-down ends;
- * 14. once it ends, Google is tried again;
- * 15. a 5xx or timeout does not start a cool-down.
- * Selection:
- * 16. `google` never falls back, even on 403;
- * 17. `osm` never calls Google;
- * 18. ids scoped `osm:` go to OSM, never to Google.
- * Mock switch:
- * 19. MOCK_GOOGLE_MAPS=unavailable in mock data mode fails Google without calling it;
- * 20. the switch is ignored in live data mode.
- */
-
 const place = { id: "osm:node/1", displayName: { text: "Fushimi Inari" } };
 
-/** A stand-in for the OSM provider, which later tickets implement: it always answers. */
 function answeringOsm() {
   return {
     searchPlaces: vi.fn(async () => ({ value: [place], source: "osm" as const })),

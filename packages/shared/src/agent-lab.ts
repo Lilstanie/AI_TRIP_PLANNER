@@ -20,13 +20,9 @@ export const AgentLabStrategyId = z.enum([
 ]);
 export type AgentLabStrategyId = z.infer<typeof AgentLabStrategyId>;
 
-// Fixture is the default and the only mode that needs no credentials. Live uses the deployment's own model
-// and provider services and exists only where the server has been explicitly configured to allow it.
 export const AgentLabDataMode = z.enum(["fixture", "live"]);
 export type AgentLabDataMode = z.infer<typeof AgentLabDataMode>;
 
-// The registered, deterministic faults a visitor may ask for. A visitor never defines a fault: the
-// profile names one that the server owns, and the server decides where it applies.
 export const AgentLabFaultProfileId = z.enum([
   "provider-timeout",
   "provider-empty-result",
@@ -36,8 +32,6 @@ export const AgentLabFaultProfileId = z.enum([
 ]);
 export type AgentLabFaultProfileId = z.infer<typeof AgentLabFaultProfileId>;
 
-// The part of the system a fault is injected into: one of the five specialists, or the supervisor that
-// delegates to them.
 export const AgentLabFaultCapability = z.enum([...AGENT_NAMES, "supervisor"]);
 export type AgentLabFaultCapability = z.infer<typeof AgentLabFaultCapability>;
 
@@ -51,11 +45,9 @@ export const AgentLabRunRequest = z
   .strict();
 export type AgentLabRunRequest = z.infer<typeof AgentLabRunRequest>;
 
-// Who ran a strategy: the lone baseline, or the five specialists coordinated by the graph.
 export const AgentLabActor = z.enum(["single-agent", "multi-agent"]);
 export type AgentLabActor = z.infer<typeof AgentLabActor>;
 
-// Why the planning loop ended; exactly one applies to every multi-agent run.
 export const AgentLabStopReason = z.enum([
   "converged",
   "round_limit",
@@ -93,9 +85,9 @@ export const AgentLabLifecycleEvent = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("lab_conflict_detected"),
     round: z.number().int().positive(),
-    // AUD over budget plus a tenth of the budget per other conflict; lower is better.
+
     score: z.number().nonnegative(),
-    // True when no revision can meet the budget, so the loop stops instead of revising.
+
     infeasible: z.boolean(),
     conflicts: z.array(
       z.object({
@@ -111,7 +103,7 @@ export const AgentLabLifecycleEvent = z.discriminatedUnion("type", [
     round: z.number().int().positive(),
     agent: z.enum(AGENT_NAMES),
     objective: z.string().min(1),
-    // What the specialist proposed before this revision, so a reader can see what it replaced.
+
     previousOutcome: z.string().min(1),
   }),
   z.object({
@@ -120,7 +112,7 @@ export const AgentLabLifecycleEvent = z.discriminatedUnion("type", [
     agents: z.array(z.enum(AGENT_NAMES)),
     scoreBefore: z.number().nonnegative(),
     scoreAfter: z.number().nonnegative(),
-    // False means the revision did not improve the plan and the previous proposals stand.
+
     kept: z.boolean(),
     summary: z.string().min(1),
   }),
@@ -132,16 +124,12 @@ export const AgentLabLifecycleEvent = z.discriminatedUnion("type", [
     summary: z.string().min(1),
   }),
   z.object({
-    // The first event after the run starts when a registered fault was asked for, so a reader knows
-    // the failures that follow were injected, and where.
     type: z.literal("lab_fault_injected"),
     profileId: AgentLabFaultProfileId,
     capability: AgentLabFaultCapability,
     summary: z.string().min(1),
   }),
   z.object({
-    // A specialist's output failed the shared proposal schema at the workflow boundary. Only the
-    // field paths are published, never the validator's message or the rejected value.
     type: z.literal("lab_agent_output_rejected"),
     agent: z.enum(AGENT_NAMES),
     round: z.number().int().positive(),
@@ -149,7 +137,6 @@ export const AgentLabLifecycleEvent = z.discriminatedUnion("type", [
     summary: z.string().min(1),
   }),
   z.object({
-    // The supervisor could not delegate, so the workflow dispatched the specialists deterministically.
     type: z.literal("lab_supervisor_fallback"),
     phase: z.enum(["dispatch", "revision"]),
     round: z.number().int().positive(),
@@ -175,8 +162,6 @@ export const AgentLabLifecycleEvent = z.discriminatedUnion("type", [
 ]);
 export type AgentLabLifecycleEvent = z.infer<typeof AgentLabLifecycleEvent>;
 
-// Multi-agent strategies will wrap the orchestrator's existing progress events. The lab-specific
-// lifecycle events cover run-level facts without pretending the baseline is a sixth specialist.
 export const AgentLabEventPayload = z.union([AgentProgressEvent, AgentLabLifecycleEvent]);
 export type AgentLabEventPayload = z.infer<typeof AgentLabEventPayload>;
 
@@ -192,8 +177,6 @@ export const AgentLabRunEvent = z.object({
 });
 export type AgentLabRunEvent = z.infer<typeof AgentLabRunEvent>;
 
-// One named, deterministic check. Showing each check, instead of a bare pass count, lets a visitor see
-// exactly which constraints were measured.
 export const AgentLabCheck = z.object({
   id: z.string().min(1),
   label: z.string().min(1),
@@ -203,37 +186,34 @@ export type AgentLabCheck = z.infer<typeof AgentLabCheck>;
 
 export const AgentLabMetrics = z.object({
   withinBudget: z.boolean(),
-  // Budget minus estimate; negative when the plan is over budget.
+
   budgetHeadroom: z.number(),
   sectionCount: z.number().int().nonnegative(),
   checks: z.array(AgentLabCheck).min(1),
   eventCount: z.number().int().nonnegative(),
-  // Wall time including the pacing delay that makes the stream watchable.
+
   durationMs: z.number().int().nonnegative(),
-  // Wall time without that pacing: what the strategy itself took. Fixture latency measures
-  // orchestration overhead only, never model latency.
+
   latencyMs: z.number().int().nonnegative(),
-  // Planning rounds the graph ran. One means no revision happened.
+
   rounds: z.number().int().positive(),
-  // Tool calls that completed in the trace.
+
   toolCalls: z.number().int().nonnegative(),
-  // Sections whose proposal came from a deterministic fallback instead of the specialist's own draft.
+
   fallbacks: z.number().int().nonnegative(),
   failedAgents: z.number().int().nonnegative(),
   unresolvedConflicts: z.number().int().nonnegative(),
-  // Sections built from provider or fixture evidence rather than a fallback or an unavailable source.
+
   groundedSections: z.number().int().nonnegative(),
-  // Itinerary stops that repeat an earlier stop, counting each repeat after the first visit.
+
   duplicateStops: z.number().int().nonnegative(),
-  // Itinerary stops that name no real place ("Mock attraction near Tokyo", a bare city, nothing).
+
   genericStops: z.number().int().nonnegative(),
-  // Whether every city of a multi-city trip has a stay and an activity; null for a single-city trip.
+
   multiCityConsistent: z.boolean().nullable(),
-  // Why the loop ended, from the trace; null for a strategy that has no loop.
+
   stopReason: AgentLabStopReason.nullable(),
-  // Token usage, only when the provider actually returned it for every model call. A run that made no
-  // model calls, or whose provider reported nothing for some call, is unavailable, never a guessed number.
-  // Model cost is never computed: providers do not return it.
+
   usage: z.discriminatedUnion("status", [
     z.object({ status: z.literal("unavailable"), reason: z.string().min(1) }),
     z.object({
@@ -254,7 +234,6 @@ export const AgentLabFailureMetrics = z.object({
 export type AgentLabFailureMetrics = z.infer<typeof AgentLabFailureMetrics>;
 
 export const AgentLabFailure = z.object({
-  // `agent_failed` names the specialist whose failure ended the run; `run_failed` is any other cause.
   code: z.enum(["run_failed", "agent_failed"]),
   message: z.string().min(1),
   atSequence: z.number().int().nonnegative(),
@@ -269,8 +248,7 @@ const AgentLabRunArtifactBase = z
     scenarioId: AgentLabScenarioId,
     strategyId: AgentLabStrategyId,
     dataMode: AgentLabDataMode,
-    // The registered fault this run was asked to inject; null for an ordinary run, and for any artifact
-    // recorded before faults existed.
+
     faultProfileId: AgentLabFaultProfileId.nullable().default(null),
     startedAt: z.string().min(1),
     completedAt: z.string().min(1),
@@ -362,8 +340,6 @@ export const AgentLabRunArtifact = z.discriminatedUnion("status", [
 ]);
 export type AgentLabRunArtifact = z.infer<typeof AgentLabRunArtifact>;
 
-// Why a request was turned away before any run started. None of these is a failure of the experiment, and
-// none carries anything about the deployment beyond the reason.
 export const AgentLabRejectionReason = z.enum([
   "live_disabled",
   "live_unsupported",

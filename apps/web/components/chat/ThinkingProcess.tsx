@@ -9,16 +9,6 @@ import { countActivity, roundGroups, turnSummary } from "./thinking-model";
 import type { Notice } from "@/lib/i18n/notice";
 import { Children, RoundHeading, RunningLine, SubagentRow, type OpenRows } from "./ThinkingRows";
 
-// ---------------------------------------------------------------------------
-// The thinking transcript is a DSH-style tree of 24px disclosure rows:
-//   Think (the turn) → Subagent · <name> per round → that subagent's Think
-//   (reasoning) and tool rows → a tool's arguments and result rows.
-// Every row starts collapsed, busy or settled, and a click opens only that
-// row. This file owns the turn row and the open set; thinking-model derives
-// the tree from `activity`, and ThinkingRows renders the rows below the turn.
-// ---------------------------------------------------------------------------
-
-/** A plain set of open row ids. Nothing is open until the reader opens it. */
 function useOpenRows(): OpenRows {
   const [open, setOpen] = useState<ReadonlySet<string>>(() => new Set());
   const toggle = useCallback((id: string) => {
@@ -113,7 +103,7 @@ export function ThinkingProcess({
           {failed && <p className="thinking-error">{localizeNotice(error)}</p>}
         </Children>
       </Disclosure>
-      {/* Exactly one live line for the whole turn, only while it is in flight. */}
+
       {busy && <RunningLine elapsedMs={elapsed} />}
     </div>
   );

@@ -1,8 +1,5 @@
 import type { MetadataRoute } from "next";
 
-// The web app manifest makes the site installable: from Chrome or Edge on a computer, from
-// Safari's Add to Home Screen on iPhone, and as the Android app in apps/android-twa, which opens
-// this same origin. Colours match the `--page` token so the splash screen and title bar blend in.
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: "/",

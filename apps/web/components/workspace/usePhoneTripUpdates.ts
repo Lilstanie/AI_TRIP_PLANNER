@@ -2,8 +2,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { WorkspaceModel } from "./useWorkspace";
 
-// Catalog validation rebuilds objects in schema order. Sort object keys so a restored snapshot
-// and the same live plan have one revision, regardless of property insertion order.
 const fingerprint = (value: unknown) =>
   JSON.stringify(value, (_key, item: unknown) =>
     item && typeof item === "object" && !Array.isArray(item)
@@ -11,16 +9,12 @@ const fingerprint = (value: unknown) =>
       : item,
   );
 
-/** Track what the traveller read for each trip, so switching between saved trips cannot turn
- * an unchanged plan into an update. Manual edits count even without a new planner round. */
 export function usePhoneTripUpdates(model: WorkspaceModel) {
   const { plan } = model.session;
   const { phone, mobileView } = model.layout;
   const revision = useMemo(() => (plan ? fingerprint(plan) : undefined), [plan]);
   const read = useRef<Map<string, string> | undefined>(undefined);
   if (!read.current) {
-    // Existing history is the baseline, not a new planner result. A newly produced trip is absent
-    // from this map until its Trip tab is opened; the map survives chat/trip switching.
     read.current = new Map(
       model.history.catalog.trips.map((trip) => [
         trip.snapshot.plan.tripId,

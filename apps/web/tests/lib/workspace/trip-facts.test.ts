@@ -84,7 +84,7 @@ describe("trip facts", () => {
     expect(factErrors("who", { ...blankDraft(), groupSize: "0" }, blank, false)).toEqual({
       groupSize: { key: "Enter a whole number of travellers, 1 or more." },
     });
-    // Dates are checked without a destination instead of blaming the missing destination.
+
     expect(
       factErrors("when", { ...blankDraft(), start: "2026-10-01", end: "2026-10-04" }, blank, false),
     ).toEqual({});

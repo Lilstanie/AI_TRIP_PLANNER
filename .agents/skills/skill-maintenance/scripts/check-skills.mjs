@@ -1,25 +1,4 @@
 #!/usr/bin/env node
-// Report project skills that have fallen behind the repository: references to paths or pnpm scripts
-// that no longer exist, and commits on the paths a skill names since that skill last changed.
-// It only reports. Rewriting a skill is a judgement left to the agent or person reading the report.
-//
-// Failure inventory, written before implementation:
-// - a renamed or deleted file a skill names in backticks goes unnoticed (Markdown links are already
-//   checked by verify:docs; backticked paths are not);
-// - a placeholder, glob or identifier (`packages/<pkg>/src/**`, `YYYY-MM-DD-<topic>.md`, `foo.md`,
-//   `process.env`, a bare folder name like `output/`) is reported as missing, burying the real findings;
-// - a path written relative to a sub-folder (`report-source/parts/`, `maps-port.ts`) is reported as
-//   missing although the file exists;
-// - `pnpm <script>` or `pnpm --filter @trip/<pkg> <script>` names a script or package that is gone;
-// - a skill whose own last change is older than the commits on its paths is not flagged as possibly
-//   stale, or commits that already updated the skill are counted against it;
-// - a skill that names a folder (`docs/`, `apps/web/tests/e2e`) or a record file every docs PR rewrites
-//   (`.agents/translation-pairs.json`) is flagged by every commit, so the real drift drowns; only
-//   named source and document files count towards drift;
-// - a file added but not yet committed is reported as missing;
-// - a shallow clone hides the skill's last change, and the script silently reports zero drift;
-// - the report cannot be consumed by another tool (needs --json) or fails CI on drift alone, which
-//   is a prompt to review, not an error.
 
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
@@ -41,19 +20,18 @@ for (const file of tracked) {
   for (let i = 1; i < parts.length; i += 1) trackedDirs.add(parts.slice(0, i).join("/"));
 }
 const shallow = git("rev-parse", "--is-shallow-repository") === "true";
-// Files tooling rewrites on almost every pull request; a change to them says nothing about a skill.
+
 const RECORD_FILES = new Set([".agents/translation-pairs.json", "pnpm-lock.yaml"]);
 const EXTENSIONS =
   /\.(md|mjs|cjs|js|jsx|ts|tsx|json|ya?ml|py|css|html|svg|png|pdf|pptx|mmd|sh|sql|toml|txt)$/i;
 
-/** Resolve a path a skill names to a tracked file or folder, trying the root, the skill folder and a unique suffix. */
 function resolvePath(token, skillDir) {
   const clean = token.replace(/\/+$/, "");
   const candidates = [clean, relative(root, join(skillDir, clean))];
   for (const candidate of candidates) {
     if (tracked.includes(candidate) || trackedDirs.has(candidate)) return candidate;
   }
-  // A file added in the working tree but not yet committed still counts as present.
+
   for (const candidate of candidates) if (existsSync(join(root, candidate))) return candidate;
   const suffix = `/${clean}`;
   const fileMatch = tracked.find((file) => file.endsWith(suffix));
@@ -62,18 +40,17 @@ function resolvePath(token, skillDir) {
   return dirMatch ?? null;
 }
 
-/** A backticked token is checked as a path only when it plainly is one, not a placeholder or an example. */
 function pathCandidate(raw) {
   if (/\s|^https?:|[<>{}$|[\]]|YYYY|\bfoo\b|\.\.\.|^-/.test(raw)) return null;
   const token = raw.split("*")[0].replace(/^\.\//, "");
   if (!token || token === "/") return null;
-  if (token.startsWith("/")) return null; // URL routes such as /agent-lab
-  if (raw.includes("*") && !token.includes("/")) return null; // "*.e2e.mjs"
-  if (/^[\w.-]+\/$/.test(token)) return null; // a bare folder name used descriptively
+  if (token.startsWith("/")) return null;
+  if (raw.includes("*") && !token.includes("/")) return null;
+  if (/^[\w.-]+\/$/.test(token)) return null;
   const hasSlash = token.includes("/");
   const hasExtension = EXTENSIONS.test(token) && !/^\.[a-z.]+$/i.test(token);
   if (!hasSlash && !hasExtension) return null;
-  if (token.startsWith("@")) return null; // package names
+  if (token.startsWith("@")) return null;
   if (/^[A-Z_]+=/.test(token)) return null;
   return token;
 }
@@ -96,7 +73,6 @@ const PNPM_BUILTINS = new Set([
   "update",
 ]);
 
-/** Check `pnpm <script>` and `pnpm --filter @trip/<pkg> <script>` commands found in a code span or block. */
 function scriptProblems(text) {
   const problems = [];
   for (const match of text.matchAll(/pnpm\s+(?:--filter[= ](\S+)\s+)?([a-z][\w:-]*)/g)) {
@@ -137,7 +113,7 @@ function commitsSince(sha, paths, skillPath) {
       const via = paths.filter((path) =>
         touched.some((file) => file === path || file.startsWith(`${path}/`)),
       );
-      // A commit that also updated the skill already accounted for its own change.
+
       const updatedSkill = touched.some((file) => file.startsWith(`${skillPath}/`));
       return { hash: commit.hash, date: commit.date, subject: commit.subject, via, updatedSkill };
     })

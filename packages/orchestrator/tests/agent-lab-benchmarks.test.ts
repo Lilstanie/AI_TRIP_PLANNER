@@ -1,29 +1,3 @@
-// Failure inventory for the two benchmark scenarios (#104), written before the scenarios, the new
-// checks or any other code.
-//
-// Infeasible budget (Paris family, A$3,000 for four against a supported minimum of A$3,880):
-// - a plan priced below the cheapest flights and stays the evidence supports (fabricated savings) passes;
-// - a plan that overruns without saying the budget cannot be met, or that names a different minimum,
-//   or only a repairable "over budget" conflict, passes as if it had reported the shortfall;
-// - a section dropped to make the numbers fit passes;
-// - the scenario counts checks no strategy can meet (within budget, no unresolved conflicts), so every
-//   strategy is marked down for the request instead of for its behaviour;
-// - a multi-agent strategy spends revision rounds on an infeasible budget, or never reports the minimum;
-// - the minimum the scenario declares drifts from what the workflow reports from the same evidence;
-// - the page cannot tell a repairable conflict, an unresolved one and an infeasible stop apart.
-//
-// Multi-city consistency (Tokyo then Kyoto, seven nights):
-// - the inter-city hop falls on or before the first day, after the last night, or on a date that
-//   disagrees with its own day;
-// - an activity sits in the wrong city for its day, or a day has none;
-// - the stays leave a gap or an overlap at the hop, a city has no stay, or the cities are in the
-//   wrong order;
-// - the stays do not span the trip dates, or the plan's dates differ from the brief's;
-// - the section costs do not add up to the total, or the plan's budget differs from the brief's;
-// - the checks are tied to the literal "Tokyo" and "Kyoto" instead of the brief's cities, or apply to a
-//   single-city trip;
-// - an early train transfer is counted as an early activity, or an early activity stops counting;
-// - a scenario's artifact does not record its fixture and evaluator versions.
 import { describe, expect, it } from "vitest";
 import {
   AgentLabRunRequest,

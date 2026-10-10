@@ -26,7 +26,6 @@ const complete = () =>
     JSON.stringify({ type: "complete", response: { reply: "Days reshuffled", plan } }) + "\n",
   );
 
-/** Answers /api/chat from a queue; everything else the workspace asks for gets a harmless reply. */
 function stubFetch(...responses: Response[]) {
   let next = 0;
   const fetcher = vi.fn((input: RequestInfo | URL, _init?: RequestInit) => {
@@ -51,8 +50,7 @@ const sendMessage = (text: string) => {
 };
 const log = () =>
   within(document.querySelector<HTMLElement>(".workspace-panel--chat")!).getByRole("log");
-/** The newest reply is revealed word by word, so its text is spread over word
- *  spans; match the paragraph that holds the whole line. */
+
 const reply = (text: string) =>
   within(log()).getByText((_content, el) => el?.tagName === "P" && el.textContent === text);
 
@@ -70,7 +68,6 @@ describe("Structured questions in the workspace", () => {
     fireEvent.click(screen.getByRole("radio", { name: "No" }));
     fireEvent.click(screen.getByRole("button", { name: "Submit" }));
 
-    // The answer is an ordinary user bubble, and the composer is back at once.
     expect(within(log()).getByText(/Pace: Relaxed/)).toBeTruthy();
     expect(screen.queryByRole("heading", { name: "How busy should each day be?" })).toBeNull();
     expect(screen.getByLabelText("Message AI Trip Planner")).toBeTruthy();
@@ -92,7 +89,7 @@ describe("Structured questions in the workspace", () => {
     fireEvent.click(screen.getByRole("button", { name: "Dismiss all questions" }));
     expect(screen.queryByRole("heading", { name: "How busy should each day be?" })).toBeNull();
     expect(screen.getByLabelText("Message AI Trip Planner")).toBeTruthy();
-    // The assistant's words stay in the chat.
+
     expect(reply("Before I reshuffle the days, one thing:")).toBeTruthy();
   });
 

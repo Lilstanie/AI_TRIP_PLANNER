@@ -1,18 +1,3 @@
-// End-to-end contract for the provider policy visible through ToolGateway (#127).
-//
-// Failure inventory, written before implementation:
-// - a gateway changes from fixture to live, or between live providers, after construction;
-// - fixture mode reaches the network;
-// - explicit and credential-derived Maps selection disagree with the current policy;
-// - a missing credential fails gateway construction instead of the capability that needs it;
-// - unsupported Maps capabilities are silently substituted;
-// - accommodation loses its SerpApi -> Google Places fallback or its provenance;
-// - flight failure is replaced with a fictional fare;
-// - weather crosses the 10-day or 14-day provider boundary incorrectly;
-// - concurrent gateways see each other's runtime configuration;
-// - the matrix produces no stable artifact a reviewer can inspect.
-// - selection logs claim a configured provider is enabled when its key is missing.
-
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";

@@ -1,4 +1,3 @@
-// Owner: C — lodging proposals and price revisions via injected tools and memory.
 import {
   displayCurrencyOf,
   estimateNote,
@@ -22,13 +21,11 @@ import { chooseInitial, eligibleOptions, readPreferences, splitStay, stayCost } 
 import { scheduledHops } from "../transport/legs";
 import { TRAVELLER_PREFERENCES_RULE } from "../prompts/traveller-preferences";
 
-/** A stay's candidate id, as published on the proposal: `stay-{day}-{index}`. */
 const candidateId = (day: number, index: number) => `stay-${day}-${index}`;
 
 interface StayEvidence {
-  /** The currency the text spells amounts in; planning amounts stay AUD. */
   currency: Currency;
-  /** The graph's spending ceiling for every stay together, when it set one. */
+
   allocation?: BudgetAllocation;
   segments: ReturnType<typeof splitStay>;
   rooms: number;
@@ -38,10 +35,6 @@ interface StayEvidence {
   searched: { segment: ReturnType<typeof splitStay>[number]; options: StayOption[] }[];
 }
 
-/**
- * Search every city once. Kept separate from assembly so the model's choice and the deterministic
- * choice cost the same single round of booking queries.
- */
 async function gatherStayEvidence(
   brief: TripBrief,
   ctx: AgentContext,
@@ -50,7 +43,7 @@ async function gatherStayEvidence(
   board?: PlanningBoard,
 ): Promise<StayEvidence> {
   ctx.signal?.throwIfAborted();
-  // Nights follow the day transport runs each inter-city hop, when it is on the board.
+
   const segments = splitStay(
     brief,
     scheduledHops(
@@ -65,8 +58,7 @@ async function gatherStayEvidence(
   const budgetRevision =
     revision !== undefined &&
     /budget|cost|cheaper|overrun/i.test([revision.reason, ...revision.constraints].join(" "));
-  // Search and filter each city independently; a multi-city trip is charged
-  // only for the selected stay in each segment.
+
   const searched = await Promise.all(
     segments.map(async (segment) => {
       const options = eligibleOptions(
@@ -80,7 +72,6 @@ async function gatherStayEvidence(
       );
       ctx.signal?.throwIfAborted();
       if (!options.length) {
-        // Do not present an unpriceable stay as a successful $0 proposal. A can map this to HITL.
         throw new Error(
           `No valid stays in ${segment.city} match the confirmed accommodation preferences.`,
         );
@@ -100,13 +91,6 @@ async function gatherStayEvidence(
   };
 }
 
-/**
- * Turn searched candidates into a costed proposal.
- *
- * `pick` decides which candidate each segment gets. The deterministic rules are the default; the
- * model supplies one instead when it has chosen. Either way the cost is computed here from the
- * candidate's own rate — the chooser only ever names an option.
- */
 function assembleStayProposal(
   evidence: StayEvidence,
   revision: RevisionRequest | undefined,
@@ -128,9 +112,7 @@ function assembleStayProposal(
     (sum, { segment }, index) => sum + stayCost(picked[index]!, segment.nights, rooms),
     0,
   );
-  // The allocation is what flights left for the stay. A choice over it is
-  // replaced, city by city, by the best stay that fits that city's share of
-  // nights, or the cheapest when none fits; the orchestrator sees the rest.
+
   const totalNights = segments.reduce((sum, segment) => sum + segment.nights, 0);
   const overAllocation = allocation !== undefined && pickedTotal > allocation.budget;
   const selections = searched.map(({ segment, options }, index) => {
@@ -154,8 +136,7 @@ function assembleStayProposal(
   const initialTotal =
     selections.reduce((sum, stay) => sum + Math.round(stay.initialCost * 100), 0) / 100;
   const savings = Math.round((initialTotal - total) * 100) / 100;
-  // A real property does not imply a live price. Use the adapter's provenance
-  // metadata so SerpApi rates and Google Places estimates cannot share a label.
+
   const grounded = selections.every(({ options }) => options.every((option) => option.grounded));
   const source = staySource(selections, sourceKind, grounded, currency);
   const fixtureRates = selections.every(({ chosen }) => chosen.provenance?.kind === "mock");
@@ -314,7 +295,6 @@ function staySource(
   };
 }
 
-/** The grounded lodging proposal that remains correct without an LLM. */
 async function buildStayProposal(
   brief: TripBrief,
   ctx: AgentContext,
@@ -328,11 +308,6 @@ async function buildStayProposal(
   );
 }
 
-/**
- * What the specialist is allowed to decide: which candidate each city gets, and how to describe
- * the result. There is no money field anywhere in this schema, so a hallucinated rate has nowhere
- * to land — the cost is always computed from the candidate the model named.
- */
 const StaySelection = z.object({
   choices: z
     .array(
@@ -344,10 +319,7 @@ const StaySelection = z.object({
     )
     .describe("One entry per stay. Every stay must be chosen."),
 });
-// No summary field on purpose. The proposal's summary states the authoritative total, and a free
-// text field the model can write a number into is exactly the hole the id-only design closes.
 
-/** Let the specialist choose the stay, with a safe fallback. */
 async function planStays(
   brief: TripBrief,
   ctx: AgentContext,
@@ -359,7 +331,7 @@ async function planStays(
   if (!model) return buildStayProposal(brief, ctx, revision, allocation, board);
 
   let evidence: StayEvidence | undefined;
-  // The tool hands over candidates and their real rates. It does not decide.
+
   const search = tool(
     async () => {
       evidence = await gatherStayEvidence(brief, ctx, revision, allocation, board);
@@ -416,14 +388,12 @@ async function planStays(
               preferences: brief.preferences,
             },
             revision: revision && { reason: revision.reason, constraints: revision.constraints },
-            // What the rest of the plan has settled, so the stay is chosen
-            // against what is actually left rather than the whole budget.
+
             ...(allocation
               ? {
                   stayBudget: {
                     maxTotalCost: allocation.budget,
-                    // The number is AUD; the basis (and a revision's wording) may spell amounts in
-                    // the trip's display currency, which would otherwise read as a mismatch.
+
                     currency: "AUD",
                     basis: allocation.basis,
                     basisCurrency: displayCurrencyOf(brief, ctx),
@@ -441,9 +411,6 @@ async function planStays(
     if (!evidence) throw new Error("Accommodation specialist skipped its search tool.");
     const gathered = evidence;
 
-    // A schema-valid selection still has to name candidates that exist. Resolve every stay before
-    // using any of them, so a partly-understood answer falls back whole rather than mixing the
-    // model's choice for one city with a heuristic for the next.
     const chosen = new Map<number, StayOption>();
     for (const { segment, options } of gathered.searched) {
       const choice = selection.choices.find((entry) => entry.stayId === `stay-${segment.day}`);
@@ -493,10 +460,6 @@ async function planStays(
   }
 }
 
-/**
- * The stay the traveller booked themselves, used as given: no search, no price and no candidates,
- * so neither the model nor a budget revision can swap it for another property.
- */
 function bookedStayProposal(brief: TripBrief): AgentProposal {
   const booked = brief.bookedStay!;
   const nights = splitStay(brief).reduce((sum, segment) => sum + segment.nights, 0);
@@ -525,7 +488,6 @@ function bookedStayProposal(brief: TripBrief): AgentProposal {
   };
 }
 
-// Public registry entry used by the orchestrator and revision router.
 export const accommodationAgent: Specialist = {
   name: "accommodation",
   label: "Stay",

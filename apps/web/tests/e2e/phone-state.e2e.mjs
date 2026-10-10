@@ -1,22 +1,3 @@
-// Phone keyboard and navigation (#180, #181). Repeatable screenshots and summary.json are
-// written to output/playwright/phone-state. Run against the same mock production server as
-// phone-shell.e2e.mjs, with BASE_URL and PLAYWRIGHT overrides when needed.
-// Failure inventory, written before implementation:
-// - Focusing alone hides the bar even without a keyboard; shortening the viewport without
-//   focusing hides navigation; blur leaves the bar hidden.
-// - Composer falls behind the keyboard or leaves a disclaimer gap; the latest reply is below
-//   the chat viewport; focus/blur scrolls the document; keyboard viewport panning is ignored.
-// - Structured question controls overflow the shortened viewport or cannot be tapped; its focused
-//   custom-answer field is clipped inside the option list or covered by the fixed question footer.
-// - A trip-fact editor (Where, Budget) or the stop editor keeps its focused field or its Save
-//   button below the keyboard, leaves the tab bar over it, or scrolls the document (#187).
-// - Planning changes tabs, no update dot appears, its name has no update announcement, or a
-//   second plan with unchanged trip id/round is ignored; opening Trip fails to clear the dot.
-// - Reload loses any of four saved tabs, legacy Chat/Map values fail, or switching panels resets
-//   the Trip scroll position.
-// - Back navigates away with a sheet, fact editor, settings dialog or stop editor open; closing
-//   a sheet normally leaves a phantom history entry, or nested dialogs close their parent first.
-// - Strings are missing in Chinese or phone hooks alter desktop viewport sizing.
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
@@ -48,8 +29,7 @@ async function viewport(page, height, offsetTop = 0) {
   );
   await settle(page);
 }
-// The keyboard is simulated by shrinking the fake visualViewport; everything the traveller needs
-// while typing must sit inside [0, height] and be the topmost element at its centre.
+
 async function editorAboveKeyboard(page, prefix, name, height) {
   await viewport(page, height);
   const g = await page.evaluate(() => {
@@ -208,7 +188,7 @@ async function run(browser, size) {
     scroll > 0 && restoredScroll === scroll,
     `${prefix}: Trip scroll preserved (${restoredScroll})`,
   );
-  // Same trip id and same planner round, but changed content: the read badge must reappear.
+
   await select(page, "Chat");
   const editedResponse = structuredClone(response);
   editedResponse.reply = "Phone state fixture: itinerary updated.";
@@ -234,9 +214,7 @@ async function run(browser, size) {
     (await page.locator(".phone-tabbar__dot").count()) === 0,
     `${prefix}: opening revised Trip clears dot again`,
   );
-  // The last stop sits lowest in the list; its editor must still clear the keyboard (#187).
-  // Scoped to the day's stops: the Mine tab's trip list has "Actions for" menus too, and an Idea below
-  // the day has no details to edit.
+
   await page
     .locator("#phone-panel-trip")
     .getByRole("list", { name: /^Day \d+ timeline$/ })
@@ -251,7 +229,7 @@ async function run(browser, size) {
   await editorAboveKeyboard(page, prefix, "stop editor", shortened);
   await page.locator(".item-editor").getByRole("button", { name: "Cancel", exact: true }).click();
   await settle(page);
-  // Existing stop editor closes through its Escape path; Back must not leave the workspace.
+
   const actions = page
     .locator("#phone-panel-trip")
     .getByRole("list", { name: /^Day \d+ timeline$/ })
@@ -268,7 +246,7 @@ async function run(browser, size) {
     (await page.locator(".item-editor").count()) === 0 && new URL(page.url()).pathname === "/",
     `${prefix}: Back closes stop editor`,
   );
-  // Read two different trips and revisit each through Mine. Selection alone is not an update.
+
   const secondResponse = structuredClone(editedResponse);
   secondResponse.plan.tripId = `${editedResponse.plan.tripId}-second`;
   secondResponse.plan.brief.tripId = secondResponse.plan.tripId;
@@ -310,7 +288,7 @@ async function run(browser, size) {
       `${prefix}: revisiting read ${destination} does not create an update`,
     );
   }
-  // Structured questions keep choices and custom input reachable above the keyboard.
+
   await select(page, "Chat");
   await page.unroute("**/api/chat");
   await page.route("**/api/chat", (route) =>
@@ -398,8 +376,7 @@ async function run(browser, size) {
       `${prefix}: reload restores ${name}`,
     );
   }
-  // The initial saved trip is intentionally not auto-opened after reload. Its facts editor is
-  // still available, and Back must close overlays without leaving this workspace.
+
   const title = page.locator(".phone-topbar__title-button");
   await title.click();
   await page.locator("#trip-facts-sheet").waitFor();
@@ -411,7 +388,7 @@ async function run(browser, size) {
       new URL(page.url()).pathname === "/",
     `${prefix}: Back closes facts sheet in workspace`,
   );
-  // Fact editors are bottom sheets; their focused field and Save must clear the keyboard (#187).
+
   for (const fact of ["where", "budget"]) {
     await title.click();
     await page.locator("#trip-facts-sheet").waitFor();

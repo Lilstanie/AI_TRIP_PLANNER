@@ -17,18 +17,11 @@ import {
 } from "@/lib/chat/attachments";
 import { noticeText, type Notice } from "@/lib/i18n/notice";
 
-/** A rejection's reason as the traveller reads it in each interface language. */
 const read = (reason: Notice | undefined) =>
   reason ? { en: noticeText("en", reason), zh: noticeText("zh", reason) } : undefined;
 
-/** Base64 of `length` characters, which is what the payload limits are measured in. */
 const payload = (length: number) => "A".repeat(length - (length % 4));
 
-/**
- * A stand-in for the canvas: jsdom draws nothing, so the renderer is injected.
- * It answers with a payload whose size falls with the requested edge, which is
- * what the downscale ladder is supposed to walk.
- */
 function fakeRenderer(sizeFor: (maxEdge: number) => number): ImageRenderer {
   return (_file, { maxEdge, format }) =>
     Promise.resolve(
@@ -36,10 +29,8 @@ function fakeRenderer(sizeFor: (maxEdge: number) => number): ImageRenderer {
     );
 }
 
-const image = (name = "kyoto.png", type = "image/png") =>
-  new File(["binary"], name, { type });
-const textFile = (name: string, type: string, body: string) =>
-  new File([body], name, { type });
+const image = (name = "kyoto.png", type = "image/png") => new File(["binary"], name, { type });
+const textFile = (name: string, type: string, body: string) => new File([body], name, { type });
 
 let counter = 0;
 const newId = () => `id-${(counter += 1)}`;
@@ -105,7 +96,7 @@ describe("prepareAttachments", () => {
     const seen: number[] = [];
     const render: ImageRenderer = (_file, { maxEdge }) => {
       seen.push(maxEdge);
-      // Only the third rung is small enough.
+
       const size = maxEdge >= IMAGE_MAX_EDGE ? MAX_IMAGE_BASE64_LENGTH + 4 : 900;
       return Promise.resolve(`data:image/jpeg;base64,${payload(size)}`);
     };
@@ -175,8 +166,6 @@ describe("prepareAttachments", () => {
   });
 
   it("spends a shared payload budget across the message, scaling further before refusing", async () => {
-    // A ladder that drops sharply, so a file with less budget left lands on a
-    // lower rung instead of being refused.
     const render = fakeRenderer((maxEdge) =>
       maxEdge >= IMAGE_MAX_EDGE ? 1_400_000 : maxEdge >= 768 ? 1_200_000 : 900_000,
     );
@@ -187,8 +176,7 @@ describe("prepareAttachments", () => {
     const total = attachments.reduce((sum, item) => sum + item.data.length, 0);
     expect(total).toBeLessThanOrEqual(MAX_TOTAL_ATTACHMENT_PAYLOAD);
     expect(attachments).toHaveLength(3);
-    // The first image takes the full-size rung; the last is squeezed smaller
-    // because only the rest of the budget was left for it.
+
     expect(attachments[0]?.data.length).toBeGreaterThan(
       attachments[attachments.length - 1]?.data.length ?? 0,
     );
@@ -214,7 +202,10 @@ describe("prepareAttachments", () => {
     const huge = textFile("dump.csv", "text/csv", "x");
     Object.defineProperty(huge, "size", { value: MAX_TEXT_FILE_BYTES + 1 });
 
-    const { attachments, rejections } = await prepareAttachments([huge], options(fakeRenderer(() => 800)));
+    const { attachments, rejections } = await prepareAttachments(
+      [huge],
+      options(fakeRenderer(() => 800)),
+    );
 
     expect(attachments).toEqual([]);
     expect(read(rejections[0]?.reason)).toEqual({
@@ -230,7 +221,6 @@ describe("prepareAttachments", () => {
   });
 
   it("reports a file that could not be read instead of dropping it silently", async () => {
-    // A browser failure's own message is not written for travellers, so it is not shown.
     const render = vi.fn().mockRejectedValue(new DOMException("EncodingError: decode failed"));
 
     const { attachments, rejections } = await prepareAttachments([image()], options(render));

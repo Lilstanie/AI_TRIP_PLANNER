@@ -24,10 +24,6 @@ import type { EditOperation, PlanRevisions } from "./plan-revision";
 
 type Activity = TripPlaces["activities"][number];
 
-/**
- * The server operation an item action is checked as, or undefined for an action that stays in the browser.
- * Remove, Ideas, scheduling on a day and the arrow moves are checked by the server like every other edit.
- */
 function checkedAs(id: string, action: ItemAction): EditOperation | undefined {
   switch (action.kind) {
     case "remove":
@@ -43,19 +39,6 @@ function checkedAs(id: string, action: ItemAction): EditOperation | undefined {
   }
 }
 
-/**
- * The one view of the trip's days, in the Your Trip drawer and on the phone Trip tab: the destination's
- * travel tips, the day strip, the chosen day's stops in the order the traveller lives them, each with the
- * leg into it, the day's flights and stays (each opened to its Alternatives), and then Ideas: the stops
- * with no day yet and the restaurants dining found that are not scheduled.
- *
- * Every change to a stop's day, time, place, order or leg is checked by the server, which re-checks routes,
- * budget and conflicts, and applied at once when accepted; a refused edit leaves the plan unchanged and names
- * the stop it is about. The travel time of each leg is worked out by the workspace once a day's
- * places are saved (`routes`), and a leg's mode is changed here, for that leg alone. Details, notes,
- * booked and Remove apply in the browser. Selection is shared with the map: choosing a stop in either
- * place highlights it in both and opens its card.
- */
 export function TripEditor({
   plan,
   disabled,
@@ -81,26 +64,23 @@ export function TripEditor({
   tripPlaces: TripPlaces;
   selected?: string;
   onSelect(activityId: string): void;
-  /** Routes an applied edit verified; the workspace keeps them for the legs and the map. */
+
   onRoutesChange?(routes: RouteResult[]): void;
-  /** The routes verified for the current plan: each leg's travel time and mode come from these. */
+
   routes?: RouteResult[];
-  /** The workspace's routing of the day's legs: whether it is running, and why it stopped. */
+
   legs?: LegState;
-  /** An applied leg change: its day is current, so the other legs are not routed again. */
+
   onLegApplied?(plan: TripPlan, day: number): void;
-  /** The plan revision owner: the timeline's edits are sent and applied through it. */
+
   revisions: PlanRevisions;
-  /** Show each place's first Google photo in its card (live data with a Maps key). */
+
   showPhotos?: boolean;
-  /** Which stop's map place is being saved, or failed to save, on the workspace. */
+
   saves?: AutoSaveState;
-  /** Swap a flight or stay for one the specialist already found; absent while the plan is busy. */
+
   onChoose?: ChooseCandidate;
-  /**
-   * A change applied on the timeline (true), or undone (false). The workspace keeps it, so a chat plan that
-   * replaces the trip afterwards says that it replaced the change.
-   */
+
   onTimelineChange?(changed: boolean): void;
 }) {
   const { t, locale, notice: localizeNotice } = useLocale();
@@ -117,7 +97,7 @@ export function TripEditor({
     onTimelineChange,
   });
   const days = dayCount(plan);
-  // Unresolved conflicts that name a stop or a day, shown on that stop or under that day's title.
+
   const conflicts = useMemo(() => placeConflicts(plan), [plan]);
   const labels = useMemo(
     () => Array.from({ length: days }, (_, index) => dayLabel(plan, index + 1, locale)),
@@ -126,19 +106,18 @@ export function TripEditor({
   const [day, setDay] = useState(1);
   useEffect(() => setDay((value) => Math.min(Math.max(1, value), days)), [days]);
   const active = activities.find((activity) => activity.id === selected);
-  // Selecting a marker on the map jumps the timeline to that stop's day.
+
   useEffect(() => {
     if (active?.day && active.day !== day) setDay(active.day);
-    // Only follow selection changes; a day picked by hand must not be undone.
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected]);
 
-  // The day's stops in visiting order, numbered as on the map.
   const daily = useMemo(
     () => itinerary.stopsOn(day).map((stop) => stop.activity),
     [itinerary, day],
   );
-  // Ideas are the stops with no day, then the restaurant picks dining found that are not scheduled.
+
   const suggestions = useMemo(() => restaurantSuggestions(plan), [plan]);
   const suggested = useMemo(() => new Set(suggestions.map((item) => item.id)), [suggestions]);
   const ideas = useMemo(
@@ -164,12 +143,10 @@ export function TripEditor({
     [labels, itinerary, locationStatus],
   );
 
-  // Item actions (details, note, booked, Ideas, Remove, scheduling) apply in the browser and can be
-  // undone until the plan changes from elsewhere.
   const [itemUndo, setItemUndo] = useState<{ previous: TripPlan; message: Notice }>();
   const [problem, setProblem] = useState<Notice | "">("");
   const applied = useRef<TripPlan | null>(null);
-  // The stop an action or move is taking off this day; focus returns to the day heading once it is gone.
+
   const leaving = useRef<string | undefined>(undefined);
   const dayTitle = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
@@ -181,12 +158,10 @@ export function TripEditor({
     leaving.current = undefined;
     if (id !== undefined && !daily.some((activity) => activity.id === id))
       dayTitle.current?.focus({ preventScroll: true });
-    // Runs when the plan changes; the stop list it reads comes from the same render.
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [plan]);
 
-  // Remove, Ideas, scheduling and the arrow moves are checked by the server; a checked action that is applied
-  // offers the item undo, and a refused one leaves the plan as it was and says why in the timeline.
   const act = (
     activity: Activity,
     action: ItemAction,
@@ -219,7 +194,6 @@ export function TripEditor({
     }
   };
 
-  // Everything a stop row needs from this view, for a stop on the day or an idea.
   const stopProps = (activity: Activity) => {
     const placeId = placeIdFor(activity);
     return {
@@ -246,8 +220,6 @@ export function TripEditor({
     };
   };
 
-  // Stops are connected in the order shown and carry their trip-wide stop number. Moves name a
-  // shown position; the Itinerary turns it into the plan index the preview endpoint needs.
   let previous: (typeof daily)[number] | undefined;
   return (
     <section className="trip-editor" aria-label={t("Trip timeline")}>
@@ -347,12 +319,11 @@ export function TripEditor({
               const connection = connectionBetween(previous, activity, routes, locale);
               const from = previous;
               previous = activity;
-              // A leg has a control once both of its stops have saved places: only then is it routable.
+
               const routable = !!(from?.placeId && activity.placeId);
               return (
                 <Fragment key={activity.id ?? position}>
                   {connection && (
-                    // Keyed by status in the parent, so a journey that becomes checked mounts again and draws in.
                     <LegRow
                       key={connection.status}
                       connection={connection}

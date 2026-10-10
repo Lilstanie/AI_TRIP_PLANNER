@@ -1,8 +1,3 @@
-/**
- * A trip's cover. Trips keep no photos of their own (place photos come from live lookups that may
- * not be cached), so the cover is a gradient picked from the destination's name: the same trip
- * always gets the same colours, and different destinations read apart at a glance.
- */
 const PALETTES = [
   ["#1f4e79", "#4fa3d1"],
   ["#23395b", "#8e5b9f"],

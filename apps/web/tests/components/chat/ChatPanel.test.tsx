@@ -35,14 +35,10 @@ function Chat({
   );
 }
 
-/** The turn-level Think disclosure: always the first Think row. */
 function thinkRow(): HTMLElement {
   return screen.getAllByRole("button", { name: /^Think/ })[0];
 }
 
-/** The disclosure button of one subagent row. The row's own accessible name
- *  (and its status) lives on the enclosing listitem, so match that exactly
- *  rather than substring-searching the status suffix. */
 function subagentRow(label: string, status = "Complete"): HTMLElement {
   const rows = screen
     .getAllByRole("listitem")
@@ -51,7 +47,6 @@ function subagentRow(label: string, status = "Complete"): HTMLElement {
   return within(rows[0]).getAllByRole("button")[0];
 }
 
-/** The tool disclosure nested under an agent. */
 function toolRow(label: string): HTMLElement {
   return screen.getByRole("button", { name: new RegExp(`^${label}`) });
 }
@@ -78,20 +73,16 @@ describe("ChatPanel", () => {
     const log = screen.getByRole("log");
     expect(screen.getByRole("heading", { name: "Where to next?" })).toBeTruthy();
     expect(within(log).queryByText(/.+/)).toBeNull();
-    // Several examples name Sydney now, so match the single-city one exactly.
+
     fireEvent.click(screen.getByRole("button", { name: /^Sydney · \d+ days$/ }));
 
-    // The example sends its own text rather than staging it in the composer:
-    // React state has not flushed when the click handler runs, so relying on
-    // the input would send the previous (empty) value.
     expect(onSend).toHaveBeenCalledTimes(1);
     const [sent] = onSend.mock.calls[0]!;
-    // Assert the facts, not the word order: the phrasing is constrained by the
-    // offline extractor and has had to change once already.
+
     expect(sent).toMatch(/Sydney/);
     expect(sent).toMatch(/2 people/);
     expect(sent).toMatch(/total budget 4000\./);
-    // Complete enough to plan outright, so no follow-up question is needed.
+
     expect(sent).toMatch(/\d{4}-\d{2}-\d{2} to \d{4}-\d{2}-\d{2}/);
   });
 
@@ -160,13 +151,13 @@ describe("ChatPanel", () => {
     render(<Chat activityEvents={[activity(type)]} busy />);
 
     const progress = screen.getByRole("region", { name: "Thinking process" });
-    // Every row starts collapsed, busy or not: the subagents sit under Think.
+
     expect(within(progress).queryAllByRole("listitem")).toHaveLength(0);
     fireEvent.click(thinkRow());
     const row = within(progress).getByRole("listitem", {
       name: new RegExp(`Day plan.*${status}`),
     });
-    // The dot is decorative; the state also travels as text.
+
     expect(within(row).getAllByText(status).length).toBeGreaterThan(0);
   });
 
@@ -237,8 +228,6 @@ describe("ChatPanel", () => {
     expect(thinkRow().textContent).toContain("1 tool call · 1 subagent");
     expect(screen.queryByRole("listitem", { name: "Day plan Complete" })).toBeNull();
 
-    // Think opens to its subagents and folds them again; there is no
-    // expand-all control and no trailing chevron.
     expect(screen.queryByRole("button", { name: /Expand all|Collapse all/ })).toBeNull();
     fireEvent.click(thinkRow());
     expect(screen.getByRole("listitem", { name: "Day plan Complete" })).toBeTruthy();
@@ -277,12 +266,10 @@ describe("ChatPanel", () => {
       />,
     );
 
-    // The heading explains why the round exists.
     fireEvent.click(thinkRow());
     expect(screen.getByText("Round 2 · Revising the stay after a conflict")).toBeTruthy();
     expect(screen.getByText("Keep the budget under AUD 4,000")).toBeTruthy();
 
-    // The revision's own constraint lives in the agent whose round it is.
     fireEvent.click(subagentRow("Stay", "Revising"));
     expect(screen.getByText("Free cancellation is required")).toBeTruthy();
   });
@@ -365,7 +352,7 @@ describe("ChatPanel", () => {
     expect(screen.getAllByText(/Deep diving/).length).toBe(1);
     fireEvent.click(thinkRow());
     fireEvent.click(subagentRow("Day plan", "Thinking"));
-    // No arguments and no result rows means nothing to disclose: a plain row.
+
     expect(screen.getByRole("group", { name: "Search places running" })).toBeTruthy();
     view.rerender(
       <ChatPanel
@@ -443,7 +430,7 @@ describe("ChatPanel", () => {
     expect(screen.getByText("Surry Hills Loft")).toBeTruthy();
     expect(screen.getByText("The Rocks · AUD 210.00/night")).toBeTruthy();
     expect(screen.getByText("Showing the first 2 of 34")).toBeTruthy();
-    // Each result row leads with its category glyph (a stay, by the tool's kind).
+
     const hotel = screen.getByText("Harbour View Hotel").closest("li");
     expect(hotel?.querySelector("[data-kind='stay'] svg")).toBeTruthy();
   });
@@ -466,8 +453,6 @@ describe("ChatPanel", () => {
       />,
     );
 
-    // While the block is the streaming tail the summary follows the last line,
-    // with the double-asterisk markers stripped from the summary only.
     fireEvent.click(thinkRow());
     fireEvent.click(subagentRow("Day plan", "Thinking"));
     const row = document.querySelector<HTMLElement>(".thinking-reasoning [role='button']");
@@ -523,9 +508,6 @@ describe("ChatPanel", () => {
     expect(screen.getByText("Bondi Beach House")).toBeTruthy();
   });
 
-  // The chat asks nothing and confirms nothing. A question the assistant cannot
-  // answer is prose in the transcript, and the traveller answers by typing in the
-  // composer; there is no answer surface and no confirmation card to render.
   it("renders no confirmation card and no question surface", () => {
     renderPanel([{ role: "agent", text: "Which dates did you mean — 3 March or 3 April?" }]);
 

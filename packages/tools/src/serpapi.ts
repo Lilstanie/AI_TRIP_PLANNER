@@ -1,18 +1,3 @@
-// Owner: C — SerpApi (Google Hotels + Google Flights) real-time price adapter.
-//
-// One SERPAPI_KEY, one shared monthly usage counter, one shared short-lived
-// result cache, for both engines — per the actual request. Both live as
-// module-level state here, same reliability tier as everything else this
-// codebase persists today (see packages/services/src/memory/index.ts's own
-// TODO to replace its in-memory Maps with a real store): this genuinely caps
-// usage at MONTHLY_LIMIT/month on a long-lived process (local dev, `next
-// start`), but each Vercel serverless cold start resets it, so in production
-// it is a soft guard, not a hard one, until that durable-store work lands.
-//
-// Contract with SerpApi, verified against https://serpapi.com/google-hotels-api,
-// https://serpapi.com/google-flights-api and (for the actual error shape,
-// which neither doc page shows) an empirical request with a bad key:
-// `{"error": "Invalid API key. ..."}` with HTTP 401.
 import { durableStoreConfigured, jsonStore } from "@trip/services";
 import type { FlightLeg, FlightOption, StayOption } from "@trip/shared";
 import { airportCodeFor } from "./airports";
@@ -40,10 +25,9 @@ export class SerpApiError extends Error {
   }
 }
 
-// --- shared monthly quota, both engines count against the same total -------
 let usage = { month: "", count: 0 };
 function currentMonth(): string {
-  return toolNow().toISOString().slice(0, 7); // YYYY-MM
+  return toolNow().toISOString().slice(0, 7);
 }
 function rolloverIfNewMonth(): void {
   const month = currentMonth();
@@ -82,18 +66,16 @@ async function reserveQuota(): Promise<{ commit(): void; release(): Promise<void
     },
   };
 }
-/** Exported for tests and any future usage indicator; not part of BookingPort. */
+
 export function serpApiUsage(): { month: string; count: number; limit: number } {
   rolloverIfNewMonth();
   return { ...usage, limit: MONTHLY_LIMIT };
 }
-/** Test-only: force the counter back to zero so tests don't leak into each other. */
+
 export function resetSerpApiUsageForTests(): void {
   usage = { month: "", count: 0 };
 }
 
-// --- shared short-lived cache, both engines, so re-asking the same question
-// during one planning session doesn't spend a second real search --------
 const cache = new Map<string, { expiresAt: number; value: unknown }>();
 async function cached<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
   if (durableStoreConfigured()) {
@@ -114,7 +96,7 @@ async function cached<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
   cache.set(key, { expiresAt: toolNow().getTime() + CACHE_TTL_MS, value });
   return value;
 }
-/** Test-only: cache entries would otherwise leak between test cases. */
+
 export function clearSerpApiCacheForTests(): void {
   cache.clear();
 }
@@ -176,11 +158,6 @@ async function serpApiSearch(params: Record<string, string>): Promise<SerpApiRaw
   }
 }
 
-// --- Google Hotels ----------------------------------------------------------
-
-/** Google's place rating is 1.0-5.0; this project's convention is 0-10 —
- *  same conversion as the Google Places accommodation path, and the same
- *  reason it needs a test rather than trusting the schema range check. */
 function normalizedRating(value: unknown): number {
   const rating = Number(value);
   return Number.isFinite(rating) ? Math.round(rating * 2 * 10) / 10 : 0;
@@ -220,8 +197,7 @@ export async function searchHotelsSerpApi(q: {
           area: q.city,
           pricePerNight: Number(property.rate_per_night?.extracted_lowest),
           rating: normalizedRating(property.overall_rating),
-          // Not reliably exposed by this engine — same conservative default
-          // as the Google Places path, for the same reason (see booking.ts).
+
           freeCancellation: false,
           grounded: true,
           provenance: {
@@ -250,15 +226,6 @@ export async function searchHotelsSerpApi(q: {
   });
 }
 
-// --- Google Flights ----------------------------------------------------------
-
-// Verified empirically against a real key: SerpApi's Google Flights engine
-// rejects a free-text city name outright —
-// `departure_id ("Sydney") should either be an uppercase 3-letter code or
-// start with "/m" or "/g"` — it does NOT resolve city names the way the
-// Google Flights website does. This project's TripBrief only ever carries
-// free-text city names (e.g. "Sydney"), never an airport code, so every real
-// flight search needs this bridge. The table itself lives in ./airports.
 function airportCode(city: string): string {
   const code = airportCodeFor(city);
   if (!code) {
@@ -297,12 +264,7 @@ export async function searchFlightsSerpApi(q: {
         const outbound = legFrom(flight);
         const token = departureToken(flight);
         const durationMin = Number(flight.total_duration);
-        // SerpApi/Google Flights reports one price per passenger for the
-        // whole itinerary (both legs already combined on a round trip); this
-        // project's FlightOption convention (see booking.ts's header comment)
-        // is a whole-group total, matching the mock fixtures — so it must be
-        // scaled by passenger count here, or every group quote is silently
-        // too low by a factor of `passengers`.
+
         const perPassenger = Number(flight.price);
         return {
           carrier: typeof airline === "string" ? airline.trim() : "",
@@ -311,9 +273,7 @@ export async function searchFlightsSerpApi(q: {
           ...(Number.isFinite(durationMin) ? { durationMin } : {}),
           ...(outbound ? { outbound } : {}),
           ...(isRoundTrip(flight) ? { roundTrip: true } : {}),
-          // Google Flights answers a round trip in two steps: these options
-          // are the outbound halves, and the return flights for one of them
-          // need a second search keyed by this token.
+
           ...(token ? { returnToken: token } : {}),
           provenance: {
             kind: "live",
@@ -336,15 +296,6 @@ export async function searchFlightsSerpApi(q: {
   });
 }
 
-/**
- * The return flights for one outbound itinerary.
- *
- * Google Flights answers a round trip in two steps: the first search returns
- * outbound options carrying the whole round-trip price, and the ways home for
- * one of them are a second search keyed by that option's token. Each call
- * spends another unit of the monthly allowance, so callers fetch this only for
- * the itineraries they are about to show, not for every fare returned.
- */
 export async function searchReturnLegSerpApi(q: {
   from: string;
   to: string;
@@ -367,8 +318,7 @@ export async function searchReturnLegSerpApi(q: {
       departure_token: q.token,
     });
     const itineraries = [...(data.best_flights ?? []), ...(data.other_flights ?? [])];
-    // The first is Google's own pick for this outbound; a traveller choosing a
-    // different way home is a second question, not part of this answer.
+
     for (const raw of itineraries) {
       const leg = legFrom(raw as RawItinerary);
       if (leg) return leg;
@@ -377,18 +327,11 @@ export async function searchReturnLegSerpApi(q: {
   });
 }
 
-// --- Google Maps directions: transit between cities -------------------------
-//
-// For hops where Google's Routes API has no transit (all of Japan). Verified against
-// https://serpapi.com/google-maps-directions-api and one Tokyo Station → Kyoto Station request:
-// `directions[0]` carried `duration` (seconds), `cost` 14170, `currency` "JPY" and `trips[]` whose
-// `title` named "Tokaido Shinkansen Nozomi 91". The fare is per person.
-
 export interface TransitRoute {
   durationMin: number;
-  /** Per-person fare in the provider's currency, when it gave one. */
+
   fare?: { amount: number; currency: string };
-  /** The services taken, e.g. "Tokaido Shinkansen Nozomi 91". */
+
   services: string[];
 }
 

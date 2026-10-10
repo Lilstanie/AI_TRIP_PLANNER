@@ -40,46 +40,30 @@ import type { WorkflowDecision } from "./decisions";
 
 const DEFAULT_MAX_ROUNDS = 3;
 
-/** Dependencies are injectable so the graph can be tested without network or singleton state. */
 export interface OrchestratorOptions {
   specialists?: Specialist[];
   tools?: ToolGateway;
   mem?: MemoryStore;
   maxRounds?: number;
   onProgress?: (event: AgentProgressEvent) => void;
-  /** Receives the loop's decisions as typed facts; see `WorkflowDecision`. Never affects the plan. */
+
   onDecision?: (decision: WorkflowDecision) => void;
-  /**
-   * The model that drives delegation. Without it, injected specialists are dispatched directly and the
-   * production default builds a routed model. Giving one, even with injected specialists, delegates
-   * through the supervisor and falls back to deterministic dispatch if it fails.
-   */
+
   supervisorModel?: BaseChatModel;
-  /**
-   * The Settings display currency, the last step of `effectiveCurrency` after the brief's own
-   * display currency and its source budget's currency. Absent means AUD. It only changes how text
-   * spells amounts; planning, guardrails and the plan score stay in AUD.
-   */
+
   displayCurrency?: Currency;
 }
 
 const OrchestratorState = new StateSchema({
-  // Public contracts are validated at graph boundaries; custom state fields
-  // keep the graph representation independent of the shared schema internals.
   brief: z.custom<TripBrief>(),
   round: z.number().int().nonnegative().default(0),
   proposals: z.array(z.custom<AgentProposal>()).default(() => []),
   conflicts: z.array(z.custom<RevisionRequest>()).default(() => []),
   plan: z.custom<TripPlan>().optional(),
-  // Set when a revision round improved nothing; the loop stops rather than repeat it.
+
   stalled: z.boolean().default(false),
 });
 
-/**
- * How far a set of proposals is from a plan the traveller can use: the AUD over
- * budget, plus a tenth of the budget for every other unresolved conflict, so a
- * revision that fixes a route by blowing the budget does not count as progress.
- */
 export function planScore(proposals: AgentProposal[], brief: TripBrief): number {
   const { estTotal } = assessBudget(proposals.map(costOf), brief.budgetTotal);
   const others = detectConflicts(proposals, brief)
@@ -95,10 +79,6 @@ function toSection(
   unresolved: RevisionRequest[],
   specialistByName: Map<Specialist["name"], Specialist>,
 ): TripSection {
-  // A section is "needs_you" exactly while an unresolved revision request still
-  // targets it, and "draft" once it has a proposal and no conflict. Nothing else
-  // can move a section out of one of those states any more: there is no
-  // confirmation step, so "confirmed" is never produced here.
   const stillConflicting = unresolved.some((request) => request.targetAgent === proposal.agent);
   return {
     id: proposal.agent,
@@ -138,15 +118,6 @@ function resolveOptions(options: OrchestratorOptions) {
   };
 }
 
-/**
- * Build a fresh compiled graph for one dependency set.
- *
- * START -> dispatch_specialists -> detect_conflicts
- *                                      | (conditional)
- *                         revise_conflicts <-> detect_conflicts
- *                                      |
- *                                 build_plan -> END
- */
 export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
   const {
     specialists,
@@ -161,10 +132,9 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
     settingsCurrency,
   } = resolveOptions(options);
   const currencyFor = (brief: TripBrief) => effectiveCurrency(brief, settingsCurrency);
-  // Injected specialists are the deterministic seam, unless a supervisor model was injected as well.
+
   const delegates = !injected || supervisorModel !== undefined;
 
-  // A consumer's bug must not cost the traveller their plan.
   const decide = (decision: WorkflowDecision) => {
     try {
       onDecision?.(decision);
@@ -226,8 +196,6 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
       });
       return proposal;
     } catch (error) {
-      // A schema rejection is a different failure from a provider error, and a reader should be able to
-      // tell them apart. Only the rejected field paths are reported, never the message or the value.
       const issues = (error as { issues?: unknown } | null)?.issues;
       if (Array.isArray(issues)) {
         const fields = [
@@ -267,8 +235,7 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
       summary: `Assigning planning tasks for ${state.brief.destination}.`,
     });
     const agentContext = context(state.brief, round);
-    // Every specialist runs through the board, so the stay knows what flights
-    // cost and the day plan knows where the stay is, on either dispatch path.
+
     const staged = () => {
       const board = createPlanningBoard(state.brief, currencyFor(state.brief));
       return Promise.all(
@@ -280,8 +247,7 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
       );
     };
     let proposals: AgentProposal[];
-    // Explicit specialist injection is the deterministic seam used by tests.
-    // Production uses the supervisor to select named specialist tools.
+
     if (!delegates) {
       proposals = await staged();
     } else {
@@ -315,7 +281,7 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
       summary: `Checked budget and schedules: ${conflicts.length} revision request(s).`,
       constraints: conflicts.flatMap((c) => c.constraints),
     });
-    // The score is recomputed from the proposals, so skip it when nothing is listening.
+
     if (onDecision) {
       decide({
         type: "conflicts_detected",
@@ -344,7 +310,7 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
     const requestByAgent = new Map(
       state.conflicts.map((request) => [request.targetAgent, request]),
     );
-    // Only specialists that can revise are asked to; the others keep their proposal and are not rerun.
+
     for (const request of state.conflicts) {
       if (!specialistByName.get(request.targetAgent)?.supportsRevision) continue;
       const previous = state.proposals.find((proposal) => proposal.agent === request.targetAgent);
@@ -358,8 +324,7 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
         previousCost: previous ? costOf(previous) : 0,
       });
     }
-    // A reviser sees what it proposed last time and what everyone else holds,
-    // and a budget cut arrives as a ceiling rather than a percentage to guess at.
+
     const extrasFor = (agent: AgentName) => {
       const previous = state.proposals.find((proposal) => proposal.agent === agent);
       const saving = requestByAgent.get(agent)?.targetSaving;
@@ -415,9 +380,7 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
         proposals = await deterministicRevision();
       }
     }
-    // Keep the best plan so far: a round that does not improve the score is
-    // discarded, and the loop stops, because the next round would see the same
-    // inputs and repeat it.
+
     const scoreBefore = planScore(state.proposals, state.brief);
     const scoreAfter = planScore(proposals, state.brief);
     decide({

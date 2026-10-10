@@ -1,11 +1,6 @@
 import { mapProviderSetting } from "@/lib/map-provider";
 import { configuredDataMode } from "@trip/tools";
 
-/**
- * What the workspace toggle needs to describe itself honestly: the mode this
- * deployment defaults to, and whether live mode actually has provider keys —
- * without ever returning the keys themselves.
- */
 export async function GET() {
   return Response.json(
     {

@@ -10,7 +10,6 @@ export type MapMarker = HTMLElement & {
   zIndex?: number | null;
 };
 
-// Minimal runtime boundary: the Maps SDK is loaded only when the map view mounts.
 export type MapsSDK = {
   Map: new (
     el: HTMLElement,
@@ -34,8 +33,6 @@ export type MapsSDK = {
     addListenerOnce(instance: unknown, event: string, fn: () => void): { remove(): void };
   };
   marker: {
-    // Advanced markers are custom elements, so they take DOM events.
-    // addListener still works but Google warns it is going away.
     AdvancedMarkerElement: new (options: object) => MapMarker;
   };
   Polyline: new (options: object) => MapPolyline;
@@ -96,10 +93,6 @@ export function loadMaps() {
   return sdk;
 }
 
-/**
- * Adapt a Google map to the SDK-free framing controller. Programmatic moves are flagged until
- * the map is idle again, so only real user interaction counts as "the user moved the map".
- */
 export function framable(runtime: MapRuntime, moving: { current: boolean }): FramableMap {
   const { maps, map } = runtime;
   const settle = () => {

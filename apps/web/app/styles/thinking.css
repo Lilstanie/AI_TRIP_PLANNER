@@ -1,7 +1,3 @@
-/* The thinking transcript: DeepSeek Harness (DSH) flow rows in the conversation
-   flow. No card, progress rail or dashboard chrome. Components:
-   apps/web/components/chat/{ThinkingProcess,ThinkingRows,Disclosure}.tsx. */
-
 .agent-activity {
   align-self: stretch;
   min-width: 0;
@@ -11,8 +7,6 @@
 }
 
 .thinking-process {
-  /* DSH label levels mapped onto this project's tokens (see
-     docs/design/dsh-thinking-ui.md §5): borrow the levels, not the names. */
   --thinking-label-secondary: color-mix(in srgb, var(--text) 78%, transparent);
   --thinking-label-tertiary: var(--text-mut);
   --thinking-label-caption: color-mix(in srgb, var(--text-mut) 60%, transparent);
@@ -33,8 +27,6 @@
   white-space: nowrap;
 }
 
-/* --- Disclosure row (DSH DisclosureRow): [16 leading] 6 [title 13/24] · summary --- */
-
 .thinking-row {
   display: flex;
   width: 100%;
@@ -42,7 +34,6 @@
   flex-direction: column;
 }
 
-/* A closed row is height-locked, so streaming text never reflows the transcript. */
 .thinking-row:not([data-open]) {
   contain: size layout;
   height: 24px;
@@ -79,14 +70,11 @@
   color: var(--thinking-label-tertiary);
 }
 
-/* Flow glyphs render at 14px inside the 16px box; the status dot keeps its size. */
 .thinking-row__leading svg {
   width: 14px;
   height: 14px;
 }
 
-/* The running orb (thinking-orbs, tuned at 20px) overhangs the 16px slot by 2px each side rather
-   than resizing the row, so the Think line does not shift when it switches back to the icon. */
 .thinking-row__leading .thinking-orb {
   width: 20px;
   height: 20px;
@@ -167,7 +155,6 @@
   text-overflow: ellipsis;
 }
 
-/* A streaming line is right-anchored so its newest words stay in view. */
 .thinking-row__summary[data-follow-end] {
   display: flex;
   justify-content: flex-end;
@@ -181,8 +168,6 @@
   text-align: start;
   text-overflow: clip;
 }
-
-/* --- One sweep for every running row: 300px band, 2.6s ease-out, 90% hold --- */
 
 .thinking-row[data-state="running"] > .thinking-row__line::after {
   content: "";
@@ -209,8 +194,6 @@
     left: 100%;
   }
 }
-
-/* --- The tree: one rail rule at every depth (DSH ToolCallTree .subCalls) --- */
 
 .thinking-children {
   display: flex;
@@ -241,8 +224,6 @@
   margin-left: 8px;
 }
 
-/* --- Reasoning body (DSH thinkBody): indented under the title --- */
-
 .thinking-reasoning__body {
   padding: 4px 0 4px 22px;
   color: var(--thinking-label-tertiary);
@@ -251,8 +232,6 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
-
-/* --- Tool body: arguments, then result rows with category glyphs --- */
 
 .thinking-tool__body {
   display: flex;
@@ -264,9 +243,6 @@
   line-height: 18px;
 }
 
-/* The call's arguments read as one wrapped line — `Sydney → Wollongong ·
-   2026-11-24`, then a chip per remaining argument — rather than a stack of
-   label/value rows. It wraps instead of scrolling, so it survives 375px. */
 .thinking-tool__args {
   display: flex;
   flex-wrap: wrap;
@@ -293,8 +269,6 @@
   color: var(--thinking-label-caption);
 }
 
-/* Separators carry no meaning a reader needs to weigh, so they stay behind the
-   values they join. */
 .thinking-tool__arg-sep {
   flex: none;
   color: var(--thinking-label-tertiary);
@@ -331,14 +305,10 @@
   height: 14px;
 }
 
-/* A site icon sits in the same 14px box as the category glyph, so a list of
-   results keeps one left edge whether or not its rows have a web page. */
 .thinking-tool__row-favicon {
   width: 14px;
   height: 14px;
-  /* Many site icons are a dark mark on transparency, which disappears on this
-     transcript's background; a faint plate keeps them readable in either
-     theme without turning the icon into a badge. */
+
   border-radius: 3px;
   background: color-mix(in srgb, var(--text) 10%, transparent);
   object-fit: contain;
@@ -364,8 +334,6 @@
   color: var(--thinking-label-caption);
 }
 
-/* --- The one running line --- */
-
 .thinking-running {
   display: flex;
   align-items: center;
@@ -381,18 +349,6 @@
   align-items: baseline;
 }
 
-/* DSH's running-text treatment, ported from the real source (not the blue
-   gradient docs/design/dsh-thinking-ui.md §1.2 used to describe — that was
-   never in DSH; see the corrected note there). DSH's `TextShimmer`
-   (packages/client/ui-primitives/src/TextShimmer.{tsx,module.css}) is a
-   currentColor sweep: DSH's per-turn "Deep diving" text itself carries no
-   shimmer or motion (`TurnProcessNodeView.module.css` — plain tertiary-label
-   colour, no animation), but the same running-row treatment used everywhere
-   else in DSH while a row is live (`ChatGroupSeat.tsx`, `ui-tool`'s
-   `ToolRow.tsx`, `DisclosureRow.tsx`) is this shimmer, so this project
-   applies it to the running line's label. The colour stays the tertiary
-   label tone already used here — DSH's shimmer is currentColor-based, never
-   brand blue. */
 .thinking-running__label[data-text-shimmer] {
   background-image: linear-gradient(
     90deg,
@@ -419,8 +375,6 @@
 .thinking-running__clock {
   font-variant-numeric: tabular-nums;
 }
-
-/* --- State dot: 8px halo + 60%-scale core --- */
 
 .thinking-dot {
   position: relative;
@@ -483,8 +437,6 @@
   }
 }
 
-/* --- Round headings and a subagent's notes --- */
-
 .thinking-round {
   display: flex;
   flex-direction: column;
@@ -533,8 +485,6 @@
   color: var(--warn);
   font-size: 12px;
 }
-
-/* --- The model's choice --- */
 
 .thinking-choice {
   display: flex;
@@ -635,8 +585,6 @@
     animation: none;
   }
 
-  /* DSH's own reduced-motion fallback for TextShimmer: drop the gradient and
-     restore solid text instead of just freezing the sweep mid-frame. */
   .thinking-running__label[data-text-shimmer] {
     background-image: none;
     -webkit-text-fill-color: currentColor;

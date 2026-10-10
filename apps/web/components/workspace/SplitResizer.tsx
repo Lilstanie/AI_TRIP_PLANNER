@@ -4,15 +4,9 @@ import { useRef, type KeyboardEvent, type PointerEvent } from "react";
 import { CHAT_SHARE, clampChatShare } from "@/lib/workspace/catalog";
 
 const STEP = 0.02;
-/** Pointer travel that counts as a drag rather than a click. */
+
 const DRAG_THRESHOLD = 3;
 
-/**
- * The draggable divider between chat and map on desktop. It reads its position from
- * `--chat-share` on the workspace shell and, while dragging, writes that variable straight onto
- * the shell so nothing re-renders per pointer move; the trip drawer reads the same variable, so it
- * always covers exactly the map. Arrow keys, Home and End move it; double-click resets it.
- */
 export function SplitResizer({
   share,
   onChange,

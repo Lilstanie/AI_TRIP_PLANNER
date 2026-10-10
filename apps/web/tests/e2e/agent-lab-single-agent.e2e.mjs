@@ -1,28 +1,3 @@
-// End-to-end contract for Agent Lab's first tracer bullet. The public page runs the registered
-// Tokyo fixture through the single-agent strategy, streams an inspectable trace and renders the
-// validated plan and metrics. Raw NDJSON, parsed artifacts and desktop/phone screenshots land under
-// output/playwright/agent-lab-single-agent/ as repeatable evidence.
-//
-// Failure inventory written before implementation:
-// - the public route is redirected to sign-in or cannot load;
-// - the endpoint accepts unknown scenarios, strategies, modes or extra fields;
-// - fixture mode needs a model/provider credential or touches workspace storage;
-// - streamed events are missing, duplicated or out of sequence;
-// - cancelling a run still publishes a completed plan;
-// - the visible plan or metrics disagree with the completed artifact;
-// - raw prompts, secrets or private chain-of-thought reach the page or artifact;
-// - the keyboard path cannot reach the selectors and run/cancel action;
-// - the page overflows horizontally at phone width;
-// - the metrics panel claims a budget or constraint result the artifact does not hold, or a pass
-//   count that is not the list of named checks shown beside it.
-//
-// Covered by focused tests because the E2E cannot observe them (no Clerk keys, no server internals):
-// apps/web/tests/lib/auth/public-routes.test.ts (sign-in gate), tests/app/api/agent-lab/runs.test.ts
-// (cancel writes nothing), tests/lib/agent-lab/stream.test.ts (failed-run artifact),
-// packages/orchestrator/tests/agent-lab-evaluate.test.ts (each check can fail).
-//
-//   pnpm --filter @trip/web dev
-//   [CHANNEL=chrome] [PLAYWRIGHT=<path to playwright>] node apps/web/tests/e2e/agent-lab-single-agent.e2e.mjs
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
@@ -97,8 +72,6 @@ async function run(browser, { width, height, tag }) {
     );
   const storageBefore = await workspaceStorage();
 
-  // Cancellation is a user-visible part of the stream contract. The cancelled run must not render
-  // a completed plan, then a fresh run must still succeed.
   await page.getByRole("button", { name: "Run experiment" }).click();
   const cancel = page.getByRole("button", { name: "Cancel run" });
   await cancel.waitFor();
@@ -195,7 +168,6 @@ async function run(browser, { width, height, tag }) {
   await page.screenshot({ path: `${OUT}/${tag}.png`, fullPage: true });
 
   if (tag === "desktop") {
-    // One invalid field per request, so each rejection is attributable to that field alone.
     const valid = {
       scenarioId: "tokyo-couple",
       strategyId: "single-agent-baseline",

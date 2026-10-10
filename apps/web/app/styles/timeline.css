@@ -1,8 +1,3 @@
-/* Timeline & routes tab (components/trip/TripEditor.tsx and components/trip/timeline/).
-   One day at a time as a vertical line: a time column, a node on the line, the stop, its cost.
-   It sits inside the trip drawer's glass, so it groups with space and fills, never new cards.
-   The container query adapts it to the drawer's width, which is phone-narrow on a phone. */
-
 .trip-editor {
   container: timeline / inline-size;
   display: grid;
@@ -11,7 +6,6 @@
   overflow-wrap: anywhere;
 }
 
-/* ---- day strip ---- */
 .day-strip {
   display: flex;
   gap: var(--space-2);
@@ -69,7 +63,6 @@ button.day-strip__day[aria-selected="true"] {
   color: var(--warn);
 }
 
-/* ---- the day ---- */
 .timeline-day {
   display: grid;
   gap: var(--space-2);
@@ -109,7 +102,7 @@ button.day-strip__day[aria-selected="true"] {
   padding: 0;
   list-style: none;
 }
-/* The line every stop and journey hangs on. */
+
 .timeline::before {
   content: "";
   position: absolute;
@@ -166,7 +159,6 @@ button.day-strip__day[aria-selected="true"] {
   white-space: nowrap;
 }
 
-/* Fixed rows: flights, transfers and stays. Quieter than stops, since they are edited in chat. */
 .timeline-fixed__icon {
   border: 1px solid var(--border);
   background: var(--surface);
@@ -181,7 +173,6 @@ button.day-strip__day[aria-selected="true"] {
   font-weight: 500;
 }
 
-/* A flight or stay night: the row opens its card, so the title is a button that looks like text. */
 .timeline-fixed button.timeline-booking__open {
   display: grid;
   gap: 2px;
@@ -208,7 +199,6 @@ button.day-strip__day[aria-selected="true"] {
   margin-top: var(--space-2);
 }
 
-/* The destination guide's advice, above the day strip. */
 .trip-tips {
   margin: 0 0 var(--space-3);
   padding: var(--space-2) var(--space-3);
@@ -237,7 +227,6 @@ button.day-strip__day[aria-selected="true"] {
   font-weight: 500;
 }
 
-/* Stops. */
 .timeline-stop__node {
   background: var(--accent-fill);
   color: var(--on-accent);
@@ -307,7 +296,6 @@ button.timeline-stop__main:hover {
   cursor: grab;
 }
 
-/* Journeys between stops: text on the line, dashed while only an estimate. */
 .timeline-connection {
   min-height: 28px;
   align-items: center;
@@ -344,7 +332,7 @@ button.timeline-stop__main:hover {
   color: var(--text-dim);
   font-size: var(--font-size-meta);
 }
-/* The leg's mode control: a native select, so it is keyboard reachable and announced; 44 px tall. */
+
 .timeline-connection__mode {
   min-height: 44px;
   max-width: 100%;
@@ -370,7 +358,6 @@ button.timeline-stop__main:hover {
   color: var(--warn);
 }
 
-/* ---- a selected stop's editor ---- */
 .stop-editor {
   display: grid;
   gap: var(--space-3);
@@ -462,7 +449,6 @@ button.timeline-stop__main:hover {
   margin: 0;
 }
 
-/* ---- undo ---- */
 .timeline-undo {
   display: flex;
   flex-wrap: wrap;
@@ -476,7 +462,6 @@ button.timeline-stop__main:hover {
   font-size: var(--font-size-meta);
 }
 
-/* A phone-width drawer: the cost moves under the stop instead of taking a column. */
 @container timeline (max-width: 420px) {
   .timeline {
     --time-col: 40px;
@@ -497,12 +482,6 @@ button.timeline-stop__main:hover {
   }
 }
 
-/* ---- motion ----
-   Every animation here also has a text or colour signal ("Change applied", the "checked" tag), so
-   nothing is shown only by movement; all of it stops under reduced motion (base.css zeroes the
-   durations, and the rules below drop the keyframes outright). */
-
-/* A stop an applied edit changed: one soft accent wash that fades out. */
 .timeline-stop.is-changed button.timeline-stop__main {
   animation: stop-changed 1.4s var(--ease-out);
 }
@@ -522,7 +501,6 @@ button.timeline-stop__main:hover {
   }
 }
 
-/* A journey a route check verified draws itself down the line. */
 .timeline-connection--checked .timeline-connection__rail {
   transform-origin: top;
   animation: rail-draw var(--duration-slow) var(--ease-out) both;
@@ -536,7 +514,6 @@ button.timeline-stop__main:hover {
   animation: panel-in var(--duration) var(--ease-out) var(--duration-fast) both;
 }
 
-/* A stop's editor unfolds under it. */
 .stop-editor {
   animation: panel-in var(--duration) var(--ease-out);
 }
@@ -555,7 +532,6 @@ button.timeline-stop__main:hover {
   }
 }
 
-/* ---- one day view: a stop's time, its menu, its place card and Ideas (components/trip/timeline) ---- */
 button.timeline-stop__time {
   appearance: none;
   align-content: start;
@@ -567,8 +543,7 @@ button.timeline-stop__time {
   color: inherit;
   font: inherit;
   text-align: end;
-  /* The time is short and fixed: never break inside a digit pair, even under the trip editor's
-     inherited overflow-wrap: anywhere, which stacked "09:00" one digit per line. */
+
   white-space: nowrap;
   overflow-wrap: normal;
   cursor: pointer;
@@ -701,8 +676,7 @@ button.timeline-stop__time:disabled {
   display: grid;
   gap: var(--space-3);
 }
-/* Touch targets: every control in a place card is at least 44 px tall. */
-/* Beats the base button rule in forms.css, whose :not() chain is more specific. */
+
 .stop-place-card button {
   min-height: 44px !important;
 }

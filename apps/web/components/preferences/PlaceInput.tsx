@@ -4,19 +4,12 @@ import { useEffect, useId, useRef, useState, type KeyboardEvent, type RefObject 
 import { CloseIcon, MapPinIcon } from "../ui/icons";
 import { Input } from "../ui/input";
 
-/** Characters typed before a lookup is worth its cost. */
 export const SUGGEST_MIN_CHARS = 3;
-/** Quiet time after the last keystroke before a lookup is sent. */
+
 export const SUGGEST_DEBOUNCE_MS = 350;
 
 export type PlaceSuggestion = { id: string; name: string; address?: string };
 
-/**
- * Places matching what is typed, from `/api/places/search`. Every lookup is billed, so it runs
- * only when `enabled` (live data with Maps configured), after SUGGEST_MIN_CHARS characters and
- * SUGGEST_DEBOUNCE_MS of quiet, and each query is asked at most once per editor. A failed lookup
- * shows nothing: typing the name by hand always works.
- */
 export function usePlaceSuggestions(query: string, enabled: boolean) {
   const { locale } = useLocale();
   const [results, setResults] = useState<PlaceSuggestion[]>([]);
@@ -72,7 +65,6 @@ export function usePlaceSuggestions(query: string, enabled: boolean) {
   return active ? results : [];
 }
 
-/** The name with the part that matches what was typed in bold, as a suggestion shows it. */
 function Highlighted({ text, query }: { text: string; query: string }) {
   const at = query ? text.toLowerCase().indexOf(query.toLowerCase()) : -1;
   if (at < 0) return <>{text}</>;
@@ -85,11 +77,6 @@ function Highlighted({ text, query }: { text: string; query: string }) {
   );
 }
 
-/**
- * A pill-shaped text field for a place name, with a clear button inside while it holds text. With suggestions on it is a combobox: arrow keys move through
- * the matches, Enter picks one, and Escape closes the list without closing the editor. Without
- * them it is a plain field, and Enter hands the typed text to `onEnter`.
- */
 export function PlaceInput({
   id,
   value,
@@ -108,17 +95,17 @@ export function PlaceInput({
   id: string;
   value: string;
   onChange(value: string): void;
-  /** A suggestion was chosen; `address` is the region line it came with, if any. */
+
   onPick(name: string, address?: string): void;
-  /** Enter with no suggestion highlighted. */
+
   onEnter?(): void;
-  /** Escape with no suggestion list open; return true when it was handled. */
+
   onEscape?(): boolean;
   suggest: boolean;
   placeholder?: string;
   describedBy?: string;
   invalid?: boolean;
-  /** Accessible name when there is no visible `<label>`. */
+
   label?: string;
   inputRef?: RefObject<HTMLInputElement | null>;
   autoFocus?: boolean;
@@ -151,7 +138,6 @@ export function PlaceInput({
       if (chosen) pick(chosen);
       else onEnter?.();
     } else if (event.key === "Escape") {
-      // Handled here, the editor stays open: the dialog ignores a prevented Escape.
       if (open) {
         event.preventDefault();
         setDismissed(value);
@@ -191,7 +177,7 @@ export function PlaceInput({
           type="button"
           className="place-input__clear"
           aria-label={t("Clear")}
-          // Keep focus in the field.
+
           onMouseDown={(event) => event.preventDefault()}
           onClick={() => {
             onChange("");
@@ -211,7 +197,7 @@ export function PlaceInput({
                 role="option"
                 aria-selected={index === highlight}
                 className="place-input__option"
-                // Keep focus in the field; the click picks.
+
                 onMouseDown={(event) => event.preventDefault()}
                 onClick={() => pick(item)}
               >

@@ -23,7 +23,7 @@ import {
 import { ItemForm, PlaceSearch, TimeForm } from "./StopForms";
 
 type Activity = ProposalItem & { id?: string };
-/** The form a selected stop's card is showing, opened from the stop's menu. */
+
 type Panel = "" | "details" | "note" | "schedule" | "day" | "search";
 
 const STATUS_TEXT: Partial<Record<LocationStatus, MessageKey>> = {
@@ -32,13 +32,6 @@ const STATUS_TEXT: Partial<Record<LocationStatus, MessageKey>> = {
   unavailable: "Place lookup failed — retry from the map",
 };
 
-/**
- * One stop in the day, or one of the Ideas (no day, no time). The time is a button: tapping it opens
- * a Start and End form that applies at once through the server check. Selecting the stop (here or on
- * the map) opens its compact place card with the place's photo, rating, address and Google Maps link.
- * Everything else sits in the "…" menu: moves, Replace place, details, note, booked and Remove. The
- * forms those open appear in the card, and focus goes back to the stop when they close.
- */
 export function TimelineStop({
   activity,
   number,
@@ -61,41 +54,35 @@ export function TimelineStop({
   onItem,
 }: {
   activity: Activity;
-  /** The place's trip-wide stop number; none until the place is located, and none for an idea. */
+
   number?: number;
-  /** Position shown in the day, in visiting order, from 0. */
+
   index: number;
-  /** Stops in the day. */
+
   count: number;
-  /** The plan index that puts a dropped stop just before this one; absent for an idea. */
+
   dropIndex?(moved: string): number;
   days: number;
   dayLabels: string[];
   selected: boolean;
   locked: boolean;
-  /** The Google place this stop resolves to, confirmed or matched by name on the map. */
+
   place?: GooglePlace;
   status: LocationStatus;
-  /** Whether the map's place is being saved on this stop, or the server did not accept it. */
+
   saveState: "" | "saving" | "failed";
   edits: TimelineEdits;
-  /** Show the place's first Google photo in its card (live data with a Maps key). */
+
   showPhotos: boolean;
-  /**
-   * A restaurant pick from dining, not yet scheduled. It has no place lookup, so it shows no location
-   * status, and its menu offers only scheduling it or removing it.
-   */
+
   suggestion?: boolean;
-  /** Unresolved conflicts that name this stop: an overlap with another item, or a leg that was not checked. */
+
   conflicts?: Notice[];
-  /** Toggles this stop's selection; the main button uses it. */
+
   onSelect(): void;
-  /** Selects this stop without toggling it, for the menu's forms. */
+
   onOpen(): void;
-  /**
-   * Applies an item action: at once in the browser, or once the server has checked it. Resolves to false when it
-   * was refused (the refusal is shown above the timeline).
-   */
+
   onItem(action: ItemAction, message: Notice): boolean | Promise<boolean>;
 }) {
   const { t, money, notice: localizeNotice } = useLocale();
@@ -111,13 +98,12 @@ export function TimelineStop({
   const row = useRef<HTMLLIElement>(null);
   const timeButton = useRef<HTMLButtonElement>(null);
   const mainButton = useRef<HTMLButtonElement>(null);
-  // A new plan version brings new times; the time form follows it.
+
   useEffect(() => {
     setStart(activity.startTime ?? "");
     setEnd(activity.endTime ?? "");
   }, [activity.startTime, activity.endTime]);
-  // Closing the card drops its form and any search; a card opened from the map is brought into view
-  // without taking focus.
+
   useEffect(() => {
     if (!selected) {
       setPanel("");
@@ -137,7 +123,7 @@ export function TimelineStop({
     setPanel("");
     mainButton.current?.focus({ preventScroll: true });
   };
-  // The panel closes once the action is applied; a refused one keeps the panel open with the refusal above.
+
   const act = (action: ItemAction, message: Notice) => {
     void Promise.resolve(onItem(action, message)).then((done) => {
       if (done) closePanel();
@@ -264,7 +250,6 @@ export function TimelineStop({
     return items;
   };
 
-  // The place's own card, or a plain card while no place is known.
   const searching = !idea && (panel === "search" || (!confirmed && !matched));
   return (
     <li
@@ -274,8 +259,6 @@ export function TimelineStop({
       }${edits.changed.has(id) ? " is-changed" : ""}`}
       draggable={!locked && !idea}
       onKeyDown={(event) => {
-        // Escape closes the stop's open form, or its card, from anywhere in the row; forms that
-        // handle Escape themselves stop it before it reaches here.
         if (event.key !== "Escape" || event.defaultPrevented || !selected) return;
         event.stopPropagation();
         if (panel) closePanel();
@@ -286,7 +269,7 @@ export function TimelineStop({
       onDrop={(event) => {
         event.preventDefault();
         const moved = event.dataTransfer.getData("text/plain");
-        // The dropped stop lands just before this one, as shown.
+
         if (!locked && moved && moved !== id && dropIndex)
           void edits.edit({
             kind: "move",

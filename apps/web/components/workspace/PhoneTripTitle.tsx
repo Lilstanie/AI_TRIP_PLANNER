@@ -8,7 +8,6 @@ import { ChevronIcon } from "../ui/icons";
 import { usePresence } from "../ui/motion";
 import type { WorkspaceModel } from "./useWorkspace";
 
-/** "Sydney · 1 Oct – 4 Oct" from what the traveller stated, or "New trip" before anything is. */
 export function usePhoneTripTitle({
   draft,
   plan,
@@ -19,24 +18,17 @@ export function usePhoneTripTitle({
   return [labels.where, range].filter(Boolean).join(" · ") || t("New trip");
 }
 
-/**
- * The phone top bar's single line: the trip title, as a button that opens the trip facts sheet.
- * The chips are hidden on a phone, so focus that a closing fact editor would hand back to its chip
- * comes back here instead.
- */
 export function PhoneTripTitle({ model }: { model: WorkspaceModel }) {
   const { t } = useLocale();
   const { draft, plan } = model.session;
   const title = usePhoneTripTitle(model.session);
   const { openFact, openPreferences, openFactsSheet, closeFactsSheet } = model.layout;
   const button = useRef<HTMLButtonElement>(null);
-  // The sheet is a panel: opening an editor (here, from the chat's Edit, or a rejected brief)
-  // takes its place.
+
   const open = model.layout.surface.sheet === "facts";
-  // The sheet stays mounted briefly after it closes so it can sink away, as the editors do.
+
   const sheet = usePresence(open || undefined, 220);
 
-  // A fact editor just closed. Its chip is hidden, so its focus would fall to the page.
   const editing = useRef(openFact);
   useEffect(() => {
     const wasEditing = editing.current;
@@ -74,7 +66,6 @@ export function PhoneTripTitle({ model }: { model: WorkspaceModel }) {
       </h1>
       {sheet.value && (
         <TripFactsSheet
-          // A fresh instance for the exit, so reopening mid-exit mounts (and focuses) anew.
           key={sheet.leaving ? "leaving" : "open"}
           draft={draft}
           plan={plan}

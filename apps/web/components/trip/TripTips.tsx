@@ -15,7 +15,6 @@ const KIND_LABEL: Record<string, MessageKey> = {
 
 const FOLDED_KEY = (tripId: string) => `trip-tips-folded:${tripId}`;
 
-/** Whether this viewer folded the trip's tips last time. Storage may be missing or refuse access. */
 function folded(tripId: string): boolean {
   try {
     return window.localStorage.getItem(FOLDED_KEY(tripId)) === "1";
@@ -28,22 +27,15 @@ function rememberFolded(tripId: string, value: boolean) {
   try {
     if (value) window.localStorage.setItem(FOLDED_KEY(tripId), "1");
     else window.localStorage.removeItem(FOLDED_KEY(tripId));
-  } catch {
-    // Not remembered: the tips open again next time, which is the default.
-  }
+  } catch {}
 }
 
-/**
- * The destination guide's advice, at the top of the day view. It opens the first time and then keeps
- * whatever the viewer last chose for this trip. Absent when the plan has no guide.
- */
 export function TripTips({ plan }: { plan: TripPlan }) {
   const { t } = useLocale();
   const items = (
     plan.sections.find((section) => section.id === "destination-guide")?.proposal?.items ?? []
   ).filter((item) => item.detail.trim());
-  // Read once, when the block mounts (the view is keyed by trip). The attribute is not driven after
-  // that: the browser's toggle event from mounting an open block would otherwise undo the stored fold.
+
   const [startOpen] = useState(() => !folded(plan.tripId));
   if (!items.length) return null;
   return (

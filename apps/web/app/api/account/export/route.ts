@@ -3,7 +3,6 @@ import { accountUser } from "@/lib/account/server";
 import { getDb } from "@/lib/db/client";
 import { conversations, trips, userSettings } from "@/lib/db/schema";
 
-/** Everything the account holds, as a JSON download. */
 export async function GET() {
   const user = await accountUser();
   if ("response" in user) return user.response;

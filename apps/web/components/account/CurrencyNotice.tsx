@@ -1,7 +1,6 @@
 import { RATES_AS_OF, type Currency } from "@trip/shared";
 import { useLocale } from "./LocaleProvider";
 
-/** Conversion is an estimate, never a live quote. Provider-native fares are separate evidence. */
 export function CurrencyNotice({ currency: override }: { currency?: Currency }) {
   const { currency, t } = useLocale();
   if ((override ?? currency) === "AUD") return null;

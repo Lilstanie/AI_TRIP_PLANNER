@@ -7,17 +7,12 @@ export type ActionMenuItem = {
   icon?: ReactNode;
   onSelect(): void;
   disabled?: boolean;
-  /** "danger" for destructive actions such as Remove. */
+
   tone?: "danger";
-  /** Draw a divider before this item, grouping the menu like Mindtrip's. */
+
   separated?: boolean;
 };
 
-/**
- * A "…" button that opens a menu of actions. Arrow keys move between items, Escape closes it and
- * returns focus to the trigger (in the capture phase, so an enclosing drawer stays open), and a
- * click outside or tabbing away closes it.
- */
 export function ActionMenu({ label, items }: { label: string; items: ActionMenuItem[] }) {
   const [open, setOpen] = useState(false);
   const wrap = useRef<HTMLDivElement>(null);
@@ -25,7 +20,9 @@ export function ActionMenu({ label, items }: { label: string; items: ActionMenuI
   const menu = useRef<HTMLDivElement>(null);
 
   const focusItem = (step: 1 | -1 | "first" | "last") => {
-    const buttons = [...(menu.current?.querySelectorAll<HTMLButtonElement>("button:not(:disabled)") ?? [])];
+    const buttons = [
+      ...(menu.current?.querySelectorAll<HTMLButtonElement>("button:not(:disabled)") ?? []),
+    ];
     if (!buttons.length) return;
     const current = buttons.indexOf(document.activeElement as HTMLButtonElement);
     const index =
@@ -108,7 +105,11 @@ export function ActionMenu({ label, items }: { label: string; items: ActionMenuI
                   item.onSelect();
                 }}
               >
-                {item.icon && <span className="action-menu__icon" aria-hidden="true">{item.icon}</span>}
+                {item.icon && (
+                  <span className="action-menu__icon" aria-hidden="true">
+                    {item.icon}
+                  </span>
+                )}
                 {item.label}
               </button>
             </div>

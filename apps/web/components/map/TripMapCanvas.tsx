@@ -17,13 +17,6 @@ function MapLoading() {
   return <p className="trip-map-loading">{t("Loading map…")}</p>;
 }
 
-/**
- * The persistent map canvas. It shows only the map, markers, map status and map controls —
- * timelines, editors and trip cards live in the Your Trip drawer.
- *
- * The Google map is created only once the trip has somewhere to show (its destination or an
- * activity place); before that a neutral placeholder is shown instead of a tiled world map.
- */
 export function TripMapCanvas({
   destination,
   viewKey,
@@ -37,7 +30,6 @@ export function TripMapCanvas({
   focusedDay,
   focusRequest,
 }: {
-  /** The trip destination, or undefined for a blank conversation. */
   phone?: boolean;
   focusedDay?: number;
   focusRequest?: number;
@@ -47,9 +39,9 @@ export function TripMapCanvas({
   selectedActivity?: string;
   onSelectActivity(id: string): void;
   routes: RouteResult[];
-  /** Load Google place photos; only in live data mode, because every image is billed. */
+
   showPhotos?: boolean;
-  /** The traveller's position, shared with the workspace's location question. */
+
   userLocation: UserLocation;
 }) {
   const { t } = useLocale();
@@ -63,7 +55,7 @@ export function TripMapCanvas({
     unavailable,
     retry,
   } = tripPlaces;
-  // A day's map holds that day's visits, so a place seen on an earlier day stays on it (#185).
+
   const markers = useMemo(() => itinerary.markersFor(focusedDay), [itinerary, focusedDay]);
   const dayRoutes = useMemo(() => {
     if (focusedDay === undefined) return routes;
@@ -130,7 +122,6 @@ export function TripMapCanvas({
         userLocation={userLocation}
       />
       {(loading || unconfirmed > 0 || unavailable > 0) && (
-        // Lightweight and non-blocking: located places stay usable on the map.
         <div className="trip-map-status trip-map-status--partial" role="status">
           <p>
             {loading

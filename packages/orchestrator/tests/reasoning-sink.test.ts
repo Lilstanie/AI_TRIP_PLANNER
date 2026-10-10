@@ -10,7 +10,6 @@ import {
   REASONING_OWNER,
 } from "../src/reasoning-sink";
 
-/** A model stub whose only behaviour is a scripted stream of deltas. */
 function streamingModel(deltas: Array<{ content?: string; reasoning?: string }>) {
   return {
     stream: async function* () {
@@ -67,8 +66,7 @@ describe("reasoning sink", () => {
 
     const reasoning = reasoningEvents(events);
     expect(reasoning.map((event) => event.text).join("")).toBe(long + long);
-    // Flushing still paces the wire, but every flush continues the same block,
-    // so a client appending by (agent, round, episode, index) grows one row.
+
     expect(reasoning.length).toBeGreaterThan(1);
     for (const event of reasoning) {
       expect(event.agent).toBe(REASONING_OWNER);

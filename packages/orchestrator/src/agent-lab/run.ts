@@ -54,14 +54,6 @@ function abortableDelay(ms: number, signal: AbortSignal): Promise<void> {
   });
 }
 
-/**
- * Runs one registered experiment. The mode travels with the request, never through `process.env`:
- *
- * - fixture forces mock tools and no model, so a public run cannot reach a provider or a paid model
- *   whatever keys the deployment holds or whatever data mode it defaults to;
- * - live uses the real adapters and models and reports the usage the provider actually returned. A
- *   strategy with no live implementation is refused rather than labelled live.
- */
 export async function runAgentLab(
   request: AgentLabRunRequest,
   options: RunAgentLabOptions = {},
@@ -99,8 +91,7 @@ async function executeAgentLab(
   const startedAtMs = options.startedAtMs ?? Date.now();
   const startedAt = new Date(startedAtMs).toISOString();
   const events: AgentLabRunEventValue[] = [];
-  // Time spent waiting so the stream is watchable. It is part of the run's wall time but not of the
-  // strategy's latency, or a strategy that emits more events would look slower for no reason.
+
   let pacedMs = 0;
 
   const emit = async (event: AgentLabEventPayload) => {
@@ -179,7 +170,7 @@ async function executeAgentLab(
     plan,
     metrics: {
       ...measureAgentLabRun(scenario, plan, events),
-      // Usage is not in the trace, so it is the one figure a reader cannot recompute from the artifact.
+
       ...(usage ? { usage: buildAgentLabUsage(usage.snapshot()) } : {}),
       durationMs: completedAtMs - startedAtMs,
       latencyMs: Math.max(0, completedAtMs - startedAtMs - pacedMs),
@@ -187,11 +178,6 @@ async function executeAgentLab(
   });
 }
 
-/**
- * What ended the run, in words that are safe to publish. When a specialist reported it could not
- * finish, the run names that capability; otherwise it keeps the generic message. Neither carries a
- * stack, a validator message or a provider payload.
- */
 function failureOf(events: AgentLabRunEventValue[], message: string) {
   const failed = [...events].reverse().find((entry) => entry.event.type === "agent_failed");
   if (failed?.event.type !== "agent_failed") return { code: "run_failed" as const, message };
@@ -234,11 +220,6 @@ export function createFailedAgentLabArtifact(
   });
 }
 
-/**
- * Runs an experiment to whichever artifact it ends in: a completed one, or a failed one that keeps the
- * events recorded before the failure. A cancelled run produces no artifact and rethrows, so a reader
- * that has gone away never receives one.
- */
 export async function runAgentLabToArtifact(
   request: AgentLabRunRequest,
   options: RunAgentLabOptions = {},

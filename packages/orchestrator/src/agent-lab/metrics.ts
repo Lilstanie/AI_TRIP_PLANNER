@@ -9,7 +9,6 @@ import { cityNames, normal } from "./cities";
 import { evaluateAgentLabPlan } from "./evaluate";
 import { findAgentLabScenario, type AgentLabScenario } from "./scenarios";
 
-/** Everything measured from the final plan and the trace; wall time is measured while running. */
 export type AgentLabMeasurement = Omit<AgentLabMetrics, "durationMs" | "latencyMs">;
 
 const GROUNDED_SOURCES = new Set(["live", "estimated", "mock"]);
@@ -44,10 +43,6 @@ function multiCityConsistent(scenario: AgentLabScenario, plan: TripPlan): boolea
   return cities.every((city) => mentions(stays, city) && mentions(stops, city));
 }
 
-/**
- * Every deterministic figure about a run, computed from the final plan and the trace alone. There is no
- * judge, clock or hidden input, so anyone can recompute it from the artifact and compare.
- */
 export function measureAgentLabRun(
   scenario: AgentLabScenario,
   plan: TripPlan,
@@ -94,7 +89,6 @@ export function measureAgentLabRun(
   };
 }
 
-/** The same measurement, read back from a finished artifact; it must equal the stored metrics. */
 export function recomputeAgentLabMetrics(
   artifact: AgentLabCompletedRunArtifact,
 ): AgentLabMeasurement {

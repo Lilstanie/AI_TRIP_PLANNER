@@ -1,14 +1,3 @@
-// Failure inventory for the targeted-revision strategy, written before the implementation:
-// - the tight scenario has no initial conflict, so there is nothing for revision to repair, or its
-//   conflict is infeasible and no revision could ever help;
-// - the revision strategy sees different evidence from the no-revision strategy (its first round differs);
-// - the trace does not name the conflict, the targeted specialist, the previous outcome, the objective,
-//   the score before and after, the round or the stopping reason;
-// - a specialist the conflict did not name is run again;
-// - a revision that does not improve replaces the best known plan, or the loop runs on;
-// - the loop is unbounded, or ignores an infeasible budget and burns every round;
-// - on a scenario with no conflict the strategy changes the plan or runs a second round;
-// - a revised plan is not re-validated or re-measured like every other strategy's.
 import { describe, expect, it } from "vitest";
 import type {
   AgentLabEventPayload,
@@ -56,7 +45,7 @@ describe("tight-budget scenario", () => {
       await runAgentLab(plain, { paceMs: 0 }),
       await runAgentLab(revising, { paceMs: 0 }),
     ];
-    // The graph's own events up to the first conflict check; the lab's strategy wording differs by design.
+
     const firstRound = (events: typeof without.events) => {
       const list = payloads(events).filter((event) => !event.type.startsWith("lab_"));
       return list.slice(
@@ -168,8 +157,7 @@ describe("bounded loop with controlled specialists", () => {
       make("accommodation", "Stay", 600, 600, false),
     ];
   };
-  // Budget 2000 against 1700 + 600 = 2300: transport must save at least 300 and could reach 800, so each
-  // small revision below improves the plan without ever fixing it.
+
   const run = async (revised: number[]) => {
     const emitted: AgentLabEventPayload[] = [];
     const plan = await createMultiAgentFixtureStrategy({

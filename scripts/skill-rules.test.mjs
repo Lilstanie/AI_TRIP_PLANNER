@@ -1,23 +1,3 @@
-// Failure inventory for the skill format check. Each case is a way a malformed skill could slip through,
-// or a well-formed one could be rejected. The rules come in two tiers, because only some are requirements
-// of the Agent Skills specification (https://agentskills.io/specification) and the rest are guidance:
-// - requirements (name, description size, compatibility size, frontmatter) and this project's own
-//   conventions (when-to-use phrase, files beside SKILL.md, one level of references) must fail the build;
-// - recommendations (500 lines, the 1536-character trigger budget of Claude Code, an unknown frontmatter
-//   field) must only warn, so a long but valid skill is never blocked and the warning is never lost.
-// Cases:
-// - a name that is not lower-case kebab case (upper case, underscore, leading, trailing or doubled
-//   hyphen), longer than 64 characters, or different from its folder;
-// - a missing, empty or over-long description, or one that never says when to use the skill;
-// - a misspelt or unknown frontmatter key (`descripton`) that silently drops the field;
-// - name, description and `when_to_use` together over the 1536-character budget; `compatibility` over 500;
-// - a SKILL.md over 500 lines, or exactly 500 wrongly rejected;
-// - a stray file beside SKILL.md (anything other than scripts/, references/, assets/ and a licence);
-// - a reference that links to another reference, or a SKILL.md that links into another skill's
-//   references, so the hierarchy is no longer one level deep;
-// - false alarms: a link inside a code fence, an absolute URL, an anchor, a link from a reference back to
-//   its own SKILL.md or out to docs, a folded multi-line description, a non-directory in the skills folder.
-// Run with: node --test scripts/skill-rules.test.mjs
 import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";

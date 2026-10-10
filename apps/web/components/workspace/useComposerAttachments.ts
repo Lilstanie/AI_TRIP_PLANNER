@@ -10,36 +10,22 @@ import {
 import type { MessageAttachment } from "@/lib/workspace";
 
 export type ComposerAttachments = {
-  /** Files held for the next message. */
   attachments: PreparedAttachment[];
-  /** Takes files from the picker, a drop or a paste and prepares them. */
+
   addFiles: (files: File[]) => void;
   removeAttachment: (id: string) => void;
-  /** Drops everything held — after a send, or when the conversation changes. */
+
   clearAttachments: () => void;
-  /** False at the per-message limit; `notices` then says so. */
+
   canAttach: boolean;
-  /**
-   * One line for the composer, untranslated: why each refused file was refused, or that the limit
-   * is reached. The composer translates it when it is shown.
-   */
+
   notices: Notice[];
 };
 
-/**
- * The composer's held attachments. Preparation (downscaling, truncation, the
- * type and size rules) lives in `lib/chat/attachments`; this hook owns only the
- * held list, the inline explanation, and the limit the plus control is disabled
- * by.
- *
- * `render` is injected in tests, where jsdom has no canvas.
- */
 export function useComposerAttachments({ render }: { render?: ImageRenderer } = {}) {
   const [attachments, setAttachments] = useState<PreparedAttachment[]>([]);
   const [notices, setNotices] = useState<Notice[]>([]);
-  // The count and payload at the moment a pick starts. Preparation is
-  // asynchronous, so a second pick that begins before the first finishes must
-  // still see what the first one is adding, or a limit could be passed.
+
   const held = useRef(0);
   const spent = useRef(0);
 
@@ -68,9 +54,6 @@ export function useComposerAttachments({ render }: { render?: ImageRenderer } = 
           );
         })
         .catch(() => {
-          // Nothing was added, so the reserved count and payload go back to
-          // what is actually held. Read through the setter rather than from the
-          // closure: this pick may not be the only one in flight.
           setAttachments((current) => {
             held.current = current.length;
             spent.current = payloadOf(current);
@@ -118,15 +101,9 @@ export function useComposerAttachments({ render }: { render?: ImageRenderer } = 
   } satisfies ComposerAttachments;
 }
 
-/** Payload characters the held attachments account for in the request body. */
 const payloadOf = (attachments: PreparedAttachment[]) =>
   attachments.reduce((total, attachment) => total + attachment.data.length, 0);
 
-/**
- * What a sent message keeps: identity and a small thumbnail, never the base64
- * payload. The workspace is persisted in browser storage, and the full images
- * would exhaust that budget within a handful of turns.
- */
 export function storedAttachments(attachments: PreparedAttachment[]): MessageAttachment[] {
   return attachments.map(({ name, mediaType, kind, thumbnail, bytes }) => ({
     name,

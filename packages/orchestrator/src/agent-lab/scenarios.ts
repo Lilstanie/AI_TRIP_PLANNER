@@ -7,18 +7,11 @@ import {
   type UserPreference,
 } from "@trip/shared";
 
-// Constraints a plan for this scenario is measured against. They mirror the brief's preferences so the
-// evaluator never hard-codes one scenario's facts.
 export interface AgentLabScenarioRules {
-  /** Earliest allowed activity start, "HH:MM". */
   earliestStartTime: string;
   vegetarianMeals: boolean;
   sectionCount: number;
-  /**
-   * Set when the scenario's own evidence shows no plan can meet the budget: the cheapest flights and
-   * stays it supports. The evaluator then asks whether a plan stays honest about that instead of
-   * whether it fits.
-   */
+
   infeasibleBudget?: { minimumSupportedCost: number };
 }
 
@@ -29,10 +22,7 @@ export interface AgentLabScenario {
   fixtureVersion: string;
   brief: TripBrief;
   rules: AgentLabScenarioRules;
-  /**
-   * The traveller's confirmed preferences, supplied to every strategy as its long-term memory. The lab
-   * never reads a stored profile, so both strategies see the same evidence.
-   */
+
   preferences: UserPreference[];
   fixturePlan: TripPlan;
 }
@@ -48,10 +38,6 @@ const tokyoBrief: TripBrief = {
   preferences: ["Vegetarian food", "No early starts"],
 };
 
-/**
- * The scripted single-agent recording for a brief. It is the same recorded plan whatever the budget:
- * a lone scripted agent has no conflict check and does not react to one.
- */
 function scriptedBaselinePlan(brief: TripBrief): TripPlan {
   const estTotal = 3960;
   return TripPlan.parse({
@@ -236,8 +222,6 @@ const preferences: UserPreference[] = [
   { key: "schedule", value: "no early starts", source: "filter" },
 ];
 
-// The same trip and the same provider evidence with less money. At A$2,300 the first round overruns
-// the budget, yet the cheapest flight and stay found fit it, so one targeted revision can repair it.
 const tightBrief: TripBrief = {
   ...tokyoBrief,
   tripId: "agent-lab-tokyo-couple-tight-budget",

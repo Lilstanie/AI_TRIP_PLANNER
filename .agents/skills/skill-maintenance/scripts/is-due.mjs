@@ -1,25 +1,4 @@
 #!/usr/bin/env node
-// Decide whether a skill review is due, from what has happened since any skill last changed on the
-// current branch: merged pull requests, closed issues, pull requests closed without merging, changes
-// to team conventions, new or moved Agent Notes, and errors from check-skills.mjs.
-//
-// Failure inventory, written before implementation:
-// - the baseline is wrong: a branch that has not merged the latest skill change counts work the skills
-//   already absorbed, or a skill edit inside an unmerged branch resets the count for everyone;
-// - squash-merged pull requests (`... (#N)`) or merge commits (`Merge pull request #N from ...`) are
-//   not recognised, so the count stays at zero;
-// - a change to a convention file (AGENTS.md, CI, lint or format config) does not trigger a review,
-//   although every skill that repeats a convention may now be wrong;
-// - pull requests are counted as issues (the GitHub issues endpoint returns both);
-// - issues closed by the very merge that changed the skills (closed seconds after the baseline
-//   commit) are counted as new work, so a review comes due the day after a skill update;
-// - Node's fetch ignores the HTTPS proxy and a stale GITHUB_TOKEN is rejected, so the issue signals
-//   vanish in environments where curl works;
-// - ISO dates in different offsets (+08:00 from git, Z from GitHub) compared as strings;
-// - no network or a rate limit makes the whole check fail or report "not due" silently; issue
-//   signals must be marked unavailable while the git signals still decide;
-// - thresholds are buried in code, so the team cannot tune them without reading the script;
-// - the result cannot be read by a routine (needs --json and a stable exit code).
 
 import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
@@ -34,7 +13,6 @@ const option = (name, fallback) => {
   return value;
 };
 
-// Each threshold is the smallest count that makes a review due. Tune them with flags.
 const thresholds = {
   mergedPRs: option("prs", 8),
   closedIssues: option("issues", 5),
@@ -43,7 +21,6 @@ const thresholds = {
   noteChanges: option("notes", 2),
 };
 
-// Files whose change alters a rule some skill repeats.
 const CONVENTION_PATHS = [
   "AGENTS.md",
   "docs/development.md",
@@ -81,8 +58,7 @@ const baselineLine = git(
 );
 if (!baselineLine) throw new Error("No commit has touched .agents/skills on this branch");
 const [baseline, baselineDate] = baselineLine.split("\t");
-// Issues the baseline's own commits name (a merge brings in its branch) were closed by work the
-// skill change already absorbed.
+
 const [firstParent, ...mergedParents] = git("rev-list", "--parents", "-n", "1", baseline)
   .split(" ")
   .slice(1);
@@ -107,11 +83,6 @@ const merged = all.filter(([, subject]) => /\(#\d+\)\s*$|^Merge pull request #\d
 const conventions = commits(...CONVENTION_PATHS);
 const notes = commits(...NOTE_PATHS);
 
-/**
- * GET a GitHub API URL with curl, which honours the proxy settings that Node's fetch ignores. A token in
- * GITHUB_TOKEN is used when it works; a rejected token falls back to an anonymous request, which is
- * enough for a public repository.
- */
 function getJson(url) {
   const attempt = (token) => {
     const curlArgs = ["-sS", "-w", "\n%{http_code}", "-H", "Accept: application/vnd.github+json"];
@@ -154,7 +125,7 @@ function githubSignals() {
     items.push(...result.body);
     if (result.body.length < 100) break;
   }
-  // `since` filters by update time; keep only items actually closed after the baseline.
+
   const since = Date.parse(baselineDate);
   const closedAfter = items.filter(
     (item) =>
@@ -216,5 +187,5 @@ if (json) {
   if (broken.length) console.log(`  broken skills      ${broken.join(", ")}`);
   console.log(due ? `Review due: ${reasons.join("; ")}` : "No review due.");
 }
-// Exit 0 when nothing is due and 10 when a review is due, so a routine can branch on it.
+
 process.exitCode = due ? 10 : 0;

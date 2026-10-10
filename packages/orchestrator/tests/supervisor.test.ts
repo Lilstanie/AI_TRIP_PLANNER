@@ -1,7 +1,11 @@
 import { FakeToolCallingModel } from "langchain";
 import { describe, expect, it, vi } from "vitest";
 import type { MemoryStore, Specialist, ToolGateway, TripBrief } from "@trip/shared";
-import { createSupervisorTools, dispatchWithSupervisor, reviseWithSupervisor } from "../src/supervisor";
+import {
+  createSupervisorTools,
+  dispatchWithSupervisor,
+  reviseWithSupervisor,
+} from "../src/supervisor";
 
 const brief: TripBrief = {
   tripId: "supervisor-test",
@@ -74,8 +78,6 @@ describe("LangChain supervisor", () => {
   });
 
   it("fails when the model skips a specialist the plan cannot do without", async () => {
-    // The prompt only asks it to "consider" each domain, so a model that picks
-    // dining and stops used to ship a plan with no day plan and no complaint.
     const dining: Specialist = {
       name: "dining",
       label: "Food & drink",
@@ -100,8 +102,6 @@ describe("LangChain supervisor", () => {
   });
 
   it("ignores a required specialist that was never offered as a tool", async () => {
-    // A caller that dispatches only dining is not asking for a day plan, so
-    // requiring one would make the default unusable rather than safe.
     const dining: Specialist = {
       name: "dining",
       label: "Food & drink",

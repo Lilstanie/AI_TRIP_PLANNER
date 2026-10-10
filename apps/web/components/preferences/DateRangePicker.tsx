@@ -6,14 +6,6 @@ import { isoDateRange } from "@/lib/planning/date-range";
 import { Dialog } from "../ui/Dialog";
 import { TripCalendar } from "./TripCalendar";
 
-/**
- * A calendar for picking a date range by click, as an alternative to typing
- * two dates by hand. Reused from two places (the chat composer and the When
- * chip's editor in the top bar) with different `onConfirm` handlers — this component
- * only turns clicks into a validated {start, end} ISO pair; what each caller
- * does with that (fill a chat message vs. patch a form draft directly) is
- * entirely up to them.
- */
 export function DateRangePicker({
   title = "When are you travelling?",
   onConfirm,

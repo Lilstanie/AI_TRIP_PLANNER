@@ -21,7 +21,7 @@ type StoredSync = { userId: string; synced: SyncedTimes };
 function readSync(userId: string): SyncedTimes {
   try {
     const stored = JSON.parse(localStorage.getItem(SYNC_KEY) ?? "null") as StoredSync | null;
-    // Another user's sync record says nothing about this user's account.
+
     return stored?.userId === userId ? stored.synced : emptySynced();
   } catch {
     return emptySynced();
@@ -31,9 +31,7 @@ function readSync(userId: string): SyncedTimes {
 function writeSync(userId: string, synced: SyncedTimes) {
   try {
     localStorage.setItem(SYNC_KEY, JSON.stringify({ userId, synced } satisfies StoredSync));
-  } catch {
-    // Without it the next sign-in merges from scratch, which is safe, just slower.
-  }
+  } catch {}
 }
 
 const isEmpty = (push: SyncPush) => !push.trips.length && !push.conversations.length;
@@ -47,12 +45,6 @@ async function push(changes: SyncPush) {
   if (!response.ok) throw new Error(`Sync failed (${response.status}).`);
 }
 
-/**
- * Keeps the signed-in traveller's trips and chats in their account. The browser catalog stays the
- * working store: on sign-in it is merged with the account (lib/account/catalog-sync.ts), and after
- * that each change is pushed a moment later. A failed push leaves the change pending and it goes
- * with the next one; nothing local is discarded because the server could not be reached.
- */
 export function useAccountSync({
   catalog,
   setCatalog,
@@ -70,7 +62,6 @@ export function useAccountSync({
   catalogRef.current = catalog;
   const synced = useRef<SyncedTimes>(emptySynced());
 
-  // Sign-in (or reopening signed in): pull the account and merge it with this browser.
   useEffect(() => {
     setReady(false);
     if (!userId || !storageEnabled) {
@@ -107,7 +98,6 @@ export function useAccountSync({
     };
   }, [userId, storageEnabled, setCatalog]);
 
-  // After the first merge: push what changed, a moment after it changed.
   useEffect(() => {
     if (!userId || !ready) return;
     const changes = pendingChanges(catalog, synced.current);

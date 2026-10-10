@@ -1,6 +1,3 @@
-// Failure inventory: the chat request carries no interfaceLanguage, carries the browser language
-// instead of the chosen one, keeps the old value after a switch, or the API rejects a request
-// with the field, accepts an unsupported value, or rejects one without the field.
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
@@ -21,7 +18,6 @@ const post = (body) =>
     body: JSON.stringify(body),
   });
 
-// The API boundary: the field is optional and limited to the interface languages.
 const blank = { tripId: "reply-language-e2e", message: "Tokyo", mode: "start" };
 const statuses = {
   without: (await post(blank)).status,
@@ -35,7 +31,6 @@ check(statuses.fr === 400, `interfaceLanguage "fr" is rejected (${statuses.fr})`
 const browser = await chromium.launch({ channel: process.env.CHANNEL });
 const sent = [];
 try {
-  // An English browser, so a Chinese value can only come from the traveller's own choice.
   const context = await browser.newContext({
     locale: "en-AU",
     viewport: { width: 1440, height: 1000 },

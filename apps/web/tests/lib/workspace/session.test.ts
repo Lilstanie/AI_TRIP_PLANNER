@@ -11,27 +11,6 @@ import {
 } from "@/lib/workspace/session";
 import { plan } from "@/tests/fixtures/workspace";
 
-/*
- * How a planning turn can go wrong for the traveller, written before the code:
- *
- * - a plan applied but the "changed by" figure compares against the wrong total, or the old
- *   selected stop, drawn routes or field errors survive onto the new plan;
- * - a turn that needs more information, asks a question or answers a fare question replaces or
- *   clears the open trip, drops the traveller's selected stop, or loses what was understood;
- * - a question about an open trip overwrites the preferences form with the question's guesses;
- * - a failed turn clears the traveller's unsent text, or forgets what to retry;
- * - a cancelled turn shows a failure, or leaves the workspace busy;
- * - a retry after a failure keeps the old error on screen, or the next success keeps a retry button;
- * - the transport reports an aborted request as a failure, or a server error as a plan.
- *
- * How a change the traveller makes by hand can go wrong, written before the code:
- *
- * - an applied edit leaves "changed by" comparing against an older total, or against nothing;
- * - an applied edit drops the selected stop or the routes it was edited beside;
- * - opening another chat or trip keeps the old trip's selected stop, routes, error, retry, question
- *   card or busy state, or mixes the old chat's messages and unsent text into the new one.
- */
-
 const task: Task = { kind: "chat", request: { tripId: "test-trip", message: "Plan Sydney" } };
 const progress: AgentProgressEvent = { type: "agent_started", agent: "itinerary", round: 1 };
 const replanned: TripPlan = { ...plan, estTotal: 450 };
@@ -97,7 +76,7 @@ describe("session after a planning turn", () => {
     expect(next.previousTotal).toBeUndefined();
     const items = next.plan?.sections[0]?.proposal?.items ?? [];
     expect(items[0]?.id).toBeTruthy();
-    // A reply with no progress carries no Think fold.
+
     expect(next.messages.at(-1)).toEqual({ role: "agent", text: "Here it is", at: 1 });
   });
 
@@ -131,7 +110,7 @@ describe("session after a planning turn", () => {
     expect(next.plan).toBe(before.plan);
     expect(next.draft).toBe(before.draft);
     expect(next.selectedActivity).toBe("stop-1");
-    // An empty reply falls back to the question itself.
+
     expect(next.messages.at(-1)?.text).toBe("Slow or fast?");
     expect(next.ask).toEqual({
       key: "ask-1",
@@ -284,7 +263,7 @@ describe("requestTurn", () => {
       async () => new Response(JSON.stringify({ error: "Planner is down." }), { status: 503 }),
       { signal: new AbortController().signal },
     );
-    // No notice came with the error, so nothing says it was authored: it is shown as received.
+
     expect(outcome).toEqual({ kind: "failed", message: { raw: "Planner is down." }, task });
   });
 

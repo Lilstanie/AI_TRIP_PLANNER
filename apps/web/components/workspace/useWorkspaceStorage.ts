@@ -51,7 +51,6 @@ export function useWorkspaceStorage({
     catalogRef.current = catalog;
   }, [catalog]);
 
-  // Debounced autosave of the active conversation (and its trip, once one exists).
   const pendingSave = useRef<(() => void) | null>(null);
   useEffect(() => {
     if (!storageEnabled) return;

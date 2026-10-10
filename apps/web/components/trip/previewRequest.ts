@@ -5,20 +5,14 @@ import type { EditInput } from "@/lib/trip/trip-edit";
 import { failureNotice, NoticeError, type Notice } from "@/lib/i18n/notice";
 import { dataModeHeaders, type DataMode } from "@/lib/workspace/data-mode";
 
-/** The server's answer to one edit: refused when `blockers` is not empty, accepted otherwise. */
 export type PreviewAnswer = {
   blockers: Notice[];
-  /** The routes the answer verified, for the map and the timeline's legs. */
+
   routes: RouteResult[];
-  /** The accepted plan; absent when the edit was refused. */
+
   plan?: TripPlan;
 };
 
-/**
- * Sends one edit to `POST /api/trip/preview-edit`, which recomputes routes, budget and conflicts. The
- * request names the data mode, so a simulated plan's legs are fixtures. Throws a NoticeError when the
- * request itself fails; a refusal is an answer with blockers.
- */
 export async function requestPreview({
   plan,
   operation,
@@ -32,7 +26,7 @@ export async function requestPreview({
   displayCurrency?: string;
   dataMode: DataMode | undefined;
   signal: AbortSignal;
-  /** The notice for a failed request that says nothing of its own. */
+
   failure?: Notice;
 }): Promise<PreviewAnswer> {
   const response = await fetch("/api/trip/preview-edit", {

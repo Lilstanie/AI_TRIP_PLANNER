@@ -14,7 +14,7 @@ HTMLDialogElement.prototype.showModal = function () {
 HTMLDialogElement.prototype.close = function () {
   this.removeAttribute("open");
 };
-// jsdom has no PointerEvent, so fireEvent.pointer* would drop button and clientX.
+
 if (typeof window.PointerEvent === "undefined") {
   class PointerEvent extends MouseEvent {
     readonly pointerId: number;

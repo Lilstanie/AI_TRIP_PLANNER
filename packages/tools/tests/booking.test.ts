@@ -55,10 +55,6 @@ describe("Google-grounded lodging (real mode)", () => {
 
     const [option] = await searchStays(stay);
 
-    // This is the conversion every rating filter/sort in the codebase
-    // assumes (StayCandidate.rating, minRating, chooseInitial's >= 8) — a
-    // missed *2 here would silently misjudge every real hotel's quality
-    // while still passing schema validation (4.6 is a "valid" 0-10 number).
     expect(option!.rating).toBe(9.2);
   });
 
@@ -67,15 +63,15 @@ describe("Google-grounded lodging (real mode)", () => {
     ["PRICE_LEVEL_MODERATE", 225],
     ["PRICE_LEVEL_EXPENSIVE", 390],
     ["PRICE_LEVEL_VERY_EXPENSIVE", 630],
-    [undefined, 225], // Places often omits price_level for lodging.
-  ])("maps Google's price_level bucket %s to an AUD planning estimate of $%d/night", async (
-    priceLevel,
-    expected,
-  ) => {
-    google({ places: [{ displayName: { text: "Some Hotel" }, priceLevel, rating: 4 }] });
+    [undefined, 225],
+  ])(
+    "maps Google's price_level bucket %s to an AUD planning estimate of $%d/night",
+    async (priceLevel, expected) => {
+      google({ places: [{ displayName: { text: "Some Hotel" }, priceLevel, rating: 4 }] });
 
-    expect((await searchStays(stay))[0]!.pricePerNight).toBe(expected);
-  });
+      expect((await searchStays(stay))[0]!.pricePerNight).toBe(expected);
+    },
+  );
 
   it("marks real properties as grounded and never claims free cancellation it can't verify", async () => {
     google({ places: [{ displayName: { text: "Some Hotel" }, rating: 4 }] });
@@ -241,7 +237,7 @@ describe("SerpApi flights", () => {
 
     const [option] = await searchFlights({ ...flight, passengers: 2 });
 
-    expect(option).toMatchObject({ carrier: "Qantas", price: 900 }); // 450 * 2 passengers
+    expect(option).toMatchObject({ carrier: "Qantas", price: 900 });
   });
 
   it("throws a clear error (not a silent mock fare) when SerpApi fails and mock is disabled", async () => {
@@ -249,7 +245,9 @@ describe("SerpApi flights", () => {
     vi.stubEnv("SERPAPI_KEY", "test-serpapi-key");
     vi.stubGlobal(
       "fetch",
-      vi.fn(async () => new Response(JSON.stringify({ error: "Invalid API key." }), { status: 401 })),
+      vi.fn(
+        async () => new Response(JSON.stringify({ error: "Invalid API key." }), { status: 401 }),
+      ),
     );
 
     const options = await searchFlights(flight).catch((e: unknown) => e);

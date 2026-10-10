@@ -13,7 +13,6 @@ const SOURCE_KIND_LABEL: Record<AgentProposalSource["kind"] | "unknown", Message
   unknown: "Source not recorded",
 };
 
-/** A single source-status visual shared by result cards and section summaries. */
 export function SourceBadge({
   source,
   compact = false,

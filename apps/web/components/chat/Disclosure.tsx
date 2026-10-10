@@ -3,17 +3,6 @@ import type { KeyboardEvent, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { FlowChevronDownIcon } from "../ui/flow-icons";
 
-/**
- * The thinking transcript's one disclosure chrome, ported from DeepSeek
- * Harness's `DisclosureRow`: a 24px row of [16px leading box] 6px [title 13/24]
- * then whatever collapsed content the row carries. There is no trailing
- * chevron. On hover the leading icon crossfades (100ms) to a down chevron, and
- * while the row is open the chevron *is* the leading icon. The whole row is
- * the target: `role="button"`, Enter/Space, `aria-expanded`.
- *
- * A row with nothing to disclose (`expandable={false}`) is plain text: no
- * role, no focus stop, no hover chevron.
- */
 export function Disclosure({
   icon,
   title,
@@ -32,9 +21,9 @@ export function Disclosure({
   expandable: boolean;
   onToggle: () => void;
   collapsedContent?: ReactNode;
-  /** Keeps `collapsedContent` inline while the row is open. */
+
   keepContentWhenOpen?: boolean;
-  /** `running` adds the row sweep; the value is also exposed as `data-state`. */
+
   state?: "running" | "ok" | "error";
   className?: string;
   children?: ReactNode;
@@ -82,15 +71,10 @@ export function Disclosure({
   );
 }
 
-/** DSH's 2×2 separator dot between a row's title and its summary. */
 export function RowSeparator() {
   return <span className="thinking-row__sep" aria-hidden="true" />;
 }
 
-/**
- * The ellipsized summary. `followEnd` right-anchors the text so a streaming
- * line shows its newest words (DSH `.summary[data-follow-end]`).
- */
 export function RowSummary({
   text,
   followEnd = false,

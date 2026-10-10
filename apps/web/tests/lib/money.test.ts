@@ -1,22 +1,7 @@
-// Failure inventory, written before the module:
-// - a JPY or KRW fare gains decimals, or an AUD fare loses its cents (#190);
-// - a fare is converted into the display currency, or grouped differently by language;
-// - a four-digit fare is left ungrouped (`KRW 1400`) where the spec asks for `KRW 1,400`;
-// - a planning amount converts in the wrong direction, or JPY shows decimals;
-// - a zero, negative zero or rounds-to-zero difference shows a sign, or a negative one a hyphen;
-// - a source budget in another currency is shown verbatim under the wrong code;
-// - a budget gap words "over" and "under" differently, uses a negative amount, or reports a gap
-//   when the budget or estimate is missing;
-// - either interface language formats the same amount differently.
-// - Agent Lab (#203) loses its `A$3,960` look: a code instead of the symbol, cents, a sign after
-//   the symbol, or a different symbol in Chinese;
-// - the planner sentence follows the interface language or the display currency, or drops the
-//   cents the planner has always been sent.
 import { describe, expect, it } from "vitest";
 import { moneyDisplay, plannerAud } from "@/lib/money";
 import { translate } from "@/lib/i18n/locale";
 
-// Intl separates the code from the number with a no-break space; compare on plain spaces.
 const plain = (text: string) => text.replace(/ /g, " ");
 const aud = moneyDisplay({ currency: "AUD", locale: "en" });
 

@@ -6,13 +6,12 @@ import type { WorkspaceModel } from "./useWorkspace";
 type Snap = "handle" | "half" | "full";
 const snaps: Snap[] = ["handle", "half", "full"];
 
-/** Phone map's day selector and stops remain available even without a map provider key. */
 export function PhoneMapSheet({ model }: { model: WorkspaceModel }) {
   const { t } = useLocale();
   const [snap, setSnap] = useState<Snap>("half");
   const drag = useRef<{ y: number; snap: Snap; moved: boolean } | null>(null);
   const ignoreClick = useRef(false);
-  // Only days with stops are offered; ideas have no day and are never stops (#186).
+
   const { itinerary, session } = model;
   const { mapDay: day, showMapDay } = model.layout;
   const days = itinerary.days();
@@ -107,7 +106,7 @@ export function PhoneMapSheet({ model }: { model: WorkspaceModel }) {
                     aria-pressed={session.selectedActivity === stop.id}
                     onClick={() => {
                       if (stop.id) session.showStop(stop.id);
-                      // A stop without a map location has nothing to centre on, so the list stays.
+
                       if (number !== undefined) setSnap("handle");
                     }}
                   >

@@ -1,7 +1,3 @@
-// Small JSON storage boundary shared by server-side services and tools.
-// Vercel deployments use the Upstash-compatible Redis REST API; tests and local
-// runs without credentials keep the same contract with an in-process fallback.
-
 type StoredValue = unknown;
 
 type RedisResponse = { result?: unknown; error?: string };
@@ -19,10 +15,7 @@ export function durableStoreConfigured(): boolean {
   return redisConfig() !== undefined;
 }
 
-async function redisCommand(
-  command: string,
-  ...args: string[]
-): Promise<unknown> {
+async function redisCommand(command: string, ...args: string[]): Promise<unknown> {
   const config = redisConfig();
   if (!config) throw new Error("Durable store is not configured.");
   const path = [command, ...args].map((part) => encodeURIComponent(part)).join("/");
@@ -68,7 +61,8 @@ export function createJsonStore(): JsonStore {
       }
       const result = await redisCommand("incr", key);
       const count = Number(result);
-      if (!Number.isSafeInteger(count)) throw new Error("Durable store returned an invalid counter.");
+      if (!Number.isSafeInteger(count))
+        throw new Error("Durable store returned an invalid counter.");
       return count;
     },
     async decrement(key: string) {
@@ -79,7 +73,8 @@ export function createJsonStore(): JsonStore {
       }
       const result = await redisCommand("decr", key);
       const count = Number(result);
-      if (!Number.isSafeInteger(count)) throw new Error("Durable store returned an invalid counter.");
+      if (!Number.isSafeInteger(count))
+        throw new Error("Durable store returned an invalid counter.");
       return count;
     },
   };

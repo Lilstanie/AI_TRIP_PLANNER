@@ -69,7 +69,7 @@ describe("flow animation", () => {
     const onFrame = vi.fn();
     const stop = startFlow(onFrame, false, frame);
     next!(1000);
-    next!(1010); // under the ~30 fps budget: skipped
+    next!(1010);
     next!(1100);
     expect(onFrame).toHaveBeenCalledTimes(2);
     stop();

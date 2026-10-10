@@ -5,7 +5,6 @@ import type { Notice } from "@/lib/i18n/notice";
 import { useSegmentIndicator } from "../ui/motion";
 import { useLocale } from "./LocaleProvider";
 
-/** One labelled row with its current value and a Change button that opens its editor below. */
 export function SettingRow({
   label,
   value,
@@ -45,7 +44,6 @@ export function SettingRow({
   );
 }
 
-/** A segmented choice that applies at once. */
 export function Segmented<T extends string>({
   label,
   options,
@@ -75,7 +73,6 @@ export function Segmented<T extends string>({
   );
 }
 
-/** Chips that toggle membership in a fixed list; each is a pressed/unpressed button. */
 export function ChipGroup<T extends MessageKey>({
   label,
   options,
@@ -110,7 +107,6 @@ export function ChipGroup<T extends MessageKey>({
   );
 }
 
-/** Mindtrip's on/off switch: a black pill with a white knob. */
 export function Switch({
   label,
   checked,
@@ -134,10 +130,6 @@ export function Switch({
   );
 }
 
-/**
- * One fact the planner keeps about the traveller, in Mindtrip's memory-row style: an emoji, a bold
- * label and the value. An empty fact asks its question instead and offers Answer.
- */
 export function MemoryRow({
   icon,
   label,
@@ -178,7 +170,6 @@ export function MemoryRow({
   );
 }
 
-/** A one-line text or number editor with Save, used inside a memory or setting row. */
 export function TextEditor({
   label,
   initial,

@@ -5,11 +5,6 @@ import { CloseIcon, ComposeIcon, NewTripIcon, SearchIcon } from "../ui/icons";
 import { HistoryMenu, type HistoryItem } from "./WorkspaceSidebar";
 import { TripCover } from "./TripCover";
 
-/**
- * Search, the two ways to start (New chat, New trip) and the history: trips first, then chats,
- * as in Mindtrip's chats panel. On desktop it slides out beside the sidebar; in the narrow
- * navigation drawer it sits under the sidebar's own navigation.
- */
 export function ChatsPanel({
   query,
   onQuery,
@@ -35,7 +30,7 @@ export function ChatsPanel({
   onRenameChat(id: string): void;
   onDeleteChat(id: string): void;
   searchRef?: Ref<HTMLInputElement>;
-  /** Mine embeds the Trips / Calendar view in the existing trip section. */
+
   tripsContent?: ReactNode;
 }) {
   const { t } = useLocale();

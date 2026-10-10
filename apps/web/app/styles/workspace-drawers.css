@@ -1,4 +1,3 @@
-/* Overlay drawers: they cover the chat and map area without changing its grid. */
 .workspace-drawer-backdrop {
   position: absolute;
   z-index: 30;
@@ -42,10 +41,10 @@
   left: 0;
   width: min(400px, calc(100% - 24px));
   border-right: 1px solid var(--border);
-  /* Past its own width, the sidebar and the shadow: no sliver stays in the viewport. */
+
   transform: translateX(calc(-100% - var(--sidebar-width) - 48px));
 }
-/* The trip drawer lies exactly over the map: from the chat/map divider to the right edge. */
+
 .drawer--right {
   right: 0;
   width: calc((1 - var(--chat-share, 0.56)) * 100%);
@@ -98,7 +97,7 @@
   min-height: 100%;
   border-right: 0;
 }
-/* A titleless drawer: the close button floats over the content's own first row. */
+
 .drawer__head--bare {
   position: absolute;
   z-index: 1;
@@ -107,8 +106,7 @@
   padding: var(--space-3);
   border-bottom: 0;
 }
-/* The navigation drawer opens on the sidebar's own logo row, with the close button at its end
-   (the sidebar's 12px padding plus the 40px row centre the 36px button). */
+
 .workspace-drawer--nav .drawer__head--bare {
   padding: calc(var(--space-3) + 2px) var(--space-3);
 }

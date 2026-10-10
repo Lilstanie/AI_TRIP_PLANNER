@@ -1,24 +1,3 @@
-// End-to-end walk through the phone shell (#174) with mock data at two phone sizes, plus a check
-// that desktop and the 521–1000 px layout are untouched. Screenshots and summary.json land under
-// output/playwright/phone-shell/ as a repeatable artifact.
-//
-// Failure inventory this script was written from:
-// - the tab bar is missing, has the wrong tabs, or no tab (or more than one) is selected;
-// - the top bar wraps to two rows, or still shows the menu, the chip row or the Chat/Map switch;
-// - a tab shows the wrong panel, or more than one panel at once;
-// - the Trip tab opens a drawer instead of showing Your Trip in place, or shows nothing before a
-//   plan exists;
-// - a tab or row target is smaller than 44 px, or the page scrolls sideways;
-// - desktop or the 521–1000 px layout grows a tab bar or loses its own controls;
-// - the browser console reports an error.
-// Later sections (Mine, trip facts, map, keyboard, updates) add their own failures below.
-// - #178: the title is not a dialog button, or opens no labelled sheet; a facts row shows other text
-//   than its chip, is under 44 px or opens no editor; Update trip leaves the row or title stale;
-//   Escape leaves the sheet open; focus falls to the page instead of returning to the title.
-//
-//   pnpm --filter @trip/web build && pnpm --filter @trip/web start   # in another terminal; a
-//   production server, because dev-server reloads interrupt the long walks
-//   [BASE_URL=http://localhost:3000] [PLAYWRIGHT=<path>] node apps/web/tests/e2e/phone-shell.e2e.mjs
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { spawnSync } from "node:child_process";
@@ -53,17 +32,16 @@ async function open(browser, { width, height }, { touch = true } = {}) {
   const errors = [];
   page.on("pageerror", (error) => errors.push(String(error)));
   page.on("console", (message) => message.type() === "error" && errors.push(message.text()));
-  // Explicit no-match Places fixture keeps shell checks independent of optional provider keys.
+
   await page.route("**/api/places/search", (route) => route.fulfill({ json: { places: [] } }));
   await page.goto(BASE);
   await page.waitForSelector(".workspace-app");
   await page.waitForLoadState("networkidle");
-  // The dev server's floating indicator sits over the tab bar; errors still reach `errors`.
+
   await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
   return { context, page, errors };
 }
 
-/** Switches to mock data wherever the toggle is (the top bar on wide screens, Mine on phones). */
 async function useMockData(page) {
   for (let attempt = 0; attempt < 5; attempt += 1) {
     const live = page.getByRole("button", { name: /^Live data/ });
@@ -86,7 +64,7 @@ const visiblePanels = (page) =>
     .evaluateAll((nodes) => nodes.map((node) => node.id));
 const noSideScroll = (page) =>
   page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
-/** Every visible target matching `selector` is at least 44 px tall and wide. */
+
 const smallTargets = (page, selector) =>
   page.locator(selector).evaluateAll((nodes) =>
     nodes
@@ -103,7 +81,6 @@ async function plan(page) {
   await settle(page, 1500);
 }
 
-// ---- #175 shell ----
 async function shell(page, tag) {
   const tabs = await tablist(page).getByRole("tab").allInnerTexts();
   check(
@@ -134,7 +111,6 @@ async function shell(page, tag) {
   check(await noSideScroll(page), `${tag}: no horizontal page scroll`);
   await page.screenshot({ path: `${OUT}/${tag}-01-chat-empty.png` });
 
-  // Before a plan the Trip tab explains where the plan comes from and leads back to Chat.
   await selectTab(page, "Trip");
   check(
     (await visiblePanels(page)).join() === "phone-panel-trip",
@@ -175,7 +151,6 @@ async function shell(page, tag) {
   );
   await page.screenshot({ path: `${OUT}/${tag}-05-mine.png` });
 
-  // Arrow keys move between tabs, as in a native tab bar.
   await tab(page, "Mine").focus();
   await page.keyboard.press("ArrowRight");
   await settle(page, 450);
@@ -200,7 +175,7 @@ async function openFacts(page) {
   await factsSheet(page).waitFor();
   await settle(page, 450);
 }
-/** From the facts sheet, replace Where's only stop with `to` and press Update trip. */
+
 async function editWhere(page, from, to) {
   await openFacts(page);
   await factsSheet(page).locator('.facts-sheet__row[data-fact="where"]').click();
@@ -213,7 +188,6 @@ async function editWhere(page, from, to) {
   await settle(page, 300);
 }
 
-// ---- #178 trip facts sheet ----
 async function facts(page, tag) {
   await selectTab(page, "Chat");
   const button = titleButton(page);
@@ -249,7 +223,7 @@ async function facts(page, tag) {
     rows.map((row) => row.name).join(",") === "Where,When,Who,Budget,Preferences",
     `${tag}: the sheet lists Where, When, Who, Budget and Preferences`,
   );
-  // The hidden chips still render; a row shows what its chip shows, minus the spoken prefix.
+
   const chips = await page.locator(".fact-chip").evaluateAll((nodes) =>
     nodes.map((node) => {
       const copy = node.cloneNode(true);
@@ -279,7 +253,6 @@ async function facts(page, tag) {
   check(!(await sheet.count()), `${tag}: Escape closes the facts sheet`);
   check(await focusIsOnTitle(page), `${tag}: Escape returns focus to the title`);
 
-  // A row hands over to its editor; closing it comes back to the title.
   await openFacts(page);
   await sheet.locator('.facts-sheet__row[data-fact="where"]').click();
   const where = page.getByRole("dialog", { name: "Where", exact: true });
@@ -295,7 +268,6 @@ async function facts(page, tag) {
   await settle(page, 300);
   check(await focusIsOnTitle(page), `${tag}: closing the editor returns focus to the title`);
 
-  // Update trip changes the title at once and the row once the sheet reopens.
   await editWhere(page, "Sydney", "Melbourne");
   const updated = (await button.innerText()).trim();
   check(
@@ -313,7 +285,6 @@ async function facts(page, tag) {
   await page.keyboard.press("Escape");
   await sheet.waitFor({ state: "detached" });
 
-  // Back to Sydney, so the sections after this one start from the trip they expect.
   await editWhere(page, "Melbourne", "Sydney");
   await waitForPlanning(page);
   await settle(page, 1000);
@@ -360,7 +331,7 @@ try {
   await browser.close();
   writeFileSync(`${OUT}/summary.json`, JSON.stringify({ base: BASE, results }, null, 2));
 }
-// One command covers the complete phone shell; bounded files keep each failure inventory readable.
+
 for (const name of ["phone-mine", "phone-map", "phone-state"]) {
   const run = spawnSync(
     process.execPath,

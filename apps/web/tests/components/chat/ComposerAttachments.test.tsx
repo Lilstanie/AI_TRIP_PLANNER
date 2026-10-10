@@ -7,7 +7,6 @@ import { Composer } from "@/components/chat/Composer";
 import { useComposerAttachments } from "@/components/workspace/useComposerAttachments";
 import type { ImageRenderer, PreparedAttachment } from "@/lib/chat/attachments";
 
-/** jsdom draws nothing, so the composer's images are encoded by this instead. */
 const render1px: ImageRenderer = () => Promise.resolve("data:image/jpeg;base64,AAAA");
 
 const chip = (name: string): PreparedAttachment => ({
@@ -39,7 +38,6 @@ function renderComposer(overrides: Partial<Parameters<typeof Composer>[0]> = {})
   return { ...props, container };
 }
 
-/** The composer driven by the real hook, which is what the workspace wires up. */
 function LiveComposer() {
   const attachments = useComposerAttachments({ render: render1px });
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -80,7 +78,7 @@ describe("composer attachments", () => {
     const item = within(list).getByRole("listitem");
     expect(within(item).getByText("kyoto.png")).toBeTruthy();
     expect(within(item).getByText(/PNG · 3 B/)).toBeTruthy();
-    // The thumbnail carries no alt of its own: the name sits beside it as text.
+
     expect(item.querySelector("img")?.getAttribute("alt")).toBe("");
     expect(within(item).getByRole("button", { name: "Remove kyoto.png" })).toBeTruthy();
   });
@@ -149,7 +147,9 @@ describe("composer attachments", () => {
     await act(async () => {
       pick(
         container,
-        Array.from({ length: MAX_ATTACHMENTS_PER_MESSAGE }, (_, index) => png(`photo-${index}.png`)),
+        Array.from({ length: MAX_ATTACHMENTS_PER_MESSAGE }, (_, index) =>
+          png(`photo-${index}.png`),
+        ),
       );
     });
 
@@ -159,19 +159,18 @@ describe("composer attachments", () => {
     expect(screen.getByRole("status").textContent).toContain(
       `You can attach ${MAX_ATTACHMENTS_PER_MESSAGE} files`,
     );
-    expect((screen.getByRole("button", { name: "Upload files" }) as HTMLButtonElement).disabled).toBe(
-      true,
-    );
+    expect(
+      (screen.getByRole("button", { name: "Upload files" }) as HTMLButtonElement).disabled,
+    ).toBe(true);
 
-    // Removing one brings the control back and clears the explanation.
     fireEvent.click(screen.getByRole("button", { name: "Remove photo-0.png" }));
     await waitFor(() =>
       expect(screen.getAllByRole("listitem")).toHaveLength(MAX_ATTACHMENTS_PER_MESSAGE - 1),
     );
     expect(screen.queryByRole("status")).toBeNull();
-    expect((screen.getByRole("button", { name: "Upload files" }) as HTMLButtonElement).disabled).toBe(
-      false,
-    );
+    expect(
+      (screen.getByRole("button", { name: "Upload files" }) as HTMLButtonElement).disabled,
+    ).toBe(false);
   });
 
   it("says why an unsupported file was refused, and keeps it out of the chips", async () => {
@@ -200,7 +199,9 @@ describe("composer attachments", () => {
     await act(async () => {
       pick(
         container,
-        Array.from({ length: MAX_ATTACHMENTS_PER_MESSAGE + 1 }, (_, index) => png(`photo-${index}.png`)),
+        Array.from({ length: MAX_ATTACHMENTS_PER_MESSAGE + 1 }, (_, index) =>
+          png(`photo-${index}.png`),
+        ),
       );
     });
 

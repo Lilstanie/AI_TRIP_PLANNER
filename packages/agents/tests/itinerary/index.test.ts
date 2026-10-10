@@ -91,8 +91,7 @@ describe("itinerary planner", () => {
     expect(result.items.every((item) => item.startTime === "13:00")).toBe(true);
     expect(result.summary).not.toContain("STUB");
     expect(result.assumptions.join(" ")).toContain("Opening hours and live availability");
-    // Two categories per city, not per brief: "near Tokyo & Kyoto" returns a
-    // mix with nothing saying which place is in which city.
+
     expect(ctx.tools.maps.places).toHaveBeenCalledTimes(4);
     expect(ctx.tools.maps.places).toHaveBeenCalledWith({ near: "Tokyo", category: "sight" });
     expect(ctx.tools.maps.places).toHaveBeenCalledWith({ near: "Kyoto", category: "sight" });
@@ -265,7 +264,6 @@ describe("B itinerary reliability", () => {
 });
 
 describe("city connections", () => {
-  /** Four grounded places over two days: enough for a morning and afternoon stop. */
   function richContext(durationMin = 30): AgentContext {
     const base = context(durationMin);
     base.tools.maps.places = vi.fn(async ({ category }) =>
@@ -280,7 +278,13 @@ describe("city connections", () => {
           ],
     );
     base.tools.maps.routeOptions = vi.fn(async () => [
-      { mode: "bus" as const, durationMin, price: 0, priceBasis: "unavailable" as const, note: "via bus 333" },
+      {
+        mode: "bus" as const,
+        durationMin,
+        price: 0,
+        priceBasis: "unavailable" as const,
+        note: "via bus 333",
+      },
       { mode: "drive" as const, durationMin: 20, price: 0, priceBasis: "partial" as const },
     ]);
     return base;
@@ -298,13 +302,11 @@ describe("city connections", () => {
       "09:30",
       "14:00",
     ]);
-    // The connection is attached to the stop it arrives at, never the first of
-    // the day — there is nothing to travel from.
+
     expect(result.items[0]!.arriveBy).toBeUndefined();
     expect(result.items[1]!.arriveBy).toMatchObject({
       mode: "bus",
-      // The designation only: the mode is named beside it, so storing
-      // "bus 333" renders as "Bus bus 333".
+
       line: "333",
       durationMin: 30,
       from: "Sydney Opera House",
@@ -333,9 +335,6 @@ describe("city connections", () => {
 
 describe("multi-city days", () => {
   it("keeps a day's stops in the city that day is spent in", async () => {
-    // A day that mixes cities is not a day: the five-day Sydney and Wollongong
-    // plan put a Wollongong lookout and the Sydney CBD in one afternoon, two
-    // hours apart, and the route check then reported it as a conflict.
     const ctx = context();
     ctx.tools.maps.places = vi.fn(async ({ near, category }) =>
       category === "sight"
@@ -350,8 +349,6 @@ describe("multi-city days", () => {
       context: ctx,
     });
     for (const item of result.items) {
-      // The journey moves to Kyoto partway through, and every stop belongs to
-      // whichever city its own day is spent in.
       const city = item.day! <= 2 ? "Tokyo" : "Kyoto";
       expect(item.location, `day ${item.day}`).toContain(city);
     }
@@ -362,7 +359,6 @@ describe("routing between two stops the provider can find", () => {
   const opera = { latitude: -33.8568, longitude: 151.2153 };
   const tower = { latitude: -33.8704, longitude: 151.2088 };
 
-  /** Two stops for day one, with control over which of them has coordinates. */
   function located(towerLocation?: { latitude: number; longitude: number }) {
     const ctx = context();
     ctx.tools.maps.places = vi.fn(async ({ category }) =>
@@ -396,8 +392,6 @@ describe("routing between two stops the provider can find", () => {
 
     await createItineraryAgent({ generator: false }).invoke({ brief, context: ctx });
 
-    // Both lookups describe the same hop, so both must be pinned to the same
-    // two points — otherwise the comparison belongs to a different journey.
     for (const spy of [route, routeOptions]) {
       expect(spy.mock.calls[0]![0]).toMatchObject({
         from: "Sydney Opera House",

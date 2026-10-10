@@ -92,8 +92,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
   const { keyboardOpen } = usePhoneKeyboard(phone);
   const { tripUpdated } = usePhoneTripUpdates(model);
   usePhoneBack(phone);
-  // The one owner of the plan's revisions and its background work: a traveller's edit wins over the route
-  // checks and place saves, which are offered to it and run only when they still apply.
+
   const revisions = usePlanRevision({
     plan,
     held: busy || editPending,
@@ -101,26 +100,23 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
     onApply: session.applyEdit,
   });
   const chooser = useChooseCandidate(plan, revisions, session.trackEdit);
-  // Map-found places are saved on their stops from here, so they are saved whether or not the
-  // timeline tab is open.
+
   const autoSaves = useAutoSavePlaces({ plan, tripPlaces, revisions });
-  // A day's legs are routed once its places are saved, whether or not the Trip timeline is open.
+
   const legs = useLegRoutes({ plan, revisions, onRoutes: session.showRoutes });
   const chatsButton = useRef<HTMLButtonElement>(null);
   const chatsSearch = useRef<HTMLInputElement>(null);
   const chatsPanel = useRef<HTMLDivElement>(null);
   const viewSwitch = useRef<HTMLDivElement>(null);
   useSegmentIndicator(viewSwitch, `${narrow}|${page}|${mobileView}`);
-  // The backdrop fades out with its drawer instead of vanishing under it.
+
   const backdrop = usePresence(drawerOpen || undefined, 360);
-  // Whole-view swaps (another chat, a trip, the Your trips page) cross-fade.
+
   const swap =
     <A extends unknown[]>(action: (...args: A) => void) =>
     (...args: A) =>
       viewTransition(() => action(...args));
 
-  // The Chats panel takes focus on its search when it opens, and Escape or a press outside it
-  // closes it. Escape hands focus back to the Chats button.
   useEffect(() => {
     if (!chatsOpen) return;
     chatsSearch.current?.focus({ preventScroll: true });
@@ -168,7 +164,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
 
   const selectView = (view: MobileView) =>
     view !== mobileView && viewTransition(() => layout.selectView(view), `to-${view}`);
-  // A phone tab's panel: labelled by its tab, and only the selected one is shown.
+
   const phonePanel = (view: MobileView) =>
     phone
       ? {

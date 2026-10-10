@@ -1,5 +1,3 @@
-// Failure inventory: currency choice not saved, one amount stays AUD, inverted conversion,
-// JPY decimals, missing dated estimate notice, or horizontal overflow on phone.
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
@@ -22,7 +20,7 @@ try {
     const page = await context.newPage();
     const errors = [];
     page.on("pageerror", (error) => errors.push(String(error)));
-    // Explicit no-match Places fixture: this UI walk never spends provider quota.
+
     await page.route("**/api/places/search", (route) => route.fulfill({ json: { places: [] } }));
     await page.goto(process.env.BASE_URL ?? "http://localhost:3000");
     await page.locator(".workspace-app").waitFor();
@@ -94,8 +92,7 @@ try {
         (await page.locator(".trip-panel .currency-notice").textContent()).includes("2026-09-20"),
         `${width}: rate date shown`,
       );
-      // The specialist section rows were removed (#239); every amount the Trip drawer shows (budget,
-      // stays, flights and stops) must be in the selected currency.
+
       const amounts =
         (await page.locator(".trip-panel").first().innerText()).match(
           /\b(?:AUD|CNY|USD|JPY)[\s\u00a0][\d,]+(?:\.\d+)?/g,

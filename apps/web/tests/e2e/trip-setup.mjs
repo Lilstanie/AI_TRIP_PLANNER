@@ -1,6 +1,5 @@
 import { setTimeout as sleep } from "node:timers/promises";
 
-// Shared deterministic trip setup; scenario-specific request handling stays with each journey.
 export const settle = (page, ms = 500) => page.waitForTimeout(ms);
 export { sleep };
 
@@ -14,7 +13,6 @@ export function placeFor(text) {
   };
 }
 
-/** Polls `test` for up to `ms`; resolves to whether it passed. */
 export async function waitUntil(test, ms = 8000) {
   for (let waited = 0; waited < ms; waited += 200) {
     if (await test()) return true;
@@ -107,7 +105,6 @@ export async function installSeededItinerary(page, items) {
   });
 }
 
-/** Waits until no save is running and the number of saves has stopped changing. */
 export async function waitForQuiet(page, stub) {
   let last = -1;
   for (let round = 0; round < 120; round += 1) {

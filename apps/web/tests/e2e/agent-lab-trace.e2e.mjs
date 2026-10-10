@@ -1,85 +1,3 @@
-// End-to-end contract for the Agent Lab Trace view (#218). This first slice (#219) covers the bounded,
-// independently scrolling trace box; #220 adds the time bar and jump-to-record; later tickets add the
-// folds and Compare's shared axis. A visitor runs scenarios from the public /agent-lab page in fixture mode. Raw NDJSON,
-// desktop and phone screenshots and a JSON summary land under output/playwright/agent-lab-trace/.
-//
-// Failure inventory, written before implementation:
-// - the trace list grows the page instead of scrolling in its own box (document taller than about one
-//   viewport plus the header on the 46-event tight-budget run), or the box has no visible scrollbar
-//   (an overlay scrollbar that hides itself, so the list looks unscrollable on macOS);
-// - the page scrolls horizontally at 390 px, or the box cannot be scrolled by touch;
-// - auto-follow does not reach the last event when the run completes, or only does so after the visitor
-//   scrolls;
-// - auto-follow still pulls the box down after the visitor scrolled up, so new events change the scroll
-//   position they are reading from;
-// - scrolling back to the bottom does not resume following;
-// - with reduced motion the follow scroll animates, so the last event is not in view at completion;
-// - in Compare a side's list is not in its own bounded box, so one long trace stretches the table;
-// - the box hides events (fewer rows than the events the stream delivered) or loses its accessible name;
-// - a page error or console error appears, or the run touches workspace storage.
-//
-// Time bar (#220), failure inventory written before implementation:
-// - the bar shows a lane for an actor with no records, lanes out of the fixed order (Run, Coordinator,
-//   transport, destination guide, accommodation, itinerary, dining, Baseline), or five specialist
-//   lanes (or a Coordinator lane) for the single-agent baseline;
-// - the bar has more or fewer blocks than records (events minus the completions merged into their
-//   starts), or its tool blocks differ from the distinct tool calls the received artifact records;
-// - a tool call's start and result draw two blocks, or an in-flight call is drawn as a finished span;
-// - in tokyo-couple-tight-budget under targeted revision, accommodation's first round 1 block does not
-//   come after transport's last, itinerary's or dining's first does not come after accommodation's
-//   last, or a round 2 specialist block lands outside the transport lane;
-// - the round 2 boundary is not marked;
-// - a failed tool call, failed specialist or rejected output (Failure Lab) is not in the error colour,
-//   or a healthy block is;
-// - the bar does not grow while events stream, or a replay of the downloaded artifact draws a
-//   different bar from the live run;
-// - a block is not a focusable button with an accessible name carrying lane, title and step;
-// - clicking a block, or pressing Enter on it, does not bring its row into view in the trace box, or
-//   does not highlight the row;
-// - the bar is wider than the screen at 390 px, or lane labels do not abbreviate there.
-//
-// --- #221 folds: failure inventory, written before implementation -------------------------------
-// - the trace panel has no Rounds or Calls fold, or a fold is not a button with a pressed state a
-//   keyboard user can reach and toggle;
-// - Rounds folded still shows rows that belong to a round, hides run-level rows, or leaves no heading per
-//   round (the outline), or the headings' round numbers differ from the rounds the artifact records;
-// - Calls folded still shows a tool row, or hides specialist and coordinator rows with the tools;
-// - unfolding does not restore every row (rows after unfold differ from the events delivered);
-// - folding changes the event count or the Fixture/Live label in the panel heading;
-// - folding both at once hides a row neither fold names, or one fold's state leaks into the other;
-// - after folding, the box stops following the newest event or strands the visitor past the list end;
-// - a fold on one Compare side changes another side's list;
-// - the toolbar makes the page scroll horizontally at 390 px;
-// - a fold changes the time bar (a block count or any block differs from before the fold).
-// --- end #221 failure inventory ---------------------------------------------------------------
-//
-// --- #222 Compare bars: failure inventory, written before implementation --------------------------
-// - after "Compare all strategies" there are not three stacked bars (one per strategy, in strategy order:
-//   baseline, no revision, targeted revision), or a bar is not labelled with its strategy, or they sit
-//   side by side instead of stacked vertically;
-// - a step at the same index sits at a different horizontal position in different bars (the bars do not
-//   share one step axis), or the bars have different widths or left edges;
-// - the longest run's bar does not fill the axis to its right edge, or a shorter run's last block reaches
-//   as far (a shorter run must visibly end earlier);
-// - a bar has more or fewer blocks than its own side's records, or a block is not a button named with its
-//   strategy, lane and step;
-// - clicking a block (or pressing Enter) does not bring that row into view in that side's own trace box,
-//   or scrolls or highlights a row in another side's box;
-// - a cancelled comparison draws a bar for a strategy that never ran (a side with no events), or a
-//   stale bar remains;
-// - the Compare view scrolls horizontally at 390 px, or the stacked bars overflow the screen there;
-// - Compare shows a bar inside each column as well as in the stack.
-//
-// --- review fixes: failure inventory, written before the fixes ---------------------------------------
-// - clicking a time-bar block whose row a fold hides does nothing, so the bar and the list disagree;
-// - time-bar blocks are shorter than 24 px on desktop or 44 px at phone width (WCAG 2.5.8);
-// - a failed block differs from a healthy one by colour alone (no shape), or a block loses its border in
-//   forced-colors mode and vanishes.
-// --- end review fixes inventory
-// --- end #222 failure inventory ---------------------------------------------------------------
-//
-//   pnpm --filter @trip/web e2e agent-lab-trace   (fixture mode needs no keys)
-//   [CHANNEL=chrome] [PLAYWRIGHT=<path to playwright>] node apps/web/tests/e2e/agent-lab-trace.e2e.mjs
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
@@ -92,7 +10,7 @@ mkdirSync(OUT, { recursive: true });
 
 const SCENARIO = "tokyo-couple-tight-budget";
 const REVISION = "multi-agent-targeted-revision";
-// "About one viewport plus the header": the document may exceed that by this much for panel padding.
+
 const HEIGHT_SLACK = 160;
 
 const failures = [];
@@ -113,7 +31,6 @@ const eventCountOf = (body) => completeOf(body).artifact.events.length;
 const BOX = "[data-agent-lab-trace-box]";
 const rowCount = (page) => page.locator("[data-agent-lab-event]").count();
 
-// Geometry a visitor can see: the box's scroll position and whether the newest row is inside it.
 const boxState = (page, selector = BOX, index = 0) =>
   page
     .locator(selector)
@@ -135,7 +52,6 @@ const boxState = (page, selector = BOX, index = 0) =>
       };
     });
 
-// ---- Time bar helpers (#220) ----------------------------------------------------------------
 const LANE_ORDER = [
   "Run",
   "Coordinator",
@@ -148,13 +64,12 @@ const LANE_ORDER = [
 ];
 const BAR = "[data-trace-overview]";
 
-// What the received artifact says the bar must hold, worked out from its events alone.
 function expectedBar(artifact) {
   const types = artifact.events.map((e) => e.event.type);
   const done = types.filter((t) =>
     ["tool_completed", "tool_failed", "lab_tool_completed"].includes(t),
   ).length;
-  // One call per start event: a call id can repeat within a run, so ids alone undercount.
+
   const calls = artifact.events.filter((e) =>
     ["tool_started", "lab_tool_started"].includes(e.event.type),
   );
@@ -164,7 +79,6 @@ function expectedBar(artifact) {
   return { records: artifact.events.length - done, tools: calls.length, failed };
 }
 
-// Everything a visitor can read from the bar, in a form two runs can be compared by.
 const readBar = (page, scope = "") =>
   page
     .locator(`${scope} ${BAR}`.trim())
@@ -253,7 +167,6 @@ async function checkBar(page, tag, artifact, { baseline = false } = {}) {
   return bar;
 }
 
-// Click a block far from where the box is scrolled, then do the same with Enter from the keyboard.
 async function checkJump(page, tag, bar) {
   const sorted = bar.lanes.flatMap((l) => l.blocks).sort((a, b) => a.step - b.step);
   const cases = [
@@ -358,7 +271,6 @@ async function desktop(browser) {
   const session = await open(browser, { width: 1440, height: 1000, tag });
   const { page, bodies } = session;
 
-  // 1. An uninterrupted 46-event run: bounded page, own scroll box, visible scrollbar, newest event in view.
   await page.getByRole("button", { name: "Run experiment" }).click();
   await complete(page);
   const events = eventCountOf(await bodies[0]);
@@ -367,7 +279,7 @@ async function desktop(browser) {
   const state = await boxState(page);
   const docHeight = await page.evaluate(() => document.documentElement.scrollHeight);
   const headerHeight = await page.locator(".agent-lab__header").evaluate((n) => n.offsetHeight);
-  // The bar and the fold toolbar sit above the box, so they are allowed on top of the box's own height.
+
   const aboveBox = await page
     .locator(`${BAR}, .agent-lab__trace-toolbar`)
     .evaluateAll((nodes) => nodes.reduce((sum, n) => sum + n.offsetHeight, 0));
@@ -395,7 +307,6 @@ async function desktop(browser) {
   await page.screenshot({ path: `${OUT}/${tag}.run.png`, fullPage: true });
   summary[tag] = { events, docHeight, headerHeight, box: state };
 
-  // 1b. The time bar for the same run.
   const liveArtifact = completeOf(await bodies[0]).artifact;
   const bar = await checkBar(page, tag, liveArtifact);
   summary[tag].bar = bar;
@@ -434,7 +345,6 @@ async function desktop(browser) {
   check(bar.boundaries.includes(2), `${tag}: the round 2 boundary is marked`);
   await checkJump(page, tag, bar);
 
-  // 2. Scroll up mid-run: later events must not move the box. Scrolling to the bottom resumes following.
   await page.getByRole("button", { name: "Run experiment" }).click();
   await page.waitForFunction(
     () => document.querySelectorAll("[data-agent-lab-event]").length >= 14,
@@ -451,7 +361,7 @@ async function desktop(browser) {
   );
   await page.locator(BOX).hover();
   await page.mouse.wheel(0, -6000);
-  // Wheel scrolling animates and a new event can end it early, so wait for the box to come to rest.
+
   let rest = await boxState(page);
   for (let settled = 0; settled < 3;) {
     await page.waitForTimeout(150);
@@ -475,7 +385,7 @@ async function desktop(browser) {
     held.scrollTop === rest.scrollTop && held.rows > rowsAtScroll,
     `${tag}: ${held.rows - rowsAtScroll} later events did not move the box (scrollTop ${held.scrollTop})`,
   );
-  // Jump to the bottom (a wheel animation can be cut short by arriving events, which proves nothing).
+
   await page.locator(BOX).evaluate((box) => {
     box.scrollTop = box.scrollHeight;
   });
@@ -552,7 +462,7 @@ async function failureLab(browser) {
   const bar = await checkBar(page, tag, artifact);
   const failed = bar.lanes.flatMap((l) => l.blocks).filter((b) => b.error).length;
   check(failed > 0, `${tag}: the injected fault left failed records in the bar (${failed})`);
-  // The error colour is the one a visitor sees: a failed block must not look like a healthy one.
+
   const colours = await page.evaluate((selector) => {
     const colour = (node) => (node ? getComputedStyle(node).backgroundColor : null);
     return {
@@ -644,7 +554,6 @@ async function phone(browser) {
   );
   check(state.lastInView, `${tag}: the last event is in view at completion`);
 
-  // A real touch drag down the list moves the box towards the first event.
   const rect = await page.locator(BOX).evaluate((box) => {
     const { x, y, width, height } = box.getBoundingClientRect();
     return { x, y, width, height };
@@ -673,7 +582,6 @@ async function phone(browser) {
   await closeOut(session);
 }
 
-// ===== #221 folds: Rounds and Calls toolbar (start) ==================================================
 const eventsOf = (body) => completeOf(body).artifact.events;
 const TOOL_TYPES = new Set([
   "tool_started",
@@ -697,7 +605,7 @@ async function foldChecks(page, tag, artifactEvents, scope = "") {
   const headings = () =>
     page.locator(`${scope} [data-agent-lab-round]`).evaluateAll((n) => n.map((x) => x.textContent));
   const heading = await panelHeading(page);
-  // The time bar always shows the whole run: no fold may change a block (#221 acceptance).
+
   const barBefore = JSON.stringify(await readBar(page, scope));
   const barUnchanged = async (when) => {
     const now = await readBar(page, scope);
@@ -714,7 +622,6 @@ async function foldChecks(page, tag, artifactEvents, scope = "") {
   );
   check((await rows()) === total, `${tag}: unfolded list shows all ${total} rows`);
 
-  // Rounds folded: only run-level rows remain, one heading per recorded round.
   await rounds.click();
   check((await rounds.getAttribute("aria-pressed")) === "true", `${tag}: Rounds shows pressed`);
   check(
@@ -732,7 +639,6 @@ async function foldChecks(page, tag, artifactEvents, scope = "") {
   await rounds.click();
   check((await rows()) === total, `${tag}: unfolding Rounds restores every row`);
 
-  // Calls folded: no tool rows, everything else stays.
   if (tools) {
     await calls.click();
     check((await calls.getAttribute("aria-pressed")) === "true", `${tag}: Calls shows pressed`);
@@ -746,7 +652,7 @@ async function foldChecks(page, tag, artifactEvents, scope = "") {
     );
     check((await headings()).length === roundNumbers.length, `${tag}: Calls leaves round headings`);
     await barUnchanged("with Calls folded");
-    // Both folds together: only rows that are run-level and not tools.
+
     await rounds.click();
     const both = artifactEvents.filter(
       (e) => roundOf(e) === undefined && !TOOL_TYPES.has(e.event.type),
@@ -771,7 +677,6 @@ async function folds(browser) {
   const artifactEvents = eventsOf(await bodies[0]);
   summary[tag] = await foldChecks(page, tag, artifactEvents);
 
-  // Keyboard: the Rounds button takes focus and toggles with Enter and Space; Tab reaches Calls.
   const rounds = page.locator('[data-agent-lab-fold="rounds"]').first();
   await rounds.focus();
   await page.keyboard.press("Enter");
@@ -785,7 +690,6 @@ async function folds(browser) {
     `${tag}: Tab moves from Rounds to Calls`,
   );
 
-  // A block whose row a fold hides unfolds that fold and brings the row into view instead of doing nothing.
   const toolBlock = page.locator('[data-trace-block][data-kind="tool"]').first();
   const toolSequence = await toolBlock.getAttribute("data-sequence");
   await page.locator('[data-agent-lab-fold="calls"]').first().click();
@@ -821,7 +725,6 @@ async function folds(browser) {
   check(parseFloat(border) >= 1, `${tag}: blocks keep a border in forced-colors mode (${border})`);
   await closeOut(forced);
 
-  // A folded list still follows: fold Calls, run again, and the last row is in view.
   await page.locator('[data-agent-lab-fold="calls"]').first().click();
   await page.getByRole("button", { name: "Run experiment" }).click();
   await complete(page);
@@ -875,9 +778,7 @@ async function foldsPhone(browser) {
   await page.screenshot({ path: `${OUT}/${tag}.png`, fullPage: true });
   await closeOut(session);
 }
-// ===== #221 folds (end) ==============================================================================
 
-// ===== #222 Compare bars (start) =====================================================================
 const STACK = ".agent-lab__compare [data-trace-compare-bars]";
 
 const readStack = (page) =>
@@ -938,7 +839,7 @@ async function compareBars(browser) {
     bars.every((b) => Math.abs(b.left - bars[0].left) < 1 && Math.abs(b.width - bars[0].width) < 1),
     `${tag}: every bar has the same left edge and width`,
   );
-  // Records per side, from the artifact alone: events minus the completions merged into their starts.
+
   const records = sides.map((events) => expectedBar({ events }).records);
   check(
     bars.length === 3 && bars.every((b, i) => b.blocks.length === records[i]),
@@ -953,7 +854,7 @@ async function compareBars(browser) {
     ),
     `${tag}: every block is a button named with strategy and step`,
   );
-  // One shared axis: the same step sits at the same x in every bar.
+
   const xOf = (bar, step) => bar.blocks.find((k) => k.step === step)?.left;
   const shared = Math.min(...records);
   let aligned = bars.length === 3;
@@ -975,7 +876,6 @@ async function compareBars(browser) {
     `${tag}: shorter runs end before the longest`,
   );
 
-  // Clicking and Enter scroll that side's own box, and only that one.
   const boxes = page.locator(`.agent-lab__compare ${BOX}`);
   for (const [mode, side] of [
     ["click", 0],
@@ -1055,7 +955,6 @@ async function compareBarsPhone(browser) {
   await page.screenshot({ path: `${OUT}/${tag}.png`, fullPage: true });
   await closeOut(session);
 }
-// ===== #222 Compare bars (end) =======================================================================
 
 const browser = await chromium.launch({ channel: process.env.CHANNEL });
 try {
@@ -1066,12 +965,12 @@ try {
   await reducedMotion(browser);
   await compare(browser);
   await phone(browser);
-  await folds(browser); // #221
-  await foldsCompare(browser); // #221
-  await foldsPhone(browser); // #221
-  await compareBars(browser); // #222
-  await compareBarsCancelled(browser); // #222
-  await compareBarsPhone(browser); // #222
+  await folds(browser);
+  await foldsCompare(browser);
+  await foldsPhone(browser);
+  await compareBars(browser);
+  await compareBarsCancelled(browser);
+  await compareBarsPhone(browser);
 } finally {
   await browser.close();
 }

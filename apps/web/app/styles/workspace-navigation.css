@@ -1,11 +1,9 @@
-/* Multi-panel workspace, sidebar, topbar, drawers, and responsive layout. */
-/* ---- multi-panel planning workspace ---- */
 .workspace-app {
   --sidebar-width: 240px;
   --sidebar-collapsed-width: 64px;
   --drawer-ease: cubic-bezier(0.32, 0.72, 0, 1);
   --drawer-duration: 240ms;
-  /* Positions the sidebar resize handle on the column edge. */
+
   position: relative;
   display: grid;
   grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
@@ -16,7 +14,7 @@
   background: var(--surface);
   transition: grid-template-columns 200ms var(--drawer-ease);
 }
-/* Dragging follows the pointer directly and must not text-select across the workspace. */
+
 .workspace-app[data-resizing="true"] {
   cursor: col-resize;
   user-select: none;
@@ -26,7 +24,7 @@
   position: absolute;
   top: 0;
   bottom: 0;
-  /* Centred on the sidebar's border so the grab area straddles both sides of the edge. */
+
   left: calc(var(--sidebar-width) - 4px);
   z-index: 6;
   width: 8px;
@@ -69,7 +67,6 @@
   display: block;
 }
 
-/* Brand */
 .brand-mark {
   display: inline-flex;
   align-items: center;
@@ -92,7 +89,6 @@
   text-overflow: ellipsis;
 }
 
-/* Sidebar navigation */
 .workspace-sidebar {
   display: flex;
   flex-direction: column;
@@ -130,7 +126,7 @@
   background: var(--surface) !important;
   color: var(--text);
 }
-/* One field: the magnifier and the clear button sit inside the input's box. */
+
 .sidebar-search {
   position: relative;
   display: flex;
@@ -139,7 +135,7 @@
 }
 .sidebar-search > .icon {
   position: absolute;
-  /* Lines up with the nav and history icons: the rows' padding plus their 1px border. */
+
   inset-inline-start: calc(var(--space-2) + 1px);
   width: 16px;
   height: 16px;
@@ -159,7 +155,7 @@
   color: var(--text-dim);
   opacity: 1;
 }
-/* The clear button below replaces the browser's own, which differs per engine. */
+
 .sidebar-search__input::-webkit-search-cancel-button {
   appearance: none;
 }
@@ -196,7 +192,7 @@
   width: 100%;
   min-height: 40px;
   padding: var(--space-1) var(--space-2) !important;
-  /* Transparent, but it keeps the 1px the search icon and history rows are aligned to. */
+
   border: 1px solid transparent !important;
   border-radius: var(--radius) !important;
   background: transparent !important;
@@ -208,7 +204,7 @@
   background: var(--surface) !important;
   color: var(--text);
 }
-/* Plain line icons in the text colour, so they follow light and dark with no tile behind them. */
+
 .sidebar-nav__icon {
   display: grid;
   flex: none;
@@ -237,8 +233,7 @@
   font-variant-numeric: tabular-nums;
   text-align: center;
 }
-/* Current section: the icon fills in, the label turns full ink and heavier, and a quiet fill sits
-   behind the row. Shape and weight carry it, not colour alone. */
+
 .sidebar-nav__item.is-current {
   background: var(--surface) !important;
   color: var(--text);
@@ -446,7 +441,7 @@
   bottom: 0;
   width: 220px;
 }
-/* Tooltips for icon-only controls (keyboard focus shows them too). */
+
 [data-tooltip] {
   position: relative;
 }
@@ -469,7 +464,7 @@
 }
 .history-list {
   display: grid;
-  /* An auto track grows to a long nowrap title and pushes rows past the sidebar edge. */
+
   grid-template-columns: minmax(0, 1fr);
   gap: 2px;
   margin-top: var(--space-2);
@@ -483,7 +478,7 @@
 .history-item:hover {
   background: var(--surface);
 }
-/* Selected: the same quiet fill as the current section, plus a heavier title and aria-current. */
+
 .history-item--active,
 .history-item--active:hover {
   background: var(--surface);
@@ -497,7 +492,7 @@
   width: 100%;
   min-height: 36px !important;
   padding: 7px var(--space-2) !important;
-  /* Keep the title clear of the overflow trigger at the row's end. */
+
   padding-inline-end: 36px !important;
   border: 0 !important;
   border-radius: calc(var(--radius) - 1px) !important;
@@ -522,15 +517,13 @@
   margin: 0;
   padding: var(--space-1) var(--space-2);
 }
-/* Stretched to the row's height and centred without a transform, which would add a stacking
-   context and hide the open menu below the next row. */
+
 .history-item__menu-wrap {
   position: absolute;
   inset-block: 0;
   inset-inline-end: var(--space-1);
   display: flex;
   align-items: center;
-  /* No z-index: it would trap the open menu below the next row's trigger. */
 }
 .history-item__more {
   display: inline-grid;
@@ -543,7 +536,7 @@
   border-radius: var(--radius-sm);
   background: transparent !important;
   color: var(--text-dim);
-  /* Revealed on hover and keyboard focus, like the chat lists this follows. */
+
   opacity: 0;
 }
 .history-item:hover .history-item__more,
@@ -555,7 +548,7 @@
   background: var(--surface-2) !important;
   color: var(--text);
 }
-/* Without hover there is nothing to reveal it, so touch devices always show it. */
+
 @media (hover: none) {
   .history-item__more {
     opacity: 1;
@@ -599,7 +592,6 @@
   color: var(--accent);
 }
 
-/* The account-style footer entry also opens the shared settings dialog. */
 .account-button__avatar {
   display: grid;
   flex: none;

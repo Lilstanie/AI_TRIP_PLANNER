@@ -3,11 +3,10 @@ import { extractBriefPatchLocally } from "../src/chat-offline";
 
 describe("offline extraction of origin and destination", () => {
   const cases: [string, string, string | undefined][] = [
-    // The phrasing that used to drop the destination entirely.
     ["Plan a 4-day trip from Melbourne to Sydney for 2 people", "Sydney", "Melbourne"],
     ["Plan a trip to Sydney for 2 people departing Melbourne", "Sydney", "Melbourne"],
     ["Fly from Perth to Tokyo for 3 people", "Tokyo", "Perth"],
-    // No origin stated: destination still read, origin left unset.
+
     ["Plan a 5-day trip to Seoul for 2 people", "Seoul", undefined],
     ["从墨尔本出发去悉尼玩", "悉尼", "墨尔本"],
   ];

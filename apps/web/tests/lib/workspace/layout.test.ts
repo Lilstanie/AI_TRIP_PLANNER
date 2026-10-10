@@ -1,19 +1,3 @@
-// What is open on screen, tested only through `layout()` and `restoreLayout()`.
-// Failure inventory, written before the reducer:
-// - Narrowing to phone width from Your trips leaves no tab bar or lands on Chat instead of Mine (#184).
-// - Narrowing with the Trip drawer open closes it instead of showing the Trip tab.
-// - Widening from the Trip tab drops the traveller in Chat with the drawer closed.
-// - Widening from Mine shows the workspace instead of Your trips.
-// - Widening from Chat or Map changes the view.
-// - A crossing while Settings or Review is open closes the dialog, or skips the mapping underneath it.
-// - The navigation drawer or Chats panel stays open on a layout that does not render it.
-// - The phone trip facts sheet survives on a layout that has no phone top bar.
-// - Opening a panel while another is open leaves two panels open.
-// - Opening Settings or Review closes the panel beneath it.
-// - A reload on desktop or a tablet restores a phone-only tab, or opens a panel.
-// - A non-phone layout is asked for the Trip or Mine tab and shows an empty view.
-// - Opening a chat or trip, or starting one, leaves a drawer, dialog or Your trips over it, or
-//   changes the tablet Map view when a trip is opened.
 import { describe, expect, it } from "vitest";
 import { layout, restoreLayout, type LayoutEvent, type Surface } from "@/lib/workspace/layout";
 
@@ -22,11 +6,10 @@ const TABLET = { phone: false, narrow: true };
 const PHONE = { phone: true, narrow: true };
 const workspace = (view: Surface["view"] = "chat"): Surface => ({ page: "workspace", view });
 
-/** Applies events in order, each with the media that is current when it happens. */
 function play(start: Surface, ...steps: [LayoutEvent, typeof DESKTOP][]) {
   return steps.reduce((surface, [event, media]) => layout(surface, event, media), start);
 }
-/** A window resize from one breakpoint to another. */
+
 const resize = (from: typeof DESKTOP, to: typeof DESKTOP): [LayoutEvent, typeof DESKTOP] => [
   { type: "resize", from },
   to,

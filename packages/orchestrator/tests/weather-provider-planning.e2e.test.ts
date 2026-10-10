@@ -1,11 +1,3 @@
-// Planning-loop weather evidence with the public ToolGateway and five real specialists.
-//
-// Failure inventory:
-// - a destination with map coordinates does not request weather;
-// - a fixture forecast is relabelled as live or loses its date and provenance;
-// - the extra evidence changes the Plan cost, section count or Conflict result;
-// - the completed Plan cannot be saved as a repeatable artifact.
-
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { allSpecialists, runWithModelsDisabled } from "@trip/agents";

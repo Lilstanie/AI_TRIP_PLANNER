@@ -1,14 +1,3 @@
-// Failure inventory for the workflow's decision hook, written before the hook exists. The lab needs
-// the loop's decisions as typed facts; reading them back out of progress-event prose would break the
-// first time a sentence is reworded.
-// - a conflict is detected but the hook does not name the targeted specialist, the reason or the score;
-// - a revision runs without saying what it replaced (previous outcome) and what it was asked to do;
-// - the score before and after a revision is missing, or `kept` disagrees with what the graph did;
-// - a revision that does not improve the plan replaces the best known proposals, or loops on;
-// - the loop ends without a reason, or with the wrong one (converged, round limit, infeasible budget,
-//   no improvement);
-// - a specialist the conflict did not name is invoked again during a targeted revision;
-// - the hook changes behaviour when it is absent, or a throwing consumer takes the plan down.
 import { describe, expect, it, vi } from "vitest";
 import type {
   AgentName,

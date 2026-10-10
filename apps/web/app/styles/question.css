@@ -1,23 +1,8 @@
-/* The structured-question card that takes the composer's seat while the
-   coordinator waits for an answer. Geometry, type scale and radii follow
-   DeepSeek Harness's QuestionComposer.module.css (ui-user-questions); its
-   --dsw-* colour aliases map onto this app's tokens:
-     specific-input-major     -> --surface-2 (the composer's own fill)
-     label-primary/secondary  -> --text / --text-dim
-     label-tertiary/caption   -> --text-mut
-     interactive-bg-hover     -> --question-hover
-     bg-overlay               -> --question-overlay
-     border-l2 / border-l3-l4 -> --border / --question-stroke
-     state-business-primary   -> --accent
-     state-error-primary      -> --warn
-     button-primary-fill      -> --accent (the send button's colour here) */
-
 .question {
   --question-hover: color-mix(in srgb, var(--text) 6%, transparent);
   --question-overlay: color-mix(in srgb, var(--text) 7%, transparent);
   --question-stroke: color-mix(in srgb, var(--text) 22%, transparent);
-  /* The card seats where the composer sits, 16px in from its edges on each
-     side (DSH: content width = input card width - 32). */
+
   display: flex;
   justify-content: center;
   margin-top: 12px;
@@ -28,8 +13,7 @@
   display: flex;
   flex-direction: column;
   width: 100%;
-  /* Cap the card against the viewport and scroll the option list so the
-     header and footer actions stay reachable on long batches. */
+
   max-height: min(60vh, 520px);
   padding: 0 0 10px;
   border: 0;
@@ -47,8 +31,6 @@
   box-sizing: border-box;
 }
 
-/* Collapsed to the header strip: drop the height cap so the card hugs the
-   title row. */
 .question__card--minimized {
   max-height: none;
 }
@@ -84,7 +66,6 @@
   line-height: 16px;
 }
 
-/* Doubled class: `.panel h2` would otherwise out-rank a single class. */
 .question .question__title {
   margin: 0;
   font-size: 16px;
@@ -143,7 +124,7 @@
 
 .question__option {
   display: flex;
-  /* flex-start keeps the indicator on the first line of a wrapped row. */
+
   align-items: flex-start;
   gap: 8px;
   width: 100%;
@@ -171,7 +152,6 @@
   border-color: var(--border);
 }
 
-/* Leading indicator: 20x20, radius 6, re-centred on the 24px first line. */
 .question__number {
   display: grid;
   place-items: center;
@@ -212,7 +192,6 @@
   grid-area: 1 / 1;
 }
 
-/* Checked: text-colour fill with a page-colour check, inverting with theme. */
 .question__checkbox--checked {
   color: var(--surface);
 }
@@ -241,7 +220,6 @@
 }
 
 .question__badge {
-  /* Pinned to the row's end so the tag never splits the label from its description. */
   margin-left: auto;
   flex: none;
   padding: 0 4px;
@@ -260,8 +238,6 @@
   font-weight: 400;
 }
 
-/* "Other": an option-shaped row whose copy is an inline text field; focus or
-   a typed draft lifts it to the selected look. */
 .question__custom-row {
   display: flex;
   align-items: flex-start;
@@ -288,17 +264,12 @@
   border-color: var(--border);
 }
 
-/* The frames below show focus by colour alone, which forced-colors mode
-   flattens; this outline is invisible normally and drawn in the system colour
-   there. */
 .question__custom-row:focus-within,
 .question__custom-block:focus-within {
   outline: 2px solid transparent;
   outline-offset: 2px;
 }
 
-/* Auto-growing answer: mirror and textarea share one grid cell; the mirror
-   sizes it. Both layers MUST keep identical type, padding and wrapping. */
 .question__field {
   --question-field-padding: 0;
   display: grid;
@@ -318,8 +289,6 @@
   overflow-wrap: anywhere;
 }
 
-/* The height ruler, never painted; growth stops at 6 lines, then the
-   textarea scrolls. content-box so the cap counts text lines. */
 .question__field-mirror {
   box-sizing: content-box;
   max-height: 144px;
@@ -339,7 +308,6 @@
   box-shadow: none;
 }
 
-/* The row or block frame shows focus; the textarea itself draws no ring. */
 .question__field-input:focus-visible {
   box-shadow: none;
 }
@@ -352,8 +320,6 @@
   flex: 1;
 }
 
-/* Optionless question: the free-form answer carries its own frame; 12px side
-   margins plus the list's 12px padding align it with the title's 24px inset. */
 .question__custom-block {
   --question-field-padding: 8px 12px;
   min-height: 64px;
@@ -411,7 +377,6 @@
   flex-shrink: 0;
 }
 
-/* DSH Button capsule: h36, pad 0/14, r18, 14/22 type. */
 .question__button {
   display: inline-flex;
   align-items: center;
@@ -481,10 +446,6 @@
     padding: 0 10px;
   }
 
-  /* The app's chat panel keeps its own 20px gutter on a phone, which leaves
-     too little width for the pager, Skip and Next on one line (DSH's column
-     runs edge to edge). Wrap the actions under the pager instead of clipping
-     them, and give feedback its own row only when there is some. */
   .question {
     padding: 6px 0 10px;
   }

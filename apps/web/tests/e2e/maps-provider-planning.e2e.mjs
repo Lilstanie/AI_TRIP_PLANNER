@@ -1,15 +1,3 @@
-// Planning-loop evidence for the deep Maps Port (#129).
-//
-// Failure inventory:
-// - the registered multi-city scenario cannot complete through the public Agent Lab API;
-// - the Tokyo-to-Kyoto route disappears, moves day, changes duration or loses route options;
-// - fixture Maps evidence is relabelled as live, estimated or generic fallback data;
-// - the final Plan gains a conflict or loses multi-city consistency;
-// - the stream does not finish with the same artifact saved for review.
-//
-//   pnpm --filter @trip/web dev   (with USE_MOCK_TOOLS=true and no model or provider keys)
-//   node apps/web/tests/e2e/maps-provider-planning.e2e.mjs
-
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 

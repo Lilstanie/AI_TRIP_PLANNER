@@ -3,20 +3,15 @@ import { describe, expect, it } from "vitest";
 import type { AgentProgressEvent } from "@trip/shared";
 import { ThinkingProcess } from "@/components/chat/ThinkingProcess";
 
-/** The turn-level Think row. */
 function turnRow(): HTMLElement {
   return screen.getAllByRole("button", { name: /^Think/ })[0];
 }
 
-/** The disclosure of one subagent row, found through its listitem label;
- *  `nth` picks a later round's row for an agent that worked in several. */
 function subagentButton(label: string, status: string, nth = 0): HTMLElement {
   const item = screen.getAllByRole("listitem", { name: `${label} ${status}` })[nth];
   return within(item).getAllByRole("button")[0];
 }
 
-// A live-shaped run: two reasoning blocks, a stay search with its own options, a
-// choice, a revision round with a heading, and settled tools.
 const activity: AgentProgressEvent[] = [
   {
     type: "coordinator",
@@ -156,7 +151,7 @@ describe("thinking surface", () => {
     expect(think.textContent).toContain("2 tool calls · 2 subagents · 2 rounds");
     expect(think.getAttribute("aria-expanded")).toBe("false");
     expect(screen.queryAllByRole("listitem")).toHaveLength(0);
-    // A round number never appears without the coordinator's explanation of it.
+
     expect(document.body.textContent).not.toContain("Round 1");
   });
 
@@ -175,10 +170,8 @@ describe("thinking surface", () => {
     render(<ThinkingProcess activity={activity} busy={false} />);
     fireEvent.click(turnRow());
 
-    // Think's children are subagent rows (plus the round heading that explains
-    // round 2); nothing below a subagent is visible yet.
     expect(screen.getAllByRole("list", { name: "Subagents thinking together" })).toHaveLength(2);
-    // Stay worked in both rounds, so it has one row per round.
+
     expect(screen.getAllByRole("listitem", { name: "Stay Complete" })).toHaveLength(2);
     expect(screen.getByRole("listitem", { name: "Day plan Complete" })).toBeTruthy();
     expect(document.body.textContent).toContain("Round 2 · Cutting accommodation cost.");
@@ -186,7 +179,6 @@ describe("thinking surface", () => {
     expect(document.querySelector(".thinking-reasoning")).toBeNull();
     expect(document.querySelector(".thinking-subagent__body")).toBeNull();
 
-    // Opening one subagent opens only that one.
     const stay = subagentButton("Stay", "Complete");
     fireEvent.click(stay);
     expect(stay.getAttribute("aria-expanded")).toBe("true");
@@ -202,18 +194,14 @@ describe("thinking surface", () => {
     fireEvent.click(turnRow());
     fireEvent.click(subagentButton("Stay", "Complete"));
 
-    // "Search stays: 20 stay options" opens to the 20 options themselves.
     fireEvent.click(screen.getByRole("button", { name: /^Search stays/ }));
     expect(screen.getByText("Stay 20")).toBeTruthy();
     expect(screen.getByText("AUD 119/night · 8.19/10")).toBeTruthy();
 
-    // The choice names the stay the specialist picked and hides the rest until asked.
     expect(screen.getByText("Harbour Hotel")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /Other options/ }));
     expect(screen.getByText("Budget Inn")).toBeTruthy();
 
-    // Two old-style reasoning slices of one model call are one Think row whose
-    // settled summary is the call's first line.
     fireEvent.click(subagentButton("Day plan", "Complete"));
     const reasoning = screen.getAllByRole("button", { name: /^Think/ }).slice(1);
     expect(reasoning).toHaveLength(1);
@@ -240,7 +228,6 @@ describe("thinking surface", () => {
     ];
     render(<ThinkingProcess activity={streaming} busy />);
 
-    // The turn row follows the same line, right-anchored.
     const turnSummary = turnRow().querySelector(".thinking-row__summary");
     expect(turnSummary?.textContent).toBe("The ferry is quicker.");
     expect(turnSummary?.hasAttribute("data-follow-end")).toBe(true);
@@ -262,9 +249,9 @@ describe("thinking surface", () => {
     fireEvent.click(screen.getByRole("button", { name: /^Search places/ }));
 
     const opera = screen.getByText("Opera House").closest("li");
-    // This one has a web page, so its kind only names the fallback glyph.
+
     expect(opera?.querySelector("[data-kind]")?.getAttribute("data-kind")).toBe("attraction");
-    // No kind on the wire: maps.places falls back to the generic place glyph.
+
     const harbour = screen.getByText("Darling Harbour").closest("li");
     expect(harbour?.querySelector("[data-kind]")?.getAttribute("data-kind")).toBe("place");
 
@@ -285,14 +272,13 @@ describe("thinking surface", () => {
     expect(favicon?.getAttribute("src")).toBe(
       "https://www.google.com/s2/favicons?domain=www.sydneyoperahouse.com&sz=32",
     );
-    // Only the host reaches the icon service, and the request names no referrer.
+
     expect(favicon?.getAttribute("src")).not.toContain("whats-on");
     expect(favicon?.getAttribute("referrerpolicy")).toBe("no-referrer");
     expect(opera?.querySelector("svg")).toBeNull();
-    // The row still says what kind of thing it is, for the fallback and for CSS.
+
     expect(opera?.querySelector("[data-kind]")?.getAttribute("data-kind")).toBe("attraction");
 
-    // A row whose provider reported no page keeps the category glyph.
     const harbour = screen.getByText("Darling Harbour").closest("li");
     expect(harbour?.querySelector("img")).toBeNull();
     expect(harbour?.querySelector("svg")).toBeTruthy();
@@ -333,18 +319,20 @@ describe("thinking surface", () => {
 
     const args = document.querySelector(".thinking-tool__args");
     expect(args).toBeTruthy();
-    // One line, not a label/value row per argument.
+
     expect(args?.tagName).toBe("P");
-    expect([...args!.querySelectorAll(".thinking-tool__arg-value")].map((el) => el.textContent))
-      .toEqual(["Sydney", "Wollongong", "2026-11-24", "2"]);
-    expect([...args!.querySelectorAll(".thinking-tool__arg-sep")].map((el) => el.textContent))
-      .toEqual(["→", "·"]);
-    // The separators are decoration; what is read is "from Sydney to Wollongong".
+    expect(
+      [...args!.querySelectorAll(".thinking-tool__arg-value")].map((el) => el.textContent),
+    ).toEqual(["Sydney", "Wollongong", "2026-11-24", "2"]);
+    expect(
+      [...args!.querySelectorAll(".thinking-tool__arg-sep")].map((el) => el.textContent),
+    ).toEqual(["→", "·"]);
+
     for (const separator of args!.querySelectorAll(".thinking-tool__arg-sep"))
       expect(separator.getAttribute("aria-hidden")).toBe("true");
     expect(args?.textContent).toContain("from Sydney");
     expect(args?.textContent).toContain("to Wollongong");
-    // Anything that is not a journey or a date stays a `key value` chip.
+
     const chip = args!.querySelector(".thinking-tool__arg-chip");
     expect(chip?.querySelector(".thinking-tool__arg-key")?.textContent).toBe("passengers");
     expect(chip?.textContent).toBe("passengers2");
@@ -356,7 +344,7 @@ describe("thinking surface", () => {
 
     expect(screen.queryByRole("button", { name: /Expand all|Collapse all/ })).toBeNull();
     expect(container.querySelector(".thinking-line__chevron, .thinking-control")).toBeNull();
-    // A closed row's only chevron is the hover preview inside its leading box.
+
     for (const line of container.querySelectorAll(".thinking-row__line")) {
       const last = line.lastElementChild;
       expect(last?.classList.contains("thinking-row__chevron")).toBe(false);

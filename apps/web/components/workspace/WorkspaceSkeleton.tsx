@@ -2,8 +2,6 @@
 import { useLocale } from "@/components/account/LocaleProvider";
 import { BrandMark } from "./BrandMark";
 
-// First paint while the client reads local history. Mirrors the workspace layout (sidebar,
-// top bar, chat and map) so nothing shifts; there is no initial plan to wait for.
 const HISTORY_WIDTHS = ["82%", "64%", "74%"];
 
 export function WorkspaceSkeleton() {

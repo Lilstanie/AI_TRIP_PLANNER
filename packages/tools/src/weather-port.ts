@@ -167,7 +167,6 @@ type OpenMeteoArchive = {
 const CLIMATE_YEARS = 3;
 const CLIMATE_WINDOW_DAYS = 3;
 
-/** Climate context from the same week in each of the last three years. */
 async function openMeteoClimate(
   query: WeatherQuery,
   dependencies: ToolRuntimeDependencies,
@@ -213,7 +212,6 @@ async function openMeteoClimate(
   };
 }
 
-/** One request-scoped weather policy; date horizon is resolved when a forecast is requested. */
 export function createWeatherPort(
   config: ToolRuntimeConfig,
   dependencies: ToolRuntimeDependencies,

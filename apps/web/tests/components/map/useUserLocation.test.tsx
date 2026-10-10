@@ -47,7 +47,7 @@ describe("useUserLocation", () => {
     expect(prompt()).toBeNull();
     expect(screen.getByTestId("status").textContent).toBe("success");
     expect(localStorage.getItem(LOCATION_CHOICE_KEY)).toBe("allowed");
-    // The position itself is never stored.
+
     expect(JSON.stringify({ ...localStorage })).not.toMatch(/151\.21/);
   });
 

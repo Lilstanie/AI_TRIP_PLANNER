@@ -1,39 +1,3 @@
-// End-to-end release evidence for the public Agent Lab (#107). One script walks the whole public flow: the
-// four views as one navigation model, a normal comparison, the infeasible-budget and the multi-city
-// benchmarks, the Failure Lab, artifact download and offline replay, then proves the layouts, the
-// accessible names and that the ordinary workspace is untouched. Raw NDJSON, versioned artifacts, a
-// comparison summary, a human-readable report and a matrix of screenshots (light and dark, desktop and
-// narrow, reduced motion) land under output/playwright/agent-lab-release/.
-//
-// Failure inventory, written before the final integration changes:
-// Navigation and content
-// - the lab has no single navigation model: the views are named inconsistently, one is missing, the
-//   current one is not marked, or a view cannot be reached or left by keyboard;
-// - the Architecture view is missing, or does not explain who owns what (LangGraph and LangChain), why
-//   there are five capability boundaries, why budgeting, conflict checks, state transitions, maps and
-//   weather are nodes or tools and not agents, or why five is not a permanent number;
-// Results
-// - a normal comparison, the infeasible Paris budget, the Tokyo and Kyoto consistency run or a fault
-//   profile does not complete, differs from what its artifact records, or loses its trace;
-// - the way a run ended (Completed, Degraded, Partial result, Failed) is worded or computed differently
-//   in the Run, Compare and Failures views, or differs from what is recomputed from the artifact;
-// - a result does not say Fixture data or Live data, in any view or artifact;
-// - a download or a replay differs from the run it came from, or a replay needs the network;
-// Safety
-// - a stream, artifact, page or report carries a credential, a raw prompt, private reasoning, a stack or a
-//   provider payload;
-// - the public flow reads or writes saved chats, trips, preferences or account data, or calls any route
-//   but the Agent Lab run endpoint;
-// - the ordinary travel workspace changes: it fails to load, shows lab content or logs errors;
-// Layout and access
-// - in light or dark, at desktop or narrow width, or with reduced motion, any view overflows
-//   horizontally, clips a control, overlaps controls, hides a control, or sets text at too low a contrast;
-// - reduced motion still animates or transitions;
-// - a control, select, summary or link has no accessible name; a run, download, replay, rejection or
-//   failure is not announced.
-//
-//   pnpm --filter @trip/web dev     # fixture mode needs no keys; a hostile environment is fine
-//   [CHANNEL=chrome] [PLAYWRIGHT=<path to playwright>] node apps/web/tests/e2e/agent-lab-release.e2e.mjs
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
@@ -50,7 +14,7 @@ const STRATEGIES = [
   "multi-agent-targeted-revision",
 ];
 const VIEWS = ["Run", "Compare", "Failures", "Architecture"];
-// agent-lab-failures owns all five profiles and Run all. Keep one failed run here for integration.
+
 const FAULT = { id: "provider-empty-result", title: "Empty stay search", outcome: "failed" };
 const LABELS = {
   completed: "Completed",
@@ -97,7 +61,6 @@ const parseFrames = (body) =>
 const eventsOf = (artifact, type) =>
   artifact.events.map((entry) => entry.event).filter((event) => event.type === type);
 
-// ---- How a run ended, recomputed from the artifact in plain JavaScript ----------------------------------
 function outcomeOf(artifact) {
   if (artifact.status === "failed") return "failed";
   if (eventsOf(artifact, "lab_supervisor_fallback").length) return "degraded";
@@ -106,13 +69,12 @@ function outcomeOf(artifact) {
   return "completed";
 }
 
-// ---- Page helpers ----------------------------------------------------------------------------------------------
 const viewGroup = (page) => page.getByRole("group", { name: "View" });
 const viewButton = (page, name) => viewGroup(page).getByRole("button", { name, exact: true });
 const waitStatus = (page, text) =>
   page.getByRole("status").getByText(text, { exact: true }).waitFor({ timeout: 120_000 });
 const statusText = (page) => page.getByRole("status").innerText();
-/** Collects every streamed body of one action, in order. */
+
 async function capture(page, action, count) {
   const bodies = [];
   const onResponse = (response) => {
@@ -129,7 +91,6 @@ async function capture(page, action, count) {
 
 const artifactOf = (body) => parseFrames(body).at(-1).artifact;
 
-// Evaluated in the page: everything a layout check needs, so the checks run in one round trip.
 const layoutProbe = (page) =>
   page.evaluate(() => {
     const visible = (element) => {
@@ -202,8 +163,6 @@ const layoutProbe = (page) =>
     };
   });
 
-// WCAG contrast of text against what is really behind it. The background is sampled from a screenshot of the
-// element with its text made transparent, so gradients and translucent surfaces are measured, not guessed.
 const CONTRAST_SELECTORS = [
   "h1",
   "h2",
@@ -257,7 +216,6 @@ async function contrastProbe(page) {
       }
       const ratio = await page.evaluate(
         async ({ png, color }) => {
-          // color-mix() computes to color(srgb r g b) with channels in 0..1; rgb() uses 0..255.
           const parse = (value) => {
             const numbers = value.match(/[\d.]+/g).map(Number);
             return value.startsWith("color(")
@@ -357,7 +315,6 @@ async function main() {
     );
   const storageBefore = await storage();
 
-  // ---- One navigation model -----------------------------------------------------------------------------------
   const names = await viewGroup(page).getByRole("button").allInnerTexts();
   check(
     same(names, VIEWS),
@@ -374,7 +331,6 @@ async function main() {
     "Architecture can be opened and replaces the current view",
   );
 
-  // ---- Architecture view ---------------------------------------------------------------------------------------
   const architecture = page.locator("[data-agent-lab-architecture]");
   check((await architecture.count()) === 1, "the Architecture view is present");
   const headings = await architecture.getByRole("heading").allInnerTexts();
@@ -404,7 +360,6 @@ async function main() {
   );
   await page.screenshot({ path: `${OUT}/light-1440-architecture.png`, fullPage: true });
 
-  // ---- Normal comparison, infeasible budget, multi-city --------------------------------------------------
   await viewButton(page, "Run").click();
   const runs = [
     ["tokyo-couple", "Tokyo couple, normal comparison"],
@@ -444,7 +399,7 @@ async function main() {
         ),
       `${title}: three completed, versioned, fixture artifacts`,
     );
-    // The Compare view: one column per strategy, each saying how its run ended.
+
     check(
       (await viewButton(page, "Compare").getAttribute("aria-pressed")) === "true",
       `${title}: the comparison opens in the Compare view`,
@@ -477,7 +432,6 @@ async function main() {
     );
     await page.screenshot({ path: `${OUT}/light-1440-compare-${scenarioId}.png`, fullPage: true });
 
-    // The Run view: each strategy in turn, with the same outcome word.
     await viewButton(page, "Run").click();
     for (const [index, strategyId] of STRATEGIES.entries()) {
       await page.getByLabel("Strategy").selectOption(strategyId);
@@ -525,7 +479,6 @@ async function main() {
     "multi-city: every strategy keeps the move, the stays, the days and the totals consistent",
   );
 
-  // ---- Controlled failure ------------------------------------------------------------------------------------------
   await viewButton(page, "Failures").click();
   const [faultBody] = await capture(
     page,
@@ -556,7 +509,6 @@ async function main() {
   check(/Fixture data/.test(faultText), "failures: the Failure Lab says its runs use Fixture data");
   await page.screenshot({ path: `${OUT}/light-1440-failures.png`, fullPage: true });
 
-  // ---- Download, then offline replay ------------------------------------------------------------------------------
   const downloads = {};
   const [file] = await Promise.all([
     page.waitForEvent("download"),
@@ -622,7 +574,6 @@ async function main() {
   );
   await replay.close();
 
-  // ---- The layout matrix, on the populated page -----------------------------------------------------------------
   const matrix = [];
   const themes = ["light", "dark"];
   const widths = [1440, 390, 320];
@@ -677,7 +628,6 @@ async function main() {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.emulateMedia({ colorScheme: "light", reducedMotion: "no-preference" });
 
-  // ---- Keyboard through the whole flow -------------------------------------------------------------------------
   await viewButton(page, "Run").focus();
   await page.keyboard.press("Tab");
   check(
@@ -709,7 +659,6 @@ async function main() {
     `announcements: the status region reports the latest action ("${downloadStatus}")`,
   );
 
-  // ---- The ordinary workspace is untouched --------------------------------------------------------------------
   check(
     (await storage()) === storageBefore,
     "the public flow wrote nothing to saved chats, trips, preferences, storage or cookies",
@@ -737,7 +686,6 @@ async function main() {
   await page.waitForURL(`${BASE}/`);
   check(true, "the lab links back to the workspace");
 
-  // ---- Nothing sensitive anywhere ------------------------------------------------------------------------------
   const corpus =
     allStreams.join("\n") + JSON.stringify(allArtifacts) + JSON.stringify(faultArtifacts);
   const leaked = LEAKS.filter((pattern) => pattern.test(corpus)).map(String);
@@ -755,7 +703,6 @@ async function main() {
   );
   await browser.close();
 
-  // ---- Evidence --------------------------------------------------------------------------------------------------------
   writeFileSync(`${OUT}/comparison-summary.json`, JSON.stringify(evidence, null, 2));
   const rows = (id) =>
     evidence.scenarios[id].strategies

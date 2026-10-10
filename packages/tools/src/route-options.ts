@@ -1,17 +1,5 @@
 import type { RouteOption, RouteQuery, TravelMode } from "@trip/shared";
 
-/**
- * Ways to make one hop, compared side by side: drive, or take what runs.
- *
- * Google reports these separately, and honestly: for an Australian journey it
- * returns real road tolls in AUD but an empty `transitFare`, so a bus fare is
- * genuinely unknown here rather than free. Every option therefore carries a
- * `priceBasis` saying how much of its cost is actually known — a $0 bus and a
- * $0 toll-free drive mean very different things, and flattening them would
- * quietly make public transport look like the cheapest option every time.
- */
-
-/** Google's transit vehicle types, mapped onto this project's vocabulary. */
 const VEHICLES: Record<string, TravelMode> = {
   BUS: "bus",
   INTERCITY_BUS: "bus",
@@ -38,13 +26,14 @@ export interface GoogleRouteShape {
   duration?: string;
   distanceMeters?: number;
   travelAdvisory?: {
-    tollInfo?: { estimatedPrice?: Array<{ currencyCode?: string; units?: string; nanos?: number }> };
+    tollInfo?: {
+      estimatedPrice?: Array<{ currencyCode?: string; units?: string; nanos?: number }>;
+    };
     transitFare?: { currencyCode?: string; units?: string; nanos?: number };
   };
   legs?: Array<{ steps?: TransitStep[] }>;
 }
 
-/** Google money: units are whole currency, nanos the billionths beneath them. */
 export function moneyFrom(
   amount: { currencyCode?: string; units?: string; nanos?: number } | undefined,
 ): number | undefined {
@@ -61,7 +50,6 @@ export function minutesFrom(duration: string | undefined): number | undefined {
   return Number.isFinite(seconds) && seconds > 0 ? Math.max(1, Math.ceil(seconds / 60)) : undefined;
 }
 
-/** The vehicles a transit route actually uses, in order, without repeats. */
 export function transitVehicles(route: GoogleRouteShape): { mode: TravelMode; line?: string }[] {
   const seen = new Set<string>();
   const found: { mode: TravelMode; line?: string }[] = [];
@@ -85,8 +73,7 @@ export function driveOption(route: GoogleRouteShape, q: RouteQuery): RouteOption
   const durationMin = minutesFrom(route.duration);
   if (durationMin === undefined) return undefined;
   const tolls = route.travelAdvisory?.tollInfo?.estimatedPrice ?? [];
-  // Only tolls quoted in the base currency can be added to a base-currency
-  // total; a foreign-currency toll is reported in the note instead.
+
   const aud = tolls.filter((toll) => toll.currencyCode === "AUD");
   const price = aud.reduce((sum, toll) => sum + (moneyFrom(toll) ?? 0), 0);
   const km = route.distanceMeters ? Math.round(route.distanceMeters / 100) / 10 : undefined;
@@ -96,8 +83,7 @@ export function driveOption(route: GoogleRouteShape, q: RouteQuery): RouteOption
     durationMin,
     ...(route.distanceMeters ? { distanceMeters: route.distanceMeters } : {}),
     price,
-    // Fuel, parking and hire are not quoted by the provider, so even a route
-    // with tolls has only part of its cost known.
+
     priceBasis: "partial",
     note: `Driving ${q.from} → ${q.to}${km ? `; ${km}km` : ""}; ${
       price ? `tolls A$${price.toFixed(2)}` : "no tolls on this route"
@@ -116,7 +102,6 @@ export function transitOption(route: GoogleRouteShape, q: RouteQuery): RouteOpti
     .map((vehicle) => (vehicle.line ? `${vehicle.mode} ${vehicle.line}` : vehicle.mode))
     .join(", ");
   return {
-    // A single-vehicle trip is named by its vehicle; a mixed one stays generic.
     mode: vehicles.length === 1 ? vehicles[0]!.mode : "transit",
     durationMin,
     ...(route.distanceMeters ? { distanceMeters: route.distanceMeters } : {}),

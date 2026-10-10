@@ -1,28 +1,3 @@
-// Failure inventory for the Failure Lab (#105), written before any fault code.
-//
-// What a visitor may ask for:
-// - the endpoint accepts a fault that is not registered, an object that defines its own fault, an extra
-//   property beside the profile, or a registered profile on a scenario or strategy it was not built for,
-//   so the public route becomes a way to break arbitrary things;
-// - a clean run (no profile) changes behaviour, carries a fault event or names a profile.
-//
-// What each fault must do, and show:
-// - provider timeout: the run reads as plain success; the failed flight search is missing from the trace
-//   or does not name the capability; the transport section is silently priced instead of unavailable;
-//   the conflict it leaves is hidden; the raw provider error reaches the trace or artifact;
-// - provider empty result: the workflow invents a stay instead of stopping; the failed run names no
-//   capability, loses the trace recorded before it failed or is not a valid failed artifact;
-// - invalid agent output: a malformed proposal reaches the plan or metrics; the schema rejection is not
-//   in the trace; the validator's own message or the bad value leaks;
-// - supervisor failure: the fallback to deterministic dispatch happens silently, is shown as plain
-//   success, or the run dies instead of falling back;
-// - stalled revision: a revision that does not improve replaces the best known plan, the loop goes on,
-//   or the unresolved conflict and the reason for stopping are not reported.
-//
-// Evidence safety:
-// - an artifact or event carries a stack trace, a validator message, a raw provider payload, a prompt or a
-//   credential;
-// - a cancelled faulted run still produces an artifact.
 import { describe, expect, it } from "vitest";
 import {
   AgentLabFailedRunArtifact,
@@ -195,7 +170,7 @@ describe("supervisor-failure", () => {
     const types = payloads(artifact).map((event) => event.type);
     expect(types.indexOf("lab_supervisor_fallback")).toBeLessThan(types.indexOf("agent_started"));
     expect(artifact.plan.sections).toHaveLength(5);
-    // Each specialist ran once: the failed supervisor delegated nothing before the fallback.
+
     const started = ofType(artifact, "agent_started").map((event) => event.agent);
     expect(new Set(started).size).toBe(started.length);
     expect(artifact.metrics.rounds).toBe(1);
@@ -221,7 +196,7 @@ describe("stalled-revision", () => {
     expect(artifact.metrics.stopReason).toBe("no_improvement");
     expect(artifact.metrics.unresolvedConflicts).toBeGreaterThan(0);
     expect(artifact.metrics.rounds).toBe(2);
-    // The plan is the first round's: the failed revision changed nothing that was kept.
+
     expect(firstConflict.score).toBe(scored[0]!.scoreBefore);
     expect(artifact.plan.conflicts?.length).toBe(firstConflict.conflicts.length);
   });

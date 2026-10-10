@@ -30,7 +30,7 @@ const colors = {
   muted: "#999999",
   casing: "#ffffff",
 };
-/** The flowing dashes: the only lines whose icon repeats along them. */
+
 const dashed = (lines: { options: Record<string, unknown> }[]) =>
   lines.filter((line) =>
     (line.options.icons as { repeat?: string }[] | undefined)?.some((icon) => icon.repeat),
@@ -61,7 +61,7 @@ describe("drawItineraryRoutes", () => {
       colors,
       reducedMotion: false,
     });
-    // Per leg: a casing, the day-coloured line with its direction chevron, and flowing dashes.
+
     expect(lines).toHaveLength(6);
     expect(dashed(lines)).toHaveLength(2);
     expect(lines.map((line) => line.options.strokeColor)).toEqual(
@@ -130,7 +130,7 @@ describe("drawItineraryRoutes", () => {
     expect(path.length).toBeGreaterThan(2);
     expect(path[0]).toEqual({ lat: 1, lng: 1 });
     expect(path.at(-1)).toEqual({ lat: 2, lng: 2 });
-    // The midpoint sits off the straight line between the stops.
+
     const middle = path[Math.floor(path.length / 2)]!;
     expect(Math.abs(middle.lat - middle.lng)).toBeGreaterThan(0.05);
   });

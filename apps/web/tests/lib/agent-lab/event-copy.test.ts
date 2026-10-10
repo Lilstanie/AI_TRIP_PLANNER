@@ -1,7 +1,3 @@
-// Failure inventory, written before the change (#203):
-// - a conflict's saving target is hand-formatted (`AUD 412.50`) instead of the Agent Lab's whole
-//   dollars (`A$413`), so the trace and the comparison read on different scales;
-// - a conflict with no saving target gains an empty "asked to save" note.
 import { describe, expect, it } from "vitest";
 import type { AgentLabRunEvent } from "@trip/shared";
 import { eventCopy } from "@/lib/agent-lab/event-copy";

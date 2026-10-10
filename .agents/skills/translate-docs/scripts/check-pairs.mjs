@@ -59,7 +59,6 @@ if (
   );
 }
 
-// Compare Markdown structure, never translation meaning. Fences include their opening language.
 function structure(text) {
   const result = { headings: [], lists: [], tables: [], fences: [] };
   let fence;

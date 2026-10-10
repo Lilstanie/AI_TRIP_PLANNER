@@ -10,48 +10,34 @@ import type {
 import type { RouteResult } from "../integrations/google";
 import { LEG_MODES, legModeOf, type LegMode } from "./leg-routes";
 
-/**
- * What the Timeline tab shows for one day, derived from the plan alone: the fixed transport and
- * stays around the day's activities, in time order. Kept free of React so the rules — which items
- * are fixed, where an untimed flight goes, what a connection says — live in one readable place.
- */
-
 export type FixedKind = "flight" | "ground" | "stay";
 
-/** A booked-in item the timeline shows but cannot edit: a flight, an inter-city hop or a stay. */
 export type FixedRow = {
   type: "fixed";
   key: string;
   kind: FixedKind;
   mode?: string;
   title: string;
-  /** One line under the title: carrier, mode and duration, or nights. */
+
   detail: string;
   startTime?: string;
   endTime?: string;
-  /** Undefined when the provider gave no price; the UI says so rather than showing AUD 0. */
+
   cost?: number;
   costNote?: string;
 };
 
-/**
- * A flight or one night of a stay, opened to its card with the Alternatives the specialist found. The
- * selection is the plan's own, so taking another candidate swaps it in the same section.
- */
 export type BookingRow = {
   type: "booking";
   key: string;
   kind: "stay" | "flight";
-  /**
-   * `in`: the flight the day starts with. `out`: the return of the same round-trip selection, on the
-   * last day. `night`: one night of a stay, `index` of `of`, counted from the check-in night.
-   */
+
   role: "in" | "out" | "night";
   night?: { index: number; of: number };
-  /** The section whose selection the card's Alternatives swap. */
+
   sectionId: "accommodation" | "transport";
   selection: StaySelection | FlightSelection;
-  /** Set for `in` and `out`: the date the flight leaves. */
+
   date?: string;
 };
 
@@ -66,7 +52,6 @@ export function dayCount(plan: TripPlan) {
   return Math.max(1, Math.round((end! - start!) / 86400000));
 }
 
-/** "Sat 17 Oct" for a trip day, in UTC so the label never shifts with the viewer's zone. */
 export function dayLabel(plan: TripPlan, day: number, locale: AppLocale = "en") {
   const time = Date.parse(`${plan.brief.dates[0]}T00:00:00Z`) + (day - 1) * 86400000;
   if (!Number.isFinite(time)) return translate(locale, "Day {v0}", { v0: day });
@@ -80,7 +65,7 @@ export function dayLabel(plan: TripPlan, day: number, locale: AppLocale = "en") 
 
 function transportRow(item: ProposalItem, index: number, locale: AppLocale): FixedRow {
   const title = item.location ?? item.detail.split(/[:;]/)[0]!.trim();
-  // A timed transport item is a ground hop the planner scheduled; an untimed one is a flight.
+
   if (item.startTime) {
     const mode = /^(\w+) from /i.exec(item.detail)?.[1]?.toLowerCase();
     const duration = /(\d+) minutes/.exec(item.detail)?.[1];
@@ -127,7 +112,7 @@ function transportRow(item: ProposalItem, index: number, locale: AppLocale): Fix
 function stayRow(item: ProposalItem, index: number, locale: AppLocale): FixedRow {
   const name = item.detail.split(" — ")[0]!.trim();
   const nights = /(\d+) night/.exec(item.detail)?.[1];
-  // Stay details read "rating 4.5/5"; plans saved before carry "/10", shown out of 5 too.
+
   const match = /rating ([\d.]+)\/(10|5)\b/.exec(item.detail);
   const rating = match
     ? match[2] === "10"
@@ -153,7 +138,6 @@ function stayRow(item: ProposalItem, index: number, locale: AppLocale): FixedRow
   };
 }
 
-/** The stay a traveller wakes up in on `day`, when it is not also their check-in day. */
 export function stayingAt(plan: TripPlan, day: number): string | undefined {
   const stays = plan.sections.find((section) => section.id === "accommodation")?.proposal?.items;
   for (const item of stays ?? []) {
@@ -164,10 +148,6 @@ export function stayingAt(plan: TripPlan, day: number): string | undefined {
   return undefined;
 }
 
-/**
- * One day in visiting order: an untimed flight first (the day starts with arriving), timed hops
- * and activities by start time, and the night's check-in last.
- */
 export function dayRows<A extends { startTime?: string }>(
   plan: TripPlan,
   day: number,
@@ -181,15 +161,13 @@ export function dayRows<A extends { startTime?: string }>(
   const flightIds = new Set(flights.map((flight) => flight.id));
   const stayIds = new Set(stays.map((stay) => stay.id));
   const last = dayCount(plan);
-  // The planner's round trip: the arrival flight's item names the return date, and that date is the
-  // trip's last day, so the flight out is the same selection leaving on the last day.
+
   const returnOf = (flightId: string) => {
     const item = transportItems.find((candidate) => candidate.selectionId === flightId);
     const date = item ? /returning (\d{4}-\d{2}-\d{2})/.exec(item.detail)?.[1] : undefined;
     return date && date === plan.brief.dates[1] ? date : undefined;
   };
 
-  // Transport and hotel items the selections above do not account for keep their plain rows.
   const transport = transportItems
     .map((item, index) => [item, index] as const)
     .filter(([item]) => item.day === day && !(item.selectionId && flightIds.has(item.selectionId)))
@@ -250,7 +228,7 @@ export function dayRows<A extends { startTime?: string }>(
     ...transport.filter((row) => row.startTime),
     ...activities.map((activity) => ({ type: "stop" as const, activity })),
   ].sort((left, right) => (startOf(left) ?? 0) - (startOf(right) ?? 0));
-  // The day starts with the flight in and ends with the night's stay, or with the flight out.
+
   return [
     ...transport.filter((row) => !row.startTime),
     ...flightsIn,
@@ -290,32 +268,20 @@ const MODE_LABELS: Record<string, MessageKey> = {
   flight: "Fly",
 };
 
-/** The service a verified travel time came from, as the traveller reads it. */
 const SERVICE_NAMES = { google: "Google", osrm: "OSRM", transitous: "Transitous" } as const;
 
 export type Connection = {
-  /** The mode the leg icon is drawn for: a route's mode, or the planner's `arriveBy` mode. */
   mode: string;
   label: string;
-  /** The service that gave a verified time (`Google`, `OSRM`); absent for an estimate or a failure. */
+
   service?: string;
-  /**
-   * `checked`: a route the provider verified; `planned`: the planner's estimate, or a simulated
-   * route; `failed`: the provider found no route between the two places.
-   */
+
   status: "checked" | "planned" | "failed";
   fare?: string;
-  /**
-   * The mode the leg's control shows: the one it was routed with, or the estimate's mode when that is
-   * one a traveller can choose. Undefined for a planner estimate such as a bus.
-   */
+
   choice?: LegMode;
 };
 
-/**
- * How the traveller gets from one stop to the next: the route the workspace verified between their
- * two places when there is one, otherwise the leg's stored `arriveBy` as an estimate.
- */
 export function connectionBetween(
   previous: { placeId?: string } | undefined,
   current: { placeId?: string; arriveBy?: ArriveBy },
@@ -338,9 +304,9 @@ export function connectionBetween(
     return {
       mode: route.mode,
       label: `${MODE_LABELS[route.mode] ? translate(locale, MODE_LABELS[route.mode]!) : route.mode} · ${formatDuration(route.durationMin, locale)}`,
-      // A simulated route is a fixture, so it reads as an estimate, never as checked.
+
       status: route.simulated ? "planned" : "checked",
-      // The provider's own currency: not converted and not counted in the AUD budget.
+
       fare: route.fare ? fare(route.fare, locale) : undefined,
       service: route.source && !route.simulated ? SERVICE_NAMES[route.source] : undefined,
       choice,

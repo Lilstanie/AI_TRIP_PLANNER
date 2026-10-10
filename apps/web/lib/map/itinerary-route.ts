@@ -1,22 +1,10 @@
-/**
- * Route lines for the map, free of the Google Maps SDK so they can be tested.
- *
- * Stops arrive in visiting order (lib/trip/itinerary.ts). Each day becomes one line through its
- * stops in that order. A leg uses a verified Google Routes polyline when one exists for that exact
- * pair of places; otherwise it is a gentle arc. No route is requested just to draw.
- */
-
 export type Coordinate = { lat: number; lng: number };
-/** One located stop on the map. */
+
 export type RouteStop = { placeId: string; day?: number; position: Coordinate };
 export type RouteLeg = { from: RouteStop; to: RouteStop; polyline?: string };
 export type DayRoute = { day?: number; legs: RouteLeg[] };
 type VerifiedRoute = { from: string; to: string; status: string; polyline?: string };
 
-/**
- * Group stops, given in visiting order, into per-day lines; a day with a single stop has no line.
- * Stop numbers are not an order: a place visited again keeps its first number.
- */
 export function dayRoutes(
   stops: readonly RouteStop[],
   routes: readonly VerifiedRoute[] = [],
@@ -42,27 +30,20 @@ export function dayRoutes(
   });
 }
 
-/** True when a verified route is already drawn as part of an itinerary leg. */
 export function coveredByItinerary(route: VerifiedRoute, lines: readonly DayRoute[]) {
   return lines.some((line) =>
     line.legs.some((leg) => leg.from.placeId === route.from && leg.to.placeId === route.to),
   );
 }
 
-/** Pixels the dashes travel per second along the line: slow enough to read as direction, not noise. */
 export const FLOW_SPEED_PX = 24;
-/** Distance between dash starts; the offset wraps at this length so the loop is seamless. */
+
 export const FLOW_REPEAT_PX = 18;
 
-/** Dash offset for elapsed milliseconds, wrapped into one repeat. */
 export function flowOffset(elapsedMs: number) {
   return ((elapsedMs / 1000) * FLOW_SPEED_PX) % FLOW_REPEAT_PX;
 }
 
-/**
- * Drive an animation from one requestAnimationFrame loop, throttled to about 30 frames a second.
- * Returns a stop function; nothing runs when motion is reduced.
- */
 export function startFlow(
   onFrame: (offsetPx: number) => void,
   reducedMotion: boolean,
@@ -102,13 +83,6 @@ const fromMercator = ({ x, y }: { x: number; y: number }): Coordinate => ({
   lng: (x * 180) / Math.PI,
 });
 
-/**
- * A gentle arc from one stop to the next, for legs without a verified route. It is a quadratic
- * curve in Web Mercator (the map's own projection, so it looks the same at every latitude) whose
- * control point sits `bend` × the leg's length to the left of travel, so consecutive legs of a day
- * read as one flowing path rather than a zig-zag of straight segments. Returns `samples + 1`
- * points including both ends; identical ends return just the two points.
- */
 export function curvedPath(from: Coordinate, to: Coordinate, bend = 0.18, samples = 32) {
   const a = toMercator(from);
   const b = toMercator(to);

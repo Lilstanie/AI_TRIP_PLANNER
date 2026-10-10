@@ -1,12 +1,3 @@
-// End-to-end walk through the Liquid Glass workspace: every major surface and transition, in
-// light and dark, at desktop and phone widths. It leaves screenshots and a desktop video under
-// output/playwright/liquid-glass/ as a repeatable artifact, and fails on console errors or a
-// horizontal page scroll.
-//
-//   pnpm --filter @trip/web dev            # in another terminal
-//   [CHANNEL=chrome] [PLAYWRIGHT=<path to playwright>] node apps/web/tests/e2e/liquid-glass.e2e.mjs
-//
-// PLAYWRIGHT defaults to the `playwright` package resolvable from here.
 import { mkdirSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
@@ -34,11 +25,11 @@ async function open(browser, { width, height, scheme, video }) {
   const errors = [];
   page.on("console", (message) => message.type() === "error" && errors.push(message.text()));
   page.on("pageerror", (error) => errors.push(String(error)));
-  // Explicit no-match Places fixture: this UI walk never spends provider quota.
+
   await page.route("**/api/places/search", (route) => route.fulfill({ json: { places: [] } }));
   await page.goto(BASE);
   await page.waitForSelector(".workspace-app");
-  // Mock data: no provider requests and a deterministic plan.
+
   const live = page.getByRole("button", { name: /Live data/ });
   if (await live.count()) {
     if (width <= 520) await page.getByRole("tab", { name: "Mine", exact: true }).click();
@@ -91,7 +82,6 @@ async function desktop(browser, scheme) {
   await page.keyboard.press("Escape");
   await settle(page, 300);
 
-  // A closed Chats panel must stay out of view transitions, or its glass flashes a blurred strip.
   check(
     await page.evaluate(
       () => getComputedStyle(document.querySelector(".chats-panel")).viewTransitionName === "none",
@@ -110,7 +100,6 @@ async function desktop(browser, scheme) {
   );
   await shot(page, `${tag}-06-calendar`);
 
-  // Back to a chat and plan an example trip.
   await page.getByRole("button", { name: /^Chats/ }).click();
   await settle(page, 400);
   await page.getByRole("button", { name: "New chat" }).first().click();
@@ -148,8 +137,6 @@ async function desktop(browser, scheme) {
   await context.close();
 }
 
-// The trip map over real tiles, from the development page with fixed coordinates (no Places or
-// pricing requests): day-coloured curved routes and the bottom-right control stack.
 async function map(browser, scheme) {
   const { context, page, errors } = await open(browser, { width: 1000, height: 800, scheme });
   const tag = `map-${scheme}`;
@@ -162,8 +149,7 @@ async function map(browser, scheme) {
   await page.waitForSelector(".trip-map-marker", { timeout: 30_000 }).catch(() => undefined);
   await settle(page, 2500);
   await shot(page, `${tag}-01-routes`);
-  // Only a missing browser key may skip the live checks; a key that fails to load the SDK must
-  // still fail "eight stops are marked" below.
+
   if (
     !process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY &&
     !(await page.locator(".trip-map-marker").count()) &&
@@ -231,7 +217,6 @@ async function phone(browser, scheme) {
   await context.close();
 }
 
-// CHANNEL=chrome uses the installed Google Chrome instead of a downloaded Playwright build.
 const browser = await chromium.launch(process.env.CHANNEL ? { channel: process.env.CHANNEL } : {});
 try {
   for (const scheme of ["light", "dark"]) {

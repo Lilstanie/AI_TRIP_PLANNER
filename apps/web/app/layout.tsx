@@ -8,14 +8,12 @@ import { authEnabled } from "@/lib/auth/config";
 export const metadata: Metadata = {
   title: "AI Trip Planner",
   description: "Plan trips with an AI travel planning workspace.",
-  // iPhone ignores the manifest's icons and standalone display; these tags cover Add to Home Screen.
+
   appleWebApp: { capable: true, title: "Trip Planner", statusBarStyle: "default" },
   icons: { apple: "/icons/apple-touch-icon.png" },
 };
 
-// Matches the `--page` token in each theme so the installed app's title bar blends in.
 export const viewport: Viewport = {
-  // The installed app draws under the notch and home indicator; layouts pad with safe-area insets.
   viewportFit: "cover",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#f5f5f7" },
@@ -26,7 +24,6 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      {/* ClerkProvider sits inside <body>; without keys the workspace stays local-only. */}
       <body>
         <ServiceWorkerRegistration />
         {authEnabled ? (

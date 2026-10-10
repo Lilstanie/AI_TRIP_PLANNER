@@ -4,11 +4,10 @@ import { labMoney } from "./money";
 export interface ComparisonRow {
   id: string;
   label: string;
-  /** One value per strategy, in the order the strategies were passed. */
+
   values: string[];
 }
 
-// Also covers a run that was cancelled or failed: it started, but it left no result to show.
 const stopReasons: Record<NonNullable<Metrics["stopReason"]>, string> = {
   converged: "Converged",
   round_limit: "Round limit reached",
@@ -16,15 +15,9 @@ const stopReasons: Record<NonNullable<Metrics["stopReason"]>, string> = {
   no_improvement: "No improvement",
 };
 
-/** A strategy with no planning loop has no stopping reason, and says so rather than inventing one. */
 export const stopReasonLabel = (reason: Metrics["stopReason"]) =>
   reason ? stopReasons[reason] : "No loop";
 
-/**
- * What happened to the conflicts a plan had, read from the metrics alone. A strategy with no planning
- * loop never checked, so it is not shown as having found none. An infeasible stop is its own outcome:
- * a conflict remains, but no revision could have removed it, which is not the same as an unrepaired one.
- */
 export function conflictOutcomeLabel(metrics: Metrics): string {
   if (metrics.stopReason === null) return "Not checked";
   if (metrics.stopReason === "infeasible_budget") return "Infeasible budget";
@@ -35,11 +28,6 @@ export function conflictOutcomeLabel(metrics: Metrics): string {
 export const multiCityLabel = (consistent: boolean | null) =>
   consistent === null ? "Not applicable" : consistent ? "Consistent" : "Inconsistent";
 
-/**
- * Usage that was not measured is "Unavailable", never a zero that reads as free. Measured usage is the
- * token count the provider returned for every model call; cost is never shown because providers do not
- * return it.
- */
 export const usageLabel = (usage: Metrics["usage"]) =>
   usage.status === "unavailable"
     ? "Unavailable"
@@ -88,11 +76,6 @@ const rows: readonly { id: string; label: string; read: (metrics: Metrics) => st
   { id: "usage", label: "Token and model cost", read: (m) => usageLabel(m.usage) },
 ];
 
-/**
- * Side-by-side figures for any number of strategies. Every value is read from that run's own artifact,
- * so the page can never show a number the artifact does not hold; a strategy without a completed
- * artifact shows "No completed run". The rows deliberately carry no ranking.
- */
 export function buildComparisonRows(
   ...runs: (AgentLabCompletedRunArtifact | undefined)[]
 ): ComparisonRow[] {

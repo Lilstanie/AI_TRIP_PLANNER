@@ -1,13 +1,3 @@
-// Failure inventory, written before the module:
-// - a frame split across network chunks is dropped or parsed half-way;
-// - a malformed line shows the browser's raw SyntaxError text to the visitor;
-// - a frame that fails the shared schema is rendered anyway;
-// - an `error` frame loses the failed run artifact, so the failing sequence is never shown;
-// - events recorded before the failure are not delivered;
-// - the stream ends without a completion frame and the run is reported as complete;
-// - a non-200 response or empty body is reported with an internal message;
-// - a rejection frame (live not enabled, a limit reached) is read as a failed run, or its reason and retry
-//   hint are lost, so the page cannot say why nothing started.
 import { describe, expect, it } from "vitest";
 import {
   AgentLabRejectedError,

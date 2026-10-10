@@ -1,11 +1,3 @@
-// Failure inventory for request-scoped model control (#106), written before the code:
-// - a fixture run builds a chat model, and so could call a paid model, because a key is set in the
-//   environment;
-// - the switch that turns models off leaks out of its scope, or into a run in flight beside it;
-// - usage from one run lands in another run's collector;
-// - a total is built from a call that reported nothing, so a missing figure reads as zero;
-// - usage from a response shape the collector does not know is guessed instead of reported missing;
-// - a model built with no collector in scope throws, or records somewhere.
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   createRoutedChatModel,

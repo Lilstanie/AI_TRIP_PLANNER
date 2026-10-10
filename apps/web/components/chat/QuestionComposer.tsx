@@ -7,12 +7,6 @@ import {
   type QuestionAnswer,
 } from "@/lib/workspace/ask-user";
 
-/*
- * The structured-question card that takes the composer's seat while the coordinator waits for an
- * answer. Behaviour, layout and copy follow DeepSeek Harness's QuestionFlow
- * (ui-user-questions QuestionComposer.tsx); the glyphs are its 14/16px outline icons.
- */
-
 const copy = {
   incomplete: "Please complete this question first.",
   unanswered: "Please select an option or enter a custom answer.",
@@ -30,7 +24,6 @@ const copy = {
 
 type Feedback = "incomplete" | "unanswered";
 
-/** One in-progress answer, including an explicit skip. */
 type Draft = { selected: string[]; custom: string; skipped: boolean };
 
 type IconProps = { size?: number };
@@ -116,18 +109,10 @@ function IconCheck({ size = 14 }: IconProps) {
   );
 }
 
-/** Return whether a text-field key event belongs to an active IME composition. */
 function isComposing(event: KeyboardEvent<HTMLTextAreaElement>): boolean {
-  // keyCode 229 is the legacy IME-composition signal engines emit without isComposing.
   return event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229;
 }
 
-/**
- * Auto-growing free-text answer: a textarea over a hidden mirror that owns the height. The mirror
- * renders the draft plus a trailing newline in normal flow and so sizes the shared grid cell
- * (soft wraps included); `rows={1}` keeps the textarea's own intrinsic height out of the sizing.
- * Mirror and textarea must share font, line-height, padding and wrapping rules.
- */
 function AnswerField(props: {
   variant: "inline" | "block";
   value: string;
@@ -161,12 +146,6 @@ function AnswerField(props: {
 const answered = (item: Draft) => item.selected.length > 0 || item.custom.trim() !== "";
 const completed = (item: Draft) => answered(item) || item.skipped;
 
-/**
- * The question card. Mount it with `key={request.key}` so a new ask starts with fresh drafts.
- * @param props.request - the pending ask and its 1–4 questions.
- * @param props.onSubmit - receives one answer per question once every question is answered or skipped.
- * @param props.onCancel - dismisses the whole ask.
- */
 export function QuestionComposer({
   request,
   onSubmit,
@@ -183,10 +162,9 @@ export function QuestionComposer({
     questions.map(() => ({ selected: [], custom: "", skipped: false })),
   );
   const [feedback, setFeedback] = useState<Feedback | null>(null);
-  // Collapsed to the header strip so the conversation above stays readable.
+
   const [minimized, setMinimized] = useState(false);
-  // The free-form textarea autofocuses on first presentation only; re-expanding must not steal
-  // focus from the toggle, so focus is granted once per question index.
+
   const focusedQuestions = useRef(new Set<number>());
   const question = questions[index]!;
   const draft = drafts[index]!;
@@ -257,8 +235,6 @@ export function QuestionComposer({
     submitDrafts(drafts);
   };
 
-  // A multi-select draft keeps its checked labels; a single-select custom answer replaces the
-  // selection. Enter continues the flow, Shift+Enter breaks a line.
   const draftCustom = (event: ChangeEvent<HTMLTextAreaElement>) => {
     const value = event.target.value;
     updateDraft((current) => ({

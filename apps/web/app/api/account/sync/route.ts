@@ -19,7 +19,6 @@ async function rows(table: Table, userId: string) {
   return (await getDb().select().from(table).where(eq(table.userId, userId))).map(toWire);
 }
 
-/** Every trip and conversation the account holds, tombstones included, for the client to merge. */
 export async function GET() {
   const user = await accountUser();
   if ("response" in user) return user.response;
@@ -50,12 +49,11 @@ async function upsert(table: Table, userId: string, records: SyncedRecord[]) {
         updatedAt: sql`excluded.updated_at`,
         deletedAt: sql`excluded.deleted_at`,
       },
-      // Last write wins per record: an older copy never replaces a newer one.
+
       setWhere: sql`excluded.updated_at > ${table.updatedAt}`,
     });
 }
 
-/** Stores the records a browser changed; each is written only if it is newer than the stored one. */
 export async function POST(request: Request) {
   const user = await accountUser();
   if ("response" in user) return user.response;

@@ -18,16 +18,10 @@ function readableStorage(): Pick<Storage, "getItem"> {
   }
 }
 
-/**
- * The planning workspace always opens on a blank planning entry. Saved chats and trips are
- * listed in the sidebar and open only when the user chooses them; no demo plan is loaded.
- * `initialPlan` lets an embedding page (or a test) open a specific plan explicitly.
- */
 export function Workspace({ initialPlan }: { initialPlan?: TripPlan }) {
   const [restored, setRestored] = useState<RestoredWorkspace>();
 
   useEffect(() => {
-    // Storage is read after hydration, so the server and first client render match.
     const state = restoreWorkspace(readableStorage());
     if (!initialPlan) {
       setRestored(state);

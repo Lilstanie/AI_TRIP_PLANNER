@@ -13,9 +13,6 @@ import { PartialTripBrief } from "../src/chat";
 
 describe("toAud", () => {
   it("converts the currencies a traveller can state a budget in", () => {
-    // Derived from the table on purpose. Pinning the products here would mean a
-    // rate review shows up as a test failure, which trains people to edit the
-    // number until it goes green instead of reading what changed.
     for (const [amount, currency] of [
       [3000, "CNY"],
       [3000, "USD"],
@@ -25,8 +22,6 @@ describe("toAud", () => {
   });
 
   it("converts to a plausible order of magnitude", () => {
-    // The guard the derived test above cannot give: an inverted or misplaced
-    // decimal would still satisfy its own arithmetic.
     expect(toAud(1000, "CNY")).toBeGreaterThan(50);
     expect(toAud(1000, "CNY")).toBeLessThan(1000);
     expect(toAud(1000, "USD")).toBeGreaterThan(1000);
@@ -36,15 +31,11 @@ describe("toAud", () => {
   });
 
   it("leaves a base-currency amount untouched", () => {
-    // The form and any already-converted amount come back through here; a second
-    // pass must not shrink the budget again.
     expect(toAud(3000, BASE_CURRENCY)).toBe(3000);
     expect(toAud(toAud(3000, "AUD"), "AUD")).toBe(3000);
   });
 
   it("rounds to cents rather than carrying float dust", () => {
-    // Compare against its own rounding: `69.93 * 100` is 6992.999… in float, so
-    // multiplying out to test for whole cents fails on correct values.
     const whole = (value: number) => Math.round(value * 100) / 100 === value;
     expect(whole(toAud(333, "CNY"))).toBe(true);
     expect(whole(toAud(7, "JPY"))).toBe(true);
@@ -57,8 +48,6 @@ describe("toAud", () => {
   });
 
   it("refuses an amount that rounds away to nothing", () => {
-    // TripBrief requires at least 0.01, so returning 0 here would fail later
-    // with an error that says nothing about the conversion.
     expect(() => toAud(0.0001, "JPY")).toThrow(/too small/);
   });
 
@@ -88,8 +77,6 @@ describe("detectCurrency", () => {
   });
 
   it("does not read the 元 inside 美元 / 日元 / 澳元 as CNY", () => {
-    // Same shape of bug as 人民币 matching a `人` traveller-count pattern: a
-    // shorter marker swallowing a longer one that contains it.
     for (const [text, expected] of [
       ["3000 美元", "USD"],
       ["50000 日元", "JPY"],
@@ -104,14 +91,10 @@ describe("detectCurrency", () => {
   });
 
   it("treats a bare dollar sign as unmarked rather than guessing USD", () => {
-    // $ is ambiguous between USD and AUD. With AUD as the base, saying nothing
-    // is the same as saying AUD, so there is nothing to guess.
     expect(detectCurrency("$3000")).toBeUndefined();
   });
 
   it("does not read 人民币 as a traveller count", () => {
-    // The offline parser matches `(\d+)\s*人` for group size; the budget marker
-    // has to be recognised so that 人民币 is consumed as money first.
     expect(detectCurrency("10.6-10.9，预算 3000 人民币")).toBe("CNY");
   });
 });
@@ -126,8 +109,6 @@ describe("budgetSource on a brief", () => {
   };
 
   it("parses a brief saved before the field existed", () => {
-    // This is why the field is optional rather than required-plus-a-version-bump:
-    // every trip already in a browser keeps loading.
     const parsed = TripBrief.parse(base);
     expect(parsed.budgetSource).toBeUndefined();
     expect(PartialTripBrief.parse({ budgetTotal: 630 }).budgetSource).toBeUndefined();
@@ -157,13 +138,6 @@ describe("moneyIn", () => {
   });
 });
 
-// Failure inventory for formatMoney, written before the code:
-// - an AUD amount no longer reads exactly as the inline `AUD ${n.toFixed(2)}` it replaces (trace text drifts);
-// - the whole-dollar and as-typed styles (`AUD 4,000`, `AUD 4000`) lose their exact shape;
-// - a non-AUD currency shows the AUD number under another code (conversion skipped or inverted);
-// - JPY shows decimals, or rounds in the wrong direction;
-// - negative, zero or fractional amounts lose sign or precision;
-// - a non-finite amount is printed as "AUD NaN" instead of failing loudly.
 describe("formatMoney", () => {
   it("writes AUD exactly as the specialists' inline strings did", () => {
     expect(formatMoney(12.5, "AUD")).toBe("AUD 12.50");
@@ -180,13 +154,12 @@ describe("formatMoney", () => {
   });
 
   it("converts through the static rate table for other currencies", () => {
-    // AUD 30 at 1.5 AUD per USD is USD 20; at 0.21 AUD per CNY it is CNY 142.86.
     expect(formatMoney(30, "USD")).toBe("USD 20.00");
     expect(formatMoney(30, "CNY")).toBe("CNY 142.86");
   });
 
   it("shows JPY without decimals", () => {
-    expect(formatMoney(12.5, "JPY")).toBe("JPY 1,250"); // grouped like the panels (#228)
+    expect(formatMoney(12.5, "JPY")).toBe("JPY 1,250");
     expect(formatMoney(12.504, "JPY", "whole")).toBe("JPY 1,250");
     expect(formatMoney(0.004, "JPY")).toBe("JPY 0");
   });

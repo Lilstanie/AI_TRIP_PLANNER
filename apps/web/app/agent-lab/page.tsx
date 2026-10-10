@@ -7,7 +7,6 @@ import {
 import { AgentLabClient } from "@/components/agent-lab/AgentLabClient";
 import { readLiveConfig } from "@/lib/agent-lab/live-gate";
 
-// Whether live runs are enabled is a deployment setting read per request, never baked in at build time.
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {

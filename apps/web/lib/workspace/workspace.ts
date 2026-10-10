@@ -17,36 +17,29 @@ import {
 } from "@trip/shared";
 import { failureNotice, NoticeError, type Notice } from "../i18n/notice";
 
-/**
- * What a sent message keeps about one attachment. Deliberately not the sent
- * payload: the workspace is persisted in browser storage, and a 1.5 MB base64
- * image per message would exhaust that budget within a few turns. Only a small
- * thumbnail (see THUMBNAIL_MAX_EDGE) and the file's identity are kept, which is
- * all the transcript needs to show.
- */
 export type MessageAttachment = {
   name: string;
   mediaType: string;
   kind: "image" | "text";
-  /** A `data:` URL at most a couple of hundred pixels across; images only. */
+
   thumbnail?: string;
-  /** Size of what was sent, for the chip's second line. */
+
   bytes?: number;
 };
 
 export type Message = {
   role: "user" | "agent";
   text: string;
-  /** Files sent with this message, shown with the bubble. Optional like `at`. */
+
   attachments?: MessageAttachment[];
-  /** Fares, when this turn answered a flight question instead of planning. */
+
   flights?: FlightAnswer;
-  /** The thinking transcript that produced this reply, rendered as the fold above it. */
+
   activity?: AgentProgressEvent[];
-  /** Epoch ms this message was appended; optional so a stored trip without it still loads. */
+
   at?: number;
 };
-/** The Who chip's steppers; sent to the planner as `TripBrief.party` beside `groupSize`. */
+
 export const PARTY_KEYS = ["adults", "children", "infants", "seniors", "pets"] as const;
 export type Party = TravellerParty;
 
@@ -57,49 +50,29 @@ export type Draft = {
   end: string;
   groupSize: string;
   budgetTotal: string;
-  /** Original typed or chatted budget; budgetTotal stays AUD. */
+
   budgetSource?: TripBrief["budgetSource"];
-  /**
-   * The last currency the traveller named for this trip, with a budget or on its own; see
-   * `TripBrief.displayCurrency`. Optional so a draft stored before it existed still loads.
-   */
+
   displayCurrency?: Currency;
-  /**
-   * The traveller's own trip preferences, in their words. Optional so a draft stored before the
-   * list existed still loads; read it through `draftPreferences`.
-   */
+
   preferences?: string[];
-  /**
-   * Lasting wishes the coordinator learned from the conversation, kept apart from the traveller's
-   * own list so they can see and remove them. Optional like `preferences`.
-   */
+
   learnedPreferences?: string[];
-  /** The traveller arranges their own flights; the planner neither asks about nor prices them. */
+
   excludeFlights?: boolean;
-  /**
-   * How the traveller said particular hops should be made, learned from the conversation. Kept on
-   * the draft like `learnedPreferences` so they can see each one and take it back; removing an
-   * entry clears the brief's copy. Optional, so a draft stored before it existed still loads.
-   */
+
   legModes?: LegModeChoice[];
-  /** The stay the traveller has already booked; the planner uses it as given. */
+
   bookedStay?: BookedStay;
-  /**
-   * The Who chip's stepper breakdown. Optional so a draft stored before the steppers existed, or a
-   * draft built from a brief (`draftFor`, which has no breakdown to restore), still loads; read it
-   * through `partyFor`. `groupSize` is kept in sync from it whenever a stepper changes, and both
-   * reach the planner: `groupSize` for the arithmetic, `party` (as `TripBrief.party`) for who is
-   * travelling. A breakdown that no longer adds up to `groupSize` is not sent.
-   */
+
   party?: Party;
-  // No longer edited anywhere (the preferences editor replaced them with the list above). A stored
-  // brief's values are carried through unchanged so replanning an older trip keeps them.
+
   nationality: string;
   roomAllocation: "shared" | "individual";
   minRating: string;
   freeCancellation: boolean;
 };
-/** The draft's preference list; absent in drafts stored before the list existed. */
+
 export const draftPreferences = (draft: Pick<Draft, "preferences">): string[] =>
   draft.preferences ?? [];
 const isParty = (value: unknown): value is Party =>
@@ -107,11 +80,7 @@ const isParty = (value: unknown): value is Party =>
   PARTY_KEYS.every(
     (key) => typeof value[key] === "number" && Number.isInteger(value[key]) && value[key] >= 0,
   );
-/**
- * The Who chip's stepper state: the draft's own breakdown, or — for a draft with none, such as one
- * built from a brief or from before the steppers existed — every stated traveller counted as an
- * adult, so opening the editor never contradicts the chip's own count.
- */
+
 export function partyFor(draft: Pick<Draft, "party" | "groupSize">): Party {
   if (draft.party) return draft.party;
   const adults = Number(draft.groupSize);
@@ -123,7 +92,7 @@ export function partyFor(draft: Pick<Draft, "party" | "groupSize">): Party {
     pets: 0,
   };
 }
-/** `groupSize` the planner receives: people only — pets never count as travellers. */
+
 export const groupSizeFromParty = (party: Party) => partyPeople(party);
 export function draftFor(brief: TripBrief): Draft {
   return {
@@ -147,7 +116,7 @@ export function draftFor(brief: TripBrief): Draft {
     freeCancellation: brief.accommodation?.freeCancellation ?? false,
   };
 }
-/** Empty preferences for a new conversation; never derived from the demo or a previous trip. */
+
 export const blankDraft = (): Draft => ({
   destination: "",
   origin: "",
@@ -158,7 +127,7 @@ export const blankDraft = (): Draft => ({
   preferences: [],
   nationality: "",
   roomAllocation: "shared",
-  // 0 is the schema default and means "no minimum"; it is a filter, not invented trip data.
+
   minRating: "0",
   freeCancellation: false,
 });
@@ -185,11 +154,10 @@ export function isDraft(value: unknown): value is Draft {
     (value.bookedStay === undefined || BookedStay.safeParse(value.bookedStay).success)
   );
 }
-/** `current` is the existing brief, or only the identifiers for a blank conversation. */
+
 export function parseDraft(draft: Draft, current: Pick<TripBrief, "tripId"> & Partial<TripBrief>) {
   const preferences = draftPreferences(draft);
-  // Nothing edits the rating any more, so a stored value the schema would reject cannot be fixed
-  // by the traveller; it falls back to the schema default, 0, which means "no minimum".
+
   const rating = draft.minRating.trim() ? Number(draft.minRating) : NaN;
   return TripBrief.safeParse({
     ...current,
@@ -197,17 +165,17 @@ export function parseDraft(draft: Draft, current: Pick<TripBrief, "tripId"> & Pa
     origin: draft.origin.trim() || undefined,
     dates: [draft.start, draft.end],
     groupSize: Number(draft.groupSize),
-    // Spreading `current` would otherwise keep a breakdown the traveller has since changed.
+
     party: statedParty(draft),
     budgetTotal: Number(draft.budgetTotal),
     budgetSource: statedBudgetSource(draft),
     displayCurrency: draft.displayCurrency,
-    // An emptied list clears the brief's, rather than letting `current` carry the old one.
+
     preferences: preferences.length ? preferences : undefined,
-    // Like the list above, each is read from the draft so a removal clears the brief's copy.
+
     learnedPreferences: statedPreferences(draft.learnedPreferences ?? []),
     excludeFlights: draft.excludeFlights || undefined,
-    // Read from the draft like the lists above, so removing the last choice clears the brief's.
+
     legModes: draft.legModes?.length ? draft.legModes : undefined,
     bookedStay: draft.bookedStay,
     nationality: draft.nationality.trim() || undefined,
@@ -218,11 +186,7 @@ export function parseDraft(draft: Draft, current: Pick<TripBrief, "tripId"> & Pa
     },
   });
 }
-/**
- * What the traveller has stated so far, read from the preferences form. A blank conversation sends
- * this with every message, so answering a follow-up question does not mean repeating the rest. Only
- * fields that are filled in and valid are sent; a half-typed number is not a stated fact.
- */
+
 export function knownFromDraft(draft: Draft): PartialTripBrief {
   const number = (value: string) => (value.trim() ? Number(value) : undefined);
   const parsed = PartialTripBrief.safeParse({
@@ -244,10 +208,6 @@ export function knownFromDraft(draft: Draft): PartialTripBrief {
   return parsed.success ? parsed.data : {};
 }
 
-/**
- * The draft's breakdown, only while it still matches the stated number of people: a count typed or
- * learned in chat after the steppers were used makes the breakdown stale, and it is then left out.
- */
 function statedParty(draft: Pick<Draft, "party" | "groupSize">): Party | undefined {
   const party = draft.party;
   return party && partyPeople(party) > 0 && partyPeople(party) === Number(draft.groupSize)
@@ -255,7 +215,6 @@ function statedParty(draft: Pick<Draft, "party" | "groupSize">): Party | undefin
     : undefined;
 }
 
-/** A stale original amount must never describe an edited AUD total. */
 export function statedBudgetSource(draft: Pick<Draft, "budgetSource" | "budgetTotal">) {
   const source = TripBrief.shape.budgetSource.unwrap().safeParse(draft.budgetSource);
   if (!source.success) return undefined;
@@ -268,13 +227,11 @@ export function statedBudgetSource(draft: Pick<Draft, "budgetSource" | "budgetTo
   }
 }
 
-/** A list the schema would reject is left out, so it cannot drop the other stated facts. */
 function statedPreferences(list: string[]) {
   const parsed = TripPreferences.safeParse(list);
   return parsed.success && parsed.data.length ? parsed.data : undefined;
 }
 
-/** Show what the assistant understood in the preferences form, without clearing anything else. */
 export function draftWithKnown(draft: Draft, known: PartialTripBrief): Draft {
   return {
     ...draft,
@@ -283,7 +240,7 @@ export function draftWithKnown(draft: Draft, known: PartialTripBrief): Draft {
     start: known.dates?.[0] ?? draft.start,
     end: known.dates?.[1] ?? draft.end,
     groupSize: known.groupSize === undefined ? draft.groupSize : String(known.groupSize),
-    // A head count learned in chat that the breakdown no longer adds up to replaces it.
+
     party: statedParty({
       party: known.party ?? draft.party,
       groupSize: String(known.groupSize ?? draft.groupSize),
@@ -300,13 +257,6 @@ export function draftWithKnown(draft: Draft, known: PartialTripBrief): Draft {
   };
 }
 
-/**
- * Version 4 preserves the original budget in drafts. Version 3 AUD snapshots upgrade on read. Versions 1 and 2 are rejected rather
- * than migrated: their stay candidates carry the old `pricePerNightUsd` field, so they
- * cannot be parsed at all, and their amounts meant USD. Rejecting is honest -- there is
- * no defensible rate for a snapshot of unknown date. This is a single-user local
- * workspace, so the cost is that saved trips from before the change do not reopen.
- */
 export type Snapshot = {
   version: 3 | 4;
   id: string;
@@ -366,10 +316,6 @@ export function parseSnapshot(value: unknown): Snapshot {
   } as Snapshot;
 }
 
-/**
- * A stored reply keeps its transcript only while every frame still matches the
- * progress contract; a stale or damaged transcript is dropped, never the message.
- */
 export function withValidActivity(messages: Message[]): Message[] {
   return messages.map((message) => {
     if (message.activity === undefined) return message;
@@ -379,11 +325,7 @@ export function withValidActivity(messages: Message[]): Message[] {
     return rest;
   });
 }
-/**
- * A stored message keeps its attachments only while every entry still matches
- * the shape above; a damaged or foreign entry is dropped, never the message.
- * Same posture as `withValidActivity` and `Message.at`.
- */
+
 export function withValidAttachments(messages: Message[]): Message[] {
   return messages.map((message) => {
     if (message.attachments === undefined) return message;
@@ -408,18 +350,12 @@ function isMessageAttachment(value: unknown): value is MessageAttachment {
     value.name.length > 0 &&
     typeof value.mediaType === "string" &&
     (value.kind === "image" || value.kind === "text") &&
-    // A thumbnail is inert only while it is an inline image; a remote or
-    // script-bearing URL restored from storage would be neither.
     (value.thumbnail === undefined ||
       (typeof value.thumbnail === "string" && value.thumbnail.startsWith("data:image/"))) &&
     (value.bytes === undefined || (typeof value.bytes === "number" && Number.isFinite(value.bytes)))
   );
 }
 
-/**
- * The conversation has not stated enough to plan yet. It carries the assistant's question and
- * everything understood so far, so the caller can ask in the chat rather than show a failure.
- */
 export class NeedsInfoError extends Error {
   constructor(readonly needsInfo: ChatNeedsInfo) {
     super(needsInfo.question);
@@ -427,11 +363,6 @@ export class NeedsInfoError extends Error {
   }
 }
 
-/**
- * The traveller asked what a flight costs, so there is no plan to return —
- * only fares. Signalled the same way as NeedsInfoError: a non-plan outcome the
- * chat renders, not a failure.
- */
 export class FlightAnswerError extends Error {
   constructor(readonly answer: FlightAnswer) {
     super(answer.reply);
@@ -439,11 +370,6 @@ export class FlightAnswerError extends Error {
   }
 }
 
-/**
- * The coordinator asked the traveller a structured question (1–4 items with optional choices)
- * instead of finishing the turn. Signalled like NeedsInfoError. `askUser.known` goes back with
- * the answer; `askUser.plan`, when present, is the client's own plan returned unchanged.
- */
 export class AskUserError extends Error {
   constructor(readonly askUser: ChatAskUser) {
     super(askUser.reply || askUser.questions[0]?.question || "The assistant asked a question.");
@@ -451,7 +377,6 @@ export class AskUserError extends Error {
   }
 }
 
-/** One shared parser for form planning and chat. An incomplete stream is a retryable failure. */
 export async function readPlanStream(
   response: Response,
   onProgress: (event: AgentProgressEvent) => void,
@@ -531,10 +456,6 @@ export async function readPlanStream(
 
 export { itineraryActivities } from "../trip/itinerary";
 
-/**
- * Allocate IDs only for legacy/new items; never derive identity from array position. Activities
- * need one to be edited, and dining's restaurant picks need one to be scheduled from Ideas.
- */
 export function identifyActivities(plan: TripPlan): TripPlan {
   return {
     ...plan,

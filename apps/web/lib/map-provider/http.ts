@@ -5,7 +5,6 @@ export const contact = () =>
   process.env.OSM_USER_AGENT ||
   "AI-Trip-Planner/0.1 (https://github.com/Lilstanie/AI_TRIP_PLANNER)";
 
-// Shared by search and lookup, across provider instances. A failed request consumes its time slot.
 const processState = globalThis as typeof globalThis & {
   __tripNominatim?: { queue: Promise<unknown>; started: number };
 };
@@ -51,7 +50,6 @@ export async function providerJson(url: string, fetcher: ProviderFetch = fetch):
   });
 }
 
-/** Cache successful answers and coalesce in-flight calls; failures are never cached. */
 export function providerCache<T>(ttl = 600_000, now = Date.now) {
   const values = new Map<string, { at: number; value: T }>();
   const pending = new Map<string, Promise<T>>();

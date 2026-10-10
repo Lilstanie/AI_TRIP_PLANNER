@@ -1,31 +1,3 @@
-// End-to-end contract for Agent Lab's two benchmark scenarios (#104). From the public page a visitor
-// runs the Paris family trip (A$3,000 for four against a supported minimum of A$3,880) and the Tokyo
-// and Kyoto trip under all three strategies. The script recomputes every constraint from the artifacts
-// in plain JavaScript, with no code shared with the app, and checks the page says the same. Raw
-// NDJSON, artifacts, a summary, a report and screenshots land under
-// output/playwright/agent-lab-benchmarks/.
-//
-// Failure inventory, written before implementation:
-// - a scenario is missing from the page, or a strategy cannot run it;
-// - Paris: a strategy reports a price below the cheapest flights and stays its evidence supports, drops
-//   a section to fit, or hides the shortfall instead of reporting the minimum;
-// - Paris: a multi-agent strategy spends revision rounds on a budget no revision can meet, or the trace
-//   lacks the infeasible conflict check and the stop;
-// - Paris: the checks mark every strategy down for the impossible request (a "within budget" check
-//   nobody can pass), or the scripted baseline is shown as having reported a shortfall it did not;
-// - the page cannot tell an infeasible stop, an unrepaired conflict and a repaired one apart, or shows
-//   a strategy that never checked as having found no conflicts;
-// - Tokyo and Kyoto: the move between cities falls outside the trip or disagrees with its own date; a
-//   day's activities are in the wrong city; the stays leave a gap or overlap at the move or do not span
-//   the trip; the section costs do not add up;
-// - a check that recomputes nothing: the script's own recomputation must detect a plan with the move
-//   shifted;
-// - an artifact does not record the scenario's fixture version and the evaluator version;
-// - the page's figures differ from the artifacts they claim to show, or the streams carry secrets;
-// - a run touches saved chats, trips or preferences, or the page overflows at phone width.
-//
-//   pnpm --filter @trip/web dev     # with USE_MOCK_TOOLS=true and no model or provider keys
-//   [CHANNEL=chrome] [PLAYWRIGHT=<path to playwright>] node apps/web/tests/e2e/agent-lab-benchmarks.e2e.mjs
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
@@ -42,8 +14,7 @@ const STRATEGIES = [
   "multi-agent-targeted-revision",
 ];
 const EVALUATOR_VERSION = "scenario-rules-v2";
-// Paris: the cheapest round-trip fares for four (310 per traveller each way) plus two of the cheapest
-// rooms for five nights at 140, from the mock booking fixtures every strategy sees.
+
 const PARIS_MINIMUM = 310 * 4 * 2 + 2 * 5 * 140;
 const SECTION_IDS = ["accommodation", "destination-guide", "dining", "itinerary", "transport"];
 
@@ -64,12 +35,10 @@ const eventsOf = (artifact, type) =>
   artifact.events.map((entry) => entry.event).filter((event) => event.type === type);
 const stored = (artifact, id) => artifact.metrics.checks.find((item) => item.id === id);
 
-// ---- Independent recomputation ---------------------------------------------------------------------
 const utc = (iso) =>
   Date.UTC(...iso.split("-").map((part, index) => Number(part) - (index === 1 ? 1 : 0)));
 const dayOffset = (from, to) => Math.round((utc(to) - utc(from)) / 86_400_000);
 
-/** The facts of a two-city trip, read straight from a plan's own text. */
 function tripFacts(plan, [first, second]) {
   const [start, end] = plan.brief.dates;
   const nights = dayOffset(start, end);
@@ -120,7 +89,6 @@ function tripFacts(plan, [first, second]) {
   };
 }
 
-// ---- Browser ----------------------------------------------------------------------------------------
 async function compare(page, scenarioId, tag) {
   await page.getByLabel("Scenario").selectOption(scenarioId);
   const bodies = [];
@@ -208,7 +176,6 @@ async function main() {
     `the scenario list offers Paris and Tokyo and Kyoto (${options.join(" | ")})`,
   );
 
-  // ---- Paris: infeasible budget --------------------------------------------------------------------
   const paris = await compare(page, "paris-family-infeasible", "paris");
   const [pBase, pPlain, pRevise] = paris.artifacts;
   check(
@@ -336,7 +303,6 @@ async function main() {
     estTotals: paris.artifacts.map((artifact) => artifact.plan.estTotal),
   };
 
-  // ---- Tokyo and Kyoto: multi-city consistency -----------------------------------------------------
   const kyoto = await compare(page, "tokyo-kyoto-multi-city", "kyoto");
   const [kBase, , kRevise] = kyoto.artifacts;
   const CITIES = ["Tokyo", "Kyoto"];
@@ -393,7 +359,7 @@ async function main() {
     hops.every((hop) => hop?.day === 4 && /2026-11-13/.test(hop.detail)),
     "kyoto: every strategy moves from Tokyo to Kyoto on day 4, 2026-11-13",
   );
-  // The recomputation must be able to fail: shift the move by a day and it has to notice.
+
   const shifted = structuredClone(kBase.plan);
   const hotel = itemsOf(shifted, "accommodation").find((item) => /kyoto/i.test(item.detail));
   hotel.detail = hotel.detail.replace("2026-11-13 to", "2026-11-14 to");
@@ -420,7 +386,6 @@ async function main() {
 
   check((await storage()) === storageBefore, "saved chats, trips and preferences are untouched");
 
-  // ---- Phone ---------------------------------------------------------------------------------------
   const phone = await browser.newContext({
     viewport: { width: 390, height: 844 },
     colorScheme: "light",

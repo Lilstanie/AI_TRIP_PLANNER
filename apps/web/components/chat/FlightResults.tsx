@@ -20,13 +20,6 @@ function stops(count: number | undefined, locale: AppLocale): string | undefined
     : translate(locale, count === 1 ? "{count} stop" : "{count} stops", { count });
 }
 
-/**
- * Fares for a flight question, shown instead of a trip plan.
- *
- * Cheapest first, because that is what the question almost always means, and
- * the whole-party framing is stated rather than assumed — a per-person reading
- * of these numbers would be wrong by the size of the group.
- */
 export function FlightResults({ answer }: { answer: FlightAnswer }) {
   const { t, money, locale } = useLocale();
   const party = t(answer.passengers === 1 ? "{count} traveller" : "{count} travellers", {
@@ -46,8 +39,7 @@ export function FlightResults({ answer }: { answer: FlightAnswer }) {
           {answer.return ? ` – ${answer.return}` : ""} · {party}
         </span>
       </header>
-      {/* Itineraries the provider described in full read as cards; the rest
-          stay a list, because a card with no flights in it is just a price. */}
+
       {answer.options.some((option) => option.outbound) && (
         <div className="flight-results__itineraries">
           {answer.options

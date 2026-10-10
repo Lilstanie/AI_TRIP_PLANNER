@@ -1,31 +1,3 @@
-// End-to-end walk through the finished Trip drawer as a traveller uses it, with simulated data (ticket #241,
-// parent #233). The walk plans a trip, then checks that nothing asks for confirmation, that each leg shows its
-// mode and duration, that changing one leg re-times the stops after it, that a time edit applies at once and
-// Undo restores it, that an overlapping edit is marked on its stop, that a stay alternative can be taken, that
-// the travel tips fold and stay folded after a reload on desktop, and that a restaurant from Ideas can be
-// scheduled and undone. It runs at 1440 x 1000 and at 390 x 844, in English and in Chinese.
-//
-// Failure inventory this walk was written from:
-// - a confirm badge, a "Use this place" box or a "Check routes" button comes back on a stop or a leg;
-// - a status label (Needs review, Draft, Needs you, Review plan, Confirm) comes back in the drawer or the trip list;
-// - a leg change routes more than its own leg, or leaves the stops after it at their old times;
-// - a time edit waits for a preview, or Undo leaves the stop at its edited time;
-// - an overlapping time edit is refused with a banner instead of being marked on the stop it concerns;
-// - a stay alternative is taken but neither the total nor the stay's cost changes;
-// - the travel tips fold is not remembered after a reload on desktop;
-// - a restaurant scheduled from Ideas cannot be undone;
-// - a stop time breaks into one-character lines, or a page scrolls sideways;
-// - the Chinese drawer shows an English label that is not plan content (model or provider text), or a known
-//   open item (see KNOWN_EXCEPTIONS, which lists exact strings and is never a pattern);
-// - a console error or a failed request is logged during the walk.
-//
-//   DATA_MODE=mock pnpm --filter @trip/web e2e drawer-walkthrough
-//   DATA_MODE=mock BASE_URL=http://localhost:3000 LABEL=run-1 node apps/web/tests/e2e/drawer-walkthrough.e2e.mjs
-//
-// The walk runs in mock mode: the places it needs are stubbed at the browser boundary, and the server answers
-// every edit with simulated legs. Nothing here calls Google, so no MAPS_API_KEY is needed and no check is skipped.
-// Artifact: output/playwright/drawer-walkthrough/<LABEL>/summary.json, with screenshots beside it. LABEL defaults
-// to the start time of the run, so two runs in a row keep two folders.
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
@@ -38,7 +10,6 @@ const LABEL = process.env.LABEL ?? STARTED.replace(/[:.]/g, "-");
 const OUT = resolve(process.cwd(), "output/playwright/drawer-walkthrough", LABEL);
 mkdirSync(OUT, { recursive: true });
 
-// Stop names the chat's plan is given, in plan order: the mock plan has one stop on each of four days.
 const STOP_NAMES = [
   "Sydney Opera House",
   "Royal Botanic Garden Sydney",
@@ -46,17 +17,10 @@ const STOP_NAMES = [
   "Art Gallery of New South Wales",
 ];
 
-// Exact English strings the Chinese drawer is known to show. Each is listed in full, so a changed sentence fails
-// the walk. Model replies and provider text (the plan's own words) are excluded by content, not listed here.
 const KNOWN_EXCEPTIONS = {
-  zh: [
-    // Brand name inside a Chinese label ("open in Google Maps"), not an English label.
-    "在 Google 地图打开",
-  ],
+  zh: ["在 Google 地图打开"],
 };
 
-// The labels the walk clicks, in each interface language. Controls are found by class where the class is
-// stable across languages; these names are used only where a control has no class of its own.
 const LANGS = {
   en: {
     locale: "en-AU",
@@ -86,10 +50,9 @@ const LANGS = {
   },
 };
 
-// Lines of the drawer or the page that name a status, a review or a confirmation. None may appear in either language.
 const FORBIDDEN_LINE =
   /^(Needs review|Needs you|Draft|Review plan|Confirm|Use this place|Check routes|Not confirmed|Map match|Apply changes|Edit preview)$/i;
-// A stop's tag that asks for a decision. "Place confirmed" is a saved-place status, not a request, and is counted in the summary.
+
 const CONFIRM_TAG = /not confirmed|map match|use this place|^confirm$/i;
 const CURRENCY = /\b(AUD|USD|JPY|KRW|EUR|GBP|NZD|CNY|SGD|HKD)\b/g;
 
@@ -108,7 +71,7 @@ const check = (ok, message) => {
   console.log(`${ok ? "ok  " : "FAIL"} ${message}`);
 };
 const settle = (page, ms = 500) => page.waitForTimeout(ms);
-/** Polls a test until it passes or the time runs out; resolves to whether it passed. */
+
 async function until(page, test, ms = 10_000) {
   for (let waited = 0; waited < ms; waited += 200) {
     if (await test()) return true;
@@ -120,7 +83,7 @@ async function until(page, test, ms = 10_000) {
 const toMinutes = (hhmm) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5));
 const hhmm = (minutes) =>
   `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
-/** Minutes a leg label reads, in English ("2 h 20 min", "9 min") or Chinese ("2 小时 20 分钟", "9 分钟"). */
+
 function minutesIn(text) {
   const hours = /(\d+)\s*(?:h|小时)(?:\s*(\d+)\s*(?:min|分钟))?/.exec(text);
   if (hours) return Number(hours[1]) * 60 + Number(hours[2] ?? 0);
@@ -128,7 +91,6 @@ function minutesIn(text) {
   return minutes ? Number(minutes[1]) : undefined;
 }
 
-// Text the stubbed places carry (names and addresses from the map provider). The English scan treats it as plan content.
 const providerText = new Set();
 
 function placeFor(text) {
@@ -145,7 +107,6 @@ function placeFor(text) {
   return place;
 }
 
-/** Place lookups answer from fixed places, so every stop the map finds is saved without a map key. */
 async function installPlaces(page) {
   const found = new Map();
   await page.route("**/api/places/search", (route) => {
@@ -161,7 +122,6 @@ async function installPlaces(page) {
   });
 }
 
-/** Gives the mock plan's day stops the names above, without a place, as a real plan from chat would have. */
 async function installStopNames(page) {
   await page.route("**/api/chat", async (route) => {
     const response = await route.fetch();
@@ -188,7 +148,6 @@ async function installStopNames(page) {
   });
 }
 
-/** The plan as the workspace stores it in this browser. */
 const storedPlan = (page) =>
   page.evaluate(() => {
     try {
@@ -211,10 +170,6 @@ const waitEdit = (page, kind) =>
     { timeout: 30_000 },
   );
 
-/**
- * The rows of the chosen day, in the order shown: stops with their times and tags, legs with their mode and
- * label, and the flight and stay rows, which are read as text only.
- */
 const readDay = (page) =>
   page.evaluate(() => {
     const list = document.querySelector(".timeline-day ol.timeline");
@@ -257,7 +212,6 @@ const readDay = (page) =>
 const stopsOf = (rows) => rows.filter((row) => row.kind === "stop");
 const legsOf = (rows) => rows.filter((row) => row.kind === "leg");
 
-/** Every visible line of the drawer that names a status or a confirmation, in English. */
 async function forbiddenLines(page, where) {
   const lines = (await page.locator(TRIP_SELECTOR(page)).innerText())
     .split("\n")
@@ -265,12 +219,10 @@ async function forbiddenLines(page, where) {
   return lines.filter((line) => FORBIDDEN_LINE.test(line));
 }
 
-// The drawer's root: the desktop Trip drawer, or the phone's Trip panel.
 function TRIP_SELECTOR(page) {
   return page.__phone ? "#phone-panel-trip" : ".workspace-drawer--trip";
 }
 
-/** Text that the plan itself carries: stop names, notes, tips, stay and flight text. Conflicts and notices are not included. */
 const NOT_CONTENT = new Set([
   "conflicts",
   "conflictsWith",
@@ -285,7 +237,7 @@ const NOT_CONTENT = new Set([
 function planContent(value, out = []) {
   if (typeof value === "string") {
     const text = value.trim();
-    // Short words and single lower-case tokens are enum values or ids, not text the plan wrote for a reader.
+
     if (text.length >= 6 && (/\s/.test(text) || /^[A-Z]/.test(text))) out.push(text);
   } else if (Array.isArray(value)) value.forEach((item) => planContent(item, out));
   else if (value && typeof value === "object")
@@ -294,11 +246,6 @@ function planContent(value, out = []) {
   return out;
 }
 
-/**
- * Every visible line of the drawer in Chinese that still reads in English after the plan's own text, the
- * destination, and currency codes are removed. A line that equals a KNOWN_EXCEPTIONS string is reported
- * as a known exception with its text, never as a pass.
- */
 async function englishLabels(page, plan, stage, run) {
   const content = [...planContent(plan), ...providerText];
   const lines = (await page.locator(TRIP_SELECTOR(page)).innerText())
@@ -327,7 +274,6 @@ async function englishLabels(page, plan, stage, run) {
   return unknown;
 }
 
-/** The time each stop's time button reads: two lines at most, and no digit broken into a column of single characters. */
 async function stopTimeLayout(page) {
   return page.locator(".timeline-day .timeline-stop__time").evaluateAll((buttons) =>
     buttons
@@ -353,17 +299,11 @@ async function stopTimeLayout(page) {
   );
 }
 
-/** Opens a stop's ⋯ menu and takes one of its items by its name. */
 async function stopMenu(page, row, name) {
   await row.locator(".action-menu__trigger").click();
   await page.getByRole("menuitem", { name, exact: true }).click();
 }
 
-/**
- * Applies a start and end time through the stop's time button. The time edit goes to the server, with no
- * preview. A stop already at those times has no change to send: its Change time button is disabled, so
- * nothing is sent and the stop is left as it is.
- */
 async function editTime(page, row, startMinutes, endMinutes, L) {
   const shown =
     (await row.locator(".timeline-stop__time").textContent()).match(/\d{2}:\d{2}/g) ?? [];
@@ -380,7 +320,6 @@ async function editTime(page, row, startMinutes, endMinutes, L) {
   return response;
 }
 
-/** Changes one leg's mode with its select. Resolves to the number of legs the server routed for that change. */
 async function chooseLeg(page, index, mode) {
   const select = page.locator(".timeline-day .timeline-connection__mode").nth(index);
   const [response] = await Promise.all([waitEdit(page, "leg"), select.selectOption(mode)]);
@@ -400,7 +339,6 @@ async function clickUndo(page) {
 const dayTab = (page, day) =>
   page.locator(TRIP_SELECTOR(page)).locator(`.day-strip [data-day="${day}"]`);
 
-/** Plans the simulated trip and opens the drawer at this width and language. */
 async function plan(browser, { width, lang, run }) {
   const L = LANGS[lang];
   const phone = width < 700;
@@ -413,7 +351,7 @@ async function plan(browser, { width, lang, run }) {
   page.__phone = phone;
   const errors = [];
   const saves = new Set();
-  // Chrome probes the legacy favicon; the application serves icon.svg, so that one 404 is not an error.
+
   const isFavicon = (url) => new URL(url).pathname === "/favicon.ico";
   page.on("console", (message) => {
     if (message.type() !== "error" || isFavicon(message.location().url)) return;
@@ -421,7 +359,6 @@ async function plan(browser, { width, lang, run }) {
   });
   page.on("pageerror", (error) => errors.push(String(error)));
   page.on("requestfailed", (request) => {
-    // Next cancels its own route prefetch (an RSC request) when the walk navigates on; that is not a failure.
     const cancelled =
       request.failure()?.errorText === "net::ERR_ABORTED" && /[?&]_rsc=/.test(request.url());
     if (!isFavicon(request.url()) && !cancelled) errors.push(`request failed: ${request.url()}`);
@@ -458,13 +395,12 @@ async function plan(browser, { width, lang, run }) {
   else await page.locator(".workspace-app").getByRole("button", { name: L.openTrip }).click();
   const trip = page.locator(TRIP_SELECTOR(page));
   await trip.locator(".trip-editor").waitFor({ timeout: 30_000 });
-  // Each of the four stops is saved as its place is found, on its own day.
+
   await until(page, async () => saves.size >= 4, 60_000);
   check(saves.size === 4, `${run}: every stop the map finds is saved (${saves.size} saves)`);
   return { context, page, trip, errors, L, phone };
 }
 
-/** The walk itself, after planning. */
 async function walk(browser, { width, lang }) {
   const run = `${width}px ${lang}`;
   const tag = `${width}-${lang}`;
@@ -474,7 +410,6 @@ async function walk(browser, { width, lang }) {
   const shot = (stage) => trip.screenshot({ path: `${OUT}/${tag}-${stage}.png` });
   const knownBefore = summary.knownExceptions.length;
 
-  // 1. The planned trip: no status label, no confirm badge or box on any stop.
   check(
     (await forbiddenLines(page, run)).length === 0,
     `${run}: no "Needs review", "Draft", "Needs you", "Review plan" or "Confirm" text in the drawer`,
@@ -506,14 +441,13 @@ async function walk(browser, { width, lang }) {
     (await page.getByRole("button", { name: /Use this place|^Confirm/ }).count()) === 0,
     `${run}: no stop shows a "Use this place" or "Confirm" box`,
   );
-  // Counted in English only; the Chinese label is not matched, so the Chinese run records null.
+
   runSummary.measures.placeConfirmedTags =
     lang === "en" ? allStops.filter((stop) => stop.tags.includes("Place confirmed")).length : null;
   await dayTab(page, 1).click();
   await settle(page, 400);
   await shot("01-planned");
 
-  // 2. Two more stops move onto Day 1, so the day has three stops and two legs between them.
   for (const fromDay of [2, 3]) {
     await dayTab(page, fromDay).click();
     await settle(page, 300);
@@ -539,7 +473,6 @@ async function walk(browser, { width, lang }) {
     `${run}: Day 1 has 3 stops and 2 legs (${stops.length}, ${legs.length})`,
   );
 
-  // 3. Each leg shows its mode and its duration, and has no button.
   check(
     legs.every(
       (leg) =>
@@ -557,7 +490,6 @@ async function walk(browser, { width, lang }) {
   );
   await shot("02-legs");
 
-  // 4. A time edit applies at once, with no preview, and Undo restores the stop's earlier time.
   const first = stopsOf(await readDay(page))[0];
   const firstRow = page.locator(".timeline-day ol.timeline > li.timeline-stop").nth(0);
   const rowBefore = await firstRow.innerText();
@@ -581,10 +513,6 @@ async function walk(browser, { width, lang }) {
     `${run}: Undo restores the stop's earlier time (${first.start}–${first.end})`,
   );
 
-  // 5. A leg's mode changes that leg alone and re-times the stops after it. The planner starts a stop no
-  // earlier than the stop before it ends, plus that leg's time and a 15 minute buffer. The test first sets the
-  // second and third stops to exactly that earliest time, with each leg in drive, so that changing the leg
-  // into the second stop to walk (a longer leg) pushes the second stop and then the third.
   const rowOf = (index) => page.locator(".timeline-day ol.timeline > li.timeline-stop").nth(index);
   const dayRows = async () => stopsOf(await readDay(page));
   const legAt = async (index) => legsOf(await readDay(page))[index];
@@ -671,8 +599,6 @@ async function walk(browser, { width, lang }) {
     `${run}: Undo puts the leg back and restores the stops' times`,
   );
 
-  // 6. An overlapping edit applies, and the stop it concerns is marked with its conflict. No banner appears.
-  // The second stop is moved to start inside the first stop's time.
   const firstStart = toMinutes(afterUndo[0].start);
   const secondDuration = toMinutes(afterUndo[1].end) - toMinutes(afterUndo[1].start);
   await editTime(page, rowOf(1), firstStart + 30, firstStart + 30 + secondDuration, L);
@@ -685,13 +611,13 @@ async function walk(browser, { width, lang }) {
     (await page.locator(".timeline-status--error").count()) === 0,
     `${run}: the overlap is not shown as a banner`,
   );
-  // The overlap marker names the stop it overlaps; the travel buffer message says what the stop needs. Both are on the stop.
+
   const markerText =
     lang === "zh"
       ? /^与 \d{2}:\d{2}–\d{2}:\d{2} 时段重叠。$/
       : /^Overlaps \d{2}:\d{2}–\d{2}:\d{2} on this day\.$/;
   const overlapMarker = overlapped.conflicts.find((text) => markerText.test(text));
-  // A stored notice is shown in the traveller's language (keyed notice), so the Chinese page reads the Chinese sentence.
+
   const bufferPattern =
     lang === "zh"
       ? /需与上一项活动至少间隔 \d+ 分钟。$/
@@ -715,7 +641,6 @@ async function walk(browser, { width, lang }) {
     `${run}: Undo restores the second stop's time and clears its conflict`,
   );
 
-  // 7. The night's stay opens its card, and an Alternative can be taken: the total and the stay's cost change.
   const stayRow = page.locator(".timeline-day li.timeline-fixed--stay").first();
   await stayRow.locator("button.timeline-booking__open").click();
   const alternative = stayRow.locator(".alternatives__pick").first();
@@ -754,7 +679,6 @@ async function walk(browser, { width, lang }) {
   runSummary.measures.stay = { costBefore, costAfter, totalBefore, totalAfter };
   await shot("05-stay-alternative");
 
-  // 8. A restaurant from Ideas is scheduled on a day, and Undo puts it back in Ideas.
   const restaurantIdea = () =>
     page
       .locator(".timeline-ideas li.timeline-stop--idea")
@@ -804,7 +728,6 @@ async function walk(browser, { width, lang }) {
   await dayTab(page, 1).click();
   await settle(page, 400);
 
-  // 9. The travel tips fold, and the fold is remembered after a reload on desktop.
   const tips = page.locator("details.trip-tips");
   check((await tips.count()) === 1, `${run}: the travel tips block is shown`);
   const openAtStart = await tips.evaluate((el) => el.open);
@@ -820,7 +743,7 @@ async function walk(browser, { width, lang }) {
     await page.waitForSelector(".workspace-app");
     await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
     await page.waitForLoadState("networkidle");
-    // A reload opens a blank chat; the saved trip stays in Trips until it is chosen there.
+
     const tipsShown = () =>
       page
         .locator("details.trip-tips")
@@ -830,11 +753,11 @@ async function walk(browser, { width, lang }) {
     if (!(await tipsShown())) {
       await page.getByRole("button", { name: L.trips }).first().click();
       await settle(page, 600);
-      // The Trips page lists each trip as a card whose name ends with its budget, in either language.
+
       await page.getByRole("button", { name: /AUD/ }).first().click();
       await settle(page, 700);
     }
-    // The trip drawer may still be closed after choosing the trip; its toggle opens it.
+
     if (!(await tipsShown()))
       await page.locator(".workspace-app").getByRole("button", { name: L.openTrip }).click();
     await page.locator("details.trip-tips").first().waitFor({ state: "visible", timeout: 20_000 });
@@ -847,7 +770,6 @@ async function walk(browser, { width, lang }) {
   }
   await shot("07-tips");
 
-  // 10. Each stop time is one line of digits, the layout does not overflow, and no console error was logged.
   const timeLayout = await stopTimeLayout(page);
   runSummary.measures.stopTimes = timeLayout;
   check(
@@ -866,7 +788,7 @@ async function walk(browser, { width, lang }) {
     (await forbiddenLines(page, run)).length === 0,
     `${run}: still no status or confirm text after the walk`,
   );
-  // The trip list: the same trip, with no status label.
+
   if (!phone) {
     await page.keyboard.press("Escape");
     await settle(page, 400);

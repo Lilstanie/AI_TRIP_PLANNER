@@ -14,7 +14,7 @@
   .workspace-app {
     --sidebar-width: 0px;
   }
-  /* Menu, fact chips and actions on one row (Trip stays rightmost); the view switch below. */
+
   .workspace-topbar {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;

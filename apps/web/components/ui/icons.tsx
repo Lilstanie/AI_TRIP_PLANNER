@@ -1,9 +1,5 @@
 import type { ReactNode, SVGProps } from "react";
 
-/**
- * Line icons on a 24px grid with one stroke width, so navigation and toolbar icons align.
- * They are decorative: the surrounding control provides the accessible name.
- */
 function Icon({ children, ...props }: SVGProps<SVGSVGElement> & { children: ReactNode }) {
   return (
     <svg
@@ -44,7 +40,6 @@ export const SearchIcon = () => (
   </Icon>
 );
 
-/** Navigation icons take `filled` for the current section: the same outline, solid inside. */
 type NavIconProps = { filled?: boolean };
 
 export const ChatIcon = ({ filled = false }: NavIconProps) => (
@@ -61,7 +56,6 @@ export const SuitcaseIcon = ({ filled = false }: NavIconProps) => (
   </Icon>
 );
 
-/** A pencil over a square: start a new chat. */
 export const ComposeIcon = () => (
   <Icon>
     <path d="M11 4.5H6.5a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V13" />
@@ -69,7 +63,6 @@ export const ComposeIcon = () => (
   </Icon>
 );
 
-/** A suitcase with a plus beside it: start a new trip. */
 export const NewTripIcon = () => (
   <Icon>
     <rect x="2.5" y="8" width="12.5" height="11.5" rx="2.5" />
@@ -114,7 +107,6 @@ export const MenuIcon = () => (
   </Icon>
 );
 
-/** The per-row overflow trigger. Named after the menu it opens, not the hamburger icon. */
 export const MoreIcon = () => (
   <Icon>
     <circle cx="12" cy="5.5" r="1.4" fill="currentColor" stroke="none" />
@@ -129,7 +121,6 @@ export const CloseIcon = () => (
   </Icon>
 );
 
-/** A document with a folded corner: the leading glyph on a text attachment's chip. */
 export const FileIcon = () => (
   <Icon>
     <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
@@ -171,29 +162,24 @@ export const CalendarIcon = () => (
   </Icon>
 );
 
-/** A right-pointing chevron for disclosures outside the thinking transcript,
- *  whose rows use the flow glyphs in flow-icons.tsx. */
 export const ChevronIcon = () => (
   <Icon strokeWidth={2}>
     <path d="m10 6 6 6-6 6" />
   </Icon>
 );
 
-/** A confirmation check mark. */
 export const CheckIcon = () => (
   <Icon strokeWidth={2}>
     <path d="m5 12.5 4.5 4.5L19 7" />
   </Icon>
 );
 
-/** Send glyph for the composer's submit button. */
 export const SendIcon = () => (
   <Icon strokeWidth={2}>
     <path d="M12 19V5M6 11l6-6 6 6" />
   </Icon>
 );
 
-/** Apple Maps' location arrow; filled while the map is showing the traveller's position. */
 export const LocateIcon = ({ filled = false }: { filled?: boolean }) => (
   <Icon fill={filled ? "currentColor" : "none"}>
     <path d="M20.5 3.5 3.8 10.6a.5.5 0 0 0 .06.94l6.9 1.7 1.7 6.9a.5.5 0 0 0 .94.06Z" />

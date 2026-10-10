@@ -4,15 +4,9 @@ import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } fr
 import { SIDEBAR_WIDTH, clampSidebarWidth } from "@/lib/workspace/catalog";
 
 const STEP = 16;
-/** Pointer travel that counts as a drag rather than a click. */
+
 const DRAG_THRESHOLD = 3;
 
-/**
- * The draggable right edge of the desktop sidebar. It sits in the workspace grid next to the
- * sidebar and reads its position from `--sidebar-width`. While dragging it writes that variable
- * straight onto the grid so the rest of the workspace does not re-render on every pointer move,
- * and only reports the final width. Arrow keys, Home and End resize it; double-click resets it.
- */
 export function SidebarResizer({
   width,
   onChange,
@@ -31,14 +25,11 @@ export function SidebarResizer({
   const resizeHandle = useRef<HTMLDivElement>(null);
   const [rendered, setRendered] = useState<number>();
 
-  // Without a stored width the stylesheet decides (it narrows at smaller viewports), so measure.
   const current = (handle: HTMLElement) =>
     width ??
     (handle.parentElement?.querySelector(".workspace-sidebar")?.getBoundingClientRect().width ||
       SIDEBAR_WIDTH.default);
 
-  // `aria-valuenow` must describe the width on screen, and without a stored width that is the
-  // stylesheet's, which changes with the viewport.
   useEffect(() => {
     if (width !== undefined) return;
     const measure = () => {
@@ -70,7 +61,7 @@ export function SidebarResizer({
   const onPointerMove = (event: PointerEvent<HTMLDivElement>) => {
     const state = drag.current;
     if (!state) return;
-    // A click with sub-pixel drift must not pin the responsive default to a fixed width.
+
     if (!state.moved && Math.abs(event.clientX - state.startX) < DRAG_THRESHOLD) return;
     state.width = clampSidebarWidth(event.clientX - state.left);
     state.moved = true;
@@ -82,7 +73,7 @@ export function SidebarResizer({
     if (!state) return;
     drag.current = null;
     delete state.app.dataset.resizing;
-    // A click without movement must not pin the responsive default to a fixed width.
+
     if (state.moved) onChange(state.width);
   };
 

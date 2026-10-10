@@ -3,7 +3,6 @@
 import type { AgentLabRunArtifact } from "@trip/shared";
 import { downloadArtifact } from "@/lib/agent-lab/replay";
 
-/** Saves one run's artifact, completed or failed. The name carries the strategy so three buttons stay distinct. */
 export function DownloadArtifactButton({
   artifact,
   label,

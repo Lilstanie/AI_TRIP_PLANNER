@@ -12,7 +12,7 @@ const behavior = vi.hoisted(() => ({
   respond: (_evidence: Evidence): unknown => ({ schedule: [] }),
   skipTool: false,
   fail: false,
-  /** The system prompt and the user message the specialist was last given. */
+
   seen: { prompt: "", message: "" },
 }));
 
@@ -73,10 +73,7 @@ const context: AgentContext = {
   },
 };
 
-/** A well-formed selection: one fare per flown hop, every hop on a given day/time. */
 const choose = (carrier: string, day: number, startTime: string) => (evidence: Evidence) => ({
-  // One id per flown hop: the named carrier where it is offered, else the
-  // first fare that hop has.
   flightIds: [...new Set(evidence.flights.map((flight) => flight.legIndex))].map((legIndex) => {
     const forHop = evidence.flights.filter((flight) => flight.legIndex === legIndex);
     return (forHop.find((flight) => flight.carrier === carrier) ?? forHop[0]!).flightId;
@@ -93,7 +90,6 @@ beforeEach(() => {
 
 describe("the model's transport choices are load-bearing", () => {
   it("takes the flight the model chose, not the one the heuristic prefers", async () => {
-    // The heuristic picks the carrier whose name matches /flex/; the model picks the cheaper one.
     behavior.respond = choose("Evidence Air", 2, "09:00");
     const result = await transportAgent.invoke({ brief, context });
     const flight = result.items.find((item) => item.detail.includes("Evidence Air"));
@@ -108,8 +104,7 @@ describe("the model's transport choices are load-bearing", () => {
     expect(hop?.day).toBe(3);
     expect(hop?.startTime).toBe("06:30");
     expect(hop?.endTime).toBe("08:50");
-    // The date in the detail has to follow the chosen day, not the day the hop was
-    // searched on; the trip starts 2026-10-01, so day 3 is 2026-10-03.
+
     expect(hop?.detail).toContain("2026-10-03");
   });
 
@@ -120,8 +115,6 @@ describe("the model's transport choices are load-bearing", () => {
   });
 
   it("cannot be made to state a fare of its own", async () => {
-    // The selection schema has no money field, so an invented fare is dropped by parsing
-    // rather than reaching estCost. That is the point of choosing by id.
     behavior.respond = (evidence) => ({
       ...choose("Evidence Air", 2, "09:00")(evidence),
       estCost: 0,
@@ -149,7 +142,7 @@ describe("the model's transport choices are load-bearing", () => {
     behavior.respond = respond;
     const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
     const result = await transportAgent.invoke({ brief, context });
-    // The heuristic's flight and its 09:00 default, not a partly-applied selection.
+
     expect(result.items.find((item) => item.detail.includes("Flex Air"))?.estCost).toBe(900);
     expect(result.assumptions.join(" ")).not.toContain("keeps the afternoon free");
     expect(result.source).toMatchObject({ kind: "fallback", label: "Local fallback" });

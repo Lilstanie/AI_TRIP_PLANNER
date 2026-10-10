@@ -4,11 +4,6 @@ import { useMemo } from "react";
 import type { AgentLabRunEvent } from "@trip/shared";
 import { deriveTraceOverview } from "@/lib/agent-lab/trace-overview";
 
-/**
- * The Trace view's time bar: one lane per actor, one equal-width slot per record. It is a pure view of the
- * events it is given, so it grows as they stream and when an artifact replays. `domainSteps` lets a caller
- * stretch the axis to a longer run so bars stacked in the Compare view share one step scale.
- */
 export function TraceOverview({
   events,
   onSelect,
@@ -16,10 +11,9 @@ export function TraceOverview({
   label = "Trace overview",
   blockPrefix,
 }: {
-  /** Names the run in each block's accessible name when several bars share a page. */
   blockPrefix?: string;
   events: readonly AgentLabRunEvent[];
-  /** Asked to bring the list row with this sequence into view. */
+
   onSelect?: (sequence: number) => void;
   domainSteps?: number;
   label?: string;

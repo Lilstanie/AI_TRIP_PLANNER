@@ -9,20 +9,6 @@ import {
 } from "../workspace/catalog";
 import type { SyncPull, SyncPush, SyncedRecord } from "./sync";
 
-/**
- * How a browser's catalog and an account's records become one. Pure functions, so the rules live
- * in one readable place:
- *
- * - Per record, the newer `updatedAt` wins whole; there is no field merge.
- * - A deletion is a tombstone with its own time. A tombstone newer than a local edit removes the
- *   record here; a local edit newer than the tombstone restores it on the account.
- * - `synced` remembers each record's `updatedAt` at the last successful sync. A record that was
- *   synced and is now missing locally was deleted here, so it becomes a tombstone rather than
- *   being pulled back.
- * - Untouched blank chats never leave the browser.
- * - Remote records pass the catalog's own parsers; one that fails is skipped, never trusted.
- */
-
 export type SyncedTimes = { trips: Record<string, string>; conversations: Record<string, string> };
 export const emptySynced = (): SyncedTimes => ({ trips: {}, conversations: {} });
 
@@ -68,7 +54,6 @@ function mergeKind<T extends Record_>(
       continue;
     }
     if (!mine) {
-      // Synced before and gone now: deleted in this browser since the last sync.
       if (synced[item.id]) push.push({ id: item.id, updatedAt: now, deleted: true });
       else {
         const parsed = parseRemote(kind, item);
@@ -86,7 +71,6 @@ function mergeKind<T extends Record_>(
   return { records: [...byId.values()], push };
 }
 
-/** Keep trip and chat links consistent after records arrived or left from either side. */
 function relink(catalog: WorkspaceCatalog): WorkspaceCatalog {
   const tripIds = new Set(catalog.trips.map((trip) => trip.id));
   const conversationIds = new Set(catalog.conversations.map((item) => item.id));
@@ -99,16 +83,19 @@ function relink(catalog: WorkspaceCatalog): WorkspaceCatalog {
   }));
   return {
     ...catalog,
-    conversations: conversations.map(({ tripId, ...rest }) => (tripId ? { ...rest, tripId } : rest)),
+    conversations: conversations.map(({ tripId, ...rest }) =>
+      tripId ? { ...rest, tripId } : rest,
+    ),
     trips,
-    ...(catalog.activeTripId && !tripIds.has(catalog.activeTripId) ? { activeTripId: undefined } : {}),
+    ...(catalog.activeTripId && !tripIds.has(catalog.activeTripId)
+      ? { activeTripId: undefined }
+      : {}),
     ...(catalog.activeConversationId && !conversationIds.has(catalog.activeConversationId)
       ? { activeConversationId: undefined }
       : {}),
   };
 }
 
-/** The first sync after signing in (or reopening): merge both sides, and what to send back. */
 export function mergeCatalog(
   local: WorkspaceCatalog,
   remote: SyncPull,
@@ -125,13 +112,11 @@ export function mergeCatalog(
   );
   const merged = relink({ ...local, trips: trips.records, conversations: conversations.records });
   return {
-    // Re-validated as a whole: links, active ids and every record.
     catalog: parseCatalog(JSON.parse(JSON.stringify(merged))),
     push: { trips: trips.push, conversations: conversations.push },
   };
 }
 
-/** What changed in this browser since the last sync: edits, new records and deletions. */
 export function pendingChanges(
   catalog: WorkspaceCatalog,
   synced: SyncedTimes,
@@ -140,22 +125,29 @@ export function pendingChanges(
   const diff = (kind: Kind, records: Record_[]) => {
     const present = new Set(records.map((record) => record.id));
     return [
-      ...records.filter(
-        (record) => synced[kind][record.id] !== record.updatedAt && pushable(kind, record),
-      ).map(wire),
+      ...records
+        .filter((record) => synced[kind][record.id] !== record.updatedAt && pushable(kind, record))
+        .map(wire),
       ...Object.keys(synced[kind])
         .filter((id) => !present.has(id))
         .map((id) => ({ id, updatedAt: now, deleted: true })),
     ];
   };
-  return { trips: diff("trips", catalog.trips), conversations: diff("conversations", catalog.conversations) };
+  return {
+    trips: diff("trips", catalog.trips),
+    conversations: diff("conversations", catalog.conversations),
+  };
 }
 
-/** The synced times once `catalog` matches the account. */
 export function syncedTimes(catalog: WorkspaceCatalog): SyncedTimes {
   const times = (records: Record_[], kind: Kind) =>
     Object.fromEntries(
-      records.filter((record) => pushable(kind, record)).map((record) => [record.id, record.updatedAt]),
+      records
+        .filter((record) => pushable(kind, record))
+        .map((record) => [record.id, record.updatedAt]),
     );
-  return { trips: times(catalog.trips, "trips"), conversations: times(catalog.conversations, "conversations") };
+  return {
+    trips: times(catalog.trips, "trips"),
+    conversations: times(catalog.conversations, "conversations"),
+  };
 }

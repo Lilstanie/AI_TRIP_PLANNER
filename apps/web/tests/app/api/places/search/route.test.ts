@@ -18,8 +18,6 @@ function request(body: unknown) {
   });
 }
 
-// The fallback provider remembers a Google quota or access failure for a cool-down; start each case
-// with Google untried.
 beforeEach(() => vi.stubEnv("WEB_MAPS_PROVIDER", "google"));
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -67,7 +65,6 @@ describe("POST /api/places/search", () => {
 
     const response = await POST(request({ text: "temple" }));
 
-    // 503, not 502: the deployment is at fault, and no retry can fix it.
     expect(response.status).toBe(503);
     const body = await response.json();
     expect(body.error).not.toMatch(/retry/i);

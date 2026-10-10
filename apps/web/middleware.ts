@@ -3,8 +3,6 @@ import { NextResponse } from "next/server";
 import { authEnabled } from "./lib/auth/config";
 import { isPublicRoute } from "./lib/auth/public-routes";
 
-// API routes keep their own authorization and response contracts. Only page navigation redirects.
-// Without Clerk keys the app remains a local workspace.
 export default authEnabled
   ? clerkMiddleware(async (auth, request) => {
       const { userId } = await auth();
@@ -22,11 +20,10 @@ export default authEnabled
 
 export const config = {
   matcher: [
-    // Skip Next.js internals and static files
     "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
-    // Always run for API routes
+
     "/(api|trpc)(.*)",
-    // Clerk's Frontend API proxy
+
     "/__clerk/:path*",
   ],
 };

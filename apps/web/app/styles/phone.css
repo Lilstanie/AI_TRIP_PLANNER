@@ -1,6 +1,3 @@
-/* The phone shell (520 px and narrower, `data-phone` on .workspace-app): a one-row top bar, one
-   panel per tab and a bottom tab bar. Loaded last so it overrides the narrow-screen rules without
-   touching desktop or the 521–1000 px layout. Each part of the shell keeps its own file. */
 @import "./phone-shell.css";
 @import "./phone-mine.css";
 @import "./phone-facts.css";

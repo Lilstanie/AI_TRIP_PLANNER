@@ -2,7 +2,6 @@
 
 import { useEffect, useRef } from "react";
 
-/** Pointer feedback lives in CSS variables, so moving the mouse never re-renders Clerk's form. */
 export function useAuthPointerFeedback() {
   const pageRef = useRef<HTMLElement>(null);
   const formRef = useRef<HTMLElement>(null);

@@ -1,8 +1,3 @@
-// Opt-in live free-service browser check (#277). Never calls Google, a model or Clerk.
-// Failure inventory: real tiles fail; places cannot save; Google snapshot loses location;
-// live OSM details or route fail; phone map cannot be reached; sources disappear.
-// requires-env: RUN_LIVE_MAP_CHECK
-// WEB_MAPS_PROVIDER=osm USE_MOCK_TOOLS=true RUN_LIVE_MAP_CHECK=1 pnpm --filter @trip/web e2e map-fallback-live
 import { createRequire } from "node:module";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";

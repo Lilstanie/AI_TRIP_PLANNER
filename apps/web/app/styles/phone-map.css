@@ -1,4 +1,3 @@
-/* Phone map fills its tab. Map gestures stay inside the canvas; each sheet scrolls independently. */
 .workspace-app[data-phone] .workspace-panel--map {
   position: relative;
   overflow: hidden;

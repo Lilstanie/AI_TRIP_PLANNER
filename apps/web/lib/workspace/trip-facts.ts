@@ -9,7 +9,6 @@ import { intlLocale, translate, type AppLocale } from "../i18n/locale";
 import { moneyDisplay } from "../money";
 import type { Notice } from "../i18n/notice";
 
-/** Age labels shown beside each Who stepper; also the order the chip summary lists them in. */
 export const PARTY_ROWS = [
   { key: "adults", label: "Adults", hint: "Ages 13–64", singular: "adult", article: "an" },
   { key: "children", label: "Children", hint: "Ages 2–12", singular: "child", article: "a" },
@@ -18,14 +17,9 @@ export const PARTY_ROWS = [
   { key: "pets", label: "Pets", hint: "", singular: "pet", article: "a" },
 ] as const;
 
-/**
- * The top bar edits the brief one fact at a time, each from its own chip. Every draft field
- * belongs to exactly one fact, or is one of the retired fields nothing edits any more.
- */
 export const FACTS = ["where", "when", "who", "budget", "preferences"] as const;
 export type FactKey = (typeof FACTS)[number];
 
-/** The draft fields each fact edits. */
 export const FACT_FIELDS: Record<FactKey, readonly (keyof Draft)[]> = {
   where: ["destination", "origin"],
   when: ["start", "end"],
@@ -34,10 +28,6 @@ export const FACT_FIELDS: Record<FactKey, readonly (keyof Draft)[]> = {
   preferences: ["preferences"],
 };
 
-/**
- * Fields the trip preferences editor used to hold, replaced by the traveller's own preference
- * list. Nothing edits them; a stored brief's values pass through `parseDraft` unchanged.
- */
 export const RETIRED_FIELDS: readonly (keyof Draft)[] = [
   "nationality",
   "roomAllocation",
@@ -45,7 +35,6 @@ export const RETIRED_FIELDS: readonly (keyof Draft)[] = [
   "freeCancellation",
 ];
 
-/** The keys `parseDraft` reports issues under (its path's first segment), by fact. */
 const FACT_ERRORS: Record<FactKey, readonly string[]> = {
   where: ["destination", "origin"],
   when: ["dates"],
@@ -54,18 +43,15 @@ const FACT_ERRORS: Record<FactKey, readonly string[]> = {
   preferences: ["preferences"],
 };
 
-/** Which fact owns a validation issue, so a rejected submission opens the right editor. */
 export function factForError(key: string): FactKey {
   return FACTS.find((fact) => FACT_ERRORS[fact].includes(key)) ?? "preferences";
 }
 
-/** The first fact holding one of these errors, in top-bar order. */
 export function firstFactWithError(errors: Record<string, Notice>): FactKey | undefined {
   const keys = Object.keys(errors);
   return FACTS.find((fact) => keys.some((key) => factForError(key) === fact));
 }
 
-/** The first of the four trip facts the traveller has not given yet, if any. */
 export function firstMissingFact(draft: Draft): FactKey | undefined {
   if (!draft.destination.trim()) return "where";
   if (!draft.start || !draft.end) return "when";
@@ -74,10 +60,6 @@ export function firstMissingFact(draft: Draft): FactKey | undefined {
   return undefined;
 }
 
-/**
- * Errors in one fact's own fields, checked the way the planner will check them. A blank field is
- * not an error before there is a plan: it is simply not stated yet, and the chat asks for it.
- */
 export function factErrors(
   fact: FactKey,
   draft: Draft,
@@ -87,8 +69,7 @@ export function factErrors(
   if (!requireAll && FACT_FIELDS[fact].every((field) => isBlank(draft[field]))) return {};
   if (fact === "when" && !requireAll && (!draft.start || !draft.end))
     return { dates: { key: "Choose both a start and an end date." } };
-  // The dates rule counts a night per destination city. With no destination yet, check the dates
-  // against a single city rather than reporting the missing destination as a date error.
+
   const checked =
     fact === "when" && !draft.destination.trim() ? { ...draft, destination: "?" } : draft;
   const parsed = parseDraft(checked, current);
@@ -102,7 +83,6 @@ export function factErrors(
 const isBlank = (value: Draft[keyof Draft]) =>
   Array.isArray(value) ? value.length === 0 : String(value ?? "").trim() === "";
 
-/** Schema messages ("expected number, received NaN") rewritten as how to fix the field. */
 const FIX: Record<string, Notice> = {
   destination: { key: "Enter a destination." },
   origin: { key: "Enter where you are departing from, or leave it blank." },
@@ -117,14 +97,9 @@ const FIX: Record<string, Notice> = {
 const CHECK_DETAILS: Notice = { key: "Check the highlighted trip details." };
 const DATES_ORDER = "End date must follow start date, with at least one night per destination.";
 
-/** The brief's own dates rule is already a sentence; any other date issue is a missing date. */
 const datesFix = (message: string): Notice =>
   message === DATES_ORDER ? { key: DATES_ORDER } : { key: "Choose both a start and an end date." };
 
-/**
- * One notice per field, keyed like the old preferences form's errors. A field with no rewrite
- * (the form builds it, so the traveller cannot cause it) asks them to check the trip details.
- */
 export function briefErrors(issues: readonly { path: readonly PropertyKey[]; message: string }[]) {
   const errors: Record<string, Notice> = {};
   for (const issue of issues) {
@@ -145,7 +120,6 @@ const shortDate = (iso: string, withYear: boolean, locale: AppLocale) =>
 const validDate = (iso: string) =>
   /^\d{4}-\d{2}-\d{2}$/.test(iso) && !Number.isNaN(Date.parse(iso));
 
-/** "1 Oct – 4 Oct" and "4 days"; years only across a new year. Undefined until both dates are real and in order. */
 export function datesLabel(start: string, end: string, locale: AppLocale = "en") {
   if (!validDate(start) || !validDate(end)) return undefined;
   const days = (Date.parse(end) - Date.parse(start)) / 86400000 + 1;
@@ -158,11 +132,6 @@ export function datesLabel(start: string, end: string, locale: AppLocale = "en")
   };
 }
 
-/**
- * What each chip shows. Only values the traveller stated appear; anything missing reads as an
- * invitation to add it, never as a guess. `brief` is the planned trip's, used only to explain a
- * converted budget that still matches the draft.
- */
 export function factLabels(
   draft: Draft,
   brief?: TripBrief,
@@ -185,10 +154,6 @@ export function factLabels(
   };
 }
 
-/**
- * "2 adults, 1 child, 1 pet" from the stepper breakdown, or a plain "3 travellers" when the draft
- * has none — a brief loaded fresh (`draftFor`), or one saved before the steppers existed.
- */
 function whoLabel(draft: Draft, travellers: number, locale: AppLocale) {
   const plain =
     locale === "zh"

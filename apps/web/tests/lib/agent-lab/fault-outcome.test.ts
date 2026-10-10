@@ -1,16 +1,3 @@
-// Failure inventory, written before the module:
-// - a run that lost a specialist's section to a provider failure reads as plain success;
-// - a run that stopped reads as degraded, or a degraded one as failed, so the three ways a fault can end
-//   (carry on with less, keep a partial result, stop) blur together;
-// - a failed run does not say which capability failed, or says nothing about the events it kept;
-// - a schema rejection is reported without the rejected fields, or an empty provider result is hidden;
-// - the supervisor's fallback is not reported, or is reported as a failure of the run;
-// - a figure (events, failed tools, failed agents, unavailable sections) disagrees with the trace it is
-//   read from, or an unavailable one is shown as zero;
-// - a run that finished with conflicts left, or that stopped because the budget cannot be met, is worded
-//   "Completed without a failure", so the Run and Compare views read as if nothing was wrong;
-// - the outcome depends on anything but the artifact, so a live run, a downloaded file and a replay of
-//   it could read differently.
 import { describe, expect, it } from "vitest";
 import type { AgentLabEventPayload, AgentLabRunArtifact } from "@trip/shared";
 import { faultOutcome } from "@/lib/agent-lab/fault-outcome";

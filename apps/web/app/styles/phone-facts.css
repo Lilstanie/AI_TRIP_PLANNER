@@ -1,6 +1,3 @@
-/* Phone shell: the trip title opens the trip facts sheet, which stands in for the chip row. */
-
-/* The title is a button that reads as the heading it sits in, with a chevron hinting at more. */
 .phone-topbar__title-button {
   display: inline-flex;
   align-items: center;
@@ -41,7 +38,6 @@
   rotate: -90deg;
 }
 
-/* The sheet: one row per fact, name leading and the stated value trailing. */
 .fact-popover--facts .fact-popover__head {
   padding-bottom: var(--space-2);
 }
@@ -72,7 +68,7 @@
   background: var(--fill-press) !important;
   scale: 1;
 }
-/* A hairline between rows, inset to the text so it never meets a row's rounded press fill. */
+
 .facts-sheet li {
   position: relative;
 }

@@ -4,12 +4,10 @@ import { WORKSPACE_ZH } from "./workspace-messages";
 export const LOCALES = ["en", "zh"] as const;
 export type AppLocale = (typeof LOCALES)[number];
 
-/** With no saved choice the interface follows the browser: any `zh*` language means Chinese. */
 export function browserLocale(languages: readonly string[]): AppLocale {
   return languages[0]?.toLowerCase().startsWith("zh") ? "zh" : "en";
 }
 
-/** The BCP 47 tag for `<html lang>` and `Intl` formatters. */
 export const intlLocale = (locale: AppLocale) => (locale === "zh" ? "zh-CN" : "en-AU");
 
 const ZH = {
@@ -155,24 +153,12 @@ const ZH = {
   Export: "导出",
 } as const satisfies Record<string, string>;
 
-/** An English interface string that has a Chinese entry; `t()` accepts nothing else. */
 export type MessageKey = keyof typeof ZH;
 
-/**
- * Every English key with a Chinese entry, without a `|context` suffix, that starts with fixed text. A sentence
- * the app wrote in English before its notices were keyed is matched against these to recover the key (see
- * `notice.ts`). A key that starts with a placeholder ("{stop}: {reason}") would match any sentence with a colon,
- * so it is left out: a notice of that kind is stored as its key, and its English copy is not read back.
- */
 export const AUTHORED_KEYS: readonly MessageKey[] = Object.keys(ZH).filter(
   (key) => !key.includes("|") && !key.startsWith("{"),
 ) as MessageKey[];
 
-/**
- * English is the key itself, so a missing or empty Chinese entry falls back to English. A key may
- * carry a `|context` suffix when one English word needs two translations ("Budget|tier"); English
- * shows only the part before it.
- */
 export function translate(
   locale: AppLocale,
   text: MessageKey,

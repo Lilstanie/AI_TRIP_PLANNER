@@ -1,13 +1,3 @@
-// Failure inventory for the evaluation metrics, written before the code:
-// - missing token or model-cost usage is shown as zero instead of unavailable;
-// - a repeated stop counts its first visit as a duplicate, or a repeat is missed;
-// - a placeholder stop ("Mock attraction near Tokyo") counts as a real place, or a real place is flagged;
-// - a single-city trip is scored for multi-city consistency, or a multi-city plan with a city that has
-//   no stay or no activity is called consistent;
-// - grounding counts fallback or unavailable sections as grounded;
-// - the stop reason is invented for a strategy that has no loop;
-// - a stored metric cannot be recomputed from the final plan and the trace alone, which would make the
-//   evaluation depend on something that is not in the artifact (a judge, a clock, a hidden input).
 import { describe, expect, it } from "vitest";
 import type { AgentLabCompletedRunArtifact, TripPlan } from "@trip/shared";
 import {

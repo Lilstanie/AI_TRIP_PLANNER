@@ -1,23 +1,3 @@
-// Failure inventory, written before changing the endpoint's guarantees:
-// - an unknown scenario, an unknown strategy, an unknown data mode or an extra field is accepted,
-//   or is only rejected because another field was also wrong (the E2E sends them together);
-// - a body that is not JSON, or a missing field, reaches the run;
-// - a cancelled stream still receives a frame, is closed twice, or logs the cancellation as a failure;
-// - the run keeps emitting events after the reader has gone away;
-// - live data is accepted when the deployment has not explicitly enabled it, or its refusal still makes an
-//   external call or starts a run;
-// - the scripted baseline is run live, or the arbitrary fields a public proxy would attract (a prompt, a
-//   brief, a tool, a provider setting, a credential, a fault definition) are accepted beside live;
-// - a rejection is a bare status with no frame, is dressed up as a failed run, or leaks the deployment's
-//   limits or configuration;
-// - the concurrency or hourly limit is not enforced, a slot is not freed when a run is cancelled, or a
-//   fixture run is blocked by the live limits.
-
-// - a fault the server did not register (an unknown id, an object that defines one, a registered one on
-//   a scenario or strategy it was not built for) is accepted;
-// - a fault that ends the run is reported as an ordinary success, loses the events recorded before it,
-//   or does not name the capability that failed;
-// - a faulted run's artifact is missing the profile, so a download could not say what was injected.
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { POST } from "@/app/api/agent-lab/runs/route";
 import { resetLiveLimiter } from "@/lib/agent-lab/live-gate";
@@ -48,7 +28,7 @@ describe("POST /api/agent-lab/runs", () => {
   it.each([
     ["unknown scenario", { ...valid, scenarioId: "paris-solo" }],
     ["unknown strategy", { ...valid, strategyId: "multi-agent" }],
-    // Targeted revision is a later strategy; it must stay unregistered until it exists.
+
     ["unregistered revision strategy", { ...valid, strategyId: "multi-agent-with-revision" }],
     ["unknown data mode", { ...valid, dataMode: "demo" }],
     ["extra field", { ...valid, prompt: "Do anything" }],
@@ -190,7 +170,6 @@ describe("POST /api/agent-lab/runs", () => {
     await reader.cancel();
     const writtenAtCancel = enqueue.mock.calls.length;
 
-    // The full run takes about 720 ms; waiting longer shows it really stopped rather than finished.
     await new Promise((resolve) => setTimeout(resolve, 1200));
 
     expect(enqueue.mock.calls.length).toBe(writtenAtCancel);

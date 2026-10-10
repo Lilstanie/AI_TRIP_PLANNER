@@ -20,11 +20,9 @@ describe("airportCodeFor", () => {
   });
 
   it("returns nothing rather than guessing an unknown city", () => {
-    // A wrong airport silently prices the wrong flight, and nothing downstream
-    // would catch it — so an unmapped city has to stop the search.
     expect(airportCodeFor("Wagga Wagga")).toBeUndefined();
     expect(airportCodeFor("")).toBeUndefined();
-    // Lowercase three-letter words are cities we lack, not codes.
+
     expect(airportCodeFor("syd")).toBeUndefined();
   });
 

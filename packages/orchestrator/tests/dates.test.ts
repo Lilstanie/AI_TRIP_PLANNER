@@ -12,16 +12,13 @@ describe("parseTripDate", () => {
   });
 
   it("uses whichever component settles a numeric date", () => {
-    // No 13th month, so this can only be day/month.
     expect(parseTripDate("13/05/2026")).toEqual({ iso: "2026-05-13" });
-    // No 25th month either way round.
+
     expect(parseTripDate("05/25/2026")).toEqual({ iso: "2026-05-25" });
     expect(parseTripDate("13.05.2026")).toEqual({ iso: "2026-05-13" });
   });
 
   it("reports ambiguity rather than guessing a month", () => {
-    // 2 November or 11 February? Guessing moves the trip by months and prices
-    // the wrong flights, with nothing downstream to catch it.
     expect(isAmbiguous(parseTripDate("11/02/2026"))).toBe(true);
     expect(isAmbiguous(parseTripDate("01/02/2026"))).toBe(true);
   });

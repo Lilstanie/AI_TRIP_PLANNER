@@ -1,16 +1,3 @@
-// Failure inventory, written before the module:
-// - a displayed value is recomputed in the browser and drifts from the artifact it claims to show;
-// - a strategy that has not run, was cancelled or failed shows a number (or a stale one from an
-//   earlier run) instead of "Not run";
-// - an over-budget plan is labelled "Within budget", or its overrun is shown as remaining money;
-// - the check count counts failed checks as passed;
-// - a one-sided comparison pretends to have a winner (the module must never rank the strategies);
-// - unavailable token or cost usage is shown as 0, or a missing stop reason as a reason;
-// - a single-city trip is shown as "Consistent" for multi-city;
-// - a third strategy is dropped, or its values land in another strategy's column;
-// - a conflict outcome blurs a conflict that was repaired, one left unresolved and an infeasible budget
-//   no revision could repair, or calls an infeasible stop "unresolved" because a conflict remains;
-// - a strategy with no planning loop is shown as having found no conflicts, when it never checked.
 import { describe, expect, it } from "vitest";
 import type { AgentLabCompletedRunArtifact } from "@trip/shared";
 import { buildComparisonRows } from "@/lib/agent-lab/comparison";

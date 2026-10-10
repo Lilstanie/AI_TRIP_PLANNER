@@ -8,21 +8,15 @@ import { placeConflicts } from "@/lib/trip/conflicts";
 import type { Notice } from "@/lib/i18n/notice";
 import { useLocale } from "../account/LocaleProvider";
 
-/**
- * Body of the Your Trip drawer; the drawer supplies the heading and close button. One view: the budget,
- * then the day view (the travel tips, the day strip, the day's stops, flights and stays, Ideas). The
- * specialists' cards are not shown; their content is in that view. Conflicts that name no stop or day
- * are listed under the budget bar.
- */
 export function TripPanel({
   plan,
   timeline,
   problem,
 }: {
   plan: TripPlan;
-  /** The day view: tips, day strip, the chosen day's stops and bookings, and Ideas. */
+
   timeline: ReactNode;
-  /** Why the last swap could not be made. */
+
   problem?: Notice;
 }) {
   const { t, money, budgetGap, notice: localizeNotice } = useLocale();
@@ -35,9 +29,7 @@ export function TripPanel({
   const gap =
     estimated === undefined ? undefined : budgetGap(estimated, budget, plan.brief.budgetSource);
   const over = gap?.direction === "over";
-  // Admission prices are published nowhere the planner can read, so these stops add nothing to the
-  // total. Saying so keeps the total from reading as the whole cost of the trip.
-  // A restaurant scheduled from Ideas is not an admission, so it is not counted here.
+
   const picks = restaurantIds(plan);
   const budgetConflicts = placeConflicts(plan).budget;
   const unpriced = itineraryActivities(plan).filter(

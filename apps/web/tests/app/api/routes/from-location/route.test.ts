@@ -53,11 +53,11 @@ describe("POST /api/routes/from-location", () => {
   });
 
   it.each([
-    { ...validBody, latitude: 91 }, // out of range
-    { ...validBody, longitude: -181 }, // out of range
-    { ...validBody, placeId: "" }, // empty
-    { ...validBody, mode: "DRIVE" }, // unsupported mode
-    { latitude: -33.86, longitude: 151.21 }, // missing placeId/mode
+    { ...validBody, latitude: 91 },
+    { ...validBody, longitude: -181 },
+    { ...validBody, placeId: "" },
+    { ...validBody, mode: "DRIVE" },
+    { latitude: -33.86, longitude: 151.21 },
   ])("rejects an invalid request body with 400 instead of calling Google", async (body) => {
     const { requestGoogleRouteFromCoordinates } = await import("@/lib/integrations/google");
 

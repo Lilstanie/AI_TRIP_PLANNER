@@ -35,10 +35,6 @@ const ask: PendingAsk = {
   ],
 };
 
-/**
- * Development surface for the structured-question card: the chat panel with a pending ask, so the
- * card can be checked in its composer seat without a provider call. Development-only.
- */
 export default function DebugQuestionPage() {
   if (process.env.NODE_ENV === "production") notFound();
   const [pending, setPending] = useState<PendingAsk | undefined>(ask);

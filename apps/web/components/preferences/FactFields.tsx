@@ -15,7 +15,6 @@ import { WhereFields } from "./WhereFields";
 import { useLocale } from "../account/LocaleProvider";
 import type { Notice } from "@/lib/i18n/notice";
 
-// react-day-picker and its stylesheet load only once the traveller opens the When editor.
 const TripCalendar = dynamic(() => import("./TripCalendar").then((m) => m.TripCalendar), {
   ssr: false,
 });
@@ -26,7 +25,6 @@ type FieldsProps = {
   errors: Record<string, Notice>;
 };
 
-/** The fields one chip edits. */
 export function FactFields({
   fact,
   suggestPlaces,
@@ -80,7 +78,6 @@ function Field({
   );
 }
 
-/** A local calendar date at midnight, matching `toIsoDate`'s local fields (not UTC). */
 const parseIsoDate = (iso: string) => {
   const [year, month, day] = iso.split("-").map(Number);
   return new Date(year!, month! - 1, day!);
@@ -181,9 +178,6 @@ function WhoFields({ value, onChange, errors }: FieldsProps) {
   );
 }
 
-/** Representative amounts (AUD, whole trip): the upper bound of each band, or a round number past
- *  its open end. Selecting one sets `budgetTotal` to it; the card reads as chosen only while the
- *  draft's amount still equals it exactly. */
 const BUDGET_PRESETS = [
   { name: "Budget|tier", value: 900 },
   { name: "Moderate", value: 3000 },
@@ -247,7 +241,6 @@ function BudgetFields({ value, onChange, errors }: FieldsProps) {
   );
 }
 
-/** Keep invalid and partially typed values local instead of letting a conversion exception escape. */
 function BudgetInput({
   value,
   currency,
@@ -291,9 +284,7 @@ function BudgetInput({
         let aud = "";
         try {
           aud = String(toAud(amount, currency));
-        } catch {
-          /* A non-empty invalid amount fails normal form validation below. */
-        }
+        } catch {}
         onChange({
           ...value,
           budgetTotal: aud || (text.trim() ? "invalid" : ""),

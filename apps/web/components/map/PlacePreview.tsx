@@ -4,17 +4,6 @@ import { useState, type ReactNode } from "react";
 import type { GooglePlace } from "@/lib/integrations/google";
 import { CloseIcon, MapPinIcon } from "../ui/icons";
 
-/**
- * The selected place, previewed over the map with its first Google photo.
- *
- * The photo is fetched only while the preview is shown and only in live data mode, because each
- * image is billed. Without a photo (mock mode, none on Google, an expired name, a failed load) the
- * slot keeps its size and shows a pin instead. Google requires the photo's author attribution
- * wherever the image appears.
- *
- * On the map it is the popup a marker opens: `meta` names the stop (for example "Stop 2 · Day 1")
- * and `onClose` adds a close button.
- */
 export function PlacePreview({
   place,
   showPhoto,
@@ -28,7 +17,7 @@ export function PlacePreview({
   meta?: string;
   onClose?(): void;
   headingId?: string;
-  /** Extra actions for this place, shown under its details (for example a route lookup). */
+
   actions?: ReactNode;
 }) {
   const { t } = useLocale();
@@ -47,8 +36,6 @@ export function PlacePreview({
             <MapPinIcon />
           </span>
           {visible && (
-            // Not next/image: its optimizer would fetch and cache Google's photo on our server,
-            // and the provider's terms allow neither.
             // eslint-disable-next-line @next/next/no-img-element
             <img
               key={visible.name}

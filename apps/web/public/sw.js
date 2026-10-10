@@ -1,7 +1,3 @@
-// Service worker for the installed app. Planning needs the network, so nothing dynamic is
-// cached: page navigations go to the network and fall back to a static offline page, the offline
-// page's own files come from the cache, and every other request (API calls, streams, Clerk) is
-// left to the browser untouched.
 const CACHE = "trip-planner-shell-v1";
 const SHELL = ["/offline.html", "/icons/icon-192.png"];
 

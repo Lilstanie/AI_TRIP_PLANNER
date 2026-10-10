@@ -13,7 +13,6 @@ import {
 export { snapshotToolRuntime } from "./runtime-context";
 export type { ToolRuntimeConfig, ToolRuntimeDependencies } from "./runtime-context";
 
-/** Internal deterministic construction seam; the package entry point exposes only createToolGateway. */
 export function createToolGatewayWithRuntime(
   config: ToolRuntimeConfig,
   dependencies: ToolRuntimeDependencies = defaultToolRuntimeDependencies(),

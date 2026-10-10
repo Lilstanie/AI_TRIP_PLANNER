@@ -3,7 +3,6 @@ import { INFEASIBLE_BUDGET } from "../conflicts";
 import { cityNames, normal } from "./cities";
 import type { AgentLabScenario } from "./scenarios";
 
-/** Recorded in every artifact so a stale result can be told from one the current rules produced. */
 export const AGENT_LAB_EVALUATOR_VERSION = "scenario-rules-v2";
 
 export type AgentLabEvaluation = Pick<
@@ -21,10 +20,6 @@ const dateOfDay = (start: string, day: number) =>
 const itemsOf = (plan: TripPlan, section: string): ProposalItem[] =>
   plan.sections.find((candidate) => candidate.id === section)?.proposal?.items ?? [];
 
-/**
- * Whether the plan reports that the budget cannot be met and names the supported minimum. A repairable
- * "over budget" conflict does not count, and neither does naming a different minimum.
- */
 function reportsInfeasibleBudget(plan: TripPlan, minimum: number): boolean {
   return (plan.conflicts ?? []).some((conflict) => {
     if (!conflict.reason.startsWith(INFEASIBLE_BUDGET)) return false;
@@ -35,12 +30,6 @@ function reportsInfeasibleBudget(plan: TripPlan, minimum: number): boolean {
   });
 }
 
-/**
- * The checks for a trip that moves between cities, derived from the brief's own cities: the hop
- * between each pair falls inside the trip on the date it states, every day's activities are in the city
- * the traveller is in that day, the stays hand over on the hop date, the stays span the trip, and the
- * costs add up. A single-city trip gets none of them.
- */
 function multiCityChecks(scenario: AgentLabScenario, plan: TripPlan): AgentLabCheck[] {
   const cities = cityNames(scenario.brief.destination);
   if (cities.length < 2) return [];
@@ -49,7 +38,6 @@ function multiCityChecks(scenario: AgentLabScenario, plan: TripPlan): AgentLabCh
   const mentions = (item: ProposalItem, city: string) =>
     normal(`${item.location ?? ""} ${item.detail}`).includes(city);
 
-  // The hop into each later city: a transport item that names the city before it and then this one.
   const hops = cities.slice(1).map((to, index) => {
     const from = cities[index]!;
     return itemsOf(plan, "transport").find((item) => {
@@ -90,7 +78,6 @@ function multiCityChecks(scenario: AgentLabScenario, plan: TripPlan): AgentLabCh
       );
     });
 
-  // One hotel per city, in travel order, each with the dates its own text states.
   const stays = cities.map((city) => {
     const hotels = itemsOf(plan, "accommodation").filter(
       (item) => item.kind === "hotel" && mentions(item, city),
@@ -145,11 +132,6 @@ function multiCityChecks(scenario: AgentLabScenario, plan: TripPlan): AgentLabCh
   ];
 }
 
-/**
- * Measures a plan against the scenario's own constraints. Every check is deterministic and named, so the
- * inspector can show what was measured. Vegetarian is checked as "each meal is marked vegetarian-friendly"
- * because the plan carries no dietary data beyond its own wording.
- */
 export function evaluateAgentLabPlan(
   scenario: AgentLabScenario,
   plan: TripPlan,
@@ -159,7 +141,7 @@ export function evaluateAgentLabPlan(
     section.proposal ? [section.proposal] : [],
   );
   const items = proposals.flatMap((proposal) => proposal.items);
-  // "HH:MM" strings compare correctly as text. A transfer such as an early train is not an activity.
+
   const startsEarly = items.some(
     (item) =>
       item.kind === "activity" &&
@@ -169,9 +151,6 @@ export function evaluateAgentLabPlan(
   const meals = items.filter((item) => item.kind === "meal");
   const withinBudget = plan.estTotal <= plan.budgetTotal;
 
-  // When the evidence shows no plan can meet the budget, "within budget" and "no unresolved conflicts"
-  // are checks nobody can pass, so they would mark every strategy down for the request. The checks
-  // measure instead whether a plan stays honest about it.
   const infeasible = rules.infeasibleBudget;
   const checks: AgentLabCheck[] = [
     {

@@ -34,10 +34,6 @@ import { cities, journeyLegs, flightLegs, groundLegs, flownInstead, type Journey
 import { mockEnabled } from "@trip/tools";
 import { TRAVELLER_PREFERENCES_RULE } from "../prompts/traveller-preferences";
 
-// Transport combines booking fares with map legs and keeps all pricing in the
-// deterministic calculator that the specialist must call.
-
-/** Format a leg cursor as a same-day HH:mm value. */
 function clock(totalMinutes: number): string {
   if (totalMinutes < 0 || totalMinutes >= 24 * 60) {
     throw new Error("A transport leg cannot fit inside one planning day.");
@@ -51,38 +47,29 @@ interface RouteQuery {
   to: string;
   date: string;
   day: number;
-  /** The mode the traveller chose for this hop, when they chose one. */
+
   chosenMode?: TravelMode;
 }
 
 interface TransportEvidence {
   brief: TripBrief;
-  /** The currency the text spells amounts in; planning amounts stay AUD. */
+
   currency: Currency;
   origin: string;
   destinations: string[];
-  /** Every hop in travel order; the single source of truth for the itinerary. */
+
   legs: JourneyLeg[];
   days: number;
   budgetRevision: boolean;
   scheduleRevision: boolean;
-  /** The graph's ceiling for all transport, during a budget revision. */
+
   allocation?: BudgetAllocation;
-  /** One entry per flown hop, in travel order. */
+
   flights: { leg: JourneyLeg; options: FlightOption[] }[];
   routed: { query: RouteQuery; legs: RouteLeg[]; options: RouteOption[] }[];
   conflicts: string[];
 }
 
-/**
- * Run the provider searches once and return what they gave back, undecided.
- *
- * Note the day and departure time are inputs to the route query, so this searches at the
- * deterministic default. A caller that reassigns a hop to another day or hour keeps these
- * durations; for the mock and OSRM adapters they do not vary by departure time, but a real transit
- * provider's would. That approximation is the price of letting the schedule be chosen after the
- * search rather than before it.
- */
 async function gatherTransportEvidence(
   briefInput: TripBrief,
   ctx: AgentContext,
@@ -94,9 +81,7 @@ async function gatherTransportEvidence(
   const destinations = cities(brief.destination);
   const days = planningDays(brief.dates);
   const preferences = await ctx.mem.getLongTerm(brief.userId);
-  // The brief is what the traveller actually stated this trip; the long-term
-  // preference is a standing default for people who always leave from the same
-  // city. The literal remains only so a brief that states neither still plans.
+
   const origin =
     brief.origin?.trim() ||
     preferences.find((preference) => preference.key === "transport.origin")?.value.trim() ||
@@ -106,9 +91,6 @@ async function gatherTransportEvidence(
     /budget|cost|cheaper|overrun/i.test([revision.reason, ...revision.constraints].join(" "));
   const scheduleRevision = revision !== undefined && /time|overlap|schedule/i.test(revision.reason);
 
-  // A flight the traveller said to take cannot be honoured when they also said
-  // they arrange flights themselves: that statement is trip-wide and already
-  // stops every search, so it wins and the hop plans on the ground.
   const legModes = brief.excludeFlights
     ? brief.legModes?.filter((choice) => choice.mode !== "flight")
     : brief.legModes;
@@ -119,24 +101,21 @@ async function gatherTransportEvidence(
     to: leg.to,
     date: leg.date,
     day: leg.day,
-    // A hop between trip cities, priced for the whole group; only these may use paid rail data.
+
     intercity: true,
     passengers: brief.groupSize,
     ...(leg.chosenMode ? { chosenMode: leg.chosenMode } : {}),
   }));
   const conflicts: string[] = [];
 
-  /** One flown hop, priced, with a provider failure recorded rather than hidden. */
   const priceFlight = async (leg: JourneyLeg) => {
-    // The traveller arranges their own flights: the hop stays in the plan but
-    // is neither searched nor priced, and its missing fare is not a conflict.
     if (brief.excludeFlights) return { leg, options: [] as FlightOption[] };
     const options = await ctx.tools.booking
       .searchFlights({
         from: leg.from,
         to: leg.to,
         depart: leg.date,
-        // Only the arrival is a return trip; a hop between cities is one way.
+
         ...(leg.index === 0 ? { return: brief.dates[1] } : {}),
         passengers: brief.groupSize,
       })
@@ -157,11 +136,7 @@ async function gatherTransportEvidence(
     return { leg, options: valid };
   };
 
-  /** One ground hop's scheduled legs, plus the alternatives to it. */
   const gatherGround = async (query: RouteQuery) => {
-    // The legs set the schedule; the options only describe the choice. A
-    // missing comparison must not cost the hop its timing, so they are
-    // gathered independently and an options failure is silent.
     const options = ctx.tools.maps.routeOptions
       ? await ctx.tools.maps.routeOptions(query).catch(() => [] as RouteOption[])
       : [];
@@ -173,8 +148,6 @@ async function gatherTransportEvidence(
     }
   };
 
-  // The arrival is known to be flown before any provider answers, so it is
-  // priced alongside the ground lookups rather than after them.
   const arrival = flightLegs(legs)[0];
   const [arrivalPriced, groundResults] = await Promise.all([
     arrival ? priceFlight(arrival) : Promise.resolve(undefined),
@@ -182,21 +155,13 @@ async function gatherTransportEvidence(
   ]);
   ctx.signal?.throwIfAborted();
 
-  // A city hop whose scheduled ground journey cannot be travelled inside one
-  // planning day is not a ground hop: the scheduler would reject it and the
-  // traveller would get a conflict where a flight belongs. Promote it and price
-  // it. The rule is the scheduler's own, so the two cannot disagree.
   const startMinutes = scheduleRevision ? EARLY_DEPARTURE_MINUTES : DEFAULT_DEPARTURE_MINUTES;
   const promoted = groundResults.filter(({ query, legs: hop }) => {
     if (!hop.length) return false;
-    // A mode the traveller chose is not a default to overrule. Flying a hop
-    // they said to take by train would reverse the one thing they stated; if
-    // the chosen mode cannot fit the day, layOutHop reports that instead.
+
     if (query.chosenMode) return false;
     const duration = hopDuration(hop);
-    // A duration that is not a number is a broken route, not a long one.
-    // routeProblem already reports those; flying a hop because a provider
-    // returned NaN would turn bad data into a purchase.
+
     return Number.isFinite(duration) && !fitsInPlanningDay(duration, startMinutes);
   });
   const promotedKeys = new Set(promoted.map(({ query }) => `${query.from}|${query.to}`));
@@ -224,7 +189,7 @@ async function gatherTransportEvidence(
   const routed = groundResults.filter(
     ({ query }) => !promotedKeys.has(`${query.from}|${query.to}`),
   );
-  // Only a hop still travelled on the ground needs a ground route.
+
   for (const { query, legs: hop } of routed) {
     if (!hop.length)
       conflicts.push(
@@ -249,20 +214,6 @@ async function gatherTransportEvidence(
   };
 }
 
-/**
- * Lay one hop's consecutive legs out from `startMinutes` on `day`, costing each from the leg's own
- * fare. Returns nothing and records a conflict when the hop cannot be scheduled -- an unroutable or
- * overlong hop is a gap in the plan, not a free one.
- */
-/**
- * How else this hop could be made, in one line.
- *
- * Costs are quoted with their basis rather than as bare numbers: Google gives
- * real road tolls in AUD but no Australian transit fare, so an unqualified "$0
- * bus" next to a "$13.29 drive" would read as the bus being free rather than
- * unpriced. Only the scheduled leg's cost reaches the budget; these are shown
- * so the traveller can make the trade the planner did not make for them.
- */
 function alternativesLine(options: RouteOption[]): string | undefined {
   if (options.length < 2) return undefined;
   const described = options.map((option) => {
@@ -277,19 +228,6 @@ function alternativesLine(options: RouteOption[]): string | undefined {
   return `Ways to make this hop: ${described.join("; ")}`;
 }
 
-/**
- * The legs this hop is actually scheduled from, and whether each carries a fare.
- *
- * Normally the provider's own consecutive legs. When the traveller chose a mode
- * and the provider offers it, that alternative replaces them: the choice has to
- * change the schedule, not merely sit beside it as a suggestion. A chosen mode
- * the provider does not offer is reported by the caller and the provider's
- * legs stand, so the hop keeps its timing rather than leaving a gap.
- *
- * `unpriced` is decided here rather than re-derived from the note, because a
- * RouteOption states its own `priceBasis` and reading that is exact where
- * matching prose is not.
- */
 function scheduledLegs(
   legs: RouteLeg[],
   chosen: RouteOption | undefined,
@@ -319,13 +257,8 @@ function layOutHop(
   conflicts: string[],
   unmet: string[],
 ): ProposalItem[] {
-  // The date has to follow the day that was chosen, not the day this hop happened to be
-  // searched on. Reporting the search date next to a reassigned day is simply wrong.
   const date = dateForDay(tripStart, day);
-  // The provider's own scheduled route may already be the chosen mode, and
-  // only that route carries an inter-city rail fare (2026-09-26-intercity-rail-via-serpapi).
-  // Taking the comparison option instead would throw away a price we had:
-  // Melbourne → Sydney by train went from a real fare to "unpriced" that way.
+
   const alreadyChosen =
     query.chosenMode !== undefined &&
     legs.length > 0 &&
@@ -336,16 +269,6 @@ function layOutHop(
       : undefined;
   const honoured = alreadyChosen || chosen !== undefined;
   if (query.chosenMode && !honoured) {
-    // Never substitute silently: a plan that quietly takes the bus after the
-    // traveller asked for the train is worse than one saying the train is not
-    // offered here.
-    //
-    // Not a conflict, though. The hop still has a route, so the plan is whole,
-    // and no revision can conjure a service the provider does not run — asking
-    // transport to "fix" it spends a round to get the same answer back, the
-    // trap 2026-10-02-unpriced-leg-is-not-a-conflict describes. It goes to the
-    // summary and assumptions, where the traveller reads it and can choose
-    // again.
     unmet.push(
       `${query.from} → ${query.to} by ${query.chosenMode} is not offered; it is planned as ${legs[0]?.mode ?? "the provider's route"} instead`,
     );
@@ -361,10 +284,7 @@ function layOutHop(
   if (!fitsInPlanningDay(hopDuration(hopLegs), cursor)) {
     conflicts.push(
       query.chosenMode
-        ? // The hop was not promoted to a flight because the traveller chose
-          // this mode. Saying which mode does not fit is what lets them change
-          // their mind; "route cannot fit" alone reads as our failure.
-          `time conflict on day ${day}: ${query.from} → ${query.to} by ${query.chosenMode} cannot fit inside one planning day`
+        ? `time conflict on day ${day}: ${query.from} → ${query.to} by ${query.chosenMode} cannot fit inside one planning day`
         : `time conflict on day ${day}: route cannot fit inside one planning day`,
     );
     return [];
@@ -375,10 +295,7 @@ function layOutHop(
     const durationMin = Math.ceil(leg.durationMin);
     cursor += durationMin;
     const endTime = clock(cursor);
-    // An unpriced leg raises no conflict: the fare is missing because the
-    // provider does not publish it, so no revision can produce one. The
-    // proposal says how many legs are unpriced instead; see the Agent Note
-    // 2026-10-02-unpriced-leg-is-not-a-conflict.
+
     return {
       kind: "transport",
       day,
@@ -387,20 +304,15 @@ function layOutHop(
       location: `${query.from} → ${query.to}`,
       detail: `${leg.mode} from ${query.from} to ${query.to} on ${date}; ${durationMin} minutes${leg.note ? `; ${leg.note}` : ""}.${
         honoured ? " Travelled this way because you chose it." : ""
-      }${
-        // Only on the first leg of a hop: the comparison is for the hop, not
-        // for each of its segments.
-        index === 0 && alternatives ? ` ${alternatives}` : ""
-      }`,
+      }${index === 0 && alternatives ? ` ${alternatives}` : ""}`,
       ...(unpriced ? {} : { estCost: leg.price }),
     };
   });
 }
 
 interface TransportPlan {
-  /** The fare chosen for each flown hop, keyed by the hop's position. */
   flights: { legIndex: number; carrier: string; price: number; note?: string }[];
-  /** One entry per routed hop, in the order they were searched. */
+
   schedule: { day: number; startMinutes: number }[];
   extraAssumptions: string[];
 }
@@ -417,9 +329,7 @@ function transportSource(
         "The model schedule was unavailable or invalid; a deterministic transport plan was used from the gathered evidence.",
     };
   }
-  // A hop was flown but came back with no fares. Checking the array's length
-  // no longer answers this: it holds one entry per flown hop, present even
-  // when that hop's fare list is empty.
+
   const unpricedHop = evidence.flights.some(({ options }) => options.length === 0);
   if (unpricedHop) {
     return {
@@ -476,7 +386,6 @@ function transportSource(
   };
 }
 
-/** Turn a chosen flight and schedule into the costed proposal. */
 function assembleTransportProposal(
   evidence: TransportEvidence,
   chosenPlan: TransportPlan,
@@ -485,8 +394,7 @@ function assembleTransportProposal(
   const { origin, destinations, brief, budgetRevision, scheduleRevision, allocation, currency } =
     evidence;
   const conflicts = [...evidence.conflicts];
-  // Choices the provider could not meet: reported, never silently dropped, and
-  // never sent round the revision loop. See layOutHop.
+
   const unmet: string[] = [];
   const routeItems = evidence.routed.flatMap(({ query, legs, options }, index) => {
     const slot = chosenPlan.schedule[index] ?? {
@@ -507,15 +415,12 @@ function assembleTransportProposal(
   const groundCost = routeItems.reduce((sum, item) => sum + (item.estCost ?? 0), 0);
   const cheapest = cheapestFares(evidence);
   const cheapestCost = cheapest.reduce((sum, fare) => sum + fare.price, 0);
-  // Over its allocation, a chosen fare gives way to the cheapest one offered;
-  // whatever is still over is the orchestrator's to weigh.
+
   const overAllocation =
     allocation !== undefined &&
     chosenPlan.flights.reduce((sum, fare) => sum + fare.price, 0) + groundCost > allocation.budget;
   const plan = overAllocation ? { ...chosenPlan, flights: cheapest } : chosenPlan;
-  // One item per flown hop. A fare exists only because a hop was flown, so the
-  // two are matched by the hop's position rather than each resolving the route
-  // on its own and risking a mismatched label.
+
   const flightItems = plan.flights.flatMap((fare) => {
     const leg = evidence.flights.find(({ leg: flown }) => flown.index === fare.legIndex)?.leg;
     if (!leg) return [];
@@ -547,9 +452,7 @@ function assembleTransportProposal(
       }))
     : [];
   const items = [...ownFlights, ...flightItems, ...routeItems];
-  // The fares each chosen flight beat, kept so the transcript can answer "why
-  // this one?". Dropping them at the point of choice is what left Getting
-  // around with a summary line where Stay shows a card.
+
   const flightSelections = plan.flights.flatMap((fare) => {
     const hop = evidence.flights.find(({ leg }) => leg.index === fare.legIndex);
     if (!hop?.options.length) return [];
@@ -579,8 +482,7 @@ function assembleTransportProposal(
     ];
   });
   const total = items.reduce((sum, item) => sum + (item.estCost ?? 0), 0);
-  // An item with no estCost is a leg no provider would price. Counted from the
-  // items rather than reported separately, so the two can never disagree.
+
   const unpriced = items.filter((item) => item.estCost === undefined).length;
   return {
     agent: "transport",
@@ -615,7 +517,6 @@ function assembleTransportProposal(
   };
 }
 
-/** The lowest fare offered for every flown hop. */
 function cheapestFares(evidence: TransportEvidence): TransportPlan["flights"] {
   return evidence.flights.flatMap(({ leg, options }) => {
     if (!options.length) return [];
@@ -631,11 +532,9 @@ function cheapestFares(evidence: TransportEvidence): TransportPlan["flights"] {
   });
 }
 
-/** The deterministic choice: kept as the no-key path and as the fallback from the model path. */
 function deterministicPlan(evidence: TransportEvidence): TransportPlan {
   const { flights, budgetRevision, scheduleRevision, routed } = evidence;
-  // One fare per flown hop, chosen the same way for each: the cheapest when
-  // the plan is over budget, otherwise a flexible fare if one was offered.
+
   const chosen = flights.flatMap(({ leg, options }) => {
     if (!options.length) return [];
     const pick = budgetRevision
@@ -658,7 +557,6 @@ function deterministicPlan(evidence: TransportEvidence): TransportPlan {
   };
 }
 
-/** Search fares/routes and build a deterministic proposal for the trip. */
 async function buildTransportProposal(
   briefInput: TripBrief,
   ctx: AgentContext,
@@ -669,10 +567,6 @@ async function buildTransportProposal(
   return assembleTransportProposal(evidence, deterministicPlan(evidence));
 }
 
-/**
- * What the specialist decides: which flight, and when each hop runs. No money field anywhere --
- * fares come from the candidate the model named, so an invented price has nowhere to land.
- */
 const TransportSelection = z.object({
   flightIds: z
     .array(z.string())
@@ -716,8 +610,7 @@ async function planTransport(
       return {
         planningDays: evidence.days,
         origin: evidence.origin,
-        // Flattened for the model, but each fare still names the hop it is
-        // for, so a chosen fare cannot be attached to the wrong leg.
+
         flights: evidence.flights.flatMap(({ leg, options }) =>
           options.map((option, index) => ({
             flightId: `flight-${leg.index}-${index}`,
@@ -774,8 +667,7 @@ async function planTransport(
               ? {
                   transportBudget: {
                     maxTotalCost: allocation.budget,
-                    // The number is AUD; the basis (and a revision's wording) may spell amounts in
-                    // the trip's display currency, which would otherwise read as a mismatch.
+
                     currency: "AUD",
                     basis: allocation.basis,
                     basisCurrency: displayCurrencyOf(brief, ctx),
@@ -790,8 +682,6 @@ async function planTransport(
     if (!evidence) throw new Error("Transport specialist skipped its search tool.");
     const gathered = evidence;
 
-    // Resolve the whole selection before using any of it: a half-understood answer should fall
-    // back to the deterministic plan rather than mix a model day with a heuristic flight.
     const offered = gathered.flights.filter(({ options }) => options.length > 0);
     const chosenIds = selection.flightIds ?? [];
     const flights = chosenIds.map((id) => {
@@ -808,8 +698,7 @@ async function planTransport(
         ...(option.note ? { note: option.note } : {}),
       };
     });
-    // Exactly one fare per hop that had fares: fewer leaves a flown hop
-    // unpriced, more would double-count one hop in the budget.
+
     const flownHops = new Set(offered.map(({ leg }) => leg.index));
     const pricedHops = new Set(flights.map((fare) => fare.legIndex));
     if (
@@ -856,7 +745,6 @@ async function planTransport(
   }
 }
 
-// Default registry entry; revisions are routed through the same planner above.
 export const transportAgent: Specialist = {
   name: "transport",
   label: "Getting around",

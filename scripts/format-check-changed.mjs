@@ -1,9 +1,6 @@
 #!/usr/bin/env node
 // Runs `prettier --check` on the files changed since a base ref, never on a whole directory.
-// The repository still holds files that were never formatted, so a repo-wide check would fail on
-// code nobody touched. Usage: node scripts/format-check-changed.mjs [base-ref]
-// With no base (or an all-zero push "before" SHA, or a base that is not fetched) it checks the
-// files changed by HEAD alone.
+
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import prettier from "prettier";
@@ -29,7 +26,6 @@ if (base && !/^0+$/.test(base) && resolves(base)) {
   range = resolves("HEAD~1") ? "HEAD~1..HEAD" : "HEAD";
 }
 
-// ACMR: added, copied, modified, renamed. Deleted files have nothing to check.
 const changed = git("diff", "--name-only", "--diff-filter=ACMR", "-z", range, "--")
   .split("\0")
   .filter(Boolean);

@@ -42,7 +42,7 @@ describe("workspace boundaries", () => {
       nationality: "Australian",
       accommodation: { minRating: 8, freeCancellation: true },
     });
-    // Nothing edits the rating any more, so a stored value the schema rejects means "no minimum".
+
     for (const minRating of ["", "11"]) {
       const parsed = parseDraft({ ...snapshot.draft, minRating }, plan.brief);
       expect(parsed.success && parsed.data.accommodation?.minRating).toBe(0);
@@ -82,8 +82,6 @@ describe("workspace boundaries", () => {
       draft: unfinished.draft,
     });
     for (const invalid of [
-      // Pre-AUD snapshots: their amounts meant USD and their stay candidates carry the
-      // old pricePerNightUsd field, so they are rejected rather than migrated.
       { ...snapshot, version: 2 },
       { ...snapshot, plan: {} },
       { ...snapshot, messages: [{ role: "system", text: "bad" }] },
@@ -93,9 +91,6 @@ describe("workspace boundaries", () => {
       expect(() => parseSnapshot(invalid)).toThrow();
   });
   it("drops a removed decision list from a stored plan instead of rejecting it", () => {
-    // Plans saved before the decision apparatus was removed still carry `hitl`.
-    // The object schema strips unknown keys, so they keep loading rather than
-    // throwing away the traveller's saved trips.
     const stored = {
       ...snapshot,
       plan: {
@@ -158,8 +153,7 @@ describe("workspace boundaries", () => {
       (failure: unknown) => failure,
     );
     expect(error).toBeInstanceOf(NeedsInfoError);
-    // A question carries only what is still unknown. The traveller answers it
-    // by typing, so there is no option list on the wire.
+
     expect((error as NeedsInfoError).needsInfo).toEqual({
       type: "needs_info",
       question: "你打算哪天出发？",
@@ -217,13 +211,12 @@ describe("workspace boundaries", () => {
       nationality: "",
     };
     expect(knownFromDraft(blank)).toEqual({});
-    // One date alone is not a range, and a half-typed number is not a stated fact.
+
     expect(knownFromDraft({ ...blank, start: "2026-10-01", groupSize: "0" })).toEqual({});
     expect(
       knownFromDraft({ ...blank, destination: "悉尼", start: "2026-10-01", end: "2026-10-05" }),
     ).toEqual({ destination: "悉尼", dates: ["2026-10-01", "2026-10-05"] });
-    // Preferences stated before any plan travel as known; a list the schema rejects is left out
-    // rather than dropping the other facts with it.
+
     expect(
       knownFromDraft({ ...blank, destination: "Lisbon", preferences: ["Vegetarian food"] }),
     ).toEqual({ destination: "Lisbon", preferences: ["Vegetarian food"] });
@@ -282,8 +275,6 @@ describe("stored message attachments", () => {
 
   it("drops the field entirely when nothing in it survives", () => {
     const [message] = withValidAttachments([
-      // A thumbnail restored from storage is inert only while it is an inline
-      // image; a remote or script-bearing URL is neither.
       { role: "user", text: "Look", attachments: [{ ...good, thumbnail: "javascript:alert(1)" }] },
     ]);
     expect(message).toEqual({ role: "user", text: "Look" });
@@ -297,7 +288,6 @@ describe("stored message attachments", () => {
 
 describe("budget source", () => {
   it("does not carry a stale source past a form edit", () => {
-    // The preferences form is base-currency only, so a budget typed there has no source.
     const current = { ...plan.brief, budgetSource: { amount: 3000, currency: "CNY" as const } };
     const parsed = parseDraft({ ...draftFor(current), budgetTotal: "900" }, current);
     expect(parsed.success && parsed.data.budgetSource).toBeUndefined();
@@ -310,13 +300,10 @@ describe("trip origin", () => {
     const withOrigin = parseDraft({ ...snapshot.draft, origin: "Melbourne" }, plan.brief);
     expect(withOrigin.success && withOrigin.data.origin).toBe("Melbourne");
 
-    // Blank must become undefined, not "": TripBrief rejects an empty string,
-    // and "no origin stated" is what skips long-haul flight pricing.
     const blank = parseDraft({ ...snapshot.draft, origin: "   " }, plan.brief);
     expect(blank.success).toBe(true);
     expect(blank.success && blank.data.origin).toBeUndefined();
 
-    // And back out again for the form to show.
     expect(draftFor({ ...plan.brief, origin: "Perth" }).origin).toBe("Perth");
     expect(draftFor({ ...plan.brief, origin: undefined }).origin).toBe("");
   });

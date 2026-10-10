@@ -46,8 +46,6 @@ const dependencies = () => ({
 });
 describe("P3 edit boundary", () => {
   it("preserves IDs across repeated serialization and reordering", () => {
-    // Migration from older snapshots is gone: they carry the pre-AUD `pricePerNightUsd`
-    // field and USD amounts, so parseSnapshot rejects them outright.
     const migrated = parseSnapshot(snapshot);
     expect(migrated.version).toBe(4);
     const id = migrated.plan.sections[0]!.proposal!.items[0]!.id;
@@ -68,7 +66,7 @@ describe("P3 edit boundary", () => {
     expect(result.plan.sections[0]!.proposal!.items.map((a) => a.id)).toEqual(["b", "a"]);
     expect(result.plan.sections[0]!.proposal!.items[1]!.startTime).toBe("10:35");
     expect(deps.route.mock.calls[0]![2]).toBe("2026-10-01T00:00:00.000Z");
-    // A clean edit leaves no unresolved request, so the section stays a draft.
+
     expect(result.plan.conflicts).toEqual([]);
     expect(result.plan.sections[0]!.status).toBe("draft");
     expect(p.sections[0]!.proposal!.items[0]!.id).toBe("a");
@@ -222,8 +220,7 @@ describe("P3 edit boundary", () => {
       { plan: plan(), baseVersion: 0, operation: { kind: "place", id: "a", placeId: "new" } },
       dependencies(),
     );
-    // The unverified price is the section's own conflict evidence; there is no
-    // decision to apply, so the section reports itself as needing attention.
+
     expect(edited.plan.conflicts?.some((c) => c.targetAgent === "itinerary")).toBe(true);
     expect(edited.plan.sections[0]!.status).toBe("needs_you");
     expect(edited.plan.editVersion).toBe(1);
@@ -256,8 +253,6 @@ describe("P3 edit boundary", () => {
   });
 });
 
-// Blockers and refusals reach the interface as Notices, so a Chinese traveller reads them in
-// Chinese. The English `blockers` stay beside them for older clients and for the saved plan.
 describe("edit preview notices", () => {
   const verify = (p = plan(), deps = dependencies()) =>
     previewEdit({ plan: p, baseVersion: 0, operation: { kind: "verify", day: 1 } }, deps);
@@ -281,8 +276,6 @@ describe("edit preview notices", () => {
   });
 
   it("keeps an unresolved travel-time gap on the saved plan in English", async () => {
-    // A verify keeps the stops' exact times; the gap stays on the plan for the conflicts list instead of
-    // blocking the preview.
     const result = await verify();
     expect(result.blockerNotices).toEqual([]);
     expect(result.plan.sections[0]!.proposal!.conflictsWith).toContain(

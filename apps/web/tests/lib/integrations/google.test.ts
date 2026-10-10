@@ -24,9 +24,6 @@ afterEach(() => {
   delete process.env.MAPS_API_KEY;
 });
 
-/** Pin "now" so the TRANSIT date-window check doesn't drift out of range as
- * real time passes — otherwise this test starts failing on its own months
- * after being written, for a reason that has nothing to do with the code. */
 function pinNow(iso: string) {
   vi.useFakeTimers();
   vi.setSystemTime(new Date(iso));
@@ -59,7 +56,7 @@ describe("searchPlaces", () => {
       "X-Goog-Api-Key": "test-key",
       "X-Goog-FieldMask": expect.stringContaining("places.location"),
     });
-    // Destination narrows the free-text query rather than becoming a separate field.
+
     expect(JSON.parse(String(init?.body))).toEqual({
       textQuery: "To-ji Temple Kyoto",
       pageSize: 5,
@@ -96,7 +93,7 @@ describe("placeDetails", () => {
     await placeDetails("place with spaces");
 
     const [url, init] = fetcher.mock.calls[0]!;
-    // The raw id must be percent-encoded into the path segment.
+
     expect(String(url)).toBe("https://places.googleapis.com/v1/places/place%20with%20spaces");
     expect(init?.method).toBe("GET");
   });
@@ -131,8 +128,7 @@ describe("timeZone", () => {
     expect(url.origin + url.pathname).toBe("https://maps.googleapis.com/maps/api/timezone/json");
     expect(url.searchParams.get("location")).toBe("-33.86,151.2");
     expect(url.searchParams.get("key")).toBe("test-key");
-    // Noon UTC on the given date, not midnight — avoids landing on the wrong
-    // side of a DST boundary for the timezone lookup itself.
+
     expect(url.searchParams.get("timestamp")).toBe(
       String(Date.parse("2026-11-01T12:00:00Z") / 1000),
     );
@@ -150,22 +146,18 @@ describe("timeZone", () => {
 
 describe("localInstant", () => {
   it("resolves an unambiguous local time to the correct UTC instant", () => {
-    // AEDT (UTC+11) in early November.
     expect(localInstant("2026-11-01", "09:00", "Australia/Sydney")).toBe(
       "2026-10-31T22:00:00.000Z",
     );
   });
 
   it("rejects a local time that never existed (spring-forward DST gap)", () => {
-    // Sydney clocks jump 02:00 -> 03:00 on the first Sunday of October 2026.
     expect(() => localInstant("2026-10-04", "02:30", "Australia/Sydney")).toThrow(
       "ambiguous or nonexistent",
     );
   });
 
   it("rejects a local time that occurs twice (fall-back DST overlap)", () => {
-    // Sydney clocks fall back 03:00 -> 02:00 on the first Sunday of April 2026,
-    // so 02:30 is ambiguous rather than nonexistent — same guard, other edge.
     expect(() => localInstant("2026-04-05", "02:30", "Australia/Sydney")).toThrow(
       "ambiguous or nonexistent",
     );
@@ -195,7 +187,7 @@ describe("googleRoute", () => {
       to: "place-b",
       mode: "TRANSIT",
       status: "ok",
-      durationMin: 13, // ceil(725 / 60)
+      durationMin: 13,
       polyline: "abc123",
       fare: { amount: 3.5, currency: "USD" },
     });
@@ -274,8 +266,6 @@ describe("googleRouteFromCoordinates", () => {
     await googleRouteFromCoordinates(origin, "place-1", "WALK");
     await googleRouteFromCoordinates({ latitude: 1, longitude: 1 }, "place-1", "WALK");
 
-    // Two independent requests, each carrying only its own origin — nothing
-    // about the first caller's location leaks into or persists across calls.
     expect(fetcher).toHaveBeenCalledTimes(2);
     const secondBody = JSON.parse(String(fetcher.mock.calls[1]![1]?.body));
     expect(secondBody.origin.location.latLng).toEqual({ latitude: 1, longitude: 1 });

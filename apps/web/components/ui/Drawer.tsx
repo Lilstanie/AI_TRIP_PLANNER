@@ -4,13 +4,6 @@ import { useEffect, useId, useRef, type ReactNode, type RefObject } from "react"
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])';
 
-/**
- * An overlay drawer that slides in from one side of the workspace.
- *
- * Closed drawers are translated completely outside the workspace, hidden from assistive
- * technology and inert, so they leave no rail, handle or reserved width behind. While open,
- * focus moves into the drawer, Tab stays inside it, and closing returns focus to the trigger.
- */
 export function Drawer({
   side,
   open,
@@ -31,10 +24,7 @@ export function Drawer({
   returnFocus: RefObject<HTMLElement | null>;
   className?: string;
   meta?: ReactNode;
-  /**
-   * Keeps the title as the dialog's accessible name but draws no title row; the close button then
-   * floats over the drawer's top edge. For drawers whose content already opens with its own header.
-   */
+
   hideTitle?: boolean;
   children: ReactNode;
 }) {
@@ -55,7 +45,6 @@ export function Drawer({
   useEffect(() => {
     if (!open) return;
     const onKeyDown = (event: KeyboardEvent) => {
-      // Nested controls (an edit preview, a native dialog) handle their own Escape first.
       if (event.key !== "Escape" || event.defaultPrevented) return;
       if (document.querySelector("dialog[open]")) return;
       event.preventDefault();

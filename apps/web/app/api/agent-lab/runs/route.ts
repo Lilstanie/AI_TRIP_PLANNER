@@ -12,10 +12,6 @@ import {
 } from "@trip/shared";
 import { NextResponse } from "next/server";
 
-/**
- * A request turned away before any run starts. It is a single typed frame, so the page can say why nothing
- * began, and it is never an artifact: a rejection is not a failed experiment.
- */
 function rejected(
   status: number,
   reason: AgentLabRejectionReason,
@@ -41,14 +37,11 @@ function rejected(
 export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
   const parsed = AgentLabRunRequest.safeParse(body);
-  // A fault is a registered profile on the scenario and strategy it was built for, or nothing.
+
   if (!parsed.success || !isRegisteredAgentLabRun(parsed.data)) {
     return NextResponse.json({ error: "Invalid Agent Lab request" }, { status: 400 });
   }
 
-  // Live data uses the deployment's own models and providers, so it is gated three ways before anything
-  // runs: the deployment must have enabled it, the strategy must have a live implementation, and the
-  // concurrency and hourly limits must have room. Fixture data is never gated and needs none of this.
   let release: (() => void) | undefined;
   if (parsed.data.dataMode === "live") {
     const config = readLiveConfig();
@@ -86,7 +79,7 @@ export async function POST(request: Request) {
   const stream = new ReadableStream({
     cancel() {
       cancelled = true;
-      // A cancelled run frees its slot at once instead of holding it until the run notices the abort.
+
       release?.();
       abortController.abort(new DOMException("Agent Lab stream cancelled", "AbortError"));
     },
@@ -98,8 +91,6 @@ export async function POST(request: Request) {
       };
 
       try {
-        // Ends in a completed artifact, or in a failed one that keeps the events recorded before the
-        // failure. A cancelled run throws instead, and writes nothing more.
         const artifact = await runAgentLabToArtifact(parsed.data, {
           signal: abortController.signal,
           onEvent: (event) => send({ type: "event", event }),
@@ -107,7 +98,6 @@ export async function POST(request: Request) {
         if (artifact.status === "completed") send({ type: "complete", artifact });
         else send({ type: "error", error: artifact.failure.message, artifact });
       } catch {
-        // Only a cancellation reaches here; the reader has gone, so there is nobody to tell.
       } finally {
         release?.();
         if (!cancelled) controller.close();

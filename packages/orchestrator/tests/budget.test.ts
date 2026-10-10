@@ -58,7 +58,7 @@ describe("budget calculations", () => {
       const bad = proposal("dining", 0);
       bad.items = [{ kind: "meal", detail: "junk", estCost: badCost }];
       expect(costOf(bad)).toBe(0);
-      // detectConflicts must not crash the whole run over one agent's bad number.
+
       expect(() =>
         detectConflicts([bad, proposal("accommodation", 5000)], DEMO_BRIEF),
       ).not.toThrow();
@@ -83,7 +83,7 @@ describe("budget calculations", () => {
       ],
       DEMO_BRIEF,
     );
-    // Transport is at its floor, so only itinerary (200) and accommodation (600) can cut the 690.
+
     expect(requests.map((request) => [request.targetAgent, request.targetSaving])).toEqual([
       ["itinerary", 172.5],
       ["accommodation", 517.5],
@@ -93,7 +93,10 @@ describe("budget calculations", () => {
 
   it("reports an infeasible budget once instead of asking for cuts", () => {
     const requests = detectConflicts(
-      [{ ...proposal("transport", 3000), floorCost: 2500 }, { ...proposal("accommodation", 2000), floorCost: 1800 }],
+      [
+        { ...proposal("transport", 3000), floorCost: 2500 },
+        { ...proposal("accommodation", 2000), floorCost: 1800 },
+      ],
       DEMO_BRIEF,
     );
     expect(requests).toHaveLength(1);
@@ -109,8 +112,7 @@ describe("accommodation integration with negotiation", () => {
     expect(plan.estTotal).toBe(3486.66);
     expect(plan.sections.find((section) => section.id === "dining")!.estCost).toBe(256.66);
     expect(plan.sections.find((section) => section.id === "accommodation")!.estCost).toBe(1460);
-    // Converged with no unresolved request, so every section is a draft. There is
-    // no longer a "needs you" state driven by a confirmation checkpoint.
+
     expect(plan.conflicts).toEqual([]);
     expect(plan.sections.every((section) => section.status === "draft")).toBe(true);
   });

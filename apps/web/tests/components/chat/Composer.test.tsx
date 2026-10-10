@@ -106,16 +106,16 @@ describe("composer", () => {
     fireEvent.change(picker);
 
     expect(onAttachFiles).toHaveBeenCalledWith([file]);
-    // The reset is what lets the same file be picked a second time.
+
     expect(cleared).toHaveBeenCalledWith("");
   });
 
   it("locks the attach control while a request is in flight", () => {
     const { container } = renderComposer({ busy: true });
 
-    expect((screen.getByRole("button", { name: "Upload files" }) as HTMLButtonElement).disabled).toBe(
-      true,
-    );
+    expect(
+      (screen.getByRole("button", { name: "Upload files" }) as HTMLButtonElement).disabled,
+    ).toBe(true);
     expect((filePicker(container) as HTMLInputElement).disabled).toBe(true);
   });
 

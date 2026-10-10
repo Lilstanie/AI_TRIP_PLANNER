@@ -1,4 +1,3 @@
-/** Authored workspace copy only. Traveller, model and provider content remains verbatim. */
 export const WORKSPACE_ZH = {
   "The map could not load. Try again.": "地图暂时无法加载，请重试。",
   Website: "官方网站",
@@ -565,7 +564,7 @@ export const WORKSPACE_ZH = {
     "编辑行程偏好，或告诉我要改什么。我会在这里生成计划，你随时可以在此对话中要求修改。",
   "Browser storage is unavailable or full. Your current plan is still in this tab. Retry after freeing space.":
     "浏览器存储不可用或已满。当前计划仍保留在此标签页中。请释放空间后重试。",
-  // Authored notices built in code or returned by the app's own routes (#189).
+
   "You can attach {count} files to one message.": "每条消息最多可添加 {count} 个文件。",
   "Chats, trips and settings sync to this account.": "聊天、行程和设置会同步到此账户。",
   "Your account could not be deleted. Try again.": "无法删除你的账户，请重试。",

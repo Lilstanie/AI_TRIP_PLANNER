@@ -1,8 +1,3 @@
-// Failure inventory: source amount lost on save/reload, settings overwritten by trip currency,
-// chat and form differ, invalid input escapes, or a new trip inherits the previous source.
-// The 1440 px pass uses the top bar, the fact chips and the Chats panel. The 390 px pass uses the
-// phone shell instead: Settings and the chats live on the Mine tab, and the budget is read and
-// edited through the trip-title sheet (Trip details), since the chips are hidden there.
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
@@ -22,8 +17,7 @@ try {
       locale: "en-AU",
       viewport: { width, height: width === 390 ? 844 : 1000 },
     });
-    // On a dev server the Next.js dev-tools button sits over the phone Chat tab and swallows the
-    // tap. Hide it on every load, the reloads included, as the other phone scripts do.
+
     await context.addInitScript(() =>
       document.addEventListener("DOMContentLoaded", () => {
         const style = document.createElement("style");
@@ -54,7 +48,7 @@ try {
         await mine.getByRole("button", { name: "Settings & account", exact: true }).click();
       } else await page.locator('button[aria-label^="Account settings:"]:visible').first().click();
     };
-    /** Opens the budget editor: the chip on desktop, the Budget row of Trip details on a phone. */
+
     const openBudget = async (empty = false) => {
       if (phone) {
         await openFacts();
@@ -62,7 +56,7 @@ try {
       } else if (empty) await page.getByRole("button", { name: "Budget", exact: true }).click();
       else await page.getByRole("button", { name: /^Budget:/ }).click();
     };
-    /** The budget as the trip shows it: the chip on desktop, the Budget row on a phone. */
+
     const budgetText = async () => {
       if (!phone) return page.getByRole("button", { name: /^Budget:/ }).textContent();
       await openFacts();
@@ -114,10 +108,11 @@ try {
     await page.reload();
     await page.locator(".workspace-app").waitFor();
     await showChats();
-    // Mine also lists the blank chat the phone pass started from; open the planned one.
-    await (phone
-      ? mine.locator('.history-item__open[title^="Plan Sydney"]')
-      : page.locator(".history-item__open")
+
+    await (
+      phone
+        ? mine.locator('.history-item__open[title^="Plan Sydney"]')
+        : page.locator(".history-item__open")
     )
       .first()
       .click();
@@ -134,7 +129,7 @@ try {
       ),
       `${width}: settings unchanged`,
     );
-    // A setting change does not rewrite this trip's CNY source.
+
     await openSettings();
     await dialog.getByRole("tab", { name: "Language & region" }).click();
     await dialog.getByRole("button", { name: "Change Display currency" }).click();

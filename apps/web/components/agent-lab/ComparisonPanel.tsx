@@ -17,23 +17,18 @@ export interface ComparisonSide {
   artifact?: AgentLabCompletedRunArtifact;
 }
 
-/**
- * The strategies side by side, in the order they build on each other. Figures come from each run's
- * artifact, and the panel never ranks the strategies: it shows what each step adds, not which side
- * "wins".
- */
 export function ComparisonPanel({
   sides,
   provenance,
   onDownloaded,
 }: {
   sides: readonly ComparisonSide[];
-  /** Whether the figures come from fixture or live runs, so the two are never mistaken for each other. */
+
   provenance: string;
   onDownloaded: (filename: string) => void;
 }) {
   const rows = buildComparisonRows(...sides.map((side) => side.artifact));
-  // Each side's list registers its jump here, so a block in the stack scrolls only that side's own box.
+
   const jumps = useRef<(((sequence: number) => void) | null)[]>([]);
   const registrars = useMemo(
     () =>
@@ -45,8 +40,7 @@ export function ComparisonPanel({
       ),
     [sides.length],
   );
-  // One step axis for every bar: the longest run's record count. A strategy that never ran has no events
-  // and so no bar.
+
   const domainSteps = Math.max(
     1,
     ...sides.map((side) => deriveTraceOverview(side.events).records.length),

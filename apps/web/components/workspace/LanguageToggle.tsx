@@ -4,7 +4,6 @@ import { useSettings } from "../account/SettingsProvider";
 import { useLocale } from "../account/LocaleProvider";
 import { GlobeIcon } from "../ui/icons";
 
-/** A one-press language switch for the workspace's highest-frequency setting. */
 export function LanguageToggle() {
   const { update } = useSettings();
   const chinese = useLocale().locale === "zh";
