@@ -300,7 +300,7 @@ fails when an E2E script selects a CSS class (`.section__row`) that no component
 under a second. A line that checks a removed class stays gone ends with `// e2e-selectors: absent`; a class
 only a third-party library sets goes in `ALLOWED` in `scripts/verify-e2e-selectors.mjs`, with its reason.
 
-The E2E scripts live in `apps/web/tests/e2e/`. Run them through the runner, which starts a server on
+The E2E scripts live in `apps/web/tests/e2e/`. For a fixture-only invocation with an owned server and separate evidence, use the [local E2E CLI](local-test-cli.md). Otherwise, run scripts through the runner, which starts a server on
 a free port, runs each named script against it from the repository root and stops only the server it
 started:
 
