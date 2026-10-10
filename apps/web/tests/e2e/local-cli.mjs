@@ -3,6 +3,7 @@ import { createRequire } from "node:module";
 import {
   appendFileSync,
   existsSync,
+  lstatSync,
   mkdirSync,
   readFileSync,
   rmSync,
@@ -12,6 +13,12 @@ import { createServer } from "node:net";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { SMOKE_JOURNEYS, SUPPORTED_JOURNEYS } from "./local-cli-collections.mjs";
+import {
+  canonicalResources,
+  captureIdentity,
+  createRunOwnershipRecord,
+  writeOwnershipRecord,
+} from "./resource-ownership.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const WEB = resolve(HERE, "../..");
@@ -242,6 +249,16 @@ function invocationId() {
   return `${new Date().toISOString().replaceAll(/[:.]/g, "-")}-${process.pid}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+function pathExists(path) {
+  try {
+    lstatSync(path);
+    return true;
+  } catch (error) {
+    if (error.code === "ENOENT") return false;
+    throw error;
+  }
+}
+
 function writeSummary(directory, summary) {
   const summaryFile = resolve(directory, "summary.json");
   summary.summaryFile = summaryFile.slice(ROOT.length + 1);
@@ -292,6 +309,7 @@ export async function runLocalCli(args) {
   const distDir = `.next-e2e-local-${id}`;
   const tsconfigPath = `.tsconfig-e2e-local-${id}.json`;
   const tsconfigFile = resolve(WEB, tsconfigPath);
+  const resourcePaths = canonicalResources(WEB, id);
   const serverLog = resolve(directory, "server.log");
   const buildLog = resolve(directory, "build.log");
   const journeyLog = resolve(directory, "journey.log");
@@ -302,25 +320,22 @@ export async function runLocalCli(args) {
   if (options.mode === "development") reproductionArgs.push("--dev");
   if (options.timeoutProvided) reproductionArgs.push("--timeout-ms", String(options.timeoutMs));
   const summary = {
+    schemaVersion: 1,
+    recordType: "run",
     invocationId: id,
     startedAt: new Date().toISOString(),
     selectionMode: options.selectionMode,
     requested: options.scripts,
     reproductionCommand: reproductionArgs.join(" "),
     server: { mode: options.mode, url: null, port: null, distDir },
-    ownedResources: [
-      { kind: "next-build-directory", path: `apps/web/${distDir}`, state: "retained" },
-      {
-        kind: "temporary-tsconfig",
-        path: `apps/web/${tsconfigPath}`,
-        state: "removed-on-completion",
-      },
-    ],
+    ownedResources: resourcePaths.map(({ kind, path }) => ({ kind, path, state: "not-created" })),
     results: [],
   };
   let server;
   let current;
   let tsconfigCreated = false;
+  let tsconfigIdentity;
+  let distIdentity;
   let interrupted = false;
   let interruptSignal;
   const onSignal = (signal) => {
@@ -362,12 +377,13 @@ export async function runLocalCli(args) {
         for (const script of supported)
           resultsByScript.set(script, { scenario: script, status, diagnostics: diagnostic });
       } else {
-        if (existsSync(resolve(WEB, distDir)))
+        if (pathExists(resolve(WEB, distDir)))
           throw new Error(`Invocation build directory already exists: ${distDir}`);
         const tsconfig = JSON.parse(readFileSync(resolve(WEB, "tsconfig.json"), "utf8"));
         tsconfig.include = [...new Set([...tsconfig.include, `${distDir}/types/**/*.ts`])];
         writeFileSync(tsconfigFile, `${JSON.stringify(tsconfig, null, 2)}\n`, { flag: "wx" });
         tsconfigCreated = true;
+        tsconfigIdentity = captureIdentity(tsconfigFile, "file");
         const port = await portAvailable();
         const url = `http://127.0.0.1:${port}`;
         summary.server.url = url;
@@ -482,9 +498,26 @@ export async function runLocalCli(args) {
       if (current) current = undefined;
     }
     if (tsconfigCreated) rmSync(tsconfigFile, { force: true });
-    summary.ownedResources[0].state = existsSync(resolve(WEB, distDir))
-      ? "retained"
-      : "not-created";
+    const distPath = resolve(WEB, distDir);
+    if (pathExists(distPath)) {
+      try {
+        distIdentity = captureIdentity(distPath, "directory");
+        summary.ownedResources[0].state = "retained";
+      } catch {
+        summary.ownedResources[0].state = "unverifiable";
+        if (status === "passed") {
+          status = "startup_failed";
+          diagnostic = "The invocation build directory could not be verified safely.";
+          for (const script of options.scripts) {
+            const result = resultsByScript.get(script);
+            if (result) {
+              result.status = status;
+              result.diagnostics = diagnostic;
+            }
+          }
+        }
+      }
+    } else summary.ownedResources[0].state = "not-created";
     summary.ownedResources[1].state = tsconfigCreated ? "removed" : "not-created";
   }
 
@@ -502,6 +535,19 @@ export async function runLocalCli(args) {
   summary.completedAt = new Date().toISOString();
   if (diagnostic) summary.diagnostic = diagnostic;
   const result = writeSummary(directory, summary);
+  const ownerRecord = createRunOwnershipRecord({
+    invocationId: id,
+    createdAt: summary.startedAt,
+    directoryIdentity: captureIdentity(directory, "directory"),
+    evidenceIdentity: captureIdentity(resolve(directory, "evidence"), "directory"),
+    summaryIdentity: captureIdentity(resolve(directory, "summary.json"), "file"),
+    resources: summary.ownedResources,
+    resourceIdentities: {
+      "next-build-directory": distIdentity,
+      "temporary-tsconfig": tsconfigIdentity,
+    },
+  });
+  writeOwnershipRecord(directory, ownerRecord);
   outputResult(
     {
       outcome: status,
