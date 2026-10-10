@@ -11,10 +11,18 @@ before deciding whether a failing script is your regression; update it when you 
 | `liquid-glass` | 2026-10-09        | At phone width, clicking the Chat tab times out: the Next.js dev overlay (`nextjs-portal`) covers it after a dev-server error. Run with `--prod` to tell a real failure from the overlay. | none yet |
 | `thinking-orb` | 2026-10-09        | "running subagents show orbs (0)" at 1440 light: no `.thinking-row__leading canvas.thinking-orb` appears, then the next wait times out.                                                   | none yet |
 
+The following failures also reproduce on unchanged baseline `42fded7` (2026-10-10), using a production
+server with `DATA_MODE=mock`, `USE_MOCK_TOOLS=true`, and blank `MOCK_GOOGLE_MAPS`, model and Clerk variables:
+
+| Script        | What fails                                                                                                                                                                                                                    | Issue    |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| `timeline`    | The fare-decimals console check reports four 404 responses for fixture place details. The fixture uses stand-in place IDs without stubbing their details; all JPY/AUD/KRW fare and route checks pass (99/100 checks overall). | none yet |
+| `phone-state` | Reload does not restore Map at 390×844 and 360×800. Trip, Mine and Chat reload checks pass.                                                                                                                                   | none yet |
+
 ## Not failures
 
 - `installable-app` waits forever under `next dev`, because the service worker registers only in a production
-  build. Run it as its header says, `pnpm --filter @trip/web e2e installable-app --prod`; it passes (2026-10-09).
+  build. Run it as its header says, `pnpm --filter @trip/web e2e installable-app --prod`; it passes all 24 checks with the full Chromium binary installed (2026-10-10).
 
 ## How to check
 
