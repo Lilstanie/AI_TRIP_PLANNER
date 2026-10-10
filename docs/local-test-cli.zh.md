@@ -41,3 +41,30 @@ pnpm --filter @trip/web e2e agent-lab-replay
 ```
 
 原始脚本保留既有环境变量和复用服务器的行为。需要 fixture 隔离和每次运行独立证据时，请使用新的 `run` 命令。
+
+## 检查环境并查看支持范围 {#check-readiness-and-discover-support}
+
+可以从同一入口运行离线 doctor 和 list 命令：
+
+```bash
+pnpm --filter @trip/web e2e doctor
+pnpm --silent --filter @trip/web e2e doctor --json
+pnpm --filter @trip/web e2e list
+pnpm --silent --filter @trip/web e2e list --json
+```
+
+如果系统中没有 pnpm，可以在仓库根目录运行 `node apps/web/tests/e2e/run.mjs doctor --json`，查看被阻断的
+package-manager 检查。
+
+`doctor` 会检查 Node.js 和仓库固定的 pnpm 版本、Web 应用的 Next.js 可执行文件、Playwright 及其 Chromium
+可执行文件，并报告应用目录是否存在 dotenv 文件。它不会启动应用或测试服务器，不会联系服务供应商，也不会读取或更改
+dotenv 文件内容。本地 fixture 模式不需要供应商凭据。缺少必要工具时会报告 `blocked`、给出修复方法并返回非零状态码。
+JSON 输出为单个对象，包含 `schemaVersion`、`command`、`outcome` 和 `checks`；每项检查包含 id、状态和摘要，若被
+阻断则附带修复方法。
+
+`list` 会列出所有原始 E2E 脚本、支持状态、已知前置条件和排除原因。支持 `agent-lab-single-agent` 和
+`agent-lab-replay`。Replay 覆盖紧预算 fixture、artifact 下载和回放、比较、无效 artifact，以及对应界面和状态；Smoke
+只运行 single-agent 行程。`leg-mode-choice` 暂不支持，因为其中一个依赖模型的场景可能被跳过，但整个脚本仍可能返回成功。`agent-lab-live-gate`
+和 `map-provider-http` 需要多个服务器。`plan-quality` 和 `conversation-scope` 默认使用 live 数据，并需要
+`DEEPSEEK_API_KEY`。尚未审核是否能完整使用本地 fixture 执行并隔离状态的脚本也会保持不支持，同时会标明尚未核实的前置条件。
+JSON 对象包含 `supported`、不支持脚本的数量和 `scripts` 数组。脚本出现在列表中并不表示其断言已经通过。
