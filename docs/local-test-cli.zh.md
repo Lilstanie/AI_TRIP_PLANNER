@@ -87,3 +87,20 @@ JSON 输出为单个对象，包含 `schemaVersion`、`command`、`outcome` 和 
 和 `map-provider-http` 需要多个服务器。`plan-quality` 和 `conversation-scope` 默认使用 live 数据，并需要
 `DEEPSEEK_API_KEY`。尚未审核是否能完整使用本地 fixture 执行并隔离状态的脚本也会保持不支持，同时会标明尚未核实的前置条件。
 JSON 对象包含 `supported`、不支持脚本的数量和 `scripts` 数组。脚本出现在列表中并不表示其断言已经通过。
+
+## 检查已保存的调用 {#inspect-a-saved-invocation}
+
+可以通过调用 ID 或保存的 `summaryFile` 路径查看一次已完成的本地运行或重复运行：
+
+```bash
+pnpm --filter @trip/web e2e report <invocation-id>
+pnpm --silent --filter @trip/web e2e report <summaryFile> --json
+```
+
+报告会读取已保存的记录，并检查证据目录是否仍然存在。它不会重新运行检查、启动服务器，也不会修改摘要或证据。JSON 中的
+`reportOutcome: "reported"` 表示报告读取成功；`recordedOutcome` 才是测试结果。即使记录的测试失败，报告仍可成功读取，命令本身
+返回成功。如果摘要不完整或证据缺失，`recordStatus` 会显示 `incomplete`。
+
+重复运行报告会按顺序保留每次尝试，包括后续通过之前发生的失败。缺少子摘要、中断的尝试和缺失的证据会标记为不完整，不会被
+描述成已通过的覆盖。未知 ID、格式错误的摘要，以及指向已保存本地 CLI 记录目录之外的路径都会返回非零状态；JSON 错误不会包含
+摘要文件内容。
