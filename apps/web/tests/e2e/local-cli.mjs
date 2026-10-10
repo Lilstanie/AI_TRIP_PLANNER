@@ -11,13 +11,14 @@ import {
 import { createServer } from "node:net";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { SMOKE_JOURNEYS, SUPPORTED_JOURNEYS } from "./local-cli-collections.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const WEB = resolve(HERE, "../..");
 const ROOT = resolve(WEB, "../..");
 const NEXT = resolve(WEB, "node_modules/.bin/next");
 const ROOT_OUTPUT = resolve(ROOT, "output/e2e/local-test-cli");
-const SUPPORTED = new Set(["agent-lab-single-agent"]);
+const SUPPORTED = new Set(SUPPORTED_JOURNEYS);
 const CREDENTIALS = [
   "DEEPSEEK_API_KEY",
   "MINIMAX_API_KEY",
@@ -38,22 +39,33 @@ const DEFAULT_TIMEOUT_MS = 10 * 60_000;
 const START_TIMEOUT_MS = 5 * 60_000;
 
 function parseOptions(args) {
-  const options = { mode: "production", json: false, timeoutMs: DEFAULT_TIMEOUT_MS };
+  const options = { mode: "production", json: false, timeoutMs: DEFAULT_TIMEOUT_MS, scripts: [] };
+  let all = false;
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
     if (arg === "--json") options.json = true;
     else if (arg === "--dev") options.mode = "development";
+    else if (arg === "--all") all = true;
     else if (arg === "--timeout-ms") {
       const timeout = Number(args[index + 1]);
       if (!Number.isInteger(timeout) || timeout < 1000)
         throw new Error("--timeout-ms must be a whole number of at least 1000");
       options.timeoutMs = timeout;
+      options.timeoutProvided = true;
       index += 1;
     } else if (arg.startsWith("--")) throw new Error(`unknown option ${arg}`);
-    else if (options.script === undefined) options.script = arg.replace(/\.e2e\.mjs$/, "");
-    else throw new Error("run accepts one script name");
+    else options.scripts.push(arg.replace(/\.e2e\.mjs$/, ""));
   }
-  if (!options.script) throw new Error("usage: e2e run <script> [--dev] [--json]");
+  if (all && options.scripts.length) throw new Error("--all cannot be combined with script names");
+  if (new Set(options.scripts).size !== options.scripts.length)
+    throw new Error("run accepts each script name once");
+  if (all) {
+    options.scripts = SUPPORTED_JOURNEYS;
+    options.selectionMode = "all";
+  } else if (options.scripts.length === 0) {
+    options.scripts = SMOKE_JOURNEYS;
+    options.selectionMode = "smoke";
+  } else options.selectionMode = "named";
   return options;
 }
 
@@ -247,6 +259,19 @@ function outputResult(result, json) {
   }
 }
 
+function aggregateStatus(results) {
+  const statuses = results.map((result) => result.status);
+  if (statuses.includes("interrupted")) return "interrupted";
+  if (statuses.includes("timed_out")) return "timed_out";
+  if (statuses.includes("startup_failed")) return "startup_failed";
+  if (statuses.includes("failed")) return "failed";
+  if (statuses.includes("blocked")) return "blocked";
+  if (statuses.includes("unsupported")) return "unsupported";
+  return statuses.length > 0 && statuses.every((status) => status === "passed")
+    ? "passed"
+    : "failed";
+}
+
 export async function runLocalCli(args) {
   let options;
   try {
@@ -262,7 +287,9 @@ export async function runLocalCli(args) {
 
   const id = invocationId();
   const directory = resolve(ROOT_OUTPUT, id);
-  const evidenceDirectory = resolve(directory, "evidence", options.script);
+  const evidenceDirectory = resolve(directory, "evidence");
+  const journeyEvidenceDirectory = (script) =>
+    resolve(evidenceDirectory, options.scripts.length === 1 ? "" : script);
   const distDir = `.next-e2e-local-${id}`;
   const tsconfigPath = `.tsconfig-e2e-local-${id}.json`;
   const tsconfigFile = resolve(WEB, tsconfigPath);
@@ -270,11 +297,17 @@ export async function runLocalCli(args) {
   const buildLog = resolve(directory, "build.log");
   const journeyLog = resolve(directory, "journey.log");
   mkdirSync(evidenceDirectory, { recursive: true });
+  const reproductionArgs = ["pnpm", "--filter", "@trip/web", "e2e", "run"];
+  if (options.selectionMode === "all") reproductionArgs.push("--all");
+  else if (options.selectionMode === "named") reproductionArgs.push(...options.scripts);
+  if (options.mode === "development") reproductionArgs.push("--dev");
+  if (options.timeoutProvided) reproductionArgs.push("--timeout-ms", String(options.timeoutMs));
   const summary = {
     invocationId: id,
     startedAt: new Date().toISOString(),
-    requested: [options.script],
-    reproductionCommand: `pnpm --filter @trip/web e2e run ${options.script}${options.mode === "development" ? " --dev" : ""}`,
+    selectionMode: options.selectionMode,
+    requested: options.scripts,
+    reproductionCommand: reproductionArgs.join(" "),
     server: { mode: options.mode, url: null, port: null, distDir },
     ownedResources: [
       { kind: "next-build-directory", path: `apps/web/${distDir}`, state: "retained" },
@@ -304,10 +337,20 @@ export async function runLocalCli(args) {
 
   let status = "failed";
   let diagnostic;
+  const resultsByScript = new Map();
   try {
-    if (!SUPPORTED.has(options.script)) {
+    const supported = options.scripts.filter((script) => SUPPORTED.has(script));
+    for (const script of options.scripts) {
+      if (!SUPPORTED.has(script))
+        resultsByScript.set(script, {
+          scenario: script,
+          status: "unsupported",
+          diagnostics: `No local fixture journey is registered as supported for ${script}.`,
+        });
+    }
+    if (supported.length === 0) {
       status = "unsupported";
-      diagnostic = `No local fixture journey is registered as supported for ${options.script}.`;
+      diagnostic = `No local fixture journey is registered as supported for ${options.scripts.join(", ")}.`;
     } else {
       try {
         createRequire(import.meta.url).resolve("playwright");
@@ -316,7 +359,10 @@ export async function runLocalCli(args) {
         status = "blocked";
         diagnostic = "Workspace dependencies are unavailable. Run pnpm install --frozen-lockfile.";
       }
-      if (status !== "blocked") {
+      if (status === "blocked") {
+        for (const script of supported)
+          resultsByScript.set(script, { scenario: script, status, diagnostics: diagnostic });
+      } else {
         if (existsSync(resolve(WEB, distDir)))
           throw new Error(`Invocation build directory already exists: ${distDir}`);
         const tsconfig = JSON.parse(readFileSync(resolve(WEB, "tsconfig.json"), "utf8"));
@@ -362,49 +408,64 @@ export async function runLocalCli(args) {
             status = "startup_failed";
             diagnostic = `${ready.reason}; see ${serverLog.slice(ROOT.length + 1)}`;
           } else {
-            writeFileSync(journeyLog, `Starting ${options.script}\n`);
-            current = spawn(process.execPath, [resolve(HERE, "agent-lab-single-agent.e2e.mjs")], {
-              cwd: ROOT,
-              env: {
-                ...fixtureEnv({
-                  port,
-                  distDir,
-                  evidenceDirectory,
-                  mode: options.mode,
-                  tsconfigPath,
-                }),
-                BASE_URL: url,
-              },
-              detached: process.platform !== "win32",
-              stdio: ["ignore", "pipe", "pipe"],
-            });
-            current.stdout.on("data", (chunk) => appendFileSync(journeyLog, chunk));
-            current.stderr.on("data", (chunk) => appendFileSync(journeyLog, chunk));
-            const result = await new Promise((done) => {
-              const timer = setTimeout(() => {
-                terminateGroup(current);
-                done({ status: "timed_out", code: 124 });
-              }, options.timeoutMs);
-              current.once("error", (error) => {
-                clearTimeout(timer);
-                done({ status: "failed", code: 1, error: error.message });
+            for (const script of supported) {
+              if (interrupted) break;
+              const scriptEvidenceDirectory = journeyEvidenceDirectory(script);
+              mkdirSync(scriptEvidenceDirectory, { recursive: true });
+              const scriptLog =
+                options.scripts.length === 1
+                  ? journeyLog
+                  : resolve(directory, `journey-${script}.log`);
+              writeFileSync(scriptLog, `Starting ${script}\n`);
+              current = spawn(process.execPath, [resolve(HERE, `${script}.e2e.mjs`)], {
+                cwd: ROOT,
+                env: {
+                  ...fixtureEnv({
+                    port,
+                    distDir,
+                    evidenceDirectory: scriptEvidenceDirectory,
+                    mode: options.mode,
+                    tsconfigPath,
+                  }),
+                  BASE_URL: url,
+                },
+                detached: process.platform !== "win32",
+                stdio: ["ignore", "pipe", "pipe"],
               });
-              current.once("close", (code, signal) => {
-                clearTimeout(timer);
-                done({ status: code === 0 ? "passed" : "failed", code: code ?? 1, signal });
+              current.stdout.on("data", (chunk) => appendFileSync(scriptLog, chunk));
+              current.stderr.on("data", (chunk) => appendFileSync(scriptLog, chunk));
+              const result = await new Promise((done) => {
+                let timedOut = false;
+                let termination;
+                const timer = setTimeout(() => {
+                  timedOut = true;
+                  termination = terminateGroup(current);
+                  termination.done.then(() => done({ status: "timed_out", code: 124 }));
+                }, options.timeoutMs);
+                current.once("error", (error) => {
+                  clearTimeout(timer);
+                  done({ status: "failed", code: 1, error: error.message });
+                });
+                current.once("close", (code, signal) => {
+                  clearTimeout(timer);
+                  if (timedOut) {
+                    termination?.done.then(() => done({ status: "timed_out", code: 124 }));
+                  } else
+                    done({ status: code === 0 ? "passed" : "failed", code: code ?? 1, signal });
+                });
               });
-            });
-            status = result.status;
-            if (result.error) diagnostic = result.error;
-            if (status === "failed")
-              diagnostic = `Journey failed; see ${journeyLog.slice(ROOT.length + 1)}`;
-            summary.results.push({
-              scenario: options.script,
-              status,
-              exitCode: result.code,
-              evidenceDirectory: evidenceDirectory.slice(ROOT.length + 1),
-              diagnostics: journeyLog.slice(ROOT.length + 1),
-            });
+              current = undefined;
+              const resultStatus = interrupted ? "interrupted" : result.status;
+              resultsByScript.set(script, {
+                scenario: script,
+                status: resultStatus,
+                exitCode: result.code,
+                evidenceDirectory: scriptEvidenceDirectory.slice(ROOT.length + 1),
+                diagnostics: scriptLog.slice(ROOT.length + 1),
+                ...(result.error ? { error: result.error } : {}),
+              });
+              if (interrupted) break;
+            }
           }
         }
       }
@@ -419,7 +480,7 @@ export async function runLocalCli(args) {
     if (interrupted) {
       status = "interrupted";
       diagnostic = `Interrupted by ${interruptSignal}; available diagnostics are retained.`;
-      if (summary.results[0]) summary.results[0].status = status;
+      if (current) current = undefined;
     }
     if (tsconfigCreated) rmSync(tsconfigFile, { force: true });
     summary.ownedResources[0].state = existsSync(resolve(WEB, distDir))
@@ -428,12 +489,19 @@ export async function runLocalCli(args) {
     summary.ownedResources[1].state = tsconfigCreated ? "removed" : "not-created";
   }
 
+  for (const script of options.scripts) {
+    if (!resultsByScript.has(script))
+      resultsByScript.set(script, {
+        scenario: script,
+        status,
+        diagnostics: diagnostic ?? null,
+      });
+  }
+  summary.results = options.scripts.map((script) => resultsByScript.get(script));
+  status = aggregateStatus(summary.results);
   summary.outcome = status;
   summary.completedAt = new Date().toISOString();
   if (diagnostic) summary.diagnostic = diagnostic;
-  if (summary.results.length === 0 && options.script) {
-    summary.results.push({ status, scenario: options.script, diagnostics: diagnostic ?? null });
-  }
   const result = writeSummary(directory, summary);
   outputResult(
     {
