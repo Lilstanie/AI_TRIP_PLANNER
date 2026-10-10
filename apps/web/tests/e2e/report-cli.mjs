@@ -95,6 +95,26 @@ function evidenceState(path) {
   }
 }
 
+function requestedCoverageMatches(requested, results) {
+  if (
+    !Array.isArray(requested) ||
+    requested.length === 0 ||
+    requested.length !== results.length ||
+    requested.some((scenario) => typeof scenario !== "string" || scenario.length === 0)
+  )
+    return false;
+  const counts = new Map();
+  for (const scenario of requested) counts.set(scenario, (counts.get(scenario) ?? 0) + 1);
+  for (const result of results) {
+    const scenario = result.scenario;
+    const remaining = counts.get(scenario) ?? 0;
+    if (remaining === 0) return false;
+    if (remaining === 1) counts.delete(scenario);
+    else counts.set(scenario, remaining - 1);
+  }
+  return counts.size === 0;
+}
+
 function runDetails(summary) {
   const results = Array.isArray(summary.results)
     ? summary.results.map((result) => ({
@@ -112,6 +132,7 @@ function runDetails(summary) {
     typeof summary.outcome === "string" &&
     Array.isArray(summary.requested) &&
     results.length > 0 &&
+    requestedCoverageMatches(summary.requested, results) &&
     results.every(
       (result) => result.status !== "incomplete" && result.evidenceStatus === "available",
     );

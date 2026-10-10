@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { createServer } from "node:http";
 import {
   chmodSync,
@@ -100,6 +100,96 @@ const unsupported = await execute([
 ]);
 assert.notEqual(unsupported.status, 0);
 assert.equal(JSON.parse(unsupported.stdout).outcome, "unsupported");
+
+const cliEntry = resolve(root, "apps/web/tests/e2e/run.mjs");
+const invocationRoot = resolve(root, "output/e2e/local-test-cli");
+const nextBin = resolve(root, "apps/web/node_modules/.bin/next");
+const heldNext = `${nextBin}.foreign-listener-hold-${process.pid}`;
+const nextMode = statSync(nextBin).mode & 0o777;
+const beforeForeignListener = new Set(readdirSync(invocationRoot));
+renameSync(nextBin, heldNext);
+writeFileSync(
+  nextBin,
+  [
+    "#!/usr/bin/env node",
+    'import { createServer } from "node:http";',
+    "const args = process.argv.slice(2);",
+    'const port = Number(args[args.indexOf("-p") + 1]);',
+    'const hostIndex = args.indexOf("-H");',
+    'const host = hostIndex < 0 ? "0.0.0.0" : args[hostIndex + 1];',
+    'const server = createServer((_request, response) => response.writeHead(200).end("foreign responder"));',
+    'server.listen(port, host, () => console.log(JSON.stringify({ marker: "foreign-listener-ready", pid: process.pid, port, host })));',
+    "",
+  ].join("\n"),
+  { mode: nextMode },
+);
+let foreignListenerProcess;
+let foreignListenerClosed;
+let foreignInvocation;
+try {
+  foreignListenerProcess = spawn(
+    process.execPath,
+    [cliEntry, "run", "agent-lab-single-agent", "--dev", "--json"],
+    { cwd: root, env: syntheticEnv, stdio: ["ignore", "pipe", "pipe"] },
+  );
+  let foreignOutput = "";
+  foreignListenerProcess.stdout.on("data", (chunk) => (foreignOutput += String(chunk)));
+  foreignListenerProcess.stderr.on("data", (chunk) => (foreignOutput += String(chunk)));
+  foreignListenerClosed = new Promise((done) =>
+    foreignListenerProcess.once("close", (code, signal) => done({ code, signal })),
+  );
+  const deadline = Date.now() + 20_000;
+  let foreignMarker;
+  while (Date.now() < deadline && !foreignMarker) {
+    const candidate = readdirSync(invocationRoot).find((name) => !beforeForeignListener.has(name));
+    if (candidate) {
+      const serverLog = resolve(invocationRoot, candidate, "server.log");
+      if (existsSync(serverLog)) {
+        const line = readFileSync(serverLog, "utf8")
+          .split("\n")
+          .find((entry) => entry.includes('"foreign-listener-ready"'));
+        if (line) {
+          foreignInvocation = candidate;
+          foreignMarker = JSON.parse(line);
+        }
+      }
+    }
+    if (!foreignMarker) await new Promise((wait) => setTimeout(wait, 50));
+  }
+  assert.ok(foreignMarker, `Controlled foreign listener did not start: ${foreignOutput}`);
+  const sockets = spawnSync(
+    "lsof",
+    ["-nP", "-a", "-p", String(foreignMarker.pid), "-iTCP", "-sTCP:LISTEN"],
+    { encoding: "utf8" },
+  );
+  assert.equal(sockets.error, undefined, sockets.error?.message);
+  assert.equal(sockets.status, 0, sockets.stderr);
+  assert.match(sockets.stdout, new RegExp(`127\\.0\\.0\\.1:${foreignMarker.port} \\(LISTEN\\)`));
+  assert.doesNotMatch(
+    sockets.stdout,
+    new RegExp(`(?:\\*|0\\.0\\.0\\.0):${foreignMarker.port} \\(LISTEN\\)`),
+  );
+  await new Promise((wait) => setTimeout(wait, 750));
+  assert.equal(
+    existsSync(resolve(invocationRoot, foreignInvocation, "journey.log")),
+    false,
+    "an arbitrary HTTP responder does not make the owned server ready",
+  );
+} finally {
+  if (foreignListenerProcess?.exitCode === null && foreignListenerProcess?.signalCode === null) {
+    foreignListenerProcess.kill("SIGTERM");
+    await foreignListenerClosed;
+  }
+  unlinkSync(nextBin);
+  renameSync(heldNext, nextBin);
+}
+assert.ok(foreignInvocation);
+const foreignSummary = JSON.parse(
+  readFileSync(resolve(invocationRoot, foreignInvocation, "summary.json"), "utf8"),
+);
+assert.equal(foreignSummary.outcome, "interrupted");
+assert.equal(foreignSummary.results[0].status, "interrupted");
+await assert.rejects(fetch(foreignSummary.server.url));
 
 const playwrightModule = resolve(root, "apps/web/node_modules/playwright");
 const heldPlaywrightModule = `${playwrightModule}.local-cli-test-hold`;
@@ -250,8 +340,6 @@ await assert.rejects(fetch(timeoutSummary.server.url));
 assert.equal(readFileSync(unrelatedSentinel, "utf8"), "preserve this file\n");
 assert.equal(await (await fetch(unrelatedUrl)).text(), "survived");
 
-const cliEntry = resolve(root, "apps/web/tests/e2e/run.mjs");
-const invocationRoot = resolve(root, "output/e2e/local-test-cli");
 const priorInvocations = new Set(readdirSync(invocationRoot));
 const interruptedProcess = spawn(
   process.execPath,
@@ -324,7 +412,6 @@ await assert.rejects(fetch(journeySummary.server.url));
 assert.equal(readFileSync(unrelatedSentinel, "utf8"), "preserve this file\n");
 assert.equal(await (await fetch(unrelatedUrl)).text(), "survived");
 
-const nextBin = resolve(root, "apps/web/node_modules/.bin/next");
 const nextBinStat = lstatSync(nextBin);
 assert.ok(nextBinStat.isFile(), "Next launcher is a worktree-local regular file");
 assert.equal(nextBinStat.isSymbolicLink(), false);

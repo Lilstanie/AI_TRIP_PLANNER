@@ -13,8 +13,10 @@ pnpm --filter @trip/web e2e run agent-lab-single-agent --dev
 pnpm --silent --filter @trip/web e2e run --all --json
 ```
 
-The command starts its own server on a free loopback port. It uses a production build and server by
-default; `--dev` selects Next development mode. An inherited `BASE_URL` is ignored. A fresh invocation
+The command binds its own Next server to `127.0.0.1` on a free loopback port. Readiness requires the
+spawned Next process to report that it is ready and the server to answer HTTP; another service on the
+port cannot satisfy the check. It uses a production build and server by default; `--dev` selects Next
+development mode. An inherited `BASE_URL` is ignored. A fresh invocation
 directory under `output/e2e/local-test-cli/` contains `summary.json`, build/server/journey logs and each
 journey's screenshots, API streams and artifacts. The summary records selection mode, exact requested
 journeys, one outcome per journey, reproduction command, server mode, retained build directory and evidence
@@ -68,7 +70,8 @@ Every attempt starts a fresh local CLI invocation with its own build, server, br
 execution and evidence directory. The repeat summary records the requested count and each started
 attempt's outcome, reproduction command, child summary and evidence paths. A failed, blocked,
 unsupported, timed-out or interrupted attempt keeps the repeat outcome nonzero even when a later
-attempt passes. The requested number of attempts runs serially; this is not an automatic retry.
+attempt passes. An attempt counts as passed only when both its saved run summary and child process
+exit report success. The requested number of attempts runs serially; this is not an automatic retry.
 Invalid counts are rejected before an invocation starts. If the repeat command is interrupted,
 completed summaries and available evidence remain, the active child is asked to clean up, and the
 summary reports how many requested attempts did not start.
@@ -92,7 +95,8 @@ If pnpm itself is unavailable, run `node apps/web/tests/e2e/run.mjs doctor --jso
 root to see the blocked package-manager check.
 
 `doctor` checks the Node.js and pinned pnpm versions, the web Next.js executable, Playwright and its
-Chromium executable, and whether app dotenv files are present. It never starts the application or a
+Chromium executable, the required `apps/web/tsconfig.json` shape (`include` is a string array), and
+whether app dotenv files are present. It never starts the application or a
 test server, contacts a provider, or reads or changes dotenv contents. Provider credentials are not
 required for the local fixture profile. Missing required tools are `blocked`, include a remediation,
 and return nonzero. JSON output is one object with `schemaVersion`, `command`, `outcome` and `checks`;
@@ -122,7 +126,8 @@ The report reads the saved record and checks whether its evidence directories ar
 does not rerun a check, start a server or modify the summary or evidence. JSON `reportOutcome: "reported"`
 means the report was read successfully; `recordedOutcome` is the test result. A recorded failure is
 still a successfully read report and does not make the report command fail. `recordStatus` is
-`incomplete` when the summary is partial or its evidence is missing.
+`incomplete` when the summary is partial, its results do not match every requested journey exactly
+once, or its evidence is missing.
 
 Repeat reports retain every attempt in order, including failures before a later pass. Missing child
 summaries, interrupted attempts and missing evidence are marked incomplete instead of being presented

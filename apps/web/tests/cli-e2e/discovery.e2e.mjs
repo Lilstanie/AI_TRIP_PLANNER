@@ -1,6 +1,15 @@
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
-import { existsSync, lstatSync, mkdirSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { spawn } from "node:child_process";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
@@ -8,6 +17,7 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = resolve(fileURLToPath(new URL("../../../../", import.meta.url)));
 const ENTRY = resolve(ROOT, "apps/web/tests/e2e/run.mjs");
+const TSCONFIG = resolve(ROOT, "apps/web/tsconfig.json");
 let serviceContacts = 0;
 const sentinel = createServer((request, response) => {
   serviceContacts += 1;
@@ -119,6 +129,40 @@ assert.ok(
   ),
 );
 assert.ok(!`${blocked.stdout}\n${blocked.stderr}`.includes("synthetic-map-secret"));
+
+const heldTsconfig = `${TSCONFIG}.doctor-hold-${process.pid}`;
+renameSync(TSCONFIG, heldTsconfig);
+let missingTsconfig;
+try {
+  missingTsconfig = await run("doctor", ["--json"]);
+} finally {
+  renameSync(heldTsconfig, TSCONFIG);
+}
+assert.equal(missingTsconfig.status, 1, missingTsconfig.stderr);
+const missingTsconfigReport = JSON.parse(missingTsconfig.stdout);
+assert.equal(missingTsconfigReport.outcome, "blocked");
+assert.ok(
+  missingTsconfigReport.checks.some(
+    (check) => check.id === "typescript-config" && check.status === "blocked" && check.remediation,
+  ),
+);
+
+const tsconfigBeforeInvalid = readFileSync(TSCONFIG, "utf8");
+writeFileSync(TSCONFIG, '{"include":"not-an-array"}\n');
+let invalidTsconfig;
+try {
+  invalidTsconfig = await run("doctor", ["--json"]);
+} finally {
+  writeFileSync(TSCONFIG, tsconfigBeforeInvalid);
+}
+assert.equal(invalidTsconfig.status, 1, invalidTsconfig.stderr);
+const invalidTsconfigReport = JSON.parse(invalidTsconfig.stdout);
+assert.equal(invalidTsconfigReport.outcome, "blocked");
+assert.ok(
+  invalidTsconfigReport.checks.some(
+    (check) => check.id === "typescript-config" && check.status === "blocked",
+  ),
+);
 
 const listed = await run("list", ["--json"]);
 assert.equal(listed.status, 0, listed.stderr);

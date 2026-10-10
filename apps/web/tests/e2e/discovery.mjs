@@ -106,6 +106,28 @@ function doctorChecks() {
     ),
   );
 
+  let tsconfigReady = false;
+  try {
+    const tsconfig = JSON.parse(readFileSync(resolve(WEB, "tsconfig.json"), "utf8"));
+    tsconfigReady =
+      Boolean(tsconfig) &&
+      !Array.isArray(tsconfig) &&
+      Array.isArray(tsconfig.include) &&
+      tsconfig.include.every((entry) => typeof entry === "string");
+  } catch {}
+  checks.push(
+    check(
+      "typescript-config",
+      tsconfigReady ? "ready" : "blocked",
+      tsconfigReady
+        ? "The web TypeScript config is readable JSON with an include string array."
+        : "apps/web/tsconfig.json is missing, unreadable, malformed, or has an invalid include array.",
+      tsconfigReady
+        ? undefined
+        : "Restore a valid apps/web/tsconfig.json with an include string array.",
+    ),
+  );
+
   let playwright;
   try {
     playwright = REQUIRE("playwright");
