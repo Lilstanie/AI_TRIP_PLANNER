@@ -66,8 +66,7 @@ describe("B proposals in the actual LangGraph workflow", () => {
       tools: { ...tools, maps: { ...tools.maps, places: vi.fn(async () => []) } },
       mem,
     });
-    // The revision cannot find places either, so it improves nothing and the
-    // loop stops there rather than repeating it until K.
+
     expect(plan.round).toBe(2);
     expect(plan.sections[0]!.status).toBe("needs_you");
     expect((plan.conflicts?.length ?? 0) > 0).toBe(true);

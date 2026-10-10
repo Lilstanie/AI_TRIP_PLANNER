@@ -1,12 +1,5 @@
 import type { FlightLeg, FlightSegment } from "@trip/shared";
 
-/**
- * Turning Google Flights' own shape into this project's.
- *
- * Kept apart from the search so the parsing can be tested against recorded
- * provider shapes without spending the monthly search allowance on it.
- */
-
 interface RawAirport {
   name?: unknown;
   id?: unknown;
@@ -58,9 +51,7 @@ function segment(raw: RawSegment): FlightSegment | undefined {
   const durationMin = minutes(raw.duration);
   const airline = text(raw.airline);
   const flightNumber = text(raw.flight_number);
-  // Every one of these appears on a boarding pass. A segment missing any of
-  // them cannot be shown as a flight, so it is dropped rather than rendered
-  // with a blank where a gate or a time belongs.
+
   if (!from || !to || !departsAt || !arrivesAt || !durationMin || !airline || !flightNumber)
     return undefined;
   const logo = text(raw.airline_logo);
@@ -78,17 +69,17 @@ function segment(raw: RawSegment): FlightSegment | undefined {
   };
 }
 
-/** One direction of an itinerary, or undefined when the provider's shape is unusable. */
 export function legFrom(raw: RawItinerary): FlightLeg | undefined {
-  const segments = (raw.flights ?? []).map(segment).filter((value): value is FlightSegment => !!value);
+  const segments = (raw.flights ?? [])
+    .map(segment)
+    .filter((value): value is FlightSegment => !!value);
   if (!segments.length || segments.length !== (raw.flights ?? []).length) return undefined;
   const layovers = (raw.layovers ?? []).flatMap((stop) => {
     const stopPlace = place({ id: stop.id, name: stop.name });
     const durationMin = minutes(stop.duration);
     return stopPlace && durationMin ? [{ place: stopPlace, durationMin }] : [];
   });
-  // Prefer the provider's own total; fall back to the segments plus the waits
-  // between them, which is the same number when both are present.
+
   const total =
     minutes(raw.total_duration) ??
     segments.reduce((sum, leg) => sum + leg.durationMin, 0) +

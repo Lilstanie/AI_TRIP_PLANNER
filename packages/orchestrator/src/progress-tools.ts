@@ -23,7 +23,6 @@ import {
 
 type ProgressWriter = (event: AgentProgressEvent) => void;
 
-/** What one tool call publishes back to the transcript. */
 interface ToolOutcome {
   text: string;
   count?: number;
@@ -32,16 +31,9 @@ interface ToolOutcome {
 }
 
 function failureMessage(_error: unknown): string {
-  // Provider diagnostics stay server-side; the transcript only needs a safe lifecycle label.
   return "Tool unavailable; continuing with fallback when possible.";
 }
 
-/**
- * The web page a result row refers to, when the provider gave one. Clients show
- * the site's icon for it, so anything that is not an http(s) page — a `tel:`
- * link, a provider's own placeholder — is dropped rather than published as a
- * site this result does not have.
- */
 function site(url: string | undefined): { url: string } | Record<string, never> {
   if (!url) return {};
   try {
@@ -53,27 +45,15 @@ function site(url: string | undefined): { url: string } | Record<string, never> 
   }
 }
 
-/** `20 options` reads false for one result; keep the plural honest. */
 function plural(count: number, singular: string, pluralForm = `${singular}s`): string {
   return `${count} ${count === 1 ? singular : pluralForm}`;
 }
 
-/**
- * Bound a result list to the rows a transcript can carry. The count is kept
- * separate from the rows so a reader still sees the true size of the result
- * when only the head is published.
- */
 function bounded(rows: ToolResultRow[]): { rows: ToolResultRow[]; truncated: boolean } {
   if (rows.length <= BOUNDED_RESULT_ROWS) return { rows, truncated: false };
   return { rows: rows.slice(0, BOUNDED_RESULT_ROWS), truncated: true };
 }
 
-/**
- * Place categories come from agents ("sight", "restaurant") and from providers
- * (Google's "tourist_attraction", "night_club", OSM's "viewpoint"), so they are
- * matched by keyword rather than by a closed list. Order matters: "art gallery
- * cafe" is a museum, and a "coffee shop" is a cafe before it is shopping.
- */
 const PLACE_KINDS: Array<[ToolResultKind, RegExp]> = [
   ["museum", /\b(museums?|galler(y|ies)|exhibitions?)\b/],
   ["cafe", /\b(cafes?|coffee|bakery|bakeries|tea ?house|tea ?room|dessert)\b/],
@@ -97,9 +77,7 @@ const PLACE_KINDS: Array<[ToolResultKind, RegExp]> = [
   ],
 ];
 
-/** The icon kind for a place, defaulting to a generic place. */
 export function placeKind(category: string | undefined): ToolResultKind {
-  // Accents are stripped first: `\b` treats "é" as a non-word character.
   const normalized = (category ?? "")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -108,7 +86,6 @@ export function placeKind(category: string | undefined): ToolResultKind {
   return PLACE_KINDS.find(([, pattern]) => pattern.test(normalized))?.[0] ?? "place";
 }
 
-/** The icon kind for a journey leg or option, by its TravelMode (or a provider synonym). */
 export function travelKind(mode: string): ToolResultKind {
   switch (mode) {
     case "drive":
@@ -132,11 +109,8 @@ export function travelKind(mode: string): ToolResultKind {
   }
 }
 
-
-/** Stays keep a 0–10 rating internally; travellers read it out of 5, like Google's own stars. */
 const outOfFive = (rating: number) => `${(rating / 2).toFixed(1)}/5`;
 
-/** `AUD 210.00 · 4.5/5 · free cancellation`, in the trip's display currency. */
 function stayDetail(option: StayOption, currency: Currency): string {
   return [
     option.area,
@@ -149,7 +123,11 @@ function stayDetail(option: StayOption, currency: Currency): string {
 function flightDetail(option: FlightOption, currency: Currency): string {
   return [
     `${formatMoney(option.price, currency)}`,
-    option.stops === undefined ? undefined : option.stops === 0 ? "Nonstop" : plural(option.stops, "stop"),
+    option.stops === undefined
+      ? undefined
+      : option.stops === 0
+        ? "Nonstop"
+        : plural(option.stops, "stop"),
     option.durationMin === undefined
       ? undefined
       : `${Math.round(option.durationMin / 60)}h ${option.durationMin % 60}m`,
@@ -160,13 +138,14 @@ function flightDetail(option: FlightOption, currency: Currency): string {
 }
 
 function placeDetail(place: Place): string | undefined {
-  // A place's rating is Google's own 1–5 value, passed through unconverted.
-  const parts = [place.category, place.rating === undefined ? undefined : `${place.rating.toFixed(1)}/5`];
+  const parts = [
+    place.category,
+    place.rating === undefined ? undefined : `${place.rating.toFixed(1)}/5`,
+  ];
   const joined = parts.filter((part): part is string => Boolean(part)).join(" · ");
   return joined || undefined;
 }
 
-/** A travel option in one line, with the cost qualified by how much is known. */
 function optionDetail(option: RouteOption, currency: Currency): string {
   const hours = Math.floor(option.durationMin / 60);
   const minutes = option.durationMin % 60;
@@ -192,21 +171,12 @@ function routeDetail(leg: RouteLeg, currency: Currency): string {
     .join(" · ");
 }
 
-/**
- * Add DeepSeek-style tool lifecycle events without changing the agent-facing gateway contract.
- * The summaries intentionally contain only safe, high-level query context — never credentials or
- * raw provider payloads.
- *
- * The result rows are the result itself, restated for a reader: the stay candidates a search
- * returned, the places it found, the legs a route had. They are bounded by BOUNDED_RESULT_ROWS so
- * one wide search cannot make the progress stream unbounded.
- */
 export function withProgressTools(
   tools: ToolGateway,
   agent: AgentName,
   round: number,
   onProgress?: ProgressWriter,
-  /** How amounts in the progress rows are spelled; planning amounts are AUD whatever this is. */
+
   currency: Currency = "AUD",
 ): ToolGateway {
   let sequence = 0;
@@ -261,10 +231,6 @@ export function withProgressTools(
   }
 
   const maps: MapsPort = {
-    // Spread first so a capability added to MapsPort keeps working here even if
-    // nobody remembers to wrap it. Re-listing every method by hand silently
-    // dropped routeOptions: the agent saw `undefined`, took its own "no
-    // comparison available" branch, and the feature looked merely unused.
     ...tools.maps,
     places: (query: Parameters<MapsPort["places"]>[0]) =>
       run(
@@ -282,8 +248,7 @@ export function withProgressTools(
               label: place.name,
               detail: placeDetail(place),
               kind: placeKind(place.category || query.category),
-              // Only what the provider reported. A place with no site keeps
-              // its category glyph rather than borrowing another site's icon.
+
               ...site(place.website),
             })),
           );
@@ -348,8 +313,6 @@ export function withProgressTools(
   };
 
   const booking: BookingPort = {
-    // Spread first, for the same reason as maps above: re-listing the port's
-    // methods by hand silently drops anything added to it later.
     ...tools.booking,
     searchStays: (query: StayQuery) =>
       run(
@@ -369,8 +332,7 @@ export function withProgressTools(
               label: option.name,
               detail: stayDetail(option, currency),
               kind: "stay" as const,
-              // Whatever page the provider published for the property: its own
-              // site from Google Places, the details page from SerpApi.
+
               ...site(option.detailsUrl),
             })),
           );

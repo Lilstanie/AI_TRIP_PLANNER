@@ -1,5 +1,3 @@
-// Failure inventory: inverted rates, lost cents, non-finite inputs, zero/negative deltas rejected,
-// or a second rate table drifting from budget conversion. This tests the public money boundary.
 import { describe, expect, it } from "vitest";
 import { fromAud, toAud } from "../src/money";
 

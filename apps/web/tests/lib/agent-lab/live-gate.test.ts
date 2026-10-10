@@ -1,16 +1,3 @@
-// Failure inventory for the live gate (#106), written before the code.
-//
-// Configuration:
-// - live is enabled by anything but an explicit setting (an empty value, "1", "yes", "TRUE");
-// - a missing, non-numeric, negative or fractional limit becomes no limit, NaN or a crash instead of the
-//   default, or a huge value is accepted as a limit;
-// - zero, which a deployment may use to allow nothing, is mistaken for "unset".
-//
-// Limiter:
-// - a run is admitted beyond the concurrency limit or the hourly rate;
-// - a rejected attempt consumes quota or a slot, so a visitor locks everyone out by trying;
-// - a slot is not freed when a run ends, fails or is cancelled, or is freed twice and lets two in;
-// - runs older than the window still count; the retry hint is zero or in the wrong unit.
 import { describe, expect, it } from "vitest";
 import { createLiveLimiter, readLiveConfig } from "@/lib/agent-lab/live-gate";
 
@@ -91,7 +78,6 @@ describe("createLiveLimiter", () => {
     const rejected = limiter.tryAcquire(config(5, 2));
     expect(rejected).toMatchObject({ ok: false, reason: "rate_limit" });
     if (!rejected.ok) {
-      // The oldest run left the window 50 minutes from now.
       expect(rejected.retryAfterSeconds).toBe(50 * 60);
     }
     time += 51 * 60_000;

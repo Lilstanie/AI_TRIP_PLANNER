@@ -34,49 +34,43 @@ export function ChatPanel({
   onAnswer,
   onDismissAsk,
 }: {
-  /** Undefined for a blank conversation that has not produced a plan. */
   plan?: TripPlan;
   messages: Message[];
   input: string;
   onInput: (value: string) => void;
   busy: boolean;
-  /**
-   * Sending is paused while a timeline edit is being previewed. Kept apart from `busy`, which also
-   * shows the thinking row and the stop button: a pending edit is not a chat request.
-   */
+
   locked?: boolean;
   activity: AgentProgressEvent[];
-  /** Optional text sends that message instead of the composer's contents. */
+
   onSend: (message?: string) => void;
   onEdit: () => void;
-  /** Opens Trip preferences from the blank-conversation prompt. */
+
   onStart?: () => void;
-  /** Cancels the active request without changing the current plan. */
+
   onCancel?: () => void;
-  /** High-level request error shown in the workspace. */
+
   error?: Notice;
-  /** Receives files picked, dropped or pasted into the composer. */
+
   onAttachFiles?: (files: File[]) => void;
-  /** Files held for the next message, drawn as chips inside the composer. */
+
   attachments?: PreparedAttachment[];
-  /** Drops one held file by id. */
+
   onRemoveAttachment?: (id: string) => void;
-  /** False at the per-message attachment limit. */
+
   canAttach?: boolean;
-  /** One line under the chips explaining each refusal or the limit. */
+
   attachNotices?: readonly Notice[];
-  /** A structured question awaiting an answer; its card takes the composer's seat. */
+
   ask?: PendingAsk;
-  /** Receives the question card's answers. */
+
   onAnswer?: (answers: QuestionAnswer[]) => void;
-  /** Dismisses the question card and brings the composer back. */
+
   onDismissAsk?: () => void;
 }) {
   const { t } = useLocale();
   const stream = useRef<HTMLDivElement>(null);
-  /** Messages already on screen when the panel mounted -- a transcript restored
-   *  from storage after a reload. Only a reply that arrives after them is new,
-   *  so only that one is revealed word by word. */
+
   const restored = useRef(messages.length);
   const last = messages.length - 1;
   const revealIndex = last >= restored.current && messages[last]?.role === "agent" ? last : -1;
@@ -88,7 +82,6 @@ export function ChatPanel({
 
   const prompts = useMemo(() => quickPrompts(), []);
   return (
-    // No visible heading: the conversation speaks for itself. The region keeps its name.
     <section className="panel chat" aria-label={t("Chat")}>
       <div className="chat__stream" ref={stream} aria-busy={busy}>
         {!plan && !messages.length && (

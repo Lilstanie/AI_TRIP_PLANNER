@@ -42,7 +42,7 @@ interface ScenarioSummary {
 interface StrategySummary {
   id: AgentLabStrategyId;
   label: string;
-  /** False for the scripted baseline, which replays a recording and has no live implementation. */
+
   live: boolean;
 }
 
@@ -50,17 +50,16 @@ interface AgentLabClientProps {
   scenarios: readonly ScenarioSummary[];
   strategies: readonly StrategySummary[];
   faultProfiles: readonly FaultProfileSummary[];
-  /** Whether this deployment has explicitly enabled live runs; read on the server, never guessed here. */
+
   liveEnabled: boolean;
 }
 
 type View = "inspect" | "compare" | "failures" | "architecture";
 
-/** One request the page makes, and the key its result is kept under. */
 interface Job {
   key: string;
   body: AgentLabRunRequest;
-  /** Set for a fault run, where the run stopping is the outcome being shown, not a failure of the page. */
+
   profile?: FaultProfileSummary;
 }
 
@@ -113,8 +112,7 @@ export function AgentLabClient({
   const [runs, setRuns] = useState<Record<string, RunView>>({});
   const [busy, setBusy] = useState(false);
   const [replaying, setReplaying] = useState(false);
-  // What the status region last announced besides the run state: a download, a fault outcome or a
-  // refused file.
+
   const [notice, setNotice] = useState<string>();
   const [replayError, setReplayError] = useState<string>();
   const controllerRef = useRef<AbortController | undefined>(undefined);
@@ -141,10 +139,8 @@ export function AgentLabClient({
       };
     });
 
-  // Strategies a request can use in the chosen mode: live needs a live implementation.
   const available = strategies.filter((strategy) => dataMode === "fixture" || strategy.live);
 
-  // Runs go one after another so each one's latency is measured on its own.
   const start = async (jobs: readonly Job[]) => {
     const controller = new AbortController();
     controllerRef.current = controller;
@@ -172,7 +168,6 @@ export function AgentLabClient({
           break;
         }
         if (caught instanceof AgentLabRejectedError) {
-          // Turned away before a run began; say why in plain words, and do not call it a failed run.
           patch(job.key, {
             state: "rejected",
             rejection: {
@@ -184,7 +179,6 @@ export function AgentLabClient({
           break;
         }
         if (job.profile && caught instanceof AgentLabRunError) {
-          // A fault that stops the run is the outcome being shown, so the next profile still runs.
           patch(job.key, { state: "error", error: caught.message, failure: caught.artifact });
           setNotice(`${job.profile.title}: ${faultOutcome(caught.artifact).label}`);
           continue;
@@ -197,19 +191,16 @@ export function AgentLabClient({
         break;
       }
     }
-    // After several profiles, the status reads as a whole instead of repeating the last card's outcome.
+
     if (jobs.length > 1 && !controller.signal.aborted) setNotice(undefined);
     if (controllerRef.current === controller) controllerRef.current = undefined;
     setBusy(false);
   };
 
-  // Plays a recorded artifact back through the same views as a live run. Nothing is requested from
-  // the server, and a refused file leaves whatever result is already on the page.
   const replay = async (file: File) => {
     setNotice(undefined);
     setReplayError(undefined);
-    // Lock the controls while the file is read, so a run started meanwhile cannot be overwritten
-    // by this file when it arrives.
+
     const controller = new AbortController();
     replayRef.current = controller;
     setReplaying(true);
@@ -268,7 +259,7 @@ export function AgentLabClient({
 
   const chooseFile = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    // Clearing the chooser lets the same file be chosen again.
+
     event.target.value = "";
     if (file) void replay(file);
   };
@@ -292,7 +283,6 @@ export function AgentLabClient({
     void start(available.map((strategy) => strategyJob(strategy.id)));
   };
 
-  // A profile runs on the scenario and strategy it was registered with, never on the toolbar's choice.
   const runFaults = (ids: readonly AgentLabFaultProfileId[]) => {
     setView("failures");
     void start(
@@ -398,9 +388,8 @@ export function AgentLabClient({
           <select
             value={scenarioId}
             onChange={(event) => {
-              // A result belongs to the scenario that produced it; do not show it under another.
               setScenarioId(event.target.value as AgentLabScenarioId);
-              // Fault runs keep their own scenario, so only the strategy runs are dropped.
+
               setRuns((current) =>
                 Object.fromEntries(
                   Object.entries(current).filter(([key]) => key.startsWith("fault:")),
@@ -443,8 +432,6 @@ export function AgentLabClient({
             <select
               value={dataMode}
               onChange={(event) => {
-                // A result belongs to the mode that produced it; do not show it under another.
-                // Fault runs are always fixture, so they stay.
                 const next = event.target.value as AgentLabDataMode;
                 setDataMode(next);
                 setRuns((current) =>
@@ -493,7 +480,7 @@ export function AgentLabClient({
           >
             Compare all strategies
           </button>
-          {/* One element for both jobs, so keyboard focus stays on it when a replay starts. */}
+
           <button
             className="agent-lab__secondary"
             type="button"
@@ -649,7 +636,9 @@ export function AgentLabClient({
                 <p className="agent-lab__kicker">Outcome</p>
                 <h2 id="agent-lab-plan-title">Plan result</h2>
               </div>
-              {selected.artifact ? <span>{labMoney.money(selected.artifact.plan.estTotal)}</span> : null}
+              {selected.artifact ? (
+                <span>{labMoney.money(selected.artifact.plan.estTotal)}</span>
+              ) : null}
             </div>
             {selected.artifact ? (
               <>

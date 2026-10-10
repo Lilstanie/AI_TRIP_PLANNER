@@ -20,12 +20,9 @@ import { clip } from "../clip";
 import { normalize, canonicalPlaceName, dedupeEntries } from "../place-names";
 import { TRAVELLER_PREFERENCES_RULE } from "../prompts/traveller-preferences";
 
-// Dining has an explicit budget envelope: venue candidates are unpriced unless
-// a caller separately confirms them, so only the envelope contributes cost.
 const DAY_MS = 86_400_000;
 const DINING_BUDGET_SHARE = 0.2;
-// A judgement about what a person spends on meals in a day, so it is repriced with the
-// base currency rather than just renamed. Was AUD 75.
+
 const MAX_DAILY_PER_PERSON = 115;
 
 const DiningPick = z.object({
@@ -40,10 +37,8 @@ const DiningDraft = z.object({
   assumptions: z.array(z.string().trim().min(1).max(400)).max(6),
 });
 
-/** Structured model output before conversion to the shared AgentProposal. */
 export type DiningDraft = z.infer<typeof DiningDraft>;
 
-/** Injectable model seam used for tests and provider swaps. */
 export interface DiningGenerator {
   generate(input: {
     brief: TripBrief;
@@ -52,18 +47,15 @@ export interface DiningGenerator {
     dietaryPreferences: UserPreference[];
     maxDailyPerPerson: number;
     revision?: RevisionRequest;
-    /** The currency the draft's text spells amounts in; absent means AUD. */
+
     currency?: Currency;
   }): Promise<DiningDraft>;
 }
 
-/** Configuration for selecting an injected generator or deterministic mode. */
 export interface DiningAgentOptions {
-  /** Pass false to force deterministic recommendations and budgeting. */
   generator?: DiningGenerator | false;
 }
 
-/** Validate dates and return the number of planning days. */
 function tripDays([start, end]: [string, string]): number {
   const parse = (value: string) => {
     const timestamp = Date.parse(`${value}T00:00:00.000Z`);
@@ -81,7 +73,6 @@ function tripDays([start, end]: [string, string]): number {
   return days;
 }
 
-/** Keep only preferences that can affect food choices or allergen handling. */
 function dietaryPreferences(preferences: UserPreference[]): UserPreference[] {
   return preferences.filter((preference) =>
     /diet|food|meal|allerg|halal|kosher|vegetarian|vegan|plant[- ]based|gluten|lactose|celiac|shellfish|pescatarian/i.test(
@@ -90,7 +81,6 @@ function dietaryPreferences(preferences: UserPreference[]): UserPreference[] {
   );
 }
 
-/** Identify revisions that should tighten the meal-budget ceiling. */
 function isBudgetRevision(revision?: RevisionRequest): boolean {
   return Boolean(
     revision &&
@@ -100,15 +90,12 @@ function isBudgetRevision(revision?: RevisionRequest): boolean {
   );
 }
 
-/** Compute the per-person ceiling shared with the model and validator. */
 function budgetCeiling(
   brief: TripBrief,
   days: number,
   revision?: RevisionRequest,
   allocation?: BudgetAllocation,
 ): number {
-  // An allocation is already the graph's answer to the budget, including any
-  // revision's cut, so it replaces both the fixed share and the 30% trim.
   if (allocation)
     return Math.min(MAX_DAILY_PER_PERSON, allocation.budget / (brief.groupSize * days));
   const normal = Math.min(
@@ -118,7 +105,6 @@ function budgetCeiling(
   return isBudgetRevision(revision) ? normal * 0.7 : normal;
 }
 
-/** Ensure the draft stays within budget and references only grounded venues. */
 function validateDraft(
   draft: DiningDraft,
   places: Place[],
@@ -147,7 +133,6 @@ function validateDraft(
   };
 }
 
-/** Produce grounded venue suggestions and a conservative budget without a model. */
 function fallbackDraft(
   places: Place[],
   preferences: UserPreference[],
@@ -169,11 +154,6 @@ function fallbackDraft(
   };
 }
 
-/**
- * What the model returns: the draft's shape without length limits, which it
- * cannot count to. A summary a few characters long sent the extraction into
- * retries until the recursion limit, and the dining section fell back.
- */
 const ModelDiningDraft = z.object({
   summary: z.string().trim().min(1),
   dailyBudgetPerPerson: z.number().nonnegative(),
@@ -181,7 +161,6 @@ const ModelDiningDraft = z.object({
   assumptions: z.array(z.string().trim().min(1)),
 });
 
-/** Bring a model draft within the display limits and the budget ceiling. */
 export function fitDiningDraft(
   draft: z.infer<typeof ModelDiningDraft>,
   maxDailyPerPerson: number,
@@ -190,8 +169,7 @@ export function fitDiningDraft(
   const capped = draft.dailyBudgetPerPerson > maxDailyPerPerson;
   return DiningDraft.parse({
     summary: clip(draft.summary, 400),
-    // The ceiling is what the rest of the plan left for meals; an estimate
-    // above it is capped and said so, rather than discarding every pick.
+
     dailyBudgetPerPerson: Math.min(draft.dailyBudgetPerPerson, maxDailyPerPerson),
     picks: draft.picks
       .slice(0, 5)
@@ -209,14 +187,12 @@ export function fitDiningDraft(
   });
 }
 
-/** Build the LangChain generator around one read-only evidence tool. */
 function createMiniMaxGenerator(): DiningGenerator | undefined {
   const model = createRoutedChatModel("dining");
   if (!model) return undefined;
 
   return {
     async generate(input) {
-      // The model receives facts through this tool instead of relying on hidden context.
       const evidence = tool(async () => input, {
         name: "read_dining_evidence",
         description:
@@ -260,8 +236,6 @@ async function planDining(
   revision?: RevisionRequest,
   allocation?: BudgetAllocation,
 ): Promise<AgentProposal> {
-  // Gather map candidates and persisted preferences before applying the budget
-  // guardrail and choosing either the injected or deterministic generator.
   ctx.signal?.throwIfAborted();
   const brief = TripBriefSchema.parse(briefInput);
   const days = tripDays(brief.dates);
@@ -304,7 +278,7 @@ async function planDining(
   }
 
   const total = Number((draft.dailyBudgetPerPerson * brief.groupSize * days).toFixed(2));
-  // Keep venue picks informational; only the whole-trip meal envelope is priced.
+
   return {
     agent: "dining",
     summary: `${draft.summary} · ${formatMoney(total, currency)} meal budget`,
@@ -349,7 +323,6 @@ async function planDining(
   };
 }
 
-/** Factory keeps provider behavior injectable while exposing the Specialist API. */
 export function createDiningAgent(options: DiningAgentOptions = {}): Specialist {
   return {
     name: "dining",
@@ -375,5 +348,4 @@ export function createDiningAgent(options: DiningAgentOptions = {}): Specialist 
   };
 }
 
-// Default instance used by the shared agent registry.
 export const diningAgent = createDiningAgent();

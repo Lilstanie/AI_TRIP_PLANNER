@@ -1,16 +1,5 @@
 import type { AgentProgressEvent } from "@trip/shared";
 
-/**
- * One run's progress frames, in the shape the orchestrator streams them.
- *
- * This is a development fixture: it exists so the thinking transcript can be
- * rendered, in a browser, without spending a provider call and without waiting
- * for a real plan. `/debug/thinking` renders it; nothing in the product imports
- * it.
- */
-
-/** Reasoning deltas of one model call, streamed the way the emitter paces them:
- *  every delta of the call shares one index, and the client appends them. */
 const reasoning = (
   agent: "itinerary" | "dining",
   episode: number,
@@ -18,7 +7,6 @@ const reasoning = (
 ): AgentProgressEvent[] =>
   deltas.map((text) => ({ type: "agent_reasoning", agent, round: 1, episode, index: 0, text }));
 
-/** Stand-in property pages, one per stay row that has one. */
 const STAY_SITES: Record<number, string> = {
   0: "https://www.hilton.com/",
   2: "https://www.marriott.com/",
@@ -47,8 +35,6 @@ const sights: AgentProgressEvent[] = [
     resultSummary: "6 place results",
     resultCount: 6,
     resultRows: [
-      // A place whose provider reported its own site: the row shows that site's
-      // icon instead of the category glyph.
       {
         label: "Sydney Opera House",
         detail: "sight · 9.1/10",
@@ -59,7 +45,7 @@ const sights: AgentProgressEvent[] = [
       { label: "Royal Botanic Garden", detail: "park · 8.8/10", kind: "nature" },
       { label: "Art Gallery of New South Wales", detail: "museum · 8.7/10", kind: "museum" },
       { label: "Queen Victoria Building", detail: "shopping · 8.4/10", kind: "shopping" },
-      // An older emitter sends no kind: the tool's own glyph stands in.
+
       { label: "Mrs Macquarie's Chair", detail: "viewpoint · 9.0/10" },
     ],
   },
@@ -93,7 +79,6 @@ const food: AgentProgressEvent[] = [
   },
 ];
 
-/** A turn that searched, compared 20 stays, picked one, then revised for budget. */
 export const thinkingFixture: AgentProgressEvent[] = [
   {
     type: "coordinator",
@@ -101,15 +86,29 @@ export const thinkingFixture: AgentProgressEvent[] = [
     round: 1,
     summary: "Assigning planning tasks for Sydney.",
   },
-  // One model call, streamed as paced deltas that share an index.
+
   ...reasoning("itinerary", 0, [
     "The traveller wants three days in Sydney for two people",
     " with a 4,000 AUD budget.\nDay planning is not optional, so itinerary is first; ",
     "the stay needs comparing before anything can be costed.\n",
   ]),
-  // An older emitter numbered each paced flush; the client still merges them.
-  { type: "agent_reasoning", agent: "dining", round: 1, episode: 0, index: 0, text: "Dining should follow the day plan " },
-  { type: "agent_reasoning", agent: "dining", round: 1, episode: 0, index: 1, text: "rather than lead it.\nStart near The Rocks.\n" },
+
+  {
+    type: "agent_reasoning",
+    agent: "dining",
+    round: 1,
+    episode: 0,
+    index: 0,
+    text: "Dining should follow the day plan ",
+  },
+  {
+    type: "agent_reasoning",
+    agent: "dining",
+    round: 1,
+    episode: 0,
+    index: 1,
+    text: "rather than lead it.\nStart near The Rocks.\n",
+  },
   ...sights,
   {
     type: "agent_started",
@@ -141,9 +140,7 @@ export const thinkingFixture: AgentProgressEvent[] = [
       detail: `AUD ${90 + index * 11}/night · ${(7 + (index % 25) / 10).toFixed(1)}/10 · ${
         index % 3 === 0 ? "No free cancellation" : "Free cancellation"
       }`,
-      // A live search reports a page for some properties and not others; these
-      // stand in for the ones it does, so the list shows site icons and
-      // category glyphs side by side.
+
       ...(STAY_SITES[index] ? { url: STAY_SITES[index]! } : {}),
     })),
     resultTruncated: true,
@@ -215,7 +212,13 @@ export const thinkingFixture: AgentProgressEvent[] = [
   },
   { type: "agent_started", agent: "dining", round: 1, objective: "Find dinner near The Rocks." },
   ...food,
-  { type: "agent_completed", agent: "dining", round: 1, summary: "3 dinners picked.", outcome: "Produced dining section." },
+  {
+    type: "agent_completed",
+    agent: "dining",
+    round: 1,
+    summary: "3 dinners picked.",
+    outcome: "Produced dining section.",
+  },
   { type: "agent_started", agent: "destination-guide", round: 1 },
   {
     type: "tool_started",
@@ -242,7 +245,12 @@ export const thinkingFixture: AgentProgressEvent[] = [
       { label: "Thu 12 Nov", detail: "Partly cloudy · 17–23°C", kind: "weather" },
     ],
   },
-  { type: "agent_completed", agent: "destination-guide", round: 1, summary: "Mild and mostly dry." },
+  {
+    type: "agent_completed",
+    agent: "destination-guide",
+    round: 1,
+    summary: "Mild and mostly dry.",
+  },
   {
     type: "coordinator",
     phase: "conflicts",
@@ -274,11 +282,6 @@ export const thinkingFixture: AgentProgressEvent[] = [
   { type: "coordinator", phase: "assembly", round: 2, summary: "Assembling the plan." },
 ];
 
-/**
- * The same run mid-flight: the stay search has started and not returned, and
- * the itinerary supervisor is still thinking — its last deltas arrive after
- * the search began, so its Think row is the streaming tail.
- */
 export const thinkingFixtureRunning: AgentProgressEvent[] = thinkingFixture
   .filter(
     (event) =>

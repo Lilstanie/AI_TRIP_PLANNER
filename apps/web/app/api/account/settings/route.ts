@@ -4,7 +4,6 @@ import { UserSettings } from "@/lib/account/settings";
 import { getDb } from "@/lib/db/client";
 import { userSettings } from "@/lib/db/schema";
 
-/** The account's settings, or `null` when it has never saved any. */
 export async function GET() {
   const user = await accountUser();
   if ("response" in user) return user.response;
@@ -16,7 +15,6 @@ export async function GET() {
   return Response.json({ settings: parsed?.success ? parsed.data : null }, { headers: noStore });
 }
 
-/** Saves settings unless the account already holds a newer copy, and returns what it holds. */
 export async function PUT(request: Request) {
   const user = await accountUser();
   if ("response" in user) return user.response;
@@ -33,7 +31,7 @@ export async function PUT(request: Request) {
     })
     .returning();
   if (row) return Response.json({ settings: row.settings }, { headers: noStore });
-  // Not written because the stored copy is newer: hand that back so the browser adopts it.
+
   const [stored] = await getDb()
     .select()
     .from(userSettings)

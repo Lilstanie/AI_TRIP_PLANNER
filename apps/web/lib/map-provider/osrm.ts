@@ -4,14 +4,12 @@ import type { Coordinates } from "./types";
 
 import { providerCache, providerResponse } from "./http";
 
-/** Separate OSRM deployments supply the correct foot, bicycle and car profiles. */
 const DEFAULT_CAR_BASE = "https://router.project-osrm.org";
 const DEFAULT_FOOT_BASE = "https://routing.openstreetmap.de/routed-foot";
 const DEFAULT_BIKE_BASE = "https://routing.openstreetmap.de/routed-bike";
 
 type OsrmProfile = { base: string; profile: "foot" | "driving" | "bike" };
 
-/** The OSRM instance and profile a mode is routed on, from the foot, bike and car base URL settings. */
 function profileFor(mode: RouteMode): OsrmProfile {
   if (mode === "WALK")
     return { base: process.env.OSRM_FOOT_BASE_URL || DEFAULT_FOOT_BASE, profile: "foot" };
@@ -19,7 +17,7 @@ function profileFor(mode: RouteMode): OsrmProfile {
     return { base: process.env.OSRM_BIKE_BASE_URL || DEFAULT_BIKE_BASE, profile: "bike" };
   if (mode === "DRIVE")
     return { base: process.env.OSRM_BASE_URL || DEFAULT_CAR_BASE, profile: "driving" };
-  // Public transport is Transitous's (ticket #276), never an OSRM guess.
+
   throw new MapProviderUnavailableError("osm", "not_supported");
 }
 
@@ -27,11 +25,6 @@ export type OsrmLeg = Pick<RouteResult, "status" | "durationMin" | "distanceMete
 
 export type OsrmClient = (mode: RouteMode, from: Coordinates, to: Coordinates) => Promise<OsrmLeg>;
 
-/**
- * An OSRM client with a short in-memory cache of answered legs. `NoRoute` is an answer; a server
- * error, timeout, network failure or an answer without a duration throws `MapProviderUnavailableError`
- * and is not cached.
- */
 export function osrmClient({
   fetch: fetcher = fetch,
   now = Date.now,

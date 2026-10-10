@@ -4,7 +4,6 @@ import { intlLocale, type AppLocale } from "@/lib/i18n/locale";
 import type { FlightAnswerOption, FlightLeg } from "@trip/shared";
 import { useLocale } from "../account/LocaleProvider";
 
-/** "17h 20m" — the shape a timetable uses, not 1040 minutes. */
 function hoursAndMinutes(minutes: number, locale: AppLocale): string {
   if (locale === "zh") return formatDuration(minutes, locale);
   const hours = Math.floor(minutes / 60);
@@ -12,7 +11,6 @@ function hoursAndMinutes(minutes: number, locale: AppLocale): string {
   return hours ? `${hours}h${rest ? ` ${rest}m` : ""}` : `${rest}m`;
 }
 
-/** The clock part of a provider's "YYYY-MM-DD HH:mm", in the airport's own time. */
 function clock(value: string, locale: AppLocale): string {
   const [, time] = value.split(" ");
   if (!time) return value;
@@ -26,7 +24,6 @@ function clock(value: string, locale: AppLocale): string {
 
 const dayOf = (value: string) => value.split(" ")[0] ?? value;
 
-/** "+1" when the flight lands on a later day than it left. */
 function dayOffset(departsAt: string, arrivesAt: string): string {
   const from = Date.parse(`${dayOf(departsAt)}T00:00:00Z`);
   const to = Date.parse(`${dayOf(arrivesAt)}T00:00:00Z`);
@@ -46,14 +43,6 @@ function shortDate(value: string, locale: AppLocale): string {
       });
 }
 
-/**
- * One direction of a journey: who flies it, from where to where, and what it
- * costs in time.
- *
- * The airports are shown by code and the times in each airport's own local
- * clock, because that is what a boarding pass says. Converting either into the
- * reader's timezone would be a different, wrong number.
- */
 function Leg({ leg, label }: { leg: FlightLeg; label: string }) {
   const { t, locale } = useLocale();
   const first = leg.segments[0]!;
@@ -99,14 +88,6 @@ function Leg({ leg, label }: { leg: FlightLeg; label: string }) {
   );
 }
 
-/**
- * One fare, with the flights behind it.
- *
- * A round trip shows both legs. When the provider priced a round trip but its
- * return flights were not looked up, the card says so rather than implying the
- * outbound is the whole journey — the price covers a way home this card cannot
- * yet name.
- */
 export function FlightItineraryCard({
   option,
   cheapest,

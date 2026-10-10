@@ -1,10 +1,3 @@
-// Public HTTP boundary checks for free providers, using local upstream servers only.
-// Failure inventory: Photon empty != outage; malformed/error falls back; destination bounds and
-// language survive; Nominatim failures consume a throttle slot; concurrent lookups share the queue;
-// duplicate lookups cache; walking-only Transitous answers never become transit; unknown photos reject.
-// Run with WEB_MAPS_PROVIDER=osm, PHOTON_BASE_URL/NOMINATIM_BASE_URL/TRANSITOUS_BASE_URL set to
-// http://127.0.0.1:$MAP_STUB_PORT, and MAP_STUB_PORT set to a free port. The runner starts Next;
-// this script starts/stops the upstream stub and writes output/e2e/map-provider-http/summary.json.
 import { createServer } from "node:http";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -120,7 +113,7 @@ try {
     ),
     "Nominatim keeps bounds and language",
   );
-  // Failure inventory: debounced suggestions must never reach Nominatim, even when Photon fails.
+
   const beforeSuggestions = calls.filter((c) => c.path === "/search").length;
   await post("/api/places/search", { text: "suggest-outage", autocomplete: true });
   await post("/api/places/search", { text: "中文建议", language: "zh", autocomplete: true });
@@ -141,7 +134,7 @@ try {
     calls.filter((c) => c.path === "/lookup").length === beforeCache,
     "duplicate details use the cache",
   );
-  // Failure inventory: details lose the requested locale; the first language poisons the cache.
+
   const chinese = await post("/api/places/details", { placeId: "osm:node/25", language: "zh" });
   const english = await post("/api/places/details", { placeId: "osm:node/25", language: "en" });
   check(

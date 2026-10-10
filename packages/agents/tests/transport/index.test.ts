@@ -76,8 +76,6 @@ describe("transport planner", () => {
   });
 
   it("prefers the origin stated in the brief over the standing preference", async () => {
-    // The preference is a default for people who always leave from the same
-    // city; what the traveller said about *this* trip has to win.
     const { ctx, searchFlights } = context([
       { key: "transport.origin", value: "Melbourne", source: "chat_confirmed" },
     ]);
@@ -118,15 +116,12 @@ describe("transport planner", () => {
     const result = await transportAgent.invoke({ brief, context: ctx });
     const hop = result.items.find((item) => item.detail?.includes("Ways to make this hop"))!;
     expect(hop).toBeTruthy();
-    // A partial cost reads as a floor, and an unpriced fare says so rather than
-    // appearing as free next to a priced drive.
+
     expect(hop.detail).toContain("drive 29 min, from A$13.29");
     expect(hop.detail).toContain("bus 74 min, fare not published");
   });
 
   it("keeps a hop's timing when the comparison lookup fails", async () => {
-    // The options only describe a choice; losing them must not cost the hop its
-    // place in the schedule.
     const { ctx } = context();
     ctx.tools.maps.routeOptions = vi.fn(async () => {
       throw new Error("options provider down");
@@ -213,8 +208,7 @@ describe("B transport reliability", () => {
     ]);
     const result = await transportAgent.invoke({ brief, context: ctx });
     expect(result.items[1]).not.toHaveProperty("estCost");
-    // No conflict: the fare is missing because the provider publishes none, so
-    // no revision could produce one. The proposal counts it instead.
+
     expect(result.conflictsWith.join(" ")).not.toContain("not a free trip");
     expect(result.summary).toContain("1 leg(s) unpriced");
     expect(result.assumptions.join(" ")).toContain("known estimate is a floor");
@@ -233,16 +227,13 @@ describe("B transport reliability", () => {
   );
 
   it("flies a city hop the ground journey cannot fit into one planning day", async () => {
-    // 1600 minutes of train is not a scheduling failure to report — it is a
-    // journey that has to be flown. The scheduler would otherwise reject the
-    // hop and leave the traveller a conflict where a flight belongs.
     const { ctx, route, searchFlights } = context();
     route.mockResolvedValue([{ mode: "train", durationMin: 1600, price: 90, note: "fixture" }]);
     const result = await transportAgent.invoke({ brief, context: ctx });
     expect(searchFlights).toHaveBeenCalledWith(
       expect.objectContaining({ from: "Tokyo", to: "Kyoto" }),
     );
-    // One fare for the arrival, one for the promoted hop, and no timed route.
+
     expect(result.items.filter((item) => item.kind === "transport")).toHaveLength(2);
     expect(result.items.some((item) => item.location === "Tokyo → Kyoto")).toBe(true);
     expect(result.conflictsWith.join(" ")).not.toContain("cannot fit inside one planning day");
@@ -283,7 +274,7 @@ describe("transport choice", () => {
     expect(flight).toBeTruthy();
     expect(flight!.from).toBe("Sydney");
     expect(flight!.to).toBe("Tokyo");
-    // Both fares the mock offers survive the choice; one is marked selected.
+
     expect(flight!.candidates.map((candidate) => candidate.carrier)).toEqual([
       "MockAir Economy",
       "MockAir Flexible",

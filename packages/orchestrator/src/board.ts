@@ -10,32 +10,18 @@ import type {
 } from "@trip/shared";
 import { costOf } from "./budget";
 
-/**
- * Which specialists must finish before another may start. Transport is the
- * largest and least negotiable cost, so it goes first; the stay is chosen
- * knowing what flights left, and the day plan and meals know both.
- */
 const WAITS_FOR: Partial<Record<AgentName, readonly AgentName[]>> = {
   accommodation: ["transport"],
   itinerary: ["transport", "accommodation"],
   dining: ["transport", "accommodation"],
 };
 
-/**
- * How what is left after earlier stages is split between the specialists that
- * still spend it. Itinerary and dining keep the shares they used to take from
- * the whole budget; accommodation, which had none, gets the same as itinerary.
- */
 const SHARES: Partial<Record<AgentName, number>> = {
   accommodation: 0.4,
   itinerary: 0.4,
   dining: 0.2,
 };
 
-/**
- * The spending ceiling for `agent`, from the budget and the proposals already on
- * the board. Undefined for a specialist with no share (transport, the guide).
- */
 export function allocationFor(
   agent: AgentName,
   brief: TripBrief,
@@ -48,7 +34,7 @@ export function allocationFor(
   const settled = (WAITS_FOR[agent] ?? []).filter((name) => proposals.has(name));
   const spent = settled.reduce((sum, name) => sum + costOf(proposals.get(name)!), 0);
   const remaining = Math.max(0, brief.budgetTotal - spent);
-  // Only the specialists still to spend compete for what is left.
+
   const open = (Object.keys(SHARES) as AgentName[]).filter((name) => !settled.includes(name));
   const weight = open.reduce((sum, name) => sum + SHARES[name]!, 0);
   const budget = Math.floor(((remaining * share) / weight) * 100) / 100;
@@ -59,14 +45,6 @@ export function allocationFor(
   };
 }
 
-/**
- * The first-round coordination between specialists.
- *
- * The supervisor calls specialist tools in any order, often all in one turn.
- * `run` lets each call wait for the specialists it depends on — but only those
- * already started, so a specialist the supervisor never calls cannot deadlock
- * the rest — and then hands it the board and its allocation.
- */
 export function createPlanningBoard(brief: TripBrief, currency: Currency = "AUD") {
   const proposals = new Map<AgentName, AgentProposal>();
   const running = new Map<AgentName, Promise<unknown>>();
@@ -84,8 +62,6 @@ export function createPlanningBoard(brief: TripBrief, currency: Currency = "AUD"
       let settle!: () => void;
       running.set(agent, new Promise<void>((resolve) => (settle = resolve)));
       try {
-        // Sibling tool calls from the same supervisor turn start in the same
-        // tick; yielding once lets all of them register before anyone waits.
         await new Promise((resolve) => setTimeout(resolve, 0));
         await Promise.all(
           (WAITS_FOR[agent] ?? []).flatMap((name) => {

@@ -1,20 +1,3 @@
-// Owner: C — deep Booking port; no reservations or payments.
-// Stay prices are AUD per room per night, assuming at most two guests per room.
-// Flight prices are AUD for ALL passengers and include both legs when returning.
-//
-// Real-mode priority, hotels: SerpApi (live Google Hotels price) if
-// SERPAPI_KEY is set, else Google Places (grounded property, estimated price
-// — Google itself has no public live-pricing API; a real quote needs a
-// partner agreement with Booking.com/Expedia/etc., out of scope here). When
-// neither capability is configured, the stay method fails lazily. A SerpApi
-// failure (bad key, quota, no results, network) falls back to Google Places
-// rather than failing the whole request.
-//
-// Real-mode priority, flights: SerpApi if SERPAPI_KEY is set, else unavailable —
-// there is no Google-Places-equivalent fallback for flights, so a SerpApi
-// failure here is thrown; the transport agent already treats a thrown
-// searchFlights as "flight remains unpriced" rather than a crash (see
-// packages/agents/src/transport/index.ts's .catch on this call).
 import type {
   BookingPort,
   StayQuery,
@@ -32,24 +15,11 @@ import {
 } from "./serpapi";
 import { toolNow, type ToolRuntimeConfig } from "./runtime-context";
 
-// Google's place rating is 1.0-5.0; every rating-based rule in this project
-// (StayCandidate.rating, accommodation.minRating, chooseInitial's ">= 8")
-// assumes a 0-10 scale. Skipping this conversion doesn't fail validation
-// (4.6 is still a legal 0-10 value) — it just silently misjudges every real
-// hotel's quality, which is exactly the kind of bug that needs a test, not
-// just a schema check.
 function normalizedRating(googleRating: number | undefined): number {
   if (!Number.isFinite(googleRating)) return 0;
   return Math.round(googleRating! * 2 * 10) / 10;
 }
 
-// Google Places' price_level is a coarse 5-bucket enum, not a nightly rate.
-// These AUD figures are planning estimates per bucket, converted from the
-// original USD estimates using the product's static USD -> AUD rate of 1.5,
-// not derived from any live source.
-// They use the same "estimate, not a quote" convention the mock fixtures
-// already use, just grounded in a bucket Google actually reports for the
-// property instead of an invented city tier.
 const PRICE_LEVEL_ESTIMATE_AUD: Partial<Record<string, number>> = {
   PRICE_LEVEL_FREE: 0,
   PRICE_LEVEL_INEXPENSIVE: 135,
@@ -58,15 +28,11 @@ const PRICE_LEVEL_ESTIMATE_AUD: Partial<Record<string, number>> = {
   PRICE_LEVEL_VERY_EXPENSIVE: 630,
 };
 function estimatedNightlyRate(priceLevel: string | undefined): number {
-  // Google frequently omits price_level for lodging; "moderate" is the
-  // least-wrong default when the property didn't report one.
   return (
     PRICE_LEVEL_ESTIMATE_AUD[priceLevel ?? ""] ?? PRICE_LEVEL_ESTIMATE_AUD.PRICE_LEVEL_MODERATE!
   );
 }
 
-// Expensive Tokyo/Kyoto standard rooms keep the negotiation demo useful.
-// These are fictional fixtures, not quotes, availability or real recommendations.
 const NIGHTLY_RATES = new Map<string, [number, number, number]>([
   ["tokyo", [240, 380, 520]],
   ["kyoto", [220, 360, 490]],
@@ -154,9 +120,6 @@ async function searchSerpApiStaysWithFallback(
       guests: q.guests,
     });
   } catch (error) {
-    // Any SerpApi failure (bad key, quota, no results, network) degrades to
-    // the estimated-price Google Places path below rather than failing the
-    // whole search — real property data, just without a live rate.
     const reason = error instanceof SerpApiError ? error.reason : "request_failed";
     console.warn(
       `[booking] SerpApi hotel search unavailable (${reason}); falling back to Google Places estimate: ${
@@ -194,15 +157,10 @@ async function searchStaysGooglePlacesEstimate(
       area: place.formattedAddress?.trim() || city,
       pricePerNight: estimatedNightlyRate(place.priceLevel),
       rating: normalizedRating(place.rating),
-      // Google Places does not report cancellation policy. Defaulting to
-      // false (rather than guessing true) means a traveller who requires
-      // free cancellation never gets a hotel we can't actually back that up
-      // for — see accommodation's eligibleOptions filter.
+
       freeCancellation: false,
       grounded: true,
-      // The property's own page, when Google reports one. The price here is an
-      // estimate, so this link is the only thing in the row a traveller can
-      // check against the property itself.
+
       ...(place.websiteUri?.trim() ? { detailsUrl: place.websiteUri.trim() } : {}),
       provenance: {
         kind: "estimated" as const,
@@ -258,11 +216,7 @@ async function searchFixtureFlights(q: FlightQuery): Promise<FlightOption[]> {
 
 async function searchSerpApiFlights(q: FlightQuery): Promise<FlightOption[]> {
   const validated = validatedFlightQuery(q);
-  // No Google-Places-style fallback exists for flights, so a SerpApi failure
-  // is thrown as-is (a clear, typed SerpApiError, never a raw fetch
-  // exception). The transport agent already treats a thrown searchFlights as
-  // "flight remains unpriced" — a conflict note, not a crash — rather than
-  // silently substituting a fictional fare for a real search that failed.
+
   return searchFlightsSerpApi({
     from: validated.from,
     to: validated.to,
@@ -277,14 +231,6 @@ async function searchUnavailableFlights(q: FlightQuery): Promise<FlightOption[]>
   throw new Error("Unsupported flight provider: no SERPAPI_KEY set.");
 }
 
-/**
- * The return flights for one outbound itinerary.
- *
- * Only SerpApi answers this: Google Flights returns the outbound halves of a
- * round trip first, and the ways home for one of them are a second search. In
- * mock mode there is nothing to look up, because the fixture fare is a single
- * made-up number with no flights behind it.
- */
 async function searchSerpApiReturnLeg(
   q: FlightQuery & { token: string },
 ): Promise<FlightLeg | undefined> {
@@ -299,8 +245,6 @@ async function searchSerpApiReturnLeg(
       token: q.token,
     });
   } catch (error) {
-    // A missing way home is a smaller answer, not a failed one: the fare and
-    // its outbound flights are still worth showing.
     if (error instanceof SerpApiError) return undefined;
     throw error;
   }
@@ -308,7 +252,6 @@ async function searchSerpApiReturnLeg(
 
 const noReturnLeg = async (): Promise<undefined> => undefined;
 
-/** Select one immutable Booking provider policy for a Planning Run. */
 export function createBookingPort(config: ToolRuntimeConfig, reportSelection = false): BookingPort {
   if (config.dataMode === "mock") {
     return {

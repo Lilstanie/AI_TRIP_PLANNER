@@ -5,14 +5,8 @@ import { GoogleSimulatedOutageError } from "./google";
 
 type Unavailability = { reason: UnavailableReason; coolDown: boolean };
 
-/** Google's reasons, on a 400, that mean the key itself was refused rather than the request. */
 const REFUSED_KEY = new Set(["API_KEY_INVALID", "API_KEY_SERVICE_BLOCKED", "PERMISSION_DENIED"]);
 
-/**
- * Whether a Google failure means Google cannot answer now, and so another provider should. An answer
- * (an empty search, an unknown place, an authored refusal) is not an outage and returns undefined.
- * Only access and quota failures start a cool-down: they last longer than one request.
- */
 export function googleUnavailability(error: unknown): Unavailability | undefined {
   if (error instanceof GoogleNotConfiguredError)
     return { reason: "not_configured", coolDown: false };
@@ -26,11 +20,11 @@ export function googleUnavailability(error: unknown): Unavailability | undefined
     if (error.status >= 500) return { reason: "upstream", coolDown: false };
     return undefined;
   }
-  // AbortSignal.timeout rejects with a DOMException, which is not an `Error` in every runtime.
+
   const name = (error as { name?: unknown } | null)?.name;
   if (name === "TimeoutError" || name === "AbortError")
     return { reason: "timeout", coolDown: false };
-  // Node's fetch reports a refused connection or a DNS failure as `TypeError: fetch failed`.
+
   if (error instanceof TypeError && error.message === "fetch failed")
     return { reason: "upstream", coolDown: false };
   return undefined;
@@ -38,11 +32,6 @@ export function googleUnavailability(error: unknown): Unavailability | undefined
 
 export type FallbackOptions = { cooldownMs: number; now?: () => number };
 
-/**
- * Google first, OSM when Google cannot answer. An id answers only to the provider that issued it, so
- * a Google place is never sent to OSM and an OSM place never to Google. When OSM cannot answer either,
- * Google's failure is thrown, so routes keep the notices and statuses they had before the fallback.
- */
 export function fallbackMapProvider(
   google: MapProvider,
   osm: MapProvider,
@@ -51,7 +40,6 @@ export function fallbackMapProvider(
   let skipUntil = 0;
   let coolingFrom: unknown;
 
-  /** Ask Google unless it is cooling down; undefined plus the failure means "try OSM". */
   async function askGoogle<T>(
     call: () => Promise<T>,
   ): Promise<{ answer: T } | { failure: unknown }> {

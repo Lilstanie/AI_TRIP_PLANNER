@@ -101,7 +101,7 @@ describe("workspace catalog", () => {
 
   it("loads a stored catalog whose trips still carry a status, and keeps the trip", () => {
     const catalog = createCatalog(snapshot);
-    // The trip label is gone; a status an older version stored is ignored when the catalog is read.
+
     const legacy = {
       ...catalog,
       trips: [{ ...catalog.trips[0]!, status: "needs_review" }],
@@ -213,15 +213,15 @@ describe("workspace catalog", () => {
       conversations: [
         ...base.conversations,
         record("conversation:older", "2026-02-01T00:00:00.000Z"),
-        // Blank, but the user typed into it, so reusing it would discard their input.
+
         record("conversation:typed", "2026-03-01T00:00:00.000Z", { input: "somewhere warm" }),
         record("conversation:newer", "2026-04-01T00:00:00.000Z"),
       ],
     });
-    // The trip-linked conversation and the typed one are skipped.
+
     expect(catalog.conversations).toHaveLength(4);
     expect(reusableBlankConversation(catalog)?.id).toBe("conversation:newer");
-    // Only a conversation that produced a trip exists, so a new chat has to be created.
+
     expect(reusableBlankConversation(base)).toBeUndefined();
   });
 
@@ -276,7 +276,7 @@ describe("workspace catalog", () => {
     const catalog = parseCatalog({ version: 4, conversations: [], trips: [] });
     const wide = updateCatalog(catalog, { layout: { sidebar: { collapsed: false, width: 300 } } });
     expect(parseCatalog(serializeCatalog(wide)).layout.sidebar.width).toBe(300);
-    // Collapsing keeps the width for when the sidebar is expanded again.
+
     const collapsed = updateCatalog(wide, { layout: { sidebar: { collapsed: true } } });
     expect(collapsed.layout.sidebar).toEqual({ collapsed: true, width: 300 });
     const reset = updateCatalog(wide, {

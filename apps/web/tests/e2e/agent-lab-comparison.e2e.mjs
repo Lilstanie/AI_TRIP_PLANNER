@@ -1,25 +1,3 @@
-// End-to-end contract for Agent Lab's strategy comparison. From the public page a visitor runs the
-// single-agent baseline, the five-specialist no-revision strategy and the targeted-revision strategy,
-// inspects the typed trace and reads the results side by side. Raw NDJSON, parsed artifacts, a summary and desktop/phone
-// screenshots land under output/playwright/agent-lab-comparison/ as repeatable evidence.
-//
-// Failure inventory, written before implementation:
-// - the multi-agent strategy cannot be requested, or is rejected as an unknown strategy;
-// - a comparison run never starts the second strategy, or runs them at the same time and mixes events;
-// - the multi-agent run revises (more than one round) or its trace shows a revision stage;
-// - the inspector cannot tell graph stages, specialist lifecycle and tool calls apart, or hides a
-//   specialist's objective, constraints or outcome;
-// - a figure in the comparison table differs from the artifact it claims to show;
-// - the page ranks the strategies, or omits that the comparison measures specialization only;
-// - the page does not explain why budgeting, conflict checks, maps and weather are not agents;
-// - the two runs of one request produce different plans (fixture mode must repeat exactly);
-// - a cancelled comparison leaves a stale plan or a number for the strategy that never ran;
-// - raw prompts, secrets or private chain-of-thought reach the stream, the page or an artifact;
-// - the comparison cannot be reached or operated by keyboard, or overflows horizontally on a phone;
-// - the run touches workspace storage.
-//
-//   pnpm --filter @trip/web dev
-//   [CHANNEL=chrome] [PLAYWRIGHT=<path to playwright>] node apps/web/tests/e2e/agent-lab-comparison.e2e.mjs
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
@@ -44,8 +22,6 @@ const parseFrames = (body) =>
 const completeOf = (body) => parseFrames(body).at(-1);
 const money = (value) => `A$${Math.round(value).toLocaleString("en-AU")}`;
 
-// The expected text for each comparison row, derived here from the artifact so the page's figures are
-// checked against the run record and not against the page's own formatting code.
 const expectedRows = (metrics) => ({
   latency: `${metrics.latencyMs} ms`,
   rounds: String(metrics.rounds),
@@ -73,7 +49,7 @@ const expectedRows = (metrics) => ({
       infeasible_budget: "Infeasible budget",
       no_improvement: "No improvement",
     }[metrics.stopReason ?? ""] ?? "No loop",
-  // Fixture runs make no model calls: the page must say unavailable, never a number.
+
   usage: "Unavailable",
 });
 
@@ -84,7 +60,7 @@ async function run(browser, { width, height, tag }) {
   page.on("pageerror", (error) => errors.push(String(error)));
   page.on("console", (message) => message.type() === "error" && errors.push(message.text()));
   const bodies = [];
-  // Only runs started after the cancelled one are evidence; an aborted response has no readable body.
+
   let capture = false;
   page.on("response", (response) => {
     if (
@@ -118,7 +94,6 @@ async function run(browser, { width, height, tag }) {
     `${tag}: comparison view is unavailable before any run`,
   );
 
-  // Cancelling a comparison must not leave a number for the strategy that never ran.
   await page.getByRole("button", { name: "Compare all strategies" }).click();
   const cancel = page.getByRole("button", { name: "Cancel run" });
   await cancel.waitFor();
@@ -132,11 +107,10 @@ async function run(browser, { width, height, tag }) {
   await page.waitForTimeout(500);
   capture = true;
 
-  // Keyboard path to the comparison action.
   await page.getByLabel("Strategy").focus();
-  await page.keyboard.press("Tab"); // Data mode
-  await page.keyboard.press("Tab"); // Run experiment
-  await page.keyboard.press("Tab"); // Compare all strategies
+  await page.keyboard.press("Tab");
+  await page.keyboard.press("Tab");
+  await page.keyboard.press("Tab");
   check(
     await page
       .getByRole("button", { name: "Compare all strategies" })
@@ -235,7 +209,6 @@ async function run(browser, { width, height, tag }) {
     `${tag}: streams contain no sensitive internals or private reasoning`,
   );
 
-  // The comparison table must say exactly what each artifact says.
   for (const [index, artifact] of [single, multi, revision].entries()) {
     const expected = expectedRows(artifact.metrics);
     for (const [row, text] of Object.entries(expected)) {
@@ -270,7 +243,7 @@ async function run(browser, { width, height, tag }) {
     /what targeted revision adds/i.test(body),
     `${tag}: page states that no-revision against revision measures what targeted revision adds`,
   );
-  // The explanations live in the Architecture view; read them there, then return to the comparison.
+
   await page
     .getByRole("group", { name: "View" })
     .getByRole("button", { name: "Architecture", exact: true })
@@ -294,7 +267,6 @@ async function run(browser, { width, height, tag }) {
     `${tag}: the comparison does not rank the strategies`,
   );
 
-  // The inspector shows the multi-agent trace with each kind of event distinguishable.
   await page
     .getByRole("group", { name: "View" })
     .getByRole("button", { name: "Run", exact: true })
@@ -350,7 +322,6 @@ try {
   await browser.close();
 }
 
-// Fixture mode repeats exactly: the same request in two separate sessions yields the same plan and trace.
 const strip = (artifact) =>
   JSON.stringify({ plan: artifact.plan, events: artifact.events.map((item) => item.event) });
 check(

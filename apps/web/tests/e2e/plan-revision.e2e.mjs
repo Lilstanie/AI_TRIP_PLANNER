@@ -1,17 +1,3 @@
-// End-to-end check of the one owner for plan revisions and background work (ticket #260, spec #259).
-//
-// A route check (`verify`) and an automatic place save are background work for one plan revision. A
-// traveller's edit wins over them: an edit made while one is held open is applied, the held answer never
-// replaces the edited plan, and a save that was cut short is sent again for the new plan while its place
-// is still unsaved. A day whose stops already carry travel times is checked once its places are saved,
-// never marked routed before its check. At most one background request is in flight per trip.
-//
-// The map's Places routes and the route check are stubbed at the browser boundary, as in
-// auto-save-places.e2e.mjs; the timeline's edits go to the real preview-edit route in mock mode. The
-// artifact is output/playwright/plan-revision/<LABEL>/summary.json, with screenshots beside it.
-//
-//   DATA_MODE=mock pnpm --filter @trip/web e2e plan-revision     # starts its own server
-//   BASE_URL=http://localhost:3000 LABEL=after node apps/web/tests/e2e/plan-revision.e2e.mjs
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
@@ -34,8 +20,6 @@ const LABEL = process.env.LABEL ?? "after";
 const OUT = resolve(process.cwd(), "output/playwright/plan-revision", LABEL);
 mkdirSync(OUT, { recursive: true });
 
-// Day 1 of five stops, unsaved, each with the planner's arrival time from the stop before it (the planner's
-// walk is 37 minutes, longer than any simulated walk, so a verified leg is never mistaken for the estimate).
 const DAY_ONE = [
   { name: "Sydney Opera House", start: "09:00", end: "10:00" },
   { name: "Royal Botanic Garden Sydney", start: "11:30", end: "12:30" },
@@ -43,8 +27,7 @@ const DAY_ONE = [
   { name: "The Rocks", start: "16:30", end: "17:30" },
   { name: "Darling Harbour", start: "19:00", end: "20:00" },
 ];
-// Scenario 3: day 1 has its places saved already, with one leg (into stop 3) that has no stored time, so
-// it needs a check on load. Day 2 has five unsaved stops with the planner's times.
+
 const SAVED_DAY_ONE = [
   { name: "Circular Quay", start: "09:00", end: "10:00", saved: true },
   { name: "The Rocks", start: "11:30", end: "12:30", saved: true },
@@ -71,16 +54,16 @@ function newStub() {
     rejected: [],
     verifies: [],
     timeVersions: [],
-    // Background requests the stub is answering now (a place save or a day's verify), and the most at once.
+
     inFlight: 0,
     maxInFlight: 0,
-    // The plan version the server holds now: a place save or a time edit sent against any other is stale.
+
     version: undefined,
-    // Milliseconds each verify takes; a held answer waits for its promise.
+
     verifyDelay: 0,
     holdVerify: undefined,
     holdTime: undefined,
-    // A save of the named stop waits for its promise before it is answered.
+
     holdPlace: undefined,
   };
 }
@@ -117,7 +100,6 @@ async function installStubs(page, stub) {
         stub.verifies.push({ day: body.operation.day, doneAt: Date.now() });
         return route.fulfill({ response, json });
       } catch {
-        // The page abandoned the check: its answer is not wanted.
         return undefined;
       } finally {
         stub.inFlight -= 1;
@@ -142,7 +124,7 @@ async function installStubs(page, stub) {
         return undefined;
       }
     }
-    // A place save, answered the way the server answers a place operation.
+
     const item = (body.plan.sections.find((s) => s.id === "itinerary")?.proposal?.items ?? []).find(
       (i) => i.id === body.operation.id,
     );
@@ -209,7 +191,6 @@ async function openTrip(browser, { days, stub }) {
 
 const trip = (page) => page.getByRole("region", { name: "Trip timeline" });
 
-/** Day N's stop at a position (1-based), as the timeline lists it on that day. */
 async function stopRow(page, day, position) {
   await trip(page)
     .getByRole("tab")
@@ -221,7 +202,6 @@ async function stopRow(page, day, position) {
     .nth(position - 1);
 }
 
-/** Opens a stop's time editor, sets its start and end, and applies it with Change time. */
 async function changeTime(page, day, position, start, end) {
   const row = await stopRow(page, day, position);
   await row.locator(".timeline-stop__time").click();
@@ -249,8 +229,6 @@ async function main() {
   const summary = {};
   const browser = await chromium.launch();
   try {
-    // 1. A route check held open: the traveller's time edit is applied, and the check's answer does not
-    //    replace it when it is released.
     {
       const stub = newStub();
       let release = () => {};
@@ -295,8 +273,6 @@ async function main() {
       await run.context.close();
     }
 
-    // 2. An automatic place save held open: the traveller's time edit is applied, and the held stop is saved
-    //    again for the edited plan, because its place is still unsaved.
     {
       const stub = newStub();
       let releaseSave = () => {};
@@ -351,8 +327,6 @@ async function main() {
       await run.context.close();
     }
 
-    // 3. Day 1 is checked on load, and day 2 is checked once its five places are saved; one background
-    //    request is in flight at a time for the trip.
     {
       const stub = newStub();
       stub.verifyDelay = 2500;
@@ -399,7 +373,7 @@ async function main() {
       );
       await run.context.close();
     }
-    // 4. A second tab cannot send or autosave an old plan over a completed edit.
+
     {
       const stub = newStub();
       const run = await openTrip(browser, { days: { 1: DAY_ONE }, stub });
@@ -409,7 +383,7 @@ async function main() {
       let staleTimeRequests = 0;
       await stale.route("**/api/trip/preview-edit", async (route) => {
         if (route.request().postDataJSON().operation.kind === "time") staleTimeRequests++;
-        await route.abort(); // Background work in this tab must not change the seeded revision.
+        await route.abort();
       });
       await stale.goto(BASE);
       await stale
@@ -450,7 +424,7 @@ async function main() {
       await stale.screenshot({ path: `${OUT}/04-stale-tab.png` });
       await run.context.close();
     }
-    // 5. A background check queued behind another tab's edit terminates as stale, without retrying.
+
     {
       const stub = newStub();
       const run = await openTrip(browser, { days: { 1: DAY_ONE }, stub });

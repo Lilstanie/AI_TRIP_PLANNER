@@ -36,7 +36,9 @@ describe("searchHotelsSerpApi", () => {
       vi.fn(async (input: string | URL | Request) => {
         urls.push(String(input));
         return String(input).includes("google_hotels")
-          ? Response.json({ properties: [{ name: "Hotel", rate_per_night: { extracted_lowest: 225 } }] })
+          ? Response.json({
+              properties: [{ name: "Hotel", rate_per_night: { extracted_lowest: 225 } }],
+            })
           : Response.json({ best_flights: [{ price: 450, flights: [{ airline: "Qantas" }] }] });
       }),
     );
@@ -66,9 +68,7 @@ describe("searchHotelsSerpApi", () => {
     expect(option).toMatchObject({
       name: "Park Hyatt Sydney",
       pricePerNight: 650,
-      // The exact conversion every rating rule in this codebase assumes —
-      // missing it silently misjudges every real hotel while still being a
-      // "valid" 0-10 number, so this is asserted explicitly, not just ranged.
+
       rating: 9.2,
       grounded: true,
       location: { latitude: -33.86, longitude: 151.21 },
@@ -88,8 +88,8 @@ describe("searchHotelsSerpApi", () => {
   it("drops candidates with no name or no usable price", async () => {
     stub(200, {
       properties: [
-        { rate_per_night: { extracted_lowest: 200 } }, // no name
-        { name: "Free-text only", rate_per_night: {} }, // no price
+        { rate_per_night: { extracted_lowest: 200 } },
+        { name: "Free-text only", rate_per_night: {} },
         { name: "Good Hotel", rate_per_night: { extracted_lowest: 300 } },
       ],
     });
@@ -123,11 +123,11 @@ describe("searchFlightsSerpApi", () => {
       ],
     });
 
-    const [option] = await searchFlightsSerpApi(flightQuery); // 2 passengers
+    const [option] = await searchFlightsSerpApi(flightQuery);
 
     expect(option).toMatchObject({
       carrier: "Qantas",
-      price: 900, // 450 * 2 passengers, not 450
+      price: 900,
       stops: 1,
       durationMin: 600,
     });
@@ -151,17 +151,12 @@ describe("searchFlightsSerpApi", () => {
   });
 
   it("resolves a known free-text city to its airport code, since SerpApi rejects city names outright", async () => {
-    // Verified empirically against a real key: SerpApi's Google Flights
-    // engine does NOT resolve city names the way the Google Flights website
-    // does — it rejects "Sydney" with a validation error asking for a
-    // 3-letter code. This project's TripBrief only ever has free-text city
-    // names, so this mapping is load-bearing, not a nice-to-have.
     const fetcher = vi.fn(async (_url: string | URL | Request) =>
       Response.json({ best_flights: [{ price: 100, flights: [{ airline: "A" }] }] }),
     );
     vi.stubGlobal("fetch", fetcher);
 
-    await searchFlightsSerpApi(flightQuery); // { from: "Sydney", to: "Tokyo", ... }
+    await searchFlightsSerpApi(flightQuery);
 
     const url = new URL(String(fetcher.mock.calls[0]![0]));
     expect(url.searchParams.get("departure_id")).toBe("SYD");
@@ -206,7 +201,9 @@ describe("searchFlightsSerpApi", () => {
 
 describe("error classification (empirically verified against the real SerpApi error shape)", () => {
   it("classifies an invalid key", async () => {
-    stub(401, { error: "Invalid API key. Your API key should be here: https://serpapi.com/manage-api-key" });
+    stub(401, {
+      error: "Invalid API key. Your API key should be here: https://serpapi.com/manage-api-key",
+    });
 
     const error = await searchHotelsSerpApi(hotelQuery).catch((e: unknown) => e);
 
@@ -263,7 +260,7 @@ describe("shared monthly quota (hotels + flights count against the same total)",
     expect(serpApiUsage().count).toBe(1);
 
     stub(200, { best_flights: [{ price: 100, flights: [{ airline: "A" }] }] });
-    await searchFlightsSerpApi({ ...flightQuery, to: "Paris" }); // distinct key, not a cache hit
+    await searchFlightsSerpApi({ ...flightQuery, to: "Paris" });
     expect(serpApiUsage().count).toBe(2);
   });
 
@@ -279,7 +276,7 @@ describe("shared monthly quota (hotels + flights count against the same total)",
     );
     vi.stubGlobal("fetch", fetcher);
     for (let i = 0; i < 230; i += 1) {
-      await searchHotelsSerpApi({ ...hotelQuery, city: `City-${i}` }); // distinct key every time
+      await searchHotelsSerpApi({ ...hotelQuery, city: `City-${i}` });
     }
     expect(serpApiUsage().count).toBe(230);
 

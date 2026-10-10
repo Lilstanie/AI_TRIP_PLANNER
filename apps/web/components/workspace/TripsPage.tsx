@@ -27,10 +27,6 @@ const days = (trip: TripRecord) => {
   return Math.max(1, Math.round((utc(end) - utc(start)) / DAY) + 1);
 };
 
-/**
- * Your trips, opened from the sidebar's Trips button as on Mindtrip: every saved trip as a card,
- * split into upcoming and past, and a Calendar tab that lays the trips over a month.
- */
 export function TripsPage({
   trips,
   activeTripId,
@@ -155,7 +151,7 @@ function TripCards({
         {group.items.map((trip) => {
           const { destination } = trip.snapshot.plan.brief;
           const length = days(trip);
-          // Each card reads in its own trip's currency, not the open trip's.
+
           const total = moneyDisplay({
             currency: effectiveCurrency(trip.snapshot.plan.brief, settings.displayCurrency),
             locale,
@@ -196,7 +192,6 @@ const monthLabel = (year: number, month: number, locale: AppLocale) =>
     timeZone: "UTC",
   }).format(new Date(Date.UTC(year, month, 1)));
 
-/** A month grid (weeks start on Monday) with each trip drawn over the days it covers. */
 function TripCalendar({
   trips,
   onOpenTrip,
@@ -207,7 +202,7 @@ function TripCalendar({
   onOpenTrip(id: string): void;
 }) {
   const { t, locale } = useLocale();
-  // Open on the month of the next trip that has not ended, or this month.
+
   const [cursor, setCursor] = useState(() => {
     const today = todayUtc();
     const next = trips
@@ -292,7 +287,7 @@ function TripCalendar({
                   <span className="trip-calendar__date">{date.getUTCDate()}</span>
                   {here.map((trip) => {
                     const [start, end] = trip.snapshot.plan.brief.dates;
-                    // Label the bar where it starts and at the start of each week it continues into.
+
                     const labelled = time === utc(start) || weekday === 0;
                     const [from, to] = coverColours(trip.snapshot.plan.brief.destination);
                     return (

@@ -7,13 +7,6 @@ import {
   type ToolResultRow,
 } from "@trip/shared";
 
-// ---------------------------------------------------------------------------
-// The thinking transcript's model, derived from the streamed `activity`. The
-// tree it describes is Think (the turn) → Subagent rows per round → each
-// subagent's reasoning and tool rows → a tool's result rows. Nothing here is
-// React; ThinkingProcess and ThinkingRows render it.
-// ---------------------------------------------------------------------------
-
 export type ActivityStatus =
   "queued" | "running" | "revising" | "completed" | "failed" | "interrupted" | "unknown";
 
@@ -35,9 +28,8 @@ export const statusLabels: Record<ActivityStatus, MessageKey> = {
   unknown: "Waiting for update",
 };
 
-/** Tool row states, kept to DSH's running/ok/error vocabulary. */
 export type ToolState = "running" | "completed" | "failed";
-/** StatusDot visuals: running/queued/completed plus the error colour for failures. */
+
 export type DotState = "running" | "completed" | "failed" | "queued";
 
 type ToolProgressEvent = Extract<
@@ -121,37 +113,31 @@ function eventSummary(events: AgentProgressEvent[], status: ActivityStatus): str
   return statusLabels[status];
 }
 
-// --- Reasoning: one block per model call -----------------------------------
-
-/** The first line of a reasoning block: what a settled model call concluded. */
 export function firstLine(text: string): string {
   const newline = text.indexOf("\n");
   return newline === -1 ? text : text.slice(0, newline);
 }
 
-/** The last non-empty line: what a streaming model call is doing now. */
 export function latestLine(text: string): string {
   const visible = text.trimEnd();
   const newline = visible.lastIndexOf("\n");
   return newline === -1 ? visible : visible.slice(newline + 1);
 }
 
-/** A collapsed summary drops double-asterisk markers; the body keeps them. */
 export function reasoningSummary(text: string, running: boolean): string {
   return (running ? latestLine(text) : firstLine(text.trimStart())).replaceAll("**", "");
 }
 
 export interface ReasoningBlock {
-  /** Disclosure id: one block per (agent, round, episode). */
   id: string;
   agent: AgentName;
   round: number;
   episode: number;
   text: string;
-  /** Position of the block's first and latest delta in the event list it came from. */
+
   first: number;
   last: number;
-  /** Still streaming: the turn is busy and its agent has not moved on since. */
+
   running: boolean;
 }
 
@@ -159,7 +145,6 @@ export function reasoningId(agent: AgentName, round: number, episode: number): s
   return `reason:${agent}:${round}:${episode}`;
 }
 
-/** An event that ends a model call's thinking: the agent acted or settled. */
 function movesOn(event: AgentProgressEvent): boolean {
   return (
     event.type === "tool_started" ||
@@ -170,12 +155,6 @@ function movesOn(event: AgentProgressEvent): boolean {
   );
 }
 
-/**
- * Merge reasoning deltas into one block per model call, keyed by
- * (agent, round, episode) and concatenated in arrival order. That is correct
- * both for the current emitter, which gives every delta of one call the same
- * index, and for older frames that numbered each paced flush separately.
- */
 export function mergeReasoning(events: AgentProgressEvent[], busy: boolean): ReasoningBlock[] {
   const blocks = new Map<string, ReasoningBlock>();
   events.forEach((event, position) => {
@@ -202,7 +181,7 @@ export function mergeReasoning(events: AgentProgressEvent[], busy: boolean): Rea
   });
   const merged = [...blocks.values()];
   if (!busy) return merged;
-  // The newest block of each agent streams until that agent acts or settles.
+
   const newest = new Map<AgentName, ReasoningBlock>();
   for (const block of merged) {
     const current = newest.get(block.agent);
@@ -216,7 +195,6 @@ export function mergeReasoning(events: AgentProgressEvent[], busy: boolean): Rea
   return merged;
 }
 
-/** The newest streaming block of the whole turn, if any is streaming. */
 function streamingBlock(blocks: ReasoningBlock[]): ReasoningBlock | undefined {
   let latest: ReasoningBlock | undefined;
   for (const block of blocks)
@@ -224,13 +202,11 @@ function streamingBlock(blocks: ReasoningBlock[]): ReasoningBlock | undefined {
   return latest;
 }
 
-// --- Tools -----------------------------------------------------------------
-
 export interface ToolRowModel {
   started: StartedEvent;
   state: ToolState;
   summary: string;
-  /** Position of the call's start in the event list it came from. */
+
   first: number;
   args?: Record<string, string>;
   resultCount?: number;
@@ -247,16 +223,10 @@ const TOOL_KINDS: Record<string, ToolResultKind> = {
   "weather.forecast": "weather",
 };
 
-/** A result row's glyph: its own kind, else what the tool that found it returns. */
 export function resultKind(row: ToolResultRow, tool: string): ToolResultKind {
   return row.kind ?? TOOL_KINDS[tool] ?? "place";
 }
 
-/**
- * The site a result row came from, as a bare host. Only an http(s) page has
- * one; a row without a url, or with anything else in it, has no site and keeps
- * its category glyph.
- */
 export function resultHost(row: ToolResultRow): string | undefined {
   if (!row.url) return undefined;
   try {
@@ -268,33 +238,18 @@ export function resultHost(row: ToolResultRow): string | undefined {
   }
 }
 
-/**
- * Where the site's icon comes from: Google's public favicon service, asked for
- * the host alone. The row's own url — which can carry a provider's query
- * string — is never sent, and the request carries no referrer (see the img in
- * ThinkingRows).
- */
 export function faviconSrc(host: string): string {
   return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=32`;
 }
 
-// --- Tool arguments --------------------------------------------------------
-
-/** One tool call's arguments as one line: a journey, a date, then the rest. */
 export interface ArgLine {
-  /** `from → to`, only when the call named both ends of a journey. */
   journey?: { from: string; to: string };
-  /** The call's date, when it has the one plain `date` argument. */
+
   date?: string;
-  /** Everything else, in the order the emitter sent it. */
+
   chips: Array<{ key: string; value: string }>;
 }
 
-/**
- * Split arguments into the parts the row renders. `from`/`to` only read as a
- * journey together — one of them alone is just another argument and stays a
- * chip, because "Sydney →" says nothing.
- */
 export function argLine(args: Record<string, string>): ArgLine {
   const entries = Object.entries(args).filter(([, value]) => value.trim().length > 0);
   const lookup = new Map(entries);
@@ -340,21 +295,17 @@ function toolRows(events: AgentProgressEvent[]): ToolRowModel[] {
   return [...rows.values()];
 }
 
-// --- Subagents -------------------------------------------------------------
-
-/** A subagent's children in the order they happened: model calls and tool calls. */
 export type SubagentStep =
   { kind: "reasoning"; block: ReasoningBlock } | { kind: "tool"; row: ToolRowModel };
 
 export interface SubagentModel {
-  /** Disclosure id: one row per (round, agent). */
   id: string;
   name: AgentName;
   round: number;
   steps: SubagentStep[];
   status: ActivityStatus;
   summary: string;
-  /** The summary is a streaming reasoning line, so it follows its end. */
+
   streaming: boolean;
   objective?: string;
   constraints?: string[];
@@ -364,7 +315,6 @@ export interface SubagentModel {
   coordinator?: { summary: string; constraints?: string[] };
 }
 
-/** Whether the subagent row has anything to disclose. */
 export function subagentHasBody(model: SubagentModel): boolean {
   return Boolean(
     model.steps.length ||
@@ -428,8 +378,6 @@ export function subagentModel(
   };
 }
 
-// --- The turn --------------------------------------------------------------
-
 export interface Counts {
   toolCalls: number;
   subagents: number;
@@ -449,7 +397,6 @@ export function countActivity(activity: AgentProgressEvent[]): Counts {
   return { toolCalls: calls.size, subagents: subagents.size, rounds: rounds.size };
 }
 
-/** `N tool calls · M subagents · K rounds`, omitting parts with nothing to count. */
 export function countLine(counts: Counts, locale: AppLocale = "en"): string {
   const parts: string[] = [];
   if (counts.toolCalls > 0)
@@ -503,7 +450,6 @@ function activeTool(activity: AgentProgressEvent[]): StartedEvent | undefined {
   return latest;
 }
 
-/** What the turn row says while work is in flight and no model is mid-thought. */
 function liveSummary(activity: AgentProgressEvent[], locale: AppLocale): string {
   const tool = activeTool(activity);
   if (tool) return `${translate(locale, labels[tool.agent])} · ${tool.summary}`;
@@ -528,12 +474,6 @@ function liveSummary(activity: AgentProgressEvent[], locale: AppLocale): string 
   return translate(locale, "Preparing your request.");
 }
 
-/**
- * The Think row's collapsed summary. While busy it follows the newest
- * streaming reasoning line (right-anchored, so it visibly advances) when that
- * is the latest work in the turn, else the live tool or subagent line; once
- * settled it is the count line.
- */
 export function turnSummary(
   activity: AgentProgressEvent[],
   counts: Counts,
@@ -542,8 +482,6 @@ export function turnSummary(
   locale: AppLocale = "en",
 ): { text: string; streaming: boolean } {
   if (busy) {
-    // Reasoning leads only while it is the newest work in the turn; once any
-    // agent acts after it, the row follows that action instead.
     let newest = -1;
     activity.forEach((event, position) => {
       if (isLifecycle(event) || isToolEvent(event) || event.type === "agent_reasoning")
@@ -571,17 +509,12 @@ function groupByAgent(events: AgentProgressEvent[]): Map<AgentName, AgentProgres
   return grouped;
 }
 
-/** One round heading, then the subagents that worked in that round. */
 export interface RoundGroup {
   round: number;
   heading?: { summary: string; constraints?: string[] };
   subagents: SubagentModel[];
 }
 
-/** The rounds that contain work, in order. A round with only coordinator
- *  events is a synthesis phase, not a specialist round. Reasoning and tool
- *  calls count as work, so they always have a subagent row to live in; an
- *  event type this client does not know is not work. */
 function workRounds(activity: AgentProgressEvent[]): number[] {
   const rounds: number[] = [];
   for (const event of activity) {
@@ -601,7 +534,6 @@ export function roundGroups(activity: AgentProgressEvent[], busy: boolean): Roun
   }
   const rounds = workRounds(activity);
   if (rounds.length === 0) {
-    // Nothing reported yet: the whole cast waits in round 1.
     return [{ round: 1, subagents: AGENT_NAMES.map((name) => subagentModel(name, 1, [], busy)) }];
   }
   const multiRound = rounds.length > 1;
@@ -621,8 +553,7 @@ export function roundGroups(activity: AgentProgressEvent[], busy: boolean): Roun
           }
         : undefined;
     const byAgent = groupByAgent(events);
-    // The first round lists every specialist so the reader sees the whole cast
-    // before any of them report; later rounds only show who actually worked.
+
     const names =
       index === 0
         ? AGENT_NAMES

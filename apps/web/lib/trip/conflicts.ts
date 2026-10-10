@@ -7,27 +7,16 @@ import {
   type NoticeValue,
 } from "../i18n/notice";
 
-/**
- * The price note `trip-edit` writes on a stop whose price was changed. The stop's "Price needs
- * checking" tag already says it, so it is not repeated as a conflict.
- */
 export const PRICE_CHECK_MESSAGE = "Changed activity price requires verification";
 
-/**
- * Where each unresolved conflict of a plan is shown: on the stop it names, under the title of the day
- * it names, or under the budget bar when it names neither. Derived from the plan on every render, so an
- * edit that resolves a conflict removes it from the view.
- */
 export type ConflictPlacement = {
-  /** Under the budget bar: conflicts that name no stop and no day, such as the budget. */
   budget: Notice[];
-  /** Under a day's title, by day number. */
+
   days: Map<number, Notice[]>;
-  /** On a stop, by its activity id. */
+
   stops: Map<string, Notice[]>;
 };
 
-/** Reason prefix of the orchestrator's one conflict that no revision can meet (packages/orchestrator). */
 const INFEASIBLE = "infeasible budget";
 const OVER_BUDGET = /over budget$/;
 const OVERLAP = /^time overlap on day (\d+):/;
@@ -39,7 +28,6 @@ const overlaps = (a: ProposalItem, b: ProposalItem) =>
   minutes(a.startTime!) < minutes(b.endTime!) &&
   minutes(b.startTime!) < minutes(a.endTime!);
 
-/** Adds a notice unless the same one is already listed, so a repeated reason shows once. */
 function addOnce(list: Notice[], notice: Notice) {
   if (!list.some((item) => JSON.stringify(item) === JSON.stringify(notice))) list.push(notice);
 }
@@ -49,14 +37,6 @@ function addTo<K>(map: Map<K, Notice[]>, key: K, notice: Notice) {
   map.set(key, list);
 }
 
-/**
- * Places the plan's unresolved conflicts. A conflict's reason may join several (the orchestrator joins
- * them with "; "), so each part is placed on its own.
- *
- * A time overlap names a day. Each stop of that day that overlaps another scheduled item is marked;
- * when no stop is involved (a flight or a stay overlaps a stop, or the pair is no longer on the plan),
- * the sentence goes under the day's title.
- */
 export function placeConflicts(plan: TripPlan): ConflictPlacement {
   const placement: ConflictPlacement = { budget: [], days: new Map(), stops: new Map() };
   const itinerary =
@@ -67,16 +47,12 @@ export function placeConflicts(plan: TripPlan): ConflictPlacement {
   const scheduled = plan.sections
     .flatMap((section) => section.proposal?.items ?? [])
     .filter((item) => item.day !== undefined && item.startTime && item.endTime);
-  // Stop-level issues name their stops by id, so their wording is not repeated under a day or the budget.
-  // A stored issue's English sentence is also in conflictsWith (and so in plan.conflicts); that copy is
-  // skipped here, and the issue is shown in the traveller's language.
+
   const issues = (plan.editIssues ?? []).filter((issue) => issue.code !== "price_unverified");
   const issueSentences = new Set(
     issues.map((issue) => noticeText("en", readStoredNotice(issue.message))),
   );
 
-  // A notice the app wrote in English before it was keyed: placed as its key, on the stop its sentence names
-  // when that stop is on the day, else under the day title, else under the budget.
   const placeAuthored = (notice: Notice) => {
     const params = ("params" in notice ? notice.params : undefined) as
       Record<string, NoticeValue> | undefined;

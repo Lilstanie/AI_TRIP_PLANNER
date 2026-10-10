@@ -1,24 +1,3 @@
-// End-to-end walk through the one day view in the Trip drawer with mock data: day switching, the fixed
-// transport and stay rows, selecting and editing a stop, confirming its place (a map match is saved on
-// its stop by the workspace, see auto-save-places), reading each leg between stops as checked on its own
-// (no button), changing one leg's mode, applying an edit at once and undoing it, an unroutable leg read
-// as "No route found", and provider transit fares keeping their own currency's decimal places (JPY 230,
-// KRW 1,400, AUD 12.50). Screenshots at desktop and phone widths,
-// light and dark, land under output/playwright/timeline/<label>/ as a repeatable artifact.
-//
-// Stop numbers and visiting order (#196): with a plan whose Day 2 start times disagree with plan
-// order and whose Day 2 revisits Day 1's first place, the failures this checks are:
-// - a view numbers each day from 1, or counts plan order instead of visiting order (#185, #186);
-// - the revisited place gets a new number instead of keeping its first one;
-// - the timeline, the Trip drawer list, the map (fallback list and popup) and the phone map sheet
-//   disagree on a stop's number or on the order of a day's stops;
-// - Move later on the first Day 2 stop does not swap it with the stop shown below it.
-// The numbers each view showed are written to numbers-summary.json beside the screenshots.
-//
-//   pnpm --filter @trip/web dev            # in another terminal; a map key is optional (see the 503 note below)
-//   [PLAYWRIGHT=<path to playwright>] [LABEL=after] [SHOTS_ONLY=1] node apps/web/tests/e2e/timeline.e2e.mjs
-//
-// SHOTS_ONLY=1 skips the interaction checks, for capturing a baseline of an older build.
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
@@ -27,7 +6,7 @@ const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT ?? "playwright");
 const BASE = process.env.BASE_URL ?? "http://localhost:3000";
 const LABEL = process.env.LABEL ?? "after";
-// Status codes of the place routes when Google Places is unavailable: 503 no key configured, 502 upstream failure.
+
 const PLACES_DOWN = new Set([502, 503]);
 const PLACES_DOWN_LOG = /status of 50[23]/;
 const SHOTS_ONLY = process.env.SHOTS_ONLY === "1";
@@ -50,9 +29,7 @@ async function openTimeline(browser, { width, height, scheme, setup }) {
   const page = await context.newPage();
   await setup?.(page);
   const errors = [];
-  // Without a map key the place routes answer 503 (no key configured; they answered 502 before commit 2ca5570), and
-  // the browser logs that as a console error with no URL. That one case is expected; any other failed
-  // request is still an error.
+
   const upstream = new Set();
   page.on("response", (response) => {
     if (PLACES_DOWN.has(response.status())) upstream.add(new URL(response.url()).pathname);
@@ -60,7 +37,7 @@ async function openTimeline(browser, { width, height, scheme, setup }) {
   page.on("console", (message) => {
     if (message.type() !== "error") return;
     const text = message.text();
-    // Chrome probes the legacy favicon even though the application exposes icon.svg.
+
     if (message.location().url === `${BASE}/favicon.ico` && text.includes("404")) return;
     if (PLACES_DOWN_LOG.test(text) && [...upstream].every((path) => path === "/api/places/search"))
       return;
@@ -69,21 +46,18 @@ async function openTimeline(browser, { width, height, scheme, setup }) {
   page.on("pageerror", (error) => errors.push(String(error)));
   await page.goto(BASE);
   await page.waitForSelector(".workspace-app");
-  // The dev-mode indicator sits over the phone tab bar and would take the tab clicks.
+
   await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
-  // Mock data: no provider requests. The toggle only works once the page has hydrated, so retry
-  // until it reports mock rather than clicking once and planning with live providers.
+
   await page.waitForLoadState("networkidle");
-  // A cold dev server can settle the network before the data-mode toggle has rendered. On phones the
-  // toggle is on the Mine tab, so the tab is waited for instead (waiting for the toggle there would
-  // sit out the whole timeout).
+
   await page
     .getByRole("button", { name: /^(Live|Mock) data/ })
     .or(page.getByRole("tab", { name: /^Mine/ }))
     .first()
     .waitFor({ timeout: 30_000 })
     .catch(() => undefined);
-  // On phones the data mode toggle lives on the Mine tab.
+
   const mineTab = page.getByRole("tab", { name: /^Mine/ });
   if (await mineTab.count()) {
     await mineTab.click();
@@ -107,7 +81,7 @@ async function openTimeline(browser, { width, height, scheme, setup }) {
   await page.locator(".chat-empty__suggestions button").first().click();
   await page.locator(".msg-item--agent .msg-item__body").first().waitFor({ timeout: 180_000 });
   await settle(page, 1500);
-  // Phones show Your Trip on the Trip tab; wider screens open it as a drawer.
+
   const tripTab = page.getByRole("tab", { name: /^Trip/ });
   if (await tripTab.count()) await tripTab.click();
   else await page.getByRole("button", { name: "Open your trip" }).click();
@@ -124,11 +98,9 @@ async function shots(browser, width, height, tag) {
     );
     await drawer.first().screenshot({ path: `${OUT}/${tag}-${scheme}-02-drawer.png` });
     await noStatusLabels(page, `${tag} ${scheme}`);
-    // Each stop time is its start and end, one line each. A column too narrow for the digits would
-    // break them into one-character lines, so every line must be wide enough to hold a time.
+
     const stopTimes = await page.locator(".timeline-stop__time").evaluateAll((buttons) =>
       buttons.map((button) => {
-        // Only the text runs count: element boxes such as the end span repeat a line's position.
         const doc = button.ownerDocument;
         const walker = doc.createTreeWalker(button, NodeFilter.SHOW_TEXT);
         const boxes = [];
@@ -158,8 +130,6 @@ async function shots(browser, width, height, tag) {
   }
 }
 
-// An accepted edit applies at once. A refused one leaves the plan unchanged and shows its blockers
-// as an alert in the timeline, which this helper reports as a failure.
 async function applyEdit(page, label) {
   await settle(page, 800);
   const alert = page.locator(".timeline-status--error");
@@ -172,7 +142,6 @@ async function applyEdit(page, label) {
   return true;
 }
 
-/** A fixed place for a search text; the lookups answer from these, so no map key is needed. */
 function placeFor(text) {
   const offset = text.length * 0.001;
   return {
@@ -184,7 +153,6 @@ function placeFor(text) {
   };
 }
 
-/** Place search and lookup at the browser boundary: every stop finds a place and saves it. */
 async function installPlaces(page) {
   await page.route("**/api/places/search", (route) => {
     const { text } = route.request().postDataJSON();
@@ -196,7 +164,6 @@ async function installPlaces(page) {
   });
 }
 
-/** Polls until the test passes or the time runs out; resolves to whether it passed. */
 async function until(page, test, ms = 10_000) {
   for (let waited = 0; waited < ms; waited += 200) {
     if (await test()) return true;
@@ -214,7 +181,6 @@ async function interactions(browser) {
   });
   const timeline = page.getByRole("region", { name: "Trip timeline" });
 
-  // Days are tabs, not a dropdown of ISO dates.
   const days = timeline.getByRole("tab");
   check((await days.count()) >= 2, `day strip lists every day (${await days.count()})`);
   await days.nth(1).click();
@@ -223,19 +189,16 @@ async function interactions(browser) {
   await days.nth(0).click();
   await settle(page);
 
-  // Fixed transport and stays read as rows with no raw "undefined" or empty separators.
   const text = await timeline.innerText();
   check(!/undefined|· ·/.test(text), "no raw undefined or empty separators");
 
-  // A stop is compact until selected; selecting it opens its place card.
   const stop = timeline.locator(".timeline-stop").first();
   check((await stop.count()) === 1, "day shows its stops");
   check(
     !(await timeline.locator(".stop-place-card").count()),
     "the place card stays closed until a stop is selected",
   );
-  // A control names only an element that is on the page: the closed time form and the closed place card
-  // name nothing, and the open place card is the one the stop's button names.
+
   const mainButton = stop.locator(".timeline-stop__main");
   check(
     (await mainButton.getAttribute("aria-controls")) === null,
@@ -258,9 +221,8 @@ async function interactions(browser) {
   );
   await page.screenshot({ path: `${OUT}/interact-01-stop-open.png` });
 
-  // A time edit applies at once and can be undone; there is no review step.
   const stopBefore = await timeline.locator(".timeline-stop").first().innerText();
-  // Tapping the time opens its Start and End form.
+
   await timeline.locator(".timeline-stop__time").first().click();
   const start = timeline.getByLabel(/^Start/).first();
   const [hour, minute] = (await start.inputValue()).split(":").map(Number);
@@ -279,7 +241,7 @@ async function interactions(browser) {
       !(await page.getByRole("button", { name: "Apply changes" }).count()),
     "a time edit has no review step or Apply button",
   );
-  // The stop the edit changed flashes once, and only while motion is allowed.
+
   const flashed = timeline.locator(".timeline-stop.is-changed");
   check((await flashed.count()) >= 1, "an applied edit marks the changed stop");
   check(
@@ -294,16 +256,12 @@ async function interactions(browser) {
   await page.screenshot({ path: `${OUT}/interact-03-applied.png` });
   await undo.click();
   await settle(page, 800);
-  // Undo replays the earlier activities, so the stop reads as it did before the edit.
+
   check(
     (await timeline.locator(".timeline-stop").first().innerText()) === stopBefore,
     "undo restores the stop's earlier time",
   );
 
-  // Routes between stops. A day's legs are checked once its places are saved and again when the day's
-  // stops or times change; each leg's mode can be changed on its own, with no button. Places are stubbed
-  // at the browser boundary, so this runs without a map key. In mock mode the server answers with
-  // simulated legs, which read as estimates, never as checked.
   const ops = [];
   page.on("request", (request) => {
     if (request.url().endsWith("/api/trip/preview-edit"))
@@ -326,8 +284,7 @@ async function interactions(browser) {
     "Art Gallery of New South Wales",
   ];
   let searches = 0;
-  // Confirm every stop's place on a day: a map match is saved on its stop by the workspace, so the
-  // stop is confirmed once that save lands; a stop with no map match is found with its search.
+
   async function confirmDay(index) {
     await days.nth(index).click();
     await settle(page);
@@ -343,7 +300,6 @@ async function interactions(browser) {
         .waitFor({ timeout: 8_000 })
         .catch(() => undefined);
       if (!(await saved.count())) {
-        // No map match: find a place with the stop's search.
         await row.getByRole("searchbox").fill(LANDMARKS[searches++ % LANDMARKS.length]);
         await row.getByRole("button", { name: "Search", exact: true }).click();
         const result = row.getByRole("button", { name: /^Use / }).first();
@@ -354,12 +310,11 @@ async function interactions(browser) {
     }
   }
   if (routeDay < 0) {
-    // Mock data plans one stop a day: move day 2's stop onto day 1 so there is a journey.
     await confirmDay(0);
     await confirmDay(1);
     await days.nth(1).click();
     await settle(page);
-    // Moves are in the stop's menu; the day picker opens in its place card.
+
     await timeline
       .getByRole("button", { name: /^Actions for / })
       .first()
@@ -381,7 +336,7 @@ async function interactions(browser) {
       confirmed === (await stops.count()),
       `every stop on the day is confirmed (${confirmed}/${await stops.count()})`,
     );
-    // The day's legs appear once its places are saved: one verify for the day, no button.
+
     await until(
       page,
       async () => (await modes.count()) > 0 && ops.some((op) => op.kind === "verify"),
@@ -406,7 +361,6 @@ async function interactions(browser) {
     );
     await page.screenshot({ path: `${OUT}/interact-04-route-check.png` });
 
-    // Changing one leg's mode sends one leg operation, and only that leg is routed.
     const first = modes.first();
     const before = await first.inputValue();
     const target = before === "drive" ? "transit" : "drive";
@@ -433,12 +387,10 @@ async function interactions(browser) {
     );
     await page.screenshot({ path: `${OUT}/interact-05-routes-checked.png` });
 
-    // Undo puts the leg back.
     await timeline.getByRole("button", { name: /Undo/ }).click();
     await settle(page, 800);
     check((await first.inputValue()) === before, `undo restores the leg to ${before}`);
 
-    // A chosen mode survives a later time edit of the day's first stop, which re-times the day.
     await first.selectOption(target);
     await settle(page, 800);
     await timeline.locator(".timeline-stop__time").first().click();
@@ -461,9 +413,7 @@ async function interactions(browser) {
       ),
       timeline.getByRole("button", { name: "Change time", exact: true }).click(),
     ]);
-    // A time edit re-times the day, so the server routes every leg of that day in the same answer: one
-    // route per leg. The day is then recorded as routed, so the workspace sends no second verify (that
-    // second answer would replace the plan and drop its Undo step; see the immediate timeline edits note).
+
     const timedRoutes = (await timed.json()).routes;
     check(
       timedRoutes.length === legCount,
@@ -479,7 +429,6 @@ async function interactions(browser) {
       `a chosen mode survives a later time edit (${target})`,
     );
 
-    // An unroutable leg: the server answers no route for it, which reads as "No route found".
     await page.route("**/api/trip/preview-edit", async (route) => {
       const request = route.request().postDataJSON();
       if (request.operation.kind !== "leg") return route.continue();
@@ -512,8 +461,6 @@ async function interactions(browser) {
     await page.screenshot({ path: `${OUT}/interact-06-no-route.png` });
     await page.unroute("**/api/trip/preview-edit");
 
-    // An Idea in the plan does not break Undo: the undo step covers the scheduled stops, and the Idea is
-    // kept as it is. The first stop moves to Ideas, the next stop's time changes, and Undo restores that time.
     await timeline
       .getByRole("button", { name: /^Actions for / })
       .first()
@@ -570,9 +517,6 @@ async function interactions(browser) {
   await context.close();
 }
 
-// Provider transit fares stay in their own currency with that currency's decimal places: yen has
-// and won have no minor unit. The route provider is a system boundary, so the preview response is
-// given three checked transit legs (JPY, AUD, KRW) between four stops moved onto the first day.
 async function fareDecimals(browser) {
   const { context, page, errors, upstream } = await openTimeline(browser, {
     width: 1440,
@@ -610,19 +554,19 @@ async function fareDecimals(browser) {
   const timeline = page.getByRole("region", { name: "Trip timeline" });
   await timeline.locator(".timeline-stop .timeline-stop__main").first().click();
   await settle(page);
-  // Any edit will do: tap the time, then move the end so the change button is enabled.
+
   await timeline.locator(".timeline-stop__time").first().click();
   const end = timeline.getByLabel(/^End/).first();
   const [endHour, endMinute] = (await end.inputValue()).split(":").map(Number);
   await end.fill(
     `${String(Math.min(endHour + 1, 22)).padStart(2, "0")}:${String(endMinute).padStart(2, "0")}`,
   );
-  // The server answers the time edit before the legs can show: wait for that answer, not a delay.
+
   const answered = page.waitForResponse((r) => r.url().includes("/api/trip/preview-edit"));
   await timeline.getByRole("button", { name: "Change time", exact: true }).click();
   await answered;
   await settle(page, 300);
-  // The fares arrive with the applied edit and show on the checked legs, as the checks below read.
+
   const jpy = (text) => text.match(/JPY [\d.]+/)?.[0];
   const legs = await timeline.locator(".timeline-connection--checked").allInnerTexts();
   const text = legs.join(" | ");
@@ -632,7 +576,7 @@ async function fareDecimals(browser) {
   check(/KRW 1,400(?![.\d])/.test(text), "timeline: KRW fare has no decimals");
   await timeline.locator(".timeline-connection--checked").first().scrollIntoViewIfNeeded();
   await page.screenshot({ path: `${OUT}/fare-02-timeline.png` });
-  // The stand-in place ids have no place details, so those lookups answer 503 (or 502) like the search.
+
   const unexpected = errors.filter(
     (text) =>
       !(
@@ -643,16 +587,12 @@ async function fareDecimals(browser) {
     !unexpected.length,
     `fare decimals: no console errors${unexpected.length ? `: ${unexpected.join(" | ")}` : ""}`,
   );
-  // A routing request the time edit started may still be in flight: let it finish before the context closes.
+
   await page.waitForLoadState("networkidle");
   await page.unrouteAll({ behavior: "ignoreErrors" });
   await context.close();
 }
 
-// ---- Stop numbers and visiting order (#196) ----
-// Day 1: Alpha 12:00, Bravo 15:00 (after the mock arrival). Day 2 in plan order: Charlie 15:00, Alpha 09:00 (a revisit),
-// Delta 11:00. Visiting order puts Day 2 as Alpha, Delta, Charlie; trip-wide numbers are one per
-// place in visiting order, and the revisit keeps Alpha's 1.
 const NUMBERED = [
   { id: "e2e-alpha-1", place: "Alpha Museum", day: 1, start: "12:00", end: "13:00" },
   { id: "e2e-bravo", place: "Bravo Gardens", day: 1, start: "15:00", end: "16:00" },
@@ -666,7 +606,6 @@ const placeIdOf = (name) => `e2e-place-${name.split(" ")[0].toLowerCase()}`;
 const shown = (rows) => rows.map(({ number, name }) => `${number} ${name}`).join(", ");
 const expectedDay2 = shown(DAY_2.map((name) => ({ number: NUMBER[name], name })));
 
-/** Real planning, then this file's itinerary; place lookups answer from fixed fixtures. */
 async function numberedPlan(page) {
   await page.route("**/api/places/search", (route) => route.fulfill({ json: { places: [] } }));
   await page.route("**/api/places/details", async (route) => {
@@ -711,11 +650,9 @@ async function numberedPlan(page) {
   });
 }
 
-// The chosen day's stops only: Ideas (unscheduled stops and dining's restaurant picks) are a second list.
 const dayStops = (timeline) =>
   timeline.getByRole("list", { name: /^Day \d+ timeline$/ }).locator(".timeline-stop");
 
-/** Number and name of each row, with screen-reader-only text removed. */
 const readRows = (rows, numberSelector, nameSelector) =>
   rows.evaluateAll(
     (nodes, [numberSel, nameSel]) =>
@@ -732,7 +669,7 @@ const readRows = (rows, numberSelector, nameSelector) =>
 
 async function stopNumbers(browser) {
   const summary = {};
-  // Desktop: the timeline, the Trip drawer list and the map agree on Day 2.
+
   {
     const { context, page, errors } = await openTimeline(browser, {
       width: 1440,
@@ -747,7 +684,7 @@ async function stopNumbers(browser) {
       await settle(page);
       return readRows(dayStops(timeline), ".timeline-stop__node", ".timeline-stop__name");
     };
-    // Place lookups finish after the first render; wait until every stop has its number.
+
     await page
       .waitForFunction(
         () =>
@@ -774,13 +711,9 @@ async function stopNumbers(browser) {
     );
     await page.screenshot({ path: `${OUT}/numbers-01-timeline-day2.png` });
 
-    // The Trip drawer is this same view, so its day was read above; its screenshot is kept.
     const drawer = page.locator(".workspace-drawer--trip");
     await drawer.screenshot({ path: `${OUT}/numbers-02-trip-list.png` });
 
-    // The map: without a map key its fallback lists the markers in order, and each place's popup
-    // names its stop number. With a key the markers are drawn on a canvas this script cannot read.
-    // The Trip drawer is modal at this width, so it closes while the map is read.
     await page.keyboard.press("Escape");
     await drawer.waitFor({ state: "hidden" });
     await settle(page, 400);
@@ -812,14 +745,9 @@ async function stopNumbers(browser) {
       );
     } else console.log("skip  map marker numbers: the map drew real markers (a map key is set)");
 
-    // Move later on the first Day 2 stop (Alpha) moves it past the stop shown below it (Delta).
-    // From the timeline, the preview endpoint re-times the day from real routes, which the fixture
-    // places do not have, so this checks the position the timeline asks for: just after Delta in
-    // plan order (Charlie, Delta), not after the second stop of the plan's day.
     await page.getByRole("button", { name: "Open your trip" }).click();
     await settle(page, 700);
-    // Move later on the first Day 2 stop (Alpha) swaps it with the stop shown below it (Delta). The
-    // browser swaps their start times, so the day then shows Delta first and each place keeps its number.
+
     await days.nth(1).click();
     await settle(page);
     await dayStops(timeline)
@@ -844,7 +772,6 @@ async function stopNumbers(browser) {
     await context.close();
   }
 
-  // Phone: the timeline and the Map tab's stops sheet agree on Day 2.
   {
     const { context, page, errors } = await openTimeline(browser, {
       width: 390,
@@ -897,10 +824,6 @@ async function stopNumbers(browser) {
   writeFileSync(`${OUT}/numbers-summary.json`, JSON.stringify(summary, null, 2));
 }
 
-/**
- * A trip with no flight, no stay and no destination guide: the day view shows none of those rows or
- * blocks, and the day still renders its stops and Ideas (#239).
- */
 async function bareTripView(browser) {
   const { context, page, errors } = await openTimeline(browser, {
     width: 1440,
@@ -960,8 +883,6 @@ async function bareTripView(browser) {
   await context.close();
 }
 
-// The Trip drawer, the phone shell and the trip list carry no review or draft label: nothing the traveller
-// cannot act on is named "Needs review", "Needs you", "Draft" or "Review plan".
 const STATUS_LABEL = /^(Needs review|Needs you|Draft|Review plan)$/;
 async function noStatusLabels(page, where) {
   const found = await page.getByText(STATUS_LABEL).count();
@@ -971,8 +892,6 @@ async function noStatusLabels(page, where) {
   );
 }
 
-// Answers the chat through the real route. Each planned frame's plan goes to `change(plan, turn)`, where
-// turn counts the chat requests of this page from 1 (the suggestion that opens the trip).
 async function stubChat(page, change) {
   let turn = 0;
   await page.route("**/api/chat", async (route) => {
@@ -991,8 +910,6 @@ async function stubChat(page, change) {
   });
 }
 
-// A plan with an over-budget conflict and an overlap on Day 1. The overlap is in the times: the second
-// stop of Day 1 is given the first stop's window, so both stops overlap and the workspace marks them.
 async function conflictsPlan(browser) {
   const { context, page, errors } = await openTimeline(browser, {
     width: 1440,
@@ -1002,7 +919,7 @@ async function conflictsPlan(browser) {
       stubChat(page, (plan) => {
         const tripId = plan.tripId;
         const items = plan.sections.find((s) => s.id === "itinerary").proposal.items;
-        // Two activities moved onto Day 1, the day the timeline opens on.
+
         const [first, second] = items
           .filter((i) => i.kind === "activity" && i.startTime)
           .slice(0, 2);
@@ -1051,7 +968,7 @@ async function conflictsPlan(browser) {
     "an overlap between stops is marked on the stops, not under the day",
   );
   await noStatusLabels(page, "conflicts plan");
-  // The trip list: the same trip, without a status label.
+
   await page.keyboard.press("Escape");
   await settle(page, 400);
   await page
@@ -1069,8 +986,6 @@ async function conflictsPlan(browser) {
   await context.close();
 }
 
-// A chat replan changes the estimate by a known amount: the notice shows the signed change once, and
-// Dismiss removes it. The first plan has nothing to compare, so it shows no notice.
 async function replanNotice(browser, width, height) {
   let base = 0;
   const { context, page, errors } = await openTimeline(browser, {
@@ -1088,7 +1003,7 @@ async function replanNotice(browser, width, height) {
     (await page.locator(".estimate-notice").count()) === 0,
     `${tag}: a first plan shows no estimate notice`,
   );
-  // The Trip drawer covers the chat on desktop; Escape closes it before the chat is used.
+
   if (width >= 520) {
     await page.keyboard.press("Escape");
     await settle(page, 400);

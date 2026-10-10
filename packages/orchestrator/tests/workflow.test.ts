@@ -112,7 +112,7 @@ describe("LangGraph orchestrator workflow", () => {
 
     expect(started).toEqual(expect.arrayContaining(["accommodation", "transport"]));
     expect(plan).toMatchObject({ round: 2, estTotal: 700 });
-    // Nothing is unresolved after the revision, so every section is a draft.
+
     expect(plan.conflicts).toEqual([]);
     expect(plan.sections.every((section) => section.status === "draft")).toBe(true);
   });
@@ -189,8 +189,7 @@ describe("LangGraph orchestrator workflow", () => {
     expect(requests[0]!.reason).toContain("geography conflict");
     expect(requests[0]!.reason).toContain("time overlap on day 2");
     expect(requests[0]!.constraints).toContain("make the route geographically feasible");
-    // The revising agent cannot see the other proposals, so the constraint has
-    // to name the window it must avoid and who holds it.
+
     const rescheduleConstraint = requests[0]!.constraints.find((constraint) =>
       constraint.includes("reschedule"),
     );
@@ -201,10 +200,6 @@ describe("LangGraph orchestrator workflow", () => {
   });
 
   it("asks only the itinerary to move when an activity collides with transport", () => {
-    // A deliberate asymmetry, and load-bearing now that transport chooses its own
-    // departure times: a train leaves when it leaves, a museum visit does not. Making
-    // this symmetric asks both sides to reschedule around each other, which can burn
-    // every remaining round without converging.
     const at = (agent: AgentName, kind: string, startTime: string, endTime: string) => ({
       ...proposal(agent, 100),
       items: [{ kind, detail: kind, day: 2, startTime, endTime, location: kind, estCost: 100 }],
@@ -242,8 +237,7 @@ describe("LangGraph orchestrator workflow", () => {
 
     expect(plan.round).toBe(2);
     expect(plan.sections[0]!.status).toBe("needs_you");
-    // The section is marked unresolved because a revision request still targets
-    // it, not because a confirmation checkpoint exists.
+
     expect(plan.conflicts).toEqual(
       expect.arrayContaining([
         expect.objectContaining({

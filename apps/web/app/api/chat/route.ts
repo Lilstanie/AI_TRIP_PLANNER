@@ -21,15 +21,10 @@ import { noticeBody, type Notice } from "@/lib/i18n/notice";
 const INVALID_REQUEST: Notice = { key: "The request was invalid. Please retry." };
 
 export async function POST(req: Request) {
-  // The workspace toggle states the mode per request; absent, the deployment's
-  // USE_MOCK_TOOLS default applies.
   const dataMode = parseDataMode(req.headers.get("x-trip-data-mode"));
   const body = await req.json().catch(() => ({}));
   const parsed = ChatRequest.safeParse(body);
   if (!parsed.success) {
-    // An attachment is the one part of the request a person chose by hand, so its rejection is
-    // reported in the schema's own words ("image/tiff is not an accepted image type") instead of
-    // the generic message. Everything else stays a flat 400: the client builds those fields.
     const attachmentIssue = parsed.error.issues.find((issue) => issue.path[0] === "attachments");
     return NextResponse.json(
       noticeBody(
@@ -68,15 +63,6 @@ export async function POST(req: Request) {
       };
 
       try {
-        // A fare question is answered from the one provider it needs. Running
-        // the planning workflow would spend five model calls to bury the number
-        // in a trip nobody asked for.
-        //
-        // Whether a plan is already open says nothing about what was asked:
-        // gating on that made "cheapest flight from Sydney to Tokyo" reach the
-        // planner for anyone who had looked at a trip first, which is everyone
-        // by the second question. parseFlightQuery decides from the message,
-        // and declines anything that reads as planning or editing.
         const flightQuery = parseFlightQuery(parsed.data.message);
         if (flightQuery) {
           const answer = await runWithDataMode(dataMode, () =>
@@ -91,15 +77,9 @@ export async function POST(req: Request) {
         await tripStore.set(response.plan);
         send({ type: "complete", response });
       } catch (error) {
-        // A blank conversation that has not stated everything yet is a question
-        // rather than a failure: the chat shows the assistant's own words, and
-        // the traveller answers by typing.
         if (error instanceof IncompleteBriefError) {
           send(error.needsInfo);
         } else if (error instanceof AskUserError) {
-          // The coordinator asked a structured question. Like needs_info it is
-          // the turn's final frame, and the traveller's answer is the next
-          // message; any plan it carries is the client's own, unchanged.
           send(error.askUser);
         } else {
           console.error("[chat] planning failed", error);

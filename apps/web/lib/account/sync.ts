@@ -1,10 +1,5 @@
 import { z } from "zod";
 
-/**
- * One catalog record on the wire: a trip or a conversation as the workspace stores it, or a
- * tombstone when it was deleted. `record` stays opaque here — the client validates it with the
- * catalog's own parser when it arrives — but its size is bounded.
- */
 export const SyncedRecord = z
   .object({
     id: z.string().min(1).max(200),
@@ -19,7 +14,6 @@ export const SyncedRecord = z
   );
 export type SyncedRecord = z.infer<typeof SyncedRecord>;
 
-/** A trip snapshot with a long chat is well under this; it only stops runaway payloads. */
 export const MAX_RECORD_CHARS = 2_000_000;
 
 export const SyncPush = z.object({

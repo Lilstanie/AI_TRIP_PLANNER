@@ -1,13 +1,3 @@
-// Complete live Agent Lab Planning-loop evidence for the public ToolGateway boundary (#131).
-//
-// Failure inventory, recorded before this test:
-// - a live request inherits USE_MOCK_TOOLS=true and quietly selects fixture adapters;
-// - a run labelled live completes without making provider requests;
-// - mock place, stay, route or weather facts enter a live Plan or final Artifact;
-// - provider-backed facts lose their provider and estimated/live provenance;
-// - a failed or partial run is accepted as a completed live Artifact;
-// - the saved Artifact cannot be read back unchanged.
-
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { runWithModelsDisabled } from "@trip/agents";

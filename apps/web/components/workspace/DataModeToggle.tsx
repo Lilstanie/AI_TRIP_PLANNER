@@ -2,13 +2,6 @@
 import type { DataMode, DataModeProviders } from "@/lib/workspace/data-mode";
 import { useLocale } from "../account/LocaleProvider";
 
-/**
- * Switches the planner between bundled fixtures and the real providers.
- *
- * Live mode spends a shared monthly SerpApi allowance, so the button states
- * which mode is active rather than hiding it behind a settings panel, and says
- * up front when live mode has no key to work with.
- */
 export function DataModeToggle({
   mode,
   providers,
@@ -21,8 +14,7 @@ export function DataModeToggle({
   disabled?: boolean;
 }) {
   const { t } = useLocale();
-  // Until the server reports its default, showing "Mock" would be a guess that
-  // visibly flips a moment later.
+
   if (!mode) return null;
 
   const live = mode === "live";

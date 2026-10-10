@@ -14,11 +14,6 @@ import { CurrencyNotice } from "./CurrencyNotice";
 import type { MessageKey } from "@/lib/i18n/locale";
 import { failureNotice, type Notice } from "@/lib/i18n/notice";
 
-/**
- * Settings follows Mindtrip's settings page: a quiet list of sections on the left, one section on
- * the right made of labelled rows with a Change action. Only what this planner can actually do is
- * here; Mindtrip's voice, price alerts, notifications and cookie sections have no counterpart.
- */
 export type SettingsSection = "profile" | "account" | "personalization" | "region" | "connected";
 type Section = SettingsSection;
 type AccountModalProps = { onAccountModal(open: () => void): void };
@@ -96,7 +91,6 @@ function ProfileSection({ onAccountModal }: AccountModalProps) {
       {signedIn ? (
         <div className="settings-profile">
           {signedIn.imageUrl ? (
-            // Clerk hosts the avatar; it is the person's own picture, not decoration.
             // eslint-disable-next-line @next/next/no-img-element
             <img src={signedIn.imageUrl} alt="" width={40} height={40} />
           ) : (
@@ -345,7 +339,6 @@ function AccountSection({ onAccountModal }: AccountModalProps) {
   );
 }
 
-/** Airline and hotel loyalty programmes, kept for reference. */
 function Loyalty({
   list,
   onChange,
@@ -791,7 +784,6 @@ function ConnectedSection({ onAccountModal }: AccountModalProps) {
   );
 }
 
-/** The Settings dialog's body; the workspace Dialog supplies the title and close button. */
 export function SettingsDialog({
   initial = "personalization",
   onDataMode,

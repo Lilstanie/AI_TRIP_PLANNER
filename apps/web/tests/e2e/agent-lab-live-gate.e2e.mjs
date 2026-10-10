@@ -1,41 +1,3 @@
-// End-to-end contract for Agent Lab's live gate (#106). It proves, without any credential, that a public
-// Agent Lab cannot be turned into a model or provider proxy, and that every result says whether it is
-// fixture or live. Three servers are used (see the commands below); raw frames, artifacts, evidence, a
-// summary, a report and screenshots land under output/playwright/agent-lab-live-gate/.
-//
-// Failure inventory, written before implementation:
-// - the Data mode control offers live as selectable on a deployment that has not enabled it, gives no
-//   reason, or defaults to anything but fixture;
-// - a live request to a deployment that has not enabled it is run, or answered with anything but one
-//   typed `rejected` frame and a 503, or carries events or an artifact;
-// - arbitrary fields a public proxy would attract (a prompt, a brief, a tool, a provider setting, a
-//   credential, a model, a fault definition) are accepted, on a fixture or a live request;
-// - a fixture run is changed by the live setting, or reaches a provider or model even though the
-//   environment defaults to live data and holds a model key: its results are not the repeatable fixture
-//   figures, or it is not labelled fixture;
-// - when live is enabled, the scripted baseline is offered or accepted, or the page does not say it is
-//   fixture only;
-// - a limit rejection (rate or concurrency) is a bare status, is dressed up as a failed run, starts a run,
-//   shows events or a plan, hides which limit was hit, or leaks the deployment's settings;
-// - a run, comparison or artifact does not say fixture or live, or a replayed live artifact is shown as
-//   fixture;
-// - usage is a number when it was not measured, zero when nothing was called, or a total built from partial
-//   figures; measured usage hides that cost is not reported;
-// - the control or the rejection cannot be reached by keyboard or announced to a screen reader;
-// - the page overflows horizontally at phone width, or logs a page error.
-//
-//   # A: live not enabled, and a hostile environment: live data is the default and a model key is set,
-//   #    with every provider address pointed at an unreachable local port
-//   env USE_MOCK_TOOLS=false DEEPSEEK_API_KEY=not-a-real-key DEEPSEEK_BASE_URL=http://127.0.0.1:9 \
-//       NOMINATIM_BASE_URL=http://127.0.0.1:9 OSRM_BASE_URL=http://127.0.0.1:9 pnpm --filter @trip/web dev
-//   # B: live enabled, no runs allowed per hour (port 3001)
-//   env AGENT_LAB_LIVE_ENABLED=true AGENT_LAB_LIVE_MAX_RUNS_PER_HOUR=0 NEXT_DIST_DIR=.next-b \
-//       pnpm --filter @trip/web exec next dev -p 3001
-//   # C: live enabled, no concurrent runs allowed (port 3002)
-//   env AGENT_LAB_LIVE_ENABLED=true AGENT_LAB_LIVE_MAX_CONCURRENT=0 NEXT_DIST_DIR=.next-c \
-//       pnpm --filter @trip/web exec next dev -p 3002
-//   [CHANNEL=chrome] [PLAYWRIGHT=<path>] [BASE_URL=...] [LIVE_RATE_URL=http://localhost:3001] \
-//       [LIVE_CONCURRENCY_URL=http://localhost:3002] node apps/web/tests/e2e/agent-lab-live-gate.e2e.mjs
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
@@ -80,7 +42,6 @@ async function open(browser, url, { width = 1440, height = 1000, tag }) {
   return { context, page, errors };
 }
 
-// An <option> is not a form control to Playwright's isDisabled(), so the property is read from the DOM.
 const optionDisabled = (locator) => locator.evaluate((element) => element.disabled);
 const post = (url, body) =>
   fetch(`${url}/api/agent-lab/runs`, {
@@ -99,7 +60,6 @@ async function main() {
   const summary = { servers: {} };
   const allErrors = [];
 
-  // ---- A: live not enabled, hostile environment -------------------------------------------------------------
   const disabled = await open(browser, BASE, { tag: "disabled" });
   const page = disabled.page;
   allErrors.push(disabled.errors);
@@ -115,7 +75,6 @@ async function main() {
     "disabled: the page says, before any run, that live is not enabled on this deployment",
   );
 
-  // A live request sent straight to the endpoint is refused with one frame, before anything runs.
   const refused = await post(BASE, live);
   const refusedFrames = parseFrames(await refused.text());
   writeFileSync(`${OUT}/disabled.live-request.ndjson`, JSON.stringify(refusedFrames));
@@ -152,7 +111,6 @@ async function main() {
     }
   }
 
-  // A fixture run is the repeatable fixture, whatever the environment says.
   const fixtureResponse = page.waitForResponse(
     (candidate) =>
       candidate.url() === `${BASE}/api/agent-lab/runs` && candidate.request().method() === "POST",
@@ -199,7 +157,6 @@ async function main() {
   );
   await page.screenshot({ path: `${OUT}/desktop-disabled.png`, fullPage: true });
 
-  // Keyboard: the data mode control sits in the tab order after Strategy.
   await page.getByLabel("Strategy").focus();
   await page.keyboard.press("Tab");
   check(
@@ -207,7 +164,6 @@ async function main() {
     "disabled: Tab from Strategy reaches Data mode",
   );
 
-  // Offline replay shows a recorded live artifact as live, with its usage said honestly.
   const recorded = (usage) => {
     const copy = structuredClone(artifact);
     copy.dataMode = "live";
@@ -262,7 +218,6 @@ async function main() {
   await disabled.context.close();
   summary.servers.disabled = { rejected: refusedFrames[0], estTotal: artifact.plan.estTotal };
 
-  // ---- B and C: live enabled, a limit reached --------------------------------------------------------------------
   for (const [tag, url, reason, phrase] of [
     ["rate", RATE, "rate_limit", /reached their limit/i],
     ["concurrency", CONCURRENCY, "concurrency_limit", /already in progress/i],
@@ -340,7 +295,7 @@ async function main() {
       `${tag}: no failed run, no events and no plan are shown`,
     );
     await p.screenshot({ path: `${OUT}/desktop-${tag}-rejected.png` });
-    // The scripted baseline, asked for live straight at the endpoint, is refused for its own reason.
+
     const baseline = await post(url, { ...live, strategyId: "single-agent-baseline" });
     const baselineFrames = parseFrames(await baseline.text());
     check(
@@ -349,7 +304,7 @@ async function main() {
         baselineFrames[0].reason === "live_unsupported",
       `${tag}: the baseline asked for live is refused as live_unsupported`,
     );
-    // Fixture data stays available and unaffected.
+
     await select.selectOption("fixture");
     await p.getByRole("button", { name: "Run experiment" }).click();
     await waitStatus(p, "Run complete");
@@ -359,7 +314,6 @@ async function main() {
     summary.servers[tag] = { reason, retryAfterSeconds: frames[0].retryAfterSeconds };
   }
 
-  // ---- Phone ----------------------------------------------------------------------------------------------------------
   const phone = await open(browser, BASE, { width: 390, height: 844, tag: "phone" });
   allErrors.push(phone.errors);
   check(

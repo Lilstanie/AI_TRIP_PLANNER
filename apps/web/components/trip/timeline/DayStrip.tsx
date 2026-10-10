@@ -2,11 +2,6 @@
 import { useLocale } from "@/components/account/LocaleProvider";
 import { useEffect, useRef } from "react";
 
-/**
- * The trip's days as tabs: "Day 2 · Sun 18 Oct · 3 stops". Arrow keys move between days, the
- * selected day scrolls into view, and the strip scrolls sideways on a narrow screen instead of
- * wrapping into a second row.
- */
 export function DayStrip({
   days,
   selected,

@@ -1,9 +1,3 @@
-// Owner: B — deep Maps / Places port and provider adapters.
-// OpenStreetMap Nominatim + OSRM are the default live provider because they are
-// free to use. Respect their public-service rate limits and set a descriptive
-// OSM_USER_AGENT in deployments. The deterministic fixture remains available
-// for local tests.
-
 import type {
   GeoPoint,
   MapsPort,
@@ -63,13 +57,6 @@ async function osmRequest<T>(url: string): Promise<T> {
   return (await response.json()) as T;
 }
 
-/**
- * Whether coordinates are usable as they stand: real numbers inside the WGS84
- * range. Anything else is treated as absent rather than as an error, because
- * these are a hint — a caller that cannot supply them is expected, so a caller
- * that supplies nonsense falls back to the same path rather than failing the
- * whole route.
- */
 function usable(at: { latitude?: number; longitude?: number } | undefined): at is GeoPoint {
   return (
     at !== undefined &&
@@ -80,13 +67,6 @@ function usable(at: { latitude?: number; longitude?: number } | undefined): at i
   );
 }
 
-/**
- * A point for Google to route from or to, preferring coordinates over the name.
- *
- * An address is resolved by Google against the whole world. Coordinates are
- * already the answer, so a caller that has them removes the ambiguity rather
- * than hoping the geocoder guesses the same city the plan is about.
- */
 function waypoint(name: string, at?: GeoPoint) {
   return usable(at)
     ? { location: { latLng: { latitude: at.latitude, longitude: at.longitude } } }
@@ -148,7 +128,6 @@ function assertTransitWindow(timestamp: number): void {
     throw new Error("Transit departure is outside Google's supported date window.");
 }
 
-/** Convert a local wall time to UTC, rejecting DST gaps and repeated times. */
 function localInstant(date: string, time: string, zone: string): string {
   const naive = Date.parse(`${date}T${time}:00.000Z`);
   const formatter = new Intl.DateTimeFormat("sv-SE", {
@@ -162,7 +141,7 @@ function localInstant(date: string, time: string, zone: string): string {
   });
   const target = `${date}T${time}`;
   const matches: number[] = [];
-  // Cover every valid UTC offset, including zones with non-hour offsets.
+
   for (let offset = -14 * 60; offset <= 14 * 60; offset += 1) {
     const instant = naive - offset * 60_000;
     if (formatter.format(new Date(instant)).replace(" ", "T") === target) matches.push(instant);
@@ -172,14 +151,6 @@ function localInstant(date: string, time: string, zone: string): string {
   return new Date(matches[0]!).toISOString();
 }
 
-/**
- * The origin's time zone, so a local departure hour becomes a real instant.
- *
- * A caller that already resolved the origin skips the Places lookup, and with
- * it a failure mode: that lookup searches the bare name worldwide, so it could
- * answer with another city's zone, or with nothing, and take the route down
- * with it.
- */
 async function originTimeZone(q: RouteQuery, dateTimestamp: number): Promise<string> {
   const location = usable(q.fromLocation)
     ? q.fromLocation
@@ -204,8 +175,7 @@ async function departureForGoogle(q: RouteQuery): Promise<string> {
   if (q.date === undefined)
     throw new Error("Google transit route requires a date or explicit departureTime.");
   const dateTimestamp = parseDate(q.date);
-  // A date clearly outside the provider window can be rejected before the
-  // Places/Time Zone lookups. Near a boundary, resolve the true instant first.
+
   const roughDelta = dateTimestamp - toolNow().getTime();
   if (
     roughDelta < -(transitWindowMs.past + 86400000) ||
@@ -267,16 +237,12 @@ async function googleRoute(q: RouteQuery): Promise<RouteLeg[]> {
   const transit = data.routes?.[0];
   const transitLeg = transit ? googleLeg(transit, "transit") : undefined;
   if (transitLeg && transitLeg.durationMin <= SLOW_TRANSIT_MIN) return [transitLeg];
-  // Between two trip cities, rail the Routes API does not cover (all of Japan) is looked up in
-  // Google Maps' own directions through SerpApi. Any failure there falls through to driving.
+
   if (q.intercity) {
     const rail = await railLeg(q).catch(() => undefined);
     if (rail && (!transitLeg || rail.durationMin < transitLeg.durationMin)) return [rail];
   }
-  // Google has no transit data for some countries (Japan) and sparse data for
-  // others (Bali), so an empty transit answer is not evidence that two stops
-  // cannot be connected, and a long one may be a four-hour bus chain where a
-  // taxi takes an hour. A driving route, labelled as one, is compared.
+
   const driving = await googleRequest<{
     routes?: Array<{ duration?: string; distanceMeters?: number }>;
   }>(
@@ -295,13 +261,12 @@ async function googleRoute(q: RouteQuery): Promise<RouteLeg[]> {
   return driveLeg ? [driveLeg] : [];
 }
 
-/** An inter-city rail leg from SerpApi's Google Maps directions, priced in AUD for the group. */
 async function railLeg(q: RouteQuery): Promise<RouteLeg | undefined> {
   if (!toolRuntimeConfig().serpApiKey) return undefined;
   const route = await searchTransitSerpApi({ from: q.from, to: q.to });
   const passengers = q.passengers && q.passengers > 0 ? q.passengers : 1;
   const currency = SUPPORTED_CURRENCIES.find((code) => code === route.fare?.currency);
-  // A fare in a currency without a reviewed rate stays unpriced rather than guessed.
+
   const price =
     route.fare && currency
       ? Math.round(toAud(route.fare.amount, currency) * passengers * 100) / 100
@@ -321,7 +286,6 @@ async function railLeg(q: RouteQuery): Promise<RouteLeg | undefined> {
   };
 }
 
-/** A transit answer longer than this is compared with driving before it is trusted. */
 const SLOW_TRANSIT_MIN = 90;
 
 function googleLeg(
@@ -376,14 +340,9 @@ async function googlePlaces(q: PlaceQuery): Promise<Place[]> {
     .map((place) => ({
       name: place.displayName?.text?.trim() ?? "",
       category: q.category ?? place.types?.[0] ?? "place",
-      // Google's own 1.0-5.0 place-rating scale, shown verbatim in agent text
-      // ("supplied rating 4.5") — unlike accommodation, nothing here compares
-      // it numerically against this project's 0-10 convention, so it is not
-      // converted.
+
       ...(place.rating === undefined ? {} : { rating: place.rating }),
-      // Absent for a place Google has no site for; never substituted with a
-      // search or directions link, which would be this project's guess rather
-      // than the place's page.
+
       ...(place.websiteUri?.trim() ? { website: place.websiteUri.trim() } : {}),
       ...(place.location &&
       Number.isFinite(place.location.latitude) &&
@@ -408,14 +367,6 @@ const OPTION_FIELDS = [
   "routes.legs.steps.transitDetails.transitLine.nameShort",
 ].join(",");
 
-/**
- * Ways to make one hop — driving or public transport — as alternatives to
- * compare, not as segments of one journey.
- *
- * The two are requested together because a traveller choosing between them
- * needs both; one failing does not withhold the other, since "the bus takes
- * 56 minutes" is still useful when the driving lookup times out.
- */
 async function mockRouteOptions(q: RouteQuery): Promise<RouteOption[]> {
   return [
     {
@@ -467,8 +418,7 @@ async function googleRouteOptions(q: RouteQuery): Promise<RouteOption[]> {
     const option = transitOption(transit.value, q);
     if (option) options.push(option);
   }
-  // Quickest first: the comparison a traveller makes before price, given that
-  // one of the two prices is usually unknown anyway.
+
   return options.sort((a, b) => a.durationMin - b.durationMin);
 }
 
@@ -483,13 +433,6 @@ function unsupportedMapsPort(providerName: string): MapsPort {
   };
 }
 
-/**
- * Select one Maps implementation for the lifetime of a ToolGateway.
- *
- * Provider capability and fallback policy stay private to this port. The
- * gateway only invokes the stable MapsPort methods under its captured runtime
- * context.
- */
 export function createMapsPort(config: ToolRuntimeConfig, reportSelection = false): MapsPort {
   if (config.dataMode === "mock") {
     return {

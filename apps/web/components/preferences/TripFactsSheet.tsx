@@ -9,7 +9,6 @@ import { ChevronIcon } from "../ui/icons";
 import { useLocale } from "../account/LocaleProvider";
 import { FactPopover, type CloseReason } from "./FactPopover";
 
-/** The same names the top-bar chips show while a fact is still missing. */
 const NAMES: Record<FactKey, MessageKey> = {
   where: "Where",
   when: "When",
@@ -20,12 +19,6 @@ const NAMES: Record<FactKey, MessageKey> = {
 
 export const TRIP_FACTS_SHEET_ID = "trip-facts-sheet";
 
-/**
- * The phone's stand-in for the top-bar chip row: a bottom sheet listing Where, When, Who, Budget and
- * Preferences one per row, each with the value the chip would show. A row hands over to that
- * fact's own editor. Built on FactPopover, so the Tab loop, Escape and the sheet styling at
- * ≤520 px are the editors' own.
- */
 export function TripFactsSheet({
   draft,
   plan,
@@ -36,7 +29,7 @@ export function TripFactsSheet({
 }: {
   draft: Draft;
   plan: TripPlan | undefined;
-  /** The title button, which toggles the sheet itself. */
+
   anchor: RefObject<HTMLElement | null>;
   leaving: boolean;
   onPick(fact: FactKey): void;

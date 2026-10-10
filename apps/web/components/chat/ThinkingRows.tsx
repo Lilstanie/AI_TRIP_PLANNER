@@ -30,20 +30,11 @@ import {
   type ToolRowModel,
 } from "./thinking-model";
 
-// ---------------------------------------------------------------------------
-// The thinking transcript's rows below the turn: subagents, their reasoning
-// and tool rows, a tool's result rows, the model's choice, round headings and
-// the turn's one running line. Open state arrives from ThinkingProcess, so
-// every row stays a pure function of its props.
-// ---------------------------------------------------------------------------
-
-/** Which rows are open. Every row starts closed; a click opens only that row. */
 export interface OpenRows {
   isOpen: (id: string) => boolean;
   toggle: (id: string) => void;
 }
 
-/** The dot that says how a row went: running, done, failed, or still waiting. */
 export function StatusDot({ state }: { state: DotState }) {
   return <span className={cn("thinking-dot", `thinking-dot--${state}`)} aria-hidden="true" />;
 }
@@ -52,7 +43,6 @@ export function VisuallyHidden({ children }: { children: ReactNode }) {
   return <span className="thinking-visually-hidden">{children}</span>;
 }
 
-/** One level of the tree: DSH's single rail rule, so rails align at every depth. */
 export function Children({ children, ...rest }: HTMLAttributes<HTMLDivElement>) {
   return (
     <div className="thinking-children" {...rest}>
@@ -61,7 +51,6 @@ export function Children({ children, ...rest }: HTMLAttributes<HTMLDivElement>) 
   );
 }
 
-/** One model call's thinking. Running: the newest line, right-anchored. Settled: the first line. */
 export function ReasoningRow({ block, open }: { block: ReasoningBlock; open: OpenRows }) {
   const { t } = useLocale();
   const summary = reasoningSummary(block.text, block.running);
@@ -89,12 +78,6 @@ export function ReasoningRow({ block, open }: { block: ReasoningBlock; open: Ope
   );
 }
 
-/**
- * One tool call's arguments on one line: `Sydney → Wollongong · 2026-11-24`,
- * with anything that is not a journey or a date following as a `key value`
- * chip. The separators are decoration — a screen reader hears "from Sydney to
- * Wollongong, 2026-11-24" instead of the arrows.
- */
 function ToolArgs({ args }: { args: Record<string, string> }) {
   const { t } = useLocale();
   const { journey, date, chips } = argLine(args);
@@ -132,12 +115,6 @@ function ToolArgs({ args }: { args: Record<string, string> }) {
   );
 }
 
-/**
- * A result row's leading icon: the site's own favicon when the provider gave a
- * web page for the row, else the category glyph. The image is decorative, so a
- * host that serves no icon — or a blocked request — falls back to the glyph
- * rather than leaving a gap.
- */
 function ResultRowIcon({ row, kind }: { row: ToolResultRow; kind: ToolResultKind }) {
   const [failed, setFailed] = useState(false);
   const host = resultHost(row);
@@ -149,9 +126,6 @@ function ResultRowIcon({ row, kind }: { row: ToolResultRow; kind: ToolResultKind
         data-site={host}
         aria-hidden="true"
       >
-        {/* A 14px third-party icon: next/image would need the icon host in
-            remotePatterns and would proxy the request this component
-            deliberately sends without a referrer. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           className="thinking-tool__row-favicon"
@@ -180,15 +154,14 @@ export function ToolRow({ row, open }: { row: ToolRowModel; open: OpenRows }) {
   const { t } = useLocale();
   const id = `tool:${row.started.callId}`;
   const hasArgs = Boolean(row.args && Object.keys(row.args).length > 0);
-  // Arguments and result rows are the only detail a tool row has; without
-  // either it stays a plain row.
+
   const expandable = hasArgs || Boolean(row.resultRows?.length);
   const tool = row.started.tool;
   return (
     <div role="group" aria-label={`${row.started.label} ${t(TOOL_STATE_LABEL[row.state])}`}>
       <Disclosure
         className={cn("thinking-tool", `thinking-tool--${row.state}`)}
-        // The icon says what the call is; a failure swaps it for the error dot.
+
         icon={row.state === "failed" ? <StatusDot state="failed" /> : <ToolGlyph tool={tool} />}
         title={row.started.label}
         state={row.state === "running" ? "running" : row.state === "failed" ? "error" : "ok"}
@@ -292,7 +265,6 @@ function ChoiceBlock({
   );
 }
 
-/** What the coordinator asked of the subagent and what it produced. */
 function SubagentNotes({ model, open }: { model: SubagentModel; open: OpenRows }) {
   const { t } = useLocale();
   const hasNotes = Boolean(
@@ -342,7 +314,6 @@ function SubagentNotes({ model, open }: { model: SubagentModel; open: OpenRows }
   );
 }
 
-/** `Subagent · <name> · <summary>` and, when open, its notes, thinking and tool calls. */
 export function SubagentRow({ model, open }: { model: SubagentModel; open: OpenRows }) {
   const { t } = useLocale();
   const label = t(labels[model.name]);
@@ -419,7 +390,6 @@ export function RoundHeading({
   );
 }
 
-/** DSH's running-text treatment (TextShimmer.tsx): the shimmer band's width scales with the label. */
 const RUNNING_LABEL = "Deep diving";
 
 export function RunningLine({ elapsedMs }: { elapsedMs: number }) {

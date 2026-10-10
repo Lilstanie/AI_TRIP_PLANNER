@@ -1,24 +1,3 @@
-// End-to-end check of the one check entry point for plan edits, and of undo that ignores Ideas (ticket #262,
-// spec #259). Every edit that changes a stop's day, time, place, order or leg is checked by the server
-// (`POST /api/trip/preview-edit`) and applied or refused by the plan revision owner. These scenarios read
-// what the traveller sees:
-//
-// 1. A time change on a trip with an Idea, then Undo: the time comes back, with no error and the Idea kept.
-// 2. A travel-buffer notice from an accepted edit sits under its own stop only, not under the day or its other stops.
-// 3. A refused edit names the stop it is about, so the traveller knows what to fix.
-// 4. An edit whose answer arrives after the plan changed elsewhere says to try the change again, and does not apply.
-// 5. Moving a stop with the arrows goes through the check, and the stop after it has no travel time from the old
-//    neighbour (its leg is routed again from the new one, or shown with no time).
-// 6. Removing a stop and moving a stop to Ideas go through the check too.
-// 7. A chat replan after a timeline change says that it replaced it; a replan with no change, or with every change
-//    undone, says nothing.
-//
-// Places and route checks run in mock data mode: the server answers the legs with simulated routes and no provider
-// is called. Map place lookups are stubbed at the browser boundary, as in plan-revision.e2e.mjs. The artifact is
-// output/playwright/check-entry-point/<LABEL>/summary.json, with screenshots beside it; the runner writes its own
-// summary to output/e2e/runner/<time>.json.
-//
-//   DATA_MODE=mock pnpm --filter @trip/web e2e check-entry-point     # starts its own server
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
@@ -43,13 +22,12 @@ const PLANNER_WALK_MIN = 37;
 const REPLACED = "The new plan replaced your last change to the timeline.";
 const TRY_AGAIN = "The plan changed while this change was being checked. Try the change again.";
 
-// Day 1: three stops, each with a saved place. The second and third carry the planner's walk from the stop before.
 const DAY_ONE = [
   { name: "Sydney Opera House", start: "09:00", end: "10:00" },
   { name: "Royal Botanic Garden Sydney", start: "11:30", end: "12:30" },
   { name: "Bondi Beach", start: "14:00", end: "15:00" },
 ];
-// Day 1 with a stop late in the evening, so a later time change pushes it past midnight.
+
 const DAY_LATE = [
   { name: "Sydney Opera House", start: "09:00", end: "10:00" },
   { name: "Royal Botanic Garden Sydney", start: "11:00", end: "12:00" },
@@ -65,14 +43,12 @@ const check = (ok, message) => {
 
 function newStub() {
   return {
-    // The kind of every edit request the page sent, in order, and the operations it carried.
     operations: [],
-    // Set to a promise to hold the next answer to a time edit until it resolves.
+
     holdTime: undefined,
   };
 }
 
-/** Stubs the map's place lookups; the timeline's edits and checks reach the real server. */
 async function installStubs(page, stub) {
   await page.route("**/api/places/search", async (route) => {
     const { text } = route.request().postDataJSON();
@@ -150,7 +126,6 @@ async function openTrip(browser, { days, ideas, stub }) {
 
 const trip = (page) => page.getByRole("region", { name: "Trip timeline" });
 
-/** Day N's stop at a position (1-based), as the timeline lists it on that day. */
 async function stopRow(page, day, position) {
   await trip(page)
     .getByRole("tab")
@@ -162,7 +137,6 @@ async function stopRow(page, day, position) {
     .nth(position - 1);
 }
 
-/** Opens a stop's time editor, sets its start and end, and applies it with Change time. */
 async function changeTime(page, day, position, start, end) {
   const row = await stopRow(page, day, position);
   await row.locator(".timeline-stop__time").click();
@@ -174,7 +148,6 @@ async function changeTime(page, day, position, start, end) {
   await trip(page).getByRole("button", { name: "Change time", exact: true }).click();
 }
 
-/** The stop row whose name is `name` on the chosen day. */
 async function rowNamed(page, day, name) {
   await trip(page)
     .getByRole("tab")
@@ -189,7 +162,6 @@ async function startOf(page, day, position) {
   return (await row.locator(".timeline-stop__time").innerText()).replace(/\s+/g, " ");
 }
 
-/** Waits until no route check is running and the plan has settled. */
 async function settleChecks(page) {
   await settle(page, 600);
   for (let round = 0; round < 60; round += 1) {
@@ -201,7 +173,6 @@ async function settleChecks(page) {
   }
 }
 
-/** Makes the trip timeline visible: the Trip tab on phones, the Trip drawer on wider screens. */
 async function showTimeline(page) {
   if (await trip(page).count()) return;
   const tripTab = page.getByRole("tab", { name: /^Trip/ });
@@ -211,7 +182,6 @@ async function showTimeline(page) {
   await settle(page, 500);
 }
 
-/** Starts a new chat from its first suggestion; its first reply is a plan, so the chat is a second trip. */
 async function startNewTrip(page) {
   await page.keyboard.press("Escape");
   await settle(page, 300);
@@ -227,7 +197,6 @@ async function startNewTrip(page) {
   await settle(page, 1200);
 }
 
-/** Opens the first trip in the Chats panel's Trips list that is not the open one. */
 async function openOtherTrip(page) {
   await page
     .getByRole("button", { name: /^Chats/ })
@@ -251,7 +220,6 @@ async function main() {
   const summary = {};
   const browser = await chromium.launch();
   try {
-    // 1. A time change on a trip with an Idea, then Undo. The time comes back with no error and the Idea stays.
     {
       const stub = newStub();
       const run = await openTrip(browser, { days: { 1: DAY_ONE }, ideas: [IDEA], stub });
@@ -284,12 +252,11 @@ async function main() {
       await run.context.close();
     }
 
-    // 2. A travel-buffer notice from an accepted edit is shown under its own stop only.
     {
       const stub = newStub();
       const run = await openTrip(browser, { days: { 1: DAY_ONE }, stub });
       const { page } = run;
-      // The second stop starts a minute after the first one ends: the leg to it needs travel and a buffer.
+
       await changeTime(page, 1, 2, "10:01", "11:01");
       await settleChecks(page);
       const notice = trip(page).locator(".timeline-stop__conflicts li", {
@@ -332,7 +299,6 @@ async function main() {
       await run.context.close();
     }
 
-    // 3. A refused edit names the stop it is about: the time change pushes the last stop past midnight.
     {
       const stub = newStub();
       const run = await openTrip(browser, { days: { 1: DAY_LATE }, stub });
@@ -361,8 +327,6 @@ async function main() {
       await run.context.close();
     }
 
-    // 4. The plan changes while a time change is being checked: the answer is refused as stale and says to try again.
-    //    The traveller's second trip replaces the first one's plan on the timeline while the change is held.
     {
       const stub = newStub();
       let release = () => {};
@@ -378,7 +342,7 @@ async function main() {
         await waitUntil(async () => stub.operations.some((op) => op.kind === "time"), 15_000),
         "4: the time change is sent and held",
       );
-      // The other trip becomes the plan while the change is held.
+
       await openOtherTrip(page);
       await showTimeline(page);
       release();
@@ -403,8 +367,6 @@ async function main() {
       await run.context.close();
     }
 
-    // 5. Moving a stop earlier with its arrow goes through the check. The stop after it no longer has its leg from the
-    //    old neighbour: the leg into it is from the stop it now follows (or shows no time until that route is checked).
     {
       const stub = newStub();
       const run = await openTrip(browser, { days: { 1: DAY_ONE }, stub });
@@ -440,7 +402,6 @@ async function main() {
       await run.context.close();
     }
 
-    // 6. Removing a stop and moving a stop to Ideas go through the check.
     {
       const stub = newStub();
       const run = await openTrip(browser, { days: { 1: DAY_ONE }, stub });
@@ -472,7 +433,6 @@ async function main() {
       await run.context.close();
     }
 
-    // 7. A chat replan after a timeline change says that it replaced the change; a replan with no change says nothing.
     {
       const stub = newStub();
       const run = await openTrip(browser, { days: { 1: DAY_ONE }, stub });
@@ -500,8 +460,7 @@ async function main() {
       );
       await run.context.close();
     }
-    // Undo takes back one change only: after two changes and one Undo, the first change is still in the plan, so
-    // a replan still says it replaced it. After one change and its Undo, nothing of the traveller's is replaced.
+
     for (const [changes, expected] of [
       [2, 1],
       [1, 0],

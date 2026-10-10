@@ -17,11 +17,6 @@ const PhotoRequest = z.object({
     .refine((value): value is PhotoWidth => (PHOTO_WIDTHS as readonly number[]).includes(value)),
 });
 
-/**
- * Serve one place photo as a redirect to Google's image host, so an `<img>` can point here and
- * the server key never reaches the browser. The photo name comes from a fresh Places lookup in the
- * browser's memory; nothing is cached here, because Google forbids caching photo names.
- */
 export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
   const parsed = PhotoRequest.safeParse({ name: params.get("name"), width: params.get("width") });

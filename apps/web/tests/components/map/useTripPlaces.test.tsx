@@ -9,7 +9,7 @@ const withActivity = (tripId: string, detail: string): TripPlan => {
   const plan = identifyActivities(structuredClone(seed));
   plan.tripId = tripId;
   plan.brief.tripId = tripId;
-  // A stop on Day 1: only stops are mapped, never ideas.
+
   Object.assign(plan.sections[0]!.proposal!.items[0]!, {
     detail,
     day: 1,
@@ -60,14 +60,14 @@ describe("trip place resolution", () => {
     );
     const view = render(<Probe plan={withActivity("old", "Old museum")} />);
     view.rerender(<Probe plan={withActivity("new", "New gallery")} />);
-    // The destination city lookup (Sydney) is separate from activity places.
+
     await act(async () => {
       resolvers["Sydney"]!(Response.json({ places: [place("city", "Sydney")] }));
     });
     await act(async () => {
       resolvers["Old museum"]!(Response.json({ places: [place("old", "Old museum")] }));
     });
-    // The stale answer neither adds a marker nor ends the current trip's loading state.
+
     expect(screen.getByTestId("markers").textContent).toBe("");
     expect(screen.getByTestId("markers").dataset.loading).toBe("true");
     await act(async () => {

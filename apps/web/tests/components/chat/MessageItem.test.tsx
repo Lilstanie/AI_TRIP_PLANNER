@@ -117,13 +117,11 @@ describe("MessageItem", () => {
       "dawn.",
     ]);
 
-    // Staggered, increasing, and the whole reveal stays inside a second.
     const delays = words.map((w) => Number.parseFloat((w as HTMLElement).style.animationDelay));
     expect(delays[0]).toBe(0);
     expect(delays.every((d, i) => i === 0 || d > delays[i - 1])).toBe(true);
     expect(delays[delays.length - 1]).toBeLessThanOrEqual(700);
 
-    // Markdown still renders, and the reply reads as one run of text.
     expect(screen.getByText("Day", { selector: "strong span" }).closest("strong")).toBeTruthy();
     expect(
       screen.getByText(
@@ -170,7 +168,7 @@ describe("MessageItem", () => {
     const fresh = render(<MessageItem message={message} animate />);
     const first = fresh.container.querySelector(".msg-reveal__word");
     fresh.rerender(<MessageItem message={message} animate />);
-    // Same element, so the CSS animation is not restarted by a re-render.
+
     expect(fresh.container.querySelector(".msg-reveal__word")).toBe(first);
   });
   it("shows the files a message was sent with, above its bubble", () => {
@@ -195,7 +193,7 @@ describe("MessageItem", () => {
 
     const row = container.firstElementChild as HTMLElement;
     const list = within(row).getByRole("list", { name: "Attached files" });
-    // The chips come before the bubble, as DSH's attachment row does.
+
     expect(list.compareDocumentPosition(within(row).getByText("Is this the shrine?"))).toBe(
       Node.DOCUMENT_POSITION_FOLLOWING,
     );
@@ -203,7 +201,7 @@ describe("MessageItem", () => {
     expect(within(photo as HTMLElement).getByText("shrine.jpg")).toBeTruthy();
     expect((photo as HTMLElement).querySelector("img")?.getAttribute("alt")).toBe("");
     expect(within(notes as HTMLElement).getByText("notes.md")).toBeTruthy();
-    // A sent message shows its files; it cannot un-send one.
+
     expect(within(list).queryByRole("button")).toBeNull();
   });
 

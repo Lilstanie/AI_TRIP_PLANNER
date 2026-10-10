@@ -1,13 +1,6 @@
 import type { AgentLabRunEvent } from "@trip/shared";
 import { eventCopy, type EventKind } from "./event-copy";
 
-/**
- * The Trace view's overview model, derived only from the recorded events (never from a second source),
- * so the bar cannot disagree with the artifact. The axis is steps, not time: each record takes one
- * slot, because every envelope's elapsedMs includes the stream's pacing delay.
- */
-
-/** Lanes in display order. Empty lanes are omitted from the model. */
 export const TRACE_LANES = [
   { id: "run", label: "Run", short: "Run" },
   { id: "coordinator", label: "Coordinator", short: "Coord" },
@@ -22,17 +15,16 @@ export const TRACE_LANES = [
 export type TraceLaneId = (typeof TRACE_LANES)[number]["id"];
 
 export interface TraceRecord {
-  /** 1-based slot on the step axis. */
   step: number;
   lane: TraceLaneId;
   kind: EventKind;
   title: string;
-  /** The round the record belongs to, where its event states one. */
+
   round?: number;
   error: boolean;
-  /** A tool call that started and has no completion or failure yet: a start marker, not a span. */
+
   inFlight: boolean;
-  /** Sequence of the list row this record maps to (the start row for a merged tool call). */
+
   sequence: number;
 }
 
@@ -45,13 +37,12 @@ export interface TraceLane {
 
 export interface TraceOverview {
   lanes: TraceLane[];
-  /** Every record in step order. */
+
   records: TraceRecord[];
-  /** Steps that open a round after the first, with the round number. */
+
   boundaries: { step: number; round: number }[];
 }
 
-/** The lane an event is drawn in. */
 function laneOf(runEvent: AgentLabRunEvent): TraceLaneId {
   const event = runEvent.event;
   switch (event.type) {
@@ -98,8 +89,7 @@ const isError = (runEvent: AgentLabRunEvent) =>
 
 export function deriveTraceOverview(events: readonly AgentLabRunEvent[]): TraceOverview {
   const records: TraceRecord[] = [];
-  // Open tool calls by call id, oldest first: a call id can repeat (the targeted revision starts the same
-  // call twice), and each completion or failure folds into the earliest start still open.
+
   const open = new Map<string, TraceRecord[]>();
 
   for (const runEvent of events) {

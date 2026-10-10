@@ -3,9 +3,7 @@
   padding: var(--space-5);
   background: var(--ambient), var(--page);
   color: var(--text);
-  /* The lab sits on tinted glass, where the workspace's secondary text and accent measure just under the
-     4.5:1 AA ratio in the light theme. The secondary text is strengthened here, for the lab only, by mixing
-     toward the primary text colour, so the ordinary workspace keeps its own values. */
+
   --text-dim: color-mix(in srgb, var(--text) 74%, var(--page));
   --text-mut: color-mix(in srgb, var(--text) 74%, var(--page));
 }
@@ -139,7 +137,7 @@
   padding-inline: var(--space-5);
   border: 0;
   border-radius: var(--radius-pill);
-  /* A little darker than the workspace's accent fill, so the white label clears the 4.5:1 AA ratio. */
+
   background: color-mix(in srgb, var(--accent-fill) 88%, black);
   color: var(--on-accent);
   font-weight: 700;
@@ -250,8 +248,6 @@
   list-style: none;
 }
 
-/* The trace scrolls in its own box so the plan result and metrics stay on screen. The scrollbar is styled
-   so it is always drawn: an overlay scrollbar (macOS default) hides itself and the list looks fixed. */
 .agent-lab__trace-box {
   max-height: clamp(260px, calc(100vh - 22rem), 760px);
   max-height: clamp(260px, calc(100dvh - 22rem), 760px);
@@ -282,8 +278,6 @@
   margin-top: 0;
 }
 
-/* Trace time bar: lanes of equal-width step slots. The track is a grid of --trace-steps columns so the bar
-   always fits its container; blocks are placed by step and never set their own width. */
 .agent-lab__trace-overview {
   --trace-label: 6.5rem;
   display: grid;
@@ -352,7 +346,6 @@
   background: var(--warn);
 }
 
-/* An in-flight call is only a start marker, so it is hollow rather than a filled span. */
 .agent-lab__trace-block[data-in-flight="true"] {
   border-color: var(--accent);
   background: transparent;
@@ -387,7 +380,6 @@
   outline-offset: -2px;
 }
 
-/* Failure is shown by shape as well as by colour: a failed block carries a diagonal stripe. */
 .agent-lab__trace-block[data-error="true"] {
   background-image: repeating-linear-gradient(
     45deg,
@@ -396,7 +388,6 @@
   );
 }
 
-/* Forced colours drop background fills, so every block keeps a visible border and states kind by it. */
 @media (forced-colors: active) {
   .agent-lab__trace-block {
     border: 1px solid CanvasText;
@@ -444,7 +435,6 @@
     --trace-label: 2.75rem;
   }
 
-  /* Phone: the tallest hit area the lane can hold; width is set by the equal step slots. */
   .agent-lab__trace-track {
     height: 44px;
   }
@@ -462,7 +452,6 @@
   }
 }
 
-/* Folds: pressed is stated by weight and an outline as well as by fill, like the view switcher. */
 .agent-lab__trace-toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -470,7 +459,6 @@
   margin-top: var(--space-3);
 }
 
-/* A fixed height, because the shared 36px min-height floor in forms.css outranks a min-height here. */
 .agent-lab__trace-toolbar button {
   height: 44px;
   padding-inline: var(--space-4);
@@ -616,7 +604,6 @@
   overflow-wrap: anywhere;
 }
 
-/* The word carries the result; colour only reinforces it. */
 .agent-lab__checks li span {
   flex: none;
   font-weight: 700;
@@ -658,7 +645,6 @@
   padding-block: var(--space-2) var(--space-3);
 }
 
-/* The pressed state is stated by weight and an outline as well as by fill. */
 .agent-lab__views button[aria-pressed="true"] {
   border-color: var(--accent);
   background: var(--accent-bg);
@@ -1008,7 +994,6 @@
   font-weight: 700;
 }
 
-/* The word on the badge carries the outcome; the border colour only reinforces it. */
 .agent-lab__outcome[data-outcome="completed"] {
   border-color: var(--ok);
 }
@@ -1133,7 +1118,6 @@
   overflow-wrap: anywhere;
 }
 
-/* Motion is never needed to reach any evidence, so nothing animates when it is not wanted. */
 @media (prefers-reduced-motion: reduce) {
   .agent-lab,
   .agent-lab * {
@@ -1143,7 +1127,6 @@
   }
 }
 
-/* The outcome words read as a glossary: the word, then what it means beside it, not pushed to the far edge. */
 .agent-lab__outcomes > div {
   display: grid;
   grid-template-columns: minmax(7rem, 9rem) minmax(0, 1fr);

@@ -1,10 +1,6 @@
 import { z } from "zod";
 import { Currency } from "./money";
 
-// ---------------------------------------------------------------------------
-// The five specialist agents. `name` is the stable id used as the section id
-// in the trip plan; keep this list and @trip/agents `allSpecialists` in sync.
-// ---------------------------------------------------------------------------
 export const AGENT_NAMES = [
   "itinerary",
   "transport",
@@ -14,18 +10,12 @@ export const AGENT_NAMES = [
 ] as const;
 export type AgentName = (typeof AGENT_NAMES)[number];
 
-// ---------------------------------------------------------------------------
-// TripBrief — the structured request the Orchestrator hands to every agent.
-// Every field here is reference data the agents plan against.
-// ---------------------------------------------------------------------------
 export const AccommodationPreferences = z.object({
   roomAllocation: z.enum(["shared", "individual"]).default("shared"),
   minRating: z.number().min(0).max(10).default(0),
   freeCancellation: z.boolean().default(false),
 });
-// What the traveller asked for in their own words ("vegetarian food", "no early starts"). Each
-// entry is a request the planner and every specialist weigh, not a verified fact. Bounded so a
-// brief stays small enough to repeat in every specialist prompt.
+
 export const MAX_TRIP_PREFERENCES = 12;
 export const MAX_TRIP_PREFERENCE_LENGTH = 200;
 export const TripPreferences = z
@@ -33,27 +23,18 @@ export const TripPreferences = z
   .max(MAX_TRIP_PREFERENCES);
 export type TripPreferences = z.infer<typeof TripPreferences>;
 
-/**
- * A stay the traveller has booked themselves ("the hotel is booked — the Hilton Hongqiao"). The
- * accommodation specialist then plans around it instead of searching and pricing one.
- */
 export const BookedStay = z.object({
   name: z.string().trim().min(1).max(160),
   note: z.string().trim().max(300).optional(),
 });
 export type BookedStay = z.infer<typeof BookedStay>;
-/**
- * Who is travelling, by kind, as the Who editor's steppers state it. `groupSize` stays the people
- * count every agent budgets with; this only breaks it down (and adds pets, who are never counted in
- * `groupSize`). A breakdown whose people do not add up to `groupSize` is to be ignored, not
- * reconciled: `groupSize` is authoritative.
- */
+
 const partyCount = z.number().int().min(0).max(99);
 export const TravellerParty = z.object({
   adults: partyCount,
-  children: partyCount, // 2–12
-  infants: partyCount, // under 2
-  seniors: partyCount, // 65+
+  children: partyCount,
+  infants: partyCount,
+  seniors: partyCount,
   pets: partyCount,
 });
 export type TravellerParty = z.infer<typeof TravellerParty>;
@@ -67,10 +48,7 @@ export function isTripDate(value: string): boolean {
     new Date(time).toISOString().slice(0, 10) === value
   );
 }
-/**
- * How a journey is made. Lives here rather than beside the ports that return
- * it, because a proposal item names one too and contracts cannot import ports.
- */
+
 export const TravelModes = [
   "train",
   "flight",
@@ -85,15 +63,6 @@ export const TravelModes = [
 export const TravelMode = z.enum(TravelModes);
 export type TravelMode = z.infer<typeof TravelMode>;
 
-/**
- * A mode the traveller chose for one hop, overriding what the planner would
- * pick for it.
- *
- * Keyed by the hop's endpoints rather than its position: adding a destination
- * renumbers the legs, and a stored index would then quietly apply the choice
- * to a different journey. Matching is case- and whitespace-insensitive, and
- * the first match wins.
- */
 export const LegModeChoice = z.object({
   from: z.string().trim().min(1),
   to: z.string().trim().min(1),
@@ -106,43 +75,31 @@ export const TripBrief = z
     tripId: z.string(),
     userId: z.string().default("demo-user"),
     destination: z.string().trim().min(1),
-    // Where the trip departs from. Optional: briefs saved before this field
-    // existed still parse, and a traveller who never states it just gets no
-    // long-haul leg priced rather than a guessed one.
+
     origin: z.string().trim().min(1).optional(),
     dates: z.tuple([
       z.string().refine(isTripDate, "Enter a real date"),
       z.string().refine(isTripDate, "Enter a real date"),
-    ]), // [start, end] ISO date
+    ]),
     groupSize: z.number().int().positive(),
-    // Optional and additive: briefs saved before it existed still parse. See TravellerParty.
+
     party: TravellerParty.optional(),
-    budgetTotal: z.number().min(0.01), // always BASE_CURRENCY; see ./money
-    // What the traveller actually said, kept only so the UI can show "A$630
-    // (≈ ¥3,000)". Absent means they stated the budget in the base currency, so
-    // there is nothing to explain. Optional on purpose: every brief saved before
-    // this field existed still parses.
+    budgetTotal: z.number().min(0.01),
+
     budgetSource: z.object({ amount: z.number().positive(), currency: Currency }).optional(),
-    // The last currency the traveller named for this trip, with a budget or on its own. Read it
-    // through `effectiveCurrency`. Absent until one is named, and in every brief saved before this
-    // field existed. Display only: planning stays in BASE_CURRENCY and `budgetSource` is never
-    // rewritten when this changes.
+
     displayCurrency: Currency.optional(),
     nationality: z.string().optional(),
     accommodation: AccommodationPreferences.optional(),
-    // Optional and additive: briefs saved before it existed still parse, and an absent list
-    // means the traveller stated no preferences.
+
     preferences: TripPreferences.optional(),
-    // What the coordinator heard in chat ("no dietary requirements"), kept apart from the
-    // traveller's own list so the two are never confused; the traveller can remove any of them.
+
     learnedPreferences: TripPreferences.optional(),
-    // The traveller arranges flights themselves: none are searched, priced or asked about.
+
     excludeFlights: z.boolean().optional(),
-    // How the traveller wants particular hops made, when they said so. Optional and additive:
-    // briefs saved before it existed still parse, and an absent list means the planner decides
-    // every hop. See LegModeChoice and the transport agent's legMode.
+
     legModes: z.array(LegModeChoice).max(12).optional(),
-    // The traveller has booked their stay: it is used as given and not priced.
+
     bookedStay: BookedStay.optional(),
   })
   .check((ctx) => {
@@ -162,23 +119,12 @@ export const TripBrief = z
   });
 export type TripBrief = z.infer<typeof TripBrief>;
 
-// ---------------------------------------------------------------------------
-// AgentProposal — what every specialist agent returns for one round.
-// The `estCost` rule (currency = AUD, whole trip not per-person) is frozen by A.
-// ---------------------------------------------------------------------------
 const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
 
-/**
- * How the traveller reaches this item from the one before it.
- *
- * The planner already looks this up to check the day fits; keeping it means
- * the itinerary can say "45 minutes on bus 333" instead of leaving a silent
- * gap between two activities and only speaking up when they collide.
- */
 export const ArriveBy = z.object({
   mode: TravelMode,
   durationMin: z.number().int().positive(),
-  /** The service taken, when the provider named one: "333", "T1". */
+
   line: z.string().min(1).optional(),
   from: z.string().min(1).optional(),
 });
@@ -188,7 +134,7 @@ export const ProposalItem = z
   .object({
     id: z.string().min(1).optional(),
     placeId: z.string().min(1).optional(),
-    /** Minimal saved display and coordinates; fresh provider details and photo names stay in memory. */
+
     savedPlace: z
       .object({
         name: z.string(),
@@ -200,34 +146,24 @@ export const ProposalItem = z
       })
       .optional(),
     priceNeedsReview: z.boolean().optional(),
-    kind: z.string(), // "transport" | "hotel" | "activity" | "meal" | "note" ...
+    kind: z.string(),
     detail: z.string(),
     estCost: z.number().nonnegative().optional(),
     day: z.number().int().optional(),
-    // Optional schedule metadata: lets the orchestrator detect cross-agent time
-    // conflicts without parsing human-readable `detail` strings.
+
     startTime: z.string().regex(HHMM, "startTime must be HH:MM (24h)").optional(),
     endTime: z.string().regex(HHMM, "endTime must be HH:MM (24h)").optional(),
     location: z.string().trim().min(1).optional(),
-    /** The connection into this item from the previous one on the same day. */
+
     arriveBy: ArriveBy.optional(),
-    /**
-     * The `StaySelection` or `FlightSelection` this item was priced from.
-     *
-     * A section's items and its selections are built from the same list, in the
-     * same order, but nothing recorded which went with which: an editor that
-     * swapped a fare had to guess the item by day, and a day carrying both a
-     * flight and a ground hop guesses wrong. Optional, because most items are
-     * not priced from a selection at all.
-     */
+
     selectionId: z.string().min(1).optional(),
-    /** The traveller's own note on this item. */
+
     note: z.string().trim().max(500).optional(),
-    /** The traveller has booked this item themselves. */
+
     booked: z.boolean().optional(),
   })
-  // `.check()` (Zod 4's superRefine) keeps this a plain object, so B/C/D/E can
-  // still `.extend()` / `.pick()` it. Three cross-field rules:
+
   .check((ctx) => {
     const { day, startTime, endTime } = ctx.value;
     if (Boolean(startTime) !== Boolean(endTime)) {
@@ -263,11 +199,7 @@ export const StayCandidate = z.object({
   pricePerNight: z.number().positive(),
   rating: z.number().min(0).max(10),
   freeCancellation: z.boolean(),
-  // true only for a real property from a grounded provider (e.g. Google
-  // Places, SerpApi); absent/false for a fictional mock fixture. In mock and
-  // Google-Places mode pricePerNight is a planning estimate, never a live
-  // quote; SerpApi mode is the one path with a real live rate — see
-  // AgentProposal.source for the human-readable disclosure.
+
   grounded: z.boolean().optional(),
   location: z.object({ latitude: z.number(), longitude: z.number() }).optional(),
   detailsUrl: z.string().url().optional(),
@@ -284,27 +216,19 @@ export const StaySelection = z.object({
   candidates: z.array(StayCandidate).min(1),
 });
 export type StaySelection = z.infer<typeof StaySelection>;
-/** An airport as a provider names it: the code people read, and the full name. */
+
 export const FlightPlace = z.object({
   code: z.string().min(2),
   name: z.string().min(1),
 });
 export type FlightPlace = z.infer<typeof FlightPlace>;
 
-/**
- * One aircraft between two airports.
- *
- * Times are local to each airport and kept as the provider's own strings.
- * Converting them to instants would need each airport's zone, and showing a
- * departure in anything but the departure airport's local time is wrong on a
- * boarding pass and wrong here.
- */
 export const FlightSegment = z.object({
   from: FlightPlace,
   to: FlightPlace,
-  /** Local departure, "YYYY-MM-DD HH:mm" at `from`. */
+
   departsAt: z.string().min(1),
-  /** Local arrival, "YYYY-MM-DD HH:mm" at `to`. */
+
   arrivesAt: z.string().min(1),
   durationMin: z.number().int().positive(),
   airline: z.string().min(1),
@@ -321,45 +245,31 @@ export const FlightLayover = z.object({
 });
 export type FlightLayover = z.infer<typeof FlightLayover>;
 
-/** One direction of a journey: the aircraft taken, and the waits between them. */
 export const FlightLeg = z.object({
   segments: z.array(FlightSegment).min(1),
   layovers: z.array(FlightLayover).default([]),
-  /** Gate to gate including layovers. */
+
   durationMin: z.number().int().positive(),
 });
 export type FlightLeg = z.infer<typeof FlightLeg>;
 
-/** One fare a provider offered for a hop, as the traveller would compare them. */
 export const FlightCandidate = z.object({
   id: z.string().min(1),
   carrier: z.string().min(1),
-  /** Whole-party total in BASE_CURRENCY; see ./money. */
+
   price: z.number().nonnegative(),
   stops: z.number().int().nonnegative().optional(),
   durationMin: z.number().int().positive().optional(),
   note: z.string().optional(),
-  /** The flights themselves, when the provider described them. */
+
   outbound: FlightLeg.optional(),
-  /**
-   * The way home. Absent on a one-way fare, and absent on a round trip whose
-   * return flights were not looked up — Google Flights returns the outbound
-   * options first and needs a second search per itinerary for its returns, so
-   * a fare can carry a round-trip price with no inbound leg to show yet.
-   */
+
   inbound: FlightLeg.optional(),
-  /** Round trip when a return date was searched, whether or not `inbound` is filled. */
+
   roundTrip: z.boolean().optional(),
 });
 export type FlightCandidate = z.infer<typeof FlightCandidate>;
 
-/**
- * The fare chosen for one flown hop, with the ones it beat.
- *
- * Mirrors StaySelection because the traveller's question is the same — "why
- * this one?" — and the transcript can only answer it if the alternatives
- * survive the choice instead of being dropped where it was made.
- */
 export const FlightSelection = z.object({
   id: z.string().min(1),
   from: z.string().min(1),
@@ -395,28 +305,21 @@ export const AgentProposal = z.object({
   stays: z.array(StaySelection).optional(),
   flights: z.array(FlightSelection).optional(),
   source: AgentProposalSource.optional(),
-  // The lowest total this specialist could reach from the options it found (AUD, whole group).
-  // Absent when it cannot tell; the orchestrator then treats the section as fully reducible.
+
   floorCost: z.number().nonnegative().optional(),
 });
 export type AgentProposal = z.infer<typeof AgentProposal>;
 
-// ---------------------------------------------------------------------------
-// RevisionRequest — Orchestrator -> a single agent, rounds 2..K.
-// ---------------------------------------------------------------------------
 export const RevisionRequest = z.object({
   tripId: z.string(),
   targetAgent: z.enum(AGENT_NAMES),
-  reason: z.string(), // "over budget by 18%", "day 2 route infeasible" ...
+  reason: z.string(),
   constraints: z.array(z.string()),
-  // AUD this agent is asked to cut from its previous proposal, for a budget overrun.
+
   targetSaving: z.number().nonnegative().optional(),
 });
 export type RevisionRequest = z.infer<typeof RevisionRequest>;
 
-// ---------------------------------------------------------------------------
-// Memory records (owned by @trip/services/memory).
-// ---------------------------------------------------------------------------
 export const ChatTurn = z.object({
   role: z.enum(["user", "assistant"]),
   content: z.string(),

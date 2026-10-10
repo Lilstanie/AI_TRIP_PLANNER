@@ -1,5 +1,3 @@
-/* The phone frame follows VisualViewport rather than the screen behind the keyboard. The
-   transcript remains the only scroll container; focusing cannot scroll the workspace page. */
 .workspace-app[data-phone] {
   position: fixed;
   inset: var(--phone-viewport-top, 0px) 0 auto;
@@ -17,8 +15,7 @@
 [data-phone][data-phone-keyboard] .chat > .disclaimer {
   display: none;
 }
-/* The question card replaces the composer. Its choices scroll within the shortened screen,
-   leaving the header, custom answer and submit controls reachable above the keyboard. */
+
 [data-phone][data-phone-keyboard] .question {
   flex: 0 1 auto;
   min-height: 0;
@@ -41,16 +38,14 @@
   max-height: calc(var(--phone-viewport-height) - 110px);
   min-height: 0;
 }
-/* Fact editors are fixed bottom sheets on the layout viewport, which the keyboard does not
-   shrink. While typing, each rests on the keyboard instead, fits the visible height, and lets
-   its fields scroll so the focused field and Save stay in view (#187). */
+
 [data-phone][data-phone-keyboard] .fact-popover,
 [data-phone][data-phone-keyboard] .fact-popover.fact-popover--modal {
   bottom: var(--phone-keyboard-inset, 0px);
   max-height: calc(var(--phone-viewport-height) - var(--space-4));
   padding-bottom: var(--space-4);
 }
-/* The keyboard covers the home indicator, so the sheet drops its safe-area padding. */
+
 [data-phone][data-phone-keyboard] .fact-popover.fact-popover--modal {
   padding-bottom: 0;
 }

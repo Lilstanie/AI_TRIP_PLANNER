@@ -1,6 +1,3 @@
-// Failure inventory: switch absent, fails to translate, language lost on reload, browser language
-// ignored with no saved choice or overriding a saved one, sidebar overlaps main, narrow layout
-// scrolls horizontally, or unrelated currency/address UI leaks in.
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
@@ -17,7 +14,6 @@ const browser = await chromium.launch({ channel: process.env.CHANNEL });
 const baseUrl = process.env.BASE_URL ?? "http://localhost:3000";
 const htmlLang = (page) => page.locator("html").getAttribute("lang");
 try {
-  // No saved choice: a zh-CN browser opens in Chinese, then a saved English choice beats it.
   const zhContext = await browser.newContext({
     locale: "zh-CN",
     viewport: { width: 1440, height: 1000 },

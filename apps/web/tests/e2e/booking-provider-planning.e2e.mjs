@@ -1,14 +1,3 @@
-// Planning-loop evidence for the deep Booking Port (#130).
-//
-// Failure inventory:
-// - the registered multi-city scenario cannot complete through the public Agent Lab API;
-// - fixture flight or stay facts change, disappear or lose their Booking provenance;
-// - the final Plan gains a conflict or loses multi-city consistency;
-// - the stream does not finish with the same artifact saved for review.
-//
-//   pnpm --filter @trip/web dev   (with USE_MOCK_TOOLS=true and no model or provider keys)
-//   node apps/web/tests/e2e/booking-provider-planning.e2e.mjs
-
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 

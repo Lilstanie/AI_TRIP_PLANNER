@@ -1,12 +1,3 @@
-/**
- * Shorten model prose to `max` characters, at a sentence end when one is close
- * enough, otherwise at a word with an ellipsis.
- *
- * Models cannot count characters. A structured-output schema that rejects a
- * 414-character summary against a 400 limit throws the whole draft away, and
- * the retry can loop until LangGraph's recursion limit, so specialists ask for
- * unbounded prose and clip it here before their strict schema.
- */
 export function clip(text: string, max: number): string {
   if (text.length <= max) return text;
   const cut = text.slice(0, max);

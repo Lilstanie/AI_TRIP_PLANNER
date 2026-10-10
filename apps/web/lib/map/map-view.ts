@@ -1,10 +1,3 @@
-/**
- * Automatic map framing, independent of the Google Maps SDK so it can be tested.
- *
- * The map frames a trip at most twice: first on its destination (as soon as the city is
- * known), then once on its activity places. It never refits on ordinary re-renders, and once
- * the user drags or zooms it leaves the view alone until the trip or destination changes.
- */
 export type LatLng = { lat: number; lng: number };
 
 export interface FramableMap {
@@ -34,7 +27,6 @@ export class MapViewController {
 
   constructor(private readonly map: FramableMap) {}
 
-  /** Apply the automatic view for the current trip. Returns true when the map moved. */
   update({ key, destinations, places }: { key: string; destinations: LatLng[]; places: LatLng[] }) {
     if (key !== this.key) {
       this.key = key;
@@ -48,7 +40,7 @@ export class MapViewController {
       this.stage = "places";
       return true;
     }
-    // Destination cities resolve one by one; widen the frame as a multi-city trip completes.
+
     const moreDestinations =
       this.stage === "destination" && destinations.length > this.framedDestinations;
     if (!places.length && destinations.length && (this.stage === "none" || moreDestinations)) {
@@ -60,7 +52,6 @@ export class MapViewController {
     return false;
   }
 
-  /** The user dragged, zoomed or otherwise moved the map. */
   markUserMoved() {
     this.userMoved = true;
   }

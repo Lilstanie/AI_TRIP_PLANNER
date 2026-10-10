@@ -1,14 +1,3 @@
-// End-to-end check that the conversation, not only the preferences editor, shapes the trip: the
-// traveller says in chat that they arrange flights themselves, that their hotel is booked and what
-// they do not need, and the plan and every later reply respect it. Replays the Shanghai chat from
-// docs feedback through /api/chat the way the workspace sends it (first turn with `known`, later
-// turns with the current brief and plan). Every NDJSON stream, the final plans and summary.json
-// land under output/e2e/conversation-scope/<run>/ as a repeatable, reviewable artifact.
-//
-// requires-env: DEEPSEEK_API_KEY
-//
-//   pnpm --filter @trip/web dev            # in another terminal
-//   [DATA_MODE=live|mock] [BASE_URL=...] node apps/web/tests/e2e/conversation-scope.e2e.mjs
 import { mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 
@@ -47,7 +36,7 @@ const check = (ok, message) => {
   results.push({ ok: Boolean(ok), message });
   console.log(`${ok ? "PASS" : "FAIL"} ${message}`);
 };
-/** A sentence that asks about, or prices, flights. */
+
 const flightQuestion = (text) =>
   (text ?? "")
     .split(/(?<=[.?!。？！])\s*/)
@@ -56,7 +45,6 @@ const flightQuestion = (text) =>
       /\?|？|would you like|do you want|shall I|should I|fare|AUD|\$/i.test(sentence),
     );
 
-// Turn 1: a blank conversation that states the whole trip.
 const first = await send({
   tripId,
   message:
@@ -69,7 +57,6 @@ check(
 );
 let plan = first.final?.response?.plan;
 
-// Turn 2: the three things from the Shanghai screenshots, in one message.
 const second = await send({
   tripId,
   message:
@@ -121,7 +108,6 @@ check(
   `turn 2 reply does not ask about or price flights (${JSON.stringify(flightQuestion(second.final?.response?.reply))})`,
 );
 
-// Turn 3: an ordinary follow-up must not bring flights or other hotels back.
 const third = await send({
   tripId,
   message: "Anything else we should sort out before the trip?",

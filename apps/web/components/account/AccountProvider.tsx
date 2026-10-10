@@ -4,11 +4,6 @@ import { createContext, useContext, useEffect, useMemo, type ReactNode } from "r
 import { useRouter } from "next/navigation";
 import { authEnabled } from "@/lib/auth/config";
 
-/**
- * Who is using the workspace. `local` means accounts are not configured on this deployment and
- * everything stays in the browser, exactly as before accounts existed; the other states come from
- * Clerk. Components read this instead of Clerk's hooks, which throw without a ClerkProvider.
- */
 export type Account =
   | { status: "local" }
   | { status: "loading" }
@@ -23,9 +18,9 @@ export type Account =
       email?: string;
       emailVerified: boolean;
       imageUrl?: string;
-      /** Sign-in methods linked through Clerk: Google, GitHub, Apple. */
+
       connected: { provider: string; email?: string }[];
-      /** Saves a new first and last name to the Clerk user. */
+
       rename(firstName: string, lastName: string): Promise<void>;
       signOut(): Promise<void>;
       manage(): void;

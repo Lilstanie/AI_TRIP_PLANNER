@@ -1,22 +1,3 @@
-// End-to-end check of the one settle path for plan changes (ticket #263, spec #259). Every change to a
-// stop's day, order or existence is settled by the server (`POST /api/trip/preview-edit`), and the budget
-// total the traveller reads is the total that settle produced. These scenarios read what the traveller sees:
-//
-// 1. Removing a priced stop takes its price off the Trip drawer's total at once, from a day that has one
-//    stop left and from a day that is then empty.
-// 2. Moving a stop to Ideas takes its price off the total at once: an Idea is not in the plan's estimate, and
-//    scheduling it again puts the price back.
-// 3. A move that keeps every stop's price (the arrow moves) leaves the total as it was, and the total the
-//    drawer shows is the total the server answered.
-// 4. The Your trips page shows, for the open trip, the same total as the Trip drawer after those changes.
-//
-// Places and route checks run in mock data mode: the server answers the legs with simulated routes and no provider
-// is called. Map place lookups are stubbed at the browser boundary, as in check-entry-point.e2e.mjs. Each stop's
-// price is given by the stubbed chat answer, which is how a priced stop reaches the plan. The artifact is
-// output/playwright/settle-path/<LABEL>/summary.json, with screenshots beside it; the runner writes its own
-// summary to output/e2e/runner/<time>.json.
-//
-//   DATA_MODE=mock pnpm --filter @trip/web e2e settle-path     # starts its own server
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
@@ -30,7 +11,6 @@ mkdirSync(OUT, { recursive: true });
 
 const PLANNER_WALK_MIN = 37;
 
-// The trip: Day 1 has two priced stops, Day 2 has two priced stops. Prices are AUD planning amounts.
 const PRICES = {
   "Sydney Opera House": 60,
   "Royal Botanic Garden Sydney": 40,
@@ -68,11 +48,9 @@ function placeFor(text) {
 }
 
 function newStub() {
-  // Every edit the page sent, in order, with the total the server settled into its answer.
   return { operations: [], answers: [] };
 }
 
-/** Stubs the map's place lookups; the timeline's edits reach the real server, whose answers are recorded. */
 async function installStubs(page, stub) {
   await page.route("**/api/places/search", async (route) => {
     const { text } = route.request().postDataJSON();
@@ -105,10 +83,6 @@ async function installStubs(page, stub) {
   });
 }
 
-/**
- * Gives the chat's plan the stops of each seeded day, each with its price and the planner's walk into each
- * stop after the first. The section and plan totals are rolled up from the items, as the server rolls them up.
- */
 async function installSeed(page, days, prices) {
   await page.route("**/api/chat", async (route) => {
     const response = await route.fetch();
@@ -207,7 +181,6 @@ async function openTrip(browser, { stub }) {
   return { context, page, errors };
 }
 
-/** Polls `test` for up to `ms`; resolves to whether it passed. */
 async function waitUntil(test, ms = 8000) {
   for (let waited = 0; waited < ms; waited += 200) {
     if (await test()) return true;
@@ -220,7 +193,6 @@ const trip = (page) => page.getByRole("region", { name: "Trip timeline" });
 const dayRows = (page) => trip(page).locator(".timeline-day .timeline-stop");
 const ideaRows = (page) => trip(page).locator(".timeline-ideas li.timeline-stop--idea");
 
-/** Waits until no route check is running and the plan has settled. */
 async function settleChecks(page) {
   await settle(page, 600);
   for (let round = 0; round < 60; round += 1) {
@@ -232,13 +204,11 @@ async function settleChecks(page) {
   }
 }
 
-/** The budget total the Trip drawer shows, as a number of AUD. */
 async function drawerTotal(page) {
   const text = await page.locator(".trip__budget strong").innerText();
   return Number(text.replace(/[^0-9.]/g, ""));
 }
 
-/** Day N's tab, then the stop named `name` on that day (or in Ideas when `idea` is set). */
 async function openDay(page, day) {
   await trip(page)
     .getByRole("tab")
@@ -249,14 +219,12 @@ async function openDay(page, day) {
 const stopNamed = (page, name) => dayRows(page).filter({ hasText: name }).first();
 const ideaNamed = (page, name) => ideaRows(page).filter({ hasText: name }).first();
 
-/** Opens a stop's action menu and picks an item by its exact name. */
 async function pick(row, page, item) {
   await row.getByRole("button", { name: /^Actions for / }).click();
   await page.getByRole("menuitem", { name: item, exact: true }).click();
   await settle(page, 300);
 }
 
-/** Expects the drawer total to move by `delta` from `before`, and to match the total the server answered last. */
 async function expectTotal(page, stub, label, before, delta) {
   await settleChecks(page);
   const expected = round2(before + delta);
@@ -294,12 +262,10 @@ async function main() {
       `Day 1 shows its two priced stops (${await dayRows(page).count()})`,
     );
 
-    // A. The arrow move keeps every price: Manly Beach moves earlier, past Bondi Beach. The total does not change.
     await openDay(page, 2);
     await pick(stopNamed(page, "Manly Beach"), page, "Move earlier");
     let total = await expectTotal(page, stub, "A. Move earlier (arrow)", start, 0);
 
-    // B. Removing a priced stop from a day with two stops, leaving one.
     await openDay(page, 1);
     await pick(stopNamed(page, "Sydney Opera House"), page, "Remove");
     total = await expectTotal(
@@ -314,7 +280,6 @@ async function main() {
       `B. Day 1 has one stop left (${await dayRows(page).count()})`,
     );
 
-    // C. Removing a priced stop from Day 2, which keeps one stop.
     await openDay(page, 2);
     await pick(stopNamed(page, "Manly Beach"), page, "Remove");
     total = await expectTotal(
@@ -325,7 +290,6 @@ async function main() {
       -15,
     );
 
-    // D. Moving the last-but-one stop to Ideas: its price leaves the total at once.
     await openDay(page, 1);
     const botanic = stopNamed(page, "Royal Botanic Garden Sydney");
     await pick(botanic, page, "Move to ideas");
@@ -335,7 +299,6 @@ async function main() {
       "D. the stop is listed under Ideas",
     );
 
-    // E. Scheduling the Idea on Day 2 puts its price back into the total.
     await ideaNamed(page, "Royal Botanic Garden Sydney")
       .getByRole("button", { name: /^Actions for / })
       .click();
@@ -345,7 +308,6 @@ async function main() {
     await settle(page, 700);
     total = await expectTotal(page, stub, "E. Schedule the Idea on Day 2", total, 40);
 
-    // F. Removing the only stop left on Day 2 (Bondi Beach) empties the day.
     await openDay(page, 2);
     await pick(stopNamed(page, "Bondi Beach"), page, "Remove");
     total = await expectTotal(page, stub, "F. Remove the last stop of Day 2", total, -25);
@@ -355,7 +317,6 @@ async function main() {
     );
     summary.endTotal = total;
 
-    // G. The Your trips page shows the same total for the open trip as the drawer does.
     const sidebarTrips = page.locator(".sidebar-nav").getByRole("button", { name: /^Trips/ });
     await sidebarTrips.click();
     await page.locator(".trips-page .trip-card").first().waitFor({ timeout: 10_000 });

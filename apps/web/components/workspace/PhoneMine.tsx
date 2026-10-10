@@ -7,13 +7,12 @@ import { ChatsPanel } from "./ChatsPanel";
 import { TripsPage } from "./TripsPage";
 import type { WorkspaceModel } from "./useWorkspace";
 
-/** The phone history and account hub, reusing desktop history and calendar controls. */
 export function PhoneMine({ model }: { model: WorkspaceModel }) {
   const { t } = useLocale();
   const { session, history } = model;
   const { dataMode, busy } = session;
   const visibleTrips = new Set(history.trips.map((trip) => trip.id));
-  // Opening or starting a chat or trip returns to Chat; the workspace decides that.
+
   const { newChat, newTrip, selectTrip: openTrip } = session;
 
   return (

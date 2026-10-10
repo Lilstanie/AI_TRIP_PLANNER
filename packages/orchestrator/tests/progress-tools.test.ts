@@ -94,7 +94,7 @@ describe("progress tool instrumentation", () => {
             website: "https://www.sydneyoperahouse.com/",
           },
           { name: "Mrs Macquarie's Chair", category: "viewpoint" },
-          // Not a web page: a client cannot show a site for it, so it is dropped.
+
           { name: "Harbour Kiosk", category: "cafe", website: "tel:+61299999999" },
         ]),
       },
@@ -257,7 +257,7 @@ describe("result row kinds", () => {
     expect(placeKind("neighborhood")).toBe("place");
     expect(placeKind("")).toBe("place");
     expect(placeKind(undefined)).toBe("place");
-    // A word that only contains a keyword is not that keyword.
+
     expect(placeKind("barbershop")).toBe("place");
   });
 

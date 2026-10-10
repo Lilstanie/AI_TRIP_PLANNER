@@ -27,7 +27,6 @@ describe("journeyLegs", () => {
   });
 
   it("chains every city in travel order", () => {
-    // The shape this module exists for: A → B → C → D.
     const legs = journeyLegs({
       ...base,
       days: 8,
@@ -40,7 +39,7 @@ describe("journeyLegs", () => {
       "Kyoto → Osaka",
     ]);
     expect(legs.map((leg) => leg.index)).toEqual([0, 1, 2]);
-    // Hops move forward in time and never run past the trip.
+
     const days = legs.map((leg) => leg.day);
     expect(days).toEqual([...days].sort((a, b) => a - b));
     expect(Math.max(...days)).toBeLessThanOrEqual(8);
@@ -60,14 +59,11 @@ describe("legMode", () => {
   it("flies only the arrival today, and only when it leaves somewhere else", () => {
     expect(legMode("arrival", "Melbourne", "Sydney")).toBe("flight");
     expect(legMode("arrival", "Sydney", "sydney")).toBe("ground");
-    // Changing this line is what turns on B→C and C→D flights.
+
     expect(legMode("inter-city", "Tokyo", "Kyoto")).toBe("ground");
   });
 
   it("never flies a city hop, even when no arrival hop exists", () => {
-    // Keying on position instead of role sent Sydney → Parramatta, 25km apart,
-    // to the airline search: with the origin already the first destination
-    // there is no arrival hop, so the first city hop inherited index 0.
     const legs = journeyLegs({
       ...base,
       days: 6,

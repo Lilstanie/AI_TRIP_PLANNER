@@ -9,19 +9,18 @@ export type LocationState =
   | { status: "success"; position: Coordinate; message: Notice }
   | { status: "error"; message: Notice };
 
-/** The traveller's answer to the in-app location question, remembered in this browser only. */
 export const LOCATION_CHOICE_KEY = "trip.locationPrompt";
 type Choice = "allowed" | "dismissed";
 
 export type UserLocation = {
   location: LocationState;
-  /** Show the in-app question: nothing answered yet and the browser has not blocked location. */
+
   asking: boolean;
-  /** Ask the browser for the position. Only ever called from a user action or an earlier Allow. */
+
   request(): void;
-  /** The traveller chose Allow location in the in-app question. */
+
   allow(): void;
-  /** The traveller chose Not now; the question does not return in this browser. */
+
   dismiss(): void;
 };
 
@@ -37,9 +36,7 @@ function readChoice(): Choice | undefined {
 function writeChoice(choice: Choice) {
   try {
     localStorage.setItem(LOCATION_CHOICE_KEY, choice);
-  } catch {
-    // Storage blocked: the answer holds for this page only, which is still no nagging.
-  }
+  } catch {}
 }
 
 async function permissionState(): Promise<PermissionState | undefined> {
@@ -62,14 +59,6 @@ export function geolocationError(error: GeolocationPositionError): Notice {
   return { key: "Your current location could not be found. Please retry." };
 }
 
-/**
- * The traveller's current position, asked for on open in our own words first.
- *
- * The browser's permission prompt appears only after the traveller presses Allow location (or Show
- * my location on the map). Only the answer to our question is stored; the position itself stays in
- * memory, is never saved or written into a plan, and leaves the browser only when the traveller
- * asks for a route from it.
- */
 export function useUserLocation(): UserLocation {
   const [location, setLocation] = useState<LocationState>({ status: "idle" });
   const [asking, setAsking] = useState(false);
@@ -101,7 +90,7 @@ export function useUserLocation(): UserLocation {
     if (choice === "dismissed") return;
     void permissionState().then((state) => {
       if (cancelled || state === "denied") return;
-      // An earlier Allow the browser still honours: show the position without asking again.
+
       if (choice === "allowed" && state === "granted") request();
       else setAsking(true);
     });
@@ -110,7 +99,6 @@ export function useUserLocation(): UserLocation {
     };
   }, [request]);
 
-  // Once the browser has answered, whichever way, the in-app question is done.
   useEffect(() => {
     if (location.status !== "idle") setAsking(false);
   }, [location.status]);

@@ -59,7 +59,7 @@ function memoryStore(history: ChatTurn[] = []) {
 }
 
 type ToolCall = { name: string; args: Record<string, unknown>; id: string };
-/** Each entry is one model turn; the empty array ends the loop. */
+
 const scriptedModel = (...turns: ToolCall[][]) =>
   new FakeToolCallingModel({ toolCalls: [...turns, []] });
 
@@ -108,8 +108,6 @@ describe("the conversation agent decides what to do", () => {
       memoryStore().mem,
     );
 
-    // The headline promise of the refactor: a question costs one model call, not a
-    // full replan, and the plan comes back untouched.
     expect(itinerary.invoke).not.toHaveBeenCalled();
     expect(asked.plan).toBe(planned.plan);
   });
@@ -151,8 +149,7 @@ describe("the conversation agent decides what to do", () => {
     expect(failure).toBeInstanceOf(IncompleteBriefError);
     const asked = (failure as IncompleteBriefError).needsInfo;
     expect(asked.type).toBe("needs_info");
-    // Without an ask_user_question call the frame carries prose and what is
-    // known; choices only ever arrive in an ask_user frame.
+
     expect(asked.question.length).toBeGreaterThan(0);
     expect(asked).not.toHaveProperty("asked");
   });
@@ -193,7 +190,6 @@ describe("the conversation agent decides what to do", () => {
   });
 
   it("puts the conversation so far in front of the model", async () => {
-    // Without this a follow-up like 「是今年」 has nothing to resolve against.
     const { mem } = memoryStore([
       { role: "user", content: "悉尼三日游", at: "2026-09-20T00:00:00.000Z" },
       { role: "assistant", content: "好的，几号出发？", at: "2026-09-20T00:00:01.000Z" },
@@ -202,15 +198,12 @@ describe("the conversation agent decides what to do", () => {
       (error: unknown) => error,
     );
 
-    // FakeToolCallingModel answers with the prior messages joined together, so its
-    // reply is a transcript of exactly what the agent was shown.
     expect((failure as IncompleteBriefError).message).toContain("悉尼三日游");
     expect((failure as IncompleteBriefError).message).toContain("是今年");
   });
 });
 
 describe("the reply language", () => {
-  // FakeToolCallingModel's reply joins everything it was shown, the system prompt included.
   const shown = (request: Parameters<typeof runTripChat>[0]) =>
     run(request, scriptedModel(), memoryStore().mem)
       .catch((error: unknown) => error)
@@ -255,15 +248,12 @@ describe("currency in the brief update tool", () => {
       mem,
     );
 
-    // The model named the currency; the arithmetic happened in code.
     expect(result.plan.brief.budgetTotal).toBe(toAud(3000, "CNY"));
     expect(result.plan.brief.budgetSource).toEqual({ amount: 3000, currency: "CNY" });
     expect(result.plan.brief.groupSize).toBe(2);
   });
 
   it("treats an explicit base-currency amount as an identity, not a second conversion", async () => {
-    // The preferences form builds its message with an "AUD 3,000.00" total, so the
-    // agent sees an explicit AUD and must not shrink it.
     const { mem } = memoryStore();
     const result = await run(
       { tripId: "blank", message: "Sydney, 2026-10-06 to 2026-10-09, 2 people, AUD 3,000.00" },
@@ -294,8 +284,6 @@ describe("currency in the brief update tool", () => {
 
 describe("tolerating what models actually emit", () => {
   it('accepts the literal string "null" instead of an omitted field', async () => {
-    // This threw before, and the throw fell back silently to the regex parser,
-    // which is how "3000 人民币" became a party of 3000.
     const { mem } = memoryStore();
     const result = await run(
       { tripId: brief.tripId, message: "10.6-10.9，预算 3000 人民币", brief },
@@ -348,8 +336,7 @@ describe("the preferences form path", () => {
       { model: scriptedModel(), specialists: [itinerary], tools, mem },
     );
     expect(result.plan.brief).toEqual(brief);
-    // The deterministic summary, not the model's transcript-shaped answer: the
-    // agent was never asked to rediscover what the form already stated.
+
     expect(result.reply).toContain("Plan for Tokyo");
     expect(result.reply).not.toContain("Update my trip");
   });
@@ -421,9 +408,6 @@ describe("a question keeps the plan it was given", () => {
 
 describe("the tool schema the provider actually receives", () => {
   it("renders to JSON Schema", () => {
-    // FakeToolCallingModel never serialises the schema, so nothing above catches
-    // this. A real provider call does: a `z.preprocess` here threw "Transforms
-    // cannot be represented in JSON Schema" and took the whole turn down.
     expect(() => z.toJSONSchema(BriefUpdate, { io: "input", target: "draft-7" })).not.toThrow();
   });
 
@@ -433,7 +417,7 @@ describe("the tool schema the provider actually receives", () => {
         BriefUpdate.safeParse({ destination: absent, groupSize: absent, budgetAmount: absent })
           .success,
       ).toBe(true);
-    // Numbers arrive as strings often enough to be worth accepting.
+
     expect(BriefUpdate.safeParse({ groupSize: "2", budgetAmount: "3000" }).success).toBe(true);
   });
 });
@@ -493,8 +477,7 @@ describe("asking the traveller a structured question", () => {
     const assistant = turns.filter((turn) => turn.role === "assistant");
     expect(assistant).toHaveLength(1);
     expect(assistant[0]?.content).toContain("How full should each day be?");
-    // The options are part of what was asked: an answer reads as an answer only
-    // beside the choices it was picked from.
+
     expect(assistant[0]?.content).toContain("Relaxed (Recommended)");
   });
 
@@ -522,7 +505,7 @@ describe("asking the traveller a structured question", () => {
 
     const { questions } = (failure as AskUserError).askUser;
     expect(questions).toHaveLength(4);
-    // The blank question is gone and the duplicate id was made unique.
+
     expect(questions.map((question) => question.question)).toEqual([
       "Question 0?",
       "Question 1?",
@@ -555,7 +538,7 @@ describe("asking the traveller a structured question", () => {
     expect(itinerary.invoke).not.toHaveBeenCalled();
     const asked = (failure as AskUserError).askUser;
     expect(asked.plan).toBe(seed.plan);
-    // A full brief narrows to the fields a follow-up carries.
+
     expect(asked.known).toEqual({
       destination: "Tokyo",
       dates: ["2026-06-15", "2026-06-22"],
@@ -627,7 +610,6 @@ describe("asking the traveller a structured question", () => {
 });
 
 describe("attachments reach the coordinator", () => {
-  /** What the agent actually handed the model, across every call of one turn. */
   function recordPrompts() {
     const spy = vi.spyOn(
       FakeToolCallingModel.prototype as unknown as { _generate: (...args: unknown[]) => unknown },
@@ -635,7 +617,7 @@ describe("attachments reach the coordinator", () => {
     );
     return {
       restore: () => spy.mockRestore(),
-      /** The content of the last human message the model saw. */
+
       lastHuman: () => {
         const messages = (spy.mock.calls.at(-1)?.[0] ?? []) as { content: unknown }[];
         return messages.at(-1)?.content;
@@ -671,7 +653,7 @@ describe("attachments reach the coordinator", () => {
       }[];
       expect(Array.isArray(content)).toBe(true);
       expect(content[0]?.type).toBe("text");
-      // The JSON envelope is untouched; the image rides beside it.
+
       expect(JSON.parse(content[0]?.text ?? "{}")).toMatchObject({
         message: "Is this our hotel?",
         knownSoFar: { destination: "Tokyo" },
@@ -693,7 +675,7 @@ describe("attachments reach the coordinator", () => {
         scriptedModel(),
         memoryStore().mem,
       );
-      // No image, so the message stays a plain string as it always was.
+
       const content = prompts.lastHuman();
       expect(typeof content).toBe("string");
       const message = JSON.parse(content as string).message as string;

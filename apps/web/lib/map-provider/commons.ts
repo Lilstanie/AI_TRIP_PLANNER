@@ -81,7 +81,7 @@ export function commonsPhotos(fetcher?: ProviderFetch) {
         };
       } catch {
         return place;
-      } // An optional image never makes a place unavailable.
+      }
     },
     async url(name: string, width: PhotoWidth): Promise<string> {
       if (!COMMONS_NAME.test(name)) throw new NoticeError({ key: "Unknown photo." });

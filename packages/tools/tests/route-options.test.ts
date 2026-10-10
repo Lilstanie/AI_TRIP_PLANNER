@@ -11,10 +11,9 @@ const q = { from: "Parramatta", to: "Sydney CBD", date: "2026-11-25", day: 1, lo
 
 describe("moneyFrom", () => {
   it("reads Google's units-and-nanos money", () => {
-    // The shape a real Sydney toll route came back with.
     expect(moneyFrom({ currencyCode: "AUD", units: "13", nanos: 290000000 })).toBe(13.29);
     expect(moneyFrom({ currencyCode: "AUD", units: "4" })).toBe(4);
-    // An empty object is what Google sends when it has no fare to give.
+
     expect(moneyFrom({})).toBeUndefined();
     expect(moneyFrom(undefined)).toBeUndefined();
   });
@@ -76,7 +75,7 @@ describe("driveOption", () => {
       q,
     )!;
     expect(option).toMatchObject({ mode: "drive", durationMin: 29, price: 13.29 });
-    // Tolls are real, but fuel and parking are not quoted, so the cost is partial.
+
     expect(option.priceBasis).toBe("partial");
     expect(option.note).toMatch(/tolls A\$13\.29/);
     expect(option.note).toMatch(/fuel, parking/);
@@ -92,8 +91,6 @@ describe("driveOption", () => {
 
 describe("transitOption", () => {
   it("marks an unpublished fare unavailable, not free", () => {
-    // Australia returns an empty transitFare, which is the case that matters:
-    // treating it as $0 would make the bus win every budget comparison.
     const option = transitOption(
       {
         duration: "3340s",

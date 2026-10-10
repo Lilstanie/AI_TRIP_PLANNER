@@ -21,7 +21,7 @@
   position: relative;
   z-index: 1;
 }
-/* A quiet grid appears only near the pointer, beneath all text and form controls. */
+
 .auth-page::before,
 .auth-page::after {
   content: "";
@@ -106,7 +106,7 @@
   overflow: hidden;
   min-width: 0;
 }
-/* The highlight is a masked hairline, with no overlay on the inputs and no moving targets. */
+
 .auth-form::after {
   content: "";
   position: absolute;

@@ -1,10 +1,3 @@
-// End-to-end check of the Think row's orb (thinking-orbs) with mock data: it appears only while a
-// request runs, gives way to the static icon when the reply lands, keeps the row's height, and still
-// renders a still frame under reduced motion. Screenshots at desktop and phone widths, light and
-// dark, land under output/playwright/thinking-orb/ as a repeatable artifact.
-//
-//   pnpm --filter @trip/web dev            # in another terminal
-//   [CHANNEL=chrome] [PLAYWRIGHT=<path to playwright>] node apps/web/tests/e2e/thinking-orb.e2e.mjs
 import { mkdirSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
@@ -45,20 +38,29 @@ async function run(browser, { width, height, scheme, reducedMotion = "no-prefere
   await page.locator(".chat-empty__suggestions button").first().click();
 
   const orb = page.locator(".thinking-row__leading canvas.thinking-orb");
-  await orb.first().waitFor({ timeout: 30_000 }).catch(() => undefined);
+  await orb
+    .first()
+    .waitFor({ timeout: 30_000 })
+    .catch(() => undefined);
   check((await orb.count()) === 1, `${tag}: orb shows while planning`);
   if (await orb.count()) {
     const box = await orb.first().boundingBox();
     check(!!box && Math.round(box.width) === 20, `${tag}: orb is 20px (${box?.width})`);
     const row = await page.locator(".thinking-turn .thinking-row__line").first().boundingBox();
-    // Each running specialist gets its own orb once the turn is expanded.
+
     await page.locator(".thinking-turn .thinking-row__line").first().click();
     const subOrbs = page.locator(".thinking-subagent .thinking-row__leading canvas.thinking-orb");
-    await subOrbs.first().waitFor({ timeout: 30_000 }).catch(() => undefined);
-    check((await subOrbs.count()) >= 1, `${tag}: running subagents show orbs (${await subOrbs.count()})`);
+    await subOrbs
+      .first()
+      .waitFor({ timeout: 30_000 })
+      .catch(() => undefined);
+    check(
+      (await subOrbs.count()) >= 1,
+      `${tag}: running subagents show orbs (${await subOrbs.count()})`,
+    );
     await page.waitForTimeout(600);
     await page.screenshot({ path: `${OUT}/${tag}-running.png` });
-    // Drawn pixels, not an empty canvas: the orb paints on the client.
+
     const painted = await orb.first().evaluate((canvas) => {
       const ctx = canvas.getContext("2d");
       if (!ctx) return false;
@@ -78,7 +80,10 @@ async function run(browser, { width, height, scheme, reducedMotion = "no-prefere
     );
     await page.screenshot({ path: `${OUT}/${tag}-done.png` });
   }
-  check(!errors.length, `${tag}: no console errors${errors.length ? `: ${errors.join(" | ")}` : ""}`);
+  check(
+    !errors.length,
+    `${tag}: no console errors${errors.length ? `: ${errors.join(" | ")}` : ""}`,
+  );
   await context.close();
 }
 

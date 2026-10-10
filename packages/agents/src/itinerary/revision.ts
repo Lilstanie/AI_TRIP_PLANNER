@@ -5,7 +5,6 @@ const minutes = (time: string) => Number(time.slice(0, 2)) * 60 + Number(time.sl
 const clock = (value: number) =>
   `${String(Math.floor(value / 60)).padStart(2, "0")}:${String(value % 60).padStart(2, "0")}`;
 
-/** Interpret only the exact keep-clear grammar currently emitted by A's workflow. */
 export function avoidBlockedWindows(
   draft: ItineraryDraft,
   revision?: RevisionRequest,
@@ -32,8 +31,7 @@ export function avoidBlockedWindows(
     for (const window of dayWindows) {
       if (start < window.end && start + duration > window.start) start = window.end + 15;
     }
-    // Do not silently push a daytime visit into the night. Original hours are
-    // not availability evidence; leave an explicit conflict for the coordinator.
+
     if (start + duration > 20 * 60 && start !== minutes(activity.startTime)) {
       conflicts.push(
         `time conflict on day ${activity.day}: requested clear window leaves no daytime slot`,

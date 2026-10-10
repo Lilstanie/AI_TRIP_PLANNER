@@ -1,4 +1,3 @@
-// Owner: E — PreferenceMemoryService
 import type { ChatTurn, UserPreference, MemoryStore } from "@trip/shared";
 import { jsonStore } from "../durable";
 
@@ -22,7 +21,6 @@ export const memory: MemoryStore = {
     );
     await jsonStore.set(longTermKey(userId), [...existing, pref]);
   },
-  // Promotion remains intentionally explicit at the caller: a chat turn is free text and cannot
-  // be safely interpreted as a preference without the coordinator's structured confirmation.
+
   async promote(_tripId, _userId, _key) {},
 };

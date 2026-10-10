@@ -2,11 +2,6 @@ import { describe, expect, it } from "vitest";
 import { CAPABILITIES } from "../../src/prompts/capabilities";
 import { allSpecialists } from "../../src";
 
-/**
- * A drift alarm, not a behaviour test. The agent says "not built yet" from this
- * string alone, so a capability that ships without being listed here goes on
- * being denied, and one that is listed but never built gets promised.
- */
 describe("CAPABILITIES", () => {
   it("covers every specialist's domain", () => {
     const domains: Record<string, string> = {

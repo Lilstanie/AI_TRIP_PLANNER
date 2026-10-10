@@ -2,7 +2,6 @@ import { formatMoney } from "@trip/shared";
 import type { AgentName, Currency, AgentProposal, TripBrief, RevisionRequest } from "@trip/shared";
 import { assessBudget, costOf, NEGOTIATION_OVERRUN_PCT } from "./budget";
 
-/** Reason prefix of the one conflict that ends the loop: no revision can meet the budget. */
 export const INFEASIBLE_BUDGET = "infeasible budget";
 
 export const isInfeasible = (request: RevisionRequest) =>
@@ -10,19 +9,13 @@ export const isInfeasible = (request: RevisionRequest) =>
 
 const cents = (amount: number) => Math.ceil(amount * 100) / 100;
 
-/**
- * The lowest the plan can cost from the options the specialists found: each
- * section at its floor, or free when it could not name one (activities and
- * meals can always be scaled down to nothing).
- */
 export function minimumCost(proposals: AgentProposal[]): number {
-  return proposals.reduce((sum, proposal) => sum + Math.min(costOf(proposal), proposal.floorCost ?? 0), 0);
+  return proposals.reduce(
+    (sum, proposal) => sum + Math.min(costOf(proposal), proposal.floorCost ?? 0),
+    0,
+  );
 }
 
-/**
- * Revision requests for what the proposals get wrong. Amounts are judged in AUD; `currency` only
- * decides how the reasons and constraints spell them, so the traveller reads the trip's own currency.
- */
 export function detectConflicts(
   proposals: AgentProposal[],
   brief: TripBrief,
@@ -30,7 +23,10 @@ export function detectConflicts(
 ): RevisionRequest[] {
   const aud = (amount: number) => formatMoney(amount, currency);
   const { estTotal, overrunPct } = assessBudget(proposals.map(costOf), brief.budgetTotal);
-  const pending = new Map<AgentName, { reasons: string[]; constraints: string[]; targetSaving?: number }>();
+  const pending = new Map<
+    AgentName,
+    { reasons: string[]; constraints: string[]; targetSaving?: number }
+  >();
   const add = (agent: AgentName, reason: string, constraint: string, targetSaving?: number) => {
     const entry = pending.get(agent) ?? { reasons: [], constraints: [] };
     if (!entry.reasons.includes(reason)) entry.reasons.push(reason);
@@ -43,8 +39,6 @@ export function detectConflicts(
     const overrun = estTotal - brief.budgetTotal;
     const floor = minimumCost(proposals);
     if (floor > brief.budgetTotal) {
-      // Revising cannot help: even the cheapest options found exceed the
-      // budget. Say so once, with the number, instead of burning every round.
       const largest = [...proposals].sort((left, right) => costOf(right) - costOf(left))[0]!;
       return [
         {
@@ -57,8 +51,7 @@ export function detectConflicts(
         },
       ];
     }
-    // Spread the actual overrun over what each section can still give up, so a
-    // 500% overrun and a 4% one are not both answered with "cut 30%".
+
     const reducible = proposals
       .map((proposal) => ({
         proposal,
@@ -104,20 +97,13 @@ export function detectConflicts(
         toMinutes(left.item.startTime!) < toMinutes(right.item.endTime!) &&
         toMinutes(right.item.startTime!) < toMinutes(left.item.endTime!);
       if (!overlaps) continue;
-      // A deliberate asymmetry: when an activity collides with anything else, only the
-      // itinerary is asked to move. A flight or a train leaves when it leaves; a museum
-      // visit does not. Keep it -- "fixing" this into a symmetric rule asks both sides to
-      // reschedule around each other and can oscillate for every remaining round.
-      // `conflicts.test.ts` locks this semantics, now that transport picks its own times.
+
       const targets =
         left.agent === "itinerary" || right.agent === "itinerary"
           ? (["itinerary"] as const)
           : ([left.agent, right.agent] as const);
       const reason = `time overlap on day ${left.item.day}: ${left.item.startTime}-${left.item.endTime} conflicts with ${right.item.startTime}-${right.item.endTime}`;
       for (const target of new Set<AgentName>(targets)) {
-        // A revising agent only sees its own proposal, so name the window it has
-        // to work around and who owns it. Without this it is guessing, and the
-        // graph burns every remaining round without converging.
         const blocker = target === left.agent ? right : left;
         add(
           target,

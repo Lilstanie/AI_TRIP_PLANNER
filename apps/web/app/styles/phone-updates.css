@@ -1,4 +1,3 @@
-/* The spoken update name accompanies the visible dot; it does not rely on colour alone. */
 @media (forced-colors: active) {
   .phone-tabbar__dot {
     background: Highlight;

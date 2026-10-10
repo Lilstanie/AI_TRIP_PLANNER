@@ -26,7 +26,6 @@ export async function POST(request: Request) {
       { headers: { "Cache-Control": "no-store" } },
     );
   } catch (error) {
-    // An authored refusal is keyed; anything else is passed on exactly as it was raised.
     const notice = errorNotice(error instanceof ZodError ? undefined : error, {
       key: "Route lookup failed.",
     });

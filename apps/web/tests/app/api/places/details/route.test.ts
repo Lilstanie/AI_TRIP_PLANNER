@@ -19,8 +19,6 @@ function request(body: unknown) {
   });
 }
 
-// The fallback provider remembers a Google quota or access failure for a cool-down; start each case
-// with Google untried.
 beforeEach(() => vi.stubEnv("WEB_MAPS_PROVIDER", "google"));
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -29,7 +27,6 @@ afterEach(() => {
 });
 
 describe("POST /api/places/details", () => {
-  // A provider outage is retryable, even though its authored error also extends NoticeError.
   it("keeps provider unavailability distinct from a missing resource", async () => {
     const { placeDetails } = await import("@/lib/integrations/google");
     vi.mocked(placeDetails).mockRejectedValue(

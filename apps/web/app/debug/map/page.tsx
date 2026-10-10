@@ -19,7 +19,6 @@ const place = (
     primaryType,
   }) as GooglePlace;
 
-/** A three-day Sydney itinerary with fixed coordinates: no Places lookup is made. */
 const STOPS: MapStop[] = [
   {
     place: place("qvb", "Queen Victoria Building", -33.8718, 151.2067, "shopping_mall"),
@@ -41,16 +40,16 @@ const STOPS: MapStop[] = [
     number: 4,
     day: 2,
   },
-  { place: place("gardens", "Royal Botanic Garden", -33.8642, 151.2166, "park"), number: 5, day: 2 },
+  {
+    place: place("gardens", "Royal Botanic Garden", -33.8642, 151.2166, "park"),
+    number: 5,
+    day: 2,
+  },
   { place: place("rocks", "The Rocks Markets", -33.8599, 151.209, "market"), number: 6, day: 2 },
   { place: place("bondi", "Bondi Beach", -33.8908, 151.2743, "beach"), number: 7, day: 3 },
   { place: place("coogee", "Coogee Beach", -33.9205, 151.2577, "beach"), number: 8, day: 3 },
 ];
 
-/**
- * Development surface for the trip map: markers, day-coloured curved routes and the control
- * stack, over real Google tiles but without Places or pricing requests. Development-only.
- */
 export default function MapDebugPage() {
   if (process.env.NODE_ENV === "production") notFound();
   const userLocation = useUserLocation();

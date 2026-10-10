@@ -16,86 +16,48 @@ import { requestPreview, type PreviewAnswer } from "./previewRequest";
 
 export type EditOperation = EditInput["operation"];
 
-/** Shown when a traveller's edit was checked against a plan that has since changed from elsewhere. */
 export const PLAN_CHANGED: Notice = {
   key: "The plan changed while this change was being checked. Try the change again.",
 };
 
-/** What became of a background job, as the hook that offered it hears it. */
 export type JobOutcome =
-  /** The server answered for the revision the job was offered for: accepted (with a plan) or refused. */
   | { kind: "answer"; answer: PreviewAnswer }
-  /** The request failed: a network error, a server error, or a refusal the server sent as an error. */
   | { kind: "failed"; error: unknown }
-  /** The job was aborted, or the plan moved on, before its answer could apply. Nothing from it applies. */
   | { kind: "discarded" };
 
-/** One background job: a request for one plan revision, and what its answer does to the hook that asked. */
 export type BackgroundJob = {
-  /** Names the work for the hook that offered it, such as one stop's save or one day's check. */
   key: string;
-  /** The plan revision the job is for. Its answer applies only while that is still the current plan. */
+
   plan: TripPlan;
   operation: EditOperation;
-  /** Receives the outcome. The hook keeps its own memory and its own notices here. */
+
   settled(outcome: JobOutcome): void;
 };
 
-/** What a traveller's edit became. An accepted edit is already applied when this resolves. */
 export type EditResult =
   | { kind: "applied"; answer: PreviewAnswer & { plan: TripPlan } }
-  /** The server refused the edit; the plan is unchanged. */
   | { kind: "refused"; blockers: Notice[] }
-  /** The plan changed from elsewhere (chat, a restore) while the edit was being checked. Nothing applied. */
   | { kind: "stale" }
-  /** A newer request or the trip changed first; this answer is not wanted. */
   | { kind: "superseded" };
 
 export type PlanRevisions = {
-  /**
-   * Changes whenever background work may need to start again: a job settled, a traveller's edit ended, or the
-   * work paused or resumed. A hook that wants a job reads it in an effect that depends on this value.
-   */
   tick: number;
-  /** The current plan was replaced in another tab; background work waits for a fresh plan. */
+
   stale?: Notice;
-  /**
-   * Offers a background job. It starts only when no other job is in flight for the trip, no edit or chat turn
-   * is running, and the job's plan is still the current one. Resolves to whether it started.
-   */
+
   offer(job: BackgroundJob): boolean;
-  /**
-   * Sends a traveller's edit for the current plan. It aborts the background job in flight first, so no
-   * background answer can land while the edit is checked. An accepted edit is applied; `beforeApply` runs just
-   * before, so the caller can record what the edit changed. Throws when the request fails.
-   */
+
   edit(
     operation: EditOperation,
     options: {
       signal: AbortSignal;
       beforeApply?(answer: PreviewAnswer & { plan: TripPlan }): void;
-      /** The notice shown when a failed request carries none of its own. */
+
       failure?: Notice;
     },
   ): Promise<EditResult>;
 };
 
-/**
- * The one owner of a trip's plan revisions and of its background work (spec #259, ticket #260). A plan
- * revision is the plan object a request was sent for. The rules, and the only place they live:
- *
- * - A traveller's edit wins. Starting one aborts the background job in flight at once, and its answer is
- *   discarded. Background work does not start while an edit, a place search or a chat turn is running
- *   (`held`).
- * - At most one background job is in flight per trip. When two are wanted, the first offered runs and the
- *   other is offered again once it settles.
- * - A background answer applies only when its revision is still the current plan. A discarded job is
- *   reported as discarded, so its hook can ask again for the current plan when it is still needed.
- *
- * The background hooks (auto-saved places, leg routes) and the edit hooks (timeline edits, the chooser)
- * are thin callers: they say what they want and what the answer means for them. See the Agent Note on one
- * owner for plan revisions and background work.
- */
 export function usePlanRevision({
   plan,
   held,
@@ -103,7 +65,7 @@ export function usePlanRevision({
   onApply,
 }: {
   plan: TripPlan | undefined;
-  /** True while a chat turn, a place search or a traveller's edit is in flight: background work waits. */
+
   held: boolean;
   dataMode: DataMode | undefined;
   onApply(plan: TripPlan): void;
@@ -134,14 +96,13 @@ export function usePlanRevision({
 
   const bump = useCallback(() => setTick((value) => value + 1), []);
 
-  // A new plan ends the job in flight, which was started for the plan before it.
   useEffect(() => () => flight.current?.controller.abort(), [plan]);
-  // Work that is held (a chat turn, a search, an edit) stops at once and resumes when it is released.
+
   useEffect(() => {
     if (held) flight.current?.controller.abort();
     bump();
   }, [held, bump]);
-  // A change of currency or data mode asks the work again, as it did when those were hook inputs.
+
   useEffect(() => {
     bump();
   }, [currency, dataMode, bump]);
@@ -205,7 +166,7 @@ export function usePlanRevision({
   const edit = useCallback<PlanRevisions["edit"]>(
     async (operation, { signal, beforeApply, failure }) => {
       const base = latest.current;
-      // No plan yet: there is nothing to edit.
+
       if (!base) return { kind: "stale" };
       flight.current?.controller.abort();
       editsInFlight.current += 1;

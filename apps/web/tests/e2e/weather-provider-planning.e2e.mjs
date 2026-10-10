@@ -1,18 +1,3 @@
-// Planning-loop evidence for the deep Weather Port (#128).
-//
-// Failure inventory:
-// - the registered fixture scenario cannot complete through the Agent Lab API;
-// - its destination weather guidance or provenance changes;
-// - the Plan gains a Conflict or loses its five sections;
-// - the streamed Artifact cannot be saved and re-read for review.
-//
-// The fixture Maps Port has no coordinates, so the destination specialist keeps
-// monthly weather context. The provider matrix separately exercises the Weather
-// Port's three date horizons with coordinates and a controlled clock.
-//
-//   pnpm --filter @trip/web dev   (with USE_MOCK_TOOLS=true and no model or provider keys)
-//   node apps/web/tests/e2e/weather-provider-planning.e2e.mjs
-
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 

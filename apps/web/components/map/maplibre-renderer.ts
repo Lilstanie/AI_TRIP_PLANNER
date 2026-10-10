@@ -98,9 +98,7 @@ class LibreMap {
     if ("maxZoom" in o) this.maxZoom = o.maxZoom ?? 20;
     if (o.dark !== undefined) this.native.setStyle(styleFor(o.dark, this.mock));
   }
-  setMapTypeId() {
-    /* Satellite is not offered by this renderer. */
-  }
+  setMapTypeId() {}
   resize() {
     this.native.resize();
   }
@@ -209,9 +207,7 @@ class LibreLine {
     if (map.getSource(this.id)) map.removeSource(this.id);
     this.map = undefined;
   }
-  setOptions() {
-    /* MapLibre draws static routes; Google retains animated direction dashes. */
-  }
+  setOptions() {}
 }
 function decodePath(value: string): Coordinate[] {
   let i = 0,

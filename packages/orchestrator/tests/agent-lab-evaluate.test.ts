@@ -1,11 +1,3 @@
-// Failure inventory, written before the evaluator:
-// - a plan over budget still reports withinBudget, or reports positive headroom;
-// - an activity before the scenario's earliest start passes;
-// - a meal that is not marked vegetarian-friendly passes;
-// - a plan with fewer than five sections or with conflicts passes;
-// - a plan for another destination passes, or the check is tied to the literal "Tokyo" instead of
-//   the scenario's brief;
-// - the reported pass count disagrees with the individual checks the visitor is shown.
 import { describe, expect, it } from "vitest";
 import type { TripPlan } from "@trip/shared";
 import { evaluateAgentLabPlan, findAgentLabScenario } from "../src/agent-lab";

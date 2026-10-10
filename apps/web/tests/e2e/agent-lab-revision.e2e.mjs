@@ -1,26 +1,3 @@
-// End-to-end contract for Agent Lab's targeted-revision strategy. On the tight-budget scenario a visitor
-// compares all three strategies from the public page and sees the conflict, the specialist asked to
-// revise, what it replaced, the score change and why the loop stopped. Raw NDJSON, parsed artifacts, a
-// summary and desktop/phone screenshots land under output/playwright/agent-lab-revision/.
-//
-// Failure inventory, written before implementation:
-// - the tight scenario has no conflict (nothing to repair) or an infeasible one (nothing can repair it);
-// - targeted revision is not available from the public page, or the request is accepted without being
-//   registered;
-// - the revision strategy saw different evidence from the no-revision strategy, so a difference could
-//   come from the data rather than targeted revision;
-// - the trace omits the conflict, the targeted specialist, the previous outcome, the revision objective,
-//   the score before and after, the round or the stopping reason, or the page hides them;
-// - a specialist the conflict did not name runs again;
-// - a revision that made the plan worse replaces the best known plan, or the loop is unbounded;
-// - a figure on the page differs from a value recomputed from the artifact's plan and trace alone, which
-//   would mean the evaluation depends on something outside the artifact;
-// - missing token or model cost shows as a number, most dangerously 0;
-// - the page claims a winner, or presents five specialists as a permanent number;
-// - the page overflows on a phone, or the run touches workspace storage.
-//
-//   pnpm --filter @trip/web dev   (with USE_MOCK_TOOLS=true and no model or provider keys)
-//   [CHANNEL=chrome] [PLAYWRIGHT=<path to playwright>] node apps/web/tests/e2e/agent-lab-revision.e2e.mjs
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
@@ -45,8 +22,6 @@ const completeOf = (body) =>
     .at(-1);
 const money = (value) => `A$${Math.round(value).toLocaleString("en-AU")}`;
 
-// Metrics recomputed here from the artifact's plan and trace alone, with no code shared with the app.
-// Everything except wall time must come out equal to what the artifact stored.
 function recompute(artifact) {
   const { plan, events } = artifact;
   const payloads = events.map((item) => item.event);
@@ -104,7 +79,7 @@ function recompute(artifact) {
     eventCount: events.length,
   };
 }
-// Key order is not part of a metric, so compare with keys sorted.
+
 const canonical = (value) =>
   JSON.stringify(value, (_key, item) =>
     item && typeof item === "object" && !Array.isArray(item)
@@ -190,7 +165,6 @@ async function run(browser, { width, height, tag }) {
     `${tag}: targeted revision repairs it in a second round and converges`,
   );
 
-  // The first round is the same evidence for both multi-agent strategies.
   const graphEvents = (artifact) => {
     const list = artifact.events
       .map((item) => item.event)
@@ -205,7 +179,6 @@ async function run(browser, { width, height, tag }) {
     `${tag}: both multi-agent strategies share the same first round`,
   );
 
-  // The trace names every part of the repair.
   const events = revising.events.map((item) => item.event);
   const conflict = events.find((event) => event.type === "lab_conflict_detected");
   check(
@@ -252,7 +225,6 @@ async function run(browser, { width, height, tag }) {
     `${tag}: streams contain no sensitive internals or private reasoning`,
   );
 
-  // Every stored metric equals its recomputation from the final plan and trace, and the page shows it.
   const table = async (row, index) =>
     (await page.locator(`[data-agent-lab-compare-row="${row}"] td`).nth(index).innerText()).trim();
   for (const [index, artifact] of [single, plain, revising].entries()) {
@@ -302,7 +274,7 @@ async function run(browser, { width, height, tag }) {
     /what targeted revision adds/i.test(body) && /measures specialization only/i.test(body),
     `${tag}: page says which comparison measures specialization and which measures what targeted revision adds`,
   );
-  // The explanation lives in the Architecture view; read it there, then return to the comparison.
+
   await page
     .getByRole("group", { name: "View" })
     .getByRole("button", { name: "Architecture", exact: true })
@@ -320,7 +292,6 @@ async function run(browser, { width, height, tag }) {
     `${tag}: the comparison does not rank the strategies`,
   );
 
-  // The inspector shows the repair in words.
   await page
     .getByRole("group", { name: "View" })
     .getByRole("button", { name: "Run", exact: true })
@@ -378,7 +349,6 @@ async function run(browser, { width, height, tag }) {
   );
   await page.screenshot({ path: `${OUT}/${tag}.png`, fullPage: true });
 
-  // A result belongs to the scenario that produced it: changing the scenario clears it.
   await page.locator(".agent-lab__field").first().locator("select").selectOption("tokyo-couple");
   check(
     (await page.locator('[data-agent-lab-compare-row] td[data-not-run="false"]').count()) === 0 &&

@@ -1,7 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { legFrom, isRoundTrip, departureToken } from "../src/flight-itinerary";
 
-/** The shape a live SYD → HND round-trip search actually returned. */
 const raw = {
   flights: [
     {
@@ -65,9 +64,6 @@ describe("legFrom", () => {
   });
 
   it("drops the whole leg when a segment is missing something a traveller needs", () => {
-    // A segment with no flight number or no arrival time cannot be shown as a
-    // flight, and showing the rest of the leg without it would misstate the
-    // journey — so the leg is unusable, not partially usable.
     for (const broken of [
       { ...raw.flights[1], flight_number: undefined },
       { ...raw.flights[1], arrival_airport: { name: "Haneda Airport", id: "HND" } },

@@ -10,10 +10,6 @@ import { z } from "zod/v4";
 
 export const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
-/**
- * A partial update to a trip brief. `dates` stays a whole tuple: a half-applied
- * range is never meaningful, so a caller that knows only one end holds it back.
- */
 export const BriefPatchSchema = z.object({
   destination: z.string().trim().min(1).optional(),
   origin: z.string().trim().min(1).optional(),
@@ -23,10 +19,9 @@ export const BriefPatchSchema = z.object({
   budgetSource: z.object({ amount: z.number().positive(), currency: Currency }).optional(),
   displayCurrency: Currency.optional(),
   nationality: z.string().trim().min(1).optional(),
-  // Set only by the trip preferences editor and carried in `known`; the coordinator's
-  // update_trip_brief tool has no field for it, so a model cannot rewrite the traveller's list.
+
   preferences: TripPreferences.optional(),
-  // Set by the coordinator from what the traveller says in chat, never merged into `preferences`.
+
   learnedPreferences: TripPreferences.optional(),
   excludeFlights: z.boolean().optional(),
   legModes: z.array(LegModeChoice).max(12).optional(),

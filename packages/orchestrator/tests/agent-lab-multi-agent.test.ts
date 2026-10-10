@@ -1,13 +1,3 @@
-// Failure inventory for the no-revision multi-agent strategy, written before the implementation:
-// - the run reads another traveller's saved preferences instead of the scenario's own evidence;
-// - two runs of the same request differ in plan or event payloads;
-// - more than one round runs, or a revision node fires when the plan has conflicts;
-// - a specialist failure is swallowed, or the failed specialist never appears in the trace;
-// - tool calls are not attributed to a specialist, or a started call never completes;
-// - metrics disagree with the trace (tool calls, fallbacks, failed agents, rounds, conflicts);
-// - display pacing is counted as latency, which would make the strategies incomparable;
-// - the baseline and the specialists disagree about the same provider evidence (fares, stay);
-// - an unregistered strategy is accepted.
 import { describe, expect, it } from "vitest";
 import type { AgentLabRunEvent, Specialist } from "@trip/shared";
 import {

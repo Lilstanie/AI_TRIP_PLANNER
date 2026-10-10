@@ -16,18 +16,13 @@ type Props = {
 const clean = (text: string) => text.trim().replace(/\s+/g, " ");
 const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 
-/**
- * Trip preferences: the traveller's own requests, one per row, that every specialist weighs. A
- * row is added from the field at the top, edited by clicking its text and removed from its row. Text still
- * in the add field counts, so Save keeps a preference the traveller typed but did not add.
- */
 export function PreferenceList({ value, onChange, errors }: Props) {
   const { t, notice: localizeNotice } = useLocale();
   const [items, setItems] = useState(() => draftPreferences(value));
   const [pending, setPending] = useState("");
   const [editing, setEditing] = useState<{ index: number; text: string }>();
   const [notice, setNotice] = useState<Notice>();
-  // A duplicate is refused where the traveller can see why, next to the field.
+
   const [problem, setProblem] = useState<Notice>();
   const addInput = useRef<HTMLInputElement>(null);
   const list = useRef<HTMLUListElement>(null);
@@ -94,7 +89,7 @@ export function PreferenceList({ value, onChange, errors }: Props) {
     setEditing({ index, text: items[index]! });
     setFocusNext({ row: index, part: "field" });
   };
-  /** `refocus` is false when focus has already moved elsewhere (the field lost it). */
+
   const finishEdit = (keep: boolean, refocus = true) => {
     if (!editing) return;
     const { index } = editing;
@@ -113,7 +108,6 @@ export function PreferenceList({ value, onChange, errors }: Props) {
       event.preventDefault();
       finishEdit(true);
     } else if (event.key === "Escape") {
-      // Cancels this row's edit only; the dialog ignores a prevented Escape.
       event.preventDefault();
       finishEdit(false);
     }
@@ -185,7 +179,6 @@ export function PreferenceList({ value, onChange, errors }: Props) {
               </li>
             ) : (
               <li key={index} className="pref-row">
-                {/* The text itself is the edit control, so the row stays as plain as the list. */}
                 <button
                   type="button"
                   className="pref-row__text pref-row__edit"
@@ -216,7 +209,6 @@ export function PreferenceList({ value, onChange, errors }: Props) {
   );
 }
 
-/** How a chosen travel mode reads on its own row: "Train from Melbourne to Sydney". */
 const MODE_PHRASE: Record<LegModeChoice["mode"], string> = {
   train: "Train",
   flight: "Fly",
@@ -229,11 +221,6 @@ const MODE_PHRASE: Record<LegModeChoice["mode"], string> = {
   cycle: "Cycle",
 };
 
-/**
- * What the assistant picked up in chat: lasting wishes, how the traveller wants particular hops
- * made, flights the traveller arranges and a stay they have booked. The assistant writes these;
- * the traveller can only remove them, which returns the matter to the planner on the next plan.
- */
 function LearnedList({
   value,
   onChange,
@@ -251,7 +238,7 @@ function LearnedList({
       text,
       remove: () => ({ ...value, learnedPreferences: learned.filter((_, at) => at !== index) }),
     })),
-    // Each hop is its own row, so taking back one choice leaves the others alone.
+
     ...(value.legModes ?? []).map((choice, index) => ({
       key: `leg-mode-${index}`,
       text: `${MODE_PHRASE[choice.mode]} from ${choice.from} to ${choice.to}`,

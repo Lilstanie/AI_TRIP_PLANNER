@@ -1,5 +1,3 @@
-// @trip/orchestrator — public API for the LangGraph-backed trip workflow.
-
 export { DEMO_BRIEF } from "./demo";
 export {
   AskUserError,

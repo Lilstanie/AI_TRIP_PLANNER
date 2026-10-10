@@ -13,9 +13,9 @@ import { useAccount } from "./AccountProvider";
 
 type SettingsState = {
   settings: UserSettings;
-  /** Replace some settings; stamps a new `updatedAt`, saves here and, signed in, to the account. */
+
   update(next: Partial<Omit<UserSettings, "version" | "updatedAt">>): void;
-  /** Where the settings live right now, for the dialog to say so. */
+
   syncState: "local" | "syncing" | "synced" | "failed";
 };
 
@@ -39,12 +39,9 @@ function readLocal(): UserSettings {
 function writeLocal(settings: UserSettings) {
   try {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-  } catch {
-    // Blocked storage: the settings still apply for this visit.
-  }
+  } catch {}
 }
 
-/** The chosen appearance on <html>; "system" leaves it to prefers-color-scheme. */
 function applyAppearance(appearance: UserSettings["appearance"]) {
   const root = document.documentElement;
   if (appearance === "system") delete root.dataset.theme;
@@ -72,12 +69,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const current = useRef(settings);
   current.current = settings;
 
-  // Read after hydration so server and first client render match.
   useEffect(() => setSettings(readLocal()), []);
   useEffect(() => applyAppearance(settings.appearance), [settings.appearance]);
 
   const signedIn = account.status === "signed-in" ? account.userId : undefined;
-  // On sign-in the newer copy wins: the account's, or this browser's if it changed since.
+
   useEffect(() => {
     if (!signedIn) {
       setSyncState("local");

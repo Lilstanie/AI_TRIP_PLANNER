@@ -1,21 +1,3 @@
-// Failure inventory for fixture isolation and live runs (#106), written before the code.
-//
-// Isolation, the property a public demo stands on:
-// - a fixture run calls a provider or a model, because the environment holds keys or sets live data as
-//   its default, so a visitor spends the deployment's quota without live ever being enabled;
-// - a fixture run's mock mode leaks into a live run in flight beside it, or the reverse.
-//
-// Live runs:
-// - the scripted baseline, which has no live implementation, runs when asked for live and is labelled
-//   live;
-// - a live artifact or one of its events claims fixture, or a fixture one claims live;
-// - a live run uses mock tools, so its "live" label is a lie;
-// - private reasoning (agent_reasoning) reaches a live trace;
-// - a provider failure in a live run surfaces as a stack or a payload.
-//
-// Usage:
-// - a run that made no model call reports a number instead of "unavailable", or a fixture run reports one;
-// - partial usage is reported as a total, or a call that reported nothing is counted as zero tokens.
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { agentLabStrategySupportsLive, buildAgentLabUsage, runAgentLab } from "../src/agent-lab";
 import type { AgentLabRunRequest } from "@trip/shared";
@@ -91,7 +73,7 @@ describe("a live run", () => {
     );
     vi.stubGlobal("fetch", network);
     const seen: { dataMode: string; type: string }[] = [];
-    // A live run against a stubbed network may complete or fail; either way its trace is live.
+
     const artifact = await runAgentLab(
       { ...fixture("multi-agent-no-revision"), dataMode: "live" },
       {
@@ -101,7 +83,7 @@ describe("a live run", () => {
         },
       },
     ).catch(() => undefined);
-    // The deployment's own default is mock, and the request still got live tools: it travelled with the request.
+
     expect(network).toHaveBeenCalled();
     expect(seen.length).toBeGreaterThan(0);
     expect(seen.every((entry) => entry.dataMode === "live")).toBe(true);

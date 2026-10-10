@@ -5,10 +5,6 @@ import { getDb } from "@/lib/db/client";
 import { conversations, trips, userSettings } from "@/lib/db/schema";
 import { noticeBody } from "@/lib/i18n/notice";
 
-/**
- * Deletes the account: its data first, then the Clerk user. If Clerk fails the data is already
- * gone, and the error says so rather than reporting a half-finished deletion as done.
- */
 export async function DELETE() {
   const user = await accountUser();
   if ("response" in user) return user.response;

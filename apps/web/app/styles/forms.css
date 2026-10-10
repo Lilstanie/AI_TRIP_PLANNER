@@ -1,12 +1,8 @@
-/* Forms, source labels, notices, and shared control states. */
-/* Operable workspace: controls share sizing and reflow on narrow screens. */
 button,
 select {
   color: inherit;
 }
-/* Controls that own their own size are exempt: a 28px circle cannot carry a
-   36px floor. The transcript is already exempt from the rule below through the
-   same chain, so the two lists stay together. */
+
 button:not(.cl-button):not(.section__row):not(.stay-option):not(.rdp-day_button):not(
     .thinking-line
   ):not(.thinking-control):not(.thinking-choice__toggle):not(.composer__add):not(
@@ -22,8 +18,7 @@ button:disabled {
   cursor: not-allowed;
   opacity: 0.55;
 }
-/* Calendar day and navigation buttons own their sizing, border, and
-   background in the scoped react-day-picker theme below. */
+
 button:not(.cl-button):not(.section__row):not(.stay-option):not(.primary):not(.trip__cta):not(
     .rdp-day_button
   ):not(.rdp-button_previous):not(.rdp-button_next):not(.thinking-line):not(.thinking-control):not(
@@ -45,9 +40,7 @@ button:not(.cl-button):not(.section__row):not(.stay-option):not(.primary):not(.t
     color var(--transition),
     scale var(--duration-fast) var(--ease-out);
 }
-/* react-day-picker ships unthemed defaults and its day buttons are otherwise
-   captured by the generic secondary-button rules above. Keep the calendar on
-   the app tokens and make range endpoints distinct from the middle band. */
+
 .date-picker .rdp-root {
   --rdp-accent-color: var(--accent);
   --rdp-accent-background-color: var(--accent-bg);
@@ -135,10 +128,7 @@ button:not(.cl-button):not(.section__row):not(.stay-option):not(.primary):not(.t
   color: var(--text-dim);
   margin-bottom: 5px;
 }
-/* Start/end date fields plus a calendar shortcut, aligned to the inputs'
-   baseline rather than the labels' — the label row above them differs in
-   height between "Start date" and "End date" only by content, so align on
-   the row that's actually the same height everywhere: the fields. */
+
 .filter-dates {
   display: flex;
   align-items: flex-end;
@@ -181,8 +171,7 @@ button:not(.cl-button):not(.section__row):not(.stay-option):not(.primary):not(.t
 .primary:hover:not(:disabled) {
   filter: brightness(1.08);
 }
-/* Press feedback: buttons give a little under the finger, like UIKit controls. Dense lists and map
-   controls opt out by owning their own class rules. */
+
 @media (hover: hover) {
   :where(button:hover:not(:disabled)) {
     --button-bg: var(--fill-press);

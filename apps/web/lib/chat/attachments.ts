@@ -1,16 +1,3 @@
-/**
- * Turns files the traveller picked, dropped or pasted into the attachment shape
- * `POST /api/chat` accepts. Nothing here touches React or the DOM tree: the
- * browser work is confined to one injectable renderer, so the rules — which
- * types are allowed, how many fit, how far an image is downscaled, where a text
- * file is cut — are testable without a canvas.
- *
- * Images are re-encoded rather than forwarded: a phone photo is several
- * megabytes, and the request carries every attachment inline as base64. A
- * picture with transparency stays PNG until that no longer fits, because
- * flattening a screenshot onto white is a visible change to what was sent.
- */
-
 import {
   IMAGE_MEDIA_TYPES,
   MAX_ATTACHMENTS_PER_MESSAGE,
@@ -22,42 +9,28 @@ import {
 
 import { NoticeError, type Notice } from "@/lib/i18n/notice";
 
-/** Longest side of a sent image, in CSS pixels; DSH's intake uses the same order. */
 export const IMAGE_MAX_EDGE = 1024;
-/** Longest side of the thumbnail kept for the chip and the stored message. */
+
 export const THUMBNAIL_MAX_EDGE = 256;
-/** Baseline lossy quality; the retry ladder below lowers it only if it must. */
+
 export const IMAGE_QUALITY = 0.8;
-/**
- * A text file larger than this is refused instead of read. Truncation is the
- * rule for an ordinary oversized file; reading a hundred megabytes into memory
- * to throw all but 32 KB of it away is not.
- */
+
 export const MAX_TEXT_FILE_BYTES = 2 * 1024 * 1024;
-/**
- * What every attachment on one message may carry between them, in payload
- * characters. Four maximum-size images would be 6 MB of JSON, and the platform
- * in front of the API refuses a request body over 4.5 MB before the handler
- * runs — a 413 with nothing in it to explain. So the budget is spent here,
- * where a file can still be scaled further or refused with a sentence.
- */
+
 export const MAX_TOTAL_ATTACHMENT_PAYLOAD = 4_000_000;
-/** Below this, a text file's share of the budget is too small to be worth sending. */
+
 const MIN_TEXT_BUDGET = 1024;
 
-/** A file the composer is holding, ready to send. */
 export type PreparedAttachment = Attachment & {
-  /** Stable identity for the chip's key and its remove control. */
   id: string;
-  /** Size of what will be sent, in bytes — not the size of the file on disk. */
+
   bytes: number;
-  /** Small data URL shown in the chip and stored with the sent message; images only. */
+
   thumbnail?: string;
-  /** True when only the head of a text file was taken. */
+
   truncated?: boolean;
 };
 
-/** One file that could not be attached, with the reason to show beside the composer. */
 export type AttachmentRejection = { name: string; reason: Notice };
 
 export type PrepareResult = {
@@ -65,9 +38,8 @@ export type PrepareResult = {
   rejections: AttachmentRejection[];
 };
 
-/** What the renderer is asked for; `format: "jpeg"` is the last-resort flatten. */
 export type RenderRequest = { maxEdge: number; quality: number; format: "auto" | "jpeg" };
-/** Re-encodes one image file and returns a `data:` URL. Injectable for tests. */
+
 export type ImageRenderer = (file: File, request: RenderRequest) => Promise<string>;
 
 const EXTENSION_MEDIA_TYPES: Record<string, string> = {
@@ -83,7 +55,6 @@ const EXTENSION_MEDIA_TYPES: Record<string, string> = {
   json: "application/json",
 };
 
-/** The ladder tried in order until the encoded image fits the payload limit. */
 const IMAGE_ATTEMPTS: RenderRequest[] = [
   { maxEdge: IMAGE_MAX_EDGE, quality: IMAGE_QUALITY, format: "auto" },
   { maxEdge: IMAGE_MAX_EDGE, quality: 0.6, format: "auto" },
@@ -92,7 +63,6 @@ const IMAGE_ATTEMPTS: RenderRequest[] = [
   { maxEdge: 384, quality: 0.45, format: "jpeg" },
 ];
 
-/** "1.2 MB" for a chip's second line. Bytes below a kilobyte are shown as bytes. */
 export function formatBytes(bytes: number): string {
   if (!Number.isFinite(bytes) || bytes < 0) return "";
   if (bytes < 1024) return `${bytes} B`;
@@ -102,17 +72,16 @@ export function formatBytes(bytes: number): string {
   return `${mb < 10 ? mb.toFixed(1) : Math.round(mb)} MB`;
 }
 
-/** The uppercase extension shown on a text chip's glyph, e.g. "MD". */
 export function fileExtension(name: string): string {
   const dot = name.lastIndexOf(".");
-  return dot > 0 ? name.slice(dot + 1).toUpperCase().slice(0, 4) : "FILE";
+  return dot > 0
+    ? name
+        .slice(dot + 1)
+        .toUpperCase()
+        .slice(0, 4)
+    : "FILE";
 }
 
-/**
- * The media type to judge the file by. A `.md` or `.csv` picked on Windows
- * often arrives with an empty `type`, so the extension is consulted before the
- * file is called unsupported.
- */
 export function mediaTypeOf(file: File): string {
   const declared = file.type.split(";")[0]?.trim().toLowerCase() ?? "";
   if (declared) return declared;
@@ -121,18 +90,12 @@ export function mediaTypeOf(file: File): string {
   return EXTENSION_MEDIA_TYPES[extension] ?? "";
 }
 
-/** "image", "text", or undefined for a type this app does not send. */
 export function attachmentKind(mediaType: string): Attachment["kind"] | undefined {
   if ((IMAGE_MEDIA_TYPES as readonly string[]).includes(mediaType)) return "image";
   if ((TEXT_MEDIA_TYPES as readonly string[]).includes(mediaType)) return "text";
   return undefined;
 }
 
-/**
- * The size a picture is drawn at so its longest side is at most `maxEdge`. An
- * image already inside the bound keeps its own size: upscaling adds bytes and
- * no detail.
- */
 export function fitWithin(
   width: number,
   height: number,
@@ -147,12 +110,6 @@ export function fitWithin(
   };
 }
 
-/**
- * The head of a text file that fits `maxBytes`, measured in UTF-8 bytes rather
- * than characters, with a marker saying what was left behind. The marker is
- * counted inside the budget, so the result never exceeds the limit the server
- * enforces.
- */
 export function truncateText(
   text: string,
   name: string,
@@ -163,31 +120,24 @@ export function truncateText(
   if (bytes.length <= maxBytes) return { text, truncated: false };
   const marker = `\n\n[Truncated: only the first ${formatBytes(maxBytes)} of ${name} was sent.]`;
   const room = Math.max(0, maxBytes - encoder.encode(marker).length);
-  // A cut inside a multi-byte character decodes to U+FFFD; drop that remnant
-  // rather than sending a broken glyph as the last thing the model reads.
+
   const head = new TextDecoder().decode(bytes.slice(0, room)).replace(/�+$/u, "");
   return { text: head + marker, truncated: true };
 }
 
-/** Splits `data:image/jpeg;base64,AAA` into its media type and its payload. */
 export function parseDataUrl(url: string): { mediaType: string; data: string } {
   const match = /^data:([^;,]+)(;base64)?,(.*)$/s.exec(url);
   if (!match) throw new NoticeError({ key: "The image could not be read." });
   const [, mediaType = "", base64, payload = ""] = match;
   if (base64) return { mediaType, data: payload };
-  // A renderer may hand back an unencoded data URL; the contract wants base64.
+
   const bytes = new TextEncoder().encode(decodeURIComponent(payload));
   let binary = "";
-  for (let index = 0; index < bytes.length; index += 1) binary += String.fromCharCode(bytes[index]!);
+  for (let index = 0; index < bytes.length; index += 1)
+    binary += String.fromCharCode(bytes[index]!);
   return { mediaType, data: btoa(binary) };
 }
 
-/**
- * Prepares `files` for sending, refusing whatever cannot go.
- *
- * `held` is how many attachments the composer already carries, so the per-message
- * cap is enforced across separate picks rather than per pick.
- */
 export async function prepareAttachments(
   files: readonly File[],
   {
@@ -197,7 +147,7 @@ export async function prepareAttachments(
     newId = () => crypto.randomUUID(),
   }: {
     held?: number;
-    /** Payload characters the already-held attachments account for. */
+
     spent?: number;
     render?: ImageRenderer;
     newId?: () => string;
@@ -223,8 +173,7 @@ export async function prepareAttachments(
       rejections.push({ name: file.name, reason: { key: "that file type can't be attached" } });
       continue;
     }
-    // What is left of the message's shared budget decides how hard this file is
-    // squeezed: an image takes the first rung of the ladder that fits it.
+
     const budget = MAX_TOTAL_ATTACHMENT_PAYLOAD - used;
     if (budget <= MIN_TEXT_BUDGET) {
       rejections.push({
@@ -246,7 +195,7 @@ export async function prepareAttachments(
     } catch (failure) {
       rejections.push({
         name: file.name,
-        // A browser failure's own message is not written for travellers.
+
         reason:
           failure instanceof NoticeError ? failure.notice : { key: "the file could not be read" },
       });
@@ -277,8 +226,7 @@ async function prepareImage(
         ? { key: "there isn't room left on this message for another image" }
         : { key: "the image is too large to send, even after it was scaled down" },
     );
-  // The thumbnail is what the chip shows and what the sent message keeps in
-  // storage; the full image is never written there.
+
   const thumbnail = await render(file, {
     maxEdge: THUMBNAIL_MAX_EDGE,
     quality: 0.6,
@@ -290,7 +238,7 @@ async function prepareImage(
     mediaType: encoded.mediaType,
     kind: "image",
     data: encoded.data,
-    // base64 carries 3 bytes in every 4 characters.
+
     bytes: Math.round((encoded.data.length * 3) / 4),
     ...(thumbnail ? { thumbnail } : {}),
   };
@@ -323,10 +271,6 @@ async function prepareTextFile(
   };
 }
 
-/**
- * `File.text()` is standard in every browser this app runs in but absent from
- * jsdom's File, where the unit lane builds its fixtures; FileReader is there.
- */
 function readFileText(file: File): Promise<string> {
   if (typeof file.text === "function") return file.text();
   return new Promise((resolve, reject) => {
@@ -337,13 +281,6 @@ function readFileText(file: File): Promise<string> {
   });
 }
 
-/**
- * The browser half: draw the picture into a canvas at the requested bound and
- * read it back as a data URL. Transparency survives as PNG while the payload
- * limit allows it; `format: "jpeg"` is the ladder's last rung and flattens onto
- * white, because a JPEG of a transparent PNG otherwise renders its background
- * as black.
- */
 export const renderImageInBrowser: ImageRenderer = async (file, { maxEdge, quality, format }) => {
   const source = await decodeImage(file);
   const { width, height } = fitWithin(source.width, source.height, maxEdge);
@@ -363,7 +300,6 @@ export const renderImageInBrowser: ImageRenderer = async (file, { maxEdge, quali
   return canvas.toDataURL(transparent ? "image/png" : "image/jpeg", quality);
 };
 
-/** Only these source types can carry an alpha channel worth preserving. */
 const mayHaveAlpha = (type: string) =>
   type === "image/png" || type === "image/webp" || type === "image/gif";
 
@@ -376,7 +312,6 @@ function hasTransparentPixel(
   try {
     pixels = context.getImageData(0, 0, width, height).data;
   } catch {
-    // A tainted canvas cannot be read back. Keep PNG: it is the lossless answer.
     return true;
   }
   for (let index = 3; index < pixels.length; index += 4) if (pixels[index] !== 255) return true;

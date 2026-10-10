@@ -1,7 +1,3 @@
-/**
- * A small category for a Google place, used for the icon on its map label. Derived from the
- * place's `primaryType`; anything unrecognised is a plain pin. Never used to invent a place.
- */
 export type PlaceCategory = "food" | "museum" | "nature" | "landmark" | "shopping" | "stay" | "pin";
 
 const groups: [PlaceCategory, RegExp][] = [
@@ -18,7 +14,6 @@ export function placeCategory(primaryType: string | undefined): PlaceCategory {
   return groups.find(([, pattern]) => pattern.test(primaryType))?.[0] ?? "pin";
 }
 
-/** 24 × 24 stroke paths, drawn like the workspace icon set. */
 export const categoryIconPaths: Record<PlaceCategory, string[]> = {
   food: ["M7 3v8a2 2 0 0 0 2 2v8", "M11 3v8", "M7 7h4", "M17 21V3c-2 1-3 4-3 7h3"],
   museum: ["M3 9 12 4l9 5", "M5 9v9M9.5 9v9M14.5 9v9M19 9v9", "M3 20h18"],
@@ -32,7 +27,6 @@ export const categoryIconPaths: Record<PlaceCategory, string[]> = {
   ],
 };
 
-/** Build the category icon as DOM, for map marker content that lives outside React. */
 export function categoryIcon(category: PlaceCategory) {
   const ns = "http://www.w3.org/2000/svg";
   const svg = document.createElementNS(ns, "svg");

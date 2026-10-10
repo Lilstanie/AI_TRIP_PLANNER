@@ -1,44 +1,3 @@
-// Runs E2E scripts against a server this runner starts and stops itself, so several worktrees or
-// agents can run E2E side by side without picking ports, finding Playwright or killing servers by hand.
-//
-//   pnpm --filter @trip/web e2e <name...> [--prod]
-//   DATA_MODE=mock pnpm --filter @trip/web e2e timeline 'phone-*'
-//   BASE_URL=http://localhost:3000 pnpm --filter @trip/web e2e settings   # use a server already running
-//
-// <name> is a script under apps/web/tests/e2e/ without `.e2e.mjs`; `*` matches any run of characters.
-// --prod builds and runs `next start` (for scripts whose header asks for a production server).
-// The environment is passed to the server and to every script, so set provider and data-mode
-// variables the way each script's header says. Scripts run one after another from the repository
-// root, so their output lands in output/ there. A summary of each run is written to
-// output/e2e/runner/<time>.json.
-//
-// Each script has E2E_SCRIPT_TIMEOUT_MS (default 600000, ten minutes) to finish. A script still running
-// then is stopped with its browsers, reported as "timeout" rather than a failure of its checks, and the
-// next script runs. A timeout makes the run exit 1, as a failure does.
-//
-// A script names the environment variables it cannot run without in a header line, before its code:
-//   // requires-env: DEEPSEEK_API_KEY[, OTHER_KEY]
-// A variable that is unset or empty makes the runner report the script as "skipped: needs KEY" instead
-// of running it, so a missing key never reads as a regression. Skips do not change the exit code; a
-// failed script still does. If every named script is skipped, no server is started.
-//
-// Failure inventory this runner was written from:
-// - the port is already held by another server, so the scripts test someone else's build;
-// - the server exits before it is ready (compile error, bad env) and the runner waits forever;
-// - the server never answers, and the runner hangs instead of failing with the server's last output;
-// - two runs in one worktree, or a run beside `pnpm dev`, share one `.next` folder and corrupt it;
-// - the runner is interrupted or a script crashes, and the server or the script is left running;
-// - the runner stops a process it did not start;
-// - a misspelt script name matches nothing and the run reports success;
-// - a script writes its output under apps/web, where `next dev` watches and reloads;
-// - Playwright cannot be resolved from the scripts;
-// - the runner exits 0 while a script failed;
-// - a script that needs a live key is run without it and its failure is mistaken for a regression;
-// - a skip is reported as a pass, or hides a script that failed in the same run;
-// - a script that never finishes (a wait with no timeout) holds the whole run until its caller gives up,
-//   and every result is lost;
-// - a stopped script leaves its browser processes running;
-// - a timeout is reported as an ordinary failure, or not at all.
 import { spawn } from "node:child_process";
 import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
@@ -88,8 +47,6 @@ for (const pattern of patterns) {
 
 const KEY_NAME = /^[A-Z][A-Z0-9_]*$/;
 
-// The keys named by a script's `requires-env` header line, or []. A malformed line is a runner error,
-// not a silent run: a typo must not turn a skip into a failure or the reverse.
 function requiredKeys(script) {
   const file = `${script}.e2e.mjs`;
   for (const line of readFileSync(resolve(HERE, file), "utf8").split("\n")) {
@@ -107,7 +64,6 @@ function requiredKeys(script) {
   return [];
 }
 
-/** "needs KEY[, KEY]" when a key the script declares is unset or empty, else undefined. */
 function skipReason(script) {
   const missing = requiredKeys(script).filter((key) => !process.env[key]);
   return missing.length ? `needs ${missing.join(", ")}` : undefined;
@@ -141,9 +97,6 @@ function pidAlive(pid) {
   }
 }
 
-// Each concurrent run in one worktree takes its own dist folder (a slot), so runs never share
-// `.next`; a slot keeps its compiled output for the next run. The slots are listed in
-// apps/web/tsconfig.json so that Next does not add them there itself.
 const SLOTS = [".next-e2e", ".next-e2e-2", ".next-e2e-3", ".next-e2e-4"];
 
 function claimDist() {
@@ -174,8 +127,6 @@ const serverLog = [];
 
 const serverRunning = () => server && server.exitCode === null && server.signalCode === null;
 
-// The server was started in its own process group; signalling the group reaches it and its
-// workers only, never a server this runner did not start.
 function signalServer(signal) {
   try {
     process.kill(-server.pid, signal);
@@ -197,7 +148,6 @@ async function stopServer() {
   releaseDist();
 }
 
-// A script runs in its own process group too, so stopping it also stops the browsers it launched.
 function signalScript(signal) {
   if (!current) return;
   try {
@@ -214,14 +164,13 @@ for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"]) {
     process.exit(130);
   });
 }
-// Last resort for an exit that skipped stopServer (fail(), an uncaught error): stop, never wait.
+
 process.on("exit", () => {
   signalScript("SIGKILL");
   if (serverRunning()) signalServer("SIGKILL");
   releaseDist();
 });
 
-/** Resolves to the exit code, or to "timeout" when `timeoutMs` passed first and the process group was stopped. */
 function run(command, commandArgs, { timeoutMs, ...options } = {}) {
   return new Promise((done) => {
     let timedOut = false;
@@ -241,7 +190,7 @@ function run(command, commandArgs, { timeoutMs, ...options } = {}) {
           }, timeoutMs);
     current.on("exit", (code, signal) => {
       clearTimeout(timer);
-      // Browsers the script launched may outlive it; its group is stopped either way.
+
       if (timeoutMs !== undefined) signalScript("SIGKILL");
       current = undefined;
       done(timedOut ? "timeout" : (code ?? (signal ? 1 : 0)));

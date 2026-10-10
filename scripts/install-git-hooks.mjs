@@ -1,12 +1,5 @@
 #!/usr/bin/env node
-// Points Git at the committed hooks in .githooks/ (`core.hooksPath`), so `git push` runs the changed-files
-// format check that CI runs. Called by the root `postinstall`; it never fails an install.
-//
-// Failure inventory this script was written from:
-// - an install outside a Git checkout (a deploy build from a tarball) fails because `git` has no repository;
-// - an install in CI rewrites the runner's Git config;
-// - a hooks path someone set for another tool is overwritten without a word;
-// - a hook file loses its executable bit and Git skips it silently.
+
 import { execFileSync } from "node:child_process";
 import { chmodSync, existsSync } from "node:fs";
 import { resolve } from "node:path";

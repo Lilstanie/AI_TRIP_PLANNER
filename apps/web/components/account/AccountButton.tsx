@@ -5,7 +5,6 @@ import { useAccount } from "./AccountProvider";
 import type { SettingsSection } from "./SettingsDialog";
 import { useLocale } from "./LocaleProvider";
 
-/** Profile identity stays visible in the sidebar; its overflow opens account and settings actions. */
 export function AccountButton({
   collapsed,
   onSettings,
@@ -114,7 +113,6 @@ export function AccountButton({
 
   const avatar =
     signedIn && account.imageUrl ? (
-      // Clerk hosts the avatar; it is the person's own picture, not decoration.
       // eslint-disable-next-line @next/next/no-img-element
       <img
         className="account-button__avatar"

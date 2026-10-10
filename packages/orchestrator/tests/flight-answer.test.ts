@@ -27,7 +27,7 @@ describe("answerFlightQuery", () => {
     expect(answer.options.map((o) => o.carrier)).toEqual(["Jetstar", "Korean Air", "Qantas"]);
     expect(answer.reply).toContain("Jetstar");
     expect(answer.reply).toContain("367");
-    // Whole-party framing is stated, never left for the reader to assume.
+
     expect(answer.reply).toMatch(/whole-party/i);
   });
 
@@ -57,7 +57,10 @@ describe("answerFlightQuery", () => {
   });
 
   it("says so plainly when the provider had nothing", async () => {
-    const answer = await answerFlightQuery(query, booking(async () => []));
+    const answer = await answerFlightQuery(
+      query,
+      booking(async () => []),
+    );
     expect(answer.options).toEqual([]);
     expect(answer.reply).toMatch(/No fares/i);
   });

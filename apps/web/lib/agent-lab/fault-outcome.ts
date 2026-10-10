@@ -1,26 +1,22 @@
 import type { AgentLabRunArtifact } from "@trip/shared";
 import { stopReasonLabel } from "./comparison";
 
-/**
- * How a fault ended, in the three ways a workflow can meet one: it carries on with less (degraded), it
- * keeps a partial result (partial) or it stops (failed). A run with no fault evidence is completed.
- */
 export type FaultOutcomeKind = "completed" | "degraded" | "partial" | "failed";
 
 export interface FaultOutcome {
   kind: FaultOutcomeKind;
-  /** The short word shown on the badge, never colour alone. */
+
   label: string;
   headline: string;
   facts: string[];
-  /** Counted from the trace and the plan; null where the run has no plan to count from. */
+
   figures: {
     events: number;
     toolFailures: number;
     failedAgents: number;
     unavailableSections: number;
     unresolvedConflicts: number | null;
-    /** Null when no plan was assembled; "none" for a run with no planning loop. */
+
     stopReason: string | null;
   };
 }
@@ -35,10 +31,6 @@ const labels: Record<FaultOutcomeKind, string> = {
 const name = (agent: string) => agent.replace(/-/g, " ");
 const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? "" : "s"}`;
 
-/**
- * Reads how a run ended from its artifact alone: the trace, the plan and the stored metrics. Nothing
- * else feeds it, so a live run, a downloaded file and a replay of that file always read the same.
- */
 export function faultOutcome(artifact: AgentLabRunArtifact): FaultOutcome {
   const events = artifact.events.map((entry) => entry.event);
   const of = <T extends (typeof events)[number]["type"]>(type: T) =>

@@ -12,13 +12,8 @@ import { useLocale } from "../../account/LocaleProvider";
 import { FlowFlightIcon, FlowStayIcon } from "../../ui/flow-icons";
 import { SourceBadge } from "../SourceBadge";
 
-/** Swaps the candidate a section's selection points at, through the server's choose edit. */
 export type ChooseCandidate = (sectionId: string, selectionId: string, candidateId: string) => void;
 
-/**
- * What the chosen option beat, and by how much. Rows are plain text when no swap is possible right
- * now, which is while another change is in flight.
- */
 function Alternatives({
   chosen,
   others,
@@ -153,7 +148,7 @@ function FlightCard({
   onChoose,
 }: {
   flight: FlightSelection;
-  /** The return of the round trip, shown on the last day. */
+
   out: boolean;
   date?: string;
   source?: AgentProposalSource;
@@ -210,11 +205,6 @@ function FlightCard({
   );
 }
 
-/**
- * A flight or one night of a stay in the day view. The row says what it is and what it costs; opening
- * it shows the card with its Alternatives. Taking one swaps the plan's own selection, so the cost and
- * the total move as they do from any other choice.
- */
 export function BookingRow({
   row,
   source,

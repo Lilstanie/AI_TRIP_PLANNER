@@ -8,7 +8,7 @@ import { plan as seed } from "@/tests/fixtures/workspace";
 import { identifyActivities, itineraryActivities } from "@/lib/workspace";
 import { TripPlan } from "@trip/shared";
 import { buildItinerary } from "@/lib/trip/itinerary";
-/** The editor with the plan revision owner the workspace gives it, which sends and applies its edits. */
+
 function Editor(props: Omit<ComponentProps<typeof TripEditor>, "revisions">) {
   const revisions = usePlanRevision({
     plan: props.plan,
@@ -69,7 +69,7 @@ describe("editor request lifecycle", () => {
         onSelect={vi.fn()}
       />,
     );
-    // The day has no route check and no day-wide travel mode: each leg is checked on its own.
+
     expect(screen.queryByRole("button", { name: /Check routes/ })).toBeNull();
     expect(screen.queryByRole("group", { name: "Travel between stops by" })).toBeNull();
     expect(screen.queryByLabelText("Google activity map")).toBeNull();

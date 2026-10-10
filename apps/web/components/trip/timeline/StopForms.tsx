@@ -8,10 +8,6 @@ import type { TimelineEdits } from "./useTimelineEdits";
 
 type Activity = ProposalItem & { id?: string };
 
-/**
- * The start and end of a stop, shown when its time is tapped. Submitting sends the change to the
- * server check; Escape closes the form and the caller returns focus to the time it came from.
- */
 export function TimeForm({
   id,
   start,
@@ -81,10 +77,6 @@ export function TimeForm({
   );
 }
 
-/**
- * The small form in a stop's place card for its details, its note, or scheduling an idea on a day.
- * It opens from the stop's menu, takes focus, and Escape or Cancel closes it without changing the stop.
- */
 export function ItemForm({
   activity,
   mode,
@@ -186,10 +178,6 @@ export function ItemForm({
   );
 }
 
-/**
- * Google Places text search for a stop's place. A picked result is saved through the server check
- * by `onUse`. The search lives in the place card; Escape closes it through `onCancel`.
- */
 export function PlaceSearch({
   label,
   locked,
@@ -201,7 +189,7 @@ export function PlaceSearch({
   label: string;
   locked: boolean;
   edits: TimelineEdits;
-  /** Take focus when the search opens from the stop's menu, not when a stop is only selected. */
+
   focusOnMount?: boolean;
   onUse(placeId: string): void;
   onCancel?(): void;

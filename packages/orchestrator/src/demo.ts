@@ -1,7 +1,5 @@
 import type { TripBrief } from "@trip/shared";
 
-// Used for the web app's first render and as a backward-compatible chat baseline
-// when a client does not yet send its latest TripBrief.
 export const DEMO_BRIEF: TripBrief = {
   tripId: "demo-trip",
   userId: "demo-user",

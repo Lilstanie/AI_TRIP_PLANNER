@@ -1,8 +1,6 @@
 import { TripPlan, type TripBrief, type UserPreference } from "@trip/shared";
 import type { AgentLabScenario } from "./scenarios";
 
-// Seven nights from Sydney: three in Tokyo, then a train to Kyoto on 2026-11-13 and four there. The
-// transport hop, the stays, the day-by-day itinerary and the total must all agree on that one move.
 const brief: TripBrief = {
   tripId: "agent-lab-tokyo-kyoto-multi-city",
   userId: "agent-lab",
@@ -41,7 +39,6 @@ const kyotoDay = (day: number, detail: string, location: string) => ({
   location: `${location}, Kyoto`,
 });
 
-/** The scripted single-agent recording: one consistent plan around the 2026-11-13 move. */
 function scriptedPlan(): TripPlan {
   const estTotal = 3930;
   return TripPlan.parse({

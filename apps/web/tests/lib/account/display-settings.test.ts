@@ -1,4 +1,3 @@
-// Failure inventory: old settings rejected, absent currency not AUD, unsupported currency accepted.
 import { describe, expect, it } from "vitest";
 import { defaultSettings, UserSettings } from "@/lib/account/settings";
 

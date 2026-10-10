@@ -1,22 +1,8 @@
-// Shared Places API (New) "searchText" caller.
-//
-// Three different call sites in this package need the exact same request
-// (POST places:searchText with an api-key header and a field mask): grounding
-// attractions/restaurants for dining and destination-guide, resolving a city's
-// coordinates for the transit timezone lookup, and — as of this feature —
-// grounding hotel candidates for accommodation. Before this file, that request
-// was implemented three times with small drifts between copies (see
-// .agents/session-logs/2026-09-20-claude-google-maps-tests.md for the sibling
-// duplicate found in apps/web/lib/google.ts). One implementation here removes
-// that drift risk for the two call sites that live in this package.
 import { toolFetch, toolRuntimeConfig } from "./runtime-context";
 
 export interface RawGooglePlace {
   displayName?: { text?: string };
-  /** Google's native place-rating scale is 1.0–5.0, NOT this project's 0-10
-   *  convention (see packages/agents/src/accommodation/planning.ts). Callers
-   *  that feed this into a 0-10 field (StayCandidate.rating) must convert it
-   *  themselves — this module returns the raw provider value unchanged. */
+
   rating?: number;
   priceLevel?:
     | "PRICE_LEVEL_UNSPECIFIED"
@@ -28,8 +14,7 @@ export interface RawGooglePlace {
   formattedAddress?: string;
   location?: { latitude?: number; longitude?: number };
   types?: string[];
-  /** The place's own website. Requested with the `places.websiteUri` field
-   *  mask; Google omits it for places that have none. */
+
   websiteUri?: string;
 }
 

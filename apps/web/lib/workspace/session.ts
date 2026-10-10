@@ -21,63 +21,41 @@ import {
   type Message,
 } from "./workspace";
 
-/** Every turn is a chat turn: there is no "apply a decision" request. */
 export type Task = { kind: "chat"; request: ChatRequest };
 
-/**
- * The conversation and trip a planning turn reads and changes. Pure data: `session()` moves it
- * from one turn event to the next, and the workspace controller only stores it.
- */
 export type SessionState = {
   plan: TripPlan | undefined;
   draft: Draft;
   messages: Message[];
-  /** The composer's unsent text. */
+
   input: string;
-  /** The plan's total before the last change, for the "changed by" figure. */
+
   previousTotal: number | undefined;
   busy: boolean;
-  /** Progress of the turn in flight. */
+
   activity: AgentProgressEvent[];
-  /** The failure shown above the composer, if any. */
+
   error: Notice | undefined;
-  /** One notice per brief field the last submission got wrong. */
+
   errors: Record<string, Notice>;
-  /** The turn a Retry button sends again. */
+
   retry: Task | undefined;
-  /** The structured question waiting for an answer. */
+
   ask: PendingAsk | undefined;
-  /** The stop selected on the map or timeline. */
+
   selectedActivity: string | undefined;
-  /** Routes drawn on the map for the selected day. */
+
   mapRoutes: RouteResult[];
-  /**
-   * The signed change in the estimate from the last chat replan, shown once as a Notice. Undefined
-   * when there was no earlier plan, after a timeline edit, and once it is dismissed.
-   */
+
   estimateChange: number | undefined;
-  /**
-   * How many changes the traveller made on the timeline are still in the plan: one more when the timeline applies a
-   * change, one fewer when one is undone, cleared when a chat plan replaces the trip. Undo takes back one change, so
-   * a count, not a flag, keeps an earlier change known after a later one is undone. Kept here, not in the timeline,
-   * so it survives the Trip drawer closing. Undefined when none.
-   */
+
   timelineChanges?: number;
-  /**
-   * Set by a chat replan that replaced a change the traveller made on the timeline, so the change is not kept
-   * silently. Undefined otherwise, and once it is dismissed.
-   */
+
   replacedChange?: boolean;
 };
 
-/**
- * How a planning turn ended. `transcript` is the turn's progress, kept on the reply so its
- * Think fold renders above the answer; `at` is when the reply arrived.
- */
 export type TurnOutcome =
-  /** The planner returned a plan, which replaces the open one. */
   | { kind: "planned"; plan: TripPlan; reply: string; transcript: AgentProgressEvent[]; at: number }
-  /** Not enough to plan yet: the planner asks in prose and returns what it understood. */
   | {
       kind: "needsInfo";
       question: string;
@@ -85,7 +63,6 @@ export type TurnOutcome =
       transcript: AgentProgressEvent[];
       at: number;
     }
-  /** The planner asked a structured question; `plan` is the open plan it asked about. */
   | {
       kind: "asked";
       key: string;
@@ -96,47 +73,27 @@ export type TurnOutcome =
       transcript: AgentProgressEvent[];
       at: number;
     }
-  /** A fare question answered with fares; the open trip is not part of it. */
   | { kind: "answered"; flights: FlightAnswer; transcript: AgentProgressEvent[]; at: number }
-  /** The request or the planner failed; `task` is what Retry sends again. */
   | { kind: "failed"; message: Notice; task: Task }
-  /** The traveller cancelled the turn. */
   | { kind: "cancelled" };
 
-/** Everything that moves a session: a turn's start, its progress and its outcome. */
 export type SessionEvent =
   | TurnOutcome
   | { kind: "started" }
-  /** The traveller's message went out; a brief submission also clears the field errors. */
   | { kind: "sent"; message: Message; brief?: boolean }
   | { kind: "progress"; event: AgentProgressEvent }
-  /** The brief was not sent: `fields` holds one message per invalid field. */
   | { kind: "rejected"; fields: Record<string, Notice> }
-  /**
-   * The traveller opened another chat or trip (or a blank one): in-flight and selection state from
-   * the one they left goes, and only what was saved with the new one shows.
-   */
   | { kind: "opened"; saved: SavedSession }
-  /** The traveller applied an edit to the open trip by hand. */
   | { kind: "edited"; plan: TripPlan }
-  /** The composer's unsent text changed. */
   | { kind: "typed"; input: string }
-  /** The trip details form changed without planning. */
   | { kind: "drafted"; draft: Draft }
-  /** A stop was selected on the map, the trip list or the timeline; none clears the selection. */
   | { kind: "selected"; activity: string | undefined }
-  /** The timeline drew the selected day's routes. */
   | { kind: "routed"; routes: RouteResult[] }
-  /** The traveller closed the question card without answering. */
   | { kind: "dismissed" }
-  /** The traveller closed the estimate-change notice. */
   | { kind: "estimateDismissed" }
-  /** A change on the timeline was applied, or undone (see `timelineChanges`). */
   | { kind: "timelineChanged"; changed: boolean }
-  /** The traveller closed the notice that a chat replan replaced their timeline change. */
   | { kind: "replacedDismissed" };
 
-/** The first progress line of every turn, shown before the server says anything. */
 export const PREPARING: AgentProgressEvent = {
   type: "coordinator",
   phase: "dispatch",
@@ -147,11 +104,9 @@ export const PREPARING: AgentProgressEvent = {
 export const REJECTED_BRIEF: Notice = { key: "Check the highlighted trip details." };
 const FAILED: Notice = { key: "Unable to update the trip. Please retry." };
 
-/** What a saved or blank conversation brings into the session when it is opened. */
 export type SavedSession = Pick<SessionState, "draft" | "messages" | "input"> &
   Partial<Pick<SessionState, "plan" | "previousTotal">>;
 
-/** A session with no turn in flight, opened on a saved or blank conversation. */
 export function idleSession(saved: SavedSession): SessionState {
   return {
     plan: saved.plan,
@@ -177,7 +132,6 @@ function reply(
   at: number,
   extra: Partial<Message> = {},
 ): Message {
-  // A turn with nothing past the opening line has no Think fold.
   return {
     role: "agent",
     text,
@@ -187,7 +141,6 @@ function reply(
   };
 }
 
-/** A reply ended the turn: the chat gets it and the composer is emptied. */
 function replied(state: SessionState, message: Message): SessionState {
   return {
     ...state,
@@ -198,10 +151,6 @@ function replied(state: SessionState, message: Message): SessionState {
   };
 }
 
-/**
- * The routes kept for the plan, with each newer answer for a pair of places replacing the older one.
- * A day's legs are routed a day at a time, so a day's answer must not drop another day's routes.
- */
 export function mergeRoutes(kept: RouteResult[], fresh: RouteResult[]): RouteResult[] {
   if (!fresh.length) return kept;
   const byPair = new Map(kept.map((route) => [`${route.from}>${route.to}`, route]));
@@ -209,16 +158,9 @@ export function mergeRoutes(kept: RouteResult[], fresh: RouteResult[]): RouteRes
   return [...byPair.values()];
 }
 
-/**
- * Applies one turn event to the session. Pure: every rule about what a turn resets lives here.
- * @param state - the session before the event.
- * @param event - a turn's start, progress or outcome, or the traveller leaving the chat.
- * @returns the session after the event.
- */
 export function session(state: SessionState, event: SessionEvent): SessionState {
   switch (event.kind) {
     case "started":
-      // Any new request supersedes an unanswered question and the last failure.
       return {
         ...state,
         busy: true,
@@ -268,9 +210,9 @@ export function session(state: SessionState, event: SessionEvent): SessionState 
       return {
         ...replied(state, reply(event.reply, event.transcript, event.at)),
         previousTotal: state.plan?.estTotal,
-        // The change is measured from the plan the chat replaced; a first plan has nothing to compare.
+
         estimateChange: state.plan ? event.plan.estTotal - state.plan.estTotal : undefined,
-        // A timeline change still in the plan is replaced by this one, and the traveller is told so.
+
         replacedChange: state.timelineChanges && state.plan ? true : undefined,
         timelineChanges: undefined,
         plan: identifyActivities(event.plan),
@@ -280,7 +222,6 @@ export function session(state: SessionState, event: SessionEvent): SessionState 
         errors: {},
       };
     case "needsInfo":
-      // What the assistant understood goes into the form and travels with the next message.
       return {
         ...replied(state, reply(event.question, event.transcript, event.at)),
         draft: draftWithKnown(state.draft, event.known),
@@ -289,7 +230,7 @@ export function session(state: SessionState, event: SessionEvent): SessionState 
       const text = event.reply?.trim() || event.questions.map((item) => item.question).join("\n\n");
       return {
         ...replied(state, reply(text, event.transcript, event.at)),
-        // A question about an open trip leaves its form alone.
+
         ...(event.plan ? {} : { draft: draftWithKnown(state.draft, event.known) }),
         ask: {
           key: event.key,
@@ -311,15 +252,6 @@ export function session(state: SessionState, event: SessionEvent): SessionState 
   }
 }
 
-/**
- * Sends one planning turn and reads its stream. Never throws and never touches workspace state:
- * the outcome goes to `session()`.
- * @param task - the turn to send; a failure carries it back for Retry.
- * @param send - opens the request; the caller adds headers and settings to the body.
- * @param options.signal - aborting it ends the turn as `cancelled`.
- * @param options.onProgress - each progress frame as it arrives.
- * @returns how the turn ended.
- */
 export async function requestTurn(
   task: Task,
   send: (signal: AbortSignal) => Promise<Response>,
@@ -366,7 +298,7 @@ export async function requestTurn(
     }
     return {
       kind: "failed",
-      // An error the app did not author, such as a dropped connection, is shown as raised.
+
       message: errorNotice(failure, FAILED),
       task,
     };

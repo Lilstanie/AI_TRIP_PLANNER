@@ -8,12 +8,11 @@ type Tool = () => Promise<{
   }[];
 }>;
 
-/** What the fake specialist answers with; each test sets it before invoking. */
 const behavior = vi.hoisted(() => ({
   respond: (_evidence: Awaited<ReturnType<Tool>>): unknown => ({ choices: [] }),
   skipTool: false,
   fail: false,
-  /** The system prompt and the user message the specialist was last given. */
+
   seen: { prompt: "", message: "" },
 }));
 
@@ -49,8 +48,7 @@ const brief: TripBrief = {
   groupSize: 2,
   budgetTotal: 4000,
 };
-// Deliberately ordered so the cheapest is not the one the heuristic prefers:
-// chooseInitial wants rating >= 8 with free cancellation, i.e. Comfort.
+
 const options = [
   { name: "Saver", area: "West", pricePerNight: 100, rating: 7, freeCancellation: false },
   { name: "Comfort", area: "Central", pricePerNight: 250, rating: 9, freeCancellation: true },
@@ -90,7 +88,6 @@ describe("the model's stay choice is load-bearing", () => {
     behavior.respond = pick("Saver");
     const proposal = await accommodationAgent.invoke({ brief, context });
 
-    // 1 room (2 guests), 4 nights. Saver at 100/night = 400; Comfort would be 1000.
     expect(proposal.items[0]!.estCost).toBe(400);
     expect(proposal.items[0]!.detail).toContain("Saver");
     expect(proposal.stays![0]!.selectedId).toBe(
@@ -112,8 +109,6 @@ describe("the model's stay choice is load-bearing", () => {
   });
 
   it("cannot be made to state a price of its own", async () => {
-    // The selection schema has no money field, so an invented total is dropped by
-    // parsing rather than reaching estCost. This is the point of the design.
     behavior.respond = (evidence) => ({
       ...pick("Saver")(evidence),
       estCost: 0,
@@ -134,7 +129,7 @@ describe("the model's stay choice is load-bearing", () => {
       })),
     });
     const proposal = await accommodationAgent.invoke({ brief, context });
-    // The heuristic's choice, not a zero-cost item built from nothing.
+
     expect(proposal.items[0]!.estCost).toBe(1000);
     expect(proposal.assumptions.join(" ")).not.toContain("invented");
   });

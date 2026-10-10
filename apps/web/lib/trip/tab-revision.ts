@@ -6,28 +6,23 @@ export const STALE_PLAN: Notice = { key: "This edit is stale. Start from the cur
 const keyFor = (tripId: string) => `trip.revision:${tripId}`;
 const fingerprint = (plan: TripPlan) => JSON.stringify(plan);
 
-/** Browser-local optimistic concurrency; successful applies publish before releasing the Web Lock. */
 export function isCurrentTabPlan(plan: TripPlan): boolean {
   try {
     const current = localStorage.getItem(keyFor(plan.tripId));
     return current === null || current === fingerprint(plan);
   } catch {
     return true;
-  } // The workspace already reports blocked storage separately.
+  }
 }
 export function publishTabPlan(plan: TripPlan) {
   try {
     localStorage.setItem(keyFor(plan.tripId), fingerprint(plan));
-  } catch {
-    /* No storage available. */
-  }
+  } catch {}
 }
 export function seedTabPlan(plan: TripPlan) {
   try {
     if (localStorage.getItem(keyFor(plan.tripId)) === null) publishTabPlan(plan);
-  } catch {
-    /* No storage. */
-  }
+  } catch {}
 }
 export async function withTabPlan<T>(
   plan: TripPlan,

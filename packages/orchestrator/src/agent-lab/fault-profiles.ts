@@ -6,21 +6,13 @@ import type {
   AgentLabStrategyId,
 } from "@trip/shared";
 
-/**
- * What the workflow does with a fault, observed from the real workflow rather than assumed: it carries
- * on with a degraded section, it keeps a partial result, or it stops.
- */
 export type AgentLabFaultBehaviour = "degraded" | "partial" | "terminal";
 
-/**
- * A registered, deterministic fault. A visitor names one by id and never defines a fault of their own;
- * each is bound to the one scenario and strategy it was built for, so the run is repeatable.
- */
 export interface AgentLabFaultProfile {
   id: AgentLabFaultProfileId;
   title: string;
   summary: string;
-  /** Where the fault is injected. */
+
   capability: AgentLabFaultCapability;
   scenarioId: AgentLabScenarioId;
   strategyId: AgentLabStrategyId;
@@ -88,10 +80,6 @@ export function findAgentLabFaultProfile(id: AgentLabFaultProfileId): AgentLabFa
   return profile;
 }
 
-/**
- * Whether a request names a run the server registered. An ordinary request always is; a request with a
- * fault must match the scenario and strategy that fault was built for.
- */
 export function isRegisteredAgentLabRun(request: AgentLabRunRequest): boolean {
   if (request.faultProfileId === undefined) return true;
   const profile = agentLabFaultProfiles.find(

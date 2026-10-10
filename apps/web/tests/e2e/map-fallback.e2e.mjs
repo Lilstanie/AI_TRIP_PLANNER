@@ -1,18 +1,3 @@
-// End-to-end check of the free map fallback when Google is simulated unavailable (ticket #273).
-//
-// Run with the server's Google outage switched on, in mock data mode:
-//
-//   DATA_MODE=mock MOCK_GOOGLE_MAPS=unavailable pnpm --filter @trip/web e2e map-fallback
-//
-// What is real here: the server. Saved stops are looked up, routed and timed by the web map provider,
-// which tries Google first, sees the simulated outage and answers from OpenStreetMap's fixtures (OSRM
-// for walking and driving, an offline time zone). Nothing leaves the machine: every request to another
-// origin is aborted and listed in the artifact, and the OSRM client answers from fixtures in mock mode.
-//
-// The chat response only supplies four named Kyoto stops; search, details, photos, auto-save,
-// routes and MapLibre all run through real app paths with server fixtures. All external calls are blocked.
-// Failure inventory: missing key, Google outage, lost source label, invented rating, absent credits,
-// missing markers, broken phone layout, transit replaced by walking, and unintended upstream traffic.
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
@@ -32,7 +17,6 @@ const check = (ok, message) => {
 const settle = (page, ms = 500) => page.waitForTimeout(ms);
 const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
 
-// The fixture places the server knows (lib/map-provider/mock-osm.ts), by the name a stop carries.
 const FIXTURE_PLACES = {
   "Kyoto Station": { id: "osm:node/2001", latitude: 34.9858, longitude: 135.7588 },
   "To-ji Temple": { id: "osm:way/2002", latitude: 34.9805, longitude: 135.7478 },
@@ -54,7 +38,6 @@ function fixturePlace(name) {
   };
 }
 
-/** Gives the plan's activities Kyoto names, in plan order, without places, as a plan from chat would. */
 async function installStopNames(page) {
   await page.route("**/api/chat", async (route) => {
     const response = await route.fetch();
@@ -65,8 +48,7 @@ async function installStopNames(page) {
         const frame = JSON.parse(line);
         const section = frame.response?.plan?.sections.find((s) => s.id === "itinerary");
         if (!section?.proposal) return line;
-        // The mock plan has one stop on each of several days; the scenario needs its stops on one day, so
-        // the first four activities move to Day 1 at times with room for each leg and its buffer.
+
         const activities = section.proposal.items.filter(
           (item) => item.kind === "activity" && item.day !== undefined,
         );
@@ -124,15 +106,14 @@ async function openTrip(browser, { width, height, edits, searches, external }) {
   });
   page.on("console", (message) => {
     if (message.type() !== "error") return;
-    // Lookups answered 502/503 are the expected state without a map key, and requests to the outside
-    // world are aborted on purpose; nothing else may be logged as an error.
+
     if (/status of 50[23]/.test(message.text())) return;
     if (/net::ERR_FAILED|ERR_BLOCKED/.test(message.text())) return;
     if (message.location().url === `${BASE}/favicon.ico`) return;
     errors.push(message.text());
   });
   page.on("pageerror", (error) => errors.push(String(error)));
-  // Every request to another origin is aborted here and listed in `external`, so no real service answers.
+
   await page.route(/^https?:\/\//, (route) => {
     if (route.request().url().startsWith(LOCAL)) return route.continue();
     return route.abort();
@@ -173,7 +154,6 @@ async function openTrip(browser, { width, height, edits, searches, external }) {
   return { context, page, errors };
 }
 
-/** Every leg label the timeline shows, across the days. */
 async function legLabels(page) {
   const timeline = page.getByRole("region", { name: "Trip timeline" });
   const days = timeline.getByRole("tab");
@@ -206,7 +186,6 @@ async function main() {
     external,
   });
   try {
-    // The stops save and the day's legs are routed; poll until the labels appear.
     let labels = [];
     for (let round = 0; round < 60; round += 1) {
       labels = await legLabels(page);
@@ -257,7 +236,6 @@ async function main() {
       "routes in the plan's answer come from OSRM or Transitous",
     );
 
-    // A fallback route from the traveller's position: the same server path the map's button uses.
     const from = await page.request.post(`${BASE}/api/routes/from-location`, {
       headers: { "content-type": "application/json", "x-trip-data-mode": "mock" },
       data: { latitude: 34.9858, longitude: 135.7588, placeId: "osm:way/2002", mode: "WALK" },
@@ -273,7 +251,6 @@ async function main() {
       "the walk from my location has a whole-minute duration",
     );
 
-    // A transit leg no provider can route: the leg is unavailable, with a notice, and keeps no time.
     const plan = lastEdit?.response?.plan;
     const items = plan?.sections.find((s) => s.id === "itinerary")?.proposal?.items ?? [];
     const dayItems = items.filter((i) => i.kind === "activity" && i.day === 1 && i.placeId);
@@ -288,7 +265,7 @@ async function main() {
         },
       });
       const body = await transit.json();
-      // Failure inventory: rejected mode, driving profile used for cycling, stored choice lost.
+
       const cycling = await page.request.post(`${BASE}/api/trip/preview-edit`, {
         headers: { "content-type": "application/json", "x-trip-data-mode": "mock" },
         data: {
@@ -342,7 +319,7 @@ async function main() {
       "Commons photo credits are visible",
     );
     await page.screenshot({ animations: "disabled", path: resolve(OUT, "place-card-desktop.png") });
-    // The same saved OSM id must be looked up again for each interface language.
+
     const detailLanguages = [];
     await page.route("**/api/places/details", async (route) => {
       const { language } = route.request().postDataJSON();
@@ -427,7 +404,6 @@ async function main() {
     await page.screenshot({ animations: "disabled", path: resolve(OUT, "map-phone.png") });
     await page.setViewportSize({ width: 1440, height: 1000 });
 
-    // Fonts and other static assets may be requested from outside; no map, route or place service may be.
     const mapService =
       /googleapis|gstatic\.com\/maps|openfreemap|openstreetmap|photon\.komoot|nominatim|osrm|transitous|wikimedia|wikidata|routing\./;
     const mapCalls = external.filter((url) => mapService.test(url));
@@ -440,7 +416,7 @@ async function main() {
     await page
       .getByRole("region", { name: "Trip timeline" })
       .screenshot({ path: resolve(OUT, "timeline-desktop.png") });
-    // Failure inventory: the manual replacement path drops the locale or mock/live context.
+
     await page.getByRole("button", { name: "Switch language to 简体中文" }).click();
     let manualSearch;
     await page.route("**/api/places/search", async (route) => {

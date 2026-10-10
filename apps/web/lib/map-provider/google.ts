@@ -9,10 +9,6 @@ import {
 } from "@/lib/integrations/google";
 import type { MapProvider } from "./types";
 
-/**
- * The simulated Google outage of mock data mode (`MOCK_GOOGLE_MAPS=unavailable`). A 503 so that,
- * when no other provider answers, the traveller reads the ordinary "temporarily unavailable" notice.
- */
 export class GoogleSimulatedOutageError extends GoogleRequestError {
   constructor() {
     super(503, "SIMULATED_OUTAGE");
@@ -20,7 +16,6 @@ export class GoogleSimulatedOutageError extends GoogleRequestError {
   }
 }
 
-/** Google Maps Platform, as `lib/integrations/google.ts` calls it. Failures are thrown unchanged. */
 export function googleMapProvider(options: { simulateOutage?: boolean } = {}): MapProvider {
   const outage = async (): Promise<never> => {
     throw new GoogleSimulatedOutageError();

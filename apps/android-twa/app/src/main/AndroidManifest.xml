@@ -14,30 +14,17 @@
      limitations under the License.
 -->
 
-<!-- The "package" attribute is rewritten by the Gradle build with the value of applicationId.
-     It is still required here, as it is used to derive paths, for instance when referring
-     to an Activity by ".MyActivity" instead of the full name. If more Activities are added to the
-     application, the package attribute will need to reflect the correct path in order to use
-     the abbreviated format. -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="app.vercel.elec5620_ai_trip_planner.twa">
-
-    
-
-    
-
-    
-
-    
 
     <application
         android:name="Application"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/appName"
-        
+
         android:manageSpaceActivity="com.google.androidbrowserhelper.trusted.ManageDataLauncherActivity"
-        
+
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Translucent.NoTitleBar">
 
@@ -45,21 +32,14 @@
             android:name="asset_statements"
             android:resource="@string/assetStatements" />
 
-        
             <meta-data
                 android:name="web_manifest_url"
                 android:value="@string/webManifestUrl" />
-        
 
         <meta-data
             android:name="twa_generator"
             android:value="@string/generatorApp" />
 
-        
-
-        
-
-        
             <activity android:name="com.google.androidbrowserhelper.trusted.ManageDataLauncherActivity"
                 android:exported="false"
                 android:enabled="true"
@@ -72,7 +52,6 @@
                     <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity>
-        
 
         <activity android:name="LauncherActivity"
             android:alwaysRetainTaskState="true"
@@ -84,8 +63,6 @@
             <meta-data
                 android:name="android.support.customtabs.trusted.STATUS_BAR_COLOR"
                 android:resource="@color/colorPrimary" />
-
-            
 
             <meta-data
                 android:name="android.support.customtabs.trusted.STATUS_BAR_COLOR_DARK"
@@ -124,18 +101,8 @@
             <meta-data android:name="android.support.customtabs.trusted.FALLBACK_STRATEGY"
                 android:value="@string/fallbackType" />
 
-            
-
-            
-
             <meta-data android:name="android.support.customtabs.trusted.SCREEN_ORIENTATION"
                 android:value="@string/orientation"/>
-
-            
-
-            
-
-            
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -148,13 +115,10 @@
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="https"
                     android:host="@string/hostName"
-                
+
                 />
             </intent-filter>
 
-            
-
-            
         </activity>
 
         <activity android:name="com.google.androidbrowserhelper.trusted.FocusActivity" />
@@ -177,16 +141,11 @@
             android:enabled="@bool/enableNotification"
             android:exported="@bool/enableNotification">
 
-            
-
             <intent-filter>
                 <action android:name="android.support.customtabs.trusted.TRUSTED_WEB_ACTIVITY_SERVICE"/>
                 <category android:name="android.intent.category.DEFAULT"/>
             </intent-filter>
         </service>
 
-        
-
-        
     </application>
 </manifest>

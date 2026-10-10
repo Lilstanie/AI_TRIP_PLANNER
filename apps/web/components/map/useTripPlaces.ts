@@ -9,38 +9,32 @@ import { buildItinerary, type Itinerary } from "@/lib/trip/itinerary";
 
 type Activity = ReturnType<typeof itineraryActivities>[number];
 
-/**
- * - `located`: the activity has a place on the map.
- * - `loading`: a lookup is in flight.
- * - `unconfirmed`: there is no concrete place to look up, or Google found none.
- * - `unavailable`: Google failed (timeout, rate limit, outage); Retry places will try again.
- */
 export type LocationStatus = "located" | "loading" | "unconfirmed" | "unavailable";
 
 export type TripPlaces = {
   dataMode?: DataMode;
   forceOsm?: boolean;
   allowFallback?: boolean;
-  /** Every itinerary activity, stops and ideas, in plan order. */
+
   activities: Activity[];
-  /** Stops, ideas, stop numbers and visiting order for every view, from the places found so far. */
+
   itinerary: Itinerary;
   places: Record<string, GooglePlace>;
-  /** Resolved destination city places, used to frame the map before activities load. */
+
   destinations: GooglePlace[];
-  /** True once every destination city lookup has finished, successfully or not. */
+
   destinationsSettled: boolean;
-  /** A destination city lookup failed for a retryable reason. */
+
   destinationsUnavailable: boolean;
   loading: boolean;
-  /** Activities without a confirmed place (no usable name, or no Google match). */
+
   unconfirmed: number;
-  /** Activities whose lookup failed for a retryable reason. */
+
   unavailable: number;
   locationStatus(activity: Activity): LocationStatus;
   placeIdFor(activity: Activity): string | undefined;
   rememberPlace(place: GooglePlace): void;
-  /** Retry only lookups that failed for a retryable reason. */
+
   retry(): void;
 };
 
@@ -55,14 +49,6 @@ class LookupError extends Error {
   }
 }
 
-/**
- * Resolve the active trip's destination and activities into Google places.
- *
- * Only saved place IDs, explicit location names and titles that are themselves place names
- * are looked up (see `placeQueryFor`); descriptive activity text never reaches Places. Results
- * live only in memory and are never written into the plan. Changing the plan aborts in-flight
- * lookups, so a response for a previous trip or chat cannot add markers to the current one.
- */
 export function useTripPlaces(
   plan: TripPlan | undefined,
   dataMode?: DataMode,
@@ -112,7 +98,7 @@ export function useTripPlaces(
         });
       } catch (cause) {
         if (controller.signal.aborted) throw cause;
-        throw new LookupError(true); // network failure
+        throw new LookupError(true);
       }
       const json = await response.json().catch(() => ({}));
       if (response.status === 429 || response.status >= 500) throw new LookupError(true);
@@ -147,7 +133,7 @@ export function useTripPlaces(
         loaded[query.placeId] &&
         loadedContexts.current.get(query.placeId) === detailContext
       )
-        continue; // chosen in the editor
+        continue;
       if (query.kind === "id")
         wanted.set(key, async () => {
           try {
@@ -189,7 +175,7 @@ export function useTripPlaces(
       return;
     }
     setPending(new Set(wanted.keys()));
-    // Apply each result as it arrives, so one slow or failing lookup never holds back others.
+
     for (const [key, run] of wanted) {
       void run()
         .then(
@@ -216,7 +202,6 @@ export function useTripPlaces(
         });
     }
     return () => controller.abort();
-    // `attempt` re-runs lookups that previously failed for a retryable reason.
   }, [
     activities,
     cities,

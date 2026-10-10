@@ -41,8 +41,7 @@ const clock = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
 export const EditRequest = z.object({
   plan: TripPlan,
   baseVersion: z.number().int().nonnegative(),
-  // The Settings display currency, the last step of `effectiveCurrency`; absent means AUD. It only
-  // chooses how the sentences an edit rewrites spell amounts; the plan stays in AUD.
+
   displayCurrency: Currency.optional(),
   operation: z.discriminatedUnion("kind", [
     z.object({ kind: z.literal("verify"), day: z.number().int().positive() }),
@@ -57,11 +56,10 @@ export const EditRequest = z.object({
       kind: z.literal("place"),
       id: z.string(),
       placeId: z.string().min(1).max(300),
-      // Set by the workspace when it saves the map's place on a stop: the day's legs are routed
-      // once after its last save (`verify`), not once per save.
+
       routeLater: z.boolean().optional(),
     }),
-    // The traveller's mode for the leg into stop `id`, from the stop before it on the same day.
+
     z.object({ kind: z.literal("leg"), id: z.string(), mode: z.enum(LEG_MODES) }),
     z.object({
       kind: z.literal("choose"),
@@ -69,11 +67,11 @@ export const EditRequest = z.object({
       selectionId: z.string().min(1).max(100),
       candidateId: z.string().min(1).max(100),
     }),
-    // A stop taken off the trip, set aside as an Idea, or put at the end of a day (keeping its duration).
+
     z.object({ kind: z.literal("remove"), id: z.string() }),
     z.object({ kind: z.literal("idea"), id: z.string() }),
     z.object({ kind: z.literal("schedule"), id: z.string(), day: z.number().int().positive() }),
-    // An arrow move: the stop trades start times with the stop before it (-1) or after it (1).
+
     z.object({
       kind: z.literal("swap"),
       id: z.string(),
@@ -97,10 +95,7 @@ export const EditRequest = z.object({
   ]),
 });
 export type EditInput = z.input<typeof EditRequest>;
-/**
- * One stop an edit moves, as values rather than a sentence so the interface can word it in either
- * language. `days` is present only when the stop changes day.
- */
+
 export type EditDifference = {
   stop: string;
   days?: { from: number; to: number };
@@ -109,11 +104,6 @@ export type EditDifference = {
   placeChanged: boolean;
 };
 
-/**
- * What stops an edit, twice: `blockerNotices` for the interface to show in either language, and
- * `blockers`, the same notices in English, for clients older than the notices. A blocker the
- * edit leaves unresolved is kept on the plan in English. Route provider wording is a raw notice.
- */
 export type EditPreview = {
   plan: TripPlan;
   baseVersion: number;
@@ -127,9 +117,9 @@ const CONFIRM_PLACE =
   "Day {day}: confirm the place for {stop} first, so its travel time can be checked.";
 const NAMED_REASON = "{stop}: {reason}";
 const outsideDay = (blocker: Notice) => "key" in blocker && blocker.key === BEYOND_DAY;
-/** The name a stop is known by in a notice: its place, else the first part of its description. */
+
 const stopName = (item: ProposalItem) => item.location ?? item.detail.split(/[:;]/)[0]!.trim();
-/** The operations that change a stop's day, order or existence, on the item transform of `applyItemAction`. */
+
 type StructuralOperation = Extract<
   EditInput["operation"],
   { kind: "remove" | "idea" | "schedule" | "swap" }
@@ -154,21 +144,13 @@ function actionOf(operation: StructuralOperation): ItemAction {
 const mins = (value: string) => Number(value.slice(0, 2)) * 60 + Number(value.slice(3));
 const hhmm = (value: number) =>
   `${String(Math.floor(value / 60)).padStart(2, "0")}:${String(value % 60).padStart(2, "0")}`;
-/**
- * Take a different stay or fare from the ones the specialist already found.
- *
- * Deliberately not part of the activity path above: that path exists to re-time
- * and re-route stops, and none of it applies to swapping a priced choice. The
- * item is found by `selectionId` rather than by day, because a day can carry
- * both a flight and a ground hop.
- */
+
 function chooseCandidate(
   plan: TripPlan,
   baseVersion: number,
   operation: { section: "accommodation" | "transport"; selectionId: string; candidateId: string },
   currency: Currency,
 ): EditPreview {
-  // Amounts are AUD planning amounts; the sentences spell them in the trip's currency.
   const aud = (amount: number) => formatMoney(amount, currency);
   const section = plan.sections.find((s) => s.id === operation.section);
   const proposal = section?.proposal;
@@ -213,8 +195,7 @@ function chooseCandidate(
     after = `${chosen.carrier}, ${aud(chosen.price)}`;
     flight.selectedId = chosen.id;
     item.estCost = chosen.price;
-    // The transport agent prices the first hop as a return fare, so its sentence names the
-    // return date; a swapped fare has to say the same thing.
+
     const returning = flight.id === "flight-0" ? plan.brief.dates[1] : undefined;
     item.detail = describeFlightChoice({
       from: flight.from,
@@ -237,7 +218,6 @@ function chooseCandidate(
 }
 
 export type EditDependencies = {
-  /** A leg between two saved places; `hints` carry their coordinates for a provider that needs them. */
   route(
     from: string,
     to: string,
@@ -249,11 +229,6 @@ export type EditDependencies = {
   timeZone(place: GooglePlace, date: string): Promise<string>;
 };
 
-/**
- * The providers a live edit asks: places, time zones and routes from the web map provider (Google
- * first, OSM when Google cannot answer). A route failure is an `unavailable` leg, never a throw. The
- * provider is read per call, so a request's data mode decides which one answers.
- */
 export function liveEditDeps(provider: () => MapProvider = mapProvider): EditDependencies {
   return {
     route: (from, to, departure, mode, hints) =>
@@ -263,11 +238,7 @@ export function liveEditDeps(provider: () => MapProvider = mapProvider): EditDep
   };
 }
 export const LIVE_EDIT_DEPS = liveEditDeps();
-/**
- * Simulated mode: no provider is called. Places are placeholders and every leg is a fixture, so a plan
- * with saved places routes the same way on every run. Chosen by the request's data mode, never by a
- * missing key. Used only while Google is not simulated down (see `mockUsesProvider`).
- */
+
 export const SIMULATED_EDIT_DEPS: EditDependencies = {
   route: simulatedRoute,
   placeDetails: async (id) => ({ id, location: { latitude: 0, longitude: 0 } }) as GooglePlace,
@@ -290,14 +261,13 @@ export async function previewEdit(
   if (operation.kind === "choose") return chooseCandidate(plan, baseVersion, operation, currency);
   let section = plan.sections.find((s) => s.id === "itinerary");
   if (!section?.proposal) throw new NoticeError({ key: "There are no activities to edit." });
-  // Ideas (activities with no day) are set aside and kept as they are: only scheduled stops are
-  // routed and re-timed.
+
   let ideas = section.proposal.items.filter((i) => i.kind === "activity" && i.day === undefined);
   let activities = section.proposal.items.filter(
     (i) => i.kind === "activity" && i.day !== undefined,
   );
   const before = structuredClone(activities);
-  // Each place's details are asked once per edit: a stop is both the arrival of one leg and the departure of the next.
+
   const details = new Map<string, Promise<GooglePlace>>();
   const placeOf = (id: string) => {
     let place = details.get(id);
@@ -324,8 +294,7 @@ export async function previewEdit(
     throw new NoticeError({
       key: "Activities need unique IDs and a complete schedule before editing.",
     });
-  // A remove, Idea, schedule or arrow move is the item transform of `applyItemAction`, applied here so the
-  // plan it checks is the plan it would leave. Its days are then routed like any other edit's.
+
   if (isStructural(operation)) {
     const moved = applyItemAction(plan, operation.id, actionOf(operation), currency);
     plan.sections = moved.sections;
@@ -366,14 +335,13 @@ export async function previewEdit(
       };
       if (saved.savedPlace) restoredItem.savedPlace = saved.savedPlace;
       else if (saved.placeId !== item.placeId) delete restoredItem.savedPlace;
-      // The leg a stop had before the edit comes back with its mode, or is removed if it had none.
+
       if (saved.arriveBy) restoredItem.arriveBy = saved.arriveBy;
       else delete restoredItem.arriveBy;
       return restoredItem;
     });
     activities.splice(0, activities.length, ...restored);
   } else if (isStructural(operation)) {
-    // The day the stop left and the day it is on now are routed; the stop after it on either is one of their legs.
     for (const stop of [
       before.find((a) => a.id === operation.id),
       activities.find((a) => a.id === operation.id),
@@ -400,9 +368,7 @@ export async function previewEdit(
         index: operation.index,
         time: target[operation.index]?.startTime ?? target.at(-1)?.endTime ?? "09:00",
       };
-      // A leg is the journey from the stop before it. Moving a stop changes its own leg and the leg of
-      // the stop that followed it, in both places, so those lose their stored legs; the defaults apply
-      // until the day's legs are routed again.
+
       const sameDay = activities.filter((a) => a.day === item.day);
       const oldFollower = sameDay[sameDay.indexOf(item) + 1];
       activities.splice(activities.indexOf(item), 1);
@@ -424,7 +390,6 @@ export async function previewEdit(
       item.startTime = operation.startTime;
       item.endTime = operation.endTime;
     } else if (operation.kind === "leg") {
-      // The first stop of a day has nothing before it, so it has no leg to choose.
       if (activities.filter((a) => a.day === item.day)[0] === item)
         throw new NoticeError({ key: "This stop has no journey before it." });
     } else {
@@ -437,33 +402,30 @@ export async function previewEdit(
           location: place.location,
         };
       item.priceNeedsReview = true;
-      // Provider display text is deliberately kept outside the persisted plan.
     }
   }
   const routes: RouteResult[] = [],
     blockers: Notice[] = [];
-  // The stop a route or timing blocker belongs to: the stop its leg leads into. Its notice is shown on
-  // that stop only, not under every stop of the day.
+
   const blockedStop = new Map<Notice, string>();
-  // A route failure's stop name, which a refusal shows in front of the provider's reason.
+
   const reasonOf = new Map<Notice, string>();
-  // The place notices that only keep the stop's time open; a schedule is not refused for them.
+
   const unconfirmed = new Set<Notice>();
   const block = (notice: Notice, stop: string | undefined, name?: string) => {
     blockers.push(notice);
     if (stop) blockedStop.set(notice, stop);
     if (name) reasonOf.set(notice, name);
   };
-  // A place saved with `routeLater` changes no time and asks for no route; its day is routed once
-  // afterwards by a `verify`.
+
   const routed = !(operation.kind === "place" && operation.routeLater);
-  // The departure a leg is routed from: the previous stop's end, in its place's local time.
+
   const departureFor = async (from: ProposalItem, day: number) => {
     const place = await placeOf(from.placeId!);
     const zone = await deps.timeZone(place, dateFor(day));
     return localInstant(dateFor(day), from.endTime!, zone);
   };
-  // The coordinates of a leg's two places, for a provider that routes by location (OSRM) rather than by place id.
+
   const legHints = async (from: string, to: string): Promise<RouteHints> => {
     const [origin, destination] = await Promise.all([placeOf(from), placeOf(to)]);
     return { fromLocation: origin.location, toLocation: destination.location };
@@ -473,8 +435,7 @@ export async function previewEdit(
       throw new NoticeError({ key: "Activity day is outside trip dates." });
     const daily = activities.filter((a) => a.day === day);
     const original = before.filter((a) => a.day === day);
-    // A swap keeps the start times it traded: none of its stops is re-timed, and a leg that does not fit them is a
-    // notice on its stop, as a time change's is.
+
     const changedIndex =
       operation.kind === "swap"
         ? Number.POSITIVE_INFINITY
@@ -496,8 +457,7 @@ export async function previewEdit(
           ? mins(anchor.time)
           : mins(current.startTime!);
       const previous = daily[index - 1];
-      // Confirming a place is how a pair gets its route, so a place edit is not refused for an
-      // unconfirmed neighbour; that pair keeps its time until both places are confirmed.
+
       if (previous && (!previous.placeId || !current.placeId) && operation.kind !== "place") {
         const notice: Notice = {
           key: CONFIRM_PLACE,
@@ -509,9 +469,6 @@ export async function previewEdit(
       }
       if (previous && previous.placeId && current.placeId) {
         try {
-          // The leg into this stop. The traveller's choice is requested alone; a leg they did not
-          // change keeps its stored duration; any other leg is requested with its stored mode, or
-          // with the default when it has none.
           const choice =
             operation.kind === "leg" && operation.id === current.id ? operation.mode : undefined;
           const stored = storedRouteMode(current);
@@ -544,7 +501,7 @@ export async function previewEdit(
               );
               break;
             }
-            // Google answered without a route: the leg says so, and adds no time to the day.
+
             if (route.status === "ok") {
               travel = route.durationMin;
               current.arriveBy = {
@@ -589,9 +546,7 @@ export async function previewEdit(
       current.endTime = hhmm(start + duration);
     }
   }
-  // What refuses the edit: a stop running past midnight; for a move or a swap any blocker; for a schedule any
-  // blocker but an unconfirmed place. Every other blocker stays on the plan: its English sentence is kept in
-  // conflictsWith, which the chat reads, and its keyed notice in editIssues, on its stop.
+
   const refusesAll = operation.kind === "move";
   const refuses = (blocker: Notice) =>
     outsideDay(blocker) ||
@@ -599,7 +554,7 @@ export async function previewEdit(
     (operation.kind === "schedule" && !unconfirmed.has(blocker));
   const kept = blockers.filter((blocker) => !refuses(blocker));
   const unresolved = kept.map((blocker) => noticeText("en", blocker));
-  // A refusal that is a route failure names its stop before the provider's reason.
+
   blockers.splice(
     0,
     blockers.length,
@@ -618,13 +573,13 @@ export async function previewEdit(
     ...ideas,
   ];
   const affectedIds = new Set(activities.filter((a) => affected.has(a.day!)).map((a) => a.id!));
-  // A stop taken off its day (removed, or an Idea) keeps none of the notices it had there.
+
   if (isStructural(operation)) affectedIds.add(operation.id);
   const retainedIssues = (plan.editIssues ?? []).filter(
     (issue) =>
       issue.code !== "price_unverified" && !issue.activityIds.some((id) => affectedIds.has(id)),
   );
-  // conflictsWith holds the English sentence of each issue; editIssues holds the keyed notice.
+
   const sentenceOf = (message: string) => noticeText("en", readStoredNotice(message));
   const oldIssueSentences = new Set(
     (plan.editIssues ?? []).map((issue) => sentenceOf(issue.message)),
@@ -657,7 +612,7 @@ export async function previewEdit(
   settlePlan(plan, baseVersion, currency);
   const differences = activities.flatMap((a): EditDifference[] => {
     const old = before.find((b) => b.id === a.id);
-    // A stop that was an Idea, or was not on a day, has no earlier time to compare.
+
     if (!old)
       return [
         {
@@ -673,7 +628,6 @@ export async function previewEdit(
       old.placeId !== a.placeId
       ? [
           {
-            // The stop's name, not its whole description: the preview lists one line per stop.
             stop: a.location ?? a.detail,
             ...(old.day === a.day ? {} : { days: { from: old.day!, to: a.day! } }),
             before: `${old.startTime}–${old.endTime}`,

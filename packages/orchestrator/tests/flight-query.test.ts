@@ -31,14 +31,13 @@ describe("parseFlightQuery", () => {
   });
 
   it("treats a second date as the return leg", () => {
-    expect(
-      parseFlightQuery("flight from Sydney to Tokyo 2026-11-02 to 2026-11-09"),
-    ).toMatchObject({ depart: "2026-11-02", return: "2026-11-09" });
+    expect(parseFlightQuery("flight from Sydney to Tokyo 2026-11-02 to 2026-11-09")).toMatchObject({
+      depart: "2026-11-02",
+      return: "2026-11-09",
+    });
   });
 
   it("leaves planning requests to the planner", () => {
-    // The expensive mistake: answering one of these with a bare fare would skip
-    // the itinerary, stay, dining and budget work the traveller asked for.
     expect(
       parseFlightQuery("Plan a 4-day trip to Sydney for 2 people from 2026-11-02 to 2026-11-06"),
     ).toBeUndefined();
@@ -48,8 +47,6 @@ describe("parseFlightQuery", () => {
   });
 
   it("leaves an edit to an open trip with the planner", () => {
-    // These name a flight, two cities and a date, and are still requests to
-    // change a trip rather than questions about a price.
     for (const message of [
       "change the flight from Sydney to Tokyo on 25 Nov 2026",
       "swap the flight from Sydney to Tokyo on 25 Nov 2026 for a cheaper one",
@@ -59,15 +56,14 @@ describe("parseFlightQuery", () => {
   });
 
   it("declines anything it cannot answer outright", () => {
-    // No date: a fare needs one, so this is a conversation, not a lookup.
     expect(parseFlightQuery("what is the cheapest flight from Sydney to Seoul")).toBeUndefined();
-    // No flight language at all.
+
     expect(parseFlightQuery("Sydney to Seoul on 2026-11-02")).toBeUndefined();
-    // Nowhere to go.
+
     expect(parseFlightQuery("cheapest flight on 2026-11-02")).toBeUndefined();
-    // Same city both ends.
+
     expect(parseFlightQuery("flight from Sydney to Sydney on 2026-11-02")).toBeUndefined();
-    // Ambiguous date is not a usable date.
+
     expect(parseFlightQuery("flight Sydney to Seoul on 11/02/2026")).toBeUndefined();
   });
 });

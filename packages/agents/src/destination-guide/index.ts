@@ -15,8 +15,6 @@ import { clip } from "../clip";
 import { normalize, canonicalPlaceName, dedupeEntries } from "../place-names";
 import { TRAVELLER_PREFERENCES_RULE } from "../prompts/traveller-preferences";
 
-// The guide schema keeps model output bounded and makes every downstream item
-// safe to render as traveller-facing content.
 const GuideAttraction = z.object({
   name: z.string().trim().min(1).max(120),
   detail: z.string().trim().min(1).max(500),
@@ -33,13 +31,6 @@ const DestinationGuideDraft = z.object({
   assumptions: z.array(z.string().trim().min(1).max(400)).max(6),
 });
 
-/**
- * What the model is asked to return: the same shape with no length limits.
- * The model cannot count characters, so it wrote a 414-character summary
- * against a 400 limit, the extraction failed, and a retry that reused the
- * failed call's id ended the agent with no result at all — the guide fell back
- * in four of nine live runs. Lengths are enforced afterwards by `fitDraft`.
- */
 const ModelGuideDraft = z.object({
   summary: z.string().trim().min(1),
   attractions: z.array(
@@ -53,7 +44,6 @@ const ModelGuideDraft = z.object({
   assumptions: z.array(z.string().trim().min(1)),
 });
 
-/** Bring a model draft within the display limits instead of discarding it. */
 export function fitDraft(draft: z.infer<typeof ModelGuideDraft>): DestinationGuideDraft {
   const each = (items: string[], count: number, max: number) =>
     items.slice(0, count).map((item) => clip(item, max));
@@ -71,10 +61,8 @@ export function fitDraft(draft: z.infer<typeof ModelGuideDraft>): DestinationGui
   });
 }
 
-/** Structured guide content before it is adapted to the shared proposal shape. */
 export type DestinationGuideDraft = z.infer<typeof DestinationGuideDraft>;
 
-/** Injectable model seam used by tests and alternate providers. */
 export interface DestinationGuideGenerator {
   generate(input: {
     brief: TripBrief;
@@ -84,13 +72,10 @@ export interface DestinationGuideGenerator {
   }): Promise<DestinationGuideDraft>;
 }
 
-/** Configuration for selecting an injected generator or deterministic mode. */
 export interface DestinationGuideAgentOptions {
-  /** Pass false to force the grounded deterministic guide. */
   generator?: DestinationGuideGenerator | false;
 }
 
-/** Turn the trip start date into month-only context (not a weather forecast). */
 function travelMonth(date: string): string {
   const timestamp = Date.parse(`${date}T00:00:00.000Z`);
   if (
@@ -103,7 +88,6 @@ function travelMonth(date: string): string {
   return new Intl.DateTimeFormat("en", { month: "long", timeZone: "UTC" }).format(timestamp);
 }
 
-/** Reject attractions that are not present in the injected map candidates. */
 function validateDraft(draft: DestinationGuideDraft, places: Place[]): DestinationGuideDraft {
   const parsed = DestinationGuideDraft.parse(draft);
   const attractions = dedupeEntries(parsed.attractions);
@@ -125,7 +109,6 @@ function validateDraft(draft: DestinationGuideDraft, places: Place[]): Destinati
   };
 }
 
-/** Provide conservative guidance when no model is configured or it fails validation. */
 function fallbackDraft(brief: TripBrief, month: string, places: Place[]): DestinationGuideDraft {
   return {
     summary: `${brief.destination} planning guidance for ${month}`,
@@ -151,14 +134,12 @@ function fallbackDraft(brief: TripBrief, month: string, places: Place[]): Destin
   };
 }
 
-/** Build the LangChain generator; the evidence tool is the model's sole source of facts. */
 function createMiniMaxGenerator(): DestinationGuideGenerator | undefined {
   const model = createRoutedChatModel("destination-guide");
   if (!model) return undefined;
 
   return {
     async generate(input) {
-      // The tool returns already-validated brief, month, places and preferences.
       const evidence = tool(async () => input, {
         name: "read_destination_evidence",
         description:
@@ -195,8 +176,6 @@ async function planDestinationGuide(
   ctx: AgentContext,
   options: DestinationGuideAgentOptions,
 ): Promise<AgentProposal> {
-  // Fetch map evidence and long-term preferences in parallel, then normalize
-  // duplicate place names before asking the model to draft guidance.
   ctx.signal?.throwIfAborted();
   const brief = TripBriefSchema.parse(briefInput);
   const month = travelMonth(brief.dates[0]);
@@ -293,8 +272,6 @@ async function planDestinationGuide(
               "The destination guide completed with monthly context because the requested weather data was unavailable.",
           }
         : {
-            // Live providers are live whether they forecast or report history;
-            // anything else (a model's month context, a fixture) is not.
             kind: /^(Google Weather API|Open-Meteo)/.test(weatherResult?.provider ?? "")
               ? "live"
               : !mockEnabled()
@@ -310,7 +287,6 @@ async function planDestinationGuide(
   };
 }
 
-/** Factory keeps the generator injectable while exposing the Specialist API. */
 export function createDestinationGuideAgent(
   options: DestinationGuideAgentOptions = {},
 ): Specialist {
@@ -326,5 +302,4 @@ export function createDestinationGuideAgent(
   };
 }
 
-// Default instance used by the shared agent registry.
 export const destinationGuideAgent = createDestinationGuideAgent();

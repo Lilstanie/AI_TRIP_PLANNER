@@ -1,9 +1,3 @@
-// Ways the Itinerary could fail, written before the module:
-// - a place on two days gets a second number, or is missing from the later day's map;
-// - an idea (no day) between stops is listed, counted, numbered or drawn as a stop;
-// - start times that disagree with plan order make the views list a day in plan order;
-// - a day whose stops have no located place disappears from the day list or draws markers;
-// - a displayed position is sent to the edit preview as if it were the plan's index.
 import { describe, expect, it, vi } from "vitest";
 import type { ProposalItem, TripPlan } from "@trip/shared";
 import type { GooglePlace, RouteMode } from "@/lib/integrations/google";
@@ -31,7 +25,7 @@ const place = (id: string): GooglePlace => ({
   displayName: { text: id },
   location: { latitude: 1, longitude: 1 },
 });
-/** Activities located at the named places; anything not listed has no place. */
+
 const at = (placeOf: Record<string, string>) => (activity: { id?: string }) =>
   placeOf[activity.id!] ? place(placeOf[activity.id!]!) : undefined;
 
@@ -47,7 +41,7 @@ describe("Itinerary", () => {
     expect(itinerary.markersFor(2).map((marker) => [marker.activityId, marker.number])).toEqual([
       ["again", 1],
     ]);
-    // The whole-trip map shows the place once, at its first visit.
+
     expect(itinerary.markersFor().map((marker) => [marker.activityId, marker.number])).toEqual([
       ["temple", 1],
       ["market", 2],
@@ -123,18 +117,16 @@ describe("Itinerary", () => {
   });
 
   describe("planIndex", () => {
-    // Plan order on day 1: c (15:00), a (09:00), b (12:00). Visiting order: a, b, c.
     const itinerary = buildItinerary(
       planOf([stop("c", 1, "15:00"), stop("a", 1, "09:00"), stop("b", 1, "12:00")]),
       () => undefined,
     );
 
     it("moves a stop before the stop shown at that position, not the plan's", () => {
-      // Moving c to the top of the day lands before a, first in plan order once c is lifted out.
       expect(itinerary.planIndex("c", 1, 0)).toBe(0);
-      // Moving a one later lands just after b, the stop it moved past (plan index 2 among c, b).
+
       expect(itinerary.planIndex("a", 1, 1)).toBe(2);
-      // Moving b earlier, before a: a is plan index 1 among the day's others (c, a).
+
       expect(itinerary.planIndex("b", 1, 0)).toBe(1);
     });
 
@@ -150,13 +142,6 @@ describe("Itinerary", () => {
   });
 });
 
-// Ways a timeline move could fail through the unchanged edit preview endpoint, written before the fix:
-// - start times that disagree with plan order: "Move later" leaves the stop where it was, or "Move
-//   earlier" lands it before the wrong neighbour, because the shown position was read as a plan
-//   position;
-// - the first stop of a day moved later, or the last moved earlier, does not swap with its neighbour;
-// - a day that visits one place twice: the repeat visit moves past the wrong stop or loses the
-//   place's first number.
 describe("timeline moves through the edit preview", () => {
   type Timed = Item & { placeId: string; startTime: string; endTime: string };
   const timed = (id: string, start: string, placeId = `place-${id}`): Timed => ({
@@ -186,7 +171,7 @@ describe("timeline moves through the edit preview", () => {
       durationMin: 20,
     })),
   });
-  /** Move a stop by `step` shown positions, as the timeline's buttons do, and read the previewed day. */
+
   async function move(items: Timed[], id: string, step: -1 | 1) {
     const plan = fixturePlan(items);
     const itinerary = buildItinerary(plan, located);
@@ -215,14 +200,12 @@ describe("timeline moves through the edit preview", () => {
   });
 
   it("moves a stop later past the stop shown after it when start times disagree with plan order", async () => {
-    // Plan order c, a, b; shown a, b, c.
     const day = await move([timed("c", "15:00"), timed("a", "09:00"), timed("b", "12:00")], "a", 1);
     const order = ids(day);
     expect(order.indexOf("a")).toBeGreaterThan(order.indexOf("b"));
   });
 
   it("moves a stop earlier past the stop shown before it when start times disagree with plan order", async () => {
-    // Plan order b, c, a; shown a, b, c.
     const day = await move(
       [timed("b", "12:00"), timed("c", "15:00"), timed("a", "09:00")],
       "c",

@@ -1,4 +1,3 @@
-/** Compare provider and draft names without changing the original spelling. */
 export function normalize(value: string): string {
   return value.trim().replace(/\s+/g, " ").toLocaleLowerCase();
 }
@@ -8,7 +7,6 @@ export function canonicalPlaceName(name: string, places: { name: string }[]): st
   return match?.name ?? name.trim();
 }
 
-/** Keep the first occurrence and its provider metadata. */
 export function dedupeEntries<T extends { name: string }>(items: T[]): T[] {
   const seen = new Set<string>();
   return items.filter((item) => {

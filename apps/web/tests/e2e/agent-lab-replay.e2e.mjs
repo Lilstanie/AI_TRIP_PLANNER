@@ -1,34 +1,3 @@
-// End-to-end contract for Agent Lab artifact download and offline replay (#103). A visitor runs a
-// strategy, downloads its artifact, then loads that file into a fresh page with the network switched
-// off and watches the recorded run play back. Raw NDJSON, the downloaded artifacts, the original and
-// replayed evidence, every rejection, screenshots and a report land under
-// output/playwright/agent-lab-replay/ as repeatable evidence.
-//
-// Failure inventory, written before implementation:
-// - a run offers a download before it completes, after it is cancelled, or not at all once complete;
-// - the downloaded file differs from the artifact the stream completed with, is not versioned, or
-//   carries a credential, a raw prompt or chain-of-thought;
-// - the comparison offers fewer downloads than completed strategies, or one that names another run;
-// - replay needs the network (any /api request, or any failure once the browser is offline);
-// - replay loses or reorders an event, ignores elapsed timing (plays instantly or far slower than
-//   recorded), or does not restore the recorded scenario and strategy;
-// - the replayed timeline, plan, metrics or checks differ from the original run's;
-// - a replay looks like a live run (no replay label, no run identity) or ends without an outcome;
-// - Stop replay leaves a half-built plan on the page, or the run controls stay usable mid-replay;
-// - replay reads or writes saved chats, trips or preferences;
-// - an unreadable file is guessed into a run: not JSON, not an artifact, an unknown schema version,
-//   a missing, duplicated or reordered event, events timed backwards, an event from another run,
-//   a mismatched event count, a broken plan, an unknown scenario, an empty trace, a failed-run
-//   artifact with no events, an oversized file or a trace that would play for hours;
-// - a rejection hides the reason, is not announced, replaces a result already on the page, or
-//   blocks the next valid file;
-// - fields the contract does not define (a raw prompt in an uploaded file) reach the page;
-// - download and replay cannot be reached or announced by keyboard and screen reader;
-// - keyboard focus is lost when a replay starts;
-// - the page overflows horizontally at phone width, or logs a page error.
-//
-//   pnpm --filter @trip/web dev            # fixture mode needs no keys
-//   [CHANNEL=chrome] [PLAYWRIGHT=<path to playwright>] node apps/web/tests/e2e/agent-lab-replay.e2e.mjs
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
@@ -110,8 +79,6 @@ async function download(page, name) {
   return { filename: file.suggestedFilename(), text: readFileSync(path, "utf8") };
 }
 
-// Waits for the replay to start before waiting for it to finish, so a "Replay complete" left over
-// from the previous file is never mistaken for this one.
 async function replayToEnd(page, file) {
   await replayInput(page).setInputFiles(file);
   await waitStatus(page, "Replaying recorded run");
@@ -129,7 +96,6 @@ async function main() {
   const browser = await chromium.launch({ channel: process.env.CHANNEL });
   const summary = { scenario: SCENARIO, strategy: REVISION, cases: [] };
 
-  // ---- Original run and download (desktop) -------------------------------------------------
   const original = await open(browser, { width: 1440, height: 1000, tag: "original" });
   const page = original.page;
   const storageKeys = () =>
@@ -140,7 +106,6 @@ async function main() {
     "original: no download is offered before a run exists",
   );
 
-  // A cancelled run offers nothing to download.
   await page.getByLabel("Scenario").selectOption(SCENARIO);
   await page.getByLabel("Strategy").selectOption(REVISION);
   await page.getByRole("button", { name: "Run experiment" }).click();
@@ -213,7 +178,6 @@ async function main() {
     "original: the download is announced in the status region",
   );
 
-  // Keyboard: the download button takes focus and Enter downloads.
   const downloadButton = page.getByRole("button", { name: downloadName });
   await downloadButton.focus();
   const [keyboardDownload] = await Promise.all([
@@ -225,7 +189,6 @@ async function main() {
     "original: Enter on the focused download button downloads the artifact",
   );
 
-  // Keyboard: Tab from Compare reaches Replay artifact, and Enter opens the file chooser.
   await page.getByRole("button", { name: "Compare all strategies" }).focus();
   await page.keyboard.press("Tab");
   check(
@@ -252,7 +215,6 @@ async function main() {
     "original: replaying over a live result on the same page reproduces it",
   );
 
-  // ---- Compare: one download per completed strategy ------------------------------------------
   await page.getByRole("button", { name: "Compare all strategies" }).click();
   await waitStatus(page, "Run complete");
   const sideDownloads = page.getByRole("button", { name: /^Download artifact for / });
@@ -283,7 +245,6 @@ async function main() {
   );
   await original.context.close();
 
-  // ---- Offline replay in a fresh page -----------------------------------------------------------
   const replay = await open(browser, { width: 1440, height: 1000, tag: "replay" });
   const replayPage = replay.page;
   const requests = [];
@@ -395,7 +356,6 @@ async function main() {
   await replayPage.screenshot({ path: `${OUT}/desktop-replay-dark.png`, fullPage: true });
   await replayPage.emulateMedia({ colorScheme: "light" });
 
-  // Replay a second time and stop it halfway.
   await replayInput(replayPage).setInputFiles(`${OUT}/original.artifact.json`);
   await replayPage.getByRole("button", { name: "Stop replay" }).waitFor();
   await replayPage.waitForFunction(
@@ -416,7 +376,6 @@ async function main() {
     "replay: controls are usable again after Stop replay",
   );
 
-  // Replay every strategy's artifact from the comparison and check it against its own artifact.
   for (const item of compared) {
     await replayToEnd(replayPage, {
       name: `${item.strategyId}.json`,
@@ -432,7 +391,6 @@ async function main() {
     );
   }
 
-  // ---- Rejections ---------------------------------------------------------------------------------
   const base = artifact;
   const cases = [];
   const mutate = (name, phrases, build) => cases.push({ name, phrases, build });
@@ -491,8 +449,7 @@ async function main() {
     copy.metrics.eventCount = 0;
     return JSON.stringify(copy);
   });
-  // A failed run replays when it kept its events (see agent-lab-failures.e2e.mjs); with none there is
-  // nothing to show.
+
   mutate("failed-run-without-events", ["no events to replay"], () => {
     const copy = clone(base);
     delete copy.plan;
@@ -511,7 +468,6 @@ async function main() {
   });
   mutate("oversized", ["larger than 5 MB"], () => Buffer.alloc(MAX_BYTES + 1, " "));
 
-  // On a fresh page, with nothing to lose, every case is rejected with its reason.
   const fresh = await open(browser, { width: 1440, height: 1000, tag: "reject" });
   for (const item of cases) {
     await upload(fresh.page, `${item.name}.json`, item.build());
@@ -527,7 +483,6 @@ async function main() {
     check(ok, `reject: ${item.name} is refused with its reason (${message.slice(0, 110)})`);
     summary.cases.push({ name: item.name, rejected: ok, message });
     await fresh.page.evaluate(() => {
-      // The page clears the chooser so the same file can be chosen again.
       const input = document.querySelector("input[data-agent-lab-replay-input]");
       if (input) input.value = "";
     });
@@ -540,7 +495,6 @@ async function main() {
   await fresh.page.screenshot({ path: `${OUT}/desktop-rejected.png`, fullPage: true });
   await fresh.context.close();
 
-  // A rejected file does not replace a result already on the page, and the next valid file works.
   const keep = await open(browser, { width: 1440, height: 1000, tag: "keep" });
   await runStrategy(keep.page, "tokyo-couple", "single-agent-baseline");
   const before = await evidence(keep.page);
@@ -559,7 +513,6 @@ async function main() {
   );
   await keep.context.close();
 
-  // Fields the contract does not define never reach the page.
   const canary = clone(base);
   canary.systemPrompt = CANARY;
   canary.events[1].event.rawPrompt = CANARY;
@@ -574,7 +527,6 @@ async function main() {
     "replay: a raw prompt added to an uploaded file never reaches the page",
   );
 
-  // ---- Phone ------------------------------------------------------------------------------------------
   const phone = await open(browser, { width: 390, height: 844, tag: "phone" });
   await phone.context.setOffline(true);
   await upload(phone.page, "phone.json", readFileSync(`${OUT}/original.artifact.json`));

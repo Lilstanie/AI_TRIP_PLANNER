@@ -12,12 +12,11 @@ import { offlineTimeZone } from "./time-zone";
 import type { Coordinates, MapPlace, MapProvider } from "./types";
 
 export type OsmProviderOptions = {
-  /** `mock` answers from fixtures and never opens a connection; anything else is live. */
   dataMode?: DataMode;
-  /** Replaces `fetch`, for tests. */
+
   fetch?: (input: string, init?: RequestInit) => Promise<Response>;
   now?: () => number;
-  /** Coordinates of an OSM place id, for a caller that does not already hold them. */
+
   locate?: (id: string) => Promise<Coordinates | undefined>;
 };
 
@@ -25,10 +24,6 @@ const unsupported = async (): Promise<never> => {
   throw new MapProviderUnavailableError("osm", "not_supported");
 };
 
-/**
- * The free OpenStreetMap-based provider. Walking and driving come from OSRM and the time zone is worked
- * out offline from coordinates; Photon/Nominatim supply places, Commons supplies optional photos.
- */
 export function osmMapProvider(options: OsmProviderOptions = {}): MapProvider {
   const mock = options.dataMode === "mock";
   const osrm: OsrmClient = osrmClient({
@@ -43,7 +38,6 @@ export function osmMapProvider(options: OsmProviderOptions = {}): MapProvider {
     (async (id: string) =>
       mock ? mockPlaceFor(id)?.location : (await places.details(id)).location);
 
-  /** A place's coordinates: the caller's hint, else an OSM id looked up; a Google id is never looked up. */
   const locationOf = async (id: string, hint?: Coordinates) => {
     if (hint) return hint;
     return providerOfPlaceId(id) === "osm" ? locate(id) : undefined;

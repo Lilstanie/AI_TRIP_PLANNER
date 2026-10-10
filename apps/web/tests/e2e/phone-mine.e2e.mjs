@@ -1,10 +1,3 @@
-// #177 failure inventory: search omits either list; opening/new stays in Mine; chat actions rely
-// on hover or lose edits; calendar clips at phone width or cannot open a trip; settings/data/language
-// disappear or remain in the top bar; English/Chinese targets are smaller than 44px.
-// #198 crossing the phone width: the Trip drawer and the Trip tab, and Your trips and the Mine
-// tab, do not become each other in both directions, so the traveller lands on another view.
-// Repeatable artifact: screenshots and summary.json in output/playwright/phone-mine.
-// BASE_URL=http://localhost:3000 node apps/web/tests/e2e/phone-mine.e2e.mjs
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
@@ -261,7 +254,7 @@ try {
     check(!errors.length, `${width}: no page errors (${errors.join(", ")})`);
     await context.close();
   }
-  // The phone-only selectTrip change must preserve the existing tablet Map selection.
+
   const tablet = await browser.newContext({
     viewport: { width: 800, height: 900 },
     hasTouch: true,
@@ -289,8 +282,7 @@ try {
     "800: selecting a trip preserves the tablet Map view",
   );
   await tabletPage.screenshot({ path: `${OUT}/800-trip-retains-map.png` });
-  // #184: Your trips crossing into phone width must keep Chat, Mine and Settings reachable
-  // without opening or creating a trip.
+
   await tabletPage.getByRole("button", { name: "Open navigation" }).click();
   await tabletPage
     .locator(".drawer")
@@ -337,7 +329,7 @@ try {
   );
   await tabletPage.waitForTimeout(500);
   await tabletPage.screenshot({ path: `${OUT}/800-to-390-chat.png` });
-  // #198: Trip tab -> Trip drawer -> Trip tab, and Mine -> Your trips, across the phone width.
+
   await tabs.getByRole("tab", { name: /^Trip/ }).click({ timeout: 3000 });
   await tabletPage.setViewportSize({ width: 800, height: 900 });
   check(

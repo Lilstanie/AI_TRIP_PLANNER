@@ -13,25 +13,11 @@ import type { AgentLabRunEvent } from "@trip/shared";
 import { eventCopy, eventKindLabel } from "@/lib/agent-lab/event-copy";
 import { TraceOverview } from "./TraceOverview";
 
-/** Distance from the bottom, in px, that still counts as "at the bottom" (fractional scroll positions). */
 const BOTTOM_TOLERANCE = 8;
 
-/** The round an event belongs to, when its payload names one. Run-level facts name none. */
 const roundOf = (runEvent: AgentLabRunEvent): number | undefined =>
   "round" in runEvent.event ? runEvent.event.round : undefined;
 
-/**
- * The ordered trace of one run, with each event labelled by the part of the system that produced it.
- * The list scrolls inside its own bounded box. The box follows the newest event while it sits at the
- * bottom; scrolling up suspends following, and returning to the bottom resumes it. The follow scroll is
- * always instant: a smooth animation would fire scroll events away from the bottom and suspend itself,
- * and it would ignore a visitor's reduced-motion setting.
- *
- * Two folds change the list only: Rounds hides every row that belongs to a round (leaving a heading per
- * round) and Calls hides every tool row. Run-level rows never fold. Fold state is local to one list, so
- * each side of the Compare view folds on its own, and neither fold touches the event count or the
- * fixture or live label that the panel shows.
- */
 export function RunTimeline({
   events,
   label,
@@ -40,9 +26,9 @@ export function RunTimeline({
 }: {
   events: readonly AgentLabRunEvent[];
   label: string;
-  /** False when the caller draws this list's bar elsewhere (the Compare view's shared stack). */
+
   showOverview?: boolean;
-  /** Hands the caller this list's jump-to-row function (null on unmount), for a bar drawn outside. */
+
   onJumpReady?: (jump: ((sequence: number) => void) | null) => void;
 }) {
   const box = useRef<HTMLDivElement>(null);
@@ -57,14 +43,10 @@ export function RunTimeline({
     following.current = el.scrollHeight - el.scrollTop - el.clientHeight <= BOTTOM_TOLERANCE;
   }, []);
 
-  // A wheel up is intent to read earlier events; do not wait for the scroll event to say so.
   const onWheel = useCallback((event: WheelEvent) => {
     if (event.deltaY < 0) following.current = false;
   }, []);
 
-  // Bring a row into the box and mark it for a moment. The scroll is instant under reduced motion. Either
-  // way it leaves the bottom, so following suspends until the visitor returns there. A row hidden by a
-  // fold is unfolded first.
   const highlightTimer = useRef<number | undefined>(undefined);
   useEffect(() => () => window.clearTimeout(highlightTimer.current), []);
   const [pendingJump, setPendingJump] = useState<number | null>(null);
@@ -73,8 +55,6 @@ export function RunTimeline({
     const row = el?.querySelector<HTMLElement>(`[data-trace-row="${sequence}"]`);
     if (!el) return;
     if (!row) {
-      // The row is folded away. The bar still shows its record, so open both folds and jump once the row
-      // is drawn rather than leave the click without effect.
       setRoundsFolded(false);
       setCallsFolded(false);
       setPendingJump(sequence);
@@ -100,7 +80,7 @@ export function RunTimeline({
   useEffect(() => {
     if (pendingJump === null) return;
     setPendingJump(null);
-    // A sequence with no row at all (not just a folded one) is dropped, so this cannot loop.
+
     if (box.current?.querySelector(`[data-trace-row="${pendingJump}"]`)) jumpTo(pendingJump);
   }, [pendingJump, jumpTo]);
 
@@ -112,13 +92,12 @@ export function RunTimeline({
   useLayoutEffect(() => {
     const el = box.current;
     if (!el) return;
-    // A shorter list is a new run (or a replay restarting): follow it from its first event.
+
     if (events.length < seen.current) following.current = true;
     seen.current = events.length;
     if (following.current) el.scrollTop = el.scrollHeight;
   }, [events.length, roundsFolded, callsFolded]);
 
-  // One heading per round, always drawn (even while its rows are folded), so a long run reads as an outline.
   const roundSizes = new Map<number, number>();
   for (const runEvent of events) {
     const round = roundOf(runEvent);
@@ -147,7 +126,7 @@ export function RunTimeline({
           Fold calls
         </button>
       </div>
-      {/* Focusable so a keyboard user can scroll the box with the arrow keys. */}
+
       <div
         className="agent-lab__trace-box"
         data-agent-lab-trace-box

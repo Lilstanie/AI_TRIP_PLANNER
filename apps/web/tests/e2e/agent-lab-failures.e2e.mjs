@@ -1,35 +1,3 @@
-// End-to-end contract for Agent Lab's Failure Lab (#105). From the public page a visitor runs each
-// registered fault profile, reads where it failed and whether the workflow carried on, kept a partial
-// result or stopped, downloads the artifact (a failed run included) and replays it offline in a fresh
-// page. The script recomputes each outcome from the artifacts in plain JavaScript, with no code shared
-// with the app. Raw NDJSON, artifacts, evidence, a summary, a report and screenshots land under
-// output/playwright/agent-lab-failures/.
-//
-// Failure inventory, written before implementation:
-// - the page offers a fault the server did not register, or sends anything but a registered profile on
-//   its own scenario and strategy; the endpoint accepts an unknown id, an object that defines a fault,
-//   a fault on another scenario or strategy, or an extra property;
-// - a degraded run reads as plain success, or a stopped run as degraded, so the three ways a fault ends
-//   (carry on with less, keep a partial result, stop) blur together;
-// - provider timeout: the failed flight search is not in the trace under transport, the section is
-//   priced anyway or the conflict it leaves is hidden;
-// - empty stay search: the workflow invents a stay, or the failed run names no capability or keeps no trace;
-// - invalid specialist output: the proposal reaches a plan, or the rejection and its fields are missing;
-// - supervisor failure: the fallback is silent, shown as failure, or a specialist runs twice;
-// - stalled revision: a revision that does not improve replaces the plan, the loop goes on, or the
-//   reason for stopping is missing;
-// - a figure on the page (events, failed tool calls, failed specialists, unavailable sections,
-//   unresolved conflicts, stopping reason) differs from the artifact it claims to show;
-// - a stream, artifact or page carries a stack, a validator message, a raw provider error or a credential;
-// - a failed run cannot be downloaded or replayed, or its replay reads differently from the live run:
-//   outcome, facts, figures, trace, status; replay needs the network or touches saved chats and trips;
-// - Run all skips a profile, runs two at once or keeps going after Cancel;
-// - the outcome is not announced, a fault control cannot be reached or operated by keyboard, or the
-//   outcome is carried by colour alone;
-// - the page overflows horizontally at phone width, or logs a page error.
-//
-//   pnpm --filter @trip/web dev     # with USE_MOCK_TOOLS=true and no model or provider keys
-//   [CHANNEL=chrome] [PLAYWRIGHT=<path to playwright>] node apps/web/tests/e2e/agent-lab-failures.e2e.mjs
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
@@ -40,7 +8,6 @@ const BASE = process.env.BASE_URL ?? "http://localhost:3000";
 const OUT = resolve(process.cwd(), "output/playwright/agent-lab-failures");
 mkdirSync(OUT, { recursive: true });
 
-// What each registered profile is built for. The page must send exactly this and nothing else.
 const PROFILES = {
   "provider-timeout": {
     title: "Flight provider timeout",
@@ -112,7 +79,6 @@ const eventsOf = (artifact, type) =>
   artifact.events.map((entry) => entry.event).filter((event) => event.type === type);
 const name = (agent) => agent.replace(/-/g, " ");
 
-// ---- Independent recomputation of how a run ended, from the artifact alone ------------------------
 function recompute(artifact) {
   const toolFailed = eventsOf(artifact, "tool_failed");
   const agentFailed = eventsOf(artifact, "agent_failed");
@@ -150,13 +116,11 @@ function recompute(artifact) {
   };
 }
 
-// ---- Browser helpers --------------------------------------------------------------------------------
 const card = (page, id) => page.locator(`[data-agent-lab-fault="${id}"]`);
 const waitStatus = (page, text) =>
   page.getByRole("status").getByText(text, { exact: true }).waitFor({ timeout: 90_000 });
 const statusText = (page) => page.getByRole("status").innerText();
 
-/** What a card shows, read from the page, in a form that can be compared run to run. */
 const evidence = (page, id) =>
   card(page, id).evaluate((node) => {
     const text = (item) => item.textContent.replace(/\s+/g, " ").trim();
@@ -195,7 +159,6 @@ async function main() {
   const browser = await chromium.launch({ channel: process.env.CHANNEL });
   const summary = { profiles: {} };
 
-  // ---- Registration at the endpoint ---------------------------------------------------------------
   const post = (body) =>
     fetch(`${BASE}/api/agent-lab/runs`, {
       method: "POST",
@@ -229,7 +192,6 @@ async function main() {
     );
   }
 
-  // ---- Live runs of every profile -------------------------------------------------------------------
   const live = await open(browser, { width: 1440, height: 1000, tag: "live" });
   const page = live.page;
   const storage = () => page.evaluate(() => JSON.stringify(Object.entries(localStorage).sort()));
@@ -356,7 +318,6 @@ async function main() {
       `${id}: the card shows no stack, validator message or raw provider error`,
     );
 
-    // What each fault must leave in the trace and the plan.
     if (id === "provider-timeout") {
       const failed = eventsOf(artifact, "tool_failed");
       const transport = artifact.plan.sections.find((section) => section.id === "transport");
@@ -460,7 +421,6 @@ async function main() {
   check(requests.length === IDS.length, `live: one request per profile run (${requests.length})`);
   await page.screenshot({ path: `${OUT}/desktop-failures.png`, fullPage: true });
 
-  // ---- Download, a failed run included ----------------------------------------------------------------
   const downloads = {};
   for (const id of IDS) {
     const button = page.getByRole("button", {
@@ -480,7 +440,6 @@ async function main() {
     );
   }
 
-  // ---- Keyboard and announcements ----------------------------------------------------------------------
   const runButton = page.getByRole("button", {
     name: `Run fault profile: ${PROFILES["stalled-revision"].title}`,
   });
@@ -501,7 +460,6 @@ async function main() {
     "keyboard: the trace opens from its summary with Enter",
   );
 
-  // ---- Run all, and Cancel -----------------------------------------------------------------------------
   const before = requests.length;
   await page.getByRole("button", { name: "Run all fault profiles" }).click();
   await waitStatus(page, "Fault runs complete");
@@ -533,7 +491,6 @@ async function main() {
   );
   await live.context.close();
 
-  // ---- Offline replay of every artifact, failed runs included ----------------------------------------------
   const replay = await open(browser, { width: 1440, height: 1000, tag: "replay" });
   const rp = replay.page;
   await replay.context.setOffline(true);
@@ -572,7 +529,6 @@ async function main() {
   await rp.screenshot({ path: `${OUT}/desktop-replay-failures.png`, fullPage: true });
   await replay.context.close();
 
-  // ---- Phone ---------------------------------------------------------------------------------------------------
   const phone = await open(browser, { width: 390, height: 844, tag: "phone" });
   await phone.page
     .getByRole("group", { name: "View" })

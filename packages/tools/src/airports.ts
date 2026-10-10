@@ -1,21 +1,4 @@
-/**
- * City → IATA airport code, for providers that will not take a city name.
- *
- * SerpApi's Google Flights engine rejects free text: `departure_id` must be a
- * 3-letter code or a Google Knowledge Graph id. This table is the project's
- * answer to "the traveller typed a city".
- *
- * It is deliberately a fixed table rather than a lookup service: the mapping is
- * a product decision, not a fact. A city with several airports resolves to the
- * one this product means (London → LHR, not LGW/STN), and a city with none
- * resolves to its nearest major hub, which is a judgement that belongs in
- * source control where it can be reviewed and tested.
- *
- * Unknown cities throw rather than guess — a wrong airport silently prices the
- * wrong flight, and nothing downstream would catch it.
- */
 const AIRPORTS: Record<string, string> = {
-  // Australia & New Zealand
   sydney: "SYD",
   melbourne: "MEL",
   brisbane: "BNE",
@@ -31,10 +14,9 @@ const AIRPORTS: Record<string, string> = {
   christchurch: "CHC",
   queenstown: "ZQN",
 
-  // East & Southeast Asia
   tokyo: "NRT",
   osaka: "KIX",
-  kyoto: "KIX", // No airport of its own; Kansai is the nearest major hub.
+  kyoto: "KIX",
   nagoya: "NGO",
   sapporo: "CTS",
   fukuoka: "FUK",
@@ -63,7 +45,6 @@ const AIRPORTS: Record<string, string> = {
   saigon: "SGN",
   "siem reap": "SAI",
 
-  // South & West Asia
   delhi: "DEL",
   "new delhi": "DEL",
   mumbai: "BOM",
@@ -74,7 +55,6 @@ const AIRPORTS: Record<string, string> = {
   doha: "DOH",
   istanbul: "IST",
 
-  // Europe
   london: "LHR",
   paris: "CDG",
   amsterdam: "AMS",
@@ -102,7 +82,6 @@ const AIRPORTS: Record<string, string> = {
   budapest: "BUD",
   warsaw: "WAW",
 
-  // Americas
   "new york": "JFK",
   nyc: "JFK",
   "los angeles": "LAX",
@@ -124,7 +103,6 @@ const AIRPORTS: Record<string, string> = {
   lima: "LIM",
   santiago: "SCL",
 
-  // Africa & Middle East
   cairo: "CAI",
   "cape town": "CPT",
   johannesburg: "JNB",
@@ -133,15 +111,12 @@ const AIRPORTS: Record<string, string> = {
   "tel aviv": "TLV",
 };
 
-/** Already an airport code, or a Google Knowledge Graph id SerpApi takes as-is. */
 const PASSTHROUGH = /^[A-Z]{3}$|^\/[mg]\//;
 
-/** The code a provider needs, or undefined when this project has no mapping. */
 export function airportCodeFor(city: string): string | undefined {
   const trimmed = city.trim();
   if (PASSTHROUGH.test(trimmed)) return trimmed;
-  // Normalise punctuation and spacing so "Ho Chi Minh  City" and
-  // "ho-chi-minh city" reach the same entry.
+
   const key = trimmed
     .toLowerCase()
     .replace(/[.,'’]/g, "")
@@ -151,5 +126,4 @@ export function airportCodeFor(city: string): string | undefined {
   return AIRPORTS[key];
 }
 
-/** Every city this project can currently price a flight for. */
 export const knownAirportCities = () => Object.keys(AIRPORTS).sort();

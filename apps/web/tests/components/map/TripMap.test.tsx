@@ -8,7 +8,7 @@ type MapProps = Omit<Parameters<typeof TripMap>[0], "userLocation" | "stops"> & 
   places: GooglePlace[];
   days?: number[];
 };
-/** TripMap with the workspace's location hook, and places numbered in the order given. */
+
 function Map({ places, days = [], ...props }: MapProps) {
   const userLocation = useUserLocation();
   const stops: MapStop[] = places.map((place, index) => ({
@@ -55,7 +55,6 @@ describe("TripMap", () => {
     fireEvent.click(within(popup).getByRole("button", { name: "Close place details" }));
     expect(screen.queryByRole("dialog")).toBeNull();
 
-    // Selecting another place (from the drawer, say) opens its details again.
     const other = { ...museum, id: "place-2", displayName: { text: "Harbour" } };
     rerender(<Map places={[museum, other]} selected="place-2" routes={[]} onSelect={() => {}} />);
     expect(screen.getByRole("dialog", { name: "Harbour" })).toBeTruthy();

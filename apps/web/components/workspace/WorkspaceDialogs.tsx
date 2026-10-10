@@ -18,7 +18,6 @@ export function WorkspaceDialogs({ model }: { model: WorkspaceModel }) {
             initial={settingsSection}
             onDataMode={dataMode.choose}
             onAccountModal={(open) => {
-              // Close the native dialog's top layer before Clerk mounts its DOM portal.
               flushSync(closeDialog);
               open();
             }}

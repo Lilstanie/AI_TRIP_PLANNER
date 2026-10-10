@@ -2,13 +2,8 @@
 import { useLocale } from "@/components/account/LocaleProvider";
 import Image from "next/image";
 
-/** The one brand asset; referenced by URL so its embedded image data is never duplicated. */
 export const LOGO_SRC = "/brand/ai-trip-planner-logo.svg";
 
-/**
- * Logo with an optional product name. When the name is visible the image is decorative;
- * when it is the only brand element (collapsed sidebar) it carries the product name.
- */
 export function BrandMark({ showName = true }: { showName?: boolean }) {
   const { t } = useLocale();
   return (

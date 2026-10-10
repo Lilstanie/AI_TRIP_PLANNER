@@ -90,7 +90,7 @@ describe("QuestionComposer", () => {
     fireEvent.click(screen.getByRole("checkbox", { name: "Street food" }));
     fireEvent.change(screen.getByLabelText("Other answer"), { target: { value: "ramen" } });
     fireEvent.click(primary());
-    // The optionless question's block field takes focus.
+
     const notes = screen.getByLabelText("Your answer");
     expect(document.activeElement).toBe(notes);
     fireEvent.change(notes, { target: { value: "Vegetarian" } });
@@ -161,7 +161,7 @@ describe("QuestionComposer", () => {
     expect(progress()).toBe("1 / 2");
     fireEvent.keyDown(field, { key: "Enter" });
     expect(progress()).toBe("2 / 2");
-    // Last question: a click answers without auto-advancing; Enter on an option then submits.
+
     const packed = screen.getByRole("radio", { name: "Packed" });
     fireEvent.click(packed);
     expect(onSubmit).not.toHaveBeenCalled();

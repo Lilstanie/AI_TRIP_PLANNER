@@ -28,7 +28,7 @@ const complete = (destination: string, activity?: string) =>
       response: { reply: "Updated", plan: planFor(destination, activity) },
     }),
   );
-/** A chat stream whose plan uses the trip ID the client sent. */
+
 const completeFor = (destination: string) => (init?: RequestInit) => {
   const { tripId } = JSON.parse(init!.body as string);
   return new Response(
@@ -46,7 +46,7 @@ const louvre = {
 const drawer = (name: "trip") => document.querySelector<HTMLElement>(`.workspace-drawer--${name}`)!;
 const openPreferences = () =>
   fireEvent.click(screen.getByRole("button", { name: "Open trip preferences" }));
-/** A top-bar fact chip: "Destination: Sydney" once filled, "Where" while empty. */
+
 const chip = (name: RegExp) => screen.getByRole("button", { name });
 const openChip = (name: RegExp) => fireEvent.click(chip(name));
 const googlePlace = {
@@ -56,7 +56,7 @@ const googlePlace = {
   location: { latitude: -33.8688, longitude: 151.2093 },
 };
 const sidebar = () => screen.getByRole("complementary", { name: "Chats and trips" });
-/** Only the narrow layout puts the sidebar inside a drawer. */
+
 const useNarrowLayout = () =>
   vi.stubGlobal("matchMedia", (query: string) => ({
     matches: query === "(max-width: 1000px)",
@@ -68,17 +68,16 @@ const useNarrowLayout = () =>
     removeListener: vi.fn(),
     dispatchEvent: vi.fn(),
   }));
-/** The Chats panel beside the desktop sidebar: search, New chat, New trip, trips and chats. */
+
 const chatsPanel = () => document.getElementById("chats-panel")!;
 const historyButton = (name: RegExp) => within(chatsPanel()).getAllByRole("button", { name })[0]!;
-/** An untitled chat's history row is also named "New chat"; the panel's action comes first. */
+
 const newChatButton = () => within(chatsPanel()).getAllByRole("button", { name: "New chat" })[0]!;
 const withPlaceRequests = (...responses: (Response | ((init?: RequestInit) => Response))[]) => {
   let next = 0;
   return vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
-    // Asked once on mount to learn the deployment's mock/live default; it is
-    // not part of any test's ordered response queue.
+
     if (url === "/api/data-mode")
       return Promise.resolve(
         Response.json({ configured: "mock", providers: { hotelsAndFlights: false, maps: false } }),
@@ -109,10 +108,10 @@ describe("Workspace interactions", () => {
     expect(trip.getAttribute("aria-modal")).toBe("true");
     expect(trigger.getAttribute("aria-expanded")).toBe("true");
     expect(document.activeElement).toBe(screen.getByRole("button", { name: "Close your trip" }));
-    // The drawer overlays the map; the map canvas stays mounted in its own column.
+
     expect(document.querySelector(".workspace-panel--map")).toBe(map);
     expect(within(trip).queryByRole("button", { name: "Review plan" })).toBeNull();
-    // Every planned trip is already kept in Your trips; there is no separate snapshot button.
+
     expect(within(trip).queryByRole("button", { name: "Save trip" })).toBeNull();
 
     fireEvent.keyDown(window, { key: "Escape" });
@@ -129,7 +128,6 @@ describe("Workspace interactions", () => {
     expect(trip.getAttribute("aria-hidden")).toBe("true");
     expect(document.activeElement).toBe(trigger);
     await waitFor(() => {
-      // A reload starts with every panel closed, so whether one is open is never stored.
       const stored = JSON.parse(localStorage.getItem(CATALOG_KEY)!);
       expect(stored.layout.view).toBe("chat");
       expect(stored.layout.preferences).not.toHaveProperty("open");
@@ -193,8 +191,7 @@ describe("Workspace interactions", () => {
     const chat = document.querySelector<HTMLElement>(".workspace-panel--chat")!;
     const map = document.querySelector<HTMLElement>(".workspace-panel--map")!;
     expect((screen.getByLabelText("Message AI Trip Planner") as HTMLInputElement).value).toBe("");
-    // The blank state's example buttons name cities on purpose; what must not
-    // survive New chat is the previous plan's own content.
+
     expect(within(within(chat).getByRole("log")).queryByText(/Sydney|Museum/)).toBeNull();
     expect(within(map).queryByText(/Sydney|Museum/)).toBeNull();
     expect(within(chat).getByText("Where to next?")).toBeTruthy();
@@ -222,7 +219,7 @@ describe("Workspace interactions", () => {
     await waitFor(() =>
       expect(parseCatalog(localStorage.getItem(CATALOG_KEY)).trips).toHaveLength(1),
     );
-    // New chat and New trip are separate starts at the top of the Chats panel.
+
     fireEvent.click(within(sidebar()).getByRole("button", { name: /^Chats/ }));
     expect(within(chatsPanel()).getByRole("button", { name: "New chat" })).toBeTruthy();
     fireEvent.click(within(chatsPanel()).getByRole("button", { name: "New trip" }));
@@ -231,7 +228,7 @@ describe("Workspace interactions", () => {
     await waitFor(() => expect(where.contains(document.activeElement)).toBe(true));
     const chat = document.querySelector<HTMLElement>(".workspace-panel--chat")!;
     expect(within(chat).getByText("Where to next?")).toBeTruthy();
-    // An autosave after typing must keep the conversation's "New trip" name.
+
     fireEvent.change(screen.getByLabelText("Message AI Trip Planner"), {
       target: { value: "typed after New trip" },
     });
@@ -244,10 +241,10 @@ describe("Workspace interactions", () => {
       expect(active?.input).toBe("typed after New trip");
       expect(active?.tripId).toBeUndefined();
       expect(catalog.activeTripId).toBeUndefined();
-      // The existing trip is untouched; the new one is listed once it has a plan.
+
       expect(catalog.trips).toHaveLength(1);
     });
-    // Once emptied again, New chat reuses the same conversation and names it a chat.
+
     fireEvent.change(screen.getByLabelText("Message AI Trip Planner"), { target: { value: "" } });
     await waitFor(() =>
       expect(
@@ -273,8 +270,7 @@ describe("Workspace interactions", () => {
     render(<Workspace />);
     expect(screen.getByRole("region", { name: "Chat" })).toBeTruthy();
     expect(screen.queryByText("Plan together")).toBeNull();
-    // A previous test's New chat schedules a composer focus for the next frame; let it land first
-    // so it cannot steal focus from the drawer this test opens.
+
     await act(() => new Promise((resolve) => requestAnimationFrame(() => resolve(undefined))));
     fireEvent.click(screen.getByRole("button", { name: "Open navigation" }));
     const nav = document.querySelector<HTMLElement>(".workspace-drawer--nav")!;
@@ -285,7 +281,7 @@ describe("Workspace interactions", () => {
     expect(document.activeElement).toBe(
       within(nav).getByRole("button", { name: "Close navigation" }),
     );
-    // Both starts are reachable from the drawer too.
+
     expect(within(nav).getAllByRole("button", { name: "New chat" })[0]).toBeTruthy();
     fireEvent.click(within(nav).getByRole("button", { name: "New trip" }));
     await waitFor(() => expect(nav.getAttribute("aria-hidden")).toBe("true"));
@@ -306,7 +302,7 @@ describe("Workspace interactions", () => {
       expect(catalog.conversations).toHaveLength(2);
       const empty = catalog.conversations.filter((item) => item.title === "New chat");
       expect(empty).toHaveLength(1);
-      // The reused conversation stays selected, so the next message belongs to it.
+
       expect(catalog.activeConversationId).toBe(empty[0]!.id);
     });
   });
@@ -324,8 +320,7 @@ describe("Workspace interactions", () => {
     const deleted = parseCatalog(localStorage.getItem(CATALOG_KEY)).activeConversationId;
     fireEvent.click(screen.getByRole("button", { name: "Actions for New chat" }));
     fireEvent.click(screen.getByRole("menuitem", { name: "Delete" }));
-    // Deleting the open chat opens a fresh blank one. That replacement must not be the record
-    // just deleted: reusing its id used to put the deleted chat straight back on screen.
+
     await waitFor(() => {
       const catalog = parseCatalog(localStorage.getItem(CATALOG_KEY));
       expect(catalog.conversations.map((item) => item.id)).not.toContain(deleted);
@@ -382,7 +377,7 @@ describe("Workspace interactions", () => {
     await waitFor(() =>
       expect(parseCatalog(localStorage.getItem(CATALOG_KEY)).trips).toHaveLength(1),
     );
-    // The actions are not on the row until the trigger opens them.
+
     expect(screen.queryByRole("menuitem")).toBeNull();
     const trigger = screen.getByRole("button", { name: /^Actions for / });
     expect(trigger.getAttribute("aria-haspopup")).toBe("menu");
@@ -395,7 +390,6 @@ describe("Workspace interactions", () => {
       "Delete",
     ]);
 
-    // Pressing the trigger again closes it instead of reopening.
     fireEvent.click(trigger);
     expect(screen.queryByRole("menuitem")).toBeNull();
     expect(trigger.getAttribute("aria-expanded")).toBe("false");
@@ -408,7 +402,7 @@ describe("Workspace interactions", () => {
     );
     const trigger = screen.getByRole("button", { name: /^Actions for / });
     fireEvent.click(trigger);
-    // Opening moves focus into the menu so Escape and Tab act on it.
+
     expect(document.activeElement).toBe(screen.getByRole("menuitem", { name: "Rename" }));
     fireEvent.keyDown(window, { key: "Escape" });
     expect(screen.queryByRole("menuitem")).toBeNull();
@@ -439,7 +433,7 @@ describe("Workspace interactions", () => {
     fireEvent.click(trigger);
     expect(screen.getByRole("menuitem", { name: "Rename" })).toBeTruthy();
     fireEvent.keyDown(window, { key: "Escape" });
-    // The menu closes, but the drawer the sidebar sits in stays open.
+
     expect(screen.queryByRole("menuitem")).toBeNull();
     expect(nav.getAttribute("aria-hidden")).toBe("false");
     expect(document.activeElement).toBe(trigger);
@@ -479,14 +473,13 @@ describe("Workspace interactions", () => {
     expect(chip(/^Destination: Lisbon$/)).toBeTruthy();
     expect(chip(/^When$/)).toBeTruthy();
     expect(within(drawer("trip")).queryByText(/Sydney/)).toBeNull();
-    // Scoped to the message log: the blank state's example buttons name cities
-    // on purpose, so the chat panel as a whole is no longer a clean signal.
+
     expect(
       within(
         within(document.querySelector<HTMLElement>(".workspace-panel--chat")!).getByRole("log"),
       ).queryByText(/Sydney/),
     ).toBeNull();
-    // Switching back to the earlier chat restores its own trip.
+
     fireEvent.click(historyButton(/^Sydney · 2026-10-01/));
     expect(chip(/^Destination: Sydney$/)).toBeTruthy();
   });
@@ -519,8 +512,7 @@ describe("Workspace interactions", () => {
     const request = JSON.parse(
       (fetcher.mock.calls.find(([url]) => url === "/api/chat")![1] as RequestInit).body as string,
     );
-    // No mode: the assistant reads the message and decides. A blank chat has no
-    // brief or plan to send, only what earlier turns stated.
+
     expect(request.mode).toBeUndefined();
     expect(request.brief).toBeUndefined();
     expect(request.plan).toBeUndefined();
@@ -588,7 +580,7 @@ describe("Workspace interactions", () => {
     fireEvent.change(screen.getByLabelText("Message AI Trip Planner"), {
       target: { value: "Change to Paris" },
     });
-    // A pending map lookup does not block the chat.
+
     fireEvent.click(screen.getByRole("button", { name: "Send" }));
     await act(async () => {
       finishChat(complete("Paris", "Louvre"));
@@ -598,11 +590,11 @@ describe("Workspace interactions", () => {
     await act(async () => {
       finishPlaces(Response.json({ places: [googlePlace] }));
     });
-    // The Trip drawer's place list, not an overlay on the map, lists the trip's places.
+
     fireEvent.click(screen.getByRole("button", { name: "Open your trip" }));
     const list = await within(drawer("trip")).findByRole("list", { name: "Stops, Ideas" });
     await waitFor(() => expect(within(list).getAllByText("Louvre").length).toBeGreaterThan(0));
-    // An idea has no day, so it is never numbered or selectable as a stop.
+
     expect(within(list).queryByRole("button", { name: /Stop \d/ })).toBeNull();
     expect(within(list).queryByText(/Sydney museum/)).toBeNull();
   });
@@ -610,14 +602,14 @@ describe("Workspace interactions", () => {
     const fetcher = vi.fn();
     vi.stubGlobal("fetch", fetcher);
     render(<Workspace />);
-    // The mount-time mock/live status probe is fine; a demo plan request is not.
+
     expect(fetcher.mock.calls.map(([url]) => String(url))).not.toContain("/api/chat");
     expect(screen.getByRole("heading", { name: "New trip" })).toBeTruthy();
     expect(screen.getByText("Where to next?")).toBeTruthy();
     expect(screen.getByText("Your map will appear here")).toBeTruthy();
     expect((screen.getByLabelText("Message AI Trip Planner") as HTMLInputElement).value).toBe("");
     expect(document.body.textContent).not.toMatch(/Tokyo|Kyoto/);
-    // Nothing is invented for a blank trip: every fact chip asks for its value.
+
     for (const name of ["Where", "When", "Who", "Budget"])
       expect(screen.getByRole("button", { name })).toBeTruthy();
     await waitFor(() => {
@@ -683,11 +675,11 @@ describe("Workspace interactions", () => {
       draft: { ...snapshot.draft, destination: "Melbourne" },
     };
     localStorage.setItem(CATALOG_KEY, serializeCatalog(createCatalog(undefined, [melbourne])));
-    // Left behind by the retired Save trip button: no longer read, and never removed.
+
     localStorage.setItem("trip-saved-v1", "broken");
     const places = withPlaceRequests();
     let finish: ((response: Response) => void) | undefined;
-    // Only the chat request is held open, so `finish` resolves that request and nothing else.
+
     const fetcher = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
       if (url === "/api/chat")
@@ -759,7 +751,7 @@ const toji = {
 describe("Workspace navigation", () => {
   it("collapses the sidebar to labelled icons, keeps focus and remembers the preference", async () => {
     const view = render(<Workspace />);
-    // The blank conversation appears in Chats once autosave has recorded it.
+
     await waitFor(() =>
       expect(within(sidebar()).getByRole("button", { name: /^Chats\s*1$/ })).toBeTruthy(),
     );
@@ -768,7 +760,7 @@ describe("Workspace navigation", () => {
     expect(within(sidebar()).getByText("AI Trip Planner")).toBeTruthy();
     const chats = () => within(sidebar()).getByRole("button", { name: /^Chats\s*1$/ });
     const trips = () => within(sidebar()).getByRole("button", { name: /^Trips\s*0$/ });
-    // The open panel's or page's icon fills in; the others stay outlines.
+
     const filled = (button: HTMLElement) =>
       button.querySelector('svg [fill="currentColor"], svg[fill="currentColor"]');
     expect(filled(chats())).toBeNull();
@@ -787,7 +779,7 @@ describe("Workspace navigation", () => {
     expect(toggle.getAttribute("aria-expanded")).toBe("false");
     expect(toggle.getAttribute("aria-label")).toBe("Expand sidebar");
     expect(document.activeElement).toBe(toggle);
-    // Text is gone; icon buttons stay reachable by name.
+
     expect(within(sidebar()).queryByText("AI Trip Planner")).toBeNull();
     expect(within(sidebar()).getByRole("img", { name: "AI Trip Planner" })).toBeTruthy();
     for (const name of ["Chats, 1", "Trips, 0"]) {
@@ -800,7 +792,7 @@ describe("Workspace navigation", () => {
     view.unmount();
     render(<Workspace />);
     expect(screen.getByRole("button", { name: "Expand sidebar" })).toBeTruthy();
-    // The Chats panel still opens from the collapsed rail, with focus on its search.
+
     fireEvent.click(within(sidebar()).getByRole("button", { name: "Chats, 1" }));
     expect(document.activeElement).toBe(within(chatsPanel()).getByRole("searchbox"));
   });
@@ -824,7 +816,7 @@ describe("Workspace navigation", () => {
     expect(row.getAttribute("aria-current")).toBe("true");
     expect(row.getAttribute("title")).toBe("New chat");
     expect(row.textContent).toBe("New chat");
-    // No timestamp and no "No trip yet" line under the title.
+
     expect(within(chats).queryByText(/No trip yet/)).toBeNull();
     expect(chats.textContent).not.toMatch(/\d{1,2}[:/.]\d{2}/);
     expect(within(chats).getByRole("button", { name: "Actions for New chat" })).toBeTruthy();
@@ -889,10 +881,9 @@ describe("Workspace navigation", () => {
     const view = render(<Workspace />);
     const app = () => document.querySelector<HTMLElement>(".workspace-app")!;
     const handle = () => screen.getByRole("separator", { name: "Resize sidebar" });
-    // No stored width: the stylesheet's responsive default applies.
+
     expect(app().style.getPropertyValue("--sidebar-width")).toBe("");
 
-    // A click without movement must not pin a width.
     fireEvent.pointerDown(handle(), { button: 0, pointerId: 1, clientX: 240 });
     fireEvent.pointerUp(handle(), { pointerId: 1 });
     expect(app().style.getPropertyValue("--sidebar-width")).toBe("");
@@ -915,7 +906,6 @@ describe("Workspace navigation", () => {
       expect(parseCatalog(localStorage.getItem(CATALOG_KEY)).layout.sidebar.width).toBe(200),
     );
 
-    // Collapsed, there is no edge to drag; expanding restores the width.
     fireEvent.click(screen.getByRole("button", { name: "Collapse sidebar" }));
     expect(screen.queryByRole("separator", { name: "Resize sidebar" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Expand sidebar" }));
@@ -932,10 +922,10 @@ describe("Workspace navigation", () => {
   it("reports the width actually rendered when no width is stored", async () => {
     render(<Workspace />);
     const handle = () => screen.getByRole("separator", { name: "Resize sidebar" });
-    // jsdom does no layout, so the measured width falls back to the default to begin with.
+
     expect(handle().getAttribute("aria-valuenow")).toBe("240");
     const sidebar = document.querySelector<HTMLElement>(".workspace-sidebar")!;
-    // Stand in for the stylesheet, which narrows the sidebar below 1250px.
+
     vi.spyOn(sidebar, "getBoundingClientRect").mockReturnValue({ width: 220 } as DOMRect);
     fireEvent(window, new Event("resize"));
     await waitFor(() => expect(handle().getAttribute("aria-valuenow")).toBe("220"));
@@ -1080,7 +1070,7 @@ describe("Workspace map places", () => {
       expect(within(map).getByText(/1 activity has no confirmed place yet/)).toBeTruthy(),
     );
     expect(within(places()).getByRole("button", { name: /^Stop \d+: To-ji Temple/ })).toBeTruthy();
-    // The failed stop stays listed, without a map selection, instead of disappearing.
+
     expect(within(places()).getAllByText(/Gallery afternoon|Kyoto Gallery/).length).toBeGreaterThan(
       0,
     );

@@ -74,11 +74,6 @@ const outcomes = [
   ["Failed", "A specialist could not finish, so no plan was assembled and the trace was kept."],
 ] as const;
 
-/**
- * Why the system is built the way it is, for a reviewer. It states the ownership boundary between the
- * workflow and the agents, why the capability split is five, and why the deterministic parts are not
- * agents, and it explains how to read what the lab measures.
- */
 export function ArchitectureView() {
   return (
     <section

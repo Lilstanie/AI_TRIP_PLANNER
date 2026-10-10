@@ -230,7 +230,6 @@ describe("B resolves a named place to the one the plan means", () => {
       fromLocation: tokyo,
     });
 
-    // The name lookup is gone; the time zone is asked for the point itself.
     expect(fetcher).toHaveBeenCalledTimes(2);
     expect(String(fetcher.mock.calls[0]![0])).toContain("maps/api/timezone/json");
     expect(String(fetcher.mock.calls[0]![0])).toContain("location=35.68%2C139.69");

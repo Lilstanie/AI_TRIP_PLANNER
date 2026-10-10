@@ -57,7 +57,6 @@ describe("noticeText", () => {
   });
 
   it("leaves the placeholder visible, not `undefined`, when a parameter is missing at run time", () => {
-    // A notice parsed from a response is not checked by the compiler.
     const parsed = JSON.parse(
       '{"key":"these files together would pass the {size} one message can carry"}',
     ) as Notice;

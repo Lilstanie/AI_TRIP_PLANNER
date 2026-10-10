@@ -42,7 +42,7 @@ describe("FlightItineraryCard", () => {
     expect(within(card).getByText("Cheapest")).toBeTruthy();
     expect(within(card).getByText("PX 2")).toBeTruthy();
     expect(within(card).getByText("PX 55")).toBeTruthy();
-    // Airport codes and each airport's own local clock, as a boarding pass reads.
+
     expect(within(card).getAllByText("SYD")).toHaveLength(2);
     expect(within(card).getByText("7:20 am")).toBeTruthy();
     expect(within(card).getAllByText(/1 stop \(POM\)/)).toHaveLength(2);
@@ -50,8 +50,7 @@ describe("FlightItineraryCard", () => {
 
   it("marks an arrival that lands on a later day", () => {
     render(<FlightItineraryCard option={option} />);
-    // The return leaves 2 Dec and lands 3 Dec; without the marker the times
-    // read as a flight that arrives before it left.
+
     expect(screen.getByText("+1")).toBeTruthy();
     expect(screen.queryByText("Cheapest")).toBeNull();
   });

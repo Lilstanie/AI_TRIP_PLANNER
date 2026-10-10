@@ -12,22 +12,17 @@ const TABS: Record<MobileView, { label: MessageKey; icon: (selected: boolean) =>
   mine: { label: "Mine", icon: () => <UserIcon /> },
 };
 
-/** The id of the panel a phone tab controls, shared with the panels in `WorkspaceView`. */
 export const phonePanelId = (view: MobileView) => `phone-panel-${view}`;
 
 type Props = {
   view: MobileView;
   onSelect(view: MobileView): void;
-  /** Extra content inside a tab, after its label (the Trip tab's update dot). */
+
   badges?: Partial<Record<MobileView, ReactNode>>;
-  /** Hidden while the on-screen keyboard is open; kept mounted so focus and state survive. */
+
   hidden?: boolean;
 };
 
-/**
- * The phone shell's bottom tab bar: Chat, Map, Trip and Mine. A `tablist` with roving focus, so
- * Left/Right, Home and End move between tabs and select them, as a native tab bar does.
- */
 export function PhoneTabBar({ view, onSelect, badges, hidden }: Props) {
   const { t } = useLocale();
   const tabs = useRef<Partial<Record<MobileView, HTMLButtonElement | null>>>({});

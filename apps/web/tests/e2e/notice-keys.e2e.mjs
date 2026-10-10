@@ -1,26 +1,3 @@
-// Notices on a plan are keys, and the Trip drawer localises them (ticket #261, spec #259). The walk plans a trip,
-// moves two stops onto Day 1, and then changes a stop's time so that its leg breaks the travel buffer. It runs
-// two phases at each width, in English and in Chinese:
-//   keyed   the server's answer as it is: the notice is a stored key on its destination stop (control);
-//   legacy  the same answer with the stored key taken away, as a plan saved before notices were keyed looks:
-//           only the English sentence remains in conflictsWith, and the drawer has to place and localise it.
-// Each phase checks that the travel-buffer sentence sits under its destination stop only and never under the day
-// title, that the Chinese drawer shows no English travel-buffer text, that the English wording is unchanged, and
-// that the chat's English copy (conflictsWith and plan.conflicts in the answer) is still there.
-//
-// Failure inventory this walk was written from:
-// - a travel-buffer sentence written in English under a day title in the Chinese interface (a legacy plan);
-// - a travel-buffer sentence attached to every stop of its day, or to the stop before the leg;
-// - a legacy sentence localised on one width and not the other;
-// - the English wording of a notice changes when it is localised or placed;
-// - the chat's English copy disappears from the answer, so the chat reads no conflict;
-// - a page error or a failed request while the notice is placed.
-//
-//   DATA_MODE=mock pnpm --filter @trip/web e2e notice-keys
-//   DATA_MODE=mock BASE_URL=http://localhost:3000 LABEL=run-1 node apps/web/tests/e2e/notice-keys.e2e.mjs
-//
-// Mock mode: the places are stubbed at the browser boundary and the server answers every edit with simulated legs.
-// Artifact: output/playwright/notice-keys/<LABEL>/summary.json. LABEL defaults to the start time of the run.
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
@@ -33,7 +10,6 @@ const LABEL = process.env.LABEL ?? STARTED.replace(/[:.]/g, "-");
 const OUT = resolve(process.cwd(), "output/playwright/notice-keys", LABEL);
 mkdirSync(OUT, { recursive: true });
 
-// Stop names the chat's plan is given, in plan order (the mock plan has one stop on each of four days).
 const STOP_NAMES = [
   "Sydney Opera House",
   "Royal Botanic Garden Sydney",
@@ -73,7 +49,6 @@ const LANGS = {
   },
 };
 
-// English travel-buffer text in any form the drawer could show it, in either language.
 const ENGLISH_BUFFER = /needs at least \d+ minutes after the previous activity/;
 const CHINESE_ENGLISH_TEXT = /needs at least|minutes after the previous activity|Day \d+:/;
 
@@ -112,7 +87,6 @@ function placeFor(text) {
   };
 }
 
-/** Place lookups answer from fixed places, so every stop the map finds is saved without a map key. */
 async function installPlaces(page) {
   const found = new Map();
   await page.route("**/api/places/search", (route) => {
@@ -128,7 +102,6 @@ async function installPlaces(page) {
   });
 }
 
-/** Gives the mock plan's day stops the names above, as a real plan from chat would have. */
 async function installStopNames(page) {
   await page.route("**/api/chat", async (route) => {
     const response = await route.fetch();
@@ -158,10 +131,6 @@ async function installStopNames(page) {
 const dayTab = (page, day) => page.locator(".day-strip [role=tab]").nth(day - 1);
 const stopRows = (page) => page.locator(".timeline-day ol.timeline > li.timeline-stop");
 
-/**
- * The stops of the chosen day in order: each stop's name, times and conflict lines, and the day title's own
- * conflict lines. The name is read without its screen-reader text, as the walkthrough reads it.
- */
 const readDay = (page, rootSelector) =>
   page.evaluate((root) => {
     const scope = document.querySelector(root) ?? document;
@@ -197,7 +166,6 @@ const readDay = (page, rootSelector) =>
 
 const rootOf = (page) => (page.__phone ? "#phone-panel-trip" : ".workspace-drawer--trip");
 
-/** Changes a stop's time through its time button and waits for the server's answer. */
 async function editTime(page, row, startMinutes, endMinutes) {
   await row.locator(".timeline-stop__time").click();
   const form = row.locator("form.stop-editor__time");
@@ -221,7 +189,6 @@ async function editTime(page, row, startMinutes, endMinutes) {
   return response;
 }
 
-/** Plans the simulated trip, moves two stops onto Day 1, and opens the drawer at this width and language. */
 async function plan(browser, { width, lang, run }) {
   const L = LANGS[lang];
   const phone = width < 700;
@@ -278,7 +245,6 @@ async function plan(browser, { width, lang, run }) {
   await until(async () => saves.size >= 4, 60_000);
   check(saves.size === 4, `${run}: every stop the map finds is saved (${saves.size} saves)`);
 
-  // Two stops from Days 2 and 3 move onto Day 1, so Day 1 has three stops with a leg between each pair.
   for (const fromDay of [2, 3]) {
     await dayTab(page, fromDay).click();
     await settle(page, 300);
@@ -295,10 +261,6 @@ async function plan(browser, { width, lang, run }) {
   return { context, page, trip, errors, L, phone };
 }
 
-/**
- * Keeps the server's answer to a time edit as it is, or, for a legacy phase, takes away the stored key the answer
- * carries. The answer's conflictsWith and plan.conflicts (the English sentence the chat reads) are never changed.
- */
 function answerEdits(page, state) {
   return page.route("**/api/trip/preview-edit", async (route) => {
     let operation;
@@ -312,7 +274,7 @@ function answerEdits(page, state) {
       body.plan.editIssues = (body.plan.editIssues ?? []).filter(
         (issue) => issue.code !== "route_unavailable",
       );
-    // What the client is given: the English copy the chat reads, and the stored keys that remain.
+
     state.answer = {
       conflictsWith:
         body.plan?.sections.find((s) => s.id === "itinerary")?.proposal?.conflictsWith ?? [],
@@ -327,7 +289,6 @@ function answerEdits(page, state) {
   });
 }
 
-/** One width and language: the phases, with their checks. */
 async function walk(browser, { width, lang }) {
   const run = `${width}px ${lang}`;
   const tag = `${width}-${lang}`;
@@ -338,8 +299,6 @@ async function walk(browser, { width, lang }) {
   const state = { legacy: false, answer: undefined };
   await answerEdits(page, state);
 
-  // Both phases move the second stop of Day 1 to start inside the first stop's time, so the leg into it breaks
-  // its travel buffer. The start differs between phases, so each edit is a real change.
   for (const [phase, offset, legacy] of [
     ["keyed", 30, false],
     ["legacy", 40, true],

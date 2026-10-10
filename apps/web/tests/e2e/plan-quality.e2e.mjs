@@ -1,12 +1,3 @@
-// End-to-end check of what the five specialists produce together: posts fixed briefs to /api/chat
-// in "plan" mode and applies plan-level sanity checks (dates, budget, sections, provenance,
-// unresolved conflicts). Every NDJSON stream, final plan and a summary.json land under
-// output/e2e/plan-quality/<run>/ as a repeatable, reviewable artifact.
-//
-// requires-env: DEEPSEEK_API_KEY
-//
-//   pnpm --filter @trip/web dev            # in another terminal
-//   [DATA_MODE=live|mock] [RUNS=3] [ONLY=id,id] [BASE_URL=...] node apps/web/tests/e2e/plan-quality.e2e.mjs
 import { mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 
@@ -32,7 +23,7 @@ const SCENARIOS = [
   },
   {
     id: "paris-family-tight",
-    // Return flights alone exceed this budget: the plan should say so in round 1.
+
     infeasible: true,
     brief: {
       destination: "Paris",
@@ -55,8 +46,6 @@ const SCENARIOS = [
     },
   },
   {
-    // About 4% above the cheapest flights and stay found for these dates, so
-    // the plan only fits if every section spends close to its floor.
     id: "tokyo-tight",
     brief: {
       destination: "Tokyo",
@@ -67,7 +56,6 @@ const SCENARIOS = [
     },
   },
   {
-    // Two cities: an inter-city hop the transport and day plan must agree on.
     id: "tokyo-kyoto",
     brief: {
       destination: "Tokyo & Kyoto",
@@ -121,7 +109,7 @@ function checks({ plan: p, frames, reply }, { brief, infeasible }) {
       `reported infeasible (${JSON.stringify(p.conflicts ?? []).slice(0, 160)})`,
     );
     check(p.round === 1, `stopped in round 1 (${p.round})`);
-    // The traveller has to hear the number, not just "over budget".
+
     const minimum = Number(/AUD ([\d.]+)/.exec(only?.constraints?.[0] ?? "")?.[1]);
     const said = [...(reply ?? "").matchAll(/\d[\d,]*(?:\.\d+)?/g)].map((m) =>
       Number(m[0].replaceAll(",", "")),
@@ -144,7 +132,6 @@ function checks({ plan: p, frames, reply }, { brief, infeasible }) {
   const failed = frames.filter((f) => f.type === "agent_failed");
   check(!failed.length, `no agent_failed events (${failed.length})`);
   for (const s of p.sections) {
-    // No source publishes admission prices, so an activity with a price was invented.
     if (s.id === "itinerary")
       check(
         (s.proposal?.items ?? []).every((item) => item.estCost === undefined),
@@ -160,8 +147,7 @@ function checks({ plan: p, frames, reply }, { brief, infeasible }) {
     const prov = [...json.matchAll(/"(?:provenance|source|dataSource)":"(\w+)"/g)].map((m) => m[1]);
     check(!prov.includes("mock") || MODE === "mock", `${s.id} has no mock data in live mode`);
   }
-  // Feasible is not the same as good: a revision can clear every conflict by
-  // falling back to a template or repeating a stop, so quality is checked too.
+
   const itinerary = p.sections.find((s) => s.id === "itinerary")?.proposal;
   const stops = itinerary?.items ?? [];
   check(
@@ -176,7 +162,6 @@ function checks({ plan: p, frames, reply }, { brief, infeasible }) {
   const dining = p.sections.find((s) => s.id === "dining")?.proposal;
   check(dining?.source?.kind !== "fallback", `dining is model-written (${dining?.source?.kind})`);
   if (MODE === "live") {
-    // A fixture under a provider label is the provenance lie this suite exists to catch.
     const fixtures = frames.filter((f) => /fixture/i.test(f.resultSummary ?? ""));
     check(
       !fixtures.length,
@@ -198,7 +183,6 @@ function checks({ plan: p, frames, reply }, { brief, infeasible }) {
   );
   check(!generic.length, `no generic stops (${generic.map((a) => a.location).join(", ") || "ok"})`);
   if (brief.destination.includes("&")) {
-    // The day plan must move city on the day transport does, and never go back.
     const cityLine = itinerary?.assumptions?.find((a) => a.startsWith("Cities by day:")) ?? "";
     const hopDays = (p.sections.find((s) => s.id === "transport")?.proposal?.items ?? [])
       .filter((i) => / → /.test(i.location ?? "") && !i.location.startsWith(brief.origin))
@@ -208,7 +192,7 @@ function checks({ plan: p, frames, reply }, { brief, infeasible }) {
       hopDays.length > 0 && JSON.stringify(hopDays) === JSON.stringify(planDays),
       `day plan moves city with transport (transport ${hopDays}, day plan ${planDays})`,
     );
-    // And the traveller sleeps where they are: each later stay checks in on its hop day.
+
     const checkIns = (p.sections.find((s) => s.id === "accommodation")?.proposal?.items ?? [])
       .map((i) => i.day)
       .slice(1);
@@ -256,5 +240,5 @@ for (const { id } of SCENARIOS) {
   );
 }
 console.log(`\nArtifacts: ${OUT}`);
-// A failed check or a planning error fails the run, so the runner and any caller see it.
+
 if (summary.some((row) => !row.passed)) process.exitCode = 1;

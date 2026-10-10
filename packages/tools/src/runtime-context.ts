@@ -27,7 +27,6 @@ const requestRuntime = new AsyncLocalStorage<ToolRuntime>();
 
 const optional = (value: string | undefined): string | undefined => value || undefined;
 
-/** Capture one immutable provider policy for a Planning Run. */
 export function snapshotToolRuntime(): ToolRuntimeConfig {
   const mapsApiKey = optional(process.env.MAPS_API_KEY);
   return Object.freeze({

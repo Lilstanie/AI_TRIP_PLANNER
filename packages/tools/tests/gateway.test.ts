@@ -18,7 +18,7 @@ describe("createToolGateway", () => {
     "describes the real booking tier accurately for %j — this line went stale once before",
     (env, expected) => {
       vi.stubEnv("USE_MOCK_TOOLS", "false");
-      vi.stubEnv("OSM_USER_AGENT", "test"); // silence the unrelated OSM warning
+      vi.stubEnv("OSM_USER_AGENT", "test");
       for (const [key, value] of Object.entries(env)) vi.stubEnv(key, value);
       const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
 

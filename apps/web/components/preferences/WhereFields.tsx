@@ -11,18 +11,16 @@ type Props = {
   value: Draft;
   onChange(next: Draft): void;
   errors: Record<string, Notice>;
-  /** Offer place suggestions while typing (live data with Maps configured). */
+
   suggestPlaces: boolean;
 };
 
-/** Split what was typed into places: "Sydney & Melbourne" is two. */
 const places = (text: string) =>
   text
     .split("&")
     .map((place) => place.trim())
     .filter(Boolean);
 
-/** Append places, skipping any already in the list (case-insensitively). */
 function withPlaces(list: string[], added: string[]) {
   const next = [...list];
   for (const place of added)
@@ -30,27 +28,19 @@ function withPlaces(list: string[], added: string[]) {
   return next;
 }
 
-/**
- * Where: the trip's destinations as cards, an Add destination pill that turns into a search field,
- * and where the trip departs from as a quieter field below. The brief keeps the destinations as
- * one string joined with " & ", in list order, which is also the order the trip visits them.
- */
 export function WhereFields({ value, onChange, errors, suggestPlaces }: Props) {
   const { t, notice: localizeNotice } = useLocale();
   const [stops, setStops] = useState(() => destinationCities(value.destination));
-  // The region line of a place picked from a suggestion. Kept for this editor only: the brief
-  // stores names, and a typed place has no region to show.
+
   const [regions, setRegions] = useState<Record<string, string>>({});
   const [pending, setPending] = useState("");
   const [adding, setAdding] = useState(stops.length === 0);
   const addInput = useRef<HTMLInputElement>(null);
   const addButton = useRef<HTMLButtonElement>(null);
   const list = useRef<HTMLOListElement>(null);
-  // Where focus goes once React has re-rendered after an add or a removal.
+
   const [focusNext, setFocusNext] = useState<"input" | "button" | number>();
 
-  // Text still in the search field counts, so Save keeps a place the traveller typed but did not
-  // press Enter on.
   const publish = (nextStops: string[], nextPending: string) =>
     onChange({ ...value, destination: withPlaces(nextStops, places(nextPending)).join(" & ") });
 
@@ -135,8 +125,6 @@ export function WhereFields({ value, onChange, errors, suggestPlaces }: Props) {
             onPick={add}
             onEnter={() => pending.trim() && add(pending)}
             onEscape={() => {
-              // With places listed, Escape folds the field back into its pill, dropping what was
-              // typed; with none, it closes the editor.
               if (stops.length === 0) return false;
               setPending("");
               publish(stops, "");

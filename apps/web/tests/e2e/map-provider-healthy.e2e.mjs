@@ -1,7 +1,3 @@
-// Public API regression for healthy Google mock mode, with no provider keys.
-// Failure inventory: healthy mock search/details call Google; OSM leaks into a healthy answer;
-// a mock route cannot resolve its saved ID; transit calls a real service or invents an OSRM transit.
-// DATA_MODE=mock USE_MOCK_TOOLS=true WEB_MAPS_PROVIDER=google-with-fallback MOCK_GOOGLE_MAPS= pnpm --filter @trip/web e2e map-provider-healthy
 import { mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 const calls = [],

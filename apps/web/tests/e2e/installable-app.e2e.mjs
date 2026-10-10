@@ -1,30 +1,8 @@
-// End-to-end check that the site installs as an app on a computer, an iPhone and Android (TWA).
-// The service worker only registers in a production build, so run this against `next start`.
-//
-// Failure inventory this script was written from:
-// - the manifest is missing, unlinked, or lacks a name, start URL, standalone display or icons;
-// - an icon the manifest names is not served as a PNG, or there is no maskable icon for Android;
-// - iPhone gets no apple-touch-icon or theme colour, so Add to Home Screen shows a page snapshot;
-// - Chrome reports installability errors, so no Install button appears on a computer;
-// - the installability probe cannot see a defect: Playwright's default headless shell never reports
-//   installability errors, and full Chromium in a `newContext()` (off the record) always reports
-//   `in-incognito`, so the probe runs in full Chromium with a persistent profile;
-// - the service worker never controls the page, so offline navigation shows the browser error;
-// - offline navigation shows the browser's error page instead of the offline page, or the
-//   offline page's icon is not cached and shows as broken;
-// - /.well-known/assetlinks.json redirects to sign-in or is not JSON, so Android shows a URL bar.
-//
-//   pnpm --filter @trip/web build && pnpm --filter @trip/web start   # in another terminal
-//   [CHANNEL=chrome] [PLAYWRIGHT=<path to playwright>] node apps/web/tests/e2e/installable-app.e2e.mjs
-//
-// Writes screenshots and summary.json under output/playwright/installable-app/.
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
-// Playwright's offline switch does not reach a service worker's own fetches, so offline is
-// simulated by aborting routed requests, which needs service-worker network events turned on.
 process.env.PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS = "1";
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT ?? "playwright");
@@ -38,9 +16,6 @@ const check = (ok, message) => {
   console.log(`${ok ? "ok  " : "FAIL"} ${message}`);
 };
 
-// Asks Chrome why the page at BASE could not be installed. Runs in a persistent profile so Chrome
-// does not add `in-incognito`, and in full Chromium (not the headless shell, which reports nothing).
-// `prepare` may change the loaded page first, to show the probe can see a defect.
 const installabilityErrors = async (prepare) => {
   const profile = mkdtempSync(join(tmpdir(), "installable-app-"));
   const context = await chromium.launchPersistentContext(profile, {
@@ -64,10 +39,9 @@ const browser = await chromium.launch({ channel: process.env.CHANNEL });
 try {
   const request = (await browser.newContext()).request;
 
-  // Manifest and icons.
   const manifestResponse = await request.get(`${BASE}/manifest.webmanifest`);
   check(manifestResponse.ok(), "manifest is served");
-  // A missing manifest fails the checks below instead of stopping the run before installability.
+
   const manifest = await manifestResponse.json().catch(() => ({}));
   check(
     manifest.name === "AI Trip Planner" && manifest.short_name,
@@ -90,7 +64,6 @@ try {
     "manifest has a maskable icon for Android",
   );
 
-  // Digital Asset Links for the Android app.
   const links = await request.get(`${BASE}/.well-known/assetlinks.json`, { maxRedirects: 0 });
   check(links.status() === 200, "assetlinks.json is served without a sign-in redirect");
   check(Array.isArray(await links.json().catch(() => null)), "assetlinks.json is a JSON array");
@@ -104,7 +77,6 @@ try {
     await page.goto(BASE);
     await page.waitForLoadState("networkidle");
 
-    // Head tags that installation reads.
     check(
       (await page.locator('link[rel="manifest"]').count()) === 1,
       `${tag}: page links the manifest`,
@@ -118,7 +90,6 @@ try {
       `${tag}: page sets a theme colour`,
     );
 
-    // Service worker takes control.
     await page.evaluate(() => navigator.serviceWorker.ready);
     await page.reload();
     await page.waitForLoadState("networkidle");
@@ -129,7 +100,6 @@ try {
 
     await page.screenshot({ path: `${OUT}/${tag}-01-online.png` });
 
-    // Offline navigation falls back to the offline page.
     await context.route("**/*", (route) => route.abort("internetdisconnected"));
     await page.goto(`${BASE}/?offline-check=1`).catch(() => {});
     check(
@@ -147,7 +117,6 @@ try {
   await browser.close();
 }
 
-// Installability, as Chrome decides whether to show the Install button on a computer.
 const errors = await installabilityErrors();
 check(
   errors.length === 0,

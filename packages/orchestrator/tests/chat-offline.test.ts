@@ -57,8 +57,6 @@ describe("offline TripBrief extraction", () => {
   });
 
   it("does not read 人民币 as a party of 3000", () => {
-    // The regression that made the agent answer "共 3000 人": `(\d+)\s*人` matched
-    // the 人 inside 人民币, and the budget marker was not recognised at all.
     const patch = extractBriefPatchLocally("10.6-10.9，预算 3000 人民币");
     expect(patch.groupSize).toBeUndefined();
     expect(patch.budgetTotal).toBe(toAud(3000, "CNY"));

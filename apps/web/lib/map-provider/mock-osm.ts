@@ -1,15 +1,7 @@
 import type { Coordinates, MapPlace } from "./types";
 
-/*
- * Fixtures for the OpenStreetMap provider in mock data mode (`x-trip-data-mode: mock`). Nothing here
- * reaches a network: the OSRM client is answered by `mockOsrmFetch`, and the places a route or time
- * zone needs by `mockPlaceFor`. Durations are straight-line distance at a walking or driving pace, so
- * the same plan always shows the same legs.
- */
-
 type FixturePlace = { name: string; address: string; location: Coordinates };
 
-/** Kyoto places with OSM ids; the E2E scenario saves its stops from these. */
 const PLACES: Record<string, FixturePlace> = {
   "osm:node/2001": {
     name: "Kyoto Station",
@@ -33,7 +25,6 @@ const PLACES: Record<string, FixturePlace> = {
   },
 };
 
-/** The fixture place for an OSM id, or undefined when the fixtures do not know it. */
 export function mockPlaceFor(id: string): MapPlace | undefined {
   const place = PLACES[id];
   if (!place) return undefined;
@@ -78,7 +69,6 @@ function metresBetween(a: Coordinates, b: Coordinates) {
   return 2 * radius * Math.asin(Math.sqrt(h));
 }
 
-/** Google's polyline algorithm at precision 5, which is what OSRM's `geometries=polyline` uses. */
 function encodePolyline(points: Coordinates[]) {
   const encodeValue = (value: number) => {
     let v = value < 0 ? ~(value << 1) : value << 1;
@@ -102,10 +92,6 @@ function encodePolyline(points: Coordinates[]) {
   return out;
 }
 
-/**
- * Answers an OSRM route request (`/route/v1/{profile}/{lon,lat};{lon,lat}`) from the fixtures. The
- * profile is `foot` or `driving`; anything else is an error, as OSRM would answer.
- */
 export async function mockOsrmFetch(input: string): Promise<Response> {
   const url = new URL(input);
   const parts = url.pathname.split("/");
@@ -134,7 +120,6 @@ export async function mockOsrmFetch(input: string): Promise<Response> {
   return Response.json({ code: "InvalidQuery" }, { status: 400 });
 }
 
-/** A fixed place search, including the destination, with no upstream calls. */
 export function mockSearchPlaces(text: string): MapPlace[] {
   const query = text.toLowerCase().trim();
   if (/unknown|unfindable|not-a-place/.test(query)) return [];

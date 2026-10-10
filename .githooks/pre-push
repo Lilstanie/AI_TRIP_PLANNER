@@ -1,6 +1,6 @@
 #!/bin/sh
 # Runs the same changed-files Prettier check as CI before a push, so a formatting-only CI failure does not
-# happen. Installed by scripts/install-git-hooks.mjs on `pnpm install`. Skip it once with `git push --no-verify`.
+
 root=$(git rev-parse --show-toplevel) || exit 0
 cd "$root" || exit 0
 if [ ! -d node_modules/prettier ]; then

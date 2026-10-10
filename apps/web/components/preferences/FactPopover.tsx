@@ -13,21 +13,11 @@ import { CloseIcon } from "../ui/icons";
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
-/** Space kept between the popover and the viewport edge, and below its chip. */
+
 const GUTTER = 12;
 
 export type CloseReason = "dismiss" | "outside";
 
-/**
- * A small editor anchored under the top-bar chip that opened it, or, with `modal`, a dialog centred
- * over a scrim (Where and Trip preferences, which hold lists, as Mindtrip's do). On phones the
- * stylesheet turns either into a bottom sheet over a scrim.
- *
- * It is a labelled dialog: focus moves to its first field, Tab stays inside it, and Escape closes
- * it — unless a native dialog opened from inside it (the calendar) is on top, which closes first.
- * A click outside discards the edit without pulling focus back to the chip, because the click has
- * already put the traveller somewhere else.
- */
 export function FactPopover({
   id,
   title,
@@ -45,9 +35,9 @@ export function FactPopover({
   anchor: RefObject<HTMLElement | null>;
   onClose(reason: CloseReason): void;
   className?: string;
-  /** Centred over a scrim instead of anchored to the chip. */
+
   modal?: boolean;
-  /** Closed and playing its exit: inert, hidden from assistive technology, deaf to keys. */
+
   leaving?: boolean;
   children: ReactNode;
 }) {
@@ -73,7 +63,7 @@ export function FactPopover({
 
   useEffect(() => {
     if (leaving) return;
-    // An editor can name the control to start on; otherwise its first field.
+
     const first =
       panel.current?.querySelector<HTMLElement>("[data-autofocus]:not([disabled])") ??
       panel.current?.querySelector<HTMLElement>(
@@ -82,7 +72,7 @@ export function FactPopover({
     (first ?? panel.current?.querySelector<HTMLElement>(FOCUSABLE))?.focus({
       preventScroll: true,
     });
-    // Runs once per instance; a leaving instance never takes focus.
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -90,16 +80,16 @@ export function FactPopover({
     if (leaving) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Escape" || event.defaultPrevented) return;
-      // The calendar is a native modal dialog; the browser closes it first.
+
       if (document.querySelector("dialog[open]")) return;
       event.preventDefault();
       onCloseRef.current("dismiss");
     };
     const onPointerDown = (event: PointerEvent) => {
       const target = event.target as Node;
-      // The chip toggles itself, so a press on it is not "outside".
+
       if (panel.current?.contains(target) || anchor.current?.contains(target)) return;
-      // A press on a modal's scrim lands nowhere else, so focus goes back to the chip.
+
       onCloseRef.current(modal ? "dismiss" : "outside");
     };
     window.addEventListener("keydown", onKeyDown);

@@ -6,7 +6,6 @@ import { BrandMark, LOGO_SRC } from "@/components/workspace/BrandMark";
 
 describe("brand mark", () => {
   it("references the shared square logo asset without inlining it", () => {
-    // Vitest runs from apps/web, the Next.js project root.
     const file = join(process.cwd(), "public", LOGO_SRC);
     const svg = readFileSync(file, "utf8");
     expect(svg).toContain('viewBox="0 0 1536 1536"');

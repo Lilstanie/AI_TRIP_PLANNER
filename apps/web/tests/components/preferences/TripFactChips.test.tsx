@@ -7,11 +7,9 @@ import { TripFactChips } from "@/components/preferences/TripFactChips";
 import { Workspace } from "@/components/workspace/Workspace";
 import { plan } from "@/tests/fixtures/workspace";
 
-// Pin "today" so which calendar days are enabled, and so their accessible names, stay fixed.
-// shouldAdvanceTime keeps findBy* polling in real time while the picker is dynamic-imported.
 beforeEach(() => {
   vi.useFakeTimers({ shouldAdvanceTime: true });
-  vi.setSystemTime(new Date(2026, 8, 20)); // 2026-09-20
+  vi.setSystemTime(new Date(2026, 8, 20));
 });
 afterEach(() => vi.useRealTimers());
 
@@ -85,17 +83,17 @@ describe("TripFactChips", () => {
     const dialog = screen.getByRole("dialog", { name: "Where" });
     expect(chip.getAttribute("aria-expanded")).toBe("true");
     expect(chip.getAttribute("aria-controls")).toBe(dialog.id);
-    // Where holds a list, so it opens centred as a modal dialog rather than under its chip.
+
     expect(dialog.getAttribute("aria-modal")).toBe("true");
     expect(document.activeElement).toBe(screen.getByLabelText("Add a destination"));
-    // Only this fact's fields are in the editor.
+
     expect(within(dialog).queryByLabelText("Start date")).toBeNull();
 
     fireEvent.change(screen.getByLabelText("Add a destination"), { target: { value: "Lisbon" } });
     fireEvent.keyDown(window, { key: "Escape" });
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(document.activeElement).toBe(chip);
-    // Escape discards the edit.
+
     expect(button("Where")).toBeTruthy();
   });
 
@@ -104,7 +102,7 @@ describe("TripFactChips", () => {
     const onPlan = vi.fn(() => true);
     render(<Harness onSave={onSave} onPlan={onPlan} />);
     fireEvent.click(button("Where"));
-    // Text left in the search field counts, without pressing Enter first.
+
     fireEvent.change(screen.getByLabelText("Add a destination"), { target: { value: "Lisbon" } });
     fireEvent.change(screen.getByLabelText("Departing from (optional)"), {
       target: { value: "Sydney" },
@@ -161,7 +159,7 @@ describe("TripFactChips", () => {
     expect((screen.getByLabelText("Or enter an amount (AUD)") as HTMLInputElement).value).toBe(
       "3000",
     );
-    // Typing a different amount deselects the preset.
+
     fireEvent.change(screen.getByLabelText("Or enter an amount (AUD)"), {
       target: { value: "3500" },
     });
@@ -210,7 +208,6 @@ describe("TripFactChips", () => {
         .map((item) => item.textContent),
     ).toEqual(["Vegetarian food", "no early starts"]);
 
-    // Edit in place: Escape cancels only the edit, Enter keeps it.
     fireEvent.click(button("Edit “no early starts”"));
     const edit = screen.getByLabelText("Edit preference 2");
     expect(document.activeElement).toBe(edit);
@@ -227,7 +224,7 @@ describe("TripFactChips", () => {
 
     fireEvent.click(button("Remove “Vegetarian food”"));
     expect(document.activeElement).toBe(button("Edit “Nothing before 9am”"));
-    // A typed but unadded preference is kept on Save too.
+
     fireEvent.change(field, { target: { value: "Quiet hotels" } });
     fireEvent.click(button("Done"));
     expect(onSave).toHaveBeenCalledWith(
@@ -265,7 +262,7 @@ describe("TripFactChips Where", () => {
     expect(document.activeElement).toBe(field);
 
     fireEvent.click(button("Remove Melbourne"));
-    // Focus moves to the row that took its place.
+
     expect(document.activeElement).toBe(button("Remove hobart"));
     fireEvent.click(button("Save"));
     expect(onSave).toHaveBeenCalledWith(
@@ -276,7 +273,7 @@ describe("TripFactChips Where", () => {
   it("folds an empty search field back into its button with Escape, keeping the editor open", () => {
     render(<Harness initial={draftFor(plan.brief)} />);
     fireEvent.click(button("Destination: Sydney"));
-    // Where with places already listed starts focus on its own "Add destination" pill, not the chip.
+
     expect(document.activeElement).toBe(button("Add destination"));
     fireEvent.click(button("Add destination"));
     const field = screen.getByLabelText("Add a destination");
@@ -329,7 +326,7 @@ describe("TripFactChips Where", () => {
     fireEvent.change(field, { target: { value: "Lis" } });
     fireEvent.change(field, { target: { value: "Lisb" } });
     await vi.advanceTimersByTimeAsync(400);
-    // Debounced: only the last query is sent.
+
     expect(fetcher).toHaveBeenCalledTimes(1);
     expect(JSON.parse(fetcher.mock.calls[0]![1]!.body as string)).toEqual({
       text: "Lisb",
@@ -342,15 +339,13 @@ describe("TripFactChips Where", () => {
     ]);
     expect(field.getAttribute("aria-expanded")).toBe("true");
 
-    // Escape closes the list, not the editor.
     fireEvent.keyDown(field, { key: "Escape" });
     expect(field.getAttribute("aria-expanded")).toBe("false");
     expect(screen.getByRole("dialog", { name: "Where" })).toBeTruthy();
 
     fireEvent.change(field, { target: { value: "Lisbo" } });
     await vi.advanceTimersByTimeAsync(400);
-    // The previous query's options stay visible until the new ones arrive, and new results reset
-    // the highlight; wait for the second lookup to land before moving through the list.
+
     await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(2));
     await vi.advanceTimersByTimeAsync(0);
     await waitFor(() => expect(field.getAttribute("aria-expanded")).toBe("true"));
@@ -359,7 +354,7 @@ describe("TripFactChips Where", () => {
     fireEvent.keyDown(field, { key: "Enter" });
     const list = screen.getByRole("list", { name: "Destinations" });
     expect(within(list).getByText("Lisbon")).toBeTruthy();
-    // A picked place shows the region line it came with.
+
     expect(within(list).getByText("Lisbon, Portugal")).toBeTruthy();
     expect((field as HTMLInputElement).value).toBe("");
   });
@@ -370,7 +365,7 @@ describe("TripFactChips dates", () => {
     render(<Harness />);
     fireEvent.click(button("When"));
   };
-  // The first dynamic import of react-day-picker is slow under a full parallel run.
+
   const pickStart = () =>
     screen.findByRole("button", { name: "Tuesday, September 22nd, 2026" }, { timeout: 15000 });
 
@@ -379,7 +374,7 @@ describe("TripFactChips dates", () => {
     expect(screen.getByText("Choose your travel dates.")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Clear" })).toBeNull();
     const start = await pickStart();
-    // Past dates are disabled; "today" is pinned to 2026-09-20.
+
     expect(
       (screen.getByRole("button", { name: "Saturday, September 19th, 2026" }) as HTMLButtonElement)
         .disabled,
@@ -409,8 +404,6 @@ describe("TripFactChips dates", () => {
     expect(screen.queryByRole("button", { name: "Clear" })).toBeNull();
   });
 
-  // Picking through the calendar always yields a complete range (even a single day), so a "half a
-  // range" draft can only arise from data set another way — an imported or previously stored draft.
   it("asks for both dates when the draft holds only a start date", () => {
     render(<Harness initial={{ ...blankDraft(), start: "2026-10-01" }} />);
     fireEvent.click(button("When"));
@@ -456,7 +449,7 @@ describe("TripFactChips in the workspace", () => {
     expect(body.known).toEqual({
       destination: "Lisbon",
       groupSize: 3,
-      // The Who steppers' breakdown travels with the head count.
+
       party: { adults: 3, children: 0, infants: 0, seniors: 0, pets: 0 },
       preferences: ["Vegetarian food"],
     });

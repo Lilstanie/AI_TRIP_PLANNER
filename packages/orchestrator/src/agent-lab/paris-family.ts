@@ -1,9 +1,6 @@
 import { TripPlan, type TripBrief, type UserPreference } from "@trip/shared";
 import type { AgentLabScenario } from "./scenarios";
 
-// A family of four asks for a Paris trip they cannot afford. The same booking evidence every strategy
-// sees puts the cheapest round-trip flights at A$2,480 (A$310 per traveller each way) and the cheapest
-// two rooms for five nights at A$1,400, so no plan costs less than A$3,880 against a A$3,000 budget.
 export const PARIS_MINIMUM_SUPPORTED_COST = 3880;
 
 const brief: TripBrief = {
@@ -27,11 +24,6 @@ const source = {
   freshness: "Fixed scenario v1",
 } as const;
 
-/**
- * The scripted single-agent recording: the cheapest options the shared evidence supports, with every
- * section present. A lone scripted agent has no conflict check, so it prices the trip honestly but
- * never says the budget cannot be met.
- */
 function scriptedPlan(): TripPlan {
   const estTotal = PARIS_MINIMUM_SUPPORTED_COST;
   return TripPlan.parse({

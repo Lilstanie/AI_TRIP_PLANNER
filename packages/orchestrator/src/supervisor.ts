@@ -21,16 +21,9 @@ import { z } from "zod/v4";
 import { withProgressTools } from "./progress-tools";
 import type { PlanningBoardRun } from "./board";
 
-/** Stays keep a 0–10 rating internally; travellers read it out of 5, like Google's own stars. */
 const outOfFive = (rating: number) => `${(rating / 2).toFixed(1)}/5`;
 import { createReasoningSink } from "./reasoning-sink";
 
-/**
- * The brief a specialist sees. Preferences learned from the conversation are the traveller's
- * requests as much as the ones they typed, so specialists get one list: the typed ones first, then
- * the learned ones that are not already there, capped at the contract's limit. The stored brief keeps
- * them apart so the traveller can see and remove what the coordinator learned.
- */
 export function specialistBrief(brief: TripBrief): TripBrief {
   if (!brief.learnedPreferences?.length) return brief;
   const seen = new Set<string>();
@@ -45,11 +38,6 @@ export function specialistBrief(brief: TripBrief): TripBrief {
   return { ...brief, preferences };
 }
 
-/**
- * The stay a specialist settled on, as a transcript decision rather than prose.
- * Published on `agent_completed` so the transcript shows the choice and its
- * alternatives instead of asking the traveller to make it from scratch.
- */
 export function choiceFor(
   proposal: AgentProposal,
   currency: Currency = "AUD",
@@ -112,10 +100,11 @@ export function choiceFor(
   };
 }
 
-/** What changed in this round, read from the proposal the specialist returned. */
 function outcomeFor(proposal: AgentProposal, revision: RevisionRequest | undefined): string {
   if (!revision) return `Produced ${proposal.agent} section.`;
-  const constraints = revision.constraints.length ? ` under ${revision.constraints.join("; ")}` : "";
+  const constraints = revision.constraints.length
+    ? ` under ${revision.constraints.join("; ")}`
+    : "";
   return `Revised ${proposal.agent} after: ${revision.reason}${constraints}.`;
 }
 
@@ -127,12 +116,6 @@ const DelegationRequest = z.object({
     .describe("The bounded planning objective for this specialist."),
 });
 
-/**
- * Specialists whose absence makes the result not a trip plan. Only itinerary qualifies today:
- * a trip with no day plan is not a trip, while a trip with no dining section is just a trip the
- * traveller eats their own way through. Add to this list when a domain becomes load-bearing,
- * not merely when it is usually wanted.
- */
 export const DEFAULT_REQUIRED_AGENTS = ["itinerary"] as const satisfies readonly AgentName[];
 
 export interface SupervisorDispatchOptions {
@@ -140,25 +123,20 @@ export interface SupervisorDispatchOptions {
   specialists: Specialist[];
   context: AgentContext;
   model?: BaseChatModel;
-  /** Defaults to DEFAULT_REQUIRED_AGENTS; entries not offered as tools are ignored. */
+
   requiredAgents?: readonly AgentName[];
   onProgress?: (event: AgentProgressEvent) => void;
-  /** Stages each call through the planning board; without it specialists plan blind. */
+
   run?: PlanningBoardRun;
 }
 
 export interface SupervisorRevisionOptions extends SupervisorDispatchOptions {
   proposals: AgentProposal[];
   requests: RevisionRequest[];
-  /** The board, previous proposal and allocation each reviser receives. */
+
   extrasFor?: (agent: AgentName) => Partial<SpecialistRequest>;
 }
 
-/**
- * Typed specialist tools are deliberately built around the current run context.
- * The supervisor chooses which tools to call; it cannot alter the validated brief,
- * memory store or tool gateway passed to a specialist.
- */
 export function createSupervisorTools(
   options: Omit<SupervisorDispatchOptions, "model">,
   onProposal: (proposal: AgentProposal) => void,
@@ -225,7 +203,6 @@ export function createSupervisorTools(
   );
 }
 
-/** Create one immutable, typed delegation tool for each targeted revision. */
 export function createRevisionTools(
   options: Omit<SupervisorRevisionOptions, "model" | "proposals">,
   onProposal: (proposal: AgentProposal) => void,
@@ -302,14 +279,11 @@ export function createRevisionTools(
   });
 }
 
-/** Run a genuine LangChain supervisor tool loop and return only called specialists. */
 export async function dispatchWithSupervisor(
   options: SupervisorDispatchOptions,
 ): Promise<AgentProposal[]> {
   const sink = createReasoningSink(options.context.round, options.onProgress, 0);
-  // Thinking is on for the supervisor: choosing which specialists to delegate
-  // to is the run's visible reasoning, and streaming it is the only way to show
-  // it. A model injected by a test is used as-is.
+
   const model = options.model
     ? options.model
     : ((): BaseChatModel | undefined => {
@@ -349,9 +323,7 @@ export async function dispatchWithSupervisor(
   if (proposals.size === 0) {
     throw new Error("Supervisor completed without delegating to a specialist.");
   }
-  // A booked stay leaves the accommodation specialist nothing to decide, so the model may reason
-  // it away; but the plan still needs its Stay section. The specialist records the booking without
-  // a search or a model call, so it is run directly.
+
   const stay = options.specialists.find((specialist) => specialist.name === "accommodation");
   if (options.brief.bookedStay && stay && !proposals.has("accommodation")) {
     proposals.set(
@@ -361,10 +333,7 @@ export async function dispatchWithSupervisor(
       ),
     );
   }
-  // The prompt only asks the model to "consider" each domain, so it can return after picking
-  // three and the plan quietly ships two sections short. Name the ones a plan is not a plan
-  // without, and treat their absence as a failure: the caller falls back to dispatching every
-  // specialist, which is the outcome the model was supposed to produce anyway.
+
   const required = (options.requiredAgents ?? DEFAULT_REQUIRED_AGENTS).filter((name) =>
     options.specialists.some((specialist) => specialist.name === name),
   );
@@ -378,13 +347,14 @@ export async function dispatchWithSupervisor(
   });
 }
 
-/** Route validated revision requests through a named supervisor tool loop. */
 export async function reviseWithSupervisor(
   options: SupervisorRevisionOptions,
 ): Promise<AgentProposal[]> {
-  // The revision pass revises the round it is about to produce, so that round
-  // names its episode: two conflict passes never share a block identity.
-  const sink = createReasoningSink(options.context.round + 1, options.onProgress, options.context.round + 1);
+  const sink = createReasoningSink(
+    options.context.round + 1,
+    options.onProgress,
+    options.context.round + 1,
+  );
   const model = options.model
     ? options.model
     : ((): BaseChatModel | undefined => {

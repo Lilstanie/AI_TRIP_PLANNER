@@ -30,7 +30,7 @@ const EMPTY: Record<Exclude<FactKey, "preferences">, MessageKey> = {
   who: "Who",
   budget: "Budget",
 };
-/** Spoken before a filled chip's value, so "Sydney" is announced as "Destination: Sydney". */
+
 const NAMES: Record<Exclude<FactKey, "preferences">, MessageKey> = {
   where: "Destination",
   when: "Dates",
@@ -42,29 +42,21 @@ type Props = {
   draft: Draft;
   plan: TripPlan | undefined;
   busy: boolean;
-  /** Errors from the last rejected submission, keyed like `parseDraft`'s issues. */
+
   errors: Record<string, Notice>;
   open: FactKey | undefined;
   onOpen(fact: FactKey): void;
   onClose(): void;
-  /** Keeps the edit in the draft; before a plan exists it travels with the next chat message. */
+
   onSave(next: Draft): void;
-  /** Keeps the edit and plans with the whole brief. False when the brief was rejected. */
+
   onPlan(next: Draft): boolean;
-  /** The Preferences chip, which other surfaces return focus to. */
+
   preferencesChip: RefObject<HTMLButtonElement | null>;
-  /**
-   * Suggest places while typing in Where. Each lookup is a billed Places request, so only in live
-   * data mode with Maps configured.
-   */
+
   suggestPlaces?: boolean;
 };
 
-/**
- * The trip's key facts as chips in the top bar. Each chip opens a small editor for just its own
- * fields; Preferences holds the rest. Edits stay local to the editor until Save or Update trip, so
- * Escape or a click outside leaves the trip exactly as it was.
- */
 export function TripFactChips(props: Props) {
   const { draft, plan, open, onOpen, onClose, preferencesChip } = props;
   const { locale, t, currency } = useLocale();
@@ -72,10 +64,10 @@ export function TripFactChips(props: Props) {
     locale,
     currency,
   });
-  // The editor stays mounted briefly after it closes so it can sink away instead of vanishing.
+
   const shown = usePresence(open, 220);
   const chips = useRef<Partial<Record<FactKey, HTMLButtonElement | null>>>({});
-  // Read at event time, after the chip refs have been attached.
+
   const anchor = useMemo(
     () => ({
       get current() {
@@ -91,12 +83,10 @@ export function TripFactChips(props: Props) {
     if (reason === "dismiss") chip?.focus({ preventScroll: true });
   };
 
-  // Keep the open chip visible in a scrolled chip row (narrow screens).
   useEffect(() => {
     if (open) chips.current[open]?.scrollIntoView?.({ block: "nearest", inline: "nearest" });
   }, [open]);
 
-  // When the row is wider than its space it scrolls; fade the edge that has more chips behind it.
   const scroller = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const row = scroller.current;
@@ -117,7 +107,7 @@ export function TripFactChips(props: Props) {
       observer?.disconnect();
     };
   }, []);
-  // A longer label can overflow a row whose own size did not change.
+
   const labelText = Object.values(labels).join("|");
   useEffect(() => {
     scroller.current?.dispatchEvent(new Event("scroll"));
@@ -179,7 +169,6 @@ export function TripFactChips(props: Props) {
       </div>
       {shown.value && (
         <FactPopover
-          // A fresh instance for the exit, so reopening mid-exit mounts (and focuses) anew.
           key={shown.leaving ? `${shown.value}:leaving` : shown.value}
           id={`fact-popover-${shown.value}`}
           title={t(TITLES[shown.value])}
@@ -211,7 +200,7 @@ function FactForm({
   const [value, setValue] = useState(draft);
   const [local, setLocal] = useState<Record<string, Notice>>();
   const form = useRef<HTMLFormElement>(null);
-  // A rejected submission's errors show until this editor checks its own fields again.
+
   const shown =
     local ??
     Object.fromEntries(Object.entries(errors).filter(([key]) => factForError(key) === fact));

@@ -1,17 +1,6 @@
 import { useId, type ReactNode } from "react";
 import type { ToolResultKind } from "@trip/shared";
 
-/**
- * Glyphs for the thinking transcript's 24px flow rows, sized like DeepSeek
- * Harness (DSH): a 14px glyph centred in a 16px leading box, filled or stroked
- * in `currentColor`. The Think, chevron, search, globe, subagent, sparkle and
- * check glyphs copy DSH's `ui-primitives/src/icons/index.tsx` paths; the
- * travel and category glyphs have no DSH equivalent and are drawn as outline
- * glyphs of the same weight (a 24px grid at a ~1.2px rendered stroke).
- *
- * All glyphs are decorative: the row around them carries the accessible name.
- */
-
 interface FlowIconProps {
   size?: number;
   className?: string;
@@ -38,7 +27,6 @@ function DshSvg({
   );
 }
 
-/** Outline glyph on a 24px grid; 2.1 units renders as a ~1.2px stroke at 14px. */
 function LineSvg({ size = 14, className, children }: FlowIconProps & { children: ReactNode }) {
   return (
     <svg
@@ -59,7 +47,6 @@ function LineSvg({ size = 14, className, children }: FlowIconProps & { children:
   );
 }
 
-/** DSH `IconThinkOutline14`. */
 export const FlowThinkIcon = (props: FlowIconProps) => (
   <DshSvg box={14} {...props}>
     <path
@@ -75,7 +62,6 @@ export const FlowThinkIcon = (props: FlowIconProps) => (
   </DshSvg>
 );
 
-/** DSH `IconChevronDownOutline14`: the disclosure glyph a leading icon becomes. */
 export const FlowChevronDownIcon = (props: FlowIconProps) => (
   <DshSvg box={14} {...props}>
     <path
@@ -85,7 +71,6 @@ export const FlowChevronDownIcon = (props: FlowIconProps) => (
   </DshSvg>
 );
 
-/** DSH `IconSearchOutline16`, drawn at 14px as DSH's search rows do. */
 export const FlowSearchIcon = (props: FlowIconProps) => (
   <DshSvg box={16} {...props}>
     <path
@@ -99,7 +84,6 @@ export const FlowSearchIcon = (props: FlowIconProps) => (
   </DshSvg>
 );
 
-/** DSH `IconGlobeOutline14`. */
 export const FlowGlobeIcon = (props: FlowIconProps) => (
   <DshSvg box={14} {...props}>
     <path
@@ -111,11 +95,6 @@ export const FlowGlobeIcon = (props: FlowIconProps) => (
   </DshSvg>
 );
 
-/**
- * DSH `IconAgentPresetOutline16`: three nodes joined by arcs. The node
- * interiors knock out through a mask, so the id is per instance — a subagent
- * list renders several at once.
- */
 export const FlowSubagentIcon = (props: FlowIconProps) => {
   const mask = `flow-subagent-${useId().replaceAll(":", "")}`;
   return (
@@ -147,7 +126,6 @@ export const FlowSubagentIcon = (props: FlowIconProps) => {
   );
 };
 
-/** DSH `IconSparkle16`: the generic ("others") tool glyph. */
 export const FlowSparkleIcon = (props: FlowIconProps) => (
   <DshSvg box={16} {...props}>
     <path
@@ -165,7 +143,6 @@ export const FlowSparkleIcon = (props: FlowIconProps) => (
   </DshSvg>
 );
 
-/** DSH `IconCheckOutline14`: the mark beside a choice the plan already made. */
 export const FlowCheckIcon = (props: FlowIconProps) => (
   <DshSvg box={14} {...props}>
     <path
@@ -174,8 +151,6 @@ export const FlowCheckIcon = (props: FlowIconProps) => (
     />
   </DshSvg>
 );
-
-// --- Travel and category glyphs (no DSH equivalent; same weight and box) ---
 
 export const FlowRouteIcon = (props: FlowIconProps) => (
   <LineSvg {...props}>
@@ -219,7 +194,6 @@ export const FlowRestaurantIcon = (props: FlowIconProps) => (
   </LineSvg>
 );
 
-/** A sight: the camera a visitor points at it. */
 export const FlowAttractionIcon = (props: FlowIconProps) => (
   <LineSvg {...props}>
     <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3Z" />
@@ -259,7 +233,6 @@ export const FlowNatureIcon = (props: FlowIconProps) => (
   </LineSvg>
 );
 
-/** A museum: the columned building. */
 export const FlowMuseumIcon = (props: FlowIconProps) => (
   <LineSvg {...props}>
     <path d="M3 22h18" />
@@ -334,13 +307,11 @@ const KIND_ICONS: Record<ToolResultKind, (props: FlowIconProps) => ReactNode> = 
   place: FlowPlaceIcon,
 };
 
-/** The glyph for one result row's category. */
 export function ResultKindIcon({ kind, ...props }: FlowIconProps & { kind: ToolResultKind }) {
   const Glyph = KIND_ICONS[kind] ?? FlowPlaceIcon;
   return <Glyph {...props} />;
 }
 
-/** The leading glyph for a tool call row, by wire tool name. */
 export function ToolGlyph({ tool, ...props }: FlowIconProps & { tool: string }) {
   switch (tool) {
     case "maps.places":

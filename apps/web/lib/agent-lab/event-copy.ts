@@ -2,7 +2,6 @@ import type { AgentLabRunEvent } from "@trip/shared";
 import { stopReasonLabel } from "./comparison";
 import { labMoney } from "./money";
 
-/** Which part of the system produced an event, so the inspector can tell them apart. */
 export type EventKind = "run" | "graph" | "specialist" | "tool";
 
 export const eventKindLabel: Record<EventKind, string> = {
@@ -16,14 +15,14 @@ export interface EventCopy {
   kind: EventKind;
   title: string;
   detail: string;
-  /** Constraints the actor was given, when the event states them. */
+
   constraints?: string[];
-  /** Another named list the event carries, such as the conflicts a check found. */
+
   list?: { heading: string; lines: string[] };
 }
 
 const agentName = (agent: string) => agent.replace(/-/g, " ");
-/** A revision runs a specialist again, so later rounds say which round a title belongs to. */
+
 const inRound = (round: number) => (round > 1 ? ` · round ${round}` : "");
 
 const phaseTitle = {

@@ -7,10 +7,6 @@ import type { SettingsSection } from "../account/SettingsDialog";
 import type { SyncStatus } from "../account/useAccountSync";
 import { useLocale } from "../account/LocaleProvider";
 
-/**
- * A history row. Chats show their title and, when they belong to a trip, that trip's name as
- * `subtitle`; trips add their dates and total as `subtitle` and their destination for the cover.
- */
 export type HistoryItem = {
   id: string;
   title: string;
@@ -19,7 +15,6 @@ export type HistoryItem = {
   active?: boolean;
 };
 
-/** What the main area shows: the chat-and-map workspace, or the Your trips overview. */
 export type WorkspacePage = "workspace" | "trips";
 
 function NavButton({
@@ -38,7 +33,7 @@ function NavButton({
   collapsed: boolean;
   count?: number;
   current?: boolean;
-  /** Set for a button that opens a panel. */
+
   expanded?: boolean;
   controls?: string;
   buttonRef?: Ref<HTMLButtonElement>;
@@ -63,11 +58,6 @@ function NavButton({
   );
 }
 
-/**
- * The per-conversation overflow menu. Rename and Delete used to sit on every row, which made the
- * history noisy; they now open from one trigger. Escape closes the menu and hands focus back to the
- * trigger, and it is handled in the capture phase so it cannot also close an enclosing drawer.
- */
 export function HistoryMenu({
   title,
   onRename,
@@ -83,7 +73,6 @@ export function HistoryMenu({
   const trigger = useRef<HTMLButtonElement>(null);
   const firstItem = useRef<HTMLButtonElement>(null);
 
-  // Focus the first item so Escape and Tab start from inside the menu.
   useEffect(() => {
     if (open) firstItem.current?.focus({ preventScroll: true });
   }, [open]);
@@ -103,7 +92,7 @@ export function HistoryMenu({
     const onPointerDown = (event: PointerEvent) => {
       if (!wrap.current?.contains(event.target as Node)) close(false);
     };
-    // Tabbing out of the menu closes it without stealing focus from wherever the user landed.
+
     const onFocusOut = (event: FocusEvent) => {
       if (!wrap.current?.contains(event.relatedTarget as Node | null)) close(false);
     };
@@ -154,12 +143,6 @@ export function HistoryMenu({
   );
 }
 
-/**
- * The navigation rail. Chats opens the Chats panel beside it (search, New chat, New trip and the
- * history), as Mindtrip's does; Trips opens the Your trips overview in the main area. On narrow
- * screens the sidebar sits in the navigation drawer and shows the Chats panel's content itself,
- * passed as `children`.
- */
 export function WorkspaceSidebar({
   collapsed = false,
   collapsible = true,
@@ -177,23 +160,23 @@ export function WorkspaceSidebar({
   children,
 }: {
   collapsed?: boolean;
-  /** False when the sidebar is shown inside the narrow-screen navigation drawer. */
+
   collapsible?: boolean;
   onToggleCollapsed?(): void;
   page: WorkspacePage;
   chatsOpen: boolean;
   chatCount: number;
   tripCount: number;
-  /** Opens or closes the Chats panel. */
+
   onChats(): void;
-  /** Shows the Your trips overview. */
+
   onTrips(): void;
-  /** The Chats button, which the Chats panel returns focus to. */
+
   chatsButton?: Ref<HTMLButtonElement>;
-  /** Opens the combined settings and account dialog. */
+
   onSettings(section?: SettingsSection): void;
   saveState: "saving" | "saved" | "failed";
-  /** Whether chats and trips are syncing to a signed-in account. */
+
   syncStatus?: SyncStatus;
   children?: ReactNode;
 }) {

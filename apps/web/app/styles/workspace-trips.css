@@ -1,7 +1,3 @@
-/* The Chats panel that slides out beside the sidebar, trip covers, and the Your trips page. */
-
-/* ---- Chats panel ----
-   Sits over the main area, flush with the sidebar's right edge, and slides out from under it. */
 .chats-panel {
   position: absolute;
   z-index: 50;
@@ -47,7 +43,7 @@
   flex-direction: column;
   gap: var(--space-4);
 }
-/* In the narrow navigation drawer the panel's content fills the space under the navigation. */
+
 .workspace-sidebar > .chats-panel__content {
   flex: 1;
   min-height: 0;
@@ -91,7 +87,7 @@
 .chats-panel__section .history-item__title {
   font-size: 15px;
 }
-/* Trip rows lead with a small cover, as Mindtrip's do. */
+
 .history-item--trip .history-item__open {
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
@@ -105,7 +101,6 @@
   }
 }
 
-/* ---- Trip covers ---- */
 .trip-cover {
   position: relative;
   display: grid;
@@ -114,7 +109,7 @@
   overflow: hidden;
   color: rgb(255 255 255 / 88%);
 }
-/* A soft light from the top left gives the gradient some depth. */
+
 .trip-cover::before {
   content: "";
   position: absolute;
@@ -145,7 +140,6 @@
   transform: translate(28%, -8%);
 }
 
-/* ---- Your trips ---- */
 .workspace-shell--trips {
   display: block;
   overflow: auto;
@@ -302,7 +296,6 @@
   }
 }
 
-/* ---- Trip calendar ---- */
 .trip-calendar__head {
   display: flex;
   align-items: center;
@@ -405,7 +398,7 @@
   color: var(--on-accent);
   font-weight: 700;
 }
-/* One bar per trip per day; neighbouring days join into one band that rounds at its ends. */
+
 .trip-calendar__trip {
   display: block;
   width: calc(100% + 1px);

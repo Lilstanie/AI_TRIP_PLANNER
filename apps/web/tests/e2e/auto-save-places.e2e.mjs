@@ -1,20 +1,3 @@
-// End-to-end check of saving the map's place on each stop without a traveller action (ticket #236).
-//
-// Google Places and the immediate place edit are stubbed at the browser boundary, because the
-// repository's E2E environment has no map key: the real Places routes answer 503 for every lookup,
-// so no stop could be located. The stubs answer the same shapes the real routes do and record every
-// request. The checks are about the workspace: which stops are saved, how many saves run at once,
-// each stop sent once, a not-found stop offering a search, a retryable lookup failure staying unsaved
-// until Retry places, and the traveller replacing a saved place. With no map places at all, no save
-// is sent.
-//
-// The artifact is output/playwright/auto-save-places/<LABEL>/summary.json, with screenshots beside it.
-//
-//   DATA_MODE=mock pnpm --filter @trip/web e2e auto-save-places     # starts its own server
-//   BASE_URL=http://localhost:3000 LABEL=after node apps/web/tests/e2e/auto-save-places.e2e.mjs
-//
-// Not covered: a newer plan from chat cancelling a save in flight. That needs a second chat turn
-// while a save is pending; the workspace hook aborts the save on every plan change.
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
@@ -35,30 +18,22 @@ const LABEL = process.env.LABEL ?? "after";
 const OUT = resolve(process.cwd(), "output/playwright/auto-save-places", LABEL);
 mkdirSync(OUT, { recursive: true });
 
-// The mock plan's stops have placeholder names, which are never looked up. The chat stream is
-// rewritten so the stops carry these real names, in plan order (one stop a day in the mock plan).
 const STOP_NAMES = [
   "Sydney Opera House",
   "Royal Botanic Garden Sydney",
   "Circular Quay",
   "Art Gallery of New South Wales",
 ];
-// Stop names the stubbed Places finds nothing for, and names whose lookup fails with 503 until the
-// run releases them.
+
 const NOT_FOUND = new Set(["Circular Quay"]);
 const FLAKY = new Set(["Art Gallery of New South Wales"]);
-// Places the traveller picks by hand: one for the stop the map could not find, one to replace a saved
-// place. Neither is a stop name, so each save is recognisable in the summary.
+
 const PICK = "Taronga Zoo";
 const REPLACE = "Manly Beach";
 
 const UNCONFIRMED = "Not found on the map";
 const RETRYABLE = "Place lookup failed — retry from the map";
 
-// Scenario 4: a Day 1 of five stops, each with the planner's arrival time (`arriveBy`) from the stop before it.
-// The planner's walk is 37 minutes, longer than any simulated walk (6 to 30 minutes), so a verified leg is
-// never mistaken for the planner's estimate. Each gap between stops is 90 minutes, enough for a leg and its
-// 15-minute buffer, so the first routing raises no timing notice.
 const SEEDED_STOPS = [
   { name: "Sydney Opera House", start: "09:00", end: "10:00" },
   { name: "Royal Botanic Garden Sydney", start: "11:30", end: "12:30" },
@@ -67,7 +42,7 @@ const SEEDED_STOPS = [
   { name: "Darling Harbour", start: "19:00", end: "20:00" },
 ];
 const PLANNER_WALK_MIN = 37;
-// The stop price the scenario gives one stop, as the server would answer a priced stop.
+
 const PRICE = 40;
 
 const failures = [];
@@ -84,9 +59,7 @@ function newStub() {
     inFlight: 0,
     maxInFlight: 0,
     releaseFlaky: false,
-    // Scenario 4 holds an answer until the test releases it: a verify or a move (a swap, checked by the
-    // server since the check entry point), or the next time edit's answer is priced (`priceNextTime`).
-    // `holdSeen` is set once the held request has arrived.
+
     holdVerify: undefined,
     holdSeen: false,
     priceNextTime: false,
@@ -114,8 +87,7 @@ async function installStubs(page, stub) {
       body: JSON.stringify({ place: { ...placeFor(placeId), id: placeId } }),
     });
   });
-  // The place edit, answered the way the server answers a place operation: the stop takes the place
-  // and the plan's version moves on. A base version the plan has already left is refused.
+
   await page.route("**/api/trip/preview-edit", async (route) => {
     const body = route.request().postDataJSON();
     if (["verify", "swap"].includes(body.operation.kind) && stub.holdVerify) {
@@ -123,7 +95,6 @@ async function installStubs(page, stub) {
       await stub.holdVerify;
     }
     if (body.operation.kind === "time" && stub.priceNextTime) {
-      // The server's answer for a stop that carries a price: the stop, its section and the total.
       stub.priceNextTime = false;
       const response = await route.fetch();
       const json = await response.json();
@@ -135,8 +106,6 @@ async function installStubs(page, stub) {
       return route.fulfill({ response, json });
     }
     if (body.operation.kind !== "place") {
-      // A verify or time edit the test has held may be abandoned by the page: its answer is then not
-      // needed, and continuing an aborted request is refused.
       try {
         return await route.continue();
       } catch {
@@ -176,7 +145,6 @@ async function installStubs(page, stub) {
   });
 }
 
-/** Gives the plan's activities the STOP_NAMES, without a place, as a real plan from chat would have. */
 async function installStopNames(page, { seeded = false } = {}) {
   await page.route("**/api/chat", async (route) => {
     const response = await route.fetch();
@@ -188,8 +156,6 @@ async function installStopNames(page, { seeded = false } = {}) {
         const section = frame.response?.plan?.sections.find((s) => s.id === "itinerary");
         if (!section?.proposal) return line;
         if (seeded) {
-          // Scenario 4: the five stops on Day 1, unsaved, each with the planner's arrival time from the stop
-          // before it. Ids are set here so the stops can be told apart in the test.
           const kept = section.proposal.items.filter((item) => item.kind !== "activity");
           section.proposal.items = [
             ...kept,
@@ -235,7 +201,7 @@ async function openTrip(browser, { width, height, stub, seeded = false }) {
   const page = await context.newPage();
   const errors = [];
   const previewRequests = [];
-  // The kind of each edit the page asks the server for, in order (place, verify, time, ...).
+
   const operations = [];
   page.on("request", (request) => {
     if (!request.url().endsWith("/api/trip/preview-edit")) return;
@@ -244,7 +210,7 @@ async function openTrip(browser, { width, height, stub, seeded = false }) {
   });
   page.on("console", (message) => {
     if (message.type() !== "error") return;
-    // Lookups answered 502/503 are the expected state without a map key; nothing else is allowed.
+
     if (/status of 50[23]/.test(message.text())) return;
     if (message.location().url === `${BASE}/favicon.ico`) return;
     errors.push(message.text());
@@ -263,7 +229,6 @@ async function openTrip(browser, { width, height, stub, seeded = false }) {
   return { context, page, errors, previewRequests, operations };
 }
 
-/** Every stop on every day: its displayed name and the status tags it shows. */
 async function scanStops(page) {
   const timeline = page.getByRole("region", { name: "Trip timeline" });
   const days = timeline.getByRole("tab");
@@ -318,7 +283,6 @@ async function main() {
   const summary = { labels: { unconfirmed: UNCONFIRMED, retryable: RETRYABLE } };
   const browser = await chromium.launch();
   try {
-    // 1. A planned trip: every stop the map finds is saved on its own.
     const stub = newStub();
     const { context, page, errors } = await openTrip(browser, { width: 1440, height: 1000, stub });
     await waitForQuiet(page, stub);
@@ -363,7 +327,6 @@ async function main() {
     );
     await page.screenshot({ path: `${OUT}/01-timeline-after-planning.png` });
 
-    // 2. A stop the map cannot find says so; a search saves the picked result.
     const missing = unconfirmed[0];
     if (missing) {
       summary.notFound = missing;
@@ -391,7 +354,6 @@ async function main() {
       check(false, "the mock plan has a stop the map cannot find (set NOT_FOUND)");
     }
 
-    // 3. The traveller replaces an automatically saved place from the editor's search.
     const saved = stops.find((stop) => isConfirmed(stop) && !sameStop(stop, missing ?? {}));
     if (saved) {
       const row = await openStop(page, saved);
@@ -409,7 +371,6 @@ async function main() {
     }
     await page.screenshot({ path: `${OUT}/02-timeline-after-edits.png` });
 
-    // 4. A lookup that fails for a retryable reason is not saved; Retry places saves it.
     const flaky = retryable[0];
     summary.retryable = flaky ?? null;
     if (flaky) {
@@ -418,8 +379,7 @@ async function main() {
         "a stop whose lookup failed for a retryable reason is not saved",
       );
       stub.releaseFlaky = true;
-      // The open Trip drawer covers the map's Retry places button on desktop; the click is made on
-      // the element itself, as the map's own control would receive it.
+
       await page
         .getByRole("button", { name: "Retry places" })
         .first()
@@ -435,10 +395,6 @@ async function main() {
     summary.maxInFlight = stub.maxInFlight;
     await context.close();
 
-    // 4. A day whose stops already carry the planner's arrival times (`arriveBy`). Its places are saved one by
-    //    one; the day is then verified once, and its legs read as routed. An edit started while that verify is
-    //    in flight is applied and not replaced by the verify's answer. A timing notice sits on its stop only,
-    //    and removing a priced stop takes its price off the estimate at once.
     const seeded = newStub();
     const day = await openTrip(browser, { width: 1440, height: 1000, stub: seeded, seeded: true });
     const seededPage = day.page;
@@ -474,8 +430,6 @@ async function main() {
       `no leg keeps the planner's ${PLANNER_WALK_MIN}-minute estimate`,
     );
 
-    // The edit: stop 3 moves earlier, which the server checks as a swap (routes included). That request is
-    // held; a time edit of stop 1 starts while it is in flight, and the held answer arrives before the edit.
     let releaseVerify = () => {};
     seeded.holdVerify = new Promise((done) => (releaseVerify = done));
     await stopRow(3)
@@ -486,7 +440,7 @@ async function main() {
       await waitUntil(async () => seeded.holdSeen),
       "a move is in flight when the time edit starts",
     );
-    // While a checked edit is pending the timeline is locked, so a second edit waits for the answer.
+
     check(
       await waitUntil(async () => stopRow(1).locator(".timeline-stop__time").isDisabled()),
       "the timeline is locked while a checked move is in flight",
@@ -502,8 +456,6 @@ async function main() {
       `the day's legs are still shown after the move (${await legs().count()})`,
     );
 
-    // A timing notice: stop 3 starts 5 minutes after stop 2 ends, which is not enough for its leg. The notice
-    // sits on stop 3 only; no other stop of the day shows it.
     await stopRow(3).locator(".timeline-stop__time").click();
     await trip(seededPage)
       .getByLabel(/^Start/)
@@ -512,8 +464,7 @@ async function main() {
     await trip(seededPage).getByLabel(/^End/).first().fill("13:35");
     await trip(seededPage).getByRole("button", { name: "Change time", exact: true }).click();
     await settle(seededPage, 1000);
-    // Each stop's notices. The mock's own Day 1 flight can overlap a stop, which shows that stop an
-    // "Overlaps" notice of its own; only the timing notice is counted here.
+
     const noticeRows = await dayOne().evaluateAll((rows) =>
       rows.map((row) =>
         [...row.querySelectorAll(".timeline-stop__conflicts li")].map((item) =>
@@ -535,7 +486,6 @@ async function main() {
       `the notice says why (${noticeText.replace(/\s+/g, " ")})`,
     );
 
-    // A priced stop: removing it takes its price off the estimate at once, with no server answer.
     const total = seededPage.locator(".trip__budget strong");
     const totalBefore = (await total.innerText()).trim();
     seeded.priceNextTime = true;
@@ -575,7 +525,6 @@ async function main() {
     await seededPage.screenshot({ path: `${OUT}/04-seeded-day.png` });
     await day.context.close();
 
-    // 5. With no map places (no stub, so every lookup answers 503), nothing is saved.
     const bare = await openTrip(browser, { width: 1440, height: 1000 });
     await settle(bare.page, 2500);
     const bareStops = await scanStops(bare.page);

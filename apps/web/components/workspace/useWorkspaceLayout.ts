@@ -17,11 +17,6 @@ const matches = (query: string) =>
   window.matchMedia(query).matches;
 const readMedia = (): Media => ({ phone: matches(PHONE_QUERY), narrow: matches(NARROW_QUERY) });
 
-/**
- * What is open on screen, from `layout()`. The workspace mounts only after storage is read on the
- * client, so the first render already knows the real breakpoints and a reload never replays a
- * crossing. Later media-query changes become `resize` events.
- */
 export function useWorkspaceLayout(savedView: MobileView) {
   const [media, setMedia] = useState(readMedia);
   const current = useRef(media);
@@ -38,7 +33,7 @@ export function useWorkspaceLayout(savedView: MobileView) {
       setMedia(to);
       setSurface((surface) => layout(surface, { type: "resize", from }, to));
     };
-    // The window may have crossed a breakpoint between the first render and this effect.
+
     update();
     for (const query of queries) query.addEventListener("change", update);
     return () => {

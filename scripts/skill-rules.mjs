@@ -1,16 +1,3 @@
-// Format rules for agent skills under `.agents/skills`, checked by `scripts/verify-docs.mjs`.
-// Sources: the Agent Skills specification (https://agentskills.io/specification), the Claude Code skill
-// guide at https://qiao1.top/posts/fcc443a7.html, and this project's own layout. Only what a script can
-// decide is checked; whether a rule is the most important one, or an operation deserves a script, is
-// judgement and is left to review.
-//
-// The rules come in two tiers, returned separately by `checkSkills`:
-// - `errors` fail `verify:docs`. They are requirements of the specification (name, description and
-//   compatibility limits, frontmatter) and this project's conventions: the description says when to use the
-//   skill, supporting files live under references/, scripts/ or assets/, and references stay one level deep.
-// - `warnings` do not fail anything. They are recommendations or client-specific limits: 500 lines in
-//   SKILL.md (the specification says "keep under"), the 1536-character trigger budget of Claude Code, and
-//   frontmatter fields this list does not know. Each is a number or a list that is easy to change here.
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
 
@@ -18,7 +5,7 @@ const NAME_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const NAME_MAX = 64;
 const DESCRIPTION_MAX = 1024;
 const COMPATIBILITY_MAX = 500;
-// Claude Code shows name, description and when_to_use together in a shared, limited budget.
+
 const TRIGGER_BUDGET = 1536;
 const BODY_MAX_LINES = 500;
 const WHEN_PATTERN = /\b[Uu]se (when|before|after|at|for|if)\b/;
@@ -42,7 +29,6 @@ const KNOWN_FIELDS = new Set([
 const ALLOWED_DIRECTORIES = new Set(["scripts", "references", "assets"]);
 const LICENCE_FILE = /^licen[cs]e(\..+)?$/i;
 
-/** A small reader for the flat `key: value` frontmatter skills use, including folded `>` and `|` values. */
 function parseFrontmatter(block) {
   const fields = new Map();
   let key;
@@ -102,7 +88,6 @@ function checkLinks(skill, skillsDir, errors) {
   }
 }
 
-/** Returns `{ errors, warnings }`: one message per violation of the skill format rules under `skillsDir`. */
 export function checkSkills(skillsDir) {
   const errors = [];
   const warnings = [];

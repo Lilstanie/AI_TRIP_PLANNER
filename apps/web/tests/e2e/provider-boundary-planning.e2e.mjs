@@ -1,15 +1,3 @@
-// Public Planning-loop regression for the completed ToolGateway boundary (#131).
-//
-// Failure inventory:
-// - Maps, Booking or Weather migration changes the five-section Plan or source labels;
-// - the first tight-budget Conflict changes between plain and targeted strategies;
-// - targeted revision fails to repair that Conflict or revises the wrong specialist;
-// - the stream omits a final, replayable versioned Artifact.
-// - the plan silently changes a requested Brief field or omits Artifact lifecycle fields.
-//
-//   pnpm --filter @trip/web dev  (fixture mode, no model or provider keys)
-//   node apps/web/tests/e2e/provider-boundary-planning.e2e.mjs
-
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 

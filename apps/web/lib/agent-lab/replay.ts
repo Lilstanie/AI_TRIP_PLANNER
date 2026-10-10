@@ -6,7 +6,7 @@ import {
 } from "@trip/shared";
 
 export const MAX_REPLAY_BYTES = 5 * 1024 * 1024;
-/** Fixture runs last seconds; a recording that would play longer is not a recording of one. */
+
 export const MAX_REPLAY_MS = 10 * 60 * 1000;
 
 export type ReplayParse =
@@ -31,7 +31,6 @@ function formatPath(path: readonly PropertyKey[]): string {
   );
 }
 
-/** Says what is wrong in the terms a visitor can act on, not as a raw schema error. */
 function describeInvalid(
   issues: readonly { message: string; path: readonly PropertyKey[] }[],
   raw: unknown,
@@ -60,11 +59,6 @@ function describeInvalid(
   return `The artifact is not valid${where}: ${first!.message}${more}.`;
 }
 
-/**
- * Turns a file's text into a replayable run, or says why it cannot be one. Nothing is guessed: an
- * unreadable, unsupported or inconsistent file is refused instead of being repaired into a plausible
- * run, and fields the contract does not define are dropped by validation.
- */
 export function parseReplayArtifact(text: string): ReplayParse {
   let raw: unknown;
   try {
@@ -84,8 +78,7 @@ export function parseReplayArtifact(text: string): ReplayParse {
   const parsed = AgentLabRunArtifact.safeParse(raw);
   if (!parsed.success) return reject(describeInvalid(parsed.error.issues, raw));
   const artifact = parsed.data;
-  // A failed run is replayable when it kept the events recorded before it failed; without them there
-  // is nothing to show.
+
   if (artifact.events.length === 0) {
     return reject("This artifact has no events to replay.");
   }
@@ -107,7 +100,6 @@ export function parseReplayArtifact(text: string): ReplayParse {
   return { ok: true, artifact };
 }
 
-/** Reads one chosen file, refusing an oversized one before reading it. */
 export async function readReplayFile(file: File): Promise<ReplayParse> {
   if (file.size > MAX_REPLAY_BYTES) {
     return reject(
@@ -130,11 +122,6 @@ function sleep(ms: number, signal: AbortSignal): Promise<void> {
   });
 }
 
-/**
- * Delivers the recorded events in order at their recorded offsets, measured from the first event
- * against one clock so timer lateness does not accumulate. Resolves true when every event was
- * delivered and false when the signal stopped it first.
- */
 export async function replayEvents(
   events: readonly AgentLabRunEvent[],
   onEvent: (event: AgentLabRunEvent) => void,
@@ -156,7 +143,6 @@ export function artifactFilename(artifact: AgentLabRunArtifactValue): string {
   return `agent-lab-${artifact.scenarioId}-${artifact.strategyId}-${run}.json`;
 }
 
-/** Saves the artifact exactly as validated: the same bounded contract the stream completed with. */
 export function downloadArtifact(artifact: AgentLabRunArtifactValue): string {
   const filename = artifactFilename(artifact);
   const url = URL.createObjectURL(
@@ -168,7 +154,7 @@ export function downloadArtifact(artifact: AgentLabRunArtifactValue): string {
   document.body.append(link);
   link.click();
   link.remove();
-  // Some browsers start the save after the click returns, so the URL outlives it briefly.
+
   setTimeout(() => URL.revokeObjectURL(url), 1000);
   return filename;
 }

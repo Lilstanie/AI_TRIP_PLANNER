@@ -5,7 +5,6 @@ import { plan } from "@/tests/fixtures/workspace";
 const post = (body: string) =>
   POST(new Request("http://localhost/api/trip/preview-edit", { method: "POST", body }));
 
-// The route keeps its English `error` for older clients and adds the same refusal as a Notice.
 describe("POST /api/trip/preview-edit refusals", () => {
   it("returns an authored refusal as a keyed notice beside the English error", async () => {
     const response = await post(

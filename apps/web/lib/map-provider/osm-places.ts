@@ -95,7 +95,7 @@ export function osmPlaces(fetcher?: ProviderFetch) {
     );
     url.searchParams.set("q", query.text);
     url.searchParams.set("limit", "5");
-    // Photon only accepts languages installed in its index; Chinese names are selected by Nominatim.
+
     if (query.language === "en") url.searchParams.set("lang", "en");
     if (bbox) url.searchParams.set("bbox", bbox);
     return cached(url.href, async () => {
@@ -106,7 +106,6 @@ export function osmPlaces(fetcher?: ProviderFetch) {
   }
   async function search(query: PlaceSearch): Promise<MapPlace[]> {
     if (query.autocomplete) {
-      // Photon has no Chinese index here; typing never falls back to Nominatim in any language.
       if (query.language === "zh") return [];
       try {
         return await photon(query);

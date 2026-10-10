@@ -1,6 +1,3 @@
-// Internal compatibility surface for package tests and direct adapter callers.
-// Production imports use the public ToolGateway instead.
-
 import type { Place, PlaceQuery, RouteLeg, RouteOption, RouteQuery } from "@trip/shared";
 import { createMapsPort } from "./maps-port";
 import { toolRuntimeConfig } from "./runtime-context";
