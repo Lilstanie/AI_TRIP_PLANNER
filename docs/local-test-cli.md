@@ -108,3 +108,23 @@ and `map-provider-http` need multiple servers. `plan-quality` and `conversation-
 data and need `DEEPSEEK_API_KEY`. Scripts that have not been audited for complete fixture-only
 execution and isolated state remain unsupported, with unverified prerequisites called out. A listed
 script is not a claim that its assertions passed.
+
+## Inspect a saved invocation
+
+Read one completed local run or repeat by its invocation ID or saved `summaryFile` path:
+
+```bash
+pnpm --filter @trip/web e2e report <invocation-id>
+pnpm --silent --filter @trip/web e2e report <summaryFile> --json
+```
+
+The report reads the saved record and checks whether its evidence directories are still present. It
+does not rerun a check, start a server or modify the summary or evidence. JSON `reportOutcome: "reported"`
+means the report was read successfully; `recordedOutcome` is the test result. A recorded failure is
+still a successfully read report and does not make the report command fail. `recordStatus` is
+`incomplete` when the summary is partial or its evidence is missing.
+
+Repeat reports retain every attempt in order, including failures before a later pass. Missing child
+summaries, interrupted attempts and missing evidence are marked incomplete instead of being presented
+as passing coverage. Unknown IDs, malformed summaries and paths outside the saved local CLI records
+return nonzero; JSON errors do not include saved file contents.
