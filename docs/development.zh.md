@@ -238,7 +238,7 @@ node .agents/skills/translate-docs/scripts/check-pairs.mjs
 
 这是新工作的首选方式。CI 通过 `pnpm test` 运行 Vitest 测试套件，通过 `pnpm test:scripts` 运行仓库脚本测试（`scripts/*.test.mjs`）。CI 不运行 E2E 脚本，因此推送前应自行运行相关脚本；已经在 `main` 上失败的脚本列在 [e2e-known-failures.zh.md](e2e-known-failures.zh.md) 中。不过 CI 会运行 `pnpm verify:e2e-selectors`：如果某个 E2E 脚本选择的 CSS 类（如 `.section__row`）在 `apps/web` 下已没有任何组件、页面或库文件渲染，它就会失败；只留在样式表里的规则不算。它不需要服务器，不到一秒即可完成。专门检查某个已删除的类不再出现的那一行，末尾加上 `// e2e-selectors: absent`；只由第三方库设置的类写进 `scripts/verify-e2e-selectors.mjs` 的 `ALLOWED`，并注明原因。
 
-E2E 脚本位于 `apps/web/tests/e2e/`。通过运行器执行：它在空闲端口上启动服务器，从仓库根目录依次对其运行指定的脚本，结束后只停止它自己启动的服务器：
+E2E 脚本位于 `apps/web/tests/e2e/`。需要 fixture 隔离、由命令启动并拥有服务器，以及每次运行独立证据时，请使用[本地 E2E 命令行工具](local-test-cli.zh.md)。其他情况可通过运行器执行脚本：它在空闲端口上启动服务器，从仓库根目录依次对其运行指定脚本，结束后只停止它自己启动的服务器：
 
 ```bash
 pnpm --filter @trip/web e2e timeline display-currency     # names without .e2e.mjs; 'phone-*' works
