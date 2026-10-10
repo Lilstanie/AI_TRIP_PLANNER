@@ -135,6 +135,18 @@ check(
 );
 
 const partialCoverageId = `${fixtureId}-partial-coverage`;
+const runningId = `${fixtureId}-running`;
+writeInvocation(
+  runningId,
+  oneCheck(runningId, "passed", "running", `output/e2e/local-test-cli/${runningId}/evidence/check`),
+);
+const runningReport = runCli(["report", runningId, "--json"]);
+check(runningReport.status === 0, "report can inspect a running saved check");
+check(
+  JSON.parse(runningReport.stdout).recordStatus === "incomplete",
+  "a running check cannot make recorded coverage complete",
+);
+
 const partialCoverageEvidence = `output/e2e/local-test-cli/${partialCoverageId}/evidence/first-check`;
 writeInvocation(
   partialCoverageId,

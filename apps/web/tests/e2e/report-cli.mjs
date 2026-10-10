@@ -130,11 +130,12 @@ function runDetails(summary) {
     : [];
   const complete =
     typeof summary.outcome === "string" &&
-    Array.isArray(summary.requested) &&
-    results.length > 0 &&
     requestedCoverageMatches(summary.requested, results) &&
     results.every(
-      (result) => result.status !== "incomplete" && result.evidenceStatus === "available",
+      (result) =>
+        result.status !== "incomplete" &&
+        result.status !== "running" &&
+        result.evidenceStatus === "available",
     );
   return {
     recordStatus: complete ? "complete" : "incomplete",

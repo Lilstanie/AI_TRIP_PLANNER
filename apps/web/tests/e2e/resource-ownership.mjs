@@ -82,26 +82,6 @@ export function createRunOwnershipRecord({
   };
 }
 
-export function createRepeatOwnershipRecord({
-  invocationId,
-  directoryIdentity,
-  evidenceIdentity,
-  summaryIdentity,
-  children,
-  createdAt,
-}) {
-  return {
-    schemaVersion: OWNERSHIP_SCHEMA_VERSION,
-    recordType: "repeat",
-    invocationId,
-    createdAt,
-    directoryIdentity,
-    evidenceIdentity,
-    summaryIdentity,
-    children,
-  };
-}
-
 export function writeOwnershipRecord(directory, record) {
   const path = resolve(directory, OWNERSHIP_FILE);
   const descriptor = openSync(path, "wx", 0o600);
@@ -111,5 +91,4 @@ export function writeOwnershipRecord(directory, record) {
   } finally {
     closeSync(descriptor);
   }
-  return path;
 }

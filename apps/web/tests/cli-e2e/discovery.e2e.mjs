@@ -119,6 +119,12 @@ assert.equal(human.status, 0, human.stderr);
 assert.match(human.stdout, /Local E2E doctor: READY/);
 assert.ok(!`${human.stdout}\n${human.stderr}`.includes("synthetic-map-secret"));
 
+for (const command of ["doctor", "list"]) {
+  const invalid = await run(command, ["--unexpected"]);
+  assert.equal(invalid.status, 2);
+  assert.match(invalid.stdout, new RegExp(`Usage: e2e ${command}`));
+}
+
 const blocked = await run("doctor", ["--json"], { PATH: "" });
 assert.equal(blocked.status, 1, blocked.stderr);
 const blockedReport = JSON.parse(blocked.stdout);

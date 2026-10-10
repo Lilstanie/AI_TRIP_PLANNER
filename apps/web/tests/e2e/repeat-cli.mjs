@@ -11,7 +11,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   captureIdentity,
-  createRepeatOwnershipRecord,
+  OWNERSHIP_SCHEMA_VERSION,
   writeOwnershipRecord,
 } from "./resource-ownership.mjs";
 
@@ -49,7 +49,6 @@ function writeSummary(directory, summary) {
   const pending = `${summaryFile}.tmp`;
   writeFileSync(pending, `${JSON.stringify(summary, null, 2)}\n`);
   renameSync(pending, summaryFile);
-  return summary;
 }
 
 function outputResult(result, json) {
@@ -61,15 +60,10 @@ function outputResult(result, json) {
   }
 }
 
-function childEnvironment() {
-  return { ...process.env };
-}
-
 function runChild(args, logPath, onSpawn) {
   return new Promise((done) => {
     const child = spawn(process.execPath, [CLI, "run", ...args], {
       cwd: ROOT,
-      env: childEnvironment(),
       stdio: ["ignore", "pipe", "pipe"],
     });
     onSpawn(child);
@@ -206,9 +200,7 @@ export async function runLocalRepeatCli(args) {
         outcome = "interrupted";
         diagnostic = `Interrupted by ${interruptSignal}; completed attempt records and available evidence are retained.`;
       }
-      summary.completedAttempts = summary.attempts.filter(
-        (item) => item.status !== "running",
-      ).length;
+      summary.completedAttempts = summary.attempts.length;
       summary.remainingAttempts = parsed.repeatCount - summary.attempts.length;
       summary.results = summary.attempts.map((item) => ({ ...item }));
       summary.outcome = outcome;
@@ -231,14 +223,14 @@ export async function runLocalRepeatCli(args) {
   for (const attempt of summary.attempts) {
     if (attempt.status === "running") attempt.status = interrupted ? "interrupted" : "failed";
   }
-  summary.completedAttempts = summary.attempts.filter((item) => item.status !== "running").length;
+  summary.completedAttempts = summary.attempts.length;
   summary.remainingAttempts = parsed.repeatCount - summary.attempts.length;
   summary.results = summary.attempts.map((item) => ({ ...item }));
   summary.outcome = outcome;
   summary.completedAt = new Date().toISOString();
   if (diagnostic) summary.diagnostic = diagnostic;
-  const saved = writeSummary(directory, summary);
-  const children = saved.attempts.map((attempt) => {
+  writeSummary(directory, summary);
+  const children = summary.attempts.map((attempt) => {
     if (!attempt.summaryFile) return null;
     try {
       const match = CHILD_SUMMARY_PATH.exec(attempt.summaryFile);
@@ -265,7 +257,9 @@ export async function runLocalRepeatCli(args) {
     summary.diagnostic = diagnostic;
     writeSummary(directory, summary);
   }
-  const ownerRecord = createRepeatOwnershipRecord({
+  writeOwnershipRecord(directory, {
+    schemaVersion: OWNERSHIP_SCHEMA_VERSION,
+    recordType: "repeat",
     invocationId: id,
     createdAt: summary.startedAt,
     directoryIdentity: captureIdentity(directory, "directory"),
@@ -273,16 +267,15 @@ export async function runLocalRepeatCli(args) {
     summaryIdentity: captureIdentity(resolve(directory, "summary.json"), "file"),
     children,
   });
-  writeOwnershipRecord(directory, ownerRecord);
   outputResult(
     {
       outcome,
-      requested: saved.requested,
-      requestedRepeatCount: saved.requestedRepeatCount,
-      attempts: saved.attempts,
-      results: saved.results,
-      summaryFile: saved.summaryFile,
-      evidenceDirectory: saved.evidenceDirectory,
+      requested: summary.requested,
+      requestedRepeatCount: summary.requestedRepeatCount,
+      attempts: summary.attempts,
+      results: summary.results,
+      summaryFile: summary.summaryFile,
+      evidenceDirectory: summary.evidenceDirectory,
       ...(diagnostic ? { diagnostic } : {}),
     },
     json,

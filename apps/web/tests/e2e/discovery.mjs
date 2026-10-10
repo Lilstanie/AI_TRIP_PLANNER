@@ -10,8 +10,7 @@ const E2E = fileURLToPath(HERE);
 const WEB = resolve(E2E, "../..");
 const ROOT = resolve(WEB, "../..");
 const REQUIRE = createRequire(import.meta.url);
-export const SUPPORTED_SCRIPT_NAMES = SUPPORTED_JOURNEYS;
-const SUPPORTED = new Set(SUPPORTED_SCRIPT_NAMES);
+const SUPPORTED = new Set(SUPPORTED_JOURNEYS);
 const JOURNEY_BY_NAME = new Map(LOCAL_JOURNEYS.map((journey) => [journey.name, journey]));
 const EXCLUSIONS = {
   "agent-lab-live-gate":
@@ -93,16 +92,15 @@ function doctorChecks() {
   );
 
   const nextPath = resolve(WEB, "node_modules/.bin/next");
+  const nextReady = hasAccess(nextPath, constants.R_OK | constants.X_OK);
   checks.push(
     check(
       "workspace-dependencies",
-      hasAccess(nextPath, constants.R_OK | constants.X_OK) ? "ready" : "blocked",
-      hasAccess(nextPath, constants.R_OK | constants.X_OK)
+      nextReady ? "ready" : "blocked",
+      nextReady
         ? "The web Next.js executable is installed and accessible."
         : "The web Next.js executable is missing or inaccessible.",
-      hasAccess(nextPath, constants.R_OK | constants.X_OK)
-        ? undefined
-        : "Run pnpm install --frozen-lockfile from the repository root.",
+      nextReady ? undefined : "Run pnpm install --frozen-lockfile from the repository root.",
     ),
   );
 
@@ -225,6 +223,7 @@ function render(result, json) {
     return;
   }
   console.log(`Local E2E ${result.command}: ${result.outcome.toUpperCase()}`);
+  if (result.diagnostic) console.log(result.diagnostic);
   if (result.command === "doctor") {
     for (const item of result.checks)
       console.log(

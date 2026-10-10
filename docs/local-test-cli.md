@@ -126,8 +126,8 @@ The report reads the saved record and checks whether its evidence directories ar
 does not rerun a check, start a server or modify the summary or evidence. JSON `reportOutcome: "reported"`
 means the report was read successfully; `recordedOutcome` is the test result. A recorded failure is
 still a successfully read report and does not make the report command fail. `recordStatus` is
-`incomplete` when the summary is partial, its results do not match every requested journey exactly
-once, or its evidence is missing.
+`incomplete` when a check is still running, the summary is partial, its results do not match every
+requested journey exactly once, or its evidence is missing.
 
 Repeat reports retain every attempt in order, including failures before a later pass. Missing child
 summaries, interrupted attempts and missing evidence are marked incomplete instead of being presented

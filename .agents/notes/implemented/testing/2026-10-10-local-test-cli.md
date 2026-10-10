@@ -17,6 +17,9 @@ summary, logs and browser evidence. The owned Next server binds to loopback and 
 spawned process's Next-ready signal plus an HTTP response. A unique temporary TypeScript config prevents
 Next from editing the shared config as it discovers the owned build directory.
 
+Builds and fixture journeys share the same child executor for logging, timeout handling and process-group
+termination. Repeat records are assembled directly; ownership validation remains in the cleanup boundary.
+
 ## Alternatives considered
 
 - Reuse the raw runner: rejected because it honors inherited `BASE_URL` and passes all credentials to

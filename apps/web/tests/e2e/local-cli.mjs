@@ -276,7 +276,6 @@ function writeSummary(directory, summary) {
   summary.summaryFile = summaryFile.slice(ROOT.length + 1);
   summary.evidenceDirectory = resolve(directory, "evidence").slice(ROOT.length + 1);
   writeFileSync(summaryFile, `${JSON.stringify(summary, null, 2)}\n`);
-  return summary;
 }
 
 function outputResult(result, json) {
@@ -317,7 +316,6 @@ export async function runLocalCli(args) {
   const id = invocationId();
   const directory = resolve(ROOT_OUTPUT, id);
   const evidenceDirectory = resolve(directory, "evidence");
-  const journeyEvidenceDirectory = (script) => resolve(evidenceDirectory, script);
   const distDir = `.next-e2e-local-${id}`;
   const tsconfigPath = `.tsconfig-e2e-local-${id}.json`;
   const tsconfigFile = resolve(WEB, tsconfigPath);
@@ -437,14 +435,14 @@ export async function runLocalCli(args) {
           } else {
             for (const script of supported) {
               if (interrupted) break;
-              const scriptEvidenceDirectory = journeyEvidenceDirectory(script);
+              const scriptEvidenceDirectory = resolve(evidenceDirectory, script);
               mkdirSync(scriptEvidenceDirectory, { recursive: true });
               const scriptLog =
                 options.scripts.length === 1
                   ? journeyLog
                   : resolve(directory, `journey-${script}.log`);
               writeFileSync(scriptLog, `Starting ${script}\n`);
-              current = spawn(process.execPath, [resolve(HERE, `${script}.e2e.mjs`)], {
+              const result = await execute(process.execPath, [resolve(HERE, `${script}.e2e.mjs`)], {
                 cwd: ROOT,
                 env: {
                   ...fixtureEnv({
@@ -456,33 +454,20 @@ export async function runLocalCli(args) {
                   }),
                   BASE_URL: url,
                 },
-                detached: process.platform !== "win32",
-                stdio: ["ignore", "pipe", "pipe"],
-              });
-              current.stdout.on("data", (chunk) => appendFileSync(scriptLog, chunk));
-              current.stderr.on("data", (chunk) => appendFileSync(scriptLog, chunk));
-              const result = await new Promise((done) => {
-                let timedOut = false;
-                let termination;
-                const timer = setTimeout(() => {
-                  timedOut = true;
-                  termination = terminateGroup(current);
-                  termination.done.then(() => done({ status: "timed_out", code: 124 }));
-                }, options.timeoutMs);
-                current.once("error", (error) => {
-                  clearTimeout(timer);
-                  done({ status: "failed", code: 1, error: error.message });
-                });
-                current.once("close", (code, signal) => {
-                  clearTimeout(timer);
-                  if (timedOut) {
-                    termination?.done.then(() => done({ status: "timed_out", code: 124 }));
-                  } else
-                    done({ status: code === 0 ? "passed" : "failed", code: code ?? 1, signal });
-                });
+                logPath: scriptLog,
+                timeoutMs: options.timeoutMs,
+                onSpawn: (child) => {
+                  current = child;
+                },
               });
               current = undefined;
-              const resultStatus = interrupted ? "interrupted" : result.status;
+              const resultStatus = interrupted
+                ? "interrupted"
+                : result.timedOut
+                  ? "timed_out"
+                  : result.code === 0
+                    ? "passed"
+                    : "failed";
               resultsByScript.set(script, {
                 scenario: script,
                 status: resultStatus,
@@ -507,7 +492,6 @@ export async function runLocalCli(args) {
     if (interrupted) {
       status = "interrupted";
       diagnostic = `Interrupted by ${interruptSignal}; available diagnostics are retained.`;
-      if (current) current = undefined;
     }
     if (tsconfigCreated) rmSync(tsconfigFile, { force: true });
     const distPath = resolve(WEB, distDir);
@@ -546,7 +530,7 @@ export async function runLocalCli(args) {
   summary.outcome = status;
   summary.completedAt = new Date().toISOString();
   if (diagnostic) summary.diagnostic = diagnostic;
-  const result = writeSummary(directory, summary);
+  writeSummary(directory, summary);
   const ownerRecord = createRunOwnershipRecord({
     invocationId: id,
     createdAt: summary.startedAt,
@@ -563,10 +547,10 @@ export async function runLocalCli(args) {
   outputResult(
     {
       outcome: status,
-      requested: result.requested,
-      results: result.results,
-      summaryFile: result.summaryFile,
-      evidenceDirectory: result.evidenceDirectory,
+      requested: summary.requested,
+      results: summary.results,
+      summaryFile: summary.summaryFile,
+      evidenceDirectory: summary.evidenceDirectory,
       ...(diagnostic ? { diagnostic } : {}),
     },
     options.json,

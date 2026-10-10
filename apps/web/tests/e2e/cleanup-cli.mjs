@@ -425,7 +425,7 @@ function cleanupRunInvocation(invocation) {
     const definition = invocation.resources[index];
     const resource = invocation.owner.resources[index];
     const action = cleanupResource(resource, definition, WEB);
-    const status = action.status === "removable" ? "removed" : action.status;
+    const status = action.status;
     if (status === "removed") {
       resource.state = "removed";
       invocation.summary.ownedResources[index].state = "removed";
