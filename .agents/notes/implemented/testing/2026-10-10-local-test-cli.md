@@ -13,8 +13,9 @@ Keep raw named-script calls on the legacy runner and dispatch `e2e run` to a sep
 The first supported journey is the registered Agent Lab single-agent fixture. Build and server children
 receive a small environment allowlist, known integration credentials are blanked, mock tools are forced,
 and Agent Lab live runs are disabled. Each invocation owns a unique build directory, server process group,
-summary, logs and browser evidence. A unique temporary TypeScript config prevents Next from editing the
-shared config as it discovers the owned build directory.
+summary, logs and browser evidence. The owned Next server binds to loopback and readiness requires the
+spawned process's Next-ready signal plus an HTTP response. A unique temporary TypeScript config prevents
+Next from editing the shared config as it discovers the owned build directory.
 
 ## Alternatives considered
 
@@ -25,7 +26,10 @@ shared config as it discovers the owned build directory.
 
 ## Consequences
 
-- The CLI currently supports only `agent-lab-single-agent`; other selections return `unsupported`.
+- The CLI supports `agent-lab-single-agent` and `agent-lab-replay`; other selections return `unsupported`.
+- `doctor` validates the required web TypeScript config shape; `report` marks requested/result coverage
+  incomplete when scenario names do not match exactly; repeat accepts a pass only when both the child
+  summary and process exit succeed.
 - Credential names added by future integrations must be added to the deny list. This is not a network
   egress firewall.
 - The legacy raw invocation retains its existing environment and server-reuse behavior.

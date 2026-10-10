@@ -134,6 +134,72 @@ check(
   "report does not replace a failed scenario status",
 );
 
+const partialCoverageId = `${fixtureId}-partial-coverage`;
+const partialCoverageEvidence = `output/e2e/local-test-cli/${partialCoverageId}/evidence/first-check`;
+writeInvocation(
+  partialCoverageId,
+  {
+    invocationId: partialCoverageId,
+    requested: ["first-check", "second-check"],
+    outcome: "passed",
+    reproductionCommand: "pnpm --filter @trip/web e2e run first-check second-check --dev",
+    summaryFile: `output/e2e/local-test-cli/${partialCoverageId}/summary.json`,
+    evidenceDirectory: `output/e2e/local-test-cli/${partialCoverageId}/evidence`,
+    results: [
+      {
+        scenario: "first-check",
+        status: "passed",
+        evidenceDirectory: partialCoverageEvidence,
+        diagnostics: "output/e2e/local-test-cli/example/first-check.log",
+      },
+    ],
+  },
+  ["evidence/first-check/result.json"],
+);
+const partialCoverageReport = runCli(["report", partialCoverageId, "--json"]);
+const partialCoverageJson = JSON.parse(partialCoverageReport.stdout.trim());
+check(partialCoverageReport.status === 0, "report can inspect a partial saved run");
+check(
+  partialCoverageJson.recordStatus === "incomplete",
+  "missing a requested result makes recorded coverage incomplete",
+);
+check(
+  partialCoverageJson.requested.length === 2 && partialCoverageJson.results.length === 1,
+  "report preserves the requested and recorded check sets for diagnosis",
+);
+
+for (const [label, scenarios] of [
+  ["duplicate", ["first-check", "first-check"]],
+  ["unrequested", ["first-check", "extra-check"]],
+]) {
+  const invocationId = `${fixtureId}-${label}-coverage`;
+  const results = scenarios.map((scenario) => ({
+    scenario,
+    status: "passed",
+    evidenceDirectory: `output/e2e/local-test-cli/${invocationId}/evidence/${scenario}`,
+    diagnostics: "output/e2e/local-test-cli/example/check.log",
+  }));
+  writeInvocation(
+    invocationId,
+    {
+      invocationId,
+      requested: ["first-check", "second-check"],
+      outcome: "passed",
+      reproductionCommand: "saved command",
+      evidenceDirectory: `output/e2e/local-test-cli/${invocationId}/evidence`,
+      results,
+    },
+    [...new Set(scenarios)].map((scenario) => `evidence/${scenario}/result.json`),
+  );
+  const coverageReport = runCli(["report", invocationId, "--json"]);
+  const coverageJson = JSON.parse(coverageReport.stdout.trim());
+  check(coverageReport.status === 0, `report can inspect ${label} result coverage`);
+  check(
+    coverageJson.recordStatus === "incomplete",
+    `${label} result coverage cannot satisfy different requested journeys`,
+  );
+}
+
 const firstId = `${fixtureId}-attempt-1`;
 const secondId = `${fixtureId}-attempt-2`;
 const firstEvidence = `output/e2e/local-test-cli/${firstId}/evidence/check`;

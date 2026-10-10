@@ -209,18 +209,28 @@ function execute(command, args, { cwd, env, logPath, timeoutMs, onSpawn }) {
 }
 
 function startOwnedServer({ port, mode, distDir, logPath, tsconfigPath }) {
-  const child = spawn(NEXT, [mode === "production" ? "start" : "dev", "-p", String(port)], {
-    cwd: WEB,
-    env: fixtureEnv({ port, distDir, mode, tsconfigPath }),
-    detached: process.platform !== "win32",
-    stdio: ["ignore", "pipe", "pipe"],
-  });
+  const child = spawn(
+    NEXT,
+    [mode === "production" ? "start" : "dev", "-H", "127.0.0.1", "-p", String(port)],
+    {
+      cwd: WEB,
+      env: fixtureEnv({ port, distDir, mode, tsconfigPath }),
+      detached: process.platform !== "win32",
+      stdio: ["ignore", "pipe", "pipe"],
+    },
+  );
+  let readinessOutput = "";
+  const capture = (chunk) => {
+    appendFileSync(logPath, chunk);
+    readinessOutput = `${readinessOutput}${String(chunk)}`.slice(-128);
+    if (readinessOutput.includes("Ready in")) child.serverReady = true;
+  };
   child.once("error", (error) => {
     child.spawnError = error;
     appendFileSync(logPath, `\n${error.stack ?? error.message}\n`);
   });
-  child.stdout.on("data", (chunk) => appendFileSync(logPath, chunk));
-  child.stderr.on("data", (chunk) => appendFileSync(logPath, chunk));
+  child.stdout.on("data", capture);
+  child.stderr.on("data", capture);
   return child;
 }
 
@@ -231,10 +241,12 @@ async function waitUntilReady(child, url, timeoutMs) {
       return { ready: false, reason: `server could not start: ${child.spawnError.message}` };
     if (child.exitCode !== null || child.signalCode !== null)
       return { ready: false, reason: `server exited (${child.exitCode ?? child.signalCode})` };
-    try {
-      const response = await fetch(url, { signal: AbortSignal.timeout(3000) });
-      if (response.status < 500) return { ready: true };
-    } catch {}
+    if (child.serverReady) {
+      try {
+        const response = await fetch(url, { signal: AbortSignal.timeout(3000) });
+        if (response.status < 500) return { ready: true };
+      } catch {}
+    }
     await new Promise((wait) => setTimeout(wait, 500));
   }
   return { ready: false, reason: `server did not answer within ${timeoutMs}ms` };

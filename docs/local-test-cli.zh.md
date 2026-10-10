@@ -13,7 +13,7 @@ pnpm --filter @trip/web e2e run agent-lab-single-agent --dev
 pnpm --silent --filter @trip/web e2e run --all --json
 ```
 
-命令会在空闲的本机回环端口启动自己拥有的服务器。默认先构建生产版本再启动；`--dev` 显式选择 Next
+命令会将自己启动的 Next 服务器绑定到空闲回环端口 `127.0.0.1`。只有该 Next 子进程报告已就绪且服务器能够响应 HTTP，命令才会认定启动成功；端口上的其他服务不能满足此条件。默认先构建生产版本再启动；`--dev` 显式选择 Next
 开发模式。命令会忽略继承的 `BASE_URL`。每次运行都会在 `output/e2e/local-test-cli/` 下创建独立目录，保存
 `summary.json`、构建/服务器/行程日志，以及每个行程的截图、API 流和 artifact。摘要记录选择模式、准确的行程列表、每个行程的结果、复现
 命令、服务器模式、保留的构建目录和证据路径。多行程运行会为每个行程使用独立的证据子目录。
@@ -56,7 +56,7 @@ pnpm --silent --filter @trip/web e2e run agent-lab-single-agent --repeat 3 --jso
 
 每次运行都会启动全新的本地 CLI 调用，并使用独立构建、服务器、浏览器进程、fixture 执行和证据目录。重复运行摘要会记录
 请求次数、每次已启动运行的结果、复现命令、子调用摘要和证据路径。如果某次运行失败、受阻、不受支持、超时或被中断，后续
-运行即使成功，整体结果仍返回非零状态码。请求的运行次数会按顺序执行；这不是自动重试。无效次数会在启动调用前被拒绝。
+运行即使成功，整体结果仍返回非零状态码。只有保存的运行摘要和子进程退出码都表示成功，该次尝试才算通过。请求的运行次数会按顺序执行；这不是自动重试。无效次数会在启动调用前被拒绝。
 如果重复运行命令收到中断信号，已完成的摘要和现有证据会保留，当前子调用会收到清理请求，摘要会记录还有多少次请求的运行尚未开始。
 
 JSON 输出除常规摘要路径外，还包含 `requestedRepeatCount`、`attempts` 和 `results`。不使用 `--json` 时，命令会输出易读的结果和摘要路径。每次子调用仍会在 `output/e2e/local-test-cli/` 下写入自己的摘要和证据。
@@ -76,7 +76,7 @@ pnpm --silent --filter @trip/web e2e list --json
 package-manager 检查。
 
 `doctor` 会检查 Node.js 和仓库固定的 pnpm 版本、Web 应用的 Next.js 可执行文件、Playwright 及其 Chromium
-可执行文件，并报告应用目录是否存在 dotenv 文件。它不会启动应用或测试服务器，不会联系服务供应商，也不会读取或更改
+可执行文件、所需的 `apps/web/tsconfig.json` 结构（`include` 必须是字符串数组），并报告应用目录是否存在 dotenv 文件。它不会启动应用或测试服务器，不会联系服务供应商，也不会读取或更改
 dotenv 文件内容。本地 fixture 模式不需要供应商凭据。缺少必要工具时会报告 `blocked`、给出修复方法并返回非零状态码。
 JSON 输出为单个对象，包含 `schemaVersion`、`command`、`outcome` 和 `checks`；每项检查包含 id、状态和摘要，若被
 阻断则附带修复方法。
@@ -99,7 +99,7 @@ pnpm --silent --filter @trip/web e2e report <summaryFile> --json
 
 报告会读取已保存的记录，并检查证据目录是否仍然存在。它不会重新运行检查、启动服务器，也不会修改摘要或证据。JSON 中的
 `reportOutcome: "reported"` 表示报告读取成功；`recordedOutcome` 才是测试结果。即使记录的测试失败，报告仍可成功读取，命令本身
-返回成功。如果摘要不完整或证据缺失，`recordStatus` 会显示 `incomplete`。
+返回成功。如果摘要不完整、结果未能与每个请求行程一一对应，或证据缺失，`recordStatus` 会显示 `incomplete`。
 
 重复运行报告会按顺序保留每次尝试，包括后续通过之前发生的失败。缺少子摘要、中断的尝试和缺失的证据会标记为不完整，不会被
 描述成已通过的覆盖。未知 ID、格式错误的摘要，以及指向已保存本地 CLI 记录目录之外的路径都会返回非零状态；JSON 错误不会包含

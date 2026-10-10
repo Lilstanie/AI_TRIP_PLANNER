@@ -102,10 +102,9 @@ function readChildSummary(result) {
   }
 }
 
-function normalizeChildOutcome(result, summary) {
-  if (summary?.outcome) return summary.outcome;
-  if (result?.outcome) return result.outcome;
-  return "failed";
+function normalizeChildOutcome(exitCode, result, summary) {
+  const outcome = summary?.outcome ?? result?.outcome ?? "failed";
+  return outcome === "passed" && exitCode !== 0 ? "failed" : outcome;
 }
 
 function exitCode(outcome) {
@@ -195,7 +194,7 @@ export async function runLocalRepeatCli(args) {
       if (index === 0) summary.requested = childSummary?.requested ?? childOutput?.requested ?? [];
       startedAttempt.status = interrupted
         ? "interrupted"
-        : normalizeChildOutcome(childOutput, childSummary);
+        : normalizeChildOutcome(child.code, childOutput, childSummary);
       if (childSummary?.summaryFile) startedAttempt.summaryFile = childSummary.summaryFile;
       if (childSummary?.evidenceDirectory)
         startedAttempt.evidenceDirectory = childSummary.evidenceDirectory;
