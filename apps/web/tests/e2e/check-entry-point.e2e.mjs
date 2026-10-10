@@ -22,6 +22,15 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
+import {
+  installSeededItinerary,
+  seededDayItems,
+  openMockWorkspace,
+  planSuggestedTrip,
+  placeFor,
+  settle,
+  waitUntil,
+} from "./trip-setup.mjs";
 
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT ?? "playwright");
@@ -53,18 +62,6 @@ const check = (ok, message) => {
   if (!ok) failures.push(message);
   console.log(`${ok ? "ok  " : "FAIL"} ${message}`);
 };
-const settle = (page, ms = 500) => page.waitForTimeout(ms);
-const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
-
-function placeFor(text) {
-  return {
-    id: `stub:${text}`,
-    displayName: { text },
-    formattedAddress: `${text}, Sydney NSW, Australia`,
-    location: { latitude: -33.8568, longitude: 151.2153 },
-    googleMapsUri: `https://maps.google.com/?q=${encodeURIComponent(text)}`,
-  };
-}
 
 function newStub() {
   return {
@@ -112,60 +109,22 @@ async function installStubs(page, stub) {
   });
 }
 
-/**
- * Gives the plan's activities the stops of each seeded day, as a real plan from chat would have: the stops
- * are scheduled on their days, with saved places and the planner's walk into each stop after the first. Ideas
- * are stops with no day and no times.
- */
 async function installSeed(page, days, ideas = []) {
-  await page.route("**/api/chat", async (route) => {
-    const response = await route.fetch();
-    const body = (await response.text())
-      .split("\n")
-      .map((line) => {
-        if (!line.trim()) return line;
-        const frame = JSON.parse(line);
-        const section = frame.response?.plan?.sections.find((s) => s.id === "itinerary");
-        if (!section?.proposal) return line;
-        const kept = section.proposal.items.filter((item) => item.kind !== "activity");
-        const seeded = [];
-        for (const [dayNumber, stops] of Object.entries(days)) {
-          stops.forEach((stop, index) => {
-            seeded.push({
-              id: `seed-d${dayNumber}-${index + 1}`,
-              kind: "activity",
-              day: Number(dayNumber),
-              startTime: stop.start,
-              endTime: stop.end,
-              location: stop.name,
-              detail: stop.name,
-              placeId: `stub:${stop.name}`,
-              ...(index > 0
-                ? {
-                    arriveBy: {
-                      mode: "walk",
-                      durationMin: PLANNER_WALK_MIN,
-                      from: stops[index - 1].name,
-                    },
-                  }
-                : {}),
-            });
-          });
-        }
-        ideas.forEach((idea, index) => {
-          seeded.push({
-            id: `seed-idea-${index + 1}`,
-            kind: "activity",
-            location: idea.name,
-            detail: idea.name,
-          });
-        });
-        section.proposal.items = [...kept, ...seeded];
-        return JSON.stringify(frame);
-      })
-      .join("\n");
-    await route.fulfill({ response, body });
-  });
+  const savedDays = Object.fromEntries(
+    Object.entries(days).map(([day, stops]) => [
+      day,
+      stops.map((stop) => ({ ...stop, saved: true })),
+    ]),
+  );
+  await installSeededItinerary(page, [
+    ...seededDayItems(savedDays, PLANNER_WALK_MIN),
+    ...ideas.map((idea, index) => ({
+      id: `seed-idea-${index + 1}`,
+      kind: "activity",
+      location: idea.name,
+      detail: idea.name,
+    })),
+  ]);
 }
 
 async function openTrip(browser, { days, ideas, stub }) {
@@ -184,45 +143,9 @@ async function openTrip(browser, { days, ideas, stub }) {
   page.on("pageerror", (error) => errors.push(String(error)));
   await installStubs(page, stub);
   await installSeed(page, days, ideas);
-  await page.goto(BASE);
-  await page.waitForSelector(".workspace-app");
-  await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
-  await page.waitForLoadState("networkidle");
-  await page
-    .getByRole("button", { name: /^(Live|Mock) data/ })
-    .first()
-    .waitFor({ timeout: 30_000 })
-    .catch(() => undefined);
-  for (let attempt = 0; attempt < 5; attempt += 1) {
-    const live = page.getByRole("button", { name: /^Live data/ });
-    if (!(await live.count())) break;
-    await live.click();
-    await settle(page, 400);
-  }
-  const chatTab = page.getByRole("tab", { name: /^Chat/ });
-  if (await chatTab.count()) {
-    await chatTab.click();
-    await settle(page, 500);
-  }
-  await page.locator(".chat-empty__suggestions button").first().click();
-  await page.locator(".msg-item--agent .msg-item__body").first().waitFor({ timeout: 180_000 });
-  await settle(page, 1500);
-  const tripTab = page.getByRole("tab", { name: /^Trip/ });
-  if (await tripTab.count()) await tripTab.click();
-  else await page.getByRole("button", { name: "Open your trip" }).click();
-  await settle(page, 700);
-  await page.getByRole("region", { name: "Trip timeline" }).waitFor({ timeout: 30_000 });
-  await settle(page, 700);
+  await openMockWorkspace(page, BASE);
+  await planSuggestedTrip(page);
   return { context, page, errors };
-}
-
-/** Polls `test` for up to `ms`; resolves to whether it passed. */
-async function waitUntil(test, ms = 8000) {
-  for (let waited = 0; waited < ms; waited += 200) {
-    if (await test()) return true;
-    await sleep(200);
-  }
-  return test();
 }
 
 const trip = (page) => page.getByRole("region", { name: "Trip timeline" });

@@ -2,7 +2,7 @@
 import { useEffect } from "react";
 
 const OVERLAYS =
-  'dialog[open], [role="dialog"], [role="menu"], .item-editor, .edit-preview, .phone-map-sheet[data-snap="full"]';
+  'dialog[open], [role="dialog"], [role="menu"], .item-editor, .phone-map-sheet[data-snap="full"]';
 const HISTORY_KEY = "tripPhoneOverlay";
 
 /** Existing editors already own Escape/cancel and their focus restoration. A temporary history

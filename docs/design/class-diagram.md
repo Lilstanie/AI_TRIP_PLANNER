@@ -357,7 +357,6 @@ classDiagram
     <<module>>
     +MODEL_ROUTING: Map
     +createRoutedChatModel(task, options) BaseChatModel?
-    +createRoutedStructuredInvoker(task, schema, name) Invoker?
   }
   class SpecialistRegistry {
     <<module>>

@@ -345,7 +345,15 @@ any server environment it needs. Fixture runs are isolated from the deployment's
 Agent Lab scripts pass whatever the environment holds; `agent-lab-live-gate` also uses two servers with live enabled
 (see its header). `agent-lab-release` walks the whole public flow and writes the release evidence: raw NDJSON,
 versioned artifacts, a comparison summary, a report and a screenshot matrix (light and dark, desktop and narrow,
-reduced motion).
+reduced motion). Release smoke keeps `provider-empty-result` as the representative fault journey;
+`agent-lab-failures` owns all five registered fault profiles, their outcomes, downloads and offline replay,
+plus Run all sequencing and cancellation. Run both scripts when changing Failure Lab behavior.
+
+`auto-save-places`, `plan-revision` and `check-entry-point` share only place fixtures, workspace boot,
+day-to-plan conversion and polling in `apps/web/tests/e2e/trip-setup.mjs`. Each script owns its scenario
+assertions, request interception, held responses and screenshots; concurrency and cancellation setup
+stay beside the scenario they verify. [Coverage ownership](../.agents/notes/implemented/simplification/2026-10-10-repository-surface-reduction.md)
+records the assertion consolidation boundaries.
 
 `apps/web/tests/e2e/leg-mode-choice.e2e.mjs` checks that a travel mode the traveller chose for one
 hop (`TripBrief.legModes`) is the mode the plan uses, or is reported as unavailable — never silently

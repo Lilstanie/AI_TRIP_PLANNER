@@ -94,13 +94,6 @@ export const RouteIcon = () => (
   </Icon>
 );
 
-export const FlightIcon = () => (
-  <Icon>
-    <path d="m4 14 16-4.5M9 12.5l-2.5-6 1.8-.5 5.2 5.2M13 11.1l2.5 5.1-1.8.5-4.4-4.3" />
-    <path d="M4 14v2.5M20 9.5V12" />
-  </Icon>
-);
-
 export const MapPinIcon = () => (
   <Icon>
     <path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11Z" />

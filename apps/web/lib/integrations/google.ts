@@ -42,7 +42,6 @@ export const PlaceDetails = z.object({
     .optional(),
 });
 export type GooglePlace = z.infer<typeof PlaceDetails>;
-export type GooglePlacePhoto = NonNullable<GooglePlace["photos"]>[number];
 // `photos` and `primaryType` sit in a lower billing tier than `rating`, so asking for them does not
 // raise the cost of a lookup; only fetching an image (placePhotoUri) is billed on its own.
 const fields =

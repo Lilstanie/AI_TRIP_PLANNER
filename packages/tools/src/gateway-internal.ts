@@ -6,7 +6,6 @@ import { createWeatherPort } from "./weather-port";
 import {
   defaultToolRuntimeDependencies,
   runWithToolRuntime,
-  snapshotToolRuntime,
   type ToolRuntimeConfig,
   type ToolRuntimeDependencies,
 } from "./runtime-context";
@@ -40,8 +39,4 @@ export function createToolGatewayWithRuntime(
       forecast: (query) => invoke(() => weatherPort.forecast(query)),
     },
   };
-}
-
-export function createToolGatewayFromCurrentRuntime(): ToolGateway {
-  return createToolGatewayWithRuntime(snapshotToolRuntime());
 }

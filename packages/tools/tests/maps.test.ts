@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { places, route, routeOptions } from "../src/maps";
 
 const q = {
@@ -7,6 +7,10 @@ const q = {
   date: "2026-10-03",
   departureTime: "2026-10-03T00:00:00.000Z",
 };
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date(q.departureTime));
+});
 afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllEnvs();
@@ -218,7 +222,13 @@ describe("B resolves a named place to the one the plan means", () => {
       .mockResolvedValueOnce({ ok: true, json: async () => ({ routes: [{ duration: "60s" }] }) });
     vi.stubGlobal("fetch", fetcher);
 
-    await route({ from: "Tokyo", to: "Kyoto", date: "2026-10-05", localTime: "09:00", fromLocation: tokyo });
+    await route({
+      from: "Tokyo",
+      to: "Kyoto",
+      date: "2026-10-05",
+      localTime: "09:00",
+      fromLocation: tokyo,
+    });
 
     // The name lookup is gone; the time zone is asked for the point itself.
     expect(fetcher).toHaveBeenCalledTimes(2);
@@ -229,9 +239,10 @@ describe("B resolves a named place to the one the plan means", () => {
   it("skips geocoding on the road provider too", async () => {
     vi.stubEnv("USE_MOCK_TOOLS", "false");
     vi.stubEnv("MAPS_PROVIDER", "osm");
-    const fetcher = vi
-      .fn()
-      .mockResolvedValue({ ok: true, json: async () => ({ routes: [{ duration: 60, distance: 500 }] }) });
+    const fetcher = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ routes: [{ duration: 60, distance: 500 }] }),
+    });
     vi.stubGlobal("fetch", fetcher);
 
     await route({ ...q, fromLocation: tokyo, toLocation: kyoto });
@@ -260,9 +271,7 @@ describe("B places provider boundaries", () => {
 
     const results = await places({ near: "Tokyo", category: "temple" });
 
-    expect(results).toEqual([
-      { name: "Sensoji Temple", category: "temple", rating: 4.5 },
-    ]);
+    expect(results).toEqual([{ name: "Sensoji Temple", category: "temple", rating: 4.5 }]);
     const [url, init] = fetcher.mock.calls[0]!;
     expect(String(url)).toBe("https://places.googleapis.com/v1/places:searchText");
     expect(JSON.parse(String((init as RequestInit).body))).toEqual({

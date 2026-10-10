@@ -150,9 +150,6 @@
 .trip__budget {
   gap: var(--space-2);
 }
-.trip-panel__footer {
-  background: var(--glass-bg-strong) !important;
-}
 
 /* ---- sidebar: a floating glass column ---- */
 .workspace-sidebar {
@@ -425,12 +422,6 @@
 .fact-popover__close:hover {
   background: var(--fill-press) !important;
   color: var(--text);
-}
-.trip-panel__footer {
-  background: transparent;
-  border-top-color: color-mix(in srgb, var(--text) 8%, transparent);
-  -webkit-backdrop-filter: blur(var(--glass-blur));
-  backdrop-filter: blur(var(--glass-blur));
 }
 
 /* ---- sheets and dialogs ---- */

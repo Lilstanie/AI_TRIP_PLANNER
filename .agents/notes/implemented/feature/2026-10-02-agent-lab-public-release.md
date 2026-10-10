@@ -29,7 +29,7 @@ conflicts left says so in its headline, and an infeasible budget says the budget
 reading as having completed without a failure.
 
 The release evidence is one end-to-end script, `agent-lab-release.e2e.mjs`. It walks a normal comparison, the
-infeasible and multi-city benchmarks, every fault profile, download and offline replay, then proves a layout matrix
+infeasible and multi-city benchmarks, the representative `provider-empty-result` fault, download and offline replay, then proves a layout matrix
 (light and dark, 1440, 390 and 320 wide, reduced motion, every view): no horizontal overflow, clipped or overlapping
 control, every control named, text contrast at AA, and no motion under reduced motion. It also proves the flow
 touches no storage and calls only the run endpoint, that the ordinary workspace still loads with no lab content, and
@@ -54,7 +54,10 @@ The probe found real misses in the light theme: secondary text, the status line 
 ## Consequences
 
 A visitor reads one lab with one vocabulary, and a reviewer can reproduce the evidence with one command. The release
-script is long (several minutes) because it runs every scenario and every theme. The contrast probe depends on
+script exercises benchmark scenarios and every theme. The complete five-profile fault matrix and Run all sequencing,
+cancellation, download and replay checks belong to `agent-lab-failures.e2e.mjs`; release smoke retains one fault
+for cross-view integration. This coverage split partly supersedes the original release test scope; see the
+[simplification decision](../simplification/2026-10-10-repository-surface-reduction.md). The contrast probe depends on
 element screenshots, so it needs a real browser, not a headless unit test. The workspace's own end-to-end scripts are
 not part of this evidence and were not changed.
 

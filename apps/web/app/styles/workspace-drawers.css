@@ -166,39 +166,9 @@
 .trip-panel .section:first-child {
   border-top: 0;
 }
-.trip-tabs {
-  display: flex;
-  gap: 4px;
-  margin: 16px 0 8px;
-  border-bottom: 1px solid var(--border);
-}
-.trip-tabs button {
-  margin-bottom: -1px;
-  border-width: 0 0 2px !important;
-  border-color: transparent !important;
-  border-radius: 0 !important;
-  background: transparent !important;
-  color: var(--text-dim);
-  font-weight: 600;
-}
-.trip-tabs button[aria-selected="true"] {
-  border-color: var(--accent) !important;
-  color: var(--text);
-}
-.trip-tabpanel {
-  flex: 1;
-}
 .trip-panel__subhead {
   margin: 20px 0 8px;
   font-size: 14px;
-}
-.trip-panel__footer {
-  position: sticky;
-  bottom: 0;
-  margin: 16px -20px 0;
-  padding: 12px 20px;
-  border-top: 1px solid var(--border);
-  background: var(--surface);
 }
 .trip-drawer-empty {
   display: grid;

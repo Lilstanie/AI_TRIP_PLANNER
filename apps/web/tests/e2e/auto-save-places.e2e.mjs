@@ -18,6 +18,15 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
+import {
+  openMockWorkspace,
+  planSuggestedTrip,
+  placeFor,
+  settle,
+  sleep,
+  waitUntil,
+  waitForQuiet,
+} from "./trip-setup.mjs";
 
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT ?? "playwright");
@@ -66,18 +75,6 @@ const check = (ok, message) => {
   if (!ok) failures.push(message);
   console.log(`${ok ? "ok  " : "FAIL"} ${message}`);
 };
-const settle = (page, ms = 500) => page.waitForTimeout(ms);
-const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
-
-function placeFor(text) {
-  return {
-    id: `stub:${text}`,
-    displayName: { text },
-    formattedAddress: `${text}, Sydney NSW, Australia`,
-    location: { latitude: -33.8568, longitude: 151.2153 },
-    googleMapsUri: `https://maps.google.com/?q=${encodeURIComponent(text)}`,
-  };
-}
 
 function newStub() {
   return {
@@ -257,61 +254,13 @@ async function openTrip(browser, { width, height, stub, seeded = false }) {
     await installStubs(page, stub);
     await installStopNames(page, { seeded });
   }
-  await page.goto(BASE);
-  await page.waitForSelector(".workspace-app");
-  await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
-  await page.waitForLoadState("networkidle");
-  await page
-    .getByRole("button", { name: /^(Live|Mock) data/ })
-    .first()
-    .waitFor({ timeout: 30_000 })
-    .catch(() => undefined);
-  for (let attempt = 0; attempt < 5; attempt += 1) {
-    const live = page.getByRole("button", { name: /^Live data/ });
-    if (!(await live.count())) break;
-    await live.click();
-    await settle(page, 400);
-  }
+  await openMockWorkspace(page, BASE);
   check(
     (await page.getByRole("button", { name: /^Mock data/ }).count()) === 1,
     `${width}px: planning with mock data`,
   );
-  const chatTab = page.getByRole("tab", { name: /^Chat/ });
-  if (await chatTab.count()) {
-    await chatTab.click();
-    await settle(page, 500);
-  }
-  await page.locator(".chat-empty__suggestions button").first().click();
-  await page.locator(".msg-item--agent .msg-item__body").first().waitFor({ timeout: 180_000 });
-  await settle(page, 1500);
-  const tripTab = page.getByRole("tab", { name: /^Trip/ });
-  if (await tripTab.count()) await tripTab.click();
-  else await page.getByRole("button", { name: "Open your trip" }).click();
-  await settle(page, 700);
-  // The day view is the Trip drawer's only view, so it is there once the drawer opens.
-  await page.getByRole("region", { name: "Trip timeline" }).waitFor({ timeout: 30_000 });
-  await settle(page, 700);
+  await planSuggestedTrip(page);
   return { context, page, errors, previewRequests, operations };
-}
-
-/** Polls `test` for up to `ms`; resolves to whether it passed. */
-async function waitUntil(test, ms = 8000) {
-  for (let waited = 0; waited < ms; waited += 200) {
-    if (await test()) return true;
-    await sleep(200);
-  }
-  return test();
-}
-
-/** Waits until no save is running and the number of saves has stopped changing. */
-async function waitForQuiet(page, stub) {
-  let last = -1;
-  for (let round = 0; round < 120; round += 1) {
-    const busy = (await page.getByText("Saving place…").count()) > 0 || stub.inFlight > 0;
-    if (!busy && stub.saves.length === last) return;
-    last = busy ? -1 : stub.saves.length;
-    await settle(page, 250);
-  }
 }
 
 /** Every stop on every day: its displayed name and the status tags it shows. */

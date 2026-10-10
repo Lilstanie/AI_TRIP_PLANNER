@@ -44,7 +44,6 @@ export { CAPABILITIES } from "./prompts/capabilities";
 export {
   MODEL_ROUTING,
   createRoutedChatModel,
-  createRoutedStructuredInvoker,
   createUsageCollector,
   runWithModelsDisabled,
   runWithUsageCollector,
@@ -53,10 +52,5 @@ export {
   type UsageCollector,
   type UsageSnapshot,
 } from "./models";
-export {
-  assembleChunks,
-  messageText,
-  withReasoningStream,
-  type ReasoningListener,
-} from "./reasoning";
+export { withReasoningStream, type ReasoningListener } from "./reasoning";
 export { transportAgent, accommodationAgent };

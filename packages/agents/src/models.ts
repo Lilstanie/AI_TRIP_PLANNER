@@ -2,8 +2,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { ChatOpenAI } from "@langchain/openai";
 import { z } from "zod/v4";
 
-// Centralize provider selection and structured-output adaptation so every
-// specialist uses the same environment configuration and retry behavior.
+// Centralize provider selection so specialists share environment configuration.
 
 /**
  * Keep task-to-provider choices explicit. Every task currently routes to
@@ -158,77 +157,6 @@ export function createRoutedChatModel(
     callbacks: usageCallbacks(),
     configuration: { baseURL: process.env.MINIMAX_BASE_URL || "https://api.minimaxi.com/v1" },
   });
-}
-
-/**
- * MiniMax silently ignores a forced `tool_choice` (and `response_format`
- * json_schema): it answers in prose and returns no tool call, which looks
- * exactly like an auth failure from the caller's side. With `tool_choice:
- * "auto"` it emits a well-formed call, so bind the tool ourselves and validate
- * the arguments instead of relying on `withStructuredOutput`.
- */
-export function createRoutedStructuredInvoker<Schema extends z.ZodType>(
-  task: RoutedModelTask,
-  schema: Schema,
-  name: string,
-): ((prompt: string) => Promise<z.infer<Schema>>) | undefined {
-  // Build the model lazily: tests and offline runs can use deterministic paths
-  // simply by omitting the provider key. Structured output forces a tool call,
-  // so this path always runs with thinking off (see RoutedModelOptions).
-  const model = createRoutedChatModel(task, { thinking: false });
-  if (!model) return undefined;
-
-  if (MODEL_ROUTING[task] === "deepseek") {
-    // DeepSeek supports LangChain's native structured-output helper.
-    const structured = model.withStructuredOutput(schema, { name, method: "functionCalling" });
-    const call = (prompt: string) => structured.invoke(prompt) as Promise<z.infer<Schema>>;
-    return (prompt) =>
-      call(prompt).catch((error: unknown) => call(withCorrection(prompt, name, error)));
-  }
-
-  const bound = model.bindTools(
-    [
-      {
-        type: "function",
-        function: {
-          name,
-          description: `Return the ${name} payload.`,
-          parameters: z.toJSONSchema(schema, { io: "input", target: "draft-7" }),
-        },
-      },
-    ],
-    { tool_choice: "auto" },
-  );
-
-  // MiniMax also treats the schema's `maxItems` and array types as advisory, so
-  // give it one corrective attempt with the validation errors before the caller
-  // falls back to deterministic output.
-  const attempt = async (prompt: string): Promise<z.infer<Schema>> => {
-    // Extract and validate the named tool call rather than trusting free-form text.
-    const response = await bound.invoke(prompt);
-    const call = response.tool_calls?.find((toolCall) => toolCall.name === name);
-    if (!call) throw new Error(`${name}: model returned no tool call`);
-    return schema.parse(call.args);
-  };
-
-  return async (prompt) => {
-    try {
-      return await attempt(prompt);
-    } catch (error) {
-      return attempt(withCorrection(prompt, name, error));
-    }
-  };
-}
-
-/** Feed the failure back so the model can repair its own output once. */
-function withCorrection(prompt: string, name: string, error: unknown): string {
-  const detail =
-    error instanceof z.ZodError
-      ? JSON.stringify(error.issues)
-      : error instanceof Error
-        ? error.message
-        : "unknown model error";
-  return `${prompt}\n\nA previous attempt failed. Call the ${name} tool and fix exactly these problems, respecting every type, minimum and maximum in the tool schema:\n${detail}`;
 }
 
 /**

@@ -1,4 +1,4 @@
-/* Trip sections, proposals, checkpoints, editor, and shared trip UI. */
+/* Trip sections, proposals, editor, and shared trip UI. */
 /* ---- trip panel ---- */
 /* Conflicts that name a stop, a day or the budget: a short warning list under the place they concern. */
 .trip-panel__conflicts,
@@ -91,13 +91,6 @@
 .section__row:hover {
   background: var(--surface-2);
 }
-.section__chevron {
-  color: var(--text-mut);
-  transition: transform var(--transition);
-}
-.section--open .section__chevron {
-  transform: rotate(90deg);
-}
 .section__label {
   flex: 1;
   min-width: 0;
@@ -119,16 +112,6 @@
 /* Expanded, the full summary is worth reading. */
 .section--open .section__row small {
   display: block;
-}
-.section__body {
-  padding: 0 0 var(--space-4);
-}
-.section__body > .source-note {
-  margin: 0 0 var(--space-2);
-  padding: var(--space-2) 0 var(--space-2) var(--space-3);
-  border-left: 2px solid var(--border);
-  border-radius: 0;
-  background: transparent;
 }
 .proposal-items {
   display: grid;
@@ -259,76 +242,6 @@
     animation: none;
   }
 }
-
-.checkpoints {
-  display: grid;
-  gap: 12px;
-  margin-top: 16px;
-}
-.checkpoint {
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 12px;
-  background: var(--surface);
-  font-size: 13px;
-  min-width: 0;
-  transition:
-    border-color var(--transition),
-    box-shadow var(--transition),
-    transform var(--transition);
-}
-.checkpoint--pending,
-.checkpoint--deferred {
-  border-color: color-mix(in srgb, var(--warn) 28%, var(--border));
-}
-.checkpoint--approved {
-  border-color: color-mix(in srgb, var(--ok) 35%, var(--border));
-}
-.checkpoint--blocked {
-  border-color: color-mix(in srgb, var(--warn) 48%, var(--border));
-  background: color-mix(in srgb, var(--warn-bg) 45%, var(--surface));
-}
-.checkpoint__head {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-}
-.checkpoint__head h3 {
-  flex: 1;
-  min-width: 0;
-  margin: 0;
-  font-size: 13px;
-  font-weight: 650;
-}
-.checkpoint__status {
-  border-color: var(--border);
-  font-size: 10px;
-}
-.checkpoint__status--pending,
-.checkpoint__status--deferred {
-  border-color: color-mix(in srgb, var(--warn) 45%, var(--border));
-  color: var(--warn);
-}
-.checkpoint__status--rejected {
-  border-color: color-mix(in srgb, var(--warn) 65%, var(--border));
-  color: var(--warn);
-}
-.checkpoint__status--approved {
-  border-color: color-mix(in srgb, var(--ok) 45%, var(--border));
-  color: var(--ok);
-}
-.checkpoint p {
-  color: var(--text-dim);
-}
-.checkpoint__source {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 6px;
-  color: var(--text-dim);
-  font-size: 11px;
-}
 .actions {
   display: flex;
   flex-wrap: wrap;
@@ -367,12 +280,6 @@
 .stay-option--selected {
   border: 2px solid var(--accent);
   background: var(--accent-bg);
-}
-.checkpoint__blocked {
-  display: block;
-  margin-top: 8px;
-  color: var(--warn);
-  font-size: 11px;
 }
 .result-card {
   padding: 12px;
@@ -479,9 +386,6 @@
   .section__label {
     flex-basis: 100%;
   }
-  .section__chevron {
-    margin-left: auto;
-  }
   .msg {
     max-width: min(92%, 60ch);
   }
@@ -576,9 +480,6 @@
 }
 .proposal-item > button {
   margin-top: 10px;
-}
-.section__body > button {
-  margin-top: 12px;
 }
 
 /* ---- connection between two activities ----

@@ -17,6 +17,7 @@ import { createAgent, tool } from "langchain";
 import { createRoutedChatModel, readStructuredResponse } from "../models";
 import { mockEnabled } from "@trip/tools";
 import { clip } from "../clip";
+import { normalize, canonicalPlaceName, dedupeEntries } from "../place-names";
 import { TRAVELLER_PREFERENCES_RULE } from "../prompts/traveller-preferences";
 
 // Dining has an explicit budget envelope: venue candidates are unpriced unless
@@ -60,33 +61,6 @@ export interface DiningGenerator {
 export interface DiningAgentOptions {
   /** Pass false to force deterministic recommendations and budgeting. */
   generator?: DiningGenerator | false;
-}
-
-/** Normalize venue names for grounded comparisons. */
-function normalize(value: string): string {
-  return value.trim().replace(/\s+/g, " ").toLocaleLowerCase();
-}
-
-function uniquePlaces(places: Place[]): Place[] {
-  return places.filter(
-    (place, index, all) =>
-      all.findIndex((candidate) => normalize(candidate.name) === normalize(place.name)) === index,
-  );
-}
-
-function canonicalPlaceName(name: string, places: Place[]): string {
-  const match = places.find((place) => normalize(place.name) === normalize(name));
-  return match?.name ?? name.trim();
-}
-
-function dedupeEntries<T extends { name: string }>(items: T[]): T[] {
-  const seen = new Set<string>();
-  return items.filter((item) => {
-    const key = normalize(item.name);
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
 }
 
 /** Validate dates and return the number of planning days. */
@@ -296,7 +270,7 @@ async function planDining(
     ctx.mem.getLongTerm(brief.userId),
   ]);
   ctx.signal?.throwIfAborted();
-  const places = uniquePlaces(candidatePlaces);
+  const places = dedupeEntries(candidatePlaces);
   const preferences = dietaryPreferences(allPreferences);
   const ceiling = budgetCeiling(brief, days, revision, allocation);
   const currency = displayCurrencyOf(brief, ctx);
@@ -362,15 +336,15 @@ async function planDining(
       ? {
           kind: "fallback",
           label: "Local fallback",
-          freshness: "The model dining draft was unavailable or invalid; deterministic meal guidance was used from the gathered venue evidence.",
+          freshness:
+            "The model dining draft was unavailable or invalid; deterministic meal guidance was used from the gathered venue evidence.",
         }
       : {
           kind: !mockEnabled() ? "estimated" : "mock",
           label: "Maps evidence and AI dining plan",
-          freshness:
-            !mockEnabled()
-              ? "Venue details are provider estimates; menus, dietary suitability and availability require direct confirmation."
-              : "Venue details come from deterministic mock fixtures; not live verified.",
+          freshness: !mockEnabled()
+            ? "Venue details are provider estimates; menus, dietary suitability and availability require direct confirmation."
+            : "Venue details come from deterministic mock fixtures; not live verified.",
         },
   };
 }

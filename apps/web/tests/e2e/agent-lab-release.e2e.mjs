@@ -50,13 +50,8 @@ const STRATEGIES = [
   "multi-agent-targeted-revision",
 ];
 const VIEWS = ["Run", "Compare", "Failures", "Architecture"];
-const FAULTS = {
-  "provider-timeout": { title: "Flight provider timeout", outcome: "degraded" },
-  "provider-empty-result": { title: "Empty stay search", outcome: "failed" },
-  "invalid-agent-output": { title: "Invalid specialist output", outcome: "failed" },
-  "supervisor-failure": { title: "Supervisor failure", outcome: "degraded" },
-  "stalled-revision": { title: "Stalled revision", outcome: "partial" },
-};
+// agent-lab-failures owns all five profiles and Run all. Keep one failed run here for integration.
+const FAULT = { id: "provider-empty-result", title: "Empty stay search", outcome: "failed" };
 const LABELS = {
   completed: "Completed",
   degraded: "Degraded",
@@ -532,60 +527,45 @@ async function main() {
 
   // ---- Controlled failure ------------------------------------------------------------------------------------------
   await viewButton(page, "Failures").click();
-  const faultBodies = await capture(
+  const [faultBody] = await capture(
     page,
-    () => page.getByRole("button", { name: "Run all fault profiles" }).click(),
-    5,
+    () => page.getByRole("button", { name: `Run fault profile: ${FAULT.title}` }).click(),
+    1,
   );
-  await waitStatus(page, "Fault runs complete");
-  const faultArtifacts = {};
-  faultBodies.forEach((body, index) => {
-    const artifact = artifactOf(body);
-    faultArtifacts[artifact.faultProfileId] = artifact;
-    writeFileSync(`${OUT}/failure.${artifact.faultProfileId}.ndjson`, body);
-    writeFileSync(
-      `${OUT}/failure.${artifact.faultProfileId}.artifact.json`,
-      JSON.stringify(artifact, null, 2),
-    );
-    allStreams.push(body);
-    void index;
-  });
-  for (const [id, expected] of Object.entries(FAULTS)) {
-    const artifact = faultArtifacts[id];
-    const badge = page.locator(`[data-agent-lab-fault="${id}"] [data-agent-lab-outcome]`);
-    check(
-      artifact !== undefined &&
-        outcomeOf(artifact) === expected.outcome &&
-        (await badge.getAttribute("data-outcome")) === expected.outcome &&
-        (await badge.innerText()).trim() === LABELS[expected.outcome],
-      `failures: ${id} ends ${expected.outcome} in the artifact and on the page`,
-    );
-    evidence.faults[id] = {
-      outcome: expected.outcome,
-      status: artifact?.status,
-      events: artifact?.events.length,
-      failureAgent: artifact?.failure?.agent ?? null,
-    };
-  }
+  const badge = page.locator(`[data-agent-lab-fault="${FAULT.id}"] [data-agent-lab-outcome]`);
+  await badge.waitFor({ timeout: 90_000 });
+  const artifact = artifactOf(faultBody);
+  const faultArtifacts = { [FAULT.id]: artifact };
+  writeFileSync(`${OUT}/failure.${FAULT.id}.ndjson`, faultBody);
+  writeFileSync(`${OUT}/failure.${FAULT.id}.artifact.json`, JSON.stringify(artifact, null, 2));
+  allStreams.push(faultBody);
+  check(
+    artifact.faultProfileId === FAULT.id &&
+      outcomeOf(artifact) === FAULT.outcome &&
+      (await badge.getAttribute("data-outcome")) === FAULT.outcome &&
+      (await badge.innerText()).trim() === LABELS[FAULT.outcome],
+    `failures: ${FAULT.id} ends ${FAULT.outcome} in the artifact and on the page`,
+  );
+  evidence.faults[FAULT.id] = {
+    outcome: FAULT.outcome,
+    status: artifact.status,
+    events: artifact.events.length,
+    failureAgent: artifact.failure?.agent ?? null,
+  };
   const faultText = await page.locator("[data-agent-lab-failures]").innerText();
   check(/Fixture data/.test(faultText), "failures: the Failure Lab says its runs use Fixture data");
   await page.screenshot({ path: `${OUT}/light-1440-failures.png`, fullPage: true });
 
   // ---- Download, then offline replay ------------------------------------------------------------------------------
   const downloads = {};
-  for (const [id, expected] of Object.entries(FAULTS)) {
-    const [file] = await Promise.all([
-      page.waitForEvent("download"),
-      page.getByRole("button", { name: `Download artifact for ${expected.title}` }).click(),
-    ]);
-    const text = readFileSync(await file.path(), "utf8");
-    downloads[id] = file.suggestedFilename();
-    writeFileSync(`${OUT}/download.${id}.json`, text);
-    check(
-      same(JSON.parse(text), faultArtifacts[id]),
-      `download: ${id} equals the streamed artifact`,
-    );
-  }
+  const [file] = await Promise.all([
+    page.waitForEvent("download"),
+    page.getByRole("button", { name: `Download artifact for ${FAULT.title}` }).click(),
+  ]);
+  const text = readFileSync(await file.path(), "utf8");
+  downloads[FAULT.id] = file.suggestedFilename();
+  writeFileSync(`${OUT}/download.${FAULT.id}.json`, text);
+  check(same(JSON.parse(text), artifact), `download: ${FAULT.id} equals the streamed artifact`);
   await viewButton(page, "Compare").click();
   const [compareFile] = await Promise.all([
     page.waitForEvent("download"),
@@ -614,10 +594,7 @@ async function main() {
     "request",
     (request) => request.url().includes("/api/") && offlineCalls.push(request.url()),
   );
-  const replayFiles = [
-    ...Object.keys(FAULTS).map((id) => `download.${id}.json`),
-    "download.compare-revision.json",
-  ];
+  const replayFiles = [`download.${FAULT.id}.json`, "download.compare-revision.json"];
   for (const file of replayFiles) {
     await rp.locator("input[data-agent-lab-replay-input]").setInputFiles(`${OUT}/${file}`);
     await rp
@@ -792,7 +769,7 @@ async function main() {
     [
       "# Agent Lab release evidence",
       "",
-      `Public flow against ${BASE}: four views, three scenarios compared under all three strategies, five fault profiles, download and offline replay, a ${matrix.length}-cell layout matrix, and the ordinary workspace.`,
+      `Public flow against ${BASE}: four views, three scenarios compared under all three strategies, one representative failed fault, download and offline replay, a ${matrix.length}-cell layout matrix, and the ordinary workspace.`,
       "",
       ...runs.flatMap(([id, title]) => [
         `## ${title}`,
@@ -811,7 +788,7 @@ async function main() {
           `| ${id} | ${item.outcome} | ${item.status} | ${item.events} | ${item.failureAgent ?? "none"} |`,
       ),
       "",
-      "Every outcome was recomputed from its artifact in plain JavaScript and matched the Run, Compare and Failures views. Every artifact was downloaded, and replayed offline with no request.",
+      "Benchmark outcomes matched Run and Compare, and the representative fault matched Failures. Its download equalled the streamed artifact; fault and comparison downloads replayed offline without requests. agent-lab-failures.e2e.mjs owns the full five-profile matrix.",
       "",
       "## Layout matrix",
       "",

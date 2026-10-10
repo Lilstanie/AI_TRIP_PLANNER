@@ -462,86 +462,7 @@ button.timeline-stop__main:hover {
   margin: 0;
 }
 
-/* ---- preview and undo ---- */
-.edit-preview {
-  position: sticky;
-  bottom: 0;
-  z-index: 1;
-  display: grid;
-  gap: var(--space-3);
-  padding: var(--space-4);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: var(--surface);
-  box-shadow: var(--shadow-md);
-}
-.edit-preview:focus-visible {
-  outline: 3px solid var(--accent);
-  outline-offset: 2px;
-}
-.edit-preview__head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-2);
-}
-.edit-preview h3,
-.edit-preview h4 {
-  margin: 0;
-  font-size: var(--font-size-body);
-}
-.edit-preview h4 {
-  color: var(--text-dim);
-  font-size: var(--font-size-meta);
-}
-.edit-preview__total {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--space-2);
-  margin: 0;
-  font-variant-numeric: tabular-nums;
-}
-.edit-preview__total .is-up {
-  color: var(--warn);
-}
-.edit-preview__total .is-down {
-  color: var(--ok);
-}
-.edit-preview__total small {
-  color: var(--text-dim);
-  font-size: var(--font-size-meta);
-}
-.edit-preview__list {
-  display: grid;
-  gap: var(--space-1);
-  margin: 0;
-  padding-inline-start: var(--space-4);
-  font-size: var(--font-size-meta);
-}
-.edit-preview__list--blockers,
-.edit-preview__list--conflicts {
-  padding: var(--space-2) var(--space-3) var(--space-2) calc(var(--space-3) + var(--space-4));
-  border-radius: var(--radius-sm);
-  background: var(--warn-bg);
-  color: var(--warn);
-}
-.edit-preview__routes {
-  display: grid;
-  gap: var(--space-1);
-}
-.edit-preview__note {
-  margin: 0;
-  color: var(--text-dim);
-  font-size: var(--font-size-meta);
-}
-.edit-preview__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-}
-
+/* ---- undo ---- */
 .timeline-undo {
   display: flex;
   flex-wrap: wrap;
@@ -615,18 +536,9 @@ button.timeline-stop__main:hover {
   animation: panel-in var(--duration) var(--ease-out) var(--duration-fast) both;
 }
 
-/* A stop's editor unfolds under it; the review panel rises from the bottom of the tab. */
+/* A stop's editor unfolds under it. */
 .stop-editor {
   animation: panel-in var(--duration) var(--ease-out);
-}
-.edit-preview {
-  animation: preview-rise var(--duration-slow) var(--ease-spring);
-}
-@keyframes preview-rise {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
 }
 .timeline-undo {
   animation: panel-in var(--duration) var(--ease-out);
@@ -638,7 +550,6 @@ button.timeline-stop__main:hover {
   .timeline-connection--checked .timeline-connection__rail,
   .timeline-connection--checked .timeline-connection__label,
   .stop-editor,
-  .edit-preview,
   .timeline-undo {
     animation: none;
   }

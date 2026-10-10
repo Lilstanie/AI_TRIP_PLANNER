@@ -273,20 +273,6 @@ async function main() {
       "the walk from my location has a whole-minute duration",
     );
 
-    // A place's details come from its OSM id, with no rating invented for it.
-    const details = await page.request.post(`${BASE}/api/places/details`, {
-      headers: { "content-type": "application/json", "x-trip-data-mode": "mock" },
-      data: { placeId: "osm:node/2001" },
-    });
-    const detailBody = await details.json();
-    summary.details = detailBody;
-    check(
-      details.status() === 200 &&
-        detailBody.place?.displayName?.text === "Kyoto Station" &&
-        detailBody.place?.rating === undefined,
-      "details of an OSM place come from OpenStreetMap, without a rating",
-    );
-
     // A transit leg no provider can route: the leg is unavailable, with a notice, and keeps no time.
     const plan = lastEdit?.response?.plan;
     const items = plan?.sections.find((s) => s.id === "itinerary")?.proposal?.items ?? [];
