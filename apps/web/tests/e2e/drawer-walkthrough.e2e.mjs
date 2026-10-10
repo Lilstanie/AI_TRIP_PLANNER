@@ -570,7 +570,7 @@ async function walk(browser, { width, lang }) {
     `${run}: a time edit applies at once (${first.start} to ${afterEdit.start})`,
   );
   check(
-    (await page.locator(".edit-preview").count()) === 0 &&
+    (await page.locator(".edit-preview").count()) === 0 && // e2e-selectors: absent
       (await page.getByRole("region", { name: "Edit preview" }).count()) === 0 &&
       (await page.getByRole("button", { name: /^Apply changes$/ }).count()) === 0,
     `${run}: a time edit has no preview and no Apply button`,
