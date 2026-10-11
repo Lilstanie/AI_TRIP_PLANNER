@@ -111,6 +111,11 @@ write(
   "export const view = <div>text // literal /* text */</div>;\nexport const text = `literal /* text */ ${1}`;\nexport const regex = /https?:\\/\\//;\nexport const url = 'https://example.invalid';\n",
 );
 check("literal text and unrelated scope", ["literals.tsx"], 0, [], 0);
+write(
+  "jsx-prefix.tsx",
+  "export const block = <div>/* literal */</div>;\nexport const line = <div>// literal\n</div>;\n",
+);
+check("JSX text starting with comment delimiters", ["jsx-prefix.tsx"], 0, [], 0);
 write("licence.ts", "/*! MIT */\n// @ts-check\nexport {};\n");
 check("no implicit exception", ["licence.ts"], 1, [], 2);
 write(
@@ -124,6 +129,8 @@ write("exceptions.json", JSON.stringify([{ file: "licence.ts", text: "/*! MIT */
 check("invalid exception", ["licence.ts"], 2, ["--exceptions", "exceptions.json"]);
 git("rm", "--quiet", "deleted.ts");
 check("deleted file", ["deleted.ts"], 0, [], 0);
+write("deleted.ts", "// removed\nexport {};\n// rebuilt untracked\n");
+check("staged deletion rebuilt as untracked", ["deleted.ts"], 1, [], 2);
 check("missing path", ["missing.ts"], 2);
 check("unsupported extension", ["exceptions.json"], 2);
 check("duplicate argument", ["existing.ts"], 2, ["--base", "missing-ref"]);

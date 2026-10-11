@@ -7,6 +7,7 @@ function parseComments(file, text) {
   const source = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true);
   if (source.parseDiagnostics.length) throw new Error(`Unparseable source: ${file}`);
   const comments = new Map();
+  const jsxText = [];
   const collect = (position) => {
     for (const range of [
       ...(ts.getLeadingCommentRanges(text, position) ?? []),
@@ -15,12 +16,18 @@ function parseComments(file, text) {
       comments.set(range.pos, range);
   };
   const visit = (node) => {
+    if (ts.isJsxText(node)) jsxText.push({ start: node.pos, end: node.end });
     collect(node.pos);
     collect(node.end);
     for (const child of node.getChildren(source)) visit(child);
   };
   visit(source);
-  return { source, comments: [...comments.values()].sort((a, b) => a.pos - b.pos) };
+  return {
+    source,
+    comments: [...comments.values()]
+      .filter((range) => !jsxText.some((span) => range.pos >= span.start && range.pos < span.end))
+      .sort((a, b) => a.pos - b.pos),
+  };
 }
 
 function run() {
@@ -85,12 +92,13 @@ function run() {
   for (const file of paths) {
     if (!/\.(?:[cm]?[jt]s|[jt]sx)$/.test(extname(file)))
       throw new Error(`Unsupported source file: ${file}`);
-    const tracked = git("ls-tree", "-r", "--name-only", base, "--", `:(literal)${file}`).trim();
+    const inBase = git("ls-tree", "-r", "--name-only", base, "--", `:(literal)${file}`).trim();
     if (!existsSync(file)) {
-      if (tracked) continue;
+      if (inBase) continue;
       throw new Error(`Missing scope file: ${file}`);
     }
     if (!lstatSync(file).isFile()) throw new Error(`Scope must be a file: ${file}`);
+    const tracked = inBase && git("ls-files", "--cached", "--", `:(literal)${file}`).trim();
     const text = readFileSync(file, "utf8");
     const { source, comments } = parseComments(file, text);
     const previous = new Map();

@@ -9,8 +9,10 @@ Validate through the CLI in a disposable Git repository before implementing the 
 
 - Newly added line, block, JSX and template-expression comments escape detection.
 - Staged, unstaged or untracked changes are omitted from the selected scope.
+- A path removed from the index and recreated in the working tree is mistaken for a tracked deletion.
 - Existing unchanged comments or comment-like strings, regular expressions, template text and JSX text
   are reported as comments.
+- JSX text beginning with `/*` or `//` is scanned as a comment while real expression comments are lost.
 - A changed line inside an existing multiline comment escapes detection.
 - Unrelated files are scanned even though the task did not select them.
 - An exception silently exempts every comment, or has no recorded justification.
@@ -33,6 +35,10 @@ The checker compares the base with the current working tree, including staged an
 Explicitly selected untracked files are entirely new. Deleted files have no added comments. Paths
 are literal repository-relative files; directories, globs and symlinks are rejected. Supported
 extensions are `.js`, `.jsx`, `.mjs`, `.cjs`, `.ts`, `.tsx`, `.mts` and `.cts`.
+
+A file recreated after a staged deletion is untracked in the current index and is checked in full,
+even if it existed at the base. JSX text is excluded using its parsed source spans; comments inside
+JSX expressions remain subject to the gate.
 
 Unchanged comment text is matched by occurrence count within each file against the base, so editing
 code beside an existing inline comment does not flag it. Moving that same comment within the file

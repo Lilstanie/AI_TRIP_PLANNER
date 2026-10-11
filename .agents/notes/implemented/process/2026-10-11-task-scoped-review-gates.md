@@ -18,7 +18,9 @@ reuse limits override a global workflow's parallel-agent defaults.
 For a task that prohibits added comments, the skill invokes its local `scripts/check-added-comments.mjs`
 with an explicit base and literal JS/TS paths. Git identifies added lines against the working tree;
 TypeScript parsing identifies comments without mistaking literal text for comments. Selected untracked
-files are new in full. Exact comment text in a selected file may be exempted with a task-approved
+files are new in full, including files recreated after removal from the current index. Parsed JSX
+text spans exclude visible comment delimiters while expression comments remain checked.
+Exact comment text in a selected file may be exempted with a task-approved
 reason; there are no implicit licence/directive exemptions. This is not a global comment ban.
 
 The CLI's public acceptance journey is `apps/web/tests/cli-e2e/review-comment-policy.e2e.mjs`.
