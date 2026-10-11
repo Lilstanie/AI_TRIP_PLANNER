@@ -86,5 +86,5 @@ Order findings by severity, one row per root cause listing every place it appear
 - `MEDIUM`: makes an interaction meaningfully harder.
 - `LOW`: isolated polish.
 
-In a pull request review, these findings join the [code-review](../code-review/SKILL.md) output
+In a pull request review, these findings join the [review-trip-planner](../review-trip-planner/SKILL.md) output
 rather than forming a separate verdict.

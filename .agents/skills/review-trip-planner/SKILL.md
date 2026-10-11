@@ -1,9 +1,9 @@
 ---
-name: code-review
+name: review-trip-planner
 description: Review a pull request or diff in AI_TRIP_PLANNER against the defect classes this repository has actually shipped or nearly shipped, on top of general correctness. Use when reviewing a pull request or diff, including self-review before opening one.
 ---
 
-# Reviewing an AI_TRIP_PLANNER change
+# Review AI_TRIP_PLANNER risks
 
 This is guidance, not a complete checklist. Read the diff against its real base
 (`git diff origin/main...HEAD`) and enough surrounding code to understand the design. Prioritise

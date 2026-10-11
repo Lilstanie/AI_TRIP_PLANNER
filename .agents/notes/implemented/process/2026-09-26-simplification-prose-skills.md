@@ -23,7 +23,7 @@ References are read on demand. No DSH-only command, unconditional delegation req
 dictionary requirement or runnable-snapshot gate is imported.
 
 This extends the [repository workflow skills decision](2026-09-22-repository-workflow-skills.md)
-without replacing it. The feature-wiring, code-review and better-writing skills retain their roles.
+without replacing it. The feature-wiring, review-trip-planner and better-writing skills retain their roles.
 `agent-experience` is explained to the user but is not installed by this change.
 
 ## Alternatives considered
@@ -31,7 +31,7 @@ without replacing it. The feature-wiring, code-review and better-writing skills 
 **Copy the DSH skills unchanged.** Rejected: their paths, gates and protected architectural choices
 would misdirect work here.
 
-**Fold them into code-review and better-writing.** Not chosen: a simplification survey evaluates
+**Fold them into review-trip-planner and better-writing.** Not chosen: a simplification survey evaluates
 removal before a diff exists, and technical prose includes API failures and ordering beyond UI voice.
 The focused workflows link to existing owners instead of duplicating their standards.
 
