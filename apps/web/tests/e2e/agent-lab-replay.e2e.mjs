@@ -111,7 +111,27 @@ async function main() {
 
   await page.getByLabel("Scenario").selectOption(SCENARIO);
   await page.getByLabel("Strategy").selectOption(REVISION);
+  let releaseCancelledRequest;
+  let requestHeld;
+  const held = new Promise((done) => (requestHeld = done));
+  const release = new Promise((done) => (releaseCancelledRequest = done));
+  let routeDone;
+  const routed = new Promise((done) => (routeDone = done));
+  await page.route(
+    "**/api/agent-lab/runs",
+    async (route) => {
+      requestHeld();
+      await release;
+      try {
+        await route.abort();
+      } finally {
+        routeDone();
+      }
+    },
+    { times: 1 },
+  );
   await page.getByRole("button", { name: "Run experiment" }).click();
+  await held;
   await page.getByRole("button", { name: "Cancel run" }).waitFor();
   check(
     (await page.getByRole("button", { name: /^Download artifact/ }).count()) === 0,
@@ -122,6 +142,8 @@ async function main() {
     "original: replay cannot be started while a live run is going",
   );
   await page.getByRole("button", { name: "Cancel run" }).click();
+  releaseCancelledRequest();
+  await routed;
   await waitStatus(page, "Run cancelled");
   check(
     (await page.getByRole("button", { name: /^Download artifact/ }).count()) === 0,
@@ -252,6 +274,7 @@ async function main() {
   const replayPage = replay.page;
   const requests = [];
   const failedRequests = [];
+  await replayPage.waitForLoadState("networkidle");
   await replay.context.setOffline(true);
   replayPage.on("request", (request) => requests.push(request.url()));
   replayPage.on("requestfailed", (request) => failedRequests.push(request.url()));

@@ -199,12 +199,15 @@ manifest 链接的页面。
 
 项目 skill 直接位于 `.agents/skills/<name>/SKILL.md`。下表按用途组织导航；每个 skill 保留独立的可发现入口，并按需加载参考文件。
 
-| 领域                 | Skills                                                                                                                                                                                                                                                                                                                                                                       |
-| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 界面设计与动效       | [better-layout](../.agents/skills/better-layout/SKILL.md), [better-ui](../.agents/skills/better-ui/SKILL.md), [better-accessibility](../.agents/skills/better-accessibility/SKILL.md), [better-writing](../.agents/skills/better-writing/SKILL.md), [libraries-dev](../.agents/skills/libraries-dev/SKILL.md)                                                                |
-| 功能与数据提供方实现 | [end-to-end-feature-wiring](../.agents/skills/end-to-end-feature-wiring/SKILL.md), [api-scout](../.agents/skills/api-scout/SKILL.md), [add-provider](../.agents/skills/add-provider/SKILL.md), [agent-experience](../.agents/skills/agent-experience/SKILL.md)                                                                                                               |
-| 审查与验证           | [code-review](../.agents/skills/code-review/SKILL.md), [find-simplifications](../.agents/skills/find-simplifications/SKILL.md), [break](../.agents/skills/break/SKILL.md), [ui-verification](../.agents/skills/ui-verification/SKILL.md), [pre-push-checks](../.agents/skills/pre-push-checks/SKILL.md)                                                                      |
-| 文档与决策           | [prose-standard](../.agents/skills/prose-standard/SKILL.md), [translate-docs](../.agents/skills/translate-docs/SKILL.md), [agent-notes](../.agents/skills/agent-notes/SKILL.md), [session-log](../.agents/skills/session-log/SKILL.md), [stage1-submission](../.agents/skills/stage1-submission/SKILL.md), [skill-maintenance](../.agents/skills/skill-maintenance/SKILL.md) |
+`vercel-react-best-practices` 提供 React 与 Next.js 性能参考；`playwright-best-practices` 提供浏览器测试实现与调试参考。两个技能均安装在当前项目中，按需加载相关参考文件。项目指令负责测试策略、运行命令和验收证据；上游示例是在这些规则内使用的技术指导。现有 E2E 运行器仍是执行入口。安装这两个技能不会新增 npm 依赖，也不会配置 `@playwright/test`。来源版本、本地适配和更新规则记录在[整合决策](../.agents/notes/implemented/process/2026-10-11-framework-reference-skills.md)中。
+
+| 领域                   | Skills                                                                                                                                                                                                                                                                                                                                                                       |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| React 与浏览器测试参考 | [vercel-react-best-practices](../.agents/skills/vercel-react-best-practices/SKILL.md), [playwright-best-practices](../.agents/skills/playwright-best-practices/SKILL.md)                                                                                                                                                                                                     |
+| 界面设计与动效         | [better-layout](../.agents/skills/better-layout/SKILL.md), [better-ui](../.agents/skills/better-ui/SKILL.md), [better-accessibility](../.agents/skills/better-accessibility/SKILL.md), [better-writing](../.agents/skills/better-writing/SKILL.md), [libraries-dev](../.agents/skills/libraries-dev/SKILL.md)                                                                |
+| 功能与数据提供方实现   | [end-to-end-feature-wiring](../.agents/skills/end-to-end-feature-wiring/SKILL.md), [api-scout](../.agents/skills/api-scout/SKILL.md), [add-provider](../.agents/skills/add-provider/SKILL.md), [agent-experience](../.agents/skills/agent-experience/SKILL.md)                                                                                                               |
+| 审查与验证             | [code-review](../.agents/skills/code-review/SKILL.md), [find-simplifications](../.agents/skills/find-simplifications/SKILL.md), [break](../.agents/skills/break/SKILL.md), [ui-verification](../.agents/skills/ui-verification/SKILL.md), [pre-push-checks](../.agents/skills/pre-push-checks/SKILL.md)                                                                      |
+| 文档与决策             | [prose-standard](../.agents/skills/prose-standard/SKILL.md), [translate-docs](../.agents/skills/translate-docs/SKILL.md), [agent-notes](../.agents/skills/agent-notes/SKILL.md), [session-log](../.agents/skills/session-log/SKILL.md), [stage1-submission](../.agents/skills/stage1-submission/SKILL.md), [skill-maintenance](../.agents/skills/skill-maintenance/SKILL.md) |
 
 `pnpm verify:docs` 还会用 `scripts/skill-rules.mjs` 检查每个 skill，分为两级。下列规则会使检查失败：`name` 为小写
 kebab-case 且与文件夹一致（最多 64 个字符）；`description` 不超过 1,024 个字符，并同时说明 skill 做什么和何时使用
@@ -236,7 +239,7 @@ node .agents/skills/translate-docs/scripts/check-pairs.mjs
 
 复杂功能应优先只用端到端（E2E）测试验证行为：走完整用户路径，并留下可复现、可审查的产物，例如报告、trace 或截图。记录复现所需的命令、步骤或 fixture。绝不在编写实现代码之后再编写单元测试。如果必须隔离测试一个系统，先列举它所有可能的失败方式，再编写代码，并从这份清单推导隔离检查。
 
-这是新工作的首选方式。CI 通过 `pnpm test` 运行 Vitest 测试套件，通过 `pnpm test:scripts` 运行仓库脚本测试（`scripts/*.test.mjs`）。CI 不运行 E2E 脚本，因此推送前应自行运行相关脚本；已经在 `main` 上失败的脚本列在 [e2e-known-failures.zh.md](e2e-known-failures.zh.md) 中。不过 CI 会运行 `pnpm verify:e2e-selectors`：如果某个 E2E 脚本选择的 CSS 类（如 `.section__row`）在 `apps/web` 下已没有任何组件、页面或库文件渲染，它就会失败；只留在样式表里的规则不算。它不需要服务器，不到一秒即可完成。专门检查某个已删除的类不再出现的那一行，末尾加上 `// e2e-selectors: absent`；只由第三方库设置的类写进 `scripts/verify-e2e-selectors.mjs` 的 `ALLOWED`，并注明原因。
+这是新工作的首选方式。CI 通过 `pnpm test` 运行 Vitest 测试套件，通过 `pnpm test:scripts` 运行仓库脚本测试（`scripts/*.test.mjs`）。独立的 CLI 验收任务串行运行 `node apps/web/tests/cli-e2e/run.mjs`，包括其中的 fixture 浏览器旅程；即使失败，也保留日志、摘要和浏览器证据七天。其余原始浏览器脚本仍在本地执行，推送前应运行相关脚本；`main` 上的已知失败列在 [e2e-known-failures.zh.md](e2e-known-failures.zh.md) 中。不过 CI 会运行 `pnpm verify:e2e-selectors`：如果某个 E2E 脚本选择的 CSS 类（如 `.section__row`）在 `apps/web` 下已没有任何组件、页面或库文件渲染，它就会失败；只留在样式表里的规则不算。它不需要服务器，不到一秒即可完成。专门检查某个已删除的类不再出现的那一行，末尾加上 `// e2e-selectors: absent`；只由第三方库设置的类写进 `scripts/verify-e2e-selectors.mjs` 的 `ALLOWED`，并注明原因。
 
 E2E 脚本位于 `apps/web/tests/e2e/`。需要 fixture 隔离、由命令启动并拥有服务器，以及每次运行独立证据时，请使用[本地 E2E 命令行工具](local-test-cli.zh.md)。其他情况可通过运行器执行脚本：它在空闲端口上启动服务器，从仓库根目录依次对其运行指定脚本，结束后只停止它自己启动的服务器：
 
@@ -246,7 +249,7 @@ pnpm --filter @trip/web e2e phone-shell --prod            # next build + next st
 BASE_URL=http://localhost:3000 pnpm --filter @trip/web e2e settings   # against a server already running
 ```
 
-环境变量会同时传给服务器和脚本，因此请按各脚本头部的说明设置 `DATA_MODE` 和数据源变量。同一工作树中并发的每次运行各自构建到独立的文件夹（`apps/web/.next-e2e`，其次是 `-2` 到 `-4`），因此并行运行之间、以及与 `pnpm dev` 之间都不会共用 `.next`；该文件夹会保留编译结果供下次运行使用。任一脚本失败时运行器以非零状态退出，并把摘要写入 `output/e2e/runner/<time>.json`。每个脚本有 `E2E_SCRIPT_TIMEOUT_MS`（默认 600000，即十分钟）的时间完成；超时仍在运行的脚本会连同它启动的浏览器一起被停止，在摘要中显示为 `TIME`（JSON 中为 `"timedOut": true`），然后继续运行下一个脚本。超时同样会让运行以非零状态退出。Playwright 是 `apps/web` 的开发依赖；在新机器上先运行一次 `pnpm --filter @trip/web exec playwright install chromium`。需要两个服务器的脚本（`agent-lab-live-gate`）仍按其头部说明手动运行。`pnpm dev` 和 `pnpm start` 默认使用 3000 端口，设置 `PORT` 可更改。
+环境变量会同时传给服务器和脚本，因此请按各脚本头部的说明设置 `DATA_MODE` 和数据源变量。每次调用分配唯一的 `apps/web/.next-e2e-<random>` 目录和独占的临时 TypeScript 配置，并发运行与 `pnpm dev` 不共享构建输出，也不改写共享 TypeScript 配置。编译目录保留供检查，后续运行会分配新目录。继承的 `NEXT_TSCONFIG_PATH` 仍是显式覆盖配置。任一脚本失败时运行器以非零状态退出，并把摘要写入 `output/e2e/runner/<time>.json`。每个脚本有 `E2E_SCRIPT_TIMEOUT_MS`（默认 600000，即十分钟）的时间完成；超时仍在运行的脚本会连同它启动的浏览器一起被停止，在摘要中显示为 `TIME`（JSON 中为 `"timedOut": true`），然后继续运行下一个脚本。超时同样会让运行以非零状态退出。Playwright 是 `apps/web` 的开发依赖；在新机器上先运行一次 `pnpm --filter @trip/web exec playwright install chromium`。需要两个服务器的脚本（`agent-lab-live-gate`）仍按其头部说明手动运行。`pnpm dev` 和 `pnpm start` 默认使用 3000 端口，设置 `PORT` 可更改。
 
 缺少密钥就无法运行的脚本在文件头（代码之前）声明：`// requires-env: DEEPSEEK_API_KEY`（多个密钥用逗号分隔）。所列变量未设置或为空时，运行器不会运行该脚本，而是报告 `skipped: needs DEEPSEEK_API_KEY`，把跳过记录到摘要中；若没有其他失败，仍以 0 退出；实际运行后失败的脚本仍使退出码非零。若所有指定脚本都被跳过，则不会启动服务器。`plan-quality` 和 `conversation-scope` 声明了 `DEEPSEEK_API_KEY`，因为它们检查的是模型的产出，在规则回退下会失败。格式错误的 `requires-env` 行会让运行器报错退出，而不是运行该脚本。
 
@@ -288,3 +291,17 @@ CI 还会运行 `node scripts/format-check-changed.mjs <base>`（即 `pnpm forma
 通过 `CHANNEL=chrome DATA_MODE=mock USE_MOCK_TOOLS=true MOCK_GOOGLE_MAPS=unavailable pnpm --filter @trip/web e2e map-fallback` 重跑回退界面检查。本地测试时清空模型、Maps 和 Clerk 密钥变量。截图和摘要位于 `output/playwright/map-fallback/after`。`map-provider-http` 使用本地上游测试真实 API 处理器：将 `MAP_STUB_PORT` 设为空闲端口，将上述三个基础 URL 设为 `http://127.0.0.1:$MAP_STUB_PORT`，并设 `WEB_MAPS_PROVIDER=osm`；限流时间戳、缓存命中、语言、范围和公交解析记录在 `output/e2e/map-provider-http/summary.json`。
 
 `RUN_LIVE_MAP_CHECK=1 WEB_MAPS_PROVIDER=osm CHANNEL=chrome USE_MOCK_TOOLS=true pnpm --filter @trip/web e2e map-fallback-live` 显式启用真实免费服务检查。只有聊天回复使用固定数据；地点查询、瓦片和步行路线均为实时请求。结果及桌面／手机截图位于 `output/playwright/map-fallback-live/after`。这不代表公共交通覆盖所有目的地。
+
+<a id="workspace-performance-acceptance"></a>
+
+#### 工作区性能验收
+
+```bash
+node apps/web/tests/e2e/run-performance.mjs
+```
+
+这条本地命令复用 CLI 的 fixture 环境，由旧运行器独占 production 构建、服务器和临时 TypeScript 配置。它清空已知集成凭证，强制使用 mock 工具，禁用 Agent Lab 实时运行，并提供合成的浏览器 Maps key `map-animation-fixture`。CLI 验收会临时修改依赖入口，请与它分开执行。
+
+工作区 journey 测量桌面上的 10 条、200 条消息，以及手机上的 200 条消息。它检查一次稳定输入保存只写一次 catalog，并覆盖刷新、存储配额错误重试、切换前 flush、重命名、布局保存、已规划行程的快照镜像和旧标签页存储保护。第二个标签页直接写入 revision 协议，不覆盖计划编辑 API。地图 journey 用 Google 兼容 SDK stub 控制可见性与动画 frame，并使用真实 MapLibre 的空白样式。它覆盖隐藏面板、后台页面、减少动态效果、视角与选择保留及卸载，不调用 Google，也不验证实时地图服务。
+
+每次命令分配新 label。日志和总摘要位于 `output/e2e/performance-acceptance/<label>/`；截图、工作区 trace、CPU profile 和 JSON 位于 `output/playwright/{workspace-performance,map-animation-lifecycle}/<label>/`。MessageItem 计数是输入与保存或合成 stream 测量窗口内的 V8 函数调用次数，不是 React commit 或 DOM 变化次数。耗时包含防抖和 profile 开销；这些 fixture 不能证明真实用户 Core Web Vitals 或速度提升。比较其他版本时，先单独构建该版本，再用 `BASE_URL=<owned-server> LABEL=before-<unique-label>` 运行工作区脚本；`before-` label 记录基线写入次数，不要求满足优化后的次数。保留失败尝试。

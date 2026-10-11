@@ -30,13 +30,41 @@ jobs:
         env:
           BASE: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || github.event.before }}
 
-      # E2E scripts do not run in CI; this catches one that targets a class no component renders any more.
+      # Browser journeys are selected by the CLI acceptance job; this also catches stale selectors.
       - run: pnpm verify:e2e-selectors
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm test
       - run: pnpm test:scripts
       - run: pnpm build
+
+  cli-acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: sudo apt-get update && sudo apt-get install -y lsof
+      - run: pnpm --filter @trip/web exec playwright install --with-deps chromium
+      - name: Sequential CLI acceptance
+        run: node apps/web/tests/cli-e2e/run.mjs
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+      - name: Save CLI acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli-acceptance-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            output/e2e/
+            output/playwright/
+          if-no-files-found: warn
+          retention-days: 7
 
   protected-files:
     if: github.event_name == 'pull_request'

@@ -130,11 +130,11 @@ function runDetails(summary) {
     : [];
   const complete =
     typeof summary.outcome === "string" &&
+    !["running", "incomplete", "interrupted"].includes(summary.outcome) &&
     requestedCoverageMatches(summary.requested, results) &&
     results.every(
       (result) =>
-        result.status !== "incomplete" &&
-        result.status !== "running" &&
+        !["running", "incomplete", "interrupted"].includes(result.status) &&
         result.evidenceStatus === "available",
     );
   return {
@@ -166,7 +166,8 @@ function repeatDetails(summary) {
     sourceAttempts.length === summary.requestedRepeatCount &&
     summary.remainingAttempts === 0 &&
     summary.completedAttempts === sourceAttempts.length &&
-    typeof summary.outcome === "string";
+    typeof summary.outcome === "string" &&
+    !["running", "incomplete", "interrupted"].includes(summary.outcome);
   const attempts = sourceAttempts.map((attempt, index) => {
     const child = nestedSummary(attempt?.summaryFile);
     const details = child ? runDetails(child.summary) : undefined;
@@ -181,8 +182,7 @@ function repeatDetails(summary) {
       !child ||
       !details ||
       recordStatus !== "complete" ||
-      attemptStatus === "running" ||
-      attemptStatus === "incomplete" ||
+      ["running", "incomplete", "interrupted"].includes(attemptStatus) ||
       evidenceStatus !== "available"
     )
       complete = false;

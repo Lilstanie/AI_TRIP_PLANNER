@@ -2,7 +2,8 @@
 
 English | [中文](e2e-known-failures.zh.md)
 
-E2E scripts do not run in CI, so a script can fail on `main` for a while before anyone notices. Read this list
+The raw browser scripts listed here do not run in CI; the separate CLI acceptance job covers its
+registered fixture journeys. A raw script can fail on `main` before anyone notices. Read this list
 before deciding whether a failing script is your regression; update it when you find a script that fails on
 `main` or fix one. Each entry says when it was last checked and what fails.
 

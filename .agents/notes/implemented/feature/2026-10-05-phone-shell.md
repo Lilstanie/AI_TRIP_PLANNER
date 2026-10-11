@@ -32,7 +32,8 @@ asked for a phone-first design. Spec: issue #174.
   both lists, every open/new action returns to Chat, and touch row menus stay visible. Settings &
   account, data mode and language live here.
 - **Map tab** fills its panel and filters markers/routes by the day chosen in PhoneMapSheet. Its
-  handle supports three snap heights through pointer gestures and keyboard actions. Place details
+  handle supports three snap heights through pointer gestures and keyboard actions. Route animation
+  pauses when the map panel or document is hidden, preserving the mounted map, camera and selection. Place details
   become a bottom sheet on phones; no-key users can still browse the stops.
 - **Keyboard** follows VisualViewport height and offset; a focused chat, question, trip-fact
   editor or stop editor field plus a contracted viewport hides navigation. Only the transcript

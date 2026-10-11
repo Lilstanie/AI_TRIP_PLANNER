@@ -80,6 +80,7 @@ export function drawItineraryRoutes({
   focusDay,
   colors,
   reducedMotion,
+  animationEnabled = !reducedMotion,
 }: {
   runtime: MapRuntime;
   lines: DayRoute[];
@@ -87,6 +88,7 @@ export function drawItineraryRoutes({
   focusDay?: number;
   colors: RouteColors;
   reducedMotion: boolean;
+  animationEnabled?: boolean;
 }) {
   const { maps, map } = runtime;
   const drawn: MapPolyline[] = [];
@@ -133,16 +135,18 @@ export function drawItineraryRoutes({
           icons: [{ icon: { ...ARROW, fillColor: color }, offset: "50%" }],
         }),
       );
-      const dashes = new maps.Polyline({
-        map,
-        path,
-        clickable: false,
-        strokeOpacity: 0,
-        zIndex: 4,
-        icons: [{ icon: DASH, offset: "0px", repeat: `${FLOW_REPEAT_PX}px` }],
-      });
-      drawn.push(dashes);
-      flowing.push(dashes);
+      if (runtime.provider !== "osm") {
+        const dashes = new maps.Polyline({
+          map,
+          path,
+          clickable: false,
+          strokeOpacity: 0,
+          zIndex: 4,
+          icons: [{ icon: DASH, offset: "0px", repeat: `${FLOW_REPEAT_PX}px` }],
+        });
+        drawn.push(dashes);
+        flowing.push(dashes);
+      }
     }
   }
 
@@ -158,20 +162,42 @@ export function drawItineraryRoutes({
       }),
     );
   }
-  const stop = flowing.length
-    ? startFlow((offset) => {
+  let enabled = animationEnabled;
+  let disposed = false;
+  let stop: (() => void) | undefined;
+  const updateAnimation = () => {
+    const shouldRun = enabled && !reducedMotion && !document.hidden && flowing.length > 0;
+    if (disposed || !shouldRun) {
+      stop?.();
+      stop = undefined;
+    } else if (!stop) {
+      stop = startFlow((offset) => {
         for (const line of flowing)
           line.setOptions({
             icons: [
               { icon: DASH, offset: `${offset.toFixed(1)}px`, repeat: `${FLOW_REPEAT_PX}px` },
             ],
           });
-      }, reducedMotion)
-    : () => {};
-  return () => {
-    stop();
-    drawn.forEach((line) => line.setMap(null));
+      }, false);
+    }
   };
+  if (flowing.length) document.addEventListener("visibilitychange", updateAnimation);
+  updateAnimation();
+  return Object.assign(
+    () => {
+      disposed = true;
+      stop?.();
+      stop = undefined;
+      document.removeEventListener("visibilitychange", updateAnimation);
+      drawn.forEach((line) => line.setMap(null));
+    },
+    {
+      setAnimationEnabled(value: boolean) {
+        enabled = value;
+        updateAnimation();
+      },
+    },
+  );
 }
 
 export function declutterLabels(contents: HTMLElement[]) {

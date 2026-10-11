@@ -251,8 +251,10 @@ assert.equal(
   "fixture",
 );
 
-const appEnvPath = resolve(root, "apps/web/.env.local");
-assert.equal(existsSync(appEnvPath), false, "Refusing to replace an existing app-local env file");
+const appEnvPath = [".env.development.local", ".env.development", ".env.local", ".env"]
+  .map((name) => resolve(root, "apps/web", name))
+  .find((path) => !existsSync(path));
+assert.ok(appEnvPath, "No unused development dotenv slot; refusing to replace existing files");
 writeFileSync(
   appEnvPath,
   [
@@ -278,6 +280,7 @@ writeFileSync(
   ].join("\n"),
   { flag: "wx" },
 );
+const ownedEnv = lstatSync(appEnvPath);
 let dev;
 try {
   dev = await execute([
@@ -291,7 +294,14 @@ try {
     "--json",
   ]);
 } finally {
-  unlinkSync(appEnvPath);
+  if (existsSync(appEnvPath)) {
+    const current = lstatSync(appEnvPath);
+    assert.ok(
+      current.dev === ownedEnv.dev && current.ino === ownedEnv.ino,
+      "Synthetic dotenv file was replaced; refusing to remove another owner's file",
+    );
+    unlinkSync(appEnvPath);
+  }
 }
 assert.equal(
   dev.status,

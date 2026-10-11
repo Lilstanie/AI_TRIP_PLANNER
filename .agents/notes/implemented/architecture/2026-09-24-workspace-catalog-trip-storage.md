@@ -14,7 +14,10 @@ was.
 ## Decision
 
 The catalog in `apps/web/lib/workspace/catalog.ts` is the only store for chats and trips, written
-by the debounced autosave in `apps/web/components/workspace/useWorkspaceStorage.ts`. The active
+by `apps/web/components/workspace/useWorkspaceStorage.ts`. Debounced autosave and catalog-only
+changes share one persistence function; an object successfully written by autosave is not serialized
+and written again when its state update reaches the catalog effect. Failed writes remain retryable,
+and conversation switches still flush pending saves. The active
 trip's snapshot is still mirrored to `trip-workspace-v1` and read only as migration input when no
 catalog exists yet. Snapshots write `version` 4 and accept AUD version 3, recovering a matching draft budget source;
 see [source budget entry](../feature/2026-10-04-source-budget-entry.md). They are schema-validated on load; corrupt data,

@@ -510,6 +510,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                 focusedDay={phone ? layout.mapDay : undefined}
                 focusRequest={phone ? layout.mapFocus : undefined}
                 phone={phone}
+                visible={!narrow || mobileView === "map"}
                 showPhotos={dataMode.mode === "live" && !!dataMode.providers?.maps}
                 userLocation={userLocation}
               />

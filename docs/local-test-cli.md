@@ -159,3 +159,20 @@ The records provide an integrity and consistency check, not cryptographic authen
 someone who can rewrite both records and create matching resources.
 The JSON result reports the outcome, each resource's action, any removed paths and the retained
 summary path.
+
+## CLI acceptance
+
+Run the acceptance scripts sequentially from the repository root:
+
+```bash
+node apps/web/tests/cli-e2e/run.mjs
+```
+
+The command includes every `.e2e.mjs` under `apps/web/tests/cli-e2e` and `report-cli.mjs`.
+These scripts exercise real CLI processes and selected fixture browser journeys; some temporarily
+replace shared dependency entrypoints, so do not run them concurrently with another build or test.
+The suite stops at the first failure, records the remaining scripts as `not_run`, and returns nonzero.
+Logs and the suite summary are under `output/e2e/cli-acceptance/<time>/`; individual scripts retain
+their reports and browser evidence under `output/e2e/` and `output/playwright/`. CI runs this command
+in a separate job with Chromium and lsof, and uploads both output trees even on failure for seven days.
+This is CLI acceptance coverage, not execution of every raw browser script.
