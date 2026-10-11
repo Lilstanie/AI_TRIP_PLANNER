@@ -19,7 +19,7 @@ wrapper discovers `.e2e.mjs` files plus `report-cli.mjs`, stops at the first fai
 and uploads logs and evidence even on failure for seven days. Existing dotenv files are neither read nor
 replaced by the credential-isolation fixture; it creates an unused development dotenv slot exclusively.
 The replay journey holds its first request while observing cancellation, then drains background asset
-prefetch before entering the offline replay boundary. Later run/artifact assertions still use the server.
+prefetch before entering the offline replay boundary. Later run/artifact assertions still use the server. Keyboard file selection uses the Replay button locator after registering the chooser wait. A 16× CPU-throttled check covers the browser interception race; normal CPU speed is restored and the CDP session detached before replay continues.
 
 Workspace autosave and catalog-only effects share a persistence helper that remembers only the last
 successfully written object. Snapshot mirrors, synchronous flush, retry and stale-tab guards remain.

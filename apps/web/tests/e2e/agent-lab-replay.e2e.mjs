@@ -222,9 +222,17 @@ async function main() {
       .evaluate((element) => element === document.activeElement),
     "original: Tab from Compare all strategies reaches Replay artifact",
   );
-  const chooserPromise = page.waitForEvent("filechooser");
-  await page.keyboard.press("Enter");
-  const chooser = await chooserPromise;
+  const keyboardSession = await original.context.newCDPSession(page);
+  await keyboardSession.send("Emulation.setCPUThrottlingRate", { rate: 16 });
+  let chooser;
+  try {
+    const chooserPromise = page.waitForEvent("filechooser");
+    await page.getByRole("button", { name: "Replay artifact" }).press("Enter");
+    chooser = await chooserPromise;
+  } finally {
+    await keyboardSession.send("Emulation.setCPUThrottlingRate", { rate: 1 });
+    await keyboardSession.detach();
+  }
   check(chooser.isMultiple() === false, "original: the chooser takes one artifact file");
   await chooser.setFiles(`${OUT}/original.artifact.json`);
   await waitStatus(page, "Replaying recorded run");

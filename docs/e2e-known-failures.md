@@ -20,6 +20,15 @@ server with `DATA_MODE=mock`, `USE_MOCK_TOOLS=true`, and blank `MOCK_GOOGLE_MAPS
 | `timeline`    | The fare-decimals console check reports four 404 responses for fixture place details. The fixture uses stand-in place IDs without stubbing their details; all JPY/AUD/KRW fare and route checks pass (99/100 checks overall). | none yet |
 | `phone-state` | Reload does not restore Map at 390×844 and 360×800. Trip, Mine and Chat reload checks pass.                                                                                                                                   | none yet |
 
+## Covered regressions
+
+- `agent-lab-replay` on PR #308 head `501af35` (2026-10-11) could miss the file chooser after keyboard
+  Enter: the key event completed before Chromium acknowledged file-chooser interception. The journey
+  keeps keyboard activation through the Replay button locator and stresses that boundary at 16× CPU
+  throttling, restoring normal speed afterwards. Reproduce with
+  `pnpm --filter @trip/web e2e run agent-lab-replay --dev`; the original global keyboard call fails
+  this check even with the 30-second chooser timeout. This is a test-driver race, not a replay API failure.
+
 ## Not failures
 
 - `installable-app` waits forever under `next dev`, because the service worker registers only in a production
