@@ -27,6 +27,10 @@ git diff --name-status origin/main...HEAD
 
 Include uncommitted files if you are about to commit them.
 
+For task-specific comment restrictions and the originating spec, follow
+[review-trip-planner](../review-trip-planner/SKILL.md) before claiming review is complete. Its scoped
+comment checker is a local gate; existing CI does not invoke it automatically.
+
 ## 2. Select evidence by path
 
 | Changed path                                                                                                 | Run                                                                                                                                                                                                                                                                                                                                                 |

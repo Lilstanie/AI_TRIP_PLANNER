@@ -203,6 +203,10 @@ manifest 链接的页面。
 
 用 `review-trip-planner` 检查本库特有风险；全局 `review-standards-spec` 负责 Standards（规范）与 Spec（规格）双轴审查流程。OCR 插件保留各自的 `open-code-review` 和 `open-code-review-delegate` 名称。
 
+[review-trip-planner](../.agents/skills/review-trip-planner/SKILL.md) 负责审查交接材料和任务范围内的新增注释检查。
+其参考文档说明 CLI、显式文件范围、有理由的例外，以及独立验收的证据。
+这项检查由本地审查流程调用；CI 不会自动执行。
+
 | 领域                   | Skills                                                                                                                                                                                                                                                                                                                                                                       |
 | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | React 与浏览器测试参考 | [vercel-react-best-practices](../.agents/skills/vercel-react-best-practices/SKILL.md), [playwright-best-practices](../.agents/skills/playwright-best-practices/SKILL.md)                                                                                                                                                                                                     |
