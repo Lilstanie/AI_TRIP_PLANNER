@@ -123,6 +123,11 @@ Sticky headers and floating action buttons account for safe areas:
 
 ## Hold structure until it breaks
 
+In this workspace, keep the established 1000 px Chat/Map and 520 px phone-shell transitions.
+The Trip drawer overlays the map share after floating gaps; it has no universal minimum width.
+Check its actual content width at the default split and both splitter extremes, and use container
+queries for inner rows. The generic guidance below applies within those fixed workspace regions.
+
 Breakpoints belong to the content, not the device catalog:
 
 - Break where the layout actually stops fitting, not at `768px` because a preset says so. That is where the sidebar squeezes content below its minimum measure, or the card grid drops below a usable column width.
