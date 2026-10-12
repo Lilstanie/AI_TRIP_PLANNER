@@ -176,3 +176,11 @@ Logs and the suite summary are under `output/e2e/cli-acceptance/<time>/`; indivi
 their reports and browser evidence under `output/e2e/` and `output/playwright/`. CI runs this command
 in a separate job with Chromium and lsof, and uploads both output trees even on failure for seven days.
 This is CLI acceptance coverage, not execution of every raw browser script.
+
+`local-cli-collections.e2e.mjs` retains two real browser controls: default smoke in production and
+named replay in development. Multi-name, `--all`, mixed unsupported, invalid selection, timeout and
+child-failure aggregation use an isolated copy of the unchanged CLI modules with controlled server
+and journey subprocesses. These fixture cases verify selection, ordering, exit status, distinct
+reports and continuation after failure; they do not establish browser UI coverage. The real controls
+retain the browser/API/keyboard and replay assertions. Collection invocation logs, child-start events,
+fixture files and the overall outcome are retained under `output/e2e/cli-collections/run-*/`.
