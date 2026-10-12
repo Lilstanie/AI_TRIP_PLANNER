@@ -38,8 +38,9 @@ subject precisely. Remove a control-flow transcript entirely when the code alrea
 
 ## Coverage by location
 
-- **JSDoc and module comments:** state non-obvious returns, failures, ownership, timing, cancellation
-  and side effects. Orient complicated code without narrating each helper or branch.
+- **JSDoc and module comments:** add one only where it carries a contract. State non-obvious returns,
+  failures, ownership, timing, cancellation and side effects; leave out narration of each helper or
+  branch. [AGENTS.md](../../../AGENTS.md) keeps explanatory comments out of maintained source.
 - **Tests and examples:** explain a non-obvious fixture or observation, and preserve prerequisites,
   the real entry path and how to verify the result. Do not restate every assertion or invent tests
   as an editorial task.

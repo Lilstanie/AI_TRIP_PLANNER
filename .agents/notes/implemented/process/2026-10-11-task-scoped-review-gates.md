@@ -15,13 +15,15 @@ comparison and HEAD SHAs, tracked/untracked scope, originating requirements, app
 validation evidence. Standards and Spec remain separate conclusions. The user's reviewer-count and
 reuse limits override a global workflow's parallel-agent defaults.
 
-For a task that prohibits added comments, the skill invokes its local `scripts/check-added-comments.mjs`
+The skill invokes its local `scripts/check-added-comments.mjs` over the diff's added comments,
 with an explicit base and literal JS/TS paths. Git identifies added lines against the working tree;
 TypeScript parsing identifies comments without mistaking literal text for comments. Selected untracked
 files are new in full, including files recreated after removal from the current index. Parsed JSX
 text spans exclude visible comment delimiters while expression comments remain checked.
 Exact comment text in a selected file may be exempted with a task-approved
-reason; there are no implicit licence/directive exemptions. This is not a global comment ban.
+reason; there are no implicit licence/directive exemptions.
+[No added comments by default](2026-10-12-no-added-comments-default.md) later set the repository-wide
+convention; this note's handoff packet and comment gate remain in effect.
 
 The CLI's public acceptance journey is `apps/web/tests/cli-e2e/review-comment-policy.e2e.mjs`.
 It preserves temporary Git fixtures, commands and outcomes under `output/e2e/review-comment-policy/`.

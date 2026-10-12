@@ -1,7 +1,8 @@
 # Task-scoped comment check
 
-Use this check when the originating task prohibits new code comments. The scope is an explicit list
-of JavaScript or TypeScript files, including JSX. It is not a repository-wide comment policy.
+Use this check for the comments a diff adds. The scope is an explicit list of JavaScript or TypeScript
+files, including JSX. [AGENTS.md](../../../../AGENTS.md) sets the default: maintained source carries
+no explanatory comments, so a task that allows some is the exception.
 
 ## Failure inventory and public seam
 

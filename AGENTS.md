@@ -57,6 +57,10 @@ checks the frozen and shared-contract rules.
 - Preserve established package boundaries.
 - Production code belongs under `apps/web/components`, `apps/web/lib`, or a package's `src` domain;
   tests belong under `apps/web/tests` or the package's `tests` directory.
+- Maintained source carries no explanatory comments: keep a comment only where it carries a contract
+  or a tool instruction — JSDoc for non-obvious returns, failures, ownership and timing, plus
+  shebangs, compiler and lint directives, SQL delimiters and third-party licence notices. Reviewers
+  run the [added-comment check](.agents/skills/review-trip-planner/references/comment-policy.md).
 - Keep external credentials in environment variables. Never commit keys or copy them into project
   documentation, fixtures, or source code.
 - Use standard branch names such as `feature/<short-name>`, `fix/<short-name>`, `refactor/<short-name>`,
