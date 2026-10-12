@@ -329,6 +329,8 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     `useWorkspace`, never as state setters ([architecture](architecture.md#workspace-state)).
 - **Storage.**
   - Everything is saved in the browser only, with a debounced autosave state in the sidebar.
+    A catalog object already persisted by autosave is not serialized and written again by the catalog
+    effect. Layout, history and account-sync changes still persist; a failed write remains retryable.
   - The catalog (`trip-workspace-catalog-v3`) keeps conversations and trips separately, with stable
     links and an optional conversation `draft`. Snapshots write version 4; version 3 (AUD) snapshots
     remain readable and recover their budget source when the draft still matches the plan.
@@ -449,7 +451,9 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   zig-zag. No route is requested just to draw a line. The focused day (the selected stop's day, or
   every day when nothing is selected) is drawn Apple Maps style in its day colour over a
   `--route-casing`, with a white chevron at the middle of each leg pointing to the next stop and
-  white dashes flowing from stop to stop; other days are a thin static `--text-dim` line. The dashes
+  white dashes flowing from stop to stop; other days are a thin static `--text-dim` line.
+  Dash animation pauses while the map panel or document is hidden, without discarding the map, camera
+  or selection. It also respects reduced motion. OSM draws static routes without an icon animation loop. The dashes
   move in one `requestAnimationFrame` loop throttled to about 30 frames a second, which stops when
   the lines are redrawn or the map unmounts. Under `prefers-reduced-motion: reduce` the dashes are
   drawn still and no loop runs. Verified routes that are not an itinerary leg, such as an edit

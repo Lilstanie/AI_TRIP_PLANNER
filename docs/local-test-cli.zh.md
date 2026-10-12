@@ -123,3 +123,16 @@ pnpm --silent --filter @trip/web e2e cleanup <invocation-id> --json
 其他运行的文件。缺少可验证所有权记录的未完成运行不能通过此命令清理。JSON 结果会报告总体状态、各资源的操作、
 实际删除的路径以及保留的摘要路径。这些记录用于检查完整性和一致性；如果有人能够同时改写两份记录并创建匹配资源，
 它们不提供加密认证。
+
+<a id="cli-acceptance"></a>
+
+## CLI 验收
+
+在仓库根目录串行运行验收脚本：
+
+```bash
+node apps/web/tests/cli-e2e/run.mjs
+```
+
+命令包含 `apps/web/tests/cli-e2e` 下所有 `.e2e.mjs` 和 `report-cli.mjs`，通过真实 CLI 进程和选定的 fixture 浏览器旅程验收。部分脚本会临时替换共享依赖入口，因此不要与其他构建或测试并发运行。套件遇到第一个失败即停止，把剩余脚本记录为 `not_run`，并以非零状态退出。
+日志和套件摘要位于 `output/e2e/cli-acceptance/<time>/`；各脚本仍在 `output/e2e/` 与 `output/playwright/` 保留报告和浏览器证据。CI 在独立任务中安装 Chromium 和 lsof 后运行该命令，即使失败也上传两棵输出目录，保留七天。这是 CLI 验收覆盖，不代表执行所有原始浏览器脚本。

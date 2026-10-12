@@ -27,10 +27,12 @@ export function TripMapCanvas({
   showPhotos = false,
   userLocation,
   phone = false,
+  visible = true,
   focusedDay,
   focusRequest,
 }: {
   phone?: boolean;
+  visible?: boolean;
   focusedDay?: number;
   focusRequest?: number;
   destination?: string;
@@ -109,6 +111,7 @@ export function TripMapCanvas({
         allowOsmFallback={tripPlaces.allowFallback}
         stops={markers}
         phone={phone}
+        visible={visible}
         focusRequest={focusRequest}
         destinations={destinations}
         selected={selected}

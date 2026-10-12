@@ -9,6 +9,11 @@ Unit tests do not show layout, focus or overflow. Every visible change is checke
 and the pull request carries the evidence. For complex user-visible features, prefer E2E as the sole
 behavioral test and leave a repeatable artifact. This is guidance: check what the change can affect.
 
+For locator, waiting, isolation and debugging techniques, consult
+[playwright-best-practices](../playwright-best-practices/SKILL.md). The project's testing approach,
+runner commands and acceptance evidence remain authoritative; its Playwright Test examples do not
+configure a new runner in this repository.
+
 ## 1. Run the app
 
 Start the `web` configuration from `.claude/launch.json` (`pnpm --filter @trip/web dev`, port 3000).

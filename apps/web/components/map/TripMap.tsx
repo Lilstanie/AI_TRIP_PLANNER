@@ -39,7 +39,9 @@ function positions(places: GooglePlace[]) {
 }
 
 function useMediaQuery(query: string) {
-  const [matches, setMatches] = useState(false);
+  const [matches, setMatches] = useState(
+    () => typeof window !== "undefined" && !!window.matchMedia?.(query).matches,
+  );
   useEffect(() => {
     if (typeof window === "undefined" || !window.matchMedia) return;
     const list = window.matchMedia(query);
@@ -65,6 +67,7 @@ export function TripMap({
   showPhotos = false,
   userLocation,
   phone = false,
+  visible = true,
   focusRequest,
 }: {
   mockData?: boolean;
@@ -73,6 +76,7 @@ export function TripMap({
 
   stops: MapStop[];
   phone?: boolean;
+  visible?: boolean;
 
   focusRequest?: number;
 
@@ -94,6 +98,7 @@ export function TripMap({
   const moving = useRef(false);
   const panOnLocate = useRef(false);
   const markers = useRef(new Map<string, { marker: MapMarker; content: HTMLElement }>());
+  const routeLayer = useRef<ReturnType<typeof drawItineraryRoutes> | null>(null);
   const popup = useRef<HTMLDivElement>(null);
   const focusPopup = useRef(false);
   const returnFocus = useRef<HTMLElement | null>(null);
@@ -355,15 +360,25 @@ export function TripMap({
   );
   useEffect(() => {
     if (!runtime || !root.current) return;
-    return drawItineraryRoutes({
+    const layer = drawItineraryRoutes({
       runtime,
       lines,
       routes,
       focusDay,
       colors: routeColors(root.current),
-      reducedMotion,
+      reducedMotion: false,
+      animationEnabled: false,
     });
-  }, [runtime, lines, routes, focusDay, reducedMotion, dark]);
+    routeLayer.current = layer;
+    return () => {
+      layer();
+      routeLayer.current = null;
+    };
+  }, [runtime, lines, routes, focusDay, dark]);
+
+  useEffect(() => {
+    routeLayer.current?.setAnimationEnabled(visible && !reducedMotion);
+  }, [runtime, lines, routes, focusDay, dark, visible, reducedMotion]);
 
   useEffect(() => {
     const position = selectedStop && coordinate(selectedStop.place);

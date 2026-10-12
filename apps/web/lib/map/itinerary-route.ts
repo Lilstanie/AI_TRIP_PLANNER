@@ -60,18 +60,23 @@ export function startFlow(
     return () => {};
   }
   let handle = 0;
+  let stopped = false;
   let start: number | undefined;
   let last = -Infinity;
   const tick = (time: number) => {
+    if (stopped) return;
     start ??= time;
     if (time - last >= 33) {
       last = time;
       onFrame(flowOffset(time - start));
     }
-    handle = frame.request(tick);
+    if (!stopped) handle = frame.request(tick);
   };
   handle = frame.request(tick);
-  return () => frame.cancel(handle);
+  return () => {
+    stopped = true;
+    frame.cancel(handle);
+  };
 }
 
 const toMercator = ({ lat, lng }: Coordinate) => {

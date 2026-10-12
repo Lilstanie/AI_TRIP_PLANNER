@@ -8,8 +8,9 @@ description: Pick the smallest set of commands that would catch a regression in 
 Run relevant evidence once before a push, and report only commands you actually ran with their real
 results. CI (`.github/workflows/ci.yml`) already runs `typecheck`, `lint`, `test`, `test:scripts` and `build`
 for the whole repository, plus the protected-file, `verify:docs` and translation-pair checks on pull
-requests. It does not run the E2E scripts, so those are local evidence only; local runs exist to catch the failure
-before CI does, not to repeat CI. It does run `pnpm verify:e2e-selectors`, which fails when an E2E script
+requests. A separate job runs `node apps/web/tests/cli-e2e/run.mjs` sequentially, including its registered
+fixture browser journeys, with logs and evidence retained on failure. Other raw browser scripts remain
+local evidence; select the relevant one rather than repeating unrelated acceptance runs. It does run `pnpm verify:e2e-selectors`, which fails when an E2E script
 selects a class no component renders, so removing or renaming a class means updating the scripts that use it. A
 script that fails may already fail on `main`: read [e2e-known-failures](../../../docs/e2e-known-failures.md)
 before calling a failure yours or not, and update it when you find or fix one. Which kind of test to write is the Testing approach at the top of

@@ -1,7 +1,15 @@
 import { spawn } from "node:child_process";
-import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import {
+  lstatSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { createServer } from "node:net";
-import { dirname, resolve } from "node:path";
+import { basename, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 
@@ -88,36 +96,31 @@ function freePort() {
   });
 }
 
-function pidAlive(pid) {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-const SLOTS = [".next-e2e", ".next-e2e-2", ".next-e2e-3", ".next-e2e-4"];
-
 function claimDist() {
-  for (const name of SLOTS) {
-    const lock = resolve(WEB, `${name}.lock`);
-    const owner = Number.parseInt(readFileSafe(lock), 10);
-    if (Number.isInteger(owner) && owner !== process.pid && pidAlive(owner)) continue;
-    writeFileSync(lock, String(process.pid));
-    return { name, lock };
-  }
-  fail(
-    `all ${SLOTS.length} dist folders are in use by other runs in this worktree; wait for one to finish.`,
-  );
+  return { name: basename(mkdtempSync(resolve(WEB, ".next-e2e-"))) };
 }
 
-function readFileSafe(path) {
+function createTsconfig() {
+  const path = `.tsconfig-e2e-raw-${dist.name.slice(".next-e2e-".length)}.json`;
+  const file = resolve(WEB, path);
+  const config = JSON.parse(readFileSync(resolve(WEB, "tsconfig.json"), "utf8"));
+  config.include = [...new Set([...config.include, `${dist.name}/types/**/*.ts`])];
+  config.compilerOptions = {
+    ...config.compilerOptions,
+    tsBuildInfoFile: resolve(WEB, dist.name, "tsconfig.tsbuildinfo"),
+  };
+  writeFileSync(file, `${JSON.stringify(config, null, 2)}\n`, { flag: "wx" });
+  dist.tsconfig = { file, identity: lstatSync(file) };
+  return path;
+}
+
+function removeTsconfig() {
+  if (!dist?.tsconfig) return;
+  const { file, identity } = dist.tsconfig;
   try {
-    return readFileSync(path, "utf8");
-  } catch {
-    return "";
-  }
+    const stat = lstatSync(file);
+    if (stat.isFile() && stat.dev === identity.dev && stat.ino === identity.ino) rmSync(file);
+  } catch {}
 }
 
 let server;
@@ -133,10 +136,6 @@ function signalServer(signal) {
   } catch {}
 }
 
-function releaseDist() {
-  if (dist && readFileSafe(dist.lock) === String(process.pid)) rmSync(dist.lock, { force: true });
-}
-
 async function stopServer() {
   if (serverRunning()) {
     const exited = new Promise((done) => server.once("exit", done));
@@ -145,15 +144,14 @@ async function stopServer() {
     await exited;
     clearTimeout(timer);
   }
-  releaseDist();
 }
 
-function signalScript(signal) {
-  if (!current) return;
+function signalScript(signal, child = current) {
+  if (!child?.pid) return;
   try {
-    process.kill(-current.pid, signal);
+    process.kill(-child.pid, signal);
   } catch {
-    current.kill(signal);
+    child.kill(signal);
   }
 }
 
@@ -168,32 +166,40 @@ for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"]) {
 process.on("exit", () => {
   signalScript("SIGKILL");
   if (serverRunning()) signalServer("SIGKILL");
-  releaseDist();
+  removeTsconfig();
 });
 
 function run(command, commandArgs, { timeoutMs, ...options } = {}) {
   return new Promise((done) => {
     let timedOut = false;
-    current = spawn(command, commandArgs, {
+    let escalation;
+    const child = spawn(command, commandArgs, {
       stdio: "inherit",
       ...options,
       detached: timeoutMs !== undefined,
     });
+    current = child;
     const timer =
       timeoutMs === undefined
         ? undefined
         : setTimeout(() => {
             timedOut = true;
             console.error(`e2e: still running after ${timeoutMs / 1000}s; stopping it`);
-            signalScript("SIGTERM");
-            setTimeout(() => signalScript("SIGKILL"), 10_000).unref();
+            signalScript("SIGTERM", child);
+            escalation = setTimeout(() => signalScript("SIGKILL", child), 10_000);
+            escalation.unref();
           }, timeoutMs);
-    current.on("exit", (code, signal) => {
+    const finish = (code, signal) => {
       clearTimeout(timer);
-
-      if (timeoutMs !== undefined) signalScript("SIGKILL");
-      current = undefined;
+      clearTimeout(escalation);
+      if (timeoutMs !== undefined) signalScript("SIGKILL", child);
+      if (current === child) current = undefined;
       done(timedOut ? "timeout" : (code ?? (signal ? 1 : 0)));
+    };
+    child.once("exit", finish);
+    child.once("error", (error) => {
+      console.error(`e2e: unable to start ${command}: ${error.message}`);
+      finish(1);
     });
   });
 }
@@ -202,6 +208,7 @@ async function startServer() {
   const port = await freePort();
   dist = claimDist();
   const env = { ...process.env, PORT: String(port), NEXT_DIST_DIR: dist.name };
+  if (!env.NEXT_TSCONFIG_PATH) env.NEXT_TSCONFIG_PATH = createTsconfig();
   if (prod) {
     console.log(`e2e: building into ${dist.name}`);
     const code = await run(NEXT, ["build"], { cwd: WEB, env });

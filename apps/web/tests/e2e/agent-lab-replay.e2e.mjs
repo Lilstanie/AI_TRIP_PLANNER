@@ -111,7 +111,27 @@ async function main() {
 
   await page.getByLabel("Scenario").selectOption(SCENARIO);
   await page.getByLabel("Strategy").selectOption(REVISION);
+  let releaseCancelledRequest;
+  let requestHeld;
+  const held = new Promise((done) => (requestHeld = done));
+  const release = new Promise((done) => (releaseCancelledRequest = done));
+  let routeDone;
+  const routed = new Promise((done) => (routeDone = done));
+  await page.route(
+    "**/api/agent-lab/runs",
+    async (route) => {
+      requestHeld();
+      await release;
+      try {
+        await route.abort();
+      } finally {
+        routeDone();
+      }
+    },
+    { times: 1 },
+  );
   await page.getByRole("button", { name: "Run experiment" }).click();
+  await held;
   await page.getByRole("button", { name: "Cancel run" }).waitFor();
   check(
     (await page.getByRole("button", { name: /^Download artifact/ }).count()) === 0,
@@ -122,6 +142,8 @@ async function main() {
     "original: replay cannot be started while a live run is going",
   );
   await page.getByRole("button", { name: "Cancel run" }).click();
+  releaseCancelledRequest();
+  await routed;
   await waitStatus(page, "Run cancelled");
   check(
     (await page.getByRole("button", { name: /^Download artifact/ }).count()) === 0,
@@ -200,9 +222,17 @@ async function main() {
       .evaluate((element) => element === document.activeElement),
     "original: Tab from Compare all strategies reaches Replay artifact",
   );
-  const chooserPromise = page.waitForEvent("filechooser");
-  await page.keyboard.press("Enter");
-  const chooser = await chooserPromise;
+  const keyboardSession = await original.context.newCDPSession(page);
+  await keyboardSession.send("Emulation.setCPUThrottlingRate", { rate: 16 });
+  let chooser;
+  try {
+    const chooserPromise = page.waitForEvent("filechooser");
+    await page.getByRole("button", { name: "Replay artifact" }).press("Enter");
+    chooser = await chooserPromise;
+  } finally {
+    await keyboardSession.send("Emulation.setCPUThrottlingRate", { rate: 1 });
+    await keyboardSession.detach();
+  }
   check(chooser.isMultiple() === false, "original: the chooser takes one artifact file");
   await chooser.setFiles(`${OUT}/original.artifact.json`);
   await waitStatus(page, "Replaying recorded run");
@@ -252,6 +282,7 @@ async function main() {
   const replayPage = replay.page;
   const requests = [];
   const failedRequests = [];
+  await replayPage.waitForLoadState("networkidle");
   await replay.context.setOffline(true);
   replayPage.on("request", (request) => requests.push(request.url()));
   replayPage.on("requestfailed", (request) => failedRequests.push(request.url()));

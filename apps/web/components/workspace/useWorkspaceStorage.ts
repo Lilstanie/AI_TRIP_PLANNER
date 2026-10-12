@@ -1,5 +1,6 @@
 "use client";
 import {
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -52,6 +53,12 @@ export function useWorkspaceStorage({
   }, [catalog]);
 
   const pendingSave = useRef<(() => void) | null>(null);
+  const persistedCatalog = useRef<WorkspaceCatalog | undefined>(undefined);
+  const persistCatalog = useCallback((next: WorkspaceCatalog) => {
+    if (persistedCatalog.current === next) return;
+    localStorage.setItem(CATALOG_KEY, serializeCatalog(next));
+    persistedCatalog.current = next;
+  }, []);
   useEffect(() => {
     if (!storageEnabled) return;
     const conversationId = activeConversation.current;
@@ -82,7 +89,7 @@ export function useWorkspaceStorage({
           nextCatalog = upsertCurrent(catalogRef.current, current, messages);
           localStorage.setItem(CURRENT_KEY, JSON.stringify(current));
         }
-        localStorage.setItem(CATALOG_KEY, serializeCatalog(nextCatalog));
+        persistCatalog(nextCatalog);
         catalogRef.current = nextCatalog;
         setCatalog(nextCatalog);
         setSaveState("saved");
@@ -98,19 +105,29 @@ export function useWorkspaceStorage({
       window.clearTimeout(timer);
       if (pendingSave.current === persist) pendingSave.current = null;
     };
-  }, [storageEnabled, plan, draft, messages, input, previousTotal, activeConversation, setCatalog]);
+  }, [
+    storageEnabled,
+    plan,
+    draft,
+    messages,
+    input,
+    previousTotal,
+    activeConversation,
+    setCatalog,
+    persistCatalog,
+  ]);
 
   useEffect(() => {
     if (!storageEnabled) return;
     try {
       if (plan && !isCurrentTabPlan(plan)) return;
-      localStorage.setItem(CATALOG_KEY, serializeCatalog(catalog));
+      persistCatalog(catalog);
     } catch {
       setSaveState("failed");
       setStorageEnabled(false);
       setStorageError(STORAGE_FULL);
     }
-  }, [catalog, storageEnabled, plan]);
+  }, [catalog, storageEnabled, plan, persistCatalog]);
 
   function flushSave() {
     pendingSave.current?.();

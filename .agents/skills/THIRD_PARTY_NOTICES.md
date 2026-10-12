@@ -1,5 +1,25 @@
 # Third-party notices
 
+## Vercel React Best Practices
+
+`vercel-react-best-practices` is adapted from
+[vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills/tree/063bee94c3f4df8453406c830b0a7df0f2860278/skills/react-best-practices)
+at commit `063bee94c3f4df8453406c830b0a7df0f2860278`. Upstream declares the MIT licence in
+`SKILL.md`; this revision supplies no separate licence file. Its 72 rule and supporting Markdown
+files live under `references/`. The entrypoint adds project boundaries and direct reference links;
+the redundant compiled guide is omitted. Cross-reference links in supporting files point to the
+pinned upstream revision so local references stay one level deep.
+
+## Currents Playwright Best Practices
+
+`playwright-best-practices` is adapted from
+[currents-dev/playwright-best-practices-skill](https://github.com/currents-dev/playwright-best-practices-skill/tree/283d5cbc5d11aac1abda058b16ad22c317d54dc0/playwright-best-practices)
+at commit `283d5cbc5d11aac1abda058b16ad22c317d54dc0`. Its 58 supporting Markdown files live
+under `references/`, preserving upstream categories. The entrypoint uses the project's execution and
+acceptance rules; supporting-file cross-references point to the pinned upstream revision. Copyright
+2026 Currents Software Inc.; the upstream MIT licence is preserved unchanged in
+[playwright-best-practices/LICENSE](playwright-best-practices/LICENSE).
+
 ## DeepSeek Harness
 
 `find-simplifications`, `prose-standard`, `agent-experience` and `translate-docs` are adapted from

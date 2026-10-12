@@ -236,8 +236,17 @@ copyright line and the files that contain it.
 Project skills live directly under `.agents/skills/<name>/SKILL.md`. The categories below are
 navigation groups; each skill retains its own discoverable entrypoint and loads references on demand.
 
+`vercel-react-best-practices` provides React and Next.js performance references;
+`playwright-best-practices` provides browser test implementation and debugging references. Both are
+installed locally in this project and load relevant reference files on demand. Project instructions
+own test strategy, runner commands and acceptance evidence; upstream examples are technical guidance
+within those rules. The current E2E runner remains the execution entry point. Installing these skills
+does not add npm dependencies or configure `@playwright/test`. Source revisions, local adaptations and
+update rules are recorded in the [integration decision](../.agents/notes/implemented/process/2026-10-11-framework-reference-skills.md).
+
 | Area                                | Skills                                                                                                                                                                                                                                                                                                                                                                       |
 | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| React and browser test references   | [vercel-react-best-practices](../.agents/skills/vercel-react-best-practices/SKILL.md), [playwright-best-practices](../.agents/skills/playwright-best-practices/SKILL.md)                                                                                                                                                                                                     |
 | Interface design and effects        | [better-layout](../.agents/skills/better-layout/SKILL.md), [better-ui](../.agents/skills/better-ui/SKILL.md), [better-accessibility](../.agents/skills/better-accessibility/SKILL.md), [better-writing](../.agents/skills/better-writing/SKILL.md), [libraries-dev](../.agents/skills/libraries-dev/SKILL.md)                                                                |
 | Feature and provider implementation | [end-to-end-feature-wiring](../.agents/skills/end-to-end-feature-wiring/SKILL.md), [api-scout](../.agents/skills/api-scout/SKILL.md), [add-provider](../.agents/skills/add-provider/SKILL.md), [agent-experience](../.agents/skills/agent-experience/SKILL.md)                                                                                                               |
 | Review and verification             | [code-review](../.agents/skills/code-review/SKILL.md), [find-simplifications](../.agents/skills/find-simplifications/SKILL.md), [break](../.agents/skills/break/SKILL.md), [ui-verification](../.agents/skills/ui-verification/SKILL.md), [pre-push-checks](../.agents/skills/pre-push-checks/SKILL.md)                                                                      |
@@ -292,8 +301,10 @@ writing implementation code. If a system must be tested in isolation, first enum
 could fail, then write the code and derive the isolated checks from that list.
 
 This describes the preferred approach for new work. CI runs the Vitest suites through `pnpm test` and
-the repository script tests (`scripts/*.test.mjs`) through `pnpm test:scripts`. It does not run the E2E
-scripts, so run the relevant one yourself before pushing; scripts that already fail on `main` are listed in
+the repository script tests (`scripts/*.test.mjs`) through `pnpm test:scripts`. A separate CLI acceptance job runs
+`node apps/web/tests/cli-e2e/run.mjs` sequentially, including its fixture browser journeys, and retains
+logs, summaries and browser evidence for seven days even on failure. The remaining raw browser scripts
+are local checks, so run the relevant one before pushing; known failures on `main` are listed in
 [e2e-known-failures.md](e2e-known-failures.md). CI does run `pnpm verify:e2e-selectors`, which
 fails when an E2E script selects a CSS class (`.section__row`) that no component, page or library file under
 `apps/web` renders any more; a rule left in a stylesheet does not count. It needs no server and takes well
@@ -311,9 +322,10 @@ BASE_URL=http://localhost:3000 pnpm --filter @trip/web e2e settings   # against 
 ```
 
 The environment reaches both the server and the scripts, so set `DATA_MODE` and provider variables as
-each script's header says. Each concurrent run in one worktree builds into its own folder
-(`apps/web/.next-e2e`, then `-2` to `-4`), so runs side by side, and beside `pnpm dev`, never share
-`.next`; the folder keeps its compiled output for the next run. The runner exits non-zero when any
+each script's header says. Each invocation allocates a unique `apps/web/.next-e2e-<random>` directory
+and an owned temporary TypeScript config, so concurrent runs and `pnpm dev` never share build output
+or edit the shared TypeScript config. Compiled directories remain for inspection; later runs allocate
+new directories. An inherited `NEXT_TSCONFIG_PATH` remains an explicit override. The runner exits non-zero when any
 script fails and writes a summary to `output/e2e/runner/<time>.json`. Each script has
 `E2E_SCRIPT_TIMEOUT_MS` (default 600000, ten minutes) to finish; a script still running then is stopped with
 the browsers it launched, shown as `TIME` in the summary (`"timedOut": true` in the JSON), and the next script
@@ -413,3 +425,31 @@ upstreams: set `MAP_STUB_PORT` to a free port and all three base URLs above to
 cache hits, language, bounds and transit parsing in `output/e2e/map-provider-http/summary.json`.
 
 `RUN_LIVE_MAP_CHECK=1 WEB_MAPS_PROVIDER=osm CHANNEL=chrome USE_MOCK_TOOLS=true pnpm --filter @trip/web e2e map-fallback-live` opts into real free services. The chat reply alone uses fixtures; place lookup, tiles and the walking route are live. Results and desktop/phone screenshots are in `output/playwright/map-fallback-live/after`. This does not establish transit coverage in every destination.
+
+#### Workspace performance acceptance
+
+```bash
+node apps/web/tests/e2e/run-performance.mjs
+```
+
+This local command reuses the CLI fixture environment and the raw runner's owned production build,
+server and temporary TypeScript config. It blanks known integration credentials, forces mock tools,
+disables Agent Lab live runs and supplies the synthetic browser Maps key `map-animation-fixture`.
+Run it separately from CLI acceptance, which temporarily changes dependency entrypoints.
+
+The workspace journey measures 10- and 200-message histories on desktop and 200 messages on phone;
+it checks one catalog write per settled input save, reload, quota retry, switch-time flush, rename,
+layout persistence, planned snapshot mirrors and stale-tab storage guards. Its second-tab case writes
+the revision protocol directly and does not test the plan-edit API. The map journey controls visibility
+and animation frames with a Google-compatible SDK stub, and checks actual MapLibre with an empty style.
+It covers hidden panels, background documents, reduced motion, retained camera/selection and unmount.
+It does not call Google or verify live map services.
+
+Each command allocates a new label. Logs and the overall summary are under
+`output/e2e/performance-acceptance/<label>/`; screenshots, workspace traces, CPU profiles and JSON are
+under `output/playwright/{workspace-performance,map-animation-lifecycle}/<label>/`.
+MessageItem counts are V8 function calls during the measured typing/save or synthetic stream window,
+not React commits or DOM changes. Timings include debounce and profiling overhead; these fixtures do
+not establish real-user Core Web Vitals or a speedup. To compare another revision, build it separately,
+then run the workspace script with `BASE_URL=<owned-server> LABEL=before-<unique-label>`; a `before-`
+label records the baseline write count without requiring the optimized count. Preserve failed attempts.

@@ -74,20 +74,20 @@
       "translationSha256": "d963c05d8280166881723dedead0bcf9608d98275e0a1eee083a8233448f75b7"
     },
     "docs/development.md": {
-      "sourceSha256": "d80cdd60738ad2919e718a3cb35e3b1ad952320747d80dbac36e45ffe3cedbe3",
-      "translationSha256": "a404a4bea7e53406a67c614fc501f4e0c68100d82e432aab159332b46c4ad23e"
+      "sourceSha256": "33550e401a95e852d6d91cfd0ee162a7089a8847f30d4b34112757db8ed5ffdb",
+      "translationSha256": "ba5e368e144ad84d03c9db2081967b764aa16b32216e18f7bf7568329f0d6f7a"
     },
     "docs/e2e-known-failures.md": {
-      "sourceSha256": "109044e27b85ae21f4715c81c82ad7c23f42b16c2049cfbc009297227b15a5e1",
-      "translationSha256": "8e57fad370b510f8b950cb8a45cc68168a11ea626d76f407c0bc2cbb4d55fd8b"
+      "sourceSha256": "ab492212328279f1166acea741eebad1a8a28b79d4b9749eac638a2d5e5d2831",
+      "translationSha256": "a2bb425a851571f255cfee7f58a54dba0498211a32e21e7845e0e8bb8b10674b"
     },
     "docs/i18n.md": {
       "sourceSha256": "f68257c7bce1af3e72475fb48e9c4b9a88985b500297d04431ab39211a2bb479",
       "translationSha256": "7ec74c59ad4c65af4f29b5264d9b6593907af43d03bd9a30afb4ae37d0d9f63d"
     },
     "docs/local-test-cli.md": {
-      "sourceSha256": "ca44d709ce348a08504f0641c622ba15f97c01d55ae4395a5c48285c9b94a6b3",
-      "translationSha256": "5a7d576809f1a090b60d989cb10db2986237c906e3baedc7d7732089243b1018"
+      "sourceSha256": "370141e3223ab2037877bb6c9fbcaf0cb3feb3a51eb76ac91be173370dcc7a3a",
+      "translationSha256": "6136a8c29054cd0dc37261616088ec07aba2ceb938974afbba9ea65d01c357e5"
     },
     "docs/README.md": {
       "sourceSha256": "c383a2ace70edf2f4add165bea9c5b1d652a16e251e66251c7a0d928c095790a",
@@ -102,8 +102,8 @@
       "translationSha256": "fc3cdafe8a8a7f31f0d94d52f2666af1b2e1e2fcffc1b0f41714204d3755e5ab"
     },
     "docs/workspace-ui.md": {
-      "sourceSha256": "b9e5a89ec2c014391bee49d4e64dcb65a46a153178a0b0b8716f1fd17336d8e4",
-      "translationSha256": "4c1919ba2a2af342d3bdbf905791052b1df56ea757add41fc370b43bbd667e7e"
+      "sourceSha256": "c819bfbbc99168a03388a34e451e3578a5fd203dbbea9c6ddd64ddda8853b08a",
+      "translationSha256": "f23ab461efeb6c0a2e90ad8ba9061442fdd66f3bfa9ae3e006c4b56f4288e25a"
     }
   }
 }

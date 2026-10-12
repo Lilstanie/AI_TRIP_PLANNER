@@ -97,7 +97,7 @@ function inheritedRuntimeEnv() {
   return env;
 }
 
-function fixtureEnv({ port, distDir, evidenceDirectory, mode, tsconfigPath }) {
+export function fixtureEnv({ port, distDir, evidenceDirectory, mode, tsconfigPath }) {
   return {
     ...inheritedRuntimeEnv(),
     NODE_ENV: mode === "production" ? "production" : "development",
