@@ -465,7 +465,14 @@ receipt per planned shard, bound to the transferred plan's digest. Planning fail
 receipts, failed or cancelled workers and malformed plans cannot pass. A genuine documentation skip
 avoids dependency and browser setup; the existing document and protected-file checks still run.
 Plan, worker-result and evidence artifact names include run ID, attempt and planner/shard identity,
-with seven-day retention. Worker evidence includes `output/e2e/` and `output/playwright/` even on failure.
+with seven-day retention. Before upload, `node apps/web/tests/cli-e2e/package-evidence.mjs` archives
+only `output/e2e/` and `output/playwright/`, including partial failure evidence and hidden fixture files,
+into `output/cli-evidence/evidence.tar.gz`. Internal filenames and bytes remain unchanged; the safe
+outer filename avoids artifact-service filename restrictions. Nested symlinks are retained without
+following their targets. Packaging accepts either evidence tree, fails visibly when neither exists,
+and publishes the archive only after successful completion. Packaging or upload failure still fails
+the worker and aggregate; an earlier or partial archive cannot substitute for the current attempt.
+Extract downloaded evidence with `tar -xzf evidence.tar.gz`.
 
 To reproduce selection, supply the PR's explicit base/head SHAs in the environment. Run a planned shard
 from its plan, or use the unchanged no-argument command for the complete local suite:

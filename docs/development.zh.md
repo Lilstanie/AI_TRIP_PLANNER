@@ -313,7 +313,7 @@ CI 还会运行 `node scripts/format-check-changed.mjs <base>`（即 `pnpm forma
 
 `cli-acceptance-workers` 只在计划成功且不是 skip 时启动。动态矩阵包含一至三个非空分片，每个分片使用独立 runner，具有自己的检出目录、依赖树和浏览器配置。分片内部保持串行，因为 fixture 会临时替换依赖入口。一个分片失败不会取消其他分片。每个选中脚本恰好分配一次；耗时估计只影响分配，不承诺 CI 总时长。
 
-稳定的 `cli-acceptance` 汇总任务始终运行。它验证计划，并要求满足以下一种情况：显式 skip、worker 全部跳过且没有 worker 回执；或 worker 成功，且每个计划分片恰有一份成功回执，并通过摘要绑定到传输的计划。规划失败、缺失计划或回执、worker 失败或取消，以及格式错误的计划都不能通过。真实的文档跳过避免安装依赖和浏览器；现有文档和受保护文件检查仍运行。计划、worker 结果和证据 artifact 的名称包含运行 ID、重试次数，以及 planner／分片标识，保留七天。即使失败，worker 证据仍包含 `output/e2e/` 和 `output/playwright/`。
+稳定的 `cli-acceptance` 汇总任务始终运行。它验证计划，并要求满足以下一种情况：显式 skip、worker 全部跳过且没有 worker 回执；或 worker 成功，且每个计划分片恰有一份成功回执，并通过摘要绑定到传输的计划。规划失败、缺失计划或回执、worker 失败或取消，以及格式错误的计划都不能通过。真实的文档跳过避免安装依赖和浏览器；现有文档和受保护文件检查仍运行。计划、worker 结果和证据 artifact 的名称包含运行 ID、重试次数，以及 planner／分片标识，保留七天。上传前，`node apps/web/tests/cli-e2e/package-evidence.mjs` 只将 `output/e2e/` 和 `output/playwright/` 归档到 `output/cli-evidence/evidence.tar.gz`，包括部分失败证据和隐藏的 fixture 文件。内部文件名和字节保持原样；安全的外层文件名避开 artifact 服务的文件名限制。嵌套符号链接会保留，不跟随其目标。任一证据树存在即可归档；两者都缺失则明确失败，只有成功完成后才发布归档。归档或上传失败仍会使 worker 和汇总任务失败；旧归档或部分归档不能替代当前尝试。下载后使用 `tar -xzf evidence.tar.gz` 提取证据。
 
 复现选择时，在环境变量中提供 PR 的显式 base/head SHA。可根据计划运行一个分片，或使用保持兼容的无参数命令运行完整本地套件：
 

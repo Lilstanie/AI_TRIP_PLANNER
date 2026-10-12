@@ -1,14 +1,18 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import {
+  chmodSync,
   copyFileSync,
   cpSync,
   existsSync,
+  lstatSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  readlinkSync,
   readdirSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -67,7 +71,13 @@ function fixture(label) {
   fixtures.push(dir);
   const scripts = resolve(dir, "apps/web/tests/cli-e2e");
   mkdirSync(scripts, { recursive: true });
-  for (const name of ["select.mjs", "run.mjs", "runner-plan.mjs", "ci-result.mjs"])
+  for (const name of [
+    "select.mjs",
+    "run.mjs",
+    "runner-plan.mjs",
+    "ci-result.mjs",
+    "package-evidence.mjs",
+  ])
     if (existsSync(resolve(import.meta.dirname, name)))
       copyFileSync(resolve(import.meta.dirname, name), resolve(scripts, name));
   for (const name of inventory)
@@ -455,6 +465,119 @@ cases.push([
         "successful needs cannot hide a failed receipt",
       );
     }
+  },
+]);
+
+cases.push([
+  "package-unsafe-evidence",
+  () => {
+    const f = fixture("package");
+    const unsafe = "space '$(touch should-never-exist)'\n雪:\"<>|*?\r.ts";
+    const e2e = resolve(f.dir, "output/e2e/selection/retained-fixture");
+    const browser = resolve(f.dir, "output/playwright/journey");
+    mkdirSync(e2e, { recursive: true });
+    mkdirSync(browser, { recursive: true });
+    writeFileSync(resolve(e2e, unsafe), "raw filename evidence\n");
+    writeFileSync(resolve(e2e, ".fixture-metadata"), "hidden retained metadata");
+    writeFileSync(resolve(e2e, "failed.log"), "partial failure evidence");
+    const screenshot = Buffer.from([0, 255, 13, 10, 80, 78, 71]);
+    writeFileSync(resolve(browser, "screenshot.png"), screenshot);
+    const outside = resolve(f.dir, "unrelated");
+    mkdirSync(outside);
+    writeFileSync(resolve(outside, "private.txt"), "outside evidence scope");
+    symlinkSync(outside, resolve(e2e, "external-link"));
+    mkdirSync(resolve(f.dir, "output/other"));
+    writeFileSync(resolve(f.dir, "output/other/unrelated.txt"), "unrelated output");
+    assert.ok(
+      /["<>|:*?\r\n]/.test(unsafe),
+      "raw publication would reject the adversarial filename",
+    );
+    const result = node(f, "package-evidence.mjs");
+    assert.equal(result.status, 0, result.stderr);
+    const archive = resolve(f.dir, "output/cli-evidence/evidence.tar.gz");
+    assert.ok(existsSync(archive), "one safe outer archive must be published");
+    assert.deepEqual(readdirSync(resolve(f.dir, "output/cli-evidence")), ["evidence.tar.gz"]);
+    const extracted = resolve(f.dir, "extracted");
+    mkdirSync(extracted);
+    assert.equal(command(f.dir, "tar", ["-xzf", archive, "-C", extracted]).status, 0);
+    assert.deepEqual(readdirSync(extracted).sort(), ["e2e", "playwright"]);
+    const retained = resolve(extracted, "e2e/selection/retained-fixture");
+    assert.equal(readFileSync(resolve(retained, unsafe), "utf8"), "raw filename evidence\n");
+    assert.equal(
+      readFileSync(resolve(retained, ".fixture-metadata"), "utf8"),
+      "hidden retained metadata",
+    );
+    assert.equal(readFileSync(resolve(retained, "failed.log"), "utf8"), "partial failure evidence");
+    assert.deepEqual(
+      readFileSync(resolve(extracted, "playwright/journey/screenshot.png")),
+      screenshot,
+    );
+    assert.ok(lstatSync(resolve(retained, "external-link")).isSymbolicLink());
+    assert.equal(readlinkSync(resolve(retained, "external-link")), outside);
+    assert.equal(readFileSync(resolve(e2e, unsafe), "utf8"), "raw filename evidence\n");
+    assert.equal(existsSync(resolve(f.dir, "should-never-exist")), false);
+  },
+]);
+
+cases.push([
+  "package-failure-publication",
+  () => {
+    for (const source of ["e2e", "playwright"]) {
+      const f = fixture(`package-${source}`);
+      mkdirSync(resolve(f.dir, "output", source), { recursive: true });
+      writeFileSync(
+        resolve(f.dir, "output", source, "partial.log"),
+        "setup failed but evidence remains",
+      );
+      assert.equal(node(f, "package-evidence.mjs").status, 0);
+      const extracted = resolve(f.dir, "extracted");
+      mkdirSync(extracted);
+      assert.equal(
+        command(f.dir, "tar", [
+          "-xzf",
+          resolve(f.dir, "output/cli-evidence/evidence.tar.gz"),
+          "-C",
+          extracted,
+        ]).status,
+        0,
+      );
+      assert.deepEqual(readdirSync(extracted), [source]);
+      assert.equal(
+        readFileSync(resolve(extracted, source, "partial.log"), "utf8"),
+        "setup failed but evidence remains",
+      );
+    }
+    const f = fixture("package-failure");
+    mkdirSync(resolve(f.dir, "output/e2e"), { recursive: true });
+    writeFileSync(resolve(f.dir, "output/e2e/partial.log"), "retained failure");
+    assert.equal(node(f, "package-evidence.mjs").status, 0);
+    const bin = resolve(f.dir, "bin");
+    mkdirSync(bin);
+    writeFileSync(resolve(bin, "tar"), '#!/bin/sh\nprintf broken > "$2"\nexit 9\n');
+    chmodSync(resolve(bin, "tar"), 0o755);
+    const failed = node(f, "package-evidence.mjs", [], { PATH: `${bin}:${process.env.PATH}` });
+    assert.notEqual(failed.status, 0);
+    assert.ok(failed.stderr.trim(), "packaging failure needs a diagnostic");
+    assert.deepEqual(
+      readdirSync(resolve(f.dir, "output/cli-evidence")),
+      [],
+      "failed packaging must leave neither stale nor partial uploadable evidence",
+    );
+    assert.equal(
+      readFileSync(resolve(f.dir, "output/e2e/partial.log"), "utf8"),
+      "retained failure",
+    );
+    assert.equal(node(f, "package-evidence.mjs").status, 0);
+    rmSync(resolve(f.dir, "output/e2e"), { recursive: true });
+    assert.notEqual(node(f, "package-evidence.mjs").status, 0);
+    assert.equal(
+      existsSync(resolve(f.dir, "output/cli-evidence/evidence.tar.gz")),
+      false,
+      "missing evidence cannot publish an earlier archive",
+    );
+    writeFileSync(resolve(f.dir, "output/e2e"), "not a directory");
+    assert.notEqual(node(f, "package-evidence.mjs").status, 0);
+    assert.notEqual(node(f, "package-evidence.mjs", ["--include", "unrelated"]).status, 0);
   },
 ]);
 
