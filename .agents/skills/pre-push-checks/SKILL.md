@@ -48,14 +48,39 @@ comment checker is a local gate; existing CI does not invoke it automatically.
 | Provider adapters in `packages/tools`                                                                        | Run `pnpm --filter @trip/tools test`, which includes the gateway provider matrix and the public-boundary check. Prefer a repeatable user-path E2E with a stubbed provider; never spend real SerpApi or Google quota. If adapter isolation is necessary, enumerate failure modes before implementation. See [add-provider](../add-provider/SKILL.md) |
 | `submission/stage1/**`, `docs/design/stage1/**`                                                              | Follow [stage1-submission](../stage1-submission/SKILL.md): regenerate the deck or report from source instead of committing hand edits, then the `docs/**` checks below                                                                                                                                                                              |
 | `.agents/**`, `docs/**`                                                                                      | `pnpm verify:docs`, `pnpm verify:protected`, and `pnpm format:check-changed origin/main`                                                                                                                                                                                                                                                            |
-| `scripts/**`, `.agents/skills/**/SKILL.md` or skill frontmatter                                              | `pnpm test:scripts` for rule changes and `pnpm verify:docs`, which runs `scripts/skill-rules.mjs` over every skill                                                                                                                                                                                                                                  |
-| Root `package.json`, `pnpm-lock.yaml`, `turbo.json`, `tsconfig.base.json`                                    | The full five: `pnpm typecheck && pnpm lint && pnpm test && pnpm test:scripts && pnpm build`                                                                                                                                                                                                                                                        |
+| `scripts/**`, `.agents/skills/**/SKILL.md` or skill frontmatter                                              | `pnpm test:scripts` for executable rule changes; prose-only changes need semantic inspection and focused existing guards, without new tests or broad application suites. Run `pnpm verify:docs`, which runs `scripts/skill-rules.mjs` over every skill                                                                                              |
+| Root `package.json`, `pnpm-lock.yaml`, `turbo.json`, `tsconfig.base.json`                                    | The full five, with the generated-type writer first: `pnpm build && pnpm typecheck && pnpm lint && pnpm test && pnpm test:scripts`                                                                                                                                                                                                                  |
 
-Run Prettier on the files you changed (`npx prettier --write <file>`), never on a directory: unrelated files
+Run Prettier on the files you changed (`pnpm exec prettier --write <file>`), never on a directory: unrelated files
 still hold old formatting, and reformatting them conflicts with open pull requests. CI runs
 `pnpm format:check-changed` (changed files only) and `pnpm lint` now covers `packages/*` as well as `apps/web`.
 
-The web test script sets `NODE_OPTIONS` with POSIX syntax; on Windows run it from WSL or Git Bash.
+The web test script sets `NODE_OPTIONS=--no-experimental-webstorage` with POSIX syntax; retain that
+flag when using a focused direct Vitest invocation in `@trip/web`:
+
+```bash
+NODE_OPTIONS=--no-experimental-webstorage pnpm --filter @trip/web exec vitest run tests/<file>.test.ts
+```
+
+On Windows use WSL or Git Bash. Prefer package scripts so their runtime flags remain in effect.
+
+### Generated Next types and check ordering
+
+`apps/web/tsconfig.json` includes generated Next type directories. When a build and web typecheck
+use the same generated output, let the build finish successfully before starting typecheck:
+
+```bash
+pnpm --filter @trip/web build
+pnpm --filter @trip/web typecheck
+```
+
+For repository-wide checks sharing that output, finish `pnpm build` before `pnpm typecheck` too.
+Do not run the writer and reader concurrently in one working directory; build may replace types
+while TypeScript reads them. A running dev server uses `NEXT_DIST_DIR=.next-dev` to avoid the default
+build directory. Raw E2E runs now allocate unique build directories and owned temporary TypeScript
+configs; preserve that isolation and any explicit `NEXT_TSCONFIG_PATH` override. Do not hand-edit
+the generated Next environment declaration (next-env.d.ts) or erase another run's generated files to resolve a race. Re-run the affected check
+after the writer completes, retaining the original failure evidence.
 
 For ordinary `docs/` Markdown changes, synchronize both languages with
 [translate-docs](../translate-docs/SKILL.md), record only reviewed pairs and run
@@ -66,7 +91,24 @@ usually conflicts and, even when it merges cleanly, holds hashes from neither si
 taking either side, re-run `node .agents/skills/translate-docs/scripts/check-pairs.mjs --record <en path>`
 for every pair both branches changed, then `pnpm verify:pairs`.
 
-## 3. Report
+## 3. Validate the final tree
+
+Evidence belongs to the code and test tree that ran, including uncommitted inputs, not just a branch
+name. Record the revision, tree ID (`git rev-parse HEAD^{tree}` for a clean committed tree), exact
+commands, runtime/browser versions, non-sensitive environment and fixture assumptions, assertion/skip
+counts, exit codes, summaries and artifacts. Preserve earlier failures, timeouts and partial evidence;
+a later pass does not erase them. Apply the coverage ownership map in
+[find-simplifications](../find-simplifications/SKILL.md#simplify-tests-without-losing-coverage)
+when tests or their shared setup change.
+
+After a merge, rebase, conflict resolution or fix, inspect the final diff and rerun affected checks.
+Earlier evidence may survive a tree-identical rebase only with an explicit basis: record the tested
+and final revisions, compare their full tree IDs, confirm a clean working tree and equivalent tools,
+configuration, dependencies and environment. Equal diffs or unchanged branch names are insufficient.
+If the trees differ or the inputs cannot be established, select and rerun the affected checks; do not
+carry the old pass forward. Explain any still-applicable evidence and its limits in the handoff.
+
+## 4. Report
 
 List each command and its result, including test counts, in the PR's Testing section and the session
 log. When a check could not run (missing key, no network), say so; do not describe it as passing.
@@ -75,4 +117,4 @@ log. When a check could not run (missing key, no network), say so; do not descri
 
 Run the full five only when the change is genuinely cross-cutting, when the user asks, or when
 diagnosing a CI failure. Do not repeat a check that already passed on the same diff just because a
-commit or push follows.
+commit or push follows; apply the final-tree rule above before reusing evidence after integration.
