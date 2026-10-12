@@ -36,7 +36,11 @@ function run() {
   for (let i = 0; i < args.length; i += 2) {
     const key = args[i];
     const value = args[i + 1];
-    if (!["--base", "--path", "--exceptions"].includes(key) || !value || value.startsWith("--")) {
+    if (
+      !["--base", "--path", "--exceptions", "--base-path"].includes(key) ||
+      !value ||
+      value.startsWith("--")
+    ) {
       throw new Error(
         "Usage: --base <ref> --path <file> [--path <file> ...] [--exceptions <json-file>]",
       );
@@ -72,6 +76,9 @@ function run() {
     return path.split(sep).join("/");
   };
   const paths = [...new Set(options.paths.map(normalize))];
+  if (options["base-path"] && paths.length !== 1)
+    throw new Error("--base-path requires exactly one --path");
+  const basePath = options["base-path"] ? normalize(options["base-path"]) : undefined;
   const exceptions = options.exceptions ? JSON.parse(readFileSync(options.exceptions, "utf8")) : [];
   if (!Array.isArray(exceptions)) throw new Error("Exceptions must be an array");
   for (const entry of exceptions) {
@@ -92,7 +99,16 @@ function run() {
   for (const file of paths) {
     if (!/\.(?:[cm]?[jt]s|[jt]sx)$/.test(extname(file)))
       throw new Error(`Unsupported source file: ${file}`);
-    const inBase = git("ls-tree", "-r", "--name-only", base, "--", `:(literal)${file}`).trim();
+    const previousFile = basePath ?? file;
+    const inBase = git(
+      "ls-tree",
+      "-r",
+      "--name-only",
+      base,
+      "--",
+      `:(literal)${previousFile}`,
+    ).trim();
+    if (basePath && !inBase) throw new Error(`Missing base path: ${basePath}`);
     if (!existsSync(file)) {
       if (inBase) continue;
       throw new Error(`Missing scope file: ${file}`);
@@ -103,7 +119,7 @@ function run() {
     const { source, comments } = parseComments(file, text);
     const previous = new Map();
     if (tracked) {
-      const oldText = git("show", `${base}:${file}`);
+      const oldText = git("show", `${base}:${previousFile}`);
       for (const range of parseComments(file, oldText).comments) {
         const oldComment = oldText.slice(range.pos, range.end);
         previous.set(oldComment, (previous.get(oldComment) ?? 0) + 1);

@@ -37,7 +37,8 @@ job means protected configuration this change does not authorize.
 - Rationale lives in `docs/`, Agent Notes and commit messages instead of beside the code.
 - A comment inside an added line reads as a violation; an author who wants one states the reason in
   review.
-- The check stays a local review gate, so a review that skips it still lets comments through.
+- [Automated enforcement](2026-10-13-comment-policy-ci.md) supersedes the local-only choice above;
+  the default policy and local review gate remain in effect.
 - The earlier cleanup note is archived alongside this one; its preserved-directive list still governs
   what the default keeps.
 

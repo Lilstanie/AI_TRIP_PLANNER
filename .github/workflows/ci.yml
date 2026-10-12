@@ -38,33 +38,120 @@ jobs:
       - run: pnpm test:scripts
       - run: pnpm build
 
-  cli-acceptance:
+  cli-acceptance-plan:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 5
+    outputs:
+      run-workers: ${{ steps.plan.outputs.run-workers }}
+      matrix: ${{ steps.plan.outputs.matrix }}
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: pnpm
+      - name: Plan CLI acceptance
+        id: plan
+        shell: bash
+        run: |
+          mkdir -p output/e2e/cli-plan
+          node apps/web/tests/cli-e2e/select.mjs --event "$EVENT_NAME" --base "$BASE_SHA" --head "$HEAD_SHA" --output output/e2e/cli-plan/plan.json 2>&1 | tee output/e2e/cli-plan/selection.log
+          node apps/web/tests/cli-e2e/ci-result.mjs plan --plan output/e2e/cli-plan/plan.json
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+      - name: Save CLI acceptance plan
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli-acceptance-plan-${{ github.run_id }}-${{ github.run_attempt }}-planner
+          path: output/e2e/cli-plan/
+          if-no-files-found: error
+          retention-days: 7
+
+  cli-acceptance-workers:
+    needs: cli-acceptance-plan
+    if: needs.cli-acceptance-plan.result == 'success' && needs.cli-acceptance-plan.outputs.run-workers == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix: ${{ fromJSON(needs.cli-acceptance-plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/download-artifact@v4
+        with:
+          name: cli-acceptance-plan-${{ github.run_id }}-${{ github.run_attempt }}-planner
+          path: output/e2e/cli-plan/
+      - uses: pnpm/action-setup@v4
       - run: pnpm install --frozen-lockfile
       - run: sudo apt-get update && sudo apt-get install -y lsof
       - run: pnpm --filter @trip/web exec playwright install --with-deps chromium
-      - name: Sequential CLI acceptance
-        run: node apps/web/tests/cli-e2e/run.mjs
+      - name: Sequential CLI acceptance shard
+        run: node apps/web/tests/cli-e2e/run.mjs --plan output/e2e/cli-plan/plan.json --shard "$SHARD_ID"
         env:
+          SHARD_ID: ${{ matrix.shard }}
           NEXT_TELEMETRY_DISABLED: "1"
+      - name: Package CLI acceptance evidence
+        if: always()
+        run: node apps/web/tests/cli-e2e/package-evidence.mjs
       - name: Save CLI acceptance evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: cli-acceptance-${{ github.run_id }}-${{ github.run_attempt }}
-          path: |
-            output/e2e/
-            output/playwright/
-          if-no-files-found: warn
+          name: cli-acceptance-evidence-${{ github.run_id }}-${{ github.run_attempt }}-shard-${{ matrix.shard }}
+          path: output/cli-evidence/evidence.tar.gz
+          if-no-files-found: error
           retention-days: 7
+      - name: Record worker result
+        if: always()
+        run: node apps/web/tests/cli-e2e/ci-result.mjs worker --plan output/e2e/cli-plan/plan.json --shard "$SHARD_ID" --output output/cli-worker/worker.json
+        env:
+          SHARD_ID: ${{ matrix.shard }}
+          WORKER_RESULT: ${{ job.status }}
+      - name: Save worker result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli-acceptance-result-${{ github.run_id }}-${{ github.run_attempt }}-shard-${{ matrix.shard }}
+          path: output/cli-worker/worker.json
+          if-no-files-found: error
+          retention-days: 7
+
+  cli-acceptance:
+    needs: [cli-acceptance-plan, cli-acceptance-workers]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Read CLI acceptance plan
+        if: always() && needs.cli-acceptance-plan.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: cli-acceptance-plan-${{ github.run_id }}-${{ github.run_attempt }}-planner
+          path: output/e2e/cli-plan/
+      - name: Read worker results
+        if: always() && needs.cli-acceptance-plan.outputs.run-workers == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          pattern: cli-acceptance-result-${{ github.run_id }}-${{ github.run_attempt }}-shard-*
+          path: output/cli-results/
+      - name: Validate CLI acceptance result
+        if: always()
+        run: node apps/web/tests/cli-e2e/ci-result.mjs aggregate --plan output/e2e/cli-plan/plan.json --results output/cli-results
+        env:
+          PLAN_RESULT: ${{ needs.cli-acceptance-plan.result }}
+          WORKERS_RESULT: ${{ needs.cli-acceptance-workers.result }}
 
   protected-files:
     if: github.event_name == 'pull_request'
