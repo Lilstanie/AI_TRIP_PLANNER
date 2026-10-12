@@ -98,7 +98,11 @@ assert.equal(readFileSync(fakeUserData, "utf8"), "summary alone cannot authorize
 rmSync(fakeBuild, { recursive: true });
 
 const run = await invoke(["run", "agent-lab-single-agent", "--dev", "--json"]);
-assert.equal(run.status, 0, `Fixture setup failed: ${run.stderr}`);
+assert.equal(
+  run.status,
+  0,
+  `Fixture setup failed (exit ${run.status}):\n${run.stdout}\n${run.stderr}`,
+);
 const runResult = JSON.parse(run.stdout);
 assert.equal(runResult.outcome, "passed");
 const summaryPath = resolve(root, runResult.summaryFile);
@@ -113,7 +117,11 @@ assert.equal(existsSync(buildPath), true);
 assert.equal(existsSync(screenshot), true);
 
 const otherRun = await invoke(["run", "agent-lab-single-agent", "--dev", "--json"]);
-assert.equal(otherRun.status, 0, `Independent invocation setup failed: ${otherRun.stderr}`);
+assert.equal(
+  otherRun.status,
+  0,
+  `Independent invocation setup failed (exit ${otherRun.status}):\n${otherRun.stdout}\n${otherRun.stderr}`,
+);
 const otherResult = JSON.parse(otherRun.stdout);
 const otherSummaryPath = resolve(root, otherResult.summaryFile);
 const otherSummary = JSON.parse(readFileSync(otherSummaryPath, "utf8"));
