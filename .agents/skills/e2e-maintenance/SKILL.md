@@ -61,6 +61,13 @@ executed acceptance coverage. Check the explicit plan, all worker receipts and s
 the exact integration PR SHA; main's full result covers only its own post-merge SHA. Local fixtures
 and actionlint do not establish real GitHub scheduling or artifact availability.
 
+Worker evidence is uploaded as `evidence.tar.gz`; extract it before inspecting retained reports and
+fixtures. `node apps/web/tests/cli-e2e/ci-integration.e2e.mjs package-unsafe-evidence` checks exact raw
+filename/content recovery, hidden metadata and archive scope; `package-failure-publication` checks
+partial-tree evidence and failure cleanup. Preserve adversarial filenames in fixtures instead of
+renaming or excluding them to satisfy upload restrictions. Packaging/upload failure remains a failed
+worker and aggregate even when acceptance itself passed.
+
 ## 3. Prove the check actually ran and can fail
 
 - Inspect expected versus observed assertions, passed/failed/skipped counts, named scenarios,

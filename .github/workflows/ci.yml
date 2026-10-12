@@ -98,15 +98,16 @@ jobs:
         env:
           SHARD_ID: ${{ matrix.shard }}
           NEXT_TELEMETRY_DISABLED: "1"
+      - name: Package CLI acceptance evidence
+        if: always()
+        run: node apps/web/tests/cli-e2e/package-evidence.mjs
       - name: Save CLI acceptance evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: cli-acceptance-evidence-${{ github.run_id }}-${{ github.run_attempt }}-shard-${{ matrix.shard }}
-          path: |
-            output/e2e/
-            output/playwright/
-          if-no-files-found: warn
+          path: output/cli-evidence/evidence.tar.gz
+          if-no-files-found: error
           retention-days: 7
       - name: Record worker result
         if: always()
