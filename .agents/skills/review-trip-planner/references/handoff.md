@@ -1,7 +1,7 @@
 # Review handoff
 
 Prepare this packet before reviewing a branch, PR or working tree. Use it with the global
-`review-standards-spec` workflow and this project's risk reference. User limits on reviewer count,
+`code-review-standards-spec` workflow and this project's risk reference. User limits on reviewer count,
 reuse and external posting take precedence over the workflow's default parallel agents.
 
 ## Comparison and scope

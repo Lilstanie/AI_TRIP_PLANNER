@@ -201,7 +201,7 @@ manifest 链接的页面。
 
 `vercel-react-best-practices` 提供 React 与 Next.js 性能参考；`playwright-best-practices` 提供浏览器测试实现与调试参考。两个技能均安装在当前项目中，按需加载相关参考文件。项目指令负责测试策略、运行命令和验收证据；上游示例是在这些规则内使用的技术指导。现有 E2E 运行器仍是执行入口。安装这两个技能不会新增 npm 依赖，也不会配置 `@playwright/test`。来源版本、本地适配和更新规则记录在[整合决策](../.agents/notes/implemented/process/2026-10-11-framework-reference-skills.md)中。
 
-用 `review-trip-planner` 检查本库特有风险；全局 `review-standards-spec` 负责 Standards（规范）与 Spec（规格）双轴审查流程。OCR 插件保留各自的 `open-code-review` 和 `open-code-review-delegate` 名称。
+用 `review-trip-planner` 检查本库特有风险；全局 `code-review-standards-spec` 负责 Standards（规范）与 Spec（规格）双轴审查流程。OCR 插件保留各自的 `open-code-review` 和 `open-code-review-delegate` 名称。
 
 [review-trip-planner](../.agents/skills/review-trip-planner/SKILL.md) 负责审查交接材料和任务范围内的新增注释检查。
 其参考文档说明 CLI、显式文件范围、有理由的例外，以及独立验收的证据。

@@ -244,7 +244,7 @@ within those rules. The current E2E runner remains the execution entry point. In
 does not add npm dependencies or configure `@playwright/test`. Source revisions, local adaptations and
 update rules are recorded in the [integration decision](../.agents/notes/implemented/process/2026-10-11-framework-reference-skills.md).
 
-Use `review-trip-planner` for repository-specific risks. The global `review-standards-spec` skill coordinates Standards and Spec review. OCR plugin skills keep their own `open-code-review` and `open-code-review-delegate` names.
+Use `review-trip-planner` for repository-specific risks. The global `code-review-standards-spec` skill coordinates Standards and Spec review. OCR plugin skills keep their own `open-code-review` and `open-code-review-delegate` names.
 
 [review-trip-planner](../.agents/skills/review-trip-planner/SKILL.md) owns the review handoff packet
 and the task-scoped added-comment gate. Its references describe the CLI, explicit file scope,

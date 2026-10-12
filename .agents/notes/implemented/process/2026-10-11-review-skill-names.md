@@ -10,7 +10,7 @@ The project risk checklist and the global Standards/Spec workflow both used the 
 
 The project skill is named `review-trip-planner`; its directory, frontmatter and current consumers use that name. Its repository-specific checks remain unchanged.
 
-The user-installed global skill is named `review-standards-spec`, with the display name Review Standards & Spec. Global ask-matt, implement, implement-spec and tdd references use the new workflow name where present. Global files live outside this repository and are not delivered by a repository pull request.
+The user-installed global skill is named `code-review-standards-spec`, with the display name Code Review Standards & Spec. Global ask-matt, implement, implement-spec and tdd references use the new workflow name where present. Global files live outside this repository and are not delivered by a repository pull request.
 
 OCR plugin skills retain their distinct `open-code-review` and `open-code-review-delegate` names. Their package-managed cache is not edited. Frozen historical session logs and archives preserve the names used at the time.
 
