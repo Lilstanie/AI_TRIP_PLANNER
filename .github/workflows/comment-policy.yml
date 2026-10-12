@@ -1,0 +1,44 @@
+name: Comment policy
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  added-comments:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Check added comments
+        run: node .agents/skills/review-trip-planner/scripts/check-comment-policy-ci.mjs --event "$EVENT" --base "$BASE" --head "$HEAD_SHA" --output output/e2e/comment-policy-ci/report.json
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+      - name: Verify checker regression controls
+        run: node apps/web/tests/ci/comment-policy.e2e.mjs
+      - name: Retain comment policy report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: comment-policy-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            output/e2e/comment-policy-ci/report.json
+            output/e2e/comment-policy-ci/run-*/summary.json
+          if-no-files-found: error
+          retention-days: 7

@@ -8,7 +8,8 @@ description: Review a pull request or diff in AI_TRIP_PLANNER against the defect
 Prepare the [review handoff](references/handoff.md): comparison SHAs, tracked and untracked scope,
 originating requirements, applicable rules and evidence. Use the actual target for a stacked PR.
 Run the [scoped comment check](references/comment-policy.md) over the diff's JavaScript and TypeScript
-paths; the repository default is no added explanatory comments. Skip it only when the task allows them.
+paths; the repository default is no added explanatory comments. Use the versioned exact exception list for task-approved contract or tool instructions; review each
+reason. The reference also owns the automatic PR/main gate and its reproduction command.
 
 This is guidance, not a complete checklist. Read the supplied diff against its real base
 and enough surrounding code to understand the design. Prioritise
