@@ -248,8 +248,14 @@ Use `review-trip-planner` for repository-specific risks. The global `code-review
 
 [review-trip-planner](../.agents/skills/review-trip-planner/SKILL.md) owns the review handoff packet
 and the added-comment gate. Its references describe the CLI, explicit file scope,
-justified exceptions and standalone acceptance evidence. This gate runs locally through the review
-workflow; CI does not invoke it automatically.
+justified exceptions and standalone acceptance evidence. The independent
+[Comment policy workflow](../.github/workflows/comment-policy.yml) invokes the same checker on PRs
+and main pushes. PR scope covers merge-base to head; push scope covers the previous tip to head.
+Only changed JS/TS paths are selected, preserving unchanged comments across detected renames.
+No supported paths explicitly skip; missing history, invalid configuration and checker errors fail.
+The versioned exact exception list is reviewed with the code; matching text does not approve its
+rationale. Reports and regression summaries are retained for seven days. The job installs dependencies
+without lifecycle scripts and needs no browser. Required-check settings are configured separately.
 Its acceptance covers JSX text boundaries and files recreated after staged deletion.
 
 | Area                                | Skills                                                                                                                                                                                                                                                                                                                                                                                 |

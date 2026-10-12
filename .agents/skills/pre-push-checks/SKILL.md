@@ -32,7 +32,9 @@ Include uncommitted files if you are about to commit them.
 
 For task-specific comment restrictions and the originating spec, follow
 [review-trip-planner](../review-trip-planner/SKILL.md) before claiming review is complete. Its scoped
-comment checker is a local gate; existing CI does not invoke it automatically.
+comment checker also runs through the independent Comment policy workflow on PRs and main pushes;
+see its reference for the clean-head adapter and exact exception list. When changing that adapter
+or workflow, run `node apps/web/tests/ci/comment-policy.e2e.mjs` and actionlint locally.
 
 ## 2. Select evidence by path
 

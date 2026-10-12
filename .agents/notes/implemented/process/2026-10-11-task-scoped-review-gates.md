@@ -27,7 +27,9 @@ convention; this note's handoff packet and comment gate remain in effect.
 
 The CLI's public acceptance journey is `apps/web/tests/cli-e2e/review-comment-policy.e2e.mjs`.
 It preserves temporary Git fixtures, commands and outcomes under `output/e2e/review-comment-policy/`.
-The gate is wired into the local review/pre-push guidance, not CI or the registered CLI suite.
+The gate is wired into local review/pre-push guidance. Its standalone acceptance is discovered by
+CLI acceptance. [Automated enforcement](2026-10-13-comment-policy-ci.md) adds the independent PR/main
+job; the local checker and handoff remain in effect.
 
 This supplements [repository workflow skills](2026-09-22-repository-workflow-skills.md) and
 [review skill naming](2026-10-11-review-skill-names.md). It reverses neither decision.
@@ -45,6 +47,6 @@ This supplements [repository workflow skills](2026-09-22-repository-workflow-ski
 - Review packets retain the original requirements and make missing review evidence visible.
 - The checker requires installed TypeScript and rejects malformed source, unsupported scope and bad
   configuration with exit 2. It reports violations with exit 1 and a clear scope with exit 0.
-- Invoking the local gate still depends on following the review workflow. Existing CI success does not
-  prove this gate ran or that the latest diff received independent review.
+- Local invocation depends on following the review workflow. The independent comment-policy job
+  records mechanical enforcement; it does not establish independent review of the latest diff.
 - Root configuration, frozen history and global/plugin skills remain outside this change.
