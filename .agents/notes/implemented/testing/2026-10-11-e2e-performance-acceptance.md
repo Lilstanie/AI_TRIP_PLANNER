@@ -14,8 +14,10 @@ Keep the existing CLI and Playwright library. Each raw invocation allocates a un
 owned temporary TypeScript config. Timeouts retain the original child identity and clear escalation on
 exit. Reports preserve raw outcomes and classify interrupted attempts as incomplete coverage.
 
-CI runs `node apps/web/tests/cli-e2e/run.mjs` sequentially in its own job with Chromium and lsof. The
-wrapper discovers `.e2e.mjs` files plus `report-cli.mjs`, stops at the first failure, records unrun entries
+The [CI selection decision](../process/2026-10-12-cli-acceptance-ci.md) partly replaces the scheduling
+policy: CI plans affected coverage and runs up to three isolated workers with Chromium and lsof.
+Each checkout still executes `node apps/web/tests/cli-e2e/run.mjs` serially; its no-argument mode remains
+complete-suite execution. The wrapper discovers `.e2e.mjs` files plus `report-cli.mjs`, stops at the first failure, records unrun entries
 and uploads logs and evidence even on failure for seven days. Existing dotenv files are neither read nor
 replaced by the credential-isolation fixture; it creates an unused development dotenv slot exclusively.
 The replay journey holds its first request while observing cancellation, then drains background asset
@@ -38,7 +40,8 @@ MessageItem rendering.
 - Keep fixed build slots with locking: unique directories remove slot contention and stale-lock recovery.
 - Unmount hidden maps: loses camera and selection; pausing the loop retains map state.
 - Add memo everywhere: defer until the measured long-history path and semantic update dependencies are reviewed.
-- Run CLI acceptance concurrently: existing acceptance fixtures replace dependency entrypoints temporarily.
+- Run CLI acceptance concurrently within one checkout: existing acceptance fixtures replace dependency
+  entrypoints temporarily. This remains rejected; the linked CI decision isolates checkout and dependencies.
 
 ## Consequences
 
@@ -46,7 +49,7 @@ MessageItem rendering.
   normal exit removes only its own temporary config. SIGKILL can leave that config behind.
 - Fixture function-call counts are not React commits or real-user performance metrics. No speedup or
   Core Web Vitals target is established; the second-tab fixture tests the storage protocol, not the edit API.
-- The independent CI job adds browser installation and fixture build time. Local runs do not establish
+- Independent CI workers add browser installation and fixture build time when selected. Local runs do not establish
   that Ubuntu/Node 22 CI passed; the workflow must run after publication.
 - This supplements the [local CLI decision](2026-10-10-local-test-cli.md),
   [storage decision](../architecture/2026-09-24-workspace-catalog-trip-storage.md) and
