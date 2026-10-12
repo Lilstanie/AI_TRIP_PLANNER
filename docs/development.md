@@ -311,9 +311,9 @@ writing implementation code. If a system must be tested in isolation, first enum
 could fail, then write the code and derive the isolated checks from that list.
 
 This describes the preferred approach for new work. CI runs the Vitest suites through `pnpm test` and
-the repository script tests (`scripts/*.test.mjs`) through `pnpm test:scripts`. A separate CLI acceptance job runs
-`node apps/web/tests/cli-e2e/run.mjs` sequentially, including its fixture browser journeys, and retains
-logs, summaries and browser evidence for seven days even on failure. The remaining raw browser scripts
+the repository script tests (`scripts/*.test.mjs`) through `pnpm test:scripts`. CLI acceptance uses
+[change selection and isolated CI workers](#cli-acceptance-in-ci), including its fixture browser
+journeys, with logs, summaries and browser evidence retained for seven days even on failure. The remaining raw browser scripts
 are local checks, so run the relevant one before pushing; known failures on `main` are listed in
 [e2e-known-failures.md](e2e-known-failures.md). CI does run `pnpm verify:e2e-selectors`, which
 fails when an E2E script selects a CSS class (`.section__row`) that no component, page or library file under
@@ -435,6 +435,66 @@ upstreams: set `MAP_STUB_PORT` to a free port and all three base URLs above to
 cache hits, language, bounds and transit parsing in `output/e2e/map-provider-http/summary.json`.
 
 `RUN_LIVE_MAP_CHECK=1 WEB_MAPS_PROVIDER=osm CHANNEL=chrome USE_MOCK_TOOLS=true pnpm --filter @trip/web e2e map-fallback-live` opts into real free services. The chat reply alone uses fixtures; place lookup, tiles and the walking route are live. Results and desktop/phone screenshots are in `output/playwright/map-fallback-live/after`. This does not establish transit coverage in every destination.
+
+#### CLI acceptance in CI
+
+The builtin-only `cli-acceptance-plan` job checks out full Git history and compares the merge base of
+explicit PR base/head SHAs through the PR head. Selection includes every PR commit, additions,
+deletions and both sides of renames. Event SHAs enter fixed commands through environment variables.
+The JSON plan records changed paths, matched rules, the discovered inventory, selected scripts and
+shard assignments; workers receive that exact plan as an artifact.
+
+- Ordinary documentation can skip CLI acceptance only when every changed path qualifies and the
+  inventory is reviewed. Skills and repository instructions are not a general documentation exemption.
+  The reviewed infrastructure inventory includes `ci-integration.e2e.mjs`.
+- Reviewed dependency rules select the union of their scripts. Shared infrastructure, unknown paths,
+  unclassified acceptance scripts or missing expected scripts require full coverage. Missing history,
+  invalid revisions and failed comparisons also fall back to full coverage with a reason.
+- Empty or unsafe inventory is a planning failure. Every push to `main` selects the complete current
+  inventory on that checked-out commit, including merged deliveries.
+
+`cli-acceptance-workers` starts only for a successful non-skip plan. Its dynamic matrix contains one to
+three nonempty shards, each on an independent runner with its own checkout, dependency tree and browser
+setup. Scripts stay serial within a shard because fixtures temporarily replace dependency entrypoints.
+Matrix failure does not cancel other shards. Each selected script is assigned exactly once; duration
+estimates affect placement only and do not promise a total CI duration.
+
+The stable `cli-acceptance` aggregate always runs. It validates the plan and requires either an explicit
+skip with skipped workers and no worker receipts, or successful workers with exactly one successful
+receipt per planned shard, bound to the transferred plan's digest. Planning failure, missing plans or
+receipts, failed or cancelled workers and malformed plans cannot pass. A genuine documentation skip
+avoids dependency and browser setup; the existing document and protected-file checks still run.
+Plan, worker-result and evidence artifact names include run ID, attempt and planner/shard identity,
+with seven-day retention. Before upload, `node apps/web/tests/cli-e2e/package-evidence.mjs` archives
+only `output/e2e/` and `output/playwright/`, including partial failure evidence and hidden fixture files,
+into `output/cli-evidence/evidence.tar.gz`. Internal filenames and bytes remain unchanged; the safe
+outer filename avoids artifact-service filename restrictions. Nested symlinks are retained without
+following their targets. Packaging accepts either evidence tree, fails visibly when neither exists,
+and publishes the archive only after successful completion. Packaging or upload failure still fails
+the worker and aggregate; an earlier or partial archive cannot substitute for the current attempt.
+Extract downloaded evidence with `tar -xzf evidence.tar.gz`.
+
+To reproduce selection, supply the PR's explicit base/head SHAs in the environment. Run a planned shard
+from its plan, or use the unchanged no-argument command for the complete local suite:
+
+```bash
+node apps/web/tests/cli-e2e/select.mjs --event pull_request --base "$BASE_SHA" --head "$HEAD_SHA" --output output/e2e/cli-plan/plan.json
+node apps/web/tests/cli-e2e/run.mjs --plan output/e2e/cli-plan/plan.json --shard 1
+node apps/web/tests/cli-e2e/run.mjs
+```
+
+Use `--event push` to reproduce full main selection. A skip plan is handled by CI and is rejected by
+the worker command. Shard summaries retain the plan, reproduction command, per-script logs and
+passed, failed, interrupted or unrun outcomes. Focused subprocess acceptance uses
+`node apps/web/tests/cli-e2e/ci-integration.e2e.mjs`; it retains copied fixtures and command/result
+JSON under `output/e2e/ci-integration-*/`. This proves command behavior locally, not GitHub scheduling.
+
+Related tickets use one integration branch and PR by default. For separate dependent PRs, verify their
+combined integration state before merging; independently passing selections do not establish that
+state. Full main results are post-merge regression evidence tied to the exact main SHA, never a promise
+of full pre-merge gates or a result reused from an earlier SHA. The
+[CI selection decision](../.agents/notes/implemented/process/2026-10-12-cli-acceptance-ci.md)
+records the scheduling rationale and retained serial execution boundary.
 
 #### Workspace performance acceptance
 
