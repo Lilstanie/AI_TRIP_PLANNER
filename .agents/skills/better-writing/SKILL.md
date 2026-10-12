@@ -44,7 +44,7 @@ Read the copy around your change before you write. It establishes these conventi
 - **Honest provenance.** When a provider falls back to mock, estimated or cached data, the copy says
   so in plain words, and the source badge carries text, not colour alone. Never write copy that
   makes an estimate read like a live price. This defect has shipped before; see the
-  [code-review skill](../code-review/SKILL.md).
+  [review-trip-planner skill](../review-trip-planner/SKILL.md).
 - **Say "you" to the traveller.** Errors use neutral phrasing like "Unable to load flights" rather
   than "We're having trouble…".
 

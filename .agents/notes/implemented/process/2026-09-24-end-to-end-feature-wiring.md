@@ -8,11 +8,11 @@ Reviewing all 59 PR descriptions and the 52 session logs that preceded this note
 
 ## Decision
 
-Keep [the end-to-end-feature-wiring skill](../../../skills/end-to-end-feature-wiring/SKILL.md) for implementation work that crosses package or runtime boundaries. The full-history review confirms this is a recurring project-wide workflow, not a pattern limited to the recent transport and chat PRs. The skill directs the agent to trace behavior from its source through wrappers, contracts, state and UI to its final consumer, and to cover boundary and exceptional paths with focused checks. It complements `code-review`, which focuses on reviewing a diff and the defect classes already known to this repository.
+Keep [the end-to-end-feature-wiring skill](../../../skills/end-to-end-feature-wiring/SKILL.md) for implementation work that crosses package or runtime boundaries. The full-history review confirms this is a recurring project-wide workflow, not a pattern limited to the recent transport and chat PRs. The skill directs the agent to trace behavior from its source through wrappers, contracts, state and UI to its final consumer, and to cover boundary and exceptional paths with focused checks. It complements `review-trip-planner`, which focuses on reviewing a diff and the defect classes already known to this repository.
 
 ## Alternatives considered
 
-**Add only another item to `code-review`.** Rejected: the history shows the gaps were discovered during implementation and manual acceptance, not only during review; review-only guidance would miss inspecting the full path while building it.
+**Add only another item to `review-trip-planner`.** Rejected: the history shows the gaps were discovered during implementation and manual acceptance, not only during review; review-only guidance would miss inspecting the full path while building it.
 
 **Keep the pattern only in session logs.** Rejected: session logs record individual work and are not loaded as the workflow guide for future cross-boundary changes.
 

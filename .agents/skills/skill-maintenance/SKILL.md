@@ -35,7 +35,7 @@ commits) are not counted, because the change already absorbed them. When nothing
 ```bash
 git fetch --unshallow origin 2>/dev/null || git fetch origin main
 node .agents/skills/skill-maintenance/scripts/check-skills.mjs          # all skills
-node .agents/skills/skill-maintenance/scripts/check-skills.mjs code-review --json
+node .agents/skills/skill-maintenance/scripts/check-skills.mjs review-trip-planner --json
 ```
 
 The script reads every `SKILL.md` and reports:
@@ -55,7 +55,7 @@ The script cannot see review lessons. List pull requests merged or closed since 
 change, and read the closing comments and review threads of any that were closed unmerged, redone, or
 needed fix-up commits. Look for three things:
 
-- a rule a reviewer enforced that no skill states (add it to `code-review` or the owning skill, with
+- a rule a reviewer enforced that no skill states (add it to `review-trip-planner` or the owning skill, with
   the pull request as its source, as the existing bullets do);
 - the same multi-step chore repeated across two or more pull requests with no skill (propose a new
   skill; [stage1-submission](../stage1-submission/SKILL.md) came from #134, #140, #142 and #152);

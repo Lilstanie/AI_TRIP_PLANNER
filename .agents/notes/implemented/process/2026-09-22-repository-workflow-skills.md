@@ -17,15 +17,15 @@ project had only the session-log skill.
 symlink. Each skill's `description` states when it applies, its body is guidance rather than a
 checklist, and it links to the note or document that owns a fact instead of restating it.
 
-| Skill             | Workflow                                          | Evidence it is drawn from                                                                                                                                                                                     |
-| ----------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pre-push-checks` | Pick the narrowest commands that cover the diff   | The four CI commands, focused `--filter` runs in `docs/development.md`, and the `NEXT_DIST_DIR` conflict hit in the env-local and P3.4 sessions                                                               |
-| `code-review`     | Check this repository's recurring defect classes  | Rating and per-passenger fare conversions (Places and SerpApi sessions), provenance labels that lied under degradation (PR #31), per-request mode leakage (data-mode session), snapshot versions (AUD change) |
-| `ui-verification` | Verify visible changes in a browser at two widths | The 1440 × 1000 and 390 × 844 checks, overflow and Escape-focus findings in the UI P2, P3.4 and calendar sessions                                                                                             |
-| `add-provider`    | Add an external data provider safely              | The Google Places and SerpApi integrations: free error-shape probes, typed errors, fallback tiers, stubbed `fetch` tests                                                                                      |
-| `agent-notes`     | Write, supersede and archive notes                | The DeepSeek Harness note workflow and this project's note backfill                                                                                                                                           |
-| `api-scout`       | Find and compare APIs for a product data gap      | The public-apis catalog, project provider plan and official provider documentation                                                                                                                            |
-| `session-log`     | Write one log per session                         | The team session-log rules                                                                                                                                                                                    |
+| Skill                 | Workflow                                          | Evidence it is drawn from                                                                                                                                                                                     |
+| --------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pre-push-checks`     | Pick the narrowest commands that cover the diff   | The four CI commands, focused `--filter` runs in `docs/development.md`, and the `NEXT_DIST_DIR` conflict hit in the env-local and P3.4 sessions                                                               |
+| `review-trip-planner` | Check this repository's recurring defect classes  | Rating and per-passenger fare conversions (Places and SerpApi sessions), provenance labels that lied under degradation (PR #31), per-request mode leakage (data-mode session), snapshot versions (AUD change) |
+| `ui-verification`     | Verify visible changes in a browser at two widths | The 1440 × 1000 and 390 × 844 checks, overflow and Escape-focus findings in the UI P2, P3.4 and calendar sessions                                                                                             |
+| `add-provider`        | Add an external data provider safely              | The Google Places and SerpApi integrations: free error-shape probes, typed errors, fallback tiers, stubbed `fetch` tests                                                                                      |
+| `agent-notes`         | Write, supersede and archive notes                | The DeepSeek Harness note workflow and this project's note backfill                                                                                                                                           |
+| `api-scout`           | Find and compare APIs for a product data gap      | The public-apis catalog, project provider plan and official provider documentation                                                                                                                            |
+| `session-log`         | Write one log per session                         | The team session-log rules                                                                                                                                                                                    |
 
 ## Alternatives considered
 
@@ -48,7 +48,7 @@ archive-maintenance workflows address problems this project does not have yet.
 - A change to a skill changes how every AI session works, so it is treated like a team-rule change.
 - Skills are written or updated by people, or by AI tools when asked or while making a change the
   skill describes. Nothing generates them automatically. DeepSeek Harness maintains only its
-  code-review skill periodically, from merged human review feedback, and has not settled that
+  review skill periodically, from merged human review feedback, and has not settled that
   workflow; this project has too little human review for that input to exist yet.
 
 ## Sources

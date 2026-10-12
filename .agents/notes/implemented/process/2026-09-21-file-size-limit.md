@@ -15,7 +15,7 @@ component, and splitting them would be churn without a behaviour change.
 Production source files and test files stay at or below 1000 lines of code, as stated in
 [development.md](../../../../docs/development.md). A file over the limit is split by responsibility
 the next time its domain changes; a new or substantially modified file does not grow past the limit
-without a documented exception. The [code-review skill](../../../skills/code-review/SKILL.md) checks
+without a documented exception. The [review-trip-planner skill](../../../skills/review-trip-planner/SKILL.md) checks
 it. No file in the repository exceeds 1000 lines.
 
 ## Alternatives considered
