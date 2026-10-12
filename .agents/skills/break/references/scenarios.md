@@ -44,12 +44,13 @@ hotels, airlines, routes), what the traveller typed, and model output.
 
 **Cue: the component shows a provider place photo.**
 
-| Scenario              | What it catches                                        |
-| --------------------- | ------------------------------------------------------ |
-| No photo              | The category-icon fallback, not an empty box           |
-| Portrait and panorama | Cropping with `object-fit`; a fixed aspect ratio holds |
-| Slow or failed load   | Layout shift; broken-image icon                        |
-| Long attribution      | The credit wraps without covering the image            |
+| Scenario                               | What it catches                                                            |
+| -------------------------------------- | -------------------------------------------------------------------------- |
+| Google: no photo or failed image       | Category icon remains on `--surface-2`                                     |
+| OSM: no licensed photo or failed image | Photo slot is absent; no empty box or icon replacement                     |
+| Portrait and panorama                  | Cropping with `object-fit`; a fixed aspect ratio holds                     |
+| Slow or failed load                    | Layout shift; broken-image icon                                            |
+| Long Commons attribution               | Author, license and clickable license link wrap without covering the image |
 
 ## Quantity
 
@@ -77,14 +78,16 @@ Leave focus and hover for the user to try on the page.
 
 ## Container
 
-**Cue: always.** Each width is a fixed container on the page, never a resized viewport.
+**Cue: always.** Each width is a fixed container on the page. For drawer content, obtain representative widths
+from the shell at default, 30% and 75% chat splits, subtracting floating gaps and content padding.
+The workspace walk separately verifies viewport breakpoints and responsive navigation.
 
-| Scenario                   | Why                                           |
-| -------------------------- | --------------------------------------------- |
-| 320 px                     | Reflow floor; the narrowest phone column      |
-| 375 px and 390 px          | The phone widths in the ui-verification skill |
-| 560 px                     | The Trip drawer's minimum width               |
-| Squeezed by a flex sibling | Refusing to shrink; `min-width: auto` blowout |
+| Scenario                       | Why                                                             |
+| ------------------------------ | --------------------------------------------------------------- |
+| 320 px                         | Reflow floor; the narrowest phone column                        |
+| 375 px and 390 px              | The phone widths in the ui-verification skill                   |
+| Measured narrow drawer content | Map share minus floating gaps and padding at the 75% chat split |
+| Squeezed by a flex sibling     | Refusing to shrink; `min-width: auto` blowout                   |
 
 ## Environment
 

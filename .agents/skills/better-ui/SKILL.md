@@ -65,9 +65,22 @@ contract's "Place photos" rules:
 - Give each slot a fixed `aspect-ratio`, `object-fit: cover` and `loading="lazy"`.
 - Use the container's radius and a 1 px inner hairline:
   `outline: 1px solid var(--border)` with `outline-offset: -1px`.
-- When there is no photo, show the category icon on `--surface-2`.
-- Show the provider's attribution.
+- **Google:** when there is no photo or loading fails, retain the category-icon fallback on
+  `--surface-2`.
+- **OpenStreetMap:** show an optional Commons photo only when its author, license and license link
+  are available. Without a licensed image, or after an image load failure, omit the entire photo
+  slot; do not reserve an empty box or reuse Google's icon fallback.
+- Show Google's required author attribution. For Commons, preserve the author, readable license
+  and clickable license link beside the image, including long credits that wrap.
 - Never place text directly on the image.
+
+Photos remain transient Web provider data: never persist photo names, image URLs, bytes or the
+full provider payload in a saved trip. The existing `savedPlace` snapshot contains only name,
+address and coordinates for outage recovery. Google's photo names are fetched fresh from Places.
+See the [fallback review decision](../../notes/implemented/architecture/2026-10-10-map-fallback-review-fixes.md)
+and `apps/web/components/map/PlacePreview.tsx`; route provider changes through
+[add-provider](../add-provider/SKILL.md) and record the provider with browser evidence through
+[ui-verification](../ui-verification/SKILL.md).
 
 ## Icons
 

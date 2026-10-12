@@ -74,12 +74,48 @@ change touches:
 Run the walk for a focused change, or the combined script for a shell change, with
 `pnpm --filter @trip/web e2e phone-shell --prod`. Browser viewport simulation does not verify installed-app safe areas or the real
 on-screen keyboard: retain iPhone and Android device evidence separately, or record the outstanding
-checks in [#182](https://github.com/Lilstanie/AI_TRIP_PLANNER/issues/182). Without a Maps key, report
-real map panning and route rendering as unverified.
+checks in [#182](https://github.com/Lilstanie/AI_TRIP_PLANNER/issues/182).
+For drawer changes, follow [better-layout](../better-layout/SKILL.md): measure default and extreme
+split positions and the narrow content container, then cross 1000/1001 px as well as 520/521 px.
 
-## 4. Record evidence
+## 4. Identify map coverage
+
+A missing Google key does not prevent keyless OSM coverage. Keep browser rendering separate from
+server search, details and routing: `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` selects the Google SDK path,
+while `MAPS_API_KEY` configures server Google APIs. The browser can use MapLibre/OpenFreeMap;
+server selection is `WEB_MAPS_PROVIDER` (`google-with-fallback`, `google`, or `osm`), independently
+of planning `MAPS_PROVIDER`. Record the renderer and the source actually returned by each operation.
+
+- **Fixture fallback:** use the existing recipe in
+  [development](../../../docs/development.md#verification):
+  `CHANNEL=chrome DATA_MODE=mock USE_MOCK_TOOLS=true MOCK_GOOGLE_MAPS=unavailable pnpm --filter @trip/web e2e map-fallback`.
+  Blank model, Maps and Clerk credentials for fixture runs. This exercises OSM places, saved
+  coordinates, locale changes, photos and leg-mode wiring without external service calls; MapLibre
+  uses an empty style. Evidence lives in `output/playwright/map-fallback/<label>/` (default `after`).
+- **Google fixtures:** `map-provider-healthy.e2e.mjs` verifies healthy mock Google API provenance.
+  That is not live Google SDK, panning or real route evidence. Real Google checks need the
+  applicable browser/server keys and live mode; record any missing coverage explicitly.
+- **Local HTTP stubs:** `map-provider-http.e2e.mjs` checks real handlers against local Photon,
+  Nominatim and Transitous upstreams. Follow development's `MAP_STUB_PORT`, base URL and
+  `WEB_MAPS_PROVIDER=osm` setup; do not label these stub results live-provider evidence.
+- **Opt-in live free maps:** development's `map-fallback-live.e2e.mjs` recipe uses
+  `RUN_LIVE_MAP_CHECK=1 WEB_MAPS_PROVIDER=osm CHANNEL=chrome USE_MOCK_TOOLS=true` with the existing
+  runner. Chat alone is fixture-backed; place lookup, tiles and walking routes are live. This can
+  establish keyless OSM panning/routing for that journey, not Google coverage, worldwide transit
+  availability or physical-device behavior. No live run is needed for prose-only skill edits.
+
+Check Google category-icon fallback separately from OSM's omitted photo slot when no licensed image
+exists or loading fails. For a Commons image, verify author, license and license link. Test EN→ZH→EN
+and data-mode changes for stale names/details, plus mixed-provider saved stops with coordinates.
+See [add-provider](../add-provider/SKILL.md) for provider boundaries and failure semantics.
+
+## 5. Record evidence
 
 Save screenshots under `output/playwright/<name>/`, which is Git-ignored (an E2E script writes there
 itself), and attach them to the PR's
-Testing section; describe what each one proves. Record the viewports and results in the session log.
+Evidence section; describe what each one proves. Record the revision, command, viewports, measured container widths and results in the session log.
+For maps, record the actual renderer/provider, non-sensitive configuration (key presence only),
+request data mode, language, fixture/local-stub/live status, assertions and skips, and artifact paths.
+Separate browser viewport simulation, physical-device checks and live-service evidence. A zero exit
+code with skipped checks is not evidence those assertions ran; preserve failures as well as later passes.
 Never commit screenshots into the repository.
