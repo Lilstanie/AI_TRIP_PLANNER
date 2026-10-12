@@ -113,7 +113,7 @@ See [add-provider](../add-provider/SKILL.md) for provider boundaries and failure
 
 Save screenshots under `output/playwright/<name>/`, which is Git-ignored (an E2E script writes there
 itself), and attach them to the PR's
-Testing section; describe what each one proves. Record the revision, command, viewports, measured container widths and results in the session log.
+Evidence section; describe what each one proves. Record the revision, command, viewports, measured container widths and results in the session log.
 For maps, record the actual renderer/provider, non-sensitive configuration (key presence only),
 request data mode, language, fixture/local-stub/live status, assertions and skips, and artifact paths.
 Separate browser viewport simulation, physical-device checks and live-service evidence. A zero exit

@@ -62,7 +62,7 @@ no browser context, provider credentials or application build is involved. The p
 runner/fixture source on both trees; verify that with:
 
 ```bash
-git diff --exit-code d7cde6a -- apps/web/tests/e2e apps/web/tests/cli-e2e
+git diff --exit-code d7cde6a -- apps/web/tests/e2e apps/web/tests/cli-e2e/legacy-runner.e2e.mjs apps/web/tests/cli-e2e/report-interrupted.e2e.mjs
 ```
 
 Both baseline and current controls passed all 8 runner and 7 report checks, with zero failed or
