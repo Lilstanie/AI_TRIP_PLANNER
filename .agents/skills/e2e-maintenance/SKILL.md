@@ -47,6 +47,20 @@ boundary. If conditions differ, classify the cause as unresolved until the diffe
 For a prose-only change, record a tree comparison proving the exercised runner/fixtures are unchanged;
 do not imply that this establishes browser or product coverage.
 
+For CLI selection and scheduling, exercise the public selector, runner and CI result commands in
+copied temporary fixtures. `node apps/web/tests/cli-e2e/ci-integration.e2e.mjs` checks actual selected
+scripts across isolated shards, explicit docs skip without children, aggregate rejection of missing,
+failed or cancelled work, malformed plans and retained failure/interruption evidence. Keep its
+`output/e2e/ci-integration-*/` JSON and copied fixtures. Existing selector and runner acceptance own
+Git change edge cases, no-argument compatibility and descendant termination. Do not replace these
+with source/YAML string assertions.
+
+[CI acceptance](../../../docs/development.md#cli-acceptance-in-ci) uses separate checkout and dependency
+trees, at most three workers and serial execution inside each. A successful docs skip establishes no
+executed acceptance coverage. Check the explicit plan, all worker receipts and stable aggregate on
+the exact integration PR SHA; main's full result covers only its own post-merge SHA. Local fixtures
+and actionlint do not establish real GitHub scheduling or artifact availability.
+
 ## 3. Prove the check actually ran and can fail
 
 - Inspect expected versus observed assertions, passed/failed/skipped counts, named scenarios,

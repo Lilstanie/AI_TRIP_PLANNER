@@ -33,6 +33,14 @@ export function loadSelection(args, inventory) {
   requireValid(options.size === 2, "Both --plan and --shard are required");
   const planPath = resolve(options.get("--plan"));
   const plan = JSON.parse(readFileSync(planPath, "utf8"));
+  validatePlan(plan, inventory);
+  requireValid(plan.mode !== "skip", "Skip plans cannot execute a worker");
+  const shard = plan.shards.find((candidate) => candidate.id === options.get("--shard"));
+  requireValid(shard, "Unknown shard identity");
+  return { scripts: shard.scripts, plan, planPath, shard: shard.id };
+}
+
+export function validatePlan(plan, inventory) {
   requireValid(object(plan) && plan.schemaVersion === 1, "Unsupported plan schema");
   requireValid(["full", "selected", "skip"].includes(plan.mode), "Invalid plan mode");
   requireValid(
@@ -69,7 +77,7 @@ export function loadSelection(args, inventory) {
       plan.selectedScripts.length === 0 && plan.shards.length === 0,
       "Invalid skip plan",
     );
-    throw new Error("Skip plans cannot execute a worker");
+    return plan;
   }
   requireValid(plan.selectedScripts.length > 0, "Worker selection must not be empty");
   if (plan.mode === "full")
@@ -99,7 +107,5 @@ export function loadSelection(args, inventory) {
       assigned.every((script) => safeScript(script) && plan.selectedScripts.includes(script)),
     "Shard partition must assign every selected script exactly once",
   );
-  const shard = plan.shards.find((candidate) => candidate.id === options.get("--shard"));
-  requireValid(shard, "Unknown shard identity");
-  return { scripts: shard.scripts, plan, planPath, shard: shard.id };
+  return plan;
 }
