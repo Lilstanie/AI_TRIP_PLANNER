@@ -37,11 +37,15 @@ Frozen archives and dated logs are evidence, never cleanup candidates.
   behavior given up and all machinery removed, including residual glue. Product trade-offs remain
   proposals until implementation is authorized.
 - **Count the complete cost.** Include manifests, exports, fixtures, adapters, migration paths,
-  documentation and dependencies. Fewer files or lines do not establish a net reduction.
+  documentation, dependencies, new helpers and their imports. Include orchestration and fixture
+  maintenance in the comparison. Fewer files or lines do not establish a net reduction or a runtime
+  improvement; a speed claim needs comparable measured runs.
 
 For calibration, read [project patterns](references/project-patterns.md). Historical removals are
 examples, not a current deletion inventory. Zero repository callers is not proof that a public API,
-stored field, dynamic model tool or deployed endpoint has no consumer.
+stored field, dynamic model tool or deployed endpoint has no consumer. Check documented exports and
+API contracts, model tool registration and dispatch, serialized schemas/keys, load paths and migrations
+before removal; retain the contract or explicitly account for its consumers and compatibility obligations.
 
 ## Preserve behavior and failure semantics
 
@@ -58,6 +62,26 @@ For a dependency replacement, inspect installed dependencies and platform builti
 the removed implementation and dedicated checks with the replacement's dependencies and glue. Verify
 cancellation, truncation, bounds and source/build behavior where relevant; do not rebuild the same
 subsystem around a library and call it smaller.
+
+## Simplify tests without losing coverage
+
+Before removing any assertion, record its old location and observable promise, the surviving script
+and assertion, the equivalent verification boundary, and repeatable evidence (command, revision,
+fixture/environment assumptions, assertion/skip counts and artifact path). A similarly named check or
+successful process is insufficient: verify that the surviving assertion ran and still detects that
+failure. If no equivalent owner exists, retain the assertion or establish that coverage first.
+
+Use the [coverage ownership examples](references/project-patterns.md#retain-test-coverage-owners)
+and the implemented coverage map there. Preserve the dedicated Failure Lab's five profiles, artifact
+integrity, downloads and offline replay when condensing release smoke. Run both owning scripts when
+Failure Lab behavior changes; a representative release fault does not cover the complete matrix.
+
+Share identical fixtures, boot, plan conversion and polling only. Keep request interception,
+held-response ordering, cancellation, queued work, lifecycle cleanup and scenario assertions beside
+the scenario when they protect different interleavings. Retain screenshots and JSON/raw artifacts.
+Count helper/import costs, and keep distinct HTTP, visible UI, persistence and offline boundaries
+visible in the ownership map. Select checks for both the extracted helper's consumers and the
+surviving coverage owners through [pre-push-checks](../pre-push-checks/SKILL.md).
 
 ## Report and implement within authorization
 
