@@ -20,22 +20,37 @@ it.
 Each item below is a defect this project has hit; the source is in brackets.
 
 - **Unit and scale conversions that schemas cannot catch.** Provider ratings on 1–5 must become the
-  project's 0–10 (`× 2`); per-passenger fares must become whole-group totals; every stored amount is
+  project's 0–10 (`× 2`); per-passenger fares must become whole-group totals; stored planning amounts are
   AUD. Zod accepts the unconverted value, so require behavioral evidence for the converted number.
   Prefer an E2E assertion; when isolation is necessary, check that failure modes were enumerated
   before implementation and that the focused check covers them.
   [SerpApi and Places notes](../../notes/implemented/feature/2026-09-20-serpapi-live-prices.md)
-- **Display is not storage.** Agents, guardrails and stored totals stay in AUD; only the web layer
-  converts, through `fromAud` and the single `money()` formatter. A budget entered in another
-  currency keeps `budgetSource` beside its AUD total. Flag a hand-built amount string, a conversion
-  inside an agent, or a stored amount in the display currency.
-  [display currency](../../notes/implemented/feature/2026-10-04-workspace-display-currency.md),
-  [source budget](../../notes/implemented/feature/2026-10-04-source-budget-entry.md),
-  [trip display currency](../../notes/implemented/feature/2026-10-07-trip-display-currency.md)
-- **Interface strings go through `t()`.** A literal in JSX or an `aria-label` that bypasses `t()` stays
-  English in the Chinese interface; the typecheck only catches keys without a Chinese entry, not
-  strings that never reach `t()`. Generated replies are not translated afterwards; the reply
-  language is a prompt rule. [interface language](../../notes/implemented/feature/2026-10-04-interface-language-only.md),
+- **Planning and display have different owners.** Budget arithmetic, guardrails, scores and persisted
+  planning totals stay in AUD. `budgetSource` preserves the entered amount and currency; native fare
+  evidence keeps its provider currency. `effectiveCurrency(brief, fallback)` chooses the trip's
+  `displayCurrency`, then `budgetSource.currency`, then Settings (the request fallback on the server,
+  AUD for older clients). A trip's currency never writes Settings or follows interface language.
+  Browser copy uses `money()`, `delta()`, `budgetGap()` and `fare()` from `useLocale()`, backed by
+  [web money](../../../apps/web/lib/money.ts) and
+  [LocaleProvider](../../../apps/web/components/account/LocaleProvider.tsx). Traveller-facing server
+  summaries, progress, conflicts and replies use `formatMoney(amountAud, currency)` from
+  [shared money](../../../packages/shared/src/money.ts); conversion there is correct. Keep numeric
+  planning inputs in AUD and never parse formatted prose back into calculations. Converted displays
+  carry the fixed-rate estimate notice. Flag hand-built amount strings or converted planning totals,
+  not the established server formatter.
+  [generated-text decision](../../notes/implemented/architecture/2026-10-07-one-money-formatter-for-generated-text.md),
+  [trip currency](../../notes/implemented/feature/2026-10-07-trip-display-currency.md),
+  [PR #229](https://github.com/Lilstanie/AI_TRIP_PLANNER/pull/229)
+- **Authored interface copy is keyed.** JSX and accessible names go through `t()`; typechecking
+  catches missing translations for keys, not literals that bypass `t()`. Authored notices
+  outside components use `{ key, params }` and `NoticeError`, then `noticeBody`, `failureNotice` or
+  `errorNotice` at the route/client boundary and `useLocale().notice()` to render. Stored edit notices
+  use `storeNotice`/`readStoredNotice`; legacy raw text stays raw. Model/provider prose and traveller
+  text are not translated by the interface; reply language is a prompt rule. Do not wrap a new
+  authored sentence in `{ raw }` or assume every stored blocker is a keyed Notice (`conflictsWith`
+  remains prose). Inspect the producer and consumer in
+  [notice.ts](../../../apps/web/lib/i18n/notice.ts), not dictionary membership alone.
+  [keyed notices](../../notes/implemented/architecture/2026-10-06-keyed-notices-everywhere.md),
   [reply language](../../notes/implemented/feature/2026-10-04-assistant-reply-language.md)
 - **Data provenance tells the truth.** Each specialist sets `source.kind` in the branch that actually
   ran, including its fallback `catch`. A label derived from configuration is wrong exactly when a call
@@ -85,8 +100,31 @@ Each item below is a defect this project has hit; the source is in brackets.
   tested with two changes and one undo, not only one change and its undo. A flag cleared by the undo of the
   second change hid the first from the replan notice, and the single-change test passed.
   [PR #258](https://github.com/Lilstanie/AI_TRIP_PLANNER/pull/258)
-- **Late responses.** Editing, switching or starting trips must abort or ignore in-flight requests so
-  a late response cannot overwrite newer state.
+- **Revision ownership and late responses.** Follow
+  [feature wiring](../end-to-end-feature-wiring/SKILL.md) through the revision owner, background hooks
+  and final apply. An edit synchronously aborts background work; a locally cancelled or replaced job
+  is discarded and may be offered for the current plan when still needed. A cross-tab stale job is
+  a terminal failure for that plan, shows a keyed stale notice and stops being offered until a fresh
+  plan is loaded. Treating it as discarded creates a retry loop. Hold a response while editing,
+  starting chat, switching trips or queueing behind another tab; check both the plan and further
+  requests after release. Browser locks/local storage do not establish server-atomic or cross-device
+  ownership, and storage failure weakens that protection.
+  [revision owner](../../../apps/web/components/trip/plan-revision.ts),
+  [ownership decision](../../notes/implemented/feature/2026-10-09-plan-revision-owner.md),
+  [stale-work correction](../../notes/implemented/architecture/2026-10-10-map-fallback-review-fixes.md),
+  [PR #258](https://github.com/Lilstanie/AI_TRIP_PLANNER/pull/258),
+  [PR #278](https://github.com/Lilstanie/AI_TRIP_PLANNER/pull/278)
+- **Specific errors precede broad handlers.** `MapProviderUnavailableError` extends `NoticeError`:
+  details/photo failures must return 503 before the generic authored missing-resource 404 branch.
+  `GoogleNotConfiguredError` also returns 503, but retries cannot repair missing deployment config.
+  Exclude `GoogleRequestError` from the generic Notice branch so its upstream status is retained:
+  resource 400/404 becomes 404, 429 stays 429, other upstream failures become 502. Search has no
+  missing-resource branch. Inspect status and keyed failure body together through
+  [placeErrorResponse](../../../apps/web/lib/map-provider/place-error-response.ts), not only the
+  displayed sentence. When changing this boundary, enumerate failures first and verify the affected
+  API responses; a successful place lookup cannot prove error classification.
+  [accepted error mapping](../../notes/implemented/simplification/2026-10-10-repository-surface-reduction.md),
+  [PR #291](https://github.com/Lilstanie/AI_TRIP_PLANNER/pull/291)
 - **Boundaries.** Agents reach providers only through ports; `route.ts` files stay thin adapters;
   production and test files stay at or below 1000 lines ([development.md](../../../docs/development.md)).
 - **Secrets.** No key in code, fixtures, logs, docs or test output.

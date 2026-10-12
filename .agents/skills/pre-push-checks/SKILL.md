@@ -17,6 +17,9 @@ before calling a failure yours or not, and update it when you find or fix one. W
 `AGENTS.md`. This is guidance, not a script: every behaviour change needs the narrowest evidence
 that would expose its regression.
 
+When the reliability of an E2E check is in doubt, follow
+[e2e-maintenance](../e2e-maintenance/SKILL.md) for equivalent reproductions and failure controls.
+
 ## 1. Inspect the outgoing change
 
 ```bash
@@ -110,7 +113,7 @@ carry the old pass forward. Explain any still-applicable evidence and its limits
 
 ## 4. Report
 
-List each command and its result, including test counts, in the PR's Testing section and the session
+List each command and its result, including test counts, in the PR's Evidence section and the session
 log. When a check could not run (missing key, no network), say so; do not describe it as passing.
 
 ## When to run everything
