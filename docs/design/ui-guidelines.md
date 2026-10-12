@@ -17,6 +17,8 @@ semantic-token, or workspace-layout contracts.
 - [Rare UI](https://rareui.com)
 - [Transitions](https://transitions.dev)
 - [shadcn/ui](https://ui.shadcn.com)
+- [Designeer](https://www.designeer.xyz): visual and UI inspiration. Adapt ideas to this project's
+  design contract rather than treating the site as a specification.
 - [Aceternity UI](https://ui.aceternity.com): a landing-page effects library. Use it for restrained
   micro-interactions such as tooltips and text reveals. Do not take its beams, aurora and gradient
   backgrounds, glows, 3D cards or parallax: they break the Don'ts below and the reduced-motion

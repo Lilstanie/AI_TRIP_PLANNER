@@ -21,6 +21,7 @@
 - [Rare UI](https://rareui.com)
 - [Transitions](https://transitions.dev)
 - [shadcn/ui](https://ui.shadcn.com)
+- [Designeer](https://www.designeer.xyz)：视觉与界面灵感参考。借鉴时应遵循本项目的设计约定，不将该网站视为项目规范。
 - [Aceternity UI](https://ui.aceternity.com)：面向落地页的特效库。可用于克制的微交互，例如工具提示和文字渐显。不要采用它的光束、极光与渐变背景、光晕、3D 卡片或视差效果：它们违反下文的禁止事项与减少动效约定。其组件依赖 Framer Motion，本项目未使用该依赖；应将效果移植为 CSS，而非新增依赖。
 - [Mindtrip](https://mindtrip.ai)：AI（人工智能）旅行规划产品，也是与本项目最接近的产品。其交互设计是以下功能的主要参考：
   - **回答中内联地点。** 提及地点时附带类别图标和地点名称。悬停打开包含照片、地址和一句描述的预览；点击打开完整地点详情。
