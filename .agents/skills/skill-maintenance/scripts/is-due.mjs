@@ -125,7 +125,7 @@ function readCheckpoint() {
 const checkpoint = readCheckpoint();
 const baseline = checkpoint.valid ? checkpoint.revision : null;
 const baselineDate = checkpoint.valid ? checkpoint.date : null;
-const absorbedIssues = new Set(
+const reviewedIssueNumbers = new Set(
   checkpoint.valid ? checkpoint.reviewedIssues.map((issue) => issue.number) : [],
 );
 
@@ -251,7 +251,7 @@ function githubSignals() {
       (item) =>
         !item.pull_request &&
         !(
-          absorbedIssues.has(item.number) &&
+          reviewedIssueNumbers.has(item.number) &&
           Date.parse(item.closed_at) <= Date.parse(checkpoint.recordedAt)
         ),
     )
