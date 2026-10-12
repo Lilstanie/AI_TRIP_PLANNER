@@ -136,3 +136,9 @@ node apps/web/tests/cli-e2e/run.mjs
 
 命令包含 `apps/web/tests/cli-e2e` 下所有 `.e2e.mjs` 和 `report-cli.mjs`，通过真实 CLI 进程和选定的 fixture 浏览器旅程验收。部分脚本会临时替换共享依赖入口，因此不要与其他构建或测试并发运行。套件遇到第一个失败即停止，把剩余脚本记录为 `not_run`，并以非零状态退出。
 日志和套件摘要位于 `output/e2e/cli-acceptance/<time>/`；各脚本仍在 `output/e2e/` 与 `output/playwright/` 保留报告和浏览器证据。CI 在独立任务中安装 Chromium 和 lsof 后运行该命令，即使失败也上传两棵输出目录，保留七天。这是 CLI 验收覆盖，不代表执行所有原始浏览器脚本。
+
+`local-cli-collections.e2e.mjs` 保留两项真实浏览器控制：生产模式的默认 smoke，以及开发模式的具名单项 replay。
+多名称、`--all`、混合 unsupported、无效选择、超时和子进程失败聚合，在隔离目录中原样复制 CLI 模块，
+并使用受控的服务器与旅程子进程。这些 fixture 场景验证选择、顺序、退出状态、独立报告和失败后继续执行，
+不构成浏览器界面覆盖。真实控制仍保留浏览器/API/键盘与回放断言。
+集合调用日志、子进程启动事件、fixture 文件和总体结果保留在 `output/e2e/cli-collections/run-*/`。

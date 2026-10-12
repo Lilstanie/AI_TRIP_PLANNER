@@ -14,6 +14,8 @@ Use this workflow when the test or its execution is in doubt. Product correctnes
 The [testing approach](../../../docs/development.md#testing-approach) owns test placement and policy.
 The [local E2E CLI](../../../docs/local-test-cli.md) owns command support, isolation and report
 semantics. Keep the current runner; do not install a second framework to diagnose it.
+For collection-selection maintenance, the local CLI reference distinguishes retained browser controls
+from copied-CLI subprocess fixtures. Preserve that evidence boundary when reducing repeated setup.
 
 ## 1. State the failure before changing the check
 
