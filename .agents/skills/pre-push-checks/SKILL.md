@@ -8,8 +8,10 @@ description: Pick the smallest set of commands that would catch a regression in 
 Run relevant evidence once before a push, and report only commands you actually ran with their real
 results. CI (`.github/workflows/ci.yml`) already runs `typecheck`, `lint`, `test`, `test:scripts` and `build`
 for the whole repository, plus the protected-file, `verify:docs` and translation-pair checks on pull
-requests. A separate job runs `node apps/web/tests/cli-e2e/run.mjs` sequentially, including its registered
-fixture browser journeys, with logs and evidence retained on failure. Other raw browser scripts remain
+requests. CLI acceptance uses a builtin-only plan, up to three isolated workers and a stable aggregate;
+[development.md](../../../docs/development.md#cli-acceptance-in-ci) owns selection, fallback, skip and
+artifact behavior. Scripts remain serial within each worker, including registered fixture browser
+journeys, with evidence retained on failure. Other raw browser scripts remain
 local evidence; select the relevant one rather than repeating unrelated acceptance runs. It does run `pnpm verify:e2e-selectors`, which fails when an E2E script
 selects a class no component renders, so removing or renaming a class means updating the scripts that use it. A
 script that fails may already fail on `main`: read [e2e-known-failures](../../../docs/e2e-known-failures.md)
@@ -55,6 +57,21 @@ or workflow, run `node apps/web/tests/ci/comment-policy.e2e.mjs` and actionlint 
 | `.agents/**`, `docs/**`                                                                                      | `pnpm verify:docs`, `pnpm verify:protected`, and `pnpm format:check-changed origin/main`                                                                                                                                                                                                                                                            |
 | `scripts/**`, `.agents/skills/**/SKILL.md` or skill frontmatter                                              | `pnpm test:scripts` for executable rule changes; prose-only changes need semantic inspection and focused existing guards, without new tests or broad application suites. Run `pnpm verify:docs`, which runs `scripts/skill-rules.mjs` over every skill                                                                                              |
 | Root `package.json`, `pnpm-lock.yaml`, `turbo.json`, `tsconfig.base.json`                                    | The full five, with the generated-type writer first: `pnpm build && pnpm typecheck && pnpm lint && pnpm test && pnpm test:scripts`                                                                                                                                                                                                                  |
+
+For `apps/web/tests/cli-e2e/` planning, runner or CI integration changes, run the builtin subprocess
+acceptance commands before considering browser setup:
+
+```bash
+node apps/web/tests/cli-e2e/selection.e2e.mjs
+node apps/web/tests/cli-e2e/runner-plan.e2e.mjs
+node apps/web/tests/cli-e2e/ci-integration.e2e.mjs
+```
+
+Validate workflow syntax with actionlint when changing CI. Local command evidence does not prove
+GitHub matrix scheduling, uploads or Ubuntu/Node 22 behavior. Inspect the integration PR's final-SHA
+plan, every planned worker, aggregate and artifacts before reporting current CI success. Dependent
+PRs require combined integration evidence before merge; a later full main run is SHA-bound post-merge
+evidence, not a pre-merge guarantee. Preserve the no-argument full runner for local use.
 
 Run Prettier on the files you changed (`pnpm exec prettier --write <file>`), never on a directory: unrelated files
 still hold old formatting, and reformatting them conflicts with open pull requests. CI runs

@@ -254,7 +254,7 @@ node .agents/skills/translate-docs/scripts/check-pairs.mjs
 
 复杂功能应优先只用端到端（E2E）测试验证行为：走完整用户路径，并留下可复现、可审查的产物，例如报告、trace 或截图。记录复现所需的命令、步骤或 fixture。绝不在编写实现代码之后再编写单元测试。如果必须隔离测试一个系统，先列举它所有可能的失败方式，再编写代码，并从这份清单推导隔离检查。
 
-这是新工作的首选方式。CI 通过 `pnpm test` 运行 Vitest 测试套件，通过 `pnpm test:scripts` 运行仓库脚本测试（`scripts/*.test.mjs`）。独立的 CLI 验收任务串行运行 `node apps/web/tests/cli-e2e/run.mjs`，包括其中的 fixture 浏览器旅程；即使失败，也保留日志、摘要和浏览器证据七天。其余原始浏览器脚本仍在本地执行，推送前应运行相关脚本；`main` 上的已知失败列在 [e2e-known-failures.zh.md](e2e-known-failures.zh.md) 中。不过 CI 会运行 `pnpm verify:e2e-selectors`：如果某个 E2E 脚本选择的 CSS 类（如 `.section__row`）在 `apps/web` 下已没有任何组件、页面或库文件渲染，它就会失败；只留在样式表里的规则不算。它不需要服务器，不到一秒即可完成。专门检查某个已删除的类不再出现的那一行，末尾加上 `// e2e-selectors: absent`；只由第三方库设置的类写进 `scripts/verify-e2e-selectors.mjs` 的 `ALLOWED`，并注明原因。
+这是新工作的首选方式。CI 通过 `pnpm test` 运行 Vitest 测试套件，通过 `pnpm test:scripts` 运行仓库脚本测试（`scripts/*.test.mjs`）。CLI 验收采用[变更选择和隔离 CI worker](#cli-acceptance-in-ci)，包括其中的 fixture 浏览器旅程；即使失败，也保留日志、摘要和浏览器证据七天。其余原始浏览器脚本仍在本地执行，推送前应运行相关脚本；`main` 上的已知失败列在 [e2e-known-failures.zh.md](e2e-known-failures.zh.md) 中。不过 CI 会运行 `pnpm verify:e2e-selectors`：如果某个 E2E 脚本选择的 CSS 类（如 `.section__row`）在 `apps/web` 下已没有任何组件、页面或库文件渲染，它就会失败；只留在样式表里的规则不算。它不需要服务器，不到一秒即可完成。专门检查某个已删除的类不再出现的那一行，末尾加上 `// e2e-selectors: absent`；只由第三方库设置的类写进 `scripts/verify-e2e-selectors.mjs` 的 `ALLOWED`，并注明原因。
 
 E2E 脚本位于 `apps/web/tests/e2e/`。需要 fixture 隔离、由命令启动并拥有服务器，以及每次运行独立证据时，请使用[本地 E2E 命令行工具](local-test-cli.zh.md)。其他情况可通过运行器执行脚本：它在空闲端口上启动服务器，从仓库根目录依次对其运行指定脚本，结束后只停止它自己启动的服务器：
 
@@ -306,6 +306,32 @@ CI 还会运行 `node scripts/format-check-changed.mjs <base>`（即 `pnpm forma
 通过 `CHANNEL=chrome DATA_MODE=mock USE_MOCK_TOOLS=true MOCK_GOOGLE_MAPS=unavailable pnpm --filter @trip/web e2e map-fallback` 重跑回退界面检查。本地测试时清空模型、Maps 和 Clerk 密钥变量。截图和摘要位于 `output/playwright/map-fallback/after`。`map-provider-http` 使用本地上游测试真实 API 处理器：将 `MAP_STUB_PORT` 设为空闲端口，将上述三个基础 URL 设为 `http://127.0.0.1:$MAP_STUB_PORT`，并设 `WEB_MAPS_PROVIDER=osm`；限流时间戳、缓存命中、语言、范围和公交解析记录在 `output/e2e/map-provider-http/summary.json`。
 
 `RUN_LIVE_MAP_CHECK=1 WEB_MAPS_PROVIDER=osm CHANNEL=chrome USE_MOCK_TOOLS=true pnpm --filter @trip/web e2e map-fallback-live` 显式启用真实免费服务检查。只有聊天回复使用固定数据；地点查询、瓦片和步行路线均为实时请求。结果及桌面／手机截图位于 `output/playwright/map-fallback-live/after`。这不代表公共交通覆盖所有目的地。
+
+<a id="cli-acceptance-in-ci"></a>
+
+#### CI 中的 CLI 验收
+
+仅使用 Node 内置模块的 `cli-acceptance-plan` 任务检出完整 Git 历史，从显式 PR base/head SHA 的 merge base 比较到 PR head。选择范围包含 PR 的全部提交、新增、删除，以及重命名两端的路径。事件 SHA 通过环境变量进入固定命令。JSON 计划记录变更路径、匹配规则、发现的脚本清单、选中脚本和分片分配；worker 通过 artifact 接收同一份计划。
+
+- 只有每条变更路径都符合规则且脚本清单已审核时，普通文档才可跳过 CLI 验收。技能和仓库指令不属于通用文档豁免。已审核的基础设施脚本清单包括 `ci-integration.e2e.mjs`。
+- 已审核的依赖规则选取对应脚本的并集。共享基础设施、未知路径、未分类的验收脚本或缺失的预期脚本都要求完整覆盖。历史缺失、无效 revision 和比较失败也会退回完整覆盖，并记录原因。
+- 空清单或不安全清单属于规划失败。每次推送到 `main` 都在该次检出的提交上选择当前完整清单，包括合并后的交付内容。
+
+`cli-acceptance-workers` 只在计划成功且不是 skip 时启动。动态矩阵包含一至三个非空分片，每个分片使用独立 runner，具有自己的检出目录、依赖树和浏览器配置。分片内部保持串行，因为 fixture 会临时替换依赖入口。一个分片失败不会取消其他分片。每个选中脚本恰好分配一次；耗时估计只影响分配，不承诺 CI 总时长。
+
+稳定的 `cli-acceptance` 汇总任务始终运行。它验证计划，并要求满足以下一种情况：显式 skip、worker 全部跳过且没有 worker 回执；或 worker 成功，且每个计划分片恰有一份成功回执，并通过摘要绑定到传输的计划。规划失败、缺失计划或回执、worker 失败或取消，以及格式错误的计划都不能通过。真实的文档跳过避免安装依赖和浏览器；现有文档和受保护文件检查仍运行。计划、worker 结果和证据 artifact 的名称包含运行 ID、重试次数，以及 planner／分片标识，保留七天。上传前，`node apps/web/tests/cli-e2e/package-evidence.mjs` 只将 `output/e2e/` 和 `output/playwright/` 归档到 `output/cli-evidence/evidence.tar.gz`，包括部分失败证据和隐藏的 fixture 文件。内部文件名和字节保持原样；安全的外层文件名避开 artifact 服务的文件名限制。嵌套符号链接会保留，不跟随其目标。任一证据树存在即可归档；两者都缺失则明确失败，只有成功完成后才发布归档。归档或上传失败仍会使 worker 和汇总任务失败；旧归档或部分归档不能替代当前尝试。下载后使用 `tar -xzf evidence.tar.gz` 提取证据。
+
+复现选择时，在环境变量中提供 PR 的显式 base/head SHA。可根据计划运行一个分片，或使用保持兼容的无参数命令运行完整本地套件：
+
+```bash
+node apps/web/tests/cli-e2e/select.mjs --event pull_request --base "$BASE_SHA" --head "$HEAD_SHA" --output output/e2e/cli-plan/plan.json
+node apps/web/tests/cli-e2e/run.mjs --plan output/e2e/cli-plan/plan.json --shard 1
+node apps/web/tests/cli-e2e/run.mjs
+```
+
+使用 `--event push` 复现 main 的完整选择。skip 计划由 CI 处理，worker 命令拒绝执行。分片摘要保留计划、复现命令、逐脚本日志，以及通过、失败、中断或未运行的结果。定向子进程验收使用 `node apps/web/tests/cli-e2e/ci-integration.e2e.mjs`；复制的 fixture 和命令／结果 JSON 保留在 `output/e2e/ci-integration-*/` 下。这证明本地命令行为，不证明 GitHub 调度已执行。
+
+相关 ticket 默认使用一个集成分支和 PR。若依赖交付使用独立 PR，必须在合并前验证它们的组合集成状态；各自通过选择的检查并不能证明组合状态。完整 main 结果是绑定到准确 main SHA 的合并后回归证据，不能承诺合并前执行全部检查，也不能复用旧 SHA 的结果。[CI 选择决策](../.agents/notes/implemented/process/2026-10-12-cli-acceptance-ci.md)记录调度理由和保留的串行执行边界。
 
 <a id="workspace-performance-acceptance"></a>
 
