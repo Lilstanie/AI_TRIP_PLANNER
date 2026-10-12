@@ -247,7 +247,7 @@ update rules are recorded in the [integration decision](../.agents/notes/impleme
 Use `review-trip-planner` for repository-specific risks. The global `code-review-standards-spec` skill coordinates Standards and Spec review. OCR plugin skills keep their own `open-code-review` and `open-code-review-delegate` names.
 
 [review-trip-planner](../.agents/skills/review-trip-planner/SKILL.md) owns the review handoff packet
-and the task-scoped added-comment gate. Its references describe the CLI, explicit file scope,
+and the added-comment gate. Its references describe the CLI, explicit file scope,
 justified exceptions and standalone acceptance evidence. This gate runs locally through the review
 workflow; CI does not invoke it automatically.
 Its acceptance covers JSX text boundaries and files recreated after staged deletion.

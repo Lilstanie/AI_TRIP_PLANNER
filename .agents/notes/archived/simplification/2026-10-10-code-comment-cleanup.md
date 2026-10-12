@@ -1,6 +1,7 @@
 # Agent Note: Remove explanatory code comments
 
 Status: implemented
+Archived: 2026-10-12
 
 ## Problem
 
@@ -36,5 +37,5 @@ or live-provider behavior.
 
 ## Sources
 
-- [Earlier surface reduction](2026-10-10-repository-surface-reduction.md)
+- [Earlier surface reduction](../../implemented/simplification/2026-10-10-repository-surface-reduction.md)
 - [Development and test entry points](../../../../docs/development.md)

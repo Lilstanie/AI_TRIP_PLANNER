@@ -203,7 +203,7 @@ manifest 链接的页面。
 
 用 `review-trip-planner` 检查本库特有风险；全局 `code-review-standards-spec` 负责 Standards（规范）与 Spec（规格）双轴审查流程。OCR 插件保留各自的 `open-code-review` 和 `open-code-review-delegate` 名称。
 
-[review-trip-planner](../.agents/skills/review-trip-planner/SKILL.md) 负责审查交接材料和任务范围内的新增注释检查。
+[review-trip-planner](../.agents/skills/review-trip-planner/SKILL.md) 负责审查交接材料和新增注释检查。
 其参考文档说明 CLI、显式文件范围、有理由的例外，以及独立验收的证据。
 这项检查由本地审查流程调用；CI 不会自动执行。
 其验收覆盖 JSX 文本边界，以及暂存删除后重新创建的文件。

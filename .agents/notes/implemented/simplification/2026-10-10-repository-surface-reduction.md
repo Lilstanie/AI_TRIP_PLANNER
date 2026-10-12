@@ -50,7 +50,7 @@ remain in `map-fallback` because they exercise distinct boundaries.
 ## Consequences
 
 The inventory below measures the surface-reduction scope through `d6d52e8`; the subsequent
-[comment cleanup](2026-10-10-code-comment-cleanup.md) is a separate change.
+[comment cleanup](../../archived/simplification/2026-10-10-code-comment-cleanup.md) is a separate change.
 
 Against baseline `42fded7`, the tracked code inventory (TS/TSX/JS/JSX/MJS/CJS/CSS/Java, including tests,
 tooling and submission builders; blank lines/comments included) falls from 475 files / 89,208 physical
