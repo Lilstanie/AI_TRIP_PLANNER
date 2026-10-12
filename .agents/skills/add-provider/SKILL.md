@@ -1,9 +1,28 @@
 ---
 name: add-provider
-description: Add, replace or change an external data provider (maps, places, hotels, flights, weather, routes or any paid API reached through packages/tools) in AI_TRIP_PLANNER while keeping mock mode, typed failures, truthful provenance, AUD amounts and quota limits intact. Use when adding, replacing or changing a provider or its adapter.
+description: Add, replace or change a planning data provider or Web map provider (places, photos, routes and time zones) in AI_TRIP_PLANNER while keeping mock mode, typed failures, truthful provenance, AUD amounts and quota limits intact. Use when adding, replacing or changing a provider or its adapter.
 ---
 
 # Add or change an external data provider
+
+## Choose the existing owner
+
+- **Planning evidence** (agent maps, booking, weather): use the tools gateway workflow below.
+  `MAPS_PROVIDER` chooses the planning maps adapter.
+- **Web workspace maps** (search, details, photos, edit-preview legs, location routes, time zones):
+  use `apps/web/lib/map-provider/` and its existing `MapProvider` seam, then the thin route handlers
+  under `apps/web/app/api/`. `WEB_MAPS_PROVIDER` chooses `google-with-fallback` (default), `google`
+  or `osm`; it does not change the planning setting. Browser rendering belongs to
+  `apps/web/components/map/` (Google SDK or MapLibre/OpenFreeMap).
+  Follow [Web map checklist](references/web-map-providers.md),
+  [architecture](../../../docs/architecture.md#web-map-providers) and the
+  [completion decision](../../notes/implemented/architecture/2026-10-10-complete-map-fallback.md).
+
+Trace any cross-boundary requirement through its existing owners; do not add a parallel framework
+or move Web lookups through the planning gateway. The adapter and gateway matrix steps below apply
+to planning providers; Web changes use the checklist's existing HTTP/browser evidence paths.
+
+## Planning-provider workflow
 
 Providers reach agents only through the ports in `packages/shared/src/ports.ts` and the tool gateway
 in `packages/tools/src/gateway.ts`. The gateway snapshots the data mode and provider configuration once
@@ -44,7 +63,8 @@ The agent that uses the data sets `source.kind` (`live`, `estimated`, `mock`, `f
 
 - New fields on shared types are optional and additive where possible; a `packages/shared` change
   needs an Agent Note in the same PR.
-- Add each variable name to `.env.example` with a comment; never a value.
+- When explicitly authorized to edit `.env.example`, add variable names with comments, never credentials.
+  Otherwise report the required configuration edit to its owner; this skill grants no protected-file permission.
 - Update the provider table in [development.md](../../../docs/development.md).
 
 ## 5. Verification
@@ -54,6 +74,6 @@ Stub the provider so the run needs no credentials and spends no quota. If adapte
 tested in isolation, first enumerate every way it could fail before writing implementation code, then
 derive focused checks for request parameters, success mapping, conversions, typed errors and fallback
 tiers. Add the new provider's live, degraded and unavailable rows to the gateway matrix in
-`tests/provider-matrix.e2e.test.ts`. Never add unit tests after implementation code. Then follow
+`packages/tools/tests/provider-matrix.e2e.test.ts`. Never add unit tests after implementation code. Then follow
 [pre-push-checks](../pre-push-checks/SKILL.md) and, for visible results,
 [ui-verification](../ui-verification/SKILL.md) in both data modes.

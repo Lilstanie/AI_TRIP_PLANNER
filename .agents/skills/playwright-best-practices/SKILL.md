@@ -137,6 +137,10 @@ remain conditional on the project scope above.
 | Test Reports & Artifacts                | [reporting](references/infrastructure-ci-cd/reporting.md)                 |
 | Test Coverage                           | [test-coverage](references/infrastructure-ci-cd/test-coverage.md)         |
 
+Use [e2e-maintenance](../e2e-maintenance/SKILL.md) when diagnosing false success, hangs,
+skipped assertions, fixture mismatches or environment failures in the check itself. It owns equivalent
+reproductions and deliberate-failure controls; these references supply browser techniques.
+
 ## Project validation loop
 
 1. Select the existing journey and runner documented in the project, then run the relevant command.

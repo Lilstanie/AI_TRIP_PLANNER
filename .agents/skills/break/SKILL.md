@@ -16,7 +16,10 @@ review against a standard belongs to the review skills.
 
 ## 1. Scope one component
 
-Test one component per run. "The trip drawer" is not a component; `TripSection` or `SourceBadge` is.
+Test one component per run. "The trip drawer" is not a component; `PlacePreview` or `SourceBadge` is.
+Current owners include `components/map/PlacePreview.tsx`, `components/trip/SourceBadge.tsx` and
+`components/trip/timeline/TimelineStop.tsx`. Read their actual props and required locale/context
+providers before choosing fixtures; do not reconstruct removed specialist sections.
 If the request covers several, list the candidates and ask which one to test. State in one sentence
 what the component accepts, what it renders and where it lives.
 
@@ -24,7 +27,10 @@ what the component accepts, what it renders and where it lives.
 
 Read the component's props, states and the data it renders. Go through
 [scenarios.md](references/scenarios.md) and keep only the axes whose cue matches. Write the kept scenarios down,
-one line each, before you build. Say in one line which axes you dropped and why.
+one line each, before you build. For place photos, keep separate Google and OSM absent/failed-image
+states and a licensed Commons image with long author/license credits. For drawer rows, derive
+widths from the current split and floating gaps in [better-layout](../better-layout/SKILL.md),
+including the narrowest representative content width; a fixed container is not a viewport test. Say in one line which axes you dropped and why.
 
 ## 3. Build the harness page
 
@@ -46,6 +52,11 @@ Start the `web` preview from `.claude/launch.json` with mock data, open
 `/debug/break-<component>`, and read every scenario from top to bottom in one pass. Report what you
 see, such as "the hotel name escapes the card's right edge", never taste. If the page cannot render
 without debugging, hand the URL to the user instead.
+
+Record the real component, fixture provider, data mode and container widths with a screenshot under
+`output/playwright/<name>/`. A stubbed image or route demonstrates that fixture only; it does not
+verify Google, Commons or other live services. Use [ui-verification](../ui-verification/SKILL.md)
+for the full workspace and responsive transitions.
 
 Mark each break with a one-line note under its scenario's label, so the page reads as the report on
 its own.
