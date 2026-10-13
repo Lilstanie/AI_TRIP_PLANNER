@@ -56,6 +56,31 @@ export function sameIdentity(left, right) {
   );
 }
 
+export function createIdentityMatcher() {
+  const devices = new Map();
+  const reverseDevices = new Map();
+  return (actual, expected) => {
+    if (
+      !actual ||
+      !expected ||
+      actual.inode !== expected.inode ||
+      actual.birthtimeMs !== expected.birthtimeMs ||
+      actual.type !== expected.type
+    )
+      return false;
+    const mapped = devices.get(expected.device);
+    const reverse = reverseDevices.get(actual.device);
+    if (
+      (mapped !== undefined && mapped !== actual.device) ||
+      (reverse !== undefined && reverse !== expected.device)
+    )
+      return false;
+    devices.set(expected.device, actual.device);
+    reverseDevices.set(actual.device, expected.device);
+    return true;
+  };
+}
+
 export function createRunOwnershipRecord({
   invocationId,
   directoryIdentity,

@@ -11,6 +11,12 @@ import {
 } from "node:fs";
 import { createServer } from "node:http";
 import { resolve } from "node:path";
+import {
+  canonicalResources,
+  captureIdentity,
+  createRunOwnershipRecord,
+  writeOwnershipRecord,
+} from "../e2e/resource-ownership.mjs";
 
 const root = resolve(import.meta.dirname, "../../../..");
 const runRoot = resolve(root, "output/e2e/local-test-cli");
@@ -46,6 +52,47 @@ const invoke = (args) =>
     child.once("error", reject);
     child.once("close", (status) => done({ status, stdout, stderr }));
   });
+
+function createOwnedBuildFixture(invocationId) {
+  const directory = resolve(runRoot, invocationId);
+  const evidence = resolve(directory, "evidence");
+  const resources = canonicalResources(resolve(root, "apps/web"), invocationId);
+  const build = resources[0].absolutePath;
+  mkdirSync(evidence, { recursive: true });
+  mkdirSync(build, { recursive: true });
+  writeFileSync(resolve(build, "owned.txt"), "owned build fixture");
+  const startedAt = new Date().toISOString();
+  const summaryPath = resolve(directory, "summary.json");
+  const ownedResources = resources.map(({ kind, path }, index) => ({
+    kind,
+    path,
+    state: index === 0 ? "retained" : "not-created",
+  }));
+  const summary = {
+    schemaVersion: 1,
+    recordType: "run",
+    invocationId,
+    startedAt,
+    completedAt: startedAt,
+    summaryFile: `output/e2e/local-test-cli/${invocationId}/summary.json`,
+    evidenceDirectory: `output/e2e/local-test-cli/${invocationId}/evidence`,
+    results: [],
+    ownedResources,
+  };
+  writeFileSync(summaryPath, `${JSON.stringify(summary, null, 2)}\n`);
+  const owner = createRunOwnershipRecord({
+    invocationId,
+    directoryIdentity: captureIdentity(directory, "directory"),
+    evidenceIdentity: captureIdentity(evidence, "directory"),
+    summaryIdentity: captureIdentity(summaryPath, "file"),
+    resources: ownedResources,
+    resourceIdentities: { "next-build-directory": captureIdentity(build, "directory") },
+    createdAt: startedAt,
+  });
+  const ownerPath = resolve(directory, "ownership.json");
+  writeOwnershipRecord(directory, owner);
+  return { build, directory, ownerPath, resources, summaryPath };
+}
 
 const unknownId = "2026-01-01T00-00-00-000Z-999999-zzzzzz";
 const missing = await invoke(["cleanup", unknownId, "--json"]);
@@ -97,6 +144,44 @@ assert.equal(JSON.parse(summaryOnly.stdout).outcome, "blocked");
 assert.equal(readFileSync(fakeUserData, "utf8"), "summary alone cannot authorize cleanup");
 rmSync(fakeBuild, { recursive: true });
 
+const movedId = `${new Date().toISOString().replaceAll(/[:.]/g, "-")}-${process.pid}-moved1`;
+const movedFixture = createOwnedBuildFixture(movedId);
+const movedBuildPath = resolve(artifactRoot, "moved-owned-build");
+rmSync(movedBuildPath, { recursive: true, force: true });
+renameSync(movedFixture.build, movedBuildPath);
+const movedCleanup = await invoke(["cleanup", movedId, "--json"]);
+assert.notEqual(movedCleanup.status, 0);
+assert.equal(JSON.parse(movedCleanup.stdout).outcome, "blocked");
+assert.equal(readFileSync(resolve(movedBuildPath, "owned.txt"), "utf8"), "owned build fixture");
+rmSync(movedFixture.directory, { recursive: true });
+rmSync(movedBuildPath, { recursive: true });
+
+const remountedId = `${new Date().toISOString().replaceAll(/[:.]/g, "-")}-${process.pid}-remnt1`;
+const remountedFixture = createOwnedBuildFixture(remountedId);
+const remountedOwner = JSON.parse(readFileSync(remountedFixture.ownerPath, "utf8"));
+const previousDevice = (identity) => ({
+  ...identity,
+  device: `previous-${identity.device}`,
+});
+for (const key of ["directoryIdentity", "evidenceIdentity", "summaryIdentity", "ownershipIdentity"])
+  remountedOwner[key] = previousDevice(remountedOwner[key]);
+for (const resource of remountedOwner.resources) {
+  if (resource.identity) resource.identity = previousDevice(resource.identity);
+}
+writeFileSync(remountedFixture.ownerPath, `${JSON.stringify(remountedOwner, null, 2)}\n`);
+const remountedCleanup = await invoke(["cleanup", remountedId, "--json"]);
+assert.equal(remountedCleanup.status, 0, remountedCleanup.stderr);
+assert.equal(JSON.parse(remountedCleanup.stdout).outcome, "cleaned");
+assert.equal(existsSync(remountedFixture.build), false);
+assert.equal(
+  JSON.parse(readFileSync(remountedFixture.ownerPath, "utf8")).resources[0].state,
+  "removed",
+);
+assert.equal(
+  JSON.parse(readFileSync(remountedFixture.summaryPath, "utf8")).cleanup.outcome,
+  "cleaned",
+);
+
 const run = await invoke(["run", "agent-lab-single-agent", "--dev", "--json"]);
 assert.equal(
   run.status,
@@ -113,8 +198,24 @@ const ownerPath = resolve(invocationDirectory, "ownership.json");
 const buildPath = resolve(root, summary.ownedResources[0].path);
 const evidencePath = resolve(root, summary.results[0].evidenceDirectory);
 const screenshot = resolve(evidencePath, "desktop.png");
-assert.equal(existsSync(buildPath), true);
+assert.equal(runResult.cleanupOutcome, "cleaned");
+assert.equal(existsSync(buildPath), false);
 assert.equal(existsSync(screenshot), true);
+
+const ownerOriginal = readFileSync(ownerPath, "utf8");
+const staleSummary = structuredClone(summary);
+staleSummary.ownedResources[0].state = "retained";
+const staleOwner = JSON.parse(ownerOriginal);
+staleOwner.resources[0].state = "retained";
+writeFileSync(summaryPath, `${JSON.stringify(staleSummary, null, 2)}\n`);
+writeFileSync(ownerPath, `${JSON.stringify(staleOwner, null, 2)}\n`);
+const stale = await invoke(["cleanup", summary.invocationId, "--json"]);
+assert.notEqual(stale.status, 0);
+assert.equal(JSON.parse(stale.stdout).outcome, "blocked");
+assert.equal(JSON.parse(readFileSync(summaryPath, "utf8")).cleanup.outcome, "blocked");
+assert.equal(existsSync(buildPath), false);
+writeFileSync(summaryPath, summaryOriginal);
+writeFileSync(ownerPath, ownerOriginal);
 
 const otherRun = await invoke(["run", "agent-lab-single-agent", "--dev", "--json"]);
 assert.equal(
@@ -126,7 +227,13 @@ const otherResult = JSON.parse(otherRun.stdout);
 const otherSummaryPath = resolve(root, otherResult.summaryFile);
 const otherSummary = JSON.parse(readFileSync(otherSummaryPath, "utf8"));
 const otherBuildPath = resolve(root, otherSummary.ownedResources[0].path);
-assert.equal(existsSync(otherBuildPath), true);
+assert.equal(otherResult.cleanupOutcome, "cleaned");
+assert.equal(existsSync(otherBuildPath), false);
+assert.equal(existsSync(otherSummaryPath), true);
+assert.equal(
+  existsSync(resolve(root, otherSummary.results[0].evidenceDirectory, "desktop.png")),
+  true,
+);
 
 const forgedSummary = structuredClone(summary);
 forgedSummary.ownedResources[0].path =
@@ -135,17 +242,9 @@ writeFileSync(summaryPath, `${JSON.stringify(forgedSummary, null, 2)}\n`);
 const forged = await invoke(["cleanup", summary.invocationId, "--json"]);
 assert.notEqual(forged.status, 0);
 assert.equal(JSON.parse(forged.stdout).outcome, "blocked");
-assert.equal(existsSync(buildPath), true);
+assert.equal(existsSync(buildPath), false);
 assert.equal(readFileSync(userData, "utf8"), originalUserData);
 writeFileSync(summaryPath, summaryOriginal);
-
-const movedBuildPath = resolve(artifactRoot, `${summary.invocationId}-build-moved`);
-renameSync(buildPath, movedBuildPath);
-const stale = await invoke(["cleanup", summary.invocationId, "--json"]);
-assert.notEqual(stale.status, 0);
-assert.equal(JSON.parse(stale.stdout).outcome, "blocked");
-assert.equal(existsSync(movedBuildPath), true);
-renameSync(movedBuildPath, buildPath);
 
 const unrelatedResponse = await fetch(`http://127.0.0.1:${unrelatedPort}/health`);
 assert.equal(await unrelatedResponse.text(), "unrelated server remains available");
@@ -153,21 +252,25 @@ assert.equal(unrelatedRequests, 1);
 const beforeCleanupRequests = unrelatedRequests;
 
 const cleaned = await invoke(["cleanup", summary.invocationId]);
-assert.equal(cleaned.status, 0, `Owned cleanup failed: ${cleaned.stdout}\n${cleaned.stderr}`);
-assert.match(cleaned.stdout, /Local E2E cleanup cleaned/);
-assert.ok(cleaned.stdout.includes(summary.ownedResources[0].path));
+assert.equal(cleaned.status, 0, `Idempotent cleanup failed: ${cleaned.stdout}\n${cleaned.stderr}`);
+assert.match(cleaned.stdout, /Local E2E cleanup already_clean/);
 assert.equal(existsSync(buildPath), false);
 assert.equal(existsSync(summaryPath), true);
 assert.equal(existsSync(ownerPath), true);
 assert.equal(existsSync(screenshot), true);
+assert.equal(existsSync(otherSummaryPath), true);
+assert.equal(
+  existsSync(resolve(root, otherSummary.results[0].evidenceDirectory, "desktop.png")),
+  true,
+);
 assert.equal(readFileSync(userData, "utf8"), originalUserData);
 assert.equal(readFileSync(syntheticCredentials, "utf8"), originalCredentials);
-assert.equal(existsSync(otherBuildPath), true);
+assert.equal(existsSync(otherBuildPath), false);
 assert.equal(unrelatedRequests, beforeCleanupRequests);
 
 const otherCleaned = await invoke(["cleanup", otherSummary.invocationId, "--json"]);
 assert.equal(otherCleaned.status, 0, otherCleaned.stderr);
-assert.equal(JSON.parse(otherCleaned.stdout).outcome, "cleaned");
+assert.equal(JSON.parse(otherCleaned.stdout).outcome, "already_clean");
 assert.equal(existsSync(otherBuildPath), false);
 assert.equal(existsSync(otherSummaryPath), true);
 
@@ -217,7 +320,8 @@ const childBuildPaths = childSummaries.map(({ summary: child }) =>
 const childScreenshots = childSummaries.map(({ summary: child }) =>
   resolve(root, child.results[0].evidenceDirectory, "desktop.png"),
 );
-assert.ok(childBuildPaths.every((path) => existsSync(path)));
+assert.ok(childBuildPaths.every((path) => !existsSync(path)));
+assert.ok(childSummaries.every(({ summary: child }) => child.cleanup?.outcome === "cleaned"));
 assert.ok(childScreenshots.every((path) => existsSync(path)));
 
 const forgedRepeat = structuredClone(repeatSummary);
@@ -226,12 +330,12 @@ writeFileSync(repeatSummaryPath, `${JSON.stringify(forgedRepeat, null, 2)}\n`);
 const forgedParent = await invoke(["cleanup", repeatSummary.invocationId, "--json"]);
 assert.notEqual(forgedParent.status, 0);
 assert.equal(JSON.parse(forgedParent.stdout).outcome, "blocked");
-assert.ok(childBuildPaths.every((path) => existsSync(path)));
+assert.ok(childBuildPaths.every((path) => !existsSync(path)));
 writeFileSync(repeatSummaryPath, repeatSummaryOriginal);
 
 const cleanedRepeat = await invoke(["cleanup", repeatSummary.invocationId, "--json"]);
 assert.equal(cleanedRepeat.status, 0, `Repeat cleanup failed: ${cleanedRepeat.stdout}`);
-assert.equal(JSON.parse(cleanedRepeat.stdout).outcome, "cleaned");
+assert.equal(JSON.parse(cleanedRepeat.stdout).outcome, "already_clean");
 assert.ok(childBuildPaths.every((path) => !existsSync(path)));
 assert.equal(existsSync(repeatSummaryPath), true);
 assert.equal(existsSync(repeatOwnerPath), true);
@@ -255,9 +359,12 @@ const evidence = {
   checks: [
     "unknown and malformed IDs",
     "summary without independent ownership cannot authorize cleanup",
+    "moved owned resource is blocked and preserved",
+    "consistent remount device mapping permits cleanup and record writeback",
+    "missing resource recorded as retained is blocked",
     "forged outside path blocked",
-    "stale missing resource blocked",
-    "another invocation resource survives selected cleanup",
+    "automatic cleanup removes each invocation build and keeps evidence",
+    "another invocation report and screenshot survive selected cleanup",
     "normal cleanup retains summary and screenshot",
     "repeat cleanup is idempotent",
     "replacement and symlink resources are blocked and preserved",

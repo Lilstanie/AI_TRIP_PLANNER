@@ -19,6 +19,9 @@ Next from editing the shared config as it discovers the owned build directory.
 
 Builds and fixture journeys share the same child executor for logging, timeout handling and process-group
 termination. Repeat records are assembled directly; ownership validation remains in the cleanup boundary.
+Cleanup identity checks require matching inode, creation time and resource type. If a workspace remount
+changes device numbers, cleanup accepts the change only when the old-to-current device mapping is
+consistent in both directions across the invocation.
 
 ## Alternatives considered
 
@@ -26,6 +29,8 @@ termination. Repeat records are assembled directly; ownership validation remains
   build, server and scripts.
 - Copy the entire application to a temporary project root: rejected for this slice because the known
   credential names can be blocked without editing the user's dotenv files.
+- Require exact device-number equality during cleanup: rejected because a workspace remount can renumber
+  devices while retaining the resource identity; inconsistent mappings still block cleanup.
 
 ## Consequences
 
@@ -35,6 +40,8 @@ termination. Repeat records are assembled directly; ownership validation remains
   summary and process exit succeed.
 - Credential names added by future integrations must be added to the deny list. This is not a network
   egress firewall.
+- Remount tolerance depends on inode and creation time remaining stable; inconsistent device mappings
+  across the invocation are rejected.
 - The legacy raw invocation retains its existing environment and server-reuse behavior.
 - English and Chinese usage guidance lives in [local-test-cli.md](../../../../docs/local-test-cli.md)
   and [local-test-cli.zh.md](../../../../docs/local-test-cli.zh.md).

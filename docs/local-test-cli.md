@@ -19,22 +19,24 @@ port cannot satisfy the check. It uses a production build and server by default;
 development mode. An inherited `BASE_URL` is ignored. A fresh invocation
 directory under `output/e2e/local-test-cli/` contains `summary.json`, build/server/journey logs and each
 journey's screenshots, API streams and artifacts. The summary records selection mode, exact requested
-journeys, one outcome per journey, reproduction command, server mode, retained build directory and evidence
+journeys, one outcome per journey, reproduction command, server mode, build cleanup and evidence
 paths. A multi-journey run uses a separate evidence subdirectory for each journey. Each run gets its own
 invocation directory.
 
 JSON mode writes one JSON object to standard output; child output goes to the invocation's log files.
 Use pnpm's `--silent` option so pnpm's own package banner does not precede that object. The object
-includes `outcome`, `requested`, per-journey `results`, `summaryFile` and `evidenceDirectory`.
-`passed` exits zero. `unsupported`, `blocked`, `failed`, `startup_failed`, `timed_out` and
+includes `outcome`, `requested`, per-journey `results`, `summaryFile`, `evidenceDirectory`,
+`cleanupOutcome` and `cleanupResources`. `passed` exits zero only when owned temporary resources were
+also cleaned successfully. `unsupported`, `blocked`, `failed`, `startup_failed`, `timed_out` and
 `interrupted` exit nonzero.
 
 The local process receives only basic runtime environment settings. Known model, provider, database,
 KV and authentication credentials are blanked for both build and runtime, including when Next loads
 app-local dotenv files; mock data is enabled and Agent Lab live runs are disabled. Next uses an
 invocation-specific temporary TypeScript config so its build cannot append the temporary output
-directory to the shared `apps/web/tsconfig.json`. The build directory is retained and recorded as an
-owned resource. This protects the integrations currently used by the repository. It is not a general
+directory to the shared `apps/web/tsconfig.json`. The owned build directory and temporary TypeScript config
+are automatically removed after each run; the summary records the cleanup result. Reports, logs,
+screenshots and other evidence remain available. This protects the integrations currently used by the repository. It is not a general
 network egress firewall, and new credential names must be added to the CLI's deny list before their
 integration is covered.
 
@@ -67,7 +69,8 @@ pnpm --silent --filter @trip/web e2e run agent-lab-single-agent --repeat 3 --jso
 ```
 
 Every attempt starts a fresh local CLI invocation with its own build, server, browser process, fixture
-execution and evidence directory. The repeat summary records the requested count and each started
+execution and evidence directory. Each attempt's temporary build is removed when that attempt finishes.
+The repeat summary records the requested count and each started
 attempt's outcome, reproduction command, child summary and evidence paths. A failed, blocked,
 unsupported, timed-out or interrupted attempt keeps the repeat outcome nonzero even when a later
 attempt passes. An attempt counts as passed only when both its saved run summary and child process
@@ -136,8 +139,9 @@ return nonzero; JSON errors do not include saved file contents.
 
 ## Clean up an invocation
 
-Remove the temporary resources owned by one completed invocation while keeping its report and
-diagnostic evidence:
+Remove temporary resources left by an older or interrupted invocation while keeping its report and
+diagnostic evidence. New runs already remove their build directory and temporary TypeScript config
+automatically; this command also provides explicit, repeatable cleanup:
 
 ```bash
 pnpm --filter @trip/web e2e cleanup <invocation-id>
@@ -145,7 +149,9 @@ pnpm --silent --filter @trip/web e2e cleanup <invocation-id> --json
 ```
 
 The command derives the only removable paths from the invocation ID, then checks the saved summary,
-separate ownership record, resource type and filesystem identity. For a repeated run, it also checks
+separate ownership record, resource type and filesystem identity. If a workspace remount changes device
+numbers, cleanup accepts the change only when inode and creation time still match and all observed
+old-to-current device mappings are consistent across the invocation. For a repeated run, it also checks
 that the parent record links to each child run's own verified summary and ownership record. It removes
 a resource only when those records agree and the resource still has the recorded identity. Unknown
 IDs and missing, forged, stale, replaced or symlinked resources are reported as `not_found`,

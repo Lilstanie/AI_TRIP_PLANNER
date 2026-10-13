@@ -19,6 +19,7 @@ import {
   createRunOwnershipRecord,
   writeOwnershipRecord,
 } from "./resource-ownership.mjs";
+import { cleanupOwnedInvocation } from "./cleanup-cli.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const WEB = resolve(HERE, "../..");
@@ -544,6 +545,23 @@ export async function runLocalCli(args) {
     },
   });
   writeOwnershipRecord(directory, ownerRecord);
+  let cleanup;
+  try {
+    cleanup = cleanupOwnedInvocation(id);
+  } catch (error) {
+    cleanup = {
+      outcome: "blocked",
+      diagnostic: error.message,
+      removed: [],
+      resources: [],
+    };
+    summary.cleanup = {
+      outcome: "blocked",
+      completedAt: new Date().toISOString(),
+      diagnostic: error.message,
+    };
+    writeSummary(directory, summary);
+  }
   outputResult(
     {
       outcome: status,
@@ -551,9 +569,16 @@ export async function runLocalCli(args) {
       results: summary.results,
       summaryFile: summary.summaryFile,
       evidenceDirectory: summary.evidenceDirectory,
+      cleanupOutcome: cleanup.outcome,
+      cleanupResources: cleanup.resources,
+      ...(cleanup.diagnostic ? { cleanupDiagnostic: cleanup.diagnostic } : {}),
       ...(diagnostic ? { diagnostic } : {}),
     },
     options.json,
   );
-  return status === "passed" ? 0 : status === "unsupported" || status === "blocked" ? 2 : 1;
+  return status === "passed" && cleanup.outcome !== "blocked"
+    ? 0
+    : status === "unsupported" || status === "blocked"
+      ? 2
+      : 1;
 }
