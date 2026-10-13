@@ -15,18 +15,19 @@ pnpm --silent --filter @trip/web e2e run --all --json
 
 命令会将自己启动的 Next 服务器绑定到空闲回环端口 `127.0.0.1`。只有该 Next 子进程报告已就绪且服务器能够响应 HTTP，命令才会认定启动成功；端口上的其他服务不能满足此条件。默认先构建生产版本再启动；`--dev` 显式选择 Next
 开发模式。命令会忽略继承的 `BASE_URL`。每次运行都会在 `output/e2e/local-test-cli/` 下创建独立目录，保存
-`summary.json`、构建/服务器/行程日志，以及每个行程的截图、API 流和 artifact。摘要记录选择模式、准确的行程列表、每个行程的结果、复现
-命令、服务器模式、保留的构建目录和证据路径。多行程运行会为每个行程使用独立的证据子目录。
+`summary.json`、构建/服务器/行程日志，以及每个行程的截图、API 流和 artifact。摘要记录选择模式、准确的行程列表、每个行程的结果、复现命令、服务器模式、构建清理结果和证据路径。多行程运行会为每个行程使用独立的证据子目录。
 
 JSON 模式只向标准输出写入一个 JSON 对象；子进程输出保存在本次运行的日志文件中。使用 pnpm 的 `--silent`
 选项，避免 pnpm 自己的包信息出现在 JSON 对象前。对象包含 `outcome`、`requested`、各行程的 `results`、
-`summaryFile` 和 `evidenceDirectory`。`passed` 返回零退出码；`unsupported`、`blocked`、`failed`、
-`startup_failed`、`timed_out` 和 `interrupted` 都返回非零退出码。
+`summaryFile`、`evidenceDirectory`、`cleanupOutcome` 和 `cleanupResources`。只有 E2E 通过且拥有的临时资源
+也成功清理时，`passed` 才返回零退出码；`unsupported`、`blocked`、`failed`、`startup_failed`、`timed_out`
+和 `interrupted` 都返回非零退出码。
 
 本地进程只接收基本运行环境设置。已知的模型、供应商、数据库、KV 和认证凭据会在构建和运行时清空，包括 Next
 读取应用目录本地 dotenv 文件的情况；命令会启用 mock 数据并禁用 Agent Lab 实时运行。Next 会使用本次调用专属的
-临时 TypeScript 配置，因此构建不会把临时输出目录写进共享的 `apps/web/tsconfig.json`。构建目录会保留，并作为
-本次拥有的资源记录在摘要中。这能隔离仓库当前使用的这些集成，但不构成通用网络出口防火墙。新增凭据名称时，必须
+临时 TypeScript 配置，因此构建不会把临时输出目录写进共享的 `apps/web/tsconfig.json`。每次运行结束后会自动删除
+本次拥有的构建目录和临时 TypeScript 配置，并在摘要中记录清理结果。报告、日志、截图和其他证据会继续保留。
+这能隔离仓库当前使用的这些集成，但不构成通用网络出口防火墙。新增凭据名称时，必须
 先加入命令的屏蔽列表，才能纳入此隔离保证。
 
 支持的行程是 `agent-lab-single-agent` 和 `agent-lab-replay`。Smoke 只运行 `agent-lab-single-agent`：它会在桌面和手机视口
@@ -54,7 +55,8 @@ pnpm --filter @trip/web e2e run agent-lab-single-agent --dev --repeat 3
 pnpm --silent --filter @trip/web e2e run agent-lab-single-agent --repeat 3 --json
 ```
 
-每次运行都会启动全新的本地 CLI 调用，并使用独立构建、服务器、浏览器进程、fixture 执行和证据目录。重复运行摘要会记录
+每次运行都会启动全新的本地 CLI 调用，并使用独立构建、服务器、浏览器进程、fixture 执行和证据目录。每次尝试结束时都会
+自动删除临时构建目录。重复运行摘要会记录
 请求次数、每次已启动运行的结果、复现命令、子调用摘要和证据路径。如果某次运行失败、受阻、不受支持、超时或被中断，后续
 运行即使成功，整体结果仍返回非零状态码。只有保存的运行摘要和子进程退出码都表示成功，该次尝试才算通过。请求的运行次数会按顺序执行；这不是自动重试。无效次数会在启动调用前被拒绝。
 如果重复运行命令收到中断信号，已完成的摘要和现有证据会保留，当前子调用会收到清理请求，摘要会记录还有多少次请求的运行尚未开始。
@@ -107,14 +109,17 @@ pnpm --silent --filter @trip/web e2e report <summaryFile> --json
 
 ## 清理一次运行
 
-清理某次已完成运行所拥有的临时资源，同时保留报告和诊断证据：
+清理较早或被中断运行遗留的临时资源，同时保留报告和诊断证据。新运行会自动删除构建目录和临时 TypeScript 配置；此命令
+仍支持显式、可重复的清理：
 
 ```bash
 pnpm --filter @trip/web e2e cleanup <invocation-id>
 pnpm --silent --filter @trip/web e2e cleanup <invocation-id> --json
 ```
 
-命令会根据运行 ID 推导唯一允许清理的路径，然后核对已保存的摘要、独立所有权记录、资源类型和文件系统身份。对于
+命令会根据运行 ID 推导唯一允许清理的路径，然后核对已保存的摘要、独立所有权记录、资源类型和文件系统身份。如果工作区
+重新挂载后设备号发生变化，只有 inode 和创建时间仍匹配，且本次调用中观察到的旧、新设备号映射保持一致时才会接受。
+对于
 重复运行，命令还会检查父记录是否关联到每次子运行各自经过验证的摘要和所有权记录。只有这些记录一致且资源仍具有被记录
 的身份时，命令才会删除该资源。未知 ID，以及缺失、伪造、过期、已替换或符号链接资源会报告为 `not_found`、
 `invalid` 或 `blocked`，并保持原样。对已清理的运行重复执行会以 `already_clean` 成功返回。

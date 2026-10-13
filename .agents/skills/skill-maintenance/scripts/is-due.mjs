@@ -27,7 +27,6 @@ const CONVENTION_PATHS = [
   "docs/team-workflow.md",
   "docs/AGENTS.md",
   ".github/workflows",
-  ".github/pull_request_template.md",
   "scripts/verify-docs.mjs",
   "scripts/verify-protected-files.mjs",
   "scripts/skill-rules.mjs",

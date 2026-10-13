@@ -17,6 +17,7 @@ import {
   OWNERSHIP_FILE,
   OWNERSHIP_SCHEMA_VERSION,
   canonicalResources,
+  createIdentityMatcher,
   identityFromDescriptor,
   sameIdentity,
 } from "./resource-ownership.mjs";
@@ -81,13 +82,13 @@ function pathIdentity(path, expectedType) {
   };
 }
 
-function readJsonFile(path, expectedIdentity, label) {
+function readJsonFile(path, expectedIdentity, label, matchesIdentity) {
   let descriptor;
   let value;
   try {
     descriptor = openSync(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
     const identity = identityFromDescriptor(descriptor, "file");
-    if (!sameIdentity(identity, expectedIdentity)) throw new Error(`${label} was replaced`);
+    if (!matchesIdentity(identity, expectedIdentity)) throw new Error(`${label} was replaced`);
     value = JSON.parse(readFileSync(descriptor, "utf8"));
   } catch {
     throw new Error(`${label} is malformed`);
@@ -172,7 +173,14 @@ function verifyRepeatSummary(summary, invocationId, summaryPath, evidencePath) {
     throw new Error("repeat summary is incomplete");
 }
 
-function verifyOwnership(owner, summary, invocationId, identities, expectedResources) {
+function verifyOwnership(
+  owner,
+  summary,
+  invocationId,
+  identities,
+  expectedResources,
+  matchesIdentity,
+) {
   if (
     owner.schemaVersion !== OWNERSHIP_SCHEMA_VERSION ||
     owner.recordType !== "run" ||
@@ -180,13 +188,13 @@ function verifyOwnership(owner, summary, invocationId, identities, expectedResou
     owner.createdAt !== summary.startedAt
   )
     throw new Error("ownership record does not match this run");
-  if (!sameIdentity(owner.directoryIdentity, identities.directory))
+  if (!matchesIdentity(identities.directory, owner.directoryIdentity))
     throw new Error("invocation directory was replaced");
-  if (!sameIdentity(owner.evidenceIdentity, identities.evidence))
+  if (!matchesIdentity(identities.evidence, owner.evidenceIdentity))
     throw new Error("evidence directory was replaced");
-  if (!sameIdentity(owner.summaryIdentity, identities.summary))
+  if (!matchesIdentity(identities.summary, owner.summaryIdentity))
     throw new Error("summary file was replaced");
-  if (!sameIdentity(owner.ownershipIdentity, identities.ownership))
+  if (!matchesIdentity(identities.ownership, owner.ownershipIdentity))
     throw new Error("ownership record was replaced");
   if (!Array.isArray(owner.resources) || owner.resources.length !== expectedResources.length)
     throw new Error("ownership resource list is unsupported");
@@ -225,10 +233,10 @@ function verifyOwnership(owner, summary, invocationId, identities, expectedResou
   }
 }
 
-function openVerifiedForRewrite(path, expectedIdentity) {
+function openVerifiedForRewrite(path, expectedIdentity, matchesIdentity) {
   const descriptor = openSync(path, constants.O_WRONLY | (constants.O_NOFOLLOW ?? 0));
   const actual = identityFromDescriptor(descriptor, "file");
-  if (!sameIdentity(actual, expectedIdentity)) {
+  if (!matchesIdentity(actual, expectedIdentity)) {
     closeSync(descriptor);
     throw new Error("record file changed before update");
   }
@@ -236,8 +244,8 @@ function openVerifiedForRewrite(path, expectedIdentity) {
   return descriptor;
 }
 
-function writeVerifiedJson(path, identity, value) {
-  const descriptor = openVerifiedForRewrite(path, identity);
+function writeVerifiedJson(path, identity, value, matchesIdentity) {
+  const descriptor = openVerifiedForRewrite(path, identity, matchesIdentity);
   try {
     writeSync(descriptor, `${JSON.stringify(value, null, 2)}\n`);
   } finally {
@@ -245,7 +253,7 @@ function writeVerifiedJson(path, identity, value) {
   }
 }
 
-function inspectResource(resource, definition, webRoot) {
+function inspectResource(resource, definition, webRoot, matchesIdentity) {
   const target = definition.absolutePath;
   const relativePath = relative(webRoot, target);
   if (!within(webRoot, target) || relativePath !== target.slice(webRoot.length + 1))
@@ -281,17 +289,17 @@ function inspectResource(resource, definition, webRoot) {
     birthtimeMs: String(stats.birthtimeMs),
     type: definition.type,
   };
-  if (!sameIdentity(current, resource.identity))
+  if (!matchesIdentity(current, resource.identity))
     return { status: "blocked", reason: "resource filesystem identity changed" };
   return { status: "removable" };
 }
 
-function cleanupResource(resource, definition, webRoot) {
-  const inspected = inspectResource(resource, definition, webRoot);
+function cleanupResource(resource, definition, webRoot, matchesIdentity) {
+  const inspected = inspectResource(resource, definition, webRoot, matchesIdentity);
   if (inspected.status !== "removable") return inspected;
   const target = definition.absolutePath;
   try {
-    const lastCheck = inspectResource(resource, definition, webRoot);
+    const lastCheck = inspectResource(resource, definition, webRoot, matchesIdentity);
     if (lastCheck.status !== "removable") return lastCheck;
     if (definition.type === "directory") rmSync(target, { recursive: true, force: false });
     else unlinkSync(target);
@@ -301,7 +309,7 @@ function cleanupResource(resource, definition, webRoot) {
   }
 }
 
-function loadInvocation(invocationId) {
+function loadInvocation(invocationId, matchesIdentity = createIdentityMatcher()) {
   if (!matches(RUN_ID, invocationId) && !matches(REPEAT_ID, invocationId))
     throw new Error("invocation ID is unsupported");
   if (realpathSync(ROOT) !== ROOT) throw new Error("repository root is not canonical");
@@ -320,7 +328,7 @@ function loadInvocation(invocationId) {
   const summaryPath = resolve(directory, "summary.json");
   const evidencePath = resolve(directory, "evidence");
   const ownerSummaryIdentity = owner.summaryIdentity;
-  const summary = readJsonFile(summaryPath, ownerSummaryIdentity, "summary");
+  const summary = readJsonFile(summaryPath, ownerSummaryIdentity, "summary", matchesIdentity);
   const summaryIdentity = pathIdentity(summaryPath, "file");
   const evidenceIdentity = pathIdentity(evidencePath, "directory");
   const identities = {
@@ -332,7 +340,7 @@ function loadInvocation(invocationId) {
   if (matches(RUN_ID, invocationId)) {
     if (owner.recordType !== "run") throw new Error("run ownership record has the wrong type");
     verifySummary(summary, invocationId, summaryPath, evidencePath);
-    verifyOwnership(owner, summary, invocationId, identities, expectedResources);
+    verifyOwnership(owner, summary, invocationId, identities, expectedResources, matchesIdentity);
   } else {
     if (owner.recordType !== "repeat")
       throw new Error("repeat ownership record has the wrong type");
@@ -341,10 +349,10 @@ function loadInvocation(invocationId) {
       owner.schemaVersion !== OWNERSHIP_SCHEMA_VERSION ||
       owner.invocationId !== invocationId ||
       owner.createdAt !== summary.startedAt ||
-      !sameIdentity(owner.directoryIdentity, identities.directory) ||
-      !sameIdentity(owner.evidenceIdentity, identities.evidence) ||
-      !sameIdentity(owner.summaryIdentity, identities.summary) ||
-      !sameIdentity(owner.ownershipIdentity, identities.ownership) ||
+      !matchesIdentity(identities.directory, owner.directoryIdentity) ||
+      !matchesIdentity(identities.evidence, owner.evidenceIdentity) ||
+      !matchesIdentity(identities.summary, owner.summaryIdentity) ||
+      !matchesIdentity(identities.ownership, owner.ownershipIdentity) ||
       !Array.isArray(owner.children) ||
       owner.children.length !== summary.attempts.length
     )
@@ -373,14 +381,14 @@ function loadInvocation(invocationId) {
         attempt.evidenceDirectory !== childResult.value.evidenceDirectory ||
         attempt.status !== childResult.value.outcome ||
         linked.invocationId !== childId ||
-        !sameIdentity(linked.summaryIdentity, childResult.identity)
+        !matchesIdentity(childResult.identity, linked.summaryIdentity)
       )
         throw new Error(`repeat attempt ${index + 1} points outside its verified child`);
       const childOwnershipPath = resolve(OUTPUT, childId, OWNERSHIP_FILE);
       const childOwnershipIdentity = pathIdentity(childOwnershipPath, "file");
-      if (!sameIdentity(linked.ownershipIdentity, childOwnershipIdentity))
+      if (!matchesIdentity(childOwnershipIdentity, linked.ownershipIdentity))
         throw new Error(`repeat attempt ${index + 1} ownership record was replaced`);
-      const child = loadInvocation(childId);
+      const child = loadInvocation(childId, matchesIdentity);
       if (child.owner.recordType !== "run")
         throw new Error(`repeat attempt ${index + 1} is not an ordinary run`);
       children.push(child);
@@ -418,13 +426,13 @@ function parseArgs(args) {
   return { json, invocationId: values[0] };
 }
 
-function cleanupRunInvocation(invocation) {
+function cleanupRunInvocation(invocation, matchesIdentity) {
   const cleanedResources = [];
   const removed = [];
   for (let index = 0; index < invocation.resources.length; index += 1) {
     const definition = invocation.resources[index];
     const resource = invocation.owner.resources[index];
-    const action = cleanupResource(resource, definition, WEB);
+    const action = cleanupResource(resource, definition, WEB, matchesIdentity);
     const status = action.status;
     if (status === "removed") {
       resource.state = "removed";
@@ -444,9 +452,70 @@ function cleanupRunInvocation(invocation) {
     completedAt: new Date().toISOString(),
     resources: cleanedResources,
   };
-  writeVerifiedJson(invocation.ownerPath, invocation.ownerIdentity, invocation.owner);
-  writeVerifiedJson(invocation.summaryPath, invocation.summaryIdentity, invocation.summary);
+  writeVerifiedJson(
+    invocation.ownerPath,
+    invocation.owner.ownershipIdentity,
+    invocation.owner,
+    matchesIdentity,
+  );
+  writeVerifiedJson(
+    invocation.summaryPath,
+    invocation.owner.summaryIdentity,
+    invocation.summary,
+    matchesIdentity,
+  );
   return { cleanedResources, removed, blocked };
+}
+
+function cleanupLoadedInvocation(invocation, matchesIdentity) {
+  const runs = invocation.recordType === "repeat" ? invocation.children : [invocation];
+  const childResults = runs.map((child) => ({
+    invocationId: child.summary.invocationId,
+    summaryFile: relative(ROOT, child.summaryPath),
+    ...cleanupRunInvocation(child, matchesIdentity),
+  }));
+  const cleanedResources = childResults.flatMap((child) =>
+    child.cleanedResources.map((resource) => ({ ...resource, invocationId: child.invocationId })),
+  );
+  const removed = childResults.flatMap((child) => child.removed);
+  const blocked = childResults.some((child) => child.blocked);
+  const outcome = blocked ? "blocked" : removed.length ? "cleaned" : "already_clean";
+  if (invocation.recordType === "repeat") {
+    invocation.summary.cleanup = {
+      outcome,
+      completedAt: new Date().toISOString(),
+      children: childResults.map(({ invocationId, summaryFile, cleanedResources: resources }) => ({
+        invocationId,
+        summaryFile,
+        resources,
+      })),
+    };
+    writeVerifiedJson(
+      invocation.summaryPath,
+      invocation.owner.summaryIdentity,
+      invocation.summary,
+      matchesIdentity,
+    );
+  }
+  return { outcome, cleanedResources, removed, blocked };
+}
+
+export function cleanupOwnedInvocation(invocationId) {
+  const matchesIdentity = createIdentityMatcher();
+  const invocation = loadInvocation(invocationId, matchesIdentity);
+  const cleaned = cleanupLoadedInvocation(invocation, matchesIdentity);
+  return {
+    ...resultFor(cleaned.outcome, {
+      invocationId,
+      removed: cleaned.removed,
+      resources: cleaned.cleanedResources,
+      summaryFile: relative(ROOT, invocation.summaryPath),
+      ...(cleaned.blocked
+        ? { diagnostic: "One or more resources could not be verified or removed." }
+        : {}),
+    }),
+    blocked: cleaned.blocked,
+  };
 }
 
 export async function runCleanupCli(args) {
@@ -511,45 +580,24 @@ export async function runCleanupCli(args) {
   }
 
   let invocation;
+  const matchesIdentity = createIdentityMatcher();
   try {
-    invocation = loadInvocation(invocationId);
+    invocation = loadInvocation(invocationId, matchesIdentity);
   } catch (error) {
     emit(resultFor("blocked", { invocationId, diagnostic: error.message }), parsed.json);
     return 1;
   }
 
-  const runs = invocation.recordType === "repeat" ? invocation.children : [invocation];
-  const childResults = runs.map((child) => ({
-    invocationId: child.summary.invocationId,
-    summaryFile: relative(ROOT, child.summaryPath),
-    ...cleanupRunInvocation(child),
-  }));
-  const cleanedResources = childResults.flatMap((child) =>
-    child.cleanedResources.map((resource) => ({ ...resource, invocationId: child.invocationId })),
-  );
-  const removed = childResults.flatMap((child) => child.removed);
-  const blocked = childResults.some((child) => child.blocked);
-  const outcome = blocked ? "blocked" : removed.length ? "cleaned" : "already_clean";
-  if (invocation.recordType === "repeat") {
-    invocation.summary.cleanup = {
-      outcome,
-      completedAt: new Date().toISOString(),
-      children: childResults.map(({ invocationId, summaryFile, cleanedResources: resources }) => ({
-        invocationId,
-        summaryFile,
-        resources,
-      })),
-    };
-    writeVerifiedJson(invocation.summaryPath, invocation.summaryIdentity, invocation.summary);
-  }
-
-  const result = resultFor(outcome, {
+  const cleaned = cleanupLoadedInvocation(invocation, matchesIdentity);
+  const result = resultFor(cleaned.outcome, {
     invocationId,
-    removed,
-    resources: cleanedResources,
+    removed: cleaned.removed,
+    resources: cleaned.cleanedResources,
     summaryFile: relative(ROOT, invocation.summaryPath),
-    ...(blocked ? { diagnostic: "One or more resources could not be verified or removed." } : {}),
+    ...(cleaned.blocked
+      ? { diagnostic: "One or more resources could not be verified or removed." }
+      : {}),
   });
   emit(result, parsed.json);
-  return blocked ? 1 : 0;
+  return cleaned.blocked ? 1 : 0;
 }
