@@ -48,11 +48,33 @@ try {
     page.on("console", (message) => {
       if (message.type() === "error") console.error(message.text());
     });
+    await page.addInitScript(() => {
+      if (localStorage.getItem("fixture.settings-seeded")) return;
+      localStorage.setItem(
+        "trip.settings.v1",
+        JSON.stringify({
+          version: 1,
+          travel: { homeCity: "Sydney", preferences: [], interests: [], dietary: [] },
+          memberships: [],
+          assistant: { style: "neutral", memory: true },
+          dataMode: "default",
+          appearance: "dark",
+          displayCurrency: "AUD",
+          updatedAt: "2026-10-14T00:00:00.000Z",
+        }),
+      );
+      localStorage.setItem("fixture.settings-seeded", "true");
+    });
     const records = { trips: new Map(), conversations: new Map() };
-    let settings = null;
-    let settingsRevision = 0;
+    const settingsByUser = new Map();
+    const settingsWrites = [];
+    let rejectSettingsWrites = false;
+    let activeUser = "fixture-user";
     let release;
-    let held = false;
+    let markHeld;
+    const requestHeld = new Promise((resolve) => {
+      markHeld = resolve;
+    });
     await page.route("**/api/account/sync", async (route) => {
       const request = route.request();
       if (request.method() === "GET")
@@ -64,7 +86,7 @@ try {
       const changes = request.postDataJSON();
       traces.push({ viewport, changes });
       if (changes.trips.some((item) => item.record?.title === "First edit")) {
-        held = true;
+        markHeld();
         await new Promise((resolve) => {
           release = resolve;
         });
@@ -87,14 +109,16 @@ try {
       await route.fulfill({ json: result });
     });
     await page.route("**/api/account/settings", async (route) => {
-      if (route.request().method() === "GET")
-        return route.fulfill({ json: { settings, revision: settingsRevision } });
+      const state = settingsByUser.get(activeUser) ?? { settings: null, revision: 0 };
+      if (route.request().method() === "GET") return route.fulfill({ json: state });
       const body = route.request().postDataJSON();
-      if (body.revision !== settingsRevision)
+      settingsWrites.push({ userId: activeUser, body });
+      if (rejectSettingsWrites) return route.fulfill({ status: 503, json: { error: "offline" } });
+      if (body.revision !== state.revision)
         return route.fulfill({ status: 409, json: { conflict: true } });
-      settings = body.settings;
-      settingsRevision += 1;
-      await route.fulfill({ json: { settings, revision: settingsRevision } });
+      const saved = { settings: body.settings, revision: state.revision + 1 };
+      settingsByUser.set(activeUser, saved);
+      await route.fulfill({ json: saved });
     });
     const waitStatus = (name, value) =>
       page
@@ -109,28 +133,73 @@ try {
       throw error;
     });
     await waitStatus("Settings sync", "synced");
+    assert.equal(settingsByUser.get(activeUser).settings.travel.homeCity, "Sydney");
+    const firstPush = page.waitForRequest((request) => {
+      if (request.url().endsWith("/api/account/sync") && request.method() === "POST")
+        return request.postDataJSON().trips.some((item) => item.record?.title === "First edit");
+      return false;
+    });
     await page.getByRole("button", { name: "First edit", exact: true }).click();
-    while (!held) await page.waitForTimeout(50);
+    await firstPush;
+    await requestHeld;
+    const secondPush = page.waitForRequest((request) => {
+      if (request.url().endsWith("/api/account/sync") && request.method() === "POST")
+        return request.postDataJSON().trips.some((item) => item.record?.title === "Second edit");
+      return false;
+    });
     await page.getByRole("button", { name: "Second edit", exact: true }).click();
-    await page.waitForTimeout(1800);
-    assert.equal(
-      traces.filter(
-        (trace) =>
-          trace.viewport === viewport &&
-          trace.changes.trips.some((item) => item.record?.title === "Second edit"),
-      ).length,
-      0,
-    );
     release();
+    await secondPush;
     await waitStatus("Catalog sync", "synced");
     const saved = [...records.trips.values()][0];
     assert.equal(saved.revision, 3);
     assert.equal(saved.record.title, "Second edit");
+    const settingsPush = page.waitForRequest((request) => {
+      if (request.url().endsWith("/api/account/settings") && request.method() === "PUT")
+        return request.postDataJSON().settings.appearance === "light";
+      return false;
+    });
     await page.getByRole("button", { name: "Dark", exact: true }).click();
     await page.getByRole("button", { name: "Light", exact: true }).click();
-    await page.waitForTimeout(1800);
+    await settingsPush;
     await waitStatus("Settings sync", "synced");
-    assert.equal(settings.appearance, "light");
+    assert.equal(settingsByUser.get(activeUser).settings.appearance, "light");
+    rejectSettingsWrites = true;
+    const pendingPush = page.waitForRequest(
+      (request) =>
+        request.url().endsWith("/api/account/settings") &&
+        request.method() === "PUT" &&
+        request.postDataJSON().settings.appearance === "dark",
+    );
+    await page.getByRole("button", { name: "Dark", exact: true }).click();
+    await pendingPush;
+    await waitStatus("Settings sync", "failed");
+    activeUser = "another-account";
+    await page.evaluate(() => localStorage.setItem("fixture.user", "another-account"));
+    await page.reload();
+    await waitStatus("Settings sync", "synced");
+    assert.equal(settingsByUser.has("another-account"), false);
+    assert.equal(
+      settingsWrites.some(({ userId }) => userId === "another-account"),
+      false,
+    );
+    assert.equal(await page.getByText("Theme: system", { exact: true }).count(), 1);
+    assert.equal(
+      JSON.parse(
+        await page.evaluate(() => localStorage.getItem("trip.settings.pending.v1:fixture-user")),
+      ).appearance,
+      "dark",
+    );
+    activeUser = "fixture-user";
+    rejectSettingsWrites = false;
+    await page.evaluate(() => localStorage.setItem("fixture.user", "fixture-user"));
+    await page.reload();
+    await waitStatus("Settings sync", "synced");
+    assert.equal(settingsByUser.get("fixture-user").settings.appearance, "dark");
+    assert.equal(
+      await page.evaluate(() => localStorage.getItem("trip.settings.pending.v1:fixture-user")),
+      null,
+    );
     await page.getByRole("button", { name: "Rejected edit", exact: true }).click();
     await waitStatus("Catalog sync", "offline");
     await page.reload();

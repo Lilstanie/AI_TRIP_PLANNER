@@ -162,4 +162,32 @@ describe("destination calendar forecast windows", () => {
     );
     expect(String(fetcher.mock.calls[0]?.[0])).toContain("googleapis");
   });
+
+  it("uses the destination's Open-Meteo calendar at a UTC date boundary", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-20T14:30:00Z"));
+    vi.stubEnv("USE_MOCK_TOOLS", "false");
+    const fetcher = vi.fn(async (input: URL | string) => {
+      const url = new URL(String(input));
+      expect(url.searchParams.get("timezone")).toBe("Australia/Sydney");
+      return Response.json({
+        daily: {
+          time: ["2026-10-01"],
+          weather_code: [0],
+          temperature_2m_max: [23],
+          temperature_2m_min: [12],
+        },
+      });
+    });
+    vi.stubGlobal("fetch", fetcher);
+
+    const result = await weather.forecast({ ...query, targetDate: "2026-10-01" });
+
+    expect(result).toMatchObject({
+      horizon: "forecast",
+      targetDate: "2026-10-01",
+      provider: "Open-Meteo Forecast API",
+      summary: "Clear sky (12–23°C). Forecast conditions can change before departure.",
+    });
+  });
 });

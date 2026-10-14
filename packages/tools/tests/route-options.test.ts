@@ -104,7 +104,16 @@ describe("driveOption", () => {
     const option = driveOption({ duration: "1100s", distanceMeters: 8323, travelAdvisory: {} }, q)!;
     expect(option.price).toBe(0);
     expect(option.priceBasis).toBe("partial");
-    expect(option.note).toMatch(/no tolls/);
+    expect(option.note).toContain("toll status not provided");
+    expect(option.note).not.toMatch(/no tolls/);
+  });
+
+  it("reports toll-free only when the provider explicitly returns an empty toll list", () => {
+    const option = driveOption(
+      { duration: "1100s", travelAdvisory: { tollInfo: { estimatedPrice: [] } } },
+      q,
+    )!;
+    expect(option.note).toContain("no tolls reported on this route");
   });
 });
 

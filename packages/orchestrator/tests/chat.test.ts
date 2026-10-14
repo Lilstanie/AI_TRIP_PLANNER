@@ -373,6 +373,23 @@ describe("without a provider key", () => {
     });
   });
 
+  it("carries Chinese party sizes from offline chat into the planned brief", async () => {
+    const { mem } = memoryStore();
+    const result = await offline(
+      {
+        tripId: "blank",
+        message: "Tokyo, 2026-11-02 to 2026-11-06, 十三个人, budget $2400",
+      },
+      mem,
+    );
+
+    expect(result.plan.brief).toMatchObject({
+      destination: "Tokyo",
+      groupSize: 13,
+      budgetTotal: 2400,
+    });
+  });
+
   it("uses an injected extractor when one is supplied", async () => {
     const { mem } = memoryStore();
     const extract = vi.fn(async () => ({ destination: "Melbourne" }));

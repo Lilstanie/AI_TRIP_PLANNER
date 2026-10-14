@@ -334,6 +334,9 @@ id，绝不使用请求体中的 id。约定：`apps/web/lib/account/settings.ts
 `PUT` 接收 `{ settings: UserSettings, revision }`。revision `0` 用于创建数据行，后续写入必须匹配
 服务端当前 revision。接受的写入返回 `{ settings, revision }`，revision 加一。过时写入返回
 409 `{ conflict: true }`；无效或旧版请求体返回 400。`updatedAt` 仅为展示元数据，不决定哪个编辑生效。
+浏览器没有本地检查点且尚无其他账号检查点时，会将已有设置以 revision `0` 迁移到首次登录账号。
+切换账号时，未同步设置会按原账号身份暂存，并在该账号再次登录时恢复。新账号采用自己的已保存设置或默认值，
+不会收到原账号的设置。
 
 ### `GET` and `POST /api/account/sync`
 

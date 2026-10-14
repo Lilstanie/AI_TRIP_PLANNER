@@ -21,7 +21,10 @@ The browser keeps revision plus normalized content checkpoints. Pull adopts a re
 when the local copy matches its acknowledged base or the remote content. Unacknowledged content
 stays local and pending. Acknowledgements apply only to accepted submissions, and client pushes are
 serialized so edits made during a pending save use the next acknowledged revision. Settings keep a
-per-user checkpoint and serialize their read/write cycle. Sign-out retains local data.
+per-user checkpoint and serialize their read/write cycle. On a first account with no other account
+checkpoint, existing browser settings migrate with revision zero. When switching accounts, pending
+settings are saved under the previous identity and restored if that identity returns; the new account
+adopts its own settings or defaults and never receives the previous account's local copy. Sign-out retains local data.
 
 Deploy generated migration `0001_ambitious_micromacro.sql` before these routes: existing rows,
 including tombstones, start at revision one. Legacy timestamp checkpoints cannot establish a revision

@@ -375,6 +375,10 @@ Contracts: `UserSettings` in `apps/web/lib/account/settings.ts`, `SyncedRecord` 
 match its current server revision. Accepted writes return `{ settings, revision }` with the revision
 incremented by one. A stale write returns 409 `{ conflict: true }`; an invalid or legacy body returns 400.
 `updatedAt` is display metadata and never decides which edit wins.
+When a browser has no local checkpoint and no other account checkpoint, its existing settings migrate
+to the first signed-in account with revision `0`. On an account switch, unsynced settings are kept under
+the previous identity and restored if it returns. The new identity adopts its own saved settings or
+defaults, and does not receive settings owned by the previous identity.
 
 ### `GET` and `POST /api/account/sync`
 

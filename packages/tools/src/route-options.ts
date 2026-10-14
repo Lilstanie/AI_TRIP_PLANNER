@@ -87,8 +87,10 @@ export function driveOption(route: GoogleRouteShape, q: RouteQuery): RouteOption
     : foreign.length
       ? "tolls quoted in foreign currency"
       : route.travelAdvisory?.tollInfo
-        ? "toll cost unavailable"
-        : "no tolls on this route";
+        ? Array.isArray(route.travelAdvisory.tollInfo.estimatedPrice) && tolls.length === 0
+          ? "no tolls reported on this route"
+          : "toll cost unavailable"
+        : "toll status not provided";
   return {
     mode: "drive",
     durationMin,

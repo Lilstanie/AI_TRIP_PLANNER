@@ -39,7 +39,9 @@ function readLocal(): UserSettings {
 function writeLocal(settings: UserSettings) {
   try {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-  } catch {}
+  } catch {
+    return;
+  }
 }
 
 function applyAppearance(appearance: UserSettings["appearance"]) {
@@ -50,6 +52,16 @@ function applyAppearance(appearance: UserSettings["appearance"]) {
 
 type SettingsCheckpoint = { revision: number; contents: string };
 const checkpointKey = (userId: string) => `trip.settings.sync.v2:${userId}`;
+const pendingKey = (userId: string) => `trip.settings.pending.v1:${userId}`;
+const lastUserKey = "trip.settings.last-user.v1";
+function hasOtherAccountCheckpoint(userId: string) {
+  const prefix = "trip.settings.sync.v2:";
+  for (let index = 0; index < localStorage.length; index++) {
+    const key = localStorage.key(index);
+    if (key?.startsWith(prefix) && key !== checkpointKey(userId)) return true;
+  }
+  return false;
+}
 function readCheckpoint(userId: string): SettingsCheckpoint | undefined {
   try {
     const value = JSON.parse(localStorage.getItem(checkpointKey(userId)) ?? "null");
@@ -68,6 +80,19 @@ function saveCheckpoint(userId: string, revision: number, settings: UserSettings
     checkpointKey(userId),
     JSON.stringify({ revision, contents: JSON.stringify(settings) }),
   );
+}
+function readPending(userId: string): UserSettings | undefined {
+  try {
+    const parsed = UserSettings.safeParse(
+      JSON.parse(localStorage.getItem(pendingKey(userId)) ?? "null"),
+    );
+    return parsed.success ? parsed.data : undefined;
+  } catch {
+    return undefined;
+  }
+}
+function savePending(userId: string, settings: UserSettings) {
+  localStorage.setItem(pendingKey(userId), JSON.stringify(settings));
 }
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
@@ -90,6 +115,18 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       setSyncState("local");
       return;
     }
+    const previousUser = localStorage.getItem(lastUserKey);
+    if (previousUser && previousUser !== signedIn) {
+      const previousCheckpoint = readCheckpoint(previousUser);
+      if (previousCheckpoint && JSON.stringify(current.current) !== previousCheckpoint.contents)
+        savePending(previousUser, current.current);
+    }
+    const pending = readPending(signedIn);
+    if (pending) {
+      current.current = pending;
+      writeLocal(pending);
+      if (JSON.stringify(settings) !== JSON.stringify(pending)) setSettings(pending);
+    }
     let active = true;
     const timer = window.setTimeout(() => {
       queue.current = queue.current.then(async () => {
@@ -108,6 +145,25 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           const clean = base
             ? JSON.stringify(local) === base.contents
             : JSON.stringify(local) === JSON.stringify(defaultSettings());
+          if (!base && parsed.success) {
+            saveCheckpoint(signedIn, remote.revision, parsed.data);
+            localStorage.setItem(lastUserKey, signedIn);
+            current.current = parsed.data;
+            writeLocal(parsed.data);
+            if (JSON.stringify(local) !== JSON.stringify(parsed.data)) setSettings(parsed.data);
+            setSyncState("synced");
+            return;
+          }
+          if (!base && !parsed.success && hasOtherAccountCheckpoint(signedIn)) {
+            const defaults = defaultSettings();
+            saveCheckpoint(signedIn, remote.revision, defaults);
+            localStorage.setItem(lastUserKey, signedIn);
+            current.current = defaults;
+            writeLocal(defaults);
+            if (JSON.stringify(local) !== JSON.stringify(defaults)) setSettings(defaults);
+            setSyncState("synced");
+            return;
+          }
           if (parsed.success && (clean || JSON.stringify(local) === JSON.stringify(parsed.data))) {
             saveCheckpoint(signedIn, remote.revision, parsed.data);
             current.current = parsed.data;
@@ -117,6 +173,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
             return;
           }
           if (base?.contents === JSON.stringify(local) && remote.revision === base.revision) {
+            localStorage.setItem(lastUserKey, signedIn);
             setSyncState("synced");
             return;
           }
@@ -135,6 +192,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
             throw new Error("Invalid settings acknowledgement.");
           if (identity.current !== signedIn) return;
           saveCheckpoint(signedIn, ack.revision, local);
+          localStorage.setItem(lastUserKey, signedIn);
+          localStorage.removeItem(pendingKey(signedIn));
           setSyncState(current.current === local ? "synced" : "syncing");
         } catch {
           if (identity.current === signedIn) setSyncState("failed");

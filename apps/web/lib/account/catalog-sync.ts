@@ -10,11 +10,11 @@ import {
 import type { SyncPull, SyncPush, SyncedRecord } from "./sync";
 
 export type Checkpoint = { revision: number; contents: string };
-export type SyncedTimes = {
+export type SyncCheckpoints = {
   trips: Record<string, Checkpoint>;
   conversations: Record<string, Checkpoint>;
 };
-export const emptySynced = (): SyncedTimes => ({ trips: {}, conversations: {} });
+export const emptySynced = (): SyncCheckpoints => ({ trips: {}, conversations: {} });
 
 type Kind = "trips" | "conversations";
 type Record_ = TripRecord | ConversationRecord;
@@ -112,9 +112,9 @@ function relink(catalog: WorkspaceCatalog): WorkspaceCatalog {
 export function mergeCatalog(
   local: WorkspaceCatalog,
   remote: SyncPull,
-  synced: SyncedTimes,
+  synced: SyncCheckpoints,
   now = new Date().toISOString(),
-): { catalog: WorkspaceCatalog; push: SyncPush; synced: SyncedTimes } {
+): { catalog: WorkspaceCatalog; push: SyncPush; synced: SyncCheckpoints } {
   const trips = mergeKind("trips", local.trips, remote.trips, synced.trips, now);
   const conversations = mergeKind(
     "conversations",
@@ -133,7 +133,7 @@ export function mergeCatalog(
 
 export function pendingChanges(
   catalog: WorkspaceCatalog,
-  synced: SyncedTimes,
+  synced: SyncCheckpoints,
   now = new Date().toISOString(),
 ): SyncPush {
   const diff = (kind: Kind, records: Record_[]) => {
@@ -156,7 +156,7 @@ export function pendingChanges(
   };
 }
 
-export function acknowledge(synced: SyncedTimes, accepted: SyncPull): SyncedTimes {
+export function acknowledge(synced: SyncCheckpoints, accepted: SyncPull): SyncCheckpoints {
   const next = { trips: { ...synced.trips }, conversations: { ...synced.conversations } };
   for (const kind of ["trips", "conversations"] as const)
     for (const item of accepted[kind]) {
@@ -167,11 +167,11 @@ export function acknowledge(synced: SyncedTimes, accepted: SyncPull): SyncedTime
   return next;
 }
 
-export function parseSynced(value: unknown): SyncedTimes {
+export function parseSynced(value: unknown): SyncCheckpoints {
   const result = emptySynced();
   if (!value || typeof value !== "object") return result;
   for (const kind of ["trips", "conversations"] as const) {
-    const entries = (value as Partial<SyncedTimes>)[kind];
+    const entries = (value as Partial<SyncCheckpoints>)[kind];
     if (!entries || typeof entries !== "object") continue;
     for (const [id, base] of Object.entries(entries))
       if (

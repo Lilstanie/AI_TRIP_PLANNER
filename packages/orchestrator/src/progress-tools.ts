@@ -30,7 +30,9 @@ interface ToolOutcome {
   truncated?: boolean;
 }
 
-function failureMessage(_error: unknown): string {
+function failureMessage(toolName: string): string {
+  if (toolName === "booking.searchStays")
+    return "Stay search could not complete. Retry the plan or adjust the stay details.";
   return "Tool unavailable; continuing with fallback when possible.";
 }
 
@@ -224,7 +226,7 @@ export function withProgressTools(
         callId,
         tool: toolName,
         label,
-        error: failureMessage(error),
+        error: failureMessage(toolName),
       });
       throw error;
     }

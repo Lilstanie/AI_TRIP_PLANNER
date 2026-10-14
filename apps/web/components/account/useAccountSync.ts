@@ -6,7 +6,7 @@ import {
   pendingChanges,
   acknowledge,
   parseSynced,
-  type SyncedTimes,
+  type SyncCheckpoints,
 } from "@/lib/account/catalog-sync";
 import { SyncPush, SyncResult, type SyncPull } from "@/lib/account/sync";
 import type { WorkspaceCatalog } from "@/lib/workspace/catalog";
@@ -17,9 +17,9 @@ export type SyncStatus = "local" | "syncing" | "synced" | "offline";
 const SYNC_KEY = "trip.sync.v1";
 const PUSH_DELAY_MS = 1500;
 
-type StoredSync = { userId: string; synced: SyncedTimes };
+type StoredSync = { userId: string; synced: SyncCheckpoints };
 
-function readSync(userId: string): SyncedTimes {
+function readSync(userId: string): SyncCheckpoints {
   try {
     const stored = JSON.parse(localStorage.getItem(SYNC_KEY) ?? "null") as StoredSync | null;
 
@@ -29,10 +29,12 @@ function readSync(userId: string): SyncedTimes {
   }
 }
 
-function writeSync(userId: string, synced: SyncedTimes) {
+function writeSync(userId: string, synced: SyncCheckpoints) {
   try {
     localStorage.setItem(SYNC_KEY, JSON.stringify({ userId, synced } satisfies StoredSync));
-  } catch {}
+  } catch {
+    return;
+  }
 }
 
 const isEmpty = (push: SyncPush) => !push.trips.length && !push.conversations.length;
@@ -62,7 +64,7 @@ export function useAccountSync({
   const [ready, setReady] = useState(false);
   const catalogRef = useRef(catalog);
   catalogRef.current = catalog;
-  const synced = useRef<SyncedTimes>(emptySynced());
+  const synced = useRef<SyncCheckpoints>(emptySynced());
   const queue = useRef(Promise.resolve());
   const identity = useRef(userId);
   identity.current = storageEnabled ? userId : undefined;

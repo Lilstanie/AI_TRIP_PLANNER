@@ -60,6 +60,9 @@ weather path.
   Booking and Weather namespace exports. Production specialists get provider evidence from `ctx.tools`;
   their remaining `mockEnabled()` reads label presentation-only fallback facts.
 - Amounts are AUD. Stay prices are per room per night; flight prices are for all passengers.
+- Driving route toll totals count only priced AUD tolls. Foreign amounts stay visible as excluded from the
+  AUD total; missing toll evidence is described as unknown, and only an explicit empty provider toll list
+  is reported as no tolls.
 - Ratings are on a 0–10 scale; provider ratings on 1–5 are doubled.
 - Failures raise typed errors (`SerpApiError.reason`) and fall back only to a labelled tier; a flight
   is never given an invented fare. See the [SerpApi](../../.agents/notes/implemented/feature/2026-09-20-serpapi-live-prices.md),
