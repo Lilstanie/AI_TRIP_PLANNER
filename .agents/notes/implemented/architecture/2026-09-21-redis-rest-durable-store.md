@@ -16,7 +16,7 @@ monthly SerpApi limit reset to zero, making the quota guard meaningless in produ
 `KV_REST_API_URL` and `KV_REST_API_TOKEN` (or the `UPSTASH_REDIS_REST_*` equivalents) are set, it
 calls an Upstash-compatible Redis REST API over `fetch`; otherwise it keeps the same contract in
 process memory. `MemoryStore` and the other service interfaces are unchanged, so agents and UI never
-depend on the storage backend. Tests and offline runs need no store.
+depend on the storage backend. Tests and offline runs need no store. Commands are JSON arrays in a POST body at the REST base URL, with a five-second abort deadline. Short-term chat memory retains the latest 20 turns. The chat route delivers validated completion before saving its optional server copy, awaits that save for at most five seconds, and reports save failure in diagnostics without replacing completion.
 
 ## Alternatives considered
 

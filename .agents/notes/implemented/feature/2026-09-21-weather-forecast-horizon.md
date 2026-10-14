@@ -7,7 +7,8 @@ Owner: D (@jbia0391)
 
 The destination guide described weather only as monthly context. Travellers leaving soon need an
 actual forecast, but a forecast for a date weeks away does not exist, and presenting seasonal
-averages as a forecast would mislead them.
+averages as a forecast would mislead them. The exact provider calendar boundaries were corrected in
+the [destination-calendar decision](../bug-fix/2026-10-14-weather-calendar-boundaries.md).
 
 ## Decision
 
@@ -15,8 +16,8 @@ averages as a forecast would mislead them.
 
 | Days until the date | Source                            | `horizon`  |
 | ------------------- | --------------------------------- | ---------- |
-| 0–10                | Google Weather API daily forecast | `forecast` |
-| 11–14               | Open-Meteo forecast               | `forecast` |
+| 0–9                 | Google Weather API daily forecast | `forecast` |
+| 10–14               | Open-Meteo forecast               | `forecast` |
 | 15 or more          | Open-Meteo historical archive     | `climate`  |
 
 Mock mode returns fixtures for every horizon without network calls. Live climate context summarizes

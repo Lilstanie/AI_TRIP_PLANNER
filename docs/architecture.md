@@ -357,7 +357,7 @@ a currency without an amount, and the offline extractor uses `detectCurrency` on
 browser reads one rule everywhere it picks a currency, `effectiveCurrency()` in
 `packages/shared/src/money.ts`: `displayCurrency`, else `budgetSource.currency`, else the Settings
 display currency. Planning, guardrails and stored amounts stay AUD; `budgetSource` keeps the stated
-amount and currency; a trip never writes Settings. The server applies the same rule to the text it
+amount and currency. Replacing the budget without a new source clears the old source; changing only the display currency preserves it. Chinese traveller counts accept cardinal numbers from 1 through 99. A trip never writes Settings. The server applies the same rule to the text it
 writes: it takes the Settings currency from the chat request's optional `displayCurrency` (absent means
 AUD), picks `effectiveCurrency(brief, request.displayCurrency ?? "AUD")` and passes the result to
 `formatMoney` at every call site (specialist summaries, conflict reasons and constraints, coordinator
@@ -424,13 +424,13 @@ composes its ports. The Maps port then privately selects in-process fixtures
 (`USE_MOCK_TOOLS=true`), OpenStreetMap or Google and owns route/places capability plus transit,
 inter-city rail and driving fallback. The Booking port privately selects fixture or live adapters
 once per gateway. Live hotels use SerpApi first and retain the labelled Google Places estimate
-fallback; live flights remain SerpApi-only and never receive a fictional fallback fare. Missing
+fallback only when Google Maps is selected and its key is present; otherwise the original SerpApi error is preserved. Live flights remain SerpApi-only and never receive a fictional fallback fare. Missing
 credentials fail only when the corresponding Booking capability is called. The Weather port uses
 the same captured configuration and clock to return fixture weather, Google Weather forecasts for
-days 0–10, Open-Meteo forecasts for days 11–14, or Open-Meteo historical climate context after
-day 14. A missing near-date credential fails only when that forecast is requested. `MemoryStore`
+days 0–9, Open-Meteo forecasts for days 10–14, or Open-Meteo historical climate context after
+day 14. Offsets use the destination’s calendar date and time zone; the Open-Meteo request includes today plus 14 days. A missing near-date credential fails only when that forecast is requested. `MemoryStore`
 (`packages/services/src/memory`) uses the Redis REST store when configured and process memory
-otherwise. Each package's exports and configuration are in its own `README.md`.
+otherwise. Short-term chat memory retains the latest 20 turns. Toll quotes in foreign currencies are labelled and excluded from the AUD estimate; unavailable quotes are not described as free. Each package's exports and configuration are in its own `README.md`.
 
 The `@trip/tools` package entry point exposes the zero-argument gateway factory and request-mode
 helpers, but not raw Maps, Booking or Weather adapters. Production specialists use `ctx.tools` for

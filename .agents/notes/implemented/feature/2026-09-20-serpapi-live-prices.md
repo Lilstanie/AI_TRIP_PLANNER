@@ -16,7 +16,7 @@ the durable store is configured, the monthly counter is kept there; otherwise it
 Failures raise a typed `SerpApiError` with a `reason` instead of a message to string-match.
 
 - Hotels try SerpApi first and, on any SerpApi failure, fall back to the
-  [Google Places estimate](2026-09-20-google-places-hotels.md) rather than failing the search.
+  [Google Places estimate](2026-09-20-google-places-hotels.md) only when Google Maps is selected and its key is configured. Otherwise the original typed SerpApi error is thrown; an OSM deployment never calls the disabled Google adapter.
 - Flights have no fallback tier: a failure is thrown, and the transport agent reports the flight
   as unpriced.
 - Ratings are converted to 0–10 as for Places. Flight prices are per passenger from the provider

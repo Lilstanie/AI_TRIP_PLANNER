@@ -15,13 +15,18 @@ export function durableStoreConfigured(): boolean {
   return redisConfig() !== undefined;
 }
 
-async function redisCommand(command: string, ...args: string[]): Promise<unknown> {
+async function redisCommand(
+  command: string,
+  args: string[],
+  signal?: AbortSignal,
+): Promise<unknown> {
   const config = redisConfig();
   if (!config) throw new Error("Durable store is not configured.");
-  const path = [command, ...args].map((part) => encodeURIComponent(part)).join("/");
-  const response = await fetch(`${config.url}/${path}`, {
+  const response = await fetch(config.url, {
     method: "POST",
-    headers: { Authorization: `Bearer ${config.token}` },
+    signal: signal ?? AbortSignal.timeout(5000),
+    headers: { Authorization: `Bearer ${config.token}`, "Content-Type": "application/json" },
+    body: JSON.stringify([command, ...args]),
   });
   const body = (await response.json().catch(() => ({}))) as RedisResponse;
   if (!response.ok || body.error) {
@@ -32,7 +37,7 @@ async function redisCommand(command: string, ...args: string[]): Promise<unknown
 
 export interface JsonStore {
   get<T>(key: string): Promise<T | undefined>;
-  set<T>(key: string, value: T): Promise<void>;
+  set<T>(key: string, value: T, options?: { signal: AbortSignal }): Promise<void>;
   increment(key: string): Promise<number>;
   decrement(key: string): Promise<number>;
 }
@@ -41,17 +46,17 @@ export function createJsonStore(): JsonStore {
   return {
     async get<T>(key: string) {
       if (!durableStoreConfigured()) return localValues.get(key) as T | undefined;
-      const result = await redisCommand("get", key);
+      const result = await redisCommand("get", [key]);
       if (result === null || result === undefined) return undefined;
       if (typeof result !== "string") return result as T;
       return JSON.parse(result) as T;
     },
-    async set<T>(key: string, value: T) {
+    async set<T>(key: string, value: T, options?: { signal: AbortSignal }) {
       if (!durableStoreConfigured()) {
         localValues.set(key, value);
         return;
       }
-      await redisCommand("set", key, JSON.stringify(value));
+      await redisCommand("set", [key, JSON.stringify(value)], options?.signal);
     },
     async increment(key: string) {
       if (!durableStoreConfigured()) {
@@ -59,7 +64,7 @@ export function createJsonStore(): JsonStore {
         localCounters.set(key, next);
         return next;
       }
-      const result = await redisCommand("incr", key);
+      const result = await redisCommand("incr", [key]);
       const count = Number(result);
       if (!Number.isSafeInteger(count))
         throw new Error("Durable store returned an invalid counter.");
@@ -71,7 +76,7 @@ export function createJsonStore(): JsonStore {
         localCounters.set(key, next);
         return next;
       }
-      const result = await redisCommand("decr", key);
+      const result = await redisCommand("decr", [key]);
       const count = Number(result);
       if (!Number.isSafeInteger(count))
         throw new Error("Durable store returned an invalid counter.");

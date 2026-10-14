@@ -38,14 +38,14 @@ rejects unsupported route options only when called. Google transit-to-driving an
 SerpApi rail fallback decisions remain internal to the port.
 
 The Booking port owns hotel and flight provider selection. Fixture mode stays deterministic;
-live hotel searches use SerpApi first and fall back to a labelled Google Places estimate, while
+live hotel searches use SerpApi first and fall back to a labelled Google Places estimate only when Google Maps and its key are configured; otherwise they preserve the original SerpApi error. Meanwhile,
 live flights remain SerpApi-only and never substitute a fictional fare. Missing credentials and
 unsupported capabilities fail only when the corresponding method is called.
 
 The Weather port uses the gateway's captured mode, credentials and clock. Fixture mode is
-deterministic and makes no network request. Live dates 0–10 days away use Google Weather, dates
-11–14 days away use Open-Meteo forecast, and later dates use three years of Open-Meteo historical
-archive as climate context. A missing Google Weather key fails only when a near-date forecast is
+deterministic and makes no network request. Live dates 0–9 days away use Google Weather, dates
+10–14 days away use Open-Meteo forecast, and later dates use three years of Open-Meteo historical
+archive as climate context. Day offsets use the destination’s time zone; the Open-Meteo forecast requests 15 calendar days including today. A missing Google Weather key fails only when a near-date forecast is
 requested; provider errors are returned to the destination specialist for its existing unavailable
 weather path.
 
@@ -60,6 +60,9 @@ weather path.
   Booking and Weather namespace exports. Production specialists get provider evidence from `ctx.tools`;
   their remaining `mockEnabled()` reads label presentation-only fallback facts.
 - Amounts are AUD. Stay prices are per room per night; flight prices are for all passengers.
+- Driving route toll totals count only priced AUD tolls. Foreign amounts stay visible as excluded from the
+  AUD total; missing toll evidence is described as unknown, and only an explicit empty provider toll list
+  is reported as no tolls.
 - Ratings are on a 0–10 scale; provider ratings on 1–5 are doubled.
 - Failures raise typed errors (`SerpApiError.reason`) and fall back only to a labelled tier; a flight
   is never given an invented fare. See the [SerpApi](../../.agents/notes/implemented/feature/2026-09-20-serpapi-live-prices.md),

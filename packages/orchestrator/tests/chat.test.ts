@@ -373,6 +373,23 @@ describe("without a provider key", () => {
     });
   });
 
+  it("carries Chinese party sizes from offline chat into the planned brief", async () => {
+    const { mem } = memoryStore();
+    const result = await offline(
+      {
+        tripId: "blank",
+        message: "Tokyo, 2026-11-02 to 2026-11-06, 十三个人, budget $2400",
+      },
+      mem,
+    );
+
+    expect(result.plan.brief).toMatchObject({
+      destination: "Tokyo",
+      groupSize: 13,
+      budgetTotal: 2400,
+    });
+  });
+
   it("uses an injected extractor when one is supplied", async () => {
     const { mem } = memoryStore();
     const extract = vi.fn(async () => ({ destination: "Melbourne" }));
@@ -779,5 +796,53 @@ describe("the traveller's trip preferences reach the planner", () => {
       { specialists: [itinerary], tools, mem: memoryStore().mem },
     );
     expect(result.plan.brief.preferences).toEqual(preferences);
+  });
+});
+
+describe("replacement budget provenance", () => {
+  const foreign = {
+    ...brief,
+    budgetTotal: toAud(500000, "JPY"),
+    budgetSource: { amount: 500000, currency: "JPY" as const },
+  };
+  it.each(["budget AUD 3000", "budget 3000"])(
+    "removes old JPY provenance for offline %s",
+    async (message) => {
+      const result = await runTripChat(
+        { tripId: brief.tripId, brief: foreign, message },
+        { specialists: [itinerary], tools, mem: memoryStore().mem },
+      );
+      expect(result.plan.brief.budgetTotal).toBe(3000);
+      expect(result.plan.brief.budgetSource).toBeUndefined();
+    },
+  );
+  it("removes old provenance when the coordinator replaces the amount", async () => {
+    const result = await run(
+      { tripId: brief.tripId, brief: foreign, message: "budget AUD 3000" },
+      scriptedModel(
+        [
+          {
+            name: "update_trip_brief",
+            args: { budgetAmount: 3000, budgetCurrency: "AUD" },
+            id: "budget",
+          },
+        ],
+        [{ name: "replan_trip", args: {}, id: "plan" }],
+      ),
+      memoryStore().mem,
+    );
+    expect(result.plan.brief.budgetSource).toBeUndefined();
+  });
+  it("removes old provenance while collecting missing trip fields", async () => {
+    const failure = await runTripChat(
+      {
+        tripId: "blank",
+        known: { budgetTotal: foreign.budgetTotal, budgetSource: foreign.budgetSource },
+        message: "budget 3000",
+      },
+      { specialists: [itinerary], tools, mem: memoryStore().mem },
+    ).catch((error) => error);
+    expect(failure.needsInfo.known.budgetTotal).toBe(3000);
+    expect(failure.needsInfo.known.budgetSource).toBeUndefined();
   });
 });

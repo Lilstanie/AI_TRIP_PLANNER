@@ -198,6 +198,39 @@ describe("progress tool instrumentation", () => {
     expect(failed.error).not.toContain("sk-secret");
   });
 
+  it("shows a useful stay-search failure in the traveller-facing progress event", async () => {
+    const failing: ToolGateway = {
+      ...tools,
+      booking: {
+        ...tools.booking,
+        searchStays: vi.fn(async () => {
+          throw new Error("SerpApi rate limit exceeded");
+        }),
+      },
+    };
+    const events: AgentProgressEvent[] = [];
+    const instrumented = withProgressTools(failing, "accommodation", 1, (event) =>
+      events.push(event),
+    );
+
+    await expect(
+      instrumented.booking.searchStays({
+        city: "Sydney",
+        checkIn: "2026-10-01",
+        checkOut: "2026-10-03",
+        guests: 2,
+      }),
+    ).rejects.toThrow("SerpApi rate limit exceeded");
+
+    const failed = events.at(-1);
+    expect(failed?.type).toBe("tool_failed");
+    if (failed?.type !== "tool_failed") return;
+    expect(failed.error).toBe(
+      "Stay search could not complete. Retry the plan or adjust the stay details.",
+    );
+    expect(failed.error).not.toContain("SerpApi");
+  });
+
   it("tags every result row with the kind a client draws its icon from", async () => {
     const withWeather: ToolGateway = {
       ...tools,

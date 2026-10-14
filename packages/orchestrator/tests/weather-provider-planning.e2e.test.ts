@@ -74,3 +74,62 @@ it("keeps fixture weather facts and provenance through a complete Planning loop"
   expect(summary).toMatchObject({ passed: true });
   expect(saved).toEqual(plan);
 });
+
+it("keeps destination guidance truthful when the weather gateway fails", async () => {
+  vi.setSystemTime(new Date("2026-11-01T00:00:00.000Z"));
+  vi.stubEnv("USE_MOCK_TOOLS", "true");
+  const scenario = findAgentLabScenario("tokyo-kyoto-multi-city");
+  const gateway = createToolGateway();
+  const fixturePlaces = gateway.maps.places;
+  const tools: ToolGateway = {
+    ...gateway,
+    maps: {
+      ...gateway.maps,
+      places: async (query) =>
+        (await fixturePlaces(query)).map((place) => ({
+          ...place,
+          location: { latitude: 35.68, longitude: 139.69 },
+        })),
+    },
+    weather: {
+      forecast: vi.fn(async () => {
+        throw new Error("weather provider omitted the requested date");
+      }),
+    },
+  };
+  const mem: MemoryStore = {
+    getShortTerm: async () => [],
+    appendShortTerm: async () => {},
+    getLongTerm: async () => scenario.preferences,
+    setLongTerm: async () => {},
+    promote: async () => {},
+  };
+
+  const plan = await runWithModelsDisabled(() =>
+    runOrchestrator(scenario.brief, { specialists: allSpecialists, tools, mem, maxRounds: 1 }),
+  );
+  const destination = plan.sections.find((section) => section.id === "destination-guide");
+  const weather = destination?.proposal?.items.find((item) => item.kind === "weather-packing");
+  const checks = {
+    unavailable:
+      destination?.proposal?.assumptions.includes(
+        "Weather provider unavailable; using monthly planning context instead of a forecast.",
+      ) === true,
+    monthlyContext:
+      weather?.detail.includes("planning context only") === true &&
+      !weather?.detail.includes("Mock weather fixture"),
+    planCompleted: plan.tripId === scenario.brief.tripId && plan.round === 1,
+  };
+  const artifactPath = resolve(
+    process.cwd(),
+    "../../output/e2e/weather-provider-planning/weather-unavailable",
+  );
+  mkdirSync(artifactPath, { recursive: true });
+  writeFileSync(resolve(artifactPath, "plan.json"), `${JSON.stringify(plan, null, 2)}\n`);
+  const saved = JSON.parse(readFileSync(resolve(artifactPath, "plan.json"), "utf8"));
+  const summary = { passed: Object.values(checks).every(Boolean), checks };
+  writeFileSync(resolve(artifactPath, "summary.json"), `${JSON.stringify(summary, null, 2)}\n`);
+
+  expect(summary).toMatchObject({ passed: true });
+  expect(saved).toEqual(plan);
+});

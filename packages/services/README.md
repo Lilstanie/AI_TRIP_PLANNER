@@ -26,7 +26,8 @@ Nothing reports that fallback at runtime. Rationale: [durable store note](../../
 
 - Agents receive `memory` as `ctx.mem` through `AgentContext`; they do not import it directly, so
   tests can pass a fake.
-- The REST store is reached with `fetch` only; a plain Redis server cannot back it.
+- The REST store is reached with `fetch` only; a plain Redis server cannot back it. Commands use JSON arrays in POST bodies, with a five-second deadline. `set` accepts an optional abort signal, also exposed by `tripStore.set`.
+- Short-term memory retains the latest 20 turns, including when reading older stored histories.
 - Saved trips shown in the workspace come from browser storage, not from `tripStore`.
 
 ## Tests

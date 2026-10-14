@@ -81,11 +81,39 @@ describe("driveOption", () => {
     expect(option.note).toMatch(/fuel, parking/);
   });
 
+  it("keeps foreign toll evidence separate from the AUD total", () => {
+    const option = driveOption(
+      {
+        duration: "900s",
+        travelAdvisory: { tollInfo: { estimatedPrice: [{ currencyCode: "USD", units: "6" }] } },
+      },
+      q,
+    )!;
+    expect(option.price).toBe(0);
+    expect(option.note).toContain("USD 6.00");
+    expect(option.note).toContain("excluded from the AUD total");
+    expect(option.note).not.toContain("no tolls");
+  });
+  it("does not describe unpriced tolls as toll-free", () => {
+    const option = driveOption({ duration: "900s", travelAdvisory: { tollInfo: {} } }, q)!;
+    expect(option.note).toContain("toll cost unavailable");
+    expect(option.note).not.toContain("no tolls");
+  });
+
   it("stays partial on a toll-free road rather than claiming the trip is free", () => {
     const option = driveOption({ duration: "1100s", distanceMeters: 8323, travelAdvisory: {} }, q)!;
     expect(option.price).toBe(0);
     expect(option.priceBasis).toBe("partial");
-    expect(option.note).toMatch(/no tolls/);
+    expect(option.note).toContain("toll status not provided");
+    expect(option.note).not.toMatch(/no tolls/);
+  });
+
+  it("reports toll-free only when the provider explicitly returns an empty toll list", () => {
+    const option = driveOption(
+      { duration: "1100s", travelAdvisory: { tollInfo: { estimatedPrice: [] } } },
+      q,
+    )!;
+    expect(option.note).toContain("no tolls reported on this route");
   });
 });
 

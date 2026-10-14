@@ -2,7 +2,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createToolGatewayWithRuntime, snapshotToolRuntime } from "../src/gateway-internal";
-import { clearSerpApiCacheForTests } from "../src/serpapi";
+import { clearSerpApiCacheForTests, SerpApiError } from "../src/serpapi";
 
 interface MatrixEvidence {
   id: string;
@@ -301,6 +301,47 @@ describe("ToolGateway provider matrix", () => {
     });
   });
 
+  it("preserves the SerpApi failure when OSM has no hotel-search capability", async () => {
+    vi.stubEnv("USE_MOCK_TOOLS", "false");
+    vi.stubEnv("MAPS_PROVIDER", "osm");
+    vi.stubEnv("MAPS_API_KEY", "");
+    vi.stubEnv("SERPAPI_KEY", "captured-serp-key");
+    const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const fetcher = vi.fn(async (_input: Parameters<typeof fetch>[0]) => {
+      throw new Error("synthetic network failure");
+    });
+    const gateway = createToolGatewayWithRuntime(snapshotToolRuntime(), {
+      fetch: fetcher,
+      now: () => new Date("2026-01-01T00:00:00.000Z"),
+    });
+
+    const error = await gateway.booking
+      .searchStays({
+        city: "Tokyo",
+        checkIn: "2026-02-01",
+        checkOut: "2026-02-03",
+        guests: 2,
+      })
+      .catch((reason: unknown) => reason);
+
+    expect(error).toBeInstanceOf(SerpApiError);
+    expect(error).toMatchObject({
+      reason: "request_failed",
+    });
+    expect((error as SerpApiError).message).toContain("synthetic network failure");
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(String(fetcher.mock.calls[0]?.[0])).toContain("serpapi.com");
+    expect(warning).toHaveBeenCalledWith(
+      expect.stringContaining("SerpApi (live prices; no hotel fallback configured)"),
+    );
+    evidence.push({
+      id: "osm-without-hotel-capability",
+      selection: "SerpApi + OSM, no Google key",
+      result: "typed SerpApi request_failed",
+      diagnostic: "synthetic network failure; no Google Places request",
+    });
+  });
+
   it("keeps SerpApi as the primary live provider for stays and flights", async () => {
     vi.stubEnv("USE_MOCK_TOOLS", "false");
     vi.stubEnv("MAPS_PROVIDER", "google");
@@ -414,14 +455,14 @@ describe("ToolGateway provider matrix", () => {
     });
   });
 
-  it("keeps the 10-day and 14-day weather provider boundaries on the captured clock", async () => {
+  it("keeps the 9-day and 14-day weather provider boundaries on the captured clock", async () => {
     vi.stubEnv("USE_MOCK_TOOLS", "false");
     vi.stubEnv("WEATHER_API_KEY", "captured-weather-key");
     const fetcher = vi.fn(async (input: string | URL | Request) => {
       const url = String(input);
       if (url.includes("weather.googleapis.com")) {
         return Response.json({
-          forecastDays: [1, 11].map((day) => ({
+          forecastDays: [1, 10].map((day) => ({
             displayDate: { year: 2026, month: 1, day },
             daytimeForecast: { weatherCondition: { description: { text: "Sunny" } } },
             maxTemperature: { degrees: 24 },
@@ -432,7 +473,7 @@ describe("ToolGateway provider matrix", () => {
       if (url.includes("api.open-meteo.com/v1/forecast")) {
         return Response.json({
           daily: {
-            time: ["2026-01-12", "2026-01-15"],
+            time: ["2026-01-11", "2026-01-15"],
             weather_code: [61, 61],
             temperature_2m_max: [22, 22],
             temperature_2m_min: [13, 13],
@@ -456,7 +497,7 @@ describe("ToolGateway provider matrix", () => {
     vi.setSystemTime(new Date("2026-10-03T00:00:00.000Z"));
 
     const query = { location: { latitude: -33.86, longitude: 151.2 } };
-    const dates = ["2026-01-01", "2026-01-11", "2026-01-12", "2026-01-15", "2026-01-16"];
+    const dates = ["2026-01-01", "2026-01-10", "2026-01-11", "2026-01-15", "2026-01-16"];
     const results = await Promise.all(
       dates.map((targetDate) => gateway.weather!.forecast({ ...query, targetDate })),
     );
@@ -468,6 +509,10 @@ describe("ToolGateway provider matrix", () => {
       ["Open-Meteo Forecast API", "forecast"],
       ["Open-Meteo historical archive", "climate"],
     ]);
+    expect(results.map(({ targetDate }) => targetDate)).toEqual(dates);
+    expect(
+      results.map(({ summary }) => summary.includes("Historical conditions, not a forecast")),
+    ).toEqual([false, false, false, false, true]);
     expect(results.map(({ observedAt }) => observedAt)).toEqual(
       Array(5).fill("2026-01-01T00:00:00.000Z"),
     );
@@ -475,9 +520,63 @@ describe("ToolGateway provider matrix", () => {
     expect(String(fetcher.mock.calls[0]?.[0])).toContain("key=captured-weather-key");
     evidence.push({
       id: "weather-horizons",
-      selection: "Google Weather <=10; Open-Meteo forecast 11-14; archive >14",
-      result: "forecast on days 0, 10, 11 and 14; climate on day 15",
+      selection: "Google Weather 0-9; Open-Meteo forecast 10-14; archive >14",
+      result: "matching dated forecast on offsets 0, 9, 10 and 14; historical climate on offset 15",
       provenance: results.map(({ provider }) => provider).join(" | "),
+    });
+  });
+
+  it("keeps weather unavailable when a gateway provider omits the requested date", async () => {
+    vi.stubEnv("USE_MOCK_TOOLS", "false");
+    vi.stubEnv("WEATHER_API_KEY", "captured-weather-key");
+    const fetcher = vi.fn(async (input: string | URL | Request) =>
+      String(input).includes("weather.googleapis.com")
+        ? Response.json({
+            forecastDays: [
+              {
+                displayDate: { year: 2026, month: 1, day: 1 },
+                daytimeForecast: { weatherCondition: { description: { text: "Sunny" } } },
+                maxTemperature: { degrees: 24 },
+                minTemperature: { degrees: 14 },
+              },
+            ],
+          })
+        : Response.json({
+            daily: {
+              time: ["2026-01-10"],
+              weather_code: [61],
+              temperature_2m_max: [22],
+              temperature_2m_min: [13],
+            },
+          }),
+    );
+    const gateway = createToolGatewayWithRuntime(snapshotToolRuntime(), {
+      fetch: fetcher,
+      now: () => new Date("2026-01-01T00:00:00.000Z"),
+    });
+    const query = { location: { latitude: -33.86, longitude: 151.2 } };
+
+    const googleError = await gateway
+      .weather!.forecast({ ...query, targetDate: "2026-01-10" })
+      .catch((error: unknown) => error);
+    const openMeteoError = await gateway
+      .weather!.forecast({ ...query, targetDate: "2026-01-11" })
+      .catch((error: unknown) => error);
+
+    expect(googleError).toBeInstanceOf(Error);
+    expect((googleError as Error).message).toBe(
+      "Google Weather did not return the requested forecast date.",
+    );
+    expect(openMeteoError).toBeInstanceOf(Error);
+    expect((openMeteoError as Error).message).toBe(
+      "Open-Meteo did not return the requested forecast date.",
+    );
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    evidence.push({
+      id: "weather-missing-date-unavailable",
+      selection: "Google and Open-Meteo omit the requested target date",
+      result: "both gateway calls reject; no forecast is returned",
+      diagnostic: `${(googleError as Error).message} | ${(openMeteoError as Error).message}`,
     });
   });
 
@@ -654,9 +753,11 @@ describe("ToolGateway provider matrix", () => {
       "google-intercity-rail-fallback",
       "google-route-options-partial-success",
       "booking-fallback-vs-flight-failure",
+      "osm-without-hotel-capability",
       "booking-primary-success",
       "booking-google-only-partial",
       "weather-horizons",
+      "weather-missing-date-unavailable",
       "weather-lazy-missing-credential",
       "lazy-unavailable-capabilities",
       "missing-google-maps-credential-diagnostic",

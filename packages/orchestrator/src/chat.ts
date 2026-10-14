@@ -33,7 +33,13 @@ import type { BaseChatModel } from "@langchain/core/language_models/chat_models"
 import { HumanMessage } from "@langchain/core/messages";
 import { createAgent, tool } from "langchain";
 import { z } from "zod/v4";
-import { applyBriefPatch, BriefPatchSchema, ISO_DATE, type BriefPatch } from "./brief";
+import {
+  mergeBriefPatch,
+  applyBriefPatch,
+  BriefPatchSchema,
+  ISO_DATE,
+  type BriefPatch,
+} from "./brief";
 import { COORDINATOR_REASONING_EPISODE, createReasoningSink } from "./reasoning-sink";
 import { extractBriefPatchLocally } from "./chat-offline";
 import { isInfeasible, minimumCost } from "./conflicts";
@@ -553,7 +559,7 @@ async function runConversationAgent(
       const patch = toPatch(update);
       if (request.assistant?.memory === false) delete patch.learnedPreferences;
       if (brief) brief = applyBriefPatch(brief, patch, request.tripId);
-      else known = BriefPatchSchema.parse({ ...known, ...patch });
+      else known = mergeBriefPatch(known, patch);
 
       return { brief: brief ?? known };
     },
@@ -672,7 +678,7 @@ async function runOffline(
     const plan = await orchestrate(applyBriefPatch(submitted, patch, request.tripId));
     return { reply: fallbackReplyFor(plan, replyCurrency(request, plan.brief)), plan };
   }
-  const known = BriefPatchSchema.parse({ ...request.known, ...patch });
+  const known = mergeBriefPatch(request.known ?? {}, patch);
   const missing = missingFields(known, request.tripId);
   if (missing.length) throw new IncompleteBriefError(missing, known);
   const plan = await orchestrate(TripBriefSchema.parse({ ...known, tripId: request.tripId }));

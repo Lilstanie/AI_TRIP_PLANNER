@@ -16,6 +16,7 @@
     "mock-server": "node src/mock-server.mjs"
   },
   "dependencies": {
+    "@photostructure/tz-lookup": "11.7.0",
     "@trip/services": "workspace:*",
     "@trip/shared": "workspace:*"
   },

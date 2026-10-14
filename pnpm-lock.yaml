@@ -235,6 +235,9 @@ importers:
 
   packages/tools:
     dependencies:
+      '@photostructure/tz-lookup':
+        specifier: 11.7.0
+        version: 11.7.0
       '@trip/services':
         specifier: workspace:*
         version: link:../services

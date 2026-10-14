@@ -15,11 +15,15 @@ export const tripStore = {
     const parsed = TripPlan.safeParse(stored.plan);
     return parsed.success ? parsed.data : undefined;
   },
-  async set(plan: TripPlanData): Promise<void> {
+  async set(plan: TripPlanData, options?: { signal: AbortSignal }): Promise<void> {
     const parsed = TripPlan.parse(plan);
-    await jsonStore.set<StoredTrip>(tripKey(parsed.tripId), {
-      plan: parsed,
-      updatedAt: new Date().toISOString(),
-    });
+    await jsonStore.set<StoredTrip>(
+      tripKey(parsed.tripId),
+      {
+        plan: parsed,
+        updatedAt: new Date().toISOString(),
+      },
+      options,
+    );
   },
 };
