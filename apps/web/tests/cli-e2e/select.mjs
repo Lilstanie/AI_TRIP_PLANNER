@@ -45,6 +45,7 @@ try {
     "report-interrupted.e2e.mjs",
     "review-comment-policy.e2e.mjs",
     "skill-maintenance.e2e.mjs",
+    "translation-pairs.e2e.mjs",
   ]);
   const knownScripts = new Set([
     ...featureScripts,
@@ -136,6 +137,8 @@ try {
       };
     if (path.startsWith(".agents/skills/skill-maintenance/scripts/"))
       return { path, rule: "skill-maintenance", scripts: ["skill-maintenance.e2e.mjs"] };
+    if (path.startsWith(".agents/skills/translate-docs/scripts/"))
+      return { path, rule: "translation-pairs", scripts: ["translation-pairs.e2e.mjs"] };
     if (path === "apps/web/tests/e2e/legacy-runner.mjs")
       return {
         path,
@@ -193,6 +196,7 @@ try {
       "report-interrupted.e2e.mjs": 226,
       "review-comment-policy.e2e.mjs": 6739,
       "skill-maintenance.e2e.mjs": 8413,
+      "translation-pairs.e2e.mjs": 1500,
     },
   };
   const estimate = (script) => baseline.durationMs[script] ?? 60000;

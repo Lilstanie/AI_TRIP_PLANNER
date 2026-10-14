@@ -109,6 +109,53 @@ function anchors(text) {
   }
   return ids;
 }
+function headingAnchors(text) {
+  const result = [];
+  const counts = new Map();
+  let explicit;
+  let fence;
+  for (const line of text.split("\n")) {
+    const marker = line.match(/^\s*(`{3,}|~{3,})/);
+    if (fence) {
+      if (marker && marker[1][0] === fence[0] && marker[1].length >= fence.length)
+        fence = undefined;
+      continue;
+    }
+    if (marker) {
+      fence = marker[1];
+      continue;
+    }
+    const anchor = line.match(/^<a\s+id="([^"]+)"\s*><\/a>\s*$/);
+    if (anchor) {
+      explicit = anchor[1];
+      continue;
+    }
+    const heading = line.match(/^#{1,6}\s+(.+)$/);
+    if (heading) {
+      const base = slug(heading[1]);
+      const count = counts.get(base) ?? 0;
+      counts.set(base, count + 1);
+      result.push({
+        own: count ? `${base}-${count}` : base,
+        explicit,
+        text: heading[1],
+      });
+    }
+    if (line.trim()) explicit = undefined;
+  }
+  return result;
+}
+function anchorAlignmentErrors(zh, enText, zhText) {
+  const en = headingAnchors(enText);
+  const translatedHeadings = headingAnchors(zhText);
+  if (en.length !== translatedHeadings.length) return [];
+  return en.flatMap((source, index) => {
+    const target = translatedHeadings[index];
+    return target.own === source.own || target.explicit === source.own
+      ? []
+      : [`${zh}: heading "${target.text}" needs <a id="${source.own}"></a> to match its source`];
+  });
+}
 const links = (text) =>
   [
     ...text
@@ -144,6 +191,7 @@ function pairErrors(path) {
   } catch (error) {
     errors.push(`${path}: ${error.message}`);
   }
+  errors.push(...anchorAlignmentErrors(zh, enText, zhText));
   const inlineCode = (text) =>
     [
       ...text

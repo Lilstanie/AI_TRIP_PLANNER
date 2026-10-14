@@ -13,6 +13,7 @@ export const failureModes = [
   "merged pulls count as closed-unmerged",
   "remote errors malformed responses or pagination become zero or crash",
   "broken paths and commands stop being independently actionable",
+  "checkpoint location violates the repository skill layout",
 ];
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
 const output = mkdtempSync(resolve(tmpdir(), "skill-maintenance-acceptance-"));
@@ -412,4 +413,19 @@ assert.match(
   validDrift.run("clean drift human", 0, [], "check-skills.mjs"),
   /match the repository/,
 );
+const { checkSkills } = await import(resolve(root, "scripts/skill-rules.mjs"));
+const layoutErrors = (cwd) =>
+  checkSkills(resolve(cwd, ".agents/skills")).errors.filter((error) =>
+    error.includes("review-checkpoint.json"),
+  );
+const layout = fixture();
+layout.checkpoint();
+const recorded = layoutErrors(layout.cwd);
+const misplaced = fixture();
+misplaced.write(".agents/skills/skill-maintenance/review-checkpoint.json", misplaced.record());
+const control = layoutErrors(misplaced.cwd);
+results.push({ name: "checkpoint passes skill layout", recorded, control });
+writeFileSync(resolve(output, "summary.json"), JSON.stringify({ failureModes, results }, null, 2));
+assert.deepEqual(recorded, []);
+assert.equal(control.length, 1);
 console.log(`${results.length} CLI cases passed; evidence: ${output}`);
