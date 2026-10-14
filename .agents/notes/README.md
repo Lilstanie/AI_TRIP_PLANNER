@@ -14,7 +14,7 @@ proposed. Link between notes with relative Markdown links so the check can resol
 | -------------- | --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | `proposed/`    | Under discussion; not built, or only partly               | Edit freely during review                                                                                         |
 | `implemented/` | Shipped and in effect                                     | Keep facts (paths, names, defaults) current in the same change that alters them; never change the decision itself |
-| `rejected/`    | Considered and declined                                   | Frozen. Delete it once its rationale no longer prevents a tempting mistake                                        |
+| `rejected/`    | Considered and declined                                   | Frozen. Never edit, rename or delete it; `pnpm verify:protected` enforces this                                    |
 | `archived/`    | Shipped, but unlikely to guide future work, or superseded | Frozen. Only an `implemented/` note can be archived                                                               |
 
 | Class            | Covers                                                                             |
