@@ -109,6 +109,44 @@ describe("weather provider", () => {
 });
 
 describe("destination calendar forecast windows", () => {
+  it("keeps weather unavailable when Google omits the requested forecast date", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-21T00:00:00Z"));
+    vi.stubEnv("USE_MOCK_TOOLS", "false");
+    vi.stubEnv("WEATHER_API_KEY", "test");
+    const fetcher = vi.fn(async () =>
+      Response.json({ forecastDays: [{ displayDate: { year: 2026, month: 9, day: 29 } }] }),
+    );
+    vi.stubGlobal("fetch", fetcher);
+
+    await expect(weather.forecast({ ...query, targetDate: "2026-09-30" })).rejects.toThrow(
+      "Google Weather did not return the requested forecast date.",
+    );
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps weather unavailable when Open-Meteo omits the requested forecast date", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-21T00:00:00Z"));
+    vi.stubEnv("USE_MOCK_TOOLS", "false");
+    const fetcher = vi.fn(async () =>
+      Response.json({
+        daily: {
+          time: ["2026-10-01"],
+          weather_code: [0],
+          temperature_2m_max: [22],
+          temperature_2m_min: [13],
+        },
+      }),
+    );
+    vi.stubGlobal("fetch", fetcher);
+
+    await expect(weather.forecast({ ...query, targetDate: "2026-10-02" })).rejects.toThrow(
+      "Open-Meteo did not return the requested forecast date.",
+    );
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
   it.each([0, 9, 10, 13, 14, 15])(
     "resolves offset %i with a provider that covers it",
     async (offset) => {
