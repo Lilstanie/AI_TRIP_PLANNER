@@ -53,7 +53,7 @@ For CLI selection and scheduling, exercise the public selector, runner and CI re
 copied temporary fixtures. `node apps/web/tests/cli-e2e/ci-integration.e2e.mjs` checks actual selected
 scripts across isolated shards, explicit docs skip without children, aggregate rejection of missing,
 failed or cancelled work, malformed plans and retained failure/interruption evidence. Keep its
-`output/e2e/ci-integration-*/` JSON and copied fixtures. Existing selector and runner acceptance own
+`output/e2e/ci-integration-<run>/` JSON and copied fixtures. Existing selector and runner acceptance own
 Git change edge cases, no-argument compatibility and descendant termination. Do not replace these
 with source/YAML string assertions.
 
@@ -122,8 +122,11 @@ original child exits so it cannot reach a later child. Do not reuse another run'
 Preserve unrelated worktrees, servers, locks, browser profiles and dotenv files.
 
 Keep partial NDJSON, screenshots, traces, child logs, saved summaries and ownership metadata before
-cleanup. Raw summaries and evidence can be incomplete after a hard kill. The isolated CLI's `cleanup`
-validates recorded resource identity and retains diagnostics; it does not terminate live processes.
+cleanup. Raw summaries and evidence can be incomplete after a hard kill. A finished run removes its
+owned build directory and temporary config itself, and `passed` requires that cleanup to succeed. The
+isolated CLI's [`cleanup`](../../../docs/local-test-cli.md#clean-up-an-invocation) is for an
+interrupted or blocked run: it validates recorded resource identity and retains diagnostics; it does
+not terminate live processes.
 Use it only after the owned process has stopped, and report blocked cleanup without deleting paths
 manually. Do not remove retained output merely because a later attempt passed.
 

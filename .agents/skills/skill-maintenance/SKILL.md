@@ -71,7 +71,7 @@ needed fix-up commits. Look for three things:
 - a rule a reviewer enforced that no skill states (add it to `review-trip-planner` or the owning skill, with
   the pull request as its source, as the existing bullets do);
 - the same multi-step chore repeated across two or more pull requests with no skill (propose a new
-  skill; [stage1-submission](../stage1-submission/SKILL.md) came from #134, #140, #142 and #152);
+  skill; the retired `stage1-submission` skill came from #134, #140, #142 and #152);
 - an implemented Agent Note that supersedes a step a skill still teaches.
 
 ## 3. Change the skills
