@@ -270,4 +270,34 @@ describe("result row kinds", () => {
     expect(travelKind("flight")).toBe("flight");
     expect(travelKind("hovercraft")).toBe("route");
   });
+  it("writes a flight duration as whole hours and the minutes left over", async () => {
+    const searchFlights = vi.fn(async () =>
+      [59, 60, 100, 150, 330].map((durationMin) => ({
+        carrier: "Qantas",
+        price: 420,
+        durationMin,
+      })),
+    );
+    const events: AgentProgressEvent[] = [];
+    const instrumented = withProgressTools(
+      { ...tools, booking: { ...tools.booking, searchFlights } },
+      "itinerary",
+      1,
+      (event) => events.push(event),
+    );
+
+    await instrumented.booking.searchFlights({
+      from: "SYD",
+      to: "MEL",
+      depart: "2026-10-01",
+      passengers: 1,
+    });
+
+    const durations = events.flatMap((event) =>
+      event.type === "tool_completed"
+        ? (event.resultRows ?? []).map((row) => row.detail?.split(" · ").at(-1))
+        : [],
+    );
+    expect(durations).toEqual(["0h 59m", "1h 0m", "1h 40m", "2h 30m", "5h 30m"]);
+  });
 });

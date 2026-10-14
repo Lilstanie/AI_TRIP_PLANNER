@@ -130,7 +130,7 @@ function flightDetail(option: FlightOption, currency: Currency): string {
         : plural(option.stops, "stop"),
     option.durationMin === undefined
       ? undefined
-      : `${Math.round(option.durationMin / 60)}h ${option.durationMin % 60}m`,
+      : `${Math.floor(option.durationMin / 60)}h ${option.durationMin % 60}m`,
     option.note,
   ]
     .filter((part): part is string => Boolean(part))

@@ -37,6 +37,21 @@ describe("parseFlightQuery", () => {
     });
   });
 
+  it("leaves a message with any ambiguous date to the chat model", () => {
+    for (const message of [
+      "flights from Sydney to Tokyo on 15/11/2026 returning 05/12/2026",
+      "flights from Sydney to Tokyo on 05/11/2026 returning 2026-11-20",
+      "flights from Sydney to Tokyo on 05/11/2026 returning 06/12/2026",
+    ])
+      expect(parseFlightQuery(message), message).toBeUndefined();
+  });
+
+  it("keeps a slash date when both of its parts can be told apart", () => {
+    expect(
+      parseFlightQuery("flights from Sydney to Tokyo on 15/11/2026 returning 2026-11-20"),
+    ).toMatchObject({ depart: "2026-11-15", return: "2026-11-20" });
+  });
+
   it("leaves planning requests to the planner", () => {
     expect(
       parseFlightQuery("Plan a 4-day trip to Sydney for 2 people from 2026-11-02 to 2026-11-06"),
