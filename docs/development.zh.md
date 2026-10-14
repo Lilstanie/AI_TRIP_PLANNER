@@ -170,11 +170,13 @@ pnpm --filter @trip/web e2e installable-app --prod
 Chromium（`CHANNEL=chrome` 时改用 Chrome）和一个用完即删的持久化配置文件中运行，并确认它能报告移除了
 manifest 链接的页面。
 
-<a id="agent-workflows"></a>
+<a id="licence-and-third-party-code"></a>
 
 ## 许可与第三方代码
 
 仓库采用 MIT 许可（见 [LICENSE](../LICENSE)），每个 `package.json` 都声明 `"license": "MIT"`。引入或移植其他项目的代码时，请保留其文件头声明，并在同一个拉取请求中记录到 [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md)：名称、上游 URL、许可、版权行以及包含该代码的文件。
+
+<a id="agent-workflows"></a>
 
 ## Agent 工作流
 

@@ -16,6 +16,8 @@
 | `timeline`    | fare-decimals 控制台检查记录四个 fixture 地点详情的 404 响应。fixture 使用占位地点 ID，但未模拟其详情；JPY/AUD/KRW 票价和路线检查全部通过（总计 99/100 项通过）。 | 暂无  |
 | `phone-state` | 在 390×844 和 360×800 下，重新加载未恢复 Map。Trip、Mine 和 Chat 的重新加载检查通过。                                                                             | 暂无  |
 
+<a id="covered-regressions"></a>
+
 ## 已有回归覆盖
 
 - PR #308 的 head `501af35` 上，`agent-lab-replay` 可能在键盘按 Enter 后错过文件选择框（2026-10-11）：
@@ -24,9 +26,13 @@
   `pnpm --filter @trip/web e2e run agent-lab-replay --dev`；原来的全局键盘调用即使等待 30 秒也会失败。
   这是测试驱动的竞态，不是 replay API 故障。
 
+<a id="not-failures"></a>
+
 ## 不算失败
 
 - `installable-app` 在 `next dev` 下会一直等待，因为 service worker 只在生产构建中注册。请按脚本头部的说明运行 `pnpm --filter @trip/web e2e installable-app --prod`，安装完整 Chromium 后，22 项检查全部通过（2026-10-14）。
+
+<a id="how-to-check"></a>
 
 ## 如何检查
 

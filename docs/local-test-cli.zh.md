@@ -63,6 +63,8 @@ pnpm --silent --filter @trip/web e2e run agent-lab-single-agent --repeat 3 --jso
 
 JSON 输出除常规摘要路径外，还包含 `requestedRepeatCount`、`attempts` 和 `results`。不使用 `--json` 时，命令会输出易读的结果和摘要路径。每次子调用仍会在 `output/e2e/local-test-cli/` 下写入自己的摘要和证据。
 
+<a id="check-readiness-and-discover-support"></a>
+
 ## 检查环境并查看支持范围 {#check-readiness-and-discover-support}
 
 可以从同一入口运行离线 doctor 和 list 命令：
@@ -90,6 +92,8 @@ JSON 输出为单个对象，包含 `schemaVersion`、`command`、`outcome` 和 
 `DEEPSEEK_API_KEY`。尚未审核是否能完整使用本地 fixture 执行并隔离状态的脚本也会保持不支持，同时会标明尚未核实的前置条件。
 JSON 对象包含 `supported`、不支持脚本的数量和 `scripts` 数组。脚本出现在列表中并不表示其断言已经通过。
 
+<a id="inspect-a-saved-invocation"></a>
+
 ## 检查已保存的调用 {#inspect-a-saved-invocation}
 
 可以通过调用 ID 或保存的 `summaryFile` 路径查看一次已完成的本地运行或重复运行：
@@ -106,6 +110,8 @@ pnpm --silent --filter @trip/web e2e report <summaryFile> --json
 重复运行报告会按顺序保留每次尝试，包括后续通过之前发生的失败。缺少子摘要、中断的尝试和缺失的证据会标记为不完整，不会被
 描述成已通过的覆盖。未知 ID、格式错误的摘要，以及指向已保存本地 CLI 记录目录之外的路径都会返回非零状态；JSON 错误不会包含
 摘要文件内容。
+
+<a id="clean-up-an-invocation"></a>
 
 ## 清理一次运行
 

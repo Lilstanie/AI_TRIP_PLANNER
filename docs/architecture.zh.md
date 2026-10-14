@@ -15,14 +15,15 @@ AI Trip Planner 是一个由工作区包支撑的 Next.js 可部署单元。确�
 编辑前，使用这张表找到更改所属的模块。各包 README 说明其导出和配置；
 [开发指南](development.zh.md)负责环境设置、目录和验证规则。
 
-| 更改领域                             | 从这里开始                                | 继续追踪                                                                                                                    |
-| ------------------------------------ | ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| 聊天请求与流式回复                   | `apps/web/app/api/chat/route.ts`          | `packages/orchestrator/src/chat.ts`、共享聊天约定和聊天 UI                                                                  |
-| 规划状态、冲突检查或 specialist 流程 | `packages/orchestrator/src/workflow.ts`   | `packages/agents/src/`、经过验证的计划约定、持久化和工作区消费方                                                            |
-| 共享请求、提案或计划的数据结构       | `packages/shared/src/`                    | 每个生产方和消费方；在同一更改中新增 Agent Note                                                                             |
-| 地图、预订或天气依据                 | `packages/tools/src/gateway.ts`           | 带类型的端口、提供方适配器、回退标签和 agent 消费方；提供方工作使用 [add-provider](../.agents/skills/add-provider/SKILL.md) |
-| 保存的聊天、偏好或旅行               | `packages/services/src/`                  | 浏览器存储、API 路由和工作区恢复行为                                                                                        |
-| 可见工作区或交互行为                 | `apps/web/components/` 和 `apps/web/lib/` | [工作区 UI](workspace-ui.zh.md)、设计规则和 [ui-verification](../.agents/skills/ui-verification/SKILL.md)                   |
+| 更改领域                             | 从这里开始                                | 继续追踪                                                                                                                                                                                                                                  |
+| ------------------------------------ | ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 聊天请求与流式回复                   | `apps/web/app/api/chat/route.ts`          | `packages/orchestrator/src/chat.ts`、共享聊天约定和聊天 UI                                                                                                                                                                                |
+| 规划状态、冲突检查或 specialist 流程 | `packages/orchestrator/src/workflow.ts`   | `packages/agents/src/`、经过验证的计划约定、持久化和工作区消费方                                                                                                                                                                          |
+| 共享请求、提案或计划的数据结构       | `packages/shared/src/`                    | 每个生产方和消费方；在同一更改中新增 Agent Note                                                                                                                                                                                           |
+| 地图、预订或天气依据                 | `packages/tools/src/gateway.ts`           | 带类型的端口、提供方适配器、回退标签和 agent 消费方；提供方工作使用 [add-provider](../.agents/skills/add-provider/SKILL.md)                                                                                                               |
+| 保存的聊天、偏好或旅行               | `packages/services/src/`                  | 浏览器存储、API 路由和工作区恢复行为                                                                                                                                                                                                      |
+| 账号、登录与跨设备同步               | `apps/web/lib/account/`                   | [API](api.zh.md#account-routes) 中的账号路由、`apps/web/lib/db/schema.ts`、[基于修订号的同步决策](../.agents/notes/implemented/bug-fix/2026-10-14-revision-based-account-sync.md)和[工作区界面](workspace-ui.zh.md#accounts-and-settings) |
+| 可见工作区或交互行为                 | `apps/web/components/` 和 `apps/web/lib/` | [工作区 UI](workspace-ui.zh.md)、设计规则和 [ui-verification](../.agents/skills/ui-verification/SKILL.md)                                                                                                                                 |
 
 跨越这些边界的更改，使用
 [end-to-end-feature-wiring](../.agents/skills/end-to-end-feature-wiring/SKILL.md)

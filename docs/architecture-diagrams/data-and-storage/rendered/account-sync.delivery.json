@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "fdaab0ea-d5cf-411a-8008-66a66f430339",
+  "status": "current",
+  "command": "deliver",
+  "type": "sequence",
+  "input": "/private/tmp/claude-501/-Users-joey-AI-TRIP-PLANNER/88991aa6-b692-4a2d-8522-48ef8f84be3f/scratchpad/wt4/docs/architecture-diagrams/data-and-storage/specs/account-sync.sequence.json",
+  "output": "/private/tmp/claude-501/-Users-joey-AI-TRIP-PLANNER/88991aa6-b692-4a2d-8522-48ef8f84be3f/scratchpad/wt4/docs/architecture-diagrams/data-and-storage/rendered/account-sync.html",
+  "specification": {
+    "sha256": "13b4ba98ecf52456560fbe4db4f0b16c2efe417d52a7d217b6df3fd74a971744",
+    "bytes": 7016
+  },
+  "artifact": {
+    "sha256": "2b2a6aa44ae4045fd8208d0b01ff2b15dd4b53ae02aaf93f41dbfe565caebef3",
+    "bytes": 820848
+  }
+}

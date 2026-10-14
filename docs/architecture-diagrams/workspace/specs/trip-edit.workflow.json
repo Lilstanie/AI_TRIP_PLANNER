@@ -2,101 +2,67 @@
   "schema_version": 2,
   "diagram_type": "workflow",
   "meta": {
-    "title": "行程时间线编辑与预览",
-    "output": "trip-edit.html",
+    "title": "行程时间线编辑：服务端检查后立即应用",
+    "output": "docs/architecture-diagrams/workspace/rendered/trip-edit.html",
     "quality_profile": "showcase",
     "locale": "zh-CN",
+    "repository": {
+      "url": "https://github.com/Lilstanie/AI_TRIP_PLANNER.git",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "87e26199e07a7ed46abaf7614433099401bddf2c"
+    },
     "views": [
       {
         "id": "replace-place",
         "label": "替换地点",
-        "focus": [
-          "traveller",
-          "editor",
-          "searchApi",
-          "places",
-          "select",
-          "previewApi",
-          "preview",
-          "apply"
-        ],
-        "note": "新地点先搜索，再通过服务端预览重算路线、预算和冲突。"
+        "focus": ["traveller", "editor", "searchApi", "provider", "revision", "checkApi", "apply"],
+        "note": "新地点先经地图提供方搜索，再由服务端检查重算路线、预算和冲突。"
       },
       {
         "id": "other-edits",
         "label": "时间与顺序编辑",
-        "focus": ["editor", "previewApi", "preview", "apply"],
-        "note": "移动日期、调整顺序和时间也先生成预览；apply 才会更新工作区。"
+        "focus": ["editor", "revision", "checkApi", "apply", "refused"],
+        "note": "移动、改时间、排序和撤销都走同一检查；通过即应用，被拒绝时计划不变。"
       },
       {
-        "id": "stale-preview",
+        "id": "stale-edit",
         "label": "并发保护",
-        "focus": ["previewApi", "preview", "apply"],
-        "note": "预览绑定 baseVersion；计划变更后旧预览不会覆盖新计划。"
+        "focus": ["revision", "checkApi", "refused"],
+        "note": "请求绑定 baseVersion；计划在检查期间变化或被新编辑取代时，旧结果被丢弃。"
       }
     ]
   },
   "lanes": [
-    {
-      "id": "workspace",
-      "label": "旅客与工作区"
-    },
-    {
-      "id": "search",
-      "label": "地点搜索"
-    },
-    {
-      "id": "preview",
-      "label": "预览与应用"
-    }
+    { "id": "workspace", "label": "旅客与工作区" },
+    { "id": "search", "label": "地点搜索" },
+    { "id": "check", "label": "服务端检查" },
+    { "id": "rejected", "label": "拒绝与过期", "variant": "exception" }
   ],
   "phases": [
-    {
-      "id": "change",
-      "label": "选择更改",
-      "fromCol": 0,
-      "toCol": 1
-    },
-    {
-      "id": "lookup",
-      "label": "搜索与重算",
-      "fromCol": 2,
-      "toCol": 4,
-      "variant": "emphasis"
-    },
-    {
-      "id": "commit",
-      "label": "检查并应用",
-      "fromCol": 5,
-      "toCol": 5
-    }
+    { "id": "change", "label": "选择更改", "fromCol": 0, "toCol": 1 },
+    { "id": "lookup", "label": "搜索与检查", "fromCol": 2, "toCol": 3, "variant": "emphasis" },
+    { "id": "commit", "label": "应用或拒绝", "fromCol": 4, "toCol": 5 }
   ],
-  "mainPath": [
-    "traveller",
-    "editor",
-    "searchApi",
-    "places",
-    "select",
-    "previewApi",
-    "preview",
-    "apply"
-  ],
+  "mainPath": ["traveller", "editor", "revision", "checkApi", "apply"],
   "nodes": [
-    {
-      "id": "traveller",
-      "lane": "workspace",
-      "col": 0,
-      "type": "external",
-      "label": "旅客"
-    },
+    { "id": "traveller", "lane": "workspace", "col": 0, "type": "external", "label": "旅客" },
     {
       "id": "editor",
       "lane": "workspace",
       "col": 1,
       "type": "frontend",
       "label": "行程时间线编辑器",
-      "sublabel": "移动 · 改时间 · 排序 · 替换地点",
-      "width": 194
+      "sublabel": "移动 · 改时间 · 排序 · 替换 · 撤销",
+      "width": 200,
+      "sources": [
+        {
+          "path": "apps/web/components/trip/timeline/useTimelineEdits.ts",
+          "line": 116,
+          "end_line": 160,
+          "label": "edit 与撤销"
+        }
+      ]
     },
     {
       "id": "searchApi",
@@ -104,129 +70,173 @@
       "col": 2,
       "type": "backend",
       "label": "POST /api/places/search",
-      "sublabel": "可选的地点查询",
-      "width": 194
+      "sublabel": "替换地点时搜索",
+      "width": 194,
+      "sources": [
+        { "path": "apps/web/app/api/places/search/route.ts", "line": 13, "end_line": 23 },
+        {
+          "path": "apps/web/components/trip/timeline/useTimelineEdits.ts",
+          "line": 182,
+          "end_line": 199,
+          "label": "search"
+        }
+      ]
     },
     {
-      "id": "places",
+      "id": "provider",
       "lane": "search",
       "col": 3,
       "type": "external",
-      "label": "Google Places",
-      "sublabel": "地点候选结果",
-      "width": 184
+      "label": "地图提供方",
+      "sublabel": "Google 优先 · OSM 兜底",
+      "width": 184,
+      "sources": [{ "path": "apps/web/lib/map-provider/index.ts", "line": 14, "end_line": 50 }]
     },
     {
-      "id": "select",
+      "id": "revision",
       "lane": "workspace",
       "col": 3,
       "type": "frontend",
-      "label": "选择编辑操作",
-      "sublabel": "编辑操作 + baseVersion",
-      "width": 194
+      "label": "usePlanRevision",
+      "sublabel": "中止后台任务 · 标签页锁",
+      "width": 194,
+      "sources": [
+        {
+          "path": "apps/web/components/trip/plan-revision.ts",
+          "line": 166,
+          "end_line": 202,
+          "label": "edit"
+        },
+        { "path": "apps/web/components/trip/previewRequest.ts", "line": 16, "end_line": 49 }
+      ]
     },
     {
-      "id": "previewApi",
-      "lane": "preview",
+      "id": "checkApi",
+      "lane": "check",
       "col": 3,
       "type": "backend",
       "label": "POST /api/trip/preview-edit",
-      "sublabel": "重新计算路线 · 预算 · 冲突",
-      "width": 206
-    },
-    {
-      "id": "preview",
-      "lane": "preview",
-      "col": 4,
-      "type": "frontend",
-      "label": "编辑预览",
-      "sublabel": "检查变更后的计划与路线",
-      "width": 184
+      "sublabel": "按 baseVersion 重算路线 · 预算 · 冲突",
+      "width": 214,
+      "sources": [
+        { "path": "apps/web/app/api/trip/preview-edit/route.ts", "line": 6, "end_line": 18 },
+        {
+          "path": "apps/web/lib/trip/trip-edit.ts",
+          "line": 248,
+          "end_line": 305,
+          "label": "previewEdit"
+        }
+      ]
     },
     {
       "id": "apply",
       "lane": "workspace",
-      "col": 4,
+      "col": 5,
       "type": "frontend",
-      "label": "应用或取消",
-      "sublabel": "baseVersion 必须仍然匹配",
-      "width": 184
+      "label": "立即应用",
+      "sublabel": "记录撤销步骤 · 更新路线",
+      "width": 184,
+      "sources": [
+        {
+          "path": "apps/web/components/trip/plan-revision.ts",
+          "line": 184,
+          "end_line": 191,
+          "label": "applied"
+        }
+      ]
+    },
+    {
+      "id": "refused",
+      "lane": "rejected",
+      "col": 5,
+      "type": "frontend",
+      "label": "计划不变",
+      "sublabel": "列出阻断原因或提示计划已变化",
+      "width": 200,
+      "sources": [
+        {
+          "path": "apps/web/components/trip/timeline/useTimelineEdits.ts",
+          "line": 130,
+          "end_line": 133
+        }
+      ]
     }
   ],
   "edges": [
-    {
-      "id": "traveller-editor",
-      "from": "traveller",
-      "to": "editor",
-      "role": "main"
-    },
+    { "id": "traveller-editor", "from": "traveller", "to": "editor", "role": "main" },
     {
       "id": "editor-search",
       "from": "editor",
       "to": "searchApi",
-      "label": "搜索替换地点",
+      "label": "替换地点",
       "role": "branch"
     },
     {
-      "id": "search-places",
+      "id": "search-provider",
       "from": "searchApi",
-      "to": "places",
+      "to": "provider",
       "label": "关键词 + 目的地",
       "role": "main"
     },
     {
-      "id": "places-select",
-      "from": "places",
-      "to": "select",
-      "label": "地点候选",
+      "id": "provider-revision",
+      "from": "provider",
+      "to": "revision",
+      "label": "选中候选地点",
       "role": "return"
     },
     {
-      "id": "editor-select",
+      "id": "editor-revision",
       "from": "editor",
-      "to": "select",
-      "label": "其他时间线编辑",
+      "to": "revision",
+      "label": "编辑操作",
       "role": "main"
     },
     {
-      "id": "select-preview",
-      "from": "select",
-      "to": "previewApi",
-      "label": "编辑操作 + 当前计划",
+      "id": "revision-check",
+      "from": "revision",
+      "to": "checkApi",
+      "label": "计划 + baseVersion + 操作",
       "role": "main"
     },
     {
-      "id": "preview-api-result",
-      "from": "previewApi",
-      "to": "preview",
-      "label": "通过校验的预览和路线",
-      "role": "return"
-    },
-    {
-      "id": "preview-apply",
-      "from": "preview",
+      "id": "check-apply",
+      "from": "checkApi",
       "to": "apply",
-      "label": "应用或取消",
+      "label": "通过检查的计划",
       "role": "main"
+    },
+    {
+      "id": "check-refused",
+      "from": "checkApi",
+      "to": "refused",
+      "label": "阻断 · 过期 · 失败",
+      "role": "error"
     }
   ],
   "cards": [
     {
       "dot": "cyan",
-      "title": "提交前先预览",
-      "items": ["编辑不会直接修改行程计划", "服务端预览会重新计算路线、预算和冲突"]
+      "title": "检查后立即生效",
+      "items": [
+        "服务端接受后立即应用，没有预览确认步骤",
+        "接受但产生冲突（如超预算）仍会应用，冲突显示在时间线状态里"
+      ]
     },
     {
       "dot": "amber",
-      "title": "过期请求保护",
-      "items": ["预览会记录 baseVersion", "预览期间如果计划发生变化，旧结果会被拒绝"]
+      "title": "拒绝与过期",
+      "items": [
+        "有阻断原因或请求失败时计划不变，并显示原因",
+        "检查期间计划变化或被新编辑取代时，旧结果被丢弃"
+      ]
     },
     {
       "dot": "emerald",
-      "title": "地图关联",
+      "title": "撤销与地图",
       "items": [
-        "应用前会先在地图上绘制预览路线",
-        "应用预览后更新工作区计划；地图查询不会重新运行规划器"
+        "撤销上次修改也走同一检查与应用路径",
+        "地点详情和路线来自地图提供方，mock 模式下用模拟路线；不重新运行规划器"
       ]
     }
   ]

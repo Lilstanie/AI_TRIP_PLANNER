@@ -6,6 +6,8 @@
 
 以下图表描述当前运行时和浏览器工作流程。每个链接都会打开独立的 Archify HTML 查看器；可编辑 JSON 源文件和浏览器检查证据分别存放。
 
+<a id="file-layout"></a>
+
 ## 文件分类
 
 - `system/`、`agent-workflows/`、`data-and-storage/` 和 `workspace/` 按项目领域归类图表；`stage1-member-c/` 存放 ELEC5620 Stage 1 行为图。
@@ -13,11 +15,15 @@
 
 每项都提供查看器、源文件和视觉检查联系表链接。
 
+<a id="system-structure-and-trust-boundaries"></a>
+
 ## 系统结构与信任边界
 
 - [项目架构](architecture-diagrams/system/rendered/project-overview.html)（[源文件](architecture-diagrams/system/specs/project-overview.architecture.json)，[证据](architecture-diagrams/system/evidence/project-overview.visual-check.html)）—— Next.js 请求主链路、LangGraph 工作流、专家 agents、LangChain 模型调用和工具 Gateway。
 - [Agent、依据与信任边界](architecture-diagrams/agent-workflows/rendered/agent-trust-boundaries.html)（[源文件](architecture-diagrams/agent-workflows/specs/agent-trust-boundaries.architecture.json)，[证据](architecture-diagrams/agent-workflows/evidence/agent-trust-boundaries.visual-check.html)）—— 旅行者输入、仅协调器可见的附件、注入给 agent 的能力，以及外部数据提供方。
 - [共享契约](architecture-diagrams/system/rendered/contracts-flow.html)（[源文件](architecture-diagrams/system/specs/contracts-flow.workflow.json)，[证据](architecture-diagrams/system/evidence/contracts-flow.visual-check.html)）—— `ChatRequest`、`TripBrief`、`AgentProposal` 和 `TripPlan` 如何跨 package 边界传递。
+
+<a id="chat-and-planning"></a>
 
 ## 对话与规划
 
@@ -26,16 +32,20 @@
 - [Agent 协作](architecture-diagrams/agent-workflows/rendered/agent-collaboration.html)（[源文件](architecture-diagrams/agent-workflows/specs/agent-collaboration.workflow.json)，[证据](architecture-diagrams/agent-workflows/evidence/agent-collaboration.visual-check.html)）—— 专家分派、共享 planning board、冲突检查、定向修订和停止条件。
 - [计划区段生命周期](architecture-diagrams/agent-workflows/rendered/plan-lifecycle.html)（[源文件](architecture-diagrams/agent-workflows/specs/plan-lifecycle.lifecycle.json)，[证据](architecture-diagrams/agent-workflows/evidence/plan-lifecycle.visual-check.html)）—— 区段何时成为 `draft` 或 `needs_you`，以及旅行者如何继续处理。
 
+<a id="data-storage-and-services"></a>
+
 ## 数据、存储与服务
 
 - [ToolGateway 与数据提供方](architecture-diagrams/data-and-storage/rendered/tool-gateway.html)（[源文件](architecture-diagrams/data-and-storage/specs/tool-gateway.workflow.json)，[证据](architecture-diagrams/data-and-storage/evidence/tool-gateway.visual-check.html)）—— 请求级 mock/live 模式、提供方 adapter，以及返回给 agent 的依据。
 - [存储与账号同步](architecture-diagrams/data-and-storage/rendered/storage-sync.html)（[源文件](architecture-diagrams/data-and-storage/specs/storage-sync.workflow.json)，[证据](architecture-diagrams/data-and-storage/evidence/storage-sync.visual-check.html)）—— 浏览器目录、登录账号同步、`MemoryStore`、`tripStore` 和持久化回退。
-- [本地与账号同步时序](architecture-diagrams/data-and-storage/rendered/account-sync.html)（[源文件](architecture-diagrams/data-and-storage/specs/account-sync.sequence.json)，[证据](architecture-diagrams/data-and-storage/evidence/account-sync.visual-check.html)）—— 逐记录时间戳合并、删除 tombstone、延迟推送和离线保留。
+- [本地与账号同步时序](architecture-diagrams/data-and-storage/rendered/account-sync.html)（[源文件](architecture-diagrams/data-and-storage/specs/account-sync.sequence.json)，[证据](architecture-diagrams/data-and-storage/evidence/account-sync.visual-check.html)）—— 按检查点合并、服务端按 revision 校验写入、只确认被接受的记录、延迟串行推送，以及冲突时保留本地内容。
+
+<a id="workspace-behavior"></a>
 
 ## 工作区行为
 
-- [行程编辑](architecture-diagrams/workspace/rendered/trip-edit.html)（[源文件](architecture-diagrams/workspace/specs/trip-edit.workflow.json)，[证据](architecture-diagrams/workspace/evidence/trip-edit.visual-check.html)）—— 地点搜索、编辑预览、路线/预算/冲突重算，以及带版本校验的应用操作。
-- [地图浏览](architecture-diagrams/workspace/rendered/map-exploration.html)（[源文件](architecture-diagrams/workspace/specs/map-exploration.workflow.json)，[证据](architecture-diagrams/workspace/evidence/map-exploration.visual-check.html)）—— 地点查询和旅行者当前位置路线会显示在地图上，且不会重新运行 planner。
+- [行程编辑](architecture-diagrams/workspace/rendered/trip-edit.html)（[源文件](architecture-diagrams/workspace/specs/trip-edit.workflow.json)，[证据](architecture-diagrams/workspace/evidence/trip-edit.visual-check.html)）—— 可选的地点搜索、按 `baseVersion` 重算路线、预算和冲突的服务端检查、立即应用，以及被拒绝或已过期时计划保持不变。
+- [地图浏览](architecture-diagrams/workspace/rendered/map-exploration.html)（[源文件](architecture-diagrams/workspace/specs/map-exploration.workflow.json)，[证据](architecture-diagrams/workspace/evidence/map-exploration.visual-check.html)）—— 地点和旅行者当前位置路线经由 Google 优先、OpenStreetMap 兜底的提供方查询，地图由 Google SDK 或 MapLibre 渲染，且不会重新运行 planner。
 
 <a id="elec5620-stage-1-member-c-behaviour"></a>
 
@@ -46,6 +56,8 @@
 - [安排住宿活动图（UC-C1）](architecture-diagrams/stage1-member-c/rendered/c-activity.html)（[源文件](architecture-diagrams/stage1-member-c/specs/c-activity.workflow.json)，[证据](architecture-diagrams/stage1-member-c/evidence/c-activity.visual-check.html)）—— 已预订住宿的快捷路径、房间与城市分段准备、实时搜索与 Places 估价回退、唯一一次 LLM 选择，以及定价前的确定性校验。
 - [预算超支与定向修订（UC-C2）](architecture-diagrams/stage1-member-c/rendered/c-sequence.html)（[源文件](architecture-diagrams/stage1-member-c/specs/c-sequence.sequence.json)，[证据](architecture-diagrams/stage1-member-c/evidence/c-sequence.visual-check.html)）—— 第一轮规划、`detectConflicts`、带 `targetSaving` 的修订循环和回复；预算不可行的扩展写在卡片中。
 - [住宿区段状态机](architecture-diagrams/stage1-member-c/rendered/c-state.html)（[源文件](architecture-diagrams/stage1-member-c/specs/c-state.workflow.json)，[证据](architecture-diagrams/stage1-member-c/evidence/c-state.visual-check.html)）—— `planning`、`draft` 和 `needs_you` 状态背后的内部状态，包含全部守卫条件和修订循环。
+
+<a id="how-langchain-is-used"></a>
 
 ## 项目中的 LangChain 用法
 

@@ -200,6 +200,8 @@ Trip 抽屉不再显示 specialist 卡片（Day plan、Getting around、Stay、D
 - 每个出行时间都会标明来源服务：`Google`、公共交通的 `Transitous`，或免费回退路径中由 OSRM 应答的步行、骑行或驾车时间 `OSRM`（见[没有 Google 时的路线与时区](architecture.zh.md#routes-and-time-zones-without-google)）。
 - Google 无公共交通回答的路段（日本没有公共交通数据），或公共交通超过 90 分钟且超过驾车时长两倍的路段，会返回为驾车路段（`mode: "drive"`）并明确说明，不报告为无法规划路线。两个行程城市之间的路段先通过 SerpApi 尝试 Google Maps 公共交通（Tokyo → Kyoto：含票价的新干线），只有找不到结果时才驾车。
 
+<a id="drawer-walkthrough"></a>
+
 ## 抽屉演练
 
 `apps/web/tests/e2e/drawer-walkthrough.e2e.mjs` 在示例数据模式下，以旅行者的方式走一遍行程抽屉，分别在 1440×1000 和 390×844、英文和中文界面下进行。它规划一个模拟行程，把两个停靠点移到第 1 天，并检查本节的规则：没有确认或状态标签；每段路线显示出行方式和时长且没有按钮；修改一段路线会重新安排其后的停靠点，撤销则恢复；时间编辑立即生效，撤销可恢复；重叠会标记在对应停靠点上；住宿改选会改变总额；从备选地点安排的餐厅可以撤销；旅行提示可折叠，桌面端重新加载后仍保持折叠；页面没有水平滚动，没有控制台错误；中文抽屉中除行程文字、模型文字和脚本 `KNOWN_EXCEPTIONS` 中列出的精确字符串外，没有英文标签。
@@ -293,7 +295,7 @@ Data mode 默认是 Fixture data。只有部署启用后才能选择 Live data�
 控件具有程序化标签和键盘焦点，面板在手机上纵向堆叠且不会横向溢出。只有通过共享 `TripPlan`
 约定校验后才显示结果。该页面无需外部提供方、模型密钥或登录。
 
-<a id="out-of-scope"></a>
+<a id="accounts-and-settings"></a>
 
 ## 账号和设置
 
@@ -340,6 +342,8 @@ Data mode 默认是 Fixture data。只有部署启用后才能选择 Live data�
     工作区的所有金额都经过 Money 模块（`apps/web/lib/money.ts`，通过 `useLocale()` 读取）和 shared 中的估算汇率表显示。换算结果附带汇率参考日期；JPY 不显示小数，其他币种显示两位小数。本行程的有效币种（`displayCurrency`，否则为原始预算币种）优先于设置。规划和预算检查仍使用 AUD。`money()` 换算规划金额；`fare()` 让提供方原生票价保留自己的币种及该币种的小数位，四位数起按千位分组（`JPY 230`、`AUD 12.50`、`KRW 1,400`），且从不换算；`delta()` 给差额加正负号（`+AUD 12.00`、`−AUD 30.00`，零不带符号）；`budgetGap()` 给出行程面板共用的“{amount} under/over the {budget} budget”预算句。Agent Lab 使用同一模块，固定 AUD、取整到元（`A$3,960`，见 `apps/web/lib/agent-lab/money.ts` 中的 `labMoney`）。发给规划器的句子不是显示金额：`plannerAud()` 始终用英文 AUD 加两位小数书写，不受界面语言和显示币种影响。web 应用的 ESLint 配置禁止 `.toFixed(2)`，金额不得手工格式化。服务端生成的文字（摘要、冲突原因、进度）中的金额统一经过 `packages/shared/src/money.ts` 的 `formatMoney(amountAud, currency, style?)`，按同一汇率表换算，JPY 不显示小数，换算后的金额与面板一样按千位分组（`CNY 3,000.00`）；调用方传入行程的显示币种（Agent Lab 的场景不指定币种，仍为 AUD）。`estimateNote(currency)` 是生成文字的估算标记，AUD 时为空。
   - **Connected accounts：** 通过 Clerk 关联的 Google、GitHub 或 Apple 登录方式，并有一个按钮打开 Clerk 进行更改。
 - 未登录时，设置保存在当前浏览器；登录后，浏览器和账号中较新的副本为准，之后的改动保存到账号。
+
+<a id="out-of-scope"></a>
 
 ## 范围之外
 

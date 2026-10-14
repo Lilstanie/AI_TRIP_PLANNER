@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "a141b604-5187-4861-b5e3-c0b03c7f1aa8",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/private/tmp/claude-501/-Users-joey-AI-TRIP-PLANNER/88991aa6-b692-4a2d-8522-48ef8f84be3f/scratchpad/wt4/docs/architecture-diagrams/workspace/specs/trip-edit.workflow.json",
+  "output": "/private/tmp/claude-501/-Users-joey-AI-TRIP-PLANNER/88991aa6-b692-4a2d-8522-48ef8f84be3f/scratchpad/wt4/docs/architecture-diagrams/workspace/rendered/trip-edit.html",
+  "specification": {
+    "sha256": "3c997d726b08f9a94e650f102819caf999038c9d788d4354a239ba755279894a",
+    "bytes": 7067
+  },
+  "artifact": {
+    "sha256": "cae1269dcf7078e997ba19664b4a032848e8aa8a66714de5dc4fab18f0e8bfc6",
+    "bytes": 823434
+  }
+}

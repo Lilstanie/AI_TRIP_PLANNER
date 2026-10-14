@@ -319,7 +319,7 @@ Google `name` 必须是从最新查询中获得的 `places/{id}/photos/{id}` 名
 它是 `effectiveCurrency` 的最后一步，排在行程自身的 `displayCurrency` 和 `budgetSource` 币种之后，缺省视为 AUD。
 它只决定编辑所重写的句子如何书写金额（换掉的住宿描述、重新计算的冲突、`differences` 中的前后对比）；方案本身仍以 AUD 计。
 
-<a id="related-contracts"></a>
+<a id="account-routes"></a>
 
 ## 账号路由
 
@@ -361,6 +361,8 @@ conversations } }`，可以部分成功。只有 `accepted` 中的记录确认�
 ### `DELETE /api/account`
 
 先删除账号的数据行，再删除 Clerk 用户。如果数据行已删除但 Clerk 删除失败，返回 502 并说明情况。
+
+<a id="related-contracts"></a>
 
 ## 相关约定
 

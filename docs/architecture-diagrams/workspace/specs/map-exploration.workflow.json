@@ -3,27 +3,33 @@
   "diagram_type": "workflow",
   "meta": {
     "title": "地图地点检索与路线展示",
-    "output": "map-exploration.html",
+    "output": "docs/architecture-diagrams/workspace/rendered/map-exploration.html",
     "quality_profile": "showcase",
     "locale": "zh-CN",
+    "repository": {
+      "url": "https://github.com/Lilstanie/AI_TRIP_PLANNER.git",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "87e26199e07a7ed46abaf7614433099401bddf2c"
+    },
     "views": [
       {
         "id": "stops",
         "label": "行程地点",
-        "focus": ["tripPlan", "tripPlaces", "placesApi", "googlePlaces", "mapLayers", "tripMap"],
-        "note": "地图 hooks 将 TripPlan 活动转换为地点和标记，不会重新运行 planner。"
+        "focus": ["tripPlan", "tripPlaces", "placesApi", "fallback", "google", "osm", "tripMap"],
+        "note": "地图 hooks 把 TripPlan 活动解析成地点和标记，不会重新运行规划器。"
       },
       {
         "id": "from-location",
         "label": "当前位置路线",
-        "focus": ["traveller", "tripMap", "routeApi", "googleRoutes", "routeOverlay"],
-        "note": "旅客位置和 WALK / TRANSIT 选择驱动独立路线查询。"
+        "focus": ["traveller", "routeApi", "fallback", "google", "osm", "tripMap"],
+        "note": "旅客位置和 WALK / TRANSIT 选择驱动独立的路线查询。"
       },
       {
-        "id": "boundary",
-        "label": "Web 与 Provider 边界",
-        "focus": ["tripPlaces", "placesApi", "googlePlaces", "routeApi", "googleRoutes"],
-        "note": "Places 和 Routes 请求通过 Web API route 封装，并在该层处理 provider 错误。"
+        "id": "fallback",
+        "label": "Google 优先与 OSM 兜底",
+        "focus": ["placesApi", "routeApi", "fallback", "google", "osm", "renderer"],
+        "note": "服务端在 Google 不可用时改问 OSM 服务；浏览器在 Google SDK 加载失败时改用 MapLibre。"
       }
     ]
   },
@@ -33,12 +39,16 @@
       "label": "行程与地图界面"
     },
     {
-      "id": "places",
-      "label": "地点服务"
+      "id": "location",
+      "label": "当前位置"
     },
     {
-      "id": "routes",
-      "label": "路线与位置"
+      "id": "api",
+      "label": "Web API 路由"
+    },
+    {
+      "id": "providers",
+      "label": "地图提供方"
     }
   ],
   "phases": [
@@ -46,17 +56,23 @@
       "id": "plan-places",
       "label": "行程地点",
       "fromCol": 0,
-      "toCol": 3,
+      "toCol": 2,
       "variant": "emphasis"
     },
     {
+      "id": "lookup",
+      "label": "提供方选择",
+      "fromCol": 3,
+      "toCol": 4
+    },
+    {
       "id": "render",
-      "label": "地图呈现与浏览",
-      "fromCol": 4,
+      "label": "地图呈现",
+      "fromCol": 5,
       "toCol": 5
     }
   ],
-  "mainPath": ["tripPlan", "tripPlaces", "placesApi", "googlePlaces", "mapLayers", "tripMap"],
+  "mainPath": ["tripPlan", "tripPlaces", "placesApi", "fallback", "google", "tripMap"],
   "nodes": [
     {
       "id": "tripPlan",
@@ -64,7 +80,7 @@
       "col": 0,
       "type": "backend",
       "label": "已校验的 TripPlan",
-      "width": 184
+      "width": 150
     },
     {
       "id": "tripPlaces",
@@ -72,71 +88,148 @@
       "col": 1,
       "type": "frontend",
       "label": "useTripPlaces",
-      "width": 184
+      "sublabel": "缺少地点信息时补查",
+      "width": 160,
+      "sources": [
+        {
+          "path": "apps/web/components/map/useTripPlaces.ts",
+          "line": 52,
+          "end_line": 170
+        }
+      ]
     },
     {
       "id": "placesApi",
-      "lane": "places",
+      "lane": "api",
       "col": 2,
       "type": "backend",
       "label": "/api/places/*",
-      "width": 184
+      "sublabel": "搜索 · 详情 · 照片",
+      "width": 160,
+      "sources": [
+        {
+          "path": "apps/web/app/api/places/search/route.ts",
+          "line": 13,
+          "end_line": 23
+        }
+      ]
     },
     {
-      "id": "googlePlaces",
-      "lane": "places",
-      "col": 3,
+      "id": "traveller",
+      "lane": "location",
+      "col": 1,
       "type": "external",
-      "label": "Google Places",
-      "width": 184
+      "label": "旅客位置",
+      "width": 130
     },
     {
-      "id": "mapLayers",
+      "id": "routeApi",
+      "lane": "api",
+      "col": 3,
+      "type": "backend",
+      "label": "/api/routes/from-location",
+      "sublabel": "WALK / TRANSIT",
+      "width": 180,
+      "sources": [
+        {
+          "path": "apps/web/app/api/routes/from-location/route.ts",
+          "line": 5,
+          "end_line": 34
+        }
+      ]
+    },
+    {
+      "id": "fallback",
+      "lane": "providers",
+      "col": 3,
+      "type": "backend",
+      "label": "mapProvider",
+      "sublabel": "默认 google-with-fallback",
+      "width": 176,
+      "sources": [
+        {
+          "path": "apps/web/lib/map-provider/index.ts",
+          "line": 14,
+          "end_line": 50,
+          "label": "设置与组合"
+        },
+        {
+          "path": "apps/web/lib/map-provider/fallback.ts",
+          "line": 10,
+          "end_line": 72,
+          "label": "冷却与转交"
+        }
+      ]
+    },
+    {
+      "id": "google",
+      "lane": "providers",
+      "col": 4,
+      "type": "external",
+      "label": "Google Places / Routes",
+      "sublabel": "首选",
+      "width": 176,
+      "sources": [
+        {
+          "path": "apps/web/lib/map-provider/google.ts",
+          "line": 19,
+          "end_line": 45
+        }
+      ]
+    },
+    {
+      "id": "osm",
+      "lane": "providers",
+      "col": 5,
+      "type": "external",
+      "label": "OSM 服务",
+      "sublabel": "Photon · Commons · OSRM · Transitous",
+      "width": 184,
+      "sources": [
+        {
+          "path": "apps/web/lib/map-provider/osm.ts",
+          "line": 29,
+          "end_line": 95
+        }
+      ]
+    },
+    {
+      "id": "renderer",
       "lane": "state",
       "col": 3,
       "type": "frontend",
-      "label": "地图图层",
-      "width": 184
+      "label": "loadRenderer",
+      "sublabel": "Google SDK，失败时 MapLibre",
+      "width": 176,
+      "sources": [
+        {
+          "path": "apps/web/components/map/map-renderer.ts",
+          "line": 5,
+          "end_line": 15
+        },
+        {
+          "path": "apps/web/components/map/maplibre-renderer.ts",
+          "line": 8,
+          "end_line": 25,
+          "label": "OpenFreeMap 样式"
+        }
+      ]
     },
     {
       "id": "tripMap",
       "lane": "state",
-      "col": 4,
+      "col": 5,
       "type": "frontend",
       "label": "TripMap",
-      "width": 184
-    },
-    {
-      "id": "traveller",
-      "lane": "routes",
-      "col": 0,
-      "type": "external",
-      "label": "位置",
-      "width": 148
-    },
-    {
-      "id": "routeApi",
-      "lane": "routes",
-      "col": 2,
-      "type": "backend",
-      "label": "/api/routes/from-location",
-      "width": 200
-    },
-    {
-      "id": "googleRoutes",
-      "lane": "routes",
-      "col": 3,
-      "type": "external",
-      "label": "Google Routes",
-      "width": 184
-    },
-    {
-      "id": "routeOverlay",
-      "lane": "routes",
-      "col": 4,
-      "type": "frontend",
-      "label": "路线图层",
-      "width": 184
+      "sublabel": "地点标记 · 路线图层",
+      "width": 160,
+      "sources": [
+        {
+          "path": "apps/web/components/map/TripMap.tsx",
+          "line": 185,
+          "end_line": 200
+        }
+      ]
     }
   ],
   "edges": [
@@ -144,89 +237,93 @@
       "id": "plan-places",
       "from": "tripPlan",
       "to": "tripPlaces",
-      "label": "计划中的活动",
+      "label": "计划活动",
       "role": "main"
     },
     {
-      "id": "places-search",
+      "id": "places-api",
       "from": "tripPlaces",
       "to": "placesApi",
-      "label": "缺少地点信息时查询",
-      "role": "branch"
-    },
-    {
-      "id": "places-provider",
-      "from": "placesApi",
-      "to": "googlePlaces",
-      "label": "带类型的 Places 请求",
+      "label": "补查地点",
       "role": "main"
     },
     {
-      "id": "places-layers",
-      "from": "googlePlaces",
-      "to": "mapLayers",
-      "label": "标准化地点结果",
-      "role": "return"
-    },
-    {
-      "id": "layers-map",
-      "from": "mapLayers",
-      "to": "tripMap",
-      "label": "绘制地点标记和路线",
+      "id": "api-provider",
+      "from": "placesApi",
+      "to": "fallback",
+      "label": "地点请求",
       "role": "main"
     },
     {
       "id": "location-route",
       "from": "traveller",
       "to": "routeApi",
-      "label": "坐标 + WALK / TRANSIT",
+      "label": "坐标 + 出行方式",
       "role": "branch"
     },
     {
       "id": "route-provider",
       "from": "routeApi",
-      "to": "googleRoutes",
-      "label": "通过校验的路线请求",
+      "to": "fallback",
+      "label": "路线请求",
+      "role": "branch"
+    },
+    {
+      "id": "provider-google",
+      "from": "fallback",
+      "to": "google",
+      "label": "先问 Google",
       "role": "main"
     },
     {
-      "id": "route-overlay",
-      "from": "googleRoutes",
-      "to": "routeOverlay",
-      "label": "路线几何数据",
+      "id": "provider-osm",
+      "from": "fallback",
+      "to": "osm",
+      "label": "Google 不可用",
+      "role": "error"
+    },
+    {
+      "id": "google-map",
+      "from": "google",
+      "to": "tripMap",
+      "label": "结果 + source",
+      "role": "main"
+    },
+    {
+      "id": "osm-map",
+      "from": "osm",
+      "to": "tripMap",
+      "label": "兜底结果",
       "role": "return"
     },
     {
-      "id": "overlay-map",
-      "from": "routeOverlay",
+      "id": "renderer-map",
+      "from": "renderer",
       "to": "tripMap",
-      "label": "绘制已选路线",
-      "role": "return"
+      "label": "绘制底图",
+      "role": "branch"
     }
   ],
   "cards": [
     {
       "dot": "cyan",
       "title": "地图不会重新规划行程",
-      "items": [
-        "地图地点查询只补充展示数据",
-        "时间线编辑通过独立预览 endpoint 重新计算路线、预算和冲突"
-      ]
+      "items": ["地点查询只补充展示数据", "时间线编辑由 /api/trip/preview-edit 检查，见行程编辑图"]
     },
     {
       "dot": "emerald",
-      "title": "两种独立的地图查询",
+      "title": "Google 优先，OSM 兜底",
       "items": [
-        "行程地点通过 Places 搜索、详情和照片 endpoints 解析",
-        "当前位置路线使用 WALK 或 TRANSIT 查询，并作为地图图层显示"
+        "WEB_MAPS_PROVIDER 默认 google-with-fallback，也可固定为 google 或 osm",
+        "OSM 一侧：Photon/Nominatim 地点、Commons 照片、OSRM/Transitous 路线；Google 鉴权失败或限额时进入冷却期"
       ]
     },
     {
       "dot": "amber",
-      "title": "Provider 边界",
+      "title": "浏览器渲染",
       "items": [
-        "Next.js route 校验输入，并将 provider 错误转换为 API 响应",
-        "浏览器 Google Maps SDK 与服务端 API 使用分别配置的 key"
+        "Google Maps SDK 加载失败时改用 MapLibre 与 OpenFreeMap 底图",
+        "浏览器与服务端的 Google key 分别配置"
       ]
     }
   ]
