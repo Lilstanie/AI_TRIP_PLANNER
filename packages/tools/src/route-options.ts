@@ -83,9 +83,11 @@ export function driveOption(route: GoogleRouteShape, q: RouteQuery): RouteOption
     return `${toll.currencyCode}${amount === undefined ? " (amount unavailable)" : ` ${amount.toFixed(2)}`}`;
   });
   const tollNote = aud.length
-    ? `tolls A$${price.toFixed(2)}`
+    ? foreign.length
+      ? `partial toll cost: A$${price.toFixed(2)} counted`
+      : `tolls A$${price.toFixed(2)}`
     : foreign.length
-      ? "tolls quoted in foreign currency"
+      ? "partial toll cost: A$0.00 counted; tolls quoted in foreign currency"
       : route.travelAdvisory?.tollInfo
         ? Array.isArray(route.travelAdvisory.tollInfo.estimatedPrice) && tolls.length === 0
           ? "no tolls reported on this route"
