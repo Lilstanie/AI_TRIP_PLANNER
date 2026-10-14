@@ -41,7 +41,12 @@ existing [revision owner](../../../apps/web/components/trip/plan-revision.ts),
 4. Describe the guarantee precisely. Web Locks serialize cooperating tabs when available;
    localStorage fingerprints detect stale browser plans. Without locks there is no serialized queue,
    and storage read/write failures weaken the guard. This is browser-local protection, not an atomic
-   server revision check or cross-device coordination.
+   server revision check. Signed-in account sync is a separate owner
+   (`apps/web/lib/account/catalog-sync.ts`): trips, conversations and settings carry a server-owned
+   revision, an update must match it atomically, and a conflict stays local and pending
+   ([decision](../../notes/implemented/bug-fix/2026-10-14-revision-based-account-sync.md)). Keep
+   plan-edit ownership in the browser guard; do not treat a sync conflict as a stale plan or the
+   reverse.
 
 For behavior changes, write the failure inventory before implementation and exercise the public
 journey with held responses: background save versus edit, verify versus edit, chat replacement,
