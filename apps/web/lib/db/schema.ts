@@ -1,8 +1,9 @@
-import { index, jsonb, pgTable, primaryKey, text, timestamp } from "drizzle-orm/pg-core";
+import { index, integer, jsonb, pgTable, primaryKey, text, timestamp } from "drizzle-orm/pg-core";
 
 export const userSettings = pgTable("user_settings", {
   userId: text("user_id").primaryKey(),
   settings: jsonb("settings").notNull(),
+  revision: integer("revision").notNull().default(1),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
 });
 
@@ -10,6 +11,7 @@ const recordColumns = {
   userId: text("user_id").notNull(),
   id: text("id").notNull(),
   record: jsonb("record"),
+  revision: integer("revision").notNull().default(1),
 
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
