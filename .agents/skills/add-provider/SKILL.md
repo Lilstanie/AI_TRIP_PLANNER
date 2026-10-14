@@ -48,7 +48,12 @@ and never with a paid search.
   when that capability is called, so an unused provider never blocks a plan.
 - Raise a typed error with a `reason` (see `SerpApiError`) instead of a message callers must parse.
 - Decide the fallback tier explicitly: a cheaper grounded source, a fixture, or a thrown error the
-  agent turns into "unpriced" or "unavailable".
+  agent turns into "unpriced" or "unavailable". A fallback that needs its own key checks that
+  configuration before it engages; without it, rethrow the primary's typed error rather than mask it
+  ([SerpApi stay failure](../../notes/implemented/bug-fix/2026-10-14-serpapi-osm-stay-failure.md)).
+- Count date windows such as a forecast horizon in the destination's local calendar, not UTC, and
+  accept live evidence only when it covers the exact requested date
+  ([weather boundaries](../../notes/implemented/bug-fix/2026-10-14-weather-calendar-boundaries.md)).
 - Convert at the boundary: ratings to 0–10, prices to AUD whole-group totals, units the contracts
   expect. Leave unknown fields absent or conservative; never guess a value that looks real.
 - Paid providers share a monthly quota and cache through `@trip/services`' durable store; without it
