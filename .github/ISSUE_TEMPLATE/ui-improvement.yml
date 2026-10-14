@@ -1,0 +1,58 @@
+name: UI or experience improvement
+description: A design-contract, usability or accessibility problem. 设计约束、可用性或无障碍问题。
+labels: [enhancement, needs-triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Search existing issues first. Purely subjective taste belongs in the Idea template. 先搜索现有 issue;纯主观审美请用 Idea 模板。
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What kind of problem / 问题类型
+      options:
+        - Violates docs/design/ui-guidelines.md
+        - Usability (cannot find it, unclear state, missing feedback)
+        - Accessibility (keyboard, focus, screen reader, contrast, reduced motion)
+    validations:
+      required: true
+  - type: textarea
+    id: where
+    attributes:
+      label: Where and what it is now / 哪里、现在怎样
+      description: Name the screen and the element. 写清页面和元素。
+    validations:
+      required: true
+  - type: textarea
+    id: rule
+    attributes:
+      label: What it violates / 违反了什么
+      description: Quote the guideline or describe who is blocked. 引用设计约束,或说明谁会被卡住。
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested change / 建议怎样
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Device, browser and language / 设备、浏览器与语言
+      placeholder: Pixel 8, Chrome 130, 简体中文
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Screenshot / 截图
+      description: Drag files here. 可直接拖入文件。
+    validations:
+      required: true
+  - type: checkboxes
+    id: ai
+    attributes:
+      label: Provenance / 来源
+      options:
+        - label: An AI tool found this first, and I checked it myself. 最初由 AI 发现,我已自己确认。

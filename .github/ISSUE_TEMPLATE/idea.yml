@@ -1,0 +1,34 @@
+name: Idea
+description: A new feature or a taste-based design suggestion. 新功能或主观设计想法。
+title: "[idea] "
+labels: [enhancement, needs-triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Search existing issues first. Multi-user collaboration, social features, a creator marketplace, in-app payments, refunds and booking fulfilment are out of scope. On-trip mode ideas are especially welcome. 先搜索现有 issue;多人协作、社交、创作者市场、应用内支付、退款与订票履约不收,特别欢迎旅途中使用(On-trip)方向的想法。
+  - type: textarea
+    id: scenario
+    attributes:
+      label: Scenario / 用户场景
+      description: Who, when, and what goes wrong today. 谁、在什么时候、遇到什么麻烦。
+    validations:
+      required: true
+  - type: dropdown
+    id: step
+    attributes:
+      label: Which step it serves / 服务于哪一步
+      options: [Describe the trip, Edit the plan, Save and reopen, Use it while travelling]
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: The idea / 想法
+    validations:
+      required: true
+  - type: textarea
+    id: sketch
+    attributes:
+      label: Sketch or screenshot / 草图或截图
+      description: Required for taste-based design ideas. 主观设计类想法必填。
