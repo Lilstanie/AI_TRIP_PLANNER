@@ -64,10 +64,6 @@ try {
     "manifest has a maskable icon for Android",
   );
 
-  const links = await request.get(`${BASE}/.well-known/assetlinks.json`, { maxRedirects: 0 });
-  check(links.status() === 200, "assetlinks.json is served without a sign-in redirect");
-  check(Array.isArray(await links.json().catch(() => null)), "assetlinks.json is a JSON array");
-
   for (const { width, height, tag } of [
     { width: 1280, height: 800, tag: "desktop" },
     { width: 390, height: 844, tag: "phone" },

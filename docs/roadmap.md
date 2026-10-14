@@ -25,7 +25,7 @@ Status as of 2026-10-07 on `main`; see [workspace UI](workspace-ui.md) for curre
 - Accounts (Clerk) with a dedicated login page required when configured, syncing chats, trips and settings to Neon Postgres, and a Settings
   dialog with a travel profile that prefills new trips.
 - Phone layout at 520 px and below: a bottom tab bar (Chat, Map, Trip, Mine), sheets and an
-  installable web app manifest. Real-device checks are still open in issue #182.
+  installable web app manifest.
 - Interface language (English or Simplified Chinese) from Settings or the top bar, and a display
   currency (AUD, CNY, USD or JPY) while every plan is still priced in AUD.
 - Flights and stays: the day view shows each flight and each night's stay as rows that open to their

@@ -74,12 +74,12 @@
       "translationSha256": "bb557727d63ccfc91d404cf0ca46583a92efe5371150abe092bf48ef53324a47"
     },
     "docs/development.md": {
-      "sourceSha256": "b34ba655366e13e47dc46de7dd5f75b77e3d14f9ae25200dd1440b198c80de51",
-      "translationSha256": "31e9e70e257b5b2e1638fc65b595c2efe4635790b1abee354bb5c1c7af27e653"
+      "sourceSha256": "bd18587fbdc51fd6e1b242fe5a565be9dbc21d7a1eca15a8d60601ba3b6f55df",
+      "translationSha256": "749726eeedd5ac0e4b661f10ca477856dfe87f890325902b5b7dd6bdb898c7a0"
     },
     "docs/e2e-known-failures.md": {
-      "sourceSha256": "ab492212328279f1166acea741eebad1a8a28b79d4b9749eac638a2d5e5d2831",
-      "translationSha256": "a2bb425a851571f255cfee7f58a54dba0498211a32e21e7845e0e8bb8b10674b"
+      "sourceSha256": "4c5ec50171ed35932223d9149f9a37d34771203a01023dda29df147c908d0eff",
+      "translationSha256": "33bdfc6def3d6e890b493bd258fb2fc2ae7efb21dc45138f1e9a9e5d2130cfb5"
     },
     "docs/i18n.md": {
       "sourceSha256": "f68257c7bce1af3e72475fb48e9c4b9a88985b500297d04431ab39211a2bb479",
@@ -94,8 +94,8 @@
       "translationSha256": "6329cb128c7533b287c992cf41e2ec7fdb949ab2e6ce78f28175c56950c0e7a0"
     },
     "docs/roadmap.md": {
-      "sourceSha256": "b9a7713831f09727cd4cd5e6fde9d4ae2c2a57be3244b5f85c2abd7aad698e3b",
-      "translationSha256": "56809d92e979b89b1854ad02893cb769a1c9eff9133eae4f62b09a46b438e9c5"
+      "sourceSha256": "02ea5a10a8d6297c686e67bc66652513d74d943b6b131a4016943c502a807af0",
+      "translationSha256": "4030a77737741cfb44a70d77dc6f05f14caaa42b1c452376ea2c22b065b004f2"
     },
     "docs/team-workflow.md": {
       "sourceSha256": "c4e0ab62e2ef0cbd113a3daa0a9a4250b6a5dca7fb6695c14c5a4e7e73626442",

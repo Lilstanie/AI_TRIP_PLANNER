@@ -192,13 +192,11 @@ The site is a Progressive Web App, so the same deployment installs on every devi
 
 - **Computer**: Chrome or Edge shows an Install button in the address bar.
 - **iPhone**: Safari's Share menu, then Add to Home Screen.
-- **Android**: the Trusted Web Activity in `apps/android-twa/`, a Bubblewrap project that opens
-  `elec5620-ai-trip-planner.vercel.app` full screen.
+- **Android**: Chrome's menu, then Install app.
 
-The web side is `apps/web/app/manifest.ts`, the icons in `apps/web/public/icons/`,
-`apps/web/public/sw.js` (navigations fall back to `public/offline.html`; nothing dynamic is cached)
-and `apps/web/public/.well-known/assetlinks.json`. The service worker registers only in production
-builds. Check installability against a production server:
+The web side is `apps/web/app/manifest.ts`, the icons in `apps/web/public/icons/` and
+`apps/web/public/sw.js` (navigations fall back to `public/offline.html`; nothing dynamic is cached).
+The service worker registers only in production builds. Check installability against a production server:
 
 ```bash
 pnpm --filter @trip/web e2e installable-app --prod
@@ -207,22 +205,6 @@ pnpm --filter @trip/web e2e installable-app --prod
 It writes screenshots and `summary.json` to `output/playwright/installable-app/`. Chrome's
 installability check runs in full Chromium (`CHANNEL=chrome` uses Chrome instead) with a throwaway
 persistent profile, and also confirms it reports a page whose manifest link is removed.
-
-### Building the Android APK
-
-The release builder keeps the signing key on their own machine; `*.keystore` is Git-ignored. Builds
-need Node 22 and `npm i -g @bubblewrap/cli`; Bubblewrap installs a JDK and the Android SDK on first
-run.
-
-1. Deploy the web changes first: Bubblewrap reads the live manifest and icons.
-2. In `apps/android-twa/`, the first time only, create the key with
-   `keytool -genkeypair -v -keystore android.keystore -alias android -keyalg RSA -keysize 2048 -validity 10000`.
-3. Run `bubblewrap build`. It writes `app-release-signed.apk` and prints the key's SHA-256
-   fingerprint.
-4. Run `bubblewrap fingerprint add <SHA-256>` and `bubblewrap fingerprint generateAssetLinks`, then
-   copy the result into `apps/web/public/.well-known/assetlinks.json`, commit both and deploy. Until
-   the deployed file names the key, Android shows a URL bar at the top of the app.
-5. Install the APK with `adb install app-release-signed.apk`, or attach it to a GitHub Release.
 
 ## Licence and third-party code
 

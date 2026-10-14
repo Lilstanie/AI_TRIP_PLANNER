@@ -32,7 +32,7 @@ server with `DATA_MODE=mock`, `USE_MOCK_TOOLS=true`, and blank `MOCK_GOOGLE_MAPS
 ## Not failures
 
 - `installable-app` waits forever under `next dev`, because the service worker registers only in a production
-  build. Run it as its header says, `pnpm --filter @trip/web e2e installable-app --prod`; it passes all 24 checks with the full Chromium binary installed (2026-10-10).
+  build. Run it as its header says, `pnpm --filter @trip/web e2e installable-app --prod`; it passes all 22 checks with the full Chromium binary installed (2026-10-14).
 
 ## How to check
 
