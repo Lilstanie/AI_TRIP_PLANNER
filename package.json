@@ -20,7 +20,8 @@
     "verify:docs": "node scripts/verify-docs.mjs",
     "verify:e2e-selectors": "node scripts/verify-e2e-selectors.mjs",
     "verify:pairs": "node .agents/skills/translate-docs/scripts/check-pairs.mjs",
-    "test:scripts": "node --test \"scripts/*.test.mjs\""
+    "test:scripts": "node --test \"scripts/*.test.mjs\"",
+    "clean:output": "node scripts/clean-output.mjs"
   },
   "pnpm": {
     "overrides": {
