@@ -29,9 +29,9 @@ over a custom rebuild, and remove ARIA rather than add it.
   without closing the enclosing drawer) and the sidebar `role="separator"` resizer are the reference
   patterns. Copy their keyboard handling for similar widgets.
 - **Focus ring.** `apps/web/app/styles/base.css` gives every interactive element one ring through
-  `box-shadow: var(--ring)` with `outline: none`. Use that rule and do not style focus per component.
-  Forced-colors mode (Windows High Contrast) drops box shadows. When you change the ring, keep a
-  `2px solid transparent` outline beside the shadow so the system colour can still draw it.
+  `box-shadow: var(--ring)` beside a `2px solid transparent` outline. Use that rule and do not style
+  focus per component. Forced-colors mode (Windows High Contrast) drops box shadows but draws the
+  transparent outline in a system colour, so keep that outline whenever you change the ring.
 - **Reduced motion.** `base.css` has a global `prefers-reduced-motion: reduce` switch, and each
   stylesheet with its own animation adds a `reduce` block. Follow that pattern. Do not convert the
   codebase to opt-in `no-preference` blocks.

@@ -110,7 +110,13 @@ Each item below is a defect this project has hit; the source is in brackets.
   plan is loaded. Treating it as discarded creates a retry loop. Hold a response while editing,
   starting chat, switching trips or queueing behind another tab; check both the plan and further
   requests after release. Browser locks/local storage do not establish server-atomic or cross-device
-  ownership, and storage failure weakens that protection.
+  ownership, and storage failure weakens that protection. Signed-in account sync is the separate
+  server owner: trips, conversations and settings update only when the submitted revision matches
+  atomically, a conflict stays local and pending, and client `updatedAt`, timestamps or a retry
+  never resolve it. Flag a sync path that overwrites on time order or acknowledges a rejected
+  submission.
+  [revision-based sync](../../notes/implemented/bug-fix/2026-10-14-revision-based-account-sync.md),
+  [PR #334](https://github.com/Lilstanie/AI_TRIP_PLANNER/pull/334)
   [revision owner](../../../apps/web/components/trip/plan-revision.ts),
   [ownership decision](../../notes/implemented/feature/2026-10-09-plan-revision-owner.md),
   [stale-work correction](../../notes/implemented/architecture/2026-10-10-map-fallback-review-fixes.md),

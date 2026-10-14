@@ -48,7 +48,7 @@ const git = (...gitArgs) =>
     maxBuffer: 64 * 1024 * 1024,
   }).trim();
 
-const CHECKPOINT_PATH = ".agents/skills/skill-maintenance/review-checkpoint.json";
+const CHECKPOINT_PATH = ".agents/skills/skill-maintenance/assets/review-checkpoint.json";
 function readCheckpoint() {
   try {
     if (git("rev-parse", "--is-shallow-repository") === "true")

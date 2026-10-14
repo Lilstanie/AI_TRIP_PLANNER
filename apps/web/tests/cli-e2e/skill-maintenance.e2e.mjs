@@ -17,7 +17,7 @@ export const failureModes = [
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
 const output = mkdtempSync(resolve(tmpdir(), "skill-maintenance-acceptance-"));
 const results = [];
-const checkpointPath = ".agents/skills/skill-maintenance/review-checkpoint.json";
+const checkpointPath = ".agents/skills/skill-maintenance/assets/review-checkpoint.json";
 function fixture() {
   const cwd = mkdtempSync(resolve(output, "repo-"));
   const write = (path, data) => {

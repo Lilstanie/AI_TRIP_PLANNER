@@ -1,0 +1,95 @@
+{
+  "version": 1,
+  "reviewedRevision": "8ab8a0c386a7be964c5a41a705dd8351a7f0b7a8",
+  "skills": [
+    {
+      "name": "add-provider",
+      "summary": "verified ports/gateway/port modules, mockEnabled vs config.dataMode, public-boundary test, SerpApiError, 0-10 rating contract, five AgentProposalSourceKind values, durable SerpApi quota/cache, WEB_MAPS_PROVIDER settings and the development provider table; #333 fallback-configuration and destination-calendar lessons added."
+    },
+    {
+      "name": "agent-experience",
+      "summary": "verified specialist tools in packages/agents/src/*/index.ts, delegation in supervisor.ts and progress decorators in progress-tools.ts; drift from #333/#335 is formatting and parsing fixes that leave the guidance accurate."
+    },
+    {
+      "name": "agent-notes",
+      "summary": "lifecycle, archive and supersession steps match verify-docs and verify-protected; the skill's \"never edit rejected/ or archived/\" matches CI, while the protected notes README still says rejected notes may be deleted (reported, not changed)."
+    },
+    {
+      "name": "api-scout",
+      "summary": "provider-table anchor, roadmap link and add-provider hand-off resolve; discovery-only rules forbid live calls and credentials, which still matches the project's credential rules."
+    },
+    {
+      "name": "better-accessibility",
+      "summary": "verified Drawer, Dialog, FactPopover, ActionMenu and both separators plus the base.css reduced-motion switch; corrected the focus-ring description, which said outline: none although base.css draws a 2px transparent outline for forced colors; upstream rules synced in #339."
+    },
+    {
+      "name": "better-layout",
+      "summary": "verified CHAT_SHARE 0.3/0.56/0.75, the drawer width formula, the 1000 px and 520 px breakpoints, space tokens, the four named stylesheets and the base.css tabular-nums rule; upstream references synced in #339."
+    },
+    {
+      "name": "better-ui",
+      "summary": "verified every named token and value (160 ms transition, 380 ms drawer, radii, shadows, fills), motion.ts helpers, the 0.97 press scale and its opt-outs, icon files and glass fallbacks; PlacePreview's photo hairline uses border-bottom rather than the contract's inner outline (code gap, reported)."
+    },
+    {
+      "name": "better-writing",
+      "summary": "verified all named money, notice and i18n helpers, the dictionary files, cited terms and context-key example; patterns.md strings marked existing were checked against the dictionary in #339."
+    },
+    {
+      "name": "break",
+      "summary": "verified the debug-page production guard in three existing pages, the web launch configuration, mock-server.mjs and the named components; harness stays uncommitted."
+    },
+    {
+      "name": "e2e-maintenance",
+      "summary": "verified ci-integration fault modes, evidence.tar.gz upload, three-worker CI limit, E2E_SCRIPT_TIMEOUT_MS, --timeout-ms, doctor/list, report outcome fields, anchors and the deterministic-controls commands; fixed the generated-path false positive and added #321 automatic cleanup."
+    },
+    {
+      "name": "end-to-end-feature-wiring",
+      "summary": "verified the plan-revision, auto-save, leg-route and tab-revision owners and their E2E scenario owners; added the separate server-revision account-sync owner from #334 so the browser-local guarantee is not read as the only revision mechanism."
+    },
+    {
+      "name": "find-simplifications",
+      "summary": "scope, provider, async and test-retention rules match current docs; the Failure Lab five-profile ownership matches docs/development.md and agent-lab-failures; deepseek upstream recheck found nothing applicable."
+    },
+    {
+      "name": "libraries-dev",
+      "summary": "entrypoint routing, pnpm web-workspace install commands and contract constraints match the repo; thinking-orbs is installed and used by ThinkingOrbIcon; four references synced to a2756655 in #339."
+    },
+    {
+      "name": "playwright-best-practices",
+      "summary": "verified the library-not-runner premise (playwright 1.56.1, no @playwright/test), local CLI and testing-approach links; upstream pin 283d5cbc is still upstream HEAD."
+    },
+    {
+      "name": "pre-push-checks",
+      "summary": "verified every ci.yml step it names, the separate comment-policy workflow, the three CLI acceptance scripts, format:check-changed, verify:e2e-selectors, the web NODE_OPTIONS flag, NEXT_DIST_DIR/NEXT_TSCONFIG_PATH and the PR Evidence section from the #337 template; stage1 row now points at the submission README."
+    },
+    {
+      "name": "prose-standard",
+      "summary": "scope, protected-history and comment rules match AGENTS.md after #312 and docs/AGENTS.md placement; deepseek upstream unchanged since the pin."
+    },
+    {
+      "name": "review-trip-planner",
+      "summary": "verified every cited path, error class, onDecision hook, account 503 response, 1000-line limit and comment-policy commands; added the #334 server-revision account-sync rule and made the handoff comment check unconditional per the #312 default. The handoff's global code-review-standards-spec dependency is outside the repo (reported)."
+    },
+    {
+      "name": "session-log",
+      "summary": "template path, 60-line limit and frozen-log rule match TEMPLATE.md and verify-protected; length check command runs."
+    },
+    {
+      "name": "skill-maintenance",
+      "summary": "verified is-due thresholds 8/5/2/1/2, the checkpoint note, check-skills behaviour and the CLI acceptance script; stage1 example now names the retired skill without a link."
+    },
+    {
+      "name": "translate-docs",
+      "summary": "verified check-pairs modes (--record, --remove), CI order after verify-docs, docs/i18n.md terminology section and root GLOSSARY.md; deepseek upstream unchanged since the pin."
+    },
+    {
+      "name": "ui-verification",
+      "summary": "verified the web launch config, eleven named E2E scripts, the runner --prod flag, map-provider settings, the Clerk key gate in lib/auth/config.ts and that issue #182 is still open."
+    },
+    {
+      "name": "vercel-react-best-practices",
+      "summary": "project-scope section matches installed Next 15 and React 19 without adding SWR or compiler features; upstream pin 063bee94 is still upstream HEAD."
+    }
+  ],
+  "reviewedIssues": []
+}

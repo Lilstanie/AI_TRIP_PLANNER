@@ -28,9 +28,9 @@ reuse and external posting take precedence over the workflow's default parallel 
 
 - List actual commands, results, artifact paths and the commit or snapshot they validate. Retain
   failed attempts and distinguish local success from remote CI on the current head.
-- When the task prohibits added comments, run the scoped comment check from
-  [review-trip-planner](../SKILL.md) over
-  every selected JS/TS file, including untracked source. Review any exceptions against the task.
+- Run the scoped comment check from [review-trip-planner](../SKILL.md) over every selected JS/TS
+  file, including untracked source; no added explanatory comments is the repository default, not a
+  per-task option. Review any exceptions against the task.
   A violation or invalid scope is an incomplete gate, even if other tests pass.
 - For this checker itself, run its public CLI acceptance journey named in the comment-check reference. It is
   standalone; the registered CLI collection does not automatically include it.
