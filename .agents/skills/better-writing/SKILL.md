@@ -77,6 +77,17 @@ Read the copy around your change before you write. It establishes these conventi
 - **Tone follows the stakes.** Empty states and onboarding can be warm. Routine actions are neutral.
   Errors and destructive confirmations are calm and plain, with no playfulness and no exclamation
   marks.
+- **Undo beats confirmation.** When an action is reversible and frequent, act at once and offer undo
+  in the result, as "Undo last change" does. Confirm first only when the action cannot be reversed,
+  affects other people or destroys many items. The dialog title names the action and the object,
+  never "Are you sure?", and the body says what is lost. Templates are in
+  [patterns.md](references/patterns.md#destructive-flows).
+- **Status copy is parallel.** "Saving changes…" resolves to "Changes saved", never "Saved
+  successfully". A failure says what didn't happen and the next step. See
+  [patterns.md](references/patterns.md#status-copy).
+- **Toggles name the on state**, so the off state reads without a double negative.
+- **Link text makes sense out of context.** Name the destination, never "Click here" or two
+  identical "Learn more" links.
 - **Errors say how to fix it, next to where it broke**: "Choose a return date after departure", not
   "Invalid dates".
 - **Empty states point forward.** Say what the place is for and offer one next action. The blank chat

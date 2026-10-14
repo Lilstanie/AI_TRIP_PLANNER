@@ -20,10 +20,10 @@ More situations it fits:
 
 The two families:
 
-| Family | Types (`size`) | Motion |
-| --- | --- | --- |
-| Rotate | `md` (Large), `line`, `sm` | A beam travels around the border (`line`: along the bottom edge) |
-| Pulse | `pulse-inner`, `pulse-outside` | No travel; the glow breathes in place |
+| Family | Types (`size`)                 | Motion                                                           |
+| ------ | ------------------------------ | ---------------------------------------------------------------- |
+| Rotate | `md` (Large), `line`, `sm`     | A beam travels around the border (`line`: along the bottom edge) |
+| Pulse  | `pulse-inner`, `pulse-outside` | No travel; the glow breathes in place                            |
 
 ### When not to use
 
@@ -41,7 +41,7 @@ yarn add border-beam
 ```
 
 ```tsx
-import { BorderBeam } from 'border-beam';
+import { BorderBeam } from "border-beam";
 ```
 
 - React component. Peer dependencies: `react >= 18`, `react-dom >= 18`. No runtime dependencies.
@@ -52,18 +52,18 @@ import { BorderBeam } from 'border-beam';
 The detail page also lists two ports, both local to the repo (not on npm):
 
 - React Native: `border-beam-native` in `packages/border-beam/ports/react-native/border-beam-native`. Needs `@shopify/react-native-skia` and `react-native-reanimated`. Expo needs `expo run:ios` / `run:android` (native modules).
-- SwiftUI: `BorderBeamKit` in `packages/border-beam/ports/ios/BorderBeamKit`, added as a local Swift package. Build through Xcode; the Metal shader is compiled by Xcode's build system, not SwiftPM alone.
+- SwiftUI: `BorderBeamKit` in `packages/border-beam/ports/ios/BorderBeamKit`, installed from GitHub through the repo's root `Package.swift`. Build through Xcode; the Metal shader is compiled by Xcode's build system, not SwiftPM alone.
 
 ## Basic usage
 
 React (the detail page's Install & Usage tab):
 
 ```tsx
-import { BorderBeam } from 'border-beam';
+import { BorderBeam } from "border-beam";
 
 <BorderBeam>
   <YourCard>Content</YourCard>
-</BorderBeam>
+</BorderBeam>;
 ```
 
 React Native:
@@ -73,18 +73,20 @@ npm install border-beam-native @shopify/react-native-skia react-native-reanimate
 ```
 
 ```tsx
-import { BorderBeam } from 'border-beam-native';
+import { BorderBeam } from "border-beam-native";
 
 <BorderBeam>
   <Card />
-</BorderBeam>
+</BorderBeam>;
 ```
 
 SwiftUI:
 
 ```swift
-// Package.swift — or Xcode: File › Add Package Dependencies… › Add Local…
-.package(path: "packages/border-beam/ports/ios/BorderBeamKit")
+// Package.swift — or Xcode: File › Add Package Dependencies… › paste the URL (Branch: main)
+.package(url: "https://github.com/Jakubantalik/Libraries.dev", branch: "main")
+// …and in your target's dependencies:
+.product(name: "BorderBeamKit", package: "Libraries.dev")
 ```
 
 ```swift
@@ -109,13 +111,13 @@ The playground's live snippet keeps only non-default props. For example, Line + 
 
 ## Options (free)
 
-| Prop | Values | Default | What it does |
-| --- | --- | --- | --- |
-| `size` | `"md"`, `"line"`, `"pulse-inner"`, `"pulse-outside"` (tuner); `"sm"` (Copy prompt) | `"md"` | Beam type. `md` full-border travelling beam, `line` bottom-edge travelling glow, `sm` compact beam for button-sized elements, `pulse-inner` breathes inside the border, `pulse-outside` blooms outward |
-| `colorVariant` | `"colorful"`, `"mono"` (tuner); `"ocean"`, `"sunset"` (Copy prompt) | `"colorful"` | Palette. `colorful` full spectrum, `mono` grayscale (always static, softer), `ocean` blues and purples, `sunset` oranges and reds |
-| `active` | `true`, `false` (Play / Pause) | `true` | Runs the effect. Switching fades in (0.6 s) or out (0.5 s); when off, no effect layers render |
-| `strength` | `0` to `1` (Copy prompt) | `1` | Opacity of the beam layers only. Never dims the wrapped content |
-| `theme` | `"dark"`, `"light"` (Copy prompt) | `"dark"` | Tunes glow colours and blending for a dark or light surface. The package types also accept `"auto"`, which follows `prefers-color-scheme` |
+| Prop           | Values                                                                             | Default      | What it does                                                                                                                                                                                           |
+| -------------- | ---------------------------------------------------------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `size`         | `"md"`, `"line"`, `"pulse-inner"`, `"pulse-outside"` (tuner); `"sm"` (Copy prompt) | `"md"`       | Beam type. `md` full-border travelling beam, `line` bottom-edge travelling glow, `sm` compact beam for button-sized elements, `pulse-inner` breathes inside the border, `pulse-outside` blooms outward |
+| `colorVariant` | `"colorful"`, `"mono"` (tuner); `"ocean"`, `"sunset"` (Copy prompt)                | `"colorful"` | Palette. `colorful` full spectrum, `mono` grayscale (always static, softer), `ocean` blues and purples, `sunset` oranges and reds                                                                      |
+| `active`       | `true`, `false` (Play / Pause)                                                     | `true`       | Runs the effect. Switching fades in (0.6 s) or out (0.5 s); when off, no effect layers render                                                                                                          |
+| `strength`     | `0` to `1` (Copy prompt)                                                           | `1`          | Opacity of the beam layers only. Never dims the wrapped content                                                                                                                                        |
+| `theme`        | `"dark"`, `"light"` (Copy prompt)                                                  | `"dark"`     | Tunes glow colours and blending for a dark or light surface. The package types also accept `"auto"`, which follows `prefers-color-scheme`                                                              |
 
 Tuner to props: **Family** is not a prop. It only switches which **Type** tabs show (Rotate: Large = `md`, Line = `line`; Pulse: Pulse Inner, Pulse Outside). **Type** sets `size`. **Color** sets `colorVariant`. **Play / Pause** sets `active`. The stage is always `theme="dark"`. The page's "Copy prompt" text adds `sm`, `ocean`, `sunset`, `strength` and `theme`. The web component also forwards any standard `<div>` attribute (`className`, `style`, `id`, `data-*`, `ref`) to the wrapper.
 
@@ -124,12 +126,12 @@ Tuner to props: **Family** is not a prop. It only switches which **Type** tabs s
 Chat composer while the model streams. Use when an input should show "the assistant is working" without a separate spinner.
 
 ```tsx
-import { BorderBeam } from 'border-beam';
+import { BorderBeam } from "border-beam";
 
 function Composer({ isStreaming }: { isStreaming: boolean }) {
   return (
     <BorderBeam active={isStreaming} strength={0.8}>
-      <form className="composer" style={{ borderRadius: 16, background: '#1d1d1d' }}>
+      <form className="composer" style={{ borderRadius: 16, background: "#1d1d1d" }}>
         <textarea placeholder="Ask anything" aria-busy={isStreaming} />
       </form>
     </BorderBeam>
@@ -141,7 +143,7 @@ Search bar while searching. Use when a single-line field is fetching results.
 
 ```tsx
 <BorderBeam size="line" active={isSearching}>
-  <div className="search" style={{ borderRadius: 20, background: '#1d1d1d' }}>
+  <div className="search" style={{ borderRadius: 20, background: "#1d1d1d" }}>
     <input type="search" placeholder="Search" />
   </div>
 </BorderBeam>
@@ -150,8 +152,8 @@ Search bar while searching. Use when a single-line field is fetching results.
 AI action button. Use for a compact "Generate" or sparkle button that should read as AI-powered.
 
 ```tsx
-<BorderBeam size="sm" colorVariant="ocean" style={{ display: 'inline-block' }}>
-  <button className="ai-btn" style={{ borderRadius: 18, background: '#1d1d1d' }}>
+<BorderBeam size="sm" colorVariant="ocean" style={{ display: "inline-block" }}>
+  <button className="ai-btn" style={{ borderRadius: 18, background: "#1d1d1d" }}>
     Generate
   </button>
 </BorderBeam>
@@ -161,7 +163,7 @@ Card awaiting a decision, on a light page. Use for a pending approval or a highl
 
 ```tsx
 <BorderBeam size="pulse-inner" colorVariant="mono" theme="light" strength={0.7}>
-  <article className="approval-card" style={{ borderRadius: 12, background: '#fff' }}>
+  <article className="approval-card" style={{ borderRadius: 12, background: "#fff" }}>
     Agent wants to send 3 emails. Approve?
   </article>
 </BorderBeam>
@@ -173,7 +175,7 @@ Featured pricing card with an outward halo. Use when one card in a row should st
 <BorderBeam size="pulse-outside" colorVariant="sunset">
   <div
     className="plan plan--featured"
-    style={{ borderRadius: 16, background: '#1d1d1d', border: '1px solid rgba(255,255,255,0.1)' }}
+    style={{ borderRadius: 16, background: "#1d1d1d", border: "1px solid rgba(255,255,255,0.1)" }}
   >
     Pro plan
   </div>
@@ -185,16 +187,16 @@ Featured pricing card with an outward halo. Use when one card in a row should st
 - Rotate types (`md`, `sm`, `line`) do not handle `prefers-reduced-motion`. Handle it yourself by turning the beam off:
 
 ```tsx
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 
 function usePrefersReducedMotion() {
   const [reduced, setReduced] = useState(false);
   useEffect(() => {
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
     setReduced(mq.matches);
     const on = (e: MediaQueryListEvent) => setReduced(e.matches);
-    mq.addEventListener('change', on);
-    return () => mq.removeEventListener('change', on);
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
   }, []);
   return reduced;
 }
@@ -221,17 +223,17 @@ function usePrefersReducedMotion() {
 
 ## Detecting a fit in a codebase
 
-| Signal to grep for | Suggest |
-| --- | --- |
+| Signal to grep for                                                                                                                                                                                                               | Suggest                                                   |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
 | Chat composers where the reply takes more than 3 s (streamed model replies, agent runs): `<textarea` next to `onSubmit`, `ChatInput`, `Composer`, `PromptInput`, `useChat`, `isStreaming`, `isLoading`, `status === 'streaming'` | `md` beam around the composer with `active={isStreaming}` |
-| Copy like `Thinking…`, `Generating`, `Working…`, `Agent is running`, `aria-busy` on a card | `md` or `pulse-inner` on that card while the state holds |
-| Search inputs: `type="search"`, `SearchBar`, `CommandMenu`, `cmdk`, `isSearching`, `isFetching` | `line` beam with `active={isSearching}` |
-| CTA or AI action buttons to highlight: `Sparkles`, `Wand` icons, "Generate", "Ask AI", "Get started" labels | `pulse-inner` around the button |
-| A prompt input to highlight while idle (the main field on an empty state or landing) | `pulse-outside` around the input |
-| Featured cards: `featured`, `recommended`, `popular`, `highlight` classes on pricing or plan cards | `pulse-outside` on the featured card |
-| Pending or selected states: `needsApproval`, `pendingReview`, `isSelected` on a card | `pulse-inner`, `colorVariant="mono"` for restraint |
-| Hand-rolled beams: `conic-gradient` with `@keyframes` rotate, `animate-border`, `border-beam`, `shine-border`, `magic-border` | Replace with `<BorderBeam>` |
-| Light-mode UI: `bg-white` cards, `data-theme="light"`, `prefers-color-scheme: light` | Set `theme="light"` on those beams |
+| Copy like `Thinking…`, `Generating`, `Working…`, `Agent is running`, `aria-busy` on a card                                                                                                                                       | `md` or `pulse-inner` on that card while the state holds  |
+| Search inputs: `type="search"`, `SearchBar`, `CommandMenu`, `cmdk`, `isSearching`, `isFetching`                                                                                                                                  | `line` beam with `active={isSearching}`                   |
+| CTA or AI action buttons to highlight: `Sparkles`, `Wand` icons, "Generate", "Ask AI", "Get started" labels                                                                                                                      | `pulse-inner` around the button                           |
+| A prompt input to highlight while idle (the main field on an empty state or landing)                                                                                                                                             | `pulse-outside` around the input                          |
+| Featured cards: `featured`, `recommended`, `popular`, `highlight` classes on pricing or plan cards                                                                                                                               | `pulse-outside` on the featured card                      |
+| Pending or selected states: `needsApproval`, `pendingReview`, `isSelected` on a card                                                                                                                                             | `pulse-inner`, `colorVariant="mono"` for restraint        |
+| Hand-rolled beams: `conic-gradient` with `@keyframes` rotate, `animate-border`, `border-beam`, `shine-border`, `magic-border`                                                                                                    | Replace with `<BorderBeam>`                               |
+| Light-mode UI: `bg-white` cards, `data-theme="light"`, `prefers-color-scheme: light`                                                                                                                                             | Set `theme="light"` on those beams                        |
 
 ## Go further (Pro)
 

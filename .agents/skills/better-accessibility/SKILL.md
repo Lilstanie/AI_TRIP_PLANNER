@@ -49,9 +49,15 @@ over a custom rebuild, and remove ARIA rather than add it.
 - **Keyboard path for every pointer action**, including map interactions. A marker or place that
   opens detail on click also needs a focusable equivalent in the place list. Escape closes the
   overlay that opened last. See [focus-and-keyboard.md](references/focus-and-keyboard.md).
-- **Hit areas.** At least 24×24 CSS px (WCAG 2.5.8). Aim for 40px on desktop and 44px on phones where
+- **Hit areas.** At least 24×24 CSS px or one of WCAG 2.5.8's exceptions. Aim for 40px on desktop and 44px on phones where
   the density allows. Collapsed sidebar icons and map controls are the usual offenders. See
   [hit-areas.md](references/hit-areas.md).
+- **Every drag has a single-pointer alternative** (WCAG 2.5.7). Dragging a stop in `TimelineStop.tsx`,
+  the `SplitResizer` and `SidebarResizer` splitters and the `PhoneMapSheet` handle each need a button
+  or menu path to the same result. Keyboard support alone does not meet this criterion.
+- **Focus never hides under sticky chrome** (WCAG 2.4.11). A scroller with a sticky header or footer,
+  such as the phone editor's sticky `.item-editor__actions`, pads itself by that height with
+  `scroll-padding-block-start` or `scroll-padding-block-end`.
 - **Label every control.** A placeholder is never a label. The top-bar fact editors use real labels, and
   new fields do too. See [forms.md](references/forms.md).
 - **Accessible names.** Icon-only buttons need an `aria-label` that contains any visible text.
@@ -59,6 +65,9 @@ over a custom rebuild, and remove ARIA rather than add it.
 - **Announce streaming and planning progress politely.** Use a stable `role="status"` region that
   exists before its text changes. Reserve `role="alert"` for urgent failures that no control owns.
   Never announce every streamed token. See [screen-readers.md](references/screen-readers.md).
+- **Nothing the user needs runs on a timer** (WCAG 2.2.2). A notice that carries an action or an
+  error stays until dismissed, and anything that moves or updates on its own for more than 5 seconds
+  gets a visible pause control.
 - **Place photos.** Use the place name as alt text, or `alt=""` when the name is visible beside the
   photo. A photo carousel needs labelled previous and next buttons, and its keyboard path must not
   trap Tab.
@@ -85,6 +94,10 @@ Order findings by severity, one row per root cause listing every place it appear
 - `HIGH`: blocks a task, hides content from assistive technology, or fails systemically.
 - `MEDIUM`: makes an interaction meaningfully harder.
 - `LOW`: isolated polish.
+
+A `HIGH` or `MEDIUM` finding cites a WCAG 2.2 Level A or AA criterion by number, or names a task an
+assistive-technology user cannot complete. AAA criteria, APG conventions and the 40px and 44px
+targets are recommendations and are never `HIGH`.
 
 In a pull request review, these findings join the [review-trip-planner](../review-trip-planner/SKILL.md) output
 rather than forming a separate verdict.
