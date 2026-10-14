@@ -39,7 +39,7 @@ yarn add thinking-orbs
 ```
 
 ```tsx
-import { ThinkingOrb } from 'thinking-orbs';
+import { ThinkingOrb } from "thinking-orbs";
 ```
 
 - React component rendering a `<canvas>`. Peer dependency: `react >= 18`. No other runtime dependencies.
@@ -52,26 +52,26 @@ import { ThinkingOrb } from 'thinking-orbs';
 React (the detail page's Install & Usage tab):
 
 ```tsx
-import { ThinkingOrb } from 'thinking-orbs';
-<ThinkingOrb state="searching" size={64} />
+import { ThinkingOrb } from "thinking-orbs";
+<ThinkingOrb state="searching" size={64} />;
 ```
 
 The playground's live snippet has the same shape:
 
 ```tsx
-import { ThinkingOrb } from 'thinking-orbs';
+import { ThinkingOrb } from "thinking-orbs";
 
-<ThinkingOrb state="listening" size={64} />
+<ThinkingOrb state="listening" size={64} />;
 ```
 
 With Cursor gravity switched on, the playground snippet becomes:
 
 ```tsx
-import { ThinkingOrb } from 'thinking-orbs';
+import { ThinkingOrb } from "thinking-orbs";
 // A raster of the platform's own pointer — see the Gravity docs.
-import { macArrow } from './cursors';
+import { macArrow } from "./cursors";
 
-<ThinkingOrb state="listening" size={64} gravity={{ sprite: macArrow }} />
+<ThinkingOrb state="listening" size={64} gravity={{ sprite: macArrow }} />;
 ```
 
 `./cursors` is your own file. The package does not ship a pointer image (see Cursor gravity below).
@@ -83,15 +83,17 @@ npm install thinking-orbs-native @shopify/react-native-skia react-native-reanima
 ```
 
 ```tsx
-import { ThinkingOrb } from 'thinking-orbs-native';
-<ThinkingOrb state="searching" size={64} />
+import { ThinkingOrb } from "thinking-orbs-native";
+<ThinkingOrb state="searching" size={64} />;
 ```
 
-SwiftUI tab (local Swift package):
+SwiftUI tab (Swift package from GitHub):
 
 ```swift
-// Package.swift — or Xcode: File › Add Package Dependencies… › Add Local…
-.package(path: "packages/thinking-orbs/ports/ios/ThinkingOrbsKit")
+// Package.swift — or Xcode: File › Add Package Dependencies… › paste the URL (Branch: main)
+.package(url: "https://github.com/Jakubantalik/Libraries.dev", branch: "main")
+// …and in your target's dependencies:
+.product(name: "ThinkingOrbsKit", package: "Libraries.dev")
 ```
 
 ```swift
@@ -101,27 +103,27 @@ ThinkingOrb(state: .searching, size: .px64)
 
 ## Options (free)
 
-| Prop | Values | Default | What it does |
-| --- | --- | --- | --- |
-| `state` | `"working"`, `"searching"`, `"solving"`, `"listening"`, `"connecting"`, `"composing"`, `"breathing"` (tuner tabs); `"weaving"`, `"shaping"` (shown in the page's examples and Copy prompt) | `"working"` | Which animation plays. Each state is its own design, not a variation. |
-| `size` | `64`, `20` | `64` | Tuned size preset in CSS px. 64 is chat-avatar scale, 20 is inline-text scale. Each has its own dot count, dot size and speed. |
-| `gravity` | off, or `{ sprite }` | off | Cursor gravity: near the orb, the pointer's body bends and trails toward it. Needs a pointer raster (`sprite`). |
-| `paused` | `true`, `false` | `false` | Freezes the animation on the current frame (the playground's Play / Pause button). |
-| `theme` | `"auto"`, `"dark"`, `"light"` | `"auto"` | Ink for the background. `dark` draws light dots for dark backgrounds, `light` draws dark dots for light ones. |
+| Prop      | Values                                                                                                                                                                                     | Default     | What it does                                                                                                                   |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `state`   | `"working"`, `"searching"`, `"solving"`, `"listening"`, `"connecting"`, `"composing"`, `"breathing"` (tuner tabs); `"weaving"`, `"shaping"` (shown in the page's examples and Copy prompt) | `"working"` | Which animation plays. Each state is its own design, not a variation.                                                          |
+| `size`    | `64`, `20`                                                                                                                                                                                 | `64`        | Tuned size preset in CSS px. 64 is chat-avatar scale, 20 is inline-text scale. Each has its own dot count, dot size and speed. |
+| `gravity` | off, or `{ sprite }`                                                                                                                                                                       | off         | Cursor gravity: near the orb, the pointer's body bends and trails toward it. Needs a pointer raster (`sprite`).                |
+| `paused`  | `true`, `false`                                                                                                                                                                            | `false`     | Freezes the animation on the current frame (the playground's Play / Pause button).                                             |
+| `theme`   | `"auto"`, `"dark"`, `"light"`                                                                                                                                                              | `"auto"`    | Ink for the background. `dark` draws light dots for dark backgrounds, `light` draws dark dots for light ones.                  |
 
 What each state looks like (from the package types):
 
-| State | Animation | Fits |
-| --- | --- | --- |
-| `working` | particles on tilted orbits | generic agent work, tool running |
-| `searching` | a scan meridian sweeps a dotted globe | web search, retrieval, lookup |
-| `solving` | bands scramble in quarter turns, then click back | code execution, math, debugging |
-| `listening` | a waveform rolls through latitude rings | mic open, dictation, voice mode |
+| State        | Animation                                          | Fits                                 |
+| ------------ | -------------------------------------------------- | ------------------------------------ |
+| `working`    | particles on tilted orbits                         | generic agent work, tool running     |
+| `searching`  | a scan meridian sweeps a dotted globe              | web search, retrieval, lookup        |
+| `solving`    | bands scramble in quarter turns, then click back   | code execution, math, debugging      |
+| `listening`  | a waveform rolls through latitude rings            | mic open, dictation, voice mode      |
 | `connecting` | a constellation wires itself, packets on the edges | connecting services, linking sources |
-| `weaving` | three strands plait around the sphere | planning, combining results |
-| `composing` | an undulating multi-band sash | writing, drafting, generating text |
-| `breathing` | a face-on ring slowly morphing | idle "Thinking…", reasoning |
-| `shaping` | a dotted outline morphs circle, triangle, square | designing, building layouts |
+| `weaving`    | three strands plait around the sphere              | planning, combining results          |
+| `composing`  | an undulating multi-band sash                      | writing, drafting, generating text   |
+| `breathing`  | a face-on ring slowly morphing                     | idle "Thinking…", reasoning          |
+| `shaping`    | a dotted outline morphs circle, triangle, square   | designing, building layouts          |
 
 Tuner to props: the "State" tabs set `state`, the "Size" tabs (64px / 20px) set `size={64}` / `size={20}`, "Cursor gravity" On adds `gravity={{ sprite: macArrow }}`, and the stage's Play / Pause button maps to `paused`. The page's Copy prompt lists a `dark: boolean` prop; that prop does not exist. Use `theme="dark"` or `theme="light"`. The component also passes through every `<canvas>` prop (`className`, `style`, `aria-label`, `data-*`).
 
@@ -132,15 +134,15 @@ Tuner to props: the "State" tabs set `state`, the "Size" tabs (64px / 20px) set 
 `gravity` takes `{ sprite }`, where `sprite` is a `CursorSprite` exported as a type from the package:
 
 ```ts
-import type { CursorSprite } from 'thinking-orbs';
+import type { CursorSprite } from "thinking-orbs";
 
 // cursors.ts: a raster of YOUR platform's real arrow pointer.
 // Size and hotspot below are the macOS arrow's (17x23 pt, hotspot 4,4).
 export const macArrow: CursorSprite = {
-  src: '/cursors/arrow@2x.png', // image URL or data: URL
-  width: 17,  // CSS px
+  src: "/cursors/arrow@2x.png", // image URL or data: URL
+  width: 17, // CSS px
   height: 23, // CSS px
-  hotX: 4,    // click point, CSS px
+  hotX: 4, // click point, CSS px
   hotY: 4,
 };
 ```
@@ -154,33 +156,37 @@ export const macArrow: CursorSprite = {
 Assistant avatar while a reply streams. Use when: a chat message is pending and the assistant row needs a live indicator.
 
 ```tsx
-import type { ReactNode } from 'react';
-import { ThinkingOrb } from 'thinking-orbs';
+import type { ReactNode } from "react";
+import { ThinkingOrb } from "thinking-orbs";
 
 function AssistantAvatar({ pending, avatar }: { pending: boolean; avatar: ReactNode }) {
-  return pending ? <ThinkingOrb state="breathing" size={64} aria-label="Assistant is thinking" /> : <>{avatar}</>;
+  return pending ? (
+    <ThinkingOrb state="breathing" size={64} aria-label="Assistant is thinking" />
+  ) : (
+    <>{avatar}</>
+  );
 }
 ```
 
 Inline agent-step chip. Use when: a tool call or agent step renders as a line of text.
 
 ```tsx
-import { ThinkingOrb, type OrbState } from 'thinking-orbs';
+import { ThinkingOrb, type OrbState } from "thinking-orbs";
 
 const STEP_STATE: Record<string, OrbState> = {
-  web_search: 'searching',
-  run_code: 'solving',
-  read_files: 'working',
-  connect: 'connecting',
-  plan: 'weaving',
-  write: 'composing',
+  web_search: "searching",
+  run_code: "solving",
+  read_files: "working",
+  connect: "connecting",
+  plan: "weaving",
+  write: "composing",
 };
 
 function StepChip({ tool, label }: { tool: string; label: string }) {
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
       {/* the text already says what is happening, so hide the canvas from screen readers */}
-      <ThinkingOrb state={STEP_STATE[tool] ?? 'working'} size={20} aria-hidden="true" />
+      <ThinkingOrb state={STEP_STATE[tool] ?? "working"} size={20} aria-hidden="true" />
       <span>{label}</span>
     </span>
   );
@@ -232,19 +238,19 @@ Pinned theme on a fixed dark surface. Use when: the orb sits on a dark panel ins
 
 ## Detecting a fit in a codebase
 
-| Signal to grep for | Suggest |
-| --- | --- |
-| Waits under 2 s: optimistic updates, cached or local reads, quick toggles | Nothing. Do not add an orb |
-| `Thinking…`, `Thinking...`, `isThinking`, `reasoning` in chat components | `breathing` at 64 in the assistant avatar slot |
-| `Loader2` with `animate-spin`, `<Spinner`, `CircularProgress` near chat or agent code | the orb state that names the activity, size 20 inline |
-| Typing indicators: `TypingIndicator`, `typing-dots`, three bouncing dots CSS | `composing` or `breathing` |
-| Vercel AI SDK `useChat` with `status === 'submitted'` or `'streaming'`, `isLoading` | orb while pending, removed on first token or on finish |
+| Signal to grep for                                                                                      | Suggest                                                                     |
+| ------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| Waits under 2 s: optimistic updates, cached or local reads, quick toggles                               | Nothing. Do not add an orb                                                  |
+| `Thinking…`, `Thinking...`, `isThinking`, `reasoning` in chat components                                | `breathing` at 64 in the assistant avatar slot                              |
+| `Loader2` with `animate-spin`, `<Spinner`, `CircularProgress` near chat or agent code                   | the orb state that names the activity, size 20 inline                       |
+| Typing indicators: `TypingIndicator`, `typing-dots`, three bouncing dots CSS                            | `composing` or `breathing`                                                  |
+| Vercel AI SDK `useChat` with `status === 'submitted'` or `'streaming'`, `isLoading`                     | orb while pending, removed on first token or on finish                      |
 | Tool call rendering: `toolInvocations`, `tool-call`, `part.type === 'tool-...'`, `web_search`, `browse` | `searching` for search tools, `solving` for code tools, `working` otherwise |
-| `Searching`, `Browsing`, `Retrieving`, RAG or vector search calls | `searching` |
-| `Connecting`, MCP client setup, OAuth "linking" steps | `connecting` |
-| `Planning`, `plan` steps in agent traces | `weaving` |
-| `getUserMedia`, `MediaRecorder`, `SpeechRecognition`, mic buttons | `listening` while recording |
-| `Generating`, `Writing`, `Drafting` labels | `composing` |
+| `Searching`, `Browsing`, `Retrieving`, RAG or vector search calls                                       | `searching`                                                                 |
+| `Connecting`, MCP client setup, OAuth "linking" steps                                                   | `connecting`                                                                |
+| `Planning`, `plan` steps in agent traces                                                                | `weaving`                                                                   |
+| `getUserMedia`, `MediaRecorder`, `SpeechRecognition`, mic buttons                                       | `listening` while recording                                                 |
+| `Generating`, `Writing`, `Drafting` labels                                                              | `composing`                                                                 |
 
 ## Go further (Pro)
 

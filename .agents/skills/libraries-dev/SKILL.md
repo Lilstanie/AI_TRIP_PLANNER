@@ -91,7 +91,7 @@ This mode is read-only. Finish by identifying which suggestions can be applied w
 ## Source and updates
 
 Adapted from the [official free skill](https://libraries.dev/skill), pinned to upstream commit
-`f20116327f4e3b28d0fb70b04437dfd092bf88fe`. References are preserved from that snapshot; this entrypoint
+`a27566557b4def79bcdcedc71858c0fb28020b6d`. References are preserved from that snapshot; this entrypoint
 adds project routing and constraints. See [LICENSE](LICENSE) and
 [third-party notices](../THIRD_PARTY_NOTICES.md). Compare upstream updates before replacing local
 instructions. Pro options require the user's Libraries Pro access; do not introduce login or paid

@@ -38,14 +38,14 @@ yarn add metal-fx
 ```
 
 ```tsx
-import { MetalFx, MetalText, MetalBadge, useMetalBend, useMetalTextReflection } from 'metal-fx';
+import { MetalFx, MetalText, MetalBadge, useMetalBend, useMetalTextReflection } from "metal-fx";
 ```
 
 - React components only. Peer deps: `react` and `react-dom` >= 18. ESM and CJS builds with types.
 - Requires WebGL2. Without it `<MetalFx>` renders the child as-is inside `div.metal-fx-fallback[data-metal-fx-unsupported]`.
 - Styles are injected into `<head>` on import; no CSS file to add.
 - The package ships no `"use client"` directive. In the Next.js App Router, import it from a file marked `"use client"`.
-- Native ports (shown on the detail page, not on npm): React Native `metal-fx-native` (Skia + Reanimated 4) and SwiftUI `MetalFxKit` (iOS 17+), both in the metal-fx repo under `ports/`.
+- Native ports (shown on the detail page, not on npm): React Native `metal-fx-native` (Skia + Reanimated 4) and SwiftUI `MetalFxKit` (iOS 17+), both under `ports/` (in this repo at `packages/metal-fx/ports/`); the SwiftUI one installs from GitHub through the repo's root `Package.swift`.
 
 ## Basic usage
 
@@ -81,8 +81,10 @@ import { MetalFx, MetalText, MetalBadge, MetalReflection, MetalEdgeHalo } from '
 SwiftUI (iOS 17+, build through Xcode so the Metal shader compiles):
 
 ```swift
-// Package.swift — or Xcode: File › Add Package Dependencies… › Add Local…
-.package(path: "ports/ios/MetalFxKit")
+// Package.swift — or Xcode: File › Add Package Dependencies… › paste the URL (Branch: main)
+.package(url: "https://github.com/Jakubantalik/Libraries.dev", branch: "main")
+// …and in your target's dependencies:
+.product(name: "MetalFxKit", package: "Libraries.dev")
 ```
 
 ```swift
@@ -101,14 +103,23 @@ On phones there is no cursor: device tilt bends the rings.
 Playground snippet, type "Circle button" (all toggles off):
 
 ```tsx
-import { MetalFx, useMetalBend } from 'metal-fx';
+import { MetalFx, useMetalBend } from "metal-fx";
 
 const ref = useRef(null);
 useMetalBend(ref); // cursor-driven liquid dent
 
-<MetalFx ref={ref} preset="chromatic" variant="circle" innerShadow strength={0.90} reflectionTargets={[siblingRef]}>
-  <button aria-label="Send"><ArrowUpIcon /></button>
-</MetalFx>
+<MetalFx
+  ref={ref}
+  preset="chromatic"
+  variant="circle"
+  innerShadow
+  strength={0.9}
+  reflectionTargets={[siblingRef]}
+>
+  <button aria-label="Send">
+    <ArrowUpIcon />
+  </button>
+</MetalFx>;
 ```
 
 Playground snippet, type "Text":
@@ -129,17 +140,17 @@ useMetalTextReflection(planRef); // "Plan" catches the metal
 
 `<MetalFx>`:
 
-| Prop | Values | Default | What it does |
-|---|---|---|---|
-| `variant` | `"button"` \| `"circle"` | `"button"` | `button` is a pill with a 1 px ring; `circle` a round icon button with a 2 px ring. |
-| `preset` | `"chromatic"` \| `"silver"` \| `"gold"` | `"chromatic"` | Metal colour. Each ships a dark and a light tuning. The playground fixes it to `chromatic`. |
-| `theme` | `"auto"` \| `"dark"` \| `"light"` | `"auto"` | Picks the preset's dark or light side. `auto` follows `prefers-color-scheme` live. |
-| `strength` | `0`–`1` | `1` | Multiplies the metal opacity and glow alpha. The playground snippet emits `0.90`. |
-| `innerShadow` | boolean | off | Light rim along the ring's top inside edge. On in the Circle button snippet. |
-| `reflectionTargets` | array of refs, or `{ ref, strength }` | none | Neighbours that catch a mirrored reflection. Dark theme only. |
-| `disableGlow` | boolean | `false` | Removes the wandering halo. The ring still renders. |
-| `glowGain` | number | `1` | Multiplier on the glow only, on top of `strength` (clamped to 0..1 after multiplying). |
-| `paused` | boolean | `false` | Freezes this instance on its current frame. |
+| Prop                | Values                                  | Default       | What it does                                                                                |
+| ------------------- | --------------------------------------- | ------------- | ------------------------------------------------------------------------------------------- |
+| `variant`           | `"button"` \| `"circle"`                | `"button"`    | `button` is a pill with a 1 px ring; `circle` a round icon button with a 2 px ring.         |
+| `preset`            | `"chromatic"` \| `"silver"` \| `"gold"` | `"chromatic"` | Metal colour. Each ships a dark and a light tuning. The playground fixes it to `chromatic`. |
+| `theme`             | `"auto"` \| `"dark"` \| `"light"`       | `"auto"`      | Picks the preset's dark or light side. `auto` follows `prefers-color-scheme` live.          |
+| `strength`          | `0`–`1`                                 | `1`           | Multiplies the metal opacity and glow alpha. The playground snippet emits `0.90`.           |
+| `innerShadow`       | boolean                                 | off           | Light rim along the ring's top inside edge. On in the Circle button snippet.                |
+| `reflectionTargets` | array of refs, or `{ ref, strength }`   | none          | Neighbours that catch a mirrored reflection. Dark theme only.                               |
+| `disableGlow`       | boolean                                 | `false`       | Removes the wandering halo. The ring still renders.                                         |
+| `glowGain`          | number                                  | `1`           | Multiplier on the glow only, on top of `strength` (clamped to 0..1 after multiplying).      |
+| `paused`            | boolean                                 | `false`       | Freezes this instance on its current frame.                                                 |
 
 `<MetalText>`: `children` (string, required), `font` (CSS `font` shorthand, required), `color` (base text colour, required), `strength`, `reflectionTargets`.
 
@@ -147,11 +158,11 @@ useMetalTextReflection(planRef); // "Plan" catches the metal
 
 Hooks and config:
 
-| API | What it does |
-|---|---|
-| `useMetalBend(ref)` | Cursor-driven liquid dent on the ring. `ref` goes on `<MetalFx>`. |
-| `useMetalTextReflection(ref)` | Confines a reflection to the glyphs of a text element that is a `reflectionTargets` entry. |
-| `setCursorLightConfig({ cursor: false })` | Turns off the cursor reflection (the ring lighting the pointer) for the whole page. |
+| API                                       | What it does                                                                               |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `useMetalBend(ref)`                       | Cursor-driven liquid dent on the ring. `ref` goes on `<MetalFx>`.                          |
+| `useMetalTextReflection(ref)`             | Confines a reflection to the glyphs of a text element that is a `reflectionTargets` entry. |
+| `setCursorLightConfig({ cursor: false })` | Turns off the cursor reflection (the ring lighting the pointer) for the whole page.        |
 
 Tuner to code: **Version** v2 / v1 switches engine (v1 = `metal-fx@1`). **Type** "Circle button" = `<MetalFx variant="circle" innerShadow>` + `useMetalBend`; "Text" = `<MetalText>` + `useMetalTextReflection`. "Button" and "Badge" types are shown but locked on the page. **No Glow** adds `disableGlow`. **No Reflection** drops `reflectionTargets`. **No Cursor Reflection** adds `setCursorLightConfig({ cursor: false })`. **Play / Pause** maps to `paused` (the playground starts paused; the snippet does not emit it).
 
@@ -160,8 +171,8 @@ Tuner to code: **Version** v2 / v1 switches engine (v1 = `metal-fx@1`). **Type**
 Chat composer send button, reflecting on the model chip. Use when: the send action of an AI prompt box.
 
 ```tsx
-import { useMemo, useRef } from 'react';
-import { MetalFx, useMetalBend } from 'metal-fx';
+import { useMemo, useRef } from "react";
+import { MetalFx, useMetalBend } from "metal-fx";
 
 export function Composer() {
   const chipRef = useRef<HTMLButtonElement>(null);
@@ -170,9 +181,24 @@ export function Composer() {
   const targets = useMemo(() => [chipRef], []);
   return (
     <div className="composer-bar">
-      <button ref={chipRef} className="chip">Auto</button>
-      <MetalFx ref={sendRef} variant="circle" preset="chromatic" innerShadow strength={0.9} reflectionTargets={targets}>
-        <button type="button" aria-label="Send" style={{ width: 40, height: 40, borderRadius: 999 }}>↑</button>
+      <button ref={chipRef} className="chip">
+        Auto
+      </button>
+      <MetalFx
+        ref={sendRef}
+        variant="circle"
+        preset="chromatic"
+        innerShadow
+        strength={0.9}
+        reflectionTargets={targets}
+      >
+        <button
+          type="button"
+          aria-label="Send"
+          style={{ width: 40, height: 40, borderRadius: 999 }}
+        >
+          ↑
+        </button>
       </MetalFx>
     </div>
   );
@@ -183,7 +209,16 @@ Upgrade pill in the top nav. Use when: one paid-tier CTA per screen.
 
 ```tsx
 <MetalFx preset="silver" strength={0.7}>
-  <a href="/pricing" style={{ display: 'inline-flex', alignItems: 'center', height: 36, padding: '0 16px', borderRadius: 999 }}>
+  <a
+    href="/pricing"
+    style={{
+      display: "inline-flex",
+      alignItems: "center",
+      height: 36,
+      padding: "0 16px",
+      borderRadius: 999,
+    }}
+  >
     Upgrade to Pro
   </a>
 </MetalFx>
@@ -192,8 +227,8 @@ Upgrade pill in the top nav. Use when: one paid-tier CTA per screen.
 Plan name in an account card. Use when: only the tier word should be metal.
 
 ```tsx
-import { useMemo, useRef } from 'react';
-import { MetalText, useMetalTextReflection } from 'metal-fx';
+import { useMemo, useRef } from "react";
+import { MetalText, useMetalTextReflection } from "metal-fx";
 
 export function PlanLine() {
   const planRef = useRef<HTMLSpanElement>(null);
@@ -202,7 +237,12 @@ export function PlanLine() {
   return (
     <div className="plan-line">
       <span ref={planRef}>Plan</span>
-      <MetalText font="500 24px/1.2 Inter, sans-serif" color="#E2E2E2" strength={0.9} reflectionTargets={targets}>
+      <MetalText
+        font="500 24px/1.2 Inter, sans-serif"
+        color="#E2E2E2"
+        strength={0.9}
+        reflectionTargets={targets}
+      >
         Pro
       </MetalText>
     </div>
@@ -222,11 +262,12 @@ export function PlanLine() {
 App-driven theme and reduced motion. Use when: the app has its own theme toggle.
 
 ```tsx
-const reduce = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const reduce =
+  typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 <MetalFx theme={appTheme} paused={reduce} disableGlow={reduce}>
   <button>Upgrade to Pro</button>
-</MetalFx>
+</MetalFx>;
 ```
 
 ## Accessibility & performance
@@ -253,15 +294,15 @@ const reduce = typeof window !== 'undefined' && window.matchMedia('(prefers-redu
 
 ## Detecting a fit in a codebase
 
-| Signal to grep | Suggest |
-|---|---|
-| `Upgrade to Pro`, `Get Pro`, `Go Pro`, `Upgrade`, `/pricing` links in nav or sidebars | `<MetalFx>` button variant around that one CTA |
+| Signal to grep                                                                                                                              | Suggest                                                                                 |
+| ------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `Upgrade to Pro`, `Get Pro`, `Go Pro`, `Upgrade`, `/pricing` links in nav or sidebars                                                       | `<MetalFx>` button variant around that one CTA                                          |
 | Chat composer: `<textarea` with `placeholder="Ask`/`Message`/`Build anything`, `aria-label="Send"`, `ArrowUp`/`SendIcon`/`PaperPlane` icons | `<MetalFx variant="circle" innerShadow>` + `useMetalBend`, reflecting on a sibling chip |
-| Model or mode pickers next to the send button (`Auto`, `Agent`, `model-select`) | Use them as `reflectionTargets` |
-| Hero or page headline: the `<h1>` on a landing, pricing or launch page, a key display heading | `<MetalText>` on that heading |
-| Pricing/plan UI: `plan`, `tier`, `Pro`, `Premium`, `Plus` labels | `<MetalText>` on the tier word, `useMetalTextReflection` on the label before it |
-| `New` / `Beta` badges, `badge--new`, `<Badge>New</Badge>` | `<MetalBadge>New</MetalBadge>` |
-| Hand-rolled shine: `shimmer`, `shine`, `conic-gradient` borders, `animate-border`, `gradient-border` on a button | Replace with `<MetalFx>` |
+| Model or mode pickers next to the send button (`Auto`, `Agent`, `model-select`)                                                             | Use them as `reflectionTargets`                                                         |
+| Hero or page headline: the `<h1>` on a landing, pricing or launch page, a key display heading                                               | `<MetalText>` on that heading                                                           |
+| Pricing/plan UI: `plan`, `tier`, `Pro`, `Premium`, `Plus` labels                                                                            | `<MetalText>` on the tier word, `useMetalTextReflection` on the label before it         |
+| `New` / `Beta` badges, `badge--new`, `<Badge>New</Badge>`                                                                                   | `<MetalBadge>New</MetalBadge>`                                                          |
+| Hand-rolled shine: `shimmer`, `shine`, `conic-gradient` borders, `animate-border`, `gradient-border` on a button                            | Replace with `<MetalFx>`                                                                |
 
 ## Go further (Pro)
 

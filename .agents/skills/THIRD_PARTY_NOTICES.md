@@ -57,10 +57,15 @@ SOFTWARE.
 
 The `better-accessibility`, `better-layout`, `better-ui`, `better-writing` and `break` skills are
 adapted from [jakubkrehel/skills](https://github.com/jakubkrehel/skills) at commit
+`4c66b1fa86e9ab70187b43d7da9b6fdb29f2ef63` (2026-10-12), first adapted at
 `267330e1adfc66a718fb65fa6918c1f06d0a689e` (2026-08-29). Their `SKILL.md` files and
-`break/references/scenarios.md` are rewritten for this project, and `better-ui/references/glass.md`
-is new. The remaining reference files are copied with small edits to their cross-references, and all
-of them sit under each skill's `references/` directory. The upstream licence follows.
+`break/references/scenarios.md` are rewritten for this project, `better-ui/references/glass.md`
+is new, and `better-writing/references/patterns.md` keeps only the destructive-flow and status-copy
+patterns with project examples. The remaining reference files are three-way merged with upstream,
+keeping project lines where the workspace depends on them: the global reduced-motion fallback, the
+fixed workspace breakpoints and the `base.css` tabular-figure rule. Upstream mentions of
+`better-typography` and `better-colors`, which are not adapted, are replaced. All of them sit under
+each skill's `references/` directory. The upstream licence follows.
 
 ```text
 MIT License
@@ -89,8 +94,10 @@ SOFTWARE.
 ## Libraries.dev
 
 `libraries-dev` is adapted from
-[Jakubantalik/Libraries.dev](https://github.com/Jakubantalik/Libraries.dev/tree/f20116327f4e3b28d0fb70b04437dfd092bf88fe/skills/libraries-dev)
-at commit `f20116327f4e3b28d0fb70b04437dfd092bf88fe`. Its entrypoint is rewritten for this workspace's
-UI contract, pnpm package scope and validation. The seven reference files are copied unchanged.
+[Jakubantalik/Libraries.dev](https://github.com/Jakubantalik/Libraries.dev/tree/a27566557b4def79bcdcedc71858c0fb28020b6d/skills/libraries-dev)
+at commit `a27566557b4def79bcdcedc71858c0fb28020b6d` (2026-10-13), first adapted at
+`f20116327f4e3b28d0fb70b04437dfd092bf88fe`. Its entrypoint is rewritten for this workspace's UI
+contract, pnpm package scope and validation. The seven reference files are copied unchanged, except
+that the four updated at the current commit carry the repository's Prettier formatting.
 Copyright (c) 2026 Jakub Antalik; the complete MIT licence is preserved in
 [libraries-dev/LICENSE](libraries-dev/LICENSE).
