@@ -45,28 +45,37 @@ try {
   const current = () =>
     page.evaluate(() => JSON.parse(localStorage.getItem("trip-workspace-v1") ?? "null"));
   const waitForPlan = async (expected) =>
-    page.waitForFunction((budget) => {
-      const brief = JSON.parse(localStorage.getItem("trip-workspace-v1") ?? "null")?.plan?.brief;
-      return brief?.budgetTotal === budget;
-    }, expected, { timeout: 180_000 });
+    page.waitForFunction(
+      (budget) => {
+        const brief = JSON.parse(localStorage.getItem("trip-workspace-v1") ?? "null")?.plan?.brief;
+        return brief?.budgetTotal === budget;
+      },
+      expected,
+      { timeout: 180_000 },
+    );
   const waitForState = async (expected) =>
-    page.waitForFunction((state) => {
-      const brief = JSON.parse(localStorage.getItem("trip-workspace-v1") ?? "null")?.plan?.brief;
-      if (!brief) return false;
-      if (state.budgetTotal !== undefined && brief.budgetTotal !== state.budgetTotal) return false;
-      if (state.sourceCurrency === null && brief.budgetSource !== undefined) return false;
-      if (
-        state.sourceCurrency !== undefined &&
-        state.sourceCurrency !== null &&
-        brief.budgetSource?.currency !== state.sourceCurrency
-      )
-        return false;
-      if (state.sourceAmount !== undefined && brief.budgetSource?.amount !== state.sourceAmount)
-        return false;
-      if (state.displayCurrency !== undefined && brief.displayCurrency !== state.displayCurrency)
-        return false;
-      return true;
-    }, expected, { timeout: 60_000 });
+    page.waitForFunction(
+      (state) => {
+        const brief = JSON.parse(localStorage.getItem("trip-workspace-v1") ?? "null")?.plan?.brief;
+        if (!brief) return false;
+        if (state.budgetTotal !== undefined && brief.budgetTotal !== state.budgetTotal)
+          return false;
+        if (state.sourceCurrency === null && brief.budgetSource !== undefined) return false;
+        if (
+          state.sourceCurrency !== undefined &&
+          state.sourceCurrency !== null &&
+          brief.budgetSource?.currency !== state.sourceCurrency
+        )
+          return false;
+        if (state.sourceAmount !== undefined && brief.budgetSource?.amount !== state.sourceAmount)
+          return false;
+        if (state.displayCurrency !== undefined && brief.displayCurrency !== state.displayCurrency)
+          return false;
+        return true;
+      },
+      expected,
+      { timeout: 60_000 },
+    );
   const message = async (text, expected) => {
     const repliesBefore = await page.locator(".msg-item--agent .msg-item__body").count();
     const responseFinished = page.waitForEvent("requestfinished", {
@@ -87,8 +96,9 @@ try {
   const lastReply = async () =>
     (await page.locator(".msg-item--agent .msg-item__body").last().textContent())?.trim() ?? "";
   const budgetChip = async () =>
-    (await page.getByRole("button", { name: /^Budget:/ }).textContent())?.replace(/\s+/g, " ").trim() ??
-    "";
+    (await page.getByRole("button", { name: /^Budget:/ }).textContent())
+      ?.replace(/\s+/g, " ")
+      .trim() ?? "";
 
   phase = "load workspace";
   await page.goto(process.env.BASE_URL ?? "http://localhost:3000");
@@ -236,8 +246,8 @@ try {
   await page.locator(".history-item__open").first().click();
   await page.waitForFunction(
     () =>
-      JSON.parse(localStorage.getItem("trip-workspace-v1") ?? "null")?.plan?.brief?.budgetSource?.currency ===
-      "CNY",
+      JSON.parse(localStorage.getItem("trip-workspace-v1") ?? "null")?.plan?.brief?.budgetSource
+        ?.currency === "CNY",
   );
   saved = await current();
   check(

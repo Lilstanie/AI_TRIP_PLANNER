@@ -8,13 +8,6 @@
       "when": 1790445019746,
       "tag": "0000_fantastic_doomsday",
       "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1791951020409,
-      "tag": "0001_ambitious_micromacro",
-      "breakpoints": true
     }
   ]
 }

@@ -363,43 +363,24 @@ rewrites spell amounts (a swapped stay's description, the recomputed conflicts, 
 ## Account routes
 
 Every account route needs a Clerk session and answers 401 without one, and 503 when Clerk or
-`DATABASE_URL` is not configured. Except for the settings conflict described below, every failure body, including the 400s and the 502 below, is
+`DATABASE_URL` is not configured. Every failure body, including the 400s and the 502 below, is
 [`{ error, notice }`](#failure-bodies). Queries use the session's user id, never an id from the body.
 Contracts: `UserSettings` in `apps/web/lib/account/settings.ts`, `SyncedRecord` and `SyncPush` in
 `apps/web/lib/account/sync.ts`.
 
 ### `GET` and `PUT /api/account/settings`
 
-`GET` returns `{ settings, revision }`, with `settings: null` and revision `0` before the first save.
-`PUT` takes `{ settings: UserSettings, revision }`. Revision `0` creates a row; subsequent writes must
-match its current server revision. Accepted writes return `{ settings, revision }` with the revision
-incremented by one. A stale write returns 409 `{ conflict: true }`; an invalid or legacy body returns 400.
-`updatedAt` is display metadata and never decides which edit wins.
-When a browser has no local checkpoint and no other account checkpoint, its existing settings migrate
-to the first signed-in account with revision `0`. On an account switch, unsynced settings are kept under
-the previous identity and restored if it returns. The new identity adopts its own saved settings or
-defaults, and does not receive settings owned by the previous identity.
+`GET` returns `{ settings }`, or `{ settings: null }` for an account that has never saved any. `PUT`
+takes a `UserSettings` body and stores it unless the account already holds a newer `updatedAt`; either
+way it returns the copy it holds. An invalid body returns 400.
 
 ### `GET` and `POST /api/account/sync`
 
-`GET` returns `{ trips, conversations }`: records as `{ id, updatedAt, revision, record }`, or
-`{ id, updatedAt, revision, deleted: true }` for a tombstone. `POST` takes the same shape (at most
-500 of each, each record at most 2,000,000 characters of JSON). A new record uses revision `0`;
-an edit or deletion must carry the server revision on which it was based. Each accepted write
-increments that revision. The response is `{ accepted: { trips, conversations }, conflicts: { trips,
-conversations } }`, including partial success. Only `accepted` records acknowledge local changes.
-Conflicts repeat the rejected submissions; their local contents stay pending through reload and retry.
-Client timestamps do not authorize writes. The client validates pulled records with the catalog parsers
-and preserves any local change that has not been acknowledged. Pushes from one client are serialized.
-
-Apply the generated `0001` migration before deploying revision-aware routes. Existing SQL rows receive
-revision `1`; old browser timestamp checkpoints are discarded, while their catalog is retained.
-An identical local/server record can adopt the server revision. Differing records without a revision
-baseline remain pending instead of silently selecting a winner. Legacy clients without revisions receive
-400; reload the updated client. Conflicts require keeping/exporting the pending local data and explicitly
-reconciling it with the server copy; automatic whole-record or field-level conflict resolution is absent.
-The [revision decision](../.agents/notes/implemented/bug-fix/2026-10-14-revision-based-account-sync.md)
-records the migration and recovery boundaries.
+`GET` returns `{ trips, conversations }`: every record the account holds as
+`{ id, updatedAt, record }`, or `{ id, updatedAt, deleted: true }` for a deletion. `POST` takes the same
+shape (at most 500 of each, each record at most 2,000,000 characters of JSON) and writes each record
+only if its `updatedAt` is newer than the stored one. The client merges and validates records with
+the workspace catalog's own parsers.
 
 ### `GET /api/account/export`
 

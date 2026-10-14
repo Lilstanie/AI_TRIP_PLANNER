@@ -4,7 +4,6 @@ export const SyncedRecord = z
   .object({
     id: z.string().min(1).max(200),
     updatedAt: z.string().datetime(),
-    revision: z.number().int().min(0).max(2_147_483_646),
     deleted: z.boolean().optional(),
     record: z.record(z.string(), z.unknown()).optional(),
   })
@@ -23,6 +22,3 @@ export const SyncPush = z.object({
 });
 export type SyncPush = z.infer<typeof SyncPush>;
 export type SyncPull = SyncPush;
-
-export const SyncResult = z.object({ accepted: SyncPush, conflicts: SyncPush });
-export type SyncResult = z.infer<typeof SyncResult>;
