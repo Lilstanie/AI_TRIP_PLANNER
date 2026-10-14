@@ -128,11 +128,15 @@ isolated CLI's [`cleanup`](../../../docs/local-test-cli.md#clean-up-an-invocatio
 interrupted or blocked run: it validates recorded resource identity and retains diagnostics; it does
 not terminate live processes.
 Use it only after the owned process has stopped, and report blocked cleanup without deleting paths
-manually. Do not remove retained output merely because a later attempt passed.
+manually. Do not remove retained output merely because a later attempt passed. Local output goes
+only through `pnpm clean:output`, once the pull request's Evidence section quotes the results
+(AGENTS.md delivery step 5), and never while an owned run or server is still active.
 
 ## 6. Deliver a reproducible maintenance record
 
-Record these in a new session log, linking larger evidence from ignored output directories:
+Record these in a new session log and the pull request's Evidence section. `pnpm clean:output`
+later deletes the ignored output directories, so quote the decisive results instead of relying on a
+local path:
 
 - Requirement/failure inventory and public boundary; baseline/current SHAs and dirty-tree state.
 - Exact commands, working directory, tool versions, server mode, fixture identity and non-sensitive

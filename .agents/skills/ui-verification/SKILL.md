@@ -72,9 +72,10 @@ change touches:
 
 `phone-shell.e2e.mjs` combines `phone-mine.e2e.mjs`, `phone-map.e2e.mjs` and `phone-state.e2e.mjs`.
 Run the walk for a focused change, or the combined script for a shell change, with
-`pnpm --filter @trip/web e2e phone-shell --prod`. Browser viewport simulation does not verify installed-app safe areas or the real
-on-screen keyboard: retain iPhone and Android device evidence separately, or record the outstanding
-checks in [#182](https://github.com/Lilstanie/AI_TRIP_PLANNER/issues/182).
+`pnpm --filter @trip/web e2e phone-shell --prod`. Browser viewport simulation does not verify
+installed-app safe areas or the real on-screen keyboard. Physical-device checks are not planned since
+the [Android wrapper removal](../../notes/implemented/feature/2026-10-14-drop-android-wrapper.md)
+closed #182, so report those behaviours as not verified unless you checked a real device.
 For drawer changes, follow [better-layout](../better-layout/SKILL.md): measure default and extreme
 split positions and the narrow content container, then cross 1000/1001 px as well as 520/521 px.
 
@@ -118,4 +119,5 @@ For maps, record the actual renderer/provider, non-sensitive configuration (key 
 request data mode, language, fixture/local-stub/live status, assertions and skips, and artifact paths.
 Separate browser viewport simulation, physical-device checks and live-service evidence. A zero exit
 code with skipped checks is not evidence those assertions ran; preserve failures as well as later passes.
-Never commit screenshots into the repository.
+Never commit screenshots into the repository. Attach them to the pull request before running
+`pnpm clean:output` (AGENTS.md delivery step 5), which deletes `output/` with every local screenshot.

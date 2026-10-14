@@ -229,8 +229,8 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     and its Save button stay in view. Closing the keyboard or blurring restores it. Browser Back closes the active sheet or editor before leaving the workspace.
   - New labels use the English/Chinese dictionary and motion respects reduced-motion preferences.
     Browser evidence is produced by `phone-shell.e2e.mjs` and its Mine, Map and state companion walks
-    under `apps/web/tests/e2e/`. Real installed-app safe areas and keyboard behavior still require the
-    device checks in issue #182.
+    under `apps/web/tests/e2e/`. Real installed-app safe areas and keyboard behavior are not
+    verified; the device checks in issue #182 were closed as not planned.
 
 ## Conversations, trips and storage
 
