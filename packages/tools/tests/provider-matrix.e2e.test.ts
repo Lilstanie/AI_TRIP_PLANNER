@@ -2,7 +2,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createToolGatewayWithRuntime, snapshotToolRuntime } from "../src/gateway-internal";
-import { clearSerpApiCacheForTests } from "../src/serpapi";
+import { clearSerpApiCacheForTests, SerpApiError } from "../src/serpapi";
 
 interface MatrixEvidence {
   id: string;
@@ -298,6 +298,47 @@ describe("ToolGateway provider matrix", () => {
       fallback: "SerpApi Google Hotels -> Google Places estimate",
       diagnostic: "invalid_key",
       provenance: stay?.provenance?.provider,
+    });
+  });
+
+  it("preserves the SerpApi failure when OSM has no hotel-search capability", async () => {
+    vi.stubEnv("USE_MOCK_TOOLS", "false");
+    vi.stubEnv("MAPS_PROVIDER", "osm");
+    vi.stubEnv("MAPS_API_KEY", "");
+    vi.stubEnv("SERPAPI_KEY", "captured-serp-key");
+    const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const fetcher = vi.fn(async (_input: Parameters<typeof fetch>[0]) => {
+      throw new Error("synthetic network failure");
+    });
+    const gateway = createToolGatewayWithRuntime(snapshotToolRuntime(), {
+      fetch: fetcher,
+      now: () => new Date("2026-01-01T00:00:00.000Z"),
+    });
+
+    const error = await gateway.booking
+      .searchStays({
+        city: "Tokyo",
+        checkIn: "2026-02-01",
+        checkOut: "2026-02-03",
+        guests: 2,
+      })
+      .catch((reason: unknown) => reason);
+
+    expect(error).toBeInstanceOf(SerpApiError);
+    expect(error).toMatchObject({
+      reason: "request_failed",
+    });
+    expect((error as SerpApiError).message).toContain("synthetic network failure");
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(String(fetcher.mock.calls[0]?.[0])).toContain("serpapi.com");
+    expect(warning).toHaveBeenCalledWith(
+      expect.stringContaining("SerpApi (live prices; no hotel fallback configured)"),
+    );
+    evidence.push({
+      id: "osm-without-hotel-capability",
+      selection: "SerpApi + OSM, no Google key",
+      result: "typed SerpApi request_failed",
+      diagnostic: "synthetic network failure; no Google Places request",
     });
   });
 
@@ -712,6 +753,7 @@ describe("ToolGateway provider matrix", () => {
       "google-intercity-rail-fallback",
       "google-route-options-partial-success",
       "booking-fallback-vs-flight-failure",
+      "osm-without-hotel-capability",
       "booking-primary-success",
       "booking-google-only-partial",
       "weather-horizons",
