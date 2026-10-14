@@ -1,0 +1,68 @@
+name: Bug report
+description: Something in the workspace behaves wrongly. 工作区的行为不对。
+labels: [bug, needs-triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Search existing issues first, including closed ones. If one matches, comment there instead of opening a new issue. 先搜索现有 issue(含已关闭的),已有同类问题就在原 issue 下补充。
+        Reproduce it yourself before submitting. 提交前请自己复现一次。
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce / 复现步骤
+      description: Start from a blank page and list every step. 从空白页开始,逐步写。
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result / 预期结果
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual result / 实际结果
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Device and browser / 设备与浏览器
+      placeholder: iPhone 15, Safari 18
+    validations:
+      required: true
+  - type: dropdown
+    id: language
+    attributes:
+      label: Interface language / 界面语言
+      options: [English, 简体中文]
+    validations:
+      required: true
+  - type: dropdown
+    id: source
+    attributes:
+      label: Where you tested / 测试环境
+      options: [Live demo (Vercel), My own fork, Local checkout]
+    validations:
+      required: true
+  - type: dropdown
+    id: data-mode
+    attributes:
+      label: Data mode / 数据模式
+      description: Leave as mock unless you were asked to test live providers. 没有被要求测 live 就选 mock。
+      options: [mock, live]
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Screenshot or recording / 截图或录屏
+      description: Drag files here. Never include API keys. 可直接拖入文件;不要包含任何 API key。
+  - type: checkboxes
+    id: ai
+    attributes:
+      label: Provenance / 来源
+      options:
+        - label: An AI tool found this first, and I reproduced it myself. 最初由 AI 发现,我已自己复现。

@@ -33,6 +33,13 @@ GitHub 的问题和 PR 共用同一编号空间，因此仅有 `#42` 时，它�
 
 <a id="when-a-skill-says-publish-to-the-issue-tracker"></a>
 
+## 问题模板
+
+贡献者通过 `.github/ISSUE_TEMPLATE/` 里的表单提交报告：`bug.yml`（标签 `bug` 和 `needs-triage`）、
+`ui-improvement.yml` 和 `idea.yml`（标签 `enhancement` 和 `needs-triage`；想法还会带标题前缀 `[idea]`）。
+无论提交者权限如何，表单都会自动加上这些标签，所以没有分流权限的人不用手动加标签。只有维护者才会添加
+`ready-for-agent`、`ready-for-human` 或 `wontfix`。
+
 ## 编写工单
 
 - **受保护文件。** 如果工单的改动涉及受保护路径（`packages/shared/src`、`.github/**`、根目录 `package.json`

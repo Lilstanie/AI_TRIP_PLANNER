@@ -25,6 +25,14 @@ When set to `yes`, PRs run through the same labels and states as issues, using t
 
 GitHub shares one number space across issues and PRs, so a bare `#42` may be either: resolve with `gh pr view 42` and fall back to `gh issue view 42`.
 
+## Issue templates
+
+Contributors file reports through the forms in `.github/ISSUE_TEMPLATE/`: `bug.yml` (labels `bug` and
+`needs-triage`), `ui-improvement.yml` and `idea.yml` (labels `enhancement` and `needs-triage`; ideas also
+get the `[idea]` title prefix). A form applies its labels whatever the reporter's permission, so reporters
+without triage access never add labels by hand. Only maintainers add `ready-for-agent`, `ready-for-human`
+or `wontfix`.
+
 ## Writing a ticket
 
 - **Protected files.** A ticket whose change reaches a protected path (`packages/shared/src`, `.github/**`,
