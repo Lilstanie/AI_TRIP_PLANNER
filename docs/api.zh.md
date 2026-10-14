@@ -323,21 +323,36 @@ Google `name` 必须是从最新查询中获得的 `places/{id}/photos/{id}` 名
 
 ## 账号路由
 
-所有账号路由都需要 Clerk 会话，没有会话时返回 401；未配置 Clerk 或 `DATABASE_URL` 时返回 503。所有失败响应体（包括 400 和下文的 502）
+所有账号路由都需要 Clerk 会话，没有会话时返回 401；未配置 Clerk 或 `DATABASE_URL` 时返回 503。除下文的设置冲突外，所有失败响应体（包括 400 和下文的 502）
 均为 [`{ error, notice }`](#failure-bodies)。查询使用会话中的用户
 id，绝不使用请求体中的 id。约定：`apps/web/lib/account/settings.ts` 中的 `UserSettings`，
 `apps/web/lib/account/sync.ts` 中的 `SyncedRecord` 和 `SyncPush`。
 
 ### `GET` and `PUT /api/account/settings`
 
-`GET` 返回 `{ settings }`；账号从未保存过设置时返回 `{ settings: null }`。`PUT` 接收 `UserSettings`
-请求体并保存，除非账号中已有 `updatedAt` 更新的副本；无论是否写入，都返回账号当前保存的副本。请求体无效时返回 400。
+`GET` 返回 `{ settings, revision }`；首次保存前为 `settings: null`，revision 为 `0`。
+`PUT` 接收 `{ settings: UserSettings, revision }`。revision `0` 用于创建数据行，后续写入必须匹配
+服务端当前 revision。接受的写入返回 `{ settings, revision }`，revision 加一。过时写入返回
+409 `{ conflict: true }`；无效或旧版请求体返回 400。`updatedAt` 仅为展示元数据，不决定哪个编辑生效。
+浏览器没有本地检查点且尚无其他账号检查点时，会将已有设置以 revision `0` 迁移到首次登录账号。
+切换账号时，未同步设置会按原账号身份暂存，并在该账号再次登录时恢复。新账号采用自己的已保存设置或默认值，
+不会收到原账号的设置。
 
 ### `GET` and `POST /api/account/sync`
 
-`GET` 返回 `{ trips, conversations }`：账号保存的每条记录，形如 `{ id, updatedAt, record }`，已删除的记录为
-`{ id, updatedAt, deleted: true }`。`POST` 接收相同结构（每类最多 500 条，每条记录的 JSON 最多 2,000,000 个字符），
-仅当某条记录的 `updatedAt` 比已保存的更新时才写入。客户端使用工作区 catalog 自身的解析器合并并校验记录。
+`GET` 返回 `{ trips, conversations }`：记录形如 `{ id, updatedAt, revision, record }`，删除标记形如
+`{ id, updatedAt, revision, deleted: true }`。`POST` 接收相同结构（每类最多 500 条，每条记录的 JSON
+最多 2,000,000 个字符）。新记录使用 revision `0`；编辑和删除必须携带其所基于的服务端 revision。
+每条被接受的写入都将 revision 加一。响应为 `{ accepted: { trips, conversations }, conflicts: { trips,
+conversations } }`，可以部分成功。只有 `accepted` 中的记录确认本地变更已保存。冲突字段重复被拒绝的
+提交，其本地内容在刷新和重试后仍保留为待同步。客户端时间戳不能授权写入。客户端用 catalog 解析器
+校验拉取的数据，保留尚未被确认的本地变更；同一客户端的推送按顺序执行。
+
+部署支持 revision 的路由前，先应用生成的 `0001` 迁移。现有 SQL 数据行得到 revision `1`；旧浏览器的
+时间戳检查点被丢弃，catalog 本身保留。本地与服务端记录相同时可以采用服务端 revision；没有 revision
+基线且内容不同时，保持待同步，不自动选择赢家。不携带 revision 的旧客户端收到 400，应刷新加载更新后的
+客户端。冲突需要保留或导出待同步的本地数据，并明确与服务端副本协调；没有自动的整条记录或字段级冲突解决。
+[revision 决策](../.agents/notes/implemented/bug-fix/2026-10-14-revision-based-account-sync.md)记录迁移与恢复边界。
 
 ### `GET /api/account/export`
 

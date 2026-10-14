@@ -5,6 +5,10 @@ Status: implemented
 The [workspace login gate](2026-09-28-workspace-login-gate.md) supersedes optional sign-in for
 configured deployments. This note continues to own local mode, account storage and synchronization.
 
+The [server-revision decision](../bug-fix/2026-10-14-revision-based-account-sync.md) supersedes
+only the timestamp last-write-wins and accepted-clock-skew policy below. Those paragraphs record
+the original choice; revision-based compare-and-set now owns sync conflict handling and migration.
+
 ## Problem
 
 The workspace was single-user and browser-local: chats and trips lived only in the `localStorage`
