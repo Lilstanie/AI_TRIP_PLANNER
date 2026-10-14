@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "reviewedRevision": "8ab8a0c386a7be964c5a41a705dd8351a7f0b7a8",
+  "reviewedRevision": "87e26199e07a7ed46abaf7614433099401bddf2c",
   "skills": [
     {
       "name": "add-provider",
@@ -40,7 +40,7 @@
     },
     {
       "name": "e2e-maintenance",
-      "summary": "verified ci-integration fault modes, evidence.tar.gz upload, three-worker CI limit, E2E_SCRIPT_TIMEOUT_MS, --timeout-ms, doctor/list, report outcome fields, anchors and the deterministic-controls commands; fixed the generated-path false positive and added #321 automatic cleanup."
+      "summary": "verified ci-integration fault modes, evidence.tar.gz upload, three-worker CI limit, E2E_SCRIPT_TIMEOUT_MS, --timeout-ms, doctor/list, report outcome fields, anchors and the deterministic-controls commands; fixed the generated-path false positive and added #321 automatic cleanup. Delta for #342: local output is removed only through pnpm clean:output after the PR quotes its evidence, never during an active owned run, and the maintenance record quotes results instead of relying on deleted local paths."
     },
     {
       "name": "end-to-end-feature-wiring",
@@ -60,7 +60,7 @@
     },
     {
       "name": "pre-push-checks",
-      "summary": "verified every ci.yml step it names, the separate comment-policy workflow, the three CLI acceptance scripts, format:check-changed, verify:e2e-selectors, the web NODE_OPTIONS flag, NEXT_DIST_DIR/NEXT_TSCONFIG_PATH and the PR Evidence section from the #337 template; stage1 row now points at the submission README."
+      "summary": "verified every ci.yml step it names, the separate comment-policy workflow, the three CLI acceptance scripts, format:check-changed, verify:e2e-selectors, the web NODE_OPTIONS flag, NEXT_DIST_DIR/NEXT_TSCONFIG_PATH and the PR Evidence section from the #337 template; stage1 row now points at the submission README. Delta for #342: the report section now ends with AGENTS.md delivery step 5, pnpm clean:output and its dry run, linking the development page for the directory list."
     },
     {
       "name": "prose-standard",
@@ -76,7 +76,7 @@
     },
     {
       "name": "skill-maintenance",
-      "summary": "verified is-due thresholds 8/5/2/1/2, the checkpoint note, check-skills behaviour and the CLI acceptance script; stage1 example now names the retired skill without a link."
+      "summary": "verified is-due thresholds 8/5/2/1/2, the checkpoint note, check-skills behaviour and the CLI acceptance script; stage1 example now names the retired skill without a link. The checkpoint record now lives under assets/ because verify-docs rejects files beside SKILL.md; is-due, its 61-case acceptance and the workflow text use that path."
     },
     {
       "name": "translate-docs",
@@ -84,7 +84,7 @@
     },
     {
       "name": "ui-verification",
-      "summary": "verified the web launch config, eleven named E2E scripts, the runner --prod flag, map-provider settings, the Clerk key gate in lib/auth/config.ts and that issue #182 is still open."
+      "summary": "verified the web launch config, eleven named E2E scripts, the runner --prod flag, map-provider settings and the Clerk key gate in lib/auth/config.ts. Delta for #343: #182 is closed as not planned with the Android wrapper removal, so device-only behaviour is reported as not verified; screenshots are attached before pnpm clean:output (#342)."
     },
     {
       "name": "vercel-react-best-practices",

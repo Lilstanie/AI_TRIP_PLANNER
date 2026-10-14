@@ -135,6 +135,12 @@ carry the old pass forward. Explain any still-applicable evidence and its limits
 List each command and its result, including test counts, in the PR's Evidence section and the session
 log. When a check could not run (missing key, no network), say so; do not describe it as passing.
 
+Once the pull request body quotes that evidence, run `pnpm clean:output` (AGENTS.md delivery step 5).
+It deletes every Git-ignored scratch directory that
+[development](../../../docs/development.md#testing-approach) lists, so anything not quoted or
+attached is gone; `pnpm clean:output --dry-run` lists sizes first. CI evidence is uploaded separately and is
+not affected.
+
 ## When to run everything
 
 Run the full five only when the change is genuinely cross-cutting, when the user asks, or when
