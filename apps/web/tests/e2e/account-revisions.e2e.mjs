@@ -97,9 +97,17 @@ try {
       };
       for (const kind of ["trips", "conversations"])
         for (const item of changes[kind]) {
-          const current = records[kind].get(item.id);
-          if (item.record?.title === "Rejected edit" || (current?.revision ?? 0) !== item.revision)
-            result.conflicts[kind].push(item);
+          let current = records[kind].get(item.id);
+          if (item.record?.title === "Later real-time edit") {
+            current = {
+              ...current,
+              updatedAt: "2099-01-01T00:00:00.000Z",
+              revision: current.revision + 1,
+              record: { ...current.record, title: "Fast clock edit" },
+            };
+            records[kind].set(item.id, current);
+          }
+          if ((current?.revision ?? 0) !== item.revision) result.conflicts[kind].push(item);
           else {
             const saved = { ...item, revision: item.revision + 1 };
             records[kind].set(item.id, saved);
@@ -200,13 +208,32 @@ try {
       await page.evaluate(() => localStorage.getItem("trip.settings.pending.v1:fixture-user")),
       null,
     );
-    await page.getByRole("button", { name: "Rejected edit", exact: true }).click();
+    const conflictPush = page.waitForRequest(
+      (request) =>
+        request.url().endsWith("/api/account/sync") &&
+        request.method() === "POST" &&
+        request.postDataJSON().trips.some((item) => item.record?.title === "Later real-time edit"),
+    );
+    await page.getByRole("button", { name: "Later real-time edit", exact: true }).click();
+    await conflictPush;
     await waitStatus("Catalog sync", "offline");
+    assert.equal(records.trips.get(saved.id).record.title, "Fast clock edit");
     await page.reload();
     await waitStatus("Catalog sync", "offline");
-    assert.equal(await page.getByText("Trip: Rejected edit", { exact: true }).count(), 1);
+    assert.equal(await page.getByText("Trip: Later real-time edit", { exact: true }).count(), 1);
     const checkpoint = await page.evaluate(() => JSON.parse(localStorage.getItem("trip.sync.v1")));
     assert.equal(checkpoint.synced.trips[saved.id].revision, 3);
+    const skewRetries = traces
+      .filter((trace) => trace.viewport.width === viewport.width)
+      .flatMap(({ changes }) => changes.trips)
+      .filter((item) => item.record?.title === "Later real-time edit");
+    assert.equal(skewRetries.length, 2);
+    assert.ok(skewRetries.every((item) => item.revision === 3));
+    assert.ok(
+      skewRetries.every(
+        (item) => Date.parse(item.updatedAt) < Date.parse("2099-01-01T00:00:00.000Z"),
+      ),
+    );
     assert.deepEqual(errors, []);
     await page.screenshot({
       path: resolve(output, `${viewport.width}-pending.png`),
@@ -229,7 +256,7 @@ try {
     ),
   );
   console.log(
-    `PASS desktop and phone: serialized edits, settings, rejected edit survives reload. Artifacts: ${output}`,
+    `PASS desktop and phone: serialized sync, settings, fast-clock conflict survives pull and reload. Artifacts: ${output}`,
   );
 } finally {
   await browser.close();

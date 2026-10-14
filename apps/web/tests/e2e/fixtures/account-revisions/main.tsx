@@ -27,7 +27,7 @@ function Workspace() {
       <p>Theme: {settings.appearance}</p>
       <button onClick={() => edit("First edit")}>First edit</button>
       <button onClick={() => edit("Second edit")}>Second edit</button>
-      <button onClick={() => edit("Rejected edit")}>Rejected edit</button>
+      <button onClick={() => edit("Later real-time edit")}>Later real-time edit</button>
       <button onClick={() => update({ appearance: "dark" })}>Dark</button>
       <button onClick={() => update({ appearance: "light" })}>Light</button>
     </main>
