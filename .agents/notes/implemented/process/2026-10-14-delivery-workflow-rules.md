@@ -16,9 +16,9 @@ run `/pr` afterwards. `.github/workflows` cannot fix this because it runs on Git
   implementing, run the checks `pre-push-checks` selects, write every pull request body with the
   template's three sections, and stop once CI passes on the current head until the user says to merge, then run `pnpm clean:output` once the evidence is quoted in the pull request. The command deletes only the four ignored scratch directories and refuses if a tracked file is under any of them.
 - [`.github/pull_request_template.md`](../../../../.github/pull_request_template.md) carries the Summary,
-  Evidence and Merge Danger sections, so a pull request opened in the browser starts from them. A
-  change with no runnable before and after says so and lists the commands it ran; Merge Danger is
-  always filled in.
+  Evidence and Merge Danger sections, so a pull request opened in the browser starts from them. Its
+  placeholders match the owner's `/pr` template word for word: a diagram, diff sketch or tree; a
+  before and after; the door and a one-word blast radius, each with an optional description.
 - The full personal workflow stays in the owner's own tool configuration, outside the repository,
   because its skills (`/pr`, `/retro`, `/grill-with-docs`) are not part of this repository.
 
