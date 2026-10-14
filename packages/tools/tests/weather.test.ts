@@ -109,7 +109,7 @@ describe("weather provider", () => {
 });
 
 describe("destination calendar forecast windows", () => {
-  it.each([9, 10, 13, 14, 15])(
+  it.each([0, 9, 10, 13, 14, 15])(
     "resolves offset %i with a provider that covers it",
     async (offset) => {
       vi.useFakeTimers();
@@ -123,6 +123,9 @@ describe("destination calendar forecast windows", () => {
           return Response.json({
             forecastDays: Array.from({ length: 10 }, (_, i) => ({
               displayDate: { year: 2026, month: 9, day: 21 + i },
+              daytimeForecast: { weatherCondition: { description: { text: "Clear skies" } } },
+              maxTemperature: { degrees: 22 },
+              minTemperature: { degrees: 12 },
             })),
           });
         const count = Number(url.searchParams.get("forecast_days"));
@@ -138,7 +141,11 @@ describe("destination calendar forecast windows", () => {
       });
       vi.stubGlobal("fetch", fetcher);
       const result = await weather.forecast({ ...query, targetDate: day(offset) });
+      expect(result.targetDate).toBe(day(offset));
       expect(result.horizon).toBe(offset <= 14 ? "forecast" : "climate");
+      expect(result.summary).toContain(
+        offset <= 14 ? "Forecast conditions can change" : "Historical conditions, not a forecast",
+      );
       expect(result.provider).toBe(
         offset <= 9
           ? "Google Weather API"
