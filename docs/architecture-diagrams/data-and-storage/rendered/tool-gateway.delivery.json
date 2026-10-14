@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "d3fbc79c-0930-4c52-ac84-7c6c7efb334a",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/private/tmp/claude-501/-Users-joey-AI-TRIP-PLANNER/88991aa6-b692-4a2d-8522-48ef8f84be3f/scratchpad/wt4/docs/architecture-diagrams/data-and-storage/specs/tool-gateway.workflow.json",
+  "output": "/private/tmp/claude-501/-Users-joey-AI-TRIP-PLANNER/88991aa6-b692-4a2d-8522-48ef8f84be3f/scratchpad/wt4/docs/architecture-diagrams/data-and-storage/rendered/tool-gateway.html",
+  "specification": {
+    "sha256": "b22a11e6676f2b16613ae749b7d0f4594177dec7b686fa1c187048a01c053931",
+    "bytes": 5044
+  },
+  "artifact": {
+    "sha256": "9202410503fd4d49d79a19f2bb6e5f9daa0d953d83adbf22fb882ad1d1adb1e9",
+    "bytes": 818302
+  }
+}

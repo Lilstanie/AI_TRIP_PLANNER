@@ -3,7 +3,7 @@
   "diagram_type": "workflow",
   "meta": {
     "title": "ToolGateway 与旅行数据 Provider",
-    "output": "tool-gateway.html",
+    "output": "docs/architecture-diagrams/data-and-storage/rendered/tool-gateway.html",
     "quality_profile": "showcase",
     "locale": "zh-CN",
     "views": [
@@ -70,7 +70,7 @@
       "col": 0,
       "type": "backend",
       "label": "专家 Agents",
-      "width": 184
+      "width": 160
     },
     {
       "id": "gateway",
@@ -78,7 +78,7 @@
       "col": 1,
       "type": "backend",
       "label": "createToolGateway",
-      "width": 184
+      "width": 170
     },
     {
       "id": "mode",
@@ -86,7 +86,7 @@
       "col": 2,
       "type": "security",
       "label": "请求数据模式",
-      "width": 190
+      "width": 160
     },
     {
       "id": "mock",
@@ -94,7 +94,7 @@
       "col": 3,
       "type": "backend",
       "label": "模拟数据适配器",
-      "width": 184
+      "width": 160
     },
     {
       "id": "live",
@@ -102,7 +102,7 @@
       "col": 3,
       "type": "backend",
       "label": "真实数据适配器",
-      "width": 184
+      "width": 160
     },
     {
       "id": "fixtures",
@@ -110,7 +110,7 @@
       "col": 4,
       "type": "database",
       "label": "进程内 Fixtures",
-      "width": 184
+      "width": 160
     },
     {
       "id": "adapters",
@@ -118,7 +118,7 @@
       "col": 4,
       "type": "cloud",
       "label": "数据提供方适配器",
-      "width": 200
+      "width": 170
     },
     {
       "id": "result",
@@ -126,7 +126,7 @@
       "col": 4,
       "type": "backend",
       "label": "带类型的依据",
-      "width": 184
+      "width": 160
     }
   ],
   "edges": [
@@ -134,7 +134,7 @@
       "id": "agents-gateway",
       "from": "agents",
       "to": "gateway",
-      "label": "带类型的 ToolGateway 请求",
+      "label": "ToolGateway 请求",
       "role": "main"
     },
     {
@@ -163,7 +163,7 @@
       "id": "mock-fixtures",
       "from": "mock",
       "to": "fixtures",
-      "label": "返回 fixture 数据",
+      "label": "fixture 数据",
       "role": "branch",
       "variant": "dashed"
     },
@@ -185,7 +185,7 @@
       "id": "adapters-result",
       "from": "adapters",
       "to": "result",
-      "label": "带有数据来源标记的依据",
+      "label": "带来源标记的依据",
       "role": "return"
     }
   ],
@@ -202,7 +202,7 @@
       "dot": "amber",
       "title": "价格语义",
       "items": [
-        "酒店：SerpApi 实时报价 → 标明来源的 Google Places 估价 → fixtures",
+        "酒店：SerpApi 实时报价；失败时仅在配置 Google 地图与 key 时改用标明来源的 Places 估价，否则报错；mock 用 fixtures",
         "航班 provider 失败不会被替换成虚构票价"
       ]
     },
@@ -211,7 +211,7 @@
       "title": "数据提供方选择",
       "items": [
         "x-trip-data-mode 为单个请求覆盖部署默认值",
-        "MAPS_PROVIDER 选择 Google 或 OSM；天气依据预测时间范围选源"
+        "MAPS_PROVIDER 选择 Google 或 OSM；天气按目的地当地日期选源：Google 0–9 天，Open-Meteo 10–14 天，之后为气候参考"
       ]
     }
   ]

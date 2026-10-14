@@ -8,7 +8,12 @@ AI Trip Planner is a single-user, multi-agent travel workspace. A user describes
 edits its facts from the top-bar chips; a LangGraph workflow delegates to five LangChain specialist agents and returns a
 validated plan with itinerary, transport, accommodation, dining, destination guidance and budget,
 each labelled with where its data came from. The user edits the plan by chatting or directly on the
-day timeline and Google map, and saves trips in the browser.
+day timeline and map (Google first, OpenStreetMap when Google cannot answer), and saves trips in the
+browser, optionally synced to an account across devices.
+
+The interface is available in English and Chinese, shows each trip's amounts in its own display
+currency, switches to a phone layout at narrow widths and can be installed as an app. A separate
+`/agent-lab` page compares planning strategies on fixed scenarios.
 
 Live demo: [elec5620-ai-trip-planner.vercel.app](https://elec5620-ai-trip-planner.vercel.app). The
 top-bar toggle shows whether a request uses mock fixtures or live providers; place and hotel names
@@ -53,10 +58,10 @@ Environment variables, Google Maps setup, the optional mock server, Docker and t
 apps/web/                 Next.js workspace UI and API routes
   components/{workspace,chat,trip,map,preferences,account,agent-lab,pwa,ui}
                           UI grouped by feature and shared primitives
-  lib/{workspace,chat,trip,map,planning,i18n,account,agent-lab,auth,db,integrations}, money.ts
+  lib/{workspace,chat,trip,map,map-provider,planning,i18n,account,agent-lab,auth,db,dev,integrations}, money.ts
                           integrations and domain rules grouped by responsibility
-  tests/{app,components,lib,e2e,fixtures}
-                          web tests kept separate from production code
+  tests/{app,components,lib,e2e,cli-e2e,ci,fixtures}
+                          web tests and E2E runners, kept separate from production code
 packages/agents/          Five specialist LangChain agents, model routing and fallbacks
   src/                    production agent code by domain
   tests/                  agent tests by domain
@@ -78,6 +83,7 @@ Browse the [documentation index](docs/README.md) for the full technical guides. 
 | [API](docs/api.md)                            | Every API route with requests, responses and errors         |
 | [Development](docs/development.md)            | Setup, environment variables, Docker, verification          |
 | [Workspace UI](docs/workspace-ui.md)          | Current UI behaviour, storage, map and editing rules        |
+| [Local E2E CLI](docs/local-test-cli.md)       | Running browser journeys locally and reading their reports  |
 | [Roadmap](docs/roadmap.md)                    | MVP sequence and status                                     |
 | [Team workflow](docs/team-workflow.md)        | Ownership, branches, reviews and session logs               |
 | [UI guidelines](docs/design/ui-guidelines.md) | Visual tokens, layout and component design rules            |
@@ -89,8 +95,9 @@ kind of content belongs is set out in [`docs/AGENTS.md`](docs/AGENTS.md).
 ## Scope
 
 The product target is a single-user flow: describe a trip, inspect grounded recommendations, edit the
-plan and save it. Saved trips live in the browser; chat turns, preferences and plans are also kept in
-a Redis REST store when one is configured. Status is on the [roadmap](docs/roadmap.md). Multi-user
+plan and save it. Saved trips live in the browser. With accounts configured (Clerk and Neon
+Postgres), a signed-in traveller's chats, trips and settings also sync across devices; chat turns,
+preferences and plans are kept in a Redis REST store when one is configured. Status is on the [roadmap](docs/roadmap.md). Multi-user
 editing, social features, payments and booking fulfilment are out of scope.
 
 ## License

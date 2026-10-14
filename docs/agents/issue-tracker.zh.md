@@ -31,7 +31,7 @@
 
 GitHub 的问题和 PR 共用同一编号空间，因此仅有 `#42` 时，它可能指其中任一种：先用 `gh pr view 42` 解析；若失败，再改用 `gh issue view 42`。
 
-<a id="when-a-skill-says-publish-to-the-issue-tracker"></a>
+<a id="issue-templates"></a>
 
 ## 问题模板
 
@@ -39,6 +39,8 @@ GitHub 的问题和 PR 共用同一编号空间，因此仅有 `#42` 时，它�
 `ui-improvement.yml` 和 `idea.yml`（标签 `enhancement` 和 `needs-triage`；想法还会带标题前缀 `[idea]`）。
 无论提交者权限如何，表单都会自动加上这些标签，所以没有分流权限的人不用手动加标签。只有维护者才会添加
 `ready-for-agent`、`ready-for-human` 或 `wontfix`。
+
+<a id="writing-a-ticket"></a>
 
 ## 编写工单
 
@@ -48,6 +50,8 @@ GitHub 的问题和 PR 共用同一编号空间，因此仅有 `#42` 时，它�
 - **共享契约。** `packages/shared/src` 下的任何改动（哪怕只新增一个导出）都需要 Agent Note，并在会话日志里写
   `contract-impact: packages/shared`（由 `pnpm verify:protected` 强制检查）。工单不能写相反的要求。
 - **关闭。** 完成工单的拉取请求要写 `Closes #<number>`，这样合并时会自动关闭工单。
+
+<a id="when-a-skill-says-publish-to-the-issue-tracker"></a>
 
 ## 当技能要求“发布到问题跟踪器”（“publish to the issue tracker”）时
 

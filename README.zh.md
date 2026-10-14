@@ -4,7 +4,9 @@
 
 [![CI](https://github.com/Lilstanie/AI_TRIP_PLANNER/actions/workflows/ci.yml/badge.svg)](https://github.com/Lilstanie/AI_TRIP_PLANNER/actions/workflows/ci.yml)
 
-AI Trip Planner 是一个面向单个用户的多智能体旅行工作区。用户可以在对话中描述行程，也可以通过顶部栏的信息标签修改行程事实。LangGraph 工作流会调度五个 LangChain 专家 agent，生成经过校验的旅行计划，包含日程、交通、住宿、餐饮、目的地指南和预算，并为每项信息标注数据来源。用户可以继续通过对话、按天排列的时间线和 Google 地图编辑计划，并将行程保存在浏览器中。
+AI Trip Planner 是一个面向单个用户的多智能体旅行工作区。用户可以在对话中描述行程，也可以通过顶部栏的信息标签修改行程事实。LangGraph 工作流会调度五个 LangChain 专家 agent，生成经过校验的旅行计划，包含日程、交通、住宿、餐饮、目的地指南和预算，并为每项信息标注数据来源。用户可以继续通过对话、按天排列的时间线和地图（优先使用 Google，Google 无法响应时改用 OpenStreetMap）编辑计划，并将行程保存在浏览器中，也可以通过账号在多台设备间同步。
+
+界面支持中英文，每个行程的金额按该行程自己的显示币种展示，窄屏下切换为手机布局，并可作为应用安装。独立的 `/agent-lab` 页面在固定场景上对比不同的规划策略。
 
 在线演示：[elec5620-ai-trip-planner.vercel.app](https://elec5620-ai-trip-planner.vercel.app)。顶部栏的切换开关会显示请求使用模拟数据还是实时数据提供方；地点和酒店名称中带有“Mock …”的内容来自模拟模式，并不表示实时集成失败。演示站点的版本可能落后于你正在查看的分支。
 
@@ -41,10 +43,10 @@ pnpm dev                     # http://localhost:3000
 apps/web/                 Next.js workspace UI and API routes
   components/{workspace,chat,trip,map,preferences,account,agent-lab,pwa,ui}
                           UI grouped by feature and shared primitives
-  lib/{workspace,chat,trip,map,planning,i18n,account,agent-lab,auth,db,integrations}, money.ts
+  lib/{workspace,chat,trip,map,map-provider,planning,i18n,account,agent-lab,auth,db,dev,integrations}, money.ts
                           integrations and domain rules grouped by responsibility
-  tests/{app,components,lib,e2e,fixtures}
-                          web tests kept separate from production code
+  tests/{app,components,lib,e2e,cli-e2e,ci,fixtures}
+                          web tests and E2E runners, kept separate from production code
 packages/agents/          Five specialist LangChain agents, model routing and fallbacks
   src/                    production agent code by domain
   tests/                  agent tests by domain
@@ -66,6 +68,7 @@ docs/                     Documentation of the current system; each package also
 | [API](docs/api.zh.md)                          | 全部 API 路由的请求、响应和错误                |
 | [开发](docs/development.zh.md)                 | 环境配置、环境变量、Docker 和验证              |
 | [工作区界面](docs/workspace-ui.zh.md)          | 当前界面行为、存储、地图和编辑规则             |
+| [本地 E2E CLI](docs/local-test-cli.zh.md)      | 在本地运行浏览器流程并读取运行报告             |
 | [路线图](docs/roadmap.zh.md)                   | MVP 阶段和当前状态                             |
 | [团队工作流](docs/team-workflow.zh.md)         | 职责、分支、审查和 session logs                |
 | [UI 设计指南](docs/design/ui-guidelines.zh.md) | 视觉 tokens、布局和组件设计规则                |
@@ -74,7 +77,7 @@ ELEC5620 UML 设计模型和 SVG 图表位于 [`docs/design/`](docs/design/class
 
 ## 项目范围
 
-产品目标是支持单用户完成整个旅行规划流程：描述行程、查看有依据的建议、编辑计划并保存。已保存的行程位于浏览器中；配置 Redis REST store 后，对话轮次、偏好和计划也会保存在其中。当前状态见[路线图](docs/roadmap.zh.md)。多人协作编辑、社交功能、支付和实际预订履约不在项目范围内。
+产品目标是支持单用户完成整个旅行规划流程：描述行程、查看有依据的建议、编辑计划并保存。已保存的行程位于浏览器中。配置账号（Clerk 和 Neon Postgres）后，已登录旅客的对话、行程和设置还会在多台设备间同步；配置 Redis REST store 后，对话轮次、偏好和计划也会保存在其中。当前状态见[路线图](docs/roadmap.zh.md)。多人协作编辑、社交功能、支付和实际预订履约不在项目范围内。
 
 ## 许可
 

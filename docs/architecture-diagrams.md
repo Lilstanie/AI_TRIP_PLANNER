@@ -30,12 +30,12 @@ Each entry links to the viewer, source, and visual-check contact sheet.
 
 - [ToolGateway and providers](architecture-diagrams/data-and-storage/rendered/tool-gateway.html) ([source](architecture-diagrams/data-and-storage/specs/tool-gateway.workflow.json), [evidence](architecture-diagrams/data-and-storage/evidence/tool-gateway.visual-check.html)) — request-scoped mock/live mode, provider adapters, and evidence returned to agents.
 - [Storage and account sync](architecture-diagrams/data-and-storage/rendered/storage-sync.html) ([source](architecture-diagrams/data-and-storage/specs/storage-sync.workflow.json), [evidence](architecture-diagrams/data-and-storage/evidence/storage-sync.visual-check.html)) — browser catalog, signed-in account sync, `MemoryStore`, `tripStore`, and durable-store fallback.
-- [Local and account sync sequence](architecture-diagrams/data-and-storage/rendered/account-sync.html) ([source](architecture-diagrams/data-and-storage/specs/account-sync.sequence.json), [evidence](architecture-diagrams/data-and-storage/evidence/account-sync.visual-check.html)) — per-record timestamp merge, deletion tombstones, delayed pushes, and offline retention.
+- [Local and account sync sequence](architecture-diagrams/data-and-storage/rendered/account-sync.html) ([source](architecture-diagrams/data-and-storage/specs/account-sync.sequence.json), [evidence](architecture-diagrams/data-and-storage/evidence/account-sync.visual-check.html)) — checkpoint merge, revision-checked server writes, accepted-only acknowledgement, delayed serial pushes, and conflicts kept local.
 
 ## Workspace behavior
 
-- [Trip editing](architecture-diagrams/workspace/rendered/trip-edit.html) ([source](architecture-diagrams/workspace/specs/trip-edit.workflow.json), [evidence](architecture-diagrams/workspace/evidence/trip-edit.visual-check.html)) — place search, edit preview, route/budget/conflict recomputation, and version-checked apply.
-- [Map exploration](architecture-diagrams/workspace/rendered/map-exploration.html) ([source](architecture-diagrams/workspace/specs/map-exploration.workflow.json), [evidence](architecture-diagrams/workspace/evidence/map-exploration.visual-check.html)) — Places queries and traveller-location routes appear on the map without rerunning the planner.
+- [Trip editing](architecture-diagrams/workspace/rendered/trip-edit.html) ([source](architecture-diagrams/workspace/specs/trip-edit.workflow.json), [evidence](architecture-diagrams/workspace/evidence/trip-edit.visual-check.html)) — optional place search, the server check that recomputes routes, budget and conflicts against `baseVersion`, immediate apply, and refused or stale edits that leave the plan unchanged.
+- [Map exploration](architecture-diagrams/workspace/rendered/map-exploration.html) ([source](architecture-diagrams/workspace/specs/map-exploration.workflow.json), [evidence](architecture-diagrams/workspace/evidence/map-exploration.visual-check.html)) — place and traveller-location route queries through the Google-first provider with OpenStreetMap fallback, and the Google SDK or MapLibre renderer, without rerunning the planner.
 
 ## ELEC5620 Stage 1: member C behaviour
 
