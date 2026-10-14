@@ -23,8 +23,10 @@ acceptance rules; supporting-file cross-references point to the pinned upstream 
 ## DeepSeek Harness
 
 `find-simplifications`, `prose-standard`, `agent-experience` and `translate-docs` are adapted from
-[deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness) at commit
-`477b4f420553e8a52c2fbccc464d7561b239c443`. Their instructions and references are rewritten for
+[deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness), first at commit
+`477b4f420553e8a52c2fbccc464d7561b239c443` and compared again at
+`d743267388641bc76f17c45ce8b4c231aed1d32c` (upstream `dsh-` prefixed directories), where the
+upstream changes were DSH-specific and none applied. Their instructions and references are rewritten for
 AI_TRIP_PLANNER; DSH-specific architecture, commands and documentation requirements are not imported.
 
 ```text
