@@ -368,7 +368,7 @@ A malformed `requires-env` line stops the runner with an error instead of runnin
   `output/playwright/<name>/`. `CHANNEL=chrome` and `PLAYWRIGHT=<path>` select the browser and the
   Playwright package.
 
-`output/e2e/` and `output/playwright/` are Git-ignored. Each script's header lists the failure inventory it was written from and
+`output/`, `apps/web/output/`, `tmp/` and `.scratch/` are Git-ignored scratch directories, and `output/` grows by gigabytes. Run `pnpm clean:output` once the evidence has been quoted in the pull request; `pnpm clean:output --dry-run` lists sizes first. It refuses to run if any tracked file lives under those directories. Each script's header lists the failure inventory it was written from and
 any server environment it needs. Fixture runs are isolated from the deployment's keys and data-mode default, so the
 Agent Lab scripts pass whatever the environment holds; `agent-lab-live-gate` also uses two servers with live enabled
 (see its header). `agent-lab-release` walks the whole public flow and writes the release evidence: raw NDJSON,

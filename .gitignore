@@ -36,10 +36,11 @@ apps/web/next-env.d.ts
 
 # Local browser verification artifacts
 .playwright-cli/
-output/playwright/
 
 .next-dev/
-output/e2e/
-output/cli-evidence/
+/output/
+apps/web/output/
+/tmp/
+/.scratch/
 .next-e2e*/
 .next-e2e*.lock
