@@ -1,4 +1,4 @@
-import { DATE_TOKEN, parseTripDate } from "./dates";
+import { DATE_TOKEN, isAmbiguous, parseTripDate } from "./dates";
 
 export interface FlightQuery {
   from: string;
@@ -58,9 +58,11 @@ export function parseFlightQuery(message: string): FlightQuery | undefined {
   const to = city(pair?.[2]);
   if (!from || !to || from.toLowerCase() === to.toLowerCase()) return undefined;
 
-  const found = [...message.matchAll(new RegExp(DATE_TOKEN, "gi"))]
-    .map((match) => parseTripDate(match[0]))
-    .filter((parsed): parsed is { iso: string } => !!parsed && "iso" in parsed);
+  const parsedDates = [...message.matchAll(new RegExp(DATE_TOKEN, "gi"))].map((match) =>
+    parseTripDate(match[0]),
+  );
+  if (parsedDates.some(isAmbiguous)) return undefined;
+  const found = parsedDates.filter((parsed): parsed is { iso: string } => !!parsed);
   if (!found.length) return undefined;
 
   const passengers = Number(
