@@ -1,4 +1,3 @@
-// Failure inventory: budget replacement can retain stale source currency, reuse stale request metadata, race an unfinished reply, or reappear after reload and history restore.
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";

@@ -1,5 +1,3 @@
-// Failure inventory: Chinese party counts can be lost before the saved brief, omitted from the trip view, or ignored by dining prices.
-// Server: isolated Next dev server with mock data selected; no external credentials are required.
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
