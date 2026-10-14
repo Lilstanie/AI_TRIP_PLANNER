@@ -17,7 +17,9 @@ contract-impact: none
   server-revision owner after #334; the browser plan guard is not the only revision mechanism.
 - `review-trip-planner/references/handoff.md`: the comment check is the repository default (#312),
   not a per-task option.
-- `skill-maintenance/review-checkpoint.json`: first completed full review at `8ab8a0c3`.
+- First completed full-review checkpoint at `8ab8a0c3`, stored as
+  `skill-maintenance/assets/review-checkpoint.json`. The old top-level path broke `verify-docs`'
+  skill layout rule, so `is-due.mjs`, its CLI acceptance and SKILL.md now use `assets/`.
 
 ## Why
 
@@ -31,7 +33,10 @@ need no skill change.
 
 - `pnpm verify:docs`, `pnpm verify:pairs` and `pnpm verify:protected` passed.
 - `check-skills.mjs`: no missing path or broken command.
-- `is-due.mjs` after committing: see the pull request Evidence section.
+- `is-due.mjs` on the committed record: "Skills fully reviewed through 8ab8a0c", all signals 0,
+  "No review due", exit 0.
+- `node apps/web/tests/cli-e2e/skill-maintenance.e2e.mjs`: 61 CLI cases passed; 37 retained
+  outputs accept a checkpoint at the new path.
 
 ## Notes for the next person
 

@@ -87,7 +87,7 @@ needed fix-up commits. Look for three things:
 ## 4. Record a completed full review
 
 Only after reviewing **every current project skill**, record the outcome at
-.agents/skills/skill-maintenance/review-checkpoint.json and commit it. Partial corrections and tool
+.agents/skills/skill-maintenance/assets/review-checkpoint.json and commit it. Partial corrections and tool
 acceptance runs do not establish a completed review. Do not create this record merely to clear a
 reminder. Inspect accepted merged outcomes, unresolved Issues, closed-unmerged alternatives, comments
 and review threads; a closed PR alone is not an implemented decision.
