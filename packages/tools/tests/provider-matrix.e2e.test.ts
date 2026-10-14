@@ -414,14 +414,14 @@ describe("ToolGateway provider matrix", () => {
     });
   });
 
-  it("keeps the 10-day and 14-day weather provider boundaries on the captured clock", async () => {
+  it("keeps the 9-day and 14-day weather provider boundaries on the captured clock", async () => {
     vi.stubEnv("USE_MOCK_TOOLS", "false");
     vi.stubEnv("WEATHER_API_KEY", "captured-weather-key");
     const fetcher = vi.fn(async (input: string | URL | Request) => {
       const url = String(input);
       if (url.includes("weather.googleapis.com")) {
         return Response.json({
-          forecastDays: [1, 11].map((day) => ({
+          forecastDays: [1, 10].map((day) => ({
             displayDate: { year: 2026, month: 1, day },
             daytimeForecast: { weatherCondition: { description: { text: "Sunny" } } },
             maxTemperature: { degrees: 24 },
@@ -432,7 +432,7 @@ describe("ToolGateway provider matrix", () => {
       if (url.includes("api.open-meteo.com/v1/forecast")) {
         return Response.json({
           daily: {
-            time: ["2026-01-12", "2026-01-15"],
+            time: ["2026-01-11", "2026-01-15"],
             weather_code: [61, 61],
             temperature_2m_max: [22, 22],
             temperature_2m_min: [13, 13],
@@ -456,7 +456,7 @@ describe("ToolGateway provider matrix", () => {
     vi.setSystemTime(new Date("2026-10-03T00:00:00.000Z"));
 
     const query = { location: { latitude: -33.86, longitude: 151.2 } };
-    const dates = ["2026-01-01", "2026-01-11", "2026-01-12", "2026-01-15", "2026-01-16"];
+    const dates = ["2026-01-01", "2026-01-10", "2026-01-11", "2026-01-15", "2026-01-16"];
     const results = await Promise.all(
       dates.map((targetDate) => gateway.weather!.forecast({ ...query, targetDate })),
     );
@@ -475,8 +475,8 @@ describe("ToolGateway provider matrix", () => {
     expect(String(fetcher.mock.calls[0]?.[0])).toContain("key=captured-weather-key");
     evidence.push({
       id: "weather-horizons",
-      selection: "Google Weather <=10; Open-Meteo forecast 11-14; archive >14",
-      result: "forecast on days 0, 10, 11 and 14; climate on day 15",
+      selection: "Google Weather 0-9; Open-Meteo forecast 10-14; archive >14",
+      result: "forecast on days 0, 9, 10 and 14; climate on day 15",
       provenance: results.map(({ provider }) => provider).join(" | "),
     });
   });

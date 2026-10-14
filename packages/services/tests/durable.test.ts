@@ -1,9 +1,13 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ChatTurn, UserPreference } from "@trip/shared";
 import { createJsonStore } from "../src/durable";
 import { memory } from "../src/memory";
 
 describe("durable JSON store", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
   it("keeps the MemoryStore contract when no shared store is configured", async () => {
     const store = createJsonStore();
     const turn: ChatTurn = { role: "user", content: "Plan Sydney", at: new Date().toISOString() };
@@ -18,11 +22,11 @@ describe("durable JSON store", () => {
   it("uses the configured Redis REST boundary for reads, writes and counters", async () => {
     vi.stubEnv("KV_REST_API_URL", "https://redis.example");
     vi.stubEnv("KV_REST_API_TOKEN", "test-token");
-    const calls: string[] = [];
+    const calls: unknown[] = [];
     vi.stubGlobal(
       "fetch",
       vi.fn(async (input: URL | string, init?: RequestInit) => {
-        calls.push(`${init?.method}:${String(input)}`);
+        calls.push({ url: String(input), command: JSON.parse(String(init?.body)) });
         return new Response(JSON.stringify({ result: "7" }), { status: 200 });
       }),
     );
@@ -33,9 +37,9 @@ describe("durable JSON store", () => {
     await store.increment("test:redis:counter");
 
     expect(calls).toEqual([
-      "POST:https://redis.example/set/test%3Aredis%3Avalue/%7B%22ok%22%3Atrue%7D",
-      "POST:https://redis.example/get/test%3Aredis%3Avalue",
-      "POST:https://redis.example/incr/test%3Aredis%3Acounter",
+      { url: "https://redis.example", command: ["set", "test:redis:value", '{"ok":true}'] },
+      { url: "https://redis.example", command: ["get", "test:redis:value"] },
+      { url: "https://redis.example", command: ["incr", "test:redis:counter"] },
     ]);
     vi.unstubAllEnvs();
     vi.unstubAllGlobals();
@@ -57,5 +61,18 @@ describe("durable JSON store", () => {
     expect(await memory.getLongTerm(userId)).toEqual([
       { key: "pace", value: "slow", source: "chat_confirmed" },
     ]);
+  });
+  it("retains the latest twenty turns including the current turn", async () => {
+    const tripId = crypto.randomUUID();
+    for (let i = 0; i < 25; i++)
+      await memory.appendShortTerm(tripId, {
+        role: "user",
+        content: `turn ${i}`,
+        at: "2026-10-14T00:00:00.000Z",
+      });
+    const turns = await memory.getShortTerm(tripId);
+    expect(turns).toHaveLength(20);
+    expect(turns[0].content).toBe("turn 5");
+    expect(turns.at(-1)?.content).toBe("turn 24");
   });
 });

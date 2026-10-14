@@ -74,10 +74,21 @@ export function driveOption(route: GoogleRouteShape, q: RouteQuery): RouteOption
   if (durationMin === undefined) return undefined;
   const tolls = route.travelAdvisory?.tollInfo?.estimatedPrice ?? [];
 
-  const aud = tolls.filter((toll) => toll.currencyCode === "AUD");
+  const aud = tolls.filter((toll) => toll.currencyCode === "AUD" && moneyFrom(toll) !== undefined);
   const price = aud.reduce((sum, toll) => sum + (moneyFrom(toll) ?? 0), 0);
   const km = route.distanceMeters ? Math.round(route.distanceMeters / 100) / 10 : undefined;
   const foreign = tolls.filter((toll) => toll.currencyCode && toll.currencyCode !== "AUD");
+  const foreignQuotes = foreign.map((toll) => {
+    const amount = moneyFrom(toll);
+    return `${toll.currencyCode}${amount === undefined ? " (amount unavailable)" : ` ${amount.toFixed(2)}`}`;
+  });
+  const tollNote = aud.length
+    ? `tolls A$${price.toFixed(2)}`
+    : foreign.length
+      ? "tolls quoted in foreign currency"
+      : route.travelAdvisory?.tollInfo
+        ? "toll cost unavailable"
+        : "no tolls on this route";
   return {
     mode: "drive",
     durationMin,
@@ -86,9 +97,9 @@ export function driveOption(route: GoogleRouteShape, q: RouteQuery): RouteOption
 
     priceBasis: "partial",
     note: `Driving ${q.from} → ${q.to}${km ? `; ${km}km` : ""}; ${
-      price ? `tolls A$${price.toFixed(2)}` : "no tolls on this route"
+      tollNote
     }; fuel, parking and vehicle hire not included${
-      foreign.length ? `; tolls also quoted in ${foreign[0]!.currencyCode}` : ""
+      foreign.length ? `; ${foreignQuotes.join(", ")} excluded from the AUD total` : ""
     }.`,
   };
 }

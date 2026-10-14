@@ -9,13 +9,24 @@ import {
 } from "../workspace/catalog";
 import type { SyncPull, SyncPush, SyncedRecord } from "./sync";
 
-export type SyncedTimes = { trips: Record<string, string>; conversations: Record<string, string> };
+export type Checkpoint = { revision: number; contents: string };
+export type SyncedTimes = {
+  trips: Record<string, Checkpoint>;
+  conversations: Record<string, Checkpoint>;
+};
 export const emptySynced = (): SyncedTimes => ({ trips: {}, conversations: {} });
 
 type Kind = "trips" | "conversations";
 type Record_ = TripRecord | ConversationRecord;
-
-const newer = (a: string, b: string) => Date.parse(a) > Date.parse(b);
+const contents = (record?: Record_) => {
+  if (!record) return "";
+  const parsed = "conversationIds" in record ? parseTrip(record) : parseConversation(record);
+  return JSON.stringify(parsed, (_key, value) =>
+    value && typeof value === "object" && !Array.isArray(value)
+      ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => a.localeCompare(b)))
+      : value,
+  );
+};
 
 function parseRemote(kind: Kind, item: SyncedRecord): Record_ | undefined {
   try {
@@ -29,9 +40,10 @@ function parseRemote(kind: Kind, item: SyncedRecord): Record_ | undefined {
 const pushable = (kind: Kind, record: Record_) =>
   kind === "trips" || !isUntouchedConversation(record as ConversationRecord);
 
-const wire = (record: Record_): SyncedRecord => ({
+const wire = (record: Record_, revision: number): SyncedRecord => ({
   id: record.id,
   updatedAt: record.updatedAt,
+  revision,
   record: JSON.parse(JSON.stringify(record)) as Record<string, unknown>,
 });
 
@@ -39,36 +51,37 @@ function mergeKind<T extends Record_>(
   kind: Kind,
   local: T[],
   remote: SyncedRecord[],
-  synced: Record<string, string>,
+  synced: Record<string, Checkpoint>,
   now: string,
 ) {
   const byId = new Map(local.map((record) => [record.id, record]));
+  const checkpoints = { ...synced };
   const push: SyncedRecord[] = [];
   const seen = new Set<string>();
   for (const item of remote) {
     seen.add(item.id);
     const mine = byId.get(item.id);
-    if (item.deleted) {
-      if (mine && newer(mine.updatedAt, item.updatedAt)) push.push(wire(mine));
-      else byId.delete(item.id);
-      continue;
-    }
-    if (!mine) {
-      if (synced[item.id]) push.push({ id: item.id, updatedAt: now, deleted: true });
-      else {
-        const parsed = parseRemote(kind, item);
-        if (parsed) byId.set(item.id, parsed as T);
-      }
-      continue;
-    }
-    if (newer(item.updatedAt, mine.updatedAt)) {
-      const parsed = parseRemote(kind, item);
+    const base = synced[item.id];
+    const parsed = item.deleted ? undefined : parseRemote(kind, item);
+    if (!item.deleted && !parsed) continue;
+    const clean = base ? contents(mine) === base.contents : !mine;
+    const identical = contents(mine) === contents(parsed);
+    if (clean || identical) {
       if (parsed) byId.set(item.id, parsed as T);
-    } else if (newer(mine.updatedAt, item.updatedAt) && pushable(kind, mine)) push.push(wire(mine));
+      else byId.delete(item.id);
+      checkpoints[item.id] = { revision: item.revision, contents: contents(parsed) };
+    } else if (mine && pushable(kind, mine)) {
+      push.push(wire(mine, base?.revision ?? 0));
+    } else if (!mine && base) {
+      push.push({ id: item.id, updatedAt: now, deleted: true, revision: base.revision });
+    }
   }
-  for (const record of local)
-    if (!seen.has(record.id) && pushable(kind, record)) push.push(wire(record));
-  return { records: [...byId.values()], push };
+  for (const record of local) {
+    const base = synced[record.id];
+    if (!seen.has(record.id) && pushable(kind, record) && contents(record) !== base?.contents)
+      push.push(wire(record, base?.revision ?? 0));
+  }
+  return { records: [...byId.values()], push, checkpoints };
 }
 
 function relink(catalog: WorkspaceCatalog): WorkspaceCatalog {
@@ -101,7 +114,7 @@ export function mergeCatalog(
   remote: SyncPull,
   synced: SyncedTimes,
   now = new Date().toISOString(),
-): { catalog: WorkspaceCatalog; push: SyncPush } {
+): { catalog: WorkspaceCatalog; push: SyncPush; synced: SyncedTimes } {
   const trips = mergeKind("trips", local.trips, remote.trips, synced.trips, now);
   const conversations = mergeKind(
     "conversations",
@@ -114,6 +127,7 @@ export function mergeCatalog(
   return {
     catalog: parseCatalog(JSON.parse(JSON.stringify(merged))),
     push: { trips: trips.push, conversations: conversations.push },
+    synced: { trips: trips.checkpoints, conversations: conversations.checkpoints },
   };
 }
 
@@ -126,11 +140,14 @@ export function pendingChanges(
     const present = new Set(records.map((record) => record.id));
     return [
       ...records
-        .filter((record) => synced[kind][record.id] !== record.updatedAt && pushable(kind, record))
-        .map(wire),
-      ...Object.keys(synced[kind])
-        .filter((id) => !present.has(id))
-        .map((id) => ({ id, updatedAt: now, deleted: true })),
+        .filter(
+          (record) =>
+            synced[kind][record.id]?.contents !== contents(record) && pushable(kind, record),
+        )
+        .map((record) => wire(record, synced[kind][record.id]?.revision ?? 0)),
+      ...Object.entries(synced[kind])
+        .filter(([id, base]) => !present.has(id) && base.contents !== "")
+        .map(([id, base]) => ({ id, updatedAt: now, deleted: true, revision: base.revision })),
     ];
   };
   return {
@@ -139,15 +156,31 @@ export function pendingChanges(
   };
 }
 
-export function syncedTimes(catalog: WorkspaceCatalog): SyncedTimes {
-  const times = (records: Record_[], kind: Kind) =>
-    Object.fromEntries(
-      records
-        .filter((record) => pushable(kind, record))
-        .map((record) => [record.id, record.updatedAt]),
-    );
-  return {
-    trips: times(catalog.trips, "trips"),
-    conversations: times(catalog.conversations, "conversations"),
-  };
+export function acknowledge(synced: SyncedTimes, accepted: SyncPull): SyncedTimes {
+  const next = { trips: { ...synced.trips }, conversations: { ...synced.conversations } };
+  for (const kind of ["trips", "conversations"] as const)
+    for (const item of accepted[kind]) {
+      const record = item.deleted ? undefined : parseRemote(kind, item);
+      if (item.deleted || record)
+        next[kind][item.id] = { revision: item.revision, contents: contents(record) };
+    }
+  return next;
+}
+
+export function parseSynced(value: unknown): SyncedTimes {
+  const result = emptySynced();
+  if (!value || typeof value !== "object") return result;
+  for (const kind of ["trips", "conversations"] as const) {
+    const entries = (value as Partial<SyncedTimes>)[kind];
+    if (!entries || typeof entries !== "object") continue;
+    for (const [id, base] of Object.entries(entries))
+      if (
+        base &&
+        Number.isSafeInteger(base.revision) &&
+        base.revision >= 0 &&
+        typeof base.contents === "string"
+      )
+        result[kind][id] = base;
+  }
+  return result;
 }

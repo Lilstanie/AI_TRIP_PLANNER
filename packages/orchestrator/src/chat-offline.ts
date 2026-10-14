@@ -45,7 +45,7 @@ export function extractBriefPatchLocally(message: string): BriefPatch {
   const group = message.match(/(\d+)\s*(?:people|persons?|travell?ers?|人(?!民))/i);
   if (group?.[1]) patch.groupSize = amount(group[1]);
   if (!patch.groupSize) {
-    const chineseGroup = message.match(/([一二两三四五六七八九十])\s*(?:个)?人(?!民)/);
+    const chineseGroup = message.match(/([零〇一二两三四五六七八九十百千万亿]+)\s*(?:个)?人(?!民)/);
     const values: Record<string, number> = {
       一: 1,
       二: 2,
@@ -59,7 +59,18 @@ export function extractBriefPatchLocally(message: string): BriefPatch {
       九: 9,
       十: 10,
     };
-    if (chineseGroup?.[1]) patch.groupSize = values[chineseGroup[1]];
+    const token = chineseGroup?.[1];
+    if (
+      token &&
+      /^(?:[一二两三四五六七八九]|十[一二三四五六七八九]?|[二三四五六七八九]十[一二三四五六七八九]?)$/.test(
+        token,
+      )
+    ) {
+      const [tens, ones] = token.split("十");
+      patch.groupSize = token.includes("十")
+        ? (values[tens!] ?? 1) * 10 + (values[ones!] ?? 0)
+        : values[token];
+    }
   }
 
   const fromTo = message.match(

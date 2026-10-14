@@ -74,8 +74,24 @@ export async function POST(req: Request) {
         const response = ChatResponse.parse(
           await runWithDataMode(dataMode, () => runTripChat(parsed.data, { onProgress: send })),
         );
-        await tripStore.set(response.plan);
         send({ type: "complete", response });
+        const persistence = new AbortController();
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        try {
+          await Promise.race([
+            tripStore.set(response.plan, { signal: persistence.signal }),
+            new Promise<never>((_, reject) => {
+              timer = setTimeout(() => {
+                persistence.abort();
+                reject(new Error("Trip persistence deadline exceeded."));
+              }, 5000);
+            }),
+          ]);
+        } catch (error) {
+          console.warn("[chat] completed plan was delivered; server persistence failed", error);
+        } finally {
+          clearTimeout(timer);
+        }
       } catch (error) {
         if (error instanceof IncompleteBriefError) {
           send(error.needsInfo);

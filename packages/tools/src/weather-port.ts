@@ -1,3 +1,4 @@
+import tzlookup from "@photostructure/tz-lookup";
 import type { WeatherPort, WeatherQuery, WeatherResult } from "@trip/shared";
 import type { ToolRuntimeConfig, ToolRuntimeDependencies } from "./runtime-context";
 
@@ -16,8 +17,14 @@ function dateValue(value: string): number {
   return timestamp;
 }
 
-function daysUntil(targetDate: string, now: Date): number {
-  return Math.floor((dateValue(targetDate) - dateValue(now.toISOString().slice(0, 10))) / DAY_MS);
+function daysUntil(query: WeatherQuery, now: Date): number {
+  const today = new Intl.DateTimeFormat("en-CA", {
+    timeZone: tzlookup(query.location.latitude, query.location.longitude),
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(now);
+  return Math.floor((dateValue(query.targetDate) - dateValue(today)) / DAY_MS);
 }
 
 function climateFixture(targetDate: string, latitude: number, observedAt: string): WeatherResult {
@@ -131,8 +138,8 @@ async function openMeteoForecast(
     latitude: String(query.location.latitude),
     longitude: String(query.location.longitude),
     daily: "weather_code,temperature_2m_max,temperature_2m_min",
-    forecast_days: String(FORECAST_LIMIT_DAYS),
-    timezone: "UTC",
+    forecast_days: String(FORECAST_LIMIT_DAYS + 1),
+    timezone: tzlookup(query.location.latitude, query.location.longitude),
   }).toString();
   const response = await dependencies.fetch(url, { signal: AbortSignal.timeout(8_000) });
   if (!response.ok) throw new Error(`Open-Meteo request failed (${response.status}).`);
@@ -184,7 +191,7 @@ async function openMeteoClimate(
         start_date: iso(shifted.getTime() - CLIMATE_WINDOW_DAYS * DAY_MS),
         end_date: iso(shifted.getTime() + CLIMATE_WINDOW_DAYS * DAY_MS),
         daily: "temperature_2m_max,temperature_2m_min,precipitation_sum",
-        timezone: "UTC",
+        timezone: tzlookup(query.location.latitude, query.location.longitude),
       }).toString();
       const response = await dependencies.fetch(url, { signal: AbortSignal.timeout(8_000) });
       if (!response.ok) throw new Error(`Open-Meteo archive request failed (${response.status}).`);
@@ -226,14 +233,14 @@ export function createWeatherPort(
       ? (query, days, now) => mockWeather(query, days, now)
       : (query, days) => {
           if (days > FORECAST_LIMIT_DAYS) return openMeteoClimate(query, dependencies);
-          return days <= GOOGLE_FORECAST_LIMIT_DAYS
+          return days < GOOGLE_FORECAST_LIMIT_DAYS
             ? googleForecast(query, weatherApiKey, dependencies)
             : openMeteoForecast(query, dependencies);
         };
   return {
     async forecast(query) {
       const now = dependencies.now();
-      const days = daysUntil(query.targetDate, now);
+      const days = daysUntil(query, now);
       if (days < 0) throw new Error("Weather target date cannot be in the past.");
       return selectedForecast(query, days, now);
     },

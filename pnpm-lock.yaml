@@ -67,7 +67,7 @@ importers:
         version: 2.1.1
       drizzle-orm:
         specifier: ^0.45.3
-        version: 0.45.3(@neondatabase/serverless@1.1.0)
+        version: 0.45.3(@electric-sql/pglite@0.3.14)(@neondatabase/serverless@1.1.0)
       maplibre-gl:
         specifier: ^6.13.0
         version: 6.13.0
@@ -96,6 +96,9 @@ importers:
         specifier: ^4.0.0
         version: 4.5.4
     devDependencies:
+      '@electric-sql/pglite':
+        specifier: 0.3.14
+        version: 0.3.14
       '@tailwindcss/postcss':
         specifier: ^4.3.3
         version: 4.3.3
@@ -232,6 +235,9 @@ importers:
 
   packages/tools:
     dependencies:
+      '@photostructure/tz-lookup':
+        specifier: 11.7.0
+        version: 11.7.0
       '@trip/services':
         specifier: workspace:*
         version: link:../services
@@ -334,6 +340,9 @@ packages:
 
   '@drizzle-team/brocli@0.10.2':
     resolution: {integrity: sha512-z33Il7l5dKjUgGULTqBsQBQwckHh5AbIuxhdsIxDDiZAzBOrZO6q9ogcWC65kU382AfynTfgNumVcNIjuIua6w==}
+
+  '@electric-sql/pglite@0.3.14':
+    resolution: {integrity: sha512-3DB258dhqdsArOI1fIt7cb9RpUOgcDg5hXWVgVHAeqVQ/qxtFy605QKs4gx6mFq3jWsSPqDN8TgSEsqC3OfV9Q==}
 
   '@emnapi/core@1.10.0':
     resolution: {integrity: sha512-yq6OkJ4p82CAfPl0u9mQebQHKPJkY7WrIuk205cTYnYe+k2Z8YBh11FrbRG/H6ihirqcacOgl2BIO8oyMQLeXw==}
@@ -3940,6 +3949,8 @@ snapshots:
 
   '@drizzle-team/brocli@0.10.2': {}
 
+  '@electric-sql/pglite@0.3.14': {}
+
   '@emnapi/core@1.10.0':
     dependencies:
       '@emnapi/wasi-threads': 1.2.1
@@ -5354,8 +5365,9 @@ snapshots:
       esbuild: 0.25.12
       tsx: 4.23.15
 
-  drizzle-orm@0.45.3(@neondatabase/serverless@1.1.0):
+  drizzle-orm@0.45.3(@electric-sql/pglite@0.3.14)(@neondatabase/serverless@1.1.0):
     optionalDependencies:
+      '@electric-sql/pglite': 0.3.14
       '@neondatabase/serverless': 1.1.0
 
   dunder-proto@1.0.1:

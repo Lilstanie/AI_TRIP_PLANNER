@@ -47,7 +47,7 @@ describe("weather provider", () => {
       json: async () => ({
         forecastDays: [
           {
-            displayDate: { year: 2026, month: 10, day: 1 },
+            displayDate: { year: 2026, month: 9, day: 30 },
             daytimeForecast: { weatherCondition: { description: { text: "Sunny" } } },
             maxTemperature: { degrees: 24 },
             minTemperature: { degrees: 14 },
@@ -57,7 +57,7 @@ describe("weather provider", () => {
     });
     vi.stubGlobal("fetch", fetcher);
 
-    const result = await weather.forecast(query);
+    const result = await weather.forecast({ ...query, targetDate: "2026-09-30" });
 
     expect(result).toMatchObject({
       horizon: "forecast",
@@ -94,7 +94,7 @@ describe("weather provider", () => {
       provider: "Open-Meteo Forecast API",
       summary: "Rain showers (13–22°C). Forecast conditions can change before departure.",
     });
-    expect(String(fetcher.mock.calls[0]![0])).toContain("forecast_days=14");
+    expect(String(fetcher.mock.calls[0]![0])).toContain("forecast_days=15");
   });
 
   it("surfaces provider failures instead of turning them into a forecast", async () => {
@@ -105,5 +105,61 @@ describe("weather provider", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 503 }));
 
     await expect(weather.forecast(query)).rejects.toThrow("503");
+  });
+});
+
+describe("destination calendar forecast windows", () => {
+  it.each([9, 10, 13, 14, 15])(
+    "resolves offset %i with a provider that covers it",
+    async (offset) => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date("2026-09-21T00:00:00Z"));
+      vi.stubEnv("USE_MOCK_TOOLS", "false");
+      vi.stubEnv("WEATHER_API_KEY", "test");
+      const day = (i: number) => new Date(Date.UTC(2026, 8, 21 + i)).toISOString().slice(0, 10);
+      const fetcher = vi.fn(async (input: URL | string) => {
+        const url = new URL(String(input));
+        if (url.hostname.includes("googleapis"))
+          return Response.json({
+            forecastDays: Array.from({ length: 10 }, (_, i) => ({
+              displayDate: { year: 2026, month: 9, day: 21 + i },
+            })),
+          });
+        const count = Number(url.searchParams.get("forecast_days"));
+        return Response.json({
+          daily: {
+            time: Array.from({ length: count || 7 }, (_, i) => day(i)),
+            weather_code: Array(count).fill(0),
+            temperature_2m_max: Array(count || 7).fill(22),
+            temperature_2m_min: Array(count || 7).fill(12),
+            precipitation_sum: Array(7).fill(0),
+          },
+        });
+      });
+      vi.stubGlobal("fetch", fetcher);
+      const result = await weather.forecast({ ...query, targetDate: day(offset) });
+      expect(result.horizon).toBe(offset <= 14 ? "forecast" : "climate");
+      expect(result.provider).toBe(
+        offset <= 9
+          ? "Google Weather API"
+          : offset <= 14
+            ? "Open-Meteo Forecast API"
+            : "Open-Meteo historical archive",
+      );
+    },
+  );
+  it("uses the destination day when UTC is still on the previous date", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-20T15:30:00Z"));
+    vi.stubEnv("USE_MOCK_TOOLS", "false");
+    vi.stubEnv("WEATHER_API_KEY", "test");
+    const fetcher = vi.fn(async (_input: URL | string) =>
+      Response.json({ forecastDays: [{ displayDate: { year: 2026, month: 9, day: 30 } }] }),
+    );
+    vi.stubGlobal("fetch", fetcher);
+    expect((await weather.forecast({ ...query, targetDate: "2026-09-30" })).provider).toBe(
+      "Google Weather API",
+    );
+    expect(String(fetcher.mock.calls[0]?.[0])).toContain("googleapis");
   });
 });

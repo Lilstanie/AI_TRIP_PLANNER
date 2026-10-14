@@ -305,7 +305,7 @@ Google Places 不提供门票价格，因此活动的 `estCost` 保持未设置�
 `TripBrief.displayCurrency`（以及 `known` 中的同名字段）是旅行者最近一次为该行程指定的币种，无论连同预算还是单独说出。
 两条提取路径都会写入它：协调器的行程更新接受不带金额的币种，离线提取器对消息使用 `detectCurrency`。浏览器在所有需要选择币种的地方
 读取同一条规则，即 `packages/shared/src/money.ts` 中的 `effectiveCurrency()`：先取 `displayCurrency`，再取 `budgetSource.currency`，
-最后取设置中的显示币种。规划、预算检查和存储的金额仍为 AUD；`budgetSource` 保留所述金额和币种；行程从不写入设置。
+最后取设置中的显示币种。规划、预算检查和存储的金额仍为 AUD；`budgetSource` 保留所述金额和币种。替换预算而未提供新来源时清除旧来源；仅修改显示币种时保留来源。中文旅行者人数接受 1 至 99 的基数词。行程从不写入设置。
 服务器对它写出的文字使用同一条规则：设置币种来自聊天请求中可选的 `displayCurrency`（不传即 AUD），服务器取
 `effectiveCurrency(brief, request.displayCurrency ?? "AUD")`，并把结果传给每一处调用 `formatMoney` 的位置（specialist 摘要、冲突原因和约束、
 协调器与 specialist 的进度行、预算分配依据以及兜底回复）。specialist 通过 `AgentContext.displayCurrency` 收到该币种。
@@ -365,13 +365,13 @@ Agent 通过 `AgentContext` 接收 `ctx.tools`（`ToolGateway`）和 `ctx.mem`�
 随后，Maps port 在内部选择进程内 fixture（`USE_MOCK_TOOLS=true`）、OpenStreetMap 或
 Google，并负责路线与地点能力，以及公共交通、城际铁路和驾车回退。Booking port 为每个
 gateway 私下选择一次 fixture 或 live adapter。Live 酒店先使用 SerpApi，并保留带明确标签的
-Google Places 估算回退；live 航班仍只使用 SerpApi，绝不以虚构票价回退。缺失凭据只在调用
+Google Places 估算回退，但仅在选择 Google Maps 且提供密钥时使用；否则保留原始 SerpApi 错误。Live 航班仍只使用 SerpApi，绝不以虚构票价回退。缺失凭据只在调用
 相应 Booking 能力时失败。Weather port 使用同一份已固定的配置和时钟：fixture 模式返回
-确定性的天气信息；live 模式在第 0–10 天使用 Google Weather 预报，第 11–14 天使用
+确定性的天气信息；live 模式在第 0–9 天使用 Google Weather 预报，第 10–14 天使用
 Open-Meteo 预报，第 14 天之后使用 Open-Meteo 历史归档作为气候背景。近期预报缺少密钥时，
-只在请求该预报时失败。
+只在请求该预报时失败。天数按目的地时区的日历日期计算；Open-Meteo 请求包含当天及之后 14 天。
 `MemoryStore`（`packages/services/src/memory`）在配置后使用
-Redis REST 存储，否则使用进程内存。各包的导出和配置位于各自的 `README.md`。
+Redis REST 存储，否则使用进程内存。短期聊天记忆保留最近 20 条轮次。外币收费报价明确标注并排除在 AUD 估算外；报价不可用时不称其免费。各包的导出和配置位于各自的 `README.md`。
 
 `@trip/tools` 包入口只公开零参数的 gateway 工厂和请求数据模式辅助函数，不公开原始
 Maps、Booking 或 Weather 适配器。生产环境中的 specialist 通过 `ctx.tools` 获取提供方依据；

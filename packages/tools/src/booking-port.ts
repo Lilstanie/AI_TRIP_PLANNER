@@ -120,6 +120,7 @@ async function searchSerpApiStaysWithFallback(
       guests: q.guests,
     });
   } catch (error) {
+    if (config.mapsProvider !== "google" || !config.mapsApiKey) throw error;
     const reason = error instanceof SerpApiError ? error.reason : "request_failed";
     console.warn(
       `[booking] SerpApi hotel search unavailable (${reason}); falling back to Google Places estimate: ${
@@ -263,7 +264,9 @@ export function createBookingPort(config: ToolRuntimeConfig, reportSelection = f
 
   if (reportSelection) {
     const selection = config.serpApiKey
-      ? "SerpApi (live prices; Google Places estimate on hotel failure)"
+      ? config.mapsProvider === "google" && config.mapsApiKey
+        ? "SerpApi (live prices; Google Places estimate on hotel failure)"
+        : "SerpApi (live prices; no hotel fallback configured)"
       : config.mapsProvider === "google" && config.mapsApiKey
         ? "Google Places (grounded properties, estimated hotel prices; flights unavailable)"
         : "unavailable until a configured capability is called";

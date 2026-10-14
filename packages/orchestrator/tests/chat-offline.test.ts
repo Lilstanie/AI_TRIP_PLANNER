@@ -40,6 +40,23 @@ describe("offline TripBrief extraction", () => {
     });
   });
 
+  it.each([
+    ["十二人", 12],
+    ["二十人", 20],
+    ["三十个人", 30],
+    ["九十九人", 99],
+    ["十人", 10],
+    ["两个人", 2],
+  ])("reads the whole party size in %s", (message, expected) => {
+    expect(extractBriefPatchLocally(String(message)).groupSize).toBe(expected);
+  });
+  it.each(["一百二十人", "二百人", "十十人", "零二人"])(
+    "does not salvage a numeral suffix from %s",
+    (message) => {
+      expect(extractBriefPatchLocally(message).groupSize).toBeUndefined();
+    },
+  );
+
   it("supports the concise format shown in the chat placeholder", () => {
     expect(
       extractBriefPatchLocally("Sydney, 2026-10-01 to 2026-10-05, 2 people, budget $3000."),

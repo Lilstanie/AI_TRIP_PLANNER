@@ -48,18 +48,26 @@ function applyAppearance(appearance: UserSettings["appearance"]) {
   else root.dataset.theme = appearance;
 }
 
-const newer = (a: UserSettings, b: UserSettings) =>
-  Date.parse(a.updatedAt) > Date.parse(b.updatedAt);
-
-async function putSettings(settings: UserSettings): Promise<UserSettings | undefined> {
-  const response = await fetch("/api/account/settings", {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(settings),
-  });
-  if (!response.ok) return undefined;
-  const parsed = UserSettings.safeParse((await response.json()).settings);
-  return parsed.success ? parsed.data : undefined;
+type SettingsCheckpoint = { revision: number; contents: string };
+const checkpointKey = (userId: string) => `trip.settings.sync.v2:${userId}`;
+function readCheckpoint(userId: string): SettingsCheckpoint | undefined {
+  try {
+    const value = JSON.parse(localStorage.getItem(checkpointKey(userId)) ?? "null");
+    return value &&
+      Number.isSafeInteger(value.revision) &&
+      value.revision >= 0 &&
+      typeof value.contents === "string"
+      ? value
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+function saveCheckpoint(userId: string, revision: number, settings: UserSettings) {
+  localStorage.setItem(
+    checkpointKey(userId),
+    JSON.stringify({ revision, contents: JSON.stringify(settings) }),
+  );
 }
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
@@ -74,61 +82,82 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   const signedIn = account.status === "signed-in" ? account.userId : undefined;
 
+  const queue = useRef(Promise.resolve());
+  const identity = useRef(signedIn);
+  identity.current = signedIn;
   useEffect(() => {
     if (!signedIn) {
       setSyncState("local");
       return;
     }
     let active = true;
-    setSyncState("syncing");
-    void (async () => {
-      try {
-        const response = await fetch("/api/account/settings");
-        if (!response.ok) throw new Error(String(response.status));
-        const parsed = UserSettings.safeParse((await response.json()).settings);
-        const local = current.current;
-        let result = local;
-        if (parsed.success && !newer(local, parsed.data)) result = parsed.data;
-        else result = (await putSettings(local)) ?? local;
-        if (!active) return;
-        writeLocal(result);
-        setSettings(result);
-        setSyncState("synced");
-      } catch {
-        if (active) setSyncState("failed");
-      }
-    })();
+    const timer = window.setTimeout(() => {
+      queue.current = queue.current.then(async () => {
+        if (!active || identity.current !== signedIn) return;
+        setSyncState("syncing");
+        try {
+          const response = await fetch("/api/account/settings");
+          if (!response.ok) throw new Error(String(response.status));
+          const remote = await response.json();
+          const parsed = UserSettings.safeParse(remote.settings);
+          if (!Number.isSafeInteger(remote.revision) || remote.revision < 0)
+            throw new Error("Invalid settings revision.");
+          if (identity.current !== signedIn) return;
+          const local = current.current;
+          const base = readCheckpoint(signedIn);
+          const clean = base
+            ? JSON.stringify(local) === base.contents
+            : JSON.stringify(local) === JSON.stringify(defaultSettings());
+          if (parsed.success && (clean || JSON.stringify(local) === JSON.stringify(parsed.data))) {
+            saveCheckpoint(signedIn, remote.revision, parsed.data);
+            current.current = parsed.data;
+            writeLocal(parsed.data);
+            if (JSON.stringify(local) !== JSON.stringify(parsed.data)) setSettings(parsed.data);
+            setSyncState("synced");
+            return;
+          }
+          if (base?.contents === JSON.stringify(local) && remote.revision === base.revision) {
+            setSyncState("synced");
+            return;
+          }
+          const saved = await fetch("/api/account/settings", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ settings: local, revision: base?.revision ?? 0 }),
+          });
+          if (!saved.ok) throw new Error(`Settings pending (${saved.status}).`);
+          const ack = await saved.json();
+          if (
+            !Number.isSafeInteger(ack.revision) ||
+            ack.revision < 1 ||
+            !UserSettings.safeParse(ack.settings).success
+          )
+            throw new Error("Invalid settings acknowledgement.");
+          if (identity.current !== signedIn) return;
+          saveCheckpoint(signedIn, ack.revision, local);
+          setSyncState(current.current === local ? "synced" : "syncing");
+        } catch {
+          if (identity.current === signedIn) setSyncState("failed");
+        }
+      });
+    }, 1500);
     return () => {
       active = false;
+      window.clearTimeout(timer);
     };
-  }, [signedIn]);
+  }, [signedIn, settings]);
 
-  const update = useCallback<SettingsState["update"]>(
-    (next) => {
-      const settingsNow: UserSettings = {
-        ...current.current,
-        ...next,
-        version: 1,
-        updatedAt: new Date().toISOString(),
-      };
-      current.current = settingsNow;
-      setSettings(settingsNow);
-      writeLocal(settingsNow);
-      if (!signedIn) return;
-      setSyncState("syncing");
-      void putSettings(settingsNow)
-        .then((saved) => {
-          if (saved && newer(saved, current.current)) {
-            current.current = saved;
-            setSettings(saved);
-            writeLocal(saved);
-          }
-          setSyncState(saved ? "synced" : "failed");
-        })
-        .catch(() => setSyncState("failed"));
-    },
-    [signedIn],
-  );
+  const update = useCallback<SettingsState["update"]>((next) => {
+    const settingsNow: UserSettings = {
+      ...current.current,
+      ...next,
+      version: 1,
+      updatedAt: new Date().toISOString(),
+    };
+    current.current = settingsNow;
+    setSettings(settingsNow);
+    writeLocal(settingsNow);
+  }, []);
 
   return (
     <SettingsContext.Provider value={{ settings, update, syncState }}>

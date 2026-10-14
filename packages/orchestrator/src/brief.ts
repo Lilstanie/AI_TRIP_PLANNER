@@ -38,9 +38,16 @@ export function isRealDate(value: string): boolean {
   );
 }
 
-export function applyBriefPatch(current: TripBrief, patch: BriefPatch, tripId: string): TripBrief {
+export function mergeBriefPatch<T extends BriefPatch>(current: T, patch: BriefPatch) {
   const parsedPatch = BriefPatchSchema.parse(patch);
-  const next = TripBriefSchema.parse({ ...current, ...parsedPatch, tripId });
+  const next = { ...current, ...parsedPatch };
+  if (parsedPatch.budgetTotal !== undefined && parsedPatch.budgetSource === undefined)
+    delete next.budgetSource;
+  return next;
+}
+
+export function applyBriefPatch(current: TripBrief, patch: BriefPatch, tripId: string): TripBrief {
+  const next = TripBriefSchema.parse({ ...mergeBriefPatch(current, patch), tripId });
   if (!isRealDate(next.dates[0]) || !isRealDate(next.dates[1])) {
     throw new Error(
       "Those trip dates are not real calendar dates. Please restate the start and end dates.",

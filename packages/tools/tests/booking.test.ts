@@ -162,6 +162,13 @@ describe("SerpApi stays: takes priority over Google Places, falls back to it on 
     });
   });
 
+  it("preserves the SerpApi failure when Google fallback is unavailable", async () => {
+    vi.stubEnv("MAPS_PROVIDER", "osm");
+    serpApi({ error: "Invalid API key." }, 401);
+    await expect(searchStays(stay)).rejects.toMatchObject({ reason: "invalid_key" });
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
   it("reports the property's own page from Google Places, and omits it when there is none", async () => {
     vi.stubEnv("USE_MOCK_TOOLS", "false");
     vi.stubEnv("MAPS_PROVIDER", "google");
