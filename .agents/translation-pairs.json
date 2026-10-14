@@ -79,15 +79,15 @@
     },
     "docs/e2e-known-failures.md": {
       "sourceSha256": "4c5ec50171ed35932223d9149f9a37d34771203a01023dda29df147c908d0eff",
-      "translationSha256": "448587804007d461ded940373a47ba4888b16259b8fd90aeb6e68528f3e6ee9e"
+      "translationSha256": "387d0b7cd97733c286428c090bebd0cf4831b9fbf918e6314c97206ce67ec09f"
     },
     "docs/i18n.md": {
-      "sourceSha256": "f68257c7bce1af3e72475fb48e9c4b9a88985b500297d04431ab39211a2bb479",
-      "translationSha256": "7ec74c59ad4c65af4f29b5264d9b6593907af43d03bd9a30afb4ae37d0d9f63d"
+      "sourceSha256": "1b381060f482d8833b35334c7202602e19396ac46e0564144246ab8430ddfdf9",
+      "translationSha256": "80a85a13b3635d7d7de02640d9dd6d002cd0e4aec85d549e552e64e4bb6326e4"
     },
     "docs/local-test-cli.md": {
       "sourceSha256": "cf5e30423f3e050900dcfe5c110bc7bf64e621c366fc9afe16fb13230cb18958",
-      "translationSha256": "e08bccb7b78ffd12ac3fd75d9739785d1a9e97fd7ce7a3ce51ee251a83f7547a"
+      "translationSha256": "5647848798b7d5d2c4b1c99de0b70e7eff6d9b45018ae1589d8eeab2dea30dc5"
     },
     "docs/README.md": {
       "sourceSha256": "ddac9a0d6a71e260dcdf59ff19964b80edcc63cfe6f1ce2b53f137c314f581f2",

@@ -39,6 +39,7 @@ const inventory = [
   "runner-plan.e2e.mjs",
   "selection.e2e.mjs",
   "skill-maintenance.e2e.mjs",
+  "translation-pairs.e2e.mjs",
 ];
 
 function command(cwd, executable, args, env = {}) {

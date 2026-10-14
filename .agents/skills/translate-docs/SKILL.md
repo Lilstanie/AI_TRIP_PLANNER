@@ -53,6 +53,10 @@ node .agents/skills/translate-docs/scripts/check-pairs.mjs --record docs/archite
 node .agents/skills/translate-docs/scripts/check-pairs.mjs
 ```
 
+The check also compares heading anchors by position: each Chinese heading needs its English
+counterpart's fragment as an explicit anchor directly above it, unless the heading text is identical.
+When changing the check script, run `node apps/web/tests/cli-e2e/translation-pairs.e2e.mjs`.
+
 The record stores both file hashes in `.agents/translation-pairs.json`. It is evidence that an agent
 or person reviewed the pair, not proof supplied by a translator or a semantic equivalence test.
 Never record a stale translation just to make the check pass. For deleted pairs, use

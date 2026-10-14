@@ -1,3 +1,5 @@
+<a id="e2e-scripts-that-fail-on-main"></a>
+
 # 在 main 上失败的 E2E 脚本
 
 [English](e2e-known-failures.md) | 中文

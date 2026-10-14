@@ -28,6 +28,7 @@ const inventory = [
   "report-interrupted.e2e.mjs",
   "review-comment-policy.e2e.mjs",
   "skill-maintenance.e2e.mjs",
+  "translation-pairs.e2e.mjs",
 ];
 const results = [];
 const commands = [];
@@ -179,6 +180,7 @@ try {
         ["review-comment-policy.e2e.mjs"],
       ],
       [".agents/skills/skill-maintenance/scripts/new-helper.mjs", ["skill-maintenance.e2e.mjs"]],
+      [".agents/skills/translate-docs/scripts/check-pairs.mjs", ["translation-pairs.e2e.mjs"]],
       ...inventory.map((script) => [`apps/web/tests/cli-e2e/${script}`, [script]]),
       ...[
         "apps/web/tests/e2e/repeat-cli.mjs",
@@ -409,11 +411,11 @@ try {
         id: "2",
         scripts: [
           "local-test-cli.e2e.mjs",
-          "report-interrupted.e2e.mjs",
           "review-comment-policy.e2e.mjs",
           "runner-plan.e2e.mjs",
           "selection.e2e.mjs",
           "skill-maintenance.e2e.mjs",
+          "translation-pairs.e2e.mjs",
         ],
       },
       {
@@ -424,6 +426,7 @@ try {
           "local-cleanup.e2e.mjs",
           "local-test-cli-repeat.e2e.mjs",
           "report-cli.mjs",
+          "report-interrupted.e2e.mjs",
         ],
       },
     ]);
