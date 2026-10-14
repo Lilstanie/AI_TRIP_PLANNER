@@ -49,3 +49,7 @@ One PWA serves every platform, and only Android gets a native wrapper:
 - `apps/web/tests/e2e/installable-app.e2e.mjs` checks the manifest, icons, Chrome installability,
   the service worker, the offline page and `assetlinks.json`. Build steps are in
   [development](../../../../docs/development.md#installable-app).
+
+## Later change
+
+The Android wrapper described here was removed; see [no native phone app](2026-10-14-drop-android-wrapper.md). The PWA parts stay in force.

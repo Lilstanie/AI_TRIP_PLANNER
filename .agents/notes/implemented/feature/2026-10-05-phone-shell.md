@@ -72,3 +72,7 @@ asked for a phone-first design. Spec: issue #174.
   against a production build because dev-server reloads interrupt long walks. The same command runs
   the bounded phone-mine, phone-map and phone-state walks and combines their reports.
 - Safe areas and the real on-screen keyboard are checked by hand on devices (#182).
+
+## Later change
+
+The Android wrapper described here was removed; see [no native phone app](2026-10-14-drop-android-wrapper.md). The PWA parts stay in force.
