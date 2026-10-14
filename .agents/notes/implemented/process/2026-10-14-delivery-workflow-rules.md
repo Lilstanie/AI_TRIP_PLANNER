@@ -12,9 +12,9 @@ run `/pr` afterwards. `.github/workflows` cannot fix this because it runs on Git
 
 ## Decision
 
-- [`AGENTS.md`](../../../../AGENTS.md) has a `## Delivery workflow` section with four rules: triage before
+- [`AGENTS.md`](../../../../AGENTS.md) has a `## Delivery workflow` section with five rules: triage before
   implementing, run the checks `pre-push-checks` selects, write every pull request body with the
-  template's three sections, and stop once CI passes on the current head until the user says to merge.
+  template's three sections, and stop once CI passes on the current head until the user says to merge, then run `pnpm clean:output` once the evidence is quoted in the pull request. The command deletes only the four ignored scratch directories and refuses if a tracked file is under any of them.
 - [`.github/pull_request_template.md`](../../../../.github/pull_request_template.md) carries the Summary,
   Evidence and Merge Danger sections, so a pull request opened in the browser starts from them. A
   change with no runnable before and after says so and lists the commands it ran; Merge Danger is
