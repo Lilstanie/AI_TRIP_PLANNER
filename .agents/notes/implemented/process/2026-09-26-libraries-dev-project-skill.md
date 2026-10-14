@@ -12,7 +12,7 @@ a clear navigation grouping without losing their focused invocation boundaries.
 ## Decision
 
 Install [libraries-dev](../../../skills/libraries-dev/SKILL.md) directly under `.agents/skills` from
-upstream commit `f20116327f4e3b28d0fb70b04437dfd092bf88fe`. Preserve the seven reference snapshots and
+upstream commit `a27566557b4def79bcdcedc71858c0fb28020b6d`, first installed at `f20116327f4e3b28d0fb70b04437dfd092bf88fe`. Preserve the seven reference snapshots and
 MIT licence; adapt the entrypoint to the design contract, real application state, web workspace
 installation, accessibility and existing validation workflows.
 
@@ -44,5 +44,5 @@ documentation and repeatable browser evidence.
 ## Sources
 
 - [Official skill](https://libraries.dev/skill).
-- [Pinned upstream source](https://github.com/Jakubantalik/Libraries.dev/tree/f20116327f4e3b28d0fb70b04437dfd092bf88fe/skills/libraries-dev).
+- [Pinned upstream source](https://github.com/Jakubantalik/Libraries.dev/tree/a27566557b4def79bcdcedc71858c0fb28020b6d/skills/libraries-dev).
 - [Attribution and MIT licence](../../../skills/THIRD_PARTY_NOTICES.md).

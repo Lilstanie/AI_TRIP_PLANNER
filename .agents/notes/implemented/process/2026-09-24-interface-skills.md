@@ -25,7 +25,7 @@ project's facts win:
 - the `ui-verification` widths.
 
 Each skill links to the document that owns a fact instead of restating it. The generic reference
-files are kept where they do not conflict. `break` is manual-only (`disable-model-invocation`), and
+files are kept where they do not conflict, and upstream updates are three-way merged into them. `break` is manual-only (`disable-model-invocation`), and
 its harness is a dev-only `apps/web/app/debug/break-*` page that is never committed. Provenance and
 the MIT licence are in [THIRD_PARTY_NOTICES.md](../../../skills/THIRD_PARTY_NOTICES.md).
 

@@ -43,6 +43,10 @@ those regions. If a region really does need to change, raise it as a design deci
 - **Never clip a critical action.** The composer send button and the active editor's Save action stay
   in stable chrome or in normal flow. They must never sit at the bottom of a pane that can scroll out
   of view.
+- **Content bleeds, controls float.** The map, backgrounds and media reach the edges; text and
+  controls stay inside the layout margins and safe areas. A scroller under sticky chrome sets
+  `scroll-padding-block-start` so anchored and focused rows never land beneath it. See
+  [spacing-and-adaptivity.md](references/spacing-and-adaptivity.md).
 - **Disclosure has a cue.** Thinking rows and the phone map's day-stops sheet show what is hidden;
   list disclosure also shows how many items it holds.
 - **Logical properties in new code.** The interface supports English and Chinese. New code uses
