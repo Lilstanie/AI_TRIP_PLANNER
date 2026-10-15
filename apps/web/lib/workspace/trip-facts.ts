@@ -70,6 +70,16 @@ export function factErrors(
     return {};
   if (fact === "when" && !requireAll && (!draft.start || !draft.end))
     return { dates: { key: "Choose both a start and an end date." } };
+  const party = draft.party;
+  if (
+    fact === "who" &&
+    party &&
+    party.adults + party.seniors === 0 &&
+    party.children + party.infants > 0
+  )
+    return {
+      groupSize: { key: "Add at least one adult or senior. Children cannot travel alone." },
+    };
 
   const checked =
     fact === "when" && !draft.destination.trim() ? { ...draft, destination: "?" } : draft;
