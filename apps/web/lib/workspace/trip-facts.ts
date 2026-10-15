@@ -66,7 +66,8 @@ export function factErrors(
   current: Pick<TripBrief, "tripId"> & Partial<TripBrief>,
   requireAll: boolean,
 ): Record<string, Notice> {
-  if (!requireAll && FACT_FIELDS[fact].every((field) => isBlank(draft[field]))) return {};
+  if (!requireAll && fact !== "where" && FACT_FIELDS[fact].every((field) => isBlank(draft[field])))
+    return {};
   if (fact === "when" && !requireAll && (!draft.start || !draft.end))
     return { dates: { key: "Choose both a start and an end date." } };
 
