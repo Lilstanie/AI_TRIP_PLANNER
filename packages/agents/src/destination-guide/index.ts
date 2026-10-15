@@ -221,6 +221,8 @@ async function planDestinationGuide(
     draft = fallbackDraft(brief, month, places);
   }
 
+  const packing = draft.packing.map((item) => item.replace(/[\s.!;,]+$/, "")).filter(Boolean);
+
   return {
     agent: "destination-guide",
     summary: draft.summary,
@@ -239,7 +241,7 @@ async function planDestinationGuide(
       {
         kind: "weather-packing",
         detail: weatherResult?.summary ?? draft.weather,
-        packing: draft.packing,
+        packing,
       },
     ],
     assumptions: [

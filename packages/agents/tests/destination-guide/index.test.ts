@@ -228,6 +228,28 @@ describe("destination guide", () => {
     warning.mockRestore();
   });
 
+  it("normalises packing items without trailing punctuation or empty entries", async () => {
+    const result = await createDestinationGuideAgent({
+      generator: {
+        generate: vi.fn(async () => ({
+          ...validDraft,
+          packing: [
+            "Light layers: t-shirts and a rain jacket.",
+            "Walking shoes!",
+            "Sunscreen and a hat",
+          ],
+        })),
+      },
+    }).invoke({ brief, context: context() });
+    const item = result.items.find((entry) => entry.kind === "weather-packing");
+    expect(item?.packing).toEqual([
+      "Light layers: t-shirts and a rain jacket",
+      "Walking shoes",
+      "Sunscreen and a hat",
+    ]);
+    expect(item?.detail).not.toContain("Pack:");
+  });
+
   it("does not invent attractions when MapsPort returns none", async () => {
     const result = await createDestinationGuideAgent({ generator: false }).invoke({
       brief,
