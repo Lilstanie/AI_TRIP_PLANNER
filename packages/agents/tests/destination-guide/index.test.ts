@@ -5,7 +5,10 @@ import {
   type TripBrief,
   type UserPreference,
 } from "@trip/shared";
-import { createDestinationGuideAgent, type DestinationGuideGenerator } from "../../src/destination-guide";
+import {
+  createDestinationGuideAgent,
+  type DestinationGuideGenerator,
+} from "../../src/destination-guide";
 
 const brief: TripBrief = {
   tripId: "guide-test",
@@ -219,6 +222,26 @@ describe("destination guide", () => {
     );
     expect(result.source).toMatchObject({ kind: "fallback", label: "Local fallback" });
     warning.mockRestore();
+  });
+
+  it("lists packing items with one separator each and a single closing full stop", async () => {
+    const result = await createDestinationGuideAgent({
+      generator: {
+        generate: vi.fn(async () => ({
+          ...validDraft,
+          packing: [
+            "Light layers: t-shirts and a rain jacket.",
+            "Walking shoes!",
+            "Sunscreen and a hat",
+          ],
+        })),
+      },
+    }).invoke({ brief, context: context() });
+    const detail = result.items.find((item) => item.kind === "weather-packing")?.detail ?? "";
+    expect(detail).toMatch(
+      /Pack: Light layers: t-shirts and a rain jacket; Walking shoes; Sunscreen and a hat\.$/,
+    );
+    expect(detail).not.toMatch(/\.\.|\.,|\.\s*;/);
   });
 
   it("does not invent attractions when MapsPort returns none", async () => {
