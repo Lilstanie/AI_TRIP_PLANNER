@@ -303,7 +303,7 @@ export async function previewEdit(
     ideas = section.proposal.items.filter((i) => i.kind === "activity" && i.day === undefined);
     activities = section.proposal.items.filter((i) => i.kind === "activity" && i.day !== undefined);
   }
-  const days = (Date.parse(plan.brief.dates[1]) - Date.parse(plan.brief.dates[0])) / 86400000;
+  const days = (Date.parse(plan.brief.dates[1]) - Date.parse(plan.brief.dates[0])) / 86400000 + 1;
   const dateFor = (day: number) =>
     new Date(Date.parse(plan.brief.dates[0]) + (day - 1) * 86400000).toISOString().slice(0, 10);
   const segment = (day: number) => {

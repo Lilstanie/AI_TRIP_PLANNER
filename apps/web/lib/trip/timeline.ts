@@ -49,7 +49,7 @@ const minutes = (time?: string) =>
 
 export function dayCount(plan: TripPlan) {
   const [start, end] = plan.brief.dates.map((date) => Date.parse(`${date}T00:00:00Z`));
-  return Math.max(1, Math.round((end! - start!) / 86400000));
+  return Math.max(1, Math.round((end! - start!) / 86400000) + 1);
 }
 
 export function dayLabel(plan: TripPlan, day: number, locale: AppLocale = "en") {

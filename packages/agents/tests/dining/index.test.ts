@@ -12,7 +12,7 @@ const brief: TripBrief = {
   tripId: "dining-test",
   userId: "traveller",
   destination: "Kyoto",
-  dates: ["2026-10-01", "2026-10-03"],
+  dates: ["2026-10-01", "2026-10-02"],
   groupSize: 2,
   budgetTotal: 1000,
 };

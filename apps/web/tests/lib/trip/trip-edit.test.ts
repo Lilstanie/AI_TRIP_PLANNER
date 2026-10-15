@@ -74,7 +74,7 @@ describe("P3 edit boundary", () => {
   it("rejects stale versions and invalid dates/targets", async () => {
     for (const operation of [
       { kind: "move", id: "bad", day: 1, index: 0 },
-      { kind: "move", id: "a", day: 4, index: 0 },
+      { kind: "move", id: "a", day: 5, index: 0 },
     ])
       await expect(
         previewEdit({ plan: plan(), baseVersion: 0, operation }, dependencies()),
