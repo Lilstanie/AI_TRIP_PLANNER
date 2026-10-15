@@ -85,7 +85,7 @@ async function gatherTransportEvidence(
   const origin =
     brief.origin?.trim() ||
     preferences.find((preference) => preference.key === "transport.origin")?.value.trim() ||
-    "Sydney";
+    destinations[0]!;
   const budgetRevision =
     revision !== undefined &&
     /budget|cost|cheaper|overrun/i.test([revision.reason, ...revision.constraints].join(" "));
@@ -491,7 +491,7 @@ function assembleTransportProposal(
     assumptions: [
       "Route arrays are consecutive legs; calculator preserves adapter AUD amounts as group totals, matching the current integration. Per-person providers must normalize fares before returning them.",
       "Inter-city route dates follow their scheduled day. Unsupported driving-only estimates cannot verify public transport.",
-      `Origin comes from the trip brief, else the long-term preference "transport.origin", else Sydney; current origin: ${origin}.`,
+      `Origin comes from the trip brief, else the long-term preference "transport.origin", else the first destination, so no long-haul flight is planned; current origin: ${origin}.`,
       "Injected booking and maps results are treated as estimates, not reservations or live availability.",
       ...unmet.map(
         (note) => `You asked for ${note}. Name another mode and the plan will use it if it runs.`,

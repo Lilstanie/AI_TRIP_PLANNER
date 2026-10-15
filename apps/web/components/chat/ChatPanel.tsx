@@ -101,7 +101,7 @@ export function ChatPanel({
                   disabled={busy || locked}
                   onClick={() => onSend(text)}
                 >
-                  {label}
+                  {t(label)}
                 </button>
               ))}
             </div>

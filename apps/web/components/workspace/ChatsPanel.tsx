@@ -34,6 +34,7 @@ export function ChatsPanel({
   tripsContent?: ReactNode;
 }) {
   const { t } = useLocale();
+  const chatTitle = (title: string) => (title === "New chat" ? t("New chat") : title);
   const searchId = useId();
   const localSearch = useRef<HTMLInputElement | null>(null);
   const searching = query.trim() !== "";
@@ -131,10 +132,10 @@ export function ChatsPanel({
                 type="button"
                 className="history-item__open"
                 aria-current={item.active ? "true" : undefined}
-                title={item.title}
+                title={chatTitle(item.title)}
                 onClick={() => onOpenChat(item.id)}
               >
-                <span className="history-item__title">{item.title}</span>
+                <span className="history-item__title">{chatTitle(item.title)}</span>
                 {item.subtitle && <span className="history-item__meta">{item.subtitle}</span>}
               </button>
               <HistoryMenu

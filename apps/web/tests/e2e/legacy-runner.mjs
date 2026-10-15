@@ -12,6 +12,7 @@ import { createServer } from "node:net";
 import { basename, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
+import { lockFor, removeDist, sweepStaleDist } from "./legacy-stale-dist.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const WEB = resolve(HERE, "../..");
@@ -97,7 +98,10 @@ function freePort() {
 }
 
 function claimDist() {
-  return { name: basename(mkdtempSync(resolve(WEB, ".next-e2e-"))) };
+  sweepStaleDist(WEB);
+  const name = basename(mkdtempSync(resolve(WEB, ".next-e2e-")));
+  writeFileSync(lockFor(WEB, name), String(process.pid));
+  return { name };
 }
 
 function createTsconfig() {
@@ -163,10 +167,18 @@ for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"]) {
   });
 }
 
+function releaseDist() {
+  if (!dist) return;
+  try {
+    removeDist(WEB, dist.name);
+  } catch {}
+}
+
 process.on("exit", () => {
   signalScript("SIGKILL");
   if (serverRunning()) signalServer("SIGKILL");
   removeTsconfig();
+  releaseDist();
 });
 
 function run(command, commandArgs, { timeoutMs, ...options } = {}) {

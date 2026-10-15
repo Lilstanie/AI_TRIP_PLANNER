@@ -115,7 +115,7 @@ now. Implementation history and browser acceptance for each phase are in the
     2), Seniors (65+) and Pets, each with its own remove/add buttons and a live count. The draft keeps
     this breakdown (`Draft.party`) and keeps `groupSize` in sync as `adults + children + infants +
 seniors` (pets are never counted as travellers) on every change; `groupSize` stays the validated
-    field, so at least one person is required. Opening Who on a draft with no breakdown yet (saved
+    field, so at least one person is required; a breakdown with children or infants but no adult or senior is rejected inline (children cannot travel alone) and the sheet stays open. Opening Who on a draft with no breakdown yet (saved
     before the steppers existed) starts every stated traveller counted as an adult.
   - The breakdown reaches the planner as `TripBrief.party` (and `known.party` before a plan exists),
     beside `groupSize`. Every specialist's shared rule asks it to plan for children, infants,

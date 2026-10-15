@@ -45,8 +45,8 @@ MessageItem rendering.
 
 ## Consequences
 
-- Raw build directories remain for inspection and consume disk. Each later run allocates a new directory;
-  normal exit removes only its own temporary config. SIGKILL can leave that config behind.
+- The raw runner removes its own build directory, owner lock and temporary config on exit. A run killed
+  outright leaves them behind; the next raw run sweeps a directory whose owner has exited.
 - Fixture function-call counts are not React commits or real-user performance metrics. No speedup or
   Core Web Vitals target is established; the second-tab fixture tests the storage protocol, not the edit API.
 - Independent CI workers add browser installation and fixture build time when selected. Local runs do not establish

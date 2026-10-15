@@ -44,6 +44,7 @@ const brief: TripBrief = {
   tripId: "boundary",
   userId: "test",
   destination: "Tokyo & Kyoto",
+  origin: "Sydney",
   dates: ["2026-10-01", "2026-10-05"],
   groupSize: 2,
   budgetTotal: 4000,

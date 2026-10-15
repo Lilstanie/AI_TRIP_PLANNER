@@ -492,6 +492,8 @@ export const WORKSPACE_ZH = {
   "Enter a destination.": "请输入目的地。",
   "Enter where you are departing from, or leave it blank.": "请输入出发地，也可以留空。",
   "Enter a whole number of travellers, 1 or more.": "请输入不少于 1 的整数人数。",
+  "Add at least one adult or senior. Children cannot travel alone.":
+    "请至少添加一位成人或老年人，儿童和婴儿不能单独出行。",
   "Enter a total budget above zero.": "请输入大于零的总预算。",
   "Keep to 20 preferences of up to 300 characters each.":
     "最多添加 20 条偏好，每条不超过 300 个字符。",

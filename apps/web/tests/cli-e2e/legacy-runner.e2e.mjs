@@ -5,7 +5,10 @@ import {
   copyFileSync,
   mkdirSync,
   readFileSync,
+  existsSync,
+  mkdirSync as makeDir,
   readdirSync,
+  utimesSync,
   writeFileSync,
 } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -56,6 +59,7 @@ for (const [name, body] of Object.entries({
   "c-resistant": 'process.on("SIGTERM", () => {}); setInterval(() => {}, 1000);',
   "d-hold": "setTimeout(() => process.exit(0), 2500);",
   "e-pass": "process.exit(0);",
+  "f-fail": "process.exit(1);",
 }))
   writeFileSync(resolve(JOURNEYS, `${name}.e2e.mjs`), `${record}\n${body}\n`);
 
@@ -211,13 +215,55 @@ try {
   );
   abandoned.child.kill("SIGKILL");
   await abandoned.result;
+  const seed = (id, owner, ageDays = 0) => {
+    const dir = resolve(WEB, `.next-e2e-${id}`);
+    makeDir(dir);
+    if (owner !== undefined) writeFileSync(`${dir}.lock`, String(owner));
+    if (ageDays) {
+      const then = new Date(Date.now() - ageDays * 86400000);
+      utimesSync(dir, then, then);
+    }
+    return dir;
+  };
+  const deadDir = seed("DeadOw", abandoned.child.pid);
+  writeFileSync(resolve(WEB, ".tsconfig-e2e-raw-DeadOw.json"), "{}");
+  const liveDir = seed("LiveOw", process.pid);
+  const freshDir = seed("Fresh0");
+  const oldDir = seed("OldNo0", undefined, 2);
+  const localDir = seed("local-Keep00");
   const recovered = await launch(["e-pass"], { FIXTURE_TAG: "recovered" }).result;
-  check("a dead owner cannot block later allocations or reuse its retained dist", () => {
+  check("a dead owner cannot block later allocations or reuse its dist", () => {
     assert.equal(recovered.status, 0, recovered.stderr);
     const previous = events().find((event) => event.type === "dev" && event.tag === "abandoned");
     const next = events().find((event) => event.type === "dev" && event.tag === "recovered");
     assert.ok(previous && next);
     assert.notEqual(previous.dist, next.dist);
+  });
+  check("a run sweeps the dist of a dead owner with its lock and owned config", () => {
+    const previous = events().find((event) => event.type === "dev" && event.tag === "abandoned");
+    assert.equal(existsSync(resolve(WEB, previous.dist)), false);
+    assert.equal(existsSync(deadDir), false);
+    assert.equal(existsSync(`${deadDir}.lock`), false);
+    assert.equal(existsSync(resolve(WEB, ".tsconfig-e2e-raw-DeadOw.json")), false);
+  });
+  check("a run keeps a live owner's dist, a fresh unowned dist and a local CLI directory", () => {
+    for (const dir of [liveDir, freshDir, localDir]) assert.equal(existsSync(dir), true, dir);
+    assert.equal(readFileSync(`${liveDir}.lock`, "utf8"), String(process.pid));
+  });
+  check("a run sweeps an unowned dist older than a day", () => {
+    assert.equal(existsSync(oldDir), false);
+  });
+  const failing = await launch(["f-fail"], { FIXTURE_TAG: "failing" }).result;
+  check("a passing, a failing and a swept run leave no dist or lock of their own", () => {
+    assert.equal(failing.status, 1);
+    for (const tag of ["recovered", "failing"]) {
+      const server = events().find((event) => event.type === "dev" && event.tag === tag);
+      assert.ok(server, tag);
+      assert.equal(existsSync(resolve(WEB, server.dist)), false, tag);
+      assert.equal(existsSync(`${resolve(WEB, server.dist)}.lock`), false, tag);
+    }
+    const left = readdirSync(WEB).filter((name) => /^\.next-e2e-[A-Za-z0-9]{6}$/.test(name));
+    assert.deepEqual(left.sort(), [".next-e2e-Fresh0", ".next-e2e-LiveOw"]);
   });
 } catch (error) {
   checks.push({ message: "acceptance execution", status: "failed", diagnostic: error.stack });
