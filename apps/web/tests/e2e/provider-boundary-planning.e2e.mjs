@@ -57,7 +57,7 @@ const checks = {
     JSON.stringify(multi.artifact?.plan?.brief?.dates) ===
       JSON.stringify(["2026-11-10", "2026-11-17"]) &&
     multi.artifact?.plan?.sections?.length === 5 &&
-    multi.artifact?.plan?.estTotal === 3930 &&
+    multi.artifact?.plan?.estTotal === 4050 &&
     multi.artifact?.plan?.conflicts?.length === 0 &&
     multi.artifact?.metrics?.multiCityConsistent === true,
   provenance:

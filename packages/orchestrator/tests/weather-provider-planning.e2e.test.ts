@@ -62,7 +62,7 @@ it("keeps fixture weather facts and provenance through a complete Planning loop"
       plan.tripId === scenario.brief.tripId &&
       plan.round === 1 &&
       plan.sections.length === 5 &&
-      plan.estTotal === 3930,
+      plan.estTotal === 4050,
     conflict: (plan.conflicts ?? []).length === 0,
   };
   mkdirSync(output, { recursive: true });

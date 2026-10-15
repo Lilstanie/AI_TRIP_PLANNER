@@ -40,7 +40,7 @@ const kyotoDay = (day: number, detail: string, location: string) => ({
 });
 
 function scriptedPlan(): TripPlan {
-  const estTotal = 3930;
+  const estTotal = 4050;
   return TripPlan.parse({
     tripId: brief.tripId,
     brief,
@@ -53,19 +53,20 @@ function scriptedPlan(): TripPlan {
         id: "itinerary",
         label: "Day plan",
         status: "draft",
-        summary: "Three Tokyo days, then four in Kyoto after the train on day four.",
+        summary: "Four Tokyo days, then four in Kyoto after the train on day five.",
         estCost: 0,
         proposal: {
           agent: "itinerary",
-          summary: "Three Tokyo days, then four in Kyoto after the train on day four.",
+          summary: "Four Tokyo days, then four in Kyoto after the train on day five.",
           items: [
             tokyoDay(1, "Meiji Shrine and Harajuku walk", "Meiji Shrine"),
             tokyoDay(2, "Asakusa and the Sumida riverside", "Asakusa"),
             tokyoDay(3, "Ueno museums and park", "Ueno Park"),
-            kyotoDay(4, "Fushimi Inari shrine walk", "Fushimi Inari"),
-            kyotoDay(5, "Arashiyama bamboo grove and river", "Arashiyama"),
-            kyotoDay(6, "Gion and Kiyomizu-dera", "Kiyomizu-dera"),
-            kyotoDay(7, "Nishiki Market and the Philosopher's Path", "Nishiki Market"),
+            tokyoDay(4, "Shibuya crossing and Shinjuku Gyoen", "Shibuya"),
+            kyotoDay(5, "Fushimi Inari shrine walk", "Fushimi Inari"),
+            kyotoDay(6, "Arashiyama bamboo grove and river", "Arashiyama"),
+            kyotoDay(7, "Gion and Kiyomizu-dera", "Kiyomizu-dera"),
+            kyotoDay(8, "Nishiki Market and the Philosopher's Path", "Nishiki Market"),
           ],
           assumptions: ["Activity admission prices are not estimated without ticket evidence."],
           conflictsWith: [],
@@ -76,11 +77,11 @@ function scriptedPlan(): TripPlan {
         id: "transport",
         label: "Getting there and around",
         status: "draft",
-        summary: "Return flights for two and one train from Tokyo to Kyoto on 13 November.",
+        summary: "Return flights for two and one train from Tokyo to Kyoto on 14 November.",
         estCost: 1770,
         proposal: {
           agent: "transport",
-          summary: "Return flights for two and one train from Tokyo to Kyoto on 13 November.",
+          summary: "Return flights for two and one train from Tokyo to Kyoto on 14 November.",
           items: [
             {
               kind: "flight",
@@ -92,9 +93,9 @@ function scriptedPlan(): TripPlan {
             },
             {
               kind: "transport",
-              detail: "train from Tokyo to Kyoto on 2026-11-13; 140 minutes; mock Tokyo -> Kyoto.",
+              detail: "train from Tokyo to Kyoto on 2026-11-14; 140 minutes; mock Tokyo -> Kyoto.",
               estCost: 90,
-              day: 4,
+              day: 5,
               startTime: "09:00",
               endTime: "11:20",
               location: "Tokyo",
@@ -110,32 +111,32 @@ function scriptedPlan(): TripPlan {
         id: "accommodation",
         label: "Where to stay",
         status: "draft",
-        summary: "Three nights in Tokyo, then four in Kyoto from the day of the train.",
-        estCost: 1460,
+        summary: "Four nights in Tokyo, then three in Kyoto from the day of the train.",
+        estCost: 1480,
         proposal: {
           agent: "accommodation",
-          summary: "Three nights in Tokyo, then four in Kyoto from the day of the train.",
+          summary: "Four nights in Tokyo, then three in Kyoto from the day of the train.",
           items: [
             {
               kind: "hotel",
               detail:
-                "Mock Tokyo Saver — Outer district; 2026-11-10 to 2026-11-13; 1 room(s) × 3 night(s) × AUD 220.00 per room/night = AUD 660.00; no free cancellation.",
-              estCost: 660,
+                "Mock Tokyo Saver — Outer district; 2026-11-10 to 2026-11-14; 1 room(s) × 4 night(s) × AUD 220.00 per room/night = AUD 880.00; no free cancellation.",
+              estCost: 880,
               day: 1,
               location: "Tokyo",
             },
             {
               kind: "hotel",
               detail:
-                "Mock Kyoto Saver — Outer district; 2026-11-13 to 2026-11-17; 1 room(s) × 4 night(s) × AUD 200.00 per room/night = AUD 800.00; no free cancellation.",
-              estCost: 800,
-              day: 4,
+                "Mock Kyoto Saver — Outer district; 2026-11-14 to 2026-11-17; 1 room(s) × 3 night(s) × AUD 200.00 per room/night = AUD 600.00; no free cancellation.",
+              estCost: 600,
+              day: 5,
               location: "Kyoto",
             },
           ],
           assumptions: ["One room for two travellers in the deterministic fixture."],
           conflictsWith: [],
-          floorCost: 1460,
+          floorCost: 1480,
           source,
         },
       },
@@ -165,16 +166,16 @@ function scriptedPlan(): TripPlan {
         id: "dining",
         label: "Food",
         status: "draft",
-        summary: "A daily meal allowance for two across seven planning days.",
-        estCost: 700,
+        summary: "A daily meal allowance for two across eight planning days.",
+        estCost: 800,
         proposal: {
           agent: "dining",
-          summary: "A daily meal allowance for two across seven planning days.",
+          summary: "A daily meal allowance for two across eight planning days.",
           items: [
             {
               kind: "meal-budget",
-              detail: "7 planning day(s) × 2 traveller(s) × AUD 50.00 per person/day.",
-              estCost: 700,
+              detail: "8 planning day(s) × 2 traveller(s) × AUD 50.00 per person/day.",
+              estCost: 800,
             },
           ],
           assumptions: ["Fixture meal costs are A$ estimates for the whole travelling party."],

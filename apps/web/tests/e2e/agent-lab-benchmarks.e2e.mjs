@@ -41,7 +41,7 @@ const dayOffset = (from, to) => Math.round((utc(to) - utc(from)) / 86_400_000);
 
 function tripFacts(plan, [first, second]) {
   const [start, end] = plan.brief.dates;
-  const nights = dayOffset(start, end);
+  const days = dayOffset(start, end) + 1;
   const mentions = (item, city) =>
     `${item.location ?? ""} ${item.detail}`.toLowerCase().includes(city.toLowerCase());
   const hop = itemsOf(plan, "transport").find((item) => {
@@ -71,10 +71,10 @@ function tripFacts(plan, [first, second]) {
     return mentions(item, city) && !mentions(item, other);
   };
   return {
-    hopInsideTrip: hop !== undefined && hopDay >= 2 && hopDay <= nights && hop.day === hopDay,
+    hopInsideTrip: hop !== undefined && hopDay >= 2 && hopDay <= days && hop.day === hopDay,
     everyDayInItsCity:
       hopDay !== undefined &&
-      Array.from({ length: nights }, (_, index) => index + 1).every((day) => {
+      Array.from({ length: days }, (_, index) => index + 1).every((day) => {
         const onDay = activities.filter((item) => item.day === day);
         return onDay.length > 0 && onDay.every(rightCity);
       }),
@@ -356,13 +356,13 @@ async function main() {
     ),
   );
   check(
-    hops.every((hop) => hop?.day === 4 && /2026-11-13/.test(hop.detail)),
-    "kyoto: every strategy moves from Tokyo to Kyoto on day 4, 2026-11-13",
+    hops.every((hop) => hop?.day === 5 && /2026-11-14/.test(hop.detail)),
+    "kyoto: every strategy moves from Tokyo to Kyoto on day 5, 2026-11-14",
   );
 
   const shifted = structuredClone(kBase.plan);
   const hotel = itemsOf(shifted, "accommodation").find((item) => /kyoto/i.test(item.detail));
-  hotel.detail = hotel.detail.replace("2026-11-13 to", "2026-11-14 to");
+  hotel.detail = hotel.detail.replace("2026-11-14 to", "2026-11-15 to");
   check(
     tripFacts(shifted, CITIES).staysHandOver === false,
     "kyoto: the script's own recomputation detects a stay that starts a day after the move",
@@ -380,7 +380,7 @@ async function main() {
   });
   await page.screenshot({ path: `${OUT}/desktop-kyoto-compare.png`, fullPage: true });
   summary.scenarios.kyoto = {
-    move: "2026-11-13",
+    move: "2026-11-14",
     estTotals: kyoto.artifacts.map((artifact) => artifact.plan.estTotal),
   };
 
@@ -417,7 +417,7 @@ async function main() {
       "# Agent Lab benchmark scenarios",
       "",
       `- Paris family (A$3,000, four travellers): supported minimum ${money(PARIS_MINIMUM)}; estimates ${summary.scenarios.paris.estTotals.map(money).join(", ")}. Both multi-agent strategies stop in round 1 as infeasible_budget and name the minimum; the baseline overruns without reporting it.`,
-      `- Tokyo and Kyoto (seven nights): every strategy moves on 2026-11-13 with matching stays, activities and costs, recomputed in plain JavaScript; estimates ${summary.scenarios.kyoto.estTotals.map(money).join(", ")}.`,
+      `- Tokyo and Kyoto (seven nights): every strategy moves on 2026-11-14 with matching stays, activities and costs, recomputed in plain JavaScript; estimates ${summary.scenarios.kyoto.estTotals.map(money).join(", ")}.`,
       "",
       failures.length
         ? `Failures:\n${failures.map((item) => `- ${item}`).join("\n")}`

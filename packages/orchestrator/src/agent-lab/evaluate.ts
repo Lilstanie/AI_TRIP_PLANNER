@@ -34,7 +34,7 @@ function multiCityChecks(scenario: AgentLabScenario, plan: TripPlan): AgentLabCh
   const cities = cityNames(scenario.brief.destination);
   if (cities.length < 2) return [];
   const [start, end] = scenario.brief.dates;
-  const nights = dayNumber(end) - dayNumber(start);
+  const days = dayNumber(end) - dayNumber(start) + 1;
   const mentions = (item: ProposalItem, city: string) =>
     normal(`${item.location ?? ""} ${item.detail}`).includes(city);
 
@@ -54,7 +54,7 @@ function multiCityChecks(scenario: AgentLabScenario, plan: TripPlan): AgentLabCh
       day !== undefined &&
       Number.isInteger(day) &&
       day >= 2 &&
-      day <= nights &&
+      day <= days &&
       hopDates[index] === dateOfDay(start, day) &&
       (index === 0 || day > hopDays[index - 1]!)
     );
@@ -64,8 +64,8 @@ function multiCityChecks(scenario: AgentLabScenario, plan: TripPlan): AgentLabCh
   const cityOfDay = (day: number) => cities[hopDays.filter((hop) => hop! <= day).length]!;
   const itineraryByCity =
     hopsValid &&
-    activities.every((item) => item.day !== undefined && item.day >= 1 && item.day <= nights) &&
-    Array.from({ length: nights }, (_, index) => index + 1).every((day) => {
+    activities.every((item) => item.day !== undefined && item.day >= 1 && item.day <= days) &&
+    Array.from({ length: days }, (_, index) => index + 1).every((day) => {
       const city = cityOfDay(day);
       const stops = activities.filter((item) => item.day === day);
       return (

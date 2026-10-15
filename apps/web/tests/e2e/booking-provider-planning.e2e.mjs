@@ -51,13 +51,13 @@ const checks = {
     flight?.candidates?.[1]?.price === 1680,
   stays:
     tokyoStay?.checkIn === "2026-11-10" &&
-    tokyoStay?.checkOut === "2026-11-13" &&
+    tokyoStay?.checkOut === "2026-11-14" &&
     tokyoStay?.selectedId === "stay-1-0" &&
     tokyoStay?.candidates?.[0]?.name === "Mock Tokyo Saver" &&
     tokyoStay?.candidates?.[0]?.pricePerNight === 220 &&
-    kyotoStay?.checkIn === "2026-11-13" &&
+    kyotoStay?.checkIn === "2026-11-14" &&
     kyotoStay?.checkOut === "2026-11-17" &&
-    kyotoStay?.selectedId === "stay-4-0" &&
+    kyotoStay?.selectedId === "stay-5-0" &&
     kyotoStay?.candidates?.[0]?.name === "Mock Kyoto Saver" &&
     kyotoStay?.candidates?.[0]?.pricePerNight === 200,
   provenance:
@@ -69,16 +69,16 @@ const checks = {
     artifact?.plan?.tripId === "agent-lab-tokyo-kyoto-multi-city" &&
     artifact?.plan?.round === 1 &&
     artifact?.plan?.budgetTotal === 6500 &&
-    artifact?.plan?.estTotal === 3930 &&
+    artifact?.plan?.estTotal === 4050 &&
     JSON.stringify(
       artifact?.plan?.sections?.map((section) => [section.id, section.status, section.estCost]),
     ) ===
       JSON.stringify([
         ["itinerary", "draft", 0],
         ["transport", "draft", 1770],
-        ["accommodation", "draft", 1460],
+        ["accommodation", "draft", 1480],
         ["destination-guide", "draft", 0],
-        ["dining", "draft", 700],
+        ["dining", "draft", 800],
       ]) &&
     artifact?.plan?.conflicts?.length === 0 &&
     artifact?.metrics?.multiCityConsistent === true &&

@@ -50,7 +50,7 @@ const checks = {
     artifact?.plan?.tripId === "agent-lab-tokyo-kyoto-multi-city" &&
     artifact?.plan?.round === 1 &&
     artifact?.plan?.sections?.length === 5 &&
-    artifact?.plan?.estTotal === 3930 &&
+    artifact?.plan?.estTotal === 4050 &&
     artifact?.plan?.conflicts?.length === 0 &&
     artifact?.metrics?.unresolvedConflicts === 0,
   artifact:
