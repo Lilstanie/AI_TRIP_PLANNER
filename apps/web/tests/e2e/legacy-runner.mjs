@@ -163,10 +163,19 @@ for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"]) {
   });
 }
 
+function removeDist() {
+  if (!dist || process.env.E2E_KEEP_DIST === "1") return;
+  if (!/^\.next-e2e-[A-Za-z0-9]{6}$/.test(dist.name)) return;
+  try {
+    rmSync(resolve(WEB, dist.name), { recursive: true, force: true, maxRetries: 3 });
+  } catch {}
+}
+
 process.on("exit", () => {
   signalScript("SIGKILL");
   if (serverRunning()) signalServer("SIGKILL");
   removeTsconfig();
+  removeDist();
 });
 
 function run(command, commandArgs, { timeoutMs, ...options } = {}) {
