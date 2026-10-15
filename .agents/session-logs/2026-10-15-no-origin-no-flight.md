@@ -17,6 +17,7 @@ contract-impact: none
   The origin assumption line says so.
 - `packages/agents/tests/transport/index.test.ts`, `model-boundary.test.ts`: fixtures that relied on the
   Sydney default now state `origin: "Sydney"`; the preference-fallback test sets `origin: undefined`.
+- `packages/orchestrator/src/demo.ts`: `DEMO_BRIEF` states `origin: "Sydney"`, so the budget tests that price its flight still do.
 - `apps/web/tests/e2e/no-origin-no-flight.e2e.mjs`: new E2E. Plans "a 3-day trip to Tokyo" with no
   departure city and checks the reply and Trip tab show no Sydney leg and no flight.
 
@@ -29,6 +30,7 @@ decided that a trip without a stated origin gets only the destination plan, with
 
 - `DATA_MODE=mock USE_MOCK_TOOLS=true MOCK_GOOGLE_MAPS= NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY= CLERK_SECRET_KEY= pnpm --filter @trip/web e2e no-origin-no-flight`
   with the old source: 3 of 5 checks passed (the flight and Sydney-leg checks failed). With the fix: 5 of 5.
+- `pnpm test` (all packages): 6 of 6 tasks passed after CI's first run failed `packages/orchestrator/tests/budget.test.ts`.
 - `npx vitest run` in `packages/agents`: 12 files, 125 tests passed. `pnpm turbo run typecheck --filter=...@trip/agents`: pass.
 - `pnpm --filter @trip/agents lint`, `pnpm --filter @trip/web lint`: clean. `pnpm --filter @trip/web test`: 631 passed.
 
