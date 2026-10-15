@@ -62,6 +62,13 @@ const catalog = {
   activeTripId: "trip:mine-trip",
   conversations: [
     {
+      id: "untitled-chat",
+      title: "New chat",
+      updatedAt: savedAt,
+      messages: [],
+      input: "",
+    },
+    {
       id: "conversation:mine-chat",
       title: "Sydney ideas",
       renamed: true,
@@ -248,6 +255,10 @@ try {
         .getByRole("button", { name: "新聊天", exact: true })
         .isVisible(),
       `${width}: Chinese actions`,
+    );
+    check(
+      await mine.locator('.history-item__open[title="新聊天"]').isVisible(),
+      `${width}: untitled chat row in Chinese`,
     );
     await page.waitForTimeout(500);
     await page.screenshot({ path: `${OUT}/${width}-mine-zh.png` });
