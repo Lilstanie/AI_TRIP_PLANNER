@@ -178,7 +178,7 @@
   background: var(--surface);
   color: var(--text-dim);
   padding: var(--space-1) var(--space-2);
-  text-align: left;
+  text-align: center;
 }
 .chat-empty__input-hint {
   font-size: var(--font-size-meta);
