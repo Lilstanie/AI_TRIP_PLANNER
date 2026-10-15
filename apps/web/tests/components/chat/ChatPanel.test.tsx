@@ -4,6 +4,9 @@ import { describe, expect, it, vi } from "vitest";
 import type { AgentProgressEvent } from "@trip/shared";
 import type { Message } from "@/lib/workspace";
 import { ChatPanel } from "@/components/chat/ChatPanel";
+import { LocaleProvider } from "@/components/account/LocaleProvider";
+import { SettingsProvider } from "@/components/account/SettingsProvider";
+import { SETTINGS_KEY, defaultSettings } from "@/lib/account/settings";
 
 const activity = (type: string): AgentProgressEvent =>
   ({
@@ -84,6 +87,41 @@ describe("ChatPanel", () => {
     expect(sent).toMatch(/total budget 4000\./);
 
     expect(sent).toMatch(/\d{4}-\d{2}-\d{2} to \d{4}-\d{2}-\d{2}/);
+  });
+
+  it("shows example trips in Chinese and still sends the English prompt", async () => {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify({ ...defaultSettings(), language: "zh" }));
+    const onSend = vi.fn();
+    function EmptyChat() {
+      const [input, setInput] = useState("");
+      return (
+        <ChatPanel
+          messages={[]}
+          input={input}
+          onInput={setInput}
+          busy={false}
+          activity={[]}
+          onSend={onSend}
+          onEdit={vi.fn()}
+        />
+      );
+    }
+    render(
+      <SettingsProvider>
+        <LocaleProvider>
+          <EmptyChat />
+        </LocaleProvider>
+      </SettingsProvider>,
+    );
+
+    expect(await screen.findByRole("button", { name: "悉尼 · 4 天" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /^Sydney · \d+ days$/ })).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "悉尼 · 4 天" }));
+
+    expect(onSend).toHaveBeenCalledTimes(1);
+    expect(onSend.mock.calls[0]![0]).toMatch(/Sydney/);
+    localStorage.removeItem(SETTINGS_KEY);
   });
 
   it("does not scroll an empty chat above its heading", () => {
