@@ -322,8 +322,9 @@ BASE_URL=http://localhost:3000 pnpm --filter @trip/web e2e settings   # against 
 The environment reaches both the server and the scripts, so set `DATA_MODE` and provider variables as
 each script's header says. Each invocation allocates a unique `apps/web/.next-e2e-<random>` directory
 and an owned temporary TypeScript config, so concurrent runs and `pnpm dev` never share build output
-or edit the shared TypeScript config. The runner deletes its directory when it exits, whether the run
-passed, failed or was interrupted; set `E2E_KEEP_DIST=1` to keep it for inspection. An inherited `NEXT_TSCONFIG_PATH` remains an explicit override. The runner exits non-zero when any
+or edit the shared TypeScript config. The runner deletes its directory and its `.next-e2e-<random>.lock` owner file when it exits,
+whether the run passed, failed or was interrupted. A run killed outright leaves them behind; the next
+run removes any directory whose owner process has exited, or that has no owner and is over a day old. An inherited `NEXT_TSCONFIG_PATH` remains an explicit override. The runner exits non-zero when any
 script fails and writes a summary to `output/e2e/runner/<time>.json`. Each script has
 `E2E_SCRIPT_TIMEOUT_MS` (default 600000, ten minutes) to finish; a script still running then is stopped with
 the browsers it launched, shown as `TIME` in the summary (`"timedOut": true` in the JSON), and the next script

@@ -45,8 +45,8 @@ MessageItem rendering.
 
 ## Consequences
 
-- The raw runner removes its own build directory and temporary config on exit; `E2E_KEEP_DIST=1` keeps
-  the directory for inspection. SIGKILL can leave both behind.
+- The raw runner removes its own build directory, owner lock and temporary config on exit. A run killed
+  outright leaves them behind; the next raw run sweeps a directory whose owner has exited.
 - Fixture function-call counts are not React commits or real-user performance metrics. No speedup or
   Core Web Vitals target is established; the second-tab fixture tests the storage protocol, not the edit API.
 - Independent CI workers add browser installation and fixture build time when selected. Local runs do not establish
