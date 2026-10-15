@@ -344,6 +344,11 @@ unset when only one end is given or the day and month cannot be told apart (`01/
 traveller is asked instead of planned a trip on a guessed month. Without a key, or when a model call
 fails, a small English/Chinese rule parser handles extraction instead; it only reads ISO dates.
 
+`TripBrief.dates` is inclusive: the end date is the last day of the trip, so a trip has
+`end − start + 1` days and `end − start` nights. Planning code counts days with `planningDays()`
+(agents), `tripDays()` (dining) and `dayCount()` (web); stays count nights from the same two dates.
+See the [day-count decision](../.agents/notes/implemented/bug-fix/2026-10-15-trip-day-count-inclusive.md).
+
 A blank conversation that has not stated everything needed to plan is a question, not a failure:
 `runTripChat` throws `IncompleteBriefError` carrying the fields understood so far and a follow-up
 question written by the reply model in the traveller's own language. `/api/chat` streams it as a

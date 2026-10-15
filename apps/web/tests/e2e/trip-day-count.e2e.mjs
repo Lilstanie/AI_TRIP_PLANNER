@@ -8,8 +8,6 @@ const BASE = process.env.BASE_URL ?? "http://localhost:3000";
 const OUT = resolve(process.cwd(), "output/playwright/trip-day-count");
 mkdirSync(OUT, { recursive: true });
 
-const settle = (page, ms = 500) => page.waitForTimeout(ms);
-
 const results = [];
 const check = (ok, message) => {
   results.push({ ok: Boolean(ok), message });
@@ -32,15 +30,15 @@ try {
   await page.goto(BASE);
   await page.waitForSelector(".workspace-app");
   await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
-  await page.waitForLoadState("networkidle");
-  for (let attempt = 0; attempt < 5; attempt += 1) {
-    const live = page.getByRole("button", { name: /^Live data/ });
-    if (!(await live.count())) break;
+
+  const live = page.getByRole("button", { name: /^Live data/ });
+  if (await live.count()) {
     await live.click();
-    await settle(page, 400);
+    await page.getByRole("button", { name: /^Mock data/ }).waitFor();
   }
 
   const chip = page.locator(".chat-empty__suggestions button").first();
+  await chip.waitFor();
   const chipLabel = (await chip.innerText()).trim();
   check(
     /Sydney · 4 days/.test(chipLabel),
@@ -55,15 +53,17 @@ try {
     .catch(() => false);
   check(replied, "the planner replies to the example chip");
   if (!replied) await page.screenshot({ path: `${OUT}/no-reply.png` });
-  await settle(page, 1500);
 
-  const tripTab = page.getByRole("tab", { name: /^Trip/ });
-  if (await tripTab.count()) await tripTab.click();
-  else await page.getByRole("button", { name: "Open your trip" }).click();
-  await settle(page, 700);
+  const tripTab = page.locator(".phone-tabbar").getByRole("tab", { name: /^Trip/ });
+  await tripTab.waitFor();
+  await tripTab.click();
 
-  const drawer = page.locator(".workspace-drawer--trip, #phone-panel-trip");
+  const drawer = page.locator("#phone-panel-trip");
   const dayTabs = drawer.getByRole("tab", { name: /^Day \d+\b/ });
+  await dayTabs
+    .first()
+    .waitFor({ timeout: 30_000 })
+    .catch(() => undefined);
   const dayNames = (await dayTabs.allInnerTexts()).map((text) => text.trim());
   check(
     dayNames.length === 4,
@@ -77,7 +77,13 @@ try {
     (await drawer.getByRole("tab", { name: /^Day 4\b/ }).count()) === 1,
     "Day 4 is present and can be selected",
   );
-  check((await page.getByText(/\b4 days\b/).count()) >= 1, "the top-bar Dates chip shows 4 days");
+  check(
+    (await page
+      .locator(".fact-chips")
+      .getByText(/\b4 days\b/)
+      .count()) >= 1,
+    "the Dates chip in the trip details shows 4 days",
+  );
   check(errors.length === 0, "no page errors");
 
   await page.screenshot({ path: `${OUT}/phone-day-count.png` });
