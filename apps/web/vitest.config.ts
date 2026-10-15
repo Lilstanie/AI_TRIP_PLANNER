@@ -6,6 +6,7 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     setupFiles: ["./tests/setup.ts"],
+    execArgv: ["--no-experimental-webstorage"],
 
     testTimeout: 20_000,
   },
