@@ -238,7 +238,8 @@ async function planDestinationGuide(
       },
       {
         kind: "weather-packing",
-        detail: `${weatherResult?.summary ?? draft.weather} Pack: ${draft.packing.join(", ")}.`,
+        detail: weatherResult?.summary ?? draft.weather,
+        packing: draft.packing,
       },
     ],
     assumptions: [

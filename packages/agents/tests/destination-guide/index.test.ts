@@ -5,7 +5,10 @@ import {
   type TripBrief,
   type UserPreference,
 } from "@trip/shared";
-import { createDestinationGuideAgent, type DestinationGuideGenerator } from "../../src/destination-guide";
+import {
+  createDestinationGuideAgent,
+  type DestinationGuideGenerator,
+} from "../../src/destination-guide";
 
 const brief: TripBrief = {
   tripId: "guide-test",
@@ -107,6 +110,10 @@ describe("destination guide", () => {
     });
     expect(result.assumptions.join(" ")).not.toContain("LangChain");
     expect(result.items[0]).toMatchObject({ kind: "attraction", location: "Temple Walk" });
+    expect(result.items.find((item) => item.kind === "weather-packing")?.packing).toEqual([
+      "Layers",
+      "Walking shoes",
+    ]);
     expect(generate).toHaveBeenCalledWith(
       expect.objectContaining({ travelMonth: "October", brief }),
     );

@@ -37,7 +37,14 @@ const checks = {
     artifact?.strategyId === "multi-agent-no-revision",
   weather:
     weather?.detail ===
-      "For November, use this as planning context only and check an official short-range forecast shortly before departure. Pack: Weather-appropriate layers, Comfortable walking shoes, Medication and copies of prescriptions, Travel documents and suitable power adapters." &&
+      "For November, use this as planning context only and check an official short-range forecast shortly before departure." &&
+    JSON.stringify(weather?.packing) ===
+      JSON.stringify([
+        "Weather-appropriate layers",
+        "Comfortable walking shoes",
+        "Medication and copies of prescriptions",
+        "Travel documents and suitable power adapters",
+      ]) &&
     destination?.proposal?.assumptions?.includes(
       "Weather is general model context, not a forecast; entry, health and safety guidance requires official verification.",
     ),
