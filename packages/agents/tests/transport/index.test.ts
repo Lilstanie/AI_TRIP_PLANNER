@@ -11,6 +11,7 @@ const brief: TripBrief = {
   tripId: "transport-test",
   userId: "traveller",
   destination: "Tokyo & Kyoto",
+  origin: "Sydney",
   dates: ["2026-10-01", "2026-10-05"],
   groupSize: 2,
   budgetTotal: 4000,
@@ -62,7 +63,7 @@ describe("transport planner", () => {
       { key: "transport.origin", value: "Melbourne", source: "chat_confirmed" },
     ]);
     const result = await transportAgent.invoke({
-      brief,
+      brief: { ...brief, origin: undefined },
       context: ctx,
       revision: {
         tripId: brief.tripId,
