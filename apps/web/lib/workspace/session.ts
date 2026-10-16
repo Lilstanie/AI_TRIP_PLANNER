@@ -208,7 +208,7 @@ export function session(state: SessionState, event: SessionEvent): SessionState 
       return { ...state, replacedChange: undefined };
     case "planned":
       return {
-        ...replied(state, reply(event.reply, event.transcript, event.at)),
+        ...replied(state, reply(event.reply, event.transcript, event.at, { outcome: "planned" })),
         previousTotal: state.plan?.estTotal,
 
         estimateChange: state.plan ? event.plan.estTotal - state.plan.estTotal : undefined,
@@ -223,13 +223,13 @@ export function session(state: SessionState, event: SessionEvent): SessionState 
       };
     case "needsInfo":
       return {
-        ...replied(state, reply(event.question, event.transcript, event.at)),
+        ...replied(state, reply(event.question, event.transcript, event.at, { outcome: "asked" })),
         draft: draftWithKnown(state.draft, event.known),
       };
     case "asked": {
       const text = event.reply?.trim() || event.questions.map((item) => item.question).join("\n\n");
       return {
-        ...replied(state, reply(text, event.transcript, event.at)),
+        ...replied(state, reply(text, event.transcript, event.at, { outcome: "asked" })),
 
         ...(event.plan ? {} : { draft: draftWithKnown(state.draft, event.known) }),
         ask: {

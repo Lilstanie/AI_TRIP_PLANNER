@@ -480,6 +480,7 @@ export function turnSummary(
   busy: boolean,
   failed = false,
   locale: AppLocale = "en",
+  outcome?: "planned" | "asked",
 ): { text: string; streaming: boolean } {
   if (busy) {
     let newest = -1;
@@ -495,7 +496,16 @@ export function turnSummary(
   return {
     text:
       countLine(counts, locale) ||
-      translate(locale, failed ? "Needs attention" : "Trip plan ready"),
+      translate(
+        locale,
+        failed
+          ? "Needs attention"
+          : outcome === "planned"
+            ? "Trip plan ready"
+            : outcome === "asked"
+              ? "Need more details"
+              : "Done",
+      ),
     streaming: false,
   };
 }

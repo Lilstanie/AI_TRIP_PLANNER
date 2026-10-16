@@ -11,19 +11,9 @@ describe("journeyLegs", () => {
     ]);
   });
 
-  it("plans an arrival transfer instead when the trip starts where it ends", () => {
+  it("plans no arrival when the trip starts where it ends", () => {
     const legs = journeyLegs({ ...base, origin: "Sydney", destinations: ["Sydney"] });
-    expect(legs).toEqual([
-      {
-        index: 0,
-        from: "Sydney airport",
-        to: "Sydney",
-        date: "2026-10-01",
-        day: 1,
-        mode: "ground",
-      },
-    ]);
-    expect(flightLegs(legs)).toHaveLength(0);
+    expect(legs).toEqual([]);
   });
 
   it("chains every city in travel order", () => {

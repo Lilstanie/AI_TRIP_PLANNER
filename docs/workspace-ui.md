@@ -50,8 +50,8 @@ now. Implementation history and browser acceptance for each phase are in the
     segmented control whose thumb slides between them. Trips shows
     every trip as a 4:3 cover card with "Trip to <destination>" and "<destination> · N days",
     grouped into Upcoming and Past. Calendar is a Monday-first month grid with previous, Today and
-    next, drawing each trip as a band over its days, labelled where it starts and at each week's
-    start; it opens on the next trip's month. Choosing a trip, a chat, New chat or New trip returns
+    next, drawing each trip as a band over its days, filled with the dark colour of its cover palette
+    so the white label stays readable, labelled where it starts and at each week's start; it opens on the next trip's month. Choosing a trip, a chat, New chat or New trip returns
     to the workspace.
   - Trips keep no photos, so a cover is a gradient chosen by hashing the destination, with its
     initial; the same destination always gets the same colours.
@@ -74,6 +74,9 @@ now. Implementation history and browser acceptance for each phase are in the
     "Where", "When", "Who" and "Budget" — while it is missing. The budget uses the trip's
     effective currency (below). The chips form a `role="group"` named Trip
     details; a filled chip's accessible name leads with its fact ("Destination: Sydney").
+  - When the chips do not fit the top bar, the row scrolls sideways: a vertical mouse wheel over it
+    scrolls it horizontally, and a 56 px fade marks each edge with more chips behind it. A wheel
+    elsewhere, or over a row with nothing hidden, scrolls the page as usual.
   - Each chip is a button with `aria-haspopup="dialog"`, `aria-expanded` and `aria-controls`, and
     opens its own editor: Where (destinations and departing from), When (a full inline calendar), Who
     (a stepper per traveller kind), Budget (preset range cards plus a custom amount) and Trip
@@ -262,7 +265,10 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     rows, each with a DSH-style disclosure — a leading icon that crossfades to a chevron on hover or
     while open, and no trailing chevron. Every row starts collapsed, busy or settled alike, and a
     click opens only that row; there is no expand-all control. The Think row's own collapsed summary
-    is the turn's count line (`N tool calls · M subagents · K rounds`); while busy it instead follows
+    is the turn's count line (`N tool calls · M subagents · K rounds`). A turn with no counts reads
+    Trip plan ready when it delivered a plan, Need more details when it ends by asking the traveller,
+    Needs attention when it failed, and Done otherwise, including messages saved before the turn's
+    outcome was recorded. While busy it instead follows
     the newest streaming reasoning line or the live tool/subagent line. A tool row opens to the
     result's own rows, each with a category glyph (a fork and knife, a bed, a plane, and so on) drawn
     from the result's own kind, or the site's own icon when the provider returned that row's web
@@ -816,8 +822,8 @@ the account section explains that everything stays in this browser.
   sync paused when the account cannot be reached. The newer copy of a chat or trip wins whole;
   untouched blank chats and panel layout stay in the browser. Signing out leaves this browser's copy.
 - **Settings & account** opens the shared dialog, which follows the layout of Mindtrip's settings page. A section list sits on
-  the left, with an ink bar beside the chosen section; on a phone it becomes a scrolling row with the
-  bar underneath. The chosen section's rows fill the right. Each row has a label and value, and
+  the left, with an ink bar beside the chosen section; on a phone it becomes rows of tabs that wrap so
+  all five sections stay visible, with the bar under the chosen one. The chosen section's rows fill the right. Each row has a label and value, and
   Change opens its editor in place. **Account settings** opens Your account and **Personalization**
   opens Personalization. Mindtrip's Voice, Price
   alerts, Notifications and Cookie preferences have no counterpart here.
