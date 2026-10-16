@@ -21,7 +21,7 @@ for (const file of tracked) {
 }
 const shallow = git("rev-parse", "--is-shallow-repository") === "true";
 
-const RECORD_FILES = new Set([".agents/translation-pairs.json", "pnpm-lock.yaml"]);
+const RECORD_FILES = new Set(["pnpm-lock.yaml"]);
 const EXTENSIONS =
   /\.(md|mjs|cjs|js|jsx|ts|tsx|json|ya?ml|py|css|html|svg|png|pdf|pptx|mmd|sh|sql|toml|txt)$/i;
 

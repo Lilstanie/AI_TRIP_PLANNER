@@ -105,13 +105,9 @@ the generated Next environment declaration (next-env.d.ts) or erase another run'
 after the writer completes, retaining the original failure evidence.
 
 For ordinary `docs/` Markdown changes, synchronize both languages with
-[translate-docs](../translate-docs/SKILL.md), record only reviewed pairs and run
-`pnpm verify:pairs` (the same command). CI runs it for pull requests, so a stale pair fails the build.
-
-After merging a branch that also touched a documentation pair, `.agents/translation-pairs.json`
-usually conflicts and, even when it merges cleanly, holds hashes from neither side. Resolve the record by
-taking either side, re-run `node .agents/skills/translate-docs/scripts/check-pairs.mjs --record <en path>`
-for every pair both branches changed, then `pnpm verify:pairs`.
+[translate-docs](../translate-docs/SKILL.md), review each pair you changed and run
+`pnpm verify:pairs` (the same command). CI runs it for pull requests, so an English change without its
+Chinese counterpart fails the build.
 
 ## 3. Validate the final tree
 
