@@ -442,14 +442,14 @@ button.settings-chip[aria-pressed="true"] {
     height: calc(100dvh - 120px);
   }
   .settings-nav {
-    overflow-x: auto;
     padding: 0;
     border-right: 0;
     border-bottom: 1px solid var(--border);
   }
   .settings-nav ul {
     display: flex;
-    gap: var(--space-4);
+    flex-wrap: wrap;
+    gap: 0 var(--space-4);
   }
   button.settings-tab {
     padding: 10px 0;
