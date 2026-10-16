@@ -52,6 +52,13 @@ export function TripTips({ plan }: { plan: TripPlan }) {
               {KIND_LABEL[item.kind] ? t(KIND_LABEL[item.kind]!) : item.kind}
             </p>
             <p>{item.detail}</p>
+            {item.packing?.length ? (
+              <ul className="trip-tips__packing">
+                {item.packing.map((entry, entryIndex) => (
+                  <li key={entryIndex}>{entry}</li>
+                ))}
+              </ul>
+            ) : null}
           </li>
         ))}
       </ul>

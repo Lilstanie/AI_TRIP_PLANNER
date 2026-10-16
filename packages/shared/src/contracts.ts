@@ -148,6 +148,7 @@ export const ProposalItem = z
     priceNeedsReview: z.boolean().optional(),
     kind: z.string(),
     detail: z.string(),
+    packing: z.array(z.string().trim().min(1)).optional(),
     estCost: z.number().nonnegative().optional(),
     day: z.number().int().optional(),
 

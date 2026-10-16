@@ -110,6 +110,10 @@ describe("destination guide", () => {
     });
     expect(result.assumptions.join(" ")).not.toContain("LangChain");
     expect(result.items[0]).toMatchObject({ kind: "attraction", location: "Temple Walk" });
+    expect(result.items.find((item) => item.kind === "weather-packing")?.packing).toEqual([
+      "Layers",
+      "Walking shoes",
+    ]);
     expect(generate).toHaveBeenCalledWith(
       expect.objectContaining({ travelMonth: "October", brief }),
     );
@@ -224,7 +228,7 @@ describe("destination guide", () => {
     warning.mockRestore();
   });
 
-  it("lists packing items with one separator each and a single closing full stop", async () => {
+  it("normalises packing items without trailing punctuation or empty entries", async () => {
     const result = await createDestinationGuideAgent({
       generator: {
         generate: vi.fn(async () => ({
@@ -237,11 +241,13 @@ describe("destination guide", () => {
         })),
       },
     }).invoke({ brief, context: context() });
-    const detail = result.items.find((item) => item.kind === "weather-packing")?.detail ?? "";
-    expect(detail).toMatch(
-      /Pack: Light layers: t-shirts and a rain jacket; Walking shoes; Sunscreen and a hat\.$/,
-    );
-    expect(detail).not.toMatch(/\.\.|\.,|\.\s*;/);
+    const item = result.items.find((entry) => entry.kind === "weather-packing");
+    expect(item?.packing).toEqual([
+      "Light layers: t-shirts and a rain jacket",
+      "Walking shoes",
+      "Sunscreen and a hat",
+    ]);
+    expect(item?.detail).not.toContain("Pack:");
   });
 
   it("does not invent attractions when MapsPort returns none", async () => {
