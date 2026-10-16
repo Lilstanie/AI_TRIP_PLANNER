@@ -19,17 +19,17 @@
 }
 
 .fact-chips__scroller[data-fade="end"] {
-  mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 56px), transparent);
 }
 .fact-chips__scroller[data-fade="start"] {
-  mask-image: linear-gradient(to left, #000 calc(100% - 32px), transparent);
+  mask-image: linear-gradient(to left, #000 calc(100% - 56px), transparent);
 }
 .fact-chips__scroller[data-fade="both"] {
   mask-image: linear-gradient(
     to right,
     transparent,
-    #000 32px,
-    #000 calc(100% - 32px),
+    #000 56px,
+    #000 calc(100% - 56px),
     transparent
   );
 }
