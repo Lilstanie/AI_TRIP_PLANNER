@@ -35,6 +35,8 @@ export const RETIRED_FIELDS: readonly (keyof Draft)[] = [
   "freeCancellation",
 ];
 
+const MAX_TOTAL_BUDGET = 1_000_000;
+
 const FACT_ERRORS: Record<FactKey, readonly string[]> = {
   where: ["destination", "origin"],
   when: ["dates"],
@@ -80,6 +82,9 @@ export function factErrors(
     return {
       groupSize: { key: "Add at least one adult or senior. Children cannot travel alone." },
     };
+
+  if (fact === "budget" && Number(draft.budgetTotal) > MAX_TOTAL_BUDGET)
+    return { budgetTotal: { key: "Enter a total budget of AUD 1,000,000 or less." } };
 
   const checked =
     fact === "when" && !draft.destination.trim() ? { ...draft, destination: "?" } : draft;
