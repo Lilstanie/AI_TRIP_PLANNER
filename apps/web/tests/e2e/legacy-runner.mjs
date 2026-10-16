@@ -220,6 +220,7 @@ async function startServer() {
   const port = await freePort();
   dist = claimDist();
   const env = { ...process.env, PORT: String(port), NEXT_DIST_DIR: dist.name };
+  env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = "";
   if (!env.NEXT_TSCONFIG_PATH) env.NEXT_TSCONFIG_PATH = createTsconfig();
   if (prod) {
     console.log(`e2e: building into ${dist.name}`);
@@ -247,7 +248,16 @@ async function startServer() {
       fail(`the server exited before it was ready. Last output:\n${serverLog.join("\n")}`);
     }
     try {
-      const response = await fetch(url, { signal: AbortSignal.timeout(60_000) });
+      const response = await fetch(url, {
+        redirect: "manual",
+        signal: AbortSignal.timeout(60_000),
+      });
+      const location = response.headers.get("location") ?? "";
+      if (response.status >= 300 && response.status < 400 && location.includes("/sign-in")) {
+        fail(
+          `${url} redirects to /sign-in, so a Clerk sign-in gate is active on that server. Run the runner without BASE_URL, or point BASE_URL at a server started without Clerk keys.`,
+        );
+      }
       if (response.status < 500) return url;
     } catch {}
     await new Promise((wait) => setTimeout(wait, 1000));

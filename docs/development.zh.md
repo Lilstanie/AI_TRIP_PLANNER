@@ -272,11 +272,11 @@ pnpm test:scripts
 pnpm build
 ```
 
-CI（`.github/workflows/ci.yml`）在拉取请求和推送到 `main` 时，用 Node 22 运行这五条命令，在此之前先运行 `pnpm verify:e2e-selectors`。
+CI（`.github/workflows/ci.yml`）在拉取请求和推送到 `main` 时，用 Node 22 运行这五条命令，在此之前先运行 `pnpm verify:e2e-selectors` 和 `pnpm verify:e2e-artifacts`；后者在 `apps/web/tests/e2e` 中有脚本未写出任何产物时失败。
 
 `pnpm lint` 覆盖 `apps/web`（`next lint`，配置在 `apps/web/.eslintrc.json`）以及 `packages/` 下的每个包（使用仓库根目录的共享 flat 配置 `eslint.config.mjs` 运行 ESLint）。与 `apps/web` 不同，各包不禁止 `.toFixed(2)`，因为该规则指向的是 Web 的 Money 模块。
 
-CI 还会运行 `node scripts/format-check-changed.mjs <base>`（即 `pnpm format:check-changed`），只检查相对拉取请求基线（推送时为上一个提交）发生变化的文件的 Prettier 格式。仓库中仍有从未格式化的文件，所以请只对你修改的文件运行 Prettier（`npx prettier --write <file>`），不要对目录运行，也不要使用 `pnpm format`。`pnpm install` 会让 Git 使用 `.githooks/`（通过 `scripts/install-git-hooks.mjs` 设置 `core.hooksPath`），其中的 `pre-push` 钩子以 `origin/main` 为基线运行同一检查，有未格式化文件时拒绝推送。`git push --no-verify` 可以跳过一次。在 CI 中或不在 Git 仓库里时安装脚本什么也不做；如果已为其他工具设置了钩子路径，它也不会覆盖。
+CI 还会运行 `node scripts/format-check-changed.mjs <base>`（即 `pnpm format:check-changed`），只检查相对拉取请求基线（推送时为上一个提交）发生变化的文件的 Prettier 格式。仓库中仍有从未格式化的文件，所以请只对你修改的文件运行 Prettier（`npx prettier --write <file>`），不要对目录运行，也不要使用 `pnpm format`。`pnpm install` 会让 Git 使用 `.githooks/`（通过 `scripts/install-git-hooks.mjs` 设置 `core.hooksPath`），其中的 `pre-push` 钩子以 `origin/main` 为基线运行同一检查，有未格式化文件时拒绝推送。推送的分支改动了 `apps/web/` 时，该钩子还会运行 `pnpm --filter @trip/web typecheck`。`git push --no-verify` 可以跳过一次。在 CI 中或不在 Git 仓库里时安装脚本什么也不做；如果已为其他工具设置了钩子路径，它也不会覆盖。
 
 在拉取请求上，`protected-files` 任务会运行 `node scripts/verify-protected-files.mjs`、`node scripts/verify-docs.mjs`、配对检查，以及 `node scripts/verify-branch-name.mjs <head-branch>`。分支名检查会在源分支不以 `feature/`、`fix/`、`refactor/`、`docs/`、`chore/` 或 `test/` 开头，或包含 AI 工具名时失败；Dependabot 分支不受限制。
 

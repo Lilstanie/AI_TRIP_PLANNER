@@ -11,3 +11,9 @@ node scripts/format-check-changed.mjs origin/main || {
   echo "pre-push: format the files above with 'npx prettier --write <file>', or push with --no-verify." >&2
   exit 1
 }
+if git diff --name-only origin/main...HEAD | grep -q '^apps/web/'; then
+  pnpm --filter @trip/web typecheck || {
+    echo "pre-push: fix the web typecheck errors above, or push with --no-verify." >&2
+    exit 1
+  }
+fi

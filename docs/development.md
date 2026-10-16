@@ -385,7 +385,8 @@ pnpm build
 ```
 
 CI (`.github/workflows/ci.yml`) runs these five commands on Node 22 for pull requests and pushes
-to `main`, after `pnpm verify:e2e-selectors`.
+to `main`, after `pnpm verify:e2e-selectors` and `pnpm verify:e2e-artifacts`, which fails when an
+`apps/web/tests/e2e` script writes no artifact.
 
 `pnpm lint` covers `apps/web` (`next lint`, config in `apps/web/.eslintrc.json`) and every package under
 `packages/` (ESLint with the shared flat config `eslint.config.mjs` at the repository root). Unlike
@@ -396,7 +397,8 @@ Prettier formatting only on files that changed against the pull request base, or
 a push. The repository still holds files that were never formatted, so run Prettier on the files you
 changed (`npx prettier --write <file>`), never on a directory or with `pnpm format`. `pnpm install` points Git
 at `.githooks/` (`core.hooksPath`, through `scripts/install-git-hooks.mjs`), whose `pre-push` hook runs the same
-check against `origin/main` and refuses a push with unformatted files. `git push --no-verify` skips it once. The
+check against `origin/main` and refuses a push with unformatted files. When the pushed branch changes
+`apps/web/`, the hook also runs `pnpm --filter @trip/web typecheck`. `git push --no-verify` skips it once. The
 installer does nothing in CI or outside a Git checkout, and leaves a hooks path set for another tool alone.
 
 On pull requests, the `protected-files` job runs `node scripts/verify-protected-files.mjs`,

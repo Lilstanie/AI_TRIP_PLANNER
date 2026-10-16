@@ -1,6 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
+import { BUDGET_CHIP_FILTER, normalizeText } from "./support/e2e-helpers.mjs";
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT ?? "playwright");
 const BASE = process.env.BASE_URL ?? "http://localhost:3000";
@@ -31,7 +32,7 @@ try {
   await page.route("**/api/places/search", (route) => route.fulfill({ json: { places: [] } }));
 
   await page.goto(BASE);
-  const chip = () => page.locator(".fact-chip", { hasText: "Budget" }).first();
+  const chip = () => page.locator(".fact-chip").filter(BUDGET_CHIP_FILTER).first();
   await chip().waitFor();
   await chip().click();
 
@@ -64,9 +65,9 @@ try {
   await amount().fill("2000");
   await amount().press("Enter");
   await sheet().waitFor({ state: "hidden" });
-  const chips = await page.locator(".fact-chips").innerText();
+  const chips = normalizeText(await page.locator(".fact-chips").innerText());
   check(
-    /Budget:\s*AUD\s2,000\.00/.test(chips),
+    chips.includes("Budget: AUD 2,000.00"),
     "a normal amount saves and the Budget chip reads AUD 2,000.00",
   );
 
