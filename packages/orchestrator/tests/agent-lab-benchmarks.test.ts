@@ -161,13 +161,13 @@ describe("multi-city checks", () => {
       },
     ],
     [
-      "after the last night",
+      "after the last day",
       (plan: TripPlan) => {
         hop(plan).day = 9;
         setHopDate(plan, "2026-11-18");
       },
     ],
-    ["on a date that disagrees with its day", (plan: TripPlan) => setHopDate(plan, "2026-11-14")],
+    ["on a date that disagrees with its day", (plan: TripPlan) => setHopDate(plan, "2026-11-13")],
   ])("fails a hop %s", (_name, mutate) => {
     const plan = clone(kyoto.fixturePlan);
     mutate(plan);
@@ -202,11 +202,11 @@ describe("multi-city checks", () => {
   it.each([
     [
       "a gap before the second city",
-      (plan: TripPlan) => setStay(plan, "Kyoto", "2026-11-14", "2026-11-17"),
+      (plan: TripPlan) => setStay(plan, "Kyoto", "2026-11-15", "2026-11-17"),
     ],
     [
       "an overlap at the hop",
-      (plan: TripPlan) => setStay(plan, "Tokyo", "2026-11-10", "2026-11-14"),
+      (plan: TripPlan) => setStay(plan, "Tokyo", "2026-11-10", "2026-11-15"),
     ],
     [
       "a second stay that starts before the hop",

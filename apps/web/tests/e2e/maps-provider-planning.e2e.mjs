@@ -38,9 +38,9 @@ const checks = {
     artifact?.strategyId === "multi-agent-no-revision",
   route:
     route?.kind === "transport" &&
-    route?.day === 4 &&
+    route?.day === 5 &&
     route?.detail ===
-      "train from Tokyo to Kyoto on 2026-11-13; 140 minutes; mock Tokyo -> Kyoto. Ways to make this hop: drive 35 min, from A$8.00; train 52 min, fare not published" &&
+      "train from Tokyo to Kyoto on 2026-11-14; 140 minutes; mock Tokyo -> Kyoto. Ways to make this hop: drive 35 min, from A$8.00; train 52 min, fare not published" &&
     route?.estCost === 90,
   provenance:
     transport?.source?.kind === "mock" &&

@@ -296,6 +296,11 @@ Google Places 不提供门票价格，因此活动的 `estCost` 保持未设置�
 则保持日期未设置，向旅行者询问，而不是按猜测的月份规划旅行。
 没有密钥或模型调用失败时，改用一个简单的中英文规则解析器提取；它只读取 ISO 日期。
 
+`TripBrief.dates` 是闭区间：结束日期就是行程的最后一天，因此行程共有 `end − start + 1` 天、
+`end − start` 晚。规划代码用 `planningDays()`（agents）、`tripDays()`（餐饮）和 `dayCount()`（web）
+计算天数；住宿则根据同样的两个日期计算晚数。
+参见[天数计算的决策](../.agents/notes/implemented/bug-fix/2026-10-15-trip-day-count-inclusive.md)。
+
 尚未说明规划所需全部信息的空白对话应当触发提问，而非失败：`runTripChat` 抛出
 `IncompleteBriefError`，携带目前已理解的字段，以及回复模型用旅行者自己的语言编写的追问。
 `/api/chat` 将其作为 `needs_info` 帧流式发送，客户端显示为助手消息，并将已理解的信息填入

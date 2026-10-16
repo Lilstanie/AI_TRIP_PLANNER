@@ -49,7 +49,7 @@ function context(durationMin = 30): AgentContext {
 }
 
 const feasibleDraft = {
-  summary: "Two carefully paced days",
+  summary: "Three carefully paced days",
   activities: [
     {
       day: 1,
@@ -75,6 +75,14 @@ const feasibleDraft = {
       detail: "Visit the garden",
       estCost: 20,
     },
+    {
+      day: 3,
+      startTime: "10:00",
+      endTime: "12:00",
+      location: "Old Town",
+      detail: "Walk through the old town again",
+      estCost: 20,
+    },
   ],
   assumptions: ["Candidate places require confirmation."],
 };
@@ -87,7 +95,7 @@ describe("itinerary planner", () => {
       context: ctx,
     });
     expect(AgentProposal.safeParse(result).success).toBe(true);
-    expect(result.items.map((item) => item.day)).toEqual([1, 2]);
+    expect(result.items.map((item) => item.day)).toEqual([1, 2, 3]);
     expect(result.items.every((item) => item.startTime === "13:00")).toBe(true);
     expect(result.summary).not.toContain("STUB");
     expect(result.assumptions.join(" ")).toContain("Opening hours and live availability");
@@ -295,8 +303,10 @@ describe("city connections", () => {
       brief,
       context: richContext(),
     });
-    expect(result.items.map((item) => item.day)).toEqual([1, 1, 2, 2]);
+    expect(result.items.map((item) => item.day)).toEqual([1, 1, 2, 2, 3, 3]);
     expect(result.items.map((item) => item.startTime)).toEqual([
+      "09:30",
+      "14:00",
       "09:30",
       "14:00",
       "09:30",
