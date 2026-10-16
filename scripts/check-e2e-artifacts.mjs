@@ -1,7 +1,4 @@
 #!/usr/bin/env node
-// Fails when an E2E script ends without writing an artifact (a JSON summary, a screenshot or a report).
-// CLAUDE.md requires every E2E check to leave a verifiable, repeatable artifact; review caught a script that
-// created its output directory and never wrote to it, so this check makes the rule mechanical.
 
 import { readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
