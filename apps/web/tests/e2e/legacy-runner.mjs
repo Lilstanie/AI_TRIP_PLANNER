@@ -221,7 +221,6 @@ async function startServer() {
   dist = claimDist();
   const env = { ...process.env, PORT: String(port), NEXT_DIST_DIR: dist.name };
   env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = "";
-  env.CLERK_SECRET_KEY = "";
   if (!env.NEXT_TSCONFIG_PATH) env.NEXT_TSCONFIG_PATH = createTsconfig();
   if (prod) {
     console.log(`e2e: building into ${dist.name}`);
@@ -256,7 +255,7 @@ async function startServer() {
       const location = response.headers.get("location") ?? "";
       if (response.status >= 300 && response.status < 400 && location.includes("/sign-in")) {
         fail(
-          `${url} redirects to /sign-in, so the Clerk sign-in gate is on. Local E2E runs need NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY and CLERK_SECRET_KEY unset.`,
+          `${url} redirects to /sign-in, so a Clerk sign-in gate is active on that server. Run the runner without BASE_URL, or point BASE_URL at a server started without Clerk keys.`,
         );
       }
       if (response.status < 500) return url;

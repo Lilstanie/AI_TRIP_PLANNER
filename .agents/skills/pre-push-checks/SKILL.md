@@ -12,7 +12,7 @@ requests. CLI acceptance uses a builtin-only plan, up to three isolated workers 
 [development.md](../../../docs/development.md#cli-acceptance-in-ci) owns selection, fallback, skip and
 artifact behavior. Scripts remain serial within each worker, including registered fixture browser
 journeys, with evidence retained on failure. Other raw browser scripts remain
-local evidence; select the relevant one rather than repeating unrelated acceptance runs. It does run `pnpm verify:e2e-selectors`, which fails when an E2E script
+local evidence; select the relevant one rather than repeating unrelated acceptance runs. It also runs `pnpm verify:e2e-artifacts`, which fails when an E2E script writes no artifact. It does run `pnpm verify:e2e-selectors`, which fails when an E2E script
 selects a class no component renders, so removing or renaming a class means updating the scripts that use it. A
 script that fails may already fail on `main`: read [e2e-known-failures](../../../docs/e2e-known-failures.md)
 before calling a failure yours or not, and update it when you find or fix one. Which kind of test to write is the Testing approach at the top of

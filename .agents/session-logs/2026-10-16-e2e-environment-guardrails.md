@@ -32,4 +32,7 @@ Each change answers a finding from the triage run: the Clerk redirect cost four 
 
 - Protected files touched with the user's explicit approval: root `package.json` (one script line) and `.github/workflows/ci.yml` (one step).
 - The artifact check looks for `writeFileSync`, `writeFile` or `screenshot`; a script that writes artifacts another way will fail and needs the pattern extended.
-- The global `~/.claude/CLAUDE.md` merge exception and environment notes live outside the repo.
+- The artifact check covers `apps/web/tests/e2e` only, not `tests/cli-e2e` or `tests/ci`; those already write artifacts but are not guarded.
+- The pre-push typecheck runs on the committed diff only, and is skipped silently when `node_modules/prettier` is missing.
+- The Clerk redirect guard is untested; a server with a Clerk key set has not been run.
+- Docs updated in the same change: `docs/development.md` and `docs/development.zh.md` (CI list, pre-push hook).
