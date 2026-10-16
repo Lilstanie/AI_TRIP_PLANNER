@@ -1,7 +1,7 @@
 ---
 date: 2026-10-16
 author: Claude Opus 5.5
-branch: process/pairs-diff-check
+branch: chore/pairs-diff-check
 pr: pending
 area: .agents/skills, docs, .agents/notes
 contract-impact: none
