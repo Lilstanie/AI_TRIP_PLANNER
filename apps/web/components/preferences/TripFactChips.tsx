@@ -98,12 +98,25 @@ export function TripFactChips(props: Props) {
       if (fade) row.dataset.fade = fade;
       else delete row.dataset.fade;
     };
+    const onWheel = (event: WheelEvent) => {
+      if (event.ctrlKey || Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
+      const max = row.scrollWidth - row.clientWidth;
+      if (max <= 1) return;
+      const delta =
+        event.deltaMode === WheelEvent.DOM_DELTA_LINE ? event.deltaY * 16 : event.deltaY;
+      const next = Math.min(max, Math.max(0, row.scrollLeft + delta));
+      if (next === row.scrollLeft) return;
+      event.preventDefault();
+      row.scrollLeft = next;
+    };
     update();
     row.addEventListener("scroll", update, { passive: true });
+    row.addEventListener("wheel", onWheel, { passive: false });
     const observer = typeof ResizeObserver === "function" ? new ResizeObserver(update) : undefined;
     observer?.observe(row);
     return () => {
       row.removeEventListener("scroll", update);
+      row.removeEventListener("wheel", onWheel);
       observer?.disconnect();
     };
   }, []);
