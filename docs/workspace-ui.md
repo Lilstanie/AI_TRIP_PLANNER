@@ -822,8 +822,8 @@ the account section explains that everything stays in this browser.
   sync paused when the account cannot be reached. The newer copy of a chat or trip wins whole;
   untouched blank chats and panel layout stay in the browser. Signing out leaves this browser's copy.
 - **Settings & account** opens the shared dialog, which follows the layout of Mindtrip's settings page. A section list sits on
-  the left, with an ink bar beside the chosen section; on a phone it becomes a scrolling row with the
-  bar underneath. The chosen section's rows fill the right. Each row has a label and value, and
+  the left, with an ink bar beside the chosen section; on a phone it becomes rows of tabs that wrap so
+  all five sections stay visible, with the bar under the chosen one. The chosen section's rows fill the right. Each row has a label and value, and
   Change opens its editor in place. **Account settings** opens Your account and **Personalization**
   opens Personalization. Mindtrip's Voice, Price
   alerts, Notifications and Cookie preferences have no counterpart here.
