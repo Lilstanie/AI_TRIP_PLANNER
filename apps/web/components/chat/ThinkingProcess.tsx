@@ -44,10 +44,12 @@ export function ThinkingProcess({
   activity,
   busy,
   error,
+  outcome,
 }: {
   activity: AgentProgressEvent[];
   busy: boolean;
   error?: Notice;
+  outcome?: "planned" | "asked";
 }) {
   const { t, locale, notice: localizeNotice } = useLocale();
   const open = useOpenRows();
@@ -55,8 +57,8 @@ export function ThinkingProcess({
   const counts = useMemo(() => countActivity(activity), [activity]);
   const groups = useMemo(() => roundGroups(activity, busy), [activity, busy]);
   const summary = useMemo(
-    () => turnSummary(activity, counts, busy, Boolean(error), locale),
-    [activity, counts, busy, error, locale],
+    () => turnSummary(activity, counts, busy, Boolean(error), locale, outcome),
+    [activity, counts, busy, error, locale, outcome],
   );
   const multiRound = groups.length > 1;
   const failed = !busy && Boolean(error);

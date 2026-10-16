@@ -531,6 +531,7 @@ export const WORKSPACE_ZH = {
   "Waiting for {count} subagents": "正在等待 {count} 个子代理",
   "Preparing your request.": "正在准备你的请求。",
   "Trip plan ready": "行程方案已就绪",
+  "Need more details": "还需要一些信息",
   "Run failed.": "运行失败。",
   "Finding your location…": "正在获取位置…",
   "Your current location": "你的当前位置",
