@@ -74,7 +74,7 @@ describe("targeted revision trace", () => {
     const [started] = ofType(list, "lab_revision_started");
     expect(started).toMatchObject({ round: 2, agent: "transport" });
     expect(started!.objective).toMatch(/^Fix: .*over budget/);
-    expect(started!.previousOutcome).toMatch(/AUD 1680/);
+    expect(started!.previousOutcome).toMatch(/AUD 1,680/);
 
     const [scored] = ofType(list, "lab_revision_scored");
     expect(scored).toMatchObject({ round: 2, kept: true, scoreAfter: 0 });

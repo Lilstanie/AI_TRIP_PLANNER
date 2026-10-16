@@ -15,7 +15,8 @@ would have meant touching every one of them, and a missed one would still say AU
 `formatMoney(amountAud, currency, style?)` in `packages/shared/src/money.ts` is the only code that
 spells an amount in generated text. It takes an AUD planning amount, converts through `AUD_PER` when
 the currency is not AUD, and shows JPY without decimals. Styles: `cents` (default, `AUD 12.50`),
-`whole` (`AUD 1,582`) and `plain` (`AUD 4000`, a budget as typed). It throws on a non-finite amount
+`whole` (`AUD 1,582`) and `plain` (`AUD 4,000`, a budget as typed); AUD groups thousands in every
+style since the [grouped AUD note](2026-10-16-grouped-aud-in-generated-text.md). It throws on a non-finite amount
 instead of printing `AUD NaN`.
 
 Every caller passes `"AUD"` in this change, so each string is byte-for-byte what it was; the Agent Lab

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   AgentLabRunRequest,
+  formatMoney,
   type AgentLabEventPayload,
   type AgentLabScenarioId,
   type AgentLabStrategyId,
@@ -43,7 +44,7 @@ const setHopDate = (plan: TripPlan, date: string) => {
 const infeasibleReport = (minimum: string) => ({
   tripId: "agent-lab-paris-family-infeasible",
   targetAgent: "transport" as const,
-  reason: `infeasible budget: the cheapest flights and stays found already cost AUD ${minimum}, above the AUD 3000.00 budget`,
+  reason: `infeasible budget: the cheapest flights and stays found already cost AUD ${minimum}, above the AUD 3,000.00 budget`,
   constraints: [`raise the budget to at least AUD ${minimum} (from the options found)`],
 });
 
@@ -107,7 +108,7 @@ describe("infeasible-budget checks", () => {
   it("fails when the only conflict is a repairable overrun", () => {
     const plan = clone(paris.fixturePlan);
     plan.conflicts = [
-      { ...infeasibleReport("3880.00"), reason: "over budget by AUD 880.00", constraints: [] },
+      { ...infeasibleReport("3,880.00"), reason: "over budget by AUD 880.00", constraints: [] },
     ];
     expect(failed(paris, plan)).toContain("infeasibility-reported");
   });
@@ -281,7 +282,7 @@ describe("Paris under every strategy", () => {
       const conflict = events.find((event) => event.type === "lab_conflict_detected");
       const minimum = paris.rules.infeasibleBudget!.minimumSupportedCost;
       expect(conflict).toMatchObject({ type: "lab_conflict_detected", infeasible: true });
-      expect(JSON.stringify(conflict)).toContain(minimum.toFixed(2));
+      expect(JSON.stringify(conflict)).toContain(formatMoney(minimum, "AUD"));
       expect(events.some((event) => event.type === "lab_revision_started")).toBe(false);
       expect(artifact.metrics.rounds).toBe(1);
       expect(artifact.metrics.stopReason).toBe("infeasible_budget");
@@ -305,7 +306,7 @@ describe("Paris under every strategy", () => {
   it("declares the minimum the workflow reports from the same evidence", async () => {
     const artifact = await run("paris-family-infeasible", "multi-agent-no-revision");
     const conflict = artifact.plan.conflicts?.[0];
-    const reported = Number(/AUD ([\d.]+)/.exec(conflict?.reason ?? "")?.[1]);
+    const reported = Number(/AUD ([\d,.]+)/.exec(conflict?.reason ?? "")?.[1]?.replace(/,/g, ""));
     expect(reported).toBe(paris.rules.infeasibleBudget!.minimumSupportedCost);
   });
 });

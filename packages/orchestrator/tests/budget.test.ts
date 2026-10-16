@@ -101,7 +101,7 @@ describe("budget calculations", () => {
     );
     expect(requests).toHaveLength(1);
     expect(requests[0]!.reason).toContain("infeasible budget");
-    expect(requests[0]!.constraints[0]).toContain("AUD 4300.00");
+    expect(requests[0]!.constraints[0]).toContain("AUD 4,300.00");
   });
 });
 
@@ -122,7 +122,7 @@ describe("accommodation integration with negotiation", () => {
     expect(plan.round).toBe(1);
     expect(plan.conflicts).toHaveLength(1);
     expect(plan.conflicts![0]!.reason).toContain("infeasible budget");
-    expect(plan.conflicts![0]!.constraints[0]).toContain("AUD 2810.00");
+    expect(plan.conflicts![0]!.constraints[0]).toContain("AUD 2,810.00");
   });
 
   it("fits a budget just below the old plan by allocating what flights and the stay left", async () => {

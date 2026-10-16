@@ -53,7 +53,7 @@ impossible-budget reply included. The orchestrator hands the currency to special
 and progress helpers as an argument defaulting to AUD, so Agent Lab (fixed AUD scenarios, no currency
 named) is byte-for-byte unchanged. The facts handed to the reply model carry amounts already converted
 and formatted, plus an `amountsNote`, and the prompt says to quote them as given and never convert.
-Converted amounts group thousands like the panels (`CNY 3,000.00`; AUD keeps its ungrouped spelling),
+Converted amounts group thousands like the panels (`CNY 3,000.00`; AUD groups the same way since the [grouped AUD note](../architecture/2026-10-16-grouped-aud-in-generated-text.md)),
 the budget quotes the stated amount when it is in the display currency, and `estimateNote()` marks the
 fallback replies and the reply facts as estimates. Planning amounts, guardrails, conflict detection, the
 plan score and provider fares are untouched and stay AUD or in the provider's own currency.
