@@ -146,15 +146,15 @@ describe("transport planner", () => {
     expect(result.items[1]).toMatchObject({ startTime: "06:00", endTime: "08:20" });
   });
 
-  it("avoids a same-city flight and plans an airport transfer", async () => {
+  it("plans no arrival journey when the trip starts where it ends", async () => {
     const { ctx, searchFlights, route } = context();
     const result = await transportAgent.invoke({
       brief: { ...brief, destination: "Sydney" },
       context: ctx,
     });
     expect(searchFlights).not.toHaveBeenCalled();
-    expect(route).toHaveBeenCalledWith(expect.objectContaining({ from: "Sydney airport" }));
-    expect(result.items).toHaveLength(1);
+    expect(route).not.toHaveBeenCalled();
+    expect(result.items).toHaveLength(0);
   });
 
   it("rejects revisions addressed to another trip", async () => {

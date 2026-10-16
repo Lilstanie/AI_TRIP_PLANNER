@@ -66,6 +66,10 @@ _Avoid_: candidate, option, other choice
 The journey from one stop to the next on the same day, with its own travel mode and time.
 _Avoid_: connection, transfer, hop
 
+**Journey**:
+Travel between cities: from the departure city to the first destination (the arrival), or from one destination to the next. A trip with no departure city has no arrival.
+_Avoid_: leg (that is within one day), transfer, airport run
+
 ## Workspace
 
 **Account**:
