@@ -28,7 +28,7 @@ Web 应用（`apps/web`）是单用户规划工作区。本文描述其当前行
   - 侧边栏只包含导航：带数量的 Chats 和 Trips。轮廓线图标使用文字颜色；对应面板或页面打开时，图标变为填充样式，标签加粗，背景轻微强调，并带 `aria-current`。折叠时显示带名称和 tooltip 的图标按钮。
   - **Chats** 切换 Chats 面板（`aria-expanded`、`aria-controls="chats-panel"`）：它是位于侧边栏右边缘、宽 320 px 的玻璃区域，在工作区上方以 380 ms 的弹性和淡入动效出现（`prefers-reduced-motion` 下立即出现），关闭时为 `inert`。打开时聚焦搜索框；Escape 关闭面板并将焦点返回 Chats（已打开的历史菜单或对话框优先处理 Escape），点击外部也会关闭面板。[Chats 面板和 Your trips Agent Note](../.agents/notes/implemented/feature/2026-09-24-chats-panel-and-trips-page.md) 记录了原因。
   - 面板自上而下依次为：胶囊形搜索框（“Search…”，视觉隐藏标签“Search chats and trips”，以及将焦点返回输入框的 Clear search 按钮），它同时筛选两个列表；New chat（铅笔图标）和 New trip（带加号的行李箱）；**Trips**，每行显示目的地小封面和“Trip to <destination>”；以及 **Chats**，每行用一行显示标题，下方显示关联行程名称。选择任何条目都会关闭面板。两个起始动作的行为见[New chat 和 New trip](#conversations-trips-and-storage)。
-  - **Trips** 将顶栏、聊天和地图替换成 Your trips 页面：“Your trips”标题、New trip 按钮，以及 Trips 和 Calendar 标签页（`role="tablist"`，方向键切换）。标签页采用分段控件，滑块在两者之间滑动。Trips 将每个行程显示为 4:3 封面卡片，文字为“Trip to <destination>”和“<destination> · N days”，分成 Upcoming 和 Past 两组。Calendar 是周一为首日的月历网格，提供上一月、Today 和下一月操作；每个行程显示为覆盖其日期的条带，在开始处和每周起点显示标签；默认打开下一次行程所在的月份。选择行程、聊天、New chat 或 New trip 会返回工作区。
+  - **Trips** 将顶栏、聊天和地图替换成 Your trips 页面：“Your trips”标题、New trip 按钮，以及 Trips 和 Calendar 标签页（`role="tablist"`，方向键切换）。标签页采用分段控件，滑块在两者之间滑动。Trips 将每个行程显示为 4:3 封面卡片，文字为“Trip to <destination>”和“<destination> · N days”，分成 Upcoming 和 Past 两组。Calendar 是周一为首日的月历网格，提供上一月、Today 和下一月操作；每个行程显示为覆盖其日期的条带，用其封面配色的深色填充，使白色标签保持清晰可读，在开始处和每周起点显示标签；默认打开下一次行程所在的月份。选择行程、聊天、New chat 或 New trip 会返回工作区。
   - 行程不保存照片，因此封面使用按目的地哈希选择的渐变色和首字母；同一目的地总是得到同样的颜色。
   - 聊天行右上角的更多操作按钮打开 Rename 和 Delete，使这些操作只在需要时出现。悬停或键盘聚焦时显示按钮；无悬停能力的环境始终显示。菜单由 `role="menu"` 和 `role="menuitem"` 按钮组成，触发按钮带 `aria-haspopup` 和 `aria-expanded`；Escape 关闭菜单并将焦点返回触发按钮，不关闭外层面板或抽屉，点击外部或按 Tab 离开也会关闭菜单。行程没有这两个操作，因此没有更多操作菜单。
   - 窄屏导航抽屉显示侧边栏，并在 Trips 下显示面板内容（搜索、两个起始操作、Trips 和 Chats）。
@@ -36,6 +36,7 @@ Web 应用（`apps/web`）是单用户规划工作区。本文描述其当前行
   - 底部把保存状态放在占满侧栏宽度的个人资料行上方；资料行包含头像、两行身份信息和末尾的更多按钮。
 - **行程事实。** 行程需求通过顶栏标签逐项编辑，参考 Mindtrip 的行程栏；[偏好标签 Agent Note](../.agents/notes/implemented/feature/2026-09-24-preference-chips.md) 记录了原因。
   - 标签读取偏好草稿，只显示旅客明确陈述的内容：已有值（“Sydney”、“1 Oct – 4 Oct · 4 days”、“2 adults, 1 child”、“AUD 2,000”），或缺失时只显示事实名称：“Where”、“When”、“Who”和“Budget”。预算使用本行程的有效币种（见下文）。标签组成名为 Trip details 的 `role="group"`；有值标签的无障碍名称以其事实类型开头（“Destination: Sydney”）。
+  - 标签在顶栏放不下时，整行横向滚动：鼠标竖直滚轮在该行上滚动会让它横向移动，每个后面还有标签的边缘用 56 px 的渐隐标出。滚轮在别处，或该行没有隐藏的标签时，页面照常滚动。
   - 每个标签都是带 `aria-haspopup="dialog"`、`aria-expanded` 和 `aria-controls` 的按钮，打开各自的编辑器：Where（目的地和出发地）、When（完整内嵌日历）、Who（每类旅客一个步进器）、Budget（预设范围卡片和自定义金额），以及 Trip preferences（旅客自己的列表）。
   - 每个编辑器都像 Mindtrip 一样，在遮罩上作为居中模态对话框（`aria-modal="true"`）打开，与顶部保持固定距离，新增行向下扩展。面板本身无内边距：头部左侧为关闭按钮，中间为 20 px 半粗体标题；内容内缩 `--space-5`；右下角有一个 Apple 蓝色胶囊形主操作按钮（`--accent-fill` 填充、`--on-accent` 文字、168 × 40）：Save、Trip preferences 中的 Done，或已有方案时的 Update trip。Trip preferences 头部下方有细线，其他编辑器没有。面板宽 512 px；Who 和 Budget 的较短行采用 420 px；When 的双月日历采用 680 px（全部受 `min(…, 100vw - 2 × --space-4)` 限制）。面板为 28 px 圆角的 Liquid Glass sheet，以弹性动效进入、下沉动效退出（200 ms，`usePresence` 保持挂载），列表行使用 `--radius`（12 px）。
   - Where 按访问顺序将目的地显示为卡片：`--surface-2` 上的 48 px 方形图标区域对应 Mindtrip 中的照片位置（这里不获取照片）；名称为 15 px 半粗体；从建议中选择地点后，名称下显示区域信息；另有 28 px 圆形移除按钮。目的地以“ & ”连接成一个字符串存储。列表下方的 Add destination 胶囊按钮可变成全宽胶囊形搜索框，内部带清除按钮。Enter 添加输入的内容（“Sydney & Melbourne”添加两个，重复项跳过），Save 会保留仍在输入框中的文字。实时数据模式且配置 Maps 时，输入框是 combobox：输入达到 3 个字符且停顿 350 ms 后，从 `/api/places/search` 获取地点建议，每个查询在单次编辑器会话中只请求一次，每个名称中与输入匹配的部分加粗；mock 模式不查询。Escape 先关闭建议，再把输入框收回胶囊按钮（丢弃输入文字），最后才关闭编辑器。
@@ -311,7 +312,7 @@ Data mode 默认是 Fixture data。只有部署启用后才能选择 Live data�
   Saved here · sync paused。同一聊天或行程以较新的副本整体为准；未改动的空白聊天和面板布局只保留在浏览器中。退出登录后，
   当前浏览器中的副本保留。
 - **Settings & account** 打开共用对话框。对话框沿用 Mindtrip 设置页的布局。左侧是分区列表，选中项旁有一条深色竖线；在手机上
-  列表变成可横向滚动的一行，线条在下方。右侧显示所选分区的各行，每行有标签和值，Change 在原位打开编辑器。
+  列表变成自动换行的标签，五个分区始终全部可见，线条在所选分区下方。右侧显示所选分区的各行，每行有标签和值，Change 在原位打开编辑器。
   **Account settings** 会打开 Your account，**Personalization** 会打开 Personalization。Mindtrip 的 Voice、Price alerts、Notifications 和 Cookie preferences
   在这里没有对应功能。
   - 打开 Clerk 登录、注册、更改头像或账号管理窗口前，先关闭设置对话框，避免原生模态层遮挡 Clerk 的控件。

@@ -289,7 +289,7 @@ function TripCalendar({
                     const [start, end] = trip.snapshot.plan.brief.dates;
 
                     const labelled = time === utc(start) || weekday === 0;
-                    const [from, to] = coverColours(trip.snapshot.plan.brief.destination);
+                    const [from] = coverColours(trip.snapshot.plan.brief.destination);
                     return (
                       <button
                         type="button"
@@ -297,7 +297,7 @@ function TripCalendar({
                         className="trip-calendar__trip"
                         data-start={time === utc(start) ? "true" : undefined}
                         data-end={time === utc(end) ? "true" : undefined}
-                        style={{ background: `color-mix(in srgb, ${from}, ${to})` }}
+                        style={{ background: from }}
                         aria-label={t("{name}: {start} to {end}", {
                           name: t("Trip to {destination}", {
                             destination: trip.snapshot.plan.brief.destination,
