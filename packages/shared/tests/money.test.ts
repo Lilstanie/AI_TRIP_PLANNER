@@ -139,18 +139,18 @@ describe("moneyIn", () => {
 });
 
 describe("formatMoney", () => {
-  it("writes AUD exactly as the specialists' inline strings did", () => {
+  it("writes AUD with grouped thousands and two decimals", () => {
     expect(formatMoney(12.5, "AUD")).toBe("AUD 12.50");
-    expect(formatMoney(1400, "AUD")).toBe("AUD 1400.00");
+    expect(formatMoney(1400, "AUD")).toBe("AUD 1,400.00");
     expect(formatMoney(0, "AUD")).toBe("AUD 0.00");
-    expect(formatMoney(1234.567, "AUD")).toBe("AUD 1234.57");
+    expect(formatMoney(1234.567, "AUD")).toBe("AUD 1,234.57");
   });
 
   it("keeps the whole-dollar and as-typed styles", () => {
     expect(formatMoney(4000, "AUD", "whole")).toBe("AUD 4,000");
     expect(formatMoney(1582.4, "AUD", "whole")).toBe("AUD 1,582");
-    expect(formatMoney(4000, "AUD", "plain")).toBe("AUD 4000");
-    expect(formatMoney(4000.5, "AUD", "plain")).toBe("AUD 4000.5");
+    expect(formatMoney(4000, "AUD", "plain")).toBe("AUD 4,000");
+    expect(formatMoney(4000.5, "AUD", "plain")).toBe("AUD 4,000.5");
   });
 
   it("converts through the static rate table for other currencies", () => {

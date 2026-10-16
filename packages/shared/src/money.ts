@@ -67,13 +67,12 @@ export function formatMoney(
   style: MoneyStyle = "cents",
 ): string {
   if (!Number.isFinite(amountAud)) throw new Error("A display amount must be finite.");
-  if (currency === BASE_CURRENCY && style === "plain") return `${currency} ${amountAud}`;
+  if (currency === BASE_CURRENCY && style === "plain")
+    return `${currency} ${amountAud.toLocaleString("en-AU", { maximumFractionDigits: 20 })}`;
   const value = currency === BASE_CURRENCY ? amountAud : fromAud(amountAud, currency);
   if (style === "whole")
     return `${currency} ${value.toLocaleString("en-AU", { maximumFractionDigits: 0 })}`;
   const digits = MINOR_DIGITS[currency];
-
-  if (currency === BASE_CURRENCY) return `${currency} ${value.toFixed(digits)}`;
   return `${currency} ${value.toLocaleString("en-AU", { minimumFractionDigits: digits, maximumFractionDigits: digits })}`;
 }
 
