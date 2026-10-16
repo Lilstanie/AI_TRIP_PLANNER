@@ -74,6 +74,9 @@ now. Implementation history and browser acceptance for each phase are in the
     "Where", "When", "Who" and "Budget" — while it is missing. The budget uses the trip's
     effective currency (below). The chips form a `role="group"` named Trip
     details; a filled chip's accessible name leads with its fact ("Destination: Sydney").
+  - When the chips do not fit the top bar, the row scrolls sideways: a vertical mouse wheel over it
+    scrolls it horizontally, and a 56 px fade marks each edge with more chips behind it. A wheel
+    elsewhere, or over a row with nothing hidden, scrolls the page as usual.
   - Each chip is a button with `aria-haspopup="dialog"`, `aria-expanded` and `aria-controls`, and
     opens its own editor: Where (destinations and departing from), When (a full inline calendar), Who
     (a stepper per traveller kind), Budget (preset range cards plus a custom amount) and Trip
