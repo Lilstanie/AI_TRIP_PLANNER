@@ -38,35 +38,24 @@ and fragment suffixes. Preserve original English fragment IDs with explicit anch
 headings; language-switch links are the intentional cross-language exception. Do not impose equal
 physical line counts: prose wrapping differs between languages.
 
-## Review records and checks
+## Review and checks
 
-Run from the repository root:
+Run from the repository root after reviewing the meaning and structure of each pair you changed:
 
 ```bash
 node .agents/skills/translate-docs/scripts/check-pairs.mjs
 ```
 
-After reviewing the meaning and structure of specific pairs, record only those English source paths:
-
-```bash
-node .agents/skills/translate-docs/scripts/check-pairs.mjs --record docs/architecture.md
-node .agents/skills/translate-docs/scripts/check-pairs.mjs
-```
-
-The check also compares heading anchors by position: each Chinese heading needs its English
-counterpart's fragment as an explicit anchor directly above it, unless the heading text is identical.
-When changing the check script, run `node apps/web/tests/cli-e2e/translation-pairs.e2e.mjs`.
-
-The record stores both file hashes in `.agents/translation-pairs.json`. It is evidence that an agent
-or person reviewed the pair, not proof supplied by a translator or a semantic equivalence test.
-Never record a stale translation just to make the check pass. For deleted pairs, use
-`--remove docs/old-page.md` only after both files are removed.
-
-On a merge conflict in `.agents/translation-pairs.json`, take either side, then re-run `--record` for
-each page that both branches changed.
+The check compares each pair's structure, inline code, links and heading anchors: each Chinese
+heading needs its English counterpart's fragment as an explicit anchor directly above it, unless the
+heading text is identical. It also fails when an English page changed since `--base` (by default origin's
+main branch) beyond whitespace while its Chinese counterpart did not. Nothing is stored, so there is
+no record to refresh or resolve after a merge; editing the Chinese file is not evidence of review, so
+review it before pushing. When changing the check script, run
+`node apps/web/tests/cli-e2e/translation-pairs.e2e.mjs`.
 
 Follow [pre-push-checks](../pre-push-checks/SKILL.md) for docs, protection and formatting. Run the
 pairing check locally for documentation changes (`pnpm verify:pairs` is the same command); CI runs it
-after `verify-docs`, so an unreviewed or unrecorded pair fails the pull request.
+after `verify-docs`, so an English change without its Chinese counterpart fails the pull request.
 Report translated files, unresolved terms and checks actually run, and add a new
 [session log](../session-log/SKILL.md) after edits.

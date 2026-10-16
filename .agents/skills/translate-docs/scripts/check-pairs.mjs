@@ -1,32 +1,30 @@
 #!/usr/bin/env node
-import { createHash } from "node:crypto";
-import {
-  existsSync,
-  lstatSync,
-  mkdirSync,
-  readdirSync,
-  readFileSync,
-  writeFileSync,
-} from "node:fs";
+import { spawnSync } from "node:child_process";
+import { existsSync, lstatSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, relative, resolve } from "node:path";
 
 const args = process.argv.slice(2);
 let root = process.cwd();
-const rootIndex = args.indexOf("--root");
-if (rootIndex !== -1) {
-  if (!args[rootIndex + 1]) throw new Error("--root requires a project directory");
-  root = resolve(args[rootIndex + 1]);
-  args.splice(rootIndex, 2);
+let base = "origin/main";
+const option = (name) => {
+  const index = args.indexOf(name);
+  if (index === -1) return undefined;
+  if (!args[index + 1]) throw new Error(`${name} requires a value`);
+  const [, value] = args.splice(index, 2);
+  return value;
+};
+const rootOption = option("--root");
+if (rootOption) root = resolve(rootOption);
+base = option("--base") ?? base;
+if (args.includes("--record") || args.includes("--remove")) {
+  console.error(
+    "--record and --remove were retired: the check compares each pair with --base instead of stored hashes.",
+  );
+  process.exit(1);
 }
-const mode = args[0] ?? "check";
-if (!["check", "--record", "--remove"].includes(mode)) throw new Error(`Unknown mode: ${mode}`);
-const paths = args.slice(1);
-if ((mode === "check" && args.length > 1) || (mode !== "check" && !paths.length)) {
-  throw new Error("Use no arguments to check; --record or --remove requires explicit source paths");
-}
+if (args.length) throw new Error(`Unknown arguments: ${args.join(" ")}`);
 const absolute = (path) => resolve(root, path);
 const read = (path) => readFileSync(absolute(path), "utf8");
-const hash = (path) => createHash("sha256").update(read(path)).digest("hex");
 const translated = (path) => path.replace(/\.md$/, ".zh.md");
 const eligible = (path) =>
   path.startsWith("docs/") &&
@@ -44,20 +42,15 @@ const walk = (path) =>
 const files = walk("docs");
 const sources = files.filter(eligible).sort();
 const sourceSet = new Set(sources);
-const manifestPath = ".agents/translation-pairs.json";
-const manifest = existsSync(absolute(manifestPath))
-  ? JSON.parse(read(manifestPath))
-  : { version: 1, pairs: {} };
-if (
-  manifest.version !== 1 ||
-  !manifest.pairs ||
-  typeof manifest.pairs !== "object" ||
-  Array.isArray(manifest.pairs)
-) {
-  throw new Error(
-    "Unsupported or malformed translation-pairs.json; expected version 1 and pairs object",
-  );
-}
+
+const git = (...gitArgs) => spawnSync("git", ["-C", root, ...gitArgs], { encoding: "utf8" });
+const mergeBase = (() => {
+  const found = git("merge-base", base, "HEAD");
+  return found.status === 0 ? found.stdout.trim() : undefined;
+})();
+const changedSinceBase = (path, ignoreWhitespace) =>
+  git("diff", "--quiet", ...(ignoreWhitespace ? ["--ignore-all-space"] : []), mergeBase, "--", path)
+    .status === 1;
 
 function structure(text) {
   const result = { headings: [], lists: [], tables: [], fences: [] };
@@ -227,55 +220,30 @@ function pairErrors(path) {
 }
 
 const errors = [];
-if (mode === "--record") {
-  for (const path of paths) {
-    if (!sourceSet.has(path)) errors.push(`${path}: not an eligible source`);
-    else errors.push(...pairErrors(path));
-  }
-  if (!errors.length) {
-    for (const path of paths)
-      manifest.pairs[path] = {
-        sourceSha256: hash(path),
-        translationSha256: hash(translated(path)),
-      };
-  }
-} else if (mode === "--remove") {
-  for (const path of paths) {
-    if (!eligible(path) || existsSync(absolute(path)) || existsSync(absolute(translated(path))))
-      errors.push(`${path}: remove both eligible pair files before removing its record`);
-    else delete manifest.pairs[path];
-  }
-} else {
-  for (const path of sources) {
-    errors.push(...pairErrors(path));
-    const record = manifest.pairs[path];
-    if (!record) errors.push(`${path}: unrecorded review; translate and review before --record`);
-    else if (
-      existsSync(absolute(translated(path))) &&
-      (record.sourceSha256 !== hash(path) || record.translationSha256 !== hash(translated(path)))
-    )
-      errors.push(`${path}: stale review; synchronize both languages before --record`);
-  }
-  for (const path of files.filter((path) => path.endsWith(".zh.md"))) {
-    if (!sourceSet.has(path.replace(/\.zh\.md$/, ".md")))
-      errors.push(`${path}: orphan translation`);
-  }
-  for (const path of Object.keys(manifest.pairs))
-    if (!sourceSet.has(path))
-      errors.push(`${path}: obsolete record; use --remove after deleting both files`);
+for (const path of sources) {
+  errors.push(...pairErrors(path));
+  if (
+    mergeBase &&
+    existsSync(absolute(translated(path))) &&
+    changedSinceBase(path, true) &&
+    !changedSinceBase(translated(path), false)
+  )
+    errors.push(
+      `${path}: changed since ${base} but ${translated(path)} was not; update the Chinese counterpart in the same change`,
+    );
 }
+for (const path of files.filter((path) => path.endsWith(".zh.md"))) {
+  if (!sourceSet.has(path.replace(/\.zh\.md$/, ".md"))) errors.push(`${path}: orphan translation`);
+}
+if (!mergeBase)
+  console.warn(
+    `Base "${base}" is not available; checked pair structure only, not whether both languages changed together.`,
+  );
 if (errors.length) {
   console.error(`Documentation pairing failed:\n${errors.join("\n")}`);
   process.exitCode = 1;
 } else {
-  if (mode !== "check") {
-    manifest.pairs = Object.fromEntries(
-      Object.entries(manifest.pairs).sort(([a], [b]) => a.localeCompare(b)),
-    );
-    mkdirSync(dirname(absolute(manifestPath)), { recursive: true });
-    writeFileSync(absolute(manifestPath), JSON.stringify(manifest, null, 2) + "\n");
-  }
   console.log(
-    `${mode === "check" ? "Checked" : "Updated"} ${mode === "check" ? sources.length : paths.length} documentation pairs.`,
+    `Checked ${sources.length} documentation pairs${mergeBase ? ` against ${base}` : ""}.`,
   );
 }

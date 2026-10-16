@@ -17,9 +17,9 @@ root and package READMEs, Agent Notes, skills and frozen logs are outside mandat
 
 Agents editing either language synchronize its counterpart in the same task. The project translation
 skill is automatically discoverable for documentation work; DSH's explicit-only extended workflow
-is not imported unchanged. A standalone local checker discovers pairs, compares structural content
-and links, and requires current hashes for both reviewed files in `.agents/translation-pairs.json`.
-Only explicit reviewed paths can be recorded. The checker neither translates nor proves fidelity.
+is not imported unchanged. A standalone local checker discovers pairs and compares structural content
+and links. The [diff-based pair check note](2026-10-16-diff-based-pair-check.md) replaced its stored
+review hashes with a comparison against the base. The checker neither translates nor proves fidelity.
 
 The workflow extends the [repository skills decision](2026-09-22-repository-workflow-skills.md) and
 the [simplification/prose adaptation](2026-09-26-simplification-prose-skills.md). Their other choices
@@ -40,8 +40,8 @@ approved running it in CI.
 ## Consequences
 
 The Chinese entrypoint is [docs/README.zh.md](../../../../docs/README.zh.md). Full translations double
-the prose maintenance cost. Updating either file invalidates the review hashes; structural checks
-do not detect a fluent mistranslation, so semantic review precedes recording. Code blocks stay
+the prose maintenance cost. Structural checks do not detect a fluent mistranslation, so semantic
+review precedes pushing. Code blocks stay
 unchanged and Chinese headings retain English fragment anchors.
 
 No watcher or automatic translation service runs. The pairing check is required by documentation and
