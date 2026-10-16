@@ -50,8 +50,8 @@ now. Implementation history and browser acceptance for each phase are in the
     segmented control whose thumb slides between them. Trips shows
     every trip as a 4:3 cover card with "Trip to <destination>" and "<destination> · N days",
     grouped into Upcoming and Past. Calendar is a Monday-first month grid with previous, Today and
-    next, drawing each trip as a band over its days, labelled where it starts and at each week's
-    start; it opens on the next trip's month. Choosing a trip, a chat, New chat or New trip returns
+    next, drawing each trip as a band over its days, filled with the dark colour of its cover palette
+    so the white label stays readable, labelled where it starts and at each week's start; it opens on the next trip's month. Choosing a trip, a chat, New chat or New trip returns
     to the workspace.
   - Trips keep no photos, so a cover is a gradient chosen by hashing the destination, with its
     initial; the same destination always gets the same colours.
