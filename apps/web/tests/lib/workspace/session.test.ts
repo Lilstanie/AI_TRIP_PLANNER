@@ -61,6 +61,7 @@ describe("session after a planning turn", () => {
       role: "agent",
       text: "Updated",
       at: 1,
+      outcome: "planned",
       activity: [PREPARING, progress],
     });
   });
@@ -77,7 +78,12 @@ describe("session after a planning turn", () => {
     const items = next.plan?.sections[0]?.proposal?.items ?? [];
     expect(items[0]?.id).toBeTruthy();
 
-    expect(next.messages.at(-1)).toEqual({ role: "agent", text: "Here it is", at: 1 });
+    expect(next.messages.at(-1)).toEqual({
+      role: "agent",
+      text: "Here it is",
+      at: 1,
+      outcome: "planned",
+    });
   });
 
   it("needs information: asks in the chat, keeps what was understood, and plans nothing", () => {

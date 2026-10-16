@@ -262,7 +262,10 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     rows, each with a DSH-style disclosure — a leading icon that crossfades to a chevron on hover or
     while open, and no trailing chevron. Every row starts collapsed, busy or settled alike, and a
     click opens only that row; there is no expand-all control. The Think row's own collapsed summary
-    is the turn's count line (`N tool calls · M subagents · K rounds`); while busy it instead follows
+    is the turn's count line (`N tool calls · M subagents · K rounds`). A turn with no counts reads
+    Trip plan ready when it delivered a plan, Need more details when it ends by asking the traveller,
+    Needs attention when it failed, and Done otherwise, including messages saved before the turn's
+    outcome was recorded. While busy it instead follows
     the newest streaming reasoning line or the live tool/subagent line. A tool row opens to the
     result's own rows, each with a category glyph (a fork and knife, a bed, a plane, and so on) drawn
     from the result's own kind, or the site's own icon when the provider returned that row's web

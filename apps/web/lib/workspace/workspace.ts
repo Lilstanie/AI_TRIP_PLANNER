@@ -37,6 +37,8 @@ export type Message = {
 
   activity?: AgentProgressEvent[];
 
+  outcome?: "planned" | "asked";
+
   at?: number;
 };
 
