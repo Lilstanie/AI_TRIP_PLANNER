@@ -102,17 +102,6 @@ export function journeyLegs(input: {
       mode: legMode("arrival", origin, first, chosen),
       ...(chosen ? { chosenMode: chosen } : {}),
     });
-  } else if (destinations.length === 1) {
-    const chosen = chosenModeFor(legModes, `${first} airport`, first);
-    legs.push({
-      index: 0,
-      from: `${first} airport`,
-      to: first,
-      date: start,
-      day: 1,
-      mode: "ground",
-      ...(chosen && chosen !== "flight" ? { chosenMode: chosen } : {}),
-    });
   }
 
   destinations.slice(1).forEach((to, hop) => {

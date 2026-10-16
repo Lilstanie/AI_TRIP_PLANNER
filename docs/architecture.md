@@ -391,6 +391,9 @@ when one could not be met, and never treat one as a verified fact.
 traveller's own for the specialists, deduplicated and capped at 12. The stored brief keeps the two
 lists apart.
 
+A trip with no departure city, or one that departs from its only destination, has no arrival journey:
+`journeyLegs` returns only the journeys between destinations, so Day 1 starts with its first activity.
+
 With `excludeFlights`, transport neither searches nor prices flights and raises no fare conflict.
 With `bookedStay`, accommodation returns the booking unpriced without a search. The supervisor runs
 the accommodation specialist even when the model skips it. Once either field is set, the coordinator

@@ -334,6 +334,8 @@ Supervisor 收到指令，将每条偏好传入它所影响的目标；每个 sp
 `packages/orchestrator/src/supervisor.ts` 中的 `specialistBrief` 把学到的列表追加到旅行者自己的
 列表之后交给 specialist，去重并限制为 12 条。存储的行程需求仍把两个列表分开保存。
 
+没有出发城市、或从唯一目的地出发的行程没有抵达交通：`journeyLegs` 只返回目的地之间的交通，第一天从第一个活动开始。
+
 设置 `excludeFlights` 后，交通 specialist 既不搜索也不计价航班，也不产生票价冲突。设置
 `bookedStay` 后，住宿 specialist 不搜索，直接返回未计价的预订。即使模型跳过住宿
 specialist，supervisor 也会运行它。任一字段设置后，协调器不再询问航班或其他住宿。
