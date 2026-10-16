@@ -32,6 +32,7 @@ jobs:
 
       # Browser journeys are selected by the CLI acceptance job; this also catches stale selectors.
       - run: pnpm verify:e2e-selectors
+      - run: pnpm verify:e2e-artifacts
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm test
