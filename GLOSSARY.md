@@ -1,6 +1,6 @@
 # AI Trip Planner
 
-A single-user travel workspace where specialists plan a trip from a brief, and the Agent Lab compares ways of organising that work.
+A travel workspace where each account keeps its own trips, specialists plan a trip from a brief, and the Agent Lab compares ways of organising that work.
 
 ## Planning
 
@@ -68,6 +68,18 @@ _Avoid_: connection, transfer, hop
 
 ## Workspace
 
+**Account**:
+One signed-in identity whose chats, trips, settings and long-term memory follow it to any device.
+_Avoid_: user (in prose), profile, login
+
+**Travel profile**:
+The defaults an account fills in by hand in Settings, such as home base, travellers, budget and dietary needs, that prefill every new trip.
+_Avoid_: settings (for these fields), preferences, long-term memory
+
+**Long-term memory**:
+The lasting preferences the planner learns from what an account says in chat and uses in its later plans; the account can see, delete or switch it off.
+_Avoid_: travel profile, history, preferences (alone)
+
 **Notice**:
 A short message the workspace itself writes to the traveller, such as an error or a confirmation, shown in the interface language. Model replies and provider text are not notices and are shown as received.
 _Avoid_: toast, alert, error string
@@ -123,6 +135,14 @@ _Avoid_: result, report
 **Metric**:
 A figure computed from a run's final plan and trace alone, with no model judging it.
 _Avoid_: score, grade
+
+**Rating**:
+A judgement of a plan against a written rubric, given by people or a model, reported apart from metrics with how many raters gave it and how far they disagreed.
+_Avoid_: quality score, metric (for a judged figure)
+
+**Benchmark**:
+A versioned set of scenarios run under the same strategies and configuration, so that its metrics can be compared across code versions.
+_Avoid_: eval suite, dataset, test set
 
 **Fixture**:
 Deterministic stand-in data that makes a run repeat exactly and need no keys.
