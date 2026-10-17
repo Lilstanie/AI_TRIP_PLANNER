@@ -184,6 +184,7 @@ describe("the conversation agent decides what to do", () => {
       vi.mocked(itinerary.invoke).mockClear();
       const freshBrief = {
         ...brief,
+        destination: destinationLocation.latitude < 0 ? "Sydney" : "Honolulu",
         tripId: `fresh-local-date-${dates[0]}`,
         dates: dates as [string, string],
       };
@@ -286,6 +287,80 @@ describe("the conversation agent decides what to do", () => {
       options,
     );
     expect(confirmed.plan.brief.dates).toEqual(historicalBrief.dates);
+    expect(itinerary.invoke).toHaveBeenCalled();
+  });
+
+  it("keeps the date-bound confirmation visible when the model discovers a past trip", async () => {
+    vi.mocked(itinerary.invoke).mockClear();
+    const tripId = "model-found-past-trip";
+    const { mem, turns } = memoryStore();
+    const options = {
+      specialists: [itinerary],
+      tools,
+      mem,
+      clock: () => new Date("2026-10-17T12:00:00.000Z"),
+    };
+
+    await expect(
+      runTripChat(
+        {
+          tripId,
+          message: "Plan two days in Hobart from 2025-01-10 for one person, budget AUD 800",
+        },
+        {
+          ...options,
+          model: scriptedModel(
+            [
+              {
+                name: "update_trip_brief",
+                args: {
+                  destination: "Hobart",
+                  startDate: "2025-01-10",
+                  endDate: "2025-01-11",
+                  groupSize: 1,
+                  budgetAmount: 800,
+                  budgetCurrency: "AUD",
+                },
+                id: "update",
+              },
+            ],
+            [{ name: "replan_trip", args: {}, id: "replan" }],
+          ),
+        },
+      ),
+    ).rejects.toMatchObject({ askUser: { type: "ask_user" } });
+    expect(turns.at(-1)?.content).toContain(
+      "Reply “Confirm historical trip” to keep these dates: 2025-01-10 to 2025-01-11.",
+    );
+
+    const confirmed = await runTripChat(
+      {
+        tripId,
+        message: "Confirm historical trip",
+      },
+      {
+        ...options,
+        model: scriptedModel(
+          [
+            {
+              name: "update_trip_brief",
+              args: {
+                destination: "Hobart",
+                startDate: "2025-01-10",
+                endDate: "2025-01-11",
+                groupSize: 1,
+                budgetAmount: 800,
+                budgetCurrency: "AUD",
+              },
+              id: "update",
+            },
+          ],
+          [{ name: "replan_trip", args: {}, id: "replan" }],
+        ),
+      },
+    );
+
+    expect(confirmed.plan.brief.dates).toEqual(["2025-01-10", "2025-01-11"]);
     expect(itinerary.invoke).toHaveBeenCalled();
   });
 
