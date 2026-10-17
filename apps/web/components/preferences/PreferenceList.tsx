@@ -154,7 +154,7 @@ export function PreferenceList({ value, onChange, errors }: Props) {
         }}
       />
       {error ? (
-        <small className="error-text fact-form__error" id="fact-preference-error">
+        <small className="error-text fact-form__error" role="alert" id="fact-preference-error">
           {localizeNotice(error)}
         </small>
       ) : (
