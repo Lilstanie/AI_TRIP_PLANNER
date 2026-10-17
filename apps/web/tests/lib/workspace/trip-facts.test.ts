@@ -46,7 +46,7 @@ describe("trip facts", () => {
     });
     expect(factLabels(draftFor(plan.brief))).toEqual({
       where: "Sydney",
-      when: `1 Oct – 4 Oct${new Date().getFullYear() === 2026 ? "" : " 2026"} · 4 days`,
+      when: `1–4 Oct${new Date().getFullYear() === 2026 ? "" : " 2026"} · 4 days`,
       who: "2 travellers",
       budget: expect.stringMatching(/^AUD\s2,000\.00$/),
     });
