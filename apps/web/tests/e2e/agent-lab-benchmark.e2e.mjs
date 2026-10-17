@@ -1,12 +1,3 @@
-// Failure inventory: missing or duplicate benchmark cases; a registered fault omitted; failed or
-// stopped artifacts excluded from a denominator; fixture and live measurements blended; report
-// values detached from their artifacts; fixture output changes outside run timestamps; commit,
-// schema, strategy or configuration metadata missing; provider usage guessed when unavailable;
-// live calls exceed 3 scenarios × 3 strategies × 3 repeats or bypass the live gate; unsupported
-// strategies disappear instead of being marked skipped; live summaries omit repeat count, median
-// or spread; checks or expected recovery are judged from wording; older artifacts stop replaying;
-// or the Agent Lab replay page shows metrics different from the report.
-
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
