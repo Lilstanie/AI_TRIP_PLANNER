@@ -24,7 +24,7 @@ const destination = {
   location: { latitude: -33.8688, longitude: 151.2093 },
   source: "osm",
 };
-const snapshotSeed = (dates, tripId, includeUnpriced = true) => {
+const snapshotSeed = (dates, tripId, includeUnpriced = true, budgetTotal = 400, estTotal = 400) => {
   const plan = {
     tripId,
     brief: {
@@ -34,11 +34,11 @@ const snapshotSeed = (dates, tripId, includeUnpriced = true) => {
       origin: "Honolulu",
       dates,
       groupSize: 1,
-      budgetTotal: 400,
+      budgetTotal,
     },
     round: 1,
-    budgetTotal: 400,
-    estTotal: 400,
+    budgetTotal,
+    estTotal,
     overrunPct: 0,
     sections: [
       {
@@ -102,7 +102,7 @@ const snapshotSeed = (dates, tripId, includeUnpriced = true) => {
       start: dates[0],
       end: dates[1],
       groupSize: "1",
-      budgetTotal: "400",
+      budgetTotal: String(budgetTotal),
       preferences: [],
       nationality: "",
       roomAllocation: "shared",
@@ -290,6 +290,59 @@ try {
   check(
     await trip.locator(".trip-budget").evaluate((node) => node.open),
     "Before the trip, budget retains the existing expanded default",
+  );
+
+  const secondTrip = snapshotSeed(
+    ["2026-10-17", "2026-10-19"],
+    "on-trip-second-budget-default",
+    false,
+  );
+  await page.evaluate((seed) => {
+    const catalog = JSON.parse(localStorage.getItem("trip-workspace-catalog-v3"));
+    catalog.conversations.push(...seed.catalog.conversations);
+    catalog.trips.push(...seed.catalog.trips);
+    localStorage.setItem("trip-workspace-catalog-v3", JSON.stringify(catalog));
+  }, secondTrip);
+  await openSeededTrip();
+  const firstBudget = page.locator("#phone-panel-trip .trip-budget");
+  if (!(await firstBudget.evaluate((node) => node.open))) {
+    await firstBudget.locator("summary").click();
+  }
+  await page.getByRole("tab", { name: /^Mine/ }).click();
+  const tripCards = page.locator(".phone-mine .trip-card");
+  await tripCards.nth(1).click();
+  await tripTab.click();
+  const secondBudget = page.locator("#phone-panel-trip .trip-budget");
+  await secondBudget.waitFor();
+  check(
+    !(await secondBudget.evaluate((node) => node.open)),
+    "manual budget expansion on one trip does not override the next trip's collapsed default",
+  );
+  const headroomTrip = snapshotSeed(
+    ["2026-10-17", "2026-10-19"],
+    "on-trip-budget-headroom-unpriced",
+    true,
+    500,
+    400,
+  );
+  await page.evaluate((seed) => {
+    const catalog = JSON.parse(localStorage.getItem("trip-workspace-catalog-v3"));
+    catalog.conversations.push(...seed.catalog.conversations);
+    catalog.trips.push(...seed.catalog.trips);
+    localStorage.setItem("trip-workspace-catalog-v3", JSON.stringify(catalog));
+  }, headroomTrip);
+  await page.getByRole("tab", { name: /^Mine/ }).click();
+  await page.locator(".phone-mine .trip-card").nth(2).click();
+  await tripTab.click();
+  const headroomBudget = page.locator("#phone-panel-trip .trip-budget");
+  await headroomBudget.waitFor();
+  check(
+    (await headroomBudget.getByText("Known estimate within budget · admissions not counted", { exact: true }).count()) === 1,
+    "below-budget estimate with unpriced stops is qualified",
+  );
+  check(
+    (await headroomBudget.locator(".budget-status--caution").count()) === 1,
+    "below-budget estimate with unpriced stops uses caution status",
   );
   check(errors.length === 0, "no browser errors", errors);
   await page.screenshot({ path: `${OUT}/before-trip.png`, fullPage: true });

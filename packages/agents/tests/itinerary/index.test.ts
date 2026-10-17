@@ -772,3 +772,65 @@ describe("routing between two stops the provider can find", () => {
     expect("toLocation" in query).toBe(false);
   });
 });
+
+describe("fallback timing after a failed itinerary revision", () => {
+  it("returns the original fallback times when a requested shift crosses a scheduled transfer", async () => {
+    const trip = {
+      ...brief,
+      destination: "Sydney & Wollongong",
+      dates: ["2026-12-16", "2026-12-20"] as [string, string],
+    };
+    const ctx = context();
+    ctx.tools.maps.places = vi.fn(async ({ near, category }) =>
+      category === "sight"
+        ? [{ name: `${near} Museum`, category: "sight" }]
+        : [{ name: `${near} Park`, category: "neighborhood" }],
+    );
+    ctx.tools.maps.route = vi.fn(async () => {
+      throw new Error("Route evidence unavailable");
+    });
+    const transport: AgentProposal = {
+      agent: "transport",
+      summary: "Transfer to Wollongong on day 3",
+      items: [
+        {
+          kind: "transport",
+          day: 3,
+          startTime: "13:30",
+          endTime: "14:30",
+          location: "Sydney → Wollongong",
+          detail: "Train to Wollongong",
+        },
+      ],
+      assumptions: [],
+      conflictsWith: [],
+    };
+    const activities = [
+      { day: 1, startTime: "09:00", endTime: "10:00", location: "Sydney Museum", detail: "Visit" },
+      { day: 2, startTime: "09:00", endTime: "10:00", location: "Sydney Museum", detail: "Visit" },
+      { day: 3, startTime: "08:00", endTime: "09:00", location: "Sydney Museum", detail: "Visit" },
+      { day: 3, startTime: "09:15", endTime: "10:00", location: "Sydney Park", detail: "Visit" },
+      { day: 3, startTime: "15:00", endTime: "16:00", location: "Wollongong Park", detail: "Visit" },
+      { day: 4, startTime: "09:00", endTime: "10:00", location: "Wollongong Museum", detail: "Visit" },
+      { day: 5, startTime: "09:00", endTime: "10:00", location: "Wollongong Museum", detail: "Visit" },
+    ];
+    const generator: ItineraryGenerator = {
+      generate: vi.fn(async () => ({ summary: "Plan", activities, assumptions: [] })),
+    };
+    const result = await createItineraryAgent({ generator }).invoke({
+      brief: trip,
+      context: ctx,
+      revision: { constraints: ["on day 3 keep clear of 10:00-12:30"] },
+      board: { proposals: [transport] },
+    });
+    const dayThree = result.items.filter(({ day }) => day === 3);
+
+    expect(dayThree).toHaveLength(1);
+    expect(dayThree[0]).toMatchObject({
+      location: "Sydney Museum",
+      startTime: "09:30",
+      endTime: "12:00",
+    });
+    expect(result.conflictsWith.join(" ")).toContain("Fallback activity times were kept unchanged");
+  });
+});

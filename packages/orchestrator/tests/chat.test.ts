@@ -1,4 +1,5 @@
 import { FakeToolCallingModel } from "langchain";
+import { AIMessage } from "@langchain/core/messages";
 import { describe, expect, it, vi } from "vitest";
 import { toAud } from "@trip/shared";
 import type {
@@ -162,6 +163,60 @@ describe("the conversation agent decides what to do", () => {
     },
   );
 
+  it.each([
+    {
+      label: "Sydney after midnight locally while UTC is still the previous date",
+      dates: ["2026-10-17", "2026-10-18"],
+      now: "2026-10-17T14:30:00.000Z",
+      destinationLocation: { latitude: -33.8688, longitude: 151.2093 },
+      asks: true,
+    },
+    {
+      label: "Honolulu before midnight while UTC is already the next date",
+      dates: ["2026-10-16", "2026-10-17"],
+      now: "2026-10-17T06:30:00.000Z",
+      destinationLocation: { latitude: 21.3069, longitude: -157.8583 },
+      asks: false,
+    },
+  ])(
+    "checks fresh trip dates using verified destination coordinates: $label",
+    async ({ dates, now, destinationLocation, asks }) => {
+      vi.mocked(itinerary.invoke).mockClear();
+      const freshBrief = {
+        ...brief,
+        tripId: `fresh-local-date-${dates[0]}`,
+        dates: dates as [string, string],
+      };
+      const request = {
+        tripId: freshBrief.tripId,
+        mode: "plan" as const,
+        message: "Plan this trip",
+        brief: freshBrief,
+        destinationLocation,
+      } as unknown as Parameters<typeof runTripChat>[0];
+      const execute = () =>
+        runTripChat(request, {
+          specialists: [itinerary],
+          tools,
+          mem: memoryStore().mem,
+          clock: () => new Date(now),
+        });
+
+      if (asks) {
+        await expect(execute()).rejects.toMatchObject({
+          askUser: {
+            type: "ask_user",
+            questions: [expect.objectContaining({ question: expect.stringMatching(/past|passed/i) })],
+          },
+        });
+        expect(itinerary.invoke).not.toHaveBeenCalled();
+      } else {
+        await expect(execute()).resolves.toMatchObject({ plan: { brief: { dates } } });
+        expect(itinerary.invoke).toHaveBeenCalled();
+      }
+    },
+  );
+
   it("does not treat a fresh submitted brief as proof of an existing historical trip", async () => {
     vi.mocked(itinerary.invoke).mockClear();
     const freshBrief = {
@@ -265,6 +320,55 @@ describe("the conversation agent decides what to do", () => {
     );
     expect(after.reply).toMatch(/no change|unchanged/i);
     expect(after.reply).not.toMatch(/\bdone\b|removed day 3|added.*cruise/i);
+  });
+
+  it("does not claim an unrelated plan delta fulfilled an edit or booked anything", async () => {
+    const { mem } = memoryStore();
+    const before = await runTripChat(
+      { tripId: brief.tripId, mode: "plan", message: "Plan it", brief },
+      { specialists: [itinerary], tools, mem },
+    );
+    vi.mocked(itinerary.invoke).mockImplementationOnce(async ({ brief: updated }) => ({
+      agent: "itinerary",
+      summary: `Plan for ${updated.destination}`,
+      items: [{ kind: "activity", detail: "Unrelated museum visit", estCost: 120 }],
+      assumptions: [],
+      conflictsWith: [],
+    }));
+    class OverclaimingModel extends FakeToolCallingModel {
+      async _generate(messages, options, manager) {
+        const result = await super._generate(messages, options, manager);
+        const message = result.generations[0]?.message;
+        if (message instanceof AIMessage && message.tool_calls.length === 0)
+          return {
+            ...result,
+            generations: [
+              {
+                ...result.generations[0],
+                message: new AIMessage(
+                  "Done — I moved the harbour cruise to day 2 and booked it.",
+                ),
+              },
+            ],
+          };
+        return result;
+      }
+    }
+    const after = await run(
+      {
+        tripId: brief.tripId,
+        message: "Move the harbour cruise to day 2 and book it",
+        brief,
+        plan: before.plan,
+      },
+      new OverclaimingModel({
+        toolCalls: [[{ name: "replan_trip", args: {}, id: "replan" }], []],
+      }),
+      mem,
+    );
+
+    expect(after.plan.sections[0]?.proposal?.items[0]?.detail).toBe("Unrelated museum visit");
+    expect(after.reply).not.toMatch(/\bdone\b|moved the harbour cruise|booked it/i);
   });
 
   it("records what the traveller stated and replans when asked", async () => {

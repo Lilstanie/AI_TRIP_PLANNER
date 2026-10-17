@@ -37,21 +37,31 @@ try {
         .getByRole("button", { name: /^Chats/ })
         .click();
     const search = page.getByRole("searchbox", { name: "Search chats and trips" });
+    const chatStatus = page.getByRole("status", { name: "Chat search results" });
+    const tripStatus = page.getByRole("status", { name: "Trip search results" });
+    check(
+      (await chatStatus.count()) === 1 && (await tripStatus.count()) === 1,
+      `${width}: both polite search regions are mounted before filtering`,
+    );
     await search.fill("zzzqq");
     await page.getByText("No matching chats.", { exact: true }).waitFor();
     check(
-      (await page.getByRole("status").filter({ hasText: "No matching chats." }).count()) > 0,
+      (await chatStatus.innerText()) === "No matching chats.",
       `${width}: search emptiness has polite status`,
     );
     check(
-      (await page.getByRole("status").filter({ hasText: "No matching trips." }).count()) > 0,
+      (await tripStatus.innerText()) === "No matching trips.",
       `${width}: trip search emptiness has polite status`,
     );
     await page.screenshot({ path: `${out}/${width}-search.png` });
     await page.getByRole("button", { name: "Clear search", exact: true }).click();
     check(
-      (await page.getByRole("status").filter({ hasText: "No matching chats." }).count()) === 0,
-      `${width}: clear removes stale search status`,
+      (await chatStatus.count()) === 1 && (await tripStatus.count()) === 1,
+      `${width}: clearing search keeps both polite regions mounted`,
+    );
+    check(
+      (await chatStatus.innerText()) === "" && (await tripStatus.innerText()) === "",
+      `${width}: clearing search empties both polite regions`,
     );
     if (width === 375) {
       await page.locator(".phone-tabbar").getByRole("tab", { name: /^Map/ }).click();
