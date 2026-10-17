@@ -240,6 +240,55 @@ describe("the conversation agent decides what to do", () => {
     expect(itinerary.invoke).not.toHaveBeenCalled();
   });
 
+  it("confirms a historical trip only after the matching date clarification", async () => {
+    vi.mocked(itinerary.invoke).mockClear();
+    const historicalBrief = {
+      ...brief,
+      tripId: "confirm-historical-dates",
+      dates: ["2026-10-16", "2026-10-18"] as [string, string],
+    };
+    const { mem } = memoryStore();
+    const options = {
+      specialists: [itinerary],
+      tools,
+      mem,
+      clock: () => new Date("2026-10-17T12:00:00.000Z"),
+    };
+    await expect(
+      runTripChat(
+        {
+          tripId: historicalBrief.tripId,
+          mode: "plan",
+          message: "Plan this trip",
+          brief: historicalBrief,
+        },
+        options,
+      ),
+    ).rejects.toMatchObject({ askUser: { questions: [expect.objectContaining({ id: "past-trip-dates" })] } });
+    await expect(
+      runTripChat(
+        {
+          tripId: historicalBrief.tripId,
+          mode: "plan",
+          message: "Yes",
+          brief: historicalBrief,
+        },
+        options,
+      ),
+    ).rejects.toMatchObject({ askUser: { questions: [expect.objectContaining({ id: "past-trip-dates" })] } });
+    const confirmed = await runTripChat(
+      {
+        tripId: historicalBrief.tripId,
+        mode: "plan",
+        message: "Confirm historical trip",
+        brief: historicalBrief,
+      },
+      options,
+    );
+    expect(confirmed.plan.brief.dates).toEqual(historicalBrief.dates);
+    expect(itinerary.invoke).toHaveBeenCalled();
+  });
+
   it("allows edits to a persisted historical plan", async () => {
     vi.mocked(itinerary.invoke).mockClear();
     const historicalBrief = { ...brief, dates: ["2026-06-15", "2026-06-22"] as [string, string] };

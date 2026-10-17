@@ -57,6 +57,55 @@ const chat = await request("chat-past", {
   known: chatBrief,
 });
 check(chat.type === "ask_user", "past dates also clarify through the chat entry");
+const dates = chatBrief.dates;
+const confirmationTripId = "historical-confirmation";
+const historicalBrief = { ...chatBrief, tripId: confirmationTripId };
+const confirmationAsk = await request("historical-confirmation-ask", {
+  tripId: confirmationTripId,
+  message: "Plan this trip",
+  mode: "plan",
+  brief: historicalBrief,
+});
+check(confirmationAsk.type === "ask_user", "fresh historical trip asks before planning");
+const ambiguous = await request("historical-confirmation-ambiguous", {
+  tripId: confirmationTripId,
+  message: "Yes",
+  mode: "plan",
+  brief: historicalBrief,
+});
+check(ambiguous.type === "ask_user", "ambiguous reply does not confirm historical dates");
+const confirmed = await request("historical-confirmation-confirmed", {
+  tripId: confirmationTripId,
+  message: "Confirm historical trip",
+  mode: "plan",
+  brief: historicalBrief,
+});
+check(confirmed.type === "complete", "explicit reply confirms the same historical dates");
+check(
+  JSON.stringify(confirmed.response?.plan?.brief?.dates) === JSON.stringify(dates),
+  "confirmed historical plan retains the entered dates",
+);
+const correctionTripId = "historical-date-correction";
+const correctionBrief = { ...chatBrief, tripId: correctionTripId };
+const correctionAsk = await request("historical-correction-ask", {
+  tripId: correctionTripId,
+  message: "Plan this trip",
+  mode: "plan",
+  brief: correctionBrief,
+});
+check(correctionAsk.type === "ask_user", "date correction starts with clarification");
+const correctedDates = [day(20), day(21)];
+const corrected = await request("historical-correction-applied", {
+  tripId: correctionTripId,
+  message: "Use these corrected future dates",
+  mode: "plan",
+  brief: { ...correctionBrief, dates: correctedDates },
+});
+check(corrected.type === "complete", "corrected future dates proceed");
+check(
+  JSON.stringify(corrected.response?.plan?.brief?.dates) === JSON.stringify(correctedDates),
+  "corrected dates are reflected in the completed plan",
+);
 const future = briefFor("historical-edit", 20);
 const seed = await request("historical-seed", {
   tripId: future.tripId,

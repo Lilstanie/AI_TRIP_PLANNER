@@ -820,7 +820,12 @@ describe("fallback timing after a failed itinerary revision", () => {
     const result = await createItineraryAgent({ generator }).invoke({
       brief: trip,
       context: ctx,
-      revision: { constraints: ["on day 3 keep clear of 10:00-12:30"] },
+      revision: {
+        tripId: trip.tripId,
+        targetAgent: "itinerary",
+        reason: "conflict with a scheduled transfer",
+        constraints: ["on day 3 keep clear of 10:00-12:30"],
+      },
       board: { proposals: [transport] },
     });
     const dayThree = result.items.filter(({ day }) => day === 3);
