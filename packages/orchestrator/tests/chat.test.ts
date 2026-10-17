@@ -241,6 +241,42 @@ describe("the conversation agent decides what to do", () => {
     expect(itinerary.invoke).not.toHaveBeenCalled();
   });
 
+  it("applies corrected dates to a submitted fresh brief before the past-date check", async () => {
+    vi.mocked(itinerary.invoke).mockClear();
+    const tripId = "correct-old-submitted-dates";
+    const oldBrief = {
+      ...brief,
+      tripId,
+      dates: ["2025-01-10", "2025-01-11"] as [string, string],
+    };
+    const corrected = await runTripChat(
+      {
+        tripId,
+        message: "Use dates 2027-04-05 to 2027-04-07 instead",
+        brief: oldBrief,
+      },
+      {
+        model: scriptedModel(
+          [
+            {
+              name: "update_trip_brief",
+              args: { startDate: "2027-04-05", endDate: "2027-04-07" },
+              id: "update-dates",
+            },
+          ],
+          [{ name: "replan_trip", args: {}, id: "replan" }],
+        ),
+        specialists: [itinerary],
+        tools,
+        mem: memoryStore().mem,
+        clock: () => new Date("2026-10-17T12:00:00.000Z"),
+      },
+    );
+
+    expect(corrected.plan.brief.dates).toEqual(["2027-04-05", "2027-04-07"]);
+    expect(itinerary.invoke).toHaveBeenCalled();
+  });
+
   it("confirms a historical trip only after the matching date clarification", async () => {
     vi.mocked(itinerary.invoke).mockClear();
     const historicalBrief = {
