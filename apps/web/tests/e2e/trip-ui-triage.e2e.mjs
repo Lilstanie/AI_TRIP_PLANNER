@@ -285,14 +285,12 @@ try {
           `${tag} #404 marked consistent packing list`,
           packing,
         );
-        const days = await p
-          .locator(".day-strip")
-          .evaluate((n) => ({
-            width: n.clientWidth,
-            scroll: n.scrollWidth,
-            wrap: getComputedStyle(n).flexWrap,
-            scrollbar: getComputedStyle(n).scrollbarWidth,
-          }));
+        const days = await p.locator(".day-strip").evaluate((n) => ({
+          width: n.clientWidth,
+          scroll: n.scrollWidth,
+          wrap: getComputedStyle(n).flexWrap,
+          scrollbar: getComputedStyle(n).scrollbarWidth,
+        }));
         check(
           days.scroll <= days.width || days.scrollbar !== "none",
           `${tag} #426 days discoverable`,
