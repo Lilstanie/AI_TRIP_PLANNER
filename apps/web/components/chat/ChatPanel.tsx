@@ -100,7 +100,7 @@ export function ChatPanel({
                   type="button"
                   title={t(label)}
                   disabled={busy || locked}
-                  onClick={() => onSend(translate("en", text, params))}
+                  onClick={() => onSend(t(text, params))}
                 >
                   {t(label)}
                 </button>
