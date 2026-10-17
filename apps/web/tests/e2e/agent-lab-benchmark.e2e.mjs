@@ -89,7 +89,9 @@ const median = (values) => {
 };
 const medianLabel = (value) => (value === null ? "n/a" : `${value} ms`);
 const stableArtifact = (artifact) => {
-  const { durationMs, latencyMs, ...metrics } = artifact.metrics;
+  const metrics = { ...artifact.metrics };
+  delete metrics.durationMs;
+  delete metrics.latencyMs;
   return {
     scenarioId: artifact.scenarioId,
     strategyId: artifact.strategyId,
@@ -102,7 +104,13 @@ const stableArtifact = (artifact) => {
     metrics,
   };
 };
-const fixtureReportProjection = (sourceArtifacts, scenarioById, faultProfiles, generatedAt) => ({
+const fixtureReportProjection = (
+  sourceArtifacts,
+  scenarioById,
+  faultProfiles,
+  strategies,
+  generatedAt,
+) => ({
   generatedAt,
   runs: sourceArtifacts.map((artifact) => {
     const scenario = scenarioById.get(artifact.scenarioId);
@@ -127,10 +135,26 @@ const fixtureReportProjection = (sourceArtifacts, scenarioById, faultProfiles, g
         (id) => checks.find((item) => item.id === id)?.passed === true,
       ),
       usage: artifact.status === "completed" ? (artifact.metrics.usage ?? null) : null,
-      latencyMs: null,
+      latencyMs: artifact.status === "completed" ? artifact.metrics.latencyMs : null,
       artifact: fault
         ? `fault.${fault.id}.artifact.json`
         : `${artifact.scenarioId}.${artifact.strategyId}.artifact.json`,
+    };
+  }),
+  summaries: strategies.map((strategyId) => {
+    const rows = sourceArtifacts.filter(
+      (artifact) =>
+        artifact.strategyId === strategyId &&
+        artifact.dataMode === "fixture" &&
+        !artifact.faultProfileId,
+    );
+    return {
+      strategyId,
+      medianLatencyMs: median(
+        rows
+          .filter((artifact) => artifact.status === "completed")
+          .map((artifact) => artifact.metrics.latencyMs),
+      ),
     };
   }),
 });
@@ -154,6 +178,16 @@ const fixtureProjectionMarkdown = ({ generatedAt, runs }) =>
   ].join("\n");
 const withoutGeneratedAt = (serialized, generatedAt) =>
   serialized.replace(generatedAt, "<generatedAt>");
+const stableFixtureProjection = (projection) => ({
+  ...projection,
+  runs: projection.runs.map((row) => ({ ...row, latencyMs: "<measured>" })),
+  summaries: projection.summaries.map((row) => ({ ...row, medianLatencyMs: "<measured>" })),
+});
+const stableFixtureProjectionMarkdown = (projection) =>
+  fixtureProjectionMarkdown({
+    ...projection,
+    runs: projection.runs.map((row) => ({ ...row, latencyMs: null })),
+  });
 
 check(
   actualOutcome({ status: "failed", metrics: {}, events: [] }) === "failed",
@@ -292,24 +326,43 @@ async function main() {
     comparedArtifacts,
     scenarioById,
     faultProfiles,
+    STRATEGIES,
     "2026-01-01T00:00:00.000Z",
   );
   const secondReportProjection = fixtureReportProjection(
     repeatedArtifacts,
     scenarioById,
     faultProfiles,
+    STRATEGIES,
     "2026-01-02T00:00:00.000Z",
   );
-  const firstProjectionJson = JSON.stringify(firstReportProjection, null, 2);
-  const secondProjectionJson = JSON.stringify(secondReportProjection, null, 2);
-  const firstProjectionMarkdown = fixtureProjectionMarkdown(firstReportProjection);
-  const secondProjectionMarkdown = fixtureProjectionMarkdown(secondReportProjection);
   check(
-    withoutGeneratedAt(firstProjectionJson, firstReportProjection.generatedAt) ===
-      withoutGeneratedAt(secondProjectionJson, secondReportProjection.generatedAt) &&
-      withoutGeneratedAt(firstProjectionMarkdown, firstReportProjection.generatedAt) ===
-        withoutGeneratedAt(secondProjectionMarkdown, secondReportProjection.generatedAt),
-    "#402 JSON and Markdown fixture report projections are byte-stable except generatedAt",
+    firstReportProjection.runs.every(
+      (row) => row.latencyMs === null || (Number.isFinite(row.latencyMs) && row.latencyMs >= 0),
+    ) &&
+      firstReportProjection.summaries.every(
+        (row) => row.medianLatencyMs === null || Number.isFinite(row.medianLatencyMs),
+      ),
+    "#402 fixture report records measured latency per run and strategy",
+  );
+  check(
+    withoutGeneratedAt(
+      JSON.stringify(stableFixtureProjection(firstReportProjection), null, 2),
+      firstReportProjection.generatedAt,
+    ) ===
+      withoutGeneratedAt(
+        JSON.stringify(stableFixtureProjection(secondReportProjection), null, 2),
+        secondReportProjection.generatedAt,
+      ) &&
+      withoutGeneratedAt(
+        stableFixtureProjectionMarkdown(firstReportProjection),
+        firstReportProjection.generatedAt,
+      ) ===
+        withoutGeneratedAt(
+          stableFixtureProjectionMarkdown(secondReportProjection),
+          secondReportProjection.generatedAt,
+        ),
+    "#402 JSON and Markdown fixture reports are stable after normalizing run timestamps and measured latency",
   );
 
   const report = {
@@ -345,7 +398,7 @@ async function main() {
         (id) => checksOf(artifact).find((item) => item.id === id)?.passed === true,
       ),
       usage: artifact.status === "completed" ? (artifact.metrics.usage ?? null) : null,
-      latencyMs: null,
+      latencyMs: artifact.status === "completed" ? artifact.metrics.latencyMs : null,
       artifact: artifactPaths.get(artifact.runId),
     })),
     summaries: STRATEGIES.map((strategyId) => {
@@ -365,7 +418,11 @@ async function main() {
         failed: rows.length - rows.filter((artifact) => artifact.status === "completed").length,
         denominator: scenarioIds.length,
         passRate: scenarioIds.length ? passed / scenarioIds.length : null,
-        medianLatencyMs: null,
+        medianLatencyMs: median(
+          rows
+            .filter((artifact) => artifact.status === "completed")
+            .map((artifact) => artifact.metrics.latencyMs),
+        ),
         usageReported: rows.filter(
           (artifact) =>
             artifact.status === "completed" && artifact.metrics.usage?.status === "measured",
@@ -438,9 +495,14 @@ async function main() {
   );
   check(
     report.runs.every(
-      (row) => row.dataMode === "fixture" && row.runId === undefined && row.latencyMs === null,
+      (row) =>
+        row.dataMode === "fixture" &&
+        row.runId === undefined &&
+        (row.status === "completed"
+          ? Number.isFinite(row.latencyMs) && row.latencyMs >= 0
+          : row.latencyMs === null),
     ),
-    "report rows stay fixture-only and omit run-specific identifiers and timing",
+    "report rows stay fixture-only, omit run identifiers and report each measured latency",
   );
   check(
     report.summaries.every(

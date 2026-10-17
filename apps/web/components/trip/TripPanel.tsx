@@ -52,7 +52,11 @@ export function TripPanel({
   const unpriced = itineraryActivities(plan).filter(
     (item) => item.estCost === undefined && !(item.id && picks.has(item.id)),
   ).length;
-  const unpricedWithinBudget = gap?.direction === "under" && unpriced > 0;
+  const narrowHeadroom =
+    gap?.direction === "under" && budget !== undefined && estimated !== undefined
+      ? budget - estimated <= budget * 0.05
+      : false;
+  const unpricedCaution = unpriced > 0 && (atBudget || narrowHeadroom);
   const [start, end] = plan.brief.dates;
   const dateRange = dateRangeLabel(start, end, locale) ?? `${start} – ${end}`;
   return (
@@ -80,7 +84,7 @@ export function TripPanel({
               </strong>
             </div>
             <span
-              className={`budget-status budget-status--${(atBudget || unpricedWithinBudget) && unpriced > 0 ? "caution" : !gap ? "unavailable" : over ? "over" : "within"}`}
+              className={`budget-status budget-status--${unpricedCaution ? "caution" : !gap ? "unavailable" : over ? "over" : "within"}`}
             >
               {!gap
                 ? t("Budget not set")
@@ -90,7 +94,7 @@ export function TripPanel({
                     ? unpriced > 0
                       ? t("At budget · unpriced stops not counted")
                       : t("At budget")
-                    : unpricedWithinBudget
+                    : unpricedCaution
                       ? t("Known estimate within budget · unpriced stops not counted")
                       : t("Within budget")}
             </span>

@@ -175,6 +175,15 @@ try {
   headroomPlan.brief.budgetTotal = headroomPlan.estTotal + 1;
   const headroomTitle = `${headroomPlan.brief.destination} headroom check`;
   const headroomCatalog = catalogFor(headroomPlan, "triage-trip-ui-headroom", headroomTitle);
+  const ampleHeadroomPlan = JSON.parse(JSON.stringify(budgetPlan));
+  ampleHeadroomPlan.budgetTotal = ampleHeadroomPlan.estTotal / 0.9;
+  ampleHeadroomPlan.brief.budgetTotal = ampleHeadroomPlan.budgetTotal;
+  const ampleHeadroomTitle = `${ampleHeadroomPlan.brief.destination} ample headroom check`;
+  const ampleHeadroomCatalog = catalogFor(
+    ampleHeadroomPlan,
+    "triage-trip-ui-ample-headroom",
+    ampleHeadroomTitle,
+  );
   const budgetTitle = `${budgetPlan.brief.destination} budget check`;
   const budgetCatalog = catalogFor(budgetPlan, "triage-trip-ui-budget", budgetTitle);
   const budgetContext = await browser.newContext({
@@ -268,6 +277,46 @@ try {
   );
   await headroomPage.screenshot({ path: `${OUT}/435-headroom-acceptance.png`, fullPage: true });
   await headroomContext.close();
+  const ampleHeadroomContext = await browser.newContext({
+    viewport: { width: 1024, height: 900 },
+    locale: "en-AU",
+    reducedMotion: "reduce",
+  });
+  const ampleHeadroomPage = await ampleHeadroomContext.newPage();
+  await ampleHeadroomPage.addInitScript(
+    ({ key, value, settingsKey, settings }) => {
+      localStorage.setItem(key, JSON.stringify(value));
+      localStorage.setItem(settingsKey, JSON.stringify(settings));
+    },
+    {
+      key: CATALOG_KEY,
+      value: ampleHeadroomCatalog,
+      settingsKey: SETTINGS_KEY,
+      settings: settingsFor("en"),
+    },
+  );
+  await ampleHeadroomPage.goto(BASE, { waitUntil: "domcontentloaded" });
+  await ampleHeadroomPage.locator(".workspace-app").waitFor();
+  await openChats(ampleHeadroomPage, 1024);
+  await ampleHeadroomPage
+    .locator(`.history-item__open[title=${JSON.stringify(ampleHeadroomTitle)}]`)
+    .waitFor();
+  await ampleHeadroomPage
+    .locator(`.history-item__open[title=${JSON.stringify(ampleHeadroomTitle)}]`)
+    .click();
+  await openTrip(ampleHeadroomPage, 1024);
+  await ampleHeadroomPage.locator(".budget-status").waitFor();
+  const ampleHeadroomStatus = await ampleHeadroomPage.locator(".budget-status").innerText();
+  check(
+    ampleHeadroomStatus === "Within budget",
+    "#435 unpriced admissions with more than 5% headroom do not trigger a caution",
+    ampleHeadroomStatus,
+  );
+  check(
+    (await ampleHeadroomPage.locator(".budget-status--caution").count()) === 0,
+    "#435 ample headroom stays in the ordinary budget state",
+  );
+  await ampleHeadroomContext.close();
   for (const scheme of ["light", "dark"])
     for (const lang of ["en", "zh"])
       for (const width of [375, 1024]) {

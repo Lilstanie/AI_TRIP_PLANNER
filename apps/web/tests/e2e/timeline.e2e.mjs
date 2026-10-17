@@ -1,6 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
+import { inspectPhoneTimeline } from "./support/timeline-phone-layout.mjs";
 
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT ?? "playwright");
@@ -121,22 +122,7 @@ async function shots(browser, width, height, tag) {
       `${tag} ${scheme}: each stop time sits on two lines and its digits do not stack (${JSON.stringify(stopTimes.slice(0, 3))})`,
     );
     if (width <= 520) {
-      const phoneTimes = await page.locator(".timeline-stop__time").evaluateAll((buttons) => {
-        const dotCenters = buttons.map((button) => {
-          const node = button.closest(".timeline-stop")?.querySelector(".timeline-stop__node");
-          if (!node) return null;
-          const box = node.getBoundingClientRect();
-          return box.left + box.width / 2;
-        });
-        return {
-          times: buttons.map((button) => ({
-            text: button.innerText.trim(),
-            clientWidth: button.clientWidth,
-            scrollWidth: button.scrollWidth,
-          })),
-          dotCenters,
-        };
-      });
+      const phoneTimes = await inspectPhoneTimeline(page);
       check(
         phoneTimes.times.length > 0 &&
           phoneTimes.times.every(
@@ -554,6 +540,19 @@ async function fareDecimals(browser) {
     width: 1440,
     height: 1000,
     scheme: "light",
+  });
+  await page.route("**/api/places/details", async (route) => {
+    const { placeId } = route.request().postDataJSON();
+    await route.fulfill({
+      json: {
+        place: {
+          id: placeId,
+          displayName: { text: placeId },
+          formattedAddress: "Tokyo",
+          location: { latitude: 35.68, longitude: 139.69 },
+        },
+      },
+    });
   });
   await page.route("**/api/trip/preview-edit", async (route) => {
     const response = await route.fetch();

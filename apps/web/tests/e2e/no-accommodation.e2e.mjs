@@ -30,6 +30,25 @@ async function plan(name, extra) {
 const normal = await plan("normal", {});
 const none = await plan("none", { noAccommodation: true });
 const booked = await plan("booked", { bookedStay: { name: "My own stay" } });
+const updateResponse = await fetch(`${process.env.BASE_URL ?? "http://localhost:3000"}/api/chat`, {
+  method: "POST",
+  headers: { "content-type": "application/json", "x-trip-data-mode": "mock" },
+  body: JSON.stringify({
+    tripId: none.tripId,
+    message: "不需要住宿",
+    brief: none.brief,
+    plan: none,
+  }),
+});
+const updateFrames = (await updateResponse.text()).trim().split("\n").map(JSON.parse);
+const update = updateFrames.at(-1);
+check(
+  updateResponse.ok &&
+    update?.type === "complete" &&
+    update.response.plan.brief.noAccommodation === true &&
+    !/无法从更新后的行程确认/.test(update.response.reply),
+  "Chinese no-accommodation update is confirmed when the plan reflects it",
+);
 check(
   normal.sections.some((s) => s.id === "accommodation" && s.estCost > 0),
   "normal trip retains priced accommodation",
