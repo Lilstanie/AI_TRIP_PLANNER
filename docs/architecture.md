@@ -56,7 +56,7 @@ step.
    explicit `TripBrief` updates from the message. `mode: "plan"` skips extraction and plans the
    submitted brief; `mode: "start"` requires every brief field in the message (see
    [API](api.md)).
-2. The workflow runs the specialists, detects conflicts, revises targeted specialists for up to
+2. The workflow runs applicable specialists, detects conflicts, revises targeted specialists for up to
    `maxRounds` rounds and assembles a `TripPlan` whose sections carry their own draft/needs-you state
    and whose `conflicts` list any request still unresolved.
 3. Progress events stream to the browser as NDJSON; the final frame carries `{ reply, plan }`.
@@ -386,6 +386,7 @@ when one could not be met, and never treat one as a verified fact.
 - `learnedPreferences`: wishes the traveller states in chat, with the whole list replaced each time.
 - `excludeFlights`: the traveller arranges flights.
 - `bookedStay`: the traveller has booked their stay.
+- `noAccommodation`: the traveller does not need a stay; this is independent of `bookedStay`.
 
 `specialistBrief` in `packages/orchestrator/src/supervisor.ts` appends the learned list to the
 traveller's own for the specialists, deduplicated and capped at 12. The stored brief keeps the two
@@ -397,7 +398,9 @@ A trip with no departure city, or one that departs from its only destination, ha
 With `excludeFlights`, transport neither searches nor prices flights and raises no fare conflict.
 With `bookedStay`, accommodation returns the booking unpriced without a search. The supervisor runs
 the accommodation specialist even when the model skips it. Once either field is set, the coordinator
-never asks about flights or other stays. The
+never asks about flights or other stays. With `noAccommodation: true`, the workflow skips the
+accommodation specialist and its stay allocation; an absent or false value preserves the previous
+behavior. The
 [conversation scope note](../.agents/notes/implemented/feature/2026-09-27-conversation-scope.md)
 explains why.
 

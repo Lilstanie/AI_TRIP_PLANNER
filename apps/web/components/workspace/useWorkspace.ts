@@ -41,6 +41,7 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
       draft: restored.draft,
       messages: restored.messages ?? (restored.plan ? seed : []),
       input: restored.input,
+      ask: restored.ask,
       previousTotal: restored.previousTotal,
     }),
   );
@@ -105,6 +106,7 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
       draft,
       messages,
       input,
+      ask,
       previousTotal,
       catalog,
       setCatalog,
@@ -217,6 +219,7 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
       draft: source ? source.draft : (conversation.draft ?? blankDraft()),
       messages: conversation.messages,
       input: conversation.input,
+      ask: conversation.ask,
     });
     activeConversation.current = id;
     setCatalog((current) => {
@@ -375,6 +378,7 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
       draft,
       messages,
       input,
+      ask,
       previousTotal,
       busy: state.busy,
       activity: state.activity,
@@ -382,7 +386,6 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
       errors: state.errors,
 
       canRetry: state.retry !== undefined,
-      ask,
       selectedActivity,
       mapRoutes: state.mapRoutes,
       estimateChange: state.estimateChange,

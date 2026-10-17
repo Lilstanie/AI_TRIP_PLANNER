@@ -116,6 +116,14 @@ export function PreferenceList({ value, onChange, errors }: Props) {
   const error = errors.preferences || problem;
   return (
     <section className="fact-section" aria-label={t("Your preferences")}>
+      <label className="preference-check">
+        <input
+          type="checkbox"
+          checked={value.noAccommodation ?? false}
+          onChange={(event) => onChange({ ...value, noAccommodation: event.target.checked })}
+        />
+        {t("No accommodation needed")}
+      </label>
       <label className="sr-only" htmlFor="fact-preference">
         {t("Add a preference")}
       </label>

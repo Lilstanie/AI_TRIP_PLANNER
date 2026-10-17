@@ -110,7 +110,7 @@ export function ChatsPanel({
               </article>
             ))}
             {!trips.length && (
-              <p className="history-empty">
+              <p className="history-empty" role={searching ? "status" : undefined}>
                 {searching ? t("No matching trips.") : t("No trips yet. Start one with New trip.")}
               </p>
             )}
@@ -146,7 +146,7 @@ export function ChatsPanel({
             </article>
           ))}
           {!chats.length && (
-            <p className="history-empty">
+            <p className="history-empty" role={searching ? "status" : undefined}>
               {searching ? t("No matching chats.") : t("No chats yet.")}
             </p>
           )}

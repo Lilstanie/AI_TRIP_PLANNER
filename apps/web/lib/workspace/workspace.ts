@@ -1,3 +1,4 @@
+import { parsePendingAsk, type PendingAsk } from "./ask-user";
 import {
   AgentProgressEvent,
   BookedStay,
@@ -66,6 +67,7 @@ export type Draft = {
   legModes?: LegModeChoice[];
 
   bookedStay?: BookedStay;
+  noAccommodation?: boolean;
 
   party?: Party;
 
@@ -111,6 +113,7 @@ export function draftFor(brief: TripBrief): Draft {
     ...(brief.learnedPreferences?.length ? { learnedPreferences: brief.learnedPreferences } : {}),
     ...(brief.excludeFlights ? { excludeFlights: true } : {}),
     ...(brief.legModes?.length ? { legModes: brief.legModes } : {}),
+    ...(brief.noAccommodation !== undefined ? { noAccommodation: brief.noAccommodation } : {}),
     ...(brief.bookedStay ? { bookedStay: brief.bookedStay } : {}),
     nationality: brief.nationality ?? "",
     roomAllocation: brief.accommodation?.roomAllocation ?? "shared",
@@ -153,7 +156,8 @@ export function isDraft(value: unknown): value is Draft {
     (value.budgetSource === undefined ||
       TripBrief.shape.budgetSource.unwrap().safeParse(value.budgetSource).success) &&
     (value.displayCurrency === undefined || Currency.safeParse(value.displayCurrency).success) &&
-    (value.bookedStay === undefined || BookedStay.safeParse(value.bookedStay).success)
+    (value.bookedStay === undefined || BookedStay.safeParse(value.bookedStay).success) &&
+    (value.noAccommodation === undefined || typeof value.noAccommodation === "boolean")
   );
 }
 
@@ -180,6 +184,7 @@ export function parseDraft(draft: Draft, current: Pick<TripBrief, "tripId"> & Pa
 
     legModes: draft.legModes?.length ? draft.legModes : undefined,
     bookedStay: draft.bookedStay,
+    noAccommodation: draft.noAccommodation,
     nationality: draft.nationality.trim() || undefined,
     accommodation: {
       roomAllocation: draft.roomAllocation,
@@ -206,6 +211,7 @@ export function knownFromDraft(draft: Draft): PartialTripBrief {
     excludeFlights: draft.excludeFlights || undefined,
     legModes: draft.legModes?.length ? draft.legModes : undefined,
     bookedStay: draft.bookedStay,
+    noAccommodation: draft.noAccommodation,
   });
   return parsed.success ? parsed.data : {};
 }
@@ -256,6 +262,7 @@ export function draftWithKnown(draft: Draft, known: PartialTripBrief): Draft {
     excludeFlights: known.excludeFlights ?? draft.excludeFlights,
     legModes: known.legModes ?? draft.legModes,
     bookedStay: known.bookedStay ?? draft.bookedStay,
+    noAccommodation: known.noAccommodation ?? draft.noAccommodation,
   };
 }
 
@@ -268,6 +275,7 @@ export type Snapshot = {
   messages: Message[];
   input: string;
   previousTotal?: number;
+  ask?: PendingAsk;
 };
 export const CURRENT_KEY = "trip-workspace-v1";
 const object = (value: unknown): value is Record<string, unknown> =>
@@ -315,6 +323,7 @@ export function parseSnapshot(value: unknown): Snapshot {
         : value.draft,
     plan,
     messages: withValidAttachments(withValidActivity(value.messages as Message[])),
+    ask: parsePendingAsk(value.ask),
   } as Snapshot;
 }
 

@@ -26,6 +26,7 @@ export const BriefPatchSchema = z.object({
   excludeFlights: z.boolean().optional(),
   legModes: z.array(LegModeChoice).max(12).optional(),
   bookedStay: BookedStay.optional(),
+  noAccommodation: z.boolean().optional(),
 });
 export type BriefPatch = z.infer<typeof BriefPatchSchema>;
 

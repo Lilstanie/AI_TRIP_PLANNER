@@ -70,7 +70,7 @@ function Field({
         </small>
       )}
       {error && (
-        <small className="error-text" id={`${id}-error`}>
+        <small className="error-text" role="alert" id={`${id}-error`}>
           {localizeNotice(error)}
         </small>
       )}
@@ -142,6 +142,7 @@ function WhoFields({ value, onChange, errors }: FieldsProps) {
               <button
                 type="button"
                 className="fact-stepper__button"
+                aria-describedby={errors.groupSize ? "fact-groupSize-error" : undefined}
                 aria-label={t("Remove {v0} {v1}", {
                   v0: locale === "zh" ? "" : article,
                   v1: locale === "zh" ? t(label) : singular,
@@ -157,6 +158,7 @@ function WhoFields({ value, onChange, errors }: FieldsProps) {
               <button
                 type="button"
                 className="fact-stepper__button"
+                aria-describedby={errors.groupSize ? "fact-groupSize-error" : undefined}
                 aria-label={t("Add {v0} {v1}", {
                   v0: locale === "zh" ? "" : article,
                   v1: locale === "zh" ? t(label) : singular,
@@ -170,7 +172,7 @@ function WhoFields({ value, onChange, errors }: FieldsProps) {
         );
       })}
       {errors.groupSize && (
-        <small className="error-text fact-form__error" id="fact-groupSize-error">
+        <small className="error-text fact-form__error" role="alert" id="fact-groupSize-error">
           {localizeNotice(errors.groupSize)}
         </small>
       )}

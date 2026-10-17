@@ -163,6 +163,7 @@ export function TripFactChips(props: Props) {
                 chips.current[fact] = node;
               }}
               className="fact-chip"
+              title={label || undefined}
               data-empty={label ? undefined : "true"}
             >
               {label ? (
@@ -171,7 +172,7 @@ export function TripFactChips(props: Props) {
                     {t(NAMES[fact])}
                     {locale === "zh" ? "：" : ": "}
                   </span>
-                  {label}
+                  <span className="fact-chip__value">{label}</span>
                 </>
               ) : (
                 t(EMPTY[fact])

@@ -38,6 +38,7 @@ export const PartialTripBrief = z.object({
 
   legModes: z.array(LegModeChoice).max(12).optional(),
   bookedStay: BookedStay.optional(),
+  noAccommodation: z.boolean().optional(),
 });
 export type PartialTripBrief = z.infer<typeof PartialTripBrief>;
 

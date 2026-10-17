@@ -141,7 +141,9 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     left in the field is kept on Done, and additions and removals are announced in a status region.
     Nationality, room allocation, minimum guest rating and free cancellation are no longer edited;
     a stored brief's values pass through unchanged, and a stored rating the schema would reject
-    counts as "no minimum".
+    counts as "no minimum". The No accommodation checkbox records that no stay is needed; leaving it
+    unchecked preserves normal accommodation planning, and it does not replace a separately recorded
+    booked stay.
   - Below the list, "Learned from your chats" shows what the assistant recorded from the
     conversation, when there is anything:
     - each learned preference;
@@ -265,7 +267,8 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     rows, each with a DSH-style disclosure — a leading icon that crossfades to a chevron on hover or
     while open, and no trailing chevron. Every row starts collapsed, busy or settled alike, and a
     click opens only that row; there is no expand-all control. The Think row's own collapsed summary
-    is the turn's count line (`N tool calls · M subagents · K rounds`). A turn with no counts reads
+    is the turn's count line (`N tool calls · M subagents · K rounds`), with rounds counting actual
+    work rounds. A turn with no counts reads
     Trip plan ready when it delivered a plan, Need more details when it ends by asking the traveller,
     Needs attention when it failed, and Done otherwise, including messages saved before the turn's
     outcome was recorded. While busy it instead follows
@@ -273,8 +276,10 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     result's own rows, each with a category glyph (a fork and knife, a bed, a plane, and so on) drawn
     from the result's own kind, or the site's own icon when the provider returned that row's web
     page. The call's arguments read as one line, such as `Sydney Airport → The Rocks · 2026-11-10`. Reasoning deltas from one model call merge into a single row rather
-    than arriving as separate fragments. A round above 1 is shown only with the coordinator's own
-    explanation of what it revised. The surface it imitates, and the reasoning behind each
+    than arriving as separate fragments. A round above 1 uses the coordinator's explanation when
+    available, and otherwise falls back to its localized Round N label; duplicate round headings
+    are omitted. A settled agent row without
+    lifecycle events is marked Interrupted. The surface it imitates, and the reasoning behind each
     divergence, are recorded in the [DSH thinking UI reference](design/dsh-thinking-ui.md).
   - Exactly one `Deep diving` line is the surface's only live region; it grows an elapsed clock after
     15 seconds.
@@ -292,7 +297,9 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     can instead ask a structured question: a card takes the composer's seat with the question, an
     optional recommended choice, and (for more than one question) a pager. Submitting sends the
     answers as the traveller's next message; closing the card returns the plain composer, and the
-    question text stays visible in the assistant's own message either way. There is still no
+    question text stays visible in the assistant's own message either way. An unanswered question
+    survives reload and can still be answered after restoring the conversation. If submission fails,
+    the submitted text returns to the composer unless the traveller has entered newer text. There is still no
     "apply the traveller's decision" feature for a plan choice a specialist already made — a
     structured question is only ever about planning input, never an approval — so a traveller who
     wants the plan itself changed still says so in chat or edits the trip. See
@@ -353,6 +360,10 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
 
 ## Reviewing a plan
 
+When the known estimate equals the budget, the budget panel says “At budget” instead of reporting
+zero under budget. If admissions remain unpriced, the status adds “admissions not counted” and uses
+the caution colour; those missing costs remain listed beneath the estimate.
+
 Names of removed surfaces below appear only to explain their removal; nothing in this section
 describes current behaviour except the absences.
 
@@ -408,9 +419,10 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   [Agent Note](../.agents/notes/implemented/architecture/2026-10-07-selection-id-on-proposal-items.md).
 - **Travel tips.** The destination guide's advice (customs and etiquette, safety, entry and health,
   weather and packing, and places to explore) is a collapsible block at the top of the day view. It
-  opens the first time. Whether this viewer folded it is remembered for that trip in this browser
-  (`localStorage`, key `trip-tips-folded:<tripId>`); where storage is blocked it opens each time. The
-  block is absent when the plan has no guide.
+  opens the first time outside an ongoing trip. Whether this viewer folded it is remembered for that trip in this browser
+  (`localStorage`, key `trip-tips-folded:<tripId>`); without a saved choice it follows the on-trip default. The
+  block is absent when the plan has no guide. Advice spanning multiple calendar months explicitly identifies that its scope is the first month.
+- **On-trip day.** When today falls within the trip dates, the day view initially selects today and marks it “Today”, using the first resolved destination’s time zone. Budget and travel tips initially collapse; manual day selection and saved tips preferences take precedence. Without verified destination coordinates, the existing first-day defaults remain. Timed next-stop highlighting is deferred.
 - **Restaurants.** The restaurants the dining specialist found are listed under Ideas, marked
   "Restaurant suggestion". Schedule on a day copies one into the day as a stop, with no price, and the
   change can be undone; Remove deletes the suggestion. The dining meal budget stays in the plan's
@@ -895,7 +907,7 @@ the account section explains that everything stays in this browser.
 
 ## Out of scope
 
-Booking fulfilment, payments, multi-user collaboration and on-trip mode remain out of scope. Mock
+Booking fulfilment, payments, multi-user collaboration and timed next-stop highlighting remain out of scope. Mock
 places and bookings must never be presented as real supplier data; live search and estimated prices
 must retain their provider and freshness labels.
 

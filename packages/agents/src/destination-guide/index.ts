@@ -221,6 +221,14 @@ async function planDestinationGuide(
     draft = fallbackDraft(brief, month, places);
   }
 
+  const monthLabel = (date: string) =>
+    new Intl.DateTimeFormat("en", { month: "long", year: "numeric", timeZone: "UTC" }).format(
+      new Date(`${date}T12:00:00Z`),
+    );
+  const scope =
+    brief.dates[0].slice(0, 7) !== brief.dates[1].slice(0, 7)
+      ? `Planning context for ${monthLabel(brief.dates[0])} only; recheck guidance for the remaining months through ${monthLabel(brief.dates[1])}. `
+      : "";
   const packing = draft.packing.map((item) => item.replace(/[\s.!;,]+$/, "")).filter(Boolean);
 
   return {
@@ -233,14 +241,14 @@ async function planDestinationGuide(
         detail: `${attraction.name}: ${attraction.detail}`,
       })),
       { kind: "customs", detail: draft.customs.join(" ") },
-      { kind: "safety", detail: draft.safety.join(" ") },
+      { kind: "safety", detail: scope + draft.safety.join(" ") },
       {
         kind: "entry-health",
-        detail: `${draft.entryHealth.join(" ")} Verify all entry and health rules against current official government sources before booking or departure.`,
+        detail: `${scope}${draft.entryHealth.join(" ")} Verify all entry and health rules against current official government sources before booking or departure.`,
       },
       {
         kind: "weather-packing",
-        detail: weatherResult?.summary ?? draft.weather,
+        detail: scope + (weatherResult?.summary ?? draft.weather),
         packing,
       },
     ],

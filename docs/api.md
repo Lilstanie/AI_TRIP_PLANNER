@@ -60,7 +60,7 @@ Contract: `ChatRequest`, `ChatResponse` and `AgentProgressEvent` in `packages/sh
 never writes them, and every specialist and the supervisor receive them with the brief. `nationality`
 and `accommodation` are still accepted and passed through, but no current screen sets them.
 
-Three more optional fields on `brief` and `known` come from the conversation:
+Four more optional fields on `brief` and `known` come from the conversation:
 
 - `learnedPreferences` has the same limits as `preferences` and holds the wishes the coordinator
   heard in chat. Specialists receive it appended to `preferences`.
@@ -68,8 +68,13 @@ Three more optional fields on `brief` and `known` come from the conversation:
   "arranged by you" items, with no fares and no `flights` selection.
 - `bookedStay: { name, note? }` is a stay the traveller has booked. The accommodation section is that
   one unpriced item, with no `stays` candidates.
+- `noAccommodation: true` means the traveller does not need a stay. The accommodation specialist is
+  skipped and no stay allocation is made. It is independent of `bookedStay`; absent or `false` keeps
+  the existing accommodation-planning behavior.
 
-The traveller can remove these from Trip preferences, and the client then sends them without them.
+Removing a saved optional value from Trip preferences omits it from the request. `noAccommodation`
+is a separate explicit choice: turning it off sends `false`, so it can override a previously saved
+`true` value.
 
 `brief.displayCurrency` and `known.displayCurrency` are optional too: one of `AUD`, `CNY`, `USD` or `JPY`
 (`Currency` in `packages/shared/src/money.ts`), the last currency the traveller named for the trip, with
@@ -151,6 +156,8 @@ Only the coordinator sees attachments: images travel to it as OpenAI-style `imag
 blocks, text files are inlined into its message under a delimiter naming the file, and the
 specialists' inputs are unchanged. Without a provider key, images are ignored and the inlined text is
 still read.
+
+New planning requests whose start or end date precedes the current UTC date receive an explicit date clarification instead of a plan. Supplying an existing plan preserves historical editing. When an edit leaves the material itinerary, stays, transport and costs unchanged, the reply states that the plan was unchanged rather than claiming the requested edit completed.
 
 Optional `mode` values:
 

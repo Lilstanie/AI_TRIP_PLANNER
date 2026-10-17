@@ -23,7 +23,7 @@ const brief: TripBrief = {
   tripId: "chat-test",
   userId: "chat-user",
   destination: "Tokyo",
-  dates: ["2026-06-15", "2026-06-22"],
+  dates: ["2027-06-15", "2027-06-22"],
   groupSize: 2,
   budgetTotal: 4000,
 };
@@ -71,6 +71,202 @@ const run = (
 ) => runTripChat(request, { model, specialists: [itinerary], tools, mem, ...extra });
 
 describe("the conversation agent decides what to do", () => {
+  it("asks before planning a new trip with dates that have already passed", async () => {
+    vi.mocked(itinerary.invoke).mockClear();
+    const { mem } = memoryStore();
+
+    await expect(
+      runTripChat(
+        {
+          tripId: "fresh-hobart",
+          message: "Plan 2 days in Hobart for 1 person, budget AUD 800, from 2025-01-10",
+          interfaceLanguage: "en",
+        },
+        {
+          model: scriptedModel(
+            [
+              {
+                name: "update_trip_brief",
+                args: {
+                  destination: "Hobart",
+                  startDate: "2025-01-10",
+                  endDate: "2025-01-11",
+                  groupSize: 1,
+                  budgetAmount: 800,
+                  budgetCurrency: "AUD",
+                },
+                id: "update",
+              },
+            ],
+            [{ name: "replan_trip", args: {}, id: "replan" }],
+          ),
+          specialists: [itinerary],
+          tools,
+          mem,
+          clock: () => new Date("2026-10-17T12:00:00.000Z"),
+        },
+      ),
+    ).rejects.toMatchObject({
+      askUser: {
+        type: "ask_user",
+        questions: [expect.objectContaining({ question: expect.stringMatching(/past|passed/i) })],
+      },
+    });
+
+    expect(itinerary.invoke).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { label: "yesterday", dates: ["2026-10-16", "2026-10-17"], asks: true },
+    { label: "today", dates: ["2026-10-17", "2026-10-18"], asks: false },
+    { label: "tomorrow", dates: ["2026-10-18", "2026-10-19"], asks: false },
+  ])(
+    "uses the UTC calendar boundary for a fresh mode=plan brief starting $label",
+    async ({ dates, asks }) => {
+      vi.mocked(itinerary.invoke).mockClear();
+      const freshBrief = {
+        ...brief,
+        tripId: `fresh-${dates[0]}`,
+        dates: dates as [string, string],
+      };
+      const execute = () =>
+        runTripChat(
+          {
+            tripId: freshBrief.tripId,
+            mode: "plan",
+            message: "Plan this trip",
+            brief: freshBrief,
+          },
+          {
+            specialists: [itinerary],
+            tools,
+            mem: memoryStore().mem,
+            clock: () => new Date("2026-10-17T23:30:00.000Z"),
+          },
+        );
+
+      if (asks) {
+        await expect(execute()).rejects.toMatchObject({
+          askUser: {
+            type: "ask_user",
+            questions: [
+              expect.objectContaining({ question: expect.stringMatching(/past|passed/i) }),
+            ],
+          },
+        });
+        expect(itinerary.invoke).not.toHaveBeenCalled();
+      } else {
+        await expect(execute()).resolves.toMatchObject({ plan: { brief: { dates } } });
+        expect(itinerary.invoke).toHaveBeenCalled();
+      }
+    },
+  );
+
+  it("does not treat a fresh submitted brief as proof of an existing historical trip", async () => {
+    vi.mocked(itinerary.invoke).mockClear();
+    const freshBrief = {
+      ...brief,
+      tripId: "fresh-brief-past-date",
+      dates: ["2026-10-16", "2026-10-18"] as [string, string],
+    };
+
+    await expect(
+      run(
+        { tripId: freshBrief.tripId, mode: "chat", message: "Plan this trip", brief: freshBrief },
+        scriptedModel([{ name: "replan_trip", args: {}, id: "replan" }]),
+        memoryStore().mem,
+        { clock: () => new Date("2026-10-17T12:00:00.000Z") },
+      ),
+    ).rejects.toMatchObject({
+      askUser: {
+        questions: [expect.objectContaining({ question: expect.stringMatching(/past|passed/i) })],
+      },
+    });
+    expect(itinerary.invoke).not.toHaveBeenCalled();
+  });
+
+  it("allows edits to a persisted historical plan", async () => {
+    vi.mocked(itinerary.invoke).mockClear();
+    const historicalBrief = { ...brief, dates: ["2026-06-15", "2026-06-22"] as [string, string] };
+    const { mem } = memoryStore();
+    const existing = await runTripChat(
+      {
+        tripId: historicalBrief.tripId,
+        mode: "plan",
+        message: "Plan this trip",
+        brief: historicalBrief,
+      },
+      { specialists: [itinerary], tools, mem, clock: () => new Date("2026-06-14T12:00:00.000Z") },
+    );
+
+    const edited = await run(
+      {
+        tripId: historicalBrief.tripId,
+        message: "Change the destination to Osaka",
+        brief: historicalBrief,
+        plan: existing.plan,
+      },
+      scriptedModel(
+        [{ name: "update_trip_brief", args: { destination: "Osaka" }, id: "update" }],
+        [{ name: "replan_trip", args: {}, id: "replan" }],
+      ),
+      mem,
+      { clock: () => new Date("2026-10-17T12:00:00.000Z") },
+    );
+
+    expect(edited.plan.brief.destination).toBe("Osaka");
+    expect(itinerary.invoke).toHaveBeenCalled();
+  });
+
+  it("does not report an unchanged replan as a completed edit", async () => {
+    const { mem } = memoryStore();
+    const before = await runTripChat(
+      { tripId: brief.tripId, mode: "plan", message: "Plan it", brief },
+      { specialists: [itinerary], tools, mem },
+    );
+
+    const after = await run(
+      {
+        tripId: brief.tripId,
+        message: "Remove day 3 and add a harbour cruise on day 2",
+        brief,
+        plan: before.plan,
+      },
+      scriptedModel([{ name: "replan_trip", args: {}, id: "replan" }]),
+      mem,
+    );
+
+    expect(
+      after.plan.sections.map(({ label, estCost, proposal }) => ({
+        label,
+        estCost,
+        items: proposal?.items.map(({ kind, day, startTime, endTime, location, estCost }) => ({
+          kind,
+          day,
+          startTime,
+          endTime,
+          location,
+          estCost,
+        })),
+      })),
+    ).toEqual(
+      before.plan.sections.map(({ label, estCost, proposal }) => ({
+        label,
+        estCost,
+        items: proposal?.items.map(({ kind, day, startTime, endTime, location, estCost }) => ({
+          kind,
+          day,
+          startTime,
+          endTime,
+          location,
+          estCost,
+        })),
+      })),
+    );
+    expect(after.reply).toMatch(/no change|unchanged/i);
+    expect(after.reply).not.toMatch(/\bdone\b|removed day 3|added.*cruise/i);
+  });
+
   it("records what the traveller stated and replans when asked", async () => {
     const { mem, turns } = memoryStore();
     const model = scriptedModel(
@@ -159,7 +355,7 @@ describe("the conversation agent decides what to do", () => {
     const result = await run(
       {
         tripId: "blank",
-        message: "2026-11-02 to 2026-11-06, 3 people, budget 2400",
+        message: "2027-11-02 to 2027-11-06, 3 people, budget 2400",
         known: { destination: "Lisbon" },
       },
       scriptedModel(
@@ -167,8 +363,8 @@ describe("the conversation agent decides what to do", () => {
           {
             name: "update_trip_brief",
             args: {
-              startDate: "2026-11-02",
-              endDate: "2026-11-06",
+              startDate: "2027-11-02",
+              endDate: "2027-11-06",
               groupSize: 3,
               budgetAmount: 2400,
             },
@@ -182,7 +378,7 @@ describe("the conversation agent decides what to do", () => {
 
     expect(result.plan.brief).toMatchObject({
       destination: "Lisbon",
-      dates: ["2026-11-02", "2026-11-06"],
+      dates: ["2027-11-02", "2027-11-06"],
       groupSize: 3,
       budgetTotal: 2400,
     });
@@ -234,8 +430,8 @@ describe("currency in the brief update tool", () => {
             name: "update_trip_brief",
             args: {
               destination: "悉尼",
-              startDate: "2026-10-06",
-              endDate: "2026-10-09",
+              startDate: "2027-10-06",
+              endDate: "2027-10-09",
               groupSize: 2,
               budgetAmount: 3000,
               budgetCurrency: "CNY",
@@ -256,15 +452,15 @@ describe("currency in the brief update tool", () => {
   it("treats an explicit base-currency amount as an identity, not a second conversion", async () => {
     const { mem } = memoryStore();
     const result = await run(
-      { tripId: "blank", message: "Sydney, 2026-10-06 to 2026-10-09, 2 people, AUD 3,000.00" },
+      { tripId: "blank", message: "Sydney, 2027-10-06 to 2027-10-09, 2 people, AUD 3,000.00" },
       scriptedModel(
         [
           {
             name: "update_trip_brief",
             args: {
               destination: "Sydney",
-              startDate: "2026-10-06",
-              endDate: "2026-10-09",
+              startDate: "2027-10-06",
+              endDate: "2027-10-09",
               groupSize: 2,
               budgetAmount: 3000,
               budgetCurrency: "AUD",
@@ -319,7 +515,7 @@ describe("tolerating what models actually emit", () => {
     const result = await run(
       { tripId: brief.tripId, message: "leave on the 6th", brief },
       scriptedModel(
-        [{ name: "update_trip_brief", args: { startDate: "2026-10-06" }, id: "c1" }],
+        [{ name: "update_trip_brief", args: { startDate: "2027-10-06" }, id: "c1" }],
         [{ name: "replan_trip", args: {}, id: "c2" }],
       ),
       mem,
@@ -362,7 +558,7 @@ describe("without a provider key", () => {
   it("plans from what the patterns can read", async () => {
     const { mem } = memoryStore();
     const result = await offline(
-      { tripId: "blank", message: "Lisbon, 2026-11-02 to 2026-11-06, 3 people, budget $2400" },
+      { tripId: "blank", message: "Lisbon, 2027-11-02 to 2027-11-06, 3 people, budget $2400" },
       mem,
     );
     expect(result.plan.brief).toMatchObject({
@@ -378,7 +574,7 @@ describe("without a provider key", () => {
     const result = await offline(
       {
         tripId: "blank",
-        message: "Tokyo, 2026-11-02 to 2026-11-06, 十三个人, budget $2400",
+        message: "Tokyo, 2027-11-02 to 2027-11-06, 十三个人, budget $2400",
       },
       mem,
     );
@@ -558,7 +754,7 @@ describe("asking the traveller a structured question", () => {
 
     expect(asked.known).toEqual({
       destination: "Tokyo",
-      dates: ["2026-06-15", "2026-06-22"],
+      dates: ["2027-06-15", "2027-06-22"],
       groupSize: 2,
       budgetTotal: 4000,
     });
@@ -732,7 +928,7 @@ describe("the traveller's trip preferences reach the planner", () => {
     const result = await run(
       {
         tripId: "blank",
-        message: "2026-11-02 to 2026-11-06, 3 people, budget 2400",
+        message: "2027-11-02 to 2027-11-06, 3 people, budget 2400",
         known: { destination: "Lisbon", preferences },
       },
       scriptedModel(
@@ -740,8 +936,8 @@ describe("the traveller's trip preferences reach the planner", () => {
           {
             name: "update_trip_brief",
             args: {
-              startDate: "2026-11-02",
-              endDate: "2026-11-06",
+              startDate: "2027-11-02",
+              endDate: "2027-11-06",
               groupSize: 3,
               budgetAmount: 2400,
             },
@@ -790,7 +986,7 @@ describe("the traveller's trip preferences reach the planner", () => {
     const result = await runTripChat(
       {
         tripId: "blank",
-        message: "Lisbon, 2026-11-02 to 2026-11-06, 3 people, budget $2400",
+        message: "Lisbon, 2027-11-02 to 2027-11-06, 3 people, budget $2400",
         known: { preferences },
       },
       { specialists: [itinerary], tools, mem: memoryStore().mem },

@@ -1,3 +1,4 @@
+import { parsePendingAsk, type PendingAsk } from "./ask-user";
 import type { TripPlan } from "@trip/shared";
 import {
   CURRENT_KEY,
@@ -27,6 +28,7 @@ export type ConversationRecord = {
   snapshot?: Snapshot;
 
   draft?: Draft;
+  ask?: PendingAsk;
 };
 
 export type TripRecord = {
@@ -137,6 +139,7 @@ function conversationFrom(snapshot: Snapshot, tripId: string): ConversationRecor
     tripId,
     messages: clone(snapshot.messages),
     input: snapshot.input,
+    ask: snapshot.ask,
     snapshot: clone(parseSnapshot(snapshot)),
   };
 }
@@ -257,6 +260,7 @@ export function parseConversation(value: unknown): ConversationRecord {
     ...(value.tripId === undefined ? {} : { tripId: value.tripId }),
     messages: withValidAttachments(withValidActivity(clone(value.messages) as Message[])),
     input: value.input,
+    ask: parsePendingAsk(value.ask),
     ...(value.renamed ? { renamed: true } : {}),
     ...(snapshot ? { snapshot } : {}),
     ...(value.draft === undefined ? {} : { draft: clone(value.draft) as Draft }),
@@ -351,6 +355,7 @@ export function upsertConversationDraft(
   conversation: Pick<ConversationRecord, "id" | "messages" | "input"> & {
     title?: string;
     draft?: Draft;
+    ask?: PendingAsk;
   },
 ): WorkspaceCatalog {
   const next = parseCatalog(catalog);
@@ -363,6 +368,7 @@ export function upsertConversationDraft(
     updatedAt: now,
     messages: clone(conversation.messages),
     input: conversation.input,
+    ask: conversation.ask,
     draft: clone(conversation.draft ?? blankDraft()),
   };
   if (existing >= 0) {
@@ -423,6 +429,7 @@ export type RestoredWorkspace = {
   messages?: Message[];
   input: string;
   previousTotal?: number;
+  ask?: PendingAsk;
   catalog: WorkspaceCatalog;
 
   conversationId?: string;
@@ -453,12 +460,19 @@ export function restoreWorkspace(storage: Pick<Storage, "getItem">): RestoredWor
     const active = catalog.conversations.find((item) => item.id === catalog.activeConversationId);
 
     const conversation =
-      active && isBlankConversation(active) ? active : reusableBlankConversation(catalog);
+      active && (isBlankConversation(active) || active.ask)
+        ? active
+        : reusableBlankConversation(catalog);
     if (conversation) {
       catalog.activeConversationId = conversation.id;
       result.conversationId = conversation.id;
       result.messages = conversation.messages;
       result.input = conversation.input;
+      result.ask = conversation.ask;
+      if (conversation.ask && conversation.snapshot) {
+        result.plan = conversation.snapshot.plan;
+        result.previousTotal = conversation.snapshot.previousTotal;
+      }
       result.draft = conversation.draft ?? blankDraft();
     } else {
       delete catalog.activeConversationId;

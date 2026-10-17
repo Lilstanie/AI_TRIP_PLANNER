@@ -28,6 +28,7 @@ export function TripPanel({
     budget && estimated !== undefined ? Math.min(100, Math.round((estimated / budget) * 100)) : 0;
   const gap =
     estimated === undefined ? undefined : budgetGap(estimated, budget, plan.brief.budgetSource);
+  const atBudget = budget !== undefined && estimated === budget;
   const over = gap?.direction === "over";
 
   const picks = restaurantIds(plan);
@@ -52,7 +53,13 @@ export function TripPanel({
           <span
             className={`budget-status budget-status--${!gap ? "unavailable" : over ? "over" : "within"}`}
           >
-            {!gap ? t("Budget not set") : over ? t("Over budget") : t("Within budget")}
+            {!gap
+              ? t("Budget not set")
+              : over
+                ? t("Over budget")
+                : atBudget
+                  ? t("At budget")
+                  : t("Within budget")}
           </span>
         </div>
         <div
@@ -66,7 +73,11 @@ export function TripPanel({
           <span style={{ width: `${pct}%` }} />
         </div>
         <p className={`trip__budget-delta${over ? " trip__budget-delta--over" : ""}`}>
-          {gap ? t(gap.key, gap.params) : t("Budget not set")}
+          {atBudget
+            ? t("The known estimate equals your budget.")
+            : gap
+              ? t(gap.key, gap.params)
+              : t("Budget not set")}
         </p>
         {budgetConflicts.length > 0 && (
           <ul className="trip-panel__conflicts" aria-label={t("Open conflicts")}>

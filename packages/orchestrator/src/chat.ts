@@ -53,6 +53,8 @@ export interface TripChatOptions extends OrchestratorOptions {
   model?: BaseChatModel;
 
   extractor?: BriefExtractor;
+
+  clock?: () => Date;
 }
 
 export class IncompleteBriefError extends Error {
@@ -135,6 +137,12 @@ export const BriefUpdate = z.object({
     .describe(
       "The whole list of per-hop travel choices the traveller has stated, replacing the previous one: only hops between the trip's own cities, or its origin and first city. Keep earlier entries from knownSoFar.legModes unless they changed, and leave an entry out when the traveller takes that choice back.",
     ),
+  noAccommodation: z
+    .boolean()
+    .nullish()
+    .describe(
+      "True only when the traveller needs no accommodation; false when they want accommodation again. Separate from an already booked stay.",
+    ),
   bookedStayName: z
     .string()
     .nullish()
@@ -192,6 +200,9 @@ function toPatch(update: z.infer<typeof BriefUpdate>): BriefPatch {
             })
             .slice(0, 12),
         }
+      : {}),
+    ...(typeof update.noAccommodation === "boolean"
+      ? { noAccommodation: update.noAccommodation }
       : {}),
     ...(text(update.bookedStayName)
       ? {
@@ -299,6 +310,7 @@ Choosing what to do:
 - knownSoFar.preferences, when present, is the traveller's own list of trip preferences from the preferences editor. Respect it when you answer and never ask for something it already says; the planner receives it with the brief.
 - When the traveller states a lasting wish in chat ("no dietary requirements", "we like quiet places", "no early starts"), record it with update_trip_brief learnedPreferences: pass the whole updated list, keeping earlier entries in knownSoFar.learnedPreferences unless they changed. Never copy the traveller's own preferences into it.
 - When they say how they want to make a particular hop ("take the train to Sydney", "we would rather drive to Wollongong", "fly that leg instead"), record it with update_trip_brief travelModeChoices: pass the whole updated list, keeping earlier entries in knownSoFar.legModes unless they changed, and leaving one out when they take it back. Name the hop with the trip's own place names. Then replan. The planner may answer that the mode is not offered for that hop; do not promise it beforehand.
+- When they say they need no accommodation, set noAccommodation true and replan. This omits all stay searching, costs and sections. Set false when they want accommodation again. An already booked stay remains bookedStay, not noAccommodation.
 - When they say they arrange flights themselves or flights should not be considered, set excludeFlights true. When they say their stay is already booked, pass bookedStayName (and bookedStayNote). Then replan.
 - Once knownSoFar.excludeFlights is true, never ask about, price or mention flights, and never tell them the budget is missing a flight fare. Once knownSoFar.bookedStay is set, never suggest, compare or ask about other stays.
 - For a question you can answer from the trip context or from general travel knowledge, just answer. Do not replan.
@@ -358,6 +370,61 @@ function planDigest(plan: TripPlan, currency: Currency) {
       whatWouldFixIt: conflict.constraints,
     })),
   };
+}
+
+function materialPlan(plan: TripPlan): unknown {
+  const identityFields = new Set(["tripId", "userId", "editVersion", "round"]);
+  const timestampFields = new Set(["createdAt", "updatedAt", "timestamp", "observedAt"]);
+  const normalize = (value: unknown, path: string[] = []): unknown => {
+    if (Array.isArray(value))
+      return value.map((item, index) => normalize(item, [...path, String(index)]));
+    if (!value || typeof value !== "object") return value;
+    const record = value as Record<string, unknown>;
+    const selected =
+      typeof record.selectedId === "string" && Array.isArray(record.candidates)
+        ? record.candidates.find(
+            (candidate) =>
+              !!candidate &&
+              typeof candidate === "object" &&
+              (candidate as Record<string, unknown>).id === record.selectedId,
+          )
+        : undefined;
+    const isSectionSummary = (key: string) =>
+      key === "summary" && path.length === 2 && path[0] === "sections";
+    const isProposalSummary = (key: string) => key === "summary" && path.at(-1) === "proposal";
+    return Object.fromEntries(
+      Object.entries(record)
+        .filter(
+          ([key]) =>
+            !identityFields.has(key) &&
+            key !== "id" &&
+            !key.endsWith("Id") &&
+            !key.endsWith("Ids") &&
+            !timestampFields.has(key) &&
+            !isSectionSummary(key) &&
+            !isProposalSummary(key),
+        )
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([key, item]) => [key, normalize(item, [...path, key])])
+        .concat(
+          selected === undefined
+            ? []
+            : [["selectedCandidate", normalize(selected, [...path, "selectedCandidate"])]],
+        ),
+    );
+  };
+  return normalize(plan);
+}
+
+function unchangedPlanReply(request: ChatRequest, planned: TripPlan): string | undefined {
+  if (
+    !request.plan ||
+    JSON.stringify(materialPlan(request.plan)) !== JSON.stringify(materialPlan(planned))
+  )
+    return undefined;
+  return request.interfaceLanguage === "zh"
+    ? "我重新检查了行程，但没有应用任何变化。请告诉我想修改的内容。"
+    : "I rechecked the itinerary, but no changes were applied. Tell me what you would like changed.";
 }
 
 function wholeUp(amountAud: number, currency: Currency): string {
@@ -435,7 +502,7 @@ export async function runTripChat(
   request: ChatRequest,
   options: TripChatOptions = {},
 ): Promise<ChatResponse> {
-  const { model, extractor, ...orchestrationOptions } = options;
+  const { model, extractor, clock = () => new Date(), ...orchestrationOptions } = options;
   if (request.mode === "plan" && !request.brief) throw new Error("A brief is required to plan.");
   const mem: MemoryStore = orchestrationOptions.mem ?? memory;
   const orchestrate = (brief: TripBrief) =>
@@ -462,7 +529,11 @@ export async function runTripChat(
     : undefined;
 
   if (request.mode === "plan" && submitted) {
+    if (!request.plan && hasPastTripDate(submitted, clock))
+      throw new AskUserError(pastDateAsk(submitted, request.interfaceLanguage));
     const plan = await orchestrate(submitted);
+    const noChangeReply = unchangedPlanReply(request, plan);
+    if (noChangeReply) return { reply: noChangeReply, plan };
     const reply = fallbackReplyFor(plan, replyCurrency(request, plan.brief));
     await remember(reply);
     return { reply, plan };
@@ -478,8 +549,9 @@ export async function runTripChat(
           mem,
           orchestrate,
           orchestrationOptions.onProgress,
+          clock,
         )
-      : await runOffline(request, submitted, extractor, orchestrate);
+      : await runOffline(request, submitted, extractor, orchestrate, clock);
     await remember(result.reply);
     return result;
   } catch (error) {
@@ -537,6 +609,28 @@ function turnEndingReply(error: unknown): string | undefined {
   return undefined;
 }
 
+function pastDateAsk(brief: TripBrief, language: InterfaceLanguage | undefined): ChatAskUser {
+  const chinese = language === "zh";
+  return {
+    type: "ask_user",
+    questions: [
+      {
+        id: "past-trip-dates",
+        header: chinese ? "日期" : "Dates",
+        question: chinese
+          ? "这次旅行有日期已经过去。请确认是否要规划历史行程，或提供新的日期。"
+          : "A date in this trip has already passed. Please confirm that you want a historical plan or provide new dates.",
+      },
+    ],
+    known: brief,
+  };
+}
+
+function hasPastTripDate(brief: TripBrief, clock: () => Date): boolean {
+  const todayUtc = clock().toISOString().slice(0, 10);
+  return brief.dates.some((date) => date < todayUtc);
+}
+
 async function runConversationAgent(
   request: ChatRequest,
   model: BaseChatModel,
@@ -544,12 +638,14 @@ async function runConversationAgent(
   mem: MemoryStore,
   orchestrate: (brief: TripBrief) => Promise<TripPlan>,
   onProgress?: (event: AgentProgressEvent) => void,
+  clock: () => Date = () => new Date(),
 ): Promise<ChatResponse> {
   let brief = submitted;
   let known: BriefPatch = BriefPatchSchema.parse({ ...request.known });
   let planned: TripPlan | undefined;
 
   let asked: AskUserQuestionItem[] = [];
+  let forcedQuestionReply: string | undefined;
 
   const reasoning = createReasoningSink(1, onProgress, COORDINATOR_REASONING_EPISODE);
   const streamingModel = onProgress ? reasoning.wrap(model) : model;
@@ -578,6 +674,12 @@ async function runConversationAgent(
       if (!parsed.success)
         return { ok: false as const, missing: missingFields(known, request.tripId) };
       brief = parsed.data;
+      if (!request.plan && hasPastTripDate(parsed.data, clock)) {
+        const ask = pastDateAsk(parsed.data, request.interfaceLanguage);
+        asked = ask.questions;
+        forcedQuestionReply = ask.questions[0]?.question;
+        return { ok: false as const, needsNewDates: true };
+      }
       planned = await orchestrate(parsed.data);
       return {
         ok: true as const,
@@ -620,7 +722,7 @@ async function runConversationAgent(
 
   const envelope = JSON.stringify({
     message: request.message + inlineTextAttachments(request.attachments),
-    today: new Date().toISOString().slice(0, 10),
+    today: clock().toISOString().slice(0, 10),
     knownSoFar: brief ?? known,
     currentPlan: request.plan
       ? planDigest(request.plan, replyCurrency(request, request.plan.brief))
@@ -638,6 +740,9 @@ async function runConversationAgent(
   const reply = lastMessageText(invoked);
   reasoning.flush();
 
+  const noChangeReply = planned ? unchangedPlanReply(request, planned) : undefined;
+  if (planned && noChangeReply) return { reply: noChangeReply, plan: planned };
+
   if (planned)
     return {
       reply: reply || fallbackReplyFor(planned, replyCurrency(request, planned.brief)),
@@ -651,7 +756,7 @@ async function runConversationAgent(
       questions: asked,
       known: understood.success ? understood.data : {},
       ...(request.plan ? { plan: request.plan } : {}),
-      ...(reply ? { reply } : {}),
+      ...((forcedQuestionReply ?? reply) ? { reply: forcedQuestionReply ?? reply } : {}),
     });
   }
 
@@ -669,18 +774,29 @@ async function runOffline(
   submitted: TripBrief | undefined,
   extractor: BriefExtractor | undefined,
   orchestrate: (brief: TripBrief) => Promise<TripPlan>,
+  clock: () => Date,
 ): Promise<ChatResponse> {
   const message = request.message + inlineTextAttachments(request.attachments);
   const patch = extractor
     ? await extractor.extract(message, submitted)
     : extractBriefPatchLocally(message);
   if (submitted) {
-    const plan = await orchestrate(applyBriefPatch(submitted, patch, request.tripId));
+    const updated = applyBriefPatch(submitted, patch, request.tripId);
+    if (!request.plan && hasPastTripDate(updated, clock))
+      throw new AskUserError(pastDateAsk(updated, request.interfaceLanguage));
+    const plan = await orchestrate(updated);
+    const noChangeReply = unchangedPlanReply(request, plan);
+    if (noChangeReply) return { reply: noChangeReply, plan };
     return { reply: fallbackReplyFor(plan, replyCurrency(request, plan.brief)), plan };
   }
   const known = mergeBriefPatch(request.known ?? {}, patch);
   const missing = missingFields(known, request.tripId);
   if (missing.length) throw new IncompleteBriefError(missing, known);
-  const plan = await orchestrate(TripBriefSchema.parse({ ...known, tripId: request.tripId }));
+  const completeBrief = TripBriefSchema.parse({ ...known, tripId: request.tripId });
+  if (!request.plan && hasPastTripDate(completeBrief, clock))
+    throw new AskUserError(pastDateAsk(completeBrief, request.interfaceLanguage));
+  const plan = await orchestrate(completeBrief);
+  const noChangeReply = unchangedPlanReply(request, plan);
+  if (noChangeReply) return { reply: noChangeReply, plan };
   return { reply: fallbackReplyFor(plan, replyCurrency(request, plan.brief)), plan };
 }

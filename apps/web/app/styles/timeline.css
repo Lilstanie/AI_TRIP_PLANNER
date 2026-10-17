@@ -13,10 +13,10 @@
   padding: var(--space-1);
   overflow-x: auto;
   scroll-snap-type: x proximity;
-  scrollbar-width: none;
+  scrollbar-width: thin;
 }
 .day-strip::-webkit-scrollbar {
-  display: none;
+  height: 6px;
 }
 button.day-strip__day {
   display: grid;
@@ -679,4 +679,10 @@ button.timeline-stop__time:disabled {
 
 .stop-place-card button {
   min-height: 44px !important;
+}
+
+.trip-tips__packing {
+  padding-inline-start: var(--space-4);
+  list-style: disc;
+  font-size: var(--font-size-meta);
 }

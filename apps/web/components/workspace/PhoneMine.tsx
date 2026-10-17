@@ -30,7 +30,9 @@ export function PhoneMine({ model }: { model: WorkspaceModel }) {
         onDeleteChat={history.delete}
         tripsContent={
           history.query.trim() && !visibleTrips.size ? (
-            <p className="history-empty">{t("No matching trips.")}</p>
+            <p className="history-empty" role="status">
+              {t("No matching trips.")}
+            </p>
           ) : (
             <TripsPage
               embedded
