@@ -324,6 +324,8 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     request runs, the primary action becomes Stop in place; there is no hint text.
   - Update trip in a chip editor, or Plan trip in Trip preferences before there is a plan, sends
     `mode: "plan"` with the brief.
+  - When a chip edit changes only the budget, the user's chat message names that change alone and
+    formats its amount with the trip's display currency and locale.
   - A first chat message sends `mode: "start"`, and the server reports any missing destination,
     dates, travellers or budget instead of borrowing values.
   - The blank form's minimum rating defaults to `0` (no minimum). Stay ratings are stored on a 0–10
@@ -857,8 +859,9 @@ the account section explains that everything stays in this browser.
     in, or that data stays in the browser, with Theme below.
   - **Personalization:**
     - **Communication style:** Neutral, Friendly, Concise or Detailed.
-    - **Long-term memory** switch. Off, the assistant neither records nor uses what it learns in
-      chat.
+    - The nonfunctional **Long-term memory** switch and its hint are hidden until the planner can
+      actually remember preferences. The stored `assistant.memory` setting remains compatible with
+      existing browser and account data.
     - **What the planner knows**, grouped as in Mindtrip:
       - Identity: home base.
       - Travel party: travellers.

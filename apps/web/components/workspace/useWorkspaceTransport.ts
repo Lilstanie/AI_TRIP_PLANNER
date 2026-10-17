@@ -7,14 +7,14 @@ import {
   type Currency,
   type InterfaceLanguage,
 } from "@trip/shared";
-import { plannerAud } from "@/lib/money";
+import { moneyDisplay } from "@/lib/money";
 import { destinationLocationFor, knownFromDraft, parseDraft, type Draft } from "@/lib/workspace";
 import { requestTurn, type SessionEvent, type Task } from "@/lib/workspace/session";
 import { dataModeHeaders, type DataMode } from "@/lib/workspace/data-mode";
 import { formatAskAnswers, type PendingAsk, type QuestionAnswer } from "@/lib/workspace/ask-user";
 import type { PreparedAttachment } from "@/lib/chat/attachments";
 import { storedAttachments } from "./useComposerAttachments";
-import { briefErrors } from "@/lib/workspace/trip-facts";
+import { briefErrors, datesLabel } from "@/lib/workspace/trip-facts";
 import type { Notice } from "@/lib/i18n/notice";
 
 type WorkspaceTransportOptions = {
@@ -103,7 +103,34 @@ export function useWorkspaceTransport({
       return false;
     }
     const brief = parsed.data;
-    const message = `Plan ${brief.destination}, ${brief.dates.join(" to ")}, ${brief.groupSize} travellers, ${plannerAud(brief.budgetTotal)} total, with the submitted accommodation preferences.`;
+    const previous = plan?.brief;
+    const unchangedTripFields: (keyof typeof brief)[] = [
+      "origin",
+      "destination",
+      "dates",
+      "groupSize",
+      "party",
+      "preferences",
+    ];
+    const onlyBudgetChanged =
+      previous !== undefined &&
+      unchangedTripFields.every(
+        (field) => JSON.stringify(previous[field]) === JSON.stringify(brief[field]),
+      ) &&
+      previous.budgetTotal !== brief.budgetTotal;
+    const locale = interfaceLanguage;
+    const amount = moneyDisplay({ currency: displayCurrency, locale }).money(
+      brief.budgetTotal,
+      brief.budgetSource,
+    );
+    const dates = datesLabel(brief.dates[0], brief.dates[1], locale)?.range ?? "";
+    const message = onlyBudgetChanged
+      ? locale === "zh"
+        ? `将预算调整为 ${amount}。`
+        : `Change the budget to ${amount}.`
+      : locale === "zh"
+        ? `规划${brief.destination}行程，${dates}，${brief.groupSize} 位旅行人员，总预算 ${amount}。`
+        : `Plan ${brief.destination}, ${dates}, for ${brief.groupSize} travellers with a total budget of ${amount}.`;
     dispatch({
       kind: "sent",
       message: { role: "user", text: message, at: Date.now() },

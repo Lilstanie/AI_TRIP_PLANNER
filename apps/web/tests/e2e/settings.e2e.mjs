@@ -33,6 +33,21 @@ async function openSettings(page, section = "Personalization") {
 async function run(browser, { width, height, tag }) {
   const context = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: 2 });
   const page = await context.newPage();
+  await context.addInitScript(() => {
+    localStorage.setItem(
+      "trip.settings.v1",
+      JSON.stringify({
+        version: 1,
+        travel: { homeCity: "", preferences: [], interests: [], dietary: [] },
+        memberships: [],
+        assistant: { style: "neutral", memory: false },
+        dataMode: "default",
+        appearance: "system",
+        displayCurrency: "AUD",
+        updatedAt: new Date(0).toISOString(),
+      }),
+    );
+  });
   const errors = [];
   page.on("pageerror", (error) => errors.push(String(error)));
   page.on("console", (message) => {
@@ -111,17 +126,20 @@ async function run(browser, { width, height, tag }) {
     `${tag}: an answered fact shows its value`,
   );
   await dialog.getByRole("combobox", { name: "Communication style" }).selectOption("concise");
-  const memory = dialog.getByRole("switch", { name: "Long-term memory" });
-  await memory.click();
-  check((await memory.getAttribute("aria-checked")) === "false", `${tag}: memory switch turns off`);
+  check(
+    (await dialog.getByRole("switch", { name: "Long-term memory" }).count()) === 0 &&
+      (await dialog
+        .getByText(/Let the planner remember preferences you mention in chat/)
+        .count()) === 0,
+    `${tag}: the nonfunctional memory control and promise are hidden`,
+  );
   const stored = await page.evaluate(() =>
     JSON.parse(localStorage.getItem("trip.settings.v1") ?? "{}"),
   );
   check(
     stored.assistant?.style === "concise" && stored.assistant?.memory === false,
-    `${tag}: style and memory are saved (${JSON.stringify(stored.assistant)})`,
+    `${tag}: style updates while the stored memory setting stays false (${JSON.stringify(stored.assistant)})`,
   );
-  await memory.click();
   await dialog.getByRole("combobox", { name: "Communication style" }).selectOption("neutral");
   await page.screenshot({ path: `${OUT}/${tag}-01b-personalization-filled.png`, fullPage: true });
 

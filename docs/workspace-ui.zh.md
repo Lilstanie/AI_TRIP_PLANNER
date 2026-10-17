@@ -100,6 +100,7 @@ seniors`（宠物不计为旅客）；`groupSize` 仍是校验字段，因此至
   - 消息在 `role="log"` 中保留对话顺序；每条消息有一个可见、仅播报一次的说话者标签（You 或 Travel planning assistant）。旅客消息是右对齐气泡；助手回复全宽显示，无边框或背景，以 Markdown 呈现（段落、列表、粗体、在新标签页打开的链接）。两者下方都有小号时间，今天用 `HH:mm`，其他日期用短日期；长 URL 和中英文混排文字在聊天栏内换行。
   - 输入区是聊天底部的一张卡片：草稿随内容增高，随后内部滚动；上传控件在左，唯一主操作在右。卡片使用 `--surface-2`（浅色为白色，深色为灰色），呈现为页面上的输入胶囊；点击其中任意位置，只高亮卡片一次，字段自身不绘制焦点环。Enter 发送，Shift+Enter 换行，但输入法组合输入期间绝不触发。请求运行时，主操作在原位变为 Stop；没有提示文字。
   - 标签编辑器中的 Update trip，或尚无方案时 Trip preferences 中的 Plan trip，携带行程需求发送 `mode: "plan"`。
+  - 标签编辑器只修改预算时，聊天中的用户消息只说明预算变更，并使用行程显示币种和界面语言格式化金额。
   - 首条聊天消息发送 `mode: "start"`，服务端报告缺失的目的地、日期、旅客或预算，不借用值。
   - 空白表单的最低评分默认为 `0`（无最低要求）。住宿评分内部按 0–10 存储，在所有位置（酒店卡片、住宿行、思考 transcript）都按 5 分制显示；地点的 Google 评分本身就是 5 分制，原样显示。
 - **请求。**
@@ -328,7 +329,8 @@ Data mode 默认是 Fixture data。只有部署启用后才能选择 Live data�
     该分区说明如何登录或数据保存在浏览器中，下方仍有 Theme。
   - **Personalization：**
     - **Communication style：** Neutral、Friendly、Concise 或 Detailed。
-    - **Long-term memory** 开关。关闭后，助手既不记录也不使用在聊天中学到的内容。
+    - 在规划器真正支持记住偏好之前，隐藏尚未实现的 **Long-term memory** 开关及其提示。保留已存储的
+      `assistant.memory` 设置，以兼容现有浏览器和账户数据。
     - **规划器了解的信息**，按 Mindtrip 的方式分组：
       - Identity：常住地。
       - Travel party：旅客人数。
