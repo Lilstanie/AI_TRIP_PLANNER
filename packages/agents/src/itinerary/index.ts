@@ -41,7 +41,7 @@ const ItineraryActivity = z.object({
 
 const ItineraryDraft = z.object({
   summary: z.string().trim().min(1),
-  activities: z.array(ItineraryActivity).min(1),
+  activities: z.array(ItineraryActivity),
   assumptions: z.array(z.string().trim().min(1)),
 });
 
@@ -179,6 +179,7 @@ function validateDraft(
   dayCities?: string[][],
   placesByCity?: ReadonlyMap<string, readonly Place[]>,
   transferWindows: ReadonlyMap<number, TransferWindow[]> = new Map(),
+  requireEveryDay = true,
 ): ItineraryDraft {
   const parsed = ItineraryDraft.parse(draft);
 
@@ -233,7 +234,8 @@ function validateDraft(
     }
     seen.add(key);
   }
-  if (representedDays.size !== days) throw new Error("Itinerary must include every trip day.");
+  if (requireEveryDay && representedDays.size !== days)
+    throw new Error("Itinerary must include every trip day.");
   for (let day = 1; day <= days; day += 1) {
     const scheduled = parsed.activities
       .filter((activity) => activity.day === day)
@@ -267,43 +269,90 @@ function fallbackDraft(
   places: Place[],
   placesByCity?: ReadonlyMap<string, readonly Place[]>,
   dayCities?: string[][],
+  transferWindows: ReadonlyMap<number, TransferWindow[]> = new Map(),
 ): ItineraryDraft {
   const candidates = places;
 
   const cityNames = cities(brief.destination);
-
-  const dayCity = dayCities?.map((cities) => cities.at(-1)!) ?? cityForDay(cityNames, days);
-  const forDay = (day: number): readonly Place[] => {
-    const inCity = placesByCity?.get(dayCity[day - 1] ?? cityNames[0]!) ?? [];
-    return inCity.length ? inCity : candidates;
+  const citiesByDay = dayCities ?? cityForDay(cityNames, days).map((city) => [city]);
+  const placesForCity = (city: string): readonly Place[] => {
+    const inCity = placesByCity?.get(city) ?? [];
+    return placesByCity && placesByCity.size > 1 ? inCity : inCity.length ? inCity : candidates;
   };
 
-  const scarcest = Math.min(...Array.from({ length: days }, (_, day) => forDay(day + 1).length));
+  const scarcest = Math.min(
+    ...Array.from(
+      { length: days },
+      (_, day) => placesForCity(citiesByDay[day]?.at(-1) ?? cityNames[0]!).length,
+    ),
+  );
   const perDay = Math.min(DAY_SLOTS.length, Math.max(1, Math.floor(scarcest / 2) || 1));
 
-  const slots = perDay === 1 ? [SINGLE_SLOT] : DAY_SLOTS.slice(0, perDay);
-  const activities = Array.from({ length: days }, (_, day) =>
-    Array.from({ length: perDay }, (_, slot) => {
-      const cityPlaces = forDay(day + 1);
-      const place = cityPlaces[(day * perDay + slot) % cityPlaces.length]!;
-      return {
-        day: day + 1,
-        ...slots[slot]!,
+  const slots = perDay === 1 ? [SINGLE_SLOT, ...DAY_SLOTS] : DAY_SLOTS;
+  const activities: ItineraryDraft["activities"] = [];
+  const incompleteDays: number[] = [];
+  for (let dayIndex = 0; dayIndex < days; dayIndex += 1) {
+    const day = dayIndex + 1;
+    const dayWindows = transferWindows.get(day) ?? [];
+    const dayCitiesForActivities = citiesByDay[dayIndex] ?? [cityNames[0]!];
+    let added = 0;
+    for (const slot of slots) {
+      const city = dayCitiesForActivities.find((candidate) => {
+        const cityPlaces = placesForCity(candidate);
+        if (!cityPlaces.length) return false;
+        return dayWindows.every((window) => {
+          if (candidate === window.from) return minutes(slot.endTime) <= minutes(window.startTime);
+          if (candidate === window.to) return minutes(slot.startTime) >= minutes(window.endTime);
+          return true;
+        });
+      });
+      if (!city) continue;
+      const cityPlaces = placesForCity(city);
+      const place = cityPlaces[(dayIndex * perDay + added) % cityPlaces.length]!;
+      activities.push({
+        day,
+        ...slot,
         location: place.name,
         detail: `${place.name} (${place.category}) is a suggested stop; confirm timing and suitability before visiting.`,
-      };
-    }),
-  ).flat();
+      });
+      added += 1;
+      if (added === perDay) break;
+    }
+    if (!added) incompleteDays.push(day);
+  }
   return {
-    summary: `${days}-day plan for ${brief.destination} with ${perDay === 1 ? "one grounded activity" : `${perDay} grounded activities`} per day`,
+    summary: `${days}-day plan for ${brief.destination} with up to ${perDay} grounded ${perDay === 1 ? "activity" : "activities"} per day`,
     activities,
     assumptions: [
       "Opening hours and live availability must be confirmed before plans are finalised.",
       perDay === 1
         ? "Only enough grounded places for one anchored activity a day; the rest of each day is left open."
         : "Two anchored stops a day, with the middle of the day left for a meal and the journey between them.",
+      ...incompleteDays.map(
+        (day) =>
+          `Day ${day} is incomplete because no grounded activity fits the existing slots and scheduled transfer window; no late activity time was invented.`,
+      ),
     ],
   };
+}
+
+function validatedFallbackDraft(
+  brief: TripBrief,
+  days: number,
+  places: Place[],
+  placesByCity: ReadonlyMap<string, readonly Place[]>,
+  dayCities: string[][],
+  transferWindows: ReadonlyMap<number, TransferWindow[]>,
+): ItineraryDraft {
+  return validateDraft(
+    fallbackDraft(brief, days, places, placesByCity, dayCities, transferWindows),
+    days,
+    places,
+    dayCities,
+    placesByCity,
+    transferWindows,
+    false,
+  );
 }
 
 function createDeepSeekGenerator(): ItineraryGenerator | undefined {
@@ -610,24 +659,76 @@ async function planItinerary(
     if (accepted) draft = accepted;
     else {
       usedFallback = true;
-      draft = fallbackDraft(brief, days, places, placesByCity, dayCities);
+      draft = validatedFallbackDraft(brief, days, places, placesByCity, dayCities, transferWindows);
     }
   } else {
-    draft = fallbackDraft(brief, days, places, placesByCity, dayCities);
+    draft = validatedFallbackDraft(brief, days, places, placesByCity, dayCities, transferWindows);
   }
-  const adjusted = avoidBlockedWindows(draft, revision);
+  let adjusted = avoidBlockedWindows(draft, revision);
+  if (usedFallback) {
+    try {
+      adjusted = {
+        ...adjusted,
+        draft: validateDraft(
+          adjusted.draft,
+          days,
+          places,
+          dayCities,
+          placesByCity,
+          transferWindows,
+          false,
+        ),
+      };
+    } catch {
+      adjusted = {
+        draft,
+        conflicts: [
+          ...adjusted.conflicts,
+          "Fallback activity times were kept unchanged because the requested revision shift conflicts with a scheduled transfer.",
+        ],
+      };
+    }
+  }
   draft = adjusted.draft;
   const coordinates = placeCoordinates(places);
   let connections: Connections = new Map();
   let conflicts = [
     ...adjusted.conflicts,
     ...(await travelConflicts(draft, ctx, brief, connections, coordinates)),
+    ...(usedFallback
+      ? Array.from({ length: days }, (_, index) => index + 1)
+          .filter((day) => !draft.activities.some((activity) => activity.day === day))
+          .map((day) => `incomplete itinerary: no feasible fallback activity for day ${day}`)
+      : []),
   ];
   if (revision && conflicts.length && !usedFallback) {
-    const fallback = avoidBlockedWindows(
-      fallbackDraft(brief, days, places, placesByCity, dayCities),
+    const adjustedFallback = avoidBlockedWindows(
+      validatedFallbackDraft(brief, days, places, placesByCity, dayCities, transferWindows),
       revision,
     );
+    let fallback = adjustedFallback;
+    try {
+      fallback = {
+        ...adjustedFallback,
+        draft: validateDraft(
+          adjustedFallback.draft,
+          days,
+          places,
+          dayCities,
+          placesByCity,
+          transferWindows,
+          false,
+        ),
+      };
+    } catch {
+      fallback = {
+        ...adjustedFallback,
+        conflicts: [
+          ...adjustedFallback.conflicts,
+          "Fallback activity times were kept unchanged because the requested revision shift conflicts with a scheduled transfer.",
+        ],
+      };
+    }
 
     const fallbackConnections: Connections = new Map();
     const fallbackConflicts = [

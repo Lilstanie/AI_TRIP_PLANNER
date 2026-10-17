@@ -533,8 +533,7 @@ export async function runTripChat(
       throw new AskUserError(pastDateAsk(submitted, request.interfaceLanguage));
     const plan = await orchestrate(submitted);
     const noChangeReply = unchangedPlanReply(request, plan);
-    if (noChangeReply) return { reply: noChangeReply, plan };
-    const reply = fallbackReplyFor(plan, replyCurrency(request, plan.brief));
+    const reply = noChangeReply ?? fallbackReplyFor(plan, replyCurrency(request, plan.brief));
     await remember(reply);
     return { reply, plan };
   }

@@ -609,6 +609,110 @@ describe("multi-city days", () => {
       "Wollongong Foreshore",
     ]);
   });
+
+  it("omits a transfer-day fallback activity when no existing slot fits the transfer window", async () => {
+    const trip = {
+      ...brief,
+      destination: "Sydney & Wollongong",
+      dates: ["2026-12-16", "2026-12-20"] as [string, string],
+    };
+    const ctx = context();
+    ctx.tools.maps.places = vi.fn(async ({ near, category }) =>
+      category === "sight"
+        ? [{ name: `${near} Museum`, category: "sight" }]
+        : [{ name: `${near} Foreshore`, category: "neighborhood" }],
+    );
+    const transport: AgentProposal = {
+      agent: "transport",
+      summary: "Transfer to Wollongong on day 3",
+      items: [
+        {
+          kind: "transport",
+          day: 3,
+          startTime: "08:00",
+          endTime: "18:00",
+          location: "Sydney → Wollongong",
+          detail: "Train to Wollongong on 2026-12-18",
+        },
+      ],
+      assumptions: [],
+      conflictsWith: [],
+    };
+    const accommodation: AgentProposal = {
+      agent: "accommodation",
+      summary: "Two nights in Sydney, then two nights in Wollongong",
+      items: [],
+      assumptions: [],
+      conflictsWith: [],
+      stays: [
+        {
+          id: "stay-1",
+          city: "Sydney",
+          checkIn: "2026-12-16",
+          checkOut: "2026-12-18",
+          day: 1,
+          nights: 2,
+          rooms: 1,
+          selectedId: "stay-1-0",
+          candidates: [
+            {
+              id: "stay-1-0",
+              name: "Sydney Standard",
+              area: "Sydney",
+              pricePerNight: 230,
+              rating: 8,
+              freeCancellation: true,
+            },
+          ],
+        },
+        {
+          id: "stay-3",
+          city: "Wollongong",
+          checkIn: "2026-12-18",
+          checkOut: "2026-12-20",
+          day: 3,
+          nights: 2,
+          rooms: 1,
+          selectedId: "stay-3-0",
+          candidates: [
+            {
+              id: "stay-3-0",
+              name: "Wollongong Standard",
+              area: "Wollongong",
+              pricePerNight: 180,
+              rating: 8,
+              freeCancellation: true,
+            },
+          ],
+        },
+      ],
+    };
+    const invalidModelActivities = [1, 2, 3, 4, 5].map((day) => ({
+      day,
+      startTime: "13:00",
+      endTime: "16:00",
+      location: "Wollongong Foreshore",
+      detail: "Walk along the foreshore",
+    }));
+    const generator: ItineraryGenerator = {
+      generate: vi.fn(async () => ({
+        summary: "All days in Wollongong",
+        activities: invalidModelActivities,
+        assumptions: [],
+      })),
+    };
+    const request = { brief: trip, context: ctx, board: { proposals: [transport, accommodation] } };
+
+    const generatedFallback = await createItineraryAgent({ generator }).invoke(request);
+    const offlineFallback = await createItineraryAgent({ generator: false }).invoke(request);
+
+    expect(generator.generate).toHaveBeenCalledTimes(2);
+    for (const result of [generatedFallback, offlineFallback]) {
+      expect(result.items.filter(({ day }) => day === 3)).toEqual([]);
+      expect(result.conflictsWith.join(" ")).toContain("day 3");
+      expect(result.assumptions.join(" ")).toContain("incomplete");
+    }
+  });
 });
 
 describe("routing between two stops the provider can find", () => {
