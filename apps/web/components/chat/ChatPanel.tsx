@@ -93,13 +93,13 @@ export function ChatPanel({
               )}
             </p>
             <div className="chat-empty__suggestions" aria-label={t("Example trips")}>
-              {prompts.map(({ label, text }) => (
+              {prompts.map(({ label, text, params }) => (
                 <button
                   key={t(label)}
                   type="button"
                   title={t(label)}
                   disabled={busy || locked}
-                  onClick={() => onSend(text)}
+                  onClick={() => onSend(t(text, params))}
                 >
                   {t(label)}
                 </button>

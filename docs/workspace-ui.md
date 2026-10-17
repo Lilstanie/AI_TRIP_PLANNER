@@ -260,6 +260,8 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
 - **Starting to plan.**
   - A blank chat offers example trip suggestions. Selecting one replaces and focuses the message input;
     it never sends a message or starts a request.
+    Suggestion text follows the interface language while keeping its dates, travellers and budget;
+    data-mode tooltips and the action name for an untitled chat follow that language too.
   - Each agent reply renders under its own Think fold: the transcript streams at the foot of the chat
     while the turn runs, then moves above the reply that ended the turn and stays with it (including
     after a reload).
@@ -875,7 +877,8 @@ the account section explains that everything stays in this browser.
     under Advanced.
     The top-bar language switch sits beside Mock data and updates the same saved language setting.
     Authored chat controls, timeline and proposal labels, settings, notices, dialogs, accessible
-    names and dates follow it. Traveller text, agent-produced content and provider errors are not
+    names and dates follow it, including data-mode tooltips and untitled-chat actions. Traveller
+    text, agent-produced content and provider errors are not
     translated. Authored text that carries a value (the attachment limit, a timeline edit preview's
     differences and blockers, a stop that cannot move) is translated with `{placeholders}`, through
     `t()` or as a keyed `Notice` (`apps/web/lib/i18n/notice.ts`) that the view translates once when it

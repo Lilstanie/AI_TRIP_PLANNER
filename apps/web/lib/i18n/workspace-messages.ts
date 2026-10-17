@@ -326,6 +326,12 @@ export const WORKSPACE_ZH = {
   "Finding places…": "正在查找地点…",
   "Selected place: {v0}": "已选地点：{v0}",
   "Actions for {v0}": "{v0}的操作",
+  "Mock data: bundled fixtures. No provider requests and no allowance spent.":
+    "示例数据：使用内置示例，不会请求服务商，也不会消耗额度。",
+  "Live data: real hotel and flight prices. Each plan spends the shared monthly search allowance.":
+    "实时数据：提供真实酒店和航班价格。每次规划都会使用共享的月度搜索额度。",
+  "Live data selected, but no SERPAPI_KEY is configured, so results fall back to estimates.":
+    "已选择实时数据，但未配置 SERPAPI_KEY，因此结果将使用估算值。",
   ". Currently using live provider data. Activate to switch to mock fixtures.":
     "。当前使用实时数据。点击切换到示例数据。",
   ". Currently using mock fixtures. Activate to switch to live provider data.":
@@ -523,9 +529,17 @@ export const WORKSPACE_ZH = {
   "Those files couldn't be read. Please try again.": "无法读取这些文件，请重试。",
   "{count} stopovers": "中转 {count} 次",
   "Sydney · 4 days": "悉尼 · 4 天",
+  "Plan a 4-day trip to Sydney for 2 people from {start} to {end}, total budget 4000.":
+    "计划一次为期 4 天的悉尼之旅，2 人同行，日期为 {start} 至 {end}，总预算 4000。",
   "Melbourne → Sydney · 5 days": "墨尔本 → 悉尼 · 5 天",
+  "Plan a 5-day trip from Melbourne to Sydney for 2 people from {start} to {end}, total budget 5000.":
+    "计划一次为期 5 天、从墨尔本前往悉尼的旅行，2 人同行，日期为 {start} 至 {end}，总预算 5000。",
   "Melbourne → Sydney & Brisbane · 9 days": "墨尔本 → 悉尼和布里斯班 · 9 天",
+  "Plan a 9-day trip from Melbourne to Sydney & Brisbane for 2 people from {start} to {end}, total budget 9000.":
+    "计划一次为期 9 天、从墨尔本前往悉尼和布里斯班的旅行，2 人同行，日期为 {start} 至 {end}，总预算 9000。",
   "Sydney & Wollongong · 5 days": "悉尼和卧龙岗 · 5 天",
+  "Plan a 5-day trip to Sydney & Wollongong for 2 people from {start} to {end}, total budget 4500.":
+    "计划一次为期 5 天的悉尼和卧龙岗之旅，2 人同行，日期为 {start} 至 {end}，总预算 4500。",
   "{count} stop": "中转 {count} 次",
   "{count} stops": "中转 {count} 次",
   "{count} travellers": "{count} 位旅客",

@@ -21,9 +21,13 @@ export function DataModeToggle({
   const keyed = providers?.hotelsAndFlights ?? true;
   const title = live
     ? keyed
-      ? "Live data: real hotel and flight prices. Each plan spends the shared monthly search allowance."
-      : "Live data selected, but no SERPAPI_KEY is configured, so results fall back to estimates."
-    : "Mock data: bundled fixtures. No provider requests and no allowance spent.";
+      ? t(
+          "Live data: real hotel and flight prices. Each plan spends the shared monthly search allowance.",
+        )
+      : t(
+          "Live data selected, but no SERPAPI_KEY is configured, so results fall back to estimates.",
+        )
+    : t("Mock data: bundled fixtures. No provider requests and no allowance spent.");
 
   return (
     <button
