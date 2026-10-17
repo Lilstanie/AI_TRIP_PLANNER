@@ -196,7 +196,7 @@ try {
       settings: settingsFor("en"),
     },
   );
-  await budgetPage.goto(BASE);
+  await budgetPage.goto(BASE, { waitUntil: "domcontentloaded" });
   await budgetPage.locator(".workspace-app").waitFor();
   await openChats(budgetPage, 1024);
   await budgetPage.locator(`.history-item__open[title=${JSON.stringify(budgetTitle)}]`).waitFor();
@@ -247,7 +247,7 @@ try {
       settings: settingsFor("en"),
     },
   );
-  await headroomPage.goto(BASE);
+  await headroomPage.goto(BASE, { waitUntil: "domcontentloaded" });
   await headroomPage.locator(".workspace-app").waitFor();
   await openChats(headroomPage, 1024);
   await headroomPage
@@ -281,7 +281,7 @@ try {
         const p = await ctx.newPage();
         const errors = [];
         p.on("pageerror", (e) => errors.push(String(e)));
-        await p.goto(BASE);
+        await p.goto(BASE, { waitUntil: "domcontentloaded" });
         await p.locator(".workspace-app").waitFor();
         if (width === 375) {
           await openTrip(p, width);
