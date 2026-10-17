@@ -12,6 +12,8 @@ import {
   type Snapshot,
 } from "./workspace";
 import type { Notice } from "../i18n/notice";
+import type { AppLocale } from "../i18n/locale";
+import { dateRangeLabel } from "./trip-facts";
 
 export const CATALOG_KEY = "trip-workspace-catalog-v3";
 
@@ -83,12 +85,32 @@ const validDate = (value: unknown): value is string =>
   text(value) && Number.isFinite(Date.parse(value));
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
-function titleFor(snapshot: Snapshot): string {
+function titleFor(snapshot: Snapshot, locale: AppLocale = "en"): string {
+  const destination = snapshot.plan.brief.destination.trim();
+  const [start, end] = snapshot.plan.brief.dates;
+  const dates = dateRangeLabel(start, end, locale) ?? `${start}${end && end !== start ? ` – ${end}` : ""}`;
+  return destination
+    ? `${destination} · ${dates}`
+    : "Untitled trip";
+}
+
+const legacyTitleFor = (snapshot: Snapshot) => {
   const destination = snapshot.plan.brief.destination.trim();
   const [start, end] = snapshot.plan.brief.dates;
   return destination
     ? `${destination} · ${start}${end && end !== start ? ` – ${end}` : ""}`
     : "Untitled trip";
+};
+
+export function conversationTitle(conversation: ConversationRecord, locale: AppLocale): string {
+  const snapshot = conversation.snapshot;
+  if (
+    !snapshot ||
+    conversation.renamed ||
+    (conversation.title !== legacyTitleFor(snapshot) && conversation.title !== titleFor(snapshot))
+  )
+    return conversation.title;
+  return titleFor(snapshot, locale);
 }
 
 function normalizeLayout(value: unknown): PanelLayout {

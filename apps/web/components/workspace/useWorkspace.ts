@@ -8,6 +8,7 @@ import type { RouteResult } from "@/lib/integrations/google";
 import { blankDraft, type Draft } from "@/lib/workspace";
 import {
   reusableBlankConversation,
+  conversationTitle,
   searchCatalog,
   updateCatalog,
   upsertConversationDraft,
@@ -204,7 +205,7 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
     const trip = item.tripId && catalog.trips.find((record) => record.id === item.tripId);
     return {
       id: item.id,
-      title: item.title,
+      title: conversationTitle(item, locale),
       subtitle: trip
         ? t("Trip to {destination}", { destination: trip.snapshot.plan.brief.destination })
         : undefined,

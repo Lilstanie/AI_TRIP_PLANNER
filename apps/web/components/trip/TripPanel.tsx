@@ -9,6 +9,7 @@ import { placeConflicts } from "@/lib/trip/conflicts";
 import type { Notice } from "@/lib/i18n/notice";
 import { useLocale } from "../account/LocaleProvider";
 import { OnTripContext } from "@/lib/trip/on-trip-day";
+import { dateRangeLabel } from "@/lib/workspace/trip-facts";
 
 export function TripPanel({
   plan,
@@ -21,7 +22,7 @@ export function TripPanel({
 
   problem?: Notice;
 }) {
-  const { t, money, budgetGap, notice: localizeNotice } = useLocale();
+  const { t, locale, money, budgetGap, notice: localizeNotice } = useLocale();
   const [onTrip, setOnTrip] = useState<boolean>();
   const [budgetOpen, setBudgetOpen] = useState(true);
   const budgetManuallyChanged = useRef(false);
@@ -52,11 +53,13 @@ export function TripPanel({
     (item) => item.estCost === undefined && !(item.id && picks.has(item.id)),
   ).length;
   const unpricedWithinBudget = gap?.direction === "under" && unpriced > 0;
+  const [start, end] = plan.brief.dates;
+  const dateRange = dateRangeLabel(start, end, locale) ?? `${start} – ${end}`;
   return (
     <OnTripContext.Provider value={setOnTrip}>
       <div className="trip-panel">
         <p className="trip__sub">
-          {plan.brief.destination} · {plan.brief.dates.join(" – ")} · {plan.brief.groupSize}{" "}
+          {plan.brief.destination} · {dateRange} · {plan.brief.groupSize}{" "}
           {plan.brief.groupSize === 1 ? t("traveller") : t("travellers")}
         </p>
         <details className="trip-panel__budget-summary trip-budget" open={budgetOpen}>

@@ -85,6 +85,15 @@ const catalogFor = (plan, id, title) => {
         input: "",
         snapshot,
       },
+      {
+        id: "conversation:triage-generated-title",
+        title: `${plan.brief.destination} · ${plan.brief.dates[0]} – ${plan.brief.dates[1]}`,
+        updatedAt: savedAt,
+        tripId,
+        messages: snapshot.messages,
+        input: "",
+        snapshot: { ...snapshot, id: "triage-generated-title" },
+      },
     ],
     trips: [{ id: tripId, title, updatedAt: savedAt, conversationIds: [conversationId], snapshot }],
     layout: {
@@ -308,14 +317,45 @@ try {
         await p.reload();
         await p.locator(".workspace-app").waitFor();
         await openChats(p, width);
-        await p.locator(`.history-item__open[title=${JSON.stringify(title)}]`).waitFor();
-        await p.locator(`.history-item__open[title=${JSON.stringify(title)}]`).click();
+        const expectedRange = await p.evaluate(
+          ([start, end, lang]) =>
+            new Intl.DateTimeFormat(lang === "zh" ? "zh-CN" : "en-AU", {
+              day: "numeric",
+              month: "short",
+              timeZone: "UTC",
+            }).formatRange(new Date(`${start}T00:00:00Z`), new Date(`${end}T00:00:00Z`)),
+          [savedPlan.brief.dates[0], savedPlan.brief.dates[1], lang],
+        );
+        const generatedTitle = `${savedPlan.brief.destination} · ${expectedRange}`;
+        const generatedRow = p.locator(
+          `.history-item__open[title=${JSON.stringify(generatedTitle)}]`,
+        );
+        await generatedRow.waitFor();
+        check(
+          (await generatedRow.getAttribute("title")) === generatedTitle,
+          `${tag} sidebar generated title uses localized readable dates`,
+          await generatedRow.getAttribute("title"),
+        );
+        const customTitleRow = p.locator(`.history-item__open[title=${JSON.stringify(title)}]`);
+        await customTitleRow.waitFor();
+        check(
+          (await customTitleRow.getAttribute("title")) === title,
+          `${tag} customized sidebar title remains unchanged`,
+          await customTitleRow.getAttribute("title"),
+        );
+        await customTitleRow.click();
         check(
           (await p.locator(".msg-item--agent .msg-item__body").count()) > 0,
           `${tag} saved conversation restores its agent response`,
         );
         await openTrip(p, width);
         await p.locator(".day-strip").waitFor();
+        const tripSummary = await p.locator(".trip__sub").innerText();
+        check(
+          tripSummary.includes(expectedRange) && !/\d{4}-\d{2}-\d{2}/.test(tripSummary),
+          `${tag} Trip summary uses localized readable dates`,
+          tripSummary,
+        );
         const packing = await p
           .locator(".trip-tips__packing")
           .first()
@@ -385,6 +425,12 @@ try {
             .click();
         }
         await p.locator(".trip-card__meta").first().waitFor();
+        const cardMeta = await p.locator(".trip-card__meta").first().innerText();
+        check(
+          cardMeta.includes(expectedRange) && !/\d{4}-\d{2}-\d{2}/.test(cardMeta),
+          `${tag} trip card uses localized readable dates`,
+          cardMeta,
+        );
         const caption = await p
           .locator(".trip-card__meta")
           .first()

@@ -42,13 +42,14 @@ now. Implementation history and browser acceptance for each phase are in the
   - The panel has, from the top: a pill search field ("Search…", the visually hidden label "Search
     chats and trips" and a Clear search button that returns focus to the field), which filters both
     lists; New chat (pencil icon) and New trip (suitcase with a plus); **Trips**, each row a small
-    destination cover and "Trip to <destination>"; and **Chats**, each row its title on one line
-    with the linked trip's name under it. Choosing any of them closes the panel. See
+    destination cover and "Trip to <destination>"; and **Chats**, each row its localized short-date
+    title on one line with the linked trip's name under it. Renamed chat titles are preserved.
+    Choosing any of them closes the panel. See
     [New chat and New trip](#conversations-trips-and-storage) for what the two starts do.
   - **Trips** replaces the top bar, chat and map with the Your trips page: a "Your trips" heading, a
     New trip button, and Trips and Calendar tabs (`role="tablist"`, arrow keys switch) drawn as a
     segmented control whose thumb slides between them. Trips shows
-    every trip as a 4:3 cover card with "Trip to <destination>" and "<destination> · N days",
+    every trip as a 4:3 cover card with "Trip to <destination>" and "<destination> · <localized date range> · N days",
     grouped into Upcoming and Past. Calendar is a Monday-first month grid with previous, Today and
     next, drawing each trip as a band over its days, filled with the dark colour of its cover palette
     so the white label stays readable, labelled where it starts and at each week's start; it opens on the next trip's month. Choosing a trip, a chat, New chat or New trip returns
@@ -359,6 +360,8 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     [workspace catalog trip storage](../.agents/notes/implemented/architecture/2026-09-24-workspace-catalog-trip-storage.md).
 
 ## Reviewing a plan
+
+The Trip drawer summary shows the destination, localized short date range and traveller count.
 
 When the known estimate equals the budget, the budget panel says “At budget” instead of reporting
 zero under budget. If itinerary stops remain unpriced, the status adds “unpriced stops not counted”

@@ -3,6 +3,7 @@ import { intlLocale, type AppLocale, type MessageKey } from "@/lib/i18n/locale";
 import { useLocale } from "@/components/account/LocaleProvider";
 import { useSettings } from "@/components/account/SettingsProvider";
 import { moneyDisplay } from "@/lib/money";
+import { dateRangeLabel } from "@/lib/workspace/trip-facts";
 import { effectiveCurrency } from "@trip/shared";
 import { useMemo, useRef, useState, type KeyboardEvent } from "react";
 import type { TripRecord } from "@/lib/workspace/catalog";
@@ -40,7 +41,7 @@ export function TripsPage({
   onNewTrip(): void;
   embedded?: boolean;
 }) {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const [tab, setTab] = useState<Tab>("trips");
   const tabRefs = useRef<Partial<Record<Tab, HTMLButtonElement | null>>>({});
   const tabList = useRef<HTMLDivElement>(null);
@@ -151,6 +152,8 @@ function TripCards({
         {group.items.map((trip) => {
           const { destination } = trip.snapshot.plan.brief;
           const length = days(trip);
+          const [start, end] = trip.snapshot.plan.brief.dates;
+          const dateRange = dateRangeLabel(start, end, locale);
 
           const total = moneyDisplay({
             currency: effectiveCurrency(trip.snapshot.plan.brief, settings.displayCurrency),
@@ -172,7 +175,7 @@ function TripCards({
                     })}
                   </span>
                   <span className="trip-card__meta">
-                    {destination} · {length} {length === 1 ? t("day") : t("days")} · {total}
+                    {destination} · {dateRange ? `${dateRange} · ` : ""}{length} {length === 1 ? t("day") : t("days")} · {total}
                   </span>
                 </span>
               </button>

@@ -27,8 +27,8 @@ Web 应用（`apps/web`）是单用户规划工作区。本文描述其当前行
   - 用户调整大小之后，宽度才存入目录布局。在此之前遵循样式表的响应式默认值，因此缩窄窗口仍会缩窄侧边栏。折叠时保留宽度，供下次展开使用。
   - 侧边栏只包含导航：带数量的 Chats 和 Trips。轮廓线图标使用文字颜色；对应面板或页面打开时，图标变为填充样式，标签加粗，背景轻微强调，并带 `aria-current`。折叠时显示带名称和 tooltip 的图标按钮。
   - **Chats** 切换 Chats 面板（`aria-expanded`、`aria-controls="chats-panel"`）：它是位于侧边栏右边缘、宽 320 px 的玻璃区域，在工作区上方以 380 ms 的弹性和淡入动效出现（`prefers-reduced-motion` 下立即出现），关闭时为 `inert`。打开时聚焦搜索框；Escape 关闭面板并将焦点返回 Chats（已打开的历史菜单或对话框优先处理 Escape），点击外部也会关闭面板。[Chats 面板和 Your trips Agent Note](../.agents/notes/implemented/feature/2026-09-24-chats-panel-and-trips-page.md) 记录了原因。
-  - 面板自上而下依次为：胶囊形搜索框（“Search…”，视觉隐藏标签“Search chats and trips”，以及将焦点返回输入框的 Clear search 按钮），它同时筛选两个列表；New chat（铅笔图标）和 New trip（带加号的行李箱）；**Trips**，每行显示目的地小封面和“Trip to <destination>”；以及 **Chats**，每行用一行显示标题，下方显示关联行程名称。选择任何条目都会关闭面板。两个起始动作的行为见[New chat 和 New trip](#conversations-trips-and-storage)。
-  - **Trips** 将顶栏、聊天和地图替换成 Your trips 页面：“Your trips”标题、New trip 按钮，以及 Trips 和 Calendar 标签页（`role="tablist"`，方向键切换）。标签页采用分段控件，滑块在两者之间滑动。Trips 将每个行程显示为 4:3 封面卡片，文字为“Trip to <destination>”和“<destination> · N days”，分成 Upcoming 和 Past 两组。Calendar 是周一为首日的月历网格，提供上一月、Today 和下一月操作；每个行程显示为覆盖其日期的条带，用其封面配色的深色填充，使白色标签保持清晰可读，在开始处和每周起点显示标签；默认打开下一次行程所在的月份。选择行程、聊天、New chat 或 New trip 会返回工作区。
+  - 面板自上而下依次为：胶囊形搜索框（“Search…”，视觉隐藏标签“Search chats and trips”，以及将焦点返回输入框的 Clear search 按钮），它同时筛选两个列表；New chat（铅笔图标）和 New trip（带加号的行李箱）；**Trips**，每行显示目的地小封面和“Trip to <destination>”；以及 **Chats**，每行用一行显示本地化的短日期标题，下方显示关联行程名称。已重命名的聊天标题保持不变。选择任何条目都会关闭面板。两个起始动作的行为见[New chat 和 New trip](#conversations-trips-and-storage)。
+  - **Trips** 将顶栏、聊天和地图替换成 Your trips 页面：“Your trips”标题、New trip 按钮，以及 Trips 和 Calendar 标签页（`role="tablist"`，方向键切换）。标签页采用分段控件，滑块在两者之间滑动。Trips 将每个行程显示为 4:3 封面卡片，文字为“Trip to <destination>”和“<destination> · <本地化日期范围> · N days”，分成 Upcoming 和 Past 两组。Calendar 是周一为首日的月历网格，提供上一月、Today 和下一月操作；每个行程显示为覆盖其日期的条带，用其封面配色的深色填充，使白色标签保持清晰可读，在开始处和每周起点显示标签；默认打开下一次行程所在的月份。选择行程、聊天、New chat 或 New trip 会返回工作区。
   - 行程不保存照片，因此封面使用按目的地哈希选择的渐变色和首字母；同一目的地总是得到同样的颜色。
   - 聊天行右上角的更多操作按钮打开 Rename 和 Delete，使这些操作只在需要时出现。悬停或键盘聚焦时显示按钮；无悬停能力的环境始终显示。菜单由 `role="menu"` 和 `role="menuitem"` 按钮组成，触发按钮带 `aria-haspopup` 和 `aria-expanded`；Escape 关闭菜单并将焦点返回触发按钮，不关闭外层面板或抽屉，点击外部或按 Tab 离开也会关闭菜单。行程没有这两个操作，因此没有更多操作菜单。
   - 窄屏导航抽屉显示侧边栏，并在 Trips 下显示面板内容（搜索、两个起始操作、Trips 和 Chats）。
@@ -118,6 +118,8 @@ seniors`（宠物不计为旅客）；`groupSize` 仍是校验字段，因此至
 <a id="reviewing-a-plan"></a>
 
 ## 查看方案
+
+Trip 抽屉摘要显示目的地、本地化短日期范围和旅行人员数量。
 
 下文提到已移除界面的名称，只用于解释移除情况；除了这些功能不存在之外，本节不描述其他当前行为。
 
