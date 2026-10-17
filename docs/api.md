@@ -10,6 +10,7 @@ validated against the shared contracts in `packages/shared/src/`.
 | ----------------------------------------------------------- | ------------------------------------------------------------------- |
 | [`/api/chat`](#post-apichat)                                | Extract brief updates or plan a submitted brief, streaming progress |
 | [`/api/agent-lab/runs`](#post-apiagent-labruns)             | Run a registered, inspectable fixture experiment                    |
+| [`/api/agent-lab/benchmark`](#get-apiagent-labbenchmark)    | Read the versioned Agent Lab benchmark configuration                |
 | [`/api/data-mode`](#get-apidata-mode)                       | Default data mode and whether live provider keys are configured     |
 | [`/api/places/search`](#post-apiplacessearch)               | Google Places text search                                           |
 | [`/api/places/details`](#post-apiplacesdetails)             | Google place details for a place ID                                 |
@@ -182,6 +183,12 @@ with `{ "error": "The request was invalid. Please retry.", "notice": { … } }`.
 
 An optional `x-trip-data-mode` header of `mock` or `live` chooses fixtures or live providers for this
 request only; any other value, or no header, uses the deployment default.
+
+## `GET /api/agent-lab/benchmark`
+
+Returns the versioned Agent Lab benchmark registry: benchmark and artifact schema versions, fixture
+scenarios and their expectations/checks, registered strategies and fault profiles, and the capped live
+scenario/strategy/repeat subset. The response is read-only and uses `Cache-Control: no-store`.
 
 ## `POST /api/agent-lab/runs`
 

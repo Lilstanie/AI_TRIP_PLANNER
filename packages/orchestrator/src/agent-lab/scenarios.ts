@@ -1,11 +1,6 @@
 import { parisFamilyInfeasible } from "./paris-family";
 import { tokyoKyotoMultiCity } from "./tokyo-kyoto";
-import {
-  TripPlan,
-  type AgentLabScenarioId,
-  type TripBrief,
-  type UserPreference,
-} from "@trip/shared";
+import { TripBrief, TripPlan, type AgentLabScenarioId, type UserPreference } from "@trip/shared";
 
 export interface AgentLabScenarioRules {
   earliestStartTime: string;
@@ -22,6 +17,8 @@ export interface AgentLabScenario {
   fixtureVersion: string;
   brief: TripBrief;
   rules: AgentLabScenarioRules;
+  expectedOutcome: "complete" | "partial" | "safe-stop";
+  mustPassCheckIds: readonly string[];
 
   preferences: UserPreference[];
   fixturePlan: TripPlan;
@@ -222,6 +219,19 @@ const preferences: UserPreference[] = [
   { key: "schedule", value: "no early starts", source: "filter" },
 ];
 
+const tokyoBenchmarkBase: AgentLabScenario = {
+  id: "tokyo-couple",
+  title: "Tokyo couple",
+  summary: "A five-day trip from Sydney for two travellers with a A$6,000 budget.",
+  fixtureVersion: "tokyo-couple-v1",
+  brief: tokyoBrief,
+  rules,
+  preferences,
+  fixturePlan: scriptedBaselinePlan(tokyoBrief),
+  expectedOutcome: "complete",
+  mustPassCheckIds: ["sections", "destination"],
+};
+
 const tightBrief: TripBrief = {
   ...tokyoBrief,
   tripId: "agent-lab-tokyo-couple-tight-budget",
@@ -230,14 +240,7 @@ const tightBrief: TripBrief = {
 
 export const agentLabScenarios: readonly AgentLabScenario[] = [
   {
-    id: "tokyo-couple",
-    title: "Tokyo couple",
-    summary: "A five-day trip from Sydney for two travellers with a A$6,000 budget.",
-    fixtureVersion: "tokyo-couple-v1",
-    brief: tokyoBrief,
-    rules,
-    preferences,
-    fixturePlan: scriptedBaselinePlan(tokyoBrief),
+    ...tokyoBenchmarkBase,
   },
   {
     id: "tokyo-couple-tight-budget",
@@ -249,10 +252,109 @@ export const agentLabScenarios: readonly AgentLabScenario[] = [
     rules,
     preferences,
     fixturePlan: scriptedBaselinePlan(tightBrief),
+    expectedOutcome: "partial",
+    mustPassCheckIds: ["sections", "destination"],
   },
-  parisFamilyInfeasible,
-  tokyoKyotoMultiCity,
+  {
+    ...parisFamilyInfeasible,
+    expectedOutcome: "safe-stop",
+    mustPassCheckIds: ["sections", "destination", "evidence-floor", "infeasibility-reported"],
+  },
+  {
+    ...tokyoKyotoMultiCity,
+    expectedOutcome: "complete",
+    mustPassCheckIds: [
+      "sections",
+      "destination",
+      "hop-date",
+      "itinerary-by-city",
+      "stay-transition",
+      "trip-dates",
+      "total-consistent",
+    ],
+  },
+  scenarioVariant("tokyo-couple-explicit-budget", "Tokyo with an explicit budget", tokyoBrief, {
+    budgetTotal: 6000,
+  }),
+  scenarioVariant(
+    "tokyo-couple-infeasible-budget",
+    "Tokyo, below the evidence floor",
+    tokyoBrief,
+    { budgetTotal: 1700 },
+    "safe-stop",
+  ),
+  scenarioVariant(
+    "tokyo-conflicting-preferences",
+    "Tokyo with conflicting food preferences",
+    tokyoBrief,
+    { preferences: ["vegetarian meals", "local meat specialties"] },
+  ),
+  scenarioVariant("tokyo-date-night-edge", "Tokyo, one-night edge case", tokyoBrief, {
+    dates: ["2026-11-10", "2026-11-11"],
+  }),
+  scenarioVariant(
+    "tokyo-vague-brief",
+    "Tokyo with a vague brief",
+    tokyoBrief,
+    { preferences: ["something relaxing", "good local food"] },
+    "complete",
+  ),
+  scenarioVariant("tokyo-short-window", "Tokyo, four-day planning window", tokyoBrief, {
+    dates: ["2026-11-10", "2026-11-13"],
+  }),
+  scenarioVariant(
+    "paris-family-feasible",
+    "Paris family with a feasible budget",
+    parisFamilyInfeasible.brief,
+    { budgetTotal: 6500 },
+    "complete",
+    parisFamilyInfeasible,
+  ),
+  scenarioVariant(
+    "kyoto-multi-city-tight-budget",
+    "Tokyo and Kyoto with a tight budget",
+    tokyoKyotoMultiCity.brief,
+    { budgetTotal: 4200 },
+    "complete",
+    tokyoKyotoMultiCity,
+  ),
 ];
+
+function scenarioVariant(
+  id: AgentLabScenarioId,
+  title: string,
+  baseBrief: TripBrief,
+  changes: Partial<TripBrief>,
+  expectedOutcome: AgentLabScenario["expectedOutcome"] = "complete",
+  source?: AgentLabScenario,
+): AgentLabScenario {
+  const base = source ?? tokyoBenchmarkBase;
+  const brief = TripBrief.parse({ ...baseBrief, ...changes, tripId: `agent-lab-${id}` });
+  const fixturePlan = TripPlan.parse({
+    ...base.fixturePlan,
+    tripId: brief.tripId,
+    brief,
+    budgetTotal: brief.budgetTotal,
+  });
+  const scenarioRules =
+    id === "paris-family-feasible"
+      ? (Object.fromEntries(
+          Object.entries(base.rules).filter(([key]) => key !== "infeasibleBudget"),
+        ) as AgentLabScenarioRules)
+      : base.rules;
+  return {
+    ...base,
+    id,
+    title,
+    summary: `Versioned benchmark scenario: ${title.toLowerCase()}.`,
+    fixtureVersion: `${id}-v1`,
+    brief,
+    rules: scenarioRules,
+    fixturePlan,
+    expectedOutcome,
+    mustPassCheckIds: ["sections", "destination"],
+  };
+}
 
 export const agentLabScenarioSummaries = agentLabScenarios.map(({ id, title, summary }) => ({
   id,

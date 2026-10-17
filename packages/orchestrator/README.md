@@ -38,7 +38,11 @@ model whatever the environment holds; a live run (`dataMode: "live"`) uses the r
 the usage the provider returned (`buildAgentLabUsage`). `agentLabStrategySupportsLive` says which strategies have a
 live implementation. A request may also name one registered
 fault profile (`fault-profiles.ts`), which `faults.ts` applies around the specialists; `runAgentLabToArtifact`
-ends a run in a completed or failed artifact.
+ends a run in a completed or failed artifact. The versioned benchmark registry exposes scenario
+expectations, strategies and registered faults to `GET /api/agent-lab/benchmark`. The first benchmark
+contains twelve fixture scenarios. The `agent-lab-benchmark` E2E generates fixture and optional,
+live-gated reports from retained artifacts and replays one of those artifacts; it is the benchmark's
+test seam.
 
 ## Contracts
 
