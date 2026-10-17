@@ -464,7 +464,7 @@ button.timeline-stop__main:hover {
 
 @container timeline (max-width: 420px) {
   .timeline {
-    --time-col: 40px;
+    --time-col: 56px;
   }
   .timeline-row,
   .timeline-connection {

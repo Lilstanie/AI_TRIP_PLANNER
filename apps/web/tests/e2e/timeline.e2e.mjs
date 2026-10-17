@@ -29,9 +29,11 @@ async function openTimeline(browser, { width, height, scheme, setup }) {
   const page = await context.newPage();
   await setup?.(page);
   const errors = [];
+  const notFound = [];
 
   const upstream = new Set();
   page.on("response", (response) => {
+    if (response.status() === 404) notFound.push(response.url());
     if (PLACES_DOWN.has(response.status())) upstream.add(new URL(response.url()).pathname);
   });
   page.on("console", (message) => {
@@ -86,7 +88,7 @@ async function openTimeline(browser, { width, height, scheme, setup }) {
   if (await tripTab.count()) await tripTab.click();
   else await page.getByRole("button", { name: "Open your trip" }).click();
   await settle(page, 700);
-  return { context, page, errors, upstream };
+  return { context, page, errors, upstream, notFound };
 }
 
 async function shots(browser, width, height, tag) {
@@ -118,6 +120,36 @@ async function shots(browser, width, height, tag) {
       stopTimes.length > 0 && stopTimes.every((time) => time.lines <= 2 && time.narrowest >= 18),
       `${tag} ${scheme}: each stop time sits on two lines and its digits do not stack (${JSON.stringify(stopTimes.slice(0, 3))})`,
     );
+    if (width <= 520) {
+      const phoneTimes = await page.locator(".timeline-stop__time").evaluateAll((buttons) => {
+        const dotCenters = buttons.map((button) => {
+          const node = button.closest(".timeline-stop")?.querySelector(".timeline-stop__node");
+          if (!node) return null;
+          const box = node.getBoundingClientRect();
+          return box.left + box.width / 2;
+        });
+        return {
+          times: buttons.map((button) => ({
+            text: button.innerText.trim(),
+            clientWidth: button.clientWidth,
+            scrollWidth: button.scrollWidth,
+          })),
+          dotCenters,
+        };
+      });
+      check(
+        phoneTimes.times.length > 0 &&
+          phoneTimes.times.every(
+            (time) => time.clientWidth >= 51 && time.scrollWidth === time.clientWidth,
+          ),
+        `${tag} ${scheme}: phone stop times fit their column (${JSON.stringify(phoneTimes.times.slice(0, 3))})`,
+      );
+      const centers = phoneTimes.dotCenters.filter((center) => center !== null);
+      check(
+        centers.length > 0 && centers.every((center) => Math.abs(center - centers[0]) < 1),
+        `${tag} ${scheme}: timeline dots remain aligned (${JSON.stringify(centers.slice(0, 4))})`,
+      );
+    }
     check(
       await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
       `${tag} ${scheme}: no horizontal page scroll`,
@@ -518,7 +550,7 @@ async function interactions(browser) {
 }
 
 async function fareDecimals(browser) {
-  const { context, page, errors, upstream } = await openTimeline(browser, {
+  const { context, page, errors, upstream, notFound } = await openTimeline(browser, {
     width: 1440,
     height: 1000,
     scheme: "light",
@@ -585,7 +617,7 @@ async function fareDecimals(browser) {
   );
   check(
     !unexpected.length,
-    `fare decimals: no console errors${unexpected.length ? `: ${unexpected.join(" | ")}` : ""}`,
+    `fare decimals: no console errors${unexpected.length ? `: ${unexpected.join(" | ")} [404 URLs: ${notFound.join(", ")}]` : ""}`,
   );
 
   await page.waitForLoadState("networkidle");
@@ -754,7 +786,16 @@ async function stopNumbers(browser) {
       .first()
       .getByRole("button", { name: /^Actions for / })
       .click();
+    const moveResponse = page.waitForResponse(
+      (response) => response.url().endsWith("/api/trip/preview-edit"),
+      { timeout: 15_000 },
+    );
     await drawer.getByRole("menuitem", { name: "Move later", exact: true }).click();
+    const response = await moveResponse.catch(() => undefined);
+    check(
+      response?.ok(),
+      `numbers: Move later preview returned ${response ? response.status() : "no response within 15s"}`,
+    );
     await settle(page, 800);
     const swapped = "3 Delta Market, 1 Alpha Museum, 4 Charlie Gallery";
     const afterMove = await timelineDay(1);

@@ -216,16 +216,47 @@ function TripCalendar({
     const date = new Date(next ? Math.max(utc(next[0]), today) : today);
     return { year: date.getUTCFullYear(), month: date.getUTCMonth() };
   });
+  const [activeTime, setActiveTime] = useState(() => {
+    const today = todayUtc();
+    const date = new Date(today);
+    return date.getUTCFullYear() === cursor.year && date.getUTCMonth() === cursor.month
+      ? today
+      : Date.UTC(cursor.year, cursor.month, 1);
+  });
   const first = Date.UTC(cursor.year, cursor.month, 1);
   const lead = (new Date(first).getUTCDay() + 6) % 7;
   const monthDays = new Date(Date.UTC(cursor.year, cursor.month + 1, 0)).getUTCDate();
   const cells = Math.ceil((lead + monthDays) / 7) * 7;
   const today = todayUtc();
-  const shift = (by: number) =>
-    setCursor(({ year, month }) => {
-      const date = new Date(Date.UTC(year, month + by, 1));
-      return { year: date.getUTCFullYear(), month: date.getUTCMonth() };
-    });
+  const shift = (by: number) => {
+    const date = new Date(Date.UTC(cursor.year, cursor.month + by, 1));
+    setActiveTime(date.getTime());
+    setCursor({ year: date.getUTCFullYear(), month: date.getUTCMonth() });
+  };
+
+  const moveFocus = (event: KeyboardEvent<HTMLDivElement>, time: number) => {
+    const delta =
+      event.key === "ArrowRight"
+        ? 1
+        : event.key === "ArrowLeft"
+          ? -1
+          : event.key === "ArrowDown"
+            ? 7
+            : event.key === "ArrowUp"
+              ? -7
+              : 0;
+    if (!delta) return;
+    event.preventDefault();
+    const nextTime = time + delta * DAY;
+    const nextDate = new Date(nextTime);
+    setActiveTime(nextTime);
+    setCursor({ year: nextDate.getUTCFullYear(), month: nextDate.getUTCMonth() });
+    const grid = event.currentTarget.closest(".trip-calendar__grid");
+    const selector = `[data-calendar-time="${nextTime}"]`;
+    const nextCell = grid?.querySelector<HTMLElement>(selector);
+    if (nextCell && nextDate.getUTCMonth() === new Date(time).getUTCMonth()) nextCell.focus();
+    else requestAnimationFrame(() => grid?.querySelector<HTMLElement>(selector)?.focus());
+  };
 
   const onDay = (time: number) =>
     trips.filter((trip) => {
@@ -248,6 +279,7 @@ function TripCalendar({
             className="trip-calendar__today"
             onClick={() => {
               const now = new Date(today);
+              setActiveTime(today);
               setCursor({ year: now.getUTCFullYear(), month: now.getUTCMonth() });
             }}
           >
@@ -285,8 +317,20 @@ function TripCalendar({
                   role="gridcell"
                   key={index}
                   className="trip-calendar__day"
+                  aria-label={new Intl.DateTimeFormat(intlLocale(locale), {
+                    weekday: "long",
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                    timeZone: "UTC",
+                  }).format(date)}
+                  aria-current={time === today ? "date" : undefined}
+                  tabIndex={time === activeTime ? 0 : -1}
+                  data-calendar-time={time}
                   data-outside={inMonth ? undefined : "true"}
                   data-today={time === today ? "true" : undefined}
+                  onFocus={() => setActiveTime(time)}
+                  onKeyDown={(event) => moveFocus(event, time)}
                 >
                   <span className="trip-calendar__date">{date.getUTCDate()}</span>
                   {here.map((trip) => {
