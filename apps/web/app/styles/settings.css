@@ -466,3 +466,24 @@ button.settings-chip[aria-pressed="true"] {
     padding: var(--space-3) 0 var(--space-4);
   }
 }
+
+@media (max-width: 520px) {
+  .settings-tab,
+  .settings-nav button.settings-tab,
+  .settings-select,
+  button.settings-switch,
+  button.memory-row__answer,
+  .dialog__head button,
+  .dialog:has(.settings) .dialog__head button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  button.settings-switch span {
+    top: 8px;
+  }
+
+  .dialog:has(.settings) > .dialog__head > button {
+    min-height: 44px !important;
+  }
+}

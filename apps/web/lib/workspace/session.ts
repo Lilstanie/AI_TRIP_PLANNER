@@ -105,7 +105,7 @@ export const REJECTED_BRIEF: Notice = { key: "Check the highlighted trip details
 const FAILED: Notice = { key: "Unable to update the trip. Please retry." };
 
 export type SavedSession = Pick<SessionState, "draft" | "messages" | "input"> &
-  Partial<Pick<SessionState, "plan" | "previousTotal">>;
+  Partial<Pick<SessionState, "plan" | "previousTotal" | "ask">>;
 
 export function idleSession(saved: SavedSession): SessionState {
   return {
@@ -119,7 +119,7 @@ export function idleSession(saved: SavedSession): SessionState {
     error: undefined,
     errors: {},
     retry: undefined,
-    ask: undefined,
+    ask: saved.ask,
     selectedActivity: undefined,
     mapRoutes: [],
     estimateChange: undefined,
@@ -164,6 +164,7 @@ export function session(state: SessionState, event: SessionEvent): SessionState 
       return {
         ...state,
         busy: true,
+        input: "",
         error: undefined,
         retry: undefined,
         ask: undefined,
@@ -246,7 +247,13 @@ export function session(state: SessionState, event: SessionEvent): SessionState 
         reply(event.flights.reply, event.transcript, event.at, { flights: event.flights }),
       );
     case "failed":
-      return { ...state, busy: false, error: event.message, retry: event.task };
+      return {
+        ...state,
+        busy: false,
+        input: state.input || event.task.request.message,
+        error: event.message,
+        retry: event.task,
+      };
     case "cancelled":
       return { ...state, busy: false };
   }

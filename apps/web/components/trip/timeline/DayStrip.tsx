@@ -5,10 +5,12 @@ import { useEffect, useRef } from "react";
 export function DayStrip({
   days,
   selected,
+  today,
   onSelect,
 }: {
   days: { day: number; date: string; stops: number; attention: boolean }[];
   selected: number;
+  today?: number;
   onSelect(day: number): void;
 }) {
   const { t } = useLocale();
@@ -45,6 +47,7 @@ export function DayStrip({
           }}
         >
           <span className="day-strip__title">{t("Day {v0}", { v0: day })}</span>
+          {day === today && <span className="day-strip__today">{t("Today")}</span>}
           <span className="day-strip__date">{date}</span>
           <span className="day-strip__meta">
             {stops ? `${stops} ${stops === 1 ? t("stop") : t("stops")}` : t("Free day")}

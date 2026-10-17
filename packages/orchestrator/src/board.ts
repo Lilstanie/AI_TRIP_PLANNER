@@ -35,7 +35,9 @@ export function allocationFor(
   const spent = settled.reduce((sum, name) => sum + costOf(proposals.get(name)!), 0);
   const remaining = Math.max(0, brief.budgetTotal - spent);
 
-  const open = (Object.keys(SHARES) as AgentName[]).filter((name) => !settled.includes(name));
+  const open = (Object.keys(SHARES) as AgentName[]).filter(
+    (name) => !settled.includes(name) && !(brief.noAccommodation && name === "accommodation"),
+  );
   const weight = open.reduce((sum, name) => sum + SHARES[name]!, 0);
   const budget = Math.floor(((remaining * share) / weight) * 100) / 100;
   const after = settled.length ? ` after ${settled.join(" and ")} (${aud(spent)})` : "";

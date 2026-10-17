@@ -10,6 +10,7 @@ validated against the shared contracts in `packages/shared/src/`.
 | ----------------------------------------------------------- | ------------------------------------------------------------------- |
 | [`/api/chat`](#post-apichat)                                | Extract brief updates or plan a submitted brief, streaming progress |
 | [`/api/agent-lab/runs`](#post-apiagent-labruns)             | Run a registered, inspectable fixture experiment                    |
+| [`/api/agent-lab/benchmark`](#get-apiagent-labbenchmark)    | Read the versioned Agent Lab benchmark configuration                |
 | [`/api/data-mode`](#get-apidata-mode)                       | Default data mode and whether live provider keys are configured     |
 | [`/api/places/search`](#post-apiplacessearch)               | Google Places text search                                           |
 | [`/api/places/details`](#post-apiplacesdetails)             | Google place details for a place ID                                 |
@@ -60,7 +61,7 @@ Contract: `ChatRequest`, `ChatResponse` and `AgentProgressEvent` in `packages/sh
 never writes them, and every specialist and the supervisor receive them with the brief. `nationality`
 and `accommodation` are still accepted and passed through, but no current screen sets them.
 
-Three more optional fields on `brief` and `known` come from the conversation:
+Four more optional fields on `brief` and `known` come from the conversation:
 
 - `learnedPreferences` has the same limits as `preferences` and holds the wishes the coordinator
   heard in chat. Specialists receive it appended to `preferences`.
@@ -68,8 +69,13 @@ Three more optional fields on `brief` and `known` come from the conversation:
   "arranged by you" items, with no fares and no `flights` selection.
 - `bookedStay: { name, note? }` is a stay the traveller has booked. The accommodation section is that
   one unpriced item, with no `stays` candidates.
+- `noAccommodation: true` means the traveller does not need a stay. The accommodation specialist is
+  skipped and no stay allocation is made. It is independent of `bookedStay`; absent or `false` keeps
+  the existing accommodation-planning behavior.
 
-The traveller can remove these from Trip preferences, and the client then sends them without them.
+Removing a saved optional value from Trip preferences omits it from the request. `noAccommodation`
+is a separate explicit choice: turning it off sends `false`, so it can override a previously saved
+`true` value.
 
 `brief.displayCurrency` and `known.displayCurrency` are optional too: one of `AUD`, `CNY`, `USD` or `JPY`
 (`Currency` in `packages/shared/src/money.ts`), the last currency the traveller named for the trip, with
@@ -152,6 +158,8 @@ blocks, text files are inlined into its message under a delimiter naming the fil
 specialists' inputs are unchanged. Without a provider key, images are ignored and the inlined text is
 still read.
 
+New planning requests whose start or end date precedes the current calendar date at the destination receive an explicit clarification instead of a plan. The web client includes coordinates from a selected destination suggestion; the server uses an offline coordinate-to-time-zone lookup. If no coordinates are available, the check falls back to UTC. The traveller can provide corrected dates or explicitly confirm the historical dates in response to the matching clarification. Supplying an existing plan preserves historical editing. When an edit leaves the material itinerary, stays, transport and costs unchanged, the reply states that the plan was unchanged rather than claiming the requested edit completed.
+
 Optional `mode` values:
 
 - `"chat"` (default): extract explicit updates from `message` and apply them to `brief`. Without a
@@ -175,6 +183,12 @@ with `{ "error": "The request was invalid. Please retry.", "notice": { … } }`.
 
 An optional `x-trip-data-mode` header of `mock` or `live` chooses fixtures or live providers for this
 request only; any other value, or no header, uses the deployment default.
+
+## `GET /api/agent-lab/benchmark`
+
+Returns the versioned Agent Lab benchmark registry: benchmark and artifact schema versions, fixture
+scenarios and their expectations/checks, registered strategies and fault profiles, and the capped live
+scenario/strategy/repeat subset. The response is read-only and uses `Cache-Control: no-store`.
 
 ## `POST /api/agent-lab/runs`
 

@@ -85,7 +85,7 @@ export function dotState(status: ActivityStatus): DotState {
 
 function agentStatus(events: AgentProgressEvent[], busy: boolean): ActivityStatus {
   const event = latestLifecycle(events);
-  if (!event) return events.length > 0 ? "unknown" : busy ? "queued" : "interrupted";
+  if (!event) return busy ? (events.length > 0 ? "unknown" : "queued") : "interrupted";
   if (event.type === "agent_failed") return "failed";
   if (event.type === "agent_completed") return "completed";
   return event.round > 1 ? "revising" : "running";
@@ -387,7 +387,7 @@ export interface Counts {
 export function countActivity(activity: AgentProgressEvent[]): Counts {
   const calls = new Set<string>();
   const subagents = new Set<AgentName>();
-  const rounds = new Set<number>();
+  const rounds = new Set(workRounds(activity));
   for (const event of activity) {
     if (isToolEvent(event)) calls.add(event.callId);
     if (!isLifecycle(event)) continue;
@@ -556,7 +556,7 @@ export function roundGroups(activity: AgentProgressEvent[], busy: boolean): Roun
     const heading =
       multiRound && round > 1
         ? {
-            summary: coordinatorEvent?.summary ?? `Round ${round} of the plan`,
+            summary: coordinatorEvent?.summary ?? "",
             ...(coordinatorEvent?.constraints?.length
               ? { constraints: coordinatorEvent.constraints }
               : {}),

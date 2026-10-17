@@ -130,8 +130,8 @@ export const WORKSPACE_ZH = {
   "Undo last change": "撤销上次修改",
   "Estimated total": "预计总额",
   "Budget used": "已用预算",
-  "Not included: admission for": "未计入：",
-  "with no published price.": "的门票价格未公布。",
+  "Not included: costs for": "未计入：",
+  "with no published price.": "尚未公布的费用。",
   "Trip views": "行程视图",
   "No itinerary yet. Fill in your preferences and select Update trip.":
     "尚无日程。填写偏好后选择更新行程。",
@@ -283,6 +283,12 @@ export const WORKSPACE_ZH = {
   travellers: "位旅行人员",
   "Estimate unavailable": "暂无估算",
   "Over budget": "超出预算",
+  "No accommodation needed": "不需要住宿",
+  "At budget": "已达预算",
+  "At budget · unpriced stops not counted": "已达预算 · 未定价停靠点未计入",
+  "Known estimate within budget · unpriced stops not counted":
+    "已知估算在预算内 · 未定价停靠点未计入",
+  "The known estimate equals your budget.": "已知估算恰好达到预算。",
   "Within budget": "预算内",
   "Budget not set": "未设置预算",
   over: "超出",
@@ -320,6 +326,12 @@ export const WORKSPACE_ZH = {
   "Finding places…": "正在查找地点…",
   "Selected place: {v0}": "已选地点：{v0}",
   "Actions for {v0}": "{v0}的操作",
+  "Mock data: bundled fixtures. No provider requests and no allowance spent.":
+    "示例数据：使用内置示例，不会请求服务商，也不会消耗额度。",
+  "Live data: real hotel and flight prices. Each plan spends the shared monthly search allowance.":
+    "实时数据：提供真实酒店和航班价格。每次规划都会使用共享的月度搜索额度。",
+  "Live data selected, but no SERPAPI_KEY is configured, so results fall back to estimates.":
+    "已选择实时数据，但未配置 SERPAPI_KEY，因此结果将使用估算值。",
   ". Currently using live provider data. Activate to switch to mock fixtures.":
     "。当前使用实时数据。点击切换到示例数据。",
   ". Currently using mock fixtures. Activate to switch to live provider data.":
@@ -330,6 +342,10 @@ export const WORKSPACE_ZH = {
   "No trips yet. Start one with New trip.": "尚无行程。选择新行程以开始。",
   "No matching chats.": "没有匹配的聊天。",
   "No chats yet.": "尚无聊天。",
+  "Trip search results": "行程搜索结果",
+  "Chat search results": "聊天搜索结果",
+  "{count} trips found": "找到 {count} 个行程",
+  "{count} chats found": "找到 {count} 个聊天",
   "Close your trip": "关闭行程",
   "Fares from {v0} to {v1}": "{v0}到{v1}的票价",
   "Prices change without notice.": "价格可能随时变化。",
@@ -353,8 +369,8 @@ export const WORKSPACE_ZH = {
   "Remove “{v0}”": "移除“{v0}”",
   "{amount} over the {budget} budget": "超出预算 {amount}（预算 {budget}）",
   "{amount} under the {budget} budget": "剩余预算 {amount}（预算 {budget}）",
-  "Not included: admission for {count} stops with no published price.":
-    "未计入：{count} 个停靠点没有公布门票价格。",
+  "Not included: costs for stops without a published price ({count}).":
+    "未计入：未公布价格的停靠点费用（{count} 个）。",
   "Important notes ({count})": "重要提示（{count}）",
   Calendar: "日历",
   Neutral: "中性",
@@ -473,6 +489,7 @@ export const WORKSPACE_ZH = {
   Complete: "已完成",
   "Needs attention": "需要处理",
   Interrupted: "已中断",
+  "Round {v0}": "第 {v0} 轮",
   "Waiting for update": "等待更新",
   running: "运行中",
   completed: "已完成",
@@ -512,9 +529,17 @@ export const WORKSPACE_ZH = {
   "Those files couldn't be read. Please try again.": "无法读取这些文件，请重试。",
   "{count} stopovers": "中转 {count} 次",
   "Sydney · 4 days": "悉尼 · 4 天",
+  "Plan a 4-day trip to Sydney for 2 people from {start} to {end}, total budget 4000.":
+    "计划一次为期 4 天的悉尼之旅，2 人同行，日期为 {start} 至 {end}，总预算 4000。",
   "Melbourne → Sydney · 5 days": "墨尔本 → 悉尼 · 5 天",
+  "Plan a 5-day trip from Melbourne to Sydney for 2 people from {start} to {end}, total budget 5000.":
+    "计划一次为期 5 天、从墨尔本前往悉尼的旅行，2 人同行，日期为 {start} 至 {end}，总预算 5000。",
   "Melbourne → Sydney & Brisbane · 9 days": "墨尔本 → 悉尼和布里斯班 · 9 天",
+  "Plan a 9-day trip from Melbourne to Sydney & Brisbane for 2 people from {start} to {end}, total budget 9000.":
+    "计划一次为期 9 天、从墨尔本前往悉尼和布里斯班的旅行，2 人同行，日期为 {start} 至 {end}，总预算 9000。",
   "Sydney & Wollongong · 5 days": "悉尼和卧龙岗 · 5 天",
+  "Plan a 5-day trip to Sydney & Wollongong for 2 people from {start} to {end}, total budget 4500.":
+    "计划一次为期 5 天的悉尼和卧龙岗之旅，2 人同行，日期为 {start} 至 {end}，总预算 4500。",
   "{count} stop": "中转 {count} 次",
   "{count} stops": "中转 {count} 次",
   "{count} travellers": "{count} 位旅客",
@@ -599,6 +624,7 @@ export const WORKSPACE_ZH = {
   "Invalid route duration.": "路线时长无效。",
   "End date must follow start date, with at least one night per destination.":
     "结束日期须晚于开始日期，且每个目的地至少住一晚。",
+  "Choose an end date": "请选择结束日期",
   "Your data was deleted, but the sign-in account could not be. Try again.":
     "你的数据已删除，但登录账户未能删除，请重试。",
   "Accounts are not available on this deployment.": "此部署未启用账户功能。",

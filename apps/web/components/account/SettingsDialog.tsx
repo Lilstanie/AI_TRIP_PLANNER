@@ -46,14 +46,7 @@ const DATA_LABEL = {
   mock: "Sample data",
 } as const;
 
-import {
-  SettingRow,
-  Segmented,
-  ChipGroup,
-  Switch,
-  MemoryRow,
-  TextEditor,
-} from "./SettingsControls";
+import { SettingRow, Segmented, ChipGroup, MemoryRow, TextEditor } from "./SettingsControls";
 
 function ProfileSection({ onAccountModal }: AccountModalProps) {
   const { t, notice: localizeNotice } = useLocale();
@@ -460,22 +453,6 @@ function PersonalizationSection() {
           ))}
         </select>
       </section>
-      <section className="settings-block settings-block--switch" aria-labelledby="settings-memory">
-        <div>
-          <h3 id="settings-memory">{t("Long-term memory")}</h3>
-          <p className="settings-hint">
-            {t(
-              "Let the planner remember preferences you mention in chat, such as your pace or what you eat, and use them in later plans. When off, it will not save or use anything it learns in chat.",
-            )}
-          </p>
-        </div>
-        <Switch
-          label={t("Long-term memory")}
-          checked={settings.assistant.memory}
-          onChange={(memory) => update({ assistant: { ...settings.assistant, memory } })}
-        />
-      </section>
-
       <p className="settings-hint">
         {t(
           "What the planner knows about you fills in every new trip. You can change any of it for one trip, and trips already planned stay as they are.",

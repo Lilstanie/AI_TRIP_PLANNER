@@ -27,8 +27,8 @@ Web 应用（`apps/web`）是单用户规划工作区。本文描述其当前行
   - 用户调整大小之后，宽度才存入目录布局。在此之前遵循样式表的响应式默认值，因此缩窄窗口仍会缩窄侧边栏。折叠时保留宽度，供下次展开使用。
   - 侧边栏只包含导航：带数量的 Chats 和 Trips。轮廓线图标使用文字颜色；对应面板或页面打开时，图标变为填充样式，标签加粗，背景轻微强调，并带 `aria-current`。折叠时显示带名称和 tooltip 的图标按钮。
   - **Chats** 切换 Chats 面板（`aria-expanded`、`aria-controls="chats-panel"`）：它是位于侧边栏右边缘、宽 320 px 的玻璃区域，在工作区上方以 380 ms 的弹性和淡入动效出现（`prefers-reduced-motion` 下立即出现），关闭时为 `inert`。打开时聚焦搜索框；Escape 关闭面板并将焦点返回 Chats（已打开的历史菜单或对话框优先处理 Escape），点击外部也会关闭面板。[Chats 面板和 Your trips Agent Note](../.agents/notes/implemented/feature/2026-09-24-chats-panel-and-trips-page.md) 记录了原因。
-  - 面板自上而下依次为：胶囊形搜索框（“Search…”，视觉隐藏标签“Search chats and trips”，以及将焦点返回输入框的 Clear search 按钮），它同时筛选两个列表；New chat（铅笔图标）和 New trip（带加号的行李箱）；**Trips**，每行显示目的地小封面和“Trip to <destination>”；以及 **Chats**，每行用一行显示标题，下方显示关联行程名称。选择任何条目都会关闭面板。两个起始动作的行为见[New chat 和 New trip](#conversations-trips-and-storage)。
-  - **Trips** 将顶栏、聊天和地图替换成 Your trips 页面：“Your trips”标题、New trip 按钮，以及 Trips 和 Calendar 标签页（`role="tablist"`，方向键切换）。标签页采用分段控件，滑块在两者之间滑动。Trips 将每个行程显示为 4:3 封面卡片，文字为“Trip to <destination>”和“<destination> · N days”，分成 Upcoming 和 Past 两组。Calendar 是周一为首日的月历网格，提供上一月、Today 和下一月操作；每个行程显示为覆盖其日期的条带，用其封面配色的深色填充，使白色标签保持清晰可读，在开始处和每周起点显示标签；默认打开下一次行程所在的月份。选择行程、聊天、New chat 或 New trip 会返回工作区。
+  - 面板自上而下依次为：胶囊形搜索框（“Search…”，视觉隐藏标签“Search chats and trips”，以及将焦点返回输入框的 Clear search 按钮），它同时筛选两个列表；New chat（铅笔图标）和 New trip（带加号的行李箱）；**Trips**，每行显示目的地小封面和“Trip to <destination>”；以及 **Chats**，每行用一行显示本地化的短日期标题，下方显示关联行程名称。已重命名的聊天标题保持不变。选择任何条目都会关闭面板。两个起始动作的行为见[New chat 和 New trip](#conversations-trips-and-storage)。
+  - **Trips** 将顶栏、聊天和地图替换成 Your trips 页面：“Your trips”标题、New trip 按钮，以及 Trips 和 Calendar 标签页（`role="tablist"`，方向键切换）。标签页采用分段控件，滑块在两者之间滑动。Trips 将每个行程显示为 4:3 封面卡片，文字为“Trip to <destination>”和“<destination> · <本地化日期范围> · N days”，分成 Upcoming 和 Past 两组。Calendar 是周一为首日的月历网格，提供上一月、Today 和下一月操作；每个行程显示为覆盖其日期的条带，用其封面配色的深色填充，使白色标签保持清晰可读，在开始处和每周起点显示标签；默认打开下一次行程所在的月份。每个日期格都有本地化的星期、日期和年份无障碍名称；今天带有 `aria-current="date"`；方向键在所有日期间移动可见焦点，包括没有行程的日期。选择行程、聊天、New chat 或 New trip 会返回工作区。
   - 行程不保存照片，因此封面使用按目的地哈希选择的渐变色和首字母；同一目的地总是得到同样的颜色。
   - 聊天行右上角的更多操作按钮打开 Rename 和 Delete，使这些操作只在需要时出现。悬停或键盘聚焦时显示按钮；无悬停能力的环境始终显示。菜单由 `role="menu"` 和 `role="menuitem"` 按钮组成，触发按钮带 `aria-haspopup` 和 `aria-expanded`；Escape 关闭菜单并将焦点返回触发按钮，不关闭外层面板或抽屉，点击外部或按 Tab 离开也会关闭菜单。行程没有这两个操作，因此没有更多操作菜单。
   - 窄屏导航抽屉显示侧边栏，并在 Trips 下显示面板内容（搜索、两个起始操作、Trips 和 Chats）。
@@ -46,7 +46,7 @@ Web 应用（`apps/web`）是单用户规划工作区。本文描述其当前行
 seniors`（宠物不计为旅客）；`groupSize` 仍是校验字段，因此至少需要一人；若只有儿童或婴儿而没有成人或老年人，会在表单内给出提示（儿童不能单独出行），sheet 保持打开。在尚无分类的草稿上打开 Who（保存时还未引入步进器），所有已陈述的旅客起初都计为成年人。
   - 分类以 `TripBrief.party`（方案生成前为 `known.party`）传给规划器，与 `groupSize` 并列。每个 specialist 的共享规则要求它在证据允许时为儿童、婴儿、老年人和宠物规划，并在无法确认适宜性时说明；所有费用计算仍使用 `groupSize`。分类合计不再等于 `groupSize` 时（例如聊天后来得知“we're three now”），会丢弃分类，不再发送。[旅客分类 Agent Note](../.agents/notes/implemented/architecture/2026-09-24-traveller-party.md) 记录了原因。
   - Budget 在一个 `role="radiogroup"` 中提供四个预设卡片：经济（AUD 900）、适中（AUD 3,000）、舒适（AUD 6,000）和豪华（AUD 10,000）。每张卡片按行程的有效币种显示金额，仅当 `budgetTotal` 等于其 AUD 值时选中。自定义金额字段使用本行程的有效币种。保存时，`budgetSource` 保留输入的原始金额和币种，再通过 shared 的 `toAud` 换算一次写入 `budgetTotal`。显示币种与原始币种一致时直接显示原始金额，避免来回换算。行程币种不会改动设置；新行程重新使用设置中的币种。行程的**有效币种**只有一条规则，即 `packages/shared/src/money.ts` 中的 `effectiveCurrency()`，由 locale provider（行程面板、标签、预算字段）、行程卡片和行程列表共同读取：先取 `TripBrief.displayCurrency`（旅行者最近一次为该行程指定的币种，无论连同预算还是单独说出，例如“show it in yen”或“用人民币给我算”），否则取 `budgetSource.currency`（因此该字段出现之前保存的行程显示不变），否则取设置中的显示币种。后一次指定覆盖前一次，包括预算所用的币种；指定 AUD 就是 AUD。`budgetSource` 保留旅行者所说的金额和币种，显示币种变化时不会被改写。用中文聊天但没有指定币种时，仍使用设置中的币种。修改设置只影响从未指定过币种的行程。“Your trips”页面上的每张卡片末尾显示该行程自己的有效币种下的预估总价。agent 和预算检查仍读取 AUD。
-  - Trip preferences 打开时显示填充背景的输入框（`--surface-2`、无边框、15 px），Enter 添加偏好；下方每项偏好是一行带移除按钮的填充背景行，最多 12 项，每项最多 200 字符。点击偏好文字可原地编辑（Enter 或离开输入框保存，Escape 只取消此次编辑）；没有铅笔按钮。重复项会被拒绝并显示提示，Done 会保留输入框中尚未提交的文字，添加和移除通过状态区域播报。国籍、房间分配、最低住客评分和免费取消已不再可编辑；已存储行程需求中的值原样透传，已存储但不符合 schema 的评分视为“no minimum”。
+  - Trip preferences 打开时显示填充背景的输入框（`--surface-2`、无边框、15 px），Enter 添加偏好；下方每项偏好是一行带移除按钮的填充背景行，最多 12 项，每项最多 200 字符。点击偏好文字可原地编辑（Enter 或离开输入框保存，Escape 只取消此次编辑）；没有铅笔按钮。重复项会被拒绝并显示提示，Done 会保留输入框中尚未提交的文字，添加和移除通过状态区域播报。国籍、房间分配、最低住客评分和免费取消已不再可编辑；已存储行程需求中的值原样透传，已存储但不符合 schema 的评分视为“no minimum”。No accommodation 复选框用于记录旅行者不需要住宿；不勾选时保留正常住宿规划，且它不替代单独记录的已预订住宿。
   - 列表下方的“Learned from your chats”在有内容时显示助手从对话中记录的内容：
     - 每条学到的偏好；
     - “Flights: arranged by you, not planned”；
@@ -73,7 +73,7 @@ seniors`（宠物不计为旅客）；`groupSize` 仍是校验字段，因此至
   - 适配安全区的底部 Tab 栏提供 Chat、Map、Trip 和 Mine，并支持键盘操作。每次只显示一个面板；面板保持挂载以保留滚动位置。已保存的布局恢复上次使用的 Tab，也兼容旧的 Chat/Map 选择。
   - 单行顶栏显示目的地和日期，未填写时显示 New trip。点击标题打开 Trip details，按行列出 Where、When、Who、Budget 和 Preferences。每行打开既有编辑器；保存或关闭后，焦点返回标题。编辑器为底部 sheet，点击目标至少为 44 px。
   - Trip 直接显示 Your Trip，包含 Budget 和日视图。规划前说明空状态并提供 Plan in Chat。在其他 Tab 中创建或修改方案时，Trip 显示带无障碍说明的更新小红点；打开 Trip 后清除。按行程记录已读版本，因此切换未修改的已保存行程不会产生新通知。
-  - Mine 包含搜索、New chat、New trip、Trips/Calendar、聊天列表和 Settings & account。搜索同时筛选聊天和行程；打开或新建任一种内容都会切到 Chat。触摸界面始终显示每个聊天的 Rename/Delete 行菜单入口。数据模式和界面语言切换位于这里。
+  - Mine 包含搜索、New chat、New trip、Trips/Calendar、聊天列表和 Settings & account。搜索同时筛选聊天和行程；打开或新建任一种内容都会切到 Chat。触摸界面始终显示每个聊天的 Rename/Delete 行菜单入口。数据模式和界面语言切换位于这里；数据模式按钮在两种语言下都显示文字标签。
   - 跨越手机宽度时，旅客看到的仍是同一内容：在 Your trips 页面缩小到手机宽度会继续显示在 Mine 中，底部 Tab 栏保持可用；打开 Trip 抽屉时缩小会显示 Trip Tab。从 Mine 放宽显示 Your trips，从 Trip 放宽会在 Chat 上方打开 Trip 抽屉（chip 编辑器打开时除外），Chat 和 Map 保持不变。Settings、Review 和 chip 编辑器在跨越时保持打开；手机顶栏消失时 Trip details 会关闭。
   - Map 填满两栏之间的空间。当天停靠点 sheet 有收起、半高和全高三档，可拖动或通过手柄用指针、键盘选择。切换日期把地图标记和路线筛选为当天的停靠点，因此多天到访的地点会出现在每一天，并沿用其全程编号；在 sheet 或地图上选择停靠点，都会聚焦当天的这次到访。未配置 Maps key 时，sheet 和停靠点仍可使用，地图说明不可用状态。地点详情以底部 sheet 打开，桌面保留弹窗。地图控件至少为 44 px，位于停靠点 sheet 上方，平移地图不会滚动页面。
   - 输入框聚焦且键盘缩短可视视口时，外壳跟随该视口，保持最新消息可见并隐藏 Tab 栏。聚焦行程信息编辑器或停靠点编辑器的字段时同样隐藏 Tab 栏；信息 sheet 停在键盘上方，该字段及其 Save 按钮保持可见。关闭键盘或失焦后恢复 Tab 栏。浏览器返回先关闭当前 sheet 或编辑器，再离开工作区。
@@ -90,16 +90,17 @@ seniors`（宠物不计为旅客）；`groupSize` 仍是校验字段，因此至
 - **New chat** 创建独立对话，表单、输入和地图均为空。若存在未动过的空白聊天，就复用它，因此反复点击 New chat，或刷新后点击，都会保留一个空对话，不堆积空白历史条目。只要对话含有用户输入过的任何内容，就绝不复用；重命名过的对话保留名称。只有生成方案时才创建并关联行程记录（`tripId`）；此时聊天标题变为目的地和日期。
 - **New trip** 启动同样的空白对话，名称为“New trip”，打开 Where 编辑器并聚焦 Destination，而不是消息输入框。它与 New chat 一样复用未动过的空白对话，New chat 会将该对话名称改回。方案生成后才在 Trips 中列出行程；在此之前，它是 Chats 下的空白对话。[New trip Agent Note](../.agents/notes/archived/feature/2026-09-24-new-trip.md) 记录了原因。
 - **开始规划。**
-  - 空白聊天提供行程示例建议。选择建议会替换消息输入框内容并聚焦，从不发送消息或启动请求。
+  - 空白聊天提供行程示例建议。选择建议会替换消息输入框内容并聚焦，从不发送消息或启动请求。建议文字会随界面语言切换，日期、旅客人数和预算保持不变；数据模式提示和未命名聊天的操作名称也会随界面语言切换。
   - 每个 agent（智能体）回复都显示在自己的 Think 折叠区下：轮次运行时，transcript 在聊天底部流式呈现；随后移到结束该轮次的回复上方，并始终与其关联（重新加载后也保留）。
-  - 规划进度是深入展开的 transcript，而非状态列表：`Think`（轮次）按编排轮次嵌套 `Subagent · <name>` 行，各行再嵌套该 specialist 的推理和工具行。每行都使用 DSH 风格的展开控件：左侧图标在悬停或展开时交叉淡变为 chevron，右侧没有 chevron。所有行起初都收起，无论正在运行还是已结束；点击只展开该行，没有全部展开控件。Think 行自身收起时显示该轮次的统计行（`N tool calls · M subagents · K rounds`）。没有统计的轮次：交付了方案时显示“行程方案已就绪”，以向旅客追问结束时显示“还需要一些信息”，失败时显示“需要处理”，其余情况显示“完成”，包括记录轮次结果之前保存的消息。运行中则跟随最新流式推理行，或实时工具／subagent 行。工具行展开后显示结果自己的行，每行带根据结果类型选择的类别图标（刀叉、床、飞机等），如果提供方返回了该行的网页，则显示网站自己的图标。调用参数显示为一行，例如 `Sydney Airport → The Rocks · 2026-11-10`。同一次模型调用的推理增量合并为一行，不以零散片段到达。大于 1 的编排轮次只有附带 coordinator 对修改内容的说明时才显示。所参考的界面，以及每处差异的原因，记录在 [DSH 思考 UI 参考](design/dsh-thinking-ui.zh.md) 中。
+  - 规划进度是深入展开的 transcript，而非状态列表：`Think`（轮次）按编排轮次嵌套 `Subagent · <name>` 行，各行再嵌套该 specialist 的推理和工具行。每行都使用 DSH 风格的展开控件：左侧图标在悬停或展开时交叉淡变为 chevron，右侧没有 chevron。所有行起初都收起，无论正在运行还是已结束；点击只展开该行，没有全部展开控件。Think 行自身收起时显示该轮次的统计行（`N tool calls · M subagents · K rounds`），其中 rounds 只统计实际工作轮次。没有统计的轮次：交付了方案时显示“行程方案已就绪”，以向旅客追问结束时显示“还需要一些信息”，失败时显示“需要处理”，其余情况显示“完成”，包括记录轮次结果之前保存的消息。运行中则跟随最新流式推理行，或实时工具／subagent 行。工具行展开后显示结果自己的行，每行带根据结果类型选择的类别图标（刀叉、床、飞机等），如果提供方返回了该行的网页，则显示网站自己的图标。调用参数显示为一行，例如 `Sydney Airport → The Rocks · 2026-11-10`。同一次模型调用的推理增量合并为一行，不以零散片段到达。大于 1 的编排轮次有 coordinator 说明时会显示该说明；没有说明时则回退为本地化的“第 N 轮”标签。轮次标题不会重复显示。结束时缺少生命周期事件的 agent 行标为 Interrupted。所参考的界面，以及每处差异的原因，记录在 [DSH 思考 UI 参考](design/dsh-thinking-ui.zh.md) 中。
   - 界面恰好有一行 `Deep diving`，它是唯一 live region；15 秒后增加已用时间计时。
   - 请求运行时，Think 行的图标是来自 `thinking-orbs` 的 20 px `ThinkingOrb`（`components/chat/ThinkingOrbIcon.tsx`）。动画跟随最新的真实进度事件：规划时编织（weaving），调用数据提供方时搜索（searching），检查冲突时求解（solving），修订时工作（working），汇总方案时撰写（composing），specialist 推理时呼吸（breathing）。行内文字已说明当前在做什么，因此它对辅助技术隐藏；在减弱动态效果设置下只绘制一帧静态画面；该轮结束后恢复为静态图标。每个运行中的 Subagent 行也有自己的光球，由该 specialist 最新的一步决定：检查路线时连接（connecting），调用其他数据提供方时搜索（searching），修订时工作（working），推理时呼吸（breathing）。
-  - 大多数时候，规划器仍用普通文字提问：缺少目的地、日期、旅客或预算而无法继续时，用一句话说明，旅客通过输入回答，不借用任何值。遇到确实有歧义、且有 2–4 个具体选项的情况，coordinator 可改问结构化问题：卡片替代输入区，显示问题、可选的推荐选项，以及多个问题时的翻页控件。提交后，答案作为旅客的下一条消息发送；关闭卡片恢复普通输入区，无论怎样，问题文字都保留在助手自己的消息中。对于 specialist 已作出的方案选择，仍没有“apply the traveller's decision”功能：结构化问题始终只涉及规划输入，绝不是审批。因此旅客要修改方案本身，仍需在聊天中说明或编辑行程。见 [DSH 思考 UI §3.2](design/dsh-thinking-ui.zh.md#32-asking-the-traveller) 和 [ask-user Agent Note](../.agents/notes/implemented/feature/2026-09-23-ask-user-question.md)。
+  - 大多数时候，规划器仍用普通文字提问：缺少目的地、日期、旅客或预算而无法继续时，用一句话说明，旅客通过输入回答，不借用任何值。遇到确实有歧义、且有 2–4 个具体选项的情况，coordinator 可改问结构化问题：卡片替代输入区，显示问题、可选的推荐选项，以及多个问题时的翻页控件。提交后，答案作为旅客的下一条消息发送；关闭卡片恢复普通输入区，无论怎样，问题文字都保留在助手自己的消息中。未回答的问题会跨刷新保存，恢复对话后仍可回答；提交失败时会把已提交文字放回输入区，但如果旅客已输入新内容则保留新内容。对于 specialist 已作出的方案选择，仍没有“apply the traveller's decision”功能：结构化问题始终只涉及规划输入，绝不是审批。因此旅客要修改方案本身，仍需在聊天中说明或编辑行程。见 [DSH 思考 UI §3.2](design/dsh-thinking-ui.zh.md#32-asking-the-traveller) 和 [ask-user Agent Note](../.agents/notes/implemented/feature/2026-09-23-ask-user-question.md)。
   - 聊天没有日历弹窗：日期可在输入区键入。When 标签的编辑器仍提供日历选择器，由旅客主动打开。
   - 消息在 `role="log"` 中保留对话顺序；每条消息有一个可见、仅播报一次的说话者标签（You 或 Travel planning assistant）。旅客消息是右对齐气泡；助手回复全宽显示，无边框或背景，以 Markdown 呈现（段落、列表、粗体、在新标签页打开的链接）。两者下方都有小号时间，今天用 `HH:mm`，其他日期用短日期；长 URL 和中英文混排文字在聊天栏内换行。
   - 输入区是聊天底部的一张卡片：草稿随内容增高，随后内部滚动；上传控件在左，唯一主操作在右。卡片使用 `--surface-2`（浅色为白色，深色为灰色），呈现为页面上的输入胶囊；点击其中任意位置，只高亮卡片一次，字段自身不绘制焦点环。Enter 发送，Shift+Enter 换行，但输入法组合输入期间绝不触发。请求运行时，主操作在原位变为 Stop；没有提示文字。
   - 标签编辑器中的 Update trip，或尚无方案时 Trip preferences 中的 Plan trip，携带行程需求发送 `mode: "plan"`。
+  - 标签编辑器只修改预算时，聊天中的用户消息只说明预算变更，并使用行程显示币种和界面语言格式化金额。
   - 首条聊天消息发送 `mode: "start"`，服务端报告缺失的目的地、日期、旅客或预算，不借用值。
   - 空白表单的最低评分默认为 `0`（无最低要求）。住宿评分内部按 0–10 存储，在所有位置（酒店卡片、住宿行、思考 transcript）都按 5 分制显示；地点的 Google 评分本身就是 5 分制，原样显示。
 - **请求。**
@@ -119,6 +120,8 @@ seniors`（宠物不计为旅客）；`groupSize` 仍是校验字段，因此至
 
 ## 查看方案
 
+Trip 抽屉摘要显示目的地、本地化短日期范围和旅行人员数量。
+
 下文提到已移除界面的名称，只用于解释移除情况；除了这些功能不存在之外，本节不描述其他当前行为。
 
 - **没有需要审批的决策。** `HitlCheckpoint`、`TripPlan.hitl`、检查点卡片、approve/reject/defer 操作和 `POST /api/hitl` 都已移除。应用尚不能应用旅客的决策，因此不会请求决策：展示待确认事项列表会暗示并不存在的能力。
@@ -130,6 +133,9 @@ seniors`（宠物不计为旅客）；`groupSize` 仍是校验字段，因此至
 
 ## 航班、住宿与提示
 
+已知估算恰好达到预算时，预算面板显示“已达预算”，不再显示低于预算零元。若仍有未计价门票，状态会加上“门票费用未计入”并使用警示色；估算下方继续列出这些缺失费用。
+若已知估算低于预算但仍有未计价门票，剩余预算不超过总预算的 5% 时，状态会显示“已知估算在预算内 · 门票费用未计入”并使用警示色。剩余更多时则显示“在预算内”；缺失费用仍列在估算下方。
+
 Trip 抽屉不再显示 specialist 卡片（Day plan、Getting around、Stay、Destination guide 和 Food & dining）。它们的内容已在日视图中。方案部分仍保留在数据中；不显示部分摘要、假设或模型撰写的工作笔记。Day plan 和 Getting around 没有替代内容，因为它们的内容就是停靠点和路段。Trip 抽屉的费用和总额仍包含所有部分。原因见 [Agent Note](../.agents/notes/implemented/feature/2026-10-08-day-view-specialists.md)。
 
 - **住宿行。** 每个夜晚所在那天的末尾有一行住宿，因此四晚住宿有四行，退房当天没有。该行显示住宿名称和城市，以及“第 n 晚，共 N 晚”；费用是房间的每晚价格。展开即显示住宿卡片。
@@ -137,7 +143,8 @@ Trip 抽屉不再显示 specialist 卡片（Day plan、Getting around、Stay、D
 - **住宿卡片。** 评分、入住和退房日期、房间数和晚数、每晚价格、取消条款、来源说明，以及规划器有的话的房源详情链接。所选住宿已不再对应时显示 "This stay needs a new selection."。
 - **航班卡片。** 每个航班显示航司、出发（或返程）时间、出行人数、经停（没有时显示 "Nonstop"）和飞行时长。所选航班已不再对应时显示 "This flight needs a new selection."。
 - **其他可选（Also found）。** 每张卡片列出被所选航班或住宿比下去的备选项，各带价格及与所选项的差额；更便宜的差额显示为绿色，并带负号。
-- **旅行提示。** 目的地指南的建议（礼仪与习俗、安全、入境与健康、天气与行李，以及值得游览的地方）是日视图顶部的可折叠块。首次打开时展开。此浏览器会为该行程记住此浏览者是否折叠了它（`localStorage`，键 `trip-tips-folded:<tripId>`）；存储被阻止时每次都展开。方案没有指南时不显示此块。
+- **旅途中日期。** 今天落在行程日期内时，日视图默认选中今天并标记“今天”，时区取首个已解析的目的地。预算与旅行提示默认收起；手动选择日期及已保存的提示展开偏好优先。没有已验证的目的地坐标时保留原有首日默认状态。按具体时间高亮下一站留待后续。
+- **旅行提示。** 目的地指南的建议（礼仪与习俗、安全、入境与健康、天气与行李，以及值得游览的地方）是日视图顶部的可折叠块。旅行尚未开始时首次打开会展开。此浏览器会为该行程记住此浏览者是否折叠了它（`localStorage`，键 `trip-tips-folded:<tripId>`）；没有已保存的选择时遵循旅途中默认状态。方案没有指南时不显示此块。覆盖多个日历月的建议会明确说明其范围仅为第一个月。
 - **餐厅。** 餐饮 specialist 找到的餐厅列在 Ideas 下，标记为“餐厅建议”。Schedule on a day 把一家餐厅作为无价格的停靠点放到某天，可撤销；Remove 删除该建议。餐饮的餐费预算仍计入方案估算和总额，不以卡片显示。
 - **改选。** 在住宿或航班卡片中，每一行其他可选都是按钮（"Take … instead, …"，粗指针下至少 44 px 高）。按下后直接应用，不预览：它通过 `POST /api/trip/preview-edit` 发送 `choose` 编辑（[API](api.zh.md#post-apitrippreview-edit)），由服务器重写条目的说明、部分费用和方案总额。想换回原来的选项，就再从同一列表选一次。另一项修改进行中时，这些行是纯文本。改选失败时在 Trip 面板显示通知；旅客已打开其他方案后才到达的响应会被丢弃。条目带 `selectionId` 之前保存的方案无法重新计价，需要重新规划。见 [Agent Note](../.agents/notes/implemented/architecture/2026-10-07-selection-id-on-proposal-items.md)。
 
@@ -180,8 +187,8 @@ Trip 抽屉不再显示 specialist 卡片（Day plan、Getting around、Stay、D
 
 日视图（`TripEditor` 组合 `components/trip/timeline/`）一次显示一天，通过 `POST /api/trip/preview-edit` 变更活动。服务器检查每次变更，客户端对被接受的变更立即应用。停靠点的日期、时间、地点、顺序和路段的每次变更都由服务器检查：时间、地点、路段、拖动移动、Remove、Move to ideas、Move to another day 以及箭头移动。详情、备注和已预订在浏览器中应用。检查是确定性的，不调用 LLM（大语言模型）。
 
-- **布局。** 日期标签条（`Day 2 · Sun, 18 Oct · 3 stops`，停靠点需要地点时带标记）用于选择日期。当天按时间顺序呈现为竖线（`lib/trip/timeline.ts`）：抵达航班（及无具体时间的航班）在最前，带时间的城际路段和停靠点按开始时间排列，然后是每晚一行住宿，最后一天以返程航班结束。后续夜晚显示“Staying at …”。固定行显示图标、标题、一行详情及费用（“Fare not published”或“Price unknown”，而非 AUD 0）；航班行和住宿行可展开为卡片。两站之间的每段行程是一个路段（[Leg](../GLOSSARY.md)），显示出行方式和时长：服务商核实后标为“checked”，规划器的 `arriveBy` 估计或模拟数据标为“estimate”。见下文“路段”。
-- **价格。** 没有提供方公布门票价格，因此行程停靠点不带 `estCost`，显示“Price unknown”；预算卡补充“Not included: admission for N stops with no published price”，避免把总额理解为全部费用。
+- **布局。** 日期标签条（`Day 2 · Sun, 18 Oct · 3 stops`，停靠点需要地点时带标记）用于选择日期。当天按时间顺序呈现为竖线（`lib/trip/timeline.ts`）：抵达航班（及无具体时间的航班）在最前，带时间的城际路段和停靠点按开始时间排列，然后是每晚一行住宿，最后一天以返程航班结束。后续夜晚显示“Staying at …”。时间线容器窄于 420 px 时，时间列宽 56 px，让五位数字的时间完整显示，并保持停靠点圆点对齐。固定行显示图标、标题、一行详情及费用（“Fare not published”或“Price unknown”，而非 AUD 0）；航班行和住宿行可展开为卡片。两站之间的每段行程是一个路段（[Leg](../GLOSSARY.md)），显示出行方式和时长：服务商核实后标为“checked”，规划器的 `arriveBy` 估计或模拟数据标为“estimate”。见下文“路段”。
+- **价格。** 未公布价格的停靠点不带 `estCost`，显示“Price unknown”；预算卡会列出停靠点数量和未定价费用，避免把总额理解为全部费用。
 - **顺序和编号。** 当天停靠点按访问顺序列出，每个停靠点的节点显示其全程编号，与地图和 Trip 抽屉一致；未定位的停靠点不显示编号。Move earlier、Move later、Move to another day 和拖放都按显示的位置指定目标，由 Itinerary 换算成 `preview-edit` 所需的方案索引（该索引按方案顺序计算当天其他停靠点）。开始时间与方案顺序不一致时，向后移动的停靠点落在它越过的那个停靠点之后，其他移动则落在目标停靠点之前，因此预览保留旅行者要求的交换；之后端点会重新安排当天其余停靠点的时间。
 - **时间和地点。** 点击停靠点的时间会打开开始和结束时间表单；“Change time”把变更交给服务器检查。在此处或地图上选中停靠点后，会打开其地点卡片：地点的第一张照片（实时数据且有地图密钥时）、评分、地址和 Open in Google Maps 链接。停靠点菜单中的 Replace place 在卡片中打开 Google Places 搜索；选中的结果通过服务器检查保存。Escape 关闭打开的表单或卡片，并把焦点返回停靠点。仍支持拖放调整当天顺序。
 - **编辑。** 停靠点在此处或地图上被选中前保持紧凑；选择后打开编辑器：开始和结束时间（“Change time”）、Move earlier / Move later、Move to another day，以及用于替换地点的 Google Maps 搜索。仍支持拖放调整当天顺序。
@@ -322,7 +329,8 @@ Data mode 默认是 Fixture data。只有部署启用后才能选择 Live data�
     该分区说明如何登录或数据保存在浏览器中，下方仍有 Theme。
   - **Personalization：**
     - **Communication style：** Neutral、Friendly、Concise 或 Detailed。
-    - **Long-term memory** 开关。关闭后，助手既不记录也不使用在聊天中学到的内容。
+    - 在规划器真正支持记住偏好之前，隐藏尚未实现的 **Long-term memory** 开关及其提示。保留已存储的
+      `assistant.memory` 设置，以兼容现有浏览器和账户数据。
     - **规划器了解的信息**，按 Mindtrip 的方式分组：
       - Identity：常住地。
       - Travel party：旅客人数。
@@ -337,7 +345,7 @@ Data mode 默认是 Fixture data。只有部署启用后才能选择 Live data�
       这些默认值时，仍算作空白聊天。
   - **Language & region：** 界面语言（英语或简体中文；可用任何语言聊天）、地区、显示币种（AUD、CNY、USD 或 JPY；默认 AUD）、单位（公制），以及
     Advanced 下的 Trip data（站点默认、实时价格或示例数据）。
-    顶栏语言切换位于示例数据旁，修改同一项已保存的语言设置。聊天控件、时间线与提案标签、设置、提示、对话框、无障碍名称及日期随之显示；
+    顶栏语言切换位于示例数据旁，修改同一项已保存的语言设置。聊天控件、时间线与提案标签、设置、提示、对话框、无障碍名称及日期随之显示，包括数据模式提示和未命名聊天的操作名称；
     旅客文字、agent 生成的内容及提供方错误不会被翻译。带有数值的固定文案（附件数量上限、时间线编辑的阻碍项、无法移动的站点）使用 `{placeholders}` 翻译：
     通过 `t()` 或作为带 key 的 `Notice`（`apps/web/lib/i18n/notice.ts`），由视图在显示时翻译一次。工作区和设置显示的每条提示都是 `Notice`：字段错误、请求和存储失败、地图和位置消息，以及应用自身路由在英文 `error` 旁返回的 `notice`。响应体中没有 `notice` 时按原样显示（`{ raw }`）；没有可读响应体时显示“请求失败（{status}）。”除方案中早于键存储的英文句子（见上文“冲突就地显示”，由 `keyOfAuthoredSentence` 读回）外，不把英文文本反向匹配为 key；响应文本从不做反向匹配。方案中保存的通知（编辑冲突和路段通知）以键和数值存储在方案文本中（`storeNotice` 与 `readStoredNotice`，同一文件），因此以旅行者的语言显示；`conflictsWith` 中的英文句子面向聊天，不显示。未保存选择时跟随浏览器语言（`zh*` 打开为中文）。桌面侧栏与主内容之间保留 8 px 间距。
     工作区的所有金额都经过 Money 模块（`apps/web/lib/money.ts`，通过 `useLocale()` 读取）和 shared 中的估算汇率表显示。换算结果附带汇率参考日期；JPY 不显示小数，其他币种显示两位小数。本行程的有效币种（`displayCurrency`，否则为原始预算币种）优先于设置。规划和预算检查仍使用 AUD。`money()` 换算规划金额；`fare()` 让提供方原生票价保留自己的币种及该币种的小数位，四位数起按千位分组（`JPY 230`、`AUD 12.50`、`KRW 1,400`），且从不换算；`delta()` 给差额加正负号（`+AUD 12.00`、`−AUD 30.00`，零不带符号）；`budgetGap()` 给出行程面板共用的“{amount} under/over the {budget} budget”预算句。Agent Lab 使用同一模块，固定 AUD、取整到元（`A$3,960`，见 `apps/web/lib/agent-lab/money.ts` 中的 `labMoney`）。发给规划器的句子不是显示金额：`plannerAud()` 始终用英文 AUD 加两位小数书写，不受界面语言和显示币种影响。web 应用的 ESLint 配置禁止 `.toFixed(2)`，金额不得手工格式化。服务端生成的文字（摘要、冲突原因、进度）中的金额统一经过 `packages/shared/src/money.ts` 的 `formatMoney(amountAud, currency, style?)`，按同一汇率表换算，JPY 不显示小数，换算后的金额与面板一样按千位分组（`CNY 3,000.00`）；调用方传入行程的显示币种（Agent Lab 的场景不指定币种，仍为 AUD）。`estimateNote(currency)` 是生成文字的估算标记，AUD 时为空。
@@ -348,7 +356,7 @@ Data mode 默认是 Fixture data。只有部署启用后才能选择 Live data�
 
 ## 范围之外
 
-预订履约、支付、多用户协作和旅行中模式仍不在范围内。Mock 地点和预订绝不能呈现为真实供应商数据；实时搜索和估算价格必须保留提供方和新鲜度标签。
+预订履约、支付、多用户协作和按具体时间高亮下一站仍不在范围内。Mock 地点和预订绝不能呈现为真实供应商数据；实时搜索和估算价格必须保留提供方和新鲜度标签。
 
 <a id="visual-verification-matrix"></a>
 

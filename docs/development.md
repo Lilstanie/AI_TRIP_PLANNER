@@ -333,6 +333,25 @@ dev dependency; on a new machine run `pnpm --filter @trip/web exec playwright in
 Scripts that need two servers (`agent-lab-live-gate`) still run by hand as their header describes.
 `pnpm dev` and `pnpm start` use port 3000 unless `PORT` is set.
 
+<a id="agent-lab-benchmark"></a>
+
+### Agent Lab benchmark
+
+Run `pnpm --filter @trip/web e2e agent-lab-benchmark` to fetch the versioned registry, run every
+scenario-strategy pair once in fixture mode, execute all registered fault profiles, write a report
+from those exact artifacts, and replay a retained artifact in `/agent-lab`. The retained
+`output/playwright/agent-lab-benchmark/` directory contains the JSON and Markdown fixture report,
+per-run NDJSON and artifacts, summary, and replay screenshot. The script's header records its failure
+inventory. Fixture reports do not assess plan quality.
+
+Live comparison is opt-in: set `AGENT_LAB_BENCHMARK_LIVE=true` only when the local deployment has
+live runs enabled. It covers the three registered live scenarios and supported strategies, with up to
+three repeats per pair; every call passes through the deployment's existing gate, and the script stops
+after a refusal. It writes a separate live report with actual attempts, refusals, skipped strategies,
+latency median and spread. Do not combine it with fixture figures. For controlled deployment smoke,
+record the commit, providers actually called, outcome and call cap in the
+[release record template](agent-lab-release-record-template.md); never put credentials in the record.
+
 A script that cannot run without a key says so in its header, before its code:
 `// requires-env: DEEPSEEK_API_KEY` (several keys are separated by commas). When a named variable is unset
 or empty the runner does not run the script. It reports `skipped: needs DEEPSEEK_API_KEY`, records the skip

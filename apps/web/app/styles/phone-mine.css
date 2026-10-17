@@ -82,7 +82,20 @@
     min-height: 44px !important;
   }
   .phone-mine__controls .topbar-button__label {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip: auto;
     display: inline;
+    white-space: nowrap;
+  }
+  .phone-mine__controls .data-mode {
+    width: auto;
+    min-width: 44px;
+    padding-inline: 12px !important;
+    justify-content: flex-start;
+    gap: 8px;
   }
   .phone-mine__settings {
     display: flex;

@@ -8,7 +8,12 @@ export const SUGGEST_MIN_CHARS = 3;
 
 export const SUGGEST_DEBOUNCE_MS = 350;
 
-export type PlaceSuggestion = { id: string; name: string; address?: string };
+export type PlaceSuggestion = {
+  id: string;
+  name: string;
+  address?: string;
+  location?: { latitude: number; longitude: number };
+};
 
 export function usePlaceSuggestions(query: string, enabled: boolean) {
   const { locale } = useLocale();
@@ -43,11 +48,31 @@ export function usePlaceSuggestions(query: string, enabled: boolean) {
         });
         if (!response.ok) throw new Error("lookup failed");
         const body = (await response.json()) as {
-          places?: { id?: string; displayName?: { text?: string }; formattedAddress?: string }[];
+          places?: {
+            id?: string;
+            displayName?: { text?: string };
+            formattedAddress?: string;
+            location?: { latitude?: number; longitude?: number };
+          }[];
         };
         const found = (body.places ?? []).flatMap((place) =>
           place.id && place.displayName?.text
-            ? [{ id: place.id, name: place.displayName.text, address: place.formattedAddress }]
+            ? [
+                {
+                  id: place.id,
+                  name: place.displayName.text,
+                  address: place.formattedAddress,
+                  ...(typeof place.location?.latitude === "number" &&
+                  typeof place.location.longitude === "number"
+                    ? {
+                        location: {
+                          latitude: place.location.latitude,
+                          longitude: place.location.longitude,
+                        },
+                      }
+                    : {}),
+                },
+              ]
             : [],
         );
         cache.current.set(key, found);
@@ -96,7 +121,7 @@ export function PlaceInput({
   value: string;
   onChange(value: string): void;
 
-  onPick(name: string, address?: string): void;
+  onPick(name: string, address?: string, location?: PlaceSuggestion["location"]): void;
 
   onEnter?(): void;
 
@@ -123,7 +148,7 @@ export function PlaceInput({
 
   const pick = (item: PlaceSuggestion) => {
     setDismissed(item.name);
-    onPick(item.name, item.address);
+    onPick(item.name, item.address, item.location);
   };
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "ArrowDown" && open) {

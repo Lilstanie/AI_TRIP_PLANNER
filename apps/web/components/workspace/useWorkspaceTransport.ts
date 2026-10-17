@@ -7,14 +7,14 @@ import {
   type Currency,
   type InterfaceLanguage,
 } from "@trip/shared";
-import { plannerAud } from "@/lib/money";
-import { knownFromDraft, parseDraft, type Draft } from "@/lib/workspace";
+import { moneyDisplay } from "@/lib/money";
+import { destinationLocationFor, knownFromDraft, parseDraft, type Draft } from "@/lib/workspace";
 import { requestTurn, type SessionEvent, type Task } from "@/lib/workspace/session";
 import { dataModeHeaders, type DataMode } from "@/lib/workspace/data-mode";
 import { formatAskAnswers, type PendingAsk, type QuestionAnswer } from "@/lib/workspace/ask-user";
 import type { PreparedAttachment } from "@/lib/chat/attachments";
 import { storedAttachments } from "./useComposerAttachments";
-import { briefErrors } from "@/lib/workspace/trip-facts";
+import { briefErrors, datesLabel } from "@/lib/workspace/trip-facts";
 import type { Notice } from "@/lib/i18n/notice";
 
 type WorkspaceTransportOptions = {
@@ -41,6 +41,7 @@ type WorkspaceTransportOptions = {
   interfaceLanguage: InterfaceLanguage;
 
   displayCurrency: Currency;
+  planDestinationLocation?: Draft["destinationLocation"];
 };
 
 export function useWorkspaceTransport({
@@ -58,6 +59,7 @@ export function useWorkspaceTransport({
   assistant,
   interfaceLanguage,
   displayCurrency,
+  planDestinationLocation,
 }: WorkspaceTransportOptions) {
   async function run(task: Task) {
     if (active.current) return;
@@ -101,7 +103,34 @@ export function useWorkspaceTransport({
       return false;
     }
     const brief = parsed.data;
-    const message = `Plan ${brief.destination}, ${brief.dates.join(" to ")}, ${brief.groupSize} travellers, ${plannerAud(brief.budgetTotal)} total, with the submitted accommodation preferences.`;
+    const previous = plan?.brief;
+    const unchangedTripFields: (keyof typeof brief)[] = [
+      "origin",
+      "destination",
+      "dates",
+      "groupSize",
+      "party",
+      "preferences",
+    ];
+    const onlyBudgetChanged =
+      previous !== undefined &&
+      unchangedTripFields.every(
+        (field) => JSON.stringify(previous[field]) === JSON.stringify(brief[field]),
+      ) &&
+      previous.budgetTotal !== brief.budgetTotal;
+    const locale = interfaceLanguage;
+    const amount = moneyDisplay({ currency: displayCurrency, locale }).money(
+      brief.budgetTotal,
+      brief.budgetSource,
+    );
+    const dates = datesLabel(brief.dates[0], brief.dates[1], locale)?.range ?? "";
+    const message = onlyBudgetChanged
+      ? locale === "zh"
+        ? `将预算调整为 ${amount}。`
+        : `Change the budget to ${amount}.`
+      : locale === "zh"
+        ? `规划${brief.destination}行程，${dates}，${brief.groupSize} 位旅行人员，总预算 ${amount}。`
+        : `Plan ${brief.destination}, ${dates}, for ${brief.groupSize} travellers with a total budget of ${amount}.`;
     dispatch({
       kind: "sent",
       message: { role: "user", text: message, at: Date.now() },
@@ -109,7 +138,20 @@ export function useWorkspaceTransport({
     });
     void run({
       kind: "chat",
-      request: { tripId: brief.tripId, mode: "plan", brief, message },
+      request: {
+        tripId: brief.tripId,
+        mode: "plan",
+        brief,
+        message,
+        ...(destinationLocationFor(next.destination, next.destinationLocation)
+          ? {
+              destinationLocation: destinationLocationFor(
+                next.destination,
+                next.destinationLocation,
+              ),
+            }
+          : {}),
+      },
     });
     return true;
   }
@@ -143,6 +185,19 @@ export function useWorkspaceTransport({
         ...(plan
           ? { tripId: plan.tripId, message, brief: plan.brief, plan }
           : { tripId: freshTripId.current, message, known: knownFromDraft(draft) }),
+        ...(destinationLocationFor(
+          plan?.brief.destination ?? draft.destination,
+          planDestinationLocation,
+          draft.destinationLocation,
+        )
+          ? {
+              destinationLocation: destinationLocationFor(
+                plan?.brief.destination ?? draft.destination,
+                planDestinationLocation,
+                draft.destinationLocation,
+              ),
+            }
+          : {}),
         ...(sent.length ? { attachments: sent } : {}),
       },
     });
@@ -153,15 +208,31 @@ export function useWorkspaceTransport({
     const message = formatAskAnswers(ask.questions, answers);
     dispatch({ kind: "sent", message: { role: "user", text: message, at: Date.now() } });
     const current = ask.plan ?? plan;
+    const known = current ? undefined : { ...knownFromDraft(draft), ...ask.known };
+    const destination = current?.brief.destination ?? known?.destination;
+    const location = destinationLocationFor(
+      destination ?? "",
+      planDestinationLocation,
+      draft.destinationLocation,
+    );
     void run({
       kind: "chat",
-      request: current
-        ? { tripId: current.tripId, message, brief: current.brief, plan: current, known: ask.known }
-        : {
-            tripId: freshTripId.current,
-            message,
-            known: { ...knownFromDraft(draft), ...ask.known },
-          },
+      request: {
+        ...(current
+          ? {
+              tripId: current.tripId,
+              message,
+              brief: current.brief,
+              plan: current,
+              known: ask.known,
+            }
+          : {
+              tripId: freshTripId.current,
+              message,
+              known,
+            }),
+        ...(location ? { destinationLocation: location } : {}),
+      },
     });
   }
   return { run, submit, send, answer };

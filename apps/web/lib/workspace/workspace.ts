@@ -1,3 +1,4 @@
+import { parsePendingAsk, type PendingAsk } from "./ask-user";
 import {
   AgentProgressEvent,
   BookedStay,
@@ -47,6 +48,11 @@ export type Party = TravellerParty;
 
 export type Draft = {
   destination: string;
+  destinationLocation?: {
+    destination?: string;
+    latitude: number;
+    longitude: number;
+  };
   origin: string;
   start: string;
   end: string;
@@ -66,6 +72,7 @@ export type Draft = {
   legModes?: LegModeChoice[];
 
   bookedStay?: BookedStay;
+  noAccommodation?: boolean;
 
   party?: Party;
 
@@ -111,6 +118,7 @@ export function draftFor(brief: TripBrief): Draft {
     ...(brief.learnedPreferences?.length ? { learnedPreferences: brief.learnedPreferences } : {}),
     ...(brief.excludeFlights ? { excludeFlights: true } : {}),
     ...(brief.legModes?.length ? { legModes: brief.legModes } : {}),
+    ...(brief.noAccommodation !== undefined ? { noAccommodation: brief.noAccommodation } : {}),
     ...(brief.bookedStay ? { bookedStay: brief.bookedStay } : {}),
     nationality: brief.nationality ?? "",
     roomAllocation: brief.accommodation?.roomAllocation ?? "shared",
@@ -133,6 +141,27 @@ export const blankDraft = (): Draft => ({
   minRating: "0",
   freeCancellation: false,
 });
+
+const normalizedDestination = (value: string) =>
+  value
+    .normalize("NFKC")
+    .trim()
+    .toLocaleLowerCase()
+    .replace(/[.,，。;；]+$/u, "")
+    .replace(/\s+/gu, " ");
+
+export function destinationLocationFor(
+  destination: string,
+  ...locations: Array<Draft["destinationLocation"]>
+): { destination: string; latitude: number; longitude: number } | undefined {
+  const normalized = normalizedDestination(destination);
+  const location = locations.find(
+    (candidate) =>
+      candidate?.destination && normalizedDestination(candidate.destination) === normalized,
+  );
+  return location ? { ...location, destination } : undefined;
+}
+
 export function isDraft(value: unknown): value is Draft {
   return (
     object(value) &&
@@ -141,6 +170,16 @@ export function isDraft(value: unknown): value is Draft {
     ) &&
     ["shared", "individual"].includes(String(value.roomAllocation)) &&
     typeof value.freeCancellation === "boolean" &&
+    (value.destinationLocation === undefined ||
+      (object(value.destinationLocation) &&
+        (value.destinationLocation.destination === undefined ||
+          typeof value.destinationLocation.destination === "string") &&
+        typeof value.destinationLocation.latitude === "number" &&
+        value.destinationLocation.latitude >= -90 &&
+        value.destinationLocation.latitude <= 90 &&
+        typeof value.destinationLocation.longitude === "number" &&
+        value.destinationLocation.longitude >= -180 &&
+        value.destinationLocation.longitude <= 180)) &&
     (value.preferences === undefined ||
       (Array.isArray(value.preferences) &&
         value.preferences.every((item) => typeof item === "string"))) &&
@@ -153,7 +192,8 @@ export function isDraft(value: unknown): value is Draft {
     (value.budgetSource === undefined ||
       TripBrief.shape.budgetSource.unwrap().safeParse(value.budgetSource).success) &&
     (value.displayCurrency === undefined || Currency.safeParse(value.displayCurrency).success) &&
-    (value.bookedStay === undefined || BookedStay.safeParse(value.bookedStay).success)
+    (value.bookedStay === undefined || BookedStay.safeParse(value.bookedStay).success) &&
+    (value.noAccommodation === undefined || typeof value.noAccommodation === "boolean")
   );
 }
 
@@ -180,6 +220,7 @@ export function parseDraft(draft: Draft, current: Pick<TripBrief, "tripId"> & Pa
 
     legModes: draft.legModes?.length ? draft.legModes : undefined,
     bookedStay: draft.bookedStay,
+    noAccommodation: draft.noAccommodation,
     nationality: draft.nationality.trim() || undefined,
     accommodation: {
       roomAllocation: draft.roomAllocation,
@@ -206,6 +247,7 @@ export function knownFromDraft(draft: Draft): PartialTripBrief {
     excludeFlights: draft.excludeFlights || undefined,
     legModes: draft.legModes?.length ? draft.legModes : undefined,
     bookedStay: draft.bookedStay,
+    noAccommodation: draft.noAccommodation,
   });
   return parsed.success ? parsed.data : {};
 }
@@ -256,6 +298,7 @@ export function draftWithKnown(draft: Draft, known: PartialTripBrief): Draft {
     excludeFlights: known.excludeFlights ?? draft.excludeFlights,
     legModes: known.legModes ?? draft.legModes,
     bookedStay: known.bookedStay ?? draft.bookedStay,
+    noAccommodation: known.noAccommodation ?? draft.noAccommodation,
   };
 }
 
@@ -268,6 +311,7 @@ export type Snapshot = {
   messages: Message[];
   input: string;
   previousTotal?: number;
+  ask?: PendingAsk;
 };
 export const CURRENT_KEY = "trip-workspace-v1";
 const object = (value: unknown): value is Record<string, unknown> =>
@@ -315,6 +359,7 @@ export function parseSnapshot(value: unknown): Snapshot {
         : value.draft,
     plan,
     messages: withValidAttachments(withValidActivity(value.messages as Message[])),
+    ask: parsePendingAsk(value.ask),
   } as Snapshot;
 }
 
