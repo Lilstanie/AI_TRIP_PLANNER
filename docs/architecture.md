@@ -197,6 +197,15 @@ brief, which check that the train, the stays, each day's activities and the tota
 Every artifact records the scenario's fixture version and the evaluator version (`scenario-rules-v2`); the
 [Agent Note](../.agents/notes/implemented/architecture/2026-10-02-agent-lab-benchmark-scenarios.md) records the decision.
 
+The versioned benchmark registry is exported by `@trip/orchestrator` and served by
+`GET /api/agent-lab/benchmark`. It lists the scenarios and their expected outcomes and required checks,
+strategies, fault profiles, and the separate live subset. The registry is version 1.0.1; the benchmark
+E2E builds its fixture report from the artifacts produced by the production runner, retaining every
+failure in each denominator, then uploads one of those same artifacts to the page for replay. Fixture
+and live reports remain separate. The live subset uses three scenarios, only strategies with live
+support, and three repeats through the existing live gate. See the
+[benchmark Agent Note](../.agents/notes/implemented/testing/2026-10-16-agent-lab-benchmark.md).
+
 Artifact download and replay happen in the browser; no endpoint or server storage is involved. The
 page saves the artifact it received, and `apps/web/lib/agent-lab/replay.ts` validates a chosen file
 against the shared `AgentLabRunArtifact` contract (one schema version, contiguous events, a valid plan,

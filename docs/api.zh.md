@@ -12,6 +12,7 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 | ----------------------------------------------------------- | ------------------------------------------------------ |
 | [`/api/chat`](#post-apichat)                                | 提取行程需求更新或规划提交的需求，并以流式方式报告进度 |
 | [`/api/agent-lab/runs`](#post-apiagent-labruns)             | 运行已注册、可检查的 fixture 实验                      |
+| [`/api/agent-lab/benchmark`](#get-apiagent-labbenchmark)    | 读取版本化 Agent Lab 基准配置                          |
 | [`/api/data-mode`](#get-apidata-mode)                       | 返回默认数据模式，以及是否配置了实时提供方密钥         |
 | [`/api/places/search`](#post-apiplacessearch)               | Google Places 文本搜索                                 |
 | [`/api/places/details`](#post-apiplacesdetails)             | 按地点 ID 获取 Google 地点详情                         |
@@ -167,6 +168,12 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 
 可选的 `x-trip-data-mode` 请求头值为 `mock` 或 `live`，仅为本次请求选择 fixture（测试前置数据）
 或实时提供方；其他值或未提供请求头时，使用部署默认值。
+
+<a id="get-apiagent-labbenchmark"></a>
+
+## `GET /api/agent-lab/benchmark`
+
+返回版本化 Agent Lab 基准注册表，其中包含基准和产物 schema 版本、fixture 场景及其预期结果和检查、已注册策略与故障档案，以及受上限约束的实时场景、策略和重复次数子集。该响应只读，并使用 `Cache-Control: no-store`。
 
 <a id="post-apiagent-labruns"></a>
 

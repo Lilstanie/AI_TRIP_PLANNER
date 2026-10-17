@@ -176,6 +176,8 @@ specialist 走确定性路径，工具返回 mock fixture；它们不读取或�
 `hop-date`、`itinerary-by-city`、`stay-transition`、`trip-dates` 和 `total-consistent`，它们按简报中的城市推导，检查火车、住宿、每天的活动和总额是否围绕同一次移动保持一致。
 每个产物都记录场景的 fixture 版本和评估器版本（`scenario-rules-v2`）；决策见 [Agent Note](../.agents/notes/implemented/architecture/2026-10-02-agent-lab-benchmark-scenarios.md)。
 
+版本化基准注册表由 `@trip/orchestrator` 导出，并通过 `GET /api/agent-lab/benchmark` 提供。它列出场景及其预期结果和必需检查、策略、故障档案，以及独立的实时子集。注册表版本为 1.0.1；基准 E2E 使用 production runner 生成的产物构建 fixture 报告，每个分母都保留失败运行，再将同一批产物中的一个上传到页面回放。Fixture 与 live 报告分开。实时子集包含三个场景、仅支持实时运行的策略以及三次重复，并经过现有实时门控。详见[基准 Agent Note](../.agents/notes/implemented/testing/2026-10-16-agent-lab-benchmark.md)。
+
 产物的下载与回放都发生在浏览器中，不涉及任何端点或服务端存储。页面保存它收到的产物，`apps/web/lib/agent-lab/replay.ts` 则按共享的
 `AgentLabRunArtifact` 约定校验所选文件（单一 schema 版本、连续的事件、有效的计划、不会倒退的时间），再按记录的偏移量回放记录下的事件。
 所存的指标按记录原样显示，不在页面中重新计算；原因见 [Agent Note](../.agents/notes/implemented/architecture/2026-10-02-agent-lab-artifact-replay.md)。
