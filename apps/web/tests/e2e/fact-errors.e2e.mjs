@@ -36,7 +36,9 @@ try {
   await dateError.waitFor({ state: "visible" });
   check((await dateError.getAttribute("role")) === "alert", "date validation is an alert");
   check(
-    await page.locator('.trip-calendar button[aria-describedby="fact-dates-error"][aria-invalid="true"]').count() > 0,
+    (await page
+      .locator('.trip-calendar button[aria-describedby="fact-dates-error"][aria-invalid="true"]')
+      .count()) > 0,
     "calendar day controls reference the invalid-range error",
   );
   check(
