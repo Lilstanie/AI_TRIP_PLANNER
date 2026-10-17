@@ -64,7 +64,7 @@ export interface ItineraryGenerator {
     dayCities?: {
       day: number;
       cities: string[];
-      transfers?: { from: string; to: string; startTime: string; endTime: string }[];
+      transfers?: TransferSegment[];
     }[];
     candidatesByCity?: Record<string, string[]>;
 
@@ -72,16 +72,19 @@ export interface ItineraryGenerator {
   }): Promise<ItineraryDraft>;
 }
 
-export interface ItineraryAgentOptions {
-  generator?: ItineraryGenerator | false;
-}
-
-interface TransferWindow {
-  day: number;
+export interface TransferSegment {
   from: string;
   to: string;
   startTime: string;
   endTime: string;
+}
+
+export interface ItineraryAgentOptions {
+  generator?: ItineraryGenerator | false;
+}
+
+interface TransferWindow extends TransferSegment {
+  day: number;
 }
 
 export function citiesByDay(
@@ -702,10 +705,15 @@ async function planItinerary(
       : []),
   ];
   if (revision && conflicts.length && !usedFallback) {
-    const adjustedFallback = avoidBlockedWindows(
-      validatedFallbackDraft(brief, days, places, placesByCity, dayCities, transferWindows),
-      revision,
+    const originalFallback = validatedFallbackDraft(
+      brief,
+      days,
+      places,
+      placesByCity,
+      dayCities,
+      transferWindows,
     );
+    const adjustedFallback = avoidBlockedWindows(originalFallback, revision);
     let fallback = adjustedFallback;
     try {
       fallback = {
@@ -723,6 +731,7 @@ async function planItinerary(
     } catch {
       fallback = {
         ...adjustedFallback,
+        draft: originalFallback,
         conflicts: [
           ...adjustedFallback.conflicts,
           "Fallback activity times were kept unchanged because the requested revision shift conflicts with a scheduled transfer.",

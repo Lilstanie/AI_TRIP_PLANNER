@@ -161,6 +161,11 @@ try {
     { budgetTotal: budgetPlan.budgetTotal, estTotal: budgetPlan.estTotal },
   );
   check(unpricedAdmissions > 0, "#435 fixture contains unpriced admissions", unpricedAdmissions);
+  const headroomPlan = JSON.parse(JSON.stringify(budgetPlan));
+  headroomPlan.budgetTotal = headroomPlan.estTotal + 1;
+  headroomPlan.brief.budgetTotal = headroomPlan.estTotal + 1;
+  const headroomTitle = `${headroomPlan.brief.destination} headroom check`;
+  const headroomCatalog = catalogFor(headroomPlan, "triage-trip-ui-headroom", headroomTitle);
   const budgetTitle = `${budgetPlan.brief.destination} budget check`;
   const budgetCatalog = catalogFor(budgetPlan, "triage-trip-ui-budget", budgetTitle);
   const budgetContext = await browser.newContext({
@@ -197,7 +202,7 @@ try {
   const budgetNote = await budgetPage.locator(".trip__budget-note").allTextContents();
   const budgetStatus = await budgetPage.locator(".budget-status").innerText();
   check(
-    budgetStatus === "At budget · admissions not counted",
+    budgetStatus === "At budget · unpriced stops not counted",
     "#435 exact estimate reports unpriced admissions in its status",
     budgetStatus,
   );
@@ -206,8 +211,8 @@ try {
     "#435 exact budget with unpriced admissions uses the caution state",
   );
   check(
-    budgetNote.some((note) => /admission for \d+ stops with no published price/i.test(note)),
-    "#435 unpriced admission cost is disclosed",
+    budgetNote.some((note) => /costs for stops without a published price \(\d+\)/i.test(note)),
+    "#435 unpriced stop costs are disclosed",
     { budgetNote, budgetSummary },
   );
   check(!/AUD\s*0\s*under/i.test(budgetSummary), "#435 does not claim AUD 0 under budget");
@@ -215,6 +220,45 @@ try {
   await budgetPage.screenshot({ path: `${OUT}/435-budget-acceptance.png`, fullPage: true });
   await budgetContext.tracing.stop({ path: `${OUT}/435-budget-trace.zip` });
   await budgetContext.close();
+  const headroomContext = await browser.newContext({
+    viewport: { width: 1024, height: 900 },
+    locale: "en-AU",
+    reducedMotion: "reduce",
+  });
+  const headroomPage = await headroomContext.newPage();
+  await headroomPage.addInitScript(
+    ({ key, value, settingsKey, settings }) => {
+      localStorage.setItem(key, JSON.stringify(value));
+      localStorage.setItem(settingsKey, JSON.stringify(settings));
+    },
+    {
+      key: CATALOG_KEY,
+      value: headroomCatalog,
+      settingsKey: SETTINGS_KEY,
+      settings: settingsFor("en"),
+    },
+  );
+  await headroomPage.goto(BASE);
+  await headroomPage.locator(".workspace-app").waitFor();
+  await openChats(headroomPage, 1024);
+  await headroomPage
+    .locator(`.history-item__open[title=${JSON.stringify(headroomTitle)}]`)
+    .waitFor();
+  await headroomPage.locator(`.history-item__open[title=${JSON.stringify(headroomTitle)}]`).click();
+  await openTrip(headroomPage, 1024);
+  await headroomPage.locator(".budget-status").waitFor();
+  const headroomStatus = await headroomPage.locator(".budget-status").innerText();
+  check(
+    headroomStatus === "Known estimate within budget · unpriced stops not counted",
+    "#435 one-dollar headroom with unpriced admissions is qualified",
+    headroomStatus,
+  );
+  check(
+    (await headroomPage.locator(".budget-status--caution").count()) === 1,
+    "#435 headroom with unpriced admissions uses the caution state",
+  );
+  await headroomPage.screenshot({ path: `${OUT}/435-headroom-acceptance.png`, fullPage: true });
+  await headroomContext.close();
   for (const scheme of ["light", "dark"])
     for (const lang of ["en", "zh"])
       for (const width of [375, 1024]) {

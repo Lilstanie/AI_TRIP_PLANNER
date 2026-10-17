@@ -102,7 +102,7 @@ export function TripEditor({
   const setOnTrip = useContext(OnTripContext);
   useEffect(() => {
     setOnTrip(tripPlaces.destinationsSettled ? today !== undefined : undefined);
-  }, [setOnTrip, today, tripPlaces.destinationsSettled]);
+  }, [plan.tripId, setOnTrip, today, tripPlaces.destinationsSettled]);
 
   const conflicts = useMemo(() => placeConflicts(plan), [plan]);
   const labels = useMemo(

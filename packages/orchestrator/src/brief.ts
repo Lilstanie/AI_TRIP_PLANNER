@@ -14,6 +14,8 @@ export const BriefPatchSchema = z.object({
   destination: z.string().trim().min(1).optional(),
   origin: z.string().trim().min(1).optional(),
   dates: z.tuple([z.string().regex(ISO_DATE), z.string().regex(ISO_DATE)]).optional(),
+  dateStart: z.string().regex(ISO_DATE).optional(),
+  dateEnd: z.string().regex(ISO_DATE).optional(),
   groupSize: z.number().int().positive().optional(),
   budgetTotal: z.number().positive().optional(),
   budgetSource: z.object({ amount: z.number().positive(), currency: Currency }).optional(),
@@ -42,6 +44,14 @@ export function isRealDate(value: string): boolean {
 export function mergeBriefPatch<T extends BriefPatch>(current: T, patch: BriefPatch) {
   const parsedPatch = BriefPatchSchema.parse(patch);
   const next = { ...current, ...parsedPatch };
+  if (parsedPatch.dateStart !== undefined || parsedPatch.dateEnd !== undefined) {
+    const start = parsedPatch.dateStart ?? parsedPatch.dates?.[0] ?? current.dates?.[0];
+    const end = parsedPatch.dateEnd ?? parsedPatch.dates?.[1] ?? current.dates?.[1];
+    if (start && end) next.dates = [start, end];
+    else delete next.dates;
+  }
+  delete next.dateStart;
+  delete next.dateEnd;
   if (parsedPatch.budgetTotal !== undefined && parsedPatch.budgetSource === undefined)
     delete next.budgetSource;
   return next;

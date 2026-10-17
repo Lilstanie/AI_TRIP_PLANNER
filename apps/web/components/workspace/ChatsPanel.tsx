@@ -90,6 +90,18 @@ export function ChatsPanel({
         <h2 className="sidebar-history__title" id={`${searchId}-trips`}>
           {t("Trips")}
         </h2>
+        <p
+          className="sr-only"
+          role="status"
+          aria-live="polite"
+          aria-label={t("Trip search results")}
+        >
+          {searching
+            ? trips.length
+              ? t("{count} trips found", { count: trips.length })
+              : t("No matching trips.")
+            : ""}
+        </p>
         {tripsContent ?? (
           <div className="history-list">
             {trips.map((item) => (
@@ -110,7 +122,7 @@ export function ChatsPanel({
               </article>
             ))}
             {!trips.length && (
-              <p className="history-empty" role={searching ? "status" : undefined}>
+              <p className="history-empty">
                 {searching ? t("No matching trips.") : t("No trips yet. Start one with New trip.")}
               </p>
             )}
@@ -122,6 +134,18 @@ export function ChatsPanel({
         <h2 className="sidebar-history__title" id={`${searchId}-chats`}>
           {t("Chats")}
         </h2>
+        <p
+          className="sr-only"
+          role="status"
+          aria-live="polite"
+          aria-label={t("Chat search results")}
+        >
+          {searching
+            ? chats.length
+              ? t("{count} chats found", { count: chats.length })
+              : t("No matching chats.")
+            : ""}
+        </p>
         <div className="history-list">
           {chats.map((item) => (
             <article
@@ -146,7 +170,7 @@ export function ChatsPanel({
             </article>
           ))}
           {!chats.length && (
-            <p className="history-empty" role={searching ? "status" : undefined}>
+            <p className="history-empty">
               {searching ? t("No matching chats.") : t("No chats yet.")}
             </p>
           )}

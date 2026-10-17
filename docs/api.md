@@ -157,7 +157,7 @@ blocks, text files are inlined into its message under a delimiter naming the fil
 specialists' inputs are unchanged. Without a provider key, images are ignored and the inlined text is
 still read.
 
-New planning requests whose start or end date precedes the current UTC date receive an explicit date clarification instead of a plan. Supplying an existing plan preserves historical editing. When an edit leaves the material itinerary, stays, transport and costs unchanged, the reply states that the plan was unchanged rather than claiming the requested edit completed.
+New planning requests whose start or end date precedes the current calendar date at the destination receive an explicit clarification instead of a plan. The web client includes coordinates from a selected destination suggestion; the server uses an offline coordinate-to-time-zone lookup. If no coordinates are available, the check falls back to UTC. The traveller can provide corrected dates or explicitly confirm the historical dates in response to the matching clarification. Supplying an existing plan preserves historical editing. When an edit leaves the material itinerary, stays, transport and costs unchanged, the reply states that the plan was unchanged rather than claiming the requested edit completed.
 
 Optional `mode` values:
 

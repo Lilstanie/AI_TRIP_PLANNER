@@ -33,6 +33,7 @@ import { useComposerAttachments } from "./useComposerAttachments";
 import { firstFactWithError, firstMissingFact, type FactKey } from "@/lib/workspace/trip-facts";
 import { translate } from "@/lib/i18n/locale";
 import { moneyDisplay } from "@/lib/money";
+import { destinationCities } from "@/lib/map/place-query";
 
 export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
   const [state, setSession] = useState<SessionState>(() =>
@@ -99,6 +100,14 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
     dataMode.providers?.webMapsProvider !== "google",
   );
   const { itinerary } = tripPlaces;
+  const firstPlannedCity = plan
+    ? destinationCities(plan.brief.destination)[0]?.toLocaleLowerCase()
+    : undefined;
+  const plannedLocation = firstPlannedCity
+    ? tripPlaces.destinations.find(
+        (place) => place.displayName?.text?.toLocaleLowerCase() === firstPlannedCity,
+      )?.location
+    : undefined;
   const { storageError, storageEnabled, saveState, setStorageError, setStorageEnabled, flushSave } =
     useWorkspaceStorage({
       restored,
@@ -169,6 +178,13 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
     assistant: settings.assistant,
     interfaceLanguage: locale,
     displayCurrency: settings.displayCurrency,
+    planDestinationLocation:
+      plan && plannedLocation
+        ? {
+            ...plannedLocation,
+            destination: plan.brief.destination,
+          }
+        : undefined,
     draft,
     input,
     freshTripId,

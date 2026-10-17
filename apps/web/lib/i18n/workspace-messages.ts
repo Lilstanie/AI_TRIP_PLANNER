@@ -130,8 +130,8 @@ export const WORKSPACE_ZH = {
   "Undo last change": "撤销上次修改",
   "Estimated total": "预计总额",
   "Budget used": "已用预算",
-  "Not included: admission for": "未计入：",
-  "with no published price.": "的门票价格未公布。",
+  "Not included: costs for": "未计入：",
+  "with no published price.": "尚未公布的费用。",
   "Trip views": "行程视图",
   "No itinerary yet. Fill in your preferences and select Update trip.":
     "尚无日程。填写偏好后选择更新行程。",
@@ -285,7 +285,9 @@ export const WORKSPACE_ZH = {
   "Over budget": "超出预算",
   "No accommodation needed": "不需要住宿",
   "At budget": "已达预算",
-  "At budget · admissions not counted": "已达预算 · 门票费用未计入",
+  "At budget · unpriced stops not counted": "已达预算 · 未定价停靠点未计入",
+  "Known estimate within budget · unpriced stops not counted":
+    "已知估算在预算内 · 未定价停靠点未计入",
   "The known estimate equals your budget.": "已知估算恰好达到预算。",
   "Within budget": "预算内",
   "Budget not set": "未设置预算",
@@ -334,6 +336,10 @@ export const WORKSPACE_ZH = {
   "No trips yet. Start one with New trip.": "尚无行程。选择新行程以开始。",
   "No matching chats.": "没有匹配的聊天。",
   "No chats yet.": "尚无聊天。",
+  "Trip search results": "行程搜索结果",
+  "Chat search results": "聊天搜索结果",
+  "{count} trips found": "找到 {count} 个行程",
+  "{count} chats found": "找到 {count} 个聊天",
   "Close your trip": "关闭行程",
   "Fares from {v0} to {v1}": "{v0}到{v1}的票价",
   "Prices change without notice.": "价格可能随时变化。",
@@ -357,8 +363,8 @@ export const WORKSPACE_ZH = {
   "Remove “{v0}”": "移除“{v0}”",
   "{amount} over the {budget} budget": "超出预算 {amount}（预算 {budget}）",
   "{amount} under the {budget} budget": "剩余预算 {amount}（预算 {budget}）",
-  "Not included: admission for {count} stops with no published price.":
-    "未计入：{count} 个停靠点没有公布门票价格。",
+  "Not included: costs for stops without a published price ({count}).":
+    "未计入：未公布价格的停靠点费用（{count} 个）。",
   "Important notes ({count})": "重要提示（{count}）",
   Calendar: "日历",
   Neutral: "中性",

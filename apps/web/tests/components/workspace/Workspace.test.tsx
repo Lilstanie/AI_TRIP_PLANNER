@@ -829,8 +829,12 @@ describe("Workspace navigation", () => {
     expect(search.getAttribute("placeholder")).toBe("Search…");
     expect(panel.queryByRole("button", { name: "Clear search" })).toBeNull();
     fireEvent.change(search, { target: { value: "kyoto" } });
-    expect(panel.getByText("No matching chats.")).toBeTruthy();
-    expect(panel.getByText("No matching trips.")).toBeTruthy();
+    expect(panel.getByRole("status", { name: "Chat search results" }).textContent).toBe(
+      "No matching chats.",
+    );
+    expect(panel.getByRole("status", { name: "Trip search results" }).textContent).toBe(
+      "No matching trips.",
+    );
     fireEvent.click(panel.getByRole("button", { name: "Clear search" }));
     expect((search as HTMLInputElement).value).toBe("");
     expect(document.activeElement).toBe(search);

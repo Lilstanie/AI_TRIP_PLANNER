@@ -361,8 +361,11 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
 ## Reviewing a plan
 
 When the known estimate equals the budget, the budget panel says “At budget” instead of reporting
-zero under budget. If admissions remain unpriced, the status adds “admissions not counted” and uses
-the caution colour; those missing costs remain listed beneath the estimate.
+zero under budget. If itinerary stops remain unpriced, the status adds “unpriced stops not counted”
+and uses the caution colour; those missing costs remain listed beneath the estimate.
+When the estimate is below budget but itinerary stops remain unpriced, the status says “Known estimate
+within budget · unpriced stops not counted” and uses the caution colour so the known estimate is not
+presented as proof that every cost fits.
 
 Names of removed surfaces below appear only to explain their removal; nothing in this section
 describes current behaviour except the absences.
@@ -567,9 +570,9 @@ moves. Details, notes and booked apply in the browser. The checks are determinis
   or "Price unknown" rather than AUD 0). Flight and stay rows open to their card. Between two stops the
   journey is a leg (see Legs below): its mode and duration, marked "checked" when the provider verified
   it and "estimate" when it is the planner's `arriveBy` or a simulated fixture.
-- **Prices.** No provider publishes admission prices, so itinerary stops carry no `estCost` and show
-  "Price unknown"; the budget card adds "Not included: admission for N stops with no published
-  price" so the total is not read as the whole cost.
+- **Prices.** Stops without a published price carry no `estCost` and show "Price unknown"; the
+  budget card lists their count and missing costs, avoiding the impression that the total covers
+  every cost.
 - **Order and numbers.** A day's stops are listed in visiting order, and each stop's node shows its
   trip-wide stop number, the same as on the map and in the Trip drawer; an unlocated stop shows
   none. Move earlier, Move later, Move to another day and drag and drop name a position as shown;

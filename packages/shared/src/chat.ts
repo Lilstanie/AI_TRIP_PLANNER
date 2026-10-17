@@ -138,6 +138,13 @@ export const ChatRequest = z
     interfaceLanguage: InterfaceLanguage.optional(),
 
     displayCurrency: Currency.optional(),
+    destinationLocation: z
+      .object({
+        destination: z.string().trim().min(1),
+        latitude: z.number().min(-90).max(90),
+        longitude: z.number().min(-180).max(180),
+      })
+      .optional(),
   })
   .refine((request) => request.message.trim() !== "" || (request.attachments?.length ?? 0) > 0, {
     message: "Send a message or at least one attachment",

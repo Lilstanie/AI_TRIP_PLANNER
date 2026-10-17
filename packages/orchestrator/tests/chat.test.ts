@@ -64,6 +64,34 @@ type ToolCall = { name: string; args: Record<string, unknown>; id: string };
 const scriptedModel = (...turns: ToolCall[][]) =>
   new FakeToolCallingModel({ toolCalls: [...turns, []] });
 
+class ReplyOverrideModel extends FakeToolCallingModel {
+  constructor(
+    readonly reply: string,
+    toolCalls: ToolCall[][] = [[]],
+  ) {
+    super({ toolCalls: [...toolCalls, []] });
+  }
+
+  bindTools(_tools: Parameters<FakeToolCallingModel["bindTools"]>[0]) {
+    return this;
+  }
+
+  async _generate(...args: Parameters<FakeToolCallingModel["_generate"]>) {
+    const result = await super._generate(...args);
+    const message = result.generations[0]?.message;
+    if (!(message instanceof AIMessage) || (message.tool_calls?.length ?? 0) > 0) return result;
+    return {
+      ...result,
+      generations: [
+        {
+          ...result.generations[0],
+          message: new AIMessage(this.reply),
+        },
+      ],
+    };
+  }
+}
+
 const run = (
   request: Parameters<typeof runTripChat>[0],
   model: FakeToolCallingModel,
@@ -168,14 +196,14 @@ describe("the conversation agent decides what to do", () => {
       label: "Sydney after midnight locally while UTC is still the previous date",
       dates: ["2026-10-17", "2026-10-18"],
       now: "2026-10-17T14:30:00.000Z",
-      destinationLocation: { latitude: -33.8688, longitude: 151.2093 },
+      destinationLocation: { destination: "Sydney", latitude: -33.8688, longitude: 151.2093 },
       asks: true,
     },
     {
       label: "Honolulu before midnight while UTC is already the next date",
       dates: ["2026-10-16", "2026-10-17"],
       now: "2026-10-17T06:30:00.000Z",
-      destinationLocation: { latitude: 21.3069, longitude: -157.8583 },
+      destinationLocation: { destination: "Honolulu", latitude: 21.3069, longitude: -157.8583 },
       asks: false,
     },
   ])(
@@ -207,7 +235,9 @@ describe("the conversation agent decides what to do", () => {
         await expect(execute()).rejects.toMatchObject({
           askUser: {
             type: "ask_user",
-            questions: [expect.objectContaining({ question: expect.stringMatching(/past|passed/i) })],
+            questions: [
+              expect.objectContaining({ question: expect.stringMatching(/past|passed/i) }),
+            ],
           },
         });
         expect(itinerary.invoke).not.toHaveBeenCalled();
@@ -217,6 +247,39 @@ describe("the conversation agent decides what to do", () => {
       }
     },
   );
+
+  it("does not reuse old selected coordinates after a chat changes the destination", async () => {
+    vi.mocked(itinerary.invoke).mockClear();
+    const changedDestination = {
+      ...brief,
+      tripId: "changed-destination-dates",
+      destination: "Honolulu",
+      dates: ["2026-10-17", "2026-10-18"] as [string, string],
+    };
+
+    await expect(
+      runTripChat(
+        {
+          tripId: changedDestination.tripId,
+          mode: "plan",
+          message: "Plan this trip",
+          brief: changedDestination,
+          destinationLocation: {
+            destination: "Sydney",
+            latitude: -33.8688,
+            longitude: 151.2093,
+          },
+        } as unknown as Parameters<typeof runTripChat>[0],
+        {
+          specialists: [itinerary],
+          tools,
+          mem: memoryStore().mem,
+          clock: () => new Date("2026-10-17T14:30:00.000Z"),
+        },
+      ),
+    ).resolves.toMatchObject({ plan: { brief: { destination: "Honolulu" } } });
+    expect(itinerary.invoke).toHaveBeenCalled();
+  });
 
   it("does not treat a fresh submitted brief as proof of an existing historical trip", async () => {
     vi.mocked(itinerary.invoke).mockClear();
@@ -301,7 +364,9 @@ describe("the conversation agent decides what to do", () => {
         },
         options,
       ),
-    ).rejects.toMatchObject({ askUser: { questions: [expect.objectContaining({ id: "past-trip-dates" })] } });
+    ).rejects.toMatchObject({
+      askUser: { questions: [expect.objectContaining({ id: "past-trip-dates" })] },
+    });
     await expect(
       runTripChat(
         {
@@ -312,12 +377,14 @@ describe("the conversation agent decides what to do", () => {
         },
         options,
       ),
-    ).rejects.toMatchObject({ askUser: { questions: [expect.objectContaining({ id: "past-trip-dates" })] } });
+    ).rejects.toMatchObject({
+      askUser: { questions: [expect.objectContaining({ id: "past-trip-dates" })] },
+    });
     const confirmed = await runTripChat(
       {
         tripId: historicalBrief.tripId,
         mode: "plan",
-        message: "Confirm historical trip",
+        message: "Dates: Confirm historical trip",
         brief: historicalBrief,
       },
       options,
@@ -496,18 +563,20 @@ describe("the conversation agent decides what to do", () => {
       conflictsWith: [],
     }));
     class OverclaimingModel extends FakeToolCallingModel {
-      async _generate(messages, options, manager) {
-        const result = await super._generate(messages, options, manager);
+      bindTools(_tools: Parameters<FakeToolCallingModel["bindTools"]>[0]) {
+        return this;
+      }
+
+      async _generate(...args: Parameters<FakeToolCallingModel["_generate"]>) {
+        const result = await super._generate(...args);
         const message = result.generations[0]?.message;
-        if (message instanceof AIMessage && message.tool_calls.length === 0)
+        if (message instanceof AIMessage && (message.tool_calls?.length ?? 0) === 0)
           return {
             ...result,
             generations: [
               {
                 ...result.generations[0],
-                message: new AIMessage(
-                  "Done — I moved the harbour cruise to day 2 and booked it.",
-                ),
+                message: new AIMessage("Done — I moved the harbour cruise to day 2 and booked it."),
               },
             ],
           };
@@ -529,6 +598,193 @@ describe("the conversation agent decides what to do", () => {
 
     expect(after.plan.sections[0]?.proposal?.items[0]?.detail).toBe("Unrelated museum visit");
     expect(after.reply).not.toMatch(/\bdone\b|moved the harbour cruise|booked it/i);
+    expect(after.reply).toContain(
+      "I can’t verify that requested change from the resulting itinerary.",
+    );
+  });
+
+  it.each([
+    { label: "plain completion", reply: "Done.", message: "Change the plan." },
+    {
+      label: "a passive completed change",
+      reply: "Day 3 has been removed.",
+      message: "Remove day 3.",
+    },
+    {
+      label: "a standalone booking claim",
+      reply: "The hotel is booked.",
+      message: "Change the hotel.",
+    },
+    {
+      label: "a Chinese booking claim",
+      reply: "已完成，酒店已预订，机票已出票。",
+      message: "查询酒店。",
+      interfaceLanguage: "zh" as const,
+    },
+    {
+      label: "a Chinese completed change",
+      reply: "我已经把第二天的行程改好了。",
+      message: "改一下第二天。",
+      interfaceLanguage: "zh" as const,
+    },
+  ])(
+    "does not return an ungrounded $label from an existing plan without a replan",
+    async ({ reply, message, interfaceLanguage }) => {
+      const { mem } = memoryStore();
+      const before = await runTripChat(
+        { tripId: brief.tripId, mode: "plan", message: "Plan it", brief },
+        { specialists: [itinerary], tools, mem },
+      );
+
+      const after = await run(
+        {
+          tripId: brief.tripId,
+          message,
+          brief,
+          plan: before.plan,
+          ...(interfaceLanguage ? { interfaceLanguage } : {}),
+        },
+        new ReplyOverrideModel(reply),
+        mem,
+      );
+
+      expect(after.plan).toEqual(before.plan);
+      expect(after.reply).toBe(
+        interfaceLanguage === "zh"
+          ? "我无法从更新后的行程确认这项修改已生效。"
+          : "I can’t verify that requested change from the resulting itinerary.",
+      );
+    },
+  );
+
+  it("does not return a completion claim when a brief update was not replanned", async () => {
+    const { mem } = memoryStore();
+    const before = await runTripChat(
+      { tripId: brief.tripId, mode: "plan", message: "Plan it", brief },
+      { specialists: [itinerary], tools, mem },
+    );
+
+    const after = await run(
+      {
+        tripId: brief.tripId,
+        message: "Change the destination to Melbourne",
+        brief,
+        plan: before.plan,
+      },
+      new ReplyOverrideModel("Done — I changed the destination to Melbourne."),
+      mem,
+    );
+
+    expect(after.plan.brief.destination).toBe("Tokyo");
+    expect(after.reply).toBe("I can’t verify that requested change from the resulting itinerary.");
+  });
+
+  it("does not let a new plan claim a booking without evidence", async () => {
+    const { mem } = memoryStore();
+    const after = await run(
+      { tripId: brief.tripId, message: "Plan this trip", brief },
+      new ReplyOverrideModel("Done — I've booked your stay and ticketed your flights."),
+      mem,
+    );
+
+    expect(after.reply).toBe("I can’t verify that requested change from the resulting itinerary.");
+  });
+
+  it("does not let a booked stay support an unsupported flight ticket claim", async () => {
+    const { mem } = memoryStore();
+    const bookedStay = { ...brief, bookedStay: { name: "Park Hyatt" } };
+    const after = await run(
+      { tripId: brief.tripId, message: "Are the flights sorted?", brief: bookedStay },
+      new ReplyOverrideModel("Your Park Hyatt stay is booked, and your flights are ticketed."),
+      mem,
+    );
+
+    expect(after.reply).toBe("I can’t verify that requested change from the resulting itinerary.");
+  });
+
+  it("grounds model text attached to an ask-user error", async () => {
+    const { mem } = memoryStore();
+    const before = await runTripChat(
+      { tripId: brief.tripId, mode: "plan", message: "Plan it", brief },
+      { specialists: [itinerary], tools, mem },
+    );
+    const failure = await run(
+      {
+        tripId: brief.tripId,
+        message: "Which flights should I take?",
+        brief: { ...brief, bookedStay: { name: "Park Hyatt" } },
+        plan: before.plan,
+      },
+      new ReplyOverrideModel("The hotel is booked and your flights are ticketed.", [
+        [
+          {
+            name: "ask_user_question",
+            args: { questions: [{ id: "flight", question: "Which dates work?" }] },
+            id: "ask",
+          },
+        ],
+        [],
+      ]),
+      mem,
+    ).catch((error: unknown) => error);
+
+    expect(failure).toBeInstanceOf(AskUserError);
+    expect((failure as AskUserError).askUser.reply).toBe(
+      "I can’t verify that requested change from the resulting itinerary.",
+    );
+  });
+
+  it("keeps a completion claim backed by the requested itinerary delta", async () => {
+    const { mem } = memoryStore();
+    const before = await runTripChat(
+      { tripId: brief.tripId, mode: "plan", message: "Plan it", brief },
+      { specialists: [itinerary], tools, mem },
+    );
+    vi.mocked(itinerary.invoke).mockImplementationOnce(async ({ brief: updated }) => ({
+      agent: "itinerary",
+      summary: `Plan for ${updated.destination}`,
+      items: [{ kind: "activity", detail: "Harbour cruise", day: 2, estCost: 100 }],
+      assumptions: [],
+      conflictsWith: [],
+    }));
+
+    const after = await run(
+      {
+        tripId: brief.tripId,
+        message: "Add the harbour cruise to day 2",
+        brief,
+        plan: before.plan,
+      },
+      new ReplyOverrideModel("Done — I added the harbour cruise to day 2.", [
+        [{ name: "replan_trip", args: {}, id: "replan" }],
+        [],
+      ]),
+      mem,
+    );
+
+    expect(after.plan.sections[0]?.proposal?.items[0]?.detail).toBe("Harbour cruise");
+    expect(after.reply).toBe("Done — I added the harbour cruise to day 2.");
+  });
+
+  it("allows a booking claim grounded in the traveller's message", async () => {
+    const { mem } = memoryStore();
+    const before = await runTripChat(
+      { tripId: brief.tripId, mode: "plan", message: "Plan it", brief },
+      { specialists: [itinerary], tools, mem },
+    );
+
+    const after = await run(
+      {
+        tripId: brief.tripId,
+        message: "I already booked the Park Hyatt for us.",
+        brief,
+        plan: before.plan,
+      },
+      new ReplyOverrideModel("The Park Hyatt is booked."),
+      mem,
+    );
+
+    expect(after.reply).toBe("The Park Hyatt is booked.");
   });
 
   it("records what the traveller stated and replans when asked", async () => {
@@ -774,17 +1030,17 @@ describe("tolerating what models actually emit", () => {
     });
   });
 
-  it("holds back a date range with only one end", async () => {
+  it("applies a one-sided correction to an existing date range", async () => {
     const { mem } = memoryStore();
     const result = await run(
       { tripId: brief.tripId, message: "leave on the 6th", brief },
       scriptedModel(
-        [{ name: "update_trip_brief", args: { startDate: "2027-10-06" }, id: "c1" }],
+        [{ name: "update_trip_brief", args: { startDate: "2027-06-16" }, id: "c1" }],
         [{ name: "replan_trip", args: {}, id: "c2" }],
       ),
       mem,
     );
-    expect(result.plan.brief.dates).toEqual(brief.dates);
+    expect(result.plan.brief.dates).toEqual(["2027-06-16", "2027-06-22"]);
   });
 });
 

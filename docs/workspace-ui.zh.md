@@ -131,6 +131,7 @@ seniors`（宠物不计为旅客）；`groupSize` 仍是校验字段，因此至
 ## 航班、住宿与提示
 
 已知估算恰好达到预算时，预算面板显示“已达预算”，不再显示低于预算零元。若仍有未计价门票，状态会加上“门票费用未计入”并使用警示色；估算下方继续列出这些缺失费用。
+若已知估算低于预算但仍有未计价门票，状态会显示“已知估算在预算内 · 门票费用未计入”并使用警示色，避免让人误以为所有费用都在预算内。
 
 Trip 抽屉不再显示 specialist 卡片（Day plan、Getting around、Stay、Destination guide 和 Food & dining）。它们的内容已在日视图中。方案部分仍保留在数据中；不显示部分摘要、假设或模型撰写的工作笔记。Day plan 和 Getting around 没有替代内容，因为它们的内容就是停靠点和路段。Trip 抽屉的费用和总额仍包含所有部分。原因见 [Agent Note](../.agents/notes/implemented/feature/2026-10-08-day-view-specialists.md)。
 
@@ -184,7 +185,7 @@ Trip 抽屉不再显示 specialist 卡片（Day plan、Getting around、Stay、D
 日视图（`TripEditor` 组合 `components/trip/timeline/`）一次显示一天，通过 `POST /api/trip/preview-edit` 变更活动。服务器检查每次变更，客户端对被接受的变更立即应用。停靠点的日期、时间、地点、顺序和路段的每次变更都由服务器检查：时间、地点、路段、拖动移动、Remove、Move to ideas、Move to another day 以及箭头移动。详情、备注和已预订在浏览器中应用。检查是确定性的，不调用 LLM（大语言模型）。
 
 - **布局。** 日期标签条（`Day 2 · Sun, 18 Oct · 3 stops`，停靠点需要地点时带标记）用于选择日期。当天按时间顺序呈现为竖线（`lib/trip/timeline.ts`）：抵达航班（及无具体时间的航班）在最前，带时间的城际路段和停靠点按开始时间排列，然后是每晚一行住宿，最后一天以返程航班结束。后续夜晚显示“Staying at …”。固定行显示图标、标题、一行详情及费用（“Fare not published”或“Price unknown”，而非 AUD 0）；航班行和住宿行可展开为卡片。两站之间的每段行程是一个路段（[Leg](../GLOSSARY.md)），显示出行方式和时长：服务商核实后标为“checked”，规划器的 `arriveBy` 估计或模拟数据标为“estimate”。见下文“路段”。
-- **价格。** 没有提供方公布门票价格，因此行程停靠点不带 `estCost`，显示“Price unknown”；预算卡补充“Not included: admission for N stops with no published price”，避免把总额理解为全部费用。
+- **价格。** 未公布价格的停靠点不带 `estCost`，显示“Price unknown”；预算卡会列出停靠点数量和未定价费用，避免把总额理解为全部费用。
 - **顺序和编号。** 当天停靠点按访问顺序列出，每个停靠点的节点显示其全程编号，与地图和 Trip 抽屉一致；未定位的停靠点不显示编号。Move earlier、Move later、Move to another day 和拖放都按显示的位置指定目标，由 Itinerary 换算成 `preview-edit` 所需的方案索引（该索引按方案顺序计算当天其他停靠点）。开始时间与方案顺序不一致时，向后移动的停靠点落在它越过的那个停靠点之后，其他移动则落在目标停靠点之前，因此预览保留旅行者要求的交换；之后端点会重新安排当天其余停靠点的时间。
 - **时间和地点。** 点击停靠点的时间会打开开始和结束时间表单；“Change time”把变更交给服务器检查。在此处或地图上选中停靠点后，会打开其地点卡片：地点的第一张照片（实时数据且有地图密钥时）、评分、地址和 Open in Google Maps 链接。停靠点菜单中的 Replace place 在卡片中打开 Google Places 搜索；选中的结果通过服务器检查保存。Escape 关闭打开的表单或卡片，并把焦点返回停靠点。仍支持拖放调整当天顺序。
 - **编辑。** 停靠点在此处或地图上被选中前保持紧凑；选择后打开编辑器：开始和结束时间（“Change time”）、Move earlier / Move later、Move to another day，以及用于替换地点的 Google Maps 搜索。仍支持拖放调整当天顺序。

@@ -48,6 +48,11 @@ export type Party = TravellerParty;
 
 export type Draft = {
   destination: string;
+  destinationLocation?: {
+    destination?: string;
+    latitude: number;
+    longitude: number;
+  };
   origin: string;
   start: string;
   end: string;
@@ -136,6 +141,27 @@ export const blankDraft = (): Draft => ({
   minRating: "0",
   freeCancellation: false,
 });
+
+const normalizedDestination = (value: string) =>
+  value
+    .normalize("NFKC")
+    .trim()
+    .toLocaleLowerCase()
+    .replace(/[.,，。;；]+$/u, "")
+    .replace(/\s+/gu, " ");
+
+export function destinationLocationFor(
+  destination: string,
+  ...locations: Array<Draft["destinationLocation"]>
+): { destination: string; latitude: number; longitude: number } | undefined {
+  const normalized = normalizedDestination(destination);
+  const location = locations.find(
+    (candidate) =>
+      candidate?.destination && normalizedDestination(candidate.destination) === normalized,
+  );
+  return location ? { ...location, destination } : undefined;
+}
+
 export function isDraft(value: unknown): value is Draft {
   return (
     object(value) &&
@@ -144,6 +170,16 @@ export function isDraft(value: unknown): value is Draft {
     ) &&
     ["shared", "individual"].includes(String(value.roomAllocation)) &&
     typeof value.freeCancellation === "boolean" &&
+    (value.destinationLocation === undefined ||
+      (object(value.destinationLocation) &&
+        (value.destinationLocation.destination === undefined ||
+          typeof value.destinationLocation.destination === "string") &&
+        typeof value.destinationLocation.latitude === "number" &&
+        value.destinationLocation.latitude >= -90 &&
+        value.destinationLocation.latitude <= 90 &&
+        typeof value.destinationLocation.longitude === "number" &&
+        value.destinationLocation.longitude >= -180 &&
+        value.destinationLocation.longitude <= 180)) &&
     (value.preferences === undefined ||
       (Array.isArray(value.preferences) &&
         value.preferences.every((item) => typeof item === "string"))) &&

@@ -8,7 +8,7 @@ import {
   type InterfaceLanguage,
 } from "@trip/shared";
 import { plannerAud } from "@/lib/money";
-import { knownFromDraft, parseDraft, type Draft } from "@/lib/workspace";
+import { destinationLocationFor, knownFromDraft, parseDraft, type Draft } from "@/lib/workspace";
 import { requestTurn, type SessionEvent, type Task } from "@/lib/workspace/session";
 import { dataModeHeaders, type DataMode } from "@/lib/workspace/data-mode";
 import { formatAskAnswers, type PendingAsk, type QuestionAnswer } from "@/lib/workspace/ask-user";
@@ -41,6 +41,7 @@ type WorkspaceTransportOptions = {
   interfaceLanguage: InterfaceLanguage;
 
   displayCurrency: Currency;
+  planDestinationLocation?: Draft["destinationLocation"];
 };
 
 export function useWorkspaceTransport({
@@ -58,6 +59,7 @@ export function useWorkspaceTransport({
   assistant,
   interfaceLanguage,
   displayCurrency,
+  planDestinationLocation,
 }: WorkspaceTransportOptions) {
   async function run(task: Task) {
     if (active.current) return;
@@ -109,7 +111,20 @@ export function useWorkspaceTransport({
     });
     void run({
       kind: "chat",
-      request: { tripId: brief.tripId, mode: "plan", brief, message },
+      request: {
+        tripId: brief.tripId,
+        mode: "plan",
+        brief,
+        message,
+        ...(destinationLocationFor(next.destination, next.destinationLocation)
+          ? {
+              destinationLocation: destinationLocationFor(
+                next.destination,
+                next.destinationLocation,
+              ),
+            }
+          : {}),
+      },
     });
     return true;
   }
@@ -143,6 +158,19 @@ export function useWorkspaceTransport({
         ...(plan
           ? { tripId: plan.tripId, message, brief: plan.brief, plan }
           : { tripId: freshTripId.current, message, known: knownFromDraft(draft) }),
+        ...(destinationLocationFor(
+          plan?.brief.destination ?? draft.destination,
+          planDestinationLocation,
+          draft.destinationLocation,
+        )
+          ? {
+              destinationLocation: destinationLocationFor(
+                plan?.brief.destination ?? draft.destination,
+                planDestinationLocation,
+                draft.destinationLocation,
+              ),
+            }
+          : {}),
         ...(sent.length ? { attachments: sent } : {}),
       },
     });
@@ -153,15 +181,31 @@ export function useWorkspaceTransport({
     const message = formatAskAnswers(ask.questions, answers);
     dispatch({ kind: "sent", message: { role: "user", text: message, at: Date.now() } });
     const current = ask.plan ?? plan;
+    const known = current ? undefined : { ...knownFromDraft(draft), ...ask.known };
+    const destination = current?.brief.destination ?? known?.destination;
+    const location = destinationLocationFor(
+      destination ?? "",
+      planDestinationLocation,
+      draft.destinationLocation,
+    );
     void run({
       kind: "chat",
-      request: current
-        ? { tripId: current.tripId, message, brief: current.brief, plan: current, known: ask.known }
-        : {
-            tripId: freshTripId.current,
-            message,
-            known: { ...knownFromDraft(draft), ...ask.known },
-          },
+      request: {
+        ...(current
+          ? {
+              tripId: current.tripId,
+              message,
+              brief: current.brief,
+              plan: current,
+              known: ask.known,
+            }
+          : {
+              tripId: freshTripId.current,
+              message,
+              known,
+            }),
+        ...(location ? { destinationLocation: location } : {}),
+      },
     });
   }
   return { run, submit, send, answer };

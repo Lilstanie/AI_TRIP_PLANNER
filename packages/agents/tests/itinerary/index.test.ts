@@ -810,9 +810,27 @@ describe("fallback timing after a failed itinerary revision", () => {
       { day: 2, startTime: "09:00", endTime: "10:00", location: "Sydney Museum", detail: "Visit" },
       { day: 3, startTime: "08:00", endTime: "09:00", location: "Sydney Museum", detail: "Visit" },
       { day: 3, startTime: "09:15", endTime: "10:00", location: "Sydney Park", detail: "Visit" },
-      { day: 3, startTime: "15:00", endTime: "16:00", location: "Wollongong Park", detail: "Visit" },
-      { day: 4, startTime: "09:00", endTime: "10:00", location: "Wollongong Museum", detail: "Visit" },
-      { day: 5, startTime: "09:00", endTime: "10:00", location: "Wollongong Museum", detail: "Visit" },
+      {
+        day: 3,
+        startTime: "15:00",
+        endTime: "16:00",
+        location: "Wollongong Park",
+        detail: "Visit",
+      },
+      {
+        day: 4,
+        startTime: "09:00",
+        endTime: "10:00",
+        location: "Wollongong Museum",
+        detail: "Visit",
+      },
+      {
+        day: 5,
+        startTime: "09:00",
+        endTime: "10:00",
+        location: "Wollongong Museum",
+        detail: "Visit",
+      },
     ];
     const generator: ItineraryGenerator = {
       generate: vi.fn(async () => ({ summary: "Plan", activities, assumptions: [] })),

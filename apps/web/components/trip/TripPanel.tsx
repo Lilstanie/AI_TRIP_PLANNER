@@ -25,6 +25,13 @@ export function TripPanel({
   const [onTrip, setOnTrip] = useState<boolean>();
   const [budgetOpen, setBudgetOpen] = useState(true);
   const budgetManuallyChanged = useRef(false);
+  const budgetTrip = useRef(plan.tripId);
+  useEffect(() => {
+    if (budgetTrip.current === plan.tripId) return;
+    budgetTrip.current = plan.tripId;
+    budgetManuallyChanged.current = false;
+    setBudgetOpen(onTrip !== true);
+  }, [onTrip, plan.tripId]);
   useEffect(() => {
     if (!budgetManuallyChanged.current) setBudgetOpen(onTrip !== true);
   }, [onTrip]);
@@ -44,6 +51,7 @@ export function TripPanel({
   const unpriced = itineraryActivities(plan).filter(
     (item) => item.estCost === undefined && !(item.id && picks.has(item.id)),
   ).length;
+  const unpricedWithinBudget = gap?.direction === "under" && unpriced > 0;
   return (
     <OnTripContext.Provider value={setOnTrip}>
       <div className="trip-panel">
@@ -69,7 +77,7 @@ export function TripPanel({
               </strong>
             </div>
             <span
-              className={`budget-status budget-status--${atBudget && unpriced > 0 ? "caution" : !gap ? "unavailable" : over ? "over" : "within"}`}
+              className={`budget-status budget-status--${(atBudget || unpricedWithinBudget) && unpriced > 0 ? "caution" : !gap ? "unavailable" : over ? "over" : "within"}`}
             >
               {!gap
                 ? t("Budget not set")
@@ -77,9 +85,11 @@ export function TripPanel({
                   ? t("Over budget")
                   : atBudget
                     ? unpriced > 0
-                      ? t("At budget · admissions not counted")
+                      ? t("At budget · unpriced stops not counted")
                       : t("At budget")
-                    : t("Within budget")}
+                    : unpricedWithinBudget
+                      ? t("Known estimate within budget · unpriced stops not counted")
+                      : t("Within budget")}
             </span>
           </div>
           <div
@@ -108,7 +118,7 @@ export function TripPanel({
           )}
           {unpriced > 0 && (
             <p className="trip__budget-note">
-              {t("Not included: admission for {count} stops with no published price.", {
+              {t("Not included: costs for stops without a published price ({count}).", {
                 count: unpriced,
               })}
             </p>

@@ -24,13 +24,20 @@ const destination = {
   location: { latitude: -33.8688, longitude: 151.2093 },
   source: "osm",
 };
-const snapshotSeed = (dates, tripId, includeUnpriced = true, budgetTotal = 400, estTotal = 400) => {
+const snapshotSeed = (
+  dates,
+  tripId,
+  includeUnpriced = true,
+  budgetTotal = 400,
+  estTotal = 400,
+  destinationName = "Sydney",
+) => {
   const plan = {
     tripId,
     brief: {
       tripId,
       userId: "local",
-      destination: "Sydney",
+      destination: destinationName,
       origin: "Honolulu",
       dates,
       groupSize: 1,
@@ -97,7 +104,7 @@ const snapshotSeed = (dates, tripId, includeUnpriced = true, budgetTotal = 400, 
     savedAt: "2026-10-16T00:00:00Z",
     plan,
     draft: {
-      destination: "Sydney",
+      destination: destinationName,
       origin: "Honolulu",
       start: dates[0],
       end: dates[1],
@@ -196,6 +203,18 @@ try {
     await mine.locator(".trip-card").first().click();
     await tripTab.click();
   };
+  const openTripNamed = async (title) => {
+    await page.getByRole("tab", { name: /^Mine/ }).click();
+    const cards = page.locator(".phone-mine .trip-card");
+    const index = await cards
+      .locator(".trip-card__title")
+      .evaluateAll(
+        (titles, target) => titles.findIndex((item) => item.textContent?.trim() === target),
+        title,
+      );
+    await cards.nth(index).click();
+    await tripTab.click();
+  };
   await page.goto(BASE);
   await page.locator(".workspace-app").waitFor();
   await openSeededTrip();
@@ -221,7 +240,8 @@ try {
     "budget starts collapsed on-trip",
   );
   check(
-    (await budget.getByText("At budget · admissions not counted", { exact: true }).count()) === 1,
+    (await budget.getByText("At budget · unpriced stops not counted", { exact: true }).count()) ===
+      1,
     "exact budget with unpriced stops uses the caution status",
   );
   check(
@@ -236,7 +256,7 @@ try {
   const unpricedCaution = budget.locator(".trip__budget-note");
   check(
     (await unpricedCaution.count()) === 1 &&
-      /Not included: admission for 1 stops with no published price\./.test(
+      /Not included: costs for stops without a published price \(1\)\./.test(
         await unpricedCaution.evaluate((node) => node.textContent ?? ""),
       ),
     "unpriced-stop detail and existing class remain present",
@@ -296,6 +316,9 @@ try {
     ["2026-10-17", "2026-10-19"],
     "on-trip-second-budget-default",
     false,
+    400,
+    400,
+    "Sydney alternate",
   );
   await page.evaluate((seed) => {
     const catalog = JSON.parse(localStorage.getItem("trip-workspace-catalog-v3"));
@@ -303,41 +326,51 @@ try {
     catalog.trips.push(...seed.catalog.trips);
     localStorage.setItem("trip-workspace-catalog-v3", JSON.stringify(catalog));
   }, secondTrip);
-  await openSeededTrip();
+  await page.reload();
+  await page.waitForFunction(() => document.querySelectorAll(".phone-mine .trip-card").length >= 2);
+  await openTripNamed("Trip to Sydney");
   const firstBudget = page.locator("#phone-panel-trip .trip-budget");
   if (!(await firstBudget.evaluate((node) => node.open))) {
     await firstBudget.locator("summary").click();
   }
   await page.getByRole("tab", { name: /^Mine/ }).click();
   const tripCards = page.locator(".phone-mine .trip-card");
-  await tripCards.nth(1).click();
+  await tripCards.filter({ hasText: "Sydney alternate" }).click();
+  await page.waitForFunction(
+    () =>
+      JSON.parse(localStorage.getItem("trip-workspace-catalog-v3")).activeTripId !==
+      "trip:before-trip-sydney-boundary",
+  );
   await tripTab.click();
   const secondBudget = page.locator("#phone-panel-trip .trip-budget");
   await secondBudget.waitFor();
+  const secondToday = page.locator("#phone-panel-trip").getByRole("tab", { name: /Today/ });
+  await secondToday.waitFor({ timeout: 5_000 }).catch(() => undefined);
+  check(
+    (await secondToday.count()) === 1,
+    "the newly selected trip retains Today",
+    await page.locator("#phone-panel-trip [role=tab]").allInnerTexts(),
+  );
+  await page.waitForTimeout(500);
   check(
     !(await secondBudget.evaluate((node) => node.open)),
     "manual budget expansion on one trip does not override the next trip's collapsed default",
   );
-  const headroomTrip = snapshotSeed(
-    ["2026-10-17", "2026-10-19"],
-    "on-trip-budget-headroom-unpriced",
-    true,
-    500,
-    400,
+  await page.evaluate(
+    (seed) => {
+      localStorage.setItem("trip-workspace-v1", JSON.stringify(seed.snapshot));
+      localStorage.setItem("trip-workspace-catalog-v3", JSON.stringify(seed.catalog));
+    },
+    snapshotSeed(["2026-10-17", "2026-10-19"], "on-trip-budget-headroom-unpriced", true, 500, 400),
   );
-  await page.evaluate((seed) => {
-    const catalog = JSON.parse(localStorage.getItem("trip-workspace-catalog-v3"));
-    catalog.conversations.push(...seed.catalog.conversations);
-    catalog.trips.push(...seed.catalog.trips);
-    localStorage.setItem("trip-workspace-catalog-v3", JSON.stringify(catalog));
-  }, headroomTrip);
-  await page.getByRole("tab", { name: /^Mine/ }).click();
-  await page.locator(".phone-mine .trip-card").nth(2).click();
-  await tripTab.click();
+  await page.reload();
+  await openSeededTrip();
   const headroomBudget = page.locator("#phone-panel-trip .trip-budget");
   await headroomBudget.waitFor();
   check(
-    (await headroomBudget.getByText("Known estimate within budget · admissions not counted", { exact: true }).count()) === 1,
+    (await headroomBudget
+      .getByText("Known estimate within budget · unpriced stops not counted", { exact: true })
+      .count()) === 1,
     "below-budget estimate with unpriced stops is qualified",
   );
   check(

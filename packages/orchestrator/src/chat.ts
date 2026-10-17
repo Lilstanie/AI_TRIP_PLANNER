@@ -33,6 +33,7 @@ import type { BaseChatModel } from "@langchain/core/language_models/chat_models"
 import { HumanMessage } from "@langchain/core/messages";
 import { createAgent, tool } from "langchain";
 import { z } from "zod/v4";
+import { localCalendarDate } from "@trip/tools";
 import {
   mergeBriefPatch,
   applyBriefPatch,
@@ -184,7 +185,8 @@ function toPatch(update: z.infer<typeof BriefUpdate>): BriefPatch {
     ...(text(update.nationality) ? { nationality: text(update.nationality) } : {}),
     ...(groupSize !== undefined ? { groupSize: Math.round(groupSize) } : {}),
 
-    ...(startDate && endDate ? { dates: [startDate, endDate] as [string, string] } : {}),
+    ...(startDate ? { dateStart: startDate } : {}),
+    ...(endDate ? { dateEnd: endDate } : {}),
     ...(learned ? { learnedPreferences: learned } : {}),
     ...(typeof update.excludeFlights === "boolean"
       ? { excludeFlights: update.excludeFlights }
@@ -427,6 +429,175 @@ function unchangedPlanReply(request: ChatRequest, planned: TripPlan): string | u
     : "I rechecked the itinerary, but no changes were applied. Tell me what you would like changed.";
 }
 
+const PLAN_SUCCESS_CLAIM =
+  /\b(?:done\b|(?:i(?:(?:'|’)?ve| have)?\s+)?(?:moved|added|removed|dropped|deleted|rescheduled|shortened|extended|changed|updated)\b|(?:has|have|had|was|were|is|are)\s+(?:been\s+)?(?:moved|added|removed|dropped|deleted|rescheduled|shortened|extended|changed|updated)\b)|(?:已完成|已改(?:好|成|到)?|改好了|已移除|已删(?:除|掉)|已添加|已新增|已调整|已更新)/i;
+
+const BOOKING_CLAIM =
+  /\b(?:booked|reserved|purchased|ticketed|confirmation number|reservation code)\b|(?:已|已经)(?:预订|预定|订好|购买|出票)|酒店.{0,6}(?:已订|订好)|机票.{0,6}已出票/i;
+
+const FLIGHT_BOOKING_CLAIM =
+  /\b(?:flights?|airfare|plane tickets?)\b.{0,24}\b(?:booked|reserved|purchased|ticketed|confirmed)\b|\b(?:booked|reserved|purchased|ticketed|confirmed)\b.{0,24}\b(?:flights?|airfare|plane tickets?)\b|(?:机票|航班票).{0,8}(?:(?:已|已经)?(?:预订|预定|订好|购买|买了|出票))|(?:(?:已|已经)?(?:预订|预定|订好|购买|买了|出票)).{0,8}(?:机票|航班票)/i;
+
+const USER_BOOKING_EVIDENCE =
+  /\b(?:i|we)(?:(?:'|’)ve|\s+have|\s+already|\s+had)?\s+(?:booked|reserved|purchased|ticketed)\b|\b(?:booked|reserved|purchased|ticketed)\s+(?:a|an|the|our|my)\b|(?:我|我们)(?:已经|已)?(?:预订|预定|订好|买了|购买|出票)了?/i;
+
+const USER_FLIGHT_BOOKING_EVIDENCE =
+  /\b(?:i|we)(?:(?:'|’)ve|\s+have|\s+already|\s+had)?\s+(?:booked|reserved|purchased|ticketed)\s+(?:(?:the|our|my)\s+)?(?:flights?|airfare|plane tickets?)\b|\b(?:flights?|airfare|plane tickets?)\b.{0,24}\b(?:are|were|have been)?\s*(?:booked|reserved|purchased|ticketed|confirmed)\b|(?:我|我们)(?:已经|已)?(?:预订|预定|订好|买了|购买|出票)了?(?:.{0,8})(?:机票|航班票)|(?:机票|航班票).{0,8}(?:我|我们)(?:已经|已)?(?:预订|预定|订好|买了|购买|出票)/i;
+
+function itineraryItems(plan: TripPlan) {
+  return plan.sections.flatMap((section) => section.proposal?.items ?? []);
+}
+
+function itemText(item: ReturnType<typeof itineraryItems>[number]): string {
+  return [item.kind, item.detail, item.location, item.savedPlace?.name]
+    .filter((value): value is string => typeof value === "string")
+    .join(" ")
+    .toLocaleLowerCase();
+}
+
+function subjectTokens(subject: string): string[] {
+  const ignored = new Set([
+    "a",
+    "an",
+    "and",
+    "at",
+    "for",
+    "from",
+    "in",
+    "it",
+    "of",
+    "on",
+    "the",
+    "to",
+    "with",
+  ]);
+  return subject
+    .toLocaleLowerCase()
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter((token) => token.length > 1 && !ignored.has(token));
+}
+
+function containsSubject(text: string, subject: string): boolean {
+  const tokens = subjectTokens(subject);
+  return tokens.length > 0 && tokens.every((token) => text.includes(token));
+}
+
+function briefFactApplied(
+  request: ChatRequest,
+  planned: TripPlan,
+  message: string,
+): boolean | undefined {
+  const before = request.plan?.brief;
+  if (!before) return undefined;
+  if (
+    /\b(?:no accommodation|without accommodation|don't need (?:a )?(?:hotel|stay)|不需要住宿)\b/i.test(
+      message,
+    )
+  )
+    return planned.brief.noAccommodation === true;
+  if (
+    /\b(?:exclude|skip|don't (?:need|include)|arrange (?:our |my )?flights myself)/i.test(message)
+  )
+    return planned.brief.excludeFlights === true;
+  if (
+    /\b(?:destination|travel to|go to)\b/i.test(message) &&
+    before.destination !== planned.brief.destination
+  )
+    return true;
+  if (
+    /\b(?:dates?|from|until|through|between)\b/i.test(message) &&
+    before.dates.join() !== planned.brief.dates.join()
+  )
+    return true;
+  if (
+    /\b(?:budget|spend|cost)\b/i.test(message) &&
+    before.budgetTotal !== planned.brief.budgetTotal
+  )
+    return true;
+  if (/\bbook(?:ed|ing)?\b/i.test(message) && planned.brief.bookedStay) return true;
+  return undefined;
+}
+
+function requestedPlanChangeApplied(request: ChatRequest, planned: TripPlan): boolean {
+  const previous = request.plan;
+  const message = request.message;
+  if (!previous) {
+    const beforeItems = itineraryItems(planned);
+    return beforeItems.length > 0 || planned.sections.some((section) => Boolean(section.proposal));
+  }
+  if (JSON.stringify(materialPlan(previous)) === JSON.stringify(materialPlan(planned)))
+    return false;
+
+  const fact = briefFactApplied(request, planned, message);
+  const beforeItems = itineraryItems(previous);
+  const afterItems = itineraryItems(planned);
+
+  const moved = message.match(/\b(?:move|reschedule|shift)\s+(.+?)\s+(?:to|onto)\s+day\s*(\d+)\b/i);
+  const movedApplied =
+    !moved ||
+    afterItems.some(
+      (item) => item.day === Number(moved[2]) && containsSubject(itemText(item), moved[1] ?? ""),
+    );
+
+  const added = message.match(/\b(?:add|include)\s+(.+?)(?:\s+(?:on|to)\s+day\s*(\d+)\b|$)/i);
+  const addedApplied =
+    !added ||
+    afterItems.some(
+      (item) =>
+        (added[2] === undefined || item.day === Number(added[2])) &&
+        containsSubject(itemText(item), added[1] ?? ""),
+    );
+
+  const removed = message.match(
+    /\b(?:remove|drop|delete|take out)\s+(.+?)(?:\s+(?:from|on)\s+day\s*(\d+)\b|$)/i,
+  );
+  const removedSubject = removed?.[1] ?? "";
+  const removedDay = removed?.[1]?.match(/\bday\s*(\d+)\b/i)?.[1];
+  const removedApplied =
+    !removed ||
+    (removedDay
+      ? !afterItems.some((item) => item.day === Number(removedDay))
+      : containsSubject(
+          beforeItems.map(itemText).join(" "),
+          removedSubject.replace(/\bday\s*\d+\b/i, ""),
+        ) &&
+        !containsSubject(
+          afterItems.map(itemText).join(" "),
+          removedSubject.replace(/\bday\s*\d+\b/i, ""),
+        ));
+
+  if (moved || added || removed) return movedApplied && addedApplied && removedApplied;
+  return fact ?? false;
+}
+
+function hasBookingEvidence(request: ChatRequest, planned: TripPlan | undefined): boolean {
+  return Boolean(
+    request.plan?.brief.bookedStay ||
+    planned?.brief.bookedStay ||
+    USER_BOOKING_EVIDENCE.test(request.message),
+  );
+}
+
+function hasFlightBookingEvidence(request: ChatRequest): boolean {
+  return USER_FLIGHT_BOOKING_EVIDENCE.test(request.message);
+}
+
+function groundedReply(request: ChatRequest, planned: TripPlan | undefined, reply: string): string {
+  const resultingPlan = planned ?? request.plan;
+  const bookingUngrounded =
+    (FLIGHT_BOOKING_CLAIM.test(reply) && !hasFlightBookingEvidence(request)) ||
+    (BOOKING_CLAIM.test(reply) && !hasBookingEvidence(request, planned));
+  const changeUngrounded =
+    PLAN_SUCCESS_CLAIM.test(reply) &&
+    (request.plan
+      ? !resultingPlan || !requestedPlanChangeApplied(request, resultingPlan)
+      : Boolean(resultingPlan) && !requestedPlanChangeApplied(request, resultingPlan!));
+  if (!bookingUngrounded && !changeUngrounded) return reply;
+  return request.interfaceLanguage === "zh"
+    ? "我无法从更新后的行程确认这项修改已生效。"
+    : "I can’t verify that requested change from the resulting itinerary.";
+}
+
 function wholeUp(amountAud: number, currency: Currency): string {
   if (currency === "AUD") return formatMoney(Math.ceil(amountAud), "AUD", "whole");
 
@@ -529,8 +700,16 @@ export async function runTripChat(
     : undefined;
 
   if (request.mode === "plan" && submitted) {
-    if (!request.plan && hasPastTripDate(submitted, clock))
-      throw new AskUserError(pastDateAsk(submitted, request.interfaceLanguage));
+    if (
+      !request.plan &&
+      hasPastTripDate(submitted, clock, locationForBrief(request, submitted)) &&
+      !(await confirmsHistoricalTrip(request, submitted, mem))
+    ) {
+      const ask = pastDateAsk(submitted, request.interfaceLanguage);
+      const reply = turnEndingReply(new AskUserError(ask));
+      if (reply) await remember(reply);
+      throw new AskUserError(ask);
+    }
     const plan = await orchestrate(submitted);
     const noChangeReply = unchangedPlanReply(request, plan);
     const reply = noChangeReply ?? fallbackReplyFor(plan, replyCurrency(request, plan.brief));
@@ -550,7 +729,7 @@ export async function runTripChat(
           orchestrationOptions.onProgress,
           clock,
         )
-      : await runOffline(request, submitted, extractor, orchestrate, clock);
+      : await runOffline(request, submitted, extractor, orchestrate, clock, mem);
     await remember(result.reply);
     return result;
   } catch (error) {
@@ -610,8 +789,12 @@ function turnEndingReply(error: unknown): string | undefined {
 
 function pastDateAsk(brief: TripBrief, language: InterfaceLanguage | undefined): ChatAskUser {
   const chinese = language === "zh";
+  const dates = `${brief.dates[0]} to ${brief.dates[1]}`;
   return {
     type: "ask_user",
+    reply: chinese
+      ? `已输入的日期 ${brief.dates[0]} 至 ${brief.dates[1]} 已经过去。回复“确认历史行程”以保留这些日期：${brief.dates[0]} 至 ${brief.dates[1]}。或发送新的日期。`
+      : `The dates you entered, ${dates}, are in the past. Reply “Confirm historical trip” to keep these dates: ${dates}. Or send corrected dates.`,
     questions: [
       {
         id: "past-trip-dates",
@@ -619,15 +802,61 @@ function pastDateAsk(brief: TripBrief, language: InterfaceLanguage | undefined):
         question: chinese
           ? "这次旅行有日期已经过去。请确认是否要规划历史行程，或提供新的日期。"
           : "A date in this trip has already passed. Please confirm that you want a historical plan or provide new dates.",
+        options: [
+          { label: chinese ? "确认历史行程" : "Confirm historical trip" },
+          { label: chinese ? "提供新的日期" : "Choose new dates" },
+        ],
       },
     ],
     known: brief,
   };
 }
 
-function hasPastTripDate(brief: TripBrief, clock: () => Date): boolean {
-  const todayUtc = clock().toISOString().slice(0, 10);
-  return brief.dates.some((date) => date < todayUtc);
+function hasPastTripDate(
+  brief: TripBrief,
+  clock: () => Date,
+  location?: ChatRequest["destinationLocation"],
+): boolean {
+  const today = localCalendarDate(clock(), location);
+  return brief.dates.some((date) => date < today);
+}
+
+function locationForBrief(
+  request: ChatRequest,
+  brief: { destination?: string },
+): ChatRequest["destinationLocation"] {
+  const location = request.destinationLocation;
+  if (!location || !brief.destination) return undefined;
+  const normalize = (value: string) =>
+    value
+      .normalize("NFKC")
+      .trim()
+      .toLocaleLowerCase()
+      .replace(/[.,，。;；]+$/u, "")
+      .replace(/\s+/gu, " ");
+  return normalize(location.destination) === normalize(brief.destination) ? location : undefined;
+}
+
+function explicitlyConfirmsHistoricalTrip(message: string): boolean {
+  return /^(?:(?:dates|date|日期)\s*:\s*)?(?:confirm historical trip|i confirm (?:that )?(?:this is|it is) (?:a )?historical trip|确认历史行程|确认这是历史行程)[.!。！]?$/i.test(
+    message.trim(),
+  );
+}
+
+async function confirmsHistoricalTrip(
+  request: ChatRequest,
+  brief: TripBrief,
+  mem: MemoryStore,
+): Promise<boolean> {
+  if (!explicitlyConfirmsHistoricalTrip(request.message)) return false;
+  const turns = (await mem.getShortTerm(request.tripId)).slice(0, -1);
+  const latestAssistant = [...turns].reverse().find((turn) => turn.role === "assistant");
+  const expectedQuestion = `Reply “Confirm historical trip” to keep these dates: ${brief.dates[0]} to ${brief.dates[1]}.`;
+  const expectedChineseQuestion = `回复“确认历史行程”以保留这些日期：${brief.dates[0]} 至 ${brief.dates[1]}。`;
+  return Boolean(
+    latestAssistant?.content.includes(expectedQuestion) ||
+    latestAssistant?.content.includes(expectedChineseQuestion),
+  );
 }
 
 async function runConversationAgent(
@@ -673,10 +902,14 @@ async function runConversationAgent(
       if (!parsed.success)
         return { ok: false as const, missing: missingFields(known, request.tripId) };
       brief = parsed.data;
-      if (!request.plan && hasPastTripDate(parsed.data, clock)) {
+      if (
+        !request.plan &&
+        hasPastTripDate(parsed.data, clock, locationForBrief(request, parsed.data)) &&
+        !(await confirmsHistoricalTrip(request, parsed.data, mem))
+      ) {
         const ask = pastDateAsk(parsed.data, request.interfaceLanguage);
         asked = ask.questions;
-        forcedQuestionReply = ask.questions[0]?.question;
+        forcedQuestionReply = ask.reply;
         return { ok: false as const, needsNewDates: true };
       }
       planned = await orchestrate(parsed.data);
@@ -721,7 +954,7 @@ async function runConversationAgent(
 
   const envelope = JSON.stringify({
     message: request.message + inlineTextAttachments(request.attachments),
-    today: clock().toISOString().slice(0, 10),
+    today: localCalendarDate(clock(), locationForBrief(request, brief ?? known)),
     knownSoFar: brief ?? known,
     currentPlan: request.plan
       ? planDigest(request.plan, replyCurrency(request, request.plan.brief))
@@ -744,7 +977,11 @@ async function runConversationAgent(
 
   if (planned)
     return {
-      reply: reply || fallbackReplyFor(planned, replyCurrency(request, planned.brief)),
+      reply: groundedReply(
+        request,
+        planned,
+        reply || fallbackReplyFor(planned, replyCurrency(request, planned.brief)),
+      ),
       plan: planned,
     };
 
@@ -755,17 +992,44 @@ async function runConversationAgent(
       questions: asked,
       known: understood.success ? understood.data : {},
       ...(request.plan ? { plan: request.plan } : {}),
-      ...((forcedQuestionReply ?? reply) ? { reply: forcedQuestionReply ?? reply } : {}),
+      ...(forcedQuestionReply
+        ? { reply: forcedQuestionReply }
+        : reply
+          ? {
+              reply: request.plan ? groundedReply(request, undefined, reply) : reply,
+            }
+          : {}),
     });
   }
 
-  if (request.plan) return { reply: reply || "", plan: request.plan };
+  if (request.plan)
+    return {
+      reply: reply ? groundedReply(request, request.plan, reply) : "",
+      plan: request.plan,
+    };
 
   if (brief) {
+    if (
+      !request.plan &&
+      hasPastTripDate(brief, clock, locationForBrief(request, brief)) &&
+      !(await confirmsHistoricalTrip(request, brief, mem))
+    )
+      throw new AskUserError(pastDateAsk(brief, request.interfaceLanguage));
     const plan = await orchestrate(brief);
-    return { reply: reply || fallbackReplyFor(plan, replyCurrency(request, plan.brief)), plan };
+    return {
+      reply: groundedReply(
+        request,
+        plan,
+        reply || fallbackReplyFor(plan, replyCurrency(request, plan.brief)),
+      ),
+      plan,
+    };
   }
-  throw new IncompleteBriefError(missingFields(known, request.tripId), known, reply || undefined);
+  throw new IncompleteBriefError(
+    missingFields(known, request.tripId),
+    known,
+    reply ? (request.plan ? groundedReply(request, undefined, reply) : reply) : undefined,
+  );
 }
 
 async function runOffline(
@@ -774,6 +1038,7 @@ async function runOffline(
   extractor: BriefExtractor | undefined,
   orchestrate: (brief: TripBrief) => Promise<TripPlan>,
   clock: () => Date,
+  mem: MemoryStore,
 ): Promise<ChatResponse> {
   const message = request.message + inlineTextAttachments(request.attachments);
   const patch = extractor
@@ -781,7 +1046,11 @@ async function runOffline(
     : extractBriefPatchLocally(message);
   if (submitted) {
     const updated = applyBriefPatch(submitted, patch, request.tripId);
-    if (!request.plan && hasPastTripDate(updated, clock))
+    if (
+      !request.plan &&
+      hasPastTripDate(updated, clock, locationForBrief(request, updated)) &&
+      !(await confirmsHistoricalTrip(request, updated, mem))
+    )
       throw new AskUserError(pastDateAsk(updated, request.interfaceLanguage));
     const plan = await orchestrate(updated);
     const noChangeReply = unchangedPlanReply(request, plan);
@@ -792,7 +1061,11 @@ async function runOffline(
   const missing = missingFields(known, request.tripId);
   if (missing.length) throw new IncompleteBriefError(missing, known);
   const completeBrief = TripBriefSchema.parse({ ...known, tripId: request.tripId });
-  if (!request.plan && hasPastTripDate(completeBrief, clock))
+  if (
+    !request.plan &&
+    hasPastTripDate(completeBrief, clock, locationForBrief(request, completeBrief)) &&
+    !(await confirmsHistoricalTrip(request, completeBrief, mem))
+  )
     throw new AskUserError(pastDateAsk(completeBrief, request.interfaceLanguage));
   const plan = await orchestrate(completeBrief);
   const noChangeReply = unchangedPlanReply(request, plan);
