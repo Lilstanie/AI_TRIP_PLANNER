@@ -4,6 +4,7 @@ import { useLocale } from "@/components/account/LocaleProvider";
 import { useSettings } from "@/components/account/SettingsProvider";
 import { moneyDisplay } from "@/lib/money";
 import { dateRangeLabel } from "@/lib/workspace/trip-facts";
+import { distinctTripTitles } from "@/lib/workspace/trip-identity";
 import { effectiveCurrency } from "@trip/shared";
 import { useMemo, useRef, useState, type KeyboardEvent } from "react";
 import type { TripRecord } from "@/lib/workspace/catalog";
@@ -137,6 +138,9 @@ function TripCards({
       },
     ].filter((group) => group.items.length);
   }, [trips]);
+  const titles = distinctTripTitles(trips, (trip) =>
+    t("Trip to {destination}", { destination: trip.snapshot.plan.brief.destination }),
+  );
 
   if (!trips.length)
     return (
@@ -169,11 +173,7 @@ function TripCards({
               >
                 <TripCover destination={destination} size="card" />
                 <span className="trip-card__text">
-                  <span className="trip-card__title">
-                    {t("Trip to {destination}", {
-                      destination: trip.snapshot.plan.brief.destination,
-                    })}
-                  </span>
+                  <span className="trip-card__title">{titles.get(trip.id)}</span>
                   <span className="trip-card__meta">
                     {destination} · {dateRange ? `${dateRange} · ` : ""}
                     {length} {length === 1 ? t("day") : t("days")} · {total}

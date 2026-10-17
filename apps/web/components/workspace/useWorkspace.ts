@@ -15,6 +15,7 @@ import {
   type RestoredWorkspace,
   type WorkspaceCatalog,
 } from "@/lib/workspace/catalog";
+import { distinctTripTitles } from "@/lib/workspace/trip-identity";
 import { seed, type MobileView } from "./workspace-helpers";
 import { useWorkspaceLayout } from "./useWorkspaceLayout";
 import {
@@ -212,9 +213,12 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
       active: item.id === catalog.activeConversationId,
     };
   });
+  const tripTitles = distinctTripTitles(filteredHistory.trips, (item) =>
+    t("Trip to {destination}", { destination: item.snapshot.plan.brief.destination }),
+  );
   const historyTrips = filteredHistory.trips.map((item) => ({
     id: item.id,
-    title: t("Trip to {destination}", { destination: item.snapshot.plan.brief.destination }),
+    title: tripTitles.get(item.id)!,
     destination: item.snapshot.plan.brief.destination,
     subtitle: `${item.snapshot.plan.brief.dates.join(" – ")} · ${moneyDisplay({
       currency: effectiveCurrency(item.snapshot.plan.brief, settings.displayCurrency),

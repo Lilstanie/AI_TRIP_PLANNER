@@ -36,7 +36,52 @@ const tokyoBrief: TripBrief = {
 };
 
 function scriptedBaselinePlan(brief: TripBrief): TripPlan {
-  const estTotal = 3960;
+  const nights = Math.round(
+    (Date.parse(`${brief.dates[1]}T00:00:00Z`) - Date.parse(`${brief.dates[0]}T00:00:00Z`)) /
+      86_400_000,
+  );
+  const stayCost = nights * 380;
+  const diningCost = nights * 160;
+  const dinnerCost = nights * 120;
+  const cafeCost = nights * 40;
+  const estTotal = 1800 + stayCost + diningCost;
+  const itineraryDays = nights + 1;
+  const nightLabel = nights === 1 ? "night" : "nights";
+  const dayLabel = itineraryDays === 1 ? "day" : "days";
+  const activities = [
+    {
+      kind: "activity" as const,
+      detail: "Meiji Shrine and Harajuku walk",
+      day: 1,
+      startTime: "10:30",
+      endTime: "13:00",
+      location: "Meiji Shrine",
+    },
+    {
+      kind: "activity" as const,
+      detail: "Asakusa and Sumida riverside",
+      day: 2,
+      startTime: "10:00",
+      endTime: "14:00",
+      location: "Asakusa",
+    },
+    {
+      kind: "activity" as const,
+      detail: "Ueno museums and park",
+      day: 3,
+      startTime: "10:30",
+      endTime: "15:00",
+      location: "Ueno Park",
+    },
+    {
+      kind: "activity" as const,
+      detail: "Shibuya and Daikanyama afternoon",
+      day: 4,
+      startTime: "11:00",
+      endTime: "17:00",
+      location: "Shibuya",
+    },
+  ].slice(0, itineraryDays);
   return TripPlan.parse({
     tripId: brief.tripId,
     brief,
@@ -49,45 +94,12 @@ function scriptedBaselinePlan(brief: TripBrief): TripPlan {
         id: "itinerary",
         label: "Day plan",
         status: "draft",
-        summary: "Four relaxed Tokyo days with neighbourhoods grouped to limit backtracking.",
+        summary: `${itineraryDays} relaxed Tokyo ${dayLabel} with neighbourhoods grouped to limit backtracking.`,
         estCost: 0,
         proposal: {
           agent: "itinerary",
-          summary: "Four relaxed Tokyo days with neighbourhoods grouped to limit backtracking.",
-          items: [
-            {
-              kind: "activity",
-              detail: "Meiji Shrine and Harajuku walk",
-              day: 1,
-              startTime: "10:30",
-              endTime: "13:00",
-              location: "Meiji Shrine",
-            },
-            {
-              kind: "activity",
-              detail: "Asakusa and Sumida riverside",
-              day: 2,
-              startTime: "10:00",
-              endTime: "14:00",
-              location: "Asakusa",
-            },
-            {
-              kind: "activity",
-              detail: "Ueno museums and park",
-              day: 3,
-              startTime: "10:30",
-              endTime: "15:00",
-              location: "Ueno Park",
-            },
-            {
-              kind: "activity",
-              detail: "Shibuya and Daikanyama afternoon",
-              day: 4,
-              startTime: "11:00",
-              endTime: "17:00",
-              location: "Shibuya",
-            },
-          ],
+          summary: `${itineraryDays} relaxed Tokyo ${dayLabel} with neighbourhoods grouped to limit backtracking.`,
+          items: activities,
           assumptions: [
             "Activity admission prices are not estimated without ticket evidence.",
             "No day begins before 10:00, matching the registered traveller preference.",
@@ -131,23 +143,23 @@ function scriptedBaselinePlan(brief: TripBrief): TripPlan {
         id: "accommodation",
         label: "Where to stay",
         status: "draft",
-        summary: "Four nights in Shinjuku with straightforward rail access.",
-        estCost: 1520,
+        summary: `${nights} ${nightLabel} in Shinjuku with straightforward rail access.`,
+        estCost: stayCost,
         proposal: {
           agent: "accommodation",
-          summary: "Four nights in Shinjuku with straightforward rail access.",
+          summary: `${nights} ${nightLabel} in Shinjuku with straightforward rail access.`,
           items: [
             {
               kind: "hotel",
-              detail: "Shinjuku hotel fixture · four nights · one room",
-              estCost: 1520,
+              detail: `Shinjuku hotel fixture · ${nights} ${nightLabel} · one room`,
+              estCost: stayCost,
               day: 1,
               location: "Shinjuku",
             },
           ],
           assumptions: ["A$380 per room per night in the deterministic fixture."],
           conflictsWith: [],
-          floorCost: 1520,
+          floorCost: stayCost,
           source: { kind: "mock", label: "Agent Lab fixture", freshness: "Fixed scenario v1" },
         },
       },
@@ -176,30 +188,30 @@ function scriptedBaselinePlan(brief: TripBrief): TripPlan {
         id: "dining",
         label: "Food",
         status: "draft",
-        summary: "Vegetarian-friendly meals near each day's final neighbourhood.",
-        estCost: 640,
+        summary: `Vegetarian-friendly meals for ${nights} ${nightLabel}.`,
+        estCost: diningCost,
         proposal: {
           agent: "dining",
-          summary: "Vegetarian-friendly meals near each day's final neighbourhood.",
+          summary: `Vegetarian-friendly meals for ${nights} ${nightLabel}.`,
           items: [
             {
               kind: "meal",
-              detail: "Four vegetarian-friendly dinner allowances for two travellers",
-              estCost: 480,
+              detail: `${nights} vegetarian-friendly dinner ${nights === 1 ? "allowance" : "allowances"} for two travellers`,
+              estCost: dinnerCost,
               day: 1,
               location: "Tokyo",
             },
             {
               kind: "meal",
               detail: "Vegetarian-friendly lunch and café allowance",
-              estCost: 160,
-              day: 2,
+              estCost: cafeCost,
+              day: Math.min(nights, 2),
               location: "Tokyo",
             },
           ],
           assumptions: ["Fixture meal costs are A$ estimates for the whole travelling party."],
           conflictsWith: [],
-          floorCost: 640,
+          floorCost: diningCost,
           source: { kind: "mock", label: "Agent Lab fixture", freshness: "Fixed scenario v1" },
         },
       },
@@ -273,68 +285,87 @@ export const agentLabScenarios: readonly AgentLabScenario[] = [
       "total-consistent",
     ],
   },
-  scenarioVariant("tokyo-couple-explicit-budget", "Tokyo with an explicit budget", tokyoBrief, {
-    budgetTotal: 6000,
+  scenarioVariant({
+    id: "tokyo-couple-explicit-budget",
+    title: "Tokyo with an explicit budget",
+    baseBrief: tokyoBrief,
+    changes: { budgetTotal: 6000 },
   }),
-  scenarioVariant(
-    "tokyo-couple-infeasible-budget",
-    "Tokyo, below the evidence floor",
-    tokyoBrief,
-    { budgetTotal: 1700 },
-    "safe-stop",
-  ),
-  scenarioVariant(
-    "tokyo-conflicting-preferences",
-    "Tokyo with conflicting food preferences",
-    tokyoBrief,
-    { preferences: ["vegetarian meals", "local meat specialties"] },
-  ),
-  scenarioVariant("tokyo-date-night-edge", "Tokyo, one-night edge case", tokyoBrief, {
-    dates: ["2026-11-10", "2026-11-11"],
+  scenarioVariant({
+    id: "tokyo-couple-infeasible-budget",
+    title: "Tokyo, below the evidence floor",
+    baseBrief: tokyoBrief,
+    changes: { budgetTotal: 1700 },
+    expectedOutcome: "safe-stop",
   }),
-  scenarioVariant(
-    "tokyo-vague-brief",
-    "Tokyo with a vague brief",
-    tokyoBrief,
-    { preferences: ["something relaxing", "good local food"] },
-    "complete",
-  ),
-  scenarioVariant("tokyo-short-window", "Tokyo, four-day planning window", tokyoBrief, {
-    dates: ["2026-11-10", "2026-11-13"],
+  scenarioVariant({
+    id: "tokyo-conflicting-preferences",
+    title: "Tokyo with conflicting food preferences",
+    baseBrief: tokyoBrief,
+    changes: { preferences: ["vegetarian meals", "local meat specialties"] },
   }),
-  scenarioVariant(
-    "paris-family-feasible",
-    "Paris family with a feasible budget",
-    parisFamilyInfeasible.brief,
-    { budgetTotal: 6500 },
-    "complete",
-    parisFamilyInfeasible,
-  ),
-  scenarioVariant(
-    "kyoto-multi-city-tight-budget",
-    "Tokyo and Kyoto with a tight budget",
-    tokyoKyotoMultiCity.brief,
-    { budgetTotal: 4200 },
-    "complete",
-    tokyoKyotoMultiCity,
-  ),
+  scenarioVariant({
+    id: "tokyo-date-night-edge",
+    title: "Tokyo, one-night edge case",
+    baseBrief: tokyoBrief,
+    changes: { dates: ["2026-11-10", "2026-11-11"] },
+  }),
+  scenarioVariant({
+    id: "tokyo-vague-brief",
+    title: "Tokyo with a vague brief",
+    baseBrief: tokyoBrief,
+    changes: { preferences: ["something relaxing", "good local food"] },
+  }),
+  scenarioVariant({
+    id: "tokyo-short-window",
+    title: "Tokyo, four-day planning window",
+    baseBrief: tokyoBrief,
+    changes: { dates: ["2026-11-10", "2026-11-13"] },
+  }),
+  scenarioVariant({
+    id: "paris-family-feasible",
+    title: "Paris family with a feasible budget",
+    baseBrief: parisFamilyInfeasible.brief,
+    changes: { budgetTotal: 6500 },
+    expectedOutcome: "complete",
+    source: parisFamilyInfeasible,
+  }),
+  scenarioVariant({
+    id: "kyoto-multi-city-tight-budget",
+    title: "Tokyo and Kyoto with a tight budget",
+    baseBrief: tokyoKyotoMultiCity.brief,
+    changes: { budgetTotal: 4200 },
+    expectedOutcome: "complete",
+    source: tokyoKyotoMultiCity,
+  }),
 ];
 
-function scenarioVariant(
-  id: AgentLabScenarioId,
-  title: string,
-  baseBrief: TripBrief,
-  changes: Partial<TripBrief>,
-  expectedOutcome: AgentLabScenario["expectedOutcome"] = "complete",
-  source?: AgentLabScenario,
-): AgentLabScenario {
+type ScenarioVariantConfig = {
+  id: AgentLabScenarioId;
+  title: string;
+  baseBrief: TripBrief;
+  changes: Partial<TripBrief>;
+  expectedOutcome?: AgentLabScenario["expectedOutcome"];
+  source?: AgentLabScenario;
+};
+
+function scenarioVariant({
+  id,
+  title,
+  baseBrief,
+  changes,
+  expectedOutcome = "complete",
+  source,
+}: ScenarioVariantConfig): AgentLabScenario {
   const base = source ?? tokyoBenchmarkBase;
   const brief = TripBrief.parse({ ...baseBrief, ...changes, tripId: `agent-lab-${id}` });
+  const sourcePlan = !source && changes.dates ? scriptedBaselinePlan(brief) : base.fixturePlan;
   const fixturePlan = TripPlan.parse({
-    ...base.fixturePlan,
+    ...sourcePlan,
     tripId: brief.tripId,
     brief,
     budgetTotal: brief.budgetTotal,
+    overrunPct: ((sourcePlan.estTotal - brief.budgetTotal) / brief.budgetTotal) * 100,
   });
   const scenarioRules =
     id === "paris-family-feasible"

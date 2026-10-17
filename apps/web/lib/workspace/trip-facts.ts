@@ -127,11 +127,13 @@ export function briefErrors(issues: readonly { path: readonly PropertyKey[]; mes
 
 export function dateRangeLabel(start: string, end: string, locale: AppLocale = "en") {
   if (!validDate(start) || !validDate(end) || end < start) return undefined;
-  const sameYear = start.slice(0, 4) === end.slice(0, 4);
+  const startYear = Number(start.slice(0, 4));
+  const sameYear = startYear === Number(end.slice(0, 4));
+  const includeYear = !sameYear || startYear !== new Date().getFullYear();
   const formatter = new Intl.DateTimeFormat(intlLocale(locale), {
     day: "numeric",
     month: "short",
-    ...(!sameYear ? { year: "numeric" } : {}),
+    ...(includeYear ? { year: "numeric" } : {}),
     timeZone: "UTC",
   });
   return formatter.formatRange(new Date(`${start}T00:00:00Z`), new Date(`${end}T00:00:00Z`));

@@ -73,7 +73,7 @@ async function runLive(scenarioId, strategyId) {
 
 const checksOf = (artifact) => (artifact.status === "completed" ? artifact.metrics.checks : []);
 const actualOutcome = (artifact) => {
-  if (artifact.status === "failed") return "safe-stop";
+  if (artifact.status === "failed") return "failed";
   if (artifact.metrics.stopReason === "infeasible_budget") return "safe-stop";
   if (artifact.metrics.stopReason === "no_improvement") return "partial";
   if (artifact.events.some(({ event }) => event.type === "tool_failed")) return "partial";
@@ -81,11 +81,83 @@ const actualOutcome = (artifact) => {
   return "complete";
 };
 const median = (values) => {
+  if (values.length === 0) return null;
   const sorted = [...values].sort((a, b) => a - b);
   return sorted.length % 2
     ? sorted[(sorted.length - 1) / 2]
     : (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2;
 };
+const medianLabel = (value) => (value === null ? "n/a" : `${value} ms`);
+const stableArtifact = (artifact) => {
+  const { durationMs, latencyMs, ...metrics } = artifact.metrics;
+  return {
+    scenarioId: artifact.scenarioId,
+    strategyId: artifact.strategyId,
+    faultProfileId: artifact.faultProfileId,
+    status: artifact.status,
+    failure: artifact.failure ?? null,
+    versions: artifact.versions,
+    events: artifact.events.map(({ event }) => event),
+    plan: artifact.plan ?? null,
+    metrics,
+  };
+};
+const fixtureReportProjection = (sourceArtifacts, scenarioById, faultProfiles, generatedAt) => ({
+  generatedAt,
+  runs: sourceArtifacts.map((artifact) => {
+    const scenario = scenarioById.get(artifact.scenarioId);
+    const fault = faultProfiles.find(({ id }) => id === artifact.faultProfileId);
+    const checks = checksOf(artifact);
+    return {
+      scenarioId: artifact.scenarioId,
+      strategyId: artifact.strategyId,
+      faultProfileId: artifact.faultProfileId,
+      dataMode: artifact.dataMode,
+      status: artifact.status,
+      expectedOutcome: scenario.expectedOutcome,
+      expectedRecovery: fault?.expected ?? null,
+      observedRecovery: fault ? reportFaultOutcome(artifact) : null,
+      actualOutcome: actualOutcome(artifact),
+      checks,
+      mustPassChecks: (scenario.mustPassCheckIds ?? []).map((id) => ({
+        id,
+        passed: checks.find((item) => item.id === id)?.passed ?? false,
+      })),
+      mustPassChecksPassed: (scenario.mustPassCheckIds ?? []).every(
+        (id) => checks.find((item) => item.id === id)?.passed === true,
+      ),
+      usage: artifact.status === "completed" ? (artifact.metrics.usage ?? null) : null,
+      latencyMs: null,
+      artifact: fault
+        ? `fault.${fault.id}.artifact.json`
+        : `${artifact.scenarioId}.${artifact.strategyId}.artifact.json`,
+    };
+  }),
+});
+const fixtureProjectionMarkdown = ({ generatedAt, runs }) =>
+  [
+    `Generated: ${generatedAt}`,
+    "| Scenario | Strategy | Fault | Status | Expected / actual | Checks | Recovery | Usage | Fixture latency | Artifact |",
+    "| --- | --- | --- | --- | --- | --- | --- | --- | ---: | --- |",
+    ...runs.map((row) => {
+      const checkCount = `${row.checks.filter((item) => item.passed).length}/${row.checks.length}`;
+      const usage =
+        row.usage?.status === "measured"
+          ? `${row.usage.modelCalls} calls, ${row.usage.totalTokens} tokens`
+          : "unavailable";
+      const latency = medianLabel(row.latencyMs);
+      const recovery = row.expectedRecovery ? `${row.expectedRecovery} / ${row.observedRecovery}` : "n/a";
+      return `| ${row.scenarioId} | ${row.strategyId} | ${row.faultProfileId ?? "n/a"} | ${row.status} | ${row.expectedOutcome} / ${row.actualOutcome} | ${checkCount} | ${recovery} | ${usage} | ${latency} | [artifact](./${row.artifact}) |`;
+    }),
+  ].join("\n");
+const withoutGeneratedAt = (serialized, generatedAt) => serialized.replace(generatedAt, "<generatedAt>");
+
+check(
+  actualOutcome({ status: "failed", metrics: {}, events: [] }) === "failed",
+  "failed artifact is not reported as a deliberate safety stop",
+);
+check(median([]) === null, "an all-failed strategy has no numeric latency median");
+check(medianLabel(median([])) === "n/a", "an all-failed strategy renders median latency as n/a");
 
 async function main() {
   const registryResponse = await fetch(`${BASE}/api/agent-lab/benchmark`);
@@ -127,6 +199,32 @@ async function main() {
   for (const scenarioId of scenarioIds) {
     for (const strategyId of STRATEGIES) {
       const result = await run(scenarioId, strategyId);
+      if (scenarioId === "tokyo-date-night-edge") {
+        const days =
+          result.artifact.plan.sections
+            .find(({ id }) => id === "itinerary")
+            ?.proposal?.items.filter(({ kind }) => kind === "activity") ?? [];
+        check(
+          new Set(days.map(({ day }) => day)).has(1) &&
+            new Set(days.map(({ day }) => day)).has(2) &&
+            days.every(({ day }) => day <= 2),
+          "one-night scenario fixture covers both inclusive itinerary days",
+        );
+        const stay = result.artifact.plan.sections
+          .find(({ id }) => id === "accommodation")
+          ?.proposal?.items.find(({ kind }) => kind === "hotel");
+        check(
+          stay?.detail.includes("1 night") && stay.estCost === 380,
+          "one-night scenario fixture has matching stay evidence and cost",
+        );
+      }
+      if (scenarioId === "tokyo-couple-infeasible-budget") {
+        const { estTotal, budgetTotal, overrunPct } = result.artifact.plan;
+        check(
+          Math.abs(overrunPct - ((estTotal - budgetTotal) / budgetTotal) * 100) < 0.001,
+          "infeasible-budget fixture overrun percentage uses its registered budget",
+        );
+      }
       artifacts.push(result.artifact);
       const artifactPath = `${scenarioId}.${strategyId}.artifact.json`;
       artifactPaths.set(result.artifact.runId, artifactPath);
@@ -163,6 +261,54 @@ async function main() {
     "all scenario and fault artifacts are retained",
   );
 
+  const repeatScenario = "tokyo-date-night-edge";
+  const repeatStrategy = STRATEGIES[0];
+  const repeatedArtifacts = [
+    (await run(repeatScenario, repeatStrategy)).artifact,
+    ...(await Promise.all(
+      faultProfiles
+        .slice(0, 2)
+        .map(async (fault) => (await run(fault.scenarioId, fault.strategyId, fault.id)).artifact),
+    )),
+  ];
+  const comparedArtifacts = [
+    artifacts.find(
+      (artifact) =>
+        artifact.scenarioId === repeatScenario && artifact.strategyId === repeatStrategy,
+    ),
+    ...faultProfiles
+      .slice(0, 2)
+      .map((fault) => artifacts.find((artifact) => artifact.faultProfileId === fault.id)),
+  ];
+  check(
+    JSON.stringify(comparedArtifacts.map(stableArtifact)) ===
+      JSON.stringify(repeatedArtifacts.map(stableArtifact)),
+    "representative fixture and fault reports repeat apart from run timestamps and measured timing",
+  );
+  const firstReportProjection = fixtureReportProjection(
+    comparedArtifacts,
+    scenarioById,
+    faultProfiles,
+    "2026-01-01T00:00:00.000Z",
+  );
+  const secondReportProjection = fixtureReportProjection(
+    repeatedArtifacts,
+    scenarioById,
+    faultProfiles,
+    "2026-01-02T00:00:00.000Z",
+  );
+  const firstProjectionJson = JSON.stringify(firstReportProjection, null, 2);
+  const secondProjectionJson = JSON.stringify(secondReportProjection, null, 2);
+  const firstProjectionMarkdown = fixtureProjectionMarkdown(firstReportProjection);
+  const secondProjectionMarkdown = fixtureProjectionMarkdown(secondReportProjection);
+  check(
+    withoutGeneratedAt(firstProjectionJson, firstReportProjection.generatedAt) ===
+      withoutGeneratedAt(secondProjectionJson, secondReportProjection.generatedAt) &&
+      withoutGeneratedAt(firstProjectionMarkdown, firstReportProjection.generatedAt) ===
+        withoutGeneratedAt(secondProjectionMarkdown, secondReportProjection.generatedAt),
+    "#402 JSON and Markdown fixture report projections are byte-stable except generatedAt",
+  );
+
   const report = {
     benchmark: { id: benchmark.id, version: benchmark.version },
     generatedAt: new Date().toISOString(),
@@ -176,7 +322,6 @@ async function main() {
       repeats: benchmark.fixture.repeats,
     },
     runs: artifacts.map((artifact) => ({
-      runId: artifact.runId,
       scenarioId: artifact.scenarioId,
       strategyId: artifact.strategyId,
       faultProfileId: artifact.faultProfileId,
@@ -197,7 +342,7 @@ async function main() {
         (id) => checksOf(artifact).find((item) => item.id === id)?.passed === true,
       ),
       usage: artifact.status === "completed" ? (artifact.metrics.usage ?? null) : null,
-      latencyMs: artifact.status === "completed" ? artifact.metrics.latencyMs : null,
+      latencyMs: null,
       artifact: artifactPaths.get(artifact.runId),
     })),
     summaries: STRATEGIES.map((strategyId) => {
@@ -211,16 +356,13 @@ async function main() {
         (artifact) =>
           artifact.status === "completed" && checksOf(artifact).every((item) => item.passed),
       ).length;
-      const latencies = rows
-        .filter((artifact) => artifact.status === "completed")
-        .map((artifact) => artifact.metrics.latencyMs);
       return {
         strategyId,
         passed,
         failed: rows.length - rows.filter((artifact) => artifact.status === "completed").length,
         denominator: scenarioIds.length,
         passRate: scenarioIds.length ? passed / scenarioIds.length : null,
-        medianLatencyMs: median(latencies),
+        medianLatencyMs: null,
         usageReported: rows.filter(
           (artifact) =>
             artifact.status === "completed" && artifact.metrics.usage?.status === "measured",
@@ -262,7 +404,7 @@ async function main() {
       "| --- | ---: | ---: | ---: | ---: | ---: | ---: |",
       ...report.summaries.map(
         (item) =>
-          `| ${item.strategyId} | ${item.passed} | ${item.failed} | ${item.denominator} | ${item.passRate === null ? "n/a" : `${(item.passRate * 100).toFixed(1)}%`} | ${item.medianLatencyMs} ms | ${item.usageReported} / ${item.usageUnavailable} |`,
+          `| ${item.strategyId} | ${item.passed} | ${item.failed} | ${item.denominator} | ${item.passRate === null ? "n/a" : `${(item.passRate * 100).toFixed(1)}%`} | ${medianLabel(item.medianLatencyMs)} | ${item.usageReported} / ${item.usageUnavailable} |`,
       ),
       "",
       "## Scenario and fault runs",
@@ -275,7 +417,7 @@ async function main() {
           row.usage?.status === "measured"
             ? `${row.usage.modelCalls} calls, ${row.usage.totalTokens} tokens`
             : "unavailable";
-        const latency = row.latencyMs === null ? "n/a" : `${row.latencyMs} ms`;
+        const latency = medianLabel(row.latencyMs);
         const recovery = row.expectedRecovery
           ? `${row.expectedRecovery} / ${row.observedRecovery}`
           : "n/a";
@@ -293,9 +435,9 @@ async function main() {
   );
   check(
     report.runs.every(
-      (row, index) => row.runId === artifacts[index].runId && row.dataMode === "fixture",
+      (row) => row.dataMode === "fixture" && row.runId === undefined && row.latencyMs === null,
     ),
-    "report rows refer to their source artifacts and stay fixture-only",
+    "report rows stay fixture-only and omit run-specific identifiers and timing",
   );
   check(
     report.summaries.every(

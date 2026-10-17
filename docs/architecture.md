@@ -151,8 +151,9 @@ deployment needs self-hosted or paid instances, which the base URL settings of s
 
 `/agent-lab` is a public, inspectable experiment surface separate from the saved workspace. It accepts
 only registered values: the strategies (`single-agent-baseline`, `multi-agent-no-revision` and
-`multi-agent-targeted-revision`), four scenarios (`tokyo-couple`, the same trip with a A$2,300 budget, a Paris
-family trip and a Tokyo and Kyoto trip) and a data mode, fixture (the default) or live. `POST /api/agent-lab/runs` validates that closed request, calls `runAgentLab()` and
+`multi-agent-targeted-revision`), 12 versioned scenarios covering single-city and multi-city trips,
+budget constraints, conflicting preferences, date edges and vague briefs, and a data mode, fixture
+(the default) or live. `POST /api/agent-lab/runs` validates that closed request, calls `runAgentLab()` and
 streams ordered NDJSON event envelopes before a final schema-versioned artifact.
 
 The baseline is an experiment strategy above the five travel specialists, not a sixth specialist.
@@ -202,7 +203,8 @@ The versioned benchmark registry is exported by `@trip/orchestrator` and served 
 strategies, fault profiles, and the separate live subset. The registry is version 1.0.1; the benchmark
 E2E builds its fixture report from the artifacts produced by the production runner, retaining every
 failure in each denominator, then uploads one of those same artifacts to the page for replay. Fixture
-and live reports remain separate. The live subset uses three scenarios, only strategies with live
+and live reports remain separate. Stable fixture reports omit run-specific IDs and measured runtime
+latency; raw artifacts retain those values for replay. The live subset uses three scenarios, only strategies with live
 support, and three repeats through the existing live gate. See the
 [benchmark Agent Note](../.agents/notes/implemented/testing/2026-10-16-agent-lab-benchmark.md).
 
