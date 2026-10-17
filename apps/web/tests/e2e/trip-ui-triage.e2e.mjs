@@ -447,6 +447,96 @@ try {
         check(errors.length === 0, `${tag} no page errors`, errors);
         await ctx.close();
       }
+  const duplicateContext = await browser.newContext({
+    viewport: { width: 1440, height: 900 },
+    locale: "en-AU",
+    reducedMotion: "reduce",
+  });
+  const duplicatePage = await duplicateContext.newPage();
+  const duplicateCatalog = structuredClone(catalog);
+  duplicateCatalog.conversations = [];
+  duplicateCatalog.trips = [1, 2].map((ordinal) => {
+    const snapshotId = `triage-duplicate-history-${ordinal}`;
+    const plan = {
+      ...catalog.trips[0].snapshot.plan,
+      tripId: snapshotId,
+      brief: {
+        ...catalog.trips[0].snapshot.plan.brief,
+        tripId: snapshotId,
+        dates: ["2024-10-01", "2024-10-04"],
+      },
+    };
+    const snapshot = { ...catalog.trips[0].snapshot, id: snapshotId, plan };
+    const tripId = `trip:${snapshotId}`;
+    const conversationId = `conversation:${snapshotId}`;
+    duplicateCatalog.conversations.push({
+      ...catalog.conversations[0],
+      id: conversationId,
+      tripId,
+      snapshot,
+    });
+    return {
+      ...catalog.trips[0],
+      id: tripId,
+      title: catalog.trips[0].title,
+      conversationIds: [conversationId],
+      snapshot,
+    };
+  });
+  duplicateCatalog.activeTripId = "trip:triage-duplicate-history-1";
+  duplicateCatalog.activeConversationId = "conversation:triage-duplicate-history-1";
+  await duplicatePage.addInitScript(
+    ({ key, value, settingsKey, settings }) => {
+      localStorage.setItem(key, JSON.stringify(value));
+      localStorage.setItem(settingsKey, JSON.stringify(settings));
+    },
+    {
+      key: CATALOG_KEY,
+      value: duplicateCatalog,
+      settingsKey: SETTINGS_KEY,
+      settings: settingsFor("en"),
+    },
+  );
+  await duplicatePage.goto(BASE, { waitUntil: "domcontentloaded" });
+  await duplicatePage.locator(".workspace-app").waitFor();
+  await duplicatePage.waitForFunction(() =>
+    [...document.querySelectorAll(".sidebar-nav__item")].some(
+      (item) =>
+        item.querySelector(".sidebar-nav__label")?.textContent?.trim() === "Trips" &&
+        item.querySelector(".sidebar-nav__count")?.textContent?.trim() === "2",
+    ),
+  );
+  await duplicatePage.getByRole("button", { name: /^Trips/ }).click();
+  await duplicatePage.locator(".trip-card__title").nth(1).waitFor();
+  const restoredCatalog = await duplicatePage.evaluate((key) => {
+    const value = JSON.parse(localStorage.getItem(key) ?? "null");
+    return {
+      tripRecords: value?.trips?.length ?? 0,
+      conversationRecords: value?.conversations?.length ?? 0,
+      tripCardCount: document.querySelectorAll(".trip-card__title").length,
+    };
+  }, CATALOG_KEY);
+  const duplicateTitles = await duplicatePage.locator(".trip-card__title").allInnerTexts();
+  const duplicateMeta = await duplicatePage.locator(".trip-card__meta").allInnerTexts();
+  check(
+    restoredCatalog.tripCardCount === 2,
+    "#391 fixture restores two trip cards",
+    restoredCatalog,
+  );
+  if (restoredCatalog.tripCardCount === 2) {
+    check(
+      new Set(duplicateTitles).size === 2,
+      "#391 identical saved trips have distinct visible identities",
+      duplicateTitles,
+    );
+    check(
+      duplicateMeta.length === 2 && duplicateMeta.every((meta) => meta.includes("2024")),
+      "#392 same-year historical trip cards include their year",
+      duplicateMeta,
+    );
+  }
+  await duplicatePage.screenshot({ path: `${OUT}/391-392-duplicate-trips.png`, fullPage: true });
+  await duplicateContext.close();
 } catch (e) {
   check(false, String(e));
 } finally {
