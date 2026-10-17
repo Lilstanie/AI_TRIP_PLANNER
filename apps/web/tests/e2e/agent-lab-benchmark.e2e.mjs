@@ -146,11 +146,14 @@ const fixtureProjectionMarkdown = ({ generatedAt, runs }) =>
           ? `${row.usage.modelCalls} calls, ${row.usage.totalTokens} tokens`
           : "unavailable";
       const latency = medianLabel(row.latencyMs);
-      const recovery = row.expectedRecovery ? `${row.expectedRecovery} / ${row.observedRecovery}` : "n/a";
+      const recovery = row.expectedRecovery
+        ? `${row.expectedRecovery} / ${row.observedRecovery}`
+        : "n/a";
       return `| ${row.scenarioId} | ${row.strategyId} | ${row.faultProfileId ?? "n/a"} | ${row.status} | ${row.expectedOutcome} / ${row.actualOutcome} | ${checkCount} | ${recovery} | ${usage} | ${latency} | [artifact](./${row.artifact}) |`;
     }),
   ].join("\n");
-const withoutGeneratedAt = (serialized, generatedAt) => serialized.replace(generatedAt, "<generatedAt>");
+const withoutGeneratedAt = (serialized, generatedAt) =>
+  serialized.replace(generatedAt, "<generatedAt>");
 
 check(
   actualOutcome({ status: "failed", metrics: {}, events: [] }) === "failed",
