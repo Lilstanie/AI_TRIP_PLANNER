@@ -88,10 +88,9 @@ const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 function titleFor(snapshot: Snapshot, locale: AppLocale = "en"): string {
   const destination = snapshot.plan.brief.destination.trim();
   const [start, end] = snapshot.plan.brief.dates;
-  const dates = dateRangeLabel(start, end, locale) ?? `${start}${end && end !== start ? ` – ${end}` : ""}`;
-  return destination
-    ? `${destination} · ${dates}`
-    : "Untitled trip";
+  const dates =
+    dateRangeLabel(start, end, locale) ?? `${start}${end && end !== start ? ` – ${end}` : ""}`;
+  return destination ? `${destination} · ${dates}` : "Untitled trip";
 }
 
 const legacyTitleFor = (snapshot: Snapshot) => {

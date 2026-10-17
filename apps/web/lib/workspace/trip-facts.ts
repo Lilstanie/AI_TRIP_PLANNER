@@ -134,10 +134,7 @@ export function dateRangeLabel(start: string, end: string, locale: AppLocale = "
     ...(!sameYear ? { year: "numeric" } : {}),
     timeZone: "UTC",
   });
-  return formatter.formatRange(
-    new Date(`${start}T00:00:00Z`),
-    new Date(`${end}T00:00:00Z`),
-  );
+  return formatter.formatRange(new Date(`${start}T00:00:00Z`), new Date(`${end}T00:00:00Z`));
 }
 
 const validDate = (iso: string) =>

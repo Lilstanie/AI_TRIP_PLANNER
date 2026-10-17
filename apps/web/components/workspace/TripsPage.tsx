@@ -175,7 +175,8 @@ function TripCards({
                     })}
                   </span>
                   <span className="trip-card__meta">
-                    {destination} · {dateRange ? `${dateRange} · ` : ""}{length} {length === 1 ? t("day") : t("days")} · {total}
+                    {destination} · {dateRange ? `${dateRange} · ` : ""}
+                    {length} {length === 1 ? t("day") : t("days")} · {total}
                   </span>
                 </span>
               </button>
