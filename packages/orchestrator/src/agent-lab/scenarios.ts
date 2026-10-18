@@ -328,7 +328,7 @@ export const agentLabScenarios: readonly AgentLabScenario[] = [
       requiredMealEvidenceGroups: [["vegetarian"], ["local meat"]],
     },
     fixtureEvidence: {
-      hotelDetail: "Shinjuku hotel fixture · 1 night · 2026-11-10 to 2026-11-11 · one room",
+      hotelDetail: "Shinjuku hotel fixture · 4 nights · 2026-11-10 to 2026-11-14 · one room",
       mealDetails: [
         "Vegetarian ramen and shojin ryori dinner for two travellers",
         "Tokyo local meat specialties: wagyu and yakitori tasting",
