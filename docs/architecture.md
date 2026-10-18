@@ -282,11 +282,16 @@ Specialist proposals, the brief and the final plan are re-validated at the graph
   for transport, and itinerary and dining wait for both, but only for specialists already started in
   the same turn. Each call receives the others' proposals as `board` and, for accommodation,
   itinerary and dining, an `allocation`: its share (0.4, 0.4, 0.2) of the budget left after the
-  stages it waited for. On a multi-city trip the itinerary takes each day's city from the inter-city
-  hop transport scheduled (`citiesByDay`); a hop day allows both cities, and a draft with a stop in
-  another city is sent back to the model with that reason. Accommodation reads the same hops
-  (`scheduledHops` in `transport/legs.ts`), so each city's nights run from its arrival day to the
-  next hop; without hops on the board the nights are split evenly.
+  stages it waited for. On a multi-city trip the itinerary takes each day's cities from the scheduled
+  inter-city hops (`citiesByDay`). Activities on a transfer day need timed transfers and must fit
+  before departure or after arrival; an untimed transfer makes that day's activity order unknown.
+  The last city reached that day must match the overnight stay. Without a transport proposal, stays
+  anchor the city; after a transfer establishes the route, a different later stay needs a connecting
+  transfer or the location remains unknown. Accommodation reads the same hops
+  (`scheduledHops` in `transport/legs.ts`), so a city with no overnight nights is omitted from hotel
+  search; without hops on the board the nights are split evenly.
+  The failure cases and decision are recorded in the
+  [multi-city transfer-day Agent Note](../.agents/notes/implemented/bug-fix/2026-10-19-multicity-transfer-windows.md).
 - `detect_conflicts` combines budget overruns, structured cross-agent schedule overlaps and geography
   conflicts reported after itinerary route-duration checks. An overrun is spread in AUD
   (`targetSaving`) over each section's room to cut, its cost less its `floorCost`. When the sum of

@@ -45,9 +45,13 @@ for (let day = 1; day <= 5; day++) {
   const activities = section("itinerary").filter(
     (item) => item.kind === "activity" && item.day === day,
   );
+  const overnightCity =
+    stays.find((stay) => stay.day <= day && day < stay.day + stay.nights)?.city ??
+    stays.at(-1)?.city;
   check(
-    activities.length > 0 && activities.every((item) => item.location.includes(city)),
-    `offline Day ${day} activities are in ${city}`,
+    activities.length > 0 &&
+      activities.every((item) => item.location.includes(city) && city === overnightCity),
+    `offline Day ${day} activities match the destination's selected overnight city (${overnightCity})`,
   );
 }
 check(
@@ -71,7 +75,7 @@ const activity = [
   },
 ];
 writeFileSync(`${out}/thinking-replay.json`, JSON.stringify(activity, null, 2));
-const browser = await chromium.launch();
+const browser = await chromium.launch(process.env.CHANNEL ? { channel: process.env.CHANNEL } : {});
 try {
   for (const width of [1280, 390]) {
     const context = await browser.newContext({
