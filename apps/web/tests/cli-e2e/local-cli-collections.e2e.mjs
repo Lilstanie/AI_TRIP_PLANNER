@@ -299,11 +299,11 @@ const failedOutput = JSON.parse(failed.stdout);
 assert.equal(failedOutput.outcome, "failed");
 assert.deepEqual(
   failedOutput.results.map(({ status }) => status),
-  ["failed", "failed"],
+  ["failed", "failed", "failed"],
 );
 assert.deepEqual(
   events().map(({ scenario }) => scenario),
-  ["agent-lab-single-agent", "agent-lab-replay"],
+  ["agent-lab-single-agent", "agent-lab-replay", "pending-ask-refresh"],
 );
 assert.ok(events().every(({ mode }) => mode === "fail"));
 completed = true;

@@ -30,6 +30,7 @@ Issue #422's acceptance criteria require an unanswered question, options, select
 - `CHANNEL=chrome pnpm --filter @trip/web e2e pending-ask-refresh` — passed all 21 assertions at 375px and 1440px; evidence is under `apps/web/output/e2e/runner/`.
 - Updated CLI acceptance discovery and fixture coverage for the newly registered journey after CI exposed stale expected journey lists.
 - Initial CI failed only in the CLI acceptance fixtures because they expected two registered journeys; both fixture and discovery expectations now include `pending-ask-refresh`.
+- The next CI run passed discovery, named-journey, and `--all` success cases, then exposed one remaining failure-aggregation expectation with two results; updated the failure and event-order expectations for all three journeys.
 - Local rerun of `local-cli-collections.e2e.mjs` could not reach fixture assertions because this checkout lacks Playwright's bundled Chromium; CI installs the browser and will verify the updated full collection.
 - The pre-fix E2E run failed the selected-answer restoration assertion at both widths; its red artifact is retained beside the passing run.
 - The runner first could not launch its absent bundled Chromium; one intermediate run also exposed a persistence timing race. Both failed attempts are retained under `apps/web/output/e2e/runner/`.
