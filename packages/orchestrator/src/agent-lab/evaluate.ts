@@ -24,11 +24,21 @@ function stayEvidence(item: ProposalItem | undefined) {
   if (!item) return undefined;
   const dates = item.detail.match(/(\d{4}-\d{2}-\d{2}) to (\d{4}-\d{2}-\d{2})/);
   const nights = item.detail.match(/\b(\d+) nights?\b/i);
-  return {
-    checkIn: dates?.[1],
-    checkOut: dates?.[2],
-    nights: nights ? Number(nights[1]) : undefined,
-  };
+  return dates && nights
+    ? { checkIn: dates[1]!, checkOut: dates[2]!, nights: Number(nights[1]) }
+    : undefined;
+}
+
+type StayEvidence = NonNullable<ReturnType<typeof stayEvidence>>;
+
+function stayCoversNights(stay: StayEvidence | undefined, nights = stay?.nights): boolean {
+  return Boolean(
+    stay &&
+    nights !== undefined &&
+    stay.nights === nights &&
+    stay.checkOut > stay.checkIn &&
+    dayNumber(stay.checkOut) - dayNumber(stay.checkIn) === nights,
+  );
 }
 
 function mealGroupsCovered(groups: readonly (readonly string[])[], meals: ProposalItem[]): boolean {
@@ -132,15 +142,7 @@ function multiCityChecks(scenario: AgentLabScenario, plan: TripPlan): AgentLabCh
     if (hotels.length !== 1) return undefined;
     return stayEvidence(hotels[0]);
   });
-  const stayNights = stays.every(
-    (stay) =>
-      stay !== undefined &&
-      stay.checkIn !== undefined &&
-      stay.checkOut !== undefined &&
-      stay.nights !== undefined &&
-      dayNumber(stay.checkOut) - dayNumber(stay.checkIn) === stay.nights &&
-      stay.checkOut > stay.checkIn,
-  );
+  const stayNights = stays.every((stay) => stayCoversNights(stay));
   const stayTransition = stays.every((stay, index) => {
     if (!stay?.checkIn || !stay.checkOut) return false;
     if (index === 0) return true;
@@ -314,12 +316,12 @@ export function evaluateAgentLabPlan(
         stay !== undefined &&
         stay.checkIn === brief.dates[0] &&
         stay.checkOut === brief.dates[1] &&
-        dayNumber(stay.checkOut) - dayNumber(stay.checkIn) === nights,
+        stayCoversNights(stay, nights),
     });
     checks.push({
       id: "stay-nights",
       label: `Hotel evidence covers ${nights} ${nightLabel}`,
-      passed: stay?.nights === nights,
+      passed: stayCoversNights(stay, nights),
     });
   }
 
