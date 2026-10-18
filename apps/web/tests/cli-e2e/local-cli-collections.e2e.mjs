@@ -102,7 +102,7 @@ createServer((_request, response) => response.end("collection fixture")).listen(
 `,
   );
   chmodSync(next, 0o755);
-  for (const name of ["agent-lab-single-agent", "agent-lab-replay"])
+  for (const name of ["agent-lab-single-agent", "agent-lab-replay", "pending-ask-refresh"])
     writeFileSync(
       resolve(journeys, `${name}.e2e.mjs`),
       `import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
@@ -233,10 +233,14 @@ const allSummary = JSON.parse(readFileSync(resolve(fixture, allOutput.summaryFil
 assert.equal(allOutput.outcome, "passed");
 assert.equal(allSummary.selectionMode, "all");
 assert.equal(allSummary.reproductionCommand, "pnpm --filter @trip/web e2e run --all --dev");
-assert.deepEqual(allSummary.requested, ["agent-lab-single-agent", "agent-lab-replay"]);
+assert.deepEqual(allSummary.requested, [
+  "agent-lab-single-agent",
+  "agent-lab-replay",
+  "pending-ask-refresh",
+]);
 assert.deepEqual(
   allSummary.results.map(({ status }) => status),
-  ["passed", "passed"],
+  ["passed", "passed", "passed"],
 );
 console.log(`All supported journeys passed: ${allSummary.invocationId}`);
 
