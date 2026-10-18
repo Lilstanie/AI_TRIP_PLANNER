@@ -72,7 +72,7 @@ ln -s ../../.env.local apps/web/.env.local
 | `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`、`NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID` | 浏览器中的 Google Maps JavaScript 地图。未配置时，工作区显示地图回退界面，行程仍可使用。                                                                                                                                                                                       |
 | `SERPAPI_KEY`                                                       | Google Hotels、Google Flights 和城际 Google Maps 公共交通搜索共享的 SerpApi 密钥。仅在 `USE_MOCK_TOOLS=false` 时使用；不替代 Google Maps、Places、Routes 或 Weather API。                                                                                                      |
 | `WEATHER_API_KEY`                                                   | Google Weather 提供第 0–9 天的天气预报；未配置时回退到 `MAPS_API_KEY`。第 10–14 天由 Open-Meteo 提供，无需密钥。                                                                                                                                                               |
-| `KV_REST_API_URL`、`KV_REST_API_TOKEN`                              | 用于聊天轮次、偏好、方案和 SerpApi 用量／缓存的持久化 Redis REST 存储。未配置时，状态保存在进程内存中。                                                                                                                                                                        |
+| `KV_REST_API_URL`、`KV_REST_API_TOKEN`                              | 用于短期聊天轮次、方案和 SerpApi 用量／缓存的持久化 Redis REST 存储。未配置时，这些数据保存在进程内存中；账号级饮食偏好通过 `DATABASE_URL` 存入 Postgres。                                                                                                                     |
 
 账号是可选功能，只在 `.env.local` 中配置（这些名称不在 `.env.example` 中）：
 

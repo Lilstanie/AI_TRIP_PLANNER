@@ -26,3 +26,16 @@ export const conversations = pgTable("conversations", recordColumns, (table) => 
   primaryKey({ columns: [table.userId, table.id] }),
   index("conversations_user_updated").on(table.userId, table.updatedAt),
 ]);
+
+export const accountMemories = pgTable(
+  "account_memories",
+  {
+    userId: text("user_id").notNull(),
+    key: text("key").notNull(),
+    value: text("value").notNull(),
+    previousValue: text("previous_value"),
+    undoToken: text("undo_token").notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.key] })],
+);

@@ -22,11 +22,12 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 | [`/api/account/settings`](#get-and-put-apiaccountsettings)  | 读取或保存已登录旅客的设置                             |
 | [`/api/account/sync`](#get-and-post-apiaccountsync)         | 拉取或推送已登录旅客的行程和聊天                       |
 | [`/api/account/export`](#get-apiaccountexport)              | 以 JSON 下载账号保存的全部数据                         |
+| [`/api/account/memory/undo`](#post-apiaccountmemoryundo)    | 撤销当前账号最近一次饮食记忆变更                       |
 | [`/api/account`](#delete-apiaccount)                        | 删除账号及其数据                                       |
 
-浏览器在每次请求中发送当前计划或行程需求，并将工作区保存在本地存储中。服务端的
-`packages/services` 在配置了 `KV_REST_API_URL` 和 `KV_REST_API_TOKEN` 时，将聊天轮次、
-偏好和生成的计划记录到 Redis REST 存储中；否则记录到进程内存中。
+浏览器在每次请求中发送当前计划或行程需求，并将工作区保存在本地存储中。账号长期饮食记忆
+单独保存在 Postgres，并始终使用服务端解析的 Clerk 身份进行隔离；客户端提供的
+`brief.userId` 会被忽略。未登录时仍可规划，只是不读取或写入账号记忆。
 
 <a id="failure-bodies"></a>
 
@@ -367,7 +368,13 @@ conversations } }`，可以部分成功。只有 `accepted` 中的记录确认�
 
 ### `GET /api/account/export`
 
-以 JSON 附件返回账号的设置、行程和对话。
+JSON 附件包含账号设置、行程、聊天记录和长期饮食记忆。
+
+### `POST /api/account/memory/undo`
+
+请求体为 `ChatResponse.memoryChange` 中的 `{ token }`。服务端从 Clerk 解析账号，只会将令牌用于
+该账号当前的饮食记忆。首次写入会被删除；替换操作会恢复之前的值。过期令牌返回
+`{ undone: false }`，成功返回 `{ undone: true }`。未登录请求返回 401。
 
 ### `DELETE /api/account`
 

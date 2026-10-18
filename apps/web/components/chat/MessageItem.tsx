@@ -7,6 +7,7 @@ import { AttachmentChip } from "./AttachmentChip";
 import { FlightResults } from "./FlightResults";
 import { RevealedText } from "./RevealedText";
 import { ThinkingProcess } from "./ThinkingProcess";
+import { useState } from "react";
 
 const markdownComponents: Components = {
   a: ({ href, children, ...rest }) => (
@@ -18,6 +19,8 @@ const markdownComponents: Components = {
 
 export function MessageItem({ message, animate }: { message: Message; animate?: boolean }) {
   const { t, locale } = useLocale();
+  const [undone, setUndone] = useState(false);
+  const [undoing, setUndoing] = useState(false);
   const clock =
     message.at === undefined ? null : (
       <span className="msg-item__clock">
@@ -62,6 +65,33 @@ export function MessageItem({ message, animate }: { message: Message; animate?: 
           {...(animate ? { animate } : {})}
         />
       </div>
+      {message.memoryChange && (
+        <div role="status" className="msg-item__memory-notice">
+          {t(
+            message.memoryChange.action === "updated" ? "Updated: {value}" : "Remembered: {value}",
+            { value: message.memoryChange.value },
+          )}
+          <button
+            type="button"
+            disabled={undone || undoing}
+            onClick={async () => {
+              setUndoing(true);
+              try {
+                const response = await fetch("/api/account/memory/undo", {
+                  method: "POST",
+                  headers: { "content-type": "application/json" },
+                  body: JSON.stringify({ token: message.memoryChange?.token }),
+                });
+                if (response.ok && (await response.json()).undone) setUndone(true);
+              } finally {
+                setUndoing(false);
+              }
+            }}
+          >
+            {undone ? t("Undone") : t("Undo")}
+          </button>
+        </div>
+      )}
       {message.flights && <FlightResults answer={message.flights} />}
       {clock}
     </div>

@@ -20,12 +20,13 @@ validated against the shared contracts in `packages/shared/src/`.
 | [`/api/account/settings`](#get-and-put-apiaccountsettings)  | Read or save the signed-in traveller's settings                     |
 | [`/api/account/sync`](#get-and-post-apiaccountsync)         | Pull or push the signed-in traveller's trips and chats              |
 | [`/api/account/export`](#get-apiaccountexport)              | Download everything the account holds as JSON                       |
+| [`/api/account/memory/undo`](#post-apiaccountmemoryundo)    | Undo the latest dietary memory change for the signed-in account     |
 | [`/api/account`](#delete-apiaccount)                        | Delete the account and its data                                     |
 
 The browser sends the current plan or brief with each request and keeps its workspace in local
-storage. On the server, `packages/services` records chat turns, preferences and generated plans in
-the Redis REST store when `KV_REST_API_URL` and `KV_REST_API_TOKEN` are set, and in process memory
-otherwise.
+storage. Account long-term dietary memory is stored separately in Postgres and is always scoped by
+the Clerk identity resolved on the server; the client-supplied `brief.userId` is ignored. Signed-out
+planning remains available without account memory.
 
 <a id="failure-bodies"></a>
 
@@ -417,7 +418,14 @@ records the migration and recovery boundaries.
 
 ### `GET /api/account/export`
 
-A JSON attachment with the account's settings, trips and conversations.
+A JSON attachment with the account's settings, trips, conversations and long-term memory.
+
+### `POST /api/account/memory/undo`
+
+Takes `{ token }` from a `ChatResponse.memoryChange`. The server resolves the account from Clerk and
+only applies the token to that account's current dietary row. A first write is deleted; a replacement
+restores the previous value. Stale tokens return `{ undone: false }`. Successful responses are
+`{ undone: true }`. Signed-out requests receive 401.
 
 ### `DELETE /api/account`
 

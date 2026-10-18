@@ -55,7 +55,14 @@ export type SessionState = {
 };
 
 export type TurnOutcome =
-  | { kind: "planned"; plan: TripPlan; reply: string; transcript: AgentProgressEvent[]; at: number }
+  | {
+      kind: "planned";
+      plan: TripPlan;
+      reply: string;
+      transcript: AgentProgressEvent[];
+      at: number;
+      memoryChange?: import("@trip/shared").ChatResponse["memoryChange"];
+    }
   | {
       kind: "needsInfo";
       question: string;
@@ -209,7 +216,13 @@ export function session(state: SessionState, event: SessionEvent): SessionState 
       return { ...state, replacedChange: undefined };
     case "planned":
       return {
-        ...replied(state, reply(event.reply, event.transcript, event.at, { outcome: "planned" })),
+        ...replied(
+          state,
+          reply(event.reply, event.transcript, event.at, {
+            outcome: "planned",
+            ...(event.memoryChange ? { memoryChange: event.memoryChange } : {}),
+          }),
+        ),
         previousTotal: state.plan?.estTotal,
 
         estimateChange: state.plan ? event.plan.estTotal - state.plan.estTotal : undefined,
@@ -281,7 +294,14 @@ export async function requestTurn(
       transcript.push(event);
       onProgress?.(event);
     });
-    return { kind: "planned", plan: result.plan, reply: result.reply, transcript, at: now() };
+    return {
+      kind: "planned",
+      plan: result.plan,
+      reply: result.reply,
+      transcript,
+      at: now(),
+      ...(result.memoryChange ? { memoryChange: result.memoryChange } : {}),
+    };
   } catch (failure) {
     if (signal.aborted) return { kind: "cancelled" };
     if (failure instanceof FlightAnswerError)

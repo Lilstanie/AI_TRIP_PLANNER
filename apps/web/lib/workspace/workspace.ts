@@ -40,6 +40,8 @@ export type Message = {
 
   outcome?: "planned" | "asked";
 
+  memoryChange?: ChatResponse["memoryChange"];
+
   at?: number;
 };
 

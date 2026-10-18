@@ -53,9 +53,10 @@ language controls and persistence; the settings layout and other sections remain
 - Section ids changed to `profile`, `account`, `personalization`, `region` and `connected`.
   `openSettings()` defaults to `personalization`.
 - The style rule is advisory, because the model decides the tone.
-- Issue #401 hides the nonfunctional long-term memory control and its promise until the feature in
-  #380 exists. The stored `assistant.memory` field remains in settings and chat contracts for
-  compatibility with existing browser and account data.
+- Issue #401 hides the broader long-term memory control and its promise pending #380. The dietary
+  memory slice in #381 is available from chat; `assistant.memory: false` disables its write. The
+  stored field remains in settings and chat contracts for compatibility with existing browser and
+  account data. See the [account dietary memory decision](2026-10-19-account-dietary-memory.md).
 - Related: the [conversation scope note](2026-09-27-conversation-scope.md) and the
   [accounts note](../architecture/2026-09-27-accounts-settings-sync.md).
 

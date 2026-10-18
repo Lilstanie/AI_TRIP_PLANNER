@@ -1,22 +1,27 @@
 import { eq } from "drizzle-orm";
 import { accountUser } from "@/lib/account/server";
 import { getDb } from "@/lib/db/client";
-import { conversations, trips, userSettings } from "@/lib/db/schema";
+import { accountMemories, conversations, trips, userSettings } from "@/lib/db/schema";
 
 export async function GET() {
   const user = await accountUser();
   if ("response" in user) return user.response;
   const db = getDb();
-  const [settings, tripRows, conversationRows] = await Promise.all([
+  const [settings, tripRows, conversationRows, memories] = await Promise.all([
     db.select().from(userSettings).where(eq(userSettings.userId, user.userId)),
     db.select().from(trips).where(eq(trips.userId, user.userId)),
     db.select().from(conversations).where(eq(conversations.userId, user.userId)),
+    db
+      .select({ key: accountMemories.key, value: accountMemories.value })
+      .from(accountMemories)
+      .where(eq(accountMemories.userId, user.userId)),
   ]);
   const body = {
     exportedAt: new Date().toISOString(),
     settings: settings[0]?.settings ?? null,
     trips: tripRows.filter((row) => !row.deletedAt).map((row) => row.record),
     conversations: conversationRows.filter((row) => !row.deletedAt).map((row) => row.record),
+    memories,
   };
   return new Response(JSON.stringify(body, null, 2), {
     headers: {

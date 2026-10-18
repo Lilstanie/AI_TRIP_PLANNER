@@ -155,6 +155,13 @@ export type ChatRequest = z.infer<typeof ChatRequest>;
 export const ChatResponse = z.object({
   reply: z.string(),
   plan: TripPlan,
+  memoryChange: z
+    .object({
+      token: z.string(),
+      action: z.enum(["remembered", "updated"]),
+      value: z.string(),
+    })
+    .optional(),
 });
 export type ChatResponse = z.infer<typeof ChatResponse>;
 
