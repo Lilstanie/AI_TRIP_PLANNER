@@ -1,6 +1,7 @@
 import { detectCurrency, toAud } from "@trip/shared";
 import { BriefPatchSchema, type BriefPatch } from "./brief";
 import { DATE_TOKEN, parseTripDate } from "./dates";
+import { normaliseDestination } from "./destinations";
 
 function amount(value: string): number | undefined {
   const parsed = Number(value.replaceAll(",", ""));
@@ -106,7 +107,7 @@ export function extractBriefPatchLocally(message: string): BriefPatch {
       chineseDestination?.[1] ??
       "",
   );
-  if (destination) patch.destination = destination;
+  if (destination) patch.destination = normaliseDestination(destination);
 
   const passport =
     message.match(/([A-Za-z][A-Za-z ]+?)\s+passport/i) ??

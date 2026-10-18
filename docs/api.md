@@ -54,6 +54,13 @@ Contract: `ChatRequest`, `ChatResponse` and `AgentProgressEvent` in `packages/sh
 }
 ```
 
+`brief.destination` holds the cities to visit, in visit order, joined with `&`
+("Sydney & Wollongong"); `cities` in `@trip/agents` and the Where editor both read that form. The
+coordinator normalises what the traveller wrote into it, so "Sydney and Wollongong" and
+"悉尼、卧龙岗" are stored as two cities rather than one oddly named one. A destination whose own name
+contains "and" is split as well, which is why the extraction schema asks for the cities already
+joined.
+
 `brief.preferences` and `known.preferences` are optional: the traveller's own trip preferences
 ("Vegetarian food", "No early starts"), at most `MAX_TRIP_PREFERENCES` (12) entries of 1 to
 `MAX_TRIP_PREFERENCE_LENGTH` (200) characters after trimming, both in

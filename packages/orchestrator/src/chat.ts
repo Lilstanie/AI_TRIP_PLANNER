@@ -46,6 +46,7 @@ import { extractBriefPatchLocally } from "./chat-offline";
 import { groundedReply, unchangedPlanReply } from "./chat-grounding";
 import { isInfeasible, minimumCost } from "./conflicts";
 import { runOrchestrator, type OrchestratorOptions } from "./workflow";
+import { normaliseDestination } from "./destinations";
 
 export interface BriefExtractor {
   extract(message: string, current: TripBrief | undefined): Promise<BriefPatch>;
@@ -101,7 +102,12 @@ function missingFields(known: BriefPatch, tripId: string): string[] {
 }
 
 export const BriefUpdate = z.object({
-  destination: z.string().nullish(),
+  destination: z
+    .string()
+    .nullish()
+    .describe(
+      'the city they are travelling to. For a trip across several cities, join them with " & " in the order they are visited ("Sydney & Wollongong"), never with a word such as "and".',
+    ),
   origin: z.string().nullish().describe("the city they are travelling from, if they said one"),
   startDate: z.string().nullish().describe("YYYY-MM-DD"),
   endDate: z.string().nullish().describe("YYYY-MM-DD"),
@@ -181,7 +187,9 @@ function toPatch(update: z.infer<typeof BriefUpdate>): BriefPatch {
       ].slice(0, MAX_TRIP_PREFERENCES)
     : undefined;
   const patch: BriefPatch = BriefPatchSchema.parse({
-    ...(text(update.destination) ? { destination: text(update.destination) } : {}),
+    ...(text(update.destination)
+      ? { destination: normaliseDestination(text(update.destination)!) }
+      : {}),
     ...(text(update.origin) ? { origin: text(update.origin) } : {}),
     ...(text(update.nationality) ? { nationality: text(update.nationality) } : {}),
     ...(groupSize !== undefined ? { groupSize: Math.round(groupSize) } : {}),
