@@ -20,6 +20,17 @@ const dateOfDay = (start: string, day: number) =>
 const itemsOf = (plan: TripPlan, section: string): ProposalItem[] =>
   plan.sections.find((candidate) => candidate.id === section)?.proposal?.items ?? [];
 
+function stayEvidence(item: ProposalItem | undefined) {
+  if (!item) return undefined;
+  const dates = item.detail.match(/(\d{4}-\d{2}-\d{2}) to (\d{4}-\d{2}-\d{2})/);
+  const nights = item.detail.match(/\b(\d+) nights?\b/i);
+  return {
+    checkIn: dates?.[1],
+    checkOut: dates?.[2],
+    nights: nights ? Number(nights[1]) : undefined,
+  };
+}
+
 function mealGroupsCovered(groups: readonly (readonly string[])[], meals: ProposalItem[]): boolean {
   function match(groupIndex: number, usedMeals: Set<number>): boolean {
     if (groupIndex === groups.length) return true;
@@ -119,21 +130,19 @@ function multiCityChecks(scenario: AgentLabScenario, plan: TripPlan): AgentLabCh
       (item) => item.kind === "hotel" && mentions(item, city),
     );
     if (hotels.length !== 1) return undefined;
-    const detail = hotels[0]!.detail;
-    const dates = detail.match(/(\d{4}-\d{2}-\d{2}) to (\d{4}-\d{2}-\d{2})/);
-    const nights = detail.match(/\b(\d+) nights?\b/i);
-    return dates && nights
-      ? { checkIn: dates[1]!, checkOut: dates[2]!, nights: Number(nights[1]) }
-      : undefined;
+    return stayEvidence(hotels[0]);
   });
   const stayNights = stays.every(
     (stay) =>
       stay !== undefined &&
+      stay.checkIn !== undefined &&
+      stay.checkOut !== undefined &&
+      stay.nights !== undefined &&
       dayNumber(stay.checkOut) - dayNumber(stay.checkIn) === stay.nights &&
       stay.checkOut > stay.checkIn,
   );
   const stayTransition = stays.every((stay, index) => {
-    if (!stay) return false;
+    if (!stay?.checkIn || !stay.checkOut) return false;
     if (index === 0) return true;
     const previous = stays[index - 1]!;
     return stay.checkIn === previous.checkOut && stay.checkIn === hopDates[index - 1];
@@ -297,20 +306,20 @@ export function evaluateAgentLabPlan(
     const nights = rules.tripDays - 1;
     const nightLabel = nights === 1 ? "night" : "nights";
     const hotel = items.find((item) => item.kind === "hotel");
-    const stayDates = hotel?.detail.match(/(\d{4}-\d{2}-\d{2}) to (\d{4}-\d{2}-\d{2})/);
+    const stay = stayEvidence(hotel);
     checks.push({
       id: "stay-date-range",
       label: "Hotel check-in and check-out match the trip dates",
       passed:
-        stayDates?.[1] === brief.dates[0] &&
-        stayDates?.[2] === brief.dates[1] &&
-        dayNumber(stayDates[2]!) - dayNumber(stayDates[1]!) === nights,
+        stay !== undefined &&
+        stay.checkIn === brief.dates[0] &&
+        stay.checkOut === brief.dates[1] &&
+        dayNumber(stay.checkOut) - dayNumber(stay.checkIn) === nights,
     });
     checks.push({
       id: "stay-nights",
       label: `Hotel evidence covers ${nights} ${nightLabel}`,
-      passed:
-        hotel !== undefined && new RegExp(`\\b${nights} ${nightLabel}\\b`, "i").test(hotel.detail),
+      passed: stay?.nights === nights,
     });
   }
 
