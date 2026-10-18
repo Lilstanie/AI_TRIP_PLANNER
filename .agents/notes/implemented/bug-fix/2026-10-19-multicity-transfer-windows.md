@@ -12,9 +12,10 @@ trip had no overnight nights.
 ## Decision
 
 Build each day's transfer windows from the scheduled transport. Transfer-day activities require
-usable start and end times; activities must fit before departure or after arrival, and the final city
-reached that day must match the scheduled overnight stay. Omit cities with zero nights from hotel
-search. If there is no transport proposal, use scheduled stays to anchor the city. Once a transfer
+usable start and end times; activities must fit before departure or after arrival, and on a night with
+a scheduled stay the final city reached that day must match the overnight city. Checkout-day transfers
+may end in another destination city. Omit cities with zero nights from hotel search. If there is no
+transport proposal, use scheduled stays to anchor the city. Once a transfer
 has established a city, a later stay in a different city without a connecting transfer leaves the
 location unresolved. If an overnight city conflicts with the transfer sequence, omit activities for
 that day and report a geography conflict.

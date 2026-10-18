@@ -303,6 +303,90 @@ describe("multi-city transfer-day activities", () => {
     ]);
   });
 
+  it("allows a checkout-day transfer to end outside the last overnight city", async () => {
+    const trip = {
+      ...brief,
+      destination: "Sydney & Wollongong",
+      dates: ["2026-12-16", "2026-12-18"] as [string, string],
+    };
+    const ctx = context();
+    ctx.tools.maps.places = vi.fn(async ({ near, category }) =>
+      category === "sight"
+        ? [{ name: `${near} Museum`, category: "sight" }]
+        : [{ name: `${near} Foreshore`, category: "neighborhood" }],
+    );
+    const accommodation: AgentProposal = {
+      agent: "accommodation",
+      summary: "Two nights in Sydney",
+      items: [],
+      assumptions: [],
+      conflictsWith: [],
+      stays: [
+        {
+          id: "stay-sydney",
+          city: "Sydney",
+          checkIn: "2026-12-16",
+          checkOut: "2026-12-18",
+          day: 1,
+          nights: 2,
+          rooms: 1,
+          selectedId: "stay-sydney-0",
+          candidates: [
+            {
+              id: "stay-sydney-0",
+              name: "Sydney Standard",
+              area: "Sydney",
+              pricePerNight: 230,
+              rating: 8,
+              freeCancellation: true,
+            },
+          ],
+        },
+      ],
+    };
+    const transport: AgentProposal = {
+      agent: "transport",
+      summary: "Transfer to Wollongong on checkout day",
+      items: [
+        {
+          kind: "transport",
+          day: 3,
+          startTime: "09:00",
+          endTime: "11:20",
+          location: "Sydney → Wollongong",
+          detail: "Train to Wollongong on 2026-12-18",
+        },
+      ],
+      assumptions: [],
+      conflictsWith: [],
+    };
+    const generator: ItineraryGenerator = {
+      generate: vi.fn(async () => ({
+        summary: "Visit Wollongong after checkout",
+        activities: [
+          {
+            day: 3,
+            startTime: "12:00",
+            endTime: "13:00",
+            location: "Wollongong Museum",
+            detail: "Visit after the checkout-day transfer",
+          },
+        ],
+        assumptions: [],
+      })),
+    };
+
+    const result = await createItineraryAgent({ generator }).invoke({
+      brief: trip,
+      context: ctx,
+      board: { proposals: [transport, accommodation] },
+    });
+
+    expect(result.items.filter(({ day }) => day === 3).map(({ location }) => location)).toEqual([
+      "Wollongong Museum",
+    ]);
+  });
+
   it("does not reuse the origin city after a disconnected transfer chain", async () => {
     const trip = {
       ...brief,

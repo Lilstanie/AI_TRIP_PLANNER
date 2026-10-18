@@ -126,24 +126,21 @@ function citiesForStayNights(
     .sort((left, right) => left.checkIn.localeCompare(right.checkIn));
 
   let currentCity: string | undefined = knownCities[0];
-  let hasConfirmedCity = false;
-  let hasTransfer = false;
+  let locationSource: "fallback" | "stay" | "transfer" = "fallback";
   return Array.from({ length: days }, (_, index) => {
     const date = dateForDay(brief.dates[0], index + 1);
-    const stay =
-      scheduled.find(({ checkIn, checkOut }) => checkIn <= date && date < checkOut) ??
-      (date === brief.dates[1] ? scheduled.at(-1) : undefined);
+    const stay = scheduled.find(({ checkIn, checkOut }) => checkIn <= date && date < checkOut);
     const transfers = transferWindows.get(index + 1) ?? [];
     if (!currentCity) return [];
     if (!transfers.length) {
       if (stay) {
-        if (hasTransfer && currentCity !== stay.city) {
+        if (locationSource === "transfer" && currentCity !== stay.city) {
           currentCity = undefined;
           return [];
         }
         currentCity = stay.city;
-        hasConfirmedCity = true;
-      } else if (!hasConfirmedCity) {
+        if (locationSource !== "transfer") locationSource = "stay";
+      } else if (locationSource === "fallback") {
         currentCity = fallback[index]?.at(-1) ?? currentCity;
       }
       return [currentCity];
@@ -170,8 +167,7 @@ function citiesForStayNights(
       remaining.splice(remaining.indexOf(transfer), 1);
       currentCity = transfer.to;
     }
-    hasConfirmedCity = true;
-    hasTransfer = true;
+    locationSource = "transfer";
     const transferCities = [...new Set(ordered.flatMap(({ from, to }) => [from, to]))];
     if (!stay) return transferCities;
     if (currentCity !== stay.city) {

@@ -285,7 +285,8 @@ Specialist proposals, the brief and the final plan are re-validated at the graph
   stages it waited for. On a multi-city trip the itinerary takes each day's cities from the scheduled
   inter-city hops (`citiesByDay`). Activities on a transfer day need timed transfers and must fit
   before departure or after arrival; an untimed transfer makes that day's activity order unknown.
-  The last city reached that day must match the overnight stay. Without a transport proposal, stays
+  On a night with a scheduled stay, the last city reached that day must match the overnight city;
+  checkout-day transfers may end in another destination city. Without a transport proposal, stays
   anchor the city; after a transfer establishes the route, a different later stay needs a connecting
   transfer or the location remains unknown. Accommodation reads the same hops
   (`scheduledHops` in `transport/legs.ts`), so a city with no overnight nights is omitted from hotel
