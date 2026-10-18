@@ -21,7 +21,7 @@ import { z } from "zod/v4";
 import { createAgent, tool } from "langchain";
 import { createRoutedChatModel, readStructuredResponse } from "../models";
 import { dateForDay, planningDays, routeProblem } from "../transport/validation";
-import { cities, cityForDay, scheduledHops } from "../transport/legs";
+import { cities, cityForDay, parseCityHop, scheduledHops } from "../transport/legs";
 import { avoidBlockedWindows } from "./revision";
 import { mockEnabled } from "@trip/tools";
 import { TRAVELLER_PREFERENCES_RULE } from "../prompts/traveller-preferences";
@@ -182,16 +182,12 @@ function transferWindowsByDay(
   destination: string,
   transport?: AgentProposal,
 ): Map<number, TransferWindow[]> {
-  const knownCities = cities(destination);
   const windows = new Map<number, TransferWindow[]>();
   for (const item of transport?.items ?? []) {
     if (!item.day) continue;
-    const [rawFrom, rawTo] = (item.location ?? "").split(" → ").map((part) => part.trim());
-    const from = knownCities.find(
-      (city) => city.toLocaleLowerCase() === rawFrom?.toLocaleLowerCase(),
-    );
-    const to = knownCities.find((city) => city.toLocaleLowerCase() === rawTo?.toLocaleLowerCase());
-    if (!from || !to) continue;
+    const hop = parseCityHop(destination, item.location);
+    if (!hop) continue;
+    const { from, to } = hop;
     const startTime =
       item.startTime && item.endTime && TIME.test(item.startTime) && TIME.test(item.endTime)
         ? item.startTime

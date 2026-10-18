@@ -12,6 +12,7 @@ contract-impact: none
 ## What changed
 
 - Harden `packages/agents/src/itinerary/index.ts` against ambiguous, disconnected, or overlapping same-day transfer chains.
+- Share city-hop parsing between transport and itinerary planning, and represent route certainty with one explicit state.
 - Keep checkout-day transfers independent of the last overnight city's location constraint.
 - Skip accommodation lookup for zero-night city segments and derive no-accommodation itinerary days from verified transfer chains.
 - Extend `apps/web/tests/e2e/multicity-triage.e2e.mjs` to compare daily activities with selected overnight cities.
@@ -29,7 +30,7 @@ The issue's public-plan follow-up also exposed that invalid transfer ordering co
 - `pnpm --filter @trip/agents typecheck`: passed.
 - `pnpm --filter @trip/web test`: 57 files, 632 tests passed. jsdom printed existing canvas `getContext` warnings; the test command exited successfully.
 - `pnpm --filter @trip/web typecheck` and `pnpm --filter @trip/web lint`: passed; lint reports the existing `next lint` deprecation notice.
-- `CHANNEL=chrome pnpm --filter @trip/web e2e multicity-triage`: passed API and desktop/mobile browser checks on the final source; artifact `output/e2e/runner/2026-10-18T20-35-25-582Z.json`.
+- `CHANNEL=chrome pnpm --filter @trip/web e2e multicity-triage`: passed API and desktop/mobile browser checks on the final source; artifact `output/e2e/runner/2026-10-18T20-39-09-246Z.json`.
 - `pnpm verify:docs`, `pnpm verify:pairs` (27 pairs), `pnpm verify:protected`, `pnpm verify:e2e-artifacts` (77 scripts), `pnpm verify:e2e-selectors`, and `git diff --check`: passed.
 - `pnpm exec prettier --check` on all changed source, E2E and documentation files: passed. `pnpm format:check-changed origin/main` will run after the implementation commit.
 - An initial E2E launch without `CHANNEL=chrome` failed because this worktree lacks Playwright's headless shell; the documented browser-channel rerun passed.
