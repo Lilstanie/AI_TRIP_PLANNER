@@ -19,6 +19,15 @@ export async function getAccountMemories(userId?: string): Promise<UserPreferenc
   }
 }
 
+export async function deleteAccountMemory(userId: string, key: string) {
+  if (!dbEnabled()) return false;
+  const deleted = await getDb()
+    .delete(accountMemories)
+    .where(and(eq(accountMemories.userId, userId), eq(accountMemories.key, key)))
+    .returning({ key: accountMemories.key });
+  return deleted.length > 0;
+}
+
 export async function rememberDietaryNeed(userId: string | undefined, value: string) {
   if (!userId || !dbEnabled()) return undefined;
   const db = getDb();

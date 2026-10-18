@@ -22,6 +22,7 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 | [`/api/account/settings`](#get-and-put-apiaccountsettings)  | 读取或保存已登录旅客的设置                             |
 | [`/api/account/sync`](#get-and-post-apiaccountsync)         | 拉取或推送已登录旅客的行程和聊天                       |
 | [`/api/account/export`](#get-apiaccountexport)              | 以 JSON 下载账号保存的全部数据                         |
+| [`/api/account/memory`](#get-and-delete-apiaccountmemory)   | 列出或删除当前账号的长期记忆                           |
 | [`/api/account/memory/undo`](#post-apiaccountmemoryundo)    | 撤销当前账号最近一次饮食记忆变更                       |
 | [`/api/account`](#delete-apiaccount)                        | 删除账号及其数据                                       |
 
@@ -369,6 +370,10 @@ conversations } }`，可以部分成功。只有 `accepted` 中的记录确认�
 ### `GET /api/account/export`
 
 JSON 附件包含账号设置、行程、聊天记录和长期饮食记忆。
+
+### `GET` and `DELETE /api/account/memory`
+
+`GET` 返回当前登录账号的 `{ memories: [{ key, value, source }] }`。`DELETE` 接收 `{ key }`，只删除当前账号对应类别的记忆，并返回 `{ deleted }`。两种请求的账号均由服务端从 Clerk 解析，客户端不能指定账号；未知类别返回 `{ deleted: false }`，未登录请求返回 401。
 
 ### `POST /api/account/memory/undo`
 

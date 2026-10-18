@@ -20,6 +20,7 @@ validated against the shared contracts in `packages/shared/src/`.
 | [`/api/account/settings`](#get-and-put-apiaccountsettings)  | Read or save the signed-in traveller's settings                     |
 | [`/api/account/sync`](#get-and-post-apiaccountsync)         | Pull or push the signed-in traveller's trips and chats              |
 | [`/api/account/export`](#get-apiaccountexport)              | Download everything the account holds as JSON                       |
+| [`/api/account/memory`](#get-and-delete-apiaccountmemory)   | List or delete the signed-in account's long-term memories           |
 | [`/api/account/memory/undo`](#post-apiaccountmemoryundo)    | Undo the latest dietary memory change for the signed-in account     |
 | [`/api/account`](#delete-apiaccount)                        | Delete the account and its data                                     |
 
@@ -419,6 +420,13 @@ records the migration and recovery boundaries.
 ### `GET /api/account/export`
 
 A JSON attachment with the account's settings, trips, conversations and long-term memory.
+
+### `GET` and `DELETE /api/account/memory`
+
+`GET` returns `{ memories: [{ key, value, source }] }` for the signed-in account. `DELETE` takes
+`{ key }` and removes only that category for the signed-in account, returning `{ deleted }`. The
+server derives the account from Clerk for both requests; the client cannot choose an account.
+Unknown categories return `{ deleted: false }`, and requests without a session receive 401.
 
 ### `POST /api/account/memory/undo`
 

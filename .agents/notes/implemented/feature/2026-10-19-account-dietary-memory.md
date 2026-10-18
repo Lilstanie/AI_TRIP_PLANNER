@@ -38,8 +38,9 @@ packages/shared` in the session log.
 - The schema's composite account/key primary key stores one current dietary value per account, with
   one-step undo state. It does not provide an undo history or concurrent-edit history.
 - `assistant.memory: false` suppresses writes while preserving normal signed-in planning.
-- The broader Settings memory control remains hidden pending #380; see the
-  [Settings decision](2026-09-27-mindtrip-settings.md).
+- Settings lists and deletes the account's remembered categories through account-scoped routes; the
+  category labels follow the selected interface language. The memory enable/disable switch remains
+  outside this listing and deletion slice; see the [Settings decision](2026-09-27-mindtrip-settings.md).
 
 ## Sources
 

@@ -53,6 +53,25 @@ try {
     events.push({ type: "undo", account, token });
     await route.fulfill({ json: { undone: true } });
   });
+  await page.route("**/api/account/memory", async (route) => {
+    if (route.request().method() === "GET") {
+      const rows = await db.query(
+        "SELECT key, value FROM account_memories WHERE user_id=$1 ORDER BY key",
+        [account],
+      );
+      return route.fulfill({ json: { memories: rows.rows } });
+    }
+    if (route.request().method() === "DELETE") {
+      const key = route.request().postDataJSON().key;
+      const deleted = await db.query(
+        "DELETE FROM account_memories WHERE user_id=$1 AND key=$2 RETURNING key",
+        [account, key],
+      );
+      events.push({ type: "delete", account, key, deleted: deleted.rows.length === 1 });
+      return route.fulfill({ json: { deleted: deleted.rows.length === 1 } });
+    }
+    return route.fallback();
+  });
   await page.route("**/api/chat", async (route) => {
     const body = route.request().postDataJSON();
     const message = body.message;
@@ -163,6 +182,39 @@ try {
     1,
   );
   await page.screenshot({ path: resolve(output, "account-and-signed-out.png"), fullPage: true });
+
+  await page.evaluate(() => window.setFixtureAccount("account-one"));
+  await page.locator(".account-button__profile:visible").first().click();
+  const settings = page.getByRole("dialog");
+  await settings.waitFor();
+  await settings.getByRole("tab", { name: "Personalization" }).click();
+  await settings.getByText("Long-term memory", { exact: true }).waitFor();
+  await settings.getByText("Dietary needs", { exact: true }).waitFor();
+  await settings.getByText("Does not eat spicy food", { exact: true }).waitFor();
+  await settings.getByRole("tab", { name: "Language & region" }).click();
+  await settings.getByRole("button", { name: "Change Language" }).click();
+  await settings
+    .getByRole("group", { name: "Language" })
+    .getByRole("button", { name: "简体中文" })
+    .click();
+  await settings.getByRole("tab", { name: "个性化" }).click();
+  await settings.getByText("长期记忆", { exact: true }).waitFor();
+  await settings.getByText("饮食需求", { exact: true }).waitFor();
+  await settings.getByRole("button", { name: "删除记忆：饮食需求" }).click();
+  await settings
+    .getByText("Does not eat spicy food", { exact: true })
+    .waitFor({ state: "detached" });
+  await settings.getByRole("button", { name: /关闭|Close/ }).click();
+  await send("Plan my dining");
+  await assertEventually(latestAgent, /Dining: No saved dietary preference/);
+  assert.equal(
+    (
+      await db.query(
+        "SELECT count(*)::int AS count FROM account_memories WHERE user_id='account-one'",
+      )
+    ).rows[0].count,
+    0,
+  );
   await writeFile(
     resolve(output, "trace.json"),
     `${JSON.stringify(
@@ -172,6 +224,7 @@ try {
           "actual workspace chat UI and localized notice",
           "generated Postgres migration loaded in PGlite",
           "account-scoped write and dining response",
+          "localized Settings category listing and account memory deletion affect the next plan",
           "trip-only facts excluded",
           "replacement notice and undo restores previous value",
           "cross-account isolation",

@@ -860,9 +860,10 @@ the account section explains that everything stays in this browser.
     in, or that data stays in the browser, with Theme below.
   - **Personalization:**
     - **Communication style:** Neutral, Friendly, Concise or Detailed.
-    - The nonfunctional **Long-term memory** switch and its hint are hidden until the planner can
-      actually remember preferences. The stored `assistant.memory` setting remains compatible with
-      existing browser and account data.
+    - **Long-term memory** lists account preferences remembered from chat, with a category label and
+      a delete action for each entry. Categories follow the selected interface language. Listing and
+      deletion use account-scoped routes; deleting a preference removes it from later plans. Without
+      an account, the section asks the traveller to sign in.
     - **What the planner knows**, grouped as in Mindtrip:
       - Identity: home base.
       - Travel party: travellers.

@@ -329,8 +329,7 @@ Data mode 默认是 Fixture data。只有部署启用后才能选择 Live data�
     该分区说明如何登录或数据保存在浏览器中，下方仍有 Theme。
   - **Personalization：**
     - **Communication style：** Neutral、Friendly、Concise 或 Detailed。
-    - 在规划器真正支持记住偏好之前，隐藏尚未实现的 **Long-term memory** 开关及其提示。保留已存储的
-      `assistant.memory` 设置，以兼容现有浏览器和账户数据。
+    - **Long-term memory** 列出聊天中记住的账户偏好，按界面语言显示类别，并提供逐项删除操作。删除后，后续行程不再使用该偏好。列表和删除通过账户范围的接口完成；未登录时提示用户登录。
     - **规划器了解的信息**，按 Mindtrip 的方式分组：
       - Identity：常住地。
       - Travel party：旅客人数。

@@ -50,10 +50,7 @@
       "compositePrimaryKeys": {
         "account_memories_user_id_key_pk": {
           "name": "account_memories_user_id_key_pk",
-          "columns": [
-            "user_id",
-            "key"
-          ]
+          "columns": ["user_id", "key"]
         }
       },
       "uniqueConstraints": {},
@@ -130,10 +127,7 @@
       "compositePrimaryKeys": {
         "conversations_user_id_id_pk": {
           "name": "conversations_user_id_id_pk",
-          "columns": [
-            "user_id",
-            "id"
-          ]
+          "columns": ["user_id", "id"]
         }
       },
       "uniqueConstraints": {},
@@ -210,10 +204,7 @@
       "compositePrimaryKeys": {
         "trips_user_id_id_pk": {
           "name": "trips_user_id_id_pk",
-          "columns": [
-            "user_id",
-            "id"
-          ]
+          "columns": ["user_id", "id"]
         }
       },
       "uniqueConstraints": {},

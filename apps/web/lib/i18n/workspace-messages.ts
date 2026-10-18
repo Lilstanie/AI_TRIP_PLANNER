@@ -54,6 +54,19 @@ export const WORKSPACE_ZH = {
   "Communication style": "交流风格",
   "Choose how you would like the planner to talk with you.": "选择你希望规划助手使用的交流方式。",
   "Long-term memory": "长期记忆",
+  "Dietary needs": "饮食需求",
+  "Accessibility needs": "无障碍需求",
+  "Accommodation preferences": "住宿偏好",
+  "Usual departure city": "常用出发城市",
+  "Preferences remembered from chat are used in later plans.":
+    "聊天中记住的偏好会用于之后的行程规划。",
+  "Loading remembered preferences…": "正在加载已记住的偏好…",
+  "Sign in to view account memories.": "登录后查看账户记忆。",
+  "Could not load remembered preferences.": "无法加载已记住的偏好。",
+  "Nothing is remembered yet.": "目前还没有记住任何偏好。",
+  "Delete memory: {v0}": "删除记忆：{v0}",
+  Retry: "重试",
+  "Your remembered preference could not be deleted. Try again.": "无法删除已记住的偏好，请重试。",
   "Let the planner remember preferences you mention in chat, such as your pace or what you eat, and use them in later plans. When off, it will not save or use anything it learns in chat.":
     "允许助手记住你在聊天中提到的偏好，例如节奏和饮食，并用于后续规划。关闭后，将不保存或使用从聊天中学到的偏好。",
   "What the planner knows about you fills in every new trip. You can change any of it for one trip, and trips already planned stay as they are.":
@@ -72,7 +85,6 @@ export const WORKSPACE_ZH = {
   Dietary: "饮食要求",
   "Any dietary restrictions or allergies? (e.g., vegetarian, gluten-free, nut allergies)":
     "有饮食限制或过敏吗？（例如素食、无麸质、坚果过敏）",
-  "Dietary needs": "饮食需求",
   "Trip budget": "行程预算",
   "What do you usually spend on a trip, in AUD?": "每次旅行通常花费多少澳元？",
   "Budget (AUD, whole trip)": "预算（AUD，整趟旅行）",

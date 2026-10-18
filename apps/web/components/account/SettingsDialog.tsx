@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { COMMUNICATION_STYLES } from "@trip/shared";
 import { blankDraft, type Draft } from "@/lib/workspace";
 import type { DataMode } from "@/lib/workspace/data-mode";
@@ -45,6 +45,14 @@ const DATA_LABEL = {
   live: "Live prices",
   mock: "Sample data",
 } as const;
+const MEMORY_CATEGORY_LABEL: Record<string, MessageKey> = {
+  dietary: "Dietary needs",
+  pace: "Pace",
+  interests: "Interests",
+  accessibility: "Accessibility needs",
+  accommodation: "Accommodation preferences",
+  departure_city: "Usual departure city",
+};
 
 import { SettingRow, Segmented, ChipGroup, MemoryRow, TextEditor } from "./SettingsControls";
 
@@ -417,6 +425,7 @@ function Loyalty({
 
 function PersonalizationSection() {
   const { t, notice: localizeNotice } = useLocale();
+  const account = useAccount();
   const { settings, update } = useSettings();
   const travel = settings.travel;
   const setTravel = (next: Partial<UserSettings["travel"]>) =>
@@ -425,9 +434,95 @@ function PersonalizationSection() {
     ...blankDraft(),
     preferences: travel.preferences,
   });
+  const [memories, setMemories] = useState<{ key: string; value: string }[]>([]);
+  const [memoryState, setMemoryState] = useState<"loading" | "ready" | "failed">("loading");
+  const [deletingMemory, setDeletingMemory] = useState<string>();
+
+  async function loadMemories() {
+    setMemoryState("loading");
+    try {
+      const response = await fetch("/api/account/memory", { cache: "no-store" });
+      if (!response.ok) throw new Error("memory-list-failed");
+      const body = (await response.json()) as { memories?: { key: string; value: string }[] };
+      setMemories(Array.isArray(body.memories) ? body.memories : []);
+      setMemoryState("ready");
+    } catch {
+      setMemoryState("failed");
+    }
+  }
+
+  useEffect(() => {
+    void loadMemories();
+  }, []);
+
+  async function deleteMemory(key: string) {
+    setDeletingMemory(key);
+    try {
+      const response = await fetch("/api/account/memory", {
+        method: "DELETE",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ key }),
+      });
+      if (!response.ok) throw new Error("memory-delete-failed");
+      const body = (await response.json()) as { deleted?: boolean };
+      if (!body.deleted) throw new Error("memory-delete-missing");
+      setMemories((current) => current.filter((item) => item.key !== key));
+    } catch {
+      localizeNotice({ key: "Your remembered preference could not be deleted. Try again." });
+    } finally {
+      setDeletingMemory(undefined);
+    }
+  }
 
   return (
     <div className="settings-form">
+      <section className="settings-block" aria-labelledby="settings-long-term-memory">
+        <h3 id="settings-long-term-memory">{t("Long-term memory")}</h3>
+        <p className="settings-hint">
+          {t("Preferences remembered from chat are used in later plans.")}
+        </p>
+        {memoryState === "loading" ? (
+          <p role="status">{t("Loading remembered preferences…")}</p>
+        ) : memoryState === "failed" ? (
+          <div role="alert">
+            <p>
+              {t(
+                account.status === "local"
+                  ? "Sign in to view account memories."
+                  : "Could not load remembered preferences.",
+              )}
+            </p>
+            <button type="button" className="settings-pill" onClick={() => void loadMemories()}>
+              {t("Retry")}
+            </button>
+          </div>
+        ) : memories.length === 0 ? (
+          <p>{t("Nothing is remembered yet.")}</p>
+        ) : (
+          <ul className="memory-list">
+            {memories.map(({ key, value }) => {
+              const label = t(MEMORY_CATEGORY_LABEL[key] ?? "Other preferences");
+              return (
+                <li className="memory-row" key={key}>
+                  <div className="memory-row__main">
+                    <span className="memory-row__label">{label}</span>
+                    <span className="memory-row__value">{value}</span>
+                  </div>
+                  <button
+                    type="button"
+                    className="settings-pill"
+                    aria-label={t("Delete memory: {v0}", { v0: label })}
+                    disabled={deletingMemory === key}
+                    onClick={() => void deleteMemory(key)}
+                  >
+                    {deletingMemory === key ? t("Deleting…") : t("Delete")}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
       <section className="settings-block" aria-labelledby="settings-style">
         <h3 id="settings-style">{t("Communication style")}</h3>
         <p className="settings-hint">
