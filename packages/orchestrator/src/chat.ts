@@ -15,6 +15,7 @@ import {
   PartialTripBrief as PartialTripBriefSchema,
   TripBrief as TripBriefSchema,
   toAud,
+  partyPeople,
   type ChatRequest,
   type AssistantSettings,
   type InterfaceLanguage,
@@ -26,6 +27,7 @@ import {
   type ChatNeedsInfo,
   type MemoryStore,
   type PartialTripBrief,
+  type TravellerParty,
   type TripBrief,
   type TripPlan,
 } from "@trip/shared";
@@ -106,6 +108,18 @@ export const BriefUpdate = z.object({
   startDate: z.string().nullish().describe("YYYY-MM-DD"),
   endDate: z.string().nullish().describe("YYYY-MM-DD"),
   groupSize: z.union([z.number(), z.string()]).nullish(),
+  party: z
+    .object({
+      adults: z.union([z.number(), z.string()]).nullish(),
+      children: z.union([z.number(), z.string()]).nullish(),
+      infants: z.union([z.number(), z.string()]).nullish(),
+      seniors: z.union([z.number(), z.string()]).nullish(),
+      pets: z.union([z.number(), z.string()]).nullish(),
+    })
+    .nullish()
+    .describe(
+      'who is travelling, whenever they say more than a total ("1 adult and 1 child", "两大一小", "my wife, our baby and the dog"). Count every person in exactly one of adults, children, infants and seniors; pets are not people and are not in groupSize. Send the whole breakdown, using 0 for a kind nobody is.',
+    ),
   budgetAmount: z.union([z.number(), z.string()]).nullish().describe("the number they said"),
   budgetCurrency: z.string().nullish().describe("AUD, CNY, USD or JPY, as they said it"),
   displayCurrency: z
@@ -157,6 +171,23 @@ function text(value: unknown): string | undefined {
   const trimmed = value.trim();
   return !trimmed || /^(null|none|n\/a|undefined|unknown)$/i.test(trimmed) ? undefined : trimmed;
 }
+const PARTY_KEYS = ["adults", "children", "infants", "seniors", "pets"] as const;
+
+function partyFrom(value: unknown): TravellerParty | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const source = value as Record<string, unknown>;
+  const counts = PARTY_KEYS.map((key) => {
+    const raw = source[key];
+    const parsed = typeof raw === "number" ? raw : Number(text(raw));
+    return Number.isInteger(parsed) && parsed >= 0 && parsed <= 99 ? parsed : undefined;
+  });
+  if (counts.every((entry) => entry === undefined)) return undefined;
+  const party = Object.fromEntries(
+    PARTY_KEYS.map((key, index) => [key, counts[index] ?? 0]),
+  ) as TravellerParty;
+  return partyPeople(party) > 0 ? party : undefined;
+}
+
 function count(value: unknown): number | undefined {
   const parsed = typeof value === "number" ? value : Number(text(value)?.replaceAll(",", ""));
   return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
@@ -170,6 +201,7 @@ function toPatch(update: z.infer<typeof BriefUpdate>): BriefPatch {
   const startDate = isoDate(update.startDate);
   const endDate = isoDate(update.endDate);
   const groupSize = count(update.groupSize);
+  const party = partyFrom(update.party);
 
   const learned = Array.isArray(update.learnedPreferences)
     ? [
@@ -185,6 +217,7 @@ function toPatch(update: z.infer<typeof BriefUpdate>): BriefPatch {
     ...(text(update.origin) ? { origin: text(update.origin) } : {}),
     ...(text(update.nationality) ? { nationality: text(update.nationality) } : {}),
     ...(groupSize !== undefined ? { groupSize: Math.round(groupSize) } : {}),
+    ...(party ? { party } : {}),
 
     ...(startDate ? { dateStart: startDate } : {}),
     ...(endDate ? { dateEnd: endDate } : {}),

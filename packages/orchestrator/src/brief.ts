@@ -4,6 +4,8 @@ import {
   Currency,
   LegModeChoice,
   TripPreferences,
+  TravellerParty,
+  partyPeople,
   type TripBrief,
 } from "@trip/shared";
 import { z } from "zod/v4";
@@ -17,6 +19,7 @@ export const BriefPatchSchema = z.object({
   dateStart: z.string().regex(ISO_DATE).optional(),
   dateEnd: z.string().regex(ISO_DATE).optional(),
   groupSize: z.number().int().positive().optional(),
+  party: TravellerParty.optional(),
   budgetTotal: z.number().positive().optional(),
   budgetSource: z.object({ amount: z.number().positive(), currency: Currency }).optional(),
   displayCurrency: Currency.optional(),
@@ -54,6 +57,9 @@ export function mergeBriefPatch<T extends BriefPatch>(current: T, patch: BriefPa
   delete next.dateEnd;
   if (parsedPatch.budgetTotal !== undefined && parsedPatch.budgetSource === undefined)
     delete next.budgetSource;
+
+  if (parsedPatch.party) next.groupSize = partyPeople(parsedPatch.party);
+  else if (parsedPatch.groupSize !== undefined) delete next.party;
   return next;
 }
 

@@ -98,7 +98,9 @@ fares stay in the provider's currency.
 
 `brief.party` and `known.party` are optional too: `{ adults, children, infants, seniors, pets }`,
 whole numbers from 0 to 99 (`TravellerParty` in `packages/shared/src/contracts.ts`), set by the Who
-editor's steppers. They break `groupSize` down and add pets, who are not counted in it; `groupSize`
+editor's steppers and by the coordinator when the traveller says who is travelling rather than only a
+total ("1 adult and 1 child", "两位大人和一个小孩"). A later message that gives a new total drops the
+breakdown, because it no longer describes the party. They break `groupSize` down and add pets, who are not counted in it; `groupSize`
 stays authoritative for every cost, and specialists are told to ignore a party whose people do not
 add up to it.
 
