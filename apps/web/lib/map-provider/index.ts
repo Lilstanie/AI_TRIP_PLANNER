@@ -62,9 +62,6 @@ export function mapProviderFor(dataMode: DataMode): MapProvider {
   return provider;
 }
 
-/** The provider for this deployment's configured mode. Callers serving a request must resolve the
- * caller's mode with `requestDataMode` and use `mapProviderFor`, so a browser header cannot select
- * live providers on its own. */
 export function mapProvider(): MapProvider {
   return mapProviderFor(configuredDataMode());
 }
