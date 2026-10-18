@@ -2,7 +2,7 @@
 date: 2026-10-19
 author: Codex
 branch: fix/multicity-transfer-validation
-pr: none
+pr: 451
 area: packages/agents, apps/web, docs
 contract-impact: none
 ---
@@ -32,12 +32,12 @@ The issue's public-plan follow-up also exposed that invalid transfer ordering co
 - `pnpm --filter @trip/web typecheck` and `pnpm --filter @trip/web lint`: passed; lint reports the existing `next lint` deprecation notice.
 - `CHANNEL=chrome pnpm --filter @trip/web e2e multicity-triage`: passed API and desktop/mobile browser checks on the final source; artifact `output/e2e/runner/2026-10-18T20-39-09-246Z.json`.
 - `pnpm verify:docs`, `pnpm verify:pairs` (27 pairs), `pnpm verify:protected`, `pnpm verify:e2e-artifacts` (77 scripts), `pnpm verify:e2e-selectors`, and `git diff --check`: passed.
-- `pnpm exec prettier --check` on all changed source, E2E and documentation files: passed. `pnpm format:check-changed origin/main` will run after the implementation commit.
+- `pnpm exec prettier --check` on changed source and `pnpm format:check-changed origin/main` after the final implementation commit: passed.
 - An initial E2E launch without `CHANNEL=chrome` failed because this worktree lacks Playwright's headless shell; the documented browser-channel rerun passed.
 - The first typecheck caught two assignments to the inferred non-optional city type; the explicit unknown-state type fixed both.
 
 ## Notes for the next person
 
-The local E2E artifact remains until its evidence is quoted in the PR body. No live model or provider quota was used. The follow-up addresses the closed #437 acceptance gap and does not itself close that issue.
+The E2E artifact was quoted in PR #451 and then removed with `pnpm clean:output`. No live model or provider quota was used. The follow-up addresses the closed #437 acceptance gap and does not itself close that issue.
 
 The new checkout-day regression first failed as expected because Day 3 activity in Wollongong was rejected against the Sydney stay; after removing the checkout-date stay fallback, the full agent suite passed.
