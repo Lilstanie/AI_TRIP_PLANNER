@@ -321,6 +321,27 @@ try {
     "Before the trip, budget retains the existing expanded default",
   );
 
+  await installSnapshot(page, ["2026-10-14", "2026-10-16"], "after-trip-sydney-boundary", false);
+  await page.reload();
+  await openSeededTrip();
+  await trip.getByRole("tab", { name: /^Day 1\b/ }).waitFor();
+  check(
+    (await trip.getByRole("tab", { name: /Today/ }).count()) === 0,
+    "After the destination-local end date, no day is marked Today",
+  );
+  check(
+    (await trip.getByRole("tab", { name: /^Day 1\b/ }).getAttribute("aria-selected")) === "true",
+    "After the trip, Day 1 remains the default",
+  );
+  check(
+    await tips.evaluate((node) => node.open),
+    "After the trip, Travel tips retain the existing expanded default",
+  );
+  check(
+    await trip.locator(".trip-budget").evaluate((node) => node.open),
+    "After the trip, budget retains the existing expanded default",
+  );
+
   const secondTrip = snapshotSeed(
     ["2026-10-17", "2026-10-19"],
     "on-trip-second-budget-default",
