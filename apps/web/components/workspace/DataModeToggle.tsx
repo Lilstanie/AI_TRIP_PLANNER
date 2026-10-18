@@ -7,11 +7,13 @@ export function DataModeToggle({
   providers,
   onChange,
   disabled,
+  liveAvailable = true,
 }: {
   mode: DataMode | undefined;
   providers: DataModeProviders | undefined;
   onChange: (mode: DataMode) => void;
   disabled?: boolean;
+  liveAvailable?: boolean;
 }) {
   const { t } = useLocale();
 
@@ -19,22 +21,24 @@ export function DataModeToggle({
 
   const live = mode === "live";
   const keyed = providers?.hotelsAndFlights ?? true;
-  const title = live
-    ? keyed
-      ? t(
-          "Live data: real hotel and flight prices. Each plan spends the shared monthly search allowance.",
-        )
-      : t(
-          "Live data selected, but no SERPAPI_KEY is configured, so results fall back to estimates.",
-        )
-    : t("Mock data: bundled fixtures. No provider requests and no allowance spent.");
+  const title = !liveAvailable
+    ? t("Mock data: bundled fixtures. Sign in to plan with live hotel and flight prices.")
+    : live
+      ? keyed
+        ? t(
+            "Live data: real hotel and flight prices. Each plan spends the shared monthly search allowance.",
+          )
+        : t(
+            "Live data selected, but no SERPAPI_KEY is configured, so results fall back to estimates.",
+          )
+      : t("Mock data: bundled fixtures. No provider requests and no allowance spent.");
 
   return (
     <button
       type="button"
       className={`topbar-button data-mode data-mode--${live ? "live" : "mock"}`}
       aria-pressed={live}
-      disabled={disabled}
+      disabled={disabled || !liveAvailable}
       title={title}
       onClick={() => onChange(live ? "mock" : "live")}
     >

@@ -6,7 +6,7 @@ import {
   parseFlightQuery,
   runTripChat,
 } from "@trip/orchestrator";
-import { createToolGateway, parseDataMode, runWithDataMode } from "@trip/tools";
+import { createToolGateway, runWithDataMode } from "@trip/tools";
 import { tripStore } from "@trip/services";
 import {
   ChatRequest,
@@ -17,11 +17,12 @@ import {
   type FlightAnswer,
 } from "@trip/shared";
 import { noticeBody, type Notice } from "@/lib/i18n/notice";
+import { requestDataMode } from "@/lib/auth/live-data";
 
 const INVALID_REQUEST: Notice = { key: "The request was invalid. Please retry." };
 
 export async function POST(req: Request) {
-  const dataMode = parseDataMode(req.headers.get("x-trip-data-mode"));
+  const dataMode = await requestDataMode(req);
   const body = await req.json().catch(() => ({}));
   const parsed = ChatRequest.safeParse(body);
   if (!parsed.success) {

@@ -1,4 +1,4 @@
-import { configuredDataMode, parseDataMode, type DataMode } from "@trip/tools";
+import { configuredDataMode, type DataMode } from "@trip/tools";
 import { unavailableRoute, type RouteMode, type RouteResult } from "@/lib/integrations/google";
 import { fallbackMapProvider } from "./fallback";
 import { mockGoogleProvider } from "./mock-google";
@@ -51,8 +51,7 @@ export function createMapProvider(options: MapProviderOptions): MapProvider {
 
 const shared = new Map<string, MapProvider>();
 
-export function mapProvider(request?: Request): MapProvider {
-  const dataMode = parseDataMode(request?.headers.get("x-trip-data-mode")) ?? configuredDataMode();
+export function mapProviderFor(dataMode: DataMode): MapProvider {
   const setting = mapProviderSetting();
   const key = `${setting}|${dataMode}|${process.env.MOCK_GOOGLE_MAPS ?? ""}`;
   let provider = shared.get(key);
@@ -61,6 +60,13 @@ export function mapProvider(request?: Request): MapProvider {
     shared.set(key, provider);
   }
   return provider;
+}
+
+/** The provider for this deployment's configured mode. Callers serving a request must resolve the
+ * caller's mode with `requestDataMode` and use `mapProviderFor`, so a browser header cannot select
+ * live providers on its own. */
+export function mapProvider(): MapProvider {
+  return mapProviderFor(configuredDataMode());
 }
 
 export function resetMapProviders() {
