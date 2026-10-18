@@ -343,6 +343,23 @@ try {
       .getAttribute("aria-selected")) === "true",
     "a saved selection from a previous trip day yields to today's date",
   );
+  await page.clock.setSystemTime(new Date("2026-10-17T14:30:00Z"));
+  await page.evaluate(() =>
+    localStorage.setItem(
+      "trip-day-selected:on-trip-sydney-boundary",
+      JSON.stringify({ day: 5, selectedOnToday: 2 }),
+    ),
+  );
+  await page.reload();
+  await openSeededTrip();
+  check(
+    (await page
+      .locator("#phone-panel-trip")
+      .getByRole("tab", { name: /Today/ })
+      .getAttribute("aria-selected")) === "true",
+    "an out-of-range saved manual day yields to Today",
+  );
+  await page.clock.setSystemTime(new Date("2026-10-16T14:30:00Z"));
   await page.screenshot({ path: `${OUT}/on-trip-sydney-boundary.png`, fullPage: true });
 
   await page.evaluate(() => localStorage.setItem("trip-tips-folded:on-trip-sydney-boundary", "0"));

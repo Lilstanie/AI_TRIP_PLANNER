@@ -165,6 +165,11 @@ export function TripEditor({
   useEffect(() => {
     const restoredDay = savedDay(plan.tripId);
     if (restoredDay === undefined) return;
+    if (restoredDay.day > days) {
+      manuallySelectedDay.current = false;
+      setDay(today ?? 1);
+      return;
+    }
     if (today === undefined && restoredDay.selectedOnToday !== null) {
       manuallySelectedDay.current = false;
       setDay(1);
