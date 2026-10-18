@@ -337,7 +337,9 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     fares answered, failed or cancelled. `requestTurn` in `lib/workspace/session.ts` only sends the
     request and reads the stream; the pure `session(state, event)` there applies the outcome, so the
     reset rules (previous total, selected stop, map routes, field errors, question card) live in one
-    place and are tested without React in `tests/lib/workspace/session.test.ts`.
+    place and are tested without React in `tests/lib/workspace/session.test.ts`. A pending question
+    and its answer progress persist across reloads; the question remains available while its answer
+    is being sent and after a failed request, and a successful reply clears it.
   - Switching chat or trip, or New chat, first flushes the pending autosave, then aborts in-flight
     requests and clears progress, errors, selection and map routes in one `opened` session event.
     Late responses are ignored.

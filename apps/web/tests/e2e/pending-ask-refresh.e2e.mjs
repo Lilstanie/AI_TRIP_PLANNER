@@ -54,13 +54,20 @@ try {
     });
     const page = await context.newPage();
     page.on("pageerror", (error) => errors.push(String(error)));
+    let failNextAnswer = true;
     await page.route("**/api/chat", async (route) => {
-      requests.push(route.request().postDataJSON());
+      const request = route.request().postDataJSON();
+      requests.push(request);
+      if (request.message.startsWith("Which Atlantis:") && failNextAnswer) {
+        failNextAnswer = false;
+        await route.fulfill({ status: 500, contentType: "text/plain", body: "Temporary failure" });
+        return;
+      }
       await route.fulfill({
         contentType: "application/x-ndjson",
         body:
           JSON.stringify(
-            requests.at(-1).message.startsWith("Which Atlantis:")
+            request.message.startsWith("Which Atlantis:")
               ? { type: "needs_info", question: "Answer received.", known: frame.known }
               : frame,
           ) + "\n",
@@ -73,8 +80,14 @@ try {
       .getByRole("textbox", { name: "Message AI Trip Planner" })
       .fill("Plan 3 days in Atlantis for 2 people, budget AUD 2000, from 2026-12-10");
     await page.keyboard.press("Enter");
-    await page.getByRole("radio", { name: /Atlantis The Palm, Dubai/ }).waitFor();
-    await page.waitForTimeout(600);
+    const choice = page.getByRole("radio", { name: /Atlantis The Palm, Dubai/ });
+    await choice.waitFor();
+    await choice.click();
+    await page.waitForFunction(() =>
+      localStorage
+        .getItem("trip-workspace-catalog-v3")
+        ?.includes('"selected":["Atlantis The Palm, Dubai"]'),
+    );
     await page.screenshot({ path: `${OUT}/${viewport.width}-before.png` });
     writeFileSync(
       `${OUT}/${viewport.width}-storage-before.json`,
@@ -82,11 +95,18 @@ try {
     );
     await page.reload();
     await page.waitForSelector(".workspace-app");
-    await page.waitForTimeout(600);
+    await page.waitForFunction(() =>
+      Array.from(document.querySelectorAll('[role="radio"][aria-checked="true"]')).some((item) =>
+        item.textContent?.includes("Atlantis The Palm, Dubai"),
+      ),
+    );
     await page.screenshot({ path: `${OUT}/${viewport.width}-after.png` });
-    const choice = page.getByRole("radio", { name: /Atlantis The Palm, Dubai/ });
     const restored = (await choice.count()) === 1;
     check(restored, `${viewport.width}: pending question survives reload`);
+    check(
+      restored && (await choice.isChecked()),
+      `${viewport.width}: selected answer survives reload`,
+    );
     check(
       (await page
         .getByText("Need more details: tell me which one you mean.", { exact: true })
@@ -95,29 +115,55 @@ try {
     );
     if (restored) {
       check(
+        (await page.getByRole("button", { name: "Skip this question" }).count()) === 1 &&
+          (await page.getByRole("button", { name: "Submit", exact: true }).count()) === 1,
+        `${viewport.width}: restored question offers submit and skip actions`,
+      );
+      check(
         (await page.getByRole("radio", { name: /Atlantis Paradise Island, Bahamas/ }).count()) ===
           1,
         `${viewport.width}: alternative option survives`,
       );
-      await choice.click();
+      if (!(await choice.isChecked())) await choice.click();
       await page.getByRole("button", { name: "Submit", exact: true }).click();
-      await page.getByText("Answer received.", { exact: true }).waitFor();
+      await page.getByRole("button", { name: "Retry update" }).waitFor();
+      const answerableAfterFailure =
+        (await page.getByRole("radio", { name: /Atlantis The Palm, Dubai/ }).count()) === 1 &&
+        (await page.getByRole("radio", { name: /Atlantis The Palm, Dubai/ }).isChecked()) &&
+        (await page.getByRole("button", { name: "Skip this question" }).count()) === 1 &&
+        (await page.getByRole("button", { name: "Submit", exact: true }).count()) === 1;
       check(
-        requests.at(-1).message === "Which Atlantis: Atlantis The Palm, Dubai",
-        `${viewport.width}: restored option submits formatted answer`,
+        answerableAfterFailure,
+        `${viewport.width}: failed submission keeps the selected question answerable`,
       );
-      check(
-        requests.at(-1).known?.budgetTotal === 2000 &&
-          requests.at(-1).known?.destination === "Atlantis",
-        `${viewport.width}: answer retains known brief`,
-      );
-      await page.waitForTimeout(600);
-      await page.reload();
-      await page.waitForSelector(".workspace-app");
-      check(
-        (await page.getByRole("radio", { name: /Atlantis The Palm, Dubai/ }).count()) === 0,
-        `${viewport.width}: submitted question does not reappear`,
-      );
+      await page.screenshot({ path: `${OUT}/${viewport.width}-failed-answer.png` });
+      if (answerableAfterFailure) {
+        await page.getByRole("button", { name: "Submit", exact: true }).click();
+        await page.getByText("Answer received.", { exact: true }).waitFor();
+        check(
+          requests.at(-1).message === "Which Atlantis: Atlantis The Palm, Dubai",
+          `${viewport.width}: restored option submits formatted answer`,
+        );
+        check(
+          requests.at(-1).known?.budgetTotal === 2000 &&
+            requests.at(-1).known?.destination === "Atlantis",
+          `${viewport.width}: answer retains known brief`,
+        );
+        await page.waitForFunction(() => {
+          const catalog = JSON.parse(localStorage.getItem("trip-workspace-catalog-v3") ?? "null");
+          const conversation = catalog?.conversations?.find(
+            (item) => item.id === catalog.activeConversationId,
+          );
+          return conversation && !conversation.ask;
+        });
+        await page.reload();
+        await page.waitForSelector(".workspace-app");
+        await page.getByText("Answer received.", { exact: true }).waitFor();
+        check(
+          (await page.getByRole("radio", { name: /Atlantis The Palm, Dubai/ }).count()) === 0,
+          `${viewport.width}: submitted question does not reappear`,
+        );
+      }
     }
     check(
       await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),

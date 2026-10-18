@@ -106,6 +106,7 @@ seniors`（宠物不计为旅客）；`groupSize` 仍是校验字段，因此至
 - **请求。**
   - `Workspace` 负责聊天、方案和决策请求。失败时保留当前方案，并提供重试。
   - 一次规划回合以一种结果结束：方案已应用、缺信息、规划器追问、回答了票价、失败或已取消。`lib/workspace/session.ts` 中的 `requestTurn` 只负责发请求和读取流；同一文件中的纯函数 `session(state, event)` 应用结果，因此重置规则（上一次总价、选中的站点、地图路线、字段错误、问题卡片）只在一处，并在 `tests/lib/workspace/session.test.ts` 中脱离 React 测试。
+    待回答的问题及已填写的回答进度会跨重载保存；发送答案期间和请求失败后仍可继续回答，收到成功回复后才清除。
   - 切换聊天或行程，或 New chat 时，先落盘待执行的自动保存，再中止进行中的请求，并通过一个 `opened` 会话事件清空进度、错误、选择和地图路线。晚到的响应被忽略。
   - 从行程列表或时间线应用修改即调用 `applyEdit(next)`，它记录上一次总价。聊天重新规划会把 `estimateChange` 设为相对被替换方案的带符号变化，时间线编辑则清除它。视图从 `useWorkspace` 获得这些操作，而不是状态 setter（[架构](architecture.zh.md#workspace-state)）。
 - **存储。**

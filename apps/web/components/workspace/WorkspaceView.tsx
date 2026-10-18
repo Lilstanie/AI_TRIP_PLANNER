@@ -488,6 +488,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                 onSend={session.send}
                 ask={ask}
                 onAnswer={session.answer}
+                onAskProgress={session.updateAskProgress}
                 onDismissAsk={session.dismissAsk}
                 onEdit={edit}
                 onStart={edit}

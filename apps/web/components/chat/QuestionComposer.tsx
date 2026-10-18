@@ -4,6 +4,8 @@ import { useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
 import {
   parseRecommendedLabel,
   type PendingAsk,
+  type QuestionDraft,
+  type QuestionProgress,
   type QuestionAnswer,
 } from "@/lib/workspace/ask-user";
 
@@ -24,7 +26,7 @@ const copy = {
 
 type Feedback = "incomplete" | "unanswered";
 
-type Draft = { selected: string[]; custom: string; skipped: boolean };
+type Draft = QuestionDraft;
 
 type IconProps = { size?: number };
 
@@ -150,16 +152,20 @@ export function QuestionComposer({
   request,
   onSubmit,
   onCancel,
+  onProgress,
 }: {
   request: PendingAsk;
   onSubmit: (answers: QuestionAnswer[]) => void;
   onCancel: () => void;
+  onProgress?: (progress: QuestionProgress) => void;
 }) {
   const { t } = useLocale();
   const questions = request.questions;
-  const [index, setIndex] = useState(0);
-  const [drafts, setDrafts] = useState<Draft[]>(() =>
-    questions.map(() => ({ selected: [], custom: "", skipped: false })),
+  const [index, setIndex] = useState(request.progress?.index ?? 0);
+  const [drafts, setDrafts] = useState<Draft[]>(
+    () =>
+      request.progress?.drafts ??
+      questions.map(() => ({ selected: [], custom: "", skipped: false })),
   );
   const [feedback, setFeedback] = useState<Feedback | null>(null);
 
@@ -176,6 +182,7 @@ export function QuestionComposer({
   const replaceProgress = (nextIndex: number, nextDrafts: Draft[]) => {
     setIndex(nextIndex);
     setDrafts(nextDrafts);
+    onProgress?.({ index: nextIndex, drafts: nextDrafts });
   };
 
   const updateDraft = (update: (current: Draft) => Draft, nextIndex = index) => {
