@@ -352,9 +352,10 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     A catalog object already persisted by autosave is not serialized and written again by the catalog
     effect. Layout, history and account-sync changes still persist; a failed write remains retryable.
   - The catalog (`trip-workspace-catalog-v3`) keeps conversations and trips separately, with stable
-    links and an optional conversation `draft`. Snapshots write version 4; version 3 (AUD) snapshots
-    remain readable and recover their budget source when the draft still matches the plan.
-    Pre-AUD versions 1 and 2 remain rejected; the catalog version and storage keys stay unchanged.
+    links and an optional conversation `draft`. The catalog writes version 5 and reads version 4,
+    normalizing it to version 5; version 3 (AUD) snapshots remain readable and recover their budget
+    source when the draft still matches the plan. Pre-AUD versions 1 and 2 remain rejected, and the
+    storage keys stay unchanged.
   - Layout stores the sidebar's `collapsed` always and its `width` only after a resize, so an
     untouched workspace keeps following the stylesheet at every viewport size.
   - Corrupt data is never overwritten automatically, and layout fields fall back to defaults instead

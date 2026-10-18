@@ -23,6 +23,11 @@ const frame = {
         { label: "A different place called Atlantis" },
       ],
     },
+    {
+      id: "arrival",
+      header: "Arrival preference",
+      question: "What matters most for your arrival?",
+    },
   ],
   known: {
     destination: "Atlantis",
@@ -83,10 +88,12 @@ try {
     const choice = page.getByRole("radio", { name: /Atlantis The Palm, Dubai/ });
     await choice.waitFor();
     await choice.click();
+    const customAnswer = page.getByRole("textbox", { name: "Your answer" });
+    await customAnswer.fill("A quiet room near the beach");
     await page.waitForFunction(() =>
       localStorage
         .getItem("trip-workspace-catalog-v3")
-        ?.includes('"selected":["Atlantis The Palm, Dubai"]'),
+        ?.includes('"custom":"A quiet room near the beach"'),
     );
     await page.screenshot({ path: `${OUT}/${viewport.width}-before.png` });
     writeFileSync(
@@ -95,17 +102,13 @@ try {
     );
     await page.reload();
     await page.waitForSelector(".workspace-app");
-    await page.waitForFunction(() =>
-      Array.from(document.querySelectorAll('[role="radio"][aria-checked="true"]')).some((item) =>
-        item.textContent?.includes("Atlantis The Palm, Dubai"),
-      ),
-    );
+    await page.getByRole("heading", { name: "What matters most for your arrival?" }).waitFor();
     await page.screenshot({ path: `${OUT}/${viewport.width}-after.png` });
-    const restored = (await choice.count()) === 1;
-    check(restored, `${viewport.width}: pending question survives reload`);
+    const restored = (await customAnswer.inputValue()) === "A quiet room near the beach";
+    check(restored, `${viewport.width}: pending question and current step survive reload`);
     check(
-      restored && (await choice.isChecked()),
-      `${viewport.width}: selected answer survives reload`,
+      restored && (await page.locator(".question__progress").textContent())?.trim() === "2 / 2",
+      `${viewport.width}: current question position survives reload`,
     );
     check(
       (await page
@@ -119,17 +122,20 @@ try {
           (await page.getByRole("button", { name: "Submit", exact: true }).count()) === 1,
         `${viewport.width}: restored question offers submit and skip actions`,
       );
+      await page.getByRole("button", { name: "Previous question" }).click();
+      check(await choice.isChecked(), `${viewport.width}: earlier selected answer survives reload`);
+      await page.getByRole("button", { name: "Next question" }).click();
       check(
-        (await page.getByRole("radio", { name: /Atlantis Paradise Island, Bahamas/ }).count()) ===
-          1,
-        `${viewport.width}: alternative option survives`,
+        (await customAnswer.inputValue()) === "A quiet room near the beach",
+        `${viewport.width}: later custom answer survives reload`,
       );
-      if (!(await choice.isChecked())) await choice.click();
       await page.getByRole("button", { name: "Submit", exact: true }).click();
       await page.getByRole("button", { name: "Retry update" }).waitFor();
       const answerableAfterFailure =
-        (await page.getByRole("radio", { name: /Atlantis The Palm, Dubai/ }).count()) === 1 &&
-        (await page.getByRole("radio", { name: /Atlantis The Palm, Dubai/ }).isChecked()) &&
+        (await page
+          .getByRole("heading", { name: "What matters most for your arrival?" })
+          .count()) === 1 &&
+        (await customAnswer.inputValue()) === "A quiet room near the beach" &&
         (await page.getByRole("button", { name: "Skip this question" }).count()) === 1 &&
         (await page.getByRole("button", { name: "Submit", exact: true }).count()) === 1;
       check(
@@ -141,8 +147,9 @@ try {
         await page.getByRole("button", { name: "Submit", exact: true }).click();
         await page.getByText("Answer received.", { exact: true }).waitFor();
         check(
-          requests.at(-1).message === "Which Atlantis: Atlantis The Palm, Dubai",
-          `${viewport.width}: restored option submits formatted answer`,
+          requests.at(-1).message ===
+            "Which Atlantis: Atlantis The Palm, Dubai\nArrival preference: A quiet room near the beach",
+          `${viewport.width}: restored answers submit in question order`,
         );
         check(
           requests.at(-1).known?.budgetTotal === 2000 &&
@@ -160,7 +167,9 @@ try {
         await page.waitForSelector(".workspace-app");
         await page.getByText("Answer received.", { exact: true }).waitFor();
         check(
-          (await page.getByRole("radio", { name: /Atlantis The Palm, Dubai/ }).count()) === 0,
+          (await page
+            .getByRole("heading", { name: "What matters most for your arrival?" })
+            .count()) === 0,
           `${viewport.width}: submitted question does not reappear`,
         );
       }
