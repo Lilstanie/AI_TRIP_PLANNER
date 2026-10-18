@@ -87,6 +87,25 @@ try {
     await page.keyboard.press("Enter");
     const choice = page.getByRole("radio", { name: /Atlantis The Palm, Dubai/ });
     await choice.waitFor();
+    await page.waitForFunction(() => {
+      const catalog = JSON.parse(localStorage.getItem("trip-workspace-catalog-v3") ?? "null");
+      const conversation = catalog?.conversations?.find(
+        (item) => item.id === catalog.activeConversationId,
+      );
+      return conversation?.ask?.questions?.[0]?.header === "Which Atlantis";
+    });
+    await page.reload();
+    await page.waitForSelector(".workspace-app");
+    await page.getByRole("heading", { name: "Which Atlantis do you mean?" }).waitFor();
+    check(
+      await choice.isVisible(),
+      `${viewport.width}: unanswered question and options survive reload`,
+    );
+    check(
+      (await page.getByRole("button", { name: "Skip this question" }).count()) === 1 &&
+        (await page.getByRole("button", { name: "Next", exact: true }).count()) === 1,
+      `${viewport.width}: unanswered question restores continue and skip actions`,
+    );
     await choice.click();
     const customAnswer = page.getByRole("textbox", { name: "Your answer" });
     await customAnswer.fill("A quiet room near the beach");
