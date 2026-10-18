@@ -31,7 +31,14 @@ const ask: PendingAsk = {
 function setup(request: PendingAsk = ask) {
   const onSubmit = vi.fn();
   const onCancel = vi.fn();
-  render(<QuestionComposer request={request} onSubmit={onSubmit} onCancel={onCancel} />);
+  render(
+    <QuestionComposer
+      request={request}
+      onSubmit={onSubmit}
+      onCancel={onCancel}
+      submitting={false}
+    />,
+  );
   return { onSubmit, onCancel };
 }
 const title = () => screen.getByRole("heading", { level: 2 }).textContent;

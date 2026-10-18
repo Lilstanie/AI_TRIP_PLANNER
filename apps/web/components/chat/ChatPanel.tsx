@@ -140,6 +140,7 @@ export function ChatPanel({
           onSubmit={onAnswer}
           onCancel={onDismissAsk}
           onProgress={onAskProgress}
+          submitting={busy}
         />
       ) : (
         <form

@@ -60,11 +60,21 @@ try {
     const page = await context.newPage();
     page.on("pageerror", (error) => errors.push(String(error)));
     let failNextAnswer = true;
+    let holdNextAnswer = false;
+    let answerStarted;
+    let releaseAnswer;
     await page.route("**/api/chat", async (route) => {
       const request = route.request().postDataJSON();
       requests.push(request);
       if (request.message.startsWith("Which Atlantis:") && failNextAnswer) {
         failNextAnswer = false;
+        if (holdNextAnswer) {
+          holdNextAnswer = false;
+          answerStarted();
+          await new Promise((resolve) => {
+            releaseAnswer = resolve;
+          });
+        }
         await route.fulfill({ status: 500, contentType: "text/plain", body: "Temporary failure" });
         return;
       }
@@ -153,7 +163,22 @@ try {
         (await customAnswer.inputValue()) === "A quiet room near the beach",
         `${viewport.width}: later custom answer survives reload`,
       );
+      holdNextAnswer = true;
+      const answerRequest = new Promise((resolve) => {
+        answerStarted = resolve;
+      });
       await page.getByRole("button", { name: "Submit", exact: true }).click();
+      await answerRequest;
+      const remainsWhileSubmitting =
+        (await page
+          .getByRole("heading", { name: "What matters most for your arrival?" })
+          .count()) === 1 &&
+        (await page.getByRole("button", { name: "Dismiss all questions" }).isDisabled());
+      check(
+        remainsWhileSubmitting,
+        `${viewport.width}: question cannot be dismissed while submitting`,
+      );
+      releaseAnswer();
       await page.getByRole("button", { name: "Retry update" }).waitFor();
       const answerableAfterFailure =
         (await page

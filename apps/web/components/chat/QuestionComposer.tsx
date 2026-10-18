@@ -153,11 +153,13 @@ export function QuestionComposer({
   onSubmit,
   onCancel,
   onProgress,
+  submitting,
 }: {
   request: PendingAsk;
   onSubmit: (answers: QuestionAnswer[]) => void;
   onCancel: () => void;
   onProgress?: (progress: QuestionProgress) => void;
+  submitting: boolean;
 }) {
   const { t } = useLocale();
   const questions = request.questions;
@@ -298,6 +300,7 @@ export function QuestionComposer({
               className="question__icon-button"
               aria-label={t(copy.cancel)}
               title={t(copy.cancel)}
+              disabled={submitting}
               onClick={onCancel}
             >
               <IconClose />
