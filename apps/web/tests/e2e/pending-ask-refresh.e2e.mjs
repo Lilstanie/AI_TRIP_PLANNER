@@ -109,12 +109,34 @@ try {
       );
       return conversation?.ask?.questions?.[0]?.header === "Which Atlantis";
     });
+    await page.evaluate(() => {
+      const catalog = JSON.parse(localStorage.getItem("trip-workspace-catalog-v3"));
+      const conversation = catalog.conversations.find(
+        (item) => item.id === catalog.activeConversationId,
+      );
+      conversation.ask.progress = {
+        index: 0,
+        drafts: [
+          {
+            selected: ["Atlantis The Palm, Dubai", "Atlantis Paradise Island, Bahamas"],
+            custom: "",
+            skipped: false,
+          },
+          { selected: [], custom: "", skipped: false },
+        ],
+      };
+      localStorage.setItem("trip-workspace-catalog-v3", JSON.stringify(catalog));
+    });
     await page.reload();
     await page.waitForSelector(".workspace-app");
     await page.getByRole("heading", { name: "Which Atlantis do you mean?" }).waitFor();
     check(
       await choice.isVisible(),
       `${viewport.width}: unanswered question and options survive reload`,
+    );
+    check(
+      (await page.getByRole("radio", { checked: true }).count()) === 0,
+      `${viewport.width}: malformed multi-answer progress for a single-select question is discarded`,
     );
     check(
       (await page.getByRole("button", { name: "Skip this question" }).count()) === 1 &&

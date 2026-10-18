@@ -87,9 +87,12 @@ function parseQuestionProgress(
     if (!item || typeof item !== "object") return undefined;
     const draft = item as { selected?: unknown; custom?: unknown; skipped?: unknown };
     const options = new Set((questions[index]?.options ?? []).map((option) => option.label));
+    const selected = draft.selected;
     if (
-      !Array.isArray(draft.selected) ||
-      !draft.selected.every((label) => typeof label === "string" && options.has(label)) ||
+      !Array.isArray(selected) ||
+      !selected.every((label) => typeof label === "string" && options.has(label)) ||
+      new Set(selected).size !== selected.length ||
+      (questions[index]?.multiSelect !== true && selected.length > 1) ||
       typeof draft.custom !== "string" ||
       typeof draft.skipped !== "boolean"
     )
