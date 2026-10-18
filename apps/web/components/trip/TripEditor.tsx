@@ -165,13 +165,18 @@ export function TripEditor({
   useEffect(() => {
     const restoredDay = savedDay(plan.tripId);
     if (restoredDay === undefined) return;
+    if (today === undefined && restoredDay.selectedOnToday !== null) {
+      manuallySelectedDay.current = false;
+      setDay(1);
+      return;
+    }
     if (today !== undefined && restoredDay.selectedOnToday !== today) {
       manuallySelectedDay.current = false;
       setDay(today);
       return;
     }
     manuallySelectedDay.current = true;
-    setDay(Math.min(restoredDay.day, days));
+    setDay(restoredDay.day);
   }, [days, plan.tripId, today]);
   useEffect(() => {
     if (!manuallySelectedDay.current && today) setDay(today);
