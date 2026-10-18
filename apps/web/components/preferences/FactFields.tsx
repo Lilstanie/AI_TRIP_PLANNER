@@ -70,7 +70,7 @@ function Field({
         </small>
       )}
       {error && (
-        <small className="error-text" id={`${id}-error`}>
+        <small className="error-text" role="alert" id={`${id}-error`}>
           {localizeNotice(error)}
         </small>
       )}
@@ -105,7 +105,11 @@ function WhenFields({ value, onChange, errors }: FieldsProps) {
     <div className="when-fields">
       <div className="when-fields__summary">
         <span className={dates ? undefined : "muted"}>
-          {dates ? `${dates.range} · ${dates.days}` : t("Choose your travel dates.")}
+          {errors.dates
+            ? t("Choose an end date")
+            : dates
+              ? `${dates.range} · ${dates.days}`
+              : t("Choose your travel dates.")}
         </span>
         {(value.start || value.end) && (
           <button type="button" className="when-fields__clear" onClick={clear}>
@@ -113,9 +117,14 @@ function WhenFields({ value, onChange, errors }: FieldsProps) {
           </button>
         )}
       </div>
-      <TripCalendar range={range} onSelect={handleSelect} numberOfMonths={2} />
+      <TripCalendar
+        range={range}
+        onSelect={handleSelect}
+        numberOfMonths={2}
+        ariaDescribedBy={errors.dates ? "fact-dates-error" : undefined}
+      />
       {errors.dates && (
-        <small className="error-text fact-form__error" id="fact-dates-error">
+        <small className="error-text fact-form__error" role="alert" id="fact-dates-error">
           {localizeNotice(errors.dates)}
         </small>
       )}
@@ -142,6 +151,7 @@ function WhoFields({ value, onChange, errors }: FieldsProps) {
               <button
                 type="button"
                 className="fact-stepper__button"
+                aria-describedby={errors.groupSize ? "fact-groupSize-error" : undefined}
                 aria-label={t("Remove {v0} {v1}", {
                   v0: locale === "zh" ? "" : article,
                   v1: locale === "zh" ? t(label) : singular,
@@ -157,6 +167,7 @@ function WhoFields({ value, onChange, errors }: FieldsProps) {
               <button
                 type="button"
                 className="fact-stepper__button"
+                aria-describedby={errors.groupSize ? "fact-groupSize-error" : undefined}
                 aria-label={t("Add {v0} {v1}", {
                   v0: locale === "zh" ? "" : article,
                   v1: locale === "zh" ? t(label) : singular,
@@ -170,7 +181,7 @@ function WhoFields({ value, onChange, errors }: FieldsProps) {
         );
       })}
       {errors.groupSize && (
-        <small className="error-text fact-form__error" id="fact-groupSize-error">
+        <small className="error-text fact-form__error" role="alert" id="fact-groupSize-error">
           {localizeNotice(errors.groupSize)}
         </small>
       )}

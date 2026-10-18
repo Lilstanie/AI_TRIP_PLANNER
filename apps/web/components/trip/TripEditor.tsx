@@ -1,11 +1,12 @@
 "use client";
 import { useLocale } from "@/components/account/LocaleProvider";
 import { useSettings } from "@/components/account/SettingsProvider";
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { TripPlan } from "@trip/shared";
 import type { RouteResult } from "@/lib/integrations/google";
 import type { TripPlaces } from "../map/useTripPlaces";
 import { connectionBetween, dayCount, dayLabel, dayRows, stayingAt } from "@/lib/trip/timeline";
+import { onTripDay, OnTripContext } from "@/lib/trip/on-trip-day";
 import { applyItemAction, type ItemAction } from "@/lib/trip/item-actions";
 import type { LegMode } from "@/lib/trip/leg-routes";
 import { NoticeError, type Notice } from "@/lib/i18n/notice";
@@ -97,6 +98,11 @@ export function TripEditor({
     onTimelineChange,
   });
   const days = dayCount(plan);
+  const today = onTripDay(plan.brief.dates, tripPlaces.destinations[0]);
+  const setOnTrip = useContext(OnTripContext);
+  useEffect(() => {
+    setOnTrip(tripPlaces.destinationsSettled ? today !== undefined : undefined);
+  }, [plan.tripId, setOnTrip, today, tripPlaces.destinationsSettled]);
 
   const conflicts = useMemo(() => placeConflicts(plan), [plan]);
   const labels = useMemo(
@@ -104,7 +110,22 @@ export function TripEditor({
     [plan, days, locale],
   );
   const [day, setDay] = useState(1);
+  const manuallySelectedDay = useRef(false);
+  const selectedTrip = useRef(plan.tripId);
+  useEffect(() => {
+    if (selectedTrip.current === plan.tripId) return;
+    selectedTrip.current = plan.tripId;
+    manuallySelectedDay.current = false;
+    setDay(1);
+  }, [plan.tripId]);
+  useEffect(() => {
+    if (!manuallySelectedDay.current && today) setDay(today);
+  }, [today, plan.tripId]);
   useEffect(() => setDay((value) => Math.min(Math.max(1, value), days)), [days]);
+  const selectDay = (next: number) => {
+    manuallySelectedDay.current = true;
+    setDay(next);
+  };
   const active = activities.find((activity) => activity.id === selected);
 
   useEffect(() => {
@@ -223,8 +244,8 @@ export function TripEditor({
   let previous: (typeof daily)[number] | undefined;
   return (
     <section className="trip-editor" aria-label={t("Trip timeline")}>
-      <TripTips key={plan.tripId} plan={plan} />
-      <DayStrip days={strip} selected={day} onSelect={setDay} />
+      <TripTips key={plan.tripId} plan={plan} onTrip={today !== undefined} />
+      <DayStrip days={strip} selected={day} today={today} onSelect={selectDay} />
 
       {legs?.working && (
         <p className="timeline-status" role="status">

@@ -145,8 +145,7 @@ OpenStreetMap。公共 OSRM 演示服务器和 Transitous 不允许商业使用�
 ## Agent Lab
 
 `/agent-lab` 是独立于已保存工作区的公开、可检查实验界面。它只接受已注册的取值：策略
-（`single-agent-baseline`、`multi-agent-no-revision` 和 `multi-agent-targeted-revision`）、四个场景
-（`tokyo-couple`、预算为 A$2,300 的同一趟旅行、一趟巴黎家庭行程和一趟东京与京都行程）以及数据模式（fixture 为默认，或 live）。`POST /api/agent-lab/runs` 校验这一封闭请求，
+（`single-agent-baseline`、`multi-agent-no-revision` 和 `multi-agent-targeted-revision`）、12 个版本化场景，覆盖单城与多城行程、预算约束、偏好冲突、日期边界和模糊需求，以及数据模式（fixture 为默认，或 live）。`POST /api/agent-lab/runs` 校验这一封闭请求，
 调用 `runAgentLab()`，先流式返回有序的 NDJSON 事件信封，最后返回带 schema 版本的产物。
 
 该基线是位于五个旅行 specialist 之上的实验策略，不是第六个 specialist。其确定性 fixture
@@ -175,6 +174,8 @@ specialist 走确定性路径，工具返回 mock fixture；它们不读取或�
 脚本化的单 agent 基线按最低成本定价，却没有说明缺口，所以未通过第二项。`tokyo-kyoto-multi-city` 是先东京后京都的七晚行程，其规则增加了
 `hop-date`、`itinerary-by-city`、`stay-transition`、`trip-dates` 和 `total-consistent`，它们按简报中的城市推导，检查火车、住宿、每天的活动和总额是否围绕同一次移动保持一致。
 每个产物都记录场景的 fixture 版本和评估器版本（`scenario-rules-v2`）；决策见 [Agent Note](../.agents/notes/implemented/architecture/2026-10-02-agent-lab-benchmark-scenarios.md)。
+
+版本化基准注册表由 `@trip/orchestrator` 导出，并通过 `GET /api/agent-lab/benchmark` 提供。它列出场景及其预期结果和必需检查、策略、故障档案，以及独立的实时子集。注册表版本为 1.0.1；基准 E2E 使用 production runner 生成的产物构建 fixture 报告，每个分母都保留失败运行，再将同一批产物中的一个上传到页面回放。Fixture 与 live 报告分开。为保证报告稳定，fixture 报告不写入每次运行生成的 ID 和实测运行耗时；原始产物仍保留这些值以供回放。实时子集包含三个场景、仅支持实时运行的策略以及三次重复，并经过现有实时门控。详见[基准 Agent Note](../.agents/notes/implemented/testing/2026-10-16-agent-lab-benchmark.md)。
 
 产物的下载与回放都发生在浏览器中，不涉及任何端点或服务端存储。页面保存它收到的产物，`apps/web/lib/agent-lab/replay.ts` 则按共享的
 `AgentLabRunArtifact` 约定校验所选文件（单一 schema 版本、连续的事件、有效的计划、不会倒退的时间），再按记录的偏移量回放记录下的事件。
@@ -330,6 +331,7 @@ Supervisor 收到指令，将每条偏好传入它所影响的目标；每个 sp
 - `learnedPreferences`：旅行者在聊天中说出的愿望，每次整体替换。
 - `excludeFlights`：旅行者自行安排航班。
 - `bookedStay`：旅行者已预订住宿。
+- `noAccommodation`：旅行者不需要住宿；它与 `bookedStay` 相互独立。
 
 `packages/orchestrator/src/supervisor.ts` 中的 `specialistBrief` 把学到的列表追加到旅行者自己的
 列表之后交给 specialist，去重并限制为 12 条。存储的行程需求仍把两个列表分开保存。
@@ -339,6 +341,8 @@ Supervisor 收到指令，将每条偏好传入它所影响的目标；每个 sp
 设置 `excludeFlights` 后，交通 specialist 既不搜索也不计价航班，也不产生票价冲突。设置
 `bookedStay` 后，住宿 specialist 不搜索，直接返回未计价的预订。即使模型跳过住宿
 specialist，supervisor 也会运行它。任一字段设置后，协调器不再询问航班或其他住宿。
+设置 `noAccommodation: true` 后，工作流会跳过住宿 specialist 和住宿预算分配；字段缺省或为
+false 时保留原有行为。
 原因见[对话范围说明](../.agents/notes/implemented/feature/2026-09-27-conversation-scope.md)。
 
 一条消息最多携带四个附件。图片以内容块传给协调器，文本文件内联到消息中；

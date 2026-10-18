@@ -1,4 +1,6 @@
 "use client";
+
+import type { PendingAsk } from "@/lib/workspace/ask-user";
 import {
   useCallback,
   useEffect,
@@ -27,6 +29,7 @@ type WorkspaceStorageOptions = {
   draft: Draft;
   messages: Message[];
   input: string;
+  ask: PendingAsk | undefined;
   previousTotal: number | undefined;
   catalog: WorkspaceCatalog;
   setCatalog: Dispatch<SetStateAction<WorkspaceCatalog>>;
@@ -39,6 +42,7 @@ export function useWorkspaceStorage({
   draft,
   messages,
   input,
+  ask,
   previousTotal,
   catalog,
   setCatalog,
@@ -73,6 +77,7 @@ export function useWorkspaceStorage({
             id: conversationId,
             messages,
             input,
+            ask,
             draft,
           });
         } else {
@@ -84,6 +89,7 @@ export function useWorkspaceStorage({
             draft,
             messages,
             input,
+            ask,
             previousTotal,
           } satisfies Snapshot;
           nextCatalog = upsertCurrent(catalogRef.current, current, messages);
@@ -111,6 +117,7 @@ export function useWorkspaceStorage({
     draft,
     messages,
     input,
+    ask,
     previousTotal,
     activeConversation,
     setCatalog,

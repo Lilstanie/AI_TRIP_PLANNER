@@ -378,7 +378,11 @@ export function RoundHeading({
   const { t } = useLocale();
   return (
     <div className="thinking-round">
-      <p className="thinking-round__title">{t("Round {v0} · {v1}", { v0: round, v1: summary })}</p>
+      <p className="thinking-round__title">
+        {summary
+          ? t("Round {v0} · {v1}", { v0: round, v1: summary })
+          : t("Round {v0}", { v0: round })}
+      </p>
       {constraints && constraints.length > 0 && (
         <ul className="thinking-round__list">
           {constraints.map((constraint, index) => (

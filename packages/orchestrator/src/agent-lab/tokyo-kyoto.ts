@@ -196,6 +196,16 @@ export const tokyoKyotoMultiCity: AgentLabScenario = {
   fixtureVersion: "tokyo-kyoto-multi-city-v1",
   brief,
   rules: { earliestStartTime: "10:00", vegetarianMeals: false, sectionCount: 5 },
+  expectedOutcome: "complete",
+  mustPassCheckIds: [
+    "sections",
+    "destination",
+    "hop-date",
+    "itinerary-by-city",
+    "stay-transition",
+    "trip-dates",
+    "total-consistent",
+  ],
   preferences,
   fixturePlan: scriptedPlan(),
 };

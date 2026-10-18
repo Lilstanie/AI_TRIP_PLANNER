@@ -12,6 +12,7 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 | ----------------------------------------------------------- | ------------------------------------------------------ |
 | [`/api/chat`](#post-apichat)                                | 提取行程需求更新或规划提交的需求，并以流式方式报告进度 |
 | [`/api/agent-lab/runs`](#post-apiagent-labruns)             | 运行已注册、可检查的 fixture 实验                      |
+| [`/api/agent-lab/benchmark`](#get-apiagent-labbenchmark)    | 读取版本化 Agent Lab 基准配置                          |
 | [`/api/data-mode`](#get-apidata-mode)                       | 返回默认数据模式，以及是否配置了实时提供方密钥         |
 | [`/api/places/search`](#post-apiplacessearch)               | Google Places 文本搜索                                 |
 | [`/api/places/details`](#post-apiplacesdetails)             | 按地点 ID 获取 Google 地点详情                         |
@@ -62,7 +63,7 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 每个 specialist 和 supervisor 都会随行程需求一起接收它们。`nationality` 和 `accommodation`
 仍可接收并继续传递，但当前没有界面设置它们。
 
-`brief` 和 `known` 上另有三个可选字段，来自对话：
+`brief` 和 `known` 上另有四个可选字段，来自对话：
 
 - `learnedPreferences` 的限制与 `preferences` 相同，保存协调器在聊天中听到的愿望。specialist
   收到的是追加在 `preferences` 之后的列表。
@@ -70,8 +71,10 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
   没有票价，也没有 `flights` 选择。
 - `bookedStay: { name, note? }` 是旅行者已预订的住宿。住宿部分只有这一条未计价条目，没有
   `stays` 候选。
+- `noAccommodation: true` 表示旅行者不需要住宿。住宿 specialist 会跳过，也不会分配住宿预算。
+  它与 `bookedStay` 相互独立；字段缺省或为 `false` 时，保留原有住宿规划行为。
 
-旅行者可以在 Trip preferences 中移除这些字段，客户端随后发送的行程需求不再包含它们。
+在 Trip preferences 中移除已保存的可选值后，客户端会在请求中省略该值。`noAccommodation` 是单独的显式选项：关闭它时会发送 `false`，因此可以覆盖之前保存的 `true`。
 
 `brief.displayCurrency` 和 `known.displayCurrency` 同样是可选字段：取 `AUD`、`CNY`、`USD` 或 `JPY` 之一
 （`packages/shared/src/money.ts` 中的 `Currency`），表示旅行者最近一次为该行程指定的币种，无论连同预算还是单独说出。
@@ -142,6 +145,8 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 只有协调器能看到附件：图片以 OpenAI 风格的 `image_url` 内容块传入，文本文件则内联到消息中，
 使用注明文件名的分隔符；specialist 的输入不变。没有提供方密钥时，图片被忽略，内联文本仍会被读取。
 
+新规划请求的开始或结束日期早于目的地当地日历日期时，会明确询问日期，不直接生成方案。Web 客户端会发送旅客从目的地建议中选定的坐标，服务端使用离线坐标时区查询；没有坐标时则使用 UTC。旅客可以提供新日期，也可以针对对应的澄清明确确认保留历史日期。携带已有方案时仍可编辑历史行程。如果修改没有改变实际活动、住宿、交通和费用，回复会说明方案未改变，不会声称已完成所请求的修改。
+
 可选的 `mode` 值：
 
 - `"chat"`（默认）：从 `message` 提取明确的更新，并应用到 `brief`。没有行程需求时，
@@ -163,6 +168,12 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 
 可选的 `x-trip-data-mode` 请求头值为 `mock` 或 `live`，仅为本次请求选择 fixture（测试前置数据）
 或实时提供方；其他值或未提供请求头时，使用部署默认值。
+
+<a id="get-apiagent-labbenchmark"></a>
+
+## `GET /api/agent-lab/benchmark`
+
+返回版本化 Agent Lab 基准注册表，其中包含基准和产物 schema 版本、fixture 场景及其预期结果和检查、已注册策略与故障档案，以及受上限约束的实时场景、策略和重复次数子集。该响应只读，并使用 `Cache-Control: no-store`。
 
 <a id="post-apiagent-labruns"></a>
 

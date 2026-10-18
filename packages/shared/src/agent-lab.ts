@@ -10,6 +10,14 @@ export const AgentLabScenarioId = z.enum([
   "tokyo-couple-tight-budget",
   "paris-family-infeasible",
   "tokyo-kyoto-multi-city",
+  "tokyo-couple-explicit-budget",
+  "tokyo-couple-infeasible-budget",
+  "tokyo-conflicting-preferences",
+  "tokyo-date-night-edge",
+  "tokyo-vague-brief",
+  "tokyo-short-window",
+  "paris-family-feasible",
+  "kyoto-multi-city-tight-budget",
 ]);
 export type AgentLabScenarioId = z.infer<typeof AgentLabScenarioId>;
 

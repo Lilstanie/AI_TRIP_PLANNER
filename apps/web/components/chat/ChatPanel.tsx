@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { type AgentProgressEvent, type TripPlan } from "@trip/shared";
 import { quickPrompts } from "@/lib/planning/quick-prompts";
+import { translate } from "@/lib/i18n/locale";
 import type { Message } from "@/lib/workspace";
 import { ThinkingProcess } from "./ThinkingProcess";
 import { Composer } from "./Composer";
@@ -93,13 +94,13 @@ export function ChatPanel({
               )}
             </p>
             <div className="chat-empty__suggestions" aria-label={t("Example trips")}>
-              {prompts.map(({ label, text }) => (
+              {prompts.map(({ label, text, params }) => (
                 <button
                   key={t(label)}
                   type="button"
                   title={t(label)}
                   disabled={busy || locked}
-                  onClick={() => onSend(text)}
+                  onClick={() => onSend(translate("en", text, params))}
                 >
                   {t(label)}
                 </button>

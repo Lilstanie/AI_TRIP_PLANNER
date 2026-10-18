@@ -71,7 +71,7 @@ describe("TripFactChips", () => {
   it("names a filled chip by its fact, so the value is not announced alone", () => {
     render(<Harness initial={draftFor(plan.brief)} />);
     expect(button("Destination: Sydney")).toBeTruthy();
-    expect(button("Dates: 1 Oct – 4 Oct · 4 days")).toBeTruthy();
+    expect(button("Dates: 1–4 Oct · 4 days")).toBeTruthy();
     expect(button("Travellers: 2 travellers")).toBeTruthy();
     expect(button(/^Budget: AUD\s2,000\.00$/)).toBeTruthy();
   });
@@ -380,7 +380,7 @@ describe("TripFactChips dates", () => {
         .disabled,
     ).toBe(true);
     fireEvent.click(start);
-    expect(screen.getByText(/22 Sept? – 22 Sept? · 1 day/)).toBeTruthy();
+    expect(screen.getByText(/22 Sept? · 1 day/)).toBeTruthy();
     expect(button("Clear")).toBeTruthy();
   });
 
@@ -388,11 +388,11 @@ describe("TripFactChips dates", () => {
     openWhen();
     fireEvent.click(await pickStart());
     fireEvent.click(button("Friday, September 25th, 2026"));
-    expect(screen.getByText(/22 Sept? – 25 Sept? · 4 days/)).toBeTruthy();
+    expect(screen.getByText(/22–25 Sept? · 4 days/)).toBeTruthy();
     expect(button("Clear")).toBeTruthy();
     expect(button("When")).toBeTruthy();
     fireEvent.click(button("Save"));
-    expect(button(/^Dates: 22 Sept? – 25 Sept? · 4 days$/)).toBeTruthy();
+    expect(button(/^Dates: 22–25 Sept? · 4 days$/)).toBeTruthy();
   });
 
   it("clears a picked range back to the prompt", async () => {
