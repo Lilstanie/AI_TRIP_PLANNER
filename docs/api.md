@@ -419,7 +419,9 @@ records the migration and recovery boundaries.
 
 ### `GET /api/account/export`
 
-A JSON attachment with the account's settings, trips, conversations and long-term memory.
+A JSON attachment with the signed-in account's settings, trips, conversations and long-term memory
+entries. Memory entries are selected by the authenticated account id, just like the other exported
+rows.
 
 ### `GET` and `DELETE /api/account/memory`
 
@@ -437,8 +439,8 @@ restores the previous value. Stale tokens return `{ undone: false }`. Successful
 
 ### `DELETE /api/account`
 
-Deletes the account's rows, then the Clerk user. If Clerk fails after the rows are gone it answers
-502 and says so.
+Deletes the account's trips, conversations, settings and long-term memory rows before deleting the
+Clerk user. If Clerk fails after the rows are gone it answers 502 and says so.
 
 ## Related contracts
 
