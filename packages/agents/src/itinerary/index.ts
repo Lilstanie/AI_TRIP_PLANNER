@@ -15,7 +15,6 @@ import {
   type UserPreference,
   type BudgetAllocation,
   type PlanningBoard,
-  type StaySelection,
 } from "@trip/shared";
 import { z } from "zod/v4";
 import { createAgent, tool } from "langchain";
@@ -41,7 +40,7 @@ const ItineraryActivity = z.object({
 
 const ItineraryDraft = z.object({
   summary: z.string().trim().min(1),
-  activities: z.array(ItineraryActivity),
+  activities: z.array(ItineraryActivity).min(1),
   assumptions: z.array(z.string().trim().min(1)),
 });
 
@@ -61,30 +60,15 @@ export interface ItineraryGenerator {
 
     otherSections?: { agent: string; summary: string; items: string[] }[];
 
-    dayCities?: {
-      day: number;
-      cities: string[];
-      transfers?: TransferSegment[];
-    }[];
+    dayCities?: { day: number; cities: string[] }[];
     candidatesByCity?: Record<string, string[]>;
 
     previous?: { summary: string; activities: string[] };
   }): Promise<ItineraryDraft>;
 }
 
-export interface TransferSegment {
-  from: string;
-  to: string;
-  startTime: string;
-  endTime: string;
-}
-
 export interface ItineraryAgentOptions {
   generator?: ItineraryGenerator | false;
-}
-
-interface TransferWindow extends TransferSegment {
-  day: number;
 }
 
 export function citiesByDay(
@@ -108,68 +92,6 @@ export function citiesByDay(
   });
 }
 
-function citiesForStayNights(
-  brief: TripBrief,
-  days: number,
-  stays: StaySelection[],
-  fallback: string[][],
-  transferWindows: ReadonlyMap<number, TransferWindow[]>,
-): string[][] {
-  const knownCities = cities(brief.destination);
-  const scheduled = stays
-    .flatMap((stay) => {
-      const city = knownCities.find(
-        (candidate) => candidate.toLocaleLowerCase() === stay.city.trim().toLocaleLowerCase(),
-      );
-      return city ? [{ ...stay, city }] : [];
-    })
-    .sort((left, right) => left.checkIn.localeCompare(right.checkIn));
-
-  return Array.from({ length: days }, (_, index) => {
-    const date = dateForDay(brief.dates[0], index + 1);
-    const stay =
-      scheduled.find(({ checkIn, checkOut }) => checkIn <= date && date < checkOut) ??
-      (date === brief.dates[1] ? scheduled.at(-1) : undefined);
-    if (!stay) return fallback[index] ?? [];
-    const transfers = transferWindows.get(index + 1) ?? [];
-    const transferCities = [...new Set(transfers.flatMap(({ from, to }) => [from, to]))];
-    return transferCities.includes(stay.city) ? transferCities : [stay.city];
-  });
-}
-
-function transferWindowsByDay(
-  destination: string,
-  transport?: AgentProposal,
-): Map<number, TransferWindow[]> {
-  const knownCities = cities(destination);
-  const windows = new Map<number, TransferWindow[]>();
-  for (const item of transport?.items ?? []) {
-    if (!item.day || !item.startTime || !item.endTime) continue;
-    const [rawFrom, rawTo] = (item.location ?? "").split(" → ").map((part) => part.trim());
-    const from = knownCities.find(
-      (city) => city.toLocaleLowerCase() === rawFrom?.toLocaleLowerCase(),
-    );
-    const to = knownCities.find((city) => city.toLocaleLowerCase() === rawTo?.toLocaleLowerCase());
-    if (!from || !to || !TIME.test(item.startTime) || !TIME.test(item.endTime)) continue;
-    const dayWindows = windows.get(item.day) ?? [];
-    const sameHop = dayWindows.find((window) => window.from === from && window.to === to);
-    if (sameHop) {
-      if (minutes(item.startTime) < minutes(sameHop.startTime)) sameHop.startTime = item.startTime;
-      if (minutes(item.endTime) > minutes(sameHop.endTime)) sameHop.endTime = item.endTime;
-    } else {
-      dayWindows.push({
-        day: item.day,
-        from,
-        to,
-        startTime: item.startTime,
-        endTime: item.endTime,
-      });
-    }
-    windows.set(item.day, dayWindows);
-  }
-  return windows;
-}
-
 function minutes(time: string): number {
   const [hour, minute] = time.split(":").map(Number);
   return hour! * 60 + minute!;
@@ -181,8 +103,6 @@ function validateDraft(
   places: Place[],
   dayCities?: string[][],
   placesByCity?: ReadonlyMap<string, readonly Place[]>,
-  transferWindows: ReadonlyMap<number, TransferWindow[]> = new Map(),
-  requireEveryDay = true,
 ): ItineraryDraft {
   const parsed = ItineraryDraft.parse(draft);
 
@@ -196,21 +116,10 @@ function validateDraft(
     for (const activity of parsed.activities) {
       const allowed = dayCities[activity.day - 1] ?? [];
       const found = cityOf.get(activity.location.trim().toLocaleLowerCase()) ?? [];
-      if (found.length) {
-        const windows = transferWindows.get(activity.day) ?? [];
-        const compatible = found.some((city) => {
-          if (!allowed.includes(city)) return false;
-          return windows.every((window) => {
-            if (city === window.from) return minutes(activity.endTime) <= minutes(window.startTime);
-            if (city === window.to) return minutes(activity.startTime) >= minutes(window.endTime);
-            return true;
-          });
-        });
-        if (!compatible) {
-          throw new Error(
-            `Day ${activity.day} activity ${activity.location} is outside its overnight city or overlaps a scheduled transfer.`,
-          );
-        }
+      if (found.length && !found.some((city) => allowed.includes(city))) {
+        throw new Error(
+          `Day ${activity.day} is spent in ${allowed.join(" and ")}, but ${activity.location} is in ${found.join(" and ")}. Use only that day's city's candidates.`,
+        );
       }
     }
   }
@@ -237,8 +146,7 @@ function validateDraft(
     }
     seen.add(key);
   }
-  if (requireEveryDay && representedDays.size !== days)
-    throw new Error("Itinerary must include every trip day.");
+  if (representedDays.size !== days) throw new Error("Itinerary must include every trip day.");
   for (let day = 1; day <= days; day += 1) {
     const scheduled = parsed.activities
       .filter((activity) => activity.day === day)
@@ -272,90 +180,43 @@ function fallbackDraft(
   places: Place[],
   placesByCity?: ReadonlyMap<string, readonly Place[]>,
   dayCities?: string[][],
-  transferWindows: ReadonlyMap<number, TransferWindow[]> = new Map(),
 ): ItineraryDraft {
   const candidates = places;
 
   const cityNames = cities(brief.destination);
-  const citiesByDay = dayCities ?? cityForDay(cityNames, days).map((city) => [city]);
-  const placesForCity = (city: string): readonly Place[] => {
-    const inCity = placesByCity?.get(city) ?? [];
-    return placesByCity && placesByCity.size > 1 ? inCity : inCity.length ? inCity : candidates;
+
+  const dayCity = dayCities?.map((cities) => cities.at(-1)!) ?? cityForDay(cityNames, days);
+  const forDay = (day: number): readonly Place[] => {
+    const inCity = placesByCity?.get(dayCity[day - 1] ?? cityNames[0]!) ?? [];
+    return inCity.length ? inCity : candidates;
   };
 
-  const scarcest = Math.min(
-    ...Array.from(
-      { length: days },
-      (_, day) => placesForCity(citiesByDay[day]?.at(-1) ?? cityNames[0]!).length,
-    ),
-  );
+  const scarcest = Math.min(...Array.from({ length: days }, (_, day) => forDay(day + 1).length));
   const perDay = Math.min(DAY_SLOTS.length, Math.max(1, Math.floor(scarcest / 2) || 1));
 
-  const slots = perDay === 1 ? [SINGLE_SLOT, ...DAY_SLOTS] : DAY_SLOTS;
-  const activities: ItineraryDraft["activities"] = [];
-  const incompleteDays: number[] = [];
-  for (let dayIndex = 0; dayIndex < days; dayIndex += 1) {
-    const day = dayIndex + 1;
-    const dayWindows = transferWindows.get(day) ?? [];
-    const dayCitiesForActivities = citiesByDay[dayIndex] ?? [cityNames[0]!];
-    let added = 0;
-    for (const slot of slots) {
-      const city = dayCitiesForActivities.find((candidate) => {
-        const cityPlaces = placesForCity(candidate);
-        if (!cityPlaces.length) return false;
-        return dayWindows.every((window) => {
-          if (candidate === window.from) return minutes(slot.endTime) <= minutes(window.startTime);
-          if (candidate === window.to) return minutes(slot.startTime) >= minutes(window.endTime);
-          return true;
-        });
-      });
-      if (!city) continue;
-      const cityPlaces = placesForCity(city);
-      const place = cityPlaces[(dayIndex * perDay + added) % cityPlaces.length]!;
-      activities.push({
-        day,
-        ...slot,
+  const slots = perDay === 1 ? [SINGLE_SLOT] : DAY_SLOTS.slice(0, perDay);
+  const activities = Array.from({ length: days }, (_, day) =>
+    Array.from({ length: perDay }, (_, slot) => {
+      const cityPlaces = forDay(day + 1);
+      const place = cityPlaces[(day * perDay + slot) % cityPlaces.length]!;
+      return {
+        day: day + 1,
+        ...slots[slot]!,
         location: place.name,
         detail: `${place.name} (${place.category}) is a suggested stop; confirm timing and suitability before visiting.`,
-      });
-      added += 1;
-      if (added === perDay) break;
-    }
-    if (!added) incompleteDays.push(day);
-  }
+      };
+    }),
+  ).flat();
   return {
-    summary: `${days}-day plan for ${brief.destination} with up to ${perDay} grounded ${perDay === 1 ? "activity" : "activities"} per day`,
+    summary: `${days}-day plan for ${brief.destination} with ${perDay === 1 ? "one grounded activity" : `${perDay} grounded activities`} per day`,
     activities,
     assumptions: [
       "Opening hours and live availability must be confirmed before plans are finalised.",
       perDay === 1
         ? "Only enough grounded places for one anchored activity a day; the rest of each day is left open."
         : "Two anchored stops a day, with the middle of the day left for a meal and the journey between them.",
-      ...incompleteDays.map(
-        (day) =>
-          `Day ${day} is incomplete because no grounded activity fits the existing slots and scheduled transfer window; no late activity time was invented.`,
-      ),
     ],
   };
-}
-
-function validatedFallbackDraft(
-  brief: TripBrief,
-  days: number,
-  places: Place[],
-  placesByCity: ReadonlyMap<string, readonly Place[]>,
-  dayCities: string[][],
-  transferWindows: ReadonlyMap<number, TransferWindow[]>,
-): ItineraryDraft {
-  return validateDraft(
-    fallbackDraft(brief, days, places, placesByCity, dayCities, transferWindows),
-    days,
-    places,
-    dayCities,
-    placesByCity,
-    transferWindows,
-    false,
-  );
 }
 
 function createDeepSeekGenerator(): ItineraryGenerator | undefined {
@@ -373,7 +234,7 @@ function createDeepSeekGenerator(): ItineraryGenerator | undefined {
         name: "itinerary_specialist",
         model,
         tools: [evidence],
-        systemPrompt: `You are the itinerary specialist. Always call read_itinerary_evidence before drafting. Use only its facts and candidate place names. Cover every trip day with 1-3 non-overlapping activities using 24-hour HH:mm times, leave 150 minutes between different locations, and treat activityBudget, what flights and the stay left for activities, as a guide to how many paid attractions to include. Do not state activity prices: no evidence has them. When dayCities is given, every activity on a day must be a candidate from one of that day's cities in candidatesByCity; a transfer day may include departure and arrival cities, but departure-city activities must end before the transfer and arrival-city activities must start after it ends. When otherSections names where the traveller sleeps, build each day around that stay and keep long trips away from it rare. On a revision, start from previous and change only what the revision asks. Never claim live hours, availability, safety, visa or weather facts. Address a supplied revision exactly. Return the requested structured itinerary draft.\n\nEach activity location must be a candidate's name copied character for character. Do not append its category, rating or district, and do not reword it: an activity whose location is not an exact candidate name is discarded and the whole draft is thrown away.\n\n${TRAVELLER_PREFERENCES_RULE}`,
+        systemPrompt: `You are the itinerary specialist. Always call read_itinerary_evidence before drafting. Use only its facts and candidate place names. Cover every trip day with 1-3 non-overlapping activities using 24-hour HH:mm times, leave 150 minutes between different locations, and treat activityBudget, what flights and the stay left for activities, as a guide to how many paid attractions to include. Do not state activity prices: no evidence has them. When dayCities is given, every activity on a day must be a candidate from one of that day's cities in candidatesByCity; a day with two cities is travel day. When otherSections names where the traveller sleeps, build each day around that stay and keep long trips away from it rare. On a revision, start from previous and change only what the revision asks. Never claim live hours, availability, safety, visa or weather facts. Address a supplied revision exactly. Return the requested structured itinerary draft.\n\nEach activity location must be a candidate's name copied character for character. Do not append its category, rating or district, and do not reword it: an activity whose location is not an exact candidate name is discarded and the whole draft is thrown away.\n\n${TRAVELLER_PREFERENCES_RULE}`,
         responseFormat: ItineraryDraft,
       });
       const result = await specialist.invoke({
@@ -559,19 +420,10 @@ async function planItinerary(
   ]);
   ctx.signal?.throwIfAborted();
   const placesByCity = new Map(byCity);
-  const transportProposal = extras.board?.proposals.find(
-    (proposal) => proposal.agent === "transport",
-  );
-  const transportDayCities = citiesByDay(brief.destination, days, transportProposal);
-  const transferWindows = transferWindowsByDay(brief.destination, transportProposal);
-  const staySelections =
-    extras.board?.proposals.find((proposal) => proposal.agent === "accommodation")?.stays ?? [];
-  const dayCities = citiesForStayNights(
-    brief,
+  const dayCities = citiesByDay(
+    brief.destination,
     days,
-    staySelections,
-    transportDayCities,
-    transferWindows,
+    extras.board?.proposals.find((proposal) => proposal.agent === "transport"),
   );
   const places = [
     ...new Map(
@@ -616,13 +468,7 @@ async function planItinerary(
             activityBudget,
             ...(placesByCity.size > 1
               ? {
-                  dayCities: dayCities.map((cities, index) => ({
-                    day: index + 1,
-                    cities,
-                    ...(transferWindows.has(index + 1)
-                      ? { transfers: transferWindows.get(index + 1) }
-                      : {}),
-                  })),
+                  dayCities: dayCities.map((cities, index) => ({ day: index + 1, cities })),
                   candidatesByCity: Object.fromEntries(
                     [...placesByCity].map(([city, found]) => [
                       city,
@@ -649,7 +495,6 @@ async function planItinerary(
           places,
           dayCities,
           placesByCity,
-          transferWindows,
         );
       } catch (error) {
         ctx.signal?.throwIfAborted();
@@ -662,82 +507,24 @@ async function planItinerary(
     if (accepted) draft = accepted;
     else {
       usedFallback = true;
-      draft = validatedFallbackDraft(brief, days, places, placesByCity, dayCities, transferWindows);
+      draft = fallbackDraft(brief, days, places, placesByCity, dayCities);
     }
   } else {
-    draft = validatedFallbackDraft(brief, days, places, placesByCity, dayCities, transferWindows);
+    draft = fallbackDraft(brief, days, places, placesByCity, dayCities);
   }
-  let adjusted = avoidBlockedWindows(draft, revision);
-  if (usedFallback) {
-    try {
-      adjusted = {
-        ...adjusted,
-        draft: validateDraft(
-          adjusted.draft,
-          days,
-          places,
-          dayCities,
-          placesByCity,
-          transferWindows,
-          false,
-        ),
-      };
-    } catch {
-      adjusted = {
-        draft,
-        conflicts: [
-          ...adjusted.conflicts,
-          "Fallback activity times were kept unchanged because the requested revision shift conflicts with a scheduled transfer.",
-        ],
-      };
-    }
-  }
+  const adjusted = avoidBlockedWindows(draft, revision);
   draft = adjusted.draft;
   const coordinates = placeCoordinates(places);
   let connections: Connections = new Map();
   let conflicts = [
     ...adjusted.conflicts,
     ...(await travelConflicts(draft, ctx, brief, connections, coordinates)),
-    ...(usedFallback
-      ? Array.from({ length: days }, (_, index) => index + 1)
-          .filter((day) => !draft.activities.some((activity) => activity.day === day))
-          .map((day) => `incomplete itinerary: no feasible fallback activity for day ${day}`)
-      : []),
   ];
   if (revision && conflicts.length && !usedFallback) {
-    const originalFallback = validatedFallbackDraft(
-      brief,
-      days,
-      places,
-      placesByCity,
-      dayCities,
-      transferWindows,
+    const fallback = avoidBlockedWindows(
+      fallbackDraft(brief, days, places, placesByCity, dayCities),
+      revision,
     );
-    const adjustedFallback = avoidBlockedWindows(originalFallback, revision);
-    let fallback = adjustedFallback;
-    try {
-      fallback = {
-        ...adjustedFallback,
-        draft: validateDraft(
-          adjustedFallback.draft,
-          days,
-          places,
-          dayCities,
-          placesByCity,
-          transferWindows,
-          false,
-        ),
-      };
-    } catch {
-      fallback = {
-        ...adjustedFallback,
-        draft: originalFallback,
-        conflicts: [
-          ...adjustedFallback.conflicts,
-          "Fallback activity times were kept unchanged because the requested revision shift conflicts with a scheduled transfer.",
-        ],
-      };
-    }
 
     const fallbackConnections: Connections = new Map();
     const fallbackConflicts = [

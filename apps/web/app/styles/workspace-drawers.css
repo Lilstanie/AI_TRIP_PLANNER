@@ -132,7 +132,6 @@
 }
 .trip__budget-head {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
@@ -148,8 +147,7 @@
   background: var(--ok-bg);
   color: var(--ok);
 }
-.budget-status--over,
-.budget-status--caution {
+.budget-status--over {
   background: var(--warn-bg);
   color: var(--warn);
 }

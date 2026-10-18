@@ -1,26 +1,24 @@
 import { describe, it, expect } from "vitest";
 import { quickPrompts } from "@/lib/planning/quick-prompts";
-import { translate } from "@/lib/i18n/locale";
 
 const ISO = /(\d{4}-\d{2}-\d{2}) to (\d{4}-\d{2}-\d{2})/;
 
 describe("quickPrompts", () => {
   it("states everything a plan needs, so one click needs no follow-up", () => {
-    for (const { label, text, params } of quickPrompts(new Date(2026, 8, 21))) {
-      const prompt = translate("en", text, params);
+    for (const { label, text } of quickPrompts(new Date(2026, 8, 21))) {
       expect(label.length, label).toBeLessThan(40);
-      expect(prompt, label).toMatch(ISO);
-      expect(prompt, label).toMatch(/total budget \d+\./);
+      expect(text, label).toMatch(ISO);
+      expect(text, label).toMatch(/total budget \d+\./);
 
-      expect(prompt, label).toMatch(/\d+ people|solo/);
+      expect(text, label).toMatch(/\d+ people|solo/);
+      expect(text, label).toMatch(/total budget \d+\./);
     }
   });
 
   it("always sits in the future, whenever it is generated", () => {
     for (const today of [new Date(2026, 8, 21), new Date(2031, 0, 1)]) {
-      for (const { label, text, params } of quickPrompts(today)) {
-        const prompt = translate("en", text, params);
-        const [, start, end] = prompt.match(ISO)!;
+      for (const { label, text } of quickPrompts(today)) {
+        const [, start, end] = text.match(ISO)!;
         expect(new Date(start!).getTime(), `${label} start`).toBeGreaterThan(today.getTime());
         expect(new Date(end!).getTime(), `${label} end`).toBeGreaterThan(
           new Date(start!).getTime(),
@@ -32,7 +30,7 @@ describe("quickPrompts", () => {
   it("builds dates from local calendar fields, not a UTC shift", () => {
     const lateEvening = new Date(2026, 8, 21, 23, 30);
     const [first] = quickPrompts(lateEvening);
-    const [, start] = translate("en", first!.text, first!.params).match(ISO)!;
+    const [, start] = first!.text.match(ISO)!;
     const expected = new Date(lateEvening);
     expected.setDate(expected.getDate() + 21);
     expect(start).toBe(
@@ -62,8 +60,8 @@ describe("quickPrompts cover the planner's travel shapes", () => {
 describe("quickPrompts against the real offline extractor", () => {
   it("yields a complete brief with no model key configured", async () => {
     const { extractBriefPatchLocally } = await import("@trip/orchestrator");
-    for (const { label, text, params } of quickPrompts(new Date(2026, 8, 21))) {
-      const patch = extractBriefPatchLocally(translate("en", text, params));
+    for (const { label, text } of quickPrompts(new Date(2026, 8, 21))) {
+      const patch = extractBriefPatchLocally(text);
       expect(patch.destination, `${label}: destination`).toBeTruthy();
       expect(patch.dates, `${label}: dates`).toHaveLength(2);
       expect(patch.budgetTotal, `${label}: budget`).toBeGreaterThan(0);

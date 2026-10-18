@@ -205,19 +205,3 @@
     transition: none;
   }
 }
-
-@media (max-width: 520px) {
-  .composer__add,
-  .composer__primary {
-    width: 44px;
-    height: 44px;
-  }
-
-  .chat-empty__suggestions button,
-  .chat-empty > button,
-  .chat-empty .chat-empty__suggestions button,
-  .workspace-app .chat__stream .chat-empty > button {
-    min-width: 44px;
-    min-height: 44px !important;
-  }
-}

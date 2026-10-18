@@ -1,9 +1,9 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { destinationLocationFor, type Draft } from "@/lib/workspace";
+import type { Draft } from "@/lib/workspace";
 import { destinationCities } from "@/lib/map/place-query";
 import { CloseIcon, MapPinIcon, PlusIcon } from "../ui/icons";
-import { PlaceInput, type PlaceSuggestion } from "./PlaceInput";
+import { PlaceInput } from "./PlaceInput";
 import { useLocale } from "../account/LocaleProvider";
 import type { Notice } from "@/lib/i18n/notice";
 
@@ -41,18 +41,8 @@ export function WhereFields({ value, onChange, errors, suggestPlaces }: Props) {
 
   const [focusNext, setFocusNext] = useState<"input" | "button" | number>();
 
-  const publish = (
-    nextStops: string[],
-    nextPending: string,
-    location?: Draft["destinationLocation"],
-  ) => {
-    const destination = withPlaces(nextStops, places(nextPending)).join(" & ");
-    return onChange({
-      ...value,
-      destination,
-      destinationLocation: destinationLocationFor(destination, location),
-    });
-  };
+  const publish = (nextStops: string[], nextPending: string) =>
+    onChange({ ...value, destination: withPlaces(nextStops, places(nextPending)).join(" & ") });
 
   useEffect(() => {
     if (focusNext === undefined) return;
@@ -66,25 +56,19 @@ export function WhereFields({ value, onChange, errors, suggestPlaces }: Props) {
     setFocusNext(undefined);
   }, [focusNext]);
 
-  const add = (text: string, address?: string, location?: PlaceSuggestion["location"]) => {
+  const add = (text: string, address?: string) => {
     const added = places(text);
     const next = withPlaces(stops, added);
     if (address && added.length === 1) setRegions((known) => ({ ...known, [added[0]!]: address }));
     setStops(next);
     setPending("");
-    publish(
-      next,
-      "",
-      location && added.length === 1
-        ? { ...location, destination: added[0]! }
-        : value.destinationLocation,
-    );
+    publish(next, "");
     setFocusNext("input");
   };
   const remove = (index: number) => {
     const next = stops.filter((_, at) => at !== index);
     setStops(next);
-    publish(next, pending, value.destinationLocation);
+    publish(next, pending);
     if (next.length === 0) {
       setAdding(true);
       setFocusNext("input");
@@ -136,7 +120,7 @@ export function WhereFields({ value, onChange, errors, suggestPlaces }: Props) {
             describedBy={error ? "fact-destination-error" : undefined}
             onChange={(text) => {
               setPending(text);
-              publish(stops, text, value.destinationLocation);
+              publish(stops, text);
             }}
             onPick={add}
             onEnter={() => pending.trim() && add(pending)}

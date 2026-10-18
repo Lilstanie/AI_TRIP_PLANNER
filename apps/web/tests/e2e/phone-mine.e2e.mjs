@@ -135,21 +135,6 @@ try {
     const locationPrompt = page.getByRole("button", { name: "Not now", exact: true });
     if (await locationPrompt.isVisible()) await locationPrompt.click();
     const mine = page.locator(".phone-mine");
-    const dataMode = mine.locator(".data-mode");
-    const dataModeLabel = dataMode.locator(".topbar-button__label");
-    check(
-      (await dataModeLabel.innerText()).trim() === "Mock data" &&
-        (await dataModeLabel.evaluate((node) => {
-          const style = getComputedStyle(node);
-          return (
-            style.position !== "absolute" &&
-            style.clip === "auto" &&
-            node.getBoundingClientRect().width > 0
-          );
-        })) &&
-        (await dataMode.evaluate((node) => node.scrollWidth <= node.clientWidth)),
-      `${width}: Mock data label is visible and fits its button`,
-    );
     const selectMine = async () => {
       await page
         .getByRole("tablist", { name: "Workspace sections" })
@@ -175,10 +160,7 @@ try {
     );
     check(await mine.locator(".trip-card").isVisible(), `${width}: search finds trips`);
     await search.fill("Kyoto");
-    check(
-      await mine.locator(".history-empty").getByText("No matching trips.").isVisible(),
-      `${width}: search filters trips`,
-    );
+    check(await mine.getByText("No matching trips.").isVisible(), `${width}: search filters trips`);
     await mine.getByRole("button", { name: "Clear search" }).click();
     const trigger = mine.getByRole("button", { name: "Actions for Kyoto notes" });
     check(
@@ -205,42 +187,7 @@ try {
     );
     await selectMine();
     await mine.getByRole("tab", { name: "Calendar", exact: true }).click();
-    const calendar = mine.getByRole("grid");
-    check(await calendar.isVisible(), `${width}: calendar visible`);
-    const firstDate = calendar.locator('[role="gridcell"][tabindex="0"]');
-    const firstDateTime = Number(await firstDate.getAttribute("data-calendar-time"));
-    const firstDateLabel = await firstDate.getAttribute("aria-label");
-    check(
-      Boolean(firstDateLabel?.includes("2030")) && (firstDateLabel?.length ?? 0) > 12,
-      `${width}: date cell has a full accessible date name (${firstDateLabel})`,
-    );
-    await firstDate.focus();
-    for (let day = 0; day < 4; day += 1) {
-      await page.keyboard.press("ArrowRight");
-      await page.waitForFunction(
-        (time) => document.activeElement?.getAttribute("data-calendar-time") === String(time),
-        firstDateTime + (day + 1) * 86_400_000,
-      );
-    }
-    const emptyDateTime = firstDateTime + 4 * 86_400_000;
-    const emptyDate = calendar.locator(`[data-calendar-time="${emptyDateTime}"]`);
-    check(
-      await emptyDate.evaluate(
-        (node) =>
-          node.getAttribute("tabindex") === "0" &&
-          node === document.activeElement &&
-          !node.querySelector(".trip-calendar__trip"),
-      ),
-      `${width}: arrow keys move focus across dates without trips`,
-    );
-    const emptyDateBox = await emptyDate.boundingBox();
-    const focusStyle = await emptyDate.evaluate(
-      (node) => node.matches(":focus-visible") && getComputedStyle(node).outlineStyle !== "none",
-    );
-    check(
-      Boolean(emptyDateBox && focusStyle),
-      `${width}: keyboard focus remains visible on the date cell`,
-    );
+    check(await mine.getByRole("grid").isVisible(), `${width}: calendar visible`);
     const small = await mine.locator("button, input").evaluateAll((nodes) =>
       nodes
         .filter((node) => node.getClientRects().length)
@@ -263,14 +210,6 @@ try {
       .first()
       .click();
     check(await chatSelected(), `${width}: calendar trip opens Chat`);
-    await selectMine();
-    await mine.getByRole("tab", { name: "Calendar", exact: true }).click();
-    const activeCalendar = mine.getByRole("grid");
-    await mine.getByRole("button", { name: "Today", exact: true }).click();
-    check(
-      (await activeCalendar.locator('[role="gridcell"][aria-current="date"]').count()) === 1,
-      `${width}: today is marked as the current date`,
-    );
     await selectMine();
     await mine.getByRole("tab", { name: "Trips", exact: true }).click();
     await mine.locator(".trip-card").first().click();
@@ -307,19 +246,6 @@ try {
     );
     await mine.getByRole("button", { name: "Switch language to 简体中文" }).click();
     check(
-      (await dataModeLabel.innerText()).trim() === "示例数据" &&
-        (await dataModeLabel.evaluate((node) => {
-          const style = getComputedStyle(node);
-          return (
-            style.position !== "absolute" &&
-            style.clip === "auto" &&
-            node.getBoundingClientRect().width > 0
-          );
-        })) &&
-        (await dataMode.evaluate((node) => node.scrollWidth <= node.clientWidth)),
-      `${width}: 示例数据 label is visible and fits its button`,
-    );
-    check(
       await mine.getByRole("button", { name: "设置与账户", exact: true }).isVisible(),
       `${width}: Chinese settings label`,
     );
@@ -331,11 +257,8 @@ try {
       `${width}: Chinese actions`,
     );
     check(
-      await mine
-        .locator(".history-item:not(.history-item--trip) .history-item__open")
-        .first()
-        .isVisible(),
-      `${width}: chat row is visible in Chinese`,
+      await mine.locator('.history-item__open[title="新聊天"]').isVisible(),
+      `${width}: untitled chat row in Chinese`,
     );
     await page.waitForTimeout(500);
     await page.screenshot({ path: `${OUT}/${width}-mine-zh.png` });

@@ -86,12 +86,12 @@ const choose = (carrier: string, day: number, startTime: string) => (evidence: E
 beforeEach(() => {
   behavior.skipTool = false;
   behavior.fail = false;
-  behavior.respond = choose("Flex Air", 3, "09:00");
+  behavior.respond = choose("Flex Air", 2, "09:00");
 });
 
 describe("the model's transport choices are load-bearing", () => {
   it("takes the flight the model chose, not the one the heuristic prefers", async () => {
-    behavior.respond = choose("Evidence Air", 3, "09:00");
+    behavior.respond = choose("Evidence Air", 2, "09:00");
     const result = await transportAgent.invoke({ brief, context });
     const flight = result.items.find((item) => item.detail.includes("Evidence Air"));
     expect(flight?.estCost).toBe(500);
@@ -109,34 +109,15 @@ describe("the model's transport choices are load-bearing", () => {
     expect(hop?.detail).toContain("2026-10-03");
   });
 
-  it("keeps a model-scheduled inter-city hop on its canonical evidence date", async () => {
-    const trip: TripBrief = {
-      ...brief,
-      destination: "Sydney & Wollongong",
-      origin: "Sydney",
-      dates: ["2026-12-16", "2026-12-20"],
-    };
-    behavior.respond = choose("Flex Air", 1, "09:00");
-    const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
-
-    const result = await transportAgent.invoke({ brief: trip, context });
-
-    const hop = result.items.find((item) => item.location === "Sydney → Wollongong");
-    expect(hop).toMatchObject({ day: 3, startTime: "09:00" });
-    expect(hop?.detail).toContain("2026-12-18");
-    expect(result.source).toMatchObject({ kind: "fallback", label: "Local fallback" });
-    warning.mockRestore();
-  });
-
   it("carries the model's guidance through to the traveller", async () => {
-    behavior.respond = choose("Flex Air", 3, "07:15");
+    behavior.respond = choose("Flex Air", 2, "07:15");
     const result = await transportAgent.invoke({ brief, context });
     expect(result.assumptions.join(" ")).toContain("keeps the afternoon free");
   });
 
   it("cannot be made to state a fare of its own", async () => {
     behavior.respond = (evidence) => ({
-      ...choose("Evidence Air", 3, "09:00")(evidence),
+      ...choose("Evidence Air", 2, "09:00")(evidence),
       estCost: 0,
       items: [{ kind: "transport", detail: "Invented free flight", estCost: 0 }],
       summary: "rewritten",

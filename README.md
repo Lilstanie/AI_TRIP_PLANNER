@@ -15,13 +15,6 @@ The interface is available in English and Chinese, shows each trip's amounts in 
 currency, switches to a phone layout at narrow widths and can be installed as an app. A separate
 `/agent-lab` page compares planning strategies on fixed scenarios.
 
-The Agent Lab benchmark is versioned at 1.0.1. Aggregate results are not yet measured, and plan
-quality has not yet been assessed. Run `pnpm --filter @trip/web e2e agent-lab-benchmark` to generate
-a fixture report and replay screenshot under `output/playwright/agent-lab-benchmark/`; the live subset
-is separately opt-in with `AGENT_LAB_BENCHMARK_LIVE=true` and remains subject to the deployment gate.
-See the [benchmark guide](docs/development.md#agent-lab-benchmark) and
-[release record template](docs/agent-lab-release-record-template.md).
-
 Live demo: [elec5620-ai-trip-planner.vercel.app](https://elec5620-ai-trip-planner.vercel.app). The
 top-bar toggle shows whether a request uses mock fixtures or live providers; place and hotel names
 labelled “Mock …” come from mock mode, not a failed live integration. The demo may lag behind the

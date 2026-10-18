@@ -642,8 +642,3 @@ button.action-menu__trigger[aria-expanded="true"] {
     min-height: 44px !important;
   }
 }
-
-.item-undo button {
-  flex: none;
-  white-space: nowrap;
-}

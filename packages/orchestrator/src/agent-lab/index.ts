@@ -15,7 +15,6 @@ export {
   findAgentLabStrategy,
 } from "./strategies";
 export { buildAgentLabUsage } from "./usage";
-export { agentLabBenchmark } from "./benchmark";
 export type { AgentLabStrategy, AgentLabStrategyContext } from "./strategy";
 export { agentLabScenarioSummaries, findAgentLabScenario } from "./scenarios";
 export {

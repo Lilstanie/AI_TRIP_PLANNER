@@ -205,8 +205,6 @@ export const parisFamilyInfeasible: AgentLabScenario = {
     sectionCount: 5,
     infeasibleBudget: { minimumSupportedCost: PARIS_MINIMUM_SUPPORTED_COST },
   },
-  expectedOutcome: "safe-stop",
-  mustPassCheckIds: ["sections", "destination", "evidence-floor", "infeasibility-reported"],
   preferences,
   fixturePlan: scriptedPlan(),
 };

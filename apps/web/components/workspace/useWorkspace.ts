@@ -8,14 +8,12 @@ import type { RouteResult } from "@/lib/integrations/google";
 import { blankDraft, type Draft } from "@/lib/workspace";
 import {
   reusableBlankConversation,
-  conversationTitle,
   searchCatalog,
   updateCatalog,
   upsertConversationDraft,
   type RestoredWorkspace,
   type WorkspaceCatalog,
 } from "@/lib/workspace/catalog";
-import { distinctTripTitles } from "@/lib/workspace/trip-identity";
 import { seed, type MobileView } from "./workspace-helpers";
 import { useWorkspaceLayout } from "./useWorkspaceLayout";
 import {
@@ -35,7 +33,6 @@ import { useComposerAttachments } from "./useComposerAttachments";
 import { firstFactWithError, firstMissingFact, type FactKey } from "@/lib/workspace/trip-facts";
 import { translate } from "@/lib/i18n/locale";
 import { moneyDisplay } from "@/lib/money";
-import { destinationCities } from "@/lib/map/place-query";
 
 export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
   const [state, setSession] = useState<SessionState>(() =>
@@ -44,7 +41,6 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
       draft: restored.draft,
       messages: restored.messages ?? (restored.plan ? seed : []),
       input: restored.input,
-      ask: restored.ask,
       previousTotal: restored.previousTotal,
     }),
   );
@@ -102,14 +98,6 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
     dataMode.providers?.webMapsProvider !== "google",
   );
   const { itinerary } = tripPlaces;
-  const firstPlannedCity = plan
-    ? destinationCities(plan.brief.destination)[0]?.toLocaleLowerCase()
-    : undefined;
-  const plannedLocation = firstPlannedCity
-    ? tripPlaces.destinations.find(
-        (place) => place.displayName?.text?.toLocaleLowerCase() === firstPlannedCity,
-      )?.location
-    : undefined;
   const { storageError, storageEnabled, saveState, setStorageError, setStorageEnabled, flushSave } =
     useWorkspaceStorage({
       restored,
@@ -117,7 +105,6 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
       draft,
       messages,
       input,
-      ask,
       previousTotal,
       catalog,
       setCatalog,
@@ -180,13 +167,6 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
     assistant: settings.assistant,
     interfaceLanguage: locale,
     displayCurrency: settings.displayCurrency,
-    planDestinationLocation:
-      plan && plannedLocation
-        ? {
-            ...plannedLocation,
-            destination: plan.brief.destination,
-          }
-        : undefined,
     draft,
     input,
     freshTripId,
@@ -206,19 +186,16 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
     const trip = item.tripId && catalog.trips.find((record) => record.id === item.tripId);
     return {
       id: item.id,
-      title: conversationTitle(item, locale),
+      title: item.title,
       subtitle: trip
         ? t("Trip to {destination}", { destination: trip.snapshot.plan.brief.destination })
         : undefined,
       active: item.id === catalog.activeConversationId,
     };
   });
-  const tripTitles = distinctTripTitles(filteredHistory.trips, (item) =>
-    t("Trip to {destination}", { destination: item.snapshot.plan.brief.destination }),
-  );
   const historyTrips = filteredHistory.trips.map((item) => ({
     id: item.id,
-    title: tripTitles.get(item.id)!,
+    title: t("Trip to {destination}", { destination: item.snapshot.plan.brief.destination }),
     destination: item.snapshot.plan.brief.destination,
     subtitle: `${item.snapshot.plan.brief.dates.join(" – ")} · ${moneyDisplay({
       currency: effectiveCurrency(item.snapshot.plan.brief, settings.displayCurrency),
@@ -240,7 +217,6 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
       draft: source ? source.draft : (conversation.draft ?? blankDraft()),
       messages: conversation.messages,
       input: conversation.input,
-      ask: conversation.ask,
     });
     activeConversation.current = id;
     setCatalog((current) => {
@@ -399,7 +375,6 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
       draft,
       messages,
       input,
-      ask,
       previousTotal,
       busy: state.busy,
       activity: state.activity,
@@ -407,6 +382,7 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
       errors: state.errors,
 
       canRetry: state.retry !== undefined,
+      ask,
       selectedActivity,
       mapRoutes: state.mapRoutes,
       estimateChange: state.estimateChange,

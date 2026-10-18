@@ -1,9 +1,4 @@
-import {
-  ChatAskUser,
-  type AskUserQuestionItem,
-  type PartialTripBrief,
-  type TripPlan,
-} from "@trip/shared";
+import type { AskUserQuestionItem, PartialTripBrief, TripPlan } from "@trip/shared";
 
 export type PendingAsk = {
   key: string;
@@ -44,17 +39,4 @@ export function formatAskAnswers(
       return `${name}: ${parts.length ? parts.join(", ") : "no preference"}`;
     })
     .join("\n");
-}
-
-export function parsePendingAsk(value: unknown): PendingAsk | undefined {
-  if (!value || typeof value !== "object" || !("key" in value) || typeof value.key !== "string")
-    return undefined;
-  const parsed = ChatAskUser.safeParse({ ...value, type: "ask_user" });
-  if (!parsed.success) return undefined;
-  return {
-    key: value.key,
-    questions: parsed.data.questions,
-    known: parsed.data.known,
-    ...(parsed.data.plan ? { plan: parsed.data.plan } : {}),
-  };
 }

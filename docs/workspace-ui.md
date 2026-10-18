@@ -42,17 +42,16 @@ now. Implementation history and browser acceptance for each phase are in the
   - The panel has, from the top: a pill search field ("Search…", the visually hidden label "Search
     chats and trips" and a Clear search button that returns focus to the field), which filters both
     lists; New chat (pencil icon) and New trip (suitcase with a plus); **Trips**, each row a small
-    destination cover and "Trip to <destination>"; and **Chats**, each row its localized short-date
-    title on one line with the linked trip's name under it. Renamed chat titles are preserved.
-    Choosing any of them closes the panel. See
+    destination cover and "Trip to <destination>"; and **Chats**, each row its title on one line
+    with the linked trip's name under it. Choosing any of them closes the panel. See
     [New chat and New trip](#conversations-trips-and-storage) for what the two starts do.
   - **Trips** replaces the top bar, chat and map with the Your trips page: a "Your trips" heading, a
     New trip button, and Trips and Calendar tabs (`role="tablist"`, arrow keys switch) drawn as a
     segmented control whose thumb slides between them. Trips shows
-    every trip as a 4:3 cover card with "Trip to <destination>" and "<destination> · <localized date range> · N days",
+    every trip as a 4:3 cover card with "Trip to <destination>" and "<destination> · N days",
     grouped into Upcoming and Past. Calendar is a Monday-first month grid with previous, Today and
     next, drawing each trip as a band over its days, filled with the dark colour of its cover palette
-    so the white label stays readable, labelled where it starts and at each week's start; it opens on the next trip's month. Each date cell has a full localized weekday, date and year name; today has `aria-current="date"`; arrow keys move visible focus across every date, including empty dates. Choosing a trip, a chat, New chat or New trip returns
+    so the white label stays readable, labelled where it starts and at each week's start; it opens on the next trip's month. Choosing a trip, a chat, New chat or New trip returns
     to the workspace.
   - Trips keep no photos, so a cover is a gradient chosen by hashing the destination, with its
     initial; the same destination always gets the same colours.
@@ -142,9 +141,7 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     left in the field is kept on Done, and additions and removals are announced in a status region.
     Nationality, room allocation, minimum guest rating and free cancellation are no longer edited;
     a stored brief's values pass through unchanged, and a stored rating the schema would reject
-    counts as "no minimum". The No accommodation checkbox records that no stay is needed; leaving it
-    unchecked preserves normal accommodation planning, and it does not replace a separately recorded
-    booked stay.
+    counts as "no minimum".
   - Below the list, "Learned from your chats" shows what the assistant recorded from the
     conversation, when there is anything:
     - each learned preference;
@@ -215,7 +212,7 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     so switching between unchanged saved trips does not create a new notification.
   - Mine contains search, New chat, New trip, Trips/Calendar, the chats list and Settings & account.
     Search filters chats and trips; opening or starting either selects Chat. Each chat has a visible
-    Rename/Delete row menu on touch. Data mode and interface language live here; the data-mode button shows its text label in both languages.
+    Rename/Delete row menu on touch. Data mode and interface language live here.
   - Crossing the phone width keeps the traveller on the same thing: narrowing with Your trips open
     continues in Mine, so the tab bar stays available, and narrowing with the Trip drawer open shows
     the Trip tab. Widening from Mine shows Your trips, widening from Trip opens the Trip drawer over
@@ -260,8 +257,6 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
 - **Starting to plan.**
   - A blank chat offers example trip suggestions. Selecting one replaces and focuses the message input;
     it never sends a message or starts a request.
-    Suggestion text follows the interface language while keeping its dates, travellers and budget;
-    data-mode tooltips and the action name for an untitled chat follow that language too.
   - Each agent reply renders under its own Think fold: the transcript streams at the foot of the chat
     while the turn runs, then moves above the reply that ended the turn and stays with it (including
     after a reload).
@@ -270,8 +265,7 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     rows, each with a DSH-style disclosure — a leading icon that crossfades to a chevron on hover or
     while open, and no trailing chevron. Every row starts collapsed, busy or settled alike, and a
     click opens only that row; there is no expand-all control. The Think row's own collapsed summary
-    is the turn's count line (`N tool calls · M subagents · K rounds`), with rounds counting actual
-    work rounds. A turn with no counts reads
+    is the turn's count line (`N tool calls · M subagents · K rounds`). A turn with no counts reads
     Trip plan ready when it delivered a plan, Need more details when it ends by asking the traveller,
     Needs attention when it failed, and Done otherwise, including messages saved before the turn's
     outcome was recorded. While busy it instead follows
@@ -279,10 +273,8 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     result's own rows, each with a category glyph (a fork and knife, a bed, a plane, and so on) drawn
     from the result's own kind, or the site's own icon when the provider returned that row's web
     page. The call's arguments read as one line, such as `Sydney Airport → The Rocks · 2026-11-10`. Reasoning deltas from one model call merge into a single row rather
-    than arriving as separate fragments. A round above 1 uses the coordinator's explanation when
-    available, and otherwise falls back to its localized Round N label; duplicate round headings
-    are omitted. A settled agent row without
-    lifecycle events is marked Interrupted. The surface it imitates, and the reasoning behind each
+    than arriving as separate fragments. A round above 1 is shown only with the coordinator's own
+    explanation of what it revised. The surface it imitates, and the reasoning behind each
     divergence, are recorded in the [DSH thinking UI reference](design/dsh-thinking-ui.md).
   - Exactly one `Deep diving` line is the surface's only live region; it grows an elapsed clock after
     15 seconds.
@@ -300,9 +292,7 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     can instead ask a structured question: a card takes the composer's seat with the question, an
     optional recommended choice, and (for more than one question) a pager. Submitting sends the
     answers as the traveller's next message; closing the card returns the plain composer, and the
-    question text stays visible in the assistant's own message either way. An unanswered question
-    survives reload and can still be answered after restoring the conversation. If submission fails,
-    the submitted text returns to the composer unless the traveller has entered newer text. There is still no
+    question text stays visible in the assistant's own message either way. There is still no
     "apply the traveller's decision" feature for a plan choice a specialist already made — a
     structured question is only ever about planning input, never an approval — so a traveller who
     wants the plan itself changed still says so in chat or edits the trip. See
@@ -324,8 +314,6 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     request runs, the primary action becomes Stop in place; there is no hint text.
   - Update trip in a chip editor, or Plan trip in Trip preferences before there is a plan, sends
     `mode: "plan"` with the brief.
-  - When a chip edit changes only the budget, the user's chat message names that change alone and
-    formats its amount with the trip's display currency and locale.
   - A first chat message sends `mode: "start"`, and the server reports any missing destination,
     dates, travellers or budget instead of borrowing values.
   - The blank form's minimum rating defaults to `0` (no minimum). Stay ratings are stored on a 0–10
@@ -364,16 +352,6 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     [workspace catalog trip storage](../.agents/notes/implemented/architecture/2026-09-24-workspace-catalog-trip-storage.md).
 
 ## Reviewing a plan
-
-The Trip drawer summary shows the destination, localized short date range and traveller count.
-
-When the known estimate equals the budget, the budget panel says “At budget” instead of reporting
-zero under budget. If itinerary stops remain unpriced, the status adds “unpriced stops not counted”
-and uses the caution colour; those missing costs remain listed beneath the estimate.
-When the estimate is below budget but itinerary stops remain unpriced, the status says “Known estimate
-within budget · unpriced stops not counted” and uses the caution colour when the remaining headroom
-is at most 5% of the budget. With more headroom, it says “Within budget”; the missing costs remain
-listed beneath the estimate.
 
 Names of removed surfaces below appear only to explain their removal; nothing in this section
 describes current behaviour except the absences.
@@ -430,10 +408,9 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   [Agent Note](../.agents/notes/implemented/architecture/2026-10-07-selection-id-on-proposal-items.md).
 - **Travel tips.** The destination guide's advice (customs and etiquette, safety, entry and health,
   weather and packing, and places to explore) is a collapsible block at the top of the day view. It
-  opens the first time outside an ongoing trip. Whether this viewer folded it is remembered for that trip in this browser
-  (`localStorage`, key `trip-tips-folded:<tripId>`); without a saved choice it follows the on-trip default. The
-  block is absent when the plan has no guide. Advice spanning multiple calendar months explicitly identifies that its scope is the first month.
-- **On-trip day.** When today falls within the trip dates, the day view initially selects today and marks it “Today”, using the first resolved destination’s time zone. Budget and travel tips initially collapse; manual day selection and saved tips preferences take precedence. Without verified destination coordinates, the existing first-day defaults remain. Timed next-stop highlighting is deferred.
+  opens the first time. Whether this viewer folded it is remembered for that trip in this browser
+  (`localStorage`, key `trip-tips-folded:<tripId>`); where storage is blocked it opens each time. The
+  block is absent when the plan has no guide.
 - **Restaurants.** The restaurants the dining specialist found are listed under Ideas, marked
   "Restaurant suggestion". Schedule on a day copies one into the day as a stop, with no price, and the
   change can be undone; Remove deletes the suggestion. The dining meal budget stays in the plan's
@@ -574,13 +551,13 @@ moves. Details, notes and booked apply in the browser. The checks are determinis
   place) picks the day. The day is a vertical line in time order (`lib/trip/timeline.ts`): an
   flight in first (untimed flights and hops), timed inter-city hops and stops by start time, then one
   stay row per night, and on the last day the flight out, which ends the day. "Staying at …" shows on
-  later nights. Narrow timeline containers use a 56 px time column so five-digit times fit before the aligned stop dots. Fixed rows show an icon, a title, one detail line and their cost ("Fare not published"
+  later nights. Fixed rows show an icon, a title, one detail line and their cost ("Fare not published"
   or "Price unknown" rather than AUD 0). Flight and stay rows open to their card. Between two stops the
   journey is a leg (see Legs below): its mode and duration, marked "checked" when the provider verified
   it and "estimate" when it is the planner's `arriveBy` or a simulated fixture.
-- **Prices.** Stops without a published price carry no `estCost` and show "Price unknown"; the
-  budget card lists their count and missing costs, avoiding the impression that the total covers
-  every cost.
+- **Prices.** No provider publishes admission prices, so itinerary stops carry no `estCost` and show
+  "Price unknown"; the budget card adds "Not included: admission for N stops with no published
+  price" so the total is not read as the whole cost.
 - **Order and numbers.** A day's stops are listed in visiting order, and each stop's node shows its
   trip-wide stop number, the same as on the map and in the Trip drawer; an unlocated stop shows
   none. Move earlier, Move later, Move to another day and drag and drop name a position as shown;
@@ -860,9 +837,8 @@ the account section explains that everything stays in this browser.
     in, or that data stays in the browser, with Theme below.
   - **Personalization:**
     - **Communication style:** Neutral, Friendly, Concise or Detailed.
-    - The nonfunctional **Long-term memory** switch and its hint are hidden until the planner can
-      actually remember preferences. The stored `assistant.memory` setting remains compatible with
-      existing browser and account data.
+    - **Long-term memory** switch. Off, the assistant neither records nor uses what it learns in
+      chat.
     - **What the planner knows**, grouped as in Mindtrip:
       - Identity: home base.
       - Travel party: travellers.
@@ -881,8 +857,7 @@ the account section explains that everything stays in this browser.
     under Advanced.
     The top-bar language switch sits beside Mock data and updates the same saved language setting.
     Authored chat controls, timeline and proposal labels, settings, notices, dialogs, accessible
-    names and dates follow it, including data-mode tooltips and untitled-chat actions. Traveller
-    text, agent-produced content and provider errors are not
+    names and dates follow it. Traveller text, agent-produced content and provider errors are not
     translated. Authored text that carries a value (the attachment limit, a timeline edit preview's
     differences and blockers, a stop that cannot move) is translated with `{placeholders}`, through
     `t()` or as a keyed `Notice` (`apps/web/lib/i18n/notice.ts`) that the view translates once when it
@@ -920,7 +895,7 @@ the account section explains that everything stays in this browser.
 
 ## Out of scope
 
-Booking fulfilment, payments, multi-user collaboration and timed next-stop highlighting remain out of scope. Mock
+Booking fulfilment, payments, multi-user collaboration and on-trip mode remain out of scope. Mock
 places and bookings must never be presented as real supplier data; live search and estimated prices
 must retain their provider and freshness labels.
 

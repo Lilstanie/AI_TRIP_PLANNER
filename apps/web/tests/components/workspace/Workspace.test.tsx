@@ -480,7 +480,7 @@ describe("Workspace interactions", () => {
       ).queryByText(/Sydney/),
     ).toBeNull();
 
-    fireEvent.click(historyButton(/^Sydney · 1.*4 Oct/));
+    fireEvent.click(historyButton(/^Sydney · 2026-10-01/));
     expect(chip(/^Destination: Sydney$/)).toBeTruthy();
   });
   it("sends the current plan with a chat message so a question need not rebuild it", async () => {
@@ -585,7 +585,7 @@ describe("Workspace interactions", () => {
     await act(async () => {
       finishChat(complete("Paris", "Louvre"));
     });
-    expect(await within(drawer("trip")).findByText(/Paris · 1.*4 Oct/)).toBeTruthy();
+    expect(await within(drawer("trip")).findByText(/Paris · 2026-10-01/)).toBeTruthy();
     await waitFor(() => expect(searches).toContain("Louvre@Paris"));
     await act(async () => {
       finishPlaces(Response.json({ places: [googlePlace] }));
@@ -636,13 +636,13 @@ describe("Workspace interactions", () => {
     expect(screen.getByRole("heading", { name: "New trip" })).toBeTruthy();
     expect((screen.getByLabelText("Message AI Trip Planner") as HTMLInputElement).value).toBe("");
     expect(within(drawer("trip")).queryByText(/Sydney/)).toBeNull();
-    fireEvent.click(historyButton(/^Sydney · 1.*4 Oct/));
+    fireEvent.click(historyButton(/^Sydney · 2026-10-01/));
     expect(screen.getByRole("heading", { name: "Sydney" })).toBeTruthy();
     expect((screen.getByLabelText("Message AI Trip Planner") as HTMLInputElement).value).toBe(
       "unfinished request",
     );
     expect(chip(/^Budget: AUD\s2,000\.00$/)).toBeTruthy();
-    expect(historyButton(/^Sydney · 1.*4 Oct/).getAttribute("aria-current")).toBe("true");
+    expect(historyButton(/^Sydney · 2026-10-01/).getAttribute("aria-current")).toBe("true");
     expect(historyButton(/^Trip to Sydney$/).getAttribute("aria-current")).toBe("true");
   });
   it("keeps the plan and draft on failure and retries the same structured request", async () => {
@@ -658,9 +658,9 @@ describe("Workspace interactions", () => {
     fireEvent.click(screen.getByRole("button", { name: "Update trip" }));
     await screen.findByText("Offline");
     expect(chip(/^Destination: Paris$/)).toBeTruthy();
-    expect(within(drawer("trip")).getByText(/Sydney · 1.*4 Oct/)).toBeTruthy();
+    expect(within(drawer("trip")).getByText(/Sydney · 2026-10-01/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Retry update" }));
-    await within(drawer("trip")).findByText(/Paris · 1.*4 Oct/);
+    await within(drawer("trip")).findByText(/Paris · 2026-10-01/);
     const chatCalls = fetcher.mock.calls.filter(([url]) => url === "/api/chat");
     const first = JSON.parse((chatCalls[0]![1] as RequestInit).body as string);
     expect(first.mode).toBe("plan");
@@ -718,7 +718,7 @@ describe("Workspace interactions", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Retry / replace workspace storage" }));
     expect(screen.getByRole("alert").textContent).toContain("unavailable or full");
-    expect(within(drawer("trip")).getByText(/Sydney · 1.*4 Oct/)).toBeTruthy();
+    expect(within(drawer("trip")).getByText(/Sydney · 2026-10-01/)).toBeTruthy();
   });
 });
 
@@ -829,12 +829,8 @@ describe("Workspace navigation", () => {
     expect(search.getAttribute("placeholder")).toBe("Search…");
     expect(panel.queryByRole("button", { name: "Clear search" })).toBeNull();
     fireEvent.change(search, { target: { value: "kyoto" } });
-    expect(panel.getByRole("status", { name: "Chat search results" }).textContent).toBe(
-      "No matching chats.",
-    );
-    expect(panel.getByRole("status", { name: "Trip search results" }).textContent).toBe(
-      "No matching trips.",
-    );
+    expect(panel.getByText("No matching chats.")).toBeTruthy();
+    expect(panel.getByText("No matching trips.")).toBeTruthy();
     fireEvent.click(panel.getByRole("button", { name: "Clear search" }));
     expect((search as HTMLInputElement).value).toBe("");
     expect(document.activeElement).toBe(search);
@@ -983,7 +979,7 @@ describe("Workspace navigation", () => {
     const facts = within(topbar).getByRole("group", { name: "Trip details" });
     for (const name of [
       /^Destination: Sydney$/,
-      /^Dates: 1–4 Oct · 4 days$/,
+      /^Dates: 1 Oct – 4 Oct · 4 days$/,
       /^Travellers: 2 travellers$/,
       /^Budget: AUD\s2,000\.00$/,
     ])

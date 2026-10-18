@@ -183,9 +183,6 @@
 .chat-empty__input-hint {
   font-size: var(--font-size-meta);
 }
-.chat-empty__input-hint + button {
-  margin-top: var(--space-3);
-}
 .skeleton--map {
   height: 100%;
   border-radius: 0;

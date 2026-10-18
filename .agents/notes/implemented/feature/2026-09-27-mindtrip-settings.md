@@ -18,7 +18,7 @@ sections.
   The sections are:
   - **Edit profile:** name through Clerk's `user.update`, and location.
   - **Your account:** email, theme, export, sign out and delete.
-  - **Personalization:** communication style and the traveller facts. The facts
+  - **Personalization:** communication style, long-term memory and the traveller facts. The facts
     are shown as Mindtrip's memory rows, with Answer on an empty fact.
   - **Language & region:** language, region, currency, units and trip data.
   - **Connected accounts:** the traveller's Clerk external accounts.
@@ -53,9 +53,6 @@ language controls and persistence; the settings layout and other sections remain
 - Section ids changed to `profile`, `account`, `personalization`, `region` and `connected`.
   `openSettings()` defaults to `personalization`.
 - The style rule is advisory, because the model decides the tone.
-- Issue #401 hides the nonfunctional long-term memory control and its promise until the feature in
-  #380 exists. The stored `assistant.memory` field remains in settings and chat contracts for
-  compatibility with existing browser and account data.
 - Related: the [conversation scope note](2026-09-27-conversation-scope.md) and the
   [accounts note](../architecture/2026-09-27-accounts-settings-sync.md).
 

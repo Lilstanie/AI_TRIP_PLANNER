@@ -398,12 +398,6 @@
   color: var(--on-accent);
   font-weight: 700;
 }
-.trip-calendar__day:focus-visible {
-  position: relative;
-  z-index: 1;
-  outline: 2px solid var(--accent);
-  outline-offset: -2px;
-}
 
 .trip-calendar__trip {
   display: block;

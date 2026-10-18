@@ -249,14 +249,6 @@ BASE_URL=http://localhost:3000 pnpm --filter @trip/web e2e settings   # against 
 
 环境变量会同时传给服务器和脚本，因此请按各脚本头部的说明设置 `DATA_MODE` 和数据源变量。每次调用分配唯一的 `apps/web/.next-e2e-<random>` 目录和独占的临时 TypeScript 配置，并发运行与 `pnpm dev` 不共享构建输出，也不改写共享 TypeScript 配置。运行器退出时会删除自己的目录和 `.next-e2e-<random>.lock` 所有者文件，无论运行通过、失败还是被中断。被直接强杀的运行会留下它们；下一次运行会删除所有者进程已退出的目录，以及没有所有者且超过一天的目录。继承的 `NEXT_TSCONFIG_PATH` 仍是显式覆盖配置。任一脚本失败时运行器以非零状态退出，并把摘要写入 `output/e2e/runner/<time>.json`。每个脚本有 `E2E_SCRIPT_TIMEOUT_MS`（默认 600000，即十分钟）的时间完成；超时仍在运行的脚本会连同它启动的浏览器一起被停止，在摘要中显示为 `TIME`（JSON 中为 `"timedOut": true`），然后继续运行下一个脚本。超时同样会让运行以非零状态退出。Playwright 是 `apps/web` 的开发依赖；在新机器上先运行一次 `pnpm --filter @trip/web exec playwright install chromium`。需要两个服务器的脚本（`agent-lab-live-gate`）仍按其头部说明手动运行。`pnpm dev` 和 `pnpm start` 默认使用 3000 端口，设置 `PORT` 可更改。
 
-<a id="agent-lab-benchmark"></a>
-
-### Agent Lab 基准
-
-运行 `pnpm --filter @trip/web e2e agent-lab-benchmark`：读取版本化注册表，在 fixture 模式下运行所有场景与策略组合，执行全部已注册故障，用这些原始产物生成报告，并在 `/agent-lab` 回放其中一个保留产物。保留目录 `output/playwright/agent-lab-benchmark/` 包含 JSON 和 Markdown fixture 报告、每次运行的 NDJSON 与产物、摘要及回放截图。脚本头部记录失败清单。Fixture 报告不评估计划质量。
-
-实时对比需单独设置 `AGENT_LAB_BENCHMARK_LIVE=true`，并要求本地部署已启用实时运行。它覆盖三个已注册的实时场景和支持实时运行的策略，每组最多重复三次；每次请求都经过部署现有门控，遇到拒绝后脚本停止。它会单独生成实时报告，列出实际尝试、拒绝、跳过的策略、延迟中位数和跨度。不要把它与 fixture 数字合并。部署冒烟时，请用[发布记录模板](agent-lab-release-record-template.zh.md)记录 commit、实际调用的提供方、结果和调用上限；记录中不要写凭证。
-
 缺少密钥就无法运行的脚本在文件头（代码之前）声明：`// requires-env: DEEPSEEK_API_KEY`（多个密钥用逗号分隔）。所列变量未设置或为空时，运行器不会运行该脚本，而是报告 `skipped: needs DEEPSEEK_API_KEY`，把跳过记录到摘要中；若没有其他失败，仍以 0 退出；实际运行后失败的脚本仍使退出码非零。若所有指定脚本都被跳过，则不会启动服务器。`plan-quality` 和 `conversation-scope` 声明了 `DEEPSEEK_API_KEY`，因为它们检查的是模型的产出，在规则回退下会失败。格式错误的 `requires-env` 行会让运行器报错退出，而不是运行该脚本。
 
 - **API 脚本**（`plan-quality`、`conversation-scope`）向 `/api/chat` 发请求，`DATA_MODE=live` 为默认值，也可设为 `mock`。`plan-quality` 提交三个固定行程需求，并检查预算、未解决冲突、行程来源、重复停靠点和泛化停靠点，任一检查失败或规划出错时以非零状态退出；实时模型输出会变化，因此应比较多次运行。每次运行把 NDJSON 流、方案和 `summary.json` 写入 `output/e2e/<name>/<run>/`。

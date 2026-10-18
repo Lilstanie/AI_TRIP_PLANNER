@@ -59,6 +59,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
     replacedChange,
   } = session;
   const {
+    dialog,
     page,
     mobileView,
     preferencesOpen,
@@ -220,7 +221,6 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
     <>
       {plan ? (
         <TripPanel
-          key={plan.tripId}
           plan={plan}
           {...(chooser.problem ? { problem: chooser.problem } : {})}
           timeline={

@@ -486,11 +486,7 @@ function assembleTransportProposal(
   const unpriced = items.filter((item) => item.estCost === undefined).length;
   return {
     agent: "transport",
-    summary: !items.length
-      ? unmet.length || conflicts.length
-        ? "Inter-city travel is incomplete: available routes and fares could not be verified."
-        : "No inter-city travel is needed for this trip."
-      : `${items.length} transport option(s) for ${origin} ↔ ${destinations.join(" → ")} · known estimate ${formatMoney(total, currency)}${unpriced ? ` · ${unpriced} leg(s) unpriced` : ""}${unmet.length ? ` · ${unmet.length} travel choice(s) unavailable` : ""}${conflicts.length ? " (incomplete/unverified)" : ""}`,
+    summary: `${items.length} transport option(s) for ${origin} ↔ ${destinations.join(" → ")} · known estimate ${formatMoney(total, currency)}${unpriced ? ` · ${unpriced} leg(s) unpriced` : ""}${unmet.length ? ` · ${unmet.length} travel choice(s) unavailable` : ""}${conflicts.length ? " (incomplete/unverified)" : ""}`,
     items,
     assumptions: [
       "Route arrays are consecutive legs; calculator preserves adapter AUD amounts as group totals, matching the current integration. Per-person providers must normalize fares before returning them.",
@@ -629,8 +625,6 @@ async function planTransport(
           hopId: `hop-${index}`,
           from: query.from,
           to: query.to,
-          day: query.day,
-          date: query.date,
           totalMinutes: legs.reduce((sum, leg) => sum + Math.ceil(leg.durationMin), 0),
           modes: [...new Set(legs.map((leg) => leg.mode))],
         })),
@@ -648,7 +642,7 @@ async function planTransport(
     model,
     tools: [search],
     systemPrompt:
-      "You are the transport specialist. Call search_transport_evidence, then decide which flight candidate to take and the local departure time for each hop. The evidence assigns each hop its canonical travel day and date; repeat that day exactly and never move the hop to another day. Weigh cost against the traveller's budget, and schedule hops so they leave enough of the day to be worth arriving for. A budget revision means prefer the cheapest flight; a schedule revision means move departures earlier. Refer to flights and hops only by the ids you were given. Never state a fare, a duration or a carrier of your own. Return the requested structured selection. " +
+      "You are the transport specialist. Call search_transport_evidence, then decide two things: which flight candidate to take, and which planning day and local departure time each hop should run at. You own those choices -- weigh cost against the traveller's budget, and schedule hops so they leave enough of the day to be worth arriving for. A budget revision means prefer the cheapest flight; a schedule revision means move departures earlier. Refer to flights and hops only by the ids you were given. Never state a fare, a duration or a carrier of your own. Return the requested structured selection. " +
       TRAVELLER_PREFERENCES_RULE,
     responseFormat: TransportSelection,
   });
@@ -722,10 +716,7 @@ async function planTransport(
         throw new Error(`Transport specialist did not schedule hop-${index}.`);
       if (!Number.isInteger(entry.day) || entry.day < 1 || entry.day > gathered.days)
         throw new Error(`Transport specialist scheduled hop-${index} outside the trip.`);
-      if (entry.day !== query.day)
-        throw new Error(
-          `Transport specialist moved hop-${index} from its evidence date on day ${query.day} to day ${entry.day}.`,
-        );
+      void query;
       return { day: entry.day, startMinutes };
     });
 

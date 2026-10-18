@@ -46,7 +46,7 @@ describe("trip facts", () => {
     });
     expect(factLabels(draftFor(plan.brief))).toEqual({
       where: "Sydney",
-      when: `1–4 Oct${new Date().getFullYear() === 2026 ? "" : " 2026"} · 4 days`,
+      when: "1 Oct – 4 Oct · 4 days",
       who: "2 travellers",
       budget: expect.stringMatching(/^AUD\s2,000\.00$/),
     });
@@ -70,12 +70,8 @@ describe("trip facts", () => {
     );
   });
 
-  it("shows years for non-current-year trips and trips that cross years", () => {
-    expect(datesLabel("2026-12-30", "2027-01-02")?.range).toMatch(/2026.*2027/);
-    const currentYear = new Date().getFullYear();
-    const sameYearRange = datesLabel(`${currentYear}-10-01`, `${currentYear}-10-04`)?.range;
-    expect(sameYearRange).not.toMatch(String(currentYear));
-    expect(datesLabel("2024-10-01", "2024-10-04")?.range).toMatch(/2024/);
+  it("shows years only when a trip crosses into a new one", () => {
+    expect(datesLabel("2026-12-30", "2027-01-02")?.range).toMatch(/2026 – .*2027$/);
     expect(datesLabel("2026-10-04", "2026-10-01")).toBeUndefined();
     expect(datesLabel("2026-10-01", "")).toBeUndefined();
   });

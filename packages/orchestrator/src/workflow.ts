@@ -227,9 +227,6 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
   };
 
   const dispatchSpecialists: WorkflowNode = async (state) => {
-    const activeSpecialists = specialists.filter(
-      (specialist) => !state.brief.noAccommodation || specialist.name !== "accommodation",
-    );
     const round = 1;
     onProgress?.({
       type: "coordinator",
@@ -242,7 +239,7 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
     const staged = () => {
       const board = createPlanningBoard(state.brief, currencyFor(state.brief));
       return Promise.all(
-        activeSpecialists.map((specialist) =>
+        specialists.map((specialist) =>
           board.run(specialist.name, (extra) =>
             invokeSpecialist(specialist, { brief: state.brief, context: agentContext, ...extra }),
           ),
@@ -257,7 +254,7 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
       try {
         proposals = await dispatchWithSupervisor({
           brief: state.brief,
-          specialists: activeSpecialists,
+          specialists,
           context: agentContext,
           ...(supervisorModel ? { model: supervisorModel } : {}),
           onProgress,

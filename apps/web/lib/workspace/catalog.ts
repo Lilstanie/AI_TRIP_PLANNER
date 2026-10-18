@@ -1,4 +1,3 @@
-import { parsePendingAsk, type PendingAsk } from "./ask-user";
 import type { TripPlan } from "@trip/shared";
 import {
   CURRENT_KEY,
@@ -12,8 +11,6 @@ import {
   type Snapshot,
 } from "./workspace";
 import type { Notice } from "../i18n/notice";
-import type { AppLocale } from "../i18n/locale";
-import { dateRangeLabel } from "./trip-facts";
 
 export const CATALOG_KEY = "trip-workspace-catalog-v3";
 
@@ -30,7 +27,6 @@ export type ConversationRecord = {
   snapshot?: Snapshot;
 
   draft?: Draft;
-  ask?: PendingAsk;
 };
 
 export type TripRecord = {
@@ -85,31 +81,12 @@ const validDate = (value: unknown): value is string =>
   text(value) && Number.isFinite(Date.parse(value));
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
-function titleFor(snapshot: Snapshot, locale: AppLocale = "en"): string {
-  const destination = snapshot.plan.brief.destination.trim();
-  const [start, end] = snapshot.plan.brief.dates;
-  const dates =
-    dateRangeLabel(start, end, locale) ?? `${start}${end && end !== start ? ` – ${end}` : ""}`;
-  return destination ? `${destination} · ${dates}` : "Untitled trip";
-}
-
-const legacyTitleFor = (snapshot: Snapshot) => {
+function titleFor(snapshot: Snapshot): string {
   const destination = snapshot.plan.brief.destination.trim();
   const [start, end] = snapshot.plan.brief.dates;
   return destination
     ? `${destination} · ${start}${end && end !== start ? ` – ${end}` : ""}`
     : "Untitled trip";
-};
-
-export function conversationTitle(conversation: ConversationRecord, locale: AppLocale): string {
-  const snapshot = conversation.snapshot;
-  if (
-    !snapshot ||
-    conversation.renamed ||
-    (conversation.title !== legacyTitleFor(snapshot) && conversation.title !== titleFor(snapshot))
-  )
-    return conversation.title;
-  return titleFor(snapshot, locale);
 }
 
 function normalizeLayout(value: unknown): PanelLayout {
@@ -160,7 +137,6 @@ function conversationFrom(snapshot: Snapshot, tripId: string): ConversationRecor
     tripId,
     messages: clone(snapshot.messages),
     input: snapshot.input,
-    ask: snapshot.ask,
     snapshot: clone(parseSnapshot(snapshot)),
   };
 }
@@ -281,7 +257,6 @@ export function parseConversation(value: unknown): ConversationRecord {
     ...(value.tripId === undefined ? {} : { tripId: value.tripId }),
     messages: withValidAttachments(withValidActivity(clone(value.messages) as Message[])),
     input: value.input,
-    ask: parsePendingAsk(value.ask),
     ...(value.renamed ? { renamed: true } : {}),
     ...(snapshot ? { snapshot } : {}),
     ...(value.draft === undefined ? {} : { draft: clone(value.draft) as Draft }),
@@ -376,7 +351,6 @@ export function upsertConversationDraft(
   conversation: Pick<ConversationRecord, "id" | "messages" | "input"> & {
     title?: string;
     draft?: Draft;
-    ask?: PendingAsk;
   },
 ): WorkspaceCatalog {
   const next = parseCatalog(catalog);
@@ -389,7 +363,6 @@ export function upsertConversationDraft(
     updatedAt: now,
     messages: clone(conversation.messages),
     input: conversation.input,
-    ask: conversation.ask,
     draft: clone(conversation.draft ?? blankDraft()),
   };
   if (existing >= 0) {
@@ -450,7 +423,6 @@ export type RestoredWorkspace = {
   messages?: Message[];
   input: string;
   previousTotal?: number;
-  ask?: PendingAsk;
   catalog: WorkspaceCatalog;
 
   conversationId?: string;
@@ -481,19 +453,12 @@ export function restoreWorkspace(storage: Pick<Storage, "getItem">): RestoredWor
     const active = catalog.conversations.find((item) => item.id === catalog.activeConversationId);
 
     const conversation =
-      active && (isBlankConversation(active) || active.ask)
-        ? active
-        : reusableBlankConversation(catalog);
+      active && isBlankConversation(active) ? active : reusableBlankConversation(catalog);
     if (conversation) {
       catalog.activeConversationId = conversation.id;
       result.conversationId = conversation.id;
       result.messages = conversation.messages;
       result.input = conversation.input;
-      result.ask = conversation.ask;
-      if (conversation.ask && conversation.snapshot) {
-        result.plan = conversation.snapshot.plan;
-        result.previousTotal = conversation.snapshot.previousTotal;
-      }
       result.draft = conversation.draft ?? blankDraft();
     } else {
       delete catalog.activeConversationId;

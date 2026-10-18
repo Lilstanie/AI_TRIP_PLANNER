@@ -76,10 +76,6 @@ The existing workspace grid is fixed: sidebar, chat, and map; overlay drawers pr
 
 Spacing uses `--space-1` through `--space-5`. Do not introduce parallel spacing values where these tokens fit.
 
-On phone layouts, interactive controls provide a minimum 44 × 44 px hit area, including controls
-inside dialogs and sheets. Their visible shape may remain smaller when the hit area extends through
-padding or a pseudo-element.
-
 ## Elevation & Depth
 
 Floating layers are glass (below); content inside them separates with spacing, `--fill-hover` rows and hairlines. `--shadow-sm` is for small raised controls, `--shadow-md` for menus, `--shadow-lg` for sheets and drawers. No noise, paper textures, or simulated curled edges.

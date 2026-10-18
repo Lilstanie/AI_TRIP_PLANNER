@@ -27,7 +27,6 @@ export {
   type SupervisorRevisionOptions,
 } from "./supervisor";
 export {
-  agentLabBenchmark,
   agentLabFaultProfileSummaries,
   agentLabScenarioSummaries,
   agentLabStrategySummaries,

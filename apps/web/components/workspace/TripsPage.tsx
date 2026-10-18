@@ -3,8 +3,6 @@ import { intlLocale, type AppLocale, type MessageKey } from "@/lib/i18n/locale";
 import { useLocale } from "@/components/account/LocaleProvider";
 import { useSettings } from "@/components/account/SettingsProvider";
 import { moneyDisplay } from "@/lib/money";
-import { dateRangeLabel } from "@/lib/workspace/trip-facts";
-import { distinctTripTitles } from "@/lib/workspace/trip-identity";
 import { effectiveCurrency } from "@trip/shared";
 import { useMemo, useRef, useState, type KeyboardEvent } from "react";
 import type { TripRecord } from "@/lib/workspace/catalog";
@@ -42,7 +40,7 @@ export function TripsPage({
   onNewTrip(): void;
   embedded?: boolean;
 }) {
-  const { t, locale } = useLocale();
+  const { t } = useLocale();
   const [tab, setTab] = useState<Tab>("trips");
   const tabRefs = useRef<Partial<Record<Tab, HTMLButtonElement | null>>>({});
   const tabList = useRef<HTMLDivElement>(null);
@@ -138,9 +136,6 @@ function TripCards({
       },
     ].filter((group) => group.items.length);
   }, [trips]);
-  const titles = distinctTripTitles(trips, (trip) =>
-    t("Trip to {destination}", { destination: trip.snapshot.plan.brief.destination }),
-  );
 
   if (!trips.length)
     return (
@@ -156,8 +151,6 @@ function TripCards({
         {group.items.map((trip) => {
           const { destination } = trip.snapshot.plan.brief;
           const length = days(trip);
-          const [start, end] = trip.snapshot.plan.brief.dates;
-          const dateRange = dateRangeLabel(start, end, locale);
 
           const total = moneyDisplay({
             currency: effectiveCurrency(trip.snapshot.plan.brief, settings.displayCurrency),
@@ -173,10 +166,13 @@ function TripCards({
               >
                 <TripCover destination={destination} size="card" />
                 <span className="trip-card__text">
-                  <span className="trip-card__title">{titles.get(trip.id)}</span>
+                  <span className="trip-card__title">
+                    {t("Trip to {destination}", {
+                      destination: trip.snapshot.plan.brief.destination,
+                    })}
+                  </span>
                   <span className="trip-card__meta">
-                    {destination} · {dateRange ? `${dateRange} · ` : ""}
-                    {length} {length === 1 ? t("day") : t("days")} · {total}
+                    {destination} · {length} {length === 1 ? t("day") : t("days")} · {total}
                   </span>
                 </span>
               </button>
@@ -216,47 +212,16 @@ function TripCalendar({
     const date = new Date(next ? Math.max(utc(next[0]), today) : today);
     return { year: date.getUTCFullYear(), month: date.getUTCMonth() };
   });
-  const [activeTime, setActiveTime] = useState(() => {
-    const today = todayUtc();
-    const date = new Date(today);
-    return date.getUTCFullYear() === cursor.year && date.getUTCMonth() === cursor.month
-      ? today
-      : Date.UTC(cursor.year, cursor.month, 1);
-  });
   const first = Date.UTC(cursor.year, cursor.month, 1);
   const lead = (new Date(first).getUTCDay() + 6) % 7;
   const monthDays = new Date(Date.UTC(cursor.year, cursor.month + 1, 0)).getUTCDate();
   const cells = Math.ceil((lead + monthDays) / 7) * 7;
   const today = todayUtc();
-  const shift = (by: number) => {
-    const date = new Date(Date.UTC(cursor.year, cursor.month + by, 1));
-    setActiveTime(date.getTime());
-    setCursor({ year: date.getUTCFullYear(), month: date.getUTCMonth() });
-  };
-
-  const moveFocus = (event: KeyboardEvent<HTMLDivElement>, time: number) => {
-    const delta =
-      event.key === "ArrowRight"
-        ? 1
-        : event.key === "ArrowLeft"
-          ? -1
-          : event.key === "ArrowDown"
-            ? 7
-            : event.key === "ArrowUp"
-              ? -7
-              : 0;
-    if (!delta) return;
-    event.preventDefault();
-    const nextTime = time + delta * DAY;
-    const nextDate = new Date(nextTime);
-    setActiveTime(nextTime);
-    setCursor({ year: nextDate.getUTCFullYear(), month: nextDate.getUTCMonth() });
-    const grid = event.currentTarget.closest(".trip-calendar__grid");
-    const selector = `[data-calendar-time="${nextTime}"]`;
-    const nextCell = grid?.querySelector<HTMLElement>(selector);
-    if (nextCell && nextDate.getUTCMonth() === new Date(time).getUTCMonth()) nextCell.focus();
-    else requestAnimationFrame(() => grid?.querySelector<HTMLElement>(selector)?.focus());
-  };
+  const shift = (by: number) =>
+    setCursor(({ year, month }) => {
+      const date = new Date(Date.UTC(year, month + by, 1));
+      return { year: date.getUTCFullYear(), month: date.getUTCMonth() };
+    });
 
   const onDay = (time: number) =>
     trips.filter((trip) => {
@@ -279,7 +244,6 @@ function TripCalendar({
             className="trip-calendar__today"
             onClick={() => {
               const now = new Date(today);
-              setActiveTime(today);
               setCursor({ year: now.getUTCFullYear(), month: now.getUTCMonth() });
             }}
           >
@@ -317,20 +281,8 @@ function TripCalendar({
                   role="gridcell"
                   key={index}
                   className="trip-calendar__day"
-                  aria-label={new Intl.DateTimeFormat(intlLocale(locale), {
-                    weekday: "long",
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                    timeZone: "UTC",
-                  }).format(date)}
-                  aria-current={time === today ? "date" : undefined}
-                  tabIndex={time === activeTime ? 0 : -1}
-                  data-calendar-time={time}
                   data-outside={inMonth ? undefined : "true"}
                   data-today={time === today ? "true" : undefined}
-                  onFocus={() => setActiveTime(time)}
-                  onKeyDown={(event) => moveFocus(event, time)}
                 >
                   <span className="trip-calendar__date">{date.getUTCDate()}</span>
                   {here.map((trip) => {

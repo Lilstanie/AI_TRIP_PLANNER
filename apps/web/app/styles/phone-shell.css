@@ -60,7 +60,6 @@
   line-height: var(--line-height-title);
 }
 .workspace-panel--trip .trip-drawer-empty button {
-  color: var(--text);
   min-height: 44px;
 }
 

@@ -56,7 +56,7 @@ step.
    explicit `TripBrief` updates from the message. `mode: "plan"` skips extraction and plans the
    submitted brief; `mode: "start"` requires every brief field in the message (see
    [API](api.md)).
-2. The workflow runs applicable specialists, detects conflicts, revises targeted specialists for up to
+2. The workflow runs the specialists, detects conflicts, revises targeted specialists for up to
    `maxRounds` rounds and assembles a `TripPlan` whose sections carry their own draft/needs-you state
    and whose `conflicts` list any request still unresolved.
 3. Progress events stream to the browser as NDJSON; the final frame carries `{ reply, plan }`.
@@ -151,9 +151,8 @@ deployment needs self-hosted or paid instances, which the base URL settings of s
 
 `/agent-lab` is a public, inspectable experiment surface separate from the saved workspace. It accepts
 only registered values: the strategies (`single-agent-baseline`, `multi-agent-no-revision` and
-`multi-agent-targeted-revision`), 12 versioned scenarios covering single-city and multi-city trips,
-budget constraints, conflicting preferences, date edges and vague briefs, and a data mode, fixture
-(the default) or live. `POST /api/agent-lab/runs` validates that closed request, calls `runAgentLab()` and
+`multi-agent-targeted-revision`), four scenarios (`tokyo-couple`, the same trip with a A$2,300 budget, a Paris
+family trip and a Tokyo and Kyoto trip) and a data mode, fixture (the default) or live. `POST /api/agent-lab/runs` validates that closed request, calls `runAgentLab()` and
 streams ordered NDJSON event envelopes before a final schema-versioned artifact.
 
 The baseline is an experiment strategy above the five travel specialists, not a sixth specialist.
@@ -197,16 +196,6 @@ prices the trip at the minimum but never states the shortfall, so it fails the s
 brief, which check that the train, the stays, each day's activities and the totals agree on one move.
 Every artifact records the scenario's fixture version and the evaluator version (`scenario-rules-v2`); the
 [Agent Note](../.agents/notes/implemented/architecture/2026-10-02-agent-lab-benchmark-scenarios.md) records the decision.
-
-The versioned benchmark registry is exported by `@trip/orchestrator` and served by
-`GET /api/agent-lab/benchmark`. It lists the scenarios and their expected outcomes and required checks,
-strategies, fault profiles, and the separate live subset. The registry is version 1.0.1; the benchmark
-E2E builds its fixture report from the artifacts produced by the production runner, retaining every
-failure in each denominator, then uploads one of those same artifacts to the page for replay. Fixture
-and live reports remain separate. Stable fixture reports omit run-specific IDs and measured runtime
-latency; raw artifacts retain those values for replay. The live subset uses three scenarios, only strategies with live
-support, and three repeats through the existing live gate. See the
-[benchmark Agent Note](../.agents/notes/implemented/testing/2026-10-16-agent-lab-benchmark.md).
 
 Artifact download and replay happen in the browser; no endpoint or server storage is involved. The
 page saves the artifact it received, and `apps/web/lib/agent-lab/replay.ts` validates a chosen file
@@ -397,7 +386,6 @@ when one could not be met, and never treat one as a verified fact.
 - `learnedPreferences`: wishes the traveller states in chat, with the whole list replaced each time.
 - `excludeFlights`: the traveller arranges flights.
 - `bookedStay`: the traveller has booked their stay.
-- `noAccommodation`: the traveller does not need a stay; this is independent of `bookedStay`.
 
 `specialistBrief` in `packages/orchestrator/src/supervisor.ts` appends the learned list to the
 traveller's own for the specialists, deduplicated and capped at 12. The stored brief keeps the two
@@ -409,9 +397,7 @@ A trip with no departure city, or one that departs from its only destination, ha
 With `excludeFlights`, transport neither searches nor prices flights and raises no fare conflict.
 With `bookedStay`, accommodation returns the booking unpriced without a search. The supervisor runs
 the accommodation specialist even when the model skips it. Once either field is set, the coordinator
-never asks about flights or other stays. With `noAccommodation: true`, the workflow skips the
-accommodation specialist and its stay allocation; an absent or false value preserves the previous
-behavior. The
+never asks about flights or other stays. The
 [conversation scope note](../.agents/notes/implemented/feature/2026-09-27-conversation-scope.md)
 explains why.
 

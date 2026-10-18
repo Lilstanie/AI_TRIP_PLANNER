@@ -8,12 +8,6 @@ AI Trip Planner 是一个面向单个用户的多智能体旅行工作区。用�
 
 界面支持中英文，每个行程的金额按该行程自己的显示币种展示，窄屏下切换为手机布局，并可作为应用安装。独立的 `/agent-lab` 页面在固定场景上对比不同的规划策略。
 
-Agent Lab 基准版本为 1.0.1。汇总结果尚未测量，计划质量也尚未评估。运行
-`pnpm --filter @trip/web e2e agent-lab-benchmark` 可在
-`output/playwright/agent-lab-benchmark/` 生成 fixture 报告和回放截图；实时子集需通过
-`AGENT_LAB_BENCHMARK_LIVE=true` 单独启用，且仍受部署门控限制。详见[基准指南](docs/development.zh.md#agent-lab-benchmark)
-和[发布记录模板](docs/agent-lab-release-record-template.md)。
-
 在线演示：[elec5620-ai-trip-planner.vercel.app](https://elec5620-ai-trip-planner.vercel.app)。顶部栏的切换开关会显示请求使用模拟数据还是实时数据提供方；地点和酒店名称中带有“Mock …”的内容来自模拟模式，并不表示实时集成失败。演示站点的版本可能落后于你正在查看的分支。
 
 ## 工作原理

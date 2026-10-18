@@ -38,7 +38,6 @@ export const PartialTripBrief = z.object({
 
   legModes: z.array(LegModeChoice).max(12).optional(),
   bookedStay: BookedStay.optional(),
-  noAccommodation: z.boolean().optional(),
 });
 export type PartialTripBrief = z.infer<typeof PartialTripBrief>;
 
@@ -138,13 +137,6 @@ export const ChatRequest = z
     interfaceLanguage: InterfaceLanguage.optional(),
 
     displayCurrency: Currency.optional(),
-    destinationLocation: z
-      .object({
-        destination: z.string().trim().min(1),
-        latitude: z.number().min(-90).max(90),
-        longitude: z.number().min(-180).max(180),
-      })
-      .optional(),
   })
   .refine((request) => request.message.trim() !== "" || (request.attachments?.length ?? 0) > 0, {
     message: "Send a message or at least one attachment",

@@ -101,7 +101,6 @@ export const TripBrief = z
     legModes: z.array(LegModeChoice).max(12).optional(),
 
     bookedStay: BookedStay.optional(),
-    noAccommodation: z.boolean().optional(),
   })
   .check((ctx) => {
     const [start, end] = ctx.value.dates;

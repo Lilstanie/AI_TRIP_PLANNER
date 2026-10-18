@@ -4,13 +4,6 @@
   justify-content: center;
   min-width: 0;
 }
-.preference-check {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  min-height: 44px;
-  cursor: pointer;
-}
 .fact-chips__scroller {
   display: flex;
   max-width: 100%;
@@ -46,7 +39,6 @@
   flex: none;
   align-items: center;
   gap: 6px;
-  max-width: 240px;
   min-height: 38px !important;
   padding: 0 14px !important;
   border: 0 !important;
@@ -842,10 +834,4 @@
     transform: translateY(16px);
     opacity: 0;
   }
-}
-
-.fact-chip__value {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
 }

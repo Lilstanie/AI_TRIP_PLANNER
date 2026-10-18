@@ -125,19 +125,13 @@ export function briefErrors(issues: readonly { path: readonly PropertyKey[]; mes
   return errors;
 }
 
-export function dateRangeLabel(start: string, end: string, locale: AppLocale = "en") {
-  if (!validDate(start) || !validDate(end) || end < start) return undefined;
-  const startYear = Number(start.slice(0, 4));
-  const sameYear = startYear === Number(end.slice(0, 4));
-  const includeYear = !sameYear || startYear !== new Date().getFullYear();
-  const formatter = new Intl.DateTimeFormat(intlLocale(locale), {
+const shortDate = (iso: string, withYear: boolean, locale: AppLocale) =>
+  new Intl.DateTimeFormat(intlLocale(locale), {
     day: "numeric",
     month: "short",
-    ...(includeYear ? { year: "numeric" } : {}),
+    ...(withYear ? { year: "numeric" } : {}),
     timeZone: "UTC",
-  });
-  return formatter.formatRange(new Date(`${start}T00:00:00Z`), new Date(`${end}T00:00:00Z`));
-}
+  }).format(new Date(`${iso}T00:00:00Z`));
 
 const validDate = (iso: string) =>
   /^\d{4}-\d{2}-\d{2}$/.test(iso) && !Number.isNaN(Date.parse(iso));
@@ -146,8 +140,8 @@ export function datesLabel(start: string, end: string, locale: AppLocale = "en")
   if (!validDate(start) || !validDate(end)) return undefined;
   const days = (Date.parse(end) - Date.parse(start)) / 86400000 + 1;
   if (days < 1) return undefined;
-  const range = dateRangeLabel(start, end, locale);
-  if (!range) return undefined;
+  const sameYear = start.slice(0, 4) === end.slice(0, 4);
+  const range = `${shortDate(start, !sameYear, locale)} – ${shortDate(end, !sameYear, locale)}`;
   return {
     range,
     days: locale === "zh" ? `${days} 天` : `${days} ${days === 1 ? "day" : "days"}`,
