@@ -29,7 +29,6 @@ const CHINESE_DIGITS: Record<string, number> = {
   十: 10,
 };
 
-/** A small written Chinese number (一 to 九十九), or undefined when the token is not one. */
 function chineseNumber(token: string | undefined): number | undefined {
   if (
     !token ||
@@ -67,7 +66,6 @@ const PARTY_PATTERNS = [
   ],
 ] as const;
 
-/** The traveller breakdown a message states outright, or undefined when it only gives a total. */
 function extractParty(message: string): TravellerParty | undefined {
   const counts = PARTY_PATTERNS.map(([, pattern]) => {
     const token = message.match(pattern)?.[1];
