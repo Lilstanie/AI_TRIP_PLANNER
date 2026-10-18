@@ -267,6 +267,15 @@ try {
     (await trip.getByRole("tab", { name: /^Day 2\b/ }).getAttribute("aria-selected")) === "true",
     "manual day selection remains usable",
   );
+  await page.reload();
+  await openSeededTrip();
+  check(
+    (await page
+      .locator("#phone-panel-trip")
+      .getByRole("tab", { name: /^Day 2\b/ })
+      .getAttribute("aria-selected")) === "true",
+    "manual day selection is restored after reload",
+  );
   await page.screenshot({ path: `${OUT}/on-trip-sydney-boundary.png`, fullPage: true });
 
   await page.evaluate(() => localStorage.setItem("trip-tips-folded:on-trip-sydney-boundary", "0"));
@@ -361,7 +370,7 @@ try {
       localStorage.setItem("trip-workspace-v1", JSON.stringify(seed.snapshot));
       localStorage.setItem("trip-workspace-catalog-v3", JSON.stringify(seed.catalog));
     },
-    snapshotSeed(["2026-10-17", "2026-10-19"], "on-trip-budget-headroom-unpriced", true, 500, 400),
+    snapshotSeed(["2026-10-17", "2026-10-19"], "on-trip-budget-headroom-unpriced", true, 500, 480),
   );
   await page.reload();
   await openSeededTrip();

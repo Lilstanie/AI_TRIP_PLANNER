@@ -25,6 +25,27 @@ import type { EditOperation, PlanRevisions } from "./plan-revision";
 
 type Activity = TripPlaces["activities"][number];
 
+const selectedDayKey = (tripId: string) => `trip-day-selected:${tripId}`;
+
+function savedDay(tripId: string): number | undefined {
+  try {
+    const value = window.localStorage.getItem(selectedDayKey(tripId));
+    if (value === null) return undefined;
+    const day = Number(value);
+    return Number.isInteger(day) && day > 0 ? day : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function rememberDay(tripId: string, day: number) {
+  try {
+    window.localStorage.setItem(selectedDayKey(tripId), String(day));
+  } catch {
+    return;
+  }
+}
+
 function checkedAs(id: string, action: ItemAction): EditOperation | undefined {
   switch (action.kind) {
     case "remove":
@@ -119,12 +140,19 @@ export function TripEditor({
     setDay(1);
   }, [plan.tripId]);
   useEffect(() => {
+    const restoredDay = savedDay(plan.tripId);
+    if (restoredDay === undefined) return;
+    manuallySelectedDay.current = true;
+    setDay(Math.min(restoredDay, days));
+  }, [days, plan.tripId]);
+  useEffect(() => {
     if (!manuallySelectedDay.current && today) setDay(today);
   }, [today, plan.tripId]);
   useEffect(() => setDay((value) => Math.min(Math.max(1, value), days)), [days]);
   const selectDay = (next: number) => {
     manuallySelectedDay.current = true;
     setDay(next);
+    rememberDay(plan.tripId, next);
   };
   const active = activities.find((activity) => activity.id === selected);
 
