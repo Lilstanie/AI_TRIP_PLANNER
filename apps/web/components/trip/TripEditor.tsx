@@ -27,20 +27,31 @@ type Activity = TripPlaces["activities"][number];
 
 const selectedDayKey = (tripId: string) => `trip-day-selected:${tripId}`;
 
-function savedDay(tripId: string): number | undefined {
+function savedDay(tripId: string): { day: number; selectedOnToday: number | null } | undefined {
   try {
     const value = window.localStorage.getItem(selectedDayKey(tripId));
     if (value === null) return undefined;
-    const day = Number(value);
-    return Number.isInteger(day) && day > 0 ? day : undefined;
+    const saved = JSON.parse(value) as { day?: unknown; selectedOnToday?: unknown };
+    return Number.isInteger(saved.day) && Number(saved.day) > 0
+      ? {
+          day: Number(saved.day),
+          selectedOnToday:
+            Number.isInteger(saved.selectedOnToday) && Number(saved.selectedOnToday) > 0
+              ? Number(saved.selectedOnToday)
+              : null,
+        }
+      : undefined;
   } catch {
     return undefined;
   }
 }
 
-function rememberDay(tripId: string, day: number) {
+function rememberDay(tripId: string, day: number, today: number | undefined) {
   try {
-    window.localStorage.setItem(selectedDayKey(tripId), String(day));
+    window.localStorage.setItem(
+      selectedDayKey(tripId),
+      JSON.stringify({ day, selectedOnToday: today ?? null }),
+    );
   } catch {
     return;
   }
@@ -119,7 +130,19 @@ export function TripEditor({
     onTimelineChange,
   });
   const days = dayCount(plan);
-  const today = onTripDay(plan.brief.dates, tripPlaces.destinations[0]);
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const refreshNow = () => setNow(new Date());
+    const timer = window.setInterval(refreshNow, 60_000);
+    window.addEventListener("focus", refreshNow);
+    document.addEventListener("visibilitychange", refreshNow);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("focus", refreshNow);
+      document.removeEventListener("visibilitychange", refreshNow);
+    };
+  }, []);
+  const today = onTripDay(plan.brief.dates, tripPlaces.destinations[0], now);
   const setOnTrip = useContext(OnTripContext);
   useEffect(() => {
     setOnTrip(tripPlaces.destinationsSettled ? today !== undefined : undefined);
@@ -142,9 +165,14 @@ export function TripEditor({
   useEffect(() => {
     const restoredDay = savedDay(plan.tripId);
     if (restoredDay === undefined) return;
+    if (today !== undefined && restoredDay.selectedOnToday !== today) {
+      manuallySelectedDay.current = false;
+      setDay(today);
+      return;
+    }
     manuallySelectedDay.current = true;
-    setDay(Math.min(restoredDay, days));
-  }, [days, plan.tripId]);
+    setDay(Math.min(restoredDay.day, days));
+  }, [days, plan.tripId, today]);
   useEffect(() => {
     if (!manuallySelectedDay.current && today) setDay(today);
   }, [today, plan.tripId]);
@@ -152,7 +180,7 @@ export function TripEditor({
   const selectDay = (next: number) => {
     manuallySelectedDay.current = true;
     setDay(next);
-    rememberDay(plan.tripId, next);
+    rememberDay(plan.tripId, next, today);
   };
   const active = activities.find((activity) => activity.id === selected);
 
