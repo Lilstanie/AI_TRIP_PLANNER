@@ -13,7 +13,7 @@ const STRATEGIES = [
   "multi-agent-no-revision",
   "multi-agent-targeted-revision",
 ];
-const EVALUATOR_VERSION = "scenario-rules-v7";
+const EVALUATOR_VERSION = "scenario-rules-v8";
 
 const PARIS_MINIMUM = 310 * 4 * 2 + 2 * 5 * 140;
 const PARIS_MINIMUM_FORMATTED = PARIS_MINIMUM.toLocaleString("en-AU", {
@@ -90,8 +90,11 @@ function tripFacts(plan, [first, second]) {
     stayNights: stays.every(
       (stay) => stay && dayOffset(stay.checkIn, stay.checkOut) === stay.nights,
     ),
-    stayDatesMatchTrip: stays[0]?.checkIn === start && stays[1]?.checkOut === end,
-    staysSpanTrip: stays[0]?.checkIn === start && stays[1]?.checkOut === end,
+    tripDates:
+      plan.brief.dates[0] === start &&
+      plan.brief.dates[1] === end &&
+      stays[0]?.checkIn === start &&
+      stays[1]?.checkOut === end,
     costsAddUp:
       Math.abs(plan.sections.reduce((sum, item) => sum + item.estCost, 0) - plan.estTotal) < 0.01 &&
       plan.budgetTotal === 6500,
@@ -333,8 +336,7 @@ async function main() {
     "everyDayInItsCity",
     "staysHandOver",
     "stayNights",
-    "stayDatesMatchTrip",
-    "staysSpanTrip",
+    "tripDates",
     "costsAddUp",
   ];
   const storedIds = [
@@ -342,7 +344,6 @@ async function main() {
     "itinerary-by-city",
     "stay-transition",
     "stay-nights",
-    "stay-date-range",
     "trip-dates",
     "total-consistent",
   ];
@@ -401,7 +402,7 @@ async function main() {
     "2026-11-09 to 2026-11-13",
   );
   check(
-    tripFacts(outsideTrip, CITIES).stayDatesMatchTrip === false,
+    tripFacts(outsideTrip, CITIES).tripDates === false,
     "kyoto: recomputation detects dates outside the trip despite the same night count",
   );
   check(

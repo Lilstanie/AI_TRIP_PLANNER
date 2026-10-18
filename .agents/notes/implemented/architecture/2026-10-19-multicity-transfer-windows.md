@@ -11,11 +11,16 @@ could not be ordered safely around a transfer.
 
 ## Decision
 
-Activities on a day with a scheduled inter-city transfer must have start and end times. An activity in
-the departure city must end no later than the transfer departure; an activity in the arrival city
-must start no earlier than the transfer arrival. The activity must belong to exactly one of those
-cities, and invalid or overlapping times make the itinerary inconsistent. Existing overnight-city
-rules still determine which city is valid at the end of the day.
+Activities on a day with an inter-city transfer must have start and end times, and each transfer needs
+usable start and end times. An activity in the departure city must end no later than the transfer
+departure; an activity in the arrival city must start no earlier than the transfer arrival. The
+activity must belong to exactly one of those cities, and invalid or overlapping times make the
+itinerary inconsistent. If any transfer on the day is untimed, activities on that day are rejected
+because their order cannot be established. Existing overnight-city rules still determine which city
+is valid at the end of the day.
+
+Accommodation follows the scheduled hops as well. A city with zero overnight nights is omitted from
+hotel search, so a day-one transfer starts the stay in the arrival city.
 
 The itinerary validator builds each day's transfer windows once and orders them by departure time.
 Both city validation and fallback scheduling consume those same windows.
@@ -24,8 +29,8 @@ Both city validation and fallback scheduling consume those same windows.
 
 - **Validate only the city and calendar day.** Rejected because it allows activities to overlap a
   transfer or occur after leaving their city.
-- **Allow untimed activities and infer their order.** Rejected because no evidence establishes whether
-  an untimed stop happens before or after the transfer.
+- **Allow activities on a day with an untimed transfer.** Rejected because no evidence establishes
+  whether they happen before or after the transfer.
 
 ## Consequences
 

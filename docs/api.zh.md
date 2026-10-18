@@ -208,7 +208,7 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 `{ "type": "event", "event": { ... } }`，最后一帧格式为
 `{ "type": "complete", "artifact": { ... } }`。产物包含经过校验的计划、有序事件、
 确定性指标，以及明确的 fixture／评估器版本。`metrics.checks` 逐项列出按场景规则衡量的具名检查
-（`id`、`label`、`passed`）；计划超出预算时 `budgetHeadroom` 为负数。若场景的证据表明没有任何计划放得下，则用 `evidence-floor`（估算不低于受支持的最便宜选项）和 `infeasibility-reported`（计划指出受支持的最低成本）取代 `budget` 和 `no-conflicts`；多城市场景再增加 `hop-date`、`itinerary-by-city`、`stay-transition`、`stay-nights`、`stay-date-range`、`trip-dates` 和 `total-consistent`。`stay-date-range` 要求住宿入住与退房日期分别匹配行程首尾日期。`versions.evaluator` 为 `scenario-rules-v7`，`versions.fixture` 指明场景的 fixture。对比数据 `rounds`、`toolCalls`、`fallbacks`、`failedAgents` 和
+（`id`、`label`、`passed`）；计划超出预算时 `budgetHeadroom` 为负数。若场景的证据表明没有任何计划放得下，则用 `evidence-floor`（估算不低于受支持的最便宜选项）和 `infeasibility-reported`（计划指出受支持的最低成本）取代 `budget` 和 `no-conflicts`；多城市场景增加 `hop-date`、`itinerary-by-city`、`stay-transition`、`stay-nights`、`trip-dates` 和 `total-consistent`，其中 `trip-dates` 同时验证计划简报日期与首尾住宿日期。`stay-date-range` 仍用于独立的住宿日期边界场景。冲突餐饮偏好必须由不同餐食分别提供证据。`versions.evaluator` 为 `scenario-rules-v8`，`versions.fixture` 指明场景的 fixture。对比数据 `rounds`、`toolCalls`、`fallbacks`、`failedAgents` 和
 `unresolvedConflicts` 由轨迹和计划统计得出；`latencyMs` 是不含显示节奏延迟的运行耗时（`durationMs` 含该延迟），
 在 fixture 模式下仅衡量编排开销。 场景还可包含专属检查：`meal-preference-tradeoff`、`actionable-brief`、`trip-days` 和 `stay-nights`。产物还记录 `groundedSections`、`duplicateStops`、`genericStops`、
 `multiCityConsistent`（单城市旅行为 `null`）、`stopReason`（没有循环的策略为 `null`）和 `usage`；fixture 运行不调用

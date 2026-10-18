@@ -39,6 +39,71 @@ function context(): AgentContext {
 }
 
 describe("multi-city transfer-day activities", () => {
+  it("does not place activities on a transfer day when the flight has no usable times", async () => {
+    const trip = {
+      ...brief,
+      destination: "Sydney & Wollongong",
+      dates: ["2026-12-16", "2026-12-18"] as [string, string],
+    };
+    const ctx = context();
+    ctx.tools.maps.places = vi.fn(async ({ near, category }) =>
+      category === "sight"
+        ? [{ name: `${near} Museum`, category: "sight" }]
+        : [{ name: `${near} Foreshore`, category: "neighborhood" }],
+    );
+    const transport: AgentProposal = {
+      agent: "transport",
+      summary: "Fly from Sydney to Wollongong on day 1",
+      items: [
+        {
+          kind: "transport",
+          day: 1,
+          location: "Sydney → Wollongong",
+          detail: "Own flight to Wollongong on 2026-12-16",
+        },
+      ],
+      assumptions: [],
+      conflictsWith: [],
+    };
+    const generator: ItineraryGenerator = {
+      generate: vi.fn(async () => ({
+        summary: "Visit before the untimed flight",
+        activities: [
+          {
+            day: 1,
+            startTime: "13:00",
+            endTime: "14:00",
+            location: "Sydney Museum",
+            detail: "Visit after the flight without usable transfer times",
+          },
+          {
+            day: 2,
+            startTime: "09:00",
+            endTime: "10:00",
+            location: "Wollongong Museum",
+            detail: "Visit after the move",
+          },
+          {
+            day: 3,
+            startTime: "09:00",
+            endTime: "10:00",
+            location: "Wollongong Museum",
+            detail: "Visit on the final day",
+          },
+        ],
+        assumptions: [],
+      })),
+    };
+
+    const result = await createItineraryAgent({ generator }).invoke({
+      brief: trip,
+      context: ctx,
+      board: { proposals: [transport] },
+    });
+
+    expect(result.items.filter(({ day }) => day === 1)).toEqual([]);
+  });
+
   it("does not keep destination activities after a one-way transfer when the night is in the origin city", async () => {
     const trip = {
       ...brief,

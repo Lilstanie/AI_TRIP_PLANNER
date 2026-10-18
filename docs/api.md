@@ -230,9 +230,10 @@ named check (`id`, `label`, `passed`) measured against the scenario's rules; `bu
 negative when the plan is over budget. A scenario whose evidence shows no plan can fit replaces `budget` and
 `no-conflicts` with `evidence-floor` (the estimate is not below the cheapest supported options) and
 `infeasibility-reported` (the plan names the supported minimum); a multi-city scenario adds `hop-date`,
-`itinerary-by-city`, `stay-transition`, `stay-nights`, `stay-date-range`, `trip-dates` and `total-consistent`.
-`stay-date-range` requires hotel check-in and check-out to match the trip's first and last dates.
-`versions.evaluator` is `scenario-rules-v7` and `versions.fixture` names the scenario's fixture. Scenario-specific checks may also include
+`itinerary-by-city`, `stay-transition`, `stay-nights`, `trip-dates` and `total-consistent`.
+`trip-dates` requires the brief and first and last stay dates to match the trip dates.
+`stay-date-range` remains for standalone accommodation date-boundary scenarios.
+`versions.evaluator` is `scenario-rules-v8` and `versions.fixture` names the scenario's fixture. Competing meal preferences require separate meal records as evidence. Scenario-specific checks may also include
 `meal-preference-tradeoff`, `actionable-brief`, `trip-days`, `stay-nights` and `stay-date-range`. The comparison figures `rounds`, `toolCalls`, `fallbacks`,
 `failedAgents` and `unresolvedConflicts` are counted from the trace and the plan; `latencyMs` is the
 run's wall time without display pacing (`durationMs` includes it) and, in fixture mode, measures

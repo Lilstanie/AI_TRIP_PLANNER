@@ -204,7 +204,6 @@ export const tokyoKyotoMultiCity: AgentLabScenario = {
     "itinerary-by-city",
     "stay-transition",
     "stay-nights",
-    "stay-date-range",
     "trip-dates",
     "total-consistent",
   ],

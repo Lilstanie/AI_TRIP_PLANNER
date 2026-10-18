@@ -87,7 +87,7 @@ const checks = {
     terminal?.type === "complete" &&
     artifact?.schemaVersion === 1 &&
     artifact?.versions?.fixture === "tokyo-kyoto-multi-city-v1" &&
-    artifact?.versions?.evaluator === "scenario-rules-v7" &&
+    artifact?.versions?.evaluator === "scenario-rules-v8" &&
     JSON.stringify(savedArtifact) === JSON.stringify(artifact),
 };
 

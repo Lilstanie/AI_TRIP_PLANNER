@@ -193,16 +193,16 @@ scenario's rules replace the `budget` and `no-conflicts` checks with `evidence-f
 `infeasibility-reported`, which measure whether a plan stays honest: the scripted single-agent baseline
 prices the trip at the minimum but never states the shortfall, so it fails the second.
 `tokyo-kyoto-multi-city` is seven nights in Tokyo and then Kyoto. Its rules add `hop-date`,
-`itinerary-by-city`, `stay-transition`, `stay-nights`, `stay-date-range`, `trip-dates` and `total-consistent`, derived from the cities in the
+`itinerary-by-city`, `stay-transition`, `stay-nights`, `trip-dates` and `total-consistent`, derived from the cities in the
 brief, which check that the train, the stays, each day's activities and the totals agree on one move.
 Transfer-day timing is recorded in the [multi-city transfer windows Agent Note](../.agents/notes/implemented/architecture/2026-10-19-multicity-transfer-windows.md).
-Every artifact records the scenario's fixture version and the evaluator version (`scenario-rules-v7`); the
+Every artifact records the scenario's fixture version and the evaluator version (`scenario-rules-v8`); the
 [Agent Note](../.agents/notes/implemented/architecture/2026-10-02-agent-lab-benchmark-scenarios.md) records the decision.
-Scenario variants use their own scripted plan fixtures or name an explicit source fixture. Their required checks include budget feasibility, meal-preference tradeoffs, actionable detail for vague briefs, trip-day boundaries, hotel date ranges and stay-night evidence.
+Scenario variants use their own scripted plan fixtures or name an explicit source fixture. Their required checks include budget feasibility, meal-preference tradeoffs supported by distinct meal records, actionable detail for vague briefs, trip-day boundaries, hotel date ranges and stay-night evidence.
 
 The versioned benchmark registry is exported by `@trip/orchestrator` and served by
 `GET /api/agent-lab/benchmark`. It lists the scenarios and their expected outcomes and required checks,
-strategies, fault profiles, and the separate live subset. The registry is version 1.0.6; the benchmark
+strategies, fault profiles, and the separate live subset. The registry is version 1.0.7; the benchmark
 E2E builds its fixture report from the artifacts produced by the production runner, retaining every
 failure in each denominator, then uploads one of those same artifacts to the page for replay. Fixture
 and live reports remain separate. Stable fixture reports omit run-specific IDs and measured runtime
@@ -285,14 +285,17 @@ Specialist proposals, the brief and the final plan are re-validated at the graph
   the same turn. Each call receives the others' proposals as `board` and, for accommodation,
   itinerary and dining, an `allocation`: its share (0.4, 0.4, 0.2) of the budget left after the
   stages it waited for. On a multi-city trip the itinerary takes each day's city from the inter-city
-  hop transport scheduled (`citiesByDay`). Transfer-day activities need start and end times: activities
-  in the departure city must finish by departure, and activities in the arrival city must start at or
-  after arrival, so they cannot overlap the transfer. A hop day allows both cities only when its final arrival
+  hop transport scheduled (`citiesByDay`). Transfer-day activities need start and end times, and every
+  transfer on that day needs usable times: activities in the departure city must finish by departure,
+  and activities in the arrival city must start at or after arrival, so they cannot overlap the transfer.
+  If any transfer lacks usable times, activities on that day are rejected because their order cannot be
+  established. A hop day allows both cities only when its final arrival
   is the overnight stay city. Otherwise, only the overnight city is allowed, so a one-way move
   requires a same-day return before the traveller can sleep in the origin city. A draft with a stop
   in another city is sent back to the model with that reason. Accommodation reads the same hops
   (`scheduledHops` in `transport/legs.ts`), so each city's nights run from its arrival day to the
-  next hop; without hops on the board the nights are split evenly.
+  next hop; without hops on the board the nights are split evenly. If a transfer arrives on day one,
+  the origin city has zero nights and is omitted from accommodation search.
 - `detect_conflicts` combines budget overruns, structured cross-agent schedule overlaps and geography
   conflicts reported after itinerary route-duration checks. An overrun is spread in AUD
   (`targetSaving`) over each section's room to cut, its cost less its `floorCost`. When the sum of

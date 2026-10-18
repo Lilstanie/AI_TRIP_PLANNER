@@ -116,6 +116,46 @@ describe("accommodation proposals", () => {
     expect(result.assumptions.join(" ")).toContain("split evenly");
   });
 
+  it("starts the overnight stay in the arrival city when the inter-city transfer is on day one", async () => {
+    const { ctx, searchStays } = context();
+    const result = await accommodationAgent.invoke({
+      brief: {
+        ...brief,
+        groupSize: 2,
+        destination: "Sydney & Wollongong",
+        dates: ["2026-12-16", "2026-12-20"],
+      },
+      context: ctx,
+      board: {
+        proposals: [
+          {
+            agent: "transport",
+            summary: "Train from Sydney to Wollongong on day one",
+            items: [
+              {
+                kind: "transport",
+                day: 1,
+                startTime: "09:00",
+                endTime: "11:20",
+                location: "Sydney → Wollongong",
+                detail: "Train to Wollongong on 2026-12-16",
+              },
+            ],
+            assumptions: [],
+            conflictsWith: [],
+          },
+        ],
+      },
+    });
+
+    expect(searchStays.mock.calls).toEqual([
+      [{ city: "Wollongong", checkIn: "2026-12-16", checkOut: "2026-12-20", guests: 2 }],
+    ]);
+    expect(result.stays?.map(({ city, nights, day }) => ({ city, nights, day }))).toEqual([
+      { city: "Wollongong", nights: 4, day: 1 },
+    ]);
+  });
+
   it("counts leap-day nights using calendar dates and keeps cents", async () => {
     const { ctx } = context([{ ...options[0]!, pricePerNight: 99.99 }]);
     const result = await accommodationAgent.invoke({

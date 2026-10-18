@@ -81,7 +81,7 @@ const checks = {
       artifact?.startedAt &&
       artifact?.completedAt &&
       artifact?.versions?.fixture &&
-      artifact?.versions?.evaluator === "scenario-rules-v7" &&
+      artifact?.versions?.evaluator === "scenario-rules-v8" &&
       artifact?.metrics?.checks?.length &&
       artifact?.events?.length &&
       artifact.events.every(

@@ -198,7 +198,7 @@ async function main() {
   const STRATEGIES = benchmark.fixture.strategies.map(({ id }) => id);
   const faultProfiles = benchmark.fixture.faults;
   const liveScenarioIds = benchmark.live.scenarioIds;
-  check(benchmark.version === "1.0.6", "versioned benchmark registry is served");
+  check(benchmark.version === "1.0.7", "versioned benchmark registry is served");
   check(
     scenarioById
       .get("tokyo-conflicting-preferences")

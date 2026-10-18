@@ -162,4 +162,22 @@ describe("evaluateAgentLabPlan", () => {
         ?.passed,
     ).toBe(false);
   });
+
+  it("requires separate meal entries for competing food preferences", () => {
+    const tradeoff = findAgentLabScenario("tokyo-conflicting-preferences");
+    const plan = structuredClone(tradeoff.fixturePlan);
+    const meals = plan.sections.find((section) => section.id === "dining")!.proposal!.items;
+    meals.splice(0, meals.length, {
+      kind: "meal",
+      detail: "Vegetarian and local meat specialties in one dinner",
+      location: "Tokyo",
+      day: 1,
+    });
+
+    expect(
+      evaluateAgentLabPlan(tradeoff, plan).checks.find(
+        (check) => check.id === "meal-preference-tradeoff",
+      )?.passed,
+    ).toBe(false);
+  });
 });

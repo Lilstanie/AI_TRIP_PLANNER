@@ -3,7 +3,7 @@ import { INFEASIBLE_BUDGET } from "../conflicts";
 import { cityNames, normal } from "./cities";
 import type { AgentLabScenario } from "./scenarios";
 
-export const AGENT_LAB_EVALUATOR_VERSION = "scenario-rules-v7";
+export const AGENT_LAB_EVALUATOR_VERSION = "scenario-rules-v8";
 
 export type AgentLabEvaluation = Pick<
   AgentLabMetrics,
@@ -19,6 +19,24 @@ const dateOfDay = (start: string, day: number) =>
 
 const itemsOf = (plan: TripPlan, section: string): ProposalItem[] =>
   plan.sections.find((candidate) => candidate.id === section)?.proposal?.items ?? [];
+
+function mealGroupsCovered(groups: readonly (readonly string[])[], meals: ProposalItem[]): boolean {
+  function match(groupIndex: number, usedMeals: Set<number>): boolean {
+    if (groupIndex === groups.length) return true;
+    return meals.some((meal, mealIndex) => {
+      if (
+        usedMeals.has(mealIndex) ||
+        !groups[groupIndex]!.some((term) => meal.detail.toLowerCase().includes(term))
+      )
+        return false;
+      usedMeals.add(mealIndex);
+      const covered = match(groupIndex + 1, usedMeals);
+      usedMeals.delete(mealIndex);
+      return covered;
+    });
+  }
+  return match(0, new Set());
+}
 
 function reportsInfeasibleBudget(plan: TripPlan, minimum: number): boolean {
   return (plan.conflicts ?? []).some((conflict) => {
@@ -125,8 +143,6 @@ function multiCityChecks(scenario: AgentLabScenario, plan: TripPlan): AgentLabCh
     plan.brief.dates[1] === end &&
     stays[0]?.checkIn === start &&
     stays.at(-1)?.checkOut === end;
-  const stayDateRange = stays[0]?.checkIn === start && stays.at(-1)?.checkOut === end;
-
   const sectionTotal = plan.sections.reduce((sum, section) => sum + section.estCost, 0);
   return [
     {
@@ -148,11 +164,6 @@ function multiCityChecks(scenario: AgentLabScenario, plan: TripPlan): AgentLabCh
       id: "stay-nights",
       label: "Each stay's dates cover its stated number of nights",
       passed: stayNights,
-    },
-    {
-      id: "stay-date-range",
-      label: "The first and last stays match the trip's start and end dates",
-      passed: stayDateRange,
     },
     {
       id: "trip-dates",
@@ -243,9 +254,7 @@ export function evaluateAgentLabPlan(
     checks.push({
       id: "meal-preference-tradeoff",
       label: "Each competing meal preference has fixture evidence",
-      passed: rules.requiredMealEvidenceGroups.every((group) =>
-        meals.some((meal) => group.some((term) => meal.detail.toLowerCase().includes(term))),
-      ),
+      passed: mealGroupsCovered(rules.requiredMealEvidenceGroups, meals),
     });
   }
 

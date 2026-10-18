@@ -75,8 +75,8 @@ export interface ItineraryGenerator {
 export interface TransferSegment {
   from: string;
   to: string;
-  startTime: string;
-  endTime: string;
+  startTime?: string;
+  endTime?: string;
 }
 
 export interface ItineraryAgentOptions {
@@ -150,31 +150,42 @@ function transferWindowsByDay(
   const knownCities = cities(destination);
   const windows = new Map<number, TransferWindow[]>();
   for (const item of transport?.items ?? []) {
-    if (!item.day || !item.startTime || !item.endTime) continue;
+    if (!item.day) continue;
     const [rawFrom, rawTo] = (item.location ?? "").split(" → ").map((part) => part.trim());
     const from = knownCities.find(
       (city) => city.toLocaleLowerCase() === rawFrom?.toLocaleLowerCase(),
     );
     const to = knownCities.find((city) => city.toLocaleLowerCase() === rawTo?.toLocaleLowerCase());
-    if (!from || !to || !TIME.test(item.startTime) || !TIME.test(item.endTime)) continue;
+    if (!from || !to) continue;
+    const startTime =
+      item.startTime && item.endTime && TIME.test(item.startTime) && TIME.test(item.endTime)
+        ? item.startTime
+        : undefined;
+    const endTime = startTime ? item.endTime : undefined;
     const dayWindows = windows.get(item.day) ?? [];
     const sameHop = dayWindows.find((window) => window.from === from && window.to === to);
     if (sameHop) {
-      if (minutes(item.startTime) < minutes(sameHop.startTime)) sameHop.startTime = item.startTime;
-      if (minutes(item.endTime) > minutes(sameHop.endTime)) sameHop.endTime = item.endTime;
+      if (startTime && endTime && sameHop.startTime && sameHop.endTime) {
+        if (minutes(startTime) < minutes(sameHop.startTime)) sameHop.startTime = startTime;
+        if (minutes(endTime) > minutes(sameHop.endTime)) sameHop.endTime = endTime;
+      } else {
+        delete sameHop.startTime;
+        delete sameHop.endTime;
+      }
     } else {
       dayWindows.push({
         day: item.day,
         from,
         to,
-        startTime: item.startTime,
-        endTime: item.endTime,
+        ...(startTime && endTime ? { startTime, endTime } : {}),
       });
     }
     windows.set(item.day, dayWindows);
   }
   for (const dayWindows of windows.values())
-    dayWindows.sort((left, right) => minutes(left.startTime) - minutes(right.startTime));
+    dayWindows.sort((left, right) =>
+      left.startTime && right.startTime ? minutes(left.startTime) - minutes(right.startTime) : 0,
+    );
   return windows;
 }
 
@@ -189,12 +200,21 @@ function activityFitsTransferWindows(
   windows: readonly TransferWindow[],
 ): boolean {
   if (!windows.length) return true;
+  const timedWindows = windows.filter(
+    (window): window is TransferWindow & { startTime: string; endTime: string } =>
+      Boolean(window.startTime && window.endTime),
+  );
+  if (timedWindows.length !== windows.length) return false;
   const start = minutes(activity.startTime);
   const end = minutes(activity.endTime);
-  if (windows.some((window) => start < minutes(window.endTime) && end > minutes(window.startTime)))
+  if (
+    timedWindows.some(
+      (window) => start < minutes(window.endTime) && end > minutes(window.startTime),
+    )
+  )
     return false;
-  const previous = windows.filter((window) => minutes(window.endTime) <= start).at(-1);
-  const next = windows.find((window) => minutes(window.startTime) >= end);
+  const previous = timedWindows.filter((window) => minutes(window.endTime) <= start).at(-1);
+  const next = timedWindows.find((window) => minutes(window.startTime) >= end);
   if (previous && next) return previous.to === city && next.from === city;
   if (previous) return previous.to === city;
   if (next) return next.from === city;
