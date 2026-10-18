@@ -78,6 +78,11 @@ try {
           ) + "\n",
       });
     });
+    await page.goto(`${BASE}/debug/question`);
+    check(
+      (await page.getByRole("heading", { name: "How busy should each day be?" }).count()) === 1,
+      `${viewport.width}: debug question renders without a progress persistence callback`,
+    );
     await page.goto(BASE);
     await page.waitForSelector(".workspace-app");
     await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });

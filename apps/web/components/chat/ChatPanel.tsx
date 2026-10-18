@@ -133,7 +133,7 @@ export function ChatPanel({
           </section>
         )}
       </div>
-      {ask && onAnswer && onDismissAsk && onAskProgress ? (
+      {ask && onAnswer && onDismissAsk ? (
         <QuestionComposer
           key={ask.key}
           request={ask}
