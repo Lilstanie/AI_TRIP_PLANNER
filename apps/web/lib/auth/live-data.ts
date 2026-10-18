@@ -6,11 +6,12 @@ import { authEnabled } from "./config";
  * Whether this caller may spend the shared provider allowance.
  *
  * Signed-in users may. When Clerk is not configured there is nobody to identify, so live data is
- * allowed only outside production: a deployment that reaches the public internet without
- * authentication must not bill the team for anonymous traffic.
+ * allowed only off-deployment: a site that reaches the public internet without authentication must
+ * not bill the team for anonymous traffic. `VERCEL_ENV` marks a real deployment, which a local or
+ * CI production build does not set, so E2E runs keep exercising the live paths they were written for.
  */
 export async function liveDataAllowed(): Promise<boolean> {
-  if (!authEnabled) return process.env.NODE_ENV !== "production";
+  if (!authEnabled) return !process.env.VERCEL_ENV;
   const { userId } = await auth();
   return Boolean(userId);
 }

@@ -29,9 +29,10 @@ contract-impact: api
 
 `authEnabled` is false whenever the Clerk publishable key is missing, which made the middleware a
 no-op on a public deployment. Gating live data on the session alone would therefore have changed
-nothing until Clerk is configured, so `liveDataAllowed` also refuses live data in a production build
-that has no auth at all: the deployment degrades to fixtures rather than billing the team for
-anonymous traffic.
+nothing until Clerk is configured, so `liveDataAllowed` also refuses live data on a deployment
+that has no auth at all: the site degrades to fixtures rather than billing the team for anonymous
+traffic. The signal is `VERCEL_ENV`, not `NODE_ENV`, because the E2E runner defaults to a
+production build and its live-path scenarios must keep reaching real providers.
 
 The guard lives in `scripts/` because the root `package.json` and `.github/**` are protected files;
 CI already runs `pnpm test:scripts`, so it executes without touching either.
