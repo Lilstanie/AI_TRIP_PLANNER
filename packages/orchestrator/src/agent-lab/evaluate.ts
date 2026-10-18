@@ -3,7 +3,7 @@ import { INFEASIBLE_BUDGET } from "../conflicts";
 import { cityNames, normal } from "./cities";
 import type { AgentLabScenario } from "./scenarios";
 
-export const AGENT_LAB_EVALUATOR_VERSION = "scenario-rules-v2";
+export const AGENT_LAB_EVALUATOR_VERSION = "scenario-rules-v7";
 
 export type AgentLabEvaluation = Pick<
   AgentLabMetrics,
@@ -66,28 +66,54 @@ function multiCityChecks(scenario: AgentLabScenario, plan: TripPlan): AgentLabCh
     hopsValid &&
     activities.every((item) => item.day !== undefined && item.day >= 1 && item.day <= days) &&
     Array.from({ length: days }, (_, index) => index + 1).every((day) => {
-      const city = cityOfDay(day);
+      const transferIndex = hopDays.findIndex((hopDay) => hopDay === day);
+      const transfer = transferIndex < 0 ? undefined : hops[transferIndex];
       const stops = activities.filter((item) => item.day === day);
-      return (
-        stops.length > 0 &&
-        stops.every(
+      if (stops.length === 0) return false;
+      if (!transfer) {
+        const city = cityOfDay(day);
+        return stops.every(
           (item) =>
             mentions(item, city) &&
             cities.every((other) => other === city || !mentions(item, other)),
-        )
-      );
+        );
+      }
+
+      const departureCity = cities[transferIndex]!;
+      const arrivalCity = cities[transferIndex + 1]!;
+      if (!transfer.startTime || !transfer.endTime || transfer.startTime >= transfer.endTime)
+        return false;
+      return stops.every((item) => {
+        if (!item.startTime || !item.endTime || item.startTime >= item.endTime) return false;
+        const inDeparture =
+          mentions(item, departureCity) &&
+          cities.every((other) => other === departureCity || !mentions(item, other));
+        if (inDeparture) return item.endTime <= transfer.startTime!;
+        const inArrival =
+          mentions(item, arrivalCity) &&
+          cities.every((other) => other === arrivalCity || !mentions(item, other));
+        return inArrival && item.startTime >= transfer.endTime!;
+      });
     });
 
   const stays = cities.map((city) => {
     const hotels = itemsOf(plan, "accommodation").filter(
       (item) => item.kind === "hotel" && mentions(item, city),
     );
-    const dates =
-      hotels.length === 1
-        ? hotels[0]!.detail.match(/(\d{4}-\d{2}-\d{2}) to (\d{4}-\d{2}-\d{2})/)
-        : null;
-    return dates ? { checkIn: dates[1]!, checkOut: dates[2]! } : undefined;
+    if (hotels.length !== 1) return undefined;
+    const detail = hotels[0]!.detail;
+    const dates = detail.match(/(\d{4}-\d{2}-\d{2}) to (\d{4}-\d{2}-\d{2})/);
+    const nights = detail.match(/\b(\d+) nights?\b/i);
+    return dates && nights
+      ? { checkIn: dates[1]!, checkOut: dates[2]!, nights: Number(nights[1]) }
+      : undefined;
   });
+  const stayNights = stays.every(
+    (stay) =>
+      stay !== undefined &&
+      dayNumber(stay.checkOut) - dayNumber(stay.checkIn) === stay.nights &&
+      stay.checkOut > stay.checkIn,
+  );
   const stayTransition = stays.every((stay, index) => {
     if (!stay) return false;
     if (index === 0) return true;
@@ -99,6 +125,7 @@ function multiCityChecks(scenario: AgentLabScenario, plan: TripPlan): AgentLabCh
     plan.brief.dates[1] === end &&
     stays[0]?.checkIn === start &&
     stays.at(-1)?.checkOut === end;
+  const stayDateRange = stays[0]?.checkIn === start && stays.at(-1)?.checkOut === end;
 
   const sectionTotal = plan.sections.reduce((sum, section) => sum + section.estCost, 0);
   return [
@@ -116,6 +143,16 @@ function multiCityChecks(scenario: AgentLabScenario, plan: TripPlan): AgentLabCh
       id: "stay-transition",
       label: "Each stay ends on the day the next one begins, which is the day of the move",
       passed: stayTransition,
+    },
+    {
+      id: "stay-nights",
+      label: "Each stay's dates cover its stated number of nights",
+      passed: stayNights,
+    },
+    {
+      id: "stay-date-range",
+      label: "The first and last stays match the trip's start and end dates",
+      passed: stayDateRange,
     },
     {
       id: "trip-dates",
@@ -199,6 +236,72 @@ export function evaluateAgentLabPlan(
       id: "vegetarian-meals",
       label: "Every meal is marked vegetarian-friendly",
       passed: meals.length > 0 && meals.every((meal) => /vegetarian/i.test(meal.detail)),
+    });
+  }
+
+  if (rules.requiredMealEvidenceGroups) {
+    checks.push({
+      id: "meal-preference-tradeoff",
+      label: "Each competing meal preference has fixture evidence",
+      passed: rules.requiredMealEvidenceGroups.every((group) =>
+        meals.some((meal) => group.some((term) => meal.detail.toLowerCase().includes(term))),
+      ),
+    });
+  }
+
+  if (rules.actionableBrief) {
+    const activities = items.filter((item) => item.kind === "activity");
+    const actionableActivities = activities.filter(
+      (item) => item.day !== undefined && Boolean(item.startTime && item.location && item.detail),
+    );
+    checks.push({
+      id: "actionable-brief",
+      label: "The vague brief produces scheduled activities and local dining evidence",
+      passed:
+        actionableActivities.length >= rules.actionableBrief.minimumScheduledActivities &&
+        rules.actionableBrief.requiredMealTerms.every((term) =>
+          meals.some(
+            (meal) =>
+              meal.detail.toLowerCase().includes(term) &&
+              Boolean(meal.location && meal.day !== undefined),
+          ),
+        ),
+    });
+  }
+
+  if (rules.tripDays) {
+    const activities = items.filter((item) => item.kind === "activity");
+    checks.push({
+      id: "trip-days",
+      label: `Dated plan items fit the ${rules.tripDays}-day trip window`,
+      passed:
+        plan.brief.dates[0] === brief.dates[0] &&
+        plan.brief.dates[1] === brief.dates[1] &&
+        activities.length > 0 &&
+        activities.every(
+          (item) => item.day !== undefined && item.day >= 1 && item.day <= rules.tripDays!,
+        ) &&
+        items.every(
+          (item) => item.day === undefined || (item.day >= 1 && item.day <= rules.tripDays!),
+        ),
+    });
+    const nights = rules.tripDays - 1;
+    const nightLabel = nights === 1 ? "night" : "nights";
+    const hotel = items.find((item) => item.kind === "hotel");
+    const stayDates = hotel?.detail.match(/(\d{4}-\d{2}-\d{2}) to (\d{4}-\d{2}-\d{2})/);
+    checks.push({
+      id: "stay-date-range",
+      label: "Hotel check-in and check-out match the trip dates",
+      passed:
+        stayDates?.[1] === brief.dates[0] &&
+        stayDates?.[2] === brief.dates[1] &&
+        dayNumber(stayDates[2]!) - dayNumber(stayDates[1]!) === nights,
+    });
+    checks.push({
+      id: "stay-nights",
+      label: `Hotel evidence covers ${nights} ${nightLabel}`,
+      passed:
+        hotel !== undefined && new RegExp(`\\b${nights} ${nightLabel}\\b`, "i").test(hotel.detail),
     });
   }
 

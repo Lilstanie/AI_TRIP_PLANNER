@@ -13,9 +13,13 @@ const STRATEGIES = [
   "multi-agent-no-revision",
   "multi-agent-targeted-revision",
 ];
-const EVALUATOR_VERSION = "scenario-rules-v2";
+const EVALUATOR_VERSION = "scenario-rules-v7";
 
 const PARIS_MINIMUM = 310 * 4 * 2 + 2 * 5 * 140;
+const PARIS_MINIMUM_FORMATTED = PARIS_MINIMUM.toLocaleString("en-AU", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
 const SECTION_IDS = ["accommodation", "destination-guide", "dining", "itinerary", "transport"];
 
 const failures = [];
@@ -61,7 +65,8 @@ function tripFacts(plan, [first, second]) {
       hotels.length === 1
         ? hotels[0].detail.match(/(\d{4}-\d{2}-\d{2}) to (\d{4}-\d{2}-\d{2})/)
         : null;
-    return dates && { checkIn: dates[1], checkOut: dates[2] };
+    const nights = hotels.length === 1 ? hotels[0].detail.match(/\b(\d+) nights?\b/i) : null;
+    return dates && nights && { checkIn: dates[1], checkOut: dates[2], nights: Number(nights[1]) };
   };
   const stays = [stayOf(first), stayOf(second)];
   const activities = itemsOf(plan, "itinerary").filter((item) => item.kind === "activity");
@@ -82,6 +87,10 @@ function tripFacts(plan, [first, second]) {
       Boolean(stays[0] && stays[1]) &&
       stays[0].checkOut === stays[1].checkIn &&
       stays[1].checkIn === hopDate,
+    stayNights: stays.every(
+      (stay) => stay && dayOffset(stay.checkIn, stay.checkOut) === stay.nights,
+    ),
+    stayDatesMatchTrip: stays[0]?.checkIn === start && stays[1]?.checkOut === end,
     staysSpanTrip: stays[0]?.checkIn === start && stays[1]?.checkOut === end,
     costsAddUp:
       Math.abs(plan.sections.reduce((sum, item) => sum + item.estCost, 0) - plan.estTotal) < 0.01 &&
@@ -163,7 +172,10 @@ async function main() {
   const page = await context.newPage();
   const errors = [];
   page.on("pageerror", (error) => errors.push(String(error)));
-  page.on("console", (message) => message.type() === "error" && errors.push(message.text()));
+  page.on("console", (message) => {
+    const url = message.location().url;
+    if (message.type() === "error" && !url.endsWith("/favicon.ico")) errors.push(message.text());
+  });
   await page.goto(`${BASE}/agent-lab`);
   await page.getByRole("heading", { name: "Agent Lab", level: 1 }).waitFor();
   const storage = () => page.evaluate(() => JSON.stringify(Object.entries(localStorage).sort()));
@@ -228,11 +240,11 @@ async function main() {
       `paris: ${tag} reports one infeasible conflict in round 1`,
     );
     check(
-      JSON.stringify(conflicts[0]).includes(PARIS_MINIMUM.toFixed(2)) &&
+      JSON.stringify(conflicts[0]).includes(`AUD ${PARIS_MINIMUM_FORMATTED}`) &&
         (artifact.plan.conflicts ?? []).some(
           (item) =>
             item.reason.startsWith("infeasible budget") &&
-            item.reason.includes(PARIS_MINIMUM.toFixed(2)),
+            item.reason.includes(`AUD ${PARIS_MINIMUM_FORMATTED}`),
         ),
       `paris: ${tag} names the supported minimum ${PARIS_MINIMUM.toFixed(2)} in the trace and in the plan`,
     );
@@ -320,6 +332,8 @@ async function main() {
     "hopInsideTrip",
     "everyDayInItsCity",
     "staysHandOver",
+    "stayNights",
+    "stayDatesMatchTrip",
     "staysSpanTrip",
     "costsAddUp",
   ];
@@ -327,6 +341,8 @@ async function main() {
     "hop-date",
     "itinerary-by-city",
     "stay-transition",
+    "stay-nights",
+    "stay-date-range",
     "trip-dates",
     "total-consistent",
   ];
@@ -366,6 +382,27 @@ async function main() {
   check(
     tripFacts(shifted, CITIES).staysHandOver === false,
     "kyoto: the script's own recomputation detects a stay that starts a day after the move",
+  );
+  const wrongNights = structuredClone(kBase.plan);
+  const tokyoHotel = itemsOf(wrongNights, "accommodation").find((item) =>
+    /tokyo/i.test(item.detail),
+  );
+  tokyoHotel.detail = tokyoHotel.detail.replace("4 night(s)", "3 night(s)");
+  check(
+    tripFacts(wrongNights, CITIES).stayNights === false,
+    "kyoto: the script's own recomputation detects a stay whose stated nights do not match its dates",
+  );
+  const outsideTrip = structuredClone(kBase.plan);
+  const outsideStay = itemsOf(outsideTrip, "accommodation").find((item) =>
+    /tokyo/i.test(item.detail),
+  );
+  outsideStay.detail = outsideStay.detail.replace(
+    "2026-11-10 to 2026-11-14",
+    "2026-11-09 to 2026-11-13",
+  );
+  check(
+    tripFacts(outsideTrip, CITIES).stayDatesMatchTrip === false,
+    "kyoto: recomputation detects dates outside the trip despite the same night count",
   );
   check(
     kRevise.metrics.rounds === 1 &&
