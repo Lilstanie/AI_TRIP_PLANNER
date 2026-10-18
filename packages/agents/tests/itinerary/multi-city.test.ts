@@ -149,7 +149,7 @@ describe("multi-city transfer-day activities", () => {
           id: "stay-sydney",
           city: "Sydney",
           checkIn: "2026-12-16",
-          checkOut: "2026-12-18",
+          checkOut: "2026-12-20",
           day: 1,
           nights: 2,
           rooms: 1,
@@ -301,5 +301,120 @@ describe("multi-city transfer-day activities", () => {
       "Sydney Museum",
       "Wollongong Gallery",
     ]);
+  });
+
+  it("does not reuse the origin city after a disconnected transfer chain", async () => {
+    const trip = {
+      ...brief,
+      destination: "Sydney & Wollongong & Canberra",
+      dates: ["2026-12-16", "2026-12-20"] as [string, string],
+    };
+    const ctx = context();
+    ctx.tools.maps.places = vi.fn(async ({ near, category }) =>
+      category === "sight"
+        ? [{ name: `${near} Museum`, category: "sight" }]
+        : [{ name: `${near} Foreshore`, category: "neighborhood" }],
+    );
+    const transport: AgentProposal = {
+      agent: "transport",
+      summary: "Transfer from Sydney to Canberra via Wollongong",
+      items: [
+        {
+          kind: "transport",
+          day: 1,
+          location: "Wollongong → Canberra",
+          detail: "Untimed onward transfer",
+        },
+        {
+          kind: "transport",
+          day: 1,
+          startTime: "09:00",
+          endTime: "11:00",
+          location: "Sydney → Wollongong",
+          detail: "Timed first transfer",
+        },
+      ],
+      assumptions: [],
+      conflictsWith: [],
+    };
+    const accommodation: AgentProposal = {
+      agent: "accommodation",
+      summary: "Canberra then Sydney stays",
+      items: [],
+      assumptions: [],
+      conflictsWith: [],
+      stays: [
+        {
+          id: "canberra-stay",
+          city: "Canberra",
+          checkIn: "2026-12-16",
+          checkOut: "2026-12-17",
+          day: 1,
+          nights: 1,
+          rooms: 1,
+          selectedId: "canberra-candidate",
+          candidates: [
+            {
+              id: "canberra-candidate",
+              name: "Canberra Standard",
+              area: "Canberra",
+              pricePerNight: 200,
+              rating: 8,
+              freeCancellation: true,
+            },
+          ],
+        },
+        {
+          id: "sydney-stay",
+          city: "Sydney",
+          checkIn: "2026-12-17",
+          checkOut: "2026-12-20",
+          day: 2,
+          nights: 3,
+          rooms: 1,
+          selectedId: "sydney-candidate",
+          candidates: [
+            {
+              id: "sydney-candidate",
+              name: "Sydney Standard",
+              area: "Sydney",
+              pricePerNight: 200,
+              rating: 8,
+              freeCancellation: true,
+            },
+          ],
+        },
+      ],
+    };
+    const generator: ItineraryGenerator = {
+      generate: vi.fn(async () => ({
+        summary: "Visit Sydney after the disconnected transfer chain",
+        activities: [
+          {
+            day: 2,
+            startTime: "09:00",
+            endTime: "10:00",
+            location: "Sydney Museum",
+            detail: "This must not be allowed based on the stale origin city",
+          },
+          {
+            day: 3,
+            startTime: "09:00",
+            endTime: "10:00",
+            location: "Sydney Museum",
+            detail: "The transfer chain remains unresolved",
+          },
+        ],
+        assumptions: [],
+      })),
+    };
+
+    const result = await createItineraryAgent({ generator }).invoke({
+      brief: trip,
+      context: ctx,
+      board: { proposals: [transport, accommodation] },
+    });
+
+    expect(result.items.filter(({ day }) => day === 2)).toEqual([]);
   });
 });
