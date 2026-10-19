@@ -578,6 +578,7 @@ moves. Details, notes and booked apply in the browser. The checks are determinis
   or "Price unknown" rather than AUD 0). Flight and stay rows open to their card. Between two stops the
   journey is a leg (see Legs below): its mode and duration, marked "checked" when the provider verified
   it and "estimate" when it is the planner's `arriveBy` or a simulated fixture.
+- **Trip scroll.** A fresh Trip view starts above the budget. Revealing the selected day only scrolls the day strip horizontally; it does not move the surrounding Trip panel. Closing and reopening, or switching phone tabs, preserves a traveller’s deliberate vertical scroll. Verify with `pnpm --filter @trip/web e2e trip-initial-scroll` (1280×800, 1440×1000 and 390×844).
 - **Prices.** Stops without a published price carry no `estCost` and show "Price unknown"; the
   budget card lists their count and missing costs, avoiding the impression that the total covers
   every cost.
