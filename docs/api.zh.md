@@ -96,6 +96,9 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 协调器也会写入。之后的消息若给出新的总数，这份细分会被清除，因为它已不再描述该同行人群。它们细分 `groupSize` 并补充宠物数量；宠物不计入其中。
 所有费用仍以 `groupSize` 为准，specialist 会收到指令：如果 party 中的人数之和与它不符，就忽略 party。
 
+Mock 浏览器检查 `party-breakdown-browser` 通过聊天提交明确的人数组成，并在桌面和手机宽度检查
+Who 中的五项计数，包括保存行程后重新打开的情况。
+
 可选的 `assistant`：来自 Settings → Personalization 的 `{ style, memory }`（`packages/shared/src/chat.ts` 中的
 `AssistantSettings`）。
 
