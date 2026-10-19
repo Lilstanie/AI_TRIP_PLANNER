@@ -1,4 +1,13 @@
 export const WORKSPACE_ZH = {
+  Planned: "待游览",
+  Visited: "已游览",
+  Skipped: "已跳过",
+  "Mark as planned": "标记为待游览",
+  "Mark as visited": "标记为已游览",
+  "Mark as skipped": "标记为已跳过",
+  "{name} marked as planned.": "{name}已标记为待游览。",
+  "{name} marked as visited.": "{name}已标记为已游览。",
+  "{name} marked as skipped.": "{name}已标记为已跳过。",
   "The map could not load. Try again.": "地图暂时无法加载，请重试。",
   Website: "官方网站",
   "Open in OpenStreetMap": "在 OpenStreetMap 中打开",
