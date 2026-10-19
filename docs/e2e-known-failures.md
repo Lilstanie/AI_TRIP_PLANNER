@@ -22,6 +22,15 @@ server with `DATA_MODE=mock`, `USE_MOCK_TOOLS=true`, and blank `MOCK_GOOGLE_MAPS
 
 ## Covered regressions
 
+- `phone-map` on baseline `2e0f506b` (2026-10-19, #367) wrongly queried the renderer-error
+  fallback list when the default no-key map had successfully loaded OSM. It failed three repeated-place
+  checks at 390px and timed out on desktop before reaching 360px. The journey now waits for the map's
+  named place control and the resulting selected stop/details, preserving both providers' coverage.
+  Run `CHANNEL=chrome DATA_MODE=mock USE_MOCK_TOOLS=true pnpm --filter @trip/web e2e phone-map`
+  with model, Maps and Clerk keys blank; repeat with `WEB_MAPS_PROVIDER=google` to exercise the
+  no-key error list. Each run covers 390×844, 360×800 and desktop transitions; retain separate
+  attempts with `LABEL=<attempt>` under `output/playwright/phone-map/<attempt>/`.
+
 - `agent-lab-replay` on PR #308 head `501af35` (2026-10-11) could miss the file chooser after keyboard
   Enter: the key event completed before Chromium acknowledged file-chooser interception. The journey
   keeps keyboard activation through the Replay button locator and stresses that boundary at 16× CPU
