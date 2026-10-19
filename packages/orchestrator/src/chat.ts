@@ -46,7 +46,6 @@ import { extractBriefPatchLocally } from "./chat-offline";
 import { groundedReply, unchangedPlanReply } from "./chat-grounding";
 import { isInfeasible, minimumCost } from "./conflicts";
 import { runOrchestrator, type OrchestratorOptions } from "./workflow";
-import { normaliseDestination } from "./destinations";
 
 export interface BriefExtractor {
   extract(message: string, current: TripBrief | undefined): Promise<BriefPatch>;
@@ -187,9 +186,7 @@ function toPatch(update: z.infer<typeof BriefUpdate>): BriefPatch {
       ].slice(0, MAX_TRIP_PREFERENCES)
     : undefined;
   const patch: BriefPatch = BriefPatchSchema.parse({
-    ...(text(update.destination)
-      ? { destination: normaliseDestination(text(update.destination)!) }
-      : {}),
+    ...(text(update.destination) ? { destination: text(update.destination) } : {}),
     ...(text(update.origin) ? { origin: text(update.origin) } : {}),
     ...(text(update.nationality) ? { nationality: text(update.nationality) } : {}),
     ...(groupSize !== undefined ? { groupSize: Math.round(groupSize) } : {}),
@@ -829,8 +826,42 @@ async function runOffline(
   const patch = extractor
     ? await extractor.extract(message, submitted)
     : extractBriefPatchLocally(message);
+  const destinationCandidate =
+    patch.destination?.toLowerCase() === "no preference"
+      ? request.known?.destination
+      : patch.destination;
+  const ambiguousDestination =
+    !extractor && destinationCandidate && /\s+and\s+/iu.test(destinationCandidate)
+      ? destinationCandidate
+      : undefined;
+  const confirmedDestination =
+    ambiguousDestination && patch.destination === request.known?.destination;
+  if (ambiguousDestination && !confirmedDestination) {
+    const destination = ambiguousDestination;
+    const chinese = request.interfaceLanguage === "zh";
+    const separated = destination.replace(/\s+and\s+/giu, " & ");
+    throw new AskUserError({
+      type: "ask_user",
+      known: mergeBriefPatch(submitted ?? request.known ?? {}, { ...patch, destination }),
+      ...(request.plan ? { plan: request.plan } : {}),
+      questions: [
+        {
+          id: "destination-conjunction",
+          header: chinese ? "目的地" : "Destination",
+          question: chinese
+            ? `“${destination}”是一个完整地名，还是多个目的地？保留完整地名，或用 & 分隔各站。`
+            : `Is “${destination}” one place name or several destinations? Keep the name, or separate the stops with &.`,
+          options: [{ label: destination }, { label: separated }],
+        },
+      ],
+    });
+  }
   if (submitted) {
-    const updated = applyBriefPatch(submitted, patch, request.tripId);
+    const updated = applyBriefPatch(
+      submitted,
+      mergeBriefPatch(request.known ?? {}, patch),
+      request.tripId,
+    );
     if (
       !request.plan &&
       hasPastTripDate(updated, clock, locationForBrief(request, updated)) &&

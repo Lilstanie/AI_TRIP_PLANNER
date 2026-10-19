@@ -57,9 +57,10 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 ```
 
 `brief.destination` 按访问顺序保存要去的城市，以 `&` 连接（“Sydney & Wollongong”）；
-`@trip/agents` 中的 `cities` 和 Where 编辑器都按这种形式读取。协调器会把旅行者写的内容归一化成这种形式，
-因此 “Sydney and Wollongong” 和 “悉尼、卧龙岗” 都会被存成两座城市，而不是一座名字很奇怪的城市。
-名称本身含有 “and” 的目的地同样会被拆开，这也是抽取 schema 要求模型直接给出已连接形式的原因。
+`@trip/agents` 中的 `cities` 和 Where 编辑器都按这种形式读取。模型抽取直接提供这种形式；
+离线抽取只归一化明确的 `&` 和 `、` 分隔符。名称含有 “and” 时，例如 “Trinidad and Tobago”，
+先请旅行者保留完整地名或确认多个目的地，再生成计划。确认过程保留已收集的行程字段，
+已有计划在回答前保持原样。结构化模型结果不会再按连接词猜测拆分。
 
 `brief.preferences` 和 `known.preferences` 是可选字段，保存旅行者自己的旅行偏好
 （“素食”“不要太早开始”）。最多包含 `MAX_TRIP_PREFERENCES`（12）条，每条在去除首尾空白后为

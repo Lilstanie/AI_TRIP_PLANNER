@@ -65,9 +65,23 @@ const natural = await fetch(`${base}/api/chat`, {
 });
 const naturalText = await natural.text();
 writeFileSync(`${out}/sydney-and-wollongong.ndjson`, naturalText);
-const naturalTerminal = naturalText.trim().split("\n").map(JSON.parse).at(-1);
+const clarification = naturalText.trim().split("\n").map(JSON.parse).at(-1);
+check(natural.ok && clarification.type === "ask_user", '"and" asks for destination confirmation');
+if (clarification.type !== "ask_user") throw new Error(JSON.stringify(clarification));
+const confirmed = await fetch(`${base}/api/chat`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json", "x-trip-data-mode": "mock" },
+  body: JSON.stringify({
+    tripId: "triage-multicity-and",
+    message: `${clarification.questions[0].header}: ${clarification.questions[0].options[1].label}`,
+    known: clarification.known,
+  }),
+});
+const confirmedText = await confirmed.text();
+writeFileSync(`${out}/confirmed-cities.ndjson`, confirmedText);
+const naturalTerminal = confirmedText.trim().split("\n").map(JSON.parse).at(-1);
 check(
-  natural.ok && naturalTerminal.type === "complete",
+  confirmed.ok && naturalTerminal.type === "complete",
   'the same trip written with "and" completes via public chat API',
 );
 if (naturalTerminal.type === "complete") {
@@ -104,7 +118,7 @@ const activity = [
   },
 ];
 writeFileSync(`${out}/thinking-replay.json`, JSON.stringify(activity, null, 2));
-const browser = await chromium.launch();
+const browser = await chromium.launch({ channel: process.env.CHANNEL });
 try {
   for (const width of [1280, 390]) {
     const context = await browser.newContext({
