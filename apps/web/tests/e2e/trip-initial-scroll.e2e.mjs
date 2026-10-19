@@ -26,6 +26,10 @@ try {
     page.setDefaultTimeout(30000);
     const errors = [];
     page.on("pageerror", (error) => errors.push(String(error)));
+    page.on("console", (message) => {
+      if (message.type() === "error")
+        errors.push({ text: message.text(), location: message.location() });
+    });
     const tab = (name) =>
       page.locator(".phone-tabbar").getByRole("tab", { name: new RegExp(`^${name}`) });
     const open = async () => {
@@ -50,18 +54,23 @@ try {
           scrollHeight: node.scrollHeight,
           clientHeight: node.clientHeight,
           top: node.getBoundingClientRect().top,
+          bottom: node.getBoundingClientRect().bottom,
           headings: [
             ...node.querySelectorAll('h2,h3,.trip-budget,[aria-label="Trip timeline"]'),
           ].map((e) => ({
             text: e.textContent?.slice(0, 100),
             label: e.getAttribute("aria-label"),
             top: e.getBoundingClientRect().top,
+            bottom: e.getBoundingClientRect().bottom,
           })),
         }));
       rows.push({ width, height, stage, ...row, errors: [...errors] });
       console.log(JSON.stringify(rows.at(-1)));
       await page.screenshot({ path: `${out}/${width}-${stage}.png` });
     };
+    await page.route(`${process.env.BASE_URL}/favicon.ico`, (route) =>
+      route.fulfill({ status: 204 }),
+    );
     await page.goto(process.env.BASE_URL);
     await page.locator(".workspace-app").waitFor();
     await page.addStyleTag({ content: "nextjs-portal {display:none!important}" });
@@ -141,7 +150,7 @@ try {
       true,
       "No horizontal page overflow",
     );
-    assert.deepEqual(errors, [], "No page errors");
+    assert.deepEqual(errors, [], "No page or console errors");
     await context.close();
   }
   assert.equal(rows.length, 9);
@@ -150,11 +159,13 @@ try {
     Array(9).fill(0),
     "Fresh Trip opens at the top",
   );
-  for (const row of rows)
+  for (const row of rows) {
+    const budget = row.headings.find((h) => h.text.startsWith("Trip budget"));
     assert.ok(
-      row.headings.find((h) => h.text.startsWith("Trip budget")).top >= row.top,
-      "Budget summary is visible",
+      budget.top >= row.top && budget.bottom <= row.bottom,
+      "Budget summary is fully visible",
     );
+  }
 } catch (error) {
   if (activePage && !activePage.isClosed()) {
     await activePage.screenshot({ path: `${out}/failure.png` });
@@ -166,7 +177,7 @@ try {
 } finally {
   writeFileSync(
     `${out}/summary.json`,
-    JSON.stringify({ browser: browser.version(), rows, failure }, null, 2),
+    JSON.stringify({ browser: browser.version(), faviconFixture: 204, rows, failure }, null, 2),
   );
   await browser.close();
 }
