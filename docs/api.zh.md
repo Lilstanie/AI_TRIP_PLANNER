@@ -23,10 +23,10 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 | [`/api/account/sync`](#get-and-post-apiaccountsync)         | 拉取或推送已登录旅客的行程和聊天                       |
 | [`/api/account/export`](#get-apiaccountexport)              | 以 JSON 下载账号保存的全部数据                         |
 | [`/api/account/memory`](#get-and-delete-apiaccountmemory)   | 列出或删除当前账号的长期记忆                           |
-| [`/api/account/memory/undo`](#post-apiaccountmemoryundo)    | 撤销当前账号最近一次饮食记忆变更                       |
+| [`/api/account/memory/undo`](#post-apiaccountmemoryundo)    | 撤销当前账号最近一次记忆变更                           |
 | [`/api/account`](#delete-apiaccount)                        | 删除账号及其数据                                       |
 
-浏览器在每次请求中发送当前计划或行程需求，并将工作区保存在本地存储中。账号长期饮食记忆
+浏览器在每次请求中发送当前计划或行程需求，并将工作区保存在本地存储中。账号长期偏好
 单独保存在 Postgres，并始终使用服务端解析的 Clerk 身份进行隔离；客户端提供的
 `brief.userId` 会被忽略。未登录时仍可规划，只是不读取或写入账号记忆。
 
@@ -103,7 +103,7 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 - `style` 取 `neutral`、`friendly`、`concise` 或 `detailed`，决定协调器的语气。
 - `memory: false` 时，服务器从 `brief` 和 `known` 中去掉 `learnedPreferences`，协调器也不再记录。
 
-不传该字段时，行为等同于 `neutral` 且开启记忆。
+不传该字段时，语气为 `neutral`。只有账号保存的设置和本次请求都允许时，才启用账号记忆；请求显式开启不能覆盖账号已保存的关闭设置。无法读取账号设置时，账号记忆保持关闭。
 
 可选的 `interfaceLanguage`：`en` 或 `zh`（`packages/shared/src/chat.ts` 中的 `InterfaceLanguage`），
 即旅行者界面当前显示的语言。网页端在每次聊天请求中发送当前的界面语言。协调器始终使用旅行者最新一条消息的语言回复；
@@ -369,16 +369,19 @@ conversations } }`，可以部分成功。只有 `accepted` 中的记录确认�
 
 ### `GET /api/account/export`
 
-JSON 附件包含账号设置、行程、聊天记录和长期饮食记忆。
+JSON 附件包含账号设置、行程、聊天记录和长期偏好记忆。
 
 ### `GET` and `DELETE /api/account/memory`
 
 `GET` 返回当前登录账号的 `{ memories: [{ key, value, source }] }`。`DELETE` 接收 `{ key }`，只删除当前账号对应类别的记忆，并返回 `{ deleted }`。两种请求的账号均由服务端从 Clerk 解析，客户端不能指定账号；未知类别返回 `{ deleted: false }`，未登录请求返回 401。
 
+聊天接口只识别明确表达的饮食需求、节奏、兴趣、无障碍需求、住宿偏好和常用出发城市；不会推断或保存预算、区域等行程专属事实。行程或档案偏好优先于对应的账号记忆。只有规划成功后才保存识别到的偏好，并在完成响应中返回通知和撤销令牌；需要补充信息、失败或已取消的回合不保存。
+住宿类别以 JSON 字符串保存可选的 `stayType`、`minRating` 和 `freeCancellation` 字段；更新一个字段会保留其他字段，撤销会恢复之前的完整值。
+
 ### `POST /api/account/memory/undo`
 
 请求体为 `ChatResponse.memoryChange` 中的 `{ token }`。服务端从 Clerk 解析账号，只会将令牌用于
-该账号当前的饮食记忆。首次写入会被删除；替换操作会恢复之前的值。过期令牌返回
+该账号当前类别的记忆。首次写入会被删除；替换操作会恢复之前的值。过期令牌返回
 `{ undone: false }`，成功返回 `{ undone: true }`。未登录请求返回 401。
 
 ### `DELETE /api/account`

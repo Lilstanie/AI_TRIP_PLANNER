@@ -33,10 +33,12 @@ import { z } from "zod/v4";
 import { assessBudget, costOf, rollUpCost } from "./budget";
 import { detectConflicts, isInfeasible } from "./conflicts";
 export { detectConflicts } from "./conflicts";
+
 import { createPlanningBoard } from "./board";
 import { choiceFor, dispatchWithSupervisor, reviseWithSupervisor } from "./supervisor";
 import { withProgressTools } from "./progress-tools";
 import type { WorkflowDecision } from "./decisions";
+import { memoriesForBrief } from "./preference-precedence.mjs";
 
 const DEFAULT_MAX_ROUNDS = 3;
 
@@ -143,28 +145,32 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
     }
   };
 
-  const context = (brief: TripBrief, round: number, agent?: AgentName): AgentContext => ({
-    tripId: brief.tripId,
-    round,
-    displayCurrency: currencyFor(brief),
-    tools:
-      agent && onProgress
-        ? withProgressTools(tools, agent, round, onProgress, currencyFor(brief))
-        : tools,
-    mem: brief.accommodation
+  const context = (brief: TripBrief, round: number, agent?: AgentName): AgentContext => {
+    const preferences =
+      brief.preferences?.length ||
+      brief.learnedPreferences?.length ||
+      brief.accommodation ||
+      brief.origin?.trim();
+    const scopedMemory = preferences
       ? {
           ...mem,
-          getLongTerm: async (userId) => [
-            ...(await mem.getLongTerm(userId)).filter((p) => !p.key.startsWith("accommodation.")),
-            ...Object.entries(brief.accommodation!).map(([key, value]) => ({
-              key: `accommodation.${key}`,
-              value: String(value),
-              source: "filter" as const,
-            })),
-          ],
+          getLongTerm: async (userId: string) => {
+            const preferences = await mem.getLongTerm(userId);
+            return memoriesForBrief(brief, preferences);
+          },
         }
-      : mem,
-  });
+      : mem;
+    return {
+      tripId: brief.tripId,
+      round,
+      displayCurrency: currencyFor(brief),
+      tools:
+        agent && onProgress
+          ? withProgressTools(tools, agent, round, onProgress, currencyFor(brief))
+          : tools,
+      mem: scopedMemory,
+    };
+  };
 
   const invokeSpecialist = async (
     specialist: Specialist,

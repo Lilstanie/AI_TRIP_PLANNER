@@ -1,9 +1,10 @@
 "use client";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { COMMUNICATION_STYLES } from "@trip/shared";
 import { blankDraft, type Draft } from "@/lib/workspace";
 import type { DataMode } from "@/lib/workspace/data-mode";
 import { DIETARY, INTERESTS, type UserSettings } from "@/lib/account/settings";
+import { memoryDisplay } from "@/lib/account/memory-display";
 import { PreferenceList } from "../preferences/PreferenceList";
 import { useSegmentIndicator } from "../ui/motion";
 import { useAccount } from "./AccountProvider";
@@ -52,12 +53,21 @@ const MEMORY_CATEGORY_LABEL: Record<string, MessageKey> = {
   accessibility: "Accessibility needs",
   accommodation: "Accommodation preferences",
   departure_city: "Usual departure city",
+  "accommodation.minRating": "Accommodation preferences",
+  "accommodation.freeCancellation": "Accommodation preferences",
 };
 
-import { SettingRow, Segmented, ChipGroup, MemoryRow, TextEditor } from "./SettingsControls";
+import {
+  SettingRow,
+  Segmented,
+  ChipGroup,
+  MemoryRow,
+  TextEditor,
+  Switch,
+} from "./SettingsControls";
 
 function ProfileSection({ onAccountModal }: AccountModalProps) {
-  const { t, notice: localizeNotice } = useLocale();
+  const { t } = useLocale();
   const account = useAccount();
   const { settings, update } = useSettings();
   const signedIn = account.status === "signed-in" ? account : undefined;
@@ -347,7 +357,7 @@ function Loyalty({
   list: UserSettings["memberships"];
   onChange(next: UserSettings["memberships"]): void;
 }) {
-  const { t, notice: localizeNotice } = useLocale();
+  const { t } = useLocale();
   const [kind, setKind] = useState<"airline" | "hotel">("airline");
   const [program, setProgram] = useState("");
   const [number, setNumber] = useState("");
@@ -424,7 +434,7 @@ function Loyalty({
 }
 
 function PersonalizationSection() {
-  const { t, notice: localizeNotice } = useLocale();
+  const { t, locale } = useLocale();
   const account = useAccount();
   const { settings, update } = useSettings();
   const travel = settings.travel;
@@ -437,26 +447,49 @@ function PersonalizationSection() {
   const [memories, setMemories] = useState<{ key: string; value: string }[]>([]);
   const [memoryState, setMemoryState] = useState<"loading" | "ready" | "failed">("loading");
   const [deletingMemory, setDeletingMemory] = useState<string>();
+  const [memoryDeletionFailed, setMemoryDeletionFailed] = useState(false);
+  const memoryGeneration = useRef(0);
+  const accountId = account.status === "signed-in" ? account.userId : undefined;
 
-  async function loadMemories() {
+  const loadMemories = useCallback(async () => {
+    if (!accountId) return;
+    const generation = memoryGeneration.current;
     setMemoryState("loading");
     try {
       const response = await fetch("/api/account/memory", { cache: "no-store" });
       if (!response.ok) throw new Error("memory-list-failed");
       const body = (await response.json()) as { memories?: { key: string; value: string }[] };
+      if (generation !== memoryGeneration.current) return;
       setMemories(Array.isArray(body.memories) ? body.memories : []);
       setMemoryState("ready");
     } catch {
-      setMemoryState("failed");
+      if (generation === memoryGeneration.current) setMemoryState("failed");
     }
-  }
+  }, [accountId]);
 
   useEffect(() => {
+    const current = memoryGeneration;
+    const generation = ++current.current;
+    setDeletingMemory(undefined);
+    setMemoryDeletionFailed(false);
+    if (!accountId) {
+      setMemories([]);
+      setMemoryState("ready");
+      return () => {
+        if (current.current === generation) current.current++;
+      };
+    }
     void loadMemories();
-  }, []);
+    return () => {
+      if (current.current === generation) current.current++;
+    };
+  }, [accountId, loadMemories]);
 
   async function deleteMemory(key: string) {
+    if (!accountId) return;
+    const generation = memoryGeneration.current;
     setDeletingMemory(key);
+    setMemoryDeletionFailed(false);
     try {
       const response = await fetch("/api/account/memory", {
         method: "DELETE",
@@ -466,11 +499,12 @@ function PersonalizationSection() {
       if (!response.ok) throw new Error("memory-delete-failed");
       const body = (await response.json()) as { deleted?: boolean };
       if (!body.deleted) throw new Error("memory-delete-missing");
-      setMemories((current) => current.filter((item) => item.key !== key));
+      if (generation === memoryGeneration.current)
+        setMemories((current) => current.filter((item) => item.key !== key));
     } catch {
-      localizeNotice({ key: "Your remembered preference could not be deleted. Try again." });
+      if (generation === memoryGeneration.current) setMemoryDeletionFailed(true);
     } finally {
-      setDeletingMemory(undefined);
+      if (generation === memoryGeneration.current) setDeletingMemory(undefined);
     }
   }
 
@@ -481,17 +515,30 @@ function PersonalizationSection() {
         <p className="settings-hint">
           {t("Preferences remembered from chat are used in later plans.")}
         </p>
-        {memoryState === "loading" ? (
+        <div className="settings-row-item__line">
+          <div className="settings-row-item__text">
+            <strong>{t("Use long-term memory")}</strong>
+          </div>
+          <Switch
+            label={t("Use long-term memory")}
+            checked={settings.assistant.memory}
+            disabled={account.status !== "signed-in"}
+            onChange={(memory) => update({ assistant: { ...settings.assistant, memory } })}
+          />
+        </div>
+        {account.status !== "signed-in" && (
+          <p className="settings-hint">{t("Sign in to use long-term memory.")}</p>
+        )}
+        {memoryDeletionFailed && (
+          <p role="alert">{t("Your remembered preference could not be deleted. Try again.")}</p>
+        )}
+        {account.status !== "signed-in" ? (
+          <p>{t("Nothing is remembered yet.")}</p>
+        ) : memoryState === "loading" ? (
           <p role="status">{t("Loading remembered preferences…")}</p>
         ) : memoryState === "failed" ? (
           <div role="alert">
-            <p>
-              {t(
-                account.status === "local"
-                  ? "Sign in to view account memories."
-                  : "Could not load remembered preferences.",
-              )}
-            </p>
+            <p>{t("Could not load remembered preferences.")}</p>
             <button type="button" className="settings-pill" onClick={() => void loadMemories()}>
               {t("Retry")}
             </button>
@@ -503,10 +550,10 @@ function PersonalizationSection() {
             {memories.map(({ key, value }) => {
               const label = t(MEMORY_CATEGORY_LABEL[key] ?? "Other preferences");
               return (
-                <li className="memory-row" key={key}>
+                <li className="memory-row memory-row--remembered" key={key}>
                   <div className="memory-row__main">
                     <span className="memory-row__label">{label}</span>
-                    <span className="memory-row__value">{value}</span>
+                    <span className="memory-row__value">{memoryDisplay(value, locale)}</span>
                   </div>
                   <button
                     type="button"
@@ -819,7 +866,7 @@ const PROVIDER_LABEL: Record<string, string> = {
 };
 
 function ConnectedSection({ onAccountModal }: AccountModalProps) {
-  const { t, notice: localizeNotice } = useLocale();
+  const { t } = useLocale();
   const account = useAccount();
   if (account.status !== "signed-in")
     return (
@@ -866,7 +913,7 @@ export function SettingsDialog({
 } & AccountModalProps) {
   const [section, setSection] = useState<Section>(initial);
   const { syncState } = useSettings();
-  const { t, notice: localizeNotice } = useLocale();
+  const { t } = useLocale();
   const title = t(SECTIONS.find(([id]) => id === section)![1]);
   return (
     <div className="settings">

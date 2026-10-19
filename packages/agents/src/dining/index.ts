@@ -82,6 +82,16 @@ function dietaryPreferences(preferences: UserPreference[]): UserPreference[] {
   );
 }
 
+function dietaryPreferencesForBrief(brief: TripBrief, saved: UserPreference[]): UserPreference[] {
+  for (const values of [brief.learnedPreferences, brief.preferences]) {
+    const explicit = dietaryPreferences(
+      (values ?? []).map((value) => ({ key: "preference", value, source: "filter" as const })),
+    );
+    if (explicit.length) return explicit.map((item) => ({ ...item, key: "dietary" }));
+  }
+  return dietaryPreferences(saved);
+}
+
 function isBudgetRevision(revision?: RevisionRequest): boolean {
   return Boolean(
     revision &&
@@ -246,7 +256,7 @@ async function planDining(
   ]);
   ctx.signal?.throwIfAborted();
   const places = dedupeEntries(candidatePlaces);
-  const preferences = dietaryPreferences(allPreferences);
+  const preferences = dietaryPreferencesForBrief(brief, allPreferences);
   const ceiling = budgetCeiling(brief, days, revision, allocation);
   const currency = displayCurrencyOf(brief, ctx);
   const generator =

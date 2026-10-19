@@ -1,6 +1,7 @@
 "use client";
 import { useLocale } from "@/components/account/LocaleProvider";
 import type { Components } from "react-markdown";
+import { memoryDisplay } from "@/lib/account/memory-display";
 import { intlLocale } from "@/lib/i18n/locale";
 import { formatMessageClock, WELCOME_MESSAGE, type Message } from "@/lib/workspace";
 import { AttachmentChip } from "./AttachmentChip";
@@ -69,7 +70,7 @@ export function MessageItem({ message, animate }: { message: Message; animate?: 
         <div role="status" className="msg-item__memory-notice">
           {t(
             message.memoryChange.action === "updated" ? "Updated: {value}" : "Remembered: {value}",
-            { value: message.memoryChange.value },
+            { value: memoryDisplay(message.memoryChange.value, locale) },
           )}
           <button
             type="button"

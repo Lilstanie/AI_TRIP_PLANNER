@@ -21,11 +21,11 @@ validated against the shared contracts in `packages/shared/src/`.
 | [`/api/account/sync`](#get-and-post-apiaccountsync)         | Pull or push the signed-in traveller's trips and chats              |
 | [`/api/account/export`](#get-apiaccountexport)              | Download everything the account holds as JSON                       |
 | [`/api/account/memory`](#get-and-delete-apiaccountmemory)   | List or delete the signed-in account's long-term memories           |
-| [`/api/account/memory/undo`](#post-apiaccountmemoryundo)    | Undo the latest dietary memory change for the signed-in account     |
+| [`/api/account/memory/undo`](#post-apiaccountmemoryundo)    | Undo the latest memory change for the signed-in account             |
 | [`/api/account`](#delete-apiaccount)                        | Delete the account and its data                                     |
 
 The browser sends the current plan or brief with each request and keeps its workspace in local
-storage. Account long-term dietary memory is stored separately in Postgres and is always scoped by
+storage. Account long-term preferences are stored separately in Postgres and are always scoped by
 the Clerk identity resolved on the server; the client-supplied `brief.userId` is ignored. Signed-out
 planning remains available without account memory.
 
@@ -108,10 +108,11 @@ Optional `assistant`: `{ style, memory }` from Settings → Personalization (`As
 `packages/shared/src/chat.ts`).
 
 - `style` is one of `neutral`, `friendly`, `concise` or `detailed` and sets the coordinator's tone.
-- With `memory: false`, the server drops `learnedPreferences` from `brief` and `known`, and the
-  coordinator records none.
+- With `memory: false`, the server drops `learnedPreferences` from `brief` and `known`, the account
+  memory adapter skips reads and writes, and the coordinator records none. The Settings switch is
+  available to signed-in accounts; signed-out users see a sign-in hint and cannot change it.
 
-Without the field, the behaviour is `neutral` with memory on.
+Without the field, the style is `neutral`. Account memory is enabled only when both the saved account setting and the request permit it; an explicit request opt-in cannot override a saved opt-out. If the account setting cannot be read, account memory stays disabled.
 
 Optional `interfaceLanguage`: `en` or `zh` (`InterfaceLanguage` in `packages/shared/src/chat.ts`),
 the language the traveller's interface is showing. The web app sends its current locale with every
@@ -425,15 +426,23 @@ rows.
 
 ### `GET` and `DELETE /api/account/memory`
 
+The chat route recognizes only explicit phrases for dietary needs, pace, interests, accessibility,
+accommodation preferences and usual departure city. It does not infer or store trip-only facts such
+as budget or area. Trip/profile preferences take precedence over matching account memories.
+A recognized preference is saved only after planning succeeds, with its notice and undo token in the
+completed response; incomplete, failed and cancelled turns do not save it.
+
 `GET` returns `{ memories: [{ key, value, source }] }` for the signed-in account. `DELETE` takes
 `{ key }` and removes only that category for the signed-in account, returning `{ deleted }`. The
 server derives the account from Clerk for both requests; the client cannot choose an account.
 Unknown categories return `{ deleted: false }`, and requests without a session receive 401.
+The accommodation category stores a JSON string with optional `stayType`, `minRating` and
+`freeCancellation` fields. Updating one field preserves the others; undo restores the prior whole value.
 
 ### `POST /api/account/memory/undo`
 
 Takes `{ token }` from a `ChatResponse.memoryChange`. The server resolves the account from Clerk and
-only applies the token to that account's current dietary row. A first write is deleted; a replacement
+only applies the token to that account's current category row. A first write is deleted; a replacement
 restores the previous value. Stale tokens return `{ undone: false }`. Successful responses are
 `{ undone: true }`. Signed-out requests receive 401.
 

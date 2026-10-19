@@ -28,7 +28,8 @@ Nothing reports that fallback at runtime. Rationale: [durable store note](../../
   tests can pass a fake.
 - The REST store is reached with `fetch` only; a plain Redis server cannot back it. Commands use JSON arrays in POST bodies, with a five-second deadline. `set` accepts an optional abort signal, also exposed by `tripStore.set`.
 - Short-term memory retains the latest 20 turns, including when reading older stored histories.
-- Account-scoped dietary preferences are owned by the web app and Postgres; the web server derives
+- Account-scoped dietary, pace, interests, accessibility, accommodation and departure-city memories
+  are owned by the web app and Postgres; the web server derives
   the account identity from Clerk and injects those preferences through `MemoryStore`. Agent Lab
   keeps its benchmark preferences isolated.
 - Saved trips shown in the workspace come from browser storage, not from `tripStore`.

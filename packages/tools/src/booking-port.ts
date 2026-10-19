@@ -70,10 +70,11 @@ function validatedStayCity(q: StayQuery): string {
 
 async function searchFixtureStays(q: StayQuery): Promise<StayOption[]> {
   const city = validatedStayCity(q);
+  const label = q.stayType ? `${city} ${q.stayType}` : city;
   const [economy, standard, comfort] = NIGHTLY_RATES.get(city.toLowerCase()) ?? [100, 180, 280];
   return [
     {
-      name: `Mock ${city} Economy`,
+      name: `Mock ${label} Economy`,
       area: "Outer district",
       pricePerNight: economy,
       rating: 7.6,
@@ -81,7 +82,7 @@ async function searchFixtureStays(q: StayQuery): Promise<StayOption[]> {
       provenance: { kind: "mock", provider: "Mock booking fixture" },
     },
     {
-      name: `Mock ${city} Standard`,
+      name: `Mock ${label} Standard`,
       area: "Central",
       pricePerNight: standard,
       rating: 8.7,
@@ -89,7 +90,7 @@ async function searchFixtureStays(q: StayQuery): Promise<StayOption[]> {
       provenance: { kind: "mock", provider: "Mock booking fixture" },
     },
     {
-      name: `Mock ${city} Comfort`,
+      name: `Mock ${label} Comfort`,
       area: "Central",
       pricePerNight: comfort,
       rating: 9.3,
@@ -97,7 +98,7 @@ async function searchFixtureStays(q: StayQuery): Promise<StayOption[]> {
       provenance: { kind: "mock", provider: "Mock booking fixture" },
     },
     {
-      name: `Mock ${city} Saver`,
+      name: `Mock ${label} Saver`,
       area: "Outer district",
       pricePerNight: economy - 20,
       rating: 7.2,
@@ -118,6 +119,7 @@ async function searchSerpApiStaysWithFallback(
       checkIn: q.checkIn,
       checkOut: q.checkOut,
       guests: q.guests,
+      ...(q.stayType ? { stayType: q.stayType } : {}),
     });
   } catch (error) {
     if (config.mapsProvider !== "google" || !config.mapsApiKey) throw error;
@@ -127,28 +129,34 @@ async function searchSerpApiStaysWithFallback(
         error instanceof Error ? error.message : "unknown error"
       }`,
     );
-    return searchStaysGooglePlacesEstimate(city, config, {
-      fallbackFrom: "SerpApi Google Hotels",
-      fallbackReason: reason,
-    });
+    return searchStaysGooglePlacesEstimate(
+      city,
+      config,
+      {
+        fallbackFrom: "SerpApi Google Hotels",
+        fallbackReason: reason,
+      },
+      q.stayType,
+    );
   }
 }
 
 async function searchGoogleStays(q: StayQuery, config: ToolRuntimeConfig): Promise<StayOption[]> {
-  return searchStaysGooglePlacesEstimate(validatedStayCity(q), config);
+  return searchStaysGooglePlacesEstimate(validatedStayCity(q), config, undefined, q.stayType);
 }
 
 async function searchStaysGooglePlacesEstimate(
   city: string,
   config: ToolRuntimeConfig,
   fallback?: { fallbackFrom: string; fallbackReason: string },
+  stayType?: string,
 ): Promise<StayOption[]> {
   if (config.mapsProvider !== "google") {
     throw new Error(`Unsupported booking provider: ${config.mapsProvider}`);
   }
   if (!config.mapsApiKey) throw new Error("Google Places provider requires MAPS_API_KEY.");
   const results = await searchGooglePlacesText(
-    `hotels in ${city}`,
+    `${stayType ? `${stayType}s` : "hotels"} in ${city}`,
     "places.displayName,places.rating,places.priceLevel,places.formattedAddress,places.websiteUri",
   );
   const queriedAt = toolNow().toISOString();

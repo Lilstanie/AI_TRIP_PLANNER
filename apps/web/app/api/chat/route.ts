@@ -20,7 +20,9 @@ import {
 import { noticeBody, type Notice } from "@/lib/i18n/notice";
 import { authEnabled } from "@/lib/auth/config";
 import { dbEnabled } from "@/lib/db/client";
-import { accountMemoryStore, rememberDietaryNeed } from "@/lib/account/memory";
+import { accountMemoryStore, rememberAccountPreference } from "@/lib/account/memory";
+import { accountMemoryEnabled } from "@/lib/account/memory-enabled";
+import { recognizeAccountMemory } from "@/lib/account/recognize-memory.mjs";
 
 const INVALID_REQUEST: Notice = { key: "The request was invalid. Please retry." };
 
@@ -48,6 +50,8 @@ export async function POST(req: Request) {
 
   const encoder = new TextEncoder();
   const accountId = authEnabled && dbEnabled() ? ((await auth()).userId ?? undefined) : undefined;
+  const memoryEnabled =
+    parsed.data.assistant?.memory !== false && (await accountMemoryEnabled(accountId));
   const serverUserId = accountId ?? "anonymous";
   const requestData = {
     ...parsed.data,
@@ -82,30 +86,26 @@ export async function POST(req: Request) {
           send(answer);
           return;
         }
-        let memoryChange: ChatResponse["memoryChange"];
-        const match =
-          /\b(?:i\s+don['’]?t\s+eat\s+spicy\s+food|i\s+can\s+eat\s+spicy\s+food\s+now)\b|我(?:现在)?(?:不吃辣|可以吃辣了)/iu.exec(
-            parsed.data.message,
-          );
-        if (accountId && match && parsed.data.assistant?.memory !== false) {
-          const value = /can eat|可以吃辣/iu.test(match[0])
-            ? "Can eat spicy food"
-            : "Does not eat spicy food";
-          try {
-            memoryChange = await rememberDietaryNeed(accountId, value);
-          } catch (error) {
-            console.warn("[chat] account memory write failed", error);
-          }
-        }
         const response = ChatResponse.parse(
           await runWithDataMode(dataMode, () =>
             runTripChat(requestData, {
               onProgress: send,
-              mem: accountMemoryStore(accountId),
+              mem: accountMemoryStore(accountId, memoryEnabled),
             }),
           ),
         );
-        if (memoryChange) response.memoryChange = memoryChange;
+        const recognized = recognizeAccountMemory(parsed.data.message);
+        if (!cancelled && accountId && recognized && memoryEnabled) {
+          try {
+            response.memoryChange = await rememberAccountPreference(
+              accountId,
+              recognized.key,
+              recognized.value,
+            );
+          } catch (error) {
+            console.warn("[chat] account memory write failed", error);
+          }
+        }
         send({ type: "complete", response });
         const persistence = new AbortController();
         let timer: ReturnType<typeof setTimeout> | undefined;

@@ -4,6 +4,16 @@ import type { UserPreference } from "@trip/shared";
 import { memory as ephemeralMemory } from "@trip/services";
 import { getDb, dbEnabled } from "../db/client";
 import { accountMemories } from "../db/schema";
+import { mergeAccommodationMemory } from "./accommodation-memory.mjs";
+
+const REMEMBERABLE_KEYS = new Set([
+  "dietary",
+  "pace",
+  "interests",
+  "accessibility",
+  "accommodation",
+  "departure_city",
+]);
 
 export async function getAccountMemories(userId?: string): Promise<UserPreference[]> {
   if (!userId || !dbEnabled()) return [];
@@ -28,21 +38,26 @@ export async function deleteAccountMemory(userId: string, key: string) {
   return deleted.length > 0;
 }
 
-export async function rememberDietaryNeed(userId: string | undefined, value: string) {
-  if (!userId || !dbEnabled()) return undefined;
+export async function rememberAccountPreference(
+  userId: string | undefined,
+  key: string,
+  value: string,
+) {
+  if (!userId || !dbEnabled() || !REMEMBERABLE_KEYS.has(key)) return undefined;
   const db = getDb();
-  const key = "dietary";
   const [current] = await db
     .select()
     .from(accountMemories)
     .where(and(eq(accountMemories.userId, userId), eq(accountMemories.key, key)));
+  const storedValue =
+    key === "accommodation" ? mergeAccommodationMemory(current?.value, value) : value;
   const token = randomUUID();
   await db
     .insert(accountMemories)
     .values({
       userId,
       key,
-      value,
+      value: storedValue,
       previousValue: current?.value ?? null,
       undoToken: token,
       updatedAt: new Date(),
@@ -50,13 +65,17 @@ export async function rememberDietaryNeed(userId: string | undefined, value: str
     .onConflictDoUpdate({
       target: [accountMemories.userId, accountMemories.key],
       set: {
-        value,
+        value: storedValue,
         previousValue: current?.value ?? null,
         undoToken: token,
         updatedAt: new Date(),
       },
     });
-  return { token, action: current ? ("updated" as const) : ("remembered" as const), value };
+  return {
+    token,
+    action: current ? ("updated" as const) : ("remembered" as const),
+    value: storedValue,
+  };
 }
 
 export async function undoAccountMemory(userId: string, token: string) {
@@ -95,13 +114,14 @@ export async function undoAccountMemory(userId: string, token: string) {
   return true;
 }
 
-export function accountMemoryStore(userId?: string) {
+export function accountMemoryStore(userId?: string, enabled = true) {
   return {
     getShortTerm: ephemeralMemory.getShortTerm.bind(ephemeralMemory),
     appendShortTerm: ephemeralMemory.appendShortTerm.bind(ephemeralMemory),
-    getLongTerm: () => getAccountMemories(userId),
+    getLongTerm: () => (enabled ? getAccountMemories(userId) : Promise.resolve([])),
     setLongTerm: async (_requestedUserId: string, pref: UserPreference) => {
-      if (pref.key === "dietary") await rememberDietaryNeed(userId, pref.value);
+      if (enabled && REMEMBERABLE_KEYS.has(pref.key))
+        await rememberAccountPreference(userId, pref.key, pref.value);
     },
     promote: async () => {},
   };

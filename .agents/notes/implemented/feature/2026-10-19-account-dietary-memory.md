@@ -1,26 +1,32 @@
-# Agent Note: Account dietary memory is server-owned
+# Agent Note: Account preference memory is server-owned
 
 Status: implemented
 
 ## Problem
 
-The planner needs to remember an explicit dietary preference across trips without treating trip details
+The planner needs to remember explicit travel preferences across trips without treating trip details
 as account facts, trusting an account id supplied by the browser, or changing Agent Lab's fixed inputs.
 
 ## Decision
 
-- The web server recognizes the explicit spicy-food phrases in its deterministic allowlist and stores
-  the normalized dietary value in the Postgres `account_memories` table. The generated schema and
+- The web server recognizes explicit dietary, pace, interests, accessibility, accommodation and usual
+  departure-city phrases in its deterministic allowlist and stores the normalized value in the Postgres
+  `account_memories` table. The generated schema and
   migration are `apps/web/lib/db/schema.ts` and `apps/web/drizzle/0002_adorable_namor.sql`.
 - Chat and undo routes derive account identity from Clerk. Chat overwrites any `brief.userId` with the
   authenticated id; signed-out requests plan as anonymous and do not read or write account memory.
 - `MemoryStore` receives long-term preferences from the account-scoped web adapter. Budget, area and
-  other trip facts are not recognized or persisted. Agent Lab retains its own benchmark preferences.
+  other trip facts are not recognized or persisted. This trip's brief takes precedence over the
+  travel profile, which takes precedence over account memories. Account memories fill only categories
+  left blank in both higher-priority sources. Agent Lab retains its own benchmark preferences.
+- Recognized preferences are saved after successful planning, so incomplete, failed or cancelled turns
+  do not silently save a preference without a notice.
 - A chat response may carry one `memoryChange` token. The UI shows a localized notice and undo action;
   the token is scoped to the account and latest row version. Undo removes a first write or restores
   the prior value after replacement. Account export and deletion include these rows.
-- The shared response field is additive. The shared contract change is recorded as `contract-impact:
-packages/shared` in the session log.
+- Accommodation remains one category: its JSON string merges stay type, minimum rating and cancellation fields, preserving untouched fields and whole-value undo. Legacy scalar values remain readable. Optional `StayQuery.stayType` carries the preference through mock, SerpApi and Google Places searches; provider results do not independently verify property type. Cache keys include the type when present.
+- The shared response field is additive. Its contract change was recorded as `contract-impact:
+packages/shared` in the foundation session log.
 
 ## Alternatives considered
 
@@ -33,14 +39,17 @@ packages/shared` in the session log.
 
 ## Consequences
 
-- Only the explicit allowlisted dietary phrases are remembered; other needs require a future scoped
-  recognition contract.
-- The schema's composite account/key primary key stores one current dietary value per account, with
+- Only explicit allowlisted phrases for the six supported categories are remembered; other needs
+  require a future scoped recognition contract.
+- The schema's composite account/key primary key stores one current value per category per account, with
   one-step undo state. It does not provide an undo history or concurrent-edit history.
-- `assistant.memory: false` suppresses writes while preserving normal signed-in planning.
+- A saved account opt-out or `assistant.memory: false` suppresses account-memory reads and writes. A request cannot override a saved opt-out; failed settings reads disable account memory while preserving normal
+  planning. The signed-in Settings switch controls this preference; signed-out users see a sign-in
+  hint and cannot change it. This supersedes the temporary hidden-control status in the
+  [Mindtrip settings note](2026-09-27-mindtrip-settings.md#consequences).
 - Settings lists and deletes the account's remembered categories through account-scoped routes; the
-  category labels follow the selected interface language. The memory enable/disable switch remains
-  outside this listing and deletion slice; see the [Settings decision](2026-09-27-mindtrip-settings.md).
+  category labels follow the selected interface language. Additional memory categories are tracked
+  by the parent specification and its follow-up issues.
 
 ## Sources
 

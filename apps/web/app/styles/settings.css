@@ -487,3 +487,21 @@ button.settings-chip[aria-pressed="true"] {
     min-height: 44px !important;
   }
 }
+
+.memory-row--remembered {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  padding: 10px;
+}
+.memory-row--remembered .memory-row__main {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.memory-row__label {
+  font-weight: 600;
+}
+.memory-row__value {
+  color: var(--text-muted);
+}
