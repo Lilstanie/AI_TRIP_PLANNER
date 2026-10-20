@@ -127,7 +127,7 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     seniors and pets where its evidence allows and to say when it cannot confirm suitability;
     `groupSize` is authoritative for people and all cost arithmetic. Chat derives it from a
     breakdown only when no total is already known or stated; when a stated total conflicts with the
-    breakdown, the total is preserved and the breakdown is dropped. A breakdown that no longer adds
+    breakdown, the stated `groupSize` is preserved and the breakdown is dropped. A breakdown that no longer adds
     up to `groupSize` (say, the chat later learns "we're three now") is dropped rather than sent. The
     [traveller party Agent Note](../.agents/notes/implemented/architecture/2026-09-24-traveller-party.md)
     records the original decision; the
