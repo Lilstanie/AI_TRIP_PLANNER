@@ -474,6 +474,21 @@
   }
 }
 
+@media (max-width: 520px) {
+  .question__header-actions {
+    gap: 12px;
+  }
+
+  .question__icon-button {
+    width: 44px;
+    height: 44px;
+  }
+
+  .question__button {
+    min-height: 44px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .question__option,
   .question__custom-row,

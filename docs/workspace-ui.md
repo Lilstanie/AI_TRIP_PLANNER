@@ -299,7 +299,10 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     destination, dates, travellers or budget, it says so in one sentence and the traveller answers by
     typing, with nothing borrowed. For a genuine ambiguity with 2–4 concrete choices, the coordinator
     can instead ask a structured question: a card takes the composer's seat with the question, an
-    optional recommended choice, and (for more than one question) a pager. Submitting sends the
+    optional recommended choice, and (for more than one question) a pager. At phone widths (520 px
+    and narrower), Collapse, Dismiss all, Previous and Next have 44 × 44 px hit areas; the two header
+    controls have a 12 px gap. Skip and Next/Submit are at least 44 px tall. The SVG icons and controls
+    at larger widths keep their existing sizes. Submitting sends the
     answers as the traveller's next message; closing the card returns the plain composer, and the
     question text stays visible in the assistant's own message either way. An unanswered question
     survives reload and can still be answered after restoring the conversation. If submission fails,
