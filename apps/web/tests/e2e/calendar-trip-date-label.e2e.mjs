@@ -310,13 +310,22 @@ try {
       await context.close();
     }
   }
+} catch (error) {
+  check(false, "browser scenario completed", String(error));
+  console.error(error);
 } finally {
   for (const context of browser.contexts())
     for (const page of context.pages()) {
-      writeFileSync(`${OUT}/interrupted.aria.yml`, await page.locator("body").ariaSnapshot());
-      await page.screenshot({ path: `${OUT}/interrupted.png` });
+      const evidence = await Promise.allSettled([
+        page
+          .locator("body")
+          .ariaSnapshot({ timeout: 3000 })
+          .then((snapshot) => writeFileSync(`${OUT}/interrupted.aria.yml`, snapshot)),
+        page.screenshot({ path: `${OUT}/interrupted.png`, timeout: 3000 }),
+      ]);
+      for (const result of evidence)
+        if (result.status === "rejected") console.error("Interrupted evidence:", result.reason);
     }
-  await browser.close();
   writeFileSync(
     `${OUT}/summary.json`,
     JSON.stringify(
@@ -329,6 +338,7 @@ try {
       2,
     ),
   );
+  await browser.close();
 }
 const failed = results.filter((result) => !result.ok);
 console.log(`${results.length - failed.length}/${results.length} checks passed`);
