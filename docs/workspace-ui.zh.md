@@ -29,7 +29,7 @@ Web 应用（`apps/web`）是单用户规划工作区。本文描述其当前行
   - **Chats** 切换 Chats 面板（`aria-expanded`、`aria-controls="chats-panel"`）：它是位于侧边栏右边缘、宽 320 px 的玻璃区域，在工作区上方以 380 ms 的弹性和淡入动效出现（`prefers-reduced-motion` 下立即出现），关闭时为 `inert`。打开时聚焦搜索框；Escape 关闭面板并将焦点返回 Chats（已打开的历史菜单或对话框优先处理 Escape），点击外部也会关闭面板。[Chats 面板和 Your trips Agent Note](../.agents/notes/implemented/feature/2026-09-24-chats-panel-and-trips-page.md) 记录了原因。
   - 面板自上而下依次为：胶囊形搜索框（“Search…”，视觉隐藏标签“Search chats and trips”，以及将焦点返回输入框的 Clear search 按钮），它同时筛选两个列表；New chat（铅笔图标）和 New trip（带加号的行李箱）；**Trips**，每行显示目的地小封面和“Trip to <destination>”；以及 **Chats**，每行用一行显示本地化的短日期标题，下方显示关联行程名称。已重命名的聊天标题保持不变。选择任何条目都会关闭面板。两个起始动作的行为见[New chat 和 New trip](#conversations-trips-and-storage)。
   - 搜索通过温和的读屏通知播报匹配的行程和聊天数量。英文在一条结果时使用单数，多条时使用复数；中文保持原有数量表达。未输入搜索内容时不播报，无匹配时播报原有空状态提示。
-  - **Trips** 将顶栏、聊天和地图替换成 Your trips 页面：“Your trips”标题、New trip 按钮，以及 Trips 和 Calendar 标签页（`role="tablist"`，方向键切换）。标签页采用分段控件，滑块在两者之间滑动。Trips 将每个行程显示为 4:3 封面卡片，文字为“Trip to <destination>”和“<destination> · <本地化日期范围> · N days”，分成 Upcoming 和 Past 两组。Calendar 是周一为首日的月历网格，提供上一月、Today 和下一月操作；每个行程显示为覆盖其日期的条带，用其封面配色的深色填充，使白色标签保持清晰可读，在开始处和每周起点显示标签；默认打开下一次行程所在的月份。每个日期格都有本地化的星期、日期和年份无障碍名称；今天带有 `aria-current="date"`；方向键在所有日期间移动可见焦点，包括没有行程的日期。选择行程、聊天、New chat 或 New trip 会返回工作区。
+  - **Trips** 将顶栏、聊天和地图替换成 Your trips 页面：“Your trips”标题、New trip 按钮，以及 Trips 和 Calendar 标签页（`role="tablist"`，方向键切换）。标签页采用分段控件，滑块在两者之间滑动。Trips 将每个行程显示为 4:3 封面卡片，文字为“Trip to <destination>”和“<destination> · <本地化日期范围> · N days”，分成 Upcoming 和 Past 两组。Calendar 是周一为首日的月历网格，提供上一月、Today 和下一月操作；每个行程显示为覆盖其日期的条带，用其封面配色的深色填充，使白色标签保持清晰可读，在开始处和每周起点显示标签；默认打开下一次行程所在的月份。每个行程条带的无障碍名称包含目的地及包含首尾的起止日期，与日期格使用相同的本地化完整星期、日期和年份格式，并以 UTC 保持跨时区的日历日期一致。每个日期格都有本地化的星期、日期和年份无障碍名称；今天带有 `aria-current="date"`；方向键在所有日期间移动可见焦点，包括没有行程的日期。选择行程、聊天、New chat 或 New trip 会返回工作区。
   - 行程不保存照片，因此封面使用按目的地哈希选择的渐变色和首字母；同一目的地总是得到同样的颜色。
   - 聊天行右上角的更多操作按钮打开 Rename 和 Delete，使这些操作只在需要时出现。悬停或键盘聚焦时显示按钮；无悬停能力的环境始终显示。菜单由 `role="menu"` 和 `role="menuitem"` 按钮组成，触发按钮带 `aria-haspopup` 和 `aria-expanded`；Escape 关闭菜单并将焦点返回触发按钮，不关闭外层面板或抽屉，点击外部或按 Tab 离开也会关闭菜单。行程没有这两个操作，因此没有更多操作菜单。
   - 窄屏导航抽屉显示侧边栏，并在 Trips 下显示面板内容（搜索、两个起始操作、Trips 和 Chats）。
@@ -135,7 +135,7 @@ Trip 抽屉摘要显示目的地、本地化短日期范围和旅行人员数量
 ## 航班、住宿与提示
 
 已知估算恰好达到预算时，预算面板显示“已达预算”，不再显示低于预算零元。若仍有未计价门票，状态会加上“门票费用未计入”并使用警示色；估算下方继续列出这些缺失费用。
-若已知估算低于预算但仍有未计价门票，剩余预算不超过总预算的 5% 时，状态会显示“已知估算在预算内 · 门票费用未计入”并使用警示色。剩余更多时则显示“在预算内”；缺失费用仍列在估算下方。
+若已知估算低于预算但仍有未计价门票，状态会显示“已知估算在预算内 · 门票费用未计入”并使用警示色；缺失费用仍列在估算下方。
 
 Trip 抽屉不再显示 specialist 卡片（Day plan、Getting around、Stay、Destination guide 和 Food & dining）。它们的内容已在日视图中。方案部分仍保留在数据中；不显示部分摘要、假设或模型撰写的工作笔记。Day plan 和 Getting around 没有替代内容，因为它们的内容就是停靠点和路段。Trip 抽屉的费用和总额仍包含所有部分。原因见 [Agent Note](../.agents/notes/implemented/feature/2026-10-08-day-view-specialists.md)。
 
