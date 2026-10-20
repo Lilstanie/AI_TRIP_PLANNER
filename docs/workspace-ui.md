@@ -46,6 +46,7 @@ now. Implementation history and browser acceptance for each phase are in the
     title on one line with the linked trip's name under it. Renamed chat titles are preserved.
     Choosing any of them closes the panel. See
     [New chat and New trip](#conversations-trips-and-storage) for what the two starts do.
+  - Search announces matching trip and chat counts through polite live regions. English uses singular for one result and plural for multiple results; Chinese uses the same counting phrase. Empty searches stay silent, and no matches announce the existing empty message.
   - **Trips** replaces the top bar, chat and map with the Your trips page: a "Your trips" heading, a
     New trip button, and Trips and Calendar tabs (`role="tablist"`, arrow keys switch) drawn as a
     segmented control whose thumb slides between them. Trips shows
@@ -298,7 +299,10 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     destination, dates, travellers or budget, it says so in one sentence and the traveller answers by
     typing, with nothing borrowed. For a genuine ambiguity with 2–4 concrete choices, the coordinator
     can instead ask a structured question: a card takes the composer's seat with the question, an
-    optional recommended choice, and (for more than one question) a pager. Submitting sends the
+    optional recommended choice, and (for more than one question) a pager. At phone widths (520 px
+    and narrower), Collapse, Dismiss all, Previous and Next have 44 × 44 px hit areas; the two header
+    controls have a 12 px gap. Skip and Next/Submit are at least 44 px tall. The SVG icons and controls
+    at larger widths keep their existing sizes. Submitting sends the
     answers as the traveller's next message; closing the card returns the plain composer, and the
     question text stays visible in the assistant's own message either way. An unanswered question
     survives reload and can still be answered after restoring the conversation. If submission fails,
@@ -578,6 +582,7 @@ moves. Details, notes and booked apply in the browser. The checks are determinis
   or "Price unknown" rather than AUD 0). Flight and stay rows open to their card. Between two stops the
   journey is a leg (see Legs below): its mode and duration, marked "checked" when the provider verified
   it and "estimate" when it is the planner's `arriveBy` or a simulated fixture.
+- **Trip scroll.** A fresh Trip view starts above the budget. Revealing the selected day only scrolls the day strip horizontally; it does not move the surrounding Trip panel. Closing and reopening, or switching phone tabs, preserves a traveller’s deliberate vertical scroll. Verify with `pnpm --filter @trip/web e2e trip-initial-scroll` (1280×800, 1440×1000 and 390×844).
 - **Prices.** Stops without a published price carry no `estCost` and show "Price unknown"; the
   budget card lists their count and missing costs, avoiding the impression that the total covers
   every cost.
@@ -588,7 +593,7 @@ moves. Details, notes and booked apply in the browser. The checks are determinis
   stops in plan order. When start times disagree with plan order, a stop moved later lands just
   after the stop it moved past and any other move lands just before it, so the preview keeps the
   swap the traveller asked for; the endpoint then re-times the rest of the day after it.
-- **Time and place.** Tapping a stop's time opens its Start and End form; "Change time" sends the change
+- **Time and place.** In a narrow Trip drawer, the time form uses the full timeline row so its controls remain visible without horizontal scrolling. Tapping a stop's time opens its Start and End form; "Change time" sends the change
   to the server check. Selecting a stop, here or on the map, opens its place card: the place's first
   photo (live data with a Maps key), rating, address and an Open in Google Maps link. Replace place in the stop's menu opens a
   Google Places search in the card; a picked result is saved through the server check. Escape closes an

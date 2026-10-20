@@ -16,9 +16,13 @@ export function DayStrip({
   const { t } = useLocale();
   const strip = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    strip.current
-      ?.querySelector<HTMLElement>('[aria-selected="true"]')
-      ?.scrollIntoView?.({ block: "nearest", inline: "nearest" });
+    const list = strip.current;
+    const active = list?.querySelector<HTMLElement>('[aria-selected="true"]');
+    if (!list || !active) return;
+    const bounds = list.getBoundingClientRect();
+    const day = active.getBoundingClientRect();
+    if (day.left < bounds.left) list.scrollLeft += day.left - bounds.left;
+    else if (day.right > bounds.right) list.scrollLeft += day.right - bounds.right;
   }, [selected]);
   const move = (to: number) => {
     const next = Math.min(Math.max(1, to), days.length);
