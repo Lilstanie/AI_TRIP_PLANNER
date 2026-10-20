@@ -54,6 +54,14 @@ Contract: `ChatRequest`, `ChatResponse` and `AgentProgressEvent` in `packages/sh
 }
 ```
 
+`brief.destination` holds the cities to visit, in visit order, joined with `&`
+("Sydney & Wollongong"); `cities` in `@trip/agents` and the Where editor both read that form. The
+model extraction supplies that form directly. Offline extraction normalises explicit `&` and `、`
+separators. A name containing "and", such as "Trinidad and Tobago", asks the traveller to keep the
+full name or confirm separate stops before planning. Confirmation retains the collected trip fields;
+an existing plan stays unchanged until the answer arrives. Structured model results are not split
+again by a conjunction heuristic.
+
 `brief.preferences` and `known.preferences` are optional: the traveller's own trip preferences
 ("Vegetarian food", "No early starts"), at most `MAX_TRIP_PREFERENCES` (12) entries of 1 to
 `MAX_TRIP_PREFERENCE_LENGTH` (200) characters after trimming, both in

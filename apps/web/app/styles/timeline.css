@@ -365,6 +365,16 @@ button.timeline-stop__main:hover {
   border-radius: var(--radius);
   background: var(--surface-2);
 }
+.stop-editor__time {
+  position: relative;
+  grid-column: 3 / -1;
+  min-width: 0;
+}
+.stop-editor__time label,
+.stop-editor__time input {
+  min-width: 0;
+  max-width: 100%;
+}
 .stop-editor__group {
   display: flex;
   flex-wrap: wrap;
@@ -463,6 +473,9 @@ button.timeline-stop__main:hover {
 }
 
 @container timeline (max-width: 420px) {
+  .stop-editor__time {
+    grid-column: 1 / -1;
+  }
   .timeline {
     --time-col: 56px;
   }

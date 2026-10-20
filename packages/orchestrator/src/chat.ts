@@ -103,7 +103,12 @@ function missingFields(known: BriefPatch, tripId: string): string[] {
 }
 
 export const BriefUpdate = z.object({
-  destination: z.string().nullish(),
+  destination: z
+    .string()
+    .nullish()
+    .describe(
+      'the city they are travelling to. For a trip across several cities, join them with " & " in the order they are visited ("Sydney & Wollongong"), never with a word such as "and".',
+    ),
   origin: z.string().nullish().describe("the city they are travelling from, if they said one"),
   startDate: z.string().nullish().describe("YYYY-MM-DD"),
   endDate: z.string().nullish().describe("YYYY-MM-DD"),
@@ -859,8 +864,42 @@ async function runOffline(
   const patch = extractor
     ? await extractor.extract(message, submitted)
     : extractBriefPatchLocally(message);
+  const destinationCandidate =
+    patch.destination?.toLowerCase() === "no preference"
+      ? request.known?.destination
+      : patch.destination;
+  const ambiguousDestination =
+    !extractor && destinationCandidate && /\s+and\s+/iu.test(destinationCandidate)
+      ? destinationCandidate
+      : undefined;
+  const confirmedDestination =
+    ambiguousDestination && patch.destination === request.known?.destination;
+  if (ambiguousDestination && !confirmedDestination) {
+    const destination = ambiguousDestination;
+    const chinese = request.interfaceLanguage === "zh";
+    const separated = destination.replace(/\s+and\s+/giu, " & ");
+    throw new AskUserError({
+      type: "ask_user",
+      known: mergeBriefPatch(submitted ?? request.known ?? {}, { ...patch, destination }),
+      ...(request.plan ? { plan: request.plan } : {}),
+      questions: [
+        {
+          id: "destination-conjunction",
+          header: chinese ? "目的地" : "Destination",
+          question: chinese
+            ? `“${destination}”是一个完整地名，还是多个目的地？保留完整地名，或用 & 分隔各站。`
+            : `Is “${destination}” one place name or several destinations? Keep the name, or separate the stops with &.`,
+          options: [{ label: destination }, { label: separated }],
+        },
+      ],
+    });
+  }
   if (submitted) {
-    const updated = applyBriefPatch(submitted, patch, request.tripId);
+    const updated = applyBriefPatch(
+      submitted,
+      mergeBriefPatch(request.known ?? {}, patch),
+      request.tripId,
+    );
     if (
       !request.plan &&
       hasPastTripDate(updated, clock, locationForBrief(request, updated)) &&

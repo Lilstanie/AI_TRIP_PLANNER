@@ -144,7 +144,7 @@ export function extractBriefPatchLocally(message: string): BriefPatch {
     /^\s*([A-Za-z][A-Za-z &.-]+?)\s*[,，]\s*\d{4}-\d{2}-\d{2}/,
   );
   const chineseDestination = message.match(
-    /(?:去|前往|目的地(?:是|为|改成|调整为)?)[：:\s]*([\p{Script=Han}A-Za-z][\p{Script=Han}A-Za-z&·\- ]*?)(?=\s*(?:旅行|旅游|玩|，|,|。|预算|\d{4}-|$))/u,
+    /(?:去|前往|目的地(?:是|为|改成|调整为)?)[：:\s]*([\p{Script=Han}A-Za-z][\p{Script=Han}A-Za-z&、·\- ]*?)(?=\s*(?:旅行|旅游|玩|，|,|。|预算|\d{4}-|$))/u,
   );
   const destination = cleanDestination(
     englishDestination?.[1] ??
@@ -154,7 +154,7 @@ export function extractBriefPatchLocally(message: string): BriefPatch {
       chineseDestination?.[1] ??
       "",
   );
-  if (destination) patch.destination = destination;
+  if (destination) patch.destination = destination.replace(/\s*[&、]\s*/gu, " & ");
 
   const passport =
     message.match(/([A-Za-z][A-Za-z ]+?)\s+passport/i) ??
