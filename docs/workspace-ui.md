@@ -339,8 +339,10 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     request and reads the stream; the pure `session(state, event)` there applies the outcome, so the
     reset rules (previous total, selected stop, map routes, field errors, question card) live in one
     place and are tested without React in `tests/lib/workspace/session.test.ts`. A pending question
-    and its answer progress persist across reloads; the question remains available while its answer
-    is being sent and after a failed request, and a successful reply clears it.
+    and its answer progress persist across reloads; while an answer is being sent, answer editing,
+    paging, skip and submit are locked, and Stop aborts the request without discarding the question
+    or its draft. A failed request leaves the question answerable for retry, a late response after
+    Stop is ignored, and a successful reply clears the question.
   - Switching chat or trip, or New chat, first flushes the pending autosave, then aborts in-flight
     requests and clears progress, errors, selection and map routes in one `opened` session event.
     Late responses are ignored.

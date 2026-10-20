@@ -141,6 +141,7 @@ export function ChatPanel({
           onCancel={onDismissAsk}
           onProgress={onAskProgress}
           submitting={busy}
+          {...(onCancel ? { onStop: onCancel } : {})}
         />
       ) : (
         <form
