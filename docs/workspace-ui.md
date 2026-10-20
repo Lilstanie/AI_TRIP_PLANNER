@@ -46,6 +46,7 @@ now. Implementation history and browser acceptance for each phase are in the
     title on one line with the linked trip's name under it. Renamed chat titles are preserved.
     Choosing any of them closes the panel. See
     [New chat and New trip](#conversations-trips-and-storage) for what the two starts do.
+  - Search announces matching trip and chat counts through polite live regions. English uses singular for one result and plural for multiple results; Chinese uses the same counting phrase. Empty searches stay silent, and no matches announce the existing empty message.
   - **Trips** replaces the top bar, chat and map with the Your trips page: a "Your trips" heading, a
     New trip button, and Trips and Calendar tabs (`role="tablist"`, arrow keys switch) drawn as a
     segmented control whose thumb slides between them. Trips shows
@@ -587,7 +588,7 @@ moves. Details, notes and booked apply in the browser. The checks are determinis
   stops in plan order. When start times disagree with plan order, a stop moved later lands just
   after the stop it moved past and any other move lands just before it, so the preview keeps the
   swap the traveller asked for; the endpoint then re-times the rest of the day after it.
-- **Time and place.** Tapping a stop's time opens its Start and End form; "Change time" sends the change
+- **Time and place.** In a narrow Trip drawer, the time form uses the full timeline row so its controls remain visible without horizontal scrolling. Tapping a stop's time opens its Start and End form; "Change time" sends the change
   to the server check. Selecting a stop, here or on the map, opens its place card: the place's first
   photo (live data with a Maps key), rating, address and an Open in Google Maps link. Replace place in the stop's menu opens a
   Google Places search in the card; a picked result is saved through the server check. Escape closes an

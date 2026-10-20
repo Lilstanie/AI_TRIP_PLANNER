@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { noticeBody } from "@/lib/i18n/notice";
-import { mapProvider } from "@/lib/map-provider";
+import { mapProviderFor } from "@/lib/map-provider";
+import { requestDataMode } from "@/lib/auth/live-data";
 import { placeErrorResponse } from "@/lib/map-provider/place-error-response";
 
 const SearchRequest = z.object({
@@ -15,7 +16,9 @@ export async function POST(request: Request) {
   if (!parsed.success)
     return Response.json(noticeBody({ key: "Enter a place name to search." }), { status: 400 });
   try {
-    const { value, source } = await mapProvider(request).searchPlaces(parsed.data);
+    const { value, source } = await mapProviderFor(await requestDataMode(request)).searchPlaces(
+      parsed.data,
+    );
     return Response.json({ places: value, source }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     return placeErrorResponse(error);
