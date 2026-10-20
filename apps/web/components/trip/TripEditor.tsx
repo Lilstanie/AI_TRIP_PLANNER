@@ -1,7 +1,7 @@
 "use client";
 import { useLocale } from "@/components/account/LocaleProvider";
 import { useSettings } from "@/components/account/SettingsProvider";
-import { Fragment, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useContext, useEffect, useId, useMemo, useRef, useState } from "react";
 import type { TripPlan } from "@trip/shared";
 import type { RouteResult } from "@/lib/integrations/google";
 import type { TripPlaces } from "../map/useTripPlaces";
@@ -165,6 +165,7 @@ export function TripEditor({
   );
 
   const [itemUndo, setItemUndo] = useState<{ previous: TripPlan; message: Notice }>();
+  const dayPanelId = `trip-day-panel-${useId().replaceAll(":", "")}`;
   const [problem, setProblem] = useState<Notice | "">("");
   const applied = useRef<TripPlan | null>(null);
 
@@ -245,7 +246,13 @@ export function TripEditor({
   return (
     <section className="trip-editor" aria-label={t("Trip timeline")}>
       <TripTips key={plan.tripId} plan={plan} onTrip={today !== undefined} />
-      <DayStrip days={strip} selected={day} today={today} onSelect={selectDay} />
+      <DayStrip
+        days={strip}
+        selected={day}
+        today={today}
+        panelId={dayPanelId}
+        onSelect={selectDay}
+      />
 
       {legs?.working && (
         <p className="timeline-status" role="status">
@@ -303,7 +310,13 @@ export function TripEditor({
         )
       )}
 
-      <div className="timeline-day">
+      <div
+        id={dayPanelId}
+        className="timeline-day"
+        role="tabpanel"
+        aria-labelledby={`${dayPanelId}-day-tab-${day}`}
+        tabIndex={0}
+      >
         <h3 ref={dayTitle} id="timeline-day-title" tabIndex={-1} className="timeline-day__title">
           {t("Day {v0}", { v0: day })} <span>{labels[day - 1]}</span>
         </h3>
