@@ -24,18 +24,23 @@ function stored(): DataMode | undefined {
 export function useDataMode(preferred?: DataMode) {
   const [mode, setMode] = useState<DataMode>();
   const [providers, setProviders] = useState<DataModeProviders>();
+  const [liveAvailable, setLiveAvailable] = useState(true);
 
   useEffect(() => {
     let active = true;
     void (async () => {
-      let body: { configured?: string; providers?: DataModeProviders } | undefined;
+      let body:
+        { configured?: string; liveAvailable?: boolean; providers?: DataModeProviders } | undefined;
       try {
         const response = await fetch("/api/data-mode");
         if (response?.ok) body = await response.json();
       } catch {}
       if (!active) return;
       setProviders(body?.providers);
-      setMode(stored() ?? preferred ?? (body?.configured === "live" ? "live" : "mock"));
+      const allowed = body?.liveAvailable !== false;
+      setLiveAvailable(allowed);
+      const wanted = stored() ?? preferred ?? (body?.configured === "live" ? "live" : "mock");
+      setMode(allowed ? wanted : "mock");
     })();
     return () => {
       active = false;
@@ -44,14 +49,18 @@ export function useDataMode(preferred?: DataMode) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const choose = useCallback((next: DataMode) => {
-    setMode(next);
-    try {
-      localStorage.setItem(STORAGE_KEY, next);
-    } catch {}
-  }, []);
+  const choose = useCallback(
+    (next: DataMode) => {
+      if (next === "live" && !liveAvailable) return;
+      setMode(next);
+      try {
+        localStorage.setItem(STORAGE_KEY, next);
+      } catch {}
+    },
+    [liveAvailable],
+  );
 
-  return { mode, providers, choose };
+  return { mode, providers, choose, liveAvailable };
 }
 
 export function dataModeHeaders(mode: DataMode | undefined): Record<string, string> {

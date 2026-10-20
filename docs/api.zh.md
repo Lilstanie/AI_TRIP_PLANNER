@@ -171,7 +171,9 @@ Who 中的五项计数，包括保存行程后重新打开的情况。
 `{ "error": "The request was invalid. Please retry.", "notice": { … } }`。
 
 可选的 `x-trip-data-mode` 请求头值为 `mock` 或 `live`，仅为本次请求选择 fixture（测试前置数据）
-或实时提供方；其他值或未提供请求头时，使用部署默认值。
+或实时提供方；其他值或未提供请求头时，使用部署默认值。该请求头只是诉求，不是决定：
+`apps/web/lib/auth/live-data.ts` 中的 `requestDataMode` 会把无权消耗额度的调用方从 `live` 降级为 `mock`，
+因此未登录的访客仍能基于 fixture 得到可用的行程。
 
 <a id="get-apiagent-labbenchmark"></a>
 
@@ -238,10 +240,16 @@ Who 中的五项计数，包括保存行程后重新打开的情况。
 ## `GET /api/data-mode`
 
 ```json
-{ "configured": "mock", "providers": { "hotelsAndFlights": false, "maps": true } }
+{
+  "configured": "mock",
+  "liveAvailable": false,
+  "providers": { "hotelsAndFlights": false, "maps": true }
+}
 ```
 
 `configured` 是部署默认值（只有 `USE_MOCK_TOOLS=false` 时才为 `live`）。
+`liveAvailable` 表示该调用方是否可以消耗服务商额度：已登录的旅行者为 true，未配置 Clerk 时在非部署环境（本地、CI）也为 true。
+为 false 时工作区会禁用实时数据开关。
 `providers` 报告是否设置了 `SERPAPI_KEY` 和 `MAPS_API_KEY`，绝不返回它们的值。响应不缓存。
 
 <a id="post-apiplacessearch"></a>
