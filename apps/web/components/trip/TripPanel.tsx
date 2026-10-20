@@ -52,11 +52,7 @@ export function TripPanel({
   const unpriced = itineraryActivities(plan).filter(
     (item) => item.estCost === undefined && !(item.id && picks.has(item.id)),
   ).length;
-  const narrowHeadroom =
-    gap?.direction === "under" && budget !== undefined && estimated !== undefined
-      ? budget - estimated <= budget * 0.05
-      : false;
-  const unpricedCaution = unpriced > 0 && (atBudget || narrowHeadroom);
+  const unpricedCaution = unpriced > 0 && (atBudget || gap?.direction === "under");
   const [start, end] = plan.brief.dates;
   const dateRange = dateRangeLabel(start, end, locale) ?? `${start} – ${end}`;
   return (
