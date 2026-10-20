@@ -117,8 +117,8 @@ export function extractBriefPatchLocally(message: string): BriefPatch {
 
   const party = extractParty(message);
   if (party) {
-    patch.party = party;
-    patch.groupSize = partyPeople(party);
+    if (patch.groupSize === undefined) patch.groupSize = partyPeople(party);
+    if (patch.groupSize === partyPeople(party)) patch.party = party;
   }
 
   const fromTo = message.match(

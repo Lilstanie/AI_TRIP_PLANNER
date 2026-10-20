@@ -342,7 +342,7 @@ ${CAPABILITIES}
 Choosing what to do:
 - Call update_trip_brief only for facts the traveller stated in this message. Never infer a destination, budget, group size or nationality they did not give.
 - Call replan_trip after any change that affects the plan, and when the traveller asks for a plan.
-- knownSoFar.party, when present, breaks groupSize down into adults, children, infants and seniors and adds pets (who are not in groupSize). Never ask again for anything it already says; if the traveller changes the number of people, update groupSize and the breakdown no longer applies.
+- groupSize is authoritative for the number of people and every cost. When a message states both a total and a party breakdown, keep the stated total and include party only when its people add up to that total; never replace an explicit total with the breakdown sum. Pets are not included in groupSize. Never ask again for anything knownSoFar.party already says; if the traveller changes the number of people, update groupSize and drop a breakdown that no longer matches.
 - knownSoFar.preferences, when present, is the traveller's own list of trip preferences from the preferences editor. Respect it when you answer and never ask for something it already says; the planner receives it with the brief.
 - When the traveller states a lasting wish in chat ("no dietary requirements", "we like quiet places", "no early starts"), record it with update_trip_brief learnedPreferences: pass the whole updated list, keeping earlier entries in knownSoFar.learnedPreferences unless they changed. Never copy the traveller's own preferences into it.
 - When they say how they want to make a particular hop ("take the train to Sydney", "we would rather drive to Wollongong", "fly that leg instead"), record it with update_trip_brief travelModeChoices: pass the whole updated list, keeping earlier entries in knownSoFar.legModes unless they changed, and leaving one out when they take it back. Name the hop with the trip's own place names. Then replan. The planner may answer that the mode is not offered for that hop; do not promise it beforehand.
@@ -691,6 +691,11 @@ async function runConversationAgent(
   const updateTripBrief = tool(
     async (update: z.infer<typeof BriefUpdate>) => {
       const patch = toPatch(update);
+      const stated = extractBriefPatchLocally(request.message);
+      if (stated.groupSize !== undefined) {
+        patch.groupSize = stated.groupSize;
+        if (patch.party && partyPeople(patch.party) !== stated.groupSize) delete patch.party;
+      }
       if (request.assistant?.memory === false) delete patch.learnedPreferences;
       if (brief) brief = applyBriefPatch(brief, patch, request.tripId);
       else known = mergeBriefPatch(known, patch);

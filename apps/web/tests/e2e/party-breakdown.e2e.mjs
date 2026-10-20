@@ -38,15 +38,15 @@ check(stated?.groupSize === 2, `groupSize follows the breakdown (got ${stated?.g
 const chinese = await plan("chinese-breakdown", {
   tripId: "party-breakdown-zh",
   message:
-    "请规划 2026-12-01 到 2026-12-03 去悉尼，两位大人和一个小孩，预算 3000 澳元，住在朋友家不需要住宿。",
+    "请规划 2026-12-01 到 2026-12-03 去悉尼，1 位成人和 1 位小孩，预算 3000 澳元，住在朋友家不需要住宿。",
   interfaceLanguage: "zh",
 });
 check(
-  chinese?.party?.adults === 2 && chinese?.party?.children === 1,
-  `"两位大人和一个小孩" is kept as two adults and one child (got ${JSON.stringify(chinese?.party)})`,
+  chinese?.party?.adults === 1 && chinese?.party?.children === 1,
+  `"1 位成人和 1 位小孩" is kept as one adult and one child (got ${JSON.stringify(chinese?.party)})`,
 );
 check(
-  chinese?.groupSize === 3,
+  chinese?.groupSize === 2,
   `Chinese groupSize follows the breakdown (got ${chinese?.groupSize})`,
 );
 
@@ -75,6 +75,26 @@ const replaced = await plan("total-replaces-breakdown", {
 check(
   replaced?.groupSize === 4 && replaced?.party === undefined,
   `a new total drops the old breakdown (got ${replaced?.groupSize} / ${JSON.stringify(replaced?.party)})`,
+);
+
+const pets = await plan("pets-not-people", {
+  tripId: "party-breakdown-pets",
+  message:
+    "Plan a trip to Sydney from 2026-12-01 to 2026-12-03 for 1 adult, 1 child and 2 pets, total budget AUD 3000. We are staying with friends and need no accommodation.",
+});
+check(
+  pets?.groupSize === 2 && pets?.party?.pets === 2,
+  "pets are recorded without increasing the cost head count",
+);
+
+const conflicting = await plan("explicit-total-conflict", {
+  tripId: "party-breakdown-conflict",
+  message:
+    "Plan a trip to Sydney from 2026-12-01 to 2026-12-03 for 4 people: 1 adult and 1 child, total budget AUD 3000. We are staying with friends and need no accommodation.",
+});
+check(
+  conflicting?.groupSize === 4 && conflicting?.party === undefined,
+  "an explicit total stays authoritative over an inconsistent breakdown",
 );
 
 const failed = checks.filter((entry) => !entry.ok);

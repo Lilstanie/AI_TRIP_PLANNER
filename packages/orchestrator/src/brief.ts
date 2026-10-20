@@ -58,8 +58,10 @@ export function mergeBriefPatch<T extends BriefPatch>(current: T, patch: BriefPa
   if (parsedPatch.budgetTotal !== undefined && parsedPatch.budgetSource === undefined)
     delete next.budgetSource;
 
-  if (parsedPatch.party) next.groupSize = partyPeople(parsedPatch.party);
-  else if (parsedPatch.groupSize !== undefined) delete next.party;
+  if (parsedPatch.party && parsedPatch.groupSize === undefined && current.groupSize === undefined)
+    next.groupSize = partyPeople(parsedPatch.party);
+  if (next.party && next.groupSize !== undefined && partyPeople(next.party) !== next.groupSize)
+    delete next.party;
   return next;
 }
 
