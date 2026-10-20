@@ -98,7 +98,9 @@ export function ChatsPanel({
         >
           {searching
             ? trips.length
-              ? t("{count} trips found", { count: trips.length })
+              ? t(trips.length === 1 ? "{count} trip found" : "{count} trips found", {
+                  count: trips.length,
+                })
               : t("No matching trips.")
             : ""}
         </p>
@@ -142,7 +144,9 @@ export function ChatsPanel({
         >
           {searching
             ? chats.length
-              ? t("{count} chats found", { count: chats.length })
+              ? t(chats.length === 1 ? "{count} chat found" : "{count} chats found", {
+                  count: chats.length,
+                })
               : t("No matching chats.")
             : ""}
         </p>
