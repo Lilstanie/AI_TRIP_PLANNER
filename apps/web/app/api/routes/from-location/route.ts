@@ -1,6 +1,7 @@
 import { z, ZodError } from "zod";
 import { errorNotice, noticeBody } from "@/lib/i18n/notice";
-import { mapProvider, routeFromLocation } from "@/lib/map-provider";
+import { mapProviderFor, routeFromLocation } from "@/lib/map-provider";
+import { requestDataMode } from "@/lib/auth/live-data";
 
 const Input = z.object({
   latitude: z.number().min(-90).max(90),
@@ -17,7 +18,7 @@ export async function POST(request: Request) {
     const input = Input.parse(await request.json());
     return Response.json(
       await routeFromLocation(
-        mapProvider(request),
+        mapProviderFor(await requestDataMode(request)),
         { latitude: input.latitude, longitude: input.longitude },
         input.placeId,
         input.mode,
