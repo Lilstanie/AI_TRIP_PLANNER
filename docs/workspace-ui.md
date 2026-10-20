@@ -375,8 +375,7 @@ When the known estimate equals the budget, the budget panel says “At budget”
 zero under budget. If itinerary stops remain unpriced, the status adds “unpriced stops not counted”
 and uses the caution colour; those missing costs remain listed beneath the estimate.
 When the estimate is below budget but itinerary stops remain unpriced, the status says “Known estimate
-within budget · unpriced stops not counted” and uses the caution colour when the remaining headroom
-is at most 5% of the budget. With more headroom, it says “Within budget”; the missing costs remain
+within budget · unpriced stops not counted” and uses the caution colour. The missing costs remain
 listed beneath the estimate.
 
 Names of removed surfaces below appear only to explain their removal; nothing in this section
