@@ -182,7 +182,10 @@ An invalid request body, or `mode: "plan"` without a brief, returns HTTP 400 bef
 with `{ "error": "The request was invalid. Please retry.", "notice": { … } }`.
 
 An optional `x-trip-data-mode` header of `mock` or `live` chooses fixtures or live providers for this
-request only; any other value, or no header, uses the deployment default.
+request only; any other value, or no header, uses the deployment default. The header is a request,
+not a decision: `requestDataMode` in `apps/web/lib/auth/live-data.ts` downgrades `live` to `mock`
+for a caller who may not spend the allowance, so a signed-out visitor still gets a working plan from
+fixtures.
 
 ## `GET /api/agent-lab/benchmark`
 
@@ -264,11 +267,18 @@ reported, and the trace never carries a model's own reasoning.
 ## `GET /api/data-mode`
 
 ```json
-{ "configured": "mock", "providers": { "hotelsAndFlights": false, "maps": true } }
+{
+  "configured": "mock",
+  "liveAvailable": false,
+  "providers": { "hotelsAndFlights": false, "maps": true }
+}
 ```
 
-`configured` is the deployment default (`live` only when `USE_MOCK_TOOLS=false`). `providers` reports
-whether `SERPAPI_KEY` and `MAPS_API_KEY` are set, never their values. The response is not cached.
+`configured` is the deployment default (`live` only when `USE_MOCK_TOOLS=false`). `liveAvailable` is
+whether this caller may spend the provider allowance: true for a signed-in traveller, and off a
+deployment when Clerk is not configured. The workspace hides the live toggle when it is false.
+`providers` reports whether `SERPAPI_KEY` and `MAPS_API_KEY` are set, never their values. The
+response is not cached.
 
 ## `POST /api/places/search`
 

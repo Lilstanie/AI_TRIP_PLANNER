@@ -328,6 +328,8 @@ export const WORKSPACE_ZH = {
   "Actions for {v0}": "{v0}的操作",
   "Mock data: bundled fixtures. No provider requests and no allowance spent.":
     "示例数据：使用内置示例，不会请求服务商，也不会消耗额度。",
+  "Mock data: bundled fixtures. Sign in to plan with live hotel and flight prices.":
+    "示例数据：使用内置示例。登录后即可使用真实的酒店和航班价格规划行程。",
   "Live data: real hotel and flight prices. Each plan spends the shared monthly search allowance.":
     "实时数据：提供真实酒店和航班价格。每次规划都会使用共享的月度搜索额度。",
   "Live data selected, but no SERPAPI_KEY is configured, so results fall back to estimates.":
