@@ -53,7 +53,7 @@ now. Implementation history and browser acceptance for each phase are in the
     every trip as a 4:3 cover card with "Trip to <destination>" and "<destination> · <localized date range> · N days",
     grouped into Upcoming and Past. Calendar is a Monday-first month grid with previous, Today and
     next, drawing each trip as a band over its days, filled with the dark colour of its cover palette
-    so the white label stays readable, labelled where it starts and at each week's start; it opens on the next trip's month. Each date cell has a full localized weekday, date and year name; today has `aria-current="date"`; arrow keys move visible focus across every date, including empty dates. Choosing a trip, a chat, New chat or New trip returns
+    so the white label stays readable, labelled where it starts and at each week's start; it opens on the next trip's month. Each trip band announces its destination and inclusive start and end dates using the same full localized weekday, date and year format as the date cells, with UTC keeping calendar dates stable across time zones. Each date cell has a full localized weekday, date and year name; today has `aria-current="date"`; arrow keys move visible focus across every date, including empty dates. Choosing a trip, a chat, New chat or New trip returns
     to the workspace.
   - Trips keep no photos, so a cover is a gradient chosen by hashing the destination, with its
     initial; the same destination always gets the same colours.
@@ -375,8 +375,7 @@ When the known estimate equals the budget, the budget panel says “At budget”
 zero under budget. If itinerary stops remain unpriced, the status adds “unpriced stops not counted”
 and uses the caution colour; those missing costs remain listed beneath the estimate.
 When the estimate is below budget but itinerary stops remain unpriced, the status says “Known estimate
-within budget · unpriced stops not counted” and uses the caution colour when the remaining headroom
-is at most 5% of the budget. With more headroom, it says “Within budget”; the missing costs remain
+within budget · unpriced stops not counted” and uses the caution colour. The missing costs remain
 listed beneath the estimate.
 
 Names of removed surfaces below appear only to explain their removal; nothing in this section
