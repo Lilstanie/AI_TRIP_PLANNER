@@ -342,6 +342,9 @@ Google `name` 必须是从最新查询中获得的 `places/{id}/photos/{id}` 名
 
 ## 账号路由
 
+配置 Clerk 后，中间件对匿名访问的受保护 API 返回不缓存的 401 JSON；
+受保护浏览器页面则跳转到 `/sign-in`。
+
 所有账号路由都需要 Clerk 会话，没有会话时返回 401；未配置 Clerk 或 `DATABASE_URL` 时返回 503。除下文的设置冲突外，所有失败响应体（包括 400 和下文的 502）
 均为 [`{ error, notice }`](#failure-bodies)。查询使用会话中的用户
 id，绝不使用请求体中的 id。约定：`apps/web/lib/account/settings.ts` 中的 `UserSettings`，
