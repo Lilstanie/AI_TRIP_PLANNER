@@ -3,7 +3,7 @@ import { createRequire } from "node:module";
 import { resolve } from "node:path";
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT ?? "playwright");
-const OUT = resolve("output/playwright/phone-map");
+const OUT = resolve("output/playwright/phone-map", process.env.LABEL ?? ".");
 mkdirSync(OUT, { recursive: true });
 const results = [];
 const check = (ok, message) => {
@@ -11,12 +11,16 @@ const check = (ok, message) => {
   console.log(`${ok ? "ok" : "FAIL"} ${message}`);
 };
 const browser = await chromium.launch({
+  args: ["--disable-webgl"],
   ...(process.env.CHANNEL ? { channel: process.env.CHANNEL } : {}),
 });
 try {
   for (const [width, height] of [
+    [320, 800],
+    [375, 812],
     [390, 844],
-    [360, 800],
+    [400, 800],
+    [520, 844],
   ]) {
     const context = await browser.newContext({
       viewport: { width, height },
@@ -106,7 +110,7 @@ try {
       await sheet.innerText().then((text) => text.includes("Plan a trip")),
       `${width}: empty guidance`,
     );
-    const handle = sheet.getByRole("button", { name: "Resize day stops" });
+    const handle = sheet.locator(".phone-map-sheet__handle");
     await handle.press("Home");
     check((await sheet.getAttribute("data-snap")) === "handle", `${width}: Home collapses`);
     await handle.press("ArrowUp");
@@ -136,6 +140,100 @@ try {
     await sheet.locator(".phone-map-sheet__stops button").first().waitFor();
     const days = sheet.locator(".phone-map-sheet__days button");
     check((await days.count()) > 1, `${width}: day switcher`);
+    for (const language of ["en", "zh"]) {
+      await page.locator(".phone-tabbar").getByRole("tab").last().click();
+      if (language === "zh")
+        await page
+          .getByRole("button", { name: "Switch language to 简体中文", exact: true })
+          .click();
+      await page.locator(".phone-tabbar").getByRole("tab").nth(1).click();
+      await handle.press("End");
+      const heights = await days.evaluateAll((nodes) =>
+        nodes.map((node) => node.getBoundingClientRect().height),
+      );
+      check(
+        heights.every((height) => height >= 44),
+        `${width} ${language}: day heights ${JSON.stringify(heights)} >=44`,
+      );
+      await days.nth(1).focus();
+      await days.nth(1).press("Enter");
+      check(
+        await days
+          .nth(1)
+          .evaluate(
+            (node) =>
+              node === document.activeElement &&
+              node.getAttribute("aria-pressed") === "true" &&
+              getComputedStyle(node).boxShadow !== "none",
+          ),
+        `${width} ${language}: day keyboard selection and focus`,
+      );
+      check(
+        await page.evaluate(() => document.documentElement.scrollWidth === innerWidth),
+        `${width} ${language}: Map has no page overflow`,
+      );
+      await page.screenshot({ path: `${OUT}/${width}-${language}-days.png` });
+      await page.locator(".phone-tabbar").getByRole("tab").nth(2).click();
+      for (const selector of [".trip-panel__budget-summary > summary", ".trip-tips > summary"]) {
+        const summary = page.locator(selector).filter({ visible: true });
+        await summary.scrollIntoViewIfNeeded();
+        const height = (await summary.boundingBox()).height;
+        check(height >= 44, `${width} ${language}: ${selector} height ${height} >=44`);
+        const open = await summary.evaluate((node) => node.parentElement.open);
+        await summary.focus();
+        await summary.press("Enter");
+        check(
+          await summary.evaluate(
+            (node, expected) =>
+              node === document.activeElement &&
+              getComputedStyle(node).boxShadow !== "none" &&
+              node.parentElement.open === expected,
+            !open,
+          ),
+          `${width} ${language}: ${selector} keyboard toggles with focus`,
+        );
+        await summary.press("Space");
+        check(
+          (await summary.evaluate((node) => node.parentElement.open)) === open,
+          `${width} ${language}: ${selector} Space restores disclosure`,
+        );
+      }
+      check(
+        await page.evaluate(() => document.documentElement.scrollWidth === innerWidth),
+        `${width} ${language}: Trip has no page overflow`,
+      );
+      await page.screenshot({ path: `${OUT}/${width}-${language}-trip.png` });
+      for (const desktopWidth of [521, 1440]) {
+        await page.setViewportSize({ width: desktopWidth, height: 1000 });
+        await page.locator(".workspace-app:not([data-phone])").waitFor();
+        const dimensions = await page
+          .locator(".trip-panel__budget-summary > summary, .trip-tips > summary")
+          .filter({ visible: true })
+          .evaluateAll((nodes) => nodes.map((node) => node.getBoundingClientRect().height));
+        check(
+          dimensions.length === 2 && dimensions.every((height) => height === 21),
+          `${width} ${language}: ${desktopWidth} desktop summary heights ${JSON.stringify(dimensions)} stay21`,
+        );
+        check(
+          await page.evaluate(() => document.documentElement.scrollWidth === innerWidth),
+          `${width} ${language}: ${desktopWidth} no page overflow`,
+        );
+      }
+      await page.setViewportSize({ width, height });
+      await page.locator(".phone-tabbar").getByRole("tab").nth(2).click();
+      check(
+        await page
+          .locator(".trip-panel__budget-summary > summary")
+          .filter({ visible: true })
+          .isVisible(),
+        `${width} ${language}: Trip reachable after boundary crossing`,
+      );
+    }
+    await page.locator(".phone-tabbar").getByRole("tab").last().click();
+    await page.getByRole("button", { name: "切换至 English", exact: true }).click();
+    await tab("Map").click();
+    await handle.press("End");
+
     let ideaListed = false;
     for (let index = 0; index < (await days.count()); index += 1) {
       await days.nth(index).click();
