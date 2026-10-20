@@ -223,6 +223,13 @@ function TripCalendar({
       ? today
       : Date.UTC(cursor.year, cursor.month, 1);
   });
+  const dateFormatter = new Intl.DateTimeFormat(intlLocale(locale), {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
   const first = Date.UTC(cursor.year, cursor.month, 1);
   const lead = (new Date(first).getUTCDay() + 6) % 7;
   const monthDays = new Date(Date.UTC(cursor.year, cursor.month + 1, 0)).getUTCDate();
@@ -317,13 +324,7 @@ function TripCalendar({
                   role="gridcell"
                   key={index}
                   className="trip-calendar__day"
-                  aria-label={new Intl.DateTimeFormat(intlLocale(locale), {
-                    weekday: "long",
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                    timeZone: "UTC",
-                  }).format(date)}
+                  aria-label={dateFormatter.format(date)}
                   aria-current={time === today ? "date" : undefined}
                   tabIndex={time === activeTime ? 0 : -1}
                   data-calendar-time={time}
@@ -350,8 +351,8 @@ function TripCalendar({
                           name: t("Trip to {destination}", {
                             destination: trip.snapshot.plan.brief.destination,
                           }),
-                          start,
-                          end,
+                          start: dateFormatter.format(new Date(utc(start))),
+                          end: dateFormatter.format(new Date(utc(end))),
                         })}
                         tabIndex={labelled ? 0 : -1}
                         onClick={() => onOpenTrip(trip.id)}

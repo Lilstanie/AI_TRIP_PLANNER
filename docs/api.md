@@ -54,6 +54,14 @@ Contract: `ChatRequest`, `ChatResponse` and `AgentProgressEvent` in `packages/sh
 }
 ```
 
+`brief.destination` holds the cities to visit, in visit order, joined with `&`
+("Sydney & Wollongong"); `cities` in `@trip/agents` and the Where editor both read that form. The
+model extraction supplies that form directly. Offline extraction normalises explicit `&` and `、`
+separators. A name containing "and", such as "Trinidad and Tobago", asks the traveller to keep the
+full name or confirm separate stops before planning. Confirmation retains the collected trip fields;
+an existing plan stays unchanged until the answer arrives. Structured model results are not split
+again by a conjunction heuristic.
+
 `brief.preferences` and `known.preferences` are optional: the traveller's own trip preferences
 ("Vegetarian food", "No early starts"), at most `MAX_TRIP_PREFERENCES` (12) entries of 1 to
 `MAX_TRIP_PREFERENCE_LENGTH` (200) characters after trimming, both in
@@ -182,7 +190,10 @@ An invalid request body, or `mode: "plan"` without a brief, returns HTTP 400 bef
 with `{ "error": "The request was invalid. Please retry.", "notice": { … } }`.
 
 An optional `x-trip-data-mode` header of `mock` or `live` chooses fixtures or live providers for this
-request only; any other value, or no header, uses the deployment default.
+request only; any other value, or no header, uses the deployment default. The header is a request,
+not a decision: `requestDataMode` in `apps/web/lib/auth/live-data.ts` downgrades `live` to `mock`
+for a caller who may not spend the allowance, so a signed-out visitor still gets a working plan from
+fixtures.
 
 ## `GET /api/agent-lab/benchmark`
 
@@ -264,11 +275,18 @@ reported, and the trace never carries a model's own reasoning.
 ## `GET /api/data-mode`
 
 ```json
-{ "configured": "mock", "providers": { "hotelsAndFlights": false, "maps": true } }
+{
+  "configured": "mock",
+  "liveAvailable": false,
+  "providers": { "hotelsAndFlights": false, "maps": true }
+}
 ```
 
-`configured` is the deployment default (`live` only when `USE_MOCK_TOOLS=false`). `providers` reports
-whether `SERPAPI_KEY` and `MAPS_API_KEY` are set, never their values. The response is not cached.
+`configured` is the deployment default (`live` only when `USE_MOCK_TOOLS=false`). `liveAvailable` is
+whether this caller may spend the provider allowance: true for a signed-in traveller, and off a
+deployment when Clerk is not configured. The workspace hides the live toggle when it is false.
+`providers` reports whether `SERPAPI_KEY` and `MAPS_API_KEY` are set, never their values. The
+response is not cached.
 
 ## `POST /api/places/search`
 
