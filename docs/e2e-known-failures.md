@@ -31,6 +31,8 @@ server with `DATA_MODE=mock`, `USE_MOCK_TOOLS=true`, and blank `MOCK_GOOGLE_MAPS
   no-key error list. Each run covers 390×844, 360×800 and desktop transitions; retain separate
   attempts with `LABEL=<attempt>` under `output/playwright/phone-map/<attempt>/`.
 
+- `trip-initial-scroll` covers #375: on baseline `2e0f506`, a fresh desktop Trip view opened at scrollTop 163 and clipped the budget. The day strip now scrolls only horizontally. The browser check includes initial open, reopen, saved-chat reload, deliberate scroll restoration and keyboard day navigation at desktop and phone widths.
+
 - `agent-lab-replay` on PR #308 head `501af35` (2026-10-11) could miss the file chooser after keyboard
   Enter: the key event completed before Chromium acknowledged file-chooser interception. The journey
   keeps keyboard activation through the Replay button locator and stresses that boundary at 16× CPU

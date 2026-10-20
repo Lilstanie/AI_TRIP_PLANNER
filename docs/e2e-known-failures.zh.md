@@ -31,6 +31,8 @@
   每次覆盖 390×844、360×800 及桌面切换；通过 `LABEL=<attempt>` 将各次结果分别保存在
   `output/playwright/phone-map/<attempt>/`。
 
+- `trip-initial-scroll` 覆盖 #375：基线 `2e0f506` 的桌面 Trip 首次打开时 scrollTop 为 163，预算被遮住。日期条现只横向滚动。浏览器检查覆盖桌面与手机端首次打开、重开、保存对话重载、主动滚动位置恢复及日期键盘导航。
+
 - PR #308 的 head `501af35` 上，`agent-lab-replay` 可能在键盘按 Enter 后错过文件选择框（2026-10-11）：
   按键事件先执行完，Chromium 随后才确认文件选择框拦截已开启。旅程通过 Replay 按钮的 locator
   保留键盘激活，并对这个边界施加 16 倍 CPU 限速，完成后恢复正常速度。重现命令为
