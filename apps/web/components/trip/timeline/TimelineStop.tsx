@@ -360,29 +360,6 @@ export function TimelineStop({
             ))}
           </ul>
         )}
-        {timing && !idea && (
-          <TimeForm
-            id={id}
-            start={start}
-            end={end}
-            locked={locked}
-            validTime={validTime}
-            timeChanged={timeChanged}
-            onStart={setStart}
-            onEnd={setEnd}
-            onSubmit={() => {
-              setTiming(false);
-              timeButton.current?.focus({ preventScroll: true });
-              void edits.edit({ kind: "time", id, startTime: start, endTime: end });
-            }}
-            onCancel={() => {
-              setTiming(false);
-              setStart(activity.startTime ?? "");
-              setEnd(activity.endTime ?? "");
-              timeButton.current?.focus({ preventScroll: true });
-            }}
-          />
-        )}
         {selected && (
           <div id={`stop-place-card-${id}`} className="stop-place-card stop-editor">
             {place ? (
@@ -502,6 +479,29 @@ export function TimelineStop({
       <span className="timeline-row__cost">
         {activity.estCost === undefined ? t("Price unknown") : money(activity.estCost)}
       </span>
+      {timing && !idea && (
+        <TimeForm
+          id={id}
+          start={start}
+          end={end}
+          locked={locked}
+          validTime={validTime}
+          timeChanged={timeChanged}
+          onStart={setStart}
+          onEnd={setEnd}
+          onSubmit={() => {
+            setTiming(false);
+            timeButton.current?.focus({ preventScroll: true });
+            void edits.edit({ kind: "time", id, startTime: start, endTime: end });
+          }}
+          onCancel={() => {
+            setTiming(false);
+            setStart(activity.startTime ?? "");
+            setEnd(activity.endTime ?? "");
+            timeButton.current?.focus({ preventScroll: true });
+          }}
+        />
+      )}
     </li>
   );
 }
