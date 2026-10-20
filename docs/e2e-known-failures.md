@@ -28,7 +28,8 @@ server with `DATA_MODE=mock`, `USE_MOCK_TOOLS=true`, and blank `MOCK_GOOGLE_MAPS
   named place control and the resulting selected stop/details, preserving both providers' coverage.
   Run `CHANNEL=chrome DATA_MODE=mock USE_MOCK_TOOLS=true pnpm --filter @trip/web e2e phone-map`
   with model, Maps and Clerk keys blank; repeat with `WEB_MAPS_PROVIDER=google` to exercise the
-  no-key error list. Each run covers 390×844, 360×800 and desktop transitions; retain separate
+  no-key error list. Each mode explicitly asserts its renderer: ready OSM canvas by default, error list
+  for Google-only. Each run covers 390×844, 360×800 and desktop transitions; retain separate
   attempts with `LABEL=<attempt>` under `output/playwright/phone-map/<attempt>/`.
 
 - `trip-initial-scroll` covers #375: on baseline `2e0f506`, a fresh desktop Trip view opened at scrollTop 163 and clipped the budget. The day strip now scrolls only horizontally. The browser check includes initial open, reopen, saved-chat reload, deliberate scroll restoration and keyboard day navigation at desktop and phone widths.

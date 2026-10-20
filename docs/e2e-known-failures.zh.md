@@ -27,7 +27,8 @@
   旅程现等待地图中具名的地点控件及其选中站点、详情，保留两种提供方的覆盖。
   清空模型、Maps 和 Clerk 密钥后运行
   `CHANNEL=chrome DATA_MODE=mock USE_MOCK_TOOLS=true pnpm --filter @trip/web e2e phone-map`，
-  再设置 `WEB_MAPS_PROVIDER=google` 重跑无 key 错误列表场景。
+  再设置 `WEB_MAPS_PROVIDER=google` 重跑无 key 错误列表场景；两种模式分别明确检查默认 OSM
+  画布已就绪，以及 Google-only 错误列表。
   每次覆盖 390×844、360×800 及桌面切换；通过 `LABEL=<attempt>` 将各次结果分别保存在
   `output/playwright/phone-map/<attempt>/`。
 

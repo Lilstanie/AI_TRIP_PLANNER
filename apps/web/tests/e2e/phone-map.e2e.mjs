@@ -144,6 +144,16 @@ try {
     check(!ideaListed, `${width}: an idea is not listed as a stop of any day`);
 
     const map = page.locator(".trip-map-canvas");
+    if (process.env.WEB_MAPS_PROVIDER === "google") {
+      await map.locator(".trip-map-fallback").waitFor();
+      check(true, `${width}: Google-only missing-key renderer shows the error list`);
+    } else {
+      await map.locator('.google-map[data-map-ready="true"]').waitFor();
+      check(
+        (await map.locator(".trip-map-fallback").count()) === 0,
+        `${width}: default missing-key renderer loads OSM without the error list`,
+      );
+    }
     const revisitButton = map.getByRole("button", {
       name: new RegExp(`^(?:\\d+\\. )?${revisited}(?: · .+)?$`),
     });
