@@ -11,6 +11,9 @@
   touch-action: none;
   overscroll-behavior: none;
 }
+.workspace-app[data-phone] .google-map {
+  isolation: isolate;
+}
 .workspace-app[data-phone] .map-controls {
   top: var(--space-3);
   bottom: auto;
