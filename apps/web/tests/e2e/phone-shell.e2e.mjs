@@ -19,6 +19,7 @@ const settle = (page, ms = 500) => page.waitForTimeout(ms);
 const PHONES = [
   { tag: "iphone", width: 390, height: 844 },
   { tag: "android", width: 360, height: 800 },
+  { tag: "issue-493", width: 375, height: 812 },
 ];
 
 async function open(browser, { width, height }, { touch = true } = {}) {
@@ -37,6 +38,8 @@ async function open(browser, { width, height }, { touch = true } = {}) {
   await page.goto(BASE);
   await page.waitForSelector(".workspace-app");
   await page.waitForLoadState("networkidle");
+  const locationPrompt = page.getByRole("button", { name: "Not now", exact: true });
+  if (await locationPrompt.isVisible()) await locationPrompt.click();
 
   await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
   return { context, page, errors };
@@ -118,6 +121,16 @@ async function shell(page, tag) {
   );
   const toChat = page.getByRole("button", { name: "Plan in Chat" });
   check(await toChat.isVisible(), `${tag}: empty Trip tab offers Plan in Chat`);
+  const emptyTripActions = page.locator(".workspace-panel--trip .trip-drawer-empty button");
+  const emptyTripActionHeights = await emptyTripActions.evaluateAll((nodes) =>
+    nodes.map((node) => node.getBoundingClientRect().height),
+  );
+  check(
+    emptyTripActionHeights.length === 2 && emptyTripActionHeights.every((height) => height >= 44),
+    `${tag}: both empty Trip actions are at least 44 px high (${emptyTripActionHeights
+      .map((height) => Math.round(height))
+      .join("x")} px)`,
+  );
   await page.screenshot({ path: `${OUT}/${tag}-02-trip-empty.png` });
   await toChat.click();
   await settle(page, 450);
@@ -343,9 +356,11 @@ for (const name of ["phone-mine", "phone-map", "phone-state"]) {
   );
   check(run.status === 0, `${name}: companion walk completed`);
   if (run.status === 0) {
-    const report = JSON.parse(
-      readFileSync(resolve(`output/playwright/${name}/summary.json`), "utf8"),
-    );
+    const reportDirectory =
+      name === "phone-map"
+        ? resolve("output/playwright", name, process.env.LABEL ?? "after")
+        : resolve("output/playwright", name);
+    const report = JSON.parse(readFileSync(resolve(reportDirectory, "summary.json"), "utf8"));
     results.push(...report.results);
   }
 }

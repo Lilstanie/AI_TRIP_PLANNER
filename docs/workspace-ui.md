@@ -218,7 +218,8 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     Where, When, Who, Budget and Preferences as rows. Each row opens the existing editor; saving or
     closing returns focus to the title. Editors are bottom sheets with 44 px targets.
   - Trip shows Your Trip in place, with Budget and the day view. Before
-    planning it explains the empty state and offers Plan in Chat. A plan created or changed while
+    planning it explains the empty state and offers Plan in Chat and Add trip details, both with
+    44 px minimum-height touch targets. A plan created or changed while
     another tab is selected adds an accessible update dot to Trip; opening Trip clears it. Read revisions are tracked per trip,
     so switching between unchanged saved trips does not create a new notification.
   - Mine contains search, New chat, New trip, Trips/Calendar, the chats list and Settings & account.
