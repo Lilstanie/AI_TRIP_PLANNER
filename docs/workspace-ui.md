@@ -125,10 +125,14 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
   - The breakdown reaches the planner as `TripBrief.party` (and `known.party` before a plan exists),
     beside `groupSize`. Every specialist's shared rule asks it to plan for children, infants,
     seniors and pets where its evidence allows and to say when it cannot confirm suitability;
-    `groupSize` still drives all cost arithmetic. A breakdown that no longer adds up to `groupSize`
-    (say, the chat later learns "we're three now") is dropped rather than sent. The
+    `groupSize` is authoritative for people and all cost arithmetic. Chat derives it from a
+    breakdown only when no total is already known or stated; when a known or stated total conflicts with a new
+    breakdown, `groupSize` is preserved and both the new and previous breakdowns are dropped. A breakdown that no longer adds
+    up to `groupSize` (say, the chat later learns "we're three now") is dropped rather than sent. The
     [traveller party Agent Note](../.agents/notes/implemented/architecture/2026-09-24-traveller-party.md)
-    records why.
+    records the original decision; the
+    [authoritative traveller count note](../.agents/notes/implemented/bug-fix/2026-10-20-authoritative-traveller-count.md)
+    records chat extraction behavior.
   - Budget offers four preset cards in a `role="radiogroup"`: Budget (AUD 900), Moderate
     (AUD 3,000), Comfort (AUD 6,000) and Luxury (AUD 10,000). Each shows its amount in the
     trip's effective currency and is selected exactly while `budgetTotal` equals its AUD value.
@@ -344,7 +348,11 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     fares answered, failed or cancelled. `requestTurn` in `lib/workspace/session.ts` only sends the
     request and reads the stream; the pure `session(state, event)` there applies the outcome, so the
     reset rules (previous total, selected stop, map routes, field errors, question card) live in one
-    place and are tested without React in `tests/lib/workspace/session.test.ts`.
+    place and are tested without React in `tests/lib/workspace/session.test.ts`. A pending question
+    and its answer progress persist across reloads; while an answer is being sent, answer editing,
+    paging, skip and submit are locked, and Stop aborts the request without discarding the question
+    or its draft. A failed request leaves the question answerable for retry, a late response after
+    Stop is ignored, and a successful reply clears the question.
   - Switching chat or trip, or New chat, first flushes the pending autosave, then aborts in-flight
     requests and clears progress, errors, selection and map routes in one `opened` session event.
     Late responses are ignored.
@@ -357,9 +365,10 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     A catalog object already persisted by autosave is not serialized and written again by the catalog
     effect. Layout, history and account-sync changes still persist; a failed write remains retryable.
   - The catalog (`trip-workspace-catalog-v3`) keeps conversations and trips separately, with stable
-    links and an optional conversation `draft`. Snapshots write version 4; version 3 (AUD) snapshots
-    remain readable and recover their budget source when the draft still matches the plan.
-    Pre-AUD versions 1 and 2 remain rejected; the catalog version and storage keys stay unchanged.
+    links and an optional conversation `draft`. The catalog writes version 5 and reads version 4,
+    normalizing it to version 5; version 3 (AUD) snapshots remain readable and recover their budget
+    source when the draft still matches the plan. Pre-AUD versions 1 and 2 remain rejected, and the
+    storage keys stay unchanged.
   - Layout stores the sidebar's `collapsed` always and its `width` only after a resize, so an
     untouched workspace keeps following the stylesheet at every viewport size.
   - Corrupt data is never overwritten automatically, and layout fields fall back to defaults instead

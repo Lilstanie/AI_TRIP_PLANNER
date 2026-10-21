@@ -45,7 +45,7 @@ Web 应用（`apps/web`）是单用户规划工作区。本文描述其当前行
   - When 显示完整内嵌日历（`react-day-picker`、`mode="range"`），桌面并排显示两个月，手机显示一个月，样式沿用设计 token：圆角日期格、选定范围内的柔和强调色带、起止日期的实心强调色圆、今天的轮廓，以及头部月份导航。过去的日期不可选。日历上方摘要行显示“1 Oct – 4 Oct · 4 days”（尚未选择日期时提示选择），选定日期后旁边显示 Clear 操作。`DateRangePicker`（在独立对话框中的日历，目前未在其他地方使用）共享相同样式的日历组件（`TripCalendar`），避免两者产生偏差。
   - Who 为每类旅客提供一个步进器（− 数量 +）：Adults（13–64）、Children（2–12）、Infants（2 岁以下）、Seniors（65+）和 Pets，各自有减／加按钮和实时数量。草稿保存该分类（`Draft.party`），每次变化都将 `groupSize` 同步为 `adults + children + infants +
 seniors`（宠物不计为旅客）；`groupSize` 仍是校验字段，因此至少需要一人；若只有儿童或婴儿而没有成人或老年人，会在表单内给出提示（儿童不能单独出行），sheet 保持打开。在尚无分类的草稿上打开 Who（保存时还未引入步进器），所有已陈述的旅客起初都计为成年人。
-  - 分类以 `TripBrief.party`（方案生成前为 `known.party`）传给规划器，与 `groupSize` 并列。每个 specialist 的共享规则要求它在证据允许时为儿童、婴儿、老年人和宠物规划，并在无法确认适宜性时说明；所有费用计算仍使用 `groupSize`。分类合计不再等于 `groupSize` 时（例如聊天后来得知“we're three now”），会丢弃分类，不再发送。[旅客分类 Agent Note](../.agents/notes/implemented/architecture/2026-09-24-traveller-party.md) 记录了原因。
+  - 分类以 `TripBrief.party`（方案生成前为 `known.party`）传给规划器，与 `groupSize` 并列。每个 specialist 的共享规则要求它在证据允许时为儿童、婴儿、老年人和宠物规划，并在无法确认适宜性时说明；`groupSize` 是人数和所有费用计算的权威值。只有尚无已知或明确总人数时，聊天才会从分类推导 `groupSize`；已知或明确总人数与新分类冲突时保留总人数，并清除新旧分类，避免残留旧组成。分类合计不再等于 `groupSize` 时（例如聊天后来得知“we're three now”），也会丢弃分类，不再发送。[旅客分类 Agent Note](../.agents/notes/implemented/architecture/2026-09-24-traveller-party.md) 记录原始决定，[人数权威值修复说明](../.agents/notes/implemented/bug-fix/2026-10-20-authoritative-traveller-count.md) 记录聊天提取行为。
   - Budget 在一个 `role="radiogroup"` 中提供四个预设卡片：经济（AUD 900）、适中（AUD 3,000）、舒适（AUD 6,000）和豪华（AUD 10,000）。每张卡片按行程的有效币种显示金额，仅当 `budgetTotal` 等于其 AUD 值时选中。自定义金额字段使用本行程的有效币种。保存时，`budgetSource` 保留输入的原始金额和币种，再通过 shared 的 `toAud` 换算一次写入 `budgetTotal`。显示币种与原始币种一致时直接显示原始金额，避免来回换算。行程币种不会改动设置；新行程重新使用设置中的币种。行程的**有效币种**只有一条规则，即 `packages/shared/src/money.ts` 中的 `effectiveCurrency()`，由 locale provider（行程面板、标签、预算字段）、行程卡片和行程列表共同读取：先取 `TripBrief.displayCurrency`（旅行者最近一次为该行程指定的币种，无论连同预算还是单独说出，例如“show it in yen”或“用人民币给我算”），否则取 `budgetSource.currency`（因此该字段出现之前保存的行程显示不变），否则取设置中的显示币种。后一次指定覆盖前一次，包括预算所用的币种；指定 AUD 就是 AUD。`budgetSource` 保留旅行者所说的金额和币种，显示币种变化时不会被改写。用中文聊天但没有指定币种时，仍使用设置中的币种。修改设置只影响从未指定过币种的行程。“Your trips”页面上的每张卡片末尾显示该行程自己的有效币种下的预估总价。agent 和预算检查仍读取 AUD。
   - Trip preferences 打开时显示填充背景的输入框（`--surface-2`、无边框、15 px），Enter 添加偏好；下方每项偏好是一行带移除按钮的填充背景行，最多 12 项，每项最多 200 字符。点击偏好文字可原地编辑（Enter 或离开输入框保存，Escape 只取消此次编辑）；没有铅笔按钮。重复项会被拒绝并显示提示，Done 会保留输入框中尚未提交的文字，添加和移除通过状态区域播报。国籍、房间分配、最低住客评分和免费取消已不再可编辑；已存储行程需求中的值原样透传，已存储但不符合 schema 的评分视为“no minimum”。No accommodation 复选框用于记录旅行者不需要住宿；不勾选时保留正常住宿规划，且它不替代单独记录的已预订住宿。
   - 列表下方的“Learned from your chats”在有内容时显示助手从对话中记录的内容：
@@ -108,11 +108,12 @@ seniors`（宠物不计为旅客）；`groupSize` 仍是校验字段，因此至
 - **请求。**
   - `Workspace` 负责聊天、方案和决策请求。失败时保留当前方案，并提供重试。
   - 一次规划回合以一种结果结束：方案已应用、缺信息、规划器追问、回答了票价、失败或已取消。`lib/workspace/session.ts` 中的 `requestTurn` 只负责发请求和读取流；同一文件中的纯函数 `session(state, event)` 应用结果，因此重置规则（上一次总价、选中的站点、地图路线、字段错误、问题卡片）只在一处，并在 `tests/lib/workspace/session.test.ts` 中脱离 React 测试。
+    待回答的问题及已填写的回答进度会跨重载保存；发送答案期间会锁定编辑、翻页、跳过和提交操作。停止按钮会中止请求，但保留问题及草稿。请求失败后仍可回答并重试；停止后到达的迟回响应会被忽略，成功回复才会清除问题。
   - 切换聊天或行程，或 New chat 时，先落盘待执行的自动保存，再中止进行中的请求，并通过一个 `opened` 会话事件清空进度、错误、选择和地图路线。晚到的响应被忽略。
   - 从行程列表或时间线应用修改即调用 `applyEdit(next)`，它记录上一次总价。聊天重新规划会把 `estimateChange` 设为相对被替换方案的带符号变化，时间线编辑则清除它。视图从 `useWorkspace` 获得这些操作，而不是状态 setter（[架构](architecture.zh.md#workspace-state)）。
 - **存储。**
   - 所有内容仅保存在浏览器中，侧边栏显示经过防抖的自动保存状态。自动保存已经落盘的同一个目录对象，不会再由目录 effect 重复序列化和写入；布局、历史记录和账号同步变化仍会落盘，失败的写入仍可重试。
-  - 目录（`trip-workspace-catalog-v3`）分别保存对话和行程，关联稳定，并可带对话 `draft`。快照写入版本 4；版本 3（AUD）快照仍可读取，草稿预算与方案一致时恢复原始预算来源。AUD 之前的版本 1、2 仍被拒绝；目录版本及存储键不变。
+  - 目录（`trip-workspace-catalog-v3`）分别保存对话和行程，关联稳定，并可带对话 `draft`。目录写入版本 5，也可读取版本 4 并规范化为版本 5；版本 3（AUD）快照仍可读取，草稿预算与方案一致时恢复原始预算来源。AUD 之前的版本 1、2 仍被拒绝；存储键不变。
   - 布局始终存储侧边栏的 `collapsed`，但只在调整大小后存储 `width`，因此未动过的工作区在各视口尺寸下继续遵循样式表。
   - 损坏的数据绝不自动覆盖；布局字段回退到默认值，不会导致历史记录无法读取。
   - 存储已满或不可用时，方案留在内存中，并显示重试操作。

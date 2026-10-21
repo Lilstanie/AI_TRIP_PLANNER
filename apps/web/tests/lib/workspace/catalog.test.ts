@@ -17,7 +17,7 @@ import {
 describe("workspace catalog", () => {
   it("builds stable linked chat and trip records from snapshots", () => {
     const catalog = createCatalog(snapshot, [snapshot]);
-    expect(catalog.version).toBe(4);
+    expect(catalog.version).toBe(5);
     expect(catalog.activeTripId).toBe("trip:test-trip");
     expect(catalog.activeConversationId).toBe("conversation:saved-copy");
     expect(catalog.trips).toHaveLength(1);
