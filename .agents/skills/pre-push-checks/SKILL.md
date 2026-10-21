@@ -137,6 +137,13 @@ It deletes every Git-ignored scratch directory that
 attached is gone; `pnpm clean:output --dry-run` lists sizes first. CI evidence is uploaded separately and is
 not affected.
 
+## 5. After the merge
+
+Delete the pull request's remote branch once it is merged or closed: GitHub keeps a Restore branch
+button on the pull request, so nothing is lost. Before deleting any other branch, confirm that no open
+pull request uses it and that `git cherry origin/main origin/<branch>` lists no unmerged commit;
+otherwise leave it and ask its owner. Delete the local checkout of the branch as well.
+
 ## When to run everything
 
 Run the full five only when the change is genuinely cross-cutting, when the user asks, or when
