@@ -26,6 +26,12 @@ type Activity = ProposalItem & { id?: string };
 
 type Panel = "" | "details" | "note" | "schedule" | "day" | "search";
 
+const PROGRESS = {
+  planned: { label: "Planned", action: "Mark as planned", notice: "{name} marked as planned." },
+  visited: { label: "Visited", action: "Mark as visited", notice: "{name} marked as visited." },
+  skipped: { label: "Skipped", action: "Mark as skipped", notice: "{name} marked as skipped." },
+} as const;
+
 const STATUS_TEXT: Partial<Record<LocationStatus, MessageKey>> = {
   loading: "Finding this place…",
   unconfirmed: "Not found on the map",
@@ -212,6 +218,15 @@ export function TimelineStop({
         onSelect: () => open("schedule"),
       });
     }
+    for (const progress of ["planned", "visited", "skipped"] as const) {
+      items.push({
+        label: t(PROGRESS[progress].action),
+        icon: <CheckIcon />,
+        disabled: locked || (activity.progress ?? "planned") === progress,
+        onSelect: () =>
+          act({ kind: "progress", progress }, { key: PROGRESS[progress].notice, params: { name } }),
+      });
+    }
     items.push(
       {
         label: t("Edit details"),
@@ -339,6 +354,11 @@ export function TimelineStop({
                 </span>
               )}
               {place?.id.startsWith("osm:") && <span className="timeline-tag">OpenStreetMap</span>}
+              {!suggestion && (
+                <span className="timeline-tag">
+                  {t(PROGRESS[activity.progress ?? "planned"].label)}
+                </span>
+              )}
               {activity.booked && <span className="timeline-tag">{t("Booked")}</span>}
               {activity.priceNeedsReview && (
                 <span className="timeline-tag timeline-tag--warn">{t("Price needs checking")}</span>

@@ -448,7 +448,7 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   opens the first time outside an ongoing trip. Whether this viewer folded it is remembered for that trip in this browser
   (`localStorage`, key `trip-tips-folded:<tripId>`); without a saved choice it follows the on-trip default. The
   block is absent when the plan has no guide. Advice spanning multiple calendar months explicitly identifies that its scope is the first month.
-- **On-trip day.** When today falls within the trip dates, the day view initially selects today and marks it “Today”, using the first resolved destination’s time zone. Budget and travel tips initially collapse; manual day selection and saved tips preferences take precedence. Without verified destination coordinates, the existing first-day defaults remain. Timed next-stop highlighting is deferred.
+- **On-trip day.** When today falls within the trip dates, the day view initially selects today and marks it “Today”, using the first resolved destination’s time zone. While the Trip view stays open, the date refreshes each minute and when the window regains focus or visibility. Budget and travel tips initially collapse; a valid manual day selection is saved per trip in this browser (`localStorage`, key `trip-day-selected:<tripId>`) and is restored during the same destination-local day. When that day changes, the selection yields to the new Today; expired or out-of-range selections also yield to Today (or Day 1 when today is outside the trip). Saved tips preferences still take precedence. Without verified destination coordinates, the existing first-day defaults remain. Timed next-stop highlighting is deferred.
 - **Restaurants.** The restaurants the dining specialist found are listed under Ideas, marked
   "Restaurant suggestion". Schedule on a day copies one into the day as a stop, with no price, and the
   change can be undone; Remove deletes the suggestion. The dining meal budget stays in the plan's
@@ -540,13 +540,17 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   notices strip says the signed change, "Estimate changed by +AUD 120.00 from the previous plan.", or
   "Estimate unchanged from the previous plan." It has a Dismiss button and shows once. A timeline edit or
   opening another chat clears it, and a reload does not restore it.
+- **Visit progress.** Every stop has one state: Planned (the default for existing trips), Visited or
+  Skipped. Its menu changes the state, and Undo restores the previous plan. The label is saved with the
+  stop and survives reopening a saved trip. Changing progress preserves its schedule, details, note,
+  booking and cost, including the plan total; it does not select the next stop.
 - **Stop menu** ([Agent Note](../.agents/notes/implemented/feature/2026-10-08-one-day-trip-view.md)).
   Each stop's "…" menu (`ActionMenu`, a `role="menu"`; arrow keys move, Escape closes it and returns
   focus to its trigger without closing the drawer) offers Move earlier and Move later (not on the first
   or last stop of a day), Move to another day (opens a day picker in the place card), Move to ideas,
   Replace place (opens the place search in the card), Edit details, Add or Edit note, Mark as booked and
   Remove. An idea offers Schedule on a day instead of the moves, and a restaurant suggestion offers only
-  Schedule on a day and Remove. Details, notes and booked apply in the browser at once. Move earlier, Move later, Move to
+  Schedule on a day and Remove. Details, notes, booked and visit progress apply in the browser at once. Move earlier, Move later, Move to
   another day, Move to ideas and Remove are checked by the server like any timeline edit, and an accepted one
   applies at once. Each settles the plan the way a server edit does: the budget
   total and the conflicts are recomputed at once, with the same roll-up the server uses
@@ -583,7 +587,7 @@ The day view (`TripEditor` composing `components/trip/timeline/`) shows one day 
 time and edits activities through `POST /api/trip/preview-edit`. The server checks each edit and
 the client applies an accepted one at once. Every change to a stop's day, time, place, order or leg is
 checked by the server: time, place, leg, a drag, Remove, Move to ideas, Move to another day and the arrow
-moves. Details, notes and booked apply in the browser. The checks are deterministic and make no LLM calls.
+moves. Details, notes, booked and visit progress apply in the browser. The checks are deterministic and make no LLM calls.
 
 - **Layout.** A day strip of tabs (`Day 2 · Sun, 18 Oct · 3 stops`, flagged when a stop needs a
   place) picks the day. The day is a vertical line in time order (`lib/trip/timeline.ts`): an

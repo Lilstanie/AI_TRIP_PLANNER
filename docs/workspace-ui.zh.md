@@ -146,7 +146,7 @@ Trip 抽屉不再显示 specialist 卡片（Day plan、Getting around、Stay、D
 - **住宿卡片。** 评分、入住和退房日期、房间数和晚数、每晚价格、取消条款、来源说明，以及规划器有的话的房源详情链接。所选住宿已不再对应时显示 "This stay needs a new selection."。
 - **航班卡片。** 每个航班显示航司、出发（或返程）时间、出行人数、经停（没有时显示 "Nonstop"）和飞行时长。所选航班已不再对应时显示 "This flight needs a new selection."。
 - **其他可选（Also found）。** 每张卡片列出被所选航班或住宿比下去的备选项，各带价格及与所选项的差额；更便宜的差额显示为绿色，并带负号。
-- **旅途中日期。** 今天落在行程日期内时，日视图默认选中今天并标记“今天”，时区取首个已解析的目的地。预算与旅行提示默认收起；手动选择日期及已保存的提示展开偏好优先。没有已验证的目的地坐标时保留原有首日默认状态。按具体时间高亮下一站留待后续。
+- **旅途中日期。** 今天落在行程日期内时，日视图默认选中今天并标记“今天”，时区取首个已解析的目的地。Trip 视图保持打开时，每分钟以及窗口重新获得焦点或可见状态时都会刷新日期。预算与旅行提示默认收起；此浏览器会按行程保存有效的手动日期（`localStorage`，键 `trip-day-selected:<tripId>`），在同一目的地当地日期内再次打开时恢复该日期；当地日期变化后则改选新的“今天”，过期或超出行程范围的选择也会回到今天（今天不在行程内时回到第 1 天）。已保存的提示展开偏好仍优先。没有已验证的目的地坐标时保留原有首日默认状态。按具体时间高亮下一站留待后续。
 - **旅行提示。** 目的地指南的建议（礼仪与习俗、安全、入境与健康、天气与行李，以及值得游览的地方）是日视图顶部的可折叠块。旅行尚未开始时首次打开会展开。此浏览器会为该行程记住此浏览者是否折叠了它（`localStorage`，键 `trip-tips-folded:<tripId>`）；没有已保存的选择时遵循旅途中默认状态。方案没有指南时不显示此块。覆盖多个日历月的建议会明确说明其范围仅为第一个月。
 - **餐厅。** 餐饮 specialist 找到的餐厅列在 Ideas 下，标记为“餐厅建议”。Schedule on a day 把一家餐厅作为无价格的停靠点放到某天，可撤销；Remove 删除该建议。餐饮的餐费预算仍计入方案估算和总额，不以卡片显示。
 - **改选。** 在住宿或航班卡片中，每一行其他可选都是按钮（"Take … instead, …"，粗指针下至少 44 px 高）。按下后直接应用，不预览：它通过 `POST /api/trip/preview-edit` 发送 `choose` 编辑（[API](api.zh.md#post-apitrippreview-edit)），由服务器重写条目的说明、部分费用和方案总额。想换回原来的选项，就再从同一列表选一次。另一项修改进行中时，这些行是纯文本。改选失败时在 Trip 面板显示通知；旅客已打开其他方案后才到达的响应会被丢弃。条目带 `selectionId` 之前保存的方案无法重新计价，需要重新规划。见 [Agent Note](../.agents/notes/implemented/architecture/2026-10-07-selection-id-on-proposal-items.md)。
@@ -181,6 +181,7 @@ Trip 抽屉不再显示 specialist 卡片（Day plan、Getting around、Stay、D
     编辑解决某个冲突后，它会从视图中移除。方案保留的通知按其键和数值存储，以旅行者的语言显示（见下文国际化一节）；聊天用的英文句子不显示。方案中早于键存储之前保存的英文句子（与应用自身英文文本一致）会按其键读回，并按上述规则放置：指明的停靠点存在于当天时列在该停靠点上，否则列在当天标题下；与应用文本都不一致的句子按原样显示（见 [Agent Note](../.agents/notes/implemented/feature/2026-10-09-notice-keys.md)）。
 - **重新规划后的估算变化。** 聊天重新规划且此前有估算时，通知条中会显示一条通知，说明带符号的变化：“估算较上一版方案变化 +AUD 120.00。”，或“估算与上一版方案相比没有变化。”。它有关闭按钮，且只显示一次。时间线编辑或打开其他聊天会清除它，刷新后不会恢复。
 - **停靠点菜单**（[Agent Note](../.agents/notes/implemented/feature/2026-10-08-one-day-trip-view.md)）。每个停靠点的「…」菜单（`ActionMenu`，`role="menu"`；方向键移动，Escape 关闭并把焦点返回触发按钮，不会关闭抽屉）提供 Move earlier 和 Move later（当天第一个停靠点没有 Move earlier，最后一个没有 Move later）、Move to another day（在地点卡片中打开日期选择）、Move to ideas、Replace place（在卡片中打开地点搜索）、Edit details、Add 或 Edit note、Mark as booked 和 Remove。Ideas 中的项提供 Schedule on a day，不提供移动；餐厅建议只提供 Schedule on a day 和 Remove。详情、备注和已预订立即在浏览器中生效。Move earlier、Move later、Move to another day、Move to ideas 和 Remove 与任何时间线编辑一样由服务器检查，被接受后立即生效，并且每项都与服务器编辑一样结算方案：预算总额和冲突立即重新计算，使用与服务器相同的汇总（`lib/trip/settle.ts`）。Move earlier 和 Move later 与同一天相邻的停靠点交换：双方互换开始时间并各自保留时长，若前一个会与后一个重叠，后一个顺延开始；交换后若会超过 23:59 结束或与下一个停靠点重叠，则拒绝并显示提示。Move to another day 把停靠点放到该天最后一个停靠点之后。在聊天带来新方案之前，Undo 提供最近一次更改；停靠点操作同样可以撤销，恢复该操作之前的方案。移动会改变当天的时间，因此当天的路段会再次核查（见时间线编辑中的“路段”）。在手机宽度（520px 及以下）下，菜单按钮和菜单项至少为 44 px。预算缺失或为零时，说明未设置预算；无效总额绝不显示为 `NaN`、负值进度条，或超出容器宽度的条形。
+- **游览状态。** 每个停靠点只有一种状态：待游览（已有行程的默认值）、已游览或已跳过。通过菜单切换，Undo 可恢复之前的方案。状态随停靠点保存，重新打开已保存行程后保留。切换不会改变时间、详情、备注、预订、费用或方案总额，也不会自动选择下一站。
 - **位置。** 工作区打开时，在通知条中用自己的文字询问是否显示旅客位置（`components/map/useUserLocation.ts`、`LocationPrompt`）。只有点击 Allow location 或 Show my location 后，才显示浏览器权限提示。Not now 会记录在此浏览器中（`trip.locationPrompt`），问题不再出现；点击 Allow 且浏览器仍授予权限后，后续访问直接显示位置，不再询问。浏览器已经阻止定位时，跳过提问。拒绝、不可用、超时和不支持的情况在地图上解释。只存储回答：位置留在内存中，绝不保存或写入方案。Route from my location 请求到所选地点的已验证时长和距离。见[位置提示 Agent Note](../.agents/notes/implemented/feature/2026-09-24-location-prompt-and-itinerary-map.md)。
 - **控件。** 右下角堆叠圆形玻璃按钮，参考 Mindtrip 和 Apple Maps：Show my location（定位箭头；请求位置，已知位置时将其居中并缩放到 14 或更近；位置显示时图标填充，失败后名称为 Retry my location）、Satellite view（`aria-pressed`，在道路地图和混合影像间切换），以及合为一个胶囊的 Zoom in / Zoom out。旅客位置是 Apple 风格的蓝点，带缓慢变化的光晕。Google 自带控件全部禁用（`disableDefaultUI`），滚轮缩放和单指平移无需修饰键（`gestureHandling: "greedy"`）；仅开发环境的 `/debug/map` 页面使用固定悉尼停靠点显示地图，不请求 Places 或价格。
 
@@ -188,7 +189,7 @@ Trip 抽屉不再显示 specialist 卡片（Day plan、Getting around、Stay、D
 
 ## 时间线编辑
 
-日视图（`TripEditor` 组合 `components/trip/timeline/`）一次显示一天，通过 `POST /api/trip/preview-edit` 变更活动。服务器检查每次变更，客户端对被接受的变更立即应用。停靠点的日期、时间、地点、顺序和路段的每次变更都由服务器检查：时间、地点、路段、拖动移动、Remove、Move to ideas、Move to another day 以及箭头移动。详情、备注和已预订在浏览器中应用。检查是确定性的，不调用 LLM（大语言模型）。
+日视图（`TripEditor` 组合 `components/trip/timeline/`）一次显示一天，通过 `POST /api/trip/preview-edit` 变更活动。服务器检查每次变更，客户端对被接受的变更立即应用。停靠点的日期、时间、地点、顺序和路段的每次变更都由服务器检查：时间、地点、路段、拖动移动、Remove、Move to ideas、Move to another day 以及箭头移动。详情、备注、已预订和游览状态在浏览器中应用。检查是确定性的，不调用 LLM（大语言模型）。
 
 - **布局。** 日期标签条（`Day 2 · Sun, 18 Oct · 3 stops`，停靠点需要地点时带标记）用于选择日期。当天按时间顺序呈现为竖线（`lib/trip/timeline.ts`）：抵达航班（及无具体时间的航班）在最前，带时间的城际路段和停靠点按开始时间排列，然后是每晚一行住宿，最后一天以返程航班结束。后续夜晚显示“Staying at …”。时间线容器窄于 420 px 时，时间列宽 56 px，让五位数字的时间完整显示，并保持停靠点圆点对齐。固定行显示图标、标题、一行详情及费用（“Fare not published”或“Price unknown”，而非 AUD 0）；航班行和住宿行可展开为卡片。两站之间的每段行程是一个路段（[Leg](../GLOSSARY.md)），显示出行方式和时长：服务商核实后标为“checked”，规划器的 `arriveBy` 估计或模拟数据标为“estimate”。见下文“路段”。
 - **Trip 滚动。** 新打开的 Trip 视图从预算上方开始。让所选日期可见时，只横向滚动日期条，不移动外层 Trip 面板。关闭重开或切换手机标签页会保留用户主动设置的纵向滚动位置。用 `pnpm --filter @trip/web e2e trip-initial-scroll` 验证（1280×800、1440×1000 和 390×844）。
