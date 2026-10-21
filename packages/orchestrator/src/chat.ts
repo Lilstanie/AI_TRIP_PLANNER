@@ -15,6 +15,7 @@ import {
   PartialTripBrief as PartialTripBriefSchema,
   TripBrief as TripBriefSchema,
   toAud,
+  partyPeople,
   type ChatRequest,
   type AssistantSettings,
   type InterfaceLanguage,
@@ -26,6 +27,7 @@ import {
   type ChatNeedsInfo,
   type MemoryStore,
   type PartialTripBrief,
+  type TravellerParty,
   type TripBrief,
   type TripPlan,
 } from "@trip/shared";
@@ -101,11 +103,28 @@ function missingFields(known: BriefPatch, tripId: string): string[] {
 }
 
 export const BriefUpdate = z.object({
-  destination: z.string().nullish(),
+  destination: z
+    .string()
+    .nullish()
+    .describe(
+      'the city they are travelling to. For a trip across several cities, join them with " & " in the order they are visited ("Sydney & Wollongong"), never with a word such as "and".',
+    ),
   origin: z.string().nullish().describe("the city they are travelling from, if they said one"),
   startDate: z.string().nullish().describe("YYYY-MM-DD"),
   endDate: z.string().nullish().describe("YYYY-MM-DD"),
   groupSize: z.union([z.number(), z.string()]).nullish(),
+  party: z
+    .object({
+      adults: z.union([z.number(), z.string()]).nullish(),
+      children: z.union([z.number(), z.string()]).nullish(),
+      infants: z.union([z.number(), z.string()]).nullish(),
+      seniors: z.union([z.number(), z.string()]).nullish(),
+      pets: z.union([z.number(), z.string()]).nullish(),
+    })
+    .nullish()
+    .describe(
+      'who is travelling, whenever they say more than a total ("1 adult and 1 child", "两大一小", "my wife, our baby and the dog"). Count every person in exactly one of adults, children, infants and seniors; pets are not people and are not in groupSize. Send the whole breakdown, using 0 for a kind nobody is.',
+    ),
   budgetAmount: z.union([z.number(), z.string()]).nullish().describe("the number they said"),
   budgetCurrency: z.string().nullish().describe("AUD, CNY, USD or JPY, as they said it"),
   displayCurrency: z
@@ -157,6 +176,23 @@ function text(value: unknown): string | undefined {
   const trimmed = value.trim();
   return !trimmed || /^(null|none|n\/a|undefined|unknown)$/i.test(trimmed) ? undefined : trimmed;
 }
+const PARTY_KEYS = ["adults", "children", "infants", "seniors", "pets"] as const;
+
+function partyFrom(value: unknown): TravellerParty | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const source = value as Record<string, unknown>;
+  const counts = PARTY_KEYS.map((key) => {
+    const raw = source[key];
+    const parsed = typeof raw === "number" ? raw : Number(text(raw));
+    return Number.isInteger(parsed) && parsed >= 0 && parsed <= 99 ? parsed : undefined;
+  });
+  if (counts.every((entry) => entry === undefined)) return undefined;
+  const party = Object.fromEntries(
+    PARTY_KEYS.map((key, index) => [key, counts[index] ?? 0]),
+  ) as TravellerParty;
+  return partyPeople(party) > 0 ? party : undefined;
+}
+
 function count(value: unknown): number | undefined {
   const parsed = typeof value === "number" ? value : Number(text(value)?.replaceAll(",", ""));
   return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
@@ -170,6 +206,7 @@ function toPatch(update: z.infer<typeof BriefUpdate>): BriefPatch {
   const startDate = isoDate(update.startDate);
   const endDate = isoDate(update.endDate);
   const groupSize = count(update.groupSize);
+  const party = partyFrom(update.party);
 
   const learned = Array.isArray(update.learnedPreferences)
     ? [
@@ -185,6 +222,7 @@ function toPatch(update: z.infer<typeof BriefUpdate>): BriefPatch {
     ...(text(update.origin) ? { origin: text(update.origin) } : {}),
     ...(text(update.nationality) ? { nationality: text(update.nationality) } : {}),
     ...(groupSize !== undefined ? { groupSize: Math.round(groupSize) } : {}),
+    ...(party ? { party } : {}),
 
     ...(startDate ? { dateStart: startDate } : {}),
     ...(endDate ? { dateEnd: endDate } : {}),
@@ -309,7 +347,7 @@ ${CAPABILITIES}
 Choosing what to do:
 - Call update_trip_brief only for facts the traveller stated in this message. Never infer a destination, budget, group size or nationality they did not give.
 - Call replan_trip after any change that affects the plan, and when the traveller asks for a plan.
-- knownSoFar.party, when present, breaks groupSize down into adults, children, infants and seniors and adds pets (who are not in groupSize). Never ask again for anything it already says; if the traveller changes the number of people, update groupSize and the breakdown no longer applies.
+- groupSize is authoritative for the number of people and every cost. When a message states both a total and a party breakdown, keep the stated total and include party only when its people add up to that total; never replace an explicit total with the breakdown sum. Pets are not included in groupSize. Never ask again for anything knownSoFar.party already says; if the traveller changes the number of people, update groupSize and drop a breakdown that no longer matches.
 - knownSoFar.preferences, when present, is the traveller's own list of trip preferences from the preferences editor. Respect it when you answer and never ask for something it already says; the planner receives it with the brief.
 - When the traveller states a lasting wish in chat ("no dietary requirements", "we like quiet places", "no early starts"), record it with update_trip_brief learnedPreferences: pass the whole updated list, keeping earlier entries in knownSoFar.learnedPreferences unless they changed. Never copy the traveller's own preferences into it.
 - When they say how they want to make a particular hop ("take the train to Sydney", "we would rather drive to Wollongong", "fly that leg instead"), record it with update_trip_brief travelModeChoices: pass the whole updated list, keeping earlier entries in knownSoFar.legModes unless they changed, and leaving one out when they take it back. Name the hop with the trip's own place names. Then replan. The planner may answer that the mode is not offered for that hop; do not promise it beforehand.
@@ -658,6 +696,14 @@ async function runConversationAgent(
   const updateTripBrief = tool(
     async (update: z.infer<typeof BriefUpdate>) => {
       const patch = toPatch(update);
+      const knownGroupSize = brief?.groupSize ?? known.groupSize;
+      const stated = extractBriefPatchLocally(request.message, knownGroupSize);
+      if (stated.groupSize !== undefined) {
+        patch.groupSize = stated.groupSize;
+        if (stated.party) patch.party = stated.party;
+      } else if (patch.party && knownGroupSize !== undefined) {
+        patch.groupSize = knownGroupSize;
+      }
       if (request.assistant?.memory === false) delete patch.learnedPreferences;
       if (brief) brief = applyBriefPatch(brief, patch, request.tripId);
       else known = mergeBriefPatch(known, patch);
@@ -820,9 +866,43 @@ async function runOffline(
   const message = request.message + inlineTextAttachments(request.attachments);
   const patch = extractor
     ? await extractor.extract(message, submitted)
-    : extractBriefPatchLocally(message);
+    : extractBriefPatchLocally(message, submitted?.groupSize ?? request.known?.groupSize);
+  const destinationCandidate =
+    patch.destination?.toLowerCase() === "no preference"
+      ? request.known?.destination
+      : patch.destination;
+  const ambiguousDestination =
+    !extractor && destinationCandidate && /\s+and\s+/iu.test(destinationCandidate)
+      ? destinationCandidate
+      : undefined;
+  const confirmedDestination =
+    ambiguousDestination && patch.destination === request.known?.destination;
+  if (ambiguousDestination && !confirmedDestination) {
+    const destination = ambiguousDestination;
+    const chinese = request.interfaceLanguage === "zh";
+    const separated = destination.replace(/\s+and\s+/giu, " & ");
+    throw new AskUserError({
+      type: "ask_user",
+      known: mergeBriefPatch(submitted ?? request.known ?? {}, { ...patch, destination }),
+      ...(request.plan ? { plan: request.plan } : {}),
+      questions: [
+        {
+          id: "destination-conjunction",
+          header: chinese ? "目的地" : "Destination",
+          question: chinese
+            ? `“${destination}”是一个完整地名，还是多个目的地？保留完整地名，或用 & 分隔各站。`
+            : `Is “${destination}” one place name or several destinations? Keep the name, or separate the stops with &.`,
+          options: [{ label: destination }, { label: separated }],
+        },
+      ],
+    });
+  }
   if (submitted) {
-    const updated = applyBriefPatch(submitted, patch, request.tripId);
+    const updated = applyBriefPatch(
+      submitted,
+      mergeBriefPatch(request.known ?? {}, patch),
+      request.tripId,
+    );
     if (
       !request.plan &&
       hasPastTripDate(updated, clock, locationForBrief(request, updated)) &&

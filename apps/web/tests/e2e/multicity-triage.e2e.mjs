@@ -45,9 +45,13 @@ for (let day = 1; day <= 5; day++) {
   const activities = section("itinerary").filter(
     (item) => item.kind === "activity" && item.day === day,
   );
+  const overnightCity =
+    stays.find((stay) => stay.day <= day && day < stay.day + stay.nights)?.city ??
+    stays.at(-1)?.city;
   check(
-    activities.length > 0 && activities.every((item) => item.location.includes(city)),
-    `offline Day ${day} activities are in ${city}`,
+    activities.length > 0 &&
+      activities.every((item) => item.location.includes(city) && city === overnightCity),
+    `offline Day ${day} activities match the destination's selected overnight city (${overnightCity})`,
   );
 }
 check(
@@ -55,6 +59,53 @@ check(
     stays.some((stay) => stay.day === 3 && stay.city === "Wollongong" && stay.nights === 2),
   "offline stays begin in Sydney on Day 1 and Wollongong on Day 3",
 );
+
+const conjunction =
+  "Plan a 5-day trip to Sydney and Wollongong for 2 people from 2026-12-16 to 2026-12-20, total budget 4500.";
+const natural = await fetch(`${base}/api/chat`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json", "x-trip-data-mode": "mock" },
+  body: JSON.stringify({ tripId: "triage-multicity-and", message: conjunction }),
+});
+const naturalText = await natural.text();
+writeFileSync(`${out}/sydney-and-wollongong.ndjson`, naturalText);
+const clarification = naturalText.trim().split("\n").map(JSON.parse).at(-1);
+check(natural.ok && clarification.type === "ask_user", '"and" asks for destination confirmation');
+if (clarification.type !== "ask_user") throw new Error(JSON.stringify(clarification));
+const confirmed = await fetch(`${base}/api/chat`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json", "x-trip-data-mode": "mock" },
+  body: JSON.stringify({
+    tripId: "triage-multicity-and",
+    message: `${clarification.questions[0].header}: ${clarification.questions[0].options[1].label}`,
+    known: clarification.known,
+  }),
+});
+const confirmedText = await confirmed.text();
+writeFileSync(`${out}/confirmed-cities.ndjson`, confirmedText);
+const naturalTerminal = confirmedText.trim().split("\n").map(JSON.parse).at(-1);
+check(
+  confirmed.ok && naturalTerminal.type === "complete",
+  'the same trip written with "and" completes via public chat API',
+);
+if (naturalTerminal.type === "complete") {
+  const naturalPlan = naturalTerminal.response.plan;
+  writeFileSync(`${out}/plan-and.json`, JSON.stringify(naturalPlan, null, 2));
+  const naturalTransport =
+    naturalPlan.sections.find((entry) => entry.id === "transport")?.proposal?.items ?? [];
+  check(
+    naturalPlan.brief.destination === "Sydney & Wollongong",
+    `"Sydney and Wollongong" is kept as two cities (got ${JSON.stringify(naturalPlan.brief.destination)})`,
+  );
+  check(
+    naturalTransport.some((item) => item.location?.includes("Sydney → Wollongong")),
+    'the "and" phrasing still plans the Sydney to Wollongong hop',
+  );
+  check(
+    !naturalTransport.some((item) => /flight/i.test(item.detail ?? "")),
+    "no flight is planned when the traveller already starts in the first city",
+  );
+}
 const activity = [
   { type: "agent_started", agent: "itinerary", round: 1 },
   { type: "agent_completed", agent: "itinerary", round: 1, summary: "Day plan ready." },
@@ -71,7 +122,7 @@ const activity = [
   },
 ];
 writeFileSync(`${out}/thinking-replay.json`, JSON.stringify(activity, null, 2));
-const browser = await chromium.launch();
+const browser = await chromium.launch({ channel: process.env.CHANNEL });
 try {
   for (const width of [1280, 390]) {
     const context = await browser.newContext({

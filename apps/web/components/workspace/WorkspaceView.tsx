@@ -391,6 +391,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                     providers={dataMode.providers}
                     onChange={dataMode.choose}
                     disabled={busy}
+                    liveAvailable={dataMode.liveAvailable}
                   />
                   <LanguageToggle />
                 </div>
@@ -488,6 +489,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                 onSend={session.send}
                 ask={ask}
                 onAnswer={session.answer}
+                onAskProgress={session.updateAskProgress}
                 onDismissAsk={session.dismissAsk}
                 onEdit={edit}
                 onStart={edit}

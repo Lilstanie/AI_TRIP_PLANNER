@@ -58,6 +58,12 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 }
 ```
 
+`brief.destination` 按访问顺序保存要去的城市，以 `&` 连接（“Sydney & Wollongong”）；
+`@trip/agents` 中的 `cities` 和 Where 编辑器都按这种形式读取。模型抽取直接提供这种形式；
+离线抽取只归一化明确的 `&` 和 `、` 分隔符。名称含有 “and” 时，例如 “Trinidad and Tobago”，
+先请旅行者保留完整地名或确认多个目的地，再生成计划。确认过程保留已收集的行程字段，
+已有计划在回答前保持原样。结构化模型结果不会再按连接词猜测拆分。
+
 `brief.preferences` 和 `known.preferences` 是可选字段，保存旅行者自己的旅行偏好
 （“素食”“不要太早开始”）。最多包含 `MAX_TRIP_PREFERENCES`（12）条，每条在去除首尾空白后为
 1 到 `MAX_TRIP_PREFERENCE_LENGTH`（200）个字符；这两个常量都位于
@@ -94,8 +100,12 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 
 `brief.party` 和 `known.party` 也是可选字段，格式为 `{ adults, children, infants, seniors, pets }`，
 各项为 0 到 99 的整数（`packages/shared/src/contracts.ts` 中的 `TravellerParty`），
-由 Who 编辑器的步进控件设置。它们细分 `groupSize` 并补充宠物数量；宠物不计入其中。
+由 Who 编辑器的步进控件设置；当旅行者说明同行人构成而不只给出总数时（“1 adult and 1 child”、“两位大人和一个小孩”），
+协调器也会写入。之后的消息若给出新的总数，这份细分会被清除，因为它已不再描述该同行人群。它们细分 `groupSize` 并补充宠物数量；宠物不计入其中。
 所有费用仍以 `groupSize` 为准，specialist 会收到指令：如果 party 中的人数之和与它不符，就忽略 party。
+
+Mock 浏览器检查 `party-breakdown-browser` 通过聊天提交明确的人数组成，并在桌面和手机宽度检查
+Who 中的五项计数，包括保存行程后重新打开的情况。
 
 可选的 `assistant`：来自 Settings → Personalization 的 `{ style, memory }`（`packages/shared/src/chat.ts` 中的
 `AssistantSettings`）。
@@ -169,7 +179,9 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 `{ "error": "The request was invalid. Please retry.", "notice": { … } }`。
 
 可选的 `x-trip-data-mode` 请求头值为 `mock` 或 `live`，仅为本次请求选择 fixture（测试前置数据）
-或实时提供方；其他值或未提供请求头时，使用部署默认值。
+或实时提供方；其他值或未提供请求头时，使用部署默认值。该请求头只是诉求，不是决定：
+`apps/web/lib/auth/live-data.ts` 中的 `requestDataMode` 会把无权消耗额度的调用方从 `live` 降级为 `mock`，
+因此未登录的访客仍能基于 fixture 得到可用的行程。
 
 <a id="get-apiagent-labbenchmark"></a>
 
@@ -236,10 +248,16 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 ## `GET /api/data-mode`
 
 ```json
-{ "configured": "mock", "providers": { "hotelsAndFlights": false, "maps": true } }
+{
+  "configured": "mock",
+  "liveAvailable": false,
+  "providers": { "hotelsAndFlights": false, "maps": true }
+}
 ```
 
 `configured` 是部署默认值（只有 `USE_MOCK_TOOLS=false` 时才为 `live`）。
+`liveAvailable` 表示该调用方是否可以消耗服务商额度：已登录的旅行者为 true，未配置 Clerk 时在非部署环境（本地、CI）也为 true。
+为 false 时工作区会禁用实时数据开关。
 `providers` 报告是否设置了 `SERPAPI_KEY` 和 `MAPS_API_KEY`，绝不返回它们的值。响应不缓存。
 
 <a id="post-apiplacessearch"></a>
