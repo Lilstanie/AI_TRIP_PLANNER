@@ -34,7 +34,8 @@ export function ChatsPanel({
   tripsContent?: ReactNode;
 }) {
   const { t } = useLocale();
-  const chatTitle = (title: string) => (title === "New chat" ? t("New chat") : title);
+  const chatTitle = (title: string) =>
+    title === "New chat" || title === "New trip" ? t(title) : title;
   const searchId = useId();
   const localSearch = useRef<HTMLInputElement | null>(null);
   const searching = query.trim() !== "";
