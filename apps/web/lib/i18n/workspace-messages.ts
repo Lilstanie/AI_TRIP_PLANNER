@@ -24,6 +24,7 @@ export const WORKSPACE_ZH = {
   "Estimate unchanged from the previous plan.": "估算与上一版方案相比没有变化。",
   Dismiss: "关闭",
   Answer: "填写",
+  "Answer {v0}": "填写{v0}",
   "Change profile photo": "更换头像",
   "First name": "名",
   "Last name": "姓",
