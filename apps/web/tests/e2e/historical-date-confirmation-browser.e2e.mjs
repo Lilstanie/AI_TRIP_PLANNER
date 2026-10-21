@@ -97,6 +97,8 @@ try {
     `${out}/result.json`,
     JSON.stringify({ ok: true, requests: requests.length }, null, 2),
   );
+  await page.getByText(final.response.reply, { exact: false }).waitFor({ state: "visible" });
+  await page.screenshot({ path: `${out}/success.png`, fullPage: true });
   await context.close();
 } catch (error) {
   if (page) {
