@@ -403,7 +403,8 @@ listed beneath the estimate. Status text wraps within the budget panel at narrow
 The budget card also breaks the known estimate into accommodation, transport, meals and activities.
 Each amount is labelled as an estimate; proposal items without prices are counted as unpriced beside
 their category and are not added to the total. The four category amounts add up to the displayed
-known estimate.
+known estimate. At narrow drawer widths each row wraps its amount under the
+category name instead of overflowing.
 
 Names of removed surfaces below appear only to explain their removal; nothing in this section
 describes current behaviour except the absences.

@@ -66,8 +66,12 @@
 }
 .trip-panel__budget-breakdown li {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
-  gap: var(--space-2);
+  gap: 0 var(--space-2);
+}
+.trip-panel__budget-breakdown li > * {
+  min-width: 0;
 }
 .trip-panel__budget-breakdown li > :last-child {
   color: var(--text-dim);
