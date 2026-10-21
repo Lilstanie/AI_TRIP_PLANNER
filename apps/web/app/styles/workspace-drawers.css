@@ -138,11 +138,12 @@
   gap: 10px;
 }
 .budget-status {
+  max-width: 100%;
   padding: 2px 7px;
   border-radius: var(--radius-pill);
   font-size: 10px;
   font-weight: 700;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 .budget-status--within {
   background: var(--ok-bg);
