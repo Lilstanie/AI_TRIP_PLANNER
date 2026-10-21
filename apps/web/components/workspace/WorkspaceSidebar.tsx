@@ -72,9 +72,13 @@ export function HistoryMenu({
   const wrap = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const firstItem = useRef<HTMLButtonElement>(null);
+  const menu = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (open) firstItem.current?.focus({ preventScroll: true });
+    if (open) {
+      menu.current?.scrollIntoView({ block: "nearest", inline: "nearest" });
+      firstItem.current?.focus({ preventScroll: true });
+    }
   }, [open]);
 
   useEffect(() => {
@@ -127,6 +131,7 @@ export function HistoryMenu({
       </button>
       {open && (
         <div
+          ref={menu}
           className="history-item__menu"
           role="menu"
           aria-label={t("Actions for {v0}", { v0: title })}
