@@ -288,6 +288,12 @@ CI 还会运行 `node scripts/format-check-changed.mjs <base>`（即 `pnpm forma
 
 在拉取请求上，`protected-files` 任务会运行 `node scripts/verify-protected-files.mjs`、`node scripts/verify-docs.mjs`、配对检查，以及 `node scripts/verify-branch-name.mjs <head-branch>`。分支名检查会在源分支不以 `feature/`、`fix/`、`refactor/`、`docs/`、`chore/` 或 `test/` 开头，或包含 AI 工具名时失败；Dependabot 分支不受限制。
 
+将 PR 标记为可交付前，在 `gh` 已完成身份验证的环境中运行下面的只读预检。它要求工作区干净、位于 PR 分支且提交与当前打开的 PR head 完全一致、目标分支为 `main`，并且该 head 的所有检查都为 `SUCCESS`；Summary、Evidence 和 Merge Danger 三个部分必须有非占位内容。Evidence 必须写明测试/检查命令、结果及明确的 `Limits:` 说明。检查器不会推送、合并、关闭 PR 或删除分支；fixture 自检不能作为 GitHub CI 证据。
+
+```bash
+node scripts/pr-delivery-status.mjs <pull-request-number>
+```
+
 使用 `pnpm --filter @trip/agents test`、`pnpm --filter @trip/orchestrator test` 或 `pnpm --filter @trip/web test` 针对特定包运行测试。Web 测试脚本使用 POSIX shell 语法设置 `NODE_OPTIONS`；Windows 上应从 WSL 或 Git Bash 运行。
 
 如果在 `pnpm dev` 运行时执行 `pnpm build`，启动开发服务器时应设置 `NEXT_DIST_DIR=.next-dev`，避免二者共用 `.next` 输出目录。

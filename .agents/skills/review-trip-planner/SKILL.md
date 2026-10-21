@@ -11,6 +11,12 @@ Run the [scoped comment check](references/comment-policy.md) over the diff's Jav
 paths; the repository default is no added explanatory comments. Use the versioned exact exception list for task-approved contract or tool instructions; review each
 reason. The reference also owns the automatic PR/main gate and its reproduction command.
 
+Before reporting a PR ready for delivery, run `node scripts/pr-delivery-status.mjs <number>` from a
+clean checkout of its branch. The read-only preflight verifies that the local SHA is the open PR's
+exact head, the base is `main`, all reported head checks succeeded, and Summary, Evidence and Merge
+Danger contain real content. Evidence must include a test/check command, result and explicit limits.
+Its fixture self-check demonstrates checker behavior only, never GitHub CI or live-provider behavior.
+
 This is guidance, not a complete checklist. Read the supplied diff against its real base
 and enough surrounding code to understand the design. Prioritise
 correctness, data truthfulness and broken behaviour over style; one substantiated blocker is worth
