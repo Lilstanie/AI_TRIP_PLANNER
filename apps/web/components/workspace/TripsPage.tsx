@@ -4,13 +4,15 @@ import { useLocale } from "@/components/account/LocaleProvider";
 import { useSettings } from "@/components/account/SettingsProvider";
 import { moneyDisplay } from "@/lib/money";
 import { dateRangeLabel } from "@/lib/workspace/trip-facts";
-import { distinctTripTitles } from "@/lib/workspace/trip-identity";
+import { distinctTripTitles, tripName } from "@/lib/workspace/trip-identity";
 import { effectiveCurrency } from "@trip/shared";
 import { useMemo, useRef, useState, type KeyboardEvent } from "react";
 import type { TripRecord } from "@/lib/workspace/catalog";
 import { ChevronIcon, PlusIcon } from "../ui/icons";
 import { useSegmentIndicator } from "../ui/motion";
 import { TripCover, coverColours } from "./TripCover";
+import { TripUndo, type DeletedTrip } from "./TripUndo";
+import { HistoryMenu } from "./WorkspaceSidebar";
 
 type Tab = "trips" | "calendar";
 const TABS: { id: Tab; label: MessageKey }[] = [
@@ -34,12 +36,18 @@ export function TripsPage({
   activeTripId,
   onOpenTrip,
   onNewTrip,
+  onRenameTrip,
+  onDeleteTrip,
+  deletedTrip,
   embedded = false,
 }: {
   trips: TripRecord[];
   activeTripId?: string;
   onOpenTrip(id: string): void;
   onNewTrip(): void;
+  onRenameTrip(id: string): void;
+  onDeleteTrip(id: string): void;
+  deletedTrip?: DeletedTrip;
   embedded?: boolean;
 }) {
   const { t, locale } = useLocale();
@@ -68,6 +76,7 @@ export function TripsPage({
             </button>
           </header>
         )}
+        {!embedded && deletedTrip && <TripUndo deleted={deletedTrip} />}
         <div
           ref={tabList}
           className="trips-page__tabs segmented"
@@ -101,7 +110,13 @@ export function TripsPage({
           className="trips-page__panel tab-panel-enter"
         >
           {tab === "trips" ? (
-            <TripCards trips={trips} activeTripId={activeTripId} onOpenTrip={onOpenTrip} />
+            <TripCards
+              trips={trips}
+              activeTripId={activeTripId}
+              onOpenTrip={onOpenTrip}
+              onRenameTrip={onRenameTrip}
+              onDeleteTrip={onDeleteTrip}
+            />
           ) : (
             <TripCalendar trips={trips} onOpenTrip={onOpenTrip} compact={embedded} />
           )}
@@ -115,10 +130,14 @@ function TripCards({
   trips,
   activeTripId,
   onOpenTrip,
+  onRenameTrip,
+  onDeleteTrip,
 }: {
   trips: TripRecord[];
   activeTripId?: string;
   onOpenTrip(id: string): void;
+  onRenameTrip(id: string): void;
+  onDeleteTrip(id: string): void;
 }) {
   const { t, locale } = useLocale();
   const { settings } = useSettings();
@@ -138,9 +157,7 @@ function TripCards({
       },
     ].filter((group) => group.items.length);
   }, [trips]);
-  const titles = distinctTripTitles(trips, (trip) =>
-    t("Trip to {destination}", { destination: trip.snapshot.plan.brief.destination }),
-  );
+  const titles = distinctTripTitles(trips, (trip) => tripName(trip, t));
 
   if (!trips.length)
     return (
@@ -180,6 +197,11 @@ function TripCards({
                   </span>
                 </span>
               </button>
+              <HistoryMenu
+                title={titles.get(trip.id)!}
+                onRename={() => onRenameTrip(trip.id)}
+                onDelete={() => onDeleteTrip(trip.id)}
+              />
             </li>
           );
         })}
@@ -206,9 +228,7 @@ function TripCalendar({
   onOpenTrip(id: string): void;
 }) {
   const { t, locale } = useLocale();
-  const titles = distinctTripTitles(trips, (trip) =>
-    t("Trip to {destination}", { destination: trip.snapshot.plan.brief.destination }),
-  );
+  const titles = distinctTripTitles(trips, (trip) => tripName(trip, t));
 
   const [cursor, setCursor] = useState(() => {
     const today = todayUtc();

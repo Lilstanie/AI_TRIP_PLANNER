@@ -154,7 +154,7 @@ try {
 
     if (width > 520) {
       await page.getByRole("button", { name: /^Trips/ }).click();
-      await page.getByRole("button", { name: /Trip to Wollongong/ }).click();
+      await page.getByRole("button", { name: /^Trip to Wollongong/ }).click();
       await page.waitForFunction(
         () => document.querySelectorAll(".fact-chip")[1]?.getAttribute("data-empty") !== "true",
       );
@@ -175,7 +175,7 @@ try {
 
       await page.getByRole("button", { name: /^Trips/ }).click();
       await page
-        .getByRole("button", { name: /Trip to Sydney/ })
+        .getByRole("button", { name: /^Trip to Sydney/ })
         .first()
         .click();
       await page.waitForFunction(

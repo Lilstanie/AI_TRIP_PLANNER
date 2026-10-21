@@ -524,6 +524,8 @@ export const WORKSPACE_ZH = {
   "Removed “{text}”.": "已移除“{text}”。",
   "Delete “{title}”? The linked trip will be kept.": "删除“{title}”吗？关联的行程会保留。",
   "Rename chat": "重命名聊天",
+  "Rename trip": "重命名行程",
+  "Deleted “{name}”. Its chats are kept.": "已删除“{name}”，相关聊天已保留。",
   "Choose both a start and an end date.": "请选择开始和结束日期。",
   "Enter a destination.": "请输入目的地。",
   "Enter where you are departing from, or leave it blank.": "请输入出发地，也可以留空。",

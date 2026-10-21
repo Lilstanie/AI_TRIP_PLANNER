@@ -64,7 +64,14 @@ now. Implementation history and browser acceptance for each phase are in the
     and always shown where there is no hover to reveal it. The menu is a `role="menu"` of
     `role="menuitem"` buttons with `aria-haspopup` and `aria-expanded` on the trigger; Escape closes
     it and returns focus to the trigger without closing an enclosing panel or drawer, and clicking
-    outside or tabbing away closes it. Opening a chat menu scrolls the full menu into its containing panel before focusing its first action, keeping both actions above the phone tab bar. Trips have no overflow menu because they have neither action.
+    outside or tabbing away closes it. Opening a chat menu scrolls the full menu into its containing panel before focusing its first action, keeping both actions above the phone tab bar.
+  - Trip rows in the Trips list and trip cards on the Trips page and the phone Mine tab have the same
+    Rename and Delete menu; on a card the trigger sits in the top-right corner and is always shown.
+    Rename asks for a name; an empty name or Cancel keeps the current one. A renamed trip shows its
+    name in the Trips list, on its card, on calendar bars and in the top title, and keeps it when the
+    trip is replanned from chat or the page reloads. Delete removes the trip at once and keeps its
+    chats, without their plan; a status line offers Undo, which brings the trip back with its name and
+    chat links. Deleting the open trip starts a blank chat.
   - On narrow screens the navigation drawer shows the sidebar with the panel's content (search, the
     two starts, Trips and Chats) under Trips.
   - The logo is `apps/web/public/brand/ai-trip-planner-logo.svg`, referenced by URL. Its alt text is

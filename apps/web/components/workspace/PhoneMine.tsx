@@ -36,6 +36,9 @@ export function PhoneMine({ model }: { model: WorkspaceModel }) {
         onOpenTrip={openTrip}
         onRenameChat={history.rename}
         onDeleteChat={history.delete}
+        onRenameTrip={history.renameTrip}
+        onDeleteTrip={history.deleteTrip}
+        deletedTrip={history.deletedTrip}
         tripsContent={
           history.query.trim() && !visibleTrips.size ? (
             <p className="history-empty">{t("No matching trips.")}</p>
@@ -46,6 +49,8 @@ export function PhoneMine({ model }: { model: WorkspaceModel }) {
               activeTripId={history.catalog.activeTripId}
               onOpenTrip={openTrip}
               onNewTrip={newTrip}
+              onRenameTrip={history.renameTrip}
+              onDeleteTrip={history.deleteTrip}
             />
           )
         }

@@ -39,6 +39,7 @@ export type TripRecord = {
   updatedAt: string;
   conversationIds: string[];
   snapshot: Snapshot;
+  renamed?: boolean;
 };
 
 export type PanelLayout = {
@@ -296,7 +297,8 @@ export function parseTrip(value: unknown): TripRecord {
     !text(value.title) ||
     !validDate(value.updatedAt) ||
     !Array.isArray(value.conversationIds) ||
-    !value.conversationIds.every(text)
+    !value.conversationIds.every(text) ||
+    (value.renamed !== undefined && typeof value.renamed !== "boolean")
   )
     throw new Error("Workspace trip is invalid.");
   const snapshot = parseSnapshot(value.snapshot);
@@ -306,6 +308,7 @@ export function parseTrip(value: unknown): TripRecord {
     updatedAt: value.updatedAt,
     conversationIds: [...value.conversationIds],
     snapshot,
+    ...(value.renamed ? { renamed: true } : {}),
   };
 }
 
@@ -324,9 +327,14 @@ export function upsertCurrent(
   const trip = tripFrom(snapshot, conversationId);
   const existingTrip = next.trips.findIndex((item) => item.id === tripId);
   if (existingTrip >= 0) {
-    const ids = new Set(next.trips[existingTrip].conversationIds);
+    const previous = next.trips[existingTrip];
+    const ids = new Set(previous.conversationIds);
     ids.add(conversationId);
-    next.trips[existingTrip] = { ...trip, conversationIds: [...ids] };
+    next.trips[existingTrip] = {
+      ...trip,
+      conversationIds: [...ids],
+      ...(previous.renamed ? { title: previous.title, renamed: true } : {}),
+    };
   } else next.trips.push(trip);
   const conversation = { ...conversationFrom(snapshot, tripId), messages: clone(messages) };
   const existingConversation = next.conversations.findIndex((item) => item.id === conversationId);
