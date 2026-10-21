@@ -380,7 +380,8 @@ reduced motion). Release smoke keeps `provider-empty-result` as the representati
 plus Run all sequencing and cancellation. Run both scripts when changing Failure Lab behavior.
 
 `auto-save-places`, `plan-revision` and `check-entry-point` share only place fixtures, workspace boot,
-day-to-plan conversion and polling in `apps/web/tests/e2e/trip-setup.mjs`. Each script owns its scenario
+day-to-plan conversion and polling in `apps/web/tests/e2e/trip-setup.mjs`. Every 44 px touch-target check uses its
+`touchSized(pixels)`, which rounds sub-pixel layout sizes first; call it in Node, not inside `evaluate`. Each script owns its scenario
 assertions, request interception, held responses and screenshots; concurrency and cancellation setup
 stay beside the scenario they verify. [Coverage ownership](../.agents/notes/implemented/simplification/2026-10-10-repository-surface-reduction.md)
 records the assertion consolidation boundaries.

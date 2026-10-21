@@ -1,7 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
-import { openMockWorkspace, planSuggestedTrip } from "./trip-setup.mjs";
+import { openMockWorkspace, planSuggestedTrip, touchSized } from "./trip-setup.mjs";
 const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT ?? "playwright");
 const out = resolve("output/playwright/phone-sheet-targets", process.env.EVIDENCE_LABEL ?? "after");
 mkdirSync(out, { recursive: true });
@@ -14,7 +14,7 @@ const size = async (locator) => {
   const rect = await locator.boundingBox();
   return rect && { width: Math.round(rect.width), height: Math.round(rect.height) };
 };
-const target = (box) => box && box.width >= 44 && box.height >= 44;
+const target = (box) => box && touchSized(box.width) && touchSized(box.height);
 const browser = await chromium.launch({ channel: process.env.CHANNEL });
 try {
   for (const locale of ["en-AU", "zh-CN"]) {
@@ -57,7 +57,7 @@ try {
       check(target(close), `${locale} ${fact} close is 44 x 44`, close);
       const primary = await size(editor.locator(".fact-form__primary"));
       check(
-        primary && primary.height >= 44,
+        primary && touchSized(primary.height),
         `${locale} ${fact} primary action is 44 px high`,
         primary,
       );

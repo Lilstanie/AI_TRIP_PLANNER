@@ -1,6 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
+import { touchSized } from "./trip-setup.mjs";
 const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT ?? "playwright");
 const out = resolve("output/playwright/phone-touch-targets", process.env.EVIDENCE_LABEL ?? "after");
 mkdirSync(out, { recursive: true });
@@ -43,7 +44,11 @@ try {
       await empty.waitFor();
       for (const name of ["Plan in Chat", "Add trip details"]) {
         const size = await box(empty.getByRole("button", { name, exact: true }));
-        check(size && size.height >= 44, `${id} empty Trip "${name}" is at least 44 px high`, size);
+        check(
+          size && touchSized(size.height),
+          `${id} empty Trip "${name}" is at least 44 px high`,
+          size,
+        );
       }
       await page.waitForTimeout(800);
       await page.screenshot({ path: `${out}/${id}-trip-empty.png` });
@@ -56,8 +61,14 @@ try {
     await page.locator(".thinking-turn[data-state='ok']").last().waitFor({ timeout: 90_000 });
     await page.waitForTimeout(800);
     const size = await box(think);
-    if (phone) check(size && size.height >= 44, `${id} Think toggle is at least 44 px high`, size);
-    else check(size && size.height < 44, `${id} desktop Think row keeps its compact height`, size);
+    if (phone)
+      check(size && touchSized(size.height), `${id} Think toggle is at least 44 px high`, size);
+    else
+      check(
+        size && !touchSized(size.height),
+        `${id} desktop Think row keeps its compact height`,
+        size,
+      );
     await page.screenshot({ path: `${out}/${id}-think.png` });
     const before = await think.getAttribute("aria-expanded");
     await think.click();

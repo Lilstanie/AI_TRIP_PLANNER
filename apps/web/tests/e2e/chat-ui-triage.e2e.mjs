@@ -1,6 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
+import { touchSized } from "./trip-setup.mjs";
 const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT ?? "playwright");
 const out = resolve(process.env.CHAT_UI_OUT ?? "output/playwright/chat-ui-triage");
 mkdirSync(out, { recursive: true });
@@ -49,7 +50,7 @@ try {
         })),
       );
     check(
-      sizes.length >= 7 && sizes.every((s) => s.width >= 44 && s.height >= 44),
+      sizes.length >= 7 && sizes.every((s) => touchSized(s.width) && touchSized(s.height)),
       "432 phone controls have 44px targets",
       sizes,
     );
@@ -77,7 +78,7 @@ try {
         })),
       );
     check(
-      sizes.length >= 15 && sizes.every((s) => s.width >= 44 && s.height >= 44),
+      sizes.length >= 15 && sizes.every((s) => touchSized(s.width) && touchSized(s.height)),
       "433 phone settings controls have 44px targets",
       sizes,
     );
