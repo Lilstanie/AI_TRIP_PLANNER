@@ -340,6 +340,10 @@ Supervisor 收到指令，将每条偏好传入它所影响的目标；每个 sp
 - `bookedStay`：旅行者已预订住宿。
 - `noAccommodation`：旅行者不需要住宿；它与 `bookedStay` 相互独立。
 
+旅行者以天数说明的行程长度（“3 days”“5-day”“四天”“三日游”）会覆盖模型给出的结束日期：
+`packages/orchestrator/src/chat-offline.ts` 中的 `statedTripDays` 把消息中的天数相加，结束日期为开始日期加上天数再减一，
+因此 N 天就是 N 个日历日，不额外加一个离开日。消息中明确的日期范围优先；“in 3 days”或一天的行程不会被当作长度。
+
 `packages/orchestrator/src/supervisor.ts` 中的 `specialistBrief` 把学到的列表追加到旅行者自己的
 列表之后交给 specialist，去重并限制为 12 条。存储的行程需求仍把两个列表分开保存。
 

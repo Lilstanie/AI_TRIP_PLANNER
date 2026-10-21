@@ -80,6 +80,15 @@ function extractParty(message: string): TravellerParty | undefined {
   return partyPeople(party) > 0 ? party : undefined;
 }
 
+export function statedTripDays(message: string): number | undefined {
+  const counts = [
+    ...message.matchAll(/(?<!\b(?:in|within|after)\s+)\b(\d{1,2})[\s-]*days?\b/gi),
+    ...message.matchAll(/(\d{1,2}|[一二两三四五六七八九十]+)\s*(?:天|日游)/g),
+  ].map((match) => Number(match[1]) || chineseNumber(match[1]) || 0);
+  const days = counts.reduce((sum, count) => sum + count, 0);
+  return days > 1 ? days : undefined;
+}
+
 export function extractBriefPatchLocally(message: string, knownGroupSize?: number): BriefPatch {
   const patch: BriefPatch = {};
 
