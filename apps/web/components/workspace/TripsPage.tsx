@@ -364,7 +364,11 @@ function TripCalendar({
                         tabIndex={labelled ? 0 : -1}
                         onClick={() => onOpenTrip(trip.id)}
                       >
-                        {labelled ? visibleTitle : " "}
+                        {labelled ? (
+                          <span className="trip-calendar__visible-label">{visibleTitle}</span>
+                        ) : (
+                          " "
+                        )}
                       </button>
                     );
                   })}

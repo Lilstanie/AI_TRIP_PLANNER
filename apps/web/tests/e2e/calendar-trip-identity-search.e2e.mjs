@@ -257,12 +257,37 @@ try {
     );
     if (width <= 520) {
       const renderedLabels = await duplicateBars.evaluateAll((nodes) =>
-        nodes.map((node) => ({
-          text: node.textContent?.trim(),
-          clientWidth: node.clientWidth,
-          scrollWidth: node.scrollWidth,
-          visible: node.getBoundingClientRect().width > 0,
-        })),
+        nodes.map((node) => {
+          const buttonBounds = node.getBoundingClientRect();
+          const label = node.querySelector(".trip-calendar__visible-label");
+          const labelBounds = label?.getBoundingClientRect();
+          const range = document.createRange();
+          if (label) range.selectNodeContents(label);
+          const textBounds = range.getBoundingClientRect();
+          const style = label ? getComputedStyle(label) : undefined;
+          const buttonStyle = getComputedStyle(node);
+          const paddingLeft = Number.parseFloat(buttonStyle.paddingLeft);
+          const paddingRight = Number.parseFloat(buttonStyle.paddingRight);
+          return {
+            text: label?.textContent?.trim(),
+            clientWidth: node.clientWidth,
+            scrollWidth: node.scrollWidth,
+            visible: buttonBounds.width > 0 && labelBounds?.width > 0,
+            fontSize: style?.fontSize,
+            textBounds: {
+              left: textBounds.left,
+              right: textBounds.right,
+              top: textBounds.top,
+              bottom: textBounds.bottom,
+            },
+            contentBounds: {
+              left: buttonBounds.left + paddingLeft,
+              right: buttonBounds.right - paddingRight,
+              top: buttonBounds.top,
+              bottom: buttonBounds.bottom,
+            },
+          };
+        }),
       );
       check(
         renderedLabels.length === 2 &&
@@ -270,10 +295,15 @@ try {
             (label, index) =>
               label.text === `· ${index + 1}` &&
               label.visible &&
+              Number.parseFloat(label.fontSize) >= 12 &&
               label.clientWidth > 0 &&
-              label.scrollWidth <= label.clientWidth,
+              label.scrollWidth <= label.clientWidth &&
+              label.textBounds.left >= label.contentBounds.left &&
+              label.textBounds.right <= label.contentBounds.right &&
+              label.textBounds.top >= label.contentBounds.top &&
+              label.textBounds.bottom <= label.contentBounds.bottom,
           ),
-        `#482 ${width}px compact duplicate identities are fully visible without clipping`,
+        `#482 ${width}px compact duplicate label glyphs fit within the visible bar bounds`,
         renderedLabels,
       );
     }
