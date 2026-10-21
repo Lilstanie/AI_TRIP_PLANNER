@@ -1,6 +1,6 @@
 import { detectCurrency, partyPeople, toAud, type TravellerParty } from "@trip/shared";
 import { BriefPatchSchema, type BriefPatch } from "./brief";
-import { DATE_TOKEN, parseTripDate } from "./dates";
+import { DATE_TOKEN, addDays, parseTripDate } from "./dates";
 
 function amount(value: string): number | undefined {
   const parsed = Number(value.replaceAll(",", ""));
@@ -92,37 +92,10 @@ export function statedTripDays(message: string): number | undefined {
 export function extractBriefPatchLocally(message: string, knownGroupSize?: number): BriefPatch {
   const patch: BriefPatch = {};
 
-  const durationInDestination = message.match(
-    new RegExp(
-      `(\\d+)\\s+days?\\s+(?:in|at)\\s+(.+?)(?=\\s+(?:for|budget|from)\\b|[,.;]|$)[\\s\\S]*?\\bfrom\\s+${DATE_TOKEN}`,
-      "i",
-    ),
-  );
-  const destinationDuration = message.match(
-    new RegExp(
-      `^\\s*(?:plan\\s+)?([A-Za-z][A-Za-z &.'-]*?)[, ]+\\s*(\\d+)\\s+days?\\s+from\\s+${DATE_TOKEN}`,
-      "i",
-    ),
-  );
-  const duration = durationInDestination?.[1] ?? destinationDuration?.[2];
-  const startToken = durationInDestination?.[3] ?? destinationDuration?.[3];
-  const startDate = startToken ? parseTripDate(startToken) : undefined;
-  const durationDays = Number(duration);
-  if (
-    duration &&
-    Number.isSafeInteger(durationDays) &&
-    durationDays > 0 &&
-    startDate &&
-    "iso" in startDate
-  ) {
-    const start = Date.parse(`${startDate.iso}T00:00:00.000Z`);
-    const end = new Date(start + (durationDays - 1) * 86_400_000);
-    if (Number.isFinite(end.getTime())) {
-      patch.dates = [startDate.iso, end.toISOString().slice(0, 10)];
-      const destination = durationInDestination?.[2] ?? destinationDuration?.[1];
-      if (destination) patch.destination = cleanDestination(destination);
-    }
-  }
+  const days = statedTripDays(message);
+  const from = message.match(new RegExp(`\\bfrom\\s+${DATE_TOKEN}`, "i"));
+  const start = from?.[1] ? parseTripDate(from[1]) : undefined;
+  if (days && start && "iso" in start) patch.dates = [start.iso, addDays(start.iso, days - 1)];
 
   const dates = message.match(
     new RegExp(`${DATE_TOKEN}\\s*(?:to|through|until|–|—|至|到)\\s*${DATE_TOKEN}`, "i"),
@@ -185,6 +158,9 @@ export function extractBriefPatchLocally(message: string, knownGroupSize?: numbe
   const leadingDestination = message.match(
     /^\s*([A-Za-z][A-Za-z &.-]+?)\s*[,，]\s*\d{4}-\d{2}-\d{2}/,
   );
+  const durationDestination =
+    message.match(/\d+[\s-]*days?\s+(?:in|at)\s+(.+?)(?=\s+(?:for|budget|from)\b|[,.;]|$)/i) ??
+    message.match(/^\s*(?:plan\s+)?([A-Za-z][A-Za-z &.'-]*?)[,\s]+\d+\s+days?\b/i);
   const chineseDestination = message.match(
     /(?:去|前往|目的地(?:是|为|改成|调整为)?)[：:\s]*([\p{Script=Han}A-Za-z][\p{Script=Han}A-Za-z&、·\- ]*?)(?=\s*(?:旅行|旅游|玩|，|,|。|预算|\d{4}-|$))/u,
   );
@@ -193,6 +169,7 @@ export function extractBriefPatchLocally(message: string, knownGroupSize?: numbe
       fromTo?.[2] ??
       explicitDestination?.[1] ??
       leadingDestination?.[1] ??
+      durationDestination?.[1] ??
       chineseDestination?.[1] ??
       "",
   );
