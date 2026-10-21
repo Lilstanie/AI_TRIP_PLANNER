@@ -22,6 +22,16 @@
 
 ## 已有回归覆盖
 
+- 基线 `2e0f506b` 上的 `phone-map`（2026-10-19，#367）在默认无 key 地图已成功加载 OSM 时，
+  仍查找仅在渲染器出错时显示的地点列表，导致 390px 的三个重复地点检查失败，并在桌面步骤超时，未运行到 360px。
+  旅程现等待地图中具名的地点控件及其选中站点、详情，保留两种提供方的覆盖。
+  清空模型、Maps 和 Clerk 密钥后运行
+  `CHANNEL=chrome DATA_MODE=mock USE_MOCK_TOOLS=true pnpm --filter @trip/web e2e phone-map`，
+  再设置 `WEB_MAPS_PROVIDER=google` 重跑无 key 错误列表场景；两种模式分别明确检查默认 OSM
+  画布已就绪，以及 Google-only 错误列表。
+  每次覆盖 390×844、360×800 及桌面切换；通过 `LABEL=<attempt>` 将各次结果分别保存在
+  `output/playwright/phone-map/<attempt>/`。
+
 - `trip-initial-scroll` 覆盖 #375：基线 `2e0f506` 的桌面 Trip 首次打开时 scrollTop 为 163，预算被遮住。日期条现只横向滚动。浏览器检查覆盖桌面与手机端首次打开、重开、保存对话重载、主动滚动位置恢复及日期键盘导航。
 
 - PR #308 的 head `501af35` 上，`agent-lab-replay` 可能在键盘按 Enter 后错过文件选择框（2026-10-11）：
