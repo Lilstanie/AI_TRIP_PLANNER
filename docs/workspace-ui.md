@@ -345,7 +345,11 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     fares answered, failed or cancelled. `requestTurn` in `lib/workspace/session.ts` only sends the
     request and reads the stream; the pure `session(state, event)` there applies the outcome, so the
     reset rules (previous total, selected stop, map routes, field errors, question card) live in one
-    place and are tested without React in `tests/lib/workspace/session.test.ts`.
+    place and are tested without React in `tests/lib/workspace/session.test.ts`. A pending question
+    and its answer progress persist across reloads; while an answer is being sent, answer editing,
+    paging, skip and submit are locked, and Stop aborts the request without discarding the question
+    or its draft. A failed request leaves the question answerable for retry, a late response after
+    Stop is ignored, and a successful reply clears the question.
   - Switching chat or trip, or New chat, first flushes the pending autosave, then aborts in-flight
     requests and clears progress, errors, selection and map routes in one `opened` session event.
     Late responses are ignored.
@@ -358,9 +362,10 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     A catalog object already persisted by autosave is not serialized and written again by the catalog
     effect. Layout, history and account-sync changes still persist; a failed write remains retryable.
   - The catalog (`trip-workspace-catalog-v3`) keeps conversations and trips separately, with stable
-    links and an optional conversation `draft`. Snapshots write version 4; version 3 (AUD) snapshots
-    remain readable and recover their budget source when the draft still matches the plan.
-    Pre-AUD versions 1 and 2 remain rejected; the catalog version and storage keys stay unchanged.
+    links and an optional conversation `draft`. The catalog writes version 5 and reads version 4,
+    normalizing it to version 5; version 3 (AUD) snapshots remain readable and recover their budget
+    source when the draft still matches the plan. Pre-AUD versions 1 and 2 remain rejected, and the
+    storage keys stay unchanged.
   - Layout stores the sidebar's `collapsed` always and its `width` only after a resize, so an
     untouched workspace keeps following the stylesheet at every viewport size.
   - Corrupt data is never overwritten automatically, and layout fields fall back to defaults instead

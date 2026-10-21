@@ -174,7 +174,11 @@ const listed = await run("list", ["--json"]);
 assert.equal(listed.status, 0, listed.stderr);
 const listing = JSON.parse(listed.stdout);
 assert.equal(listing.command, "list");
-assert.deepEqual(listing.supported, ["agent-lab-replay", "agent-lab-single-agent"]);
+assert.deepEqual(listing.supported, [
+  "agent-lab-replay",
+  "agent-lab-single-agent",
+  "pending-ask-refresh",
+]);
 const script = (name) => listing.scripts.find((entry) => entry.name === name);
 assert.equal(script("agent-lab-single-agent").status, "supported");
 assert.equal(script("agent-lab-replay").status, "supported");

@@ -54,7 +54,7 @@ export type PanelLayout = {
 };
 
 export type WorkspaceCatalog = {
-  version: 4;
+  version: 5;
   activeConversationId?: string;
   activeTripId?: string;
   conversations: ConversationRecord[];
@@ -179,7 +179,7 @@ function tripFrom(snapshot: Snapshot, conversationId?: string): TripRecord {
 export function createCatalog(current?: Snapshot, saved: Snapshot[] = []): WorkspaceCatalog {
   const snapshots = [current, ...saved].filter((item): item is Snapshot => item !== undefined);
   const catalog: WorkspaceCatalog = {
-    version: 4,
+    version: 5,
     conversations: [],
     trips: [],
     layout: clone(DEFAULT_LAYOUT),
@@ -222,7 +222,8 @@ export function parseCatalog(
     );
   if (!isObject(value)) throw new Error("Workspace catalog is invalid.");
 
-  if (value.version !== 4) throw new Error("Workspace catalog version is invalid.");
+  if (value.version !== 4 && value.version !== 5)
+    throw new Error("Workspace catalog version is invalid.");
   if (!Array.isArray(value.conversations) || !Array.isArray(value.trips))
     throw new Error("Workspace catalog records are invalid.");
   const trips = value.trips.map(parseTrip);
@@ -243,7 +244,7 @@ export function parseCatalog(
   )
     throw new Error("Workspace catalog active conversation is invalid.");
   return {
-    version: 4,
+    version: 5,
     ...(value.activeTripId === undefined ? {} : { activeTripId: value.activeTripId as string }),
     ...(value.activeConversationId === undefined
       ? {}
