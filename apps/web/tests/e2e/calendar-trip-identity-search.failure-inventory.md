@@ -11,6 +11,8 @@ providers or authentication.
   stale month from the prior trip.
 - Trips with identical calendar identity retain indistinguishable visible labels or accessible
   names, including at compact phone width.
+- A phone-width duplicate label contains its distinguishing suffix in the DOM text but clips it from
+  the painted bar after the destination consumes the available width.
 - A disambiguated compact bar opens the wrong saved snapshot, or trips with distinct identities gain
   unnecessary duplicate suffixes.
 - A multiword history query fails when terms appear in a different order or in different searchable

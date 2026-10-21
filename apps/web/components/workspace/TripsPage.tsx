@@ -342,8 +342,9 @@ function TripCalendar({
                     const { destination } = trip.snapshot.plan.brief;
                     const baseTitle = t("Trip to {destination}", { destination });
                     const title = titles.get(trip.id) ?? baseTitle;
+                    const compactSuffix = title.match(/ · \d+$/)?.[0];
                     const visibleTitle = compact
-                      ? `${destination}${title.slice(baseTitle.length)}`
+                      ? (compactSuffix ?? (title === baseTitle ? destination : title))
                       : title;
                     const labelled = time === utc(start) || weekday === 0;
                     const [from] = coverColours(trip.snapshot.plan.brief.destination);

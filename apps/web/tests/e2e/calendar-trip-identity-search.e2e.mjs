@@ -129,7 +129,7 @@ const browser = await chromium.launch({
 });
 
 try {
-  for (const width of [1440, 390]) {
+  for (const width of [1440, 390, 375]) {
     const context = await browser.newContext({
       viewport: { width, height: width > 520 ? 1000 : 844 },
       isMobile: width <= 520,
@@ -255,6 +255,28 @@ try {
       `#482 ${width}px visible labels distinguish duplicate trips`,
       duplicateLabels,
     );
+    if (width <= 520) {
+      const renderedLabels = await duplicateBars.evaluateAll((nodes) =>
+        nodes.map((node) => ({
+          text: node.textContent?.trim(),
+          clientWidth: node.clientWidth,
+          scrollWidth: node.scrollWidth,
+          visible: node.getBoundingClientRect().width > 0,
+        })),
+      );
+      check(
+        renderedLabels.length === 2 &&
+          renderedLabels.every(
+            (label, index) =>
+              label.text === `· ${index + 1}` &&
+              label.visible &&
+              label.clientWidth > 0 &&
+              label.scrollWidth <= label.clientWidth,
+          ),
+        `#482 ${width}px compact duplicate identities are fully visible without clipping`,
+        renderedLabels,
+      );
+    }
     await page.screenshot({ path: `${OUT}/calendar-${width}.png`, fullPage: true });
 
     if (width <= 520) {
@@ -326,7 +348,7 @@ try {
         "#484 clearing search restores silent empty-query state",
         { trips: await tripStatus.innerText(), chats: await chatStatus.innerText() },
       );
-      await page.screenshot({ path: `${OUT}/search-390.png`, fullPage: true });
+      await page.screenshot({ path: `${OUT}/search-${width}.png`, fullPage: true });
 
       await page.getByRole("tab", { name: "Calendar", exact: true }).click();
       const secondDuplicateBar = page
