@@ -510,6 +510,7 @@
 .item-editor {
   display: grid;
   gap: var(--space-2);
+  min-width: 0;
   margin: var(--space-1) 0 var(--space-2) calc(24px + var(--space-3) + var(--space-3));
   padding: var(--space-3);
   border-radius: var(--radius);
@@ -519,10 +520,13 @@
 .item-editor label {
   display: grid;
   gap: 2px;
+  min-width: 0;
   color: var(--text-dim);
   font-size: var(--font-size-meta);
 }
 .item-editor :is(input, textarea, select) {
+  width: 100%;
+  min-width: 0;
   min-height: 36px;
   padding: var(--space-1) var(--space-2);
   border: 1px solid var(--border);
@@ -535,7 +539,11 @@
 }
 .item-editor__actions {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-2);
+}
+.stop-place-card .item-editor__actions button {
+  white-space: nowrap;
 }
 
 .workspace-app[data-phone-keyboard] .item-editor__actions {

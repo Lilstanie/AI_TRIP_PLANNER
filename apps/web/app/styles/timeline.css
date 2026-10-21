@@ -617,6 +617,10 @@ button.timeline-stop__time:disabled {
   gap: var(--space-2);
   padding: var(--space-2);
 }
+.timeline-stop > .stop-place-card {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
 .stop-place-card .place-preview {
   position: relative;
   width: 100%;

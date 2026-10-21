@@ -380,125 +380,123 @@ export function TimelineStop({
             ))}
           </ul>
         )}
-        {selected && (
-          <div id={`stop-place-card-${id}`} className="stop-place-card stop-editor">
-            {place ? (
-              <PlacePreview
-                place={place}
-                showPhoto={showPhotos}
-                onClose={closeCard}
-                headingId={`stop-place-card-title-${id}`}
-              />
-            ) : (
-              <div className="stop-place-card__bare">
-                <h4 id={`stop-place-card-title-${id}`}>{name}</h4>
-                {!suggestion && STATUS_TEXT[status] && <p>{t(STATUS_TEXT[status]!)}</p>}
-                <button
-                  type="button"
-                  className="stop-place-card__close"
-                  aria-label={t("Close place details")}
-                  onClick={closeCard}
-                >
-                  <CloseIcon />
-                </button>
-              </div>
-            )}
-            {!confirmed && status === "unconfirmed" && (
-              <p className="stop-editor__hint">
-                {t("The map could not find this place. Search for it to save it.")}
-              </p>
-            )}
-            {matched && saveState === "failed" && (
-              <p className="stop-editor__hint">
-                {t("This place could not be saved. Search for it to try again.")}
-              </p>
-            )}
-            {panel === "details" && (
-              <ItemForm
-                activity={activity}
-                mode="details"
-                days={days}
-                labels={dayLabels}
-                onCancel={closePanel}
-                onSubmit={(action) => act(action, { key: "Details saved." })}
-              />
-            )}
-            {panel === "note" && (
-              <ItemForm
-                activity={activity}
-                mode="note"
-                days={days}
-                labels={dayLabels}
-                onCancel={closePanel}
-                onSubmit={(action) => act(action, { key: "Note saved." })}
-              />
-            )}
-            {panel === "schedule" && (
-              <ItemForm
-                activity={activity}
-                mode="schedule"
-                days={days}
-                labels={dayLabels}
-                onCancel={closePanel}
-                onSubmit={(action) =>
-                  act(action, {
-                    key: "{name} scheduled on Day {day}.",
-                    params: { name, day: action.kind === "day" ? action.day : 0 },
-                  })
-                }
-              />
-            )}
-            {panel === "day" && !idea && (
-              <div className="stop-editor__group stop-editor__order">
-                <label>
-                  {t("Move to")}
-                  <select
-                    autoFocus
-                    disabled={locked}
-                    value={activity.day}
-                    onChange={(event) => {
-                      const day = Number(event.target.value);
-                      act(
-                        { kind: "day", day },
-                        { key: "{name} moved to Day {day}.", params: { name, day } },
-                      );
-                    }}
-                    onKeyDown={(event) => {
-                      if (event.key !== "Escape") return;
-                      event.stopPropagation();
-                      closePanel();
-                    }}
-                  >
-                    {Array.from({ length: days }, (_, d) => (
-                      <option key={d} value={d + 1}>
-                        {t("Day {v0}", { v0: d + 1 })} · {dayLabels[d]}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-            )}
-            {searching && (
-              <PlaceSearch
-                label={
-                  confirmed || matched ? t("Replace with another place") : t("Find this place")
-                }
-                locked={locked}
-                edits={edits}
-                focusOnMount={panel === "search"}
-                onCancel={panel === "search" ? closePanel : undefined}
-                onUse={(placeId) => {
-                  closePanel();
-                  void edits.edit({ kind: "place", id, placeId });
-                }}
-              />
-            )}
-          </div>
-        )}
       </div>
       <span className="timeline-row__cost">
         {activity.estCost === undefined ? t("Price unknown") : money(activity.estCost)}
       </span>
+      {selected && (
+        <div id={`stop-place-card-${id}`} className="stop-place-card stop-editor">
+          {place ? (
+            <PlacePreview
+              place={place}
+              showPhoto={showPhotos}
+              onClose={closeCard}
+              headingId={`stop-place-card-title-${id}`}
+            />
+          ) : (
+            <div className="stop-place-card__bare">
+              <h4 id={`stop-place-card-title-${id}`}>{name}</h4>
+              {!suggestion && STATUS_TEXT[status] && <p>{t(STATUS_TEXT[status]!)}</p>}
+              <button
+                type="button"
+                className="stop-place-card__close"
+                aria-label={t("Close place details")}
+                onClick={closeCard}
+              >
+                <CloseIcon />
+              </button>
+            </div>
+          )}
+          {!confirmed && status === "unconfirmed" && (
+            <p className="stop-editor__hint">
+              {t("The map could not find this place. Search for it to save it.")}
+            </p>
+          )}
+          {matched && saveState === "failed" && (
+            <p className="stop-editor__hint">
+              {t("This place could not be saved. Search for it to try again.")}
+            </p>
+          )}
+          {panel === "details" && (
+            <ItemForm
+              activity={activity}
+              mode="details"
+              days={days}
+              labels={dayLabels}
+              onCancel={closePanel}
+              onSubmit={(action) => act(action, { key: "Details saved." })}
+            />
+          )}
+          {panel === "note" && (
+            <ItemForm
+              activity={activity}
+              mode="note"
+              days={days}
+              labels={dayLabels}
+              onCancel={closePanel}
+              onSubmit={(action) => act(action, { key: "Note saved." })}
+            />
+          )}
+          {panel === "schedule" && (
+            <ItemForm
+              activity={activity}
+              mode="schedule"
+              days={days}
+              labels={dayLabels}
+              onCancel={closePanel}
+              onSubmit={(action) =>
+                act(action, {
+                  key: "{name} scheduled on Day {day}.",
+                  params: { name, day: action.kind === "day" ? action.day : 0 },
+                })
+              }
+            />
+          )}
+          {panel === "day" && !idea && (
+            <div className="stop-editor__group stop-editor__order">
+              <label>
+                {t("Move to")}
+                <select
+                  autoFocus
+                  disabled={locked}
+                  value={activity.day}
+                  onChange={(event) => {
+                    const day = Number(event.target.value);
+                    act(
+                      { kind: "day", day },
+                      { key: "{name} moved to Day {day}.", params: { name, day } },
+                    );
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key !== "Escape") return;
+                    event.stopPropagation();
+                    closePanel();
+                  }}
+                >
+                  {Array.from({ length: days }, (_, d) => (
+                    <option key={d} value={d + 1}>
+                      {t("Day {v0}", { v0: d + 1 })} · {dayLabels[d]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          )}
+          {searching && (
+            <PlaceSearch
+              label={confirmed || matched ? t("Replace with another place") : t("Find this place")}
+              locked={locked}
+              edits={edits}
+              focusOnMount={panel === "search"}
+              onCancel={panel === "search" ? closePanel : undefined}
+              onUse={(placeId) => {
+                closePanel();
+                void edits.edit({ kind: "place", id, placeId });
+              }}
+            />
+          )}
+        </div>
+      )}
       {timing && !idea && (
         <TimeForm
           id={id}
