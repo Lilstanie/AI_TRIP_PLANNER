@@ -494,6 +494,7 @@ export async function runTripChat(
   const orchestrate = (brief: TripBrief) =>
     runOrchestrator(brief, {
       ...(request.displayCurrency ? { displayCurrency: request.displayCurrency } : {}),
+      ...(request.interfaceLanguage ? { interfaceLanguage: request.interfaceLanguage } : {}),
       ...orchestrationOptions,
       mem,
     });

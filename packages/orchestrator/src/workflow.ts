@@ -20,6 +20,7 @@ import {
   type AgentProposal,
   type AgentProgressEvent,
   type Currency,
+  type InterfaceLanguage,
   type MemoryStore,
   type RevisionRequest,
   type Specialist,
@@ -37,6 +38,7 @@ import { createPlanningBoard } from "./board";
 import { choiceFor, dispatchWithSupervisor, reviseWithSupervisor } from "./supervisor";
 import { withProgressTools } from "./progress-tools";
 import type { WorkflowDecision } from "./decisions";
+import { progressCopy } from "./progress-copy";
 
 const DEFAULT_MAX_ROUNDS = 3;
 
@@ -52,6 +54,7 @@ export interface OrchestratorOptions {
   supervisorModel?: BaseChatModel;
 
   displayCurrency?: Currency;
+  interfaceLanguage?: InterfaceLanguage;
 }
 
 const OrchestratorState = new StateSchema({
@@ -131,6 +134,7 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
     supervisorModel,
     settingsCurrency,
   } = resolveOptions(options);
+  const copy = progressCopy(options.interfaceLanguage);
   const currencyFor = (brief: TripBrief) => effectiveCurrency(brief, settingsCurrency);
 
   const delegates = !injected || supervisorModel !== undefined;
@@ -174,10 +178,16 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
       type: "agent_started",
       agent: specialist.name,
       round: request.context.round,
-      summary: `${request.brief.destination} · ${request.brief.dates.join(" to ")} · ${request.brief.groupSize} people · ${formatMoney(request.brief.budgetTotal, currencyFor(request.brief), "plain")}`,
+      summary: copy.brief({
+        destination: request.brief.destination,
+        start: request.brief.dates[0],
+        end: request.brief.dates[1],
+        groupSize: request.brief.groupSize,
+        money: formatMoney(request.brief.budgetTotal, currencyFor(request.brief), "plain"),
+      }),
       objective: request.revision
-        ? `Fix: ${request.revision.reason}`
-        : `Produce the ${specialist.label} section for this trip.`,
+        ? copy.fix(request.revision.reason)
+        : copy.objective(specialist.label),
       constraints: request.revision?.constraints,
     });
     try {
@@ -185,8 +195,8 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
       onProgress?.({
         summary: proposal.summary,
         outcome: request.revision
-          ? `Revised ${proposal.agent} after: ${request.revision.reason}.`
-          : `Produced ${proposal.agent} section.`,
+          ? copy.revised(proposal.agent, request.revision.reason)
+          : copy.produced(proposal.agent),
         ...(choiceFor(proposal, currencyFor(request.brief))
           ? { choice: choiceFor(proposal, currencyFor(request.brief))! }
           : {}),
@@ -235,7 +245,7 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
       type: "coordinator",
       phase: "dispatch",
       round,
-      summary: `Assigning planning tasks for ${state.brief.destination}.`,
+      summary: copy.planningTasks(state.brief.destination),
     });
     const agentContext = context(state.brief, round);
 
@@ -261,6 +271,7 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
           context: agentContext,
           ...(supervisorModel ? { model: supervisorModel } : {}),
           onProgress,
+          interfaceLanguage: options.interfaceLanguage,
           run: createPlanningBoard(state.brief, currencyFor(state.brief)).run,
         });
       } catch (error) {
@@ -281,7 +292,7 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
       type: "coordinator",
       phase: "conflicts",
       round: state.round,
-      summary: `Checked budget and schedules: ${conflicts.length} revision request(s).`,
+      summary: copy.checked(conflicts.length),
       constraints: conflicts.flatMap((c) => c.constraints),
     });
 
@@ -307,7 +318,7 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
       type: "coordinator",
       phase: "revision",
       round,
-      summary: "Revising affected sections.",
+      summary: copy.revising,
       constraints: state.conflicts.flatMap((c) => c.constraints),
     });
     const requestByAgent = new Map(
@@ -372,6 +383,7 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
           requests: state.conflicts,
           ...(supervisorModel ? { model: supervisorModel } : {}),
           onProgress,
+          interfaceLanguage: options.interfaceLanguage,
           extrasFor,
         });
       } catch (error) {
@@ -401,7 +413,7 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
         type: "coordinator",
         phase: "revision",
         round,
-        summary: "Revision did not improve the plan; keeping the previous version.",
+        summary: copy.notImproved,
       });
       return { round, stalled: true };
     }
@@ -413,7 +425,7 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
       type: "coordinator",
       phase: "assembly",
       round: state.round,
-      summary: "Assembling the plan.",
+      summary: copy.assembling,
     });
     decide({
       type: "loop_stopped",

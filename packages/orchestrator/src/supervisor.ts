@@ -8,6 +8,7 @@ import {
   type AgentName,
   type AgentProposal,
   type AgentProgressEvent,
+  type InterfaceLanguage,
   type RevisionRequest,
   type Specialist,
   type SpecialistRequest,
@@ -15,6 +16,7 @@ import {
   type TripBrief,
 } from "@trip/shared";
 import { createRoutedChatModel } from "@trip/agents";
+import { progressCopy } from "./progress-copy";
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import { createAgent, tool } from "langchain";
 import { z } from "zod/v4";
@@ -126,6 +128,7 @@ export interface SupervisorDispatchOptions {
 
   requiredAgents?: readonly AgentName[];
   onProgress?: (event: AgentProgressEvent) => void;
+  interfaceLanguage?: InterfaceLanguage;
 
   run?: PlanningBoardRun;
 }
@@ -146,7 +149,13 @@ export function createSupervisorTools(
     tool(
       async ({ objective }) => {
         options.onProgress?.({
-          summary: `${options.brief.destination} · ${options.brief.dates.join(" to ")} · ${options.brief.groupSize} people · ${formatMoney(options.brief.budgetTotal, currency, "plain")}`,
+          summary: progressCopy(options.interfaceLanguage).brief({
+            destination: options.brief.destination,
+            start: options.brief.dates[0],
+            end: options.brief.dates[1],
+            groupSize: options.brief.groupSize,
+            money: formatMoney(options.brief.budgetTotal, currency, "plain"),
+          }),
           objective,
           type: "agent_started",
           agent: specialist.name,
@@ -218,7 +227,13 @@ export function createRevisionTools(
       tool(
         async ({ objective }) => {
           options.onProgress?.({
-            summary: `${options.brief.destination} · ${options.brief.dates.join(" to ")} · ${options.brief.groupSize} people · ${formatMoney(options.brief.budgetTotal, currency, "plain")}`,
+            summary: progressCopy(options.interfaceLanguage).brief({
+              destination: options.brief.destination,
+              start: options.brief.dates[0],
+              end: options.brief.dates[1],
+              groupSize: options.brief.groupSize,
+              money: formatMoney(options.brief.budgetTotal, currency, "plain"),
+            }),
             objective,
             constraints: request.constraints,
             type: "agent_started",
