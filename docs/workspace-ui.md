@@ -239,7 +239,8 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     work, while the map explains its unavailable state. Place details open in a bottom sheet; desktop
     keeps its popup. OSM markers stay beneath the phone details sheet, including after viewport changes.
     The 44 px map controls stay above the stops sheet, and panning does not scroll the page.
-  - Map day chips and the Trip budget and Travel tips disclosure headers are at least 44 px tall.
+  - Map day chips, the Trip budget and Travel tips disclosure headers, the empty Trip tab's Plan in
+    Chat and Add trip details buttons, and the Think row above a reply are at least 44 px tall.
     Disclosure headers keep their native markers and keyboard toggling. These target heights apply
     only at phone widths; sizing at 521 px and above stays unchanged.
   - With the composer focused and the visual viewport shortened by the keyboard, the shell follows
