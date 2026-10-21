@@ -48,6 +48,7 @@ import { extractBriefPatchLocally } from "./chat-offline";
 import { groundedReply, unchangedPlanReply } from "./chat-grounding";
 import { isInfeasible, minimumCost } from "./conflicts";
 import { runOrchestrator, type OrchestratorOptions } from "./workflow";
+import { replyLanguage } from "./reply-language";
 
 export interface BriefExtractor {
   extract(message: string, current: TripBrief | undefined): Promise<BriefPatch>;
@@ -495,6 +496,7 @@ export async function runTripChat(
     runOrchestrator(brief, {
       ...(request.displayCurrency ? { displayCurrency: request.displayCurrency } : {}),
       ...(request.interfaceLanguage ? { interfaceLanguage: request.interfaceLanguage } : {}),
+      replyLanguage: replyLanguage(request.message, request.interfaceLanguage),
       ...orchestrationOptions,
       mem,
     });

@@ -55,6 +55,7 @@ export interface OrchestratorOptions {
 
   displayCurrency?: Currency;
   interfaceLanguage?: InterfaceLanguage;
+  replyLanguage?: InterfaceLanguage;
 }
 
 const OrchestratorState = new StateSchema({
@@ -151,6 +152,7 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
     tripId: brief.tripId,
     round,
     displayCurrency: currencyFor(brief),
+    ...(options.replyLanguage ? { replyLanguage: options.replyLanguage } : {}),
     tools:
       agent && onProgress
         ? withProgressTools(tools, agent, round, onProgress, currencyFor(brief))

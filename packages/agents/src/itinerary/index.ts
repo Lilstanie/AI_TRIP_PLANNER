@@ -16,6 +16,7 @@ import {
   type BudgetAllocation,
   type PlanningBoard,
   type StaySelection,
+  type InterfaceLanguage,
 } from "@trip/shared";
 import { z } from "zod/v4";
 import { createAgent, tool } from "langchain";
@@ -25,6 +26,7 @@ import { cities, cityForDay, parseCityHop, scheduledHops } from "../transport/le
 import { avoidBlockedWindows } from "./revision";
 import { mockEnabled } from "@trip/tools";
 import { TRAVELLER_PREFERENCES_RULE } from "../prompts/traveller-preferences";
+import { summaryCopy } from "../summary-copy";
 
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
 const MODEL_ACTIVITY_BUDGET_SHARE = 0.4;
@@ -346,6 +348,7 @@ function fallbackDraft(
   placesByCity?: ReadonlyMap<string, readonly Place[]>,
   dayCities?: string[][],
   transferWindows: ReadonlyMap<number, TransferWindow[]> = new Map(),
+  language?: InterfaceLanguage,
 ): ItineraryDraft {
   const candidates = places;
 
@@ -393,7 +396,7 @@ function fallbackDraft(
     if (!added) incompleteDays.push(day);
   }
   return {
-    summary: `${days}-day plan for ${brief.destination} with up to ${perDay} grounded ${perDay === 1 ? "activity" : "activities"} per day`,
+    summary: summaryCopy(language).itinerary(days, brief.destination, perDay),
     activities,
     assumptions: [
       "Opening hours and live availability must be confirmed before plans are finalised.",
@@ -415,9 +418,10 @@ function validatedFallbackDraft(
   placesByCity: ReadonlyMap<string, readonly Place[]>,
   dayCities: string[][],
   transferWindows: ReadonlyMap<number, TransferWindow[]>,
+  language: InterfaceLanguage | undefined,
 ): ItineraryDraft {
   return validateDraft(
-    fallbackDraft(brief, days, places, placesByCity, dayCities, transferWindows),
+    fallbackDraft(brief, days, places, placesByCity, dayCities, transferWindows, language),
     days,
     places,
     dayCities,
@@ -650,7 +654,7 @@ async function planItinerary(
   if (!places.length) {
     return {
       agent: "itinerary",
-      summary: "Itinerary needs verified place data",
+      summary: summaryCopy(ctx.replyLanguage).itineraryNeedsPlaces,
       items: [],
       assumptions: [
         ...evidenceIssues,
@@ -731,10 +735,26 @@ async function planItinerary(
     if (accepted) draft = accepted;
     else {
       usedFallback = true;
-      draft = validatedFallbackDraft(brief, days, places, placesByCity, dayCities, transferWindows);
+      draft = validatedFallbackDraft(
+        brief,
+        days,
+        places,
+        placesByCity,
+        dayCities,
+        transferWindows,
+        ctx.replyLanguage,
+      );
     }
   } else {
-    draft = validatedFallbackDraft(brief, days, places, placesByCity, dayCities, transferWindows);
+    draft = validatedFallbackDraft(
+      brief,
+      days,
+      places,
+      placesByCity,
+      dayCities,
+      transferWindows,
+      ctx.replyLanguage,
+    );
   }
   let adjusted = avoidBlockedWindows(draft, revision);
   if (usedFallback) {
@@ -788,6 +808,7 @@ async function planItinerary(
       placesByCity,
       dayCities,
       transferWindows,
+      ctx.replyLanguage,
     );
     const adjustedFallback = avoidBlockedWindows(originalFallback, revision);
     let fallback = adjustedFallback;
