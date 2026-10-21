@@ -125,10 +125,14 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
   - The breakdown reaches the planner as `TripBrief.party` (and `known.party` before a plan exists),
     beside `groupSize`. Every specialist's shared rule asks it to plan for children, infants,
     seniors and pets where its evidence allows and to say when it cannot confirm suitability;
-    `groupSize` still drives all cost arithmetic. A breakdown that no longer adds up to `groupSize`
-    (say, the chat later learns "we're three now") is dropped rather than sent. The
+    `groupSize` is authoritative for people and all cost arithmetic. Chat derives it from a
+    breakdown only when no total is already known or stated; when a known or stated total conflicts with a new
+    breakdown, `groupSize` is preserved and both the new and previous breakdowns are dropped. A breakdown that no longer adds
+    up to `groupSize` (say, the chat later learns "we're three now") is dropped rather than sent. The
     [traveller party Agent Note](../.agents/notes/implemented/architecture/2026-09-24-traveller-party.md)
-    records why.
+    records the original decision; the
+    [authoritative traveller count note](../.agents/notes/implemented/bug-fix/2026-10-20-authoritative-traveller-count.md)
+    records chat extraction behavior.
   - Budget offers four preset cards in a `role="radiogroup"`: Budget (AUD 900), Moderate
     (AUD 3,000), Comfort (AUD 6,000) and Luxury (AUD 10,000). Each shows its amount in the
     trip's effective currency and is selected exactly while `budgetTotal` equals its AUD value.
