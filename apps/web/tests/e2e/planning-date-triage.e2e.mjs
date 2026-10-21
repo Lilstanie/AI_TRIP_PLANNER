@@ -85,6 +85,66 @@ check(
   JSON.stringify(confirmed.response?.plan?.brief?.dates) === JSON.stringify(dates),
   "confirmed historical plan retains the entered dates",
 );
+const unpromptedTripId = "historical-confirmation-unprompted";
+const unprompted = await request("historical-confirmation-unprompted", {
+  tripId: unpromptedTripId,
+  message: "Confirm historical trip",
+  mode: "plan",
+  brief: { ...historicalBrief, tripId: unpromptedTripId },
+});
+check(unprompted.type === "ask_user", "confirmation without a matching prompt remains blocked");
+const multilineConfirmationTripId = "historical-multiline-confirmation";
+const multilineBrief = { ...chatBrief, tripId: multilineConfirmationTripId };
+const multilineAsk = await request("historical-multiline-confirmation-ask", {
+  tripId: multilineConfirmationTripId,
+  message: "Plan this trip",
+  mode: "plan",
+  brief: multilineBrief,
+});
+check(
+  multilineAsk.type === "ask_user",
+  "multiline confirmation starts with the matching date card",
+);
+const multilineConfirmed = await request("historical-multiline-confirmation-reply", {
+  tripId: multilineConfirmationTripId,
+  message: "Dates: Confirm historical trip\nTrip dates: no preference",
+  mode: "plan",
+  brief: multilineBrief,
+});
+check(
+  multilineConfirmed.type === "complete",
+  "real multiline card answer confirms the historical trip",
+  { type: multilineConfirmed.type, reply: multilineConfirmed.response?.reply },
+);
+check(
+  JSON.stringify(multilineConfirmed.response?.plan?.brief?.dates) === JSON.stringify(dates),
+  "multiline confirmation retains the entered dates",
+);
+const chineseTripId = "historical-multiline-confirmation-zh";
+const chineseBrief = { ...chatBrief, tripId: chineseTripId };
+const chineseAsk = await request("historical-multiline-confirmation-ask-zh", {
+  tripId: chineseTripId,
+  message: "规划这次行程",
+  mode: "plan",
+  brief: chineseBrief,
+  interfaceLanguage: "zh",
+});
+check(chineseAsk.type === "ask_user", "Chinese historical trip asks for confirmation");
+const chineseConfirmed = await request("historical-multiline-confirmation-reply-zh", {
+  tripId: chineseTripId,
+  message: "日期: 确认历史行程\n旅行日期: 无偏好",
+  mode: "plan",
+  brief: chineseBrief,
+  interfaceLanguage: "zh",
+});
+check(
+  chineseConfirmed.type === "complete",
+  "Chinese multiline card answer confirms historical dates",
+);
+check(
+  JSON.stringify(chineseConfirmed.response?.plan?.brief?.dates) === JSON.stringify(dates),
+  "Chinese multiline confirmation retains the entered dates",
+);
 const correctionTripId = "historical-date-correction";
 const correctionBrief = { ...chatBrief, tripId: correctionTripId };
 const correctionAsk = await request("historical-correction-ask", {

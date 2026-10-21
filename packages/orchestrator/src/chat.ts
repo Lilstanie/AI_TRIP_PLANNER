@@ -653,9 +653,9 @@ function locationForBrief(
 }
 
 function explicitlyConfirmsHistoricalTrip(message: string): boolean {
-  return /^(?:(?:dates|date|日期)\s*:\s*)?(?:confirm historical trip|i confirm (?:that )?(?:this is|it is) (?:a )?historical trip|确认历史行程|确认这是历史行程)[.!。！]?$/i.test(
-    message.trim(),
-  );
+  const confirmation =
+    /^(?:(?:dates|date|日期)\s*:\s*)?(?:confirm historical trip|i confirm (?:that )?(?:this is|it is) (?:a )?historical trip|确认历史行程|确认这是历史行程)[.!。！]?$/i;
+  return message.split(/\r?\n/u).some((line) => confirmation.test(line.trim()));
 }
 
 async function confirmsHistoricalTrip(
