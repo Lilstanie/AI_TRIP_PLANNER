@@ -574,7 +574,9 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   first would overlap it, and a swap that would end past 23:59 or overlap the next stop is refused with a
   message. Move to another day puts the stop after that day's last stop. Undo offers the last change
   until the next plan arrives from chat; an item action is undone the same way, restoring the plan as it was before it. A move changes the day's times, so the day's legs are routed again (see Legs under Timeline editing). At
-  phone width (520px and below) the menu's trigger and items are at least 44 px. Missing or zero budgets
+  phone width (520px and below) the menu's trigger and items are at least 44 px. An open menu is capped to
+  the height of its scrolling panel, scrolls inside itself, and keeps the focused item on screen above the
+  tab bar. Missing or zero budgets
   state that no budget is set; invalid totals never render `NaN`, a negative bar, or a bar wider than its
   container.
 - **Location.** When the workspace opens it asks in its own words, in the notices strip, whether to
