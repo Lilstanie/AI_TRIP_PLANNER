@@ -172,11 +172,10 @@ specialist 走确定性路径，工具返回 mock fixture；它们不读取或�
 `infeasible_budget` 停止、指出这一最低成本，因此两个多 agent 策略都不会再花修订轮次，也没有任何策略编造更便宜的证据或删去分段。
 由于没有计划放得下，该场景的规则用 `evidence-floor` 和 `infeasibility-reported` 取代 `budget` 与 `no-conflicts` 检查，衡量计划是否保持诚实：
 脚本化的单 agent 基线按最低成本定价，却没有说明缺口，所以未通过第二项。`tokyo-kyoto-multi-city` 是先东京后京都的七晚行程，其规则增加了
-`hop-date`、`itinerary-by-city`、`stay-transition`、`stay-nights`、`trip-dates` 和 `total-consistent`，它们按简报中的城市推导，检查火车、住宿、每天的活动和总额是否围绕同一次移动保持一致。转场日的时间窗口决策见[多城市转场窗口 Agent Note](../.agents/notes/implemented/architecture/2026-10-19-multicity-transfer-windows.md)。
-每个产物都记录场景的 fixture 版本和评估器版本（`scenario-rules-v8`）；决策见 [Agent Note](../.agents/notes/implemented/architecture/2026-10-02-agent-lab-benchmark-scenarios.md)。
-每个场景变体都有自己的脚本化计划 fixture，或明确指定来源 fixture。必需检查分别覆盖预算可行性（冲突饮食偏好由不同餐食分别提供证据）、宽泛需求的可执行细节、行程天数边界、住宿日期范围和住宿晚数证据。
+`hop-date`、`itinerary-by-city`、`stay-transition`、`trip-dates` 和 `total-consistent`，它们按简报中的城市推导，检查火车、住宿、每天的活动和总额是否围绕同一次移动保持一致。
+每个产物都记录场景的 fixture 版本和评估器版本（`scenario-rules-v2`）；决策见 [Agent Note](../.agents/notes/implemented/architecture/2026-10-02-agent-lab-benchmark-scenarios.md)。
 
-版本化基准注册表由 `@trip/orchestrator` 导出，并通过 `GET /api/agent-lab/benchmark` 提供。它列出场景及其预期结果和必需检查、策略、故障档案，以及独立的实时子集。注册表版本为 1.0.7；基准 E2E 使用 production runner 生成的产物构建 fixture 报告，每个分母都保留失败运行，再将同一批产物中的一个上传到页面回放。Fixture 与 live 报告分开。为保证报告稳定，fixture 报告不写入每次运行生成的 ID 和实测运行耗时；原始产物仍保留这些值以供回放。实时子集包含三个场景、仅支持实时运行的策略以及三次重复，并经过现有实时门控。详见[基准 Agent Note](../.agents/notes/implemented/testing/2026-10-16-agent-lab-benchmark.md)。
+版本化基准注册表由 `@trip/orchestrator` 导出，并通过 `GET /api/agent-lab/benchmark` 提供。它列出场景及其预期结果和必需检查、策略、故障档案，以及独立的实时子集。注册表版本为 1.0.1；基准 E2E 使用 production runner 生成的产物构建 fixture 报告，每个分母都保留失败运行，再将同一批产物中的一个上传到页面回放。Fixture 与 live 报告分开。为保证报告稳定，fixture 报告不写入每次运行生成的 ID 和实测运行耗时；原始产物仍保留这些值以供回放。实时子集包含三个场景、仅支持实时运行的策略以及三次重复，并经过现有实时门控。详见[基准 Agent Note](../.agents/notes/implemented/testing/2026-10-16-agent-lab-benchmark.md)。
 
 产物的下载与回放都发生在浏览器中，不涉及任何端点或服务端存储。页面保存它收到的产物，`apps/web/lib/agent-lab/replay.ts` 则按共享的
 `AgentLabRunArtifact` 约定校验所选文件（单一 schema 版本、连续的事件、有效的计划、不会倒退的时间），再按记录的偏移量回放记录下的事件。
@@ -235,14 +234,12 @@ Specialist 提案、行程需求和最终计划在图边界上分别通过 `Agen
   规划协作板（`packages/orchestrator/src/board.ts`）：住宿等待交通，行程和餐饮等待两者，
   但只等待在同一轮次中已经启动的 specialist。每次调用都收到其他 specialist 的提案，字段为 `board`；
   住宿、行程和餐饮还会收到 `allocation`，分别占它们所等待阶段结束后剩余预算的 0.4、0.4、0.2。
-  多城市旅行中，行程按照交通安排的城际移动（`citiesByDay`）确定每天所在的城市。移动日活动必须有起止时间：
-  出发城市的活动须在出发前结束，到达城市的活动须在抵达后开始，因此活动不会与交通重叠；
-  只有当天最后抵达住宿城市时，移动日才允许活动分布在两个城市。若最后抵达地不是当晚住宿城市，
-  当天只允许住宿城市的活动，因此单程离开后若要住回出发城市，必须安排当天返程；
-  草稿中的异地停留点会连同原因交回模型。
-  住宿读取相同的移动安排（`transport/legs.ts` 中的 `scheduledHops`），
-  因此各城市的住宿夜晚从抵达日延续到下一次移动；协作板上没有移动安排时，夜晚均分。
-  若移动在第一天抵达，出发城市住宿夜数为零，住宿搜索会略过该城市。
+  多城市旅行中，行程按已安排的城际移动（`citiesByDay`）确定每天所在的城市。移动日必须有带时间的转场，
+  活动要么在出发前结束，要么在抵达后开始；转场没有时间时，当天活动顺序无法确定。有住宿的夜晚，当天最后抵达的城市必须与过夜城市一致；退房日可以转往其他目的地城市。
+  没有交通提案时，住宿记录可确定所在城市；一旦转场确定了路线，之后若住宿城市不同，就必须有连接转场，否则位置保持未知。
+  住宿读取相同的移动安排（`transport/legs.ts` 中的 `scheduledHops`），不产生过夜的城市会从住宿搜索中省略；
+  协作板上没有移动安排时，夜晚均分。
+  失败场景与决策记录在[多城市转场日 Agent Note](../.agents/notes/implemented/bug-fix/2026-10-19-multicity-transfer-windows.md)。
 - `detect_conflicts` 汇总预算超支、结构化的跨 agent 日程重叠，以及行程路线耗时检查后报告的
   地理冲突。超支额以 AUD（`targetSaving`）按各部分可削减空间分配，即该部分费用减去 `floorCost`。
   如果最低费用之和已经超过预算，它返回一个 `infeasible budget` 冲突，注明该最低费用，

@@ -149,7 +149,7 @@ describe("multi-city transfer-day activities", () => {
           id: "stay-sydney",
           city: "Sydney",
           checkIn: "2026-12-16",
-          checkOut: "2026-12-18",
+          checkOut: "2026-12-20",
           day: 1,
           nights: 2,
           rooms: 1,
@@ -301,5 +301,343 @@ describe("multi-city transfer-day activities", () => {
       "Sydney Museum",
       "Wollongong Gallery",
     ]);
+  });
+
+  it("allows a checkout-day transfer to end outside the last overnight city", async () => {
+    const trip = {
+      ...brief,
+      destination: "Sydney & Wollongong",
+      dates: ["2026-12-16", "2026-12-18"] as [string, string],
+    };
+    const ctx = context();
+    ctx.tools.maps.places = vi.fn(async ({ near, category }) =>
+      category === "sight"
+        ? [{ name: `${near} Museum`, category: "sight" }]
+        : [{ name: `${near} Foreshore`, category: "neighborhood" }],
+    );
+    const accommodation: AgentProposal = {
+      agent: "accommodation",
+      summary: "Two nights in Sydney",
+      items: [],
+      assumptions: [],
+      conflictsWith: [],
+      stays: [
+        {
+          id: "stay-sydney",
+          city: "Sydney",
+          checkIn: "2026-12-16",
+          checkOut: "2026-12-18",
+          day: 1,
+          nights: 2,
+          rooms: 1,
+          selectedId: "stay-sydney-0",
+          candidates: [
+            {
+              id: "stay-sydney-0",
+              name: "Sydney Standard",
+              area: "Sydney",
+              pricePerNight: 230,
+              rating: 8,
+              freeCancellation: true,
+            },
+          ],
+        },
+      ],
+    };
+    const transport: AgentProposal = {
+      agent: "transport",
+      summary: "Transfer to Wollongong on checkout day",
+      items: [
+        {
+          kind: "transport",
+          day: 3,
+          startTime: "09:00",
+          endTime: "11:20",
+          location: "Sydney → Wollongong",
+          detail: "Train to Wollongong on 2026-12-18",
+        },
+      ],
+      assumptions: [],
+      conflictsWith: [],
+    };
+    const generator: ItineraryGenerator = {
+      generate: vi.fn(async () => ({
+        summary: "Visit Wollongong after checkout",
+        activities: [
+          {
+            day: 3,
+            startTime: "12:00",
+            endTime: "13:00",
+            location: "Wollongong Museum",
+            detail: "Visit after the checkout-day transfer",
+          },
+        ],
+        assumptions: [],
+      })),
+    };
+
+    const result = await createItineraryAgent({ generator }).invoke({
+      brief: trip,
+      context: ctx,
+      board: { proposals: [transport, accommodation] },
+    });
+
+    expect(result.items.filter(({ day }) => day === 3).map(({ location }) => location)).toEqual([
+      "Wollongong Museum",
+    ]);
+  });
+
+  it("does not reuse the origin city after a disconnected transfer chain", async () => {
+    const trip = {
+      ...brief,
+      destination: "Sydney & Wollongong & Canberra",
+      dates: ["2026-12-16", "2026-12-20"] as [string, string],
+    };
+    const ctx = context();
+    ctx.tools.maps.places = vi.fn(async ({ near, category }) =>
+      category === "sight"
+        ? [{ name: `${near} Museum`, category: "sight" }]
+        : [{ name: `${near} Foreshore`, category: "neighborhood" }],
+    );
+    const transport: AgentProposal = {
+      agent: "transport",
+      summary: "A disconnected transfer from Sydney toward Canberra",
+      items: [
+        {
+          kind: "transport",
+          day: 1,
+          location: "Canberra → Sydney",
+          detail: "Disconnected onward transfer",
+        },
+        {
+          kind: "transport",
+          day: 1,
+          startTime: "09:00",
+          endTime: "11:00",
+          location: "Sydney → Wollongong",
+          detail: "Timed first transfer",
+        },
+      ],
+      assumptions: [],
+      conflictsWith: [],
+    };
+    const accommodation: AgentProposal = {
+      agent: "accommodation",
+      summary: "Canberra then Sydney stays",
+      items: [],
+      assumptions: [],
+      conflictsWith: [],
+      stays: [
+        {
+          id: "canberra-stay",
+          city: "Canberra",
+          checkIn: "2026-12-16",
+          checkOut: "2026-12-17",
+          day: 1,
+          nights: 1,
+          rooms: 1,
+          selectedId: "canberra-candidate",
+          candidates: [
+            {
+              id: "canberra-candidate",
+              name: "Canberra Standard",
+              area: "Canberra",
+              pricePerNight: 200,
+              rating: 8,
+              freeCancellation: true,
+            },
+          ],
+        },
+        {
+          id: "sydney-stay",
+          city: "Sydney",
+          checkIn: "2026-12-17",
+          checkOut: "2026-12-20",
+          day: 2,
+          nights: 3,
+          rooms: 1,
+          selectedId: "sydney-candidate",
+          candidates: [
+            {
+              id: "sydney-candidate",
+              name: "Sydney Standard",
+              area: "Sydney",
+              pricePerNight: 200,
+              rating: 8,
+              freeCancellation: true,
+            },
+          ],
+        },
+      ],
+    };
+    const generator: ItineraryGenerator = {
+      generate: vi.fn(async () => ({
+        summary: "Visit Sydney after the disconnected transfer chain",
+        activities: [
+          {
+            day: 2,
+            startTime: "09:00",
+            endTime: "10:00",
+            location: "Sydney Museum",
+            detail: "This must not be allowed based on the stale origin city",
+          },
+          {
+            day: 3,
+            startTime: "09:00",
+            endTime: "10:00",
+            location: "Sydney Museum",
+            detail: "The transfer chain remains unresolved",
+          },
+        ],
+        assumptions: [],
+      })),
+    };
+
+    const result = await createItineraryAgent({ generator }).invoke({
+      brief: trip,
+      context: ctx,
+      board: { proposals: [transport, accommodation] },
+    });
+
+    expect(result.items.filter(({ day }) => day === 2)).toEqual([]);
+    expect(result.items.filter(({ day }) => day === 3)).toEqual([]);
+  });
+
+  it("uses the final city after multiple same-day transfers without accommodation", async () => {
+    const trip = {
+      ...brief,
+      destination: "Sydney & Wollongong & Canberra",
+      dates: ["2026-12-16", "2026-12-19"] as [string, string],
+    };
+    const ctx = context();
+    ctx.tools.maps.places = vi.fn(async ({ near, category }) =>
+      category === "sight"
+        ? [{ name: `${near} Museum`, category: "sight" }]
+        : [{ name: `${near} Foreshore`, category: "neighborhood" }],
+    );
+    const transport: AgentProposal = {
+      agent: "transport",
+      summary: "Travel from Sydney via Wollongong to Canberra",
+      items: [
+        {
+          kind: "transport",
+          day: 1,
+          startTime: "09:00",
+          endTime: "11:00",
+          location: "Sydney → Wollongong",
+          detail: "First transfer",
+        },
+        {
+          kind: "transport",
+          day: 1,
+          startTime: "13:00",
+          endTime: "15:00",
+          location: "Wollongong → Canberra",
+          detail: "Second transfer",
+        },
+      ],
+      assumptions: [],
+      conflictsWith: [],
+    };
+    const generator: ItineraryGenerator = {
+      generate: vi.fn(async () => ({
+        summary: "Visit Canberra after arriving",
+        activities: [
+          {
+            day: 1,
+            startTime: "16:00",
+            endTime: "17:00",
+            location: "Canberra Museum",
+            detail: "Visit after both transfers",
+          },
+          {
+            day: 2,
+            startTime: "09:00",
+            endTime: "10:00",
+            location: "Canberra Foreshore",
+            detail: "Continue in Canberra",
+          },
+          {
+            day: 3,
+            startTime: "09:00",
+            endTime: "10:00",
+            location: "Canberra Museum",
+            detail: "Continue in Canberra",
+          },
+          {
+            day: 4,
+            startTime: "09:00",
+            endTime: "10:00",
+            location: "Canberra Foreshore",
+            detail: "Continue in Canberra",
+          },
+        ],
+        assumptions: [],
+      })),
+    };
+
+    const result = await createItineraryAgent({ generator }).invoke({
+      brief: trip,
+      context: ctx,
+      board: { proposals: [transport] },
+    });
+
+    expect(result.items.filter(({ day }) => day === 1).map(({ location }) => location)).toContain(
+      "Canberra Museum",
+    );
+    expect(result.items.filter(({ day }) => day === 2).map(({ location }) => location)).toContain(
+      "Canberra Foreshore",
+    );
+  });
+
+  it("validates city and transfer windows when only one destination has grounded places", async () => {
+    const trip = {
+      ...brief,
+      destination: "Sydney & Wollongong",
+      dates: ["2026-12-16", "2026-12-18"] as [string, string],
+    };
+    const ctx = context();
+    ctx.tools.maps.places = vi.fn(async ({ near, category }) =>
+      near === "Sydney" && category === "sight"
+        ? [{ name: "Sydney Museum", category: "sight" }]
+        : [],
+    );
+    const transport: AgentProposal = {
+      agent: "transport",
+      summary: "Transfer from Sydney to Wollongong",
+      items: [
+        {
+          kind: "transport",
+          day: 1,
+          location: "Sydney → Wollongong",
+          detail: "Untimed transfer",
+        },
+      ],
+      assumptions: [],
+      conflictsWith: [],
+    };
+    const generator: ItineraryGenerator = {
+      generate: vi.fn(async () => ({
+        summary: "Visit Sydney after an untimed transfer",
+        activities: [
+          {
+            day: 1,
+            startTime: "13:00",
+            endTime: "14:00",
+            location: "Sydney Museum",
+            detail: "This activity cannot be safely placed after the transfer",
+          },
+        ],
+        assumptions: [],
+      })),
+    };
+
+    const result = await createItineraryAgent({ generator }).invoke({
+      brief: trip,
+      context: ctx,
+      board: { proposals: [transport] },
+    });
+
+    expect(result.items.filter(({ day }) => day === 1)).toEqual([]);
   });
 });

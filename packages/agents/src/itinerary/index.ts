@@ -21,7 +21,7 @@ import { z } from "zod/v4";
 import { createAgent, tool } from "langchain";
 import { createRoutedChatModel, readStructuredResponse } from "../models";
 import { dateForDay, planningDays, routeProblem } from "../transport/validation";
-import { cities, cityForDay, scheduledHops } from "../transport/legs";
+import { cities, cityForDay, parseCityHop, scheduledHops } from "../transport/legs";
 import { avoidBlockedWindows } from "./revision";
 import { mockEnabled } from "@trip/tools";
 import { TRAVELLER_PREFERENCES_RULE } from "../prompts/traveller-preferences";
@@ -125,21 +125,56 @@ function citiesForStayNights(
     })
     .sort((left, right) => left.checkIn.localeCompare(right.checkIn));
 
-  let currentCity = knownCities[0];
+  let currentCity: string | undefined = knownCities[0];
+  let locationSource: "fallback" | "stay" | "transfer" = "fallback";
   return Array.from({ length: days }, (_, index) => {
     const date = dateForDay(brief.dates[0], index + 1);
-    const stay =
-      scheduled.find(({ checkIn, checkOut }) => checkIn <= date && date < checkOut) ??
-      (date === brief.dates[1] ? scheduled.at(-1) : undefined);
+    const stay = scheduled.find(({ checkIn, checkOut }) => checkIn <= date && date < checkOut);
     const transfers = transferWindows.get(index + 1) ?? [];
-    for (const transfer of transfers) {
-      if (transfer.from !== currentCity) return [];
+    if (!currentCity) return [];
+    if (!transfers.length) {
+      if (stay) {
+        if (locationSource === "transfer" && currentCity !== stay.city) {
+          currentCity = undefined;
+          return [];
+        }
+        currentCity = stay.city;
+        if (locationSource !== "transfer") locationSource = "stay";
+      } else if (locationSource === "fallback") {
+        currentCity = fallback[index]?.at(-1) ?? currentCity;
+      }
+      return [currentCity];
+    }
+    const timed = transfers.every(({ startTime, endTime }) => startTime && endTime);
+    const remaining = [...transfers];
+    const ordered: TransferWindow[] = [];
+    while (remaining.length) {
+      const candidates = remaining.filter(({ from }) => from === currentCity);
+      if (candidates.length !== 1) {
+        currentCity = undefined;
+        return [];
+      }
+      const [transfer] = candidates;
+      if (
+        ordered.length &&
+        timed &&
+        minutes(transfer.startTime!) < minutes(ordered.at(-1)!.endTime!)
+      ) {
+        currentCity = undefined;
+        return [];
+      }
+      ordered.push(transfer);
+      remaining.splice(remaining.indexOf(transfer), 1);
       currentCity = transfer.to;
     }
-    if (!stay) return fallback[index] ?? [];
-    const transferCities = [...new Set(transfers.flatMap(({ from, to }) => [from, to]))];
-    if (currentCity !== stay.city) return [];
-    return transferCities.includes(stay.city) ? transferCities : [stay.city];
+    locationSource = "transfer";
+    const transferCities = [...new Set(ordered.flatMap(({ from, to }) => [from, to]))];
+    if (!stay) return transferCities;
+    if (currentCity !== stay.city) {
+      currentCity = undefined;
+      return [];
+    }
+    return transferCities;
   });
 }
 
@@ -147,16 +182,12 @@ function transferWindowsByDay(
   destination: string,
   transport?: AgentProposal,
 ): Map<number, TransferWindow[]> {
-  const knownCities = cities(destination);
   const windows = new Map<number, TransferWindow[]>();
   for (const item of transport?.items ?? []) {
     if (!item.day) continue;
-    const [rawFrom, rawTo] = (item.location ?? "").split(" → ").map((part) => part.trim());
-    const from = knownCities.find(
-      (city) => city.toLocaleLowerCase() === rawFrom?.toLocaleLowerCase(),
-    );
-    const to = knownCities.find((city) => city.toLocaleLowerCase() === rawTo?.toLocaleLowerCase());
-    if (!from || !to) continue;
+    const hop = parseCityHop(destination, item.location);
+    if (!hop) continue;
+    const { from, to } = hop;
     const startTime =
       item.startTime && item.endTime && TIME.test(item.startTime) && TIME.test(item.endTime)
         ? item.startTime
@@ -182,10 +213,10 @@ function transferWindowsByDay(
     }
     windows.set(item.day, dayWindows);
   }
-  for (const dayWindows of windows.values())
-    dayWindows.sort((left, right) =>
-      left.startTime && right.startTime ? minutes(left.startTime) - minutes(right.startTime) : 0,
-    );
+  for (const dayWindows of windows.values()) {
+    if (dayWindows.every(({ startTime, endTime }) => startTime && endTime))
+      dayWindows.sort((left, right) => minutes(left.startTime!) - minutes(right.startTime!));
+  }
   return windows;
 }
 
@@ -232,7 +263,7 @@ function validateDraft(
 ): ItineraryDraft {
   const parsed = ItineraryDraft.parse(draft);
 
-  if (dayCities && placesByCity && placesByCity.size > 1) {
+  if (dayCities && placesByCity) {
     const cityOf = new Map<string, string[]>();
     for (const [city, found] of placesByCity)
       for (const place of found) {
