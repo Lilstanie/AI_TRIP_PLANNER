@@ -13,7 +13,15 @@ export function PhoneMine({ model }: { model: WorkspaceModel }) {
   const { dataMode, busy } = session;
   const visibleTrips = new Set(history.trips.map((trip) => trip.id));
 
-  const { newChat, newTrip, selectTrip: openTrip } = session;
+  const { newChat, newTrip, selectTrip } = session;
+  const openTrip = (id: string) => {
+    selectTrip(id);
+    requestAnimationFrame(() =>
+      document
+        .querySelector<HTMLButtonElement>(".phone-topbar__title-button")
+        ?.focus({ preventScroll: true }),
+    );
+  };
 
   return (
     <div className="phone-mine">

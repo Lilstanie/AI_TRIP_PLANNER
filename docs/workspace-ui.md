@@ -224,6 +224,8 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
   - Mine contains search, New chat, New trip, Trips/Calendar, the chats list and Settings & account.
     Search filters chats and trips; opening or starting either selects Chat. Each chat has a visible
     Rename/Delete row menu on touch. Data mode and interface language live here; the data-mode button shows its text label in both languages.
+    Opening a trip from Mine moves keyboard focus to the trip-title button, whose accessible name
+    identifies the destination and dates.
   - Crossing the phone width keeps the traveller on the same thing: narrowing with Your trips open
     continues in Mine, so the tab bar stays available, and narrowing with the Trip drawer open shows
     the Trip tab. Widening from Mine shows Your trips, widening from Trip opens the Trip drawer over
