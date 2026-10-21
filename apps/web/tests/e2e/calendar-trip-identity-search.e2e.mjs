@@ -264,9 +264,9 @@ try {
     check(
       duplicateLabels.length === 2 &&
         duplicateLabels.every((label, index) =>
-          width <= 520 ? label === `#${index + 1}` : label === `Trip to Sydney · ${index + 1}`,
+          width <= 520 ? label === `Syd·${index + 1}` : label === `Trip to Sydney · ${index + 1}`,
         ),
-      `#482 ${width}px visible labels distinguish duplicate trips`,
+      `#482 ${width}px visible labels keep destination and distinguish duplicate trips`,
       duplicateLabels,
     );
     if (width <= 520) {
@@ -309,7 +309,7 @@ try {
         renderedLabels.length === 2 &&
           renderedLabels.every(
             (label, index) =>
-              label.text === `#${index + 1}` &&
+              label.text === `Syd·${index + 1}` &&
               label.visible &&
               Number.parseFloat(label.fontSize) >= 12 &&
               label.clientWidth > 0 &&

@@ -343,9 +343,12 @@ function TripCalendar({
                     const baseTitle = t("Trip to {destination}", { destination });
                     const title = titles.get(trip.id) ?? baseTitle;
                     const compactSuffix = title.match(/ · (\d+)$/)?.[1];
+                    const compactIdentity = compactSuffix
+                      ? `${Array.from(destination).slice(0, 3).join("")}·${compactSuffix}`
+                      : undefined;
                     const visibleTitle = compact
                       ? compactSuffix
-                        ? `#${compactSuffix}`
+                        ? compactIdentity
                         : title === baseTitle
                           ? destination
                           : title
@@ -356,7 +359,7 @@ function TripCalendar({
                       <button
                         type="button"
                         key={trip.id}
-                        className="trip-calendar__trip"
+                        className={`trip-calendar__trip${compactSuffix && compact ? " trip-calendar__trip--compact" : ""}`}
                         data-start={time === utc(start) ? "true" : undefined}
                         data-end={time === utc(end) ? "true" : undefined}
                         style={{ background: from }}

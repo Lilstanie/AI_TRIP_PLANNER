@@ -427,10 +427,10 @@
   white-space: nowrap;
 }
 .trip-calendar__visible-label--compact {
-  padding: 0 3px;
+  padding: 0 1px;
   border-radius: var(--radius-sm);
   background: rgb(0 0 0 / 28%);
-  font-size: 13px;
+  font-size: 12px;
   line-height: 18px;
 }
 .trip-calendar__trip[data-start="true"] {
@@ -446,6 +446,9 @@
 }
 .trip-calendar__trip[data-start="true"][data-end="true"] {
   width: calc(100% - var(--space-2));
+}
+.trip-calendar__trip--compact {
+  padding-inline: 1px !important;
 }
 .trip-calendar + .trips-page__empty,
 .trip-calendar > .trips-page__empty {
