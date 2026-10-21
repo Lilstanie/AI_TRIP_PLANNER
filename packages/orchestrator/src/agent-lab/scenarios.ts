@@ -8,6 +8,9 @@ export interface AgentLabScenarioRules {
   sectionCount: number;
 
   infeasibleBudget?: { minimumSupportedCost: number };
+  requiredMealEvidenceGroups?: readonly (readonly string[])[];
+  actionableBrief?: { minimumScheduledActivities: number; requiredMealTerms: readonly string[] };
+  tripDays?: number;
 }
 
 export interface AgentLabScenario {
@@ -35,7 +38,19 @@ const tokyoBrief: TripBrief = {
   preferences: ["Vegetarian food", "No early starts"],
 };
 
-function scriptedBaselinePlan(brief: TripBrief): TripPlan {
+type ScriptedPlanEvidence = {
+  activityDetails?: readonly {
+    detail: string;
+    location: string;
+    startTime: string;
+    endTime: string;
+  }[];
+  mealDetails?: readonly string[];
+  hotelDetail?: string;
+};
+
+function scriptedBaselinePlan(brief: TripBrief, evidence: ScriptedPlanEvidence = {}): TripPlan {
+  const preferences = brief.preferences ?? [];
   const nights = Math.round(
     (Date.parse(`${brief.dates[1]}T00:00:00Z`) - Date.parse(`${brief.dates[0]}T00:00:00Z`)) /
       86_400_000,
@@ -48,40 +63,40 @@ function scriptedBaselinePlan(brief: TripBrief): TripPlan {
   const itineraryDays = nights + 1;
   const nightLabel = nights === 1 ? "night" : "nights";
   const dayLabel = itineraryDays === 1 ? "day" : "days";
-  const activities = [
-    {
+  const activities = (
+    evidence.activityDetails ?? [
+      {
+        detail: "Meiji Shrine and Harajuku walk",
+        startTime: "10:30",
+        endTime: "13:00",
+        location: "Meiji Shrine",
+      },
+      {
+        detail: "Asakusa and Sumida riverside",
+        startTime: "10:00",
+        endTime: "14:00",
+        location: "Asakusa",
+      },
+      {
+        detail: "Ueno museums and park",
+        startTime: "10:30",
+        endTime: "15:00",
+        location: "Ueno Park",
+      },
+      {
+        detail: "Shibuya and Daikanyama afternoon",
+        startTime: "11:00",
+        endTime: "17:00",
+        location: "Shibuya",
+      },
+    ]
+  )
+    .slice(0, itineraryDays)
+    .map((activity, index) => ({
       kind: "activity" as const,
-      detail: "Meiji Shrine and Harajuku walk",
-      day: 1,
-      startTime: "10:30",
-      endTime: "13:00",
-      location: "Meiji Shrine",
-    },
-    {
-      kind: "activity" as const,
-      detail: "Asakusa and Sumida riverside",
-      day: 2,
-      startTime: "10:00",
-      endTime: "14:00",
-      location: "Asakusa",
-    },
-    {
-      kind: "activity" as const,
-      detail: "Ueno museums and park",
-      day: 3,
-      startTime: "10:30",
-      endTime: "15:00",
-      location: "Ueno Park",
-    },
-    {
-      kind: "activity" as const,
-      detail: "Shibuya and Daikanyama afternoon",
-      day: 4,
-      startTime: "11:00",
-      endTime: "17:00",
-      location: "Shibuya",
-    },
-  ].slice(0, itineraryDays);
+      ...activity,
+      day: index + 1,
+    }));
   return TripPlan.parse({
     tripId: brief.tripId,
     brief,
@@ -151,7 +166,9 @@ function scriptedBaselinePlan(brief: TripBrief): TripPlan {
           items: [
             {
               kind: "hotel",
-              detail: `Shinjuku hotel fixture · ${nights} ${nightLabel} · one room`,
+              detail:
+                evidence.hotelDetail ??
+                `Shinjuku hotel fixture · ${nights} ${nightLabel} · ${brief.dates[0]} to ${brief.dates[1]} · one room`,
               estCost: stayCost,
               day: 1,
               location: "Shinjuku",
@@ -188,27 +205,23 @@ function scriptedBaselinePlan(brief: TripBrief): TripPlan {
         id: "dining",
         label: "Food",
         status: "draft",
-        summary: `Vegetarian-friendly meals for ${nights} ${nightLabel}.`,
+        summary: `${preferences.join(" and ")} meals for ${nights} ${nightLabel}.`,
         estCost: diningCost,
         proposal: {
           agent: "dining",
-          summary: `Vegetarian-friendly meals for ${nights} ${nightLabel}.`,
-          items: [
-            {
-              kind: "meal",
-              detail: `${nights} vegetarian-friendly dinner ${nights === 1 ? "allowance" : "allowances"} for two travellers`,
-              estCost: dinnerCost,
-              day: 1,
-              location: "Tokyo",
-            },
-            {
-              kind: "meal",
-              detail: "Vegetarian-friendly lunch and café allowance",
-              estCost: cafeCost,
-              day: Math.min(nights, 2),
-              location: "Tokyo",
-            },
-          ],
+          summary: `${preferences.join(" and ")} meals for ${nights} ${nightLabel}.`,
+          items: (
+            evidence.mealDetails ?? [
+              `${nights} vegetarian-friendly dinner ${nights === 1 ? "allowance" : "allowances"} for two travellers`,
+              "Vegetarian-friendly lunch and café allowance",
+            ]
+          ).map((detail, index) => ({
+            kind: "meal" as const,
+            detail,
+            estCost: index === 0 ? dinnerCost : cafeCost,
+            day: index === 0 ? 1 : Math.min(nights, 2),
+            location: "Tokyo",
+          })),
           assumptions: ["Fixture meal costs are A$ estimates for the whole travelling party."],
           conflictsWith: [],
           floorCost: diningCost,
@@ -281,6 +294,7 @@ export const agentLabScenarios: readonly AgentLabScenario[] = [
       "hop-date",
       "itinerary-by-city",
       "stay-transition",
+      "stay-nights",
       "trip-dates",
       "total-consistent",
     ],
@@ -290,6 +304,8 @@ export const agentLabScenarios: readonly AgentLabScenario[] = [
     title: "Tokyo with an explicit budget",
     baseBrief: tokyoBrief,
     changes: { budgetTotal: 6000 },
+    expectedOutcome: "complete",
+    mustPassCheckIds: ["sections", "destination", "budget"],
   }),
   scenarioVariant({
     id: "tokyo-couple-infeasible-budget",
@@ -297,30 +313,89 @@ export const agentLabScenarios: readonly AgentLabScenario[] = [
     baseBrief: tokyoBrief,
     changes: { budgetTotal: 1700 },
     expectedOutcome: "safe-stop",
+    mustPassCheckIds: ["sections", "destination", "evidence-floor", "infeasibility-reported"],
+    rules: { infeasibleBudget: { minimumSupportedCost: 3320 } },
   }),
   scenarioVariant({
     id: "tokyo-conflicting-preferences",
     title: "Tokyo with conflicting food preferences",
     baseBrief: tokyoBrief,
     changes: { preferences: ["vegetarian meals", "local meat specialties"] },
+    expectedOutcome: "complete",
+    mustPassCheckIds: ["sections", "destination", "meal-preference-tradeoff"],
+    rules: {
+      vegetarianMeals: false,
+      requiredMealEvidenceGroups: [["vegetarian"], ["local meat"]],
+    },
+    fixtureEvidence: {
+      hotelDetail: "Shinjuku hotel fixture · 4 nights · 2026-11-10 to 2026-11-14 · one room",
+      mealDetails: [
+        "Vegetarian ramen and shojin ryori dinner for two travellers",
+        "Tokyo local meat specialties: wagyu and yakitori tasting",
+      ],
+    },
   }),
   scenarioVariant({
     id: "tokyo-date-night-edge",
     title: "Tokyo, one-night edge case",
     baseBrief: tokyoBrief,
     changes: { dates: ["2026-11-10", "2026-11-11"] },
+    expectedOutcome: "complete",
+    mustPassCheckIds: ["sections", "destination", "trip-days", "stay-date-range", "stay-nights"],
+    rules: { tripDays: 2 },
   }),
   scenarioVariant({
     id: "tokyo-vague-brief",
     title: "Tokyo with a vague brief",
     baseBrief: tokyoBrief,
     changes: { preferences: ["something relaxing", "good local food"] },
+    expectedOutcome: "complete",
+    mustPassCheckIds: ["sections", "destination", "actionable-brief"],
+    rules: {
+      vegetarianMeals: false,
+      actionableBrief: { minimumScheduledActivities: 2, requiredMealTerms: ["local"] },
+    },
+    fixtureEvidence: {
+      activityDetails: [
+        {
+          detail: "Relaxed morning stroll through a traditional garden",
+          location: "Shinjuku Gyoen",
+          startTime: "10:30",
+          endTime: "12:00",
+        },
+        {
+          detail: "Low-key craft and coffee afternoon",
+          location: "Yanaka",
+          startTime: "13:00",
+          endTime: "15:00",
+        },
+        {
+          detail: "Unhurried riverside walk",
+          location: "Sumida River",
+          startTime: "11:00",
+          endTime: "13:00",
+        },
+        {
+          detail: "Choose-your-own-pace neighbourhood visit",
+          location: "Daikanyama",
+          startTime: "11:00",
+          endTime: "13:00",
+        },
+      ],
+      mealDetails: [
+        "Local Tokyo ramen and market lunch",
+        "Local izakaya dinner with seasonal dishes",
+      ],
+    },
   }),
   scenarioVariant({
     id: "tokyo-short-window",
     title: "Tokyo, four-day planning window",
     baseBrief: tokyoBrief,
     changes: { dates: ["2026-11-10", "2026-11-13"] },
+    expectedOutcome: "complete",
+    mustPassCheckIds: ["sections", "destination", "trip-days"],
+    rules: { tripDays: 4 },
   }),
   scenarioVariant({
     id: "paris-family-feasible",
@@ -329,6 +404,8 @@ export const agentLabScenarios: readonly AgentLabScenario[] = [
     changes: { budgetTotal: 6500 },
     expectedOutcome: "complete",
     source: parisFamilyInfeasible,
+    mustPassCheckIds: ["sections", "destination", "budget"],
+    clearInfeasibleBudget: true,
   }),
   scenarioVariant({
     id: "kyoto-multi-city-tight-budget",
@@ -337,6 +414,16 @@ export const agentLabScenarios: readonly AgentLabScenario[] = [
     changes: { budgetTotal: 4200 },
     expectedOutcome: "complete",
     source: tokyoKyotoMultiCity,
+    mustPassCheckIds: [
+      "sections",
+      "destination",
+      "hop-date",
+      "itinerary-by-city",
+      "stay-transition",
+      "stay-nights",
+      "trip-dates",
+      "total-consistent",
+    ],
   }),
 ];
 
@@ -345,8 +432,12 @@ type ScenarioVariantConfig = {
   title: string;
   baseBrief: TripBrief;
   changes: Partial<TripBrief>;
-  expectedOutcome?: AgentLabScenario["expectedOutcome"];
+  expectedOutcome: AgentLabScenario["expectedOutcome"];
   source?: AgentLabScenario;
+  mustPassCheckIds: readonly string[];
+  rules?: Partial<AgentLabScenarioRules>;
+  clearInfeasibleBudget?: boolean;
+  fixtureEvidence?: ScriptedPlanEvidence;
 };
 
 function scenarioVariant({
@@ -354,12 +445,17 @@ function scenarioVariant({
   title,
   baseBrief,
   changes,
-  expectedOutcome = "complete",
+  expectedOutcome,
   source,
+  mustPassCheckIds,
+  rules,
+  clearInfeasibleBudget,
+  fixtureEvidence,
 }: ScenarioVariantConfig): AgentLabScenario {
   const base = source ?? tokyoBenchmarkBase;
   const brief = TripBrief.parse({ ...baseBrief, ...changes, tripId: `agent-lab-${id}` });
-  const sourcePlan = !source && changes.dates ? scriptedBaselinePlan(brief) : base.fixturePlan;
+  const preferences = brief.preferences ?? [];
+  const sourcePlan = source?.fixturePlan ?? scriptedBaselinePlan(brief, fixtureEvidence);
   const fixturePlan = TripPlan.parse({
     ...sourcePlan,
     tripId: brief.tripId,
@@ -367,23 +463,24 @@ function scenarioVariant({
     budgetTotal: brief.budgetTotal,
     overrunPct: ((sourcePlan.estTotal - brief.budgetTotal) / brief.budgetTotal) * 100,
   });
-  const scenarioRules =
-    id === "paris-family-feasible"
-      ? (Object.fromEntries(
-          Object.entries(base.rules).filter(([key]) => key !== "infeasibleBudget"),
-        ) as AgentLabScenarioRules)
-      : base.rules;
+  const scenarioRules = { ...base.rules, ...rules };
+  if (clearInfeasibleBudget) delete scenarioRules.infeasibleBudget;
   return {
     ...base,
     id,
     title,
     summary: `Versioned benchmark scenario: ${title.toLowerCase()}.`,
-    fixtureVersion: `${id}-v1`,
+    fixtureVersion: `${id}-v2`,
     brief,
     rules: scenarioRules,
+    preferences: preferences.map((value, index) => ({
+      key: `brief.${index + 1}`,
+      value,
+      source: "filter" as const,
+    })),
     fixturePlan,
     expectedOutcome,
-    mustPassCheckIds: ["sections", "destination"],
+    mustPassCheckIds,
   };
 }
 

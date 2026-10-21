@@ -11,6 +11,12 @@ export const LOCAL_JOURNEYS = [
     description:
       "Tight-budget fixture journey covering artifact download, replay, comparison, invalid artifacts, and resulting UI and status.",
   },
+  {
+    name: "pending-ask-refresh",
+    smoke: false,
+    description:
+      "Restores a pending question across reload and keeps it answerable after a failed submission.",
+  },
 ];
 
 export const SMOKE_JOURNEYS = LOCAL_JOURNEYS.filter((journey) => journey.smoke).map(

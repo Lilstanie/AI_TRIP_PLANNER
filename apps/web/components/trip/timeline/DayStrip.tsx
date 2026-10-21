@@ -6,19 +6,25 @@ export function DayStrip({
   days,
   selected,
   today,
+  panelId,
   onSelect,
 }: {
   days: { day: number; date: string; stops: number; attention: boolean }[];
   selected: number;
   today?: number;
+  panelId: string;
   onSelect(day: number): void;
 }) {
   const { t } = useLocale();
   const strip = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    strip.current
-      ?.querySelector<HTMLElement>('[aria-selected="true"]')
-      ?.scrollIntoView?.({ block: "nearest", inline: "nearest" });
+    const list = strip.current;
+    const active = list?.querySelector<HTMLElement>('[aria-selected="true"]');
+    if (!list || !active) return;
+    const bounds = list.getBoundingClientRect();
+    const day = active.getBoundingClientRect();
+    if (day.left < bounds.left) list.scrollLeft += day.left - bounds.left;
+    else if (day.right > bounds.right) list.scrollLeft += day.right - bounds.right;
   }, [selected]);
   const move = (to: number) => {
     const next = Math.min(Math.max(1, to), days.length);
@@ -33,7 +39,9 @@ export function DayStrip({
           type="button"
           role="tab"
           data-day={day}
+          id={`${panelId}-day-tab-${day}`}
           className="day-strip__day"
+          aria-controls={panelId}
           aria-selected={day === selected}
           tabIndex={day === selected ? 0 : -1}
           onClick={() => onSelect(day)}

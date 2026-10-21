@@ -30,11 +30,11 @@ const tokyoDay = (day: number, detail: string, location: string) => ({
   endTime: "15:00",
   location: `${location}, Tokyo`,
 });
-const kyotoDay = (day: number, detail: string, location: string) => ({
+const kyotoDay = (day: number, detail: string, location: string, startTime = "11:00") => ({
   kind: "activity",
   detail: `${detail} in Kyoto`,
   day,
-  startTime: "11:00",
+  startTime,
   endTime: "15:00",
   location: `${location}, Kyoto`,
 });
@@ -63,7 +63,7 @@ function scriptedPlan(): TripPlan {
             tokyoDay(2, "Asakusa and the Sumida riverside", "Asakusa"),
             tokyoDay(3, "Ueno museums and park", "Ueno Park"),
             tokyoDay(4, "Shibuya crossing and Shinjuku Gyoen", "Shibuya"),
-            kyotoDay(5, "Fushimi Inari shrine walk", "Fushimi Inari"),
+            kyotoDay(5, "Fushimi Inari shrine walk", "Fushimi Inari", "11:30"),
             kyotoDay(6, "Arashiyama bamboo grove and river", "Arashiyama"),
             kyotoDay(7, "Gion and Kiyomizu-dera", "Kiyomizu-dera"),
             kyotoDay(8, "Nishiki Market and the Philosopher's Path", "Nishiki Market"),
@@ -193,7 +193,7 @@ export const tokyoKyotoMultiCity: AgentLabScenario = {
   title: "Tokyo and Kyoto, multi-city",
   summary:
     "Seven nights from Sydney with A$6,500: the train, the stays and each day's activities must agree on one move.",
-  fixtureVersion: "tokyo-kyoto-multi-city-v1",
+  fixtureVersion: "tokyo-kyoto-multi-city-v2",
   brief,
   rules: { earliestStartTime: "10:00", vegetarianMeals: false, sectionCount: 5 },
   expectedOutcome: "complete",
@@ -203,6 +203,7 @@ export const tokyoKyotoMultiCity: AgentLabScenario = {
     "hop-date",
     "itinerary-by-city",
     "stay-transition",
+    "stay-nights",
     "trip-dates",
     "total-consistent",
   ],

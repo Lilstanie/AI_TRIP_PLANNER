@@ -23,7 +23,9 @@ catalog exists yet. Snapshots write `version` 4 and accept AUD version 3, recove
 see [source budget entry](../feature/2026-10-04-source-budget-entry.md). They are schema-validated on load; corrupt data,
 unknown versions and quota failures are reported and never overwritten automatically.
 
-There is no Save trip button, Saved trips dialog, `save`, `loadSaved` or `restore`, and no
+Catalog records use schema version 5. Version 4 catalogs remain readable and are normalized to
+version 5 on the next write; pending-question progress is optional, so existing saved questions
+remain valid without a data rewrite. There is no Save trip button, Saved trips dialog, `save`, `loadSaved` or `restore`, and no
 `SAVED_KEY` or `parseSaved`. The app neither reads nor deletes `trip-saved-v1`: data a browser
 already holds there stays untouched, and nothing migrates it. Switching or starting a trip aborts
 the in-flight request and drops its controller, so a late response cannot overwrite the trip now

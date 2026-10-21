@@ -32,7 +32,9 @@ one round with the scenario's own preferences, and `multi-agent-targeted-revisio
 workflow's bounded revision loop. All three emit a versioned trace artifact through the same
 runner, evaluator and metrics, and none persists anything. The registry holds four scenarios; a scenario
 whose evidence shows no plan can meet the budget declares `rules.infeasibleBudget`, and a scenario with
-several cities is checked for a consistent move between them (`evaluate.ts`). Every artifact records
+several cities is checked for a consistent move between them (`evaluate.ts`); on a transfer day, timed
+activities may be in either endpoint city only when they fall wholly before departure or after arrival.
+Every artifact records
 `AGENT_LAB_EVALUATOR_VERSION` and the scenario's fixture version. A fixture run executes with mock tools and no
 model whatever the environment holds; a live run (`dataMode: "live"`) uses the real adapters and models and reports
 the usage the provider returned (`buildAgentLabUsage`). `agentLabStrategySupportsLive` says which strategies have a

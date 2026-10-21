@@ -8,6 +8,7 @@ export type ItemAction =
   | { kind: "details"; detail: string; location: string }
   | { kind: "note"; note: string }
   | { kind: "booked"; booked: boolean }
+  | { kind: "progress"; progress: NonNullable<ProposalItem["progress"]> }
   | { kind: "remove" }
   | { kind: "idea" }
   | { kind: "day"; day: number }
@@ -46,6 +47,12 @@ export function applyItemAction(
     index = items.length - 1;
   }
   const item = items[index]!;
+
+  if (action.kind === "progress") {
+    item.progress = action.progress;
+    next.editVersion = (plan.editVersion ?? 0) + 1;
+    return TripPlan.parse(next);
+  }
 
   switch (action.kind) {
     case "details": {

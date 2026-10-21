@@ -33,9 +33,10 @@ import { usePhoneKeyboard } from "./usePhoneKeyboard";
 import { usePhoneTripUpdates } from "./usePhoneTripUpdates";
 import { usePhoneBack } from "./usePhoneBack";
 import type { MobileView } from "./workspace-helpers";
+import { dateRangeLabel } from "@/lib/workspace/trip-facts";
 
 export function WorkspaceView({ model }: { model: WorkspaceModel }) {
-  const { t, delta, notice: localizeNotice } = useLocale();
+  const { t, locale, delta, notice: localizeNotice } = useLocale();
   const { session, layout, itinerary, history } = model;
   const {
     plan,
@@ -91,6 +92,16 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
   const { keyboardOpen } = usePhoneKeyboard(phone);
   const { tripUpdated } = usePhoneTripUpdates(model);
   usePhoneBack(phone);
+
+  useEffect(() => {
+    if (page !== "workspace" || blank || !plan) {
+      document.title = "AI Trip Planner";
+      return;
+    }
+
+    const dates = dateRangeLabel(plan.brief.dates[0], plan.brief.dates[1], locale);
+    document.title = [plan.brief.destination, dates, "AI Trip Planner"].filter(Boolean).join(" · ");
+  }, [blank, locale, page, plan]);
 
   const revisions = usePlanRevision({
     plan,
@@ -391,6 +402,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                     providers={dataMode.providers}
                     onChange={dataMode.choose}
                     disabled={busy}
+                    liveAvailable={dataMode.liveAvailable}
                   />
                   <LanguageToggle />
                 </div>
@@ -488,6 +500,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                 onSend={session.send}
                 ask={ask}
                 onAnswer={session.answer}
+                onAskProgress={session.updateAskProgress}
                 onDismissAsk={session.dismissAsk}
                 onEdit={edit}
                 onStart={edit}

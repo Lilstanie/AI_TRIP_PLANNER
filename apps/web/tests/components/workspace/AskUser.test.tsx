@@ -70,8 +70,8 @@ describe("Structured questions in the workspace", () => {
 
     expect(within(log()).getByText(/Pace: Relaxed/)).toBeTruthy();
     expect(screen.queryByRole("heading", { name: "How busy should each day be?" })).toBeNull();
-    expect(screen.getByLabelText("Message AI Trip Planner")).toBeTruthy();
     await waitFor(() => reply("Days reshuffled"));
+    expect(screen.getByLabelText("Message AI Trip Planner")).toBeTruthy();
 
     const [, answer] = chatBodies(fetcher);
     expect(answer.message).toBe("Pace: Relaxed\nAnything else?: No");

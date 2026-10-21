@@ -1,4 +1,4 @@
-import { detectCurrency, toAud } from "@trip/shared";
+import { detectCurrency, partyPeople, toAud, type TravellerParty } from "@trip/shared";
 import { BriefPatchSchema, type BriefPatch } from "./brief";
 import { DATE_TOKEN, parseTripDate } from "./dates";
 
@@ -15,7 +15,72 @@ function cleanDestination(value: string): string {
     .trim();
 }
 
-export function extractBriefPatchLocally(message: string): BriefPatch {
+const CHINESE_DIGITS: Record<string, number> = {
+  一: 1,
+  二: 2,
+  两: 2,
+  三: 3,
+  四: 4,
+  五: 5,
+  六: 6,
+  七: 7,
+  八: 8,
+  九: 9,
+  十: 10,
+};
+
+function chineseNumber(token: string | undefined): number | undefined {
+  if (
+    !token ||
+    !/^(?:[一二两三四五六七八九]|十[一二三四五六七八九]?|[二三四五六七八九]十[一二三四五六七八九]?)$/.test(
+      token,
+    )
+  )
+    return undefined;
+  if (!token.includes("十")) return CHINESE_DIGITS[token];
+  const [tens, ones] = token.split("十");
+  return (CHINESE_DIGITS[tens!] ?? 1) * 10 + (CHINESE_DIGITS[ones!] ?? 0);
+}
+
+const COUNT = "\\d+|[零〇一二两三四五六七八九十]+";
+const PARTY_PATTERNS = [
+  ["adults", new RegExp(`(${COUNT})\\s*(?:位|个|名)?\\s*(?:adults?\\b|大人|成人)`, "iu")],
+  [
+    "children",
+    new RegExp(
+      `(${COUNT})\\s*(?:位|个|名)?\\s*(?:children\\b|child\\b|kids?\\b|小孩|儿童|孩子)`,
+      "iu",
+    ),
+  ],
+  [
+    "infants",
+    new RegExp(`(${COUNT})\\s*(?:位|个|名)?\\s*(?:infants?\\b|bab(?:y|ies)\\b|婴儿)`, "iu"),
+  ],
+  [
+    "seniors",
+    new RegExp(`(${COUNT})\\s*(?:位|个|名)?\\s*(?:seniors?\\b|elderly\\b|老人|长者)`, "iu"),
+  ],
+  [
+    "pets",
+    new RegExp(`(${COUNT})\\s*(?:只|条|个)?\\s*(?:pets?\\b|dogs?\\b|cats?\\b|宠物|狗|猫)`, "iu"),
+  ],
+] as const;
+
+function extractParty(message: string): TravellerParty | undefined {
+  const counts = PARTY_PATTERNS.map(([, pattern]) => {
+    const token = message.match(pattern)?.[1];
+    if (!token) return undefined;
+    const parsed = /^\d+$/.test(token) ? Number(token) : chineseNumber(token);
+    return parsed !== undefined && parsed >= 0 && parsed <= 99 ? parsed : undefined;
+  });
+  if (counts.every((entry) => entry === undefined)) return undefined;
+  const party = Object.fromEntries(
+    PARTY_PATTERNS.map(([key], index) => [key, counts[index] ?? 0]),
+  ) as TravellerParty;
+  return partyPeople(party) > 0 ? party : undefined;
+}
+
+export function extractBriefPatchLocally(message: string, knownGroupSize?: number): BriefPatch {
   const patch: BriefPatch = {};
 
   const dates = message.match(
@@ -46,31 +111,15 @@ export function extractBriefPatchLocally(message: string): BriefPatch {
   if (group?.[1]) patch.groupSize = amount(group[1]);
   if (!patch.groupSize) {
     const chineseGroup = message.match(/([零〇一二两三四五六七八九十百千万亿]+)\s*(?:个)?人(?!民)/);
-    const values: Record<string, number> = {
-      一: 1,
-      二: 2,
-      两: 2,
-      三: 3,
-      四: 4,
-      五: 5,
-      六: 6,
-      七: 7,
-      八: 8,
-      九: 9,
-      十: 10,
-    };
-    const token = chineseGroup?.[1];
-    if (
-      token &&
-      /^(?:[一二两三四五六七八九]|十[一二三四五六七八九]?|[二三四五六七八九]十[一二三四五六七八九]?)$/.test(
-        token,
-      )
-    ) {
-      const [tens, ones] = token.split("十");
-      patch.groupSize = token.includes("十")
-        ? (values[tens!] ?? 1) * 10 + (values[ones!] ?? 0)
-        : values[token];
-    }
+    const written = chineseNumber(chineseGroup?.[1]);
+    if (written !== undefined) patch.groupSize = written;
+  }
+
+  const party = extractParty(message);
+  if (party) {
+    if (patch.groupSize === undefined && knownGroupSize === undefined)
+      patch.groupSize = partyPeople(party);
+    patch.party = party;
   }
 
   const fromTo = message.match(
@@ -96,7 +145,7 @@ export function extractBriefPatchLocally(message: string): BriefPatch {
     /^\s*([A-Za-z][A-Za-z &.-]+?)\s*[,，]\s*\d{4}-\d{2}-\d{2}/,
   );
   const chineseDestination = message.match(
-    /(?:去|前往|目的地(?:是|为|改成|调整为)?)[：:\s]*([\p{Script=Han}A-Za-z][\p{Script=Han}A-Za-z&·\- ]*?)(?=\s*(?:旅行|旅游|玩|，|,|。|预算|\d{4}-|$))/u,
+    /(?:去|前往|目的地(?:是|为|改成|调整为)?)[：:\s]*([\p{Script=Han}A-Za-z][\p{Script=Han}A-Za-z&、·\- ]*?)(?=\s*(?:旅行|旅游|玩|，|,|。|预算|\d{4}-|$))/u,
   );
   const destination = cleanDestination(
     englishDestination?.[1] ??
@@ -106,7 +155,7 @@ export function extractBriefPatchLocally(message: string): BriefPatch {
       chineseDestination?.[1] ??
       "",
   );
-  if (destination) patch.destination = destination;
+  if (destination) patch.destination = destination.replace(/\s*[&、]\s*/gu, " & ");
 
   const passport =
     message.match(/([A-Za-z][A-Za-z ]+?)\s+passport/i) ??

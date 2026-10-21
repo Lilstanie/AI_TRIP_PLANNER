@@ -206,6 +206,9 @@ function TripCalendar({
   onOpenTrip(id: string): void;
 }) {
   const { t, locale } = useLocale();
+  const titles = distinctTripTitles(trips, (trip) =>
+    t("Trip to {destination}", { destination: trip.snapshot.plan.brief.destination }),
+  );
 
   const [cursor, setCursor] = useState(() => {
     const today = todayUtc();
@@ -222,6 +225,13 @@ function TripCalendar({
     return date.getUTCFullYear() === cursor.year && date.getUTCMonth() === cursor.month
       ? today
       : Date.UTC(cursor.year, cursor.month, 1);
+  });
+  const dateFormatter = new Intl.DateTimeFormat(intlLocale(locale), {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
   });
   const first = Date.UTC(cursor.year, cursor.month, 1);
   const lead = (new Date(first).getUTCDay() + 6) % 7;
@@ -317,13 +327,7 @@ function TripCalendar({
                   role="gridcell"
                   key={index}
                   className="trip-calendar__day"
-                  aria-label={new Intl.DateTimeFormat(intlLocale(locale), {
-                    weekday: "long",
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                    timeZone: "UTC",
-                  }).format(date)}
+                  aria-label={dateFormatter.format(date)}
                   aria-current={time === today ? "date" : undefined}
                   tabIndex={time === activeTime ? 0 : -1}
                   data-calendar-time={time}
@@ -335,7 +339,12 @@ function TripCalendar({
                   <span className="trip-calendar__date">{date.getUTCDate()}</span>
                   {here.map((trip) => {
                     const [start, end] = trip.snapshot.plan.brief.dates;
-
+                    const { destination } = trip.snapshot.plan.brief;
+                    const baseTitle = t("Trip to {destination}", { destination });
+                    const title = titles.get(trip.id) ?? baseTitle;
+                    const visibleTitle = compact
+                      ? `${destination}${title.slice(baseTitle.length)}`
+                      : title;
                     const labelled = time === utc(start) || weekday === 0;
                     const [from] = coverColours(trip.snapshot.plan.brief.destination);
                     return (
@@ -347,22 +356,14 @@ function TripCalendar({
                         data-end={time === utc(end) ? "true" : undefined}
                         style={{ background: from }}
                         aria-label={t("{name}: {start} to {end}", {
-                          name: t("Trip to {destination}", {
-                            destination: trip.snapshot.plan.brief.destination,
-                          }),
-                          start,
-                          end,
+                          name: title,
+                          start: dateFormatter.format(new Date(utc(start))),
+                          end: dateFormatter.format(new Date(utc(end))),
                         })}
                         tabIndex={labelled ? 0 : -1}
                         onClick={() => onOpenTrip(trip.id)}
                       >
-                        {labelled
-                          ? compact
-                            ? trip.snapshot.plan.brief.destination
-                            : t("Trip to {destination}", {
-                                destination: trip.snapshot.plan.brief.destination,
-                              })
-                          : " "}
+                        {labelled ? visibleTitle : " "}
                       </button>
                     );
                   })}

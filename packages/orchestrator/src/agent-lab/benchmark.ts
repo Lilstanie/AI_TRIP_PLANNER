@@ -5,7 +5,7 @@ import { agentLabStrategySummaries } from "./strategies";
 
 export const agentLabBenchmark = {
   id: "agent-lab",
-  version: "1.0.1",
+  version: "1.0.7",
   artifactSchemaVersion: AGENT_LAB_ARTIFACT_SCHEMA_VERSION,
   fixture: {
     dataMode: "fixture",

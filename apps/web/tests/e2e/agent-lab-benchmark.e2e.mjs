@@ -198,7 +198,14 @@ async function main() {
   const STRATEGIES = benchmark.fixture.strategies.map(({ id }) => id);
   const faultProfiles = benchmark.fixture.faults;
   const liveScenarioIds = benchmark.live.scenarioIds;
-  check(benchmark.version === "1.0.1", "versioned benchmark registry is served");
+  check(benchmark.version === "1.0.7", "versioned benchmark registry is served");
+  check(
+    scenarioById
+      .get("tokyo-conflicting-preferences")
+      ?.mustPassCheckIds.includes("meal-preference-tradeoff") &&
+      scenarioById.get("tokyo-vague-brief")?.mustPassCheckIds.includes("actionable-brief"),
+    "conflicting-preference and vague-brief scenarios declare their specific must-pass checks",
+  );
   const browser = await chromium.launch({ channel: process.env.CHANNEL });
   const context = await browser.newContext({
     viewport: { width: 1440, height: 1000 },
@@ -207,7 +214,11 @@ async function main() {
   const page = await context.newPage();
   const pageErrors = [];
   page.on("pageerror", (error) => pageErrors.push(String(error)));
-  page.on("console", (message) => message.type() === "error" && pageErrors.push(message.text()));
+  page.on("console", (message) => {
+    const url = message.location().url;
+    if (message.type() === "error" && !url.endsWith("/favicon.ico"))
+      pageErrors.push(`${message.text()} (${url})`);
+  });
   const loaded = await page.goto(`${BASE}/agent-lab`);
   await page.getByRole("heading", { name: "Agent Lab", level: 1 }).waitFor();
   check(loaded?.status() === 200, "Agent Lab page loads for artifact replay");
@@ -232,17 +243,24 @@ async function main() {
           result.artifact.plan.sections
             .find(({ id }) => id === "itinerary")
             ?.proposal?.items.filter(({ kind }) => kind === "activity") ?? [];
+        const dayChecks = result.artifact.metrics.checks.filter(
+          ({ id }) => id === "trip-days" || id === "stay-date-range" || id === "stay-nights",
+        );
         check(
           new Set(days.map(({ day }) => day)).has(1) &&
             new Set(days.map(({ day }) => day)).has(2) &&
-            days.every(({ day }) => day <= 2),
+            days.every(({ day }) => day >= 1 && day <= 2) &&
+            dayChecks.length === 3 &&
+            dayChecks.every(({ passed }) => passed),
           "one-night scenario fixture covers both inclusive itinerary days",
         );
         const stay = result.artifact.plan.sections
           .find(({ id }) => id === "accommodation")
           ?.proposal?.items.find(({ kind }) => kind === "hotel");
         check(
-          stay?.detail.includes("1 night") && stay.estCost === 380,
+          /\b1 night\b/i.test(stay?.detail ?? "") &&
+            stay?.detail.includes("2026-11-10 to 2026-11-11") &&
+            stay.estCost === 380,
           "one-night scenario fixture has matching stay evidence and cost",
         );
       }
@@ -251,6 +269,38 @@ async function main() {
         check(
           Math.abs(overrunPct - ((estTotal - budgetTotal) / budgetTotal) * 100) < 0.001,
           "infeasible-budget fixture overrun percentage uses its registered budget",
+        );
+      }
+      if (
+        strategyId === "single-agent-baseline" &&
+        scenarioId === "tokyo-conflicting-preferences"
+      ) {
+        const meals =
+          result.artifact.plan.sections
+            .find(({ id }) => id === "dining")
+            ?.proposal?.items.filter(({ kind }) => kind === "meal") ?? [];
+        check(
+          meals.some(({ detail }) => /vegetarian/i.test(detail)) &&
+            meals.some(({ detail }) => /local meat/i.test(detail)),
+          "conflicting-preference fixture includes evidence for both stated meal preferences",
+        );
+      }
+      if (strategyId === "single-agent-baseline" && scenarioId === "tokyo-vague-brief") {
+        const activities =
+          result.artifact.plan.sections
+            .find(({ id }) => id === "itinerary")
+            ?.proposal?.items.filter(({ kind }) => kind === "activity") ?? [];
+        const meals =
+          result.artifact.plan.sections
+            .find(({ id }) => id === "dining")
+            ?.proposal?.items.filter(({ kind }) => kind === "meal") ?? [];
+        check(
+          activities.length >= 2 &&
+            activities.every(({ detail, day, location, startTime }) =>
+              Boolean(detail && day && location && startTime),
+            ) &&
+            meals.some(({ detail, location }) => /local/i.test(detail) && Boolean(location)),
+          "vague-brief fixture turns broad preferences into scheduled activities and local dining evidence",
         );
       }
       artifacts.push(result.artifact);
@@ -399,14 +449,20 @@ async function main() {
           artifact.dataMode === "fixture" &&
           !artifact.faultProfileId,
       );
-      const passed = rows.filter(
-        (artifact) =>
-          artifact.status === "completed" && checksOf(artifact).every((item) => item.passed),
-      ).length;
+      const passed = rows.filter((artifact) => {
+        const scenario = scenarioById.get(artifact.scenarioId);
+        const checks = checksOf(artifact);
+        return (
+          actualOutcome(artifact) === scenario.expectedOutcome &&
+          (scenario.mustPassCheckIds ?? []).every(
+            (id) => checks.find((item) => item.id === id)?.passed === true,
+          )
+        );
+      }).length;
       return {
         strategyId,
         passed,
-        failed: rows.length - rows.filter((artifact) => artifact.status === "completed").length,
+        failed: rows.length - passed,
         denominator: scenarioIds.length,
         passRate: scenarioIds.length ? passed / scenarioIds.length : null,
         medianLatencyMs: median(
@@ -451,7 +507,7 @@ async function main() {
       "",
       "Fixture data only. Failed and stopped runs remain in the denominators. Usage is unavailable when the provider did not report it.",
       "",
-      "| Strategy | Passed | Failed/stopped | Denominator | Pass rate | Median fixture latency | Usage reported / unavailable |",
+      "| Strategy | Passed | Not passed | Denominator | Pass rate | Median fixture latency | Usage reported / unavailable |",
       "| --- | ---: | ---: | ---: | ---: | ---: | ---: |",
       ...report.summaries.map(
         (item) =>
@@ -508,6 +564,22 @@ async function main() {
           ).length,
     ),
     "strategy denominators include every scenario and exclude separately reported fault experiments",
+  );
+  check(
+    report.summaries.every((summary) => {
+      const rows = report.runs.filter(
+        (row) => row.strategyId === summary.strategyId && !row.faultProfileId,
+      );
+      const passed = rows.filter(
+        (row) => row.actualOutcome === row.expectedOutcome && row.mustPassChecksPassed,
+      ).length;
+      return (
+        summary.passed === passed &&
+        summary.failed === summary.denominator - passed &&
+        summary.passed + summary.failed === summary.denominator
+      );
+    }),
+    "strategy summaries count expected outcomes and must-pass checks and partition every scenario",
   );
   check(
     report.faultSummaries.every(
@@ -654,7 +726,7 @@ async function main() {
   );
   check(
     pageErrors.length === 0,
-    `Agent Lab replay emitted no browser errors (${pageErrors.length})`,
+    `Agent Lab replay emitted no browser errors (${pageErrors.length}): ${pageErrors.join(" | ")}`,
   );
   await browser.close();
   if (failures.length) throw new Error(`${failures.length} benchmark E2E checks failed`);

@@ -21,6 +21,15 @@ export const WORKSPACE_ZH = {
   guesthouse: "宾馆",
   "free cancellation": "免费取消",
   "Minimum rating: {v0}": "最低评分：{v0}",
+  Planned: "待游览",
+  Visited: "已游览",
+  Skipped: "已跳过",
+  "Mark as planned": "标记为待游览",
+  "Mark as visited": "标记为已游览",
+  "Mark as skipped": "标记为已跳过",
+  "{name} marked as planned.": "{name}已标记为待游览。",
+  "{name} marked as visited.": "{name}已标记为已游览。",
+  "{name} marked as skipped.": "{name}已标记为已跳过。",
   "The map could not load. Try again.": "地图暂时无法加载，请重试。",
   Website: "官方网站",
   "Open in OpenStreetMap": "在 OpenStreetMap 中打开",
@@ -364,6 +373,8 @@ export const WORKSPACE_ZH = {
   "Actions for {v0}": "{v0}的操作",
   "Mock data: bundled fixtures. No provider requests and no allowance spent.":
     "示例数据：使用内置示例，不会请求服务商，也不会消耗额度。",
+  "Mock data: bundled fixtures. Sign in to plan with live hotel and flight prices.":
+    "示例数据：使用内置示例。登录后即可使用真实的酒店和航班价格规划行程。",
   "Live data: real hotel and flight prices. Each plan spends the shared monthly search allowance.":
     "实时数据：提供真实酒店和航班价格。每次规划都会使用共享的月度搜索额度。",
   "Live data selected, but no SERPAPI_KEY is configured, so results fall back to estimates.":
@@ -380,7 +391,9 @@ export const WORKSPACE_ZH = {
   "No chats yet.": "尚无聊天。",
   "Trip search results": "行程搜索结果",
   "Chat search results": "聊天搜索结果",
+  "{count} trip found": "找到 {count} 个行程",
   "{count} trips found": "找到 {count} 个行程",
+  "{count} chat found": "找到 {count} 个聊天",
   "{count} chats found": "找到 {count} 个聊天",
   "Close your trip": "关闭行程",
   "Fares from {v0} to {v1}": "{v0}到{v1}的票价",

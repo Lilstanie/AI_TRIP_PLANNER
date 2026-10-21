@@ -56,6 +56,14 @@ Contract: `ChatRequest`, `ChatResponse` and `AgentProgressEvent` in `packages/sh
 }
 ```
 
+`brief.destination` holds the cities to visit, in visit order, joined with `&`
+("Sydney & Wollongong"); `cities` in `@trip/agents` and the Where editor both read that form. The
+model extraction supplies that form directly. Offline extraction normalises explicit `&` and `、`
+separators. A name containing "and", such as "Trinidad and Tobago", asks the traveller to keep the
+full name or confirm separate stops before planning. Confirmation retains the collected trip fields;
+an existing plan stays unchanged until the answer arrives. Structured model results are not split
+again by a conjunction heuristic.
+
 `brief.preferences` and `known.preferences` are optional: the traveller's own trip preferences
 ("Vegetarian food", "No early starts"), at most `MAX_TRIP_PREFERENCES` (12) entries of 1 to
 `MAX_TRIP_PREFERENCE_LENGTH` (200) characters after trimming, both in
@@ -100,9 +108,14 @@ fares stay in the provider's currency.
 
 `brief.party` and `known.party` are optional too: `{ adults, children, infants, seniors, pets }`,
 whole numbers from 0 to 99 (`TravellerParty` in `packages/shared/src/contracts.ts`), set by the Who
-editor's steppers. They break `groupSize` down and add pets, who are not counted in it; `groupSize`
+editor's steppers and by the coordinator when the traveller says who is travelling rather than only a
+total ("1 adult and 1 child", "两位大人和一个小孩"). A later message that gives a new total drops the
+breakdown, because it no longer describes the party. They break `groupSize` down and add pets, who are not counted in it; `groupSize`
 stays authoritative for every cost, and specialists are told to ignore a party whose people do not
 add up to it.
+
+The mock browser check `party-breakdown-browser` submits the stated breakdown through chat and
+checks all five Who counters at desktop and phone widths, including reopening the saved trip.
 
 Optional `assistant`: `{ style, memory }` from Settings → Personalization (`AssistantSettings` in
 `packages/shared/src/chat.ts`).
@@ -161,7 +174,7 @@ blocks, text files are inlined into its message under a delimiter naming the fil
 specialists' inputs are unchanged. Without a provider key, images are ignored and the inlined text is
 still read.
 
-New planning requests whose start or end date precedes the current calendar date at the destination receive an explicit clarification instead of a plan. The web client includes coordinates from a selected destination suggestion; the server uses an offline coordinate-to-time-zone lookup. If no coordinates are available, the check falls back to UTC. The traveller can provide corrected dates or explicitly confirm the historical dates in response to the matching clarification. Supplying an existing plan preserves historical editing. When an edit leaves the material itinerary, stays, transport and costs unchanged, the reply states that the plan was unchanged rather than claiming the requested edit completed.
+New planning requests whose start or end date precedes the current calendar date at the destination receive an explicit clarification instead of a plan. The web client includes coordinates from a selected destination suggestion; the server uses an offline coordinate-to-time-zone lookup. If no coordinates are available, the check falls back to UTC. The traveller can provide corrected dates or explicitly confirm the historical dates in response to the matching clarification. The confirmation is accepted on its own line in a multi-question card reply (for example, `Dates: Confirm historical trip`); a confirmation without the matching clarification is not accepted. Supplying an existing plan preserves historical editing. When an edit leaves the material itinerary, stays, transport and costs unchanged, the reply states that the plan was unchanged rather than claiming the requested edit completed.
 
 Optional `mode` values:
 
@@ -185,7 +198,10 @@ An invalid request body, or `mode: "plan"` without a brief, returns HTTP 400 bef
 with `{ "error": "The request was invalid. Please retry.", "notice": { … } }`.
 
 An optional `x-trip-data-mode` header of `mock` or `live` chooses fixtures or live providers for this
-request only; any other value, or no header, uses the deployment default.
+request only; any other value, or no header, uses the deployment default. The header is a request,
+not a decision: `requestDataMode` in `apps/web/lib/auth/live-data.ts` downgrades `live` to `mock`
+for a caller who may not spend the allowance, so a signed-out visitor still gets a working plan from
+fixtures.
 
 ## `GET /api/agent-lab/benchmark`
 
@@ -233,8 +249,11 @@ named check (`id`, `label`, `passed`) measured against the scenario's rules; `bu
 negative when the plan is over budget. A scenario whose evidence shows no plan can fit replaces `budget` and
 `no-conflicts` with `evidence-floor` (the estimate is not below the cheapest supported options) and
 `infeasibility-reported` (the plan names the supported minimum); a multi-city scenario adds `hop-date`,
-`itinerary-by-city`, `stay-transition`, `trip-dates` and `total-consistent`. `versions.evaluator` is
-`scenario-rules-v2` and `versions.fixture` names the scenario's fixture. The comparison figures `rounds`, `toolCalls`, `fallbacks`,
+`itinerary-by-city`, `stay-transition`, `stay-nights`, `trip-dates` and `total-consistent`.
+`trip-dates` requires the brief and first and last stay dates to match the trip dates.
+`stay-date-range` remains for standalone accommodation date-boundary scenarios.
+`versions.evaluator` is `scenario-rules-v8` and `versions.fixture` names the scenario's fixture. Competing meal preferences require separate meal records as evidence. Scenario-specific checks may also include
+`meal-preference-tradeoff`, `actionable-brief`, `trip-days` and `stay-date-range`. The comparison figures `rounds`, `toolCalls`, `fallbacks`,
 `failedAgents` and `unresolvedConflicts` are counted from the trace and the plan; `latencyMs` is the
 run's wall time without display pacing (`durationMs` includes it) and, in fixture mode, measures
 orchestration overhead only. The artifact also records `groundedSections`, `duplicateStops`,
@@ -267,11 +286,18 @@ reported, and the trace never carries a model's own reasoning.
 ## `GET /api/data-mode`
 
 ```json
-{ "configured": "mock", "providers": { "hotelsAndFlights": false, "maps": true } }
+{
+  "configured": "mock",
+  "liveAvailable": false,
+  "providers": { "hotelsAndFlights": false, "maps": true }
+}
 ```
 
-`configured` is the deployment default (`live` only when `USE_MOCK_TOOLS=false`). `providers` reports
-whether `SERPAPI_KEY` and `MAPS_API_KEY` are set, never their values. The response is not cached.
+`configured` is the deployment default (`live` only when `USE_MOCK_TOOLS=false`). `liveAvailable` is
+whether this caller may spend the provider allowance: true for a signed-in traveller, and off a
+deployment when Clerk is not configured. The workspace hides the live toggle when it is false.
+`providers` reports whether `SERPAPI_KEY` and `MAPS_API_KEY` are set, never their values. The
+response is not cached.
 
 ## `POST /api/places/search`
 

@@ -8,7 +8,7 @@ import { ThinkingProcess } from "./ThinkingProcess";
 import { Composer } from "./Composer";
 import { MessageItem } from "./MessageItem";
 import { QuestionComposer } from "./QuestionComposer";
-import type { PendingAsk, QuestionAnswer } from "@/lib/workspace/ask-user";
+import type { PendingAsk, QuestionAnswer, QuestionProgress } from "@/lib/workspace/ask-user";
 import type { PreparedAttachment } from "@/lib/chat/attachments";
 import type { Notice } from "@/lib/i18n/notice";
 import { useLocale } from "../account/LocaleProvider";
@@ -33,6 +33,7 @@ export function ChatPanel({
   attachNotices,
   ask,
   onAnswer,
+  onAskProgress,
   onDismissAsk,
 }: {
   plan?: TripPlan;
@@ -67,9 +68,11 @@ export function ChatPanel({
 
   onAnswer?: (answers: QuestionAnswer[]) => void;
 
+  onAskProgress?: (progress: QuestionProgress) => void;
+
   onDismissAsk?: () => void;
 }) {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const stream = useRef<HTMLDivElement>(null);
 
   const restored = useRef(messages.length);
@@ -100,7 +103,7 @@ export function ChatPanel({
                   type="button"
                   title={t(label)}
                   disabled={busy || locked}
-                  onClick={() => onSend(t(text, params))}
+                  onClick={() => onSend(translate(locale, text, params))}
                 >
                   {t(label)}
                 </button>
@@ -131,7 +134,15 @@ export function ChatPanel({
         )}
       </div>
       {ask && onAnswer && onDismissAsk ? (
-        <QuestionComposer key={ask.key} request={ask} onSubmit={onAnswer} onCancel={onDismissAsk} />
+        <QuestionComposer
+          key={ask.key}
+          request={ask}
+          onSubmit={onAnswer}
+          onCancel={onDismissAsk}
+          onProgress={onAskProgress}
+          submitting={busy}
+          {...(onCancel ? { onStop: onCancel } : {})}
+        />
       ) : (
         <form
           className="chat__form"
