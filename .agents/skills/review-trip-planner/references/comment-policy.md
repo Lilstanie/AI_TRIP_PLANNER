@@ -81,7 +81,7 @@ node .agents/skills/review-trip-planner/scripts/check-comment-policy-ci.mjs --ev
 node apps/web/tests/ci/comment-policy.e2e.mjs
 ```
 
-Use `--event push` with the push's before/after SHAs for main. The adapter saves its resolved scope,
+Without `--output` the adapter prints the report to stdout only, which suits a local check. Use `--event push` with the push's before/after SHAs for main. The adapter saves its resolved scope,
 violations, allowed comments, outcome and errors in the report. CI retains this report and regression
 summaries for seven days. The job has read-only repository permissions and no browser setup.
 Required-check configuration remains a separate repository setting.
