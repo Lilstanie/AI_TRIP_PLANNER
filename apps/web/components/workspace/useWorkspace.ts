@@ -27,7 +27,7 @@ import {
   type SessionState,
 } from "@/lib/workspace/session";
 import { useDataMode } from "@/lib/workspace/data-mode";
-import { draftDefaults } from "@/lib/account/settings";
+import { defaultSettings, draftDefaults } from "@/lib/account/settings";
 import { useSettings } from "../account/SettingsProvider";
 import { useInterfaceLocale } from "../account/LocaleProvider";
 import { useAccountSync } from "../account/useAccountSync";
@@ -126,6 +126,13 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
     });
   const syncStatus = useAccountSync({ catalog, setCatalog, storageEnabled });
   const blank = !plan;
+  const profileKey = JSON.stringify(draftDefaults(settings));
+  const appliedDefaults = useRef(draftDefaults(defaultSettings()));
+  useEffect(() => {
+    const next = JSON.parse(profileKey) as Draft;
+    dispatch({ kind: "defaults-changed", previous: appliedDefaults.current, next });
+    appliedDefaults.current = next;
+  }, [profileKey, dispatch]);
 
   useEffect(
     () => () => {
