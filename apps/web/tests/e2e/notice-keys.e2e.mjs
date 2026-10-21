@@ -1,6 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
+import { startExamplePlan } from "./trip-setup.mjs";
 
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT ?? "playwright");
@@ -233,9 +234,7 @@ async function plan(browser, { width, lang, run }) {
     const chat = page.getByRole("tab", { name: L.chatTab });
     if (await chat.count()) await chat.click();
   }
-  const suggestion = page.locator(".chat-empty__suggestions button").first();
-  await suggestion.waitFor({ state: "visible", timeout: 60_000 });
-  await suggestion.click();
+  await startExamplePlan(page, { englishPrompt: lang === "zh" });
   await page.locator(".msg-item--agent .msg-item__body").first().waitFor({ timeout: 180_000 });
   await settle(page, 1200);
   if (phone) await page.getByRole("tab", { name: L.tripTab }).first().click();

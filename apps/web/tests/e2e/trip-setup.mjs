@@ -116,3 +116,26 @@ export async function waitForQuiet(page, stub) {
     await settle(page, 250);
   }
 }
+
+export async function startExamplePlan(page, { englishPrompt = false } = {}) {
+  if (!englishPrompt) {
+    const suggestion = page.locator(".chat-empty__suggestions button").first();
+    await suggestion.waitFor({ state: "visible", timeout: 60_000 });
+    await suggestion.click();
+    return;
+  }
+  const isoDay = (days) => {
+    const date = new Date();
+    date.setDate(date.getDate() + days);
+    return [
+      date.getFullYear(),
+      String(date.getMonth() + 1).padStart(2, "0"),
+      String(date.getDate()).padStart(2, "0"),
+    ].join("-");
+  };
+  const composer = page.locator(".composer__input");
+  await composer.fill(
+    `Plan a 4-day trip to Sydney for 2 people from ${isoDay(21)} to ${isoDay(24)}, total budget 4000.`,
+  );
+  await composer.press("Enter");
+}
