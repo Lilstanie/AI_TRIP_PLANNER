@@ -55,6 +55,28 @@
 .trip__budget-delta--over {
   color: var(--warn);
 }
+.trip-panel__budget-breakdown {
+  display: grid;
+  gap: var(--space-1);
+  margin: var(--space-2) 0 0;
+  padding: var(--space-2) 0 0;
+  border-top: 1px solid var(--border);
+  list-style: none;
+  font-size: var(--font-size-meta);
+}
+.trip-panel__budget-breakdown li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.trip-panel__budget-breakdown li > :last-child {
+  color: var(--text-dim);
+  text-align: right;
+}
+.trip-panel__budget-breakdown strong {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
 
 .agent-activity__error {
   flex-basis: 100%;
