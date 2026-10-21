@@ -420,6 +420,12 @@ when one could not be met, and never treat one as a verified fact.
 - `bookedStay`: the traveller has booked their stay.
 - `noAccommodation`: the traveller does not need a stay; this is independent of `bookedStay`.
 
+A trip length the traveller states in days ("3 days", "5-day", "四天", "三日游") overrides the
+model's end date: `statedTripDays` in `packages/orchestrator/src/chat-offline.ts` adds up the day
+counts in the message, and the end date becomes the start date plus that count minus one, so N days
+are N calendar days with no extra departure day. An explicit date range in the message wins, and
+"in 3 days" or a one-day count is not read as a length.
+
 `specialistBrief` in `packages/orchestrator/src/supervisor.ts` appends the learned list to the
 traveller's own for the specialists, deduplicated and capped at 12. The stored brief keeps the two
 lists apart.

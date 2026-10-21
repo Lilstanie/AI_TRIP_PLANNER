@@ -44,7 +44,7 @@ import {
   type BriefPatch,
 } from "./brief";
 import { COORDINATOR_REASONING_EPISODE, createReasoningSink } from "./reasoning-sink";
-import { extractBriefPatchLocally } from "./chat-offline";
+import { extractBriefPatchLocally, statedTripDays } from "./chat-offline";
 import { groundedReply, unchangedPlanReply } from "./chat-grounding";
 import { isInfeasible, minimumCost } from "./conflicts";
 import { runOrchestrator, type OrchestratorOptions } from "./workflow";
@@ -372,6 +372,7 @@ Attachments:
 
 Dates:
 - Pass dates as YYYY-MM-DD. Rewriting a date the traveller gave is a format conversion, not an inference.
+- endDate is the last day of the trip. A trip of N days ends N - 1 days after it starts; never add a separate departure day.
 - If the day/month order is genuinely ambiguous, do not pass dates at all — ask the traveller which they meant, in their language. Asking is better than planning a trip in the wrong month.
 
 Money:
@@ -757,6 +758,12 @@ async function runConversationAgent(
       } else if (patch.party && knownGroupSize !== undefined) {
         patch.groupSize = knownGroupSize;
       }
+      const days = stated.dates ? undefined : statedTripDays(request.message);
+      const start = patch.dateStart ?? brief?.dates[0] ?? known.dates?.[0];
+      if (days && start)
+        patch.dateEnd = new Date(Date.parse(`${start}T00:00:00.000Z`) + (days - 1) * 86_400_000)
+          .toISOString()
+          .slice(0, 10);
       if (request.assistant?.memory === false) delete patch.learnedPreferences;
       if (brief) brief = applyBriefPatch(brief, patch, request.tripId);
       else known = mergeBriefPatch(known, patch);
