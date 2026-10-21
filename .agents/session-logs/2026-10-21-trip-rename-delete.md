@@ -22,7 +22,7 @@ contract-impact: none
 - Failure inventory written first: `apps/web/tests/e2e/trip-rename-delete.failures.md`.
 - `LABEL=before pnpm -s e2e trip-rename-delete --prod` on main: failed at "trip row has an Actions menu". After: 16/16 checks passed (desktop 1440 and phone 390).
 - `phone-mine`, `calendar-trip-identity-search`, `workspace-control-overflow`: pass.
-- Web typecheck and lint passed.
+- `pnpm --filter @trip/web test`: 57 files, 642 tests passed; `Workspace.test.tsx` now expects the trip menu instead of its absence. Web typecheck and lint passed.
 
 ## Notes for the next person
 
