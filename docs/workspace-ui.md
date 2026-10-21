@@ -590,7 +590,9 @@ checked by the server: time, place, leg, a drag, Remove, Move to ideas, Move to 
 moves. Details, notes, booked and visit progress apply in the browser. The checks are deterministic and make no LLM calls.
 
 - **Layout.** A day strip of tabs (`Day 2 · Sun, 18 Oct · 3 stops`, flagged when a stop needs a
-  place) picks the day. The day is a vertical line in time order (`lib/trip/timeline.ts`): an
+  place) picks the day. Each tab has a unique ID and controls the single visible day panel; that
+  panel is labelled by the selected tab and contains the day's heading and timeline. Ideas remain
+  outside the day panel. The day is a vertical line in time order (`lib/trip/timeline.ts`): an
   flight in first (untimed flights and hops), timed inter-city hops and stops by start time, then one
   stay row per night, and on the last day the flight out, which ends the day. "Staying at …" shows on
   later nights. Narrow timeline containers use a 56 px time column so five-digit times fit before the aligned stop dots. Fixed rows show an icon, a title, one detail line and their cost ("Fare not published"
