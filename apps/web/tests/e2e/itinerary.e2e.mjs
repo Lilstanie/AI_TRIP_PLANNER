@@ -1,6 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
+import { waitUntil } from "./trip-setup.mjs";
 
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT ?? "playwright");
@@ -72,6 +73,19 @@ async function openTrip(browser, { width, height }) {
     await route.fulfill({ response, json });
   });
   await page.route("**/api/places/search", (route) => route.fulfill({ json: searchReply }));
+  await page.route("**/api/places/details", (route) => {
+    const { placeId } = route.request().postDataJSON();
+    return route.fulfill({
+      json: {
+        place: {
+          id: placeId,
+          displayName: { text: "Mock stop" },
+          formattedAddress: "Sydney NSW, Australia",
+          location: { latitude: -33.8568, longitude: 151.2153 },
+        },
+      },
+    });
+  });
   await page.goto(BASE);
   await page.waitForSelector(".workspace-app");
   await page.waitForLoadState("networkidle");
@@ -338,7 +352,7 @@ async function run(browser, { width, height, tag }) {
   const total = await drawer.locator(".timeline-stop").count();
   await choose(stopsIn(dayList(3)).filter({ hasText: NOTE }).first(), "Remove");
   check(
-    (await drawer.locator(".timeline-stop").count()) === total - 1,
+    await waitUntil(async () => (await drawer.locator(".timeline-stop").count()) === total - 1),
     `${tag}: remove drops the stop`,
   );
   await drawer.getByRole("button", { name: /^Undo/ }).click();

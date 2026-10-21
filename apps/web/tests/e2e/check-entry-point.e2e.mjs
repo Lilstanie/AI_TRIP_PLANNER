@@ -20,7 +20,6 @@ mkdirSync(OUT, { recursive: true });
 
 const PLANNER_WALK_MIN = 37;
 const REPLACED = "The new plan replaced your last change to the timeline.";
-const TRY_AGAIN = "The plan changed while this change was being checked. Try the change again.";
 
 const DAY_ONE = [
   { name: "Sydney Opera House", start: "09:00", end: "10:00" },
@@ -349,9 +348,8 @@ async function main() {
       await settle(page, 1500);
       await settleChecks(page);
       check(
-        (await trip(page).locator(".timeline-status--error li", { hasText: TRY_AGAIN }).count()) ===
-          1,
-        "4: a change whose plan moved on says to try the change again",
+        (await trip(page).locator(".timeline-status--error li").count()) === 0,
+        "4: a change whose plan moved on is dropped without an error on the other trip",
       );
       const other = await startOf(page, 1, 1);
       check(

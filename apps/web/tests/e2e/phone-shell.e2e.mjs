@@ -338,7 +338,13 @@ try {
   writeFileSync(`${OUT}/summary.json`, JSON.stringify({ base: BASE, results }, null, 2));
 }
 
-for (const name of ["phone-mine", "phone-map", "phone-state"]) {
+const companionSummary = {
+  "phone-mine": resolve("output/playwright/phone-mine/summary.json"),
+  "phone-map": resolve("output/playwright/phone-map", process.env.LABEL ?? "after", "summary.json"),
+  "phone-state": resolve("output/playwright/phone-state/summary.json"),
+};
+
+for (const [name, summaryPath] of Object.entries(companionSummary)) {
   const run = spawnSync(
     process.execPath,
     [fileURLToPath(new URL(`./${name}.e2e.mjs`, import.meta.url))],
@@ -349,9 +355,7 @@ for (const name of ["phone-mine", "phone-map", "phone-state"]) {
   );
   check(run.status === 0, `${name}: companion walk completed`);
   if (run.status === 0) {
-    const report = JSON.parse(
-      readFileSync(resolve(`output/playwright/${name}/summary.json`), "utf8"),
-    );
+    const report = JSON.parse(readFileSync(summaryPath, "utf8"));
     results.push(...report.results);
   }
 }
