@@ -60,6 +60,40 @@ let browser;
 let phase = "browser-startup";
 let observedRows = [];
 let observedTokens = {};
+
+function databaseThatChangesAfterSelect(database, change) {
+  let changed = false;
+  const racingDatabase = new Proxy(database, {
+    get(target, property) {
+      if (property === "select")
+        return (...args) => {
+          const wrapQuery = (query) =>
+            new Proxy(query, {
+              get(builder, member) {
+                if (member === "then")
+                  return (resolve, reject) =>
+                    builder.then(async (selected) => {
+                      if (!changed) {
+                        changed = true;
+                        await change();
+                      }
+                      return resolve(selected);
+                    }, reject);
+                const value = Reflect.get(builder, member, builder);
+                return typeof value === "function"
+                  ? (...methodArgs) => wrapQuery(value.apply(builder, methodArgs))
+                  : value;
+              },
+            });
+          return wrapQuery(target.select(...args));
+        };
+      const value = Reflect.get(target, property, target);
+      return typeof value === "function" ? value.bind(target) : value;
+    },
+  });
+  return { database: racingDatabase, changed: () => changed };
+}
+
 try {
   browser = await chromium.launch({
     headless: true,
@@ -218,6 +252,84 @@ try {
     freeCancellation: true,
   });
 
+  phase = "undo-reports-zero-row-race-as-not-undone";
+  await db.query(
+    `INSERT INTO account_memories (user_id, key, value, previous_value, undo_token, updated_at)
+     VALUES ($1, 'dietary', 'vegetarian', 'vegan', 'undo-race-token', now())
+     ON CONFLICT (user_id, key) DO UPDATE SET value=excluded.value,
+       previous_value=excluded.previous_value, undo_token=excluded.undo_token`,
+    [account],
+  );
+  const updateRace = databaseThatChangesAfterSelect(database, () =>
+    db.query(
+      "UPDATE account_memories SET undo_token='concurrent-replacement', value='gluten-free' WHERE user_id=$1 AND key='dietary'",
+      [account],
+    ),
+  );
+  fixture.configureMemoryFixture(updateRace.database, account);
+  const racedUndo = await undo.POST(
+    new Request("http://localhost/api/account/memory/undo", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ token: "undo-race-token" }),
+    }),
+  );
+  assert.equal(updateRace.changed(), true, "The test must replace the token after its read");
+  const raceResponse = await racedUndo.json();
+  assert.deepEqual(raceResponse, { undone: false });
+  assert.deepEqual(
+    (
+      await db.query(
+        "SELECT value, undo_token FROM account_memories WHERE user_id=$1 AND key='dietary'",
+        [account],
+      )
+    ).rows,
+    [{ value: "gluten-free", undo_token: "concurrent-replacement" }],
+  );
+  observedTokens.race = {
+    submitted: "undo-race-token",
+    replacement: "concurrent-replacement",
+    response: raceResponse,
+  };
+
+  await db.query(
+    `INSERT INTO account_memories (user_id, key, value, previous_value, undo_token, updated_at)
+     VALUES ($1, 'pace', 'relaxed pace', null, 'delete-race-token', now())
+     ON CONFLICT (user_id, key) DO UPDATE SET value=excluded.value,
+       previous_value=excluded.previous_value, undo_token=excluded.undo_token`,
+    [account],
+  );
+  const deleteRace = databaseThatChangesAfterSelect(database, () =>
+    db.query(
+      "UPDATE account_memories SET undo_token='concurrent-delete-replacement', value='packed pace' WHERE user_id=$1 AND key='pace'",
+      [account],
+    ),
+  );
+  fixture.configureMemoryFixture(deleteRace.database, account);
+  const racedDeleteUndo = await undo.POST(
+    new Request("http://localhost/api/account/memory/undo", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ token: "delete-race-token" }),
+    }),
+  );
+  assert.equal(deleteRace.changed(), true, "The test must replace the token after its read");
+  assert.deepEqual(await racedDeleteUndo.json(), { undone: false });
+  assert.deepEqual(
+    (
+      await db.query(
+        "SELECT value, undo_token FROM account_memories WHERE user_id=$1 AND key='pace'",
+        [account],
+      )
+    ).rows,
+    [{ value: "packed pace", undo_token: "concurrent-delete-replacement" }],
+  );
+  observedTokens.deleteRace = {
+    submitted: "delete-race-token",
+    replacement: "concurrent-delete-replacement",
+    response: { undone: false },
+  };
+
   assert.deepEqual(
     readPreferences([{ key: "accommodation", value: "apartment", source: "chat_confirmed" }])
       .stayType,
@@ -251,11 +363,13 @@ try {
           "partial preference merge",
           "planner reads structured and legacy values",
           "undo restores prior merged value",
+          "concurrent token replacement yields undone=false and preserves replacement",
+          "concurrent token replacement before first-write delete yields undone=false and preserves replacement",
         ],
         undoTokenSource: "streamed memoryChange token, verified equal to the persisted row token",
         browser: browser.version(),
         boundary:
-          "Browser-driven custom form posts through the production chat route, account-memory storage, undo route and accommodation preference reader; PGlite, Clerk identity and database client are fixture substitutions. No deployed Clerk/Neon, live models, provider integration or production workspace UI is exercised.",
+          "Browser-driven custom form posts through the production chat route, account-memory storage, undo route and accommodation preference reader. Both undo races are deterministically interleaved at the database-client boundary after the real token-select query; PGlite, Clerk identity and database client are fixture substitutions. No deployed Clerk/Neon, live models, provider integration or production workspace UI is exercised.",
       },
       null,
       2,

@@ -130,6 +130,9 @@ try {
     const requestBrief = { ...brief, tripId: body.tripId ?? brief.tripId };
     if (body.message.includes("profile precedence"))
       requestBrief.preferences = ["Dietary: vegetarian"];
+    if (body.message.includes("Chinese profile precedence")) requestBrief.preferences = ["不吃辣"];
+    if (body.message.includes("apartment profile precedence"))
+      requestBrief.preferences = ["We prefer apartment accommodation"];
     if (body.message.includes("trip precedence")) {
       requestBrief.preferences = ["Dietary: vegetarian"];
       requestBrief.learnedPreferences = ["Dietary: pescatarian"];
@@ -252,6 +255,29 @@ try {
   const trip = dietary(await send("Check trip precedence"));
   assert.match(trip, /dietary=Dietary: pescatarian/);
   assert.doesNotMatch(trip, /dietary=Dietary: vegetarian/);
+  const apartmentProfile = await send("Check apartment profile precedence");
+  assert.match(
+    JSON.stringify(proposal(apartmentProfile, "itinerary")),
+    /remembered interests \(museum\)/,
+    "Apartment profile must not suppress unrelated account interests",
+  );
+  await db.query(
+    "UPDATE account_memories SET value='Can eat spicy food' WHERE user_id='account-one' AND key='dietary'",
+  );
+  const chineseProfile = await send("Check Chinese profile precedence");
+  assert.match(
+    dietary(chineseProfile),
+    /dietary=不吃辣/,
+    "Chinese dietary profile must reach the dining specialist",
+  );
+  assert.doesNotMatch(
+    dietary(chineseProfile),
+    /dietary=Can eat spicy food/,
+    "Chinese profile must suppress contradictory account dietary memory",
+  );
+  await db.query(
+    "UPDATE account_memories SET value='Does not eat spicy food' WHERE user_id='account-one' AND key='dietary'",
+  );
   await page.screenshot({ path: resolve(output, "specialist-plan.png"), fullPage: true });
   async function toggleMemory(enabled) {
     await page.evaluate(

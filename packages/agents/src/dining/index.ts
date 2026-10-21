@@ -76,7 +76,7 @@ function tripDays([start, end]: [string, string]): number {
 
 function dietaryPreferences(preferences: UserPreference[]): UserPreference[] {
   return preferences.filter((preference) =>
-    /diet|food|meal|allerg|halal|kosher|vegetarian|vegan|plant[- ]based|gluten|lactose|celiac|shellfish|pescatarian/i.test(
+    /diet|food|meal|allerg|halal|kosher|vegetarian|vegan|plant[- ]based|gluten|lactose|celiac|shellfish|pescatarian|不吃|忌口|过敏|素食|纯素|清真|犹太洁食|无麸质|乳糖不耐/i.test(
       `${preference.key} ${preference.value}`,
     ),
   );

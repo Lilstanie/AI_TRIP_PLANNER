@@ -85,33 +85,35 @@ export async function undoAccountMemory(userId: string, token: string) {
     .from(accountMemories)
     .where(and(eq(accountMemories.userId, userId), eq(accountMemories.undoToken, token)));
   if (!row) return false;
-  if (row.previousValue === null)
-    await db
-      .delete(accountMemories)
-      .where(
-        and(
-          eq(accountMemories.userId, userId),
-          eq(accountMemories.key, row.key),
-          eq(accountMemories.undoToken, token),
-        ),
-      );
-  else
-    await db
-      .update(accountMemories)
-      .set({
-        value: row.previousValue,
-        previousValue: null,
-        undoToken: randomUUID(),
-        updatedAt: new Date(),
-      })
-      .where(
-        and(
-          eq(accountMemories.userId, userId),
-          eq(accountMemories.key, row.key),
-          eq(accountMemories.undoToken, token),
-        ),
-      );
-  return true;
+  const affected =
+    row.previousValue === null
+      ? await db
+          .delete(accountMemories)
+          .where(
+            and(
+              eq(accountMemories.userId, userId),
+              eq(accountMemories.key, row.key),
+              eq(accountMemories.undoToken, token),
+            ),
+          )
+          .returning({ key: accountMemories.key })
+      : await db
+          .update(accountMemories)
+          .set({
+            value: row.previousValue,
+            previousValue: null,
+            undoToken: randomUUID(),
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(accountMemories.userId, userId),
+              eq(accountMemories.key, row.key),
+              eq(accountMemories.undoToken, token),
+            ),
+          )
+          .returning({ key: accountMemories.key });
+  return affected.length > 0;
 }
 
 export function accountMemoryStore(userId?: string, enabled = true) {
