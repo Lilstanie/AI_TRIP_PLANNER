@@ -46,6 +46,8 @@ now. Implementation history and browser acceptance for each phase are in the
     title on one line with the linked trip's name under it. Renamed chat titles are preserved.
     Choosing any of them closes the panel. See
     [New chat and New trip](#conversations-trips-and-storage) for what the two starts do.
+  - Search splits whitespace-separated terms and requires every term to match across a chat's title
+    or messages, or a trip's title, destination or dates; term order does not matter.
   - Search announces matching trip and chat counts through polite live regions. English uses singular for one result and plural for multiple results; Chinese uses the same counting phrase. Empty searches stay silent, and no matches announce the existing empty message.
   - **Trips** replaces the top bar, chat and map with the Your trips page: a "Your trips" heading, a
     New trip button, and Trips and Calendar tabs (`role="tablist"`, arrow keys switch) drawn as a
@@ -53,7 +55,7 @@ now. Implementation history and browser acceptance for each phase are in the
     every trip as a 4:3 cover card with "Trip to <destination>" and "<destination> · <localized date range> · N days",
     grouped into Upcoming and Past. Calendar is a Monday-first month grid with previous, Today and
     next, drawing each trip as a band over its days, filled with the dark colour of its cover palette
-    so the white label stays readable, labelled where it starts and at each week's start; it opens on the next trip's month. Each trip band announces its destination and inclusive start and end dates using the same full localized weekday, date and year format as the date cells, with UTC keeping calendar dates stable across time zones. Each date cell has a full localized weekday, date and year name; today has `aria-current="date"`; arrow keys move visible focus across every date, including empty dates. Choosing a trip, a chat, New chat or New trip returns
+    so the white label stays readable, labelled where it starts and at each week's start; it opens on the next trip's month. Calendar labels and accessible names reuse the Trips card disambiguation for trips with the same destination, dates, group size and budget; compact labels keep the distinguishing suffix. Each trip band announces its title and inclusive start and end dates using the same full localized weekday, date and year format as the date cells, with UTC keeping calendar dates stable across time zones. Each date cell has a full localized weekday, date and year name; today has `aria-current="date"`; arrow keys move visible focus across every date, including empty dates. Choosing a trip, a chat, New chat or New trip returns
     to the workspace.
   - Trips keep no photos, so a cover is a gradient chosen by hashing the destination, with its
     initial; the same destination always gets the same colours.
@@ -114,7 +116,8 @@ now. Implementation history and browser acceptance for each phase are in the
     across the picked range, solid accent circles at its start and end, today outlined, and month
     navigation in the header. Past dates are disabled. A summary line above it reads "1 Oct – 4 Oct ·
     4 days" (or a prompt to choose dates while none are picked), with a Clear action beside it once a
-    date is picked. `DateRangePicker` (a calendar in its own dialog, used nowhere else at the moment)
+    date is picked. When dates exist, it opens on their start month; an undated trip opens on the
+    current month. `DateRangePicker` (a calendar in its own dialog, used nowhere else at the moment)
     shares the same styled calendar component (`TripCalendar`) so the two never drift apart.
   - Who is a stepper (− count +) per traveller kind: Adults (13–64), Children (2–12), Infants (under
     2), Seniors (65+) and Pets, each with its own remove/add buttons and a live count. The draft keeps
