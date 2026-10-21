@@ -8,7 +8,7 @@ import type {
 } from "@trip/shared";
 import { errorNotice, type Notice } from "@/lib/i18n/notice";
 import type { RouteResult } from "@/lib/integrations/google";
-import type { PendingAsk } from "./ask-user";
+import type { PendingAsk, QuestionProgress } from "./ask-user";
 import {
   AskUserError,
   FlightAnswerError,
@@ -90,6 +90,7 @@ export type SessionEvent =
   | { kind: "selected"; activity: string | undefined }
   | { kind: "routed"; routes: RouteResult[] }
   | { kind: "dismissed" }
+  | { kind: "askProgress"; progress: QuestionProgress }
   | { kind: "estimateDismissed" }
   | { kind: "timelineChanged"; changed: boolean }
   | { kind: "replacedDismissed" };
@@ -148,6 +149,7 @@ function replied(state: SessionState, message: Message): SessionState {
     input: "",
     activity: [],
     busy: false,
+    ask: undefined,
   };
 }
 
@@ -167,7 +169,6 @@ export function session(state: SessionState, event: SessionEvent): SessionState 
         input: "",
         error: undefined,
         retry: undefined,
-        ask: undefined,
         activity: [PREPARING],
       };
     case "sent":
@@ -192,6 +193,8 @@ export function session(state: SessionState, event: SessionEvent): SessionState 
       return { ...state, mapRoutes: mergeRoutes(state.mapRoutes, event.routes) };
     case "dismissed":
       return { ...state, ask: undefined };
+    case "askProgress":
+      return state.ask ? { ...state, ask: { ...state.ask, progress: event.progress } } : state;
     case "edited":
       return {
         ...state,
