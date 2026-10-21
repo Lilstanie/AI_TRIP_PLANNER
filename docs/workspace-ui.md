@@ -62,7 +62,7 @@ now. Implementation history and browser acceptance for each phase are in the
     and always shown where there is no hover to reveal it. The menu is a `role="menu"` of
     `role="menuitem"` buttons with `aria-haspopup` and `aria-expanded` on the trigger; Escape closes
     it and returns focus to the trigger without closing an enclosing panel or drawer, and clicking
-    outside or tabbing away closes it. Trips have no overflow menu because they have neither action.
+    outside or tabbing away closes it. Opening a chat menu scrolls the full menu into its containing panel before focusing its first action, keeping both actions above the phone tab bar. Trips have no overflow menu because they have neither action.
   - On narrow screens the navigation drawer shows the sidebar with the panel's content (search, the
     two starts, Trips and Chats) under Trips.
   - The logo is `apps/web/public/brand/ai-trip-planner-logo.svg`, referenced by URL. Its alt text is
@@ -385,7 +385,7 @@ zero under budget. If itinerary stops remain unpriced, the status adds “unpric
 and uses the caution colour; those missing costs remain listed beneath the estimate.
 When the estimate is below budget but itinerary stops remain unpriced, the status says “Known estimate
 within budget · unpriced stops not counted” and uses the caution colour. The missing costs remain
-listed beneath the estimate.
+listed beneath the estimate. Status text wraps within the budget panel at narrow drawer widths.
 
 Names of removed surfaces below appear only to explain their removal; nothing in this section
 describes current behaviour except the absences.
@@ -609,7 +609,7 @@ moves. Details, notes, booked and visit progress apply in the browser. The check
   to the server check. Selecting a stop, here or on the map, opens its place card: the place's first
   photo (live data with a Maps key), rating, address and an Open in Google Maps link. Replace place in the stop's menu opens a
   Google Places search in the card; a picked result is saved through the server check. Escape closes an
-  open form or the card and returns focus to the stop. Drag and drop still reorders the day.
+  open form or the card and returns focus to the stop. For a place still being looked up or not found, the name and close control share the first row and the lookup status spans the row below. Drag and drop still reorders the day.
 - **Editing.** A stop is compact until selected, here or on the map; selecting it opens its editor:
   start and end time ("Change time"), Move earlier / Move later, Move to another day, and a
   Google Maps search to replace the place. Drag and drop still reorders the day.
