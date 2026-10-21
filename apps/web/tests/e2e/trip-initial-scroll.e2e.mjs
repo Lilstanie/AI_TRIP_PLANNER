@@ -18,6 +18,7 @@ try {
     const phone = width < 520;
     const context = await browser.newContext({
       viewport: { width, height },
+      locale: phone ? "zh-CN" : "en-AU",
       reducedMotion: "reduce",
       ...(phone ? { isMobile: true, hasTouch: true } : {}),
     });
@@ -30,8 +31,48 @@ try {
       if (message.type() === "error")
         errors.push({ text: message.text(), location: message.location() });
     });
+    const phoneNames = { Chat: "聊天", Trip: "行程", Mine: "我的" };
     const tab = (name) =>
-      page.locator(".phone-tabbar").getByRole("tab", { name: new RegExp(`^${name}`) });
+      page
+        .locator(".phone-tabbar")
+        .getByRole("tab", { name: new RegExp(`^${phone ? phoneNames[name] : name}`) });
+    const assertDayTabPanel = async () => {
+      const semantics = await page.locator(".day-strip").evaluate((strip) => {
+        const tabs = [...strip.querySelectorAll('[role="tab"]')];
+        const selected = tabs.find((node) => node.getAttribute("aria-selected") === "true");
+        const panelId = selected?.getAttribute("aria-controls");
+        const panel = panelId ? document.getElementById(panelId) : null;
+        return {
+          ids: tabs.map((node) => node.id),
+          controls: tabs.map((node) => node.getAttribute("aria-controls")),
+          selectedId: selected?.id,
+          panelId,
+          panelRole: panel?.getAttribute("role"),
+          labelledBy: panel?.getAttribute("aria-labelledby"),
+          containsDay: !!panel?.querySelector(".timeline-day h3"),
+          containsTimeline: !!panel?.querySelector(".timeline, .timeline-empty"),
+        };
+      });
+      assert.ok(semantics.ids.every(Boolean), "Every day tab has an id");
+      assert.equal(new Set(semantics.ids).size, semantics.ids.length, "Day tab IDs are unique");
+      assert.ok(
+        semantics.controls.every((id) => id === semantics.panelId),
+        "Every day tab controls the day panel",
+      );
+      assert.ok(semantics.panelId, "The selected day tab controls a panel");
+      assert.equal(semantics.panelRole, "tabpanel");
+      assert.equal(
+        semantics.labelledBy,
+        semantics.selectedId,
+        "The panel is labelled by the selected tab",
+      );
+      assert.equal(semantics.containsDay, true, "The selected day heading is inside its panel");
+      assert.equal(
+        semantics.containsTimeline,
+        true,
+        "The selected day timeline is inside its panel",
+      );
+    };
     const open = async () => {
       if (phone) await tab("Trip").click();
       else
@@ -81,9 +122,11 @@ try {
     await page
       .locator(".composer__input")
       .fill("Sydney, 2026-11-02 to 2026-11-05, 2 people, budget AUD 2000");
-    await page.getByRole("button", { name: "Send", exact: true }).click();
+    await page.getByRole("button", { name: phone ? "发送" : "Send", exact: true }).click();
     await page.locator(".msg-item--agent .msg-item__body").first().waitFor({ timeout: 180000 });
     await open();
+    if (phone) await page.waitForFunction(() => document.documentElement.lang === "zh-CN");
+    await assertDayTabPanel();
     await measure("initial");
     if (phone) await tab("Chat").click();
     else await page.locator(".drawer.is-open .drawer__close").click();
@@ -127,6 +170,7 @@ try {
     await strip.getByRole("tab").first().focus();
     await page.keyboard.press("End");
     const last = strip.getByRole("tab").last();
+    await assertDayTabPanel();
     assert.equal(await last.getAttribute("aria-selected"), "true");
     assert.equal(await last.evaluate((node) => document.activeElement === node), true);
     assert.equal(
@@ -140,10 +184,13 @@ try {
     );
     await page.screenshot({ path: `${out}/${width}-keyboard-end.png` });
     await page.keyboard.press("Home");
+    await assertDayTabPanel();
     assert.equal(await strip.getByRole("tab").first().getAttribute("aria-selected"), "true");
     await page.keyboard.press("ArrowRight");
+    await assertDayTabPanel();
     assert.equal(await strip.getByRole("tab").nth(1).getAttribute("aria-selected"), "true");
     await page.keyboard.press("ArrowLeft");
+    await assertDayTabPanel();
     assert.equal(await strip.getByRole("tab").first().getAttribute("aria-selected"), "true");
     assert.equal(
       await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
@@ -160,7 +207,8 @@ try {
     "Fresh Trip opens at the top",
   );
   for (const row of rows) {
-    const budget = row.headings.find((h) => h.text.startsWith("Trip budget"));
+    const budgetLabel = row.width < 520 ? "行程预算" : "Trip budget";
+    const budget = row.headings.find((h) => h.text.startsWith(budgetLabel));
     assert.ok(
       budget.top >= row.top && budget.bottom <= row.bottom,
       "Budget summary is fully visible",
