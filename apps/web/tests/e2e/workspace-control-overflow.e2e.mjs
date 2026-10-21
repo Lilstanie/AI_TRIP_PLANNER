@@ -19,6 +19,74 @@ const hit = (node) => {
   const r = node.getBoundingClientRect();
   return node.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2));
 };
+const tripDrawerGeometry = async (page) =>
+  page.locator(".drawer--right.is-open").evaluate((drawer) => {
+    const body = drawer.querySelector(".drawer__body");
+    const panel = body?.querySelector(".trip-panel");
+    const focused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const bounds = (node) => {
+      const r = node.getBoundingClientRect();
+      return { left: r.left, right: r.right, width: r.width };
+    };
+    return {
+      drawer: bounds(drawer),
+      body: {
+        ...bounds(body),
+        scrollLeft: body.scrollLeft,
+        scrollWidth: body.scrollWidth,
+        clientWidth: body.clientWidth,
+      },
+      panel: panel ? bounds(panel) : null,
+      children: [...(panel?.children ?? [])].map((node) => ({
+        tag: node.tagName,
+        className: typeof node.className === "string" ? node.className : "",
+        ...bounds(node),
+      })),
+      overflowingDescendants: [...(body?.querySelectorAll("*") ?? [])]
+        .map((node) => ({ node, rect: node.getBoundingClientRect() }))
+        .filter(
+          ({ rect }) =>
+            rect.left < body.getBoundingClientRect().left - 1 ||
+            rect.right > body.getBoundingClientRect().right + 1,
+        )
+        .map(({ node, rect }) => ({
+          tag: node.tagName,
+          className: typeof node.className === "string" ? node.className : "",
+          insideDayStrip: Boolean(node.closest(".day-strip")),
+          left: rect.left,
+          right: rect.right,
+          width: rect.width,
+          text: node.textContent?.trim().slice(0, 80),
+        })),
+      focused:
+        document.activeElement instanceof HTMLElement
+          ? { tag: document.activeElement.tagName, ...bounds(document.activeElement) }
+          : null,
+      actions: [
+        ...(focused?.closest(".item-editor")?.querySelectorAll(".item-editor__actions button") ??
+          []),
+      ].map((node) => ({
+        ...bounds(node),
+        scrollWidth: node.scrollWidth,
+        clientWidth: node.clientWidth,
+      })),
+      focusAncestors: (() => {
+        const ancestors = [];
+        for (let node = focused; node && node !== body; node = node.parentElement) {
+          const style = getComputedStyle(node);
+          ancestors.push({
+            tag: node.tagName,
+            className: typeof node.className === "string" ? node.className : "",
+            ...bounds(node),
+            minWidth: style.minWidth,
+            width: style.width,
+            marginLeft: style.marginLeft,
+          });
+        }
+        return ancestors;
+      })(),
+    };
+  });
 const browser = await chromium.launch(process.env.CHANNEL ? { channel: process.env.CHANNEL } : {});
 let page;
 try {
@@ -118,6 +186,18 @@ try {
             .locator(".phone-tabbar")
             .getByRole("tab", { name: zh ? /^行程/ : /^Trip/ })
             .click();
+        if (width === 1024 && split === "End") {
+          await page.waitForFunction(() => {
+            const drawer = document.querySelector(".drawer--right.is-open");
+            const bounds = drawer?.getBoundingClientRect();
+            return bounds && bounds.left >= 0 && bounds.right <= innerWidth;
+          });
+          check(
+            true,
+            `${label}: #489 drawer geometry after opening`,
+            await tripDrawerGeometry(page),
+          );
+        }
         const badge = page.locator(".budget-status");
         await badge.click({ trial: true });
         const budget = await badge.evaluate((node) => {
@@ -146,6 +226,29 @@ try {
           .click();
         const heading = page.locator(".stop-place-card__bare h4");
         await heading.waitFor();
+        if (width === 1024 && split === "End")
+          check(
+            true,
+            `${label}: #489 drawer geometry after editor focus`,
+            await tripDrawerGeometry(page),
+          );
+        if (width === 1024 && split === "End") {
+          const geometry = await tripDrawerGeometry(page);
+          check(
+            geometry.body.scrollLeft === 0 &&
+              geometry.overflowingDescendants.every((node) => node.insideDayStrip) &&
+              geometry.focused.left >= geometry.body.left - 1 &&
+              geometry.focused.right <= geometry.body.right + 1 &&
+              geometry.actions.every(
+                (action) =>
+                  action.left >= geometry.body.left - 1 &&
+                  action.right <= geometry.body.right + 1 &&
+                  action.scrollWidth <= action.clientWidth,
+              ),
+            `${label}: #489 focused editor remains within the drawer without horizontal panning`,
+            geometry,
+          );
+        }
         await page.locator(".stop-place-card__close").click({ trial: true });
         const editor = await heading.evaluate((node) => {
           const p = node.parentElement,
