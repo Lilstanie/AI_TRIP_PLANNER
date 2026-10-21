@@ -150,4 +150,25 @@ function check(
   f.commit();
   check(f, "unrelated-push", 2, "push", head);
 }
+{
+  const f = fixture("stdout-only");
+  write(f.cwd, "source.ts", "// retained\n// stdout violation\nexport const value = 1;\n");
+  const head = f.commit();
+  const args = [command, "--event", "push", "--base", f.base, "--head", head];
+  const r = spawnSync(process.execPath, args, { cwd: f.cwd, encoding: "utf8", timeout: 30000 });
+  results.push({
+    name: "stdout-only",
+    args,
+    cwd: f.cwd,
+    status: r.status,
+    stdout: r.stdout,
+    stderr: r.stderr,
+  });
+  writeFileSync(resolve(output, "summary.json"), JSON.stringify({ results }, null, 2));
+  assert.equal(r.status, 1, r.stderr);
+  const printed = JSON.parse(r.stdout);
+  assert.equal(printed.exitCode, 1);
+  assert.equal(printed.violations.length, 1);
+  assert.equal(f.git("status", "--porcelain"), "");
+}
 console.log(`${results.length} CI adapter cases passed; evidence: ${output}`);

@@ -32,6 +32,16 @@ git diff --name-status origin/main...HEAD
 
 Include uncommitted files if you are about to commit them.
 
+Before the first push for an issue, list the recent pull requests, open and merged, that name it:
+
+```bash
+gh api "repos/Lilstanie/AI_TRIP_PLANNER/pulls?state=all&per_page=100" \
+  --jq '.[] | select((.title + " " + (.body // "")) | test("#<issue>\\b")) | [.number, .state, .merged_at != null, .title] | @tsv'
+```
+
+When one already covers the change, continue that pull request or build on its merged code instead
+of opening a second one.
+
 For task-specific comment restrictions and the originating spec, follow
 [review-trip-planner](../review-trip-planner/SKILL.md) before claiming review is complete. Its scoped
 comment checker also runs through the independent Comment policy workflow on PRs and main pushes;
