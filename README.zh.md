@@ -8,7 +8,7 @@ AI Trip Planner 是一个面向单个用户的多智能体旅行工作区。用�
 
 界面支持中英文，每个行程的金额按该行程自己的显示币种展示，窄屏下切换为手机布局，并可作为应用安装。独立的 `/agent-lab` 页面在固定场景上对比不同的规划策略。
 
-Agent Lab 基准版本为 1.0.1。汇总结果尚未测量，计划质量也尚未评估。运行
+Agent Lab 基准版本为 1.0.7。汇总结果尚未测量，计划质量也尚未评估。运行
 `pnpm --filter @trip/web e2e agent-lab-benchmark` 可在
 `output/playwright/agent-lab-benchmark/` 生成 fixture 报告和回放截图；实时子集需通过
 `AGENT_LAB_BENCHMARK_LIVE=true` 单独启用，且仍受部署门控限制。详见[基准指南](docs/development.zh.md#agent-lab-benchmark)

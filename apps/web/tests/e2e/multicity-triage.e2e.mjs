@@ -122,7 +122,7 @@ const activity = [
   },
 ];
 writeFileSync(`${out}/thinking-replay.json`, JSON.stringify(activity, null, 2));
-const browser = await chromium.launch({ channel: process.env.CHANNEL });
+const browser = await chromium.launch(process.env.CHANNEL ? { channel: process.env.CHANNEL } : {});
 try {
   for (const width of [1280, 390]) {
     const context = await browser.newContext({
