@@ -32,5 +32,7 @@ The previous generic `#1`/`#2` markers fit but omitted the destination cue. The 
 
 ## Notes for the next person
 
+- Review cleanup (Claude): folded four superseded session logs for earlier attempts into this one and simplified the compact-label condition in `TripsPage.tsx`; behaviour is unchanged.
+
 - Current-head GitHub CI is recorded in the PR body after the follow-up push.
 - Preserve screenshot evidence until parent upload/quotation.
