@@ -5,6 +5,7 @@ import { useWorkspaceTransport } from "./useWorkspaceTransport";
 import { useTripPlaces } from "../map/useTripPlaces";
 import { effectiveCurrency, type TripPlan } from "@trip/shared";
 import type { RouteResult } from "@/lib/integrations/google";
+import type { QuestionProgress } from "@/lib/workspace/ask-user";
 import { blankDraft, type Draft } from "@/lib/workspace";
 import {
   reusableBlankConversation,
@@ -354,6 +355,8 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
 
       trackEdit: (pending: boolean) => setEditPending(pending),
       dismissAsk: () => dispatch({ kind: "dismissed" }),
+      updateAskProgress: (progress: QuestionProgress) =>
+        dispatch({ kind: "askProgress", progress }),
       dismissEstimate: () => dispatch({ kind: "estimateDismissed" }),
 
       setTimelineChanged: (changed: boolean) => dispatch({ kind: "timelineChanged", changed }),

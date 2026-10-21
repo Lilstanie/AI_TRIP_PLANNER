@@ -57,14 +57,15 @@ export function splitStay(brief: TripBrief, hops: ScheduledHop[] = []): StaySegm
 
   const cities = brief.destination.split("&").map((city) => city.trim());
   if (cities.some((city) => !city)) throw new Error("Accommodation requires non-empty cities.");
-  if (nights < cities.length)
-    throw new Error("Each destination needs at least one overnight stay.");
   const fromHops = hopNights(cities, nights, hops);
+  if (!fromHops && nights < cities.length)
+    throw new Error("Each destination needs at least one overnight stay.");
   let offset = 0;
-  return cities.map((city, index) => {
+  return cities.flatMap((city, index) => {
     const cityNights =
       fromHops?.[index] ??
       Math.floor(nights / cities.length) + (index < nights % cities.length ? 1 : 0);
+    if (cityNights === 0) return [];
     const segment = {
       city,
       checkIn: new Date(start + offset * DAY_MS).toISOString().slice(0, 10),
@@ -73,7 +74,7 @@ export function splitStay(brief: TripBrief, hops: ScheduledHop[] = []): StaySegm
       day: offset + 1,
     };
     offset += cityNights;
-    return segment;
+    return [segment];
   });
 }
 
@@ -85,7 +86,7 @@ function hopNights(cities: string[], nights: number, hops: ScheduledHop[]): numb
     arrivals.push(hop.day);
   }
   const counts = arrivals.map((day, index) => (arrivals[index + 1] ?? nights + 1) - day);
-  return counts.every((count) => count >= 1) ? counts : undefined;
+  return counts.every((count) => count >= 0) ? counts : undefined;
 }
 
 export function eligibleOptions(options: StayOption[], prefs: StayPreferences): StayOption[] {

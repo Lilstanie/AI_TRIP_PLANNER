@@ -214,9 +214,18 @@ describe("session after a planning turn", () => {
     expect(chatted.messages.at(-1)).toBe(message);
   });
 
-  it("a new turn drops an unanswered question card", () => {
+  it("keeps a pending question while a turn starts and clears it after a successful reply", () => {
     const asked = { ...openTrip(), ask: { key: "a", questions: [], known: {} } };
-    expect(session(asked, { kind: "started" }).ask).toBeUndefined();
+    expect(session(asked, { kind: "started" }).ask).toEqual(asked.ask);
+    expect(
+      session(asked, {
+        kind: "needsInfo",
+        question: "What dates?",
+        known: {},
+        transcript: [],
+        at: 1,
+      }).ask,
+    ).toBeUndefined();
   });
 });
 

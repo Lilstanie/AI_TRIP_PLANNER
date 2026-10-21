@@ -4,17 +4,22 @@ import { dateForDay } from "./validation";
 
 export type ScheduledHop = { day: number; from: string; to: string };
 
-export function scheduledHops(destination: string, transport?: AgentProposal): ScheduledHop[] {
+export function parseCityHop(
+  destination: string,
+  location: string | undefined,
+): Omit<ScheduledHop, "day"> | undefined {
   const names = cities(destination);
-  const lower = names.map((name) => name.toLocaleLowerCase());
+  const [rawFrom, rawTo] = (location ?? "").split(" → ").map((part) => part.trim());
+  const from = names.find((name) => name.toLocaleLowerCase() === rawFrom?.toLocaleLowerCase());
+  const to = names.find((name) => name.toLocaleLowerCase() === rawTo?.toLocaleLowerCase());
+  return from && to ? { from, to } : undefined;
+}
+
+export function scheduledHops(destination: string, transport?: AgentProposal): ScheduledHop[] {
   return (transport?.items ?? [])
     .flatMap((item) => {
-      const [from, to] = (item.location ?? "").split(" → ").map((part) => part.trim());
-      const fromIndex = lower.indexOf((from ?? "").toLocaleLowerCase());
-      const toIndex = lower.indexOf((to ?? "").toLocaleLowerCase());
-      return item.day !== undefined && fromIndex >= 0 && toIndex >= 0
-        ? [{ day: item.day, from: names[fromIndex]!, to: names[toIndex]! }]
-        : [];
+      const hop = parseCityHop(destination, item.location);
+      return item.day !== undefined && hop ? [{ day: item.day, ...hop }] : [];
     })
     .sort((left, right) => left.day - right.day);
 }
