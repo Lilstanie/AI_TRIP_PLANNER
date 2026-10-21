@@ -73,7 +73,6 @@ function month(date: string, locale: string): string {
   );
 }
 
-/** Returns specialist summary copy for a turn's reply language; English when none is set. */
 export function summaryCopy(language: InterfaceLanguage | undefined): typeof ENGLISH {
   return language === "zh" ? CHINESE : ENGLISH;
 }
