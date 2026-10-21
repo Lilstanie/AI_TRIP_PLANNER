@@ -49,6 +49,25 @@ export function TripPanel({
 
   const picks = restaurantIds(plan);
   const budgetConflicts = placeConflicts(plan).budget;
+  const budgetCategories = [
+    { id: "accommodation", label: "Accommodation" },
+    { id: "transport", label: "Transport" },
+    { id: "dining", label: "Meals" },
+    { id: "itinerary", label: "Activities" },
+  ] as const;
+  const budgetBreakdown = budgetCategories.map(({ id, label }) => {
+    const sections = plan.sections.filter((section) => section.id === id);
+    return {
+      id,
+      label,
+      amount: sections.reduce((sum, section) => sum + section.estCost, 0),
+      unpriced: sections.reduce(
+        (sum, section) =>
+          sum + (section.proposal?.items.filter((item) => item.estCost === undefined).length ?? 0),
+        0,
+      ),
+    };
+  });
   const unpriced = itineraryActivities(plan).filter(
     (item) => item.estCost === undefined && !(item.id && picks.has(item.id)),
   ).length;
@@ -112,6 +131,19 @@ export function TripPanel({
                 ? t(gap.key, gap.params)
                 : t("Budget not set")}
           </p>
+          <ul className="trip-panel__budget-breakdown" aria-label={t("Budget breakdown")}>
+            {budgetBreakdown.map((category) => (
+              <li key={category.id}>
+                <span>{t(category.label)}</span>
+                <span>
+                  <strong>{money(category.amount)}</strong> · {t("Estimated")}
+                  {category.unpriced > 0 && (
+                    <> · {t("{count} unpriced", { count: category.unpriced })}</>
+                  )}
+                </span>
+              </li>
+            ))}
+          </ul>
           {budgetConflicts.length > 0 && (
             <ul className="trip-panel__conflicts" aria-label={t("Open conflicts")}>
               {budgetConflicts.map((notice, index) => (

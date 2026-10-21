@@ -152,6 +152,23 @@ try {
     "English Sydney example prompt keeps its original wording",
     englishPrompt,
   );
+  await englishPage.getByRole("tab", { name: "Mine", exact: true }).click();
+  await englishPage
+    .locator(".chats-panel__actions")
+    .getByRole("button", { name: "New trip", exact: true })
+    .click();
+  await englishPage.keyboard.press("Escape");
+  await englishPage.getByRole("tab", { name: "Mine", exact: true }).click();
+  await englishPage.getByRole("button", { name: "Switch language to 简体中文" }).click();
+  await englishPage.waitForFunction(() => document.documentElement.lang === "zh-CN");
+  const newTripChat = englishPage.locator(".history-item").filter({ hasText: "新行程" }).first();
+  await newTripChat.waitFor();
+  const newTripAction = await newTripChat.locator(".history-item__more").getAttribute("aria-label");
+  check(
+    newTripAction === "新行程的操作",
+    "chat started as New trip is titled and labelled in Chinese after switching language",
+    newTripAction,
+  );
   await englishPage.screenshot({ path: `${out}/phone-en.png`, fullPage: true });
   await englishContext.close();
 } catch (error) {

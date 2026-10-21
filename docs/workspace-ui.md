@@ -183,7 +183,9 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
   - Your Trip and the narrow-screen navigation are overlay drawers below the top bar.
     They never cover the logo or top-bar buttons, and the chat and map keep their width.
   - On desktop the Trip drawer is `(1 - --chat-share) × 100%` wide, so it covers exactly the map
-    wherever the divider sits.
+    wherever the divider sits. When that leaves the day view 240 px or narrower, as at the narrowest
+    split of a 1024 px window, each stop's time moves above its name and the budget total wraps, so
+    nothing scrolls sideways.
   - `Drawer` provides `role="dialog"`, `aria-modal`, `aria-hidden` and `inert` when closed, focus on
     the close button, a Tab loop, Escape (nested edit previews and native dialogs first) and focus
     return to the trigger.
@@ -216,7 +218,8 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     layout restores the last tab, including older Chat/Map choices.
   - The single-row top bar shows the destination and dates, or New trip. Its title opens Trip details:
     Where, When, Who, Budget and Preferences as rows. Each row opens the existing editor; saving or
-    closing returns focus to the title. Editors are bottom sheets with 44 px targets.
+    closing returns focus to the title. Editors are bottom sheets with 44 px targets, including each
+    sheet's close button and its primary action.
   - Trip shows Your Trip in place, with Budget and the day view. Before
     planning it explains the empty state and offers Plan in Chat. A plan created or changed while
     another tab is selected adds an accessible update dot to Trip; opening Trip clears it. Read revisions are tracked per trip,
@@ -239,7 +242,8 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     work, while the map explains its unavailable state. Place details open in a bottom sheet; desktop
     keeps its popup. OSM markers stay beneath the phone details sheet, including after viewport changes.
     The 44 px map controls stay above the stops sheet, and panning does not scroll the page.
-  - Map day chips and the Trip budget and Travel tips disclosure headers are at least 44 px tall.
+  - Map day chips, the Trip budget and Travel tips disclosure headers, the empty Trip tab's Plan in
+    Chat and Add trip details buttons, and the Think row above a reply are at least 44 px tall.
     Disclosure headers keep their native markers and keyboard toggling. These target heights apply
     only at phone widths; sizing at 521 px and above stays unchanged.
   - With the composer focused and the visual viewport shortened by the keyboard, the shell follows
@@ -265,7 +269,8 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
   anything the user typed is never reused, and a renamed one keeps its name. A trip record is
   created and linked (`tripId`) only when a plan is produced; the chat title then becomes the
   destination and dates.
-- **New trip** starts the same blank conversation, named "New trip", and opens the Where editor
+- **New trip** starts the same blank conversation, named "New trip" (shown as 新行程 in Chinese, and the
+  Chats row and its action label follow the interface language until the conversation is renamed), and opens the Where editor
   with focus on Destination instead of focusing the message input. It reuses an untouched blank
   conversation exactly as New chat does, and New chat renames that conversation back. The trip is
   listed under Trips once a plan is produced; until then it is a blank conversation under Chats. The
@@ -395,6 +400,10 @@ and uses the caution colour; those missing costs remain listed beneath the estim
 When the estimate is below budget but itinerary stops remain unpriced, the status says “Known estimate
 within budget · unpriced stops not counted” and uses the caution colour. The missing costs remain
 listed beneath the estimate. Status text wraps within the budget panel at narrow drawer widths.
+The budget card also breaks the known estimate into accommodation, transport, meals and activities.
+Each amount is labelled as an estimate; proposal items without prices are counted as unpriced beside
+their category and are not added to the total. The four category amounts add up to the displayed
+known estimate.
 
 Names of removed surfaces below appear only to explain their removal; nothing in this section
 describes current behaviour except the absences.
@@ -901,10 +910,12 @@ the account section explains that everything stays in this browser.
       - Other preferences: standing preferences.
 
       Each fact is a filled row with an emoji and bold label; clicking it edits the fact. An empty
-      fact shows its question on an amber-edged row with Answer. A new chat or trip starts from these
+      fact shows its question on an amber-edged row with Answer, whose accessible name adds the fact
+      (Answer Home base). A new chat or trip starts from these
       facts: home base as the origin, plus travellers and budget, with pace, interests and dietary
       needs as trip preference lines. A new chat counts as blank while its facts equal these
-      defaults.
+      defaults. A blank chat that has not started follows changes to these facts, also after a
+      reload; a chat with a message or edited facts keeps its own.
   - **Language & region:** interface language (English or Simplified Chinese; chat in any language), region, display currency (AUD, CNY, USD or JPY; default AUD), units (metric), and Trip data (the site's default, live prices or sample data)
     under Advanced.
     The top-bar language switch sits beside Mock data and updates the same saved language setting.

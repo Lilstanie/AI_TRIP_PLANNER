@@ -398,6 +398,13 @@ and formatted, and its prompt says to quote them as given. Converted amounts gro
 panels, and generated text for a non-AUD trip ends with an estimate note. Planning, guardrails,
 conflict detection and the plan score stay AUD, and provider fares keep their own currency.
 
+Language follows the same split. Coordinator and specialist progress lines are notices in the chat
+request's `interfaceLanguage`. Each turn also resolves one reply language in
+`packages/orchestrator/src/reply-language.ts`: Han text in the latest message means Chinese, Latin
+text means English, and anything else uses the interface language, then English. Specialists receive
+it as `AgentContext.replyLanguage` and write their fixed summaries in it; without it they write
+English, as the Agent Lab does.
+
 `TripBrief.preferences` (and the same field on `known`) carries the traveller's own trip
 preferences, written in the top bar's Trip preferences editor. The coordinator's `update_trip_brief`
 tool has no field for them, so a model cannot rewrite the list; `BriefPatchSchema` carries them from

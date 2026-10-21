@@ -14,6 +14,11 @@ export const WORKSPACE_ZH = {
   "Map places are temporarily unavailable. Your plan is unchanged.":
     "地点服务暂时不可用，你的行程未改变。",
   "Open conflicts": "未解决的冲突",
+  "Budget breakdown": "预算明细",
+  Meals: "餐饮",
+  Activities: "活动",
+  Estimated: "估算",
+  "{count} unpriced": "{count} 项未定价",
   "The estimate is over the budget. Ask in the chat to cut part of the plan.":
     "估算超出预算。请在聊天中让我削减部分行程。",
   "The cheapest options found cost more than the budget. Raise the budget or change the dates in the chat.":
@@ -24,6 +29,7 @@ export const WORKSPACE_ZH = {
   "Estimate unchanged from the previous plan.": "估算与上一版方案相比没有变化。",
   Dismiss: "关闭",
   Answer: "填写",
+  "Answer {v0}": "填写{v0}",
   "Change profile photo": "更换头像",
   "First name": "名",
   "Last name": "姓",

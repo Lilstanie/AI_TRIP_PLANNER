@@ -63,7 +63,7 @@ seniors`（宠物不计为旅客）；`groupSize` 仍是校验字段，因此至
 - **聊天和地图分栏。** 桌面上，聊天默认位于左侧，占区域的 56 %，略宽于地图。两者之间的分隔条（`role="separator"`、“Resize chat and map”）可把聊天比例调整到 30 %–75 %：可拖动，或聚焦后使用 Left/Right（步长 2 %）、Home 和 End；双击恢复默认值。拖动时直接把 `--chat-share` 写入 shell，布局只在分隔条移动后存储 `chatShare`。
 - **抽屉。**
   - Your Trip 和窄屏导航是顶栏下方的覆盖式抽屉。它们从不遮住 Logo 或顶栏按钮，聊天和地图保持原宽度。
-  - 桌面上的 Trip 抽屉宽度为 `(1 - --chat-share) × 100%`，无论分隔条在哪里，都恰好覆盖地图。
+  - 桌面上的 Trip 抽屉宽度为 `(1 - --chat-share) × 100%`，无论分隔条在哪里，都恰好覆盖地图。若日视图因此只剩 240 px 或更窄（例如 1024 px 窗口的最窄分栏），每个停靠点的时间移到名称上方，预算总额换行，不会出现横向滚动。
   - `Drawer` 提供 `role="dialog"`、`aria-modal`，关闭时提供 `aria-hidden` 和 `inert`，打开时聚焦关闭按钮，支持 Tab 循环、Escape（嵌套编辑预览和原生对话框优先），并将焦点返回触发按钮。
   - 同时最多打开一个面板：一个抽屉（Trip、导航或桌面端 Chats 面板）、手机端 Trip details 底部面板，或一个 chip 编辑器。打开其中一个会关闭其他面板；Settings 叠在它上方打开，关闭后回到该面板。打开什么由一个纯函数决定，即 `apps/web/lib/workspace/layout.ts` 中的 `layout()`；见[布局 Agent Note](../.agents/notes/implemented/architecture/2026-10-06-workspace-layout-reducer.md)。刷新后所有面板都处于关闭状态。关闭的抽屉完全平移到视口外，shell 使用 `overflow: clip`，无法通过滚动使它们出现。
   - 抽屉为悬浮 Liquid Glass sheet，四周内缩 `--space-2`，圆角为 `--radius-xl`。它们沿 iOS sheet 曲线在 380 ms 内滑动，背景遮罩同步淡出（`usePresence` 保持挂载）。所有动效都遵循 `prefers-reduced-motion`。
@@ -73,12 +73,12 @@ seniors`（宠物不计为旅客）；`groupSize` 仍是校验字段，因此至
   - 导航作为抽屉打开，Trip 占满内容宽度。导航抽屉无标题行：它从侧边栏自己的 Logo 行开始，关闭按钮位于行末，对话框通过视觉隐藏的标题（`Drawer` 的 `hideTitle`）保留“Navigation”无障碍名称。
 - **手机（≤520 px）。** [手机外壳决策](../.agents/notes/implemented/feature/2026-10-05-phone-shell.md)仅适用于这一宽度；桌面和平板保留既有导航。
   - 适配安全区的底部 Tab 栏提供 Chat、Map、Trip 和 Mine，并支持键盘操作。每次只显示一个面板；面板保持挂载以保留滚动位置。已保存的布局恢复上次使用的 Tab，也兼容旧的 Chat/Map 选择。
-  - 单行顶栏显示目的地和日期，未填写时显示 New trip。点击标题打开 Trip details，按行列出 Where、When、Who、Budget 和 Preferences。每行打开既有编辑器；保存或关闭后，焦点返回标题。编辑器为底部 sheet，点击目标至少为 44 px。
+  - 单行顶栏显示目的地和日期，未填写时显示 New trip。点击标题打开 Trip details，按行列出 Where、When、Who、Budget 和 Preferences。每行打开既有编辑器；保存或关闭后，焦点返回标题。编辑器为底部 sheet，点击目标至少为 44 px，包括每个 sheet 的关闭按钮和主操作按钮。
   - Trip 直接显示 Your Trip，包含 Budget 和日视图。规划前说明空状态并提供 Plan in Chat。在其他 Tab 中创建或修改方案时，Trip 显示带无障碍说明的更新小红点；打开 Trip 后清除。按行程记录已读版本，因此切换未修改的已保存行程不会产生新通知。
   - Mine 包含搜索、New chat、New trip、Trips/Calendar、聊天列表和 Settings & account。搜索同时筛选聊天和行程；打开或新建任一种内容都会切到 Chat。触摸界面始终显示每个聊天的 Rename/Delete 行菜单入口。数据模式和界面语言切换位于这里；数据模式按钮在两种语言下都显示文字标签。
     从 Mine 打开行程后，键盘焦点会移至行程标题按钮；其无障碍名称会播报目的地和日期。
   - 跨越手机宽度时，旅客看到的仍是同一内容：在 Your trips 页面缩小到手机宽度会继续显示在 Mine 中，底部 Tab 栏保持可用；打开 Trip 抽屉时缩小会显示 Trip Tab。从 Mine 放宽显示 Your trips，从 Trip 放宽会在 Chat 上方打开 Trip 抽屉（chip 编辑器打开时除外），Chat 和 Map 保持不变。Settings、Review 和 chip 编辑器在跨越时保持打开；手机顶栏消失时 Trip details 会关闭。
-  - Map 日期按钮以及 Trip budget 和 Travel tips 折叠标题至少为 44 px 高。折叠标题保留原生标记和键盘展开、收起操作。这些目标高度仅适用于手机宽度；521 px 及以上的尺寸保持不变。
+  - Map 日期按钮、Trip budget 和 Travel tips 折叠标题、空 Trip 页的 Plan in Chat 和 Add trip details 按钮，以及回复上方的 Think 行至少为 44 px 高。折叠标题保留原生标记和键盘展开、收起操作。这些目标高度仅适用于手机宽度；521 px 及以上的尺寸保持不变。
   - Map 填满两栏之间的空间。当天停靠点 sheet 有收起、半高和全高三档，可拖动或通过手柄用指针、键盘选择。切换日期把地图标记和路线筛选为当天的停靠点，因此多天到访的地点会出现在每一天，并沿用其全程编号；在 sheet 或地图上选择停靠点，都会聚焦当天的这次到访。未配置 Maps key 时，sheet 和停靠点仍可使用，地图说明不可用状态。地点详情以底部 sheet 打开，桌面保留弹窗。OSM 标记始终位于手机详情 sheet 下方，跨越视口宽度时也保持如此。地图控件至少为 44 px，位于停靠点 sheet 上方，平移地图不会滚动页面。
   - 输入框聚焦且键盘缩短可视视口时，外壳跟随该视口，保持最新消息可见并隐藏 Tab 栏。聚焦行程信息编辑器或停靠点编辑器的字段时同样隐藏 Tab 栏；信息 sheet 停在键盘上方，该字段及其 Save 按钮保持可见。关闭键盘或失焦后恢复 Tab 栏。浏览器返回先关闭当前 sheet 或编辑器，再离开工作区。
   - 新标签使用中英文字典，动效遵循减少动态效果偏好。`apps/web/tests/e2e/` 下的 `phone-shell.e2e.mjs` 及 Mine、Map、状态配套脚本产生浏览器证据。真实安装应用的安全区和键盘行为未经验证；issue #182 的设备检查已以“不计划”关闭。
@@ -92,7 +92,7 @@ seniors`（宠物不计为旅客）；`groupSize` 仍是校验字段，因此至
   - 未完成的空白聊天（表单和输入）会继续保留。否则复用未动过的空白聊天，刷新不会增加空聊天。
   - 已保存的聊天和行程，只有从侧边栏选择后才打开。
 - **New chat** 创建独立对话，表单、输入和地图均为空。若存在未动过的空白聊天，就复用它，因此反复点击 New chat，或刷新后点击，都会保留一个空对话，不堆积空白历史条目。只要对话含有用户输入过的任何内容，就绝不复用；重命名过的对话保留名称。只有生成方案时才创建并关联行程记录（`tripId`）；此时聊天标题变为目的地和日期。
-- **New trip** 启动同样的空白对话，名称为“New trip”，打开 Where 编辑器并聚焦 Destination，而不是消息输入框。它与 New chat 一样复用未动过的空白对话，New chat 会将该对话名称改回。方案生成后才在 Trips 中列出行程；在此之前，它是 Chats 下的空白对话。[New trip Agent Note](../.agents/notes/archived/feature/2026-09-24-new-trip.md) 记录了原因。
+- **New trip** 启动同样的空白对话，名称为“New trip”（中文界面下显示为“新行程”；未重命名前，聊天列表中的行及其操作标签都跟随界面语言），打开 Where 编辑器并聚焦 Destination，而不是消息输入框。它与 New chat 一样复用未动过的空白对话，New chat 会将该对话名称改回。方案生成后才在 Trips 中列出行程；在此之前，它是 Chats 下的空白对话。[New trip Agent Note](../.agents/notes/archived/feature/2026-09-24-new-trip.md) 记录了原因。
 - **开始规划。**
   - 空白聊天提供行程示例建议。选择建议会发送提示并开始规划。提示文字会随界面语言切换，日期、旅客人数和预算保持不变；数据模式提示和未命名聊天的操作名称也会随界面语言切换。浏览器标题显示当前行程及本地化日期范围；没有当前行程时恢复为 `AI Trip Planner`。
   - 每个 agent（智能体）回复都显示在自己的 Think 折叠区下：轮次运行时，transcript 在聊天底部流式呈现；随后移到结束该轮次的回复上方，并始终与其关联（重新加载后也保留）。
@@ -140,6 +140,7 @@ Trip 抽屉摘要显示目的地、本地化短日期范围和旅行人员数量
 
 已知估算恰好达到预算时，预算面板显示“已达预算”，不再显示低于预算零元。若仍有未计价门票，状态会加上“门票费用未计入”并使用警示色；估算下方继续列出这些缺失费用。
 若已知估算低于预算但仍有未计价门票，状态会显示“已知估算在预算内 · 门票费用未计入”并使用警示色；缺失费用仍列在估算下方。抽屉较窄时，状态文字在预算面板内换行。
+预算卡还会按住宿、交通、餐饮和活动列出已知估算。每项金额均标记为估算；没有价格的提案项目会在对应类别旁标为未定价，且不计入总额。四类金额之和与显示的已知估算一致。
 
 Trip 抽屉不再显示 specialist 卡片（Day plan、Getting around、Stay、Destination guide 和 Food & dining）。它们的内容已在日视图中。方案部分仍保留在数据中；不显示部分摘要、假设或模型撰写的工作笔记。Day plan 和 Getting around 没有替代内容，因为它们的内容就是停靠点和路段。Trip 抽屉的费用和总额仍包含所有部分。原因见 [Agent Note](../.agents/notes/implemented/feature/2026-10-08-day-view-specialists.md)。
 
@@ -347,9 +348,9 @@ Data mode 默认是 Fixture data。只有部署启用后才能选择 Live data�
       - Accommodation：会员计划。
       - Other preferences：长期偏好。
 
-      每项是带 emoji 和粗体标签的填充行，点击即可编辑。空项在琥珀色边框的行中显示问题和 Answer。新聊天或新行程以
+      每项是带 emoji 和粗体标签的填充行，点击即可编辑。空项在琥珀色边框的行中显示问题和 Answer，其无障碍名称带上该项名称（例如“填写常住地”）。新聊天或新行程以
       这些信息为起点：常住地作为出发地，加上旅客人数和预算，节奏、兴趣和饮食需求成为行程偏好条目。新聊天的信息仍等于
-      这些默认值时，仍算作空白聊天。
+      这些默认值时，仍算作空白聊天。还没开始的空白聊天会随这些信息更新，刷新后也一样；已发送消息或改过信息的聊天保持不变。
   - **Language & region：** 界面语言（英语或简体中文；可用任何语言聊天）、地区、显示币种（AUD、CNY、USD 或 JPY；默认 AUD）、单位（公制），以及
     Advanced 下的 Trip data（站点默认、实时价格或示例数据）。
     顶栏语言切换位于示例数据旁，修改同一项已保存的语言设置。聊天控件、时间线与提案标签、设置、提示、对话框、无障碍名称及日期随之显示，包括数据模式提示和未命名聊天的操作名称；

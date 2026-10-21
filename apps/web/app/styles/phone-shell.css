@@ -61,7 +61,15 @@
 }
 .workspace-panel--trip .trip-drawer-empty button {
   color: var(--text);
-  min-height: 44px;
+  min-height: 44px !important;
+}
+
+.workspace-app[data-phone] .thinking-turn:not([data-open]) {
+  height: 44px;
+}
+.workspace-app[data-phone] .thinking-turn > .thinking-row__line {
+  flex: none;
+  height: 44px;
 }
 
 .workspace-app[data-phone] .phone-map-sheet__days button,
