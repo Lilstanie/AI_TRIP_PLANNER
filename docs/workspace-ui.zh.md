@@ -63,7 +63,7 @@ seniors`（宠物不计为旅客）；`groupSize` 仍是校验字段，因此至
 - **聊天和地图分栏。** 桌面上，聊天默认位于左侧，占区域的 56 %，略宽于地图。两者之间的分隔条（`role="separator"`、“Resize chat and map”）可把聊天比例调整到 30 %–75 %：可拖动，或聚焦后使用 Left/Right（步长 2 %）、Home 和 End；双击恢复默认值。拖动时直接把 `--chat-share` 写入 shell，布局只在分隔条移动后存储 `chatShare`。
 - **抽屉。**
   - Your Trip 和窄屏导航是顶栏下方的覆盖式抽屉。它们从不遮住 Logo 或顶栏按钮，聊天和地图保持原宽度。
-  - 桌面上的 Trip 抽屉宽度为 `(1 - --chat-share) × 100%`，无论分隔条在哪里，都恰好覆盖地图。
+  - 桌面上的 Trip 抽屉宽度为 `(1 - --chat-share) × 100%`，无论分隔条在哪里，都恰好覆盖地图。若日视图因此只剩 240 px 或更窄（例如 1024 px 窗口的最窄分栏），每个停靠点的时间移到名称上方，预算总额换行，不会出现横向滚动。
   - `Drawer` 提供 `role="dialog"`、`aria-modal`，关闭时提供 `aria-hidden` 和 `inert`，打开时聚焦关闭按钮，支持 Tab 循环、Escape（嵌套编辑预览和原生对话框优先），并将焦点返回触发按钮。
   - 同时最多打开一个面板：一个抽屉（Trip、导航或桌面端 Chats 面板）、手机端 Trip details 底部面板，或一个 chip 编辑器。打开其中一个会关闭其他面板；Settings 叠在它上方打开，关闭后回到该面板。打开什么由一个纯函数决定，即 `apps/web/lib/workspace/layout.ts` 中的 `layout()`；见[布局 Agent Note](../.agents/notes/implemented/architecture/2026-10-06-workspace-layout-reducer.md)。刷新后所有面板都处于关闭状态。关闭的抽屉完全平移到视口外，shell 使用 `overflow: clip`，无法通过滚动使它们出现。
   - 抽屉为悬浮 Liquid Glass sheet，四周内缩 `--space-2`，圆角为 `--radius-xl`。它们沿 iOS sheet 曲线在 380 ms 内滑动，背景遮罩同步淡出（`usePresence` 保持挂载）。所有动效都遵循 `prefers-reduced-motion`。
