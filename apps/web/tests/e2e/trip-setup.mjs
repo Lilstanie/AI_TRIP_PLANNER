@@ -3,6 +3,8 @@ import { setTimeout as sleep } from "node:timers/promises";
 export const settle = (page, ms = 500) => page.waitForTimeout(ms);
 export { sleep };
 
+export const touchSized = (pixels) => Math.round(pixels) >= 44;
+
 export function placeFor(text) {
   return {
     id: `stub:${text}`,

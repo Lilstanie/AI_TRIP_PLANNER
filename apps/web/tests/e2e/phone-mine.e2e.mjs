@@ -1,6 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
+import { touchSized } from "./trip-setup.mjs";
 const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT ?? "playwright");
 const BASE = process.env.BASE_URL ?? "http://localhost:3000";
 const OUT = resolve("output/playwright/phone-mine");
@@ -241,16 +242,18 @@ try {
       Boolean(emptyDateBox && focusStyle),
       `${width}: keyboard focus remains visible on the date cell`,
     );
-    const small = await mine.locator("button, input").evaluateAll((nodes) =>
-      nodes
-        .filter((node) => node.getClientRects().length)
-        .map((node) => ({
-          text: node.getAttribute("aria-label") ?? node.textContent,
-          box: node.getBoundingClientRect(),
-        }))
-        .filter(({ box }) => Math.round(box.width) < 44 || Math.round(box.height) < 44)
-        .map(({ text, box }) => `${text}: ${box.width}x${box.height}`),
-    );
+    const small = (
+      await mine.locator("button, input").evaluateAll((nodes) =>
+        nodes
+          .filter((node) => node.getClientRects().length)
+          .map((node) => {
+            const { width, height } = node.getBoundingClientRect();
+            return { text: node.getAttribute("aria-label") ?? node.textContent, width, height };
+          }),
+      )
+    )
+      .filter(({ width, height }) => !touchSized(width) || !touchSized(height))
+      .map(({ text, width, height }) => `${text}: ${width}x${height}`);
     check(!small.length, `${width}: all Mine targets at least 44px (${small.join(", ")})`);
     check(
       await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),

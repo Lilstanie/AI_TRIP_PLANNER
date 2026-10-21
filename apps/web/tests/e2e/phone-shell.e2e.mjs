@@ -3,6 +3,7 @@ import { createRequire } from "node:module";
 import { spawnSync } from "node:child_process";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { touchSized } from "./trip-setup.mjs";
 
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT ?? "playwright");
@@ -65,14 +66,19 @@ const visiblePanels = (page) =>
 const noSideScroll = (page) =>
   page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
 
-const smallTargets = (page, selector) =>
-  page.locator(selector).evaluateAll((nodes) =>
-    nodes
-      .filter((node) => node.getClientRects().length)
-      .map((node) => node.getBoundingClientRect())
-      .filter((box) => box.width < 44 || box.height < 44)
-      .map((box) => `${Math.round(box.width)}x${Math.round(box.height)}`),
-  );
+const smallTargets = async (page, selector) =>
+  (
+    await page.locator(selector).evaluateAll((nodes) =>
+      nodes
+        .filter((node) => node.getClientRects().length)
+        .map((node) => ({
+          width: node.getBoundingClientRect().width,
+          height: node.getBoundingClientRect().height,
+        })),
+    )
+  )
+    .filter((box) => !touchSized(box.width) || !touchSized(box.height))
+    .map((box) => `${Math.round(box.width)}x${Math.round(box.height)}`);
 
 async function plan(page) {
   await selectTab(page, "Chat");

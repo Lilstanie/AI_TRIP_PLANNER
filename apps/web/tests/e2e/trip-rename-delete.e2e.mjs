@@ -1,7 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
-import { openMockWorkspace, planSuggestedTrip, settle } from "./trip-setup.mjs";
+import { openMockWorkspace, planSuggestedTrip, settle, touchSized } from "./trip-setup.mjs";
 
 const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT ?? "playwright");
 const base = process.env.BASE_URL ?? "http://localhost:3000";
@@ -193,11 +193,14 @@ try {
     .locator(".trip-cards")
     .getByRole("button", { name: `Actions for ${NAME}` });
   await phoneMenu.scrollIntoViewIfNeeded();
+  const phoneMenuBox = await phoneMenu.evaluate((node) => {
+    const r = node.getBoundingClientRect();
+    return { width: r.width, height: r.height, opacity: getComputedStyle(node).opacity };
+  });
   check(
-    await phoneMenu.evaluate((node) => {
-      const r = node.getBoundingClientRect();
-      return r.width >= 44 && r.height >= 44 && getComputedStyle(node).opacity === "1";
-    }),
+    touchSized(phoneMenuBox.width) &&
+      touchSized(phoneMenuBox.height) &&
+      phoneMenuBox.opacity === "1",
     "phone trip card has a visible 44 px Actions button",
   );
   await page.screenshot({ path: `${out}/phone-mine.png`, fullPage: true });

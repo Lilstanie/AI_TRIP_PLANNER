@@ -264,7 +264,7 @@ BASE_URL=http://localhost:3000 pnpm --filter @trip/web e2e settings   # against 
 
 `output/`、`apps/web/output/`、`tmp/` 和 `.scratch/` 是被 Git 忽略的临时目录，其中 `output/` 会增长到数 GB。证据已写进 PR 描述后，运行 `pnpm clean:output` 删除它们；先运行 `pnpm clean:output --dry-run` 可只看各目录大小。只要这些目录下有已跟踪的文件，它就会拒绝执行。PR 合并或关闭后，删除它的远程分支（见 [pre-push-checks](../.agents/skills/pre-push-checks/SKILL.md#5-after-the-merge)）。每个脚本的文件头列出它所依据的失败清单和所需的服务器环境，fixture 运行与部署的密钥和默认数据模式相互隔离，因此无论环境中有什么，Agent Lab 的脚本都能通过；`agent-lab-live-gate` 还会使用两个启用了实时运行的服务（见其文件头）。`agent-lab-release` 走完整个公开流程并写出发布证据：原始 NDJSON、带版本的产物、对比摘要、报告，以及一组截图矩阵（浅色与深色、桌面与窄屏、减少动态效果）。发布冒烟测试保留 `provider-empty-result` 作为有代表性的故障路径；`agent-lab-failures` 负责全部五个已注册故障 profile 的结果、下载、离线回放，以及 Run all 的顺序和取消。修改 Failure Lab 行为时应运行这两个脚本。
 
-`auto-save-places`、`plan-revision` 和 `check-entry-point` 只通过 `apps/web/tests/e2e/trip-setup.mjs` 共用地点 fixture、工作区启动、按天数据到计划的转换和轮询。每个脚本仍负责自己的场景断言、请求拦截、挂起响应和截图；并发与取消的设置留在它们验证的场景旁。[覆盖归属说明](../.agents/notes/implemented/simplification/2026-10-10-repository-surface-reduction.md)记录了断言合并的边界。
+`auto-save-places`、`plan-revision` 和 `check-entry-point` 只通过 `apps/web/tests/e2e/trip-setup.mjs` 共用地点 fixture、工作区启动、按天数据到计划的转换和轮询。所有 44 px 触控尺寸检查都用其中的 `touchSized(pixels)`，它会先把亚像素尺寸取整；要在 Node 端调用，不能放进 `evaluate`。每个脚本仍负责自己的场景断言、请求拦截、挂起响应和截图；并发与取消的设置留在它们验证的场景旁。[覆盖归属说明](../.agents/notes/implemented/simplification/2026-10-10-repository-surface-reduction.md)记录了断言合并的边界。
 
 `apps/web/tests/e2e/leg-mode-choice.e2e.mjs` 检查：旅行者为某一程选择的出行方式（`TripBrief.legModes`）确实是计划所采用的方式，或者被如实报告为不可用，绝不会被悄悄替换。四个场景不需要模型（选择通过简报传入），一个需要模型（旅行者在聊天中说出）；没有模型密钥时，这一个会报告 `skip` 而不是失败。产物写入 `output/e2e/leg-mode-choice/<run>/`。
 
