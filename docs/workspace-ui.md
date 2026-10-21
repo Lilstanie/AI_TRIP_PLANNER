@@ -265,7 +265,8 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
   anything the user typed is never reused, and a renamed one keeps its name. A trip record is
   created and linked (`tripId`) only when a plan is produced; the chat title then becomes the
   destination and dates.
-- **New trip** starts the same blank conversation, named "New trip", and opens the Where editor
+- **New trip** starts the same blank conversation, named "New trip" (shown as 新行程 in Chinese, and the
+  Chats row and its action label follow the interface language until the conversation is renamed), and opens the Where editor
   with focus on Destination instead of focusing the message input. It reuses an untouched blank
   conversation exactly as New chat does, and New chat renames that conversation back. The trip is
   listed under Trips once a plan is produced; until then it is a blank conversation under Chats. The
