@@ -170,7 +170,7 @@ export function TripEditor({
       setDay(today ?? 1);
       return;
     }
-    if (today === undefined && restoredDay.selectedOnToday !== null) {
+    if (today === undefined) {
       manuallySelectedDay.current = false;
       setDay(1);
       return;

@@ -392,9 +392,13 @@ try {
     (await trip.getByRole("tab", { name: /Today/ }).count()) === 0,
     "Before the destination-local start date, no day is marked Today",
   );
+  await trip.getByRole("tab", { name: /^Day 2\b/ }).click();
+  await page.reload();
+  await openSeededTrip();
+  await trip.getByRole("tab", { name: /^Day 1\b/ }).waitFor();
   check(
     (await trip.getByRole("tab", { name: /^Day 1\b/ }).getAttribute("aria-selected")) === "true",
-    "Before the trip, Day 1 remains the default",
+    "Before the trip, a reloaded manual day selection returns to Day 1",
   );
   check(
     await tips.evaluate((node) => node.open),
