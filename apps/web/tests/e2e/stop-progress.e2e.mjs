@@ -35,6 +35,15 @@ try {
       startTime: "13:00",
       endTime: "16:00",
     },
+    {
+      id: "gallery",
+      kind: "activity",
+      day: 1,
+      detail: "Gallery visit",
+      location: "Art gallery",
+      startTime: "16:30",
+      endTime: "18:00",
+    },
   ]);
   await openMockWorkspace(page, process.env.BASE_URL ?? "http://localhost:3000");
   await planSuggestedTrip(page);
@@ -54,6 +63,8 @@ try {
     await page.setViewportSize({ width, height: 1000 });
     if (width === 390) await page.getByRole("tab", { name: /^Trip/ }).click();
     const row = page.locator(".timeline-stop").filter({ hasText: "Museum visit" }).first();
+    await row.getByText("Planned", { exact: true }).waitFor();
+    results.push({ width, defaultState: "planned" });
     for (const [state, label] of [
       ["visited", "Visited"],
       ["skipped", "Skipped"],
@@ -62,6 +73,11 @@ try {
       await row.getByRole("button", { name: /Actions for/ }).click();
       await page.getByRole("menuitem", { name: `Mark as ${state}`, exact: true }).click();
       await row.getByText(label, { exact: true }).waitFor();
+      const nextRow = page.locator(".timeline-stop").filter({ hasText: "Gallery visit" }).first();
+      assert.equal(
+        await nextRow.locator(".timeline-stop__main").getAttribute("aria-expanded"),
+        "false",
+      );
       await page.waitForFunction(
         ({ key, state }) => {
           const c = JSON.parse(localStorage.getItem(key));
@@ -96,11 +112,28 @@ try {
         await row.locator(".timeline-stop__main").getAttribute("aria-expanded"),
         "false",
       );
-      results.push({ width, state, persisted: true, fieldsPreserved: true });
+      results.push({
+        width,
+        state,
+        persisted: true,
+        fieldsPreserved: true,
+        nextStopSelected: false,
+      });
     }
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth), width);
   }
   await page.setViewportSize({ width: 1440, height: 1000 });
+  const keyboardRow = page.locator(".timeline-stop").filter({ hasText: "Museum visit" }).first();
+  const actions = keyboardRow.getByRole("button", { name: /Actions for/ });
+  await actions.focus();
+  await page.keyboard.press("Enter");
+  const visitAction = page.getByRole("menuitem", { name: "Mark as visited", exact: true });
+  await visitAction.focus();
+  await page.keyboard.press("Enter");
+  await keyboardRow.getByText("Visited", { exact: true }).waitFor();
+  await page.getByRole("button", { name: "Undo", exact: true }).click();
+  await keyboardRow.getByText("Planned", { exact: true }).waitFor();
+  results.push({ keyboardActivation: true, undo: true });
   await page.getByRole("button", { name: "Close your trip", exact: true }).click();
   await page.getByRole("button", { name: "Switch language to 简体中文" }).click();
   await page.getByRole("button", { name: "打开你的行程", exact: true }).click();
