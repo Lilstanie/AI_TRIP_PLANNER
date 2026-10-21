@@ -232,8 +232,11 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     them with its trip-wide number; selecting a stop, in the sheet or on the map, focuses that day's
     visit. Without a Maps key the sheet and stops still
     work, while the map explains its unavailable state. Place details open in a bottom sheet; desktop
-    keeps its popup. The 44 px map controls stay above the stops sheet, and panning does not scroll
-    the page.
+    keeps its popup. OSM markers stay beneath the phone details sheet, including after viewport changes.
+    The 44 px map controls stay above the stops sheet, and panning does not scroll the page.
+  - Map day chips and the Trip budget and Travel tips disclosure headers are at least 44 px tall.
+    Disclosure headers keep their native markers and keyboard toggling. These target heights apply
+    only at phone widths; sizing at 521 px and above stays unchanged.
   - With the composer focused and the visual viewport shortened by the keyboard, the shell follows
     that viewport, keeps the latest message visible and hides the tab bar. A focused trip-fact editor
     or stop editor field also hides the tab bar; the fact sheet rests on the keyboard, and the field

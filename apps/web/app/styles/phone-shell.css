@@ -64,6 +64,13 @@
   min-height: 44px;
 }
 
+.workspace-app[data-phone] .phone-map-sheet__days button,
+.workspace-app[data-phone] .trip-panel__budget-summary > summary,
+.workspace-app[data-phone] .trip-tips > summary {
+  min-height: 44px !important;
+  align-content: center;
+}
+
 .phone-tabbar {
   flex: none;
   padding: var(--space-1) max(var(--space-2), env(safe-area-inset-right))
