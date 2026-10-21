@@ -362,16 +362,19 @@ function TripCalendar({
                     const { destination } = trip.snapshot.plan.brief;
                     const baseTitle = t("Trip to {destination}", { destination });
                     const title = titles.get(trip.id) ?? baseTitle;
-                    const visibleTitle = compact
-                      ? `${destination}${title.slice(baseTitle.length)}`
-                      : title;
+                    const ordinal = compact ? title.match(/ · (\d+)$/)?.[1] : undefined;
+                    const visibleTitle = ordinal
+                      ? `${Array.from(destination).slice(0, 3).join("")}·${ordinal}`
+                      : compact && title === baseTitle
+                        ? destination
+                        : title;
                     const labelled = time === utc(start) || weekday === 0;
                     const [from] = coverColours(trip.snapshot.plan.brief.destination);
                     return (
                       <button
                         type="button"
                         key={trip.id}
-                        className="trip-calendar__trip"
+                        className={`trip-calendar__trip${ordinal ? " trip-calendar__trip--compact" : ""}`}
                         data-start={time === utc(start) ? "true" : undefined}
                         data-end={time === utc(end) ? "true" : undefined}
                         style={{ background: from }}
@@ -383,7 +386,15 @@ function TripCalendar({
                         tabIndex={labelled ? 0 : -1}
                         onClick={() => onOpenTrip(trip.id)}
                       >
-                        {labelled ? visibleTitle : " "}
+                        {labelled ? (
+                          <span
+                            className={`trip-calendar__visible-label${ordinal ? " trip-calendar__visible-label--compact" : ""}`}
+                          >
+                            {visibleTitle}
+                          </span>
+                        ) : (
+                          " "
+                        )}
                       </button>
                     );
                   })}

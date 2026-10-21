@@ -11,6 +11,12 @@ providers or authentication.
   stale month from the prior trip.
 - Trips with identical calendar identity retain indistinguishable visible labels or accessible
   names, including at compact phone width.
+- A phone-width duplicate label contains its distinguishing suffix in the DOM but clips the painted
+  glyphs or renders them too small to read at 390px or 375px.
+- Compact labels can fit generic ordinals such as `#1` and `#2` while omitting the destination cue,
+  so users cannot visually associate an overlapping bar with its trip.
+- A compact phone label fits inside its calendar bar but overlaps the fixed phone tab bar, so its
+  marker is partly obscured until the calendar panel scrolls.
 - A disambiguated compact bar opens the wrong saved snapshot, or trips with distinct identities gain
   unnecessary duplicate suffixes.
 - A multiword history query fails when terms appear in a different order or in different searchable
@@ -20,5 +26,8 @@ providers or authentication.
 
 The browser journey is `calendar-trip-identity-search.e2e.mjs`; run it with
 `CHANNEL=chrome LABEL=baseline pnpm --filter @trip/web e2e calendar-trip-identity-search` before
-production edits, then use `LABEL=after` for the final integrated tree. It retains screenshots and a
-JSON summary under `output/playwright/calendar-trip-identity-search/`.
+production edits, then use a unique `LABEL` for each final integrated tree. Phone runs assert the
+abbreviated destination and distinguishing ordinal are visible, fit inside each bar and above the
+fixed tab bar at 390px and 375px, after scrolling the calendar panel enough to expose the final
+duplicate marker. It retains screenshots and
+a JSON summary under `output/playwright/calendar-trip-identity-search/`.
