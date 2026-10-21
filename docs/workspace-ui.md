@@ -218,7 +218,8 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     layout restores the last tab, including older Chat/Map choices.
   - The single-row top bar shows the destination and dates, or New trip. Its title opens Trip details:
     Where, When, Who, Budget and Preferences as rows. Each row opens the existing editor; saving or
-    closing returns focus to the title. Editors are bottom sheets with 44 px targets.
+    closing returns focus to the title. Editors are bottom sheets with 44 px targets, including each
+    sheet's close button and its primary action.
   - Trip shows Your Trip in place, with Budget and the day view. Before
     planning it explains the empty state and offers Plan in Chat. A plan created or changed while
     another tab is selected adds an accessible update dot to Trip; opening Trip clears it. Read revisions are tracked per trip,
@@ -905,7 +906,8 @@ the account section explains that everything stays in this browser.
       - Other preferences: standing preferences.
 
       Each fact is a filled row with an emoji and bold label; clicking it edits the fact. An empty
-      fact shows its question on an amber-edged row with Answer. A new chat or trip starts from these
+      fact shows its question on an amber-edged row with Answer, whose accessible name adds the fact
+      (Answer Home base). A new chat or trip starts from these
       facts: home base as the origin, plus travellers and budget, with pace, interests and dietary
       needs as trip preference lines. A new chat counts as blank while its facts equal these
       defaults.
