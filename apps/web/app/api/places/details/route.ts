@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { noticeBody } from "@/lib/i18n/notice";
-import { mapProvider } from "@/lib/map-provider";
+import { mapProviderFor } from "@/lib/map-provider";
+import { requestDataMode } from "@/lib/auth/live-data";
 import { placeErrorResponse } from "@/lib/map-provider/place-error-response";
 
 const DetailsRequest = z.object({
@@ -13,7 +14,7 @@ export async function POST(request: Request) {
   if (!parsed.success)
     return Response.json(noticeBody({ key: "A place ID is required." }), { status: 400 });
   try {
-    const { value, source } = await mapProvider(request).placeDetails(
+    const { value, source } = await mapProviderFor(await requestDataMode(request)).placeDetails(
       parsed.data.placeId,
       parsed.data.language,
     );
