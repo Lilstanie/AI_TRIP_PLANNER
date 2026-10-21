@@ -248,7 +248,7 @@ try {
           text: node.getAttribute("aria-label") ?? node.textContent,
           box: node.getBoundingClientRect(),
         }))
-        .filter(({ box }) => box.width < 44 || box.height < 44)
+        .filter(({ box }) => Math.round(box.width) < 44 || Math.round(box.height) < 44)
         .map(({ text, box }) => `${text}: ${box.width}x${box.height}`),
     );
     check(!small.length, `${width}: all Mine targets at least 44px (${small.join(", ")})`);

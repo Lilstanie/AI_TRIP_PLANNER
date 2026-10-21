@@ -13,10 +13,12 @@ import {
   searchCatalog,
   updateCatalog,
   upsertConversationDraft,
+  type ConversationRecord,
   type RestoredWorkspace,
+  type TripRecord,
   type WorkspaceCatalog,
 } from "@/lib/workspace/catalog";
-import { distinctTripTitles } from "@/lib/workspace/trip-identity";
+import { distinctTripTitles, tripName } from "@/lib/workspace/trip-identity";
 import { seed, type MobileView } from "./workspace-helpers";
 import { useWorkspaceLayout } from "./useWorkspaceLayout";
 import {
@@ -64,6 +66,11 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
     params?: Record<string, string | number>,
   ) => translate(locale, text, params);
   const [historyQuery, setHistoryQuery] = useState("");
+  const [deletedTrip, setDeletedTrip] = useState<{
+    trip: TripRecord;
+    linked: ConversationRecord[];
+    name: string;
+  }>();
 
   const {
     surface,
@@ -215,15 +222,14 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
     return {
       id: item.id,
       title: conversationTitle(item, locale),
-      subtitle: trip
-        ? t("Trip to {destination}", { destination: trip.snapshot.plan.brief.destination })
-        : undefined,
+      subtitle: trip ? tripName(trip, t) : undefined,
       active: item.id === catalog.activeConversationId,
     };
   });
-  const tripTitles = distinctTripTitles(filteredHistory.trips, (item) =>
-    t("Trip to {destination}", { destination: item.snapshot.plan.brief.destination }),
-  );
+  const activeTrip = blank
+    ? undefined
+    : catalog.trips.find((item) => item.id === catalog.activeTripId);
+  const tripTitles = distinctTripTitles(filteredHistory.trips, (item) => tripName(item, t));
   const historyTrips = filteredHistory.trips.map((item) => ({
     id: item.id,
     title: tripTitles.get(item.id)!,
@@ -344,6 +350,49 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
 
     if (activeConversation.current === id) startBlankChat(withoutConversation(catalog, id));
     else setCatalog((current) => withoutConversation(current, id));
+  }
+
+  function renameTrip(id: string) {
+    const existing = catalog.trips.find((item) => item.id === id);
+    if (!existing) return;
+    const title = window.prompt(t("Rename trip"), tripName(existing, t))?.trim();
+    if (!title) return;
+    setCatalog((current) => ({
+      ...current,
+      trips: current.trips.map((item) =>
+        item.id === id
+          ? { ...item, title, renamed: true, updatedAt: new Date().toISOString() }
+          : item,
+      ),
+    }));
+  }
+  function deleteTrip(id: string) {
+    const trip = catalog.trips.find((item) => item.id === id);
+    if (!trip) return;
+    const linked = catalog.conversations.filter((item) => item.tripId === id);
+    const next: WorkspaceCatalog = {
+      ...catalog,
+      trips: catalog.trips.filter((item) => item.id !== id),
+      conversations: catalog.conversations.map((item) => {
+        if (item.tripId !== id) return item;
+        const { tripId: _trip, snapshot: _snapshot, ...rest } = item;
+        return { ...rest, updatedAt: new Date().toISOString() };
+      }),
+    };
+    if (catalog.activeTripId === id) startBlankChat(next);
+    else setCatalog(next);
+    setDeletedTrip({ trip, linked, name: tripName(trip, t) });
+  }
+  function undoDeleteTrip() {
+    if (!deletedTrip) return;
+    const { trip, linked } = deletedTrip;
+    const restored = new Map(linked.map((item) => [item.id, item]));
+    setCatalog((current) => ({
+      ...current,
+      trips: [...current.trips, trip],
+      conversations: current.conversations.map((item) => restored.get(item.id) ?? item),
+    }));
+    setDeletedTrip(undefined);
   }
 
   const [stable] = useState(() => ({
@@ -486,6 +535,10 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
       ...stable.history,
       rename: renameChat,
       delete: deleteChat,
+      renameTrip,
+      deleteTrip,
+      deletedTrip: deletedTrip && { name: deletedTrip.name, undo: undoDeleteTrip },
+      activeTripName: activeTrip?.renamed ? activeTrip.title : undefined,
     },
   };
 }

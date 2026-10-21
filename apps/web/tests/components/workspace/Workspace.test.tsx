@@ -70,6 +70,7 @@ const useNarrowLayout = () =>
   }));
 
 const chatsPanel = () => document.getElementById("chats-panel")!;
+const chatMenu = () => screen.getByRole("button", { name: /^Actions for (?!Trip to )/ });
 const historyButton = (name: RegExp) => within(chatsPanel()).getAllByRole("button", { name })[0]!;
 
 const newChatButton = () => within(chatsPanel()).getAllByRole("button", { name: "New chat" })[0]!;
@@ -379,7 +380,7 @@ describe("Workspace interactions", () => {
     );
 
     expect(screen.queryByRole("menuitem")).toBeNull();
-    const trigger = screen.getByRole("button", { name: /^Actions for / });
+    const trigger = chatMenu();
     expect(trigger.getAttribute("aria-haspopup")).toBe("menu");
     expect(trigger.getAttribute("aria-expanded")).toBe("false");
 
@@ -400,7 +401,7 @@ describe("Workspace interactions", () => {
     await waitFor(() =>
       expect(parseCatalog(localStorage.getItem(CATALOG_KEY)).trips).toHaveLength(1),
     );
-    const trigger = screen.getByRole("button", { name: /^Actions for / });
+    const trigger = chatMenu();
     fireEvent.click(trigger);
 
     expect(document.activeElement).toBe(screen.getByRole("menuitem", { name: "Rename" }));
@@ -414,7 +415,7 @@ describe("Workspace interactions", () => {
     await waitFor(() =>
       expect(parseCatalog(localStorage.getItem(CATALOG_KEY)).trips).toHaveLength(1),
     );
-    fireEvent.click(screen.getByRole("button", { name: /^Actions for / }));
+    fireEvent.click(chatMenu());
     expect(screen.getByRole("menuitem", { name: "Delete" })).toBeTruthy();
     fireEvent.pointerDown(document.body);
     expect(screen.queryByRole("menuitem")).toBeNull();
@@ -429,7 +430,7 @@ describe("Workspace interactions", () => {
     fireEvent.click(screen.getByRole("button", { name: "Open navigation" }));
     const nav = document.querySelector<HTMLElement>(".workspace-drawer--nav")!;
     await waitFor(() => expect(nav.getAttribute("aria-hidden")).toBe("false"));
-    const trigger = screen.getByRole("button", { name: /^Actions for / });
+    const trigger = chatMenu();
     fireEvent.click(trigger);
     expect(screen.getByRole("menuitem", { name: "Rename" })).toBeTruthy();
     fireEvent.keyDown(window, { key: "Escape" });
@@ -438,16 +439,18 @@ describe("Workspace interactions", () => {
     expect(nav.getAttribute("aria-hidden")).toBe("false");
     expect(document.activeElement).toBe(trigger);
   });
-  it("offers no overflow menu on trips, which have no rename or delete", async () => {
+  it("offers the same rename and delete menu on trips", async () => {
     vi.stubGlobal("fetch", withPlaceRequests());
     render(<Workspace initialPlan={plan} />);
     await waitFor(() =>
       expect(parseCatalog(localStorage.getItem(CATALOG_KEY)).trips).toHaveLength(1),
     );
     const trips = within(chatsPanel()).getByRole("region", { name: "Trips" });
-    expect(within(trips).getByRole("button", { name: "Trip to Sydney" })).toBeTruthy();
-    expect(within(trips).queryByRole("button", { name: /^Actions for / })).toBeNull();
-    expect(screen.queryByRole("menuitem")).toBeNull();
+    fireEvent.click(within(trips).getByRole("button", { name: "Actions for Trip to Sydney" }));
+    expect(screen.getAllByRole("menuitem").map((item) => item.textContent)).toEqual([
+      "Rename",
+      "Delete",
+    ]);
   });
   it("saves a blank conversation's form and input and restores it after reload", async () => {
     vi.stubGlobal("fetch", withPlaceRequests());

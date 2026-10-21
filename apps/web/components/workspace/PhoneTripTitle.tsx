@@ -8,20 +8,20 @@ import { ChevronIcon } from "../ui/icons";
 import { usePresence } from "../ui/motion";
 import type { WorkspaceModel } from "./useWorkspace";
 
-export function usePhoneTripTitle({
-  draft,
-  plan,
-}: Pick<WorkspaceModel["session"], "draft" | "plan">) {
+export function usePhoneTripTitle(
+  { draft, plan }: Pick<WorkspaceModel["session"], "draft" | "plan">,
+  name?: string,
+) {
   const { locale, currency, t } = useLocale();
   const labels = factLabels(draft, plan?.brief, { locale, currency });
   const range = labels.when?.split(" · ")[0];
-  return [labels.where, range].filter(Boolean).join(" · ") || t("New trip");
+  return [name ?? labels.where, range].filter(Boolean).join(" · ") || t("New trip");
 }
 
 export function PhoneTripTitle({ model }: { model: WorkspaceModel }) {
   const { t } = useLocale();
   const { draft, plan } = model.session;
-  const title = usePhoneTripTitle(model.session);
+  const title = usePhoneTripTitle(model.session, model.history.activeTripName);
   const { openFact, openPreferences, openFactsSheet, closeFactsSheet } = model.layout;
   const button = useRef<HTMLButtonElement>(null);
 

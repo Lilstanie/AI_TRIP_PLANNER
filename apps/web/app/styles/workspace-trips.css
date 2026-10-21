@@ -455,3 +455,18 @@
     font-size: 0;
   }
 }
+.trip-cards > li {
+  position: relative;
+}
+.trip-cards .history-item__menu-wrap {
+  inset-block: var(--space-2) auto;
+  inset-inline-end: var(--space-2);
+}
+.trip-cards .history-item__more {
+  background: rgb(0 0 0 / 40%) !important;
+  color: #fff;
+  opacity: 1;
+}
+.trip-undo {
+  margin-block: var(--space-2);
+}
