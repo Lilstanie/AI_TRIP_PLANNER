@@ -266,10 +266,11 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
   listed under Trips once a plan is produced; until then it is a blank conversation under Chats. The
   [New trip Agent Note](../.agents/notes/archived/feature/2026-09-24-new-trip.md) records why.
 - **Starting to plan.**
-  - A blank chat offers example trip suggestions. Selecting one replaces and focuses the message input;
-    it never sends a message or starts a request.
-    Suggestion text follows the interface language while keeping its dates, travellers and budget;
+  - A blank chat offers example trip suggestions. Selecting one sends a prompt and starts planning.
+    The prompt follows the interface language while keeping its dates, travellers and budget;
     data-mode tooltips and the action name for an untitled chat follow that language too.
+    The browser title follows the active trip and the locale-formatted date range, and returns to
+    `AI Trip Planner` when there is no active trip.
   - Each agent reply renders under its own Think fold: the transcript streams at the foot of the chat
     while the turn runs, then moves above the reply that ended the turn and stays with it (including
     after a reload).
