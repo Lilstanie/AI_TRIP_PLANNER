@@ -11,7 +11,8 @@ contract-impact: none
 
 ## What changed
 
-- `apps/web/components/workspace/useWorkspace.ts`: when the profile defaults change, including on
+- `apps/web/lib/workspace/session.ts` (`defaults-changed`), sent from `useWorkspace.ts`: when the
+  profile defaults change, including on
   load, a chat with no plan, messages or typed input whose facts still equal the previous defaults
   takes the new ones.
 - `apps/web/lib/workspace/workspace.ts`: `sameDraft()` compares two drafts, treating empty values

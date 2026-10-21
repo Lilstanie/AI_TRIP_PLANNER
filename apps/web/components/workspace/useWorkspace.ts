@@ -6,7 +6,7 @@ import { useTripPlaces } from "../map/useTripPlaces";
 import { effectiveCurrency, type TripPlan } from "@trip/shared";
 import type { RouteResult } from "@/lib/integrations/google";
 import type { QuestionProgress } from "@/lib/workspace/ask-user";
-import { blankDraft, sameDraft, type Draft } from "@/lib/workspace";
+import { blankDraft, type Draft } from "@/lib/workspace";
 import {
   reusableBlankConversation,
   conversationTitle,
@@ -126,16 +126,13 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
     });
   const syncStatus = useAccountSync({ catalog, setCatalog, storageEnabled });
   const blank = !plan;
-  const profileDefaults = draftDefaults(settings);
-  const profileKey = JSON.stringify(profileDefaults);
+  const profileKey = JSON.stringify(draftDefaults(settings));
   const appliedDefaults = useRef(draftDefaults(defaultSettings()));
   useEffect(() => {
-    const previous = appliedDefaults.current;
-    appliedDefaults.current = profileDefaults;
-    if (!plan && !messages.length && !input.trim() && sameDraft(draft, previous))
-      dispatch({ kind: "drafted", draft: profileDefaults });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profileKey]);
+    const next = JSON.parse(profileKey) as Draft;
+    dispatch({ kind: "defaults-changed", previous: appliedDefaults.current, next });
+    appliedDefaults.current = next;
+  }, [profileKey, dispatch]);
 
   useEffect(
     () => () => {
