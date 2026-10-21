@@ -11,6 +11,7 @@ import {
   type TripBrief,
   type UserPreference,
   type BudgetAllocation,
+  type InterfaceLanguage,
 } from "@trip/shared";
 import { z } from "zod/v4";
 import { createAgent, tool } from "langchain";
@@ -19,6 +20,7 @@ import { mockEnabled } from "@trip/tools";
 import { clip } from "../clip";
 import { normalize, canonicalPlaceName, dedupeEntries } from "../place-names";
 import { TRAVELLER_PREFERENCES_RULE } from "../prompts/traveller-preferences";
+import { summaryCopy } from "../summary-copy";
 
 const DAY_MS = 86_400_000;
 const DINING_BUDGET_SHARE = 0.2;
@@ -138,14 +140,13 @@ function fallbackDraft(
   places: Place[],
   preferences: UserPreference[],
   maxDailyPerPerson: number,
+  language: InterfaceLanguage | undefined,
 ): DiningDraft {
   const constraintText = preferences.length
     ? ` Ask the venue to confirm these requirements directly: ${preferences.map(({ key, value }) => `${key}=${value}`).join(", ")}.`
     : " Confirm ingredients and dietary suitability directly with the venue.";
   return {
-    summary: places.length
-      ? `${places.length} grounded dining candidate(s) within a whole-trip meal budget envelope`
-      : "No grounded dining candidates; using a whole-trip meal budget envelope",
+    summary: summaryCopy(language).diningCandidates(places.length),
     dailyBudgetPerPerson: Math.min(50, maxDailyPerPerson),
     picks: places.slice(0, 5).map((place) => ({
       name: place.name,
@@ -272,17 +273,17 @@ async function planDining(
       const reason = error instanceof Error ? error.message : "unknown model error";
       console.warn(`[dining] Model draft failed; using a safe local plan: ${reason}`);
       usedFallback = true;
-      draft = fallbackDraft(places, preferences, ceiling);
+      draft = fallbackDraft(places, preferences, ceiling, ctx.replyLanguage);
     }
   } else {
-    draft = fallbackDraft(places, preferences, ceiling);
+    draft = fallbackDraft(places, preferences, ceiling, ctx.replyLanguage);
   }
 
   const total = Number((draft.dailyBudgetPerPerson * brief.groupSize * days).toFixed(2));
 
   return {
     agent: "dining",
-    summary: `${draft.summary} · ${formatMoney(total, currency)} meal budget`,
+    summary: summaryCopy(ctx.replyLanguage).dining(draft.summary, formatMoney(total, currency)),
     items: [
       {
         kind: "meal-budget",

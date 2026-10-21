@@ -13,6 +13,7 @@ import {
   type StayOption,
   type BudgetAllocation,
   type PlanningBoard,
+  type InterfaceLanguage,
 } from "@trip/shared";
 import { createAgent, tool } from "langchain";
 import { z } from "zod/v4";
@@ -20,11 +21,13 @@ import { createRoutedChatModel, readStructuredResponse } from "../models";
 import { chooseInitial, eligibleOptions, readPreferences, splitStay, stayCost } from "./planning";
 import { scheduledHops } from "../transport/legs";
 import { TRAVELLER_PREFERENCES_RULE } from "../prompts/traveller-preferences";
+import { summaryCopy } from "../summary-copy";
 
 const candidateId = (day: number, index: number) => `stay-${day}-${index}`;
 
 interface StayEvidence {
   currency: Currency;
+  language?: InterfaceLanguage;
 
   allocation?: BudgetAllocation;
   segments: ReturnType<typeof splitStay>;
@@ -81,6 +84,7 @@ async function gatherStayEvidence(
   );
   return {
     currency: displayCurrencyOf(brief, ctx),
+    ...(ctx.replyLanguage ? { language: ctx.replyLanguage } : {}),
     segments,
     rooms,
     roomAllocation: prefs.roomAllocation,
@@ -215,7 +219,13 @@ function assembleStayProposal(
         id: candidateId(segment.day, index),
       })),
     })),
-    summary: `${rooms} room(s), ${segments.reduce((sum, segment) => sum + segment.nights, 0)} nights in ${segments.map((segment) => segment.city).join(" & ")} · ${formatMoney(total, currency)}${budgetRevision ? " (lowest eligible cost)" : ""}`,
+    summary: summaryCopy(evidence.language).stays({
+      rooms,
+      nights: segments.reduce((sum, segment) => sum + segment.nights, 0),
+      cities: segments.map((segment) => segment.city),
+      money: formatMoney(total, currency),
+      lowestCost: budgetRevision,
+    }),
     items: selections.map(({ segment, chosen, cost }) => ({
       kind: "hotel",
       day: segment.day,
@@ -460,12 +470,12 @@ async function planStays(
   }
 }
 
-function bookedStayProposal(brief: TripBrief): AgentProposal {
+function bookedStayProposal(brief: TripBrief, ctx: AgentContext): AgentProposal {
   const booked = brief.bookedStay!;
   const nights = splitStay(brief).reduce((sum, segment) => sum + segment.nights, 0);
   return {
     agent: "accommodation",
-    summary: `${booked.name} · booked by you, ${nights} night(s) · not priced`,
+    summary: summaryCopy(ctx.replyLanguage).bookedStay(booked.name, nights),
     items: [
       {
         kind: "hotel",
@@ -498,7 +508,7 @@ export const accommodationAgent: Specialist = {
         throw new Error("Accommodation revision must target this trip and agent.");
       }
     }
-    if (brief.bookedStay) return bookedStayProposal(brief);
+    if (brief.bookedStay) return bookedStayProposal(brief, context);
     return planStays(brief, context, revision, allocation, board);
   },
 };
