@@ -3,7 +3,7 @@ import { createRequire } from "node:module";
 import { resolve } from "node:path";
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT ?? "playwright");
-const OUT = resolve("output/playwright/phone-map");
+const OUT = resolve("output/playwright/phone-map", process.env.LABEL ?? "after");
 mkdirSync(OUT, { recursive: true });
 const results = [];
 const check = (ok, message) => {
@@ -143,13 +143,27 @@ try {
     }
     check(!ideaListed, `${width}: an idea is not listed as a stop of any day`);
 
-    const mappedPlaces = page.locator(".trip-map-fallback ol");
-    const mapText = async () => ((await mappedPlaces.count()) ? mappedPlaces.innerText() : "");
+    const map = page.locator(".trip-map-canvas");
+    if (process.env.WEB_MAPS_PROVIDER === "google") {
+      await map.locator(".trip-map-fallback").waitFor();
+      check(true, `${width}: Google-only missing-key renderer shows the error list`);
+    } else {
+      await map.locator('.google-map[data-map-ready="true"]').waitFor();
+      check(
+        (await map.locator(".trip-map-fallback").count()) === 0,
+        `${width}: default missing-key renderer loads OSM without the error list`,
+      );
+    }
+    const revisitButton = map.getByRole("button", {
+      name: new RegExp(`^(?:\\d+\\. )?${revisited}(?: · .+)?$`),
+    });
     await days.nth(0).click();
-    check((await mapText()).includes(revisited), `${width}: a repeated place is on day 1's map`);
+    await revisitButton.waitFor();
+    check((await revisitButton.count()) === 1, `${width}: a repeated place is on day 1's map`);
     await days.nth(1).click();
+    await revisitButton.waitFor();
     check(
-      (await mapText()).includes(revisited),
+      (await revisitButton.count()) === 1,
       `${width}: a repeated place is still on day 2's map`,
     );
     await days.nth(1).click();
@@ -159,23 +173,25 @@ try {
     check(canvas.height >= panel.height - 2 && canvas.height > 500, `${width}: canvas fills tab`);
     check(!!revisited, `${width}: fixture has a place visited on days 1 and 2`);
 
-    const revisitButton = mappedPlaces.getByRole("button", { name: revisited, exact: true });
     await handle.press("Home");
-    if (await revisitButton.count()) await revisitButton.click();
+    await revisitButton.press("Enter");
     const day2Stops = sheet.locator(".phone-map-sheet__stops button");
+    await sheet.locator('.phone-map-sheet__stops button[aria-pressed="true"]').waitFor({
+      state: "attached",
+    });
     const pressed = await day2Stops.evaluateAll((nodes) =>
       nodes.findIndex((node) => node.getAttribute("aria-pressed") === "true"),
     );
     check(pressed >= 0, `${width}: day 2 map place selects day 2's stop`);
     const openDetails = page.locator(".phone-map-details");
-    if (await openDetails.isVisible())
-      await openDetails.getByRole("button", { name: "Close place details" }).click();
+    await openDetails.waitFor();
+    await openDetails.getByRole("button", { name: "Close place details" }).click();
     await handle.press("End");
-    await day2Stops.nth(Math.max(0, pressed)).click();
+    await day2Stops.nth(pressed).click();
     check((await sheet.getAttribute("data-snap")) === "handle", `${width}: stop exposes map`);
     const popup = page.locator(".phone-map-details");
     await popup.waitFor();
-    check(await popup.isVisible(), `${width}: no-key fallback details use bottom sheet`);
+    check(await popup.isVisible(), `${width}: map details use bottom sheet`);
     const details = await popup.innerText();
     check(
       details.includes(revisited) && details.includes("Day 2"),
@@ -242,7 +258,8 @@ try {
       );
     }
     await page.setViewportSize({ width: 1280, height: 900 });
-    await page.locator(".trip-map-fallback ol button").first().click();
+    await revisitButton.press("Enter");
+    await page.locator(".trip-map-popup:not(.phone-map-details)").waitFor();
     check(
       await page.locator(".trip-map-popup:not(.phone-map-details)").isVisible(),
       `${width}: desktop retains popup`,
@@ -251,6 +268,9 @@ try {
     check(!errors.length, `${width}: no page errors (${errors.join(", ")})`);
     await context.close();
   }
+} catch (error) {
+  check(false, error.message);
+  throw error;
 } finally {
   await browser.close();
   writeFileSync(
