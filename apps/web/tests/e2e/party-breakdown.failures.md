@@ -6,6 +6,7 @@
 - Pets increase the people total used for costs.
 - A replacement bare total retains an obsolete breakdown.
 - A conflicting breakdown overrides an explicit authoritative head count.
+- A later breakdown without a new total overwrites the previously known people total.
 
 `party-breakdown-browser` covers English and Chinese initial/reopened Who counters at desktop and
 phone widths. `party-breakdown` covers public mock API extraction, head counts, pets, replacement

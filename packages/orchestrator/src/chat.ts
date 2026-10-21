@@ -696,10 +696,13 @@ async function runConversationAgent(
   const updateTripBrief = tool(
     async (update: z.infer<typeof BriefUpdate>) => {
       const patch = toPatch(update);
-      const stated = extractBriefPatchLocally(request.message);
+      const knownGroupSize = brief?.groupSize ?? known.groupSize;
+      const stated = extractBriefPatchLocally(request.message, knownGroupSize);
       if (stated.groupSize !== undefined) {
         patch.groupSize = stated.groupSize;
-        if (patch.party && partyPeople(patch.party) !== stated.groupSize) delete patch.party;
+        if (stated.party) patch.party = stated.party;
+      } else if (patch.party && knownGroupSize !== undefined) {
+        patch.groupSize = knownGroupSize;
       }
       if (request.assistant?.memory === false) delete patch.learnedPreferences;
       if (brief) brief = applyBriefPatch(brief, patch, request.tripId);
@@ -863,7 +866,7 @@ async function runOffline(
   const message = request.message + inlineTextAttachments(request.attachments);
   const patch = extractor
     ? await extractor.extract(message, submitted)
-    : extractBriefPatchLocally(message);
+    : extractBriefPatchLocally(message, submitted?.groupSize ?? request.known?.groupSize);
   const destinationCandidate =
     patch.destination?.toLowerCase() === "no preference"
       ? request.known?.destination

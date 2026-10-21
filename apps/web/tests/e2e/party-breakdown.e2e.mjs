@@ -97,6 +97,23 @@ check(
   "an explicit total stays authoritative over an inconsistent breakdown",
 );
 
+const existing = await plan("known-total-conflict", {
+  tripId: "party-breakdown-known-total",
+  message: "We are 1 adult and 1 child.",
+  known: {
+    destination: "Sydney",
+    dates: ["2026-12-01", "2026-12-03"],
+    groupSize: 4,
+    party: { adults: 4, children: 0, infants: 0, seniors: 0, pets: 0 },
+    budgetTotal: 3000,
+    noAccommodation: true,
+  },
+});
+check(
+  existing?.groupSize === 4 && existing?.party === undefined,
+  "a breakdown without a new total preserves the previously known total",
+);
+
 const failed = checks.filter((entry) => !entry.ok);
 writeFileSync(
   `${out}/summary.json`,

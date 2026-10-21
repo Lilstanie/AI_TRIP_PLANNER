@@ -80,7 +80,7 @@ function extractParty(message: string): TravellerParty | undefined {
   return partyPeople(party) > 0 ? party : undefined;
 }
 
-export function extractBriefPatchLocally(message: string): BriefPatch {
+export function extractBriefPatchLocally(message: string, knownGroupSize?: number): BriefPatch {
   const patch: BriefPatch = {};
 
   const dates = message.match(
@@ -117,8 +117,9 @@ export function extractBriefPatchLocally(message: string): BriefPatch {
 
   const party = extractParty(message);
   if (party) {
-    if (patch.groupSize === undefined) patch.groupSize = partyPeople(party);
-    if (patch.groupSize === partyPeople(party)) patch.party = party;
+    if (patch.groupSize === undefined && knownGroupSize === undefined)
+      patch.groupSize = partyPeople(party);
+    patch.party = party;
   }
 
   const fromTo = message.match(
