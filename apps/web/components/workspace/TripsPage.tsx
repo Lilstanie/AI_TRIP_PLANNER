@@ -342,9 +342,13 @@ function TripCalendar({
                     const { destination } = trip.snapshot.plan.brief;
                     const baseTitle = t("Trip to {destination}", { destination });
                     const title = titles.get(trip.id) ?? baseTitle;
-                    const compactSuffix = title.match(/ · \d+$/)?.[0];
+                    const compactSuffix = title.match(/ · (\d+)$/)?.[1];
                     const visibleTitle = compact
-                      ? (compactSuffix ?? (title === baseTitle ? destination : title))
+                      ? compactSuffix
+                        ? `#${compactSuffix}`
+                        : title === baseTitle
+                          ? destination
+                          : title
                       : title;
                     const labelled = time === utc(start) || weekday === 0;
                     const [from] = coverColours(trip.snapshot.plan.brief.destination);
@@ -365,7 +369,11 @@ function TripCalendar({
                         onClick={() => onOpenTrip(trip.id)}
                       >
                         {labelled ? (
-                          <span className="trip-calendar__visible-label">{visibleTitle}</span>
+                          <span
+                            className={`trip-calendar__visible-label${compactSuffix && compact ? " trip-calendar__visible-label--compact" : ""}`}
+                          >
+                            {visibleTitle}
+                          </span>
                         ) : (
                           " "
                         )}

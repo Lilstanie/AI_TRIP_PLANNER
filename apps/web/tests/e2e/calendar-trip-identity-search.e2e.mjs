@@ -251,7 +251,10 @@ try {
       duplicateNames,
     );
     check(
-      duplicateLabels.length === 2 && duplicateLabels.every((label) => /[·•] ?[12]/.test(label)),
+      duplicateLabels.length === 2 &&
+        duplicateLabels.every((label, index) =>
+          width <= 520 ? label === `#${index + 1}` : label === `Trip to Sydney · ${index + 1}`,
+        ),
       `#482 ${width}px visible labels distinguish duplicate trips`,
       duplicateLabels,
     );
@@ -293,7 +296,7 @@ try {
         renderedLabels.length === 2 &&
           renderedLabels.every(
             (label, index) =>
-              label.text === `· ${index + 1}` &&
+              label.text === `#${index + 1}` &&
               label.visible &&
               Number.parseFloat(label.fontSize) >= 12 &&
               label.clientWidth > 0 &&

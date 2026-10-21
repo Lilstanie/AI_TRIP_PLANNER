@@ -426,6 +426,13 @@
   display: inline-block;
   white-space: nowrap;
 }
+.trip-calendar__visible-label--compact {
+  padding: 0 3px;
+  border-radius: var(--radius-sm);
+  background: rgb(0 0 0 / 28%);
+  font-size: 13px;
+  line-height: 18px;
+}
 .trip-calendar__trip[data-start="true"] {
   margin-left: var(--space-1);
   width: calc(100% - var(--space-1) + 1px);
