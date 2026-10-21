@@ -21,6 +21,7 @@ import { createRoutedChatModel, readStructuredResponse } from "../models";
 import { chooseInitial, eligibleOptions, readPreferences, splitStay, stayCost } from "./planning";
 import { scheduledHops } from "../transport/legs";
 import { TRAVELLER_PREFERENCES_RULE } from "../prompts/traveller-preferences";
+import { replyLanguageRule } from "../prompts/reply-language";
 import { summaryCopy } from "../summary-copy";
 
 const candidateId = (day: number, index: number) => `stay-${day}-${index}`;
@@ -377,7 +378,8 @@ async function planStays(
     tools: [search],
     systemPrompt:
       "You are the accommodation specialist. Call search_accommodation_candidates, then choose one candidate for every stay it returns. You own that choice: weigh rating, free cancellation and total cost against the traveller's brief and any revision. When a stayBudget is given, keep the total of all chosen stays within maxTotalCost. A budget revision means prefer the cheapest eligible candidate. Refer to candidates only by the ids you were given -- never invent a property, a rate, a rating or a policy, and never state a price yourself. Return the requested structured selection. " +
-      TRAVELLER_PREFERENCES_RULE,
+      TRAVELLER_PREFERENCES_RULE +
+      replyLanguageRule(ctx.replyLanguage),
     responseFormat: StaySelection,
   });
   try {

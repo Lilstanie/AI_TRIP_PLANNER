@@ -15,6 +15,7 @@ import { mockEnabled } from "@trip/tools";
 import { clip } from "../clip";
 import { normalize, canonicalPlaceName, dedupeEntries } from "../place-names";
 import { TRAVELLER_PREFERENCES_RULE } from "../prompts/traveller-preferences";
+import { replyLanguageRule } from "../prompts/reply-language";
 import { summaryCopy } from "../summary-copy";
 
 const GuideAttraction = z.object({
@@ -71,6 +72,7 @@ export interface DestinationGuideGenerator {
     travelMonth: string;
     places: Place[];
     preferences: UserPreference[];
+    language?: InterfaceLanguage;
   }): Promise<DestinationGuideDraft>;
 }
 
@@ -159,7 +161,8 @@ function createMiniMaxGenerator(): DestinationGuideGenerator | undefined {
         tools: [evidence],
         systemPrompt:
           "You are the destination specialist. Always call read_destination_evidence before answering and use only its facts. Attraction names must be a grounded candidate's name copied character for character, with no category, rating or district appended. Give concise customs, packing and planning guidance. Treat weather as monthly context, never a forecast. Never assert entry eligibility, vaccine requirements or that an area is safe; direct travellers to current official immigration, health and travel-advisory sources. Never claim live opening hours or availability. Return the requested structured destination guide.\n\nKeep within these lengths; longer text is cut at a sentence end: summary at most 400 characters; at most 5 attractions, each detail at most 500 characters; customs, safety and entryHealth are each 1-4 strings of at most 400 characters; weather at most 500 characters; packing 1-6 strings of at most 300 characters; assumptions at most 6 strings.\n\n" +
-          TRAVELLER_PREFERENCES_RULE,
+          TRAVELLER_PREFERENCES_RULE +
+          replyLanguageRule(input.language),
         responseFormat: ModelGuideDraft,
       });
       const result = await specialist.invoke({
@@ -215,7 +218,13 @@ async function planDestinationGuide(
   if (generator) {
     try {
       draft = validateDraft(
-        await generator.generate({ brief, travelMonth: month, places, preferences }),
+        await generator.generate({
+          brief,
+          travelMonth: month,
+          places,
+          preferences,
+          ...(ctx.replyLanguage ? { language: ctx.replyLanguage } : {}),
+        }),
         places,
       );
     } catch (error) {

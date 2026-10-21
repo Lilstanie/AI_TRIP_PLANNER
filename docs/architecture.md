@@ -392,10 +392,13 @@ conflict detection and the plan score stay AUD, and provider fares keep their ow
 
 Language follows the same split. Coordinator and specialist progress lines are notices in the chat
 request's `interfaceLanguage`. Each turn also resolves one reply language in
-`packages/orchestrator/src/reply-language.ts`: Han text in the latest message means Chinese, Latin
-text means English, and anything else uses the interface language, then English. Specialists receive
-it as `AgentContext.replyLanguage` and write their fixed summaries in it; without it they write
-English, as the Agent Lab does.
+`packages/orchestrator/src/reply-language.ts`: Han text in the latest message means Chinese, more than
+two Latin words mean English, and anything else, such as a bare place name, uses the interface
+language, then English. Specialists receive it as `AgentContext.replyLanguage` and write their fixed
+summaries in it. The coordinator, the planning supervisor and the specialist models get it through
+`replyLanguageRule()` in `packages/agents/src/prompts/reply-language.ts`, which also tells them to
+copy names, ids and amounts untranslated. Without a reply language the specialists and supervisor
+add no rule and write English, as the Agent Lab does.
 
 `TripBrief.preferences` (and the same field on `known`) carries the traveller's own trip
 preferences, written in the top bar's Trip preferences editor. The coordinator's `update_trip_brief`

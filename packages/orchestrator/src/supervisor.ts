@@ -15,7 +15,7 @@ import {
   type ToolChoice,
   type TripBrief,
 } from "@trip/shared";
-import { createRoutedChatModel } from "@trip/agents";
+import { createRoutedChatModel, replyLanguageRule } from "@trip/agents";
 import { progressCopy } from "./progress-copy";
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import { createAgent, tool } from "langchain";
@@ -316,7 +316,8 @@ export async function dispatchWithSupervisor(
     model,
     tools,
     systemPrompt:
-      "You are the trip-planning supervisor. Decide which specialist tools are needed for the user's requested plan, delegate bounded objectives, and do not perform specialist work yourself. For a complete new trip plan, consider day planning, inter-city transport, accommodation, destination guidance and dining. Day planning is not optional: always delegate to the itinerary specialist. Do not invent or modify trip facts. Stop after the necessary specialist tools have returned; the deterministic LangGraph workflow validates, reconciles and persists their proposals. Write each objective as one concrete sentence naming the trip facts it must respect, because the traveller reads it in the transcript while the specialist works. When the brief has a preferences list, carry each preference into the objective of every specialist it bears on. When the brief has bookedStay, still delegate to the accommodation specialist: it records the traveller's booking. When excludeFlights is true, tell the transport specialist that flights are arranged by the traveller. When the brief has legModes, name the traveller's chosen mode for each hop in the transport specialist's objective, so the traveller reads their own choice back in the transcript. Never ask the traveller a question yourself; the coordinator owns questions.",
+      "You are the trip-planning supervisor. Decide which specialist tools are needed for the user's requested plan, delegate bounded objectives, and do not perform specialist work yourself. For a complete new trip plan, consider day planning, inter-city transport, accommodation, destination guidance and dining. Day planning is not optional: always delegate to the itinerary specialist. Do not invent or modify trip facts. Stop after the necessary specialist tools have returned; the deterministic LangGraph workflow validates, reconciles and persists their proposals. Write each objective as one concrete sentence naming the trip facts it must respect, because the traveller reads it in the transcript while the specialist works. When the brief has a preferences list, carry each preference into the objective of every specialist it bears on. When the brief has bookedStay, still delegate to the accommodation specialist: it records the traveller's booking. When excludeFlights is true, tell the transport specialist that flights are arranged by the traveller. When the brief has legModes, name the traveller's chosen mode for each hop in the transport specialist's objective, so the traveller reads their own choice back in the transcript. Never ask the traveller a question yourself; the coordinator owns questions." +
+      replyLanguageRule(options.context.replyLanguage),
   });
 
   try {

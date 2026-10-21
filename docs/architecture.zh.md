@@ -322,9 +322,10 @@ Google Places 不提供门票价格，因此活动的 `estCost` 保持未设置�
 非 AUD 行程的生成文字末尾附带估算说明。规划、预算检查、冲突检测和规划评分仍为 AUD，提供方票价保留自己的币种。
 
 语言也按同样方式划分。协调器与 specialist 的进度行属于通知，使用聊天请求中的 `interfaceLanguage`。
-每一轮还会在 `packages/orchestrator/src/reply-language.ts` 中确定一种回复语言：最新消息含汉字即中文，含拉丁字母即英文，
-两者都没有时使用界面语言，再退回英文。specialist 通过 `AgentContext.replyLanguage` 收到它，并用它写固定摘要；
-没有该字段时写英文，Agent Lab 即如此。
+每一轮还会在 `packages/orchestrator/src/reply-language.ts` 中确定一种回复语言：最新消息含汉字即中文，超过两个拉丁单词即英文，
+其余情况（例如只有一个地名）使用界面语言，再退回英文。specialist 通过 `AgentContext.replyLanguage` 收到它，并用它写固定摘要。
+协调器、规划 supervisor 和 specialist 模型通过 `packages/agents/src/prompts/reply-language.ts` 中的 `replyLanguageRule()` 收到它，
+该规则同时要求原样照抄名称、id 和金额。没有回复语言时，specialist 和 supervisor 不加规则并写英文，Agent Lab 即如此。
 
 `TripBrief.preferences`（以及 `known` 中的同名字段）携带旅行者自己的旅行偏好，
 通过顶栏的 Trip preferences 编辑器填写。协调器的 `update_trip_brief` 工具没有这些偏好的字段，

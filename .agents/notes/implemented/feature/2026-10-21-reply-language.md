@@ -14,7 +14,8 @@ panel, while the model reply guessed its own language from a free-form prompt ru
   interface language through `packages/orchestrator/src/progress-copy.ts`.
 - Each chat turn has one **reply language**, resolved in code by
   `packages/orchestrator/src/reply-language.ts`: Han text is Chinese, Latin text is English, and a
-  message with neither (numbers, dates, empty) uses the interface language, then English.
+  message with neither (numbers, dates, empty) uses the interface language, then English. Two Latin
+  words or fewer, such as a bare place name, count as unclear too.
 - `AgentContext.replyLanguage` in `packages/shared/src/agent.ts` carries it to the five
   specialists. It is optional; a missing value means English, so the Agent Lab and older callers
   keep their exact English summaries.
@@ -31,10 +32,12 @@ and a traveller who writes English in the Chinese interface should read one lang
 
 ## Consequences
 
-- The reply model and specialist prompts still pick their language from the free-form rule; a
-  follow-up passes them the resolved reply language (#492).
+- The coordinator, the planning supervisor and the specialist models receive the resolved reply
+  language through `replyLanguageRule()` in `packages/agents/src/prompts/reply-language.ts`,
+  replacing the coordinator's free-form "detect the language" rule.
 - Text a model wrote, such as a dining draft summary, is shown as received.
 
 ## Sources
 
-[2026-10-21 reply language log](../../../session-logs/2026-10-21-reply-language.md)
+[2026-10-21 reply language log](../../../session-logs/2026-10-21-reply-language.md),
+[2026-10-21 reply language prompts log](../../../session-logs/2026-10-21-reply-language-prompts.md)
