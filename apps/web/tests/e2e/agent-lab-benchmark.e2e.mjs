@@ -449,14 +449,20 @@ async function main() {
           artifact.dataMode === "fixture" &&
           !artifact.faultProfileId,
       );
-      const passed = rows.filter(
-        (artifact) =>
-          artifact.status === "completed" && checksOf(artifact).every((item) => item.passed),
-      ).length;
+      const passed = rows.filter((artifact) => {
+        const scenario = scenarioById.get(artifact.scenarioId);
+        const checks = checksOf(artifact);
+        return (
+          actualOutcome(artifact) === scenario.expectedOutcome &&
+          (scenario.mustPassCheckIds ?? []).every(
+            (id) => checks.find((item) => item.id === id)?.passed === true,
+          )
+        );
+      }).length;
       return {
         strategyId,
         passed,
-        failed: rows.length - rows.filter((artifact) => artifact.status === "completed").length,
+        failed: rows.length - passed,
         denominator: scenarioIds.length,
         passRate: scenarioIds.length ? passed / scenarioIds.length : null,
         medianLatencyMs: median(
@@ -501,7 +507,7 @@ async function main() {
       "",
       "Fixture data only. Failed and stopped runs remain in the denominators. Usage is unavailable when the provider did not report it.",
       "",
-      "| Strategy | Passed | Failed/stopped | Denominator | Pass rate | Median fixture latency | Usage reported / unavailable |",
+      "| Strategy | Passed | Not passed | Denominator | Pass rate | Median fixture latency | Usage reported / unavailable |",
       "| --- | ---: | ---: | ---: | ---: | ---: | ---: |",
       ...report.summaries.map(
         (item) =>
@@ -558,6 +564,22 @@ async function main() {
           ).length,
     ),
     "strategy denominators include every scenario and exclude separately reported fault experiments",
+  );
+  check(
+    report.summaries.every((summary) => {
+      const rows = report.runs.filter(
+        (row) => row.strategyId === summary.strategyId && !row.faultProfileId,
+      );
+      const passed = rows.filter(
+        (row) => row.actualOutcome === row.expectedOutcome && row.mustPassChecksPassed,
+      ).length;
+      return (
+        summary.passed === passed &&
+        summary.failed === summary.denominator - passed &&
+        summary.passed + summary.failed === summary.denominator
+      );
+    }),
+    "strategy summaries count expected outcomes and must-pass checks and partition every scenario",
   );
   check(
     report.faultSummaries.every(

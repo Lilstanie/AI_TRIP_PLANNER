@@ -193,7 +193,7 @@ export const tokyoKyotoMultiCity: AgentLabScenario = {
   title: "Tokyo and Kyoto, multi-city",
   summary:
     "Seven nights from Sydney with A$6,500: the train, the stays and each day's activities must agree on one move.",
-  fixtureVersion: "tokyo-kyoto-multi-city-v1",
+  fixtureVersion: "tokyo-kyoto-multi-city-v2",
   brief,
   rules: { earliestStartTime: "10:00", vegetarianMeals: false, sectionCount: 5 },
   expectedOutcome: "complete",

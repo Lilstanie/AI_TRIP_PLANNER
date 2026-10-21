@@ -324,12 +324,12 @@ async function main() {
   check(
     kyoto.artifacts.every(
       (artifact) =>
-        artifact.versions.fixture === "tokyo-kyoto-multi-city-v1" &&
+        artifact.versions.fixture === "tokyo-kyoto-multi-city-v2" &&
         artifact.versions.evaluator === EVALUATOR_VERSION &&
         artifact.plan.brief.destination === "Tokyo & Kyoto" &&
         artifact.plan.brief.dates.join() === "2026-11-10,2026-11-17",
     ),
-    "kyoto: every artifact records fixture tokyo-kyoto-multi-city-v1, the evaluator version and the brief",
+    "kyoto: every artifact records fixture tokyo-kyoto-multi-city-v2, the evaluator version and the brief",
   );
   const factNames = [
     "hopInsideTrip",

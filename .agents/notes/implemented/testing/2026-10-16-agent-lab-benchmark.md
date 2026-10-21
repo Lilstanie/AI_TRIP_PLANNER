@@ -15,6 +15,10 @@ Every scenario variant owns a scripted plan fixture or an explicitly named sourc
 
 The `agent-lab-benchmark` E2E command executes every scenario once under every strategy in fixture mode and each registered fault in its registered scenario and strategy. It writes the report from those exact artifacts, including failed runs, checks, expected and observed outcomes, recovery, provider-reported usage or unavailable, latency, and denominators. An observed safe stop includes failed artifacts and explicit infeasible-budget stops; a completed run with any failed evaluator check is partial, and complete requires all checks to pass. This lets the report show strategy-specific gaps, such as a baseline that completes an infeasible-budget scenario without reporting the supported floor. It replays one retained artifact through the production page and checks that the displayed metric matches the report source.
 
+The Tokyo and Kyoto fixture is version 2 after its arrival-day activity was moved beyond the train's arrival time.
+
+Strategy summary passes require the observed outcome to match the scenario expectation and every declared must-pass check to pass. The not-passed count is the complement of passed runs in the scenario denominator, so completed partial or unexpected runs cannot disappear from the summary.
+
 Live measurements are separately opt-in with `AGENT_LAB_BENCHMARK_LIVE=true`. The subset is three scenarios, the strategies that declare live support, and three repeats; each request uses the existing live gate, and execution stops on its first refusal. The report preserves the configured maximum, actual count, skipped strategies, refusals, per-pair median latency and spread. Fixture and live artifacts and summaries remain separate.
 
 The README reports no measured aggregate until a retained benchmark report is reviewed and linked, and states that plan quality has not been assessed. A controlled deployment smoke is documented by the release-record template; the run records the deployed commit, providers actually called, outcome and call cap, never credentials.

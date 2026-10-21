@@ -250,7 +250,7 @@ negative when the plan is over budget. A scenario whose evidence shows no plan c
 `trip-dates` requires the brief and first and last stay dates to match the trip dates.
 `stay-date-range` remains for standalone accommodation date-boundary scenarios.
 `versions.evaluator` is `scenario-rules-v8` and `versions.fixture` names the scenario's fixture. Competing meal preferences require separate meal records as evidence. Scenario-specific checks may also include
-`meal-preference-tradeoff`, `actionable-brief`, `trip-days`, `stay-nights` and `stay-date-range`. The comparison figures `rounds`, `toolCalls`, `fallbacks`,
+`meal-preference-tradeoff`, `actionable-brief`, `trip-days` and `stay-date-range`. The comparison figures `rounds`, `toolCalls`, `fallbacks`,
 `failedAgents` and `unresolvedConflicts` are counted from the trace and the plan; `latencyMs` is the
 run's wall time without display pacing (`durationMs` includes it) and, in fixture mode, measures
 orchestration overhead only. The artifact also records `groundedSections`, `duplicateStops`,
