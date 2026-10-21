@@ -83,6 +83,38 @@ function extractParty(message: string): TravellerParty | undefined {
 export function extractBriefPatchLocally(message: string, knownGroupSize?: number): BriefPatch {
   const patch: BriefPatch = {};
 
+  const durationInDestination = message.match(
+    new RegExp(
+      `(\\d+)\\s+days?\\s+(?:in|at)\\s+(.+?)(?=\\s+(?:for|budget|from)\\b|[,.;]|$)[\\s\\S]*?\\bfrom\\s+${DATE_TOKEN}`,
+      "i",
+    ),
+  );
+  const destinationDuration = message.match(
+    new RegExp(
+      `^\\s*(?:plan\\s+)?([A-Za-z][A-Za-z &.'-]*?)[, ]+\\s*(\\d+)\\s+days?\\s+from\\s+${DATE_TOKEN}`,
+      "i",
+    ),
+  );
+  const duration = durationInDestination?.[1] ?? destinationDuration?.[2];
+  const startToken = durationInDestination?.[3] ?? destinationDuration?.[3];
+  const startDate = startToken ? parseTripDate(startToken) : undefined;
+  const durationDays = Number(duration);
+  if (
+    duration &&
+    Number.isSafeInteger(durationDays) &&
+    durationDays > 0 &&
+    startDate &&
+    "iso" in startDate
+  ) {
+    const start = Date.parse(`${startDate.iso}T00:00:00.000Z`);
+    const end = new Date(start + (durationDays - 1) * 86_400_000);
+    if (Number.isFinite(end.getTime())) {
+      patch.dates = [startDate.iso, end.toISOString().slice(0, 10)];
+      const destination = durationInDestination?.[2] ?? destinationDuration?.[1];
+      if (destination) patch.destination = cleanDestination(destination);
+    }
+  }
+
   const dates = message.match(
     new RegExp(`${DATE_TOKEN}\\s*(?:to|through|until|–|—|至|到)\\s*${DATE_TOKEN}`, "i"),
   );

@@ -346,6 +346,12 @@ initial plans and revisions. An agent owns a durable role definition: model, `na
 Transport and accommodation wrap calculators so models cannot invent prices, routes or properties.
 The itinerary likewise never prices a stop: Google Places publishes no admission prices, so an
 activity's `estCost` is left unset and the plan says how many stops are unpriced.
+The reply receives the plan's known estimate, budget, headroom and each stop's price state. An unset
+activity price is excluded, not zero; the reply must disclose that boundary and may quote a stop price
+only when the plan carries that numeric price. Fixture and no-model replies verify this deterministic
+boundary, not live-model wording reliability.
+When a thin-data plan reuses a grounded place across days, the reply facts include the repeated place
+and its days so the reply identifies it as one reused stop rather than distinct activities.
 
 Model routing (`MODEL_ROUTING` in `packages/agents/src/models.ts` and `chat.ts`):
 
@@ -359,7 +365,9 @@ Dates are read by the model, not by patterns: extraction converts whatever shape
 into `YYYY-MM-DD`, takes the next occurrence for a date written without a year, and leaves the dates
 unset when only one end is given or the day and month cannot be told apart (`01/10/2026`), so the
 traveller is asked instead of planned a trip on a guessed month. Without a key, or when a model call
-fails, a small English/Chinese rule parser handles extraction instead; it only reads ISO dates.
+fails, a small English/Chinese rule parser handles extraction instead. It reads supported explicit
+dates and resolves an explicit duration plus start date to an inclusive end date; it does not infer an
+unstated return date.
 
 `TripBrief.dates` is inclusive: the end date is the last day of the trip, so a trip has
 `end − start + 1` days and `end − start` nights. Planning code counts days with `planningDays()`
