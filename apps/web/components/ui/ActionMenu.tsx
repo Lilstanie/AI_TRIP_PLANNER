@@ -32,10 +32,17 @@ export function ActionMenu({ label, items }: { label: string; items: ActionMenuI
           ? buttons.length - 1
           : (current + step + buttons.length) % buttons.length;
     buttons[index]?.focus({ preventScroll: true });
+    buttons[index]?.scrollIntoView({ block: "nearest", inline: "nearest" });
   };
 
   useEffect(() => {
     if (!open) return;
+    const list = menu.current;
+    let scroller = list?.parentElement;
+    while (scroller && !/auto|scroll/.test(getComputedStyle(scroller).overflowY))
+      scroller = scroller.parentElement;
+    if (list && scroller) list.style.maxHeight = `${scroller.clientHeight - 16}px`;
+    list?.scrollIntoView({ block: "nearest", inline: "nearest" });
     focusItem("first");
     const close = (restore: boolean) => {
       setOpen(false);

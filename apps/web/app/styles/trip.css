@@ -574,6 +574,8 @@ button.action-menu__trigger[aria-expanded="true"] {
   z-index: 6;
   display: grid;
   min-width: 220px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: var(--space-1);
   border: 1px solid var(--border);
   border-radius: var(--radius);
