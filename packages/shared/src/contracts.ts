@@ -164,6 +164,7 @@ export const ProposalItem = z
     note: z.string().trim().max(500).optional(),
 
     booked: z.boolean().optional(),
+    progress: z.enum(["planned", "visited", "skipped"]).catch("planned").optional(),
   })
 
   .check((ctx) => {

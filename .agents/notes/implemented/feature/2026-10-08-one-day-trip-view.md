@@ -21,7 +21,7 @@ Review plan. The phone Trip tab renders the same component tree. The tabs and th
 - Tapping a stop's time opens a Start/End form. Submitting it sends the time to `POST /api/trip/preview-edit`
   and applies at once (#235).
 - The stop's "…" menu holds Move earlier, Move later, Move to another day, Move to ideas, Replace place,
-  Edit details, Add or edit note, Mark as booked and Remove. Ideas offer Schedule on a day instead of the moves.
+  Edit details, Add or edit note, Mark as booked, visit progress and Remove. Ideas offer Schedule on a day instead of the moves.
 - Replace place opens the place search in the card. A picked result is saved through the server check.
 - Drag to reorder still works on desktop.
 
@@ -56,3 +56,5 @@ Review plan. The phone Trip tab renders the same component tree. The tabs and th
 Partly superseded by [Remove status labels and Review plan](2026-10-08-remove-status-labels.md)
 (#240). The Trip drawer no longer ends with a "Review plan" button, and its header no longer shows "Needs review" or
 "Draft". Unresolved conflicts are shown on the stop, leg or day they target, or under the budget bar.
+
+Visit progress extends this menu through [Stop visit progress](2026-10-19-stop-visit-progress.md).

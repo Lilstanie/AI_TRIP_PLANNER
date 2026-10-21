@@ -231,6 +231,54 @@ try {
     (await today.count()) === 1 && (await today.getAttribute("data-day")) === "1",
     "Sydney selects Day 1 although Honolulu's date is the previous day",
   );
+  await page.clock.setSystemTime(new Date("2026-10-17T12:59:30Z"));
+  await page.clock.runFor(60_000);
+  const nextDestinationDay = trip.getByRole("tab", { name: /Today/ });
+  check(
+    (await nextDestinationDay.getAttribute("data-day")) === "2" &&
+      (await nextDestinationDay.getAttribute("aria-selected")) === "true",
+    "an open trip selects the new Today after destination-local midnight",
+    await trip.getByRole("tab").allInnerTexts(),
+  );
+  await page.clock.setSystemTime(new Date("2026-10-17T13:00:30Z"));
+  await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+  const visibleToday = trip.getByRole("tab", { name: /Today/ });
+  check(
+    (await visibleToday.getAttribute("data-day")) === "2" &&
+      (await visibleToday.getAttribute("aria-selected")) === "true",
+    "an open trip refreshes Today when the document becomes visible",
+  );
+  await page.clock.setSystemTime(new Date("2026-10-16T14:30:00Z"));
+  await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+  const focusedToday = trip.getByRole("tab", { name: /Today/ });
+  check(
+    (await focusedToday.getAttribute("data-day")) === "1" &&
+      (await focusedToday.getAttribute("aria-selected")) === "true",
+    "an open trip refreshes Today when the window receives focus",
+  );
+  await trip.getByRole("tab", { name: /^Day 2\b/ }).click();
+  await page.evaluate(() =>
+    localStorage.setItem(
+      "trip-day-selected:on-trip-sydney-boundary",
+      JSON.stringify({ day: 2, selectedOnToday: 1 }),
+    ),
+  );
+  await page.clock.setSystemTime(new Date("2026-10-19T14:30:00Z"));
+  await page.reload();
+  await openSeededTrip();
+  check(
+    (await trip.getByRole("tab", { name: /^Day 1\b/ }).getAttribute("aria-selected")) === "true",
+    "an expired trip returns to Day 1 instead of restoring an in-trip manual day",
+    await trip.getByRole("tab").evaluateAll((tabs) =>
+      tabs.map((tab) => ({
+        label: tab.textContent?.trim(),
+        selected: tab.getAttribute("aria-selected"),
+        day: tab.getAttribute("data-day"),
+      })),
+    ),
+  );
+  await page.clock.setSystemTime(new Date("2026-10-16T14:30:00Z"));
+  await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
   const tips = trip.locator(".trip-tips");
   await tips.waitFor();
   check(!(await tips.evaluate((node) => node.open)), "Travel tips start collapsed on-trip");
@@ -267,6 +315,51 @@ try {
     (await trip.getByRole("tab", { name: /^Day 2\b/ }).getAttribute("aria-selected")) === "true",
     "manual day selection remains usable",
   );
+  await page.reload();
+  await openSeededTrip();
+  check(
+    (await page
+      .locator("#phone-panel-trip")
+      .getByRole("tab", { name: /^Day 2\b/ })
+      .getAttribute("aria-selected")) === "true",
+    "manual day selection is restored after reload",
+  );
+  const todayTab = page.locator("#phone-panel-trip [role=tab]").filter({ hasText: "Today" });
+  const todayDay = Number(await todayTab.getAttribute("data-day"));
+  await page.evaluate(
+    ({ tripId, previousToday }) =>
+      localStorage.setItem(
+        `trip-day-selected:${tripId}`,
+        JSON.stringify({ day: 2, selectedOnToday: previousToday }),
+      ),
+    { tripId: "on-trip-sydney-boundary", previousToday: todayDay - 1 },
+  );
+  await page.reload();
+  await openSeededTrip();
+  check(
+    (await page
+      .locator("#phone-panel-trip [role=tab]")
+      .filter({ hasText: "Today" })
+      .getAttribute("aria-selected")) === "true",
+    "a saved selection from a previous trip day yields to today's date",
+  );
+  await page.clock.setSystemTime(new Date("2026-10-17T14:30:00Z"));
+  await page.evaluate(() =>
+    localStorage.setItem(
+      "trip-day-selected:on-trip-sydney-boundary",
+      JSON.stringify({ day: 5, selectedOnToday: 2 }),
+    ),
+  );
+  await page.reload();
+  await openSeededTrip();
+  check(
+    (await page
+      .locator("#phone-panel-trip")
+      .getByRole("tab", { name: /Today/ })
+      .getAttribute("aria-selected")) === "true",
+    "an out-of-range saved manual day yields to Today",
+  );
+  await page.clock.setSystemTime(new Date("2026-10-16T14:30:00Z"));
   await page.screenshot({ path: `${OUT}/on-trip-sydney-boundary.png`, fullPage: true });
 
   await page.evaluate(() => localStorage.setItem("trip-tips-folded:on-trip-sydney-boundary", "0"));
@@ -299,9 +392,13 @@ try {
     (await trip.getByRole("tab", { name: /Today/ }).count()) === 0,
     "Before the destination-local start date, no day is marked Today",
   );
+  await trip.getByRole("tab", { name: /^Day 2\b/ }).click();
+  await page.reload();
+  await openSeededTrip();
+  await trip.getByRole("tab", { name: /^Day 1\b/ }).waitFor();
   check(
     (await trip.getByRole("tab", { name: /^Day 1\b/ }).getAttribute("aria-selected")) === "true",
-    "Before the trip, Day 1 remains the default",
+    "Before the trip, a reloaded manual day selection returns to Day 1",
   );
   check(
     await tips.evaluate((node) => node.open),
@@ -361,7 +458,7 @@ try {
       localStorage.setItem("trip-workspace-v1", JSON.stringify(seed.snapshot));
       localStorage.setItem("trip-workspace-catalog-v3", JSON.stringify(seed.catalog));
     },
-    snapshotSeed(["2026-10-17", "2026-10-19"], "on-trip-budget-headroom-unpriced", true, 500, 400),
+    snapshotSeed(["2026-10-17", "2026-10-19"], "on-trip-budget-headroom-unpriced", true, 500, 480),
   );
   await page.reload();
   await openSeededTrip();
