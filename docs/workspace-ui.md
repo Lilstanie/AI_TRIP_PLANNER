@@ -183,7 +183,9 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
   - Your Trip and the narrow-screen navigation are overlay drawers below the top bar.
     They never cover the logo or top-bar buttons, and the chat and map keep their width.
   - On desktop the Trip drawer is `(1 - --chat-share) × 100%` wide, so it covers exactly the map
-    wherever the divider sits.
+    wherever the divider sits. When that leaves the day view 240 px or narrower, as at the narrowest
+    split of a 1024 px window, each stop's time moves above its name and the budget total wraps, so
+    nothing scrolls sideways.
   - `Drawer` provides `role="dialog"`, `aria-modal`, `aria-hidden` and `inert` when closed, focus on
     the close button, a Tab loop, Escape (nested edit previews and native dialogs first) and focus
     return to the trigger.
