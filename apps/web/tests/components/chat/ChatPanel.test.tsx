@@ -89,7 +89,7 @@ describe("ChatPanel", () => {
     expect(sent).toMatch(/\d{4}-\d{2}-\d{2} to \d{4}-\d{2}-\d{2}/);
   });
 
-  it("sends a Chinese prompt when the interface is Chinese", async () => {
+  it("shows example trips in Chinese and sends the translated prompt", async () => {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify({ ...defaultSettings(), language: "zh" }));
     const onSend = vi.fn();
     function EmptyChat() {

@@ -119,6 +119,7 @@ function WhenFields({ value, onChange, errors }: FieldsProps) {
       </div>
       <TripCalendar
         range={range}
+        defaultMonth={range?.from}
         onSelect={handleSelect}
         numberOfMonths={2}
         ariaDescribedBy={errors.dates ? "fact-dates-error" : undefined}

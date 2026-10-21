@@ -72,7 +72,7 @@ export function ChatPanel({
 
   onDismissAsk?: () => void;
 }) {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const stream = useRef<HTMLDivElement>(null);
 
   const restored = useRef(messages.length);
@@ -103,7 +103,7 @@ export function ChatPanel({
                   type="button"
                   title={t(label)}
                   disabled={busy || locked}
-                  onClick={() => onSend(t(text, params))}
+                  onClick={() => onSend(translate(locale, text, params))}
                 >
                   {t(label)}
                 </button>

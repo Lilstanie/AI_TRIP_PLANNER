@@ -174,7 +174,7 @@ blocks, text files are inlined into its message under a delimiter naming the fil
 specialists' inputs are unchanged. Without a provider key, images are ignored and the inlined text is
 still read.
 
-New planning requests whose start or end date precedes the current calendar date at the destination receive an explicit clarification instead of a plan. The web client includes coordinates from a selected destination suggestion; the server uses an offline coordinate-to-time-zone lookup. If no coordinates are available, the check falls back to UTC. The traveller can provide corrected dates or explicitly confirm the historical dates in response to the matching clarification. Supplying an existing plan preserves historical editing. When an edit leaves the material itinerary, stays, transport and costs unchanged, the reply states that the plan was unchanged rather than claiming the requested edit completed.
+New planning requests whose start or end date precedes the current calendar date at the destination receive an explicit clarification instead of a plan. The web client includes coordinates from a selected destination suggestion; the server uses an offline coordinate-to-time-zone lookup. If no coordinates are available, the check falls back to UTC. The traveller can provide corrected dates or explicitly confirm the historical dates in response to the matching clarification. The confirmation is accepted on its own line in a multi-question card reply (for example, `Dates: Confirm historical trip`); a confirmation without the matching clarification is not accepted. Supplying an existing plan preserves historical editing. When an edit leaves the material itinerary, stays, transport and costs unchanged, the reply states that the plan was unchanged rather than claiming the requested edit completed.
 
 Optional `mode` values:
 
@@ -249,8 +249,11 @@ named check (`id`, `label`, `passed`) measured against the scenario's rules; `bu
 negative when the plan is over budget. A scenario whose evidence shows no plan can fit replaces `budget` and
 `no-conflicts` with `evidence-floor` (the estimate is not below the cheapest supported options) and
 `infeasibility-reported` (the plan names the supported minimum); a multi-city scenario adds `hop-date`,
-`itinerary-by-city`, `stay-transition`, `trip-dates` and `total-consistent`. `versions.evaluator` is
-`scenario-rules-v2` and `versions.fixture` names the scenario's fixture. The comparison figures `rounds`, `toolCalls`, `fallbacks`,
+`itinerary-by-city`, `stay-transition`, `stay-nights`, `trip-dates` and `total-consistent`.
+`trip-dates` requires the brief and first and last stay dates to match the trip dates.
+`stay-date-range` remains for standalone accommodation date-boundary scenarios.
+`versions.evaluator` is `scenario-rules-v8` and `versions.fixture` names the scenario's fixture. Competing meal preferences require separate meal records as evidence. Scenario-specific checks may also include
+`meal-preference-tradeoff`, `actionable-brief`, `trip-days` and `stay-date-range`. The comparison figures `rounds`, `toolCalls`, `fallbacks`,
 `failedAgents` and `unresolvedConflicts` are counted from the trace and the plan; `latencyMs` is the
 run's wall time without display pacing (`durationMs` includes it) and, in fixture mode, measures
 orchestration overhead only. The artifact also records `groundedSections`, `duplicateStops`,

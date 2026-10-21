@@ -46,6 +46,8 @@ now. Implementation history and browser acceptance for each phase are in the
     title on one line with the linked trip's name under it. Renamed chat titles are preserved.
     Choosing any of them closes the panel. See
     [New chat and New trip](#conversations-trips-and-storage) for what the two starts do.
+  - Search splits whitespace-separated terms and requires every term to match across a chat's title
+    or messages, or a trip's title, destination or dates; term order does not matter.
   - Search announces matching trip and chat counts through polite live regions. English uses singular for one result and plural for multiple results; Chinese uses the same counting phrase. Empty searches stay silent, and no matches announce the existing empty message.
   - **Trips** replaces the top bar, chat and map with the Your trips page: a "Your trips" heading, a
     New trip button, and Trips and Calendar tabs (`role="tablist"`, arrow keys switch) drawn as a
@@ -53,7 +55,7 @@ now. Implementation history and browser acceptance for each phase are in the
     every trip as a 4:3 cover card with "Trip to <destination>" and "<destination> · <localized date range> · N days",
     grouped into Upcoming and Past. Calendar is a Monday-first month grid with previous, Today and
     next, drawing each trip as a band over its days, filled with the dark colour of its cover palette
-    so the white label stays readable, labelled where it starts and at each week's start; it opens on the next trip's month. Each trip band announces its destination and inclusive start and end dates using the same full localized weekday, date and year format as the date cells, with UTC keeping calendar dates stable across time zones. Each date cell has a full localized weekday, date and year name; today has `aria-current="date"`; arrow keys move visible focus across every date, including empty dates. Choosing a trip, a chat, New chat or New trip returns
+    so the white label stays readable, labelled where it starts and at each week's start; it opens on the next trip's month. Calendar labels and accessible names reuse the Trips card disambiguation for trips with the same destination, dates, group size and budget; compact labels keep the distinguishing suffix. Each trip band announces its title and inclusive start and end dates using the same full localized weekday, date and year format as the date cells, with UTC keeping calendar dates stable across time zones. Each date cell has a full localized weekday, date and year name; today has `aria-current="date"`; arrow keys move visible focus across every date, including empty dates. Choosing a trip, a chat, New chat or New trip returns
     to the workspace.
   - Trips keep no photos, so a cover is a gradient chosen by hashing the destination, with its
     initial; the same destination always gets the same colours.
@@ -62,7 +64,7 @@ now. Implementation history and browser acceptance for each phase are in the
     and always shown where there is no hover to reveal it. The menu is a `role="menu"` of
     `role="menuitem"` buttons with `aria-haspopup` and `aria-expanded` on the trigger; Escape closes
     it and returns focus to the trigger without closing an enclosing panel or drawer, and clicking
-    outside or tabbing away closes it. Trips have no overflow menu because they have neither action.
+    outside or tabbing away closes it. Opening a chat menu scrolls the full menu into its containing panel before focusing its first action, keeping both actions above the phone tab bar. Trips have no overflow menu because they have neither action.
   - On narrow screens the navigation drawer shows the sidebar with the panel's content (search, the
     two starts, Trips and Chats) under Trips.
   - The logo is `apps/web/public/brand/ai-trip-planner-logo.svg`, referenced by URL. Its alt text is
@@ -114,7 +116,8 @@ now. Implementation history and browser acceptance for each phase are in the
     across the picked range, solid accent circles at its start and end, today outlined, and month
     navigation in the header. Past dates are disabled. A summary line above it reads "1 Oct – 4 Oct ·
     4 days" (or a prompt to choose dates while none are picked), with a Clear action beside it once a
-    date is picked. `DateRangePicker` (a calendar in its own dialog, used nowhere else at the moment)
+    date is picked. When dates exist, it opens on their start month; an undated trip opens on the
+    current month. `DateRangePicker` (a calendar in its own dialog, used nowhere else at the moment)
     shares the same styled calendar component (`TripCalendar`) so the two never drift apart.
   - Who is a stepper (− count +) per traveller kind: Adults (13–64), Children (2–12), Infants (under
     2), Seniors (65+) and Pets, each with its own remove/add buttons and a live count. The draft keeps
@@ -221,6 +224,8 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
   - Mine contains search, New chat, New trip, Trips/Calendar, the chats list and Settings & account.
     Search filters chats and trips; opening or starting either selects Chat. Each chat has a visible
     Rename/Delete row menu on touch. Data mode and interface language live here; the data-mode button shows its text label in both languages.
+    Opening a trip from Mine moves keyboard focus to the trip-title button, whose accessible name
+    identifies the destination and dates.
   - Crossing the phone width keeps the traveller on the same thing: narrowing with Your trips open
     continues in Mine, so the tab bar stays available, and narrowing with the Trip drawer open shows
     the Trip tab. Widening from Mine shows Your trips, widening from Trip opens the Trip drawer over
@@ -266,10 +271,11 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
   listed under Trips once a plan is produced; until then it is a blank conversation under Chats. The
   [New trip Agent Note](../.agents/notes/archived/feature/2026-09-24-new-trip.md) records why.
 - **Starting to plan.**
-  - A blank chat offers example trip suggestions. Selecting one replaces and focuses the message input;
-    it never sends a message or starts a request.
-    Suggestion text follows the interface language while keeping its dates, travellers and budget;
+  - A blank chat offers example trip suggestions. Selecting one sends a prompt and starts planning.
+    The prompt follows the interface language while keeping its dates, travellers and budget;
     data-mode tooltips and the action name for an untitled chat follow that language too.
+    The browser title follows the active trip and the locale-formatted date range, and returns to
+    `AI Trip Planner` when there is no active trip.
   - Each agent reply renders under its own Think fold: the transcript streams at the foot of the chat
     while the turn runs, then moves above the reply that ended the turn and stays with it (including
     after a reload).
@@ -388,7 +394,7 @@ zero under budget. If itinerary stops remain unpriced, the status adds “unpric
 and uses the caution colour; those missing costs remain listed beneath the estimate.
 When the estimate is below budget but itinerary stops remain unpriced, the status says “Known estimate
 within budget · unpriced stops not counted” and uses the caution colour. The missing costs remain
-listed beneath the estimate.
+listed beneath the estimate. Status text wraps within the budget panel at narrow drawer widths.
 
 Names of removed surfaces below appear only to explain their removal; nothing in this section
 describes current behaviour except the absences.
@@ -590,7 +596,9 @@ checked by the server: time, place, leg, a drag, Remove, Move to ideas, Move to 
 moves. Details, notes, booked and visit progress apply in the browser. The checks are deterministic and make no LLM calls.
 
 - **Layout.** A day strip of tabs (`Day 2 · Sun, 18 Oct · 3 stops`, flagged when a stop needs a
-  place) picks the day. The day is a vertical line in time order (`lib/trip/timeline.ts`): an
+  place) picks the day. Each tab has a unique ID and controls the single visible day panel; that
+  panel is labelled by the selected tab and contains the day's heading and timeline. Ideas remain
+  outside the day panel. The day is a vertical line in time order (`lib/trip/timeline.ts`): an
   flight in first (untimed flights and hops), timed inter-city hops and stops by start time, then one
   stay row per night, and on the last day the flight out, which ends the day. "Staying at …" shows on
   later nights. Narrow timeline containers use a 56 px time column so five-digit times fit before the aligned stop dots. Fixed rows show an icon, a title, one detail line and their cost ("Fare not published"
@@ -612,7 +620,7 @@ moves. Details, notes, booked and visit progress apply in the browser. The check
   to the server check. Selecting a stop, here or on the map, opens its place card: the place's first
   photo (live data with a Maps key), rating, address and an Open in Google Maps link. Replace place in the stop's menu opens a
   Google Places search in the card; a picked result is saved through the server check. Escape closes an
-  open form or the card and returns focus to the stop. Drag and drop still reorders the day.
+  open form or the card and returns focus to the stop. For a place still being looked up or not found, the name and close control share the first row and the lookup status spans the row below. Drag and drop still reorders the day.
 - **Editing.** A stop is compact until selected, here or on the map; selecting it opens its editor:
   start and end time ("Change time"), Move earlier / Move later, Move to another day, and a
   Google Maps search to replace the place. Drag and drop still reorders the day.

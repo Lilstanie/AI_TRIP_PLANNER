@@ -8,11 +8,13 @@ export function TripCalendar({
   range,
   onSelect,
   numberOfMonths = 2,
+  defaultMonth,
   ariaDescribedBy,
 }: {
   range: DateRange | undefined;
   onSelect(range: DateRange | undefined): void;
   numberOfMonths?: number;
+  defaultMonth?: Date;
   ariaDescribedBy?: string;
 }) {
   const { locale } = useLocale();
@@ -24,6 +26,7 @@ export function TripCalendar({
       locale={locale === "zh" ? zhCN : undefined}
       mode="range"
       selected={range}
+      defaultMonth={defaultMonth}
       onSelect={onSelect}
       components={{
         DayButton: (props) => (

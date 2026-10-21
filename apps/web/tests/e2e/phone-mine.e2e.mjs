@@ -273,8 +273,30 @@ try {
     );
     await selectMine();
     await mine.getByRole("tab", { name: "Trips", exact: true }).click();
-    await mine.locator(".trip-card").first().click();
-    check(await chatSelected(), `${width}: trip card opens Chat`);
+    const tripCard = mine.locator(".trip-card").first();
+    await tripCard.focus();
+    await page.keyboard.press("Enter");
+    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(resolve)));
+    check(await chatSelected(), `${width}: keyboard trip activation opens Chat`);
+    const focusAfterTrip = await page.evaluate(() => {
+      const title = document.querySelector(".phone-topbar__title-button");
+      return {
+        focused: title === document.activeElement,
+        visibleFocus: title?.matches(":focus-visible"),
+        title: title?.getAttribute("aria-label"),
+        active:
+          document.activeElement?.getAttribute("aria-label") ?? document.activeElement?.tagName,
+      };
+    });
+    check(
+      focusAfterTrip.focused &&
+        focusAfterTrip.visibleFocus &&
+        focusAfterTrip.title?.includes("Sydney"),
+      `${width}: keyboard trip activation focuses its named title control (${JSON.stringify(focusAfterTrip)})`,
+    );
+    if (width === 390) {
+      await page.screenshot({ path: `${OUT}/${width}-trip-title-focus.png` });
+    }
     await selectMine();
     await mine.locator('.history-item__open[title="Sydney ideas"]').click();
     check(await chatSelected(), `${width}: selecting chat opens Chat`);

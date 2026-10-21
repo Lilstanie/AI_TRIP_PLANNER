@@ -201,6 +201,11 @@ try {
       await page.goto(BASE);
       await page.locator(".workspace-app").waitFor();
       await page.addStyleTag({ content: "nextjs-portal { display:none !important; }" });
+      check(
+        (await page.title()) === "AI Trip Planner",
+        `${label}: blank workspace keeps the generic browser title`,
+        await page.title(),
+      );
       if (width === 1440)
         await page
           .getByRole("button", { name: locale === "en" ? /^Trips/ : /^行程/ })
@@ -293,11 +298,48 @@ try {
           "trip:Auckland",
       );
       check(true, `${label}: keyboard activation opens the matching trip`);
+      const activeTitle = await page.evaluate(
+        ({ locale, dates }) => {
+          const startYear = Number(dates[0].slice(0, 4));
+          const sameYear = startYear === Number(dates[1].slice(0, 4));
+          const includeYear = !sameYear || startYear !== new Date().getFullYear();
+          const range = new Intl.DateTimeFormat(locale === "zh" ? "zh-CN" : "en-AU", {
+            day: "numeric",
+            month: "short",
+            ...(includeYear ? { year: "numeric" } : {}),
+            timeZone: "UTC",
+          }).formatRange(new Date(`${dates[0]}T00:00:00Z`), new Date(`${dates[1]}T00:00:00Z`));
+          return `Auckland · ${range} · AI Trip Planner`;
+        },
+        { locale, dates: cases[2].dates },
+      );
+      check(
+        (await page.title()) === activeTitle,
+        `${label}: active trip title includes its locale-formatted date range`,
+        { expected: activeTitle, actual: await page.title() },
+      );
       if (width === 390 && locale === "en") {
         await page.getByRole("tab", { name: "Mine", exact: true }).click();
         await page
           .getByRole("button", { name: "Switch language to 简体中文", exact: true })
           .click();
+        const chineseTitle = await page.evaluate((dates) => {
+          const startYear = Number(dates[0].slice(0, 4));
+          const sameYear = startYear === Number(dates[1].slice(0, 4));
+          const includeYear = !sameYear || startYear !== new Date().getFullYear();
+          const range = new Intl.DateTimeFormat("zh-CN", {
+            day: "numeric",
+            month: "short",
+            ...(includeYear ? { year: "numeric" } : {}),
+            timeZone: "UTC",
+          }).formatRange(new Date(`${dates[0]}T00:00:00Z`), new Date(`${dates[1]}T00:00:00Z`));
+          return `Auckland · ${range} · AI Trip Planner`;
+        }, cases[2].dates);
+        check(
+          (await page.title()) === chineseTitle,
+          `${label}: changing interface language refreshes the browser title`,
+          { expected: chineseTitle, actual: await page.title() },
+        );
         await page.getByRole("tab", { name: "日历", exact: true }).click();
         check(
           (await page.locator(".trip-calendar__trip").first().getAttribute("aria-label"))?.includes(
@@ -305,6 +347,10 @@ try {
           ),
           `${label}: changing UI language refreshes the accessible range`,
         );
+        await page.getByRole("tab", { name: "我的", exact: true }).click();
+        await page.getByRole("button", { name: "新行程", exact: true }).click();
+        await page.waitForFunction(() => document.title === "AI Trip Planner");
+        check(true, `${label}: starting a blank trip restores the generic browser title`);
       }
       check(errors.length === 0, `${label}: no browser page errors`, errors);
       await context.close();
