@@ -241,6 +241,17 @@ try {
       '.trip-calendar__trip[data-start="true"][aria-label*="Sydney"]',
     );
     await duplicateBars.first().waitFor();
+    if (width <= 520) {
+      await duplicateBars.last().evaluate((node) => {
+        const panel = node.closest(".workspace-panel--mine");
+        const tabbar = document.querySelector(".phone-tabbar");
+        const label = node.querySelector(".trip-calendar__visible-label");
+        if (!panel || !tabbar || !label) return;
+        const labelBottom = label.getBoundingClientRect().bottom;
+        const tabbarTop = tabbar.getBoundingClientRect().top;
+        panel.scrollTop += Math.max(0, labelBottom - tabbarTop + 8);
+      });
+    }
     const duplicateNames = await duplicateBars.evaluateAll((nodes) =>
       nodes.map((node) => node.getAttribute("aria-label")),
     );
@@ -262,6 +273,7 @@ try {
       const renderedLabels = await duplicateBars.evaluateAll((nodes) =>
         nodes.map((node) => {
           const buttonBounds = node.getBoundingClientRect();
+          const tabbarBounds = document.querySelector(".phone-tabbar")?.getBoundingClientRect();
           const label = node.querySelector(".trip-calendar__visible-label");
           const labelBounds = label?.getBoundingClientRect();
           const range = document.createRange();
@@ -289,6 +301,7 @@ try {
               top: buttonBounds.top,
               bottom: buttonBounds.bottom,
             },
+            tabbarTop: tabbarBounds?.top,
           };
         }),
       );
@@ -304,9 +317,10 @@ try {
               label.textBounds.left >= label.contentBounds.left &&
               label.textBounds.right <= label.contentBounds.right &&
               label.textBounds.top >= label.contentBounds.top &&
-              label.textBounds.bottom <= label.contentBounds.bottom,
+              label.textBounds.bottom <= label.contentBounds.bottom &&
+              label.textBounds.bottom <= label.tabbarTop - 4,
           ),
-        `#482 ${width}px compact duplicate label glyphs fit within the visible bar bounds`,
+        `#482 ${width}px compact duplicate label glyphs fit inside their bars and above the phone tab bar`,
         renderedLabels,
       );
     }
