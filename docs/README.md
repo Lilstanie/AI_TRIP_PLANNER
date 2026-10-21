@@ -10,6 +10,7 @@ content in both languages; commands, examples and identifiers stay unchanged.
 | [Architecture](architecture.md)                                  | Runtime, package boundaries, agents and models                        |
 | [Architecture diagrams](architecture-diagrams.md)                | Interactive runtime, storage and workspace diagrams                   |
 | [Development](development.md)                                    | Setup, providers and verification                                     |
+| [Demo runbook](demo-runbook.md)                                  | Clean build, demo environment variables and the mock-mode fallback    |
 | [API](api.md)                                                    | Requests, responses, streaming and errors                             |
 | [Agent Lab release record](agent-lab-release-record-template.md) | Controlled deployment smoke record template                           |
 | [Workspace UI](workspace-ui.md)                                  | Chat, map, editing and storage behavior                               |
