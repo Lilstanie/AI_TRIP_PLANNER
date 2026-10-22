@@ -6,6 +6,8 @@ const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT ?? "p
 const BASE = process.env.BASE_URL ?? "http://localhost:3000";
 const OUT = resolve("output/playwright/composer-input-touch-target", process.env.LABEL ?? "run");
 mkdirSync(OUT, { recursive: true });
+const TOUCH_PX = 44;
+const TAP_OFFSET_PX = 40;
 const results = [];
 const check = (ok, name, observed) => {
   results.push({ ok: Boolean(ok), name, observed });
@@ -60,18 +62,18 @@ try {
 
     const box = await input.boundingBox();
     check(
-      phone ? box.height >= 44 : box.height < 44,
-      `${label} the message field is ${phone ? "at least" : "below"} 44 px high`,
+      phone ? box.height >= TOUCH_PX : box.height < TOUCH_PX,
+      `${label} the message field is ${phone ? "at least" : "below"} ${TOUCH_PX} px high`,
       { height: Math.round(box.height) },
     );
 
     if (phone) {
-      const tapY = box.y + 40;
+      const tapY = box.y + TAP_OFFSET_PX;
       await page.mouse.click(box.x + box.width / 2, tapY);
       const focused = await page.evaluate(() => document.activeElement?.className ?? "");
       check(
         focused.includes("composer__input"),
-        `${label} a tap 40 px below the top of the field focuses it`,
+        `${label} a tap ${TAP_OFFSET_PX} px below the top of the field focuses it`,
         { tapY: Math.round(tapY), focused },
       );
     }

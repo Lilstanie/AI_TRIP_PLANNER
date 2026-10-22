@@ -30,3 +30,5 @@ Issue #597. The phone field was 36 px high, so only a strip of the composer card
 ## Notes for the next person
 
 The triage note cited `composer.css`, not a component. Tapping the card's empty padding still does not focus the field; this change only enlarges the field.
+- The placeholder now sits at the top of the taller field, with the buttons on the row below (`output/playwright/composer-input-touch-target/after/390x844.png`). The hit area is correct, but the text is not vertically centred. Centring is not in this change.
+- Review notes: the lower-card tap is not tested; the inventory row now names the 40 px tap the script makes.
