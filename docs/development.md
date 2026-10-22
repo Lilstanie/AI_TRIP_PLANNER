@@ -426,6 +426,18 @@ On pull requests, the `protected-files` job runs `node scripts/verify-protected-
 branch check fails when the head branch does not start with `feature/`, `fix/`, `refactor/`, `docs/`,
 `chore/` or `test/`, or contains an AI tool name; Dependabot branches are exempt.
 
+Before marking a PR ready for delivery, run the read-only preflight below with `gh` authenticated.
+It requires a clean checkout on the PR branch at the exact open PR head, a `main` base, and nonempty
+Summary, Evidence and Merge Danger sections. All reported head checks must be `SUCCESS` except a
+`CI / cli-acceptance-workers` skip accompanied by successful `CI / cli-acceptance-plan` and
+`CI / cli-acceptance` checks from the same Actions run; the aggregate validates the documentation-only plan. The checker does
+not judge Evidence wording, push, merge, close PRs or delete branches. Its fixture self-check is not
+evidence of GitHub CI.
+
+```bash
+node scripts/pr-delivery-status.mjs <pull-request-number>
+```
+
 Run focused packages with `pnpm --filter @trip/agents test`, `pnpm --filter @trip/orchestrator test`
 or `pnpm --filter @trip/web test`. The web test script sets `NODE_OPTIONS` with POSIX shell syntax;
 on Windows, run it from WSL or Git Bash.
