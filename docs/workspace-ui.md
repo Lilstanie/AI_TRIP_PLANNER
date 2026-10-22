@@ -59,6 +59,9 @@ now. Implementation history and browser acceptance for each phase are in the
     to the workspace.
   - Trips keep no photos, so a cover is a gradient chosen by hashing the destination, with its
     initial; the same destination always gets the same colours.
+  - A chat row's second line names its trip with the same title the Trips list uses, so two chats for
+    trips with the same destination, dates, group size and budget read `Trip to Sydney · 1` and
+    `· 2` there too.
   - A chat row's overflow trigger at its top right opens Rename and Delete, so those
     actions stay off the row until they are wanted. It is revealed on hover and on keyboard focus,
     and always shown where there is no hover to reveal it. The menu is a `role="menu"` of
