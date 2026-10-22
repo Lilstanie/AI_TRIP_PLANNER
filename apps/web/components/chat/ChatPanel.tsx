@@ -126,13 +126,15 @@ export function ChatPanel({
           ))}
         </div>
         {(activity.length > 0 || busy) && (
-          <section
-            className={`agent-activity${error && !busy ? " agent-activity--error" : ""}`}
-            aria-label={t("Thinking process")}
-          >
+          <>
             <TeamConversation activity={activity} />
-            <ThinkingProcess activity={activity} busy={busy} error={error} />
-          </section>
+            <section
+              className={`agent-activity${error && !busy ? " agent-activity--error" : ""}`}
+              aria-label={t("Thinking process")}
+            >
+              <ThinkingProcess activity={activity} busy={busy} error={error} />
+            </section>
+          </>
         )}
       </div>
       {ask && onAnswer && onDismissAsk ? (

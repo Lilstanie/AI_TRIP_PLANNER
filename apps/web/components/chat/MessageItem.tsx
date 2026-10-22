@@ -60,10 +60,12 @@ export function MessageItem({ message, animate }: { message: Message; animate?: 
         <span className="sr-only">{t("Travel planning assistant")}</span>
       )}
       {message.activity && message.activity.length > 0 && (
-        <section className="agent-activity" aria-label={t("Thinking process")}>
+        <>
           <TeamConversation activity={message.activity} />
-          <ThinkingProcess activity={message.activity} busy={false} outcome={message.outcome} />
-        </section>
+          <section className="agent-activity" aria-label={t("Thinking process")}>
+            <ThinkingProcess activity={message.activity} busy={false} outcome={message.outcome} />
+          </section>
+        </>
       )}
       <div className="msg-item__body">
         <RevealedText
