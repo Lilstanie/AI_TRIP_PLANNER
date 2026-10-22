@@ -1,7 +1,7 @@
 "use client";
 import dynamic from "next/dynamic";
 import type { DateRange } from "react-day-picker";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { fromAud, toAud } from "@trip/shared";
 import { statedBudgetSource } from "@/lib/workspace";
 import { CurrencyNotice } from "../account/CurrencyNotice";
@@ -197,30 +197,53 @@ const BUDGET_PRESETS = [
   { name: "Luxury", value: 10000 },
 ] as const;
 
+const BUDGET_PRESET_STEP: Record<string, number | undefined> = {
+  ArrowRight: 1,
+  ArrowDown: 1,
+  ArrowLeft: -1,
+  ArrowUp: -1,
+};
+
 function BudgetFields({ value, onChange, errors }: FieldsProps) {
   const { t, currency, money } = useLocale();
   const source = statedBudgetSource(value);
   const current = value.budgetTotal.trim() ? Number(value.budgetTotal) : undefined;
+  const presetRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const checkedIndex = BUDGET_PRESETS.findIndex((preset) => preset.value === current);
+  const tabStop = checkedIndex === -1 ? 0 : checkedIndex;
+  const choose = (index: number) => {
+    const preset = BUDGET_PRESETS[index];
+    onChange({
+      ...value,
+      budgetTotal: String(preset.value),
+      budgetSource: { amount: fromAud(preset.value, currency), currency },
+    });
+    presetRefs.current[index]?.focus();
+  };
   return (
     <div className="fact-budget">
       <div className="fact-budget__presets" role="radiogroup" aria-label={t("Budget range")}>
-        {BUDGET_PRESETS.map((preset) => {
+        {BUDGET_PRESETS.map((preset, index) => {
           const checked = current === preset.value;
           return (
             <button
               key={preset.name}
+              ref={(node) => {
+                presetRefs.current[index] = node;
+              }}
               type="button"
               role="radio"
               aria-checked={checked}
+              tabIndex={index === tabStop ? 0 : -1}
               className="fact-budget__preset"
               data-checked={checked ? "true" : undefined}
-              onClick={() =>
-                onChange({
-                  ...value,
-                  budgetTotal: String(preset.value),
-                  budgetSource: { amount: fromAud(preset.value, currency), currency },
-                })
-              }
+              onClick={() => choose(index)}
+              onKeyDown={(event) => {
+                const step = BUDGET_PRESET_STEP[event.key];
+                if (step === undefined) return;
+                event.preventDefault();
+                choose((index + step + BUDGET_PRESETS.length) % BUDGET_PRESETS.length);
+              }}
             >
               <span className="fact-budget__preset-name">{t(preset.name)}</span>
               <span className="fact-budget__preset-hint">{money(preset.value)}</span>
