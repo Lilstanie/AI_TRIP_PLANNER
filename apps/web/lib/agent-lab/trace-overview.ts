@@ -64,6 +64,7 @@ function laneOf(runEvent: AgentLabRunEvent): TraceLaneId {
     case "lab_loop_stopped":
     case "lab_supervisor_fallback":
     case "coordinator":
+    case "decision":
       return "coordinator";
     case "lab_agent_output_rejected":
     case "agent_reasoning":

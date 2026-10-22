@@ -48,6 +48,7 @@ import { extractBriefPatchLocally, statedTripDays } from "./chat-offline";
 import { addDays } from "./dates";
 import { groundedReply, unchangedPlanReply } from "./chat-grounding";
 import { isInfeasible, minimumCost } from "./conflicts";
+import type { WorkflowDecision } from "./decisions";
 import { runOrchestrator, type OrchestratorOptions } from "./workflow";
 import { replyLanguage } from "./reply-language";
 
@@ -548,6 +549,16 @@ export async function runTripChat(
       ...(request.displayCurrency ? { displayCurrency: request.displayCurrency } : {}),
       ...(request.interfaceLanguage ? { interfaceLanguage: request.interfaceLanguage } : {}),
       replyLanguage: replyLanguage(request.message, request.interfaceLanguage),
+      ...(orchestrationOptions.onProgress
+        ? {
+            onDecision: (decision: WorkflowDecision) =>
+              orchestrationOptions.onProgress?.({
+                type: "decision",
+                round: decision.round,
+                decision,
+              }),
+          }
+        : {}),
       ...orchestrationOptions,
       mem,
     });

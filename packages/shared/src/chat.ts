@@ -260,7 +260,71 @@ export const FlightAnswer = z.object({
 });
 export type FlightAnswer = z.infer<typeof FlightAnswer>;
 
+export const ChatStopReason = z.enum([
+  "converged",
+  "round_limit",
+  "infeasible_budget",
+  "no_improvement",
+]);
+
+/** Mirrors the orchestrator's `WorkflowDecision`: facts the planning graph already decided. */
+export const ChatWorkflowDecision = z.discriminatedUnion("type", [
+  z.object({
+    type: z.literal("conflicts_detected"),
+    round: z.number().int().positive(),
+    score: z.number().nonnegative(),
+    infeasible: z.boolean(),
+    conflicts: z.array(
+      z.object({
+        agent: z.enum(AGENT_NAMES),
+        reason: z.string(),
+        targetSaving: z.number().nonnegative().optional(),
+      }),
+    ),
+  }),
+  z.object({
+    type: z.literal("revision_started"),
+    round: z.number().int().positive(),
+    agent: z.enum(AGENT_NAMES),
+    reason: z.string(),
+    objective: z.string(),
+    previousSummary: z.string(),
+    previousCost: z.number(),
+  }),
+  z.object({
+    type: z.literal("revision_scored"),
+    round: z.number().int().positive(),
+    agents: z.array(z.enum(AGENT_NAMES)),
+    scoreBefore: z.number().nonnegative(),
+    scoreAfter: z.number().nonnegative(),
+    kept: z.boolean(),
+  }),
+  z.object({
+    type: z.literal("loop_stopped"),
+    round: z.number().int().positive(),
+    reason: ChatStopReason,
+    unresolved: z.number().int().nonnegative(),
+  }),
+  z.object({
+    type: z.literal("agent_output_rejected"),
+    agent: z.enum(AGENT_NAMES),
+    round: z.number().int().positive(),
+    fields: z.array(z.string()),
+  }),
+  z.object({
+    type: z.literal("delegation_fallback"),
+    phase: z.enum(["dispatch", "revision"]),
+    round: z.number().int().positive(),
+  }),
+]);
+export type ChatWorkflowDecision = z.infer<typeof ChatWorkflowDecision>;
+
 export const AgentProgressEvent = z.discriminatedUnion("type", [
+  z.object({
+    type: z.literal("decision"),
+    round: z.number().int().positive(),
+    decision: ChatWorkflowDecision,
+  }),
   z.object({
     type: z.literal("agent_reasoning"),
     agent: z.enum(AGENT_NAMES),

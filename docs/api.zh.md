@@ -168,7 +168,7 @@ Who 中的五项计数，包括保存行程后重新打开的情况。
 
 响应为 `application/x-ndjson`，每行一个 JSON 对象：
 
-- `type` 为 `coordinator`、`agent_started`、`agent_completed` 或 `agent_failed` 的进度事件；
+- `type` 为 `coordinator`、`agent_started`、`agent_completed`、`agent_failed` 或 `decision` 的进度事件。`decision` 事件形如 `{ "type": "decision", "round": 2, "decision": { "type": "conflicts_detected" | "revision_started" | "revision_scored" | "loop_stopped" | "agent_output_rejected" | "delegation_fallback", … } }`，是规划循环自己的决策，例如被要求省钱的专家、修订得分和循环停止的原因；
 - 最终帧 `{ "type": "complete", "response": { "reply": "…", "plan": { … } } }`；
 - 或 `{ "type": "error", "error": "…", "notice": { … } }`，即
   [`{ error, notice }`](#failure-bodies) 形式的失败。
