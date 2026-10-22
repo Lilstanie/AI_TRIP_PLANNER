@@ -1,6 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
+import { touchSized } from "./trip-setup.mjs";
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT ?? "playwright");
 const OUT = resolve("output/playwright/phone-map", process.env.LABEL ?? "after");
@@ -152,7 +153,7 @@ try {
         nodes.map((node) => node.getBoundingClientRect().height),
       );
       check(
-        heights.every((height) => height >= 44),
+        heights.every(touchSized),
         `${width} ${language}: day heights ${JSON.stringify(heights)} >=44`,
       );
       await days.nth(1).focus();
@@ -178,7 +179,7 @@ try {
         const summary = page.locator(selector).filter({ visible: true });
         await summary.scrollIntoViewIfNeeded();
         const height = (await summary.boundingBox()).height;
-        check(height >= 44, `${width} ${language}: ${selector} height ${height} >=44`);
+        check(touchSized(height), `${width} ${language}: ${selector} height ${height} >=44`);
         const open = await summary.evaluate((node) => node.parentElement.open);
         await summary.focus();
         await summary.press("Enter");
@@ -304,7 +305,9 @@ try {
     const detailBox = await popup.boundingBox();
     check(
       controls.length === 4 &&
-        controls.every((b) => b.width >= 44 && b.height >= 44 && b.bottom <= detailBox.y),
+        controls.every(
+          (b) => touchSized(b.width) && touchSized(b.height) && b.bottom <= detailBox.y,
+        ),
       `${width}: controls clear details and >=44`,
     );
     await page.screenshot({ path: `${OUT}/${width}-details.png` });

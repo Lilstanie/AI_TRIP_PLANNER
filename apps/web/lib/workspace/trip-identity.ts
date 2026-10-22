@@ -1,5 +1,14 @@
 import type { TripRecord } from "./catalog";
 
+export function tripName(
+  trip: TripRecord,
+  t: (text: "Trip to {destination}", params: { destination: string }) => string,
+): string {
+  return trip.renamed
+    ? trip.title
+    : t("Trip to {destination}", { destination: trip.snapshot.plan.brief.destination });
+}
+
 export function distinctTripTitles(
   trips: readonly TripRecord[],
   titleFor: (trip: TripRecord) => string,

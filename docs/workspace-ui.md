@@ -55,7 +55,7 @@ now. Implementation history and browser acceptance for each phase are in the
     every trip as a 4:3 cover card with "Trip to <destination>" and "<destination> · <localized date range> · N days",
     grouped into Upcoming and Past. Calendar is a Monday-first month grid with previous, Today and
     next, drawing each trip as a band over its days, filled with the dark colour of its cover palette
-    so the white label stays readable, labelled where it starts and at each week's start; it opens on the next trip's month. Calendar labels and accessible names reuse the Trips card disambiguation for trips with the same destination, dates, group size and budget; compact labels keep the distinguishing suffix. Each trip band announces its title and inclusive start and end dates using the same full localized weekday, date and year format as the date cells, with UTC keeping calendar dates stable across time zones. Each date cell has a full localized weekday, date and year name; today has `aria-current="date"`; arrow keys move visible focus across every date, including empty dates. Choosing a trip, a chat, New chat or New trip returns
+    so the white label stays readable, labelled where it starts and at each week's start; it opens on the next trip's month. Calendar labels and accessible names reuse the Trips card disambiguation for trips with the same destination, dates, group size and budget; compact phone bars show a contrasting short destination prefix and ordinal (for example, `Syd·1`) so duplicate trips stay visibly identifiable. Each trip band announces its full title and inclusive start and end dates using the same full localized weekday, date and year format as the date cells, with UTC keeping calendar dates stable across time zones. Each date cell has a full localized weekday, date and year name; today has `aria-current="date"`; arrow keys move visible focus across every date, including empty dates. Choosing a trip, a chat, New chat or New trip returns
     to the workspace.
   - Trips keep no photos, so a cover is a gradient chosen by hashing the destination, with its
     initial; the same destination always gets the same colours.
@@ -64,7 +64,14 @@ now. Implementation history and browser acceptance for each phase are in the
     and always shown where there is no hover to reveal it. The menu is a `role="menu"` of
     `role="menuitem"` buttons with `aria-haspopup` and `aria-expanded` on the trigger; Escape closes
     it and returns focus to the trigger without closing an enclosing panel or drawer, and clicking
-    outside or tabbing away closes it. Opening a chat menu scrolls the full menu into its containing panel before focusing its first action, keeping both actions above the phone tab bar. Trips have no overflow menu because they have neither action.
+    outside or tabbing away closes it. Opening a chat menu scrolls the full menu into its containing panel before focusing its first action, keeping both actions above the phone tab bar.
+  - Trip rows in the Trips list and trip cards on the Trips page and the phone Mine tab have the same
+    Rename and Delete menu; on a card the trigger sits in the top-right corner and is always shown.
+    Rename asks for a name; an empty name or Cancel keeps the current one. A renamed trip shows its
+    name in the Trips list, on its card, on calendar bars and in the top title, and keeps it when the
+    trip is replanned from chat or the page reloads. Delete removes the trip at once and keeps its
+    chats, without their plan; a status line offers Undo, which brings the trip back with its name and
+    chat links. Deleting the open trip starts a blank chat.
   - On narrow screens the navigation drawer shows the sidebar with the panel's content (search, the
     two starts, Trips and Chats) under Trips.
   - The logo is `apps/web/public/brand/ai-trip-planner-logo.svg`, referenced by URL. Its alt text is
@@ -183,7 +190,9 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
   - Your Trip and the narrow-screen navigation are overlay drawers below the top bar.
     They never cover the logo or top-bar buttons, and the chat and map keep their width.
   - On desktop the Trip drawer is `(1 - --chat-share) × 100%` wide, so it covers exactly the map
-    wherever the divider sits.
+    wherever the divider sits. When that leaves the day view 240 px or narrower, as at the narrowest
+    split of a 1024 px window, each stop's time moves above its name and the budget total wraps, so
+    nothing scrolls sideways.
   - `Drawer` provides `role="dialog"`, `aria-modal`, `aria-hidden` and `inert` when closed, focus on
     the close button, a Tab loop, Escape (nested edit previews and native dialogs first) and focus
     return to the trigger.
@@ -216,7 +225,8 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     layout restores the last tab, including older Chat/Map choices.
   - The single-row top bar shows the destination and dates, or New trip. Its title opens Trip details:
     Where, When, Who, Budget and Preferences as rows. Each row opens the existing editor; saving or
-    closing returns focus to the title. Editors are bottom sheets with 44 px targets.
+    closing returns focus to the title. Editors are bottom sheets with 44 px targets, including each
+    sheet's close button and its primary action.
   - Trip shows Your Trip in place, with Budget and the day view. Before
     planning it explains the empty state and offers Plan in Chat. A plan created or changed while
     another tab is selected adds an accessible update dot to Trip; opening Trip clears it. Read revisions are tracked per trip,
@@ -239,7 +249,8 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     work, while the map explains its unavailable state. Place details open in a bottom sheet; desktop
     keeps its popup. OSM markers stay beneath the phone details sheet, including after viewport changes.
     The 44 px map controls stay above the stops sheet, and panning does not scroll the page.
-  - Map day chips and the Trip budget and Travel tips disclosure headers are at least 44 px tall.
+  - Map day chips, the Trip budget and Travel tips disclosure headers, the empty Trip tab's Plan in
+    Chat and Add trip details buttons, and the Think row above a reply are at least 44 px tall.
     Disclosure headers keep their native markers and keyboard toggling. These target heights apply
     only at phone widths; sizing at 521 px and above stays unchanged.
   - With the composer focused and the visual viewport shortened by the keyboard, the shell follows
@@ -396,6 +407,11 @@ and uses the caution colour; those missing costs remain listed beneath the estim
 When the estimate is below budget but itinerary stops remain unpriced, the status says “Known estimate
 within budget · unpriced stops not counted” and uses the caution colour. The missing costs remain
 listed beneath the estimate. Status text wraps within the budget panel at narrow drawer widths.
+The budget card also breaks the known estimate into accommodation, transport, meals and activities.
+Each amount is labelled as an estimate; proposal items without prices are counted as unpriced beside
+their category and are not added to the total. The four category amounts add up to the displayed
+known estimate. At narrow drawer widths each row wraps its amount under the
+category name instead of overflowing.
 
 Names of removed surfaces below appear only to explain their removal; nothing in this section
 describes current behaviour except the absences.
@@ -566,7 +582,9 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   first would overlap it, and a swap that would end past 23:59 or overlap the next stop is refused with a
   message. Move to another day puts the stop after that day's last stop. Undo offers the last change
   until the next plan arrives from chat; an item action is undone the same way, restoring the plan as it was before it. A move changes the day's times, so the day's legs are routed again (see Legs under Timeline editing). At
-  phone width (520px and below) the menu's trigger and items are at least 44 px. Missing or zero budgets
+  phone width (520px and below) the menu's trigger and items are at least 44 px. An open menu is capped to
+  the height of its scrolling panel, scrolls inside itself, and keeps the focused item on screen above the
+  tab bar. Missing or zero budgets
   state that no budget is set; invalid totals never render `NaN`, a negative bar, or a bar wider than its
   container.
 - **Location.** When the workspace opens it asks in its own words, in the notices strip, whether to
@@ -617,7 +635,7 @@ moves. Details, notes, booked and visit progress apply in the browser. The check
   stops in plan order. When start times disagree with plan order, a stop moved later lands just
   after the stop it moved past and any other move lands just before it, so the preview keeps the
   swap the traveller asked for; the endpoint then re-times the rest of the day after it.
-- **Time and place.** In a narrow Trip drawer, the time form uses the full timeline row so its controls remain visible without horizontal scrolling. Tapping a stop's time opens its Start and End form; "Change time" sends the change
+- **Time and place.** In a narrow Trip drawer, the time form uses the full timeline row so its controls remain visible without horizontal scrolling. An expanded stop's place card also spans its full timeline row, and its editor fields and actions fit the card. Tapping a stop's time opens its Start and End form; "Change time" sends the change
   to the server check. Selecting a stop, here or on the map, opens its place card: the place's first
   photo (live data with a Maps key), rating, address and an Open in Google Maps link. Replace place in the stop's menu opens a
   Google Places search in the card; a picked result is saved through the server check. Escape closes an
@@ -657,7 +675,9 @@ moves. Details, notes, booked and visit progress apply in the browser. The check
   follows an applied edit does not replace the plan, so the undo step stays. The undo step covers the
   scheduled stops the edit re-times; an Idea in the plan stays as it is and does not block Undo. A plan
   that arrives from chat clears the undo step; if a change was still in the plan, the chat says that it replaced the change
-  ("The new plan replaced your last change to the timeline.", with a Dismiss button).
+  ("The new plan replaced your last change to the timeline.", with a Dismiss button). At phone widths
+  (520 px and below), the Undo button is at least 44 × 44 CSS px; `phone-undo-hit-area.e2e.mjs` checks
+  it at 375 × 812 and saves a screenshot and measurements.
 - **Edits and background work.** A leg check or place save that is running when an edit starts is
   cancelled, and it is asked again once the edit has finished, so its answer never replaces the plan the
   edit is checking. An edit in flight is not cancelled when the plan changes from elsewhere: its answer is refused as stale,
@@ -907,10 +927,12 @@ the account section explains that everything stays in this browser.
       - Other preferences: standing preferences.
 
       Each fact is a filled row with an emoji and bold label; clicking it edits the fact. An empty
-      fact shows its question on an amber-edged row with Answer. A new chat or trip starts from these
+      fact shows its question on an amber-edged row with Answer, whose accessible name adds the fact
+      (Answer Home base). A new chat or trip starts from these
       facts: home base as the origin, plus travellers and budget, with pace, interests and dietary
       needs as trip preference lines. A new chat counts as blank while its facts equal these
-      defaults.
+      defaults. A blank chat that has not started follows changes to these facts, also after a
+      reload; a chat with a message or edited facts keeps its own.
   - **Language & region:** interface language (English or Simplified Chinese; chat in any language), region, display currency (AUD, CNY, USD or JPY; default AUD), units (metric), and Trip data (the site's default, live prices or sample data)
     under Advanced.
     The top-bar language switch sits beside Mock data and updates the same saved language setting.

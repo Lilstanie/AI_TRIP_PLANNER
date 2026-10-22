@@ -405,6 +405,9 @@ rewrites spell amounts (a swapped stay's description, the recomputed conflicts, 
 
 ## Account routes
 
+With Clerk configured, middleware returns uncached 401 JSON for anonymous protected API requests;
+protected browser pages redirect to `/sign-in`.
+
 Every account route needs a Clerk session and answers 401 without one, and 503 when Clerk or
 `DATABASE_URL` is not configured. Except for the settings conflict described below, every failure body, including the 400s and the 502 below, is
 [`{ error, notice }`](#failure-bodies). Queries use the session's user id, never an id from the body.

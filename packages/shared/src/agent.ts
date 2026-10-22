@@ -1,6 +1,7 @@
 import type { TripBrief, AgentProposal, RevisionRequest, AgentName } from "./contracts";
 import { effectiveCurrency, type Currency } from "./money";
 import type { ToolGateway, MemoryStore } from "./ports";
+import type { InterfaceLanguage } from "./chat";
 
 export interface AgentContext {
   tripId: string;
@@ -12,6 +13,8 @@ export interface AgentContext {
   signal?: AbortSignal;
 
   displayCurrency?: Currency;
+
+  replyLanguage?: InterfaceLanguage;
 }
 
 export function displayCurrencyOf(brief: TripBrief, context?: AgentContext): Currency {

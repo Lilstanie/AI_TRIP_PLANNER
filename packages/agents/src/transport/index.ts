@@ -16,6 +16,7 @@ import {
   type TravelMode,
   type TripBrief,
   type FlightOption,
+  type InterfaceLanguage,
 } from "@trip/shared";
 import { createAgent, tool } from "langchain";
 import { z } from "zod/v4";
@@ -33,6 +34,7 @@ import {
 import { cities, journeyLegs, flightLegs, groundLegs, flownInstead, type JourneyLeg } from "./legs";
 import { mockEnabled } from "@trip/tools";
 import { TRAVELLER_PREFERENCES_RULE } from "../prompts/traveller-preferences";
+import { summaryCopy } from "../summary-copy";
 
 function clock(totalMinutes: number): string {
   if (totalMinutes < 0 || totalMinutes >= 24 * 60) {
@@ -55,6 +57,7 @@ interface TransportEvidence {
   brief: TripBrief;
 
   currency: Currency;
+  language?: InterfaceLanguage;
   origin: string;
   destinations: string[];
   accessibilityPreferences: string[];
@@ -203,6 +206,7 @@ async function gatherTransportEvidence(
   return {
     brief,
     currency: displayCurrencyOf(brief, ctx),
+    ...(ctx.replyLanguage ? { language: ctx.replyLanguage } : {}),
     origin,
     destinations,
     accessibilityPreferences: preferences
@@ -489,13 +493,22 @@ function assembleTransportProposal(
   const total = items.reduce((sum, item) => sum + (item.estCost ?? 0), 0);
 
   const unpriced = items.filter((item) => item.estCost === undefined).length;
+  const copy = summaryCopy(evidence.language);
   return {
     agent: "transport",
     summary: !items.length
       ? unmet.length || conflicts.length
-        ? "Inter-city travel is incomplete: available routes and fares could not be verified."
-        : "No inter-city travel is needed for this trip."
-      : `${items.length} transport option(s) for ${origin} ↔ ${destinations.join(" → ")} · known estimate ${formatMoney(total, currency)}${unpriced ? ` · ${unpriced} leg(s) unpriced` : ""}${unmet.length ? ` · ${unmet.length} travel choice(s) unavailable` : ""}${conflicts.length ? " (incomplete/unverified)" : ""}`,
+        ? copy.transportIncomplete
+        : copy.transportNone
+      : copy.transport({
+          options: items.length,
+          origin,
+          destinations,
+          money: formatMoney(total, currency),
+          unpriced,
+          unavailable: unmet.length,
+          incomplete: conflicts.length > 0,
+        }),
     items,
     assumptions: [
       "Route arrays are consecutive legs; calculator preserves adapter AUD amounts as group totals, matching the current integration. Per-person providers must normalize fares before returning them.",

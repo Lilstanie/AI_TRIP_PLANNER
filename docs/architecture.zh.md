@@ -286,6 +286,11 @@ Specialist 提案、行程需求和最终计划在图边界上分别通过 `Agen
 
 交通和住宿包装计算器，使模型无法编造价格、路线或住宿设施。行程同样从不为停留点定价：
 Google Places 不提供门票价格，因此活动的 `estCost` 保持未设置，计划会说明有多少停留点尚未定价。
+回复会收到计划中的已知估算、预算、预算余量以及每个停留点的价格状态。未设置的活动价格会被排除，而非视为零；
+回复必须说明这一边界，只有计划中带有数值价格时才能引用停留点价格。Fixture 和无模型回复只能验证这一确定性边界，
+不能证明 live 模型措辞的可靠性。
+当数据较少的计划在多天重复安排同一有依据的地点时，回复事实会包含重复地点及对应日期，
+使回复明确说明这是同一停留点的重复使用，而非多个不同活动。
 
 模型路由（`packages/agents/src/models.ts` 和 `chat.ts` 中的 `MODEL_ROUTING`）：
 
@@ -297,7 +302,8 @@ Google Places 不提供门票价格，因此活动的 `estCost` 保持未设置�
 日期由模型读取，而非由模式匹配读取：提取会将旅行者书写的各种日期形式转换为 `YYYY-MM-DD`，
 对于未写年份的日期，采用下一次出现的日期；如果只给出一端，或无法区分日和月（`01/10/2026`），
 则保持日期未设置，向旅行者询问，而不是按猜测的月份规划旅行。
-没有密钥或模型调用失败时，改用一个简单的中英文规则解析器提取；它只读取 ISO 日期。
+没有密钥或模型调用失败时，改用一个简单的中英文规则解析器提取。它读取受支持的显式日期，
+并将明确给出的时长和开始日期解析为包含首尾的结束日期；不会推测未说明的返程日期。
 
 `TripBrief.dates` 是闭区间：结束日期就是行程的最后一天，因此行程共有 `end − start + 1` 天、
 `end − start` 晚。规划代码用 `planningDays()`（agents）、`tripDays()`（餐饮）和 `dayCount()`（web）
@@ -321,6 +327,11 @@ Google Places 不提供门票价格，因此活动的 `estCost` 保持未设置�
 交给回复模型的事实中，金额已经换算并格式化，提示词要求按原样引用。换算后的金额与面板一样按千位分组，
 非 AUD 行程的生成文字末尾附带估算说明。规划、预算检查、冲突检测和规划评分仍为 AUD，提供方票价保留自己的币种。
 
+语言也按同样方式划分。协调器与 specialist 的进度行属于通知，使用聊天请求中的 `interfaceLanguage`。
+每一轮还会在 `packages/orchestrator/src/reply-language.ts` 中确定一种回复语言：最新消息含汉字即中文，含拉丁字母即英文，
+两者都没有时使用界面语言，再退回英文。specialist 通过 `AgentContext.replyLanguage` 收到它，并用它写固定摘要；
+没有该字段时写英文，Agent Lab 即如此。
+
 `TripBrief.preferences`（以及 `known` 中的同名字段）携带旅行者自己的旅行偏好，
 通过顶栏的 Trip preferences 编辑器填写。协调器的 `update_trip_brief` 工具没有这些偏好的字段，
 因此模型无法改写列表；`BriefPatchSchema` 将它们从 `known` 带入用于规划的行程需求。
@@ -334,6 +345,10 @@ Supervisor 收到指令，将每条偏好传入它所影响的目标；每个 sp
 - `excludeFlights`：旅行者自行安排航班。
 - `bookedStay`：旅行者已预订住宿。
 - `noAccommodation`：旅行者不需要住宿；它与 `bookedStay` 相互独立。
+
+旅行者以天数说明的行程长度（“3 days”“5-day”“四天”“三日游”）会覆盖模型给出的结束日期：
+`packages/orchestrator/src/chat-offline.ts` 中的 `statedTripDays` 把消息中的天数相加，结束日期为开始日期加上天数再减一，
+因此 N 天就是 N 个日历日，不额外加一个离开日。消息中明确的日期范围优先；“in 3 days”或一天的行程不会被当作长度。
 
 `packages/orchestrator/src/supervisor.ts` 中的 `specialistBrief` 把学到的列表追加到旅行者自己的
 列表之后交给 specialist，去重并限制为 12 条。存储的行程需求仍把两个列表分开保存。

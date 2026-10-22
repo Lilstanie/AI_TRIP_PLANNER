@@ -164,7 +164,12 @@ export function MemoryRow({
         </span>
       </button>
       {empty && !open && (
-        <button type="button" className="memory-row__answer" onClick={() => setOpen(true)}>
+        <button
+          type="button"
+          className="memory-row__answer"
+          aria-label={t("Answer {v0}", { v0: label })}
+          onClick={() => setOpen(true)}
+        >
           {t("Answer")}
         </button>
       )}

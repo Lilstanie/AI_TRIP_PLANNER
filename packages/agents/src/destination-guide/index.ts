@@ -6,6 +6,7 @@ import {
   type Specialist,
   type TripBrief,
   type UserPreference,
+  type InterfaceLanguage,
 } from "@trip/shared";
 import { z } from "zod/v4";
 import { createAgent, tool } from "langchain";
@@ -15,6 +16,7 @@ import { clip } from "../clip";
 import { normalize, canonicalPlaceName, dedupeEntries } from "../place-names";
 import { rememberedPlanningPreferences, rankPlacesByInterests } from "../remembered-preferences";
 import { TRAVELLER_PREFERENCES_RULE } from "../prompts/traveller-preferences";
+import { summaryCopy } from "../summary-copy";
 
 const GuideAttraction = z.object({
   name: z.string().trim().min(1).max(120),
@@ -115,12 +117,13 @@ function fallbackDraft(
   month: string,
   places: Place[],
   preferences: UserPreference[],
+  language: InterfaceLanguage | undefined,
 ): DestinationGuideDraft {
   const { pace, interests, accessibility } = rememberedPlanningPreferences(preferences);
   const attractionLimit = pace.includes("relaxed") ? 3 : pace.includes("packed") ? 5 : 4;
   const rankedPlaces = rankPlacesByInterests(places, interests);
   return {
-    summary: `${brief.destination} planning guidance for ${month}`,
+    summary: summaryCopy(language).guide(brief.destination, brief.dates[0]),
     attractions: rankedPlaces.slice(0, attractionLimit).map((place) => ({
       name: place.name,
       detail: `${place.category} candidate${place.rating ? ` with supplied rating ${place.rating}` : ""}; verify opening hours and suitability before visiting.`,
@@ -241,10 +244,10 @@ async function planDestinationGuide(
       const reason = error instanceof Error ? error.message : "unknown model error";
       console.warn(`[destination-guide] Model draft failed; using a safe local plan: ${reason}`);
       usedFallback = true;
-      draft = fallbackDraft(brief, month, places, preferences);
+      draft = fallbackDraft(brief, month, places, preferences, ctx.replyLanguage);
     }
   } else {
-    draft = fallbackDraft(brief, month, places, preferences);
+    draft = fallbackDraft(brief, month, places, preferences, ctx.replyLanguage);
   }
 
   const monthLabel = (date: string) =>

@@ -85,8 +85,12 @@ The lasting preferences the planner learns from what an account says in chat and
 _Avoid_: travel profile, history, preferences (alone)
 
 **Notice**:
-A short message the workspace itself writes to the traveller, such as an error or a confirmation, shown in the interface language. Model replies and provider text are not notices and are shown as received.
+A short message the workspace itself writes to the traveller, such as an error, a confirmation or a planning progress line, shown in the interface language. Model replies and provider text are not notices and are shown as received.
 _Avoid_: toast, alert, error string
+
+**Reply language**:
+The language the planner writes in for one turn: the language of the traveller's latest message, or the interface language when the message's language is unclear. Model replies and specialist summaries in that turn share it.
+_Avoid_: chat language, model language
 
 ## Money
 

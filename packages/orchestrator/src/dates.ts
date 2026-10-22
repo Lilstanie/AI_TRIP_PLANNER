@@ -28,6 +28,12 @@ const MONTHS: Record<string, number> = {
 export const DATE_TOKEN =
   "(\\d{4}-\\d{2}-\\d{2}|\\d{1,2}[/.-]\\d{1,2}[/.-]\\d{4}|\\d{1,2}\\s+[A-Za-z]{3,9},?\\s+\\d{4}|[A-Za-z]{3,9}\\s+\\d{1,2},?\\s+\\d{4})";
 
+export function addDays(iso: string, days: number): string {
+  return new Date(Date.parse(`${iso}T00:00:00.000Z`) + days * 86_400_000)
+    .toISOString()
+    .slice(0, 10);
+}
+
 export type ParsedDate = { iso: string } | { ambiguous: true } | undefined;
 
 function iso(year: number, month: number, day: number): string | undefined {

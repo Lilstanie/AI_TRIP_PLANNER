@@ -489,6 +489,32 @@ button.timeline-stop__main:hover {
   }
 }
 
+@container timeline (max-width: 240px) {
+  .timeline::before {
+    inset-inline-start: calc(var(--node) / 2 - 1px);
+  }
+  .timeline-row,
+  .timeline-connection {
+    grid-template-columns: var(--node) minmax(0, 1fr);
+  }
+  .timeline-row > *,
+  .timeline-connection > * {
+    grid-column: 2;
+  }
+  .timeline-row > .timeline-row__time,
+  .timeline-connection > .timeline-row__time {
+    grid-row: 1;
+    justify-self: start;
+    padding-top: 0;
+    text-align: start;
+  }
+  .timeline-row > .timeline-row__node,
+  .timeline-connection > .timeline-connection__rail {
+    grid-column: 1;
+    grid-row: 1 / span 3;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .day-strip {
     scroll-behavior: auto;
@@ -616,6 +642,10 @@ button.timeline-stop__time:disabled {
 .stop-place-card.stop-editor {
   gap: var(--space-2);
   padding: var(--space-2);
+}
+.timeline-stop > .stop-place-card {
+  grid-column: 1 / -1;
+  min-width: 0;
 }
 .stop-place-card .place-preview {
   position: relative;

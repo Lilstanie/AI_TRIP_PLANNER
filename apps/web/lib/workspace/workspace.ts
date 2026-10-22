@@ -144,6 +144,22 @@ export const blankDraft = (): Draft => ({
   freeCancellation: false,
 });
 
+const draftValue = (value: unknown) => {
+  const trimmed = typeof value === "string" ? value.trim() : value;
+  return trimmed === "" ||
+    trimmed === false ||
+    trimmed === undefined ||
+    (Array.isArray(trimmed) && !trimmed.length)
+    ? null
+    : JSON.stringify(trimmed);
+};
+
+export function sameDraft(a: Draft, b: Draft): boolean {
+  return [...new Set([...Object.keys(a), ...Object.keys(b)])].every(
+    (key) => draftValue(a[key as keyof Draft]) === draftValue(b[key as keyof Draft]),
+  );
+}
+
 const normalizedDestination = (value: string) =>
   value
     .normalize("NFKC")

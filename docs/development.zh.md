@@ -262,9 +262,9 @@ BASE_URL=http://localhost:3000 pnpm --filter @trip/web e2e settings   # against 
 - **API 脚本**（`plan-quality`、`conversation-scope`）向 `/api/chat` 发请求，`DATA_MODE=live` 为默认值，也可设为 `mock`。`plan-quality` 提交三个固定行程需求，并检查预算、未解决冲突、行程来源、重复停靠点和泛化停靠点，任一检查失败或规划出错时以非零状态退出；实时模型输出会变化，因此应比较多次运行。每次运行把 NDJSON 流、方案和 `summary.json` 写入 `output/e2e/<name>/<run>/`。
 - **浏览器脚本**（其余所有脚本，包括八个 `agent-lab-*`）用 Playwright 在桌面和手机宽度下运行，并把截图写入 `output/playwright/<name>/`；Agent Lab 的脚本还会写入原始 NDJSON 和 artifact。`CHANNEL=chrome` 与 `PLAYWRIGHT=<path>` 用于选择浏览器和 Playwright 包。
 
-`output/`、`apps/web/output/`、`tmp/` 和 `.scratch/` 是被 Git 忽略的临时目录，其中 `output/` 会增长到数 GB。证据已写进 PR 描述后，运行 `pnpm clean:output` 删除它们；先运行 `pnpm clean:output --dry-run` 可只看各目录大小。只要这些目录下有已跟踪的文件，它就会拒绝执行。每个脚本的文件头列出它所依据的失败清单和所需的服务器环境，fixture 运行与部署的密钥和默认数据模式相互隔离，因此无论环境中有什么，Agent Lab 的脚本都能通过；`agent-lab-live-gate` 还会使用两个启用了实时运行的服务（见其文件头）。`agent-lab-release` 走完整个公开流程并写出发布证据：原始 NDJSON、带版本的产物、对比摘要、报告，以及一组截图矩阵（浅色与深色、桌面与窄屏、减少动态效果）。发布冒烟测试保留 `provider-empty-result` 作为有代表性的故障路径；`agent-lab-failures` 负责全部五个已注册故障 profile 的结果、下载、离线回放，以及 Run all 的顺序和取消。修改 Failure Lab 行为时应运行这两个脚本。
+`output/`、`apps/web/output/`、`tmp/` 和 `.scratch/` 是被 Git 忽略的临时目录，其中 `output/` 会增长到数 GB。证据已写进 PR 描述后，运行 `pnpm clean:output` 删除它们；先运行 `pnpm clean:output --dry-run` 可只看各目录大小。只要这些目录下有已跟踪的文件，它就会拒绝执行。PR 合并或关闭后，删除它的远程分支（见 [pre-push-checks](../.agents/skills/pre-push-checks/SKILL.md#5-after-the-merge)）。每个脚本的文件头列出它所依据的失败清单和所需的服务器环境，fixture 运行与部署的密钥和默认数据模式相互隔离，因此无论环境中有什么，Agent Lab 的脚本都能通过；`agent-lab-live-gate` 还会使用两个启用了实时运行的服务（见其文件头）。`agent-lab-release` 走完整个公开流程并写出发布证据：原始 NDJSON、带版本的产物、对比摘要、报告，以及一组截图矩阵（浅色与深色、桌面与窄屏、减少动态效果）。发布冒烟测试保留 `provider-empty-result` 作为有代表性的故障路径；`agent-lab-failures` 负责全部五个已注册故障 profile 的结果、下载、离线回放，以及 Run all 的顺序和取消。修改 Failure Lab 行为时应运行这两个脚本。
 
-`auto-save-places`、`plan-revision` 和 `check-entry-point` 只通过 `apps/web/tests/e2e/trip-setup.mjs` 共用地点 fixture、工作区启动、按天数据到计划的转换和轮询。每个脚本仍负责自己的场景断言、请求拦截、挂起响应和截图；并发与取消的设置留在它们验证的场景旁。[覆盖归属说明](../.agents/notes/implemented/simplification/2026-10-10-repository-surface-reduction.md)记录了断言合并的边界。
+`auto-save-places`、`plan-revision` 和 `check-entry-point` 只通过 `apps/web/tests/e2e/trip-setup.mjs` 共用地点 fixture、工作区启动、按天数据到计划的转换和轮询。所有 44 px 触控尺寸检查都用其中的 `touchSized(pixels)`，它会先把亚像素尺寸取整；要在 Node 端调用，不能放进 `evaluate`。每个脚本仍负责自己的场景断言、请求拦截、挂起响应和截图；并发与取消的设置留在它们验证的场景旁。[覆盖归属说明](../.agents/notes/implemented/simplification/2026-10-10-repository-surface-reduction.md)记录了断言合并的边界。
 
 `apps/web/tests/e2e/leg-mode-choice.e2e.mjs` 检查：旅行者为某一程选择的出行方式（`TripBrief.legModes`）确实是计划所采用的方式，或者被如实报告为不可用，绝不会被悄悄替换。四个场景不需要模型（选择通过简报传入），一个需要模型（旅行者在聊天中说出）；没有模型密钥时，这一个会报告 `skip` 而不是失败。产物写入 `output/e2e/leg-mode-choice/<run>/`。
 
@@ -297,6 +297,15 @@ CI 还会运行 `node scripts/format-check-changed.mjs <base>`（即 `pnpm forma
 通过 `CHANNEL=chrome DATA_MODE=mock USE_MOCK_TOOLS=true MOCK_GOOGLE_MAPS=unavailable pnpm --filter @trip/web e2e map-fallback` 重跑回退界面检查。本地测试时清空模型、Maps 和 Clerk 密钥变量。截图和摘要位于 `output/playwright/map-fallback/after`。`map-provider-http` 使用本地上游测试真实 API 处理器：将 `MAP_STUB_PORT` 设为空闲端口，将上述三个基础 URL 设为 `http://127.0.0.1:$MAP_STUB_PORT`，并设 `WEB_MAPS_PROVIDER=osm`；限流时间戳、缓存命中、语言、范围和公交解析记录在 `output/e2e/map-provider-http/summary.json`。
 
 `RUN_LIVE_MAP_CHECK=1 WEB_MAPS_PROVIDER=osm CHANNEL=chrome USE_MOCK_TOOLS=true pnpm --filter @trip/web e2e map-fallback-live` 显式启用真实免费服务检查。只有聊天回复使用固定数据；地点查询、瓦片和步行路线均为实时请求。结果及桌面／手机截图位于 `output/playwright/map-fallback-live/after`。这不代表公共交通覆盖所有目的地。
+
+`real-clerk-auth.e2e.mjs` 需要先启动配置 Clerk 测试密钥和已迁移账号数据库的本地服务。
+通过环境变量传入 `CLERK_SECRET_KEY`、`DATABASE_URL`，执行
+`BASE_URL=http://localhost:3197 CHANNEL=chrome node apps/web/tests/e2e/real-clerk-auth.e2e.mjs`。
+普通 E2E runner 启动的服务会清除 Clerk 配置，不能用于启动这项验收环境。脚本创建两个
+唯一测试账号，使用真实 Clerk 会话验证账号隔离，并仅删除本次创建的账号和数据库记录。
+脚本拒绝正式 Clerk 密钥和远程应用地址。脱敏断言及清理结果保留在
+`apps/web/output/playwright/real-clerk-auth/after/summary.json`，不保留会话令牌或浏览器存储状态。
+此测试不覆盖签名有效但已过期的 JWT、未配置 Clerk 的生产环境，以及 #440 尚待确定的每日配额。
 
 <a id="cli-acceptance-in-ci"></a>
 

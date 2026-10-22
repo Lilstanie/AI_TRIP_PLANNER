@@ -370,7 +370,7 @@ A malformed `requires-env` line stops the runner with an error instead of runnin
   `output/playwright/<name>/`. `CHANNEL=chrome` and `PLAYWRIGHT=<path>` select the browser and the
   Playwright package.
 
-`output/`, `apps/web/output/`, `tmp/` and `.scratch/` are Git-ignored scratch directories, and `output/` grows by gigabytes. Run `pnpm clean:output` once the evidence has been quoted in the pull request; `pnpm clean:output --dry-run` lists sizes first. It refuses to run if any tracked file lives under those directories. Each script's header lists the failure inventory it was written from and
+`output/`, `apps/web/output/`, `tmp/` and `.scratch/` are Git-ignored scratch directories, and `output/` grows by gigabytes. Run `pnpm clean:output` once the evidence has been quoted in the pull request; `pnpm clean:output --dry-run` lists sizes first. It refuses to run if any tracked file lives under those directories. After a pull request is merged or closed, delete its remote branch (see [pre-push-checks](../.agents/skills/pre-push-checks/SKILL.md#5-after-the-merge)). Each script's header lists the failure inventory it was written from and
 any server environment it needs. Fixture runs are isolated from the deployment's keys and data-mode default, so the
 Agent Lab scripts pass whatever the environment holds; `agent-lab-live-gate` also uses two servers with live enabled
 (see its header). `agent-lab-release` walks the whole public flow and writes the release evidence: raw NDJSON,
@@ -380,7 +380,8 @@ reduced motion). Release smoke keeps `provider-empty-result` as the representati
 plus Run all sequencing and cancellation. Run both scripts when changing Failure Lab behavior.
 
 `auto-save-places`, `plan-revision` and `check-entry-point` share only place fixtures, workspace boot,
-day-to-plan conversion and polling in `apps/web/tests/e2e/trip-setup.mjs`. Each script owns its scenario
+day-to-plan conversion and polling in `apps/web/tests/e2e/trip-setup.mjs`. Every 44 px touch-target check uses its
+`touchSized(pixels)`, which rounds sub-pixel layout sizes first; call it in Node, not inside `evaluate`. Each script owns its scenario
 assertions, request interception, held responses and screenshots; concurrency and cancellation setup
 stay beside the scenario they verify. [Coverage ownership](../.agents/notes/implemented/simplification/2026-10-10-repository-surface-reduction.md)
 records the assertion consolidation boundaries.
@@ -445,6 +446,16 @@ upstreams: set `MAP_STUB_PORT` to a free port and all three base URLs above to
 cache hits, language, bounds and transit parsing in `output/e2e/map-provider-http/summary.json`.
 
 `RUN_LIVE_MAP_CHECK=1 WEB_MAPS_PROVIDER=osm CHANNEL=chrome USE_MOCK_TOOLS=true pnpm --filter @trip/web e2e map-fallback-live` opts into real free services. The chat reply alone uses fixtures; place lookup, tiles and the walking route are live. Results and desktop/phone screenshots are in `output/playwright/map-fallback-live/after`. This does not establish transit coverage in every destination.
+
+`real-clerk-auth.e2e.mjs` needs an already running local server with Clerk test keys and a migrated
+account database. Run `BASE_URL=http://localhost:3197 CHANNEL=chrome node apps/web/tests/e2e/real-clerk-auth.e2e.mjs`
+with `CLERK_SECRET_KEY` and `DATABASE_URL` supplied through the environment. The ordinary E2E runner
+starts a server without Clerk, so it cannot start this acceptance environment. The script provisions
+two unique test users, uses genuine Clerk sessions, checks account isolation and removes only its own
+users and database rows. It refuses live Clerk keys and remote application URLs. Sanitized assertions
+and cleanup results are retained under `apps/web/output/playwright/real-clerk-auth/after/summary.json`;
+no session tokens or storage states are retained. This does not verify expired valid JWTs, production
+configuration without Clerk or the daily quota policy pending #440.
 
 #### CLI acceptance in CI
 
