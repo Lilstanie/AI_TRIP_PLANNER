@@ -12,22 +12,23 @@ records why. This file is the implementation recipe; `apps/web/app/styles/glass.
 | Sidebar, Chats panel, top-bar capsules, segmented tracks in the top bar, composer | Drawers, trip fact sheets, native dialogs, the map place popup | Menus, tooltips and suggestion lists (they sit inside glass)      |
 | Empty-state cards, notices, map controls and status, trip-card captions, calendar | The question card                                              | Segmented tracks inside drawers (fills), chat messages, form rows |
 
-To add a surface, put its selector in the right list in `glass.css` and in both fallback blocks.
+To add a surface, put its selector in the right list in `glass.css` and in all fallback blocks.
 Never nest one glass layer inside another.
 
 ## Tokens
 
 All values live in `apps/web/app/styles/tokens.css` with light and dark values; never inline them.
 
-| Token                              | Role                                                        |
-| ---------------------------------- | ----------------------------------------------------------- |
-| `--glass-bg` / `--glass-bg-strong` | Fill; the strong one for layers that carry dense text       |
-| `--glass-border`                   | 1 px bright rim                                             |
-| `--glass-edge`                     | 0.5 px dark outline so the rim reads on white               |
-| `--glass-highlight`                | Inset specular highlights (top and bottom edge, inner glow) |
-| `--glass-shadow`                   | Soft wide drop shadow                                       |
-| `--glass-blur`, `--glass-saturate` | Backdrop blur radius and saturation                         |
-| `--ambient`                        | The coloured wash under the glass; never carries content    |
+| Token                              | Role                                                           |
+| ---------------------------------- | -------------------------------------------------------------- |
+| `--glass-bg` / `--glass-bg-strong` | Fill; the strong one for layers that carry dense text          |
+| `--glass-border`                   | 1 px bright rim                                                |
+| `--glass-edge`                     | 0.5 px dark outline so the rim reads on white                  |
+| `--glass-highlight`                | Inset specular highlights at the top and bottom edges          |
+| `--glass-sheen`                    | Theme-specific, restrained diagonal reflection on large panels |
+| `--glass-shadow`                   | Soft wide drop shadow                                          |
+| `--glass-blur`, `--glass-saturate` | Backdrop blur radius and saturation                            |
+| `--ambient`                        | The coloured wash under the glass; never carries content       |
 
 ## Recipe
 
@@ -42,15 +43,21 @@ All values live in `apps/web/app/styles/tokens.css` with light and dark values; 
     0 0 0 0.5px var(--glass-edge),
     var(--glass-shadow);
 }
-/* Optional sheen for large panels: a ::before with z-index: -1 and a diagonal white gradient.
+/* Optional sheen for large panels: a ::before with z-index: -1 and `background: var(--glass-sheen)`.
    The backdrop-filter makes the surface a stacking context, so the sheen sits above the fill
    and below the content. */
 ```
 
-Fallbacks, all already in `glass.css`: without `backdrop-filter` the fill becomes `--surface`;
+Fallbacks, all already in `glass.css`: without `backdrop-filter` the fill becomes `--surface` and reflections disappear;
 under `prefers-reduced-transparency: reduce` or `prefers-contrast: more` the blur, the sheen and
 the ambient wash go and the border becomes `--border`; in forced-colors mode the surface is `Canvas`
-with a `CanvasText` border.
+with a `CanvasText` border, without blur, reflections or shadows.
+
+The calibrated Web material uses 24 px blur and 150% saturation. Regular/strong fill opacity is
+64%/86% in light mode and 60%/88% in dark mode. These are project adaptation values, not Figma exports.
+Run `CHANNEL=chrome pnpm --filter @trip/web e2e glass-calibration --prod` for appearance,
+Chinese, phone, keyboard and accessibility preference evidence in
+`output/playwright/glass-calibration/after/`. Use `map-fallback` for fixture-backed map overlays.
 
 - **Contrast.** Check text and icons against the busiest backdrop they can sit on: dense map
   labels and dark-theme tiles. When text fails WCAG AA, make the fill more opaque or move the layer
