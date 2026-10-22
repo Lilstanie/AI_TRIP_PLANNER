@@ -117,6 +117,7 @@ const catalog = {
     editorView: "map",
   },
 };
+const pageTitle = async (page) => (await page.title()).replace(/\u2009/g, " ");
 const browser = await chromium.launch({
   headless: true,
   ...(process.env.CHANNEL ? { channel: process.env.CHANNEL } : {}),
@@ -205,9 +206,9 @@ try {
       await page.locator(".workspace-app").waitFor();
       await page.addStyleTag({ content: "nextjs-portal { display:none !important; }" });
       check(
-        (await page.title()) === "AI Trip Planner",
+        (await pageTitle(page)) === "AI Trip Planner",
         `${label}: blank workspace keeps the generic browser title`,
-        await page.title(),
+        await pageTitle(page),
       );
       if (width === 1440)
         await page
@@ -292,9 +293,9 @@ try {
         await firstBar.click();
         const expectedTitle = `${item.destination} · ${item.range[locale]} · AI Trip Planner`;
         check(
-          (await page.title()) === expectedTitle,
+          (await pageTitle(page)) === expectedTitle,
           `${label} ${item.destination}: short title names the month`,
-          { expected: expectedTitle, actual: await page.title() },
+          { expected: expectedTitle, actual: await pageTitle(page) },
         );
         check(
           await page.evaluate(() => document.documentElement.scrollWidth === innerWidth),
@@ -341,9 +342,9 @@ try {
           ? "Auckland · 2030年12月31日 – 2031年1月2日 · AI Trip Planner"
           : "Auckland · 31 Dec 2030 – 2 Jan 2031 · AI Trip Planner";
       check(
-        (await page.title()) === activeTitle,
+        (await pageTitle(page)) === activeTitle,
         `${label}: active trip title includes its locale-formatted date range`,
-        { expected: activeTitle, actual: await page.title() },
+        { expected: activeTitle, actual: await pageTitle(page) },
       );
       if (width === 1440)
         await page
@@ -371,9 +372,9 @@ try {
           .click();
         const chineseTitle = "Auckland · 2030年12月31日 – 2031年1月2日 · AI Trip Planner";
         check(
-          (await page.title()) === chineseTitle,
+          (await pageTitle(page)) === chineseTitle,
           `${label}: changing interface language refreshes the browser title`,
-          { expected: chineseTitle, actual: await page.title() },
+          { expected: chineseTitle, actual: await pageTitle(page) },
         );
         await page.getByRole("tab", { name: "日历", exact: true }).click();
         check(
