@@ -55,7 +55,7 @@ export function ThinkingProcess({
   const open = useOpenRows();
   const elapsed = useElapsedMs(busy);
   const counts = useMemo(() => countActivity(activity), [activity]);
-  const groups = useMemo(() => roundGroups(activity, busy), [activity, busy]);
+  const groups = useMemo(() => roundGroups(activity, busy, locale), [activity, busy, locale]);
   const summary = useMemo(
     () => turnSummary(activity, counts, busy, Boolean(error), locale, outcome),
     [activity, counts, busy, error, locale, outcome],

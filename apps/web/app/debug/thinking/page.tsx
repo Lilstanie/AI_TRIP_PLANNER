@@ -1,10 +1,12 @@
 "use client";
 import { notFound } from "next/navigation";
 import { useEffect, useState } from "react";
+import { LocaleProvider } from "@/components/account/LocaleProvider";
+import { SettingsProvider } from "@/components/account/SettingsProvider";
 import { ThinkingProcess } from "@/components/chat/ThinkingProcess";
 import { thinkingFixture, thinkingFixtureRunning } from "@/lib/dev/thinking-fixtures";
 
-type Mode = "settled" | "running" | "replay";
+type Mode = "settled" | "running" | "replay" | "failed";
 
 const REPLAY_STEP_MS = 450;
 
@@ -28,25 +30,36 @@ export default function DebugThinkingPage() {
       : mode === "running"
         ? thinkingFixtureRunning
         : thinkingFixtureRunning.slice(0, frames);
-  const busy = mode !== "settled";
+  const busy = mode === "running" || mode === "replay";
+  const error = mode === "failed" ? { raw: "Fixture failure" } : undefined;
   return (
-    <main className="chat">
-      <h1>Thinking transcript</h1>
-      <div role="group" aria-label="Fixture">
-        {(["settled", "running", "replay"] as const).map((value) => (
-          <button
-            key={value}
-            type="button"
-            aria-pressed={mode === value}
-            onClick={() => setMode(value)}
-          >
-            {value === "settled" ? "Settled" : value === "running" ? "Mid-flight" : "Replay"}
-          </button>
-        ))}
-      </div>
-      <section className="agent-activity" aria-label="Thinking process">
-        <ThinkingProcess activity={activity} busy={busy} />
-      </section>
-    </main>
+    <SettingsProvider>
+      <LocaleProvider>
+        <main className="chat">
+          <h1>Thinking transcript</h1>
+          <div role="group" aria-label="Fixture">
+            {(["settled", "running", "replay", "failed"] as const).map((value) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={mode === value}
+                onClick={() => setMode(value)}
+              >
+                {value === "settled"
+                  ? "Settled"
+                  : value === "running"
+                    ? "Mid-flight"
+                    : value === "replay"
+                      ? "Replay"
+                      : "Failed"}
+              </button>
+            ))}
+          </div>
+          <section className="agent-activity" aria-label="Thinking process">
+            <ThinkingProcess activity={activity} busy={busy} error={error} />
+          </section>
+        </main>
+      </LocaleProvider>
+    </SettingsProvider>
   );
 }

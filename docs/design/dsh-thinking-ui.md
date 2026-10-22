@@ -444,12 +444,12 @@ sink the same `REASONING_BLOCK_INDEX` (0); the sink still paces the wire, but a 
 all one block. `mergeReasoning` in `thinking-model.ts` concatenates deltas by `(agent, round,
 episode)` client-side, which also merges older recorded frames that numbered each flush apart.
 
-A merged block's collapsed summary follows the phase, matching DSH 1.3: while streaming it shows the
-block's _last_ line, right-anchored (`RowSummary`'s `followEnd`, DSH's `[data-follow-end]`) so the
-newest words are what the reader sees advance; once settled it shows the _first_ line. The Think
-row's own live summary (`turnSummary`) follows the same rule at the turn level: while the newest
-event in the turn is a streaming reasoning delta, the row shows that block's latest line; once any
-agent acts after it, the row falls back to the live tool/subagent line.
+A collapsed reasoning row shows the localized `Thinking` label in every state. Its full stream is
+available only when that reasoning row itself is expanded. The Think row's live summary always uses
+traveller-facing progress from `liveSummary`; a reasoning delta never replaces it. A collapsed
+subagent with a streaming reasoning block uses the same localized tool or agent progress summary.
+This keeps raw orchestration text inside the explicitly opened reasoning disclosure, even when its
+parent rows are expanded.
 
 The tree itself is `Think` (the turn) → `Subagent · <name>` rows, one per `(round, agent)` → that
 subagent's own reasoning and tool rows, in arrival order → a tool's result rows. Every level uses one
@@ -661,7 +661,7 @@ so the tag never splits the label from its description when both wrap.
   conversation order with a stable label; subagents opened and closed one at a time; the count-line
   fold; round headings above round 1 only; the live thinking transcript and Stop action while busy;
   live tool rows settling on their result; a tool call's arguments, result rows and truncation note;
-  a streamed reasoning block collapsed on its last line, expanded to the full text; the accommodation
+  a streamed reasoning block collapsed to a safe label, expanded to the full text; the accommodation
   choice and its alternatives; and that no confirmation card or suggestion list renders (a structured
   ask still renders as `QuestionComposer`, covered separately — see below).
 - `apps/web/tests/components/chat/MessageItem.test.tsx` covers the user bubble, the full-width
@@ -703,9 +703,10 @@ stays: 20 stay options` with 20 rows) plus one stay choice with 19 alternatives;
   `.composer__add`, `.composer__primary`, `.question__icon-button`, `.question__option` and
   `.question__button` are on that list.
 - `/debug/thinking` (`apps/web/app/debug/thinking/page.tsx` with `apps/web/lib/dev/thinking-fixtures.ts`)
-  renders the transcript against a recorded frame sequence in three modes — Settled, Mid-flight and
-  Replay, which streams the mid-flight fixture one frame at a time — without a provider call. It is
-  the fastest way to check a row's layout.
+  renders deterministic simulated events in Settled, Mid-flight, Replay and Failed modes without a
+  provider call. `apps/web/tests/e2e/thinking-disclosure.e2e.mjs` checks collapsed and expanded
+  disclosures in English at 800×600 and Chinese at 390×844, including success and error states; its
+  screenshots are browser evidence for the fixture only, not a live planner run.
 
 ## 7. Sources
 
