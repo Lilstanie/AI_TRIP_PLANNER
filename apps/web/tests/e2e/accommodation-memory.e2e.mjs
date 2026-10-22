@@ -44,6 +44,7 @@ const database = drizzle(db, { schema });
 const agents = await runtime.ssrLoadModule("/packages/agents/src/index.ts");
 const chat = await runtime.ssrLoadModule("/apps/web/app/api/chat/route.ts");
 const undo = await runtime.ssrLoadModule("/apps/web/app/api/account/memory/undo/route.ts");
+const accountMemory = await runtime.ssrLoadModule("/apps/web/lib/account/memory.ts");
 const { readPreferences } = await runtime.ssrLoadModule(
   "/packages/agents/src/accommodation/planning.ts",
 );
@@ -92,6 +93,62 @@ function databaseThatChangesAfterSelect(database, change) {
     },
   });
   return { database: racingDatabase, changed: () => changed };
+}
+
+function databaseWithSelectBarrier(database, expected) {
+  let arrivals = 0;
+  let gated = 0;
+  let release;
+  const barrier = new Promise((resolve) => (release = resolve));
+  const timeout = setTimeout(release, 100);
+  const wrapQuery = (query) =>
+    new Proxy(query, {
+      get(builder, member) {
+        if (member === "then")
+          return (resolve, reject) => {
+            if (gated < expected) {
+              gated += 1;
+              arrivals += 1;
+              if (arrivals === expected) {
+                clearTimeout(timeout);
+                release();
+              }
+              return barrier.then(() => builder.then(resolve, reject));
+            }
+            return builder.then(resolve, reject);
+          };
+        const value = Reflect.get(builder, member, builder);
+        return typeof value === "function"
+          ? (...methodArgs) => wrapQuery(value.apply(builder, methodArgs))
+          : value;
+      },
+    });
+  const racingDatabase = new Proxy(database, {
+    get(target, property) {
+      if (property === "transaction")
+        return (callback, ...args) =>
+          target.transaction(
+            (tx) =>
+              callback(
+                new Proxy(tx, {
+                  get(transaction, member) {
+                    if (member === "select")
+                      return (...selectArgs) => wrapQuery(transaction.select(...selectArgs));
+                    const value = Reflect.get(transaction, member, transaction);
+                    return typeof value === "function"
+                      ? (...methodArgs) => value.apply(transaction, methodArgs)
+                      : value;
+                  },
+                }),
+              ),
+            ...args,
+          );
+      if (property === "select") return (...args) => wrapQuery(target.select(...args));
+      const value = Reflect.get(target, property, target);
+      return typeof value === "function" ? value.bind(target) : value;
+    },
+  });
+  return { database: racingDatabase, arrivals: () => arrivals };
 }
 
 try {
@@ -207,6 +264,67 @@ try {
     },
   );
 
+  phase = "concurrent-accommodation-preference-writes";
+  await db.query(
+    `INSERT INTO account_memories (user_id, key, value, previous_value, undo_token, updated_at)
+     VALUES ($1, 'accommodation', '{"stayType":"hotel"}', null, 'initial-accommodation-token', now())
+     ON CONFLICT (user_id, key) DO UPDATE SET value=excluded.value,
+       previous_value=excluded.previous_value, undo_token=excluded.undo_token`,
+    [account],
+  );
+  const concurrentWrites = databaseWithSelectBarrier(database, 2);
+  fixture.configureMemoryFixture(concurrentWrites.database, account);
+  const [ratingWrite, cancellationWrite] = await Promise.all([
+    accountMemory.rememberAccountPreference(account, "accommodation", '{"minRating":8}'),
+    accountMemory.rememberAccountPreference(account, "accommodation", '{"freeCancellation":true}'),
+  ]);
+  assert.ok(concurrentWrites.arrivals() > 0, "At least one concurrent write must read the row");
+  const concurrentRow = (
+    await db.query(
+      "SELECT value, previous_value, undo_token FROM account_memories WHERE user_id=$1 AND key='accommodation'",
+      [account],
+    )
+  ).rows[0];
+  observedRows = [concurrentRow];
+  assert.deepEqual(JSON.parse(concurrentRow.value), {
+    stayType: "hotel",
+    minRating: 8,
+    freeCancellation: true,
+  });
+  assert.ok(
+    [ratingWrite?.token, cancellationWrite?.token].includes(concurrentRow.undo_token),
+    "The persisted undo token must belong to one of the completed writes",
+  );
+  assert.ok(
+    JSON.parse(concurrentRow.previous_value).minRating === 8 ||
+      JSON.parse(concurrentRow.previous_value).freeCancellation === true,
+    "The latest undo baseline must include the earlier concurrent patch",
+  );
+  fixture.configureMemoryFixture(database, account);
+  const concurrentUndo = await undo.POST(
+    new Request("http://localhost/api/account/memory/undo", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ token: concurrentRow.undo_token }),
+    }),
+  );
+  assert.deepEqual(await concurrentUndo.json(), { undone: true });
+  const restoredConcurrent = (
+    await db.query("SELECT value FROM account_memories WHERE user_id=$1 AND key='accommodation'", [
+      account,
+    ])
+  ).rows[0];
+  assert.ok(restoredConcurrent, "Undo must restore the earlier concurrent write");
+  assert.deepEqual(JSON.parse(restoredConcurrent.value), JSON.parse(concurrentRow.previous_value));
+  observedRows = [restoredConcurrent];
+  await db.query(
+    `UPDATE account_memories SET value='{"stayType":"hotel","minRating":8,"freeCancellation":true}',
+       previous_value=null, undo_token='sequential-accommodation-token'
+     WHERE user_id=$1 AND key='accommodation'`,
+    [account],
+  );
+
+  phase = "sequential-accommodation-update-and-undo";
   const update = await submit("I need a rating of at least 10");
   rows = await saved();
   observedRows = rows;
@@ -362,6 +480,7 @@ try {
           "one accommodation row",
           "partial preference merge",
           "planner reads structured and legacy values",
+          "concurrent accommodation patches serialize and latest undo restores prior write",
           "undo restores prior merged value",
           "concurrent token replacement yields undone=false and preserves replacement",
           "concurrent token replacement before first-write delete yields undone=false and preserves replacement",
@@ -394,6 +513,9 @@ try {
     observedRows.length === 1 &&
     observedRows[0].value === "free cancellation"
   ) {
+    await writeFile(resolve(output, "red-result.json"), JSON.stringify(report, null, 2) + "\n");
+  }
+  if (phase === "concurrent-accommodation-preference-writes") {
     await writeFile(resolve(output, "red-result.json"), JSON.stringify(report, null, 2) + "\n");
   }
   throw error;

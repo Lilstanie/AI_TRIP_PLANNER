@@ -17,6 +17,8 @@
 - A stale undo/delete race affects zero rows but is reported as successful, implying a change that did not occur.
 - Undo selects a matching account/token row, then a concurrent replacement changes its token before the conditional restore/delete; if the write affects zero rows, the endpoint must return `undone: false` and leave the replacement intact for both restoration and first-write deletion.
   - Red before the fix: `pnpm --filter @trip/web e2e accommodation-memory` failed at the route assertion with actual `{ undone: true }`, expected `{ undone: false }` after the deterministic interleaving. Runner record: `output/e2e/runner/2026-10-21T00-48-02-646Z.json`.
+- Concurrent writes to one account/key both read the same old row; the later upsert can erase an earlier accommodation patch and save a stale undo baseline.
+  - Red before the fix: `pnpm --filter @trip/web e2e accommodation-memory` deterministically interleaved both writes and observed `{ stayType: "hotel", freeCancellation: true }` instead of preserving the concurrent `minRating: 8` patch. Runner record: `output/e2e/runner/2026-10-22T03-11-14-661Z.json`.
 - Undo of a first write fails to remove it, or undo after replacement fails to restore the previous value.
 
 ## Persistence and integration

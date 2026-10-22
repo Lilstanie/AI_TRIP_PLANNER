@@ -42,7 +42,9 @@ packages/shared` in the foundation session log.
 - Only explicit allowlisted phrases for the six supported categories are remembered; other needs
   require a future scoped recognition contract.
 - The schema's composite account/key primary key stores one current value per category per account, with
-  one-step undo state. It does not provide an undo history or concurrent-edit history.
+  one-step undo state. Writes for the same account/category are serialized so partial accommodation
+  patches merge against the latest committed value and undo restores the immediately preceding write.
+  It does not provide an undo history or concurrent-edit history.
 - A saved account opt-out or `assistant.memory: false` suppresses account-memory reads and writes. A request cannot override a saved opt-out; failed settings reads disable account memory while preserving normal
   planning. The signed-in Settings switch controls this preference; signed-out users see a sign-in
   hint and cannot change it. This supersedes the temporary hidden-control status in the

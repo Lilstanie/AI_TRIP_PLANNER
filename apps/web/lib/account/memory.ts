@@ -45,37 +45,42 @@ export async function rememberAccountPreference(
 ) {
   if (!userId || !dbEnabled() || !REMEMBERABLE_KEYS.has(key)) return undefined;
   const db = getDb();
-  const [current] = await db
-    .select()
-    .from(accountMemories)
-    .where(and(eq(accountMemories.userId, userId), eq(accountMemories.key, key)));
-  const storedValue =
-    key === "accommodation" ? mergeAccommodationMemory(current?.value, value) : value;
-  const token = randomUUID();
-  await db
-    .insert(accountMemories)
-    .values({
-      userId,
-      key,
-      value: storedValue,
-      previousValue: current?.value ?? null,
-      undoToken: token,
-      updatedAt: new Date(),
-    })
-    .onConflictDoUpdate({
-      target: [accountMemories.userId, accountMemories.key],
-      set: {
+  return db.transaction(async (tx) => {
+    const inserted = await tx
+      .insert(accountMemories)
+      .values({
+        userId,
+        key,
+        value: "{}",
+        previousValue: null,
+        undoToken: randomUUID(),
+        updatedAt: new Date(),
+      })
+      .onConflictDoNothing()
+      .returning({ key: accountMemories.key });
+    const [current] = await tx
+      .select()
+      .from(accountMemories)
+      .where(and(eq(accountMemories.userId, userId), eq(accountMemories.key, key)))
+      .for("update");
+    const storedValue =
+      key === "accommodation" ? mergeAccommodationMemory(current.value, value) : value;
+    const token = randomUUID();
+    await tx
+      .update(accountMemories)
+      .set({
         value: storedValue,
-        previousValue: current?.value ?? null,
+        previousValue: inserted.length > 0 ? null : current.value,
         undoToken: token,
         updatedAt: new Date(),
-      },
-    });
-  return {
-    token,
-    action: current ? ("updated" as const) : ("remembered" as const),
-    value: storedValue,
-  };
+      })
+      .where(and(eq(accountMemories.userId, userId), eq(accountMemories.key, key)));
+    return {
+      token,
+      action: inserted.length > 0 ? ("remembered" as const) : ("updated" as const),
+      value: storedValue,
+    };
+  });
 }
 
 export async function undoAccountMemory(userId: string, token: string) {
