@@ -133,15 +133,16 @@ final tree; the loop prints one line per check so the Evidence section can quote
 node scripts/redgreen.mjs <e2e-name> -- <source-path>...
 pnpm exec prettier --write <changed-file>...
 for c in "--filter @trip/web typecheck" "--filter @trip/web lint" "--filter @trip/web test" \
-  verify:docs verify:pairs verify:protected "--filter @trip/web verify:e2e-selectors" \
-  "--filter @trip/web verify:e2e-artifacts" "format:check-changed origin/main"; do
+  verify:docs verify:pairs verify:protected verify:e2e-selectors verify:e2e-artifacts \
+  "format:check-changed origin/main"; do
   pnpm -s $c >/dev/null 2>&1 && echo "ok $c" || echo "FAIL $c"
 done
 git diff --name-only origin/main -- '*.ts' '*.tsx' '*.mjs' | sed 's/^/--path /' \
   | xargs node .agents/skills/review-trip-planner/scripts/check-added-comments.mjs --base origin/main
 ```
 
-Run `git add -N <new-file>` first so `git diff` lists new files for the comment check. Rerun a `FAIL`
+`verify:e2e-selectors` and `verify:e2e-artifacts` are root scripts: with `--filter @trip/web` pnpm
+finds no such script in the package and exits 0 without checking anything. Run `git add -N <new-file>` first so `git diff` lists new files for the comment check. Rerun a `FAIL`
 line without the redirect to read its output. Drop rows the diff cannot affect, and
 add the rows from the table above that it can.
 
