@@ -13,6 +13,7 @@ import {
 } from "../ui/flow-icons";
 import { Disclosure, RowSeparator, RowSummary } from "./Disclosure";
 import { AssistantIcon } from "./assistants";
+import { useAssistantName } from "./assistant-names";
 import {
   argLine,
   CLOCK_DELAY_MS,
@@ -314,7 +315,7 @@ function SubagentNotes({ model, open }: { model: SubagentModel; open: OpenRows }
 
 export function SubagentRow({ model, open }: { model: SubagentModel; open: OpenRows }) {
   const { t } = useLocale();
-  const label = t(labels[model.name]);
+  const label = useAssistantName()(model.name);
   const running = model.status === "running" || model.status === "revising";
   return (
     <div

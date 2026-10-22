@@ -143,6 +143,17 @@ button.settings-tab[aria-selected="true"]::after {
 .settings-inline input {
   flex: 1 1 160px;
 }
+.assistant-names {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.assistant-name label {
+  display: grid;
+  gap: var(--space-1);
+}
 .settings-error {
   color: var(--warn);
   font-size: var(--font-size-meta);
@@ -475,6 +486,7 @@ button.settings-chip[aria-pressed="true"] {
   button.memory-row__main,
   button.memory-row__answer,
   .settings-inline input,
+  .assistant-name input,
   .settings-inline select,
   .settings-inline button,
   .memory-row__editor .settings-pill,

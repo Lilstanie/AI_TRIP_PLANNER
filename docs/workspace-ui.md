@@ -944,6 +944,13 @@ the account section explains that everything stays in this browser.
     in, or that data stays in the browser, with Theme below.
   - **Personalization:**
     - **Communication style:** Neutral, Friendly, Concise or Detailed.
+    - **Assistant names:** one editable name for the Coordinator and each of the five specialists, stored
+      with the account as `assistant.names`. A blank name restores the role name in the interface language.
+      Names are trimmed and limited to 24 characters, and a name that another assistant already uses, as a
+      custom name or as a default English or Chinese role name, is rejected with a message, so a mention can
+      never be ambiguous. The chips, reply bubbles (including earlier ones) and Subagent rows show the
+      current name without a reload. Typing `@` with the custom name, the default English name or the
+      default Chinese name sends the same specialist id.
     - The nonfunctional **Long-term memory** switch and its hint are hidden until the planner can
       actually remember preferences. The stored `assistant.memory` setting remains compatible with
       existing browser and account data.

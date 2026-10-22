@@ -110,9 +110,16 @@ export const Attachment = z
 export type Attachment = z.infer<typeof Attachment>;
 
 export const COMMUNICATION_STYLES = ["neutral", "friendly", "concise", "detailed"] as const;
+export const MAX_ASSISTANT_NAME_LENGTH = 24;
+export const AssistantNames = z.partialRecord(
+  z.enum(["coordinator", ...AGENT_NAMES]),
+  z.string().trim().min(1).max(MAX_ASSISTANT_NAME_LENGTH),
+);
+export type AssistantNames = z.infer<typeof AssistantNames>;
 export const AssistantSettings = z.object({
   style: z.enum(COMMUNICATION_STYLES).default("neutral"),
   memory: z.boolean().default(true),
+  names: AssistantNames.optional(),
 });
 export type AssistantSettings = z.infer<typeof AssistantSettings>;
 

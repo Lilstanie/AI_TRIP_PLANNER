@@ -7,7 +7,8 @@ import { AttachmentChip } from "./AttachmentChip";
 import { FlightResults } from "./FlightResults";
 import { RevealedText } from "./RevealedText";
 import { ThinkingProcess } from "./ThinkingProcess";
-import { AssistantIcon, ASSISTANT_ROLE_KEYS } from "./assistants";
+import { AssistantIcon } from "./assistants";
+import { useAssistantName } from "./assistant-names";
 import { TeamConversation } from "./TeamConversation";
 
 const markdownComponents: Components = {
@@ -20,6 +21,7 @@ const markdownComponents: Components = {
 
 export function MessageItem({ message, animate }: { message: Message; animate?: boolean }) {
   const { t, locale } = useLocale();
+  const assistantName = useAssistantName();
   const clock =
     message.at === undefined ? null : (
       <span className="msg-item__clock">
@@ -54,7 +56,7 @@ export function MessageItem({ message, animate }: { message: Message; animate?: 
       {message.assistant ? (
         <span className="msg-item__who">
           <AssistantIcon id={message.assistant} />
-          <strong>{t(ASSISTANT_ROLE_KEYS[message.assistant])}</strong>
+          <strong>{assistantName(message.assistant)}</strong>
         </span>
       ) : (
         <span className="sr-only">{t("Travel planning assistant")}</span>

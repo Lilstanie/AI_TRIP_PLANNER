@@ -72,6 +72,11 @@ export const WORKSPACE_ZH = {
   "Member number": "会员号",
   "Add membership": "添加会员信息",
   "Communication style": "交流风格",
+  "Assistant names": "助手名称",
+  "Rename the assistants. Leave a name empty to use its role name.":
+    "为助手改名。留空则使用角色名称。",
+  "Name of {name}": "{name}的名称",
+  "That name is already used by another assistant.": "这个名称已被另一位助手使用。",
   "Choose how you would like the planner to talk with you.": "选择你希望规划助手使用的交流方式。",
   "Long-term memory": "长期记忆",
   "Let the planner remember preferences you mention in chat, such as your pace or what you eat, and use them in later plans. When off, it will not save or use anything it learns in chat.":

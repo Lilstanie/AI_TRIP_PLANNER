@@ -105,9 +105,10 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 Mock 浏览器检查 `party-breakdown-browser` 通过聊天提交明确的人数组成，并在桌面和手机宽度检查
 Who 中的五项计数，包括保存行程后重新打开的情况。
 
-可选的 `assistant`：来自 Settings → Personalization 的 `{ style, memory }`（`packages/shared/src/chat.ts` 中的
+可选的 `assistant`：来自 Settings → Personalization 的 `{ style, memory, names }`（`packages/shared/src/chat.ts` 中的
 `AssistantSettings`）。
 
+- `names` 是可选的映射，从助手 id 到最长 24 个字符的自定义显示名称。它只改变界面显示的内容以及 `@name` 解析到哪位 specialist；提及始终以 id 发送。
 - `style` 取 `neutral`、`friendly`、`concise` 或 `detailed`，决定协调器的语气。
 - `memory: false` 时，服务器从 `brief` 和 `known` 中去掉 `learnedPreferences`，协调器也不再记录。
 
