@@ -1,6 +1,6 @@
 ---
 name: pre-push-checks
-description: Pick the smallest set of commands that would catch a regression in the outgoing diff, instead of reflexively running the whole repository suite, in AI_TRIP_PLANNER. Use before pushing, opening or updating a pull request, or claiming that checks pass.
+description: Pick the smallest set of commands that would catch a regression in the outgoing diff, instead of reflexively running the whole repository suite, in AI_TRIP_PLANNER. Use before pushing, opening or updating a pull request, claiming that checks pass, or fixing a batch of issues one pull request at a time.
 ---
 
 # Pre-push checks
@@ -29,6 +29,9 @@ git status --short --branch
 git fetch origin main
 git diff --name-status origin/main...HEAD
 ```
+
+Fetch again before cutting each new branch, not once per session: after merging other pull requests
+the local `origin/main` is stale, and a branch cut from it reverts their changes in its diff.
 
 Include uncommitted files if you are about to commit them.
 
@@ -118,6 +121,27 @@ For ordinary `docs/` Markdown changes, synchronize both languages with
 [translate-docs](../translate-docs/SKILL.md), review each pair you changed and run
 `pnpm verify:pairs` (the same command). CI runs it for pull requests, so an English change without its
 Chinese counterpart fails the build.
+
+### A web fix with an E2E proof
+
+For a change under `apps/web` proved by an E2E script, this is the usual set. Run it once on the
+final tree; the loop prints one line per check so the Evidence section can quote it:
+
+```bash
+node scripts/redgreen.mjs <e2e-name> -- <source-path>...
+pnpm exec prettier --write <changed-file>...
+for c in "--filter @trip/web typecheck" "--filter @trip/web lint" "--filter @trip/web test" \
+  verify:docs verify:pairs verify:protected "--filter @trip/web verify:e2e-selectors" \
+  "--filter @trip/web verify:e2e-artifacts" "format:check-changed origin/main"; do
+  pnpm -s $c >/dev/null 2>&1 && echo "ok $c" || echo "FAIL $c"
+done
+git diff --name-only origin/main -- '*.ts' '*.tsx' '*.mjs' | sed 's/^/--path /' \
+  | xargs node .agents/skills/review-trip-planner/scripts/check-added-comments.mjs --base origin/main
+```
+
+Run `git add -N <new-file>` first so `git diff` lists new files for the comment check. Rerun a `FAIL`
+line without the redirect to read its output. Drop rows the diff cannot affect, and
+add the rows from the table above that it can.
 
 ## 3. Validate the final tree
 
