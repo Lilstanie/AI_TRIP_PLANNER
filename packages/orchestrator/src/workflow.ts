@@ -202,6 +202,7 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
         ...(choiceFor(proposal, currencyFor(request.brief))
           ? { choice: choiceFor(proposal, currencyFor(request.brief))! }
           : {}),
+        ...(proposal.source ? { source: proposal.source.kind } : {}),
         type: "agent_completed",
         agent: specialist.name,
         round: request.context.round,

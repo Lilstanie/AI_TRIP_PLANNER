@@ -187,7 +187,10 @@ Optional `mode` values:
 The response is `application/x-ndjson`, one JSON object per line:
 
 - progress events with `type` `coordinator`, `agent_started`, `agent_completed` or `agent_failed`;
-- a final `{ "type": "complete", "response": { "reply": "…", "plan": { … } } }`;
+- a final `{ "type": "complete", "response": { "reply": "…", "plan": { … }, "assistant": "…" } }`.
+  `assistant` is optional and names who answered (`coordinator` or a specialist id); a missing value
+  means the Coordinator. `agent_completed` events carry an optional `source` (`live`, `estimated`,
+  `mock`, `fallback` or `unavailable`) and `agent_reasoning` events an optional `assistant`;
 - or `{ "type": "error", "error": "…", "notice": { … } }`, the failure in the
   [`{ error, notice }`](#failure-bodies) form.
 

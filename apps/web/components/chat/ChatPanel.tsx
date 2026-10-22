@@ -5,6 +5,7 @@ import { quickPrompts } from "@/lib/planning/quick-prompts";
 import { translate } from "@/lib/i18n/locale";
 import type { Message } from "@/lib/workspace";
 import { ThinkingProcess } from "./ThinkingProcess";
+import { TeamConversation } from "./TeamConversation";
 import { Composer } from "./Composer";
 import { MessageItem } from "./MessageItem";
 import { QuestionComposer } from "./QuestionComposer";
@@ -129,6 +130,7 @@ export function ChatPanel({
             className={`agent-activity${error && !busy ? " agent-activity--error" : ""}`}
             aria-label={t("Thinking process")}
           >
+            <TeamConversation activity={activity} />
             <ThinkingProcess activity={activity} busy={busy} error={error} />
           </section>
         )}

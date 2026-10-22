@@ -169,7 +169,7 @@ Who 中的五项计数，包括保存行程后重新打开的情况。
 响应为 `application/x-ndjson`，每行一个 JSON 对象：
 
 - `type` 为 `coordinator`、`agent_started`、`agent_completed` 或 `agent_failed` 的进度事件；
-- 最终帧 `{ "type": "complete", "response": { "reply": "…", "plan": { … } } }`；
+- 最终帧 `{ "type": "complete", "response": { "reply": "…", "plan": { … }, "assistant": "…" } }`。`assistant` 可选，表示由谁回答（`coordinator` 或某位 specialist 的 id），缺省表示协调员。`agent_completed` 事件带可选的 `source`（`live`、`estimated`、`mock`、`fallback` 或 `unavailable`），`agent_reasoning` 事件带可选的 `assistant`；
 - 或 `{ "type": "error", "error": "…", "notice": { … } }`，即
   [`{ error, notice }`](#failure-bodies) 形式的失败。
 

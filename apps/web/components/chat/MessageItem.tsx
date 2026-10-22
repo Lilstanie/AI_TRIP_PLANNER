@@ -7,6 +7,8 @@ import { AttachmentChip } from "./AttachmentChip";
 import { FlightResults } from "./FlightResults";
 import { RevealedText } from "./RevealedText";
 import { ThinkingProcess } from "./ThinkingProcess";
+import { AssistantIcon, ASSISTANT_ROLE_KEYS } from "./assistants";
+import { TeamConversation } from "./TeamConversation";
 
 const markdownComponents: Components = {
   a: ({ href, children, ...rest }) => (
@@ -49,9 +51,17 @@ export function MessageItem({ message, animate }: { message: Message; animate?: 
   }
   return (
     <div className="msg-item msg-item--agent">
-      <span className="sr-only">{t("Travel planning assistant")}</span>
+      {message.assistant ? (
+        <span className="msg-item__who">
+          <AssistantIcon id={message.assistant} />
+          <strong>{t(ASSISTANT_ROLE_KEYS[message.assistant])}</strong>
+        </span>
+      ) : (
+        <span className="sr-only">{t("Travel planning assistant")}</span>
+      )}
       {message.activity && message.activity.length > 0 && (
         <section className="agent-activity" aria-label={t("Thinking process")}>
+          <TeamConversation activity={message.activity} />
           <ThinkingProcess activity={message.activity} busy={false} outcome={message.outcome} />
         </section>
       )}
