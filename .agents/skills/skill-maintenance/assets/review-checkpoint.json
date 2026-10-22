@@ -1,94 +1,94 @@
 {
   "version": 1,
-  "reviewedRevision": "87e26199e07a7ed46abaf7614433099401bddf2c",
+  "reviewedRevision": "10a6a8f5ff18d7fa5620c90935945db1444f3965",
   "skills": [
     {
       "name": "add-provider",
-      "summary": "verified ports/gateway/port modules, mockEnabled vs config.dataMode, public-boundary test, SerpApiError, 0-10 rating contract, five AgentProposalSourceKind values, durable SerpApi quota/cache, WEB_MAPS_PROVIDER settings and the development provider table; #333 fallback-configuration and destination-calendar lessons added."
+      "summary": "re-read against ports/gateway, mockEnabled vs config.dataMode, the public-boundary test, SerpApiError and the development provider table; named paths and commands resolve and no merged PR since 87e2619 changes a rule it states; no change."
     },
     {
       "name": "agent-experience",
-      "summary": "verified specialist tools in packages/agents/src/*/index.ts, delegation in supervisor.ts and progress decorators in progress-tools.ts; drift from #333/#335 is formatting and parsing fixes that leave the guidance accurate."
+      "summary": "re-checked specialist tools, supervisor delegation and progress decorators; the five-assistant work (#561 and its PRs) renames the interface wording, not the tool contracts the skill teaches, and no named path moved; no change."
     },
     {
       "name": "agent-notes",
-      "summary": "lifecycle, archive and supersession steps match verify-docs and verify-protected; the skill's \"never edit rejected/ or archived/\" matches CI, while the protected notes README still says rejected notes may be deleted (reported, not changed)."
+      "summary": "lifecycle, archive and supersession steps still match verify-docs and verify-protected; the protected notes README still says rejected notes may be deleted while CI forbids it (reported, not changed); the 20 note commits since 87e2619 follow the lifecycle the skill describes."
     },
     {
       "name": "api-scout",
-      "summary": "provider-table anchor, roadmap link and add-provider hand-off resolve; discovery-only rules forbid live calls and credentials, which still matches the project's credential rules."
+      "summary": "provider-table anchor, roadmap link and add-provider hand-off resolve; discovery-only rules still forbid live calls and credentials; no change."
     },
     {
       "name": "better-accessibility",
-      "summary": "verified Drawer, Dialog, FactPopover, ActionMenu and both separators plus the base.css reduced-motion switch; corrected the focus-ring description, which said outline: none although base.css draws a 2px transparent outline for forced colors; upstream rules synced in #339."
+      "summary": "re-verified Drawer, Dialog, FactPopover, menus, separators and the base.css ring and reduced-motion switch; corrected the sticky-chrome rule, which named chrome that no longer exists, to say the only sticky chrome is the phone editor's .item-editor__actions and no scroller pads for it yet."
     },
     {
       "name": "better-layout",
-      "summary": "verified CHAT_SHARE 0.3/0.56/0.75, the drawer width formula, the 1000 px and 520 px breakpoints, space tokens, the four named stylesheets and the base.css tabular-nums rule; upstream references synced in #339."
+      "summary": "re-checked the breakpoints, space tokens, named stylesheets and the tabular-nums rule against current CSS; no change from #571 to #592."
     },
     {
       "name": "better-ui",
-      "summary": "verified every named token and value (160 ms transition, 380 ms drawer, radii, shadows, fills), motion.ts helpers, the 0.97 press scale and its opt-outs, icon files and glass fallbacks; PlacePreview's photo hairline uses border-bottom rather than the contract's inner outline (code gap, reported)."
+      "summary": "re-checked tokens, motion helpers, press scale, icon files and the glass recipe after the glass calibration in #592; PlacePreview still draws its photo hairline with border-bottom rather than the contract's inner outline (code gap, reported); PR #586 will touch this skill."
     },
     {
       "name": "better-writing",
-      "summary": "verified all named money, notice and i18n helpers, the dictionary files, cited terms and context-key example; patterns.md strings marked existing were checked against the dictionary in #339."
+      "summary": "re-checked the money, notice and i18n helpers, dictionary files and cited notes; added the assistants (助手) terminology and display-name rule from #561 under one word for one thing, linking GLOSSARY.md."
     },
     {
       "name": "break",
-      "summary": "verified the debug-page production guard in three existing pages, the web launch configuration, mock-server.mjs and the named components; harness stays uncommitted."
+      "summary": "debug-page production guards, web launch configuration, mock-server.mjs and named components still resolve; harness stays uncommitted; no change."
     },
     {
       "name": "e2e-maintenance",
-      "summary": "verified ci-integration fault modes, evidence.tar.gz upload, three-worker CI limit, E2E_SCRIPT_TIMEOUT_MS, --timeout-ms, doctor/list, report outcome fields, anchors and the deterministic-controls commands; fixed the generated-path false positive and added #321 automatic cleanup. Delta for #342: local output is removed only through pnpm clean:output after the PR quotes its evidence, never during an active owned run, and the maintenance record quotes results instead of relying on deleted local paths."
+      "summary": "re-checked ci-integration fault modes, evidence upload, worker limit, timeout flags, doctor/list, report fields and the clean:output rule; the red/green command (#581) is covered by pre-push-checks, not duplicated here; no change."
     },
     {
       "name": "end-to-end-feature-wiring",
-      "summary": "verified the plan-revision, auto-save, leg-route and tab-revision owners and their E2E scenario owners; added the separate server-revision account-sync owner from #334 so the browser-local guarantee is not read as the only revision mechanism."
+      "summary": "plan-revision, auto-save, leg-route, tab-revision and server-revision account-sync owners still match the code and their E2E scenario owners; no change."
     },
     {
       "name": "find-simplifications",
-      "summary": "scope, provider, async and test-retention rules match current docs; the Failure Lab five-profile ownership matches docs/development.md and agent-lab-failures; deepseek upstream recheck found nothing applicable."
+      "summary": "scope, provider, async and test-retention rules match current docs and the Failure Lab ownership in docs/development.md; the deepseek-harness upstream head 687f282e has no applicable change; no change."
     },
     {
       "name": "libraries-dev",
-      "summary": "entrypoint routing, pnpm web-workspace install commands and contract constraints match the repo; thinking-orbs is installed and used by ThinkingOrbIcon; four references synced to a2756655 in #339."
+      "summary": "entrypoint routing, install commands and contract constraints match the repo; synced 06-metal-fx.md to upstream (drops the React Native tab, adds the SwiftUI magnet source), moved the pin to b0e5a8f1 and the notices date to 2026-10-21; the other three updated references were already current."
     },
     {
       "name": "playwright-best-practices",
-      "summary": "verified the library-not-runner premise (playwright 1.56.1, no @playwright/test), local CLI and testing-approach links; upstream pin 283d5cbc is still upstream HEAD."
+      "summary": "library-not-runner premise (no @playwright/test), local CLI links and the upstream pin 283d5cbc are unchanged and still upstream HEAD; no change."
     },
     {
       "name": "pre-push-checks",
-      "summary": "verified every ci.yml step it names, the separate comment-policy workflow, the three CLI acceptance scripts, format:check-changed, verify:e2e-selectors, the web NODE_OPTIONS flag, NEXT_DIST_DIR/NEXT_TSCONFIG_PATH and the PR Evidence section from the #337 template; stage1 row now points at the submission README. Delta for #342: the report section now ends with AGENTS.md delivery step 5, pnpm clean:output and its dry run, linking the development page for the directory list."
+      "summary": "re-verified the ci.yml steps, comment-policy workflow, CLI acceptance scripts and clean:output; fixed the evidence loop, which used filtered pnpm scripts that exit 0 without running, to call the root verify scripts; added the new-route rule from #455 (EXPECTED entry in scripts/verify-api-auth.mjs, protected) and the gh-versus-MCP PR search note."
     },
     {
       "name": "prose-standard",
-      "summary": "scope, protected-history and comment rules match AGENTS.md after #312 and docs/AGENTS.md placement; deepseek upstream unchanged since the pin."
+      "summary": "scope, protected-history and comment rules match AGENTS.md and docs/AGENTS.md placement; deepseek upstream has no applicable change since the pin; no change."
     },
     {
       "name": "review-trip-planner",
-      "summary": "verified every cited path, error class, onDecision hook, account 503 response, 1000-line limit and comment-policy commands; added the #334 server-revision account-sync rule and made the handoff comment check unconditional per the #312 default. The handoff's global code-review-standards-spec dependency is outside the repo (reported)."
+      "summary": "cited paths, error classes, hooks, the 1000-line limit, comment-policy commands and the pr-delivery-status preflight (#550) resolve; the handoff still depends on the global code-review-standards-spec skill outside the repo (reported)."
     },
     {
       "name": "session-log",
-      "summary": "template path, 60-line limit and frozen-log rule match TEMPLATE.md and verify-protected; length check command runs."
+      "summary": "template path, 60-line limit, frozen-log rule and length check command still match TEMPLATE.md and verify-protected; no change."
     },
     {
       "name": "skill-maintenance",
-      "summary": "verified is-due thresholds 8/5/2/1/2, the checkpoint note, check-skills behaviour and the CLI acceptance script; stage1 example now names the retired skill without a link. The checkpoint record now lives under assets/ because verify-docs rejects files beside SKILL.md; is-due, its 61-case acceptance and the workflow text use that path."
+      "summary": "is-due thresholds 8/5/2/1/2, the checkpoint note, check-skills behaviour (path candidates now ignore query strings and origin refs, #590) and the CLI acceptance script match the text; the due check and the drift report were run on 10a6a8f5."
     },
     {
       "name": "translate-docs",
-      "summary": "verified check-pairs modes (--record, --remove), CI order after verify-docs, docs/i18n.md terminology section and root GLOSSARY.md; deepseek upstream unchanged since the pin."
+      "summary": "check-pairs now compares against the base (#425); the pair rule, CI order and docs/i18n.md terminology section match; added the assistant, Coordinator and mention rows to docs/i18n.md and its Chinese pair so the table covers the #561 vocabulary."
     },
     {
       "name": "ui-verification",
-      "summary": "verified the web launch config, eleven named E2E scripts, the runner --prod flag, map-provider settings and the Clerk key gate in lib/auth/config.ts. Delta for #343: #182 is closed as not planned with the Android wrapper removal, so device-only behaviour is reported as not verified; screenshots are attached before pnpm clean:output (#342)."
+      "summary": "web launch config, named E2E scripts, runner --prod flag, map-provider settings and Clerk key gate still resolve; the phone E2E commits since 2026-10-15 only repair or share touch-target checks and change no rule it states; device-only behaviour stays not verified."
     },
     {
       "name": "vercel-react-best-practices",
-      "summary": "project-scope section matches installed Next 15 and React 19 without adding SWR or compiler features; upstream pin 063bee94 is still upstream HEAD."
+      "summary": "project-scope section matches Next 15 and React 19 without SWR or compiler features; upstream pin 063bee94 is still upstream HEAD; no change."
     }
   ],
   "reviewedIssues": []
