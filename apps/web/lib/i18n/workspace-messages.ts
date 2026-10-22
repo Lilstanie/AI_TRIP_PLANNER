@@ -358,6 +358,8 @@ export const WORKSPACE_ZH = {
     "。当前使用实时数据。点击切换到示例数据。",
   ". Currently using mock fixtures. Activate to switch to live provider data.":
     "。当前使用示例数据。点击切换到实时数据。",
+  ". Currently using mock fixtures. Sign in to plan with live hotel and flight prices.":
+    "。当前使用示例数据。登录后即可使用真实的酒店和航班价格规划行程。",
   day: "天",
   days: "天",
   "No matching trips.": "没有匹配的行程。",
