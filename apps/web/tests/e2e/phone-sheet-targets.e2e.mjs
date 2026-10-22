@@ -31,6 +31,18 @@ try {
     page.on("pageerror", (error) => errors.push(String(error)));
     await page.route("**/api/places/**", (route) => route.fulfill({ json: { places: [] } }));
     await openMockWorkspace(page, process.env.BASE_URL ?? "http://localhost:3000");
+    if (!zh) {
+      const chips = await page
+        .locator(".assistant-chip")
+        .evaluateAll((buttons) =>
+          buttons.map((button) => [button.getAttribute("aria-label"), button.offsetHeight]),
+        );
+      check(
+        chips.length === 6 && chips.every(([, height]) => height >= 44),
+        "every Mention chip is 44 px high",
+        chips,
+      );
+    }
     await planSuggestedTrip(page);
     if (zh) {
       await page.locator(".phone-tabbar").getByRole("tab", { name: /^Mine/ }).click();
@@ -62,6 +74,34 @@ try {
         primary,
       );
       if (fact === "where") await page.screenshot({ path: `${out}/${locale}-where.png` });
+      if (fact === "when") {
+        await editor.locator(".rdp-day_button").first().waitFor();
+        const controls = await editor
+          .locator(".rdp-day_button, .rdp-button_previous, .rdp-button_next, .when-fields__clear")
+          .evaluateAll((buttons) =>
+            buttons
+              .filter((button) => button.getClientRects().length > 0)
+              .map((button) => {
+                const rect = button.getBoundingClientRect();
+                return [
+                  [...button.classList].find((name) => /^(rdp|when)-/.test(name)),
+                  button.textContent.trim(),
+                  Math.round(rect.width),
+                  Math.round(rect.height),
+                ];
+              }),
+          );
+        const small = controls.filter(([, , width, height]) => width < 44 || height < 44);
+        check(
+          controls.some(([name]) => name === "rdp-day_button") &&
+            controls.some(([name]) => name === "rdp-button_next") &&
+            controls.some(([name]) => name === "when-fields__clear") &&
+            small.length === 0,
+          `${locale} every When day, month arrow and Clear is 44 x 44`,
+          { measured: controls.length, small: small.slice(0, 6) },
+        );
+        await page.screenshot({ path: `${out}/${locale}-when.png` });
+      }
       await editor.locator(".fact-popover__close").click();
       await editor.waitFor({ state: "hidden" });
     }
