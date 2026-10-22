@@ -267,7 +267,6 @@ export const ChatStopReason = z.enum([
   "no_improvement",
 ]);
 
-/** Mirrors the orchestrator's `WorkflowDecision`: facts the planning graph already decided. */
 export const ChatWorkflowDecision = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("conflicts_detected"),
