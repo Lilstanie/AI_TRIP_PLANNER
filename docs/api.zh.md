@@ -255,7 +255,7 @@ Who 中的五项计数，包括保存行程后重新打开的情况。
 
 `configured` 是部署默认值（只有 `USE_MOCK_TOOLS=false` 时才为 `live`）。
 `liveAvailable` 表示该调用方是否可以消耗服务商额度：已登录的旅行者为 true，未配置 Clerk 时在非部署环境（本地、CI）也为 true。
-为 false 时工作区会禁用实时数据开关。
+为 false 时工作区的数据模式按钮保持示例数据并带 `aria-disabled="true"`，仍可用键盘聚焦，其隐藏文字提示登录后才能使用真实的酒店和航班价格。
 `providers` 报告是否设置了 `SERPAPI_KEY` 和 `MAPS_API_KEY`，绝不返回它们的值。响应不缓存。
 
 <a id="post-apiplacessearch"></a>

@@ -295,7 +295,7 @@ reported, and the trace never carries a model's own reasoning.
 
 `configured` is the deployment default (`live` only when `USE_MOCK_TOOLS=false`). `liveAvailable` is
 whether this caller may spend the provider allowance: true for a signed-in traveller, and off a
-deployment when Clerk is not configured. The workspace hides the live toggle when it is false.
+deployment when Clerk is not configured. When it is false the workspace's data-mode chip stays on mock data with `aria-disabled="true"`, remains keyboard-focusable, and its hidden text says to sign in for live hotel and flight prices.
 `providers` reports whether `SERPAPI_KEY` and `MAPS_API_KEY` are set, never their values. The
 response is not cached.
 
