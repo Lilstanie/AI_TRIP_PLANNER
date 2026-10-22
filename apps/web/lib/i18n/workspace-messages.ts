@@ -538,7 +538,7 @@ export const WORKSPACE_ZH = {
   "Add at least one adult or senior. Children cannot travel alone.":
     "请至少添加一位成人或老年人，儿童和婴儿不能单独出行。",
   "Enter a total budget above zero.": "请输入大于零的总预算。",
-  "Enter a total budget of AUD 1,000,000 or less.": "请输入不超过 AUD 1,000,000 的总预算。",
+  "Enter a total budget of {amount} or less.": "请输入不超过 {amount} 的总预算。",
   "Keep to 20 preferences of up to 300 characters each.":
     "最多添加 20 条偏好，每条不超过 300 个字符。",
   "Location permission was denied. You can retry after allowing it in your browser settings.":

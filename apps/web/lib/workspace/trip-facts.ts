@@ -1,5 +1,6 @@
 import {
   type Currency,
+  fromAud,
   MAX_TRIP_PREFERENCE_LENGTH,
   MAX_TRIP_PREFERENCES,
   type TripBrief,
@@ -67,6 +68,7 @@ export function factErrors(
   draft: Draft,
   current: Pick<TripBrief, "tripId"> & Partial<TripBrief>,
   requireAll: boolean,
+  currency: Currency = "AUD",
 ): Record<string, Notice> {
   if (!requireAll && fact !== "where" && FACT_FIELDS[fact].every((field) => isBlank(draft[field])))
     return {};
@@ -84,7 +86,14 @@ export function factErrors(
     };
 
   if (fact === "budget" && Number(draft.budgetTotal) > MAX_TOTAL_BUDGET)
-    return { budgetTotal: { key: "Enter a total budget of AUD 1,000,000 or less." } };
+    return {
+      budgetTotal: {
+        key: "Enter a total budget of {amount} or less.",
+        params: {
+          amount: `${currency} ${Math.floor(fromAud(MAX_TOTAL_BUDGET, currency)).toLocaleString("en-AU")}`,
+        },
+      },
+    };
 
   const checked =
     fact === "when" && !draft.destination.trim() ? { ...draft, destination: "?" } : draft;
