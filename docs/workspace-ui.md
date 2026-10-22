@@ -249,7 +249,9 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     selected by dragging or using its handle with pointer or keyboard. Changing day filters the map's
     markers and routes to that day's stops, so a place visited on several days appears on each of
     them with its trip-wide number; selecting a stop, in the sheet or on the map, focuses that day's
-    visit. Without a Maps key the sheet and stops still
+    visit. Each row leads with the stop's place name, as the Trip tab does, with its start time below;
+    a stop that is not on the map has no number circle and says "Not found on the map" there instead.
+    Without a Maps key the sheet and stops still
     work, while the map explains its unavailable state. Place details open in a bottom sheet; desktop
     keeps its popup. OSM markers stay beneath the phone details sheet, including after viewport changes.
     The 44 px map controls stay above the stops sheet, and panning does not scroll the page.
