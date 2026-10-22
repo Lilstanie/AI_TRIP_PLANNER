@@ -37,6 +37,14 @@ function requireContent(name, value) {
   if (!value) throw new Error(`PR ${name} section is empty`);
 }
 
+function workflowRunId(check) {
+  try {
+    return new URL(check.link).pathname.match(/\/actions\/runs\/(\d+)(?:\/|$)/)?.[1] ?? "";
+  } catch {
+    return "";
+  }
+}
+
 function main() {
   const [number, ...extra] = process.argv.slice(2);
   if (!number || extra.length || !/^\d+$/.test(number)) {
@@ -73,7 +81,7 @@ function main() {
   requireContent("Evidence", evidence);
   requireContent("Merge Danger", danger);
 
-  const checks = json("gh", ["pr", "checks", number, "--json", "name,state,workflow"]);
+  const checks = json("gh", ["pr", "checks", number, "--json", "name,state,workflow,link"]);
   if (!Array.isArray(checks) || checks.length === 0)
     throw new Error("GitHub returned no PR checks");
 
@@ -82,9 +90,14 @@ function main() {
     (check) =>
       check.workflow === "CI" && /^cli-acceptance-workers(?:\s+\([^)]+\))?$/.test(check.name),
   );
-  const hasSuccessfulCiJob = (name) =>
+  const workerRunIds = new Set(approvedWorkerSkips.map(workflowRunId));
+  const hasSuccessfulCiJob = (name, runId) =>
     checks.some(
-      (check) => check.workflow === "CI" && check.name === name && check.state === "SUCCESS",
+      (check) =>
+        check.workflow === "CI" &&
+        check.name === name &&
+        check.state === "SUCCESS" &&
+        workflowRunId(check) === runId,
     );
   if (approvedWorkerSkips.length !== skipped.length) {
     const states = skipped.map(({ name, state }) => `${name}: ${state}`).join(", ");
@@ -92,10 +105,13 @@ function main() {
   }
   if (
     approvedWorkerSkips.length > 0 &&
-    (!hasSuccessfulCiJob("cli-acceptance-plan") || !hasSuccessfulCiJob("cli-acceptance"))
+    (workerRunIds.size !== 1 ||
+      workerRunIds.has("") ||
+      !hasSuccessfulCiJob("cli-acceptance-plan", [...workerRunIds][0]) ||
+      !hasSuccessfulCiJob("cli-acceptance", [...workerRunIds][0]))
   ) {
     throw new Error(
-      "Skipped CLI workers require successful CI cli-acceptance-plan and cli-acceptance checks",
+      "Skipped CLI workers require successful CI cli-acceptance-plan and cli-acceptance checks from the same CI run",
     );
   }
 

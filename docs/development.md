@@ -430,7 +430,7 @@ Before marking a PR ready for delivery, run the read-only preflight below with `
 It requires a clean checkout on the PR branch at the exact open PR head, a `main` base, and nonempty
 Summary, Evidence and Merge Danger sections. All reported head checks must be `SUCCESS` except a
 `CI / cli-acceptance-workers` skip accompanied by successful `CI / cli-acceptance-plan` and
-`CI / cli-acceptance` checks; the aggregate validates the documentation-only plan. The checker does
+`CI / cli-acceptance` checks from the same Actions run; the aggregate validates the documentation-only plan. The checker does
 not judge Evidence wording, push, merge, close PRs or delete branches. Its fixture self-check is not
 evidence of GitHub CI.
 

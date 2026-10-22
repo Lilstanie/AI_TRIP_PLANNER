@@ -47,9 +47,21 @@ function fixture({
     ...pr,
   };
   const fixturePath = join(root, "github.json");
+  const checksWithLinks = checks.map((check, index) => ({
+    ...check,
+    link:
+      check.link ??
+      `https://github.com/Lilstanie/AI_TRIP_PLANNER/actions/runs/100/job/${index + 1}`,
+  }));
   writeFileSync(
     fixturePath,
-    JSON.stringify({ pr: prData, checks, invalid, fail, calls: join(root, "calls.jsonl") }),
+    JSON.stringify({
+      pr: prData,
+      checks: checksWithLinks,
+      invalid,
+      fail,
+      calls: join(root, "calls.jsonl"),
+    }),
   );
   writeFileSync(
     join(bin, "gh"),
@@ -171,6 +183,33 @@ test("PR delivery status CLI rejects unsafe or incomplete delivery states", asyn
     { ok: false, match: /aggregate|cli-acceptance/i },
   );
   await scenario(
+    "rejects CLI plan, worker skip, and aggregate checks from different runs",
+    {
+      checks: [
+        {
+          name: "cli-acceptance-plan",
+          state: "SUCCESS",
+          workflow: "CI",
+          link: "https://github.com/Lilstanie/AI_TRIP_PLANNER/actions/runs/100/job/1",
+        },
+        {
+          name: "cli-acceptance-workers",
+          state: "SKIPPED",
+          workflow: "CI",
+          link: "https://github.com/Lilstanie/AI_TRIP_PLANNER/actions/runs/100/job/2",
+        },
+        {
+          name: "cli-acceptance",
+          state: "SUCCESS",
+          workflow: "CI",
+          link: "https://github.com/Lilstanie/AI_TRIP_PLANNER/actions/runs/101/job/3",
+        },
+      ],
+    },
+    null,
+    { ok: false, match: /same CI run|run ID|aggregate/i },
+  );
+  await scenario(
     "rejects a CLI worker skip reported by another workflow",
     {
       checks: [
@@ -228,5 +267,5 @@ test("PR delivery status CLI rejects unsafe or incomplete delivery states", asyn
     output,
     `${JSON.stringify({ kind: "simulated-gh-selfcheck", githubEvidence: false, scenarios: results }, null, 2)}\n`,
   );
-  assert.equal(results.length, 19);
+  assert.equal(results.length, 20);
 });

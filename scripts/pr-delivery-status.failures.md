@@ -6,7 +6,7 @@ Before the checker can report a pull request ready, these failures must be obser
 - The local checkout is detached, dirty, on another branch, or its commit differs from the PR's exact head SHA.
 - The pull request is closed, merged, or targets a base other than `main`.
 - GitHub reports no checks, a pending/queued/running/failed check, or an unreadable check result.
-- A skipped check is unexplained. The only permitted skip is `CI / cli-acceptance-workers`, and only when that same CI run has successful `cli-acceptance-plan` and `cli-acceptance` checks; all other skips, missing evidence, or non-CI skips fail closed.
+- A skipped check is unexplained. The only permitted skip is `CI / cli-acceptance-workers`, and only when the same CI run ID has successful `cli-acceptance-plan` and `cli-acceptance` checks; missing run links, cross-run evidence, other skips, or non-CI skips fail closed.
 - The PR body omits or empties Summary, Evidence, or Merge Danger.
 - Valid evidence wording is rejected because it does not match a lexical result phrase or an invented `Limits:` requirement.
 - A fixture-based self-check is mistaken for evidence about GitHub, remote CI, or a real provider.
