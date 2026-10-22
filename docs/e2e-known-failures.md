@@ -7,11 +7,10 @@ registered fixture journeys. A raw script can fail on `main` before anyone notic
 before deciding whether a failing script is your regression; update it when you find a script that fails on
 `main` or fix one. Each entry says when it was last checked and what fails.
 
-| Script                 | Checked on `main` | What fails                                                                                                                                                                                                  | Issue    |
-| ---------------------- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| `liquid-glass`         | 2026-10-09        | At phone width, clicking the Chat tab times out: the Next.js dev overlay (`nextjs-portal`) covers it after a dev-server error. Run with `--prod` to tell a real failure from the overlay.                   | none yet |
-| `thinking-orb`         | 2026-10-09        | "running subagents show orbs (0)" at 1440 light: no `.thinking-row__leading canvas.thinking-orb` appears, then the next wait times out.                                                                     | none yet |
-| `triage-accessibility` | 2026-10-22        | At 1280, `getByText("No matching chats.", { exact: true })` matches both the sr-only search status and the visible `.history-empty` paragraph, so the strict-mode wait throws before the budget checks run. | none yet |
+| Script         | Checked on `main` | What fails                                                                                                                                                                                | Issue    |
+| -------------- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| `liquid-glass` | 2026-10-09        | At phone width, clicking the Chat tab times out: the Next.js dev overlay (`nextjs-portal`) covers it after a dev-server error. Run with `--prod` to tell a real failure from the overlay. | none yet |
+| `thinking-orb` | 2026-10-09        | "running subagents show orbs (0)" at 1440 light: no `.thinking-row__leading canvas.thinking-orb` appears, then the next wait times out.                                                   | none yet |
 
 The following failures also reproduce on unchanged baseline `42fded7` (2026-10-10), using a production
 server with `DATA_MODE=mock`, `USE_MOCK_TOOLS=true`, and blank `MOCK_GOOGLE_MAPS`, model and Clerk variables:
