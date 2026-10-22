@@ -474,6 +474,10 @@ button.settings-chip[aria-pressed="true"] {
   button.settings-switch,
   button.memory-row__main,
   button.memory-row__answer,
+  .settings-inline input,
+  .settings-inline select,
+  .settings-inline button,
+  .memory-row__editor .settings-pill,
   .dialog__head button,
   .dialog:has(.settings) .dialog__head button {
     min-width: 44px;
@@ -484,7 +488,9 @@ button.settings-chip[aria-pressed="true"] {
     top: 8px;
   }
 
-  .dialog:has(.settings) > .dialog__head > button {
+  .dialog:has(.settings) > .dialog__head > button,
+  .segmented.settings-segmented > button,
+  button.settings-chip {
     min-height: 44px !important;
   }
 }
