@@ -287,7 +287,9 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     The prompt follows the interface language while keeping its dates, travellers and budget;
     data-mode tooltips and the action name for an untitled chat follow that language too.
     The browser title follows the active trip and the locale-formatted date range, and returns to
-    `AI Trip Planner` when there is no active trip.
+    `AI Trip Planner` when there is no active trip. Chinese short ranges retain 月 and 日 in date
+    chips, automatic chat titles and trip summaries (for example, `12月3日 – 12月4日`); ranges
+    outside the current year or across years include the year at both ends.
   - Each agent reply renders under its own Think fold: the transcript streams at the foot of the chat
     while the turn runs, then moves above the reply that ended the turn and stays with it (including
     after a reload).
