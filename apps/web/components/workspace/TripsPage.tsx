@@ -369,6 +369,7 @@ function TripCalendar({
                         ? destination
                         : title;
                     const labelled = time === utc(start) || weekday === 0;
+                    const span = (Math.min(utc(end), time + (6 - weekday) * DAY) - time) / DAY + 1;
                     const [from] = coverColours(trip.snapshot.plan.brief.destination);
                     return (
                       <button
@@ -388,7 +389,12 @@ function TripCalendar({
                       >
                         {labelled ? (
                           <span
-                            className={`trip-calendar__visible-label${ordinal ? " trip-calendar__visible-label--compact" : ""}`}
+                            className={`trip-calendar__visible-label${ordinal ? " trip-calendar__visible-label--compact" : " trip-calendar__visible-label--span"}`}
+                            style={
+                              ordinal || span === 1
+                                ? undefined
+                                : { width: `calc(${span * 100}% - var(--space-2))` }
+                            }
                           >
                             {visibleTitle}
                           </span>

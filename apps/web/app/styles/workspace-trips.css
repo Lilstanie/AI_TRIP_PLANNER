@@ -426,6 +426,21 @@
   display: inline-block;
   white-space: nowrap;
 }
+.trip-calendar__trip:has(.trip-calendar__visible-label--span) {
+  position: relative;
+  z-index: 1;
+  overflow: visible;
+}
+.trip-calendar__visible-label--span {
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 100%;
+  box-sizing: border-box;
+  padding-inline: inherit;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .trip-calendar__visible-label--compact {
   padding: 0 1px;
   border-radius: var(--radius-sm);
