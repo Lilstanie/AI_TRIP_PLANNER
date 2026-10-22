@@ -75,16 +75,21 @@ try {
       );
       if (fact === "where") await page.screenshot({ path: `${out}/${locale}-where.png` });
       if (fact === "when") {
-        await editor.locator(".rdp-day_button").first().waitFor();
+        await editor.locator('[role="gridcell"] button').first().waitFor();
         const controls = await editor
-          .locator(".rdp-day_button, .rdp-button_previous, .rdp-button_next, .when-fields__clear")
+          .locator('[role="gridcell"] button, nav button, button.when-fields__clear')
           .evaluateAll((buttons) =>
             buttons
               .filter((button) => button.getClientRects().length > 0)
               .map((button) => {
                 const rect = button.getBoundingClientRect();
+                const kind = button.closest('[role="gridcell"]')
+                  ? "day"
+                  : button.classList.contains("when-fields__clear")
+                    ? "clear"
+                    : "month";
                 return [
-                  [...button.classList].find((name) => /^(rdp|when)-/.test(name)),
+                  kind,
                   button.textContent.trim(),
                   Math.round(rect.width),
                   Math.round(rect.height),
@@ -93,9 +98,7 @@ try {
           );
         const small = controls.filter(([, , width, height]) => width < 44 || height < 44);
         check(
-          controls.some(([name]) => name === "rdp-day_button") &&
-            controls.some(([name]) => name === "rdp-button_next") &&
-            controls.some(([name]) => name === "when-fields__clear") &&
+          ["day", "month", "clear"].every((kind) => controls.some(([name]) => name === kind)) &&
             small.length === 0,
           `${locale} every When day, month arrow and Clear is 44 x 44`,
           { measured: controls.length, small: small.slice(0, 6) },
