@@ -675,7 +675,9 @@ moves. Details, notes, booked and visit progress apply in the browser. The check
   follows an applied edit does not replace the plan, so the undo step stays. The undo step covers the
   scheduled stops the edit re-times; an Idea in the plan stays as it is and does not block Undo. A plan
   that arrives from chat clears the undo step; if a change was still in the plan, the chat says that it replaced the change
-  ("The new plan replaced your last change to the timeline.", with a Dismiss button).
+  ("The new plan replaced your last change to the timeline.", with a Dismiss button). At phone widths
+  (520 px and below), the Undo button is at least 44 × 44 CSS px; `phone-undo-hit-area.e2e.mjs` checks
+  it at 375 × 812 and saves a screenshot and measurements.
 - **Edits and background work.** A leg check or place save that is running when an edit starts is
   cancelled, and it is asked again once the edit has finished, so its answer never replaces the plan the
   edit is checking. An edit in flight is not cancelled when the plan changes from elsewhere: its answer is refused as stale,
