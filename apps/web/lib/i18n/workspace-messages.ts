@@ -350,6 +350,10 @@ export const WORKSPACE_ZH = {
   "Your plan is unchanged. Activities appear once they have a confirmed place.":
     "计划未改变。确认地点后即可显示活动。",
   "Finding places…": "正在查找地点…",
+  "{count} activity has no confirmed place yet": "{count} 个活动尚未确定地点",
+  "{count} activities have no confirmed place yet": "{count} 个活动尚未确定地点",
+  "{count} could not be loaded from the map service": "{count} 项无法从地图服务加载",
+  "Chat {percent}% of the width": "聊天占宽度的 {percent}%",
   "Selected place: {v0}": "已选地点：{v0}",
   "Actions for {v0}": "{v0}的操作",
   "Mock data: bundled fixtures. No provider requests and no allowance spent.":

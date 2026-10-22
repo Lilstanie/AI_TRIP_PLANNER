@@ -95,7 +95,7 @@ export function SplitResizer({
       aria-valuemin={Math.round(CHAT_SHARE.min * 100)}
       aria-valuemax={Math.round(CHAT_SHARE.max * 100)}
       aria-valuenow={now}
-      aria-valuetext={`Chat ${now}% of the width`}
+      aria-valuetext={t("Chat {percent}% of the width", { percent: now })}
       tabIndex={0}
       title={t("Drag to resize · double-click to reset")}
       onPointerDown={onPointerDown}
