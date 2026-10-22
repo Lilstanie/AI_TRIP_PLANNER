@@ -28,6 +28,9 @@ rules file that needs an explicit request.
 
 - `pnpm verify:docs`: "Agent Notes, skills and Markdown links are valid." (exit 0)
 - `pnpm verify:protected`: "Protected-file rules hold relative to origin/main." (exit 0)
+- `node .agents/skills/translate-docs/scripts/check-pairs.mjs`: "Checked 28 documentation pairs against origin/main." (exit 0)
+- The first push failed the protected-files CI job on the pair check. `ui-guidelines.zh.md` and
+  `development.zh.md` lacked the counterparts of the edits; added them and reran the check.
 
 ## Notes for the next person
 
