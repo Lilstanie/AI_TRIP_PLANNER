@@ -110,14 +110,17 @@ export function PhoneMapSheet({ model }: { model: WorkspaceModel }) {
                       if (number !== undefined) setSnap("handle");
                     }}
                   >
-                    <span className="phone-map-sheet__number" aria-hidden="true">
-                      {number ?? ""}
-                    </span>
+                    {number !== undefined && (
+                      <span className="phone-map-sheet__number" aria-hidden="true">
+                        {number}
+                      </span>
+                    )}
                     <span>
-                      {stop.detail}
+                      <span className="phone-map-sheet__title">{stop.location ?? stop.detail}</span>
                       <small>
-                        {stop.startTime}
-                        {stop.location ? ` · ${stop.location}` : ""}
+                        {[stop.startTime, number === undefined && t("Not found on the map")]
+                          .filter(Boolean)
+                          .join(" · ")}
                       </small>
                     </span>
                   </button>
