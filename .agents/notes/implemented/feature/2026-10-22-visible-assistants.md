@@ -1,7 +1,7 @@
 # Agent Note: specialists become visible assistants in the chat
 
 Status: implemented
-Owner: spec #561, tickets #562 and #563
+Owner: spec #561, tickets #562, #563 and #565
 
 ## Problem
 
@@ -31,6 +31,12 @@ out a specialist view in the Trip drawer.
   proposals, runs only the mentioned specialists in parallel with the message as the revision reason, and the
   existing conflict check and targeted revision follow. Without a plan the specialist answers and the
   Coordinator asks for the brief; nothing is created.
+- A mention that names the wrong specialist is handed off once through the Coordinator (ticket #565).
+  `runTripChat` asks `judgeHandoff` before the planning graph runs: with a model, the mentioned specialist
+  answers `own` or the id it thinks owns the request; without a model, or when the answer is unusable, a
+  keyword rule decides, so fixtures repeat exactly. The shared `mention_handoff` decision carries `from`,
+  `to` and who decided it. The planning graph then runs only the receiving specialist, so no specialist
+  ever invokes another and only the receiving specialist's section can change.
 - The Think fold stays as a details view, and its Subagent rows use the assistant icons.
 - This partly supersedes the 2026-10-08 note and decision 9 of #233: specialists are visible in the chat,
   but the Trip drawer is unchanged.

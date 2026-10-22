@@ -48,6 +48,8 @@ import {
 import { COORDINATOR_REASONING_EPISODE, createReasoningSink } from "./reasoning-sink";
 import { extractBriefPatchLocally, statedTripDays } from "./chat-offline";
 import { addDays } from "./dates";
+import { judgeHandoff } from "./mention-handoff";
+import { ROLE_NAMES } from "./progress-copy";
 import { groundedReply, unchangedPlanReply } from "./chat-grounding";
 import { isInfeasible, minimumCost } from "./conflicts";
 import type { WorkflowDecision } from "./decisions";
@@ -589,7 +591,25 @@ export async function runTripChat(
       )
     : undefined;
 
-  const mentions = [...new Set(request.mentions ?? [])];
+  let mentions = [...new Set(request.mentions ?? [])];
+  if (mentions.length === 1 && request.mode !== "plan") {
+    const from = mentions[0]!;
+    const handoff = await judgeHandoff(request.message, from, model);
+    if (handoff) {
+      orchestrationOptions.onProgress?.({
+        type: "decision",
+        round: 1,
+        decision: {
+          type: "mention_handoff",
+          round: 1,
+          from,
+          to: handoff.to,
+          decidedBy: handoff.decidedBy,
+        },
+      });
+      mentions = [handoff.to];
+    }
+  }
   if (mentions.length > 0 && request.mode !== "plan") {
     if (request.plan) {
       const brief = TripBriefSchema.parse({
@@ -651,23 +671,6 @@ export async function runTripChat(
     throw error;
   }
 }
-
-const ROLE_NAMES: Record<InterfaceLanguage, Record<AgentName, string>> = {
-  en: {
-    itinerary: "Day plan",
-    transport: "Getting around",
-    accommodation: "Stay",
-    "destination-guide": "Destination guide",
-    dining: "Food & dining",
-  },
-  zh: {
-    itinerary: "每日行程",
-    transport: "出行交通",
-    accommodation: "住宿",
-    "destination-guide": "目的地指南",
-    dining: "餐饮",
-  },
-};
 
 const ZH_FIELD_LABELS: Record<string, string> = {
   destination: "目的地",
