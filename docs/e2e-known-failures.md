@@ -23,6 +23,12 @@ server with `DATA_MODE=mock`, `USE_MOCK_TOOLS=true`, and blank `MOCK_GOOGLE_MAPS
 
 ## Covered regressions
 
+- `triage-accessibility` on `main` `8e168ba` (2026-10-22) waited on
+  `getByText("No matching chats.", { exact: true })`, which matched both the sr-only chat-search
+  status and the visible `.history-empty` line, so strict mode threw at 1280 before the Who, budget
+  and map checks ran. The wait now scopes the visible line by its class; all checks pass with
+  `DATA_MODE=mock pnpm --filter @trip/web e2e triage-accessibility`.
+
 - `phone-map` on baseline `2e0f506b` (2026-10-19, #367) wrongly queried the renderer-error
   fallback list when the default no-key map had successfully loaded OSM. It failed three repeated-place
   checks at 390px and timed out on desktop before reaching 360px. The journey now waits for the map's

@@ -14,7 +14,8 @@ contract-impact: none
 - `apps/web/tests/e2e/triage-accessibility.e2e.mjs`: the wait after typing a search term targets the
   visible `.history-empty` line instead of any element with the text "No matching chats.", which
   also matched the sr-only search status and threw in strict mode.
-- `docs/e2e-known-failures.md` and its Chinese pair: the entry is removed.
+- `docs/e2e-known-failures.md` and its Chinese pair: the entry moves from the failing list to
+  "Covered regressions", keeping its reproduction.
 
 ## Why
 
