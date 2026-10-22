@@ -44,7 +44,7 @@ try {
       `${width}: both polite search regions are mounted before filtering`,
     );
     await search.fill("zzzqq");
-    await page.getByText("No matching chats.", { exact: true }).waitFor();
+    await page.locator(".history-empty", { hasText: "No matching chats." }).waitFor();
     check(
       (await chatStatus.innerText()) === "No matching chats.",
       `${width}: search emptiness has polite status`,

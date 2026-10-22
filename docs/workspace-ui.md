@@ -317,7 +317,9 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     mentioned specialist's icon and name. Conflict, revision-score and stop messages from the loop show in
     the team conversation as plain rules with a left border and no icon. With no plan yet, the mentioned
     specialist only answers, nothing is created, and the same message asks for the brief. The chips wrap
-    at phone width and are 44 px tall there. A mention that names the wrong specialist (for example Stay
+    at phone width and are 44 px tall there. A message may mention several specialists: each id is sent once,
+    exactly those specialists run together in one round, only their sections change, and one conflict
+    check follows once they have all finished. A mention that names the wrong specialist (for example Stay
     with a restaurant request) is handed off once: the mentioned specialist declines under its own icon and
     names the right specialist, the Coordinator dispatches, and only the receiving specialist answers and
     changes its section. The decline is marked as AI or code decided, and the text is localised.

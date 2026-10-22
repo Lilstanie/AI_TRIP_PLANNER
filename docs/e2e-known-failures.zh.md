@@ -6,11 +6,10 @@
 
 这里列出的原始浏览器脚本不在 CI 中运行；独立的 CLI 验收任务覆盖其注册的 fixture 旅程，因此原始脚本仍可能在 `main` 上失败一段时间才被发现。判断一个失败的脚本是不是你引入的回归之前，先看这份清单；发现某个脚本在 `main` 上失败，或修好了一个，请更新它。每一项都写明最后检查的日期和失败的内容。
 
-| 脚本                   | 在 `main` 上检查 | 失败内容                                                                                                                                                     | Issue |
-| ---------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----- |
-| `liquid-glass`         | 2026-10-09       | 手机宽度下点击 Chat 标签超时：开发服务器出错后，Next.js 的开发浮层（`nextjs-portal`）挡住了它。用 `--prod` 运行可以区分真实失败和浮层问题。                  | 暂无  |
-| `thinking-orb`         | 2026-10-09       | 1440 浅色下 "running subagents show orbs (0)"：没有出现 `.thinking-row__leading canvas.thinking-orb`，随后的等待超时。                                       | 暂无  |
-| `triage-accessibility` | 2026-10-22       | 1280 宽度下，`getByText("No matching chats.", { exact: true })` 同时匹配 sr-only 搜索状态和可见的 `.history-empty` 段落，strict 模式等待在预算检查之前抛错。 | 暂无  |
+| 脚本           | 在 `main` 上检查 | 失败内容                                                                                                                                    | Issue |
+| -------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
+| `liquid-glass` | 2026-10-09       | 手机宽度下点击 Chat 标签超时：开发服务器出错后，Next.js 的开发浮层（`nextjs-portal`）挡住了它。用 `--prod` 运行可以区分真实失败和浮层问题。 | 暂无  |
+| `thinking-orb` | 2026-10-09       | 1440 浅色下 "running subagents show orbs (0)"：没有出现 `.thinking-row__leading canvas.thinking-orb`，随后的等待超时。                      | 暂无  |
 
 以下失败也在未修改的基线 `42fded7` 上复现（2026-10-10）：使用生产服务器，设置 `DATA_MODE=mock`、`USE_MOCK_TOOLS=true`，并清空 `MOCK_GOOGLE_MAPS`、模型和 Clerk 变量：
 
@@ -23,6 +22,11 @@
 <a id="covered-regressions"></a>
 
 ## 已有回归覆盖
+
+- `main` `8e168ba` 上的 `triage-accessibility`（2026-10-22）等待
+  `getByText("No matching chats.", { exact: true })`，它同时匹配 sr-only 的聊天搜索状态和可见的 `.history-empty` 行，
+  因此在 1280 宽度下 strict 模式抛错，Who、预算和地图检查都没有运行。现在的等待按类名限定可见行；
+  `DATA_MODE=mock pnpm --filter @trip/web e2e triage-accessibility` 的所有检查均通过。
 
 - 基线 `2e0f506b` 上的 `phone-map`（2026-10-19，#367）在默认无 key 地图已成功加载 OSM 时，
   仍查找仅在渲染器出错时显示的地点列表，导致 390px 的三个重复地点检查失败，并在桌面步骤超时，未运行到 360px。
