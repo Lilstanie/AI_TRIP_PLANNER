@@ -70,6 +70,23 @@ pnpm --filter @trip/web start -p 3000
 该响应中的 `maps: true` 反映配置：已设置 Google 密钥，或网页地图服务商允许免费后备方案。
 它不检查连通性，也不证明 `MAPS_API_KEY` 有效。
 
+<a id="assistants-walkthrough"></a>
+
+## 助手演示流程
+
+第二阶段的助手演示在示例模式下无需任何密钥即可运行，支持中英文，桌面和手机均可。
+在聊天框里逐条输入；`@` 加助手名称，或点击消息框上方的芯片，即可提及该助手。
+
+1. 规划悉尼出发去东京，2027-02-01 至 2027-02-04，2 位成人，预算 AUD 6000。协调员和五位 specialist 带着各自图标出现。
+2. `@Stay find a cheaper stay`。只有住宿 specialist 工作，只有它的部分会变。
+3. 把预算降到方案超支，再重复第 2 步。冲突、修订得分和停止消息以朴素的规则行显示。
+4. `@Stay @Getting around find cheaper options`。恰好这两位 specialist 在同一轮工作。
+5. `@Stay recommend a restaurant`。Stay 婉拒并指出 Food & dining，协调员分发，Food & dining 作答。
+6. Settings → Personalization → Assistant names：给 Stay 改名，再用新名称提及它。
+7. 清除浏览器数据后发送 `@Stay when are hotels cheapest?`。specialist 作答，不创建方案，协调员继续询问行程信息。
+
+`CHANNEL=chromium DATA_MODE=mock USE_MOCK_TOOLS=true pnpm --filter @trip/web e2e assistants-demo` 会在 1440 px 和 390 px、两种语言下重复全部七步，每一步保存截图，并把 `output/playwright/assistants-demo/result.json` 作为演示记录。
+
 <a id="if-something-fails-on-the-day"></a>
 
 ## 当天出问题怎么办
