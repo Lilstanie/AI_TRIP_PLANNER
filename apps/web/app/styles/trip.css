@@ -683,3 +683,8 @@ button.action-menu__trigger[aria-expanded="true"] {
   flex: none;
   white-space: nowrap;
 }
+@media (max-width: 520px) {
+  .item-undo button {
+    min-height: 44px !important;
+  }
+}
