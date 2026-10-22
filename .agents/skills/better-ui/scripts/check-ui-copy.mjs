@@ -11,12 +11,22 @@ const option = (name, fallback) => {
   return index === -1 ? fallback : args[index + 1];
 };
 const base = option("--base", "origin/main");
-const allowlistPath = resolve(option("--allowlist", resolve(here, "../references/ui-copy-allowlist.txt")));
+const allowlistPath = resolve(
+  option("--allowlist", resolve(here, "../references/ui-copy-allowlist.txt")),
+);
 const diff = args.includes("--stdin")
   ? readFileSync(0, "utf8")
   : execFileSync(
       "git",
-      ["diff", "--unified=0", "--no-color", `${base}...HEAD`, "--", "apps/web/components", "apps/web/app"],
+      [
+        "diff",
+        "--unified=0",
+        "--no-color",
+        `${base}...HEAD`,
+        "--",
+        "apps/web/components",
+        "apps/web/app",
+      ],
       { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 },
     );
 
@@ -30,7 +40,8 @@ const allowed = new Set(
 );
 
 const classAttribute = /className="([^"]*)"/g;
-const helperToken = /(^|[-_])(hint|helper|description|subtitle|caption|microcopy|tagline|eyebrow|lede)($|[-_])/;
+const helperToken =
+  /(^|[-_])(hint|helper|description|subtitle|caption|microcopy|tagline|eyebrow|lede)($|[-_])/;
 
 const helperClasses = (text) => {
   const found = [];
