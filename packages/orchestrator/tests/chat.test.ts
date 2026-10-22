@@ -26,6 +26,17 @@ describe("the reply language", () => {
     );
   });
 
+  it("says a bare budget number is taken as AUD instead of calling the currency open", async () => {
+    for (const interfaceLanguage of [undefined, "zh"] as const) {
+      const prompt = await shown({ tripId: "blank", message: "budget 2000", interfaceLanguage });
+      expect(prompt).toContain("leave budgetCurrency out when they gave a bare number");
+      expect(prompt).toContain(
+        "say in your reply that you took it as AUD and that they can name another currency",
+      );
+      expect(prompt).toContain("never say the currency is unset, open or left as they gave it");
+    }
+  });
+
   it("adds no fallback for a client that does not send the field", async () => {
     const prompt = await shown({ tripId: "blank", message: "Tokyo" });
     expect(prompt).toContain("reply in that exact same language");
