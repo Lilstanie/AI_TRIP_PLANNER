@@ -2,7 +2,7 @@
 date: 2026-10-22
 author: Claude Code
 branch: docs/skill-review-2026-10-22
-pr: pending
+pr: 590
 area: docs
 contract-impact: none
 ---
