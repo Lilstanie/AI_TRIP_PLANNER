@@ -131,8 +131,13 @@ export function TripMapCanvas({
               ? t("Finding places…")
               : [
                   unconfirmed > 0 &&
-                    `${unconfirmed} ${unconfirmed === 1 ? "activity has" : "activities have"} no confirmed place yet`,
-                  unavailable > 0 && `${unavailable} could not be loaded from the map service`,
+                    (unconfirmed === 1
+                      ? t("{count} activity has no confirmed place yet", { count: unconfirmed })
+                      : t("{count} activities have no confirmed place yet", {
+                          count: unconfirmed,
+                        })),
+                  unavailable > 0 &&
+                    t("{count} could not be loaded from the map service", { count: unavailable }),
                 ]
                   .filter(Boolean)
                   .join(" · ")}

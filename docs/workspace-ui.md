@@ -184,8 +184,9 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
 - **Chat and map split.** On desktop the chat is on the left at 56 % of the area by default, a
   little wider than the map. A separator between them (`role="separator"`, "Resize chat and map")
   moves it between 30 % and 75 %: drag it, or focus it and use Left/Right (2 % steps), Home and End;
-  double-click restores the default. Dragging writes `--chat-share` straight onto the shell, and the
-  layout stores `chatShare` only once it has moved.
+  double-click restores the default. Its `aria-valuetext` ("Chat 56% of the width") is in the
+  interface language. Dragging writes `--chat-share` straight onto the shell, and the layout stores
+  `chatShare` only once it has moved.
 - **Drawers.**
   - Your Trip and the narrow-screen navigation are overlay drawers below the top bar.
     They never cover the logo or top-bar buttons, and the chat and map keep their width.
@@ -497,7 +498,9 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   - Activities without a usable name or a Google match are “no confirmed place yet”; the timeline
     shows “Location to be confirmed”.
   - Rate limits, timeouts and outages are retryable, and Retry places repeats only those lookups.
-  - The map shows a compact status; located markers stay visible and there is no blocking error.
+  - The map shows a compact status in the interface language (`role="status"`, for example "3
+    activities have no confirmed place yet"); located markers stay visible and there is no blocking
+    error.
 - **Framing** (`lib/map/map-view.ts`):
   - The map frames the destination first: zoom 12 for one city, or bounds capped at zoom 12 for
     several, widened as cities resolve.
