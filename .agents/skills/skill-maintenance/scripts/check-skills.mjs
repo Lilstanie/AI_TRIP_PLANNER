@@ -41,10 +41,11 @@ function resolvePath(token, skillDir) {
 }
 
 function pathCandidate(raw) {
-  if (/\s|^https?:|[<>{}$|[\]]|YYYY|\bfoo\b|\.\.\.|^-/.test(raw)) return null;
+  if (/\s|^https?:|[<>{}$|[\]?&=^]|YYYY|\bfoo\b|\.\.\.|^-/.test(raw)) return null;
   const token = raw.split("*")[0].replace(/^\.\//, "");
   if (!token || token === "/") return null;
   if (token.startsWith("/")) return null;
+  if (/^(origin|upstream)\//.test(token)) return null;
   if (raw.includes("*") && !token.includes("/")) return null;
   if (/^[\w.-]+\/$/.test(token)) return null;
   const hasSlash = token.includes("/");
