@@ -40,6 +40,11 @@ export const WORKSPACE_ZH = {
   Meals: "餐饮",
   Activities: "活动",
   Estimated: "估算",
+  "Not costed": "未计价",
+  "Not included: transport without a price.": "未计入：尚未定价的交通费用。",
+  "At budget · unpriced costs not counted": "已达预算 · 未定价费用未计入",
+  "Known estimate within budget · unpriced costs not counted":
+    "已知估算在预算内 · 未定价费用未计入",
   "{count} unpriced": "{count} 项未定价",
   "The estimate is over the budget. Ask in the chat to cut part of the plan.":
     "估算超出预算。请在聊天中让我削减部分行程。",
