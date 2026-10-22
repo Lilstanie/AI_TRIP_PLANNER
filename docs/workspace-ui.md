@@ -127,7 +127,7 @@ now. Implementation history and browser acceptance for each phase are in the
     current month. `DateRangePicker` (a calendar in its own dialog, used nowhere else at the moment)
     shares the same styled calendar component (`TripCalendar`) so the two never drift apart.
   - Who is a stepper (− count +) per traveller kind: Adults (13–64), Children (2–12), Infants (under
-    2), Seniors (65+) and Pets, each with its own remove/add buttons and a live count. The draft keeps
+    2), Seniors (65+) and Pets, each with its own remove/add buttons and a live count (a `role="status"` region, so a screen reader announces "Adults: 2" after + or −). The draft keeps
     this breakdown (`Draft.party`) and keeps `groupSize` in sync as `adults + children + infants +
 seniors` (pets are never counted as travellers) on every change; `groupSize` stays the validated
     field, so at least one person is required; a breakdown with children or infants but no adult or senior is rejected inline (children cannot travel alone) and the sheet stays open. Opening Who on a draft with no breakdown yet (saved

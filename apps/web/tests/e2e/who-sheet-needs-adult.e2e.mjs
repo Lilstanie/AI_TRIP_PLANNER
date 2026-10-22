@@ -40,6 +40,26 @@ try {
   await page.getByRole("button", { name: "Who", exact: true }).click();
   await sheet().waitFor();
 
+  const adults = sheet().locator(".fact-stepper__value").first();
+  const announced = async () => ({
+    role: await adults.getAttribute("role"),
+    name: await adults.getAttribute("aria-label"),
+    text: (await adults.textContent()).trim(),
+    visible: (await adults.evaluate((node) => node.lastChild.textContent)).trim(),
+  });
+  const adultsBefore = await announced();
+  await stepper("Add an adult").click();
+  const adultsAfter = await announced();
+  check(
+    adultsAfter.role === "status" &&
+      adultsAfter.text === adultsAfter.name &&
+      adultsAfter.text === `Adults: ${Number(adultsBefore.visible) + 1}` &&
+      adultsAfter.visible === String(Number(adultsBefore.visible) + 1),
+    `adult stepper: the count is a status region that reads "${adultsAfter.text}" and shows ${adultsAfter.visible}`,
+  );
+  await sheet().screenshot({ path: `${OUT}/adult-count.png` });
+  await stepper("Remove an adult").click();
+
   await stepper("Add a child").click();
   await save().click();
   await page.waitForTimeout(400);
