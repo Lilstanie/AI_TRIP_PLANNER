@@ -136,3 +136,4 @@ Do not:
 3. Turn the interface into a full-screen beige or retro skin.
 4. Use neon, texture images, noise filters, decorative photography, or illustrations, stack glass on glass, or show photos other than provider place photos as described above.
 5. Stack cards inside cards when surface, spacing, and a hairline communicate the grouping.
+6. Add secondary labels, descriptions, or helper copy that repeat what the layout already shows. Keep form labels and accessible names even when they are visually redundant.

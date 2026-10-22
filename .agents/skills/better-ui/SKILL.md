@@ -82,6 +82,15 @@ and `apps/web/components/map/PlacePreview.tsx`; route provider changes through
 [add-provider](../add-provider/SKILL.md) and record the provider with browser evidence through
 [ui-verification](../ui-verification/SKILL.md).
 
+## Copy and labels
+
+- **Let the layout explain.** Do not add a secondary label, description, slogan or helper line that
+  repeats what the layout already shows. Generated screens add these by default; remove them rather
+  than styling them.
+- **Keep what assistive technology needs.** A form label or control's accessible name stays even when
+  it is visually redundant, such as a visible "搜索" button beside a search field. Hide copy from
+  the screen only with a method that keeps the accessible name.
+
 ## Icons
 
 - The workspace icons live in `components/ui/icons.tsx` and `flow-icons.tsx`. Draw new icons in the

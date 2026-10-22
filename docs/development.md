@@ -226,6 +226,12 @@ within those rules. The current E2E runner remains the execution entry point. In
 does not add npm dependencies or configure `@playwright/test`. Source revisions, local adaptations and
 update rules are recorded in the [integration decision](../.agents/notes/implemented/process/2026-10-11-framework-reference-skills.md).
 
+### Fix root causes
+
+When a bug is fixed, reproduce it, name its cause with evidence, and fix that cause. Do not hide the
+symptom with a retry, a longer timeout, an extra guard or a special case. If a workaround is the only
+option for now, say so in the pull request and the session log, with the cause it leaves in place.
+
 Use `review-trip-planner` for repository-specific risks. The global `code-review-standards-spec` skill coordinates Standards and Spec review. OCR plugin skills keep their own `open-code-review` and `open-code-review-delegate` names.
 
 [review-trip-planner](../.agents/skills/review-trip-planner/SKILL.md) owns the review handoff packet
