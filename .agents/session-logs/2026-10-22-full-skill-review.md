@@ -2,7 +2,7 @@
 date: 2026-10-22
 author: Claude Code
 branch: docs/skill-full-review-2026-10-22
-pr: none
+pr: 595
 area: .agents/skills
 contract-impact: none
 ---
