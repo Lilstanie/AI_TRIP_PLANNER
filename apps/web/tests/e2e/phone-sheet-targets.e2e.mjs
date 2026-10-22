@@ -91,6 +91,39 @@ try {
       `${locale} each Answer name starts with its visible text`,
     );
     await page.screenshot({ path: `${out}/${locale}-personalization.png` });
+    const editButtons = dialog.locator(".memory-row__main");
+    const editTargets = [];
+    for (let index = 0; index < (await editButtons.count()); index += 1) {
+      const button = editButtons.nth(index);
+      await button.scrollIntoViewIfNeeded();
+      editTargets.push(
+        await button.evaluate((element) => {
+          const button = element;
+          const rect = button.getBoundingClientRect();
+          const lowerEdge = document.elementFromPoint(rect.left + rect.width / 2, rect.bottom - 1);
+          return {
+            label: button.getAttribute("aria-label"),
+            text: button.textContent.trim(),
+            width: Math.round(rect.width),
+            height: Math.round(rect.height),
+            lowerEdgeHitsButton: lowerEdge?.closest("button.memory-row__main") === button,
+          };
+        }),
+      );
+    }
+    check(
+      editTargets.length > 0 &&
+        editTargets.every(
+          ({ width, height, lowerEdgeHitsButton }) =>
+            width >= 44 && height >= 44 && lowerEdgeHitsButton,
+        ),
+      `${locale} every Personalization edit row has a 44 px target with a live lower edge`,
+      editTargets,
+    );
+    check(
+      (await page.evaluate(() => document.documentElement.scrollWidth)) === 390,
+      `${locale} phone page has no horizontal overflow`,
+    );
     check(errors.length === 0, `${locale} no page errors`, errors);
     await context.close();
   }
