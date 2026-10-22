@@ -58,7 +58,7 @@ assistant icons would clutter it.
 
 - The team conversation shows only what a stream carried; a step without reasoning reads as decided by
   code, which is also what fixture mode shows.
-- Later tickets of #561 add mentions, hand-offs and renaming on top of the same ids.
+- Mentions, hand-offs and renaming sit on top of the same ids, and the demo runbook walks through all of them (ticket #567).
 
 ## Sources
 
