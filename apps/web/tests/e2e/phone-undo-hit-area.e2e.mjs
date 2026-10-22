@@ -30,17 +30,33 @@ try {
 
   const undo = page.locator(".item-undo button").first();
   await undo.waitFor();
+  await undo.scrollIntoViewIfNeeded();
   const box = await undo.boundingBox();
   assert.ok(box, "the Undo button has a box");
-  results.push({ undoWidth: Math.round(box.width), undoHeight: Math.round(box.height) });
-  assert.ok(touchSized(box.height), `Undo is at least 44 px high (was ${box.height})`);
-
+  const rect = await undo.evaluate((element) => {
+    const { x, y, right, bottom } = element.getBoundingClientRect();
+    return { x, y, right, bottom };
+  });
+  const fullyVisible = rect.x >= 0 && rect.y >= 0 && rect.right <= 375 && rect.bottom <= 812;
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth);
-  assert.equal(overflow, 375, "the phone layout has no horizontal scroll");
+  results.push({
+    viewport: { width: 375, height: 812 },
+    undoWidth: Math.round(box.width),
+    undoHeight: Math.round(box.height),
+    undoViewportBounds: rect,
+    undoFullyVisible: fullyVisible,
+    documentWidth: overflow,
+    pageErrors: errors,
+  });
   await page.screenshot({ path: `${out}/undo.png` });
-  assert.deepEqual(errors, [], "no page errors");
   writeFileSync(`${out}/results.json`, `${JSON.stringify(results, null, 2)}\n`);
-  console.log("ok   Undo button is at least 44 px high on a 375 px phone", results[0]);
+
+  assert.ok(touchSized(box.width), `Undo is at least 44 px wide (was ${box.width})`);
+  assert.ok(touchSized(box.height), `Undo is at least 44 px high (was ${box.height})`);
+  assert.equal(fullyVisible, true, "the complete Undo button is visible in the phone viewport");
+  assert.equal(overflow, 375, "the phone layout has no horizontal scroll");
+  assert.deepEqual(errors, [], "no page errors");
+  console.log("ok   Undo button is at least 44 × 44 px on a 375 px phone", results[0]);
 } finally {
   await browser.close();
 }
