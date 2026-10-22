@@ -2,7 +2,8 @@
 import { useMemo } from "react";
 import { formatMoney, type AgentProgressEvent } from "@trip/shared";
 import { useLocale } from "@/components/account/LocaleProvider";
-import { AssistantIcon, ASSISTANT_ROLE_KEYS } from "./assistants";
+import { AssistantIcon } from "./assistants";
+import { useAssistantName } from "./assistant-names";
 import { sourceLabels, teamMessages, type CheckMessage } from "./team-model";
 
 const STOP_KEYS = {
@@ -12,7 +13,11 @@ const STOP_KEYS = {
   no_improvement: "Stopped after round {round}: no improvement",
 } as const;
 
-function checkText(t: ReturnType<typeof useLocale>["t"], check: CheckMessage): string {
+function checkText(
+  t: ReturnType<typeof useLocale>["t"],
+  displayName: ReturnType<typeof useAssistantName>,
+  check: CheckMessage,
+): string {
   const { decision } = check;
   const round = decision.round;
   if (decision.type === "loop_stopped") return t(STOP_KEYS[decision.reason], { round });
@@ -30,7 +35,7 @@ function checkText(t: ReturnType<typeof useLocale>["t"], check: CheckMessage): s
     return t("Conflict check, round {round}: no conflicts", { round });
   return decision.conflicts
     .map((conflict) => {
-      const name = t(ASSISTANT_ROLE_KEYS[conflict.agent]);
+      const name = displayName(conflict.agent);
       return conflict.targetSaving === undefined
         ? t("Conflict check, round {round}: {name} must change", { round, name })
         : t("Conflict check, round {round}: {name} should save {amount}", {
@@ -44,6 +49,7 @@ function checkText(t: ReturnType<typeof useLocale>["t"], check: CheckMessage): s
 
 export function TeamConversation({ activity }: { activity: readonly AgentProgressEvent[] }) {
   const { t } = useLocale();
+  const name = useAssistantName();
   const messages = useMemo(() => teamMessages(activity), [activity]);
   if (messages.length === 0) return null;
   return (
@@ -51,7 +57,7 @@ export function TeamConversation({ activity }: { activity: readonly AgentProgres
       {messages.map((message) =>
         message.kind === "check" ? (
           <li key={message.id} className="team-message team-message--check">
-            <span className="team-message__text">{checkText(t, message)}</span>
+            <span className="team-message__text">{checkText(t, name, message)}</span>
           </li>
         ) : (
           <li
@@ -62,9 +68,7 @@ export function TeamConversation({ activity }: { activity: readonly AgentProgres
             <AssistantIcon id={message.assistant} />
             <div className="team-message__main">
               <div className="team-message__head">
-                <strong className="team-message__name">
-                  {t(ASSISTANT_ROLE_KEYS[message.assistant])}
-                </strong>
+                <strong className="team-message__name">{name(message.assistant)}</strong>
                 <span className={`team-message__marker team-message__marker--${message.decidedBy}`}>
                   {t(message.decidedBy === "llm" ? "Decided by AI" : "Decided by code")}
                 </span>
@@ -75,7 +79,7 @@ export function TeamConversation({ activity }: { activity: readonly AgentProgres
               <p className="team-message__text">
                 {message.handoffTo
                   ? t("That is not my area. The {name} specialist should handle this.", {
-                      name: t(ASSISTANT_ROLE_KEYS[message.handoffTo]),
+                      name: name(message.handoffTo),
                     })
                   : message.text}
               </p>
@@ -83,7 +87,7 @@ export function TeamConversation({ activity }: { activity: readonly AgentProgres
                 <ul className="team-message__objectives">
                   {message.objectives.map((objective) => (
                     <li key={objective.agent}>
-                      <strong>{t(ASSISTANT_ROLE_KEYS[objective.agent])}</strong> {objective.text}
+                      <strong>{name(objective.agent)}</strong> {objective.text}
                     </li>
                   ))}
                 </ul>

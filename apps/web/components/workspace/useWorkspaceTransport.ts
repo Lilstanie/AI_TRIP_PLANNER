@@ -180,7 +180,7 @@ export function useWorkspaceTransport({
       },
     });
 
-    const mentions = resolveMentions(message);
+    const mentions = resolveMentions(message, assistant?.names);
     void run({
       kind: "chat",
       request: {

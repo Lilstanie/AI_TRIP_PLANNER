@@ -115,9 +115,10 @@ add up to it.
 The mock browser check `party-breakdown-browser` submits the stated breakdown through chat and
 checks all five Who counters at desktop and phone widths, including reopening the saved trip.
 
-Optional `assistant`: `{ style, memory }` from Settings → Personalization (`AssistantSettings` in
+Optional `assistant`: `{ style, memory, names }` from Settings → Personalization (`AssistantSettings` in
 `packages/shared/src/chat.ts`).
 
+- `names` is an optional map from assistant id to a custom display name of at most 24 characters. It only changes what the interface shows and which `@name` resolves to a specialist; mentions are always sent as ids.
 - `style` is one of `neutral`, `friendly`, `concise` or `detailed` and sets the coordinator's tone.
 - With `memory: false`, the server drops `learnedPreferences` from `brief` and `known`, and the
   coordinator records none.

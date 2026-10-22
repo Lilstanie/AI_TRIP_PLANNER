@@ -341,6 +341,10 @@ Data mode 默认是 Fixture data。只有部署启用后才能选择 Live data�
     该分区说明如何登录或数据保存在浏览器中，下方仍有 Theme。
   - **Personalization：**
     - **Communication style：** Neutral、Friendly、Concise 或 Detailed。
+    - **助手名称：** 协调员和五位 specialist 各有一个可编辑的名称，随账户保存为 `assistant.names`。留空则恢复为当前界面语言的角色名称。
+      名称会去掉首尾空白，最长 24 个字符；如果另一位助手已经在用（无论是自定义名称还是默认的英文、中文角色名称），
+      该名称会被拒绝并给出提示，因此提及永远不会有歧义。芯片、回复气泡（包括更早的回复）和 Subagent 行无需刷新就显示当前名称。
+      用自定义名称、默认英文名称或默认中文名称输入 `@`，发送的都是同一个 specialist id。
     - 在规划器真正支持记住偏好之前，隐藏尚未实现的 **Long-term memory** 开关及其提示。保留已存储的
       `assistant.memory` 设置，以兼容现有浏览器和账户数据。
     - **规划器了解的信息**，按 Mindtrip 的方式分组：

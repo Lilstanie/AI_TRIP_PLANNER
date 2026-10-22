@@ -24,6 +24,10 @@ _Avoid_: tag, address, ping
 The Coordinator passing a mention that names the wrong specialist to the specialist that owns the request. The mentioned specialist declines and names the right one, the Coordinator dispatches, and it happens at most once per turn. Specialists never hand off to each other directly.
 _Avoid_: delegate, forward, redirect
 
+**Specialist name**:
+The display name an account gives to an assistant in the assistant settings. It replaces the role name everywhere the assistant appears, is unique among assistants and never replaces the id; a blank name restores the role name.
+_Avoid_: nickname, alias, persona
+
 **Plan**:
 The assembled result of a brief: one costed section per specialist.
 _Avoid_: itinerary (that is one section), trip (the saved plan in the workspace)

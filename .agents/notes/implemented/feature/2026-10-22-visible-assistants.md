@@ -1,7 +1,7 @@
 # Agent Note: specialists become visible assistants in the chat
 
 Status: implemented
-Owner: spec #561, tickets #562, #563 and #565
+Owner: spec #561, tickets #562, #563, #565 and #566
 
 ## Problem
 
@@ -37,6 +37,11 @@ out a specialist view in the Trip drawer.
   keyword rule decides, so fixtures repeat exactly. The shared `mention_handoff` decision carries `from`,
   `to` and who decided it. The planning graph then runs only the receiving specialist, so no specialist
   ever invokes another and only the receiving specialist's section can change.
+- Each assistant can be renamed in the assistant settings (ticket #566). `AssistantSettings.names` is an
+  optional id-to-name map stored with the account. The interface shows the custom name, or the role name
+  in the interface language when none is set. Names are trimmed, at most 24 characters, and unique across
+  custom names and default English and Chinese role names. `@` resolves by custom, default English or
+  default Chinese name, and a mention is still sent as an id.
 - The Think fold stays as a details view, and its Subagent rows use the assistant icons.
 - This partly supersedes the 2026-10-08 note and decision 9 of #233: specialists are visible in the chat,
   but the Trip drawer is unchanged.
