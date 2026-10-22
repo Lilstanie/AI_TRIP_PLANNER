@@ -5,6 +5,7 @@ import { quickPrompts } from "@/lib/planning/quick-prompts";
 import { translate } from "@/lib/i18n/locale";
 import type { Message } from "@/lib/workspace";
 import { ThinkingProcess } from "./ThinkingProcess";
+import { TeamConversation } from "./TeamConversation";
 import { Composer } from "./Composer";
 import { MessageItem } from "./MessageItem";
 import { QuestionComposer } from "./QuestionComposer";
@@ -125,12 +126,15 @@ export function ChatPanel({
           ))}
         </div>
         {(activity.length > 0 || busy) && (
-          <section
-            className={`agent-activity${error && !busy ? " agent-activity--error" : ""}`}
-            aria-label={t("Thinking process")}
-          >
-            <ThinkingProcess activity={activity} busy={busy} error={error} />
-          </section>
+          <>
+            <TeamConversation activity={activity} />
+            <section
+              className={`agent-activity${error && !busy ? " agent-activity--error" : ""}`}
+              aria-label={t("Thinking process")}
+            >
+              <ThinkingProcess activity={activity} busy={busy} error={error} />
+            </section>
+          </>
         )}
       </div>
       {ask && onAnswer && onDismissAsk ? (

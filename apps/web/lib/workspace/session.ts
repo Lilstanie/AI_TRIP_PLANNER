@@ -1,5 +1,6 @@
 import type {
   AgentProgressEvent,
+  AssistantId,
   AskUserQuestionItem,
   ChatRequest,
   FlightAnswer,
@@ -56,7 +57,14 @@ export type SessionState = {
 };
 
 export type TurnOutcome =
-  | { kind: "planned"; plan: TripPlan; reply: string; transcript: AgentProgressEvent[]; at: number }
+  | {
+      kind: "planned";
+      plan: TripPlan;
+      reply: string;
+      assistant?: AssistantId;
+      transcript: AgentProgressEvent[];
+      at: number;
+    }
   | {
       kind: "needsInfo";
       question: string;
@@ -97,11 +105,13 @@ export type SessionEvent =
   | { kind: "timelineChanged"; changed: boolean }
   | { kind: "replacedDismissed" };
 
+export const PREPARING_SUMMARY = "Preparing your request.";
+
 export const PREPARING: AgentProgressEvent = {
   type: "coordinator",
   phase: "dispatch",
   round: 1,
-  summary: "Preparing your request.",
+  summary: PREPARING_SUMMARY,
 };
 
 export const REJECTED_BRIEF: Notice = { key: "Check the highlighted trip details." };
@@ -221,7 +231,13 @@ export function session(state: SessionState, event: SessionEvent): SessionState 
       return { ...state, replacedChange: undefined };
     case "planned":
       return {
-        ...replied(state, reply(event.reply, event.transcript, event.at, { outcome: "planned" })),
+        ...replied(
+          state,
+          reply(event.reply, event.transcript, event.at, {
+            outcome: "planned",
+            ...(event.assistant ? { assistant: event.assistant } : {}),
+          }),
+        ),
         previousTotal: state.plan?.estTotal,
 
         estimateChange: state.plan ? event.plan.estTotal - state.plan.estTotal : undefined,
@@ -293,7 +309,14 @@ export async function requestTurn(
       transcript.push(event);
       onProgress?.(event);
     });
-    return { kind: "planned", plan: result.plan, reply: result.reply, transcript, at: now() };
+    return {
+      kind: "planned",
+      plan: result.plan,
+      reply: result.reply,
+      ...(result.assistant ? { assistant: result.assistant } : {}),
+      transcript,
+      at: now(),
+    };
   } catch (failure) {
     if (signal.aborted) return { kind: "cancelled" };
     if (failure instanceof FlightAnswerError)

@@ -293,6 +293,17 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
   - Each agent reply renders under its own Think fold: the transcript streams at the foot of the chat
     while the turn runs, then moves above the reply that ended the turn and stays with it (including
     after a reload).
+  - A planning turn also reads as a team conversation above its Think fold. The Coordinator dispatches
+    the work, from the `coordinator` dispatch event and each specialist's `agent_started` objective,
+    and each specialist then reports its result, from `agent_completed` with its data source (live,
+    estimated, mock, fallback or unavailable) and nothing else invented. Every message shows the
+    assistant's fixed icon (Coordinator, Day plan, Getting around, Stay, Destination guide, Food &
+    dining) and its role name in the interface language. A marker says whether an LLM or code decided
+    the step: a step counts as decided by AI when the stream carried reasoning for that assistant in
+    that round. The client's own "Preparing your request." placeholder is not a message. A
+    reply attributed to an assistant other than the Coordinator, or a stored message without an
+    assistant id, which reads as the Coordinator, keeps its existing text. The Subagent rows in the
+    Think fold use the same icons. The Trip drawer shows no assistant icons.
   - Planning progress is a deep-dive transcript, not a status list: `Think` (the turn) nests
     `Subagent · <name>` rows per round, which in turn nest that specialist's reasoning and tool
     rows, each with a DSH-style disclosure — a leading icon that crossfades to a chevron on hover or

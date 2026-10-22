@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   AGENT_NAMES,
+  AgentProposalSourceKind,
   BookedStay,
   FlightLeg,
   isTripDate,
@@ -152,9 +153,14 @@ export const ChatRequest = z
   });
 export type ChatRequest = z.infer<typeof ChatRequest>;
 
+export const ASSISTANT_IDS = ["coordinator", ...AGENT_NAMES] as const;
+export const AssistantId = z.enum(ASSISTANT_IDS);
+export type AssistantId = z.infer<typeof AssistantId>;
+
 export const ChatResponse = z.object({
   reply: z.string(),
   plan: TripPlan,
+  assistant: AssistantId.optional(),
 });
 export type ChatResponse = z.infer<typeof ChatResponse>;
 
@@ -329,6 +335,7 @@ export const AgentProgressEvent = z.discriminatedUnion("type", [
     agent: z.enum(AGENT_NAMES),
     round: z.number().int().positive(),
 
+    assistant: AssistantId.optional(),
     episode: z.number().int().nonnegative().default(0),
     index: z.number().int().nonnegative(),
     text: z.string().min(1),
@@ -354,6 +361,7 @@ export const AgentProgressEvent = z.discriminatedUnion("type", [
     summary: z.string().optional(),
 
     outcome: z.string().optional(),
+    source: AgentProposalSourceKind.optional(),
     choice: ToolChoice.optional(),
     agent: z.enum(AGENT_NAMES),
     round: z.number().int().positive(),

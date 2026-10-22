@@ -14,6 +14,7 @@ import {
   TripBrief,
   TripPlan,
   TripPreferences,
+  type AssistantId,
   type TravellerParty,
 } from "@trip/shared";
 import { failureNotice, NoticeError, type Notice } from "../i18n/notice";
@@ -39,6 +40,8 @@ export type Message = {
   activity?: AgentProgressEvent[];
 
   outcome?: "planned" | "asked";
+
+  assistant?: AssistantId;
 
   at?: number;
 };

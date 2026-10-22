@@ -12,6 +12,10 @@ _Avoid_: request, prompt, query
 One of the five domain experts (itinerary, transport, accommodation, destination guide, dining), each owning a goal, its own tools and an output the others do not produce.
 _Avoid_: agent (for one of the five), capability, sub-agent
 
+**Coordinator**:
+The assistant that answers a message that mentions no specialist and dispatches work to the specialists. It is shown beside them in the chat but is not one of the five.
+_Avoid_: supervisor, orchestrator (for the assistant the traveller sees), master agent
+
 **Plan**:
 The assembled result of a brief: one costed section per specialist.
 _Avoid_: itinerary (that is one section), trip (the saved plan in the workspace)

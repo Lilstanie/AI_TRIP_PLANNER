@@ -7,12 +7,12 @@ import { SubagentOrbIcon } from "./ThinkingOrbIcon";
 import {
   FlowCheckIcon,
   FlowChevronDownIcon,
-  FlowSubagentIcon,
   FlowThinkIcon,
   ResultKindIcon,
   ToolGlyph,
 } from "../ui/flow-icons";
 import { Disclosure, RowSeparator, RowSummary } from "./Disclosure";
+import { AssistantIcon } from "./assistants";
 import {
   argLine,
   CLOCK_DELAY_MS,
@@ -325,7 +325,7 @@ export function SubagentRow({ model, open }: { model: SubagentModel; open: OpenR
     >
       <Disclosure
         className="thinking-subagent__row"
-        icon={running ? <SubagentOrbIcon model={model} /> : <FlowSubagentIcon />}
+        icon={running ? <SubagentOrbIcon model={model} /> : <AssistantIcon id={model.name} />}
         title={t("Subagent")}
         state={running ? "running" : model.status === "failed" ? "error" : "ok"}
         open={open.isOpen(model.id)}

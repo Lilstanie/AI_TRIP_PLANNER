@@ -27,6 +27,7 @@ export function createReasoningSink(
     onProgress?.({
       type: "agent_reasoning",
       agent: REASONING_OWNER,
+      ...(episode === COORDINATOR_REASONING_EPISODE ? { assistant: "coordinator" as const } : {}),
       round,
       episode,
       index: REASONING_BLOCK_INDEX,
