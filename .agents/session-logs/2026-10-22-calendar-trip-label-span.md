@@ -1,7 +1,7 @@
 ---
 date: 2026-10-22
 author: Claude Code
-branch: fix/calendar-trip-label-span
+branch: fix/calendar-trip-bar-label
 pr: none
 area: apps/web, docs
 contract-impact: none
