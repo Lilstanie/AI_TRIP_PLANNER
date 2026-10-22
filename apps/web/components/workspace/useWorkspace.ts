@@ -217,19 +217,19 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
     () => searchCatalog(catalog, historyQuery),
     [catalog, historyQuery],
   );
+  const tripTitles = distinctTripTitles(catalog.trips, (item) => tripName(item, t));
   const historyChats = filteredHistory.conversations.map((item) => {
     const trip = item.tripId && catalog.trips.find((record) => record.id === item.tripId);
     return {
       id: item.id,
       title: conversationTitle(item, locale),
-      subtitle: trip ? tripName(trip, t) : undefined,
+      subtitle: trip ? tripTitles.get(trip.id) : undefined,
       active: item.id === catalog.activeConversationId,
     };
   });
   const activeTrip = blank
     ? undefined
     : catalog.trips.find((item) => item.id === catalog.activeTripId);
-  const tripTitles = distinctTripTitles(filteredHistory.trips, (item) => tripName(item, t));
   const historyTrips = filteredHistory.trips.map((item) => ({
     id: item.id,
     title: tripTitles.get(item.id)!,
