@@ -319,7 +319,10 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     specialist only answers, nothing is created, and the same message asks for the brief. The chips wrap
     at phone width and are 44 px tall there. A message may mention several specialists: each id is sent once,
     exactly those specialists run together in one round, only their sections change, and one conflict
-    check follows once they have all finished.
+    check follows once they have all finished. A mention that names the wrong specialist (for example Stay
+    with a restaurant request) is handed off once: the mentioned specialist declines under its own icon and
+    names the right specialist, the Coordinator dispatches, and only the receiving specialist answers and
+    changes its section. The decline is marked as AI or code decided, and the text is localised.
   - Planning progress is a deep-dive transcript, not a status list: `Think` (the turn) nests
     `Subagent · <name>` rows per round, which in turn nest that specialist's reasoning and tool
     rows, each with a DSH-style disclosure — a leading icon that crossfades to a chevron on hover or

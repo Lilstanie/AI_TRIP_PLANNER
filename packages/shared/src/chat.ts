@@ -326,6 +326,13 @@ export const ChatWorkflowDecision = z.discriminatedUnion("type", [
     fields: z.array(z.string()),
   }),
   z.object({
+    type: z.literal("mention_handoff"),
+    round: z.number().int().positive(),
+    from: z.enum(AGENT_NAMES),
+    to: z.enum(AGENT_NAMES),
+    decidedBy: z.enum(["llm", "code"]),
+  }),
+  z.object({
     type: z.literal("delegation_fallback"),
     phase: z.enum(["dispatch", "revision"]),
     round: z.number().int().positive(),

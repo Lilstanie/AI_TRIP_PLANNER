@@ -194,7 +194,7 @@ Optional `mode` values:
 
 The response is `application/x-ndjson`, one JSON object per line:
 
-- progress events with `type` `coordinator`, `agent_started`, `agent_completed`, `agent_failed` or `decision`. A `decision` event is `{ "type": "decision", "round": 2, "decision": { "type": "conflicts_detected" | "revision_started" | "revision_scored" | "loop_stopped" | "agent_output_rejected" | "delegation_fallback", … } }`: the planning loop's own decisions, such as the specialist asked to save money, the revision score and why the loop stopped;
+- progress events with `type` `coordinator`, `agent_started`, `agent_completed`, `agent_failed` or `decision`. A `decision` event is `{ "type": "decision", "round": 2, "decision": { "type": "conflicts_detected" | "revision_started" | "revision_scored" | "loop_stopped" | "agent_output_rejected" | "mention_handoff" | "delegation_fallback", … } }`: the planning loop's own decisions, such as the specialist asked to save money, the revision score and why the loop stopped;
 - a final `{ "type": "complete", "response": { "reply": "…", "plan": { … }, "assistant": "…" } }`.
   `assistant` is optional and names who answered (`coordinator` or a specialist id); a missing value
   means the Coordinator. `agent_completed` events carry an optional `source` (`live`, `estimated`,

@@ -13,7 +13,8 @@ export interface TeamMessage {
   id: string;
   assistant: AssistantId;
   round: number;
-  kind: "dispatch" | "result" | "failed";
+  kind: "dispatch" | "result" | "failed" | "handoff";
+  handoffTo?: AgentName;
   decidedBy: DecidedBy;
   text: string;
   objectives: { agent: AgentName; text: string }[];
@@ -68,6 +69,18 @@ export function teamMessages(activity: readonly AgentProgressEvent[]): TeamEntry
             ? [{ agent: started.agent, text: started.objective }]
             : [],
         ),
+        toolCalls: 0,
+      });
+    } else if (event.type === "decision" && event.decision.type === "mention_handoff") {
+      messages.push({
+        id: `handoff:${event.decision.from}:${event.decision.to}`,
+        assistant: event.decision.from,
+        round: event.round,
+        kind: "handoff",
+        handoffTo: event.decision.to,
+        decidedBy: event.decision.decidedBy,
+        text: "",
+        objectives: [],
         toolCalls: 0,
       });
     } else if (

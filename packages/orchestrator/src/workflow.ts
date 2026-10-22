@@ -38,7 +38,7 @@ import { createPlanningBoard } from "./board";
 import { choiceFor, dispatchWithSupervisor, reviseWithSupervisor } from "./supervisor";
 import { withProgressTools } from "./progress-tools";
 import type { WorkflowDecision } from "./decisions";
-import { progressCopy } from "./progress-copy";
+import { progressCopy, ROLE_NAMES } from "./progress-copy";
 
 const DEFAULT_MAX_ROUNDS = 3;
 
@@ -255,7 +255,12 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
         type: "coordinator",
         phase: "dispatch",
         round,
-        summary: copy.mentioned(mentioned.map((specialist) => specialist.label)),
+        summary: copy.mentioned(
+          mentioned.map(
+            (specialist) =>
+              ROLE_NAMES[options.interfaceLanguage === "zh" ? "zh" : "en"][specialist.name],
+          ),
+        ),
       });
       const kept = mention.plan.sections.flatMap((section) =>
         section.proposal ? [section.proposal] : [],

@@ -1,4 +1,4 @@
-import type { InterfaceLanguage } from "@trip/shared";
+import type { AgentName, InterfaceLanguage } from "@trip/shared";
 
 interface BriefLine {
   destination: string;
@@ -41,3 +41,20 @@ const CHINESE: typeof ENGLISH = {
 export function progressCopy(language: InterfaceLanguage | undefined): typeof ENGLISH {
   return language === "zh" ? CHINESE : ENGLISH;
 }
+
+export const ROLE_NAMES: Record<InterfaceLanguage, Record<AgentName, string>> = {
+  en: {
+    itinerary: "Day plan",
+    transport: "Getting around",
+    accommodation: "Stay",
+    "destination-guide": "Destination guide",
+    dining: "Food & dining",
+  },
+  zh: {
+    itinerary: "每日行程",
+    transport: "出行交通",
+    accommodation: "住宿",
+    "destination-guide": "目的地指南",
+    dining: "餐饮",
+  },
+};

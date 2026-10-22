@@ -31,6 +31,12 @@ out a specialist view in the Trip drawer.
   proposals, runs only the mentioned specialists in parallel with the message as the revision reason, and the
   existing conflict check and targeted revision follow. Without a plan the specialist answers and the
   Coordinator asks for the brief; nothing is created.
+- A mention that names the wrong specialist is handed off once through the Coordinator (ticket #565).
+  `runTripChat` asks `judgeHandoff` before the planning graph runs: with a model, the mentioned specialist
+  answers `own` or the id it thinks owns the request; without a model, or when the answer is unusable, a
+  keyword rule decides, so fixtures repeat exactly. The shared `mention_handoff` decision carries `from`,
+  `to` and who decided it. The planning graph then runs only the receiving specialist, so no specialist
+  ever invokes another and only the receiving specialist's section can change.
 - Each assistant can be renamed in the assistant settings (ticket #566). `AssistantSettings.names` is an
   optional id-to-name map stored with the account. The interface shows the custom name, or the role name
   in the interface language when none is set. Names are trimmed, at most 24 characters, and unique across

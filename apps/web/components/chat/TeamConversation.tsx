@@ -76,7 +76,13 @@ export function TeamConversation({ activity }: { activity: readonly AgentProgres
                   <span className="team-message__source">{t(sourceLabels[message.source])}</span>
                 )}
               </div>
-              <p className="team-message__text">{message.text}</p>
+              <p className="team-message__text">
+                {message.handoffTo
+                  ? t("That is not my area. The {name} specialist should handle this.", {
+                      name: name(message.handoffTo),
+                    })
+                  : message.text}
+              </p>
               {message.objectives.length > 0 && (
                 <ul className="team-message__objectives">
                   {message.objectives.map((objective) => (

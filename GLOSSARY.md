@@ -20,6 +20,10 @@ _Avoid_: supervisor, orchestrator (for the assistant the traveller sees), master
 Naming one or more specialists in a message so that they handle it. A message without a mention goes to the Coordinator, and a mention is sent as specialist ids, never as names.
 _Avoid_: tag, address, ping
 
+**Hand-off**:
+The Coordinator passing a mention that names the wrong specialist to the specialist that owns the request. The mentioned specialist declines and names the right one, the Coordinator dispatches, and it happens at most once per turn. Specialists never hand off to each other directly.
+_Avoid_: delegate, forward, redirect
+
 **Specialist name**:
 The display name an account gives to an assistant in the assistant settings. It replaces the role name everywhere the assistant appears, is unique among assistants and never replaces the id; a blank name restores the role name.
 _Avoid_: nickname, alias, persona
