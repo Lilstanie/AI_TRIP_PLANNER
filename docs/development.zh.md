@@ -288,7 +288,7 @@ CI 还会运行 `node scripts/format-check-changed.mjs <base>`（即 `pnpm forma
 
 在拉取请求上，`protected-files` 任务会运行 `node scripts/verify-protected-files.mjs`、`node scripts/verify-docs.mjs`、配对检查，以及 `node scripts/verify-branch-name.mjs <head-branch>`。分支名检查会在源分支不以 `feature/`、`fix/`、`refactor/`、`docs/`、`chore/` 或 `test/` 开头，或包含 AI 工具名时失败；Dependabot 分支不受限制。
 
-将 PR 标记为可交付前，在 `gh` 已完成身份验证的环境中运行下面的只读预检。它要求工作区干净、位于 PR 分支且提交与当前打开的 PR head 完全一致、目标分支为 `main`，并且该 head 的所有检查都为 `SUCCESS`；Summary、Evidence 和 Merge Danger 三个部分必须有非占位内容。Evidence 必须写明测试/检查命令、结果及明确的 `Limits:` 说明。检查器不会推送、合并、关闭 PR 或删除分支；fixture 自检不能作为 GitHub CI 证据。
+将 PR 标记为可交付前，在 `gh` 已完成身份验证的环境中运行下面的只读预检。它要求工作区干净、位于 PR 分支且提交与当前打开的 PR head 完全一致、目标分支为 `main`，并且 Summary、Evidence 和 Merge Danger 三个部分非空。该 head 的所有检查必须为 `SUCCESS`，唯一例外是 `CI / cli-acceptance-workers` 被跳过，且 `CI / cli-acceptance-plan` 和 `CI / cli-acceptance` 均成功；aggregate 会验证仅文档变更的计划。检查器不判断 Evidence 的措辞，也不会推送、合并、关闭 PR 或删除分支；fixture 自检不能作为 GitHub CI 证据。
 
 ```bash
 node scripts/pr-delivery-status.mjs <pull-request-number>

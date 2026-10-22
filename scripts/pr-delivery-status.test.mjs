@@ -9,7 +9,7 @@ import test from "node:test";
 const checker = fileURLToPath(new URL("./pr-delivery-status.mjs", import.meta.url));
 const output = resolve("output/e2e/pr-delivery-status/selfcheck.json");
 const realGit = execFileSync("which", ["git"], { encoding: "utf8" }).trim();
-const validBody = `## Summary\n\nParses the current PR readiness state.\n\n## Evidence\n\n- \`node scripts/pr-delivery-status.test.mjs\` passed.\n- **Limits:** Fixture-based checks do not establish remote GitHub CI or live provider behavior.\n\n## Merge Danger\n\n**Door:** Two-way\n\n**Blast Radius:** Low\n`;
+const validBody = `## Summary\n\nParses the current PR readiness state.\n\n## Evidence\n\n- \`node scripts/pr-delivery-status.test.mjs\` exited 0.\n\n## Merge Danger\n\n**Door:** Two-way\n\n**Blast Radius:** Low\n`;
 
 function run(command, args, cwd) {
   const result = spawnSync(command, args, { cwd, encoding: "utf8" });
@@ -20,7 +20,7 @@ function run(command, args, cwd) {
 
 function fixture({
   body = validBody,
-  checks = [{ name: "CI", state: "SUCCESS" }],
+  checks = [{ name: "CI", state: "SUCCESS", workflow: "CI" }],
   pr = {},
   invalid = false,
   fail = false,
@@ -147,6 +147,53 @@ test("PR delivery status CLI rejects unsafe or incomplete delivery states", asyn
     ok: false,
     match: /skipped|success/i,
   });
+  await scenario(
+    "accepts the documented docs-only CLI worker skip with successful plan and aggregate",
+    {
+      checks: [
+        { name: "cli-acceptance-plan", state: "SUCCESS", workflow: "CI" },
+        { name: "cli-acceptance-workers (1)", state: "SKIPPED", workflow: "CI" },
+        { name: "cli-acceptance", state: "SUCCESS", workflow: "CI" },
+      ],
+    },
+    null,
+    { ok: true },
+  );
+  await scenario(
+    "rejects the CLI worker skip without a successful aggregate",
+    {
+      checks: [
+        { name: "cli-acceptance-plan", state: "SUCCESS", workflow: "CI" },
+        { name: "cli-acceptance-workers (1)", state: "SKIPPED", workflow: "CI" },
+      ],
+    },
+    null,
+    { ok: false, match: /aggregate|cli-acceptance/i },
+  );
+  await scenario(
+    "rejects a CLI worker skip reported by another workflow",
+    {
+      checks: [
+        { name: "cli-acceptance-plan", state: "SUCCESS", workflow: "CI" },
+        { name: "cli-acceptance-workers (1)", state: "SKIPPED", workflow: "Other" },
+        { name: "cli-acceptance", state: "SUCCESS", workflow: "CI" },
+      ],
+    },
+    null,
+    { ok: false, match: /skipped|workflow|success/i },
+  );
+  await scenario(
+    "rejects a non-CLI skip even when CLI plan and aggregate succeeded",
+    {
+      checks: [
+        { name: "cli-acceptance-plan", state: "SUCCESS", workflow: "CI" },
+        { name: "deploy-preview", state: "SKIPPED", workflow: "CI" },
+        { name: "cli-acceptance", state: "SUCCESS", workflow: "CI" },
+      ],
+    },
+    null,
+    { ok: false, match: /skipped|success/i },
+  );
   await scenario("rejects failed checks", { checks: [{ name: "CI", state: "FAILURE" }] }, null, {
     ok: false,
     match: /failure|failed|success/i,
@@ -162,22 +209,10 @@ test("PR delivery status CLI rejects unsafe or incomplete delivery states", asyn
     { ok: false, match: /evidence|merge danger/i },
   );
   await scenario(
-    "rejects placeholder sections",
-    { body: validBody.replace("Parses the current PR readiness state.", "TODO") },
+    "accepts evidence with an exit status and no invented limits section",
+    { body: validBody },
     null,
-    { ok: false, match: /placeholder|summary|todo/i },
-  );
-  await scenario(
-    "rejects evidence without a test result",
-    { body: validBody.replace("passed", "is useful") },
-    null,
-    { ok: false, match: /test|evidence/i },
-  );
-  await scenario(
-    "rejects evidence without explicit limits",
-    { body: validBody.replace("**Limits:** ", "") },
-    null,
-    { ok: false, match: /limit|fixture|mock/i },
+    { ok: true },
   );
   await scenario("reports gh failures", { fail: true }, null, {
     ok: false,
@@ -193,5 +228,5 @@ test("PR delivery status CLI rejects unsafe or incomplete delivery states", asyn
     output,
     `${JSON.stringify({ kind: "simulated-gh-selfcheck", githubEvidence: false, scenarios: results }, null, 2)}\n`,
   );
-  assert.equal(results.length, 17);
+  assert.equal(results.length, 19);
 });

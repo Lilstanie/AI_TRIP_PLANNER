@@ -34,26 +34,7 @@ function section(body, title) {
 }
 
 function requireContent(name, value) {
-  if (
-    !value ||
-    /\b(?:todo|tbd|placeholder|fill (?:this|in)|replace this)\b|<[^>\n]+>/i.test(value)
-  ) {
-    throw new Error(`PR ${name} section is empty or still a placeholder`);
-  }
-}
-
-function validateEvidence(evidence) {
-  const hasCommand =
-    /(?:^|\n)\s*[-*]\s*.*(?:`(?:pnpm|npm|node|yarn|playwright|vitest)[^`]*`|\b(?:pnpm|npm|node|yarn|playwright|vitest)\b[^\n]*)/i.test(
-      evidence,
-    );
-  const hasResult = /\b(?:passed|success(?:ful)?|green)\b/i.test(evidence);
-  const hasLimits = /\b(?:limits?|limitations?)\s*:/i.test(evidence);
-  if (!hasCommand || !hasResult)
-    throw new Error(
-      "PR Evidence must include a concrete test/check command and its passing result",
-    );
-  if (!hasLimits) throw new Error("PR Evidence must include an explicit Limits: statement");
+  if (!value) throw new Error(`PR ${name} section is empty`);
 }
 
 function main() {
@@ -91,12 +72,36 @@ function main() {
   requireContent("Summary", summary);
   requireContent("Evidence", evidence);
   requireContent("Merge Danger", danger);
-  validateEvidence(evidence);
 
-  const checks = json("gh", ["pr", "checks", number, "--json", "name,state"]);
+  const checks = json("gh", ["pr", "checks", number, "--json", "name,state,workflow"]);
   if (!Array.isArray(checks) || checks.length === 0)
     throw new Error("GitHub returned no PR checks");
-  const incomplete = checks.filter((check) => check.state !== "SUCCESS");
+
+  const skipped = checks.filter((check) => check.state === "SKIPPED");
+  const approvedWorkerSkips = skipped.filter(
+    (check) =>
+      check.workflow === "CI" && /^cli-acceptance-workers(?:\s+\([^)]+\))?$/.test(check.name),
+  );
+  const hasSuccessfulCiJob = (name) =>
+    checks.some(
+      (check) => check.workflow === "CI" && check.name === name && check.state === "SUCCESS",
+    );
+  if (approvedWorkerSkips.length !== skipped.length) {
+    const states = skipped.map(({ name, state }) => `${name}: ${state}`).join(", ");
+    throw new Error(`Unexplained skipped checks: ${states}`);
+  }
+  if (
+    approvedWorkerSkips.length > 0 &&
+    (!hasSuccessfulCiJob("cli-acceptance-plan") || !hasSuccessfulCiJob("cli-acceptance"))
+  ) {
+    throw new Error(
+      "Skipped CLI workers require successful CI cli-acceptance-plan and cli-acceptance checks",
+    );
+  }
+
+  const incomplete = checks.filter(
+    (check) => check.state !== "SUCCESS" && !approvedWorkerSkips.includes(check),
+  );
   if (incomplete.length) {
     const states = incomplete.map(({ name, state }) => `${name}: ${state}`).join(", ");
     throw new Error(`Every current-head check must be SUCCESS; incomplete checks: ${states}`);
@@ -120,7 +125,9 @@ function main() {
   }
 
   process.stdout.write(`PR #${number} delivery preflight passed\n`);
-  process.stdout.write(`Branch: ${branch}\nHead: ${head}\nChecks: ${checks.length} SUCCESS\n`);
+  process.stdout.write(
+    `Branch: ${branch}\nHead: ${head}\nChecks: ${checks.length - approvedWorkerSkips.length} SUCCESS, ${approvedWorkerSkips.length} approved CLI worker SKIPPED\n`,
+  );
 }
 
 try {

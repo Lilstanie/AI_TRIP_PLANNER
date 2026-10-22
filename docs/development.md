@@ -427,10 +427,12 @@ branch check fails when the head branch does not start with `feature/`, `fix/`, 
 `chore/` or `test/`, or contains an AI tool name; Dependabot branches are exempt.
 
 Before marking a PR ready for delivery, run the read-only preflight below with `gh` authenticated.
-It requires a clean checkout on the PR branch at the exact open PR head, a `main` base, every reported
-head check in `SUCCESS`, and non-placeholder Summary, Evidence and Merge Danger sections. Evidence
-must state a test/check command, its result and an explicit `Limits:` statement. The checker does not
-push, merge, close PRs or delete branches; its fixture self-check is not evidence of GitHub CI.
+It requires a clean checkout on the PR branch at the exact open PR head, a `main` base, and nonempty
+Summary, Evidence and Merge Danger sections. All reported head checks must be `SUCCESS` except a
+`CI / cli-acceptance-workers` skip accompanied by successful `CI / cli-acceptance-plan` and
+`CI / cli-acceptance` checks; the aggregate validates the documentation-only plan. The checker does
+not judge Evidence wording, push, merge, close PRs or delete branches. Its fixture self-check is not
+evidence of GitHub CI.
 
 ```bash
 node scripts/pr-delivery-status.mjs <pull-request-number>

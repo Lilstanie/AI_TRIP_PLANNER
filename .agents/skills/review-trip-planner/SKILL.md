@@ -13,9 +13,10 @@ reason. The reference also owns the automatic PR/main gate and its reproduction 
 
 Before reporting a PR ready for delivery, run `node scripts/pr-delivery-status.mjs <number>` from a
 clean checkout of its branch. The read-only preflight verifies that the local SHA is the open PR's
-exact head, the base is `main`, all reported head checks succeeded, and Summary, Evidence and Merge
-Danger contain real content. Evidence must include a test/check command, result and explicit limits.
-Its fixture self-check demonstrates checker behavior only, never GitHub CI or live-provider behavior.
+exact head, the base is `main`, and Summary, Evidence and Merge Danger are nonempty. Every reported
+head check must succeed except a `CI / cli-acceptance-workers` skip accompanied by successful
+`CI / cli-acceptance-plan` and `CI / cli-acceptance` checks. It does not judge Evidence wording. Its
+fixture self-check demonstrates checker behavior only, never GitHub CI or live-provider behavior.
 
 This is guidance, not a complete checklist. Read the supplied diff against its real base
 and enough surrounding code to understand the design. Prioritise
