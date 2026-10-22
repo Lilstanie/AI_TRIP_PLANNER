@@ -3,6 +3,7 @@ import { useLocale } from "@/components/account/LocaleProvider";
 import { useId, useRef, type Ref, type ReactNode } from "react";
 import { CloseIcon, ComposeIcon, NewTripIcon, SearchIcon } from "../ui/icons";
 import { HistoryMenu, type HistoryItem } from "./WorkspaceSidebar";
+import { TripUndo, type DeletedTrip } from "./TripUndo";
 import { TripCover } from "./TripCover";
 
 export function ChatsPanel({
@@ -16,6 +17,9 @@ export function ChatsPanel({
   onOpenTrip,
   onRenameChat,
   onDeleteChat,
+  onRenameTrip,
+  onDeleteTrip,
+  deletedTrip,
   searchRef,
   tripsContent,
 }: {
@@ -29,12 +33,16 @@ export function ChatsPanel({
   onOpenTrip(id: string): void;
   onRenameChat(id: string): void;
   onDeleteChat(id: string): void;
+  onRenameTrip(id: string): void;
+  onDeleteTrip(id: string): void;
+  deletedTrip?: DeletedTrip;
   searchRef?: Ref<HTMLInputElement>;
 
   tripsContent?: ReactNode;
 }) {
   const { t } = useLocale();
-  const chatTitle = (title: string) => (title === "New chat" ? t("New chat") : title);
+  const chatTitle = (title: string) =>
+    title === "New chat" || title === "New trip" ? t(title) : title;
   const searchId = useId();
   const localSearch = useRef<HTMLInputElement | null>(null);
   const searching = query.trim() !== "";
@@ -98,10 +106,13 @@ export function ChatsPanel({
         >
           {searching
             ? trips.length
-              ? t("{count} trips found", { count: trips.length })
+              ? t(trips.length === 1 ? "{count} trip found" : "{count} trips found", {
+                  count: trips.length,
+                })
               : t("No matching trips.")
             : ""}
         </p>
+        {deletedTrip && <TripUndo deleted={deletedTrip} />}
         {tripsContent ?? (
           <div className="history-list">
             {trips.map((item) => (
@@ -119,6 +130,11 @@ export function ChatsPanel({
                   <TripCover destination={item.destination ?? item.title} size="thumb" />
                   <span className="history-item__title">{item.title}</span>
                 </button>
+                <HistoryMenu
+                  title={item.title}
+                  onRename={() => onRenameTrip(item.id)}
+                  onDelete={() => onDeleteTrip(item.id)}
+                />
               </article>
             ))}
             {!trips.length && (
@@ -142,7 +158,9 @@ export function ChatsPanel({
         >
           {searching
             ? chats.length
-              ? t("{count} chats found", { count: chats.length })
+              ? t(chats.length === 1 ? "{count} chat found" : "{count} chats found", {
+                  count: chats.length,
+                })
               : t("No matching chats.")
             : ""}
         </p>

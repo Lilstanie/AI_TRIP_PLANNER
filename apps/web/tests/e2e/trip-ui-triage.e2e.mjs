@@ -308,13 +308,13 @@ try {
   await ampleHeadroomPage.locator(".budget-status").waitFor();
   const ampleHeadroomStatus = await ampleHeadroomPage.locator(".budget-status").innerText();
   check(
-    ampleHeadroomStatus === "Within budget",
-    "#435 unpriced admissions with more than 5% headroom do not trigger a caution",
+    ampleHeadroomStatus === "Known estimate within budget · unpriced stops not counted",
+    "#435 unpriced admissions with more than 5% headroom still trigger a caution",
     ampleHeadroomStatus,
   );
   check(
-    (await ampleHeadroomPage.locator(".budget-status--caution").count()) === 0,
-    "#435 ample headroom stays in the ordinary budget state",
+    (await ampleHeadroomPage.locator(".budget-status--caution").count()) === 1,
+    "#435 ample headroom with unpriced admissions uses the caution state",
   );
   await ampleHeadroomContext.close();
   for (const scheme of ["light", "dark"])

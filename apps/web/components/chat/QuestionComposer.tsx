@@ -4,6 +4,8 @@ import { useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
 import {
   parseRecommendedLabel,
   type PendingAsk,
+  type QuestionDraft,
+  type QuestionProgress,
   type QuestionAnswer,
 } from "@/lib/workspace/ask-user";
 
@@ -24,7 +26,7 @@ const copy = {
 
 type Feedback = "incomplete" | "unanswered";
 
-type Draft = { selected: string[]; custom: string; skipped: boolean };
+type Draft = QuestionDraft;
 
 type IconProps = { size?: number };
 
@@ -118,6 +120,7 @@ function AnswerField(props: {
   value: string;
   placeholder: string;
   label: string;
+  disabled: boolean;
   autoFocus?: boolean;
   onFocus?: () => void;
   onChange: (event: ChangeEvent<HTMLTextAreaElement>) => void;
@@ -132,6 +135,7 @@ function AnswerField(props: {
         autoFocus={props.autoFocus}
         className="question__field-input"
         aria-label={props.label}
+        disabled={props.disabled}
         value={props.value}
         rows={1}
         placeholder={props.placeholder}
@@ -150,16 +154,24 @@ export function QuestionComposer({
   request,
   onSubmit,
   onCancel,
+  onStop,
+  onProgress,
+  submitting,
 }: {
   request: PendingAsk;
   onSubmit: (answers: QuestionAnswer[]) => void;
   onCancel: () => void;
+  onStop?: () => void;
+  onProgress?: (progress: QuestionProgress) => void;
+  submitting: boolean;
 }) {
   const { t } = useLocale();
   const questions = request.questions;
-  const [index, setIndex] = useState(0);
-  const [drafts, setDrafts] = useState<Draft[]>(() =>
-    questions.map(() => ({ selected: [], custom: "", skipped: false })),
+  const [index, setIndex] = useState(request.progress?.index ?? 0);
+  const [drafts, setDrafts] = useState<Draft[]>(
+    () =>
+      request.progress?.drafts ??
+      questions.map(() => ({ selected: [], custom: "", skipped: false })),
   );
   const [feedback, setFeedback] = useState<Feedback | null>(null);
 
@@ -174,11 +186,14 @@ export function QuestionComposer({
   const titleId = `question-${request.key}-${index}`;
 
   const replaceProgress = (nextIndex: number, nextDrafts: Draft[]) => {
+    if (submitting) return;
     setIndex(nextIndex);
     setDrafts(nextDrafts);
+    onProgress?.({ index: nextIndex, drafts: nextDrafts });
   };
 
   const updateDraft = (update: (current: Draft) => Draft, nextIndex = index) => {
+    if (submitting) return;
     replaceProgress(
       nextIndex,
       drafts.map((item, itemIndex) => (itemIndex === index ? update(item) : item)),
@@ -187,6 +202,7 @@ export function QuestionComposer({
   };
 
   const choose = (label: string) => {
+    if (submitting) return;
     updateDraft(
       (current) => {
         if (multi) {
@@ -202,6 +218,7 @@ export function QuestionComposer({
   };
 
   const submitDrafts = (values: Draft[]) => {
+    if (submitting) return;
     const missing = values.findIndex((item) => !completed(item));
     if (missing >= 0) {
       replaceProgress(missing, values);
@@ -223,6 +240,7 @@ export function QuestionComposer({
   };
 
   const continueFlow = () => {
+    if (submitting) return;
     if (!answered(draft)) {
       setFeedback("unanswered");
       return;
@@ -236,6 +254,7 @@ export function QuestionComposer({
   };
 
   const draftCustom = (event: ChangeEvent<HTMLTextAreaElement>) => {
+    if (submitting) return;
     const value = event.target.value;
     updateDraft((current) => ({
       ...current,
@@ -246,12 +265,14 @@ export function QuestionComposer({
   };
 
   const continueFromCustom = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (submitting) return;
     if (event.key !== "Enter" || event.shiftKey || isComposing(event)) return;
     event.preventDefault();
     continueFlow();
   };
 
   const skipQuestion = () => {
+    if (submitting) return;
     const nextDrafts = drafts.map((item, itemIndex) =>
       itemIndex === index ? { selected: [], custom: "", skipped: true } : item,
     );
@@ -282,7 +303,10 @@ export function QuestionComposer({
               aria-label={t(minimized ? copy.maximize : copy.minimize)}
               title={t(minimized ? copy.maximize : copy.minimize)}
               aria-expanded={!minimized}
-              onClick={() => setMinimized((current) => !current)}
+              disabled={submitting}
+              onClick={() => {
+                if (!submitting) setMinimized((current) => !current);
+              }}
             >
               {minimized ? <IconChevronUp /> : <IconChevronDown />}
             </button>
@@ -291,6 +315,7 @@ export function QuestionComposer({
               className="question__icon-button"
               aria-label={t(copy.cancel)}
               title={t(copy.cancel)}
+              disabled={submitting}
               onClick={onCancel}
             >
               <IconClose />
@@ -316,9 +341,10 @@ export function QuestionComposer({
                       role={multi ? "checkbox" : "radio"}
                       aria-checked={selected}
                       aria-label={display.label}
+                      disabled={submitting}
                       onClick={() => choose(option.label)}
                       onKeyDown={(event) => {
-                        if (event.key !== "Enter" || !drafts.every(completed)) return;
+                        if (submitting || event.key !== "Enter" || !drafts.every(completed)) return;
                         event.preventDefault();
                         submitDrafts(drafts);
                       }}
@@ -367,6 +393,7 @@ export function QuestionComposer({
                     <AnswerField
                       variant="inline"
                       value={draft.custom}
+                      disabled={submitting}
                       label={t("Other answer")}
                       placeholder={t(copy.placeholder)}
                       onChange={draftCustom}
@@ -379,6 +406,7 @@ export function QuestionComposer({
                     autoFocus={!focusedQuestions.current.has(index)}
                     variant="block"
                     value={draft.custom}
+                    disabled={submitting}
                     label={t("Your answer")}
                     placeholder={t(copy.placeholder)}
                     onFocus={() => focusedQuestions.current.add(index)}
@@ -395,7 +423,7 @@ export function QuestionComposer({
                   type="button"
                   className="question__icon-button"
                   aria-label={t(copy.prev)}
-                  disabled={index === 0}
+                  disabled={submitting || index === 0}
                   onClick={() => {
                     replaceProgress(index - 1, drafts);
                     setFeedback(null);
@@ -410,7 +438,7 @@ export function QuestionComposer({
                   type="button"
                   className="question__icon-button"
                   aria-label={t(copy.next)}
-                  disabled={last}
+                  disabled={submitting || last}
                   onClick={() => {
                     replaceProgress(index + 1, drafts);
                     setFeedback(null);
@@ -426,6 +454,7 @@ export function QuestionComposer({
                 <button
                   type="button"
                   className="question__button question__button--outline"
+                  disabled={submitting}
                   onClick={skipQuestion}
                 >
                   {t(copy.skip)}
@@ -433,11 +462,21 @@ export function QuestionComposer({
                 <button
                   type="button"
                   className="question__button question__button--primary"
-                  disabled={!answered(draft)}
+                  disabled={submitting || !answered(draft)}
                   onClick={continueFlow}
                 >
                   {t(last ? copy.submit : copy.advance)}
                 </button>
+                {submitting && onStop && (
+                  <button
+                    type="button"
+                    className="question__button question__button--outline"
+                    aria-label={t("Stop planning")}
+                    onClick={onStop}
+                  >
+                    {t("Stop planning")}
+                  </button>
+                )}
               </div>
             </footer>
           </>

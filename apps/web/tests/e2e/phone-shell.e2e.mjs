@@ -3,6 +3,7 @@ import { createRequire } from "node:module";
 import { spawnSync } from "node:child_process";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { touchSized } from "./trip-setup.mjs";
 
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT ?? "playwright");
@@ -65,14 +66,19 @@ const visiblePanels = (page) =>
 const noSideScroll = (page) =>
   page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
 
-const smallTargets = (page, selector) =>
-  page.locator(selector).evaluateAll((nodes) =>
-    nodes
-      .filter((node) => node.getClientRects().length)
-      .map((node) => node.getBoundingClientRect())
-      .filter((box) => box.width < 44 || box.height < 44)
-      .map((box) => `${Math.round(box.width)}x${Math.round(box.height)}`),
-  );
+const smallTargets = async (page, selector) =>
+  (
+    await page.locator(selector).evaluateAll((nodes) =>
+      nodes
+        .filter((node) => node.getClientRects().length)
+        .map((node) => ({
+          width: node.getBoundingClientRect().width,
+          height: node.getBoundingClientRect().height,
+        })),
+    )
+  )
+    .filter((box) => !touchSized(box.width) || !touchSized(box.height))
+    .map((box) => `${Math.round(box.width)}x${Math.round(box.height)}`);
 
 async function plan(page) {
   await selectTab(page, "Chat");
@@ -332,7 +338,13 @@ try {
   writeFileSync(`${OUT}/summary.json`, JSON.stringify({ base: BASE, results }, null, 2));
 }
 
-for (const name of ["phone-mine", "phone-map", "phone-state"]) {
+const companionSummary = {
+  "phone-mine": resolve("output/playwright/phone-mine/summary.json"),
+  "phone-map": resolve("output/playwright/phone-map", process.env.LABEL ?? "after", "summary.json"),
+  "phone-state": resolve("output/playwright/phone-state/summary.json"),
+};
+
+for (const [name, summaryPath] of Object.entries(companionSummary)) {
   const run = spawnSync(
     process.execPath,
     [fileURLToPath(new URL(`./${name}.e2e.mjs`, import.meta.url))],
@@ -343,9 +355,7 @@ for (const name of ["phone-mine", "phone-map", "phone-state"]) {
   );
   check(run.status === 0, `${name}: companion walk completed`);
   if (run.status === 0) {
-    const report = JSON.parse(
-      readFileSync(resolve(`output/playwright/${name}/summary.json`), "utf8"),
-    );
+    const report = JSON.parse(readFileSync(summaryPath, "utf8"));
     results.push(...report.results);
   }
 }

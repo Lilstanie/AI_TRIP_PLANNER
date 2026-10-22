@@ -6,6 +6,7 @@ import {
   type Specialist,
   type TripBrief,
   type UserPreference,
+  type InterfaceLanguage,
 } from "@trip/shared";
 import { z } from "zod/v4";
 import { createAgent, tool } from "langchain";
@@ -14,6 +15,7 @@ import { mockEnabled } from "@trip/tools";
 import { clip } from "../clip";
 import { normalize, canonicalPlaceName, dedupeEntries } from "../place-names";
 import { TRAVELLER_PREFERENCES_RULE } from "../prompts/traveller-preferences";
+import { summaryCopy } from "../summary-copy";
 
 const GuideAttraction = z.object({
   name: z.string().trim().min(1).max(120),
@@ -109,9 +111,14 @@ function validateDraft(draft: DestinationGuideDraft, places: Place[]): Destinati
   };
 }
 
-function fallbackDraft(brief: TripBrief, month: string, places: Place[]): DestinationGuideDraft {
+function fallbackDraft(
+  brief: TripBrief,
+  month: string,
+  places: Place[],
+  language: InterfaceLanguage | undefined,
+): DestinationGuideDraft {
   return {
-    summary: `${brief.destination} planning guidance for ${month}`,
+    summary: summaryCopy(language).guide(brief.destination, brief.dates[0]),
     attractions: places.slice(0, 5).map((place) => ({
       name: place.name,
       detail: `${place.category} candidate${place.rating ? ` with supplied rating ${place.rating}` : ""}; verify opening hours and suitability before visiting.`,
@@ -215,10 +222,10 @@ async function planDestinationGuide(
       const reason = error instanceof Error ? error.message : "unknown model error";
       console.warn(`[destination-guide] Model draft failed; using a safe local plan: ${reason}`);
       usedFallback = true;
-      draft = fallbackDraft(brief, month, places);
+      draft = fallbackDraft(brief, month, places, ctx.replyLanguage);
     }
   } else {
-    draft = fallbackDraft(brief, month, places);
+    draft = fallbackDraft(brief, month, places, ctx.replyLanguage);
   }
 
   const monthLabel = (date: string) =>

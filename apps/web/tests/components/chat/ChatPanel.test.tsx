@@ -89,7 +89,7 @@ describe("ChatPanel", () => {
     expect(sent).toMatch(/\d{4}-\d{2}-\d{2} to \d{4}-\d{2}-\d{2}/);
   });
 
-  it("shows example trips in Chinese and still sends the English prompt", async () => {
+  it("shows example trips in Chinese and sends the translated prompt", async () => {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify({ ...defaultSettings(), language: "zh" }));
     const onSend = vi.fn();
     function EmptyChat() {
@@ -120,7 +120,7 @@ describe("ChatPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "悉尼 · 4 天" }));
 
     expect(onSend).toHaveBeenCalledTimes(1);
-    expect(onSend.mock.calls[0]![0]).toMatch(/Sydney/);
+    expect(onSend.mock.calls[0]![0]).toMatch(/悉尼/);
     localStorage.removeItem(SETTINGS_KEY);
   });
 

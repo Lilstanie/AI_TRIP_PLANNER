@@ -282,11 +282,17 @@ Specialist proposals, the brief and the final plan are re-validated at the graph
   for transport, and itinerary and dining wait for both, but only for specialists already started in
   the same turn. Each call receives the others' proposals as `board` and, for accommodation,
   itinerary and dining, an `allocation`: its share (0.4, 0.4, 0.2) of the budget left after the
-  stages it waited for. On a multi-city trip the itinerary takes each day's city from the inter-city
-  hop transport scheduled (`citiesByDay`); a hop day allows both cities, and a draft with a stop in
-  another city is sent back to the model with that reason. Accommodation reads the same hops
-  (`scheduledHops` in `transport/legs.ts`), so each city's nights run from its arrival day to the
-  next hop; without hops on the board the nights are split evenly.
+  stages it waited for. On a multi-city trip the itinerary takes each day's cities from the scheduled
+  inter-city hops (`citiesByDay`). Activities on a transfer day need timed transfers and must fit
+  before departure or after arrival; an untimed transfer makes that day's activity order unknown.
+  On a night with a scheduled stay, the last city reached that day must match the overnight city;
+  checkout-day transfers may end in another destination city. Without a transport proposal, stays
+  anchor the city; after a transfer establishes the route, a different later stay needs a connecting
+  transfer or the location remains unknown. Accommodation reads the same hops
+  (`scheduledHops` in `transport/legs.ts`), so a city with no overnight nights is omitted from hotel
+  search; without hops on the board the nights are split evenly.
+  The failure cases and decision are recorded in the
+  [multi-city transfer-day Agent Note](../.agents/notes/implemented/bug-fix/2026-10-19-multicity-transfer-windows.md).
 - `detect_conflicts` combines budget overruns, structured cross-agent schedule overlaps and geography
   conflicts reported after itinerary route-duration checks. An overrun is spread in AUD
   (`targetSaving`) over each section's room to cut, its cost less its `floorCost`. When the sum of
@@ -340,6 +346,12 @@ initial plans and revisions. An agent owns a durable role definition: model, `na
 Transport and accommodation wrap calculators so models cannot invent prices, routes or properties.
 The itinerary likewise never prices a stop: Google Places publishes no admission prices, so an
 activity's `estCost` is left unset and the plan says how many stops are unpriced.
+The reply receives the plan's known estimate, budget, headroom and each stop's price state. An unset
+activity price is excluded, not zero; the reply must disclose that boundary and may quote a stop price
+only when the plan carries that numeric price. Fixture and no-model replies verify this deterministic
+boundary, not live-model wording reliability.
+When a thin-data plan reuses a grounded place across days, the reply facts include the repeated place
+and its days so the reply identifies it as one reused stop rather than distinct activities.
 
 Model routing (`MODEL_ROUTING` in `packages/agents/src/models.ts` and `chat.ts`):
 
@@ -353,7 +365,9 @@ Dates are read by the model, not by patterns: extraction converts whatever shape
 into `YYYY-MM-DD`, takes the next occurrence for a date written without a year, and leaves the dates
 unset when only one end is given or the day and month cannot be told apart (`01/10/2026`), so the
 traveller is asked instead of planned a trip on a guessed month. Without a key, or when a model call
-fails, a small English/Chinese rule parser handles extraction instead; it only reads ISO dates.
+fails, a small English/Chinese rule parser handles extraction instead. It reads supported explicit
+dates and resolves an explicit duration plus start date to an inclusive end date; it does not infer an
+unstated return date.
 
 `TripBrief.dates` is inclusive: the end date is the last day of the trip, so a trip has
 `end − start + 1` days and `end − start` nights. Planning code counts days with `planningDays()`
@@ -384,6 +398,13 @@ and formatted, and its prompt says to quote them as given. Converted amounts gro
 panels, and generated text for a non-AUD trip ends with an estimate note. Planning, guardrails,
 conflict detection and the plan score stay AUD, and provider fares keep their own currency.
 
+Language follows the same split. Coordinator and specialist progress lines are notices in the chat
+request's `interfaceLanguage`. Each turn also resolves one reply language in
+`packages/orchestrator/src/reply-language.ts`: Han text in the latest message means Chinese, Latin
+text means English, and anything else uses the interface language, then English. Specialists receive
+it as `AgentContext.replyLanguage` and write their fixed summaries in it; without it they write
+English, as the Agent Lab does.
+
 `TripBrief.preferences` (and the same field on `known`) carries the traveller's own trip
 preferences, written in the top bar's Trip preferences editor. The coordinator's `update_trip_brief`
 tool has no field for them, so a model cannot rewrite the list; `BriefPatchSchema` carries them from
@@ -398,6 +419,12 @@ when one could not be met, and never treat one as a verified fact.
 - `excludeFlights`: the traveller arranges flights.
 - `bookedStay`: the traveller has booked their stay.
 - `noAccommodation`: the traveller does not need a stay; this is independent of `bookedStay`.
+
+A trip length the traveller states in days ("3 days", "5-day", "四天", "三日游") overrides the
+model's end date: `statedTripDays` in `packages/orchestrator/src/chat-offline.ts` adds up the day
+counts in the message, and the end date becomes the start date plus that count minus one, so N days
+are N calendar days with no extra departure day. An explicit date range in the message wins, and
+"in 3 days" or a one-day count is not read as a length.
 
 `specialistBrief` in `packages/orchestrator/src/supervisor.ts` appends the learned list to the
 traveller's own for the specialists, deduplicated and capped at 12. The stored brief keeps the two

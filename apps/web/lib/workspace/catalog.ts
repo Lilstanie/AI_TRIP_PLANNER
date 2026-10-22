@@ -39,6 +39,7 @@ export type TripRecord = {
   updatedAt: string;
   conversationIds: string[];
   snapshot: Snapshot;
+  renamed?: boolean;
 };
 
 export type PanelLayout = {
@@ -54,7 +55,7 @@ export type PanelLayout = {
 };
 
 export type WorkspaceCatalog = {
-  version: 4;
+  version: 5;
   activeConversationId?: string;
   activeTripId?: string;
   conversations: ConversationRecord[];
@@ -179,7 +180,7 @@ function tripFrom(snapshot: Snapshot, conversationId?: string): TripRecord {
 export function createCatalog(current?: Snapshot, saved: Snapshot[] = []): WorkspaceCatalog {
   const snapshots = [current, ...saved].filter((item): item is Snapshot => item !== undefined);
   const catalog: WorkspaceCatalog = {
-    version: 4,
+    version: 5,
     conversations: [],
     trips: [],
     layout: clone(DEFAULT_LAYOUT),
@@ -222,7 +223,8 @@ export function parseCatalog(
     );
   if (!isObject(value)) throw new Error("Workspace catalog is invalid.");
 
-  if (value.version !== 4) throw new Error("Workspace catalog version is invalid.");
+  if (value.version !== 4 && value.version !== 5)
+    throw new Error("Workspace catalog version is invalid.");
   if (!Array.isArray(value.conversations) || !Array.isArray(value.trips))
     throw new Error("Workspace catalog records are invalid.");
   const trips = value.trips.map(parseTrip);
@@ -243,7 +245,7 @@ export function parseCatalog(
   )
     throw new Error("Workspace catalog active conversation is invalid.");
   return {
-    version: 4,
+    version: 5,
     ...(value.activeTripId === undefined ? {} : { activeTripId: value.activeTripId as string }),
     ...(value.activeConversationId === undefined
       ? {}
@@ -295,7 +297,8 @@ export function parseTrip(value: unknown): TripRecord {
     !text(value.title) ||
     !validDate(value.updatedAt) ||
     !Array.isArray(value.conversationIds) ||
-    !value.conversationIds.every(text)
+    !value.conversationIds.every(text) ||
+    (value.renamed !== undefined && typeof value.renamed !== "boolean")
   )
     throw new Error("Workspace trip is invalid.");
   const snapshot = parseSnapshot(value.snapshot);
@@ -305,6 +308,7 @@ export function parseTrip(value: unknown): TripRecord {
     updatedAt: value.updatedAt,
     conversationIds: [...value.conversationIds],
     snapshot,
+    ...(value.renamed ? { renamed: true } : {}),
   };
 }
 
@@ -323,9 +327,14 @@ export function upsertCurrent(
   const trip = tripFrom(snapshot, conversationId);
   const existingTrip = next.trips.findIndex((item) => item.id === tripId);
   if (existingTrip >= 0) {
-    const ids = new Set(next.trips[existingTrip].conversationIds);
+    const previous = next.trips[existingTrip];
+    const ids = new Set(previous.conversationIds);
     ids.add(conversationId);
-    next.trips[existingTrip] = { ...trip, conversationIds: [...ids] };
+    next.trips[existingTrip] = {
+      ...trip,
+      conversationIds: [...ids],
+      ...(previous.renamed ? { title: previous.title, renamed: true } : {}),
+    };
   } else next.trips.push(trip);
   const conversation = { ...conversationFrom(snapshot, tripId), messages: clone(messages) };
   const existingConversation = next.conversations.findIndex((item) => item.id === conversationId);
@@ -407,18 +416,19 @@ export function searchCatalog(
   catalog: WorkspaceCatalog,
   query: string,
 ): { conversations: ConversationRecord[]; trips: TripRecord[] } {
-  const needle = query.trim().toLocaleLowerCase();
-  if (!needle) return { conversations: [...catalog.conversations], trips: [...catalog.trips] };
-  const matches = (value: string) => value.toLocaleLowerCase().includes(needle);
+  const terms = query.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
+  if (!terms.length)
+    return { conversations: [...catalog.conversations], trips: [...catalog.trips] };
+  const matches = (...values: string[]) => {
+    const text = values.join(" ").toLocaleLowerCase();
+    return terms.every((term) => text.includes(term));
+  };
   return {
-    conversations: catalog.conversations.filter(
-      (item) => matches(item.title) || item.messages.some((message) => matches(message.text)),
+    conversations: catalog.conversations.filter((item) =>
+      matches(item.title, ...item.messages.map((message) => message.text)),
     ),
-    trips: catalog.trips.filter(
-      (item) =>
-        matches(item.title) ||
-        matches(item.snapshot.plan.brief.destination) ||
-        matches(item.snapshot.plan.brief.dates.join(" ")),
+    trips: catalog.trips.filter((item) =>
+      matches(item.title, item.snapshot.plan.brief.destination, ...item.snapshot.plan.brief.dates),
     ),
   };
 }

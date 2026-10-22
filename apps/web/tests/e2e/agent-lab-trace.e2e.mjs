@@ -1,6 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
+import { touchSized } from "./trip-setup.mjs";
 
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT ?? "playwright");
@@ -771,9 +772,15 @@ async function foldsPhone(browser) {
     return { left: r.left, right: r.right, height: r.height };
   });
   check(bar.left >= 0 && bar.right <= 390, `${tag}: the toolbar fits the screen`);
-  check(bar.height >= 44, `${tag}: fold buttons are touch-sized (${Math.round(bar.height)}px)`);
+  check(
+    touchSized(bar.height),
+    `${tag}: fold buttons are touch-sized (${Math.round(bar.height)}px)`,
+  );
   const phoneBlock = (await page.locator("[data-trace-block]").first().boundingBox()).height;
-  check(phoneBlock >= 44, `${tag}: bar blocks are 44px tall at phone width (${phoneBlock}px)`);
+  check(
+    touchSized(phoneBlock),
+    `${tag}: bar blocks are 44px tall at phone width (${phoneBlock}px)`,
+  );
   await first.tap();
   await page.screenshot({ path: `${OUT}/${tag}.png`, fullPage: true });
   await closeOut(session);

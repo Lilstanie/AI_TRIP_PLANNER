@@ -1,6 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
+import { touchSized } from "./trip-setup.mjs";
 const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT ?? "playwright");
 const BASE = process.env.BASE_URL ?? "http://localhost:3000";
 const OUT = resolve("output/playwright/phone-mine");
@@ -241,16 +242,18 @@ try {
       Boolean(emptyDateBox && focusStyle),
       `${width}: keyboard focus remains visible on the date cell`,
     );
-    const small = await mine.locator("button, input").evaluateAll((nodes) =>
-      nodes
-        .filter((node) => node.getClientRects().length)
-        .map((node) => ({
-          text: node.getAttribute("aria-label") ?? node.textContent,
-          box: node.getBoundingClientRect(),
-        }))
-        .filter(({ box }) => box.width < 44 || box.height < 44)
-        .map(({ text, box }) => `${text}: ${box.width}x${box.height}`),
-    );
+    const small = (
+      await mine.locator("button, input").evaluateAll((nodes) =>
+        nodes
+          .filter((node) => node.getClientRects().length)
+          .map((node) => {
+            const { width, height } = node.getBoundingClientRect();
+            return { text: node.getAttribute("aria-label") ?? node.textContent, width, height };
+          }),
+      )
+    )
+      .filter(({ width, height }) => !touchSized(width) || !touchSized(height))
+      .map(({ text, width, height }) => `${text}: ${width}x${height}`);
     check(!small.length, `${width}: all Mine targets at least 44px (${small.join(", ")})`);
     check(
       await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
@@ -273,8 +276,30 @@ try {
     );
     await selectMine();
     await mine.getByRole("tab", { name: "Trips", exact: true }).click();
-    await mine.locator(".trip-card").first().click();
-    check(await chatSelected(), `${width}: trip card opens Chat`);
+    const tripCard = mine.locator(".trip-card").first();
+    await tripCard.focus();
+    await page.keyboard.press("Enter");
+    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(resolve)));
+    check(await chatSelected(), `${width}: keyboard trip activation opens Chat`);
+    const focusAfterTrip = await page.evaluate(() => {
+      const title = document.querySelector(".phone-topbar__title-button");
+      return {
+        focused: title === document.activeElement,
+        visibleFocus: title?.matches(":focus-visible"),
+        title: title?.getAttribute("aria-label"),
+        active:
+          document.activeElement?.getAttribute("aria-label") ?? document.activeElement?.tagName,
+      };
+    });
+    check(
+      focusAfterTrip.focused &&
+        focusAfterTrip.visibleFocus &&
+        focusAfterTrip.title?.includes("Sydney"),
+      `${width}: keyboard trip activation focuses its named title control (${JSON.stringify(focusAfterTrip)})`,
+    );
+    if (width === 390) {
+      await page.screenshot({ path: `${OUT}/${width}-trip-title-focus.png` });
+    }
     await selectMine();
     await mine.locator('.history-item__open[title="Sydney ideas"]').click();
     check(await chatSelected(), `${width}: selecting chat opens Chat`);

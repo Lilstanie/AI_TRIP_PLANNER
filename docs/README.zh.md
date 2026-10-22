@@ -11,6 +11,7 @@
 | [架构](architecture.zh.md)                                    | 运行流程、包边界、agents 与模型                 |
 | [架构图](architecture-diagrams.zh.md)                         | 运行时、存储与工作区的交互式图表                |
 | [开发](development.zh.md)                                     | 环境配置、数据提供方与验证                      |
+| [演示运行手册](demo-runbook.zh.md)                            | 干净构建、演示所需环境变量与示例模式回退        |
 | [API](api.zh.md)                                              | 请求、响应、流式输出与错误                      |
 | [Agent Lab 发布记录](agent-lab-release-record-template.zh.md) | 受控部署冒烟记录模板                            |
 | [工作区界面](workspace-ui.zh.md)                              | 对话、地图、编辑和存储行为                      |

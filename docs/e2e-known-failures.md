@@ -15,12 +15,25 @@ before deciding whether a failing script is your regression; update it when you 
 The following failures also reproduce on unchanged baseline `42fded7` (2026-10-10), using a production
 server with `DATA_MODE=mock`, `USE_MOCK_TOOLS=true`, and blank `MOCK_GOOGLE_MAPS`, model and Clerk variables:
 
-| Script        | What fails                                                                                                                                                                                                                    | Issue    |
-| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| `timeline`    | The fare-decimals console check reports four 404 responses for fixture place details. The fixture uses stand-in place IDs without stubbing their details; all JPY/AUD/KRW fare and route checks pass (99/100 checks overall). | none yet |
-| `phone-state` | Reload does not restore Map at 390×844 and 360×800. Trip, Mine and Chat reload checks pass.                                                                                                                                   | none yet |
+| Script     | What fails                                                                                                                                                                                                                    | Issue    |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| `timeline` | The fare-decimals console check reports four 404 responses for fixture place details. The fixture uses stand-in place IDs without stubbing their details; all JPY/AUD/KRW fare and route checks pass (99/100 checks overall). | none yet |
+
+`phone-state` reloads now restore Map: the script reloads once before the restore loop, because a stale-edit section pauses layout persistence until a reload. That pause is a product gap, recorded in `apps/web/tests/e2e/phone-state.failures.md`.
 
 ## Covered regressions
+
+- `phone-map` on baseline `2e0f506b` (2026-10-19, #367) wrongly queried the renderer-error
+  fallback list when the default no-key map had successfully loaded OSM. It failed three repeated-place
+  checks at 390px and timed out on desktop before reaching 360px. The journey now waits for the map's
+  named place control and the resulting selected stop/details, preserving both providers' coverage.
+  Run `CHANNEL=chrome DATA_MODE=mock USE_MOCK_TOOLS=true pnpm --filter @trip/web e2e phone-map`
+  with model, Maps and Clerk keys blank; repeat with `WEB_MAPS_PROVIDER=google` to exercise the
+  no-key error list. Each mode explicitly asserts its renderer: ready OSM canvas by default, error list
+  for Google-only. Each run covers 390×844, 360×800 and desktop transitions; retain separate
+  attempts with `LABEL=<attempt>` under `output/playwright/phone-map/<attempt>/`.
+
+- `trip-initial-scroll` covers #375: on baseline `2e0f506`, a fresh desktop Trip view opened at scrollTop 163 and clipped the budget. The day strip now scrolls only horizontally. The browser check includes initial open, reopen, saved-chat reload, deliberate scroll restoration and keyboard day navigation at desktop and phone widths.
 
 - `agent-lab-replay` on PR #308 head `501af35` (2026-10-11) could miss the file chooser after keyboard
   Enter: the key event completed before Chromium acknowledged file-chooser interception. The journey

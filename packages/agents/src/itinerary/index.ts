@@ -16,15 +16,17 @@ import {
   type BudgetAllocation,
   type PlanningBoard,
   type StaySelection,
+  type InterfaceLanguage,
 } from "@trip/shared";
 import { z } from "zod/v4";
 import { createAgent, tool } from "langchain";
 import { createRoutedChatModel, readStructuredResponse } from "../models";
 import { dateForDay, planningDays, routeProblem } from "../transport/validation";
-import { cities, cityForDay, scheduledHops } from "../transport/legs";
+import { cities, cityForDay, parseCityHop, scheduledHops } from "../transport/legs";
 import { avoidBlockedWindows } from "./revision";
 import { mockEnabled } from "@trip/tools";
 import { TRAVELLER_PREFERENCES_RULE } from "../prompts/traveller-preferences";
+import { summaryCopy } from "../summary-copy";
 
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
 const MODEL_ACTIVITY_BUDGET_SHARE = 0.4;
@@ -75,8 +77,8 @@ export interface ItineraryGenerator {
 export interface TransferSegment {
   from: string;
   to: string;
-  startTime: string;
-  endTime: string;
+  startTime?: string;
+  endTime?: string;
 }
 
 export interface ItineraryAgentOptions {
@@ -125,15 +127,56 @@ function citiesForStayNights(
     })
     .sort((left, right) => left.checkIn.localeCompare(right.checkIn));
 
+  let currentCity: string | undefined = knownCities[0];
+  let locationSource: "fallback" | "stay" | "transfer" = "fallback";
   return Array.from({ length: days }, (_, index) => {
     const date = dateForDay(brief.dates[0], index + 1);
-    const stay =
-      scheduled.find(({ checkIn, checkOut }) => checkIn <= date && date < checkOut) ??
-      (date === brief.dates[1] ? scheduled.at(-1) : undefined);
-    if (!stay) return fallback[index] ?? [];
+    const stay = scheduled.find(({ checkIn, checkOut }) => checkIn <= date && date < checkOut);
     const transfers = transferWindows.get(index + 1) ?? [];
-    const transferCities = [...new Set(transfers.flatMap(({ from, to }) => [from, to]))];
-    return transferCities.includes(stay.city) ? transferCities : [stay.city];
+    if (!currentCity) return [];
+    if (!transfers.length) {
+      if (stay) {
+        if (locationSource === "transfer" && currentCity !== stay.city) {
+          currentCity = undefined;
+          return [];
+        }
+        currentCity = stay.city;
+        if (locationSource !== "transfer") locationSource = "stay";
+      } else if (locationSource === "fallback") {
+        currentCity = fallback[index]?.at(-1) ?? currentCity;
+      }
+      return [currentCity];
+    }
+    const timed = transfers.every(({ startTime, endTime }) => startTime && endTime);
+    const remaining = [...transfers];
+    const ordered: TransferWindow[] = [];
+    while (remaining.length) {
+      const candidates = remaining.filter(({ from }) => from === currentCity);
+      if (candidates.length !== 1) {
+        currentCity = undefined;
+        return [];
+      }
+      const [transfer] = candidates;
+      if (
+        ordered.length &&
+        timed &&
+        minutes(transfer.startTime!) < minutes(ordered.at(-1)!.endTime!)
+      ) {
+        currentCity = undefined;
+        return [];
+      }
+      ordered.push(transfer);
+      remaining.splice(remaining.indexOf(transfer), 1);
+      currentCity = transfer.to;
+    }
+    locationSource = "transfer";
+    const transferCities = [...new Set(ordered.flatMap(({ from, to }) => [from, to]))];
+    if (!stay) return transferCities;
+    if (currentCity !== stay.city) {
+      currentCity = undefined;
+      return [];
+    }
+    return transferCities;
   });
 }
 
@@ -141,31 +184,40 @@ function transferWindowsByDay(
   destination: string,
   transport?: AgentProposal,
 ): Map<number, TransferWindow[]> {
-  const knownCities = cities(destination);
   const windows = new Map<number, TransferWindow[]>();
   for (const item of transport?.items ?? []) {
-    if (!item.day || !item.startTime || !item.endTime) continue;
-    const [rawFrom, rawTo] = (item.location ?? "").split(" → ").map((part) => part.trim());
-    const from = knownCities.find(
-      (city) => city.toLocaleLowerCase() === rawFrom?.toLocaleLowerCase(),
-    );
-    const to = knownCities.find((city) => city.toLocaleLowerCase() === rawTo?.toLocaleLowerCase());
-    if (!from || !to || !TIME.test(item.startTime) || !TIME.test(item.endTime)) continue;
+    if (!item.day) continue;
+    const hop = parseCityHop(destination, item.location);
+    if (!hop) continue;
+    const { from, to } = hop;
+    const startTime =
+      item.startTime && item.endTime && TIME.test(item.startTime) && TIME.test(item.endTime)
+        ? item.startTime
+        : undefined;
+    const endTime = startTime ? item.endTime : undefined;
     const dayWindows = windows.get(item.day) ?? [];
     const sameHop = dayWindows.find((window) => window.from === from && window.to === to);
     if (sameHop) {
-      if (minutes(item.startTime) < minutes(sameHop.startTime)) sameHop.startTime = item.startTime;
-      if (minutes(item.endTime) > minutes(sameHop.endTime)) sameHop.endTime = item.endTime;
+      if (startTime && endTime && sameHop.startTime && sameHop.endTime) {
+        if (minutes(startTime) < minutes(sameHop.startTime)) sameHop.startTime = startTime;
+        if (minutes(endTime) > minutes(sameHop.endTime)) sameHop.endTime = endTime;
+      } else {
+        delete sameHop.startTime;
+        delete sameHop.endTime;
+      }
     } else {
       dayWindows.push({
         day: item.day,
         from,
         to,
-        startTime: item.startTime,
-        endTime: item.endTime,
+        ...(startTime && endTime ? { startTime, endTime } : {}),
       });
     }
     windows.set(item.day, dayWindows);
+  }
+  for (const dayWindows of windows.values()) {
+    if (dayWindows.every(({ startTime, endTime }) => startTime && endTime))
+      dayWindows.sort((left, right) => minutes(left.startTime!) - minutes(right.startTime!));
   }
   return windows;
 }
@@ -173,6 +225,33 @@ function transferWindowsByDay(
 function minutes(time: string): number {
   const [hour, minute] = time.split(":").map(Number);
   return hour! * 60 + minute!;
+}
+
+function activityFitsTransferWindows(
+  activity: Pick<ItineraryDraft["activities"][number], "startTime" | "endTime">,
+  city: string,
+  windows: readonly TransferWindow[],
+): boolean {
+  if (!windows.length) return true;
+  const timedWindows = windows.filter(
+    (window): window is TransferWindow & { startTime: string; endTime: string } =>
+      Boolean(window.startTime && window.endTime),
+  );
+  if (timedWindows.length !== windows.length) return false;
+  const start = minutes(activity.startTime);
+  const end = minutes(activity.endTime);
+  if (
+    timedWindows.some(
+      (window) => start < minutes(window.endTime) && end > minutes(window.startTime),
+    )
+  )
+    return false;
+  const previous = timedWindows.filter((window) => minutes(window.endTime) <= start).at(-1);
+  const next = timedWindows.find((window) => minutes(window.startTime) >= end);
+  if (previous && next) return previous.to === city && next.from === city;
+  if (previous) return previous.to === city;
+  if (next) return next.from === city;
+  return false;
 }
 
 function validateDraft(
@@ -186,7 +265,7 @@ function validateDraft(
 ): ItineraryDraft {
   const parsed = ItineraryDraft.parse(draft);
 
-  if (dayCities && placesByCity && placesByCity.size > 1) {
+  if (dayCities && placesByCity) {
     const cityOf = new Map<string, string[]>();
     for (const [city, found] of placesByCity)
       for (const place of found) {
@@ -200,11 +279,7 @@ function validateDraft(
         const windows = transferWindows.get(activity.day) ?? [];
         const compatible = found.some((city) => {
           if (!allowed.includes(city)) return false;
-          return windows.every((window) => {
-            if (city === window.from) return minutes(activity.endTime) <= minutes(window.startTime);
-            if (city === window.to) return minutes(activity.startTime) >= minutes(window.endTime);
-            return true;
-          });
+          return activityFitsTransferWindows(activity, city, windows);
         });
         if (!compatible) {
           throw new Error(
@@ -273,6 +348,7 @@ function fallbackDraft(
   placesByCity?: ReadonlyMap<string, readonly Place[]>,
   dayCities?: string[][],
   transferWindows: ReadonlyMap<number, TransferWindow[]> = new Map(),
+  language?: InterfaceLanguage,
 ): ItineraryDraft {
   const candidates = places;
 
@@ -303,11 +379,7 @@ function fallbackDraft(
       const city = dayCitiesForActivities.find((candidate) => {
         const cityPlaces = placesForCity(candidate);
         if (!cityPlaces.length) return false;
-        return dayWindows.every((window) => {
-          if (candidate === window.from) return minutes(slot.endTime) <= minutes(window.startTime);
-          if (candidate === window.to) return minutes(slot.startTime) >= minutes(window.endTime);
-          return true;
-        });
+        return activityFitsTransferWindows(slot, candidate, dayWindows);
       });
       if (!city) continue;
       const cityPlaces = placesForCity(city);
@@ -324,7 +396,7 @@ function fallbackDraft(
     if (!added) incompleteDays.push(day);
   }
   return {
-    summary: `${days}-day plan for ${brief.destination} with up to ${perDay} grounded ${perDay === 1 ? "activity" : "activities"} per day`,
+    summary: summaryCopy(language).itinerary(days, brief.destination, perDay),
     activities,
     assumptions: [
       "Opening hours and live availability must be confirmed before plans are finalised.",
@@ -346,9 +418,10 @@ function validatedFallbackDraft(
   placesByCity: ReadonlyMap<string, readonly Place[]>,
   dayCities: string[][],
   transferWindows: ReadonlyMap<number, TransferWindow[]>,
+  language: InterfaceLanguage | undefined,
 ): ItineraryDraft {
   return validateDraft(
-    fallbackDraft(brief, days, places, placesByCity, dayCities, transferWindows),
+    fallbackDraft(brief, days, places, placesByCity, dayCities, transferWindows, language),
     days,
     places,
     dayCities,
@@ -581,7 +654,7 @@ async function planItinerary(
   if (!places.length) {
     return {
       agent: "itinerary",
-      summary: "Itinerary needs verified place data",
+      summary: summaryCopy(ctx.replyLanguage).itineraryNeedsPlaces,
       items: [],
       assumptions: [
         ...evidenceIssues,
@@ -662,10 +735,26 @@ async function planItinerary(
     if (accepted) draft = accepted;
     else {
       usedFallback = true;
-      draft = validatedFallbackDraft(brief, days, places, placesByCity, dayCities, transferWindows);
+      draft = validatedFallbackDraft(
+        brief,
+        days,
+        places,
+        placesByCity,
+        dayCities,
+        transferWindows,
+        ctx.replyLanguage,
+      );
     }
   } else {
-    draft = validatedFallbackDraft(brief, days, places, placesByCity, dayCities, transferWindows);
+    draft = validatedFallbackDraft(
+      brief,
+      days,
+      places,
+      placesByCity,
+      dayCities,
+      transferWindows,
+      ctx.replyLanguage,
+    );
   }
   let adjusted = avoidBlockedWindows(draft, revision);
   if (usedFallback) {
@@ -697,6 +786,13 @@ async function planItinerary(
   let connections: Connections = new Map();
   let conflicts = [
     ...adjusted.conflicts,
+    ...dayCities.flatMap((allowed, index) =>
+      allowed.length
+        ? []
+        : [
+            `geography conflict: day ${index + 1} transport does not end in the selected overnight city; activities were omitted`,
+          ],
+    ),
     ...(await travelConflicts(draft, ctx, brief, connections, coordinates)),
     ...(usedFallback
       ? Array.from({ length: days }, (_, index) => index + 1)
@@ -712,6 +808,7 @@ async function planItinerary(
       placesByCity,
       dayCities,
       transferWindows,
+      ctx.replyLanguage,
     );
     const adjustedFallback = avoidBlockedWindows(originalFallback, revision);
     let fallback = adjustedFallback;

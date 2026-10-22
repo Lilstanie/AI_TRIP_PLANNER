@@ -56,6 +56,12 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 }
 ```
 
+`brief.destination` 按访问顺序保存要去的城市，以 `&` 连接（“Sydney & Wollongong”）；
+`@trip/agents` 中的 `cities` 和 Where 编辑器都按这种形式读取。模型抽取直接提供这种形式；
+离线抽取只归一化明确的 `&` 和 `、` 分隔符。名称含有 “and” 时，例如 “Trinidad and Tobago”，
+先请旅行者保留完整地名或确认多个目的地，再生成计划。确认过程保留已收集的行程字段，
+已有计划在回答前保持原样。结构化模型结果不会再按连接词猜测拆分。
+
 `brief.preferences` 和 `known.preferences` 是可选字段，保存旅行者自己的旅行偏好
 （“素食”“不要太早开始”）。最多包含 `MAX_TRIP_PREFERENCES`（12）条，每条在去除首尾空白后为
 1 到 `MAX_TRIP_PREFERENCE_LENGTH`（200）个字符；这两个常量都位于
@@ -92,8 +98,12 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 
 `brief.party` 和 `known.party` 也是可选字段，格式为 `{ adults, children, infants, seniors, pets }`，
 各项为 0 到 99 的整数（`packages/shared/src/contracts.ts` 中的 `TravellerParty`），
-由 Who 编辑器的步进控件设置。它们细分 `groupSize` 并补充宠物数量；宠物不计入其中。
+由 Who 编辑器的步进控件设置；当旅行者说明同行人构成而不只给出总数时（“1 adult and 1 child”、“两位大人和一个小孩”），
+协调器也会写入。之后的消息若给出新的总数，这份细分会被清除，因为它已不再描述该同行人群。它们细分 `groupSize` 并补充宠物数量；宠物不计入其中。
 所有费用仍以 `groupSize` 为准，specialist 会收到指令：如果 party 中的人数之和与它不符，就忽略 party。
+
+Mock 浏览器检查 `party-breakdown-browser` 通过聊天提交明确的人数组成，并在桌面和手机宽度检查
+Who 中的五项计数，包括保存行程后重新打开的情况。
 
 可选的 `assistant`：来自 Settings → Personalization 的 `{ style, memory }`（`packages/shared/src/chat.ts` 中的
 `AssistantSettings`）。
@@ -145,7 +155,7 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 只有协调器能看到附件：图片以 OpenAI 风格的 `image_url` 内容块传入，文本文件则内联到消息中，
 使用注明文件名的分隔符；specialist 的输入不变。没有提供方密钥时，图片被忽略，内联文本仍会被读取。
 
-新规划请求的开始或结束日期早于目的地当地日历日期时，会明确询问日期，不直接生成方案。Web 客户端会发送旅客从目的地建议中选定的坐标，服务端使用离线坐标时区查询；没有坐标时则使用 UTC。旅客可以提供新日期，也可以针对对应的澄清明确确认保留历史日期。携带已有方案时仍可编辑历史行程。如果修改没有改变实际活动、住宿、交通和费用，回复会说明方案未改变，不会声称已完成所请求的修改。
+新规划请求的开始或结束日期早于目的地当地日历日期时，会明确询问日期，不直接生成方案。Web 客户端会发送旅客从目的地建议中选定的坐标，服务端使用离线坐标时区查询；没有坐标时则使用 UTC。旅客可以提供新日期，也可以针对对应的澄清明确确认保留历史日期。多问题卡片回复中，只要单独一行包含确认即可（例如 `Dates: Confirm historical trip`）；没有匹配的日期澄清时，不接受该确认。携带已有方案时仍可编辑历史行程。如果修改没有改变实际活动、住宿、交通和费用，回复会说明方案未改变，不会声称已完成所请求的修改。
 
 可选的 `mode` 值：
 
@@ -210,11 +220,11 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 `{ "type": "event", "event": { ... } }`，最后一帧格式为
 `{ "type": "complete", "artifact": { ... } }`。产物包含经过校验的计划、有序事件、
 确定性指标，以及明确的 fixture／评估器版本。`metrics.checks` 逐项列出按场景规则衡量的具名检查
-（`id`、`label`、`passed`）；计划超出预算时 `budgetHeadroom` 为负数。若场景的证据表明没有任何计划放得下，则用 `evidence-floor`（估算不低于受支持的最便宜选项）和 `infeasibility-reported`（计划指出受支持的最低成本）取代 `budget` 和 `no-conflicts`；多城市场景再增加 `hop-date`、`itinerary-by-city`、`stay-transition`、`trip-dates` 和 `total-consistent`。`versions.evaluator` 为 `scenario-rules-v2`，`versions.fixture` 指明场景的 fixture。对比数据 `rounds`、`toolCalls`、`fallbacks`、`failedAgents` 和
+（`id`、`label`、`passed`）；计划超出预算时 `budgetHeadroom` 为负数。若场景的证据表明没有任何计划放得下，则用 `evidence-floor`（估算不低于受支持的最便宜选项）和 `infeasibility-reported`（计划指出受支持的最低成本）取代 `budget` 和 `no-conflicts`；多城市场景增加 `hop-date`、`itinerary-by-city`、`stay-transition`、`stay-nights`、`trip-dates` 和 `total-consistent`，其中 `trip-dates` 同时验证计划简报日期与首尾住宿日期。`stay-date-range` 仍用于独立的住宿日期边界场景。冲突餐饮偏好必须由不同餐食分别提供证据。`versions.evaluator` 为 `scenario-rules-v8`，`versions.fixture` 指明场景的 fixture。对比数据 `rounds`、`toolCalls`、`fallbacks`、`failedAgents` 和
 `unresolvedConflicts` 由轨迹和计划统计得出；`latencyMs` 是不含显示节奏延迟的运行耗时（`durationMs` 含该延迟），
-在 fixture 模式下仅衡量编排开销。产物还记录 `groundedSections`、`duplicateStops`、`genericStops`、
+在 fixture 模式下仅衡量编排开销。场景还可包含专属检查：`meal-preference-tradeoff`、`actionable-brief` 和 `trip-days`。产物还记录 `groundedSections`、`duplicateStops`、`genericStops`、
 `multiCityConsistent`（单城市旅行为 `null`）、`stopReason`（没有循环的策略为 `null`）和 `usage`；fixture 运行不调用
-模型，所以 `usage` 为 `{ "status": "unavailable" }`：缺失的用量绝不会被当作 0。除 `durationMs` 和 `latencyMs` 外，
+模型，所以 `usage` 为 `{ "status": "unavailable" }`：缺失的用量绝不会被当作 0。场景专属检查还可包括 `stay-date-range`。除 `durationMs` 和 `latencyMs` 外，
 每个指标都能仅凭最终计划和轨迹重新计算，不需要模型来评判。修订运行会增加轨迹事件 `lab_conflict_detected`、
 `lab_revision_started`、`lab_revision_scored` 和 `lab_loop_stopped`。客户端取消请求会中止运行，不发送完成帧。
 运行失败时（包括被故障终止的运行），会发送 `error` 帧；其中包含不敏感的消息，以及记录失败前事件的结构化

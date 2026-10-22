@@ -364,6 +364,9 @@ async function run(browser, size) {
     .evaluate((n) => n.blur());
   await viewport(page, size.height);
   await page.unroute("**/api/chat");
+  await page.reload();
+  await page.locator(".phone-tabbar").waitFor();
+  await settle(page);
   for (const name of ["Map", "Trip", "Mine", "Chat"]) {
     await select(page, name);
     await page.waitForTimeout(900);
