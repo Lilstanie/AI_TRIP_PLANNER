@@ -724,6 +724,6 @@ button.assistant-chip:disabled {
 
 @media (max-width: 520px) {
   button.assistant-chip {
-    min-height: 44px;
+    min-height: 44px !important;
   }
 }

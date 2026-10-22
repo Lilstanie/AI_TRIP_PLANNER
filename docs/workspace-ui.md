@@ -230,7 +230,8 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
   - The single-row top bar shows the destination and dates, or New trip. Its title opens Trip details:
     Where, When, Who, Budget and Preferences as rows. Each row opens the existing editor; saving or
     closing returns focus to the title. Editors are bottom sheets with 44 px targets, including each
-    sheet's close button and its primary action.
+    sheet's close button and its primary action, and in When every day cell, both month arrows and
+    Clear.
   - Trip shows Your Trip in place, with Budget and the day view. Before
     planning it explains the empty state and offers Plan in Chat. A plan created or changed while
     another tab is selected adds an accessible update dot to Trip; opening Trip clears it. Read revisions are tracked per trip,
