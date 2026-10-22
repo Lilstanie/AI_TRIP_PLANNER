@@ -294,6 +294,12 @@ CI 还会运行 `node scripts/format-check-changed.mjs <base>`（即 `pnpm forma
 node scripts/pr-delivery-status.mjs <pull-request-number>
 ```
 
+要证明一次修复让某个 E2E 脚本由失败变为通过，给出脚本名和它所测的源文件路径。该命令先用这些路径在 `origin/main` 上的版本运行脚本，再用工作区版本运行；即使被中断也会还原工作区；只有第一次失败且第二次通过时才以 0 退出。把输出的最后两行贴进 PR 的 Evidence 部分。`--base <ref>` 可与其他提交比较；其失败清单见 [scripts/redgreen.failures.md](../scripts/redgreen.failures.md)。
+
+```bash
+node scripts/redgreen.mjs <e2e-name> [--prod] -- <source-path>...
+```
+
 使用 `pnpm --filter @trip/agents test`、`pnpm --filter @trip/orchestrator test` 或 `pnpm --filter @trip/web test` 针对特定包运行测试。Web 测试脚本使用 POSIX shell 语法设置 `NODE_OPTIONS`；Windows 上应从 WSL 或 Git Bash 运行。
 
 如果在 `pnpm dev` 运行时执行 `pnpm build`，启动开发服务器时应设置 `NEXT_DIST_DIR=.next-dev`，避免二者共用 `.next` 输出目录。
