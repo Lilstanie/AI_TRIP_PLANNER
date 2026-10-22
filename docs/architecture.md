@@ -388,7 +388,7 @@ a currency without an amount, and the offline extractor uses `detectCurrency` on
 browser reads one rule everywhere it picks a currency, `effectiveCurrency()` in
 `packages/shared/src/money.ts`: `displayCurrency`, else `budgetSource.currency`, else the Settings
 display currency. Planning, guardrails and stored amounts stay AUD; `budgetSource` keeps the stated
-amount and currency. Replacing the budget without a new source clears the old source; changing only the display currency preserves it. Chinese traveller counts accept cardinal numbers from 1 through 99. A trip never writes Settings. The server applies the same rule to the text it
+amount and currency. A bare budget number is stored as AUD with no source, and the coordinator prompt has the reply say it was taken as AUD and can be changed, never that the currency is open. Replacing the budget without a new source clears the old source; changing only the display currency preserves it. Chinese traveller counts accept cardinal numbers from 1 through 99. A trip never writes Settings. The server applies the same rule to the text it
 writes: it takes the Settings currency from the chat request's optional `displayCurrency` (absent means
 AUD), picks `effectiveCurrency(brief, request.displayCurrency ?? "AUD")` and passes the result to
 `formatMoney` at every call site (specialist summaries, conflict reasons and constraints, coordinator
