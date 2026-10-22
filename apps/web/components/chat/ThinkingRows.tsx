@@ -19,7 +19,6 @@ import {
   dotState,
   faviconSrc,
   labels,
-  reasoningSummary,
   resultHost,
   resultKind,
   statusLabels,
@@ -53,7 +52,6 @@ export function Children({ children, ...rest }: HTMLAttributes<HTMLDivElement>) 
 
 export function ReasoningRow({ block, open }: { block: ReasoningBlock; open: OpenRows }) {
   const { t } = useLocale();
-  const summary = reasoningSummary(block.text, block.running);
   return (
     <>
       {block.running && <VisuallyHidden>{t("Running")}</VisuallyHidden>}
@@ -68,7 +66,7 @@ export function ReasoningRow({ block, open }: { block: ReasoningBlock; open: Ope
         collapsedContent={
           <>
             <RowSeparator />
-            <RowSummary text={summary} followEnd={block.running} />
+            <RowSummary text={t("Thinking")} followEnd={block.running} />
           </>
         }
       >

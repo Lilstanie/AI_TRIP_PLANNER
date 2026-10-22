@@ -205,7 +205,7 @@ describe("thinking surface", () => {
     fireEvent.click(subagentButton("Day plan", "Complete"));
     const reasoning = screen.getAllByRole("button", { name: /^Think/ }).slice(1);
     expect(reasoning).toHaveLength(1);
-    expect(reasoning[0].textContent).toContain("The traveller wants three days in Sydney.");
+    expect(reasoning[0].textContent).toBe("ThinkThinking");
     fireEvent.click(reasoning[0]);
     expect(document.querySelector(".thinking-reasoning__body")?.textContent).toBe(
       "The traveller wants three days in Sydney.\nDelegate the stay search first.\n",
@@ -229,8 +229,8 @@ describe("thinking surface", () => {
     render(<ThinkingProcess activity={streaming} busy />);
 
     const turnSummary = turnRow().querySelector(".thinking-row__summary");
-    expect(turnSummary?.textContent).toBe("The ferry is quicker.");
-    expect(turnSummary?.hasAttribute("data-follow-end")).toBe(true);
+    expect(turnSummary?.textContent).toBe("Working with Day plan");
+    expect(turnSummary?.hasAttribute("data-follow-end")).toBe(false);
 
     fireEvent.click(turnRow());
     fireEvent.click(subagentButton("Day plan", "Thinking"));
@@ -238,7 +238,7 @@ describe("thinking surface", () => {
     expect(rows).toHaveLength(1);
     expect(rows[0]?.getAttribute("data-state")).toBe("running");
     const summary = rows[0]?.querySelector(".thinking-row__summary");
-    expect(summary?.textContent).toBe("The ferry is quicker.");
+    expect(summary?.textContent).toBe("Thinking");
     expect(summary?.hasAttribute("data-follow-end")).toBe(true);
   });
 
