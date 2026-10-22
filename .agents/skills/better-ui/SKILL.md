@@ -90,6 +90,12 @@ and `apps/web/components/map/PlacePreview.tsx`; route provider changes through
 - **Keep what assistive technology needs.** A form label or control's accessible name stays even when
   it is visually redundant, such as a visible "搜索" button beside a search field. Hide copy from
   the screen only with a method that keeps the accessible name.
+- **Check before pushing.** `node .agents/skills/better-ui/scripts/check-ui-copy.mjs` lists helper-copy
+  classes (`hint`, `helper`, `description`, `subtitle`, `caption`, `microcopy`, `tagline`, `eyebrow`,
+  `lede`) that the branch adds under `apps/web/components` and `apps/web/app` compared with
+  `origin/main`. It exits 1 on any hit not in [ui-copy-allowlist.txt](references/ui-copy-allowlist.txt), one
+  `<path> <class>` pair per line. It reads only literal `className="..."` strings, so a class built in
+  an expression is not seen.
 
 ## Icons
 
