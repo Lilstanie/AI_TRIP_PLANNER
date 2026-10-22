@@ -120,6 +120,45 @@ try {
       `${locale} every Personalization edit row has a 44 px target with a live lower edge`,
       editTargets,
     );
+    const editorTargets = [];
+    for (let index = 0; index < (await editButtons.count()); index += 1) {
+      const button = editButtons.nth(index);
+      await button.scrollIntoViewIfNeeded();
+      await button.click();
+      const editor = dialog.locator(".memory-row__editor");
+      await editor.waitFor();
+      if (index === 0)
+        await page.screenshot({ path: `${out}/${locale}-personalization-editor.png` });
+      editorTargets.push(
+        ...(await editor.evaluate(
+          (element, row) =>
+            [...element.querySelectorAll("button, input, select, textarea")]
+              .filter((control) => control.getClientRects().length > 0)
+              .map((control) => {
+                const target =
+                  control.type === "checkbox" ? (control.closest("label") ?? control) : control;
+                const rect = target.getBoundingClientRect();
+                return {
+                  row,
+                  control: control.getAttribute("aria-label") ?? control.textContent.trim(),
+                  width: Math.round(rect.width),
+                  height: Math.round(rect.height),
+                };
+              }),
+          await button.getAttribute("aria-label"),
+        )),
+      );
+      await button.click();
+      await editor.waitFor({ state: "detached" });
+    }
+    const shortEditorTargets = editorTargets.filter(
+      ({ width, height }) => !touchSized(width) || !touchSized(height),
+    );
+    check(
+      editorTargets.length > 0 && shortEditorTargets.length === 0,
+      `${locale} every control in an opened Personalization editor is 44 x 44`,
+      shortEditorTargets.length ? shortEditorTargets : editorTargets.length,
+    );
     check(
       (await page.evaluate(() => document.documentElement.scrollWidth)) === 390,
       `${locale} phone page has no horizontal overflow`,
