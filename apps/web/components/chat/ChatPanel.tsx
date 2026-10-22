@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { type AgentProgressEvent, type TripPlan } from "@trip/shared";
 import { quickPrompts } from "@/lib/planning/quick-prompts";
 import { translate } from "@/lib/i18n/locale";
@@ -86,11 +86,33 @@ export function ChatPanel({
       stream.current?.scrollTo({ top: stream.current.scrollHeight });
   }, [messages, activity]);
 
+  const empty = !plan && !messages.length;
+  const [more, setMore] = useState(false);
+  useEffect(() => {
+    const node = stream.current;
+    if (!empty || !node) return setMore(false);
+    const update = () => setMore(node.scrollTop + node.clientHeight < node.scrollHeight - 1);
+    const observer = typeof ResizeObserver === "function" ? new ResizeObserver(update) : undefined;
+    observer?.observe(node);
+    if (node.firstElementChild) observer?.observe(node.firstElementChild);
+    node.addEventListener("scroll", update, { passive: true });
+    update();
+    return () => {
+      observer?.disconnect();
+      node.removeEventListener("scroll", update);
+    };
+  }, [empty]);
+
   const prompts = useMemo(() => quickPrompts(), []);
   return (
     <section className="panel chat" aria-label={t("Chat")}>
-      <div className="chat__stream" ref={stream} aria-busy={busy}>
-        {!plan && !messages.length && (
+      <div
+        className="chat__stream"
+        ref={stream}
+        aria-busy={busy}
+        data-more={more ? "true" : undefined}
+      >
+        {empty && (
           <div className="chat-empty">
             <h3>{t("Where to next?")}</h3>
             <p>

@@ -290,7 +290,7 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
   listed under Trips once a plan is produced; until then it is a blank conversation under Chats. The
   [New trip Agent Note](../.agents/notes/archived/feature/2026-09-24-new-trip.md) records why.
 - **Starting to plan.**
-  - A blank chat offers example trip suggestions. Selecting one sends a prompt and starts planning.
+  - A blank chat offers example trip suggestions. Selecting one sends a prompt and starts planning. When the card does not fit the chat stream (a short phone), the stream's bottom edge fades out until it is scrolled to the end, so the hidden examples and Add trip details are signalled.
     The prompt follows the interface language while keeping its dates, travellers and budget;
     data-mode tooltips and the action name for an untitled chat follow that language too.
     The browser title follows the active trip and the locale-formatted date range, and returns to
