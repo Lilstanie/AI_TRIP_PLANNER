@@ -472,6 +472,7 @@ button.settings-chip[aria-pressed="true"] {
   .settings-nav button.settings-tab,
   .settings-select,
   button.settings-switch,
+  button.memory-row__main,
   button.memory-row__answer,
   .dialog__head button,
   .dialog:has(.settings) .dialog__head button {
