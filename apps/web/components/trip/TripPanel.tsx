@@ -57,10 +57,17 @@ export function TripPanel({
   ] as const;
   const budgetBreakdown = budgetCategories.map(({ id, label }) => {
     const sections = plan.sections.filter((section) => section.id === id);
+    const amount = sections.reduce((sum, section) => sum + section.estCost, 0);
     return {
       id,
       label,
-      amount: sections.reduce((sum, section) => sum + section.estCost, 0),
+      amount,
+      notCosted:
+        id === "transport" &&
+        amount === 0 &&
+        !sections.some((section) =>
+          section.proposal?.items.some((item) => item.estCost !== undefined),
+        ),
       unpriced: sections.reduce(
         (sum, section) =>
           sum + (section.proposal?.items.filter((item) => item.estCost === undefined).length ?? 0),
@@ -71,7 +78,11 @@ export function TripPanel({
   const unpriced = itineraryActivities(plan).filter(
     (item) => item.estCost === undefined && !(item.id && picks.has(item.id)),
   ).length;
-  const unpricedCaution = unpriced > 0 && (atBudget || gap?.direction === "under");
+  const transportMissing = budgetBreakdown.some(
+    (category) => category.id === "transport" && (category.notCosted || category.unpriced > 0),
+  );
+  const unpricedCaution =
+    (unpriced > 0 || transportMissing) && (atBudget || gap?.direction === "under");
   const [start, end] = plan.brief.dates;
   const dateRange = dateRangeLabel(start, end, locale) ?? `${start} – ${end}`;
   return (
@@ -106,11 +117,15 @@ export function TripPanel({
                 : over
                   ? t("Over budget")
                   : atBudget
-                    ? unpriced > 0
-                      ? t("At budget · unpriced stops not counted")
-                      : t("At budget")
+                    ? transportMissing
+                      ? t("At budget · unpriced costs not counted")
+                      : unpriced > 0
+                        ? t("At budget · unpriced stops not counted")
+                        : t("At budget")
                     : unpricedCaution
-                      ? t("Known estimate within budget · unpriced stops not counted")
+                      ? transportMissing
+                        ? t("Known estimate within budget · unpriced costs not counted")
+                        : t("Known estimate within budget · unpriced stops not counted")
                       : t("Within budget")}
             </span>
           </div>
@@ -136,7 +151,13 @@ export function TripPanel({
               <li key={category.id}>
                 <span>{t(category.label)}</span>
                 <span>
-                  <strong>{money(category.amount)}</strong> · {t("Estimated")}
+                  {category.notCosted ? (
+                    <strong>{t("Not costed")}</strong>
+                  ) : (
+                    <>
+                      <strong>{money(category.amount)}</strong> · {t("Estimated")}
+                    </>
+                  )}
                   {category.unpriced > 0 && (
                     <> · {t("{count} unpriced", { count: category.unpriced })}</>
                   )}
@@ -157,6 +178,9 @@ export function TripPanel({
                 count: unpriced,
               })}
             </p>
+          )}
+          {transportMissing && (
+            <p className="trip__budget-note">{t("Not included: transport without a price.")}</p>
           )}
           <CurrencyNotice />
         </details>
