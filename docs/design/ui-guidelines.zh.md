@@ -16,6 +16,7 @@
 
 以下网站提供交互模式、动效、组件和视觉方向的参考。它们帮助实现选型，但不能替代本项目自身的无障碍、语义 token 或工作区布局约定。
 
+- [Apple macOS 27 UI Kit](https://www.figma.com/community/file/1651309434229735362/macos-27) 与 [Apple 材质规范](https://developer.apple.com/design/human-interface-guidelines/materials)：用于校准材质层次、控件与明暗状态。当前公开预览未提供组件属性；项目 CSS 值是适配结果，并非提取的 Figma 参数。既有浮层范围仍遵循本项目约定。
 - [Beautiful UI](https://beautifului.dev)
 - [BeUI](https://beui.dev)
 - [Rare UI](https://rareui.com)
@@ -79,10 +80,12 @@
 
 玻璃采用 Liquid Glass，即 iOS 26 中半透明、模糊、略提高饱和度并带明亮镜面边缘的材质。它应用于**每个悬浮层**：侧边栏、Chats 面板、顶部栏胶囊、分段控件、输入框、空状态卡片、提示、地图覆盖层、抽屉、旅行信息浮层、对话框、旅行卡片标题和旅行日历。`apps/web/app/styles/glass.css` 维护该列表。
 
-- 玻璃值仅来自 `tokens.css` 中的语义 token（`--glass-bg`、`--glass-bg-strong`、`--glass-border`、`--glass-edge`、`--glass-highlight`、`--glass-shadow`、`--glass-blur`、`--glass-saturate`），同时提供浅色和深色值。文字密集的层使用 `--glass-bg-strong`。
+- 玻璃值仅来自 `tokens.css` 中的语义 token（`--glass-bg`、`--glass-bg-strong`、`--glass-border`、`--glass-edge`、`--glass-highlight`、`--glass-sheen`、`--glass-shadow`、`--glass-blur`、`--glass-saturate`），同时提供浅色和深色值。文字密集的层使用 `--glass-bg-strong`。
 - 玻璃绝不叠加在玻璃上：玻璃层内的菜单、工具提示和建议列表使用不透明材质；抽屉内的分段轨道使用填充。
 - 玻璃上的文字和图标，在它们可能覆盖的最复杂背景上仍须满足 WCAG AA。不满足时，提高填充不透明度，不要添加文字阴影。
 - 不支持 `backdrop-filter`、启用 `prefers-reduced-transparency: reduce` 或 `prefers-contrast: more` 时，玻璃回退到 `--surface`；在 forced-colors 模式下回退到系统颜色。
+
+材质保留 24 px 模糊，将饱和度收敛至 150%，使用边缘高光代替大面积内发光；`--glass-sheen` 分别定义明暗主题的轻微反光。普通/密集文字填充的浅色不透明度为 64%/86%，深色为 60%/88%。这些值是 Web 适配参数；减少透明度、提高对比度及强制颜色模式都移除反光和模糊，控件保留实色边界。
 
 实现方法见 [better-ui 玻璃参考](../../.agents/skills/better-ui/references/glass.md)。
 

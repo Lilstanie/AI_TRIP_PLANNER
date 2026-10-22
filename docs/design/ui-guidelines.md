@@ -12,6 +12,7 @@ The following sites are reference sources for interaction patterns, motion, comp
 direction. They inform implementation choices but do not replace the project's own accessibility,
 semantic-token, or workspace-layout contracts.
 
+- [Apple macOS 27 UI Kit](https://www.figma.com/community/file/1651309434229735362/macos-27) and [Apple materials guidance](https://developer.apple.com/design/human-interface-guidelines/materials): references for material hierarchy, controls and appearance states. The public preview did not expose component properties; project CSS values are adaptations, not extracted Figma parameters. The existing floating-layer scope remains the project contract.
 - [Beautiful UI](https://beautifului.dev)
 - [BeUI](https://beui.dev)
 - [Rare UI](https://rareui.com)
@@ -88,10 +89,12 @@ Floating layers are glass (below); content inside them separates with spacing, `
 
 Glass is Liquid Glass, the translucent, blurred and lightly saturated material of iOS 26 with a bright specular rim. It is applied to **every floating layer**: the sidebar, the Chats panel, the top-bar capsules, segmented controls, the composer, empty-state cards, notices, map overlays, drawers, the trip fact sheets, dialogs, trip-card captions and the trip calendar. `apps/web/app/styles/glass.css` holds the list.
 
-- Glass values come only from semantic tokens in `tokens.css` (`--glass-bg`, `--glass-bg-strong`, `--glass-border`, `--glass-edge`, `--glass-highlight`, `--glass-shadow`, `--glass-blur`, `--glass-saturate`), with light and dark values. Layers that carry dense text use `--glass-bg-strong`.
+- Glass values come only from semantic tokens in `tokens.css` (`--glass-bg`, `--glass-bg-strong`, `--glass-border`, `--glass-edge`, `--glass-highlight`, `--glass-sheen`, `--glass-shadow`, `--glass-blur`, `--glass-saturate`), with light and dark values. Layers that carry dense text use `--glass-bg-strong`.
 - Glass never stacks on glass: menus, tooltips and suggestion lists inside a glass layer are opaque; segmented tracks inside drawers are fills.
 - Text and icons on glass meet WCAG AA against the busiest backdrop they can cover. When they fail, raise the fill opacity rather than adding text shadows.
 - Glass falls back to `--surface` when `backdrop-filter` is unsupported, under `prefers-reduced-transparency: reduce` or `prefers-contrast: more`, and to system colours in forced-colors mode.
+
+The material keeps a 24 px blur, reduces saturation to 150%, and uses edge highlights instead of a broad inner glow. `--glass-sheen` defines restrained reflections for each appearance. Regular/dense-text fill opacity is 64%/86% in light mode and 60%/88% in dark mode. These are Web adaptation values. Reduced transparency, increased contrast and forced colors remove reflections and blur while retaining solid control boundaries.
 
 The implementation recipe is the [better-ui glass reference](../../.agents/skills/better-ui/references/glass.md).
 

@@ -402,6 +402,50 @@ async function main() {
       "phone has no horizontal overflow",
     );
     await page.screenshot({ animations: "disabled", path: resolve(OUT, "map-phone.png") });
+    const media = await context.newCDPSession(page);
+    for (const width of [390, 1440]) {
+      await page.setViewportSize({ width, height: width === 1440 ? 1000 : 844 });
+      for (const [name, value] of [
+        ["prefers-reduced-transparency", "reduce"],
+        ["prefers-contrast", "more"],
+        ["forced-colors", "active"],
+      ]) {
+        await media.send("Emulation.setEmulatedMedia", { features: [{ name, value }] });
+        check(
+          await page
+            .waitForFunction(
+              () => {
+                const controls = [
+                  ...document.querySelectorAll(".map-control, .map-control-group"),
+                ].filter((el) => el.getClientRects().length);
+                return (
+                  controls.length > 0 &&
+                  controls.every((el) => {
+                    const style = getComputedStyle(el);
+                    return (
+                      style.backdropFilter === "none" &&
+                      !style.backgroundColor.match(/rgba\([^)]*,\s*0\./)
+                    );
+                  })
+                );
+              },
+              null,
+              { timeout: 3000 },
+            )
+            .then(
+              () => true,
+              () => false,
+            ),
+          `${width}px: map controls opaque without blur under ${name}`,
+        );
+        await page.screenshot({
+          animations: "disabled",
+          path: resolve(OUT, `map-${width}-${name}.png`),
+        });
+      }
+    }
+    await media.send("Emulation.setEmulatedMedia", { features: [] });
+    await media.detach();
     await page.setViewportSize({ width: 1440, height: 1000 });
 
     const mapService =
