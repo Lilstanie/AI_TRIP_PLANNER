@@ -113,6 +113,8 @@ Who 中的五项计数，包括保存行程后重新打开的情况。
 
 不传该字段时，行为等同于 `neutral` 且开启记忆。
 
+可选的 `mentions`：旅客点名的 specialist id（`itinerary`、`transport`、`accommodation`、`destination-guide`、`dining`），最多五个且互不相同。缺省时本轮仍交给协调员。带 `plan` 时，只有这些 specialist 运行并修改自己的部分，随后进行冲突检查和定向修订，响应的 `assistant` 为第一个被提及的 id。没有 `plan` 时，被提及的 specialist 只作答，不创建任何内容，并通过 `needs_info` 帧（同样带可选的 `assistant`）向旅客收集行程信息。
+
 可选的 `interfaceLanguage`：`en` 或 `zh`（`packages/shared/src/chat.ts` 中的 `InterfaceLanguage`），
 即旅行者界面当前显示的语言。网页端在每次聊天请求中发送当前的界面语言。协调器始终使用旅行者最新一条消息的语言回复；
 只有当这条消息看不出语言时（例如只有地名、日期或数字），才由该字段决定回复语言。它不会改变界面语言。

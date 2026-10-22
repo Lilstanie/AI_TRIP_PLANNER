@@ -20,6 +20,7 @@ const ENGLISH = {
   fix: (reason: string) => `Fix: ${reason}`,
   produced: (agent: string) => `Produced ${agent} section.`,
   revised: (agent: string, reason: string) => `Revised ${agent} after: ${reason}.`,
+  mentioned: (labels: string[]) => `Asking ${labels.join(" and ")} to handle your request.`,
 };
 
 const CHINESE: typeof ENGLISH = {
@@ -34,6 +35,7 @@ const CHINESE: typeof ENGLISH = {
   fix: (reason) => `修正：${reason}`,
   produced: (agent) => `已生成${agent}部分。`,
   revised: (agent, reason) => `根据“${reason}”修改了${agent}部分。`,
+  mentioned: (labels) => `请${labels.join("和")}处理你的请求。`,
 };
 
 export function progressCopy(language: InterfaceLanguage | undefined): typeof ENGLISH {

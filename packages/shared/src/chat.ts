@@ -136,6 +136,7 @@ export const ChatRequest = z
 
     attachments: z.array(Attachment).max(MAX_ATTACHMENTS_PER_MESSAGE).optional(),
     assistant: AssistantSettings.optional(),
+    mentions: z.array(z.enum(AGENT_NAMES)).max(AGENT_NAMES.length).optional(),
     interfaceLanguage: InterfaceLanguage.optional(),
 
     displayCurrency: Currency.optional(),
@@ -168,6 +169,7 @@ export const ChatNeedsInfo = z.object({
   type: z.literal("needs_info"),
   question: z.string(),
   known: PartialTripBrief,
+  assistant: AssistantId.optional(),
 });
 export type ChatNeedsInfo = z.infer<typeof ChatNeedsInfo>;
 

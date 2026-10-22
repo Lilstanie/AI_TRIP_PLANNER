@@ -69,6 +69,7 @@ export type TurnOutcome =
       kind: "needsInfo";
       question: string;
       known: PartialTripBrief;
+      assistant?: AssistantId;
       transcript: AgentProgressEvent[];
       at: number;
     }
@@ -252,7 +253,13 @@ export function session(state: SessionState, event: SessionEvent): SessionState 
       };
     case "needsInfo":
       return {
-        ...replied(state, reply(event.question, event.transcript, event.at, { outcome: "asked" })),
+        ...replied(
+          state,
+          reply(event.question, event.transcript, event.at, {
+            outcome: "asked",
+            ...(event.assistant ? { assistant: event.assistant } : {}),
+          }),
+        ),
         draft: draftWithKnown(state.draft, event.known),
       };
     case "asked": {
@@ -322,8 +329,15 @@ export async function requestTurn(
     if (failure instanceof FlightAnswerError)
       return { kind: "answered", flights: failure.answer, transcript, at: now() };
     if (failure instanceof NeedsInfoError) {
-      const { question, known } = failure.needsInfo;
-      return { kind: "needsInfo", question, known, transcript, at: now() };
+      const { question, known, assistant } = failure.needsInfo;
+      return {
+        kind: "needsInfo",
+        question,
+        known,
+        ...(assistant ? { assistant } : {}),
+        transcript,
+        at: now(),
+      };
     }
     if (failure instanceof AskUserError) {
       const { questions, known, plan, reply: text } = failure.askUser;

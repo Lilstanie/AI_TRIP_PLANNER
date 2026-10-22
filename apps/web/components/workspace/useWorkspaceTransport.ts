@@ -1,4 +1,5 @@
 "use client";
+import { resolveMentions } from "../chat/mentions";
 import type { MutableRefObject } from "react";
 import {
   TripPlan,
@@ -179,12 +180,14 @@ export function useWorkspaceTransport({
       },
     });
 
+    const mentions = resolveMentions(message);
     void run({
       kind: "chat",
       request: {
         ...(plan
           ? { tripId: plan.tripId, message, brief: plan.brief, plan }
           : { tripId: freshTripId.current, message, known: knownFromDraft(draft) }),
+        ...(mentions.length ? { mentions } : {}),
         ...(destinationLocationFor(
           plan?.brief.destination ?? draft.destination,
           planDestinationLocation,

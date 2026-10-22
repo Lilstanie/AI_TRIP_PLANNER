@@ -254,6 +254,20 @@ export const WORKSPACE_ZH = {
   "Travel planning assistant": "旅行规划助手",
   "Subagents thinking together": "协作助手共同思考",
   Coordinator: "协调员",
+  Assistants: "助手",
+  "Mention {name}": "提及{name}",
+  "Conflict check, round {round}: no conflicts": "冲突检查，第 {round} 轮：没有冲突",
+  "Conflict check, round {round}: {name} should save {amount}":
+    "冲突检查，第 {round} 轮：{name}应节省 {amount}",
+  "Conflict check, round {round}: {name} must change": "冲突检查，第 {round} 轮：{name}需要调整",
+  "Revision score, round {round}: {before} → {after}, revision kept":
+    "修订得分，第 {round} 轮：{before} → {after}，保留修订",
+  "Revision score, round {round}: {before} → {after}, revision discarded":
+    "修订得分，第 {round} 轮：{before} → {after}，放弃修订",
+  "Stopped after round {round}: plan converged": "第 {round} 轮后停止：方案已收敛",
+  "Stopped after round {round}: round limit reached": "第 {round} 轮后停止：已达轮次上限",
+  "Stopped after round {round}: budget infeasible": "第 {round} 轮后停止：预算无法满足",
+  "Stopped after round {round}: no improvement": "第 {round} 轮后停止：没有改善",
   "Team conversation": "团队对话",
   "Decided by AI": "AI 决定",
   "Decided by code": "程序决定",

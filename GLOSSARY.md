@@ -16,6 +16,10 @@ _Avoid_: agent (for one of the five), capability, sub-agent
 The assistant that answers a message that mentions no specialist and dispatches work to the specialists. It is shown beside them in the chat but is not one of the five.
 _Avoid_: supervisor, orchestrator (for the assistant the traveller sees), master agent
 
+**Mention**:
+Naming one or more specialists in a message so that they handle it. A message without a mention goes to the Coordinator, and a mention is sent as specialist ids, never as names.
+_Avoid_: tag, address, ping
+
 **Plan**:
 The assembled result of a brief: one costed section per specialist.
 _Avoid_: itinerary (that is one section), trip (the saved plan in the workspace)

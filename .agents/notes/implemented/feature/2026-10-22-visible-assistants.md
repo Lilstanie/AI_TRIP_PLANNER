@@ -1,7 +1,7 @@
 # Agent Note: specialists become visible assistants in the chat
 
 Status: implemented
-Owner: spec #561, ticket #562
+Owner: spec #561, tickets #562 and #563
 
 ## Problem
 
@@ -24,6 +24,13 @@ out a specialist view in the Trip drawer.
 - `packages/shared/src/chat.ts` gains, all optional: `AssistantId` (`coordinator` plus the specialist
   ids), `ChatResponse.assistant`, `agent_reasoning.assistant` and `agent_completed.source`. A missing
   assistant id reads as the Coordinator, so older clients and stored conversations still render.
+- A message can mention specialists (ticket #563). `ChatRequest.mentions` carries specialist ids, and
+  `ChatNeedsInfo.assistant` attributes a no-plan answer. The client resolves typed `@name` against the default
+  English and Chinese role names (`components/chat/mentions.ts`). With a plan, `runTripChat` passes the
+  mention to the planning graph (`OrchestratorOptions.mention`): its dispatch node reuses the plan's other
+  proposals, runs only the mentioned specialists in parallel with the message as the revision reason, and the
+  existing conflict check and targeted revision follow. Without a plan the specialist answers and the
+  Coordinator asks for the brief; nothing is created.
 - The Think fold stays as a details view, and its Subagent rows use the assistant icons.
 - This partly supersedes the 2026-10-08 note and decision 9 of #233: specialists are visible in the chat,
   but the Trip drawer is unchanged.

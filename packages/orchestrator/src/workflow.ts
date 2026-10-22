@@ -56,6 +56,8 @@ export interface OrchestratorOptions {
   displayCurrency?: Currency;
   interfaceLanguage?: InterfaceLanguage;
   replyLanguage?: InterfaceLanguage;
+
+  mention?: { agents: AgentName[]; message: string; plan: TripPlan };
 }
 
 const OrchestratorState = new StateSchema({
@@ -244,6 +246,47 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
       (specialist) => !state.brief.noAccommodation || specialist.name !== "accommodation",
     );
     const round = 1;
+    const mention = options.mention;
+    if (mention) {
+      const mentioned = activeSpecialists.filter((specialist) =>
+        mention.agents.includes(specialist.name),
+      );
+      onProgress?.({
+        type: "coordinator",
+        phase: "dispatch",
+        round,
+        summary: copy.mentioned(mentioned.map((specialist) => specialist.label)),
+      });
+      const kept = mention.plan.sections.flatMap((section) =>
+        section.proposal ? [section.proposal] : [],
+      );
+      const revised = await Promise.all(
+        mentioned.map((specialist) => {
+          const previous = kept.find((proposal) => proposal.agent === specialist.name);
+          return invokeSpecialist(specialist, {
+            brief: state.brief,
+            context: context(state.brief, round, specialist.name),
+            ...(specialist.supportsRevision
+              ? {
+                  revision: {
+                    tripId: state.brief.tripId,
+                    targetAgent: specialist.name,
+                    reason: mention.message,
+                    constraints: [mention.message],
+                  },
+                }
+              : {}),
+            ...(previous ? { previous } : {}),
+            board: { proposals: kept.filter((proposal) => proposal.agent !== specialist.name) },
+          });
+        }),
+      );
+      const proposals = kept.map(
+        (proposal) => revised.find((next) => next.agent === proposal.agent) ?? proposal,
+      );
+      for (const next of revised) if (!proposals.includes(next)) proposals.push(next);
+      return { round, proposals: proposals.map((proposal) => AgentProposalSchema.parse(proposal)) };
+    }
     onProgress?.({
       type: "coordinator",
       phase: "dispatch",
