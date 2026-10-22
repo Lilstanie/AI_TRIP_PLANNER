@@ -298,6 +298,15 @@ CI 还会运行 `node scripts/format-check-changed.mjs <base>`（即 `pnpm forma
 
 `RUN_LIVE_MAP_CHECK=1 WEB_MAPS_PROVIDER=osm CHANNEL=chrome USE_MOCK_TOOLS=true pnpm --filter @trip/web e2e map-fallback-live` 显式启用真实免费服务检查。只有聊天回复使用固定数据；地点查询、瓦片和步行路线均为实时请求。结果及桌面／手机截图位于 `output/playwright/map-fallback-live/after`。这不代表公共交通覆盖所有目的地。
 
+`real-clerk-auth.e2e.mjs` 需要先启动配置 Clerk 测试密钥和已迁移账号数据库的本地服务。
+通过环境变量传入 `CLERK_SECRET_KEY`、`DATABASE_URL`，执行
+`BASE_URL=http://localhost:3197 CHANNEL=chrome node apps/web/tests/e2e/real-clerk-auth.e2e.mjs`。
+普通 E2E runner 启动的服务会清除 Clerk 配置，不能用于启动这项验收环境。脚本创建两个
+唯一测试账号，使用真实 Clerk 会话验证账号隔离，并仅删除本次创建的账号和数据库记录。
+脚本拒绝正式 Clerk 密钥和远程应用地址。脱敏断言及清理结果保留在
+`apps/web/output/playwright/real-clerk-auth/after/summary.json`，不保留会话令牌或浏览器存储状态。
+此测试不覆盖签名有效但已过期的 JWT、未配置 Clerk 的生产环境，以及 #440 尚待确定的每日配额。
+
 <a id="cli-acceptance-in-ci"></a>
 
 #### CI 中的 CLI 验收

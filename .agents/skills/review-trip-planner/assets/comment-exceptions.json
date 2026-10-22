@@ -1,1 +1,7 @@
-[]
+[
+  {
+    "file": "apps/web/tests/e2e/real-clerk-auth.e2e.mjs",
+    "text": "// requires-env: CLERK_SECRET_KEY, DATABASE_URL",
+    "reason": "E2E discovery and legacy runner read this directive to skip credential-dependent acceptance when its required environment is absent."
+  }
+]
