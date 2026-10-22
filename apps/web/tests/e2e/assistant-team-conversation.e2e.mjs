@@ -55,7 +55,7 @@ try {
       const team = page.locator(".team-conversation").last();
       const names = await team.locator(".team-message__name").allInnerTexts();
       const assistants = await team
-        .locator(".team-message")
+        .locator(".team-message:not(.team-message--check)")
         .evaluateAll((nodes) => nodes.map((node) => node.getAttribute("data-assistant")));
       check(
         assistants[0] === "coordinator",
@@ -72,7 +72,9 @@ try {
         `${label}: role names are in the interface language`,
         names,
       );
-      const icons = await team.locator(".team-message > .assistant-icon svg").count();
+      const icons = await team
+        .locator(".team-message:not(.team-message--check) > .assistant-icon svg")
+        .count();
       check(
         assistants.length > 0 && icons === assistants.length,
         `${label}: every message has an icon`,

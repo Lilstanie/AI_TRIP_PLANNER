@@ -308,6 +308,16 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     reply attributed to an assistant other than the Coordinator, or a stored message without an
     assistant id, which reads as the Coordinator, keeps its existing text. The Subagent rows in the
     Think fold use the same icons. The Trip drawer shows no assistant icons.
+  - A row of six assistant chips (the Coordinator and the five specialists) sits above the message box.
+    Pressing a chip inserts `@<name> `, and typing `@` with a default role name in English or Chinese
+    does the same. The client resolves each `@name` to a specialist id, drops duplicates, and sends
+    `mentions` with the message; `@Coordinator` is not sent, because a message without a mention
+    already goes to the Coordinator. With a plan, only the mentioned specialists run, revise their own
+    sections, and the planning loop's conflict check and targeted revision follow. The reply carries the
+    mentioned specialist's icon and name. Conflict, revision-score and stop messages from the loop show in
+    the team conversation as plain rules with a left border and no icon. With no plan yet, the mentioned
+    specialist only answers, nothing is created, and the same message asks for the brief. The chips wrap
+    at phone width and are 44 px tall there.
   - Planning progress is a deep-dive transcript, not a status list: `Think` (the turn) nests
     `Subagent · <name>` rows per round, which in turn nest that specialist's reasoning and tool
     rows, each with a DSH-style disclosure — a leading icon that crossfades to a chevron on hover or

@@ -1,4 +1,9 @@
-import type { AgentProgressEvent, AgentName, AssistantId } from "@trip/shared";
+import type {
+  AgentProgressEvent,
+  AgentName,
+  AssistantId,
+  ChatWorkflowDecision,
+} from "@trip/shared";
 import type { MessageKey } from "@/lib/i18n/locale";
 import { PREPARING_SUMMARY } from "@/lib/workspace/session";
 
@@ -16,6 +21,18 @@ export interface TeamMessage {
   toolCalls: number;
 }
 
+export interface CheckMessage {
+  id: string;
+  kind: "check";
+  round: number;
+  decision: Extract<
+    ChatWorkflowDecision,
+    { type: "conflicts_detected" | "revision_scored" | "loop_stopped" }
+  >;
+}
+
+export type TeamEntry = TeamMessage | CheckMessage;
+
 export const sourceLabels: Record<NonNullable<TeamMessage["source"]>, MessageKey> = {
   live: "Live data",
   estimated: "Estimated data",
@@ -24,8 +41,8 @@ export const sourceLabels: Record<NonNullable<TeamMessage["source"]>, MessageKey
   unavailable: "Unavailable data",
 };
 
-export function teamMessages(activity: readonly AgentProgressEvent[]): TeamMessage[] {
-  const messages: TeamMessage[] = [];
+export function teamMessages(activity: readonly AgentProgressEvent[]): TeamEntry[] {
+  const messages: TeamEntry[] = [];
   const reasoned = (assistant: AssistantId, round: number) =>
     activity.some(
       (event) =>
@@ -52,6 +69,18 @@ export function teamMessages(activity: readonly AgentProgressEvent[]): TeamMessa
             : [],
         ),
         toolCalls: 0,
+      });
+    } else if (
+      event.type === "decision" &&
+      (event.decision.type === "conflicts_detected" ||
+        event.decision.type === "revision_scored" ||
+        event.decision.type === "loop_stopped")
+    ) {
+      messages.push({
+        id: `check:${event.decision.type}:${event.round}:${messages.length}`,
+        kind: "check",
+        round: event.round,
+        decision: event.decision,
       });
     } else if (event.type === "agent_completed" || event.type === "agent_failed") {
       const failed = event.type === "agent_failed";

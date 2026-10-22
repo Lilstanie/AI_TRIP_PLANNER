@@ -124,6 +124,13 @@ Optional `assistant`: `{ style, memory }` from Settings → Personalization (`As
 
 Without the field, the behaviour is `neutral` with memory on.
 
+Optional `mentions`: up to five distinct specialist ids (`itinerary`, `transport`, `accommodation`,
+`destination-guide`, `dining`) the traveller addressed. Without it the turn goes to the Coordinator as
+before. With a `plan`, only these specialists run and revise their own sections, then the conflict
+check and targeted revision run, and the response's `assistant` is the first mentioned id. Without a
+`plan`, the mentioned specialist answers, nothing is created, and a `needs_info` frame (with the same
+optional `assistant`) asks for the brief.
+
 Optional `interfaceLanguage`: `en` or `zh` (`InterfaceLanguage` in `packages/shared/src/chat.ts`),
 the language the traveller's interface is showing. The web app sends its current locale with every
 chat request. The coordinator always replies in the language of the traveller's latest message; this

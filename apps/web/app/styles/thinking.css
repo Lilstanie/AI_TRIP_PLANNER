@@ -684,3 +684,46 @@
   margin-bottom: 4px;
   font-size: 13px;
 }
+
+.team-message--check {
+  align-items: baseline;
+  padding: 2px 0 2px 8px;
+  border-left: 2px solid var(--border);
+  color: var(--text-mut);
+  font-size: 12px;
+}
+
+.assistant-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 8px;
+}
+
+.assistant-chip {
+  display: inline-flex;
+  min-height: 32px;
+  gap: 6px;
+  align-items: center;
+  padding: 3px 10px 3px 4px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 12px;
+}
+
+button.assistant-chip {
+  cursor: pointer;
+}
+
+button.assistant-chip:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+@media (max-width: 520px) {
+  button.assistant-chip {
+    min-height: 44px;
+  }
+}

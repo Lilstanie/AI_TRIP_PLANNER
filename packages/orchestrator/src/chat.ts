@@ -17,6 +17,8 @@ import {
   toAud,
   partyPeople,
   type ChatRequest,
+  type AgentName,
+  type AssistantId,
   type AssistantSettings,
   type InterfaceLanguage,
   type ChatResponse,
@@ -69,6 +71,7 @@ export class IncompleteBriefError extends Error {
     readonly missing: string[],
     readonly known: PartialTripBrief = {},
     question?: string,
+    readonly assistant?: AssistantId,
   ) {
     super(
       question ??
@@ -78,7 +81,12 @@ export class IncompleteBriefError extends Error {
   }
 
   get needsInfo(): ChatNeedsInfo {
-    return { type: "needs_info", question: this.message, known: this.known };
+    return {
+      type: "needs_info",
+      question: this.message,
+      known: this.known,
+      ...(this.assistant ? { assistant: this.assistant } : {}),
+    };
   }
 }
 
@@ -545,8 +553,9 @@ export async function runTripChat(
   const { model, extractor, clock = () => new Date(), ...orchestrationOptions } = options;
   if (request.mode === "plan" && !request.brief) throw new Error("A brief is required to plan.");
   const mem: MemoryStore = orchestrationOptions.mem ?? memory;
-  const orchestrate = (brief: TripBrief) =>
+  const orchestrate = (brief: TripBrief, mention?: OrchestratorOptions["mention"]) =>
     runOrchestrator(brief, {
+      ...(mention ? { mention } : {}),
       ...(request.displayCurrency ? { displayCurrency: request.displayCurrency } : {}),
       ...(request.interfaceLanguage ? { interfaceLanguage: request.interfaceLanguage } : {}),
       replyLanguage: replyLanguage(request.message, request.interfaceLanguage),
@@ -579,6 +588,29 @@ export async function runTripChat(
           : { ...request.brief, tripId: request.tripId },
       )
     : undefined;
+
+  const mentions = [...new Set(request.mentions ?? [])];
+  if (mentions.length > 0 && request.mode !== "plan") {
+    if (request.plan) {
+      const brief = TripBriefSchema.parse({
+        ...(request.brief ?? request.plan.brief),
+        tripId: request.tripId,
+      });
+      const plan = await orchestrate(brief, {
+        agents: mentions,
+        message: request.message,
+        plan: request.plan,
+      });
+      const reply = mentionReply(request, plan, mentions);
+      await remember(reply);
+      return { reply, plan, assistant: mentions[0]! };
+    }
+    const known = BriefPatchSchema.parse({ ...request.known });
+    const answer = await mentionAnswer(request, mentions[0]!, model);
+    const reply = `${answer}\n\n${briefAsk(request, missingFields(known, request.tripId))}`;
+    await remember(reply);
+    throw new IncompleteBriefError([], request.known ?? {}, reply, mentions[0]);
+  }
 
   if (request.mode === "plan" && submitted) {
     if (
@@ -617,6 +649,87 @@ export async function runTripChat(
     const asked = turnEndingReply(error);
     if (asked) await remember(asked);
     throw error;
+  }
+}
+
+const ROLE_NAMES: Record<InterfaceLanguage, Record<AgentName, string>> = {
+  en: {
+    itinerary: "Day plan",
+    transport: "Getting around",
+    accommodation: "Stay",
+    "destination-guide": "Destination guide",
+    dining: "Food & dining",
+  },
+  zh: {
+    itinerary: "每日行程",
+    transport: "出行交通",
+    accommodation: "住宿",
+    "destination-guide": "目的地指南",
+    dining: "餐饮",
+  },
+};
+
+const ZH_FIELD_LABELS: Record<string, string> = {
+  destination: "目的地",
+  "start and end dates": "起止日期",
+  "number of travellers": "出行人数",
+  "total budget": "总预算",
+};
+
+function turnLanguage(request: ChatRequest): InterfaceLanguage {
+  return replyLanguage(request.message, request.interfaceLanguage);
+}
+
+function mentionReply(request: ChatRequest, plan: TripPlan, mentions: AgentName[]): string {
+  const language = turnLanguage(request);
+  const currency = replyCurrency(request, plan.brief);
+  const summaries = plan.sections
+    .filter((section) => mentions.includes(section.id as AgentName))
+    .map((section) => section.summary.trim())
+    .filter(Boolean)
+    .join(" ");
+  const total = formatMoney(plan.estTotal, currency);
+  const budget = budgetText(plan, currency);
+  const estimate =
+    language === "zh"
+      ? `预计总额：${total}，预算 ${budget}。`
+      : `Estimated total: ${total} against a ${budget} budget.`;
+  return [summaries, estimate].filter(Boolean).join(" ");
+}
+
+function briefAsk(request: ChatRequest, missing: string[]): string {
+  const fields = missing.length
+    ? missing
+    : ["destination", "start and end dates", "number of travellers", "total budget"];
+  return turnLanguage(request) === "zh"
+    ? `协调员会先收集行程信息：请告诉我${fields.map((field) => ZH_FIELD_LABELS[field] ?? field).join("、")}。`
+    : `The Coordinator will collect the trip details first: please tell me the ${fields.join(", ")}.`;
+}
+
+async function mentionAnswer(
+  request: ChatRequest,
+  agent: AgentName,
+  model: BaseChatModel | undefined,
+): Promise<string> {
+  const language = turnLanguage(request);
+  const role = ROLE_NAMES[language][agent];
+  const fallback =
+    language === "zh"
+      ? `我是${role}专家。有了行程方案后我才能处理这个请求，在此之前不会改动任何内容。`
+      : `I'm the ${ROLE_NAMES.en[agent]} specialist. I can act on this once there is a plan, and I will not change anything before then.`;
+  if (!model) return fallback;
+  try {
+    const result = await model.invoke([
+      [
+        "system",
+        `You are the ${ROLE_NAMES.en[agent]} specialist of a trip planner. Answer the traveller's question briefly from general travel knowledge in at most three sentences. Do not plan the trip, never claim live prices or availability, and write in ${language === "zh" ? "Chinese" : "English"}.`,
+      ],
+      ["human", request.message],
+    ]);
+    const text = typeof result.content === "string" ? result.content.trim() : "";
+    return text || fallback;
+  } catch {
+    return fallback;
   }
 }
 
