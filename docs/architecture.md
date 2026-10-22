@@ -346,6 +346,8 @@ initial plans and revisions. An agent owns a durable role definition: model, `na
 Transport and accommodation wrap calculators so models cannot invent prices, routes or properties.
 The itinerary likewise never prices a stop: Google Places publishes no admission prices, so an
 activity's `estCost` is left unset and the plan says how many stops are unpriced.
+Its summary is written from the stops it keeps (day count and the most stops on one day), never
+taken from the model, so it cannot call a day free that has a stop.
 The reply receives the plan's known estimate, budget, headroom and each stop's price state. An unset
 activity price is excluded, not zero; the reply must disclose that boundary and may quote a stop price
 only when the plan carries that numeric price. Fixture and no-model replies verify this deterministic

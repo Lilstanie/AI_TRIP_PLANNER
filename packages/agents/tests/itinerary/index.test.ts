@@ -115,6 +115,28 @@ describe("itinerary planner", () => {
     expect(result.conflictsWith[0]).toContain("geography conflict on day 1");
   });
 
+  it("summarises the stops it keeps, not the model's own summary", async () => {
+    const generator: ItineraryGenerator = {
+      generate: vi.fn(async () => ({
+        ...feasibleDraft,
+        summary: "One activity on each of the first two days, with the final day left free.",
+      })),
+    };
+    const result = await createItineraryAgent({ generator }).invoke({
+      brief,
+      context: context(),
+    });
+    expect(result.items.map((item) => item.day)).toEqual([1, 1, 2, 3]);
+    expect(result.summary).toBe(
+      "3-day plan for Tokyo & Kyoto with up to 2 grounded activities per day",
+    );
+    const zh = await createItineraryAgent({ generator }).invoke({
+      brief,
+      context: { ...context(), replyLanguage: "zh" },
+    });
+    expect(zh.summary).toBe("Tokyo & Kyoto 3 天行程，每天最多 2 个已核实的活动");
+  });
+
   it("never passes a model's guessed admission price on as a cost", async () => {
     const generator: ItineraryGenerator = {
       generate: vi.fn(async () => ({
