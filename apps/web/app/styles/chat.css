@@ -14,6 +14,9 @@
   overflow-y: auto;
   padding-bottom: 12px;
 }
+.chat__stream[data-more="true"] {
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 56px), transparent);
+}
 
 .chat__form {
   display: block;
