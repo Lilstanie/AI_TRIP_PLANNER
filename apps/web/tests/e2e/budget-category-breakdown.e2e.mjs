@@ -144,6 +144,128 @@ const browser = await chromium.launch({
   headless: true,
   ...(process.env.CHANNEL ? { channel: process.env.CHANNEL } : {}),
 });
+async function transportCases() {
+  const cases = [
+    { name: "empty", items: [], amount: 0, unknown: true },
+    { name: "absent", items: null, amount: 0, unknown: true },
+    { name: "unpriced", items: [item("flight", "Fare not published")], amount: 0, unknown: true },
+    { name: "free", items: [item("transport", "Free shuttle", 0)], amount: 0 },
+    { name: "quoted", items: [item("flight", "Published fare", 80)], amount: 80 },
+    { name: "legacy", items: [], amount: 80 },
+    { name: "at-budget", items: [], amount: 0, unknown: true, budget: 280 },
+    { name: "over-budget", items: [], amount: 0, unknown: true, budget: 200 },
+    { name: "jpy", items: [], amount: 0, unknown: true, currency: "JPY" },
+    {
+      name: "partial",
+      items: [item("flight", "Published fare", 80), item("flight", "Return fare unknown")],
+      amount: 80,
+      missing: true,
+    },
+  ];
+  for (const width of [1440, 390]) {
+    for (const language of ["en", "zh"]) {
+      for (const scenario of cases) {
+        const tag = `${scenario.name}-${width}-${language}`;
+        const seed = structuredClone(catalog);
+        for (const saved of [seed.conversations[0].snapshot, seed.trips[0].snapshot]) {
+          saved.plan.sections = saved.plan.sections.filter((part) => part.id !== "transport");
+          if (scenario.items)
+            saved.plan.sections.push(
+              section("transport", "Transport", "transport", scenario.items, scenario.amount),
+            );
+          saved.plan.sections.find((part) => part.id === "itinerary").proposal.items = [
+            item("activity", "Priced activity", 40),
+          ];
+          saved.plan.estTotal = 280 + scenario.amount;
+          saved.plan.budgetTotal = scenario.budget ?? 800;
+          saved.plan.brief.budgetTotal = saved.plan.budgetTotal;
+        }
+        const context = await browser.newContext({
+          viewport: { width, height: width === 390 ? 844 : 1000 },
+          reducedMotion: "reduce",
+        });
+        const fixturePage = await context.newPage();
+        page = fixturePage;
+        const errors = [];
+        fixturePage.on("pageerror", (error) => errors.push(String(error)));
+        await fixturePage.addInitScript(
+          ({ seed, settings }) => {
+            localStorage.setItem("trip-workspace-catalog-v3", JSON.stringify(seed));
+            localStorage.setItem("trip.settings.v1", JSON.stringify(settings));
+          },
+          {
+            seed,
+            settings: { ...settings, language, displayCurrency: scenario.currency ?? "AUD" },
+          },
+        );
+        await fixturePage.goto(BASE, { waitUntil: "domcontentloaded" });
+        await fixturePage.locator(".workspace-app").waitFor();
+        const history = fixturePage.locator('.history-item__open[title="Sydney budget breakdown"]');
+        if (width === 390)
+          await fixturePage
+            .getByRole("tab", { name: language === "en" ? "Mine" : "我的", exact: true })
+            .click();
+        else
+          await fixturePage
+            .getByRole("button", { name: language === "en" ? /^Chats/ : /^聊天/ })
+            .click();
+        await history.click();
+        if (width === 390)
+          await fixturePage
+            .getByRole("tab", { name: language === "en" ? /^Trip/ : /^行程/ })
+            .click();
+        else if (!(await fixturePage.locator(".trip-panel__budget-summary").isVisible()))
+          await fixturePage
+            .getByRole("button", {
+              name: language === "en" ? "Open your trip" : "打开你的行程",
+              exact: true,
+            })
+            .click();
+        const card = fixturePage.locator(".trip-panel__budget-summary");
+        await card.waitFor();
+        const row = card.locator("li").filter({
+          has: fixturePage.getByText(language === "en" ? "Transport" : "交通", { exact: true }),
+        });
+        const text = await row.innerText();
+        const unknown = language === "en" ? "Not costed" : "未计价";
+        const excluded =
+          language === "en"
+            ? "Not included: transport without a price."
+            : "未计入：尚未定价的交通费用。";
+        check(
+          scenario.unknown
+            ? text.includes(unknown) && !text.includes("0.00")
+            : new RegExp(`(?:AUD\\s*|A\\$)${scenario.amount}\\.00`).test(text),
+          `${tag}: unknown and known fares remain distinct`,
+          text,
+        );
+        const missing = Boolean(scenario.unknown || scenario.missing);
+        check(
+          (await card.innerText()).includes(excluded) === missing,
+          `${tag}: missing transport is disclosed`,
+        );
+        const status = await card.locator(".budget-status").innerText();
+        check(
+          scenario.budget === 200
+            ? /Over budget|超出预算/.test(status)
+            : missing
+              ? /unpriced costs not counted|未定价费用未计入/.test(status)
+              : !/unpriced|未定价/.test(status),
+          `${tag}: budget status qualifies missing costs`,
+          status,
+        );
+        check(
+          (await fixturePage.evaluate(() => document.documentElement.scrollWidth)) === width &&
+            errors.length === 0,
+          `${tag}: no page overflow or runtime errors`,
+          errors,
+        );
+        await fixturePage.screenshot({ path: `${OUT}/transport-${tag}.png`, fullPage: true });
+        await context.close();
+      }
+    }
+  }
+}
 let page;
 try {
   const context = await browser.newContext({
@@ -223,6 +345,7 @@ try {
   );
   await page.screenshot({ path: `${OUT}/budget-breakdown-zh.png`, fullPage: true });
   await context.close();
+  await transportCases();
 } catch (error) {
   if (page) {
     writeFileSync(
