@@ -75,7 +75,7 @@ seniors`（宠物不计为旅客）；`groupSize` 仍是校验字段，因此至
   - 导航作为抽屉打开，Trip 占满内容宽度。导航抽屉无标题行：它从侧边栏自己的 Logo 行开始，关闭按钮位于行末，对话框通过视觉隐藏的标题（`Drawer` 的 `hideTitle`）保留“Navigation”无障碍名称。
 - **手机（≤520 px）。** [手机外壳决策](../.agents/notes/implemented/feature/2026-10-05-phone-shell.md)仅适用于这一宽度；桌面和平板保留既有导航。
   - 适配安全区的底部 Tab 栏提供 Chat、Map、Trip 和 Mine，并支持键盘操作。每次只显示一个面板；面板保持挂载以保留滚动位置。已保存的布局恢复上次使用的 Tab，也兼容旧的 Chat/Map 选择。
-  - 单行顶栏显示目的地和日期，未填写时显示 New trip。点击标题打开 Trip details，按行列出 Where、When、Who、Budget 和 Preferences。每行打开既有编辑器；保存或关闭后，焦点返回标题。编辑器为底部 sheet，点击目标至少为 44 px，包括每个 sheet 的关闭按钮和主操作按钮。
+  - 单行顶栏显示目的地和日期，未填写时显示 New trip。点击标题打开 Trip details，按行列出 Where、When、Who、Budget 和 Preferences。每行打开既有编辑器；保存或关闭后，焦点返回标题。编辑器为底部 sheet，点击目标至少为 44 px，包括每个 sheet 的关闭按钮和主操作按钮，以及 When 中的每个日期格、两个翻月箭头和 Clear。
   - Trip 直接显示 Your Trip，包含 Budget 和日视图。规划前说明空状态并提供 Plan in Chat。在其他 Tab 中创建或修改方案时，Trip 显示带无障碍说明的更新小红点；打开 Trip 后清除。按行程记录已读版本，因此切换未修改的已保存行程不会产生新通知。
   - Mine 包含搜索、New chat、New trip、Trips/Calendar、聊天列表和 Settings & account。搜索同时筛选聊天和行程；打开或新建任一种内容都会切到 Chat。触摸界面始终显示每个聊天的 Rename/Delete 行菜单入口。数据模式和界面语言切换位于这里；数据模式按钮在两种语言下都显示文字标签。
     从 Mine 打开行程后，键盘焦点会移至行程标题按钮；其无障碍名称会播报目的地和日期。

@@ -837,6 +837,18 @@
     flex: 1;
     min-height: 44px;
   }
+  .trip-calendar.rdp-root {
+    --rdp-day-width: 44px;
+    --rdp-day-height: 44px;
+    --rdp-day_button-width: 44px;
+    --rdp-day_button-height: 44px;
+    --rdp-nav_button-width: 44px;
+    --rdp-nav_button-height: 44px;
+  }
+  .when-fields__clear {
+    min-width: 44px;
+    min-height: 44px !important;
+  }
 }
 @keyframes fact-sheet-in {
   from {
