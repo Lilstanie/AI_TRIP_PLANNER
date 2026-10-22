@@ -35,7 +35,9 @@ the local `origin/main` is stale, and a branch cut from it reverts their changes
 
 Include uncommitted files if you are about to commit them.
 
-Before the first push for an issue, list the recent pull requests, open and merged, that name it:
+Before the first push for an issue, list the recent pull requests, open and merged, that name it. Run
+the command where `gh` is logged in to the repository; in a cloud session, use
+`mcp__github__search_pull_requests` with the issue number instead:
 
 ```bash
 gh api "repos/Lilstanie/AI_TRIP_PLANNER/pulls?state=all&per_page=100" \
