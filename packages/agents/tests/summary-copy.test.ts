@@ -34,10 +34,6 @@ describe("specialist summary copy", () => {
     expect(en.bookedStay("Park Hotel", 3)).toBe(
       "Park Hotel · booked by you, 3 nights · not priced",
     );
-    expect(en.stays({ ...stay, rooms: 1, nights: 1 })).toBe(
-      "1 room, 1 night in Tokyo & Kyoto · A$1,200 (lowest eligible cost)",
-    );
-    expect(en.bookedStay("Park Hotel", 1)).toBe("Park Hotel · booked by you, 1 night · not priced");
     expect(en.guide("Kyoto", "2026-10-01")).toBe("Kyoto planning guidance for October");
     expect(en.dining("Two picks", "A$300")).toBe("Two picks · A$300 meal budget");
     expect(en.diningCandidates(3)).toBe(

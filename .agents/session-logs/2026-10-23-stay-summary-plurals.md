@@ -20,7 +20,11 @@ Issue #601: the Stay card read `1 room(s), 3 nights in Sydney`. The issue names 
 
 ## Validation
 
-See the pull request body.
+- `pnpm --filter @trip/agents exec vitest run tests/summary-copy.test.ts`: 5 passed; the updated expectations fail against the old source.
+- `pnpm --filter @trip/agents test`: 14 files, 144 tests passed.
+- `pnpm --filter @trip/agents typecheck` and `lint`: pass.
+- `LABEL=after node tests/e2e/stay-summary-plural.e2e.mjs` (apps/web, mock data, Sydney example): the Stay card reads `1 room, 3 nights in Sydney · AUD 690.00`; exit 0. With the old source, the same script fails on `1 room(s), 3 nights in Sydney`; exit 1.
+- `pnpm verify:docs`, `pnpm verify:protected`: pass.
 
 ## Notes for the next person
 
