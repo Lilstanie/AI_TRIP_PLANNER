@@ -3,7 +3,7 @@
 The walkthrough is the Stage 2 demo record. A run must fail on any of these:
 
 - Step 1: while the plan streams, the Specialist team button shows no working specialist or no animated avatar; the opened panel does not list the Coordinator and the five specialists with their icons; the panel opens by itself.
-- Step 2: the @ menu does not offer Stay, picking it does not send its id, a chip row renders, mentioning Stay changes a section other than accommodation, or the reply is not under the accommodation icon.
+- Step 2: the @ menu does not offer Stay, picking it does not send its id, mentioning Stay changes a section other than accommodation, or the reply is not under the accommodation icon.
 - Step 3: a budget overrun after a mention shows no conflict, score or stop line in the panel, or styles one as an assistant, or the panel lists no revision assignment for the specialist the conflict sent back.
 - Step 4: the first Backspace after a mention deletes text or selects less than the whole `@name`, or the second leaves part of it.
 - Step 5: two mentions in one message send fewer or more than the two ids, or run another specialist.

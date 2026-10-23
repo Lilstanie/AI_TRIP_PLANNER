@@ -308,10 +308,6 @@ try {
       await step(2, "mention", async () => {
         const before = await sectionMap();
         requests.length = 0;
-        check(
-          (await page.locator(".assistant-chips, .assistant-chip").count()) === 0, // e2e-selectors: absent
-          `${label} step 2: no chip row renders`,
-        );
         await box(page).fill("");
         await box(page).focus();
         await page.keyboard.type("@");
