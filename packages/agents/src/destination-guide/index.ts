@@ -16,7 +16,12 @@ import { clip } from "../clip";
 import { normalize, canonicalPlaceName, dedupeEntries } from "../place-names";
 import { TRAVELLER_PREFERENCES_RULE } from "../prompts/traveller-preferences";
 import { summaryCopy } from "../summary-copy";
-import { gatherWeatherEvidence, weatherText } from "./weather-evidence";
+import {
+  gatherWeatherEvidence,
+  weatherPacking,
+  weatherText,
+  type DestinationWeatherEvidence,
+} from "./weather-evidence";
 
 const GuideAttraction = z.object({
   name: z.string().trim().min(1).max(120),
@@ -72,6 +77,7 @@ export interface DestinationGuideGenerator {
     travelMonth: string;
     places: Place[];
     preferences: UserPreference[];
+    weatherEvidence: DestinationWeatherEvidence[];
   }): Promise<DestinationGuideDraft>;
 }
 
@@ -117,7 +123,9 @@ function fallbackDraft(
   month: string,
   places: Place[],
   language: InterfaceLanguage | undefined,
+  weatherEvidence: DestinationWeatherEvidence[],
 ): DestinationGuideDraft {
+  const packing = weatherPacking(weatherEvidence);
   return {
     summary: summaryCopy(language).guide(brief.destination, brief.dates[0]),
     attractions: places.slice(0, 5).map((place) => ({
@@ -133,7 +141,7 @@ function fallbackDraft(
     ],
     weather: `For ${month}, use this as planning context only and check an official short-range forecast shortly before departure.`,
     packing: [
-      "Weather-appropriate layers",
+      ...(packing.length ? packing : ["Weather-appropriate layers"]),
       "Comfortable walking shoes",
       "Medication and copies of prescriptions",
       "Travel documents and suitable power adapters",
@@ -151,7 +159,7 @@ function createMiniMaxGenerator(): DestinationGuideGenerator | undefined {
       const evidence = tool(async () => input, {
         name: "read_destination_evidence",
         description:
-          "Read the validated trip brief, travel month, grounded map candidates and confirmed user preferences.",
+          "Read the validated trip brief, travel month, grounded map candidates, confirmed preferences and dated forecast or historical climate evidence, including unavailable dates.",
         schema: z.object({}),
       });
       const specialist = createAgent({
@@ -159,7 +167,7 @@ function createMiniMaxGenerator(): DestinationGuideGenerator | undefined {
         model,
         tools: [evidence],
         systemPrompt:
-          "You are the destination specialist. Always call read_destination_evidence before answering and use only its facts. Attraction names must be a grounded candidate's name copied character for character, with no category, rating or district appended. Give concise customs, packing and planning guidance. Treat weather as monthly context, never a forecast. Never assert entry eligibility, vaccine requirements or that an area is safe; direct travellers to current official immigration, health and travel-advisory sources. Never claim live opening hours or availability. Return the requested structured destination guide.\n\nKeep within these lengths; longer text is cut at a sentence end: summary at most 400 characters; at most 5 attractions, each detail at most 500 characters; customs, safety and entryHealth are each 1-4 strings of at most 400 characters; weather at most 500 characters; packing 1-6 strings of at most 300 characters; assumptions at most 6 strings.\n\n" +
+          "You are the destination specialist. Always call read_destination_evidence before answering and use only its facts. Attraction names must be a grounded candidate's name copied character for character, with no category, rating or district appended. Give concise customs, packing and planning guidance. Use weatherEvidence to choose packing for the supplied conditions. Its forecast entries are dated forecasts; climate entries are historical context, never forecasts. Unavailable entries supply no weather facts. If no weather evidence is supplied, use monthly planning context only. Never assert entry eligibility, vaccine requirements or that an area is safe; direct travellers to current official immigration, health and travel-advisory sources. Never claim live opening hours or availability. Return the requested structured destination guide.\n\nKeep within these lengths; longer text is cut at a sentence end: summary at most 400 characters; at most 5 attractions, each detail at most 500 characters; customs, safety and entryHealth are each 1-4 strings of at most 400 characters; weather at most 500 characters; packing 1-6 strings of at most 300 characters; assumptions at most 6 strings.\n\n" +
           TRAVELLER_PREFERENCES_RULE,
         responseFormat: ModelGuideDraft,
       });
@@ -218,6 +226,7 @@ async function planDestinationGuide(
           travelMonth: month,
           places,
           preferences,
+          weatherEvidence,
         }),
         places,
       );
@@ -226,10 +235,10 @@ async function planDestinationGuide(
       console.warn(`[destination-guide] Model draft failed; using a safe local plan: ${reason}`);
       usedFallback = true;
       ctx.signal?.throwIfAborted();
-      draft = fallbackDraft(brief, month, places, ctx.replyLanguage);
+      draft = fallbackDraft(brief, month, places, ctx.replyLanguage, weatherEvidence);
     }
   } else {
-    draft = fallbackDraft(brief, month, places, ctx.replyLanguage);
+    draft = fallbackDraft(brief, month, places, ctx.replyLanguage, weatherEvidence);
   }
 
   ctx.signal?.throwIfAborted();

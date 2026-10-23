@@ -345,6 +345,8 @@ initial plans and revisions. An agent owns a durable role definition: model, `na
 
 Destination guidance checks weather for every city and trip date, with three lookups in flight. These are destination/date checks, not an inferred stay schedule. Missing coordinates, date mismatches and provider failures stay explicitly unavailable. Each result retains its provider, horizon and observation time. Successful weather responses are reused within one gateway, so dates in the same forecast response do not multiply requests. Climate context is historical, never a forecast.
 
+The destination evidence tool supplies dated weather to packing generation. Forecast entries remain forecasts and climate entries remain historical context. If generation fails or no model is configured, deterministic packing uses the available rain, cold and heat evidence; it never invents conditions for unavailable dates.
+
 Transport and accommodation wrap calculators so models cannot invent prices, routes or properties.
 The itinerary likewise never prices a stop: Google Places publishes no admission prices, so an
 activity's `estCost` is left unset and the plan says how many stops are unpriced.
