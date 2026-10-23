@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef } from "react";
-import type { AgentProgressEvent } from "@trip/shared";
+import type { AgentProgressEvent, AssistantId } from "@trip/shared";
 import { useLocale } from "../account/LocaleProvider";
 import { TeamAvatars } from "../chat/TeamControl";
 import { TeamPanel } from "../chat/TeamPanel";
@@ -29,7 +29,7 @@ export function PhoneTeamButton({
   const button = useRef<HTMLButtonElement>(null);
   const open = model.layout.surface.sheet === "team";
   const sheet = usePresence(open || undefined, 220);
-  const { run, request, showLatest } = useTeamRun();
+  const { run, request, showLatest, open: reveal } = useTeamRun();
   const handled = useRef(request);
   useEffect(() => {
     if (handled.current === request) return;
@@ -45,6 +45,11 @@ export function PhoneTeamButton({
   const close = (reason: CloseReason) => {
     closeTeamSheet();
     if (reason === "dismiss") button.current?.focus({ preventScroll: true });
+  };
+
+  const select = (assistant: AssistantId) => {
+    reveal(run ? run.activity : activity, assistant);
+    closeTeamSheet();
   };
 
   return (
@@ -75,9 +80,9 @@ export function PhoneTeamButton({
         >
           <TeamRunBar />
           {run ? (
-            <TeamPanel activity={run.activity} settled />
+            <TeamPanel activity={run.activity} settled onSelect={select} />
           ) : (
-            <TeamPanel activity={activity} settled={!busy} model={team} />
+            <TeamPanel activity={activity} settled={!busy} model={team} onSelect={select} />
           )}
         </FactPopover>
       )}

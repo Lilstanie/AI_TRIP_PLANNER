@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { AgentProgressEvent } from "@trip/shared";
+import type { AgentProgressEvent, AssistantId } from "@trip/shared";
 import { useLocale } from "@/components/account/LocaleProvider";
 import { AssistantIcon } from "./assistants";
 import { TeamPanel } from "./TeamPanel";
@@ -33,7 +33,7 @@ export function TeamControl({
 }) {
   const { t } = useLocale();
   const model = useMemo(() => teamModel(activity, !busy), [activity, busy]);
-  const { run, request, showLatest } = useTeamRun();
+  const { run, request, showLatest, open: reveal } = useTeamRun();
   const [hovered, setHovered] = useState(false);
   const [pinned, setPinned] = useState(false);
   const handled = useRef(request);
@@ -79,6 +79,11 @@ export function TeamControl({
 
   useEffect(() => () => clearTimeout(leaving.current), []);
 
+  const select = (assistant: AssistantId) => {
+    reveal(run ? run.activity : activity, assistant);
+    close();
+  };
+
   return (
     <div
       ref={root}
@@ -115,9 +120,9 @@ export function TeamControl({
         <div className="team-popover">
           <TeamRunBar />
           {run ? (
-            <TeamPanel activity={run.activity} settled />
+            <TeamPanel activity={run.activity} settled onSelect={select} />
           ) : (
-            <TeamPanel activity={activity} settled={!busy} model={model} />
+            <TeamPanel activity={activity} settled={!busy} model={model} onSelect={select} />
           )}
         </div>
       )}

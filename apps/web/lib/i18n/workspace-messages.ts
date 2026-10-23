@@ -290,6 +290,7 @@ export const WORKSPACE_ZH = {
   "Not involved": "未参与",
   Assignments: "任务",
   "Show more": "展开",
+  "Show {name} thinking": "查看{name}的思考过程",
   "Show less": "收起",
   "Decided by AI": "AI 决定",
   "Decided by code": "程序决定",

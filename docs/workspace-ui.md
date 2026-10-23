@@ -342,6 +342,14 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
       that shows the panel reads it. Closing the panel, pressing Latest turn or starting the next live
       turn returns the panel to the latest run. [`TeamSummary`](../apps/web/components/chat/TeamSummary.tsx)
       derives the text with `teamSummary`; `TeamConversation` no longer exists.
+    - **Opening thinking rows.** Pressing a row of an involved assistant (Working, Done, Failed or Needs
+      change; the name is a button called "Show {name} thinking") closes the panel, or on a phone the sheet,
+      scrolls the chat to the Think fold of the run the panel shows (the live area, or that reply's fold),
+      opens the fold and expands exactly that specialist's `Subagent` row for the latest round it worked in,
+      then moves focus to the row. Pressing the Coordinator opens the fold and focuses its first line, where
+      the dispatch begins. Idle and Not involved rows have no button and expose no action. The target is
+      matched by the run's activity list in [`team-run.tsx`](../apps/web/components/chat/team-run.tsx) and
+      handled in [`ThinkingProcess`](../apps/web/components/chat/ThinkingProcess.tsx).
   - There is no row of assistant chips above the message box. Typing `@` at the start of a word opens a
     menu of the six assistants (the Coordinator and the five specialists), each with its icon and
     current name, filtered by what follows the `@` and matched against the current, role and custom

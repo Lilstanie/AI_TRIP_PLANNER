@@ -35,8 +35,9 @@ back or whether a revision was kept. Tutors should see the team's structure, not
   and a hand-off carries `mention_handoff.decidedBy`. Speakers still come only from real events.
 - **Chat.** The live area above the message box shows only the Think fold, so `TeamConversation` leaves
   it. Each saved reply a specialist worked on starts with a one-line summary that opens that run's panel
-  (#633), and a reply only the Coordinator wrote has none. Pressing a specialist in the panel scrolls to
-  and expands that specialist's Think rows (#634).
+  (#633), and a reply only the Coordinator wrote has none. Pressing an involved row in the panel closes the
+  panel, scrolls to the run's Think fold and expands that specialist's `Subagent` row for its latest round,
+  moving focus there; Idle and Not involved rows have no action (#634).
 - **@ menu.** The chip row is removed. Typing `@` opens a menu of the six assistants with icons,
   operable from the keyboard (arrows, Tab or Enter to pick, Escape to close without changing the draft)
   and announced through `aria-activedescendant`. A mention stays plain text in the textarea; right after
@@ -73,6 +74,8 @@ each specialist's work can differ, and the tutor needs both.
 - Which run the panel shows is client state (`team-run.tsx`): a reply summary pins the panel on that
   reply's run, labelled "Turn N", and closing the panel or starting the next live turn returns it to the
   latest run. `TeamConversation` and its legacy model `team-messages.ts` are deleted.
+- A press names its target by the run's activity list (`team-run.tsx` `reveal`), so the live area and
+  each reply's fold match by identity without an index.
 - A new client model has to be kept in step with `AgentProgressEvent` by hand, since no contract
   carries assignments.
 
@@ -80,3 +83,4 @@ each specialist's work can differ, and the tutor needs both.
 
 [2026-10-23 team panel desktop log](../../../session-logs/2026-10-23-team-panel-desktop.md)
 [2026-10-23 team panel phone log](../../../session-logs/2026-10-23-team-panel-phone.md)
+[2026-10-23 team thinking log](../../../session-logs/2026-10-23-team-thinking.md)

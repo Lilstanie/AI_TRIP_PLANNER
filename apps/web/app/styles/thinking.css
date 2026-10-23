@@ -782,6 +782,7 @@
 
 .team-panel__row,
 .team-panel__assignment {
+  position: relative;
   display: flex;
   min-width: 0;
   gap: 8px;
@@ -803,6 +804,25 @@
 .team-panel__name,
 .team-panel__owner {
   font-size: 13px;
+}
+
+.team-panel__press {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.team-panel__press::after {
+  position: absolute;
+  inset: -4px;
+  content: "";
+}
+
+.team-panel__row:has(.team-panel__press):hover {
+  background: var(--surface-2, rgb(0 0 0 / 4%));
 }
 
 .team-panel__status {
@@ -862,6 +882,8 @@
 }
 
 .team-panel__more {
+  position: relative;
+  z-index: 1;
   padding: 0;
   border: 0;
   background: none;

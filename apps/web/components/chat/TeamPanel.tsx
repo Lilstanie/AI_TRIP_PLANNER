@@ -1,6 +1,6 @@
 "use client";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
-import type { AgentProgressEvent } from "@trip/shared";
+import type { AgentProgressEvent, AssistantId } from "@trip/shared";
 import { useLocale } from "@/components/account/LocaleProvider";
 import { AssistantIcon } from "./assistants";
 import { useAssistantName } from "./assistant-names";
@@ -45,10 +45,12 @@ export function TeamPanel({
   activity,
   settled,
   model,
+  onSelect,
 }: {
   activity: readonly AgentProgressEvent[];
   settled: boolean;
   model?: TeamModel;
+  onSelect?: (assistant: AssistantId) => void;
 }) {
   const { t } = useLocale();
   const name = useAssistantName();
@@ -66,7 +68,20 @@ export function TeamPanel({
             <AssistantIcon id={row.assistant} />
             <div className="team-panel__main">
               <div className="team-panel__head">
-                <strong className="team-panel__name">{name(row.assistant)}</strong>
+                <strong className="team-panel__name">
+                  {onSelect && row.status !== "idle" && row.status !== "none" ? (
+                    <button
+                      type="button"
+                      className="team-panel__press"
+                      aria-label={t("Show {name} thinking", { name: name(row.assistant) })}
+                      onClick={() => onSelect(row.assistant)}
+                    >
+                      {name(row.assistant)}
+                    </button>
+                  ) : (
+                    name(row.assistant)
+                  )}
+                </strong>
                 <span className="team-panel__status">{t(rowStatusLabels[row.status])}</span>
                 {row.decidedBy && (
                   <span
