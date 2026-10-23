@@ -31,18 +31,6 @@ try {
     page.on("pageerror", (error) => errors.push(String(error)));
     await page.route("**/api/places/**", (route) => route.fulfill({ json: { places: [] } }));
     await openMockWorkspace(page, process.env.BASE_URL ?? "http://localhost:3000");
-    if (!zh) {
-      const chips = await page
-        .locator(".assistant-chip")
-        .evaluateAll((buttons) =>
-          buttons.map((button) => [button.getAttribute("aria-label"), button.offsetHeight]),
-        );
-      check(
-        chips.length === 6 && chips.every(([, height]) => height >= 44),
-        "every Mention chip is 44 px high",
-        chips,
-      );
-    }
     await planSuggestedTrip(page);
     if (zh) {
       await page.locator(".phone-tabbar").getByRole("tab", { name: /^Mine/ }).click();

@@ -47,6 +47,14 @@ async function open(locale, width) {
 }
 
 const box = (page) => page.locator(".chat__form textarea");
+const menuNames = async (page) => {
+  await box(page).fill("@");
+  const names = await page.getByRole("listbox").getByRole("option").allInnerTexts();
+  await box(page).fill("");
+  return names.map((name) => name.trim());
+};
+const menuCount = async (page, name) =>
+  (await menuNames(page)).filter((entry) => entry === name).length;
 const stored = (page) =>
   page.evaluate(() => JSON.parse(localStorage.getItem("trip-workspace-v1") ?? "null"));
 const withoutIds = (value) =>
@@ -251,9 +259,8 @@ try {
         await field.blur();
         await closeSettings(page, dialog, width);
         check(
-          (await page.locator(".assistant-chips button", { hasText: CUSTOM[locale] }).count()) ===
-            1,
-          `${label} step 6: the chip shows the new name`,
+          (await menuCount(page, CUSTOM[locale])) === 1,
+          `${label} step 6: the @ menu shows the new name`,
         );
         requests.length = 0;
         await send(page, `@${CUSTOM[locale]} find a cheaper stay`);
