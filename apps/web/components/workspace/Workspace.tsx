@@ -9,6 +9,7 @@ import { SettingsProvider } from "../account/SettingsProvider";
 import { LocaleProvider } from "../account/LocaleProvider";
 import { WorkspaceView } from "./WorkspaceView";
 import { useWorkspace } from "./useWorkspace";
+import { TeamRunProvider, useTeamRunState } from "../chat/team-run";
 
 function readableStorage(): Pick<Storage, "getItem"> {
   try {
@@ -49,9 +50,12 @@ export function Workspace({ initialPlan }: { initialPlan?: TripPlan }) {
 
 function WorkspaceContent({ restored }: { restored: RestoredWorkspace }) {
   const model = useWorkspace({ restored });
+  const teamRun = useTeamRunState(model.session.messages, model.session.busy);
   return (
     <LocaleProvider brief={model.session.draft}>
-      <WorkspaceView model={model} />
+      <TeamRunProvider value={teamRun}>
+        <WorkspaceView model={model} />
+      </TeamRunProvider>
     </LocaleProvider>
   );
 }

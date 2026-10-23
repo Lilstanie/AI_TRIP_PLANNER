@@ -324,9 +324,18 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
       A misdirected mention is one hand-off row. Conflict checks name the specialist sent back with a
       Needs change tag; revision scores say kept or discarded; the stop reason ends the list. Checks are
       rules and carry no icon.
-    - The Think fold's Subagent rows use the same icons. The Trip drawer shows no assistant icons. A saved
-      reply still shows its team conversation rows above its Think fold until the reply summary replaces
-      them; the live area above the message box shows only the Think fold.
+    - The Think fold's Subagent rows use the same icons. The Trip drawer shows no assistant icons. The live
+      area above the message box shows only the Think fold.
+    - **Reply summary.** A saved reply in which at least one specialist had an assignment starts, above
+      its Think fold, with a one-line button: the involved assistants' avatars, then "Coordinator + 3
+      specialists · 2 rounds", or "Stay specialist · 1 round" when one specialist worked (custom names
+      apply). Rounds count the distinct rounds that had a dispatch or revision. A reply only the
+      Coordinator wrote, such as one that asks for the brief, has none. Pressing it pins the panel on
+      that reply's run, with a "Turn N" label (N counts your messages up to that reply) and a Latest turn
+      button; the state lives in [`team-run.tsx`](../apps/web/components/chat/team-run.tsx) so any control
+      that shows the panel reads it. Closing the panel, pressing Latest turn or starting the next live
+      turn returns the panel to the latest run. [`TeamSummary`](../apps/web/components/chat/TeamSummary.tsx)
+      derives the text with `teamSummary`; `TeamConversation` no longer exists.
   - There is no row of assistant chips above the message box. Typing `@` at the start of a word opens a
     menu of the six assistants (the Coordinator and the five specialists), each with its icon and
     current name, filtered by what follows the `@` and matched against the current, role and custom
@@ -342,7 +351,7 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     already goes to the Coordinator. With a plan, only the mentioned specialists run, revise their own
     sections, and the planning loop's conflict check and targeted revision follow. The reply carries the
     mentioned specialist's icon and name. Conflict, revision-score and stop messages from the loop show in
-    the team panel and the saved reply's team conversation as plain rules with no icon. With no plan yet, the mentioned
+    the team panel as plain rules with no icon. With no plan yet, the mentioned
     specialist only answers, nothing is created, and the same message asks for the brief. A message may mention several specialists: each id is sent once,
     exactly those specialists run together in one round, only their sections change, and one conflict
     check follows once they have all finished. A mention that names the wrong specialist (for example Stay

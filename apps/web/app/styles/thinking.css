@@ -615,68 +615,6 @@
   color: var(--on-accent);
 }
 
-.team-conversation {
-  display: flex;
-  min-width: 0;
-  margin: 0 0 8px;
-  padding: 0;
-  flex-direction: column;
-  gap: 8px;
-  list-style: none;
-}
-
-.team-message {
-  display: flex;
-  min-width: 0;
-  gap: 8px;
-  align-items: flex-start;
-}
-
-.team-message__main {
-  min-width: 0;
-  flex: 1;
-}
-
-.team-message__head {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 8px;
-  align-items: center;
-}
-
-.team-message__name {
-  font-size: 13px;
-}
-
-.team-message__marker,
-.team-message__source {
-  padding: 1px 6px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  color: var(--text-mut);
-  font-size: 11px;
-}
-
-.team-message__marker--llm {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.team-message__text {
-  margin: 2px 0 0;
-  overflow-wrap: anywhere;
-}
-
-.team-message--failed .team-message__text {
-  color: var(--danger, #b3261e);
-}
-
-.team-message__objectives {
-  margin: 4px 0 0;
-  padding-left: 16px;
-  color: var(--text-mut);
-}
-
 .msg-item__who {
   display: inline-flex;
   gap: 6px;
@@ -685,12 +623,77 @@
   font-size: 13px;
 }
 
-.team-message--check {
-  align-items: baseline;
-  padding: 2px 0 2px 8px;
-  border-left: 2px solid var(--border);
+.team-summary {
+  display: flex;
+  width: fit-content;
+  max-width: 100%;
+  min-width: 0;
+  margin: 0 0 6px;
+  padding: 3px 10px 3px 4px;
+  gap: 8px;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
   color: var(--text-mut);
+  font: inherit;
   font-size: 12px;
+  cursor: pointer;
+}
+
+.team-summary:hover,
+.team-summary:focus-visible {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.team-summary__avatars {
+  display: inline-flex;
+}
+
+.team-summary__avatars .assistant-icon {
+  width: 20px;
+  height: 20px;
+  border: 1.5px solid var(--surface);
+}
+
+.team-summary__avatars .assistant-icon + .assistant-icon {
+  margin-inline-start: -6px;
+}
+
+.team-summary__avatars .assistant-icon svg {
+  width: 12px;
+  height: 12px;
+}
+
+.team-summary__text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.team-run {
+  display: flex;
+  padding: 6px 12px;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+
+.team-run__turn {
+  font-weight: 600;
+}
+
+.team-run__latest {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  cursor: pointer;
 }
 
 .team-control {

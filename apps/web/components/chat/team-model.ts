@@ -207,6 +207,29 @@ export function teamModel(activity: readonly AgentProgressEvent[], settled: bool
   };
 }
 
+export interface TeamSummary {
+  assistants: AssistantId[];
+  specialists: AssistantId[];
+  rounds: number;
+}
+
+export function teamSummary(activity: readonly AgentProgressEvent[]): TeamSummary | undefined {
+  const { entries } = teamModel(activity, true);
+  const specialists: AssistantId[] = [];
+  const rounds = new Set<number>();
+  for (const entry of entries) {
+    if (entry.type !== "assignment" || entry.owner === "coordinator") continue;
+    if (!specialists.includes(entry.owner)) specialists.push(entry.owner);
+    if (entry.kind !== "handoff") rounds.add(entry.round);
+  }
+  if (specialists.length === 0) return undefined;
+  return {
+    assistants: specialists.length === 1 ? specialists : ["coordinator", ...specialists],
+    specialists,
+    rounds: Math.max(1, rounds.size),
+  };
+}
+
 export function latestTurn(
   live: readonly AgentProgressEvent[],
   busy: boolean,

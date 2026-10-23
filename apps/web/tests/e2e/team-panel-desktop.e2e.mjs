@@ -239,8 +239,8 @@ try {
     await page.waitForTimeout(800);
 
     check(
-      (await page.locator(".chat__stream > .team-conversation").count()) === 0,
-      `${label}: no team conversation above the composer`,
+      (await page.locator(".chat__stream > .team-summary").count()) === 0,
+      `${label}: no team summary above the composer`,
     );
     check((await panel.count()) === 0, `${label}: the panel did not open on its own`);
 

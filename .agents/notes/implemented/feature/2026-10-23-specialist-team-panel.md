@@ -69,8 +69,9 @@ each specialist's work can differ, and the tutor needs both.
   interrupted turn shows its unfinished assignments as Stopped.
 - The panel follows the latest turn: the live stream while one runs, otherwise the newest saved agent
   reply's activity, so a reload keeps it.
-- Until the reply summary lands, a saved reply still renders its team conversation rows from a legacy
-  model (`team-messages.ts`) that the summary ticket deletes with `TeamConversation`.
+- Which run the panel shows is client state (`team-run.tsx`): a reply summary pins the panel on that
+  reply's run, labelled "Turn N", and closing the panel or starting the next live turn returns it to the
+  latest run. `TeamConversation` and its legacy model `team-messages.ts` are deleted.
 - A new client model has to be kept in step with `AgentProgressEvent` by hand, since no contract
   carries assignments.
 

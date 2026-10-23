@@ -4,7 +4,9 @@ import type { AgentProgressEvent } from "@trip/shared";
 import { useLocale } from "@/components/account/LocaleProvider";
 import { AssistantIcon } from "./assistants";
 import { TeamPanel } from "./TeamPanel";
+import { TeamRunBar } from "./TeamRunBar";
 import { teamModel } from "./team-model";
+import { useTeamRun } from "./team-run";
 
 const HOVER_CLOSE_MS = 150;
 
@@ -17,12 +19,24 @@ export function TeamControl({
 }) {
   const { t } = useLocale();
   const model = useMemo(() => teamModel(activity, !busy), [activity, busy]);
+  const { run, request, showLatest } = useTeamRun();
   const [hovered, setHovered] = useState(false);
   const [pinned, setPinned] = useState(false);
+  const handled = useRef(request);
+  useEffect(() => {
+    if (handled.current === request) return;
+    handled.current = request;
+    setPinned(true);
+  }, [request]);
   const root = useRef<HTMLDivElement>(null);
   const button = useRef<HTMLButtonElement>(null);
   const leaving = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const open = hovered || pinned;
+  const wasOpen = useRef(false);
+  useEffect(() => {
+    if (wasOpen.current && !open) showLatest();
+    wasOpen.current = open;
+  }, [open, showLatest]);
 
   const close = useCallback(() => {
     clearTimeout(leaving.current);
@@ -93,7 +107,12 @@ export function TeamControl({
       </button>
       {open && (
         <div className="team-popover">
-          <TeamPanel activity={activity} settled={!busy} model={model} />
+          <TeamRunBar />
+          {run ? (
+            <TeamPanel activity={run.activity} settled />
+          ) : (
+            <TeamPanel activity={activity} settled={!busy} model={model} />
+          )}
         </div>
       )}
     </div>

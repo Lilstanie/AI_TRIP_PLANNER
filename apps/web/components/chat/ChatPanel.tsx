@@ -146,7 +146,13 @@ export function ChatPanel({
         )}
         <div role="log" aria-live="polite">
           {messages.map((m, i) => (
-            <MessageItem key={i} message={m} animate={i === revealIndex} />
+            <MessageItem
+              key={i}
+              message={m}
+              animate={i === revealIndex}
+              index={i}
+              turn={messages.slice(0, i + 1).filter((other) => other.role === "user").length}
+            />
           ))}
         </div>
         {(activity.length > 0 || busy) && (

@@ -1,6 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
+import { readRun } from "./support/team-run.mjs";
 const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT ?? "playwright");
 const base = process.env.BASE_URL ?? "http://localhost:3000";
 const out = resolve("output/playwright/specialist-multi-mention");
@@ -93,28 +94,26 @@ try {
         `${label}: only the two mentioned sections may change`,
         changed,
       );
-      const shown = await page.evaluate(() => {
-        const last = [...document.querySelectorAll(".msg-item--agent")].at(-1);
-        return [...last.querySelectorAll(".team-message:not(.team-message--check)")].map((node) =>
-          node.getAttribute("data-assistant"),
+      const run = await readRun(page);
+      if (run) {
+        const workers = new Set(run.assignments.map((item) => item.who));
+        check(
+          workers.size === 2 && workers.has("accommodation") && workers.has("transport"),
+          `${label}: exactly the two mentioned specialists show work under their own icons`,
+          run.assignments,
         );
-      });
-      const workers = new Set(shown.filter((id) => id !== "coordinator"));
-      check(
-        workers.size === 2 && workers.has("accommodation") && workers.has("transport"),
-        `${label}: exactly the two mentioned specialists show work under their own icons`,
-        shown,
-      );
-      const checks = await replies(page)
-        .last()
-        .locator(".team-message--check .team-message__text")
-        .allInnerTexts();
-      const firstRound = checks.filter((line) => /^(Conflict check|冲突检查)/.test(line));
-      check(
-        firstRound.length >= 1 && firstRound.filter((line) => /\b1\b/.test(line)).length === 1,
-        `${label}: one conflict check follows both specialists in round 1`,
-        checks,
-      );
+        const firstRound = run.checks.filter((item) => /^(Conflict check|冲突检查)/.test(item.text));
+        check(
+          firstRound.length >= 1 &&
+            firstRound.filter((item) => /\b1\b/.test(item.text)).length === 1,
+          `${label}: one conflict check follows both specialists in round 1`,
+          run.checks,
+        );
+      } else
+        check(
+          width <= 520 && (await replies(page).last().locator(".team-summary").count()) === 1,
+          `${label}: the reply carries a team summary`,
+        );
       const fits = await page.evaluate(
         () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
       );

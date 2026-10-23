@@ -1,6 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
+import { readRun } from "./support/team-run.mjs";
 const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT ?? "playwright");
 const base = process.env.BASE_URL ?? "http://localhost:3000";
 const out = resolve("output/playwright/assistants-demo");
@@ -134,15 +135,18 @@ try {
         const now = await sectionMap();
         return Object.keys(now).filter((id) => now[id] !== before[id]);
       };
-      const lastTeam = (selector = ".team-message:not(.team-message--check)") =>
-        page.evaluate((query) => {
-          const last = [...document.querySelectorAll(".msg-item--agent")].at(-1);
-          return [...last.querySelectorAll(query)].map((node) => ({
-            who: node.getAttribute("data-assistant"),
-            handoff: node.classList.contains("team-message--handoff"),
-            text: node.querySelector(".team-message__text")?.textContent ?? "",
-          }));
-        }, selector);
+      const lastRun = async () => {
+        const run = await readRun(page);
+        if (!run) {
+          check(
+            width <= 520 && (await replies(page).last().locator(".team-summary").count()) === 1,
+            `${label}: the reply carries a team summary`,
+          );
+          return null;
+        }
+        return run;
+      };
+      const workersOf = (run) => run.assignments.filter((item) => item.kind !== "handoff");
       const step = async (number, name, run) => {
         const before = checks.length;
         await run();
@@ -159,17 +163,19 @@ try {
 
       await step(1, "plan", async () => {
         await send(page, PLAN);
-        const team = await lastTeam();
-        const specialists = new Set(
-          team.map((row) => row.who).filter((id) => id !== "coordinator"),
-        );
+        const run = await lastRun();
+        if (!run) return;
+        const specialists = new Set(run.assignments.map((item) => item.who));
         check(
-          team.some((row) => row.who === "coordinator") && specialists.size === 5,
+          run.rows.length === 6 && specialists.size === 5 && !specialists.has("coordinator"),
           `${label} step 1: the Coordinator and five specialists appear with icons`,
           [...specialists],
         );
-        const icons = await replies(page).last().locator(".team-message .assistant-icon").count();
-        check(icons >= 6, `${label} step 1: every team message has an icon`, icons);
+        check(
+          run.assignments.every((item) => item.icon === 1),
+          `${label} step 1: every assignment has an icon`,
+          run.assignments.map((item) => item.icon),
+        );
       });
 
       await step(2, "mention", async () => {
@@ -199,18 +205,16 @@ try {
         budgetOverride = Math.floor((floor + spend) / 2);
         await send(page, `@${STAY[locale]} find a cheaper stay again`);
         budgetOverride = undefined;
-        const lines = await replies(page)
-          .last()
-          .locator(".team-message--check .team-message__text")
-          .allInnerTexts();
+        const run = await lastRun();
+        if (!run) return;
+        const lines = run.checks.map((item) => item.text);
         check(
           lines.length >= 3 && lines.some((line) => /→/.test(line)),
           `${label} step 3: the budget conflict, score and stop messages are shown`,
           lines,
         );
         check(
-          (await replies(page).last().locator(".team-message--check .assistant-icon").count()) ===
-            0,
+          run.checks.every((item) => item.icons === 0),
           `${label} step 3: conflict messages are rules, not assistants`,
         );
       });
@@ -222,9 +226,9 @@ try {
           JSON.stringify(requests.at(-1).mentions) === '["accommodation","transport"]',
           `${label} step 4: two specialists are sent once each`,
         );
-        const workers = new Set(
-          (await lastTeam()).map((row) => row.who).filter((id) => id !== "coordinator"),
-        );
+        const run = await lastRun();
+        if (!run) return;
+        const workers = new Set(workersOf(run).map((item) => item.who));
         check(
           workers.size === 2 && workers.has("accommodation") && workers.has("transport"),
           `${label} step 4: exactly those two specialists work`,
@@ -235,15 +239,20 @@ try {
       await step(5, "hand-off", async () => {
         const before = await sectionMap();
         await send(page, `@${STAY[locale]} ${ASK[locale]}`);
-        const rows = await lastTeam();
-        const decline = rows.findIndex((row) => row.handoff && row.who === "accommodation");
-        const dispatch = rows.findIndex((row, i) => i > decline && row.who === "coordinator");
-        const answer = rows.findIndex((row, i) => i > dispatch && row.who === "dining");
-        check(
-          decline >= 0 && dispatch > decline && answer > dispatch,
-          `${label} step 5: decline, Coordinator dispatch, then Food & dining`,
-          rows,
-        );
+        const run = await lastRun();
+        if (run) {
+          const decline = run.assignments.findIndex(
+            (item) => item.kind === "handoff" && item.who === "accommodation",
+          );
+          const answer = run.assignments.findIndex(
+            (item, i) => i > decline && item.who === "dining" && item.kind !== "handoff",
+          );
+          check(
+            decline >= 0 && answer > decline,
+            `${label} step 5: decline, then Food & dining`,
+            run.assignments,
+          );
+        }
         const changed = await changedSince(before);
         check(
           changed.every((id) => id === "dining"),
