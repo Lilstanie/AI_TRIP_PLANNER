@@ -48,6 +48,10 @@ _Avoid_: repair loop, bounded revision, retry, re-plan
 One pass of the planning loop; round 1 is the first dispatch and later rounds are revisions.
 _Avoid_: iteration, attempt
 
+**Assignment**:
+The piece of work the Coordinator gives one specialist in a round: its first dispatch or a targeted revision, each with one objective.
+_Avoid_: task, job, subtask
+
 **Plan score**:
 How far a plan is from usable: the AUD over budget plus a tenth of the budget for each other conflict. Lower is better, and a revision is kept only when it lowers it.
 _Avoid_: quality score
