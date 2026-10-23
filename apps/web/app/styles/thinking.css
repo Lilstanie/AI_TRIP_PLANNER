@@ -741,6 +741,10 @@
   }
 }
 
+.team-popover:focus {
+  outline: none;
+}
+
 .team-popover {
   position: absolute;
   z-index: 40;

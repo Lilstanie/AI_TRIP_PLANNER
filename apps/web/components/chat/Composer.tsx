@@ -17,11 +17,9 @@ import type { PreparedAttachment } from "@/lib/chat/attachments";
 import type { Notice } from "@/lib/i18n/notice";
 import { useLocale } from "../account/LocaleProvider";
 import { useSettings } from "../account/SettingsProvider";
-import { translate } from "@/lib/i18n/locale";
-import { ASSISTANT_ROLE_KEYS } from "./assistants";
 import { ASSISTANT_ORDER, assistantName } from "./assistant-names";
 import { MentionMenu, type MentionEntry } from "./MentionMenu";
-import { activeMention, matchesMention, mentionBefore, mentionToken } from "./mentions";
+import { activeMention, matchesMention, mentionBefore, mentionToken, roleNames } from "./mentions";
 
 const MIN_HEIGHT_PX = 36;
 
@@ -77,15 +75,12 @@ export function Composer({
       ASSISTANT_ORDER.map((id) => ({
         id,
         name: assistantName(id, customNames, locale),
-        aliases: [
-          assistantName(id, customNames, locale),
-          translate("en", ASSISTANT_ROLE_KEYS[id]),
-          translate("zh", ASSISTANT_ROLE_KEYS[id]),
-        ],
+        aliases: [assistantName(id, customNames, locale), ...roleNames(id)],
       })),
     [customNames, locale],
   );
-  const mention = !composing && caret >= 0 ? activeMention(value, caret) : null;
+  const known = useMemo(() => entries.flatMap((entry) => entry.aliases), [entries]);
+  const mention = !composing && caret >= 0 ? activeMention(value, caret, known) : null;
   const matches = mention
     ? entries.filter((entry) => matchesMention(mention.query, entry.aliases))
     : [];
@@ -120,7 +115,7 @@ export function Composer({
 
   function track(field: HTMLTextAreaElement) {
     const next = field.selectionStart === field.selectionEnd ? field.selectionStart : -1;
-    const found = next >= 0 ? activeMention(field.value, next) : null;
+    const found = next >= 0 ? activeMention(field.value, next, known) : null;
     setCaret(next);
     setHighlight((current) => (found && mention && found.start === mention.start ? current : 0));
     setDismissed((current) =>
@@ -135,9 +130,12 @@ export function Composer({
     const token = mentionToken(entry.name);
     const rest = value.slice(caret);
     const inserted = `${token}${/^\s/.test(rest) ? "" : " "}`;
-    pendingCaret.current = mention.start + token.length + 1;
-    onInput(`${value.slice(0, mention.start)}${inserted}${rest}`);
-    setDismissed(null);
+    const landed = mention.start + token.length + 1;
+    pendingCaret.current = landed;
+    setCaret(landed);
+    const next = `${value.slice(0, mention.start)}${inserted}${rest}`;
+    onInput(next);
+    setDismissed(activeMention(next, caret, known));
   }
 
   function onKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
@@ -149,7 +147,7 @@ export function Composer({
         setHighlight((active + step + matches.length) % matches.length);
         return;
       }
-      if (event.key === "Tab" || (event.key === "Enter" && !event.shiftKey)) {
+      if ((event.key === "Tab" || event.key === "Enter") && !event.shiftKey) {
         event.preventDefault();
         pick(matches[active]!);
         return;
@@ -164,11 +162,7 @@ export function Composer({
     if (event.key === "Backspace" && !composingNow) {
       const field = event.currentTarget;
       if (field.selectionStart === field.selectionEnd) {
-        const range = mentionBefore(
-          value,
-          field.selectionStart,
-          entries.flatMap((entry) => entry.aliases),
-        );
+        const range = mentionBefore(value, field.selectionStart, known);
         if (range) {
           event.preventDefault();
           field.setSelectionRange(range[0], range[1]);

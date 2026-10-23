@@ -74,14 +74,26 @@ try {
     const page = await context.newPage();
     const errors = [];
     page.on("pageerror", (error) => errors.push(String(error)));
+    const consoleErrors = [];
+    page.on("console", (message) => {
+      if (message.type() === "error") consoleErrors.push(message.text());
+    });
     let budgetOverride;
+    let repeatHandoff = false;
     await page.route("**/api/chat", async (route) => {
       const body = JSON.parse(route.request().postData() ?? "{}");
       if (budgetOverride && body.plan) {
         body.brief = { ...body.brief, budgetTotal: budgetOverride };
         body.plan = { ...body.plan, brief: { ...body.plan.brief, budgetTotal: budgetOverride } };
       }
-      await route.continue({ postData: JSON.stringify(body) });
+      const postData = JSON.stringify(body);
+      if (!repeatHandoff) return route.continue({ postData });
+      const response = await route.fetch({ postData });
+      const lines = (await response.text()).split("\n");
+      const repeated = lines.flatMap((line) =>
+        line.includes('"mention_handoff"') ? [line, line] : [line],
+      );
+      await route.fulfill({ response, body: repeated.join("\n") });
     });
     await page.goto(base);
     await page.locator(".workspace-app").waitFor();
@@ -96,6 +108,17 @@ try {
     const panel = page.locator(".team-panel");
     const rows = panel.locator(".team-panel__row");
     const assignments = panel.locator(".team-panel__assignment");
+    const dialog = page.getByRole("dialog", { name: BUTTON[locale] });
+    const pin = async () => {
+      await button.focus();
+      await page.keyboard.press("Enter");
+      await panel.waitFor();
+    };
+    const closes = () =>
+      panel
+        .waitFor({ state: "detached", timeout: 2000 })
+        .then(() => true)
+        .catch(() => false);
     const status = async () =>
       Object.fromEntries(
         await rows.evaluateAll((nodes) =>
@@ -148,15 +171,41 @@ try {
     await panel.waitFor({ state: "detached" });
     check(true, `${label}: leaving the button closes a hover panel`);
 
-    await button.click();
+    await button.hover();
     await panel.waitFor();
+    check(
+      (await dialog.count()) === 1 &&
+        !(await dialog.evaluate((node) => node.contains(document.activeElement))),
+      `${label}: hovering opens the dialog without taking focus`,
+    );
+    await button.click();
+    check(await closes(), `${label}: a click closes a hover-opened panel`);
+    await page.mouse.move(width / 2, 500);
+    await panel.waitFor({ state: "detached" });
+
+    await pin();
     await page.mouse.move(width / 2, 500);
     await page.waitForTimeout(300);
-    check((await panel.count()) === 1, `${label}: a click pins the panel`);
+    check((await panel.count()) === 1, `${label}: Enter pins the panel`);
     check(
       (await button.getAttribute("aria-expanded")) === "true",
       `${label}: the button reports it is expanded`,
     );
+    check((await dialog.count()) === 1, `${label}: the panel is a dialog named like the button`);
+    check(
+      (await button.getAttribute("aria-controls")) === (await dialog.getAttribute("id")),
+      `${label}: the button controls the dialog`,
+    );
+    check(
+      await dialog.evaluate((node) => node.contains(document.activeElement)),
+      `${label}: opening by keyboard moves focus into the dialog`,
+    );
+    await button.click();
+    check(await closes(), `${label}: a click closes a pinned panel`);
+    await page.mouse.move(width / 2, 500);
+    await page.keyboard.press("Escape");
+    await panel.waitFor({ state: "detached" });
+    await pin();
     await panel.focus();
     await page.keyboard.press("Escape");
     await panel.waitFor({ state: "detached" });
@@ -164,8 +213,7 @@ try {
       await page.evaluate(() => document.activeElement?.classList.contains("team-trigger")),
       `${label}: Esc from inside the panel returns focus to the button`,
     );
-    await button.click();
-    await panel.waitFor();
+    await pin();
     await box(page).focus();
     await page.keyboard.press("Escape");
     await panel.waitFor({ state: "detached" });
@@ -173,14 +221,12 @@ try {
       await page.evaluate(() => document.activeElement?.tagName === "TEXTAREA"),
       `${label}: Esc from elsewhere leaves focus where it was`,
     );
-    await button.click();
-    await panel.waitFor();
+    await pin();
     await page.locator(".chat__stream").click({ position: { x: 20, y: 20 } });
     await panel.waitFor({ state: "detached" });
     check(true, `${label}: a click outside closes the pinned panel`);
 
-    await button.click();
-    await panel.waitFor();
+    await pin();
     await submit(page, PLAN);
     const caught = await page
       .waitForFunction(
@@ -367,6 +413,22 @@ try {
       handoffMarker,
     );
     await page.screenshot({ path: `${out}/${label}-handoff.png` });
+    await page.mouse.move(width / 2, 500);
+
+    repeatHandoff = true;
+    await send(page, `@${STAY[locale]} ${ASK[locale]}`);
+    repeatHandoff = false;
+    await button.hover();
+    await panel.waitFor();
+    check(
+      (await panel.locator('.team-panel__assignment[data-kind="handoff"]').count()) === 2,
+      `${label}: two identical hand-off events list two assignments`,
+    );
+    check(
+      !consoleErrors.some((text) => /same key/i.test(text)),
+      `${label}: repeated hand-offs keep unique list keys`,
+      consoleErrors.filter((text) => /same key/i.test(text)).length,
+    );
 
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth > document.documentElement.clientWidth,

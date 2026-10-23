@@ -1,12 +1,11 @@
 "use client";
-import { useEffect, useMemo, useRef } from "react";
-import type { AgentProgressEvent, AssistantId } from "@trip/shared";
+import { useRef } from "react";
 import { useLocale } from "../account/LocaleProvider";
 import { TeamAvatars } from "../chat/TeamControl";
 import { TeamPanel } from "../chat/TeamPanel";
 import { TeamRunBar } from "../chat/TeamRunBar";
-import { teamModel } from "../chat/team-model";
-import { useTeamRun } from "../chat/team-run";
+import type { TeamTurn } from "../chat/team-model";
+import { useTeamSurface } from "../chat/use-team-surface";
 import type { CloseReason } from "../preferences/FactPopover";
 import { FactPopover } from "../preferences/FactPopover";
 import { usePresence } from "../ui/motion";
@@ -14,42 +13,17 @@ import type { WorkspaceModel } from "./useWorkspace";
 
 const TEAM_SHEET_ID = "team-sheet";
 
-export function PhoneTeamButton({
-  model,
-  activity,
-  busy,
-}: {
-  model: WorkspaceModel;
-  activity: readonly AgentProgressEvent[];
-  busy: boolean;
-}) {
+export function PhoneTeamButton({ model, turn }: { model: WorkspaceModel; turn: TeamTurn }) {
   const { t } = useLocale();
-  const team = useMemo(() => teamModel(activity, !busy), [activity, busy]);
-  const { openTeamSheet, closeTeamSheet } = model.layout;
+  const { openTeamSheet, closeTeamSheet, selectView } = model.layout;
   const button = useRef<HTMLButtonElement>(null);
   const open = model.layout.surface.sheet === "team";
   const sheet = usePresence(open || undefined, 220);
-  const { run, request, showLatest, open: reveal } = useTeamRun();
-  const handled = useRef(request);
-  useEffect(() => {
-    if (handled.current === request) return;
-    handled.current = request;
-    openTeamSheet();
-  }, [request, openTeamSheet]);
-  const wasOpen = useRef(false);
-  useEffect(() => {
-    if (wasOpen.current && !open) showLatest();
-    wasOpen.current = open;
-  }, [open, showLatest]);
+  const { live, shown, select } = useTeamSurface(turn, open, openTeamSheet);
 
   const close = (reason: CloseReason) => {
     closeTeamSheet();
     if (reason === "dismiss") button.current?.focus({ preventScroll: true });
-  };
-
-  const select = (assistant: AssistantId) => {
-    reveal(run ? run.activity : activity, assistant);
-    closeTeamSheet();
   };
 
   return (
@@ -62,10 +36,10 @@ export function PhoneTeamButton({
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-controls={open ? TEAM_SHEET_ID : undefined}
-        data-working={team.working}
+        data-working={live.working}
         onClick={open ? closeTeamSheet : openTeamSheet}
       >
-        <TeamAvatars rows={team.rows} />
+        <TeamAvatars rows={live.rows} />
       </button>
       {sheet.value && (
         <FactPopover
@@ -79,11 +53,14 @@ export function PhoneTeamButton({
           className="fact-popover--team"
         >
           <TeamRunBar />
-          {run ? (
-            <TeamPanel activity={run.activity} settled onSelect={select} />
-          ) : (
-            <TeamPanel activity={activity} settled={!busy} model={team} onSelect={select} />
-          )}
+          <TeamPanel
+            model={shown}
+            onSelect={(assistant) => {
+              selectView("chat");
+              select(assistant);
+              closeTeamSheet();
+            }}
+          />
         </FactPopover>
       )}
     </>

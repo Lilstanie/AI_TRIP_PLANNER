@@ -130,13 +130,43 @@ try {
       await page.keyboard.type(stay.slice(1));
       check((await options(page).count()) === 1, `${label}: @${stay} filters to one option`);
 
+      await page.evaluate(() => {
+        window.__listbox = false;
+        let armed = false;
+        const look = () => {
+          if (armed && document.querySelector("[role=listbox]")) window.__listbox = true;
+        };
+        new MutationObserver(look).observe(document.body, {
+          subtree: true,
+          childList: true,
+          attributes: true,
+          characterData: true,
+        });
+        const frames = (count) => {
+          look();
+          if (count > 0) requestAnimationFrame(() => frames(count - 1));
+        };
+        document.addEventListener(
+          "keydown",
+          () => {
+            armed = true;
+            requestAnimationFrame(() => frames(20));
+          },
+          { capture: true, once: true },
+        );
+      });
       await page.keyboard.press("Tab");
       check(
         (await value(page)) === `@${stay} `,
         `${label}: Tab inserts the name`,
         await value(page),
       );
+      await page.waitForTimeout(500);
       check((await menu(page).count()) === 0, `${label}: picking closes the menu`);
+      check(
+        await page.evaluate(() => !window.__listbox),
+        `${label}: the finished mention never reopens the menu`,
+      );
       check(requests.length === 0, `${label}: picking sends nothing`);
 
       await field.fill("");
@@ -148,6 +178,31 @@ try {
         await value(page),
       );
       check(requests.length === 0, `${label}: Enter with the menu open sends nothing`);
+
+      await field.fill("");
+      await field.pressSequentially("@");
+      await page.keyboard.press("Shift+Tab");
+      check((await value(page)) === "@", `${label}: Shift+Tab picks nothing`, await value(page));
+      await field.focus();
+
+      if (locale === "en") {
+        await field.fill("");
+        await field.pressSequentially("@Food & d");
+        check(
+          (await options(page).count()) === 1,
+          `${label}: a multi-word name keeps the menu open while typing`,
+          await options(page).count(),
+        );
+        await page.keyboard.press("Enter");
+        check(
+          (await value(page)) === "@Food & dining ",
+          `${label}: Enter completes a multi-word name`,
+          await value(page),
+        );
+        await field.fill("");
+        await field.pressSequentially("@Stay find");
+        check((await menu(page).count()) === 0, `${label}: text after a name closes the menu`);
+      }
 
       await field.fill("");
       await field.pressSequentially("a@b");
@@ -168,15 +223,15 @@ try {
       await page.keyboard.press("Backspace");
       check((await value(page)) === hello, `${label}: first Backspace keeps the text`);
       check(
-        JSON.stringify(await selection(page)) === JSON.stringify([6, 6 + token.length]),
-        `${label}: first Backspace selects exactly the token`,
+        JSON.stringify(await selection(page)) === JSON.stringify([6, 6 + token.length + 1]),
+        `${label}: first Backspace selects the token and its space`,
         await selection(page),
       );
       await page.screenshot({ path: `${out}/${label}-selected.png` });
       await page.keyboard.press("Backspace");
       check(
-        (await value(page)) === "Hello  ",
-        `${label}: second Backspace removes only the token`,
+        (await value(page)) === "Hello ",
+        `${label}: second Backspace removes the token and its space`,
         await value(page),
       );
 
@@ -184,6 +239,7 @@ try {
       await field.pressSequentially(`@${stay} `);
       await page.keyboard.press("Backspace");
       await page.keyboard.press("ArrowRight");
+      await page.keyboard.press("ArrowLeft");
       await page.keyboard.press("ArrowLeft");
       await page.keyboard.press("Backspace");
       check(

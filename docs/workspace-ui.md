@@ -304,11 +304,14 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     singular for one and the plural for more ("1 transport option", "2 rooms"), never with "(s)".
   - **Specialist team** is a button in the top bar, left of Trip. It shows the six assistants' icons
     (a working one bobs) and, while planning, "N working"; between 521 and 1000 px only the icons show.
-    Hovering it opens the team panel, a click pins it, and Escape or a press outside closes it; Escape
-    returns focus to the button only when focus was inside the panel. The panel never opens by itself and
+    Hovering it opens the team panel; Enter, Space or a touch pins it and moves focus into the panel; a click
+    on the button while the panel is open, hovered or pinned, closes it, and so do Escape and a press
+    outside. Escape returns focus to the button only when focus was inside the panel. The panel is a
+    dialog named Specialist team, which the button controls through `aria-controls`; hovering alone does
+    not move focus. The panel never opens by itself and
     updates live. It shows the latest turn: the live stream while one runs, otherwise the newest saved
-    agent reply's activity. [`TeamPanel`](../apps/web/components/chat/TeamPanel.tsx) takes a run's activity
-    as input, and [`teamModel`](../apps/web/components/chat/team-model.ts) derives everything from the
+    agent reply's activity. [`TeamPanel`](../apps/web/components/chat/TeamPanel.tsx) takes a `TeamModel`
+    as input, so the live turn and a saved reply's run share it, and [`teamModel`](../apps/web/components/chat/team-model.ts) derives everything from the
     streamed events, nothing invented.
     At 520 px and below the top bar keeps one row: an avatar-only button at least 44 px square sits right of the
     trip title, which truncates. It opens the same panel as a bottom sheet
@@ -320,7 +323,8 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
       guide, Food & dining), each with its icon, current name, a status and its latest objective
       (clamped to two lines, with Show more). Idle is before any event; Working is started with no result in
       the latest round; Done is completed; Failed is `agent_failed`; Needs change is named by the latest
-      conflict check and not yet revised; Not involved is no assignment this turn. The Coordinator row
+      conflict check and not yet revised; Stopped is a turn that was cancelled or failed while the assistant
+      was working (the Coordinator of such a turn is Stopped too); Not involved is no assignment this turn. The Coordinator row
       carries the Decided by AI or code marker for the dispatch.
     - Below the rows, the turn's **assignments** and checks in event order. An assignment is a
       specialist's first dispatch, a targeted revision or a hand-off, with its owner, round status
@@ -342,8 +346,9 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
       that shows the panel reads it. Closing the panel, pressing Latest turn or starting the next live
       turn returns the panel to the latest run. [`TeamSummary`](../apps/web/components/chat/TeamSummary.tsx)
       derives the text with `teamSummary`; `TeamConversation` no longer exists.
-    - **Opening thinking rows.** Pressing a row of an involved assistant (Working, Done, Failed or Needs
-      change; the name is a button called "Show {name} thinking") closes the panel, or on a phone the sheet,
+    - **Opening thinking rows.** Pressing a row of an involved assistant (Working, Done, Failed, Needs
+      change or Stopped; the name is a button called "Show {name} thinking") closes the panel, or on a phone the sheet,
+      switches to the chat when the Map is showing (the phone Map tab or the Map view at tablet width),
       scrolls the chat to the Think fold of the run the panel shows (the live area, or that reply's fold),
       opens the fold and expands exactly that specialist's `Subagent` row for the latest round it worked in,
       then moves focus to the row. Pressing the Coordinator opens the fold and focuses its first line, where
@@ -353,11 +358,13 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
   - There is no row of assistant chips above the message box. Typing `@` at the start of a word opens a
     menu of the six assistants (the Coordinator and the five specialists), each with its icon and
     current name, filtered by what follows the `@` and matched against the current, role and custom
-    names. The up and down arrows move, Tab or Enter picks and inserts `@<name> `, and Esc closes the
+    names. A name of several words (Food & dining, or a custom name with spaces) keeps the menu open while
+    the typed text is still the start of some name. The up and down arrows move, Tab or Enter picks and
+    inserts `@<name> ` (Shift+Tab moves focus and picks nothing), and Esc closes the
     menu without changing the draft; a closed menu stays closed until the query changes or the caret
     moves to another token. The textarea keeps focus and names the active option through
     `aria-activedescendant`, and options are 44 px tall at phone width. Right after a whole `@name`,
-    the first Backspace selects exactly that token and the second deletes it; any other key, click or
+    the first Backspace selects that token together with its trailing space and the second deletes both; any other key, click or
     caret move clears the selection. Neither the menu nor the token selection acts during IME
     composition. The message stays plain text. Typing a full `@name` with a default role name in
     English or Chinese resolves the same way. The client resolves each `@name` to a specialist id, drops duplicates, and sends

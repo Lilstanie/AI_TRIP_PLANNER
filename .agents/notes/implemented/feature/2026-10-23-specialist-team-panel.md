@@ -15,8 +15,10 @@ back or whether a revision was kept. Tutors should see the team's structure, not
 ## Decision
 
 - **Team panel.** A Specialist team (专家团队) button in `topbar-actions`, left of Trip, opens the team
-  panel (`TeamControl`, `TeamPanel` in `components/chat`). Hover opens it, a click pins it, Escape or a
-  press outside closes it, and it never opens by itself. The panel lists the six assistants every time,
+  panel (`TeamControl`, `TeamPanel` in `components/chat`). Hover opens it, Enter or a touch pins it and
+  moves focus in, a click on the button while it is open closes it, as do Escape and a press outside, and
+  it never opens by itself. The popover is a dialog named like the button, controlled through
+  `aria-controls`; hovering does not take focus. The panel lists the six assistants every time,
   in `ASSISTANT_ORDER`, each with status and one-line objective, then the turn's **assignments** (the
   glossary term): a specialist's first dispatch, a targeted revision or a hand-off, with owner, status,
   data source and the AI-or-code marker kept from #558, plus the conflict checks, revision scores and the
@@ -25,11 +27,13 @@ back or whether a revision was kept. Tutors should see the team's structure, not
   next to Trip details so the two never open together.
 - **Derived on the client, no contract change.** `teamModel` in `team-model.ts` turns an activity list
   (`AgentProgressEvent[]`) into six rows, the ordered assignments and checks and a working count. The
-  button avatars, the panel and the reply summary read it, and `TeamPanel` takes a run's activity as
-  input, so the live turn and a saved reply's run share one component. `packages/shared/src` is not
+  button avatars, the panel and the reply summary read it, and `TeamPanel` takes a `TeamModel` (built
+  by `useTeamSurface` for the live turn or the chosen run), so the live turn and a saved reply's run share one component. `packages/shared/src` is not
   touched. Status mapping: Working is started with no completed or failed in the latest round; Done is
-  completed; Failed is failed; Needs change is named by the latest conflict check and not yet revised; Not
-  involved is no assignment this turn; Idle is before any event.
+  completed; Failed is failed; Needs change is named by the latest conflict check and not yet revised;
+  Stopped is a working assistant when the turn was cancelled or failed, and the Coordinator of that turn
+  (`latestTurn` marks live activity that outlives its stream as interrupted); Not involved is no
+  assignment this turn; Idle is before any event.
 - **Who decided.** An assignment is marked AI when the stream carried that specialist's reasoning in that
   round, and code once the turn ends without it. The Coordinator row carries the marker for the dispatch,
   and a hand-off carries `mention_handoff.decidedBy`. Speakers still come only from real events.
@@ -37,7 +41,11 @@ back or whether a revision was kept. Tutors should see the team's structure, not
   it. Each saved reply a specialist worked on starts with a one-line summary that opens that run's panel
   (#633), and a reply only the Coordinator wrote has none. Pressing an involved row in the panel closes the
   panel, scrolls to the run's Think fold and expands that specialist's `Subagent` row for its latest round,
-  moving focus there; Idle and Not involved rows have no action (#634).
+  moving focus there; Idle and Not involved rows have no action (#634). When the Map is showing (phone Map
+  tab, narrow desktop Map view) the press switches to the chat in the same update as the reveal request.
+- **@ menu details.** A multi-word name keeps the menu open while the typed text still starts some name,
+  Shift+Tab does not pick, and the first Backspace after a picked mention selects the token with its
+  trailing space. `mentions.ts` is the one source of role names and aliases.
 - **@ menu.** The chip row is removed. Typing `@` opens a menu of the six assistants with icons,
   operable from the keyboard (arrows, Tab or Enter to pick, Escape to close without changing the draft)
   and announced through `aria-activedescendant`. A mention stays plain text in the textarea; right after

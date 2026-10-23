@@ -15,5 +15,9 @@ Written before the code (#630). Each line is a way the @ menu could fail; the br
 - The second Backspace does not remove the token, or touches the text before it.
 - A key, click or caret move after the first Backspace leaves the next Backspace deleting the whole token.
 - Backspace after ordinary text selects something.
+- Shift+Tab picks the highlighted option instead of moving focus.
+- The menu reopens on a mention that was just picked, before the caret reports its new position.
+- A multi-word name (`@Food & d`) closes the menu at its first space, so it cannot be filtered or picked past the first word; or text after a finished name keeps the menu open.
+- The first Backspace after a picked mention leaves its trailing space out of the selection, so the second Backspace leaves a stray space.
 - During IME composition the menu opens, or Backspace selects a token.
 - The page scrolls sideways at phone width, or a page error is logged.

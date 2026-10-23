@@ -65,9 +65,10 @@ const focusInfo = () => {
 };
 
 try {
-  for (const width of [1440, 390]) {
+  for (const width of [1440, 800, 390]) {
     const label = `w${width}`;
     const phone = width <= 520;
+    const narrow = width <= 1000;
     const context = await browser.newContext({
       locale: "en-AU",
       viewport: { width, height: phone ? 600 : 560 },
@@ -100,6 +101,8 @@ try {
               lines.push(...parts.map((part) => `${part}\n`));
             }
             await new Promise((resolve) => setTimeout(resolve, 150));
+            if (args[1]?.signal?.aborted)
+              throw new DOMException("The operation was aborted.", "AbortError");
             controller.enqueue(encoder.encode(lines.shift()));
           },
         });
@@ -229,6 +232,37 @@ try {
     );
     await page.screenshot({ path: `${out}/${label}-latest-stay.png` });
 
+    if (narrow) {
+      if (phone) await page.getByRole("tab", { name: /^Map/ }).click();
+      else
+        await page
+          .getByRole("group", { name: "Workspace view" })
+          .getByRole("button", { name: "Map", exact: true })
+          .click();
+      await page.waitForTimeout(400);
+      await openLatest();
+      await press("Stay").click();
+      await settle();
+      const onChat = phone
+        ? (await page.getByRole("tab", { name: /^Chat/ }).getAttribute("aria-selected")) === "true"
+        : (await page
+            .getByRole("group", { name: "Workspace view" })
+            .getByRole("button", { name: "Chat", exact: true })
+            .getAttribute("aria-pressed")) === "true";
+      const fromMap = await page.evaluate(focusInfo);
+      check(onChat, `${label}: pressing a specialist from the map switches to the chat`);
+      check(
+        fromMap?.reply === last && fromMap.subagent?.endsWith(":accommodation"),
+        `${label}: the Stay row of the latest reply is focused after the switch`,
+        fromMap,
+      );
+      check(
+        fromMap && fromMap.top >= 0 && fromMap.bottom <= fromMap.form + 1,
+        `${label}: the Stay row is in view after the switch`,
+        fromMap,
+      );
+    }
+
     await page.evaluate(() => {
       window.__slow = true;
     });
@@ -269,6 +303,46 @@ try {
       liveState,
     );
     await page.screenshot({ path: `${out}/${label}-live-stay.png` });
+
+    await page.getByRole("button", { name: "Send" }).waitFor({ timeout: 240_000 });
+    await box(page).fill(PLAN);
+    await page.keyboard.press("Enter");
+    await page.locator(".chat__stream > .agent-activity").waitFor();
+    await openLatest();
+    await panel
+      .locator('.team-panel__row[data-status="working"]:not([data-assistant="coordinator"])')
+      .first()
+      .waitFor();
+    await page.keyboard.press("Escape");
+    await panel.waitFor({ state: "detached" });
+    await page.getByRole("button", { name: "Stop planning" }).click();
+    await page.getByRole("button", { name: "Send" }).waitFor();
+    await openLatest();
+    const stopped = await panel.locator(".team-panel__row").evaluateAll((rows) =>
+      rows.map((row) => ({
+        id: row.getAttribute("data-assistant"),
+        status: row.getAttribute("data-status"),
+        text: row.querySelector(".team-panel__status")?.textContent,
+        action: Boolean(row.querySelector("button.team-panel__press")),
+      })),
+    );
+    const unfinished = stopped.filter((row) => row.status === "stopped");
+    check(
+      unfinished.length > 0 && unfinished.every((row) => row.text === "Stopped" && row.action),
+      `${label}: a cancelled turn shows its unfinished assistants as Stopped`,
+      stopped,
+    );
+    check(
+      stopped.find((row) => row.id === "coordinator")?.status === "stopped",
+      `${label}: the Coordinator of a cancelled turn is Stopped`,
+      stopped,
+    );
+    check(
+      stopped.every((row) => row.status !== "working" && row.status !== "idle"),
+      `${label}: a cancelled turn leaves no assistant working or idle`,
+      stopped,
+    );
+    await page.keyboard.press("Escape");
 
     const fits = await page.evaluate(
       () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,

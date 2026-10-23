@@ -1,6 +1,6 @@
 "use client";
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
-import type { AgentProgressEvent, AssistantId } from "@trip/shared";
+import { useLayoutEffect, useRef, useState } from "react";
+import type { AssistantId } from "@trip/shared";
 import { useLocale } from "@/components/account/LocaleProvider";
 import { AssistantIcon } from "./assistants";
 import { useAssistantName } from "./assistant-names";
@@ -9,7 +9,6 @@ import {
   assignmentStatusLabels,
   rowStatusLabels,
   sourceLabels,
-  teamModel,
   type TeamModel,
 } from "./team-model";
 
@@ -42,23 +41,18 @@ function Objective({ text }: { text: string }) {
 }
 
 export function TeamPanel({
-  activity,
-  settled,
   model,
   onSelect,
 }: {
-  activity: readonly AgentProgressEvent[];
-  settled: boolean;
-  model?: TeamModel;
+  model: TeamModel;
   onSelect?: (assistant: AssistantId) => void;
 }) {
   const { t } = useLocale();
   const name = useAssistantName();
-  const derived = useMemo(() => model ?? teamModel(activity, settled), [model, activity, settled]);
   return (
     <section className="team-panel" aria-label={t("Specialist team")} tabIndex={-1}>
       <ul className="team-panel__rows" aria-label={t("Assistants")}>
-        {derived.rows.map((row) => (
+        {model.rows.map((row) => (
           <li
             key={row.assistant}
             className="team-panel__row"
@@ -96,9 +90,9 @@ export function TeamPanel({
           </li>
         ))}
       </ul>
-      {derived.entries.length > 0 && (
+      {model.entries.length > 0 && (
         <ol className="team-panel__entries" aria-label={t("Assignments")}>
-          {derived.entries.map((entry) =>
+          {model.entries.map((entry) =>
             entry.type === "check" ? (
               <li key={entry.id} className="team-panel__check" data-check={entry.decision.type}>
                 {checkText(t, name, entry.decision)}

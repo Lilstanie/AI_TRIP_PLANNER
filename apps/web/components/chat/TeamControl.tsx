@@ -1,12 +1,11 @@
 "use client";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { AgentProgressEvent, AssistantId } from "@trip/shared";
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { useLocale } from "@/components/account/LocaleProvider";
 import { AssistantIcon } from "./assistants";
 import { TeamPanel } from "./TeamPanel";
 import { TeamRunBar } from "./TeamRunBar";
-import { teamModel, type TeamModel } from "./team-model";
-import { useTeamRun } from "./team-run";
+import type { TeamModel, TeamTurn } from "./team-model";
+import { useTeamSurface } from "./use-team-surface";
 
 const HOVER_CLOSE_MS = 150;
 
@@ -24,46 +23,42 @@ export function TeamAvatars({ rows }: { rows: TeamModel["rows"] }) {
   );
 }
 
-export function TeamControl({
-  activity,
-  busy,
-}: {
-  activity: readonly AgentProgressEvent[];
-  busy: boolean;
-}) {
+export function TeamControl({ turn, onReveal }: { turn: TeamTurn; onReveal?: () => void }) {
   const { t } = useLocale();
-  const model = useMemo(() => teamModel(activity, !busy), [activity, busy]);
-  const { run, request, showLatest, open: reveal } = useTeamRun();
+  const popoverId = useId();
   const [hovered, setHovered] = useState(false);
   const [pinned, setPinned] = useState(false);
-  const handled = useRef(request);
-  useEffect(() => {
-    if (handled.current === request) return;
-    handled.current = request;
-    setPinned(true);
-  }, [request]);
   const root = useRef<HTMLDivElement>(null);
   const button = useRef<HTMLButtonElement>(null);
+  const popover = useRef<HTMLDivElement>(null);
   const leaving = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const focusIn = useRef(false);
   const open = hovered || pinned;
-  const wasOpen = useRef(false);
-  useEffect(() => {
-    if (wasOpen.current && !open) showLatest();
-    wasOpen.current = open;
-  }, [open, showLatest]);
+
+  const pin = useCallback(() => {
+    focusIn.current = true;
+    setPinned(true);
+  }, []);
+  const { live, shown, select } = useTeamSurface(turn, open, pin);
 
   const close = useCallback(() => {
     clearTimeout(leaving.current);
+    focusIn.current = false;
     setHovered(false);
     setPinned(false);
   }, []);
+
+  useLayoutEffect(() => {
+    if (!pinned || !focusIn.current) return;
+    focusIn.current = false;
+    popover.current?.focus({ preventScroll: true });
+  }, [pinned, open]);
 
   useEffect(() => {
     if (!open) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
-      if (root.current?.querySelector(".team-popover")?.contains(document.activeElement))
-        button.current?.focus();
+      if (popover.current?.contains(document.activeElement)) button.current?.focus();
       close();
     };
     const onPointer = (event: PointerEvent) => {
@@ -78,11 +73,6 @@ export function TeamControl({
   }, [open, close]);
 
   useEffect(() => () => clearTimeout(leaving.current), []);
-
-  const select = (assistant: AssistantId) => {
-    reveal(run ? run.activity : activity, assistant);
-    close();
-  };
 
   return (
     <div
@@ -105,25 +95,36 @@ export function TeamControl({
         aria-label={t("Specialist team")}
         aria-expanded={open}
         aria-haspopup="dialog"
-        data-working={model.working}
-        onClick={() => setPinned(!pinned)}
+        aria-controls={open ? popoverId : undefined}
+        data-working={live.working}
+        onClick={() => (open ? close() : pin())}
       >
-        <TeamAvatars rows={model.rows} />
+        <TeamAvatars rows={live.rows} />
         <span className="team-trigger__label">{t("Specialist team")}</span>
-        {model.working > 0 && (
+        {live.working > 0 && (
           <span className="team-trigger__count">
-            {t("{count} working", { count: model.working })}
+            {t("{count} working", { count: live.working })}
           </span>
         )}
       </button>
       {open && (
-        <div className="team-popover">
+        <div
+          ref={popover}
+          id={popoverId}
+          className="team-popover"
+          role="dialog"
+          aria-label={t("Specialist team")}
+          tabIndex={-1}
+        >
           <TeamRunBar />
-          {run ? (
-            <TeamPanel activity={run.activity} settled onSelect={select} />
-          ) : (
-            <TeamPanel activity={activity} settled={!busy} model={model} onSelect={select} />
-          )}
+          <TeamPanel
+            model={shown}
+            onSelect={(assistant) => {
+              onReveal?.();
+              select(assistant);
+              close();
+            }}
+          />
         </div>
       )}
     </div>

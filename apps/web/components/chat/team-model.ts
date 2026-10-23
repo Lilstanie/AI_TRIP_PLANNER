@@ -11,7 +11,8 @@ import { ASSISTANT_ORDER } from "./assistant-names";
 
 export type DecidedBy = "llm" | "code";
 
-export type RowStatus = "idle" | "working" | "done" | "failed" | "needs_change" | "none";
+export type RowStatus =
+  "idle" | "working" | "done" | "failed" | "needs_change" | "stopped" | "none";
 
 export type AssignmentStatus = "working" | "done" | "failed" | "stopped";
 
@@ -70,6 +71,7 @@ export const rowStatusLabels: Record<RowStatus, MessageKey> = {
   done: "Done",
   failed: "Failed",
   needs_change: "Needs change",
+  stopped: "Stopped",
   none: "Not involved",
 };
 
@@ -80,17 +82,23 @@ export const assignmentStatusLabels: Record<AssignmentStatus, MessageKey> = {
   stopped: "Stopped",
 };
 
-export function teamModel(activity: readonly AgentProgressEvent[], settled: boolean): TeamModel {
+export function teamModel(
+  activity: readonly AgentProgressEvent[],
+  settled: boolean,
+  interrupted = false,
+): TeamModel {
   const events = activity.filter(
     (event) => !(event.type === "coordinator" && event.summary === PREPARING_SUMMARY),
   );
+  const reasoning = new Set<string>();
+  for (const event of events) {
+    if (event.type !== "agent_reasoning") continue;
+    const assistant = event.assistant ?? event.agent;
+    reasoning.add(assistant);
+    reasoning.add(`${assistant}:${event.round}`);
+  }
   const reasoned = (assistant: AssistantId, round?: number) =>
-    events.some(
-      (event) =>
-        event.type === "agent_reasoning" &&
-        (event.assistant ?? event.agent) === assistant &&
-        (round === undefined || event.round === round),
-    );
+    reasoning.has(round === undefined ? assistant : `${assistant}:${round}`);
   const decidedBy = (assistant: AssistantId, round?: number): DecidedBy | undefined =>
     reasoned(assistant, round) ? "llm" : settled ? "code" : undefined;
 
@@ -148,7 +156,7 @@ export function teamModel(activity: readonly AgentProgressEvent[], settled: bool
       if (decision.type === "mention_handoff") {
         involved.add(decision.from);
         entries.push({
-          id: `handoff:${decision.from}:${decision.to}`,
+          id: `handoff:${decision.from}:${decision.to}:${event.round}:${entries.length}`,
           type: "assignment",
           owner: decision.from,
           kind: "handoff",
@@ -188,11 +196,17 @@ export function teamModel(activity: readonly AgentProgressEvent[], settled: bool
   const rows: TeamRow[] = ASSISTANT_ORDER.map((assistant) => {
     let value: RowStatus;
     if (assistant === "coordinator")
-      value = !settled ? "working" : events.length > 0 ? "done" : "idle";
+      value = !settled
+        ? "working"
+        : events.length === 0
+          ? "idle"
+          : interrupted
+            ? "stopped"
+            : "done";
     else if (events.length === 0) value = "idle";
     else if (!involved.has(assistant)) value = settled ? "none" : "idle";
     else value = status.get(assistant) ?? "idle";
-    if (settled && value === "working") value = "idle";
+    if (settled && value === "working") value = "stopped";
     return {
       assistant,
       status: value,
@@ -230,16 +244,23 @@ export function teamSummary(activity: readonly AgentProgressEvent[]): TeamSummar
   };
 }
 
+export interface TeamTurn {
+  activity: readonly AgentProgressEvent[];
+  settled: boolean;
+  interrupted: boolean;
+}
+
 export function latestTurn(
   live: readonly AgentProgressEvent[],
   busy: boolean,
   messages: readonly Message[],
-): readonly AgentProgressEvent[] {
-  if (busy || live.length > 0) return live;
+): TeamTurn {
+  if (busy) return { activity: live, settled: false, interrupted: false };
+  if (live.length > 0) return { activity: live, settled: true, interrupted: true };
   for (let index = messages.length - 1; index >= 0; index -= 1) {
     const message = messages[index];
     if (message?.role === "agent" && message.activity && message.activity.length > 0)
-      return message.activity;
+      return { activity: message.activity, settled: true, interrupted: false };
   }
-  return live;
+  return { activity: live, settled: true, interrupted: false };
 }

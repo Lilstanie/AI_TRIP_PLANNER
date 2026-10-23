@@ -181,6 +181,8 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
   const selectView = (view: MobileView) =>
     view !== mobileView && viewTransition(() => layout.selectView(view), `to-${view}`);
 
+  const teamTurn = latestTurn(activity, busy, messages);
+
   const phonePanel = (view: MobileView) =>
     phone
       ? {
@@ -363,11 +365,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
             {phone ? (
               <>
                 <PhoneTripTitle model={model} />
-                <PhoneTeamButton
-                  model={model}
-                  activity={latestTurn(activity, busy, messages)}
-                  busy={busy}
-                />
+                <PhoneTeamButton model={model} turn={teamTurn} />
               </>
             ) : (
               <div className="topbar-summary">
@@ -424,7 +422,10 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                   />
                   <LanguageToggle />
                 </div>
-                <TeamControl activity={latestTurn(activity, busy, messages)} busy={busy} />
+                <TeamControl
+                  turn={teamTurn}
+                  {...(narrow ? { onReveal: () => layout.selectView("chat") } : {})}
+                />
                 <button
                   ref={tripToggle}
                   type="button"

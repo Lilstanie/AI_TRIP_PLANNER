@@ -78,6 +78,7 @@ export function ChatPanel({
   const restored = useRef(messages.length);
   const last = messages.length - 1;
   const revealIndex = last >= restored.current && messages[last]?.role === "agent" ? last : -1;
+  let turn = 0;
   const inputRef = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
     if (messages.length || activity.length)
@@ -145,15 +146,12 @@ export function ChatPanel({
           </div>
         )}
         <div role="log" aria-live="polite">
-          {messages.map((m, i) => (
-            <MessageItem
-              key={i}
-              message={m}
-              animate={i === revealIndex}
-              index={i}
-              turn={messages.slice(0, i + 1).filter((other) => other.role === "user").length}
-            />
-          ))}
+          {messages.map((m, i) => {
+            if (m.role === "user") turn += 1;
+            return (
+              <MessageItem key={i} message={m} animate={i === revealIndex} index={i} turn={turn} />
+            );
+          })}
         </div>
         {(activity.length > 0 || busy) && (
           <section
