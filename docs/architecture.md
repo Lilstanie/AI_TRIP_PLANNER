@@ -426,7 +426,13 @@ A trip length the traveller states in days ("3 days", "5-day", "四天", "三日
 model's end date: `statedTripDays` in `packages/orchestrator/src/chat-offline.ts` adds up the day
 counts in the message, and the end date becomes the start date plus that count minus one, so N days
 are N calendar days with no extra departure day. An explicit date range in the message wins, and
-"in 3 days" or a one-day count is not read as a length.
+"in 3 days" is not read as a length. "1 day" gives a same-day trip.
+
+A same-day trip (`dates[0] === dates[1]`) is valid only for one destination with
+`noAccommodation: true`; every other trip needs at least one night per destination. When a brief
+patch makes the dates the same day and `noAccommodation` is unset, `mergeBriefPatch` sets it to
+`true`, so "1 day in Sydney" plans one day with no stay. Setting `noAccommodation: false` on a
+same-day trip is rejected.
 
 `specialistBrief` in `packages/orchestrator/src/supervisor.ts` appends the learned list to the
 traveller's own for the specialists, deduplicated and capped at 12. The stored brief keeps the two

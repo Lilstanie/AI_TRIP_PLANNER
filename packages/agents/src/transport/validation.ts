@@ -25,7 +25,7 @@ export function planningDays([start, end]: [string, string]): number {
     return time;
   };
   const nights = (parse(end) - parse(start)) / 86400000;
-  if (!Number.isSafeInteger(nights) || nights < 1)
+  if (!Number.isSafeInteger(nights) || nights < 0)
     throw new Error("Planning requires ordered dates.");
   return nights + 1;
 }

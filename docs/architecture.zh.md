@@ -348,7 +348,9 @@ Supervisor 收到指令，将每条偏好传入它所影响的目标；每个 sp
 
 旅行者以天数说明的行程长度（“3 days”“5-day”“四天”“三日游”）会覆盖模型给出的结束日期：
 `packages/orchestrator/src/chat-offline.ts` 中的 `statedTripDays` 把消息中的天数相加，结束日期为开始日期加上天数再减一，
-因此 N 天就是 N 个日历日，不额外加一个离开日。消息中明确的日期范围优先；“in 3 days”或一天的行程不会被当作长度。
+因此 N 天就是 N 个日历日，不额外加一个离开日。消息中明确的日期范围优先；“in 3 days”不会被当作长度，“1 day”得到当天往返的行程。
+
+当天往返的行程（`dates[0] === dates[1]`）只在只有一个目的地且 `noAccommodation: true` 时有效；其余行程每个目的地至少一晚。brief patch 让开始和结束成为同一天、且 `noAccommodation` 未设置时，`mergeBriefPatch` 会把它设为 `true`，所以“1 day in Sydney”会规划一天且不住宿。当天往返的行程设置 `noAccommodation: false` 会被拒绝。
 
 `packages/orchestrator/src/supervisor.ts` 中的 `specialistBrief` 把学到的列表追加到旅行者自己的
 列表之后交给 specialist，去重并限制为 12 条。存储的行程需求仍把两个列表分开保存。

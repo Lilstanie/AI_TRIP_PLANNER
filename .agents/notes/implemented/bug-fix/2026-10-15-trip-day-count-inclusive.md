@@ -14,7 +14,8 @@ prompts labelled four-day trips with five-day date ranges to match.
 `TripBrief.dates` is inclusive. A trip has `end − start + 1` days and `end − start` nights. The three
 day counters and the edit preview add one; accommodation keeps counting nights. The quick prompts end
 on the last day, so "Sydney · 4 days" runs from day 21 to day 24. The validation floor is unchanged:
-dates must still be at least one night apart.
+dates must still be at least one night apart. [One-day trips](../architecture/2026-10-23-one-day-trips.md) later allowed a
+same-day trip for one destination without accommodation.
 
 ## Alternatives considered
 

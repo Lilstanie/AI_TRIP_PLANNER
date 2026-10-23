@@ -86,7 +86,7 @@ export function statedTripDays(message: string): number | undefined {
     ...message.matchAll(/(\d{1,2}|[一二两三四五六七八九十]+)\s*(?:天|日游)/g),
   ].map((match) => Number(match[1]) || chineseNumber(match[1]) || 0);
   const days = counts.reduce((sum, count) => sum + count, 0);
-  return days > 1 ? days : undefined;
+  return days >= 1 ? days : undefined;
 }
 
 export function extractBriefPatchLocally(message: string, knownGroupSize?: number): BriefPatch {

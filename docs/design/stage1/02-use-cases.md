@@ -45,7 +45,7 @@ One specification per member at least (C wrote two); seven in total. Each comes 
 
 1. Coordinator merges the message onto the facts earlier turns stated (`known`).
 2. The LLM reads the merged context and calls `update_trip_brief` with only the facts this message states.
-3. Coordinator validates the patch through `BriefPatchSchema`, applies it with `applyBriefPatch`, and parses the result as a `TripBrief`; the dates must be real and ordered, with at least one night per city.
+3. Coordinator validates the patch through `BriefPatchSchema`, applies it with `applyBriefPatch`, and parses the result as a `TripBrief`; the dates must be real and ordered, with at least one night per city, except a one-city day trip without accommodation.
 4. Coordinator starts the LangGraph workflow with the validated brief.
 5. `dispatch_specialists` asks the supervisor which specialists to call; the supervisor writes one concrete objective per specialist, naming the trip facts it must respect.
 6. Each specialist plans its own section and posts an `AgentProposal` on the staged planning board; one progress event per specialist reaches the browser as it works.
@@ -57,7 +57,7 @@ One specification per member at least (C wrote two); seven in total. Each comes 
 
 - 2a. _No model configured, or off-schema output_: no patch is applied; the turn proceeds on the facts already stated, and the reply is written by `fallbackReplyFor` (R-A11).
 - 3a. _A required fact is still missing_ (destination, dates, group size or budget): the turn ends with `IncompleteBriefError` naming the missing fields, carrying `known` so the traveller does not repeat the rest. No default values are used (R-A2).
-- 3b. _Dates are unreal, reversed, or shorter than one night per city_: the brief is rejected with the reason; planning does not start.
+- 3b. _Dates are unreal, reversed, or shorter than one night per city (a one-city day trip without accommodation excepted)_: the brief is rejected with the reason; planning does not start.
 - 3c. _The traveller states a lasting wish, a travel mode or a booked stay_: it is recorded on the brief (`learnedPreferences`, `legModes`, `bookedStay`) and the plan is re-run with it.
 - 4a. _The traveller asked a question the plan already answers_: the coordinator answers from the plan and does not replan.
 - 5a. _The coordinator would rather ask than guess_: it calls `ask_user_question` with 2-4 options in the traveller's language, recommended option first. The turn ends there, and no other tool runs after it (R-A3).

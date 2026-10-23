@@ -681,8 +681,8 @@ export const WORKSPACE_ZH = {
     "公共交通出发时间超出 Google 支持的日期范围。",
   "No verified route was returned.": "未返回已核实的路线。",
   "Invalid route duration.": "路线时长无效。",
-  "End date must follow start date, with at least one night per destination.":
-    "结束日期须晚于开始日期，且每个目的地至少住一晚。",
+  "End date must follow start date, with at least one night per destination. A one-day trip needs one destination and no accommodation.":
+    "结束日期须晚于开始日期，且每个目的地至少住一晚。一日游只能有一个目的地，并且不住宿。",
   "Choose an end date": "请选择结束日期",
   "Your data was deleted, but the sign-in account could not be. Try again.":
     "你的数据已删除，但登录账户未能删除，请重试。",
