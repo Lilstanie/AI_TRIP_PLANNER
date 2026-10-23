@@ -173,5 +173,11 @@ export function eventCopy(runEvent: AgentLabRunEvent): EventCopy {
         title: `${agentName(event.agent)} · ${event.label} failed${inRound(event.round)}`,
         detail: event.error,
       };
+    case "decision":
+      return {
+        kind: "graph",
+        title: `Planning decision${inRound(event.round)}`,
+        detail: event.decision.type,
+      };
   }
 }

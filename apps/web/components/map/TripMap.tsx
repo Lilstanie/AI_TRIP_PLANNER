@@ -274,7 +274,7 @@ export function TripMap({
 
   useEffect(() => {
     const element = root.current;
-    if (!runtime || !element || typeof ResizeObserver === "undefined") return;
+    if (!runtime || !element) return;
     let frame = 0;
     const observer = new ResizeObserver(() => {
       cancelAnimationFrame(frame);

@@ -113,21 +113,6 @@ function eventSummary(events: AgentProgressEvent[], status: ActivityStatus): str
   return statusLabels[status];
 }
 
-export function firstLine(text: string): string {
-  const newline = text.indexOf("\n");
-  return newline === -1 ? text : text.slice(0, newline);
-}
-
-export function latestLine(text: string): string {
-  const visible = text.trimEnd();
-  const newline = visible.lastIndexOf("\n");
-  return newline === -1 ? visible : visible.slice(newline + 1);
-}
-
-export function reasoningSummary(text: string, running: boolean): string {
-  return (running ? latestLine(text) : firstLine(text.trimStart())).replaceAll("**", "");
-}
-
 export interface ReasoningBlock {
   id: string;
   agent: AgentName;
@@ -332,6 +317,7 @@ export function subagentModel(
   round: number,
   events: AgentProgressEvent[],
   busy: boolean,
+  locale: AppLocale = "en",
   coordinator?: CoordinatorEvent,
 ): SubagentModel {
   const status = agentStatus(events, busy);
@@ -352,7 +338,7 @@ export function subagentModel(
     round,
     steps,
     status,
-    summary: stream ? reasoningSummary(stream.text, true) : eventSummary(events, status),
+    summary: stream ? liveSummary(events, locale) : eventSummary(events, status),
     streaming: Boolean(stream),
     ...(started?.type === "agent_started" && started.objective
       ? { objective: started.objective }
@@ -464,13 +450,6 @@ function liveSummary(activity: AgentProgressEvent[], locale: AppLocale): string 
       { count: waiting },
     );
   }
-  const coordinator = [...activity].reverse().find((event) => event.type === "coordinator");
-  if (coordinator) return coordinator.summary;
-  const started = [...activity].reverse().find((event) => event.type === "agent_started");
-  if (started?.type === "agent_started")
-    return translate(locale, "Working with {agent}", {
-      agent: translate(locale, labels[started.agent]),
-    });
   return translate(locale, "Preparing your request.");
 }
 
@@ -482,17 +461,7 @@ export function turnSummary(
   locale: AppLocale = "en",
   outcome?: "planned" | "asked",
 ): { text: string; streaming: boolean } {
-  if (busy) {
-    let newest = -1;
-    activity.forEach((event, position) => {
-      if (isLifecycle(event) || isToolEvent(event) || event.type === "agent_reasoning")
-        newest = position;
-    });
-    const stream = streamingBlock(mergeReasoning(activity, true));
-    if (stream && stream.last === newest)
-      return { text: reasoningSummary(stream.text, true), streaming: true };
-    return { text: liveSummary(activity, locale), streaming: false };
-  }
+  if (busy) return { text: liveSummary(activity, locale), streaming: false };
   return {
     text:
       countLine(counts, locale) ||
@@ -535,7 +504,11 @@ function workRounds(activity: AgentProgressEvent[]): number[] {
   return rounds.sort((a, b) => a - b);
 }
 
-export function roundGroups(activity: AgentProgressEvent[], busy: boolean): RoundGroup[] {
+export function roundGroups(
+  activity: AgentProgressEvent[],
+  busy: boolean,
+  locale: AppLocale = "en",
+): RoundGroup[] {
   const incoming = new Map<number, AgentProgressEvent[]>();
   for (const event of activity) {
     const list = incoming.get(event.round);
@@ -544,7 +517,9 @@ export function roundGroups(activity: AgentProgressEvent[], busy: boolean): Roun
   }
   const rounds = workRounds(activity);
   if (rounds.length === 0) {
-    return [{ round: 1, subagents: AGENT_NAMES.map((name) => subagentModel(name, 1, [], busy)) }];
+    return [
+      { round: 1, subagents: AGENT_NAMES.map((name) => subagentModel(name, 1, [], busy, locale)) },
+    ];
   }
   const multiRound = rounds.length > 1;
 
@@ -574,7 +549,7 @@ export function roundGroups(activity: AgentProgressEvent[], busy: boolean): Roun
       round,
       ...(heading ? { heading } : {}),
       subagents: names.map((name) =>
-        subagentModel(name, round, byAgent.get(name) ?? [], busy, consumedCoordinator),
+        subagentModel(name, round, byAgent.get(name) ?? [], busy, locale, consumedCoordinator),
       ),
     };
   });

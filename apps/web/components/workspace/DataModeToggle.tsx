@@ -38,9 +38,10 @@ export function DataModeToggle({
       type="button"
       className={`topbar-button data-mode data-mode--${live ? "live" : "mock"}`}
       aria-pressed={live}
-      disabled={disabled || !liveAvailable}
+      aria-disabled={!liveAvailable || undefined}
+      disabled={disabled}
       title={title}
-      onClick={() => onChange(live ? "mock" : "live")}
+      onClick={() => liveAvailable && onChange(live ? "mock" : "live")}
     >
       <span className="data-mode__dot" aria-hidden="true" />
       <span className="topbar-button__label">{t(live ? "Live data" : "Mock data")}</span>
@@ -50,9 +51,11 @@ export function DataModeToggle({
         </span>
       )}
       <span className="sr-only">
-        {live
-          ? t(". Currently using live provider data. Activate to switch to mock fixtures.")
-          : t(". Currently using mock fixtures. Activate to switch to live provider data.")}
+        {!liveAvailable
+          ? t(". Currently using mock fixtures. Sign in to plan with live hotel and flight prices.")
+          : live
+            ? t(". Currently using live provider data. Activate to switch to mock fixtures.")
+            : t(". Currently using mock fixtures. Activate to switch to live provider data.")}
       </span>
     </button>
   );

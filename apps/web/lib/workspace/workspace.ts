@@ -14,6 +14,7 @@ import {
   TripBrief,
   TripPlan,
   TripPreferences,
+  type AssistantId,
   type TravellerParty,
 } from "@trip/shared";
 import { failureNotice, NoticeError, type Notice } from "../i18n/notice";
@@ -40,6 +41,7 @@ export type Message = {
 
   outcome?: "planned" | "asked";
 
+  assistant?: AssistantId;
   memoryChange?: ChatResponse["memoryChange"];
 
   at?: number;

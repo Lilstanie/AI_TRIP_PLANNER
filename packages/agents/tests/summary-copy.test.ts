@@ -26,18 +26,18 @@ describe("specialist summary copy", () => {
   it("keeps every English summary byte-for-byte", () => {
     const en = summaryCopy("en");
     expect(en.stays(stay)).toBe(
-      "1 room(s), 4 nights in Tokyo & Kyoto · A$1,200 (lowest eligible cost)",
+      "1 room, 4 nights in Tokyo & Kyoto · A$1,200 (lowest eligible cost)",
     );
     expect(en.stays({ ...stay, lowestCost: false })).toBe(
-      "1 room(s), 4 nights in Tokyo & Kyoto · A$1,200",
+      "1 room, 4 nights in Tokyo & Kyoto · A$1,200",
     );
     expect(en.bookedStay("Park Hotel", 3)).toBe(
-      "Park Hotel · booked by you, 3 night(s) · not priced",
+      "Park Hotel · booked by you, 3 nights · not priced",
     );
     expect(en.guide("Kyoto", "2026-10-01")).toBe("Kyoto planning guidance for October");
     expect(en.dining("Two picks", "A$300")).toBe("Two picks · A$300 meal budget");
     expect(en.diningCandidates(3)).toBe(
-      "3 grounded dining candidate(s) within a whole-trip meal budget envelope",
+      "3 grounded dining candidates within a whole-trip meal budget envelope",
     );
     expect(en.diningCandidates(0)).toBe(
       "No grounded dining candidates; using a whole-trip meal budget envelope",
@@ -49,10 +49,10 @@ describe("specialist summary copy", () => {
       "4-day plan for Kyoto with up to 2 grounded activities per day",
     );
     expect(en.transport(transport)).toBe(
-      "2 transport option(s) for Sydney ↔ Tokyo → Kyoto · known estimate A$900 · 1 leg(s) unpriced · 1 travel choice(s) unavailable (incomplete/unverified)",
+      "2 transport options for Sydney ↔ Tokyo → Kyoto · known estimate A$900 · 1 leg unpriced · 1 travel choice unavailable (incomplete/unverified)",
     );
     expect(en.transport({ ...transport, unpriced: 0, unavailable: 0, incomplete: false })).toBe(
-      "2 transport option(s) for Sydney ↔ Tokyo → Kyoto · known estimate A$900",
+      "2 transport options for Sydney ↔ Tokyo → Kyoto · known estimate A$900",
     );
   });
 

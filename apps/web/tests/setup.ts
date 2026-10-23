@@ -15,6 +15,12 @@ HTMLDialogElement.prototype.close = function () {
   this.removeAttribute("open");
 };
 
+window.ResizeObserver ??= class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};
+
 if (typeof window.PointerEvent === "undefined") {
   class PointerEvent extends MouseEvent {
     readonly pointerId: number;

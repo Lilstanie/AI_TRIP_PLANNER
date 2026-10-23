@@ -34,7 +34,7 @@ import {
 import { cities, journeyLegs, flightLegs, groundLegs, flownInstead, type JourneyLeg } from "./legs";
 import { mockEnabled } from "@trip/tools";
 import { TRAVELLER_PREFERENCES_RULE } from "../prompts/traveller-preferences";
-import { summaryCopy } from "../summary-copy";
+import { plural, summaryCopy } from "../summary-copy";
 
 function clock(totalMinutes: number): string {
   if (totalMinutes < 0 || totalMinutes >= 24 * 60) {
@@ -524,7 +524,7 @@ function assembleTransportProposal(
       ),
       ...(unpriced
         ? [
-            `${unpriced} leg(s) carry no fare because the provider publishes none, so the known estimate is a floor rather than the full cost.`,
+            `${plural(unpriced, "leg carries", "legs carry")} no fare because the provider publishes none, so the known estimate is a floor rather than the full cost.`,
           ]
         : []),
       ...(budgetRevision ? ["Budget revision selected the lowest returned flight fare."] : []),

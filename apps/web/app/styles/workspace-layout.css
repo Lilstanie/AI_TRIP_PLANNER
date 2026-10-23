@@ -191,6 +191,10 @@
   border-radius: 0;
 }
 
+.data-mode[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
 .data-mode__dot {
   width: 8px;
   height: 8px;

@@ -207,6 +207,10 @@
 }
 
 @media (max-width: 520px) {
+  .composer__input {
+    min-height: 44px;
+  }
+
   .composer__add,
   .composer__primary {
     width: 44px;

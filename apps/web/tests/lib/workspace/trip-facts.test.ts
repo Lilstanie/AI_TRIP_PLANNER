@@ -95,7 +95,9 @@ describe("trip facts", () => {
     expect(
       factErrors("when", { ...blankDraft(), start: "2026-10-04", end: "2026-10-01" }, blank, false),
     ).toEqual({
-      dates: { key: "End date must follow start date, with at least one night per destination." },
+      dates: {
+        key: "End date must follow start date, with at least one night per destination. A one-day trip needs one destination and no accommodation.",
+      },
     });
     expect(factErrors("when", { ...blankDraft(), start: "2026-10-01" }, blank, false)).toEqual({
       dates: { key: "Choose both a start and an end date." },

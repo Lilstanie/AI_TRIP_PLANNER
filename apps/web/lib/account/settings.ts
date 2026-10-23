@@ -1,5 +1,6 @@
 import { z } from "zod";
 import {
+  AssistantNames,
   COMMUNICATION_STYLES,
   Currency,
   MAX_TRIP_PREFERENCE_LENGTH,
@@ -64,7 +65,11 @@ export const UserSettings = z.object({
     .default([]),
 
   assistant: z
-    .object({ style: z.enum(COMMUNICATION_STYLES), memory: z.boolean() })
+    .object({
+      style: z.enum(COMMUNICATION_STYLES),
+      memory: z.boolean(),
+      names: AssistantNames.optional(),
+    })
     .default({ style: "neutral", memory: true }),
 
   dataMode: z.enum(["default", "live", "mock"]),

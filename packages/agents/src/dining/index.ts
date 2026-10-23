@@ -20,7 +20,7 @@ import { mockEnabled } from "@trip/tools";
 import { clip } from "../clip";
 import { normalize, canonicalPlaceName, dedupeEntries } from "../place-names";
 import { TRAVELLER_PREFERENCES_RULE } from "../prompts/traveller-preferences";
-import { summaryCopy } from "../summary-copy";
+import { plural, summaryCopy } from "../summary-copy";
 
 const DAY_MS = 86_400_000;
 const DINING_BUDGET_SHARE = 0.2;
@@ -71,7 +71,7 @@ function tripDays([start, end]: [string, string]): number {
     return timestamp;
   };
   const nights = Math.round((parse(end) - parse(start)) / DAY_MS);
-  if (!Number.isSafeInteger(nights) || nights < 1)
+  if (!Number.isSafeInteger(nights) || nights < 0)
     throw new Error("Dining requires ordered dates.");
   return nights + 1;
 }
@@ -297,7 +297,7 @@ async function planDining(
     items: [
       {
         kind: "meal-budget",
-        detail: `${days} planning day(s) × ${brief.groupSize} traveller(s) × ${formatMoney(draft.dailyBudgetPerPerson, currency)} per person/day.`,
+        detail: `${plural(days, "planning day", "planning days")} × ${plural(brief.groupSize, "traveller", "travellers")} × ${formatMoney(draft.dailyBudgetPerPerson, currency)} per person/day.`,
         estCost: total,
       },
       ...draft.picks.map((pick) => ({

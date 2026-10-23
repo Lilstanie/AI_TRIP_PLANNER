@@ -1,5 +1,6 @@
 import type {
   AgentProgressEvent,
+  AssistantId,
   AskUserQuestionItem,
   ChatRequest,
   FlightAnswer,
@@ -60,6 +61,7 @@ export type TurnOutcome =
       kind: "planned";
       plan: TripPlan;
       reply: string;
+      assistant?: AssistantId;
       transcript: AgentProgressEvent[];
       at: number;
       memoryChange?: import("@trip/shared").ChatResponse["memoryChange"];
@@ -68,6 +70,7 @@ export type TurnOutcome =
       kind: "needsInfo";
       question: string;
       known: PartialTripBrief;
+      assistant?: AssistantId;
       transcript: AgentProgressEvent[];
       at: number;
     }
@@ -104,11 +107,13 @@ export type SessionEvent =
   | { kind: "timelineChanged"; changed: boolean }
   | { kind: "replacedDismissed" };
 
+export const PREPARING_SUMMARY = "Preparing your request.";
+
 export const PREPARING: AgentProgressEvent = {
   type: "coordinator",
   phase: "dispatch",
   round: 1,
-  summary: "Preparing your request.",
+  summary: PREPARING_SUMMARY,
 };
 
 export const REJECTED_BRIEF: Notice = { key: "Check the highlighted trip details." };
@@ -233,6 +238,7 @@ export function session(state: SessionState, event: SessionEvent): SessionState 
           reply(event.reply, event.transcript, event.at, {
             outcome: "planned",
             ...(event.memoryChange ? { memoryChange: event.memoryChange } : {}),
+            ...(event.assistant ? { assistant: event.assistant } : {}),
           }),
         ),
         previousTotal: state.plan?.estTotal,
@@ -249,7 +255,13 @@ export function session(state: SessionState, event: SessionEvent): SessionState 
       };
     case "needsInfo":
       return {
-        ...replied(state, reply(event.question, event.transcript, event.at, { outcome: "asked" })),
+        ...replied(
+          state,
+          reply(event.question, event.transcript, event.at, {
+            outcome: "asked",
+            ...(event.assistant ? { assistant: event.assistant } : {}),
+          }),
+        ),
         draft: draftWithKnown(state.draft, event.known),
       };
     case "asked": {
@@ -310,6 +322,7 @@ export async function requestTurn(
       kind: "planned",
       plan: result.plan,
       reply: result.reply,
+      ...(result.assistant ? { assistant: result.assistant } : {}),
       transcript,
       at: now(),
       ...(result.memoryChange ? { memoryChange: result.memoryChange } : {}),
@@ -319,8 +332,15 @@ export async function requestTurn(
     if (failure instanceof FlightAnswerError)
       return { kind: "answered", flights: failure.answer, transcript, at: now() };
     if (failure instanceof NeedsInfoError) {
-      const { question, known } = failure.needsInfo;
-      return { kind: "needsInfo", question, known, transcript, at: now() };
+      const { question, known, assistant } = failure.needsInfo;
+      return {
+        kind: "needsInfo",
+        question,
+        known,
+        ...(assistant ? { assistant } : {}),
+        transcript,
+        at: now(),
+      };
     }
     if (failure instanceof AskUserError) {
       const { questions, known, plan, reply: text } = failure.askUser;

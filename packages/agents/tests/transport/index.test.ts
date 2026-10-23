@@ -211,7 +211,7 @@ describe("B transport reliability", () => {
     expect(result.items[1]).not.toHaveProperty("estCost");
 
     expect(result.conflictsWith.join(" ")).not.toContain("not a free trip");
-    expect(result.summary).toContain("1 leg(s) unpriced");
+    expect(result.summary).toContain("1 leg unpriced");
     expect(result.assumptions.join(" ")).toContain("known estimate is a floor");
     expect(AgentProposal.safeParse(result).success).toBe(true);
   });

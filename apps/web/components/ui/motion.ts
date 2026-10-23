@@ -77,8 +77,8 @@ export function useSegmentIndicator(container: RefObject<HTMLElement | null>, se
       }
     };
     place();
-    const observer = typeof ResizeObserver === "function" ? new ResizeObserver(place) : undefined;
-    observer?.observe(track);
-    return () => observer?.disconnect();
+    const observer = new ResizeObserver(place);
+    observer.observe(track);
+    return () => observer.disconnect();
   }, [container, selected]);
 }

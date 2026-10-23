@@ -7,19 +7,19 @@ import { SubagentOrbIcon } from "./ThinkingOrbIcon";
 import {
   FlowCheckIcon,
   FlowChevronDownIcon,
-  FlowSubagentIcon,
   FlowThinkIcon,
   ResultKindIcon,
   ToolGlyph,
 } from "../ui/flow-icons";
 import { Disclosure, RowSeparator, RowSummary } from "./Disclosure";
+import { AssistantIcon } from "./assistants";
+import { useAssistantName } from "./assistant-names";
 import {
   argLine,
   CLOCK_DELAY_MS,
   dotState,
   faviconSrc,
   labels,
-  reasoningSummary,
   resultHost,
   resultKind,
   statusLabels,
@@ -53,7 +53,6 @@ export function Children({ children, ...rest }: HTMLAttributes<HTMLDivElement>) 
 
 export function ReasoningRow({ block, open }: { block: ReasoningBlock; open: OpenRows }) {
   const { t } = useLocale();
-  const summary = reasoningSummary(block.text, block.running);
   return (
     <>
       {block.running && <VisuallyHidden>{t("Running")}</VisuallyHidden>}
@@ -68,7 +67,7 @@ export function ReasoningRow({ block, open }: { block: ReasoningBlock; open: Ope
         collapsedContent={
           <>
             <RowSeparator />
-            <RowSummary text={summary} followEnd={block.running} />
+            <RowSummary text={t("Thinking")} followEnd={block.running} />
           </>
         }
       >
@@ -316,7 +315,7 @@ function SubagentNotes({ model, open }: { model: SubagentModel; open: OpenRows }
 
 export function SubagentRow({ model, open }: { model: SubagentModel; open: OpenRows }) {
   const { t } = useLocale();
-  const label = t(labels[model.name]);
+  const label = useAssistantName()(model.name);
   const running = model.status === "running" || model.status === "revising";
   return (
     <div
@@ -327,7 +326,7 @@ export function SubagentRow({ model, open }: { model: SubagentModel; open: OpenR
     >
       <Disclosure
         className="thinking-subagent__row"
-        icon={running ? <SubagentOrbIcon model={model} /> : <FlowSubagentIcon />}
+        icon={running ? <SubagentOrbIcon model={model} /> : <AssistantIcon id={model.name} />}
         title={t("Subagent")}
         state={running ? "running" : model.status === "failed" ? "error" : "ok"}
         open={open.isOpen(model.id)}

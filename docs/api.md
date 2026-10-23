@@ -81,7 +81,8 @@ Four more optional fields on `brief` and `known` come from the conversation:
   one unpriced item, with no `stays` candidates.
 - `noAccommodation: true` means the traveller does not need a stay. The accommodation specialist is
   skipped and no stay allocation is made. It is independent of `bookedStay`; absent or `false` keeps
-  the existing accommodation-planning behavior.
+  the existing accommodation-planning behavior. A same-day trip (`dates[0] === dates[1]`) requires it
+  and a single destination.
 
 Removing a saved optional value from Trip preferences omits it from the request. `noAccommodation`
 is a separate explicit choice: turning it off sends `false`, so it can override a previously saved
@@ -117,15 +118,23 @@ add up to it.
 The mock browser check `party-breakdown-browser` submits the stated breakdown through chat and
 checks all five Who counters at desktop and phone widths, including reopening the saved trip.
 
-Optional `assistant`: `{ style, memory }` from Settings → Personalization (`AssistantSettings` in
+Optional `assistant`: `{ style, memory, names }` from Settings → Personalization (`AssistantSettings` in
 `packages/shared/src/chat.ts`).
 
+- `names` is an optional map from assistant id to a custom display name of at most 24 characters. It only changes what the interface shows and which `@name` resolves to a specialist; mentions are always sent as ids.
 - `style` is one of `neutral`, `friendly`, `concise` or `detailed` and sets the coordinator's tone.
 - With `memory: false`, the server drops `learnedPreferences` from `brief` and `known`, the account
   memory adapter skips reads and writes, and the coordinator records none. The Settings switch is
   available to signed-in accounts; signed-out users see a sign-in hint and cannot change it.
 
 Without the field, the style is `neutral`. Account memory is enabled only when both the saved account setting and the request permit it; an explicit request opt-in cannot override a saved opt-out. If the account setting cannot be read, account memory stays disabled.
+
+Optional `mentions`: up to five distinct specialist ids (`itinerary`, `transport`, `accommodation`,
+`destination-guide`, `dining`) the traveller addressed. Without it the turn goes to the Coordinator as
+before. With a `plan`, only these specialists run and revise their own sections, then the conflict
+check and targeted revision run, and the response's `assistant` is the first mentioned id. Without a
+`plan`, the mentioned specialist answers, nothing is created, and a `needs_info` frame (with the same
+optional `assistant`) asks for the brief.
 
 Optional `interfaceLanguage`: `en` or `zh` (`InterfaceLanguage` in `packages/shared/src/chat.ts`),
 the language the traveller's interface is showing. The web app sends its current locale with every
@@ -189,8 +198,11 @@ Optional `mode` values:
 
 The response is `application/x-ndjson`, one JSON object per line:
 
-- progress events with `type` `coordinator`, `agent_started`, `agent_completed` or `agent_failed`;
-- a final `{ "type": "complete", "response": { "reply": "…", "plan": { … } } }`;
+- progress events with `type` `coordinator`, `agent_started`, `agent_completed`, `agent_failed` or `decision`. A `decision` event is `{ "type": "decision", "round": 2, "decision": { "type": "conflicts_detected" | "revision_started" | "revision_scored" | "loop_stopped" | "agent_output_rejected" | "mention_handoff" | "delegation_fallback", … } }`: the planning loop's own decisions, such as the specialist asked to save money, the revision score and why the loop stopped;
+- a final `{ "type": "complete", "response": { "reply": "…", "plan": { … }, "assistant": "…" } }`.
+  `assistant` is optional and names who answered (`coordinator` or a specialist id); a missing value
+  means the Coordinator. `agent_completed` events carry an optional `source` (`live`, `estimated`,
+  `mock`, `fallback` or `unavailable`) and `agent_reasoning` events an optional `assistant`;
 - or `{ "type": "error", "error": "…", "notice": { … } }`, the failure in the
   [`{ error, notice }`](#failure-bodies) form.
 
@@ -295,7 +307,7 @@ reported, and the trace never carries a model's own reasoning.
 
 `configured` is the deployment default (`live` only when `USE_MOCK_TOOLS=false`). `liveAvailable` is
 whether this caller may spend the provider allowance: true for a signed-in traveller, and off a
-deployment when Clerk is not configured. The workspace hides the live toggle when it is false.
+deployment when Clerk is not configured. When it is false the workspace's data-mode chip stays on mock data with `aria-disabled="true"`, remains keyboard-focusable, and its hidden text says to sign in for live hotel and flight prices.
 `providers` reports whether `SERPAPI_KEY` and `MAPS_API_KEY` are set, never their values. The
 response is not cached.
 

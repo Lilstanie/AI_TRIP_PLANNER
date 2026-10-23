@@ -23,6 +23,11 @@
 
 ## 已有回归覆盖
 
+- `main` `8e168ba` 上的 `triage-accessibility`（2026-10-22）等待
+  `getByText("No matching chats.", { exact: true })`，它同时匹配 sr-only 的聊天搜索状态和可见的 `.history-empty` 行，
+  因此在 1280 宽度下 strict 模式抛错，Who、预算和地图检查都没有运行。现在的等待按类名限定可见行；
+  `DATA_MODE=mock pnpm --filter @trip/web e2e triage-accessibility` 的所有检查均通过。
+
 - 基线 `2e0f506b` 上的 `phone-map`（2026-10-19，#367）在默认无 key 地图已成功加载 OSM 时，
   仍查找仅在渲染器出错时显示的地点列表，导致 390px 的三个重复地点检查失败，并在桌面步骤超时，未运行到 360px。
   旅程现等待地图中具名的地点控件及其选中站点、详情，保留两种提供方的覆盖。

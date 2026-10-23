@@ -1,12 +1,14 @@
 "use client";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import { COMMUNICATION_STYLES } from "@trip/shared";
+import { COMMUNICATION_STYLES, MAX_ASSISTANT_NAME_LENGTH, type AssistantId } from "@trip/shared";
 import { blankDraft, type Draft } from "@/lib/workspace";
 import type { DataMode } from "@/lib/workspace/data-mode";
 import { DIETARY, INTERESTS, type UserSettings } from "@/lib/account/settings";
 import { memoryDisplay } from "@/lib/account/memory-display";
 import { PreferenceList } from "../preferences/PreferenceList";
 import { useSegmentIndicator } from "../ui/motion";
+import { ASSISTANT_ROLE_KEYS } from "../chat/assistants";
+import { ASSISTANT_ORDER, nameTaken } from "../chat/assistant-names";
 import { useAccount } from "./AccountProvider";
 import { useSettings } from "./SettingsProvider";
 import { useLocale } from "./LocaleProvider";
@@ -433,6 +435,50 @@ function Loyalty({
   );
 }
 
+function AssistantNameField({ id }: { id: AssistantId }) {
+  const { t } = useLocale();
+  const { settings, update } = useSettings();
+  const names = settings.assistant.names;
+  const stored = names?.[id] ?? "";
+  const [value, setValue] = useState(stored);
+  const [taken, setTaken] = useState(false);
+  const role = t(ASSISTANT_ROLE_KEYS[id]);
+  const commit = () => {
+    const next = value.trim().slice(0, MAX_ASSISTANT_NAME_LENGTH);
+    if (next && nameTaken(id, next, names)) return setTaken(true);
+    setTaken(false);
+    setValue(next);
+    if (next === stored) return;
+    const { [id]: _replaced, ...others } = names ?? {};
+    const merged = next ? { ...others, [id]: next } : others;
+    update({
+      assistant: { ...settings.assistant, names: Object.keys(merged).length ? merged : undefined },
+    });
+  };
+  return (
+    <li className="settings-field assistant-name">
+      <label>
+        <span>{role}</span>
+        <input
+          value={value}
+          maxLength={MAX_ASSISTANT_NAME_LENGTH}
+          placeholder={role}
+          aria-label={t("Name of {name}", { name: role })}
+          aria-invalid={taken}
+          onChange={(event) => setValue(event.target.value)}
+          onBlur={commit}
+          onKeyDown={(event) => event.key === "Enter" && event.currentTarget.blur()}
+        />
+      </label>
+      {taken && (
+        <p className="settings-error assistant-name__error" role="alert">
+          {t("That name is already used by another assistant.")}
+        </p>
+      )}
+    </li>
+  );
+}
+
 function PersonalizationSection() {
   const { t, locale } = useLocale();
   const account = useAccount();
@@ -594,6 +640,17 @@ function PersonalizationSection() {
             </option>
           ))}
         </select>
+      </section>
+      <section className="settings-block" aria-labelledby="settings-assistant-names">
+        <h3 id="settings-assistant-names">{t("Assistant names")}</h3>
+        <p className="settings-hint">
+          {t("Rename the assistants. Leave a name empty to use its role name.")}
+        </p>
+        <ul className="assistant-names">
+          {ASSISTANT_ORDER.map((id) => (
+            <AssistantNameField key={id} id={id} />
+          ))}
+        </ul>
       </section>
       <p className="settings-hint">
         {t(

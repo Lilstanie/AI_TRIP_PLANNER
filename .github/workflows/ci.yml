@@ -92,7 +92,14 @@ jobs:
           path: output/e2e/cli-plan/
       - uses: pnpm/action-setup@v4
       - run: pnpm install --frozen-lockfile
-      - run: sudo apt-get update && sudo apt-get install -y lsof
+      - name: Ensure lsof
+        timeout-minutes: 8
+        run: |
+          command -v lsof && exit 0
+          for attempt in 1 2 3; do
+            timeout 120 sudo apt-get update && timeout 120 sudo apt-get install -y lsof && exit 0
+          done
+          exit 1
       - run: pnpm --filter @trip/web exec playwright install --with-deps chromium
       - name: Sequential CLI acceptance shard
         run: node apps/web/tests/cli-e2e/run.mjs --plan output/e2e/cli-plan/plan.json --shard "$SHARD_ID"

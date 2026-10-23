@@ -26,6 +26,17 @@ describe("the reply language", () => {
     );
   });
 
+  it("says a bare budget number is taken as AUD instead of calling the currency open", async () => {
+    for (const interfaceLanguage of [undefined, "zh"] as const) {
+      const prompt = await shown({ tripId: "blank", message: "budget 2000", interfaceLanguage });
+      expect(prompt).toContain("leave budgetCurrency out when they gave a bare number");
+      expect(prompt).toContain(
+        "say in your reply that you took it as AUD and that they can name another currency",
+      );
+      expect(prompt).toContain("never say the currency is unset, open or left as they gave it");
+    }
+  });
+
   it("adds no fallback for a client that does not send the field", async () => {
     const prompt = await shown({ tripId: "blank", message: "Tokyo" });
     expect(prompt).toContain("reply in that exact same language");
@@ -730,15 +741,19 @@ describe("a trip length the traveller states in days", () => {
     ).toEqual(["2027-03-01", "2027-03-05"]);
   });
 
-  it("does not read a start offset or a one-day trip as a length", async () => {
+  it("does not read a start offset as a length", async () => {
     const args = { ...hobart, startDate: "2027-03-01", endDate: "2027-03-04" };
     expect(await datesFor("Hobart, leaving in 3 days, back 4 Mar 2027", args)).toEqual([
       "2027-03-01",
       "2027-03-04",
     ]);
+  });
+
+  it("reads a one-day trip as a same-day trip", async () => {
+    const args = { ...hobart, startDate: "2027-03-01", endDate: "2027-03-04" };
     expect(await datesFor("1 day in Hobart from 1 Mar 2027", args)).toEqual([
       "2027-03-01",
-      "2027-03-04",
+      "2027-03-01",
     ]);
   });
 

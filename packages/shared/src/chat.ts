@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   AGENT_NAMES,
+  AgentProposalSourceKind,
   BookedStay,
   FlightLeg,
   isTripDate,
@@ -109,9 +110,16 @@ export const Attachment = z
 export type Attachment = z.infer<typeof Attachment>;
 
 export const COMMUNICATION_STYLES = ["neutral", "friendly", "concise", "detailed"] as const;
+export const MAX_ASSISTANT_NAME_LENGTH = 24;
+export const AssistantNames = z.partialRecord(
+  z.enum(["coordinator", ...AGENT_NAMES]),
+  z.string().trim().min(1).max(MAX_ASSISTANT_NAME_LENGTH),
+);
+export type AssistantNames = z.infer<typeof AssistantNames>;
 export const AssistantSettings = z.object({
   style: z.enum(COMMUNICATION_STYLES).default("neutral"),
   memory: z.boolean().default(true),
+  names: AssistantNames.optional(),
 });
 export type AssistantSettings = z.infer<typeof AssistantSettings>;
 
@@ -135,6 +143,7 @@ export const ChatRequest = z
 
     attachments: z.array(Attachment).max(MAX_ATTACHMENTS_PER_MESSAGE).optional(),
     assistant: AssistantSettings.optional(),
+    mentions: z.array(z.enum(AGENT_NAMES)).max(AGENT_NAMES.length).optional(),
     interfaceLanguage: InterfaceLanguage.optional(),
 
     displayCurrency: Currency.optional(),
@@ -152,9 +161,14 @@ export const ChatRequest = z
   });
 export type ChatRequest = z.infer<typeof ChatRequest>;
 
+export const ASSISTANT_IDS = ["coordinator", ...AGENT_NAMES] as const;
+export const AssistantId = z.enum(ASSISTANT_IDS);
+export type AssistantId = z.infer<typeof AssistantId>;
+
 export const ChatResponse = z.object({
   reply: z.string(),
   plan: TripPlan,
+  assistant: AssistantId.optional(),
   memoryChange: z
     .object({
       token: z.string(),
@@ -169,6 +183,7 @@ export const ChatNeedsInfo = z.object({
   type: z.literal("needs_info"),
   question: z.string(),
   known: PartialTripBrief,
+  assistant: AssistantId.optional(),
 });
 export type ChatNeedsInfo = z.infer<typeof ChatNeedsInfo>;
 
@@ -267,12 +282,83 @@ export const FlightAnswer = z.object({
 });
 export type FlightAnswer = z.infer<typeof FlightAnswer>;
 
+export const ChatStopReason = z.enum([
+  "converged",
+  "round_limit",
+  "infeasible_budget",
+  "no_improvement",
+]);
+
+export const ChatWorkflowDecision = z.discriminatedUnion("type", [
+  z.object({
+    type: z.literal("conflicts_detected"),
+    round: z.number().int().positive(),
+    score: z.number().nonnegative(),
+    infeasible: z.boolean(),
+    conflicts: z.array(
+      z.object({
+        agent: z.enum(AGENT_NAMES),
+        reason: z.string(),
+        targetSaving: z.number().nonnegative().optional(),
+      }),
+    ),
+  }),
+  z.object({
+    type: z.literal("revision_started"),
+    round: z.number().int().positive(),
+    agent: z.enum(AGENT_NAMES),
+    reason: z.string(),
+    objective: z.string(),
+    previousSummary: z.string(),
+    previousCost: z.number(),
+  }),
+  z.object({
+    type: z.literal("revision_scored"),
+    round: z.number().int().positive(),
+    agents: z.array(z.enum(AGENT_NAMES)),
+    scoreBefore: z.number().nonnegative(),
+    scoreAfter: z.number().nonnegative(),
+    kept: z.boolean(),
+  }),
+  z.object({
+    type: z.literal("loop_stopped"),
+    round: z.number().int().positive(),
+    reason: ChatStopReason,
+    unresolved: z.number().int().nonnegative(),
+  }),
+  z.object({
+    type: z.literal("agent_output_rejected"),
+    agent: z.enum(AGENT_NAMES),
+    round: z.number().int().positive(),
+    fields: z.array(z.string()),
+  }),
+  z.object({
+    type: z.literal("mention_handoff"),
+    round: z.number().int().positive(),
+    from: z.enum(AGENT_NAMES),
+    to: z.enum(AGENT_NAMES),
+    decidedBy: z.enum(["llm", "code"]),
+  }),
+  z.object({
+    type: z.literal("delegation_fallback"),
+    phase: z.enum(["dispatch", "revision"]),
+    round: z.number().int().positive(),
+  }),
+]);
+export type ChatWorkflowDecision = z.infer<typeof ChatWorkflowDecision>;
+
 export const AgentProgressEvent = z.discriminatedUnion("type", [
+  z.object({
+    type: z.literal("decision"),
+    round: z.number().int().positive(),
+    decision: ChatWorkflowDecision,
+  }),
   z.object({
     type: z.literal("agent_reasoning"),
     agent: z.enum(AGENT_NAMES),
     round: z.number().int().positive(),
 
+    assistant: AssistantId.optional(),
     episode: z.number().int().nonnegative().default(0),
     index: z.number().int().nonnegative(),
     text: z.string().min(1),
@@ -298,6 +384,7 @@ export const AgentProgressEvent = z.discriminatedUnion("type", [
     summary: z.string().optional(),
 
     outcome: z.string().optional(),
+    source: AgentProposalSourceKind.optional(),
     choice: ToolChoice.optional(),
     agent: z.enum(AGENT_NAMES),
     round: z.number().int().positive(),

@@ -162,7 +162,12 @@ function WhoFields({ value, onChange, errors }: FieldsProps) {
               >
                 <MinusIcon />
               </button>
-              <span className="fact-stepper__value" aria-label={`${t(label)}: ${count}`}>
+              <span
+                className="fact-stepper__value"
+                role="status"
+                aria-label={`${t(label)}: ${count}`}
+              >
+                <span className="sr-only">{t(label)}: </span>
                 {count}
               </span>
               <button
