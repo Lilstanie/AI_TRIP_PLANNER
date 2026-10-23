@@ -307,7 +307,9 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     assistant's fixed icon (Coordinator, Day plan, Getting around, Stay, Destination guide, Food &
     dining) and its role name in the interface language. A marker says whether an LLM or code decided
     the step: a step counts as decided by AI when the stream carried reasoning for that assistant in
-    that round. The client's own "Preparing your request." placeholder is not a message. A
+    that round. Because reasoning can arrive after the step, the marker appears only once it is final:
+    as soon as that reasoning arrives, or as code when the turn ends without it; it never changes
+    after it appears. Handoff declines carry their provenance and are marked at once. The client's own "Preparing your request." placeholder is not a message. A
     reply attributed to an assistant other than the Coordinator, or a stored message without an
     assistant id, which reads as the Coordinator, keeps its existing text. The Subagent rows in the
     Think fold use the same icons. The Trip drawer shows no assistant icons.
