@@ -100,7 +100,7 @@ try {
               tail = parts.pop() ?? "";
               lines.push(...parts.map((part) => `${part}\n`));
             }
-            await new Promise((resolve) => setTimeout(resolve, 150));
+            await new Promise((resolve) => setTimeout(resolve, window.__delay ?? 150));
             if (args[1]?.signal?.aborted)
               throw new DOMException("The operation was aborted.", "AbortError");
             controller.enqueue(encoder.encode(lines.shift()));
@@ -305,6 +305,9 @@ try {
     await page.screenshot({ path: `${out}/${label}-live-stay.png` });
 
     await page.getByRole("button", { name: "Send" }).waitFor({ timeout: 240_000 });
+    await page.evaluate(() => {
+      window.__delay = 600;
+    });
     await box(page).fill(PLAN);
     await page.keyboard.press("Enter");
     await page.locator(".chat__stream > .agent-activity").waitFor();

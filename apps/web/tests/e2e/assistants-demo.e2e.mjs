@@ -371,14 +371,14 @@ try {
         await page.keyboard.press("Backspace");
         const selected = await field.evaluate((node) => [node.selectionStart, node.selectionEnd]);
         check(
-          (await field.inputValue()) === draft && selected[1] - selected[0] === token.length,
-          `${label} step 4: the first Backspace selects the whole mention`,
+          (await field.inputValue()) === draft && selected[1] - selected[0] === token.length + 1,
+          `${label} step 4: the first Backspace selects the whole mention and its space`,
           selected,
         );
         await snap("mention-selected");
         await page.keyboard.press("Backspace");
         check(
-          (await field.inputValue()) === draft.slice(token.length),
+          (await field.inputValue()) === draft.slice(token.length + 1),
           `${label} step 4: the second Backspace removes it`,
           await field.inputValue(),
         );
