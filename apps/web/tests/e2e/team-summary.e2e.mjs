@@ -319,6 +319,23 @@ try {
         }),
       );
       check(summaryFits, `${label}: every summary stays inside its reply`);
+      if (width <= 520) {
+        const hit = await summaryOf(page, 2).evaluate((node) => {
+          const box = node.getBoundingClientRect();
+          const x = box.left + box.width / 2;
+          const hits = (y) => node.contains(document.elementFromPoint(x, y));
+          return {
+            height: Math.round(box.height),
+            top: hits(box.top - 4),
+            bottom: hits(box.bottom + 4),
+          };
+        });
+        check(
+          hit.top && hit.bottom && hit.height + 8 >= 44,
+          `${label}: the summary hit area is at least 44 px high`,
+          hit,
+        );
+      }
       check(errors.length === 0, `${label}: no page errors`, errors);
       await context.close();
     }

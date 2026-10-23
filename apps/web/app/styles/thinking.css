@@ -639,12 +639,21 @@
   font: inherit;
   font-size: 12px;
   cursor: pointer;
+  position: relative;
 }
 
 .team-summary:hover,
 .team-summary:focus-visible {
   border-color: var(--accent);
   color: var(--accent);
+}
+
+@media (max-width: 520px) {
+  .team-summary::before {
+    content: "";
+    position: absolute;
+    inset: -6px 0;
+  }
 }
 
 .team-summary__avatars {
