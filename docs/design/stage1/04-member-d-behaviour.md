@@ -43,7 +43,7 @@ flowchart TB
   end
 
   subgraph DINING["Dining"]
-    diningStart["Read trip, chat and saved dietary preferences; fetch restaurant candidates"]
+    diningStart["Read trip, chat and saved dietary preferences; search restaurants with dietary needs"]
     diningPrepare["Deduplicate venues; filter dietary preferences; compute meal ceiling"]
     diningModel{"LLM configured and responds?"}
     diningLLM["LLM drafts venue suggestions from evidence"]
@@ -128,10 +128,10 @@ sequenceDiagram
     DG->>BD: destination-guide proposal + source and freshness
   and Dining
     WF->>DN: invoke(brief, AgentContext)
-    DN->>MP: places(destination, restaurant)
-    MP-->>DN: grounded restaurant candidates
     DN->>MEM: getLongTerm(userId)
     MEM-->>DN: saved preferences
+    DN->>MP: places(destination, restaurant, dietary textQuery)
+    MP-->>DN: grounded restaurant candidates
     DN->>DN: deduplicate candidates, apply trip/chat/saved dietary needs, compute ceiling
     DN->>LLM: read-only evidence tool: candidates, preferences, ceiling
     LLM-->>DN: structured dining draft

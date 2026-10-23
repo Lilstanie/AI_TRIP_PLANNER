@@ -280,6 +280,11 @@ async function planDining(
   const candidatePlaces = await ctx.tools.maps.places({
     near: brief.destination,
     category: "restaurant",
+    ...(preferences.length
+      ? {
+          textQuery: `restaurant in ${brief.destination}; dietary requirements: ${preferences.map(({ value }) => value).join("; ")}`,
+        }
+      : {}),
   });
   ctx.signal?.throwIfAborted();
   const places = dedupeEntries(candidatePlaces);

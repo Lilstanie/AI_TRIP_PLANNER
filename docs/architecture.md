@@ -347,6 +347,8 @@ Destination guidance checks weather for every city and trip date, with three loo
 
 Dining reads dietary requirements from trip preferences, chat-learned preferences and saved memory, including peanut/nut allergies and Chinese terms. No-model chat also retains explicit dietary sentences. The same requirements reach the generator and deterministic fallback without writing long-term memory. Grounded venue names do not establish allergen safety; obvious model guarantees are rejected and travellers must confirm ingredients and cross-contamination controls directly.
 
+Restaurant searches carry dietary requirements in optional PlaceQuery.textQuery through Google Places or OSM, retaining the restaurant category. Progress records the query used. Existing callers without search text keep the category-and-city query, and mock mode remains offline. Search relevance does not verify ingredients, dietary suitability or allergen safety.
+
 Transport and accommodation wrap calculators so models cannot invent prices, routes or properties.
 The itinerary likewise never prices a stop: Google Places publishes no admission prices, so an
 activity's `estCost` is left unset and the plan says how many stops are unpriced.

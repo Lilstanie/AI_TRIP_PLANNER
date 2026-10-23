@@ -213,7 +213,7 @@ One specification per member at least (C wrote two); seven in total. Each comes 
 5. The weather adapter selects a forecast or climate source for the date and returns the horizon and provenance with the result.
 6. The configured LLM reads the validated brief, month, place candidates and preferences through its read-only evidence tool, then drafts destination and packing guidance.
 7. Deterministic code fits the draft to the output schema, rejects ungrounded attraction names and deduplicates accepted candidates; invalid output uses the local fallback.
-8. Dining retrieves trip, chat-learned and saved dietary preferences plus restaurant candidates and computes a per-person meal ceiling.
+8. Dining retrieves trip, chat-learned and saved dietary preferences and searches for restaurants using those requirements, then computes a per-person meal ceiling.
 9. The configured LLM drafts venue suggestions from its evidence tool. Deterministic code checks the budget and candidate names, while the proposal says menus and allergy suitability must be confirmed with the venue.
 10. The Orchestrator validates the proposals at the graph boundary, assembles the `TripPlan` and returns the weather-packing and dining sections to the traveller.
 
