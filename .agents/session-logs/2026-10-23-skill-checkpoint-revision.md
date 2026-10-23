@@ -24,10 +24,10 @@ counted its own edit as a convention change. The 2026-10-14 review did the same 
 
 ## Validation
 
-- `is-due.mjs` before the edit reported `conventionChanges 1 / 1`; the result after the edit is in
-  the pull request.
-- `pnpm verify:docs` and `pnpm verify:protected` run on this branch; the results are in the pull
-  request.
+- `is-due.mjs` with the committed record: "Skills fully reviewed through 114388c", all signals 0,
+  "No review due", exit 0. Before the edit it reported `conventionChanges 3 / 1`.
+- `pnpm verify:docs`, `pnpm verify:pairs` (28 pairs) and `pnpm verify:protected` passed.
+- `node apps/web/tests/cli-e2e/skill-maintenance.e2e.mjs`: 62 CLI cases passed.
 
 ## Notes for the next person
 
