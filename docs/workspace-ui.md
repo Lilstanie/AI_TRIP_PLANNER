@@ -230,8 +230,8 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
   - The single-row top bar shows the destination and dates, or New trip. Its title opens Trip details:
     Where, When, Who, Budget and Preferences as rows. Each row opens the existing editor; saving or
     closing returns focus to the title. Editors are bottom sheets with 44 px targets, including each
-    sheet's close button and its primary action, and in When every day cell, both month arrows and
-    Clear.
+    sheet's close button and its primary action, in When every day cell, both month arrows and
+    Clear, and in Who each − and + stepper button.
   - Trip shows Your Trip in place, with Budget and the day view. Before
     planning it explains the empty state and offers Plan in Chat. A plan created or changed while
     another tab is selected adds an accessible update dot to Trip; opening Trip clears it. Read revisions are tracked per trip,
@@ -300,7 +300,8 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     outside the current year or across years include the year at both ends.
   - Each agent reply renders under its own Think fold: the transcript streams at the foot of the chat
     while the turn runs, then moves above the reply that ended the turn and stays with it (including
-    after a reload).
+    after a reload). English specialist summaries, assumptions and progress lines count in the
+    singular for one and the plural for more ("1 transport option", "2 rooms"), never with "(s)".
   - A planning turn also reads as a team conversation above its Think fold. The Coordinator dispatches
     the work, from the `coordinator` dispatch event and each specialist's `agent_started` objective,
     and each specialist then reports its result, from `agent_completed` with its data source (live,
@@ -448,8 +449,9 @@ within budget · unpriced stops not counted” and uses the caution colour. The 
 listed beneath the estimate. Status text wraps within the budget panel at narrow drawer widths.
 The budget card also breaks the known estimate into accommodation, transport, meals and activities.
 Each amount is labelled as an estimate; proposal items without prices are counted as unpriced beside
-their category and are not added to the total. Transport without a quoted amount or any priced item
-shows “Not costed” instead of a zero estimate. Published zero fares remain zero; older nonzero
+their category and are not added to the total. Transport without a quoted amount or any priced item,
+and any other category whose items are all unpriced, shows “Not costed” instead of a zero estimate,
+keeping its unpriced count. Published zero fares remain zero; older nonzero
 transport estimates remain visible. Missing transport prices are disclosed below the breakdown,
 and at-budget or below-budget statuses say “unpriced costs not counted”. Over-budget warnings remain.
 The known category amounts add up to the displayed

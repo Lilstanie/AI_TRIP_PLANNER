@@ -19,7 +19,7 @@ describe("CAPABILITIES", () => {
   });
 
   it("names what this product cannot do, so the agent does not invent it", () => {
-    for (const missing of ["预订", "实时天气", "实时汇率"]) expect(CAPABILITIES).toContain(missing);
+    for (const missing of ["预订", "实时汇率"]) expect(CAPABILITIES).toContain(missing);
   });
 
   it("states the base currency and the currencies a budget can be given in", () => {

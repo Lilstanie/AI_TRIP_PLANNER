@@ -20,7 +20,8 @@ import { mockEnabled } from "@trip/tools";
 import { clip } from "../clip";
 import { normalize, canonicalPlaceName, dedupeEntries } from "../place-names";
 import { TRAVELLER_PREFERENCES_RULE } from "../prompts/traveller-preferences";
-import { summaryCopy } from "../summary-copy";
+import { replyLanguageRule } from "../prompts/reply-language";
+import { plural, summaryCopy } from "../summary-copy";
 
 const DAY_MS = 86_400_000;
 const DINING_BUDGET_SHARE = 0.2;
@@ -51,6 +52,7 @@ export interface DiningGenerator {
     revision?: RevisionRequest;
 
     currency?: Currency;
+    language?: InterfaceLanguage;
   }): Promise<DiningDraft>;
 }
 
@@ -215,7 +217,8 @@ function createMiniMaxGenerator(): DiningGenerator | undefined {
         tools: [evidence],
         systemPrompt:
           "You are the dining specialist. Always call read_dining_evidence and use only its facts and exact venue names. Stay within its daily per-person AUD ceiling and address any revision. Never claim live hours, availability, menu items, allergen safety, certification or dietary suitability; tell travellers to confirm important constraints directly. Return the requested structured dining draft.\n\nEach pick's name must be a candidate's name copied character for character, with no category, rating or district appended. Return no picks rather than inventing a venue that is not in the evidence.\n\n" +
-          TRAVELLER_PREFERENCES_RULE,
+          TRAVELLER_PREFERENCES_RULE +
+          replyLanguageRule(input.language),
         responseFormat: ModelDiningDraft,
       });
       const result = await specialist.invoke({
@@ -302,6 +305,7 @@ async function planDining(
           maxDailyPerPerson: ceiling,
           revision,
           currency,
+          ...(ctx.replyLanguage ? { language: ctx.replyLanguage } : {}),
         }),
         places,
         ceiling,
@@ -324,7 +328,7 @@ async function planDining(
     items: [
       {
         kind: "meal-budget",
-        detail: `${days} planning day(s) × ${brief.groupSize} traveller(s) × ${formatMoney(draft.dailyBudgetPerPerson, currency)} per person/day.`,
+        detail: `${plural(days, "planning day", "planning days")} × ${plural(brief.groupSize, "traveller", "travellers")} × ${formatMoney(draft.dailyBudgetPerPerson, currency)} per person/day.`,
         estCost: total,
       },
       ...draft.picks.map((pick) => ({

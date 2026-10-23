@@ -221,6 +221,12 @@ Libraries.dev skill 支持 `libraries reveal`、`libraries review` 和 `librarie
 
 [agent-experience](../.agents/skills/agent-experience/SKILL.md) 指导面向模型的工具定义和上下文交付。[translate-docs](../.agents/skills/translate-docs/SKILL.md) 维护[中英文文档配对](i18n.zh.md)；修改任何一种语言时，都要在同一任务中更新对侧文件。
 
+<a id="fix-root-causes"></a>
+
+### 修根因
+
+修复缺陷时，先复现，用证据说明其原因，再修复该原因。不要用重试、加长超时、额外保护或特例来掩盖症状。若暂时只能采用变通方案，在 PR 和 session log 中说明，并写明它保留了哪个原因。
+
 <a id="verification"></a>
 
 ## 验证

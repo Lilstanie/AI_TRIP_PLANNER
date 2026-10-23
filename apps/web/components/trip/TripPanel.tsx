@@ -58,21 +58,22 @@ export function TripPanel({
   const budgetBreakdown = budgetCategories.map(({ id, label }) => {
     const sections = plan.sections.filter((section) => section.id === id);
     const amount = sections.reduce((sum, section) => sum + section.estCost, 0);
+    const unpriced = sections.reduce(
+      (sum, section) =>
+        sum + (section.proposal?.items.filter((item) => item.estCost === undefined).length ?? 0),
+      0,
+    );
     return {
       id,
       label,
       amount,
       notCosted:
-        id === "transport" &&
+        (id === "transport" || unpriced > 0) &&
         amount === 0 &&
         !sections.some((section) =>
           section.proposal?.items.some((item) => item.estCost !== undefined),
         ),
-      unpriced: sections.reduce(
-        (sum, section) =>
-          sum + (section.proposal?.items.filter((item) => item.estCost === undefined).length ?? 0),
-        0,
-      ),
+      unpriced,
     };
   });
   const unpriced = itineraryActivities(plan).filter(
