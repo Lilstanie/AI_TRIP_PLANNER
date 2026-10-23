@@ -1,4 +1,4 @@
-import { CAPABILITIES, createRoutedChatModel } from "@trip/agents";
+import { CAPABILITIES, createRoutedChatModel, replyLanguageRule } from "@trip/agents";
 import { memory } from "@trip/services";
 import {
   effectiveCurrency,
@@ -394,7 +394,7 @@ Money:
 - When the traveller names a currency to read the trip in without stating a budget ("show it in yen", "用人民币给我算"), pass displayCurrency alone. The latest currency they name wins, including AUD. If they name none, leave it out: never infer it from the language they write in.
 
 Replying:
-- Detect the language of the traveller's latest message and reply in that exact same language.
+- Reply in the reply language named at the end of these instructions.
 - Be concise but personable, 2-4 short sentences. Acknowledge what they asked for before the result.
 - Amounts in the plan facts are already converted to the traveller's currency and formatted. Quote them exactly as given, with the currency code they carry, and never convert, round or restate them in another currency yourself. When the facts carry an amountsNote, keep its meaning: the amounts are estimates.
 - When the plan lists unresolved problems, name the most important one with its numbers and what would fix it. For an infeasible budget, give the estimated total and the minimum budget it needs, and offer to raise the budget or change the dates, origin or destination; never promise that revising will bring it under.
@@ -759,17 +759,6 @@ function styleRule(assistant: AssistantSettings | undefined): string {
   return text || memory ? `\n\nCommunication style: ${text}${memory}` : "";
 }
 
-const LANGUAGE_NAME: Record<InterfaceLanguage, string> = {
-  en: "English",
-  zh: "Simplified Chinese",
-};
-
-function replyLanguageRule(language: InterfaceLanguage | undefined): string {
-  return language
-    ? `\n\nReply language: the language of the traveller's latest message, else ${LANGUAGE_NAME[language]}, the language of their interface. Use ${LANGUAGE_NAME[language]} only when the message's language is unclear, for example when it is only a place name, dates or numbers.`
-    : "";
-}
-
 function turnEndingReply(error: unknown): string | undefined {
   if (error instanceof AskUserError) {
     const { reply, questions } = error.askUser;
@@ -959,7 +948,7 @@ async function runConversationAgent(
     systemPrompt:
       COORDINATOR_PROMPT +
       styleRule(request.assistant) +
-      replyLanguageRule(request.interfaceLanguage),
+      replyLanguageRule(replyLanguage(request.message, request.interfaceLanguage)),
   });
 
   const envelope = JSON.stringify({
@@ -1054,6 +1043,23 @@ async function runOffline(
   const patch = extractor
     ? await extractor.extract(message, submitted)
     : extractBriefPatchLocally(message, submitted?.groupSize ?? request.known?.groupSize);
+  if (!extractor) {
+    const dietary = message
+      .split(/[.;!?。！？\n]/u)
+      .map((part) => part.trim())
+      .filter((part) =>
+        /vegetarian|vegan|allerg|peanut|\bnuts?\b|halal|kosher|gluten|lactose|shellfish|素食|吃素|全素|过敏|過敏|花生|坚果|堅果|清真|麸质|麩質|乳糖/i.test(
+          part,
+        ),
+      );
+    if (dietary.length)
+      patch.learnedPreferences = [
+        ...new Set([
+          ...dietary.map((part) => part.slice(0, MAX_TRIP_PREFERENCE_LENGTH)),
+          ...(submitted?.learnedPreferences ?? request.known?.learnedPreferences ?? []),
+        ]),
+      ].slice(0, MAX_TRIP_PREFERENCES);
+  }
   const destinationCandidate =
     patch.destination?.toLowerCase() === "no preference"
       ? request.known?.destination

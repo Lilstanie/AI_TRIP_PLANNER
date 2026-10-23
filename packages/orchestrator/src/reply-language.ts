@@ -5,6 +5,6 @@ export function replyLanguage(
   interfaceLanguage: InterfaceLanguage | undefined,
 ): InterfaceLanguage {
   if (/\p{Script=Han}/u.test(message)) return "zh";
-  if (/\p{Script=Latin}/u.test(message)) return "en";
+  if ((message.match(/\p{Script=Latin}+/gu) ?? []).length > 2) return "en";
   return interfaceLanguage ?? "en";
 }

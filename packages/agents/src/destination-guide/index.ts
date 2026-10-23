@@ -15,7 +15,14 @@ import { mockEnabled } from "@trip/tools";
 import { clip } from "../clip";
 import { normalize, canonicalPlaceName, dedupeEntries } from "../place-names";
 import { TRAVELLER_PREFERENCES_RULE } from "../prompts/traveller-preferences";
+import { replyLanguageRule } from "../prompts/reply-language";
 import { summaryCopy } from "../summary-copy";
+import {
+  gatherWeatherEvidence,
+  weatherPacking,
+  weatherText,
+  type DestinationWeatherEvidence,
+} from "./weather-evidence";
 
 const GuideAttraction = z.object({
   name: z.string().trim().min(1).max(120),
@@ -71,6 +78,8 @@ export interface DestinationGuideGenerator {
     travelMonth: string;
     places: Place[];
     preferences: UserPreference[];
+    weatherEvidence: DestinationWeatherEvidence[];
+    language?: InterfaceLanguage;
   }): Promise<DestinationGuideDraft>;
 }
 
@@ -116,7 +125,9 @@ function fallbackDraft(
   month: string,
   places: Place[],
   language: InterfaceLanguage | undefined,
+  weatherEvidence: DestinationWeatherEvidence[],
 ): DestinationGuideDraft {
+  const packing = weatherPacking(weatherEvidence);
   return {
     summary: summaryCopy(language).guide(brief.destination, brief.dates[0]),
     attractions: places.slice(0, 5).map((place) => ({
@@ -132,7 +143,7 @@ function fallbackDraft(
     ],
     weather: `For ${month}, use this as planning context only and check an official short-range forecast shortly before departure.`,
     packing: [
-      "Weather-appropriate layers",
+      ...(packing.length ? packing : ["Weather-appropriate layers"]),
       "Comfortable walking shoes",
       "Medication and copies of prescriptions",
       "Travel documents and suitable power adapters",
@@ -150,7 +161,7 @@ function createMiniMaxGenerator(): DestinationGuideGenerator | undefined {
       const evidence = tool(async () => input, {
         name: "read_destination_evidence",
         description:
-          "Read the validated trip brief, travel month, grounded map candidates and confirmed user preferences.",
+          "Read the validated trip brief, travel month, grounded map candidates, confirmed preferences and dated forecast or historical climate evidence, including unavailable dates.",
         schema: z.object({}),
       });
       const specialist = createAgent({
@@ -158,8 +169,9 @@ function createMiniMaxGenerator(): DestinationGuideGenerator | undefined {
         model,
         tools: [evidence],
         systemPrompt:
-          "You are the destination specialist. Always call read_destination_evidence before answering and use only its facts. Attraction names must be a grounded candidate's name copied character for character, with no category, rating or district appended. Give concise customs, packing and planning guidance. Treat weather as monthly context, never a forecast. Never assert entry eligibility, vaccine requirements or that an area is safe; direct travellers to current official immigration, health and travel-advisory sources. Never claim live opening hours or availability. Return the requested structured destination guide.\n\nKeep within these lengths; longer text is cut at a sentence end: summary at most 400 characters; at most 5 attractions, each detail at most 500 characters; customs, safety and entryHealth are each 1-4 strings of at most 400 characters; weather at most 500 characters; packing 1-6 strings of at most 300 characters; assumptions at most 6 strings.\n\n" +
-          TRAVELLER_PREFERENCES_RULE,
+          "You are the destination specialist. Always call read_destination_evidence before answering and use only its facts. Attraction names must be a grounded candidate's name copied character for character, with no category, rating or district appended. Give concise customs, packing and planning guidance. Use weatherEvidence to choose packing for the supplied conditions. Its forecast entries are dated forecasts; climate entries are historical context, never forecasts. Unavailable entries supply no weather facts. If no weather evidence is supplied, use monthly planning context only. Never assert entry eligibility, vaccine requirements or that an area is safe; direct travellers to current official immigration, health and travel-advisory sources. Never claim live opening hours or availability. Return the requested structured destination guide.\n\nKeep within these lengths; longer text is cut at a sentence end: summary at most 400 characters; at most 5 attractions, each detail at most 500 characters; customs, safety and entryHealth are each 1-4 strings of at most 400 characters; weather at most 500 characters; packing 1-6 strings of at most 300 characters; assumptions at most 6 strings.\n\n" +
+          TRAVELLER_PREFERENCES_RULE +
+          replyLanguageRule(input.language),
         responseFormat: ModelGuideDraft,
       });
       const result = await specialist.invoke({
@@ -186,28 +198,25 @@ async function planDestinationGuide(
   ctx.signal?.throwIfAborted();
   const brief = TripBriefSchema.parse(briefInput);
   const month = travelMonth(brief.dates[0]);
-  const [sights, museums, preferences] = await Promise.all([
-    ctx.tools.maps.places({ near: brief.destination, category: "sight" }),
-    ctx.tools.maps.places({ near: brief.destination, category: "museum" }),
+  const [cityPlaces, preferences] = await Promise.all([
+    Promise.all(
+      brief.destination.split("&").map(async (name) => {
+        const city = name.trim();
+        const [sights, museums] = await Promise.all([
+          ctx.tools.maps.places({ near: city, category: "sight" }),
+          ctx.tools.maps.places({ near: city, category: "museum" }),
+        ]);
+        return { city, places: dedupeEntries([...sights, ...museums]) };
+      }),
+    ),
     ctx.mem.getLongTerm(brief.userId),
   ]);
   ctx.signal?.throwIfAborted();
-  const places = dedupeEntries([...sights, ...museums]);
-  const weatherLocation = places.find((place) => place.location)?.location;
-  let weatherResult:
-    Awaited<ReturnType<NonNullable<AgentContext["tools"]["weather"]>["forecast"]>> | undefined;
-  let weatherUnavailable = false;
-  if (ctx.tools.weather && weatherLocation) {
-    try {
-      weatherResult = await ctx.tools.weather.forecast({
-        location: weatherLocation,
-        targetDate: brief.dates[0],
-      });
-    } catch {
-      ctx.signal?.throwIfAborted();
-      weatherUnavailable = true;
-    }
-  }
+  const places = dedupeEntries(cityPlaces.flatMap(({ places }) => places));
+  const weatherEvidence = await gatherWeatherEvidence(brief, ctx, cityPlaces);
+  const weatherResults = weatherEvidence.flatMap(({ result }) => (result ? [result] : []));
+  const weatherResult = weatherResults[0];
+  const weatherUnavailable = weatherEvidence.some(({ unavailable }) => unavailable);
   const generator =
     options.generator === false ? undefined : (options.generator ?? createMiniMaxGenerator());
   let draft: DestinationGuideDraft;
@@ -215,19 +224,28 @@ async function planDestinationGuide(
   if (generator) {
     try {
       draft = validateDraft(
-        await generator.generate({ brief, travelMonth: month, places, preferences }),
+        await generator.generate({
+          brief,
+          travelMonth: month,
+          places,
+          preferences,
+          weatherEvidence,
+          ...(ctx.replyLanguage ? { language: ctx.replyLanguage } : {}),
+        }),
         places,
       );
     } catch (error) {
       const reason = error instanceof Error ? error.message : "unknown model error";
       console.warn(`[destination-guide] Model draft failed; using a safe local plan: ${reason}`);
       usedFallback = true;
-      draft = fallbackDraft(brief, month, places, ctx.replyLanguage);
+      ctx.signal?.throwIfAborted();
+      draft = fallbackDraft(brief, month, places, ctx.replyLanguage, weatherEvidence);
     }
   } else {
-    draft = fallbackDraft(brief, month, places, ctx.replyLanguage);
+    draft = fallbackDraft(brief, month, places, ctx.replyLanguage, weatherEvidence);
   }
 
+  ctx.signal?.throwIfAborted();
   const monthLabel = (date: string) =>
     new Intl.DateTimeFormat("en", { month: "long", year: "numeric", timeZone: "UTC" }).format(
       new Date(`${date}T12:00:00Z`),
@@ -255,7 +273,7 @@ async function planDestinationGuide(
       },
       {
         kind: "weather-packing",
-        detail: scope + (weatherResult?.summary ?? draft.weather),
+        detail: weatherEvidence.length ? weatherText(weatherEvidence) : scope + draft.weather,
         packing,
       },
     ],
@@ -263,14 +281,14 @@ async function planDestinationGuide(
       mockEnabled()
         ? "Attractions come only from the injected MapsPort and may still be mock or stale data."
         : "Attractions come from provider candidates; opening hours and availability may be stale and require verification.",
-      ...(weatherResult
-        ? [
-            `Weather source: ${weatherResult.provider}; ${weatherResult.horizon}${weatherResult.validUntil ? `, valid until ${weatherResult.validUntil}` : ""}; observed ${weatherResult.observedAt}.`,
-          ]
+      ...(weatherEvidence.length
+        ? weatherEvidence.map(({ city, targetDate, result }) =>
+            result
+              ? `${city}, ${targetDate}: Weather source: ${result.provider}; ${result.horizon}${result.validUntil ? `, valid until ${result.validUntil}` : ""}; observed ${result.observedAt}.`
+              : `${city}, ${targetDate}: Weather provider unavailable; check conditions before travel.`,
+          )
         : [
-            weatherUnavailable
-              ? "Weather provider unavailable; using monthly planning context instead of a forecast."
-              : "Weather is general model context, not a forecast; entry, health and safety guidance requires official verification.",
+            "Weather is general model context, not a forecast; entry, health and safety guidance requires official verification.",
           ]),
       ...draft.assumptions,
     ],
@@ -287,17 +305,23 @@ async function planDestinationGuide(
             kind: "unavailable",
             label: "Weather provider",
             freshness:
-              "The destination guide completed with monthly context because the requested weather data was unavailable.",
+              "Some requested destination dates have no weather evidence; unavailable dates are listed explicitly.",
           }
         : {
-            kind: /^(Google Weather API|Open-Meteo)/.test(weatherResult?.provider ?? "")
-              ? "live"
-              : !mockEnabled()
-                ? "estimated"
-                : "mock",
-            label: weatherResult?.provider ?? "Maps evidence and AI guide",
+            kind:
+              weatherResults.length > 0 &&
+              weatherResults.every((result) =>
+                /^(Google Weather API|Open-Meteo)/.test(result.provider),
+              )
+                ? "live"
+                : !mockEnabled()
+                  ? "estimated"
+                  : "mock",
+            label: weatherResult
+              ? [...new Set(weatherResults.map(({ provider }) => provider))].join(" / ")
+              : "Maps evidence and AI guide",
             freshness: weatherResult
-              ? `${weatherResult.horizon === "forecast" ? "Forecast" : "Climate context"} observed at ${weatherResult.observedAt}; conditions and provider availability may change.`
+              ? `Weather evidence for ${brief.dates[0]} through ${brief.dates[1]}; each dated entry records its forecast or historical climate horizon and observation time. Conditions and provider availability may change.`
               : !mockEnabled()
                 ? "Place details are provider estimates; weather, entry, health and safety claims require official verification."
                 : "Place details come from deterministic mock fixtures; not live verified.",

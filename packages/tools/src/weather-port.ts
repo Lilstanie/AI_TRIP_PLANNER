@@ -224,6 +224,26 @@ export function createWeatherPort(
   dependencies: ToolRuntimeDependencies,
 ): WeatherPort {
   const weatherApiKey = config.weatherApiKey;
+  const responses = new Map<string, Promise<Response>>();
+  const providerDependencies: ToolRuntimeDependencies = {
+    ...dependencies,
+    fetch: async (input, init) => {
+      const key = String(input);
+      let pending = responses.get(key);
+      if (!pending) {
+        pending = dependencies.fetch(input, init);
+        responses.set(key, pending);
+      }
+      try {
+        const response = await pending;
+        if (!response.ok) responses.delete(key);
+        return response.clone();
+      } catch (error) {
+        responses.delete(key);
+        throw error;
+      }
+    },
+  };
   const selectedForecast: (
     query: WeatherQuery,
     days: number,
@@ -232,10 +252,10 @@ export function createWeatherPort(
     config.dataMode === "mock"
       ? (query, days, now) => mockWeather(query, days, now)
       : (query, days) => {
-          if (days > FORECAST_LIMIT_DAYS) return openMeteoClimate(query, dependencies);
+          if (days > FORECAST_LIMIT_DAYS) return openMeteoClimate(query, providerDependencies);
           return days < GOOGLE_FORECAST_LIMIT_DAYS
-            ? googleForecast(query, weatherApiKey, dependencies)
-            : openMeteoForecast(query, dependencies);
+            ? googleForecast(query, weatherApiKey, providerDependencies)
+            : openMeteoForecast(query, providerDependencies);
         };
   return {
     async forecast(query) {
