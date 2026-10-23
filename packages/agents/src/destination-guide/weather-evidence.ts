@@ -1,0 +1,59 @@
+import type { AgentContext, Place, TripBrief, WeatherResult } from "@trip/shared";
+
+export interface DestinationWeatherEvidence {
+  city: string;
+  targetDate: string;
+  result?: WeatherResult;
+  unavailable?: true;
+}
+
+export async function gatherWeatherEvidence(
+  brief: TripBrief,
+  ctx: AgentContext,
+  cities: Array<{ city: string; places: Place[] }>,
+): Promise<DestinationWeatherEvidence[]> {
+  if (!ctx.tools.weather) return [];
+  const start = Date.parse(`${brief.dates[0]}T00:00:00Z`);
+  const end = Date.parse(`${brief.dates[1]}T00:00:00Z`);
+  const jobs = cities.flatMap(({ city, places }) => {
+    const location = places.find((place) => place.location)?.location;
+    return Array.from({ length: (end - start) / 86_400_000 + 1 }, (_, day) => ({
+      city,
+      location,
+      targetDate: new Date(start + day * 86_400_000).toISOString().slice(0, 10),
+    }));
+  });
+  const evidence = new Array<DestinationWeatherEvidence>(jobs.length);
+  let next = 0;
+  await Promise.all(
+    Array.from({ length: Math.min(3, jobs.length) }, async () => {
+      while (next < jobs.length) {
+        ctx.signal?.throwIfAborted();
+        const index = next++;
+        const { city, location, targetDate } = jobs[index]!;
+        try {
+          if (!location) throw new Error("No grounded coordinates for weather.");
+          const result = await ctx.tools.weather!.forecast({ location, targetDate });
+          ctx.signal?.throwIfAborted();
+          if (result.targetDate !== targetDate)
+            throw new Error("Weather date did not match the request.");
+          evidence[index] = { city, targetDate, result };
+        } catch {
+          ctx.signal?.throwIfAborted();
+          evidence[index] = { city, targetDate, unavailable: true };
+        }
+      }
+    }),
+  );
+  return evidence;
+}
+
+export function weatherText(evidence: DestinationWeatherEvidence[]): string {
+  return evidence
+    .map(({ city, targetDate, result }) =>
+      result
+        ? `${city}, ${targetDate} (${result.horizon === "forecast" ? "forecast" : "historical climate, not a forecast"}): ${result.summary}`
+        : `${city}, ${targetDate}: weather unavailable; check a current forecast before travel.`,
+    )
+    .join(" ");
+}
