@@ -102,7 +102,9 @@ try {
           `${label}: exactly the two mentioned specialists show work under their own icons`,
           run.assignments,
         );
-        const firstRound = run.checks.filter((item) => /^(Conflict check|冲突检查)/.test(item.text));
+        const firstRound = run.checks.filter((item) =>
+          /^(Conflict check|冲突检查)/.test(item.text),
+        );
         check(
           firstRound.length >= 1 &&
             firstRound.filter((item) => /\b1\b/.test(item.text)).length === 1,
