@@ -355,6 +355,8 @@ boundary, not live-model wording reliability.
 When a thin-data plan reuses a grounded place across days, the reply facts include the repeated place
 and its days so the reply identifies it as one reused stop rather than distinct activities.
 
+The coordinator advertises dated weather forecasts within 14 days, historical climate context for later dates, and explicit unavailability when evidence cannot be obtained. It does not claim booking or payment capability.
+
 Model routing (`MODEL_ROUTING` in `packages/agents/src/models.ts` and `chat.ts`):
 
 - **DeepSeek** (`DEEPSEEK_API_KEY`): everything that runs a model — brief extraction from chat, all
