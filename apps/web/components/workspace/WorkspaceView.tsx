@@ -26,6 +26,7 @@ import { LanguageToggle } from "./LanguageToggle";
 import { usePresence, useSegmentIndicator, viewTransition } from "../ui/motion";
 import { useLocale } from "../account/LocaleProvider";
 import { PhoneTabBar, phonePanelId } from "./PhoneTabBar";
+import { PhoneTeamButton } from "./PhoneTeamButton";
 import { PhoneTripTitle } from "./PhoneTripTitle";
 import { TeamControl } from "../chat/TeamControl";
 import { latestTurn } from "../chat/team-model";
@@ -360,7 +361,14 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
           <header className="workspace-topbar">
             {menuButton}
             {phone ? (
-              <PhoneTripTitle model={model} />
+              <>
+                <PhoneTripTitle model={model} />
+                <PhoneTeamButton
+                  model={model}
+                  activity={latestTurn(activity, busy, messages)}
+                  busy={busy}
+                />
+              </>
             ) : (
               <div className="topbar-summary">
                 <h1 className="topbar-title">

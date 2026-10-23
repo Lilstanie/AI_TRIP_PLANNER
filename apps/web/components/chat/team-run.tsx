@@ -40,7 +40,6 @@ export function useTeamRunState(messages: readonly Message[], busy: boolean): Te
     setRequest((count) => count + 1);
   }, []);
   const showLatest = useCallback(() => setChosen(undefined), []);
-  const run =
-    chosen && messages[chosen.index]?.activity === chosen.activity ? chosen : undefined;
+  const run = chosen && messages[chosen.index]?.activity === chosen.activity ? chosen : undefined;
   return useMemo(() => ({ run, request, show, showLatest }), [run, request, show, showLatest]);
 }

@@ -12,7 +12,7 @@ export type Surface = {
   page: "workspace" | "trips";
   view: MobileView;
   drawer?: Drawer;
-  sheet?: "facts";
+  sheet?: "facts" | "team";
   fact?: FactKey;
   dialog?: DialogKind;
 };
@@ -27,6 +27,8 @@ export type LayoutEvent =
   | { type: "close-fact" }
   | { type: "open-sheet" }
   | { type: "close-sheet" }
+  | { type: "open-team-sheet" }
+  | { type: "close-team-sheet" }
   | { type: "open-dialog"; dialog: DialogKind }
   | { type: "close-dialog" }
   | { type: "show-trips" }
@@ -77,6 +79,10 @@ export function layout(surface: Surface, event: LayoutEvent, media: Media): Surf
       return only(surface, { sheet: "facts" });
     case "close-sheet":
       return without(surface, "sheet");
+    case "open-team-sheet":
+      return only(surface, { sheet: "team" });
+    case "close-team-sheet":
+      return surface.sheet === "team" ? without(surface, "sheet") : surface;
     case "open-dialog":
       return { ...surface, dialog: event.dialog };
     case "close-dialog":

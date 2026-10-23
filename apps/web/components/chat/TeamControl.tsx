@@ -5,10 +5,24 @@ import { useLocale } from "@/components/account/LocaleProvider";
 import { AssistantIcon } from "./assistants";
 import { TeamPanel } from "./TeamPanel";
 import { TeamRunBar } from "./TeamRunBar";
-import { teamModel } from "./team-model";
+import { teamModel, type TeamModel } from "./team-model";
 import { useTeamRun } from "./team-run";
 
 const HOVER_CLOSE_MS = 150;
+
+export function TeamAvatars({ rows }: { rows: TeamModel["rows"] }) {
+  return (
+    <span className="team-trigger__avatars" aria-hidden="true">
+      {rows.map((row) => (
+        <AssistantIcon
+          key={row.assistant}
+          id={row.assistant}
+          {...(row.status === "working" ? { className: "assistant-icon--working" } : {})}
+        />
+      ))}
+    </span>
+  );
+}
 
 export function TeamControl({
   activity,
@@ -89,15 +103,7 @@ export function TeamControl({
         data-working={model.working}
         onClick={() => setPinned(!pinned)}
       >
-        <span className="team-trigger__avatars" aria-hidden="true">
-          {model.rows.map((row) => (
-            <AssistantIcon
-              key={row.assistant}
-              id={row.assistant}
-              {...(row.status === "working" ? { className: "assistant-icon--working" } : {})}
-            />
-          ))}
-        </span>
+        <TeamAvatars rows={model.rows} />
         <span className="team-trigger__label">{t("Specialist team")}</span>
         {model.working > 0 && (
           <span className="team-trigger__count">

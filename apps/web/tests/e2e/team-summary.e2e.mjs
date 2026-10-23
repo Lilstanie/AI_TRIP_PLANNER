@@ -183,10 +183,26 @@ try {
 
       const panel = page.locator(".team-panel");
       const turn = page.locator(".team-run__turn");
-      if (width > 520) {
-        const button = page.getByRole("button", { name: BUTTON[locale], exact: true });
+      {
+        const phone = width <= 520;
+        const button = phone
+          ? page.locator(".phone-topbar__team")
+          : page.getByRole("button", { name: BUTTON[locale], exact: true });
+        const dismiss = async () => {
+          if (phone) await page.keyboard.press("Escape");
+          else await page.locator(".chat__stream").click({ position: { x: 20, y: 20 } });
+          await panel.waitFor({ state: "detached" });
+        };
+        const openLatest = async () => {
+          if (phone) await button.click();
+          else await button.hover();
+          await panel.waitFor();
+        };
         await page.mouse.move(width / 2, 500);
-        check((await panel.count()) === 0, `${label}: the panel is closed before a summary is used`);
+        check(
+          (await panel.count()) === 0,
+          `${label}: the panel is closed before a summary is used`,
+        );
 
         await summaryOf(page, 1).click();
         await panel.waitFor();
@@ -194,9 +210,7 @@ try {
           .locator(".team-panel__assignment")
           .evaluateAll((nodes) => nodes.map((node) => node.getAttribute("data-assistant")));
         check(
-          owners.length === 5 &&
-            new Set(owners).size === 5 &&
-            !owners.includes("coordinator"),
+          owners.length === 5 && new Set(owners).size === 5 && !owners.includes("coordinator"),
           `${label}: the planned reply's panel lists the five dispatch assignments`,
           owners,
         );
@@ -211,8 +225,7 @@ try {
         );
         await page.screenshot({ path: `${out}/${label}-turn-2.png` });
 
-        await page.locator(".chat__stream").click({ position: { x: 20, y: 20 } });
-        await panel.waitFor({ state: "detached" });
+        await dismiss();
         await summaryOf(page, 3).click();
         await panel.waitFor();
         const kinds = await panel
@@ -234,20 +247,14 @@ try {
         );
         await page.screenshot({ path: `${out}/${label}-turn-4.png` });
 
-        await page.locator(".chat__stream").click({ position: { x: 20, y: 20 } });
-        await panel.waitFor({ state: "detached" });
-        await button.hover();
-        await panel.waitFor();
+        await dismiss();
+        await openLatest();
         check(
           (await panel.locator('.team-panel__assignment[data-kind="handoff"]').count()) === 1,
           `${label}: hovering the button still shows the latest run`,
         );
-        check(
-          (await turn.count()) === 0,
-          `${label}: the latest run carries no earlier-turn label`,
-        );
-        await page.mouse.move(width / 2, 500);
-        await panel.waitFor({ state: "detached" });
+        check((await turn.count()) === 0, `${label}: the latest run carries no earlier-turn label`);
+        await dismiss();
 
         await summaryOf(page, 1).click();
         await panel.waitFor();
@@ -261,27 +268,24 @@ try {
             .evaluateAll((nodes) => nodes.map((node) => node.getAttribute("data-status"))),
         };
         check(
-          live.panels === 1 &&
-            live.turns === 0 &&
-            live.statuses.includes("none"),
+          live.panels === 1 && live.turns === 0 && live.statuses.includes("none"),
           `${label}: the next live turn switches the open panel back to the latest run`,
           live,
         );
-        await page.locator(".chat__stream").click({ position: { x: 20, y: 20 } });
-        await panel.waitFor({ state: "detached" });
-        await button.hover();
-        await panel.waitFor();
+        await dismiss();
+        await openLatest();
         check(
           (await turn.count()) === 0,
           `${label}: a closed summary run does not return on the next hover`,
         );
-        await page.mouse.move(width / 2, 500);
-        await panel.waitFor({ state: "detached" });
+        await dismiss();
 
         await summaryOf(page, 1).click();
         await panel.waitFor();
         await turn.waitFor();
-        await page.getByRole("button", { name: locale === "zh" ? "最新对话" : "Latest turn" }).click();
+        await page
+          .getByRole("button", { name: locale === "zh" ? "最新对话" : "Latest turn" })
+          .click();
         const latest = {
           turns: await turn.count(),
           none: await panel.locator('.team-panel__row[data-status="none"]').count(),
@@ -291,15 +295,7 @@ try {
           `${label}: the latest-turn button returns to the latest run`,
           latest,
         );
-        await page.locator(".chat__stream").click({ position: { x: 20, y: 20 } });
-      } else {
-        await send(page, `@${stay} find another stay`);
-        check(
-          (await page.locator(".team-summary").count()) === 5 &&
-            (await summaryOf(page, 5).count()) === 1,
-          `${label}: a new live turn gets its own summary`,
-          await summaryOf(page, 5).innerText(),
-        );
+        await dismiss();
       }
 
       await rename(page, width, CUSTOM[locale]);
