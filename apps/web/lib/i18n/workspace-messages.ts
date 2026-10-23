@@ -260,7 +260,6 @@ export const WORKSPACE_ZH = {
   "Subagents thinking together": "协作助手共同思考",
   Coordinator: "协调员",
   Assistants: "助手",
-  "Mention {name}": "提及{name}",
   "That is not my area. The {name} specialist should handle this.":
     "这不在我的职责范围内，应由{name}专家来处理。",
   "Conflict check, round {round}: no conflicts": "冲突检查，第 {round} 轮：没有冲突",

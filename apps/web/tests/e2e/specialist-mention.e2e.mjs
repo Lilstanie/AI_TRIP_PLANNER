@@ -14,7 +14,7 @@ const check = (ok, name, detail) => {
 
 const STAY = { en: "Stay", zh: "住宿" };
 const PLAN = "Tokyo from Sydney, 2027-02-01 to 2027-02-04, 2 adults, budget AUD 6000";
-const CHIP_COUNT = 6;
+const OPTION_COUNT = 6;
 
 const browser = await chromium.launch({
   ...(process.env.CHANNEL ? { channel: process.env.CHANNEL } : {}),
@@ -76,24 +76,21 @@ try {
         await route.continue({ postData: JSON.stringify(body) });
       });
 
-      const chips = page.locator(".assistant-chips button");
-      check((await chips.count()) === CHIP_COUNT, `${label}: six assistant chips are shown`);
-      const named = await chips.evaluateAll((nodes) =>
-        nodes.every((node) => (node.getAttribute("aria-label") ?? "").length > 0),
-      );
-      check(named, `${label}: every chip has an accessible name`);
+      await box(page).fill("@");
+      const entries = page.getByRole("listbox").getByRole("option");
+      check((await entries.count()) === OPTION_COUNT, `${label}: the @ menu lists six assistants`);
       const fits = await page.evaluate(
         () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
       );
-      check(fits, `${label}: the chip row does not overflow the page`);
-      await page.screenshot({ path: `${out}/${label}-chips.png` });
+      check(fits, `${label}: the @ menu does not overflow the page`);
+      await page.screenshot({ path: `${out}/${label}-menu.png` });
 
-      const stayChip = page.locator(".assistant-chips button", { hasText: STAY[locale] });
-      await stayChip.click();
+      await box(page).fill(`@${STAY[locale]}`);
+      await box(page).press("Tab");
       const inserted = await box(page).inputValue();
       check(
-        inserted.startsWith(`@${STAY[locale]} `),
-        `${label}: a chip inserts a mention`,
+        inserted === `@${STAY[locale]} `,
+        `${label}: picking from the @ menu inserts a mention`,
         inserted,
       );
       await box(page).fill("");

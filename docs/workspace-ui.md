@@ -327,17 +327,23 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     - The Think fold's Subagent rows use the same icons. The Trip drawer shows no assistant icons. A saved
       reply still shows its team conversation rows above its Think fold until the reply summary replaces
       them; the live area above the message box shows only the Think fold.
-  - A row of six assistant chips (the Coordinator and the five specialists) sits above the message box.
-    Pressing a chip inserts `@<name> `, and typing `@` with a default role name in English or Chinese
-    does the same. The client resolves each `@name` to a specialist id, drops duplicates, and sends
+  - There is no row of assistant chips above the message box. Typing `@` at the start of a word opens a
+    menu of the six assistants (the Coordinator and the five specialists), each with its icon and
+    current name, filtered by what follows the `@` and matched against the current, role and custom
+    names. The up and down arrows move, Tab or Enter picks and inserts `@<name> `, and Esc closes the
+    menu without changing the draft; a closed menu stays closed until the query changes or the caret
+    moves to another token. The textarea keeps focus and names the active option through
+    `aria-activedescendant`, and options are 44 px tall at phone width. Right after a whole `@name`,
+    the first Backspace selects exactly that token and the second deletes it; any other key, click or
+    caret move clears the selection. Neither the menu nor the token selection acts during IME
+    composition. The message stays plain text. Typing a full `@name` with a default role name in
+    English or Chinese resolves the same way. The client resolves each `@name` to a specialist id, drops duplicates, and sends
     `mentions` with the message; `@Coordinator` is not sent, because a message without a mention
     already goes to the Coordinator. With a plan, only the mentioned specialists run, revise their own
     sections, and the planning loop's conflict check and targeted revision follow. The reply carries the
     mentioned specialist's icon and name. Conflict, revision-score and stop messages from the loop show in
     the team panel and the saved reply's team conversation as plain rules with no icon. With no plan yet, the mentioned
-    specialist only answers, nothing is created, and the same message asks for the brief. At phone width
-    the chips are 44 px tall and stay in one row that scrolls sideways, with a 56 px fade at the end
-    while more chips are hidden, so the message list keeps the screen. A message may mention several specialists: each id is sent once,
+    specialist only answers, nothing is created, and the same message asks for the brief. A message may mention several specialists: each id is sent once,
     exactly those specialists run together in one round, only their sections change, and one conflict
     check follows once they have all finished. A mention that names the wrong specialist (for example Stay
     with a restaurant request) is handed off once: the mentioned specialist declines under its own icon and
@@ -972,7 +978,7 @@ the account section explains that everything stays in this browser.
       with the account as `assistant.names`. A blank name restores the role name in the interface language.
       Names are trimmed and limited to 24 characters, and a name that another assistant already uses, as a
       custom name or as a default English or Chinese role name, is rejected with a message, so a mention can
-      never be ambiguous. The chips, reply bubbles (including earlier ones) and Subagent rows show the
+      never be ambiguous. The @ menu, reply bubbles (including earlier ones) and Subagent rows show the
       current name without a reload. Typing `@` with the custom name, the default English name or the
       default Chinese name sends the same specialist id.
     - The nonfunctional **Long-term memory** switch and its hint are hidden until the planner can

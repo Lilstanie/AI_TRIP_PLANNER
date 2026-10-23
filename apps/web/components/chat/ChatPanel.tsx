@@ -6,7 +6,6 @@ import { translate } from "@/lib/i18n/locale";
 import type { Message } from "@/lib/workspace";
 import { ThinkingProcess } from "./ThinkingProcess";
 import { Composer } from "./Composer";
-import { AssistantChips } from "./AssistantChips";
 import { MessageItem } from "./MessageItem";
 import { QuestionComposer } from "./QuestionComposer";
 import type { PendingAsk, QuestionAnswer, QuestionProgress } from "@/lib/workspace/ask-user";
@@ -177,7 +176,6 @@ export function ChatPanel({
             if (!locked) onSend();
           }}
         >
-          <AssistantChips value={input} onInput={onInput} disabled={busy || locked} />
           <Composer
             value={input}
             placeholder={t(

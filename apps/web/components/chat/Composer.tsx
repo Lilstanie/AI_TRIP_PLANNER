@@ -1,6 +1,8 @@
 "use client";
 import {
   useEffect,
+  useId,
+  useMemo,
   useRef,
   useState,
   type ChangeEvent,
@@ -14,6 +16,12 @@ import { AttachmentChip } from "./AttachmentChip";
 import type { PreparedAttachment } from "@/lib/chat/attachments";
 import type { Notice } from "@/lib/i18n/notice";
 import { useLocale } from "../account/LocaleProvider";
+import { useSettings } from "../account/SettingsProvider";
+import { translate } from "@/lib/i18n/locale";
+import { ASSISTANT_ROLE_KEYS } from "./assistants";
+import { ASSISTANT_ORDER, assistantName } from "./assistant-names";
+import { MentionMenu, type MentionEntry } from "./MentionMenu";
+import { activeMention, matchesMention, mentionBefore, mentionToken } from "./mentions";
 
 const MIN_HEIGHT_PX = 36;
 
@@ -55,7 +63,41 @@ export function Composer({
 
   attachNotices?: readonly Notice[];
 }) {
-  const { t, notice: localizeNotice } = useLocale();
+  const { t, locale, notice: localizeNotice } = useLocale();
+  const { settings } = useSettings();
+  const customNames = settings.assistant.names;
+  const menuId = useId();
+  const [caret, setCaret] = useState(-1);
+  const [composing, setComposing] = useState(false);
+  const [dismissed, setDismissed] = useState<{ start: number; query: string } | null>(null);
+  const [highlight, setHighlight] = useState(0);
+  const pendingCaret = useRef<number | null>(null);
+  const entries = useMemo<MentionEntry[]>(
+    () =>
+      ASSISTANT_ORDER.map((id) => ({
+        id,
+        name: assistantName(id, customNames, locale),
+        aliases: [
+          assistantName(id, customNames, locale),
+          translate("en", ASSISTANT_ROLE_KEYS[id]),
+          translate("zh", ASSISTANT_ROLE_KEYS[id]),
+        ],
+      })),
+    [customNames, locale],
+  );
+  const mention = !composing && caret >= 0 ? activeMention(value, caret) : null;
+  const matches = mention
+    ? entries.filter((entry) => matchesMention(mention.query, entry.aliases))
+    : [];
+  const menuOpen =
+    matches.length > 0 &&
+    !(
+      dismissed &&
+      mention &&
+      dismissed.start === mention.start &&
+      dismissed.query === mention.query
+    );
+  const active = Math.min(highlight, Math.max(matches.length - 1, 0));
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
 
@@ -69,8 +111,73 @@ export function Composer({
     field.style.height = `${Math.min(Math.max(field.scrollHeight, MIN_HEIGHT_PX), MAX_HEIGHT_PX)}px`;
   }, [value, inputRef]);
 
+  useEffect(() => {
+    const field = inputRef.current;
+    if (pendingCaret.current === null || !field) return;
+    field.setSelectionRange(pendingCaret.current, pendingCaret.current);
+    pendingCaret.current = null;
+  }, [value, inputRef]);
+
+  function track(field: HTMLTextAreaElement) {
+    const next = field.selectionStart === field.selectionEnd ? field.selectionStart : -1;
+    const found = next >= 0 ? activeMention(field.value, next) : null;
+    setCaret(next);
+    setHighlight((current) => (found && mention && found.start === mention.start ? current : 0));
+    setDismissed((current) =>
+      current && found && current.start === found.start && current.query === found.query
+        ? current
+        : null,
+    );
+  }
+
+  function pick(entry: MentionEntry) {
+    if (!mention) return;
+    const token = mentionToken(entry.name);
+    const rest = value.slice(caret);
+    const inserted = `${token}${/^\s/.test(rest) ? "" : " "}`;
+    pendingCaret.current = mention.start + token.length + 1;
+    onInput(`${value.slice(0, mention.start)}${inserted}${rest}`);
+    setDismissed(null);
+  }
+
   function onKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
-    if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) return;
+    const composingNow = event.nativeEvent.isComposing || composing;
+    if (menuOpen && !composingNow) {
+      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+        event.preventDefault();
+        const step = event.key === "ArrowDown" ? 1 : -1;
+        setHighlight((active + step + matches.length) % matches.length);
+        return;
+      }
+      if (event.key === "Tab" || (event.key === "Enter" && !event.shiftKey)) {
+        event.preventDefault();
+        pick(matches[active]!);
+        return;
+      }
+      if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();
+        setDismissed(mention);
+        return;
+      }
+    }
+    if (event.key === "Backspace" && !composingNow) {
+      const field = event.currentTarget;
+      if (field.selectionStart === field.selectionEnd) {
+        const range = mentionBefore(
+          value,
+          field.selectionStart,
+          entries.flatMap((entry) => entry.aliases),
+        );
+        if (range) {
+          event.preventDefault();
+          field.setSelectionRange(range[0], range[1]);
+          track(field);
+          return;
+        }
+      }
+    }
+    if (event.key !== "Enter" || event.shiftKey || composingNow) return;
     event.preventDefault();
     if (canSend) onSend();
   }
@@ -144,6 +251,9 @@ export function Composer({
           {attachNotices.map((notice) => localizeNotice(notice)).join(" ")}
         </p>
       )}
+      {menuOpen && (
+        <MentionMenu menuId={menuId} entries={matches} activeIndex={active} onPick={pick} />
+      )}
       <textarea
         ref={inputRef}
         className="composer__input"
@@ -152,7 +262,24 @@ export function Composer({
         rows={1}
         value={value}
         disabled={busy}
-        onChange={(event) => onInput(event.target.value)}
+        aria-autocomplete="list"
+        {...(menuOpen
+          ? {
+              "aria-controls": menuId,
+              "aria-activedescendant": `${menuId}-${matches[active]!.id}`,
+            }
+          : {})}
+        onChange={(event) => {
+          onInput(event.target.value);
+          track(event.target);
+        }}
+        onSelect={(event) => track(event.currentTarget)}
+        onCompositionStart={() => setComposing(true)}
+        onCompositionEnd={(event) => {
+          setComposing(false);
+          track(event.currentTarget);
+        }}
+        onBlur={() => setCaret(-1)}
         onKeyDown={onKeyDown}
         onPaste={onPaste}
       />
