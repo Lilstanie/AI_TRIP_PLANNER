@@ -144,7 +144,7 @@ export function extractBriefPatchLocally(message: string, knownGroupSize?: numbe
     /\b(?:departing|leaving|flying)\s+(?:from\s+)?([A-Za-z][\w'&.\- ]*?)(?=\s+(?:for|to|on|with|budget)\b|[,.;]|$)/i,
   );
   const chineseOrigin = message.match(
-    /从\s*([\p{Script=Han}A-Za-z][\p{Script=Han}A-Za-z&·\- ]*?)(?=\s*(?:出发|飞|到|去|，|,|。|$))/u,
+    /从\s*([\p{Script=Han}A-Za-z][\p{Script=Han}A-Za-z&·\- ]*?)(?=\s*(?:出发|飞|到|去|前往|，|,|。|$))/u,
   );
   const origin = cleanDestination(fromTo?.[1] ?? departing?.[1] ?? chineseOrigin?.[1] ?? "");
   if (origin) patch.origin = origin;
@@ -162,7 +162,10 @@ export function extractBriefPatchLocally(message: string, knownGroupSize?: numbe
     message.match(/\d+[\s-]*days?\s+(?:in|at)\s+(.+?)(?=\s+(?:for|budget|from)\b|[,.;]|$)/i) ??
     message.match(/^\s*(?:plan\s+)?([A-Za-z][A-Za-z &.'-]*?)[,\s]+\d+\s+days?\b/i);
   const chineseDestination = message.match(
-    /(?:去|前往|目的地(?:是|为|改成|调整为)?)[：:\s]*([\p{Script=Han}A-Za-z][\p{Script=Han}A-Za-z&、·\- ]*?)(?=\s*(?:旅行|旅游|玩|，|,|。|预算|\d{4}-|$))/u,
+    /(?:去|前往|目的地(?:是|为|改成|调整为)?)[：:\s]*([\p{Script=Han}A-Za-z][\p{Script=Han}A-Za-z&、·\- ]*?)(?=\s*(?:的?(?:旅行|旅游|之旅)|玩|，|,|。|预算|\d{4}-|$))/u,
+  );
+  const chineseTripDestination = message.match(
+    /的\s*([\p{Script=Han}A-Za-z][\p{Script=Han}A-Za-z&、·\- ]*?)\s*之旅/u,
   );
   const destination = cleanDestination(
     englishDestination?.[1] ??
@@ -171,9 +174,13 @@ export function extractBriefPatchLocally(message: string, knownGroupSize?: numbe
       leadingDestination?.[1] ??
       durationDestination?.[1] ??
       chineseDestination?.[1] ??
+      chineseTripDestination?.[1] ??
       "",
   );
-  if (destination) patch.destination = destination.replace(/\s*[&、]\s*/gu, " & ");
+  if (destination)
+    patch.destination = destination
+      .replace(/\s*[&、]\s*/gu, " & ")
+      .replace(/(?<=\p{Script=Han}{2})和(?=\p{Script=Han}{2})/gu, " & ");
 
   const passport =
     message.match(/([A-Za-z][A-Za-z ]+?)\s+passport/i) ??

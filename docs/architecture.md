@@ -345,6 +345,8 @@ initial plans and revisions. An agent owns a durable role definition: model, `na
 
 Destination guidance checks weather for every city and trip date, with three lookups in flight. These are destination/date checks, not an inferred stay schedule. Missing coordinates, date mismatches and provider failures stay explicitly unavailable. Each result retains its provider, horizon and observation time. Successful weather responses are reused within one gateway, so dates in the same forecast response do not multiply requests. Climate context is historical, never a forecast.
 
+Dining reads dietary requirements from trip preferences, chat-learned preferences and saved memory, including peanut/nut allergies and Chinese terms. No-model chat also retains explicit dietary sentences. The same requirements reach the generator and deterministic fallback without writing long-term memory. Grounded venue names do not establish allergen safety; obvious model guarantees are rejected and travellers must confirm ingredients and cross-contamination controls directly.
+
 Transport and accommodation wrap calculators so models cannot invent prices, routes or properties.
 The itinerary likewise never prices a stop: Google Places publishes no admission prices, so an
 activity's `estCost` is left unset and the plan says how many stops are unpriced.
@@ -356,6 +358,8 @@ only when the plan carries that numeric price. Fixture and no-model replies veri
 boundary, not live-model wording reliability.
 When a thin-data plan reuses a grounded place across days, the reply facts include the repeated place
 and its days so the reply identifies it as one reused stop rather than distinct activities.
+
+The coordinator advertises dated weather forecasts within 14 days, historical climate context for later dates, and explicit unavailability when evidence cannot be obtained. It does not claim booking or payment capability.
 
 Model routing (`MODEL_ROUTING` in `packages/agents/src/models.ts` and `chat.ts`):
 
@@ -392,7 +396,7 @@ a currency without an amount, and the offline extractor uses `detectCurrency` on
 browser reads one rule everywhere it picks a currency, `effectiveCurrency()` in
 `packages/shared/src/money.ts`: `displayCurrency`, else `budgetSource.currency`, else the Settings
 display currency. Planning, guardrails and stored amounts stay AUD; `budgetSource` keeps the stated
-amount and currency. A bare budget number is stored as AUD with no source, and the coordinator prompt has the reply say it was taken as AUD and can be changed, never that the currency is open. Replacing the budget without a new source clears the old source; changing only the display currency preserves it. Chinese traveller counts accept cardinal numbers from 1 through 99. A trip never writes Settings. The server applies the same rule to the text it
+amount and currency. A bare budget number is stored as AUD with no source, and the coordinator prompt has the reply say it was taken as AUD and can be changed, never that the currency is open. Replacing the budget without a new source clears the old source; changing only the display currency preserves it. Chinese traveller counts accept cardinal numbers from 1 through 99. The offline extractor reads a Chinese destination after 去, 前往 or 目的地, or as X in “…的X之旅”, stops before “的旅行”, ends a Chinese origin at 前往, and reads “X和Y” as “X & Y” when both names have at least two characters, so every Chinese example chip plans without a model. A trip never writes Settings. The server applies the same rule to the text it
 writes: it takes the Settings currency from the chat request's optional `displayCurrency` (absent means
 AUD), picks `effectiveCurrency(brief, request.displayCurrency ?? "AUD")` and passes the result to
 `formatMoney` at every call site (specialist summaries, conflict reasons and constraints, coordinator
@@ -404,10 +408,13 @@ conflict detection and the plan score stay AUD, and provider fares keep their ow
 
 Language follows the same split. Coordinator and specialist progress lines are notices in the chat
 request's `interfaceLanguage`. Each turn also resolves one reply language in
-`packages/orchestrator/src/reply-language.ts`: Han text in the latest message means Chinese, Latin
-text means English, and anything else uses the interface language, then English. Specialists receive
-it as `AgentContext.replyLanguage` and write their fixed summaries in it; without it they write
-English, as the Agent Lab does.
+`packages/orchestrator/src/reply-language.ts`: Han text in the latest message means Chinese, more than
+two Latin words mean English, and anything else, such as a bare place name, uses the interface
+language, then English. Specialists receive it as `AgentContext.replyLanguage` and write their fixed
+summaries in it. The coordinator, the planning supervisor and the specialist models get it through
+`replyLanguageRule()` in `packages/agents/src/prompts/reply-language.ts`, which also tells them to
+copy names, ids and amounts untranslated. Without a reply language the specialists and supervisor
+add no rule and write English, as the Agent Lab does.
 
 `TripBrief.preferences` (and the same field on `known`) carries the traveller's own trip
 preferences, written in the top bar's Trip preferences editor. The coordinator's `update_trip_brief`

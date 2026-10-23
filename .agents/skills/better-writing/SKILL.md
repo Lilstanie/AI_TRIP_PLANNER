@@ -73,7 +73,10 @@ Read the copy around your change before you write. It establishes these conventi
   [current check entry point](../../notes/implemented/feature/2026-10-09-check-entry-point.md) and
   [PR #258](https://github.com/Lilstanie/AI_TRIP_PLANNER/pull/258).
 - **One word for one thing.** The sidebar says "Chats", the drawer says "Your trip" and the day view
-  has "Ideas". Use those names consistently; check nearby rendered copy when a section changes.
+  has "Ideas". Use those names consistently; check nearby rendered copy when a section changes. The
+  Coordinator and the five specialists appear as "assistants" ("助手"), and an account can rename each
+  one in Settings. Copy that names an assistant uses its display name, falls back to its role name and
+  never shows its id; "specialist" is the code and [glossary](../../../GLOSSARY.md) term for the five.
 - **Tone follows the stakes.** Empty states and onboarding can be warm. Routine actions are neutral.
   Errors and destructive confirmations are calm and plain, with no playfulness and no exclamation
   marks.

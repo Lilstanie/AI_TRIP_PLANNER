@@ -35,6 +35,7 @@ export {
   type DiningGenerator,
 } from "./dining";
 export { CAPABILITIES } from "./prompts/capabilities";
+export { replyLanguageRule } from "./prompts/reply-language";
 export {
   MODEL_ROUTING,
   createRoutedChatModel,

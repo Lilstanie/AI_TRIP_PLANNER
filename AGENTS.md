@@ -61,6 +61,12 @@ checks the frozen and shared-contract rules.
   or a tool instruction — JSDoc for non-obvious returns, failures, ownership and timing, plus
   shebangs, compiler and lint directives, SQL delimiters and third-party licence notices. Reviewers
   run the [added-comment check](.agents/skills/review-trip-planner/references/comment-policy.md).
+- Fix a bug at its cause: reproduce it, name the cause with evidence, and fix that cause. Do not hide a
+  symptom with a retry, a longer timeout, an extra guard or a special case
+  ([root causes](docs/development.md#fix-root-causes)).
+- Let the layout explain. Do not add secondary labels, descriptions or helper copy that repeat what the
+  layout already shows; keep form labels and accessible names. Run
+  `node .agents/skills/better-ui/scripts/check-ui-copy.mjs` before pushing UI changes.
 - Keep external credentials in environment variables. Never commit keys or copy them into project
   documentation, fixtures, or source code.
 - Use standard branch names such as `feature/<short-name>`, `fix/<short-name>`, `refactor/<short-name>`,
@@ -83,7 +89,7 @@ checks the frozen and shared-contract rules.
 1. Triage an issue before implementing it: reproduce it, and send unclear scope back for clarification instead of guessing.
 2. Run the checks that the [pre-push-checks skill](.agents/skills/pre-push-checks/SKILL.md) selects before every push, and report only commands you ran.
 3. Write every pull request body, on opening and on each update, with the sections of [the pull request template](.github/pull_request_template.md): Summary, Evidence, Merge Danger.
-4. Stop once CI passes on the current head. Merge only when the user explicitly says so.
+4. Once CI passes on the current head, merge the pull request you opened yourself ([team workflow](docs/team-workflow.md)) and stop. Merge anyone else's only when the user explicitly says so.
 5. Once the pull request is open and its evidence is quoted in the body, run `pnpm clean:output` to delete the local evidence and scratch directories.
 
 ## After editing
