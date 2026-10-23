@@ -597,3 +597,146 @@
     transition: none;
   }
 }
+
+.assistant-icon {
+  display: inline-flex;
+  width: 24px;
+  height: 24px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+
+.assistant-icon--coordinator {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.team-conversation {
+  display: flex;
+  min-width: 0;
+  margin: 0 0 8px;
+  padding: 0;
+  flex-direction: column;
+  gap: 8px;
+  list-style: none;
+}
+
+.team-message {
+  display: flex;
+  min-width: 0;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.team-message__main {
+  min-width: 0;
+  flex: 1;
+}
+
+.team-message__head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  align-items: center;
+}
+
+.team-message__name {
+  font-size: 13px;
+}
+
+.team-message__marker,
+.team-message__source {
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-mut);
+  font-size: 11px;
+}
+
+.team-message__marker--llm {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.team-message__text {
+  margin: 2px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.team-message--failed .team-message__text {
+  color: var(--danger, #b3261e);
+}
+
+.team-message__objectives {
+  margin: 4px 0 0;
+  padding-left: 16px;
+  color: var(--text-mut);
+}
+
+.msg-item__who {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 4px;
+  font-size: 13px;
+}
+
+.team-message--check {
+  align-items: baseline;
+  padding: 2px 0 2px 8px;
+  border-left: 2px solid var(--border);
+  color: var(--text-mut);
+  font-size: 12px;
+}
+
+.assistant-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 8px;
+}
+
+.assistant-chip {
+  display: inline-flex;
+  min-height: 32px;
+  gap: 6px;
+  align-items: center;
+  padding: 3px 10px 3px 4px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 12px;
+}
+
+button.assistant-chip {
+  cursor: pointer;
+}
+
+button.assistant-chip:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+@media (max-width: 520px) {
+  .assistant-chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+  .assistant-chips::-webkit-scrollbar {
+    display: none;
+  }
+  .assistant-chips[data-more="true"] {
+    mask-image: linear-gradient(to right, #000 calc(100% - 56px), transparent);
+  }
+  button.assistant-chip {
+    flex-shrink: 0;
+    min-height: 44px !important;
+  }
+}

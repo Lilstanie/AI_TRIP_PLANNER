@@ -281,6 +281,12 @@ and context delivery. [translate-docs](../.agents/skills/translate-docs/SKILL.md
 [English/Chinese documentation pairs](i18n.md); changing either language includes updating its
 counterpart in the same task.
 
+### Fix root causes
+
+When a bug is fixed, reproduce it, name its cause with evidence, and fix that cause. Do not hide the
+symptom with a retry, a longer timeout, an extra guard or a special case. If a workaround is the only
+option for now, say so in the pull request and the session log, with the cause it leaves in place.
+
 ## Verification
 
 For documentation changes, also run the local pairing check after reviewing and recording the
@@ -436,6 +442,17 @@ evidence of GitHub CI.
 
 ```bash
 node scripts/pr-delivery-status.mjs <pull-request-number>
+```
+
+To prove that a fix turns an E2E script from failing to passing, name the script and the source
+paths it tests. The command runs the script with those paths at their `origin/main` version, then
+with the working tree, restores the working tree even when interrupted, and exits 0 only when the
+first run fails and the second passes. Paste its last two lines into the PR's Evidence section.
+`--base <ref>` compares with another revision; its failure inventory is
+[scripts/redgreen.failures.md](../scripts/redgreen.failures.md).
+
+```bash
+node scripts/redgreen.mjs <e2e-name> [--prod] -- <source-path>...
 ```
 
 Run focused packages with `pnpm --filter @trip/agents test`, `pnpm --filter @trip/orchestrator test`

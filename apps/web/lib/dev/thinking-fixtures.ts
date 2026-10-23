@@ -295,9 +295,6 @@ export const thinkingFixtureRunning: AgentProgressEvent[] = thinkingFixture
   )
   .concat(
     reasoning("itinerary", 1, [
-      "Day one should stay close to the harbour.\n",
-      "Opera House in the morning, then the Botanic Garden;",
-      " Darling Harbour works best in the evening,",
-      " once the stay is confirmed near The Rocks",
+      "All independent — call in one block. Write objectives as one concrete sentence naming trip facts. Stop here and summarize.",
     ]),
   );

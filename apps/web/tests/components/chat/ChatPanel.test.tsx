@@ -473,7 +473,7 @@ describe("ChatPanel", () => {
     expect(hotel?.querySelector("[data-kind='stay'] svg")).toBeTruthy();
   });
 
-  it("renders a streamed reasoning block collapsed on its last line and expands to the full text", () => {
+  it("keeps a streamed reasoning block behind its collapsed label and expands to the full text", () => {
     render(
       <Chat
         busy
@@ -495,7 +495,7 @@ describe("ChatPanel", () => {
     fireEvent.click(subagentRow("Day plan", "Thinking"));
     const row = document.querySelector<HTMLElement>(".thinking-reasoning [role='button']");
     if (!row) throw new Error("reasoning row missing");
-    expect(row.textContent).toMatch(/Cherrybrook suits the family\.$/);
+    expect(row.textContent).toBe("ThinkThinking");
     expect(row.textContent).not.toContain("**");
     expect(row.getAttribute("aria-expanded")).toBe("false");
     expect(document.querySelector(".thinking-reasoning__body")).toBeNull();

@@ -26,7 +26,7 @@ try {
     viewport: { width: 1280, height: 800 },
     reducedMotion: "reduce",
   });
-  const page = await context.newPage();
+  let page = await context.newPage();
   const errors = [];
   page.on("pageerror", (error) => errors.push(String(error)));
   await page.route("**/api/places/search", (route) => route.fulfill({ json: { places: [] } }));
@@ -72,6 +72,50 @@ try {
   );
 
   await page.screenshot({ path: `${OUT}/budget-after-save.png`, fullPage: true });
+
+  page = await (
+    await browser.newContext({
+      locale: "en-AU",
+      viewport: { width: 1280, height: 800 },
+      reducedMotion: "reduce",
+    })
+  ).newPage();
+  page.on("pageerror", (error) => errors.push(String(error)));
+  await page.goto(BASE);
+  await chip().waitFor();
+  await page.locator('button[aria-label^="Account settings:"]:visible').first().click();
+  const settings = page.getByRole("dialog");
+  await settings.getByRole("tab", { name: "Language & region" }).click();
+  await settings.getByRole("button", { name: "Change Display currency" }).click();
+  await settings
+    .getByRole("group", { name: "Display currency", exact: true })
+    .getByRole("button", { name: "USD", exact: true })
+    .click();
+  await page.keyboard.press("Escape");
+  await settings.waitFor({ state: "hidden" });
+  await chip().click();
+  await sheet().waitFor();
+  await amount().fill("700000");
+  await sheet().screenshot({ path: `${OUT}/usd-filled.png` });
+  await amount().press("Enter");
+  await page.waitForTimeout(400);
+  const usdNotice = sheet().getByText(/^Enter a total budget of /);
+  const usdText = (await usdNotice.isVisible()) ? await usdNotice.innerText() : "";
+  const usdLimit = usdText.match(/^Enter a total budget of USD ([\d,]+) or less\.$/)?.[1];
+  check(
+    (await sheet().isVisible()) && usdLimit,
+    `USD 700,000 keeps the sheet open and states the limit in USD ("${usdText}")`,
+  );
+  await sheet().screenshot({ path: `${OUT}/usd-limit.png` });
+  await amount().fill(usdLimit?.replaceAll(",", "") ?? "0");
+  await amount().press("Enter");
+  await sheet()
+    .waitFor({ state: "hidden", timeout: 3000 })
+    .catch(() => undefined);
+  check(
+    !(await sheet().isVisible()),
+    `the stated USD limit (${usdLimit}) itself saves and closes the sheet`,
+  );
   check(errors.length === 0, "no page errors");
   await context.close();
 } finally {

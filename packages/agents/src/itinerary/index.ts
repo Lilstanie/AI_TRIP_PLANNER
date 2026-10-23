@@ -850,7 +850,20 @@ async function planItinerary(
   }
   return {
     agent: "itinerary",
-    summary: draft.summary,
+    summary: usedFallback
+      ? draft.summary
+      : summaryCopy(ctx.replyLanguage).itinerary(
+          days,
+          brief.destination,
+          Math.max(
+            0,
+            ...Array.from(
+              { length: days },
+              (_, index) =>
+                draft.activities.filter((activity) => activity.day === index + 1).length,
+            ),
+          ),
+        ),
 
     items: draft.activities.map(({ estCost: _unpriced, ...activity }) => {
       const arriveBy = connections.get(connectionKey(activity));

@@ -846,7 +846,7 @@ async function stopNumbers(browser) {
     const stops = await readRows(
       sheet.locator(".phone-map-sheet__stops button"),
       ".phone-map-sheet__number",
-      ".phone-map-sheet__number + span",
+      ".phone-map-sheet__title",
     );
     summary.phoneMapSheetDay2 = shown(stops);
     check(

@@ -297,7 +297,7 @@ The Rocks · 2026-11-10`，其他参数显示为 `key value` 标签——而非�
 推理 sink 曾将同一次模型调用每个 160 字符刷新各自编号为一个 `index`，导致长思考拆成多个 Think 行，每行显示自己的第一行，形成一列半句话片段。`packages/orchestrator/src/reasoning-sink.ts` 现在为同一 sink 的每次刷新设置相同 `REASONING_BLOCK_INDEX`（0）；sink 仍控制传输节奏，但同一调用链的增量构成同一个块。`thinking-model.ts` 中的 `mergeReasoning` 在客户端按 `(agent, round,
 episode)` 拼接增量，也会合并先前逐次刷新单独编号的记录帧。
 
-合并块的收起摘要随阶段变化，与 DSH 1.3 一致：流式期间显示块的_最后_一行并右侧锚定（`RowSummary` 的 `followEnd`、DSH 的 `[data-follow-end]`），让读者看到最新文字的推进；结束后显示_第一_行。Think 行自身的实时摘要（`turnSummary`）在轮次层面遵循同一规则：最新事件为流式推理增量时，显示该块最新一行；之后任一 agent 行动时，回退到实时工具 / subagent 行。
+推理行在任何状态下收起时都显示本地化的 `Thinking` 标签。只有明确展开该推理行时，才会显示完整推理流。Think 行的实时摘要始终使用 `liveSummary` 提供面向旅行者的进度；推理增量不会替换它。若 subagent 正在流式输出推理，其收起摘要也会使用本地化的工具或 agent 进度。即使父级行已展开，原始协调文本仍只会出现在明确展开的推理行中。
 
 树本身为 `Think`（轮次）→ `Subagent · <name>` 行，每个 `(round, agent)` 一行 → 该 subagent 自己的推理和工具行，按到达顺序排列 → 工具结果行。每层使用同一 DSH 导轨规则（`margin-left: 22px; padding-left: 8px; border-left: 0.5px solid var(--border)`），使 subagent 导轨对齐 Think 的前置图标下方，工具导轨对齐其 subagent 下方。
 
@@ -408,14 +408,14 @@ episode)` 拼接增量，也会合并先前逐次刷新单独编号的记录帧�
 
 - 每步运行 `pnpm typecheck`、`pnpm lint`、`pnpm test`。
 - `apps/web/tests/components/chat/ThinkingSurface.test.tsx` 直接覆盖树：已结束轮次收起到计数行后，所有行收起；运行期间 transcript 也默认收起，且只有一个实时区域；打开 Think 仅显示其 subagent 行，各行独立切换；打开工具、推理块或选择时一次仅打开一行；流式推理增量合并为一行并跟随最新文字；结果行图标来自其 `kind`，或回退到工具图标；树中没有后置箭头，也没有全部展开控件；行可通过键盘切换。
-- `apps/web/tests/components/chat/ChatPanel.test.tsx` 端到端覆盖聊天界面：消息按对话顺序排列且标签稳定；subagent 逐个打开和关闭；计数行折叠；仅为大于 1 的轮次显示标题；运行时的实时思考 transcript 和 Stop 操作；实时工具行根据结果结束；工具调用参数、结果行与截断说明；流式推理块收起时显示最后一行，展开后显示全文；住宿选择及备选项；不渲染确认卡片或建议列表（结构化提问仍渲染为 `QuestionComposer`，另有覆盖，见下文）。
+- `apps/web/tests/components/chat/ChatPanel.test.tsx` 端到端覆盖聊天界面：消息按对话顺序排列且标签稳定；subagent 逐个打开和关闭；计数行折叠；仅为大于 1 的轮次显示标题；运行时的实时思考 transcript 和 Stop 操作；实时工具行根据结果结束；工具调用参数、结果行与截断说明；流式推理块收起时显示安全标签，展开后显示全文；住宿选择及备选项；不渲染确认卡片或建议列表（结构化提问仍渲染为 `QuestionComposer`，另有覆盖，见下文）。
 - `apps/web/tests/components/chat/MessageItem.test.tsx` 覆盖用户气泡、全宽无边框 agent 回答、双方消息时钟（当天 `HH:mm`、其他日期的短日期、无时间戳时无时钟）、轻量 Markdown（列表、粗体、无原始 HTML）及不带 referrer 的新标签页链接。也覆盖渐显：设置 `animate` 时按顺序包裹词并交错显示；长回答在预算内压缩交错延迟；代码不拆分；段落仍可作为连续文字阅读；无 `animate` 时没有渐显标记；属性改变或组件重渲染时不重播。
 - `apps/web/tests/components/chat/QuestionComposer.test.tsx` 覆盖卡片本身：标题、带 Recommended 徽标的编号选项与分页器；单选自动前进和多选切换；将标签、Other 文本与无选项文本一起提交；以 Other 替换单选项；跳过后设为「no preference」；返回未回答问题并提示，而不是提交；Enter/Shift+Enter/IME；收起与关闭；解析「 (Recommended)」后缀。`apps/web/tests/components/workspace/AskUser.test.tsx` 覆盖工作区接线：卡片替代输入框并随 `known` 发送答案；关闭按钮移除卡片、恢复输入框；旅行者开始新聊天时丢弃待回答问题。
 - `packages/orchestrator/tests/reasoning-sink.test.ts` 固定验证同一 sink 的每次刷新携带相同块索引，同轮两个 episode 保持分离；`chat.test.ts` 固定验证 `ask_user_question`，包括记录的问题与选项、删除空值并为两类列表设置上限，以及提问以 `AskUserError` 结束轮次且原样携带客户端计划；`progress-tools.test.ts` 固定验证有界结果行、其 `kind`（地点关键词匹配、旅行方式、固定的住宿 / 航班 / 天气类型），以及提供方错误不会进入 transcript。`packages/shared/tests/chat.test.ts` 固定验证 `ChatAskUser` 和 `ToolResultRow.kind` schema，包括问题和选项上限。
 - 本次变更前已使用实时提供方检查端到端形态：三天悉尼请求流式输出 19 个推理事件、15 个工具结果及各自的行（包括带 20 行的 `Search
 stays: 20 stay options`），还有一个住宿选择及 19 个备选项；含糊的「Sydney in March」请求让协调者给出一句普通提问。重新对实时提供方验证合并推理 transcript 与 `ask_user_question` 卡片需要 `DEEPSEEK_API_KEY`，作为后续事项记录，此处不声称已完成。
 - 浏览器检查：用 `/debug/thinking` 测量每个 transcript 行；`/debug/question`（仅开发环境，`apps/web/app/debug/question/page.tsx`）在固定 `PendingAsk` 下展示问题卡片，不调用提供方。这两个页面都能发现一个陷阱：`apps/web/app/styles/forms.css` 将不在排除列表中的每个按钮样式化为次要按钮，因此 transcript、输入框或问题卡片中的新控件会附带边框、表面与内边距，改变网格列位置。`.thinking-line`、`.thinking-control`、`.thinking-choice__toggle`、`.composer__add`、`.composer__primary`、`.question__icon-button`、`.question__option` 和 `.question__button` 均已列入排除列表。
-- `/debug/thinking`（`apps/web/app/debug/thinking/page.tsx` 配合 `apps/web/lib/dev/thinking-fixtures.ts`）无需调用提供方，基于记录帧序列以三种模式渲染 transcript：Settled、Mid-flight、Replay；Replay 每次流式传递 mid-flight fixture 的一帧。这是检查行布局最快的方式。
+- `/debug/thinking`（`apps/web/app/debug/thinking/page.tsx` 配合 `apps/web/lib/dev/thinking-fixtures.ts`）无需调用提供方，基于确定性的模拟事件渲染 Settled、Mid-flight、Replay 和 Failed 模式。`apps/web/tests/e2e/thinking-disclosure.e2e.mjs` 在英文 800×600 与中文 390×844 下检查收起和展开的 disclosure，以及成功和错误状态；截图只证明模拟 fixture 的浏览器表现，不代表实时规划器运行。
 
 <a id="7-sources"></a>
 

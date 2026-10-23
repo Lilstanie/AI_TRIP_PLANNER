@@ -29,6 +29,7 @@ async function open(browser, { width, height, scheme, video }) {
   await page.route("**/api/places/search", (route) => route.fulfill({ json: { places: [] } }));
   await page.goto(BASE);
   await page.waitForSelector(".workspace-app");
+  await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
 
   const live = page.getByRole("button", { name: /Live data/ });
   if (await live.count()) {
@@ -169,6 +170,16 @@ async function map(browser, scheme) {
     return;
   }
   check((await page.locator(".trip-map-marker").count()) === 8, `${tag}: eight stops are marked`);
+  const tileFailure = page.locator(".trip-map-fallback");
+  if (await tileFailure.isVisible()) {
+    console.log(
+      `skip ${tag}: map controls need tiles, and the map reports ${JSON.stringify(
+        (await tileFailure.locator("p").first().innerText()).trim(),
+      )}`,
+    );
+    await context.close();
+    return;
+  }
   const controls = page.getByRole("group", { name: "Map controls" });
   const box = await controls.boundingBox();
   check(!!box && box.x > 800 && box.y > 450, `${tag}: map controls sit bottom-right`);
@@ -177,10 +188,18 @@ async function map(browser, scheme) {
     `${tag}: no View all places button`,
   );
   const layers = page.getByRole("button", { name: "Satellite view" });
-  await layers.click();
-  await settle(page, 1500);
-  check((await layers.getAttribute("aria-pressed")) === "true", `${tag}: satellite toggles on`);
-  await shot(page, `${tag}-02-satellite`);
+  if (await layers.isDisabled()) {
+    check(
+      !process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
+      `${tag}: satellite is disabled only without a Google Maps key`,
+    );
+    console.log(`skip ${tag}: satellite view requires Google Maps; OSM tiles have no imagery`);
+  } else {
+    await layers.click();
+    await settle(page, 1500);
+    check((await layers.getAttribute("aria-pressed")) === "true", `${tag}: satellite toggles on`);
+    await shot(page, `${tag}-02-satellite`);
+  }
   await page.getByRole("button", { name: "Zoom in" }).click();
   await settle(page, 800);
   check(

@@ -17,6 +17,8 @@ import {
   toAud,
   partyPeople,
   type ChatRequest,
+  type AgentName,
+  type AssistantId,
   type AssistantSettings,
   type InterfaceLanguage,
   type ChatResponse,
@@ -46,8 +48,11 @@ import {
 import { COORDINATOR_REASONING_EPISODE, createReasoningSink } from "./reasoning-sink";
 import { extractBriefPatchLocally, statedTripDays } from "./chat-offline";
 import { addDays } from "./dates";
+import { judgeHandoff } from "./mention-handoff";
+import { ROLE_NAMES } from "./progress-copy";
 import { groundedReply, unchangedPlanReply } from "./chat-grounding";
 import { isInfeasible, minimumCost } from "./conflicts";
+import type { WorkflowDecision } from "./decisions";
 import { runOrchestrator, type OrchestratorOptions } from "./workflow";
 import { replyLanguage } from "./reply-language";
 
@@ -68,6 +73,7 @@ export class IncompleteBriefError extends Error {
     readonly missing: string[],
     readonly known: PartialTripBrief = {},
     question?: string,
+    readonly assistant?: AssistantId,
   ) {
     super(
       question ??
@@ -77,7 +83,12 @@ export class IncompleteBriefError extends Error {
   }
 
   get needsInfo(): ChatNeedsInfo {
-    return { type: "needs_info", question: this.message, known: this.known };
+    return {
+      type: "needs_info",
+      question: this.message,
+      known: this.known,
+      ...(this.assistant ? { assistant: this.assistant } : {}),
+    };
   }
 }
 
@@ -353,6 +364,7 @@ Choosing what to do:
 - knownSoFar.preferences, when present, is the traveller's own list of trip preferences from the preferences editor. Respect it when you answer and never ask for something it already says; the planner receives it with the brief.
 - When the traveller states a lasting wish in chat ("no dietary requirements", "we like quiet places", "no early starts"), record it with update_trip_brief learnedPreferences: pass the whole updated list, keeping earlier entries in knownSoFar.learnedPreferences unless they changed. Never copy the traveller's own preferences into it.
 - When they say how they want to make a particular hop ("take the train to Sydney", "we would rather drive to Wollongong", "fly that leg instead"), record it with update_trip_brief travelModeChoices: pass the whole updated list, keeping earlier entries in knownSoFar.legModes unless they changed, and leaving one out when they take it back. Name the hop with the trip's own place names. Then replan. The planner may answer that the mode is not offered for that hop; do not promise it beforehand.
+- A one-day trip (same start and end date) is valid for one destination and is planned without accommodation; never ask to make it two days.
 - When they say they need no accommodation, set noAccommodation true and replan. This omits all stay searching, costs and sections. Set false when they want accommodation again. An already booked stay remains bookedStay, not noAccommodation.
 - When they say they arrange flights themselves or flights should not be considered, set excludeFlights true. When they say their stay is already booked, pass bookedStayName (and bookedStayNote). Then replan.
 - Once knownSoFar.excludeFlights is true, never ask about, price or mention flights, and never tell them the budget is missing a flight fare. Once knownSoFar.bookedStay is set, never suggest, compare or ask about other stays.
@@ -378,6 +390,7 @@ Dates:
 
 Money:
 - budgetAmount is the number the traveller said and budgetCurrency is the currency they said it in. Never convert it yourself; leave budgetCurrency out when they gave a bare number.
+- A bare budget number is recorded as AUD: say in your reply that you took it as AUD and that they can name another currency; never say the currency is unset, open or left as they gave it.
 - When the traveller names a currency to read the trip in without stating a budget ("show it in yen", "用人民币给我算"), pass displayCurrency alone. The latest currency they name wins, including AUD. If they name none, leave it out: never infer it from the language they write in.
 
 Replying:
@@ -543,11 +556,22 @@ export async function runTripChat(
   const { model, extractor, clock = () => new Date(), ...orchestrationOptions } = options;
   if (request.mode === "plan" && !request.brief) throw new Error("A brief is required to plan.");
   const mem: MemoryStore = orchestrationOptions.mem ?? memory;
-  const orchestrate = (brief: TripBrief) =>
+  const orchestrate = (brief: TripBrief, mention?: OrchestratorOptions["mention"]) =>
     runOrchestrator(brief, {
+      ...(mention ? { mention } : {}),
       ...(request.displayCurrency ? { displayCurrency: request.displayCurrency } : {}),
       ...(request.interfaceLanguage ? { interfaceLanguage: request.interfaceLanguage } : {}),
       replyLanguage: replyLanguage(request.message, request.interfaceLanguage),
+      ...(orchestrationOptions.onProgress
+        ? {
+            onDecision: (decision: WorkflowDecision) =>
+              orchestrationOptions.onProgress?.({
+                type: "decision",
+                round: decision.round,
+                decision,
+              }),
+          }
+        : {}),
       ...orchestrationOptions,
       mem,
     });
@@ -567,6 +591,47 @@ export async function runTripChat(
           : { ...request.brief, tripId: request.tripId },
       )
     : undefined;
+
+  let mentions = [...new Set(request.mentions ?? [])];
+  if (mentions.length === 1 && request.mode !== "plan") {
+    const from = mentions[0]!;
+    const handoff = await judgeHandoff(request.message, from, model);
+    if (handoff) {
+      orchestrationOptions.onProgress?.({
+        type: "decision",
+        round: 1,
+        decision: {
+          type: "mention_handoff",
+          round: 1,
+          from,
+          to: handoff.to,
+          decidedBy: handoff.decidedBy,
+        },
+      });
+      mentions = [handoff.to];
+    }
+  }
+  if (mentions.length > 0 && request.mode !== "plan") {
+    if (request.plan) {
+      const brief = TripBriefSchema.parse({
+        ...(request.brief ?? request.plan.brief),
+        tripId: request.tripId,
+      });
+      const plan = await orchestrate(brief, {
+        agents: mentions,
+        message: request.message,
+        plan: request.plan,
+      });
+      const reply = mentionReply(request, plan, mentions);
+      await remember(reply);
+      return { reply, plan, assistant: mentions[0]! };
+    }
+    const known = BriefPatchSchema.parse({ ...request.known });
+    const answer = await mentionAnswer(request, mentions[0]!, model);
+    const reply = `${answer}\n\n${briefAsk(request, missingFields(known, request.tripId))}`;
+    await remember(reply);
+    throw new IncompleteBriefError([], request.known ?? {}, reply, mentions[0]);
+  }
 
   if (request.mode === "plan" && submitted) {
     if (
@@ -605,6 +670,70 @@ export async function runTripChat(
     const asked = turnEndingReply(error);
     if (asked) await remember(asked);
     throw error;
+  }
+}
+
+const ZH_FIELD_LABELS: Record<string, string> = {
+  destination: "目的地",
+  "start and end dates": "起止日期",
+  "number of travellers": "出行人数",
+  "total budget": "总预算",
+};
+
+function turnLanguage(request: ChatRequest): InterfaceLanguage {
+  return replyLanguage(request.message, request.interfaceLanguage);
+}
+
+function mentionReply(request: ChatRequest, plan: TripPlan, mentions: AgentName[]): string {
+  const language = turnLanguage(request);
+  const currency = replyCurrency(request, plan.brief);
+  const summaries = plan.sections
+    .filter((section) => mentions.includes(section.id as AgentName))
+    .map((section) => section.summary.trim())
+    .filter(Boolean)
+    .join(" ");
+  const total = formatMoney(plan.estTotal, currency);
+  const budget = budgetText(plan, currency);
+  const estimate =
+    language === "zh"
+      ? `预计总额：${total}，预算 ${budget}。`
+      : `Estimated total: ${total} against a ${budget} budget.`;
+  return [summaries, estimate].filter(Boolean).join(" ");
+}
+
+function briefAsk(request: ChatRequest, missing: string[]): string {
+  const fields = missing.length
+    ? missing
+    : ["destination", "start and end dates", "number of travellers", "total budget"];
+  return turnLanguage(request) === "zh"
+    ? `协调员会先收集行程信息：请告诉我${fields.map((field) => ZH_FIELD_LABELS[field] ?? field).join("、")}。`
+    : `The Coordinator will collect the trip details first: please tell me the ${fields.join(", ")}.`;
+}
+
+async function mentionAnswer(
+  request: ChatRequest,
+  agent: AgentName,
+  model: BaseChatModel | undefined,
+): Promise<string> {
+  const language = turnLanguage(request);
+  const role = ROLE_NAMES[language][agent];
+  const fallback =
+    language === "zh"
+      ? `我是${role}专家。有了行程方案后我才能处理这个请求，在此之前不会改动任何内容。`
+      : `I'm the ${ROLE_NAMES.en[agent]} specialist. I can act on this once there is a plan, and I will not change anything before then.`;
+  if (!model) return fallback;
+  try {
+    const result = await model.invoke([
+      [
+        "system",
+        `You are the ${ROLE_NAMES.en[agent]} specialist of a trip planner. Answer the traveller's question briefly from general travel knowledge in at most three sentences. Do not plan the trip, never claim live prices or availability, and write in ${language === "zh" ? "Chinese" : "English"}.`,
+      ],
+      ["human", request.message],
+    ]);
+    const text = typeof result.content === "string" ? result.content.trim() : "";
+    return text || fallback;
+  } catch {
+    return fallback;
   }
 }
 

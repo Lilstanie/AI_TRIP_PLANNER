@@ -221,6 +221,12 @@ Libraries.dev skill 支持 `libraries reveal`、`libraries review` 和 `librarie
 
 [agent-experience](../.agents/skills/agent-experience/SKILL.md) 指导面向模型的工具定义和上下文交付。[translate-docs](../.agents/skills/translate-docs/SKILL.md) 维护[中英文文档配对](i18n.zh.md)；修改任何一种语言时，都要在同一任务中更新对侧文件。
 
+<a id="fix-root-causes"></a>
+
+### 修根因
+
+修复缺陷时，先复现，用证据说明其原因，再修复该原因。不要用重试、加长超时、额外保护或特例来掩盖症状。若暂时只能采用变通方案，在 PR 和 session log 中说明，并写明它保留了哪个原因。
+
 <a id="verification"></a>
 
 ## 验证
@@ -292,6 +298,12 @@ CI 还会运行 `node scripts/format-check-changed.mjs <base>`（即 `pnpm forma
 
 ```bash
 node scripts/pr-delivery-status.mjs <pull-request-number>
+```
+
+要证明一次修复让某个 E2E 脚本由失败变为通过，给出脚本名和它所测的源文件路径。该命令先用这些路径在 `origin/main` 上的版本运行脚本，再用工作区版本运行；即使被中断也会还原工作区；只有第一次失败且第二次通过时才以 0 退出。把输出的最后两行贴进 PR 的 Evidence 部分。`--base <ref>` 可与其他提交比较；其失败清单见 [scripts/redgreen.failures.md](../scripts/redgreen.failures.md)。
+
+```bash
+node scripts/redgreen.mjs <e2e-name> [--prod] -- <source-path>...
 ```
 
 使用 `pnpm --filter @trip/agents test`、`pnpm --filter @trip/orchestrator test` 或 `pnpm --filter @trip/web test` 针对特定包运行测试。Web 测试脚本使用 POSIX shell 语法设置 `NODE_OPTIONS`；Windows 上应从 WSL 或 Git Bash 运行。

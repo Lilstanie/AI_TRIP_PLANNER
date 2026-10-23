@@ -72,6 +72,11 @@ export const WORKSPACE_ZH = {
   "Member number": "会员号",
   "Add membership": "添加会员信息",
   "Communication style": "交流风格",
+  "Assistant names": "助手名称",
+  "Rename the assistants. Leave a name empty to use its role name.":
+    "为助手改名。留空则使用角色名称。",
+  "Name of {name}": "{name}的名称",
+  "That name is already used by another assistant.": "这个名称已被另一位助手使用。",
   "Choose how you would like the planner to talk with you.": "选择你希望规划助手使用的交流方式。",
   "Long-term memory": "长期记忆",
   "Let the planner remember preferences you mention in chat, such as your pace or what you eat, and use them in later plans. When off, it will not save or use anything it learns in chat.":
@@ -253,6 +258,28 @@ export const WORKSPACE_ZH = {
   You: "你",
   "Travel planning assistant": "旅行规划助手",
   "Subagents thinking together": "协作助手共同思考",
+  Coordinator: "协调员",
+  Assistants: "助手",
+  "Mention {name}": "提及{name}",
+  "That is not my area. The {name} specialist should handle this.":
+    "这不在我的职责范围内，应由{name}专家来处理。",
+  "Conflict check, round {round}: no conflicts": "冲突检查，第 {round} 轮：没有冲突",
+  "Conflict check, round {round}: {name} should save {amount}":
+    "冲突检查，第 {round} 轮：{name}应节省 {amount}",
+  "Conflict check, round {round}: {name} must change": "冲突检查，第 {round} 轮：{name}需要调整",
+  "Revision score, round {round}: {before} → {after}, revision kept":
+    "修订得分，第 {round} 轮：{before} → {after}，保留修订",
+  "Revision score, round {round}: {before} → {after}, revision discarded":
+    "修订得分，第 {round} 轮：{before} → {after}，放弃修订",
+  "Stopped after round {round}: plan converged": "第 {round} 轮后停止：方案已收敛",
+  "Stopped after round {round}: round limit reached": "第 {round} 轮后停止：已达轮次上限",
+  "Stopped after round {round}: budget infeasible": "第 {round} 轮后停止：预算无法满足",
+  "Stopped after round {round}: no improvement": "第 {round} 轮后停止：没有改善",
+  "Team conversation": "团队对话",
+  "Decided by AI": "AI 决定",
+  "Decided by code": "程序决定",
+  "Fallback data": "备用数据",
+  "Unavailable data": "数据不可用",
   "Your preferences": "你的偏好",
   "Add a preference": "添加偏好",
   "Learned from your chats": "从聊天中了解到的偏好",
@@ -344,6 +371,10 @@ export const WORKSPACE_ZH = {
   "Your plan is unchanged. Activities appear once they have a confirmed place.":
     "计划未改变。确认地点后即可显示活动。",
   "Finding places…": "正在查找地点…",
+  "{count} activity has no confirmed place yet": "{count} 个活动尚未确定地点",
+  "{count} activities have no confirmed place yet": "{count} 个活动尚未确定地点",
+  "{count} could not be loaded from the map service": "{count} 项无法从地图服务加载",
+  "Chat {percent}% of the width": "聊天占宽度的 {percent}%",
   "Selected place: {v0}": "已选地点：{v0}",
   "Actions for {v0}": "{v0}的操作",
   "Mock data: bundled fixtures. No provider requests and no allowance spent.":
@@ -358,6 +389,8 @@ export const WORKSPACE_ZH = {
     "。当前使用实时数据。点击切换到示例数据。",
   ". Currently using mock fixtures. Activate to switch to live provider data.":
     "。当前使用示例数据。点击切换到实时数据。",
+  ". Currently using mock fixtures. Sign in to plan with live hotel and flight prices.":
+    "。当前使用示例数据。登录后即可使用真实的酒店和航班价格规划行程。",
   day: "天",
   days: "天",
   "No matching trips.": "没有匹配的行程。",
@@ -538,7 +571,7 @@ export const WORKSPACE_ZH = {
   "Add at least one adult or senior. Children cannot travel alone.":
     "请至少添加一位成人或老年人，儿童和婴儿不能单独出行。",
   "Enter a total budget above zero.": "请输入大于零的总预算。",
-  "Enter a total budget of AUD 1,000,000 or less.": "请输入不超过 AUD 1,000,000 的总预算。",
+  "Enter a total budget of {amount} or less.": "请输入不超过 {amount} 的总预算。",
   "Keep to 20 preferences of up to 300 characters each.":
     "最多添加 20 条偏好，每条不超过 300 个字符。",
   "Location permission was denied. You can retry after allowing it in your browser settings.":
@@ -648,8 +681,8 @@ export const WORKSPACE_ZH = {
     "公共交通出发时间超出 Google 支持的日期范围。",
   "No verified route was returned.": "未返回已核实的路线。",
   "Invalid route duration.": "路线时长无效。",
-  "End date must follow start date, with at least one night per destination.":
-    "结束日期须晚于开始日期，且每个目的地至少住一晚。",
+  "End date must follow start date, with at least one night per destination. A one-day trip needs one destination and no accommodation.":
+    "结束日期须晚于开始日期，且每个目的地至少住一晚。一日游只能有一个目的地，并且不住宿。",
   "Choose an end date": "请选择结束日期",
   "Your data was deleted, but the sign-in account could not be. Try again.":
     "你的数据已删除，但登录账户未能删除，请重试。",

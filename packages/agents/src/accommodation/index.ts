@@ -21,7 +21,7 @@ import { createRoutedChatModel, readStructuredResponse } from "../models";
 import { chooseInitial, eligibleOptions, readPreferences, splitStay, stayCost } from "./planning";
 import { scheduledHops } from "../transport/legs";
 import { TRAVELLER_PREFERENCES_RULE } from "../prompts/traveller-preferences";
-import { summaryCopy } from "../summary-copy";
+import { plural, summaryCopy } from "../summary-copy";
 
 const candidateId = (day: number, index: number) => `stay-${day}-${index}`;
 
@@ -150,7 +150,7 @@ function assembleStayProposal(
       : source.kind === "estimated"
         ? `${currency} per room per night; property data is grounded but the nightly price is an estimate, not a live quote.`
         : `Booking mock convention: ${currency} per room per night; at most 2 guests per room; availability is simulated.`,
-    `${roomAllocation} allocation: ${rooms} room(s) for ${groupSize} guest(s); check-out day is not charged.`,
+    `${roomAllocation} allocation: ${plural(rooms, "room", "rooms")} for ${plural(groupSize, "guest", "guests")}; check-out day is not charged.`,
     fixtureRates
       ? "Only selected stays contribute to estCost. Taxes/fees are assumed included in mock rates."
       : "Only selected stays contribute to estCost. Taxes and fees are not verified; confirm the total before booking.",
@@ -160,7 +160,7 @@ function assembleStayProposal(
       : "Trip budget covers every agent; no accommodation budget allocation is assumed. Orchestrator checks the combined cost.",
     ...selections.map(
       ({ segment, options }) =>
-        `${segment.city}: compared ${options.length} eligible option(s): ` +
+        `${segment.city}: compared ${plural(options.length, "eligible option", "eligible options")}: ` +
         options
           .map(
             (option) =>

@@ -154,3 +154,32 @@ A later pass adds dated evidence; it does not delete the earlier failure's repro
 Synchronize the English/Chinese record through its owner. Add lasting decisions with
 [agent-notes](../agent-notes/SKILL.md) and session history with
 [session-log](../session-log/SKILL.md); report any required edits outside your authorized scope.
+
+## Traps this app has already hit
+
+Each of these cost a rerun once. Check for them before reading a failure as a product bug:
+
+- Playwright treats an `aria-disabled="true"` control as not actionable and waits. To prove that
+  activating it does nothing, click with `{ force: true }`.
+- A trip that saved a budget keeps that budget's currency as its display currency. Test another
+  currency in a fresh browser context, not after an AUD trip in the same one.
+- On phone, "New trip" opens the trip-details sheet over the tab bar; press Escape before tapping a
+  tab.
+- Stubbing `/api/places` with an empty list shows the "could not be shown on the map" card, not the
+  partial-places notice. Leave places unstubbed to reach the partial notice.
+- Phone Mine lists trips as `.trip-card__title` cards under a Trips tab, not as
+  `.history-item--trip` rows.
+- `getByText(..., { exact: true })` on a search-result message also matches the sr-only
+  `role="status"` region that repeats it, which throws in strict mode. Read the status by role, or
+  scope the visible line by its class.
+- On phone, the fixed tab bar covers whatever sits behind it, so `elementFromPoint` there returns
+  the tab bar. Call `scrollIntoView({ block: "center" })` on the target before probing a point.
+- `Intl.DateTimeFormat#formatRange` puts a thin space (`\u2009`) around the dash in some Chromium
+  builds and a plain space in others. Build the expected string with `Intl` in the same page, or
+  replace `\u2009` with a space on both sides before comparing.
+- In `next dev`, the `nextjs-portal` badge sits over the bottom-left corner and swallows clicks there,
+  including the phone tab bar's first tabs. After `goto`, add the style
+  `nextjs-portal { display: none !important; }`.
+- The cloud container cannot reach the OpenFreeMap or OSM tile hosts, so the map shows "The map could
+  not load. Try again." and its overlay covers the map controls. Satellite view exists only with a
+  Google Maps key. Skip control checks with a `skip` line rather than reading these as regressions.

@@ -55,9 +55,10 @@ over a custom rebuild, and remove ARIA rather than add it.
 - **Every drag has a single-pointer alternative** (WCAG 2.5.7). Dragging a stop in `TimelineStop.tsx`,
   the `SplitResizer` and `SidebarResizer` splitters and the `PhoneMapSheet` handle each need a button
   or menu path to the same result. Keyboard support alone does not meet this criterion.
-- **Focus never hides under sticky chrome** (WCAG 2.4.11). A scroller with a sticky header or footer,
-  such as the phone editor's sticky `.item-editor__actions`, pads itself by that height with
-  `scroll-padding-block-start` or `scroll-padding-block-end`.
+- **Focus never hides under sticky chrome** (WCAG 2.4.11). A scroller with a sticky header or footer
+  pads itself by that height with `scroll-padding-block-start` or `scroll-padding-block-end`. The only
+  sticky chrome today is the phone editor's `.item-editor__actions` (while the phone keyboard is open),
+  and no scroller pads for it yet, so a review of that editor reports the gap instead of assuming it.
 - **Label every control.** A placeholder is never a label. The top-bar fact editors use real labels, and
   new fields do too. See [forms.md](references/forms.md).
 - **Accessible names.** Icon-only buttons need an `aria-label` that contains any visible text.

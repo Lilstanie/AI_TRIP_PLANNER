@@ -9,7 +9,9 @@ export const PHONE_ZH = {
   "Settings & account": "设置与账户",
 
   "Day stops": "当日站点",
-  "Resize day stops": "调整当日站点面板",
+  "Resize day stops, collapsed": "调整当日站点面板，已收起",
+  "Resize day stops, half height": "调整当日站点面板，半屏",
+  "Resize day stops, full height": "调整当日站点面板，全屏",
   "Choose map day": "选择地图日期",
   "Plan a trip in Chat to see your day stops here.": "在聊天里规划行程后，这里会显示当日站点。",
 

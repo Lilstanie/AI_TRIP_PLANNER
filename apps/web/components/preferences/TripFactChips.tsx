@@ -112,12 +112,12 @@ export function TripFactChips(props: Props) {
     update();
     row.addEventListener("scroll", update, { passive: true });
     row.addEventListener("wheel", onWheel, { passive: false });
-    const observer = typeof ResizeObserver === "function" ? new ResizeObserver(update) : undefined;
-    observer?.observe(row);
+    const observer = new ResizeObserver(update);
+    observer.observe(row);
     return () => {
       row.removeEventListener("scroll", update);
       row.removeEventListener("wheel", onWheel);
-      observer?.disconnect();
+      observer.disconnect();
     };
   }, []);
 
@@ -210,7 +210,7 @@ function FactForm({
   onDone,
   suggestPlaces = false,
 }: Props & { fact: FactKey; onDone(): void }) {
-  const { t } = useLocale();
+  const { t, currency } = useLocale();
   const [value, setValue] = useState(draft);
   const [local, setLocal] = useState<Record<string, Notice>>();
   const form = useRef<HTMLFormElement>(null);
@@ -220,7 +220,7 @@ function FactForm({
     Object.fromEntries(Object.entries(errors).filter(([key]) => factForError(key) === fact));
 
   const check = () => {
-    const found = factErrors(fact, value, plan?.brief ?? { tripId: "draft" }, !!plan);
+    const found = factErrors(fact, value, plan?.brief ?? { tripId: "draft" }, !!plan, currency);
     setLocal(found);
     if (Object.keys(found).length === 0) return true;
     requestAnimationFrame(() =>
