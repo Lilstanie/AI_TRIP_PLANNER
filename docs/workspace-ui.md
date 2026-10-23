@@ -300,7 +300,8 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     outside the current year or across years include the year at both ends.
   - Each agent reply renders under its own Think fold: the transcript streams at the foot of the chat
     while the turn runs, then moves above the reply that ended the turn and stays with it (including
-    after a reload).
+    after a reload). English specialist summaries, assumptions and progress lines count in the
+    singular for one and the plural for more ("1 transport option", "2 rooms"), never with "(s)".
   - A planning turn also reads as a team conversation above its Think fold. The Coordinator dispatches
     the work, from the `coordinator` dispatch event and each specialist's `agent_started` objective,
     and each specialist then reports its result, from `agent_completed` with its data source (live,
