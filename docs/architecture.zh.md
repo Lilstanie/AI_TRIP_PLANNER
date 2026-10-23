@@ -402,7 +402,7 @@ Google Places 估算回退，但仅在选择 Google Maps 且提供密钥时使�
 Open-Meteo 预报，第 14 天之后使用 Open-Meteo 历史归档作为气候背景。近期预报缺少密钥时，
 只在请求该预报时失败。天数按目的地时区的日历日期计算；Open-Meteo 请求包含当天及之后 14 天。
 `MemoryStore`（`packages/services/src/memory`）在配置后使用
-Redis REST 存储，否则使用进程内存。短期聊天记忆保留最近 20 条轮次。外币收费报价明确标注并排除在 AUD 估算外；报价不可用时不称其免费。各包的导出和配置位于各自的 `README.md`。
+Redis REST 存储短期聊天轮次，否则使用进程内存；最多保留最近 20 轮。账号级偏好由 web 服务单独存入 Postgres，身份从 Clerk 服务端解析，账号导出和删除也包含这些记录。确定性的聊天识别允许列表不会保存预算、区域等行程事实；行程或档案偏好优先于匹配的账号记忆；关闭长期记忆会跳过读取和写入。Agent Lab 保留自己的固定基准偏好。详见[账号记忆决策](../.agents/notes/implemented/feature/2026-10-19-account-dietary-memory.md)。外币收费报价明确标注并排除在 AUD 估算外；报价不可用时不称其免费。各包的导出和配置位于各自的 `README.md`。
 
 `@trip/tools` 包入口只公开零参数的 gateway 工厂和请求数据模式辅助函数，不公开原始
 Maps、Booking 或 Weather 适配器。生产环境中的 specialist 通过 `ctx.tools` 获取提供方依据；

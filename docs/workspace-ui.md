@@ -963,9 +963,14 @@ the account section explains that everything stays in this browser.
       never be ambiguous. The chips, reply bubbles (including earlier ones) and Subagent rows show the
       current name without a reload. Typing `@` with the custom name, the default English name or the
       default Chinese name sends the same specialist id.
-    - The nonfunctional **Long-term memory** switch and its hint are hidden until the planner can
-      actually remember preferences. The stored `assistant.memory` setting remains compatible with
-      existing browser and account data.
+    - **Long-term memory** lists account preferences remembered from chat, with a category label and
+      a delete action for each entry. Categories follow the selected interface language. Listing and
+      deletion use account-scoped routes; deleting a preference removes it from later plans. A
+      signed-in traveller can switch long-term memory off to exclude it from planning and prevent new
+      memories from being saved. Explicit memory categories include dietary needs, pace, interests,
+      accessibility, accommodation and usual departure city; trip and profile preferences take
+      precedence over matching memories. Without an account, the switch is disabled and the section
+      asks the traveller to sign in.
     - **What the planner knows**, grouped as in Mindtrip:
       - Identity: home base.
       - Travel party: travellers.

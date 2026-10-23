@@ -1,12 +1,14 @@
 "use client";
 import { useLocale } from "@/components/account/LocaleProvider";
 import type { Components } from "react-markdown";
+import { memoryDisplay } from "@/lib/account/memory-display";
 import { intlLocale } from "@/lib/i18n/locale";
 import { formatMessageClock, WELCOME_MESSAGE, type Message } from "@/lib/workspace";
 import { AttachmentChip } from "./AttachmentChip";
 import { FlightResults } from "./FlightResults";
 import { RevealedText } from "./RevealedText";
 import { ThinkingProcess } from "./ThinkingProcess";
+import { useState } from "react";
 import { AssistantIcon } from "./assistants";
 import { useAssistantName } from "./assistant-names";
 import { TeamConversation } from "./TeamConversation";
@@ -21,6 +23,8 @@ const markdownComponents: Components = {
 
 export function MessageItem({ message, animate }: { message: Message; animate?: boolean }) {
   const { t, locale } = useLocale();
+  const [undone, setUndone] = useState(false);
+  const [undoing, setUndoing] = useState(false);
   const assistantName = useAssistantName();
   const clock =
     message.at === undefined ? null : (
@@ -76,6 +80,33 @@ export function MessageItem({ message, animate }: { message: Message; animate?: 
           {...(animate ? { animate } : {})}
         />
       </div>
+      {message.memoryChange && (
+        <div role="status" className="msg-item__memory-notice">
+          {t(
+            message.memoryChange.action === "updated" ? "Updated: {value}" : "Remembered: {value}",
+            { value: memoryDisplay(message.memoryChange.value, locale) },
+          )}
+          <button
+            type="button"
+            disabled={undone || undoing}
+            onClick={async () => {
+              setUndoing(true);
+              try {
+                const response = await fetch("/api/account/memory/undo", {
+                  method: "POST",
+                  headers: { "content-type": "application/json" },
+                  body: JSON.stringify({ token: message.memoryChange?.token }),
+                });
+                if (response.ok && (await response.json()).undone) setUndone(true);
+              } finally {
+                setUndoing(false);
+              }
+            }}
+          >
+            {undone ? t("Undone") : t("Undo")}
+          </button>
+        </div>
+      )}
       {message.flights && <FlightResults answer={message.flights} />}
       {clock}
     </div>

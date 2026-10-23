@@ -8,6 +8,14 @@ const ROOT = resolve(fileURLToPath(import.meta.url), "../..");
 export const EXPECTED = new Map([
   ["/api/account", { status: "protected", reason: "reads and writes the signed-in account" }],
   ["/api/account/export", { status: "protected", reason: "exports the account's own data" }],
+  [
+    "/api/account/memory",
+    { status: "protected", reason: "manages the signed-in account's own memories" },
+  ],
+  [
+    "/api/account/memory/undo",
+    { status: "protected", reason: "undoes the signed-in account's own memory change" },
+  ],
   ["/api/account/settings", { status: "protected", reason: "changes account settings" }],
   ["/api/account/sync", { status: "protected", reason: "syncs the account's trips and chats" }],
   [

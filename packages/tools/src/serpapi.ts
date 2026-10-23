@@ -164,16 +164,17 @@ function normalizedRating(value: unknown): number {
 }
 
 export async function searchHotelsSerpApi(q: {
+  stayType?: string;
   city: string;
   checkIn: string;
   checkOut: string;
   guests: number;
 }): Promise<StayOption[]> {
-  const key = `hotels:${q.city.toLowerCase()}|${q.checkIn}|${q.checkOut}|${q.guests}`;
+  const key = `hotels:${q.city.toLowerCase()}|${q.checkIn}|${q.checkOut}|${q.guests}${q.stayType ? `|${q.stayType}` : ""}`;
   return cached(key, async () => {
     const data = await serpApiSearch({
       engine: "google_hotels",
-      q: q.city,
+      q: q.stayType ? `${q.city} ${q.stayType}s` : q.city,
       check_in_date: q.checkIn,
       check_out_date: q.checkOut,
       adults: String(q.guests),

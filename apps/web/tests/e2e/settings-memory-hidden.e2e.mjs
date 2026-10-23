@@ -55,10 +55,22 @@ try {
       await dialog
         .getByRole("tab", { name: language === "zh" ? "个性化" : "Personalization" })
         .click();
+      const memorySwitch = dialog.getByRole("switch", {
+        name: /Use long-term memory|使用长期记忆/,
+      });
       check(
-        (await dialog.getByRole("switch", { name: /Long-term memory|长期记忆/ }).count()) === 0 &&
-          !(await dialog.getByText(/Long-term memory|长期记忆/).count()),
-        `${language} ${viewport.name}: memory switch and title are absent`,
+        (await dialog
+          .getByText(language === "zh" ? "长期记忆" : "Long-term memory", { exact: true })
+          .isVisible()) &&
+          (await memorySwitch.count()) === 1 &&
+          (await memorySwitch.isDisabled()) &&
+          (await dialog
+            .getByText(
+              language === "zh" ? "登录后即可使用长期记忆。" : "Sign in to use long-term memory.",
+              { exact: true },
+            )
+            .isVisible()),
+        `${language} ${viewport.name}: signed-out users see a disabled memory switch and sign-in hint`,
       );
       check(
         await dialog

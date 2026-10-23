@@ -64,6 +64,7 @@ export type TurnOutcome =
       assistant?: AssistantId;
       transcript: AgentProgressEvent[];
       at: number;
+      memoryChange?: import("@trip/shared").ChatResponse["memoryChange"];
     }
   | {
       kind: "needsInfo";
@@ -236,6 +237,7 @@ export function session(state: SessionState, event: SessionEvent): SessionState 
           state,
           reply(event.reply, event.transcript, event.at, {
             outcome: "planned",
+            ...(event.memoryChange ? { memoryChange: event.memoryChange } : {}),
             ...(event.assistant ? { assistant: event.assistant } : {}),
           }),
         ),
@@ -323,6 +325,7 @@ export async function requestTurn(
       ...(result.assistant ? { assistant: result.assistant } : {}),
       transcript,
       at: now(),
+      ...(result.memoryChange ? { memoryChange: result.memoryChange } : {}),
     };
   } catch (failure) {
     if (signal.aborted) return { kind: "cancelled" };

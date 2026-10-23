@@ -169,6 +169,13 @@ export const ChatResponse = z.object({
   reply: z.string(),
   plan: TripPlan,
   assistant: AssistantId.optional(),
+  memoryChange: z
+    .object({
+      token: z.string(),
+      action: z.enum(["remembered", "updated"]),
+      value: z.string(),
+    })
+    .optional(),
 });
 export type ChatResponse = z.infer<typeof ChatResponse>;
 

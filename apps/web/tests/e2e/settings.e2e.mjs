@@ -34,6 +34,7 @@ async function run(browser, { width, height, tag }) {
   const context = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: 2 });
   const page = await context.newPage();
   await context.addInitScript(() => {
+    if (localStorage.getItem("trip.settings.v1") !== null) return;
     localStorage.setItem(
       "trip.settings.v1",
       JSON.stringify({
@@ -126,12 +127,12 @@ async function run(browser, { width, height, tag }) {
     `${tag}: an answered fact shows its value`,
   );
   await dialog.getByRole("combobox", { name: "Communication style" }).selectOption("concise");
+  const memorySwitch = dialog.getByRole("switch", { name: "Use long-term memory" });
   check(
-    (await dialog.getByRole("switch", { name: "Long-term memory" }).count()) === 0 &&
-      (await dialog
-        .getByText(/Let the planner remember preferences you mention in chat/)
-        .count()) === 0,
-    `${tag}: the nonfunctional memory control and promise are hidden`,
+    (await memorySwitch.count()) === 1 &&
+      (await memorySwitch.isDisabled()) &&
+      (await dialog.getByText("Sign in to use long-term memory.", { exact: true }).isVisible()),
+    `${tag}: signed-out users see a disabled memory switch and sign-in hint`,
   );
   const stored = await page.evaluate(() =>
     JSON.parse(localStorage.getItem("trip.settings.v1") ?? "{}"),
@@ -181,7 +182,7 @@ async function run(browser, { width, height, tag }) {
     } else if (width < 1000) {
       await page.getByRole("button", { name: "Open navigation" }).click();
       await settle(page);
-    } else if (!(await page.getByRole("button", { name: "New chat" }).first().isVisible())) {
+    } else if ((await chats.getAttribute("aria-expanded")) !== "true") {
       await chats.click();
       await settle(page);
     }

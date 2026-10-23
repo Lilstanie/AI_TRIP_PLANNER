@@ -78,10 +78,20 @@ function tripDays([start, end]: [string, string]): number {
 
 function dietaryPreferences(preferences: UserPreference[]): UserPreference[] {
   return preferences.filter((preference) =>
-    /diet|food|meal|allerg|halal|kosher|vegetarian|vegan|plant[- ]based|gluten|lactose|celiac|shellfish|pescatarian/i.test(
+    /diet|food|meal|allerg|halal|kosher|vegetarian|vegan|plant[- ]based|gluten|lactose|celiac|shellfish|pescatarian|不吃|忌口|过敏|素食|纯素|清真|犹太洁食|无麸质|乳糖不耐/i.test(
       `${preference.key} ${preference.value}`,
     ),
   );
+}
+
+function dietaryPreferencesForBrief(brief: TripBrief, saved: UserPreference[]): UserPreference[] {
+  for (const values of [brief.learnedPreferences, brief.preferences]) {
+    const explicit = dietaryPreferences(
+      (values ?? []).map((value) => ({ key: "preference", value, source: "filter" as const })),
+    );
+    if (explicit.length) return explicit.map((item) => ({ ...item, key: "dietary" }));
+  }
+  return dietaryPreferences(saved);
 }
 
 function isBudgetRevision(revision?: RevisionRequest): boolean {
@@ -247,7 +257,7 @@ async function planDining(
   ]);
   ctx.signal?.throwIfAborted();
   const places = dedupeEntries(candidatePlaces);
-  const preferences = dietaryPreferences(allPreferences);
+  const preferences = dietaryPreferencesForBrief(brief, allPreferences);
   const ceiling = budgetCeiling(brief, days, revision, allocation);
   const currency = displayCurrencyOf(brief, ctx);
   const generator =

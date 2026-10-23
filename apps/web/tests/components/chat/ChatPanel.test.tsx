@@ -120,7 +120,9 @@ describe("ChatPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "悉尼 · 4 天" }));
 
     expect(onSend).toHaveBeenCalledTimes(1);
-    expect(onSend.mock.calls[0]![0]).toMatch(/悉尼/);
+    expect(onSend.mock.calls[0]![0]).toMatch(/计划.*悉尼/);
+    expect(onSend.mock.calls[0]![0]).toMatch(/2 人/);
+    expect(onSend.mock.calls[0]![0]).toMatch(/总预算 4000/);
     localStorage.removeItem(SETTINGS_KEY);
   });
 

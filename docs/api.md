@@ -20,12 +20,14 @@ validated against the shared contracts in `packages/shared/src/`.
 | [`/api/account/settings`](#get-and-put-apiaccountsettings)  | Read or save the signed-in traveller's settings                     |
 | [`/api/account/sync`](#get-and-post-apiaccountsync)         | Pull or push the signed-in traveller's trips and chats              |
 | [`/api/account/export`](#get-apiaccountexport)              | Download everything the account holds as JSON                       |
+| [`/api/account/memory`](#get-and-delete-apiaccountmemory)   | List or delete the signed-in account's long-term memories           |
+| [`/api/account/memory/undo`](#post-apiaccountmemoryundo)    | Undo the latest memory change for the signed-in account             |
 | [`/api/account`](#delete-apiaccount)                        | Delete the account and its data                                     |
 
 The browser sends the current plan or brief with each request and keeps its workspace in local
-storage. On the server, `packages/services` records chat turns, preferences and generated plans in
-the Redis REST store when `KV_REST_API_URL` and `KV_REST_API_TOKEN` are set, and in process memory
-otherwise.
+storage. Account long-term preferences are stored separately in Postgres and are always scoped by
+the Clerk identity resolved on the server; the client-supplied `brief.userId` is ignored. Signed-out
+planning remains available without account memory.
 
 <a id="failure-bodies"></a>
 
@@ -121,10 +123,11 @@ Optional `assistant`: `{ style, memory, names }` from Settings → Personalizati
 
 - `names` is an optional map from assistant id to a custom display name of at most 24 characters. It only changes what the interface shows and which `@name` resolves to a specialist; mentions are always sent as ids.
 - `style` is one of `neutral`, `friendly`, `concise` or `detailed` and sets the coordinator's tone.
-- With `memory: false`, the server drops `learnedPreferences` from `brief` and `known`, and the
-  coordinator records none.
+- With `memory: false`, the server drops `learnedPreferences` from `brief` and `known`, the account
+  memory adapter skips reads and writes, and the coordinator records none. The Settings switch is
+  available to signed-in accounts; signed-out users see a sign-in hint and cannot change it.
 
-Without the field, the behaviour is `neutral` with memory on.
+Without the field, the style is `neutral`. Account memory is enabled only when both the saved account setting and the request permit it; an explicit request opt-in cannot override a saved opt-out. If the account setting cannot be read, account memory stays disabled.
 
 Optional `mentions`: up to five distinct specialist ids (`itinerary`, `transport`, `accommodation`,
 `destination-guide`, `dining`) the traveller addressed. Without it the turn goes to the Coordinator as
@@ -458,12 +461,36 @@ records the migration and recovery boundaries.
 
 ### `GET /api/account/export`
 
-A JSON attachment with the account's settings, trips and conversations.
+A JSON attachment with the signed-in account's settings, trips, conversations and long-term memory
+entries. Memory entries are selected by the authenticated account id, just like the other exported
+rows.
+
+### `GET` and `DELETE /api/account/memory`
+
+The chat route recognizes only explicit phrases for dietary needs, pace, interests, accessibility,
+accommodation preferences and usual departure city. It does not infer or store trip-only facts such
+as budget or area. Trip/profile preferences take precedence over matching account memories.
+A recognized preference is saved only after planning succeeds, with its notice and undo token in the
+completed response; incomplete, failed and cancelled turns do not save it.
+
+`GET` returns `{ memories: [{ key, value, source }] }` for the signed-in account. `DELETE` takes
+`{ key }` and removes only that category for the signed-in account, returning `{ deleted }`. The
+server derives the account from Clerk for both requests; the client cannot choose an account.
+Unknown categories return `{ deleted: false }`, and requests without a session receive 401.
+The accommodation category stores a JSON string with optional `stayType`, `minRating` and
+`freeCancellation` fields. Updating one field preserves the others; undo restores the prior whole value.
+
+### `POST /api/account/memory/undo`
+
+Takes `{ token }` from a `ChatResponse.memoryChange`. The server resolves the account from Clerk and
+only applies the token to that account's current category row. A first write is deleted; a replacement
+restores the previous value. Stale tokens return `{ undone: false }`. Successful responses are
+`{ undone: true }`. Signed-out requests receive 401.
 
 ### `DELETE /api/account`
 
-Deletes the account's rows, then the Clerk user. If Clerk fails after the rows are gone it answers
-502 and says so.
+Deletes the account's trips, conversations, settings and long-term memory rows before deleting the
+Clerk user. If Clerk fails after the rows are gone it answers 502 and says so.
 
 ## Related contracts
 

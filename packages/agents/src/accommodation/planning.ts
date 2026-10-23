@@ -15,14 +15,40 @@ export interface StayPreferences {
   roomAllocation: "shared" | "individual";
   minRating: number;
   freeCancellation: boolean;
+  stayType?: string;
 }
 
 export function readPreferences(prefs: UserPreference[]): StayPreferences {
   const values = new Map(prefs.map((pref) => [pref.key, pref.value]));
+  const rememberedValue = values.get("accommodation") ?? "";
+  let remembered: Record<string, unknown> = {};
+  try {
+    const parsed: unknown = JSON.parse(rememberedValue);
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed))
+      remembered = parsed as Record<string, unknown>;
+  } catch {
+    remembered = {};
+  }
+  const legacy = rememberedValue.toLocaleLowerCase();
+  const stayType =
+    (typeof remembered.stayType === "string" &&
+    /^(hotel|hostel|apartment|guesthouse)$/.test(remembered.stayType)
+      ? remembered.stayType
+      : undefined) ?? /^(hotel|hostel|apartment|guesthouse)$/.exec(legacy)?.[1];
   const roomAllocation = values.get("accommodation.roomAllocation") ?? "shared";
-  const rating = values.get("accommodation.minRating") ?? "0";
+  const rating =
+    values.get("accommodation.minRating") ??
+    (typeof remembered.minRating === "number" ? String(remembered.minRating) : undefined) ??
+    legacy.match(/(?:minimum|min)\s+rating\s*:?\s*(10(?:\.0)?|\d(?:\.\d)?)/)?.[1] ??
+    "0";
   const minRating = Number(rating);
-  const cancellation = values.get("accommodation.freeCancellation") ?? "false";
+  const cancellation =
+    values.get("accommodation.freeCancellation") ??
+    (typeof remembered.freeCancellation === "boolean"
+      ? String(remembered.freeCancellation)
+      : legacy.includes("free cancellation")
+        ? "true"
+        : "false");
   if (roomAllocation !== "shared" && roomAllocation !== "individual") {
     throw new Error("accommodation.roomAllocation must be shared or individual.");
   }
@@ -32,7 +58,12 @@ export function readPreferences(prefs: UserPreference[]): StayPreferences {
   if (cancellation !== "true" && cancellation !== "false") {
     throw new Error("accommodation.freeCancellation must be true or false.");
   }
-  return { roomAllocation, minRating, freeCancellation: cancellation === "true" };
+  return {
+    roomAllocation,
+    minRating,
+    freeCancellation: cancellation === "true",
+    ...(stayType ? { stayType } : {}),
+  };
 }
 
 function parseDate(date: string): number {

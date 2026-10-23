@@ -60,6 +60,7 @@ interface TransportEvidence {
   language?: InterfaceLanguage;
   origin: string;
   destinations: string[];
+  accessibilityPreferences: string[];
 
   legs: JourneyLeg[];
   days: number;
@@ -87,6 +88,7 @@ async function gatherTransportEvidence(
 
   const origin =
     brief.origin?.trim() ||
+    preferences.find((preference) => preference.key === "departure_city")?.value.trim() ||
     preferences.find((preference) => preference.key === "transport.origin")?.value.trim() ||
     destinations[0]!;
   const budgetRevision =
@@ -207,6 +209,9 @@ async function gatherTransportEvidence(
     ...(ctx.replyLanguage ? { language: ctx.replyLanguage } : {}),
     origin,
     destinations,
+    accessibilityPreferences: preferences
+      .filter((preference) => preference.key === "accessibility")
+      .map((preference) => preference.value),
     legs,
     days,
     budgetRevision,
@@ -510,6 +515,10 @@ function assembleTransportProposal(
       "Inter-city route dates follow their scheduled day. Unsupported driving-only estimates cannot verify public transport.",
       `Origin comes from the trip brief, else the long-term preference "transport.origin", else the first destination, so no long-haul flight is planned; current origin: ${origin}.`,
       "Injected booking and maps results are treated as estimates, not reservations or live availability.",
+      ...evidence.accessibilityPreferences.map(
+        (preference) =>
+          `Remembered accessibility preference: ${preference}. Route and vehicle accessibility are unverified because the transport evidence contains no accessibility details; confirm with the operator before travel.`,
+      ),
       ...unmet.map(
         (note) => `You asked for ${note}. Name another mode and the plan will use it if it runs.`,
       ),
@@ -627,6 +636,7 @@ async function planTransport(
       return {
         planningDays: evidence.days,
         origin: evidence.origin,
+        accessibilityPreferences: evidence.accessibilityPreferences,
 
         flights: evidence.flights.flatMap(({ leg, options }) =>
           options.map((option, index) => ({
@@ -652,7 +662,7 @@ async function planTransport(
     {
       name: "search_transport_evidence",
       description:
-        "Search the injected booking and maps ports and return the flight candidates and inter-city hops for this trip, with their ids and real durations and fares. It does not choose.",
+        "Search the injected booking and maps ports and return the flight candidates and inter-city hops for this trip, with their ids, real durations and fares, and saved accessibility preferences. It does not choose or verify route accessibility.",
       schema: z.object({}),
     },
   );
@@ -661,7 +671,7 @@ async function planTransport(
     model,
     tools: [search],
     systemPrompt:
-      "You are the transport specialist. Call search_transport_evidence, then decide which flight candidate to take and the local departure time for each hop. The evidence assigns each hop its canonical travel day and date; repeat that day exactly and never move the hop to another day. Weigh cost against the traveller's budget, and schedule hops so they leave enough of the day to be worth arriving for. A budget revision means prefer the cheapest flight; a schedule revision means move departures earlier. Refer to flights and hops only by the ids you were given. Never state a fare, a duration or a carrier of your own. Return the requested structured selection. " +
+      "You are the transport specialist. Call search_transport_evidence, then decide which flight candidate to take and the local departure time for each hop. The evidence assigns each hop its canonical travel day and date; repeat that day exactly and never move the hop to another day. Weigh cost against the traveller's budget, and schedule hops so they leave enough of the day to be worth arriving for. A budget revision means prefer the cheapest flight; a schedule revision means move departures earlier. Refer to flights and hops only by the ids you were given. Never state a fare, a duration or a carrier of your own. Saved accessibility preferences are requirements to consider, not evidence that a route, station, vehicle, or carrier is accessible; state that accessibility is unverified when the evidence does not establish it. Return the requested structured selection. " +
       TRAVELLER_PREFERENCES_RULE,
     responseFormat: TransportSelection,
   });

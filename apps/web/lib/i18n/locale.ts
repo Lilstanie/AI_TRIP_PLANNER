@@ -151,6 +151,10 @@ const ZH = {
   Luxury: "豪华",
   Manage: "管理",
   Export: "导出",
+  "Remembered: {value}": "已记住：{value}",
+  "Updated: {value}": "已更新：{value}",
+  Undo: "撤销",
+  Undone: "已撤销",
 } as const satisfies Record<string, string>;
 
 export type MessageKey = keyof typeof ZH;

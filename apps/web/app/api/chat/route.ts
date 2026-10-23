@@ -8,6 +8,7 @@ import {
 } from "@trip/orchestrator";
 import { createToolGateway, runWithDataMode } from "@trip/tools";
 import { tripStore } from "@trip/services";
+import { auth } from "@clerk/nextjs/server";
 import {
   ChatRequest,
   ChatResponse,
@@ -18,6 +19,11 @@ import {
 } from "@trip/shared";
 import { noticeBody, type Notice } from "@/lib/i18n/notice";
 import { requestDataMode } from "@/lib/auth/live-data";
+import { authEnabled } from "@/lib/auth/config";
+import { dbEnabled } from "@/lib/db/client";
+import { accountMemoryStore, rememberAccountPreference } from "@/lib/account/memory";
+import { accountMemoryEnabled } from "@/lib/account/memory-enabled";
+import { recognizeAccountMemory } from "@/lib/account/recognize-memory.mjs";
 
 const INVALID_REQUEST: Notice = { key: "The request was invalid. Please retry." };
 
@@ -44,6 +50,15 @@ export async function POST(req: Request) {
   }
 
   const encoder = new TextEncoder();
+  const accountId = authEnabled && dbEnabled() ? ((await auth()).userId ?? undefined) : undefined;
+  const memoryEnabled =
+    parsed.data.assistant?.memory !== false && (await accountMemoryEnabled(accountId));
+  const serverUserId = accountId ?? "anonymous";
+  const requestData = {
+    ...parsed.data,
+    ...(parsed.data.brief ? { brief: { ...parsed.data.brief, userId: serverUserId } } : {}),
+    ...(parsed.data.known ? { known: { ...parsed.data.known, userId: serverUserId } } : {}),
+  };
   let cancelled = false;
   const stream = new ReadableStream({
     cancel() {
@@ -73,8 +88,25 @@ export async function POST(req: Request) {
           return;
         }
         const response = ChatResponse.parse(
-          await runWithDataMode(dataMode, () => runTripChat(parsed.data, { onProgress: send })),
+          await runWithDataMode(dataMode, () =>
+            runTripChat(requestData, {
+              onProgress: send,
+              mem: accountMemoryStore(accountId, memoryEnabled),
+            }),
+          ),
         );
+        const recognized = recognizeAccountMemory(parsed.data.message);
+        if (!cancelled && accountId && recognized && memoryEnabled) {
+          try {
+            response.memoryChange = await rememberAccountPreference(
+              accountId,
+              recognized.key,
+              recognized.value,
+            );
+          } catch (error) {
+            console.warn("[chat] account memory write failed", error);
+          }
+        }
         send({ type: "complete", response });
         const persistence = new AbortController();
         let timer: ReturnType<typeof setTimeout> | undefined;

@@ -42,6 +42,7 @@ export type Message = {
   outcome?: "planned" | "asked";
 
   assistant?: AssistantId;
+  memoryChange?: ChatResponse["memoryChange"];
 
   at?: number;
 };

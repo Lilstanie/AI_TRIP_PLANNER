@@ -25,6 +25,7 @@ import { dateForDay, planningDays, routeProblem } from "../transport/validation"
 import { cities, cityForDay, parseCityHop, scheduledHops } from "../transport/legs";
 import { avoidBlockedWindows } from "./revision";
 import { mockEnabled } from "@trip/tools";
+import { rememberedPlanningPreferences, rankPlacesByInterests } from "../remembered-preferences";
 import { TRAVELLER_PREFERENCES_RULE } from "../prompts/traveller-preferences";
 import { summaryCopy } from "../summary-copy";
 
@@ -345,12 +346,14 @@ function fallbackDraft(
   brief: TripBrief,
   days: number,
   places: Place[],
+  preferences: UserPreference[],
   placesByCity?: ReadonlyMap<string, readonly Place[]>,
   dayCities?: string[][],
   transferWindows: ReadonlyMap<number, TransferWindow[]> = new Map(),
   language?: InterfaceLanguage,
 ): ItineraryDraft {
   const candidates = places;
+  const { pace, interests, accessibility } = rememberedPlanningPreferences(preferences);
 
   const cityNames = cities(brief.destination);
   const citiesByDay = dayCities ?? cityForDay(cityNames, days).map((city) => [city]);
@@ -365,7 +368,10 @@ function fallbackDraft(
       (_, day) => placesForCity(citiesByDay[day]?.at(-1) ?? cityNames[0]!).length,
     ),
   );
-  const perDay = Math.min(DAY_SLOTS.length, Math.max(1, Math.floor(scarcest / 2) || 1));
+  const perDay =
+    accessibility || pace.includes("relaxed")
+      ? 1
+      : Math.min(DAY_SLOTS.length, Math.max(1, Math.floor(scarcest / 2) || 1));
 
   const slots = perDay === 1 ? [SINGLE_SLOT, ...DAY_SLOTS] : DAY_SLOTS;
   const activities: ItineraryDraft["activities"] = [];
@@ -382,7 +388,7 @@ function fallbackDraft(
         return activityFitsTransferWindows(slot, candidate, dayWindows);
       });
       if (!city) continue;
-      const cityPlaces = placesForCity(city);
+      const cityPlaces = rankPlacesByInterests(placesForCity(city), interests);
       const place = cityPlaces[(dayIndex * perDay + added) % cityPlaces.length]!;
       activities.push({
         day,
@@ -401,8 +407,21 @@ function fallbackDraft(
     assumptions: [
       "Opening hours and live availability must be confirmed before plans are finalised.",
       perDay === 1
-        ? "Only enough grounded places for one anchored activity a day; the rest of each day is left open."
+        ? "One grounded activity is scheduled each day; the rest of each day is left open."
         : "Two anchored stops a day, with the middle of the day left for a meal and the journey between them.",
+      ...(pace.includes("relaxed")
+        ? ["The remembered relaxed pace is reflected in the one-activity daily schedule."]
+        : []),
+      ...(interests.length
+        ? [
+            `Grounded candidates matching remembered interests (${interests.join(", ")}) are preferred when available.`,
+          ]
+        : []),
+      ...(accessibility
+        ? [
+            `The schedule is limited to one grounded activity per day for the remembered ${accessibility} need; place access and routes are not verified.`,
+          ]
+        : []),
       ...incompleteDays.map(
         (day) =>
           `Day ${day} is incomplete because no grounded activity fits the existing slots and scheduled transfer window; no late activity time was invented.`,
@@ -415,13 +434,23 @@ function validatedFallbackDraft(
   brief: TripBrief,
   days: number,
   places: Place[],
+  preferences: UserPreference[],
   placesByCity: ReadonlyMap<string, readonly Place[]>,
   dayCities: string[][],
   transferWindows: ReadonlyMap<number, TransferWindow[]>,
   language: InterfaceLanguage | undefined,
 ): ItineraryDraft {
   return validateDraft(
-    fallbackDraft(brief, days, places, placesByCity, dayCities, transferWindows, language),
+    fallbackDraft(
+      brief,
+      days,
+      places,
+      preferences,
+      placesByCity,
+      dayCities,
+      transferWindows,
+      language,
+    ),
     days,
     places,
     dayCities,
@@ -446,7 +475,7 @@ function createDeepSeekGenerator(): ItineraryGenerator | undefined {
         name: "itinerary_specialist",
         model,
         tools: [evidence],
-        systemPrompt: `You are the itinerary specialist. Always call read_itinerary_evidence before drafting. Use only its facts and candidate place names. Cover every trip day with 1-3 non-overlapping activities using 24-hour HH:mm times, leave 150 minutes between different locations, and treat activityBudget, what flights and the stay left for activities, as a guide to how many paid attractions to include. Do not state activity prices: no evidence has them. When dayCities is given, every activity on a day must be a candidate from one of that day's cities in candidatesByCity; a transfer day may include departure and arrival cities, but departure-city activities must end before the transfer and arrival-city activities must start after it ends. When otherSections names where the traveller sleeps, build each day around that stay and keep long trips away from it rare. On a revision, start from previous and change only what the revision asks. Never claim live hours, availability, safety, visa or weather facts. Address a supplied revision exactly. Return the requested structured itinerary draft.\n\nEach activity location must be a candidate's name copied character for character. Do not append its category, rating or district, and do not reword it: an activity whose location is not an exact candidate name is discarded and the whole draft is thrown away.\n\n${TRAVELLER_PREFERENCES_RULE}`,
+        systemPrompt: `You are the itinerary specialist. Always call read_itinerary_evidence before drafting. Use only its facts and candidate place names. Cover every trip day with 1-3 non-overlapping activities using 24-hour HH:mm times, leave 150 minutes between different locations, and treat activityBudget, what flights and the stay left for activities, as a guide to how many paid attractions to include. Do not state activity prices: no evidence has them. When dayCities is given, every activity on a day must be a candidate from one of that day's cities in candidatesByCity; a transfer day may include departure and arrival cities, but departure-city activities must end before the transfer and arrival-city activities must start after it ends. When otherSections names where the traveller sleeps, build each day around that stay and keep long trips away from it rare. Apply confirmed preferences supplied in the evidence where candidate data allows, especially remembered pace, interests and accessibility needs. On a revision, start from previous and change only what the revision asks. Never claim live hours, availability, safety, visa or weather facts. Address a supplied revision exactly. Return the requested structured itinerary draft.\n\nEach activity location must be a candidate's name copied character for character. Do not append its category, rating or district, and do not reword it: an activity whose location is not an exact candidate name is discarded and the whole draft is thrown away.\n\n${TRAVELLER_PREFERENCES_RULE}`,
         responseFormat: ItineraryDraft,
       });
       const result = await specialist.invoke({
@@ -739,6 +768,7 @@ async function planItinerary(
         brief,
         days,
         places,
+        preferences,
         placesByCity,
         dayCities,
         transferWindows,
@@ -750,6 +780,7 @@ async function planItinerary(
       brief,
       days,
       places,
+      preferences,
       placesByCity,
       dayCities,
       transferWindows,
@@ -805,6 +836,7 @@ async function planItinerary(
       brief,
       days,
       places,
+      preferences,
       placesByCity,
       dayCities,
       transferWindows,
