@@ -53,7 +53,10 @@ try {
       await page.goto(BASE, { waitUntil: "domcontentloaded" });
       await page.locator(".chat-empty__suggestions button").first().waitFor();
       const notNow = page.getByRole("button", { name: language === "zh" ? "暂不" : "Not now" });
-      if (await notNow.count()) await notNow.click();
+      await notNow.waitFor({ timeout: 5000 }).then(
+        () => notNow.click(),
+        () => {},
+      );
       await page.locator(".location-prompt").waitFor({ state: "detached" });
       const layout = await page.evaluate(() => {
         const stream = document.querySelector(".chat__stream").getBoundingClientRect();

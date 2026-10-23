@@ -92,13 +92,13 @@ export function ChatPanel({
     const node = stream.current;
     if (!empty || !node) return setMore(false);
     const update = () => setMore(node.scrollTop + node.clientHeight < node.scrollHeight - 1);
-    const observer = typeof ResizeObserver === "function" ? new ResizeObserver(update) : undefined;
-    observer?.observe(node);
-    if (node.firstElementChild) observer?.observe(node.firstElementChild);
+    const observer = new ResizeObserver(update);
+    observer.observe(node);
+    if (node.firstElementChild) observer.observe(node.firstElementChild);
     node.addEventListener("scroll", update, { passive: true });
     update();
     return () => {
-      observer?.disconnect();
+      observer.disconnect();
       node.removeEventListener("scroll", update);
     };
   }, [empty]);
