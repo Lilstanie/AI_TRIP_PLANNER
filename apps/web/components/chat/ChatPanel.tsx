@@ -153,7 +153,7 @@ export function ChatPanel({
         </div>
         {(activity.length > 0 || busy) && (
           <>
-            <TeamConversation activity={activity} />
+            <TeamConversation activity={activity} settled={!busy} />
             <section
               className={`agent-activity${error && !busy ? " agent-activity--error" : ""}`}
               aria-label={t("Thinking process")}

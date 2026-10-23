@@ -63,7 +63,7 @@ export function MessageItem({ message, animate }: { message: Message; animate?: 
       )}
       {message.activity && message.activity.length > 0 && (
         <>
-          <TeamConversation activity={message.activity} />
+          <TeamConversation activity={message.activity} settled />
           <section className="agent-activity" aria-label={t("Thinking process")}>
             <ThinkingProcess activity={message.activity} busy={false} outcome={message.outcome} />
           </section>

@@ -47,10 +47,16 @@ function checkText(
     .join(" · ");
 }
 
-export function TeamConversation({ activity }: { activity: readonly AgentProgressEvent[] }) {
+export function TeamConversation({
+  activity,
+  settled,
+}: {
+  activity: readonly AgentProgressEvent[];
+  settled: boolean;
+}) {
   const { t } = useLocale();
   const name = useAssistantName();
-  const messages = useMemo(() => teamMessages(activity), [activity]);
+  const messages = useMemo(() => teamMessages(activity, settled), [activity, settled]);
   if (messages.length === 0) return null;
   return (
     <ol className="team-conversation" aria-label={t("Team conversation")}>
@@ -69,9 +75,13 @@ export function TeamConversation({ activity }: { activity: readonly AgentProgres
             <div className="team-message__main">
               <div className="team-message__head">
                 <strong className="team-message__name">{name(message.assistant)}</strong>
-                <span className={`team-message__marker team-message__marker--${message.decidedBy}`}>
-                  {t(message.decidedBy === "llm" ? "Decided by AI" : "Decided by code")}
-                </span>
+                {message.decidedBy && (
+                  <span
+                    className={`team-message__marker team-message__marker--${message.decidedBy}`}
+                  >
+                    {t(message.decidedBy === "llm" ? "Decided by AI" : "Decided by code")}
+                  </span>
+                )}
                 {message.source && (
                   <span className="team-message__source">{t(sourceLabels[message.source])}</span>
                 )}
