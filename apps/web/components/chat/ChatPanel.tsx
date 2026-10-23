@@ -1,11 +1,13 @@
 "use client";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { type AgentProgressEvent, type TripPlan } from "@trip/shared";
 import { quickPrompts } from "@/lib/planning/quick-prompts";
 import { translate } from "@/lib/i18n/locale";
 import type { Message } from "@/lib/workspace";
 import { ThinkingProcess } from "./ThinkingProcess";
+import { TeamConversation } from "./TeamConversation";
 import { Composer } from "./Composer";
+import { AssistantChips } from "./AssistantChips";
 import { MessageItem } from "./MessageItem";
 import { QuestionComposer } from "./QuestionComposer";
 import type { PendingAsk, QuestionAnswer, QuestionProgress } from "@/lib/workspace/ask-user";
@@ -84,11 +86,36 @@ export function ChatPanel({
       stream.current?.scrollTo({ top: stream.current.scrollHeight });
   }, [messages, activity]);
 
+  const empty = !plan && !messages.length;
+  const [more, setMore] = useState(false);
+  useEffect(() => {
+    const node = stream.current;
+    if (!empty || !node) return setMore(false);
+    const update = () => {
+      const padding = parseFloat(getComputedStyle(node).paddingBottom) || 0;
+      setMore(node.scrollTop + node.clientHeight < node.scrollHeight - padding - 1);
+    };
+    const observer = new ResizeObserver(update);
+    observer.observe(node);
+    if (node.firstElementChild) observer.observe(node.firstElementChild);
+    node.addEventListener("scroll", update, { passive: true });
+    update();
+    return () => {
+      observer.disconnect();
+      node.removeEventListener("scroll", update);
+    };
+  }, [empty]);
+
   const prompts = useMemo(() => quickPrompts(), []);
   return (
     <section className="panel chat" aria-label={t("Chat")}>
-      <div className="chat__stream" ref={stream} aria-busy={busy}>
-        {!plan && !messages.length && (
+      <div
+        className="chat__stream"
+        ref={stream}
+        aria-busy={busy}
+        data-more={more ? "true" : undefined}
+      >
+        {empty && (
           <div className="chat-empty">
             <h3>{t("Where to next?")}</h3>
             <p>
@@ -125,12 +152,15 @@ export function ChatPanel({
           ))}
         </div>
         {(activity.length > 0 || busy) && (
-          <section
-            className={`agent-activity${error && !busy ? " agent-activity--error" : ""}`}
-            aria-label={t("Thinking process")}
-          >
-            <ThinkingProcess activity={activity} busy={busy} error={error} />
-          </section>
+          <>
+            <TeamConversation activity={activity} settled={!busy} />
+            <section
+              className={`agent-activity${error && !busy ? " agent-activity--error" : ""}`}
+              aria-label={t("Thinking process")}
+            >
+              <ThinkingProcess activity={activity} busy={busy} error={error} />
+            </section>
+          </>
         )}
       </div>
       {ask && onAnswer && onDismissAsk ? (
@@ -151,6 +181,7 @@ export function ChatPanel({
             if (!locked) onSend();
           }}
         >
+          <AssistantChips value={input} onInput={onInput} disabled={busy || locked} />
           <Composer
             value={input}
             placeholder={t(

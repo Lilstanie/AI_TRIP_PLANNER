@@ -346,6 +346,14 @@ initial plans and revisions. An agent owns a durable role definition: model, `na
 Transport and accommodation wrap calculators so models cannot invent prices, routes or properties.
 The itinerary likewise never prices a stop: Google Places publishes no admission prices, so an
 activity's `estCost` is left unset and the plan says how many stops are unpriced.
+Its summary is written from the stops it keeps (day count and the most stops on one day), never
+taken from the model, so it cannot call a day free that has a stop.
+The reply receives the plan's known estimate, budget, headroom and each stop's price state. An unset
+activity price is excluded, not zero; the reply must disclose that boundary and may quote a stop price
+only when the plan carries that numeric price. Fixture and no-model replies verify this deterministic
+boundary, not live-model wording reliability.
+When a thin-data plan reuses a grounded place across days, the reply facts include the repeated place
+and its days so the reply identifies it as one reused stop rather than distinct activities.
 
 Model routing (`MODEL_ROUTING` in `packages/agents/src/models.ts` and `chat.ts`):
 
@@ -359,7 +367,9 @@ Dates are read by the model, not by patterns: extraction converts whatever shape
 into `YYYY-MM-DD`, takes the next occurrence for a date written without a year, and leaves the dates
 unset when only one end is given or the day and month cannot be told apart (`01/10/2026`), so the
 traveller is asked instead of planned a trip on a guessed month. Without a key, or when a model call
-fails, a small English/Chinese rule parser handles extraction instead; it only reads ISO dates.
+fails, a small English/Chinese rule parser handles extraction instead. It reads supported explicit
+dates and resolves an explicit duration plus start date to an inclusive end date; it does not infer an
+unstated return date.
 
 `TripBrief.dates` is inclusive: the end date is the last day of the trip, so a trip has
 `end − start + 1` days and `end − start` nights. Planning code counts days with `planningDays()`
@@ -380,7 +390,7 @@ a currency without an amount, and the offline extractor uses `detectCurrency` on
 browser reads one rule everywhere it picks a currency, `effectiveCurrency()` in
 `packages/shared/src/money.ts`: `displayCurrency`, else `budgetSource.currency`, else the Settings
 display currency. Planning, guardrails and stored amounts stay AUD; `budgetSource` keeps the stated
-amount and currency. Replacing the budget without a new source clears the old source; changing only the display currency preserves it. Chinese traveller counts accept cardinal numbers from 1 through 99. A trip never writes Settings. The server applies the same rule to the text it
+amount and currency. A bare budget number is stored as AUD with no source, and the coordinator prompt has the reply say it was taken as AUD and can be changed, never that the currency is open. Replacing the budget without a new source clears the old source; changing only the display currency preserves it. Chinese traveller counts accept cardinal numbers from 1 through 99. The offline extractor reads a Chinese destination after 去, 前往 or 目的地, or as X in “…的X之旅”, stops before “的旅行”, ends a Chinese origin at 前往, and reads “X和Y” as “X & Y” when both names have at least two characters, so every Chinese example chip plans without a model. A trip never writes Settings. The server applies the same rule to the text it
 writes: it takes the Settings currency from the chat request's optional `displayCurrency` (absent means
 AUD), picks `effectiveCurrency(brief, request.displayCurrency ?? "AUD")` and passes the result to
 `formatMoney` at every call site (specialist summaries, conflict reasons and constraints, coordinator
@@ -414,6 +424,18 @@ when one could not be met, and never treat one as a verified fact.
 - `excludeFlights`: the traveller arranges flights.
 - `bookedStay`: the traveller has booked their stay.
 - `noAccommodation`: the traveller does not need a stay; this is independent of `bookedStay`.
+
+A trip length the traveller states in days ("3 days", "5-day", "四天", "三日游") overrides the
+model's end date: `statedTripDays` in `packages/orchestrator/src/chat-offline.ts` adds up the day
+counts in the message, and the end date becomes the start date plus that count minus one, so N days
+are N calendar days with no extra departure day. An explicit date range in the message wins, and
+"in 3 days" is not read as a length. "1 day" gives a same-day trip.
+
+A same-day trip (`dates[0] === dates[1]`) is valid only for one destination with
+`noAccommodation: true`; every other trip needs at least one night per destination. When a brief
+patch makes the dates the same day and `noAccommodation` is unset, `mergeBriefPatch` sets it to
+`true`, so "1 day in Sydney" plans one day with no stay. Setting `noAccommodation: false` on a
+same-day trip is rejected.
 
 `specialistBrief` in `packages/orchestrator/src/supervisor.ts` appends the learned list to the
 traveller's own for the specialists, deduplicated and capped at 12. The stored brief keeps the two

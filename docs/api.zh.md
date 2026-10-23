@@ -78,7 +78,7 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 - `bookedStay: { name, note? }` 是旅行者已预订的住宿。住宿部分只有这一条未计价条目，没有
   `stays` 候选。
 - `noAccommodation: true` 表示旅行者不需要住宿。住宿 specialist 会跳过，也不会分配住宿预算。
-  它与 `bookedStay` 相互独立；字段缺省或为 `false` 时，保留原有住宿规划行为。
+  它与 `bookedStay` 相互独立；字段缺省或为 `false` 时，保留原有住宿规划行为。当天往返的行程（`dates[0] === dates[1]`）必须设置它，且只能有一个目的地。
 
 在 Trip preferences 中移除已保存的可选值后，客户端会在请求中省略该值。`noAccommodation` 是单独的显式选项：关闭它时会发送 `false`，因此可以覆盖之前保存的 `true`。
 
@@ -105,13 +105,16 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 Mock 浏览器检查 `party-breakdown-browser` 通过聊天提交明确的人数组成，并在桌面和手机宽度检查
 Who 中的五项计数，包括保存行程后重新打开的情况。
 
-可选的 `assistant`：来自 Settings → Personalization 的 `{ style, memory }`（`packages/shared/src/chat.ts` 中的
+可选的 `assistant`：来自 Settings → Personalization 的 `{ style, memory, names }`（`packages/shared/src/chat.ts` 中的
 `AssistantSettings`）。
 
+- `names` 是可选的映射，从助手 id 到最长 24 个字符的自定义显示名称。它只改变界面显示的内容以及 `@name` 解析到哪位 specialist；提及始终以 id 发送。
 - `style` 取 `neutral`、`friendly`、`concise` 或 `detailed`，决定协调器的语气。
 - `memory: false` 时，服务器从 `brief` 和 `known` 中去掉 `learnedPreferences`，协调器也不再记录。
 
 不传该字段时，行为等同于 `neutral` 且开启记忆。
+
+可选的 `mentions`：旅客点名的 specialist id（`itinerary`、`transport`、`accommodation`、`destination-guide`、`dining`），最多五个且互不相同。缺省时本轮仍交给协调员。带 `plan` 时，只有这些 specialist 运行并修改自己的部分，随后进行冲突检查和定向修订，响应的 `assistant` 为第一个被提及的 id。没有 `plan` 时，被提及的 specialist 只作答，不创建任何内容，并通过 `needs_info` 帧（同样带可选的 `assistant`）向旅客收集行程信息。
 
 可选的 `interfaceLanguage`：`en` 或 `zh`（`packages/shared/src/chat.ts` 中的 `InterfaceLanguage`），
 即旅行者界面当前显示的语言。网页端在每次聊天请求中发送当前的界面语言。协调器始终使用旅行者最新一条消息的语言回复；
@@ -168,8 +171,8 @@ Who 中的五项计数，包括保存行程后重新打开的情况。
 
 响应为 `application/x-ndjson`，每行一个 JSON 对象：
 
-- `type` 为 `coordinator`、`agent_started`、`agent_completed` 或 `agent_failed` 的进度事件；
-- 最终帧 `{ "type": "complete", "response": { "reply": "…", "plan": { … } } }`；
+- `type` 为 `coordinator`、`agent_started`、`agent_completed`、`agent_failed` 或 `decision` 的进度事件。`decision` 事件形如 `{ "type": "decision", "round": 2, "decision": { "type": "conflicts_detected" | "revision_started" | "revision_scored" | "loop_stopped" | "agent_output_rejected" | "mention_handoff" | "delegation_fallback", … } }`，是规划循环自己的决策，例如被要求省钱的专家、修订得分和循环停止的原因；
+- 最终帧 `{ "type": "complete", "response": { "reply": "…", "plan": { … }, "assistant": "…" } }`。`assistant` 可选，表示由谁回答（`coordinator` 或某位 specialist 的 id），缺省表示协调员。`agent_completed` 事件带可选的 `source`（`live`、`estimated`、`mock`、`fallback` 或 `unavailable`），`agent_reasoning` 事件带可选的 `assistant`；
 - 或 `{ "type": "error", "error": "…", "notice": { … } }`，即
   [`{ error, notice }`](#failure-bodies) 形式的失败。
 
@@ -255,7 +258,7 @@ Who 中的五项计数，包括保存行程后重新打开的情况。
 
 `configured` 是部署默认值（只有 `USE_MOCK_TOOLS=false` 时才为 `live`）。
 `liveAvailable` 表示该调用方是否可以消耗服务商额度：已登录的旅行者为 true，未配置 Clerk 时在非部署环境（本地、CI）也为 true。
-为 false 时工作区会禁用实时数据开关。
+为 false 时工作区的数据模式按钮保持示例数据并带 `aria-disabled="true"`，仍可用键盘聚焦，其隐藏文字提示登录后才能使用真实的酒店和航班价格。
 `providers` 报告是否设置了 `SERPAPI_KEY` 和 `MAPS_API_KEY`，绝不返回它们的值。响应不缓存。
 
 <a id="post-apiplacessearch"></a>
@@ -351,6 +354,9 @@ Google `name` 必须是从最新查询中获得的 `places/{id}/photos/{id}` 名
 <a id="account-routes"></a>
 
 ## 账号路由
+
+配置 Clerk 后，中间件对匿名访问的受保护 API 返回不缓存的 401 JSON；
+受保护浏览器页面则跳转到 `/sign-in`。
 
 所有账号路由都需要 Clerk 会话，没有会话时返回 401；未配置 Clerk 或 `DATABASE_URL` 时返回 503。除下文的设置冲突外，所有失败响应体（包括 400 和下文的 502）
 均为 [`{ error, notice }`](#failure-bodies)。查询使用会话中的用户

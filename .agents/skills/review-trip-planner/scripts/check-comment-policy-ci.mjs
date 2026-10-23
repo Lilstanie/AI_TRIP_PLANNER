@@ -14,11 +14,11 @@ try {
     const key = args[i];
     if (!["--event", "--base", "--head", "--output"].includes(key) || !args[i + 1] || options[key])
       throw new Error(
-        "Usage: --event <pull_request|push> --base <sha> --head <sha> --output <json>",
+        "Usage: --event <pull_request|push> --base <sha> --head <sha> [--output <json>]",
       );
     options[key] = args[i + 1];
   }
-  for (const key of ["--event", "--base", "--head", "--output"])
+  for (const key of ["--event", "--base", "--head"])
     if (!options[key]) throw new Error(`Missing ${key}`);
   const git = (...args) =>
     execFileSync("git", args, { encoding: "utf8", timeout: 30000, maxBuffer: 32 * 1024 * 1024 });

@@ -281,6 +281,12 @@ and context delivery. [translate-docs](../.agents/skills/translate-docs/SKILL.md
 [English/Chinese documentation pairs](i18n.md); changing either language includes updating its
 counterpart in the same task.
 
+### Fix root causes
+
+When a bug is fixed, reproduce it, name its cause with evidence, and fix that cause. Do not hide the
+symptom with a retry, a longer timeout, an extra guard or a special case. If a workaround is the only
+option for now, say so in the pull request and the session log, with the cause it leaves in place.
+
 ## Verification
 
 For documentation changes, also run the local pairing check after reviewing and recording the
@@ -370,7 +376,7 @@ A malformed `requires-env` line stops the runner with an error instead of runnin
   `output/playwright/<name>/`. `CHANNEL=chrome` and `PLAYWRIGHT=<path>` select the browser and the
   Playwright package.
 
-`output/`, `apps/web/output/`, `tmp/` and `.scratch/` are Git-ignored scratch directories, and `output/` grows by gigabytes. Run `pnpm clean:output` once the evidence has been quoted in the pull request; `pnpm clean:output --dry-run` lists sizes first. It refuses to run if any tracked file lives under those directories. Each script's header lists the failure inventory it was written from and
+`output/`, `apps/web/output/`, `tmp/` and `.scratch/` are Git-ignored scratch directories, and `output/` grows by gigabytes. Run `pnpm clean:output` once the evidence has been quoted in the pull request; `pnpm clean:output --dry-run` lists sizes first. It refuses to run if any tracked file lives under those directories. After a pull request is merged or closed, delete its remote branch (see [pre-push-checks](../.agents/skills/pre-push-checks/SKILL.md#5-after-the-merge)). Each script's header lists the failure inventory it was written from and
 any server environment it needs. Fixture runs are isolated from the deployment's keys and data-mode default, so the
 Agent Lab scripts pass whatever the environment holds; `agent-lab-live-gate` also uses two servers with live enabled
 (see its header). `agent-lab-release` walks the whole public flow and writes the release evidence: raw NDJSON,
@@ -380,7 +386,8 @@ reduced motion). Release smoke keeps `provider-empty-result` as the representati
 plus Run all sequencing and cancellation. Run both scripts when changing Failure Lab behavior.
 
 `auto-save-places`, `plan-revision` and `check-entry-point` share only place fixtures, workspace boot,
-day-to-plan conversion and polling in `apps/web/tests/e2e/trip-setup.mjs`. Each script owns its scenario
+day-to-plan conversion and polling in `apps/web/tests/e2e/trip-setup.mjs`. Every 44 px touch-target check uses its
+`touchSized(pixels)`, which rounds sub-pixel layout sizes first; call it in Node, not inside `evaluate`. Each script owns its scenario
 assertions, request interception, held responses and screenshots; concurrency and cancellation setup
 stay beside the scenario they verify. [Coverage ownership](../.agents/notes/implemented/simplification/2026-10-10-repository-surface-reduction.md)
 records the assertion consolidation boundaries.
@@ -425,6 +432,29 @@ On pull requests, the `protected-files` job runs `node scripts/verify-protected-
 branch check fails when the head branch does not start with `feature/`, `fix/`, `refactor/`, `docs/`,
 `chore/` or `test/`, or contains an AI tool name; Dependabot branches are exempt.
 
+Before marking a PR ready for delivery, run the read-only preflight below with `gh` authenticated.
+It requires a clean checkout on the PR branch at the exact open PR head, a `main` base, and nonempty
+Summary, Evidence and Merge Danger sections. All reported head checks must be `SUCCESS` except a
+`CI / cli-acceptance-workers` skip accompanied by successful `CI / cli-acceptance-plan` and
+`CI / cli-acceptance` checks from the same Actions run; the aggregate validates the documentation-only plan. The checker does
+not judge Evidence wording, push, merge, close PRs or delete branches. Its fixture self-check is not
+evidence of GitHub CI.
+
+```bash
+node scripts/pr-delivery-status.mjs <pull-request-number>
+```
+
+To prove that a fix turns an E2E script from failing to passing, name the script and the source
+paths it tests. The command runs the script with those paths at their `origin/main` version, then
+with the working tree, restores the working tree even when interrupted, and exits 0 only when the
+first run fails and the second passes. Paste its last two lines into the PR's Evidence section.
+`--base <ref>` compares with another revision; its failure inventory is
+[scripts/redgreen.failures.md](../scripts/redgreen.failures.md).
+
+```bash
+node scripts/redgreen.mjs <e2e-name> [--prod] -- <source-path>...
+```
+
 Run focused packages with `pnpm --filter @trip/agents test`, `pnpm --filter @trip/orchestrator test`
 or `pnpm --filter @trip/web test`. The web test script sets `NODE_OPTIONS` with POSIX shell syntax;
 on Windows, run it from WSL or Git Bash.
@@ -445,6 +475,16 @@ upstreams: set `MAP_STUB_PORT` to a free port and all three base URLs above to
 cache hits, language, bounds and transit parsing in `output/e2e/map-provider-http/summary.json`.
 
 `RUN_LIVE_MAP_CHECK=1 WEB_MAPS_PROVIDER=osm CHANNEL=chrome USE_MOCK_TOOLS=true pnpm --filter @trip/web e2e map-fallback-live` opts into real free services. The chat reply alone uses fixtures; place lookup, tiles and the walking route are live. Results and desktop/phone screenshots are in `output/playwright/map-fallback-live/after`. This does not establish transit coverage in every destination.
+
+`real-clerk-auth.e2e.mjs` needs an already running local server with Clerk test keys and a migrated
+account database. Run `BASE_URL=http://localhost:3197 CHANNEL=chrome node apps/web/tests/e2e/real-clerk-auth.e2e.mjs`
+with `CLERK_SECRET_KEY` and `DATABASE_URL` supplied through the environment. The ordinary E2E runner
+starts a server without Clerk, so it cannot start this acceptance environment. The script provisions
+two unique test users, uses genuine Clerk sessions, checks account isolation and removes only its own
+users and database rows. It refuses live Clerk keys and remote application URLs. Sanitized assertions
+and cleanup results are retained under `apps/web/output/playwright/real-clerk-auth/after/summary.json`;
+no session tokens or storage states are retained. This does not verify expired valid JWTs, production
+configuration without Clerk or the daily quota policy pending #440.
 
 #### CLI acceptance in CI
 

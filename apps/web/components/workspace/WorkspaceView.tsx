@@ -167,6 +167,9 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
       onOpenTrip={swap(session.selectTrip)}
       onRenameChat={history.rename}
       onDeleteChat={history.delete}
+      onRenameTrip={history.renameTrip}
+      onDeleteTrip={history.deleteTrip}
+      deletedTrip={history.deletedTrip}
       searchRef={searchRef}
     />
   );
@@ -331,6 +334,9 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
               activeTripId={blank ? undefined : catalog.activeTripId}
               onOpenTrip={swap(session.selectTrip)}
               onNewTrip={swap(session.newTrip)}
+              onRenameTrip={history.renameTrip}
+              onDeleteTrip={history.deleteTrip}
+              deletedTrip={history.deletedTrip}
             />
             {navOpen && (
               <button
@@ -355,7 +361,9 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
               <PhoneTripTitle model={model} />
             ) : (
               <div className="topbar-summary">
-                <h1 className="topbar-title">{plan ? plan.brief.destination : t("New trip")}</h1>
+                <h1 className="topbar-title">
+                  {plan ? (history.activeTripName ?? plan.brief.destination) : t("New trip")}
+                </h1>
               </div>
             )}
             <TripFactChips

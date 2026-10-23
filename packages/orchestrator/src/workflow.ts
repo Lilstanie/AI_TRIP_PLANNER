@@ -38,7 +38,7 @@ import { createPlanningBoard } from "./board";
 import { choiceFor, dispatchWithSupervisor, reviseWithSupervisor } from "./supervisor";
 import { withProgressTools } from "./progress-tools";
 import type { WorkflowDecision } from "./decisions";
-import { progressCopy } from "./progress-copy";
+import { progressCopy, ROLE_NAMES } from "./progress-copy";
 
 const DEFAULT_MAX_ROUNDS = 3;
 
@@ -56,6 +56,8 @@ export interface OrchestratorOptions {
   displayCurrency?: Currency;
   interfaceLanguage?: InterfaceLanguage;
   replyLanguage?: InterfaceLanguage;
+
+  mention?: { agents: AgentName[]; message: string; plan: TripPlan };
 }
 
 const OrchestratorState = new StateSchema({
@@ -202,6 +204,7 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
         ...(choiceFor(proposal, currencyFor(request.brief))
           ? { choice: choiceFor(proposal, currencyFor(request.brief))! }
           : {}),
+        ...(proposal.source ? { source: proposal.source.kind } : {}),
         type: "agent_completed",
         agent: specialist.name,
         round: request.context.round,
@@ -243,6 +246,52 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
       (specialist) => !state.brief.noAccommodation || specialist.name !== "accommodation",
     );
     const round = 1;
+    const mention = options.mention;
+    if (mention) {
+      const mentioned = activeSpecialists.filter((specialist) =>
+        mention.agents.includes(specialist.name),
+      );
+      onProgress?.({
+        type: "coordinator",
+        phase: "dispatch",
+        round,
+        summary: copy.mentioned(
+          mentioned.map(
+            (specialist) =>
+              ROLE_NAMES[options.interfaceLanguage === "zh" ? "zh" : "en"][specialist.name],
+          ),
+        ),
+      });
+      const kept = mention.plan.sections.flatMap((section) =>
+        section.proposal ? [section.proposal] : [],
+      );
+      const revised = await Promise.all(
+        mentioned.map((specialist) => {
+          const previous = kept.find((proposal) => proposal.agent === specialist.name);
+          return invokeSpecialist(specialist, {
+            brief: state.brief,
+            context: context(state.brief, round, specialist.name),
+            ...(specialist.supportsRevision
+              ? {
+                  revision: {
+                    tripId: state.brief.tripId,
+                    targetAgent: specialist.name,
+                    reason: mention.message,
+                    constraints: [mention.message],
+                  },
+                }
+              : {}),
+            ...(previous ? { previous } : {}),
+            board: { proposals: kept.filter((proposal) => proposal.agent !== specialist.name) },
+          });
+        }),
+      );
+      const proposals = kept.map(
+        (proposal) => revised.find((next) => next.agent === proposal.agent) ?? proposal,
+      );
+      for (const next of revised) if (!proposals.includes(next)) proposals.push(next);
+      return { round, proposals: proposals.map((proposal) => AgentProposalSchema.parse(proposal)) };
+    }
     onProgress?.({
       type: "coordinator",
       phase: "dispatch",

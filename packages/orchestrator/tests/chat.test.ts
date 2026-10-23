@@ -34,6 +34,17 @@ describe("the reply language", () => {
     );
   });
 
+  it("says a bare budget number is taken as AUD instead of calling the currency open", async () => {
+    for (const interfaceLanguage of [undefined, "zh"] as const) {
+      const prompt = await shown({ tripId: "blank", message: "budget 2000", interfaceLanguage });
+      expect(prompt).toContain("leave budgetCurrency out when they gave a bare number");
+      expect(prompt).toContain(
+        "say in your reply that you took it as AUD and that they can name another currency",
+      );
+      expect(prompt).toContain("never say the currency is unset, open or left as they gave it");
+    }
+  });
+
   it("uses the interface language for a bare place name", async () => {
     const prompt = await shown({ tripId: "blank", message: "Tokyo", interfaceLanguage: "zh" });
     expect(prompt).toContain("in Simplified Chinese");
@@ -667,5 +678,101 @@ describe("replacement budget provenance", () => {
     ).catch((error) => error);
     expect(failure.needsInfo.known.budgetTotal).toBe(3000);
     expect(failure.needsInfo.known.budgetSource).toBeUndefined();
+  });
+});
+
+describe("a trip length the traveller states in days", () => {
+  const datesFor = async (
+    message: string,
+    args: Record<string, unknown>,
+    request: Partial<Parameters<typeof runTripChat>[0]> = {},
+  ) => {
+    const { mem } = memoryStore();
+    const result = await run(
+      { tripId: "blank", message, ...request },
+      scriptedModel(
+        [{ name: "update_trip_brief", args, id: "c1" }],
+        [{ name: "replan_trip", args: {}, id: "c2" }],
+      ),
+      mem,
+    );
+    return result.plan.brief.dates;
+  };
+  const hobart = { destination: "Hobart", groupSize: 2, budgetAmount: 5000 };
+
+  it("ends on the last of those days when the model adds a departure day", async () => {
+    expect(
+      await datesFor("3 days in Hobart from 1 Mar 2027, 2 adults, budget AUD 5000", {
+        ...hobart,
+        startDate: "2027-03-01",
+        endDate: "2027-03-04",
+      }),
+    ).toEqual(["2027-03-01", "2027-03-03"]);
+  });
+
+  it("reads hyphenated and Chinese day counts", async () => {
+    const args = { ...hobart, startDate: "2027-03-01", endDate: "2027-03-08" };
+    expect(await datesFor("a 5-day trip to Hobart from 1 Mar 2027", args)).toEqual([
+      "2027-03-01",
+      "2027-03-05",
+    ]);
+    expect(await datesFor("2027年3月1日出发，霍巴特五日游，预算5000", args)).toEqual([
+      "2027-03-01",
+      "2027-03-05",
+    ]);
+    expect(await datesFor("霍巴特玩4天，3月1日出发", args)).toEqual(["2027-03-01", "2027-03-04"]);
+  });
+
+  it("adds up the days of each city in a multi-city trip", async () => {
+    expect(
+      await datesFor("3 days in Hobart and 2 days in Launceston from 1 Mar 2027", {
+        ...hobart,
+        destination: "Hobart & Launceston",
+        startDate: "2027-03-01",
+        endDate: "2027-03-07",
+      }),
+    ).toEqual(["2027-03-01", "2027-03-05"]);
+  });
+
+  it("crosses a month and a leap day by the calendar", async () => {
+    expect(
+      await datesFor("4 days in Hobart from 27 Feb 2028", {
+        ...hobart,
+        startDate: "2028-02-27",
+        endDate: "2028-03-02",
+      }),
+    ).toEqual(["2028-02-27", "2028-03-01"]);
+  });
+
+  it("keeps an explicit date range over a day count", async () => {
+    expect(
+      await datesFor("3 days in Hobart, 2027-03-01 to 2027-03-05", {
+        ...hobart,
+        startDate: "2027-03-01",
+        endDate: "2027-03-05",
+      }),
+    ).toEqual(["2027-03-01", "2027-03-05"]);
+  });
+
+  it("does not read a start offset as a length", async () => {
+    const args = { ...hobart, startDate: "2027-03-01", endDate: "2027-03-04" };
+    expect(await datesFor("Hobart, leaving in 3 days, back 4 Mar 2027", args)).toEqual([
+      "2027-03-01",
+      "2027-03-04",
+    ]);
+  });
+
+  it("reads a one-day trip as a same-day trip", async () => {
+    const args = { ...hobart, startDate: "2027-03-01", endDate: "2027-03-04" };
+    expect(await datesFor("1 day in Hobart from 1 Mar 2027", args)).toEqual([
+      "2027-03-01",
+      "2027-03-01",
+    ]);
+  });
+
+  it("measures from the trip's existing start when only the length changes", async () => {
+    expect(
+      await datesFor("make it 3 days", { endDate: "2027-06-18" }, { tripId: brief.tripId, brief }),
+    ).toEqual(["2027-06-15", "2027-06-17"]);
   });
 });

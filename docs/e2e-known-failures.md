@@ -15,12 +15,19 @@ before deciding whether a failing script is your regression; update it when you 
 The following failures also reproduce on unchanged baseline `42fded7` (2026-10-10), using a production
 server with `DATA_MODE=mock`, `USE_MOCK_TOOLS=true`, and blank `MOCK_GOOGLE_MAPS`, model and Clerk variables:
 
-| Script        | What fails                                                                                                                                                                                                                    | Issue    |
-| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| `timeline`    | The fare-decimals console check reports four 404 responses for fixture place details. The fixture uses stand-in place IDs without stubbing their details; all JPY/AUD/KRW fare and route checks pass (99/100 checks overall). | none yet |
-| `phone-state` | Reload does not restore Map at 390×844 and 360×800. Trip, Mine and Chat reload checks pass.                                                                                                                                   | none yet |
+| Script     | What fails                                                                                                                                                                                                                    | Issue    |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| `timeline` | The fare-decimals console check reports four 404 responses for fixture place details. The fixture uses stand-in place IDs without stubbing their details; all JPY/AUD/KRW fare and route checks pass (99/100 checks overall). | none yet |
+
+`phone-state` reloads now restore Map: the script reloads once before the restore loop, because a stale-edit section pauses layout persistence until a reload. That pause is a product gap, recorded in `apps/web/tests/e2e/phone-state.failures.md`.
 
 ## Covered regressions
+
+- `triage-accessibility` on `main` `8e168ba` (2026-10-22) waited on
+  `getByText("No matching chats.", { exact: true })`, which matched both the sr-only chat-search
+  status and the visible `.history-empty` line, so strict mode threw at 1280 before the Who, budget
+  and map checks ran. The wait now scopes the visible line by its class; all checks pass with
+  `DATA_MODE=mock pnpm --filter @trip/web e2e triage-accessibility`.
 
 - `phone-map` on baseline `2e0f506b` (2026-10-19, #367) wrongly queried the renderer-error
   fallback list when the default no-key map had successfully loaded OSM. It failed three repeated-place

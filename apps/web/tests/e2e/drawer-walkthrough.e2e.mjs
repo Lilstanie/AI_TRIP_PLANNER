@@ -1,6 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
+import { startExamplePlan } from "./trip-setup.mjs";
 
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT ?? "playwright");
@@ -386,9 +387,7 @@ async function plan(browser, { width, lang, run }) {
     const chat = page.getByRole("tab", { name: L.chatTab });
     if (await chat.count()) await chat.click();
   }
-  const suggestion = page.locator(".chat-empty__suggestions button").first();
-  await suggestion.waitFor({ state: "visible", timeout: 60_000 });
-  await suggestion.click();
+  await startExamplePlan(page, { englishPrompt: lang === "zh" });
   await page.locator(".msg-item--agent .msg-item__body").first().waitFor({ timeout: 180_000 });
   await settle(page, 1200);
   if (phone) await page.getByRole("tab", { name: L.tripTab }).first().click();
@@ -634,6 +633,16 @@ async function walk(browser, { width, lang }) {
   await shot("04-overlap-marked");
   if (lang === "zh") await englishLabels(page, await storedPlan(page), "overlap", run);
   await clickUndo(page);
+  await until(
+    page,
+    async () => {
+      const rows = await dayRows();
+      return (
+        rows[1].start === afterUndo[1].start && rows.every((row) => row.conflicts.length === 0)
+      );
+    },
+    15_000,
+  );
   const afterOverlapUndo = await dayRows();
   check(
     afterOverlapUndo[1].start === afterUndo[1].start &&
@@ -644,6 +653,7 @@ async function walk(browser, { width, lang }) {
   const stayRow = page.locator(".timeline-day li.timeline-fixed--stay").first();
   await stayRow.locator("button.timeline-booking__open").click();
   const alternative = stayRow.locator(".alternatives__pick").first();
+  await alternative.waitFor({ state: "attached", timeout: 10_000 }).catch(() => undefined);
   check((await alternative.count()) === 1, `${run}: the stay card offers an Alternative`);
   const costBefore = await stayRow.locator(".timeline-row__cost").innerText();
   const totalBefore = (await storedPlan(page))?.estTotal;

@@ -7,6 +7,9 @@ import { AttachmentChip } from "./AttachmentChip";
 import { FlightResults } from "./FlightResults";
 import { RevealedText } from "./RevealedText";
 import { ThinkingProcess } from "./ThinkingProcess";
+import { AssistantIcon } from "./assistants";
+import { useAssistantName } from "./assistant-names";
+import { TeamConversation } from "./TeamConversation";
 
 const markdownComponents: Components = {
   a: ({ href, children, ...rest }) => (
@@ -18,6 +21,7 @@ const markdownComponents: Components = {
 
 export function MessageItem({ message, animate }: { message: Message; animate?: boolean }) {
   const { t, locale } = useLocale();
+  const assistantName = useAssistantName();
   const clock =
     message.at === undefined ? null : (
       <span className="msg-item__clock">
@@ -49,11 +53,21 @@ export function MessageItem({ message, animate }: { message: Message; animate?: 
   }
   return (
     <div className="msg-item msg-item--agent">
-      <span className="sr-only">{t("Travel planning assistant")}</span>
+      {message.assistant ? (
+        <span className="msg-item__who">
+          <AssistantIcon id={message.assistant} />
+          <strong>{assistantName(message.assistant)}</strong>
+        </span>
+      ) : (
+        <span className="sr-only">{t("Travel planning assistant")}</span>
+      )}
       {message.activity && message.activity.length > 0 && (
-        <section className="agent-activity" aria-label={t("Thinking process")}>
-          <ThinkingProcess activity={message.activity} busy={false} outcome={message.outcome} />
-        </section>
+        <>
+          <TeamConversation activity={message.activity} settled />
+          <section className="agent-activity" aria-label={t("Thinking process")}>
+            <ThinkingProcess activity={message.activity} busy={false} outcome={message.outcome} />
+          </section>
+        </>
       )}
       <div className="msg-item__body">
         <RevealedText

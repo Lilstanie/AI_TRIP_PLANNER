@@ -63,6 +63,7 @@ const cases = [
     en: ["Sunday 10 November 2030", "Wednesday 13 November 2030"],
     zh: ["2030年11月10日星期日", "2030年11月13日星期三"],
     days: 4,
+    range: { en: "10–13 Nov", zh: "11月10日 – 11月13日" },
   },
   {
     destination: "Kyoto",
@@ -70,6 +71,7 @@ const cases = [
     en: ["Friday 15 November 2030", "Saturday 16 November 2030"],
     zh: ["2030年11月15日星期五", "2030年11月16日星期六"],
     days: 2,
+    range: { en: "15–16 Nov", zh: "11月15日 – 11月16日" },
   },
   {
     destination: "Auckland",
@@ -77,6 +79,7 @@ const cases = [
     en: ["Tuesday 31 December 2030", "Thursday 2 January 2031"],
     zh: ["2030年12月31日星期二", "2031年1月2日星期四"],
     days: 3,
+    range: { en: "31 Dec 2030 – 2 Jan 2031", zh: "2030年12月31日 – 2031年1月2日" },
   },
 ];
 const trips = cases.map(({ destination, dates }) => {
@@ -99,7 +102,7 @@ const catalog = {
   trips,
   conversations: trips.map((trip) => ({
     id: trip.conversationIds[0],
-    title: trip.title,
+    title: `${trip.title} · ${trip.snapshot.plan.brief.dates.join(" – ")}`,
     updatedAt: savedAt,
     tripId: trip.id,
     messages: [],
@@ -114,6 +117,7 @@ const catalog = {
     editorView: "map",
   },
 };
+const pageTitle = async (page) => (await page.title()).replace(/\u2009/g, " ");
 const browser = await chromium.launch({
   headless: true,
   ...(process.env.CHANNEL ? { channel: process.env.CHANNEL } : {}),
@@ -202,9 +206,9 @@ try {
       await page.locator(".workspace-app").waitFor();
       await page.addStyleTag({ content: "nextjs-portal { display:none !important; }" });
       check(
-        (await page.title()) === "AI Trip Planner",
+        (await pageTitle(page)) === "AI Trip Planner",
         `${label}: blank workspace keeps the generic browser title`,
-        await page.title(),
+        await pageTitle(page),
       );
       if (width === 1440)
         await page
@@ -286,7 +290,42 @@ try {
           await grid.evaluate((node) => node.outerHTML),
         );
         await page.screenshot({ path: `${OUT}/${label}-${item.destination}.png` });
+        await firstBar.click();
+        const expectedTitle = `${item.destination} · ${item.range[locale]} · AI Trip Planner`;
+        check(
+          (await pageTitle(page)) === expectedTitle,
+          `${label} ${item.destination}: short title names the month`,
+          { expected: expectedTitle, actual: await pageTitle(page) },
+        );
+        check(
+          await page.evaluate(() => document.documentElement.scrollWidth === innerWidth),
+          `${label} ${item.destination}: active trip has no horizontal overflow`,
+        );
+        await page.screenshot({ path: `${OUT}/${label}-${item.destination}-active.png` });
+        if (width === 1440) {
+          const chip = page.locator(".fact-chip").filter({ hasText: item.range[locale] });
+          check(
+            (await chip.count()) === 1,
+            `${label} ${item.destination}: date chip names the month`,
+            await page.locator(".fact-chips").innerText(),
+          );
+          await page
+            .getByRole("button", { name: locale === "en" ? /^Trips/ : /^行程/ })
+            .first()
+            .click();
+        } else {
+          await page
+            .getByRole("tab", { name: locale === "en" ? "Mine" : "我的", exact: true })
+            .click();
+        }
+        await page
+          .getByRole("tab", { name: locale === "en" ? "Calendar" : "日历", exact: true })
+          .click();
       }
+      if (width === 1440)
+        await page
+          .getByRole("button", { name: locale === "en" ? "Next month" : "下个月", exact: true })
+          .click();
       await grid
         .locator(".trip-calendar__trip")
         .filter({ hasText: "Auckland" })
@@ -298,47 +337,44 @@ try {
           "trip:Auckland",
       );
       check(true, `${label}: keyboard activation opens the matching trip`);
-      const activeTitle = await page.evaluate(
-        ({ locale, dates }) => {
-          const startYear = Number(dates[0].slice(0, 4));
-          const sameYear = startYear === Number(dates[1].slice(0, 4));
-          const includeYear = !sameYear || startYear !== new Date().getFullYear();
-          const range = new Intl.DateTimeFormat(locale === "zh" ? "zh-CN" : "en-AU", {
-            day: "numeric",
-            month: "short",
-            ...(includeYear ? { year: "numeric" } : {}),
-            timeZone: "UTC",
-          }).formatRange(new Date(`${dates[0]}T00:00:00Z`), new Date(`${dates[1]}T00:00:00Z`));
-          return `Auckland · ${range} · AI Trip Planner`;
-        },
-        { locale, dates: cases[2].dates },
-      );
+      const activeTitle =
+        locale === "zh"
+          ? "Auckland · 2030年12月31日 – 2031年1月2日 · AI Trip Planner"
+          : "Auckland · 31 Dec 2030 – 2 Jan 2031 · AI Trip Planner";
       check(
-        (await page.title()) === activeTitle,
+        (await pageTitle(page)) === activeTitle,
         `${label}: active trip title includes its locale-formatted date range`,
-        { expected: activeTitle, actual: await page.title() },
+        { expected: activeTitle, actual: await pageTitle(page) },
       );
+      if (width === 1440)
+        await page
+          .getByRole("button", { name: locale === "en" ? /^Chats/ : /^聊天/ })
+          .first()
+          .click();
+      else
+        await page
+          .getByRole("tab", { name: locale === "en" ? "Mine" : "我的", exact: true })
+          .click();
+      for (const item of cases) {
+        const expected = `${item.destination} · ${item.range[locale]}`;
+        const row = page.locator(".history-item__open").filter({ hasText: expected });
+        check(
+          (await row.count()) === 1,
+          `${label} ${item.destination}: saved chat names the month`,
+          expected,
+        );
+      }
+      await page.screenshot({ path: `${OUT}/${label}-saved-titles.png` });
       if (width === 390 && locale === "en") {
         await page.getByRole("tab", { name: "Mine", exact: true }).click();
         await page
           .getByRole("button", { name: "Switch language to 简体中文", exact: true })
           .click();
-        const chineseTitle = await page.evaluate((dates) => {
-          const startYear = Number(dates[0].slice(0, 4));
-          const sameYear = startYear === Number(dates[1].slice(0, 4));
-          const includeYear = !sameYear || startYear !== new Date().getFullYear();
-          const range = new Intl.DateTimeFormat("zh-CN", {
-            day: "numeric",
-            month: "short",
-            ...(includeYear ? { year: "numeric" } : {}),
-            timeZone: "UTC",
-          }).formatRange(new Date(`${dates[0]}T00:00:00Z`), new Date(`${dates[1]}T00:00:00Z`));
-          return `Auckland · ${range} · AI Trip Planner`;
-        }, cases[2].dates);
+        const chineseTitle = "Auckland · 2030年12月31日 – 2031年1月2日 · AI Trip Planner";
         check(
-          (await page.title()) === chineseTitle,
+          (await pageTitle(page)) === chineseTitle,
           `${label}: changing interface language refreshes the browser title`,
-          { expected: chineseTitle, actual: await page.title() },
+          { expected: chineseTitle, actual: await pageTitle(page) },
         );
         await page.getByRole("tab", { name: "日历", exact: true }).click();
         check(

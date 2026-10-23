@@ -55,6 +55,8 @@ export function mergeBriefPatch<T extends BriefPatch>(current: T, patch: BriefPa
   }
   delete next.dateStart;
   delete next.dateEnd;
+  if (next.dates && next.dates[0] === next.dates[1] && next.noAccommodation === undefined)
+    next.noAccommodation = true;
   if (parsedPatch.budgetTotal !== undefined && parsedPatch.budgetSource === undefined)
     delete next.budgetSource;
 
@@ -72,7 +74,7 @@ export function applyBriefPatch(current: TripBrief, patch: BriefPatch, tripId: s
       "Those trip dates are not real calendar dates. Please restate the start and end dates.",
     );
   }
-  if (Date.parse(next.dates[1]) <= Date.parse(next.dates[0])) {
+  if (Date.parse(next.dates[1]) < Date.parse(next.dates[0])) {
     throw new Error("Trip end date must be after the start date.");
   }
   return next;

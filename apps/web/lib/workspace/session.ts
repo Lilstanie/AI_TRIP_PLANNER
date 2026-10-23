@@ -1,5 +1,6 @@
 import type {
   AgentProgressEvent,
+  AssistantId,
   AskUserQuestionItem,
   ChatRequest,
   FlightAnswer,
@@ -17,6 +18,7 @@ import {
   draftWithKnown,
   identifyActivities,
   readPlanStream,
+  sameDraft,
   type Draft,
   type Message,
 } from "./workspace";
@@ -55,11 +57,19 @@ export type SessionState = {
 };
 
 export type TurnOutcome =
-  | { kind: "planned"; plan: TripPlan; reply: string; transcript: AgentProgressEvent[]; at: number }
+  | {
+      kind: "planned";
+      plan: TripPlan;
+      reply: string;
+      assistant?: AssistantId;
+      transcript: AgentProgressEvent[];
+      at: number;
+    }
   | {
       kind: "needsInfo";
       question: string;
       known: PartialTripBrief;
+      assistant?: AssistantId;
       transcript: AgentProgressEvent[];
       at: number;
     }
@@ -87,6 +97,7 @@ export type SessionEvent =
   | { kind: "edited"; plan: TripPlan }
   | { kind: "typed"; input: string }
   | { kind: "drafted"; draft: Draft }
+  | { kind: "defaults-changed"; previous: Draft; next: Draft }
   | { kind: "selected"; activity: string | undefined }
   | { kind: "routed"; routes: RouteResult[] }
   | { kind: "dismissed" }
@@ -95,11 +106,13 @@ export type SessionEvent =
   | { kind: "timelineChanged"; changed: boolean }
   | { kind: "replacedDismissed" };
 
+export const PREPARING_SUMMARY = "Preparing your request.";
+
 export const PREPARING: AgentProgressEvent = {
   type: "coordinator",
   phase: "dispatch",
   round: 1,
-  summary: "Preparing your request.",
+  summary: PREPARING_SUMMARY,
 };
 
 export const REJECTED_BRIEF: Notice = { key: "Check the highlighted trip details." };
@@ -187,6 +200,13 @@ export function session(state: SessionState, event: SessionEvent): SessionState 
       return { ...state, input: event.input };
     case "drafted":
       return { ...state, draft: event.draft };
+    case "defaults-changed":
+      return !state.plan &&
+        !state.messages.length &&
+        !state.input.trim() &&
+        sameDraft(state.draft, event.previous)
+        ? { ...state, draft: event.next }
+        : state;
     case "selected":
       return { ...state, selectedActivity: event.activity };
     case "routed":
@@ -212,7 +232,13 @@ export function session(state: SessionState, event: SessionEvent): SessionState 
       return { ...state, replacedChange: undefined };
     case "planned":
       return {
-        ...replied(state, reply(event.reply, event.transcript, event.at, { outcome: "planned" })),
+        ...replied(
+          state,
+          reply(event.reply, event.transcript, event.at, {
+            outcome: "planned",
+            ...(event.assistant ? { assistant: event.assistant } : {}),
+          }),
+        ),
         previousTotal: state.plan?.estTotal,
 
         estimateChange: state.plan ? event.plan.estTotal - state.plan.estTotal : undefined,
@@ -227,7 +253,13 @@ export function session(state: SessionState, event: SessionEvent): SessionState 
       };
     case "needsInfo":
       return {
-        ...replied(state, reply(event.question, event.transcript, event.at, { outcome: "asked" })),
+        ...replied(
+          state,
+          reply(event.question, event.transcript, event.at, {
+            outcome: "asked",
+            ...(event.assistant ? { assistant: event.assistant } : {}),
+          }),
+        ),
         draft: draftWithKnown(state.draft, event.known),
       };
     case "asked": {
@@ -284,14 +316,28 @@ export async function requestTurn(
       transcript.push(event);
       onProgress?.(event);
     });
-    return { kind: "planned", plan: result.plan, reply: result.reply, transcript, at: now() };
+    return {
+      kind: "planned",
+      plan: result.plan,
+      reply: result.reply,
+      ...(result.assistant ? { assistant: result.assistant } : {}),
+      transcript,
+      at: now(),
+    };
   } catch (failure) {
     if (signal.aborted) return { kind: "cancelled" };
     if (failure instanceof FlightAnswerError)
       return { kind: "answered", flights: failure.answer, transcript, at: now() };
     if (failure instanceof NeedsInfoError) {
-      const { question, known } = failure.needsInfo;
-      return { kind: "needsInfo", question, known, transcript, at: now() };
+      const { question, known, assistant } = failure.needsInfo;
+      return {
+        kind: "needsInfo",
+        question,
+        known,
+        ...(assistant ? { assistant } : {}),
+        transcript,
+        at: now(),
+      };
     }
     if (failure instanceof AskUserError) {
       const { questions, known, plan, reply: text } = failure.askUser;

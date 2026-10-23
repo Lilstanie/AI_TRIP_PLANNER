@@ -285,7 +285,12 @@ Specialist 提案、行程需求和最终计划在图边界上分别通过 `Agen
 | Accommodation | 住宿搜索、比较和房间分配                      | 包装确定性计算器的 agent |
 
 交通和住宿包装计算器，使模型无法编造价格、路线或住宿设施。行程同样从不为停留点定价：
-Google Places 不提供门票价格，因此活动的 `estCost` 保持未设置，计划会说明有多少停留点尚未定价。
+Google Places 不提供门票价格，因此活动的 `estCost` 保持未设置，计划会说明有多少停留点尚未定价。它的摘要根据最终保留的停留点生成（天数和单日最多停留点数），从不采用模型自己写的摘要，因此不会把有停留点的一天说成空闲。
+回复会收到计划中的已知估算、预算、预算余量以及每个停留点的价格状态。未设置的活动价格会被排除，而非视为零；
+回复必须说明这一边界，只有计划中带有数值价格时才能引用停留点价格。Fixture 和无模型回复只能验证这一确定性边界，
+不能证明 live 模型措辞的可靠性。
+当数据较少的计划在多天重复安排同一有依据的地点时，回复事实会包含重复地点及对应日期，
+使回复明确说明这是同一停留点的重复使用，而非多个不同活动。
 
 模型路由（`packages/agents/src/models.ts` 和 `chat.ts` 中的 `MODEL_ROUTING`）：
 
@@ -297,7 +302,8 @@ Google Places 不提供门票价格，因此活动的 `estCost` 保持未设置�
 日期由模型读取，而非由模式匹配读取：提取会将旅行者书写的各种日期形式转换为 `YYYY-MM-DD`，
 对于未写年份的日期，采用下一次出现的日期；如果只给出一端，或无法区分日和月（`01/10/2026`），
 则保持日期未设置，向旅行者询问，而不是按猜测的月份规划旅行。
-没有密钥或模型调用失败时，改用一个简单的中英文规则解析器提取；它只读取 ISO 日期。
+没有密钥或模型调用失败时，改用一个简单的中英文规则解析器提取。它读取受支持的显式日期，
+并将明确给出的时长和开始日期解析为包含首尾的结束日期；不会推测未说明的返程日期。
 
 `TripBrief.dates` 是闭区间：结束日期就是行程的最后一天，因此行程共有 `end − start + 1` 天、
 `end − start` 晚。规划代码用 `planningDays()`（agents）、`tripDays()`（餐饮）和 `dayCount()`（web）
@@ -314,7 +320,7 @@ Google Places 不提供门票价格，因此活动的 `estCost` 保持未设置�
 `TripBrief.displayCurrency`（以及 `known` 中的同名字段）是旅行者最近一次为该行程指定的币种，无论连同预算还是单独说出。
 两条提取路径都会写入它：协调器的行程更新接受不带金额的币种，离线提取器对消息使用 `detectCurrency`。浏览器在所有需要选择币种的地方
 读取同一条规则，即 `packages/shared/src/money.ts` 中的 `effectiveCurrency()`：先取 `displayCurrency`，再取 `budgetSource.currency`，
-最后取设置中的显示币种。规划、预算检查和存储的金额仍为 AUD；`budgetSource` 保留所述金额和币种。替换预算而未提供新来源时清除旧来源；仅修改显示币种时保留来源。中文旅行者人数接受 1 至 99 的基数词。行程从不写入设置。
+最后取设置中的显示币种。规划、预算检查和存储的金额仍为 AUD；`budgetSource` 保留所述金额和币种。只给数字的预算按 AUD 存储且没有来源，协调者提示词要求回复说明已按 AUD 处理、可以改成其他币种，绝不说币种未定。替换预算而未提供新来源时清除旧来源；仅修改显示币种时保留来源。中文旅行者人数接受 1 至 99 的基数词。离线提取器从“去”“前往”“目的地”之后或“……的X之旅”中读取中文目的地，在“的旅行”前截止，中文出发地在“前往”前截止；“X和Y”两侧都至少两个字时读作“X & Y”，因此没有模型时每个中文示例芯片也能生成方案。行程从不写入设置。
 服务器对它写出的文字使用同一条规则：设置币种来自聊天请求中可选的 `displayCurrency`（不传即 AUD），服务器取
 `effectiveCurrency(brief, request.displayCurrency ?? "AUD")`，并把结果传给每一处调用 `formatMoney` 的位置（specialist 摘要、冲突原因和约束、
 协调器与 specialist 的进度行、预算分配依据以及兜底回复）。specialist 通过 `AgentContext.displayCurrency` 收到该币种。
@@ -340,6 +346,12 @@ Supervisor 收到指令，将每条偏好传入它所影响的目标；每个 sp
 - `excludeFlights`：旅行者自行安排航班。
 - `bookedStay`：旅行者已预订住宿。
 - `noAccommodation`：旅行者不需要住宿；它与 `bookedStay` 相互独立。
+
+旅行者以天数说明的行程长度（“3 days”“5-day”“四天”“三日游”）会覆盖模型给出的结束日期：
+`packages/orchestrator/src/chat-offline.ts` 中的 `statedTripDays` 把消息中的天数相加，结束日期为开始日期加上天数再减一，
+因此 N 天就是 N 个日历日，不额外加一个离开日。消息中明确的日期范围优先；“in 3 days”不会被当作长度，“1 day”得到当天往返的行程。
+
+当天往返的行程（`dates[0] === dates[1]`）只在只有一个目的地且 `noAccommodation: true` 时有效；其余行程每个目的地至少一晚。brief patch 让开始和结束成为同一天、且 `noAccommodation` 未设置时，`mergeBriefPatch` 会把它设为 `true`，所以“1 day in Sydney”会规划一天且不住宿。当天往返的行程设置 `noAccommodation: false` 会被拒绝。
 
 `packages/orchestrator/src/supervisor.ts` 中的 `specialistBrief` 把学到的列表追加到旅行者自己的
 列表之后交给 specialist，去重并限制为 12 条。存储的行程需求仍把两个列表分开保存。

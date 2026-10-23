@@ -49,10 +49,41 @@ export function TripPanel({
 
   const picks = restaurantIds(plan);
   const budgetConflicts = placeConflicts(plan).budget;
+  const budgetCategories = [
+    { id: "accommodation", label: "Accommodation" },
+    { id: "transport", label: "Transport" },
+    { id: "dining", label: "Meals" },
+    { id: "itinerary", label: "Activities" },
+  ] as const;
+  const budgetBreakdown = budgetCategories.map(({ id, label }) => {
+    const sections = plan.sections.filter((section) => section.id === id);
+    const amount = sections.reduce((sum, section) => sum + section.estCost, 0);
+    const unpriced = sections.reduce(
+      (sum, section) =>
+        sum + (section.proposal?.items.filter((item) => item.estCost === undefined).length ?? 0),
+      0,
+    );
+    return {
+      id,
+      label,
+      amount,
+      notCosted:
+        (id === "transport" || unpriced > 0) &&
+        amount === 0 &&
+        !sections.some((section) =>
+          section.proposal?.items.some((item) => item.estCost !== undefined),
+        ),
+      unpriced,
+    };
+  });
   const unpriced = itineraryActivities(plan).filter(
     (item) => item.estCost === undefined && !(item.id && picks.has(item.id)),
   ).length;
-  const unpricedCaution = unpriced > 0 && (atBudget || gap?.direction === "under");
+  const transportMissing = budgetBreakdown.some(
+    (category) => category.id === "transport" && (category.notCosted || category.unpriced > 0),
+  );
+  const unpricedCaution =
+    (unpriced > 0 || transportMissing) && (atBudget || gap?.direction === "under");
   const [start, end] = plan.brief.dates;
   const dateRange = dateRangeLabel(start, end, locale) ?? `${start} – ${end}`;
   return (
@@ -87,11 +118,15 @@ export function TripPanel({
                 : over
                   ? t("Over budget")
                   : atBudget
-                    ? unpriced > 0
-                      ? t("At budget · unpriced stops not counted")
-                      : t("At budget")
+                    ? transportMissing
+                      ? t("At budget · unpriced costs not counted")
+                      : unpriced > 0
+                        ? t("At budget · unpriced stops not counted")
+                        : t("At budget")
                     : unpricedCaution
-                      ? t("Known estimate within budget · unpriced stops not counted")
+                      ? transportMissing
+                        ? t("Known estimate within budget · unpriced costs not counted")
+                        : t("Known estimate within budget · unpriced stops not counted")
                       : t("Within budget")}
             </span>
           </div>
@@ -112,6 +147,25 @@ export function TripPanel({
                 ? t(gap.key, gap.params)
                 : t("Budget not set")}
           </p>
+          <ul className="trip-panel__budget-breakdown" aria-label={t("Budget breakdown")}>
+            {budgetBreakdown.map((category) => (
+              <li key={category.id}>
+                <span>{t(category.label)}</span>
+                <span>
+                  {category.notCosted ? (
+                    <strong>{t("Not costed")}</strong>
+                  ) : (
+                    <>
+                      <strong>{money(category.amount)}</strong> · {t("Estimated")}
+                    </>
+                  )}
+                  {category.unpriced > 0 && (
+                    <> · {t("{count} unpriced", { count: category.unpriced })}</>
+                  )}
+                </span>
+              </li>
+            ))}
+          </ul>
           {budgetConflicts.length > 0 && (
             <ul className="trip-panel__conflicts" aria-label={t("Open conflicts")}>
               {budgetConflicts.map((notice, index) => (
@@ -125,6 +179,9 @@ export function TripPanel({
                 count: unpriced,
               })}
             </p>
+          )}
+          {transportMissing && (
+            <p className="trip__budget-note">{t("Not included: transport without a price.")}</p>
           )}
           <CurrencyNotice />
         </details>
