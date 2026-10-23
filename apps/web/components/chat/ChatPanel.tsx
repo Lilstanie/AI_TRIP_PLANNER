@@ -91,7 +91,10 @@ export function ChatPanel({
   useEffect(() => {
     const node = stream.current;
     if (!empty || !node) return setMore(false);
-    const update = () => setMore(node.scrollTop + node.clientHeight < node.scrollHeight - 1);
+    const update = () => {
+      const padding = parseFloat(getComputedStyle(node).paddingBottom) || 0;
+      setMore(node.scrollTop + node.clientHeight < node.scrollHeight - padding - 1);
+    };
     const observer = new ResizeObserver(update);
     observer.observe(node);
     if (node.firstElementChild) observer.observe(node.firstElementChild);
