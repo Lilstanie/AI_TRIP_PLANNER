@@ -213,7 +213,7 @@ One specification per member at least (C wrote two); seven in total. Each comes 
 5. The weather adapter selects a forecast or climate source for the date and returns the horizon and provenance with the result.
 6. The configured LLM reads the validated brief, month, place candidates and preferences through its read-only evidence tool, then drafts destination and packing guidance.
 7. Deterministic code fits the draft to the output schema, rejects ungrounded attraction names and deduplicates accepted candidates; invalid output uses the local fallback.
-8. Dining retrieves restaurant candidates and saved preferences, filters to dietary-related preferences and computes a per-person meal ceiling.
+8. Dining retrieves trip, chat-learned and saved dietary preferences plus restaurant candidates and computes a per-person meal ceiling.
 9. The configured LLM drafts venue suggestions from its evidence tool. Deterministic code checks the budget and candidate names, while the proposal says menus and allergy suitability must be confirmed with the venue.
 10. The Orchestrator validates the proposals at the graph boundary, assembles the `TripPlan` and returns the weather-packing and dining sections to the traveller.
 
@@ -224,7 +224,7 @@ One specification per member at least (C wrote two); seven in total. Each comes 
 - 5b. _Weather provider fails_: continue with month-level context and label the weather provider unavailable; do not fail the destination guide solely because weather failed.
 - 7a. _No model is configured, the model fails, or its draft is invalid or names an ungrounded attraction_: return deterministic guidance from available map evidence and mark the proposal as fallback.
 - 8a. _No restaurant candidates are returned_: return the meal-budget envelope without venue picks.
-- 9a. _No saved dietary preferences exist_: generate general grounded candidates and state that no confirmed dietary preferences were found.
+- 9a. _No trip, chat or saved dietary preferences exist_: generate general grounded candidates and state that no confirmed dietary preferences were found.
 - 9b. _A traveller reports an allergy_: never guarantee a venue is safe; tell the traveller to confirm ingredients and cross-contamination controls directly with the venue.
 
 **Special requirements**: R-D2 (forecast horizon and provenance), R-D4 (grounded names and dietary safety), R-D5 (visible degradation and fallback).
