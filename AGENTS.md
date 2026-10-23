@@ -61,6 +61,12 @@ checks the frozen and shared-contract rules.
   or a tool instruction — JSDoc for non-obvious returns, failures, ownership and timing, plus
   shebangs, compiler and lint directives, SQL delimiters and third-party licence notices. Reviewers
   run the [added-comment check](.agents/skills/review-trip-planner/references/comment-policy.md).
+- Fix a bug at its cause: reproduce it, name the cause with evidence, and fix that cause. Do not hide a
+  symptom with a retry, a longer timeout, an extra guard or a special case
+  ([root causes](docs/development.md#fix-root-causes)).
+- Let the layout explain. Do not add secondary labels, descriptions or helper copy that repeat what the
+  layout already shows; keep form labels and accessible names. Run
+  `node .agents/skills/better-ui/scripts/check-ui-copy.mjs` before pushing UI changes.
 - Keep external credentials in environment variables. Never commit keys or copy them into project
   documentation, fixtures, or source code.
 - Use standard branch names such as `feature/<short-name>`, `fix/<short-name>`, `refactor/<short-name>`,
