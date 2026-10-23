@@ -26,13 +26,13 @@ describe("specialist summary copy", () => {
   it("keeps every English summary byte-for-byte", () => {
     const en = summaryCopy("en");
     expect(en.stays(stay)).toBe(
-      "1 room(s), 4 nights in Tokyo & Kyoto · A$1,200 (lowest eligible cost)",
+      "1 room, 4 nights in Tokyo & Kyoto · A$1,200 (lowest eligible cost)",
     );
     expect(en.stays({ ...stay, lowestCost: false })).toBe(
-      "1 room(s), 4 nights in Tokyo & Kyoto · A$1,200",
+      "1 room, 4 nights in Tokyo & Kyoto · A$1,200",
     );
     expect(en.bookedStay("Park Hotel", 3)).toBe(
-      "Park Hotel · booked by you, 3 night(s) · not priced",
+      "Park Hotel · booked by you, 3 nights · not priced",
     );
     expect(en.guide("Kyoto", "2026-10-01")).toBe("Kyoto planning guidance for October");
     expect(en.dining("Two picks", "A$300")).toBe("Two picks · A$300 meal budget");
