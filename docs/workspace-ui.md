@@ -13,7 +13,7 @@ now. Implementation history and browser acceptance for each phase are in the
 | Sidebar           | Logo, Chats and Trips with counts, save or sync status, Settings & account                                                                                       | `WorkspaceSidebar`, `BrandMark`, `icons.tsx`                                                                |
 | Chats panel       | Slides out beside the sidebar: search, New chat, New trip, then trips and chats                                                                                  | `ChatsPanel`, `TripCover`                                                                                   |
 | Your trips        | Opened by Trips in place of chat and map: trip cards (Upcoming, Past) and a Calendar tab; New trip                                                               | `TripsPage`, `TripCover`                                                                                    |
-| Top bar           | Trip title; trip fact chips (destination, dates, travellers, budget, Preferences); data mode; Specialist team; Trip with its stop count, rightmost               | `WorkspaceView`, `TripFactChips`, `TeamControl`                                                             |
+| Top bar           | Trip title; trip fact chips (destination, dates, travellers, budget, Preferences); data mode; Specialist team; Trip with its stop count, rightmost               | `WorkspaceView`, `TripFactChips`, `TeamControl`, `PhoneTeamButton`                                          |
 | Trip fact editors | One editor per chip, every one a centred dialog; Preferences holds the traveller's own list                                                                      | `FactPopover`, `FactFields`, `TripCalendar`, `WhereFields`, `PreferenceList`, `lib/workspace/trip-facts.ts` |
 | Chat              | Conversation, the planning transcript, the composer; starter suggestions in a blank chat; no visible heading                                                     | `ChatPanel`                                                                                                 |
 | Map               | Only the map, labelled markers, curved day-coloured itinerary lines, the place popup, map status, and the locate / map type / zoom controls                      | `TripMapCanvas`, `TripMap`                                                                                  |
@@ -310,6 +310,12 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     agent reply's activity. [`TeamPanel`](../apps/web/components/chat/TeamPanel.tsx) takes a run's activity
     as input, and [`teamModel`](../apps/web/components/chat/team-model.ts) derives everything from the
     streamed events, nothing invented.
+    At 520 px and below the top bar keeps one row: an avatar-only button at least 44 px square sits right of the
+    trip title, which truncates. It opens the same panel as a bottom sheet
+    ([`PhoneTeamButton`](../apps/web/components/workspace/PhoneTeamButton.tsx)) that behaves like the Trip details
+    sheet: a modal dialog named Specialist team, focus moves in and stays in, Escape, the close button or a press
+    outside closes it and returns focus to the button, and it scrolls when long. It shares the layout `sheet` slot,
+    so it never opens together with Trip details, and it closes when the viewport grows past phone width.
     - Six rows, always, in the fixed order (Coordinator, Day plan, Getting around, Stay, Destination
       guide, Food & dining), each with its icon, current name, a status and its latest objective
       (clamped to two lines, with Show more). Idle is before any event; Working is started with no result in

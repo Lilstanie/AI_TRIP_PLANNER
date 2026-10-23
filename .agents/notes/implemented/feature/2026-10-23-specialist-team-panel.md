@@ -21,7 +21,8 @@ back or whether a revision was kept. Tutors should see the team's structure, not
   glossary term): a specialist's first dispatch, a targeted revision or a hand-off, with owner, status,
   data source and the AI-or-code marker kept from #558, plus the conflict checks, revision scores and the
   stop reason. At phone width the same panel opens as a bottom sheet from an avatar button beside the
-  trip title (#632).
+  trip title (#632); it reuses `TeamPanel` inside the shared modal sheet, held in the layout `sheet` slot
+  next to Trip details so the two never open together.
 - **Derived on the client, no contract change.** `teamModel` in `team-model.ts` turns an activity list
   (`AgentProgressEvent[]`) into six rows, the ordered assignments and checks and a working count. The
   button avatars, the panel and the reply summary read it, and `TeamPanel` takes a run's activity as
@@ -77,3 +78,4 @@ each specialist's work can differ, and the tutor needs both.
 ## Sources
 
 [2026-10-23 team panel desktop log](../../../session-logs/2026-10-23-team-panel-desktop.md)
+[2026-10-23 team panel phone log](../../../session-logs/2026-10-23-team-panel-phone.md)

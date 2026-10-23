@@ -1,0 +1,67 @@
+"use client";
+import { useMemo, useRef } from "react";
+import type { AgentProgressEvent } from "@trip/shared";
+import { useLocale } from "../account/LocaleProvider";
+import { TeamAvatars } from "../chat/TeamControl";
+import { TeamPanel } from "../chat/TeamPanel";
+import { teamModel } from "../chat/team-model";
+import type { CloseReason } from "../preferences/FactPopover";
+import { FactPopover } from "../preferences/FactPopover";
+import { usePresence } from "../ui/motion";
+import type { WorkspaceModel } from "./useWorkspace";
+
+const TEAM_SHEET_ID = "team-sheet";
+
+export function PhoneTeamButton({
+  model,
+  activity,
+  busy,
+}: {
+  model: WorkspaceModel;
+  activity: readonly AgentProgressEvent[];
+  busy: boolean;
+}) {
+  const { t } = useLocale();
+  const team = useMemo(() => teamModel(activity, !busy), [activity, busy]);
+  const { openTeamSheet, closeTeamSheet } = model.layout;
+  const button = useRef<HTMLButtonElement>(null);
+  const open = model.layout.surface.sheet === "team";
+  const sheet = usePresence(open || undefined, 220);
+
+  const close = (reason: CloseReason) => {
+    closeTeamSheet();
+    if (reason === "dismiss") button.current?.focus({ preventScroll: true });
+  };
+
+  return (
+    <>
+      <button
+        ref={button}
+        type="button"
+        className="topbar-button team-trigger phone-topbar__team"
+        aria-label={t("Specialist team")}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        aria-controls={open ? TEAM_SHEET_ID : undefined}
+        data-working={team.working}
+        onClick={open ? closeTeamSheet : openTeamSheet}
+      >
+        <TeamAvatars rows={team.rows} />
+      </button>
+      {sheet.value && (
+        <FactPopover
+          key={sheet.leaving ? "leaving" : "open"}
+          id={TEAM_SHEET_ID}
+          title={t("Specialist team")}
+          anchor={button}
+          onClose={close}
+          modal
+          leaving={sheet.leaving}
+          className="fact-popover--team"
+        >
+          <TeamPanel activity={activity} settled={!busy} model={team} />
+        </FactPopover>
+      )}
+    </>
+  );
+}
