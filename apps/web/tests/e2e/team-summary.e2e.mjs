@@ -335,6 +335,7 @@ try {
           `${label}: the summary hit area is at least 44 px high`,
           hit,
         );
+        check(hit.height === 36, `${label}: the visible summary stays 36 px high`, hit.height);
       }
       check(errors.length === 0, `${label}: no page errors`, errors);
       await context.close();

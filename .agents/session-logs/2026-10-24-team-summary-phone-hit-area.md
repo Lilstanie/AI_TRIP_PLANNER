@@ -25,7 +25,7 @@ The extension is a pseudo-element so the look stays the same, as the guideline a
 
 - Before the CSS fix (origin/main `thinking.css`): `node tests/e2e/team-summary.e2e.mjs`, 108 ok, 2 FAIL
   (`en-390` and `zh-390` hit area, height 36, top and bottom false).
-- After: `node tests/e2e/team-summary.e2e.mjs`, exit 0, 110 ok, 0 FAIL.
+- After: `node tests/e2e/team-summary.e2e.mjs`, exit 0, 112 ok, 0 FAIL (adds a visible 36 px assertion; the 520 px rule now also holds `position: relative`).
 - `pnpm exec prettier --check` on both changed files: all matched files use Prettier code style.
 
 ## Notes for the next person

@@ -639,7 +639,6 @@
   font: inherit;
   font-size: 12px;
   cursor: pointer;
-  position: relative;
 }
 
 .team-summary:hover,
@@ -649,6 +648,10 @@
 }
 
 @media (max-width: 520px) {
+  .team-summary {
+    position: relative;
+  }
+
   .team-summary::before {
     content: "";
     position: absolute;
