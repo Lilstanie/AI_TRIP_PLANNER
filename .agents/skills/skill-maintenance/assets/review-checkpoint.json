@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "reviewedRevision": "10a6a8f5ff18d7fa5620c90935945db1444f3965",
+  "reviewedRevision": "114388cc420df010d3d00da03d673a13504cc4c6",
   "skills": [
     {
       "name": "add-provider",
@@ -28,7 +28,7 @@
     },
     {
       "name": "better-ui",
-      "summary": "re-checked tokens, motion helpers, press scale, icon files and the glass recipe after the glass calibration in #592; PlacePreview still draws its photo hairline with border-bottom rather than the contract's inner outline (code gap, reported); PR #586 will touch this skill."
+      "summary": "re-checked tokens, motion helpers, press scale, icon files and the glass recipe after the glass calibration in #592; PlacePreview still draws its photo hairline with border-bottom rather than the contract's inner outline (code gap, reported); PR #586 will touch this skill. Read the #586 copy rules and scripts/check-ui-copy.mjs: the skill's description of what the script lists, its exit code and its allowlist file match the code."
     },
     {
       "name": "better-writing",
@@ -40,7 +40,7 @@
     },
     {
       "name": "e2e-maintenance",
-      "summary": "re-checked ci-integration fault modes, evidence upload, worker limit, timeout flags, doctor/list, report fields and the clean:output rule; the red/green command (#581) is covered by pre-push-checks, not duplicated here; no change."
+      "summary": "re-checked ci-integration fault modes, evidence upload, worker limit, timeout flags, doctor/list, report fields and the clean:output rule; the red/green command (#581) is covered by pre-push-checks, not duplicated here; no change. Read the four traps added in #586 (phone tab bar elementFromPoint, formatRange thin space, the next dev portal badge, unreachable tile hosts); they state observed behaviour and contradict no earlier rule."
     },
     {
       "name": "end-to-end-feature-wiring",
@@ -84,7 +84,7 @@
     },
     {
       "name": "ui-verification",
-      "summary": "web launch config, named E2E scripts, runner --prod flag, map-provider settings and Clerk key gate still resolve; the phone E2E commits since 2026-10-15 only repair or share touch-target checks and change no rule it states; device-only behaviour stays not verified."
+      "summary": "web launch config, named E2E scripts, runner --prod flag, map-provider settings and Clerk key gate still resolve; the phone E2E commits since 2026-10-15 only repair or share touch-target checks and change no rule it states; device-only behaviour stays not verified. Read the element-screenshot sentence added in #586; it agrees with the evidence rules."
     },
     {
       "name": "vercel-react-best-practices",
