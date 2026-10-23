@@ -242,6 +242,7 @@ export function withProgressTools(
         {
           near: query.near,
           ...(query.category ? { category: query.category } : {}),
+          ...(query.textQuery ? { textQuery: query.textQuery } : {}),
         },
         () => tools.maps.places(query),
         (result) => {

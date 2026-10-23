@@ -31,6 +31,7 @@ export interface RouteLeg {
 export interface PlaceQuery {
   near: string;
   category?: string;
+  textQuery?: string;
 }
 export interface Place {
   name: string;
