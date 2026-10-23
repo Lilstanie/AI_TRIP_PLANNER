@@ -55,7 +55,7 @@ now. Implementation history and browser acceptance for each phase are in the
     every trip as a 4:3 cover card with "Trip to <destination>" and "<destination> · <localized date range> · N days",
     grouped into Upcoming and Past. Calendar is a Monday-first month grid with previous, Today and
     next, drawing each trip as a band over its days, filled with the dark colour of its cover palette
-    so the white label stays readable, labelled where it starts and at each week's start; it opens on the next trip's month. Calendar labels and accessible names reuse the Trips card disambiguation for trips with the same destination, dates, group size and budget; compact phone bars show a contrasting short destination prefix and ordinal (for example, `Syd·1`) so duplicate trips stay visibly identifiable. Each trip band announces its full title and inclusive start and end dates using the same full localized weekday, date and year format as the date cells, with UTC keeping calendar dates stable across time zones. Each date cell has a full localized weekday, date and year name; today has `aria-current="date"`; arrow keys move visible focus across every date, including empty dates. Choosing a trip, a chat, New chat or New trip returns
+    so the white label stays readable, labelled where it starts and at each week's start, with the label running across that week's days of the bar and ending in an ellipsis only if it still does not fit; it opens on the next trip's month. Calendar labels and accessible names reuse the Trips card disambiguation for trips with the same destination, dates, group size and budget; compact phone bars show a contrasting short destination prefix and ordinal (for example, `Syd·1`) so duplicate trips stay visibly identifiable. Each trip band announces its full title and inclusive start and end dates using the same full localized weekday, date and year format as the date cells, with UTC keeping calendar dates stable across time zones. Each date cell has a full localized weekday, date and year name; today has `aria-current="date"`; arrow keys move visible focus across every date, including empty dates. Choosing a trip, a chat, New chat or New trip returns
     to the workspace.
   - Trips keep no photos, so a cover is a gradient chosen by hashing the destination, with its
     initial; the same destination always gets the same colours.
@@ -230,8 +230,8 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
   - The single-row top bar shows the destination and dates, or New trip. Its title opens Trip details:
     Where, When, Who, Budget and Preferences as rows. Each row opens the existing editor; saving or
     closing returns focus to the title. Editors are bottom sheets with 44 px targets, including each
-    sheet's close button and its primary action, and in When every day cell, both month arrows and
-    Clear.
+    sheet's close button and its primary action, in When every day cell, both month arrows and
+    Clear, and in Who each − and + stepper button.
   - Trip shows Your Trip in place, with Budget and the day view. Before
     planning it explains the empty state and offers Plan in Chat. A plan created or changed while
     another tab is selected adds an accessible update dot to Trip; opening Trip clears it. Read revisions are tracked per trip,
@@ -247,7 +247,8 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     Chat (unless a chip editor is open), and Chat and Map stay as they are. Settings and chip
     editors stay open across the crossing; Trip details closes when the phone top bar goes away.
   - Map fills the space between the bars. Its day-stops sheet has collapsed, half and full heights,
-    selected by dragging or using its handle with pointer or keyboard. Changing day filters the map's
+    selected by dragging or using its handle with pointer or keyboard; the handle's name states the
+    current height, so a screen reader hears each step. Changing day filters the map's
     markers and routes to that day's stops, so a place visited on several days appears on each of
     them with its trip-wide number; selecting a stop, in the sheet or on the map, focuses that day's
     visit. Each row leads with the stop's place name, as the Trip tab does, with its start time below;
@@ -290,7 +291,7 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
   listed under Trips once a plan is produced; until then it is a blank conversation under Chats. The
   [New trip Agent Note](../.agents/notes/archived/feature/2026-09-24-new-trip.md) records why.
 - **Starting to plan.**
-  - A blank chat offers example trip suggestions. Selecting one sends a prompt and starts planning.
+  - A blank chat offers example trip suggestions. Selecting one sends a prompt and starts planning. When the card does not fit the chat stream (a short phone), the stream's bottom edge fades out until it is scrolled to the end, so the hidden examples and Add trip details are signalled.
     The prompt follows the interface language while keeping its dates, travellers and budget;
     data-mode tooltips and the action name for an untitled chat follow that language too.
     The browser title follows the active trip and the locale-formatted date range, and returns to
@@ -299,7 +300,8 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     outside the current year or across years include the year at both ends.
   - Each agent reply renders under its own Think fold: the transcript streams at the foot of the chat
     while the turn runs, then moves above the reply that ended the turn and stays with it (including
-    after a reload).
+    after a reload). English specialist summaries, assumptions and progress lines count in the
+    singular for one and the plural for more ("1 transport option", "2 rooms"), never with "(s)".
   - A planning turn also reads as a team conversation above its Think fold. The Coordinator dispatches
     the work, from the `coordinator` dispatch event and each specialist's `agent_started` objective,
     and each specialist then reports its result, from `agent_completed` with its data source (live,
@@ -307,7 +309,9 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     assistant's fixed icon (Coordinator, Day plan, Getting around, Stay, Destination guide, Food &
     dining) and its role name in the interface language. A marker says whether an LLM or code decided
     the step: a step counts as decided by AI when the stream carried reasoning for that assistant in
-    that round. The client's own "Preparing your request." placeholder is not a message. A
+    that round. Because reasoning can arrive after the step, the marker appears only once it is final:
+    as soon as that reasoning arrives, or as code when the turn ends without it; it never changes
+    after it appears. Handoff declines carry their provenance and are marked at once. The client's own "Preparing your request." placeholder is not a message. A
     reply attributed to an assistant other than the Coordinator, or a stored message without an
     assistant id, which reads as the Coordinator, keeps its existing text. The Subagent rows in the
     Think fold use the same icons. The Trip drawer shows no assistant icons.
@@ -319,8 +323,9 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     sections, and the planning loop's conflict check and targeted revision follow. The reply carries the
     mentioned specialist's icon and name. Conflict, revision-score and stop messages from the loop show in
     the team conversation as plain rules with a left border and no icon. With no plan yet, the mentioned
-    specialist only answers, nothing is created, and the same message asks for the brief. The chips wrap
-    at phone width and are 44 px tall there. A message may mention several specialists: each id is sent once,
+    specialist only answers, nothing is created, and the same message asks for the brief. At phone width
+    the chips are 44 px tall and stay in one row that scrolls sideways, with a 56 px fade at the end
+    while more chips are hidden, so the message list keeps the screen. A message may mention several specialists: each id is sent once,
     exactly those specialists run together in one round, only their sections change, and one conflict
     check follows once they have all finished. A mention that names the wrong specialist (for example Stay
     with a restaurant request) is handed off once: the mentioned specialist declines under its own icon and
@@ -444,8 +449,9 @@ within budget · unpriced stops not counted” and uses the caution colour. The 
 listed beneath the estimate. Status text wraps within the budget panel at narrow drawer widths.
 The budget card also breaks the known estimate into accommodation, transport, meals and activities.
 Each amount is labelled as an estimate; proposal items without prices are counted as unpriced beside
-their category and are not added to the total. Transport without a quoted amount or any priced item
-shows “Not costed” instead of a zero estimate. Published zero fares remain zero; older nonzero
+their category and are not added to the total. Transport without a quoted amount or any priced item,
+and any other category whose items are all unpriced, shows “Not costed” instead of a zero estimate,
+keeping its unpriced count. Published zero fares remain zero; older nonzero
 transport estimates remain visible. Missing transport prices are disclosed below the breakdown,
 and at-budget or below-budget statuses say “unpriced costs not counted”. Over-budget warnings remain.
 The known category amounts add up to the displayed

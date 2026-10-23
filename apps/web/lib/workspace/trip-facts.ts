@@ -120,7 +120,8 @@ const FIX: Record<string, Notice> = {
 };
 
 const CHECK_DETAILS: Notice = { key: "Check the highlighted trip details." };
-const DATES_ORDER = "End date must follow start date, with at least one night per destination.";
+const DATES_ORDER =
+  "End date must follow start date, with at least one night per destination. A one-day trip needs one destination and no accommodation.";
 
 const datesFix = (message: string): Notice =>
   message === DATES_ORDER ? { key: DATES_ORDER } : { key: "Choose both a start and an end date." };

@@ -112,6 +112,9 @@ See [add-provider](../add-provider/SKILL.md) for provider boundaries and failure
 
 ## 5. Record evidence
 
+To look at a change yourself, screenshot only the element (`locator.screenshot()`); a full-page image
+costs far more context and shows nothing extra. Keep full-page shots for the PR's evidence.
+
 Save screenshots under `output/playwright/<name>/`, which is Git-ignored (an E2E script writes there
 itself), and attach them to the PR's
 Evidence section; describe what each one proves. Record the revision, command, viewports, measured container widths and results in the session log.

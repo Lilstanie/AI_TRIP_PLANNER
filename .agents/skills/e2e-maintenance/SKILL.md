@@ -172,3 +172,14 @@ Each of these cost a rerun once. Check for them before reading a failure as a pr
 - `getByText(..., { exact: true })` on a search-result message also matches the sr-only
   `role="status"` region that repeats it, which throws in strict mode. Read the status by role, or
   scope the visible line by its class.
+- On phone, the fixed tab bar covers whatever sits behind it, so `elementFromPoint` there returns
+  the tab bar. Call `scrollIntoView({ block: "center" })` on the target before probing a point.
+- `Intl.DateTimeFormat#formatRange` puts a thin space (`\u2009`) around the dash in some Chromium
+  builds and a plain space in others. Build the expected string with `Intl` in the same page, or
+  replace `\u2009` with a space on both sides before comparing.
+- In `next dev`, the `nextjs-portal` badge sits over the bottom-left corner and swallows clicks there,
+  including the phone tab bar's first tabs. After `goto`, add the style
+  `nextjs-portal { display: none !important; }`.
+- The cloud container cannot reach the OpenFreeMap or OSM tile hosts, so the map shows "The map could
+  not load. Try again." and its overlay covers the map controls. Satellite view exists only with a
+  Google Maps key. Skip control checks with a `skip` line rather than reading these as regressions.

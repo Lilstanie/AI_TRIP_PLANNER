@@ -12,7 +12,8 @@ const ENGLISH = {
   planningTasks: (destination: string) => `Assigning planning tasks for ${destination}.`,
   brief: ({ destination, start, end, groupSize, money }: BriefLine) =>
     `${destination} · ${start} to ${end} · ${groupSize} people · ${money}`,
-  checked: (count: number) => `Checked budget and schedules: ${count} revision request(s).`,
+  checked: (count: number) =>
+    `Checked budget and schedules: ${count} revision ${count === 1 ? "request" : "requests"}.`,
   revising: "Revising affected sections.",
   notImproved: "Revision did not improve the plan; keeping the previous version.",
   assembling: "Assembling the plan.",

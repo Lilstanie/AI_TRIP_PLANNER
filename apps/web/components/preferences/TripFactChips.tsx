@@ -112,12 +112,12 @@ export function TripFactChips(props: Props) {
     update();
     row.addEventListener("scroll", update, { passive: true });
     row.addEventListener("wheel", onWheel, { passive: false });
-    const observer = typeof ResizeObserver === "function" ? new ResizeObserver(update) : undefined;
-    observer?.observe(row);
+    const observer = new ResizeObserver(update);
+    observer.observe(row);
     return () => {
       row.removeEventListener("scroll", update);
       row.removeEventListener("wheel", onWheel);
-      observer?.disconnect();
+      observer.disconnect();
     };
   }, []);
 

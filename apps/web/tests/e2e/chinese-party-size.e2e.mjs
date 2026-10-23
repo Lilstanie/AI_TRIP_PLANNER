@@ -54,7 +54,7 @@ try {
       dining?.proposal?.items?.filter((item) => item.estCost !== undefined) ?? [];
     check(
       pricedDining.length > 0 &&
-        pricedDining.every((item) => item.detail.includes("12 traveller(s)") && item.estCost > 0),
+        pricedDining.every((item) => item.detail.includes("12 travellers") && item.estCost > 0),
       `${width}: dining prices use the 12-traveller party size`,
     );
 

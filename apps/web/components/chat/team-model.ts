@@ -15,7 +15,7 @@ export interface TeamMessage {
   round: number;
   kind: "dispatch" | "result" | "failed" | "handoff";
   handoffTo?: AgentName;
-  decidedBy: DecidedBy;
+  decidedBy?: DecidedBy;
   text: string;
   objectives: { agent: AgentName; text: string }[];
   source?: Extract<AgentProgressEvent, { type: "agent_completed" }>["source"];
@@ -42,7 +42,10 @@ export const sourceLabels: Record<NonNullable<TeamMessage["source"]>, MessageKey
   unavailable: "Unavailable data",
 };
 
-export function teamMessages(activity: readonly AgentProgressEvent[]): TeamEntry[] {
+export function teamMessages(
+  activity: readonly AgentProgressEvent[],
+  settled: boolean,
+): TeamEntry[] {
   const messages: TeamEntry[] = [];
   const reasoned = (assistant: AssistantId, round: number) =>
     activity.some(
@@ -51,6 +54,8 @@ export function teamMessages(activity: readonly AgentProgressEvent[]): TeamEntry
         (event.assistant ?? event.agent) === assistant &&
         (assistant === "coordinator" || event.round === round),
     );
+  const decidedBy = (assistant: AssistantId, round: number): DecidedBy | undefined =>
+    reasoned(assistant, round) ? "llm" : settled ? "code" : undefined;
   for (const event of activity) {
     if (event.type === "coordinator" && event.summary === PREPARING_SUMMARY) continue;
     if (
@@ -62,7 +67,7 @@ export function teamMessages(activity: readonly AgentProgressEvent[]): TeamEntry
         assistant: "coordinator",
         round: event.round,
         kind: "dispatch",
-        decidedBy: reasoned("coordinator", event.round) ? "llm" : "code",
+        decidedBy: decidedBy("coordinator", event.round),
         text: event.summary,
         objectives: activity.flatMap((started) =>
           started.type === "agent_started" && started.round === event.round && started.objective
@@ -102,7 +107,7 @@ export function teamMessages(activity: readonly AgentProgressEvent[]): TeamEntry
         assistant: event.agent,
         round: event.round,
         kind: failed ? "failed" : "result",
-        decidedBy: reasoned(event.agent, event.round) ? "llm" : "code",
+        decidedBy: decidedBy(event.agent, event.round),
         text: failed ? event.error : (event.summary ?? event.outcome ?? ""),
         objectives: [],
         ...(!failed && event.source ? { source: event.source } : {}),

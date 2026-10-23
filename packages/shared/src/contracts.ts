@@ -108,12 +108,18 @@ export const TripBrief = z
     if (isTripDate(start) && isTripDate(end)) {
       const nights = (Date.parse(end) - Date.parse(start)) / 86400000;
       const cities = ctx.value.destination.split("&").map((city) => city.trim());
-      if (nights <= 0 || cities.some((city) => !city) || nights < cities.length) {
+      const dayTrip = nights === 0 && cities.length === 1 && ctx.value.noAccommodation === true;
+      if (
+        nights < 0 ||
+        cities.some((city) => !city) ||
+        (!dayTrip && (nights === 0 || nights < cities.length))
+      ) {
         ctx.issues.push({
           code: "custom",
           input: ctx.value,
           path: ["dates"],
-          message: "End date must follow start date, with at least one night per destination.",
+          message:
+            "End date must follow start date, with at least one night per destination. A one-day trip needs one destination and no accommodation.",
         });
       }
     }
