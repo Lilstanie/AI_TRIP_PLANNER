@@ -322,8 +322,9 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     sections, and the planning loop's conflict check and targeted revision follow. The reply carries the
     mentioned specialist's icon and name. Conflict, revision-score and stop messages from the loop show in
     the team conversation as plain rules with a left border and no icon. With no plan yet, the mentioned
-    specialist only answers, nothing is created, and the same message asks for the brief. The chips wrap
-    at phone width and are 44 px tall there. A message may mention several specialists: each id is sent once,
+    specialist only answers, nothing is created, and the same message asks for the brief. At phone width
+    the chips are 44 px tall and stay in one row that scrolls sideways, with a 56 px fade at the end
+    while more chips are hidden, so the message list keeps the screen. A message may mention several specialists: each id is sent once,
     exactly those specialists run together in one round, only their sections change, and one conflict
     check follows once they have all finished. A mention that names the wrong specialist (for example Stay
     with a restaurant request) is handed off once: the mentioned specialist declines under its own icon and
