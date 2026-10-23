@@ -172,3 +172,8 @@ Each of these cost a rerun once. Check for them before reading a failure as a pr
 - `getByText(..., { exact: true })` on a search-result message also matches the sr-only
   `role="status"` region that repeats it, which throws in strict mode. Read the status by role, or
   scope the visible line by its class.
+- On phone, the fixed tab bar covers whatever sits behind it, so `elementFromPoint` there returns
+  the tab bar. Call `scrollIntoView({ block: "center" })` on the target before probing a point.
+- `Intl.DateTimeFormat#formatRange` puts a thin space (`\u2009`) around the dash in some Chromium
+  builds and a plain space in others. Build the expected string with `Intl` in the same page, or
+  replace `\u2009` with a space on both sides before comparing.
