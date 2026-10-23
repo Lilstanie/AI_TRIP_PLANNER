@@ -94,8 +94,8 @@ SOFTWARE.
 ## Libraries.dev
 
 `libraries-dev` is adapted from
-[Jakubantalik/Libraries.dev](https://github.com/Jakubantalik/Libraries.dev/tree/a27566557b4def79bcdcedc71858c0fb28020b6d/skills/libraries-dev)
-at commit `a27566557b4def79bcdcedc71858c0fb28020b6d` (2026-10-13), first adapted at
+[Jakubantalik/Libraries.dev](https://github.com/Jakubantalik/Libraries.dev/tree/b0e5a8f1e659ac549e6035e42a750e73678ed67a/skills/libraries-dev)
+at commit `b0e5a8f1e659ac549e6035e42a750e73678ed67a` (2026-10-21), first adapted at
 `f20116327f4e3b28d0fb70b04437dfd092bf88fe`. Its entrypoint is rewritten for this workspace's UI
 contract, pnpm package scope and validation. The seven reference files are copied unchanged, except
 that the four updated at the current commit carry the repository's Prettier formatting.

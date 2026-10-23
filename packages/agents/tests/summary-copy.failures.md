@@ -7,6 +7,7 @@ Written before the code (#492). Each line is a way the change could fail.
 - A Chinese message ("去悉尼玩 4 天") resolves to English.
 - A mixed message ("去 Sydney 玩") resolves to English because it contains Latin letters.
 - An English message sent from the Chinese interface resolves to Chinese.
+- A Latin place name alone ("Tokyo", "New York") sent from the Chinese interface resolves to English.
 - A message with only a place name in Han characters ("悉尼") resolves to the interface language instead of Chinese.
 - A message with only dates, numbers or punctuation ("2026-12-01, 2") ignores the interface language.
 - An empty message (attachment only, or a form-started plan) throws or resolves to undefined.

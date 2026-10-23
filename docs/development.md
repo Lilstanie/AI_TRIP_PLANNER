@@ -281,6 +281,12 @@ and context delivery. [translate-docs](../.agents/skills/translate-docs/SKILL.md
 [English/Chinese documentation pairs](i18n.md); changing either language includes updating its
 counterpart in the same task.
 
+### Fix root causes
+
+When a bug is fixed, reproduce it, name its cause with evidence, and fix that cause. Do not hide the
+symptom with a retry, a longer timeout, an extra guard or a special case. If a workaround is the only
+option for now, say so in the pull request and the session log, with the cause it leaves in place.
+
 ## Verification
 
 For documentation changes, also run the local pairing check after reviewing and recording the

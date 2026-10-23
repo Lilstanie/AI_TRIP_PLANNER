@@ -288,6 +288,8 @@ Specialist 提案、行程需求和最终计划在图边界上分别通过 `Agen
 
 目的地证据工具把带日期的天气资料交给行李建议生成器，区分预报与历史气候背景。生成失败或未配置模型时，确定性行李建议仍使用现有防雨、保暖和防晒证据；不可用日期不会被编造为已知天气。
 
+餐饮读取行程偏好、聊天学到的要求和已保存记忆中的饮食需求，包括花生、坚果过敏和中文表述。无模型聊天也保留明确的饮食句子。同一份要求交给生成器与确定性回退，不写入长期记忆。餐厅名称有依据不代表过敏安全；明显的模型保证会被拒绝，旅行者仍需直接确认食材和交叉接触控制。
+
 交通和住宿包装计算器，使模型无法编造价格、路线或住宿设施。行程同样从不为停留点定价：
 Google Places 不提供门票价格，因此活动的 `estCost` 保持未设置，计划会说明有多少停留点尚未定价。它的摘要根据最终保留的停留点生成（天数和单日最多停留点数），从不采用模型自己写的摘要，因此不会把有停留点的一天说成空闲。
 回复会收到计划中的已知估算、预算、预算余量以及每个停留点的价格状态。未设置的活动价格会被排除，而非视为零；
@@ -295,6 +297,8 @@ Google Places 不提供门票价格，因此活动的 `estCost` 保持未设置�
 不能证明 live 模型措辞的可靠性。
 当数据较少的计划在多天重复安排同一有依据的地点时，回复事实会包含重复地点及对应日期，
 使回复明确说明这是同一停留点的重复使用，而非多个不同活动。
+
+协调器说明它能取得 14 天内的日期天气预报、更远日期的历史气候参考；无法取得证据时明确说明不可用。它不声称可以预订或支付。
 
 模型路由（`packages/agents/src/models.ts` 和 `chat.ts` 中的 `MODEL_ROUTING`）：
 
@@ -324,7 +328,7 @@ Google Places 不提供门票价格，因此活动的 `estCost` 保持未设置�
 `TripBrief.displayCurrency`（以及 `known` 中的同名字段）是旅行者最近一次为该行程指定的币种，无论连同预算还是单独说出。
 两条提取路径都会写入它：协调器的行程更新接受不带金额的币种，离线提取器对消息使用 `detectCurrency`。浏览器在所有需要选择币种的地方
 读取同一条规则，即 `packages/shared/src/money.ts` 中的 `effectiveCurrency()`：先取 `displayCurrency`，再取 `budgetSource.currency`，
-最后取设置中的显示币种。规划、预算检查和存储的金额仍为 AUD；`budgetSource` 保留所述金额和币种。只给数字的预算按 AUD 存储且没有来源，协调者提示词要求回复说明已按 AUD 处理、可以改成其他币种，绝不说币种未定。替换预算而未提供新来源时清除旧来源；仅修改显示币种时保留来源。中文旅行者人数接受 1 至 99 的基数词。行程从不写入设置。
+最后取设置中的显示币种。规划、预算检查和存储的金额仍为 AUD；`budgetSource` 保留所述金额和币种。只给数字的预算按 AUD 存储且没有来源，协调者提示词要求回复说明已按 AUD 处理、可以改成其他币种，绝不说币种未定。替换预算而未提供新来源时清除旧来源；仅修改显示币种时保留来源。中文旅行者人数接受 1 至 99 的基数词。离线提取器从“去”“前往”“目的地”之后或“……的X之旅”中读取中文目的地，在“的旅行”前截止，中文出发地在“前往”前截止；“X和Y”两侧都至少两个字时读作“X & Y”，因此没有模型时每个中文示例芯片也能生成方案。行程从不写入设置。
 服务器对它写出的文字使用同一条规则：设置币种来自聊天请求中可选的 `displayCurrency`（不传即 AUD），服务器取
 `effectiveCurrency(brief, request.displayCurrency ?? "AUD")`，并把结果传给每一处调用 `formatMoney` 的位置（specialist 摘要、冲突原因和约束、
 协调器与 specialist 的进度行、预算分配依据以及兜底回复）。specialist 通过 `AgentContext.displayCurrency` 收到该币种。
@@ -332,9 +336,10 @@ Google Places 不提供门票价格，因此活动的 `estCost` 保持未设置�
 非 AUD 行程的生成文字末尾附带估算说明。规划、预算检查、冲突检测和规划评分仍为 AUD，提供方票价保留自己的币种。
 
 语言也按同样方式划分。协调器与 specialist 的进度行属于通知，使用聊天请求中的 `interfaceLanguage`。
-每一轮还会在 `packages/orchestrator/src/reply-language.ts` 中确定一种回复语言：最新消息含汉字即中文，含拉丁字母即英文，
-两者都没有时使用界面语言，再退回英文。specialist 通过 `AgentContext.replyLanguage` 收到它，并用它写固定摘要；
-没有该字段时写英文，Agent Lab 即如此。
+每一轮还会在 `packages/orchestrator/src/reply-language.ts` 中确定一种回复语言：最新消息含汉字即中文，超过两个拉丁单词即英文，
+其余情况（例如只有一个地名）使用界面语言，再退回英文。specialist 通过 `AgentContext.replyLanguage` 收到它，并用它写固定摘要。
+协调器、规划 supervisor 和 specialist 模型通过 `packages/agents/src/prompts/reply-language.ts` 中的 `replyLanguageRule()` 收到它，
+该规则同时要求原样照抄名称、id 和金额。没有回复语言时，specialist 和 supervisor 不加规则并写英文，Agent Lab 即如此。
 
 `TripBrief.preferences`（以及 `known` 中的同名字段）携带旅行者自己的旅行偏好，
 通过顶栏的 Trip preferences 编辑器填写。协调器的 `update_trip_brief` 工具没有这些偏好的字段，

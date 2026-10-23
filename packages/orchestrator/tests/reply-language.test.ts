@@ -9,6 +9,12 @@ describe("reply language", () => {
     expect(replyLanguage("Plan 4 days in Sydney", "zh")).toBe("en");
   });
 
+  it("treats a short Latin message such as a place name as unclear", () => {
+    expect(replyLanguage("Tokyo", "zh")).toBe("zh");
+    expect(replyLanguage("New York", "zh")).toBe("zh");
+    expect(replyLanguage("Tokyo", "en")).toBe("en");
+  });
+
   it("uses the interface language when the message has no language", () => {
     expect(replyLanguage("2026-12-01, 2", "zh")).toBe("zh");
     expect(replyLanguage("", "zh")).toBe("zh");
