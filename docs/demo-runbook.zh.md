@@ -88,7 +88,7 @@ pnpm --filter @trip/web start -p 3000
 8. Settings → Personalization → Assistant names：给 Stay 改名，再用新名称提及它。菜单、面板和回复都显示新名称。
 9. 清除浏览器数据后发送 `@Stay when are hotels cheapest?`。specialist 作答，不创建方案，协调员继续询问行程信息。
 
-`CHANNEL=chromium DATA_MODE=mock USE_MOCK_TOOLS=true pnpm --filter @trip/web e2e assistants-demo` 会在 1440 px 和 390 px、两种语言下重复全部九步，保存带编号的截图（`<语言>-<宽度>-NN-<步骤>.png`），并把 `output/playwright/assistants-demo/result.json` 作为演示记录。
+`CHANNEL=chromium DATA_MODE=mock USE_MOCK_TOOLS=true pnpm --filter @trip/web e2e assistants-demo` 会在 1440 px 和 390 px、两种语言下重复全部九步，保存带编号的截图（`<language>-<width>-NN-<step>.png`），并把 `output/playwright/assistants-demo/result.json` 作为演示记录。
 
 <a id="if-something-fails-on-the-day"></a>
 
