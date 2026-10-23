@@ -345,6 +345,8 @@ initial plans and revisions. An agent owns a durable role definition: model, `na
 
 Destination guidance checks weather for every city and trip date, with three lookups in flight. These are destination/date checks, not an inferred stay schedule. Missing coordinates, date mismatches and provider failures stay explicitly unavailable. Each result retains its provider, horizon and observation time. Successful weather responses are reused within one gateway, so dates in the same forecast response do not multiply requests. Climate context is historical, never a forecast.
 
+The destination evidence tool supplies dated weather to packing generation. Forecast entries remain forecasts and climate entries remain historical context. If generation fails or no model is configured, deterministic packing uses the available rain, cold and heat evidence; it never invents conditions for unavailable dates.
+
 Dining reads dietary requirements from trip preferences, chat-learned preferences and saved memory, including peanut/nut allergies and Chinese terms. No-model chat also retains explicit dietary sentences. The same requirements reach the generator and deterministic fallback without writing long-term memory. Grounded venue names do not establish allergen safety; obvious model guarantees are rejected and travellers must confirm ingredients and cross-contamination controls directly.
 
 Restaurant searches carry dietary requirements in optional PlaceQuery.textQuery through Google Places or OSM, retaining the restaurant category. Progress records the query used. Existing callers without search text keep the category-and-city query, and mock mode remains offline. Search relevance does not verify ingredients, dietary suitability or allergen safety.

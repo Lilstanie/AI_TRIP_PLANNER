@@ -211,7 +211,7 @@ One specification per member at least (C wrote two); seven in total. Each comes 
 3. Destination Guide validates the trip dates, then retrieves sight and museum candidates and saved preferences.
 4. It removes duplicate map candidates and uses grounded coordinates to request weather for every destination and every trip date.
 5. The weather adapter selects a forecast or climate source for the date and returns the horizon and provenance with the result.
-6. The configured LLM reads the validated brief, month, place candidates and preferences through its read-only evidence tool, then drafts destination and packing guidance.
+6. The configured LLM reads the validated brief, month, place candidates, preferences and dated weather through its read-only evidence tool, then drafts destination and packing guidance.
 7. Deterministic code fits the draft to the output schema, rejects ungrounded attraction names and deduplicates accepted candidates; invalid output uses the local fallback.
 8. Dining retrieves trip, chat-learned and saved dietary preferences and searches for restaurants using those requirements, then computes a per-person meal ceiling.
 9. The configured LLM drafts venue suggestions from its evidence tool. Deterministic code checks the budget and candidate names, while the proposal says menus and allergy suitability must be confirmed with the venue.
@@ -222,7 +222,7 @@ One specification per member at least (C wrote two); seven in total. Each comes 
 - 4a. _No candidate has coordinates or no WeatherPort is available_: skip the forecast request and use month-level planning context; do not present it as a forecast.
 - 5a. _The trip date is more than 14 days away_: return historical climate context, explicitly not a forecast. In mock mode, the weather fixture follows the same horizon distinction.
 - 5b. _Weather provider fails_: retain available dates and explicitly list missing city/date evidence; do not fail the destination guide solely because weather failed.
-- 7a. _No model is configured, the model fails, or its draft is invalid or names an ungrounded attraction_: return deterministic guidance from available map evidence and mark the proposal as fallback.
+- 7a. _No model is configured, the model fails, or its draft is invalid or names an ungrounded attraction_: return deterministic guidance and packing from available map and weather evidence and mark the proposal as fallback.
 - 8a. _No restaurant candidates are returned_: return the meal-budget envelope without venue picks.
 - 9a. _No trip, chat or saved dietary preferences exist_: generate general grounded candidates and state that no confirmed dietary preferences were found.
 - 9b. _A traveller reports an allergy_: never guarantee a venue is safe; tell the traveller to confirm ingredients and cross-contamination controls directly with the venue.

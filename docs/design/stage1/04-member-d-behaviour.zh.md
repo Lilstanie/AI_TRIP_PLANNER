@@ -37,7 +37,7 @@ flowchart TB
     guideLLM["LLM drafts destination and packing guidance"]
     guideCheck["Fit schema; validate and deduplicate attraction names"]
     guideValid{"Draft valid and grounded?"}
-    guideFallback["Build deterministic guide from available map evidence"]
+    guideFallback["Build deterministic guide and packing from map and weather evidence"]
     guideProposal["Return destination-guide proposal with provenance"]
   end
 
@@ -122,7 +122,7 @@ sequenceDiagram
     else No coordinates, port or weather result
       DG->>DG: record unavailable city/date entries; use month context only without a port
     end
-    DG->>LLM: read-only evidence tool: brief, month, places, preferences
+    DG->>LLM: read-only evidence tool: brief, month, places, preferences, dated weather
     LLM-->>DG: structured destination and packing draft
     DG->>DG: fit schema, validate grounded names, deduplicate or fallback
     DG->>BD: destination-guide proposal + source and freshness
