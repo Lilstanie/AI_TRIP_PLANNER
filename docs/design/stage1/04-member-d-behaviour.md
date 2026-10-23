@@ -43,7 +43,7 @@ flowchart TB
   end
 
   subgraph DINING["Dining"]
-    diningStart["Fetch restaurant candidates and saved preferences"]
+    diningStart["Read trip, chat and saved dietary preferences; fetch restaurant candidates"]
     diningPrepare["Deduplicate venues; filter dietary preferences; compute meal ceiling"]
     diningModel{"LLM configured and responds?"}
     diningLLM["LLM drafts venue suggestions from evidence"]
@@ -132,7 +132,7 @@ sequenceDiagram
     MP-->>DN: grounded restaurant candidates
     DN->>MEM: getLongTerm(userId)
     MEM-->>DN: saved preferences
-    DN->>DN: deduplicate candidates, filter dietary needs, compute ceiling
+    DN->>DN: deduplicate candidates, apply trip/chat/saved dietary needs, compute ceiling
     DN->>LLM: read-only evidence tool: candidates, preferences, ceiling
     LLM-->>DN: structured dining draft
     DN->>DN: fit schema, validate names and ceiling or fallback

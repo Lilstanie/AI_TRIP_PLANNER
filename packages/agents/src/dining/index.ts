@@ -80,7 +80,7 @@ function tripDays([start, end]: [string, string]): number {
 
 function dietaryPreferences(preferences: UserPreference[]): UserPreference[] {
   return preferences.filter((preference) =>
-    /diet|food|meal|allerg|halal|kosher|vegetarian|vegan|plant[- ]based|gluten|lactose|celiac|shellfish|pescatarian/i.test(
+    /diet|food|meal|allerg|halal|kosher|vegetarian|vegan|plant[- ]based|gluten|lactose|celiac|shellfish|pescatarian|peanut|\bnuts?\b|素食|吃素|全素|过敏|過敏|花生|坚果|堅果|清真|麸质|麩質|乳糖/i.test(
       `${preference.key} ${preference.value}`,
     ),
   );
@@ -116,6 +116,14 @@ function validateDraft(
   maxDailyPerPerson: number,
 ): DiningDraft {
   const parsed = DiningDraft.parse(draft);
+  if (
+    /allerg(?:y|en)[ -](?:safe|free)|(?:peanut|nut)[ -]free|safe for[^.]*allerg|保证[^。]*不过敏|保證[^。]*不過敏/i.test(
+      [parsed.summary, ...parsed.picks.map(({ detail }) => detail), ...parsed.assumptions].join(
+        " ",
+      ),
+    )
+  )
+    throw new Error("Dining cannot verify allergen safety from place candidates.");
   const picks = dedupeEntries(parsed.picks);
   if (parsed.dailyBudgetPerPerson > maxDailyPerPerson + Number.EPSILON) {
     throw new Error("Dining estimate exceeds its planning guardrail.");
@@ -244,13 +252,37 @@ async function planDining(
   ctx.signal?.throwIfAborted();
   const brief = TripBriefSchema.parse(briefInput);
   const days = tripDays(brief.dates);
-  const [candidatePlaces, allPreferences] = await Promise.all([
-    ctx.tools.maps.places({ near: brief.destination, category: "restaurant" }),
-    ctx.mem.getLongTerm(brief.userId),
-  ]);
+  const allPreferences = await ctx.mem.getLongTerm(brief.userId);
+  ctx.signal?.throwIfAborted();
+  const currentPreferences: UserPreference[] = [
+    ...(brief.preferences ?? []).map((value) => ({
+      key: "trip.dietary",
+      value,
+      source: "filter" as const,
+    })),
+    ...(brief.learnedPreferences ?? []).map((value) => ({
+      key: "chat.dietary",
+      value,
+      source: "chat_confirmed" as const,
+    })),
+  ].filter(
+    ({ value }) => dietaryPreferences([{ key: "preference", value, source: "filter" }]).length,
+  );
+  const seen = new Set<string>();
+  const preferences = [...currentPreferences, ...dietaryPreferences(allPreferences)].filter(
+    ({ value }) => {
+      const key = value.trim().toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    },
+  );
+  const candidatePlaces = await ctx.tools.maps.places({
+    near: brief.destination,
+    category: "restaurant",
+  });
   ctx.signal?.throwIfAborted();
   const places = dedupeEntries(candidatePlaces);
-  const preferences = dietaryPreferences(allPreferences);
   const ceiling = budgetCeiling(brief, days, revision, allocation);
   const currency = displayCurrencyOf(brief, ctx);
   const generator =
@@ -307,7 +339,7 @@ async function planDining(
         ? [
             `Applied confirmed dietary preferences: ${preferences.map(({ key, value }) => `${key}=${value}`).join(", ")}.`,
           ]
-        : ["No confirmed dietary preferences were found in long-term memory."]),
+        : ["No dietary requirements were supplied for this trip or found in long-term memory."]),
       ...(revision ? [`Revision requested: ${revision.reason}.`] : []),
       ...draft.assumptions,
     ],

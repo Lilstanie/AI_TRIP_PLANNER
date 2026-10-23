@@ -1043,6 +1043,23 @@ async function runOffline(
   const patch = extractor
     ? await extractor.extract(message, submitted)
     : extractBriefPatchLocally(message, submitted?.groupSize ?? request.known?.groupSize);
+  if (!extractor) {
+    const dietary = message
+      .split(/[.;!?。！？\n]/u)
+      .map((part) => part.trim())
+      .filter((part) =>
+        /vegetarian|vegan|allerg|peanut|\bnuts?\b|halal|kosher|gluten|lactose|shellfish|素食|吃素|全素|过敏|過敏|花生|坚果|堅果|清真|麸质|麩質|乳糖/i.test(
+          part,
+        ),
+      );
+    if (dietary.length)
+      patch.learnedPreferences = [
+        ...new Set([
+          ...dietary.map((part) => part.slice(0, MAX_TRIP_PREFERENCE_LENGTH)),
+          ...(submitted?.learnedPreferences ?? request.known?.learnedPreferences ?? []),
+        ]),
+      ].slice(0, MAX_TRIP_PREFERENCES);
+  }
   const destinationCandidate =
     patch.destination?.toLowerCase() === "no preference"
       ? request.known?.destination
