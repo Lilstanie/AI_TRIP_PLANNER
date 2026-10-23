@@ -28,7 +28,7 @@ const ENGLISH = {
   dining: (summary: string, money: string) => `${summary} · ${money} meal budget`,
   diningCandidates: (count: number) =>
     count
-      ? `${count} grounded dining candidate(s) within a whole-trip meal budget envelope`
+      ? `${plural(count, "grounded dining candidate", "grounded dining candidates")} within a whole-trip meal budget envelope`
       : "No grounded dining candidates; using a whole-trip meal budget envelope",
   itinerary: (days: number, destination: string, perDay: number) =>
     `${days}-day plan for ${destination} with up to ${perDay} grounded ${perDay === 1 ? "activity" : "activities"} per day`,
@@ -45,7 +45,7 @@ const ENGLISH = {
     unavailable,
     incomplete,
   }: TransportLine) =>
-    `${options} transport option(s) for ${origin} ↔ ${destinations.join(" → ")} · known estimate ${money}${unpriced ? ` · ${unpriced} leg(s) unpriced` : ""}${unavailable ? ` · ${unavailable} travel choice(s) unavailable` : ""}${incomplete ? " (incomplete/unverified)" : ""}`,
+    `${plural(options, "transport option", "transport options")} for ${origin} ↔ ${destinations.join(" → ")} · known estimate ${money}${unpriced ? ` · ${plural(unpriced, "leg", "legs")} unpriced` : ""}${unavailable ? ` · ${plural(unavailable, "travel choice", "travel choices")} unavailable` : ""}${incomplete ? " (incomplete/unverified)" : ""}`,
 };
 
 const CHINESE: typeof ENGLISH = {
@@ -67,7 +67,7 @@ const CHINESE: typeof ENGLISH = {
     `${options} 个交通方案（${origin} ↔ ${destinations.join(" → ")}）· 已知估算 ${money}${unpriced ? ` · ${unpriced} 段未计价` : ""}${unavailable ? ` · ${unavailable} 个出行选择不可用` : ""}${incomplete ? "（不完整/未核实）" : ""}`,
 };
 
-function plural(count: number, one: string, many: string): string {
+export function plural(count: number, one: string, many: string): string {
   return `${count} ${count === 1 ? one : many}`;
 }
 
