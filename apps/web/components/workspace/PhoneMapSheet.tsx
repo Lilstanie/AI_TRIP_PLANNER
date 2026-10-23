@@ -5,6 +5,11 @@ import type { WorkspaceModel } from "./useWorkspace";
 
 type Snap = "handle" | "half" | "full";
 const snaps: Snap[] = ["handle", "half", "full"];
+const names = {
+  handle: "Resize day stops, collapsed",
+  half: "Resize day stops, half height",
+  full: "Resize day stops, full height",
+} as const;
 
 export function PhoneMapSheet({ model }: { model: WorkspaceModel }) {
   const { t } = useLocale();
@@ -38,7 +43,7 @@ export function PhoneMapSheet({ model }: { model: WorkspaceModel }) {
       <button
         type="button"
         className="phone-map-sheet__handle"
-        aria-label={t("Resize day stops")}
+        aria-label={t(names[snap])}
         aria-expanded={snap !== "handle"}
         aria-controls="phone-map-stops"
         onClick={() => {

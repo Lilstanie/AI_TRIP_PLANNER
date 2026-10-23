@@ -247,7 +247,8 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     Chat (unless a chip editor is open), and Chat and Map stay as they are. Settings and chip
     editors stay open across the crossing; Trip details closes when the phone top bar goes away.
   - Map fills the space between the bars. Its day-stops sheet has collapsed, half and full heights,
-    selected by dragging or using its handle with pointer or keyboard. Changing day filters the map's
+    selected by dragging or using its handle with pointer or keyboard; the handle's name states the
+    current height, so a screen reader hears each step. Changing day filters the map's
     markers and routes to that day's stops, so a place visited on several days appears on each of
     them with its trip-wide number; selecting a stop, in the sheet or on the map, focuses that day's
     visit. Each row leads with the stop's place name, as the Trip tab does, with its start time below;
