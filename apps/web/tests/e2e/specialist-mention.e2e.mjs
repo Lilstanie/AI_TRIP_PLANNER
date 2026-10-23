@@ -1,6 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
+import { readRun } from "./support/team-run.mjs";
 const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT ?? "playwright");
 const base = process.env.BASE_URL ?? "http://localhost:3000";
 const out = resolve("output/playwright/specialist-mention");
@@ -14,7 +15,7 @@ const check = (ok, name, detail) => {
 
 const STAY = { en: "Stay", zh: "住宿" };
 const PLAN = "Tokyo from Sydney, 2027-02-01 to 2027-02-04, 2 adults, budget AUD 6000";
-const CHIP_COUNT = 6;
+const OPTION_COUNT = 6;
 
 const browser = await chromium.launch({
   ...(process.env.CHANNEL ? { channel: process.env.CHANNEL } : {}),
@@ -76,24 +77,21 @@ try {
         await route.continue({ postData: JSON.stringify(body) });
       });
 
-      const chips = page.locator(".assistant-chips button");
-      check((await chips.count()) === CHIP_COUNT, `${label}: six assistant chips are shown`);
-      const named = await chips.evaluateAll((nodes) =>
-        nodes.every((node) => (node.getAttribute("aria-label") ?? "").length > 0),
-      );
-      check(named, `${label}: every chip has an accessible name`);
+      await box(page).fill("@");
+      const entries = page.getByRole("listbox").getByRole("option");
+      check((await entries.count()) === OPTION_COUNT, `${label}: the @ menu lists six assistants`);
       const fits = await page.evaluate(
         () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
       );
-      check(fits, `${label}: the chip row does not overflow the page`);
-      await page.screenshot({ path: `${out}/${label}-chips.png` });
+      check(fits, `${label}: the @ menu does not overflow the page`);
+      await page.screenshot({ path: `${out}/${label}-menu.png` });
 
-      const stayChip = page.locator(".assistant-chips button", { hasText: STAY[locale] });
-      await stayChip.click();
+      await box(page).fill(`@${STAY[locale]}`);
+      await box(page).press("Tab");
       const inserted = await box(page).inputValue();
       check(
-        inserted.startsWith(`@${STAY[locale]} `),
-        `${label}: a chip inserts a mention`,
+        inserted === `@${STAY[locale]} `,
+        `${label}: picking from the @ menu inserts a mention`,
         inserted,
       );
       await box(page).fill("");
@@ -164,16 +162,13 @@ try {
       );
       const who = await replies(page).last().locator(".assistant-icon--accommodation").count();
       check(who >= 1, `${label}: the reply carries the accommodation icon`);
-      const started = await page.evaluate(() => {
-        const last = [...document.querySelectorAll(".msg-item--agent")].at(-1);
-        return [...last.querySelectorAll(".team-message:not(.team-message--check)")].map((node) =>
-          node.getAttribute("data-assistant"),
-        );
-      });
+      const mentionRun = await readRun(page);
       check(
-        started.filter((id) => id !== "coordinator").every((id) => id === "accommodation"),
+        mentionRun
+          ? mentionRun.assignments.every((item) => item.who === "accommodation")
+          : width <= 520 && (await replies(page).last().locator(".team-summary").count()) === 1,
         `${label}: only the accommodation specialist ran`,
-        started,
+        mentionRun?.assignments,
       );
       await page.screenshot({ path: `${out}/${label}-mention.png` });
 
@@ -196,23 +191,26 @@ try {
       );
       requests.length = 0;
       await send(page, `@${STAY[locale]} find a cheaper stay again`);
-      const checkLines = await replies(page)
-        .last()
-        .locator(".team-message--check .team-message__text")
-        .allInnerTexts();
-      check(
-        checkLines.length >= 3 &&
-          /\d/.test(checkLines[0]) &&
-          checkLines.some((line) => /A\$|AUD/.test(line)) &&
-          checkLines.some((line) => /→/.test(line)),
-        `${label}: a budget overrun shows conflict, score and stop messages`,
-        checkLines,
-      );
-      const ruleStyled = await replies(page)
-        .last()
-        .locator(".team-message--check .assistant-icon")
-        .count();
-      check(ruleStyled === 0, `${label}: conflict-check messages are rules, not assistants`);
+      const conflictRun = await readRun(page);
+      if (conflictRun) {
+        const checkLines = conflictRun.checks.map((item) => item.text);
+        check(
+          checkLines.length >= 3 &&
+            /\d/.test(checkLines[0]) &&
+            checkLines.some((line) => /A\$|AUD/.test(line)) &&
+            checkLines.some((line) => /→/.test(line)),
+          `${label}: a budget overrun shows conflict, score and stop messages`,
+          checkLines,
+        );
+        check(
+          conflictRun.checks.every((item) => item.icons === 0),
+          `${label}: conflict-check messages are rules, not assistants`,
+        );
+      } else
+        check(
+          width <= 520 && (await replies(page).last().locator(".team-summary").count()) === 1,
+          `${label}: the revision reply carries a team summary`,
+        );
       await page.screenshot({ path: `${out}/${label}-conflict.png` });
       check(errors.length === 0, `${label}: no page errors`, errors);
       await context.close();

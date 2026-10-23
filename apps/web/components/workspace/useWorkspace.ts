@@ -429,6 +429,8 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
       selectView: (view: MobileView) => layout({ type: "select-view", view }),
       openFactsSheet: () => layout({ type: "open-sheet" }),
       closeFactsSheet: () => layout({ type: "close-sheet" }),
+      openTeamSheet: () => layout({ type: "open-team-sheet" }),
+      closeTeamSheet: () => layout({ type: "close-team-sheet" }),
       closePreferences: () => layout({ type: "close-fact" }),
       openTrip: () => layout({ type: "open-trip" }),
       closeTrip: () => layout({ type: "close-trip" }),

@@ -45,6 +45,14 @@ async function open(locale, width) {
 }
 
 const box = (page) => page.locator(".chat__form textarea");
+const menuNames = async (page) => {
+  await box(page).fill("@");
+  const names = await page.getByRole("listbox").getByRole("option").allInnerTexts();
+  await box(page).fill("");
+  return names.map((name) => name.trim());
+};
+const menuCount = async (page, name) =>
+  (await menuNames(page)).filter((entry) => entry === name).length;
 const stored = (page) =>
   page.evaluate(() => JSON.parse(localStorage.getItem("trip-workspace-v1") ?? "null"));
 const withoutIds = (value) =>
@@ -106,7 +114,6 @@ try {
       requests.push(JSON.parse(route.request().postData() ?? "{}"));
       await route.continue();
     });
-    const chip = (name) => page.locator(".assistant-chips button", { hasText: name });
     const who = () => replies(page).locator(".msg-item__who strong");
     if (width === 390) await toChat(page);
 
@@ -155,7 +162,10 @@ try {
     await page.screenshot({ path: `${out}/${label}-renamed-settings.png` });
     await closeSettings(page, dialog, width);
 
-    check((await chip(CUSTOM[locale]).count()) === 1, `${label}: the chip shows the custom name`);
+    check(
+      (await menuCount(page, CUSTOM[locale])) === 1,
+      `${label}: the @ menu shows the custom name`,
+    );
     check(
       (await who().first().innerText()) === CUSTOM[locale],
       `${label}: the earlier reply shows the custom name without a reload`,
@@ -188,7 +198,7 @@ try {
     await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
     if (width === 390) await toChat(page);
     check(
-      (await chip(CUSTOM[locale]).count()) === 1,
+      (await menuCount(page, CUSTOM[locale])) === 1,
       `${label}: the custom name persists across a reload`,
     );
 
@@ -198,7 +208,7 @@ try {
     await again.nth(ACCOMMODATION).blur();
     await closeSettings(page, dialog, width);
     check(
-      (await chip(STAY[locale]).count()) === 1 && (await chip(CUSTOM[locale]).count()) === 0,
+      (await menuCount(page, STAY[locale])) === 1 && (await menuCount(page, CUSTOM[locale])) === 0,
       `${label}: clearing the name restores the role name`,
     );
     await page.screenshot({ path: `${out}/${label}-restored.png` });

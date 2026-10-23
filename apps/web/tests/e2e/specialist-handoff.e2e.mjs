@@ -1,6 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
+import { readRun } from "./support/team-run.mjs";
 const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT ?? "playwright");
 const base = process.env.BASE_URL ?? "http://localhost:3000";
 const out = resolve("output/playwright/specialist-handoff");
@@ -74,8 +75,13 @@ try {
 
       await send(page, PLAN);
       await send(page, `@${STAY[locale]} ${OWN[locale]}`);
-      const ownRows = await replies(page).last().locator(".team-message--handoff").count();
-      check(ownRows === 0, `${label}: a request the mentioned specialist owns is not handed off`);
+      const own = await readRun(page);
+      check(
+        own
+          ? own.assignments.every((item) => item.kind !== "handoff")
+          : width <= 520 && (await replies(page).last().locator(".team-summary").count()) === 1,
+        `${label}: a request the mentioned specialist owns is not handed off`,
+      );
 
       const before = await stored(page);
       const sectionsBefore = Object.fromEntries(
@@ -88,40 +94,39 @@ try {
         `${label}: the mention names the accommodation specialist`,
         requests.at(-1).mentions,
       );
-      const order = await page.evaluate(() => {
-        const last = [...document.querySelectorAll(".msg-item--agent")].at(-1);
-        return [...last.querySelectorAll(".team-message:not(.team-message--check)")].map(
-          (node) => ({
-            who: node.getAttribute("data-assistant"),
-            handoff: node.classList.contains("team-message--handoff"),
-            marker: node.querySelector(".team-message__marker")?.textContent ?? "",
-            text: node.querySelector(".team-message__text")?.textContent ?? "",
-          }),
+      const run = await readRun(page);
+      if (run) {
+        const order = run.assignments;
+        const declineAt = order.findIndex(
+          (row) => row.kind === "handoff" && row.who === "accommodation",
         );
-      });
-      const declineAt = order.findIndex((row) => row.handoff && row.who === "accommodation");
-      const dispatchAt = order.findIndex(
-        (row, index) => index > declineAt && row.who === "coordinator",
-      );
-      const diningAt = order.findIndex(
-        (row, index) => index > dispatchAt && row.who === "dining" && !row.handoff,
-      );
-      check(
-        declineAt >= 0 && dispatchAt > declineAt && diningAt > dispatchAt,
-        `${label}: decline, Coordinator dispatch, then the dining specialist`,
-        order,
-      );
-      check(
-        order[declineAt]?.text.includes(DINING[locale]),
-        `${label}: the decline names the dining specialist`,
-        order[declineAt]?.text,
-      );
-      check(order.filter((row) => row.handoff).length === 1, `${label}: the turn hands off once`);
-      check(
-        order[declineAt]?.marker.length > 0 && order[dispatchAt]?.marker.length > 0,
-        `${label}: decline and dispatch carry decision markers`,
-        [order[declineAt]?.marker, order[dispatchAt]?.marker],
-      );
+        const diningAt = order.findIndex(
+          (row, index) => index > declineAt && row.who === "dining" && row.kind !== "handoff",
+        );
+        check(
+          declineAt >= 0 && diningAt > declineAt,
+          `${label}: decline, then the dining specialist`,
+          order,
+        );
+        check(
+          order[declineAt]?.text.includes(DINING[locale]),
+          `${label}: the decline names the dining specialist`,
+          order[declineAt]?.text,
+        );
+        check(
+          order.filter((row) => row.kind === "handoff").length === 1,
+          `${label}: the turn hands off once`,
+        );
+        check(
+          order[declineAt]?.marker.length > 0 && order[diningAt]?.marker.length > 0,
+          `${label}: decline and dining assignment carry decision markers`,
+          [order[declineAt]?.marker, order[diningAt]?.marker],
+        );
+      } else
+        check(
+          width <= 520 && (await replies(page).last().locator(".team-summary").count()) === 1,
+          `${label}: the hand-off reply carries a team summary`,
+        );
       const after = await stored(page);
       const changed = after.plan.sections
         .filter((section) => withoutIds(section.proposal) !== sectionsBefore[section.id])

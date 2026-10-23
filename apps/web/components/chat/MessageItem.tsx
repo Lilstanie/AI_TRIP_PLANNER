@@ -9,7 +9,7 @@ import { RevealedText } from "./RevealedText";
 import { ThinkingProcess } from "./ThinkingProcess";
 import { AssistantIcon } from "./assistants";
 import { useAssistantName } from "./assistant-names";
-import { TeamConversation } from "./TeamConversation";
+import { TeamSummary } from "./TeamSummary";
 
 const markdownComponents: Components = {
   a: ({ href, children, ...rest }) => (
@@ -19,7 +19,17 @@ const markdownComponents: Components = {
   ),
 };
 
-export function MessageItem({ message, animate }: { message: Message; animate?: boolean }) {
+export function MessageItem({
+  message,
+  animate,
+  index = 0,
+  turn = 0,
+}: {
+  message: Message;
+  animate?: boolean;
+  index?: number;
+  turn?: number;
+}) {
   const { t, locale } = useLocale();
   const assistantName = useAssistantName();
   const clock =
@@ -63,7 +73,7 @@ export function MessageItem({ message, animate }: { message: Message; animate?: 
       )}
       {message.activity && message.activity.length > 0 && (
         <>
-          <TeamConversation activity={message.activity} settled />
+          <TeamSummary activity={message.activity} index={index} turn={turn} />
           <section className="agent-activity" aria-label={t("Thinking process")}>
             <ThinkingProcess activity={message.activity} busy={false} outcome={message.outcome} />
           </section>

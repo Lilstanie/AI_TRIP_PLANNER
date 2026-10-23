@@ -33,6 +33,7 @@ import {
 export interface OpenRows {
   isOpen: (id: string) => boolean;
   toggle: (id: string) => void;
+  only: (ids: readonly string[]) => void;
 }
 
 export function StatusDot({ state }: { state: DotState }) {
@@ -321,6 +322,7 @@ export function SubagentRow({ model, open }: { model: SubagentModel; open: OpenR
     <div
       className={cn("thinking-subagent", `thinking-subagent--${model.status}`)}
       data-status={model.status}
+      data-subagent={model.id}
       role="listitem"
       aria-label={`${label} ${t(statusLabels[model.status])}`}
     >

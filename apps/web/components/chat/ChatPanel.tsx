@@ -5,9 +5,7 @@ import { quickPrompts } from "@/lib/planning/quick-prompts";
 import { translate } from "@/lib/i18n/locale";
 import type { Message } from "@/lib/workspace";
 import { ThinkingProcess } from "./ThinkingProcess";
-import { TeamConversation } from "./TeamConversation";
 import { Composer } from "./Composer";
-import { AssistantChips } from "./AssistantChips";
 import { MessageItem } from "./MessageItem";
 import { QuestionComposer } from "./QuestionComposer";
 import type { PendingAsk, QuestionAnswer, QuestionProgress } from "@/lib/workspace/ask-user";
@@ -80,6 +78,7 @@ export function ChatPanel({
   const restored = useRef(messages.length);
   const last = messages.length - 1;
   const revealIndex = last >= restored.current && messages[last]?.role === "agent" ? last : -1;
+  let turn = 0;
   const inputRef = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
     if (messages.length || activity.length)
@@ -147,20 +146,20 @@ export function ChatPanel({
           </div>
         )}
         <div role="log" aria-live="polite">
-          {messages.map((m, i) => (
-            <MessageItem key={i} message={m} animate={i === revealIndex} />
-          ))}
+          {messages.map((m, i) => {
+            if (m.role === "user") turn += 1;
+            return (
+              <MessageItem key={i} message={m} animate={i === revealIndex} index={i} turn={turn} />
+            );
+          })}
         </div>
         {(activity.length > 0 || busy) && (
-          <>
-            <TeamConversation activity={activity} settled={!busy} />
-            <section
-              className={`agent-activity${error && !busy ? " agent-activity--error" : ""}`}
-              aria-label={t("Thinking process")}
-            >
-              <ThinkingProcess activity={activity} busy={busy} error={error} />
-            </section>
-          </>
+          <section
+            className={`agent-activity${error && !busy ? " agent-activity--error" : ""}`}
+            aria-label={t("Thinking process")}
+          >
+            <ThinkingProcess activity={activity} busy={busy} error={error} />
+          </section>
         )}
       </div>
       {ask && onAnswer && onDismissAsk ? (
@@ -181,7 +180,6 @@ export function ChatPanel({
             if (!locked) onSend();
           }}
         >
-          <AssistantChips value={input} onInput={onInput} disabled={busy || locked} />
           <Composer
             value={input}
             placeholder={t(

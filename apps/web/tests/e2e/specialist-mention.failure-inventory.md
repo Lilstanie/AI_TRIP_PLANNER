@@ -2,8 +2,8 @@
 
 Before changing production code, the retained browser journey must distinguish these failures:
 
-- The chat shows no row of six assistant chips, shows fewer, or lets them overflow the page at phone width.
-- A chip has no accessible name, or pressing it inserts nothing into the message.
+- Typing `@` opens no menu of six assistants, or the menu overflows the page at phone width.
+- Picking an option inserts nothing into the message, or the wrong name.
 - Typing `@` with a default role name in English or Chinese does not resolve to the same specialist id, or the request carries the typed text instead of an id.
 - A message without a mention changes: it carries mention ids or skips the Coordinator.
 - With a plan, a mention re-runs every specialist, or changes a section other than the mentioned one.
