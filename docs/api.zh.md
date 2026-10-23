@@ -78,7 +78,7 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 - `bookedStay: { name, note? }` 是旅行者已预订的住宿。住宿部分只有这一条未计价条目，没有
   `stays` 候选。
 - `noAccommodation: true` 表示旅行者不需要住宿。住宿 specialist 会跳过，也不会分配住宿预算。
-  它与 `bookedStay` 相互独立；字段缺省或为 `false` 时，保留原有住宿规划行为。
+  它与 `bookedStay` 相互独立；字段缺省或为 `false` 时，保留原有住宿规划行为。当天往返的行程（`dates[0] === dates[1]`）必须设置它，且只能有一个目的地。
 
 在 Trip preferences 中移除已保存的可选值后，客户端会在请求中省略该值。`noAccommodation` 是单独的显式选项：关闭它时会发送 `false`，因此可以覆盖之前保存的 `true`。
 

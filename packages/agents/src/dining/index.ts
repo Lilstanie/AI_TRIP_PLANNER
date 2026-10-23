@@ -71,7 +71,7 @@ function tripDays([start, end]: [string, string]): number {
     return timestamp;
   };
   const nights = Math.round((parse(end) - parse(start)) / DAY_MS);
-  if (!Number.isSafeInteger(nights) || nights < 1)
+  if (!Number.isSafeInteger(nights) || nights < 0)
     throw new Error("Dining requires ordered dates.");
   return nights + 1;
 }

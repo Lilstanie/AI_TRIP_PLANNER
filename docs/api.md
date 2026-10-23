@@ -79,7 +79,8 @@ Four more optional fields on `brief` and `known` come from the conversation:
   one unpriced item, with no `stays` candidates.
 - `noAccommodation: true` means the traveller does not need a stay. The accommodation specialist is
   skipped and no stay allocation is made. It is independent of `bookedStay`; absent or `false` keeps
-  the existing accommodation-planning behavior.
+  the existing accommodation-planning behavior. A same-day trip (`dates[0] === dates[1]`) requires it
+  and a single destination.
 
 Removing a saved optional value from Trip preferences omits it from the request. `noAccommodation`
 is a separate explicit choice: turning it off sends `false`, so it can override a previously saved
