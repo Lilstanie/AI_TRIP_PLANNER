@@ -17,6 +17,7 @@ import { normalize, canonicalPlaceName, dedupeEntries } from "../place-names";
 import { TRAVELLER_PREFERENCES_RULE } from "../prompts/traveller-preferences";
 import { replyLanguageRule } from "../prompts/reply-language";
 import { summaryCopy } from "../summary-copy";
+import { gatherWeatherEvidence, weatherText } from "./weather-evidence";
 
 const GuideAttraction = z.object({
   name: z.string().trim().min(1).max(120),
@@ -189,28 +190,25 @@ async function planDestinationGuide(
   ctx.signal?.throwIfAborted();
   const brief = TripBriefSchema.parse(briefInput);
   const month = travelMonth(brief.dates[0]);
-  const [sights, museums, preferences] = await Promise.all([
-    ctx.tools.maps.places({ near: brief.destination, category: "sight" }),
-    ctx.tools.maps.places({ near: brief.destination, category: "museum" }),
+  const [cityPlaces, preferences] = await Promise.all([
+    Promise.all(
+      brief.destination.split("&").map(async (name) => {
+        const city = name.trim();
+        const [sights, museums] = await Promise.all([
+          ctx.tools.maps.places({ near: city, category: "sight" }),
+          ctx.tools.maps.places({ near: city, category: "museum" }),
+        ]);
+        return { city, places: dedupeEntries([...sights, ...museums]) };
+      }),
+    ),
     ctx.mem.getLongTerm(brief.userId),
   ]);
   ctx.signal?.throwIfAborted();
-  const places = dedupeEntries([...sights, ...museums]);
-  const weatherLocation = places.find((place) => place.location)?.location;
-  let weatherResult:
-    Awaited<ReturnType<NonNullable<AgentContext["tools"]["weather"]>["forecast"]>> | undefined;
-  let weatherUnavailable = false;
-  if (ctx.tools.weather && weatherLocation) {
-    try {
-      weatherResult = await ctx.tools.weather.forecast({
-        location: weatherLocation,
-        targetDate: brief.dates[0],
-      });
-    } catch {
-      ctx.signal?.throwIfAborted();
-      weatherUnavailable = true;
-    }
-  }
+  const places = dedupeEntries(cityPlaces.flatMap(({ places }) => places));
+  const weatherEvidence = await gatherWeatherEvidence(brief, ctx, cityPlaces);
+  const weatherResults = weatherEvidence.flatMap(({ result }) => (result ? [result] : []));
+  const weatherResult = weatherResults[0];
+  const weatherUnavailable = weatherEvidence.some(({ unavailable }) => unavailable);
   const generator =
     options.generator === false ? undefined : (options.generator ?? createMiniMaxGenerator());
   let draft: DestinationGuideDraft;
@@ -231,12 +229,14 @@ async function planDestinationGuide(
       const reason = error instanceof Error ? error.message : "unknown model error";
       console.warn(`[destination-guide] Model draft failed; using a safe local plan: ${reason}`);
       usedFallback = true;
+      ctx.signal?.throwIfAborted();
       draft = fallbackDraft(brief, month, places, ctx.replyLanguage);
     }
   } else {
     draft = fallbackDraft(brief, month, places, ctx.replyLanguage);
   }
 
+  ctx.signal?.throwIfAborted();
   const monthLabel = (date: string) =>
     new Intl.DateTimeFormat("en", { month: "long", year: "numeric", timeZone: "UTC" }).format(
       new Date(`${date}T12:00:00Z`),
@@ -264,7 +264,7 @@ async function planDestinationGuide(
       },
       {
         kind: "weather-packing",
-        detail: scope + (weatherResult?.summary ?? draft.weather),
+        detail: weatherEvidence.length ? weatherText(weatherEvidence) : scope + draft.weather,
         packing,
       },
     ],
@@ -272,14 +272,14 @@ async function planDestinationGuide(
       mockEnabled()
         ? "Attractions come only from the injected MapsPort and may still be mock or stale data."
         : "Attractions come from provider candidates; opening hours and availability may be stale and require verification.",
-      ...(weatherResult
-        ? [
-            `Weather source: ${weatherResult.provider}; ${weatherResult.horizon}${weatherResult.validUntil ? `, valid until ${weatherResult.validUntil}` : ""}; observed ${weatherResult.observedAt}.`,
-          ]
+      ...(weatherEvidence.length
+        ? weatherEvidence.map(({ city, targetDate, result }) =>
+            result
+              ? `${city}, ${targetDate}: Weather source: ${result.provider}; ${result.horizon}${result.validUntil ? `, valid until ${result.validUntil}` : ""}; observed ${result.observedAt}.`
+              : `${city}, ${targetDate}: Weather provider unavailable; check conditions before travel.`,
+          )
         : [
-            weatherUnavailable
-              ? "Weather provider unavailable; using monthly planning context instead of a forecast."
-              : "Weather is general model context, not a forecast; entry, health and safety guidance requires official verification.",
+            "Weather is general model context, not a forecast; entry, health and safety guidance requires official verification.",
           ]),
       ...draft.assumptions,
     ],
@@ -296,17 +296,23 @@ async function planDestinationGuide(
             kind: "unavailable",
             label: "Weather provider",
             freshness:
-              "The destination guide completed with monthly context because the requested weather data was unavailable.",
+              "Some requested destination dates have no weather evidence; unavailable dates are listed explicitly.",
           }
         : {
-            kind: /^(Google Weather API|Open-Meteo)/.test(weatherResult?.provider ?? "")
-              ? "live"
-              : !mockEnabled()
-                ? "estimated"
-                : "mock",
-            label: weatherResult?.provider ?? "Maps evidence and AI guide",
+            kind:
+              weatherResults.length > 0 &&
+              weatherResults.every((result) =>
+                /^(Google Weather API|Open-Meteo)/.test(result.provider),
+              )
+                ? "live"
+                : !mockEnabled()
+                  ? "estimated"
+                  : "mock",
+            label: weatherResult
+              ? [...new Set(weatherResults.map(({ provider }) => provider))].join(" / ")
+              : "Maps evidence and AI guide",
             freshness: weatherResult
-              ? `${weatherResult.horizon === "forecast" ? "Forecast" : "Climate context"} observed at ${weatherResult.observedAt}; conditions and provider availability may change.`
+              ? `Weather evidence for ${brief.dates[0]} through ${brief.dates[1]}; each dated entry records its forecast or historical climate horizon and observation time. Conditions and provider availability may change.`
               : !mockEnabled()
                 ? "Place details are provider estimates; weather, entry, health and safety claims require official verification."
                 : "Place details come from deterministic mock fixtures; not live verified.",

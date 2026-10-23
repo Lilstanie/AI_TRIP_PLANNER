@@ -516,7 +516,7 @@ describe("ToolGateway provider matrix", () => {
     expect(results.map(({ observedAt }) => observedAt)).toEqual(
       Array(5).fill("2026-01-01T00:00:00.000Z"),
     );
-    expect(fetcher).toHaveBeenCalledTimes(7);
+    expect(fetcher).toHaveBeenCalledTimes(5);
     expect(String(fetcher.mock.calls[0]?.[0])).toContain("key=captured-weather-key");
     evidence.push({
       id: "weather-horizons",

@@ -343,6 +343,8 @@ initial plans and revisions. An agent owns a durable role definition: model, `na
 | Transport     | Flights, inter-city/local routes and timing                           | Agent around deterministic calculators |
 | Accommodation | Lodging search, comparison and room allocation                        | Agent around deterministic calculators |
 
+Destination guidance checks weather for every city and trip date, with three lookups in flight. These are destination/date checks, not an inferred stay schedule. Missing coordinates, date mismatches and provider failures stay explicitly unavailable. Each result retains its provider, horizon and observation time. Successful weather responses are reused within one gateway, so dates in the same forecast response do not multiply requests. Climate context is historical, never a forecast.
+
 Dining reads dietary requirements from trip preferences, chat-learned preferences and saved memory, including peanut/nut allergies and Chinese terms. No-model chat also retains explicit dietary sentences. The same requirements reach the generator and deterministic fallback without writing long-term memory. Grounded venue names do not establish allergen safety; obvious model guarantees are rejected and travellers must confirm ingredients and cross-contamination controls directly.
 
 Transport and accommodation wrap calculators so models cannot invent prices, routes or properties.

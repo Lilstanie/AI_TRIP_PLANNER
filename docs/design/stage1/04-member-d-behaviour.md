@@ -30,7 +30,7 @@ flowchart TB
   subgraph GUIDE["Destination Guide"]
     guideStart["Read brief; fetch sight and museum candidates plus preferences"]
     coords{"Candidate coordinates and WeatherPort available?"}
-    weatherEvidence["Request weather for first travel date"]
+    weatherEvidence["Request weather for every destination and trip date"]
     horizon{"Weather result horizon?"}
     contextOnly["Use month context; mark forecast unavailable or not applicable"]
     guideEvidence["Give validated brief, weather and map evidence to LLM"]
@@ -113,14 +113,14 @@ sequenceDiagram
     DG->>MEM: getLongTerm(userId)
     MEM-->>DG: saved preferences
     alt Candidate coordinates and WeatherPort available
-      DG->>WP: forecast(location, first travel date)
+      DG->>WP: forecast(city coordinates, each trip date)
       alt Date within forecast horizon
         WP-->>DG: forecast + provider + observedAt + validUntil
       else Date beyond 14 days
         WP-->>DG: climate context, not a forecast
       end
     else No coordinates, port or weather result
-      DG->>DG: use month context and record unavailable weather
+      DG->>DG: record unavailable city/date entries; use month context only without a port
     end
     DG->>LLM: read-only evidence tool: brief, month, places, preferences
     LLM-->>DG: structured destination and packing draft

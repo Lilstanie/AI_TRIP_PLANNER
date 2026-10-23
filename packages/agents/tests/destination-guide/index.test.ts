@@ -121,9 +121,9 @@ describe("destination guide", () => {
 
   it("uses weather evidence when map candidates provide coordinates", async () => {
     const ctx = context([], true, true);
-    const forecast = vi.fn(async () => ({
+    const forecast = vi.fn(async ({ targetDate }: { targetDate: string }) => ({
       horizon: "forecast" as const,
-      targetDate: brief.dates[0],
+      targetDate,
       summary: "Sunny, 24–14°C. Forecast conditions can change before departure.",
       observedAt: "2026-09-21T00:00:00.000Z",
       validUntil: "2026-10-02T00:00:00.000Z",
