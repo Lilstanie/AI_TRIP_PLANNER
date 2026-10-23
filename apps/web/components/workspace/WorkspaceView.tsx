@@ -27,6 +27,8 @@ import { usePresence, useSegmentIndicator, viewTransition } from "../ui/motion";
 import { useLocale } from "../account/LocaleProvider";
 import { PhoneTabBar, phonePanelId } from "./PhoneTabBar";
 import { PhoneTripTitle } from "./PhoneTripTitle";
+import { TeamControl } from "../chat/TeamControl";
+import { latestTurn } from "../chat/team-model";
 import { PhoneMine } from "./PhoneMine";
 import { PhoneMapSheet } from "./PhoneMapSheet";
 import { usePhoneKeyboard } from "./usePhoneKeyboard";
@@ -414,6 +416,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                   />
                   <LanguageToggle />
                 </div>
+                <TeamControl activity={latestTurn(activity, busy, messages)} busy={busy} />
                 <button
                   ref={tripToggle}
                   type="button"

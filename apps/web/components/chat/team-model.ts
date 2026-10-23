@@ -5,26 +5,42 @@ import type {
   ChatWorkflowDecision,
 } from "@trip/shared";
 import type { MessageKey } from "@/lib/i18n/locale";
+import type { Message } from "@/lib/workspace";
 import { PREPARING_SUMMARY } from "@/lib/workspace/session";
+import { ASSISTANT_ORDER } from "./assistant-names";
 
 export type DecidedBy = "llm" | "code";
 
-export interface TeamMessage {
-  id: string;
+export type RowStatus = "idle" | "working" | "done" | "failed" | "needs_change" | "none";
+
+export type AssignmentStatus = "working" | "done" | "failed" | "stopped";
+
+export type AssignmentSource = Extract<AgentProgressEvent, { type: "agent_completed" }>["source"];
+
+export interface TeamRow {
   assistant: AssistantId;
-  round: number;
-  kind: "dispatch" | "result" | "failed" | "handoff";
-  handoffTo?: AgentName;
-  decidedBy?: DecidedBy;
-  text: string;
-  objectives: { agent: AgentName; text: string }[];
-  source?: Extract<AgentProgressEvent, { type: "agent_completed" }>["source"];
-  toolCalls: number;
+  status: RowStatus;
+  objective: string | undefined;
+  decidedBy: DecidedBy | undefined;
 }
 
-export interface CheckMessage {
+export interface Assignment {
   id: string;
-  kind: "check";
+  type: "assignment";
+  owner: AssistantId;
+  kind: "dispatch" | "revision" | "handoff";
+  round: number;
+  status: AssignmentStatus;
+  objective: string | undefined;
+  handoffTo: AgentName | undefined;
+  decidedBy: DecidedBy | undefined;
+  source: AssignmentSource;
+  error: string | undefined;
+}
+
+export interface TeamCheck {
+  id: string;
+  type: "check";
   round: number;
   decision: Extract<
     ChatWorkflowDecision,
@@ -32,9 +48,15 @@ export interface CheckMessage {
   >;
 }
 
-export type TeamEntry = TeamMessage | CheckMessage;
+export type TeamEntry = Assignment | TeamCheck;
 
-export const sourceLabels: Record<NonNullable<TeamMessage["source"]>, MessageKey> = {
+export interface TeamModel {
+  rows: TeamRow[];
+  entries: TeamEntry[];
+  working: number;
+}
+
+export const sourceLabels: Record<NonNullable<AssignmentSource>, MessageKey> = {
   live: "Live data",
   estimated: "Estimated data",
   mock: "Mock data",
@@ -42,83 +64,159 @@ export const sourceLabels: Record<NonNullable<TeamMessage["source"]>, MessageKey
   unavailable: "Unavailable data",
 };
 
-export function teamMessages(
-  activity: readonly AgentProgressEvent[],
-  settled: boolean,
-): TeamEntry[] {
-  const messages: TeamEntry[] = [];
-  const reasoned = (assistant: AssistantId, round: number) =>
-    activity.some(
+export const rowStatusLabels: Record<RowStatus, MessageKey> = {
+  idle: "Idle",
+  working: "Working",
+  done: "Done",
+  failed: "Failed",
+  needs_change: "Needs change",
+  none: "Not involved",
+};
+
+export const assignmentStatusLabels: Record<AssignmentStatus, MessageKey> = {
+  working: "Working",
+  done: "Done",
+  failed: "Failed",
+  stopped: "Stopped",
+};
+
+export function teamModel(activity: readonly AgentProgressEvent[], settled: boolean): TeamModel {
+  const events = activity.filter(
+    (event) => !(event.type === "coordinator" && event.summary === PREPARING_SUMMARY),
+  );
+  const reasoned = (assistant: AssistantId, round?: number) =>
+    events.some(
       (event) =>
         event.type === "agent_reasoning" &&
         (event.assistant ?? event.agent) === assistant &&
-        (assistant === "coordinator" || event.round === round),
+        (round === undefined || event.round === round),
     );
-  const decidedBy = (assistant: AssistantId, round: number): DecidedBy | undefined =>
+  const decidedBy = (assistant: AssistantId, round?: number): DecidedBy | undefined =>
     reasoned(assistant, round) ? "llm" : settled ? "code" : undefined;
-  for (const event of activity) {
-    if (event.type === "coordinator" && event.summary === PREPARING_SUMMARY) continue;
-    if (
-      event.type === "coordinator" &&
-      (event.phase === "dispatch" || event.phase === "revision")
-    ) {
-      messages.push({
-        id: `coordinator:${event.phase}:${event.round}`,
-        assistant: "coordinator",
+
+  const status = new Map<AssistantId, RowStatus>();
+  const objective = new Map<AssistantId, string>();
+  const involved = new Set<AssistantId>();
+  const entries: TeamEntry[] = [];
+  const open = new Map<string, Assignment>();
+  const starts = new Map<AgentName, number>();
+  const revisionRounds = new Set(
+    events.flatMap((event) =>
+      (event.type === "coordinator" && event.phase === "revision") ||
+      (event.type === "decision" && event.decision.type === "revision_started")
+        ? [event.round]
+        : [],
+    ),
+  );
+
+  for (const event of events) {
+    if (event.type === "coordinator") {
+      if (event.summary) objective.set("coordinator", event.summary);
+    } else if (event.type === "agent_started") {
+      involved.add(event.agent);
+      status.set(event.agent, "working");
+      if (event.objective) objective.set(event.agent, event.objective);
+      const earlier = starts.get(event.agent) ?? 0;
+      starts.set(event.agent, earlier + 1);
+      const assignment: Assignment = {
+        id: `${event.agent}:${event.round}:${earlier}`,
+        type: "assignment",
+        owner: event.agent,
+        kind: earlier > 0 || revisionRounds.has(event.round) ? "revision" : "dispatch",
         round: event.round,
-        kind: "dispatch",
-        decidedBy: decidedBy("coordinator", event.round),
-        text: event.summary,
-        objectives: activity.flatMap((started) =>
-          started.type === "agent_started" && started.round === event.round && started.objective
-            ? [{ agent: started.agent, text: started.objective }]
-            : [],
-        ),
-        toolCalls: 0,
-      });
-    } else if (event.type === "decision" && event.decision.type === "mention_handoff") {
-      messages.push({
-        id: `handoff:${event.decision.from}:${event.decision.to}`,
-        assistant: event.decision.from,
-        round: event.round,
-        kind: "handoff",
-        handoffTo: event.decision.to,
-        decidedBy: event.decision.decidedBy,
-        text: "",
-        objectives: [],
-        toolCalls: 0,
-      });
-    } else if (
-      event.type === "decision" &&
-      (event.decision.type === "conflicts_detected" ||
-        event.decision.type === "revision_scored" ||
-        event.decision.type === "loop_stopped")
-    ) {
-      messages.push({
-        id: `check:${event.decision.type}:${event.round}:${messages.length}`,
-        kind: "check",
-        round: event.round,
-        decision: event.decision,
-      });
-    } else if (event.type === "agent_completed" || event.type === "agent_failed") {
-      const failed = event.type === "agent_failed";
-      messages.push({
-        id: `${event.agent}:${event.round}:${failed ? "failed" : "result"}`,
-        assistant: event.agent,
-        round: event.round,
-        kind: failed ? "failed" : "result",
+        status: "working",
+        objective: event.objective,
+        handoffTo: undefined,
         decidedBy: decidedBy(event.agent, event.round),
-        text: failed ? event.error : (event.summary ?? event.outcome ?? ""),
-        objectives: [],
-        ...(!failed && event.source ? { source: event.source } : {}),
-        toolCalls: activity.filter(
-          (other) =>
-            other.type === "tool_completed" &&
-            other.agent === event.agent &&
-            other.round === event.round,
-        ).length,
-      });
+        source: undefined,
+        error: undefined,
+      };
+      open.set(`${event.agent}:${event.round}`, assignment);
+      entries.push(assignment);
+    } else if (event.type === "agent_completed" || event.type === "agent_failed") {
+      involved.add(event.agent);
+      const failed = event.type === "agent_failed";
+      status.set(event.agent, failed ? "failed" : "done");
+      const assignment = open.get(`${event.agent}:${event.round}`);
+      if (assignment) {
+        assignment.status = failed ? "failed" : "done";
+        if (failed) assignment.error = event.error;
+        else assignment.source = event.source;
+      }
+    } else if (event.type === "decision") {
+      const { decision } = event;
+      if (decision.type === "mention_handoff") {
+        involved.add(decision.from);
+        entries.push({
+          id: `handoff:${decision.from}:${decision.to}`,
+          type: "assignment",
+          owner: decision.from,
+          kind: "handoff",
+          round: event.round,
+          status: "done",
+          objective: undefined,
+          handoffTo: decision.to,
+          decidedBy: decision.decidedBy,
+          source: undefined,
+          error: undefined,
+        });
+        if (!status.has(decision.from)) status.set(decision.from, "done");
+      } else if (decision.type === "conflicts_detected") {
+        for (const conflict of decision.conflicts) status.set(conflict.agent, "needs_change");
+        entries.push({
+          id: `check:${decision.type}:${event.round}:${entries.length}`,
+          type: "check",
+          round: event.round,
+          decision,
+        });
+      } else if (decision.type === "revision_scored" || decision.type === "loop_stopped") {
+        entries.push({
+          id: `check:${decision.type}:${event.round}:${entries.length}`,
+          type: "check",
+          round: event.round,
+          decision,
+        });
+      }
     }
   }
-  return messages;
+
+  if (settled)
+    for (const assignment of open.values())
+      if (assignment.status === "working") assignment.status = "stopped";
+
+  const lead = decidedBy("coordinator");
+  const rows: TeamRow[] = ASSISTANT_ORDER.map((assistant) => {
+    let value: RowStatus;
+    if (assistant === "coordinator")
+      value = !settled ? "working" : events.length > 0 ? "done" : "idle";
+    else if (events.length === 0) value = "idle";
+    else if (!involved.has(assistant)) value = settled ? "none" : "idle";
+    else value = status.get(assistant) ?? "idle";
+    if (settled && value === "working") value = "idle";
+    return {
+      assistant,
+      status: value,
+      objective: objective.get(assistant),
+      decidedBy: assistant === "coordinator" && events.length > 0 ? lead : undefined,
+    };
+  });
+  return {
+    rows,
+    entries,
+    working: rows.filter((row) => row.status === "working").length,
+  };
+}
+
+export function latestTurn(
+  live: readonly AgentProgressEvent[],
+  busy: boolean,
+  messages: readonly Message[],
+): readonly AgentProgressEvent[] {
+  if (busy || live.length > 0) return live;
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index];
+    if (message?.role === "agent" && message.activity && message.activity.length > 0)
+      return message.activity;
+  }
+  return live;
 }

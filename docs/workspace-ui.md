@@ -13,7 +13,7 @@ now. Implementation history and browser acceptance for each phase are in the
 | Sidebar           | Logo, Chats and Trips with counts, save or sync status, Settings & account                                                                                       | `WorkspaceSidebar`, `BrandMark`, `icons.tsx`                                                                |
 | Chats panel       | Slides out beside the sidebar: search, New chat, New trip, then trips and chats                                                                                  | `ChatsPanel`, `TripCover`                                                                                   |
 | Your trips        | Opened by Trips in place of chat and map: trip cards (Upcoming, Past) and a Calendar tab; New trip                                                               | `TripsPage`, `TripCover`                                                                                    |
-| Top bar           | Trip title; trip fact chips (destination, dates, travellers, budget, Preferences); data mode; Trip with its stop count, rightmost                                | `WorkspaceView`, `TripFactChips`                                                                            |
+| Top bar           | Trip title; trip fact chips (destination, dates, travellers, budget, Preferences); data mode; Specialist team; Trip with its stop count, rightmost               | `WorkspaceView`, `TripFactChips`, `TeamControl`                                                             |
 | Trip fact editors | One editor per chip, every one a centred dialog; Preferences holds the traveller's own list                                                                      | `FactPopover`, `FactFields`, `TripCalendar`, `WhereFields`, `PreferenceList`, `lib/workspace/trip-facts.ts` |
 | Chat              | Conversation, the planning transcript, the composer; starter suggestions in a blank chat; no visible heading                                                     | `ChatPanel`                                                                                                 |
 | Map               | Only the map, labelled markers, curved day-coloured itinerary lines, the place popup, map status, and the locate / map type / zoom controls                      | `TripMapCanvas`, `TripMap`                                                                                  |
@@ -302,19 +302,31 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     while the turn runs, then moves above the reply that ended the turn and stays with it (including
     after a reload). English specialist summaries, assumptions and progress lines count in the
     singular for one and the plural for more ("1 transport option", "2 rooms"), never with "(s)".
-  - A planning turn also reads as a team conversation above its Think fold. The Coordinator dispatches
-    the work, from the `coordinator` dispatch event and each specialist's `agent_started` objective,
-    and each specialist then reports its result, from `agent_completed` with its data source (live,
-    estimated, mock, fallback or unavailable) and nothing else invented. Every message shows the
-    assistant's fixed icon (Coordinator, Day plan, Getting around, Stay, Destination guide, Food &
-    dining) and its role name in the interface language. A marker says whether an LLM or code decided
-    the step: a step counts as decided by AI when the stream carried reasoning for that assistant in
-    that round. Because reasoning can arrive after the step, the marker appears only once it is final:
-    as soon as that reasoning arrives, or as code when the turn ends without it; it never changes
-    after it appears. Handoff declines carry their provenance and are marked at once. The client's own "Preparing your request." placeholder is not a message. A
-    reply attributed to an assistant other than the Coordinator, or a stored message without an
-    assistant id, which reads as the Coordinator, keeps its existing text. The Subagent rows in the
-    Think fold use the same icons. The Trip drawer shows no assistant icons.
+  - **Specialist team** is a button in the top bar, left of Trip. It shows the six assistants' icons
+    (a working one bobs) and, while planning, "N working"; between 521 and 1000 px only the icons show.
+    Hovering it opens the team panel, a click pins it, and Escape or a press outside closes it; Escape
+    returns focus to the button only when focus was inside the panel. The panel never opens by itself and
+    updates live. It shows the latest turn: the live stream while one runs, otherwise the newest saved
+    agent reply's activity. [`TeamPanel`](../apps/web/components/chat/TeamPanel.tsx) takes a run's activity
+    as input, and [`teamModel`](../apps/web/components/chat/team-model.ts) derives everything from the
+    streamed events, nothing invented.
+    - Six rows, always, in the fixed order (Coordinator, Day plan, Getting around, Stay, Destination
+      guide, Food & dining), each with its icon, current name, a status and its latest objective
+      (clamped to two lines, with Show more). Idle is before any event; Working is started with no result in
+      the latest round; Done is completed; Failed is `agent_failed`; Needs change is named by the latest
+      conflict check and not yet revised; Not involved is no assignment this turn. The Coordinator row
+      carries the Decided by AI or code marker for the dispatch.
+    - Below the rows, the turn's **assignments** and checks in event order. An assignment is a
+      specialist's first dispatch, a targeted revision or a hand-off, with its owner, round status
+      (Working, Done, Failed or Stopped), a Decided by AI or Decided by code marker (AI when the stream
+      carried that specialist's reasoning in that round, otherwise code once the turn ends; a hand-off
+      carries its own provenance) and the data source (live, estimated, mock, fallback or unavailable).
+      A misdirected mention is one hand-off row. Conflict checks name the specialist sent back with a
+      Needs change tag; revision scores say kept or discarded; the stop reason ends the list. Checks are
+      rules and carry no icon.
+    - The Think fold's Subagent rows use the same icons. The Trip drawer shows no assistant icons. A saved
+      reply still shows its team conversation rows above its Think fold until the reply summary replaces
+      them; the live area above the message box shows only the Think fold.
   - A row of six assistant chips (the Coordinator and the five specialists) sits above the message box.
     Pressing a chip inserts `@<name> `, and typing `@` with a default role name in English or Chinese
     does the same. The client resolves each `@name` to a specialist id, drops duplicates, and sends
@@ -322,7 +334,7 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     already goes to the Coordinator. With a plan, only the mentioned specialists run, revise their own
     sections, and the planning loop's conflict check and targeted revision follow. The reply carries the
     mentioned specialist's icon and name. Conflict, revision-score and stop messages from the loop show in
-    the team conversation as plain rules with a left border and no icon. With no plan yet, the mentioned
+    the team panel and the saved reply's team conversation as plain rules with no icon. With no plan yet, the mentioned
     specialist only answers, nothing is created, and the same message asks for the brief. At phone width
     the chips are 44 px tall and stay in one row that scrolls sideways, with a 56 px fade at the end
     while more chips are hidden, so the message list keeps the screen. A message may mention several specialists: each id is sent once,

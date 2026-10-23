@@ -83,16 +83,14 @@ try {
       };
       window.__markers = {};
       setInterval(() => {
-        document.querySelectorAll(".team-conversation").forEach((list, listIndex) => {
-          list
-            .querySelectorAll(".team-message:not(.team-message--check)")
-            .forEach((item, index) => {
-              const key = `${listIndex}:${index}:${item.getAttribute("data-assistant")}`;
-              const text = item.querySelector(".team-message__marker")?.textContent ?? "";
-              const seen = (window.__markers[key] ??= []);
-              if (seen.at(-1) !== text) seen.push(text);
-            });
-        });
+        document
+          .querySelectorAll(".team-panel__row[data-assistant=coordinator], .team-panel__assignment")
+          .forEach((item, index) => {
+            const key = `${index}:${item.getAttribute("data-assistant")}`;
+            const text = item.querySelector(".team-panel__marker")?.textContent ?? "";
+            const seen = (window.__markers[key] ??= []);
+            if (seen.at(-1) !== text) seen.push(text);
+          });
       }, 50);
     }, language);
     const page = await context.newPage();
@@ -106,6 +104,9 @@ try {
       () => notNow.click(),
       () => {},
     );
+    await page
+      .getByRole("button", { name: language === "zh" ? "专家团队" : "Specialist team" })
+      .click();
     await page
       .getByRole("textbox", {
         name: language === "zh" ? /AI Trip Planner|消息/ : "Message AI Trip Planner",
@@ -131,13 +132,7 @@ try {
       `${language}: the Coordinator's only badge is "${MARKERS[language][0]}"`,
       coordinator,
     );
-    const markers = await page
-      .locator(".team-conversation")
-      .last()
-      .locator(".team-message:not(.team-message--check)")
-      .evaluateAll((nodes) =>
-        nodes.map((node) => node.querySelector(".team-message__marker")?.textContent ?? ""),
-      );
+    const markers = await page.locator(".team-panel .team-panel__marker").allInnerTexts();
     check(
       markers.length > 0 && markers.every((text) => MARKERS[language].includes(text)),
       `${language}: every finished message says who decided`,
