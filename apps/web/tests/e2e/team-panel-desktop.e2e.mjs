@@ -284,10 +284,6 @@ try {
     await page.locator(".msg-item--agent .msg-item__body").first().waitFor({ timeout: 240_000 });
     await page.waitForTimeout(800);
 
-    check(
-      (await page.locator(".chat__stream > .team-summary").count()) === 0,
-      `${label}: no team summary above the composer`,
-    );
     check((await panel.count()) === 0, `${label}: the panel did not open on its own`);
 
     await button.hover();

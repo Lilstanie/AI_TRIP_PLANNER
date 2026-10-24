@@ -38,8 +38,8 @@ back or whether a revision was kept. Tutors should see the team's structure, not
   round, and code once the turn ends without it. The Coordinator row carries the marker for the dispatch,
   and a hand-off carries `mention_handoff.decidedBy`. Speakers still come only from real events.
 - **Chat.** The live area above the message box shows only the Think fold, so `TeamConversation` leaves
-  it. Each saved reply a specialist worked on starts with a one-line summary that opens that run's panel
-  (#633), and a reply only the Coordinator wrote has none. Pressing an involved row in the panel closes the
+  it. Each saved reply a specialist worked on used to start with a one-line summary (#633), which is removed
+  (see the superseding note). Pressing an involved row in the panel closes the
   panel, scrolls to the run's Think fold and expands that specialist's `Subagent` row for its latest round,
   moving focus there; Idle and Not involved rows have no action (#634). When the Map is showing (phone Map
   tab, narrow desktop Map view) the press switches to the chat in the same update as the reveal request.
@@ -79,10 +79,10 @@ each specialist's work can differ, and the tutor needs both.
   interrupted turn shows its unfinished assignments as Stopped.
 - The panel follows the latest turn: the live stream while one runs, otherwise the newest saved agent
   reply's activity, so a reload keeps it.
-- Which run the panel shows is client state (`team-run.tsx`): a reply summary pins the panel on that
-  reply's run, labelled "Turn N", and closing the panel or starting the next live turn returns it to the
-  latest run. `TeamConversation` and its legacy model `team-messages.ts` are deleted.
-- A press names its target by the run's activity list (`team-run.tsx` `reveal`), so the live area and
+- The panel shows the latest run only. The per-reply summary and its "Turn N" pinning were removed in
+  [remove the per-reply team summary](../simplification/2026-10-24-remove-team-reply-summary.md).
+  `TeamConversation` and its legacy model `team-messages.ts` are deleted.
+- A press names its target by the run's activity list (`team-reveal.tsx` `reveal`), so the live area and
   each reply's fold match by identity without an index.
 - A new client model has to be kept in step with `AgentProgressEvent` by hand, since no contract
   carries assignments.

@@ -87,11 +87,7 @@ try {
           run.assignments.filter((item) => item.source).length >= 1,
           `${label}: specialist assignments show their data source`,
         );
-      } else
-        check(
-          width <= 520 && (await page.locator(".team-summary").count()) === 1,
-          `${label}: the reply carries a team summary`,
-        );
+      } else check(false, `${label}: the team panel did not open`);
 
       await page.locator(".thinking-turn").last().click();
       const rowIcons = await page.locator(".thinking-subagent .assistant-icon").count();

@@ -3,7 +3,6 @@ import { useRef } from "react";
 import { useLocale } from "../account/LocaleProvider";
 import { TeamAvatars } from "../chat/TeamControl";
 import { TeamPanel } from "../chat/TeamPanel";
-import { TeamRunBar } from "../chat/TeamRunBar";
 import type { TeamTurn } from "../chat/team-model";
 import { useTeamSurface } from "../chat/use-team-surface";
 import type { CloseReason } from "../preferences/FactPopover";
@@ -19,7 +18,7 @@ export function PhoneTeamButton({ model, turn }: { model: WorkspaceModel; turn: 
   const button = useRef<HTMLButtonElement>(null);
   const open = model.layout.surface.sheet === "team";
   const sheet = usePresence(open || undefined, 220);
-  const { live, shown, select } = useTeamSurface(turn, open, openTeamSheet);
+  const { team, select } = useTeamSurface(turn);
 
   const close = (reason: CloseReason) => {
     closeTeamSheet();
@@ -36,10 +35,10 @@ export function PhoneTeamButton({ model, turn }: { model: WorkspaceModel; turn: 
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-controls={open ? TEAM_SHEET_ID : undefined}
-        data-working={live.working}
+        data-working={team.working}
         onClick={open ? closeTeamSheet : openTeamSheet}
       >
-        <TeamAvatars rows={live.rows} />
+        <TeamAvatars rows={team.rows} />
       </button>
       {sheet.value && (
         <FactPopover
@@ -52,9 +51,8 @@ export function PhoneTeamButton({ model, turn }: { model: WorkspaceModel; turn: 
           leaving={sheet.leaving}
           className="fact-popover--team"
         >
-          <TeamRunBar />
           <TeamPanel
-            model={shown}
+            model={team}
             onSelect={(assistant) => {
               selectView("chat");
               select(assistant);

@@ -132,7 +132,10 @@ try {
       : page.getByRole("button", { name: BUTTON, exact: true });
     const openLatest = async () => {
       if (phone) await trigger.click();
-      else await trigger.hover();
+      else {
+        await page.mouse.move(0, 0);
+        await trigger.hover();
+      }
       await panel.waitFor();
     };
     const press = (name) =>
@@ -163,54 +166,13 @@ try {
     await page.keyboard.press("Escape");
     await panel.waitFor({ state: "detached" });
 
-    await replies(page).nth(0).locator(".team-summary").click();
-    await panel.waitFor();
-    await page
-      .locator(".chat__stream")
-      .evaluate((node) => node.scrollTo({ top: node.scrollHeight }));
-    const hidden = await page.evaluate(() => {
-      const line = document.querySelector(".msg-item--agent .thinking-turn > .thinking-row__line");
-      const stream = document.querySelector(".chat__stream");
-      if (!line || !stream) return null;
-      return line.getBoundingClientRect().bottom <= stream.getBoundingClientRect().top;
-    });
-    check(hidden === true, `${label}: the earlier reply's thinking process is out of view`, hidden);
-    await press("Stay").click();
-    await settle();
-    const first = replies(page).nth(0);
-    const state = await opened(first);
-    const focus = await page.evaluate(focusInfo);
-    const stayRows = state.rows.filter((id) => id.endsWith(":accommodation"));
-    check(
-      state.turn && state.rows.length === 1 && stayRows.length === 1,
-      `${label}: a reply's panel expands only the Stay row of that reply`,
-      state,
-    );
-    check(
-      focus?.reply === 0 && focus.subagent === stayRows[0],
-      `${label}: focus moves to the Stay row`,
-      focus,
-    );
-    check(
-      focus && focus.top >= 0 && focus.bottom <= focus.form + 1,
-      `${label}: the Stay row is scrolled into view above the composer`,
-      focus,
-    );
-    check(
-      JSON.stringify(await opened(replies(page).nth(last))) ===
-        JSON.stringify({ turn: false, rows: [] }),
-      `${label}: other replies stay closed`,
-    );
-    await page.screenshot({ path: `${out}/${label}-reply-stay.png` });
-
-    await replies(page).nth(0).locator(".team-summary").click();
-    await panel.waitFor();
+    await openLatest();
     await panel.getByRole("button", { name: /^Show Coordinator thinking$/ }).click();
     await settle();
-    const lead = await opened(first);
+    const lead = await opened(replies(page).nth(last));
     const leadFocus = await page.evaluate(focusInfo);
     check(
-      lead.turn && lead.rows.length === 0 && leadFocus?.turnLine && leadFocus.reply === 0,
+      lead.turn && lead.rows.length === 0 && leadFocus?.turnLine && leadFocus.reply === last,
       `${label}: the Coordinator opens the thinking process at its dispatch`,
       { lead, leadFocus },
     );

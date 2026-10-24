@@ -211,10 +211,7 @@ try {
       const lastRun = async () => {
         const run = await readRun(page);
         if (!run) {
-          check(
-            width <= 520 && (await replies(page).last().locator(".team-summary").count()) === 1,
-            `${label}: the reply carries a team summary`,
-          );
+          check(false, `${label}: the team panel did not open`);
           return null;
         }
         return run;
@@ -429,47 +426,17 @@ try {
 
       await step(7, "earlier-reply", async () => {
         const first = replies(page).nth(0);
-        const latest = (await replies(page).count()) - 1;
         check(
-          (await first.locator(".team-summary").count()) === 1,
-          `${label} step 7: the first reply carries a summary`,
+          (await first.locator(".thinking-turn").count()) === 1,
+          `${label} step 7: the earlier reply keeps its thinking process`,
         );
-        await first.locator(".team-summary").click();
-        await panel.waitFor();
-        const handoffs = await panel
-          .locator('.team-panel__assignment[data-kind="handoff"]')
-          .count();
+        const run = await readRun(page);
         check(
-          handoffs === 0,
-          `${label} step 7: the earlier reply's panel is its own run`,
-          handoffs,
+          run?.assignments.some((item) => item.kind === "handoff"),
+          `${label} step 7: the team panel shows the latest turn's hand-off`,
+          run?.assignments.map((item) => item.kind),
         );
-        await snap("earlier-panel");
-        await page
-          .locator(".chat__stream")
-          .evaluate((node) => node.scrollTo({ top: node.scrollHeight }));
-        const name =
-          locale === "zh" ? `查看${STAY[locale]}的思考过程` : `Show ${STAY[locale]} thinking`;
-        await panel.getByRole("button", { name, exact: true }).click();
-        await panel.waitFor({ state: "detached" });
-        await page.waitForTimeout(400);
-        const state = await opened(first);
-        const focus = await page.evaluate(focusInfo);
-        check(
-          state.turn && state.rows.length === 1 && state.rows[0].endsWith(":accommodation"),
-          `${label} step 7: pressing Stay expands that reply's Stay row`,
-          state,
-        );
-        check(
-          focus?.reply === 0 && focus.top >= 0 && focus.bottom <= focus.form + 1,
-          `${label} step 7: the Stay row is in view`,
-          focus,
-        );
-        check(
-          JSON.stringify(await opened(replies(page).nth(latest))) ===
-            JSON.stringify({ turn: false, rows: [] }),
-          `${label} step 7: other replies stay closed`,
-        );
+        await snap("latest-panel");
       });
 
       await step(8, "rename", async () => {
