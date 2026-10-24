@@ -7,6 +7,7 @@ import type { TrajectoryCellProps } from "./trajectory-record";
 import { trajectoryRecordId } from "./trajectory-record";
 
 const CONTENT_ROW_HEIGHT = 30;
+export const PHONE_CONTENT_ROW_HEIGHT = 56;
 const COLLAPSED_SUMMARY_HEIGHT = 20;
 
 export interface VirtualizableTrajectoryRecord {
@@ -34,11 +35,11 @@ export function trajectoryVirtualRecordKey(record: VirtualizableTrajectoryRecord
 
 export function groupTrajectoryVirtualRows<T extends VirtualizableTrajectoryRecord>(
   records: readonly T[],
+  contentRowHeight = CONTENT_ROW_HEIGHT,
 ): readonly TrajectoryVirtualRow<T>[] {
   return records.map((record, logicalIndex) => ({
     entries: [{ logicalIndex, record }],
-    height:
-      record.collapsedSummaryKind === undefined ? CONTENT_ROW_HEIGHT : COLLAPSED_SUMMARY_HEIGHT,
+    height: record.collapsedSummaryKind === undefined ? contentRowHeight : COLLAPSED_SUMMARY_HEIGHT,
     key: trajectoryVirtualRecordKey(record),
   }));
 }

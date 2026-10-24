@@ -23,3 +23,8 @@ Written before the code (TP-76, #672). Each line is a way the phone trajectory c
 - The page logs a page error.
 
 The E2E runs in mock data mode with no keys. The first run is expected to fail before implementation.
+
+- The toolbar's Turns and Calls buttons or the search field are under 44px high (issue #686), or the search text is under 16px and iOS zooms on focus.
+- A ledger row is not one 56px card, so the rows and the virtual list disagree on height and the list drifts when scrolled.
+- A record's text runs past its row or wraps under the next row instead of clipping after two lines.
+- The inspector's Summary, Payload and Result controls overlap the rows or the status list, or are under 44px high.

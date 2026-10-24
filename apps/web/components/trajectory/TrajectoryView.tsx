@@ -194,7 +194,7 @@ export function TrajectoryView({
   };
 
   return (
-    <div className={css.root}>
+    <div className={css.root} data-trajectory-phone={phone || undefined}>
       <TrajectoryToolbar
         allTurnsCollapsed={allTurnsCollapsed}
         onToggleAllTurns={toggleAllTurns}
@@ -238,6 +238,7 @@ export function TrajectoryView({
           onToggleTurn={toggleTurn}
           collapsedAssistants={collapsedAssistants}
           onToggleAssistant={toggleAssistant}
+          phone={phone}
         />
       </div>
     </div>
