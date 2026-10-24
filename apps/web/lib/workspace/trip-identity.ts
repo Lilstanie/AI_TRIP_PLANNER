@@ -1,4 +1,8 @@
+import { effectiveCurrency, type Currency } from "@trip/shared";
+import type { AppLocale } from "@/lib/i18n/locale";
+import { moneyDisplay } from "@/lib/money";
 import type { TripRecord } from "./catalog";
+import { dateRangeLabel } from "./trip-facts";
 
 export function tripName(
   trip: TripRecord,
@@ -29,4 +33,26 @@ export function distinctTripTitles(
       return [trip.id, counts.get(key)! > 1 ? `${title} · ${position}` : title];
     }),
   );
+}
+
+export function tripDays(trip: TripRecord): number {
+  const [start, end] = trip.snapshot.plan.brief.dates.map((date) =>
+    Date.parse(`${date}T00:00:00Z`),
+  );
+  return Math.max(1, Math.round((end! - start!) / 86_400_000) + 1);
+}
+
+export function tripMeta(
+  trip: TripRecord,
+  locale: AppLocale,
+  displayCurrency: Currency,
+  t: (text: "day" | "days") => string,
+): string {
+  const { brief, estTotal } = trip.snapshot.plan;
+  const length = tripDays(trip);
+  const dateRange = dateRangeLabel(brief.dates[0], brief.dates[1], locale);
+  const total = moneyDisplay({ currency: effectiveCurrency(brief, displayCurrency), locale }).money(
+    estTotal,
+  );
+  return `${brief.destination} · ${dateRange ? `${dateRange} · ` : ""}${length} ${length === 1 ? t("day") : t("days")} · ${total}`;
 }
