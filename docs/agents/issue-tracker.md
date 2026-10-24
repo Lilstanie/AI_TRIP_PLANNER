@@ -45,6 +45,23 @@ or `wontfix`.
 - **Closing.** The pull request that finishes a ticket says `Closes #<number>`, so merging it closes the
   ticket.
 
+## Jira
+
+The team tracks sprints in Jira project `TP` (<https://headmastereggy.atlassian.net/jira/software/projects/TP/boards/4/backlog>).
+Jira only sees issue keys such as `TP-16` that appear in text, so every link is made by writing the key.
+
+- **One story per ticket.** Each GitHub ticket gets a Jira story under the epic for its area. The story's
+  summary states the traveller's goal; its description is one paragraph, an `Acceptance criteria:` list, a
+  `GitHub:` link to the ticket and an `Owner: member <A-E>` line. Labels: `github-<number>`,
+  `owner-<a-e>`, and `stage2-demo` when the demo uses it.
+- **Titles.** The GitHub ticket title starts with the story key: `TP-74 Trajectory record inspector`. A spec that only groups tickets needs no story.
+- **Branches.** The key follows the prefix: `feature/TP-72-trajectory-tab`, `docs/TP-72-trajectory-glossary`.
+- **Pull requests.** The PR title starts with the key and the template's `Jira:` line repeats it. Commit
+  messages may carry it too; smart-commit commands such as `#done` are not used.
+- **Status.** Linking adds the branch, commits and PR to the story's Development panel but does not move
+  the story. A Jira Automation rule (PR merged moves the story to Done) does that, and it relies on the key
+  in the PR title.
+
 ## When a skill says "publish to the issue tracker"
 
 Create a GitHub issue.

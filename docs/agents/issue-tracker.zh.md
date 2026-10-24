@@ -51,6 +51,24 @@ GitHub 的问题和 PR 共用同一编号空间，因此仅有 `#42` 时，它�
   `contract-impact: packages/shared`（由 `pnpm verify:protected` 强制检查）。工单不能写相反的要求。
 - **关闭。** 完成工单的拉取请求要写 `Closes #<number>`，这样合并时会自动关闭工单。
 
+<a id="jira"></a>
+
+## Jira
+
+团队在 Jira 项目 `TP` 里管理冲刺（<https://headmastereggy.atlassian.net/jira/software/projects/TP/boards/4/backlog>）。
+Jira 只认文本里出现的 `TP-16` 这类 issue key，所以每一处关联都靠写出这个 key。
+
+- **每个工单一张 story。** 每个 GitHub 工单在对应领域的 epic 下建一张 Jira story。story 的标题写旅行者的
+  目标；描述是一段话、一个 `Acceptance criteria:` 列表、一行指向工单的 `GitHub:` 链接和一行
+  `Owner: member <A-E>`。标签：`github-<number>`、`owner-<a-e>`，演示会用到时加 `stage2-demo`。
+- **标题。** GitHub 工单标题以 story key 开头：`TP-74 Trajectory record inspector`。只用来
+  归组工单的 spec 不需要 story。
+- **分支。** key 放在前缀之后：`feature/TP-72-trajectory-tab`、`docs/TP-72-trajectory-glossary`。
+- **拉取请求。** PR 标题以 key 开头，模板里的 `Jira:` 行再写一次。提交信息也可以带 key；不使用 `#done`
+  之类的 smart commit 命令。
+- **状态。** 关联只会把分支、提交和 PR 列到 story 的 Development 面板里，不会改变 story 的状态。状态由
+  Jira Automation 规则推进（PR 合并后把 story 移到 Done），这条规则依赖 PR 标题里的 key。
+
 <a id="when-a-skill-says-publish-to-the-issue-tracker"></a>
 
 ## 当技能要求“发布到问题跟踪器”（“publish to the issue tracker”）时
