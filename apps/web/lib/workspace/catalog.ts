@@ -17,7 +17,7 @@ import { dateRangeLabel } from "./trip-facts";
 
 export const CATALOG_KEY = "trip-workspace-catalog-v3";
 
-export type WorkspaceView = "chat" | "map" | "trip" | "mine";
+export type WorkspaceView = "chat" | "map" | "trip" | "trajectory" | "mine";
 
 export type ConversationRecord = {
   id: string;
@@ -128,7 +128,10 @@ function normalizeLayout(value: unknown): PanelLayout {
   };
   const sidebar = isObject(layout.sidebar) ? layout.sidebar : {};
   const view =
-    layout.view === "map" || layout.view === "trip" || layout.view === "mine"
+    layout.view === "map" ||
+    layout.view === "trip" ||
+    layout.view === "trajectory" ||
+    layout.view === "mine"
       ? layout.view
       : "chat";
   const editorView =

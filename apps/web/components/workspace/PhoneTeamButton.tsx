@@ -18,7 +18,7 @@ export function PhoneTeamButton({ model, turn }: { model: WorkspaceModel; turn: 
   const button = useRef<HTMLButtonElement>(null);
   const open = model.layout.surface.sheet === "team";
   const sheet = usePresence(open || undefined, 220);
-  const { team } = useTeamSurface(turn);
+  const { team, select } = useTeamSurface(turn);
 
   const close = (reason: CloseReason) => {
     closeTeamSheet();
@@ -51,7 +51,13 @@ export function PhoneTeamButton({ model, turn }: { model: WorkspaceModel; turn: 
           leaving={sheet.leaving}
           className="fact-popover--team"
         >
-          <TeamPanel model={team} />
+          <TeamPanel
+            model={team}
+            onSelect={(assistant) => {
+              select(assistant);
+              closeTeamSheet();
+            }}
+          />
         </FactPopover>
       )}
     </>

@@ -162,7 +162,7 @@ try {
     check(idleCards.actions === 0, `${label}: not involved cards expose no action`, idleCards);
     if (phone) {
       const live = await panel.locator(".team-panel__row button:not([disabled])").count();
-      check(live === 0, `${label}: the phone sheet cards have no action yet`, live);
+      check(live > 0, `${label}: the phone sheet cards have an action`, live);
       await page.screenshot({ path: `${out}/${label}-sheet.png` });
       await page.keyboard.press("Escape");
       await panel.waitFor({ state: "detached" });

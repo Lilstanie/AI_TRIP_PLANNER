@@ -24,6 +24,7 @@ export interface TrajectoryViewProps {
   t: TrajectoryTranslate;
   turns: readonly TrajectoryTurnModel[];
   steps: readonly TrajectoryStep[];
+  phone?: boolean;
 }
 
 /**
@@ -31,7 +32,7 @@ export interface TrajectoryViewProps {
  * @param props - The mapped turns, their steps and the translator.
  * @returns The toolbar, timeline overview and ledger with its record inspector.
  */
-export function TrajectoryView({ t, turns, steps }: TrajectoryViewProps) {
+export function TrajectoryView({ t, turns, steps, phone = false }: TrajectoryViewProps) {
   const [collapsedTurns, setCollapsedTurns] = useState<ReadonlySet<number>>(EMPTY_TURN_IDS);
   const [collapsedAssistants, setCollapsedAssistants] =
     useState<ReadonlySet<string>>(EMPTY_RECORD_IDS);
@@ -183,16 +184,18 @@ export function TrajectoryView({ t, turns, steps }: TrajectoryViewProps) {
         onStepHit={stepHit}
         t={t}
       />
-      <TrajectoryTimeline
-        t={t}
-        turns={turns}
-        range={timelineSelection}
-        selectedIndex={selectedTimelineIndex}
-        searchMatchIndexes={searchMatchIndexes}
-        onRangeChange={setTimelineSelection}
-        onRecordSelect={handleTimelineRecordSelect}
-        onRecordFocus={handleTimelineRecordFocus}
-      />
+      {!phone && (
+        <TrajectoryTimeline
+          t={t}
+          turns={turns}
+          range={timelineSelection}
+          selectedIndex={selectedTimelineIndex}
+          searchMatchIndexes={searchMatchIndexes}
+          onRangeChange={setTimelineSelection}
+          onRecordSelect={handleTimelineRecordSelect}
+          onRecordFocus={handleTimelineRecordFocus}
+        />
+      )}
       <div className={css.ledger}>
         <TrajectoryTable
           t={t}

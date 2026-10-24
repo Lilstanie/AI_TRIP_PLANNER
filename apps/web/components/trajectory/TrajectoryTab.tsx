@@ -16,12 +16,14 @@ export const TrajectoryTab = memo(function TrajectoryTab({
   busy,
   only,
   onClear,
+  phone = false,
 }: {
   messages: readonly Message[];
   live: readonly AgentProgressEvent[];
   busy: boolean;
   only: AssistantId | undefined;
   onClear: () => void;
+  phone?: boolean;
 }) {
   const { t, locale } = useLocale();
   const { settings } = useSettings();
@@ -51,7 +53,7 @@ export const TrajectoryTab = memo(function TrajectoryTab({
           </button>
         </div>
       )}
-      <TrajectoryView t={tt} turns={ledger.turns} steps={ledger.steps} />
+      <TrajectoryView t={tt} turns={ledger.turns} steps={ledger.steps} phone={phone} />
     </div>
   );
 });

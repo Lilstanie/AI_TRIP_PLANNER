@@ -14,7 +14,7 @@ Rewritten before the code (TP-75, #671). It replaces the #634 inventory, whose p
 - Switching to Conversation and back keeps a stale filter the traveller cleared, or drops one they did not clear.
 - Pressing while a turn is running shows a frozen trajectory instead of one that follows the live records.
 - Pressing a specialist while the Map is showing (narrow desktop Map view) leaves the chat hidden, so the trajectory cannot be seen.
-- On a phone the sheet cards are pressable although the phone has no trajectory yet, or the sheet no longer opens.
+- On a phone the sheet cards of involved specialists have no action, or the sheet no longer opens.
 - A cancelled turn shows its unfinished assistants or the Coordinator as Idle or Done.
 - A page error is logged, or the page overflows sideways.
 

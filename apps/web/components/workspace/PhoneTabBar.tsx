@@ -1,6 +1,6 @@
 "use client";
 import { useRef, type KeyboardEvent, type ReactNode } from "react";
-import { ChatIcon, MapIcon, RouteIcon, UserIcon } from "../ui/icons";
+import { ChatIcon, LedgerIcon, MapIcon, RouteIcon, UserIcon } from "../ui/icons";
 import { useLocale } from "../account/LocaleProvider";
 import type { MessageKey } from "@/lib/i18n/locale";
 import { PHONE_VIEWS, type MobileView } from "./workspace-helpers";
@@ -9,6 +9,7 @@ const TABS: Record<MobileView, { label: MessageKey; icon: (selected: boolean) =>
   chat: { label: "Chat", icon: (selected) => <ChatIcon filled={selected} /> },
   map: { label: "Map", icon: () => <MapIcon /> },
   trip: { label: "Trip", icon: () => <RouteIcon /> },
+  trajectory: { label: "Trajectory", icon: () => <LedgerIcon /> },
   mine: { label: "Mine", icon: () => <UserIcon /> },
 };
 

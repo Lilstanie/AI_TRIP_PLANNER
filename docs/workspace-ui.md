@@ -227,7 +227,8 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     (`Drawer`'s `hideTitle`).
 - **Phones (≤520 px).** The [phone shell decision](../.agents/notes/implemented/feature/2026-10-05-phone-shell.md)
   applies only at this width; desktop and tablets keep their existing navigation.
-  - A safe-area-aware bottom tab bar exposes Chat, Map, Trip and Mine as keyboard-operable tabs.
+  - A safe-area-aware bottom tab bar exposes Chat, Map, Trip, Trajectory and Mine as keyboard-operable tabs. Trajectory is the
+    phone trajectory described under Trajectory tab.
     One panel is visible at a time; panels stay mounted to preserve their scroll position. The saved
     layout restores the last tab, including older Chat/Map choices.
   - The single-row top bar shows the destination and dates, or New trip. Its title opens Trip details:
@@ -350,9 +351,10 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
       conflict checks and revision scores that name it. A bar above the ledger names the assistant and
       its Show all records button clears the filter; the filter survives switching tabs until cleared and a
       second press replaces it. Idle and Not involved cards are disabled. The phone sheet shows the same
-      layout with disabled cards until the phone trajectory exists. The request is
-      [`trajectory-focus.tsx`](../apps/web/components/chat/trajectory-focus.tsx), applied by `ChatPanel`;
-      the filter itself is `only` in `buildTrajectory`.
+      layout; a card there closes the sheet and selects the Trajectory tab from whichever tab is showing.
+      The request is [`trajectory-focus.tsx`](../apps/web/components/chat/trajectory-focus.tsx), applied by
+      `ChatPanel` on desktop and by `PhoneTrajectory` on a phone; the filter itself is `only` in
+      `buildTrajectory`.
   - There is no row of assistant chips above the message box. Typing `@` at the start of a word opens a
     menu of the six assistants (the Coordinator and the five specialists), each with its icon and
     current name, filtered by what follows the `@` and matched against the current, role and custom
@@ -486,7 +488,11 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
 ## Trajectory tab
 
 On desktop the chat column has a Conversation and a Trajectory tab. Conversation is the message stream
-and stays mounted while Trajectory is open, so its scroll position returns. The tab list is absent at phone width.
+and stays mounted while Trajectory is open, so its scroll position returns. The chat column has no tab list at phone width.
+On a phone, Trajectory is the fourth tab of the bottom bar (轨迹). It shows the same ledger, search and
+filter bar without the timeline overview, and the record inspector opens over the whole panel and closes
+back to the ledger. Widening the window while it is selected returns to the chat. The tab is
+[`PhoneTrajectory`](../apps/web/components/workspace/PhoneTrajectory.tsx).
 
 - **Records.** `buildTrajectory` (`lib/trajectory/adapter.ts`) maps the stored messages and their
   `activity` events to one turn per traveller message. A traveller message is a User record. A Coordinator
@@ -524,6 +530,9 @@ and stays mounted while Trajectory is open, so its scroll position returns. The 
   under `output/playwright/trajectory-inspector/`.
   `trajectory-timeline` saves the overview, a search hit, mid-stream and scrolled-up screenshots and
   `result.json` under `output/playwright/trajectory-timeline/`.
+  `trajectory-phone` (fixture mode, 390 and 360, English and Chinese) saves the empty tab, the ledger, an
+  open record, the team sheet and the filtered ledger screenshots and `result.json` under
+  `output/playwright/trajectory-phone/`.
 
 ## Reviewing a plan
 
