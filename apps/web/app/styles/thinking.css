@@ -52,7 +52,20 @@
   cursor: pointer;
 }
 
-.thinking-row__line:focus-visible {
+.thinking-row__toggle {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.thinking-row__toggle:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
   border-radius: 4px;

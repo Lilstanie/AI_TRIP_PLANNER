@@ -19,6 +19,7 @@ Written before the code (TP-76, #672). Each line is a way the phone trajectory c
 - Pressing a card while the Chat tab is showing and while the Map tab is showing both reach the trajectory.
 - Chinese labels appear in English, or English in Chinese, in the tab, the filter bar or the sheet.
 - Resizing to desktop width leaves the phone trajectory as the selected view (blank chat).
+- A specialist card pressed on the phone is replayed after widening to desktop, so the desktop opens on the Trajectory tab (with the filter) the traveller never asked for.
 - The page logs a page error.
 
 The E2E runs in mock data mode with no keys. The first run is expected to fail before implementation.

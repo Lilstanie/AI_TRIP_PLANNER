@@ -21,7 +21,7 @@ A finished reply's Think row says what the team did ("5 subagents"), but the [Tr
 
 ## Consequences
 
-- The summary button sits inside the Think row's `role="button"` line; the row's keyboard handling is bypassed for it.
+- The Think row's toggle is a native button holding the icon and title; the summary button is its sibling inside the line, so no button nests in another. Clicking the rest of the line still toggles the row.
 - Subagent rows and the live row keep plain summaries.
 
 ## Sources

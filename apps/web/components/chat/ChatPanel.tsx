@@ -112,10 +112,15 @@ export function ChatPanel({
 
   const [view, setView] = useState<"conversation" | "trajectory">("conversation");
   const showTrajectory = view === "trajectory" && !phone;
-  const savedScroll = useRef<number | null>(null);
+  const savedScroll = useRef<{
+    top: number;
+    messages: Message[];
+    activity: AgentProgressEvent[];
+  } | null>(null);
   const choose = (next: "conversation" | "trajectory") => {
     if (next === view) return;
-    if (next === "trajectory") savedScroll.current = stream.current?.scrollTop ?? 0;
+    if (next === "trajectory")
+      savedScroll.current = { top: stream.current?.scrollTop ?? 0, messages, activity };
     setView(next);
   };
   const { focus } = useTrajectoryFocus();
@@ -124,17 +129,21 @@ export function ChatPanel({
   const turns = useMemo(() => messageTurns(messages), [messages]);
   const handled = useRef(focus?.nonce ?? 0);
   useEffect(() => {
-    if (!focus || focus.nonce === handled.current || phone) return;
+    if (!focus || focus.nonce === handled.current) return;
     handled.current = focus.nonce;
+    if (phone) return;
     setOnly(focus.assistant);
     setJump(focus.turn === undefined ? undefined : { turn: focus.turn, nonce: focus.nonce });
     choose("trajectory");
   });
   useLayoutEffect(() => {
-    if (view !== "conversation" || savedScroll.current === null) return;
-    stream.current?.scrollTo({ top: savedScroll.current, behavior: "instant" });
+    const saved = savedScroll.current;
+    if (view !== "conversation" || saved === null) return;
+    const node = stream.current;
+    const arrived = saved.messages !== messages || saved.activity !== activity;
+    node?.scrollTo({ top: arrived ? node.scrollHeight : saved.top, behavior: "instant" });
     savedScroll.current = null;
-  }, [view]);
+  }, [view, messages, activity]);
 
   const prompts = useMemo(() => quickPrompts(), []);
   return (

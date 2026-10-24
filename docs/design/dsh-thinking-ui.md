@@ -477,7 +477,10 @@ animation next to a running label, only the shimmer or the sweep.
 a 24px row, a 16px leading box holding a 14px glyph, 6px gap, a 13px title. There is no trailing
 chevron anywhere in the tree. On hover, or while the row is open, the leading icon crossfades
 (100ms) to a down chevron (`FlowChevronDownIcon`, ported from DSH's `IconChevronDownOutline14`); a
-row with nothing to disclose renders its icon plain, with no hover state and no `role="button"`.
+row with nothing to disclose renders its icon plain, with no hover state and no `role="button"`. An
+expandable row's leading icon and title form a native `<button>` (`.thinking-row__toggle`, carrying
+`aria-expanded`); the collapsed content, including a pressable summary, is its sibling inside the line,
+so no control nests in another. A click anywhere else on the line still toggles the row.
 Nested rows use the rail described in 4.5a rather than the older `padding-left` plus a 1px border.
 
 ### 4.7 Narrow the live region

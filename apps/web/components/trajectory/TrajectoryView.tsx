@@ -56,8 +56,9 @@ export function TrajectoryView({
   const [timelineRecordFocus, setTimelineRecordFocus] = useState<{
     readonly index: number;
   } | null>(null);
+  const layouts = useMemo(() => [turns], [turns]);
   const searchMatchIndexes = useMemo(() => {
-    searchIndex.update([turns]);
+    searchIndex.update(layouts);
     const matches = searchIndex.search(searchQuery);
     if (matches === null) return null;
     const indexes = new Set<number>();
@@ -69,7 +70,7 @@ export function TrajectoryView({
       }
     }
     return indexes;
-  }, [searchIndex, searchQuery, turns]);
+  }, [searchIndex, searchQuery, layouts, turns]);
   const searchHits = useMemo(
     () => (searchMatchIndexes === null ? [] : [...searchMatchIndexes].sort((a, b) => a - b)),
     [searchMatchIndexes],

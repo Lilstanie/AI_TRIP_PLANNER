@@ -18,6 +18,7 @@ Written before the code (TP-73, #669). Each line is a way the feature could fail
 - Returning to the tail does not resume following.
 - Opening the Trajectory tab in the middle of a stream starts away from the tail.
 - A running assignment is shown as finished, or the finished reply is missing once the stream ends.
+- A timeline selection that ends exactly on a record boundary also keeps the records on either side of it, so the ledger and the overview show more records than the range covers.
 - Search labels or the hit counter appear in the wrong interface language.
 - The page overflows horizontally or logs a page error, or the overview is blank at 1440 px.
 

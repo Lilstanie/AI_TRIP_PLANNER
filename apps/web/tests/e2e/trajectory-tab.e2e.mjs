@@ -536,6 +536,19 @@ try {
     );
     await page.screenshot({ path: `${out}/${label}-reloaded.png` });
 
+    await send(page, "thanks, that looks good");
+    await conversationTab.click();
+    await stream.waitFor({ timeout: 5000 });
+    await page.waitForTimeout(400);
+    const gap = await stream.evaluate(
+      (node) => node.scrollHeight - node.clientHeight - node.scrollTop,
+    );
+    check(
+      gap <= 4,
+      `${label}: a reply that arrived on the Trajectory tab is in view when Conversation returns`,
+      gap,
+    );
+
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
     );

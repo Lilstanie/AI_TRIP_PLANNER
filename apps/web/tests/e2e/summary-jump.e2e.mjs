@@ -114,8 +114,11 @@ try {
       names,
     );
 
+    const nested = await page.locator('.msg-item--agent [role="button"] button').count();
+    check(nested === 0, `${label}: no summary button sits inside another button`, nested);
+
     const think = page.locator(".msg-item--agent .thinking-turn").nth(1);
-    const line = think.locator(":scope > .thinking-row__line");
+    const line = think.locator(":scope > .thinking-row__line > .thinking-row__toggle");
     const before = await line.getAttribute("aria-expanded");
     await summaries.nth(1).click();
     check(await trajectoryShown(), `${label}: the second summary opens the trajectory`);
@@ -124,12 +127,12 @@ try {
       (await line.getAttribute("aria-expanded")) === before,
       `${label}: pressing the summary does not toggle the Think row`,
     );
-    await line.locator(".thinking-row__title").click();
+    await line.click();
     check(
       (await line.getAttribute("aria-expanded")) !== before,
       `${label}: pressing the Think title still toggles the row`,
     );
-    await line.locator(".thinking-row__title").click();
+    await line.click();
 
     await summaries.nth(1).click();
     check(

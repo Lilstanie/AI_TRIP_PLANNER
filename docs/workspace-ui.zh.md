@@ -133,7 +133,7 @@ seniors`（宠物不计为旅客）；`groupSize` 仍是校验字段，因此至
 
 ## Trajectory 标签页
 
-桌面端聊天栏有“对话”和“轨迹”两个标签页。对话是消息流，打开轨迹时仍保持挂载，因此切回时滚动位置不变。手机宽度的聊天栏没有标签页；手机底部标签栏的第四项是“轨迹”（[`PhoneTrajectory`](../apps/web/components/workspace/PhoneTrajectory.tsx)），显示同样的账本、搜索和筛选栏，但没有时间线概览，记录详情铺满整个面板，关闭后回到账本。`trajectory-phone` 端到端脚本（390 与 360 px，中英文）在 `output/playwright/trajectory-phone/` 保存截图和 `result.json`。
+桌面端聊天栏有“对话”和“轨迹”两个标签页。对话是消息流，打开轨迹时仍保持挂载，因此切回时滚动位置不变；若期间有新回复，则回到最新回复处。手机宽度的聊天栏没有标签页；手机底部标签栏的第四项是“轨迹”（[`PhoneTrajectory`](../apps/web/components/workspace/PhoneTrajectory.tsx)），显示同样的账本、搜索和筛选栏，但没有时间线概览，记录详情铺满整个面板，关闭后回到账本。`trajectory-phone` 端到端脚本（390 与 360 px，中英文）在 `output/playwright/trajectory-phone/` 保存截图和 `result.json`。
 
 - **记录。** `buildTrajectory`（`lib/trajectory/adapter.ts`）把已存储的消息及其 `activity` 事件映射为每条旅行者消息一轮。旅行者消息是用户记录；Coordinator 摘要和回复是助手记录，使用助手当前名称（含自定义名称）；分配（`agent_started`）和检查（冲突检查、修订评分、停止）是工具记录；专家的工具调用是子工具记录，放在所属分配之下。失败的分配或工具调用标记为失败。未完成的请求显示实时事件，回复到达后定稿。
 - **步骤。** 每个工作流轮次是一个步骤，以该轮第一条记录上的圆点表示，名为“第 N 步”。旅行者消息位于第一步之前的“消息”组。选中步骤会打开其状态和调用数量。

@@ -231,6 +231,13 @@ try {
         "transport",
       `${label}: a card opens the filtered trajectory from the chat`,
     );
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.waitForTimeout(600);
+    check(
+      (await page.locator("#chat-tab-conversation").getAttribute("aria-selected")) === "true" &&
+        (await page.locator("[data-trajectory-filter]").count()) === 0,
+      `${label}: a card pressed on the phone is not replayed on desktop`,
+    );
     check(errors.length === 0, `${label}: no page errors`, errors);
     await context.close();
   }

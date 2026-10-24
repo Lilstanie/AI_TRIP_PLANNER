@@ -1,5 +1,5 @@
 "use client";
-import type { KeyboardEvent, ReactNode } from "react";
+import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { FlowChevronDownIcon } from "../ui/flow-icons";
 
@@ -29,11 +29,6 @@ export function Disclosure({
   children?: ReactNode;
 }) {
   const isOpen = expandable && open;
-  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (event.key !== "Enter" && event.key !== " ") return;
-    event.preventDefault();
-    onToggle();
-  };
   const leading = isOpen ? (
     <FlowChevronDownIcon className="thinking-row__chevron" />
   ) : expandable ? (
@@ -43,6 +38,14 @@ export function Disclosure({
     </>
   ) : (
     icon
+  );
+  const head = (
+    <>
+      <span className="thinking-row__leading" aria-hidden="true">
+        {leading}
+      </span>
+      <span className="thinking-row__title">{title}</span>
+    </>
   );
 
   return (
@@ -54,16 +57,15 @@ export function Disclosure({
       <div
         className="thinking-row__line"
         data-expandable={expandable || undefined}
-        role={expandable ? "button" : undefined}
-        tabIndex={expandable ? 0 : undefined}
-        aria-expanded={expandable ? isOpen : undefined}
         onClick={expandable ? onToggle : undefined}
-        onKeyDown={expandable ? onKeyDown : undefined}
       >
-        <span className="thinking-row__leading" aria-hidden="true">
-          {leading}
-        </span>
-        <span className="thinking-row__title">{title}</span>
+        {expandable ? (
+          <button type="button" className="thinking-row__toggle" aria-expanded={isOpen}>
+            {head}
+          </button>
+        ) : (
+          head
+        )}
         {(keepContentWhenOpen || !isOpen) && collapsedContent}
       </div>
       {isOpen && children}

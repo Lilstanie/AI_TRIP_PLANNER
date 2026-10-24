@@ -35,6 +35,7 @@ nowhere to open the filtered trajectory.
 - Five tabs at 390 px are about 75 px each, above the 44 px target; the label stays one word in both languages.
 - E2E scripts that list the tab bar expect five tabs (`phone-shell`).
 - The phone filter and the desktop filter are separate state, so resizing across 520 px clears the filter.
+- Leaving the phone tab unmounts the ledger, as leaving the desktop tab does, so search text and folds reset on return; only the specialist filter survives. A turn jump therefore always meets a fresh ledger, and widening to desktop opens the conversation, never a replayed request.
 
 ## Sources
 

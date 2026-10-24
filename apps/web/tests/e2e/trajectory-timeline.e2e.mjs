@@ -200,6 +200,77 @@ try {
       blocks.every((block, at) => at === 0 || block.index > blocks[at - 1].index),
       `${label}: blocks follow event order`,
     );
+    const FIRST = 2;
+    const LAST = 5;
+    const dragged = await page.evaluate(
+      ([from, to, count]) => {
+        const track = document.querySelector("[data-timeline-domain]")?.closest('[tabindex="0"]');
+        if (!track) return null;
+        track.setPointerCapture = () => undefined;
+        track.style.position = "fixed";
+        track.style.left = "0px";
+        track.style.width = "1024px";
+        const rect = track.getBoundingClientRect();
+        const exact = (boundary) => {
+          const centre = boundary / count;
+          const ulp = 2 ** (Math.floor(Math.log2(centre)) - 52);
+          for (let step = 0; step <= 256; step += 1) {
+            const fraction = centre + (step % 2 ? 1 : -1) * Math.ceil(step / 2) * ulp;
+            const x = rect.left + fraction * rect.width;
+            if (((x - rect.left) / rect.width) * count === boundary) return x;
+          }
+          return null;
+        };
+        const x1 = exact(from);
+        const x2 = exact(to);
+        if (x1 === null || x2 === null) return { x1, x2 };
+        const y = rect.top + rect.height / 2;
+        const fire = (type, x, buttons) =>
+          track.dispatchEvent(
+            new PointerEvent(type, {
+              bubbles: true,
+              cancelable: true,
+              pointerId: 7,
+              pointerType: "mouse",
+              button: 0,
+              buttons,
+              clientX: x,
+              clientY: y,
+            }),
+          );
+        fire("pointerdown", x1, 1);
+        fire("pointermove", (x1 + x2) / 2, 1);
+        fire("pointermove", x2, 1);
+        fire("pointerup", x2, 0);
+        return { x1, x2 };
+      },
+      [FIRST, LAST, blocks.length],
+    );
+    check(
+      dragged?.x1 != null && dragged?.x2 != null,
+      `${label}: two record boundaries can be dragged between exactly`,
+      dragged,
+    );
+    if (dragged?.x1 != null && dragged?.x2 != null) {
+      await page.waitForTimeout(300);
+      const marked = await timeline
+        .locator('[data-selected="true"]')
+        .evaluateAll((nodes) =>
+          nodes.map((node) => Number(node.getAttribute("data-timeline-record-index"))),
+        );
+      const expected = blocks.slice(FIRST, LAST).map((block) => block.index);
+      check(
+        JSON.stringify(marked) === JSON.stringify(expected),
+        `${label}: a range between two boundaries marks only the records inside it`,
+        { marked, expected },
+      );
+      await timeline.locator('[tabindex="0"]').press("Escape");
+      await page.waitForTimeout(200);
+      await page.evaluate(() => {
+        const track = document.querySelector("[data-timeline-domain]")?.closest('[tabindex="0"]');
+        for (const property of ["position", "left", "width"]) track?.style.removeProperty(property);
+      });
+    }
     const timelineText = await timeline.evaluate((node) => {
       const own = node.innerText;
       const titles = [...node.querySelectorAll("[title],[aria-label]")].map(

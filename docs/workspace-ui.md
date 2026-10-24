@@ -488,7 +488,7 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
 ## Trajectory tab
 
 On desktop the chat column has a Conversation and a Trajectory tab. Conversation is the message stream
-and stays mounted while Trajectory is open, so its scroll position returns. The chat column has no tab list at phone width.
+and stays mounted while Trajectory is open, so its scroll position returns; when a reply arrived meanwhile it returns at the newest reply. The chat column has no tab list at phone width.
 On a phone, Trajectory is the fourth tab of the bottom bar (轨迹). It shows the same ledger, search and
 filter bar without the timeline overview, and the record inspector opens over the whole panel and closes
 back to the ledger. Widening the window while it is selected returns to the chat. The tab is

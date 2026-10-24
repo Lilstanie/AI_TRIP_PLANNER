@@ -51,6 +51,19 @@ different question, the cost and timing of one benchmark run, and is not the pla
 - **Live tail.** The copied ledger already follows the tail and stops when the traveller scrolls up; the
   `trajectory-timeline` E2E holds a streamed reply open event by event to prove it.
 
+- **Switching back keeps the newest reply in view.** `ChatPanel` saves the stream's scroll offset when
+  Trajectory opens and restores it on return, unless a message or activity arrived meanwhile; then the
+  stream scrolls to its end, as it would have while visible.
+- **A phone request is not replayed on desktop.** `ChatPanel` marks a Trajectory request handled even at phone
+  width, where `PhoneTrajectory` consumes it, so widening the window never opens a tab nobody asked for.
+- **Overview selection excludes touching records.** A range covers the records whose span overlaps it; a
+  record that only touches the range edge is outside.
+- **File-size exception.** `TrajectoryTable.tsx` (about 1,550 lines) and `TrajectoryTable.module.css`
+  (about 1,150 lines) exceed the 1,000-line rule in `docs/development.md`. They are DSH's ledger copied
+  whole, and the copy is verbatim so that updating it is a diff against DSH. Splitting it would make every
+  later diff a manual merge. The exception stands for these two files only; new trajectory code stays below
+  the threshold.
+
 ## Alternatives considered
 
 - **Depend on the DSH packages.** They are not published and assume DSH's store; rejected.

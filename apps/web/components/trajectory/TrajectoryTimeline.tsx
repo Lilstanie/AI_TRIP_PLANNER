@@ -549,7 +549,7 @@ export const TrajectoryTimeline = memo(function TrajectoryTimeline({
                       data-selected={
                         activeRange === null
                           ? undefined
-                          : span.start <= activeRange.end && span.end >= activeRange.start
+                          : span.start < activeRange.end && span.end > activeRange.start
                             ? "true"
                             : "false"
                       }

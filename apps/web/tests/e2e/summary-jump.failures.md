@@ -11,6 +11,7 @@ Written before the code (TP-77, #673). Each line is a way the summary jump could
 - The jump keeps a specialist filter set earlier, so the turn's records are missing.
 - Enter on the focused summary does nothing.
 - A summary pressed after the Trajectory tab was opened and left does nothing the second time.
+- The summary is a button nested inside the Think row's `role="button"` line, so assistive technology cannot reach it (nested interactive controls).
 - The page scrolls sideways at 390 px or logs a page error.
 - Chinese summaries open nothing, or the tab labels are in the wrong language.
 

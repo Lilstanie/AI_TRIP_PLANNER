@@ -79,7 +79,7 @@ export function trajectoryTimelineFocusIndexes(
   const model = deriveTrajectoryTimeline(turns);
   return new Set(
     model?.spans
-      .filter((span) => span.start <= range.end && span.end >= range.start)
+      .filter((span) => span.start < range.end && span.end > range.start)
       .map((span) => span.index),
   );
 }
