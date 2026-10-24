@@ -1,6 +1,7 @@
 "use client";
 import { cloneElement, type ReactElement, type ReactNode } from "react";
 import Markdown from "react-markdown";
+import css from "./shim.module.css";
 
 interface IconProps {
   size?: number;
@@ -51,6 +52,64 @@ export const IconUserOutlineRegular = (props: IconProps) => (
     <path d="M2.5 14c.4-2.8 2.6-4.5 5.5-4.5s5.1 1.7 5.5 4.5" />
   </Icon>
 );
+
+export const IconChevronDownOutlineRegular = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="m3.5 6 4.5 4.5L12.5 6" />
+  </Icon>
+);
+
+export type StateDotState = "done" | "warning" | "ongoing" | "error" | "idle";
+
+export function StateDot({ state, size }: { state: StateDotState; size?: number | undefined }) {
+  const edge = size ?? (state === "ongoing" ? 14 : 10);
+  if (state === "ongoing") {
+    return (
+      <svg
+        className={css.spinner}
+        data-state="ongoing"
+        width={edge}
+        height={edge}
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+      >
+        <g className={css.spinnerMotion}>
+          <circle className={css.spinnerTrack} cx="12" cy="12" r="9.5" />
+          <circle className={css.spinnerArc} cx="12" cy="12" r="9.5" />
+        </g>
+      </svg>
+    );
+  }
+  return (
+    <span
+      className={css.dot}
+      data-state={state}
+      style={{ width: edge, height: edge }}
+      aria-hidden="true"
+    />
+  );
+}
+
+export type TagTone = "outline" | "neutral" | "quiet" | "success" | "info" | "warning" | "danger";
+
+export function Tag({
+  tone = "outline",
+  className,
+  children,
+}: {
+  tone?: TagTone;
+  className?: string | undefined;
+  children?: ReactNode;
+}) {
+  return (
+    <span
+      className={className === undefined ? css.tag : `${css.tag} ${className}`}
+      data-tone={tone}
+    >
+      {children}
+    </span>
+  );
+}
 
 export function Tooltip({
   label,

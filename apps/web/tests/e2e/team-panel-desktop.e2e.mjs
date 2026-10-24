@@ -31,6 +31,16 @@ const STATUS = {
 };
 const MARKERS = { en: ["Decided by AI", "Decided by code"], zh: ["AI 决定", "程序决定"] };
 const STAY = { en: "Stay", zh: "住宿" };
+const LAYOUT = {
+  en: {
+    members: "Members",
+    tasks: "Assignments",
+    tab: "Trajectory",
+    chat: "Conversation",
+    clear: "Show all records",
+  },
+  zh: { members: "成员", tasks: "任务", tab: "轨迹", chat: "对话", clear: "显示全部记录" },
+};
 const ASK = { en: "recommend a restaurant", zh: "推荐一家餐厅" };
 const PLAN = "Tokyo from Sydney, 2027-02-01 to 2027-02-04, 2 adults, budget AUD 6000";
 
@@ -165,6 +175,21 @@ try {
       idleText.length === 6 && idleText.every((text) => text === STATUS[locale].idle),
       `${label}: idle rows say so in the interface language`,
       idleText,
+    );
+    const heading = await panel.locator("h3").first().innerText();
+    check(
+      heading.includes(LAYOUT[locale].members) && heading.includes("6"),
+      `${label}: the roster has a Members heading counting six`,
+      heading,
+    );
+    check(
+      (await rows.locator("button:not([disabled])").count()) === 0,
+      `${label}: idle cards expose no action`,
+    );
+    check(
+      (await panel.locator(".team-panel__assignment").count()) === 0 &&
+        (await panel.locator("h3").count()) === 1,
+      `${label}: an idle panel has no assignments board`,
     );
     await page.screenshot({ path: `${out}/${label}-idle.png` });
     await page.mouse.move(width / 2, 500);
@@ -325,6 +350,59 @@ try {
       frame,
     );
     await page.screenshot({ path: `${out}/${label}-settled.png` });
+    const boardHeading = await panel.locator("h3").nth(1).innerText();
+    check(
+      boardHeading.includes(LAYOUT[locale].tasks) &&
+        boardHeading.includes(String(await assignments.count())),
+      `${label}: the board heading counts the assignments`,
+      boardHeading,
+    );
+    check(
+      (await assignments.locator("[data-state]").count()) >= owners.length,
+      `${label}: every assignment card has a status dot`,
+    );
+    const pressable = await rows.locator("button:not([disabled])").count();
+    check(pressable === 6, `${label}: every involved card is a button`, pressable);
+    await panel.locator('.team-panel__row[data-assistant="accommodation"] button').click();
+    await panel.waitFor({ state: "detached" });
+    const tab = page.getByRole("tab", { name: LAYOUT[locale].tab });
+    check(
+      (await tab.getAttribute("aria-selected")) === "true",
+      `${label}: pressing a specialist opens the Trajectory tab`,
+    );
+    const chip = page.locator("[data-trajectory-filter]");
+    check(
+      (await chip.count()) === 1 && (await chip.innerText()).includes(STAY[locale]),
+      `${label}: the trajectory names the filtered specialist`,
+      await chip.allInnerTexts(),
+    );
+    const filtered = await page.evaluate(() =>
+      [...document.querySelectorAll("[data-trajectory-scroll] tr[data-record-index]")].map(
+        (row) => ({
+          kind: row.getAttribute("data-kind"),
+          assistant: row.getAttribute("data-assistant"),
+        }),
+      ),
+    );
+    check(
+      filtered.length > 0 &&
+        filtered.every(
+          (row) => row.kind !== "user" && row.assistant?.split(" ").includes("accommodation"),
+        ),
+      `${label}: only that specialist's records are listed`,
+      filtered,
+    );
+    await page.screenshot({ path: `${out}/${label}-filtered.png` });
+    await chip.getByRole("button", { name: LAYOUT[locale].clear }).click();
+    const all = await page.evaluate(
+      () => document.querySelectorAll("[data-trajectory-scroll] tr[data-kind=user]").length,
+    );
+    check(
+      (await chip.count()) === 0 && all > 0,
+      `${label}: clearing the filter shows every record`,
+      all,
+    );
+    await page.getByRole("tab", { name: LAYOUT[locale].chat }).click();
     await page.mouse.move(width / 2, 500);
 
     await send(page, `@${STAY[locale]} find another stay`);

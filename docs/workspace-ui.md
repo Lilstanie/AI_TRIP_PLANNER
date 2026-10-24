@@ -323,32 +323,36 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     sheet: a modal dialog named Specialist team, focus moves in and stays in, Escape, the close button or a press
     outside closes it and returns focus to the button, and it scrolls when long. It shares the layout `sheet` slot,
     so it never opens together with Trip details, and it closes when the viewport grows past phone width.
-    - Six rows, always, in the fixed order (Coordinator, Day plan, Getting around, Stay, Destination
-      guide, Food & dining), each with its icon, current name, a status and its latest objective
-      (clamped to two lines, with Show more). Idle is before any event; Working is started with no result in
-      the latest round; Done is completed; Failed is `agent_failed`; Needs change is named by the latest
-      conflict check and not yet revised; Stopped is a turn that was cancelled or failed while the assistant
-      was working (the Coordinator of such a turn is Stopped too); Not involved is no assignment this turn. The Coordinator row
-      carries the Decided by AI or code marker for the dispatch.
-    - Below the rows, the turn's **assignments** and checks in event order. An assignment is a
-      specialist's first dispatch, a targeted revision or a hand-off, with its owner, round status
-      (Working, Done, Failed or Stopped), a Decided by AI or Decided by code marker (AI when the stream
+    - The panel body is DSH's Agent Teams layout ([`TeamPanel`](../apps/web/components/chat/TeamPanel.tsx),
+      copied with its MIT header). **Members** (count 6) holds six cards, always, in the fixed order
+      (Coordinator, Day plan, Getting around, Stay, Destination guide, Food & dining): icon, current name, a
+      state dot with the status and the assistant's latest objective as a tag. Idle is before any event;
+      Working is started with no result in the latest round; Done is completed; Failed is `agent_failed`;
+      Needs change is named by the latest conflict check and not yet revised; Stopped is a turn that was
+      cancelled or failed while the assistant was working (the Coordinator of such a turn is Stopped too);
+      Not involved is no assignment this turn, and the card is greyed. The Coordinator card carries the
+      Decided by AI or code marker for the dispatch.
+    - **Assignments** (count) lists the turn's assignments and checks in event order as task cards. An
+      assignment is a specialist's first dispatch, a targeted revision or a hand-off. Its card shows the
+      owner, a state dot with the round status (Working, Done, Failed or Stopped), the objective clamped to
+      two lines with Show more, the kind, a Decided by AI or Decided by code marker (AI when the stream
       carried that specialist's reasoning in that round, otherwise code once the turn ends; a hand-off
       carries its own provenance) and the data source (live, estimated, mock, fallback or unavailable).
-      A misdirected mention is one hand-off row. Conflict checks name the specialist sent back with a
+      A misdirected mention is one hand-off card. Conflict checks name the specialist sent back with a
       Needs change tag; revision scores say kept or discarded; the stop reason ends the list. Checks are
       rules and carry no icon.
     - The Think fold's Subagent rows use the same icons. The Trip drawer shows no assistant icons. The live
       area above the message box shows only the Think fold.
-    - **Opening thinking rows.** Pressing a row of an involved assistant (Working, Done, Failed, Needs
-      change or Stopped; the name is a button called "Show {name} thinking") closes the panel, or on a phone the sheet,
-      switches to the chat when the Map is showing (the phone Map tab or the Map view at tablet width),
-      scrolls the chat to the Think fold of the latest run (the live area, or the latest reply's fold),
-      opens the fold and expands exactly that specialist's `Subagent` row for the latest round it worked in,
-      then moves focus to the row. Pressing the Coordinator opens the fold and focuses its first line, where
-      the dispatch begins. Idle and Not involved rows have no button and expose no action. The target is
-      matched by the run's activity list in [`team-reveal.tsx`](../apps/web/components/chat/team-reveal.tsx) and
-      handled in [`ThinkingProcess`](../apps/web/components/chat/ThinkingProcess.tsx).
+    - **Opening the filtered trajectory.** Pressing a card of an involved assistant (Working, Done, Failed,
+      Needs change or Stopped; the card is a button called "Show {name} trajectory") closes the panel,
+      switches to the chat when the Map is showing (the Map view at tablet width) and opens the Trajectory
+      tab showing only that assistant's records: its messages, assignments and tool calls, and the
+      conflict checks and revision scores that name it. A bar above the ledger names the assistant and
+      its Show all records button clears the filter; the filter survives switching tabs until cleared and a
+      second press replaces it. Idle and Not involved cards are disabled. The phone sheet shows the same
+      layout with disabled cards until the phone trajectory exists. The request is
+      [`trajectory-focus.tsx`](../apps/web/components/chat/trajectory-focus.tsx), applied by `ChatPanel`;
+      the filter itself is `only` in `buildTrajectory`.
   - There is no row of assistant chips above the message box. Typing `@` at the start of a word opens a
     menu of the six assistants (the Coordinator and the five specialists), each with its icon and
     current name, filtered by what follows the `@` and matched against the current, role and custom

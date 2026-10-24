@@ -1,4 +1,4 @@
-import type { AgentProgressEvent } from "@trip/shared";
+import type { AgentProgressEvent, AssistantId } from "@trip/shared";
 import { checkText } from "@/components/chat/team-check";
 import type { TrajectoryTurnModel } from "@/components/trajectory/layout";
 import type { TrajectoryTranslate } from "@/components/trajectory/locales";
@@ -31,6 +31,7 @@ export interface TrajectoryInput {
   t: Translate;
   displayName: DisplayName;
   tt: TrajectoryTranslate;
+  only?: AssistantId | undefined;
 }
 
 export interface TrajectoryLedger {
@@ -67,6 +68,12 @@ function markdown(summary: string, constraints: readonly string[] | undefined): 
     : `${summary}\n\n${constraints.map((line) => `- ${line}`).join("\n")}`;
 }
 
+function checkOwners(decision: Parameters<typeof checkText>[2]): AssistantId[] {
+  if (decision.type === "conflicts_detected") return decision.conflicts.map((item) => item.agent);
+  if (decision.type === "revision_scored") return [...decision.agents];
+  return [];
+}
+
 function blocks(
   events: readonly AgentProgressEvent[],
   prefix: string,
@@ -88,6 +95,7 @@ function blocks(
         round: event.round,
         head: {
           recordId,
+          assistants: ["coordinator"],
           kind: "message",
           text: displayName("coordinator"),
           previewMarkdown: oneLine(event.summary),
@@ -102,6 +110,7 @@ function blocks(
         round: event.round,
         head: {
           recordId,
+          assistants: [event.agent],
           kind: "tool",
           text: objective ? `${name} · ${objective}` : name,
           toolName: event.agent,
@@ -125,6 +134,7 @@ function blocks(
     } else if (event.type === "tool_started") {
       const draft: Draft = {
         recordId,
+        assistants: [event.agent],
         kind: "subtool",
         text: event.label,
         toolName: event.tool,
@@ -167,6 +177,7 @@ function blocks(
           round: event.round,
           head: {
             recordId,
+            assistants: checkOwners(decision),
             kind: "tool",
             text: checkText(t, displayName, decision),
             inputDetail: JSON.stringify(decision, null, 2),
@@ -211,13 +222,17 @@ export function buildTrajectory(input: TrajectoryInput): TrajectoryLedger {
     const turn = section.user === undefined ? null : ++turnNumber;
     const prefix = turn === null ? `m${sectionIndex}` : `t${turn}`;
     const rounds = new Map<number, Draft[]>();
+    const owned = (draft: Draft) =>
+      input.only === undefined || draft.assistants?.includes(input.only) === true;
     for (const block of blocks(section.events, prefix, section.settled, input)) {
+      const kept = [block.head, ...block.children].filter(owned);
+      if (kept.length === 0) continue;
       const cells = rounds.get(block.round) ?? [];
-      cells.push(block.head, ...block.children);
+      cells.push(...kept);
       rounds.set(block.round, cells);
     }
     const lead: Draft[] = [];
-    if (section.user !== undefined) {
+    if (section.user !== undefined && input.only === undefined) {
       lead.push({
         recordId: `${prefix}:user`,
         kind: "user",
@@ -228,14 +243,17 @@ export function buildTrajectory(input: TrajectoryInput): TrajectoryLedger {
     if (section.reply !== undefined) {
       const reply: Draft = {
         recordId: `${prefix}:reply`,
+        assistants: [section.reply.assistant ?? "coordinator"],
         kind: "message",
         text: input.displayName(section.reply.assistant ?? "coordinator"),
         previewMarkdown: oneLine(section.reply.text),
         outputDetail: section.reply.text,
       };
       const lastRound = [...rounds.keys()].sort((left, right) => left - right).at(-1);
-      if (lastRound === undefined) lead.push(reply);
-      else rounds.get(lastRound)?.push(reply);
+      if (owned(reply)) {
+        if (lastRound === undefined) lead.push(reply);
+        else rounds.get(lastRound)?.push(reply);
+      }
     }
     const groups: TrajectoryTurnModel["groups"][number][] = [];
     if (lead.length > 0) {
@@ -248,7 +266,7 @@ export function buildTrajectory(input: TrajectoryInput): TrajectoryLedger {
       if (turn !== null)
         steps.push({ turn, step: round, group: title, status: stepStatus(drafts) });
     }
-    turns.push({ turn, groups });
+    if (groups.length > 0 || input.only === undefined) turns.push({ turn, groups });
   }
   return { turns, steps };
 }

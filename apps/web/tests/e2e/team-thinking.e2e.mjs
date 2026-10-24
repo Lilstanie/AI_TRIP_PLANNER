@@ -14,6 +14,7 @@ const check = (ok, name, detail) => {
 
 const PLAN = "Tokyo from Sydney, 2027-02-01 to 2027-02-04, 2 adults, budget AUD 6000";
 const BUTTON = "Specialist team";
+const CLEAR = "Show all records";
 
 const browser = await chromium.launch({
   ...(process.env.CHANNEL ? { channel: process.env.CHANNEL } : {}),
@@ -38,31 +39,6 @@ async function toChat(page) {
   const tab = page.getByRole("tab", { name: /^Chat/ });
   if ((await tab.getAttribute("aria-selected")) !== "true") await tab.click();
 }
-
-const opened = (scope) =>
-  scope.evaluate((node) => ({
-    turn: node.querySelector(".thinking-turn")?.getAttribute("data-open") === "true",
-    rows: [...node.querySelectorAll(".thinking-subagent")]
-      .filter((row) => row.querySelector(".thinking-subagent__row")?.hasAttribute("data-open"))
-      .map((row) => row.getAttribute("data-subagent")),
-  }));
-
-const focusInfo = () => {
-  const node = document.activeElement;
-  if (!node) return null;
-  const rect = node.getBoundingClientRect();
-  return {
-    subagent: node.closest(".thinking-subagent")?.getAttribute("data-subagent") ?? null,
-    turnLine: Boolean(node.closest(".thinking-turn > .thinking-row__line")),
-    reply: [...document.querySelectorAll(".msg-item--agent")].findIndex((item) =>
-      item.contains(node),
-    ),
-    live: Boolean(node.closest(".chat__stream > .agent-activity")),
-    top: rect.top,
-    bottom: rect.bottom,
-    form: document.querySelector(".chat__form")?.getBoundingClientRect().top ?? innerHeight,
-  };
-};
 
 try {
   for (const width of [1440, 800, 390]) {
@@ -109,6 +85,15 @@ try {
         return new Response(body, { status: response.status, headers: response.headers });
       };
     });
+    let budgetOverride;
+    await page.route("**/api/chat", async (route) => {
+      const body = JSON.parse(route.request().postData() ?? "{}");
+      if (budgetOverride && body.plan) {
+        body.brief = { ...body.brief, budgetTotal: budgetOverride };
+        body.plan = { ...body.plan, brief: { ...body.plan.brief, budgetTotal: budgetOverride } };
+      }
+      return route.continue({ postData: JSON.stringify(body) });
+    });
     await page.goto(base);
     await page.locator(".workspace-app").waitFor();
     await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
@@ -121,10 +106,15 @@ try {
 
     await send(page, PLAN);
     await send(page, "@Stay find another stay");
-    await send(page, "@Stay find another stay please");
-    await send(page, "@Stay find a cheaper stay");
-    await send(page, "@Stay find a quieter stay");
-    const last = (await replies(page).count()) - 1;
+    const stored = await page.evaluate(() =>
+      JSON.parse(localStorage.getItem("trip-workspace-v1") ?? "null"),
+    );
+    const sections = stored.plan.sections;
+    const floor = sections.reduce((sum, s) => sum + (s.proposal?.floorCost ?? 0), 0);
+    const spend = sections.reduce((sum, s) => sum + s.estCost, 0);
+    budgetOverride = Math.floor((floor + spend) / 2);
+    await send(page, "@Stay find a cheaper stay again");
+    budgetOverride = undefined;
 
     const panel = page.locator(".team-panel");
     const trigger = phone
@@ -138,136 +128,150 @@ try {
       }
       await panel.waitFor();
     };
-    const press = (name) =>
-      panel.getByRole("button", { name: new RegExp(`^Show ${name} thinking$`) });
-    const settle = async () => {
-      await panel.waitFor({ state: "detached" });
-      await page.waitForTimeout(400);
-    };
+    const press = (id) => panel.locator(`.team-panel__row[data-assistant="${id}"] button`);
+    const trajectoryTab = page.getByRole("tab", { name: "Trajectory" });
+    const conversationTab = page.getByRole("tab", { name: "Conversation" });
+    const chip = page.locator("[data-trajectory-filter]");
+    const ledger = () =>
+      page.evaluate(() =>
+        [...document.querySelectorAll("[data-trajectory-scroll] tr[data-record-index]")].map(
+          (row) => ({
+            kind: row.getAttribute("data-kind"),
+            assistants: (row.getAttribute("data-assistant") ?? "").split(" ").filter(Boolean),
+            running: row.getAttribute("data-running") === "true",
+            text: row.cells[1]?.innerText.replace(/\s+/g, " ").trim() ?? "",
+          }),
+        ),
+      );
+    const thinkingOpen = () =>
+      page.evaluate(
+        () =>
+          document.querySelectorAll(
+            ".thinking-subagent [data-open], .thinking-turn[data-open='true']",
+          ).length,
+      );
 
     await openLatest();
-    const idleButtons = await panel
+    const idleCards = await panel
       .locator('.team-panel__row[data-status="none"], .team-panel__row[data-status="idle"]')
       .evaluateAll((rows) => ({
         rows: rows.length,
-        actions: rows.filter((row) => row.querySelector("button, a, [role=button], [tabindex]"))
+        actions: rows.filter((row) => row.querySelector("button:not([disabled]), a, [role=button]"))
           .length,
       }));
-    check(
-      idleButtons.rows > 0 && idleButtons.actions === 0,
-      `${label}: not involved rows expose no action`,
-      idleButtons,
-    );
-    check(
-      (await press("Stay").count()) === 1,
-      `${label}: an involved specialist has a named button`,
-    );
-    await page.screenshot({ path: `${out}/${label}-latest-panel.png` });
-    await page.keyboard.press("Escape");
-    await panel.waitFor({ state: "detached" });
+    check(idleCards.actions === 0, `${label}: not involved cards expose no action`, idleCards);
+    if (phone) {
+      const live = await panel.locator(".team-panel__row button:not([disabled])").count();
+      check(live === 0, `${label}: the phone sheet cards have no action yet`, live);
+      await page.screenshot({ path: `${out}/${label}-sheet.png` });
+      await page.keyboard.press("Escape");
+      await panel.waitFor({ state: "detached" });
+    } else {
+      check(
+        (await press("accommodation").count()) === 1 &&
+          Boolean(await press("accommodation").getAttribute("aria-label")),
+        `${label}: an involved specialist has a named button`,
+      );
+      await page.screenshot({ path: `${out}/${label}-latest-panel.png` });
+      await press("accommodation").click();
+      await panel.waitFor({ state: "detached" });
+      check(
+        (await trajectoryTab.getAttribute("aria-selected")) === "true",
+        `${label}: pressing a specialist selects the Trajectory tab`,
+      );
+      check((await thinkingOpen()) === 0, `${label}: no thinking row was expanded`);
+      const stay = await ledger();
+      check(
+        stay.length > 0 &&
+          stay.every((row) => row.kind !== "user" && row.assistants.includes("accommodation")),
+        `${label}: only the pressed specialist's records are listed`,
+        stay.map((row) => [row.kind, row.assistants]),
+      );
+      check(
+        (await chip.count()) === 1 && (await chip.innerText()).includes("Stay"),
+        `${label}: the filter names the specialist`,
+      );
+      const checks = stay.filter((row) => /^Conflict check/.test(row.text));
+      const stayChecks = checks.map((row) => row.text);
+      await page.screenshot({ path: `${out}/${label}-stay-trajectory.png` });
 
-    await openLatest();
-    await panel.getByRole("button", { name: /^Show Coordinator thinking$/ }).click();
-    await settle();
-    const lead = await opened(replies(page).nth(last));
-    const leadFocus = await page.evaluate(focusInfo);
-    check(
-      lead.turn && lead.rows.length === 0 && leadFocus?.turnLine && leadFocus.reply === last,
-      `${label}: the Coordinator opens the thinking process at its dispatch`,
-      { lead, leadFocus },
-    );
-
-    await openLatest();
-    await press("Stay").click();
-    await settle();
-    const latest = await opened(replies(page).nth(last));
-    const latestFocus = await page.evaluate(focusInfo);
-    check(
-      latest.turn && latest.rows.length === 1 && latestFocus?.reply === last,
-      `${label}: the latest-run panel opens the latest reply's Stay row`,
-      { latest, latestFocus },
-    );
-    check(
-      latestFocus && latestFocus.top >= 0 && latestFocus.bottom <= latestFocus.form + 1,
-      `${label}: the latest Stay row is in view`,
-      latestFocus,
-    );
-    await page.screenshot({ path: `${out}/${label}-latest-stay.png` });
-
-    if (narrow) {
-      if (phone) await page.getByRole("tab", { name: /^Map/ }).click();
-      else
-        await page
-          .getByRole("group", { name: "Workspace view" })
-          .getByRole("button", { name: "Map", exact: true })
-          .click();
-      await page.waitForTimeout(400);
+      await conversationTab.click();
       await openLatest();
-      await press("Stay").click();
-      await settle();
-      const onChat = phone
-        ? (await page.getByRole("tab", { name: /^Chat/ }).getAttribute("aria-selected")) === "true"
-        : (await page
-            .getByRole("group", { name: "Workspace view" })
+      await press("coordinator").click();
+      await panel.waitFor({ state: "detached" });
+      const lead = await ledger();
+      check(
+        lead.length > 0 &&
+          lead.every((row) => row.assistants.includes("coordinator")) &&
+          lead.some((row) => row.kind === "message"),
+        `${label}: the Coordinator filter replaces the Stay filter`,
+        lead.map((row) => [row.kind, row.assistants]),
+      );
+      await conversationTab.click();
+      await trajectoryTab.click();
+      check((await chip.count()) === 1, `${label}: the filter survives a tab switch until cleared`);
+      await chip.getByRole("button", { name: CLEAR }).click();
+      const everything = await ledger();
+      check(
+        (await chip.count()) === 0 && everything.some((row) => row.kind === "user"),
+        `${label}: clearing the filter shows every record`,
+      );
+      const allChecks = everything.filter((row) => /^Conflict check/.test(row.text));
+      check(
+        allChecks.length > 0 &&
+          JSON.stringify(stayChecks) ===
+            JSON.stringify(
+              allChecks.filter((row) => row.text.includes("Stay")).map((row) => row.text),
+            ),
+        `${label}: the filter keeps exactly the conflict checks naming the specialist`,
+        { stayChecks, all: allChecks.map((row) => row.text) },
+      );
+      await conversationTab.click();
+
+      if (narrow) {
+        const views = page.getByRole("group", { name: "Workspace view" });
+        await views.getByRole("button", { name: "Map", exact: true }).click();
+        await page.waitForTimeout(400);
+        await openLatest();
+        await press("accommodation").click();
+        await panel.waitFor({ state: "detached" });
+        const onChat =
+          (await views
             .getByRole("button", { name: "Chat", exact: true })
             .getAttribute("aria-pressed")) === "true";
-      const fromMap = await page.evaluate(focusInfo);
-      check(onChat, `${label}: pressing a specialist from the map switches to the chat`);
+        check(
+          onChat && (await trajectoryTab.getAttribute("aria-selected")) === "true",
+          `${label}: pressing from the map shows the chat on the Trajectory tab`,
+        );
+        await chip.getByRole("button", { name: CLEAR }).click();
+        await conversationTab.click();
+      }
+
+      await page.evaluate(() => {
+        window.__slow = true;
+      });
+      await box(page).fill(PLAN);
+      await page.keyboard.press("Enter");
+      await page.locator(".chat__stream > .agent-activity").waitFor();
+      await openLatest();
+      await press("accommodation").waitFor();
+      await press("accommodation").click();
+      await panel.waitFor({ state: "detached" });
+      await page.screenshot({ path: `${out}/${label}-live-stay.png` });
+      await page.getByRole("button", { name: "Send" }).waitFor({ timeout: 240_000 });
+      const settled = await ledger();
       check(
-        fromMap?.reply === last && fromMap.subagent?.endsWith(":accommodation"),
-        `${label}: the Stay row of the latest reply is focused after the switch`,
-        fromMap,
+        settled.length > 0 &&
+          settled.every((row) => row.assistants.includes("accommodation") && !row.running),
+        `${label}: a filter set mid-run follows the run to its end`,
+        settled.map((row) => [row.kind, row.assistants, row.running]),
       );
-      check(
-        fromMap && fromMap.top >= 0 && fromMap.bottom <= fromMap.form + 1,
-        `${label}: the Stay row is in view after the switch`,
-        fromMap,
-      );
+      await chip.getByRole("button", { name: CLEAR }).click();
+      await conversationTab.click();
     }
 
     await page.evaluate(() => {
       window.__slow = true;
-    });
-    await box(page).fill(PLAN);
-    await page.keyboard.press("Enter");
-    await page.locator(".chat__stream > .agent-activity").waitFor();
-    await openLatest();
-    await press("Stay").waitFor();
-    await page.evaluate(() => {
-      window.__live = [];
-      const sample = (count) => {
-        const node = document.querySelector(".chat__stream > .agent-activity");
-        if (node)
-          window.__live.push({
-            turn: node.querySelector(".thinking-turn")?.getAttribute("data-open") === "true",
-            rows: [...node.querySelectorAll(".thinking-subagent")]
-              .filter((row) =>
-                row.querySelector(".thinking-subagent__row")?.hasAttribute("data-open"),
-              )
-              .map((row) => row.getAttribute("data-subagent")),
-            focused: node.contains(document.activeElement),
-          });
-        if (count > 0) requestAnimationFrame(() => sample(count - 1));
-      };
-      document.addEventListener("click", () => sample(60), { capture: true, once: true });
-    });
-    await press("Stay").click();
-    await page.waitForTimeout(1500);
-    const samples = await page.evaluate(() => window.__live);
-    const liveState = samples.find(
-      (item) => item.turn && item.rows.length === 1 && item.focused,
-    ) ?? {
-      samples: samples.length,
-    };
-    check(
-      "turn" in liveState,
-      `${label}: the live panel opens the running thinking process`,
-      liveState,
-    );
-    await page.screenshot({ path: `${out}/${label}-live-stay.png` });
-
-    await page.getByRole("button", { name: "Send" }).waitFor({ timeout: 240_000 });
-    await page.evaluate(() => {
       window.__delay = 600;
     });
     await box(page).fill(PLAN);
@@ -288,12 +292,11 @@ try {
         id: row.getAttribute("data-assistant"),
         status: row.getAttribute("data-status"),
         text: row.querySelector(".team-panel__status")?.textContent,
-        action: Boolean(row.querySelector("button.team-panel__press")),
       })),
     );
     const unfinished = stopped.filter((row) => row.status === "stopped");
     check(
-      unfinished.length > 0 && unfinished.every((row) => row.text === "Stopped" && row.action),
+      unfinished.length > 0 && unfinished.every((row) => row.text === "Stopped"),
       `${label}: a cancelled turn shows its unfinished assistants as Stopped`,
       stopped,
     );

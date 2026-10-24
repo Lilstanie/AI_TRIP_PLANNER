@@ -1,21 +1,21 @@
-# Team panel opens thinking rows failure inventory
+# Team panel opens the filtered trajectory failure inventory
 
-Written before the code (#634). Each line is a way the press could fail; the browser journey must distinguish them.
+Rewritten before the code (TP-75, #671). It replaces the #634 inventory, whose press expanded thinking rows. Each line is a way the press could fail; the browser journey must distinguish them.
 
-- A row for an involved specialist has no button, or its button has no accessible name.
-- A "not involved" or "idle" row exposes a button or any other action.
-- Pressing a specialist leaves the panel or the phone sheet open.
-- Pressing a specialist from a reply's panel opens the latest run's thinking process instead of that reply's.
-- Pressing a specialist from the latest-run panel opens a different reply's thinking process.
-- The thinking process opens but the specialist's `Subagent` row stays collapsed, or another specialist's row also expands.
-- The row that expands is the first round's although the specialist worked again in a later round.
-- The chat does not scroll to the row when it is above the visible area, or the row ends up under the composer or top bar.
-- Focus stays on the panel button, on the page body, or on the wrong row.
-- Pressing the Coordinator expands a specialist row, or leaves the thinking process closed.
-- The press works at 1440 but not at 800 or 390 (the sheet's focus trap or leaving animation swallows the focus).
-- Pressing while a turn is running targets a settled reply instead of the live thinking process.
-- Pressing a specialist while the Map is showing (phone Map tab, narrow desktop Map view) leaves the chat hidden, so the reveal lands in a panel that cannot be seen.
-- A cancelled turn shows its unfinished assistants or the Coordinator as Idle or Done, or a Stopped row has no press action.
+- A card for an involved specialist has no button, or its button has no accessible name.
+- A "not involved" or "idle" card exposes a button or any other action.
+- Pressing a specialist leaves the panel open, or leaves the Conversation tab selected.
+- Pressing a specialist opens the Thinking process rows, as before.
+- The trajectory shows records of other specialists, or the traveller's message, instead of only that specialist's records.
+- The Coordinator filter shows a specialist's assignment, or hides the Coordinator's dispatch and reply.
+- A conflict check that names the pressed specialist is missing, or a check that names another one is shown.
+- The filter has no visible name of the specialist and no control to clear it, or clearing it leaves records hidden.
+- Pressing a second specialist adds to the first filter instead of replacing it.
+- Switching to Conversation and back keeps a stale filter the traveller cleared, or drops one they did not clear.
+- Pressing while a turn is running shows a frozen trajectory instead of one that follows the live records.
+- Pressing a specialist while the Map is showing (narrow desktop Map view) leaves the chat hidden, so the trajectory cannot be seen.
+- On a phone the sheet cards are pressable although the phone has no trajectory yet, or the sheet no longer opens.
+- A cancelled turn shows its unfinished assistants or the Coordinator as Idle or Done.
 - A page error is logged, or the page overflows sideways.
 
 The E2E runs in mock data mode with no keys. The first run is expected to fail before implementation.

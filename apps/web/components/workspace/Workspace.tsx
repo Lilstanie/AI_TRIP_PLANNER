@@ -9,7 +9,7 @@ import { SettingsProvider } from "../account/SettingsProvider";
 import { LocaleProvider } from "../account/LocaleProvider";
 import { WorkspaceView } from "./WorkspaceView";
 import { useWorkspace } from "./useWorkspace";
-import { TeamRevealProvider, useTeamRevealState } from "../chat/team-reveal";
+import { TrajectoryFocusProvider, useTrajectoryFocusState } from "../chat/trajectory-focus";
 
 function readableStorage(): Pick<Storage, "getItem"> {
   try {
@@ -50,12 +50,12 @@ export function Workspace({ initialPlan }: { initialPlan?: TripPlan }) {
 
 function WorkspaceContent({ restored }: { restored: RestoredWorkspace }) {
   const model = useWorkspace({ restored });
-  const teamReveal = useTeamRevealState();
+  const trajectoryFocus = useTrajectoryFocusState();
   return (
     <LocaleProvider brief={model.session.draft}>
-      <TeamRevealProvider value={teamReveal}>
+      <TrajectoryFocusProvider value={trajectoryFocus}>
         <WorkspaceView model={model} />
-      </TeamRevealProvider>
+      </TrajectoryFocusProvider>
     </LocaleProvider>
   );
 }

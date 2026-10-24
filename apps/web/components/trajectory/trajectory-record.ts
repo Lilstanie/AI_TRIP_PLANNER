@@ -15,6 +15,7 @@ export interface TrajectorySourceBlock {
 export interface TrajectoryCellProps {
   index: number;
   recordId?: string;
+  assistants?: readonly string[];
   kind: TrajectoryCellKind;
   text: string;
   previewMarkdown?: string;

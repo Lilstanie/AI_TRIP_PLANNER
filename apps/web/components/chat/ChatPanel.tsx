@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { type AgentProgressEvent, type TripPlan } from "@trip/shared";
+import { type AgentProgressEvent, type AssistantId, type TripPlan } from "@trip/shared";
 import { quickPrompts } from "@/lib/planning/quick-prompts";
 import { translate } from "@/lib/i18n/locale";
 import type { Message } from "@/lib/workspace";
@@ -9,6 +9,7 @@ import { Composer } from "./Composer";
 import { MessageItem } from "./MessageItem";
 import { QuestionComposer } from "./QuestionComposer";
 import { TrajectoryTab } from "../trajectory/TrajectoryTab";
+import { useTrajectoryFocus } from "./trajectory-focus";
 import type { PendingAsk, QuestionAnswer, QuestionProgress } from "@/lib/workspace/ask-user";
 import type { PreparedAttachment } from "@/lib/chat/attachments";
 import type { Notice } from "@/lib/i18n/notice";
@@ -116,6 +117,15 @@ export function ChatPanel({
     if (next === "trajectory") savedScroll.current = stream.current?.scrollTop ?? 0;
     setView(next);
   };
+  const { focus } = useTrajectoryFocus();
+  const [only, setOnly] = useState<AssistantId | undefined>();
+  const handled = useRef(focus?.nonce ?? 0);
+  useEffect(() => {
+    if (!focus || focus.nonce === handled.current || phone) return;
+    handled.current = focus.nonce;
+    setOnly(focus.assistant);
+    choose("trajectory");
+  });
   useLayoutEffect(() => {
     if (view !== "conversation" || savedScroll.current === null) return;
     stream.current?.scrollTo({ top: savedScroll.current, behavior: "instant" });
@@ -214,7 +224,13 @@ export function ChatPanel({
           role="tabpanel"
           aria-labelledby="chat-tab-trajectory"
         >
-          <TrajectoryTab messages={messages} live={activity} busy={busy} />
+          <TrajectoryTab
+            messages={messages}
+            live={activity}
+            busy={busy}
+            only={only}
+            onClear={() => setOnly(undefined)}
+          />
         </div>
       )}
       {ask && onAnswer && onDismissAsk ? (

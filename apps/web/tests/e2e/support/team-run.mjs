@@ -20,8 +20,8 @@ export async function readRun(page) {
       kind: item.getAttribute("data-kind"),
       marker: item.querySelector(".team-panel__marker")?.textContent ?? "",
       source: item.querySelector(".team-panel__source")?.textContent ?? "",
-      text: item.querySelector(".team-panel__text, .team-panel__objective")?.textContent ?? "",
-      icon: item.querySelectorAll(":scope > .assistant-icon svg").length,
+      text: item.querySelector(".team-panel__text")?.textContent ?? "",
+      icon: item.querySelectorAll(".assistant-icon svg").length,
     })),
     checks: [...node.querySelectorAll(".team-panel__check")].map((item) => ({
       type: item.getAttribute("data-check"),

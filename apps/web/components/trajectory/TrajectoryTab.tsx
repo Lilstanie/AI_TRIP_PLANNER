@@ -1,8 +1,9 @@
 "use client";
 import { memo, useMemo } from "react";
-import type { AgentProgressEvent } from "@trip/shared";
+import type { AgentProgressEvent, AssistantId } from "@trip/shared";
 import { useLocale } from "@/components/account/LocaleProvider";
 import { useSettings } from "@/components/account/SettingsProvider";
+import { AssistantIcon } from "@/components/chat/assistants";
 import { assistantName } from "@/components/chat/assistant-names";
 import { buildTrajectory } from "@/lib/trajectory/adapter";
 import type { Message } from "@/lib/workspace";
@@ -13,10 +14,14 @@ export const TrajectoryTab = memo(function TrajectoryTab({
   messages,
   live,
   busy,
+  only,
+  onClear,
 }: {
   messages: readonly Message[];
   live: readonly AgentProgressEvent[];
   busy: boolean;
+  only: AssistantId | undefined;
+  onClear: () => void;
 }) {
   const { t, locale } = useLocale();
   const { settings } = useSettings();
@@ -31,8 +36,22 @@ export const TrajectoryTab = memo(function TrajectoryTab({
         t,
         tt,
         displayName: (id) => assistantName(id, names, locale),
+        only,
       }),
-    [messages, live, busy, t, tt, names, locale],
+    [messages, live, busy, t, tt, names, locale, only],
   );
-  return <TrajectoryView t={tt} turns={ledger.turns} steps={ledger.steps} />;
+  return (
+    <div className="trajectory-tab">
+      {only !== undefined && (
+        <div className="trajectory-filter" data-trajectory-filter={only}>
+          <AssistantIcon id={only} />
+          <strong>{assistantName(only, names, locale)}</strong>
+          <button type="button" onClick={onClear}>
+            {t("Show all records")}
+          </button>
+        </div>
+      )}
+      <TrajectoryView t={tt} turns={ledger.turns} steps={ledger.steps} />
+    </div>
+  );
 });

@@ -1029,6 +1029,7 @@ export function TrajectoryTable({
                       }
                       aria-selected={!isCollapsedSummary && selectedIndex === record.cell.index}
                       data-kind={record.cell.kind}
+                      data-assistant={record.cell.assistants?.join(" ") || undefined}
                       data-trajectory-row-key={trajectoryVirtualRecordKey(record)}
                       data-virtual-position={virtualizationEnabled ? position : undefined}
                       data-record-index={isCollapsedSummary ? undefined : record.cell.index}

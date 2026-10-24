@@ -14,11 +14,11 @@ const TEAM_SHEET_ID = "team-sheet";
 
 export function PhoneTeamButton({ model, turn }: { model: WorkspaceModel; turn: TeamTurn }) {
   const { t } = useLocale();
-  const { openTeamSheet, closeTeamSheet, selectView } = model.layout;
+  const { openTeamSheet, closeTeamSheet } = model.layout;
   const button = useRef<HTMLButtonElement>(null);
   const open = model.layout.surface.sheet === "team";
   const sheet = usePresence(open || undefined, 220);
-  const { team, select } = useTeamSurface(turn);
+  const { team } = useTeamSurface(turn);
 
   const close = (reason: CloseReason) => {
     closeTeamSheet();
@@ -51,14 +51,7 @@ export function PhoneTeamButton({ model, turn }: { model: WorkspaceModel; turn: 
           leaving={sheet.leaving}
           className="fact-popover--team"
         >
-          <TeamPanel
-            model={team}
-            onSelect={(assistant) => {
-              selectView("chat");
-              select(assistant);
-              closeTeamSheet();
-            }}
-          />
+          <TeamPanel model={team} />
         </FactPopover>
       )}
     </>

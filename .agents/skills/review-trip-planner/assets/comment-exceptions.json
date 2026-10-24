@@ -78,5 +78,10 @@
     "file": "apps/web/lib/trajectory/adapter.ts",
     "text": "/**\n * Map stored messages and live progress events to the Trajectory ledger.\n * @param input - Messages in order, the live events of an unfinished request, and the translators.\n * @returns One turn per traveller message and one step per workflow round, with no timestamps.\n */",
     "reason": "MIT licence header that the upstream DeepSeek Harness licence requires on this copied file; THIRD_PARTY_NOTICES.md lists it (#668)."
+  },
+  {
+    "file": "apps/web/components/chat/TeamPanel.tsx",
+    "text": "/*\n * Adapted from DeepSeek Harness (https://github.com/deepseek-ai/deepseek-harness), commit 687f282e86.\n * Copyright (c) 2026 DeepSeek. Licensed under the MIT licence; see THIRD_PARTY_NOTICES.md.\n */",
+    "reason": "MIT licence header that the upstream DeepSeek Harness licence requires on this copied file; THIRD_PARTY_NOTICES.md lists it (#671)."
   }
 ]

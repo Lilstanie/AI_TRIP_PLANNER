@@ -263,3 +263,28 @@
   border-radius: var(--radius-sm);
   margin-bottom: var(--space-2);
 }
+
+.trajectory-tab {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+.trajectory-tab > :last-child {
+  flex: 1;
+  height: auto;
+}
+.trajectory-filter {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  border-bottom: 1px solid var(--border);
+  font-size: var(--font-size-meta);
+}
+.trajectory-filter button {
+  min-height: 0;
+  margin-inline-start: auto;
+  padding: 2px 10px;
+}
