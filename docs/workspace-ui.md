@@ -64,7 +64,8 @@ now. Implementation history and browser acceptance for each phase are in the
     initial; the same destination always gets the same colours.
   - A chat row's second line names its trip with the same title the Trips list uses, so two chats for
     trips with the same destination, dates, group size and budget read `Trip to Sydney · 1` and
-    `· 2` there too.
+    `· 2` there too. The row's overflow trigger is named `Actions for {chat}, {trip}` through the
+    locale, so Chinese reads `{chat}，{trip}的操作`.
   - A chat row's overflow trigger at its top right opens Rename and Delete, so those
     actions stay off the row until they are wanted. It is revealed on hover and on keyboard focus,
     and always shown where there is no hover to reveal it. The menu is a `role="menu"` of

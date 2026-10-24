@@ -181,7 +181,8 @@ export function ChatsPanel({
                 {item.subtitle && <span className="history-item__meta">{item.subtitle}</span>}
               </button>
               <HistoryMenu
-                title={[chatTitle(item.title), item.subtitle].filter(Boolean).join(", ")}
+                title={chatTitle(item.title)}
+                subtitle={item.subtitle}
                 onRename={() => onRenameChat(item.id)}
                 onDelete={() => onDeleteChat(item.id)}
               />
