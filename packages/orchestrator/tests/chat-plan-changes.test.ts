@@ -625,7 +625,9 @@ describe("the conversation agent decides what to do", () => {
       mem,
     );
 
-    expect(after.reply).toBe("I can’t verify that requested change from the resulting itinerary.");
+    expect(after.reply).toBe(
+      "I can’t verify that requested change from the resulting itinerary. Estimated total: AUD 100.00, covering activities. Not included: transport without a price. That is AUD 3,900.00 under your AUD 4,000.00 budget.",
+    );
   });
 
   it("does not let a booked stay support an unsupported flight ticket claim", async () => {
@@ -637,7 +639,9 @@ describe("the conversation agent decides what to do", () => {
       mem,
     );
 
-    expect(after.reply).toBe("I can’t verify that requested change from the resulting itinerary.");
+    expect(after.reply).toBe(
+      "I can’t verify that requested change from the resulting itinerary. Estimated total: AUD 100.00, covering activities. Not included: transport without a price. That is AUD 3,900.00 under your AUD 4,000.00 budget.",
+    );
   });
 
   it("grounds model text attached to an ask-user error", async () => {
@@ -701,7 +705,9 @@ describe("the conversation agent decides what to do", () => {
     );
 
     expect(after.plan.sections[0]?.proposal?.items[0]?.detail).toBe("Harbour cruise");
-    expect(after.reply).toBe("Done — I added the harbour cruise to day 2.");
+    expect(after.reply).toBe(
+      "Done — I added the harbour cruise to day 2. Estimated total: AUD 100.00, covering activities. Not included: transport without a price. That is AUD 3,900.00 under your AUD 4,000.00 budget.",
+    );
   });
 
   it("allows a booking claim grounded in the traveller's message", async () => {
