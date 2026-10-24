@@ -14,9 +14,7 @@ const check = (ok, name, observed) => {
   );
 };
 const placeholders = (text) => [...new Set(text.match(/[A-Za-z]+\(s\)/g) ?? [])];
-const SPECIALIST =
-  /(?:option|candidate|leg|choice|guest|day|traveller|request)\(s\)|room\(s\) for/g;
-const specialist = (text) => [...new Set(text.match(SPECIALIST) ?? [])];
+const specialist = (text) => [...new Set(text.match(/[A-Za-z]+\(s\)/g) ?? [])];
 
 const browser = await chromium.launch({
   headless: true,
@@ -26,7 +24,12 @@ try {
   for (const [chip, expected] of [
     [
       "Sydney · 4 days",
-      ["1 room, 3 nights in Sydney", "1 room for 2 guests", "4 planning days × 2 travellers"],
+      [
+        "1 room, 3 nights in Sydney",
+        "1 room for 2 guests",
+        "4 planning days × 2 travellers",
+        "1 room × 3 nights × ",
+      ],
     ],
     [
       "Melbourne → Sydney · 5 days",

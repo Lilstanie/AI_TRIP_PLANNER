@@ -301,7 +301,8 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
   - Each agent reply renders under its own Think fold: the transcript streams at the foot of the chat
     while the turn runs, then moves above the reply that ended the turn and stays with it (including
     after a reload). English specialist summaries, assumptions and progress lines count in the
-    singular for one and the plural for more ("1 transport option", "2 rooms"), never with "(s)".
+    singular for one and the plural for more ("1 transport option", "2 rooms"), never with "(s)". So
+    does the stay price detail ("1 room × 3 nights × AUD 230.00 per room/night").
   - **Specialist team** is a button in the top bar, left of Trip. It shows the six assistants' icons
     (a working one bobs) and, while planning, "N working"; between 521 and 1000 px only the icons show.
     Hovering it opens the team panel; Enter, Space or a touch pins it and moves focus into the panel; a click

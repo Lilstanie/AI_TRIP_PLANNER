@@ -5,7 +5,9 @@ accommodation lines still printed "option(s)", "candidate(s)", "room(s)", "guest
 "day(s)" and "traveller(s)". Each line is a way the fix could fail.
 
 - Any English specialist summary, assumption or progress line in the plan stream still has "(s)".
-  (The shared price detail "room(s) × night(s)" lives in a protected shared contract and is out of scope.)
+- The shared stay price detail still reads "room(s) × night(s)", or reads "1 rooms" / "1 nights".
+- The Agent Lab fixture stays drift from the shared detail wording, or its stay-night check stops
+  reading the night count.
 - A count of one reads as plural ("1 transport options", "1 rooms") or a count above one as singular.
 - The visible chat, Think disclosure or Trip panel still shows "(s)".
 - The Chinese copy changes.

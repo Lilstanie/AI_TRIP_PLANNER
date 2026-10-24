@@ -388,7 +388,7 @@ async function main() {
   const tokyoHotel = itemsOf(wrongNights, "accommodation").find((item) =>
     /tokyo/i.test(item.detail),
   );
-  tokyoHotel.detail = tokyoHotel.detail.replace("4 night(s)", "3 night(s)");
+  tokyoHotel.detail = tokyoHotel.detail.replace("4 nights", "3 nights");
   check(
     tripFacts(wrongNights, CITIES).stayNights === false,
     "kyoto: the script's own recomputation detects a stay whose stated nights do not match its dates",

@@ -130,7 +130,7 @@ function scriptedPlan(): TripPlan {
             {
               kind: "hotel",
               detail:
-                "Mock Paris Saver — Outer district; 2026-11-10 to 2026-11-15; 2 room(s) × 5 night(s) × AUD 140.00 per room/night = AUD 1400.00; no free cancellation.",
+                "Mock Paris Saver — Outer district; 2026-11-10 to 2026-11-15; 2 rooms × 5 nights × AUD 140.00 per room/night = AUD 1400.00; no free cancellation.",
               estCost: 1400,
               day: 1,
               location: "Paris",
