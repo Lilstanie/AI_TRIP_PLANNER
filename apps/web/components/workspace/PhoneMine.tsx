@@ -46,6 +46,7 @@ export function PhoneMine({ model }: { model: WorkspaceModel }) {
             <TripsPage
               embedded
               trips={history.catalog.trips.filter((trip) => visibleTrips.has(trip.id))}
+              allTrips={history.catalog.trips}
               activeTripId={history.catalog.activeTripId}
               onOpenTrip={openTrip}
               onNewTrip={newTrip}

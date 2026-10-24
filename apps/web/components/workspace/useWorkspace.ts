@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useWorkspaceStorage } from "./useWorkspaceStorage";
 import { useWorkspaceTransport } from "./useWorkspaceTransport";
 import { useTripPlaces } from "../map/useTripPlaces";
@@ -18,7 +18,7 @@ import {
   type TripRecord,
   type WorkspaceCatalog,
 } from "@/lib/workspace/catalog";
-import { distinctTripTitles, tripName } from "@/lib/workspace/trip-identity";
+import { distinctTripTitles, tripMeta, tripName } from "@/lib/workspace/trip-identity";
 import { seed, type MobileView } from "./workspace-helpers";
 import { useWorkspaceLayout } from "./useWorkspaceLayout";
 import {
@@ -213,11 +213,11 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
     onReject: (fields) => openPreferences(firstFactWithError(fields) ?? "preferences"),
   });
 
-  const filteredHistory = useMemo(
-    () => searchCatalog(catalog, historyQuery),
-    [catalog, historyQuery],
-  );
   const tripTitles = distinctTripTitles(catalog.trips, (item) => tripName(item, t));
+  const filteredHistory = searchCatalog(catalog, historyQuery, (item) => [
+    tripTitles.get(item.id)!,
+    tripMeta(item, locale, settings.displayCurrency, t),
+  ]);
   const historyChats = filteredHistory.conversations.map((item) => {
     const trip = item.tripId && catalog.trips.find((record) => record.id === item.tripId);
     return {

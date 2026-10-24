@@ -47,7 +47,10 @@ now. Implementation history and browser acceptance for each phase are in the
     Choosing any of them closes the panel. See
     [New chat and New trip](#conversations-trips-and-storage) for what the two starts do.
   - Search splits whitespace-separated terms and requires every term to match across a chat's title
-    or messages, or a trip's title, destination or dates; term order does not matter.
+    or messages, or a trip's stored title, destination, ISO dates and the text its row shows (the
+    numbered title, date range, days and total); term order does not matter. A number matches only a
+    whole number, so `trip 2` picks out "Trip to Sydney · 2" (`trip-search-row-text` E2E). Phone trip
+    cards keep the numbering of the full list while filtered.
   - Search announces matching trip and chat counts through polite live regions. English uses singular for one result and plural for multiple results; Chinese uses the same counting phrase. Empty searches stay silent, and no matches announce the existing empty message.
   - **Trips** replaces the top bar, chat and map with the Your trips page: a "Your trips" heading, a
     New trip button, and Trips and Calendar tabs (`role="tablist"`, arrow keys switch) drawn as a

@@ -412,23 +412,35 @@ export function upsertConversationDraft(
   return next;
 }
 
+/**
+ * Matches every query word; a number matches only a whole number. A trip also matches the text its
+ * row shows, given by `tripText`.
+ */
 export function searchCatalog(
   catalog: WorkspaceCatalog,
   query: string,
+  tripText: (trip: TripRecord) => string[] = () => [],
 ): { conversations: ConversationRecord[]; trips: TripRecord[] } {
   const terms = query.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
   if (!terms.length)
     return { conversations: [...catalog.conversations], trips: [...catalog.trips] };
   const matches = (...values: string[]) => {
     const text = values.join(" ").toLocaleLowerCase();
-    return terms.every((term) => text.includes(term));
+    return terms.every((term) =>
+      /^\d+$/.test(term) ? new RegExp(`(?<!\\d)${term}(?!\\d)`).test(text) : text.includes(term),
+    );
   };
   return {
     conversations: catalog.conversations.filter((item) =>
       matches(item.title, ...item.messages.map((message) => message.text)),
     ),
     trips: catalog.trips.filter((item) =>
-      matches(item.title, item.snapshot.plan.brief.destination, ...item.snapshot.plan.brief.dates),
+      matches(
+        item.title,
+        item.snapshot.plan.brief.destination,
+        ...item.snapshot.plan.brief.dates,
+        ...tripText(item),
+      ),
     ),
   };
 }
