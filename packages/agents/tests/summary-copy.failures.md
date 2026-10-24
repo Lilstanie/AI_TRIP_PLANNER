@@ -21,3 +21,13 @@ Written before the code (#492). Each line is a way the change could fail.
 - The Chinese destination guide keeps an English month name.
 - Optional parts (lowest eligible cost, unpriced legs, unavailable choices, incomplete) appear when absent or vanish when present.
 - A specialist with no reply language on its context crashes instead of using English.
+
+## Weather tip lines (#645)
+
+- An English weather line changes wording: forecast, climate and unavailable lines must stay byte-for-byte.
+- A Chinese turn still shows an English day name ("Fri, 18 June") or an English month.
+- A Chinese turn keeps an English label (forecast, historical climate, weather unavailable).
+- The Chinese day text differs from the Trip tab day header for the same date.
+- The provider's weather summary or the city name is dropped or translated.
+- A date is shifted by the server's time zone, so the day name is one day off.
+- A guide with no reply language crashes instead of using English.

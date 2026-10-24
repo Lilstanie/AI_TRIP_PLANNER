@@ -1,4 +1,6 @@
-import type { InterfaceLanguage } from "@trip/shared";
+import type { InterfaceLanguage, WeatherResult } from "@trip/shared";
+
+type WeatherLine = Pick<WeatherResult, "horizon" | "summary">;
 
 interface StayLine {
   rooms: number;
@@ -36,6 +38,10 @@ const ENGLISH = {
   transportIncomplete:
     "Inter-city travel is incomplete: available routes and fares could not be verified.",
   transportNone: "No inter-city travel is needed for this trip.",
+  weather: (city: string, date: string, result?: WeatherLine) =>
+    result
+      ? `${city}, ${day(date, "en-AU")} (${result.horizon === "forecast" ? "forecast" : "historical climate, not a forecast"}): ${result.summary}`
+      : `${city}, ${day(date, "en-AU")}: weather unavailable; check a current forecast before travel.`,
   transport: ({
     options,
     origin,
@@ -63,6 +69,10 @@ const CHINESE: typeof ENGLISH = {
   itineraryNeedsPlaces: "行程需要已核实的地点数据",
   transportIncomplete: "城际交通不完整：无法核实可用路线和票价。",
   transportNone: "本次行程不需要城际交通。",
+  weather: (city, date, result) =>
+    result
+      ? `${city}，${day(date, "zh-CN")}（${result.horizon === "forecast" ? "预报" : "历史气候，非预报"}）：${result.summary}`
+      : `${city}，${day(date, "zh-CN")}：暂无天气数据，出行前请查看最新预报。`,
   transport: ({ options, origin, destinations, money, unpriced, unavailable, incomplete }) =>
     `${options} 个交通方案（${origin} ↔ ${destinations.join(" → ")}）· 已知估算 ${money}${unpriced ? ` · ${unpriced} 段未计价` : ""}${unavailable ? ` · ${unavailable} 个出行选择不可用` : ""}${incomplete ? "（不完整/未核实）" : ""}`,
 };
@@ -75,6 +85,15 @@ function month(date: string, locale: string): string {
   return new Intl.DateTimeFormat(locale, { month: "long", timeZone: "UTC" }).format(
     Date.parse(`${date}T00:00:00.000Z`),
   );
+}
+
+function day(date: string, locale: string): string {
+  return new Intl.DateTimeFormat(locale, {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC",
+  }).format(Date.parse(`${date}T00:00:00.000Z`));
 }
 
 export function summaryCopy(language: InterfaceLanguage | undefined): typeof ENGLISH {
