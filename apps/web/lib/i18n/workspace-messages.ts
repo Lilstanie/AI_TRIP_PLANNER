@@ -190,7 +190,7 @@ export const WORKSPACE_ZH = {
   "Flight time": "飞行时长",
   "Travel tips": "旅行提示",
   "Night {v0} of {v1}": "第 {v0} 晚，共 {v1} 晚",
-  "Included in the flight in": "含在去程票价中",
+  "Included in the outbound fare": "含在去程票价中",
   "View property details": "查看酒店详情",
   "No detailed items were returned.": "未返回详细项目。",
   "Restaurant suggestions are included in the meal budget envelope; they are not added again to the total.":

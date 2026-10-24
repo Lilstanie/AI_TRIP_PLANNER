@@ -190,7 +190,7 @@ function FlightCard({
           </div>
         )}
       </dl>
-      {out && <p>{t("Included in the flight in")}</p>}
+      {out && <p>{t("Included in the outbound fare")}</p>}
       {selected.note && <p>{selected.note}</p>}
       <Alternatives
         chosen={selected.price}
@@ -316,7 +316,7 @@ export function BookingRow({
       </div>
       <span className="timeline-row__cost">
         {out
-          ? t("Included in the flight in")
+          ? t("Included in the outbound fare")
           : selected
             ? money(selected.price)
             : t("Price unknown")}
