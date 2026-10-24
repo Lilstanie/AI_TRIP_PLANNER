@@ -8,7 +8,7 @@ focuses on where the LLM sits and what deterministic code guards it, as the brie
 
 ## 4.1 Activity diagram: Arrange Accommodation (UC-C1)
 
-Swimlanes are the four participants. The LLM is used once, in *Choose one candidate id per segment*, and
+Swimlanes are the four participants. The LLM is used once, in _Choose one candidate id per segment_, and
 its output is checked before anything is priced.
 Rendered: [`c-activity.html`](../../architecture-diagrams/stage1-member-c/rendered/c-activity.html) (Archify; [source](../../architecture-diagrams/stage1-member-c/specs/c-activity.workflow.json), [evidence](../../architecture-diagrams/stage1-member-c/evidence/c-activity.visual-check.html)).
 
@@ -174,13 +174,13 @@ stateDiagram-v2
   end note
 ```
 
-| State | UI status | Entry / exit behaviour |
-| --- | --- | --- |
-| WaitingForTransport | planning | Waits only if transport was started in the same turn. |
-| Searching, Choosing, Priced | planning | The LLM acts only in Choosing; invalid output loops back through the deterministic pick. |
-| Kept | planning | Booked stay, no search; floorCost 0 so it is never asked to cut. |
-| UnderReview | planning | Member C's `detectConflicts` decides the next state. |
-| Revising | planning | Same preferences, new allocation; the round is kept only if `planScore` improves. |
-| Draft | draft | No revision request targets the section. |
-| NeedsYou | needs_you | The traveller decides: raise the budget, change dates or edit the plan. |
-| Failed | — | The run stops and names accommodation as the failing specialist. |
+| State                       | UI status | Entry / exit behaviour                                                                   |
+| --------------------------- | --------- | ---------------------------------------------------------------------------------------- |
+| WaitingForTransport         | planning  | Waits only if transport was started in the same turn.                                    |
+| Searching, Choosing, Priced | planning  | The LLM acts only in Choosing; invalid output loops back through the deterministic pick. |
+| Kept                        | planning  | Booked stay, no search; floorCost 0 so it is never asked to cut.                         |
+| UnderReview                 | planning  | Member C's `detectConflicts` decides the next state.                                     |
+| Revising                    | planning  | Same preferences, new allocation; the round is kept only if `planScore` improves.        |
+| Draft                       | draft     | No revision request targets the section.                                                 |
+| NeedsYou                    | needs_you | The traveller decides: raise the budget, change dates or edit the plan.                  |
+| Failed                      | —         | The run stops and names accommodation as the failing specialist.                         |
