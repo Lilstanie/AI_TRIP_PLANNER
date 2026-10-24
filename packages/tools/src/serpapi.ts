@@ -198,7 +198,6 @@ export async function searchHotelsSerpApi(q: {
           pricePerNight: Number(property.rate_per_night?.extracted_lowest),
           rating: normalizedRating(property.overall_rating),
 
-          freeCancellation: false,
           grounded: true,
           provenance: {
             kind: "live",

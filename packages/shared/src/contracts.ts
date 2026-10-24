@@ -207,7 +207,7 @@ export const StayCandidate = z.object({
   area: z.string(),
   pricePerNight: z.number().positive(),
   rating: z.number().min(0).max(10),
-  freeCancellation: z.boolean(),
+  freeCancellation: z.boolean().optional(),
 
   grounded: z.boolean().optional(),
   location: z.object({ latitude: z.number(), longitude: z.number() }).optional(),
