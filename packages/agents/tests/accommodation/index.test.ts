@@ -230,6 +230,18 @@ describe("accommodation revisions", () => {
     );
   });
 
+  it("keeps the highest-ranked stay that fits the revised allocation, not the cheapest", async () => {
+    const { ctx } = context();
+    const result = await accommodationAgent.invoke({
+      brief,
+      context: { ...ctx, round: 2 },
+      revision: request,
+      allocation: { budget: 900, basis: "test share" },
+    });
+    expect(result.items[0]!.estCost).toBe(800);
+    expect(result.items[0]!.detail).toContain("Standard");
+  });
+
   it("preserves mandatory rating and cancellation even when the target is impossible", async () => {
     const { ctx } = context(options, [
       { key: "accommodation.minRating", value: "8", source: "chat_confirmed" },
