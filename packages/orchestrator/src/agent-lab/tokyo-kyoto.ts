@@ -120,7 +120,7 @@ function scriptedPlan(): TripPlan {
             {
               kind: "hotel",
               detail:
-                "Mock Tokyo Saver — Outer district; 2026-11-10 to 2026-11-14; 1 room(s) × 4 night(s) × AUD 220.00 per room/night = AUD 880.00; no free cancellation.",
+                "Mock Tokyo Saver — Outer district; 2026-11-10 to 2026-11-14; 1 room × 4 nights × AUD 220.00 per room/night = AUD 880.00; no free cancellation.",
               estCost: 880,
               day: 1,
               location: "Tokyo",
@@ -128,7 +128,7 @@ function scriptedPlan(): TripPlan {
             {
               kind: "hotel",
               detail:
-                "Mock Kyoto Saver — Outer district; 2026-11-14 to 2026-11-17; 1 room(s) × 3 night(s) × AUD 200.00 per room/night = AUD 600.00; no free cancellation.",
+                "Mock Kyoto Saver — Outer district; 2026-11-14 to 2026-11-17; 1 room × 3 nights × AUD 200.00 per room/night = AUD 600.00; no free cancellation.",
               estCost: 600,
               day: 5,
               location: "Kyoto",

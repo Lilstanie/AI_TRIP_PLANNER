@@ -49,11 +49,11 @@ it("keeps fixture weather facts and provenance through a complete Planning loop"
   const weather = destination?.proposal?.items.find((item) => item.kind === "weather-packing");
   const checks = {
     weather:
-      weather?.detail.startsWith(
+      weather?.detail.includes(
         "Mostly clear with a mild daytime temperature; carry a light layer and check conditions again before departure.",
       ) === true &&
       destination?.proposal?.assumptions.includes(
-        "Weather source: Mock weather fixture; forecast, valid until 2026-11-11T00:00:00.000Z; observed 2026-11-01T00:00:00.000Z.",
+        "Tokyo, 2026-11-10: Weather source: Mock weather fixture; forecast, valid until 2026-11-11T00:00:00.000Z; observed 2026-11-01T00:00:00.000Z.",
       ) === true,
     provenance:
       destination?.proposal?.source?.kind === "fallback" &&
@@ -62,7 +62,7 @@ it("keeps fixture weather facts and provenance through a complete Planning loop"
       plan.tripId === scenario.brief.tripId &&
       plan.round === 1 &&
       plan.sections.length === 5 &&
-      plan.estTotal === 4050,
+      plan.estTotal === 4333.2,
     conflict: (plan.conflicts ?? []).length === 0,
   };
   mkdirSync(output, { recursive: true });
@@ -112,11 +112,11 @@ it("keeps destination guidance truthful when the weather gateway fails", async (
   const weather = destination?.proposal?.items.find((item) => item.kind === "weather-packing");
   const checks = {
     unavailable:
-      destination?.proposal?.assumptions.includes(
-        "Weather provider unavailable; using monthly planning context instead of a forecast.",
+      destination?.proposal?.assumptions.some((assumption) =>
+        assumption.includes("Weather provider unavailable; check conditions before travel."),
       ) === true,
-    monthlyContext:
-      weather?.detail.includes("planning context only") === true &&
+    datedUnavailable:
+      weather?.detail.includes("weather unavailable") === true &&
       !weather?.detail.includes("Mock weather fixture"),
     planCompleted: plan.tripId === scenario.brief.tripId && plan.round === 1,
   };

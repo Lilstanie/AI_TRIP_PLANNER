@@ -185,6 +185,8 @@ still read.
 
 New planning requests whose start or end date precedes the current calendar date at the destination receive an explicit clarification instead of a plan. The web client includes coordinates from a selected destination suggestion; the server uses an offline coordinate-to-time-zone lookup. If no coordinates are available, the check falls back to UTC. The traveller can provide corrected dates or explicitly confirm the historical dates in response to the matching clarification. The confirmation is accepted on its own line in a multi-question card reply (for example, `Dates: Confirm historical trip`); a confirmation without the matching clarification is not accepted. Supplying an existing plan preserves historical editing. When an edit leaves the material itinerary, stays, transport and costs unchanged, the reply states that the plan was unchanged rather than claiming the requested edit completed.
 
+Every reply that comes with a new plan ends with a cost sentence written by code from the plan, not by the model: the estimated total, the categories that carry an amount, what is not included (transport without a price, stops without a published price) and the exact headroom or overrun against the budget, with the minimum budget when the plan is infeasible. It uses the same figures as the Trip budget card and the reply language. The model receives the replanned facts without amounts and is told not to state totals, budget comparisons or what is included.
+
 Optional `mode` values:
 
 - `"chat"` (default): extract explicit updates from `message` and apply them to `brief`. Without a

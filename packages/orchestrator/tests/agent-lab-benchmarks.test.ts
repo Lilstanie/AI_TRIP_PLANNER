@@ -44,6 +44,7 @@ const setHopDate = (plan: TripPlan, date: string) => {
 const infeasibleReport = (minimum: string) => ({
   tripId: "agent-lab-paris-family-infeasible",
   targetAgent: "transport" as const,
+  kind: "budget" as const,
   reason: `infeasible budget: the cheapest flights and stays found already cost AUD ${minimum}, above the AUD 3,000.00 budget`,
   constraints: [`raise the budget to at least AUD ${minimum} (from the options found)`],
 });

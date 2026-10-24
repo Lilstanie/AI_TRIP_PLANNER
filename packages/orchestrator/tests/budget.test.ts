@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { AgentProposal, TripSection } from "@trip/shared";
 import { assessBudget, costOf, rollUpCost, ESCALATION_OVERRUN_PCT } from "../src/budget";
 import { detectConflicts, runOrchestrator, DEMO_BRIEF } from "../src";
+import { minimumCost } from "../src/conflicts";
 
 function proposal(agent: AgentProposal["agent"], cost: number): AgentProposal {
   return {
@@ -14,6 +15,14 @@ function proposal(agent: AgentProposal["agent"], cost: number): AgentProposal {
 }
 
 describe("budget calculations", () => {
+  it("sums the cheapest floor costs in whole cents", () => {
+    const floors = [
+      { ...proposal("accommodation", 0.1), floorCost: 0.1 },
+      { ...proposal("transport", 0.2), floorCost: 0.2 },
+    ];
+    expect(minimumCost(floors)).toBe(0.3);
+  });
+
   it("keeps cent precision and does not add a cost for informational notes", () => {
     const result = costOf({
       ...proposal("accommodation", 0.1),
@@ -109,8 +118,8 @@ describe("accommodation integration with negotiation", () => {
   it("fits the budget in the first round once each stage knows what earlier ones cost", async () => {
     const plan = await runOrchestrator(DEMO_BRIEF);
     expect(plan.round).toBe(1);
-    expect(plan.estTotal).toBe(3499.99);
-    expect(plan.sections.find((section) => section.id === "dining")!.estCost).toBe(249.99);
+    expect(plan.estTotal).toBe(3499.92);
+    expect(plan.sections.find((section) => section.id === "dining")!.estCost).toBe(249.92);
     expect(plan.sections.find((section) => section.id === "accommodation")!.estCost).toBe(1480);
 
     expect(plan.conflicts).toEqual([]);

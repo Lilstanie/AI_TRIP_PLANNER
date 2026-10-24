@@ -30,7 +30,7 @@ flowchart TB
   subgraph GUIDE["Destination Guide"]
     guideStart["Read brief; fetch sight and museum candidates plus preferences"]
     coords{"Candidate coordinates and WeatherPort available?"}
-    weatherEvidence["Request weather for first travel date"]
+    weatherEvidence["Request weather for every destination and trip date"]
     horizon{"Weather result horizon?"}
     contextOnly["Use month context; mark forecast unavailable or not applicable"]
     guideEvidence["Give validated brief, weather and map evidence to LLM"]
@@ -38,12 +38,12 @@ flowchart TB
     guideLLM["LLM drafts destination and packing guidance"]
     guideCheck["Fit schema; validate and deduplicate attraction names"]
     guideValid{"Draft valid and grounded?"}
-    guideFallback["Build deterministic guide from available map evidence"]
+    guideFallback["Build deterministic guide and packing from map and weather evidence"]
     guideProposal["Return destination-guide proposal with provenance"]
   end
 
   subgraph DINING["Dining"]
-    diningStart["Fetch restaurant candidates and saved preferences"]
+    diningStart["Read trip, chat and saved dietary preferences; search restaurants with dietary needs"]
     diningPrepare["Deduplicate venues; filter dietary preferences; compute meal ceiling"]
     diningModel{"LLM configured and responds?"}
     diningLLM["LLM drafts venue suggestions from evidence"]
@@ -113,26 +113,26 @@ sequenceDiagram
     DG->>MEM: getLongTerm(userId)
     MEM-->>DG: saved preferences
     alt Candidate coordinates and WeatherPort available
-      DG->>WP: forecast(location, first travel date)
+      DG->>WP: forecast(city coordinates, each trip date)
       alt Date within forecast horizon
         WP-->>DG: forecast + provider + observedAt + validUntil
       else Date beyond 14 days
         WP-->>DG: climate context, not a forecast
       end
     else No coordinates, port or weather result
-      DG->>DG: use month context and record unavailable weather
+      DG->>DG: record unavailable city/date entries; use month context only without a port
     end
-    DG->>LLM: read-only evidence tool: brief, month, places, preferences
+    DG->>LLM: read-only evidence tool: brief, month, places, preferences, dated weather
     LLM-->>DG: structured destination and packing draft
     DG->>DG: fit schema, validate grounded names, deduplicate or fallback
     DG->>BD: destination-guide proposal + source and freshness
   and Dining
     WF->>DN: invoke(brief, AgentContext)
-    DN->>MP: places(destination, restaurant)
-    MP-->>DN: grounded restaurant candidates
     DN->>MEM: getLongTerm(userId)
     MEM-->>DN: saved preferences
-    DN->>DN: deduplicate candidates, filter dietary needs, compute ceiling
+    DN->>MP: places(destination, restaurant, dietary textQuery)
+    MP-->>DN: grounded restaurant candidates
+    DN->>DN: deduplicate candidates, apply trip/chat/saved dietary needs, compute ceiling
     DN->>LLM: read-only evidence tool: candidates, preferences, ceiling
     LLM-->>DN: structured dining draft
     DN->>DN: fit schema, validate names and ceiling or fallback

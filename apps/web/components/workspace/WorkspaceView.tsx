@@ -26,7 +26,10 @@ import { LanguageToggle } from "./LanguageToggle";
 import { usePresence, useSegmentIndicator, viewTransition } from "../ui/motion";
 import { useLocale } from "../account/LocaleProvider";
 import { PhoneTabBar, phonePanelId } from "./PhoneTabBar";
+import { PhoneTeamButton } from "./PhoneTeamButton";
 import { PhoneTripTitle } from "./PhoneTripTitle";
+import { TeamControl } from "../chat/TeamControl";
+import { latestTurn } from "../chat/team-model";
 import { PhoneMine } from "./PhoneMine";
 import { PhoneMapSheet } from "./PhoneMapSheet";
 import { usePhoneKeyboard } from "./usePhoneKeyboard";
@@ -177,6 +180,8 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
 
   const selectView = (view: MobileView) =>
     view !== mobileView && viewTransition(() => layout.selectView(view), `to-${view}`);
+
+  const teamTurn = latestTurn(activity, busy, messages);
 
   const phonePanel = (view: MobileView) =>
     phone
@@ -358,7 +363,10 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
           <header className="workspace-topbar">
             {menuButton}
             {phone ? (
-              <PhoneTripTitle model={model} />
+              <>
+                <PhoneTripTitle model={model} />
+                <PhoneTeamButton model={model} turn={teamTurn} />
+              </>
             ) : (
               <div className="topbar-summary">
                 <h1 className="topbar-title">
@@ -414,6 +422,10 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                   />
                   <LanguageToggle />
                 </div>
+                <TeamControl
+                  turn={teamTurn}
+                  {...(narrow ? { onReveal: () => layout.selectView("chat") } : {})}
+                />
                 <button
                   ref={tripToggle}
                   type="button"
@@ -512,6 +524,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                 onDismissAsk={session.dismissAsk}
                 onEdit={edit}
                 onStart={edit}
+                phone={phone}
                 onAttachFiles={composerAttachments.addFiles}
                 attachments={composerAttachments.attachments}
                 onRemoveAttachment={composerAttachments.removeAttachment}

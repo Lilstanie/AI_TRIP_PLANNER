@@ -164,6 +164,7 @@ describe("itinerary planner", () => {
       revision: {
         tripId: brief.tripId,
         targetAgent: "itinerary",
+        kind: "geography" as const,
         reason: "geography conflict on day 1",
         constraints: ["make the route geographically feasible"],
       },
@@ -181,6 +182,7 @@ describe("itinerary planner", () => {
         revision: {
           tripId: brief.tripId,
           targetAgent: "transport",
+          kind: "time" as const,
           reason: "time overlap",
           constraints: [],
         },
@@ -254,6 +256,7 @@ describe("B itinerary reliability", () => {
       revision: {
         tripId: brief.tripId,
         targetAgent: "itinerary",
+        kind: "time" as const,
         reason: "time overlap",
         constraints: [
           "on day 1 keep clear of 12:00-14:00, held by transport; reschedule without changing trip dates",
@@ -271,6 +274,7 @@ describe("B itinerary reliability", () => {
       revision: {
         tripId: brief.tripId,
         targetAgent: "itinerary",
+        kind: "time" as const,
         reason: "time overlap",
         constraints: ["on day 1 keep clear of 09:00-19:00, held by transport"],
       },
@@ -863,6 +867,7 @@ describe("fallback timing after a failed itinerary revision", () => {
       revision: {
         tripId: trip.tripId,
         targetAgent: "itinerary",
+        kind: "time" as const,
         reason: "conflict with a scheduled transfer",
         constraints: ["on day 3 keep clear of 10:00-12:30"],
       },

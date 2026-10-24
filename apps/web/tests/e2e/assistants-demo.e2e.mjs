@@ -1,6 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
+import { readRun } from "./support/team-run.mjs";
 const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT ?? "playwright");
 const base = process.env.BASE_URL ?? "http://localhost:3000";
 const out = resolve("output/playwright/assistants-demo");
@@ -20,6 +21,7 @@ const OTHER_DEFAULT = { en: "Day plan", zh: "每日行程" };
 const ACCOMMODATION = 3;
 const TRANSPORT = 2;
 const OTHER = { en: "Rail Pal", zh: "铁路搭子" };
+const BUTTON = { en: "Specialist team", zh: "专家团队" };
 const PLAN = "Tokyo from Sydney, 2027-02-01 to 2027-02-04, 2 adults, budget AUD 6000";
 
 const browser = await chromium.launch({
@@ -35,6 +37,35 @@ async function open(locale, width) {
   const page = await context.newPage();
   const errors = [];
   page.on("pageerror", (error) => errors.push(String(error)));
+  await page.addInitScript(() => {
+    const original = window.fetch.bind(window);
+    window.fetch = async (...args) => {
+      const response = await original(...args);
+      if (!window.__slow || !String(args[0]?.url ?? args[0]).includes("/api/chat")) return response;
+      const reader = response.body.getReader();
+      const lines = [];
+      let tail = "";
+      const decoder = new TextDecoder();
+      const encoder = new TextEncoder();
+      const body = new ReadableStream({
+        async pull(controller) {
+          while (lines.length === 0) {
+            const { done, value } = await reader.read();
+            if (done) {
+              if (tail) controller.enqueue(encoder.encode(tail));
+              return controller.close();
+            }
+            const parts = (tail + decoder.decode(value, { stream: true })).split("\n");
+            tail = parts.pop() ?? "";
+            lines.push(...parts.map((part) => `${part}\n`));
+          }
+          await new Promise((resolve) => setTimeout(resolve, 150));
+          controller.enqueue(encoder.encode(lines.shift()));
+        },
+      });
+      return new Response(body, { status: response.status, headers: response.headers });
+    };
+  });
   await page.goto(base);
   await page.locator(".workspace-app").waitFor();
   await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
@@ -47,16 +78,67 @@ async function open(locale, width) {
 }
 
 const box = (page) => page.locator(".chat__form textarea");
+const menuNames = async (page) => {
+  await box(page).fill("@");
+  const names = await page.getByRole("listbox").getByRole("option").allInnerTexts();
+  await box(page).fill("");
+  return names.map((name) => name.trim());
+};
+const menuCount = async (page, name) =>
+  (await menuNames(page)).filter((entry) => entry === name).length;
 const stored = (page) =>
   page.evaluate(() => JSON.parse(localStorage.getItem("trip-workspace-v1") ?? "null"));
 const withoutIds = (value) =>
   JSON.stringify(value, (key, item) => (key === "id" ? undefined : item));
 const replies = (page) => page.locator(".msg-item--agent");
 
+const opened = (scope) =>
+  scope.evaluate((node) => ({
+    turn: node.querySelector(".thinking-turn")?.getAttribute("data-open") === "true",
+    rows: [...node.querySelectorAll(".thinking-subagent")]
+      .filter((row) => row.querySelector(".thinking-subagent__row")?.hasAttribute("data-open"))
+      .map((row) => row.getAttribute("data-subagent")),
+  }));
+
+const focusInfo = () => {
+  const node = document.activeElement;
+  if (!node) return null;
+  const rect = node.getBoundingClientRect();
+  return {
+    subagent: node.closest(".thinking-subagent")?.getAttribute("data-subagent") ?? null,
+    reply: [...document.querySelectorAll(".msg-item--agent")].findIndex((item) =>
+      item.contains(node),
+    ),
+    top: rect.top,
+    bottom: rect.bottom,
+    form: document.querySelector(".chat__form")?.getBoundingClientRect().top ?? innerHeight,
+  };
+};
+
+async function pick(page, name) {
+  await page.keyboard.type(`@${name.split(" ")[0]}`);
+  await page.getByRole("listbox").getByRole("option").first().waitFor();
+  await page.keyboard.press("Tab");
+}
+
+async function sendPicked(page, names, text) {
+  const before = await replies(page).count();
+  await box(page).fill("");
+  await box(page).focus();
+  for (const name of names) await pick(page, name);
+  await page.keyboard.type(text);
+  await page.keyboard.press("Enter");
+  await answered(page, before);
+}
+
 async function send(page, text) {
   const before = await replies(page).count();
   await box(page).fill(text);
   await page.keyboard.press("Enter");
+  await answered(page, before);
+}
+
+async function answered(page, before) {
   await page.waitForFunction(
     ([selector, count]) => document.querySelectorAll(selector).length > count,
     [".msg-item--agent", before],
@@ -126,48 +208,114 @@ try {
         const now = await sectionMap();
         return Object.keys(now).filter((id) => now[id] !== before[id]);
       };
-      const lastTeam = (selector = ".team-message:not(.team-message--check)") =>
-        page.evaluate((query) => {
-          const last = [...document.querySelectorAll(".msg-item--agent")].at(-1);
-          return [...last.querySelectorAll(query)].map((node) => ({
-            who: node.getAttribute("data-assistant"),
-            handoff: node.classList.contains("team-message--handoff"),
-            text: node.querySelector(".team-message__text")?.textContent ?? "",
-          }));
-        }, selector);
+      const lastRun = async () => {
+        const run = await readRun(page);
+        if (!run) {
+          check(false, `${label}: the team panel did not open`);
+          return null;
+        }
+        return run;
+      };
+      const workersOf = (run) => run.assignments.filter((item) => item.kind !== "handoff");
+      const trigger = page.locator(".team-trigger:visible").first();
+      const panel = page.locator(".team-panel");
+      let shots = [];
+      let shotNumber = 0;
+      const snap = async (name) => {
+        shotNumber += 1;
+        const file = `${label}-${String(shotNumber).padStart(2, "0")}-${name}.png`;
+        await page.screenshot({ path: `${out}/${file}` });
+        shots.push(file);
+      };
+      const openLatest = async () => {
+        if (width <= 520) await trigger.click();
+        else await trigger.hover();
+        await panel.waitFor();
+      };
+      const closePanel = async () => {
+        await page.keyboard.press("Escape");
+        await panel.waitFor({ state: "detached" });
+        await page.waitForTimeout(400);
+      };
       const step = async (number, name, run) => {
         const before = checks.length;
+        shots = [];
         await run();
-        const file = `${label}-step${number}-${name}.png`;
-        await page.screenshot({ path: `${out}/${file}` });
+        await snap(name);
         steps.push({
           label,
           step: number,
           name,
-          screenshot: file,
+          screenshots: shots,
           checks: checks.slice(before).map((entry) => entry.name),
         });
       };
 
       await step(1, "plan", async () => {
-        await send(page, PLAN);
-        const team = await lastTeam();
-        const specialists = new Set(
-          team.map((row) => row.who).filter((id) => id !== "coordinator"),
+        await page.evaluate(() => {
+          window.__slow = true;
+        });
+        const before = await replies(page).count();
+        await box(page).fill(PLAN);
+        await page.keyboard.press("Enter");
+        await page.locator(".team-trigger:visible:not([data-working='0'])").first().waitFor();
+        check(
+          (await page.locator(".team-trigger:visible .assistant-icon--working").count()) >= 1,
+          `${label} step 1: the button avatars show who is working`,
         );
         check(
-          team.some((row) => row.who === "coordinator") && specialists.size === 5,
+          (await panel.count()) === 0,
+          `${label} step 1: the panel stays closed while the team works`,
+        );
+        await snap("working");
+        await openLatest();
+        const statuses = await panel
+          .locator(".team-panel__row")
+          .evaluateAll((rows) => rows.map((row) => row.getAttribute("data-status")));
+        check(
+          statuses.length === 6 && statuses.includes("working"),
+          `${label} step 1: the opened panel lists six assistants with a working one`,
+          statuses,
+        );
+        await snap("panel-live");
+        await closePanel();
+        await answered(page, before);
+        await page.evaluate(() => {
+          window.__slow = false;
+        });
+        check(
+          (await page.locator(".team-trigger:visible .assistant-icon--working").count()) === 0,
+          `${label} step 1: no avatar works once the reply is done`,
+        );
+        const run = await lastRun();
+        if (!run) return;
+        const specialists = new Set(run.assignments.map((item) => item.who));
+        check(
+          run.rows.length === 6 && specialists.size === 5 && !specialists.has("coordinator"),
           `${label} step 1: the Coordinator and five specialists appear with icons`,
           [...specialists],
         );
-        const icons = await replies(page).last().locator(".team-message .assistant-icon").count();
-        check(icons >= 6, `${label} step 1: every team message has an icon`, icons);
+        check(
+          run.assignments.every((item) => item.icon === 1),
+          `${label} step 1: every assignment has an icon`,
+          run.assignments.map((item) => item.icon),
+        );
       });
 
       await step(2, "mention", async () => {
         const before = await sectionMap();
         requests.length = 0;
-        await send(page, `@${STAY[locale]} find a cheaper stay`);
+        await box(page).fill("");
+        await box(page).focus();
+        await page.keyboard.type("@");
+        await page.getByRole("listbox").getByRole("option").first().waitFor();
+        check(
+          (await page.getByRole("listbox").getByRole("option").count()) === 6,
+          `${label} step 2: @ opens the six-assistant menu`,
+        );
+        await snap("menu");
+        await page.keyboard.press("Escape");
+        await sendPicked(page, [STAY[locale]], "find a cheaper stay");
         check(
           JSON.stringify(requests.at(-1).mentions) === '["accommodation"]',
           `${label} step 2: Stay is mentioned by id`,
@@ -189,100 +337,154 @@ try {
         const floor = plan.sections.reduce((sum, s) => sum + (s.proposal?.floorCost ?? 0), 0);
         const spend = plan.sections.reduce((sum, s) => sum + s.estCost, 0);
         budgetOverride = Math.floor((floor + spend) / 2);
-        await send(page, `@${STAY[locale]} find a cheaper stay again`);
+        await sendPicked(page, [STAY[locale]], "find a cheaper stay again");
         budgetOverride = undefined;
-        const lines = await replies(page)
-          .last()
-          .locator(".team-message--check .team-message__text")
-          .allInnerTexts();
+        const run = await lastRun();
+        if (!run) return;
+        const lines = run.checks.map((item) => item.text);
         check(
           lines.length >= 3 && lines.some((line) => /→/.test(line)),
           `${label} step 3: the budget conflict, score and stop messages are shown`,
           lines,
         );
         check(
-          (await replies(page).last().locator(".team-message--check .assistant-icon").count()) ===
-            0,
+          run.assignments.some((item) => item.kind === "revision"),
+          `${label} step 3: the conflict sends a specialist back with a revision`,
+          run.assignments.map((item) => `${item.who}:${item.kind}`),
+        );
+        check(
+          run.checks.every((item) => item.icons === 0),
           `${label} step 3: conflict messages are rules, not assistants`,
         );
       });
 
-      await step(4, "two-mentions", async () => {
+      await step(4, "remove-mention", async () => {
+        const field = box(page);
+        await field.fill("");
+        await field.focus();
+        await pick(page, STAY[locale]);
+        const draft = await field.inputValue();
+        const token = `@${STAY[locale]}`;
+        await page.keyboard.press("Backspace");
+        const selected = await field.evaluate((node) => [node.selectionStart, node.selectionEnd]);
+        check(
+          (await field.inputValue()) === draft && selected[1] - selected[0] === token.length + 1,
+          `${label} step 4: the first Backspace selects the whole mention and its space`,
+          selected,
+        );
+        await snap("mention-selected");
+        await page.keyboard.press("Backspace");
+        check(
+          (await field.inputValue()) === draft.slice(token.length + 1),
+          `${label} step 4: the second Backspace removes it`,
+          await field.inputValue(),
+        );
+        await field.fill("");
+      });
+
+      await step(5, "two-mentions", async () => {
         requests.length = 0;
-        await send(page, `@${STAY[locale]} @${MOVE[locale]} find cheaper options`);
+        await sendPicked(page, [STAY[locale], MOVE[locale]], "find cheaper options");
         check(
           JSON.stringify(requests.at(-1).mentions) === '["accommodation","transport"]',
-          `${label} step 4: two specialists are sent once each`,
+          `${label} step 5: two specialists are sent once each`,
         );
-        const workers = new Set(
-          (await lastTeam()).map((row) => row.who).filter((id) => id !== "coordinator"),
-        );
+        const run = await lastRun();
+        if (!run) return;
+        const workers = new Set(workersOf(run).map((item) => item.who));
         check(
           workers.size === 2 && workers.has("accommodation") && workers.has("transport"),
-          `${label} step 4: exactly those two specialists work`,
+          `${label} step 5: exactly those two specialists work`,
           [...workers],
         );
       });
 
-      await step(5, "hand-off", async () => {
+      await step(6, "hand-off", async () => {
         const before = await sectionMap();
-        await send(page, `@${STAY[locale]} ${ASK[locale]}`);
-        const rows = await lastTeam();
-        const decline = rows.findIndex((row) => row.handoff && row.who === "accommodation");
-        const dispatch = rows.findIndex((row, i) => i > decline && row.who === "coordinator");
-        const answer = rows.findIndex((row, i) => i > dispatch && row.who === "dining");
-        check(
-          decline >= 0 && dispatch > decline && answer > dispatch,
-          `${label} step 5: decline, Coordinator dispatch, then Food & dining`,
-          rows,
-        );
+        await sendPicked(page, [STAY[locale]], ASK[locale]);
+        const run = await lastRun();
+        if (run) {
+          const decline = run.assignments.findIndex(
+            (item) => item.kind === "handoff" && item.who === "accommodation",
+          );
+          const answer = run.assignments.findIndex(
+            (item, i) => i > decline && item.who === "dining" && item.kind !== "handoff",
+          );
+          check(
+            decline >= 0 && answer > decline,
+            `${label} step 6: decline, then Food & dining`,
+            run.assignments,
+          );
+        }
         const changed = await changedSince(before);
         check(
           changed.every((id) => id === "dining"),
-          `${label} step 5: only the receiving section may change`,
+          `${label} step 6: only the receiving section may change`,
           changed,
         );
       });
 
-      await step(6, "rename", async () => {
+      await step(7, "earlier-reply", async () => {
+        const first = replies(page).nth(0);
+        check(
+          (await first.locator(".thinking-turn").count()) === 1,
+          `${label} step 7: the earlier reply keeps its thinking process`,
+        );
+        const run = await readRun(page);
+        check(
+          run?.assignments.some((item) => item.kind === "handoff"),
+          `${label} step 7: the team panel shows the latest turn's hand-off`,
+          run?.assignments.map((item) => item.kind),
+        );
+        await snap("latest-panel");
+      });
+
+      await step(8, "rename", async () => {
         const dialog = await openSettings(page, width);
         const field = dialog.locator(".assistant-names input").nth(ACCOMMODATION);
         await field.fill(CUSTOM[locale]);
         await field.blur();
         await closeSettings(page, dialog, width);
         check(
-          (await page.locator(".assistant-chips button", { hasText: CUSTOM[locale] }).count()) ===
-            1,
-          `${label} step 6: the chip shows the new name`,
+          (await menuCount(page, CUSTOM[locale])) === 1,
+          `${label} step 8: the @ menu shows the new name`,
         );
         requests.length = 0;
-        await send(page, `@${CUSTOM[locale]} find a cheaper stay`);
+        await sendPicked(page, [CUSTOM[locale]], "find a cheaper stay");
         check(
           JSON.stringify(requests.at(-1).mentions) === '["accommodation"]',
-          `${label} step 6: the new name sends the same id`,
+          `${label} step 8: the new name sends the same id`,
         );
+        await openLatest();
+        const names = await panel.locator(".team-panel__name").allInnerTexts();
+        check(
+          names.map((name) => name.trim()).includes(CUSTOM[locale]),
+          `${label} step 8: the panel shows the new name`,
+          names,
+        );
+        await closePanel();
         check(
           (await replies(page).last().locator(".msg-item__who strong").innerText()) ===
             CUSTOM[locale],
-          `${label} step 6: the reply shows the new name`,
+          `${label} step 8: the reply shows the new name`,
         );
       });
 
-      await step(7, "no-plan", async () => {
+      await step(9, "no-plan", async () => {
         await page.evaluate(() => localStorage.clear());
         await page.reload();
         await page.locator(".workspace-app").waitFor();
         await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
         if (width === 390) await toChat(page);
         await send(page, `@${STAY[locale]} when are hotels cheapest?`);
-        check(!(await stored(page))?.plan, `${label} step 7: no plan is created`);
+        check(!(await stored(page))?.plan, `${label} step 9: no plan is created`);
         const ask = (await replies(page).last().locator(".msg-item__body").innerText()).replace(
           /\s+/g,
           " ",
         );
         check(
           locale === "zh" ? ask.includes("总预算") : ask.includes("total budget"),
-          `${label} step 7: the Coordinator still asks for the brief`,
+          `${label} step 9: the Coordinator still asks for the brief`,
           ask,
         );
       });

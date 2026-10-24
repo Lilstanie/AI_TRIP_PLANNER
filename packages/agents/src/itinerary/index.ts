@@ -27,6 +27,7 @@ import { avoidBlockedWindows } from "./revision";
 import { mockEnabled } from "@trip/tools";
 import { rememberedPlanningPreferences, rankPlacesByInterests } from "../remembered-preferences";
 import { TRAVELLER_PREFERENCES_RULE } from "../prompts/traveller-preferences";
+import { replyLanguageRule } from "../prompts/reply-language";
 import { summaryCopy } from "../summary-copy";
 
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -72,6 +73,7 @@ export interface ItineraryGenerator {
     candidatesByCity?: Record<string, string[]>;
 
     previous?: { summary: string; activities: string[] };
+    language?: InterfaceLanguage;
   }): Promise<ItineraryDraft>;
 }
 
@@ -394,7 +396,7 @@ function fallbackDraft(
         day,
         ...slot,
         location: place.name,
-        detail: `${place.name} (${place.category}) is a suggested stop; confirm timing and suitability before visiting.`,
+        detail: summaryCopy(language).suggestedStop(place.name, place.category),
       });
       added += 1;
       if (added === perDay) break;
@@ -475,7 +477,7 @@ function createDeepSeekGenerator(): ItineraryGenerator | undefined {
         name: "itinerary_specialist",
         model,
         tools: [evidence],
-        systemPrompt: `You are the itinerary specialist. Always call read_itinerary_evidence before drafting. Use only its facts and candidate place names. Cover every trip day with 1-3 non-overlapping activities using 24-hour HH:mm times, leave 150 minutes between different locations, and treat activityBudget, what flights and the stay left for activities, as a guide to how many paid attractions to include. Do not state activity prices: no evidence has them. When dayCities is given, every activity on a day must be a candidate from one of that day's cities in candidatesByCity; a transfer day may include departure and arrival cities, but departure-city activities must end before the transfer and arrival-city activities must start after it ends. When otherSections names where the traveller sleeps, build each day around that stay and keep long trips away from it rare. Apply confirmed preferences supplied in the evidence where candidate data allows, especially remembered pace, interests and accessibility needs. On a revision, start from previous and change only what the revision asks. Never claim live hours, availability, safety, visa or weather facts. Address a supplied revision exactly. Return the requested structured itinerary draft.\n\nEach activity location must be a candidate's name copied character for character. Do not append its category, rating or district, and do not reword it: an activity whose location is not an exact candidate name is discarded and the whole draft is thrown away.\n\n${TRAVELLER_PREFERENCES_RULE}`,
+        systemPrompt: `You are the itinerary specialist. Always call read_itinerary_evidence before drafting. Use only its facts and candidate place names. Cover every trip day with 1-3 non-overlapping activities using 24-hour HH:mm times, leave 150 minutes between different locations, and treat activityBudget, what flights and the stay left for activities, as a guide to how many paid attractions to include. Do not state activity prices: no evidence has them. When dayCities is given, every activity on a day must be a candidate from one of that day's cities in candidatesByCity; a transfer day may include departure and arrival cities, but departure-city activities must end before the transfer and arrival-city activities must start after it ends. When otherSections names where the traveller sleeps, build each day around that stay and keep long trips away from it rare. Apply confirmed preferences supplied in the evidence where candidate data allows, especially remembered pace, interests and accessibility needs. On a revision, start from previous and change only what the revision asks. Never claim live hours, availability, safety, visa or weather facts. Address a supplied revision exactly. Return the requested structured itinerary draft.\n\nEach activity location must be a candidate's name copied character for character. Do not append its category, rating or district, and do not reword it: an activity whose location is not an exact candidate name is discarded and the whole draft is thrown away.\n\n${TRAVELLER_PREFERENCES_RULE}${replyLanguageRule(input.language)}`,
         responseFormat: ItineraryDraft,
       });
       const result = await specialist.invoke({
@@ -716,6 +718,7 @@ async function planItinerary(
             preferences,
             revision,
             activityBudget,
+            ...(ctx.replyLanguage ? { language: ctx.replyLanguage } : {}),
             ...(placesByCity.size > 1
               ? {
                   dayCities: dayCities.map((cities, index) => ({

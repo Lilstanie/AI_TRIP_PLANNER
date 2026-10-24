@@ -5,9 +5,7 @@ import { quickPrompts } from "@/lib/planning/quick-prompts";
 import { translate } from "@/lib/i18n/locale";
 import type { Message } from "@/lib/workspace";
 import { ThinkingProcess } from "./ThinkingProcess";
-import { TeamConversation } from "./TeamConversation";
 import { Composer } from "./Composer";
-import { AssistantChips } from "./AssistantChips";
 import { MessageItem } from "./MessageItem";
 import { QuestionComposer } from "./QuestionComposer";
 import type { PendingAsk, QuestionAnswer, QuestionProgress } from "@/lib/workspace/ask-user";
@@ -26,6 +24,7 @@ export function ChatPanel({
   onSend,
   onEdit,
   onStart,
+  phone = false,
   onCancel,
   error,
   onAttachFiles,
@@ -51,6 +50,8 @@ export function ChatPanel({
   onEdit: () => void;
 
   onStart?: () => void;
+
+  phone?: boolean;
 
   onCancel?: () => void;
 
@@ -119,9 +120,13 @@ export function ChatPanel({
           <div className="chat-empty">
             <h3>{t("Where to next?")}</h3>
             <p>
-              {t(
-                "Describe your destination, travel dates, number of travellers and total budget, or add them in the bar at the top.",
-              )}
+              {phone && onStart
+                ? t(
+                    "Describe your destination, travel dates, number of travellers and total budget, or tap Add trip details below.",
+                  )
+                : t(
+                    "Describe your destination, travel dates, number of travellers and total budget, or add them in the bar at the top.",
+                  )}
             </p>
             <div className="chat-empty__suggestions" aria-label={t("Example trips")}>
               {prompts.map(({ label, text, params }) => (
@@ -152,15 +157,12 @@ export function ChatPanel({
           ))}
         </div>
         {(activity.length > 0 || busy) && (
-          <>
-            <TeamConversation activity={activity} settled={!busy} />
-            <section
-              className={`agent-activity${error && !busy ? " agent-activity--error" : ""}`}
-              aria-label={t("Thinking process")}
-            >
-              <ThinkingProcess activity={activity} busy={busy} error={error} />
-            </section>
-          </>
+          <section
+            className={`agent-activity${error && !busy ? " agent-activity--error" : ""}`}
+            aria-label={t("Thinking process")}
+          >
+            <ThinkingProcess activity={activity} busy={busy} error={error} />
+          </section>
         )}
       </div>
       {ask && onAnswer && onDismissAsk ? (
@@ -181,7 +183,6 @@ export function ChatPanel({
             if (!locked) onSend();
           }}
         >
-          <AssistantChips value={input} onInput={onInput} disabled={busy || locked} />
           <Composer
             value={input}
             placeholder={t(

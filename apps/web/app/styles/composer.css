@@ -225,3 +225,43 @@
     min-height: 44px !important;
   }
 }
+
+.mention-menu {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  min-width: 180px;
+  max-width: 100%;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+}
+
+.mention-menu__option {
+  display: flex;
+  min-height: 36px;
+  gap: 8px;
+  align-items: center;
+  padding: 3px 10px 3px 6px;
+  border-radius: 10px;
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.mention-menu__option[aria-selected="true"] {
+  background: var(--fill-hover);
+}
+
+@media (max-width: 520px) {
+  .mention-menu__option {
+    min-height: 44px;
+  }
+}

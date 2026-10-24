@@ -45,6 +45,8 @@ out a specialist view in the Trip drawer.
 - The Think fold stays as a details view, and its Subagent rows use the assistant icons.
 - This partly supersedes the 2026-10-08 note and decision 9 of #233: specialists are visible in the chat,
   but the Trip drawer is unchanged.
+- The chip row and the team conversation rows are partly superseded by the
+  [specialist team panel](2026-10-23-specialist-team-panel.md).
 
 ## Alternatives considered
 

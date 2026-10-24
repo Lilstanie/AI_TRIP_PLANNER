@@ -318,7 +318,7 @@ async function osmPlaces(q: PlaceQuery): Promise<Place[]> {
   const results = await osmRequest<
     Array<{ display_name: string; type?: string; lat?: string; lon?: string }>
   >(
-    `${base}/search?format=jsonv2&limit=5&q=${encodeURIComponent(`${q.category ?? "attraction"} in ${q.near}`)}`,
+    `${base}/search?format=jsonv2&limit=5&q=${encodeURIComponent(q.textQuery ?? `${q.category ?? "attraction"} in ${q.near}`)}`,
   );
   return results.map((place) => ({
     name: place.display_name,
@@ -333,7 +333,7 @@ async function googlePlaces(q: PlaceQuery): Promise<Place[]> {
   if (!toolRuntimeConfig().mapsApiKey)
     throw new Error("Google Maps provider requires MAPS_API_KEY.");
   const results = await searchGooglePlacesText(
-    `${q.category ?? "attraction"} in ${q.near}`,
+    q.textQuery ?? `${q.category ?? "attraction"} in ${q.near}`,
     "places.displayName,places.types,places.rating,places.location,places.websiteUri",
   );
   return results

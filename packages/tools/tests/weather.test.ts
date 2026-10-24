@@ -42,9 +42,8 @@ describe("weather provider", () => {
     vi.setSystemTime(new Date("2026-09-21T00:00:00.000Z"));
     vi.stubEnv("USE_MOCK_TOOLS", "false");
     vi.stubEnv("WEATHER_API_KEY", "weather-test-key");
-    const fetcher = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
+    const fetcher = vi.fn().mockResolvedValue(
+      Response.json({
         forecastDays: [
           {
             displayDate: { year: 2026, month: 9, day: 30 },
@@ -54,7 +53,7 @@ describe("weather provider", () => {
           },
         ],
       }),
-    });
+    );
     vi.stubGlobal("fetch", fetcher);
 
     const result = await weather.forecast({ ...query, targetDate: "2026-09-30" });
@@ -74,9 +73,8 @@ describe("weather provider", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-09-21T00:00:00.000Z"));
     vi.stubEnv("USE_MOCK_TOOLS", "false");
-    const fetcher = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
+    const fetcher = vi.fn().mockResolvedValue(
+      Response.json({
         daily: {
           time: ["2026-10-04"],
           weather_code: [61],
@@ -84,7 +82,7 @@ describe("weather provider", () => {
           temperature_2m_min: [13],
         },
       }),
-    });
+    );
     vi.stubGlobal("fetch", fetcher);
 
     const result = await weather.forecast({ ...query, targetDate: "2026-10-04" });
@@ -102,7 +100,7 @@ describe("weather provider", () => {
     vi.setSystemTime(new Date("2026-09-21T00:00:00.000Z"));
     vi.stubEnv("USE_MOCK_TOOLS", "false");
     vi.stubEnv("WEATHER_API_KEY", "weather-test-key");
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 503 }));
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 503 })));
 
     await expect(weather.forecast(query)).rejects.toThrow("503");
   });

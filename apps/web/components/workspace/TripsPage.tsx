@@ -2,10 +2,7 @@
 import { intlLocale, type AppLocale, type MessageKey } from "@/lib/i18n/locale";
 import { useLocale } from "@/components/account/LocaleProvider";
 import { useSettings } from "@/components/account/SettingsProvider";
-import { moneyDisplay } from "@/lib/money";
-import { dateRangeLabel } from "@/lib/workspace/trip-facts";
-import { distinctTripTitles, tripName } from "@/lib/workspace/trip-identity";
-import { effectiveCurrency } from "@trip/shared";
+import { distinctTripTitles, tripMeta, tripName } from "@/lib/workspace/trip-identity";
 import { useMemo, useRef, useState, type KeyboardEvent } from "react";
 import type { TripRecord } from "@/lib/workspace/catalog";
 import { ChevronIcon, PlusIcon } from "../ui/icons";
@@ -26,10 +23,6 @@ const todayUtc = () => {
   const now = new Date();
   return Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
 };
-const days = (trip: TripRecord) => {
-  const [start, end] = trip.snapshot.plan.brief.dates;
-  return Math.max(1, Math.round((utc(end) - utc(start)) / DAY) + 1);
-};
 
 export function TripsPage({
   trips,
@@ -40,8 +33,10 @@ export function TripsPage({
   onDeleteTrip,
   deletedTrip,
   embedded = false,
+  allTrips = trips,
 }: {
   trips: TripRecord[];
+  allTrips?: TripRecord[];
   activeTripId?: string;
   onOpenTrip(id: string): void;
   onNewTrip(): void;
@@ -112,13 +107,19 @@ export function TripsPage({
           {tab === "trips" ? (
             <TripCards
               trips={trips}
+              allTrips={allTrips}
               activeTripId={activeTripId}
               onOpenTrip={onOpenTrip}
               onRenameTrip={onRenameTrip}
               onDeleteTrip={onDeleteTrip}
             />
           ) : (
-            <TripCalendar trips={trips} onOpenTrip={onOpenTrip} compact={embedded} />
+            <TripCalendar
+              trips={trips}
+              allTrips={allTrips}
+              onOpenTrip={onOpenTrip}
+              compact={embedded}
+            />
           )}
         </div>
       </div>
@@ -128,12 +129,14 @@ export function TripsPage({
 
 function TripCards({
   trips,
+  allTrips,
   activeTripId,
   onOpenTrip,
   onRenameTrip,
   onDeleteTrip,
 }: {
   trips: TripRecord[];
+  allTrips: TripRecord[];
   activeTripId?: string;
   onOpenTrip(id: string): void;
   onRenameTrip(id: string): void;
@@ -157,7 +160,7 @@ function TripCards({
       },
     ].filter((group) => group.items.length);
   }, [trips]);
-  const titles = distinctTripTitles(trips, (trip) => tripName(trip, t));
+  const titles = distinctTripTitles(allTrips, (trip) => tripName(trip, t));
 
   if (!trips.length)
     return (
@@ -172,14 +175,6 @@ function TripCards({
       <ul className="trip-cards">
         {group.items.map((trip) => {
           const { destination } = trip.snapshot.plan.brief;
-          const length = days(trip);
-          const [start, end] = trip.snapshot.plan.brief.dates;
-          const dateRange = dateRangeLabel(start, end, locale);
-
-          const total = moneyDisplay({
-            currency: effectiveCurrency(trip.snapshot.plan.brief, settings.displayCurrency),
-            locale,
-          }).money(trip.snapshot.plan.estTotal);
           return (
             <li key={trip.id}>
               <button
@@ -192,8 +187,7 @@ function TripCards({
                 <span className="trip-card__text">
                   <span className="trip-card__title">{titles.get(trip.id)}</span>
                   <span className="trip-card__meta">
-                    {destination} · {dateRange ? `${dateRange} · ` : ""}
-                    {length} {length === 1 ? t("day") : t("days")} · {total}
+                    {tripMeta(trip, locale, settings.displayCurrency, t)}
                   </span>
                 </span>
               </button>
@@ -220,15 +214,17 @@ const monthLabel = (year: number, month: number, locale: AppLocale) =>
 
 function TripCalendar({
   trips,
+  allTrips,
   onOpenTrip,
   compact = false,
 }: {
   trips: TripRecord[];
+  allTrips: TripRecord[];
   compact?: boolean;
   onOpenTrip(id: string): void;
 }) {
   const { t, locale } = useLocale();
-  const titles = distinctTripTitles(trips, (trip) => tripName(trip, t));
+  const titles = distinctTripTitles(allTrips, (trip) => tripName(trip, t));
 
   const [cursor, setCursor] = useState(() => {
     const today = todayUtc();

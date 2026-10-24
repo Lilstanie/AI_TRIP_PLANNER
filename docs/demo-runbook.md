@@ -68,17 +68,20 @@ fallback. It does not test connectivity or prove that `MAPS_API_KEY` is valid.
 ## Assistants walkthrough
 
 The Stage 2 assistants demo runs in mock mode with no keys, in English or Chinese, on desktop or phone.
-Type each message in the chat; `@` plus an assistant's name, or a chip above the message box, mentions it.
+Type `@` in the message box and pick an assistant from the menu (arrows, then Tab or Enter), or type its name.
+The Specialist team button in the top bar, or the avatar button beside the trip title on a phone, opens the team panel.
 
-1. Plan Tokyo from Sydney, 2027-02-01 to 2027-02-04, 2 adults, budget AUD 6000. The Coordinator and the five specialists appear with their icons.
-2. `@Stay find a cheaper stay`. Only the accommodation specialist works and only its section changes.
-3. Lower the budget until the plan overruns, then repeat step 2. The conflict, revision score and stop messages appear as plain rules.
-4. `@Stay @Getting around find cheaper options`. Exactly those two specialists work in one round.
-5. `@Stay recommend a restaurant`. Stay declines and names Food & dining, the Coordinator dispatches, and Food & dining answers.
-6. Settings → Personalization → Assistant names: rename Stay, then mention it by the new name.
-7. Clear the browser data and send `@Stay when are hotels cheapest?`. The specialist answers, no plan is created, and the Coordinator asks for the trip details.
+1. Plan Tokyo from Sydney, 2027-02-01 to 2027-02-04, 2 adults, budget AUD 6000. While it runs, the avatars on the Specialist team button show who is working; the panel stays closed until you open it. Open it to see the Coordinator and the five specialists with their status. When the reply is done, press its summary line to open that run's panel.
+2. Type `@` and pick Stay from the menu, then `find a cheaper stay`. Only the accommodation specialist works and only its section changes.
+3. Lower the budget until the plan overruns, then repeat step 2. The panel shows the conflict, the specialist sent back for a revision, the revision score and the stop line.
+4. Type `@Stay`, then press Backspace once to select the whole mention and again to delete it.
+5. `@Stay @Getting around find cheaper options`. Exactly those two specialists work in one round.
+6. `@Stay recommend a restaurant`. Stay declines and names Food & dining, the Coordinator dispatches, and Food & dining answers.
+7. Press the summary line of the first reply, then Stay in its panel. The chat scrolls to that reply and expands Stay's thinking rows.
+8. Settings → Personalization → Assistant names: rename Stay, then mention it by the new name. The menu, the panel and the replies show it.
+9. Clear the browser data and send `@Stay when are hotels cheapest?`. The specialist answers, no plan is created, and the Coordinator asks for the trip details.
 
-`CHANNEL=chromium DATA_MODE=mock USE_MOCK_TOOLS=true pnpm --filter @trip/web e2e assistants-demo` repeats all seven steps at 1440 px and 390 px in both languages. It saves a screenshot per step and `output/playwright/assistants-demo/result.json` as the demo record.
+`CHANNEL=chromium DATA_MODE=mock USE_MOCK_TOOLS=true pnpm --filter @trip/web e2e assistants-demo` repeats all nine steps at 1440 px and 390 px in both languages. It saves numbered screenshots (`<language>-<width>-NN-<step>.png`) and `output/playwright/assistants-demo/result.json` as the demo record.
 
 ## If something fails on the day
 

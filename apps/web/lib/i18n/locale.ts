@@ -104,6 +104,8 @@ const ZH = {
   "Where to next?": "下一站去哪里？",
   "Describe your destination, travel dates, number of travellers and total budget, or add them in the bar at the top.":
     "告诉我目的地、旅行日期、人数和总预算，或在顶部栏逐项填写。",
+  "Describe your destination, travel dates, number of travellers and total budget, or tap Add trip details below.":
+    "告诉我目的地、旅行日期、人数和总预算，或点下方的“添加行程信息”逐项填写。",
   "Example trips": "示例行程",
   "Pick an example to plan it now, or write your own below.":
     "选择一个示例立即规划，或在下方输入你的需求。",
@@ -131,6 +133,8 @@ const ZH = {
   "Your map will appear here": "地图将在这里显示",
   "Tell us a destination and dates in the chat, or add them in the bar at the top.":
     "在聊天中告诉我们目的地和日期，或在顶部栏中添加。",
+  "Tell us a destination and dates in the chat, or tap New trip at the top.":
+    "在聊天中告诉我们目的地和日期，或点击顶部的“新行程”。",
   "Sign in": "登录",
   Account: "账户",
   "Keep your trips in sync": "登录后在各设备间同步行程",

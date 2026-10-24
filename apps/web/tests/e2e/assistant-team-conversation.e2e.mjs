@@ -1,6 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
+import { readRun } from "./support/team-run.mjs";
 const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT ?? "playwright");
 const base = process.env.BASE_URL ?? "http://localhost:3000";
 const out = resolve("output/playwright/assistant-team-conversation");
@@ -52,44 +53,41 @@ try {
       await page.locator(".msg-item--agent .msg-item__body").first().waitFor({ timeout: 240_000 });
       await page.waitForTimeout(800);
 
-      const team = page.locator(".team-conversation").last();
-      const names = await team.locator(".team-message__name").allInnerTexts();
-      const assistants = await team
-        .locator(".team-message:not(.team-message--check)")
-        .evaluateAll((nodes) => nodes.map((node) => node.getAttribute("data-assistant")));
-      check(
-        assistants[0] === "coordinator",
-        `${label}: the Coordinator dispatches first`,
-        assistants,
-      );
-      check(
-        SPECIALISTS.every((id) => assistants.includes(id)),
-        `${label}: every specialist reports once`,
-        assistants,
-      );
-      check(
-        ROLES[locale].every((role) => names.includes(role)),
-        `${label}: role names are in the interface language`,
-        names,
-      );
-      const icons = await team
-        .locator(".team-message:not(.team-message--check) > .assistant-icon svg")
-        .count();
-      check(
-        assistants.length > 0 && icons === assistants.length,
-        `${label}: every message has an icon`,
-        icons,
-      );
-      const markers = await team.locator(".team-message__marker").allInnerTexts();
-      check(
-        assistants.length > 0 &&
-          markers.length === assistants.length &&
-          markers.every((text) => MARKERS[locale].includes(text)),
-        `${label}: every message says who decided`,
-        markers,
-      );
-      const sources = await team.locator(".team-message__source").count();
-      check(sources >= 1, `${label}: specialist messages show their data source`, sources);
+      const run = await readRun(page);
+      if (run) {
+        const assistants = run.assignments.map((item) => item.who);
+        const names = run.rows.map((row) => row.name);
+        check(
+          SPECIALISTS.every((id) => assistants.includes(id)),
+          `${label}: every specialist has an assignment`,
+          assistants,
+        );
+        check(
+          JSON.stringify(names) === JSON.stringify(ROLES[locale]),
+          `${label}: role names are in the interface language`,
+          names,
+        );
+        check(
+          assistants.length > 0 && run.assignments.every((item) => item.icon === 1),
+          `${label}: every assignment has an icon`,
+          run.assignments.map((item) => item.icon),
+        );
+        const markers = run.assignments.map((item) => item.marker);
+        check(
+          assistants.length > 0 && markers.every((text) => MARKERS[locale].includes(text)),
+          `${label}: every assignment says who decided`,
+          markers,
+        );
+        check(
+          MARKERS[locale].includes(run.rows[0].marker),
+          `${label}: the Coordinator row says who decided`,
+          run.rows[0].marker,
+        );
+        check(
+          run.assignments.filter((item) => item.source).length >= 1,
+          `${label}: specialist assignments show their data source`,
+        );
+      } else check(false, `${label}: the team panel did not open`);
 
       await page.locator(".thinking-turn").last().click();
       const rowIcons = await page.locator(".thinking-subagent .assistant-icon").count();

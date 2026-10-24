@@ -24,6 +24,7 @@ const options: StayOption[] = [
 const request = {
   tripId: brief.tripId,
   targetAgent: "accommodation" as const,
+  kind: "budget" as const,
   reason: "plan is 17% over budget",
   constraints: ["cut accommodation cost by ~30%"],
 };
@@ -261,6 +262,7 @@ describe("accommodation revisions", () => {
       context: context().ctx,
       revision: {
         ...request,
+        kind: "time",
         reason: "time overlap",
         constraints: [],
       },

@@ -19,10 +19,18 @@ describe("the reply language", () => {
       .catch((error: unknown) => error)
       .then((failure) => (failure as IncompleteBriefError).message);
 
-  it("falls back to the interface language when the client sends one", async () => {
-    const prompt = await shown({ tripId: "blank", message: "Tokyo", interfaceLanguage: "zh" });
-    expect(prompt).toContain(
-      "Reply language: the language of the traveller's latest message, else Simplified Chinese",
+  it("names the turn's resolved reply language", async () => {
+    const chinese = await shown({ tripId: "blank", message: "去东京玩", interfaceLanguage: "en" });
+    expect(chinese).toContain(
+      "Reply language: write every sentence the traveller reads in Simplified Chinese",
+    );
+    const english = await shown({
+      tripId: "blank",
+      message: "Plan four days in Tokyo",
+      interfaceLanguage: "zh",
+    });
+    expect(english).toContain(
+      "Reply language: write every sentence the traveller reads in English",
     );
   });
 
@@ -37,10 +45,15 @@ describe("the reply language", () => {
     }
   });
 
-  it("adds no fallback for a client that does not send the field", async () => {
+  it("uses the interface language for a bare place name", async () => {
+    const prompt = await shown({ tripId: "blank", message: "Tokyo", interfaceLanguage: "zh" });
+    expect(prompt).toContain("in Simplified Chinese");
+    expect(prompt).not.toContain("exact same language");
+  });
+
+  it("falls back to English for a client that sends no interface language", async () => {
     const prompt = await shown({ tripId: "blank", message: "Tokyo" });
-    expect(prompt).toContain("reply in that exact same language");
-    expect(prompt).not.toContain("Reply language:");
+    expect(prompt).toContain("Reply language: write every sentence the traveller reads in English");
   });
 });
 

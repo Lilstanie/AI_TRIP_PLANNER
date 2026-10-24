@@ -42,7 +42,6 @@ function context(preferences: UserPreference[] = [], withPlaces = true): AgentCo
 
 const validDraft = {
   summary: "Dining candidates for the trip",
-  dailyBudgetPerPerson: 40,
   picks: [{ name: "Market Kitchen", detail: "Confirm the current menu directly." }],
   assumptions: ["Menus change."],
 };
@@ -74,7 +73,7 @@ describe("dining planner", () => {
     expect(generate).toHaveBeenCalledWith(
       expect.objectContaining({
         dietaryPreferences: [preferences[0]],
-        maxDailyPerPerson: 50,
+        dailyBudgetPerPerson: 50,
       }),
     );
     expect(result.assumptions.join(" ")).toContain("dietary.allergy=peanuts");
@@ -158,19 +157,40 @@ describe("dining planner", () => {
     expect(result.items.find((item) => item.kind === "meal")?.location).toBe("Market Kitchen");
   });
 
-  it("falls back when model cost exceeds the budget guardrail", async () => {
+  it("gives the same meal budget whether the model answers, fails or is absent", async () => {
     const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const generator: DiningGenerator = {
-      generate: vi.fn(async () => ({ ...validDraft, dailyBudgetPerPerson: 500 })),
+    const sydney: TripBrief = {
+      ...brief,
+      destination: "Sydney",
+      dates: ["2026-11-14", "2026-11-17"],
+      budgetTotal: 4000,
     };
-    const result = await createDiningAgent({ generator }).invoke({
-      brief,
-      context: context(),
-    });
-    expect(result.items[0]!.estCost).toBe(200);
-    expect(result.assumptions.join(" ")).toContain("Cuisine, menu, certification and availability");
-    expect(result.source).toMatchObject({ kind: "fallback", label: "Local fallback" });
+    const runs = await Promise.all(
+      [
+        { generate: vi.fn(async () => ({ ...validDraft, dailyBudgetPerPerson: 115 })) },
+        {
+          generate: vi.fn(async () => {
+            throw new Error("model timeout");
+          }),
+        },
+        false as const,
+      ].map((generator) =>
+        createDiningAgent({ generator }).invoke({ brief: sydney, context: context() }),
+      ),
+    );
+    for (const run of runs) {
+      expect(run.items[0]).toMatchObject({ kind: "meal-budget", estCost: 640 });
+      expect(run.items[0]!.detail).toContain("AUD 80.00 per person/day");
+    }
+    expect(runs.map((run) => run.source?.kind)).toEqual(["mock", "fallback", "fallback"]);
     warning.mockRestore();
+  });
+
+  it("keeps the meal rate within what a small budget leaves for meals", async () => {
+    const result = await createDiningAgent({
+      generator: { generate: vi.fn(async () => validDraft) },
+    }).invoke({ brief, context: context() });
+    expect(result.items[0]!.estCost).toBe(200);
   });
 
   it("cuts the meal envelope by 30 percent for a budget revision", async () => {
@@ -182,6 +202,7 @@ describe("dining planner", () => {
       revision: {
         tripId: brief.tripId,
         targetAgent: "dining",
+        kind: "budget" as const,
         reason: "plan is over budget",
         constraints: ["cut dining cost by ~30%"],
       },
@@ -192,7 +213,7 @@ describe("dining planner", () => {
   });
 
   it("passes the reduced budget ceiling to a revised generator", async () => {
-    const generate = vi.fn(async () => ({ ...validDraft, dailyBudgetPerPerson: 35 }));
+    const generate = vi.fn(async () => validDraft);
     const agent = createDiningAgent({ generator: { generate } });
 
     await agent.invoke({
@@ -201,6 +222,7 @@ describe("dining planner", () => {
       revision: {
         tripId: brief.tripId,
         targetAgent: "dining",
+        kind: "budget" as const,
         reason: "plan is over budget",
         constraints: ["cut dining cost by ~30%"],
       },
@@ -208,7 +230,7 @@ describe("dining planner", () => {
 
     expect(generate).toHaveBeenCalledWith(
       expect.objectContaining({
-        maxDailyPerPerson: 35,
+        dailyBudgetPerPerson: 35,
         revision: expect.objectContaining({ targetAgent: "dining" }),
       }),
     );
@@ -267,6 +289,7 @@ describe("dining planner", () => {
         revision: {
           tripId: "wrong-trip",
           targetAgent: "dining",
+          kind: "budget" as const,
           reason: "budget",
           constraints: [],
         },

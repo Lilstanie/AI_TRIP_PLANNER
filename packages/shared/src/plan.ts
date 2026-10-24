@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { AgentProposal, TripBrief, RevisionRequest } from "./contracts";
+import { AgentProposal, TripBrief, RevisionKind, RevisionRequest } from "./contracts";
 
 export const SectionStatus = z.enum(["planning", "draft", "needs_you", "confirmed"]);
 export type SectionStatus = z.infer<typeof SectionStatus>;
@@ -23,7 +23,7 @@ export const TripPlan = z.object({
   estTotal: z.number().nonnegative(),
   overrunPct: z.number(),
   sections: z.array(TripSection),
-  conflicts: z.array(RevisionRequest).optional(),
+  conflicts: z.array(RevisionRequest.extend({ kind: RevisionKind.catch("request") })).optional(),
   editIssues: z
     .array(
       z.object({

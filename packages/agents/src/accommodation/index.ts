@@ -29,6 +29,7 @@ import {
 } from "./planning";
 import { scheduledHops } from "../transport/legs";
 import { TRAVELLER_PREFERENCES_RULE } from "../prompts/traveller-preferences";
+import { replyLanguageRule } from "../prompts/reply-language";
 import { plural, summaryCopy } from "../summary-copy";
 
 const candidateId = (day: number, index: number) => `stay-${day}-${index}`;
@@ -71,8 +72,9 @@ async function gatherStayEvidence(
   const rooms =
     prefs.roomAllocation === "individual" ? brief.groupSize : Math.ceil(brief.groupSize / 2);
   const budgetRevision =
-    revision !== undefined &&
-    /budget|cost|cheaper|overrun/i.test([revision.reason, ...revision.constraints].join(" "));
+    revision?.kind === "budget" ||
+    (revision?.kind === "request" &&
+      /budget|cost|cheaper|overrun/i.test([revision.reason, ...revision.constraints].join(" ")));
 
   const searched = await Promise.all(
     segments.map(async (segment) => {
@@ -399,7 +401,8 @@ async function planStays(
     tools: [search],
     systemPrompt:
       "You are the accommodation specialist. Call search_accommodation_candidates, then choose one candidate for every stay it returns. You own that choice: weigh rating, free cancellation, remembered stay type and total cost against the traveller's brief and any revision. Treat confirmed rating and cancellation preferences as constraints; treat stay type as a preference only when candidate evidence supports it. Use only candidate fields actually provided as evidence. When a stayBudget is given, keep the total of all chosen stays within maxTotalCost. A budget revision means prefer the cheapest eligible candidate. Refer to candidates only by the ids you were given -- never invent a property, a rate, a rating or a policy, and never state a price yourself. Return the requested structured selection. " +
-      TRAVELLER_PREFERENCES_RULE,
+      TRAVELLER_PREFERENCES_RULE +
+      replyLanguageRule(ctx.replyLanguage),
     responseFormat: StaySelection,
   });
   try {
