@@ -67,12 +67,20 @@ export function weatherPacking(evidence: DestinationWeatherEvidence[]): string[]
   return packing.length ? packing : ["Weather-appropriate layers"];
 }
 
+const weatherDay = new Intl.DateTimeFormat("en-AU", {
+  weekday: "short",
+  day: "numeric",
+  month: "short",
+  timeZone: "UTC",
+});
+
 export function weatherText(evidence: DestinationWeatherEvidence[]): string {
   return evidence
-    .map(({ city, targetDate, result }) =>
-      result
-        ? `${city}, ${targetDate} (${result.horizon === "forecast" ? "forecast" : "historical climate, not a forecast"}): ${result.summary}`
-        : `${city}, ${targetDate}: weather unavailable; check a current forecast before travel.`,
-    )
+    .map(({ city, targetDate, result }) => {
+      const day = weatherDay.format(Date.parse(`${targetDate}T00:00:00Z`));
+      return result
+        ? `${city}, ${day} (${result.horizon === "forecast" ? "forecast" : "historical climate, not a forecast"}): ${result.summary}`
+        : `${city}, ${day}: weather unavailable; check a current forecast before travel.`;
+    })
     .join(" ");
 }

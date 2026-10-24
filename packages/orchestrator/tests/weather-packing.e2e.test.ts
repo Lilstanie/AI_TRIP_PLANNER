@@ -108,7 +108,7 @@ describe("TP-37 weather-grounded packing", () => {
     for (const date of ["2027-06-15", "2027-06-16", "2027-06-17", "2027-06-18"])
       expect(input.weatherEvidence?.some((entry) => entry.targetDate === date)).toBe(true);
     const guide = plan.sections.find((section) => section.id === "destination-guide")!.proposal!;
-    expect(JSON.stringify(guide)).toContain("2027-06-18");
+    expect(JSON.stringify(guide)).toContain("Fri, 18 June");
     expect(JSON.stringify(guide)).toContain("Kyoto");
     expect(JSON.stringify(guide)).toContain("Rain jacket from weather evidence");
     expect(events.some((event) => JSON.stringify(event).includes("weather.forecast"))).toBe(true);
@@ -169,8 +169,10 @@ describe("TP-37 weather-grounded packing", () => {
       expect(
         guide.items.find((item) => item.kind === "weather-packing")?.packing?.join(" "),
       ).toMatch(/rain|waterproof/i);
-      expect(JSON.stringify(guide)).toMatch(/2027-06-16[^]*unavailable|unavailable[^]*2027-06-16/i);
-      expect(JSON.stringify(guide)).toContain("2027-06-18");
+      expect(JSON.stringify(guide)).toMatch(
+        /Wed, 16 June[^]*unavailable|unavailable[^]*Wed, 16 June/i,
+      );
+      expect(JSON.stringify(guide)).toContain("Fri, 18 June");
       expect(guide.source?.kind).toBe("fallback");
     },
   );
