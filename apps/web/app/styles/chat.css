@@ -226,3 +226,65 @@
   color: var(--text-mut);
   font-size: 11px;
 }
+
+.chat__stream[hidden] {
+  display: none;
+}
+
+.chat__tabs {
+  display: flex;
+  gap: var(--space-1);
+  padding-bottom: var(--space-2);
+}
+.chat__tabs button {
+  padding: 4px 12px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-dim);
+  font: inherit;
+  font-size: var(--font-size-meta);
+  cursor: pointer;
+}
+.chat__tabs button[aria-selected="true"] {
+  background: var(--fill-hover);
+  color: var(--text);
+}
+.chat__tabs button:focus-visible {
+  outline: 2px solid var(--accent);
+}
+
+.chat__trajectory {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-2);
+}
+
+.trajectory-tab {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+.trajectory-tab > :last-child {
+  flex: 1;
+  height: auto;
+}
+.trajectory-filter {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  border-bottom: 1px solid var(--border);
+  font-size: var(--font-size-meta);
+}
+.trajectory-filter button {
+  min-height: 0;
+  margin-inline-start: auto;
+  padding: 2px 10px;
+}

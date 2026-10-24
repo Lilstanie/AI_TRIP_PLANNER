@@ -14,8 +14,13 @@ Contributors: when you vendor or port code from another project, add an entry he
 - Files in this repository: the skills `.agents/skills/find-simplifications/`, `.agents/skills/prose-standard/`,
   `.agents/skills/agent-experience/` and `.agents/skills/translate-docs/` are adapted from upstream commit
   `477b4f420553e8a52c2fbccc464d7561b239c443`; [.agents/skills/THIRD_PARTY_NOTICES.md](.agents/skills/THIRD_PARTY_NOTICES.md)
-  records the details. The Agent Lab Trace view (#218, #220) borrows only the idea of a lane overview from its
-  Trajectory view and was written from scratch, so it contains no DeepSeek Harness code.
+  records the details. The Trajectory tab (#668) copies the files in `apps/web/components/trajectory/` that
+  carry the header, from upstream commit `687f282e86`: the ledger table, timeline, toolbar, record
+  types, search index and their styles and layout code, with imports replaced by `shim.tsx`. The team
+  panel (#671) adapts DSH's `TeamAction` as `apps/web/components/chat/TeamPanel.tsx` and
+  `TeamPanel.module.css`, and `shim.tsx` with `shim.module.css` carries DSH's `StateDot` and `Tag`. The Agent
+  Lab Trace view (#218, #220) borrows only the idea of a lane overview and was written from scratch,
+  so it contains no DeepSeek Harness code.
 
 ```text
 MIT License

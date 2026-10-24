@@ -7,6 +7,12 @@ function turnRow(): HTMLElement {
   return screen.getAllByRole("button", { name: /^Think/ })[0];
 }
 
+function lineOf(button: HTMLElement): HTMLElement {
+  const line = button.closest<HTMLElement>(".thinking-row__line");
+  if (!line) throw new Error("row line missing");
+  return line;
+}
+
 function subagentButton(label: string, status: string, nth = 0): HTMLElement {
   const item = screen.getAllByRole("listitem", { name: `${label} ${status}` })[nth];
   return within(item).getAllByRole("button")[0];
@@ -148,7 +154,7 @@ describe("thinking surface", () => {
     render(<ThinkingProcess activity={activity} busy={false} />);
 
     const think = turnRow();
-    expect(think.textContent).toContain("2 tool calls · 2 subagents · 2 rounds");
+    expect(lineOf(think).textContent).toContain("2 tool calls · 2 subagents · 2 rounds");
     expect(think.getAttribute("aria-expanded")).toBe("false");
     expect(screen.queryAllByRole("listitem")).toHaveLength(0);
 
@@ -205,7 +211,7 @@ describe("thinking surface", () => {
     fireEvent.click(subagentButton("Day plan", "Complete"));
     const reasoning = screen.getAllByRole("button", { name: /^Think/ }).slice(1);
     expect(reasoning).toHaveLength(1);
-    expect(reasoning[0].textContent).toBe("ThinkThinking");
+    expect(lineOf(reasoning[0]).textContent).toBe("ThinkThinking");
     fireEvent.click(reasoning[0]);
     expect(document.querySelector(".thinking-reasoning__body")?.textContent).toBe(
       "The traveller wants three days in Sydney.\nDelegate the stay search first.\n",
@@ -228,7 +234,7 @@ describe("thinking surface", () => {
     ];
     render(<ThinkingProcess activity={streaming} busy />);
 
-    const turnSummary = turnRow().querySelector(".thinking-row__summary");
+    const turnSummary = lineOf(turnRow()).querySelector(".thinking-row__summary");
     expect(turnSummary?.textContent).toBe("Working with Day plan");
     expect(turnSummary?.hasAttribute("data-follow-end")).toBe(false);
 
@@ -353,12 +359,13 @@ describe("thinking surface", () => {
     }
   });
 
-  it("toggles a row from the keyboard", () => {
+  it("toggles a row through a native button the keyboard can press", () => {
     render(<ThinkingProcess activity={activity} busy={false} />);
     const think = turnRow();
-    fireEvent.keyDown(think, { key: "Enter" });
+    expect(think.tagName).toBe("BUTTON");
+    fireEvent.click(think);
     expect(think.getAttribute("aria-expanded")).toBe("true");
-    fireEvent.keyDown(think, { key: " " });
+    fireEvent.click(think);
     expect(think.getAttribute("aria-expanded")).toBe("false");
   });
 });

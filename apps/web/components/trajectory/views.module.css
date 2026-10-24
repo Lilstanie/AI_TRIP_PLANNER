@@ -1,0 +1,67 @@
+.root {
+  --dsw-alias-label-primary: var(--text);
+  --dsw-alias-label-secondary: var(--text-dim);
+  --dsw-alias-label-tertiary: var(--text-mut);
+  --dsw-alias-label-caption: var(--text-mut);
+  --dsw-alias-bg-layer-1: var(--surface);
+  --dsw-alias-bg-layer-2: var(--surface-2);
+  --dsw-alias-bg-module-platform: var(--surface-2);
+  --dsw-alias-bg-base: var(--surface-2);
+  --dsw-specific-sidebar-fill: var(--surface-2);
+  --dsw-alias-border-l1: var(--border);
+  --dsw-alias-border-l2: var(--border);
+  --dsw-alias-border-l3: var(--border);
+  --dsw-alias-border-l4: var(--border);
+  --dsw-alias-border-l2-darkmode-thin: var(--border);
+  --dsw-alias-interactive-bg-hover: var(--fill-hover);
+  --dsw-alias-interactive-bg-active: var(--fill-press);
+  --dsw-alias-state-business-primary: var(--accent);
+  --dsw-alias-state-business-tertiary: var(--accent-bg);
+  --dsw-alias-brand-primary-new-colorprimary-new-color: var(--accent);
+  --dsw-static-blue-500: var(--accent);
+  --dsw-alias-state-error-primary: var(--danger, #b3261e);
+  --dsw-alias-state-error-secondary: var(--danger, #b3261e);
+  --dsw-alias-state-warn-label: var(--warn);
+  --dsw-alias-state-warn-tertiary: var(--warn-bg);
+  --dsw-alias-state-success-primary: var(--ok);
+  --dsw-alias-state-success-tertiary: var(--ok-bg);
+  --dsw-alias-markdown-code-block: var(--surface-2);
+  --dsw-alias-markdown-citation: var(--border);
+  --dsw-alias-scrollbar-bg-l2: var(--fill-press);
+  --dsw-alias-scrollbar-hover-l2: var(--text-mut);
+  --dsw-focus-ring-color: var(--accent);
+  --dsw-focus-ring-width: 2px;
+  --dsw-font-family: var(--font-text);
+  --dsw-font-xxxs-11: 400 11px/16px var(--font-text);
+  --dsw-font-xxs-12: 400 12px/18px var(--font-text);
+  --dsw-font-xs-13: 400 13px/20px var(--font-text);
+  --dsw-font-xs-strong-13: 600 13px/20px var(--font-text);
+  --dsw-radius-xs: 4px;
+  --dsw-radius-sm: var(--radius-sm);
+  --dsw-radius-md: var(--radius-sm);
+  --dsw-radius-lg: var(--radius);
+  --dsw-elevation-panel: var(--shadow-md);
+  --ds-font-family-code: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --ds-ease-in-out: var(--ease-in-out);
+
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  height: 100%;
+  min-height: 0;
+  width: 100%;
+  box-sizing: border-box;
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-bg-layer-1);
+}
+
+.ledger {
+  position: relative;
+  z-index: 0;
+  isolation: isolate;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}

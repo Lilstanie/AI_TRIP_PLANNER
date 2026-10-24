@@ -70,9 +70,10 @@ try {
         size,
       );
     await page.screenshot({ path: `${out}/${id}-think.png` });
-    const before = await think.getAttribute("aria-expanded");
-    await think.click();
-    const after = await think.getAttribute("aria-expanded");
+    const toggle = think.locator(".thinking-row__toggle");
+    const before = await toggle.getAttribute("aria-expanded");
+    await think.locator(".thinking-row__title").click();
+    const after = await toggle.getAttribute("aria-expanded");
     check(before !== after, `${id} Think toggle still toggles`, { before, after });
     check(errors.length === 0, `${id} no page errors`, errors);
     await context.close();

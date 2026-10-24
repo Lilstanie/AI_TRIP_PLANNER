@@ -227,7 +227,8 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     (`Drawer`'s `hideTitle`).
 - **Phones (≤520 px).** The [phone shell decision](../.agents/notes/implemented/feature/2026-10-05-phone-shell.md)
   applies only at this width; desktop and tablets keep their existing navigation.
-  - A safe-area-aware bottom tab bar exposes Chat, Map, Trip and Mine as keyboard-operable tabs.
+  - A safe-area-aware bottom tab bar exposes Chat, Map, Trip, Trajectory and Mine as keyboard-operable tabs. Trajectory is the
+    phone trajectory described under Trajectory tab.
     One panel is visible at a time; panels stay mounted to preserve their scroll position. The saved
     layout restores the last tab, including older Chat/Map choices.
   - The single-row top bar shows the destination and dates, or New trip. Its title opens Trip details:
@@ -323,32 +324,37 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     sheet: a modal dialog named Specialist team, focus moves in and stays in, Escape, the close button or a press
     outside closes it and returns focus to the button, and it scrolls when long. It shares the layout `sheet` slot,
     so it never opens together with Trip details, and it closes when the viewport grows past phone width.
-    - Six rows, always, in the fixed order (Coordinator, Day plan, Getting around, Stay, Destination
-      guide, Food & dining), each with its icon, current name, a status and its latest objective
-      (clamped to two lines, with Show more). Idle is before any event; Working is started with no result in
-      the latest round; Done is completed; Failed is `agent_failed`; Needs change is named by the latest
-      conflict check and not yet revised; Stopped is a turn that was cancelled or failed while the assistant
-      was working (the Coordinator of such a turn is Stopped too); Not involved is no assignment this turn. The Coordinator row
-      carries the Decided by AI or code marker for the dispatch.
-    - Below the rows, the turn's **assignments** and checks in event order. An assignment is a
-      specialist's first dispatch, a targeted revision or a hand-off, with its owner, round status
-      (Working, Done, Failed or Stopped), a Decided by AI or Decided by code marker (AI when the stream
+    - The panel body is DSH's Agent Teams layout ([`TeamPanel`](../apps/web/components/chat/TeamPanel.tsx),
+      copied with its MIT header). **Members** (count 6) holds six cards, always, in the fixed order
+      (Coordinator, Day plan, Getting around, Stay, Destination guide, Food & dining): icon, current name, a
+      state dot with the status and the assistant's latest objective as a tag. Idle is before any event;
+      Working is started with no result in the latest round; Done is completed; Failed is `agent_failed`;
+      Needs change is named by the latest conflict check and not yet revised; Stopped is a turn that was
+      cancelled or failed while the assistant was working (the Coordinator of such a turn is Stopped too);
+      Not involved is no assignment this turn, and the card is greyed. The Coordinator card carries the
+      Decided by AI or code marker for the dispatch.
+    - **Assignments** (count) lists the turn's assignments and checks in event order as task cards. An
+      assignment is a specialist's first dispatch, a targeted revision or a hand-off. Its card shows the
+      owner, a state dot with the round status (Working, Done, Failed or Stopped), the objective clamped to
+      two lines with Show more, the kind, a Decided by AI or Decided by code marker (AI when the stream
       carried that specialist's reasoning in that round, otherwise code once the turn ends; a hand-off
       carries its own provenance) and the data source (live, estimated, mock, fallback or unavailable).
-      A misdirected mention is one hand-off row. Conflict checks name the specialist sent back with a
+      A misdirected mention is one hand-off card. Conflict checks name the specialist sent back with a
       Needs change tag; revision scores say kept or discarded; the stop reason ends the list. Checks are
       rules and carry no icon.
     - The Think fold's Subagent rows use the same icons. The Trip drawer shows no assistant icons. The live
       area above the message box shows only the Think fold.
-    - **Opening thinking rows.** Pressing a row of an involved assistant (Working, Done, Failed, Needs
-      change or Stopped; the name is a button called "Show {name} thinking") closes the panel, or on a phone the sheet,
-      switches to the chat when the Map is showing (the phone Map tab or the Map view at tablet width),
-      scrolls the chat to the Think fold of the latest run (the live area, or the latest reply's fold),
-      opens the fold and expands exactly that specialist's `Subagent` row for the latest round it worked in,
-      then moves focus to the row. Pressing the Coordinator opens the fold and focuses its first line, where
-      the dispatch begins. Idle and Not involved rows have no button and expose no action. The target is
-      matched by the run's activity list in [`team-reveal.tsx`](../apps/web/components/chat/team-reveal.tsx) and
-      handled in [`ThinkingProcess`](../apps/web/components/chat/ThinkingProcess.tsx).
+    - **Opening the filtered trajectory.** Pressing a card of an involved assistant (Working, Done, Failed,
+      Needs change or Stopped; the card is a button called "Show {name} trajectory") closes the panel,
+      switches to the chat when the Map is showing (the Map view at tablet width) and opens the Trajectory
+      tab showing only that assistant's records: its messages, assignments and tool calls, and the
+      conflict checks and revision scores that name it. A bar above the ledger names the assistant and
+      its Show all records button clears the filter; the filter survives switching tabs until cleared and a
+      second press replaces it. Idle and Not involved cards are disabled. The phone sheet shows the same
+      layout; a card there closes the sheet and selects the Trajectory tab from whichever tab is showing.
+      The request is [`trajectory-focus.tsx`](../apps/web/components/chat/trajectory-focus.tsx), applied by
+      `ChatPanel` on desktop and by `PhoneTrajectory` on a phone; the filter itself is `only` in
+      `buildTrajectory`.
   - There is no row of assistant chips above the message box. Typing `@` at the start of a word opens a
     menu of the six assistants (the Coordinator and the five specialists), each with its icon and
     current name, filtered by what follows the `@` and matched against the current, role and custom
@@ -478,6 +484,64 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     button or saved-snapshot list. Snapshots left under `trip-saved-v1` by the retired button are
     neither read nor deleted; see
     [workspace catalog trip storage](../.agents/notes/implemented/architecture/2026-09-24-workspace-catalog-trip-storage.md).
+
+## Trajectory tab
+
+On desktop the chat column has a Conversation and a Trajectory tab. Conversation is the message stream
+and stays mounted while Trajectory is open, so its scroll position returns; when a reply arrived meanwhile it returns at the newest reply. The chat column has no tab list at phone width.
+On a phone, Trajectory is the fourth tab of the bottom bar (轨迹). It shows the same ledger, search and
+filter bar without the timeline overview, and the record inspector opens over the whole panel and closes
+back to the ledger. Widening the window while it is selected returns to the chat. The tab is
+[`PhoneTrajectory`](../apps/web/components/workspace/PhoneTrajectory.tsx).
+
+- **Records.** `buildTrajectory` (`lib/trajectory/adapter.ts`) maps the stored messages and their
+  `activity` events to one turn per traveller message. A traveller message is a User record. A Coordinator
+  summary and the reply are Assistant records named with the assistant's current name, custom names
+  included. An assignment (`agent_started`) and a check (conflict check, revision score, stop) are Tool
+  records. A specialist's tool call is a Subtool record placed under its assignment. A failed assignment
+  or tool call is marked failed. An unfinished request shows the live events and settles when the reply
+  arrives.
+- **Steps.** Each workflow round is a step, shown as a dot on the first record of the round, named Step
+  N. The traveller message sits in a Message group before the first step. Selecting a step opens its
+  status and call counts.
+- **Ledger.** The table is the copied DSH ledger: turn labels, fold of a turn or an assistant's calls
+  (toolbar buttons or a double click), search, a lane overview above it and an inspector for the selected record
+  with Summary, Payload and Result tabs (Preview and Raw for messages). Records carry no timestamps,
+  so the overview uses event order and equal widths and the inspector shows no duration or token field.
+- **Overview and search.** The overview draws one lane per record type present, one block per record in
+  event order. Clicking a block selects its record and scrolls the ledger to it. Searching a specialist
+  name, a place or a flight number narrows the ledger to the matching records, highlights them and shows a
+  hit count; the previous and next buttons, Enter and Shift+Enter step through the hits in event order,
+  wrapping at the ends, and scroll the current hit into view.
+- **Live tail.** While a reply streams the ledger keeps the newest record in view. Scrolling up stops
+  following until the traveller scrolls back to the bottom.
+- **Inspector.** An assignment shows its objective under Payload and the specialist's output or failure
+  under Result; a tool call shows its arguments and result or failure; a conflict check shows the decision
+  under Payload and, under Result, one line per conflict naming the specialist it sends back. Esc, from the
+  inspector or the ledger, or the close control closes it and returns focus to the record's row.
+- **Reply summary.** The one-line summary of a finished reply's Think row (for example "Coordinator + 3
+  specialists · 2 rounds") is a button. Pressing it clears any specialist filter and opens the Trajectory
+  tab (on a phone, the Trajectory tab of the bottom bar) with that reply's turn centred and unfolded. The
+  Think label and chevron still expand the row. The request is `openTurn` in
+  [`trajectory-focus.tsx`](../apps/web/components/chat/trajectory-focus.tsx); `messageTurns` in the adapter
+  numbers each message with its turn.
+- **Labels.** Ledger labels come from `components/trajectory/locales.ts` in English and Chinese; the
+  tab names are app messages. Both survive a reload because they derive from stored messages.
+- **Source.** The ledger files carry DeepSeek Harness's MIT header and are listed in
+  [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md); see
+  [the Agent Note](../.agents/notes/implemented/feature/2026-10-24-trajectory-tab.md).
+- **Verification.** `trajectory-tab` E2E (fixture mode, 1440, English and Chinese) saves the ledger,
+  inspector and reloaded screenshots and `result.json` under `output/playwright/trajectory-tab/`;
+  `trajectory-inspector` saves assignment, tool call and conflict check screenshots and `result.json`
+  under `output/playwright/trajectory-inspector/`.
+  `trajectory-timeline` saves the overview, a search hit, mid-stream and scrolled-up screenshots and
+  `result.json` under `output/playwright/trajectory-timeline/`.
+  `trajectory-phone` (fixture mode, 390 and 360, English and Chinese) saves the empty tab, the ledger, an
+  open record, the team sheet and the filtered ledger screenshots and `result.json` under
+  `output/playwright/trajectory-phone/`.
+  `summary-jump` (1440 and 390, English and Chinese) sends three turns and checks that each reply's summary
+  opens its own turn, saving screenshots and `result.json` under `output/playwright/summary-jump/`.
+  `trajectory-demo` is the Stage 2 walkthrough record described in the [demo runbook](demo-runbook.md#trajectory-walkthrough).
 
 ## Reviewing a plan
 

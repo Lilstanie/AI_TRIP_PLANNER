@@ -1,6 +1,6 @@
 "use client";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { type AgentProgressEvent, type TripPlan } from "@trip/shared";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { type AgentProgressEvent, type AssistantId, type TripPlan } from "@trip/shared";
 import { quickPrompts } from "@/lib/planning/quick-prompts";
 import { translate } from "@/lib/i18n/locale";
 import type { Message } from "@/lib/workspace";
@@ -8,6 +8,9 @@ import { ThinkingProcess } from "./ThinkingProcess";
 import { Composer } from "./Composer";
 import { MessageItem } from "./MessageItem";
 import { QuestionComposer } from "./QuestionComposer";
+import { TrajectoryTab, type TurnJump } from "../trajectory/TrajectoryTab";
+import { messageTurns } from "@/lib/trajectory/adapter";
+import { useTrajectoryFocus } from "./trajectory-focus";
 import type { PendingAsk, QuestionAnswer, QuestionProgress } from "@/lib/workspace/ask-user";
 import type { PreparedAttachment } from "@/lib/chat/attachments";
 import type { Notice } from "@/lib/i18n/notice";
@@ -107,12 +110,74 @@ export function ChatPanel({
     };
   }, [empty]);
 
+  const [view, setView] = useState<"conversation" | "trajectory">("conversation");
+  const showTrajectory = view === "trajectory" && !phone;
+  const savedScroll = useRef<{
+    top: number;
+    messages: Message[];
+    activity: AgentProgressEvent[];
+  } | null>(null);
+  const choose = (next: "conversation" | "trajectory") => {
+    if (next === view) return;
+    if (next === "trajectory")
+      savedScroll.current = { top: stream.current?.scrollTop ?? 0, messages, activity };
+    setView(next);
+  };
+  const { focus } = useTrajectoryFocus();
+  const [only, setOnly] = useState<AssistantId | undefined>();
+  const [jump, setJump] = useState<TurnJump | undefined>();
+  const turns = useMemo(() => messageTurns(messages), [messages]);
+  const handled = useRef(focus?.nonce ?? 0);
+  useEffect(() => {
+    if (!focus || focus.nonce === handled.current) return;
+    handled.current = focus.nonce;
+    if (phone) return;
+    setOnly(focus.assistant);
+    setJump(focus.turn === undefined ? undefined : { turn: focus.turn, nonce: focus.nonce });
+    choose("trajectory");
+  });
+  useLayoutEffect(() => {
+    const saved = savedScroll.current;
+    if (view !== "conversation" || saved === null) return;
+    const node = stream.current;
+    const arrived = saved.messages !== messages || saved.activity !== activity;
+    node?.scrollTo({ top: arrived ? node.scrollHeight : saved.top, behavior: "instant" });
+    savedScroll.current = null;
+  }, [view, messages, activity]);
+
   const prompts = useMemo(() => quickPrompts(), []);
   return (
     <section className="panel chat" aria-label={t("Chat")}>
+      {!phone && (
+        <div className="chat__tabs" role="tablist" aria-label={t("Chat view")}>
+          {(["conversation", "trajectory"] as const).map((id) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              id={`chat-tab-${id}`}
+              aria-controls={`chat-panel-${id}`}
+              aria-selected={view === id}
+              tabIndex={view === id ? 0 : -1}
+              onClick={() => choose(id)}
+              onKeyDown={(event) => {
+                if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+                const next = id === "conversation" ? "trajectory" : "conversation";
+                choose(next);
+                document.getElementById(`chat-tab-${next}`)?.focus();
+              }}
+            >
+              {t(id === "conversation" ? "Conversation" : "Trajectory")}
+            </button>
+          ))}
+        </div>
+      )}
       <div
         className="chat__stream"
+        id="chat-panel-conversation"
         ref={stream}
+        hidden={showTrajectory}
+        {...(phone ? {} : { role: "tabpanel", "aria-labelledby": "chat-tab-conversation" })}
         aria-busy={busy}
         data-more={more ? "true" : undefined}
       >
@@ -153,7 +218,12 @@ export function ChatPanel({
         )}
         <div role="log" aria-live="polite">
           {messages.map((m, i) => (
-            <MessageItem key={i} message={m} animate={i === revealIndex} />
+            <MessageItem
+              key={i}
+              message={m}
+              turn={turns[i] ?? undefined}
+              animate={i === revealIndex}
+            />
           ))}
         </div>
         {(activity.length > 0 || busy) && (
@@ -165,6 +235,23 @@ export function ChatPanel({
           </section>
         )}
       </div>
+      {showTrajectory && (
+        <div
+          className="chat__trajectory"
+          id="chat-panel-trajectory"
+          role="tabpanel"
+          aria-labelledby="chat-tab-trajectory"
+        >
+          <TrajectoryTab
+            messages={messages}
+            live={activity}
+            busy={busy}
+            only={only}
+            onClear={() => setOnly(undefined)}
+            {...(jump ? { jump, onJumped: () => setJump(undefined) } : {})}
+          />
+        </div>
+      )}
       {ask && onAnswer && onDismissAsk ? (
         <QuestionComposer
           key={ask.key}
