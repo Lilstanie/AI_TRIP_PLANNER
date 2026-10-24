@@ -524,6 +524,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                 onDismissAsk={session.dismissAsk}
                 onEdit={edit}
                 onStart={edit}
+                phone={phone}
                 onAttachFiles={composerAttachments.addFiles}
                 attachments={composerAttachments.attachments}
                 onRemoveAttachment={composerAttachments.removeAttachment}
