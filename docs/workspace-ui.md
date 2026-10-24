@@ -498,13 +498,19 @@ and stays mounted while Trajectory is open, so its scroll position returns. The 
   (toolbar buttons or a double click), search, a lane overview above it and an inspector for the selected record
   with Summary, Payload and Result tabs (Preview and Raw for messages). Records carry no timestamps,
   so the overview uses event order and equal widths and the inspector shows no duration or token field.
+- **Inspector.** An assignment shows its objective under Payload and the specialist's output or failure
+  under Result; a tool call shows its arguments and result or failure; a conflict check shows the decision
+  under Payload and, under Result, one line per conflict naming the specialist it sends back. Esc, from the
+  inspector or the ledger, or the close control closes it and returns focus to the record's row.
 - **Labels.** Ledger labels come from `components/trajectory/locales.ts` in English and Chinese; the
   tab names are app messages. Both survive a reload because they derive from stored messages.
 - **Source.** The ledger files carry DeepSeek Harness's MIT header and are listed in
   [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md); see
   [the Agent Note](../.agents/notes/implemented/feature/2026-10-24-trajectory-tab.md).
 - **Verification.** `trajectory-tab` E2E (fixture mode, 1440, English and Chinese) saves the ledger,
-  inspector and reloaded screenshots and `result.json` under `output/playwright/trajectory-tab/`.
+  inspector and reloaded screenshots and `result.json` under `output/playwright/trajectory-tab/`;
+  `trajectory-inspector` saves assignment, tool call and conflict check screenshots and `result.json`
+  under `output/playwright/trajectory-inspector/`.
 
 ## Reviewing a plan
 

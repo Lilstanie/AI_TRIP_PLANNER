@@ -820,6 +820,15 @@ export function TrajectoryTable({
     setSelectedStepIdentity(null);
   };
 
+  const closeInspector = () => {
+    const row =
+      selectedIndex === null
+        ? null
+        : rootRef.current?.querySelector<HTMLElement>(`tr[data-record-index="${selectedIndex}"]`);
+    clearInspectorSelection();
+    row?.focus();
+  };
+
   const clearAllSelections = () => {
     clearInspectorSelection();
     onClearSelection?.();
@@ -948,7 +957,17 @@ export function TrajectoryTable({
   }, [rowVirtualizer, virtualRowStructure, virtualizationEnabled]);
 
   return (
-    <div ref={rootRef} className={css.split} style={splitStyle}>
+    <div
+      ref={rootRef}
+      className={css.split}
+      style={splitStyle}
+      onKeyDown={(event) => {
+        if (event.key !== "Escape" || event.defaultPrevented) return;
+        if (selectedStepInfo === undefined && selected === undefined) return;
+        event.preventDefault();
+        closeInspector();
+      }}
+    >
       <div
         ref={tablePaneRef}
         className={css.tablePane}
@@ -1343,7 +1362,7 @@ export function TrajectoryTable({
               type="button"
               className={css.close}
               aria-label={t("details.close")}
-              onClick={clearInspectorSelection}
+              onClick={closeInspector}
             >
               <span aria-hidden="true">×</span>
             </button>
