@@ -83,7 +83,14 @@ export function weatherText(
   language: InterfaceLanguage | undefined,
 ): string {
   const copy = summaryCopy(language);
+  const missing = new Map<string, string[]>();
+  for (const { city, targetDate, result } of evidence)
+    if (!result) missing.set(city, [...(missing.get(city) ?? []), targetDate]);
   return evidence
-    .map(({ city, targetDate, result }) => copy.weather(city, targetDate, result))
+    .flatMap(({ city, targetDate, result }) => {
+      if (result) return [copy.weather(city, targetDate, result)];
+      const dates = missing.get(city) ?? [];
+      return dates[0] === targetDate ? [copy.weatherUnavailable(city, dates)] : [];
+    })
     .join(" ");
 }

@@ -68,6 +68,8 @@ const ENGLISH = {
     result
       ? `${city}, ${day(date, "en-AU")} (${result.horizon === "forecast" ? "forecast" : "historical climate, not a forecast"}): ${result.summary}`
       : `${city}, ${day(date, "en-AU")}: weather unavailable; check a current forecast before travel.`,
+  weatherUnavailable: (city: string, dates: string[]) =>
+    `${city}, ${dates.map((date) => day(date, "en-AU")).join("; ")}: weather unavailable; check a current forecast before travel.`,
   transport: ({
     options,
     origin,
@@ -117,6 +119,8 @@ const CHINESE: typeof ENGLISH = {
     result
       ? `${city}，${day(date, "zh-CN")}（${result.horizon === "forecast" ? "预报" : "历史气候，非预报"}）：${result.summary}`
       : `${city}，${day(date, "zh-CN")}：暂无天气数据，出行前请查看最新预报。`,
+  weatherUnavailable: (city, dates) =>
+    `${city}，${dates.map((date) => day(date, "zh-CN")).join("、")}：暂无天气数据，出行前请查看最新预报。`,
   transport: ({ options, origin, destinations, money, unpriced, unavailable, incomplete }) =>
     `${options} 个交通方案（${origin} ↔ ${destinations.join(" → ")}）· 已知估算 ${money}${unpriced ? ` · ${unpriced} 段未计价` : ""}${unavailable ? ` · ${unavailable} 个出行选择不可用` : ""}${incomplete ? "（不完整/未核实）" : ""}`,
 };
