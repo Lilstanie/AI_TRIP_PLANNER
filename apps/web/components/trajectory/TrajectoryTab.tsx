@@ -10,12 +10,19 @@ import type { Message } from "@/lib/workspace";
 import { createTrajectoryTranslate } from "./locales";
 import { TrajectoryView } from "./TrajectoryView";
 
+export interface TurnJump {
+  turn: number;
+  nonce: number;
+}
+
 export const TrajectoryTab = memo(function TrajectoryTab({
   messages,
   live,
   busy,
   only,
   onClear,
+  jump,
+  onJumped,
   phone = false,
 }: {
   messages: readonly Message[];
@@ -23,6 +30,8 @@ export const TrajectoryTab = memo(function TrajectoryTab({
   busy: boolean;
   only: AssistantId | undefined;
   onClear: () => void;
+  jump?: TurnJump;
+  onJumped?: () => void;
   phone?: boolean;
 }) {
   const { t, locale } = useLocale();
@@ -53,7 +62,14 @@ export const TrajectoryTab = memo(function TrajectoryTab({
           </button>
         </div>
       )}
-      <TrajectoryView t={tt} turns={ledger.turns} steps={ledger.steps} phone={phone} />
+      <TrajectoryView
+        t={tt}
+        turns={ledger.turns}
+        steps={ledger.steps}
+        phone={phone}
+        {...(jump ? { jump } : {})}
+        {...(onJumped ? { onJumped } : {})}
+      />
     </div>
   );
 });

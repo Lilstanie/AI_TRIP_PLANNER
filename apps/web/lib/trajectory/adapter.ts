@@ -218,6 +218,25 @@ function stepStatus(cells: readonly Draft[]): TrajectoryStep["status"] {
   return cells.some((cell) => cell.running) ? "running" : "complete";
 }
 
+export function messageTurns(messages: readonly Message[]): (number | null)[] {
+  const out: (number | null)[] = [];
+  let turn = 0;
+  let awaitingReply = false;
+  for (const message of messages) {
+    if (message.role === "user") {
+      turn += 1;
+      awaitingReply = true;
+      out.push(turn);
+    } else if (awaitingReply) {
+      awaitingReply = false;
+      out.push(turn);
+    } else {
+      out.push(null);
+    }
+  }
+  return out;
+}
+
 /**
  * Map stored messages and live progress events to the Trajectory ledger.
  * @param input - Messages in order, the live events of an unfinished request, and the translators.

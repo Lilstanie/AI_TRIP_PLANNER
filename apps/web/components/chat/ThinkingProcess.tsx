@@ -7,6 +7,7 @@ import { ThinkingOrbIcon } from "./ThinkingOrbIcon";
 import { Disclosure, RowSeparator, RowSummary } from "./Disclosure";
 import { countActivity, roundGroups, turnSummary } from "./thinking-model";
 import type { Notice } from "@/lib/i18n/notice";
+import { useTrajectoryFocus } from "./trajectory-focus";
 import { Children, RoundHeading, RunningLine, SubagentRow, type OpenRows } from "./ThinkingRows";
 
 function useOpenRows(): OpenRows {
@@ -49,12 +50,15 @@ export function ThinkingProcess({
   busy,
   error,
   outcome,
+  turn,
 }: {
   activity: AgentProgressEvent[];
   busy: boolean;
   error?: Notice;
   outcome?: "planned" | "asked";
+  turn?: number;
 }) {
+  const { openTurn } = useTrajectoryFocus();
   const { t, locale, notice: localizeNotice } = useLocale();
   const open = useOpenRows();
   const elapsed = useElapsedMs(busy);
@@ -81,7 +85,11 @@ export function ThinkingProcess({
         collapsedContent={
           <>
             <RowSeparator />
-            <RowSummary text={summary.text} followEnd={summary.streaming} />
+            <RowSummary
+              text={summary.text}
+              followEnd={summary.streaming}
+              {...(turn !== undefined && !busy ? { onPress: () => openTurn(turn) } : {})}
+            />
           </>
         }
       >

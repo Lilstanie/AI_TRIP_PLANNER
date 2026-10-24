@@ -8,7 +8,8 @@ import { ThinkingProcess } from "./ThinkingProcess";
 import { Composer } from "./Composer";
 import { MessageItem } from "./MessageItem";
 import { QuestionComposer } from "./QuestionComposer";
-import { TrajectoryTab } from "../trajectory/TrajectoryTab";
+import { TrajectoryTab, type TurnJump } from "../trajectory/TrajectoryTab";
+import { messageTurns } from "@/lib/trajectory/adapter";
 import { useTrajectoryFocus } from "./trajectory-focus";
 import type { PendingAsk, QuestionAnswer, QuestionProgress } from "@/lib/workspace/ask-user";
 import type { PreparedAttachment } from "@/lib/chat/attachments";
@@ -119,11 +120,14 @@ export function ChatPanel({
   };
   const { focus } = useTrajectoryFocus();
   const [only, setOnly] = useState<AssistantId | undefined>();
+  const [jump, setJump] = useState<TurnJump | undefined>();
+  const turns = useMemo(() => messageTurns(messages), [messages]);
   const handled = useRef(focus?.nonce ?? 0);
   useEffect(() => {
     if (!focus || focus.nonce === handled.current || phone) return;
     handled.current = focus.nonce;
     setOnly(focus.assistant);
+    setJump(focus.turn === undefined ? undefined : { turn: focus.turn, nonce: focus.nonce });
     choose("trajectory");
   });
   useLayoutEffect(() => {
@@ -205,7 +209,12 @@ export function ChatPanel({
         )}
         <div role="log" aria-live="polite">
           {messages.map((m, i) => (
-            <MessageItem key={i} message={m} animate={i === revealIndex} />
+            <MessageItem
+              key={i}
+              message={m}
+              turn={turns[i] ?? undefined}
+              animate={i === revealIndex}
+            />
           ))}
         </div>
         {(activity.length > 0 || busy) && (
@@ -230,6 +239,7 @@ export function ChatPanel({
             busy={busy}
             only={only}
             onClear={() => setOnly(undefined)}
+            {...(jump ? { jump, onJumped: () => setJump(undefined) } : {})}
           />
         </div>
       )}

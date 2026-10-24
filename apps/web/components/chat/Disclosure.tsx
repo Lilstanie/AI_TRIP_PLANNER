@@ -79,11 +79,29 @@ export function RowSummary({
   text,
   followEnd = false,
   tone,
+  onPress,
 }: {
   text: string;
   followEnd?: boolean;
   tone?: "error";
+  onPress?: () => void;
 }) {
+  if (onPress)
+    return (
+      <button
+        type="button"
+        className="thinking-row__summary thinking-row__summary-button"
+        data-tone={tone}
+        title={text}
+        onClick={(event) => {
+          event.stopPropagation();
+          onPress();
+        }}
+        onKeyDown={(event) => event.stopPropagation()}
+      >
+        <span className="thinking-row__summary-text">{text}</span>
+      </button>
+    );
   return (
     <span
       className="thinking-row__summary"

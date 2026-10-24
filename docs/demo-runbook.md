@@ -71,17 +71,29 @@ The Stage 2 assistants demo runs in mock mode with no keys, in English or Chines
 Type `@` in the message box and pick an assistant from the menu (arrows, then Tab or Enter), or type its name.
 The Specialist team button in the top bar, or the avatar button beside the trip title on a phone, opens the team panel.
 
-1. Plan Tokyo from Sydney, 2027-02-01 to 2027-02-04, 2 adults, budget AUD 6000. While it runs, the avatars on the Specialist team button show who is working; the panel stays closed until you open it. Open it to see the Coordinator and the five specialists with their status. When the reply is done, press its summary line to open that run's panel.
+1. Plan Tokyo from Sydney, 2027-02-01 to 2027-02-04, 2 adults, budget AUD 6000. While it runs, the avatars on the Specialist team button show who is working; the panel stays closed until you open it. Open it to see the Coordinator and the five specialists with their status. When the reply is done, press its summary line to open that turn in the trajectory.
 2. Type `@` and pick Stay from the menu, then `find a cheaper stay`. Only the accommodation specialist works and only its section changes.
 3. Lower the budget until the plan overruns, then repeat step 2. The panel shows the conflict, the specialist sent back for a revision, the revision score and the stop line.
 4. Type `@Stay`, then press Backspace once to select the whole mention and again to delete it.
 5. `@Stay @Getting around find cheaper options`. Exactly those two specialists work in one round.
 6. `@Stay recommend a restaurant`. Stay declines and names Food & dining, the Coordinator dispatches, and Food & dining answers.
-7. Press the summary line of the first reply, then Stay in its panel. The chat scrolls to that reply and expands Stay's thinking rows.
+7. Press the summary line of the first reply. The Trajectory tab opens at that reply's turn; pressing the Think label instead still expands the thinking rows.
 8. Settings → Personalization → Assistant names: rename Stay, then mention it by the new name. The menu, the panel and the replies show it.
 9. Clear the browser data and send `@Stay when are hotels cheapest?`. The specialist answers, no plan is created, and the Coordinator asks for the trip details.
 
 `CHANNEL=chromium DATA_MODE=mock USE_MOCK_TOOLS=true pnpm --filter @trip/web e2e assistants-demo` repeats all nine steps at 1440 px and 390 px in both languages. It saves numbered screenshots (`<language>-<width>-NN-<step>.png`) and `output/playwright/assistants-demo/result.json` as the demo record.
+
+## Trajectory walkthrough
+
+The trajectory part of the Stage 2 demo also runs in mock mode with no keys, in English or Chinese, on desktop or phone.
+
+1. Plan Tokyo from Sydney, 2027-02-01 to 2027-02-04, 2 adults, budget AUD 6000. While it runs, open the Specialist team panel: one specialist is working.
+2. Lower the budget until the plan overruns, then send `@Stay find a cheaper stay again`. The panel shows the conflict check and the revision assignment.
+3. Press the summary line above the finished reply. The Trajectory tab opens with that reply's turn centred in the ledger (on a phone, the Trajectory tab of the bottom bar).
+4. Press the conflict check that names Food & dining. The inspector shows the decision and the specialist it sends back, with no token or duration field.
+5. Close the inspector, open the Specialist team panel and press Food & dining. The ledger keeps only that specialist's records; Show all records restores it.
+
+`CHANNEL=chromium DATA_MODE=mock USE_MOCK_TOOLS=true pnpm --filter @trip/web e2e trajectory-demo` repeats the five steps at 1440 px and 390 px in both languages and saves numbered screenshots (`<language>-<width>-NN-<step>.png`) and `output/playwright/trajectory-demo/result.json`, listing each step with its screenshots and checks, as the demo record. `summary-jump` checks the summary line on a three-turn chat and saves `output/playwright/summary-jump/`.
 
 ## If something fails on the day
 

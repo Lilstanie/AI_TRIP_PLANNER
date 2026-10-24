@@ -4,7 +4,7 @@
  */
 
 "use client";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { TrajectoryTable } from "./TrajectoryTable";
 import type { TrajectoryStep } from "./TrajectoryTable";
 import { TrajectoryToolbar } from "./TrajectoryToolbar";
@@ -25,6 +25,8 @@ export interface TrajectoryViewProps {
   turns: readonly TrajectoryTurnModel[];
   steps: readonly TrajectoryStep[];
   phone?: boolean;
+  jump?: { readonly turn: number; readonly nonce: number };
+  onJumped?: () => void;
 }
 
 /**
@@ -32,7 +34,14 @@ export interface TrajectoryViewProps {
  * @param props - The mapped turns, their steps and the translator.
  * @returns The toolbar, timeline overview and ledger with its record inspector.
  */
-export function TrajectoryView({ t, turns, steps, phone = false }: TrajectoryViewProps) {
+export function TrajectoryView({
+  t,
+  turns,
+  steps,
+  phone = false,
+  jump,
+  onJumped,
+}: TrajectoryViewProps) {
   const [collapsedTurns, setCollapsedTurns] = useState<ReadonlySet<number>>(EMPTY_TURN_IDS);
   const [collapsedAssistants, setCollapsedAssistants] =
     useState<ReadonlySet<string>>(EMPTY_RECORD_IDS);
@@ -129,6 +138,19 @@ export function TrajectoryView({ t, turns, steps, phone = false }: TrajectoryVie
   const allAssistantsCollapsed =
     collapsibleAssistantIds.length > 0 &&
     collapsibleAssistantIds.every((id) => collapsedAssistants.has(id));
+
+  useEffect(() => {
+    if (jump === undefined) return;
+    const first = turns.find((candidate) => candidate.turn === jump.turn)?.groups[0]?.cells[0];
+    setCollapsedTurns((current) => {
+      if (!current.has(jump.turn)) return current;
+      const collapsed = new Set(current);
+      collapsed.delete(jump.turn);
+      return collapsed;
+    });
+    if (first !== undefined) setTimelineRecordFocus({ index: first.index });
+    onJumped?.();
+  }, [jump, turns, onJumped]);
 
   const toggleTurn = (turn: number) => {
     setCollapsedTurns((current) => {

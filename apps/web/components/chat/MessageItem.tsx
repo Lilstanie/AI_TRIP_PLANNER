@@ -18,7 +18,15 @@ const markdownComponents: Components = {
   ),
 };
 
-export function MessageItem({ message, animate }: { message: Message; animate?: boolean }) {
+export function MessageItem({
+  message,
+  animate,
+  turn,
+}: {
+  message: Message;
+  animate?: boolean;
+  turn?: number | undefined;
+}) {
   const { t, locale } = useLocale();
   const assistantName = useAssistantName();
   const clock =
@@ -63,7 +71,12 @@ export function MessageItem({ message, animate }: { message: Message; animate?: 
       {message.activity && message.activity.length > 0 && (
         <>
           <section className="agent-activity" aria-label={t("Thinking process")}>
-            <ThinkingProcess activity={message.activity} busy={false} outcome={message.outcome} />
+            <ThinkingProcess
+              activity={message.activity}
+              busy={false}
+              outcome={message.outcome}
+              {...(turn === undefined ? {} : { turn })}
+            />
           </section>
         </>
       )}

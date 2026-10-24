@@ -519,6 +519,12 @@ back to the ledger. Widening the window while it is selected returns to the chat
   under Result; a tool call shows its arguments and result or failure; a conflict check shows the decision
   under Payload and, under Result, one line per conflict naming the specialist it sends back. Esc, from the
   inspector or the ledger, or the close control closes it and returns focus to the record's row.
+- **Reply summary.** The one-line summary of a finished reply's Think row (for example "Coordinator + 3
+  specialists · 2 rounds") is a button. Pressing it clears any specialist filter and opens the Trajectory
+  tab (on a phone, the Trajectory tab of the bottom bar) with that reply's turn centred and unfolded. The
+  Think label and chevron still expand the row. The request is `openTurn` in
+  [`trajectory-focus.tsx`](../apps/web/components/chat/trajectory-focus.tsx); `messageTurns` in the adapter
+  numbers each message with its turn.
 - **Labels.** Ledger labels come from `components/trajectory/locales.ts` in English and Chinese; the
   tab names are app messages. Both survive a reload because they derive from stored messages.
 - **Source.** The ledger files carry DeepSeek Harness's MIT header and are listed in
@@ -533,6 +539,9 @@ back to the ledger. Widening the window while it is selected returns to the chat
   `trajectory-phone` (fixture mode, 390 and 360, English and Chinese) saves the empty tab, the ledger, an
   open record, the team sheet and the filtered ledger screenshots and `result.json` under
   `output/playwright/trajectory-phone/`.
+  `summary-jump` (1440 and 390, English and Chinese) sends three turns and checks that each reply's summary
+  opens its own turn, saving screenshots and `result.json` under `output/playwright/summary-jump/`.
+  `trajectory-demo` is the Stage 2 walkthrough record described in the [demo runbook](demo-runbook.md#trajectory-walkthrough).
 
 ## Reviewing a plan
 

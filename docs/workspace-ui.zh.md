@@ -141,9 +141,10 @@ seniors`（宠物不计为旅客）；`groupSize` 仍是校验字段，因此至
 - **检查器。** 分配在载荷中显示目标，在结果中显示专家的输出或失败原因；工具调用显示参数以及结果或失败原因；冲突检查在载荷中显示决策，在结果中逐条列出冲突并写明被退回的专家。在检查器或账本中按 Esc，或点击关闭按钮，都会关闭检查器并把焦点还给该记录所在行。
 - **概览与搜索。** 概览按记录类型各画一条泳道，每条记录一个块，按事件顺序排列。点击块会选中对应记录并让账本滚动到它。搜索专家名称、地点或航班号会把账本收窄到匹配的记录、高亮它们并显示结果数；上一个、下一个按钮、Enter 和 Shift+Enter 按事件顺序在结果间移动，首尾循环，并把当前结果滚入视野。
 - **实时跟随。** 回复流式输出时，账本始终显示最新记录；向上滚动会暂停跟随，滚回底部后恢复。
+- **回复摘要。** 已完成回复的思考行摘要（例如“协调员 + 3 位专家 · 2 轮”）是一个按钮：点击后清除专家筛选并打开“轨迹”标签页（手机上是底部标签栏的“轨迹”），使该回复所在的轮居中并展开；点击“思考”标签或箭头仍会展开该行。请求是 [`trajectory-focus.tsx`](../apps/web/components/chat/trajectory-focus.tsx) 的 `openTurn`，适配器的 `messageTurns` 为每条消息标出所属的轮。
 - **标签。** 账本标签来自 `components/trajectory/locales.ts` 的英文和中文；标签页名称是应用消息。刷新后两者都保留，因为它们源自已存储的消息。
 - **来源。** 账本文件带有 DeepSeek Harness 的 MIT 头，并列在 [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md)；见 [Agent Note](../.agents/notes/implemented/feature/2026-10-24-trajectory-tab.md)。
-- **验证。** `trajectory-tab` E2E（fixture 模式、1440、英文和中文）会把账本、检查器和刷新后的截图及 `result.json` 保存到 `output/playwright/trajectory-tab/`；`trajectory-inspector` 把分配、工具调用和冲突检查的截图及 `result.json` 保存到 `output/playwright/trajectory-inspector/`；`trajectory-timeline` 把概览、搜索结果、流式中途和向上滚动后的截图及 `result.json` 保存到 `output/playwright/trajectory-timeline/`。
+- **验证。** `trajectory-tab` E2E（fixture 模式、1440、英文和中文）会把账本、检查器和刷新后的截图及 `result.json` 保存到 `output/playwright/trajectory-tab/`；`trajectory-inspector` 把分配、工具调用和冲突检查的截图及 `result.json` 保存到 `output/playwright/trajectory-inspector/`；`trajectory-timeline` 把概览、搜索结果、流式中途和向上滚动后的截图及 `result.json` 保存到 `output/playwright/trajectory-timeline/`。`summary-jump` 在三轮对话中检查每条回复的摘要打开自己的轮，并在 `output/playwright/summary-jump/` 保存截图和 `result.json`；`trajectory-demo` 是第二阶段的演示记录（见[演示手册](demo-runbook.zh.md#trajectory-walkthrough)）。
 
 <a id="reviewing-a-plan"></a>
 
