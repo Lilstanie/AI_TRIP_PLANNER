@@ -19,9 +19,16 @@ const COPY = {
     notNow: "Not now",
     map: /^Map/,
     phoneHint: "tap New trip at the top",
+    newTrip: "New trip",
     deskHint: "bar at the top",
   },
-  zh: { notNow: "暂不", map: /^地图/, phoneHint: "点击顶部的“新行程”", deskHint: "顶部栏" },
+  zh: {
+    notNow: "暂不",
+    map: /^地图/,
+    phoneHint: "点击顶部的“新行程”",
+    newTrip: "新行程",
+    deskHint: "顶部栏",
+  },
 };
 
 const browser = await chromium.launch({
@@ -76,6 +83,10 @@ try {
           hint.includes(copy.phoneHint) && !hint.includes(copy.deskHint),
           `${label}: the map hint names the visible New trip control on phones`,
           hint,
+        );
+        check(
+          await page.getByRole("button", { name: copy.newTrip }).first().isVisible(),
+          `${label}: the New trip control named by the hint is visible`,
         );
       } else {
         check(

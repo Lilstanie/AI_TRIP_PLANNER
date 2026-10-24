@@ -24,9 +24,17 @@ Issue #654: at phone widths the fact chips are hidden, so "the bar at the top" p
 - `pnpm --filter @trip/web build`: exit 0.
 - `pnpm --filter @trip/web typecheck`: exit 0.
 - `pnpm --filter @trip/web lint`: exit 0, no ESLint warnings or errors.
-- `pnpm --filter @trip/web e2e phone-map-empty-hint`: exit 0, 12 checks ok (all widths, both languages, no page errors). Output under `apps/web/output/`.
-- Not run: the pre-change state of the script (it was written against the fix), full web test suite.
+- `pnpm --filter @trip/web e2e phone-map-empty-hint`, fixed code: exit 0, 16 checks ok (all widths, both languages, no page errors, New trip control visible on phone).
+- Same script with `TripMapCanvas.tsx` and `locale.ts` restored to `origin/main` (b12fcbf0): exit 1. The four phone copy checks failed, the desktop checks passed.
+- `node .agents/skills/better-ui/scripts/check-ui-copy.mjs`: exit 0, "No added helper-copy classes."
+- `pnpm verify:docs` and `pnpm verify:protected`: exit 0.
+- Not run: full web test suite.
+
+## Docs and Agent Notes
+
+No `docs/` page or Agent Note needs an update. The change is copy only and the behaviour is covered by the new E2E.
 
 ## Notes for the next person
 
 - Phone copy names "New trip", which is the visible title button. A dedicated "Add trip details" button in the card was not added.
+- The phone E2E uses 375 and 520 px. The issue's reproduction used 390 px, which is inside the same `max-width: 520px` branch.
