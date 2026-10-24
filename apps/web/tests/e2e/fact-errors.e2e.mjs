@@ -66,6 +66,24 @@ try {
     "the duplicate-preference field references its error",
   );
   await page.screenshot({ path: `${OUT}/preference-error.png` });
+
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Where", exact: true }).click();
+  const destination = page.locator("#fact-destination");
+  await destination.fill("   ");
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  const destinationError = page.locator("#fact-destination-error");
+  await destinationError.waitFor({ state: "visible" });
+  check(
+    (await destinationError.getAttribute("role")) === "alert",
+    "empty destination validation is an alert",
+  );
+  check(
+    (await destination.getAttribute("aria-describedby")) === "fact-destination-error" &&
+      (await destination.getAttribute("aria-invalid")) === "true",
+    "the destination field references its error",
+  );
+  await page.screenshot({ path: `${OUT}/destination-error.png` });
   check(errors.length === 0, "no page errors");
   await context.close();
 } finally {
