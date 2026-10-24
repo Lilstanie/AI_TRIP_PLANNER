@@ -68,6 +68,7 @@ describe("transport planner", () => {
       revision: {
         tripId: brief.tripId,
         targetAgent: "transport",
+        kind: "budget" as const,
         reason: "plan is over budget",
         constraints: ["cut transport cost by ~30%"],
       },
@@ -139,6 +140,7 @@ describe("transport planner", () => {
       revision: {
         tripId: brief.tripId,
         targetAgent: "transport",
+        kind: "time" as const,
         reason: "time overlap on day 3",
         constraints: ["reschedule"],
       },
@@ -165,6 +167,7 @@ describe("transport planner", () => {
         revision: {
           tripId: "other-trip",
           targetAgent: "transport",
+          kind: "budget" as const,
           reason: "budget",
           constraints: [],
         },

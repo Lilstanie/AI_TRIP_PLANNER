@@ -4,8 +4,17 @@ import { assessBudget, costOf, NEGOTIATION_OVERRUN_PCT } from "./budget";
 
 export const INFEASIBLE_BUDGET = "infeasible budget";
 
-export const isInfeasible = (request: RevisionRequest) =>
-  request.reason.startsWith(INFEASIBLE_BUDGET);
+export const isInfeasible = (request: RevisionRequest) => request.kind === "infeasible";
+
+type RevisionKind = RevisionRequest["kind"];
+
+const KIND_RANK: Record<RevisionKind, number> = {
+  request: 0,
+  geography: 1,
+  time: 2,
+  budget: 3,
+  infeasible: 4,
+};
 
 const cents = (amount: number) => Math.ceil(amount * 100) / 100;
 
@@ -25,10 +34,17 @@ export function detectConflicts(
   const { estTotal, overrunPct } = assessBudget(proposals.map(costOf), brief.budgetTotal);
   const pending = new Map<
     AgentName,
-    { reasons: string[]; constraints: string[]; targetSaving?: number }
+    { kind: RevisionKind; reasons: string[]; constraints: string[]; targetSaving?: number }
   >();
-  const add = (agent: AgentName, reason: string, constraint: string, targetSaving?: number) => {
-    const entry = pending.get(agent) ?? { reasons: [], constraints: [] };
+  const add = (
+    agent: AgentName,
+    kind: RevisionKind,
+    reason: string,
+    constraint: string,
+    targetSaving?: number,
+  ) => {
+    const entry = pending.get(agent) ?? { kind, reasons: [], constraints: [] };
+    if (KIND_RANK[kind] > KIND_RANK[entry.kind]) entry.kind = kind;
     if (!entry.reasons.includes(reason)) entry.reasons.push(reason);
     if (!entry.constraints.includes(constraint)) entry.constraints.push(constraint);
     if (targetSaving !== undefined) entry.targetSaving = targetSaving;
@@ -44,6 +60,7 @@ export function detectConflicts(
         {
           tripId: brief.tripId,
           targetAgent: largest.agent,
+          kind: "infeasible",
           reason: `${INFEASIBLE_BUDGET}: the cheapest flights and stays found already cost ${aud(floor)}, above the ${aud(brief.budgetTotal)} budget`,
           constraints: [
             `raise the budget to at least ${aud(floor)} (from the options found, before activities and meals), or change dates, origin or destination`,
@@ -64,6 +81,7 @@ export function detectConflicts(
       if (saving <= 0) continue;
       add(
         proposal.agent,
+        "budget",
         `plan is ${overrunPct.toFixed(2)}% (${aud(overrun)}) over budget`,
         `cut ${proposal.agent} cost by ${aud(saving)}, to at most ${aud(costOf(proposal) - saving)}`,
         saving,
@@ -73,7 +91,7 @@ export function detectConflicts(
 
   for (const proposal of proposals) {
     for (const reason of proposal.conflictsWith) {
-      add(proposal.agent, reason, "make the route geographically feasible");
+      add(proposal.agent, "geography", reason, "make the route geographically feasible");
     }
   }
 
@@ -107,6 +125,7 @@ export function detectConflicts(
         const blocker = target === left.agent ? right : left;
         add(
           target,
+          "time",
           reason,
           `on day ${left.item.day} keep clear of ${blocker.item.startTime}-${blocker.item.endTime}, held by ${blocker.agent}${
             blocker.item.location ? ` (${blocker.item.location})` : ""
@@ -119,6 +138,7 @@ export function detectConflicts(
   return [...pending].map(([targetAgent, value]) => ({
     tripId: brief.tripId,
     targetAgent,
+    kind: value.kind,
     reason: value.reasons.join("; "),
     constraints: value.constraints,
     ...(value.targetSaving !== undefined ? { targetSaving: value.targetSaving } : {}),

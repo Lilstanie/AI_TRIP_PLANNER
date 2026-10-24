@@ -60,8 +60,9 @@ async function gatherStayEvidence(
   const rooms =
     prefs.roomAllocation === "individual" ? brief.groupSize : Math.ceil(brief.groupSize / 2);
   const budgetRevision =
-    revision !== undefined &&
-    /budget|cost|cheaper|overrun/i.test([revision.reason, ...revision.constraints].join(" "));
+    revision?.kind === "budget" ||
+    (revision?.kind === "request" &&
+      /budget|cost|cheaper|overrun/i.test([revision.reason, ...revision.constraints].join(" ")));
 
   const searched = await Promise.all(
     segments.map(async (segment) => {

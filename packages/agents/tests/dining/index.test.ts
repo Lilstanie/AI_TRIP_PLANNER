@@ -202,6 +202,7 @@ describe("dining planner", () => {
       revision: {
         tripId: brief.tripId,
         targetAgent: "dining",
+        kind: "budget" as const,
         reason: "plan is over budget",
         constraints: ["cut dining cost by ~30%"],
       },
@@ -221,6 +222,7 @@ describe("dining planner", () => {
       revision: {
         tripId: brief.tripId,
         targetAgent: "dining",
+        kind: "budget" as const,
         reason: "plan is over budget",
         constraints: ["cut dining cost by ~30%"],
       },
@@ -287,6 +289,7 @@ describe("dining planner", () => {
         revision: {
           tripId: "wrong-trip",
           targetAgent: "dining",
+          kind: "budget" as const,
           reason: "budget",
           constraints: [],
         },
