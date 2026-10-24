@@ -338,6 +338,7 @@ Data mode 默认是 Fixture data。只有部署启用后才能选择 Live data�
   列表变成自动换行的标签，五个分区始终全部可见，线条在所选分区下方。右侧显示所选分区的各行，每行有标签和值，Change 在原位打开编辑器。
   **Account settings** 会打开 Your account，**Personalization** 会打开 Personalization。Mindtrip 的 Voice、Price alerts、Notifications 和 Cookie preferences
   在这里没有对应功能。
+  - 说明文字、提示、同步说明和脚注使用 `--text-dim`，在两种主题下与对话框玻璃底的对比度都至少为 4.5:1（`settings-muted-text-contrast` E2E）。
   - 打开 Clerk 登录、注册、更改头像或账号管理窗口前，先关闭设置对话框，避免原生模态层遮挡 Clerk 的控件。
   - **Edit profile：** 头像、名和姓，保存到 Clerk（Change profile photo 打开 Clerk）。Location 即常住城市。
   - **Your account：** 邮箱（Manage 在 Clerk 中打开）及其已验证标记；Theme（System、Light、Dark，设置在
