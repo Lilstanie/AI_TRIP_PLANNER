@@ -17,6 +17,14 @@ body:
     validations:
       required: true
   - type: textarea
+    id: goal
+    attributes:
+      label: User goal / 用户目标
+      description: One sentence in the Jira story form. 用 Jira 故事的句式写一句话。
+      placeholder: "As a traveller using …, I want …, so that …."
+    validations:
+      required: true
+  - type: textarea
     id: where
     attributes:
       label: Where and what it is now / 哪里、现在怎样
@@ -50,6 +58,22 @@ body:
       description: Drag files here. 可直接拖入文件。
     validations:
       required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria / 验收标准
+      description: Checks that show it is fixed or built, one per line. 每行一条，可以验证是否完成。
+      placeholder: |
+        - At 390 px, … is visible without scrolling
+        - A screen reader announces …
+    validations:
+      required: true
+  - type: input
+    id: jira
+    attributes:
+      label: Jira key / Jira 编号
+      description: Leave blank. The maintainer adds the story key here and at the start of the title during triage. 留空，分诊时由维护者填写，并加到标题开头。
+      placeholder: TP-
   - type: checkboxes
     id: ai
     attributes:

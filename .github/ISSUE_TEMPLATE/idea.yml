@@ -8,6 +8,14 @@ body:
       value: |
         Search existing issues first. Multi-user collaboration, social features, a creator marketplace, in-app payments, refunds and booking fulfilment are out of scope. On-trip mode ideas are especially welcome. 先搜索现有 issue;多人协作、社交、创作者市场、应用内支付、退款与订票履约不收,特别欢迎旅途中使用(On-trip)方向的想法。
   - type: textarea
+    id: goal
+    attributes:
+      label: User goal / 用户目标
+      description: One sentence in the Jira story form. 用 Jira 故事的句式写一句话。
+      placeholder: "As a traveller …, I want …, so that …."
+    validations:
+      required: true
+  - type: textarea
     id: scenario
     attributes:
       label: Scenario / 用户场景
@@ -32,3 +40,19 @@ body:
     attributes:
       label: Sketch or screenshot / 草图或截图
       description: Required for taste-based design ideas. 主观设计类想法必填。
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria / 验收标准
+      description: Checks that show it is fixed or built, one per line. 每行一条，可以验证是否完成。
+      placeholder: |
+        - The traveller can …
+        - … is kept when the trip is reopened
+    validations:
+      required: true
+  - type: input
+    id: jira
+    attributes:
+      label: Jira key / Jira 编号
+      description: Leave blank. The maintainer adds the story key here and at the start of the title during triage. 留空，分诊时由维护者填写，并加到标题开头。
+      placeholder: TP-
