@@ -9,7 +9,6 @@
   min-height: 0;
   overflow: hidden;
   background: var(--dsw-alias-bg-layer-1);
-  container-type: inline-size;
 }
 
 .tablePane {
@@ -1150,6 +1149,70 @@
   }
 }
 
+@container (max-width: 820px) {
+  .split {
+    flex-direction: column;
+  }
+  .tablePane {
+    flex: 1 1 0;
+    min-height: 0;
+  }
+  .details {
+    flex: 1 1 0;
+    width: 100%;
+    max-width: 100%;
+    min-height: 0;
+    border-top: 0.5px solid var(--dsw-alias-border-l2);
+    border-left: 0;
+  }
+  .detailsResizeHandle {
+    display: none;
+  }
+  .overviewSection,
+  .overviewPreview {
+    flex: none;
+    max-height: none;
+    overflow: visible;
+  }
+  .overviewPreview[data-scroll-more] {
+    mask-image: none;
+  }
+}
+
+.stepMarker,
+.detailTab,
+.overviewTitle,
+.close {
+  min-height: 0 !important;
+}
+
+.stepMarker {
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+
+.detailTab {
+  height: 34px;
+  padding: 0 10px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+
+.overviewTitle {
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+
+.close {
+  border-radius: var(--dsw-radius-sm) !important;
+  background: transparent !important;
+}
+
 [data-trajectory-phone] .table {
   font: var(--dsw-font-xs-13);
 }
@@ -1170,11 +1233,6 @@
 
 [data-trajectory-phone] .stepMarker {
   --step-marker-base-left: 14px;
-  min-height: 0 !important;
-  padding: 0 !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  background: transparent !important;
 }
 
 [data-trajectory-phone] .kindSlot {

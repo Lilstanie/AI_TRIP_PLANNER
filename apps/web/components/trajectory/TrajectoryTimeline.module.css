@@ -13,7 +13,7 @@
 
 .plot {
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr);
+  grid-template-columns: 64px minmax(0, 1fr);
   height: 50px;
   overflow: hidden;
   background: var(--dsw-alias-bg-layer-2);
@@ -36,6 +36,7 @@
   justify-content: flex-end;
   height: 8px;
   text-align: right;
+  white-space: nowrap;
 }
 
 .labels span:nth-child(1) {

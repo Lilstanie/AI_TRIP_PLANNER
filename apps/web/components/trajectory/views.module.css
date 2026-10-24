@@ -53,6 +53,7 @@
   box-sizing: border-box;
   color: var(--dsw-alias-label-primary);
   background: var(--dsw-alias-bg-layer-1);
+  container-type: inline-size;
 }
 
 .ledger {

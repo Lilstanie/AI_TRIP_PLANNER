@@ -496,8 +496,13 @@ back to the ledger. Widening the window while it is selected returns to the chat
 On the phone each record is a fixed 56 px card: its kind icon sits on the left, the request on the first line
 and its result on the second, and text beyond two lines is clipped (the inspector shows the whole text).
 The toolbar's Turns, Calls and search controls are 44 px high, the search text is 16 px so iOS Safari does not
-zoom in, and the inspector's tabs and section headings are 44 px targets. The desktop ledger is unchanged. The
+zoom in, and the inspector's tabs and section headings are 44 px targets. The
 [phone trajectory note](../.agents/notes/implemented/feature/2026-10-24-phone-trajectory-cards.md) records why.
+When the trajectory is narrower than 820 px, as in the default desktop chat column, the inspector opens under
+the full-width ledger instead of beside it, and its body scrolls. The toolbar buttons, the inspector tabs and
+the step dots are compact controls rather than the app's pill buttons, and the timeline lane labels keep one
+line. The [desktop trajectory note](../.agents/notes/implemented/feature/2026-10-24-desktop-trajectory-layout.md)
+records why.
 
 - **Records.** `buildTrajectory` (`lib/trajectory/adapter.ts`) maps the stored messages and their
   `activity` events to one turn per traveller message. A traveller message is a User record. A Coordinator
