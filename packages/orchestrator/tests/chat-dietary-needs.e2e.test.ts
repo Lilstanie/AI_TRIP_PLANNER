@@ -78,7 +78,6 @@ describe("TP-41 dietary needs from chat", () => {
               generator: {
                 generate: async () => ({
                   summary: "Allergy-safe restaurants",
-                  dailyBudgetPerPerson: 20,
                   picks: [
                     {
                       name: "Market Kitchen",
@@ -142,7 +141,6 @@ describe("TP-41 dietary needs from chat", () => {
                         inputs.push(input);
                         return {
                           summary: "Grounded dining",
-                          dailyBudgetPerPerson: 20,
                           picks: [
                             { name: "Market Kitchen", detail: "Confirm ingredients directly." },
                           ],
