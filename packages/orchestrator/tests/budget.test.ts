@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { AgentProposal, TripSection } from "@trip/shared";
 import { assessBudget, costOf, rollUpCost, ESCALATION_OVERRUN_PCT } from "../src/budget";
 import { detectConflicts, runOrchestrator, DEMO_BRIEF } from "../src";
+import { minimumCost } from "../src/conflicts";
 
 function proposal(agent: AgentProposal["agent"], cost: number): AgentProposal {
   return {
@@ -14,6 +15,14 @@ function proposal(agent: AgentProposal["agent"], cost: number): AgentProposal {
 }
 
 describe("budget calculations", () => {
+  it("sums the cheapest floor costs in whole cents", () => {
+    const floors = [
+      { ...proposal("accommodation", 0.1), floorCost: 0.1 },
+      { ...proposal("transport", 0.2), floorCost: 0.2 },
+    ];
+    expect(minimumCost(floors)).toBe(0.3);
+  });
+
   it("keeps cent precision and does not add a cost for informational notes", () => {
     const result = costOf({
       ...proposal("accommodation", 0.1),

@@ -207,6 +207,7 @@ classDiagram
   class RevisionRequest {
     +tripId: String
     +targetAgent: AgentName
+    +kind: RevisionKind
     +reason: String
     +constraints: String[]
   }
@@ -748,16 +749,16 @@ Read _source → target_.
 
 ## Interfaces & realisation
 
-| Interface        | Realised by                                                                                      | Note                                                                      |
-| ---------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------- |
-| `Specialist`     | `ItineraryAgent`, `TransportAgent`, `AccommodationAgent`, `DestinationGuideAgent`, `DiningAgent` | one `invoke(SpecialistRequest)`; only the destination guide cannot revise |
-| `ToolGateway`    | object returned by `createToolGateway()`                                                         | one per planning run                                                      |
-| `MapsPort`       | `MapsAdapter` (`maps.ts`)                                                                        | owner B; fixtures, OpenStreetMap or Google                                |
-| `BookingPort`    | `BookingAdapter` (`booking.ts`)                                                                  | owner C; SerpApi, then Google Places estimate, or fixtures; no payment    |
-| `WeatherPort`    | `WeatherAdapter` (`weather.ts`)                                                                  | owner D; Google Weather, Open-Meteo or climate context                    |
-| `MemoryStore`    | `PreferenceMemoryService` (`memory`)                                                             | owner E                                                                   |
-| `JsonStore`      | `RedisRestOrLocalStore` (`createJsonStore()`)                                                    | owner E; Redis REST when configured, process memory otherwise             |
-| `BriefExtractor` | model extractor in `chat.ts`, or `extractBriefPatchLocally` without a key                        | owner A                                                                   |
+| Interface        | Realised by                                                                                      | Note                                                                                                                               |
+| ---------------- | ------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `Specialist`     | `ItineraryAgent`, `TransportAgent`, `AccommodationAgent`, `DestinationGuideAgent`, `DiningAgent` | one `invoke(SpecialistRequest)`; only the destination guide cannot revise                                                          |
+| `ToolGateway`    | object returned by `createToolGateway()`                                                         | one per planning run                                                                                                               |
+| `MapsPort`       | `MapsAdapter` (`maps.ts`)                                                                        | owner B; fixtures, OpenStreetMap or Google                                                                                         |
+| `BookingPort`    | `BookingAdapter` (`booking.ts`)                                                                  | owner C; SerpApi, then Google Places estimate only when Google Maps is selected with a key; fixtures only in mock mode; no payment |
+| `WeatherPort`    | `WeatherAdapter` (`weather.ts`)                                                                  | owner D; Google Weather, Open-Meteo or climate context                                                                             |
+| `MemoryStore`    | `PreferenceMemoryService` (`memory`)                                                             | owner E                                                                                                                            |
+| `JsonStore`      | `RedisRestOrLocalStore` (`createJsonStore()`)                                                    | owner E; Redis REST when configured, process memory otherwise                                                                      |
+| `BriefExtractor` | model extractor in `chat.ts`, or `extractBriefPatchLocally` without a key                        | owner A                                                                                                                            |
 
 `NotificationService` and `AuthService` are stubs: notifications are logged, and every request is the
 demo user.

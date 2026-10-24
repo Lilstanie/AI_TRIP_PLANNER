@@ -133,6 +133,7 @@ describe("LangChain supervisor", () => {
     const request = {
       tripId: brief.tripId,
       targetAgent: "itinerary" as const,
+      kind: "budget" as const,
       reason: "plan is over budget",
       constraints: ["cut itinerary cost by ~30%"],
     };

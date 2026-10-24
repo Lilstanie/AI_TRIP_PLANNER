@@ -24,6 +24,7 @@ const options: StayOption[] = [
 const request = {
   tripId: brief.tripId,
   targetAgent: "accommodation" as const,
+  kind: "budget" as const,
   reason: "plan is 17% over budget",
   constraints: ["cut accommodation cost by ~30%"],
 };
@@ -240,6 +241,18 @@ describe("accommodation revisions", () => {
     expect(result.assumptions.join(" ")).toContain("cancellation terms unknown");
   });
 
+  it("keeps the highest-ranked stay that fits the revised allocation, not the cheapest", async () => {
+    const { ctx } = context();
+    const result = await accommodationAgent.invoke({
+      brief,
+      context: { ...ctx, round: 2 },
+      revision: request,
+      allocation: { budget: 900, basis: "test share" },
+    });
+    expect(result.items[0]!.estCost).toBe(800);
+    expect(result.items[0]!.detail).toContain("Standard");
+  });
+
   it("preserves mandatory rating and cancellation even when the target is impossible", async () => {
     const { ctx } = context(options, [
       { key: "accommodation.minRating", value: "8", source: "chat_confirmed" },
@@ -272,6 +285,7 @@ describe("accommodation revisions", () => {
       context: context().ctx,
       revision: {
         ...request,
+        kind: "time",
         reason: "time overlap",
         constraints: [],
       },

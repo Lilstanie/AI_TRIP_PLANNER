@@ -17,6 +17,10 @@ export function sumMoney(amounts: number[]): number {
   return total / 100;
 }
 
+export function moneyDifference(left: number, right: number): number {
+  return (cents(left) - cents(right)) / 100;
+}
+
 function safeCost(value: number | undefined): number {
   return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : 0;
 }
