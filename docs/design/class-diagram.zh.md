@@ -203,6 +203,7 @@ classDiagram
   class RevisionRequest {
     +tripId: String
     +targetAgent: AgentName
+    +kind: RevisionKind
     +reason: String
     +constraints: String[]
   }

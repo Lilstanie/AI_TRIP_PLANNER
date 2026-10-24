@@ -319,9 +319,11 @@ export const AgentProposal = z.object({
 });
 export type AgentProposal = z.infer<typeof AgentProposal>;
 
+export const RevisionKind = z.enum(["budget", "time", "geography", "infeasible", "request"]);
 export const RevisionRequest = z.object({
   tripId: z.string(),
   targetAgent: z.enum(AGENT_NAMES),
+  kind: RevisionKind,
   reason: z.string(),
   constraints: z.array(z.string()),
 

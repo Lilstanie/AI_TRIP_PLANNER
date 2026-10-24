@@ -971,6 +971,7 @@ async function conflictsPlan(browser) {
           {
             tripId,
             targetAgent: "itinerary",
+            kind: "budget",
             reason: "plan is 12.00% (AUD 300.00) over budget",
             constraints: ["cut itinerary cost by AUD 300.00"],
             targetSaving: 300,
@@ -978,6 +979,7 @@ async function conflictsPlan(browser) {
           {
             tripId,
             targetAgent: "itinerary",
+            kind: "time",
             reason: `time overlap on day 1: ${first.startTime}-${first.endTime} conflicts with ${second.startTime}-${second.endTime}`,
             constraints: [`on day 1 keep clear of ${first.startTime}-${first.endTime}`],
           },

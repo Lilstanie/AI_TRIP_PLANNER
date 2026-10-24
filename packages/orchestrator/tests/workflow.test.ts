@@ -242,6 +242,7 @@ describe("LangGraph orchestrator workflow", () => {
       expect.arrayContaining([
         expect.objectContaining({
           targetAgent: "accommodation",
+          kind: "budget" as const,
           reason: expect.stringContaining("over budget"),
         }),
       ]),
