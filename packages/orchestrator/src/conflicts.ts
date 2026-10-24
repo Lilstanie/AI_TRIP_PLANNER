@@ -1,6 +1,6 @@
 import { formatMoney } from "@trip/shared";
 import type { AgentName, Currency, AgentProposal, TripBrief, RevisionRequest } from "@trip/shared";
-import { assessBudget, costOf, NEGOTIATION_OVERRUN_PCT } from "./budget";
+import { assessBudget, costOf, moneyDifference, NEGOTIATION_OVERRUN_PCT, sumMoney } from "./budget";
 
 export const INFEASIBLE_BUDGET = "infeasible budget";
 
@@ -10,10 +10,7 @@ export const isInfeasible = (request: RevisionRequest) =>
 const cents = (amount: number) => Math.ceil(amount * 100) / 100;
 
 export function minimumCost(proposals: AgentProposal[]): number {
-  return proposals.reduce(
-    (sum, proposal) => sum + Math.min(costOf(proposal), proposal.floorCost ?? 0),
-    0,
-  );
+  return sumMoney(proposals.map((proposal) => Math.min(costOf(proposal), proposal.floorCost ?? 0)));
 }
 
 export function detectConflicts(
@@ -36,9 +33,9 @@ export function detectConflicts(
   };
 
   if (overrunPct > NEGOTIATION_OVERRUN_PCT) {
-    const overrun = estTotal - brief.budgetTotal;
+    const overrun = moneyDifference(estTotal, brief.budgetTotal);
     const floor = minimumCost(proposals);
-    if (floor > brief.budgetTotal) {
+    if (moneyDifference(floor, brief.budgetTotal) > 0) {
       const largest = [...proposals].sort((left, right) => costOf(right) - costOf(left))[0]!;
       return [
         {
@@ -55,7 +52,10 @@ export function detectConflicts(
     const reducible = proposals
       .map((proposal) => ({
         proposal,
-        room: costOf(proposal) - Math.min(costOf(proposal), proposal.floorCost ?? 0),
+        room: moneyDifference(
+          costOf(proposal),
+          Math.min(costOf(proposal), proposal.floorCost ?? 0),
+        ),
       }))
       .filter(({ room }) => room > 0);
     const room = reducible.reduce((sum, entry) => sum + entry.room, 0);
@@ -65,7 +65,7 @@ export function detectConflicts(
       add(
         proposal.agent,
         `plan is ${overrunPct.toFixed(2)}% (${aud(overrun)}) over budget`,
-        `cut ${proposal.agent} cost by ${aud(saving)}, to at most ${aud(costOf(proposal) - saving)}`,
+        `cut ${proposal.agent} cost by ${aud(saving)}, to at most ${aud(moneyDifference(costOf(proposal), saving))}`,
         saving,
       );
     }
