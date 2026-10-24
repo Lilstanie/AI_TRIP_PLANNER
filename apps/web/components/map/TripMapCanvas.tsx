@@ -84,7 +84,11 @@ export function TripMapCanvas({
           </h2>
           <p>
             {!destination
-              ? t("Tell us a destination and dates in the chat, or add them in the bar at the top.")
+              ? phone
+                ? t("Tell us a destination and dates in the chat, or tap New trip at the top.")
+                : t(
+                    "Tell us a destination and dates in the chat, or add them in the bar at the top.",
+                  )
               : locating
                 ? t("Your itinerary stays available while places load.")
                 : unavailable || destinationsUnavailable
