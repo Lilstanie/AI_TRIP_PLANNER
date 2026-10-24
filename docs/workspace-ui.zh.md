@@ -138,9 +138,11 @@ seniors`（宠物不计为旅客）；`groupSize` 仍是校验字段，因此至
 - **记录。** `buildTrajectory`（`lib/trajectory/adapter.ts`）把已存储的消息及其 `activity` 事件映射为每条旅行者消息一轮。旅行者消息是用户记录；Coordinator 摘要和回复是助手记录，使用助手当前名称（含自定义名称）；分配（`agent_started`）和检查（冲突检查、修订评分、停止）是工具记录；专家的工具调用是子工具记录，放在所属分配之下。失败的分配或工具调用标记为失败。未完成的请求显示实时事件，回复到达后定稿。
 - **步骤。** 每个工作流轮次是一个步骤，以该轮第一条记录上的圆点表示，名为“第 N 步”。旅行者消息位于第一步之前的“消息”组。选中步骤会打开其状态和调用数量。
 - **账本。** 表格是复制的 DSH 账本：轮次标签、折叠轮次或助手调用（工具栏按钮或双击）、搜索、上方的泳道概览，以及所选记录的检查器，含摘要、载荷、结果标签页（消息为预览和原文）。记录没有时间戳，因此概览按事件顺序等宽排列，检查器不显示时长或 token 字段。
+- **概览与搜索。** 概览按记录类型各画一条泳道，每条记录一个块，按事件顺序排列。点击块会选中对应记录并让账本滚动到它。搜索专家名称、地点或航班号会把账本收窄到匹配的记录、高亮它们并显示结果数；上一个、下一个按钮、Enter 和 Shift+Enter 按事件顺序在结果间移动，首尾循环，并把当前结果滚入视野。
+- **实时跟随。** 回复流式输出时，账本始终显示最新记录；向上滚动会暂停跟随，滚回底部后恢复。
 - **标签。** 账本标签来自 `components/trajectory/locales.ts` 的英文和中文；标签页名称是应用消息。刷新后两者都保留，因为它们源自已存储的消息。
 - **来源。** 账本文件带有 DeepSeek Harness 的 MIT 头，并列在 [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md)；见 [Agent Note](../.agents/notes/implemented/feature/2026-10-24-trajectory-tab.md)。
-- **验证。** `trajectory-tab` E2E（fixture 模式、1440、英文和中文）会把账本、检查器和刷新后的截图及 `result.json` 保存到 `output/playwright/trajectory-tab/`。
+- **验证。** `trajectory-tab` E2E（fixture 模式、1440、英文和中文）会把账本、检查器和刷新后的截图及 `result.json` 保存到 `output/playwright/trajectory-tab/`。`trajectory-timeline` E2E 会把概览、搜索结果、流式中途和向上滚动后的截图及 `result.json` 保存到 `output/playwright/trajectory-timeline/`。
 
 <a id="reviewing-a-plan"></a>
 

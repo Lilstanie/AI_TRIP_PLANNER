@@ -1,7 +1,7 @@
 # Agent Note: a Trajectory tab copies DeepSeek Harness's ledger and maps stored chats onto it
 
 Status: implemented
-Owner: spec #667, ticket #668
+Owner: spec #667, tickets #668 and #669
 
 ## Problem
 
@@ -40,6 +40,16 @@ different question, the cost and timing of one benchmark run, and is not the pla
 - **Tabs.** On desktop `ChatPanel` shows Conversation and Trajectory tabs. The stream stays mounted and
   hidden so its scroll position and animations survive, and the Trajectory is mounted only while open.
   Phone width has no tabs.
+
+- **Search steps, it does not only filter.** The copied search narrows the ledger to matches. Ticket
+  #669 adds a hit count, previous and next buttons and Enter and Shift+Enter in the toolbar, a highlight on
+  every matching row and a stronger mark on the current one. Hits are ordered by event index and stepping
+  wraps.
+- **Scrolling to a record.** The pending scroll in `TrajectoryTable` now also runs when a timeline click or
+  a search step arrives. It ran only when the visible records changed, so selecting a record already on
+  screen never scrolled the ledger to it.
+- **Live tail.** The copied ledger already follows the tail and stops when the traveller scrolls up; the
+  `trajectory-timeline` E2E holds a streamed reply open event by event to prove it.
 
 ## Alternatives considered
 

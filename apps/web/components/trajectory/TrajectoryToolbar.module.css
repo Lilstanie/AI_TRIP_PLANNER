@@ -104,3 +104,41 @@
   height: 12px;
   cursor: pointer;
 }
+
+.hits {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+}
+
+.hitCount {
+  min-width: 28px;
+  color: var(--dsw-alias-label-caption);
+  font: var(--dsw-font-xxs-12);
+  text-align: right;
+}
+
+.hitStep {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--dsw-radius-sm);
+  color: var(--dsw-alias-label-tertiary);
+  background: transparent;
+  cursor: pointer;
+}
+
+.hitStep:hover:not(:disabled) {
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.hitStep:disabled {
+  opacity: 0.4;
+  cursor: default;
+}

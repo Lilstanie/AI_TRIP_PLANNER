@@ -498,6 +498,13 @@ and stays mounted while Trajectory is open, so its scroll position returns. The 
   (toolbar buttons or a double click), search, a lane overview above it and an inspector for the selected record
   with Summary, Payload and Result tabs (Preview and Raw for messages). Records carry no timestamps,
   so the overview uses event order and equal widths and the inspector shows no duration or token field.
+- **Overview and search.** The overview draws one lane per record type present, one block per record in
+  event order. Clicking a block selects its record and scrolls the ledger to it. Searching a specialist
+  name, a place or a flight number narrows the ledger to the matching records, highlights them and shows a
+  hit count; the previous and next buttons, Enter and Shift+Enter step through the hits in event order,
+  wrapping at the ends, and scroll the current hit into view.
+- **Live tail.** While a reply streams the ledger keeps the newest record in view. Scrolling up stops
+  following until the traveller scrolls back to the bottom.
 - **Labels.** Ledger labels come from `components/trajectory/locales.ts` in English and Chinese; the
   tab names are app messages. Both survive a reload because they derive from stored messages.
 - **Source.** The ledger files carry DeepSeek Harness's MIT header and are listed in
@@ -505,6 +512,8 @@ and stays mounted while Trajectory is open, so its scroll position returns. The 
   [the Agent Note](../.agents/notes/implemented/feature/2026-10-24-trajectory-tab.md).
 - **Verification.** `trajectory-tab` E2E (fixture mode, 1440, English and Chinese) saves the ledger,
   inspector and reloaded screenshots and `result.json` under `output/playwright/trajectory-tab/`.
+  `trajectory-timeline` E2E saves the overview, a search hit, mid-stream and scrolled-up screenshots and
+  `result.json` under `output/playwright/trajectory-timeline/`.
 
 ## Reviewing a plan
 

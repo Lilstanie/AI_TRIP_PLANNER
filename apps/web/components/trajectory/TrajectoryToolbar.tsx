@@ -15,6 +15,9 @@ export interface TrajectoryToolbarProps {
   onToggleAllAssistants: () => void;
   searchQuery: string;
   onSearchQueryChange: (query: string) => void;
+  hitCount: number | null;
+  hitPosition: number;
+  onStepHit: (delta: 1 | -1) => void;
   t: TrajectoryTranslate;
 }
 
@@ -25,6 +28,9 @@ export function TrajectoryToolbar({
   onToggleAllAssistants,
   searchQuery,
   onSearchQueryChange,
+  hitCount,
+  hitPosition,
+  onStepHit,
   t,
 }: TrajectoryToolbarProps) {
   return (
@@ -71,8 +77,44 @@ export function TrajectoryToolbar({
             onChange={(event) => {
               onSearchQueryChange(event.currentTarget.value);
             }}
+            onKeyDown={(event) => {
+              if (event.key !== "Enter") return;
+              event.preventDefault();
+              onStepHit(event.shiftKey ? -1 : 1);
+            }}
           />
         </div>
+        {hitCount !== null && (
+          <div className={css.hits} role="group" aria-label={t("toolbar.hits")}>
+            <span className={css.hitCount} role="status" data-search-count={hitCount}>
+              {hitCount === 0 ? 0 : hitPosition + 1}/{hitCount}
+            </span>
+            <button
+              type="button"
+              className={css.hitStep}
+              aria-label={t("toolbar.prevHit")}
+              title={t("toolbar.prevHit")}
+              disabled={hitCount === 0}
+              onClick={() => {
+                onStepHit(-1);
+              }}
+            >
+              ↑
+            </button>
+            <button
+              type="button"
+              className={css.hitStep}
+              aria-label={t("toolbar.nextHit")}
+              title={t("toolbar.nextHit")}
+              disabled={hitCount === 0}
+              onClick={() => {
+                onStepHit(1);
+              }}
+            >
+              ↓
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
