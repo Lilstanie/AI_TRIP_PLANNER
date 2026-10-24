@@ -42,7 +42,6 @@ export function tripDays(trip: TripRecord): number {
   return Math.max(1, Math.round((end! - start!) / 86_400_000) + 1);
 }
 
-/** Returns the trip card's second line: destination, date range, length and total. */
 export function tripMeta(
   trip: TripRecord,
   locale: AppLocale,

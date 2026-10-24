@@ -412,10 +412,6 @@ export function upsertConversationDraft(
   return next;
 }
 
-/**
- * Matches every query word; a number matches only a whole number. A trip also matches the text its
- * row shows, given by `tripText`.
- */
 export function searchCatalog(
   catalog: WorkspaceCatalog,
   query: string,
