@@ -24,6 +24,7 @@ export function ChatPanel({
   onSend,
   onEdit,
   onStart,
+  phone = false,
   onCancel,
   error,
   onAttachFiles,
@@ -49,6 +50,8 @@ export function ChatPanel({
   onEdit: () => void;
 
   onStart?: () => void;
+
+  phone?: boolean;
 
   onCancel?: () => void;
 
@@ -117,9 +120,13 @@ export function ChatPanel({
           <div className="chat-empty">
             <h3>{t("Where to next?")}</h3>
             <p>
-              {t(
-                "Describe your destination, travel dates, number of travellers and total budget, or add them in the bar at the top.",
-              )}
+              {phone && onStart
+                ? t(
+                    "Describe your destination, travel dates, number of travellers and total budget, or tap Add trip details below.",
+                  )
+                : t(
+                    "Describe your destination, travel dates, number of travellers and total budget, or add them in the bar at the top.",
+                  )}
             </p>
             <div className="chat-empty__suggestions" aria-label={t("Example trips")}>
               {prompts.map(({ label, text, params }) => (
