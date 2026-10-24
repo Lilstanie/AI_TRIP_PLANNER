@@ -3,7 +3,6 @@ import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from
 import { useLocale } from "@/components/account/LocaleProvider";
 import { AssistantIcon } from "./assistants";
 import { TeamPanel } from "./TeamPanel";
-import { TeamRunBar } from "./TeamRunBar";
 import type { TeamModel, TeamTurn } from "./team-model";
 import { useTeamSurface } from "./use-team-surface";
 
@@ -39,7 +38,7 @@ export function TeamControl({ turn, onReveal }: { turn: TeamTurn; onReveal?: () 
     focusIn.current = true;
     setPinned(true);
   }, []);
-  const { live, shown, select } = useTeamSurface(turn, open, pin);
+  const { team, select } = useTeamSurface(turn);
 
   const close = useCallback(() => {
     clearTimeout(leaving.current);
@@ -96,14 +95,14 @@ export function TeamControl({ turn, onReveal }: { turn: TeamTurn; onReveal?: () 
         aria-expanded={open}
         aria-haspopup="dialog"
         aria-controls={open ? popoverId : undefined}
-        data-working={live.working}
+        data-working={team.working}
         onClick={() => (open ? close() : pin())}
       >
-        <TeamAvatars rows={live.rows} />
+        <TeamAvatars rows={team.rows} />
         <span className="team-trigger__label">{t("Specialist team")}</span>
-        {live.working > 0 && (
+        {team.working > 0 && (
           <span className="team-trigger__count">
-            {t("{count} working", { count: live.working })}
+            {t("{count} working", { count: team.working })}
           </span>
         )}
       </button>
@@ -116,9 +115,8 @@ export function TeamControl({ turn, onReveal }: { turn: TeamTurn; onReveal?: () 
           aria-label={t("Specialist team")}
           tabIndex={-1}
         >
-          <TeamRunBar />
           <TeamPanel
-            model={shown}
+            model={team}
             onSelect={(assistant) => {
               onReveal?.();
               select(assistant);

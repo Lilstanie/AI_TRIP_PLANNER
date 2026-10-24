@@ -111,11 +111,7 @@ try {
           `${label}: one conflict check follows both specialists in round 1`,
           run.checks,
         );
-      } else
-        check(
-          width <= 520 && (await replies(page).last().locator(".team-summary").count()) === 1,
-          `${label}: the reply carries a team summary`,
-        );
+      } else check(false, `${label}: the team panel did not open`);
       const fits = await page.evaluate(
         () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
       );

@@ -77,9 +77,7 @@ try {
       await send(page, `@${STAY[locale]} ${OWN[locale]}`);
       const own = await readRun(page);
       check(
-        own
-          ? own.assignments.every((item) => item.kind !== "handoff")
-          : width <= 520 && (await replies(page).last().locator(".team-summary").count()) === 1,
+        own?.assignments.every((item) => item.kind !== "handoff"),
         `${label}: a request the mentioned specialist owns is not handed off`,
       );
 
@@ -122,11 +120,7 @@ try {
           `${label}: decline and dining assignment carry decision markers`,
           [order[declineAt]?.marker, order[diningAt]?.marker],
         );
-      } else
-        check(
-          width <= 520 && (await replies(page).last().locator(".team-summary").count()) === 1,
-          `${label}: the hand-off reply carries a team summary`,
-        );
+      } else check(false, `${label}: the team panel did not open for the hand-off`);
       const after = await stored(page);
       const changed = after.plan.sections
         .filter((section) => withoutIds(section.proposal) !== sectionsBefore[section.id])

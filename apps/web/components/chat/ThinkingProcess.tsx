@@ -7,7 +7,7 @@ import { ThinkingOrbIcon } from "./ThinkingOrbIcon";
 import { Disclosure, RowSeparator, RowSummary } from "./Disclosure";
 import { countActivity, roundGroups, subagentHasBody, turnSummary } from "./thinking-model";
 import type { Notice } from "@/lib/i18n/notice";
-import { useTeamRun } from "./team-run";
+import { useTeamReveal } from "./team-reveal";
 import { Children, RoundHeading, RunningLine, SubagentRow, type OpenRows } from "./ThinkingRows";
 
 function useOpenRows(): OpenRows {
@@ -66,7 +66,7 @@ export function ThinkingProcess({
     [activity, counts, busy, error, locale, outcome],
   );
   const root = useRef<HTMLDivElement>(null);
-  const { reveal } = useTeamRun();
+  const { reveal } = useTeamReveal();
   const handled = useRef(reveal?.nonce ?? 0);
   const [landing, setLanding] = useState<string | undefined>();
   useEffect(() => {

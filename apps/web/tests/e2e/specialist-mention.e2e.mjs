@@ -164,9 +164,7 @@ try {
       check(who >= 1, `${label}: the reply carries the accommodation icon`);
       const mentionRun = await readRun(page);
       check(
-        mentionRun
-          ? mentionRun.assignments.every((item) => item.who === "accommodation")
-          : width <= 520 && (await replies(page).last().locator(".team-summary").count()) === 1,
+        mentionRun?.assignments.every((item) => item.who === "accommodation"),
         `${label}: only the accommodation specialist ran`,
         mentionRun?.assignments,
       );
@@ -206,11 +204,7 @@ try {
           conflictRun.checks.every((item) => item.icons === 0),
           `${label}: conflict-check messages are rules, not assistants`,
         );
-      } else
-        check(
-          width <= 520 && (await replies(page).last().locator(".team-summary").count()) === 1,
-          `${label}: the revision reply carries a team summary`,
-        );
+      } else check(false, `${label}: the team panel did not open for the revision`);
       await page.screenshot({ path: `${out}/${label}-conflict.png` });
       check(errors.length === 0, `${label}: no page errors`, errors);
       await context.close();

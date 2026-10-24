@@ -337,24 +337,14 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
       rules and carry no icon.
     - The Think fold's Subagent rows use the same icons. The Trip drawer shows no assistant icons. The live
       area above the message box shows only the Think fold.
-    - **Reply summary.** A saved reply in which at least one specialist had an assignment starts, above
-      its Think fold, with a one-line button: the involved assistants' avatars, then "Coordinator + 3
-      specialists · 2 rounds", or "Stay specialist · 1 round" when one specialist worked (custom names
-      apply). Rounds count the distinct rounds that had a dispatch or revision. A reply only the
-      Coordinator wrote, such as one that asks for the brief, has none. Pressing it pins the panel on
-      that reply's run, with a "Turn N" label (N counts your messages up to that reply) and a Latest turn
-      button; the state lives in [`team-run.tsx`](../apps/web/components/chat/team-run.tsx) so any control
-      that shows the panel reads it. Closing the panel, pressing Latest turn or starting the next live
-      turn returns the panel to the latest run. [`TeamSummary`](../apps/web/components/chat/TeamSummary.tsx)
-      derives the text with `teamSummary`; `TeamConversation` no longer exists.
     - **Opening thinking rows.** Pressing a row of an involved assistant (Working, Done, Failed, Needs
       change or Stopped; the name is a button called "Show {name} thinking") closes the panel, or on a phone the sheet,
       switches to the chat when the Map is showing (the phone Map tab or the Map view at tablet width),
-      scrolls the chat to the Think fold of the run the panel shows (the live area, or that reply's fold),
+      scrolls the chat to the Think fold of the latest run (the live area, or the latest reply's fold),
       opens the fold and expands exactly that specialist's `Subagent` row for the latest round it worked in,
       then moves focus to the row. Pressing the Coordinator opens the fold and focuses its first line, where
       the dispatch begins. Idle and Not involved rows have no button and expose no action. The target is
-      matched by the run's activity list in [`team-run.tsx`](../apps/web/components/chat/team-run.tsx) and
+      matched by the run's activity list in [`team-reveal.tsx`](../apps/web/components/chat/team-reveal.tsx) and
       handled in [`ThinkingProcess`](../apps/web/components/chat/ThinkingProcess.tsx).
   - There is no row of assistant chips above the message box. Typing `@` at the start of a word opens a
     menu of the six assistants (the Coordinator and the five specialists), each with its icon and

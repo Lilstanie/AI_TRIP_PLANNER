@@ -1,5 +1,6 @@
-export async function readRun(page, reply = page.locator(".msg-item--agent").last()) {
-  await reply.locator(".team-summary").click();
+export async function readRun(page) {
+  await page.locator(".team-trigger:visible").first().focus();
+  await page.keyboard.press("Enter");
   const panel = page.locator(".team-panel");
   try {
     await panel.waitFor({ timeout: 3000 });
