@@ -17,7 +17,11 @@ import {
 } from "./shim";
 import type { TrajectoryCellKind, TrajectoryCellProps } from "./trajectory-record";
 import { trajectoryRecordId } from "./trajectory-record";
-import { groupTrajectoryVirtualRows, trajectoryVirtualRecordKey } from "./trajectory-virtual-rows";
+import {
+  PHONE_CONTENT_ROW_HEIGHT,
+  groupTrajectoryVirtualRows,
+  trajectoryVirtualRecordKey,
+} from "./trajectory-virtual-rows";
 import type { TrajectoryVirtualRow } from "./trajectory-virtual-rows";
 import type { TrajectoryTurnModel } from "./layout";
 import { trajectoryPreviewText } from "./trajectory-preview";
@@ -187,6 +191,7 @@ export interface TrajectoryTableProps {
   onToggleTurn: (turn: number) => void;
   collapsedAssistants: ReadonlySet<string>;
   onToggleAssistant: (id: string) => void;
+  phone?: boolean;
 }
 
 function flattenRecords(turns: readonly TrajectoryTurnModel[]): TableRecord[] {
@@ -677,6 +682,7 @@ export function TrajectoryTable({
   onToggleTurn,
   collapsedAssistants,
   onToggleAssistant,
+  phone = false,
 }: TrajectoryTableProps) {
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
   const [selectedStepIdentity, setSelectedStepIdentity] = useState<string | null>(null);
@@ -726,7 +732,10 @@ export function TrajectoryTable({
       ? turnRecords
       : collapseAssistantRecords(turnRecords, collapsedAssistants, t);
   }, [allRecords, collapsedAssistants, collapsedTurns, stepGroups, searchMatchIndexes, t]);
-  const projectedVirtualRows = useMemo(() => groupTrajectoryVirtualRows(records), [records]);
+  const projectedVirtualRows = useMemo(
+    () => groupTrajectoryVirtualRows(records, phone ? PHONE_CONTENT_ROW_HEIGHT : undefined),
+    [records, phone],
+  );
   const virtualRowStructure = useStableVirtualRowStructure(projectedVirtualRows);
   const virtualizationEnabled = records.length > VIRTUALIZATION_THRESHOLD;
   const estimateVirtualRowSize = useCallback(

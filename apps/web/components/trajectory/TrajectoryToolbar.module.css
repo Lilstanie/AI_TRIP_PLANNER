@@ -142,3 +142,56 @@
   opacity: 0.4;
   cursor: default;
 }
+
+[data-trajectory-phone] .root {
+  height: auto;
+}
+
+[data-trajectory-phone] .inner {
+  flex-wrap: wrap;
+  height: auto;
+  padding: 6px 8px;
+  gap: 6px;
+}
+
+[data-trajectory-phone] .actions {
+  gap: 6px;
+}
+
+[data-trajectory-phone] .action {
+  height: 44px;
+  min-height: 44px !important;
+  padding: 0 12px !important;
+  gap: 6px;
+  font-size: 14px;
+}
+
+[data-trajectory-phone] .search {
+  flex: 1 1 150px;
+  height: 44px;
+  border-width: 0;
+  margin-left: 0;
+  padding: 0 12px;
+}
+
+[data-trajectory-phone] .searchInput {
+  flex: 1;
+  align-self: stretch;
+  height: 100%;
+  font-size: 16px;
+}
+
+[data-trajectory-phone] .hits {
+  margin-left: auto;
+}
+
+[data-trajectory-phone] .hitCount {
+  min-width: 36px;
+  font-size: 13px;
+}
+
+[data-trajectory-phone] .hitStep {
+  width: 44px;
+  height: 44px;
+  min-height: 44px !important;
+}

@@ -144,6 +144,36 @@ try {
       `${label}: nothing in the trajectory panel scrolls sideways`,
       wide.slice(0, 5),
     );
+    const toolbar = panel.getByRole("toolbar");
+    const controls = toolbar.locator("button, input");
+    const sizes = await controls.evaluateAll((nodes) =>
+      nodes.map((n) => {
+        const box = n.getBoundingClientRect();
+        return {
+          w: Math.round(box.width),
+          h: Math.round(box.height),
+          font: parseFloat(getComputedStyle(n).fontSize),
+        };
+      }),
+    );
+    check(
+      sizes.length === 3 && sizes.every((s) => s.w >= 44 && s.h >= 44),
+      `${label}: toolbar controls are 44px targets`,
+      sizes,
+    );
+    check(
+      sizes.at(-1).font >= 16,
+      `${label}: the search field text is 16px so iOS does not zoom`,
+      sizes.at(-1).font,
+    );
+    const rowHeights = await rows.evaluateAll((nodes) =>
+      nodes.slice(0, 12).map((n) => n.getBoundingClientRect().height),
+    );
+    check(
+      rowHeights.length > 0 && rowHeights.every((h) => h >= 55 && h <= 58),
+      `${label}: ledger rows are one 56px card each`,
+      rowHeights.map(Math.round),
+    );
     await page.screenshot({ path: `${out}/${label}-ledger.png` });
 
     await rows.nth(2).tap();

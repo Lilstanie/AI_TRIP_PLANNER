@@ -1149,3 +1149,128 @@
     display: none;
   }
 }
+
+[data-trajectory-phone] .table {
+  font: var(--dsw-font-xs-13);
+}
+
+[data-trajectory-phone] .eventColumn {
+  width: 44px;
+}
+
+[data-trajectory-phone] .table tbody tr[data-record-index] > td {
+  height: 56px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+[data-trajectory-phone] .table tbody tr[data-record-index] > .event {
+  padding: 0 !important;
+}
+
+[data-trajectory-phone] .stepMarker {
+  --step-marker-base-left: 14px;
+  min-height: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+
+[data-trajectory-phone] .kindSlot {
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+}
+
+[data-trajectory-phone] .eventInner {
+  display: flex;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+}
+
+[data-trajectory-phone] .kindTag {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  justify-content: center;
+  border-radius: 8px;
+}
+
+[data-trajectory-phone] .kindTagIcon {
+  width: 14px;
+  height: 14px;
+}
+
+[data-trajectory-phone] .table tbody tr[data-record-index] .content {
+  padding: 0 12px 0 4px !important;
+}
+
+[data-trajectory-phone] .table tbody tr[data-record-index] .content > span {
+  display: block;
+  max-height: 36px;
+  overflow: hidden;
+  line-height: 18px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+[data-trajectory-phone] .table tbody tr[data-record-index] .resultPreview {
+  display: block;
+}
+
+[data-trajectory-phone] .table tbody tr[data-record-index] .resultRequest {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+[data-trajectory-phone] .table tbody tr[data-record-index] .inlineResult {
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+[data-trajectory-phone] .table tbody tr[data-record-index] .inlineResultText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+[data-trajectory-phone] .detailsHeader {
+  height: 48px;
+}
+
+[data-trajectory-phone] .close {
+  width: 44px;
+  height: 44px;
+  min-height: 44px !important;
+}
+
+[data-trajectory-phone] .detailTabs {
+  height: 44px;
+}
+
+[data-trajectory-phone] .detailTab {
+  min-height: 44px !important;
+  padding: 0 12px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+
+[data-trajectory-phone] .overviewHeading {
+  height: 44px;
+  align-items: center;
+  padding-bottom: 0;
+}
+
+[data-trajectory-phone] .overviewTitle {
+  min-height: 44px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}

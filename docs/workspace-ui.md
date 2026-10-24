@@ -493,6 +493,11 @@ On a phone, Trajectory is the fourth tab of the bottom bar (轨迹). It shows th
 filter bar without the timeline overview, and the record inspector opens over the whole panel and closes
 back to the ledger. Widening the window while it is selected returns to the chat. The tab is
 [`PhoneTrajectory`](../apps/web/components/workspace/PhoneTrajectory.tsx).
+On the phone each record is a fixed 56 px card: its kind icon sits on the left, the request on the first line
+and its result on the second, and text beyond two lines is clipped (the inspector shows the whole text).
+The toolbar's Turns, Calls and search controls are 44 px high, the search text is 16 px so iOS Safari does not
+zoom in, and the inspector's tabs and section headings are 44 px targets. The desktop ledger is unchanged. The
+[phone trajectory note](../.agents/notes/implemented/feature/2026-10-24-phone-trajectory-cards.md) records why.
 
 - **Records.** `buildTrajectory` (`lib/trajectory/adapter.ts`) maps the stored messages and their
   `activity` events to one turn per traveller message. A traveller message is a User record. A Coordinator
