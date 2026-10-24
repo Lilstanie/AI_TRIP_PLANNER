@@ -555,7 +555,8 @@ within budget · unpriced stops not counted” and uses the caution colour. The 
 listed beneath the estimate. Status text wraps within the budget panel at narrow drawer widths.
 The budget card also breaks the known estimate into accommodation, transport, meals and activities.
 Each amount is labelled as an estimate; proposal items without prices are counted as unpriced beside
-their category and are not added to the total. Transport without a quoted amount or any priced item,
+their category and are not added to the total. Restaurant ideas are suggestions rather than costs, so they
+are not counted as unpriced meals; the row counts match the “Not included” notes. Transport without a quoted amount or any priced item,
 and any other category whose items are all unpriced, shows “Not costed” instead of a zero estimate,
 keeping its unpriced count. Published zero fares remain zero; older nonzero
 transport estimates remain visible. Missing transport prices are disclosed below the breakdown,
