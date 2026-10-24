@@ -32,9 +32,10 @@ export function describeStayChoice(input: {
   currency?: Currency;
 }): string {
   const aud = (amount: number) => formatMoney(amount, input.currency ?? "AUD");
+  const count = (n: number, one: string) => `${n} ${one}${n === 1 ? "" : "s"}`;
   return (
     `${input.name} — ${input.area}; ${input.checkIn} to ${input.checkOut}; ` +
-    `${input.rooms} room(s) × ${input.nights} night(s) × ${aud(input.pricePerNight)} per room/night ` +
+    `${count(input.rooms, "room")} × ${count(input.nights, "night")} × ${aud(input.pricePerNight)} per room/night ` +
     `= ${aud(input.cost)}; rating ${(input.rating / 2).toFixed(1)}/5; ` +
     `${input.freeCancellation ? "free cancellation" : "no free cancellation"}.`
   );
