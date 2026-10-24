@@ -92,7 +92,6 @@
 }
 
 .msg-reveal__word {
-  display: inline-block;
   animation: msg-reveal-word 320ms cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 
