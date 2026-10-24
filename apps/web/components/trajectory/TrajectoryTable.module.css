@@ -97,6 +97,15 @@
     opacity 120ms var(--ds-ease-in-out);
 }
 
+.table tbody tr[data-search-hit="true"] {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.table tbody tr[data-search-active="true"] {
+  box-shadow: inset 2px 0 0 var(--dsw-alias-state-business-primary);
+  background: var(--dsw-alias-bg-layer-2);
+}
+
 .table tbody tr[data-timeline-focus="outside"] {
   opacity: 0.24;
 }

@@ -37,6 +37,7 @@ export function TrajectoryView({ t, turns, steps }: TrajectoryViewProps) {
     useState<ReadonlySet<string>>(EMPTY_RECORD_IDS);
   const [timelineSelection, setTimelineSelection] = useState<TrajectoryTimeRange | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [hitStep, setHitStep] = useState(0);
   const [searchIndex] = useState(() => new TrajectorySearchIndex());
   const [selectedTimelineIndex, setSelectedTimelineIndex] = useState<number | null>(null);
   const [timelineRecordSelection, setTimelineRecordSelection] = useState<{
@@ -59,6 +60,25 @@ export function TrajectoryView({ t, turns, steps }: TrajectoryViewProps) {
     }
     return indexes;
   }, [searchIndex, searchQuery, turns]);
+  const searchHits = useMemo(
+    () => (searchMatchIndexes === null ? [] : [...searchMatchIndexes].sort((a, b) => a - b)),
+    [searchMatchIndexes],
+  );
+  const hitPosition = searchHits.length === 0 ? 0 : Math.min(hitStep, searchHits.length - 1);
+  const stepHit = useCallback(
+    (delta: 1 | -1) => {
+      if (searchHits.length === 0) return;
+      const next = (hitPosition + delta + searchHits.length) % searchHits.length;
+      setHitStep(next);
+      const index = searchHits[next];
+      if (index !== undefined) setTimelineRecordFocus({ index });
+    },
+    [hitPosition, searchHits],
+  );
+  const changeSearchQuery = useCallback((query: string) => {
+    setSearchQuery(query);
+    setHitStep(0);
+  }, []);
   const timelineFocusIndexes = useMemo(
     () =>
       timelineSelection === null ? null : trajectoryTimelineFocusIndexes(turns, timelineSelection),
@@ -157,7 +177,10 @@ export function TrajectoryView({ t, turns, steps }: TrajectoryViewProps) {
         allAssistantsCollapsed={allAssistantsCollapsed}
         onToggleAllAssistants={toggleAllAssistants}
         searchQuery={searchQuery}
-        onSearchQueryChange={setSearchQuery}
+        onSearchQueryChange={changeSearchQuery}
+        hitCount={searchMatchIndexes === null ? null : searchHits.length}
+        hitPosition={hitPosition}
+        onStepHit={stepHit}
         t={t}
       />
       <TrajectoryTimeline
@@ -177,6 +200,7 @@ export function TrajectoryView({ t, turns, steps }: TrajectoryViewProps) {
           turns={turns}
           timelineFocusIndexes={timelineFocusIndexes}
           searchMatchIndexes={searchMatchIndexes}
+          searchActiveIndex={searchHits[hitPosition] ?? null}
           onSelectedIndexChange={setSelectedTimelineIndex}
           onRecordSelect={handleRecordSelect}
           recordSelection={timelineRecordSelection}

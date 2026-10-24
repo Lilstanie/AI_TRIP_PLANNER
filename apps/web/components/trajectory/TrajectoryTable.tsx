@@ -177,6 +177,7 @@ export interface TrajectoryTableProps {
   turns: readonly TrajectoryTurnModel[];
   timelineFocusIndexes?: ReadonlySet<number> | null;
   searchMatchIndexes?: ReadonlySet<number> | null;
+  searchActiveIndex?: number | null;
   onSelectedIndexChange?: (index: number | null) => void;
   onRecordSelect?: (index: number) => void;
   recordSelection?: { readonly index: number } | null;
@@ -666,6 +667,7 @@ export function TrajectoryTable({
   turns,
   timelineFocusIndexes = null,
   searchMatchIndexes = null,
+  searchActiveIndex = null,
   onSelectedIndexChange,
   onRecordSelect,
   recordSelection = null,
@@ -820,6 +822,15 @@ export function TrajectoryTable({
     setSelectedStepIdentity(null);
   };
 
+  const closeInspector = () => {
+    const row =
+      selectedIndex === null
+        ? null
+        : rootRef.current?.querySelector<HTMLElement>(`tr[data-record-index="${selectedIndex}"]`);
+    clearInspectorSelection();
+    row?.focus();
+  };
+
   const clearAllSelections = () => {
     clearInspectorSelection();
     onClearSelection?.();
@@ -899,7 +910,14 @@ export function TrajectoryTable({
         ? null
         : rootRef.current?.querySelector<HTMLElement>(`tr[data-record-index="${recordIndex}"]`);
     row?.scrollIntoView({ behavior: "smooth", block: "center" });
-  }, [records, rowVirtualizer, virtualIndexByRecordId, virtualizationEnabled]);
+  }, [
+    records,
+    recordFocus,
+    recordSelection,
+    rowVirtualizer,
+    virtualIndexByRecordId,
+    virtualizationEnabled,
+  ]);
   useEffect(() => {
     if (timelineFocusIndexes === null || timelineFocusIndexes.size === 0) return;
     if (!virtualizationEnabled) {
@@ -948,7 +966,17 @@ export function TrajectoryTable({
   }, [rowVirtualizer, virtualRowStructure, virtualizationEnabled]);
 
   return (
-    <div ref={rootRef} className={css.split} style={splitStyle}>
+    <div
+      ref={rootRef}
+      className={css.split}
+      style={splitStyle}
+      onKeyDown={(event) => {
+        if (event.key !== "Escape" || event.defaultPrevented) return;
+        if (selectedStepInfo === undefined && selected === undefined) return;
+        event.preventDefault();
+        closeInspector();
+      }}
+    >
       <div
         ref={tablePaneRef}
         className={css.tablePane}
@@ -1041,6 +1069,16 @@ export function TrajectoryTable({
                       data-collapsed-summary={record.collapsedSummaryKind}
                       data-selected={
                         (!isCollapsedSummary && selectedIndex === record.cell.index) || undefined
+                      }
+                      data-search-hit={
+                        isCollapsedSummary || searchMatchIndexes === null ? undefined : "true"
+                      }
+                      data-search-active={
+                        !isCollapsedSummary &&
+                        searchMatchIndexes !== null &&
+                        searchActiveIndex === record.cell.index
+                          ? "true"
+                          : undefined
                       }
                       data-timeline-focus={
                         isCollapsedSummary || timelineFocusIndexes === null
@@ -1344,7 +1382,7 @@ export function TrajectoryTable({
               type="button"
               className={css.close}
               aria-label={t("details.close")}
-              onClick={clearInspectorSelection}
+              onClick={closeInspector}
             >
               <span aria-hidden="true">×</span>
             </button>

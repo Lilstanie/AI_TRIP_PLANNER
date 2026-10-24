@@ -74,6 +74,16 @@ function checkOwners(decision: Parameters<typeof checkText>[2]): AssistantId[] {
   return [];
 }
 
+function checkDetail(
+  decision: Extract<AgentProgressEvent, { type: "decision" }>["decision"],
+  displayName: DisplayName,
+): string | undefined {
+  if (decision.type !== "conflicts_detected" || decision.conflicts.length === 0) return undefined;
+  return decision.conflicts
+    .map((conflict) => `${displayName(conflict.agent)}: ${conflict.reason}`)
+    .join("\n");
+}
+
 function blocks(
   events: readonly AgentProgressEvent[],
   prefix: string,
@@ -181,6 +191,7 @@ function blocks(
             kind: "tool",
             text: checkText(t, displayName, decision),
             inputDetail: JSON.stringify(decision, null, 2),
+            outputDetail: checkDetail(decision, displayName),
           },
           children: [],
         });
