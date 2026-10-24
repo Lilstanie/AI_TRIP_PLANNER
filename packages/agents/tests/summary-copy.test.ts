@@ -54,6 +54,15 @@ describe("specialist summary copy", () => {
     expect(en.transport({ ...transport, unpriced: 0, unavailable: 0, incomplete: false })).toBe(
       "2 transport options for Sydney ↔ Tokyo → Kyoto · known estimate A$900",
     );
+    expect(
+      en.weather("Tokyo", "2027-06-18", { horizon: "forecast", summary: "Rain, 8–14°C." }),
+    ).toBe("Tokyo, Fri, 18 June (forecast): Rain, 8–14°C.");
+    expect(en.weather("Tokyo", "2027-06-18", { horizon: "climate", summary: "Mild." })).toBe(
+      "Tokyo, Fri, 18 June (historical climate, not a forecast): Mild.",
+    );
+    expect(en.weather("Tokyo", "2027-06-16")).toBe(
+      "Tokyo, Wed, 16 June: weather unavailable; check a current forecast before travel.",
+    );
   });
 
   it("falls back to English when no reply language is set", () => {
@@ -74,6 +83,17 @@ describe("specialist summary copy", () => {
       [zh.transportIncomplete],
       [zh.transportNone],
       [zh.transport(transport), "A$900", "Sydney", "Tokyo", "Kyoto"],
+      [
+        zh.weather("Tokyo", "2027-06-18", { horizon: "forecast", summary: "Rain, 8–14°C." }),
+        "Tokyo",
+        "Rain, 8–14°C.",
+      ],
+      [
+        zh.weather("Tokyo", "2027-06-18", { horizon: "climate", summary: "Mild." }),
+        "Tokyo",
+        "Mild.",
+      ],
+      [zh.weather("Tokyo", "2027-06-16"), "Tokyo"],
     ];
     for (const [line, ...kept] of lines) {
       for (const value of kept) expect(line).toContain(value);
@@ -82,6 +102,17 @@ describe("specialist summary copy", () => {
     expect(zh.stays(stay)).toMatch(/Tokyo、Kyoto/);
     expect(zh.transport(transport)).toContain("Tokyo → Kyoto");
     expect(zh.guide("Kyoto", "2026-10-01")).toContain("十月");
+    const header = new Intl.DateTimeFormat("zh-CN", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+      timeZone: "UTC",
+    }).format(Date.parse("2027-06-18T00:00:00Z"));
+    expect(zh.weather("Tokyo", "2027-06-18", { horizon: "forecast", summary: "Rain." })).toBe(
+      `Tokyo，${header}（预报）：Rain.`,
+    );
+    expect(header).toBe("6月18日周五");
+    expect(zh.weather("Tokyo", "2027-06-16")).toContain("6月16日周三");
   });
 
   it("shows optional Chinese parts only when present", () => {

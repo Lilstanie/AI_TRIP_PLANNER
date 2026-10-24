@@ -114,15 +114,20 @@ describe("TP-37 weather-grounded packing", () => {
     expect(events.some((event) => JSON.stringify(event).includes("weather.forecast"))).toBe(true);
   });
 
-  it.each([false, true])(
-    "keeps weather-grounded packing when generator fails=%s and one day is unavailable",
-    async (failedGenerator) => {
+  it.each([
+    [false, undefined],
+    [true, undefined],
+    [false, "zh"],
+  ] as const)(
+    "keeps weather-grounded packing when generator fails=%s and one day is unavailable (reply language %s)",
+    async (failedGenerator, replyLanguage) => {
       const events: AgentProgressEvent[] = [];
       const plan = await runWithModelsDisabled(() =>
         runOrchestrator(
           { ...brief, destination: "Tokyo" },
           {
             mem: memoryStore().mem,
+            ...(replyLanguage ? { replyLanguage } : {}),
             specialists: [
               itinerary,
               createDestinationGuideAgent({
@@ -164,15 +169,23 @@ describe("TP-37 weather-grounded packing", () => {
           },
         ),
       );
-      save(`weather-fallback-${failedGenerator}`, { plan, events });
+      save(`weather-fallback-${failedGenerator}${replyLanguage ? `-${replyLanguage}` : ""}`, {
+        plan,
+        events,
+      });
       const guide = plan.sections.find((section) => section.id === "destination-guide")!.proposal!;
       expect(
         guide.items.find((item) => item.kind === "weather-packing")?.packing?.join(" "),
       ).toMatch(/rain|waterproof/i);
-      expect(JSON.stringify(guide)).toMatch(
-        /Wed, 16 June[^]*unavailable|unavailable[^]*Wed, 16 June/i,
-      );
-      expect(JSON.stringify(guide)).toContain("Fri, 18 June");
+      const weather = guide.items.find((item) => item.kind === "weather-packing")!.detail;
+      if (replyLanguage === "zh") {
+        expect(weather).toContain("Tokyo，6月16日周三：暂无天气数据");
+        expect(weather).toContain("Tokyo，6月18日周五（预报）：Rain showers, 2–8°C.");
+        expect(weather).not.toMatch(/Wed|Fri|June|forecast|unavailable/);
+      } else {
+        expect(weather).toMatch(/Wed, 16 June[^]*unavailable|unavailable[^]*Wed, 16 June/i);
+        expect(weather).toContain("Fri, 18 June");
+      }
       expect(guide.source?.kind).toBe("fallback");
     },
   );

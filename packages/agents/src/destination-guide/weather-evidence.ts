@@ -1,4 +1,11 @@
-import type { AgentContext, Place, TripBrief, WeatherResult } from "@trip/shared";
+import type {
+  AgentContext,
+  InterfaceLanguage,
+  Place,
+  TripBrief,
+  WeatherResult,
+} from "@trip/shared";
+import { summaryCopy } from "../summary-copy";
 
 export interface DestinationWeatherEvidence {
   city: string;
@@ -67,20 +74,12 @@ export function weatherPacking(evidence: DestinationWeatherEvidence[]): string[]
   return packing.length ? packing : ["Weather-appropriate layers"];
 }
 
-const weatherDay = new Intl.DateTimeFormat("en-AU", {
-  weekday: "short",
-  day: "numeric",
-  month: "short",
-  timeZone: "UTC",
-});
-
-export function weatherText(evidence: DestinationWeatherEvidence[]): string {
+export function weatherText(
+  evidence: DestinationWeatherEvidence[],
+  language: InterfaceLanguage | undefined,
+): string {
+  const copy = summaryCopy(language);
   return evidence
-    .map(({ city, targetDate, result }) => {
-      const day = weatherDay.format(Date.parse(`${targetDate}T00:00:00Z`));
-      return result
-        ? `${city}, ${day} (${result.horizon === "forecast" ? "forecast" : "historical climate, not a forecast"}): ${result.summary}`
-        : `${city}, ${day}: weather unavailable; check a current forecast before travel.`;
-    })
+    .map(({ city, targetDate, result }) => copy.weather(city, targetDate, result))
     .join(" ");
 }

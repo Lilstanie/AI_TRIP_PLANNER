@@ -273,7 +273,9 @@ async function planDestinationGuide(
       },
       {
         kind: "weather-packing",
-        detail: weatherEvidence.length ? weatherText(weatherEvidence) : scope + draft.weather,
+        detail: weatherEvidence.length
+          ? weatherText(weatherEvidence, ctx.replyLanguage)
+          : scope + draft.weather,
         packing,
       },
     ],
