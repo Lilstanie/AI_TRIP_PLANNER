@@ -51,6 +51,15 @@ try {
     meta.startsWith("Trip to Sydney"),
   );
   await page.screenshot({ path: `${out}/mine-chats.png`, fullPage: true });
+  const menuNames = await mine
+    .locator(".history-item:not(.history-item--trip) .history-item__more")
+    .evaluateAll((items) => items.map((item) => item.getAttribute("aria-label")));
+  check(
+    new Set(menuNames).size === 2 &&
+      chats.every(({ title, meta }) => menuNames.includes(`Actions for ${title}, ${meta}`)),
+    "each chat's ⋮ button names the chat and its trip, so the two menus differ",
+    { menuNames, chats },
+  );
   await mine.getByRole("tab", { name: "Trips", exact: true }).click();
   await settle(page, 400);
   const trips = await mine
