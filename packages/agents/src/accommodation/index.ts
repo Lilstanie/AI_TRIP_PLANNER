@@ -165,7 +165,7 @@ function assembleStayProposal(
         options
           .map(
             (option) =>
-              `${option.name} (${formatMoney(stayCost(option, segment.nights, rooms), currency)} total, ${(option.rating / 2).toFixed(1)}/5, ${option.freeCancellation ? "free cancellation" : "no free cancellation"})`,
+              `${option.name} (${formatMoney(stayCost(option, segment.nights, rooms), currency)} total, ${(option.rating / 2).toFixed(1)}/5, ${option.freeCancellation === undefined ? "cancellation terms unknown" : option.freeCancellation ? "free cancellation" : "no free cancellation"})`,
           )
           .join("; ") +
         ". Only the selected option is charged.",

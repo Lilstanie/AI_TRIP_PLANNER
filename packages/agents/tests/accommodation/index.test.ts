@@ -229,6 +229,17 @@ describe("accommodation revisions", () => {
     );
   });
 
+  it("keeps a stay whose cancellation terms are unknown and says so in the plan", async () => {
+    const liveStay = { name: "Live Stay", area: "Central", pricePerNight: 120, rating: 8.5 };
+    const { ctx } = context(
+      [liveStay as StayOption],
+      [{ key: "accommodation.freeCancellation", value: "true", source: "filter" }],
+    );
+    const result = await accommodationAgent.invoke({ brief, context: ctx });
+    expect(result.items[0]!.detail).toContain("Live Stay");
+    expect(result.assumptions.join(" ")).toContain("cancellation terms unknown");
+  });
+
   it("preserves mandatory rating and cancellation even when the target is impossible", async () => {
     const { ctx } = context(options, [
       { key: "accommodation.minRating", value: "8", source: "chat_confirmed" },

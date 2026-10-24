@@ -113,7 +113,12 @@ function StayCard({
         </div>
       </dl>
       <p>
-        {selected.freeCancellation ? t("Free cancellation") : t("No free cancellation")} ·
+        {selected.freeCancellation === undefined
+          ? t("Cancellation terms unknown")
+          : selected.freeCancellation
+            ? t("Free cancellation")
+            : t("No free cancellation")}{" "}
+        ·
         {source?.kind === "live"
           ? t(" availability can change before booking")
           : source?.kind === "estimated"

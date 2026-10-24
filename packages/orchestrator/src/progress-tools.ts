@@ -118,7 +118,11 @@ function stayDetail(option: StayOption, currency: Currency): string {
     option.area,
     `${formatMoney(option.pricePerNight, currency)}/night`,
     outOfFive(option.rating),
-    option.freeCancellation ? "Free cancellation" : "No free cancellation",
+    option.freeCancellation === undefined
+      ? "Cancellation terms unknown"
+      : option.freeCancellation
+        ? "Free cancellation"
+        : "No free cancellation",
   ].join(" · ");
 }
 

@@ -102,8 +102,8 @@ export function eligibleOptions(options: StayOption[], prefs: StayPreferences): 
         Number.isFinite(option.rating) &&
         option.rating >= prefs.minRating &&
         option.rating <= 10 &&
-        typeof option.freeCancellation === "boolean" &&
-        (!prefs.freeCancellation || option.freeCancellation),
+        (option.freeCancellation === undefined || typeof option.freeCancellation === "boolean") &&
+        (!prefs.freeCancellation || option.freeCancellation !== false),
     )
     .sort(
       (a, b) =>
