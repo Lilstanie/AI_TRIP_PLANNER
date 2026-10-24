@@ -60,7 +60,10 @@ export function TripPanel({
     const amount = sections.reduce((sum, section) => sum + section.estCost, 0);
     const unpriced = sections.reduce(
       (sum, section) =>
-        sum + (section.proposal?.items.filter((item) => item.estCost === undefined).length ?? 0),
+        sum +
+        (section.proposal?.items.filter(
+          (item) => item.estCost === undefined && !(item.id && picks.has(item.id)),
+        ).length ?? 0),
       0,
     );
     return {
