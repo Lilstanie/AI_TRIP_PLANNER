@@ -115,6 +115,16 @@ export function chooseInitial(options: StayOption[]): StayOption {
   return options.find((option) => option.rating >= 8 && option.freeCancellation) ?? options[0]!;
 }
 
+export function chooseRevised(
+  options: StayOption[],
+  fits: (option: StayOption) => boolean,
+  allocated: boolean,
+): StayOption {
+  if (!allocated) return options[0]!;
+  const fitting = options.filter(fits);
+  return fitting.length ? chooseInitial(fitting) : options[0]!;
+}
+
 export function stayCost(option: StayOption, nights: number, rooms: number): number {
   const nightlyCents = Math.round((option.pricePerNight + Number.EPSILON) * 100);
   const cents = nightlyCents * nights * rooms;

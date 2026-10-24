@@ -112,7 +112,7 @@ sequenceDiagram
     WF->>AC: invoke(brief, revision, previous, allocation − saving)
     AC->>BK: searchStays(…)
     BK-->>AC: candidates
-    AC->>AC: budget revision: cheapest eligible, preferences kept
+    AC->>AC: budget revision: best eligible that fits the share, else cheapest; preferences kept
     AC-->>BD: revised proposal
     WF->>CP: detectConflicts(revised proposals, brief)
     CP-->>WF: remaining conflicts and planScore

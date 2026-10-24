@@ -114,7 +114,7 @@ sequenceDiagram
     WF->>AC: invoke(brief, revision, previous, allocation − saving)
     AC->>BK: searchStays(…)
     BK-->>AC: candidates
-    AC->>AC: budget revision: cheapest eligible, preferences kept
+    AC->>AC: 预算修订：选符合份额的最优候选，否则最便宜；保留偏好
     AC-->>BD: revised proposal
     WF->>CP: detectConflicts(revised proposals, brief)
     CP-->>WF: remaining conflicts and planScore

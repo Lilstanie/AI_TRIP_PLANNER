@@ -18,7 +18,14 @@ import {
 import { createAgent, tool } from "langchain";
 import { z } from "zod/v4";
 import { createRoutedChatModel, readStructuredResponse } from "../models";
-import { chooseInitial, eligibleOptions, readPreferences, splitStay, stayCost } from "./planning";
+import {
+  chooseInitial,
+  chooseRevised,
+  eligibleOptions,
+  readPreferences,
+  splitStay,
+  stayCost,
+} from "./planning";
 import { scheduledHops } from "../transport/legs";
 import { TRAVELLER_PREFERENCES_RULE } from "../prompts/traveller-preferences";
 import { replyLanguageRule } from "../prompts/reply-language";
@@ -99,7 +106,11 @@ async function gatherStayEvidence(
 function assembleStayProposal(
   evidence: StayEvidence,
   revision: RevisionRequest | undefined,
-  pick: (segmentDay: number, options: StayOption[]) => StayOption,
+  pick: (
+    segmentDay: number,
+    options: StayOption[],
+    fits: (option: StayOption) => boolean,
+  ) => StayOption,
   sourceKind: "estimated" | "mock" | "fallback" = "estimated",
 ): AgentProposal {
   const {
@@ -112,18 +123,22 @@ function assembleStayProposal(
     allocation,
     currency,
   } = evidence;
-  const picked = searched.map(({ segment, options }) => pick(segment.day, options));
+  const totalNights = segments.reduce((sum, segment) => sum + segment.nights, 0);
+  const fitsShare = (nights: number) => (option: StayOption) =>
+    stayCost(option, nights, rooms) <=
+    (allocation ? (allocation.budget * nights) / totalNights : Infinity);
+  const picked = searched.map(({ segment, options }) =>
+    pick(segment.day, options, fitsShare(segment.nights)),
+  );
   const pickedTotal = searched.reduce(
     (sum, { segment }, index) => sum + stayCost(picked[index]!, segment.nights, rooms),
     0,
   );
 
-  const totalNights = segments.reduce((sum, segment) => sum + segment.nights, 0);
   const overAllocation = allocation !== undefined && pickedTotal > allocation.budget;
   const selections = searched.map(({ segment, options }, index) => {
     const initial = chooseInitial(options);
-    const share = allocation ? (allocation.budget * segment.nights) / totalNights : Infinity;
-    const fitting = options.filter((option) => stayCost(option, segment.nights, rooms) <= share);
+    const fitting = options.filter(fitsShare(segment.nights));
     const chosen = overAllocation
       ? fitting.length
         ? chooseInitial(fitting)
@@ -182,7 +197,7 @@ function assembleStayProposal(
     );
     assumptions.push(
       budgetRevision
-        ? `Selected the cheapest eligible stays; saved ${formatMoney(savings, currency)} against the initial selection for these inputs. Dates, guest count and confirmed preferences are unchanged.`
+        ? `Selected ${allocation ? "the highest-ranked eligible stays that fit the revised share" : "the cheapest eligible stays"}; saved ${formatMoney(savings, currency)} against the initial selection for these inputs. Dates, guest count and confirmed preferences are unchanged.`
         : "No supported price revision was requested; the initial selection is retained. Time/geography changes require an updated brief.",
     );
     if (budgetRevision) {
@@ -225,7 +240,7 @@ function assembleStayProposal(
       nights: segments.reduce((sum, segment) => sum + segment.nights, 0),
       cities: segments.map((segment) => segment.city),
       money: formatMoney(total, currency),
-      lowestCost: budgetRevision,
+      lowestCost: budgetRevision && !allocation,
     }),
     items: selections.map(({ segment, chosen, cost }) => ({
       kind: "hotel",
@@ -314,8 +329,10 @@ async function buildStayProposal(
   board?: PlanningBoard,
 ): Promise<AgentProposal> {
   const evidence = await gatherStayEvidence(brief, ctx, revision, allocation, board);
-  return assembleStayProposal(evidence, revision, (_day, options) =>
-    evidence.budgetRevision ? options[0]! : chooseInitial(options),
+  return assembleStayProposal(evidence, revision, (_day, options, fits) =>
+    evidence.budgetRevision
+      ? chooseRevised(options, fits, evidence.allocation !== undefined)
+      : chooseInitial(options),
   );
 }
 
@@ -377,7 +394,7 @@ async function planStays(
     model,
     tools: [search],
     systemPrompt:
-      "You are the accommodation specialist. Call search_accommodation_candidates, then choose one candidate for every stay it returns. You own that choice: weigh rating, free cancellation and total cost against the traveller's brief and any revision. When a stayBudget is given, keep the total of all chosen stays within maxTotalCost. A budget revision means prefer the cheapest eligible candidate. Refer to candidates only by the ids you were given -- never invent a property, a rate, a rating or a policy, and never state a price yourself. Return the requested structured selection. " +
+      "You are the accommodation specialist. Call search_accommodation_candidates, then choose one candidate for every stay it returns. You own that choice: weigh rating, free cancellation and total cost against the traveller's brief and any revision. When a stayBudget is given, keep the total of all chosen stays within maxTotalCost. A budget revision means prefer the highest-ranked eligible candidate whose total fits the stay's share of the revised budget; when none fits, take the cheapest. Refer to candidates only by the ids you were given -- never invent a property, a rate, a rating or a policy, and never state a price yourself. Return the requested structured selection. " +
       TRAVELLER_PREFERENCES_RULE +
       replyLanguageRule(ctx.replyLanguage),
     responseFormat: StaySelection,
@@ -455,7 +472,10 @@ async function planStays(
       return assembleStayProposal(
         evidence,
         revision,
-        (_day, options) => (evidence!.budgetRevision ? options[0]! : chooseInitial(options)),
+        (_day, options, fits) =>
+          evidence!.budgetRevision
+            ? chooseRevised(options, fits, evidence!.allocation !== undefined)
+            : chooseInitial(options),
         "fallback",
       );
     }
