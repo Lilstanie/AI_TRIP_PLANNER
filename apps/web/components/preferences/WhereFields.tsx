@@ -165,7 +165,7 @@ export function WhereFields({ value, onChange, errors, suggestPlaces }: Props) {
           </button>
         )}
         {error && (
-          <small className="error-text fact-form__error" id="fact-destination-error">
+          <small className="error-text fact-form__error" role="alert" id="fact-destination-error">
             {localizeNotice(error)}
           </small>
         )}
@@ -185,7 +185,7 @@ export function WhereFields({ value, onChange, errors, suggestPlaces }: Props) {
           onPick={(origin) => onChange({ ...value, origin })}
         />
         {errors.origin ? (
-          <small className="error-text fact-form__error" id="fact-origin-error">
+          <small className="error-text fact-form__error" role="alert" id="fact-origin-error">
             {localizeNotice(errors.origin)}
           </small>
         ) : (
