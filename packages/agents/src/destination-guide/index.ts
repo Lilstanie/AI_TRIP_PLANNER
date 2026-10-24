@@ -122,32 +122,23 @@ function validateDraft(draft: DestinationGuideDraft, places: Place[]): Destinati
 
 function fallbackDraft(
   brief: TripBrief,
-  month: string,
   places: Place[],
   language: InterfaceLanguage | undefined,
   weatherEvidence: DestinationWeatherEvidence[],
 ): DestinationGuideDraft {
-  const packing = weatherPacking(weatherEvidence);
+  const copy = summaryCopy(language);
+  const packing = weatherPacking(weatherEvidence, language);
   return {
-    summary: summaryCopy(language).guide(brief.destination, brief.dates[0]),
+    summary: copy.guide(brief.destination, brief.dates[0]),
     attractions: places.slice(0, 5).map((place) => ({
       name: place.name,
-      detail: `${place.category} candidate${place.rating ? ` with supplied rating ${place.rating}` : ""}; verify opening hours and suitability before visiting.`,
+      detail: copy.attraction(place.category, place.rating),
     })),
-    customs: ["Follow posted venue rules and check official local visitor guidance before travel."],
-    safety: [
-      "Save local emergency contacts, keep copies of essential documents, and follow current official travel advisories.",
-    ],
-    entryHealth: [
-      `Check current official immigration and public-health requirements${brief.nationality ? ` for a ${brief.nationality} passport` : " for each traveller's passport"}; requirements can change.`,
-    ],
-    weather: `For ${month}, use this as planning context only and check an official short-range forecast shortly before departure.`,
-    packing: [
-      ...(packing.length ? packing : ["Weather-appropriate layers"]),
-      "Comfortable walking shoes",
-      "Medication and copies of prescriptions",
-      "Travel documents and suitable power adapters",
-    ],
+    customs: [copy.customs],
+    safety: [copy.safety],
+    entryHealth: [copy.entryHealth(brief.nationality)],
+    weather: copy.monthlyWeather(brief.dates[0]),
+    packing: [...(packing.length ? packing : [copy.packingLayers]), ...copy.packingBasics],
     assumptions: ["Destination-specific claims are limited to the validated evidence available."],
   };
 }
@@ -239,20 +230,17 @@ async function planDestinationGuide(
       console.warn(`[destination-guide] Model draft failed; using a safe local plan: ${reason}`);
       usedFallback = true;
       ctx.signal?.throwIfAborted();
-      draft = fallbackDraft(brief, month, places, ctx.replyLanguage, weatherEvidence);
+      draft = fallbackDraft(brief, places, ctx.replyLanguage, weatherEvidence);
     }
   } else {
-    draft = fallbackDraft(brief, month, places, ctx.replyLanguage, weatherEvidence);
+    draft = fallbackDraft(brief, places, ctx.replyLanguage, weatherEvidence);
   }
 
   ctx.signal?.throwIfAborted();
-  const monthLabel = (date: string) =>
-    new Intl.DateTimeFormat("en", { month: "long", year: "numeric", timeZone: "UTC" }).format(
-      new Date(`${date}T12:00:00Z`),
-    );
+  const copy = summaryCopy(ctx.replyLanguage);
   const scope =
     brief.dates[0].slice(0, 7) !== brief.dates[1].slice(0, 7)
-      ? `Planning context for ${monthLabel(brief.dates[0])} only; recheck guidance for the remaining months through ${monthLabel(brief.dates[1])}. `
+      ? copy.monthScope(brief.dates[0], brief.dates[1])
       : "";
   const packing = draft.packing.map((item) => item.replace(/[\s.!;,]+$/, "")).filter(Boolean);
 
@@ -269,7 +257,7 @@ async function planDestinationGuide(
       { kind: "safety", detail: scope + draft.safety.join(" ") },
       {
         kind: "entry-health",
-        detail: `${scope}${draft.entryHealth.join(" ")} Verify all entry and health rules against current official government sources before booking or departure.`,
+        detail: `${scope}${draft.entryHealth.join(" ")}${copy.entryHealthVerify}`,
       },
       {
         kind: "weather-packing",

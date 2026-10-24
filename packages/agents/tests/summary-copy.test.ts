@@ -60,6 +60,24 @@ describe("specialist summary copy", () => {
     expect(en.weather("Tokyo", "2027-06-18", { horizon: "climate", summary: "Mild." })).toBe(
       "Tokyo, Fri, 18 June (historical climate, not a forecast): Mild.",
     );
+    expect(en.diningPick("restaurant", 4.5, "")).toBe(
+      "restaurant candidate with supplied rating 4.5. Confirm ingredients and dietary suitability directly with the venue.",
+    );
+    expect(en.diningPick("restaurant", undefined, "dietary=vegetarian")).toBe(
+      "restaurant candidate. Ask the venue to confirm these requirements directly: dietary=vegetarian.",
+    );
+    expect(en.suggestedStop("Temple Walk", "sight")).toBe(
+      "Temple Walk (sight) is a suggested stop; confirm timing and suitability before visiting.",
+    );
+    expect(en.attraction("sight", 4.5)).toBe(
+      "sight candidate with supplied rating 4.5; verify opening hours and suitability before visiting.",
+    );
+    expect(en.entryHealth("Australian")).toBe(
+      "Check current official immigration and public-health requirements for a Australian passport; requirements can change.",
+    );
+    expect(en.monthScope("2026-10-30", "2026-11-02")).toBe(
+      "Planning context for October 2026 only; recheck guidance for the remaining months through November 2026. ",
+    );
     expect(en.weather("Tokyo", "2027-06-16")).toBe(
       "Tokyo, Wed, 16 June: weather unavailable; check a current forecast before travel.",
     );
@@ -94,6 +112,23 @@ describe("specialist summary copy", () => {
         "Mild.",
       ],
       [zh.weather("Tokyo", "2027-06-16"), "Tokyo"],
+      [zh.attraction("sight", 4.5), "4.5"],
+      [zh.attraction("sight")],
+      [zh.suggestedStop("Temple Walk", "sight"), "Temple Walk"],
+      [zh.diningPick("restaurant", 4.5, ""), "4.5"],
+      [zh.diningPick("restaurant", undefined, "dietary=vegetarian"), "dietary=vegetarian"],
+      [zh.customs],
+      [zh.safety],
+      [zh.entryHealth("Australian"), "Australian"],
+      [zh.entryHealth()],
+      [zh.entryHealthVerify],
+      [zh.monthlyWeather("2026-10-01")],
+      [zh.monthScope("2026-10-30", "2026-11-02")],
+      [zh.packingRain],
+      [zh.packingCold],
+      [zh.packingHeat],
+      [zh.packingLayers],
+      ...zh.packingBasics.map((item) => [item]),
     ];
     for (const [line, ...kept] of lines) {
       for (const value of kept) expect(line).toContain(value);
@@ -113,6 +148,8 @@ describe("specialist summary copy", () => {
     );
     expect(header).toBe("6月18日周五");
     expect(zh.weather("Tokyo", "2027-06-16")).toContain("6月16日周三");
+    expect(zh.monthScope("2026-10-30", "2026-11-02")).toContain("2026年10月");
+    expect(zh.monthlyWeather("2026-10-01")).toContain("十月");
   });
 
   it("shows optional Chinese parts only when present", () => {

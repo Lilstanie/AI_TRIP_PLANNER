@@ -55,12 +55,16 @@ export async function gatherWeatherEvidence(
   return evidence;
 }
 
-export function weatherPacking(evidence: DestinationWeatherEvidence[]): string[] {
+export function weatherPacking(
+  evidence: DestinationWeatherEvidence[],
+  language: InterfaceLanguage | undefined,
+): string[] {
   const summaries = evidence.flatMap(({ result }) => (result ? [result.summary] : [])).join(" ");
   if (!summaries) return [];
+  const copy = summaryCopy(language);
   const packing: string[] = [];
   if (/rain|drizzle|thunderstorm|snow|precipitation|雨|雪/i.test(summaries))
-    packing.push("Waterproof jacket and rain protection");
+    packing.push(copy.packingRain);
   const temperatures = [
     ...summaries.matchAll(/(-?\d+(?:\.\d+)?)\s*[–−-]\s*(-?\d+(?:\.\d+)?)\s*°C/g),
   ].flatMap((match) => [Number(match[1]), Number(match[2])]);
@@ -68,10 +72,10 @@ export function weatherPacking(evidence: DestinationWeatherEvidence[]): string[]
     /cool|cold|snow|寒|冷/i.test(summaries) ||
     temperatures.some((temperature) => temperature < 10)
   )
-    packing.push("Warm insulating layers for cooler conditions");
+    packing.push(copy.packingCold);
   if (/warm|hot|晴|炎热/i.test(summaries) || temperatures.some((temperature) => temperature >= 25))
-    packing.push("Sun protection and lightweight clothing");
-  return packing.length ? packing : ["Weather-appropriate layers"];
+    packing.push(copy.packingHeat);
+  return packing.length ? packing : [copy.packingLayers];
 }
 
 export function weatherText(

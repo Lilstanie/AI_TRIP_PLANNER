@@ -176,7 +176,7 @@ describe("TP-37 weather-grounded packing", () => {
       const guide = plan.sections.find((section) => section.id === "destination-guide")!.proposal!;
       expect(
         guide.items.find((item) => item.kind === "weather-packing")?.packing?.join(" "),
-      ).toMatch(/rain|waterproof/i);
+      ).toMatch(replyLanguage === "zh" ? /防水外套/ : /rain|waterproof/i);
       const weather = guide.items.find((item) => item.kind === "weather-packing")!.detail;
       if (replyLanguage === "zh") {
         expect(weather).toContain("Tokyo，6月16日周三：暂无天气数据");
