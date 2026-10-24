@@ -479,6 +479,33 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     neither read nor deleted; see
     [workspace catalog trip storage](../.agents/notes/implemented/architecture/2026-09-24-workspace-catalog-trip-storage.md).
 
+## Trajectory tab
+
+On desktop the chat column has a Conversation and a Trajectory tab. Conversation is the message stream
+and stays mounted while Trajectory is open, so its scroll position returns. The tab list is absent at phone width.
+
+- **Records.** `buildTrajectory` (`lib/trajectory/adapter.ts`) maps the stored messages and their
+  `activity` events to one turn per traveller message. A traveller message is a User record. A Coordinator
+  summary and the reply are Assistant records named with the assistant's current name, custom names
+  included. An assignment (`agent_started`) and a check (conflict check, revision score, stop) are Tool
+  records. A specialist's tool call is a Subtool record placed under its assignment. A failed assignment
+  or tool call is marked failed. An unfinished request shows the live events and settles when the reply
+  arrives.
+- **Steps.** Each workflow round is a step, shown as a dot on the first record of the round, named Step
+  N. The traveller message sits in a Message group before the first step. Selecting a step opens its
+  status and call counts.
+- **Ledger.** The table is the copied DSH ledger: turn labels, fold of a turn or an assistant's calls
+  (toolbar buttons or a double click), search, a lane overview above it and an inspector for the selected record
+  with Summary, Payload and Result tabs (Preview and Raw for messages). Records carry no timestamps,
+  so the overview uses event order and equal widths and the inspector shows no duration or token field.
+- **Labels.** Ledger labels come from `components/trajectory/locales.ts` in English and Chinese; the
+  tab names are app messages. Both survive a reload because they derive from stored messages.
+- **Source.** The ledger files carry DeepSeek Harness's MIT header and are listed in
+  [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md); see
+  [the Agent Note](../.agents/notes/implemented/feature/2026-10-24-trajectory-tab.md).
+- **Verification.** `trajectory-tab` E2E (fixture mode, 1440, English and Chinese) saves the ledger,
+  inspector and reloaded screenshots and `result.json` under `output/playwright/trajectory-tab/`.
+
 ## Reviewing a plan
 
 The Trip drawer summary shows the destination, localized short date range and traveller count.

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { type AgentProgressEvent, type TripPlan } from "@trip/shared";
 import { quickPrompts } from "@/lib/planning/quick-prompts";
 import { translate } from "@/lib/i18n/locale";
@@ -8,6 +8,7 @@ import { ThinkingProcess } from "./ThinkingProcess";
 import { Composer } from "./Composer";
 import { MessageItem } from "./MessageItem";
 import { QuestionComposer } from "./QuestionComposer";
+import { TrajectoryTab } from "../trajectory/TrajectoryTab";
 import type { PendingAsk, QuestionAnswer, QuestionProgress } from "@/lib/workspace/ask-user";
 import type { PreparedAttachment } from "@/lib/chat/attachments";
 import type { Notice } from "@/lib/i18n/notice";
@@ -107,12 +108,53 @@ export function ChatPanel({
     };
   }, [empty]);
 
+  const [view, setView] = useState<"conversation" | "trajectory">("conversation");
+  const showTrajectory = view === "trajectory" && !phone;
+  const savedScroll = useRef<number | null>(null);
+  const choose = (next: "conversation" | "trajectory") => {
+    if (next === view) return;
+    if (next === "trajectory") savedScroll.current = stream.current?.scrollTop ?? 0;
+    setView(next);
+  };
+  useLayoutEffect(() => {
+    if (view !== "conversation" || savedScroll.current === null) return;
+    stream.current?.scrollTo({ top: savedScroll.current, behavior: "instant" });
+    savedScroll.current = null;
+  }, [view]);
+
   const prompts = useMemo(() => quickPrompts(), []);
   return (
     <section className="panel chat" aria-label={t("Chat")}>
+      {!phone && (
+        <div className="chat__tabs" role="tablist" aria-label={t("Chat view")}>
+          {(["conversation", "trajectory"] as const).map((id) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              id={`chat-tab-${id}`}
+              aria-controls={`chat-panel-${id}`}
+              aria-selected={view === id}
+              tabIndex={view === id ? 0 : -1}
+              onClick={() => choose(id)}
+              onKeyDown={(event) => {
+                if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+                const next = id === "conversation" ? "trajectory" : "conversation";
+                choose(next);
+                document.getElementById(`chat-tab-${next}`)?.focus();
+              }}
+            >
+              {t(id === "conversation" ? "Conversation" : "Trajectory")}
+            </button>
+          ))}
+        </div>
+      )}
       <div
         className="chat__stream"
+        id="chat-panel-conversation"
         ref={stream}
+        hidden={showTrajectory}
+        {...(phone ? {} : { role: "tabpanel", "aria-labelledby": "chat-tab-conversation" })}
         aria-busy={busy}
         data-more={more ? "true" : undefined}
       >
@@ -165,6 +207,16 @@ export function ChatPanel({
           </section>
         )}
       </div>
+      {showTrajectory && (
+        <div
+          className="chat__trajectory"
+          id="chat-panel-trajectory"
+          role="tabpanel"
+          aria-labelledby="chat-tab-trajectory"
+        >
+          <TrajectoryTab messages={messages} live={activity} busy={busy} />
+        </div>
+      )}
       {ask && onAnswer && onDismissAsk ? (
         <QuestionComposer
           key={ask.key}

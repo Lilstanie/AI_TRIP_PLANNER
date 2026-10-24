@@ -8,5 +8,75 @@
     "file": "apps/web/tests/e2e/mention-menu.e2e.mjs",
     "text": "// e2e-selectors: absent",
     "reason": "scripts/verify-e2e-selectors.mjs reads this directive to accept a selector that checks the removed assistant chip row stays gone."
+  },
+  {
+    "file": "apps/web/components/trajectory/layout.ts",
+    "text": "/*\n * Adapted from DeepSeek Harness (https://github.com/deepseek-ai/deepseek-harness), commit 687f282e86.\n * Copyright (c) 2026 DeepSeek. Licensed under the MIT licence; see THIRD_PARTY_NOTICES.md.\n */",
+    "reason": "MIT licence header that the upstream DeepSeek Harness licence requires on this copied file; THIRD_PARTY_NOTICES.md lists it (#668)."
+  },
+  {
+    "file": "apps/web/components/trajectory/locales.ts",
+    "text": "/*\n * Adapted from DeepSeek Harness (https://github.com/deepseek-ai/deepseek-harness), commit 687f282e86.\n * Copyright (c) 2026 DeepSeek. Licensed under the MIT licence; see THIRD_PARTY_NOTICES.md.\n */",
+    "reason": "MIT licence header that the upstream DeepSeek Harness licence requires on this copied file; THIRD_PARTY_NOTICES.md lists it (#668)."
+  },
+  {
+    "file": "apps/web/components/trajectory/timeline.ts",
+    "text": "/*\n * Adapted from DeepSeek Harness (https://github.com/deepseek-ai/deepseek-harness), commit 687f282e86.\n * Copyright (c) 2026 DeepSeek. Licensed under the MIT licence; see THIRD_PARTY_NOTICES.md.\n */",
+    "reason": "MIT licence header that the upstream DeepSeek Harness licence requires on this copied file; THIRD_PARTY_NOTICES.md lists it (#668)."
+  },
+  {
+    "file": "apps/web/components/trajectory/trajectory-preview.ts",
+    "text": "/*\n * Adapted from DeepSeek Harness (https://github.com/deepseek-ai/deepseek-harness), commit 687f282e86.\n * Copyright (c) 2026 DeepSeek. Licensed under the MIT licence; see THIRD_PARTY_NOTICES.md.\n */",
+    "reason": "MIT licence header that the upstream DeepSeek Harness licence requires on this copied file; THIRD_PARTY_NOTICES.md lists it (#668)."
+  },
+  {
+    "file": "apps/web/components/trajectory/trajectory-record.ts",
+    "text": "/*\n * Adapted from DeepSeek Harness (https://github.com/deepseek-ai/deepseek-harness), commit 687f282e86.\n * Copyright (c) 2026 DeepSeek. Licensed under the MIT licence; see THIRD_PARTY_NOTICES.md.\n */",
+    "reason": "MIT licence header that the upstream DeepSeek Harness licence requires on this copied file; THIRD_PARTY_NOTICES.md lists it (#668)."
+  },
+  {
+    "file": "apps/web/components/trajectory/trajectory-search-index.ts",
+    "text": "/*\n * Adapted from DeepSeek Harness (https://github.com/deepseek-ai/deepseek-harness), commit 687f282e86.\n * Copyright (c) 2026 DeepSeek. Licensed under the MIT licence; see THIRD_PARTY_NOTICES.md.\n */",
+    "reason": "MIT licence header that the upstream DeepSeek Harness licence requires on this copied file; THIRD_PARTY_NOTICES.md lists it (#668)."
+  },
+  {
+    "file": "apps/web/components/trajectory/trajectory-virtual-rows.ts",
+    "text": "/*\n * Adapted from DeepSeek Harness (https://github.com/deepseek-ai/deepseek-harness), commit 687f282e86.\n * Copyright (c) 2026 DeepSeek. Licensed under the MIT licence; see THIRD_PARTY_NOTICES.md.\n */",
+    "reason": "MIT licence header that the upstream DeepSeek Harness licence requires on this copied file; THIRD_PARTY_NOTICES.md lists it (#668)."
+  },
+  {
+    "file": "apps/web/components/trajectory/TrajectoryTable.tsx",
+    "text": "/*\n * Adapted from DeepSeek Harness (https://github.com/deepseek-ai/deepseek-harness), commit 687f282e86.\n * Copyright (c) 2026 DeepSeek. Licensed under the MIT licence; see THIRD_PARTY_NOTICES.md.\n */",
+    "reason": "MIT licence header that the upstream DeepSeek Harness licence requires on this copied file; THIRD_PARTY_NOTICES.md lists it (#668)."
+  },
+  {
+    "file": "apps/web/components/trajectory/TrajectoryTable.tsx",
+    "text": "/**\n * Render trajectory records as a dense ledger with turn and step separators.\n * Clicking ledger whitespace clears the active record or step selection.\n * @param props - Grouped trajectory data and whole-ledger fold state.\n * @returns The ledger and an optional local record inspector.\n */",
+    "reason": "MIT licence header that the upstream DeepSeek Harness licence requires on this copied file; THIRD_PARTY_NOTICES.md lists it (#668)."
+  },
+  {
+    "file": "apps/web/components/trajectory/TrajectoryTimeline.tsx",
+    "text": "/*\n * Adapted from DeepSeek Harness (https://github.com/deepseek-ai/deepseek-harness), commit 687f282e86.\n * Copyright (c) 2026 DeepSeek. Licensed under the MIT licence; see THIRD_PARTY_NOTICES.md.\n */",
+    "reason": "MIT licence header that the upstream DeepSeek Harness licence requires on this copied file; THIRD_PARTY_NOTICES.md lists it (#668)."
+  },
+  {
+    "file": "apps/web/components/trajectory/TrajectoryToolbar.tsx",
+    "text": "/*\n * Adapted from DeepSeek Harness (https://github.com/deepseek-ai/deepseek-harness), commit 687f282e86.\n * Copyright (c) 2026 DeepSeek. Licensed under the MIT licence; see THIRD_PARTY_NOTICES.md.\n */",
+    "reason": "MIT licence header that the upstream DeepSeek Harness licence requires on this copied file; THIRD_PARTY_NOTICES.md lists it (#668)."
+  },
+  {
+    "file": "apps/web/components/trajectory/TrajectoryView.tsx",
+    "text": "/*\n * Adapted from DeepSeek Harness (https://github.com/deepseek-ai/deepseek-harness), commit 687f282e86.\n * Copyright (c) 2026 DeepSeek. Licensed under the MIT licence; see THIRD_PARTY_NOTICES.md.\n */",
+    "reason": "MIT licence header that the upstream DeepSeek Harness licence requires on this copied file; THIRD_PARTY_NOTICES.md lists it (#668)."
+  },
+  {
+    "file": "apps/web/components/trajectory/TrajectoryView.tsx",
+    "text": "/**\n * Compact timeline over a turn-aware ledger of the stored conversation.\n * @param props - The mapped turns, their steps and the translator.\n * @returns The toolbar, timeline overview and ledger with its record inspector.\n */",
+    "reason": "MIT licence header that the upstream DeepSeek Harness licence requires on this copied file; THIRD_PARTY_NOTICES.md lists it (#668)."
+  },
+  {
+    "file": "apps/web/lib/trajectory/adapter.ts",
+    "text": "/**\n * Map stored messages and live progress events to the Trajectory ledger.\n * @param input - Messages in order, the live events of an unfinished request, and the translators.\n * @returns One turn per traveller message and one step per workflow round, with no timestamps.\n */",
+    "reason": "MIT licence header that the upstream DeepSeek Harness licence requires on this copied file; THIRD_PARTY_NOTICES.md lists it (#668)."
   }
 ]

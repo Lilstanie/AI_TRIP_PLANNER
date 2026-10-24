@@ -1,0 +1,125 @@
+/*
+ * Adapted from DeepSeek Harness (https://github.com/deepseek-ai/deepseek-harness), commit 687f282e86.
+ * Copyright (c) 2026 DeepSeek. Licensed under the MIT licence; see THIRD_PARTY_NOTICES.md.
+ */
+
+import type { AppLocale } from "@/lib/i18n/locale";
+
+const zh = {
+  "toolbar.aria": "轨迹工具栏",
+  "toolbar.turns": "轮次",
+  "toolbar.expandTurns": "展开所有轮次",
+  "toolbar.collapseTurns": "收起所有轮次",
+  "toolbar.calls": "调用",
+  "toolbar.expandCalls": "展开所有调用",
+  "toolbar.collapseCalls": "收起所有调用",
+  "toolbar.search": "搜索轨迹",
+  "toolbar.searchPlaceholder": "搜索",
+  "kind.user": "用户",
+  "kind.assistant": "助手",
+  "kind.tool": "工具",
+  "kind.subtool": "子工具",
+  "turn.label": "第 {turn} 轮",
+  "section.betweenTurns": "轮次之间",
+  "step.label": "第 {step} 步",
+  "group.message": "消息",
+  "status.failed": "失败",
+  "status.pending": "等待中",
+  "status.completed": "已完成",
+  "tab.summary": "摘要",
+  "tab.preview": "预览",
+  "tab.raw": "原文",
+  "tab.payload": "载荷",
+  "tab.result": "结果",
+  "record.noContent": "无内容",
+  "record.noPayload": "未捕获载荷",
+  "record.noResult": "未捕获结果",
+  "summary.toolCalls.one": "{count} 个工具调用",
+  "summary.toolCalls.other": "{count} 个工具调用",
+  "summary.steps.one": "{count} 个步骤",
+  "summary.steps.other": "{count} 个步骤",
+  "row.aria": "{step}{kind}，{content}",
+  "row.stepPrefix": "{step}，",
+  "row.collapsedSummary": "已收起的{kind}概述，{summary}",
+  "row.collapsedTurn": "轮次",
+  "row.collapsedCalls": "调用",
+  "details.event": "事件详情",
+  "details.resize": "调整事件详情宽度",
+  "details.close": "关闭详情",
+  "details.status": "状态",
+  "details.toolCalls": "工具调用",
+  "details.subtoolCalls": "子工具调用",
+  "details.result": "结果",
+  "details.assistantMessage": "助手消息",
+  "details.hierarchy": "层级",
+  "details.toolCall": "工具调用",
+  "timeline.aria": "轨迹时间线",
+  "timeline.overviewAria": "时间线概览；水平拖动可聚焦事件",
+} as const;
+
+export type TrajectoryKey = keyof typeof zh;
+
+const en: Record<TrajectoryKey, string> = {
+  "toolbar.aria": "Trajectory toolbar",
+  "toolbar.turns": "Turns",
+  "toolbar.expandTurns": "Expand turns",
+  "toolbar.collapseTurns": "Collapse turns",
+  "toolbar.calls": "Calls",
+  "toolbar.expandCalls": "Expand calls",
+  "toolbar.collapseCalls": "Collapse calls",
+  "toolbar.search": "Search trajectory",
+  "toolbar.searchPlaceholder": "Search",
+  "kind.user": "USER",
+  "kind.assistant": "ASSISTANT",
+  "kind.tool": "TOOL",
+  "kind.subtool": "SUBTOOL",
+  "turn.label": "Turn {turn}",
+  "section.betweenTurns": "Between turns",
+  "step.label": "Step {step}",
+  "group.message": "Message",
+  "status.failed": "Failed",
+  "status.pending": "Pending",
+  "status.completed": "Completed",
+  "tab.summary": "Summary",
+  "tab.preview": "Preview",
+  "tab.raw": "Raw",
+  "tab.payload": "Payload",
+  "tab.result": "Result",
+  "record.noContent": "No content",
+  "record.noPayload": "No payload captured",
+  "record.noResult": "No result captured",
+  "summary.toolCalls.one": "{count} tool call",
+  "summary.toolCalls.other": "{count} tool calls",
+  "summary.steps.one": "{count} step",
+  "summary.steps.other": "{count} steps",
+  "row.aria": "{step}{kind}, {content}",
+  "row.stepPrefix": "{step}, ",
+  "row.collapsedSummary": "Collapsed {kind} summary, {summary}",
+  "row.collapsedTurn": "turn",
+  "row.collapsedCalls": "calls",
+  "details.event": "Event details",
+  "details.resize": "Resize event details",
+  "details.close": "Close details",
+  "details.status": "Status",
+  "details.toolCalls": "Tool calls",
+  "details.subtoolCalls": "Subtool calls",
+  "details.result": "Result",
+  "details.assistantMessage": "Assistant message",
+  "details.hierarchy": "Hierarchy",
+  "details.toolCall": "Tool call",
+  "timeline.aria": "Trajectory timeline",
+  "timeline.overviewAria": "Timeline overview; drag horizontally to focus events",
+};
+
+export type TrajectoryTranslate = (
+  key: TrajectoryKey,
+  params?: Readonly<Record<string, string | number>>,
+) => string;
+
+export function createTrajectoryTranslate(locale: AppLocale): TrajectoryTranslate {
+  const dictionary: Record<TrajectoryKey, string> = locale === "zh" ? zh : en;
+  return (key, params) =>
+    dictionary[key].replace(/\{(\w+)\}/g, (placeholder, name: string) =>
+      String(params?.[name] ?? placeholder),
+    );
+}
