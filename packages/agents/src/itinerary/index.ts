@@ -390,7 +390,7 @@ function fallbackDraft(
         day,
         ...slot,
         location: place.name,
-        detail: `${place.name} (${place.category}) is a suggested stop; confirm timing and suitability before visiting.`,
+        detail: summaryCopy(language).suggestedStop(place.name, place.category),
       });
       added += 1;
       if (added === perDay) break;

@@ -152,15 +152,13 @@ function fallbackDraft(
   maxDailyPerPerson: number,
   language: InterfaceLanguage | undefined,
 ): DiningDraft {
-  const constraintText = preferences.length
-    ? ` Ask the venue to confirm these requirements directly: ${preferences.map(({ key, value }) => `${key}=${value}`).join(", ")}.`
-    : " Confirm ingredients and dietary suitability directly with the venue.";
+  const requirements = preferences.map(({ key, value }) => `${key}=${value}`).join(", ");
   return {
     summary: summaryCopy(language).diningCandidates(places.length),
     dailyBudgetPerPerson: Math.min(50, maxDailyPerPerson),
     picks: places.slice(0, 5).map((place) => ({
       name: place.name,
-      detail: `${place.category} candidate${place.rating ? ` with supplied rating ${place.rating}` : ""}.${constraintText}`,
+      detail: summaryCopy(language).diningPick(place.category, place.rating, requirements),
     })),
     assumptions: ["Cuisine, menu, certification and availability require direct confirmation."],
   };

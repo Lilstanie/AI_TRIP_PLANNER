@@ -192,7 +192,9 @@ try {
         `${width}-${language}: weather day text matches a day header (${lastDay})`,
       );
       check(
-        (await tips.locator(".trip-tips__packing").innerText()).includes("Waterproof jacket"),
+        (await tips.locator(".trip-tips__packing").innerText()).includes(
+          language === "zh" ? "防水外套" : "Waterproof jacket",
+        ),
         `${width}-${language}: weather-grounded packing renders as a list`,
       );
       await tips.scrollIntoViewIfNeeded();
