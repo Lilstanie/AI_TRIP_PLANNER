@@ -745,16 +745,16 @@ classDiagram
 
 ## 接口与实现
 
-| 接口             | 实现方                                                                                           | 说明                                                                        |
-| ---------------- | ------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------- |
-| `Specialist`     | `ItineraryAgent`, `TransportAgent`, `AccommodationAgent`, `DestinationGuideAgent`, `DiningAgent` | 一个 `invoke(SpecialistRequest)`；只有目的地指南不能修订                    |
-| `ToolGateway`    | `createToolGateway()` 返回的对象                                                                 | 每次规划运行一个                                                            |
-| `MapsPort`       | `MapsAdapter`（`maps.ts`）                                                                       | 负责人 B；fixture、OpenStreetMap 或 Google                                  |
-| `BookingPort`    | `BookingAdapter`（`booking.ts`）                                                                 | 负责人 C；先用 SerpApi，再用 Google Places 估算，或使用 fixture；不涉及支付 |
-| `WeatherPort`    | `WeatherAdapter`（`weather.ts`）                                                                 | 负责人 D；Google Weather、Open-Meteo 或气候上下文                           |
-| `MemoryStore`    | `PreferenceMemoryService`（`memory`）                                                            | 负责人 E                                                                    |
-| `JsonStore`      | `RedisRestOrLocalStore`（`createJsonStore()`）                                                   | 负责人 E；配置后使用 Redis REST，否则使用进程内存                           |
-| `BriefExtractor` | `chat.ts` 中的模型提取器，或无密钥时的 `extractBriefPatchLocally`                                | 负责人 A                                                                    |
+| 接口             | 实现方                                                                                           | 说明                                                                                                               |
+| ---------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| `Specialist`     | `ItineraryAgent`, `TransportAgent`, `AccommodationAgent`, `DestinationGuideAgent`, `DiningAgent` | 一个 `invoke(SpecialistRequest)`；只有目的地指南不能修订                                                           |
+| `ToolGateway`    | `createToolGateway()` 返回的对象                                                                 | 每次规划运行一个                                                                                                   |
+| `MapsPort`       | `MapsAdapter`（`maps.ts`）                                                                       | 负责人 B；fixture、OpenStreetMap 或 Google                                                                         |
+| `BookingPort`    | `BookingAdapter`（`booking.ts`）                                                                 | 负责人 C；先用 SerpApi，仅在选择 Google Maps 且有密钥时再用 Google Places 估算；fixture 仅用于模拟模式；不涉及支付 |
+| `WeatherPort`    | `WeatherAdapter`（`weather.ts`）                                                                 | 负责人 D；Google Weather、Open-Meteo 或气候上下文                                                                  |
+| `MemoryStore`    | `PreferenceMemoryService`（`memory`）                                                            | 负责人 E                                                                                                           |
+| `JsonStore`      | `RedisRestOrLocalStore`（`createJsonStore()`）                                                   | 负责人 E；配置后使用 Redis REST，否则使用进程内存                                                                  |
+| `BriefExtractor` | `chat.ts` 中的模型提取器，或无密钥时的 `extractBriefPatchLocally`                                | 负责人 A                                                                                                           |
 
 `NotificationService` 和 `AuthService` 是桩实现：通知仅写入日志，每次请求均使用演示用户。
 
