@@ -10,7 +10,7 @@
 
 ## 4.1 活动图：Arrange Accommodation（UC-C1）
 
-四条泳道对应四个参与者。LLM 只在 *Choose one candidate id per segment* 这一步使用一次，它的输出在任何定价之前都会先经过校验。
+四条泳道对应四个参与者。LLM 只在 _Choose one candidate id per segment_ 这一步使用一次，它的输出在任何定价之前都会先经过校验。
 渲染图：[`c-activity.html`](../../architecture-diagrams/stage1-member-c/rendered/c-activity.html)（Archify，[源文件](../../architecture-diagrams/stage1-member-c/specs/c-activity.workflow.json)、[检查记录](../../architecture-diagrams/stage1-member-c/evidence/c-activity.visual-check.html)）。
 
 ```mermaid
@@ -114,7 +114,7 @@ sequenceDiagram
     WF->>AC: invoke(brief, revision, previous, allocation − saving)
     AC->>BK: searchStays(…)
     BK-->>AC: candidates
-    AC->>AC: budget revision: cheapest eligible, preferences kept
+    AC->>AC: budget revision: best eligible that fits the share, else cheapest; preferences kept
     AC-->>BD: revised proposal
     WF->>CP: detectConflicts(revised proposals, brief)
     CP-->>WF: remaining conflicts and planScore
@@ -177,13 +177,13 @@ stateDiagram-v2
   end note
 ```
 
-| 状态 | 界面状态 | 进入 / 退出行为 |
-| --- | --- | --- |
-| WaitingForTransport | planning | 只有在同一轮中已经启动了交通时才等待。 |
-| Searching, Choosing, Priced | planning | LLM 只在 Choosing 中起作用；无效输出会经由确定性选择回到该状态。 |
-| Kept | planning | 已预订住处，不搜索；floorCost 为 0，因此永远不会被要求削减。 |
-| UnderReview | planning | 成员 C 的 `detectConflicts` 决定下一个状态。 |
-| Revising | planning | 偏好不变，分配额更新；只有 `planScore` 改善时才保留这一轮。 |
-| Draft | draft | 没有修订请求指向该区段。 |
-| NeedsYou | needs_you | 由旅行者决定：提高预算、更改日期或编辑计划。 |
-| Failed | — | 运行停止，并指明失败的是住宿 specialist。 |
+| 状态                        | 界面状态  | 进入 / 退出行为                                                  |
+| --------------------------- | --------- | ---------------------------------------------------------------- |
+| WaitingForTransport         | planning  | 只有在同一轮中已经启动了交通时才等待。                           |
+| Searching, Choosing, Priced | planning  | LLM 只在 Choosing 中起作用；无效输出会经由确定性选择回到该状态。 |
+| Kept                        | planning  | 已预订住处，不搜索；floorCost 为 0，因此永远不会被要求削减。     |
+| UnderReview                 | planning  | 成员 C 的 `detectConflicts` 决定下一个状态。                     |
+| Revising                    | planning  | 偏好不变，分配额更新；只有 `planScore` 改善时才保留这一轮。      |
+| Draft                       | draft     | 没有修订请求指向该区段。                                         |
+| NeedsYou                    | needs_you | 由旅行者决定：提高预算、更改日期或编辑计划。                     |
+| Failed                      | —         | 运行停止，并指明失败的是住宿 specialist。                        |

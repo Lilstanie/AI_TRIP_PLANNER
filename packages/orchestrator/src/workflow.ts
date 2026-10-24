@@ -276,6 +276,7 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
                   revision: {
                     tripId: state.brief.tripId,
                     targetAgent: specialist.name,
+                    kind: "request",
                     reason: mention.message,
                     constraints: [mention.message],
                   },

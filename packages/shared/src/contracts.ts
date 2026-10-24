@@ -207,7 +207,7 @@ export const StayCandidate = z.object({
   area: z.string(),
   pricePerNight: z.number().positive(),
   rating: z.number().min(0).max(10),
-  freeCancellation: z.boolean(),
+  freeCancellation: z.boolean().optional(),
 
   grounded: z.boolean().optional(),
   location: z.object({ latitude: z.number(), longitude: z.number() }).optional(),
@@ -319,9 +319,11 @@ export const AgentProposal = z.object({
 });
 export type AgentProposal = z.infer<typeof AgentProposal>;
 
+export const RevisionKind = z.enum(["budget", "time", "geography", "infeasible", "request"]);
 export const RevisionRequest = z.object({
   tripId: z.string(),
   targetAgent: z.enum(AGENT_NAMES),
+  kind: RevisionKind,
   reason: z.string(),
   constraints: z.array(z.string()),
 

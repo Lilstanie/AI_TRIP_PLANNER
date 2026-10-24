@@ -368,6 +368,7 @@ export const WORKSPACE_ZH = {
   "Planning detail": "规划详情",
   "Free cancellation": "免费取消",
   "No free cancellation": "不支持免费取消",
+  "Cancellation terms unknown": "取消条款未知",
   " availability can change before booking": " 预订前可用情况可能变化",
   " estimated price; verify before booking": " 价格为估算，请在预订前核实",
   " availability is not live verified": " 可用情况未经实时验证",

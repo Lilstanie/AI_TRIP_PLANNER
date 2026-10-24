@@ -64,7 +64,13 @@ describe("evaluateAgentLabPlan", () => {
   it("fails a plan that carries conflicts", () => {
     const plan = clone();
     plan.conflicts = [
-      { tripId: plan.tripId, targetAgent: "transport", reason: "over budget", constraints: [] },
+      {
+        tripId: plan.tripId,
+        targetAgent: "transport",
+        kind: "budget",
+        reason: "over budget",
+        constraints: [],
+      },
     ];
     expect(failed(plan)).toEqual(["no-conflicts"]);
   });

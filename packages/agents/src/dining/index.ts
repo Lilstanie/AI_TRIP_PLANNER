@@ -88,9 +88,11 @@ function dietaryPreferences(preferences: UserPreference[]): UserPreference[] {
 function isBudgetRevision(revision?: RevisionRequest): boolean {
   return Boolean(
     revision &&
-    /budget|cost|cheaper|overrun|cut|reduce/i.test(
-      [revision.reason, ...revision.constraints].join(" "),
-    ),
+    (revision.kind === "budget" ||
+      (revision.kind === "request" &&
+        /budget|cost|cheaper|overrun|cut|reduce/i.test(
+          [revision.reason, ...revision.constraints].join(" "),
+        ))),
   );
 }
 
