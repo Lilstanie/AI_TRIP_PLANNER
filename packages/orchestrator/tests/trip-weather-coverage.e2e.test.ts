@@ -69,8 +69,8 @@ describe("TP-38 weather coverage", () => {
     const guide = plan.sections.find((section) => section.id === "destination-guide")!.proposal!;
     const text = JSON.stringify(guide);
     for (const city of ["Tokyo", "Kyoto"])
-      for (const date of ["2027-06-15", "2027-06-16", "2027-06-17", "2027-06-18"])
-        expect(text).toContain(city + ", " + date);
+      for (const day of ["Tue, 15 June", "Wed, 16 June", "Thu, 17 June", "Fri, 18 June"])
+        expect(text).toContain(city + ", " + day);
     expect(text).toContain("weather unavailable");
     expect(text).toContain("historical climate, not a forecast");
   });

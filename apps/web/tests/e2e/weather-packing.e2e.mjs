@@ -170,7 +170,9 @@ try {
       if (!(await tips.evaluate((node) => node.open))) await tips.locator("summary").click();
       const text = await tips.innerText();
       check(
-        text.includes("2027-06-18") && text.includes("2027-06-16") && text.includes("unavailable"),
+        text.includes("Fri, 18 June") &&
+          text.includes("Wed, 16 June") &&
+          text.includes("unavailable"),
         `${width}-${language}: dated weather and unavailable day are visible`,
       );
       check(
