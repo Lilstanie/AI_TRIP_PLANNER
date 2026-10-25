@@ -196,7 +196,7 @@ export function TripFactChips(props: Props) {
           anchor={anchor}
           onClose={(reason) => requestClose(() => close(reason))}
           modal
-          hidden={phone && origin.view !== view}
+          hidden={origin.view !== view}
           leaving={shown.leaving}
           className={`fact-popover--${shown.value}`}
         >

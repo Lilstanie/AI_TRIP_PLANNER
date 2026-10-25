@@ -332,6 +332,14 @@ try {
     );
     await page.locator(".phone-tabbar").getByRole("tab", { name: /^Map/ }).click();
     check(!(await budgetDialog.isVisible()), "Brief yields the screen when switching tabs");
+    await page.setViewportSize({ width: 521, height: 844 });
+    await page.waitForFunction(() => innerWidth === 521);
+    check(
+      !(await budgetDialog.isVisible()),
+      "Brief stays hidden when a phone tab is widened to desktop",
+    );
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.waitForFunction(() => innerWidth === 390);
     await page.locator(".phone-tabbar").getByRole("tab", { name: /^Chat/ }).click();
     check((await budget.inputValue()) === "5100", "Brief tab switches retain unsubmitted values");
     await page.waitForFunction(() => document.activeElement?.id === "fact-budgetTotal");
