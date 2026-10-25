@@ -519,7 +519,12 @@ export async function runTripChat(
   ) =>
     mem.appendShortTerm(
       request.tripId,
-      ChatTurn.parse({ role: "assistant", content: reply, pendingBriefConfirmation }),
+      ChatTurn.parse({
+        role: "assistant",
+        content: reply,
+        pendingBriefConfirmation,
+        confirmedBriefDestination: intake.confirmedDestination,
+      }),
     );
 
   const history = (await mem.getShortTerm(request.tripId)).slice(0, -1);
@@ -559,11 +564,11 @@ export async function runTripChat(
       await remember(reply);
       return { reply, plan, assistant: mentions[0]! };
     }
-    const known = BriefPatchSchema.parse({ ...request.known });
+    const known = BriefPatchSchema.parse(intake.known);
     const answer = await mentionAnswer(request, mentions[0]!, model);
     const reply = `${answer}\n\n${briefAsk(request, missingFields(known, request.tripId))}`;
     await remember(reply);
-    throw new IncompleteBriefError([], request.known ?? {}, reply, mentions[0]);
+    throw new IncompleteBriefError([], known, reply, mentions[0]);
   }
 
   try {

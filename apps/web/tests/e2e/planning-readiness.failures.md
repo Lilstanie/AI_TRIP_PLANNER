@@ -1,5 +1,7 @@
 # Planning readiness failure inventory
 
+- UI-prefixed destination answers loop or lose their confirmed name after another missing-field answer.
+- Memory-off mention replies return learned preferences from known state.
 - A conjunction destination is accepted by plan mode while local chat asks for clarification.
 - Model/tool and extractor paths apply different readiness rules (covered by the public chat matrix).
 - Choosing the full name or distinct stops loses known dates, budget or group size.

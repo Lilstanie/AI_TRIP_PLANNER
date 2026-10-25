@@ -1,6 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { describe, expect, it, afterAll, vi } from "vitest";
 import { ChatTurn, type ChatRequest, type TripBrief } from "@trip/shared";
+import { formatAskAnswers } from "../../../apps/web/lib/workspace/ask-user";
 import { AskUserError, runTripChat } from "../src/chat";
 import { brief, itinerary, memoryStore, scriptedModel, tools } from "./chat-test-fixtures";
 
@@ -101,6 +102,39 @@ describe.each(entries)("brief intake via %s", (entry) => {
     const full = { ...candidate, destination: "Trinidad and Tobago" };
     expect((await execute(entry, full, "Trinidad and Tobago", [], full)).type).toBe("ready");
   });
+  it.each(["Destination", "目的地"])("accepts the UI answer headed %s", async (header) => {
+    const full = { ...candidate, destination: "Trinidad and Tobago" };
+    const questions = [{ id: "destination-conjunction", header, question: "Which place?" }];
+    const message = formatAskAnswers(questions, [
+      { id: "destination-conjunction", selected: [full.destination] },
+    ]);
+    expect((await execute(entry, full, message, [], full)).type).toBe("ready");
+  });
+  it("preserves the accepted destination across later answers", async () => {
+    const full = { ...candidate, destination: "Trinidad and Tobago" };
+    const prompt = ChatTurn.parse({
+      role: "assistant",
+      content: "What is your budget?",
+      confirmedBriefDestination: full.destination,
+    });
+    expect((await execute(entry, full, "Budget: 3000 AUD", [prompt])).type).toBe("ready");
+  });
+  it("clears destination acceptance after the destination changes", async () => {
+    const prompt = ChatTurn.parse({
+      role: "assistant",
+      content: "What is your budget?",
+      confirmedBriefDestination: "Trinidad and Tobago",
+    });
+    const result = await execute(
+      entry,
+      { ...candidate, destination: "Antigua and Barbuda" },
+      "Change destination",
+      [prompt],
+    );
+    expect(result.type).toBe("destination-conjunction");
+    expect(result.turns.at(-1)?.confirmedBriefDestination).toBeUndefined();
+    expect(result.dispatches).toBe(0);
+  });
   it("asks for past dates", async () => {
     expect((await execute(entry, { ...candidate, dates: ["2025-01-10", "2025-01-11"] })).type).toBe(
       "past-trip-dates",
@@ -147,7 +181,6 @@ describe.each(entries)("brief intake via %s", (entry) => {
     expect(result.turns.at(-1)?.pendingBriefConfirmation).toEqual({
       kind: "historical_dates",
       dates: historical.dates,
-      destination: historical.destination,
     });
   });
   it("rejects legacy prompt wording without typed state", async () => {

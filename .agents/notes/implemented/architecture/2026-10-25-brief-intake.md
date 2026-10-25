@@ -16,9 +16,10 @@ historical-date outcomes. Entry adapters supply patches; every planning attempt 
 Explicit dates and traveller counts override extracted values, inclusive duration is applied once,
 and memory-off excludes learned preferences.
 
-`ChatTurn` adds optional `pendingBriefConfirmation` with kind `historical_dates`, a real date pair
-and the already clarified destination.
-The destination survives the next date answer; an existing plan also preserves its accepted name.
+`ChatTurn` adds optional `pendingBriefConfirmation` with kind `historical_dates` and a real date pair.
+A separate optional `confirmedBriefDestination` preserves an accepted full place name across later
+answers, including missing-field questions. English and Chinese UI answer headers are accepted.
+Changing the destination clears that acceptance; an existing plan preserves its accepted name.
 Only the latest assistant turn can authorize an explicit historical confirmation for those dates.
 The server writes this metadata when asking; clients and models cannot submit it as request state.
 Old turns remain readable. Text-only historical questions ask again instead of guessing from prose.

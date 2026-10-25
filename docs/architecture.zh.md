@@ -65,7 +65,8 @@ supervisor 只选择某个节点需要哪些 specialist 工具。控制路径、
    模型补齐行程需求后，即使没有调用 `replan_trip`，也会经过同一个检查入口。
    历史日期确认由最近一条助手 `ChatTurn.pendingBriefConfirmation` 绑定具体起止日期，
    并要求旅行者明确回复；提示文案不承载状态，旧的纯文本提示会重新询问。
-   匹配目的地的坐标决定当地日期；已有计划仍可编辑。参见[接收决策](../.agents/notes/implemented/architecture/2026-10-25-brief-intake.md)。
+   服务端的 `ChatTurn.confirmedBriefDestination` 让完整地名的确认在后续问题中保留，
+   地名改变时该确认失效。匹配目的地的坐标决定当地日期；已有计划仍可编辑。参见[接收决策](../.agents/notes/implemented/architecture/2026-10-25-brief-intake.md)。
 2. 工作流运行 specialist、检测冲突、对目标 specialist 最多执行 `maxRounds` 轮修订，
    然后组装 `TripPlan`。计划的各部分分别携带自己的草稿/需要用户处理状态，
    `conflicts` 列出仍未解决的请求。

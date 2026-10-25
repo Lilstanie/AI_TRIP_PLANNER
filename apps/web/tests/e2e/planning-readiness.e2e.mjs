@@ -39,7 +39,7 @@ check(
 );
 const full = await request("plan-full-name", {
   tripId: brief.tripId,
-  message: "Trinidad and Tobago",
+  message: "Destination: Trinidad and Tobago",
   mode: "plan",
   brief,
   known: ask.known,
@@ -66,7 +66,7 @@ check(
 );
 const combinedDates = await request("combined-dates", {
   tripId: combined.tripId,
-  message: combined.destination,
+  message: `Destination: ${combined.destination}`,
   mode: "plan",
   brief: combined,
   known: combinedAsk.known,
@@ -126,5 +126,39 @@ const corrected = await request("future-correction", {
   brief: { ...historical, dates: brief.dates },
 });
 check(corrected.type === "complete", "future correction proceeds");
+const missingId = `${brief.tripId}-missing`;
+const partial = { destination: brief.destination, dates: brief.dates, groupSize: 1 };
+const missingAsk = await request("missing-destination", {
+  tripId: missingId,
+  message: "Plan it",
+  known: partial,
+});
+check(
+  missingAsk.questions?.[0]?.id === "destination-conjunction",
+  "partial brief clarifies destination",
+);
+const missingBudget = await request("missing-budget", {
+  tripId: missingId,
+  message: `Destination: ${brief.destination}`,
+  known: missingAsk.known,
+});
+check(missingBudget.type === "needs_info", "UI destination answer advances to missing budget");
+const budgetAdded = await request("missing-budget-added", {
+  tripId: missingId,
+  message: "Budget: 3000 AUD",
+  known: { ...missingBudget.known, budgetTotal: 3000 },
+});
+check(budgetAdded.type === "complete", "confirmed destination survives the missing budget answer");
+const memoryOff = await request("memory-off-mention", {
+  tripId: `${brief.tripId}-memory`,
+  message: "Suggest food",
+  mentions: ["dining"],
+  known: { learnedPreferences: ["Vegetarian"] },
+  assistant: { style: "neutral", memory: false },
+});
+check(
+  memoryOff.type === "needs_info" && memoryOff.known?.learnedPreferences === undefined,
+  "memory-off mention excludes learned preferences",
+);
 writeFileSync(`${out}/checks.json`, JSON.stringify(results, null, 2));
 process.exitCode = results.some((r) => !r.ok) ? 1 : 0;

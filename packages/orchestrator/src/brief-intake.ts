@@ -134,12 +134,16 @@ export type BriefReadiness =
 
 export class BriefIntake {
   private current: BriefPatch & Partial<Pick<TripBrief, "userId" | "accommodation">>;
+  private readonly previousTurn: ChatTurn | undefined;
+  private acceptedDestination: string | undefined;
 
   constructor(
     private readonly request: ChatRequest,
-    private readonly history: ChatTurn[],
+    history: ChatTurn[],
     private readonly clock: () => Date,
   ) {
+    this.previousTurn = [...history].reverse().find((turn) => turn.role === "assistant");
+    this.acceptedDestination = this.previousTurn?.confirmedBriefDestination;
     this.current = mergeBriefPatch({}, { ...request.known, ...request.brief });
     if (request.brief) this.current = { ...request.brief, ...this.current };
     if (request.assistant?.memory === false) delete this.current.learnedPreferences;
@@ -147,6 +151,14 @@ export class BriefIntake {
 
   get known(): PartialTripBrief {
     return this.current;
+  }
+
+  get confirmedDestination(): string | undefined {
+    const destination = this.current.destination;
+    return destination === this.acceptedDestination ||
+      destination === this.request.plan?.brief.destination
+      ? destination
+      : undefined;
   }
 
   update(patch: BriefPatch, message: string): void {
@@ -187,15 +199,14 @@ export class BriefIntake {
   readiness(): BriefReadiness {
     const { request } = this;
     const destination = this.current.destination;
-    const pending = [...this.history]
-      .reverse()
-      .find((turn) => turn.role === "assistant")?.pendingBriefConfirmation;
-    const confirmedDestination =
-      destination === request.plan?.brief.destination ||
-      destination === pending?.destination ||
-      (destination === request.known?.destination &&
-        request.message.trim().toLocaleLowerCase() === destination?.toLocaleLowerCase());
-    if (destination && /\s+and\s+/iu.test(destination) && !confirmedDestination) {
+    const pending = this.previousTurn?.pendingBriefConfirmation;
+    const selectsDestination = request.message.split(/\r?\n/u).some((line) => {
+      const answer = line.trim().replace(/^(?:destination|目的地)\s*[:：]\s*/iu, "");
+      return answer.toLocaleLowerCase() === destination?.toLocaleLowerCase();
+    });
+    if (destination === request.known?.destination && selectsDestination)
+      this.acceptedDestination = destination;
+    if (destination && /\s+and\s+/iu.test(destination) && !this.confirmedDestination) {
       const chinese = request.interfaceLanguage === "zh";
       return {
         status: "ambiguous_destination",
@@ -239,7 +250,7 @@ export class BriefIntake {
       return {
         status: "historical_dates",
         askUser: pastDateAsk(brief, request.interfaceLanguage),
-        pending: { kind: "historical_dates", dates: brief.dates, destination: brief.destination },
+        pending: { kind: "historical_dates", dates: brief.dates },
       };
     return { status: "ready", brief };
   }

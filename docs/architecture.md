@@ -61,7 +61,9 @@ step.
    confirmation. A model that completes the brief reaches the same gate even without calling
    `replan_trip`. Historical confirmation uses the latest assistant `ChatTurn.pendingBriefConfirmation`,
    bound to the exact date pair, plus an explicit traveller answer. Prompt wording carries no state;
-   legacy text-only prompts ask again. Matching destination coordinates determine the local calendar
+   legacy text-only prompts ask again. The server-owned `ChatTurn.confirmedBriefDestination` preserves
+   an accepted full place name across later questions and clears when that destination changes.
+   Matching destination coordinates determine the local calendar
    date; existing plans remain editable. See the [intake decision](../.agents/notes/implemented/architecture/2026-10-25-brief-intake.md).
 2. The workflow runs applicable specialists, detects conflicts, revises targeted specialists for up to
    `maxRounds` rounds and assembles a `TripPlan` whose sections carry their own draft/needs-you state

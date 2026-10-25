@@ -5,6 +5,7 @@ Written before implementation for architecture review item 1.
 - Plan, offline partial/submitted, model replan and model end-of-turn can disagree on readiness.
 - A model completes a partial brief without calling replan; it must still reach the same gate.
 - Ambiguous `and` destinations bypass clarification through plan, extractor or model entry.
+- UI-formatted English/Chinese destination answers must work and survive later missing-field answers.
 - Confirming the literal place name or choosing `&` must proceed; ordinary destinations remain unchanged.
 - A missing/invalid brief, including impossible or reversed dates, must never invoke specialists.
 - Past dates need explicit confirmation for the same date pair, independent of prompt wording/language.
