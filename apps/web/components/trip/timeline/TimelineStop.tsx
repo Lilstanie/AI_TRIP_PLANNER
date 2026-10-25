@@ -18,6 +18,7 @@ import {
   CloseIcon,
   ComposeIcon,
   MapPinIcon,
+  RouteIcon,
   SuitcaseIcon,
 } from "../../ui/icons";
 import { ItemForm, PlaceSearch, TimeForm } from "./StopForms";
@@ -216,6 +217,20 @@ export function TimelineStop({
         icon: <CalendarIcon />,
         disabled: locked,
         onSelect: () => open("schedule"),
+      });
+    }
+    if (place?.location) {
+      const { latitude, longitude } = place.location;
+      items.push({
+        label: t("Open in Maps"),
+        icon: <RouteIcon />,
+        separated: true,
+        onSelect: () =>
+          window.open(
+            `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`,
+            "_blank",
+            "noopener",
+          ),
       });
     }
     for (const progress of ["planned", "visited", "skipped"] as const) {

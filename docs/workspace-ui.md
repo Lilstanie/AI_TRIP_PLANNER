@@ -738,8 +738,9 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   Each stop's "…" menu (`ActionMenu`, a `role="menu"`; arrow keys move, Escape closes it and returns
   focus to its trigger without closing the drawer) offers Move earlier and Move later (not on the first
   or last stop of a day), Move to another day (opens a day picker in the place card), Move to ideas,
-  Replace place (opens the place search in the card), Edit details, Add or Edit note, Mark as booked and
-  Remove. An idea offers Schedule on a day instead of the moves, and a restaurant suggestion offers only
+  Replace place (opens the place search in the card), Open in Maps (only when the stop's place has
+  coordinates; it opens Google Maps directions to them in a new tab, which hands off to the phone's maps
+  app and needs no API call), Edit details, Add or Edit note, Mark as booked and Remove. An idea offers Schedule on a day instead of the moves, and a restaurant suggestion offers only
   Schedule on a day and Remove. Details, notes, booked and visit progress apply in the browser at once. Move earlier, Move later, Move to
   another day, Move to ideas and Remove are checked by the server like any timeline edit, and an accepted one
   applies at once. Each settles the plan the way a server edit does: the budget
