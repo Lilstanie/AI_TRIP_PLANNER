@@ -53,7 +53,7 @@ try {
   await page.locator(".chat-empty__suggestions").waitFor();
 
   check(
-    (await page.locator(".chat-empty h3").count()) === 0,
+    (await page.locator(".chat-empty h3").count()) === 0, // e2e-selectors: absent
     "desktop blank: no Where to next card",
   );
   check(

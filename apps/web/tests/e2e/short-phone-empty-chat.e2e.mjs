@@ -73,7 +73,7 @@ try {
         );
         return {
           targets,
-          card: Boolean(document.querySelector(".chat-empty h3")),
+          card: Boolean(document.querySelector(".chat-empty h3")), // e2e-selectors: absent
           overflow: document.scrollingElement.scrollWidth - window.innerWidth,
         };
       });
