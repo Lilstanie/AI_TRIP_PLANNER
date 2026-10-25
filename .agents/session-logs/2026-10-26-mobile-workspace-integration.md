@@ -2,7 +2,7 @@
 date: 2026-10-26
 author: OpenAI Codex with DeepSeek review
 branch: feature/TP-98-mobile-workspace-redesign
-pr: none
+pr: 720
 area: apps/web, docs
 contract-impact: none
 ---
@@ -31,7 +31,7 @@ browsing context and edit ownership.
 ## Validation
 
 - `pnpm --filter @trip/web e2e phone-state`: passed at 390x844 and 360x800 in 95 seconds;
-  `output/e2e/runner/2026-10-25T16-31-52-120Z.json`.
+  `output/e2e/runner/2026-10-25T16-35-27-759Z.json`.
 - `phone-map`, `phone-mine`, `phone-navigation`, `phone-browsing-context`, `phone-planning-flow`,
   `phone-editing`, `phone-shell --prod` and the desktop/phone itinerary journeys passed.
 - `pnpm --filter @trip/web test`: 57 files and 642 tests passed.
