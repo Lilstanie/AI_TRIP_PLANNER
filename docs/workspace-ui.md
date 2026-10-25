@@ -699,7 +699,7 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   zig-zag. No route is requested just to draw a line. The focused day (the selected stop's day, or
   every day when nothing is selected) is drawn Apple Maps style in its day colour over a
   `--route-casing`, with a white chevron at the middle of each leg pointing to the next stop and
-  white dashes flowing from stop to stop; other days are a thin static `--text-dim` line.
+  white dashes flowing from stop to stop; other days are a thin static `--text-dim` line. A leg whose verified route names a travel mode also carries a round badge at the midpoint between its two stops, with a walking, public transport, driving or cycling glyph and that mode as its accessible name; a leg drawn as an arc has no verified route and so no badge. The badge sits under the place markers, so a stop's label is never covered.
   Dash animation pauses while the map panel or document is hidden, without discarding the map, camera
   or selection. It also respects reduced motion. OSM draws static routes without an icon animation loop. The dashes
   move in one `requestAnimationFrame` loop throttled to about 30 frames a second, which stops when

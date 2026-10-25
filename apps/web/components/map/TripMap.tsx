@@ -368,6 +368,7 @@ export function TripMap({
       colors: routeColors(root.current),
       reducedMotion: false,
       animationEnabled: false,
+      locale,
     });
     routeLayer.current = layer;
     return () => {

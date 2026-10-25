@@ -1,9 +1,17 @@
+import type { RouteMode } from "@/lib/integrations/google";
+
 export type Coordinate = { lat: number; lng: number };
 
 export type RouteStop = { placeId: string; day?: number; position: Coordinate };
-export type RouteLeg = { from: RouteStop; to: RouteStop; polyline?: string };
+export type RouteLeg = { from: RouteStop; to: RouteStop; polyline?: string; mode?: RouteMode };
 export type DayRoute = { day?: number; legs: RouteLeg[] };
-type VerifiedRoute = { from: string; to: string; status: string; polyline?: string };
+type VerifiedRoute = {
+  from: string;
+  to: string;
+  status: string;
+  polyline?: string;
+  mode?: RouteMode;
+};
 
 export function dayRoutes(
   stops: readonly RouteStop[],
@@ -12,7 +20,7 @@ export function dayRoutes(
   const verified = new Map(
     routes
       .filter((route) => route.status === "ok" && route.polyline)
-      .map((route) => [`${route.from}>${route.to}`, route.polyline!]),
+      .map((route) => [`${route.from}>${route.to}`, route] as const),
   );
   const days = new Map<number | undefined, RouteStop[]>();
   for (const stop of stops) {
@@ -23,8 +31,11 @@ export function dayRoutes(
   return [...days].flatMap(([day, list]) => {
     const legs = list.slice(1).map((to, index) => {
       const from = list[index]!;
-      const polyline = verified.get(`${from.placeId}>${to.placeId}`);
-      return polyline ? { from, to, polyline } : { from, to };
+      const route = verified.get(`${from.placeId}>${to.placeId}`);
+      if (!route) return { from, to };
+      return route.mode
+        ? { from, to, polyline: route.polyline!, mode: route.mode }
+        : { from, to, polyline: route.polyline! };
     });
     return legs.length ? [{ day, legs }] : [];
   });

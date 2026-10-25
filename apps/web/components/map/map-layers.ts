@@ -9,8 +9,9 @@ import {
   type DayRoute,
 } from "@/lib/map/itinerary-route";
 import { categoryIcon, placeCategory } from "@/lib/map/place-category";
-import type { GooglePlace, RouteResult } from "@/lib/integrations/google";
-import type { MapPolyline, MapRuntime } from "./google-maps-sdk";
+import { routeModeIcon, routeModeLabel } from "@/lib/map/route-mode";
+import type { GooglePlace, RouteMode, RouteResult } from "@/lib/integrations/google";
+import type { MapMarker, MapPolyline, MapRuntime } from "./google-maps-sdk";
 
 export function placeName(place: GooglePlace) {
   return place.displayName?.text ?? place.formattedAddress ?? "Activity";
@@ -73,6 +74,28 @@ const ARROW = {
   scale: 1.6,
 };
 
+function modeBadge(
+  runtime: MapRuntime,
+  leg: { from: { position: Coordinate }; to: { position: Coordinate } },
+  mode: RouteMode,
+  locale: AppLocale,
+) {
+  const content = document.createElement("span");
+  content.className = "trip-map-leg-mode";
+  content.appendChild(routeModeIcon(mode));
+  const marker = new runtime.maps.marker.AdvancedMarkerElement({
+    map: runtime.map,
+    position: {
+      lat: (leg.from.position.lat + leg.to.position.lat) / 2,
+      lng: (leg.from.position.lng + leg.to.position.lng) / 2,
+    },
+    title: translate(locale, routeModeLabel[mode]),
+    content,
+  });
+  marker.zIndex = 0;
+  return marker;
+}
+
 export function drawItineraryRoutes({
   runtime,
   lines,
@@ -81,6 +104,7 @@ export function drawItineraryRoutes({
   colors,
   reducedMotion,
   animationEnabled = !reducedMotion,
+  locale = "en",
 }: {
   runtime: MapRuntime;
   lines: DayRoute[];
@@ -89,10 +113,12 @@ export function drawItineraryRoutes({
   colors: RouteColors;
   reducedMotion: boolean;
   animationEnabled?: boolean;
+  locale?: AppLocale;
 }) {
   const { maps, map } = runtime;
   const drawn: MapPolyline[] = [];
   const flowing: MapPolyline[] = [];
+  const badges: MapMarker[] = [];
   for (const line of lines) {
     const active = focusDay === undefined || line.day === focusDay;
     const color = active ? colors.day(line.day) : colors.muted;
@@ -147,6 +173,7 @@ export function drawItineraryRoutes({
         drawn.push(dashes);
         flowing.push(dashes);
       }
+      if (leg.mode) badges.push(modeBadge(runtime, leg, leg.mode, locale));
     }
   }
 
@@ -190,6 +217,9 @@ export function drawItineraryRoutes({
       stop = undefined;
       document.removeEventListener("visibilitychange", updateAnimation);
       drawn.forEach((line) => line.setMap(null));
+      badges.forEach((badge) => {
+        badge.map = null;
+      });
     },
     {
       setAnimationEnabled(value: boolean) {
