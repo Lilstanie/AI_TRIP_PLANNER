@@ -188,6 +188,15 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     rejected brief opens the editor of the first fact at fault, with the error beside the field.
   - The trip title stays in the top bar at 1250 px and wider. Below that the destination chip names
     the trip and the title is kept for assistive technology only.
+- **Map on demand.** On desktop a chat with no plan shows the chat alone, centred at up to 880 px.
+  When the first plan arrives the map slides in from the right over 420 ms and the chat narrows to
+  the split below; a new chat slides it out again. The separator exists only while the map is shown.
+  Tablet and phone layouts are unchanged.
+- **Message actions.** Every message has a copy button under it (hover or focus on a pointer
+  device, always visible on touch). A traveller's message without attachments also has an edit
+  button: it turns the bubble into a text box, and Resend removes that message and everything after
+  it, then sends the new text. The trip plan itself is not rolled back. Text in messages and replies
+  is selectable.
 - **Chat and map split.** On desktop the chat is on the left at 56 % of the area by default, a
   little wider than the map. A separator between them (`role="separator"`, "Resize chat and map")
   moves it between 30 % and 75 %: drag it, or focus it and use Left/Right (2 % steps), Home and End;

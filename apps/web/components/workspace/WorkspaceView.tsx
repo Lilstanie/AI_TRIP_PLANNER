@@ -507,6 +507,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
             data-preferences-open={preferencesOpen}
             data-trip-open={tripOpen}
             data-mobile-view={mobileView}
+            data-map={plan ? "shown" : "hidden"}
           >
             <div className="workspace-panel workspace-panel--chat" {...phonePanel("chat")}>
               <ChatPanel
@@ -520,6 +521,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                 error={error}
                 onCancel={session.cancel}
                 onSend={session.send}
+                onResend={session.resend}
                 ask={ask}
                 onAnswer={session.answer}
                 onAskProgress={session.updateAskProgress}
@@ -534,7 +536,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                 attachNotices={composerAttachments.notices}
               />
             </div>
-            {!narrow && <SplitResizer share={chatShare} onChange={layout.resizeChat} />}
+            {!narrow && plan && <SplitResizer share={chatShare} onChange={layout.resizeChat} />}
             <div className="workspace-panel workspace-panel--map" {...phonePanel("map")}>
               <TripMapCanvas
                 destination={plan?.brief.destination}
