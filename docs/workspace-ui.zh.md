@@ -77,7 +77,8 @@ seniors`（宠物不计为旅客）；`groupSize` 仍是校验字段，因此至
   - 导航作为抽屉打开，Trip 占满内容宽度。导航抽屉无标题行：它从侧边栏自己的 Logo 行开始，关闭按钮位于行末，对话框通过视觉隐藏的标题（`Drawer` 的 `hideTitle`）保留“Navigation”无障碍名称。
 - **手机（≤520 px）。** [手机外壳决策](../.agents/notes/implemented/feature/2026-10-05-phone-shell.md)仅适用于这一宽度；桌面和平板保留既有导航。
   - 适配安全区的底部 Tab 栏提供 Chat、Map、Trip 和 Mine，并支持键盘操作。有 Plan 时显示 Trip，空工作区显示 Chat、Map 和 Mine。Agent Team 入口以全屏模态框打开手机轨迹，保留账本、搜索、筛选和详情检查；关闭、Escape 或浏览器返回会回到原来的视图和焦点。每次只显示一个面板；面板保持挂载以保留滚动位置。已保存的布局恢复上次使用的 Tab，也兼容旧的 Chat/Map 选择。
-  - 单行顶栏显示目的地和日期，未填写时显示 New trip。点击标题打开 Trip details，按行列出 Where、When、Who、Budget 和 Preferences。每行打开既有编辑器；保存或关闭后，焦点返回标题。编辑器为底部 sheet，点击目标至少为 44 px，包括每个 sheet 的关闭按钮和主操作按钮，When 中的每个日期格、两个翻月箭头和 Clear，以及 Who 中每个 − 和 + 步进按钮。
+  - 单行顶栏显示目的地和日期，未填写时显示 New trip。点击标题打开 Trip details，按行列出 Where、When、Who、Budget 和 Preferences。每行打开既有编辑器；保存或关闭后，焦点返回标题。行程需求与单项 Stop 编辑使用底部 sheet，复杂的 Stop 详情使用完整页面。点击目标至少为 44 px，包括每个 sheet 的关闭按钮和主操作按钮，When 中的每个日期格、两个翻月箭头和 Clear，以及 Who 中每个 − 和 + 步进按钮。
+  - 有改动的 sheet 会在切换 Tab 时保留输入；Escape、关闭、点击外部或浏览器返回要丢弃时会先询问。时间或地点修改失败后保留已输入的值，并在原处显示错误。已有 Plan 时，行程需求编辑使用明确的 Replan trip（重新规划行程）操作。
   - Trip 直接显示 Your Trip，包含 Budget 和日视图。规划前说明空状态并提供 Plan in Chat。在其他 Tab 中创建或修改方案时，Trip 显示带无障碍说明的更新小红点；打开 Trip 后清除。按行程记录已读版本，因此切换未修改的已保存行程不会产生新通知。
   - Map 和 Trip 共享当前行程同一天和同一个 Stop。在任一视图选择日期或 Stop 后，另一视图会显示同一次到访，包括同一地点的较晚到访。重新规划后保留仍有效的日期和 Stop，清除已移除的 Stop，并把已移除的日期移到最近的剩余日期。重新打开每个已保存行程时恢复它自己的浏览位置。
   - 空白 Chat 最多显示两个示例入口。请求运行时，规划进度留在 Chat 中。方案就绪后仍停留在 Chat，回复新增明确的“打开行程”操作；打开后切换到 Trip。首次规划失败会恢复已提交的文字并显示明确的“重试更新”操作；修订失败时保留上一版方案供继续查看。
@@ -85,8 +86,8 @@ seniors`（宠物不计为旅客）；`groupSize` 仍是校验字段，因此至
   - 跨越手机宽度时，旅客看到的仍是同一内容：在 Your trips 页面缩小到手机宽度会继续显示在 Mine 中，底部 Tab 栏保持可用；打开 Trip 抽屉时缩小会显示 Trip Tab。从 Mine 放宽显示 Your trips，从 Trip 放宽会在 Chat 上方打开 Trip 抽屉（chip 编辑器打开时除外），Chat 和 Map 保持不变。Settings、Review 和 chip 编辑器在跨越时保持打开；手机顶栏消失时 Trip details 会关闭。
   - Map 日期按钮、Trip budget 和 Travel tips 折叠标题、空 Trip 页的 Plan in Chat 和 Add trip details 按钮，以及回复上方的 Think 行至少为 44 px 高。折叠标题保留原生标记和键盘展开、收起操作。这些目标高度仅适用于手机宽度；521 px 及以上的尺寸保持不变。
   - Map 填满两栏之间的空间。当天停靠点 sheet 有收起、半高和全高三档，可拖动或通过手柄用指针、键盘选择；手柄的可访问名称写明当前高度，读屏器能听到每一档的变化。切换日期把地图标记和路线筛选为当天的停靠点，因此多天到访的地点会出现在每一天，并沿用其全程编号；在 sheet 或地图上选择停靠点，都会聚焦当天的这次到访。每行与 Trip 标签页一样以停靠点的地点名开头，下方是开始时间；不在地图上的停靠点没有编号圆圈，而是在下方写明“地图上未找到”。未配置 Maps key 时，sheet 和停靠点仍可使用，地图说明不可用状态。地点详情以底部 sheet 打开，桌面保留弹窗。OSM 标记始终位于手机详情 sheet 下方，跨越视口宽度时也保持如此。地图控件至少为 44 px，位于停靠点 sheet 上方，平移地图不会滚动页面。
-  - 输入框聚焦且键盘缩短可视视口时，外壳跟随该视口，保持最新消息可见并隐藏 Tab 栏。聚焦行程信息编辑器或停靠点编辑器的字段时同样隐藏 Tab 栏；信息 sheet 停在键盘上方，该字段及其 Save 按钮保持可见。关闭键盘或失焦后恢复 Tab 栏。浏览器返回先关闭当前 sheet 或编辑器，再离开工作区。
-  - 新标签使用中英文字典，动效遵循减少动态效果偏好。`apps/web/tests/e2e/` 下的 `phone-shell.e2e.mjs`、其 Mine、Map、状态配套脚本及 `phone-browsing-context.e2e.mjs` 产生浏览器证据。真实安装应用的安全区和键盘行为未经验证；issue #182 的设备检查已以“不计划”关闭。
+  - 输入框聚焦且键盘缩短可视视口时，外壳跟随该视口，保持最新消息可见并隐藏 Tab 栏。聚焦行程信息编辑器或停靠点编辑器的字段时同样隐藏 Tab 栏；信息 sheet 停在键盘上方，该字段及其 Save 按钮保持可见。关闭键盘或失焦后恢复 Tab 栏。浏览器返回先关闭当前 sheet 或编辑器，再离开工作区；表单有改动时先询问是否放弃。
+  - 新标签使用中英文字典，动效遵循减少动态效果偏好。`apps/web/tests/e2e/` 下的 `phone-navigation.e2e.mjs`、`phone-browsing-context.e2e.mjs`、`phone-planning-flow.e2e.mjs`、`phone-editing.e2e.mjs` 及 `phone-shell.e2e.mjs` 配套脚本产生浏览器证据。真实安装应用的安全区和键盘行为未经验证；issue #182 的设备检查已以“不计划”关闭。
 
 <a id="conversations-trips-and-storage"></a>
 

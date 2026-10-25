@@ -176,7 +176,7 @@ async function editWhere(page, from, to) {
   await where.waitFor();
   await where.getByRole("button", { name: `Remove ${from}` }).click();
   await where.locator("#fact-destination").fill(to);
-  await where.getByRole("button", { name: "Update trip" }).click();
+  await where.getByRole("button", { name: "Replan trip" }).click();
   await where.waitFor({ state: "detached" });
   await settle(page, 300);
 }
@@ -265,7 +265,7 @@ async function facts(page, tag) {
   const updated = (await button.innerText()).trim();
   check(
     /^Melbourne · /.test(updated),
-    `${tag}: Update trip puts Melbourne in the title (${updated})`,
+    `${tag}: Replan trip puts Melbourne in the title (${updated})`,
   );
   check(await focusIsOnTitle(page), `${tag}: saving the editor returns focus to the title`);
   await waitForPlanning(page);

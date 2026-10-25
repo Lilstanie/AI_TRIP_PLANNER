@@ -1,0 +1,72 @@
+.workspace-app:not([data-phone]) .workspace-panel--trip {
+  display: contents;
+}
+.phone-trip-surface,
+.phone-trip-surface > .drawer__body {
+  display: contents;
+}
+.phone-trip-surface > .drawer__head {
+  display: none;
+}
+.edit-discard__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.edit-discard__actions button {
+  flex: 1;
+  min-block-size: 44px;
+}
+.fact-popover--stop .item-editor,
+.fact-popover--stop .stop-editor__time {
+  margin: 0;
+  padding: var(--space-4);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.fact-popover--stop .item-editor__actions {
+  position: sticky;
+  inset-block-end: 0;
+  padding-block: var(--space-2);
+  background: var(--surface);
+}
+.fact-popover--stop .stop-editor__time {
+  max-inline-size: none;
+}
+@media (max-width: 520px) {
+  [data-phone] .phone-tabbar {
+    position: relative;
+    z-index: 61;
+  }
+  [data-phone] .fact-popover-scrim {
+    inset-block-end: calc(64px + env(safe-area-inset-bottom));
+  }
+  [data-phone] .fact-popover.fact-popover--modal {
+    inset-block-end: calc(64px + env(safe-area-inset-bottom));
+    max-block-size: calc(var(--phone-viewport-height, 100dvh) - 80px - env(safe-area-inset-bottom));
+  }
+  [data-phone] .fact-popover--stop {
+    overflow-y: auto;
+  }
+  [data-phone] .fact-popover--complex.fact-popover--modal,
+  [data-phone] .fact-popover--preferences.fact-popover--modal {
+    inset-block-start: env(safe-area-inset-top);
+    block-size: auto;
+    max-block-size: none;
+    border-radius: 0;
+  }
+  [data-phone] .fact-popover--stop .item-editor,
+  [data-phone] .fact-popover--stop .stop-editor__time {
+    min-block-size: 0;
+    overflow-y: auto;
+  }
+  [data-phone] .fact-popover--stop .item-editor__actions button,
+  [data-phone] .fact-popover--stop .stop-editor__time button {
+    min-block-size: 44px;
+  }
+  [data-phone][data-phone-keyboard] .fact-popover.fact-popover--modal {
+    inset-block-end: var(--phone-keyboard-inset, 0px);
+    max-block-size: calc(var(--phone-viewport-height) - var(--space-4));
+  }
+}

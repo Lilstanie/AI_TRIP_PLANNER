@@ -89,7 +89,6 @@ describe("TripFactChips", () => {
 
     expect(within(dialog).queryByLabelText("Start date")).toBeNull();
 
-    fireEvent.change(screen.getByLabelText("Add a destination"), { target: { value: "Lisbon" } });
     fireEvent.keyDown(window, { key: "Escape" });
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(document.activeElement).toBe(chip);
@@ -174,10 +173,10 @@ describe("TripFactChips", () => {
     fireEvent.click(button("Destination: Sydney"));
     fireEvent.click(button("Remove Sydney"));
     fireEvent.change(screen.getByLabelText("Add a destination"), { target: { value: "Paris" } });
-    fireEvent.click(button("Update trip"));
+    fireEvent.click(button("Replan trip"));
     expect(onPlan).toHaveBeenCalledWith(expect.objectContaining({ destination: "Paris" }));
     expect(screen.getByRole("dialog", { name: "Where" })).toBeTruthy();
-    fireEvent.click(button("Update trip"));
+    fireEvent.click(button("Replan trip"));
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
