@@ -22,6 +22,7 @@ export function ChatsPanel({
   deletedTrip,
   searchRef,
   tripsContent,
+  collectionActions = false,
 }: {
   query: string;
   onQuery(value: string): void;
@@ -39,6 +40,7 @@ export function ChatsPanel({
   searchRef?: Ref<HTMLInputElement>;
 
   tripsContent?: ReactNode;
+  collectionActions?: boolean;
 }) {
   const { t } = useLocale();
   const chatTitle = (title: string) =>
@@ -83,21 +85,31 @@ export function ChatsPanel({
         )}
       </div>
 
-      <div className="chats-panel__actions">
-        <button type="button" className="chats-panel__action" onClick={onNewChat}>
-          <ComposeIcon />
-          <span>{t("New chat")}</span>
-        </button>
-        <button type="button" className="chats-panel__action" onClick={onNewTrip}>
-          <NewTripIcon />
-          <span>{t("New trip")}</span>
-        </button>
-      </div>
+      {!collectionActions && (
+        <div className="chats-panel__actions">
+          <button type="button" className="chats-panel__action" onClick={onNewChat}>
+            <ComposeIcon />
+            <span>{t("New chat")}</span>
+          </button>
+          <button type="button" className="chats-panel__action" onClick={onNewTrip}>
+            <NewTripIcon />
+            <span>{t("New trip")}</span>
+          </button>
+        </div>
+      )}
 
       <section className="chats-panel__section" aria-labelledby={`${searchId}-trips`}>
-        <h2 className="sidebar-history__title" id={`${searchId}-trips`}>
-          {t("Trips")}
-        </h2>
+        <div className="chats-panel__section-head">
+          <h2 className="sidebar-history__title" id={`${searchId}-trips`}>
+            {t("Trips")}
+          </h2>
+          {collectionActions && (
+            <button type="button" className="chats-panel__action" onClick={onNewTrip}>
+              <NewTripIcon />
+              <span>{t("New trip")}</span>
+            </button>
+          )}
+        </div>
         <p
           className="sr-only"
           role="status"
@@ -147,9 +159,17 @@ export function ChatsPanel({
       </section>
 
       <section className="chats-panel__section" aria-labelledby={`${searchId}-chats`}>
-        <h2 className="sidebar-history__title" id={`${searchId}-chats`}>
-          {t("Chats")}
-        </h2>
+        <div className="chats-panel__section-head">
+          <h2 className="sidebar-history__title" id={`${searchId}-chats`}>
+            {t("Chats")}
+          </h2>
+          {collectionActions && (
+            <button type="button" className="chats-panel__action" onClick={onNewChat}>
+              <ComposeIcon />
+              <span>{t("New chat")}</span>
+            </button>
+          )}
+        </div>
         <p
           className="sr-only"
           role="status"
