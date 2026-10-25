@@ -289,6 +289,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
               onTimelineChange={session.setTimelineChanged}
               showPhotos={dataMode.mode === "live" && !!dataMode.providers?.maps}
               saves={autoSaves}
+              phone={phone}
               {...(busy || editPending || chooser.working ? {} : { onChoose: chooser.choose })}
             />
           }

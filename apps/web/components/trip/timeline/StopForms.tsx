@@ -16,6 +16,7 @@ export function TimeForm({
   start,
   end,
   locked,
+  phone,
   validTime,
   timeChanged,
   errors = [],
@@ -28,6 +29,7 @@ export function TimeForm({
   start: string;
   end: string;
   locked: boolean;
+  phone: boolean;
   validTime: boolean;
   timeChanged: boolean;
   errors?: Notice[];
@@ -37,13 +39,13 @@ export function TimeForm({
   onCancel(): void;
 }) {
   const { t } = useLocale();
-  const { requestClose, confirmation } = useDiscardChanges(timeChanged);
+  const { requestClose, confirmation } = useDiscardChanges(phone && timeChanged);
   const close = () => requestClose(onCancel);
   const first = useRef<HTMLInputElement>(null);
   useEffect(() => first.current?.focus(), []);
   return (
     <>
-      <StopEditSurface title={t("Change time")} onClose={close}>
+      <StopEditSurface phone={phone} title={t("Change time")} onClose={close}>
         <form
           id={`stop-time-${id}`}
           className="stop-editor stop-editor__group stop-editor__time"
@@ -96,6 +98,7 @@ export function ItemForm({
   mode,
   days,
   labels,
+  phone,
   onSubmit,
   onCancel,
 }: {
@@ -103,6 +106,7 @@ export function ItemForm({
   mode: "details" | "note" | "schedule";
   days: number;
   labels: string[];
+  phone: boolean;
   onSubmit(action: ItemAction): boolean | Promise<boolean>;
   onCancel(): void;
 }) {
@@ -113,11 +117,12 @@ export function ItemForm({
   const [day, setDay] = useState(1);
   const [failed, setFailed] = useState(false);
   const dirty =
-    detail !== activity.detail ||
-    location !== (activity.location ?? "") ||
-    note !== (activity.note ?? "") ||
-    day !== 1;
-  const { requestClose, confirmation } = useDiscardChanges(dirty);
+    mode === "details"
+      ? detail !== activity.detail || location !== (activity.location ?? "")
+      : mode === "note"
+        ? note !== (activity.note ?? "")
+        : day !== 1;
+  const { requestClose, confirmation } = useDiscardChanges(phone && dirty);
   const close = () => requestClose(onCancel);
   const first = useRef<HTMLInputElement & HTMLTextAreaElement & HTMLSelectElement>(null);
   useEffect(() => first.current?.focus(), []);
@@ -128,6 +133,7 @@ export function ItemForm({
           mode === "details" ? "Edit details" : mode === "note" ? "Note" : "Schedule on a day",
         )}
         complex={mode === "details"}
+        phone={phone}
         onClose={close}
       >
         <form
@@ -222,6 +228,7 @@ export function PlaceSearch({
   locked,
   edits,
   focusOnMount = false,
+  phone,
   onUse,
   onCancel,
 }: {
@@ -230,12 +237,13 @@ export function PlaceSearch({
   edits: TimelineEdits;
 
   focusOnMount?: boolean;
+  phone: boolean;
   onUse(placeId: string): void;
   onCancel?(): void;
 }) {
   const { t } = useLocale();
   const [query, setQuery] = useState("");
-  const { requestClose, confirmation } = useDiscardChanges(!!query);
+  const { requestClose, confirmation } = useDiscardChanges(phone && !!query);
   const close = () => requestClose(() => onCancel?.());
   const input = useRef<HTMLInputElement>(null);
   useEffect(() => {
@@ -300,7 +308,7 @@ export function PlaceSearch({
   );
   return onCancel ? (
     <>
-      <StopEditSurface title={label} onClose={close}>
+      <StopEditSurface phone={phone} title={label} onClose={close}>
         {content}
       </StopEditSurface>
       {confirmation}

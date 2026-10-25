@@ -89,6 +89,7 @@ export function TripEditor({
   saves = IDLE_AUTO_SAVE,
   onChoose,
   onTimelineChange,
+  phone = false,
 }: {
   plan: TripPlan;
   disabled: boolean;
@@ -115,6 +116,8 @@ export function TripEditor({
   onChoose?: ChooseCandidate;
 
   onTimelineChange?(changed: boolean): void;
+
+  phone?: boolean;
 }) {
   const { t, locale, notice: localizeNotice } = useLocale();
   const { settings } = useSettings();
@@ -305,6 +308,7 @@ export function TripEditor({
       onOpen: () => onSelect(activity.id!),
       conflicts: (activity.id && conflicts.stops.get(activity.id)) || [],
       onItem: (action: ItemAction, message: Notice) => act(activity, action, message),
+      phone,
     };
   };
 

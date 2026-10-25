@@ -72,7 +72,7 @@ export function TripFactChips(props: Props) {
 
   const shown = usePresence(open, 220);
   const [dirty, setDirty] = useState(false);
-  const { requestClose, confirmation } = useDiscardChanges(dirty);
+  const { requestClose, confirmation } = useDiscardChanges(!!phone && dirty);
   const chips = useRef<Partial<Record<FactKey, HTMLButtonElement | null>>>({});
 
   const anchor = useMemo(

@@ -57,6 +57,7 @@ export function TimelineStop({
   showPhotos,
   suggestion = false,
   conflicts = [],
+  phone = false,
   onSelect,
   onOpen,
   onItem,
@@ -86,6 +87,8 @@ export function TimelineStop({
   suggestion?: boolean;
 
   conflicts?: Notice[];
+
+  phone?: boolean;
 
   onSelect(): void;
 
@@ -440,6 +443,7 @@ export function TimelineStop({
               mode="details"
               days={days}
               labels={dayLabels}
+              phone={phone}
               onCancel={closePanel}
               onSubmit={(action) => act(action, { key: "Details saved." })}
             />
@@ -450,6 +454,7 @@ export function TimelineStop({
               mode="note"
               days={days}
               labels={dayLabels}
+              phone={phone}
               onCancel={closePanel}
               onSubmit={(action) => act(action, { key: "Note saved." })}
             />
@@ -460,6 +465,7 @@ export function TimelineStop({
               mode="schedule"
               days={days}
               labels={dayLabels}
+              phone={phone}
               onCancel={closePanel}
               onSubmit={(action) =>
                 act(action, {
@@ -470,7 +476,7 @@ export function TimelineStop({
             />
           )}
           {panel === "day" && !idea && (
-            <StopEditSurface title={t("Move to another day")} onClose={closePanel}>
+            <StopEditSurface phone={phone} title={t("Move to another day")} onClose={closePanel}>
               <div className="stop-editor__group stop-editor__order">
                 <label>
                   {t("Move to")}
@@ -507,6 +513,7 @@ export function TimelineStop({
               locked={locked}
               edits={edits}
               focusOnMount={panel === "search"}
+              phone={phone}
               onCancel={panel === "search" ? closePanel : undefined}
               onUse={(placeId) => {
                 void edits.edit({ kind: "place", id, placeId }).then((done) => {
@@ -523,6 +530,7 @@ export function TimelineStop({
           start={start}
           end={end}
           locked={locked}
+          phone={phone}
           validTime={validTime}
           timeChanged={timeChanged}
           errors={edits.errors}
