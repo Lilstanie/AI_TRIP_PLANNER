@@ -80,6 +80,7 @@ seniors`（宠物不计为旅客）；`groupSize` 仍是校验字段，因此至
   - 单行顶栏显示目的地和日期，未填写时显示 New trip。点击标题打开 Trip details，按行列出 Where、When、Who、Budget 和 Preferences。每行打开既有编辑器；保存或关闭后，焦点返回标题。编辑器为底部 sheet，点击目标至少为 44 px，包括每个 sheet 的关闭按钮和主操作按钮，When 中的每个日期格、两个翻月箭头和 Clear，以及 Who 中每个 − 和 + 步进按钮。
   - Trip 直接显示 Your Trip，包含 Budget 和日视图。规划前说明空状态并提供 Plan in Chat。在其他 Tab 中创建或修改方案时，Trip 显示带无障碍说明的更新小红点；打开 Trip 后清除。按行程记录已读版本，因此切换未修改的已保存行程不会产生新通知。
   - Map 和 Trip 共享当前行程同一天和同一个 Stop。在任一视图选择日期或 Stop 后，另一视图会显示同一次到访，包括同一地点的较晚到访。重新规划后保留仍有效的日期和 Stop，清除已移除的 Stop，并把已移除的日期移到最近的剩余日期。重新打开每个已保存行程时恢复它自己的浏览位置。
+  - 空白 Chat 最多显示两个示例入口。请求运行时，规划进度留在 Chat 中。方案就绪后仍停留在 Chat，回复新增明确的“打开行程”操作；打开后切换到 Trip。首次规划失败会恢复已提交的文字并显示明确的“重试更新”操作；修订失败时保留上一版方案供继续查看。
   - Mine 先显示搜索，再以已保存行程为主内容，聊天列表放在下方。New trip 与行程集合放在一起，New chat 与聊天集合放在一起，两组内容之后是一个 Settings & account 入口。搜索同时筛选聊天和行程；打开已保存行程会切到 Trip，打开最近聊天或新建任一种内容会切到 Chat。触摸界面始终显示每个聊天的 Rename/Delete 行菜单入口。数据模式仍在这里；界面语言只在 Settings → Language & region。数据模式按钮在两种语言下都显示文字标签。无 Plan 时底栏不显示 Trip。从 Mine 打开行程后，键盘焦点会移至行程标题按钮；其无障碍名称会播报目的地和日期。
   - 跨越手机宽度时，旅客看到的仍是同一内容：在 Your trips 页面缩小到手机宽度会继续显示在 Mine 中，底部 Tab 栏保持可用；打开 Trip 抽屉时缩小会显示 Trip Tab。从 Mine 放宽显示 Your trips，从 Trip 放宽会在 Chat 上方打开 Trip 抽屉（chip 编辑器打开时除外），Chat 和 Map 保持不变。Settings、Review 和 chip 编辑器在跨越时保持打开；手机顶栏消失时 Trip details 会关闭。
   - Map 日期按钮、Trip budget 和 Travel tips 折叠标题、空 Trip 页的 Plan in Chat 和 Add trip details 按钮，以及回复上方的 Think 行至少为 44 px 高。折叠标题保留原生标记和键盘展开、收起操作。这些目标高度仅适用于手机宽度；521 px 及以上的尺寸保持不变。

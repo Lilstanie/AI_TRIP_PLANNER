@@ -1,17 +1,19 @@
 # Phone planning flow failure inventory
 
-Public seam: the real workspace UI with external chat responses supplied by local browser fixtures.
-The traveller approved this seam in spec #715 and ticket #718.
+Scope: fixture-backed phone Chat from an empty workspace through planning feedback, failure,
+revision failure and an explicit move to Trip. A passing browser run does not prove live-provider
+latency, a physical keyboard or device safe-area behaviour.
 
-- Blank phone chat shows more than two examples, pushing Send outside the short viewport.
-- Examples remain after the first message and compete with conversation content.
-- Brief summary cannot reopen destination, dates, party, budget and preferences.
-- Planning progress is available only through another view, or completion forces a tab switch.
-- Completion offers no direct way to read the new Plan.
-- Initial failure erases the submitted input or requires an automatic retry.
-- Revision failure replaces the previous Plan or loses the editable revision request.
-- Keyboard-contracted phone viewport hides the focused field or Send.
-- Chinese labels, reduced motion, narrow widths or desktop layout regress.
-
-Artifacts must record assertions, configuration, page errors and screenshots. Browser viewport
-simulation does not establish physical-device keyboard, safe-area or live-provider behaviour.
+| Failure                                              | Observable requirement                                                    |
+| ---------------------------------------------------- | ------------------------------------------------------------------------- |
+| A blank phone chat shows every prompt                | Show at most two example prompts.                                         |
+| Prompts remain after the first message               | Remove the prompt group once messages exist.                              |
+| A keyboard contracts the viewport                    | Keep the focused composer and Send reachable without horizontal overflow. |
+| Progress is absent while planning                    | Keep the current stage visible in Chat while the request is busy.         |
+| Completion silently changes tabs                     | Keep Chat active and expose an accessible Open trip action.               |
+| Completion has no route to the Plan                  | Open trip only after an explicit action.                                  |
+| Initial failure loses the traveller's text           | Restore the submitted text when the turn fails.                           |
+| Initial failure retries automatically                | Leave the request stopped until Retry update is chosen.                   |
+| Revision failure replaces the Plan                   | Keep the readable Plan and present the error with explicit retry.         |
+| The compact summary does not expose Brief details    | Opening the title presents the Brief facts sheet.                         |
+| A locale, narrow phone or breakpoint loses a control | Cover EN/ZH at 360, 375 and 390 px, 520/521 and desktop.                  |

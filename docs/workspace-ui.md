@@ -256,6 +256,10 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     carries the exact visit to the other, including later visits to the same place. A revision keeps
     a valid day and Stop, clears a removed Stop, and moves a removed day to the nearest remaining day.
     Each saved trip restores its own browsing position when reopened.
+  - A blank Chat shows at most two example prompts. Planning progress stays in Chat while the
+    request runs. When the Plan is ready, Chat stays open and the reply adds an explicit Open trip
+    action; opening it selects Trip. An initial failure restores the submitted text and shows an
+    explicit Retry update action, while a failed revision leaves the previous Plan readable.
   - Mine places search first, then saved Trips as the primary collection and chats below. New trip
     sits with Trips, New chat with chats, and one Settings & account entry follows both collections.
     Search filters chats and trips; opening a saved trip selects Trip, while opening a recent chat or

@@ -554,6 +554,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                 onCancel={session.cancel}
                 onSend={session.send}
                 onResend={session.resend}
+                {...(phone ? { onOpenTrip: () => selectView("trip") } : {})}
                 ask={ask}
                 onAnswer={session.answer}
                 onAskProgress={session.updateAskProgress}
