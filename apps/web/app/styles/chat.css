@@ -233,25 +233,33 @@
 
 .chat__tabs {
   display: flex;
-  gap: var(--space-1);
-  padding-bottom: var(--space-2);
+  gap: var(--space-3);
+  padding: 0 var(--space-1) var(--space-2);
 }
-.chat__tabs button {
-  padding: 4px 12px;
+.chat__tab {
+  min-height: 28px;
+  padding: 2px 0;
   border: 0;
-  border-radius: var(--radius-pill);
+  border-bottom: 2px solid transparent;
   background: transparent;
-  color: var(--text-dim);
+  color: var(--text-mut);
   font: inherit;
   font-size: var(--font-size-meta);
   cursor: pointer;
+  transition:
+    color var(--transition),
+    border-color var(--transition);
 }
-.chat__tabs button[aria-selected="true"] {
-  background: var(--fill-hover);
+.chat__tab:hover {
   color: var(--text);
 }
-.chat__tabs button:focus-visible {
+.chat__tab[aria-selected="true"] {
+  border-bottom-color: var(--text);
+  color: var(--text);
+}
+.chat__tab:focus-visible {
   outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .chat__trajectory {

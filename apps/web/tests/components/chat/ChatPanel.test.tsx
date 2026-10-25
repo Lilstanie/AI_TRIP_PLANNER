@@ -177,7 +177,7 @@ describe("ChatPanel", () => {
     expect(within(log).getByText("Travel planning assistant")).toBeTruthy();
     expect(within(log).getByText("Plan Kyoto").classList.contains("msg-item__bubble")).toBe(true);
     expect(within(log).getByText(longUrl).closest(".msg-item__body")).toBeTruthy();
-    expect(log.querySelectorAll("[aria-label]")).toHaveLength(0);
+    expect(log.querySelectorAll("[aria-label]:not(.msg-action)")).toHaveLength(0);
   });
 
   it.each([

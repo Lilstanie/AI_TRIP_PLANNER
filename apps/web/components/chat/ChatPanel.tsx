@@ -25,6 +25,7 @@ export function ChatPanel({
   locked = false,
   activity,
   onSend,
+  onResend,
   onEdit,
   onStart,
   phone = false,
@@ -50,6 +51,8 @@ export function ChatPanel({
   activity: AgentProgressEvent[];
 
   onSend: (message?: string) => void;
+
+  onResend?: (index: number, text: string) => void;
   onEdit: () => void;
 
   onStart?: () => void;
@@ -154,6 +157,7 @@ export function ChatPanel({
             <button
               key={id}
               type="button"
+              className="chat__tab"
               role="tab"
               id={`chat-tab-${id}`}
               aria-controls={`chat-panel-${id}`}
@@ -223,6 +227,9 @@ export function ChatPanel({
               message={m}
               turn={turns[i] ?? undefined}
               animate={i === revealIndex}
+              {...(onResend && !busy && !locked && !ask
+                ? { onResend: (text: string) => onResend(i, text) }
+                : {})}
             />
           ))}
         </div>
