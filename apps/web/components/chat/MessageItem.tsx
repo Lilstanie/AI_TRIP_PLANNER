@@ -1,4 +1,5 @@
 "use client";
+import { useEffect, useRef, useState } from "react";
 import { useLocale } from "@/components/account/LocaleProvider";
 import type { Components } from "react-markdown";
 import { intlLocale } from "@/lib/i18n/locale";
@@ -9,6 +10,7 @@ import { RevealedText } from "./RevealedText";
 import { ThinkingProcess } from "./ThinkingProcess";
 import { AssistantIcon } from "./assistants";
 import { useAssistantName } from "./assistant-names";
+import { CheckIcon, CopyIcon, PencilIcon } from "../ui/icons";
 
 const markdownComponents: Components = {
   a: ({ href, children, ...rest }) => (
@@ -18,17 +20,100 @@ const markdownComponents: Components = {
   ),
 };
 
+function CopyButton({ text }: { text: string }) {
+  const { t } = useLocale();
+  const [copied, setCopied] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => () => clearTimeout(timer.current), []);
+  const label = t(copied ? "Copied" : "Copy message");
+  return (
+    <button
+      type="button"
+      className="msg-action"
+      aria-label={label}
+      title={label}
+      onClick={async () => {
+        try {
+          await navigator.clipboard.writeText(text);
+        } catch {
+          return;
+        }
+        setCopied(true);
+        clearTimeout(timer.current);
+        timer.current = setTimeout(() => setCopied(false), 1500);
+      }}
+    >
+      {copied ? <CheckIcon /> : <CopyIcon />}
+    </button>
+  );
+}
+
+function EditedBubble({
+  text,
+  onCancel,
+  onResend,
+}: {
+  text: string;
+  onCancel: () => void;
+  onResend: (text: string) => void;
+}) {
+  const { t } = useLocale();
+  const [draft, setDraft] = useState(text);
+  const field = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    const node = field.current;
+    node?.focus();
+    node?.setSelectionRange(node.value.length, node.value.length);
+  }, []);
+  const submit = () => draft.trim() && onResend(draft);
+  return (
+    <div className="msg-edit">
+      <textarea
+        ref={field}
+        className="msg-edit__field"
+        aria-label={t("Edit message")}
+        value={draft}
+        rows={Math.min(8, Math.max(2, draft.split("\n").length))}
+        onChange={(event) => setDraft(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") onCancel();
+          else if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
+            event.preventDefault();
+            submit();
+          }
+        }}
+      />
+      <div className="msg-edit__actions">
+        <button type="button" className="msg-edit__button" onClick={onCancel}>
+          {t("Cancel")}
+        </button>
+        <button
+          type="button"
+          className="msg-edit__button msg-edit__button--primary"
+          disabled={!draft.trim()}
+          onClick={submit}
+        >
+          {t("Resend")}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function MessageItem({
   message,
   animate,
   turn,
+  onResend,
 }: {
   message: Message;
   animate?: boolean;
   turn?: number | undefined;
+  onResend?: (text: string) => void;
 }) {
   const { t, locale } = useLocale();
   const assistantName = useAssistantName();
+  const [editing, setEditing] = useState(false);
   const clock =
     message.at === undefined ? null : (
       <span className="msg-item__clock">
@@ -53,8 +138,35 @@ export function MessageItem({
           </ul>
         )}
 
-        {message.text && <div className="msg-item__bubble">{message.text}</div>}
+        {editing && onResend ? (
+          <EditedBubble
+            text={message.text}
+            onCancel={() => setEditing(false)}
+            onResend={(text) => {
+              setEditing(false);
+              onResend(text);
+            }}
+          />
+        ) : (
+          message.text && <div className="msg-item__bubble">{message.text}</div>
+        )}
         {clock}
+        {message.text && !editing && (
+          <div className="msg-actions">
+            <CopyButton text={message.text} />
+            {onResend && !message.attachments?.length && (
+              <button
+                type="button"
+                className="msg-action"
+                aria-label={t("Edit message")}
+                title={t("Edit message")}
+                onClick={() => setEditing(true)}
+              >
+                <PencilIcon />
+              </button>
+            )}
+          </div>
+        )}
       </div>
     );
   }
@@ -89,6 +201,11 @@ export function MessageItem({
       </div>
       {message.flights && <FlightResults answer={message.flights} />}
       {clock}
+      {message.text && (
+        <div className="msg-actions">
+          <CopyButton text={message.text} />
+        </div>
+      )}
     </div>
   );
 }

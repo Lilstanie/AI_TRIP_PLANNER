@@ -652,11 +652,10 @@
 .team-trigger__avatars .assistant-icon {
   width: 20px;
   height: 20px;
-  border: 1.5px solid var(--surface);
 }
 
 .team-trigger__avatars .assistant-icon + .assistant-icon {
-  margin-inline-start: -6px;
+  margin-inline-start: 4px;
 }
 
 .team-trigger__avatars .assistant-icon svg {

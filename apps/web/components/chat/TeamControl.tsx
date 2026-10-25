@@ -92,6 +92,7 @@ export function TeamControl({ turn, onReveal }: { turn: TeamTurn; onReveal?: () 
         type="button"
         className="topbar-button team-trigger"
         aria-label={t("Specialist team")}
+        title={t("Specialist team")}
         aria-expanded={open}
         aria-haspopup="dialog"
         aria-controls={open ? popoverId : undefined}
@@ -99,7 +100,7 @@ export function TeamControl({ turn, onReveal }: { turn: TeamTurn; onReveal?: () 
         onClick={() => (open ? close() : pin())}
       >
         <TeamAvatars rows={team.rows} />
-        <span className="team-trigger__label">{t("Specialist team")}</span>
+        <span className="team-trigger__label sr-only">{t("Specialist team")}</span>
         {team.working > 0 && (
           <span className="team-trigger__count">
             {t("{count} working", { count: team.working })}
