@@ -164,6 +164,11 @@ try {
         .getByRole("tablist", { name: "Workspace sections" })
         .getByRole("tab", { name: "Chat", exact: true })
         .getAttribute("aria-selected")) === "true";
+    const tripSelected = async () =>
+      (await page
+        .getByRole("tablist", { name: "Workspace sections" })
+        .getByRole("tab", { name: "Trip", exact: true })
+        .getAttribute("aria-selected")) === "true";
     const search = mine.getByRole("searchbox", { name: "Search chats and trips" });
     check(
       await mine.getByText("Sydney ideas", { exact: true }).isVisible(),
@@ -266,7 +271,7 @@ try {
       .getByRole("button", { name: /^Trip to Sydney:/ })
       .first()
       .click();
-    check(await chatSelected(), `${width}: calendar trip opens Chat`);
+    check(await tripSelected(), `${width}: calendar trip opens Trip`);
     await selectMine();
     await mine.getByRole("tab", { name: "Calendar", exact: true }).click();
     const activeCalendar = mine.getByRole("grid");
@@ -281,7 +286,7 @@ try {
     await tripCard.focus();
     await page.keyboard.press("Enter");
     await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(resolve)));
-    check(await chatSelected(), `${width}: keyboard trip activation opens Chat`);
+    check(await tripSelected(), `${width}: keyboard trip activation opens Trip`);
     const focusAfterTrip = await page.evaluate(() => {
       const title = document.querySelector(".phone-topbar__title-button");
       return {

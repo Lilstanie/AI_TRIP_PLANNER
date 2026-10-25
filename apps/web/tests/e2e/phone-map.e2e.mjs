@@ -347,16 +347,14 @@ try {
     await page.screenshot({ path: `${OUT}/${width}-stops-dark.png` });
     await page.emulateMedia({ colorScheme: "light", reducedMotion: "reduce" });
     await tab("Mine").click();
-    const chinese = page.getByRole("button", { name: /中文|Chinese/ });
-    if (await chinese.count()) {
-      await chinese.first().click();
-      await page.locator(".phone-tabbar").getByRole("tab", { name: /^地图/ }).click();
-      check(
-        await sheet.innerText().then((text) => text.includes("当日站点")),
-        `${width}: Chinese labels`,
-      );
-    }
+    await setPhoneLanguage(page, "zh");
+    await page.locator(".phone-tabbar").getByRole("tab", { name: /^地图/ }).click();
+    check(
+      await sheet.innerText().then((text) => text.includes("当日站点")),
+      `${width}: Chinese labels`,
+    );
     await page.setViewportSize({ width: 1280, height: 900 });
+    await page.locator(".workspace-app:not([data-phone])").waitFor();
     await revisitButton.press("Enter");
     await page.locator(".trip-map-popup:not(.phone-map-details)").waitFor();
     check(

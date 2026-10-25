@@ -263,7 +263,7 @@ async function run(browser, size) {
   );
   await select(page, "Mine");
   await page
-    .locator(".chats-panel__actions")
+    .locator(".chats-panel__section-head")
     .getByRole("button", { name: "New chat", exact: true })
     .click();
   await settle(page);
@@ -367,8 +367,14 @@ async function run(browser, size) {
   await page.unroute("**/api/chat");
   await page.reload();
   await page.locator(".phone-tabbar").waitFor();
+  await page.addStyleTag({ content: "nextjs-portal {display:none!important}" });
   await settle(page);
-  for (const name of ["Map", "Trip", "Mine", "Chat"]) {
+  check(
+    (await page.locator(".phone-tabbar [role=tab]").allTextContents()).join(",") ===
+      "Chat,Map,Mine",
+    `${prefix}: reload starts the blank workspace without a Trip`,
+  );
+  for (const name of ["Map", "Mine", "Chat"]) {
     await select(page, name);
     await page.waitForTimeout(900);
     await page.reload();
@@ -380,6 +386,13 @@ async function run(browser, size) {
       `${prefix}: reload restores ${name}`,
     );
   }
+  await select(page, "Mine");
+  await page.locator(".trip-card").filter({ hasText: "Trip to Melbourne" }).first().click();
+  await settle(page);
+  check(
+    (await tab(page, "Trip").getAttribute("aria-selected")) === "true",
+    `${prefix}: Mine reopens the saved Trip after refresh`,
+  );
 
   const title = page.locator(".phone-topbar__title-button");
   await title.click();
