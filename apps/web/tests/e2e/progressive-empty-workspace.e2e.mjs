@@ -30,7 +30,7 @@ const browser = await chromium.launch({
 });
 try {
   const desktop = await browser.newContext({
-    viewport: { width: 1440, height: 900 },
+    viewport: { width: 1440, height: 1000 },
     reducedMotion: "reduce",
     locale: "en-AU",
   });
@@ -75,6 +75,7 @@ try {
       (await page.getByRole("button", { name: "Agent Team" }).count()) === 1,
     "desktop blank: Conversation tab and Agent Team top-left",
   );
+  await page.locator(".data-mode:visible").waitFor();
   check(
     (await page.locator(".data-mode:visible").count()) === 1,
     "desktop blank: Live/Mock remains",
@@ -143,7 +144,11 @@ try {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify({ reply: "Which city are you thinking of?" }),
+        body: JSON.stringify({
+          type: "needs_info",
+          question: "Which city are you thinking of?",
+          known: {},
+        }),
       });
       return;
     }
@@ -151,23 +156,40 @@ try {
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({
-        reply: "Here is a starter plan.",
-        plan: {
-          tripId: "e2e-progressive",
-          brief: {
+        type: "complete",
+        response: {
+          reply: "Here is a starter plan.",
+          plan: {
             tripId: "e2e-progressive",
-            userId: "local",
-            destination: "Sydney",
-            dates: ["2026-11-10", "2026-11-14"],
-            party: { adults: 2 },
-            budget: { total: 4000, currency: "AUD" },
+            brief: {
+              tripId: "e2e-progressive",
+              userId: "local",
+              destination: "Sydney",
+              dates: ["2026-11-10", "2026-11-14"],
+              groupSize: 2,
+              budgetTotal: 4000,
+            },
+            round: 1,
+            budgetTotal: 4000,
+            estTotal: 200,
+            overrunPct: -95,
+            sections: [
+              {
+                id: "itinerary",
+                label: "Day plan",
+                status: "draft",
+                summary: "Museum visit",
+                estCost: 200,
+                proposal: {
+                  agent: "itinerary",
+                  summary: "Museum visit",
+                  items: [{ kind: "activity", detail: "Museum", estCost: 200 }],
+                  assumptions: [],
+                  conflictsWith: [],
+                },
+              },
+            ],
           },
-          itinerary: { days: [], ideas: [] },
-          transport: { legs: [] },
-          accommodation: { stays: [] },
-          dining: { meals: [] },
-          destinationGuide: { highlights: [] },
-          totals: { estimated: 0, currency: "AUD" },
         },
       }),
     });
@@ -183,8 +205,11 @@ try {
   );
   await page.screenshot({ path: `${OUT}/desktop-messaged.png` });
 
-  await page.goto(BASE, { waitUntil: "domcontentloaded" });
-  await dismissLocation(page, "en");
+  await page.getByRole("button", { name: /^Chats/ }).click();
+  await page
+    .locator(".chats-panel__actions")
+    .getByRole("button", { name: "New chat", exact: true })
+    .click();
   await page.locator(".chat-empty__suggestions").waitFor();
   await page.locator(".chat-empty__suggestions button").first().click();
   await page.getByRole("button", { name: "Open your trip" }).waitFor({ timeout: 15000 });
@@ -199,6 +224,17 @@ try {
     afterPlan,
   );
   await page.screenshot({ path: `${OUT}/desktop-plan.png` });
+  await page.getByRole("button", { name: "Open account menu" }).click();
+  await page.getByRole("menuitem", { name: "Language & region" }).click();
+  const settings = page.getByRole("dialog");
+  await settings.getByRole("button", { name: "Change Language", exact: true }).click();
+  await settings.getByRole("button", { name: "简体中文", exact: true }).click();
+  check(
+    (await page.locator("html").getAttribute("lang")) === "zh-CN",
+    "Settings switches interface to Chinese",
+  );
+  await page.keyboard.press("Escape");
+  await page.screenshot({ path: `${OUT}/desktop-plan-zh.png` });
   check(errors.length === 0, "desktop: no page errors", errors);
   await desktop.close();
 
@@ -227,12 +263,32 @@ try {
   phonePage.on("pageerror", (error) => phoneErrors.push(String(error)));
   await phonePage.goto(BASE, { waitUntil: "domcontentloaded" });
   await dismissLocation(phonePage, "en");
+  await phonePage.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
   await phonePage.getByRole("tab", { name: /^Chat/ }).click();
   check(
     (await phonePage.getByRole("tab", { name: /^Trip/ }).count()) === 0,
     "phone blank: Trip tab hidden without a Plan",
   );
+  check(
+    await phonePage.evaluate(() => document.documentElement.scrollWidth === innerWidth),
+    "phone blank: no horizontal overflow",
+  );
+  await phonePage.screenshot({ path: `${OUT}/phone-blank.png` });
+  await composer(phonePage).fill("Tokyo");
+  await phonePage.locator(".fact-chips").waitFor({ state: "attached" });
+  check(
+    (await phonePage.locator(".fact-chips").count()) === 1,
+    "phone typing mounts Brief controls",
+  );
+  await composer(phonePage).blur();
+  await phonePage.getByRole("button", { name: /^Trip details:/ }).click();
+  const facts = phonePage.getByRole("dialog", { name: "Trip details", exact: true });
+  await facts.getByRole("button", { name: "Preferences", exact: true }).waitFor();
+  check(await facts.isVisible(), "phone Trip details exposes editable facts");
+  await phonePage.screenshot({ path: `${OUT}/phone-facts.png` });
+  await phonePage.keyboard.press("Escape");
   await phonePage.getByRole("tab", { name: "Mine", exact: true }).click();
+  await phonePage.locator(".data-mode:visible").waitFor();
   check(
     (await phonePage.getByRole("button", { name: /Switch language/i }).count()) === 0,
     "phone Mine: no language shortcut",

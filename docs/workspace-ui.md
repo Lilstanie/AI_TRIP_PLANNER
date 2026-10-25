@@ -305,6 +305,7 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
   listed under Trips once a plan is produced; until then it is a blank conversation under Chats. The
   [New trip Agent Note](../.agents/notes/archived/feature/2026-09-24-new-trip.md) records why.
 - **Starting to plan.**
+  - Verify progressive disclosure and Settings language changes with `pnpm --filter @trip/web e2e progressive-empty-workspace ui-language`. These journeys cover desktop and phone layouts in English and Chinese with local response fixtures; they do not establish live-provider planning. Phone facts are edited through the Trip details sheet, while desktop uses the Brief bar.
   - A blank untouched chat (no messages, no Plan, empty input, draft equal to Travel profile defaults) has no centre card. Example trip suggestions sit beside the composer; selecting one sends a prompt and starts planning. The Brief bar and Preferences stay hidden until the traveller types, changes the draft relative to Travel profile defaults, or already has messages; they hide again only when the chat returns to blank untouched. Trip stays hidden until a Plan exists. The composer placeholder rotates about every 4–5 seconds while focused and empty, preferring prompts for missing Brief facts, and settles to a revision prompt once a Plan exists.
     The prompt follows the interface language while keeping its dates, travellers and budget;
     data-mode tooltips and the action name for an untitled chat follow that language too.

@@ -424,6 +424,9 @@ describe("TripFactChips in the workspace", () => {
     );
     vi.stubGlobal("fetch", fetcher);
     render(<Workspace />);
+    fireEvent.change(screen.getByLabelText("Message AI Trip Planner"), {
+      target: { value: "somewhere warm" },
+    });
     fireEvent.click(button("Where"));
     fireEvent.change(screen.getByLabelText("Add a destination"), { target: { value: "Lisbon" } });
     fireEvent.click(button("Save"));
@@ -456,14 +459,17 @@ describe("TripFactChips in the workspace", () => {
     expect(body.mode).toBeUndefined();
   });
 
-  it("opens the first missing fact from the blank chat's Add trip details", () => {
+  it("reveals trip facts on typing and focuses the destination editor", () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(() => Promise.resolve(Response.json({ configured: "mock" }))),
     );
     render(<Workspace />);
-    const chat = document.querySelector<HTMLElement>(".workspace-panel--chat")!;
-    fireEvent.click(within(chat).getByRole("button", { name: "Add trip details" }));
+    fireEvent.change(screen.getByLabelText("Message AI Trip Planner"), {
+      target: { value: "somewhere warm" },
+    });
+    expect(screen.queryByRole("button", { name: "Add trip details" })).toBeNull();
+    fireEvent.click(button("Where"));
     expect(screen.getByRole("dialog", { name: "Where" })).toBeTruthy();
     expect(document.activeElement).toBe(screen.getByLabelText("Add a destination"));
   });
@@ -474,6 +480,9 @@ describe("TripFactChips in the workspace", () => {
     );
     vi.stubGlobal("fetch", fetcher);
     render(<Workspace />);
+    fireEvent.change(screen.getByLabelText("Message AI Trip Planner"), {
+      target: { value: "somewhere warm" },
+    });
     fireEvent.click(button("Open trip preferences"));
     fireEvent.click(button("Plan trip"));
     const where = screen.getByRole("dialog", { name: "Where" });
