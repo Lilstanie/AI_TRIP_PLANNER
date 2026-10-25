@@ -30,6 +30,7 @@ import { scheduledHops } from "../transport/legs";
 import { TRAVELLER_PREFERENCES_RULE } from "../prompts/traveller-preferences";
 import { replyLanguageRule } from "../prompts/reply-language";
 import { plural, summaryCopy } from "../summary-copy";
+import { revisionIntent } from "../revision-intent";
 
 const candidateId = (day: number, index: number) => `stay-${day}-${index}`;
 
@@ -66,10 +67,7 @@ async function gatherStayEvidence(
   ctx.signal?.throwIfAborted();
   const rooms =
     prefs.roomAllocation === "individual" ? brief.groupSize : Math.ceil(brief.groupSize / 2);
-  const budgetRevision =
-    revision?.kind === "budget" ||
-    (revision?.kind === "request" &&
-      /budget|cost|cheaper|overrun/i.test([revision.reason, ...revision.constraints].join(" ")));
+  const { budget: budgetRevision } = revisionIntent(revision);
 
   const searched = await Promise.all(
     segments.map(async (segment) => {

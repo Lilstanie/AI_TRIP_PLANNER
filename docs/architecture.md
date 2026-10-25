@@ -303,6 +303,12 @@ Specialist proposals, the brief and the final plan are re-validated at the graph
   `allocation` of its last cost less `targetSaving`, through the revision supervisor or directly.
   A round is kept only when `planScore` (AUD over budget plus a tenth of the budget per other
   conflict) improves; otherwise the previous proposals stand and the loop stops.
+- Transport, accommodation and dining share `revisionIntent` inside `packages/agents`. Typed
+  `budget` and `time` revisions determine saving and scheduling behavior without reading the reason;
+  other conflict kinds trigger neither. Only `request` uses keywords in the reason and constraints:
+  `budget`, `cost`, `cheaper`, `overrun`, `cut` or `reduce` for saving, and `time`, `overlap` or
+  `schedule` for scheduling. A traveller request can trigger both. Explicit allocations still govern
+  spending; numeric saving targets are not used to infer intent.
 - `OrchestratorOptions.onDecision` receives the loop's decisions as typed `WorkflowDecision` facts:
   conflicts detected (targets, reasons, score, infeasibility), revision started (objective and
   previous outcome), revision scored (before, after, kept) and loop stopped (round and reason). A

@@ -22,6 +22,7 @@ import { normalize, canonicalPlaceName, dedupeEntries } from "../place-names";
 import { TRAVELLER_PREFERENCES_RULE } from "../prompts/traveller-preferences";
 import { replyLanguageRule } from "../prompts/reply-language";
 import { plural, summaryCopy } from "../summary-copy";
+import { revisionIntent } from "../revision-intent";
 
 const DAY_MS = 86_400_000;
 const DINING_BUDGET_SHARE = 0.2;
@@ -85,17 +86,6 @@ function dietaryPreferences(preferences: UserPreference[]): UserPreference[] {
   );
 }
 
-function isBudgetRevision(revision?: RevisionRequest): boolean {
-  return Boolean(
-    revision &&
-    (revision.kind === "budget" ||
-      (revision.kind === "request" &&
-        /budget|cost|cheaper|overrun|cut|reduce/i.test(
-          [revision.reason, ...revision.constraints].join(" "),
-        ))),
-  );
-}
-
 function mealRate(
   brief: TripBrief,
   days: number,
@@ -109,7 +99,7 @@ function mealRate(
     DAILY_MEAL_RATE,
     (brief.budgetTotal * DINING_BUDGET_SHARE) / (brief.groupSize * days),
   );
-  return cents(isBudgetRevision(revision) ? normal * 0.7 : normal);
+  return cents(revisionIntent(revision).budget ? normal * 0.7 : normal);
 }
 
 function validateDraft(draft: DiningDraft, places: Place[]): DiningDraft {

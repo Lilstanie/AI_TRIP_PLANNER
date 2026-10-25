@@ -35,6 +35,7 @@ import { cities, journeyLegs, flightLegs, groundLegs, flownInstead, type Journey
 import { mockEnabled } from "@trip/tools";
 import { TRAVELLER_PREFERENCES_RULE } from "../prompts/traveller-preferences";
 import { plural, summaryCopy } from "../summary-copy";
+import { revisionIntent } from "../revision-intent";
 
 function clock(totalMinutes: number): string {
   if (totalMinutes < 0 || totalMinutes >= 24 * 60) {
@@ -89,10 +90,7 @@ async function gatherTransportEvidence(
     brief.origin?.trim() ||
     preferences.find((preference) => preference.key === "transport.origin")?.value.trim() ||
     destinations[0]!;
-  const budgetRevision =
-    revision !== undefined &&
-    /budget|cost|cheaper|overrun/i.test([revision.reason, ...revision.constraints].join(" "));
-  const scheduleRevision = revision !== undefined && /time|overlap|schedule/i.test(revision.reason);
+  const { budget: budgetRevision, schedule: scheduleRevision } = revisionIntent(revision);
 
   const legModes = brief.excludeFlights
     ? brief.legModes?.filter((choice) => choice.mode !== "flight")
