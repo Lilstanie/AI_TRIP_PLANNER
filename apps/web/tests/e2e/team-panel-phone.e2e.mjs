@@ -12,7 +12,7 @@ const check = (ok, name, detail) => {
   console.log(`${ok ? "ok  " : "FAIL"} ${name}${detail ? ` ${JSON.stringify(detail)}` : ""}`);
 };
 
-const NAME = { en: "Specialist team", zh: "专家团队" };
+const NAME = { en: "Agent Team", zh: "智能体团队" };
 const IDLE = { en: "Idle", zh: "空闲" };
 const IDS = [
   "coordinator",
@@ -70,7 +70,7 @@ try {
     const noSideScroll = () =>
       page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
 
-    check((await button.count()) === 1, `${label}: the top bar has one Specialist team button`);
+    check((await button.count()) === 1, `${label}: the top bar has one Agent Team button`);
     check(
       await page.evaluate(() => {
         const title = document.querySelector(".phone-topbar__title");
@@ -272,7 +272,7 @@ try {
   await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
   await page
     .locator(".workspace-topbar")
-    .getByRole("button", { name: "Specialist team", exact: true })
+    .getByRole("button", { name: "Agent Team", exact: true })
     .click();
   await page.getByRole("dialog", { name: "Specialist team" }).waitFor();
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -283,8 +283,9 @@ try {
   );
   check(
     (await page.locator(".workspace-topbar .team-trigger").count()) === 1 &&
-      (await page.locator(".topbar-actions .team-trigger").count()) === 1,
-    "desktop keeps a single Specialist team button",
+      (await page.locator(".topbar-leading .team-trigger").count()) === 1 &&
+      (await page.locator(".topbar-actions .team-trigger").count()) === 0,
+    "desktop keeps a single Agent Team button in the top-left",
   );
   await context.close();
 } finally {

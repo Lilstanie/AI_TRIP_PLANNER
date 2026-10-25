@@ -1,7 +1,8 @@
 "use client";
-import { useEffect, useRef, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { TripFactChips } from "../preferences/TripFactChips";
 import { ChatPanel } from "../chat/ChatPanel";
+import { ChatViewTabs, type ChatView } from "../chat/ChatViewTabs";
 import { TripEditor } from "../trip/TripEditor";
 import { useAutoSavePlaces } from "../trip/useAutoSavePlaces";
 import { useLegRoutes } from "../trip/useLegRoutes";
@@ -22,9 +23,11 @@ import type { WorkspaceModel } from "./useWorkspace";
 import { WorkspaceDialogs } from "./WorkspaceDialogs";
 import { DataModeToggle } from "./DataModeToggle";
 import { CurrencyNotice } from "../account/CurrencyNotice";
-import { LanguageToggle } from "./LanguageToggle";
 import { usePresence, useSegmentIndicator, viewTransition } from "../ui/motion";
 import { useLocale } from "../account/LocaleProvider";
+import { useSettings } from "../account/SettingsProvider";
+import { draftDefaults } from "@/lib/account/settings";
+import { isBlankUntouchedChat, showBriefChrome } from "@/lib/workspace/blank-chat";
 import { PhoneTabBar, phonePanelId } from "./PhoneTabBar";
 import { PhoneTeamButton } from "./PhoneTeamButton";
 import { PhoneTrajectory } from "./PhoneTrajectory";
@@ -41,7 +44,9 @@ import { dateRangeLabel } from "@/lib/workspace/trip-facts";
 
 export function WorkspaceView({ model }: { model: WorkspaceModel }) {
   const { t, locale, delta, notice: localizeNotice } = useLocale();
+  const { settings } = useSettings();
   const { session, layout, itinerary, history } = model;
+  const [chatView, setChatView] = useState<ChatView>("conversation");
   const {
     plan,
     draft,
@@ -182,7 +187,26 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
   const selectView = (view: MobileView) =>
     view !== mobileView && viewTransition(() => layout.selectView(view), `to-${view}`);
 
+  useEffect(() => {
+    if (!phone || plan || mobileView !== "trip") return;
+    selectView("chat");
+  }, [phone, plan, mobileView]);
+
   const teamTurn = latestTurn(activity, busy, messages);
+  const profileDefaults = draftDefaults(settings);
+  const briefChrome = showBriefChrome({
+    messages,
+    input,
+    draft,
+    defaults: profileDefaults,
+  });
+  const untouched = isBlankUntouchedChat({
+    plan,
+    messages,
+    input,
+    draft,
+    defaults: profileDefaults,
+  });
 
   const phonePanel = (view: MobileView) =>
     phone
@@ -369,25 +393,38 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                 <PhoneTeamButton model={model} turn={teamTurn} />
               </>
             ) : (
-              <div className="topbar-summary">
-                <h1 className="topbar-title">
-                  {plan ? (history.activeTripName ?? plan.brief.destination) : t("New trip")}
-                </h1>
+              <div className="topbar-leading">
+                <ChatViewTabs
+                  view={chatView}
+                  onChoose={setChatView}
+                  className="topbar-chat-tabs chat__tabs"
+                />
+                <TeamControl
+                  turn={teamTurn}
+                  {...(narrow ? { onReveal: () => layout.selectView("chat") } : {})}
+                />
+                {plan && (
+                  <h1 className="topbar-title">
+                    {history.activeTripName ?? plan.brief.destination}
+                  </h1>
+                )}
               </div>
             )}
-            <TripFactChips
-              draft={draft}
-              plan={plan}
-              busy={busy || editPending}
-              errors={errors}
-              open={openFact}
-              onOpen={openPreferences}
-              onClose={closePreferences}
-              onSave={session.saveFacts}
-              onPlan={session.planWith}
-              preferencesChip={preferencesToggle}
-              suggestPlaces={dataMode.mode === "live" && !!dataMode.providers?.maps}
-            />
+            {(briefChrome || openFact) && (
+              <TripFactChips
+                draft={draft}
+                plan={plan}
+                busy={busy || editPending}
+                errors={errors}
+                open={openFact}
+                onOpen={openPreferences}
+                onClose={closePreferences}
+                onSave={session.saveFacts}
+                onPlan={session.planWith}
+                preferencesChip={preferencesToggle}
+                suggestPlaces={dataMode.mode === "live" && !!dataMode.providers?.maps}
+              />
+            )}
             {narrow && !phone && (
               <div
                 ref={viewSwitch}
@@ -409,11 +446,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
             )}
             {!phone && (
               <div className="topbar-actions">
-                <div
-                  className="topbar-control-cluster"
-                  role="group"
-                  aria-label={t("Data and language controls")}
-                >
+                <div className="topbar-control-cluster" role="group" aria-label={t("Data mode")}>
                   <DataModeToggle
                     mode={dataMode.mode}
                     providers={dataMode.providers}
@@ -422,31 +455,28 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                     liveAvailable={dataMode.liveAvailable}
                     liveBlock={dataMode.liveBlock}
                   />
-                  <LanguageToggle />
                 </div>
-                <TeamControl
-                  turn={teamTurn}
-                  {...(narrow ? { onReveal: () => layout.selectView("chat") } : {})}
-                />
-                <button
-                  ref={tripToggle}
-                  type="button"
-                  className="topbar-button trip-trigger"
-                  aria-label={t("Open your trip")}
-                  aria-describedby={tripStops ? "trip-trigger-count" : undefined}
-                  aria-expanded={tripOpen}
-                  aria-haspopup="dialog"
-                  onClick={() => (tripOpen ? closeTrip() : openTrip())}
-                >
-                  <RouteIcon />
-                  <span className="topbar-button__label">{t("Trip")}</span>
-                  {tripStops > 0 && (
-                    <span className="trip-trigger__count" id="trip-trigger-count">
-                      {tripStops}
-                      <span className="sr-only"> {t(tripStops === 1 ? "stop" : "stops")}</span>
-                    </span>
-                  )}
-                </button>
+                {plan && (
+                  <button
+                    ref={tripToggle}
+                    type="button"
+                    className="topbar-button trip-trigger"
+                    aria-label={t("Open your trip")}
+                    aria-describedby={tripStops ? "trip-trigger-count" : undefined}
+                    aria-expanded={tripOpen}
+                    aria-haspopup="dialog"
+                    onClick={() => (tripOpen ? closeTrip() : openTrip())}
+                  >
+                    <RouteIcon />
+                    <span className="topbar-button__label">{t("Trip")}</span>
+                    {tripStops > 0 && (
+                      <span className="trip-trigger__count" id="trip-trigger-count">
+                        {tripStops}
+                        <span className="sr-only"> {t(tripStops === 1 ? "stop" : "stops")}</span>
+                      </span>
+                    )}
+                  </button>
+                )}
               </div>
             )}
           </header>
@@ -512,6 +542,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
             <div className="workspace-panel workspace-panel--chat" {...phonePanel("chat")}>
               <ChatPanel
                 plan={plan}
+                draft={draft}
                 messages={messages}
                 input={input}
                 onInput={session.type}
@@ -527,8 +558,11 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                 onAskProgress={session.updateAskProgress}
                 onDismissAsk={session.dismissAsk}
                 onEdit={edit}
-                onStart={edit}
                 phone={phone}
+                showTabs={false}
+                blankUntouched={untouched}
+                view={chatView}
+                onViewChange={setChatView}
                 onAttachFiles={composerAttachments.addFiles}
                 attachments={composerAttachments.attachments}
                 onRemoveAttachment={composerAttachments.removeAttachment}
@@ -619,6 +653,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
               view={mobileView}
               onSelect={selectView}
               hidden={keyboardOpen}
+              showTrip={Boolean(plan)}
               badges={{
                 trip: tripUpdated && <span className="phone-tabbar__dot" aria-hidden="true" />,
               }}

@@ -13,7 +13,7 @@ const check = (ok, name, detail) => {
 };
 
 const PLAN = "Tokyo from Sydney, 2027-02-01 to 2027-02-04, 2 adults, budget AUD 6000";
-const BUTTON = "Specialist team";
+const BUTTON = "Agent Team";
 const CLEAR = "Show all records";
 
 const browser = await chromium.launch({

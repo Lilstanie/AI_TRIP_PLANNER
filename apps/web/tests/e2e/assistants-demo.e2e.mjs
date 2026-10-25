@@ -21,7 +21,7 @@ const OTHER_DEFAULT = { en: "Day plan", zh: "每日行程" };
 const ACCOMMODATION = 3;
 const TRANSPORT = 2;
 const OTHER = { en: "Rail Pal", zh: "铁路搭子" };
-const BUTTON = { en: "Specialist team", zh: "专家团队" };
+const BUTTON = { en: "Agent Team", zh: "智能体团队" };
 const PLAN = "Tokyo from Sydney, 2027-02-01 to 2027-02-04, 2 adults, budget AUD 6000";
 
 const browser = await chromium.launch({

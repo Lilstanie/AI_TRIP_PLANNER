@@ -195,11 +195,10 @@ describe("Workspace interactions", () => {
 
     expect(within(within(chat).getByRole("log")).queryByText(/Sydney|Museum/)).toBeNull();
     expect(within(map).queryByText(/Sydney|Museum/)).toBeNull();
-    expect(within(chat).getByText("Where to next?")).toBeTruthy();
+    expect(within(chat).getByLabelText("Example trips")).toBeTruthy();
     for (const name of ["Where", "When", "Who", "Budget"])
-      expect(screen.getByRole("button", { name })).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Open your trip" }));
-    expect(within(drawer("trip")).getByText(/No trip yet/)).toBeTruthy();
+      expect(screen.queryByRole("button", { name })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Open your trip" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Review plan" })).toBeNull();
     await waitFor(() => {
       const catalog = parseCatalog(localStorage.getItem(CATALOG_KEY));
@@ -228,7 +227,7 @@ describe("Workspace interactions", () => {
     const where = await screen.findByRole("dialog", { name: "Where" });
     await waitFor(() => expect(where.contains(document.activeElement)).toBe(true));
     const chat = document.querySelector<HTMLElement>(".workspace-panel--chat")!;
-    expect(within(chat).getByText("Where to next?")).toBeTruthy();
+    expect(within(chat).getByLabelText("Example trips")).toBeTruthy();
 
     fireEvent.change(screen.getByLabelText("Message AI Trip Planner"), {
       target: { value: "typed after New trip" },
@@ -456,6 +455,10 @@ describe("Workspace interactions", () => {
     vi.stubGlobal("fetch", withPlaceRequests());
     const view = render(<Workspace initialPlan={plan} />);
     fireEvent.click(newChatButton());
+    fireEvent.change(screen.getByLabelText("Message AI Trip Planner"), {
+      target: { value: "reveal brief" },
+    });
+    await waitFor(() => expect(screen.getByRole("button", { name: /^Where$/ })).toBeTruthy());
     openChip(/^Where$/);
     fireEvent.change(screen.getByLabelText("Add a destination"), { target: { value: "Lisbon" } });
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
@@ -607,14 +610,16 @@ describe("Workspace interactions", () => {
     render(<Workspace />);
 
     expect(fetcher.mock.calls.map(([url]) => String(url))).not.toContain("/api/chat");
-    expect(screen.getByRole("heading", { name: "New trip" })).toBeTruthy();
-    expect(screen.getByText("Where to next?")).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "Conversation" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Agent Team" })).toBeTruthy();
+    expect(screen.getByLabelText("Example trips")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Open your trip" })).toBeNull();
     expect(screen.getByText("Your map will appear here")).toBeTruthy();
     expect((screen.getByLabelText("Message AI Trip Planner") as HTMLInputElement).value).toBe("");
     expect(document.body.textContent).not.toMatch(/Tokyo|Kyoto/);
 
     for (const name of ["Where", "When", "Who", "Budget"])
-      expect(screen.getByRole("button", { name })).toBeTruthy();
+      expect(screen.queryByRole("button", { name })).toBeNull();
     await waitFor(() => {
       const catalog = parseCatalog(localStorage.getItem(CATALOG_KEY));
       expect(catalog.trips).toHaveLength(0);
@@ -636,7 +641,7 @@ describe("Workspace interactions", () => {
     );
     view.unmount();
     render(<Workspace />);
-    expect(screen.getByRole("heading", { name: "New trip" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "Conversation" })).toBeTruthy();
     expect((screen.getByLabelText("Message AI Trip Planner") as HTMLInputElement).value).toBe("");
     expect(within(drawer("trip")).queryByText(/Sydney/)).toBeNull();
     fireEvent.click(historyButton(/^Sydney · 1.*4 Oct/));

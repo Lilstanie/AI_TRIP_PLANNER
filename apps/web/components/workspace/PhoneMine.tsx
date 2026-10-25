@@ -2,7 +2,6 @@
 import { GearIcon } from "../ui/icons";
 import { useLocale } from "../account/LocaleProvider";
 import { DataModeToggle } from "./DataModeToggle";
-import { LanguageToggle } from "./LanguageToggle";
 import { ChatsPanel } from "./ChatsPanel";
 import { TripsPage } from "./TripsPage";
 import type { WorkspaceModel } from "./useWorkspace";
@@ -56,18 +55,13 @@ export function PhoneMine({ model }: { model: WorkspaceModel }) {
           )
         }
       />
-      <div
-        className="phone-mine__controls"
-        role="group"
-        aria-label={t("Data and language controls")}
-      >
+      <div className="phone-mine__controls" role="group" aria-label={t("Data mode")}>
         <DataModeToggle
           mode={dataMode.mode}
           providers={dataMode.providers}
           onChange={dataMode.choose}
           disabled={busy}
         />
-        <LanguageToggle />
       </div>
       <button
         type="button"
