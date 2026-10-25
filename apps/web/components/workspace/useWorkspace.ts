@@ -2,6 +2,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useWorkspaceStorage } from "./useWorkspaceStorage";
 import { useWorkspaceTransport } from "./useWorkspaceTransport";
+import { useTripDay } from "../trip/useTripDay";
+import { savedBrowsing, rememberBrowsing, validSelectedStop } from "@/lib/workspace/browsing";
 import { useTripPlaces } from "../map/useTripPlaces";
 import { effectiveCurrency, type TripPlan } from "@trip/shared";
 import type { RouteResult } from "@/lib/integrations/google";
@@ -44,6 +46,7 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
   const [state, setSession] = useState<SessionState>(() =>
     idleSession({
       plan: restored.plan,
+      selectedActivity: savedBrowsing(restored.plan).selected,
       draft: restored.draft,
       messages: restored.messages ?? (restored.plan ? seed : []),
       input: restored.input,
@@ -87,7 +90,6 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
   const [sidebarWidth, setSidebarWidth] = useState(restored.catalog.layout.sidebar.width);
   const [chatShare, setChatShare] = useState(restored.catalog.layout.chatShare);
 
-  const [mapDay, setMapDay] = useState<number>();
   const [mapFocus, setMapFocus] = useState(0);
   const isPhone = useRef(phone);
   isPhone.current = phone;
@@ -110,6 +112,20 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
     dataMode.providers?.webMapsProvider !== "google",
   );
   const { itinerary } = tripPlaces;
+  const { day: mapDay, selectDay: setMapDay } = useTripDay(
+    plan,
+    tripPlaces.destinations[0],
+    selectedActivity,
+    undefined,
+    tripPlaces.destinationsSettled,
+  );
+  const browsingActions = useRef({ setMapDay, plan });
+  browsingActions.current = { setMapDay, plan };
+  const selectedByTrip = useRef(new Map<string, string | undefined>());
+  if (plan) selectedByTrip.current.set(plan.tripId, selectedActivity);
+  useEffect(() => {
+    if (plan) rememberBrowsing(plan.tripId, { selected: selectedActivity });
+  }, [plan, selectedActivity]);
   const firstPlannedCity = plan
     ? destinationCities(plan.brief.destination)[0]?.toLocaleLowerCase()
     : undefined;
@@ -161,16 +177,19 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
     );
   }, [mobileView, sidebarCollapsed, sidebarWidth, chatShare]);
 
-  const selectedDay = selectedActivity ? itinerary.stop(selectedActivity)?.day : undefined;
-  useEffect(() => {
-    if (phone && selectedDay !== undefined) setMapDay(selectedDay);
-  }, [phone, selectedDay]);
-
   function open(saved: SavedSession) {
     flushSave();
     active.current?.abort();
     active.current = null;
-    dispatch({ kind: "opened", saved });
+    const restoredSelection =
+      saved.plan &&
+      (selectedByTrip.current.has(saved.plan.tripId)
+        ? selectedByTrip.current.get(saved.plan.tripId)
+        : savedBrowsing(saved.plan).selected);
+    dispatch({
+      kind: "opened",
+      saved: { ...saved, selectedActivity: validSelectedStop(saved.plan, restoredSelection) },
+    });
 
     composerAttachments.clearAttachments();
   }
@@ -438,11 +457,20 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
       resizeSidebar: (width: number | undefined) => setSidebarWidth(width),
       resizeChat: (share: number | undefined) => setChatShare(share),
 
-      showMapDay: (day: number | undefined) => setMapDay(day),
+      showMapDay: (day: number | undefined) => browsingActions.current.setMapDay(day ?? 1),
 
       pickMapDay: (day: number) => {
-        setMapDay(day);
-        dispatch({ kind: "selected", activity: undefined });
+        browsingActions.current.setMapDay(day);
+        const current = browsingActions.current.plan;
+        const selected = current && selectedByTrip.current.get(current.tripId);
+        if (
+          !selected ||
+          !current?.sections.some((section) =>
+            section.proposal?.items.some((stop) => stop.id === selected && stop.day === day),
+          )
+        ) {
+          dispatch({ kind: "selected", activity: undefined });
+        }
       },
     },
     history: {

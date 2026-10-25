@@ -273,6 +273,8 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
               onPending={session.trackEdit}
               tripPlaces={tripPlaces}
               selected={selectedActivity}
+              day={layout.mapDay}
+              onDayChange={layout.pickMapDay}
               onSelect={session.selectStop}
               onRoutesChange={session.showRoutes}
               onApply={session.applyEdit}
