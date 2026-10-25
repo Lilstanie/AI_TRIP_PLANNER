@@ -29,14 +29,12 @@ try {
   await page.locator(".workspace-app").waitFor();
   await page.locator(".composer__input").waitFor();
   if (issue === "429") {
-    const gap = await page
-      .locator(".chat-suggestions")
-      .evaluate((el) => {
-        const form = el.closest(".chat__form");
-        const composer = form?.querySelector(".composer");
-        if (!composer) return 0;
-        return composer.getBoundingClientRect().top - el.getBoundingClientRect().bottom;
-      });
+    const gap = await page.locator(".chat-suggestions").evaluate((el) => {
+      const form = el.closest(".chat__form");
+      const composer = form?.querySelector(".composer");
+      if (!composer) return 0;
+      return composer.getBoundingClientRect().top - el.getBoundingClientRect().bottom;
+    });
     check(gap >= 4, "429 suggestions and composer have token spacing", { gap });
   }
   if (issue === "432") {

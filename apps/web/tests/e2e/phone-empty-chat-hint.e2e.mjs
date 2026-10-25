@@ -65,10 +65,7 @@ try {
       if (phone) await page.locator(".phone-tabbar").getByRole("tab", { name: copy.chat }).click();
       const suggestions = page.getByLabel(copy.examples);
       await suggestions.waitFor();
-      check(
-        (await page.locator(".chat-empty h3").count()) === 0,
-        `${label}: no centre empty card`,
-      );
+      check((await page.locator(".chat-empty h3").count()) === 0, `${label}: no centre empty card`);
       check(
         (await page.locator(".fact-chips").count()) === 0,
         `${label}: Brief bar stays hidden on a blank untouched chat`,

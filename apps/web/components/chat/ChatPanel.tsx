@@ -16,10 +16,7 @@ import type { PreparedAttachment } from "@/lib/chat/attachments";
 import type { Notice } from "@/lib/i18n/notice";
 import { useLocale } from "../account/LocaleProvider";
 import { ChatViewTabs, type ChatView } from "./ChatViewTabs";
-import {
-  composerPlaceholders,
-  PLACEHOLDER_ROTATE_MS,
-} from "@/lib/chat/composer-placeholders";
+import { composerPlaceholders, PLACEHOLDER_ROTATE_MS } from "@/lib/chat/composer-placeholders";
 
 export function ChatPanel({
   plan,

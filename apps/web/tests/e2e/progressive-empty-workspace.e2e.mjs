@@ -73,7 +73,10 @@ try {
       (await page.getByRole("button", { name: "Agent Team" }).count()) === 1,
     "desktop blank: Conversation tab and Agent Team top-left",
   );
-  check((await page.locator(".data-mode:visible").count()) === 1, "desktop blank: Live/Mock remains");
+  check(
+    (await page.locator(".data-mode:visible").count()) === 1,
+    "desktop blank: Live/Mock remains",
+  );
   await page.screenshot({ path: `${OUT}/desktop-blank.png` });
 
   const composer = page.locator(".composer textarea, .composer__input, textarea").first();

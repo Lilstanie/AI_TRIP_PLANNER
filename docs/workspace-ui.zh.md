@@ -10,16 +10,16 @@ Web 应用（`apps/web`）是单用户规划工作区。本文描述其当前行
 
 ## 布局
 
-| 区域           | 内容                                                                                                              | 实现                                                                                                        |
-| -------------- | ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| 侧边栏         | Logo、带数量的 Chats 和 Trips、保存或同步状态、Settings & account                                                 | `WorkspaceSidebar`、`BrandMark`、`icons.tsx`                                                                |
-| Chats 面板     | 在侧边栏旁滑出：搜索、New chat、New trip，然后是行程和聊天                                                        | `ChatsPanel`、`TripCover`                                                                                   |
-| Your trips     | 通过 Trips 打开，替代聊天和地图：行程卡片（Upcoming、Past）、Calendar 标签页和 New trip                           | `TripsPage`、`TripCover`                                                                                    |
-| 顶栏           | 桌面：左上 Conversation \| Trajectory 与 Agent Team；Brief 标签仅在旅客开始后出现；右侧保留数据模式；有 Plan 才显示 Trip。界面语言只在设置中切换 | `WorkspaceView`、`TripFactChips`、`TeamControl`、`ChatViewTabs`、`PhoneTeamButton` |
-| 行程事实编辑器 | 每个标签对应一个编辑器，全部为居中对话框；Preferences 保存旅客自己的列表                                          | `FactPopover`、`FactFields`、`TripCalendar`、`WhereFields`、`PreferenceList`、`lib/workspace/trip-facts.ts` |
-| 聊天           | Conversation 或 Trajectory、规划 transcript、输入区；空白未动聊天在输入区旁显示建议芯片；聚焦且为空时轮换 placeholder | `ChatPanel` |
-| 地图           | 仅包含地图、带标签的标记、按天着色的弧形行程线、地点弹窗、地图状态，以及定位／地图类型／缩放控件                  | `TripMapCanvas`、`TripMap`                                                                                  |
-| Your Trip 抽屉 | 预算及其未解决的冲突；日视图（旅行提示、日期条、所选日期的停靠点及其地点卡片和 ⋯ 菜单、航班和住宿，然后是 Ideas） | `Drawer`、`TripPanel`、`TripEditor`、`TripTips`、`timeline/TimelineStop`、`timeline/BookingRow`             |
+| 区域           | 内容                                                                                                                                             | 实现                                                                                                        |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| 侧边栏         | Logo、带数量的 Chats 和 Trips、保存或同步状态、Settings & account                                                                                | `WorkspaceSidebar`、`BrandMark`、`icons.tsx`                                                                |
+| Chats 面板     | 在侧边栏旁滑出：搜索、New chat、New trip，然后是行程和聊天                                                                                       | `ChatsPanel`、`TripCover`                                                                                   |
+| Your trips     | 通过 Trips 打开，替代聊天和地图：行程卡片（Upcoming、Past）、Calendar 标签页和 New trip                                                          | `TripsPage`、`TripCover`                                                                                    |
+| 顶栏           | 桌面：左上 Conversation \| Trajectory 与 Agent Team；Brief 标签仅在旅客开始后出现；右侧保留数据模式；有 Plan 才显示 Trip。界面语言只在设置中切换 | `WorkspaceView`、`TripFactChips`、`TeamControl`、`ChatViewTabs`、`PhoneTeamButton`                          |
+| 行程事实编辑器 | 每个标签对应一个编辑器，全部为居中对话框；Preferences 保存旅客自己的列表                                                                         | `FactPopover`、`FactFields`、`TripCalendar`、`WhereFields`、`PreferenceList`、`lib/workspace/trip-facts.ts` |
+| 聊天           | Conversation 或 Trajectory、规划 transcript、输入区；空白未动聊天在输入区旁显示建议芯片；聚焦且为空时轮换 placeholder                            | `ChatPanel`                                                                                                 |
+| 地图           | 仅包含地图、带标签的标记、按天着色的弧形行程线、地点弹窗、地图状态，以及定位／地图类型／缩放控件                                                 | `TripMapCanvas`、`TripMap`                                                                                  |
+| Your Trip 抽屉 | 预算及其未解决的冲突；日视图（旅行提示、日期条、所选日期的停靠点及其地点卡片和 ⋯ 菜单、航班和住宿，然后是 Ideas）                                | `Drawer`、`TripPanel`、`TripEditor`、`TripTips`、`timeline/TimelineStop`、`timeline/BookingRow`             |
 
 - **侧边栏。**
   - 展开宽度为 240 px（视口小于 1250 px 时为 220 px），或折叠成 64 px 的图标栏。切换按钮使用 `aria-expanded`，偏好保存在目录布局中。

@@ -446,11 +446,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
             )}
             {!phone && (
               <div className="topbar-actions">
-                <div
-                  className="topbar-control-cluster"
-                  role="group"
-                  aria-label={t("Data mode")}
-                >
+                <div className="topbar-control-cluster" role="group" aria-label={t("Data mode")}>
                   <DataModeToggle
                     mode={dataMode.mode}
                     providers={dataMode.providers}
