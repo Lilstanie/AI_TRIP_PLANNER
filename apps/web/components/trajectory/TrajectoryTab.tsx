@@ -24,6 +24,7 @@ export const TrajectoryTab = memo(function TrajectoryTab({
   jump,
   onJumped,
   phone = false,
+  onPlanInChat,
 }: {
   messages: readonly Message[];
   live: readonly AgentProgressEvent[];
@@ -33,6 +34,7 @@ export const TrajectoryTab = memo(function TrajectoryTab({
   jump?: TurnJump;
   onJumped?: () => void;
   phone?: boolean;
+  onPlanInChat?: () => void;
 }) {
   const { t, locale } = useLocale();
   const { settings } = useSettings();
@@ -51,6 +53,24 @@ export const TrajectoryTab = memo(function TrajectoryTab({
       }),
     [messages, live, busy, t, tt, names, locale, only],
   );
+  if (phone && only === undefined && ledger.turns.length === 0) {
+    return (
+      <div className="trajectory-tab">
+        <div className="trajectory-empty">
+          <p>
+            {t(
+              "Nothing here yet. Send a message in Chat and each step the assistant takes will be listed here.",
+            )}
+          </p>
+          {onPlanInChat && (
+            <button type="button" onClick={onPlanInChat}>
+              {t("Plan in Chat")}
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="trajectory-tab">
       {only !== undefined && (

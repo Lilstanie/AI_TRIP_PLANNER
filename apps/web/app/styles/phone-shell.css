@@ -47,6 +47,17 @@
   border-radius: var(--radius-sm);
   overflow: hidden;
 }
+.trajectory-empty {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-3);
+  color: var(--text-dim);
+}
+.trajectory-empty button {
+  min-height: 44px;
+  color: var(--text);
+}
 [data-phone] .workspace-panel--map {
   margin: 0;
 }
