@@ -25,6 +25,7 @@ export function PhoneMine({ model }: { model: WorkspaceModel }) {
   return (
     <div className="phone-mine">
       <ChatsPanel
+        collectionActions
         query={history.query}
         onQuery={history.search}
         chats={history.chats}

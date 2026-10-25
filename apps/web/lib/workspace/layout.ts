@@ -1,7 +1,7 @@
 import type { FactKey } from "./trip-facts";
 
 export type MobileView = "chat" | "map" | "trip" | "trajectory" | "mine";
-export const PHONE_VIEWS: readonly MobileView[] = ["chat", "map", "trip", "trajectory", "mine"];
+export const PHONE_VIEWS: readonly MobileView[] = ["chat", "map", "trip", "mine"];
 export type DialogKind = "settings";
 
 export type Drawer = "trip" | "nav" | "chats";

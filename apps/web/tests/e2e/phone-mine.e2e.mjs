@@ -1,3 +1,4 @@
+import { setPhoneLanguage } from "./phone-settings.mjs";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
@@ -305,13 +306,13 @@ try {
     check(await chatSelected(), `${width}: selecting chat opens Chat`);
     await selectMine();
     await mine
-      .locator(".chats-panel__actions")
+      .locator(".chats-panel__section-head")
       .getByRole("button", { name: "New chat", exact: true })
       .click();
     check(await chatSelected(), `${width}: New chat opens Chat`);
     await selectMine();
     await mine
-      .locator(".chats-panel__actions")
+      .locator(".chats-panel__section-head")
       .getByRole("button", { name: "New trip", exact: true })
       .click();
     check(await chatSelected(), `${width}: New trip opens Chat`);
@@ -330,7 +331,7 @@ try {
         .count()),
       `${width}: data/language absent from top bar`,
     );
-    await mine.getByRole("button", { name: "Switch language to 简体中文" }).click();
+    await setPhoneLanguage(page, "zh");
     check(
       (await dataModeLabel.innerText()).trim() === "示例数据" &&
         (await dataModeLabel.evaluate((node) => {
@@ -350,7 +351,7 @@ try {
     );
     check(
       await mine
-        .locator(".chats-panel__actions")
+        .locator(".chats-panel__section-head")
         .getByRole("button", { name: "新聊天", exact: true })
         .isVisible(),
       `${width}: Chinese actions`,

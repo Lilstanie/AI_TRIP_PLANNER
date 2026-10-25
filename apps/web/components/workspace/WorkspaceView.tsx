@@ -30,7 +30,6 @@ import { draftDefaults } from "@/lib/account/settings";
 import { isBlankUntouchedChat, showBriefChrome } from "@/lib/workspace/blank-chat";
 import { PhoneTabBar, phonePanelId } from "./PhoneTabBar";
 import { PhoneTeamButton } from "./PhoneTeamButton";
-import { PhoneTrajectory } from "./PhoneTrajectory";
 import { PhoneTripTitle } from "./PhoneTripTitle";
 import { TeamControl } from "../chat/TeamControl";
 import { latestTurn } from "../chat/team-model";
@@ -596,21 +595,6 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                   </div>
                 )}
                 {tripContent}
-              </div>
-            )}
-            {phone && (
-              <div
-                className="workspace-panel workspace-panel--trajectory"
-                {...phonePanel("trajectory")}
-              >
-                <PhoneTrajectory
-                  messages={messages}
-                  activity={activity}
-                  busy={busy}
-                  visible={mobileView === "trajectory"}
-                  onReveal={() => selectView("trajectory")}
-                  onPlanInChat={() => selectView("chat")}
-                />
               </div>
             )}
             {phone && (

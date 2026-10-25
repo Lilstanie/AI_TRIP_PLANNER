@@ -1,3 +1,4 @@
+import { setPhoneLanguage } from "./phone-settings.mjs";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
@@ -115,13 +116,13 @@ async function run(browser, size) {
     `${prefix}: Trip accessible name announces update`,
   );
   await select(page, "Mine");
-  await page.getByRole("button", { name: "Switch language to 简体中文", exact: true }).click();
+  await setPhoneLanguage(page, "zh");
   await settle(page);
   check(
     (await tab(page, "行程").getAttribute("aria-label")) === "行程已更新",
     `${prefix}: Chinese Trip accessible name announces update`,
   );
-  await page.getByRole("button", { name: "切换至 English", exact: true }).click();
+  await setPhoneLanguage(page, "en");
   await settle(page);
   await select(page, "Chat");
   const input = page.locator(".composer__input");

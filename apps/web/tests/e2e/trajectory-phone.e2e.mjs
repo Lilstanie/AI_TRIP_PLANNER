@@ -83,12 +83,13 @@ try {
     }
     const bar = page.locator(".phone-tabbar");
     const tabs = bar.getByRole("tab");
-    const tab = bar.getByRole("tab", { name: copy.tab });
+    const trigger = page.locator(".phone-topbar__team");
+    const tab = { tap: () => trigger.tap() };
     const noSideScroll = () =>
       page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
     const overflowing = () =>
       page.evaluate(() => {
-        const panel = document.querySelector(".workspace-panel--trajectory");
+        const panel = document.querySelector("dialog.phone-trajectory[open]");
         if (!panel) return ["no panel"];
         return [panel, ...panel.querySelectorAll("*")].flatMap((n) => {
           const scrolls = /auto|scroll/.test(getComputedStyle(n).overflowX);
@@ -99,8 +100,15 @@ try {
       });
 
     await bar.getByRole("tab", { name: copy.chat }).click();
-    check((await tab.count()) === 1, `${label}: the bottom bar has a trajectory tab`);
-    check((await tabs.count()) === 5, `${label}: five tabs in the bar`, await tabs.count());
+    check(
+      (await bar.getByRole("tab", { name: copy.tab }).count()) === 0,
+      `${label}: trajectory has no primary tab`,
+    );
+    check(
+      (await tabs.count()) === 3,
+      `${label}: three primary tabs before planning`,
+      await tabs.count(),
+    );
     const boxes = await tabs.evaluateAll((nodes) =>
       nodes.map((n) => n.getBoundingClientRect().toJSON()),
     );
@@ -113,17 +121,20 @@ try {
     );
 
     await tab.tap();
-    const panel = page.locator(".workspace-panel--trajectory");
+    const panel = page.locator("dialog.phone-trajectory[open]");
     await panel.waitFor();
-    check((await tab.getAttribute("aria-selected")) === "true", `${label}: the tab is selected`);
+    check(
+      (await trigger.getAttribute("aria-expanded")) === "true",
+      `${label}: the team entry is expanded`,
+    );
     check(await panel.isVisible(), `${label}: the trajectory panel shows`);
     check(
-      await page.locator(".workspace-panel--chat").isHidden(),
-      `${label}: the chat panel is hidden behind it`,
+      await panel.evaluate((node) => node.contains(document.activeElement)),
+      `${label}: trajectory owns focus above Chat`,
     );
     await page.screenshot({ path: `${out}/${label}-empty.png` });
 
-    await bar.getByRole("tab", { name: copy.chat }).tap();
+    await panel.locator(".phone-trajectory__close").tap();
     await page.locator(".chat-empty__suggestions button").first().tap();
     await page.locator(".msg-item--agent .msg-item__body").first().waitFor({ timeout: 240_000 });
     await page.waitForTimeout(800);
@@ -193,14 +204,14 @@ try {
     await aside.waitFor({ state: "detached" });
     check((await rows.count()) === count, `${label}: closing the inspector returns to the ledger`);
 
+    await panel.locator(".phone-trajectory__close").tap();
     await bar.getByRole("tab", { name: copy.map }).tap();
-    const button = page
-      .locator(".workspace-topbar")
-      .getByRole("button", { name: copy.team, exact: true });
+    const button = trigger;
     await button.tap();
-    const sheet = page.getByRole("dialog", { name: copy.team });
+    const sheet = panel;
     await sheet.waitFor();
     await page.waitForTimeout(400);
+    await sheet.locator(".phone-trajectory__team > summary").tap();
     const members = sheet.locator(".team-panel__row");
     check((await members.count()) === 6, `${label}: six member cards`, await members.count());
     const ids = await members.evaluateAll((nodes) =>
@@ -223,11 +234,11 @@ try {
     await page.screenshot({ path: `${out}/${label}-sheet.png` });
 
     await sheet.locator('.team-panel__row[data-assistant="dining"] button').tap();
-    await sheet.waitFor({ state: "detached" });
+    await sheet.locator(".phone-trajectory__team:not([open])").waitFor();
     await page.waitForTimeout(300);
     check(
-      (await tab.getAttribute("aria-selected")) === "true",
-      `${label}: a card opens the trajectory tab from the map`,
+      (await bar.getByRole("tab", { name: copy.map }).getAttribute("aria-selected")) === "true",
+      `${label}: a specialist opens filtered trajectory without changing Map`,
     );
     const filter = page.locator("[data-trajectory-filter]");
     await filter.waitFor();
@@ -249,13 +260,15 @@ try {
     await filter.waitFor({ state: "detached" });
     check((await rows.count()) === count, `${label}: Show all records restores the ledger`);
 
+    await panel.locator(".phone-trajectory__close").tap();
     await bar.getByRole("tab", { name: copy.chat }).tap();
     check(await page.locator(".workspace-panel--chat").isVisible(), `${label}: Chat comes back`);
     await button.tap();
     await sheet.waitFor();
     await page.waitForTimeout(300);
+    await sheet.locator(".phone-trajectory__team > summary").tap();
     await sheet.locator('.team-panel__row[data-assistant="transport"] button').tap();
-    await sheet.waitFor({ state: "detached" });
+    await sheet.locator(".phone-trajectory__team:not([open])").waitFor();
     check(
       (await page.locator("[data-trajectory-filter]").getAttribute("data-trajectory-filter")) ===
         "transport",
@@ -280,8 +293,8 @@ try {
   const page = await context.newPage();
   await page.goto(base);
   await page.locator(".workspace-app[data-phone]").waitFor();
-  await page.getByRole("tab", { name: /^Trajectory/ }).click();
-  await page.locator(".workspace-panel--trajectory").waitFor();
+  await page.locator(".phone-topbar__team").click();
+  await page.locator("dialog.phone-trajectory[open]").waitFor();
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.waitForTimeout(500);
   check(

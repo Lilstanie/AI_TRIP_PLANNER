@@ -1,3 +1,4 @@
+import { setPhoneLanguage } from "./phone-settings.mjs";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
@@ -143,10 +144,7 @@ try {
     check((await days.count()) > 1, `${width}: day switcher`);
     for (const language of ["en", "zh"]) {
       await page.locator(".phone-tabbar").getByRole("tab").last().click();
-      if (language === "zh")
-        await page
-          .getByRole("button", { name: "Switch language to 简体中文", exact: true })
-          .click();
+      if (language === "zh") await setPhoneLanguage(page, "zh");
       await page.locator(".phone-tabbar").getByRole("tab").nth(1).click();
       await handle.press("End");
       const heights = await days.evaluateAll((nodes) =>
@@ -231,7 +229,7 @@ try {
       );
     }
     await page.locator(".phone-tabbar").getByRole("tab").last().click();
-    await page.getByRole("button", { name: "切换至 English", exact: true }).click();
+    await setPhoneLanguage(page, "en");
     await tab("Map").click();
     await handle.press("End");
 
