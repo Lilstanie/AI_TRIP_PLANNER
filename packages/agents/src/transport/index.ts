@@ -467,6 +467,8 @@ function assembleTransportProposal(
       ...(option.stops !== undefined ? { stops: option.stops } : {}),
       ...(option.durationMin !== undefined ? { durationMin: option.durationMin } : {}),
       ...(option.note ? { note: option.note } : {}),
+      ...(option.outbound ? { outbound: option.outbound } : {}),
+      ...(option.inbound ? { inbound: option.inbound } : {}),
     }));
     const selected =
       candidates.find(

@@ -526,6 +526,7 @@ export const WORKSPACE_ZH = {
   "Fare not published": "票价未公布",
   "return flight {date}": "返程航班 {date}",
   "whole group": "整个团队",
+  "time not set": "时间未定",
   "Check in": "入住",
   "{count} nights": "{count} 晚",
   "rated {rating}/5": "评分 {rating}/5",

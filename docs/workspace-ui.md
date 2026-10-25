@@ -610,7 +610,9 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
 - **Flight rows.** A flight the plan priced is a row on its day, and the first day starts with the
   flight in. Inter-city flights are rows on their day. When the arrival flight is a round trip, its
   return is a flight out at the end of the last day of the day strip, showing the return date; it shares
-  the arrival flight's selection and costs nothing more ("Included in the outbound fare"). Timed ground hops
+  the arrival flight's selection and costs nothing more ("Included in the outbound fare"). A flight row's
+  time column shows the departure and arrival times of its leg when the provider gave them; otherwise the
+  row says "time not set", as mock fares do. Timed ground hops
   stay as fixed rows. A trip with no flight, no stay or no guide shows no empty row or block.
 - **Stay card.** Rating, check-in and check-out, rooms and nights, nightly price, cancellation terms,
   the source note, and a link to the property's details when the planner has one. A stay whose
