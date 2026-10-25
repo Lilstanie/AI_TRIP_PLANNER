@@ -22,6 +22,8 @@ const dismissLocation = async (page, language) => {
   );
 };
 
+const composer = (page) => page.locator(".composer textarea, .composer__input, textarea").first();
+
 const browser = await chromium.launch({
   headless: true,
   ...(process.env.CHANNEL ? { channel: process.env.CHANNEL } : {}),
@@ -53,7 +55,7 @@ try {
   await page.locator(".chat-empty__suggestions").waitFor();
 
   check(
-    (await page.locator(".chat-empty h3").count()) === 0, // e2e-selectors: absent
+    (await page.getByRole("heading", { name: "Where to next?" }).count()) === 0,
     "desktop blank: no Where to next card",
   );
   check(
@@ -79,19 +81,56 @@ try {
   );
   await page.screenshot({ path: `${OUT}/desktop-blank.png` });
 
-  const composer = page.locator(".composer textarea, .composer__input, textarea").first();
-  await composer.click();
-  await composer.fill("Tokyo");
-  await page.waitForTimeout(200);
+  const input = composer(page);
+  await input.click();
+  const firstPlaceholder = await input.getAttribute("placeholder");
+  await input
+    .locator("xpath=.")
+    .evaluate(
+      (node, previous) =>
+        new Promise((resolve, reject) => {
+          const started = Date.now();
+          const tick = () => {
+            if (node.getAttribute("placeholder") !== previous) return resolve(true);
+            if (Date.now() - started > 8000) return reject(new Error("placeholder did not rotate"));
+            requestAnimationFrame(tick);
+          };
+          tick();
+        }),
+      firstPlaceholder,
+    )
+    .then(
+      () => check(true, "focused empty composer rotates placeholders"),
+      (error) => check(false, "focused empty composer rotates placeholders", String(error)),
+    );
+  await input.fill("Tokyo");
+  await page.locator(".fact-chips").waitFor();
   check((await page.locator(".fact-chips").count()) === 1, "typing reveals Brief bar");
   check(
     (await page.locator(".chat-empty__suggestions").count()) === 0,
     "typing hides suggestion chips",
   );
+  const whileTyping = await input.getAttribute("placeholder");
+  await input.evaluate(
+    (node) =>
+      new Promise((resolve) => {
+        const started = Date.now();
+        const tick = () => {
+          if (Date.now() - started > 5000) return resolve(node.getAttribute("placeholder"));
+          requestAnimationFrame(tick);
+        };
+        tick();
+      }),
+  );
+  check(
+    (await input.getAttribute("placeholder")) === whileTyping,
+    "typed text stops placeholder rotation",
+    { whileTyping, later: await input.getAttribute("placeholder") },
+  );
   await page.screenshot({ path: `${OUT}/desktop-typing.png` });
 
-  await composer.fill("");
-  await page.waitForTimeout(200);
+  await input.fill("");
+  await page.locator(".chat-empty__suggestions").waitFor();
   check(
     (await page.locator(".fact-chips").count()) === 0 &&
       (await page.locator(".chat-empty__suggestions").count()) === 1,
@@ -99,6 +138,15 @@ try {
   );
 
   await page.route("**/api/chat", async (route) => {
+    const body = JSON.parse(route.request().postData() ?? "{}");
+    if (/messaged-state/i.test(body.message ?? "")) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ reply: "Which city are you thinking of?" }),
+      });
+      return;
+    }
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -124,11 +172,31 @@ try {
       }),
     });
   });
+
+  await input.fill("messaged-state please ask");
+  await page.getByRole("button", { name: "Send" }).click();
+  await page.getByText("Which city are you thinking of?").waitFor();
+  check(
+    (await page.locator(".fact-chips").count()) === 1 &&
+      (await page.getByRole("button", { name: "Open your trip" }).count()) === 0,
+    "messaged state keeps Brief bar without Trip",
+  );
+  await page.screenshot({ path: `${OUT}/desktop-messaged.png` });
+
+  await page.goto(BASE, { waitUntil: "domcontentloaded" });
+  await dismissLocation(page, "en");
+  await page.locator(".chat-empty__suggestions").waitFor();
   await page.locator(".chat-empty__suggestions button").first().click();
   await page.getByRole("button", { name: "Open your trip" }).waitFor({ timeout: 15000 });
   check(
     (await page.getByRole("button", { name: "Open your trip" }).count()) === 1,
     "Trip appears once a Plan exists",
+  );
+  const afterPlan = await composer(page).getAttribute("placeholder");
+  check(
+    afterPlan === "Tell me what to change…",
+    "Plan uses a stable revision placeholder",
+    afterPlan,
   );
   await page.screenshot({ path: `${OUT}/desktop-plan.png` });
   check(errors.length === 0, "desktop: no page errors", errors);

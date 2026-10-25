@@ -73,7 +73,9 @@ try {
         );
         return {
           targets,
-          card: Boolean(document.querySelector(".chat-empty h3")), // e2e-selectors: absent
+          card: [...document.querySelectorAll("h3")].some((node) =>
+            /Where to next\?|下一站去哪里？/.test(node.textContent ?? ""),
+          ),
           overflow: document.scrollingElement.scrollWidth - window.innerWidth,
         };
       });
@@ -82,8 +84,8 @@ try {
       await page.screenshot({ path: `${OUT}/${label}-start.png` });
       if (phone)
         check(
-          layout.targets.every((target) => target.height >= 32),
-          `${label} every chip is at least 32 px high`,
+          layout.targets.every((target) => target.height >= 44),
+          `${label} every chip is at least 44 px high`,
           layout.targets.map((target) => [target.text, target.height]),
         );
       check(

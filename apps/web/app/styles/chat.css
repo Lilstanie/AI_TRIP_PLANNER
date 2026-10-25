@@ -32,7 +32,7 @@
 }
 .chat-suggestions__chip {
   max-width: 100%;
-  min-height: 32px;
+  min-height: 44px;
   padding: 4px 12px;
   overflow: hidden;
   border: 1px solid var(--border);

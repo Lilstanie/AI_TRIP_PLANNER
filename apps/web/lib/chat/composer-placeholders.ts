@@ -23,7 +23,7 @@ export function composerPlaceholders(draft: Draft, hasPlan: boolean): MessageKey
     const primary = GAP_PROMPTS[gap as keyof typeof GAP_PROMPTS];
     return [primary, ...GENERAL.filter((item) => item !== primary)];
   }
-  return GENERAL;
+  return [GENERAL[0]!];
 }
 
 export const PLACEHOLDER_ROTATE_MS = 4500;

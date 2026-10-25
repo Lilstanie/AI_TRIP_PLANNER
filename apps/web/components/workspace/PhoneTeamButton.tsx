@@ -44,7 +44,7 @@ export function PhoneTeamButton({ model, turn }: { model: WorkspaceModel; turn: 
         <FactPopover
           key={sheet.leaving ? "leaving" : "open"}
           id={TEAM_SHEET_ID}
-          title={t("Agent Team")}
+          title={t("Specialist team")}
           anchor={button}
           onClose={close}
           modal

@@ -283,8 +283,9 @@ try {
   );
   check(
     (await page.locator(".workspace-topbar .team-trigger").count()) === 1 &&
-      (await page.locator(".topbar-actions .team-trigger").count()) === 1,
-    "desktop keeps a single Agent Team button",
+      (await page.locator(".topbar-leading .team-trigger").count()) === 1 &&
+      (await page.locator(".topbar-actions .team-trigger").count()) === 0,
+    "desktop keeps a single Agent Team button in the top-left",
   );
   await context.close();
 } finally {

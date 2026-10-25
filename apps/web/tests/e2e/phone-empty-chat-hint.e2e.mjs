@@ -66,7 +66,8 @@ try {
       const suggestions = page.getByLabel(copy.examples);
       await suggestions.waitFor();
       check(
-        (await page.locator(".chat-empty h3").count()) === 0, // e2e-selectors: absent
+        (await page.getByRole("heading", { name: "Where to next?" }).count()) === 0 &&
+          (await page.getByRole("heading", { name: "下一站去哪里？" }).count()) === 0,
         `${label}: no centre empty card`,
       );
       check(
