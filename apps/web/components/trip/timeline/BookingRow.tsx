@@ -277,12 +277,22 @@ export function BookingRow({
   const flight = row.selection as FlightSelection;
   const selected = flight.candidates.find((candidate) => candidate.id === flight.selectedId);
   const out = row.role === "out";
+  const leg = out ? selected?.inbound : selected?.outbound;
+  const departs = leg?.segments[0]?.departsAt.split(" ")[1];
+  const arrives = leg?.segments[leg.segments.length - 1]?.arrivesAt.split(" ")[1];
   const Icon = FlowFlightIcon;
   return (
     <li
       className={`timeline-row timeline-fixed timeline-fixed--flight timeline-booking${open ? " is-open" : ""}`}
     >
-      <span className="timeline-row__time" />
+      <span className="timeline-row__time">
+        {departs && (
+          <>
+            {departs}
+            <span className="timeline-row__end">{arrives}</span>
+          </>
+        )}
+      </span>
       <span className="timeline-row__node timeline-fixed__icon" aria-hidden="true">
         <Icon size={14} />
       </span>
@@ -302,6 +312,7 @@ export function BookingRow({
             {[
               selected?.carrier,
               out ? t("return flight {date}", { date: row.date ?? "" }) : t("whole group"),
+              departs ? undefined : t("time not set"),
             ]
               .filter(Boolean)
               .join(" · ")}
