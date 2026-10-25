@@ -60,11 +60,17 @@ supervisor 只选择某个节点需要哪些 specialist 工具。控制路径、
 1. `POST /api/chat` 调用 `runTripChat`（`packages/orchestrator/src/chat.ts`），只从消息中
    提取明确的 `TripBrief` 更新。`mode: "plan"` 跳过提取，规划提交的行程需求；
    `mode: "start"` 要求消息中包含所有行程需求字段（见 [API](api.zh.md)）。
+   所有入口都通过 `packages/orchestrator/src/brief-intake.ts` 中的 `BriefIntake` 合并明确的修订，
+   并统一判断是否就绪：可规划、信息不全、目的地有歧义，或历史日期需要确认。
+   模型补齐行程需求后，即使没有调用 `replan_trip`，也会经过同一个检查入口。
+   历史日期确认由最近一条助手 `ChatTurn.pendingBriefConfirmation` 绑定具体起止日期，
+   并要求旅行者明确回复；提示文案不承载状态，旧的纯文本提示会重新询问。
+   匹配目的地的坐标决定当地日期；已有计划仍可编辑。参见[接收决策](../.agents/notes/implemented/architecture/2026-10-25-brief-intake.md)。
 2. 工作流运行 specialist、检测冲突、对目标 specialist 最多执行 `maxRounds` 轮修订，
    然后组装 `TripPlan`。计划的各部分分别携带自己的草稿/需要用户处理状态，
    `conflicts` 列出仍未解决的请求。
 3. 进度事件以 NDJSON 流式发送到浏览器；最终帧携带 `{ reply, plan }`。
-4. 没有确认步骤：旅行者通过聊天说明或编辑行程来修改计划，产品不会要求他们批准某个检查点。
+4. 完成信息接收后，旅行者通过聊天说明或编辑行程来修改计划，无需批准检查点。
    地图查询和行程编辑预览使用 `apps/web` 中的地图路由，绝不会重新运行规划器。
 
 <a id="web-map-providers"></a>
