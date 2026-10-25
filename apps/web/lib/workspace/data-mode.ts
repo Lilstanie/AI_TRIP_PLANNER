@@ -3,6 +3,8 @@ import { useCallback, useEffect, useState } from "react";
 
 export type DataMode = "mock" | "live";
 
+export type LiveBlock = "sign-in-required" | "auth-not-configured";
+
 export type DataModeProviders = {
   hotelsAndFlights: boolean;
   maps: boolean;
@@ -25,12 +27,19 @@ export function useDataMode(preferred?: DataMode) {
   const [mode, setMode] = useState<DataMode>();
   const [providers, setProviders] = useState<DataModeProviders>();
   const [liveAvailable, setLiveAvailable] = useState(true);
+  const [liveBlock, setLiveBlock] = useState<LiveBlock>();
 
   useEffect(() => {
     let active = true;
     void (async () => {
       let body:
-        { configured?: string; liveAvailable?: boolean; providers?: DataModeProviders } | undefined;
+        | {
+            configured?: string;
+            liveAvailable?: boolean;
+            liveBlock?: LiveBlock | null;
+            providers?: DataModeProviders;
+          }
+        | undefined;
       try {
         const response = await fetch("/api/data-mode");
         if (response?.ok) body = await response.json();
@@ -39,6 +48,7 @@ export function useDataMode(preferred?: DataMode) {
       setProviders(body?.providers);
       const allowed = body?.liveAvailable !== false;
       setLiveAvailable(allowed);
+      setLiveBlock(body?.liveBlock ?? undefined);
       const wanted = stored() ?? preferred ?? (body?.configured === "live" ? "live" : "mock");
       setMode(allowed ? wanted : "mock");
     })();
@@ -60,7 +70,7 @@ export function useDataMode(preferred?: DataMode) {
     [liveAvailable],
   );
 
-  return { mode, providers, choose, liveAvailable };
+  return { mode, providers, choose, liveAvailable, liveBlock };
 }
 
 export function dataModeHeaders(mode: DataMode | undefined): Record<string, string> {

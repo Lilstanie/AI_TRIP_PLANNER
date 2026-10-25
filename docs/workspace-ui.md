@@ -64,7 +64,8 @@ now. Implementation history and browser acceptance for each phase are in the
     initial; the same destination always gets the same colours.
   - A chat row's second line names its trip with the same title the Trips list uses, so two chats for
     trips with the same destination, dates, group size and budget read `Trip to Sydney · 1` and
-    `· 2` there too.
+    `· 2` there too. The row's overflow trigger is named `Actions for {chat}, {trip}` through the
+    locale, so Chinese reads `{chat}，{trip}的操作`.
   - A chat row's overflow trigger at its top right opens Rename and Delete, so those
     actions stay off the row until they are wanted. It is revealed on hover and on keyboard focus,
     and always shown where there is no hover to reveal it. The menu is a `role="menu"` of
@@ -187,6 +188,15 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     rejected brief opens the editor of the first fact at fault, with the error beside the field.
   - The trip title stays in the top bar at 1250 px and wider. Below that the destination chip names
     the trip and the title is kept for assistive technology only.
+- **Map on demand.** On desktop a chat with no plan shows the chat alone, centred at up to 880 px.
+  When the first plan arrives the map slides in from the right over 420 ms and the chat narrows to
+  the split below; a new chat slides it out again. The separator is hidden while the map is hidden.
+  Tablet and phone layouts are unchanged.
+- **Message actions.** Every message has a copy button under it (hover or focus on a pointer
+  device, always visible on touch). A traveller's message without attachments also has an edit
+  button: it turns the bubble into a text box, and Resend removes that message and everything after
+  it, then sends the new text. The trip plan itself is not rolled back. Text in messages and replies
+  is selectable.
 - **Chat and map split.** On desktop the chat is on the left at 56 % of the area by default, a
   little wider than the map. A separator between them (`role="separator"`, "Resize chat and map")
   moves it between 30 % and 75 %: drag it, or focus it and use Left/Right (2 % steps), Home and End;
@@ -227,7 +237,8 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     (`Drawer`'s `hideTitle`).
 - **Phones (≤520 px).** The [phone shell decision](../.agents/notes/implemented/feature/2026-10-05-phone-shell.md)
   applies only at this width; desktop and tablets keep their existing navigation.
-  - A safe-area-aware bottom tab bar exposes Chat, Map, Trip and Mine as keyboard-operable tabs.
+  - A safe-area-aware bottom tab bar exposes Chat, Map, Trip, Trajectory and Mine as keyboard-operable tabs. Trajectory is the
+    phone trajectory described under Trajectory tab.
     One panel is visible at a time; panels stay mounted to preserve their scroll position. The saved
     layout restores the last tab, including older Chat/Map choices.
   - The single-row top bar shows the destination and dates, or New trip. Its title opens Trip details:
@@ -323,32 +334,37 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     sheet: a modal dialog named Specialist team, focus moves in and stays in, Escape, the close button or a press
     outside closes it and returns focus to the button, and it scrolls when long. It shares the layout `sheet` slot,
     so it never opens together with Trip details, and it closes when the viewport grows past phone width.
-    - Six rows, always, in the fixed order (Coordinator, Day plan, Getting around, Stay, Destination
-      guide, Food & dining), each with its icon, current name, a status and its latest objective
-      (clamped to two lines, with Show more). Idle is before any event; Working is started with no result in
-      the latest round; Done is completed; Failed is `agent_failed`; Needs change is named by the latest
-      conflict check and not yet revised; Stopped is a turn that was cancelled or failed while the assistant
-      was working (the Coordinator of such a turn is Stopped too); Not involved is no assignment this turn. The Coordinator row
-      carries the Decided by AI or code marker for the dispatch.
-    - Below the rows, the turn's **assignments** and checks in event order. An assignment is a
-      specialist's first dispatch, a targeted revision or a hand-off, with its owner, round status
-      (Working, Done, Failed or Stopped), a Decided by AI or Decided by code marker (AI when the stream
+    - The panel body is DSH's Agent Teams layout ([`TeamPanel`](../apps/web/components/chat/TeamPanel.tsx),
+      copied with its MIT header). **Members** (count 6) holds six cards, always, in the fixed order
+      (Coordinator, Day plan, Getting around, Stay, Destination guide, Food & dining): icon, current name, a
+      state dot with the status and the assistant's latest objective as a tag. Idle is before any event;
+      Working is started with no result in the latest round; Done is completed; Failed is `agent_failed`;
+      Needs change is named by the latest conflict check and not yet revised; Stopped is a turn that was
+      cancelled or failed while the assistant was working (the Coordinator of such a turn is Stopped too);
+      Not involved is no assignment this turn, and the card is greyed. The Coordinator card carries the
+      Decided by AI or code marker for the dispatch.
+    - **Assignments** (count) lists the turn's assignments and checks in event order as task cards. An
+      assignment is a specialist's first dispatch, a targeted revision or a hand-off. Its card shows the
+      owner, a state dot with the round status (Working, Done, Failed or Stopped), the objective clamped to
+      two lines with Show more, the kind, a Decided by AI or Decided by code marker (AI when the stream
       carried that specialist's reasoning in that round, otherwise code once the turn ends; a hand-off
       carries its own provenance) and the data source (live, estimated, mock, fallback or unavailable).
-      A misdirected mention is one hand-off row. Conflict checks name the specialist sent back with a
+      A misdirected mention is one hand-off card. Conflict checks name the specialist sent back with a
       Needs change tag; revision scores say kept or discarded; the stop reason ends the list. Checks are
       rules and carry no icon.
     - The Think fold's Subagent rows use the same icons. The Trip drawer shows no assistant icons. The live
       area above the message box shows only the Think fold.
-    - **Opening thinking rows.** Pressing a row of an involved assistant (Working, Done, Failed, Needs
-      change or Stopped; the name is a button called "Show {name} thinking") closes the panel, or on a phone the sheet,
-      switches to the chat when the Map is showing (the phone Map tab or the Map view at tablet width),
-      scrolls the chat to the Think fold of the latest run (the live area, or the latest reply's fold),
-      opens the fold and expands exactly that specialist's `Subagent` row for the latest round it worked in,
-      then moves focus to the row. Pressing the Coordinator opens the fold and focuses its first line, where
-      the dispatch begins. Idle and Not involved rows have no button and expose no action. The target is
-      matched by the run's activity list in [`team-reveal.tsx`](../apps/web/components/chat/team-reveal.tsx) and
-      handled in [`ThinkingProcess`](../apps/web/components/chat/ThinkingProcess.tsx).
+    - **Opening the filtered trajectory.** Pressing a card of an involved assistant (Working, Done, Failed,
+      Needs change or Stopped; the card is a button called "Show {name} trajectory") closes the panel,
+      switches to the chat when the Map is showing (the Map view at tablet width) and opens the Trajectory
+      tab showing only that assistant's records: its messages, assignments and tool calls, and the
+      conflict checks and revision scores that name it. A bar above the ledger names the assistant and
+      its Show all records button clears the filter; the filter survives switching tabs until cleared and a
+      second press replaces it. Idle and Not involved cards are disabled. The phone sheet shows the same
+      layout; a card there closes the sheet and selects the Trajectory tab from whichever tab is showing.
+      The request is [`trajectory-focus.tsx`](../apps/web/components/chat/trajectory-focus.tsx), applied by
+      `ChatPanel` on desktop and by `PhoneTrajectory` on a phone; the filter itself is `only` in
+      `buildTrajectory`.
   - There is no row of assistant chips above the message box. Typing `@` at the start of a word opens a
     menu of the six assistants (the Coordinator and the five specialists), each with its icon and
     current name, filtered by what follows the `@` and matched against the current, role and custom
@@ -479,6 +495,78 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     neither read nor deleted; see
     [workspace catalog trip storage](../.agents/notes/implemented/architecture/2026-09-24-workspace-catalog-trip-storage.md).
 
+## Trajectory tab
+
+On desktop the chat column has a Conversation and a Trajectory tab. Conversation is the message stream
+and stays mounted while Trajectory is open, so its scroll position returns; when a reply arrived meanwhile it returns at the newest reply. The chat column has no tab list at phone width.
+On a phone, Trajectory is the fourth tab of the bottom bar (轨迹). It shows the same ledger, search and
+filter bar without the timeline overview, and the record inspector opens over the whole panel and closes
+back to the ledger. Widening the window while it is selected returns to the chat. With no turns yet, the
+tab shows an empty-state card in place of the toolbar and ledger, with a **Plan in Chat** button that
+opens the chat. The tab is
+[`PhoneTrajectory`](../apps/web/components/workspace/PhoneTrajectory.tsx).
+On the phone each record is a fixed 56 px card: its kind icon sits on the left, the request on the first line
+and its result on the second, and text beyond two lines is clipped (the inspector shows the whole text).
+The toolbar's Turns, Calls and search controls are 44 px high, the search text is 16 px so iOS Safari does not
+zoom in, and the inspector's tabs and section headings are 44 px targets. The
+[phone trajectory note](../.agents/notes/implemented/feature/2026-10-24-phone-trajectory-cards.md) records why.
+When the trajectory is narrower than 820 px, as in the default desktop chat column, the inspector opens under
+the full-width ledger instead of beside it, and its body scrolls. The toolbar buttons, the inspector tabs and
+the step dots are compact controls rather than the app's pill buttons, and the timeline lane labels keep one
+line. The [desktop trajectory note](../.agents/notes/implemented/feature/2026-10-24-desktop-trajectory-layout.md)
+records why.
+
+- **Records.** `buildTrajectory` (`lib/trajectory/adapter.ts`) maps the stored messages and their
+  `activity` events to one turn per traveller message. A traveller message is a User record. A Coordinator
+  summary and the reply are Assistant records named with the assistant's current name, custom names
+  included. An assignment (`agent_started`) and a check (conflict check, revision score, stop) are Tool
+  records. A specialist's tool call is a Subtool record placed under its assignment. A failed assignment
+  or tool call is marked failed. An unfinished request shows the live events and settles when the reply
+  arrives.
+- **Steps.** Each workflow round is a step, shown as a dot on the first record of the round, named Step
+  N. The traveller message sits in a Message group before the first step. Selecting a step opens its
+  status and call counts.
+- **Ledger.** The table is the copied DSH ledger: turn labels, fold of a turn or an assistant's calls
+  (toolbar buttons or a double click), search, a lane overview above it and an inspector for the selected record
+  with Summary, Payload and Result tabs (Preview and Raw for messages). Records carry no timestamps,
+  so the overview uses event order and equal widths and the inspector shows no duration or token field.
+- **Overview and search.** The overview draws one lane per record type present, one block per record in
+  event order. Clicking a block selects its record and scrolls the ledger to it. Searching a specialist
+  name, a place or a flight number narrows the ledger to the matching records, highlights them and shows a
+  hit count; the previous and next buttons, Enter and Shift+Enter step through the hits in event order,
+  wrapping at the ends, and scroll the current hit into view.
+- **Live tail.** While a reply streams the ledger keeps the newest record in view. Scrolling up stops
+  following until the traveller scrolls back to the bottom.
+- **Inspector.** An assignment shows its objective under Payload and the specialist's output or failure
+  under Result; a tool call shows its arguments and result or failure; a conflict check shows the decision
+  under Payload and, under Result, one line per conflict naming the specialist it sends back. Esc, from the
+  inspector or the ledger, or the close control closes it and returns focus to the record's row.
+- **Reply summary.** The one-line summary of a finished reply's Think row (for example "Coordinator + 3
+  specialists · 2 rounds") is a button. Pressing it clears any specialist filter and opens the Trajectory
+  tab (on a phone, the Trajectory tab of the bottom bar) with that reply's turn centred and unfolded. The
+  Think label and chevron still expand the row. The request is `openTurn` in
+  [`trajectory-focus.tsx`](../apps/web/components/chat/trajectory-focus.tsx); `messageTurns` in the adapter
+  numbers each message with its turn.
+- **Labels.** Ledger labels come from `components/trajectory/locales.ts` in English and Chinese; the
+  tab names are app messages. Both survive a reload because they derive from stored messages.
+- **Source.** The ledger files carry DeepSeek Harness's MIT header and are listed in
+  [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md); see
+  [the Agent Note](../.agents/notes/implemented/feature/2026-10-24-trajectory-tab.md).
+- **Verification.** `trajectory-tab` E2E (fixture mode, 1440, English and Chinese) saves the ledger,
+  inspector and reloaded screenshots and `result.json` under `output/playwright/trajectory-tab/`;
+  `trajectory-inspector` saves assignment, tool call and conflict check screenshots and `result.json`
+  under `output/playwright/trajectory-inspector/`.
+  `trajectory-timeline` saves the overview, a search hit, mid-stream and scrolled-up screenshots and
+  `result.json` under `output/playwright/trajectory-timeline/`.
+  `trajectory-phone` (fixture mode, 390 and 360, English and Chinese) saves the empty tab, the ledger, an
+  open record, the team sheet and the filtered ledger screenshots and `result.json` under
+  `output/playwright/trajectory-phone/`.
+  `trajectory-empty` (fixture mode, 375, English and Chinese) saves the empty-state card and the ledger
+  after the first message, with `result.json`, under `output/playwright/trajectory-empty/`.
+  `summary-jump` (1440 and 390, English and Chinese) sends three turns and checks that each reply's summary
+  opens its own turn, saving screenshots and `result.json` under `output/playwright/summary-jump/`.
+  `trajectory-demo` is the Stage 2 walkthrough record described in the [demo runbook](demo-runbook.md#trajectory-walkthrough).
+
 ## Reviewing a plan
 
 The Trip drawer summary shows the destination, localized short date range and traveller count.
@@ -491,7 +579,8 @@ within budget · unpriced stops not counted” and uses the caution colour. The 
 listed beneath the estimate. Status text wraps within the budget panel at narrow drawer widths.
 The budget card also breaks the known estimate into accommodation, transport, meals and activities.
 Each amount is labelled as an estimate; proposal items without prices are counted as unpriced beside
-their category and are not added to the total. Transport without a quoted amount or any priced item,
+their category and are not added to the total. Restaurant ideas are suggestions rather than costs, so they
+are not counted as unpriced meals; the row counts match the “Not included” notes. Transport without a quoted amount or any priced item,
 and any other category whose items are all unpriced, shows “Not costed” instead of a zero estimate,
 keeping its unpriced count. Published zero fares remain zero; older nonzero
 transport estimates remain visible. Missing transport prices are disclosed below the breakdown,
@@ -534,7 +623,9 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
 - **Flight rows.** A flight the plan priced is a row on its day, and the first day starts with the
   flight in. Inter-city flights are rows on their day. When the arrival flight is a round trip, its
   return is a flight out at the end of the last day of the day strip, showing the return date; it shares
-  the arrival flight's selection and costs nothing more ("Included in the outbound fare"). Timed ground hops
+  the arrival flight's selection and costs nothing more ("Included in the outbound fare"). A flight row's
+  time column shows the departure and arrival times of its leg when the provider gave them; otherwise the
+  row says "time not set", as mock fares do. Timed ground hops
   stay as fixed rows. A trip with no flight, no stay or no guide shows no empty row or block.
 - **Stay card.** Rating, check-in and check-out, rooms and nights, nightly price, cancellation terms,
   the source note, and a link to the property's details when the planner has one. A stay whose
@@ -660,8 +751,9 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   Each stop's "…" menu (`ActionMenu`, a `role="menu"`; arrow keys move, Escape closes it and returns
   focus to its trigger without closing the drawer) offers Move earlier and Move later (not on the first
   or last stop of a day), Move to another day (opens a day picker in the place card), Move to ideas,
-  Replace place (opens the place search in the card), Edit details, Add or Edit note, Mark as booked and
-  Remove. An idea offers Schedule on a day instead of the moves, and a restaurant suggestion offers only
+  Replace place (opens the place search in the card), Open in Maps (only when the stop's place has
+  coordinates; it opens Google Maps directions to them in a new tab, which hands off to the phone's maps
+  app and needs no API call), Edit details, Add or Edit note, Mark as booked and Remove. An idea offers Schedule on a day instead of the moves, and a restaurant suggestion offers only
   Schedule on a day and Remove. Details, notes, booked and visit progress apply in the browser at once. Move earlier, Move later, Move to
   another day, Move to ideas and Remove are checked by the server like any timeline edit, and an accepted one
   applies at once. Each settles the plan the way a server edit does: the budget

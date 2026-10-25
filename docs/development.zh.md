@@ -364,3 +364,8 @@ node apps/web/tests/e2e/run-performance.mjs
 工作区 journey 测量桌面上的 10 条、200 条消息，以及手机上的 200 条消息。它检查一次稳定输入保存只写一次 catalog，并覆盖刷新、存储配额错误重试、切换前 flush、重命名、布局保存、已规划行程的快照镜像和旧标签页存储保护。第二个标签页直接写入 revision 协议，不覆盖计划编辑 API。地图 journey 用 Google 兼容 SDK stub 控制可见性与动画 frame，并使用真实 MapLibre 的空白样式。它覆盖隐藏面板、后台页面、减少动态效果、视角与选择保留及卸载，不调用 Google，也不验证实时地图服务。
 
 每次命令分配新 label。日志和总摘要位于 `output/e2e/performance-acceptance/<label>/`；截图、工作区 trace、CPU profile 和 JSON 位于 `output/playwright/{workspace-performance,map-animation-lifecycle}/<label>/`。MessageItem 计数是输入与保存或合成 stream 测量窗口内的 V8 函数调用次数，不是 React commit 或 DOM 变化次数。耗时包含防抖和 profile 开销；这些 fixture 不能证明真实用户 Core Web Vitals 或速度提升。比较其他版本时，先单独构建该版本，再用 `BASE_URL=<owned-server> LABEL=before-<unique-label>` 运行工作区脚本；`before-` label 记录基线写入次数，不要求满足优化后的次数。保留失败尝试。
+
+账户记忆与规划准备检查、预算修订类型的集成，通过
+`pnpm --filter @trip/web e2e long-term-memory accommodation-memory memory-settings planning-readiness` 验证。
+这些流程使用一次性 PGlite 和确定性的提供方夹具，不代表 Clerk、外部数据库或真实提供方验收。
+向外部数据库部署迁移 `0002` 仍需单独授权。

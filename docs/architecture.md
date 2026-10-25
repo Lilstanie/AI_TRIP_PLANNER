@@ -56,12 +56,21 @@ step.
    explicit `TripBrief` updates from the message. `mode: "plan"` skips extraction and plans the
    submitted brief; `mode: "start"` requires every brief field in the message (see
    [API](api.md)).
+   Every entry uses `BriefIntake` in `packages/orchestrator/src/brief-intake.ts` to merge explicit
+   patches and decide readiness: ready, incomplete, ambiguous destination or historical dates needing
+   confirmation. A model that completes the brief reaches the same gate even without calling
+   `replan_trip`. Historical confirmation uses the latest assistant `ChatTurn.pendingBriefConfirmation`,
+   bound to the exact date pair, plus an explicit traveller answer. Prompt wording carries no state;
+   legacy text-only prompts ask again. The server-owned `ChatTurn.confirmedBriefDestination` preserves
+   an accepted full place name across later questions and clears when that destination changes.
+   Matching destination coordinates determine the local calendar
+   date; existing plans remain editable. See the [intake decision](../.agents/notes/implemented/architecture/2026-10-25-brief-intake.md).
 2. The workflow runs applicable specialists, detects conflicts, revises targeted specialists for up to
    `maxRounds` rounds and assembles a `TripPlan` whose sections carry their own draft/needs-you state
    and whose `conflicts` list any request still unresolved.
 3. Progress events stream to the browser as NDJSON; the final frame carries `{ reply, plan }`.
-4. There is no confirmation step: the traveller changes a plan by saying so in chat or editing the
-   itinerary, and nothing in the product asks them to approve a checkpoint. Map lookups and itinerary
+4. After intake, the traveller changes a plan by saying so in chat or editing the itinerary,
+   without an approval checkpoint. Map lookups and itinerary
    edit previews use the map routes in `apps/web` and never re-run the planner.
 
 ## Web map providers
@@ -303,6 +312,13 @@ Specialist proposals, the brief and the final plan are re-validated at the graph
   `allocation` of its last cost less `targetSaving`, through the revision supervisor or directly.
   A round is kept only when `planScore` (AUD over budget plus a tenth of the budget per other
   conflict) improves; otherwise the previous proposals stand and the loop stops.
+- Transport, accommodation and dining share `revisionIntent` inside `packages/agents`. Typed
+  `budget` and `time` revisions determine saving and scheduling behavior without reading the reason;
+  other conflict kinds trigger neither. Only `request` uses keywords in the reason and constraints:
+  `budget`, `cost`, `cheaper`, `overrun`, `cut` or `reduce` for saving, and `time`, `overlap` or
+  `schedule` for scheduling. A traveller request can trigger both. Explicit allocations still govern
+  spending; numeric saving targets are not used to infer intent. Model requests carry the kind and
+  normalized intent, with a shared prompt rule that makes the intent authoritative over prose.
 - `OrchestratorOptions.onDecision` receives the loop's decisions as typed `WorkflowDecision` facts:
   conflicts detected (targets, reasons, score, infeasibility), revision started (objective and
   previous outcome), revision scored (before, after, kept) and loop stopped (round and reason). A
@@ -347,7 +363,7 @@ The dining model picks venues only. The meal budget comes from code: AUD 80 per 
 
 Destination guidance checks weather for every city and trip date, with three lookups in flight. These are destination/date checks, not an inferred stay schedule. Missing coordinates, date mismatches and provider failures stay explicitly unavailable. Each result retains its provider, horizon and observation time. Successful weather responses are reused within one gateway, so dates in the same forecast response do not multiply requests. Climate context is historical, never a forecast.
 
-The destination evidence tool supplies dated weather to packing generation. Forecast entries remain forecasts and climate entries remain historical context. If generation fails or no model is configured, deterministic packing uses the available rain, cold and heat evidence; it never invents conditions for unavailable dates. The weather tip text follows the turn's reply language: day names use the same `Intl` format as the Trip tab day headers (`Fri, 18 June`, `6月18日周五`), and the forecast, climate and unavailable labels come from `summary-copy.ts`. The deterministic Travel tips text (attractions, customs, safety, entry and health, monthly weather, packing) and fallback stop and restaurant descriptions come from the same file, so a Chinese turn without a model still reads Chinese (`chinese-travel-tips` E2E).
+The destination evidence tool supplies dated weather to packing generation. Forecast entries remain forecasts and climate entries remain historical context. If generation fails or no model is configured, deterministic packing uses the available rain, cold and heat evidence; it never invents conditions for unavailable dates. The weather tip text follows the turn's reply language: day names use the same `Intl` format as the Trip tab day headers (`Fri, 18 June`, `6月18日周五`), and the forecast, climate and unavailable labels come from `summary-copy.ts`. Days without weather are grouped into one unavailable line per city (`weather-unavailable-once` E2E). The deterministic Travel tips text (attractions, customs, safety, entry and health, monthly weather, packing) and fallback stop and restaurant descriptions come from the same file, so a Chinese turn without a model still reads Chinese (`chinese-travel-tips` E2E).
 
 Dining reads dietary requirements from trip preferences, chat-learned preferences and saved memory, including peanut/nut allergies and Chinese terms. No-model chat also retains explicit dietary sentences. The same requirements reach the generator and deterministic fallback without writing long-term memory. Grounded venue names do not establish allergen safety; obvious model guarantees are rejected and travellers must confirm ingredients and cross-contamination controls directly.
 

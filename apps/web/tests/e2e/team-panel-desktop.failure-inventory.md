@@ -16,6 +16,11 @@ Before changing production code, the retained browser journey must distinguish t
 - A misdirected mention shows no hand-off, or shows it as more than one assignment row.
 - An assignment carries no "Decided by AI" or "Decided by code" marker, or no data source.
 - Chinese or custom assistant names appear in English.
+- The panel body is not DSH's layout: no Members heading with a count of six, no roster of cards (icon, name, status dot, current assignment tag), or no Assignments board with one card per assignment (owner, status dot, two-line clamp with a Show more toggle).
+- A greyed non-participant card is pressable, or a participant's card is not a named button.
+- A conflict card is missing, shows no icon-free rule text, or omits the specialist it names.
+- A revision card hides whether the revision was kept or discarded.
+- Pressing a specialist's card expands thinking rows instead of opening the Trajectory tab, or leaves the Conversation tab selected.
 - `TeamConversation` still renders above the composer, or the thinking process disappears.
 - The page overflows horizontally or the panel leaves the viewport.
 

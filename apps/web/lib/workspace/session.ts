@@ -92,6 +92,7 @@ export type SessionEvent =
   | TurnOutcome
   | { kind: "started" }
   | { kind: "sent"; message: Message; brief?: boolean }
+  | { kind: "rewound"; index: number }
   | { kind: "progress"; event: AgentProgressEvent }
   | { kind: "rejected"; fields: Record<string, Notice> }
   | { kind: "opened"; saved: SavedSession }
@@ -191,6 +192,8 @@ export function session(state: SessionState, event: SessionEvent): SessionState 
         messages: [...state.messages, event.message],
         ...(event.brief ? { errors: {} } : {}),
       };
+    case "rewound":
+      return { ...state, messages: state.messages.slice(0, event.index) };
     case "progress":
       return { ...state, activity: [...state.activity, event.event] };
     case "rejected":

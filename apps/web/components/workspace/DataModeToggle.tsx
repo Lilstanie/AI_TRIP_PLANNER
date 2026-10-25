@@ -1,5 +1,5 @@
 "use client";
-import type { DataMode, DataModeProviders } from "@/lib/workspace/data-mode";
+import type { DataMode, DataModeProviders, LiveBlock } from "@/lib/workspace/data-mode";
 import { useLocale } from "../account/LocaleProvider";
 
 export function DataModeToggle({
@@ -8,12 +8,14 @@ export function DataModeToggle({
   onChange,
   disabled,
   liveAvailable = true,
+  liveBlock,
 }: {
   mode: DataMode | undefined;
   providers: DataModeProviders | undefined;
   onChange: (mode: DataMode) => void;
   disabled?: boolean;
   liveAvailable?: boolean;
+  liveBlock?: LiveBlock;
 }) {
   const { t } = useLocale();
 
@@ -21,8 +23,16 @@ export function DataModeToggle({
 
   const live = mode === "live";
   const keyed = providers?.hotelsAndFlights ?? true;
+  const unsignedMessage =
+    liveBlock === "auth-not-configured"
+      ? t("Mock data: bundled fixtures. Live provider data is off on this deployment.")
+      : t("Mock data: bundled fixtures. Sign in to plan with live hotel and flight prices.");
+  const unsignedSrMessage =
+    liveBlock === "auth-not-configured"
+      ? t(". Currently using mock fixtures. Live provider data is off on this deployment.")
+      : t(". Currently using mock fixtures. Sign in to plan with live hotel and flight prices.");
   const title = !liveAvailable
-    ? t("Mock data: bundled fixtures. Sign in to plan with live hotel and flight prices.")
+    ? unsignedMessage
     : live
       ? keyed
         ? t(
@@ -52,7 +62,7 @@ export function DataModeToggle({
       )}
       <span className="sr-only">
         {!liveAvailable
-          ? t(". Currently using mock fixtures. Sign in to plan with live hotel and flight prices.")
+          ? unsignedSrMessage
           : live
             ? t(". Currently using live provider data. Activate to switch to mock fixtures.")
             : t(". Currently using mock fixtures. Activate to switch to live provider data.")}

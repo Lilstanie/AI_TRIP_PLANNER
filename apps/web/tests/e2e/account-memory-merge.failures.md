@@ -34,3 +34,12 @@
 - Assertions observe helper output or fixtures rather than the production chat route, specialist boundary, Settings UI, or account routes.
 - A test reports success without proving the resulting plan used the winning source, or skips a branch silently.
 - Fixed-delay waits or environment-dependent provider/model behavior make the result flaky or non-repeatable.
+
+## October 25 integration with revision intent
+
+- Merging main b9f4b42c into a7f46882 conflicts in accommodation, dining and transport.
+- Keeping the old dining helper would restore a second budget-revision regex instead of the shared typed classifier.
+- Taking main's specialist prompts wholesale would lose remembered stay-type and accessibility constraints.
+- Taking the branch prompts wholesale would lose the revision-intent rule and revised accommodation ranking.
+- The combined tree must retain profile/account precedence, typed conflict handling and planning-readiness behavior.
+- A conflict-free MessageItem auto-merge imports useState twice, preventing the Next build and browser startup; retain one React import with all three hooks.

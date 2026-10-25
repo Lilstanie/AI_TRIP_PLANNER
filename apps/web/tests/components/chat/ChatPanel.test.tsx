@@ -179,7 +179,7 @@ describe("ChatPanel", () => {
     expect(within(log).getByText("Travel planning assistant")).toBeTruthy();
     expect(within(log).getByText("Plan Kyoto").classList.contains("msg-item__bubble")).toBe(true);
     expect(within(log).getByText(longUrl).closest(".msg-item__body")).toBeTruthy();
-    expect(log.querySelectorAll("[aria-label]")).toHaveLength(0);
+    expect(log.querySelectorAll("[aria-label]:not(.msg-action)")).toHaveLength(0);
   });
 
   it.each([
@@ -265,7 +265,9 @@ describe("ChatPanel", () => {
       />,
     );
 
-    expect(thinkRow().textContent).toContain("1 tool call · 1 subagent");
+    expect(thinkRow().closest(".thinking-row__line")?.textContent).toContain(
+      "1 tool call · 1 subagent",
+    );
     expect(screen.queryByRole("listitem", { name: "Day plan Complete" })).toBeNull();
 
     expect(screen.queryByRole("button", { name: /Expand all|Collapse all/ })).toBeNull();
@@ -495,10 +497,10 @@ describe("ChatPanel", () => {
 
     fireEvent.click(thinkRow());
     fireEvent.click(subagentRow("Day plan", "Thinking"));
-    const row = document.querySelector<HTMLElement>(".thinking-reasoning [role='button']");
+    const row = document.querySelector<HTMLElement>(".thinking-reasoning .thinking-row__toggle");
     if (!row) throw new Error("reasoning row missing");
-    expect(row.textContent).toBe("ThinkThinking");
-    expect(row.textContent).not.toContain("**");
+    expect(row.closest(".thinking-row__line")?.textContent).toBe("ThinkThinking");
+    expect(row.closest(".thinking-row__line")?.textContent).not.toContain("**");
     expect(row.getAttribute("aria-expanded")).toBe("false");
     expect(document.querySelector(".thinking-reasoning__body")).toBeNull();
 

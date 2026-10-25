@@ -84,7 +84,11 @@ export function choiceFor(
         selected.area,
         `${formatMoney(cost, currency)} total`,
         outOfFive(selected.rating),
-        selected.freeCancellation ? "Free cancellation" : "No free cancellation",
+        selected.freeCancellation === undefined
+          ? "Cancellation terms unknown"
+          : selected.freeCancellation
+            ? "Free cancellation"
+            : "No free cancellation",
       ].join(" · "),
     },
     rationale: proposal.summary,
@@ -96,7 +100,11 @@ export function choiceFor(
           candidate.area,
           `${formatMoney(candidate.pricePerNight * stay.nights * stay.rooms, currency)} total`,
           outOfFive(candidate.rating),
-          candidate.freeCancellation ? "Free cancellation" : "No free cancellation",
+          candidate.freeCancellation === undefined
+            ? "Cancellation terms unknown"
+            : candidate.freeCancellation
+              ? "Free cancellation"
+              : "No free cancellation",
         ].join(" · "),
       })),
   };

@@ -87,6 +87,15 @@ export const RouteIcon = () => (
   </Icon>
 );
 
+export const LedgerIcon = () => (
+  <Icon>
+    <circle cx="5" cy="6" r="1" />
+    <circle cx="5" cy="12" r="1" />
+    <circle cx="5" cy="18" r="1" />
+    <path d="M9 6h11M9 12h11M9 18h11" />
+  </Icon>
+);
+
 export const MapPinIcon = () => (
   <Icon>
     <path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11Z" />
@@ -190,5 +199,18 @@ export const LayersIcon = () => (
   <Icon>
     <path d="m12 3 9 5-9 5-9-5 9-5Z" />
     <path d="m3 13 9 5 9-5" />
+  </Icon>
+);
+
+export const CopyIcon = () => (
+  <Icon width="16" height="16">
+    <rect x="9" y="9" width="11" height="11" rx="2" />
+    <path d="M5 15V6a2 2 0 0 1 2-2h9" />
+  </Icon>
+);
+
+export const PencilIcon = () => (
+  <Icon width="16" height="16">
+    <path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z" />
   </Icon>
 );

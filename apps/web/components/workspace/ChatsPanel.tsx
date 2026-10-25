@@ -182,6 +182,7 @@ export function ChatsPanel({
               </button>
               <HistoryMenu
                 title={chatTitle(item.title)}
+                subtitle={item.subtitle}
                 onRename={() => onRenameChat(item.id)}
                 onDelete={() => onDeleteChat(item.id)}
               />

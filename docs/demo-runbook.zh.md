@@ -78,17 +78,31 @@ pnpm --filter @trip/web start -p 3000
 在消息框里输入 `@` 并从菜单中选择助手（方向键选择，再按 Tab 或 Enter），也可以直接输入名称。
 顶栏的“专家团队”按钮（手机上是标题右侧的头像按钮）会打开团队面板。
 
-1. 规划悉尼出发去东京，2027-02-01 至 2027-02-04，2 位成人，预算 AUD 6000。运行期间，“专家团队”按钮上的头像显示谁在工作；面板不会自动打开，需要时再手动打开，可看到协调员和五位 specialist 的状态。回复完成后，点击其摘要行即可打开该次运行的面板。
+1. 规划悉尼出发去东京，2027-02-01 至 2027-02-04，2 位成人，预算 AUD 6000。运行期间，“专家团队”按钮上的头像显示谁在工作；面板不会自动打开，需要时再手动打开，可看到协调员和五位 specialist 的状态。回复完成后，点击其摘要行即可在轨迹中打开该轮。
 2. 输入 `@` 并在菜单中选择 Stay，再输入 `find a cheaper stay`。只有住宿 specialist 工作，只有它的部分会变。
 3. 把预算降到方案超支，再重复第 2 步。面板显示冲突、被退回修订的 specialist、修订得分和停止行。
 4. 输入 `@Stay`，按一次 Backspace 选中整个提及，再按一次将其删除。
 5. `@Stay @Getting around find cheaper options`。恰好这两位 specialist 在同一轮工作。
 6. `@Stay recommend a restaurant`。Stay 婉拒并指出 Food & dining，协调员分发，Food & dining 作答。
-7. 点击第一条回复的摘要行，再点击面板中的 Stay。聊天滚动到该回复并展开 Stay 的思考行。
+7. 点击第一条回复的摘要行。“轨迹”标签页会打开到该回复所在的轮；改为点击“思考”标签仍会展开思考行。
 8. Settings → Personalization → Assistant names：给 Stay 改名，再用新名称提及它。菜单、面板和回复都显示新名称。
 9. 清除浏览器数据后发送 `@Stay when are hotels cheapest?`。specialist 作答，不创建方案，协调员继续询问行程信息。
 
 `CHANNEL=chromium DATA_MODE=mock USE_MOCK_TOOLS=true pnpm --filter @trip/web e2e assistants-demo` 会在 1440 px 和 390 px、两种语言下重复全部九步，保存带编号的截图（`<language>-<width>-NN-<step>.png`），并把 `output/playwright/assistants-demo/result.json` 作为演示记录。
+
+<a id="trajectory-walkthrough"></a>
+
+## 轨迹演示流程
+
+第二阶段演示中的轨迹部分同样在示例模式下无需任何密钥即可运行，支持中英文，桌面和手机均可。
+
+1. 规划悉尼出发去东京，2027-02-01 至 2027-02-04，2 位成人，预算 AUD 6000。运行期间打开“专家团队”面板：有一位 specialist 正在工作。
+2. 把预算降到方案超支，再发送 `@Stay find a cheaper stay again`。面板显示冲突检查和修订任务。
+3. 点击已完成回复上方的摘要行。“轨迹”标签页打开，该回复所在的轮在账本中居中（手机上是底部标签栏的“轨迹”）。
+4. 点击点名 Food & dining 的冲突检查。详情显示该决定和被退回的 specialist，没有 token 或耗时字段。
+5. 关闭详情，打开“专家团队”面板并点击 Food & dining。账本只保留该 specialist 的记录；“显示全部记录”可恢复。
+
+`CHANNEL=chromium DATA_MODE=mock USE_MOCK_TOOLS=true pnpm --filter @trip/web e2e trajectory-demo` 会在 1440 px 和 390 px、两种语言下重复这五步，保存带编号的截图（`<language>-<width>-NN-<step>.png`），并把 `output/playwright/trajectory-demo/result.json`（列出每一步的截图和检查）作为演示记录。`summary-jump` 在三轮对话中检查摘要行，并在 `output/playwright/summary-jump/` 保存结果。
 
 <a id="if-something-fails-on-the-day"></a>
 

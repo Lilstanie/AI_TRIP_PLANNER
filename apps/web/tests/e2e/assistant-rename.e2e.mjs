@@ -170,7 +170,7 @@ try {
       (await who().first().innerText()) === CUSTOM[locale],
       `${label}: the earlier reply shows the custom name without a reload`,
     );
-    await page.locator(".thinking-turn").last().click();
+    await page.locator(".thinking-turn > .thinking-row__line .thinking-row__title").last().click();
     const rows = await page.locator(`.thinking-subagent[aria-label^="${CUSTOM[locale]}"]`).count();
     check(rows >= 1, `${label}: Subagent rows show the custom name`, rows);
     await page.screenshot({ path: `${out}/${label}-renamed.png` });

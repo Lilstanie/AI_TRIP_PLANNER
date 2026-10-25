@@ -133,8 +133,8 @@ export function eligibleOptions(options: StayOption[], prefs: StayPreferences): 
         Number.isFinite(option.rating) &&
         option.rating >= prefs.minRating &&
         option.rating <= 10 &&
-        typeof option.freeCancellation === "boolean" &&
-        (!prefs.freeCancellation || option.freeCancellation),
+        (option.freeCancellation === undefined || typeof option.freeCancellation === "boolean") &&
+        (!prefs.freeCancellation || option.freeCancellation !== false),
     )
     .sort(
       (a, b) =>
@@ -144,6 +144,16 @@ export function eligibleOptions(options: StayOption[], prefs: StayPreferences): 
 
 export function chooseInitial(options: StayOption[]): StayOption {
   return options.find((option) => option.rating >= 8 && option.freeCancellation) ?? options[0]!;
+}
+
+export function chooseRevised(
+  options: StayOption[],
+  fits: (option: StayOption) => boolean,
+  allocated: boolean,
+): StayOption {
+  if (!allocated) return options[0]!;
+  const fitting = options.filter(fits);
+  return fitting.length ? chooseInitial(fitting) : options[0]!;
 }
 
 export function stayCost(option: StayOption, nights: number, rooms: number): number {

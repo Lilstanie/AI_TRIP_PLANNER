@@ -78,7 +78,7 @@ export interface StayOption {
   area: string;
   pricePerNight: number;
   rating: number;
-  freeCancellation: boolean;
+  freeCancellation?: boolean;
 
   grounded?: boolean;
 

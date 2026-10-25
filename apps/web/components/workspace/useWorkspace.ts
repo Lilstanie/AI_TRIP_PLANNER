@@ -480,6 +480,11 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
       attachments: composerAttachments,
       ...stable.session,
       send,
+      resend: (index: number, text: string) => {
+        if (!text.trim()) return;
+        dispatch({ kind: "rewound", index });
+        send(text);
+      },
       answer,
 
       retry: () => {

@@ -207,7 +207,7 @@ export const StayCandidate = z.object({
   area: z.string(),
   pricePerNight: z.number().positive(),
   rating: z.number().min(0).max(10),
-  freeCancellation: z.boolean(),
+  freeCancellation: z.boolean().optional(),
 
   grounded: z.boolean().optional(),
   location: z.object({ latitude: z.number(), longitude: z.number() }).optional(),
@@ -332,6 +332,13 @@ export const RevisionRequest = z.object({
 export type RevisionRequest = z.infer<typeof RevisionRequest>;
 
 export const ChatTurn = z.object({
+  confirmedBriefDestination: z.string().optional(),
+  pendingBriefConfirmation: z
+    .object({
+      kind: z.literal("historical_dates"),
+      dates: z.tuple([z.string().refine(isTripDate), z.string().refine(isTripDate)]),
+    })
+    .optional(),
   role: z.enum(["user", "assistant"]),
   content: z.string(),
   at: z.string().default(() => new Date().toISOString()),

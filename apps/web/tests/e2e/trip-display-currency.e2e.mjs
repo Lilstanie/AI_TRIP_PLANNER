@@ -336,10 +336,10 @@ try {
       const backdrop = page.locator(".workspace-drawer-backdrop");
       if (await backdrop.isVisible()) await backdrop.click({ force: true });
       const turn = page.locator(".thinking-process").last();
-      const line = turn.locator(".thinking-turn > .thinking-row__line");
+      const line = turn.locator(".thinking-turn > .thinking-row__line > .thinking-row__toggle");
       if ((await line.getAttribute("aria-expanded")) !== "true") await line.click();
       for (let pass = 0; pass < 3; pass++) {
-        const closed = turn.locator('.thinking-row__line[aria-expanded="false"]');
+        const closed = turn.locator('.thinking-row__toggle[aria-expanded="false"]');
         const count = await closed.count();
         if (!count) break;
         for (let i = count - 1; i >= 0; i--) await closed.nth(i).click({ force: true });

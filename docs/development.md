@@ -573,3 +573,9 @@ not React commits or DOM changes. Timings include debounce and profiling overhea
 not establish real-user Core Web Vitals or a speedup. To compare another revision, build it separately,
 then run the workspace script with `BASE_URL=<owned-server> LABEL=before-<unique-label>`; a `before-`
 label records the baseline write count without requiring the optimized count. Preserve failed attempts.
+
+Account-memory integration with planning-readiness and typed budget revisions is checked with
+`pnpm --filter @trip/web e2e long-term-memory accommodation-memory memory-settings planning-readiness`.
+These journeys use disposable PGlite and deterministic provider fixtures; they do not establish
+Clerk, external database or live-provider acceptance. Migration `0002` still needs separate
+authorization before deployment to an external database.

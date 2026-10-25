@@ -27,6 +27,7 @@ import { usePresence, useSegmentIndicator, viewTransition } from "../ui/motion";
 import { useLocale } from "../account/LocaleProvider";
 import { PhoneTabBar, phonePanelId } from "./PhoneTabBar";
 import { PhoneTeamButton } from "./PhoneTeamButton";
+import { PhoneTrajectory } from "./PhoneTrajectory";
 import { PhoneTripTitle } from "./PhoneTripTitle";
 import { TeamControl } from "../chat/TeamControl";
 import { latestTurn } from "../chat/team-model";
@@ -419,6 +420,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                     onChange={dataMode.choose}
                     disabled={busy}
                     liveAvailable={dataMode.liveAvailable}
+                    liveBlock={dataMode.liveBlock}
                   />
                   <LanguageToggle />
                 </div>
@@ -505,6 +507,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
             data-preferences-open={preferencesOpen}
             data-trip-open={tripOpen}
             data-mobile-view={mobileView}
+            data-map={plan ? "shown" : "hidden"}
           >
             <div className="workspace-panel workspace-panel--chat" {...phonePanel("chat")}>
               <ChatPanel
@@ -518,6 +521,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                 error={error}
                 onCancel={session.cancel}
                 onSend={session.send}
+                onResend={session.resend}
                 ask={ask}
                 onAnswer={session.answer}
                 onAskProgress={session.updateAskProgress}
@@ -558,6 +562,21 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                   </div>
                 )}
                 {tripContent}
+              </div>
+            )}
+            {phone && (
+              <div
+                className="workspace-panel workspace-panel--trajectory"
+                {...phonePanel("trajectory")}
+              >
+                <PhoneTrajectory
+                  messages={messages}
+                  activity={activity}
+                  busy={busy}
+                  visible={mobileView === "trajectory"}
+                  onReveal={() => selectView("trajectory")}
+                  onPlanInChat={() => selectView("chat")}
+                />
               </div>
             )}
             {phone && (

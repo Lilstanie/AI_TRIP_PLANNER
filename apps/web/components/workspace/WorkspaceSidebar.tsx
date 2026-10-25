@@ -60,10 +60,12 @@ function NavButton({
 
 export function HistoryMenu({
   title,
+  subtitle,
   onRename,
   onDelete,
 }: {
   title: string;
+  subtitle?: string;
   onRename(): void;
   onDelete(): void;
 }) {
@@ -111,6 +113,10 @@ export function HistoryMenu({
     };
   }, [open]);
 
+  const label = subtitle
+    ? t("Actions for {v0}, {v1}", { v0: title, v1: subtitle })
+    : t("Actions for {v0}", { v0: title });
+
   const act = (run: () => void) => {
     setOpen(false);
     run();
@@ -122,7 +128,7 @@ export function HistoryMenu({
         ref={trigger}
         type="button"
         className="history-item__more"
-        aria-label={t("Actions for {v0}", { v0: title })}
+        aria-label={label}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((current) => !current)}
@@ -130,12 +136,7 @@ export function HistoryMenu({
         <MoreIcon />
       </button>
       {open && (
-        <div
-          ref={menu}
-          className="history-item__menu"
-          role="menu"
-          aria-label={t("Actions for {v0}", { v0: title })}
-        >
+        <div ref={menu} className="history-item__menu" role="menu" aria-label={label}>
           <button ref={firstItem} type="button" role="menuitem" onClick={() => act(onRename)}>
             {t("Rename")}
           </button>

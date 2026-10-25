@@ -40,6 +40,9 @@ GitHub 的问题和 PR 共用同一编号空间，因此仅有 `#42` 时，它�
 无论提交者权限如何，表单都会自动加上这些标签，所以没有分流权限的人不用手动加标签。只有维护者才会添加
 `ready-for-agent`、`ready-for-human` 或 `wontfix`。
 
+每个表单都要求填写 **用户目标**（"As a … I want … so that …"）和 **验收标准**，也就是 Jira story 的两部分，
+另有一个选填的 **Jira 编号** 栏。提交者不填编号；分诊时维护者用这两栏建 story，填上编号，并把编号加到标题开头。
+
 <a id="writing-a-ticket"></a>
 
 ## 编写工单
@@ -66,8 +69,10 @@ Jira 只认文本里出现的 `TP-16` 这类 issue key，所以每一处关联�
 - **分支。** key 放在前缀之后：`feature/TP-72-trajectory-tab`、`docs/TP-72-trajectory-glossary`。
 - **拉取请求。** PR 标题以 key 开头，模板里的 `Jira:` 行再写一次。提交信息也可以带 key；不使用 `#done`
   之类的 smart commit 命令。
-- **状态。** 关联只会把分支、提交和 PR 列到 story 的 Development 面板里，不会改变 story 的状态。状态由
-  Jira Automation 规则推进（PR 合并后把 story 移到 Done），这条规则依赖 PR 标题里的 key。
+- **Jira 能看到什么。** GitHub for Jira 应用会同步文字里带 key 的分支、提交、拉取请求、构建和部署，它们出现在
+  story 的 Development 面板里。GitHub 问题不会同步，所以问题标题里的 key 只方便人工对照。
+- **状态。** 关联不会改变 story 的状态。目前还没有在合并时推进状态的 Jira Automation 规则（2026-10-25 核对：
+  TP-79 和 TP-80 的 PR 合并后仍停在 To Do），所以由合并的人把 story 移到 Done。
 
 <a id="when-a-skill-says-publish-to-the-issue-tracker"></a>
 

@@ -33,6 +33,10 @@ get the `[idea]` title prefix). A form applies its labels whatever the reporter'
 without triage access never add labels by hand. Only maintainers add `ready-for-agent`, `ready-for-human`
 or `wontfix`.
 
+Every form asks for a **User goal** ("As a … I want … so that …") and **Acceptance criteria**, the two parts
+of a Jira story, and has an optional **Jira key** field. The reporter leaves the key blank; at triage the
+maintainer creates the story from those two fields, fills in the key and puts it at the start of the title.
+
 ## Writing a ticket
 
 - **Protected files.** A ticket whose change reaches a protected path (`packages/shared/src`, `.github/**`,
@@ -58,9 +62,12 @@ Jira only sees issue keys such as `TP-16` that appear in text, so every link is 
 - **Branches.** The key follows the prefix: `feature/TP-72-trajectory-tab`, `docs/TP-72-trajectory-glossary`.
 - **Pull requests.** The PR title starts with the key and the template's `Jira:` line repeats it. Commit
   messages may carry it too; smart-commit commands such as `#done` are not used.
-- **Status.** Linking adds the branch, commits and PR to the story's Development panel but does not move
-  the story. A Jira Automation rule (PR merged moves the story to Done) does that, and it relies on the key
-  in the PR title.
+- **What Jira shows.** The GitHub for Jira app syncs branches, commits, pull requests, builds and
+  deployments whose text carries the key; they appear in the story's Development panel. GitHub issues are
+  not synced, so a key in an issue title only helps people match the two by hand.
+- **Status.** Linking does not move the story. No Jira Automation rule moves it on merge yet (checked
+  2026-10-25: TP-79 and TP-80 stayed in To Do after their PRs merged), so whoever merges moves the story
+  to Done.
 
 ## When a skill says "publish to the issue tracker"
 

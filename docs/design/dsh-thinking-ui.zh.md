@@ -311,7 +311,7 @@ episode)` 拼接增量，也会合并先前逐次刷新单独编号的记录帧�
 
 ### 4.6 展开控件：无后置箭头，前置图标交叉淡化
 
-`Disclosure.tsx` 直接移植 DSH 的 `DisclosureRow`，取代自定义的 `ChevronIcon` 旋转：24px 行、16px 前置框内放 14px 图标、6px 间距、13px 标题。树中任何位置都没有后置箭头。悬停或展开时，前置图标以 100ms 交叉淡化为向下箭头（`FlowChevronDownIcon`，移植自 DSH 的 `IconChevronDownOutline14`）；没有可展开内容的行只渲染普通图标，不带悬停状态或 `role="button"`。嵌套行使用 4.5a 的导轨，取代旧的 `padding-left` 加 1px 边框。
+`Disclosure.tsx` 直接移植 DSH 的 `DisclosureRow`，取代自定义的 `ChevronIcon` 旋转：24px 行、16px 前置框内放 14px 图标、6px 间距、13px 标题。树中任何位置都没有后置箭头。悬停或展开时，前置图标以 100ms 交叉淡化为向下箭头（`FlowChevronDownIcon`，移植自 DSH 的 `IconChevronDownOutline14`）；没有可展开内容的行只渲染普通图标，不带悬停状态或 `role="button"`。可展开行的前置图标和标题构成原生 `<button>`（`.thinking-row__toggle`，带 `aria-expanded`）；折叠内容（包括可点击的摘要）是它在同一行内的兄弟节点，因此控件之间不嵌套。点击该行其余位置仍会切换展开。嵌套行使用 4.5a 的导轨，取代旧的 `padding-left` 加 1px 边框。
 
 <a id="47-narrow-the-live-region"></a>
 

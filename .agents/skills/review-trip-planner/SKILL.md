@@ -34,6 +34,11 @@ Each item below is a defect this project has hit; the source is in brackets.
   Prefer an E2E assertion; when isolation is necessary, check that failure modes were enumerated
   before implementation and that the focused check covers them.
   [SerpApi and Places notes](../../notes/implemented/feature/2026-09-20-serpapi-live-prices.md)
+- **Behaviour change tested only by unit tests.** [CLAUDE.md](../../../CLAUDE.md) prefers E2E tests
+  as the sole mechanism. A PR that changes behaviour under `packages/*/src` or `apps/web/lib` and has
+  only Vitest tests needs either a `scripts/redgreen.mjs` before/after record in Evidence or a stated
+  reason no E2E can cover it. Missing both is a finding.
+  [2026-10-24 owner-c retro](/mnt/project-files/retro/2026-10-24-tp-owner-c-retro.md)
 - **Planning and display have different owners.** Budget arithmetic, guardrails, scores and persisted
   planning totals stay in AUD. `budgetSource` preserves the entered amount and currency; native fare
   evidence keeps its provider currency. `effectiveCurrency(brief, fallback)` chooses the trip's

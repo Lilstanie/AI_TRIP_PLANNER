@@ -1,7 +1,7 @@
 import type { FactKey } from "./trip-facts";
 
-export type MobileView = "chat" | "map" | "trip" | "mine";
-export const PHONE_VIEWS: readonly MobileView[] = ["chat", "map", "trip", "mine"];
+export type MobileView = "chat" | "map" | "trip" | "trajectory" | "mine";
+export const PHONE_VIEWS: readonly MobileView[] = ["chat", "map", "trip", "trajectory", "mine"];
 export type DialogKind = "settings";
 
 export type Drawer = "trip" | "nav" | "chats";
@@ -96,6 +96,8 @@ export function layout(surface: Surface, event: LayoutEvent, media: Media): Surf
         return layout(surface, { type: "open-trip" }, media);
       if (!media.phone && event.view === "mine")
         return layout(surface, { type: "show-trips" }, media);
+      if (!media.phone && event.view === "trajectory")
+        return { ...surface, page: "workspace", view: "chat" };
       return { ...surface, page: "workspace", view: event.view };
     case "chat-opened":
     case "trip-opened":
@@ -124,6 +126,7 @@ function cross(surface: Surface, from: Media, to: Media): Surface {
 
     if (next.view === "trip")
       next = { ...next, view: "chat", ...(next.fact ? {} : { drawer: "trip" }) };
+    else if (next.view === "trajectory") next = { ...next, view: "chat" };
     else if (next.view === "mine") next = { ...without(next, "fact"), page: "trips", view: "chat" };
   }
 

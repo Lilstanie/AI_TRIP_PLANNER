@@ -5,9 +5,9 @@ import type { AgentProgressEvent } from "@trip/shared";
 import { FlowThinkIcon } from "../ui/flow-icons";
 import { ThinkingOrbIcon } from "./ThinkingOrbIcon";
 import { Disclosure, RowSeparator, RowSummary } from "./Disclosure";
-import { countActivity, roundGroups, subagentHasBody, turnSummary } from "./thinking-model";
+import { countActivity, roundGroups, turnSummary } from "./thinking-model";
 import type { Notice } from "@/lib/i18n/notice";
-import { useTeamReveal } from "./team-reveal";
+import { useTrajectoryFocus } from "./trajectory-focus";
 import { Children, RoundHeading, RunningLine, SubagentRow, type OpenRows } from "./ThinkingRows";
 
 function useOpenRows(): OpenRows {
@@ -50,12 +50,15 @@ export function ThinkingProcess({
   busy,
   error,
   outcome,
+  turn,
 }: {
   activity: AgentProgressEvent[];
   busy: boolean;
   error?: Notice;
   outcome?: "planned" | "asked";
+  turn?: number;
 }) {
+  const { openTurn } = useTrajectoryFocus();
   const { t, locale, notice: localizeNotice } = useLocale();
   const open = useOpenRows();
   const elapsed = useElapsedMs(busy);
@@ -65,40 +68,11 @@ export function ThinkingProcess({
     () => turnSummary(activity, counts, busy, Boolean(error), locale, outcome),
     [activity, counts, busy, error, locale, outcome],
   );
-  const root = useRef<HTMLDivElement>(null);
-  const { reveal } = useTeamReveal();
-  const handled = useRef(reveal?.nonce ?? 0);
-  const [landing, setLanding] = useState<string | undefined>();
-  useEffect(() => {
-    if (!reveal || reveal.nonce === handled.current || reveal.activity !== activity) return;
-    handled.current = reveal.nonce;
-    const worked = groups
-      .flatMap((group) => group.subagents)
-      .filter((model) => model.name === reveal.assistant && subagentHasBody(model));
-    const row = worked[worked.length - 1];
-    open.only(row ? ["turn", row.id] : ["turn"]);
-    setLanding(row ? row.id : "turn");
-  }, [reveal, activity, groups, open]);
-  useEffect(() => {
-    if (!landing) return;
-    const scope = root.current;
-    const line = (
-      landing === "turn"
-        ? scope?.querySelector(".thinking-turn > .thinking-row__line")
-        : [...(scope?.querySelectorAll(".thinking-subagent") ?? [])]
-            .find((node) => node.getAttribute("data-subagent") === landing)
-            ?.querySelector(".thinking-row__line")
-    ) as HTMLElement | null | undefined;
-    if (!line) return;
-    setLanding(undefined);
-    line.scrollIntoView({ block: "center" });
-    line.focus({ preventScroll: true });
-  }, [landing]);
   const multiRound = groups.length > 1;
   const failed = !busy && Boolean(error);
 
   return (
-    <div className="thinking-process" ref={root}>
+    <div className="thinking-process">
       <Disclosure
         className="thinking-turn"
         icon={busy ? <ThinkingOrbIcon activity={activity} /> : <FlowThinkIcon />}
@@ -111,7 +85,11 @@ export function ThinkingProcess({
         collapsedContent={
           <>
             <RowSeparator />
-            <RowSummary text={summary.text} followEnd={summary.streaming} />
+            <RowSummary
+              text={summary.text}
+              followEnd={summary.streaming}
+              {...(turn !== undefined && !busy ? { onPress: () => openTurn(turn) } : {})}
+            />
           </>
         }
       >

@@ -90,8 +90,8 @@ async function plan(page) {
 async function shell(page, tag) {
   const tabs = await tablist(page).getByRole("tab").allInnerTexts();
   check(
-    tabs.map((label) => label.trim()).join(",") === "Chat,Map,Trip,Mine",
-    `${tag}: tab bar has Chat, Map, Trip and Mine (${tabs.map((l) => l.trim()).join(", ")})`,
+    tabs.map((label) => label.trim()).join(",") === "Chat,Map,Trip,Trajectory,Mine",
+    `${tag}: tab bar has Chat, Map, Trip, Trajectory and Mine (${tabs.map((l) => l.trim()).join(", ")})`,
   );
   const selected = await tablist(page).locator('[role="tab"][aria-selected="true"]').count();
   check(selected === 1, `${tag}: exactly one tab is selected (${selected})`);

@@ -25,7 +25,7 @@ export function describeStayChoice(input: {
   pricePerNight: number;
 
   rating: number;
-  freeCancellation: boolean;
+  freeCancellation?: boolean;
 
   cost: number;
 
@@ -37,7 +37,7 @@ export function describeStayChoice(input: {
     `${input.name} — ${input.area}; ${input.checkIn} to ${input.checkOut}; ` +
     `${count(input.rooms, "room")} × ${count(input.nights, "night")} × ${aud(input.pricePerNight)} per room/night ` +
     `= ${aud(input.cost)}; rating ${(input.rating / 2).toFixed(1)}/5; ` +
-    `${input.freeCancellation ? "free cancellation" : "no free cancellation"}.`
+    `${input.freeCancellation === undefined ? "cancellation terms unknown" : input.freeCancellation ? "free cancellation" : "no free cancellation"}.`
   );
 }
 

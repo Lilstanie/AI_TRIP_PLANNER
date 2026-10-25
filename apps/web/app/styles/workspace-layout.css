@@ -222,3 +222,47 @@
   font-size: 11px;
   font-weight: 700;
 }
+
+@media (min-width: 1001px) {
+  .workspace-app:not([data-phone]) .workspace-shell {
+    transition: grid-template-columns 420ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .workspace-app:not([data-phone]) .workspace-shell[data-map="hidden"] {
+    grid-template-columns: minmax(0, 1fr) 0;
+  }
+  .workspace-app:not([data-phone]) .workspace-shell[data-map="hidden"] .workspace-panel--map {
+    visibility: hidden;
+    opacity: 0;
+    translate: 48px 0;
+    margin-inline: 0;
+  }
+  .workspace-app:not([data-phone]) .workspace-panel--map {
+    transition:
+      opacity 420ms ease,
+      translate 420ms cubic-bezier(0.32, 0.72, 0, 1),
+      visibility 420ms;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .workspace-app .workspace-shell,
+  .workspace-app .workspace-panel--map {
+    transition: none !important;
+  }
+}
+
+@media (min-width: 1001px) {
+  .workspace-app:not([data-phone]) .workspace-shell[data-map="hidden"] .workspace-panel--chat {
+    display: flex;
+    justify-content: center;
+  }
+  .workspace-app:not([data-phone])
+    .workspace-shell[data-map="hidden"]
+    .workspace-panel--chat
+    > .chat {
+    width: min(100%, 880px);
+  }
+}
+
+.workspace-shell[data-map="hidden"] .split-resizer {
+  display: none;
+}

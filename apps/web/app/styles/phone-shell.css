@@ -36,6 +36,28 @@
 [data-phone] .workspace-panel[hidden] {
   display: none !important;
 }
+[data-phone] .workspace-panel--trajectory {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  margin: 0 var(--space-2) var(--space-2);
+}
+[data-phone] .workspace-panel--trajectory > .trajectory-tab {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.trajectory-empty {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-3);
+  color: var(--text-dim);
+}
+.trajectory-empty button {
+  min-height: 44px;
+  color: var(--text);
+}
 [data-phone] .workspace-panel--map {
   margin: 0;
 }
@@ -93,7 +115,7 @@
 }
 .phone-tabbar__list {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 .phone-tabbar__tab {
   position: relative;
