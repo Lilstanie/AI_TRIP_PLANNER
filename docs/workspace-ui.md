@@ -179,11 +179,14 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     already listed starts on Add destination), Tab loops inside it, and Escape, the close button or a
     saved edit return focus to the chip. A press outside the panel lands on the scrim and returns
     focus to the chip. Opening one closes the Trip drawer and the navigation drawer.
-  - Edits stay in the editor until they are kept, so Escape and a press outside discard them. Each
-    editor checks its own fields with the brief schema and shows how to fix one next to it.
+  - Edits stay in the editor until they are kept. On a phone, switching between Chat, Map, Trip and
+    Mine keeps the unfinished values, while Escape, close, Cancel, outside dismissal and browser Back
+    ask whether to continue editing or discard when the form changed. Desktop Escape and outside
+    dismissal continue to discard. Each editor checks its own fields with the brief schema and shows
+    how to fix one next to it.
   - Before there is a plan, Save keeps the edit in the draft; nothing is sent. The stated facts go
     with the next chat message as `known`, and Plan trip in Trip preferences plans with the whole
-    brief (`mode: "plan"`). Once a plan exists the button is Update trip: it keeps the edit and
+    brief (`mode: "plan"`). Once a plan exists the button says Replan trip: it keeps the edit and
     replans with the whole brief, because a chat message carries the plan's brief, not the draft. A
     rejected brief opens the editor of the first fact at fault, with the error beside the field.
   - The trip title stays in the top bar at 1250 px and wider. Below that the destination chip names
@@ -237,22 +240,28 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     (`Drawer`'s `hideTitle`).
 - **Phones (≤520 px).** The [phone shell decision](../.agents/notes/implemented/feature/2026-10-05-phone-shell.md)
   applies only at this width; desktop and tablets keep their existing navigation.
-  - A safe-area-aware bottom tab bar exposes Chat, Map, Trip, Trajectory and Mine as keyboard-operable tabs. Trajectory is the
-    phone trajectory described under Trajectory tab.
+  - A safe-area-aware bottom tab bar exposes Chat, Map, Trip and Mine as keyboard-operable tabs.
+    Trajectory opens from the team entry as the full-screen phone trajectory described under
+    Trajectory tab.
     One panel is visible at a time; panels stay mounted to preserve their scroll position. The saved
     layout restores the last tab, including older Chat/Map choices.
   - The single-row top bar shows the destination and dates, or New trip. Its title opens Trip details:
     Where, When, Who, Budget and Preferences as rows. Each row opens the existing editor; saving or
-    closing returns focus to the title. Editors are bottom sheets with 44 px targets, including each
-    sheet's close button and its primary action, in When every day cell, both month arrows and
-    Clear, and in Who each − and + stepper button.
+    closing returns focus to the title. Brief and single-field Stop edits are bottom sheets with
+    44 px targets; complex Stop details use a full page. The targets include each sheet's close
+    button and primary action, every When day cell, both month arrows, Clear, and every Who − and +
+    stepper button.
+  - A changed sheet keeps its values through tab switches and asks before Escape, close, outside
+    dismissal or browser Back discards them. Failed time or place changes keep the entered values and
+    show the error in place. Brief edits on a Trip with a Plan use the explicit Replan trip action.
   - Trip shows Your Trip in place, with Budget and the day view. Before
     planning it explains the empty state and offers Plan in Chat. A plan created or changed while
     another tab is selected adds an accessible update dot to Trip; opening Trip clears it. Read revisions are tracked per trip,
     so switching between unchanged saved trips does not create a new notification.
   - Mine contains search, New chat, New trip, Trips/Calendar, the chats list and Settings & account.
-    Search filters chats and trips; opening or starting either selects Chat. Each chat has a visible
-    Rename/Delete row menu on touch. Data mode and interface language live here; the data-mode button shows its text label in both languages.
+    Search filters chats and trips; opening a saved Trip selects Trip, while opening or starting a
+    chat selects Chat. Each chat has a visible Rename/Delete row menu on touch. Data mode and
+    interface language live here; the data-mode button shows its text label in both languages.
     Opening a trip from Mine moves keyboard focus to the trip-title button, whose accessible name
     identifies the destination and dates.
   - Crossing the phone width keeps the traveller on the same thing: narrowing with Your trips open
@@ -278,10 +287,13 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
   - With the composer focused and the visual viewport shortened by the keyboard, the shell follows
     that viewport, keeps the latest message visible and hides the tab bar. A focused trip-fact editor
     or stop editor field also hides the tab bar; the fact sheet rests on the keyboard, and the field
-    and its Save button stay in view. Closing the keyboard or blurring restores it. Browser Back closes the active sheet or editor before leaving the workspace.
+    and its Save button stay in view. Closing the keyboard or blurring restores it. Browser Back
+    closes the active sheet or editor before leaving the workspace and, when its form changed, asks
+    before discarding.
   - New labels use the English/Chinese dictionary and motion respects reduced-motion preferences.
-    Browser evidence is produced by `phone-shell.e2e.mjs` and its Mine, Map and state companion walks
-    under `apps/web/tests/e2e/`. Real installed-app safe areas and keyboard behavior are not
+    Browser evidence is produced by `phone-navigation.e2e.mjs`, `phone-browsing-context.e2e.mjs`,
+    `phone-planning-flow.e2e.mjs`, `phone-editing.e2e.mjs`, and the `phone-shell.e2e.mjs` companion
+    walks under `apps/web/tests/e2e/`. Real installed-app safe areas and keyboard behavior are not
     verified; the device checks in issue #182 were closed as not planned.
 
 ## Conversations, trips and storage

@@ -663,7 +663,7 @@ describe("Workspace interactions", () => {
     openChip(/^Destination: Sydney$/);
     fireEvent.click(screen.getByRole("button", { name: "Remove Sydney" }));
     fireEvent.change(screen.getByLabelText("Add a destination"), { target: { value: "Paris" } });
-    fireEvent.click(screen.getByRole("button", { name: "Update trip" }));
+    fireEvent.click(screen.getByRole("button", { name: "Replan trip" }));
     await screen.findByText("Offline");
     expect(chip(/^Destination: Paris$/)).toBeTruthy();
     expect(within(drawer("trip")).getByText(/Sydney · 1.*4 Oct/)).toBeTruthy();
@@ -700,7 +700,7 @@ describe("Workspace interactions", () => {
     vi.stubGlobal("fetch", fetcher);
     render(<Workspace initialPlan={plan} />);
     openPreferences();
-    fireEvent.click(screen.getByRole("button", { name: "Update trip" }));
+    fireEvent.click(screen.getByRole("button", { name: "Replan trip" }));
     fireEvent.click(screen.getByRole("button", { name: /^Trips\s*\d$/ }));
     fireEvent.click(historyButton(/^Melbourne/));
     expect(finish).toBeDefined();
@@ -710,7 +710,7 @@ describe("Workspace interactions", () => {
     expect(chip(/^Destination: Melbourne$/)).toBeTruthy();
     expect(screen.queryByText(/Obsolete result/)).toBeNull();
     openPreferences();
-    expect(screen.getByRole("button", { name: "Update trip" }).hasAttribute("disabled")).toBe(
+    expect(screen.getByRole("button", { name: "Replan trip" }).hasAttribute("disabled")).toBe(
       false,
     );
     expect(localStorage.getItem("trip-saved-v1")).toBe("broken");

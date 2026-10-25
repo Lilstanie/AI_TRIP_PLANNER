@@ -64,7 +64,7 @@ try {
     await openPreferences();
     check(await choice.isChecked(), `${width}: completed plan retains the preference`);
     await choice.uncheck();
-    await page.getByRole("button", { name: "Update trip", exact: true }).click();
+    await page.getByRole("button", { name: "Replan trip", exact: true }).click();
     await page.waitForTimeout(700);
     check(
       requests.at(-1)?.brief?.noAccommodation === false,

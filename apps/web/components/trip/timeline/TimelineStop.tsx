@@ -22,6 +22,7 @@ import {
   SuitcaseIcon,
 } from "../../ui/icons";
 import { ItemForm, PlaceSearch, TimeForm } from "./StopForms";
+import { StopEditSurface } from "./StopEditSurface";
 
 type Activity = ProposalItem & { id?: string };
 
@@ -118,7 +119,7 @@ export function TimelineStop({
     } else row.current?.scrollIntoView?.({ block: "nearest" });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected]);
-  const timeChanged = start !== activity.startTime || end !== activity.endTime;
+  const timeChanged = start !== (activity.startTime ?? "") || end !== (activity.endTime ?? "");
   const validTime = !!start && !!end && start < end;
   const range = `${activity.startTime ?? "—"}–${activity.endTime ?? "—"}`;
 
@@ -132,8 +133,9 @@ export function TimelineStop({
   };
 
   const act = (action: ItemAction, message: Notice) => {
-    void Promise.resolve(onItem(action, message)).then((done) => {
+    return Promise.resolve(onItem(action, message)).then((done) => {
       if (done) closePanel();
+      return done;
     });
   };
   const moveTo = (direction: -1 | 1) =>
@@ -468,34 +470,36 @@ export function TimelineStop({
             />
           )}
           {panel === "day" && !idea && (
-            <div className="stop-editor__group stop-editor__order">
-              <label>
-                {t("Move to")}
-                <select
-                  autoFocus
-                  disabled={locked}
-                  value={activity.day}
-                  onChange={(event) => {
-                    const day = Number(event.target.value);
-                    act(
-                      { kind: "day", day },
-                      { key: "{name} moved to Day {day}.", params: { name, day } },
-                    );
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key !== "Escape") return;
-                    event.stopPropagation();
-                    closePanel();
-                  }}
-                >
-                  {Array.from({ length: days }, (_, d) => (
-                    <option key={d} value={d + 1}>
-                      {t("Day {v0}", { v0: d + 1 })} · {dayLabels[d]}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
+            <StopEditSurface title={t("Move to another day")} onClose={closePanel}>
+              <div className="stop-editor__group stop-editor__order">
+                <label>
+                  {t("Move to")}
+                  <select
+                    autoFocus
+                    disabled={locked}
+                    value={activity.day}
+                    onChange={(event) => {
+                      const day = Number(event.target.value);
+                      act(
+                        { kind: "day", day },
+                        { key: "{name} moved to Day {day}.", params: { name, day } },
+                      );
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key !== "Escape") return;
+                      event.stopPropagation();
+                      closePanel();
+                    }}
+                  >
+                    {Array.from({ length: days }, (_, d) => (
+                      <option key={d} value={d + 1}>
+                        {t("Day {v0}", { v0: d + 1 })} · {dayLabels[d]}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            </StopEditSurface>
           )}
           {searching && (
             <PlaceSearch
@@ -505,8 +509,9 @@ export function TimelineStop({
               focusOnMount={panel === "search"}
               onCancel={panel === "search" ? closePanel : undefined}
               onUse={(placeId) => {
-                closePanel();
-                void edits.edit({ kind: "place", id, placeId });
+                void edits.edit({ kind: "place", id, placeId }).then((done) => {
+                  if (done) closePanel();
+                });
               }}
             />
           )}
@@ -520,12 +525,15 @@ export function TimelineStop({
           locked={locked}
           validTime={validTime}
           timeChanged={timeChanged}
+          errors={edits.errors}
           onStart={setStart}
           onEnd={setEnd}
           onSubmit={() => {
-            setTiming(false);
-            timeButton.current?.focus({ preventScroll: true });
-            void edits.edit({ kind: "time", id, startTime: start, endTime: end });
+            void edits.edit({ kind: "time", id, startTime: start, endTime: end }).then((done) => {
+              if (!done) return;
+              setTiming(false);
+              timeButton.current?.focus({ preventScroll: true });
+            });
           }}
           onCancel={() => {
             setTiming(false);

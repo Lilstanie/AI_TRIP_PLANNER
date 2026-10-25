@@ -14,6 +14,7 @@ import { FactFields } from "./FactFields";
 import { FactPopover, type CloseReason } from "./FactPopover";
 import { usePresence } from "../ui/motion";
 import { useLocale } from "../account/LocaleProvider";
+import { useDiscardChanges } from "../ui/useDiscardChanges";
 import type { MessageKey } from "@/lib/i18n/locale";
 import type { Notice } from "@/lib/i18n/notice";
 
@@ -55,10 +56,14 @@ type Props = {
   preferencesChip: RefObject<HTMLButtonElement | null>;
 
   suggestPlaces?: boolean;
+  phone?: boolean;
+  view?: string;
 };
 
 export function TripFactChips(props: Props) {
-  const { draft, plan, open, onOpen, onClose, preferencesChip } = props;
+  const { draft, plan, open, onOpen, onClose, preferencesChip, phone, view } = props;
+  const [origin, setOrigin] = useState({ open, view });
+  if (origin.open !== open) setOrigin({ open, view });
   const { locale, t, currency } = useLocale();
   const labels = factLabels(draft, plan?.brief, {
     locale,
@@ -66,6 +71,8 @@ export function TripFactChips(props: Props) {
   });
 
   const shown = usePresence(open, 220);
+  const [dirty, setDirty] = useState(false);
+  const { requestClose, confirmation } = useDiscardChanges(dirty);
   const chips = useRef<Partial<Record<FactKey, HTMLButtonElement | null>>>({});
 
   const anchor = useMemo(
@@ -136,7 +143,7 @@ export function TripFactChips(props: Props) {
             "aria-haspopup": "dialog" as const,
             "aria-expanded": expanded,
             "aria-controls": expanded ? `fact-popover-${fact}` : undefined,
-            onClick: () => (expanded ? onClose() : onOpen(fact)),
+            onClick: () => requestClose(() => (expanded ? close("dismiss") : onOpen(fact))),
           };
           if (fact === "preferences")
             return (
@@ -187,14 +194,21 @@ export function TripFactChips(props: Props) {
           id={`fact-popover-${shown.value}`}
           title={t(TITLES[shown.value])}
           anchor={anchor}
-          onClose={close}
+          onClose={(reason) => requestClose(() => close(reason))}
           modal
+          hidden={phone && origin.view !== view}
           leaving={shown.leaving}
           className={`fact-popover--${shown.value}`}
         >
-          <FactForm {...props} fact={shown.value} onDone={() => close("dismiss")} />
+          <FactForm
+            {...props}
+            fact={shown.value}
+            onDirtyChange={setDirty}
+            onDone={() => close("dismiss")}
+          />
         </FactPopover>
       )}
+      {confirmation}
     </div>
   );
 }
@@ -208,10 +222,16 @@ function FactForm({
   onSave,
   onPlan,
   onDone,
+  onDirtyChange,
   suggestPlaces = false,
-}: Props & { fact: FactKey; onDone(): void }) {
+}: Props & { fact: FactKey; onDone(): void; onDirtyChange(dirty: boolean): void }) {
   const { t, currency } = useLocale();
   const [value, setValue] = useState(draft);
+  const initial = useRef(draft);
+  useEffect(() => {
+    onDirtyChange(JSON.stringify(initial.current) !== JSON.stringify(value));
+    return () => onDirtyChange(false);
+  }, [value, onDirtyChange]);
   const [local, setLocal] = useState<Record<string, Notice>>();
   const form = useRef<HTMLFormElement>(null);
 
@@ -263,7 +283,7 @@ function FactForm({
         )}
         <button type="submit" className="primary fact-form__primary" disabled={busy}>
           {t(
-            plan ? (busy ? "Planning…" : "Update trip") : fact === "preferences" ? "Done" : "Save",
+            plan ? (busy ? "Planning…" : "Replan trip") : fact === "preferences" ? "Done" : "Save",
           )}
         </button>
       </div>

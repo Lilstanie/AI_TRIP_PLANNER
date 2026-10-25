@@ -2,7 +2,8 @@
 
 English | [中文](mobile-workspace-redesign.zh.md)
 
-Status: design confirmed by the traveller. Implementation is pending; existing runtime decisions remain in force until the change ships.
+Status: implemented and verified with fixture browser journeys. Physical-device safe areas, real
+keyboard overlays and live providers remain outside that evidence.
 
 ## Confirmed scope
 
@@ -35,32 +36,28 @@ The traveller accepted the recommendations for Q4–Q14.
 - **Failure handling:** retain the user's input when initial planning fails. If a revision fails, keep
   the current Plan readable, show a clear error and let the traveller explicitly retry.
 
-## Current evidence
+## Implementation evidence
 
 The baseline is main commit `9343038bb5a136fca97a9bfdd3a9bea361515003` (#713).
 
-- `PhoneTabBar.tsx` exposes Chat, Map, Trip, Trajectory and Mine. Trip is absent before a Plan exists.
-- `PhoneMine.tsx` combines chat history, saved Trips, search, creation actions and settings.
-- Map and Trip occupy separate phone panels. Map has a draggable day-stops sheet.
-- Opening a saved Trip currently selects Chat on a phone (`apps/web/lib/workspace/layout.ts`).
-  The confirmed design changes that destination to Trip.
-- Fact editing of an existing Plan invokes replanning; individual Stop edits apply locally or through
-  a revision preview. Workspace state is automatically persisted (`TripFactChips.tsx`,
-  `TripEditor.tsx`, `useWorkspaceStorage.ts`). Retaining editing does not establish a new manual
-  transformation of dates, accommodation or transport.
-- Map and Trip currently own separate day state despite sharing Stop selection. A revision clears
-  the selected Stop; day restoration follows separate rules (`useWorkspace.ts`, `TripEditor.tsx`,
-  `session.ts`). Q7 requires one coherent browsing context.
-- Closing an editor currently discards its local unsubmitted state without confirmation, including
-  through phone Back (`StopForms.tsx`, `FactPopover.tsx`, `usePhoneBack.ts`).
-- Retained #713 screenshots at 390 × 844 show the empty chat and Mine. These support the design
-  discussion; they are not new browser verification of this redesign.
-
-These are existing behaviours and design opportunities, not newly reproduced defects.
+- `PhoneTabBar.tsx` exposes Chat, Map, Trip and Mine; Trip is absent before a Plan exists. The team
+  entry opens Trajectory in the full phone panel.
+- `PhoneMine.tsx` makes saved Trips primary, puts chats second, and keeps search, creation actions,
+  data mode and Settings & account reachable. Opening a saved Trip lands on Trip.
+- Map and Trip share the selected day and Stop. Selecting a Stop on one view locates the matching
+  visit on the other, and revisions retain a valid day and clear only a removed Stop.
+- Chat shows the compact Brief, at most two blank-chat examples, live specialist progress, and
+  completion or failure feedback while preserving the active tab.
+- Brief and simple Stop edits use bottom sheets; complex Stop details use a full page. Unfinished
+  fields survive tab switches, destructive close actions confirm, failed changes keep their values,
+  and an existing Plan uses the explicit Replan trip action.
+- Repeatable fixture journeys are `phone-navigation`, `phone-browsing-context`,
+  `phone-planning-flow` and `phone-editing` under `apps/web/tests/e2e/`; `phone-shell --prod`
+  verifies the integrated production shell.
 
 ## Failure inventory and acceptance evidence
 
-These scenarios define required evidence for implementation, not checks already performed.
+These scenarios define the acceptance coverage of the repeatable browser journeys above.
 
 | Failure scenario                                                              | Required observable result                                                              |
 | ----------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
@@ -96,10 +93,9 @@ The traveller accepted the final edge-case recommendations:
 - **Q14 — opening saved Trips:** selecting a saved Trip in Mine opens Trip directly; selecting a recent
   chat opens Chat. This deliberately changes the phone's current saved-Trip landing behaviour.
 
-Design confirmation is complete. The traveller also approved four implementation tickets: navigation
-and Mine; shared Map/Trip browsing; chat planning feedback; and editing protection. These slices have
-no functional blocking edges and will be integrated into one pull request. Each slice verifies its
-behaviour through the real workspace UI with fixture providers; integration verifies the complete journey.
+The four implementation slices, navigation and Mine; shared Map/Trip browsing; chat planning feedback;
+and editing protection, are integrated and verified together through the real workspace UI with
+fixture providers.
 
 ## Existing contracts to carry into the design
 
@@ -116,6 +112,4 @@ behaviour through the real workspace UI with fixture providers; integration veri
   unless the interview establishes a reason to change them.
 - Use the canonical Brief, Plan, Trip, Stop and Trajectory terms from [the glossary](../../GLOSSARY.md).
 
-Once the design is agreed, record any superseding decisions before implementation and define a
-failure inventory with repeatable browser evidence. Fixture checks do not prove live-provider or
-real-device keyboard behaviour.
+Fixture checks do not prove live-provider or real-device keyboard behaviour.
