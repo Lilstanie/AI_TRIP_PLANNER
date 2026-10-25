@@ -56,12 +56,21 @@ step.
    explicit `TripBrief` updates from the message. `mode: "plan"` skips extraction and plans the
    submitted brief; `mode: "start"` requires every brief field in the message (see
    [API](api.md)).
+   Every entry uses `BriefIntake` in `packages/orchestrator/src/brief-intake.ts` to merge explicit
+   patches and decide readiness: ready, incomplete, ambiguous destination or historical dates needing
+   confirmation. A model that completes the brief reaches the same gate even without calling
+   `replan_trip`. Historical confirmation uses the latest assistant `ChatTurn.pendingBriefConfirmation`,
+   bound to the exact date pair, plus an explicit traveller answer. Prompt wording carries no state;
+   legacy text-only prompts ask again. The server-owned `ChatTurn.confirmedBriefDestination` preserves
+   an accepted full place name across later questions and clears when that destination changes.
+   Matching destination coordinates determine the local calendar
+   date; existing plans remain editable. See the [intake decision](../.agents/notes/implemented/architecture/2026-10-25-brief-intake.md).
 2. The workflow runs applicable specialists, detects conflicts, revises targeted specialists for up to
    `maxRounds` rounds and assembles a `TripPlan` whose sections carry their own draft/needs-you state
    and whose `conflicts` list any request still unresolved.
 3. Progress events stream to the browser as NDJSON; the final frame carries `{ reply, plan }`.
-4. There is no confirmation step: the traveller changes a plan by saying so in chat or editing the
-   itinerary, and nothing in the product asks them to approve a checkpoint. Map lookups and itinerary
+4. After intake, the traveller changes a plan by saying so in chat or editing the itinerary,
+   without an approval checkpoint. Map lookups and itinerary
    edit previews use the map routes in `apps/web` and never re-run the planner.
 
 ## Web map providers

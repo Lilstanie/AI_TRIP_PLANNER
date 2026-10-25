@@ -332,6 +332,13 @@ export const RevisionRequest = z.object({
 export type RevisionRequest = z.infer<typeof RevisionRequest>;
 
 export const ChatTurn = z.object({
+  confirmedBriefDestination: z.string().optional(),
+  pendingBriefConfirmation: z
+    .object({
+      kind: z.literal("historical_dates"),
+      dates: z.tuple([z.string().refine(isTripDate), z.string().refine(isTripDate)]),
+    })
+    .optional(),
   role: z.enum(["user", "assistant"]),
   content: z.string(),
   at: z.string().default(() => new Date().toISOString()),
