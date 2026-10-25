@@ -400,6 +400,10 @@ export const WORKSPACE_ZH = {
     "示例数据：使用内置示例，不会请求服务商，也不会消耗额度。",
   "Mock data: bundled fixtures. Sign in to plan with live hotel and flight prices.":
     "示例数据：使用内置示例。登录后即可使用真实的酒店和航班价格规划行程。",
+  "Mock data: bundled fixtures. Live provider data is off on this deployment.":
+    "示例数据：使用内置示例。此部署未开启实时服务商数据。",
+  ". Currently using mock fixtures. Live provider data is off on this deployment.":
+    "。当前使用示例数据。此部署未开启实时服务商数据。",
   "Live data: real hotel and flight prices. Each plan spends the shared monthly search allowance.":
     "实时数据：提供真实酒店和航班价格。每次规划都会使用共享的月度搜索额度。",
   "Live data selected, but no SERPAPI_KEY is configured, so results fall back to estimates.":

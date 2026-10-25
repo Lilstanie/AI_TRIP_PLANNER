@@ -420,6 +420,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                     onChange={dataMode.choose}
                     disabled={busy}
                     liveAvailable={dataMode.liveAvailable}
+                    liveBlock={dataMode.liveBlock}
                   />
                   <LanguageToggle />
                 </div>
