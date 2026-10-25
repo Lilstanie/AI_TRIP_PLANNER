@@ -250,6 +250,10 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     planning it explains the empty state and offers Plan in Chat. A plan created or changed while
     another tab is selected adds an accessible update dot to Trip; opening Trip clears it. Read revisions are tracked per trip,
     so switching between unchanged saved trips does not create a new notification.
+  - A blank Chat shows at most two example prompts. Planning progress stays in Chat while the
+    request runs. When the Plan is ready, Chat stays open and the reply adds an explicit Open trip
+    action; opening it selects Trip. An initial failure restores the submitted text and shows an
+    explicit Retry update action, while a failed revision leaves the previous Plan readable.
   - Mine contains search, New chat, New trip, Trips/Calendar, the chats list and Settings & account.
     Search filters chats and trips; opening or starting either selects Chat. Each chat has a visible
     Rename/Delete row menu on touch. Data mode and interface language live here; the data-mode button shows its text label in both languages.

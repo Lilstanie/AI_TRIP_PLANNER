@@ -91,6 +91,21 @@
   white-space: nowrap;
 }
 
+.msg-open-trip {
+  padding: 7px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--surface-1);
+  color: var(--accent);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.msg-open-trip:hover {
+  background: var(--fill-hover);
+}
+
 .msg-reveal__word {
   animation: msg-reveal-word 320ms cubic-bezier(0.4, 0, 0.2, 1) both;
 }

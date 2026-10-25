@@ -105,11 +105,13 @@ export function MessageItem({
   animate,
   turn,
   onResend,
+  onOpenTrip,
 }: {
   message: Message;
   animate?: boolean;
   turn?: number | undefined;
   onResend?: (text: string) => void;
+  onOpenTrip?: () => void;
 }) {
   const { t, locale } = useLocale();
   const assistantName = useAssistantName();
@@ -200,6 +202,11 @@ export function MessageItem({
         />
       </div>
       {message.flights && <FlightResults answer={message.flights} />}
+      {message.outcome === "planned" && onOpenTrip && (
+        <button type="button" className="msg-open-trip" onClick={onOpenTrip}>
+          {t("Open trip")}
+        </button>
+      )}
       {clock}
       {message.text && (
         <div className="msg-actions">

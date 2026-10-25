@@ -95,6 +95,7 @@ const ZH = {
   "Open navigation": "打开导航",
   "Workspace view": "工作区视图",
   "Open your trip": "打开你的行程",
+  "Open trip": "打开行程",
   stop: "站点",
   stops: "站点",
   "Save failed": "保存失败",
