@@ -1,11 +1,25 @@
 @media (max-width: 520px) {
   .phone-mine {
     min-width: 0;
-    padding: 16px 12px 24px;
+    padding: var(--space-4) var(--space-3) var(--space-6);
   }
   .phone-mine .chats-panel__content {
     padding: 0;
     overflow: visible;
+  }
+  .phone-mine .chats-panel__section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    margin-block: var(--space-3) var(--space-2);
+  }
+  .phone-mine .chats-panel__section:first-of-type .sidebar-history__title {
+    font-size: var(--font-size-title);
+    color: var(--text);
+  }
+  .phone-mine .chats-panel__section + .chats-panel__section {
+    margin-top: var(--space-6);
   }
   .phone-mine .sidebar-search {
     min-height: 44px !important;

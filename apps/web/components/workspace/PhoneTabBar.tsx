@@ -1,15 +1,17 @@
 "use client";
 import { useRef, type KeyboardEvent, type ReactNode } from "react";
-import { ChatIcon, LedgerIcon, MapIcon, RouteIcon, UserIcon } from "../ui/icons";
+import { ChatIcon, MapIcon, RouteIcon, UserIcon } from "../ui/icons";
 import { useLocale } from "../account/LocaleProvider";
 import type { MessageKey } from "@/lib/i18n/locale";
 import { PHONE_VIEWS, type MobileView } from "./workspace-helpers";
 
-const TABS: Record<MobileView, { label: MessageKey; icon: (selected: boolean) => ReactNode }> = {
+const TABS: Record<
+  Exclude<MobileView, "trajectory">,
+  { label: MessageKey; icon: (selected: boolean) => ReactNode }
+> = {
   chat: { label: "Chat", icon: (selected) => <ChatIcon filled={selected} /> },
   map: { label: "Map", icon: () => <MapIcon /> },
   trip: { label: "Trip", icon: () => <RouteIcon /> },
-  trajectory: { label: "Trajectory", icon: () => <LedgerIcon /> },
   mine: { label: "Mine", icon: () => <UserIcon /> },
 };
 
@@ -28,10 +30,13 @@ type Props = {
 
 export function PhoneTabBar({ view, onSelect, badges, hidden, showTrip = true }: Props) {
   const { t } = useLocale();
-  const views = showTrip ? PHONE_VIEWS : PHONE_VIEWS.filter((tab) => tab !== "trip");
+  const views = PHONE_VIEWS.filter(
+    (tab): tab is Exclude<MobileView, "trajectory"> =>
+      tab !== "trajectory" && (showTrip || tab !== "trip"),
+  );
   const tabs = useRef<Partial<Record<MobileView, HTMLButtonElement | null>>>({});
   const onKeyDown = (event: KeyboardEvent) => {
-    const index = views.indexOf(view);
+    const index = views.findIndex((tab) => tab === view);
     const last = views.length - 1;
     const next =
       event.key === "ArrowRight"

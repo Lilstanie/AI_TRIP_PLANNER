@@ -40,3 +40,9 @@ nowhere to open the filtered trajectory.
 ## Sources
 
 [2026-10-24 phone trajectory session log](../../../session-logs/2026-10-24-phone-trajectory.md)
+
+## Later change
+
+[Phone navigation follows the planning journey](2026-10-26-phone-workspace-navigation.md) removes
+Trajectory from the bottom tab bar. The Agent Team entry now opens the same full-panel ledger,
+search, filters and inspector in a native full-screen modal.

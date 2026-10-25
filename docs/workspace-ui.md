@@ -179,11 +179,14 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     already listed starts on Add destination), Tab loops inside it, and Escape, the close button or a
     saved edit return focus to the chip. A press outside the panel lands on the scrim and returns
     focus to the chip. Opening one closes the Trip drawer and the navigation drawer.
-  - Edits stay in the editor until they are kept, so Escape and a press outside discard them. Each
-    editor checks its own fields with the brief schema and shows how to fix one next to it.
+  - Edits stay in the editor until they are kept. On a phone, switching between Chat, Map, Trip and
+    Mine keeps the unfinished values, while Escape, close, Cancel, outside dismissal and browser Back
+    ask whether to continue editing or discard when the form changed. Desktop Escape and outside
+    dismissal continue to discard. Each editor checks its own fields with the brief schema and shows
+    how to fix one next to it.
   - Before there is a plan, Save keeps the edit in the draft; nothing is sent. The stated facts go
     with the next chat message as `known`, and Plan trip in Trip preferences plans with the whole
-    brief (`mode: "plan"`). Once a plan exists the button is Update trip: it keeps the edit and
+    brief (`mode: "plan"`). Once a plan exists the button says Replan trip: it keeps the edit and
     replans with the whole brief, because a chat message carries the plan's brief, not the draft. A
     rejected brief opens the editor of the first fact at fault, with the error beside the field.
   - The trip title stays in the top bar at 1250 px and wider. Below that the destination chip names
@@ -237,22 +240,39 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     (`Drawer`'s `hideTitle`).
 - **Phones (≤520 px).** The [phone shell decision](../.agents/notes/implemented/feature/2026-10-05-phone-shell.md)
   applies only at this width; desktop and tablets keep their existing navigation.
-  - A safe-area-aware bottom tab bar exposes Chat, Map, Trip, Trajectory and Mine as keyboard-operable tabs. Trajectory is the
-    phone trajectory described under Trajectory tab.
+  - A safe-area-aware bottom tab bar exposes Chat, Map, Trip and Mine as keyboard-operable tabs.
+    Trip appears when a Plan exists; the empty workspace exposes Chat, Map and Mine. The Agent Team
+    entry opens the phone Trajectory in a full-screen modal, preserving its ledger, search, filters
+    and inspector, as described under Trajectory tab. Close, Escape or Browser Back returns to the
+    originating view and focus.
     One panel is visible at a time; panels stay mounted to preserve their scroll position. The saved
     layout restores the last tab, including older Chat/Map choices.
   - The single-row top bar shows the destination and dates, or New trip. Its title opens Trip details:
     Where, When, Who, Budget and Preferences as rows. Each row opens the existing editor; saving or
-    closing returns focus to the title. Editors are bottom sheets with 44 px targets, including each
-    sheet's close button and its primary action, in When every day cell, both month arrows and
-    Clear, and in Who each − and + stepper button.
+    closing returns focus to the title. Brief and single-field Stop edits are bottom sheets with
+    44 px targets; complex Stop details use a full page. The targets include each sheet's close
+    button and primary action, every When day cell, both month arrows, Clear, and every Who − and +
+    stepper button.
+  - A changed sheet keeps its values through tab switches and asks before Escape, close, outside
+    dismissal or browser Back discards them. Failed time or place changes keep the entered values and
+    show the error in place. Brief edits on a Trip with a Plan use the explicit Replan trip action.
   - Trip shows Your Trip in place, with Budget and the day view. Before
     planning it explains the empty state and offers Plan in Chat. A plan created or changed while
     another tab is selected adds an accessible update dot to Trip; opening Trip clears it. Read revisions are tracked per trip,
     so switching between unchanged saved trips does not create a new notification.
-  - Mine contains search, New chat, New trip, Trips/Calendar, the chats list and Settings & account.
-    Search filters chats and trips; opening or starting either selects Chat. Each chat has a visible
-    Rename/Delete row menu on touch. Data mode and interface language live here; the data-mode button shows its text label in both languages.
+  - Map and Trip share one day and Stop for the active trip. Selecting a day or Stop in either view
+    carries the exact visit to the other, including later visits to the same place. A revision keeps
+    a valid day and Stop, clears a removed Stop, and moves a removed day to the nearest remaining day.
+    Each saved trip restores its own browsing position when reopened.
+  - A blank Chat shows at most two example prompts. Planning progress stays in Chat while the
+    request runs. When the Plan is ready, Chat stays open and the reply adds an explicit Open trip
+    action; opening it selects Trip. An initial failure restores the submitted text and shows an
+    explicit Retry update action, while a failed revision leaves the previous Plan readable.
+  - Mine places search first, then saved Trips as the primary collection and chats below. New trip
+    sits with Trips, New chat with chats, and one Settings & account entry follows both collections.
+    Search filters chats and trips; opening a saved trip selects Trip, while opening a recent chat or
+    starting either selects Chat. Each chat has a visible Rename/Delete row menu on touch. Data mode
+    and interface language live here; the data-mode button shows its text label in both languages.
     Opening a trip from Mine moves keyboard focus to the trip-title button, whose accessible name
     identifies the destination and dates.
   - Crossing the phone width keeps the traveller on the same thing: narrowing with Your trips open
@@ -278,10 +298,13 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
   - With the composer focused and the visual viewport shortened by the keyboard, the shell follows
     that viewport, keeps the latest message visible and hides the tab bar. A focused trip-fact editor
     or stop editor field also hides the tab bar; the fact sheet rests on the keyboard, and the field
-    and its Save button stay in view. Closing the keyboard or blurring restores it. Browser Back closes the active sheet or editor before leaving the workspace.
+    and its Save button stay in view. Closing the keyboard or blurring restores it. Browser Back
+    closes the active sheet or editor before leaving the workspace and, when its form changed, asks
+    before discarding.
   - New labels use the English/Chinese dictionary and motion respects reduced-motion preferences.
-    Browser evidence is produced by `phone-shell.e2e.mjs` and its Mine, Map and state companion walks
-    under `apps/web/tests/e2e/`. Real installed-app safe areas and keyboard behavior are not
+    Browser evidence is produced by `phone-navigation.e2e.mjs`, `phone-browsing-context.e2e.mjs`,
+    `phone-planning-flow.e2e.mjs`, `phone-editing.e2e.mjs`, and the `phone-shell.e2e.mjs` companion
+    walks under `apps/web/tests/e2e/`. Real installed-app safe areas and keyboard behavior are not
     verified; the device checks in issue #182 were closed as not planned.
 
 ## Conversations, trips and storage
@@ -330,11 +353,13 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     as input, so the live turn and a saved reply's run share it, and [`teamModel`](../apps/web/components/chat/team-model.ts) derives everything from the
     streamed events, nothing invented.
     At 520 px and below the top bar keeps one row: an avatar-only button at least 44 px square sits right of the
-    trip title, which truncates. It opens the same panel as a bottom sheet
-    ([`PhoneTeamButton`](../apps/web/components/workspace/PhoneTeamButton.tsx)) that behaves like the Trip details
-    sheet: a modal dialog named Specialist team, focus moves in and stays in, Escape, the close button or a press
-    outside closes it and returns focus to the button, and it scrolls when long. It shares the layout `sheet` slot,
-    so it never opens together with Trip details, and it closes when the viewport grows past phone width.
+    trip title, which truncates. It opens a full-screen Trajectory
+    ([`PhoneTeamButton`](../apps/web/components/workspace/PhoneTeamButton.tsx)). The ledger fills the
+    viewport, and a Specialist team fold keeps the same team cards, filters and focus navigation
+    reachable above it. The modal owns focus while open; Close, Escape or Browser Back restores the
+    originating Chat, Map, Trip or Mine view and returns focus to the button. It shares the layout
+    `sheet` slot, so it never opens together with Trip details, and it closes when the viewport grows
+    past phone width.
     - The panel body is DSH's Agent Teams layout ([`TeamPanel`](../apps/web/components/chat/TeamPanel.tsx),
       copied with its MIT header). **Members** (count 6) holds six cards, always, in the fixed order
       (Coordinator, Day plan, Getting around, Stay, Destination guide, Food & dining): icon, current name, a
@@ -361,8 +386,9 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
       tab showing only that assistant's records: its messages, assignments and tool calls, and the
       conflict checks and revision scores that name it. A bar above the ledger names the assistant and
       its Show all records button clears the filter; the filter survives switching tabs until cleared and a
-      second press replaces it. Idle and Not involved cards are disabled. The phone sheet shows the same
-      layout; a card there closes the sheet and selects the Trajectory tab from whichever tab is showing.
+      second press replaces it. Idle and Not involved cards are disabled. On a phone, the same card
+      closes the Specialist team fold and filters the already-open full-screen Trajectory without
+      changing the underlying Chat, Map, Trip or Mine tab.
       The request is [`trajectory-focus.tsx`](../apps/web/components/chat/trajectory-focus.tsx), applied by
       `ChatPanel` on desktop and by `PhoneTrajectory` on a phone; the filter itself is `only` in
       `buildTrajectory`.
@@ -500,11 +526,11 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
 
 On desktop the chat column has a Conversation and a Trajectory tab. Conversation is the message stream
 and stays mounted while Trajectory is open, so its scroll position returns; when a reply arrived meanwhile it returns at the newest reply. The chat column has no tab list at phone width.
-On a phone, Trajectory is the fourth tab of the bottom bar (轨迹). It shows the same ledger, search and
-filter bar without the timeline overview, and the record inspector opens over the whole panel and closes
-back to the ledger. Widening the window while it is selected returns to the chat. With no turns yet, the
-tab shows an empty-state card in place of the toolbar and ledger, with a **Plan in Chat** button that
-opens the chat. The tab is
+On a phone, the Agent Team entry opens Trajectory (轨迹) in a full-screen modal. It shows the same ledger,
+search and filter bar without the timeline overview, and the record inspector opens over the whole
+ledger and closes back to it. Close, Escape or Browser Back restores the originating view. With no
+turns yet, the modal shows an empty-state card in place of the toolbar and ledger, with a **Plan in
+Chat** button that closes the modal and selects Chat. The surface is
 [`PhoneTrajectory`](../apps/web/components/workspace/PhoneTrajectory.tsx).
 On the phone each record is a fixed 56 px card: its kind icon sits on the left, the request on the first line
 and its result on the second, and text beyond two lines is clipped (the inspector shows the whole text).
@@ -544,7 +570,7 @@ records why.
   inspector or the ledger, or the close control closes it and returns focus to the record's row.
 - **Reply summary.** The one-line summary of a finished reply's Think row (for example "Coordinator + 3
   specialists · 2 rounds") is a button. Pressing it clears any specialist filter and opens the Trajectory
-  tab (on a phone, the Trajectory tab of the bottom bar) with that reply's turn centred and unfolded. The
+  tab (on a phone, the full-screen Trajectory modal opened from Agent Team) with that reply's turn centred and unfolded. The
   Think label and chevron still expand the row. The request is `openTurn` in
   [`trajectory-focus.tsx`](../apps/web/components/chat/trajectory-focus.tsx); `messageTurns` in the adapter
   numbers each message with its turn.

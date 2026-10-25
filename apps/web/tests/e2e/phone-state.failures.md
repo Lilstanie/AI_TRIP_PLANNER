@@ -1,8 +1,8 @@
 # Failure inventory: phone state restore
 
-Baseline: `origin/main` `25ce9fa`. At 390×844 and 360×800, "reload restores Map" fails after the stale-edit section of the script; Trip, Mine and Chat pass.
+Baseline: `origin/main` `25ce9fa`. At 390×844 and 360×800, the restore loop failed after reloading the workspace.
 
-- Observed: after the Map tab is selected, its `aria-selected` is true, but the saved catalog still holds `layout.view` from before. No catalog write happens while selecting. The cause is `isCurrentTabPlan(plan)` returning false in the persist effects of `useWorkspaceStorage`: the stored tab revision for the trip no longer matches the in-memory plan after the stale-edit section. Clearing the revision keys makes the writes happen. A reload before the restore loop restores all four tabs.
-- Product note: while the tab revision is out of step, layout and catalog writes stay paused until a reload. This is a product gap to follow up; this change does not alter it.
-- Expected: after a reload, the view the user last chose is restored.
-- Repair: the script reloads once before the restore loop, so each restore check starts from a persisted, consistent tab state.
+- Observed: before reload, `CURRENT_KEY` and the catalog both selected the second Melbourne Trip. After reload, `restoreWorkspace` started a blank chat and the tab bar contained only Chat, Map and Mine, so selecting Trip timed out.
+- Expected: `docs/workspace-ui.md` says refresh starts a blank planning entry and never reopens the last Trip. Chat, Map and Mine alone are available; a saved Trip opens when selected from Mine.
+- Diagnosis: test defect. The restore loop asserted that Trip survived refresh, contradicting the documented start-state contract; the revision values were consistent before reload.
+- Repair: the journey now verifies the blank entry and Chat/Map/Mine layout restores, reopens the saved Trip through Mine, and then exercises plan editing. No retry or timeout was added.

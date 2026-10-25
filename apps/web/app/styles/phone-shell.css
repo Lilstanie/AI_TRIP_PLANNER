@@ -36,15 +36,59 @@
 [data-phone] .workspace-panel[hidden] {
   display: none !important;
 }
-[data-phone] .workspace-panel--trajectory {
+dialog.phone-trajectory {
+  position: fixed;
+  inset: 0;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
+    env(safe-area-inset-left);
+  border: 0;
+  background: var(--surface);
+  color: var(--text);
+  overflow: hidden;
+}
+dialog.phone-trajectory[open] {
   display: flex;
   flex-direction: column;
-  min-height: 0;
-  margin: 0 var(--space-2) var(--space-2);
 }
-[data-phone] .workspace-panel--trajectory > .trajectory-tab {
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+.phone-trajectory__head {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  border-bottom: 1px solid var(--border);
+}
+.phone-trajectory__head h2 {
+  margin: 0;
+  font-size: var(--font-size-title);
+}
+.phone-trajectory__close {
+  min-width: 44px;
+}
+.phone-trajectory__close,
+.phone-trajectory__team > summary {
+  min-height: 44px !important;
+  align-content: center;
+}
+.phone-trajectory__team {
+  flex: none;
+  min-height: 0;
+  padding: 0 var(--space-3);
+}
+.phone-trajectory__team[open] {
+  overflow-y: auto;
+  max-height: 60%;
+}
+.phone-trajectory > .trajectory-tab {
+  flex: 1;
+  min-height: 0;
   overflow: hidden;
 }
 .trajectory-empty {
@@ -115,7 +159,8 @@
 }
 .phone-tabbar__list {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
 }
 .phone-tabbar__tab {
   position: relative;

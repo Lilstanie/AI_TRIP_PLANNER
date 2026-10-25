@@ -63,12 +63,12 @@ try {
       await page.waitForTimeout(300);
     }
     const bar = page.locator(".phone-tabbar");
-    const panel = page.locator(".workspace-panel--trajectory");
+    const panel = page.locator("dialog.phone-trajectory[open]");
     const empty = page.locator(".trajectory-empty");
     const noSideScroll = () =>
       page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
 
-    await bar.getByRole("tab", { name: copy.tab }).tap();
+    await page.locator(".phone-topbar__team").tap();
     await panel.waitFor();
     await empty.waitFor();
     check(
@@ -92,7 +92,7 @@ try {
     await page.locator(".chat-empty__suggestions button").first().tap();
     await page.locator(".msg-item--agent .msg-item__body").first().waitFor({ timeout: 240_000 });
     await page.waitForTimeout(800);
-    await bar.getByRole("tab", { name: copy.tab }).tap();
+    await page.locator(".phone-topbar__team").tap();
     await panel.waitFor();
     await panel.getByRole("toolbar").waitFor({ timeout: 10_000 });
     check(

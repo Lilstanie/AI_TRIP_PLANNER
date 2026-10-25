@@ -1,3 +1,4 @@
+import { setPhoneLanguage } from "./phone-settings.mjs";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
@@ -115,13 +116,13 @@ async function run(browser, size) {
     `${prefix}: Trip accessible name announces update`,
   );
   await select(page, "Mine");
-  await page.getByRole("button", { name: "Switch language to 简体中文", exact: true }).click();
+  await setPhoneLanguage(page, "zh");
   await settle(page);
   check(
     (await tab(page, "行程").getAttribute("aria-label")) === "行程已更新",
     `${prefix}: Chinese Trip accessible name announces update`,
   );
-  await page.getByRole("button", { name: "切换至 English", exact: true }).click();
+  await setPhoneLanguage(page, "en");
   await settle(page);
   await select(page, "Chat");
   const input = page.locator(".composer__input");
@@ -262,7 +263,7 @@ async function run(browser, size) {
   );
   await select(page, "Mine");
   await page
-    .locator(".chats-panel__actions")
+    .locator(".chats-panel__section-head")
     .getByRole("button", { name: "New chat", exact: true })
     .click();
   await settle(page);
@@ -366,8 +367,14 @@ async function run(browser, size) {
   await page.unroute("**/api/chat");
   await page.reload();
   await page.locator(".phone-tabbar").waitFor();
+  await page.addStyleTag({ content: "nextjs-portal {display:none!important}" });
   await settle(page);
-  for (const name of ["Map", "Trip", "Mine", "Chat"]) {
+  check(
+    (await page.locator(".phone-tabbar [role=tab]").allTextContents()).join(",") ===
+      "Chat,Map,Mine",
+    `${prefix}: reload starts the blank workspace without a Trip`,
+  );
+  for (const name of ["Map", "Mine", "Chat"]) {
     await select(page, name);
     await page.waitForTimeout(900);
     await page.reload();
@@ -379,6 +386,13 @@ async function run(browser, size) {
       `${prefix}: reload restores ${name}`,
     );
   }
+  await select(page, "Mine");
+  await page.locator(".trip-card").filter({ hasText: "Trip to Melbourne" }).first().click();
+  await settle(page);
+  check(
+    (await tab(page, "Trip").getAttribute("aria-selected")) === "true",
+    `${prefix}: Mine reopens the saved Trip after refresh`,
+  );
 
   const title = page.locator(".phone-topbar__title-button");
   await title.click();

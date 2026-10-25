@@ -30,7 +30,6 @@ import { draftDefaults } from "@/lib/account/settings";
 import { isBlankUntouchedChat, showBriefChrome } from "@/lib/workspace/blank-chat";
 import { PhoneTabBar, phonePanelId } from "./PhoneTabBar";
 import { PhoneTeamButton } from "./PhoneTeamButton";
-import { PhoneTrajectory } from "./PhoneTrajectory";
 import { PhoneTripTitle } from "./PhoneTripTitle";
 import { TeamControl } from "../chat/TeamControl";
 import { latestTurn } from "../chat/team-model";
@@ -101,6 +100,11 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
   const { keyboardOpen } = usePhoneKeyboard(phone);
   const { tripUpdated } = usePhoneTripUpdates(model);
   usePhoneBack(phone);
+  const wasPhone = useRef(phone);
+  useEffect(() => {
+    if (wasPhone.current && !phone && mobileView === "trip") openTrip();
+    wasPhone.current = phone;
+  }, [phone, mobileView, openTrip]);
 
   useEffect(() => {
     if (page !== "workspace" || blank || !plan) {
@@ -274,6 +278,8 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
               onPending={session.trackEdit}
               tripPlaces={tripPlaces}
               selected={selectedActivity}
+              day={layout.mapDay}
+              onDayChange={layout.pickMapDay}
               onSelect={session.selectStop}
               onRoutesChange={session.showRoutes}
               onApply={session.applyEdit}
@@ -284,6 +290,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
               onTimelineChange={session.setTimelineChanged}
               showPhotos={dataMode.mode === "live" && !!dataMode.providers?.maps}
               saves={autoSaves}
+              phone={phone}
               {...(busy || editPending || chooser.working ? {} : { onChoose: chooser.choose })}
             />
           }
@@ -412,6 +419,8 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
             )}
             {(briefChrome || openFact) && (
               <TripFactChips
+                phone={phone}
+                view={mobileView}
                 draft={draft}
                 plan={plan}
                 busy={busy || editPending}
@@ -553,6 +562,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                 onCancel={session.cancel}
                 onSend={session.send}
                 onResend={session.resend}
+                {...(phone ? { onOpenTrip: () => selectView("trip") } : {})}
                 ask={ask}
                 onAnswer={session.answer}
                 onAskProgress={session.updateAskProgress}
@@ -588,31 +598,25 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
               />
               {phone && <PhoneMapSheet model={model} />}
             </div>
-            {phone && (
-              <div className="workspace-panel workspace-panel--trip" {...phonePanel("trip")}>
-                {plan && (
-                  <div className="phone-trip__head">
-                    <h2 className="phone-trip__title">{t("Your trip")}</h2>
-                  </div>
-                )}
-                {tripContent}
-              </div>
-            )}
-            {phone && (
-              <div
-                className="workspace-panel workspace-panel--trajectory"
-                {...phonePanel("trajectory")}
+            <div className="workspace-panel workspace-panel--trip" {...phonePanel("trip")}>
+              {phone && plan && (
+                <div className="phone-trip__head">
+                  <h2 className="phone-trip__title">{t("Your trip")}</h2>
+                </div>
+              )}
+              <Drawer
+                side="right"
+                open={phone || tripOpen}
+                embedded={phone}
+                title={t("Your trip")}
+                closeLabel={t("Close your trip")}
+                onClose={closeTrip}
+                returnFocus={tripToggle}
+                className={phone ? "phone-trip-surface" : "workspace-drawer workspace-drawer--trip"}
               >
-                <PhoneTrajectory
-                  messages={messages}
-                  activity={activity}
-                  busy={busy}
-                  visible={mobileView === "trajectory"}
-                  onReveal={() => selectView("trajectory")}
-                  onPlanInChat={() => selectView("chat")}
-                />
-              </div>
-            )}
+                {tripContent}
+              </Drawer>
+            </div>
             {phone && (
               <div className="workspace-panel workspace-panel--mine" {...phonePanel("mine")}>
                 <PhoneMine model={model} />
@@ -634,19 +638,6 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
               />
             )}
             {navDrawer}
-            {!phone && (
-              <Drawer
-                side="right"
-                open={tripOpen}
-                title={t("Your trip")}
-                closeLabel={t("Close your trip")}
-                onClose={closeTrip}
-                returnFocus={tripToggle}
-                className="workspace-drawer workspace-drawer--trip"
-              >
-                {tripContent}
-              </Drawer>
-            )}
           </main>
           {phone && (
             <PhoneTabBar
