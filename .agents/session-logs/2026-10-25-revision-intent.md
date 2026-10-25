@@ -13,6 +13,7 @@ contract-impact: none
 
 - Added `packages/agents/src/revision-intent.ts`; transport, accommodation and dining use it.
 - Added public-specialist integration cases and a failure inventory under `packages/agents/tests/`.
+- Model requests carry normalized intent and share its authority rule; successful-path boundary cases cover it.
 - Updated both architecture pages and the existing typed-revision Agent Note.
 
 ## Why
@@ -23,7 +24,8 @@ retain the existing keyword fallback, including mixed saving and scheduling requ
 ## Validation
 
 - Focused integration run before implementation: 11 failed, 13 passed; after: 24 passed.
-- `pnpm --filter @trip/agents test`: 16 files, 174 tests passed.
+- Model-boundary transport/stay run before the model fix: 12 failed, 20 passed; after: 32 passed.
+- `pnpm --filter @trip/agents test`: 16 files, 186 tests passed.
 - `pnpm turbo run typecheck --filter=...@trip/agents`: agents, orchestrator and web passed.
 - `pnpm --filter @trip/agents lint`: passed.
 - `pnpm verify:docs`, `pnpm verify:protected`, `pnpm verify:pairs`: passed.

@@ -35,7 +35,7 @@ import { cities, journeyLegs, flightLegs, groundLegs, flownInstead, type Journey
 import { mockEnabled } from "@trip/tools";
 import { TRAVELLER_PREFERENCES_RULE } from "../prompts/traveller-preferences";
 import { plural, summaryCopy } from "../summary-copy";
-import { revisionIntent } from "../revision-intent";
+import { revisionIntent, REVISION_INTENT_RULE } from "../revision-intent";
 
 function clock(totalMinutes: number): string {
   if (totalMinutes < 0 || totalMinutes >= 24 * 60) {
@@ -662,6 +662,7 @@ async function planTransport(
     tools: [search],
     systemPrompt:
       "You are the transport specialist. Call search_transport_evidence, then decide which flight candidate to take and the local departure time for each hop. The evidence assigns each hop its canonical travel day and date; repeat that day exactly and never move the hop to another day. Weigh cost against the traveller's budget, and schedule hops so they leave enough of the day to be worth arriving for. A budget revision means prefer the cheapest flight; a schedule revision means move departures earlier. Refer to flights and hops only by the ids you were given. Never state a fare, a duration or a carrier of your own. Return the requested structured selection. " +
+      REVISION_INTENT_RULE +
       TRAVELLER_PREFERENCES_RULE,
     responseFormat: TransportSelection,
   });
@@ -681,7 +682,12 @@ async function planTransport(
               budgetTotal: brief.budgetTotal,
               preferences: brief.preferences,
             },
-            revision: revision && { reason: revision.reason, constraints: revision.constraints },
+            revision: revision && {
+              kind: revision.kind,
+              reason: revision.reason,
+              constraints: revision.constraints,
+              intent: revisionIntent(revision),
+            },
             ...(allocation
               ? {
                   transportBudget: {

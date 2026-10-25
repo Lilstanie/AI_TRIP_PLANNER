@@ -22,7 +22,7 @@ import { normalize, canonicalPlaceName, dedupeEntries } from "../place-names";
 import { TRAVELLER_PREFERENCES_RULE } from "../prompts/traveller-preferences";
 import { replyLanguageRule } from "../prompts/reply-language";
 import { plural, summaryCopy } from "../summary-copy";
-import { revisionIntent } from "../revision-intent";
+import { revisionIntent, REVISION_INTENT_RULE } from "../revision-intent";
 
 const DAY_MS = 86_400_000;
 const DINING_BUDGET_SHARE = 0.2;
@@ -181,6 +181,7 @@ function createMiniMaxGenerator(): DiningGenerator | undefined {
         tools: [evidence],
         systemPrompt:
           "You are the dining specialist. Always call read_dining_evidence and use only its facts and exact venue names. Pick venues that suit its fixed per-person daily meal budget, which the planner sets, and address any revision. Never claim live hours, availability, menu items, allergen safety, certification or dietary suitability; tell travellers to confirm important constraints directly. Return the requested structured dining draft.\n\nEach pick's name must be a candidate's name copied character for character, with no category, rating or district appended. Return no picks rather than inventing a venue that is not in the evidence.\n\n" +
+          REVISION_INTENT_RULE +
           TRAVELLER_PREFERENCES_RULE +
           replyLanguageRule(input.language),
         responseFormat: ModelDiningDraft,
@@ -192,7 +193,12 @@ function createMiniMaxGenerator(): DiningGenerator | undefined {
             content: JSON.stringify({
               task: "Draft dining guidance from the validated evidence available through your tool.",
               tripId: input.brief.tripId,
-              revision: input.revision?.reason,
+              revision: input.revision && {
+                kind: input.revision.kind,
+                reason: input.revision.reason,
+                constraints: input.revision.constraints,
+                intent: revisionIntent(input.revision),
+              },
             }),
           },
         ],

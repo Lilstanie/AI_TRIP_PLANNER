@@ -253,7 +253,8 @@ Specialist 提案、行程需求和最终计划在图边界上分别通过 `Agen
   修订直接决定省钱和调整时间的行为，不读取原因文字；其他冲突类型不触发这两种行为。只有 `request`
   会检查原因与约束中的关键词：`budget`、`cost`、`cheaper`、`overrun`、`cut` 或 `reduce` 表示省钱，
   `time`、`overlap` 或 `schedule` 表示调整时间。同一条旅行者请求可以同时触发两者。明确传入的预算份额
-  仍决定可用金额；数值形式的节省目标不参与意图判断。
+  仍决定可用金额；数值形式的节省目标不参与意图判断。模型请求同时携带类型和规范化意图，
+  共用提示规则明确以意图为准，而非从说明文字重新推断。
 - `OrchestratorOptions.onDecision` 以类型化的 `WorkflowDecision` 事实接收循环的决策：发现冲突（目标、原因、评分、
   是否不可行）、修订开始（目标和上一版结果）、修订评分（修订前、修订后、是否保留）以及循环停止（轮次和原因）。
   消费者读取这些事实，而不是解析进度文本。该钩子绝不影响计划，抛错的消费者会被记录并忽略，聊天进度协议保持不变。另有两个事实服务于故障实验室：specialist 的输出未通过提案 schema 时的 `agent_output_rejected`（只带字段路径，绝不含值），以及 supervisor 无法委派、工作流改为确定性分发或修订时的 `delegation_fallback`。`OrchestratorOptions.supervisorModel` 即使对注入的 specialist 也通过给定的模型进行委派。

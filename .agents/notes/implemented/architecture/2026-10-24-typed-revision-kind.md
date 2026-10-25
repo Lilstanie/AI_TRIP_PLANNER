@@ -25,7 +25,8 @@ uses the common wording check over reason and constraints. Saving keywords are `
 `cheaper`, `overrun`, `cut` and `reduce`; scheduling keywords are `time`, `overlap` and `schedule`.
 A request can activate both. The fallback preserves dining's existing saving vocabulary and
 transport's scheduling vocabulary. Numeric saving targets do not infer intent; the planning loop
-continues to turn them into allocations. See [TP-88](https://headmastereggy.atlassian.net/browse/TP-88).
+continues to turn them into allocations. All three model requests carry the kind and normalized intent;
+a shared prompt rule makes that intent authoritative over prose. See [TP-88](https://headmastereggy.atlassian.net/browse/TP-88).
 
 `TripPlan.conflicts` parses a missing `kind` as `request`, so plans saved before this change still load
 and keep their current keyword routing.

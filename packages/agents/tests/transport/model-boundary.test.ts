@@ -195,3 +195,81 @@ describe("the traveller's trip preferences", () => {
     expect(behavior.seen.prompt).toContain(TRAVELLER_PREFERENCES_RULE);
   });
 });
+
+describe("revision intent reaches successful model planning", () => {
+  it.each([
+    {
+      kind: "budget" as const,
+      reason: "the total exceeds the limit",
+      constraints: [],
+      budget: true,
+      schedule: false,
+    },
+    {
+      kind: "time" as const,
+      reason: "the journey clashes with another stop",
+      constraints: [],
+      budget: false,
+      schedule: true,
+    },
+    {
+      kind: "time" as const,
+      reason: "cost overrun",
+      constraints: [],
+      budget: false,
+      schedule: true,
+    },
+    {
+      kind: "geography" as const,
+      reason: "cost overrun",
+      constraints: ["earlier schedule"],
+      budget: false,
+      schedule: false,
+    },
+    {
+      kind: "infeasible" as const,
+      reason: "cost overrun",
+      constraints: [],
+      budget: false,
+      schedule: false,
+    },
+    {
+      kind: "request" as const,
+      reason: "please revise",
+      constraints: ["reduce cost and reschedule"],
+      budget: true,
+      schedule: true,
+    },
+  ])("$kind: $reason", async ({ kind, reason, constraints, budget, schedule }) => {
+    behavior.respond = (evidence) => {
+      const intent = JSON.parse(behavior.seen.message).revision?.intent ?? {};
+      return choose(
+        intent.budget ? "Evidence Air" : "Flex Air",
+        3,
+        intent.schedule ? "06:30" : "09:00",
+      )(evidence);
+    };
+    const proposal = await transportAgent.invoke({
+      brief,
+      context,
+      revision: {
+        tripId: brief.tripId,
+        targetAgent: "transport",
+        kind,
+        reason,
+        constraints,
+        targetSaving: 100,
+      },
+    });
+    expect.soft(JSON.parse(behavior.seen.message).revision).toEqual({
+      kind,
+      reason,
+      constraints,
+      intent: { budget, schedule },
+    });
+    expect.soft(behavior.seen.prompt).toContain("revision.intent is authoritative");
+    expect.soft(proposal.items[0]!.estCost).toBe(budget ? 500 : 900);
+    expect.soft(proposal.items[1]!.startTime).toBe(schedule ? "06:30" : "09:00");
+    expect(proposal.source?.kind).not.toBe("fallback");
+  });
+});

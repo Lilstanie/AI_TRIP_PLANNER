@@ -15,6 +15,9 @@ or browser evidence.
 - No revision or an unrelated request changes the normal fare, stay or meal allowance.
 - Centralizing intent bypasses a supplied budget allocation or changes stay ranking within that share.
 - A numeric target saving changes a typed non-budget revision into a budget revision.
+- A successful model-backed transport or stay plan receives only prose and cannot distinguish typed
+  budget, time and geography revisions. Check both normalized input and the authority rule before
+  changing those model paths; a model-boundary stub is not live-model evidence.
 
 Repeat with `pnpm --filter @trip/agents exec vitest run tests/revision-intent.integration.test.ts`.
 The test writes observed proposals to `output/revision-intent/proposals.json` at the repository root.

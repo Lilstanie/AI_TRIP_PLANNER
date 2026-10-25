@@ -30,7 +30,7 @@ import { scheduledHops } from "../transport/legs";
 import { TRAVELLER_PREFERENCES_RULE } from "../prompts/traveller-preferences";
 import { replyLanguageRule } from "../prompts/reply-language";
 import { plural, summaryCopy } from "../summary-copy";
-import { revisionIntent } from "../revision-intent";
+import { revisionIntent, REVISION_INTENT_RULE } from "../revision-intent";
 
 const candidateId = (day: number, index: number) => `stay-${day}-${index}`;
 
@@ -394,6 +394,7 @@ async function planStays(
     tools: [search],
     systemPrompt:
       "You are the accommodation specialist. Call search_accommodation_candidates, then choose one candidate for every stay it returns. You own that choice: weigh rating, free cancellation and total cost against the traveller's brief and any revision. When a stayBudget is given, keep the total of all chosen stays within maxTotalCost. A budget revision means prefer the highest-ranked eligible candidate whose total fits the stay's share of the revised budget; when none fits, take the cheapest. Refer to candidates only by the ids you were given -- never invent a property, a rate, a rating or a policy, and never state a price yourself. Return the requested structured selection. " +
+      REVISION_INTENT_RULE +
       TRAVELLER_PREFERENCES_RULE +
       replyLanguageRule(ctx.replyLanguage),
     responseFormat: StaySelection,
@@ -415,7 +416,12 @@ async function planStays(
               accommodation: brief.accommodation,
               preferences: brief.preferences,
             },
-            revision: revision && { reason: revision.reason, constraints: revision.constraints },
+            revision: revision && {
+              kind: revision.kind,
+              reason: revision.reason,
+              constraints: revision.constraints,
+              intent: revisionIntent(revision),
+            },
 
             ...(allocation
               ? {

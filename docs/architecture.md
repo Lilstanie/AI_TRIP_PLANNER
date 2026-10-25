@@ -308,7 +308,8 @@ Specialist proposals, the brief and the final plan are re-validated at the graph
   other conflict kinds trigger neither. Only `request` uses keywords in the reason and constraints:
   `budget`, `cost`, `cheaper`, `overrun`, `cut` or `reduce` for saving, and `time`, `overlap` or
   `schedule` for scheduling. A traveller request can trigger both. Explicit allocations still govern
-  spending; numeric saving targets are not used to infer intent.
+  spending; numeric saving targets are not used to infer intent. Model requests carry the kind and
+  normalized intent, with a shared prompt rule that makes the intent authoritative over prose.
 - `OrchestratorOptions.onDecision` receives the loop's decisions as typed `WorkflowDecision` facts:
   conflicts detected (targets, reasons, score, infeasibility), revision started (objective and
   previous outcome), revision scored (before, after, kept) and loop stopped (round and reason). A
