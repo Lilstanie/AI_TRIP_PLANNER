@@ -190,7 +190,7 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     the trip and the title is kept for assistive technology only.
 - **Map on demand.** On desktop a chat with no plan shows the chat alone, centred at up to 880 px.
   When the first plan arrives the map slides in from the right over 420 ms and the chat narrows to
-  the split below; a new chat slides it out again. The separator exists only while the map is shown.
+  the split below; a new chat slides it out again. The separator is hidden while the map is hidden.
   Tablet and phone layouts are unchanged.
 - **Message actions.** Every message has a copy button under it (hover or focus on a pointer
   device, always visible on touch). A traveller's message without attachments also has an edit

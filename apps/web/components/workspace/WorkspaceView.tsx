@@ -536,7 +536,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                 attachNotices={composerAttachments.notices}
               />
             </div>
-            {!narrow && plan && <SplitResizer share={chatShare} onChange={layout.resizeChat} />}
+            {!narrow && <SplitResizer share={chatShare} onChange={layout.resizeChat} />}
             <div className="workspace-panel workspace-panel--map" {...phonePanel("map")}>
               <TripMapCanvas
                 destination={plan?.brief.destination}

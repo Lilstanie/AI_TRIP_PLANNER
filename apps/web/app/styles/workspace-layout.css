@@ -262,3 +262,7 @@
     width: min(100%, 880px);
   }
 }
+
+.workspace-shell[data-map="hidden"] .split-resizer {
+  display: none;
+}
