@@ -225,3 +225,82 @@ describe.each(entries)("brief intake via %s", (entry) => {
     expect(result.dispatches).toBe(0);
   });
 });
+
+it.each(["Destination", "目的地"])(
+  "retains the %s UI choice when the model asks for budget",
+  async (header) => {
+    const candidate = {
+      ...brief,
+      tripId: `intake-model-missing-${header}`,
+      destination: "Trinidad and Tobago",
+    };
+    const { mem, turns } = memoryStore();
+    const specialist = {
+      ...itinerary,
+      invoke: vi.fn((...args: Parameters<typeof itinerary.invoke>) => itinerary.invoke(...args)),
+    };
+    const questions = [{ id: "destination-conjunction", header, question: "Which place?" }];
+    const message = formatAskAnswers(questions, [
+      { id: "destination-conjunction", selected: [candidate.destination] },
+    ]);
+    const request: ChatRequest = {
+      tripId: candidate.tripId,
+      message,
+      known: {
+        destination: candidate.destination,
+        dates: candidate.dates,
+        groupSize: candidate.groupSize,
+      },
+    };
+    const result = await runTripChat(request, {
+      mem,
+      clock,
+      tools,
+      specialists: [specialist],
+      model: scriptedModel(
+        [
+          {
+            name: "update_trip_brief",
+            id: "destination",
+            args: { destination: candidate.destination },
+          },
+        ],
+        [
+          {
+            name: "ask_user_question",
+            id: "budget",
+            args: {
+              questions: [
+                { id: "budget", header: "Budget", question: "What is your total budget?" },
+              ],
+            },
+          },
+        ],
+      ),
+    }).catch((error: unknown) => error);
+    evidence.push({ entry: "model-missing-budget", request, result, turns: [...turns] });
+    expect(result).toBeInstanceOf(AskUserError);
+    const asked = result as AskUserError;
+    expect(asked.askUser.questions[0]?.id).toBe("budget");
+    expect(specialist.invoke).not.toHaveBeenCalled();
+    expect(turns.at(-1)?.confirmedBriefDestination).toBe(candidate.destination);
+    const response = await runTripChat(
+      { tripId: candidate.tripId, message: "Budget: 3000 AUD", known: asked.askUser.known },
+      {
+        mem,
+        clock,
+        tools,
+        specialists: [specialist],
+        model: scriptedModel([
+          {
+            name: "update_trip_brief",
+            id: "budget",
+            args: { budgetAmount: 3000, budgetCurrency: "AUD" },
+          },
+        ]),
+      },
+    );
+    evidence.push({ entry: "model-budget-completed", response, turns });
+    expect(response.plan.brief.destination).toBe(candidate.destination);
+  },
+);

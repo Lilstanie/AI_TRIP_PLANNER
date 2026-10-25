@@ -135,7 +135,6 @@ export type BriefReadiness =
 export class BriefIntake {
   private current: BriefPatch & Partial<Pick<TripBrief, "userId" | "accommodation">>;
   private readonly previousTurn: ChatTurn | undefined;
-  private acceptedDestination: string | undefined;
 
   constructor(
     private readonly request: ChatRequest,
@@ -143,7 +142,6 @@ export class BriefIntake {
     private readonly clock: () => Date,
   ) {
     this.previousTurn = [...history].reverse().find((turn) => turn.role === "assistant");
-    this.acceptedDestination = this.previousTurn?.confirmedBriefDestination;
     this.current = mergeBriefPatch({}, { ...request.known, ...request.brief });
     if (request.brief) this.current = { ...request.brief, ...this.current };
     if (request.assistant?.memory === false) delete this.current.learnedPreferences;
@@ -155,8 +153,13 @@ export class BriefIntake {
 
   get confirmedDestination(): string | undefined {
     const destination = this.current.destination;
-    return destination === this.acceptedDestination ||
-      destination === this.request.plan?.brief.destination
+    const selectsDestination = this.request.message.split(/\r?\n/u).some((line) => {
+      const answer = line.trim().replace(/^(?:destination|目的地)\s*[:：]\s*/iu, "");
+      return answer.toLocaleLowerCase() === destination?.toLocaleLowerCase();
+    });
+    return destination === this.previousTurn?.confirmedBriefDestination ||
+      destination === this.request.plan?.brief.destination ||
+      (destination === this.request.known?.destination && selectsDestination)
       ? destination
       : undefined;
   }
@@ -200,12 +203,6 @@ export class BriefIntake {
     const { request } = this;
     const destination = this.current.destination;
     const pending = this.previousTurn?.pendingBriefConfirmation;
-    const selectsDestination = request.message.split(/\r?\n/u).some((line) => {
-      const answer = line.trim().replace(/^(?:destination|目的地)\s*[:：]\s*/iu, "");
-      return answer.toLocaleLowerCase() === destination?.toLocaleLowerCase();
-    });
-    if (destination === request.known?.destination && selectsDestination)
-      this.acceptedDestination = destination;
     if (destination && /\s+and\s+/iu.test(destination) && !this.confirmedDestination) {
       const chinese = request.interfaceLanguage === "zh";
       return {
