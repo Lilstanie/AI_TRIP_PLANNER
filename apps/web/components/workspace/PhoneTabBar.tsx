@@ -22,14 +22,17 @@ type Props = {
   badges?: Partial<Record<MobileView, ReactNode>>;
 
   hidden?: boolean;
+
+  showTrip?: boolean;
 };
 
-export function PhoneTabBar({ view, onSelect, badges, hidden }: Props) {
+export function PhoneTabBar({ view, onSelect, badges, hidden, showTrip = true }: Props) {
   const { t } = useLocale();
+  const views = showTrip ? PHONE_VIEWS : PHONE_VIEWS.filter((tab) => tab !== "trip");
   const tabs = useRef<Partial<Record<MobileView, HTMLButtonElement | null>>>({});
   const onKeyDown = (event: KeyboardEvent) => {
-    const index = PHONE_VIEWS.indexOf(view);
-    const last = PHONE_VIEWS.length - 1;
+    const index = views.indexOf(view);
+    const last = views.length - 1;
     const next =
       event.key === "ArrowRight"
         ? index === last
@@ -46,7 +49,7 @@ export function PhoneTabBar({ view, onSelect, badges, hidden }: Props) {
               : undefined;
     if (next === undefined) return;
     event.preventDefault();
-    const target = PHONE_VIEWS[next];
+    const target = views[next];
     onSelect(target);
     tabs.current[target]?.focus();
   };
@@ -58,7 +61,7 @@ export function PhoneTabBar({ view, onSelect, badges, hidden }: Props) {
         className="phone-tabbar__list"
         onKeyDown={onKeyDown}
       >
-        {PHONE_VIEWS.map((tab) => {
+        {views.map((tab) => {
           const selected = tab === view;
           return (
             <button

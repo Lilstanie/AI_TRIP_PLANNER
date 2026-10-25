@@ -24,7 +24,7 @@ const IDS = [
   "destination-guide",
   "dining",
 ];
-const BUTTON = { en: "Specialist team", zh: "专家团队" };
+const BUTTON = { en: "Agent Team", zh: "智能体团队" };
 const STATUS = {
   en: { idle: "Idle", needs: "Needs change", none: "Not involved" },
   zh: { idle: "空闲", needs: "需修改", none: "未参与" },
@@ -139,7 +139,7 @@ try {
         ),
       );
 
-    check((await button.count()) === 1, `${label}: the top bar has one Specialist team button`);
+    check((await button.count()) === 1, `${label}: the top bar has one Agent Team button`);
     check(
       await page.evaluate(
         () =>

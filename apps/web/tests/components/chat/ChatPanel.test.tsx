@@ -68,13 +68,14 @@ describe("ChatPanel", () => {
           activity={[]}
           onSend={onSend}
           onEdit={vi.fn()}
+          blankUntouched
         />
       );
     }
     render(<EmptyChat />);
 
     const log = screen.getByRole("log");
-    expect(screen.getByRole("heading", { name: "Where to next?" })).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "Where to next?" })).toBeNull();
     expect(within(log).queryByText(/.+/)).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: /^Sydney · \d+ days$/ }));
@@ -103,6 +104,7 @@ describe("ChatPanel", () => {
           activity={[]}
           onSend={onSend}
           onEdit={vi.fn()}
+          blankUntouched
         />
       );
     }
@@ -124,7 +126,7 @@ describe("ChatPanel", () => {
     localStorage.removeItem(SETTINGS_KEY);
   });
 
-  it("does not scroll an empty chat above its heading", () => {
+  it("does not scroll an empty chat before messages arrive", () => {
     const scrollTo = vi.fn();
     const previous = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "scrollTo");
     Object.defineProperty(HTMLElement.prototype, "scrollTo", {
@@ -141,9 +143,10 @@ describe("ChatPanel", () => {
           activity={[]}
           onSend={vi.fn()}
           onEdit={vi.fn()}
+          blankUntouched
         />,
       );
-      expect(screen.getByRole("heading", { name: "Where to next?" })).toBeTruthy();
+      expect(screen.getByLabelText("Example trips")).toBeTruthy();
       expect(scrollTo).not.toHaveBeenCalled();
     } finally {
       if (previous) Object.defineProperty(HTMLElement.prototype, "scrollTo", previous);

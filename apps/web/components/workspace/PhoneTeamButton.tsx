@@ -31,7 +31,7 @@ export function PhoneTeamButton({ model, turn }: { model: WorkspaceModel; turn: 
         ref={button}
         type="button"
         className="topbar-button team-trigger phone-topbar__team"
-        aria-label={t("Specialist team")}
+        aria-label={t("Agent Team")}
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-controls={open ? TEAM_SHEET_ID : undefined}
@@ -44,7 +44,7 @@ export function PhoneTeamButton({ model, turn }: { model: WorkspaceModel; turn: 
         <FactPopover
           key={sheet.leaving ? "leaving" : "open"}
           id={TEAM_SHEET_ID}
-          title={t("Specialist team")}
+          title={t("Agent Team")}
           anchor={button}
           onClose={close}
           modal

@@ -16,7 +16,7 @@ const COPY = {
   en: {
     locale: "en-AU",
     tab: /^Trajectory/,
-    team: "Specialist team",
+    team: "Agent Team",
     details: "Event details",
     close: "Close details",
     timeline: "Trajectory timeline",

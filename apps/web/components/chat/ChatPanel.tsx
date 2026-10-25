@@ -3,7 +3,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { type AgentProgressEvent, type AssistantId, type TripPlan } from "@trip/shared";
 import { quickPrompts } from "@/lib/planning/quick-prompts";
 import { translate } from "@/lib/i18n/locale";
-import type { Message } from "@/lib/workspace";
+import { blankDraft, type Message, type Draft } from "@/lib/workspace";
 import { ThinkingProcess } from "./ThinkingProcess";
 import { Composer } from "./Composer";
 import { MessageItem } from "./MessageItem";
@@ -15,9 +15,15 @@ import type { PendingAsk, QuestionAnswer, QuestionProgress } from "@/lib/workspa
 import type { PreparedAttachment } from "@/lib/chat/attachments";
 import type { Notice } from "@/lib/i18n/notice";
 import { useLocale } from "../account/LocaleProvider";
+import { ChatViewTabs, type ChatView } from "./ChatViewTabs";
+import {
+  composerPlaceholders,
+  PLACEHOLDER_ROTATE_MS,
+} from "@/lib/chat/composer-placeholders";
 
 export function ChatPanel({
   plan,
+  draft,
   messages,
   input,
   onInput,
@@ -27,8 +33,9 @@ export function ChatPanel({
   onSend,
   onResend,
   onEdit,
-  onStart,
   phone = false,
+  showTabs = true,
+  blankUntouched = false,
   onCancel,
   error,
   onAttachFiles,
@@ -40,8 +47,11 @@ export function ChatPanel({
   onAnswer,
   onAskProgress,
   onDismissAsk,
+  view: viewProp,
+  onViewChange,
 }: {
   plan?: TripPlan;
+  draft?: Draft;
   messages: Message[];
   input: string;
   onInput: (value: string) => void;
@@ -55,9 +65,11 @@ export function ChatPanel({
   onResend?: (index: number, text: string) => void;
   onEdit: () => void;
 
-  onStart?: () => void;
-
   phone?: boolean;
+
+  showTabs?: boolean;
+
+  blankUntouched?: boolean;
 
   onCancel?: () => void;
 
@@ -80,6 +92,10 @@ export function ChatPanel({
   onAskProgress?: (progress: QuestionProgress) => void;
 
   onDismissAsk?: () => void;
+
+  view?: ChatView;
+
+  onViewChange?: (view: ChatView) => void;
 }) {
   const { t, locale } = useLocale();
   const stream = useRef<HTMLDivElement>(null);
@@ -93,34 +109,19 @@ export function ChatPanel({
       stream.current?.scrollTo({ top: stream.current.scrollHeight });
   }, [messages, activity]);
 
-  const empty = !plan && !messages.length;
-  const [more, setMore] = useState(false);
-  useEffect(() => {
-    const node = stream.current;
-    if (!empty || !node) return setMore(false);
-    const update = () => {
-      const padding = parseFloat(getComputedStyle(node).paddingBottom) || 0;
-      setMore(node.scrollTop + node.clientHeight < node.scrollHeight - padding - 1);
-    };
-    const observer = new ResizeObserver(update);
-    observer.observe(node);
-    if (node.firstElementChild) observer.observe(node.firstElementChild);
-    node.addEventListener("scroll", update, { passive: true });
-    update();
-    return () => {
-      observer.disconnect();
-      node.removeEventListener("scroll", update);
-    };
-  }, [empty]);
-
-  const [view, setView] = useState<"conversation" | "trajectory">("conversation");
+  const [viewState, setViewState] = useState<ChatView>("conversation");
+  const view = viewProp ?? viewState;
+  const setView = (next: ChatView) => {
+    onViewChange?.(next);
+    if (viewProp === undefined) setViewState(next);
+  };
   const showTrajectory = view === "trajectory" && !phone;
   const savedScroll = useRef<{
     top: number;
     messages: Message[];
     activity: AgentProgressEvent[];
   } | null>(null);
-  const choose = (next: "conversation" | "trajectory") => {
+  const choose = (next: ChatView) => {
     if (next === view) return;
     if (next === "trajectory")
       savedScroll.current = { top: stream.current?.scrollTop ?? 0, messages, activity };
@@ -149,33 +150,42 @@ export function ChatPanel({
   }, [view, messages, activity]);
 
   const prompts = useMemo(() => quickPrompts(), []);
+  const [focused, setFocused] = useState(false);
+  const keys = useMemo(
+    () => composerPlaceholders(draft ?? blankDraft(), Boolean(plan)),
+    [draft, plan],
+  );
+  const [placeholderAt, setPlaceholderAt] = useState(0);
+  const rotate = focused && !input.trim() && keys.length > 1;
+  useEffect(() => {
+    setPlaceholderAt(0);
+  }, [keys[0], Boolean(plan)]);
+  useEffect(() => {
+    if (!rotate) return;
+    const id = window.setInterval(
+      () => setPlaceholderAt((at) => (at + 1) % keys.length),
+      PLACEHOLDER_ROTATE_MS,
+    );
+    return () => window.clearInterval(id);
+  }, [rotate, keys]);
+
+  useEffect(() => {
+    const node = inputRef.current;
+    if (!node) return;
+    const onFocus = () => setFocused(true);
+    const onBlur = () => setFocused(false);
+    node.addEventListener("focus", onFocus);
+    node.addEventListener("blur", onBlur);
+    setFocused(document.activeElement === node);
+    return () => {
+      node.removeEventListener("focus", onFocus);
+      node.removeEventListener("blur", onBlur);
+    };
+  }, []);
+
   return (
     <section className="panel chat" aria-label={t("Chat")}>
-      {!phone && (
-        <div className="chat__tabs" role="tablist" aria-label={t("Chat view")}>
-          {(["conversation", "trajectory"] as const).map((id) => (
-            <button
-              key={id}
-              type="button"
-              className="chat__tab"
-              role="tab"
-              id={`chat-tab-${id}`}
-              aria-controls={`chat-panel-${id}`}
-              aria-selected={view === id}
-              tabIndex={view === id ? 0 : -1}
-              onClick={() => choose(id)}
-              onKeyDown={(event) => {
-                if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
-                const next = id === "conversation" ? "trajectory" : "conversation";
-                choose(next);
-                document.getElementById(`chat-tab-${next}`)?.focus();
-              }}
-            >
-              {t(id === "conversation" ? "Conversation" : "Trajectory")}
-            </button>
-          ))}
-        </div>
-      )}
+      {showTabs && !phone && <ChatViewTabs view={view} onChoose={choose} />}
       <div
         className="chat__stream"
         id="chat-panel-conversation"
@@ -183,43 +193,7 @@ export function ChatPanel({
         hidden={showTrajectory}
         {...(phone ? {} : { role: "tabpanel", "aria-labelledby": "chat-tab-conversation" })}
         aria-busy={busy}
-        data-more={more ? "true" : undefined}
       >
-        {empty && (
-          <div className="chat-empty">
-            <h3>{t("Where to next?")}</h3>
-            <p>
-              {phone && onStart
-                ? t(
-                    "Describe your destination, travel dates, number of travellers and total budget, or tap Add trip details below.",
-                  )
-                : t(
-                    "Describe your destination, travel dates, number of travellers and total budget, or add them in the bar at the top.",
-                  )}
-            </p>
-            <div className="chat-empty__suggestions" aria-label={t("Example trips")}>
-              {prompts.map(({ label, text, params }) => (
-                <button
-                  key={t(label)}
-                  type="button"
-                  title={t(label)}
-                  disabled={busy || locked}
-                  onClick={() => onSend(translate(locale, text, params))}
-                >
-                  {t(label)}
-                </button>
-              ))}
-            </div>
-            <p className="chat-empty__input-hint">
-              {t("Pick an example to plan it now, or write your own below.")}
-            </p>
-            {onStart && (
-              <button type="button" onClick={onStart}>
-                {t("Add trip details")}
-              </button>
-            )}
-          </div>
-        )}
         <div role="log" aria-live="polite">
           {messages.map((m, i) => (
             <MessageItem
@@ -277,11 +251,28 @@ export function ChatPanel({
             if (!locked) onSend();
           }}
         >
+          {blankUntouched && (
+            <div
+              className="chat-suggestions chat-empty__suggestions"
+              aria-label={t("Example trips")}
+            >
+              {prompts.map(({ label, text, params }) => (
+                <button
+                  key={t(label)}
+                  type="button"
+                  className="chat-suggestions__chip"
+                  title={t(label)}
+                  disabled={busy || locked}
+                  onClick={() => onSend(translate(locale, text, params))}
+                >
+                  {t(label)}
+                </button>
+              ))}
+            </div>
+          )}
           <Composer
             value={input}
-            placeholder={t(
-              plan ? "Tell me what to change…" : "Destination, dates, travellers and budget…",
-            )}
+            placeholder={t(keys[placeholderAt] ?? keys[0]!)}
             busy={busy}
             canSend={!locked && (Boolean(input.trim()) || Boolean(attachments?.length))}
             canCancel={Boolean(onCancel)}

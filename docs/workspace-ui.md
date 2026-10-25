@@ -13,9 +13,9 @@ now. Implementation history and browser acceptance for each phase are in the
 | Sidebar           | Logo, Chats and Trips with counts, save or sync status, Settings & account                                                                                       | `WorkspaceSidebar`, `BrandMark`, `icons.tsx`                                                                |
 | Chats panel       | Slides out beside the sidebar: search, New chat, New trip, then trips and chats                                                                                  | `ChatsPanel`, `TripCover`                                                                                   |
 | Your trips        | Opened by Trips in place of chat and map: trip cards (Upcoming, Past) and a Calendar tab; New trip                                                               | `TripsPage`, `TripCover`                                                                                    |
-| Top bar           | Trip title; trip fact chips (destination, dates, travellers, budget, Preferences); data mode; Specialist team; Trip with its stop count, rightmost               | `WorkspaceView`, `TripFactChips`, `TeamControl`, `PhoneTeamButton`                                          |
+| Top bar           | Desktop: Conversation \| Trajectory and Agent Team on the left; Brief chips only after the traveller has started; data mode on the right; Trip only with a Plan. Language only in Settings. | `WorkspaceView`, `TripFactChips`, `TeamControl`, `ChatViewTabs`, `PhoneTeamButton` |
 | Trip fact editors | One editor per chip, every one a centred dialog; Preferences holds the traveller's own list                                                                      | `FactPopover`, `FactFields`, `TripCalendar`, `WhereFields`, `PreferenceList`, `lib/workspace/trip-facts.ts` |
-| Chat              | Conversation, the planning transcript, the composer; starter suggestions in a blank chat; no visible heading                                                     | `ChatPanel`                                                                                                 |
+| Chat              | Conversation or Trajectory, the planning transcript, the composer; suggestion chips beside the composer on a blank untouched chat; rotating placeholders while focused and empty | `ChatPanel` |
 | Map               | Only the map, labelled markers, curved day-coloured itinerary lines, the place popup, map status, and the locate / map type / zoom controls                      | `TripMapCanvas`, `TripMap`                                                                                  |
 | Your Trip drawer  | Budget, with its open conflicts; the day view (travel tips, day strip, the chosen day's stops with their place cards and ⋯ menus, flights and stays, then Ideas) | `Drawer`, `TripPanel`, `TripEditor`, `TripTips`, `timeline/TimelineStop`, `timeline/BookingRow`             |
 
@@ -305,7 +305,7 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
   listed under Trips once a plan is produced; until then it is a blank conversation under Chats. The
   [New trip Agent Note](../.agents/notes/archived/feature/2026-09-24-new-trip.md) records why.
 - **Starting to plan.**
-  - A blank chat offers example trip suggestions. Selecting one sends a prompt and starts planning. Its hint points to the fact bar at the top; on a phone, where that bar is hidden, it points to the Add trip details button below. When the card does not fit the chat stream (a short phone), the stream's bottom edge fades out until it is scrolled to the end, so the hidden examples and Add trip details are signalled.
+  - A blank untouched chat (no messages, no Plan, empty input, draft equal to Travel profile defaults) has no centre card. Example trip suggestions sit beside the composer; selecting one sends a prompt and starts planning. The Brief bar and Preferences stay hidden until the traveller types, changes the draft relative to Travel profile defaults, or already has messages; they hide again only when the chat returns to blank untouched. Trip stays hidden until a Plan exists. The composer placeholder rotates about every 4–5 seconds while focused and empty, preferring prompts for missing Brief facts, and settles to a revision prompt once a Plan exists.
     The prompt follows the interface language while keeping its dates, travellers and budget;
     data-mode tooltips and the action name for an untitled chat follow that language too.
     The browser title follows the active trip and the locale-formatted date range, and returns to
@@ -317,7 +317,7 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     after a reload). English specialist summaries, assumptions and progress lines count in the
     singular for one and the plural for more ("1 transport option", "2 rooms"), never with "(s)". So
     does the stay price detail ("1 room × 3 nights × AUD 230.00 per room/night").
-  - **Specialist team** is a button in the top bar, left of Trip. It shows the six assistants' icons
+  - **Agent Team** is a button in the desktop top-left beside Conversation | Trajectory (and left of Trip once a Plan exists). It shows the six assistants' icons
     (a working one bobs) and, while planning, "N working"; between 521 and 1000 px only the icons show.
     Hovering it opens the team panel; Enter, Space or a touch pins it and moves focus into the panel; a click
     on the button while the panel is open, hovered or pinned, closes it, and so do Escape and a press
@@ -1121,7 +1121,7 @@ the account section explains that everything stays in this browser.
       reload; a chat with a message or edited facts keeps its own.
   - **Language & region:** interface language (English or Simplified Chinese; chat in any language), region, display currency (AUD, CNY, USD or JPY; default AUD), units (metric), and Trip data (the site's default, live prices or sample data)
     under Advanced.
-    The top-bar language switch sits beside Mock data and updates the same saved language setting.
+    Interface language is changed only under Settings → Language & region (no top-bar or Mine shortcut).
     Authored chat controls, timeline and proposal labels, settings, notices, dialogs, accessible
     names and dates follow it, including data-mode tooltips and untitled-chat actions. Traveller
     text, agent-produced content and provider errors are not

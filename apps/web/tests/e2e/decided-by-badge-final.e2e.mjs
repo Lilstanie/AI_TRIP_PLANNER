@@ -105,7 +105,7 @@ try {
       () => {},
     );
     await page
-      .getByRole("button", { name: language === "zh" ? "专家团队" : "Specialist team" })
+      .getByRole("button", { name: language === "zh" ? "智能体团队" : "Agent Team" })
       .click();
     await page
       .getByRole("textbox", {
