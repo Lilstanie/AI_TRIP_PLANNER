@@ -48,7 +48,9 @@ export function useTripDay(
         day:
           settled && today !== undefined && (!base.manual || base.selectedOnToday !== today)
             ? today
-            : settled && today === undefined && base.selectedOnToday !== null ? 1 : Math.min(Math.max(1, base.day), days),
+            : settled && today === undefined && base.selectedOnToday !== null
+              ? 1
+              : Math.min(Math.max(1, base.day), days),
         selectedOnToday: settled ? (today ?? null) : base.selectedOnToday,
       };
       return previous.tripId === next.tripId &&

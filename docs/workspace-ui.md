@@ -250,9 +250,14 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     planning it explains the empty state and offers Plan in Chat. A plan created or changed while
     another tab is selected adds an accessible update dot to Trip; opening Trip clears it. Read revisions are tracked per trip,
     so switching between unchanged saved trips does not create a new notification.
+    Map and Trip share one day and Stop for the active trip. Selecting a day or Stop in either view
+    carries the exact visit to the other, including later visits to the same place. A revision keeps
+    a valid day and Stop, clears a removed Stop, and moves a removed day to the nearest remaining day.
+    Each saved trip restores its own browsing position when reopened.
   - Mine contains search, New chat, New trip, Trips/Calendar, the chats list and Settings & account.
-    Search filters chats and trips; opening or starting either selects Chat. Each chat has a visible
-    Rename/Delete row menu on touch. Data mode and interface language live here; the data-mode button shows its text label in both languages.
+    Search filters chats and trips; opening a saved trip selects Trip, while opening a recent chat
+    or starting either selects Chat. Each chat has a visible Rename/Delete row menu on touch. Data mode
+    and interface language live here; the data-mode button shows its text label in both languages.
     Opening a trip from Mine moves keyboard focus to the trip-title button, whose accessible name
     identifies the destination and dates.
   - Crossing the phone width keeps the traveller on the same thing: narrowing with Your trips open
@@ -280,8 +285,8 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     or stop editor field also hides the tab bar; the fact sheet rests on the keyboard, and the field
     and its Save button stay in view. Closing the keyboard or blurring restores it. Browser Back closes the active sheet or editor before leaving the workspace.
   - New labels use the English/Chinese dictionary and motion respects reduced-motion preferences.
-    Browser evidence is produced by `phone-shell.e2e.mjs` and its Mine, Map and state companion walks
-    under `apps/web/tests/e2e/`. Real installed-app safe areas and keyboard behavior are not
+    Browser evidence is produced by `phone-shell.e2e.mjs`, its Mine, Map and state companion walks,
+    and `phone-browsing-context.e2e.mjs` under `apps/web/tests/e2e/`. Real installed-app safe areas and keyboard behavior are not
     verified; the device checks in issue #182 were closed as not planned.
 
 ## Conversations, trips and storage

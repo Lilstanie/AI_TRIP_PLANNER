@@ -81,6 +81,35 @@ function trip(name) {
   };
 }
 const trips = [trip("Sydney"), trip("Kyoto")];
+const settings = (language) => ({
+  version: 1,
+  travel: { homeCity: "", preferences: [], interests: [], dietary: [] },
+  memberships: [],
+  assistant: { style: "neutral", memory: true },
+  dataMode: "mock",
+  appearance: "system",
+  language,
+  displayCurrency: "AUD",
+  updatedAt: savedAt,
+});
+const locales = [
+  {
+    language: "en",
+    notNow: "Not now",
+    chat: /^Chat$/,
+    map: /^Map$/,
+    trip: /^Trip(?: updated)?$/,
+    mine: /^Mine$/,
+  },
+  {
+    language: "zh",
+    notNow: "暂不",
+    chat: /^聊天$/,
+    map: /^地图$/,
+    trip: /^行程(?:已更新)?$/,
+    mine: /^我的$/,
+  },
+];
 const catalog = {
   version: 4,
   activeTripId: trips[0].id,
@@ -110,161 +139,183 @@ const browser = await chromium.launch({
   ...(process.env.CHANNEL ? { channel: process.env.CHANNEL } : {}),
 });
 try {
-  for (const width of [390, 360]) {
-    const context = await browser.newContext({
-      viewport: { width, height: 844 },
-      hasTouch: true,
-      isMobile: true,
-      reducedMotion: "reduce",
-    });
-    await context.addInitScript((seed) => {
-      if (!localStorage.getItem("trip-workspace-catalog-v3")) {
-        localStorage.setItem("trip-workspace-catalog-v3", JSON.stringify(seed));
-        localStorage.setItem(
-          "trip.settings.v1",
-          JSON.stringify({ language: "en", tripData: "mock" }),
+  for (const { language, notNow, ...tabNames } of locales) {
+    for (const { width, height } of [
+      { width: 390, height: 844 },
+      { width: 360, height: 800 },
+      { width: 375, height: 667 },
+    ]) {
+      const prefix = `${language} ${width}`;
+      const context = await browser.newContext({
+        viewport: { width, height },
+        hasTouch: true,
+        isMobile: true,
+        reducedMotion: "reduce",
+      });
+      await context.addInitScript(
+        ({ seed, settings }) => {
+          if (!localStorage.getItem("trip-workspace-catalog-v3")) {
+            localStorage.setItem("trip-workspace-catalog-v3", JSON.stringify(seed));
+            localStorage.setItem("trip.settings.v1", JSON.stringify(settings));
+          }
+        },
+        { seed: catalog, settings: settings(language) },
+      );
+      const page = await context.newPage();
+      activePage = page;
+      const errors = [];
+      page.on("pageerror", (error) => {
+        errors.push(String(error));
+        console.error(String(error));
+      });
+      await page.route("**/api/places/details", (route) =>
+        route.fulfill({
+          json: {
+            place: {
+              id: route.request().postDataJSON().placeId,
+              displayName: { text: "Repeated museum" },
+              location: { latitude: -33.86, longitude: 151.21 },
+            },
+          },
+        }),
+      );
+      let revision = structuredClone(trips[0].snapshot.plan);
+      let responseNumber = 0;
+      await page.route("**/api/chat", (route) =>
+        route.fulfill({
+          contentType: "application/x-ndjson",
+          body:
+            JSON.stringify({
+              type: "complete",
+              response: { reply: `Revision ${++responseNumber}`, plan: revision },
+            }) + "\n",
+        }),
+      );
+      await page.goto(process.env.BASE_URL ?? "http://localhost:3000");
+      await page.locator(".phone-tabbar").waitFor();
+      await page.addStyleTag({ content: "nextjs-portal { display:none !important; }" });
+      const prompt = page.getByRole("button", { name: notNow, exact: true });
+      if (await prompt.isVisible()) await prompt.click();
+      const tab = (name) =>
+        page.locator(".phone-tabbar").getByRole("tab", { name: tabNames[name.toLowerCase()] });
+      const mapDay = (n) => page.locator(".phone-map-sheet__days button").nth(n - 1);
+      const tripDay = (n) => page.locator(`.day-strip [data-day="${n}"]`).filter({ visible: true });
+      const tripSelected = async (n) => (await tripDay(n).getAttribute("aria-selected")) === "true";
+      const mapSelected = async (n) => (await mapDay(n).getAttribute("aria-pressed")) === "true";
+      const expandMap = async () => page.locator(".phone-map-sheet__handle").press("End");
+      await page.locator(".phone-mine .trip-card").filter({ hasText: "Sydney" }).click();
+      await tab("Map").click();
+      await expandMap();
+      await mapDay(2).click();
+      await tab("Trip").click();
+      check(await tripSelected(2), `${prefix}: Map day carries to Trip without selecting a Stop`);
+      await tripDay(3).click();
+      await tab("Map").click();
+      await expandMap();
+      check(await mapSelected(3), `${prefix}: Trip day carries to Map`);
+      await mapDay(2).click();
+      await page.locator(".phone-map-sheet__stops button").first().click();
+      await tab("Trip").click();
+      const selectedStop = page
+        .locator(".timeline-stop__main[aria-expanded=true]")
+        .filter({ visible: true });
+      check(
+        (await tripSelected(2)) &&
+          (await selectedStop.getAttribute("aria-controls")) === "stop-place-card-context-Sydney-2",
+        `${prefix}: exact later Stop of repeated place reaches Trip`,
+      );
+      for (const wide of [521, 1440, 520]) {
+        await page.setViewportSize({ width: wide, height: 1000 });
+        await page
+          .locator(wide <= 520 ? ".workspace-app[data-phone]" : ".workspace-app:not([data-phone])")
+          .waitFor();
+        check(
+          (await tripSelected(2)) && (await selectedStop.count()) === 1,
+          `${prefix}: context survives width ${wide}`,
         );
       }
-    }, catalog);
-    const page = await context.newPage();
-    activePage = page;
-    const errors = [];
-    page.on("pageerror", (error) => { errors.push(String(error)); console.error(String(error)); });
-    await page.route("**/api/places/details", (route) =>
-      route.fulfill({
-        json: {
-          place: {
-            id: route.request().postDataJSON().placeId,
-            displayName: { text: "Repeated museum" },
-            location: { latitude: -33.86, longitude: 151.21 },
-          },
-        },
-      }),
-    );
-    let revision = structuredClone(trips[0].snapshot.plan);
-    let responseNumber = 0;
-    await page.route("**/api/chat", (route) =>
-      route.fulfill({
-        contentType: "application/x-ndjson",
-        body:
-          JSON.stringify({
-            type: "complete",
-            response: { reply: `Revision ${++responseNumber}`, plan: revision },
-          }) + "\n",
-      }),
-    );
-    await page.goto(process.env.BASE_URL ?? "http://localhost:3000");
-    await page.locator(".phone-tabbar").waitFor();
-    await page.addStyleTag({ content: "nextjs-portal { display:none !important; }" });
-    const prompt = page.getByRole("button", { name: "Not now", exact: true });
-    if (await prompt.isVisible()) await prompt.click();
-    const tab = (name) => page.locator(".phone-tabbar").getByRole("tab", { name: name === "Trip" ? /^Trip(?: updated)?$/ : name, exact: true });
-    const mapDay = (n) => page.locator(".phone-map-sheet__days button").nth(n - 1);
-    const tripDay = (n) => page.locator(`.day-strip [data-day="${n}"]`).filter({ visible: true });
-    const tripSelected = async (n) => (await tripDay(n).getAttribute("aria-selected")) === "true";
-    const mapSelected = async (n) => (await mapDay(n).getAttribute("aria-pressed")) === "true";
-    const expandMap = async () => page.locator(".phone-map-sheet__handle").press("End");
-    await page.locator(".phone-mine .trip-card").filter({ hasText: "Sydney" }).click();
-    await tab("Map").click();
-    await expandMap();
-    await mapDay(2).click();
-    await tab("Trip").click();
-    check(await tripSelected(2), `${width}: Map day carries to Trip without selecting a Stop`);
-    await tripDay(3).click();
-    await tab("Map").click();
-    await expandMap();
-    check(await mapSelected(3), `${width}: Trip day carries to Map`);
-    await mapDay(2).click();
-    await page.locator(".phone-map-sheet__stops button").first().click();
-    await tab("Trip").click();
-    const selectedStop = page
-      .locator(".timeline-stop__main[aria-expanded=true]")
-      .filter({ visible: true });
-    check(
-      (await tripSelected(2)) && (await selectedStop.getAttribute("aria-controls")) === "stop-place-card-context-Sydney-2",
-      `${width}: exact later Stop of repeated place reaches Trip`,
-    );
-    for (const wide of [521, 1440, 520]) {
-      await page.setViewportSize({ width: wide, height: 1000 });
-      await page
-        .locator(wide <= 520 ? ".workspace-app[data-phone]" : ".workspace-app:not([data-phone])")
-        .waitFor();
+      await page.setViewportSize({ width, height });
+      const revise = async () => {
+        await tab("Chat").click();
+        const composer = page.locator(".composer textarea");
+        await composer.fill("Revise the itinerary");
+        const expected = responseNumber + 1;
+        await composer.press("Enter");
+        await page.getByText(`Revision ${expected}`, { exact: true }).waitFor();
+        await tab("Trip").click();
+      };
+      await revise();
       check(
         (await tripSelected(2)) && (await selectedStop.count()) === 1,
-        `${width}: context survives width ${wide}`,
+        `${prefix}: same Trip revision retains valid Stop and day`,
       );
-    }
-    await page.setViewportSize({ width, height: 844 });
-    const revise = async () => {
-      await tab("Chat").click();
-      const composer = page.locator(".composer textarea");
-      await composer.fill("Revise the itinerary");
-      const expected = responseNumber + 1;
-      await composer.press("Enter");
-      await page.getByText(`Revision ${expected}`, { exact: true }).waitFor();
-      await tab("Trip").click();
-    };
-    await revise();
-    check(
-      (await tripSelected(2)) && (await selectedStop.count()) === 1,
-      `${width}: same Trip revision retains valid Stop and day`,
-    );
-    revision.sections[0].proposal.items = revision.sections[0].proposal.items.filter(
-      (item) => item.day !== 2,
-    );
-    revision.round++;
-    await revise();
-    check(
-      (await tripSelected(2)) && (await selectedStop.count()) === 0,
-      `${width}: removed Stop clears, empty day stays selected`,
-    );
-    await tripDay(3).click();
-    revision.brief.dates[1] = "2030-10-02";
-    revision.sections[0].proposal.items = revision.sections[0].proposal.items.filter(
-      (item) => item.day <= 2,
-    );
-    revision.round++;
-    await revise();
-    check(
-      (await tripSelected(2)) && (await tripDay(3).count()) === 0,
-      `${width}: removed calendar day falls back to nearest remaining day`,
-    );
-    const openTrip = async (name) => {
-      await tab("Mine").click();
-      await page.locator(".phone-mine .trip-card").filter({ hasText: name }).click();
+      revision.sections[0].proposal.items = revision.sections[0].proposal.items.filter(
+        (item) => item.day !== 2,
+      );
+      revision.round++;
+      await revise();
       check(
-        (await tab("Trip").getAttribute("aria-selected")) === "true",
-        `${width}: saved ${name} opens directly in Trip`,
+        (await tripSelected(2)) && (await selectedStop.count()) === 0,
+        `${prefix}: removed Stop clears, empty day stays selected`,
       );
-    };
-    await openTrip("Kyoto");
-    check(await tripSelected(1), `${width}: unseen Trip defaults to first day`);
-    await tripDay(3).click();
-    await openTrip("Sydney");
-    await tripDay(2).and(page.locator("[aria-selected=true]")).waitFor();
-    check(await tripSelected(2), `${width}: Sydney restores its own context`);
-    await openTrip("Kyoto");
-    await tripDay(3).and(page.locator("[aria-selected=true]")).waitFor();
-    check(await tripSelected(3), `${width}: Kyoto restores independent context`);
-    await page.reload();
-    await page.locator(".phone-tabbar").waitFor();
-    await openTrip("Kyoto");
-    check(await tripSelected(3), `${width}: reopen after reload restores Trip context`);
-    await tab("Mine").click();
-    await page.locator(".phone-mine").getByText("Sydney ideas", { exact: true }).click();
-    check(
-      (await tab("Chat").getAttribute("aria-selected")) === "true",
-      `${width}: recent chat opens Chat`,
-    );
-    check(errors.length === 0, `${width}: no page errors ${errors.join("; ")}`);
-    await page.screenshot({ path: `${OUT}/${width}-chat.png` });
-    await tab("Trip").click();
-    await page.screenshot({ path: `${OUT}/${width}-trip.png` });
-    await context.close();
+      await tripDay(3).click();
+      revision.brief.dates[1] = "2030-10-02";
+      revision.sections[0].proposal.items = revision.sections[0].proposal.items.filter(
+        (item) => item.day <= 2,
+      );
+      revision.round++;
+      await revise();
+      check(
+        (await tripSelected(2)) && (await tripDay(3).count()) === 0,
+        `${prefix}: removed calendar day falls back to nearest remaining day`,
+      );
+      const openTrip = async (name) => {
+        await tab("Mine").click();
+        await page.locator(".phone-mine .trip-card").filter({ hasText: name }).click();
+        check(
+          (await tab("Trip").getAttribute("aria-selected")) === "true",
+          `${prefix}: saved ${name} opens directly in Trip`,
+        );
+      };
+      await openTrip("Kyoto");
+      check(await tripSelected(1), `${prefix}: unseen Trip defaults to first day`);
+      await tripDay(3).click();
+      await openTrip("Sydney");
+      await tripDay(2).and(page.locator("[aria-selected=true]")).waitFor();
+      check(await tripSelected(2), `${prefix}: Sydney restores its own context`);
+      await openTrip("Kyoto");
+      await tripDay(3).and(page.locator("[aria-selected=true]")).waitFor();
+      check(await tripSelected(3), `${prefix}: Kyoto restores independent context`);
+      await page.reload();
+      await page.locator(".phone-tabbar").waitFor();
+      await openTrip("Kyoto");
+      check(await tripSelected(3), `${prefix}: reopen after reload restores Trip context`);
+      await tab("Mine").click();
+      await page.locator(".phone-mine").getByText("Sydney ideas", { exact: true }).click();
+      check(
+        (await tab("Chat").getAttribute("aria-selected")) === "true",
+        `${prefix}: recent chat opens Chat`,
+      );
+      check(errors.length === 0, `${prefix}: no page errors ${errors.join("; ")}`);
+      await page.screenshot({ path: `${OUT}/${language}-${width}-chat.png` });
+      await tab("Trip").click();
+      await page.screenshot({ path: `${OUT}/${language}-${width}-trip.png` });
+      await context.close();
+    }
   }
 } catch (error) {
   await activePage?.screenshot({ path: `${OUT}/failure.png` });
-  console.error(await activePage?.evaluate(() => ({ days: [...document.querySelectorAll(".day-strip [data-day]")].map(node => [node.getAttribute("data-day"),node.getAttribute("aria-selected")]), stored: Object.fromEntries(Object.entries(localStorage).filter(([key]) => key.startsWith("trip-day-selected"))) })));
+  console.error(
+    await activePage?.evaluate(() => ({
+      days: [...document.querySelectorAll(".day-strip [data-day]")].map((node) => [
+        node.getAttribute("data-day"),
+        node.getAttribute("aria-selected"),
+      ]),
+      stored: Object.fromEntries(
+        Object.entries(localStorage).filter(([key]) => key.startsWith("trip-day-selected")),
+      ),
+    })),
+  );
   if (!results.some((item) => !item.ok)) results.push({ ok: false, message: String(error) });
   console.error(error);
 } finally {
