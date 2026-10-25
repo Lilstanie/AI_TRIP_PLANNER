@@ -103,7 +103,7 @@ export function layout(surface: Surface, event: LayoutEvent, media: Media): Surf
     case "trip-opened":
       return strip({
         page: "workspace",
-        view: event.type === "trip-opened" && !media.phone ? surface.view : "chat",
+        view: event.type === "trip-opened" ? (media.phone ? "trip" : surface.view) : "chat",
         drawer: surface.drawer === "trip" ? "trip" : undefined,
         fact: surface.fact,
       });

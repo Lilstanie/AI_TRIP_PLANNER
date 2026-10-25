@@ -342,12 +342,12 @@ describe("requestTurn", () => {
 });
 
 describe("session after a change made by hand", () => {
-  it("an applied edit records the total it replaced, and keeps the selected stop and routes", () => {
+  it("an applied edit records the previous total, clears a removed stop and keeps routes", () => {
     const before = { ...openTrip(), busy: false, previousTotal: 100 };
     const next = session(before, { kind: "edited", plan: replanned });
     expect(next.plan?.estTotal).toBe(450);
     expect(next.previousTotal).toBe(200);
-    expect(next.selectedActivity).toBe("stop-1");
+    expect(next.selectedActivity).toBeUndefined();
     expect(next.mapRoutes).toEqual(before.mapRoutes);
   });
 

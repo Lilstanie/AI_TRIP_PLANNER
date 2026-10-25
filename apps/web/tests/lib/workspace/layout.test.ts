@@ -237,10 +237,10 @@ describe("pages and views", () => {
     expect(layout(trip, { type: "chat-opened" }, DESKTOP)).toEqual({ ...trip, view: "chat" });
   });
 
-  it("opens a trip in Chat on a phone and keeps the tablet Map view", () => {
+  it("opens a saved trip in Trip on a phone and keeps the tablet Map view", () => {
     const tablet = layout(workspace("map"), { type: "open-nav" }, TABLET);
     expect(layout(tablet, { type: "trip-opened" }, TABLET)).toEqual(workspace("map"));
-    expect(layout(workspace("mine"), { type: "trip-opened" }, PHONE)).toEqual(workspace("chat"));
+    expect(layout(workspace("mine"), { type: "trip-opened" }, PHONE)).toEqual(workspace("trip"));
   });
 
   it("starts a chat in Chat with everything closed, and a trip on the Where editor", () => {
