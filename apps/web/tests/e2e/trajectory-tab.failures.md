@@ -25,5 +25,8 @@ Written before the code (TP-72, #668). Each line is a way the tab could fail; th
 - English labels appear under the Chinese interface (toolbar, kind tags, step and turn labels, inspector tabs), or Chinese under English.
 - A renamed specialist still shows its default name in the ledger.
 - The page overflows horizontally or logs a page error, or the ledger stays blank at 1440 px.
+- In the chat column at 1440 px the inspector opens beside the ledger and squeezes it to half width, instead of under a full-width ledger.
+- The toolbar buttons or the inspector tabs keep the global 36 px pill button style.
+- The timeline lane label for Assistant wraps onto two lines and overlaps the next label.
 
 The E2E runs in mock data mode with no keys. The first run is expected to fail before implementation.

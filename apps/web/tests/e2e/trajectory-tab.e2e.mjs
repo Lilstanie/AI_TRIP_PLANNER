@@ -437,6 +437,35 @@ try {
     const rowOf = (turn, position) => tableRows.nth(turns.slice(0, turn).flat().length + position);
     await rowOf(1, 3).click();
     await aside.waitFor({ timeout: 5000 });
+    await page.waitForTimeout(200);
+    const pane = await view.boundingBox();
+    const panel = await aside.boundingBox();
+    check(
+      pane &&
+        panel &&
+        pane.height >= 150 &&
+        panel.y >= pane.y + pane.height - 1 &&
+        panel.width >= pane.width - 2,
+      `${label}: in the chat column the inspector sits under a full-width ledger`,
+      { pane, panel },
+    );
+    const controls = await page
+      .getByRole("toolbar", { name: /^(Trajectory toolbar|轨迹工具栏)$/ })
+      .locator("button")
+      .evaluateAll((nodes) => nodes.map((n) => Math.round(n.getBoundingClientRect().height)));
+    check(
+      controls.length >= 2 && controls.every((h) => h <= 30),
+      `${label}: toolbar buttons are compact, not 36px pills`,
+      controls,
+    );
+    const tabs = await aside
+      .getByRole("tab")
+      .evaluateAll((nodes) => nodes.map((n) => getComputedStyle(n).backgroundColor));
+    check(
+      tabs.length >= 2 && tabs.every((c) => c === "rgba(0, 0, 0, 0)" || c === "transparent"),
+      `${label}: inspector tabs are plain tabs without a pill background`,
+      tabs,
+    );
     check(
       (await aside.innerText()).includes(copy.stays),
       `${label}: opening a tool call shows its result`,
