@@ -492,7 +492,9 @@ On desktop the chat column has a Conversation and a Trajectory tab. Conversation
 and stays mounted while Trajectory is open, so its scroll position returns; when a reply arrived meanwhile it returns at the newest reply. The chat column has no tab list at phone width.
 On a phone, Trajectory is the fourth tab of the bottom bar (轨迹). It shows the same ledger, search and
 filter bar without the timeline overview, and the record inspector opens over the whole panel and closes
-back to the ledger. Widening the window while it is selected returns to the chat. The tab is
+back to the ledger. Widening the window while it is selected returns to the chat. With no turns yet, the
+tab shows an empty-state card in place of the toolbar and ledger, with a **Plan in Chat** button that
+opens the chat. The tab is
 [`PhoneTrajectory`](../apps/web/components/workspace/PhoneTrajectory.tsx).
 On the phone each record is a fixed 56 px card: its kind icon sits on the left, the request on the first line
 and its result on the second, and text beyond two lines is clipped (the inspector shows the whole text).
@@ -550,6 +552,8 @@ records why.
   `trajectory-phone` (fixture mode, 390 and 360, English and Chinese) saves the empty tab, the ledger, an
   open record, the team sheet and the filtered ledger screenshots and `result.json` under
   `output/playwright/trajectory-phone/`.
+  `trajectory-empty` (fixture mode, 375, English and Chinese) saves the empty-state card and the ledger
+  after the first message, with `result.json`, under `output/playwright/trajectory-empty/`.
   `summary-jump` (1440 and 390, English and Chinese) sends three turns and checks that each reply's summary
   opens its own turn, saving screenshots and `result.json` under `output/playwright/summary-jump/`.
   `trajectory-demo` is the Stage 2 walkthrough record described in the [demo runbook](demo-runbook.md#trajectory-walkthrough).

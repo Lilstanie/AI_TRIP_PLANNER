@@ -573,6 +573,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                   busy={busy}
                   visible={mobileView === "trajectory"}
                   onReveal={() => selectView("trajectory")}
+                  onPlanInChat={() => selectView("chat")}
                 />
               </div>
             )}

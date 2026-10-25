@@ -11,12 +11,14 @@ export function PhoneTrajectory({
   busy,
   visible,
   onReveal,
+  onPlanInChat,
 }: {
   messages: readonly Message[];
   activity: readonly AgentProgressEvent[];
   busy: boolean;
   visible: boolean;
   onReveal: () => void;
+  onPlanInChat: () => void;
 }) {
   const { focus } = useTrajectoryFocus();
   const [only, setOnly] = useState<AssistantId | undefined>();
@@ -39,6 +41,7 @@ export function PhoneTrajectory({
       onClear={() => setOnly(undefined)}
       {...(jump ? { jump, onJumped: () => setJump(undefined) } : {})}
       phone
+      onPlanInChat={onPlanInChat}
     />
   );
 }
