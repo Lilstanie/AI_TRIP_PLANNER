@@ -45,6 +45,9 @@ packages/shared` in the foundation session log.
   one-step undo state. Writes for the same account/category are serialized so partial accommodation
   patches merge against the latest committed value and undo restores the immediately preceding write.
   It does not provide an undo history or concurrent-edit history.
+  These writes use the dedicated interactive Neon session from the
+  [memory transaction adapter decision](../bug-fix/2026-10-26-memory-neon-transaction.md); other
+  account operations retain the HTTP adapter.
 - A saved account opt-out or `assistant.memory: false` suppresses account-memory reads and writes. A request cannot override a saved opt-out; failed settings reads disable account memory while preserving normal
   planning. The signed-in Settings switch controls this preference; signed-out users see a sign-in
   hint and cannot change it. This supersedes the temporary hidden-control status in the

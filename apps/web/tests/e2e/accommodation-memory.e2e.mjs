@@ -19,7 +19,7 @@ const runtime = await createServer({
   resolve: {
     alias: [
       {
-        find: /^(?:@\/lib\/db\/client|\.\.\/db\/client|@\/lib\/auth\/config|\.\.\/auth\/config|@clerk\/nextjs\/server)$/,
+        find: /^(?:@\/lib\/db\/(?:client|memory-transaction)|\.\.\/db\/(?:client|memory-transaction)|@\/lib\/auth\/config|\.\.\/auth\/config|@clerk\/nextjs\/server)$/,
         replacement: resolve(root, "apps/web/tests/e2e/fixtures/memory-server/runtime.mjs"),
       },
       { find: "@", replacement: resolve(root, "apps/web") },

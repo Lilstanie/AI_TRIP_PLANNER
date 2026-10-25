@@ -521,7 +521,11 @@ day 14. Offsets use the destination’s calendar date and time zone; the Open-Me
 (`packages/services/src/memory`) stores short-term chat turns in Redis REST when configured and in
 process memory otherwise, retaining the latest 20 turns. Account-scoped preferences are
 stored separately in Postgres by the web server, which derives identity from Clerk and includes the
-rows in account export and deletion. The deterministic chat allowlist excludes trip facts such as
+rows in account export and deletion. Account reads use Neon HTTP; preference writes use a dedicated
+Neon WebSocket client for their interactive transaction, closing it after commit, rollback or a
+connection failure. The row lock serializes partial accommodation patches and their undo baseline.
+The [memory transaction adapter decision](../.agents/notes/implemented/bug-fix/2026-10-26-memory-neon-transaction.md)
+records this boundary. The deterministic chat allowlist excludes trip facts such as
 budgets and areas; trip/profile preferences take precedence over matching account memories, and
 disabling long-term memory suppresses account-memory reads and writes while
 preserving planning. Agent Lab keeps its fixed benchmark preferences. See the

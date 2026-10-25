@@ -3,6 +3,7 @@ import { eq, and } from "drizzle-orm";
 import type { UserPreference } from "@trip/shared";
 import { memory as ephemeralMemory } from "@trip/services";
 import { getDb, dbEnabled } from "../db/client";
+import { withMemoryTransaction } from "../db/memory-transaction";
 import { accountMemories } from "../db/schema";
 import { mergeAccommodationMemory } from "./accommodation-memory.mjs";
 
@@ -44,8 +45,7 @@ export async function rememberAccountPreference(
   value: string,
 ) {
   if (!userId || !dbEnabled() || !REMEMBERABLE_KEYS.has(key)) return undefined;
-  const db = getDb();
-  return db.transaction(async (tx) => {
+  return withMemoryTransaction(async (tx) => {
     const inserted = await tx
       .insert(accountMemories)
       .values({

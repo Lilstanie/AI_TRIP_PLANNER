@@ -486,6 +486,16 @@ and cleanup results are retained under `apps/web/output/playwright/real-clerk-au
 no session tokens or storage states are retained. This does not verify expired valid JWTs, production
 configuration without Clerk or the daily quota policy pending #440.
 
+`LABEL=<unique-attempt> node apps/web/tests/e2e/neon-memory-driver.e2e.mjs` exercises account-memory
+writes through the installed Neon WebSocket client and Drizzle session; existing reads and undo use
+the installed HTTP adapter. Only the test transport is replaced with in-process PGlite PostgreSQL
+wire/HTTP responses. It needs no credentials or external database and writes
+`output/e2e/neon-memory-driver/<unique-attempt>/summary.json`. The probe covers commit, rollback,
+legacy accommodation values, account-scoped undo and client cleanup, including connection failures.
+Its sequential transport does not establish independent-session Neon concurrency; the existing
+`accommodation-memory` fixture covers concurrent patches and undo races separately. Neither test
+establishes remote Neon or real Clerk acceptance.
+
 #### CLI acceptance in CI
 
 The builtin-only `cli-acceptance-plan` job checks out full Git history and compares the merge base of

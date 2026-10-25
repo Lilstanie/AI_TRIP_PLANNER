@@ -325,6 +325,14 @@ node scripts/redgreen.mjs <e2e-name> [--prod] -- <source-path>...
 `apps/web/output/playwright/real-clerk-auth/after/summary.json`，不保留会话令牌或浏览器存储状态。
 此测试不覆盖签名有效但已过期的 JWT、未配置 Clerk 的生产环境，以及 #440 尚待确定的每日配额。
 
+`LABEL=<unique-attempt> node apps/web/tests/e2e/neon-memory-driver.e2e.mjs` 通过已安装的 Neon
+WebSocket 客户端和 Drizzle session 测试账号记忆写入；现有读取和撤销使用已安装的 HTTP
+适配器。测试仅把传输层替换为进程内 PGlite 提供的 PostgreSQL 协议和 HTTP 响应，不需要
+密钥或外部数据库。结果写入 `output/e2e/neon-memory-driver/<unique-attempt>/summary.json`。
+检查覆盖提交、回滚、旧版住宿偏好值、账号级撤销和客户端清理，包括连接失败。
+这套串行传输不代表独立 Neon 会话之间的并发验证；已有 `accommodation-memory` 固定数据
+测试另行覆盖并发更新及撤销竞争。这两类测试都不能代替远程 Neon 或真实 Clerk 验收。
+
 <a id="cli-acceptance-in-ci"></a>
 
 #### CI 中的 CLI 验收

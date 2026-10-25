@@ -8,5 +8,6 @@ export function configureMemoryFixture(db, account) {
 
 export const getDb = () => database;
 export const dbEnabled = () => true;
+export const withMemoryTransaction = (operation) => database.transaction(operation);
 export const authEnabled = true;
 export const auth = async () => ({ userId });
