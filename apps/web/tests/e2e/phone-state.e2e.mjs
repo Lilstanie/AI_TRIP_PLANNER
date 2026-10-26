@@ -134,20 +134,70 @@ async function run(browser, size) {
   );
   const shortened = size.height - 310;
   await viewport(page, shortened);
+  await page.waitForFunction(
+    ({ height }) => {
+      const app = document.querySelector(".workspace-app");
+      const composer = document.querySelector(".chat__form");
+      return (
+        app?.hasAttribute("data-phone-keyboard") &&
+        Math.abs(composer.getBoundingClientRect().bottom - height) <= 2
+      );
+    },
+    { height: shortened },
+    { timeout: 2000 },
+  );
   check(!(await page.locator(".phone-tabbar").isVisible()), `${prefix}: keyboard hides tabs`);
+  const forceReplyOverflow =
+    process.env.PHONE_STATE_FORCE_REPLY_OVERFLOW === "1" && size.width === 360;
+  if (forceReplyOverflow) {
+    await page.locator(".msg-item--agent .msg-item__body").last().evaluate((node) => {
+      node.style.transform = "translateY(500px)";
+    });
+  }
   const geometry = await page.evaluate(() => ({
     bottom: document.querySelector(".chat__form").getBoundingClientRect().bottom,
     pageTop: scrollY,
-    stream: document.querySelector(".chat__stream").getBoundingClientRect().bottom,
-    latest: [...document.querySelectorAll(".msg-item")].at(-1).getBoundingClientRect().bottom,
+    stream: (() => {
+      const stream = document.querySelector(".chat__stream");
+      const rect = stream.getBoundingClientRect();
+      return {
+        top: rect.top,
+        bottom: rect.bottom,
+        clientHeight: stream.clientHeight,
+        scrollHeight: stream.scrollHeight,
+        scrollTop: stream.scrollTop,
+      };
+    })(),
+    composer: (() => {
+      const rect = document.querySelector(".chat__form").getBoundingClientRect();
+      return { top: rect.top, bottom: rect.bottom };
+    })(),
+    latest: (() => {
+      const item = [...document.querySelectorAll(".msg-item")].at(-1);
+      const rect = item.getBoundingClientRect();
+      const bodyRect = item.querySelector(".msg-item__body").getBoundingClientRect();
+      return {
+        top: rect.top,
+        bottom: rect.bottom,
+        bodyTop: bodyRect.top,
+        bodyBottom: bodyRect.bottom,
+      };
+    })(),
   }));
+  if (forceReplyOverflow) {
+    await page.locator(".msg-item--agent .msg-item__body").last().evaluate((node) => {
+      node.style.transform = "";
+    });
+  }
   check(
     Math.abs(geometry.bottom - shortened) <= 2,
     `${prefix}: composer bottom equals viewport bottom (${geometry.bottom})`,
   );
   check(
-    geometry.latest <= geometry.stream + 2,
-    `${prefix}: latest reply is visible above composer`,
+    geometry.latest.bodyBottom > geometry.stream.top &&
+      geometry.latest.bodyBottom <= geometry.stream.bottom + 2 &&
+      geometry.latest.bodyBottom <= geometry.composer.top + 2,
+    `${prefix}: latest reply is visible above composer (${JSON.stringify(geometry)})`,
   );
   check(geometry.pageTop === 0, `${prefix}: keyboard focus does not scroll document`);
   await page.screenshot({ path: `${OUT}/${prefix}-keyboard.png` });
