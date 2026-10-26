@@ -1,6 +1,6 @@
 # Agent Note: Trip prioritises itinerary review and adjustment
 
-Status: proposed
+Status: implemented
 
 ## Problem
 
@@ -12,7 +12,7 @@ Code inspection at `abc18859` confirms existing time, place, ordering, day, note
 edits. These capabilities should inform the design rather than be treated as new functionality.
 The empty-day view directs travellers to chat or to move an existing Stop from another day.
 
-## Proposal
+## Decision
 
 Accepted in interview round one (the traveller answered "all as recommended"):
 
@@ -78,8 +78,7 @@ The screenshot is reporter-provided reproduction evidence, not a new agent brows
 inspection at `abc18859` shows `TeamControl` always renders every team avatar and its label. The
 `thinking.css` rule at 1000 px hides only the label and working-count text; it retains the avatar
 row. The desktop leading group also holds Conversation/Trajectory and the Trip title, while fact
-chips and trailing actions compete for the same row. This is a responsive-header bug distinct from
-the Trip content redesign. No matching rejection directory is present in this checkout.
+chips and trailing actions compete for the same row. This responsive-header defect shares the layout task with the Trip content redesign.
 
 Accepted behaviour:
 
@@ -126,26 +125,26 @@ An AI context entry identifies the day/Stop being discussed but does not promise
 | Budget and issues      | Compact known-cost summary, unpriced counts, category/item breakdown and issue-to-action navigation                                        | Derive amounts and issues from the current Plan; consume selection/edit actions |
 | Draft protection       | Retention through day/view/width changes, discard confirmation, failed-save retry and stale-edit handling                                  | Shared draft ownership and Plan revision rules                                  |
 
-Agree the selection, edit and draft interfaces before parallel implementation. The tasks converge
+The shared selection, edit and draft interfaces connect the four tasks. They converge
 on one integration branch and one PR, followed by a parent-owned complete-flow check. Run project
 pre-push checks before every push; write the PR body with /pr on opening and updates. Once current
 head CI passes, run /retro and stop. Merging and branch deletion require explicit instruction.
 
 ### Relationship to shipped decisions
 
-This proposal builds on the [phone navigation decision](../../implemented/feature/2026-10-26-phone-workspace-navigation.md)
+This decision builds on the [phone navigation decision](2026-10-26-phone-workspace-navigation.md)
 and [phone design](../../../../docs/design/mobile-workspace-redesign.md). It retains the accepted
 Chat/Map/Trip/Mine navigation and shared day/Stop context. The dedicated desktop/tablet Trip workspace
-proposes replacing the drawer surface described in the [workspace UI](../../../../docs/workspace-ui.md)
-and the widening behaviour in the [layout decision](../../implemented/architecture/2026-10-06-workspace-layout-reducer.md).
-Those shipped documents remain current until implementation. This does not supersede the phone
-navigation decision; its statement that desktop/tablet navigation stayed unchanged describes the
-previous phone-only delivery. All-device discard confirmation proposes replacing the desktop
-Escape/outside-dismissal behaviour documented in the workspace UI; ordinary view/day/width changes
-retain the draft rather than discard it. No shipped document is rewritten before implementation.
+replaces the drawer surface described in the [workspace UI](../../../../docs/workspace-ui.md)
+and the widening behaviour in the [layout decision](../architecture/2026-10-06-workspace-layout-reducer.md).
+The phone navigation decision still owns the primary phone entries; its statement that desktop/tablet
+navigation stayed unchanged describes the previous phone-only delivery. All-device discard confirmation
+replaces the desktop Escape/outside-dismissal behaviour documented in the workspace UI; ordinary
+view/day/width changes retain the draft rather than discard it. The layout reducer still uses its
+Trip drawer state internally; the view renders that state as the dedicated workspace outside phone width.
 
 Use established terms: a Plan is the assembled result, a Stop is scheduled on a day, and an Idea
-has no day. The interview has not introduced a new domain term requiring a glossary change.
+has no day. This decision introduces no new domain term requiring a glossary change.
 
 ## Alternatives considered
 
@@ -157,15 +156,14 @@ has no day. The interview has not introduced a new domain term requiring a gloss
 - Automatically merging manual changes into a generated Plan adds conflict resolution and history
   requirements. The accepted alternative is explicit replacement consent and preservation on failure.
 
-## Acceptance criteria
+## Consequences
 
-- The completed interview records each accepted decision and leaves no implementation-driving
-  question silently assumed.
-- The resulting specification distinguishes existing capabilities from additions.
+- Existing Stop actions remain available alongside direct addition and shared draft protection.
 - Unknown costs remain distinguishable from zero, and estimates remain distinguishable from
   verified or actual amounts.
-- The following failure inventory drives repeatable E2E checks before implementation. No browser
-  scenarios have been executed for this proposal; it is a specification, not verification evidence.
+- The following failure inventory owns the required repeatable E2E journeys. The PR and integration
+  session log record executed checks, revisions and remaining evidence limits; this table is the
+  behavioural contract, not a claim that every environment has been tested.
 
 | Scenario or failure                                                           | Required outcome                                                                                                                                           |
 | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -192,7 +190,7 @@ today/time-zone and selection validity rules rather than introduce a second defi
 Exercise the header with both sidebar states, long English/Chinese labels and browser zoom;
 viewport width alone does not establish the header's available space.
 
-## Risks
+### Operational limits
 
 - Redesigning Trip can disrupt shared map selection and unfinished editing across views or widths.
 - More direct editing may require new domain actions, validation and persistence beyond UI work.

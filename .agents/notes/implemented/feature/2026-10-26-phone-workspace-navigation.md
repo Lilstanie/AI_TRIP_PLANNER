@@ -40,7 +40,8 @@ Without a Plan, Chat, Map and Mine are reachable; with a Plan, Trip joins them w
 tab switch. The team entry opens a full-screen Trajectory with its filters, search and inspector,
 and closing returns to the originating view. Saved Trips, recent chats, search, creation actions,
 data mode, account and settings remain reachable in Mine. Phone state survives tab switches and
-relevant width changes, while desktop and tablet navigation stays unchanged.
+relevant width changes. The subsequent [Trip redesign](2026-10-26-trip-redesign.md) adds a dedicated
+desktop/tablet Trip workspace while preserving these phone entries and their shared context.
 
 Trajectory takes an extra entry step, so the team affordance must remain discoverable and usable.
 Shared day and Stop selection must drop removed Stops and empty days rather than retain stale
