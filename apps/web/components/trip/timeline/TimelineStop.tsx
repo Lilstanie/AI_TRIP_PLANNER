@@ -23,6 +23,7 @@ import {
 } from "../../ui/icons";
 import { ItemForm, PlaceSearch, TimeForm } from "./StopForms";
 import { StopEditSurface } from "./StopEditSurface";
+import { useTripDraftField, useTripDraftRestore } from "./TripDrafts";
 
 type Activity = ProposalItem & { id?: string };
 
@@ -102,18 +103,33 @@ export function TimelineStop({
   const name = place?.displayName?.text ?? activity.location ?? activity.detail;
   const confirmed = !!activity.placeId;
   const matched = !confirmed && status === "located" && !!place;
-  const [start, setStart] = useState(activity.startTime ?? "");
-  const [end, setEnd] = useState(activity.endTime ?? "");
+  const timeDraft = useTripDraftField({
+    stopId: id,
+    stopName: activity.location ?? activity.detail,
+    day: activity.day,
+    field: "time",
+    initial: { start: activity.startTime ?? "", end: activity.endTime ?? "" },
+  });
+  const { start, end } = timeDraft.value;
   const [timing, setTiming] = useState(false);
   const [panel, setPanel] = useState<Panel>("");
   const row = useRef<HTMLLIElement>(null);
   const timeButton = useRef<HTMLButtonElement>(null);
   const mainButton = useRef<HTMLButtonElement>(null);
 
+  const { target: restoreTarget, consume: consumeRestore } = useTripDraftRestore(id);
   useEffect(() => {
-    setStart(activity.startTime ?? "");
-    setEnd(activity.endTime ?? "");
-  }, [activity.startTime, activity.endTime]);
+    if (!restoreTarget) return;
+    if (restoreTarget.field === "time") setTiming(true);
+    else if (
+      restoreTarget.field === "note" ||
+      restoreTarget.field === "details" ||
+      restoreTarget.field === "place"
+    )
+      setPanel(restoreTarget.field === "place" ? "search" : restoreTarget.field);
+    onOpen();
+    consumeRestore(restoreTarget.field);
+  }, [consumeRestore, onOpen, restoreTarget]);
 
   useEffect(() => {
     if (!selected) {
@@ -122,7 +138,7 @@ export function TimelineStop({
     } else row.current?.scrollIntoView?.({ block: "nearest" });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected]);
-  const timeChanged = start !== (activity.startTime ?? "") || end !== (activity.endTime ?? "");
+  const timeChanged = timeDraft.dirty;
   const validTime = !!start && !!end && start < end;
   const range = `${activity.startTime ?? "—"}–${activity.endTime ?? "—"}`;
 
@@ -515,10 +531,13 @@ export function TimelineStop({
               focusOnMount={panel === "search"}
               phone={phone}
               onCancel={panel === "search" ? closePanel : undefined}
-              onUse={(placeId) => {
-                void edits.edit({ kind: "place", id, placeId }).then((done) => {
-                  if (done) closePanel();
-                });
+              stopId={id}
+              stopName={name}
+              day={activity.day}
+              onUse={async (placeId) => {
+                const done = await edits.edit({ kind: "place", id, placeId });
+                if (done) closePanel();
+                return done;
               }}
             />
           )}
@@ -534,21 +553,23 @@ export function TimelineStop({
           validTime={validTime}
           timeChanged={timeChanged}
           errors={edits.errors}
-          onStart={setStart}
-          onEnd={setEnd}
-          onSubmit={() => {
-            void edits.edit({ kind: "time", id, startTime: start, endTime: end }).then((done) => {
-              if (!done) return;
-              setTiming(false);
-              timeButton.current?.focus({ preventScroll: true });
-            });
+          onStart={(value) => timeDraft.setValue({ start: value, end })}
+          onEnd={(value) => timeDraft.setValue({ start, end: value })}
+          onSubmit={async () => {
+            const done = await edits.edit({ kind: "time", id, startTime: start, endTime: end });
+            if (!done) return false;
+            timeDraft.clear();
+            setTiming(false);
+            timeButton.current?.focus({ preventScroll: true });
+            return true;
           }}
           onCancel={() => {
             setTiming(false);
-            setStart(activity.startTime ?? "");
-            setEnd(activity.endTime ?? "");
             timeButton.current?.focus({ preventScroll: true });
           }}
+          onDiscard={timeDraft.clear}
+          stale={timeDraft.stale}
+          onRebase={timeDraft.rebase}
         />
       )}
     </li>
