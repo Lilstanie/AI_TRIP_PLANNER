@@ -238,6 +238,11 @@ export function TripEditor({
   return (
     <section className="trip-editor" aria-label={t("Trip timeline")}>
       <TripTips key={plan.tripId} plan={plan} onTrip={today !== undefined} />
+      {today !== undefined && day !== today && (
+        <button className="trip-editor__today" type="button" onClick={() => selectDay(today)}>
+          {t("Return to today")}
+        </button>
+      )}
       <DayStrip
         days={strip}
         selected={day}

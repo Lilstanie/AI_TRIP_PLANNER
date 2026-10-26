@@ -158,6 +158,8 @@ export const WORKSPACE_ZH = {
   "Not included: costs for": "未计入：",
   "with no published price.": "尚未公布的费用。",
   "Trip views": "行程视图",
+  "Return to today": "返回今天",
+  "Agent Team, {count} working": "智能体团队，{count} 个正在工作",
   "No itinerary yet. Fill in your preferences and select Update trip.":
     "尚无日程。填写偏好后选择更新行程。",
   "Place name": "地点名称",
