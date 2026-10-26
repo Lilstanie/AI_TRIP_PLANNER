@@ -31,6 +31,7 @@ const snapshotSeed = (
   budgetTotal = 400,
   estTotal = 400,
   destinationName = "Sydney",
+  includePricedTransport = false,
 ) => {
   const plan = {
     tripId,
@@ -96,6 +97,31 @@ const snapshotSeed = (
           conflictsWith: [],
         },
       },
+      ...(includePricedTransport
+        ? [
+            {
+              id: "transport",
+              label: "Transport",
+              status: "draft",
+              summary: "Free city shuttle",
+              estCost: 0,
+              proposal: {
+                agent: "transport",
+                summary: "Free city shuttle",
+                items: [
+                  {
+                    id: `${tripId}-free-shuttle`,
+                    kind: "transport",
+                    detail: "Free shuttle",
+                    estCost: 0,
+                  },
+                ],
+                assumptions: [],
+                conflictsWith: [],
+              },
+            },
+          ]
+        : []),
     ],
   };
   const snapshot = {
@@ -155,7 +181,13 @@ const snapshotSeed = (
   };
   return { snapshot, catalog };
 };
-const installSnapshot = (page, dates, tripId, includeUnpriced = true) =>
+const installSnapshot = (
+  page,
+  dates,
+  tripId,
+  includeUnpriced = true,
+  includePricedTransport = false,
+) =>
   page.evaluate(
     (seed) => {
       localStorage.setItem("trip-workspace-v1", JSON.stringify(seed.snapshot));
@@ -163,7 +195,7 @@ const installSnapshot = (page, dates, tripId, includeUnpriced = true) =>
       localStorage.setItem("trip.dataMode", "mock");
       localStorage.setItem("trip.locationPrompt", "dismissed");
     },
-    snapshotSeed(dates, tripId, includeUnpriced),
+    snapshotSeed(dates, tripId, includeUnpriced, 400, 400, "Sydney", includePricedTransport),
   );
 try {
   const context = await browser.newContext({
@@ -288,28 +320,41 @@ try {
     "budget starts collapsed on-trip",
   );
   check(
-    (await budget.getByText("At budget · unpriced stops not counted", { exact: true }).count()) ===
-      1,
+    (await budget
+      .locator(":scope > summary")
+      .getByText("At budget · unpriced costs not counted", { exact: true })
+      .count()) === 1,
     "exact budget with unpriced stops uses the caution status",
   );
   check(
-    (await budget.locator(".budget-status--caution").count()) === 1,
+    (await budget.locator(":scope > summary .budget-status--caution").count()) === 1,
     "exact budget with unpriced stops uses the caution class",
   );
+  await budget.locator(":scope > summary").click();
   check(
     (await budget.getByText("The known estimate equals your budget.", { exact: true }).count()) ===
       1,
     "exact budget retains its explanation",
   );
-  const unpricedCaution = budget.locator(".trip__budget-note");
+  const unpricedCaution = budget
+    .locator(".trip__budget-note")
+    .filter({ hasText: "costs for stops without a published price" });
   check(
     (await unpricedCaution.count()) === 1 &&
-      /Not included: costs for stops without a published price \(1\)\./.test(
+      /Not included: costs for stops without a published price \(2\)\./.test(
         await unpricedCaution.evaluate((node) => node.textContent ?? ""),
       ),
     "unpriced-stop detail and existing class remain present",
     await unpricedCaution.evaluate((node) => node.textContent),
   );
+  check(
+    (await budget
+      .locator(".trip__budget-note")
+      .filter({ hasText: "transport without a price" })
+      .count()) === 1,
+    "unpriced transport remains disclosed separately",
+  );
+  await budget.locator(":scope > summary").click();
   await trip.getByRole("tab", { name: /^Day 2\b/ }).click();
   check(
     (await trip.getByRole("tab", { name: /^Day 2\b/ }).getAttribute("aria-selected")) === "true",
@@ -371,16 +416,25 @@ try {
     "an explicit saved open preference overrides the on-trip default",
   );
 
-  await installSnapshot(page, ["2026-10-17", "2026-10-19"], "exact-budget-priced-only", false);
+  await installSnapshot(
+    page,
+    ["2026-10-17", "2026-10-19"],
+    "exact-budget-priced-only",
+    false,
+    true,
+  );
   await page.reload();
   await openSeededTrip();
   const ordinaryBudget = page.locator("#phone-panel-trip .trip-budget");
   check(
-    (await ordinaryBudget.getByText("At budget", { exact: true }).count()) === 1,
+    (await ordinaryBudget
+      .locator(":scope > summary")
+      .getByText("At budget", { exact: true })
+      .count()) === 1,
     "exact budget without unpriced stops retains ordinary status",
   );
   check(
-    (await ordinaryBudget.locator(".budget-status--caution").count()) === 0,
+    (await ordinaryBudget.locator(":scope > summary .budget-status--caution").count()) === 0,
     "exact budget without unpriced stops has no caution class",
   );
 
@@ -466,12 +520,13 @@ try {
   await headroomBudget.waitFor();
   check(
     (await headroomBudget
-      .getByText("Known estimate within budget · unpriced stops not counted", { exact: true })
+      .locator(":scope > summary")
+      .getByText("Known estimate within budget · unpriced costs not counted", { exact: true })
       .count()) === 1,
     "below-budget estimate with unpriced stops is qualified",
   );
   check(
-    (await headroomBudget.locator(".budget-status--caution").count()) === 1,
+    (await headroomBudget.locator(":scope > summary .budget-status--caution").count()) === 1,
     "below-budget estimate with unpriced stops uses caution status",
   );
   check(errors.length === 0, "no browser errors", errors);
