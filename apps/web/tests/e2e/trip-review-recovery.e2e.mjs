@@ -343,20 +343,17 @@ try {
               },
               { tripId, index },
             );
-          await assert.doesNotReject(async () => {
-            for (let attempt = 0; attempt < 40; attempt += 1) {
-              if (
-                scenario === "background-route"
-                  ? (await savedStop(1))?.arriveBy
-                  : (await savedStop())?.placeId === first.id
-              )
-                return;
-              await page.waitForTimeout(100);
-            }
-            assert.fail(
-              `Background ${scenario === "background-route" ? "route check" : "place save"} did not persist`,
-            );
-          });
+          await page.waitForFunction(
+            ({ tripId, index, placeId }) => {
+              const catalog = JSON.parse(localStorage.getItem("trip-workspace-catalog-v3"));
+              const item = catalog.trips
+                .find((trip) => trip.id === `trip:${tripId}`)
+                ?.snapshot.plan.sections.find((section) => section.id === "itinerary")?.proposal
+                .items[index];
+              return index === 1 ? !!item?.arriveBy : item?.placeId === placeId;
+            },
+            { tripId, index: scenario === "background-route" ? 1 : 0, placeId: first.id },
+          );
           const backgroundStop = await savedStop(scenario === "background-route" ? 1 : 0);
           await undoButton.click();
           if (scenario !== "background-time")
@@ -364,7 +361,16 @@ try {
               .getByText("Undo this note only", { exact: true })
               .waitFor({ state: "detached" });
           else await stop.getByRole("button", { name: /^Change time, 09:00.*10:00/ }).waitFor();
-          await page.waitForTimeout(400);
+          await page.waitForFunction((tripId) => {
+            const catalog = JSON.parse(localStorage.getItem("trip-workspace-catalog-v3"));
+            const item = catalog.trips
+              .find((trip) => trip.id === `trip:${tripId}`)
+              ?.snapshot.plan.sections.find((section) => section.id === "itinerary")?.proposal
+              .items[0];
+            return (
+              item?.note === undefined && item?.startTime === "09:00" && item?.endTime === "10:00"
+            );
+          }, tripId);
           const restored = await savedStop();
           assert.equal(restored.placeId, first.id);
           if (scenario === "background-route")
