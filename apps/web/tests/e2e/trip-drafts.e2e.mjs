@@ -400,26 +400,124 @@ try {
       );
       await page.setViewportSize({ width: 390, height: 844 });
       await page.waitForFunction(() => innerWidth === 390);
-      const phoneNoteStillOpen = await page
-        .getByRole("textbox", { name: "Note", exact: true })
-        .isVisible()
-        .catch(() => false);
-      if (!phoneNoteStillOpen) {
+      const phoneSurface = page.locator(".workspace-app[data-phone]");
+      await phoneSurface.waitFor({ state: "visible" });
+      await page.locator(".phone-tabbar").waitFor({ state: "visible" });
+      const waitForPhoneEditorAction = () =>
+        page.waitForFunction(() => {
+          const visible = (element) => Boolean(element?.getClientRects().length);
+          return (
+            visible(document.querySelector('.fact-popover--stop[aria-modal="true"]')) ||
+            [...document.querySelectorAll(".trip-draft-restore button")].some(visible)
+          );
+        });
+      const phoneSurfaceSnapshot = () =>
+        page.evaluate(() => {
+          const app = document.querySelector(".workspace-app");
+          const stopPopover = document.querySelector(".fact-popover--stop");
+          const note = stopPopover?.querySelector("textarea");
+          const popover = note?.closest(".fact-popover--stop");
+          const restore = [...document.querySelectorAll(".trip-draft-restore button")].map(
+            (button) => ({
+              text: button.textContent?.trim(),
+              visible: button.getClientRects().length > 0,
+            }),
+          );
+          return {
+            width: innerWidth,
+            phone: app?.hasAttribute("data-phone"),
+            keyboard: app?.hasAttribute("data-phone-keyboard"),
+            selectedTab: document
+              .querySelector('.phone-tabbar [role="tab"][aria-selected="true"]')
+              ?.textContent?.trim(),
+            noteVisible: Boolean(note?.getClientRects().length),
+            noteParent: popover?.className ?? note?.parentElement?.className ?? null,
+            modal: popover?.getAttribute("aria-modal") ?? null,
+            stopPopoverCount: document.querySelectorAll(".fact-popover--stop").length,
+            scrimCount: document.querySelectorAll(".fact-popover__scrim").length,
+            noteFocused: document.activeElement === note,
+            activeElement:
+              document.activeElement?.getAttribute("aria-label") ??
+              document.activeElement?.tagName ??
+              null,
+            restore,
+          };
+        });
+      await waitForPhoneEditorAction();
+      const beforePhoneRestore = await phoneSurfaceSnapshot();
+      check(
+        beforePhoneRestore.modal === "true" ||
+          beforePhoneRestore.restore.some((entry) => entry.visible),
+        "phone editor or restore entry is available after the responsive transition",
+        beforePhoneRestore,
+      );
+      const phoneNoteModal = page.locator('.fact-popover--stop[aria-modal="true"]');
+      if (!(await phoneNoteModal.isVisible())) {
         const phoneRestore = page.getByRole("button", { name: /Continue editing Note/ });
         await phoneRestore.waitFor({ state: "visible" });
         await phoneRestore.click();
       }
       const phoneDiscard = page.getByRole("dialog", { name: "Discard changes?" });
       const phoneNoteInput = page.getByRole("textbox", { name: "Note", exact: true });
-      const phoneNoteModal = page.locator('.fact-popover--stop[aria-modal="true"]');
       await phoneNoteModal.waitFor({ state: "visible" });
       await page.waitForFunction(() => {
         const note = document.querySelector(".fact-popover--stop textarea");
         return note && document.activeElement === note;
       });
+      const afterPhoneRestore = await phoneSurfaceSnapshot();
+      check(
+        afterPhoneRestore.modal === "true" && afterPhoneRestore.noteFocused,
+        "phone editor modal and focus are ready for Escape",
+        afterPhoneRestore,
+      );
       check(
         (await phoneNoteInput.inputValue()) === "Restore this note through the phone modal flow",
         "the phone modal draft restores and receives focus after returning to phone width",
+      );
+      const phoneTransitionCycles = [
+        { beforeRestore: beforePhoneRestore, afterRestore: afterPhoneRestore },
+      ];
+      for (let cycle = 2; cycle <= 3; cycle += 1) {
+        await page.setViewportSize({ width: 521, height: 844 });
+        await page.waitForFunction(() => innerWidth === 521);
+        await page.locator(".workspace-app:not([data-phone])").waitFor({ state: "visible" });
+        const tabletRestore = page.getByRole("button", { name: /Continue editing Note/ });
+        await tabletRestore.waitFor({ state: "visible" });
+        await tabletRestore.click();
+        await phoneNoteInput.waitFor({ state: "visible" });
+
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.waitForFunction(() => innerWidth === 390);
+        await phoneSurface.waitFor({ state: "visible" });
+        await page.locator(".phone-tabbar").waitFor({ state: "visible" });
+        await waitForPhoneEditorAction();
+        const beforeRestore = await phoneSurfaceSnapshot();
+        check(
+          beforeRestore.modal === "true" || beforeRestore.restore.some((entry) => entry.visible),
+          `phone editor or restore entry is available in responsive cycle ${cycle}`,
+          beforeRestore,
+        );
+        if (!(await phoneNoteModal.isVisible())) {
+          const phoneRestore = page.getByRole("button", { name: /Continue editing Note/ });
+          await phoneRestore.waitFor({ state: "visible" });
+          await phoneRestore.click();
+        }
+        await phoneNoteModal.waitFor({ state: "visible" });
+        await page.waitForFunction(() => {
+          const note = document.querySelector(".fact-popover--stop textarea");
+          return note && document.activeElement === note;
+        });
+        const afterRestore = await phoneSurfaceSnapshot();
+        phoneTransitionCycles.push({ beforeRestore, afterRestore });
+        check(
+          afterRestore.phone && afterRestore.modal === "true" && afterRestore.noteFocused,
+          `phone note modal and focus recover after responsive transition cycle ${cycle}`,
+          { beforeRestore, afterRestore },
+        );
+      }
+      writeFileSync(
+        resolve(out, "phone-transition.json"),
+        JSON.stringify(phoneTransitionCycles, null, 2),
       );
       await page.keyboard.press("Escape");
       await phoneDiscard.waitFor({ state: "visible" });
