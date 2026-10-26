@@ -48,6 +48,7 @@ try {
     await tab(zh ? "行程" : "Trip").click();
     const card = page.locator(".trip-panel__budget-summary");
     await card.waitFor();
+    await card.locator("summary").click();
     const rows = (await card.locator(".trip-panel__budget-breakdown li").allInnerTexts()).map(
       plain,
     );
