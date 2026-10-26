@@ -14,10 +14,17 @@ const check = (ok, name, detail) => {
   checks.push({ ok: Boolean(ok), name, detail });
   console.log(`${ok ? "ok" : "FAIL"} ${name}${detail ? ` ${JSON.stringify(detail)}` : ""}`);
 };
-const browser = await chromium.launch({ channel: process.env.CHANNEL });
+const browser = await chromium.launchPersistentContext("", {
+  channel: process.env.CHANNEL ?? "chrome",
+  headless: true,
+  viewport: null,
+  args: ["--window-size=1440,1000"],
+});
 
 try {
-  const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, locale: "en-AU" });
+  const page = await browser.newPage();
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.context().setExtraHTTPHeaders({ "Accept-Language": "en-AU" });
   await page.emulateMedia({ reducedMotion: "reduce" });
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
@@ -510,6 +517,55 @@ try {
   );
   check(errors.length === 0, "fixture journey has no browser errors", errors);
   await page.screenshot({ path: `${out}/phone-520.png`, fullPage: false });
+
+  const zoomSettings = await browser.newPage();
+  await zoomSettings.goto("chrome://settings/appearance");
+  const zoomLevel = zoomSettings.locator("#zoomLevel");
+  await zoomLevel.waitFor({ state: "visible", timeout: 15_000 });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.locator(".trip-workspace").waitFor({ state: "visible" });
+  for (const { zoom, title } of [
+    { zoom: 125, title: "Sydney harbour, beaches, gardens and family food itinerary" },
+    { zoom: 150, title: "悉尼海港海滩花园与亲子美食行程规划" },
+  ]) {
+    await zoomLevel.selectOption({ label: "100%" });
+    await page.waitForFunction(() => devicePixelRatio === 1);
+    await renameActiveTrip(title);
+    await zoomLevel.selectOption({ label: `${zoom}%` });
+    const zoomMetrics = await page.evaluate(() => ({
+      innerWidth: window.innerWidth,
+      outerWidth: window.outerWidth,
+      devicePixelRatio: window.devicePixelRatio,
+      title: document.querySelector(".topbar-title")?.textContent?.trim(),
+      titleWidth: document.querySelector(".topbar-title")?.getBoundingClientRect().width,
+      titleVisible: Boolean(document.querySelector(".topbar-title")?.getClientRects().length),
+      pageWidth: document.documentElement.scrollWidth,
+      tripVisible: Boolean(document.querySelector(".trip-workspace")),
+    }));
+    check(
+      zoomMetrics.outerWidth === 1440 &&
+        zoomMetrics.devicePixelRatio >= zoom / 100 &&
+        zoomMetrics.pageWidth <= zoomMetrics.innerWidth &&
+        zoomMetrics.tripVisible &&
+        zoomMetrics.title === title,
+      `${zoom}% actual Chrome zoom preserves the localized Trip identity without page overflow`,
+      zoomMetrics,
+    );
+    const zoomTeam = page.locator(".team-trigger");
+    await zoomTeam.focus();
+    await zoomTeam.press("Enter");
+    check(
+      await page.getByRole("dialog", { name: "Specialist team" }).isVisible(),
+      `${zoom}% actual Chrome zoom keeps Team keyboard reachable`,
+    );
+    await zoomTeam.press("Escape");
+    check(
+      await page.evaluate(() => document.activeElement?.classList.contains("team-trigger")),
+      `${zoom}% actual Chrome zoom returns focus to Team`,
+    );
+    await page.screenshot({ path: `${out}/browser-zoom-${zoom}.png`, fullPage: false });
+  }
+  await zoomSettings.close();
 } catch (error) {
   check(false, "workspace layout journey completed", String(error));
 } finally {
