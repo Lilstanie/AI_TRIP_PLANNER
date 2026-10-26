@@ -57,8 +57,17 @@ try {
       placeId: fixturePlaces[1].id,
     },
   ]);
+  let releaseChat;
+  let signalChatStarted;
+  const chatStarted = new Promise((resolve) => {
+    signalChatStarted = resolve;
+  });
+  const chatGate = new Promise((resolve) => {
+    releaseChat = resolve;
+  });
   await page.route("**/api/chat", async (route) => {
-    await page.waitForTimeout(900);
+    signalChatStarted();
+    await chatGate;
     await route.fallback();
   });
   await page.route("**/api/places/search", (route) => {
@@ -75,6 +84,7 @@ try {
   const chatTab = page.getByRole("tab", { name: /^Chat/ });
   if (await chatTab.count()) await chatTab.click();
   await page.locator(".chat-empty__suggestions button").first().click();
+  await chatStarted;
   await page.waitForFunction(
     () => Number(document.querySelector(".team-trigger")?.getAttribute("data-working")) > 0,
     { timeout: 30_000 },
@@ -88,6 +98,69 @@ try {
     /\d+ working/.test(runningTeam.label ?? "") && Number(runningTeam.working) > 0,
     "topbar announces the active Team working count",
     runningTeam,
+  );
+  await page.setViewportSize({ width: 960, height: 800 });
+  await page.waitForFunction(
+    () => document.querySelector(".workspace-app")?.getAttribute("data-narrow") === "true",
+  );
+  const compactWorkingTeam = await page.locator(".team-trigger").evaluate((button) => {
+    const count = button.querySelector(".team-trigger__count");
+    const compactCount = button.querySelector(".team-trigger__count-compact");
+    const buttonBox = button.getBoundingClientRect();
+    const countBox = count?.getBoundingClientRect();
+    return {
+      label: button.getAttribute("aria-label"),
+      working: Number(button.getAttribute("data-working")),
+      visibleAvatars: [...button.querySelectorAll(".team-trigger__avatars > *")].filter(
+        (node) => getComputedStyle(node).display !== "none",
+      ).length,
+      compactCount: compactCount?.textContent?.trim(),
+      compactCountVisible: Boolean(
+        compactCount &&
+          getComputedStyle(compactCount).display !== "none" &&
+          getComputedStyle(compactCount).visibility !== "hidden" &&
+          compactCount.getClientRects().length > 0,
+      ),
+      countFitsButton: Boolean(
+        countBox &&
+          buttonBox.width > 0 &&
+          countBox.width > 0 &&
+          countBox.left >= buttonBox.left &&
+          countBox.right <= buttonBox.right &&
+          countBox.top >= buttonBox.top &&
+          countBox.bottom <= buttonBox.bottom,
+      ),
+      noPageOverflow: document.documentElement.scrollWidth <= window.innerWidth,
+    };
+  });
+  check(
+    compactWorkingTeam.working > 0 &&
+      /\d+ working/.test(compactWorkingTeam.label ?? "") &&
+      compactWorkingTeam.visibleAvatars === 1 &&
+      compactWorkingTeam.compactCount === String(compactWorkingTeam.working) &&
+      compactWorkingTeam.compactCountVisible &&
+      compactWorkingTeam.countFitsButton &&
+      compactWorkingTeam.noPageOverflow,
+    "960px compact header visibly fits the active Team count beside one icon",
+    compactWorkingTeam,
+  );
+  await page.screenshot({ path: `${out}/header-960-working.png`, fullPage: false });
+  const compactTeamButton = page.locator(".team-trigger");
+  await compactTeamButton.focus();
+  await compactTeamButton.press("Enter");
+  check(
+    await page.getByRole("dialog", { name: "Specialist team" }).isVisible(),
+    "960px active Team control remains keyboard operable",
+  );
+  await compactTeamButton.press("Escape");
+  check(
+    await page.evaluate(() => document.activeElement?.classList.contains("team-trigger")),
+    "960px Escape returns focus to the active Team control",
+  );
+  releaseChat();
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.waitForFunction(
+    () => document.querySelector(".workspace-app")?.getAttribute("data-narrow") === "false",
   );
   await page.locator(".msg-item--agent .msg-item__body").first().waitFor({ timeout: 180_000 });
   await settle(page, 1200);
@@ -334,7 +407,7 @@ try {
             }
           : null;
       })(),
-      titleReadable: (() => {
+      titleIdentityPreserved: (() => {
         const title = document.querySelector(".topbar-title");
         return Boolean(
           title &&
@@ -346,8 +419,10 @@ try {
     longChineseTitle,
   );
   check(
-    !mediumHeader.labelVisible && mediumHeader.avatarCount === 1 && mediumHeader.titleReadable,
-    "960px header keeps the full Trip title in a usable slot beside one Team icon",
+    !mediumHeader.labelVisible &&
+      mediumHeader.avatarCount === 1 &&
+      mediumHeader.titleIdentityPreserved,
+    "960px header preserves full Trip identity in a usable title slot beside one Team icon",
     mediumHeader,
   );
   check(
