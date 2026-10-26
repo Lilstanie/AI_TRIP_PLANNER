@@ -400,9 +400,9 @@ try {
   check(
     (await page
       .locator("#phone-panel-trip")
-      .getByRole("tab", { name: /Today/ })
+      .getByRole("tab", { name: /^Day 3\b/ })
       .getAttribute("aria-selected")) === "true",
-    "an out-of-range saved manual day yields to Today",
+    "an out-of-range saved day clamps to the final valid day",
   );
   await page.clock.setSystemTime(new Date("2026-10-16T14:30:00Z"));
   await page.screenshot({ path: `${OUT}/on-trip-sydney-boundary.png`, fullPage: true });
@@ -449,18 +449,18 @@ try {
   await trip.getByRole("tab", { name: /^Day 2\b/ }).click();
   await page.reload();
   await openSeededTrip();
-  await trip.getByRole("tab", { name: /^Day 1\b/ }).waitFor();
+  await trip.getByRole("tab", { name: /^Day 2\b/ }).waitFor();
   check(
-    (await trip.getByRole("tab", { name: /^Day 1\b/ }).getAttribute("aria-selected")) === "true",
-    "Before the trip, a reloaded manual day selection returns to Day 1",
+    (await trip.getByRole("tab", { name: /^Day 2\b/ }).getAttribute("aria-selected")) === "true",
+    "Before the trip, a reloaded manual day selection remains on Day 2",
   );
   check(
-    await tips.evaluate((node) => node.open),
-    "Before the trip, Travel tips retain the existing expanded default",
+    !(await tips.evaluate((node) => node.open)),
+    "Before the trip, Travel tips start collapsed",
   );
   check(
-    await trip.locator(".trip-budget").evaluate((node) => node.open),
-    "Before the trip, budget retains the existing expanded default",
+    !(await trip.locator(".trip-budget").evaluate((node) => node.open)),
+    "Before the trip, budget starts collapsed",
   );
 
   const secondTrip = snapshotSeed(
