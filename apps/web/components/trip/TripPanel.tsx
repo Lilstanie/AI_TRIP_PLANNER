@@ -3,38 +3,51 @@ import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import type { TripPlan } from "@trip/shared";
 import { CurrencyNotice } from "../account/CurrencyNotice";
-import { itineraryActivities } from "@/lib/workspace";
-import { restaurantIds } from "@/lib/trip/restaurants";
 import { placeConflicts } from "@/lib/trip/conflicts";
+import { countUnpricedActivities, deriveBudgetCategories } from "@/lib/trip/budget";
 import type { Notice } from "@/lib/i18n/notice";
 import { useLocale } from "../account/LocaleProvider";
 import { OnTripContext } from "@/lib/trip/on-trip-day";
 import { dateRangeLabel } from "@/lib/workspace/trip-facts";
+import type { TripPlaces } from "../map/useTripPlaces";
+import { TripIssues } from "./TripIssues";
+
+export type TripPanelProps = {
+  plan: TripPlan;
+  timeline: ReactNode;
+  problem?: Notice;
+} & (
+  | {
+      tripPlaces: TripPlaces;
+      onSelectStop(id: string): void;
+      onSelectDay(day: number): void;
+    }
+  | {
+      tripPlaces?: undefined;
+      onSelectStop?: never;
+      onSelectDay?: never;
+    }
+);
 
 export function TripPanel({
   plan,
   timeline,
   problem,
-}: {
-  plan: TripPlan;
-
-  timeline: ReactNode;
-
-  problem?: Notice;
-}) {
+  ...issueNavigation
+}: TripPanelProps) {
   const { t, locale, money, budgetGap, notice: localizeNotice } = useLocale();
   const [onTrip, setOnTrip] = useState<boolean>();
-  const [budgetOpen, setBudgetOpen] = useState(true);
+  const [budgetOpen, setBudgetOpen] = useState(false);
   const budgetManuallyChanged = useRef(false);
   const budgetTrip = useRef(plan.tripId);
   useEffect(() => {
     if (budgetTrip.current === plan.tripId) return;
     budgetTrip.current = plan.tripId;
     budgetManuallyChanged.current = false;
-    setBudgetOpen(onTrip !== true);
-  }, [onTrip, plan.tripId]);
+    setBudgetOpen(false);
+  }, [plan.tripId]);
   useEffect(() => {
-    if (!budgetManuallyChanged.current) setBudgetOpen(onTrip !== true);
+    if (!budgetManuallyChanged.current) setBudgetOpen(false);
   }, [onTrip]);
   const estimated =
     Number.isFinite(plan.estTotal) && plan.estTotal >= 0 ? plan.estTotal : undefined;
@@ -46,49 +59,18 @@ export function TripPanel({
     estimated === undefined ? undefined : budgetGap(estimated, budget, plan.brief.budgetSource);
   const atBudget = budget !== undefined && estimated === budget;
   const over = gap?.direction === "over";
-
-  const picks = restaurantIds(plan);
+  const budgetBreakdown = deriveBudgetCategories(plan);
+  const unpriced = countUnpricedActivities(plan);
+  const transport = budgetBreakdown.find((category) => category.id === "transport");
+  const transportMissing = !!transport && (transport.notCosted || transport.unpriced > 0);
+  const unpricedCaution = (unpriced > 0 || transportMissing) && (atBudget || gap?.direction === "under");
   const budgetConflicts = placeConflicts(plan).budget;
-  const budgetCategories = [
-    { id: "accommodation", label: "Accommodation" },
-    { id: "transport", label: "Transport" },
-    { id: "dining", label: "Meals" },
-    { id: "itinerary", label: "Activities" },
-  ] as const;
-  const budgetBreakdown = budgetCategories.map(({ id, label }) => {
-    const sections = plan.sections.filter((section) => section.id === id);
-    const amount = sections.reduce((sum, section) => sum + section.estCost, 0);
-    const unpriced = sections.reduce(
-      (sum, section) =>
-        sum +
-        (section.proposal?.items.filter(
-          (item) => item.estCost === undefined && !(item.id && picks.has(item.id)),
-        ).length ?? 0),
-      0,
-    );
-    return {
-      id,
-      label,
-      amount,
-      notCosted:
-        (id === "transport" || unpriced > 0) &&
-        amount === 0 &&
-        !sections.some((section) =>
-          section.proposal?.items.some((item) => item.estCost !== undefined),
-        ),
-      unpriced,
-    };
-  });
-  const unpriced = itineraryActivities(plan).filter(
-    (item) => item.estCost === undefined && !(item.id && picks.has(item.id)),
-  ).length;
-  const transportMissing = budgetBreakdown.some(
-    (category) => category.id === "transport" && (category.notCosted || category.unpriced > 0),
-  );
-  const unpricedCaution =
-    (unpriced > 0 || transportMissing) && (atBudget || gap?.direction === "under");
   const [start, end] = plan.brief.dates;
   const dateRange = dateRangeLabel(start, end, locale) ?? `${start} – ${end}`;
+  const issueProps = "tripPlaces" in issueNavigation && issueNavigation.tripPlaces
+    ? issueNavigation
+    : undefined;
+
   return (
     <OnTripContext.Provider value={setOnTrip}>
       <div className="trip-panel">
@@ -96,26 +78,44 @@ export function TripPanel({
           {plan.brief.destination} · {dateRange} · {plan.brief.groupSize}{" "}
           {plan.brief.groupSize === 1 ? t("traveller") : t("travellers")}
         </p>
-        <details className="trip-panel__budget-summary trip-budget" open={budgetOpen}>
-          <summary
-            onClick={(event) => {
-              event.preventDefault();
+        <details
+          className="trip-panel__budget-summary trip-budget"
+          open={budgetOpen}
+          onToggle={(event) => setBudgetOpen(event.currentTarget.open)}
+        >
+          <summary onClick={() => {
               budgetManuallyChanged.current = true;
-              setBudgetOpen((value) => !value);
-            }}
-          >
-            {t("Trip budget")}
+            }}>
+            <span className="trip-panel__budget-title">{t("Trip budget")}</span>
+            <span className="trip-panel__budget-compact">
+              <span><span>{t("Estimated total")}</span><strong>{estimated === undefined ? t("Estimate unavailable") : money(estimated)}</strong></span>
+              <span><span>{t("Budget limit")}</span><strong>{budget === undefined ? t("Budget not set") : money(budget, plan.brief.budgetSource)}</strong></span>
+              {(unpriced > 0 || transportMissing) && (
+                <span className="trip-panel__budget-unknown">{t("{count} unpriced", { count: unpriced + (transportMissing ? transport!.unpriced || 1 : 0) })}</span>
+              )}
+              <span className={`budget-status budget-status--${!gap ? "unavailable" : over ? "over" : unpricedCaution ? "caution" : "within"}`}>
+                {!gap
+                  ? t("Budget not set")
+                  : over
+                    ? t("Over budget")
+                    : atBudget
+                      ? transportMissing
+                        ? t("At budget · unpriced costs not counted")
+                        : unpriced > 0
+                          ? t("At budget · unpriced stops not counted")
+                          : t("At budget")
+                      : unpricedCaution
+                        ? t("Known estimate within budget · unpriced costs not counted")
+                        : t("Within budget")}
+              </span>
+            </span>
           </summary>
           <div className="trip__budget-head">
             <div className="trip__budget">
               <span>{t("Estimated total")}</span>
-              <strong>
-                {estimated === undefined ? t("Estimate unavailable") : money(estimated)}
-              </strong>
+              <strong>{estimated === undefined ? t("Estimate unavailable") : money(estimated)}</strong>
             </div>
-            <span
-              className={`budget-status budget-status--${unpricedCaution ? "caution" : !gap ? "unavailable" : over ? "over" : "within"}`}
-            >
+            <span className={`budget-status budget-status--${!gap ? "unavailable" : over ? "over" : unpricedCaution ? "caution" : "within"}`}>
               {!gap
                 ? t("Budget not set")
                 : over
@@ -127,20 +127,11 @@ export function TripPanel({
                         ? t("At budget · unpriced stops not counted")
                         : t("At budget")
                     : unpricedCaution
-                      ? transportMissing
-                        ? t("Known estimate within budget · unpriced costs not counted")
-                        : t("Known estimate within budget · unpriced stops not counted")
+                      ? t("Known estimate within budget · unpriced costs not counted")
                       : t("Within budget")}
             </span>
           </div>
-          <div
-            className={`bar${over ? " bar--over" : ""}`}
-            role="progressbar"
-            aria-label={t("Budget used")}
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={pct}
-          >
+          <div className={`bar${over ? " bar--over" : ""}`} role="progressbar" aria-label={t("Budget used")} aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}>
             <span style={{ width: `${pct}%` }} />
           </div>
           <p className={`trip__budget-delta${over ? " trip__budget-delta--over" : ""}`}>
@@ -153,52 +144,43 @@ export function TripPanel({
           <ul className="trip-panel__budget-breakdown" aria-label={t("Budget breakdown")}>
             {budgetBreakdown.map((category) => (
               <li key={category.id}>
-                <span>{t(category.label)}</span>
-                <span>
-                  {category.notCosted ? (
-                    <strong>{t("Not costed")}</strong>
-                  ) : (
-                    <>
-                      <strong>{money(category.amount)}</strong> · {t("Estimated")}
-                    </>
-                  )}
-                  {category.unpriced > 0 && (
-                    <> · {t("{count} unpriced", { count: category.unpriced })}</>
-                  )}
-                </span>
+                <div className="trip-panel__budget-category">
+                  <span>{t(category.label)}</span>
+                  <span>
+                    {category.notCosted ? <strong>{t("Not costed")}</strong> : <><strong>{money(category.amount)}</strong> · {t("Estimated")}</>}
+                    {category.unpriced > 0 && <> · {t("{count} unpriced", { count: category.unpriced })}</>}
+                  </span>
+                </div>
+                {category.items.length > 0 && (
+                  <ul aria-label={t("{category} items", { category: t(category.label) })}>
+                    {category.items.map((item) => (
+                      <li key={item.id}>
+                        <span>{item.label}</span>
+                        <span>{item.amount === undefined ? t("Price unknown") : money(item.amount)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </li>
             ))}
           </ul>
           {budgetConflicts.length > 0 && (
             <ul className="trip-panel__conflicts" aria-label={t("Open conflicts")}>
-              {budgetConflicts.map((notice, index) => (
-                <li key={index}>{localizeNotice(notice)}</li>
-              ))}
+              {budgetConflicts.map((notice, index) => <li key={index}>{localizeNotice(notice)}</li>)}
             </ul>
           )}
           {unpriced > 0 && (
             <p className="trip__budget-note">
-              {t("Not included: costs for stops without a published price ({count}).", {
-                count: unpriced,
-              })}
+              {t("Not included: costs for stops without a published price ({count}).", { count: unpriced })}
             </p>
           )}
-          {transportMissing && (
-            <p className="trip__budget-note">{t("Not included: transport without a price.")}</p>
-          )}
-          <CurrencyNotice />
+          {transportMissing && <p className="trip__budget-note">{t("Not included: transport without a price.")}</p>}
         </details>
+        <CurrencyNotice />
+        {issueProps && <TripIssues plan={plan} tripPlaces={issueProps.tripPlaces} onSelectStop={issueProps.onSelectStop} onSelectDay={issueProps.onSelectDay} />}
         {timeline}
-        {problem && (
-          <p className="item-problem" role="alert">
-            {localizeNotice(problem)}
-          </p>
-        )}
-        {!plan.sections.length && (
-          <p className="section__empty">
-            {t("No itinerary yet. Fill in your preferences and select Update trip.")}
-          </p>
-        )}
+        {problem && <p className="item-problem" role="alert">{localizeNotice(problem)}</p>}
+        {!plan.sections.length && <p className="section__empty">{t("No itinerary yet. Fill in your preferences and select Update trip.")}</p>}
       </div>
     </OnTripContext.Provider>
   );

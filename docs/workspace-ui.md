@@ -615,6 +615,11 @@ and at-budget or below-budget statuses say “unpriced costs not counted”. Ove
 The known category amounts add up to the displayed
 known estimate. At narrow drawer widths each row wraps its amount under the
 category name instead of overflowing.
+The budget summary starts collapsed and keeps the known estimate, budget limit,
+currency and any unpriced count visible. Expanding it shows each priced item,
+including explicit zero prices and “Price unknown” rows. A Trip issues section
+groups scheduled overlaps, unlocated stops, unpriced items and failed place
+lookups; selecting a row takes the traveller to its stop and day.
 
 Names of removed surfaces below appear only to explain their removal; nothing in this section
 describes current behaviour except the absences.
