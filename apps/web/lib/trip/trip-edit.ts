@@ -70,6 +70,29 @@ export const EditRequest = z.object({
 
     z.object({ kind: z.literal("remove"), id: z.string() }),
     z.object({ kind: z.literal("idea"), id: z.string() }),
+    z
+      .object({
+        kind: z.literal("add"),
+        id: z.string().min(1).max(100),
+        detail: z.string().min(1).max(500),
+        location: z.string().min(1).max(300).optional(),
+        placeId: z.string().min(1).max(300).optional(),
+        savedPlace: ProposalItem.shape.savedPlace.optional(),
+        day: z.number().int().positive().optional(),
+        startTime: clock.optional(),
+        endTime: clock.optional(),
+        note: z.string().max(500).optional(),
+      })
+      .refine(
+        (item) => {
+          const schedule = [item.day, item.startTime, item.endTime];
+          return (
+            schedule.every((part) => part === undefined) ||
+            schedule.every((part) => part !== undefined)
+          );
+        },
+        { message: "A Stop needs a day and both times; an Idea has no schedule." },
+      ),
     z.object({ kind: z.literal("schedule"), id: z.string(), day: z.number().int().positive() }),
 
     z.object({
@@ -79,6 +102,7 @@ export const EditRequest = z.object({
     }),
     z.object({
       kind: z.literal("undo"),
+      addedIds: z.array(z.string()).optional(),
       activities: z.array(
         z.object({
           id: z.string(),
@@ -262,6 +286,11 @@ export async function previewEdit(
   let section = plan.sections.find((s) => s.id === "itinerary");
   if (!section?.proposal) throw new NoticeError({ key: "There are no activities to edit." });
 
+  if (operation.kind === "undo" && operation.addedIds?.length) {
+    const added = new Set(operation.addedIds);
+    section.proposal.items = section.proposal.items.filter((item) => !added.has(item.id ?? ""));
+  }
+
   let ideas = section.proposal.items.filter((i) => i.kind === "activity" && i.day === undefined);
   let activities = section.proposal.items.filter(
     (i) => i.kind === "activity" && i.day !== undefined,
@@ -313,7 +342,50 @@ export async function previewEdit(
   };
   const affected = new Set<number>();
   let anchor: { day: number; index: number; time: string } | undefined;
-  if (operation.kind === "verify") {
+  if (operation.kind === "add") {
+    if (section.proposal.items.some((item) => item.id === operation.id))
+      throw new NoticeError({ key: "That activity already exists in this plan." });
+    const item: ProposalItem = {
+      id: operation.id,
+      kind: "activity",
+      detail: operation.detail,
+      location: operation.location,
+      placeId: operation.placeId,
+      savedPlace: operation.savedPlace,
+      note: operation.note,
+      ...(operation.day !== undefined
+        ? { day: operation.day, startTime: operation.startTime, endTime: operation.endTime }
+        : {}),
+    };
+    if (operation.day === undefined) {
+      ideas.push(item);
+    } else {
+      if (operation.day > days || !segment(operation.day))
+        throw new NoticeError({ key: "Activity day is outside trip dates." });
+      const start = mins(operation.startTime!);
+      const end = mins(operation.endTime!);
+      if (end <= start)
+        throw new NoticeError({ key: "End time must be after start time on the same day." });
+      if (
+        activities.some(
+          (activity) =>
+            activity.day === operation.day &&
+            start < mins(activity.endTime!) &&
+            end > mins(activity.startTime!),
+        )
+      )
+        throw new NoticeError({
+          key: "Two scheduled items overlap on Day {day}.",
+          params: { day: operation.day },
+        });
+      const index = activities.findIndex(
+        (activity) => activity.day === operation.day && mins(activity.startTime!) > start,
+      );
+      if (index < 0) activities.push(item);
+      else activities.splice(index, 0, item);
+      affected.add(operation.day);
+    }
+  } else if (operation.kind === "verify") {
     affected.add(operation.day);
   } else if (operation.kind === "undo") {
     if (
@@ -515,6 +587,7 @@ export async function previewEdit(
             const earliest = mins(previous.endTime!) + travel + 15;
             const keepExact =
               operation.kind === "undo" ||
+              operation.kind === "add" ||
               operation.kind === "verify" ||
               index < changedIndex ||
               (operation.kind === "time" && index === changedIndex);
@@ -551,7 +624,7 @@ export async function previewEdit(
   const refuses = (blocker: Notice) =>
     outsideDay(blocker) ||
     refusesAll ||
-    (operation.kind === "schedule" && !unconfirmed.has(blocker));
+    ((operation.kind === "schedule" || operation.kind === "add") && !unconfirmed.has(blocker));
   const kept = blockers.filter((blocker) => !refuses(blocker));
   const unresolved = kept.map((blocker) => noticeText("en", blocker));
 
