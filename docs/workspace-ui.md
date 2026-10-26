@@ -808,7 +808,7 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   (`lib/trip/settle.ts`). Move earlier and Move later swap the stop with its neighbour on the
   same day: each takes the other's start time and keeps its own duration, the second starting later if the
   first would overlap it, and a swap that would end past 23:59 or overlap the next stop is refused with a
-  message. Move to another day puts the stop after that day's last stop. Undo offers the last change
+  message. Move to another day puts the stop after that day's last stop. Undo survives background place saves and route checks without discarding their unrelated updates. Undo offers the last change
   until the next plan arrives from chat. The step stays with its Trip through navigation and layout
   changes, and another Trip never offers it. Reloading clears the in-memory step. An item action is
   undone the same way, restoring the plan as it was before it. A move changes the day's times, so the day's legs are routed again (see Legs under Timeline editing). At

@@ -123,13 +123,16 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
     document.title = [plan.brief.destination, dates, "AI Trip Planner"].filter(Boolean).join(" · ");
   }, [blank, locale, page, plan]);
 
+  const undo = useTripUndo(plan);
   const revisions = usePlanRevision({
     plan,
     held: busy || editPending,
     dataMode: dataMode.mode,
-    onApply: session.applyEdit,
+    onApply: (next, backgroundBase) => {
+      if (backgroundBase) undo.preserveBackground(backgroundBase, next);
+      session.applyEdit(next);
+    },
   });
-  const undo = useTripUndo(plan);
   const chooser = useChooseCandidate(plan, revisions, session.trackEdit);
 
   const autoSaves = useAutoSavePlaces({ plan, tripPlaces, revisions });

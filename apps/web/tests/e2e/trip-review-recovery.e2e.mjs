@@ -13,7 +13,10 @@ const browser = await chromium.launch({ channel: process.env.CHANNEL });
 const savedAt = "2026-10-26T00:00:00Z";
 const results = [];
 try {
-  for (const scenario of (process.env.RECOVERY_CASE ?? "chat,schedule,orphan,undo").split(",")) {
+  for (const scenario of (
+    process.env.RECOVERY_CASE ??
+    "chat,schedule,orphan,undo,background-note,background-time,background-route"
+  ).split(",")) {
     for (const viewport of [
       { width: 1440, height: 1000 },
       { width: 390, height: 844 },
@@ -21,13 +24,38 @@ try {
       const context = await browser.newContext({ viewport, reducedMotion: "reduce" });
       const page = await context.newPage();
       const errors = [];
+      const previews = [];
+      page.on("response", async (response) => {
+        if (!response.url().includes("/api/trip/preview-edit")) return;
+        previews.push({
+          request: response.request().postDataJSON(),
+          response: await response.json().catch(() => null),
+        });
+      });
       page.on("pageerror", (error) => errors.push(error.message));
       page.setDefaultTimeout(8000);
       const first = placeFor("Draft Museum");
       const second = { ...placeFor("Draft Garden"), id: "osm:way/2002" };
-      await page.route("**/api/places/details", (route) =>
-        route.fulfill({ json: { place: first } }),
-      );
+      await page.route("**/api/places/details", (route) => {
+        const { placeId } = route.request().postDataJSON();
+        return route.fulfill({ json: { place: placeId === first.id ? first : second } });
+      });
+      let releaseLookup;
+      const lookupReady = new Promise((resolve) => {
+        releaseLookup = resolve;
+      });
+      if (scenario.startsWith("background-")) {
+        await page.route("**/api/places/search", async (route) => {
+          await lookupReady;
+          await route.fulfill({ json: { places: [first] } }).catch(() => undefined);
+        });
+      }
+      if (scenario === "background-route") {
+        await page.route("**/api/trip/preview-edit", async (route) => {
+          if (route.request().postDataJSON().operation.kind === "verify") await lookupReady;
+          await route.continue().catch(() => undefined);
+        });
+      }
       const requests = [];
       await page.route("**/api/chat", (route) => {
         requests.push(route.request().postDataJSON());
@@ -93,6 +121,9 @@ try {
           },
         ],
       };
+      if (scenario === "background-route") plan.sections[0].proposal.items[1].day = 1;
+      else if (scenario.startsWith("background-"))
+        delete plan.sections[0].proposal.items[0].placeId;
       const conversationId = `conversation:draft-conversation-${viewport.width}`;
       const snapshot = {
         version: 4,
@@ -283,6 +314,70 @@ try {
           assert.match(requests[1].message, /Day 1/);
           assert.equal(await page.locator(".composer__input").isVisible(), true);
           await page.screenshot({ path: resolve(out, `ai-reply-${viewport.width}.png`) });
+        } else if (scenario.startsWith("background-")) {
+          const stop = page.locator(".timeline-stop").filter({ hasText: "Draft Museum" });
+          if (scenario !== "background-time") {
+            await stop.locator(".action-menu__trigger").click();
+            await page.getByRole("menuitem", { name: "Add a note", exact: true }).click();
+            await page
+              .getByRole("textbox", { name: "Note", exact: true })
+              .fill("Undo this note only");
+            await page.getByRole("button", { name: "Save", exact: true }).click();
+          } else {
+            await stop.getByRole("button", { name: /^Change time,/ }).click();
+            await page.getByLabel("Start", { exact: true }).fill("09:15");
+            await page.getByLabel("End", { exact: true }).fill("10:15");
+            await page.getByRole("button", { name: "Change time", exact: true }).click();
+          }
+          const undoButton = page.getByRole("button", { name: /^Undo/ });
+          await undoButton.waitFor();
+          releaseLookup();
+          const savedStop = (index = 0) =>
+            page.evaluate(
+              ({ tripId, index }) => {
+                const catalog = JSON.parse(localStorage.getItem("trip-workspace-catalog-v3"));
+                return catalog.trips
+                  .find((trip) => trip.id === `trip:${tripId}`)
+                  ?.snapshot.plan.sections.find((section) => section.id === "itinerary")?.proposal
+                  .items[index];
+              },
+              { tripId, index },
+            );
+          await assert.doesNotReject(async () => {
+            for (let attempt = 0; attempt < 40; attempt += 1) {
+              if (
+                scenario === "background-route"
+                  ? (await savedStop(1))?.arriveBy
+                  : (await savedStop())?.placeId === first.id
+              )
+                return;
+              await page.waitForTimeout(100);
+            }
+            assert.fail(
+              `Background ${scenario === "background-route" ? "route check" : "place save"} did not persist`,
+            );
+          });
+          const backgroundStop = await savedStop(scenario === "background-route" ? 1 : 0);
+          await undoButton.click();
+          if (scenario !== "background-time")
+            await stop
+              .getByText("Undo this note only", { exact: true })
+              .waitFor({ state: "detached" });
+          else await stop.getByRole("button", { name: /^Change time, 09:00.*10:00/ }).waitFor();
+          await page.waitForTimeout(400);
+          const restored = await savedStop();
+          assert.equal(restored.placeId, first.id);
+          if (scenario === "background-route")
+            assert.deepEqual((await savedStop(1)).arriveBy, backgroundStop.arriveBy);
+          else {
+            assert.equal(restored.savedPlace.name, first.displayName.text);
+            assert.equal(restored.priceNeedsReview, true);
+          }
+          assert.equal(restored.note, undefined);
+          assert.equal(restored.startTime, "09:00");
+          assert.equal(restored.endTime, "10:00");
+          assert.equal(await undoButton.count(), 0);
+          await page.screenshot({ path: resolve(out, `${scenario}-${viewport.width}.png`) });
         } else if (scenario === "undo") {
           const stop = page.locator(".timeline-stop").filter({ hasText: "Draft Museum" });
           await stop.locator(".action-menu__trigger").click();
@@ -430,6 +525,10 @@ try {
           pageErrors: errors,
         });
       } catch (error) {
+        writeFileSync(
+          resolve(out, `${scenario}-previews-${viewport.width}.json`),
+          JSON.stringify(previews, null, 2),
+        );
         writeFileSync(
           resolve(out, `${scenario}-geometry-${viewport.width}.json`),
           JSON.stringify(
