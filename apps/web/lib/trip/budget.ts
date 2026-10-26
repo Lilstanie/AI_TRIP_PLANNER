@@ -1,5 +1,4 @@
 import type { FlightSelection, ProposalItem, StaySelection, TripPlan } from "@trip/shared";
-import { itineraryActivities } from "@/lib/workspace";
 import { restaurantIds } from "./restaurants";
 
 export const budgetCategories = [
@@ -47,7 +46,9 @@ export function deriveBudgetCategories(plan: TripPlan): BudgetCategory[] {
     const items = section?.proposal?.items ?? [];
     const stays = section?.proposal?.stays ?? [];
     const flights = section?.proposal?.flights ?? [];
-    const visibleItems = items.filter((item) => !(item.id && picks.has(item.id)));
+    const visibleItems = items.filter(
+      (item) => category.id !== "dining" || !(item.id && picks.has(item.id)),
+    );
     const rows = visibleItems.map((item, index): BudgetItem => {
       const amount = selectedAmount(item, stays, flights);
       return {
@@ -58,7 +59,9 @@ export function deriveBudgetCategories(plan: TripPlan): BudgetCategory[] {
       };
     });
     const amount = section?.estCost ?? 0;
-    const unpriced = visibleItems.filter((item) => selectedAmount(item, stays, flights) === undefined).length;
+    const unpriced = visibleItems.filter(
+      (item) => selectedAmount(item, stays, flights) === undefined,
+    ).length;
     return {
       ...category,
       amount,
@@ -72,9 +75,12 @@ export function deriveBudgetCategories(plan: TripPlan): BudgetCategory[] {
   });
 }
 
-export function countUnpricedActivities(plan: TripPlan): number {
-  const picks = restaurantIds(plan);
-  return itineraryActivities(plan).filter(
-    (item) => item.estCost === undefined && !(item.id && picks.has(item.id)),
-  ).length;
+export function countUnpricedCosts(categories: BudgetCategory[]): number {
+  return categories.reduce(
+    (count, category) =>
+      count +
+      category.unpriced +
+      (category.id === "transport" && category.notCosted && !category.unpriced ? 1 : 0),
+    0,
+  );
 }

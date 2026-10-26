@@ -19,6 +19,7 @@ export const WORKSPACE_ZH = {
   "Trip budget summary": "行程预算摘要",
   "{category} items": "{category}项目",
   "Trip issues": "行程问题",
+  "Trip issues · {count}": "行程问题 · {count}",
   "Time conflict": "时间冲突",
   "Unlocated place": "尚未定位的地点",
   "Unpriced item": "未定价项目",

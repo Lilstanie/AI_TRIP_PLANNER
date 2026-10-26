@@ -11,7 +11,9 @@ mkdirSync(OUT, { recursive: true });
 const checks = [];
 const check = (ok, name, observed) => {
   checks.push({ ok: Boolean(ok), name, observed });
-  console.log(`${ok ? "ok" : "FAIL"} ${name}${observed === undefined ? "" : `: ${JSON.stringify(observed)}`}`);
+  console.log(
+    `${ok ? "ok" : "FAIL"} ${name}${observed === undefined ? "" : `: ${JSON.stringify(observed)}`}`,
+  );
 };
 
 const item = (id, detail, options = {}) => ({
@@ -49,49 +51,161 @@ const plan = {
   overrunPct: 20,
   sections: [
     {
-      ...section("accommodation", "Accommodation", "accommodation", [
-        { id: "stay-budget", kind: "hotel", detail: "Selected fixture stay", day: 1, selectionId: "stay-1" },
-      ], 200),
+      ...section(
+        "accommodation",
+        "Accommodation",
+        "accommodation",
+        [
+          {
+            id: "stay-budget",
+            kind: "hotel",
+            detail: "Selected fixture stay",
+            day: 1,
+            selectionId: "stay-1",
+          },
+          { id: "stay-unpriced", kind: "hotel", detail: "Unpriced stay without a day" },
+        ],
+        200,
+      ),
       proposal: {
-        agent: "accommodation", summary: "Accommodation fixture", assumptions: [], conflictsWith: [],
-        items: [{ id: "stay-budget", kind: "hotel", detail: "Selected fixture stay", day: 1, selectionId: "stay-1" }],
-        stays: [{
-          id: "stay-1", city: "Sydney", checkIn: "2026-12-16", checkOut: "2026-12-18", day: 1,
-          nights: 2, rooms: 2, selectedId: "stay-selected",
-          candidates: [
-            { id: "stay-selected", name: "Selected stay", area: "CBD", pricePerNight: 50, rating: 8 },
-            { id: "stay-alternative", name: "Unselected expensive stay", area: "CBD", pricePerNight: 999, rating: 9 },
-          ],
-        }],
+        agent: "accommodation",
+        summary: "Accommodation fixture",
+        assumptions: [],
+        conflictsWith: [],
+        items: [
+          {
+            id: "stay-budget",
+            kind: "hotel",
+            detail: "Selected fixture stay",
+            day: 1,
+            selectionId: "stay-1",
+          },
+          { id: "stay-unpriced", kind: "hotel", detail: "Unpriced stay without a day" },
+        ],
+        stays: [
+          {
+            id: "stay-1",
+            city: "Sydney",
+            checkIn: "2026-12-16",
+            checkOut: "2026-12-18",
+            day: 1,
+            nights: 2,
+            rooms: 2,
+            selectedId: "stay-selected",
+            candidates: [
+              {
+                id: "stay-selected",
+                name: "Selected stay",
+                area: "CBD",
+                pricePerNight: 50,
+                rating: 8,
+              },
+              {
+                id: "stay-alternative",
+                name: "Unselected expensive stay",
+                area: "CBD",
+                pricePerNight: 999,
+                rating: 9,
+              },
+            ],
+          },
+        ],
       },
     },
     {
-      ...section("transport", "Transport", "transport", [
-        { id: "flight-budget", kind: "flight", detail: "Selected fixture flight", day: 1, selectionId: "flight-1" },
-      ], 40),
+      ...section(
+        "transport",
+        "Transport",
+        "transport",
+        [
+          {
+            id: "flight-budget",
+            kind: "flight",
+            detail: "Selected fixture flight",
+            day: 1,
+            selectionId: "flight-1",
+          },
+        ],
+        40,
+      ),
       proposal: {
-        agent: "transport", summary: "Transport fixture", assumptions: [], conflictsWith: [],
-        items: [{ id: "flight-budget", kind: "flight", detail: "Selected fixture flight", day: 1, selectionId: "flight-1" }],
-        flights: [{
-          id: "flight-1", from: "MEL", to: "SYD", depart: "2026-12-16", day: 1, passengers: 2,
-          selectedId: "flight-selected",
-          candidates: [
-            { id: "flight-selected", carrier: "Selected Air", price: 40 },
-            { id: "flight-alternative", carrier: "Alternative Air", price: 999 },
-          ],
-        }],
+        agent: "transport",
+        summary: "Transport fixture",
+        assumptions: [],
+        conflictsWith: [],
+        items: [
+          {
+            id: "flight-budget",
+            kind: "flight",
+            detail: "Selected fixture flight",
+            day: 1,
+            selectionId: "flight-1",
+          },
+        ],
+        flights: [
+          {
+            id: "flight-1",
+            from: "MEL",
+            to: "SYD",
+            depart: "2026-12-16",
+            day: 1,
+            passengers: 2,
+            selectedId: "flight-selected",
+            candidates: [
+              { id: "flight-selected", carrier: "Selected Air", price: 40 },
+              { id: "flight-alternative", carrier: "Alternative Air", price: 999 },
+            ],
+          },
+        ],
       },
     },
-    section("dining", "Dining", "dining", [], 0),
+    section(
+      "dining",
+      "Dining",
+      "dining",
+      [
+        { kind: "meal", detail: "Unpriced meal without a day" },
+        {
+          id: "scheduled-restaurant",
+          kind: "meal",
+          detail: "Scheduled restaurant",
+          estCost: undefined,
+        },
+      ],
+      0,
+    ),
     section(
       "itinerary",
       "Day plan",
       "itinerary",
       [
-        item("priced", "Priced gallery", { estCost: 300, location: "Sydney Opera House", startTime: "09:00", endTime: "11:00" }),
-        item("zero", "Free garden", { estCost: 0, location: "Royal Botanic Garden", startTime: "10:00", endTime: "12:00" }),
+        item("priced", "Priced gallery", {
+          estCost: 300,
+          location: "Sydney Opera House",
+          startTime: "09:00",
+          endTime: "11:00",
+        }),
+        item("zero", "Free garden", {
+          estCost: 0,
+          location: "Royal Botanic Garden",
+          startTime: "10:00",
+          endTime: "12:00",
+        }),
         item("unknown", "Unpriced museum", { location: "" }),
-        item("failed", "Lookup failure cafe", { location: "Lookup failure cafe", startTime: "13:00", endTime: "14:00" }),
+        item("failed", "Lookup failure cafe", {
+          location: "Lookup failure cafe",
+          startTime: "13:00",
+          endTime: "14:00",
+        }),
+        {
+          id: "scheduled-restaurant",
+          kind: "meal",
+          detail: "Scheduled restaurant",
+          day: 1,
+          location: "Sydney",
+          startTime: "18:00",
+          endTime: "19:00",
+        },
       ],
       300,
     ),
@@ -105,11 +219,22 @@ const snapshot = {
   savedAt,
   plan,
   draft: {
-    destination: "Sydney", origin: "", start: plan.brief.dates[0], end: plan.brief.dates[1],
-    groupSize: "2", budgetTotal: "400", preferences: [], nationality: "", roomAllocation: "shared",
-    minRating: "0", freeCancellation: false,
+    destination: "Sydney",
+    origin: "",
+    start: plan.brief.dates[0],
+    end: plan.brief.dates[1],
+    groupSize: "2",
+    budgetTotal: "400",
+    preferences: [],
+    nationality: "",
+    roomAllocation: "shared",
+    minRating: "0",
+    freeCancellation: false,
   },
-  messages: [{ role: "user", text: "Create a fixture trip." }, { role: "agent", text: "Ready." }],
+  messages: [
+    { role: "user", text: "Create a fixture trip." },
+    { role: "agent", text: "Ready." },
+  ],
   input: "",
 };
 const conversationId = "conversation:trip-budget-issues-fixture";
@@ -118,31 +243,76 @@ const catalog = {
   version: 4,
   activeConversationId: conversationId,
   activeTripId: tripId,
-  conversations: [{ id: conversationId, title: "Sydney budget issues fixture", updatedAt: savedAt, tripId, messages: snapshot.messages, input: "", snapshot }],
-  trips: [{ id: tripId, title: "Sydney budget issues fixture", updatedAt: savedAt, conversationIds: [conversationId], snapshot }],
-  layout: { sidebar: { collapsed: false }, preferences: { width: 280 }, trip: { width: 340 }, view: "chat", editorView: "map" },
+  conversations: [
+    {
+      id: conversationId,
+      title: "Sydney budget issues fixture",
+      updatedAt: savedAt,
+      tripId,
+      messages: snapshot.messages,
+      input: "",
+      snapshot,
+    },
+  ],
+  trips: [
+    {
+      id: tripId,
+      title: "Sydney budget issues fixture",
+      updatedAt: savedAt,
+      conversationIds: [conversationId],
+      snapshot,
+    },
+  ],
+  layout: {
+    sidebar: { collapsed: false },
+    preferences: { width: 280 },
+    trip: { width: 340 },
+    view: "chat",
+    editorView: "map",
+  },
 };
 const settings = {
-  version: 1, travel: { homeCity: "", preferences: [], interests: [], dietary: [] }, memberships: [],
-  assistant: { style: "neutral", memory: true }, dataMode: "mock", appearance: "system", language: "en",
-  displayCurrency: "JPY", updatedAt: savedAt,
+  version: 1,
+  travel: { homeCity: "", preferences: [], interests: [], dietary: [] },
+  memberships: [],
+  assistant: { style: "neutral", memory: true },
+  dataMode: "mock",
+  appearance: "system",
+  language: "en",
+  displayCurrency: "JPY",
+  updatedAt: savedAt,
 };
-const browser = await chromium.launch({ headless: true, ...(process.env.CHANNEL ? { channel: process.env.CHANNEL } : {}) });
+const browser = await chromium.launch({
+  headless: true,
+  ...(process.env.CHANNEL ? { channel: process.env.CHANNEL } : {}),
+});
 let page;
 try {
-  const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, reducedMotion: "reduce" });
+  const context = await browser.newContext({
+    viewport: { width: 1440, height: 1000 },
+    reducedMotion: "reduce",
+  });
   page = await context.newPage();
   const errors = [];
   page.on("pageerror", (error) => errors.push(String(error)));
   await page.route("**/api/places/search", async (route) => {
     const body = route.request().postDataJSON();
-    if (body.text === "Lookup failure cafe") await route.fulfill({ status: 503, body: "fixture lookup failure" });
-    else await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ places: [] }) });
+    if (body.text === "Lookup failure cafe")
+      await route.fulfill({ status: 503, body: "fixture lookup failure" });
+    else
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ places: [] }),
+      });
   });
-  await page.addInitScript(({ seed, userSettings }) => {
-    localStorage.setItem("trip-workspace-catalog-v3", JSON.stringify(seed));
-    localStorage.setItem("trip.settings.v1", JSON.stringify(userSettings));
-  }, { seed: catalog, userSettings: settings });
+  await page.addInitScript(
+    ({ seed, userSettings }) => {
+      localStorage.setItem("trip-workspace-catalog-v3", JSON.stringify(seed));
+      localStorage.setItem("trip.settings.v1", JSON.stringify(userSettings));
+    },
+    { seed: catalog, userSettings: settings },
+  );
   await page.goto(BASE, { waitUntil: "domcontentloaded" });
   await page.locator(".workspace-app").waitFor();
   await page.getByRole("button", { name: /^Chats/ }).click();
@@ -154,48 +324,146 @@ try {
   await page.locator(".trip-panel").waitFor();
   const budget = page.locator(".trip-panel__budget-summary");
   const summary = budget.locator("summary");
-  check(/JPY\s*54,000/.test(await summary.innerText()), "compact summary shows known estimate in display currency", await summary.innerText());
-  check(/JPY\s*40,000/.test(await summary.innerText()), "budget limit uses display currency", await summary.innerText());
+  check(
+    /JPY\s*54,000/.test(await summary.innerText()),
+    "compact summary shows known estimate in display currency",
+    await summary.innerText(),
+  );
+  check(
+    /JPY\s*40,000/.test(await summary.innerText()),
+    "budget limit uses display currency",
+    await summary.innerText(),
+  );
+  check(
+    /4 unpriced/.test(await summary.innerText()),
+    "compact unknown count covers accommodation and activities; scheduled restaurant is counted once while an unplanned meal idea is excluded",
+    await summary.innerText(),
+  );
   check(!(await budget.evaluate((node) => node.open)), "item breakdown starts collapsed");
   await budget.locator("summary").click();
-  check(await budget.getByText("Free garden", { exact: true }).count() > 0, "breakdown distinguishes a known zero item");
-  check(await budget.getByText("Unpriced museum", { exact: true }).count() > 0, "breakdown discloses an unknown item without a zero amount");
-  check(await budget.getByText("JPY 20,000", { exact: true }).count() > 0, "selected stay uses nightly rate times rooms and nights", await budget.innerText());
-  check(await budget.getByText("JPY 4,000", { exact: true }).count() > 0, "selected flight fare is counted once for the whole group", await budget.innerText());
-  check(await budget.getByText("Unselected expensive stay", { exact: true }).count() === 0 && await budget.getByText("Alternative Air", { exact: true }).count() === 0, "unselected booking alternatives are excluded from item rows");
+  check(
+    (await budget.getByText("Free garden", { exact: true }).count()) > 0,
+    "breakdown distinguishes a known zero item",
+  );
+  check(
+    (await budget.getByText("Unpriced museum", { exact: true }).count()) > 0,
+    "breakdown discloses an unknown item without a zero amount",
+  );
+  check(
+    (await budget.getByText("JPY 20,000", { exact: true }).count()) > 0,
+    "selected stay uses nightly rate times rooms and nights",
+    await budget.innerText(),
+  );
+  check(
+    (await budget.getByText("JPY 4,000", { exact: true }).count()) > 0,
+    "selected flight fare is counted once for the whole group",
+    await budget.innerText(),
+  );
+  check(
+    (await budget.getByText("Unselected expensive stay", { exact: true }).count()) === 0 &&
+      (await budget.getByText("Alternative Air", { exact: true }).count()) === 0,
+    "unselected booking alternatives are excluded from item rows",
+  );
   const issues = page.getByRole("region", { name: /Trip issues|行程问题/ });
-  check(await issues.count() === 1, "issue summary is present in the Trip panel");
+  check((await issues.count()) === 1, "issue summary is present in the Trip panel");
   if (await issues.count()) {
+    check(!(await issues.evaluate((node) => node.open)), "issue details start collapsed");
+    check(
+      await page.locator(".timeline-stop__main").first().isVisible(),
+      "timeline remains visible in the initial viewport while issue details are collapsed",
+    );
+    await issues.locator("summary").click();
     await issues.getByRole("heading", { name: /Unlocated place/ }).waitFor();
     await issues.getByRole("heading", { name: /Place lookup failed/ }).waitFor();
     const issueText = await issues.innerText();
-    check(/time conflict/i.test(issueText) && /unlocated/i.test(issueText) && /unpriced/i.test(issueText) && /lookup failed/i.test(issueText), "issue summary distinguishes all required issue types", issueText);
-    check(await issues.getByRole("button", { name: /Priced gallery/ }).count() > 0, "time conflict links to an affected Stop");
-    await issues.getByRole("button", { name: /Unpriced museum/ }).click();
-    const selectedUnpricedStop = page.locator(".timeline-stop__main").filter({ hasText: "Unpriced museum" });
-    check((await selectedUnpricedStop.getAttribute("aria-expanded")) === "true", "unpriced issue navigates to and opens its Stop");
-    await issues.getByRole("button", { name: /Unlocated place.*Unpriced museum/ }).click();
-    const selectedUnlocatedStop = page.locator(".timeline-stop__main").filter({ hasText: "Unpriced museum" });
-    check((await selectedUnlocatedStop.getAttribute("aria-expanded")) === "true", "unlocated issue navigates to and opens its Stop");
-    await issues.getByRole("button", { name: /Time conflict.*Priced gallery/ }).click();
-    const selectedOverlapStop = page.locator(".timeline-stop__main").filter({ hasText: "Priced gallery" });
-    check((await selectedOverlapStop.getAttribute("aria-expanded")) === "true", "time conflict navigates to and opens an overlapping Stop");
+    check(
+      /time conflict/i.test(issueText) &&
+        /unlocated/i.test(issueText) &&
+        /unpriced/i.test(issueText) &&
+        /lookup failed/i.test(issueText),
+      "issue summary distinguishes all required issue types",
+      issueText,
+    );
+    check(
+      (await issues.getByRole("button", { name: /Priced gallery/ }).count()) > 0,
+      "time conflict links to an affected Stop",
+    );
+    await issues.getByRole("button", { name: /Unpriced item: Unpriced museum/ }).click();
+    const selectedUnpricedStop = page
+      .locator(".timeline-stop__main")
+      .filter({ hasText: "Unpriced museum" });
+    check(
+      (await selectedUnpricedStop.getAttribute("aria-expanded")) === "true",
+      "unpriced issue navigates to and opens its Stop",
+    );
+    await issues.getByRole("button", { name: /Unlocated place: Unpriced museum/ }).click();
+    const selectedUnlocatedStop = page
+      .locator(".timeline-stop__main")
+      .filter({ hasText: "Unpriced museum" });
+    check(
+      (await selectedUnlocatedStop.getAttribute("aria-expanded")) === "true",
+      "unlocated issue navigates to and opens its Stop",
+    );
+    await issues.getByRole("button", { name: /Time conflict: Priced gallery/ }).click();
+    const selectedOverlapStop = page
+      .locator(".timeline-stop__main")
+      .filter({ hasText: "Priced gallery" });
+    check(
+      (await selectedOverlapStop.getAttribute("aria-expanded")) === "true",
+      "time conflict navigates to and opens an overlapping Stop",
+    );
+    await issues.getByRole("button", { name: /Place lookup failed: Lookup failure cafe/ }).click();
+    const selectedLookupStop = page
+      .locator(".timeline-stop__main")
+      .filter({ hasText: "Lookup failure cafe" });
+    check(
+      (await selectedLookupStop.getAttribute("aria-expanded")) === "true",
+      "place lookup failure navigates to and opens its Stop",
+    );
+    await issues.getByRole("button", { name: /Unpriced stay without a day/ }).click();
+    check(await budget.evaluate((node) => node.open), "undated stay issue opens budget details");
+    check(
+      await budget.getByText("Unpriced stay without a day", { exact: true }).isVisible(),
+      "undated stay issue reveals its budget row without inventing a Stop id",
+    );
+    check(
+      (await issues.getByRole("button", { name: /Unpriced meal without a day/ }).count()) === 0 &&
+        (await budget.getByText("Unpriced meal without a day", { exact: true }).count()) === 0,
+      "an unplanned restaurant idea is excluded consistently from budget rows and issue actions",
+    );
+    check(
+      (await budget.getByText("Scheduled restaurant", { exact: true }).count()) === 1,
+      "scheduled restaurant has one unknown-price budget row across dining and activities",
+    );
   }
   check(errors.length === 0, "fixture Trip renders without runtime errors", errors);
   await page.screenshot({ path: `${OUT}/budget-issues.png`, fullPage: true });
 
-  const zhContext = await browser.newContext({ viewport: { width: 1440, height: 1000 }, locale: "zh-CN", reducedMotion: "reduce" });
+  const zhContext = await browser.newContext({
+    viewport: { width: 1440, height: 1000 },
+    locale: "zh-CN",
+    reducedMotion: "reduce",
+  });
   const zhPage = await zhContext.newPage();
   zhPage.on("pageerror", (error) => errors.push(String(error)));
   await zhPage.route("**/api/places/search", async (route) => {
     const body = route.request().postDataJSON();
-    if (body.text === "Lookup failure cafe") await route.fulfill({ status: 503, body: "fixture lookup failure" });
-    else await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ places: [] }) });
+    if (body.text === "Lookup failure cafe")
+      await route.fulfill({ status: 503, body: "fixture lookup failure" });
+    else
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ places: [] }),
+      });
   });
-  await zhPage.addInitScript(({ seed, userSettings }) => {
-    localStorage.setItem("trip-workspace-catalog-v3", JSON.stringify(seed));
-    localStorage.setItem("trip.settings.v1", JSON.stringify(userSettings));
-  }, { seed: catalog, userSettings: { ...settings, language: "zh" } });
+  await zhPage.addInitScript(
+    ({ seed, userSettings }) => {
+      localStorage.setItem("trip-workspace-catalog-v3", JSON.stringify(seed));
+      localStorage.setItem("trip.settings.v1", JSON.stringify(userSettings));
+    },
+    { seed: catalog, userSettings: { ...settings, language: "zh" } },
+  );
   await zhPage.goto(BASE, { waitUntil: "domcontentloaded" });
   await zhPage.locator(".workspace-app").waitFor();
   await zhPage.getByRole("button", { name: /^聊天/ }).click();
@@ -205,22 +473,105 @@ try {
   await zhPage.locator(".trip-panel").waitFor();
   const localizedSummary = zhPage.locator(".trip-panel__budget-summary > summary");
   const localizedText = await localizedSummary.innerText();
-  check(/JPY\s*54,000|¥\s*54,000/.test(localizedText), "Chinese compact summary retains the JPY known estimate", localizedText);
-  check(/行程预算|预算/.test(localizedText), "budget summary labels are localized in Chinese", localizedText);
+  check(
+    /JPY\s*54,000|¥\s*54,000/.test(localizedText),
+    "Chinese compact summary retains the JPY known estimate",
+    localizedText,
+  );
+  check(
+    /行程预算|预算/.test(localizedText),
+    "budget summary labels are localized in Chinese",
+    localizedText,
+  );
+  check(
+    /4 项未定价/.test(localizedText),
+    "Chinese compact unknown count covers accommodation and activities once",
+    localizedText,
+  );
   const localizedIssues = zhPage.getByRole("region", { name: /行程问题/ });
-  check(await localizedIssues.count() === 1, "Chinese issue summary is present in the Trip panel");
+  check(
+    (await localizedIssues.count()) === 1,
+    "Chinese issue summary is present in the Trip panel",
+  );
   if (await localizedIssues.count()) {
+    check(
+      !(await localizedIssues.evaluate((node) => node.open)),
+      "Chinese issue details start collapsed",
+    );
+    await localizedIssues.locator("summary").click();
     await localizedIssues.getByRole("heading", { name: /尚未定位/ }).waitFor();
     await localizedIssues.getByRole("heading", { name: /地点查询失败/ }).waitFor();
     const issueText = await localizedIssues.innerText();
-    check(/时间冲突/.test(issueText) && /尚未定位/.test(issueText) && /未定价/.test(issueText) && /地点查询失败/.test(issueText), "Chinese issue groups distinguish overlap, unlocated, unpriced and lookup failure", issueText);
+    check(
+      /时间冲突/.test(issueText) &&
+        /尚未定位/.test(issueText) &&
+        /未定价/.test(issueText) &&
+        /地点查询失败/.test(issueText),
+      "Chinese issue groups distinguish overlap, unlocated, unpriced and lookup failure",
+      issueText,
+    );
   }
   await zhPage.screenshot({ path: `${OUT}/budget-issues-zh.png`, fullPage: true });
   await zhContext.close();
+
+  const phoneContext = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    reducedMotion: "reduce",
+  });
+  const phonePage = await phoneContext.newPage();
+  phonePage.on("pageerror", (error) => errors.push(String(error)));
+  await phonePage.route("**/api/places/search", async (route) => {
+    const body = route.request().postDataJSON();
+    if (body.text === "Lookup failure cafe")
+      await route.fulfill({ status: 503, body: "fixture lookup failure" });
+    else
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ places: [] }),
+      });
+  });
+  await phonePage.addInitScript(
+    ({ seed, userSettings }) => {
+      localStorage.setItem("trip-workspace-catalog-v3", JSON.stringify(seed));
+      localStorage.setItem("trip.settings.v1", JSON.stringify(userSettings));
+    },
+    { seed: catalog, userSettings: settings },
+  );
+  await phonePage.goto(BASE, { waitUntil: "domcontentloaded" });
+  await phonePage.locator(".workspace-app").waitFor();
+  await phonePage.getByRole("tab", { name: "Mine", exact: true }).click();
+  await phonePage.locator('.history-item__open[title="Sydney budget issues fixture"]').click();
+  await phonePage.getByRole("tab", { name: /^Trip/ }).click();
+  await phonePage.locator(".trip-panel").waitFor();
+  const phoneIssues = phonePage.getByRole("region", { name: /Trip issues/ });
+  check(!(await phoneIssues.evaluate((node) => node.open)), "phone issue details start collapsed");
+  const firstPhoneStop = phonePage.locator(".timeline-stop__main").first();
+  const firstPhoneStopBox = await firstPhoneStop.boundingBox();
+  check(
+    (await firstPhoneStop.isVisible()) &&
+      firstPhoneStopBox !== null &&
+      firstPhoneStopBox.y + firstPhoneStopBox.height <= 844,
+    "390px phone first Stop remains within the initial viewport with collapsed issues",
+    firstPhoneStopBox,
+  );
+  await phoneIssues.locator("summary").click();
+  check(
+    await phoneIssues.getByRole("button", { name: /Unpriced stay without a day/ }).isVisible(),
+    "phone issue summary can expand to reveal category issues",
+  );
+  await phonePage.screenshot({ path: `${OUT}/budget-issues-phone.png`, fullPage: true });
+  await phoneContext.close();
   await context.close();
 } catch (error) {
   if (page) {
-    writeFileSync(`${OUT}/failure-state.txt`, `${page.url()}\n${await page.locator("body").innerText().catch(() => "")}`);
+    writeFileSync(
+      `${OUT}/failure-state.txt`,
+      `${page.url()}\n${await page
+        .locator("body")
+        .innerText()
+        .catch(() => "")}`,
+    );
     await page.screenshot({ path: `${OUT}/failure.png`, fullPage: true }).catch(() => {});
   }
   check(false, "budget and issue journey completes", String(error));

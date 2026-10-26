@@ -123,8 +123,28 @@
   border-bottom: 1px solid var(--border);
 }
 
+.trip-issues > summary {
+  cursor: pointer;
+}
+
+.workspace-app[data-phone] .trip-panel > .currency-notice {
+  display: none;
+}
+
+.workspace-app[data-phone] .trip-issues {
+  padding-block: var(--space-1);
+}
+
+.trip-issues > summary h3 {
+  display: inline;
+}
+
+.trip-issues[open] > summary {
+  margin-bottom: var(--space-2);
+}
+
 .trip-issues h3 {
-  margin: 0 0 var(--space-2);
+  margin: 0;
   font-size: 14px;
 }
 
