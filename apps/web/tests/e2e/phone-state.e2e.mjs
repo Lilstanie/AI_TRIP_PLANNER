@@ -196,7 +196,9 @@ async function run(browser, size) {
   check(
     geometry.latest.bodyBottom > geometry.stream.top &&
       geometry.latest.bodyBottom <= geometry.stream.bottom + 2 &&
-      geometry.latest.bodyBottom <= geometry.composer.top + 2,
+      geometry.latest.bodyBottom <= geometry.composer.top + 2 &&
+      geometry.latest.bottom <= geometry.stream.bottom + 2 &&
+      geometry.latest.bottom <= geometry.composer.top + 2,
     `${prefix}: latest reply is visible above composer (${JSON.stringify(geometry)})`,
   );
   check(geometry.pageTop === 0, `${prefix}: keyboard focus does not scroll document`);
