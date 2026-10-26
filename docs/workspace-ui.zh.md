@@ -10,15 +10,15 @@ Web 应用（`apps/web`）是单用户规划工作区。本文描述其当前行
 
 ## 布局
 
-| 区域           | 内容                                                                                                                                             | 实现                                                                                                        |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
-| 侧边栏         | Logo、带数量的 Chats 和 Trips、保存或同步状态、Settings & account                                                                                | `WorkspaceSidebar`、`BrandMark`、`icons.tsx`                                                                |
-| Chats 面板     | 在侧边栏旁滑出：搜索、New chat、New trip，然后是行程和聊天                                                                                       | `ChatsPanel`、`TripCover`                                                                                   |
-| Your trips     | 通过 Trips 打开，替代聊天和地图：行程卡片（Upcoming、Past）、Calendar 标签页和 New trip                                                          | `TripsPage`、`TripCover`                                                                                    |
-| 顶栏           | 桌面：左上 Conversation \| Trajectory 与 Agent Team；Brief 标签仅在旅客开始后出现；右侧保留数据模式；有 Plan 才显示 Trip。界面语言只在设置中切换 | `WorkspaceView`、`TripFactChips`、`TeamControl`、`ChatViewTabs`、`PhoneTeamButton`                          |
-| 行程事实编辑器 | 每个标签对应一个编辑器，全部为居中对话框；Preferences 保存旅客自己的列表                                                                         | `FactPopover`、`FactFields`、`TripCalendar`、`WhereFields`、`PreferenceList`、`lib/workspace/trip-facts.ts` |
-| 聊天           | Conversation 或 Trajectory、规划 transcript、输入区；空白未动聊天在输入区旁显示建议芯片；聚焦且为空时轮换 placeholder                            | `ChatPanel`                                                                                                 |
-| 地图           | 仅包含地图、带标签的标记、按天着色的弧形行程线、地点弹窗、地图状态，以及定位／地图类型／缩放控件                                                 | `TripMapCanvas`、`TripMap`                                                                                  |
+| 区域           | 内容                                                                                                                                                   | 实现                                                                                                                    |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| 侧边栏         | Logo、带数量的 Chats 和 Trips、保存或同步状态、Settings & account                                                                                      | `WorkspaceSidebar`、`BrandMark`、`icons.tsx`                                                                            |
+| Chats 面板     | 在侧边栏旁滑出：搜索、New chat、New trip，然后是行程和聊天                                                                                             | `ChatsPanel`、`TripCover`                                                                                               |
+| Your trips     | 通过 Trips 打开，替代聊天和地图：行程卡片（Upcoming、Past）、Calendar 标签页和 New trip                                                                | `TripsPage`、`TripCover`                                                                                                |
+| 顶栏           | 桌面：左上 Conversation \| Trajectory 与 Agent Team；Brief 标签仅在旅客开始后出现；右侧保留数据模式；有 Plan 才显示 Trip。界面语言只在设置中切换       | `WorkspaceView`、`TripFactChips`、`TeamControl`、`ChatViewTabs`、`PhoneTeamButton`                                      |
+| 行程事实编辑器 | 每个标签对应一个编辑器，全部为居中对话框；Preferences 保存旅客自己的列表                                                                               | `FactPopover`、`FactFields`、`TripCalendar`、`WhereFields`、`PreferenceList`、`lib/workspace/trip-facts.ts`             |
+| 聊天           | Conversation 或 Trajectory、规划 transcript、输入区；空白未动聊天在输入区旁显示建议芯片；聚焦且为空时轮换 placeholder                                  | `ChatPanel`                                                                                                             |
+| 地图           | 仅包含地图、带标签的标记、按天着色的弧形行程线、地点弹窗、地图状态，以及定位／地图类型／缩放控件                                                       | `TripMapCanvas`、`TripMap`                                                                                              |
 | Trip 工作区    | 桌面端专用的行程与联动地图；平板端行程／地图切换；手机端沿用 Trip 标签页。行程包含预算、未解决冲突、提示、日期条、所选日期的停靠点与预订，然后是 Ideas | `WorkspaceView`、`TripEditor`、`TripPanel`、`TripTips`、`TripMapCanvas`、`timeline/TimelineStop`、`timeline/BookingRow` |
 
 - **侧边栏。**
@@ -409,16 +409,16 @@ Data mode 默认是 Fixture data。只有部署启用后才能选择 Live data�
 
 每次视觉变化都使用此检查清单。它补充而不改变上文描述的布局和抽屉行为。
 
-| 维度     | 必需检查                                               |
-| -------- | ------------------------------------------------------ |
-| 视口     | 1600×900、接近 1000 px 响应式边界，以及 375×812        |
-| 主题     | 每个相关视口的浅色和深色主题                           |
-| 动效     | 默认值和 `prefers-reduced-motion: reduce`              |
-| 输入     | 鼠标和完整键盘导航，包括可见焦点                       |
-| 工作区   | 侧边栏调整大小／折叠、Chat/Map 切换，以及无横向溢出    |
-| 覆盖层   | 导航和标签编辑器；关闭、Escape 和焦点返回；Trip 桌面／平板／手机布局  |
-| 内容     | 空聊天／地图、规划和失败状态、长消息，以及可用地图地点 |
-| 原生控件 | 日期、选择框、复选框和滚动条遵循当前颜色方案           |
+| 维度     | 必需检查                                                             |
+| -------- | -------------------------------------------------------------------- |
+| 视口     | 1600×900、接近 1000 px 响应式边界，以及 375×812                      |
+| 主题     | 每个相关视口的浅色和深色主题                                         |
+| 动效     | 默认值和 `prefers-reduced-motion: reduce`                            |
+| 输入     | 鼠标和完整键盘导航，包括可见焦点                                     |
+| 工作区   | 侧边栏调整大小／折叠、Chat/Map 切换，以及无横向溢出                  |
+| 覆盖层   | 导航和标签编辑器；关闭、Escape 和焦点返回；Trip 桌面／平板／手机布局 |
+| 内容     | 空聊天／地图、规划和失败状态、长消息，以及可用地图地点               |
+| 原生控件 | 日期、选择框、复选框和滚动条遵循当前颜色方案                         |
 
 桌面（1600×900）和窄屏（375×812）验收均保留浅色、深色截图。使用对比度工具验证正文和辅助文字对比度；颜色不可用时，状态仍必须有文字或图形提示。
 

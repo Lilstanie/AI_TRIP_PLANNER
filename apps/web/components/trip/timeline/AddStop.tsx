@@ -181,6 +181,7 @@ export function AddStop({
       <label>
         {t("Day")}
         <select
+          aria-label={t("Day")}
           value={draft.day}
           disabled={locked}
           onChange={(event) => {
@@ -218,9 +219,9 @@ export function AddStop({
         />
       </label>
       {draft.startTime && draft.endTime && draft.endTime <= draft.startTime && (
-        <p className="stop-editor__hint" role="alert">
-          {t("End time must be after start time on the same day.")}
-        </p>
+        <ul className="stop-editor__errors" role="alert">
+          <li>{t("End time must be after start time on the same day.")}</li>
+        </ul>
       )}
       {stale && <DraftStaleNotice onRebase={onRebase} />}
       <div className="item-editor__actions">

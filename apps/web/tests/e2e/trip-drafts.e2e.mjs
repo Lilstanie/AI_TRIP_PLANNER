@@ -16,6 +16,7 @@ const check = (ok, name, detail) => {
 };
 const savedAt = "2026-10-26T00:00:00Z";
 const browser = await chromium.launch({ channel: process.env.CHANNEL });
+let currentPage;
 
 try {
   for (const viewport of [
@@ -24,6 +25,7 @@ try {
   ]) {
     const context = await browser.newContext({ viewport, reducedMotion: "reduce" });
     const page = await context.newPage();
+    currentPage = page;
     const pageErrors = [];
     page.on("pageerror", (error) => pageErrors.push(String(error)));
     const first = placeFor("Draft Museum");
@@ -243,6 +245,13 @@ try {
     );
     await page.screenshot({ path: resolve(out, `draft-${viewport.width}.png`), fullPage: true });
     await context.close();
+  }
+} catch (error) {
+  check(false, "draft workflow completed without an exception", String(error));
+  if (currentPage) {
+    await currentPage
+      .screenshot({ path: resolve(out, "exception.png"), fullPage: true })
+      .catch(() => undefined);
   }
 } finally {
   await browser.close();

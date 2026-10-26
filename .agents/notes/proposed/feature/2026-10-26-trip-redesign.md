@@ -119,12 +119,12 @@ An AI context entry identifies the day/Stop being discussed but does not promise
 
 ### Delivery boundaries
 
-| Task | Owns | Integration boundary |
-| --- | --- | --- |
-| Layout and map linking | Dedicated Trip surface, day navigation, timeline density, linked selection/details, travel actions, tips and responsive workspace header | Shared day/Stop identity, available header space and breakpoint behaviour |
-| Direct editing | Search/manual addition, editable suggested time, Save as Idea, discoverable existing actions, Undo and AI context/replacement confirmation | Validated Plan actions, persistence and edit identity |
-| Budget and issues | Compact known-cost summary, unpriced counts, category/item breakdown and issue-to-action navigation | Derive amounts and issues from the current Plan; consume selection/edit actions |
-| Draft protection | Retention through day/view/width changes, discard confirmation, failed-save retry and stale-edit handling | Shared draft ownership and Plan revision rules |
+| Task                   | Owns                                                                                                                                       | Integration boundary                                                            |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
+| Layout and map linking | Dedicated Trip surface, day navigation, timeline density, linked selection/details, travel actions, tips and responsive workspace header   | Shared day/Stop identity, available header space and breakpoint behaviour       |
+| Direct editing         | Search/manual addition, editable suggested time, Save as Idea, discoverable existing actions, Undo and AI context/replacement confirmation | Validated Plan actions, persistence and edit identity                           |
+| Budget and issues      | Compact known-cost summary, unpriced counts, category/item breakdown and issue-to-action navigation                                        | Derive amounts and issues from the current Plan; consume selection/edit actions |
+| Draft protection       | Retention through day/view/width changes, discard confirmation, failed-save retry and stale-edit handling                                  | Shared draft ownership and Plan revision rules                                  |
 
 Agree the selection, edit and draft interfaces before parallel implementation. The tasks converge
 on one integration branch and one PR, followed by a parent-owned complete-flow check. Run project
@@ -167,23 +167,23 @@ has no day. The interview has not introduced a new domain term requiring a gloss
 - The following failure inventory drives repeatable E2E checks before implementation. No browser
   scenarios have been executed for this proposal; it is a specification, not verification evidence.
 
-| Scenario or failure | Required outcome |
-| --- | --- |
-| Open an existing multi-day Trip | The selected day and timeline take priority; budget and tips do not dominate the initial screen |
-| Select a day or Stop on either the timeline or map | Both views identify the same valid day/Stop; unlocated Stops remain reachable in the timeline |
-| Add through search, add manually, or save as Idea | Confirmed additions persist with correct identity; no invented position/price; Ideas have no day/time |
-| A suggested time conflicts or validation refuses an edit | Existing Stops are not silently moved; entered values remain and the reason is actionable |
-| Change time/place/note, reorder, move days, remove, then Undo | Each action preserves unrelated fields and synchronises the Plan/map/budget; Undo reverses the last applicable change |
-| Costs are missing, zero, estimated or over budget | Unknown and zero remain distinct, totals disclose incomplete costing, and breakdowns correspond to current items |
-| Locate a time conflict, unlocated place, unpriced item or failed lookup | The summary reaches the relevant item/action without blocking unrelated viewing and editing |
-| Switch day, view or Trip/Map layout with dirty fields | Draft and a way back to it remain available; closing or Back that discards it requires a choice |
-| A save fails or another revision overtakes an edit | Input remains recoverable; retry uses a current Plan and a stale result never replaces newer work |
-| Start AI replanning after manual changes | Cancellation sends nothing; accepted generation leaves the old Plan readable; failure preserves it and success replaces it |
-| Travel dates include today, or the traveller selects another day | Default/today navigation uses the destination's resolved date; a valid manual selection remains selected |
-| Reopen a Trip or switch between saved Trips | Each restores valid browsing context and persisted changes without leaking another Trip's selection or draft |
+| Scenario or failure                                                           | Required outcome                                                                                                                                           |
+| ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Open an existing multi-day Trip                                               | The selected day and timeline take priority; budget and tips do not dominate the initial screen                                                            |
+| Select a day or Stop on either the timeline or map                            | Both views identify the same valid day/Stop; unlocated Stops remain reachable in the timeline                                                              |
+| Add through search, add manually, or save as Idea                             | Confirmed additions persist with correct identity; no invented position/price; Ideas have no day/time                                                      |
+| A suggested time conflicts or validation refuses an edit                      | Existing Stops are not silently moved; entered values remain and the reason is actionable                                                                  |
+| Change time/place/note, reorder, move days, remove, then Undo                 | Each action preserves unrelated fields and synchronises the Plan/map/budget; Undo reverses the last applicable change                                      |
+| Costs are missing, zero, estimated or over budget                             | Unknown and zero remain distinct, totals disclose incomplete costing, and breakdowns correspond to current items                                           |
+| Locate a time conflict, unlocated place, unpriced item or failed lookup       | The summary reaches the relevant item/action without blocking unrelated viewing and editing                                                                |
+| Switch day, view or Trip/Map layout with dirty fields                         | Draft and a way back to it remain available; closing or Back that discards it requires a choice                                                            |
+| A save fails or another revision overtakes an edit                            | Input remains recoverable; retry uses a current Plan and a stale result never replaces newer work                                                          |
+| Start AI replanning after manual changes                                      | Cancellation sends nothing; accepted generation leaves the old Plan readable; failure preserves it and success replaces it                                 |
+| Travel dates include today, or the traveller selects another day              | Default/today navigation uses the destination's resolved date; a valid manual selection remains selected                                                   |
+| Reopen a Trip or switch between saved Trips                                   | Each restores valid browsing context and persisted changes without leaking another Trip's selection or draft                                               |
 | Constrain the header with an expanded sidebar, long Trip name or browser zoom | Team entry compacts to one icon with an accessible name and working count; Trip identity and primary controls remain reachable without overlap or clipping |
-| Open the compact team entry while idle or working | Keyboard and pointer access reach the specialist panel; working state remains understandable without colour or hover |
-| Use English/Chinese, keyboard navigation, dark/light themes or reduced motion | Labels remain usable, controls reachable, focus predictable and essential information independent of animation/colour |
+| Open the compact team entry while idle or working                             | Keyboard and pointer access reach the specialist panel; working state remains understandable without colour or hover                                       |
+| Use English/Chinese, keyboard navigation, dark/light themes or reduced motion | Labels remain usable, controls reachable, focus predictable and essential information independent of animation/colour                                      |
 
 Cover representative desktop, tablet and phone sizes, plus the 520/521 and 1000/1001 px transitions, with
 deterministic fixture data. Record exact revision, commands, assertions and screenshots. Fixture

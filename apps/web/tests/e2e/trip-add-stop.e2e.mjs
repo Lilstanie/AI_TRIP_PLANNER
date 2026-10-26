@@ -57,9 +57,6 @@ try {
     }),
   );
 
-  // Failure inventory: reject incomplete/reversed schedules and overlaps; allow
-  // unknown coordinates/cost; preserve every existing Stop's confirmed schedule;
-  // keep Ideas unscheduled; and persist successful edits through the workspace.
   const apiEvidence = await page.evaluate(async () => {
     const key = Object.keys(localStorage).find((item) => item.startsWith("trip-workspace-catalog"));
     const catalog = key ? JSON.parse(localStorage.getItem(key) ?? "null") : null;

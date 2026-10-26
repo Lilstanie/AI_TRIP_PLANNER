@@ -8,16 +8,16 @@ now. Implementation history and browser acceptance for each phase are in the
 
 ## Layout
 
-| Area              | Content                                                                                                                                                                                     | Implementation                                                                                              |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| Sidebar           | Logo, Chats and Trips with counts, save or sync status, Settings & account                                                                                                                  | `WorkspaceSidebar`, `BrandMark`, `icons.tsx`                                                                |
-| Chats panel       | Slides out beside the sidebar: search, New chat, New trip, then trips and chats                                                                                                             | `ChatsPanel`, `TripCover`                                                                                   |
-| Your trips        | Opened by Trips in place of chat and map: trip cards (Upcoming, Past) and a Calendar tab; New trip                                                                                          | `TripsPage`, `TripCover`                                                                                    |
-| Top bar           | Desktop: Conversation \| Trajectory and Agent Team on the left; Brief chips only after the traveller has started; data mode on the right; Trip only with a Plan. Language only in Settings. | `WorkspaceView`, `TripFactChips`, `TeamControl`, `ChatViewTabs`, `PhoneTeamButton`                          |
-| Trip fact editors | One editor per chip, every one a centred dialog; Preferences holds the traveller's own list                                                                                                 | `FactPopover`, `FactFields`, `TripCalendar`, `WhereFields`, `PreferenceList`, `lib/workspace/trip-facts.ts` |
-| Chat              | Conversation or Trajectory, the planning transcript, the composer; suggestion chips beside the composer on a blank untouched chat; rotating placeholders while focused and empty            | `ChatPanel`                                                                                                 |
-| Map               | Only the map, labelled markers, curved day-coloured itinerary lines, the place popup, map status, and the locate / map type / zoom controls                                                 | `TripMapCanvas`, `TripMap`                                                                                  |
-| Trip workspace   | Dedicated itinerary and linked map on desktop; itinerary/map switch on tablet; the existing Trip tab on phones. Itinerary includes budget, open conflicts, tips, day strip, selected-day stops and bookings, then Ideas | `WorkspaceView`, `TripEditor`, `TripPanel`, `TripTips`, `TripMapCanvas`, `timeline/TimelineStop`, `timeline/BookingRow` |
+| Area              | Content                                                                                                                                                                                                                 | Implementation                                                                                                          |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Sidebar           | Logo, Chats and Trips with counts, save or sync status, Settings & account                                                                                                                                              | `WorkspaceSidebar`, `BrandMark`, `icons.tsx`                                                                            |
+| Chats panel       | Slides out beside the sidebar: search, New chat, New trip, then trips and chats                                                                                                                                         | `ChatsPanel`, `TripCover`                                                                                               |
+| Your trips        | Opened by Trips in place of chat and map: trip cards (Upcoming, Past) and a Calendar tab; New trip                                                                                                                      | `TripsPage`, `TripCover`                                                                                                |
+| Top bar           | Desktop: Conversation \| Trajectory and Agent Team on the left; Brief chips only after the traveller has started; data mode on the right; Trip only with a Plan. Language only in Settings.                             | `WorkspaceView`, `TripFactChips`, `TeamControl`, `ChatViewTabs`, `PhoneTeamButton`                                      |
+| Trip fact editors | One editor per chip, every one a centred dialog; Preferences holds the traveller's own list                                                                                                                             | `FactPopover`, `FactFields`, `TripCalendar`, `WhereFields`, `PreferenceList`, `lib/workspace/trip-facts.ts`             |
+| Chat              | Conversation or Trajectory, the planning transcript, the composer; suggestion chips beside the composer on a blank untouched chat; rotating placeholders while focused and empty                                        | `ChatPanel`                                                                                                             |
+| Map               | Only the map, labelled markers, curved day-coloured itinerary lines, the place popup, map status, and the locate / map type / zoom controls                                                                             | `TripMapCanvas`, `TripMap`                                                                                              |
+| Trip workspace    | Dedicated itinerary and linked map on desktop; itinerary/map switch on tablet; the existing Trip tab on phones. Itinerary includes budget, open conflicts, tips, day strip, selected-day stops and bookings, then Ideas | `WorkspaceView`, `TripEditor`, `TripPanel`, `TripTips`, `TripMapCanvas`, `timeline/TimelineStop`, `timeline/BookingRow` |
 
 - **Sidebar.**
   - Expands to 240 px (220 px below 1250 px) or collapses to a 64 px icon rail. The toggle uses
@@ -1212,16 +1212,16 @@ must retain their provider and freshness labels.
 
 Use this checklist for each visual change. It supplements, and does not change, the layout and drawer behavior described above.
 
-| Dimension       | Required checks                                                                      |
-| --------------- | ------------------------------------------------------------------------------------ |
-| Viewports       | 1600×900, near the 1000 px responsive boundary, and 375×812                          |
-| Theme           | Light and dark at each relevant viewport                                             |
-| Motion          | Default and `prefers-reduced-motion: reduce`                                         |
-| Input           | Mouse and full keyboard navigation, including visible focus                          |
-| Workspace       | Sidebar resize/collapse, Chat/Map switch, and no horizontal overflow                 |
+| Dimension       | Required checks                                                                                 |
+| --------------- | ----------------------------------------------------------------------------------------------- |
+| Viewports       | 1600×900, near the 1000 px responsive boundary, and 375×812                                     |
+| Theme           | Light and dark at each relevant viewport                                                        |
+| Motion          | Default and `prefers-reduced-motion: reduce`                                                    |
+| Input           | Mouse and full keyboard navigation, including visible focus                                     |
+| Workspace       | Sidebar resize/collapse, Chat/Map switch, and no horizontal overflow                            |
 | Overlays        | Navigation and chip editors; close, Escape, and focus return; Trip desktop/tablet/phone layouts |
-| Content         | Empty chat/map, planning and failure states, long messages, and available map places |
-| Native controls | Date, select, checkbox, and scrollbar follow the active color scheme                 |
+| Content         | Empty chat/map, planning and failure states, long messages, and available map places            |
+| Native controls | Date, select, checkbox, and scrollbar follow the active color scheme                            |
 
 Keep light and dark screenshots for desktop (1600×900) and narrow (375×812) acceptance. Verify body and supporting text contrast with a contrast tool; status must retain a textual or graphical cue when color is unavailable.
 
