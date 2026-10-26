@@ -21,6 +21,8 @@ let currentPage;
 try {
   for (const viewport of [
     { width: 1440, height: 900 },
+    { width: 521, height: 844 },
+    { width: 520, height: 844 },
     { width: 390, height: 844 },
   ]) {
     const context = await browser.newContext({ viewport, reducedMotion: "reduce" });
@@ -37,9 +39,14 @@ try {
     await page.route("**/api/places/search", (route) =>
       route.fulfill({ json: { places: [second] } }),
     );
-    await page.route("**/api/trip/preview-edit", (route) =>
-      route.fulfill({ status: 503, json: { error: "Draft fixture save failure" } }),
-    );
+    let failNextPlaceSave = true;
+    await page.route("**/api/trip/preview-edit", (route) => {
+      if (failNextPlaceSave) {
+        failNextPlaceSave = false;
+        return route.fulfill({ status: 503, json: { error: "Draft fixture save failure" } });
+      }
+      return route.continue();
+    });
     const tripId = `draft-trip-${viewport.width}`;
     const plan = {
       tripId,
@@ -115,6 +122,16 @@ try {
       messages: [],
       input: "",
     };
+    const otherTripId = `draft-trip-alternate-${viewport.width}`;
+    const otherConversationId = `draft-conversation-alternate-${viewport.width}`;
+    const otherPlan = structuredClone(plan);
+    otherPlan.tripId = otherTripId;
+    otherPlan.brief.tripId = otherTripId;
+    otherPlan.brief.destination = "Melbourne";
+    otherPlan.sections[0].proposal.items.forEach((item) => {
+      item.id = `${item.id}-alternate`;
+    });
+    const otherSnapshot = { ...snapshot, id: otherConversationId, plan: otherPlan };
     const catalog = {
       version: 4,
       activeConversationId: conversationId,
@@ -129,6 +146,15 @@ try {
           input: "",
           snapshot,
         },
+        {
+          id: otherConversationId,
+          title: "Melbourne draft",
+          updatedAt: savedAt,
+          tripId: otherTripId,
+          messages: [],
+          input: "",
+          snapshot: otherSnapshot,
+        },
       ],
       trips: [
         {
@@ -138,6 +164,14 @@ try {
           updatedAt: savedAt,
           conversationIds: [conversationId],
           snapshot,
+        },
+        {
+          id: otherTripId,
+          title: "Melbourne draft",
+          status: "draft",
+          updatedAt: savedAt,
+          conversationIds: [otherConversationId],
+          snapshot: otherSnapshot,
         },
       ],
       layout: {
@@ -167,14 +201,35 @@ try {
     );
     await page.goto(process.env.BASE_URL ?? "http://localhost:3115");
     await page.locator(".workspace-app").waitFor();
+    const selectSavedTrip = async (title) => {
+      const destination = title.startsWith("Melbourne") ? "Melbourne" : "Sydney";
+      if (viewport.width <= 520) {
+        await page.getByRole("tab", { name: "Mine", exact: true }).click();
+        await page
+          .locator(".phone-mine .trip-card")
+          .filter({ hasText: destination })
+          .first()
+          .click();
+        const tripTab = page.getByRole("tab", { name: "Trip", exact: true });
+        if (await tripTab.count()) await tripTab.click();
+      } else {
+        if (viewport.width <= 900) {
+          await page.getByRole("button", { name: "Open navigation", exact: true }).click();
+        }
+        await page.getByRole("button", { name: /^Trips/ }).click();
+        await page
+          .locator(".trips-page .trip-card")
+          .filter({ hasText: destination })
+          .first()
+          .click();
+        const openTrip = page.getByRole("button", { name: "Open your trip", exact: true });
+        if ((await openTrip.getAttribute("aria-expanded")) !== "true") await openTrip.click();
+      }
+    };
     if (viewport.width <= 520) {
-      await page.getByRole("tab", { name: "Mine", exact: true }).click();
-      await page.locator(".phone-mine .trip-card").first().click();
-      const tripTab = page.getByRole("tab", { name: /^Trip/ });
-      if (await tripTab.count()) await tripTab.click();
+      await selectSavedTrip("Sydney draft");
     } else {
-      await page.getByRole("button", { name: /^Trips/ }).click();
-      await page.locator(".trips-page .trip-card").first().click();
+      await selectSavedTrip("Sydney draft");
     }
     const timeline = page.getByRole("region", { name: "Trip timeline" });
     await timeline.waitFor({ timeout: 5000 }).catch(() => undefined);
@@ -187,26 +242,35 @@ try {
       await context.close();
       continue;
     }
-    const dayOne = timeline.getByRole("tab").filter({ hasText: /^Day 1/ });
-    const dayTwo = timeline.getByRole("tab").filter({ hasText: /^Day 2/ });
-    await dayOne.click();
-    await page.locator(".timeline-stop").first().locator(".action-menu__trigger").click();
-    await page.getByRole("menuitem", { name: "Add a note" }).click();
-    const note = page.getByRole("textbox", { name: "Note", exact: true });
-    await note.fill(`draft-${viewport.width}`);
-    await dayTwo.click();
-    await dayOne.click();
+    if (viewport.width > 520) {
+      const dayOne = timeline.getByRole("tab").filter({ hasText: /^Day 1/ });
+      const dayTwo = timeline.getByRole("tab").filter({ hasText: /^Day 2/ });
+      await dayOne.click();
+      await page.locator(".timeline-stop").first().locator(".action-menu__trigger").click();
+      await page.getByRole("menuitem", { name: "Add a note" }).click();
+      const note = page.getByRole("textbox", { name: "Note", exact: true });
+      await note.fill(`draft-${viewport.width}`);
+      await selectSavedTrip("Melbourne draft");
+      check(
+        (await page.getByRole("button", { name: /Continue editing/ }).count()) === 0,
+        `a different saved Trip has no restore entry for ${viewport.width}px`,
+      );
+      await selectSavedTrip("Sydney draft");
+      await dayTwo.click();
+      await dayOne.click();
 
     const restore = page.getByRole("button", { name: /Continue editing/ });
     const hasRestoreEntry = await restore
       .first()
       .isVisible()
       .catch(() => false);
-    check(
-      hasRestoreEntry,
-      `draft restore entry is available after day navigation at ${viewport.width}px`,
-    );
-    if (hasRestoreEntry) {
+    if (viewport.width > 520) {
+      check(
+        hasRestoreEntry,
+        `draft restore entry is available after day navigation at ${viewport.width}px`,
+      );
+    }
+    if (viewport.width > 520 && hasRestoreEntry) {
       await restore.first().click();
       const restoredNote = page.getByRole("textbox", { name: "Note", exact: true });
       await restoredNote.waitFor({ state: "visible" });
@@ -214,6 +278,26 @@ try {
         (await restoredNote.inputValue()) === `draft-${viewport.width}`,
         `note draft returns to its Stop at ${viewport.width}px`,
       );
+      if (viewport.width <= 520) {
+        const tabs = page.locator(".phone-tabbar");
+        await tabs.getByRole("tab", { name: "Map", exact: true }).click();
+        await tabs.getByRole("tab", { name: "Trip", exact: true }).click();
+      } else if (viewport.width === 521) {
+        const tripViews = page.getByRole("group", { name: "Trip views" });
+        await tripViews.getByRole("button", { name: "Map", exact: true }).click();
+        await tripViews.getByRole("button", { name: "Itinerary", exact: true }).click();
+      }
+      if (viewport.width === 520) {
+        await page.setViewportSize({ width: 521, height: 844 });
+        const tripViews = page.getByRole("group", { name: "Trip views" });
+        await tripViews.getByRole("button", { name: "Map", exact: true }).click();
+        await tripViews.getByRole("button", { name: "Itinerary", exact: true }).click();
+        await page.setViewportSize({ width: 520, height: 844 });
+        const tabs = page.locator(".phone-tabbar");
+        await tabs.getByRole("tab", { name: "Map", exact: true }).click();
+        await tabs.getByRole("tab", { name: "Trip", exact: true }).click();
+        check(true, "a dirty note remains reachable across the 520px and 521px surfaces");
+      }
       await restoredNote.press("Escape");
       const discardDialog = page.getByRole("dialog", { name: "Discard changes?" });
       await discardDialog.waitFor({ state: "visible" });
@@ -223,12 +307,72 @@ try {
         `cancel keeps the note draft at ${viewport.width}px`,
       );
       await restoredNote.press("Escape");
-      await discardDialog.getByRole("button", { name: "Discard changes" }).click();
+      await discardDialog.getByRole("button", { name: "Discard changes", exact: true }).click();
+      await discardDialog.waitFor({ state: "detached" });
+      await page.locator(".trip-draft-restore button").waitFor({ state: "detached" });
       check(
-        !(await page.getByRole("button", { name: /Continue editing/ }).count()),
+        !(await page.locator(".trip-draft-restore button").count()),
         `confirmed discard clears the note draft at ${viewport.width}px`,
       );
     }
+    }
+
+    const addPlaceEntry = page.getByRole("button", { name: "Add place", exact: true });
+    if (viewport.width === 521 || viewport.width === 520) {
+      await addPlaceEntry.focus();
+      await addPlaceEntry.press("Enter");
+    } else {
+      await addPlaceEntry.click();
+    }
+    const addForm = page.getByRole("region", { name: "Add place" });
+    await addForm.getByRole("searchbox", { name: "Search places" }).fill("draft search");
+    await addForm.getByLabel("Place name").fill(`Add draft ${viewport.width}`);
+    await addForm.getByLabel("What you will do").fill("Keep this unfinished addition");
+    await addForm.getByLabel("Start time").fill("14:00");
+    await addForm.getByLabel("End time").fill("15:00");
+    if (viewport.width === 520) {
+      await page.setViewportSize({ width: 521, height: 844 });
+      const tripViews = page.getByRole("group", { name: "Trip views" });
+      await tripViews.getByRole("button", { name: "Map", exact: true }).click();
+      await tripViews.getByRole("button", { name: "Itinerary", exact: true }).click();
+      await page.setViewportSize({ width: 520, height: 844 });
+      const tabs = page.locator(".phone-tabbar");
+      await tabs.getByRole("tab", { name: "Map", exact: true }).click();
+      await tabs.getByRole("tab", { name: "Trip", exact: true }).click();
+    } else if (viewport.width <= 520) {
+      const tabs = page.locator(".phone-tabbar");
+      await tabs.getByRole("tab", { name: "Map", exact: true }).click();
+      await tabs.getByRole("tab", { name: "Trip", exact: true }).click();
+    } else if (viewport.width === 521) {
+      const tripViews = page.getByRole("group", { name: "Trip views" });
+      await tripViews.getByRole("button", { name: "Map", exact: true }).click();
+      await tripViews.getByRole("button", { name: "Itinerary", exact: true }).click();
+    }
+    const addRestore = page.getByRole("button", { name: /Continue editing Add a stop/ });
+    await addRestore.waitFor({ state: "visible" });
+    await addRestore.click();
+    const resumedAdd = page.getByRole("region", { name: "Add place" });
+    check(
+      (await resumedAdd.getByRole("searchbox", { name: "Search places" }).inputValue()) ===
+        "draft search" &&
+        (await resumedAdd.getByLabel("Place name").inputValue()) === `Add draft ${viewport.width}` &&
+        (await resumedAdd.getByLabel("What you will do").inputValue()) ===
+          "Keep this unfinished addition" &&
+        (await resumedAdd.getByLabel("Start time").inputValue()) === "14:00" &&
+        (await resumedAdd.getByLabel("End time").inputValue()) === "15:00",
+      `AddStop draft restores its fields after navigation at ${viewport.width}px`,
+    );
+    if (viewport.width !== 1440) {
+      await page.screenshot({ path: resolve(out, `draft-${viewport.width}.png`), fullPage: true });
+      await context.close();
+      continue;
+    }
+
+    await resumedAdd.getByRole("button", { name: "Cancel", exact: true }).click();
+    const addDiscard = page.getByRole("dialog", { name: "Discard changes?" });
+    await addDiscard.waitFor({ state: "visible" });
+    await addDiscard.getByRole("button", { name: "Discard changes", exact: true }).click();
+    await addDiscard.waitFor({ state: "detached" });
 
     const stop = timeline.locator(".timeline-stop").first();
     await stop.locator(".action-menu__trigger").click();
@@ -237,12 +381,47 @@ try {
     const query = placeSearch.getByRole("searchbox");
     await query.fill(`failed-save-${viewport.width}`);
     await placeSearch.getByRole("button", { name: "Search", exact: true }).click();
-    await page.getByRole("button", { name: "Use", exact: true }).click();
-    await page.getByRole("alert").waitFor({ state: "visible" });
+    const failedSaveResponsePromise = page
+      .waitForResponse((response) => response.url().endsWith("/api/trip/preview-edit"))
+      .catch(() => undefined);
+    await page
+      .getByRole("button", { name: `Use ${second.displayName.text}`, exact: true })
+      .click();
+    const failedSaveResponse = await failedSaveResponsePromise;
+    check(
+      failedSaveResponse?.status() === 503,
+      `the forced place-save failure reaches the preview-edit boundary at ${viewport.width}px`,
+      { status: failedSaveResponse?.status() },
+    );
+    await page.locator(".timeline-status--error").filter({ hasText: "Draft fixture save failure" }).waitFor({ state: "visible" });
     check(
       (await query.inputValue()) === `failed-save-${viewport.width}`,
       `failed place save retains its query at ${viewport.width}px`,
     );
+    await page.unroute("**/api/trip/preview-edit");
+    const retryResponse = page.waitForResponse(
+      (response) => response.url().endsWith("/api/trip/preview-edit"),
+    );
+    const retryButton = page.getByRole("button", {
+      name: `Use ${second.displayName.text}`,
+      exact: true,
+    });
+    const retryHandle = await retryButton.elementHandle();
+    await page.waitForFunction((button) => button?.isConnected && !button.disabled, retryHandle);
+    await retryButton.evaluate((button) => button.click());
+    const retry = await retryResponse;
+    await retry.finished();
+    const retryBody = await retry.text();
+    if (retry.ok()) {
+      await page
+        .locator(".timeline-stop")
+        .filter({ hasText: second.displayName.text })
+        .waitFor();
+    }
+    check(retry.ok(), `failed place save can be retried at ${viewport.width}px`, {
+      status: retry.status(),
+      body: retryBody.slice(0, 300),
+    });
     await page.screenshot({ path: resolve(out, `draft-${viewport.width}.png`), fullPage: true });
     await context.close();
   }

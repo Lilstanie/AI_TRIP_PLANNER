@@ -11,9 +11,19 @@ not establish live-provider correctness or physical-device browser history behav
 - Close, Escape or Back discards a changed field without asking, on any viewport size.
 - Continue editing loses the field value or focus; Discard applies the unfinished value.
 - A failed time/place save closes the editor or drops values instead of allowing retry.
+- A failed AddStop search or save drops the add form, or leaves the restored entry pointing at a blank AddStop form.
+- Switching between Trip/map views, the 520px phone boundary, and the 521px tablet boundary loses a dirty AddStop/time field or routes its restore entry to another field.
+- Switching to a different saved Trip exposes the first Trip's restore entry or fields; returning to the first Trip fails to restore its own field.
 - A dirty draft is submitted against a newer Plan revision and replaces that revision's field;
   editing the stale field again also replaces its original base and hides the stale warning.
+- Replanning with confirmed consent while a dirty field is stored changes the Plan, but restoring and saving the old draft overwrites the newer field value.
 - A successful save leaves the saved field marked as unfinished, or clears an unrelated field.
 
 Each implementation slice starts with one failing browser assertion at this seam. Artifacts belong
 under `output/playwright/trip-drafts/<EVIDENCE_LABEL>/`.
+
+Current browser evidence covers Trip isolation and note restore/discard at 1440px and 521px,
+AddStop fields (including suggested times) across day/map navigation and 520px/521px/390px, and a
+forced 503 followed by a successful retry at 1440px. At 520px and below the note editor is a modal;
+the phone tab bar is behind its scrim, so this run does not claim note-draft navigation at those
+widths. The stale-plan/rebase cases above remain unexercised by this E2E.

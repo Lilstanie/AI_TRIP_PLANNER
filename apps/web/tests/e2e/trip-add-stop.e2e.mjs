@@ -24,6 +24,23 @@ let page;
 const editRequests = [];
 const chatRequests = [];
 const pageErrors = [];
+const waitForPlanLocation = (location) =>
+  page.waitForFunction(
+    (expected) => {
+      const key = Object.keys(localStorage).find((item) =>
+        item.startsWith("trip-workspace-catalog"),
+      );
+      const catalog = key ? JSON.parse(localStorage.getItem(key) ?? "null") : null;
+      const trip =
+        catalog?.trips?.find((item) => item.id === catalog.activeTripId) ?? catalog?.trips?.[0];
+      const items =
+        trip?.snapshot?.plan?.sections?.find((part) => part.id === "itinerary")?.proposal?.items ??
+        [];
+      return items.some((item) => item.location === expected);
+    },
+    location,
+    { timeout: 10_000 },
+  );
 const searchResult = {
   id: "fixture-no-coordinate-place",
   displayName: { text: "Fixture No Coordinate Place" },
@@ -210,7 +227,8 @@ try {
     });
     await page.getByRole("button", { name: "Add stop" }).click();
     await waitUntil(() => editRequests.some((request) => request.operation?.kind === "add"));
-    await page.getByText("Fixture No Coordinate Place", { exact: true }).last().waitFor();
+    await waitForPlanLocation("Fixture No Coordinate Place");
+    await page.getByRole("region", { name: "Add place" }).waitFor({ state: "detached" });
     const saved = await page.evaluate(() => {
       const key = Object.keys(localStorage).find((item) =>
         item.startsWith("trip-workspace-catalog"),
@@ -224,6 +242,12 @@ try {
       );
     });
     const created = saved.find((item) => item.location === "Fixture No Coordinate Place");
+    if (created?.day !== undefined) {
+      await page
+        .locator(".timeline-stop")
+        .filter({ has: page.getByText("Fixture No Coordinate Place", { exact: true }) })
+        .waitFor();
+    }
     check(
       created?.id &&
         created.day === apiEvidence.slot.day &&
@@ -291,7 +315,8 @@ try {
       await waitUntil(() =>
         editRequests.some((request) => request.operation?.location === "Second Direct Stop"),
       );
-      await page.getByText("Second Direct Stop", { exact: true }).waitFor();
+      await waitForPlanLocation("Second Direct Stop");
+      await page.getByRole("region", { name: "Add place" }).waitFor({ state: "detached" });
 
       await page.getByRole("button", { name: "Undo last change" }).click();
       await waitUntil(() => editRequests.some((request) => request.operation?.kind === "undo"));
@@ -319,17 +344,14 @@ try {
         "Undo removes its own addition while preserving the earlier direct Stop",
       );
 
-      const composer = page.getByRole("textbox", { name: "Message AI Trip Planner" });
-      await composer.fill("Replan around the new direct Stop");
-      const sendButton = page.getByRole("button", { name: "Send" });
+      const shortcut = page.getByRole("button", { name: "Ask AI about this day" });
       const beforeCancel = chatRequests.length;
       page.once("dialog", (dialog) => void dialog.dismiss());
-      await sendButton.click();
+      await shortcut.click();
       await settle(page, 250);
       check(
-        chatRequests.length === beforeCancel &&
-          (await composer.inputValue()) === "Replan around the new direct Stop",
-        "cancelling replacement sends no request and retains the composer draft",
+        chatRequests.length === beforeCancel,
+        "cancelling the contextual replacement sends no request",
       );
 
       let beginGeneration;
@@ -342,7 +364,7 @@ try {
         await route.abort();
       });
       page.once("dialog", (dialog) => void dialog.accept());
-      await sendButton.click();
+      await shortcut.click();
       await generationStarted;
       const duringGeneration = await page.evaluate(() => {
         const catalog = JSON.parse(localStorage.getItem("trip-workspace-catalog-v3") ?? "null");
@@ -357,7 +379,7 @@ try {
         "the current Plan remains readable while a confirmed replacement generates",
       );
       finishGeneration();
-      await waitUntil(() => sendButton.isEnabled());
+      await waitUntil(() => shortcut.isEnabled());
       const afterFailure = await page.evaluate(() => {
         const catalog = JSON.parse(localStorage.getItem("trip-workspace-catalog-v3") ?? "null");
         const trip = catalog?.trips?.find((item) => item.id === catalog.activeTripId);
@@ -371,6 +393,47 @@ try {
         "a failed replacement leaves the previous Plan and direct edits intact",
       );
       await page.unroute("**/api/chat");
+
+      const successfulPlan = await page.evaluate(() => {
+        const catalog = JSON.parse(localStorage.getItem("trip-workspace-catalog-v3") ?? "null");
+        const trip = catalog?.trips?.find((item) => item.id === catalog.activeTripId);
+        const plan = structuredClone(trip?.snapshot?.plan);
+        if (plan?.sections?.[0]) plan.sections[0].summary = "Confirmed replacement fixture";
+        return plan;
+      });
+      await page.route("**/api/chat", (route) =>
+        route.fulfill({
+          status: 200,
+          contentType: "application/x-ndjson",
+          body:
+            JSON.stringify({
+              type: "complete",
+              response: { reply: "Replacement fixture completed", plan: successfulPlan },
+            }) + "\n",
+        }),
+      );
+      page.once("dialog", (dialog) => void dialog.accept());
+      await shortcut.click();
+      await waitUntil(() => chatRequests.length === beforeCancel + 2);
+      await waitUntil(() =>
+        page.evaluate(() => {
+          const catalog = JSON.parse(localStorage.getItem("trip-workspace-catalog-v3") ?? "null");
+          const trip = catalog?.trips?.find((item) => item.id === catalog.activeTripId);
+          return trip?.snapshot?.plan?.sections?.[0]?.summary === "Confirmed replacement fixture";
+        }),
+      );
+      const afterSuccess = await page.evaluate(() => {
+        const catalog = JSON.parse(localStorage.getItem("trip-workspace-catalog-v3") ?? "null");
+        const trip = catalog?.trips?.find((item) => item.id === catalog.activeTripId);
+        return trip?.snapshot?.plan?.sections?.find((part) => part.id === "itinerary")?.proposal
+          ?.items ?? [];
+      });
+      check(
+        afterSuccess.some((item) => item.id === created?.id) &&
+          successfulPlan?.sections?.[0]?.summary === "Confirmed replacement fixture",
+        "a confirmed successful replacement installs its Plan while retaining manual edits",
+      );
+      await page.unroute("**/api/chat");
     }
 
     await page.reload();
@@ -381,6 +444,8 @@ try {
       .getByRole("button", { name: /^Trips/ })
       .click();
     await page.locator(".trip-card").first().click();
+    const openTrip = page.getByRole("button", { name: "Open your trip", exact: true });
+    if ((await openTrip.getAttribute("aria-expanded")) !== "true") await openTrip.click();
     await page.getByRole("region", { name: "Trip timeline" }).waitFor();
     const restored = await page.evaluate(() => {
       const key = Object.keys(localStorage).find((item) =>
@@ -410,6 +475,7 @@ try {
           request.operation.location === "Manual Unlocated Place",
       ),
     );
+    await waitForPlanLocation("Manual Unlocated Place");
     const ideaPlan = await page.evaluate(() => {
       const key = Object.keys(localStorage).find((item) =>
         item.startsWith("trip-workspace-catalog"),
