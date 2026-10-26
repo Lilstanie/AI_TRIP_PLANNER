@@ -127,7 +127,8 @@ export function TimelineStop({
     else if (
       restoreTarget.field === "note" ||
       restoreTarget.field === "details" ||
-      restoreTarget.field === "place"
+      restoreTarget.field === "place" ||
+      restoreTarget.field === "schedule"
     )
       setPanel(restoreTarget.field === "place" ? "search" : restoreTarget.field);
     onOpen();

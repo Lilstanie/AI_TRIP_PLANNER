@@ -197,8 +197,9 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
   Tablet and phone layouts are unchanged.
 - **Message actions.** Every message has a copy button under it (hover or focus on a pointer
   device, always visible on touch). A traveller's message without attachments also has an edit
-  button: it turns the bubble into a text box, and Resend removes that message and everything after
-  it, then sends the new text. The trip plan itself is not rolled back. Text in messages and replies
+  button: it turns the bubble into a text box. Resend asks before replacing manual timeline changes;
+  cancelling keeps the editor text and chat history. After confirmation it removes that message and
+  everything after it, then sends the new text. The trip plan itself is not rolled back. Text in messages and replies
   is selectable.
 - **Chat and map split.** On desktop the chat is on the left at 56 % of the area by default, a
   little wider than the map. A separator between them (`role="separator"`, "Resize chat and map")
@@ -258,8 +259,10 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     stepper button.
   - A changed sheet keeps its values through tab switches and asks before Escape, close, outside
     dismissal or browser Back discards them. Failed time or place changes keep the entered values and
-    show the error in place. Time, place, note and details drafts are isolated by Trip, Stop and
-    field; the unfinished-edits entry reopens the matching editor after navigation. A plan revision
+    show the error in place. Time, place, note, details and Idea scheduling drafts are isolated by Trip,
+    Stop and field; the unfinished-edits entry reopens the matching editor after navigation. If the
+    Stop disappears, the entry opens the unfinished values for copying; discarding still asks for
+    confirmation. A plan revision
     marks an older draft stale until it is rebased before retry. Brief edits on a Trip with a Plan use
     the explicit Replan trip action.
   - Trip shows Your Trip in place, with Budget and the day view. Before
@@ -806,12 +809,17 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   same day: each takes the other's start time and keeps its own duration, the second starting later if the
   first would overlap it, and a swap that would end past 23:59 or overlap the next stop is refused with a
   message. Move to another day puts the stop after that day's last stop. Undo offers the last change
-  until the next plan arrives from chat; an item action is undone the same way, restoring the plan as it was before it. A move changes the day's times, so the day's legs are routed again (see Legs under Timeline editing). At
+  until the next plan arrives from chat. The step stays with its Trip through navigation and layout
+  changes, and another Trip never offers it. Reloading clears the in-memory step. An item action is
+  undone the same way, restoring the plan as it was before it. A move changes the day's times, so the day's legs are routed again (see Legs under Timeline editing). At
   phone width (520px and below) the menu's trigger and items are at least 44 px. An open menu is capped to
   the height of its scrolling panel, scrolls inside itself, and keeps the focused item on screen above the
   tab bar. Missing or zero budgets
   state that no budget is set; invalid totals never render `NaN`, a negative bar, or a bar wider than its
   container.
+- **Trip AI shortcuts.** Asking AI about a day or Stop opens Conversation after the request is accepted,
+  so progress, replies and retry actions are visible. Cancelling the manual-change confirmation keeps
+  the traveller in Trip.
 - **Location.** When the workspace opens it asks in its own words, in the notices strip, whether to
   show the traveller's location (`components/map/useUserLocation.ts`, `LocationPrompt`). The
   browser's permission prompt appears only after Allow location or Show my location is pressed.

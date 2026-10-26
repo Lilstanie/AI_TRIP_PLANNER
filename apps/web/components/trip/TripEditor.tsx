@@ -17,6 +17,7 @@ import { DayStrip } from "./timeline/DayStrip";
 import { BookingRow, type ChooseCandidate } from "./timeline/BookingRow";
 import { FixedTimelineRow, LegRow } from "./timeline/TimelineParts";
 import { TimelineStop } from "./timeline/TimelineStop";
+import type { TripUndo } from "./useTripUndo";
 import { useTimelineEdits } from "./timeline/useTimelineEdits";
 import { AddStop, type AddStopDraft } from "./timeline/AddStop";
 import { TripChatShortcut } from "./timeline/TripChatShortcut";
@@ -65,6 +66,7 @@ export function TripEditor({
   legs,
   onLegApplied,
   revisions,
+  undo,
   showPhotos = false,
   saves = IDLE_AUTO_SAVE,
   onChoose,
@@ -91,6 +93,7 @@ export function TripEditor({
   onLegApplied?(plan: TripPlan, day: number): void;
 
   revisions: PlanRevisions;
+  undo: TripUndo;
 
   showPhotos?: boolean;
 
@@ -110,6 +113,7 @@ export function TripEditor({
     dataMode: tripPlaces.dataMode,
     activities,
     revisions,
+    undo,
     onPending,
     onRoutesChange,
     onLegApplied,
@@ -233,17 +237,12 @@ export function TripEditor({
     [labels, itinerary, locationStatus],
   );
 
-  const [itemUndo, setItemUndo] = useState<{ previous: TripPlan; message: Notice }>();
+  const itemUndo = undo.step && "previous" in undo.step ? undo.step : undefined;
   const dayPanelId = `trip-day-panel-${useId().replaceAll(":", "")}`;
   const [problem, setProblem] = useState<Notice | "">("");
-  const applied = useRef<TripPlan | null>(null);
 
   const leaving = useRef<string | undefined>(undefined);
   const dayTitle = useRef<HTMLHeadingElement>(null);
-  useEffect(() => {
-    if (applied.current !== plan) setItemUndo(undefined);
-    applied.current = null;
-  }, [plan]);
   useEffect(() => {
     const id = leaving.current;
     leaving.current = undefined;
@@ -263,16 +262,14 @@ export function TripEditor({
     const operation = checkedAs(id, action);
     if (operation)
       return edits.edit(operation, (previous, next) => {
-        applied.current = next;
-        setItemUndo({ previous, message });
+        undo.record(next, { previous, message });
         setProblem("");
         if (action.kind === "day" || action.kind === "idea" || action.kind === "remove")
           leaving.current = id;
       });
     try {
       const next = applyItemAction(plan, id, action, settings.displayCurrency);
-      applied.current = next;
-      setItemUndo({ previous: plan, message });
+      undo.record(next, { previous: plan, message });
       setProblem("");
       onTimelineChange?.(true);
       onApply(next);
@@ -366,9 +363,8 @@ export function TripEditor({
             type="button"
             disabled={locked}
             onClick={() => {
-              applied.current = itemUndo.previous;
               onApply(itemUndo.previous);
-              setItemUndo(undefined);
+              undo.clear();
               onTimelineChange?.(false);
             }}
           >

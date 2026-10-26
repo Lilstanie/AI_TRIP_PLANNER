@@ -195,11 +195,12 @@ export function useWorkspaceTransport({
     return true;
   }
 
-  function send(override?: string) {
+  function send(override?: string, rewindIndex?: number) {
     const message = (override ?? input).trim();
 
-    if ((!message && attachments.length === 0) || active.current) return;
-    if (!confirmReplacingEditedPlan()) return;
+    if ((!message && attachments.length === 0) || active.current) return false;
+    if (!confirmReplacingEditedPlan()) return false;
+    if (rewindIndex !== undefined) dispatch({ kind: "rewound", index: rewindIndex });
 
     const files = attachments;
     const sent: Attachment[] = files.map(({ name, mediaType, kind, data }) => ({
@@ -246,6 +247,7 @@ export function useWorkspaceTransport({
       },
       true,
     );
+    return true;
   }
 
   function answer(answers: QuestionAnswer[]) {

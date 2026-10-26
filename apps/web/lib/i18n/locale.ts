@@ -74,6 +74,9 @@ const ZH = {
   "Discard changes?": "放弃更改？",
   "Continue editing": "继续编辑",
   "Discard changes": "放弃更改",
+  "Recover unfinished edit": "恢复未完成的修改",
+  "{name} is no longer in this plan. Your unfinished edit is available to copy.":
+    "{name}已不在此行程中。你可以复制尚未完成的修改。",
   "Unfinished trip edits": "未完成的行程修改",
   "Continue editing {v0}": "继续编辑{v0}",
   "Draft changed since you started editing": "行程已在你开始编辑后发生变化",

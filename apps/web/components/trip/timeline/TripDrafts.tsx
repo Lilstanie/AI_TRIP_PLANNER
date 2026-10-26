@@ -1,9 +1,12 @@
 "use client";
 
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
+import type { TripPlan } from "@trip/shared";
+import { Dialog } from "../../ui/Dialog";
+import { useDiscardChanges } from "../../ui/useDiscardChanges";
 import { useLocale } from "../../account/LocaleProvider";
 
-export type TripDraftField = "time" | "place" | "note" | "details" | "add";
+export type TripDraftField = "time" | "place" | "note" | "details" | "add" | "schedule";
 export type AddStopDraftValue = {
   open: boolean;
   searchText: string;
@@ -176,9 +179,32 @@ export function useTripDraftRestore(stopId: string) {
   };
 }
 
-export function TripDraftRestoreEntry({ onRestore }: { onRestore(draft: TripDraft): void }) {
+export function TripDraftRestoreEntry({
+  plan,
+  onRestore,
+}: {
+  plan: TripPlan | undefined;
+  onRestore(draft: TripDraft): void;
+}) {
   const controller = useController();
   const { t } = useLocale();
+  const [recoveryKey, setRecoveryKey] = useState<string>();
+  const recovery = controller.drafts.find(
+    (draft) => `${draft.tripId}:${draft.stopId}:${draft.field}` === recoveryKey,
+  );
+  const { requestClose, confirmation } = useDiscardChanges(true);
+  const recoveryText = (() => {
+    if (!recovery) return "";
+    if (typeof recovery.value === "string") return recovery.value;
+    const value = recovery.value as Record<string, unknown>;
+    if (recovery.field === "time")
+      return `${t("Start")}: ${value.start}\n${t("End")}: ${value.end}`;
+    if (recovery.field === "schedule") return t("Day {v0}", { v0: Number(value.day) });
+    return `${t("Place name")}: ${value.location}\n${t("What you will do")}: ${value.detail}`;
+  })();
+  const stops = new Set(
+    plan?.sections.flatMap((section) => section.proposal?.items.map((item) => item.id) ?? []),
+  );
   if (!controller.drafts.length) return null;
   const label = (draft: TripDraft) =>
     draft.field === "time"
@@ -189,22 +215,56 @@ export function TripDraftRestoreEntry({ onRestore }: { onRestore(draft: TripDraf
           ? t("Edit details")
           : draft.field === "add"
             ? t("Add a stop")
-            : t("Note");
+            : draft.field === "schedule"
+              ? t("Schedule on a day")
+              : t("Note");
   return (
-    <aside className="trip-draft-restore" aria-label={t("Unfinished trip edits")}>
-      {controller.drafts.map((draft) => (
-        <button
-          key={`${draft.stopId}:${draft.field}`}
-          type="button"
-          onClick={() => {
-            controller.requestRestore(draft);
-            onRestore(draft);
-          }}
-        >
-          <span>{draft.stopName}</span>
-          <span>{t("Continue editing {v0}", { v0: label(draft) })}</span>
-        </button>
-      ))}
-    </aside>
+    <>
+      <aside className="trip-draft-restore" aria-label={t("Unfinished trip edits")}>
+        {controller.drafts.map((draft) => (
+          <button
+            key={`${draft.stopId}:${draft.field}`}
+            type="button"
+            onClick={() => {
+              if (draft.field !== "add" && !stops.has(draft.stopId)) {
+                setRecoveryKey(`${draft.tripId}:${draft.stopId}:${draft.field}`);
+                return;
+              }
+              controller.requestRestore(draft);
+              onRestore(draft);
+            }}
+          >
+            <span>{draft.stopName}</span>
+            <span>{t("Continue editing {v0}", { v0: label(draft) })}</span>
+          </button>
+        ))}
+      </aside>
+      {recovery && (
+        <Dialog title={t("Recover unfinished edit")} onClose={() => setRecoveryKey(undefined)}>
+          <p>
+            {t("{name} is no longer in this plan. Your unfinished edit is available to copy.", {
+              name: recovery.stopName,
+            })}
+          </p>
+          <label className="item-editor">
+            {label(recovery)}
+            <textarea readOnly rows={5} value={recoveryText} />
+          </label>
+          <button
+            type="button"
+            className="danger"
+            onClick={() =>
+              requestClose(() => {
+                controller.clear(recovery.stopId, recovery.field);
+                setRecoveryKey(undefined);
+              })
+            }
+          >
+            {t("Discard changes")}
+          </button>
+        </Dialog>
+      )}
+      {confirmation}
+    </>
   );
 }

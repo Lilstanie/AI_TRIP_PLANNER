@@ -54,6 +54,7 @@
 @media (max-width: 1000px) {
   .workspace-app:not([data-phone]) .trip-workspace {
     display: block;
+    height: 100%;
     overflow: auto;
   }
 

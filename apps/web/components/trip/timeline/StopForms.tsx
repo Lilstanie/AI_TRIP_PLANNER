@@ -147,16 +147,25 @@ export function ItemForm({
   const detail = detailsDraft.value.detail;
   const location = detailsDraft.value.location;
   const note = noteDraft.value;
-  const [day, setDay] = useState(1);
+  const scheduleDraft = useTripDraftField({
+    stopId: activity.id!,
+    stopName: activity.location ?? activity.detail,
+    day: activity.day,
+    field: "schedule",
+    initial: { day: 1 },
+    baseline: { day: activity.day, days },
+  });
+  const day = scheduleDraft.value.day;
   const [failed, setFailed] = useState(false);
-  const dirty =
-    mode === "details" ? detailsDraft.dirty : mode === "note" ? noteDraft.dirty : day !== 1;
-  const stale = mode === "details" ? detailsDraft.stale : mode === "note" ? noteDraft.stale : false;
-  const activeDraft = mode === "details" ? detailsDraft : noteDraft;
+  const activeDraft =
+    mode === "details" ? detailsDraft : mode === "note" ? noteDraft : scheduleDraft;
+  const dirty = activeDraft.dirty;
+  const stale = activeDraft.stale;
+  const validDay = mode !== "schedule" || (day >= 1 && day <= days);
   const { requestClose, confirmation } = useDiscardChanges(dirty);
   const close = () =>
     requestClose(() => {
-      if (mode !== "schedule") activeDraft.clear();
+      activeDraft.clear();
       onCancel();
     });
   const first = useRef<HTMLInputElement & HTMLTextAreaElement & HTMLSelectElement>(null);
@@ -181,10 +190,10 @@ export function ItemForm({
                 : mode === "note"
                   ? { kind: "note", note }
                   : { kind: "day", day };
-            if (stale) return;
+            if (stale || !validDay) return;
             void Promise.resolve(onSubmit(action)).then((done) => {
               setFailed(!done);
-              if (done && mode !== "schedule") activeDraft.clear();
+              if (done) activeDraft.clear();
             });
           }}
           onKeyDown={(event) => {
@@ -236,7 +245,7 @@ export function ItemForm({
                 ref={first}
                 aria-label={t("Day")}
                 value={day}
-                onChange={(e) => setDay(Number(e.target.value))}
+                onChange={(e) => scheduleDraft.setValue({ day: Number(e.target.value) })}
               >
                 {Array.from({ length: days }, (_, index) => (
                   <option key={index} value={index + 1}>
@@ -249,7 +258,7 @@ export function ItemForm({
           {failed && <EditErrors errors={[{ key: "Something went wrong. Try again." }]} />}
           {stale && <DraftStaleNotice onRebase={activeDraft.rebase} />}
           <div className="item-editor__actions">
-            <button type="submit" className="primary" disabled={stale}>
+            <button type="submit" className="primary" disabled={stale || !validDay}>
               {mode === "schedule" ? t("Schedule") : t("Save")}
             </button>
             <button type="button" onClick={close}>

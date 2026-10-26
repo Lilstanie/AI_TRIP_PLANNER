@@ -1,6 +1,6 @@
 "use client";
 import { useLocale } from "@/components/account/LocaleProvider";
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useId, useRef, type ReactNode } from "react";
 export function Dialog({
   title,
   onClose,
@@ -12,6 +12,7 @@ export function Dialog({
 }) {
   const { t } = useLocale();
   const ref = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
     const dialog = ref.current!;
@@ -22,9 +23,9 @@ export function Dialog({
     };
   }, []);
   return (
-    <dialog ref={ref} className="dialog" aria-labelledby="dialog-title" onCancel={onClose}>
+    <dialog ref={ref} className="dialog" aria-labelledby={titleId} onCancel={onClose}>
       <div className="dialog__head">
-        <h2 id="dialog-title">{title}</h2>
+        <h2 id={titleId}>{title}</h2>
         <button onClick={onClose} aria-label={t("Close {v0}", { v0: title })}>
           {t("Close")}
         </button>

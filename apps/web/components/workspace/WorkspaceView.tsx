@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { TripFactChips } from "../preferences/TripFactChips";
 import { ChatPanel } from "../chat/ChatPanel";
 import { ChatViewTabs, type ChatView } from "../chat/ChatViewTabs";
+import { useTripUndo } from "../trip/useTripUndo";
 import { TripEditor } from "../trip/TripEditor";
 import { useAutoSavePlaces } from "../trip/useAutoSavePlaces";
 import { useLegRoutes } from "../trip/useLegRoutes";
@@ -128,6 +129,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
     dataMode: dataMode.mode,
     onApply: session.applyEdit,
   });
+  const undo = useTripUndo(plan);
   const chooser = useChooseCandidate(plan, revisions, session.trackEdit);
 
   const autoSaves = useAutoSavePlaces({ plan, tripPlaces, revisions });
@@ -196,6 +198,13 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
 
   const selectView = (view: MobileView) =>
     view !== mobileView && viewTransition(() => layout.selectView(view), `to-${view}`);
+
+  const sendFromTrip = (message: string) => {
+    if (!session.send(message)) return;
+    closeTrip();
+    layout.selectView("chat");
+    setChatView("conversation");
+  };
 
   const selectMapStop = (id: string) => {
     const stop = itinerary.stop(id);
@@ -310,10 +319,11 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
               day={layout.mapDay}
               onDayChange={layout.pickMapDay}
               onSelect={session.selectStop}
-              onSend={session.send}
+              onSend={sendFromTrip}
               onRoutesChange={session.showRoutes}
               onApply={session.applyEdit}
               revisions={revisions}
+              undo={undo}
               routes={mapRoutes}
               legs={legs}
               onLegApplied={legs.noteLeg}
@@ -533,7 +543,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
             <div className="workspace-notices">
               <CurrencyNotice />
               {page === "workspace" && plan && (
-                <TripDraftRestoreEntry onRestore={restoreTripDraft} />
+                <TripDraftRestoreEntry plan={plan} onRestore={restoreTripDraft} />
               )}
               {estimateChange !== undefined && (
                 <div className="estimate-notice" role="status">
