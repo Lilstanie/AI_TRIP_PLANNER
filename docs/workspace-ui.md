@@ -255,7 +255,10 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     stepper button.
   - A changed sheet keeps its values through tab switches and asks before Escape, close, outside
     dismissal or browser Back discards them. Failed time or place changes keep the entered values and
-    show the error in place. Brief edits on a Trip with a Plan use the explicit Replan trip action.
+    show the error in place. Time, place, note and details drafts are isolated by Trip, Stop and
+    field; the unfinished-edits entry reopens the matching editor after navigation. A plan revision
+    marks an older draft stale until it is rebased before retry. Brief edits on a Trip with a Plan use
+    the explicit Replan trip action.
   - Trip shows Your Trip in place, with Budget and the day view. Before
     planning it explains the empty state and offers Plan in Chat. A plan created or changed while
     another tab is selected adds an accessible update dot to Trip; opening Trip clears it. Read revisions are tracked per trip,
