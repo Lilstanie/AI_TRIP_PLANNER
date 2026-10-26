@@ -24,6 +24,7 @@ import {
 import { ItemForm, PlaceSearch, TimeForm } from "./StopForms";
 import { StopEditSurface } from "./StopEditSurface";
 import { useTripDraftField, useTripDraftRestore } from "./TripDrafts";
+import { TripChatShortcut } from "./TripChatShortcut";
 
 type Activity = ProposalItem & { id?: string };
 
@@ -62,6 +63,7 @@ export function TimelineStop({
   onSelect,
   onOpen,
   onItem,
+  onAskAI,
 }: {
   activity: Activity;
 
@@ -96,6 +98,7 @@ export function TimelineStop({
   onOpen(): void;
 
   onItem(action: ItemAction, message: Notice): boolean | Promise<boolean>;
+  onAskAI?(message: string): void;
 }) {
   const { t, money, notice: localizeNotice } = useLocale();
   const id = activity.id!;
@@ -409,6 +412,9 @@ export function TimelineStop({
             items={menu()}
           />
         </div>
+        {activity.day !== undefined && onAskAI && (
+          <TripChatShortcut day={activity.day} stop={name} onSend={onAskAI} />
+        )}
         {conflicts.length > 0 && (
           <ul className="timeline-stop__conflicts" aria-label={t("Open conflicts")}>
             {conflicts.map((notice, index) => (
@@ -534,6 +540,12 @@ export function TimelineStop({
               stopId={id}
               stopName={name}
               day={activity.day}
+              baseline={JSON.stringify({
+                id,
+                placeId: activity.placeId,
+                detail: activity.detail,
+                location: activity.location,
+              })}
               onUse={async (placeId) => {
                 const done = await edits.edit({ kind: "place", id, placeId });
                 if (done) closePanel();

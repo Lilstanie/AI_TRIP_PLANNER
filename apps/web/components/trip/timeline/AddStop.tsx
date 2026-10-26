@@ -2,6 +2,7 @@
 import type { GooglePlace } from "@/lib/integrations/google";
 import { useLocale } from "@/components/account/LocaleProvider";
 import type { TimelineEdits } from "./useTimelineEdits";
+import { DraftStaleNotice } from "./StopForms";
 
 export type AddStopDraft = {
   open: boolean;
@@ -36,6 +37,8 @@ export function AddStop({
   onDraftChange,
   suggestedTimesForDay,
   onRequestCancel,
+  stale = false,
+  onRebase,
 }: {
   days: number;
   dayLabels: string[];
@@ -45,6 +48,8 @@ export function AddStop({
   onDraftChange(draft: AddStopDraft): void;
   suggestedTimesForDay?(day: number): Pick<AddStopDraft, "startTime" | "endTime"> | undefined;
   onRequestCancel(): void;
+  stale?: boolean;
+  onRebase?(): void;
 }) {
   const { t, notice } = useLocale();
   const update = (patch: Partial<AddStopDraft>) => onDraftChange({ ...draft, ...patch });
@@ -120,7 +125,7 @@ export function AddStop({
             />
           </span>
         </label>
-        <button type="submit" disabled={locked || edits.busy || !draft.searchText.trim()}>
+        <button type="submit" disabled={locked || stale || edits.busy || !draft.searchText.trim()}>
           {t("Search")}
         </button>
       </form>
@@ -143,7 +148,7 @@ export function AddStop({
                 </span>
                 <button
                   type="button"
-                  disabled={locked}
+                  disabled={locked || stale}
                   aria-label={t("Use {v0}", { v0: name })}
                   onClick={() => update({ place: result, name })}
                 >
@@ -217,12 +222,14 @@ export function AddStop({
           {t("End time must be after start time on the same day.")}
         </p>
       )}
+      {stale && <DraftStaleNotice onRebase={onRebase} />}
       <div className="item-editor__actions">
         <button
           type="button"
           className="primary"
           disabled={
             locked ||
+            stale ||
             edits.busy ||
             !title ||
             !draft.startTime ||
@@ -235,7 +242,7 @@ export function AddStop({
         </button>
         <button
           type="button"
-          disabled={locked || edits.busy || !title}
+          disabled={locked || stale || edits.busy || !title}
           onClick={() => void save(true)}
         >
           {t("Save as Idea")}

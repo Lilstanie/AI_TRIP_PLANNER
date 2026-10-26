@@ -4,10 +4,26 @@ import { createContext, useCallback, useContext, useMemo, useState, type ReactNo
 import { useLocale } from "../../account/LocaleProvider";
 
 export type TripDraftField = "time" | "place" | "note" | "details" | "add";
+export type AddStopDraftValue = {
+  open: boolean;
+  searchText: string;
+  name: string;
+  detail: string;
+  day: number;
+  startTime: string;
+  endTime: string;
+  fingerprint: string;
+  placeId?: string;
+  placeName?: string;
+  placeAddress?: string;
+  latitude?: number;
+  longitude?: number;
+};
 export type TripDraftValue =
   | string
   | { start: string; end: string }
   | { detail: string; location: string }
+  | AddStopDraftValue
   | Record<string, string | number | boolean | undefined>;
 
 export type TripDraft = {
@@ -102,19 +118,21 @@ export function useTripDraftField<T extends TripDraftValue>({
   day,
   field,
   initial,
+  baseline = initial,
 }: {
   stopId: string;
   stopName: string;
   day?: number;
   field: TripDraftField;
   initial: T;
+  baseline?: TripDraftValue;
 }) {
   const controller = useController();
   const key = `${controller.tripId}:${stopId}:${field}` as DraftKey;
   const draft = controller.get(key);
   const value = (draft?.value ?? initial) as T;
   const dirty = !same(value, initial);
-  const stale = !!draft && !same(draft.base, initial);
+  const stale = !!draft && !same(draft.base, baseline);
   const setValue = useCallback(
     (next: T) => {
       if (same(next, initial)) {
@@ -127,11 +145,11 @@ export function useTripDraftField<T extends TripDraftValue>({
         stopName,
         ...(day === undefined ? {} : { day }),
         field,
-        base: draft?.base ?? initial,
+        base: draft?.base ?? baseline,
         value: next,
       });
     },
-    [controller, day, draft, field, initial, stopId, stopName],
+    [baseline, controller, day, draft, field, initial, stopId, stopName],
   );
   const clear = useCallback(() => controller.clear(stopId, field), [controller, field, stopId]);
   const rebase = useCallback(() => {
@@ -140,8 +158,8 @@ export function useTripDraftField<T extends TripDraftValue>({
       controller.clear(stopId, field);
       return;
     }
-    controller.change({ ...draft, base: initial, stopName, day });
-  }, [controller, day, draft, field, initial, stopId, stopName]);
+    controller.change({ ...draft, base: baseline, stopName, day });
+  }, [baseline, controller, day, draft, field, initial, stopId, stopName]);
   return { value, dirty, stale, setValue, clear, rebase };
 }
 

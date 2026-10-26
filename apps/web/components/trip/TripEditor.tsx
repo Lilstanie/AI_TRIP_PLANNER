@@ -18,6 +18,14 @@ import { BookingRow, type ChooseCandidate } from "./timeline/BookingRow";
 import { FixedTimelineRow, LegRow } from "./timeline/TimelineParts";
 import { TimelineStop } from "./timeline/TimelineStop";
 import { useTimelineEdits } from "./timeline/useTimelineEdits";
+import { AddStop, type AddStopDraft } from "./timeline/AddStop";
+import { TripChatShortcut } from "./timeline/TripChatShortcut";
+import {
+  useTripDraftField,
+  useTripDraftRestore,
+  type AddStopDraftValue,
+} from "./timeline/TripDrafts";
+import { useDiscardChanges } from "../ui/useDiscardChanges";
 import { TripTips } from "./TripTips";
 import { useTripDay } from "./useTripDay";
 import { IDLE_AUTO_SAVE, type AutoSaveState } from "./useAutoSavePlaces";
@@ -51,6 +59,7 @@ export function TripEditor({
   day: controlledDay,
   onDayChange,
   onSelect,
+  onSend,
   onRoutesChange,
   routes = [],
   legs,
@@ -71,6 +80,7 @@ export function TripEditor({
   day?: number;
   onDayChange?(day: number): void;
   onSelect(activityId: string): void;
+  onSend?(message: string): void;
 
   onRoutesChange?(routes: RouteResult[]): void;
 
@@ -129,6 +139,74 @@ export function TripEditor({
     () => itinerary.stopsOn(day).map((stop) => stop.activity),
     [itinerary, day],
   );
+  const addStopId = `add-stop:${plan.tripId}`;
+  const suggestedTimesForDay = (targetDay: number) => {
+    const scheduled = itinerary
+      .stopsOn(targetDay)
+      .map(({ activity }) => activity)
+      .filter((activity) => activity.endTime)
+      .sort((left, right) => (left.endTime ?? "").localeCompare(right.endTime ?? ""));
+    const latestEnd = scheduled.at(-1)?.endTime;
+    const start = latestEnd ? addMinutes(latestEnd, 30) : "09:00";
+    return { startTime: start, endTime: addMinutes(start, 60) };
+  };
+  const suggestedAddTime = suggestedTimesForDay(day);
+  const addFingerprint = JSON.stringify(
+    activities.map((activity) => [activity.id, activity.day, activity.startTime, activity.endTime]),
+  );
+  const addBaseline: AddStopDraftValue = {
+    open: false,
+    searchText: "",
+    name: "",
+    detail: "",
+    day: 0,
+    startTime: "",
+    endTime: "",
+    fingerprint: addFingerprint,
+  };
+  const addInitial: AddStopDraftValue = {
+    open: false,
+    searchText: "",
+    name: "",
+    detail: "",
+    day,
+    startTime: suggestedAddTime.startTime,
+    endTime: suggestedAddTime.endTime,
+    fingerprint: addFingerprint,
+  };
+  const addDraft = useTripDraftField({
+    stopId: addStopId,
+    stopName: t("Add place"),
+    day,
+    field: "add",
+    initial: addInitial,
+    baseline: addBaseline,
+  });
+  const addRestore = useTripDraftRestore(addStopId);
+  const restoreAdd = addRestore.target?.field === "add";
+  const addValue = addDraft.value;
+  const addStopValue: AddStopDraft = {
+    open: addValue.open || restoreAdd,
+    searchText: addValue.searchText,
+    name: addValue.name,
+    detail: addValue.detail,
+    day: addValue.day,
+    startTime: addValue.startTime,
+    endTime: addValue.endTime,
+    ...(addValue.placeId
+      ? {
+          place: {
+            id: addValue.placeId,
+            ...(addValue.placeName ? { displayName: { text: addValue.placeName } } : {}),
+            ...(addValue.placeAddress ? { formattedAddress: addValue.placeAddress } : {}),
+            ...(addValue.latitude !== undefined && addValue.longitude !== undefined
+              ? { location: { latitude: addValue.latitude, longitude: addValue.longitude } }
+              : {}),
+          },
+        }
+      : {}),
+  };
+  const addDiscard = useDiscardChanges(addDraft.dirty);
 
   const suggestions = useMemo(() => restaurantSuggestions(plan), [plan]);
   const suggested = useMemo(() => new Set(suggestions.map((item) => item.id)), [suggestions]);
@@ -230,6 +308,7 @@ export function TripEditor({
       onOpen: () => onSelect(activity.id!),
       conflicts: (activity.id && conflicts.stops.get(activity.id)) || [],
       onItem: (action: ItemAction, message: Notice) => act(activity, action, message),
+      ...(activity.day === undefined || !onSend ? {} : { onAskAI: onSend }),
       phone,
     };
   };
@@ -317,6 +396,7 @@ export function TripEditor({
         <h3 ref={dayTitle} id="timeline-day-title" tabIndex={-1} className="timeline-day__title">
           {t("Day {v0}", { v0: day })} <span>{labels[day - 1]}</span>
         </h3>
+        <TripChatShortcut day={day} onSend={(message) => onSend?.(message)} />
         {staying && (
           <p className="timeline-day__staying">
             <FlowStayIcon size={13} /> {t("Staying at {place}", { place: staying })}
@@ -398,6 +478,58 @@ export function TripEditor({
         )}
       </div>
 
+      <AddStop
+        days={days}
+        dayLabels={labels}
+        locked={locked}
+        edits={edits}
+        draft={addStopValue}
+        stale={addDraft.stale}
+        onRebase={addDraft.rebase}
+        suggestedTimesForDay={suggestedTimesForDay}
+        onDraftChange={(next) => {
+          if (!next.open && !next.searchText && !next.place && !next.name && !next.detail) {
+            addDraft.clear();
+            return;
+          }
+          addDraft.setValue({
+            open: next.open,
+            searchText: next.searchText,
+            name: next.name,
+            detail: next.detail,
+            day: next.day,
+            startTime: next.startTime,
+            endTime: next.endTime,
+            fingerprint: addFingerprint,
+            ...(next.place
+              ? {
+                  placeId: next.place.id,
+                  ...(next.place.displayName?.text
+                    ? { placeName: next.place.displayName.text }
+                    : {}),
+                  ...(next.place.formattedAddress
+                    ? { placeAddress: next.place.formattedAddress }
+                    : {}),
+                  ...(next.place.location
+                    ? {
+                        latitude: next.place.location.latitude,
+                        longitude: next.place.location.longitude,
+                      }
+                    : {}),
+                }
+              : {}),
+          });
+        }}
+        onRequestCancel={() =>
+          addDiscard.requestClose(() => {
+            addDraft.clear();
+            addRestore.consume("add");
+            edits.clearResults();
+          })
+        }
+      />
+      {addDiscard.confirmation}
+
       {ideas.length > 0 && (
         <section className="timeline-ideas" aria-labelledby="timeline-ideas-title">
           <h4 id="timeline-ideas-title" tabIndex={-1} className="timeline-ideas__title">
@@ -420,4 +552,10 @@ export function TripEditor({
       )}
     </section>
   );
+}
+
+function addMinutes(value: string, amount: number) {
+  const [hour = "09", minute = "00"] = value.split(":");
+  const total = (Number(hour) * 60 + Number(minute) + amount) % (24 * 60);
+  return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
 }

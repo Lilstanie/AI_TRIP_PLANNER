@@ -274,6 +274,7 @@ export function PlaceSearch({
   stopId,
   stopName,
   day,
+  baseline,
 }: {
   label: string;
   locked: boolean;
@@ -286,6 +287,7 @@ export function PlaceSearch({
   stopId: string;
   stopName: string;
   day?: number;
+  baseline?: string;
 }) {
   const { t } = useLocale();
   const queryDraft = useTripDraftField({
@@ -294,6 +296,7 @@ export function PlaceSearch({
     day,
     field: "place",
     initial: "" as string,
+    baseline,
   });
   const query = queryDraft.value;
   const { requestClose, confirmation } = useDiscardChanges(queryDraft.dirty);
@@ -352,7 +355,7 @@ export function PlaceSearch({
               </span>
               <button
                 type="button"
-                disabled={locked}
+                disabled={locked || queryDraft.stale}
                 aria-label={t("Use {v0}", { v0: result.displayName?.text ?? "this place" })}
                 onClick={async () => {
                   const saved = await onUse(result.id);
@@ -379,7 +382,7 @@ export function PlaceSearch({
   );
 }
 
-function DraftStaleNotice({ onRebase }: { onRebase?(): void }) {
+export function DraftStaleNotice({ onRebase }: { onRebase?(): void }) {
   const { t } = useLocale();
   return (
     <p className="stop-editor__hint" role="status">

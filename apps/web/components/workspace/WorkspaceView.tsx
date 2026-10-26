@@ -40,6 +40,7 @@ import { usePhoneTripUpdates } from "./usePhoneTripUpdates";
 import { usePhoneBack } from "./usePhoneBack";
 import type { MobileView } from "./workspace-helpers";
 import { dateRangeLabel } from "@/lib/workspace/trip-facts";
+import { TripDraftRestoreEntry, TripDraftsProvider, type TripDraft } from "../trip/timeline/TripDrafts";
 
 export function WorkspaceView({ model }: { model: WorkspaceModel }) {
   const { t, locale, delta, notice: localizeNotice } = useLocale();
@@ -198,6 +199,20 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
     session.showStop(id);
   };
 
+  const restoreTripDraft = (draft: TripDraft) => {
+    if (draft.day !== undefined) layout.pickMapDay(draft.day);
+    if (draft.field === "add") {
+      if (phone) layout.selectView("trip");
+      else openTrip();
+      return;
+    }
+    if (draft.stopId) {
+      session.selectStop(draft.stopId);
+      if (phone) layout.selectView("trip");
+      else openTrip();
+    }
+  };
+
   useEffect(() => {
     if (!phone || plan || mobileView !== "trip") return;
     selectView("chat");
@@ -288,6 +303,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
               day={layout.mapDay}
               onDayChange={layout.pickMapDay}
               onSelect={session.selectStop}
+              onSend={session.send}
               onRoutesChange={session.showRoutes}
               onApply={session.applyEdit}
               revisions={revisions}
@@ -325,6 +341,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
   );
 
   return (
+    <TripDraftsProvider tripId={plan?.tripId ?? ""}>
     <div
       className="workspace-app"
       data-sidebar-collapsed={!narrow && sidebarCollapsed}
@@ -508,6 +525,9 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
           </header>
           <div className="workspace-notices">
             <CurrencyNotice />
+            {page === "workspace" && plan && (
+              <TripDraftRestoreEntry onRestore={restoreTripDraft} />
+            )}
             {estimateChange !== undefined && (
               <div className="estimate-notice" role="status">
                 <span>
@@ -701,5 +721,6 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
       )}
       <WorkspaceDialogs model={model} />
     </div>
+    </TripDraftsProvider>
   );
 }
