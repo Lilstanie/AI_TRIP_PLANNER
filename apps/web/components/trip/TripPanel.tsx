@@ -15,21 +15,20 @@ import { TripIssues } from "./TripIssues";
 export type TripPanelProps = {
   plan: TripPlan;
   timeline: ReactNode;
+  tripPlaces: TripPlaces;
+  onSelectStop(id: string): void;
+  onSelectDay(day: number): void;
   problem?: Notice;
-} & (
-  | {
-      tripPlaces: TripPlaces;
-      onSelectStop(id: string): void;
-      onSelectDay(day: number): void;
-    }
-  | {
-      tripPlaces?: undefined;
-      onSelectStop?: never;
-      onSelectDay?: never;
-    }
-);
+};
 
-export function TripPanel({ plan, timeline, problem, ...issueNavigation }: TripPanelProps) {
+export function TripPanel({
+  plan,
+  timeline,
+  tripPlaces,
+  onSelectStop,
+  onSelectDay,
+  problem,
+}: TripPanelProps) {
   const { t, locale, money, budgetGap, notice: localizeNotice } = useLocale();
   const [onTrip, setOnTrip] = useState<boolean>();
   const [budgetOpen, setBudgetOpen] = useState(false);
@@ -64,8 +63,6 @@ export function TripPanel({ plan, timeline, problem, ...issueNavigation }: TripP
   const budgetConflicts = placeConflicts(plan).budget;
   const [start, end] = plan.brief.dates;
   const dateRange = dateRangeLabel(start, end, locale) ?? `${start} – ${end}`;
-  const issueProps =
-    "tripPlaces" in issueNavigation && issueNavigation.tripPlaces ? issueNavigation : undefined;
   useEffect(() => {
     if (!budgetOpen || !pendingBudgetItem) return;
     const item = budgetItemRefs.current.get(pendingBudgetItem);
@@ -239,15 +236,13 @@ export function TripPanel({ plan, timeline, problem, ...issueNavigation }: TripP
           )}
         </details>
         <CurrencyNotice />
-        {issueProps && (
-          <TripIssues
-            plan={plan}
-            tripPlaces={issueProps.tripPlaces}
-            onSelectStop={issueProps.onSelectStop}
-            onSelectDay={issueProps.onSelectDay}
-            onSelectBudgetItem={selectBudgetItem}
-          />
-        )}
+        <TripIssues
+          plan={plan}
+          tripPlaces={tripPlaces}
+          onSelectStop={onSelectStop}
+          onSelectDay={onSelectDay}
+          onSelectBudgetItem={selectBudgetItem}
+        />
         {timeline}
         {problem && (
           <p className="item-problem" role="alert">

@@ -24,6 +24,9 @@ under `output/playwright/trip-drafts/<EVIDENCE_LABEL>/`.
 
 Current browser evidence covers Trip isolation and note restore/discard at 1440px and 521px,
 AddStop fields (including suggested times) across day/map navigation and 520px/521px/390px, and a
-forced 503 followed by a successful retry at 1440px. At 520px and below the note editor is a modal;
-the phone tab bar is behind its scrim, so this run does not claim note-draft navigation at those
-widths. The stale-plan/rebase cases above remain unexercised by this E2E.
+forced 503 followed by a successful retry at 1440px. A phone note modal survives a 390px to 521px
+transition and remains restorable after returning to 390px. A concurrent workspace tab publishes a
+newer Plan revision; saving the old time draft is refused before the preview-edit request, retains
+the draft value, and leaves the newer revision intact. Rebase/retry of that stale time draft remains
+uncovered. The note modal's scrim prevents using the obscured phone tab bar while it is open; the
+tested navigation uses the responsive width transition and restore entry instead.

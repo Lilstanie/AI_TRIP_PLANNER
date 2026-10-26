@@ -168,7 +168,7 @@
 .trip-issues__group button {
   display: flex;
   width: 100%;
-  min-height: 36px;
+  min-height: 44px;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);

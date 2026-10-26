@@ -29,9 +29,13 @@ try {
     const page = await context.newPage();
     currentPage = page;
     const pageErrors = [];
+    const previewEditRequests = [];
     page.on("pageerror", (error) => pageErrors.push(String(error)));
+    page.on("request", (request) => {
+      if (request.url().endsWith("/api/trip/preview-edit")) previewEditRequests.push(request);
+    });
     const first = placeFor("Draft Museum");
-    const second = placeFor("Draft Garden");
+    const second = { ...placeFor("Draft Garden"), id: "mock-google-osm:way/2002" };
     await page.route("**/api/places/details", (route) => {
       const { placeId } = route.request().postDataJSON();
       return route.fulfill({ json: { place: placeId === first.id ? first : second } });
@@ -246,6 +250,69 @@ try {
       const dayOne = timeline.getByRole("tab").filter({ hasText: /^Day 1/ });
       const dayTwo = timeline.getByRole("tab").filter({ hasText: /^Day 2/ });
       await dayOne.click();
+      if (viewport.width === 1440) {
+        await page.locator(".timeline-stop").first().locator(".timeline-stop__time").click();
+        const timeForm = page.locator(".stop-editor__time");
+        await timeForm.getByLabel("Start", { exact: true }).fill("08:30");
+        await dayTwo.click();
+        const restoreTime = page.getByRole("button", { name: /Continue editing Change time/ });
+        await restoreTime.waitFor({ state: "visible" });
+        await restoreTime.click();
+        check(
+          (await page
+            .locator(".stop-editor__time")
+            .getByLabel("Start", { exact: true })
+            .inputValue()) === "08:30",
+          "a desktop time draft restores on its Stop after changing days",
+        );
+        await page
+          .locator(".stop-editor__time")
+          .getByLabel("Start", { exact: true })
+          .press("Escape");
+        const timeDiscard = page.getByRole("dialog", { name: "Discard changes?" });
+        await timeDiscard.waitFor({ state: "visible" });
+        await timeDiscard.getByRole("button", { name: "Discard changes", exact: true }).click();
+
+        const desktopStop = page.locator(".timeline-stop").first();
+        await desktopStop.locator(".action-menu__trigger").click();
+        await page.getByRole("menuitem", { name: "Replace place", exact: true }).click();
+        const desktopPlaceSearch = page.getByRole("searchbox");
+        await desktopPlaceSearch.fill("restore this place search");
+        await dayTwo.click();
+        const restorePlace = page.getByRole("button", {
+          name: /Continue editing Find this place/,
+        });
+        await restorePlace.waitFor({ state: "visible" });
+        await restorePlace.click();
+        check(
+          (await page.getByRole("searchbox").inputValue()) === "restore this place search",
+          "a desktop place-search draft restores on its Stop after changing days",
+        );
+        await page.getByRole("searchbox").press("Escape");
+        const placeDiscard = page.getByRole("dialog", { name: "Discard changes?" });
+        await placeDiscard.waitFor({ state: "visible" });
+        await placeDiscard.getByRole("button", { name: "Discard changes", exact: true }).click();
+
+        const detailsStop = page.locator(".timeline-stop").first();
+        await detailsStop.locator(".action-menu__trigger").click();
+        await page.getByRole("menuitem", { name: "Edit details", exact: true }).click();
+        const detailInput = page.getByRole("textbox", { name: "What you will do", exact: true });
+        await detailInput.fill("Keep these desktop details unfinished");
+        await dayTwo.click();
+        const restoreDetails = page.getByRole("button", { name: /Continue editing Edit details/ });
+        await restoreDetails.waitFor({ state: "visible" });
+        await restoreDetails.click();
+        check(
+          (await page
+            .getByRole("textbox", { name: "What you will do", exact: true })
+            .inputValue()) === "Keep these desktop details unfinished",
+          "desktop details restore on their Stop after changing days",
+        );
+        await page.getByRole("textbox", { name: "What you will do", exact: true }).press("Escape");
+        const detailsDiscard = page.getByRole("dialog", { name: "Discard changes?" });
+        await detailsDiscard.waitFor({ state: "visible" });
+        await detailsDiscard.getByRole("button", { name: "Discard changes", exact: true }).click();
+      }
       await page.locator(".timeline-stop").first().locator(".action-menu__trigger").click();
       await page.getByRole("menuitem", { name: "Add a note" }).click();
       const note = page.getByRole("textbox", { name: "Note", exact: true });
@@ -259,62 +326,98 @@ try {
       await dayTwo.click();
       await dayOne.click();
 
-    const restore = page.getByRole("button", { name: /Continue editing/ });
-    const hasRestoreEntry = await restore
-      .first()
-      .isVisible()
-      .catch(() => false);
-    if (viewport.width > 520) {
-      check(
-        hasRestoreEntry,
-        `draft restore entry is available after day navigation at ${viewport.width}px`,
-      );
-    }
-    if (viewport.width > 520 && hasRestoreEntry) {
-      await restore.first().click();
-      const restoredNote = page.getByRole("textbox", { name: "Note", exact: true });
-      await restoredNote.waitFor({ state: "visible" });
-      check(
-        (await restoredNote.inputValue()) === `draft-${viewport.width}`,
-        `note draft returns to its Stop at ${viewport.width}px`,
-      );
-      if (viewport.width <= 520) {
-        const tabs = page.locator(".phone-tabbar");
-        await tabs.getByRole("tab", { name: "Map", exact: true }).click();
-        await tabs.getByRole("tab", { name: "Trip", exact: true }).click();
-      } else if (viewport.width === 521) {
-        const tripViews = page.getByRole("group", { name: "Trip views" });
-        await tripViews.getByRole("button", { name: "Map", exact: true }).click();
-        await tripViews.getByRole("button", { name: "Itinerary", exact: true }).click();
+      const restore = page.getByRole("button", { name: /Continue editing/ });
+      const hasRestoreEntry = await restore
+        .first()
+        .isVisible()
+        .catch(() => false);
+      if (viewport.width > 520) {
+        check(
+          hasRestoreEntry,
+          `draft restore entry is available after day navigation at ${viewport.width}px`,
+        );
       }
-      if (viewport.width === 520) {
-        await page.setViewportSize({ width: 521, height: 844 });
-        const tripViews = page.getByRole("group", { name: "Trip views" });
-        await tripViews.getByRole("button", { name: "Map", exact: true }).click();
-        await tripViews.getByRole("button", { name: "Itinerary", exact: true }).click();
-        await page.setViewportSize({ width: 520, height: 844 });
-        const tabs = page.locator(".phone-tabbar");
-        await tabs.getByRole("tab", { name: "Map", exact: true }).click();
-        await tabs.getByRole("tab", { name: "Trip", exact: true }).click();
-        check(true, "a dirty note remains reachable across the 520px and 521px surfaces");
+      if (viewport.width > 520 && hasRestoreEntry) {
+        await restore.first().click();
+        const restoredNote = page.getByRole("textbox", { name: "Note", exact: true });
+        await restoredNote.waitFor({ state: "visible" });
+        check(
+          (await restoredNote.inputValue()) === `draft-${viewport.width}`,
+          `note draft returns to its Stop at ${viewport.width}px`,
+        );
+        if (viewport.width <= 520) {
+          const tabs = page.locator(".phone-tabbar");
+          await tabs.getByRole("tab", { name: "Map", exact: true }).click();
+          await tabs.getByRole("tab", { name: "Trip", exact: true }).click();
+        } else if (viewport.width === 521) {
+          const tripViews = page.getByRole("group", { name: "Trip views" });
+          await tripViews.getByRole("button", { name: "Map", exact: true }).click();
+          await tripViews.getByRole("button", { name: "Itinerary", exact: true }).click();
+        }
+        if (viewport.width === 520) {
+          await page.setViewportSize({ width: 521, height: 844 });
+          const tripViews = page.getByRole("group", { name: "Trip views" });
+          await tripViews.getByRole("button", { name: "Map", exact: true }).click();
+          await tripViews.getByRole("button", { name: "Itinerary", exact: true }).click();
+          await page.setViewportSize({ width: 520, height: 844 });
+          const tabs = page.locator(".phone-tabbar");
+          await tabs.getByRole("tab", { name: "Map", exact: true }).click();
+          await tabs.getByRole("tab", { name: "Trip", exact: true }).click();
+          check(true, "a dirty note remains reachable across the 520px and 521px surfaces");
+        }
+        await restoredNote.press("Escape");
+        const discardDialog = page.getByRole("dialog", { name: "Discard changes?" });
+        await discardDialog.waitFor({ state: "visible" });
+        await discardDialog.getByRole("button", { name: "Continue editing" }).click();
+        check(
+          (await restoredNote.inputValue()) === `draft-${viewport.width}`,
+          `cancel keeps the note draft at ${viewport.width}px`,
+        );
+        await restoredNote.press("Escape");
+        await discardDialog.getByRole("button", { name: "Discard changes", exact: true }).click();
+        await discardDialog.waitFor({ state: "detached" });
+        await page.locator(".trip-draft-restore button").waitFor({ state: "detached" });
+        check(
+          !(await page.locator(".trip-draft-restore button").count()),
+          `confirmed discard clears the note draft at ${viewport.width}px`,
+        );
       }
-      await restoredNote.press("Escape");
-      const discardDialog = page.getByRole("dialog", { name: "Discard changes?" });
-      await discardDialog.waitFor({ state: "visible" });
-      await discardDialog.getByRole("button", { name: "Continue editing" }).click();
+    } else if (viewport.width === 390) {
+      const phoneStop = page.locator(".timeline-stop").first();
+      await phoneStop.locator(".action-menu__trigger").click();
+      await page.getByRole("menuitem", { name: "Add a note" }).click();
+      const phoneNote = page.getByRole("textbox", { name: "Note", exact: true });
+      await phoneNote.fill("Restore this note through the phone modal flow");
+      await page.setViewportSize({ width: 521, height: 844 });
+      await page.waitForFunction(() => innerWidth === 521);
+      const phoneNoteRestore = page.getByRole("button", { name: /Continue editing Note/ });
+      await phoneNoteRestore.waitFor({ state: "visible" });
+      await phoneNoteRestore.click();
       check(
-        (await restoredNote.inputValue()) === `draft-${viewport.width}`,
-        `cancel keeps the note draft at ${viewport.width}px`,
+        (await page.getByRole("textbox", { name: "Note", exact: true }).inputValue()) ===
+          "Restore this note through the phone modal flow",
+        "a phone modal note restores after crossing to the tablet surface",
       );
-      await restoredNote.press("Escape");
-      await discardDialog.getByRole("button", { name: "Discard changes", exact: true }).click();
-      await discardDialog.waitFor({ state: "detached" });
-      await page.locator(".trip-draft-restore button").waitFor({ state: "detached" });
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.waitForFunction(() => innerWidth === 390);
+      const phoneNoteStillOpen = await page
+        .getByRole("textbox", { name: "Note", exact: true })
+        .isVisible()
+        .catch(() => false);
+      if (!phoneNoteStillOpen) {
+        const phoneRestore = page.getByRole("button", { name: /Continue editing Note/ });
+        await phoneRestore.waitFor({ state: "visible" });
+        await phoneRestore.click();
+      }
       check(
-        !(await page.locator(".trip-draft-restore button").count()),
-        `confirmed discard clears the note draft at ${viewport.width}px`,
+        (await page.getByRole("textbox", { name: "Note", exact: true }).inputValue()) ===
+          "Restore this note through the phone modal flow",
+        "the phone modal draft remains restorable after returning to phone width",
       );
-    }
+      await phoneNote.press("Escape");
+      const phoneDiscard = page.getByRole("dialog", { name: "Discard changes?" });
+      await phoneDiscard.waitFor({ state: "visible" });
+      await phoneDiscard.getByRole("button", { name: "Discard changes", exact: true }).click();
     }
 
     const addPlaceEntry = page.getByRole("button", { name: "Add place", exact: true });
@@ -355,7 +458,8 @@ try {
     check(
       (await resumedAdd.getByRole("searchbox", { name: "Search places" }).inputValue()) ===
         "draft search" &&
-        (await resumedAdd.getByLabel("Place name").inputValue()) === `Add draft ${viewport.width}` &&
+        (await resumedAdd.getByLabel("Place name").inputValue()) ===
+          `Add draft ${viewport.width}` &&
         (await resumedAdd.getByLabel("What you will do").inputValue()) ===
           "Keep this unfinished addition" &&
         (await resumedAdd.getByLabel("Start time").inputValue()) === "14:00" &&
@@ -384,44 +488,106 @@ try {
     const failedSaveResponsePromise = page
       .waitForResponse((response) => response.url().endsWith("/api/trip/preview-edit"))
       .catch(() => undefined);
-    await page
-      .getByRole("button", { name: `Use ${second.displayName.text}`, exact: true })
-      .click();
+    await page.getByRole("button", { name: `Use ${second.displayName.text}`, exact: true }).click();
     const failedSaveResponse = await failedSaveResponsePromise;
     check(
       failedSaveResponse?.status() === 503,
       `the forced place-save failure reaches the preview-edit boundary at ${viewport.width}px`,
       { status: failedSaveResponse?.status() },
     );
-    await page.locator(".timeline-status--error").filter({ hasText: "Draft fixture save failure" }).waitFor({ state: "visible" });
+    await page
+      .locator(".timeline-status--error")
+      .filter({ hasText: "Draft fixture save failure" })
+      .waitFor({ state: "visible" });
     check(
       (await query.inputValue()) === `failed-save-${viewport.width}`,
       `failed place save retains its query at ${viewport.width}px`,
     );
     await page.unroute("**/api/trip/preview-edit");
-    const retryResponse = page.waitForResponse(
-      (response) => response.url().endsWith("/api/trip/preview-edit"),
+    const retryResponse = page.waitForResponse((response) =>
+      response.url().endsWith("/api/trip/preview-edit"),
     );
     const retryButton = page.getByRole("button", {
       name: `Use ${second.displayName.text}`,
       exact: true,
     });
-    const retryHandle = await retryButton.elementHandle();
-    await page.waitForFunction((button) => button?.isConnected && !button.disabled, retryHandle);
-    await retryButton.evaluate((button) => button.click());
+    await retryButton.click();
     const retry = await retryResponse;
     await retry.finished();
     const retryBody = await retry.text();
     if (retry.ok()) {
-      await page
-        .locator(".timeline-stop")
-        .filter({ hasText: second.displayName.text })
-        .waitFor();
+      await page.locator(".timeline-stop").filter({ hasText: second.displayName.text }).waitFor();
     }
     check(retry.ok(), `failed place save can be retried at ${viewport.width}px`, {
       status: retry.status(),
       body: retryBody.slice(0, 300),
     });
+    if (viewport.width === 1440) {
+      const staleStop = timeline.locator(".timeline-stop").first();
+      await staleStop.locator(".timeline-stop__time").click();
+      const staleTime = page.locator(".stop-editor__time").getByLabel("Start", { exact: true });
+      await staleTime.fill("08:30");
+
+      const concurrent = await context.newPage();
+      currentPage = concurrent;
+      const concurrentPlanText = "A newer Plan detail from another workspace tab";
+      await concurrent.goto(process.env.BASE_URL ?? "http://localhost:3115");
+      await concurrent.locator(".workspace-app").waitFor();
+      await concurrent.getByRole("button", { name: /^Trips/ }).click();
+      await concurrent
+        .locator(".trips-page .trip-card")
+        .filter({ hasText: "Sydney" })
+        .first()
+        .click();
+      await concurrent.getByRole("button", { name: "Open your trip", exact: true }).click();
+      const concurrentStop = concurrent.locator(".timeline-stop").first();
+      await concurrentStop.locator(".action-menu__trigger").click();
+      await concurrent.getByRole("menuitem", { name: "Edit details", exact: true }).click();
+      const concurrentDetails = concurrent.getByRole("textbox", {
+        name: "What you will do",
+        exact: true,
+      });
+      await concurrentDetails.fill(concurrentPlanText);
+      await concurrent.getByRole("button", { name: "Save", exact: true }).click();
+      await concurrent.waitForFunction(
+        ({ key, value }) => localStorage.getItem(key)?.includes(value),
+        { key: `trip.revision:${tripId}`, value: concurrentPlanText },
+      );
+      check(
+        await concurrent.evaluate(({ key, value }) => localStorage.getItem(key)?.includes(value), {
+          key: `trip.revision:${tripId}`,
+          value: concurrentPlanText,
+        }),
+        "a second workspace tab applies its newer Plan revision",
+      );
+      await concurrent.locator(".timeline-stop").filter({ hasText: concurrentPlanText }).waitFor();
+
+      const staleRequestsBeforeSave = previewEditRequests.length;
+      await page.getByRole("button", { name: "Change time", exact: true }).click();
+      const staleNotice = page
+        .locator(".stop-editor__errors")
+        .filter({ hasText: "This edit is stale. Start from the current plan." });
+      await staleNotice.waitFor({ state: "visible" });
+      check(
+        previewEditRequests.length === staleRequestsBeforeSave &&
+          (await staleTime.inputValue()) === "08:30",
+        "a stale time draft is retained and refused before the edit request is sent",
+      );
+      const publishedRevision = await page.evaluate(
+        (key) => localStorage.getItem(key),
+        `trip.revision:${tripId}`,
+      );
+      check(
+        publishedRevision?.includes(concurrentPlanText) && !publishedRevision.includes("08:30"),
+        "the stale draft cannot overwrite the newer Plan revision",
+      );
+      await staleTime.press("Escape");
+      const staleDiscard = page.getByRole("dialog", { name: "Discard changes?" });
+      await staleDiscard.waitFor({ state: "visible" });
+      await staleDiscard.getByRole("button", { name: "Discard changes", exact: true }).click();
+      await concurrent.close();
+      currentPage = page;
+    }
     await page.screenshot({ path: resolve(out, `draft-${viewport.width}.png`), fullPage: true });
     await context.close();
   }
