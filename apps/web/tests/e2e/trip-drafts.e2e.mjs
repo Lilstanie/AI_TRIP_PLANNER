@@ -1,7 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
-import { placeFor } from "./trip-setup.mjs";
+import { installSeededItinerary, placeFor } from "./trip-setup.mjs";
 
 const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT ?? "playwright");
 const out = resolve(
@@ -35,7 +35,7 @@ try {
       if (request.url().endsWith("/api/trip/preview-edit")) previewEditRequests.push(request);
     });
     const first = placeFor("Draft Museum");
-    const second = { ...placeFor("Draft Garden"), id: "mock-google-osm:way/2002" };
+    const second = { ...placeFor("Draft Garden"), id: "osm:way/2002" };
     await page.route("**/api/places/details", (route) => {
       const { placeId } = route.request().postDataJSON();
       return route.fulfill({ json: { place: placeId === first.id ? first : second } });
@@ -414,7 +414,7 @@ try {
           "Restore this note through the phone modal flow",
         "the phone modal draft remains restorable after returning to phone width",
       );
-      await phoneNote.press("Escape");
+      await page.keyboard.press("Escape");
       const phoneDiscard = page.getByRole("dialog", { name: "Discard changes?" });
       await phoneDiscard.waitFor({ state: "visible" });
       await phoneDiscard.getByRole("button", { name: "Discard changes", exact: true }).click();
@@ -565,7 +565,7 @@ try {
       const staleRequestsBeforeSave = previewEditRequests.length;
       await page.getByRole("button", { name: "Change time", exact: true }).click();
       const staleNotice = page
-        .locator(".stop-editor__errors")
+        .locator(".stop-editor__time .stop-editor__errors")
         .filter({ hasText: "This edit is stale. Start from the current plan." });
       await staleNotice.waitFor({ state: "visible" });
       check(
@@ -587,6 +587,125 @@ try {
       await staleDiscard.getByRole("button", { name: "Discard changes", exact: true }).click();
       await concurrent.close();
       currentPage = page;
+
+      await page.reload();
+      await page.locator(".workspace-app").waitFor();
+      await selectSavedTrip("Sydney draft");
+      const rebaseTimeline = page.getByRole("region", { name: "Trip timeline" });
+      await rebaseTimeline.waitFor();
+      const editedStop = rebaseTimeline.locator(".timeline-stop").first();
+      const draftStart = "08:30";
+      await editedStop.locator(".timeline-stop__time").click();
+      const draftTime = page.locator(".stop-editor__time").getByLabel("Start", { exact: true });
+      await draftTime.fill(draftStart);
+
+      const currentPlan = await page.evaluate((key) => {
+        const catalog = JSON.parse(localStorage.getItem("trip-workspace-catalog-v3") ?? "null");
+        return catalog?.trips?.find((trip) => trip.id === key)?.snapshot?.plan ?? null;
+      }, tripId);
+      const stopId = currentPlan?.sections
+        ?.find((section) => section.id === "itinerary")
+        ?.proposal?.items?.find((item) => item.kind === "activity")?.id;
+      const replacementItems = structuredClone(
+        currentPlan?.sections?.find((section) => section.id === "itinerary")?.proposal?.items ?? [],
+      );
+      const replacementStop = replacementItems.find((item) => item.id === stopId);
+      if (replacementStop) {
+        replacementStop.startTime = "10:15";
+        replacementStop.endTime = "11:15";
+      }
+      await installSeededItinerary(page, replacementItems);
+      const tripToggle = page.getByRole("button", { name: "Open your trip", exact: true });
+      if ((await tripToggle.getAttribute("aria-expanded")) === "true") await tripToggle.click();
+      const chatInput = page.getByRole("textbox", { name: "Message AI Trip Planner", exact: true });
+      await chatInput.waitFor({ state: "visible" });
+      await chatInput.fill("Keep the same itinerary and shift the first stop later");
+      const replanDialog = page.waitForEvent("dialog").catch(() => undefined);
+      const chatResponse = page.waitForResponse((response) => response.url().endsWith("/api/chat"));
+      await chatInput.press("Enter");
+      const dialog = await replanDialog;
+      if (dialog) await dialog.accept();
+      const chatResult = await chatResponse;
+      const chatFrames = (await chatResult.text())
+        .split("\n")
+        .filter(Boolean)
+        .map((line) => JSON.parse(line));
+      const returnedPlan = chatFrames.find((frame) => frame.response?.plan)?.response?.plan;
+      const returnedStop = returnedPlan?.sections
+        ?.find((section) => section.id === "itinerary")
+        ?.proposal?.items?.find((item) => item.id === stopId);
+      check(
+        returnedStop?.startTime === "10:15",
+        "the deterministic chat fixture returns the same Stop ID with a newer time",
+        { stopId, returnedId: returnedStop?.id, returnedStart: returnedStop?.startTime },
+      );
+      await page.locator(".msg-item--agent .msg-item__body").last().waitFor({ timeout: 30_000 });
+      await page.waitForFunction(
+        ({ stopId }) => {
+          const catalog = JSON.parse(localStorage.getItem("trip-workspace-catalog-v3") ?? "null");
+          const plan = catalog?.trips?.find((trip) => trip.id === catalog.activeTripId)?.snapshot
+            ?.plan;
+          return plan?.sections
+            ?.find((section) => section.id === "itinerary")
+            ?.proposal?.items?.some((item) => item.id === stopId && item.startTime === "10:15");
+        },
+        { stopId },
+        { timeout: 8000 },
+      );
+      await page.getByRole("button", { name: "Open your trip", exact: true }).click();
+      const restoreStaleTime = page.getByRole("button", {
+        name: /Continue editing Change time/,
+      });
+      await restoreStaleTime.waitFor({ state: "visible" });
+      await restoreStaleTime.click();
+      const staleDraftNotice = page
+        .locator(".stop-editor__hint")
+        .filter({ hasText: "Draft changed since you started editing" });
+      await staleDraftNotice.waitFor({ state: "visible" });
+      await staleDraftNotice.getByRole("button", { name: "Use latest trip and retry" }).click();
+      check(
+        (await draftTime.inputValue()) === draftStart &&
+          (await page
+            .locator(".stop-editor__hint")
+            .filter({
+              hasText: "Draft changed since you started editing",
+            })
+            .count()) === 0,
+        "same-page replan marks the retained time draft stale and explicit rebase keeps its value",
+        { stopId, replacementStart: replacementStop?.startTime },
+      );
+      const editsBeforeRetry = previewEditRequests.length;
+      const retryResponse = page.waitForResponse((response) =>
+        response.url().endsWith("/api/trip/preview-edit"),
+      );
+      await page.getByRole("button", { name: "Change time", exact: true }).click();
+      const retried = await retryResponse;
+      const retryRequest = previewEditRequests[editsBeforeRetry]?.postDataJSON();
+      const retryResult = await retried.json();
+      const retryPlanItem = retryRequest?.plan?.sections
+        ?.find((section) => section.id === "itinerary")
+        ?.proposal?.items?.find((item) => item.id === stopId);
+      const appliedItem = retryResult?.plan?.sections
+        ?.find((section) => section.id === "itinerary")
+        ?.proposal?.items?.find((item) => item.id === stopId);
+      await page.locator(".stop-editor__time").waitFor({ state: "hidden" });
+      const visibleTime = await page.locator(".timeline-stop__time").first().innerText();
+      check(
+        retried.ok() &&
+          retryRequest?.operation?.startTime === draftStart &&
+          retryPlanItem?.startTime === "10:15" &&
+          appliedItem?.startTime === draftStart &&
+          visibleTime.includes(draftStart),
+        "rebased time retry is sent against the current same-Stop Plan and applies the draft",
+        {
+          status: retried.status(),
+          baseStart: retryPlanItem?.startTime,
+          requestedStart: retryRequest?.operation?.startTime,
+          appliedStart: appliedItem?.startTime,
+          visibleTime,
+        },
+      );
+      await page.unroute("**/api/chat");
     }
     await page.screenshot({ path: resolve(out, `draft-${viewport.width}.png`), fullPage: true });
     await context.close();

@@ -27,6 +27,8 @@ AddStop fields (including suggested times) across day/map navigation and 520px/5
 forced 503 followed by a successful retry at 1440px. A phone note modal survives a 390px to 521px
 transition and remains restorable after returning to 390px. A concurrent workspace tab publishes a
 newer Plan revision; saving the old time draft is refused before the preview-edit request, retains
-the draft value, and leaves the newer revision intact. Rebase/retry of that stale time draft remains
-uncovered. The note modal's scrim prevents using the obscured phone tab bar while it is open; the
-tested navigation uses the responsive width transition and restore entry instead.
+the draft value, and leaves the newer revision intact. A same-page confirmed chat replan returns the
+same Stop ID at a changed time; restoring the retained draft shows the stale notice, explicit rebase
+keeps the user's time, and retry submits against the new 10:15 Plan and returns the requested 08:30
+Plan through the UI. The note modal's scrim prevents using the obscured phone tab bar while it is
+open; the tested navigation uses the responsive width transition and restore entry instead.
