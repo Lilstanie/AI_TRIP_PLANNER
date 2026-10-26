@@ -205,13 +205,41 @@ try {
       for (const desktopWidth of [521, 1440]) {
         await page.setViewportSize({ width: desktopWidth, height: 1000 });
         await page.locator(".workspace-app:not([data-phone])").waitFor();
-        const dimensions = await page
-          .locator(".trip-panel__budget-summary > summary, .trip-tips > summary")
-          .filter({ visible: true })
-          .evaluateAll((nodes) => nodes.map((node) => node.getBoundingClientRect().height));
+        const desktopTripSummary = await page.evaluate(() => {
+          const budget = document.querySelector(".trip-panel__budget-summary");
+          const budgetSummary = budget?.querySelector(":scope > summary");
+          const compact = budgetSummary?.querySelector(".trip-panel__budget-compact");
+          const tips = document.querySelector(".trip-tips");
+          const tipsSummary = tips?.querySelector(":scope > summary");
+          const selectedDay = document.querySelector(
+            '.day-strip [aria-selected="true"], .day-strip [aria-pressed="true"]',
+          );
+          const visible = (node) => {
+            if (!node) return false;
+            const style = getComputedStyle(node);
+            const box = node.getBoundingClientRect();
+            return style.display !== "none" && style.visibility !== "hidden" && box.width > 0 && box.height > 0;
+          };
+          return {
+            budgetCollapsed: budget?.open === false,
+            budgetSummaryVisible: visible(budgetSummary),
+            compactBudgetVisible: visible(compact),
+            budgetSummaryHeight: budgetSummary?.getBoundingClientRect().height ?? 0,
+            tipsCollapsed: tips?.open === false,
+            tipsSummaryVisible: visible(tipsSummary),
+            selectedDayVisible: visible(selectedDay),
+          };
+        });
         check(
-          dimensions.length === 2 && dimensions.every((height) => height === 21),
-          `${width} ${language}: ${desktopWidth} desktop summary heights ${JSON.stringify(dimensions)} stay21`,
+          desktopTripSummary.budgetCollapsed &&
+            desktopTripSummary.budgetSummaryVisible &&
+            desktopTripSummary.compactBudgetVisible &&
+            desktopTripSummary.budgetSummaryHeight >= 44 &&
+            desktopTripSummary.budgetSummaryHeight <= 160 &&
+            desktopTripSummary.tipsCollapsed &&
+            desktopTripSummary.tipsSummaryVisible &&
+            desktopTripSummary.selectedDayVisible,
+          `${width} ${language}: ${desktopWidth} keeps compact budget, collapsed tips, and selected itinerary reachable ${JSON.stringify(desktopTripSummary)}`,
         );
         check(
           await page.evaluate(() => document.documentElement.scrollWidth === innerWidth),

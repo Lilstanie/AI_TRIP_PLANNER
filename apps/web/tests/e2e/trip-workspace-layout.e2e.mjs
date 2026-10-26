@@ -472,7 +472,34 @@ try {
   await page.setViewportSize({ width: 520, height: 844 });
   await page.getByRole("tab", { name: "Trip", exact: true }).waitFor({ state: "visible" });
   await page.getByRole("tab", { name: "Map", exact: true }).click();
+  await page.waitForFunction(
+    () => document.querySelector("#phone-tab-map")?.getAttribute("aria-selected") === "true",
+  );
+  const mapTabState = await page.evaluate(() => ({
+    selected: document.querySelector('.phone-tabbar [role="tab"][aria-selected="true"]')?.id,
+    mapHidden: document.querySelector("#phone-panel-map")?.hasAttribute("hidden"),
+    tripHidden: document.querySelector("#phone-panel-trip")?.hasAttribute("hidden"),
+  }));
+  check(
+    mapTabState.selected === "phone-tab-map" && mapTabState.mapHidden === false && mapTabState.tripHidden === true,
+    "520px Map tab selection exposes only the Map panel after settling",
+    mapTabState,
+  );
   await page.getByRole("tab", { name: "Trip", exact: true }).click();
+  await page.waitForFunction(
+    () => document.querySelector("#phone-tab-trip")?.getAttribute("aria-selected") === "true",
+  );
+  const tripTabState = await page.evaluate(() => ({
+    selected: document.querySelector('.phone-tabbar [role="tab"][aria-selected="true"]')?.id,
+    mapHidden: document.querySelector("#phone-panel-map")?.hasAttribute("hidden"),
+    tripHidden: document.querySelector("#phone-panel-trip")?.hasAttribute("hidden"),
+  }));
+  check(
+    tripTabState.selected === "phone-tab-trip" && tripTabState.tripHidden === false && tripTabState.mapHidden === true,
+    "520px Trip tab selection exposes only the Trip panel after settling",
+    tripTabState,
+  );
+  await settle(page, 250);
   check(
     (await page.locator(".trip-workspace").count()) === 0,
     "phone retains its existing Trip navigation and surface",
