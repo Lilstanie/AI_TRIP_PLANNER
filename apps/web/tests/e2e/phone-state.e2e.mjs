@@ -150,9 +150,12 @@ async function run(browser, size) {
   const forceReplyOverflow =
     process.env.PHONE_STATE_FORCE_REPLY_OVERFLOW === "1" && size.width === 360;
   if (forceReplyOverflow) {
-    await page.locator(".msg-item--agent .msg-item__body").last().evaluate((node) => {
-      node.style.transform = "translateY(500px)";
-    });
+    await page
+      .locator(".msg-item--agent .msg-item__body")
+      .last()
+      .evaluate((node) => {
+        node.style.transform = "translateY(500px)";
+      });
   }
   const geometry = await page.evaluate(() => ({
     bottom: document.querySelector(".chat__form").getBoundingClientRect().bottom,
@@ -185,9 +188,12 @@ async function run(browser, size) {
     })(),
   }));
   if (forceReplyOverflow) {
-    await page.locator(".msg-item--agent .msg-item__body").last().evaluate((node) => {
-      node.style.transform = "";
-    });
+    await page
+      .locator(".msg-item--agent .msg-item__body")
+      .last()
+      .evaluate((node) => {
+        node.style.transform = "";
+      });
   }
   check(
     Math.abs(geometry.bottom - shortened) <= 2,
