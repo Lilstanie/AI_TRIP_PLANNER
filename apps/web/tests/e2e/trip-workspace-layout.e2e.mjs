@@ -1,7 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
-import { openMockWorkspace, planSuggestedTrip } from "./trip-setup.mjs";
+import { installSeededItinerary, openMockWorkspace, settle } from "./trip-setup.mjs";
 
 const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT ?? "playwright");
 const out = resolve(
@@ -21,9 +21,81 @@ try {
   await page.emulateMedia({ reducedMotion: "reduce" });
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  await page.route("**/api/places/**", (route) => route.fulfill({ json: { places: [] } }));
+  const fixturePlaces = [
+    {
+      id: "layout-fixture-opera-house",
+      displayName: { text: "Sydney Opera House" },
+      formattedAddress: "Bennelong Point, Sydney NSW, Australia",
+      location: { latitude: -33.8568, longitude: 151.2153 },
+    },
+    {
+      id: "layout-fixture-harbour-bridge",
+      displayName: { text: "Sydney Harbour Bridge" },
+      formattedAddress: "Sydney NSW, Australia",
+      location: { latitude: -33.8523, longitude: 151.2108 },
+    },
+  ];
+  await installSeededItinerary(page, [
+    {
+      id: "layout-stop-opera-house",
+      kind: "activity",
+      day: 1,
+      startTime: "10:00",
+      endTime: "11:00",
+      location: "Sydney Opera House",
+      detail: "Visit the Opera House",
+      placeId: fixturePlaces[0].id,
+    },
+    {
+      id: "layout-stop-harbour-bridge",
+      kind: "activity",
+      day: 2,
+      startTime: "10:00",
+      endTime: "11:00",
+      location: "Sydney Harbour Bridge",
+      detail: "Walk across the Harbour Bridge",
+      placeId: fixturePlaces[1].id,
+    },
+  ]);
+  await page.route("**/api/chat", async (route) => {
+    await page.waitForTimeout(900);
+    await route.fallback();
+  });
+  await page.route("**/api/places/search", (route) => {
+    const { text = "" } = route.request().postDataJSON();
+    const match = fixturePlaces.find((place) => place.displayName.text.includes(text));
+    return route.fulfill({ json: { places: match ? [match] : [] } });
+  });
+  await page.route("**/api/places/details", (route) => {
+    const { placeId } = route.request().postDataJSON();
+    const place = fixturePlaces.find((candidate) => candidate.id === placeId);
+    return route.fulfill({ json: { place: place ?? null } });
+  });
   await openMockWorkspace(page, process.env.BASE_URL ?? "http://localhost:3112");
-  await planSuggestedTrip(page);
+  const chatTab = page.getByRole("tab", { name: /^Chat/ });
+  if (await chatTab.count()) await chatTab.click();
+  await page.locator(".chat-empty__suggestions button").first().click();
+  await page.waitForFunction(
+    () => Number(document.querySelector(".team-trigger")?.getAttribute("data-working")) > 0,
+    { timeout: 30_000 },
+  );
+  const runningTeam = await page.locator(".team-trigger").evaluate((button) => ({
+    label: button.getAttribute("aria-label"),
+    working: button.getAttribute("data-working"),
+    count: button.querySelector(".team-trigger__count")?.textContent?.trim(),
+  }));
+  check(
+    /\d+ working/.test(runningTeam.label ?? "") && Number(runningTeam.working) > 0,
+    "topbar announces the active Team working count",
+    runningTeam,
+  );
+  await page.locator(".msg-item--agent .msg-item__body").first().waitFor({ timeout: 180_000 });
+  await settle(page, 1200);
+  const tripTab = page.getByRole("tab", { name: /^Trip/ });
+  if (await tripTab.count()) await tripTab.click();
+  else await page.getByRole("button", { name: "Open your trip" }).click();
+  await page.getByRole("region", { name: "Trip timeline" }).waitFor({ timeout: 30_000 });
+  await settle(page, 600);
   const dismiss = page.getByRole("button", { name: "Not now", exact: true });
   if (await dismiss.isVisible()) await dismiss.click();
   const openTrip = page.getByRole("button", { name: "Open your trip", exact: true });
@@ -36,9 +108,25 @@ try {
     "wide Trip keeps the timeline visible",
   );
   check(
-    await page.getByRole("region", { name: "Trip map" }).isVisible(),
+    await page.getByRole("region", { name: "Trip map" }).first().isVisible(),
     "wide Trip keeps the linked map visible",
   );
+  await page.locator("trip-libre-marker").first().waitFor({ state: "visible", timeout: 30_000 });
+  check(
+    (await page.locator("trip-libre-marker").count()) >= 1,
+    "fixture place renders as a located map marker",
+  );
+  await page.locator("trip-libre-marker").first().click();
+  await page.locator(".stop-place-card").waitFor({ state: "visible", timeout: 10_000 });
+  check(
+    (await page.locator(".timeline-stop__main[aria-expanded=true]").count()) === 1 &&
+      (await page.locator(".stop-place-card").innerText()).includes("Sydney Opera House"),
+    "selecting a located map marker selects its Stop and opens the matching place details",
+  );
+  await page
+    .locator(".stop-place-card")
+    .getByRole("button", { name: "Close place details" })
+    .click();
   await page.getByRole("tab", { name: /Day 2/ }).click();
   await page.waitForFunction(
     () => document.querySelector(".trip-workspace")?.getAttribute("data-day") === "2",
@@ -72,20 +160,133 @@ try {
     "expanded-sidebar header keeps Trip identity readable with one Team icon",
     desktopIdentity,
   );
+  const renameActiveTrip = async (title) => {
+    await page
+      .locator(".sidebar-nav__item")
+      .filter({ hasText: /Trips|行程/ })
+      .click();
+    const tripRow = page.locator(".trip-cards > li").first();
+    await tripRow.waitFor({ state: "visible" });
+    await tripRow.locator(".history-item__more").click();
+    page.once("dialog", (dialog) => dialog.accept(title));
+    await page.getByRole("menuitem").first().click();
+    await tripRow.getByText(title, { exact: true }).waitFor({ state: "visible" });
+    await tripRow.locator(".trip-card").click();
+    await page.locator(".topbar-title").waitFor({ state: "visible" });
+    const openTrip = page.locator(".trip-trigger");
+    if ((await openTrip.count()) && (await openTrip.getAttribute("aria-expanded")) !== "true") {
+      await openTrip.click();
+    }
+    await page.locator(".trip-workspace").waitFor({ state: "visible" });
+    await settle(page, 300);
+  };
+  await page.locator(".sidebar-nav__item").filter({ hasText: "Chats" }).click();
+  await page.locator(".history-item--trip").waitFor({ state: "visible" });
+  const longEnglishTitle = "Sydney harbour, beaches, gardens and family food itinerary";
+  await renameActiveTrip(longEnglishTitle);
+  const englishTitleLayout = await page.locator(".topbar-title").evaluate((title) => ({
+    text: title.textContent?.trim(),
+    width: title.getBoundingClientRect().width,
+    scrollWidth: title.scrollWidth,
+  }));
+  check(
+    englishTitleLayout.text === longEnglishTitle &&
+      englishTitleLayout.width >= 120 &&
+      englishTitleLayout.scrollWidth <= englishTitleLayout.width,
+    "long English Trip title remains readable beside the Team control",
+    englishTitleLayout,
+  );
+  await page.screenshot({ path: `${out}/title-en.png`, fullPage: false });
+  const switchLocale = async (locale) => {
+    await page.locator(".account-button__more").click();
+    await page.getByRole("menuitem").nth(3).click();
+    await page.locator(".settings").waitFor({ state: "visible" });
+    await page.locator(".settings-row-item").first().locator(".settings-pill").click();
+    const languageGroup = page.locator(".settings-segmented").first();
+    await languageGroup
+      .getByRole("button", { name: locale === "zh" ? "简体中文" : "English", exact: true })
+      .click();
+    await page.keyboard.press("Escape");
+    await page.locator(".settings").waitFor({ state: "hidden" });
+  };
+  await switchLocale("zh");
+  const longChineseTitle = "悉尼海港海滩花园与亲子美食行程规划";
+  await renameActiveTrip(longChineseTitle);
+  const chineseTitleLayout = await page.locator(".topbar-title").evaluate((title) => ({
+    text: title.textContent?.trim(),
+    width: title.getBoundingClientRect().width,
+    scrollWidth: title.scrollWidth,
+  }));
+  check(
+    chineseTitleLayout.text === longChineseTitle &&
+      chineseTitleLayout.width >= 120 &&
+      chineseTitleLayout.scrollWidth <= Math.ceil(chineseTitleLayout.width),
+    "long Chinese Trip title remains readable beside the Team control",
+    chineseTitleLayout,
+  );
+  await page.screenshot({ path: `${out}/title-zh.png`, fullPage: false });
+  await switchLocale("en");
+  const overflow = await page.evaluate(() => ({
+    document: document.documentElement.scrollWidth,
+    viewport: innerWidth,
+    body: document.body.scrollWidth,
+  }));
+  check(
+    overflow.document <= overflow.viewport && overflow.body <= overflow.viewport,
+    "desktop layout has no horizontal page overflow",
+    overflow,
+  );
+  const sidebar = page.locator(".workspace-sidebar");
+  const sidebarToggle = sidebar.locator(".sidebar-toggle");
+  check(
+    (await sidebarToggle.getAttribute("aria-expanded")) === "true",
+    "desktop starts with an expanded sidebar",
+  );
+  await sidebarToggle.click();
+  await page.locator(".workspace-sidebar.is-collapsed").waitFor({ state: "visible" });
+  check(
+    (await sidebar.locator(".sidebar-toggle").getAttribute("aria-expanded")) === "false",
+    "desktop sidebar collapses accessibly",
+  );
+  await sidebar.locator(".sidebar-toggle").click();
+  await page.locator(".workspace-sidebar:not(.is-collapsed)").waitFor({ state: "visible" });
+  check(
+    (await sidebar.locator(".sidebar-toggle").getAttribute("aria-expanded")) === "true",
+    "desktop sidebar expands accessibly",
+  );
   await page.screenshot({ path: `${out}/desktop.png`, fullPage: false });
 
   await page.setViewportSize({ width: 1000, height: 800 });
-  await page.getByRole("button", { name: "Itinerary", exact: true }).waitFor({ state: "visible" });
   check(
-    await page.getByRole("button", { name: "Map", exact: true }).isVisible(),
-    "tablet retains a reachable map view",
+    await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+    "1000px tablet layout has no horizontal page overflow",
   );
-  await page.getByRole("button", { name: "Map", exact: true }).click();
+  const viewSwitch = page.locator(".topbar-views");
+  await viewSwitch
+    .getByRole("button", { name: "Itinerary", exact: true })
+    .waitFor({ state: "visible" });
+  const mapViewButton = viewSwitch.getByRole("button", { name: "Map", exact: true });
+  check(await mapViewButton.isVisible(), "tablet retains a reachable map view");
+  await mapViewButton.click();
+  await page.waitForFunction(
+    () =>
+      document.querySelector('.topbar-views button[aria-pressed="true"]')?.textContent?.trim() ===
+      "Map",
+  );
+  const tabletMap = await page.evaluate(() => ({
+    selected: document
+      .querySelector('.topbar-views button[aria-pressed="true"]')
+      ?.textContent?.trim(),
+    workspaceView: document.querySelector(".trip-workspace")?.getAttribute("data-view"),
+    mapHidden: document.querySelector(".trip-workspace__map")?.hasAttribute("hidden"),
+    narrow: document.querySelector(".workspace-app")?.getAttribute("data-narrow"),
+  }));
   check(
-    await page.locator(".trip-workspace__map").isVisible(),
+    tabletMap.selected === "Map" && tabletMap.workspaceView === "map" && !tabletMap.mapHidden,
     "tablet switches to the map without leaving Trip",
+    tabletMap,
   );
-  await page.getByRole("button", { name: "Itinerary", exact: true }).click();
+  await viewSwitch.getByRole("button", { name: "Itinerary", exact: true }).click();
   check(
     (await page.getByRole("tab", { name: /Day 2/ }).getAttribute("aria-selected")) === "true",
     "tablet view switch retains the selected day",
@@ -93,6 +294,10 @@ try {
   await page.screenshot({ path: `${out}/tablet.png`, fullPage: false });
 
   await page.setViewportSize({ width: 1001, height: 800 });
+  check(
+    await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+    "1001px desktop layout has no horizontal page overflow",
+  );
   await page.waitForFunction(
     () => document.querySelector(".workspace-app")?.getAttribute("data-narrow") === "false",
   );
@@ -111,25 +316,43 @@ try {
     () => document.querySelector(".workspace-app")?.getAttribute("data-narrow") === "true",
   );
   const mediumTeam = page.getByRole("button", { name: /Agent Team/ });
-  const mediumHeader = await mediumTeam.evaluate((button) => ({
-    labelVisible: getComputedStyle(button.querySelector(".team-trigger__label")).display !== "none",
-    avatarCount: [...button.querySelectorAll(".team-trigger__avatars > *")].filter(
-      (node) => getComputedStyle(node).display !== "none",
-    ).length,
-    title: document.querySelector(".topbar-title")?.getBoundingClientRect().toJSON() ?? null,
-    titleReadable: (() => {
-      const title = document.querySelector(".topbar-title");
-      return Boolean(
-        title &&
-        title.getBoundingClientRect().width >= 120 &&
-        title.scrollWidth <= title.clientWidth,
-      );
-    })(),
-  }));
+  const mediumHeader = await mediumTeam.evaluate(
+    (button, expectedTitle) => ({
+      labelVisible:
+        getComputedStyle(button.querySelector(".team-trigger__label")).display !== "none",
+      avatarCount: [...button.querySelectorAll(".team-trigger__avatars > *")].filter(
+        (node) => getComputedStyle(node).display !== "none",
+      ).length,
+      title: (() => {
+        const title = document.querySelector(".topbar-title");
+        return title
+          ? {
+              text: title.textContent?.trim(),
+              ...title.getBoundingClientRect().toJSON(),
+              clientWidth: title.clientWidth,
+              scrollWidth: title.scrollWidth,
+            }
+          : null;
+      })(),
+      titleReadable: (() => {
+        const title = document.querySelector(".topbar-title");
+        return Boolean(
+          title &&
+          title.textContent?.trim() === expectedTitle &&
+          title.getBoundingClientRect().width >= 120,
+        );
+      })(),
+    }),
+    longChineseTitle,
+  );
   check(
     !mediumHeader.labelVisible && mediumHeader.avatarCount === 1 && mediumHeader.titleReadable,
-    "960px header keeps Trip identity readable with one Team icon",
+    "960px header keeps the full Trip title in a usable slot beside one Team icon",
     mediumHeader,
+  );
+  check(
+    await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+    "zoom-equivalent constrained 960px usable width has no horizontal page overflow",
   );
   await page.screenshot({ path: `${out}/header-960.png`, fullPage: false });
 
@@ -162,6 +385,10 @@ try {
 
   await page.setViewportSize({ width: 521, height: 844 });
   check(
+    await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+    "521px tablet layout has no horizontal page overflow",
+  );
+  check(
     (await page.getByRole("button", { name: "Itinerary", exact: true }).isVisible()) &&
       (await page.getByRole("button", { name: "Map", exact: true }).isVisible()),
     "521px remains on the tablet Trip switch",
@@ -174,6 +401,10 @@ try {
   check(
     (await page.locator(".trip-workspace").count()) === 0,
     "phone retains its existing Trip navigation and surface",
+  );
+  check(
+    await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+    "520px phone layout has no horizontal page overflow",
   );
   check(errors.length === 0, "fixture journey has no browser errors", errors);
   await page.screenshot({ path: `${out}/phone-520.png`, fullPage: false });
