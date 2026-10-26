@@ -218,7 +218,12 @@ try {
             if (!node) return false;
             const style = getComputedStyle(node);
             const box = node.getBoundingClientRect();
-            return style.display !== "none" && style.visibility !== "hidden" && box.width > 0 && box.height > 0;
+            return (
+              style.display !== "none" &&
+              style.visibility !== "hidden" &&
+              box.width > 0 &&
+              box.height > 0
+            );
           };
           return {
             budgetCollapsed: budget?.open === false,

@@ -425,8 +425,10 @@ try {
       const afterSuccess = await page.evaluate(() => {
         const catalog = JSON.parse(localStorage.getItem("trip-workspace-catalog-v3") ?? "null");
         const trip = catalog?.trips?.find((item) => item.id === catalog.activeTripId);
-        return trip?.snapshot?.plan?.sections?.find((part) => part.id === "itinerary")?.proposal
-          ?.items ?? [];
+        return (
+          trip?.snapshot?.plan?.sections?.find((part) => part.id === "itinerary")?.proposal
+            ?.items ?? []
+        );
       });
       check(
         afterSuccess.some((item) => item.id === created?.id) &&

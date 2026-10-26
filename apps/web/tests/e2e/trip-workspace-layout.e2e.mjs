@@ -124,18 +124,18 @@ try {
       compactCount: compactCount?.textContent?.trim(),
       compactCountVisible: Boolean(
         compactCount &&
-          getComputedStyle(compactCount).display !== "none" &&
-          getComputedStyle(compactCount).visibility !== "hidden" &&
-          compactCount.getClientRects().length > 0,
+        getComputedStyle(compactCount).display !== "none" &&
+        getComputedStyle(compactCount).visibility !== "hidden" &&
+        compactCount.getClientRects().length > 0,
       ),
       countFitsButton: Boolean(
         countBox &&
-          buttonBox.width > 0 &&
-          countBox.width > 0 &&
-          countBox.left >= buttonBox.left &&
-          countBox.right <= buttonBox.right &&
-          countBox.top >= buttonBox.top &&
-          countBox.bottom <= buttonBox.bottom,
+        buttonBox.width > 0 &&
+        countBox.width > 0 &&
+        countBox.left >= buttonBox.left &&
+        countBox.right <= buttonBox.right &&
+        countBox.top >= buttonBox.top &&
+        countBox.bottom <= buttonBox.bottom,
       ),
       noPageOverflow: document.documentElement.scrollWidth <= window.innerWidth,
     };
@@ -488,7 +488,9 @@ try {
     tripHidden: document.querySelector("#phone-panel-trip")?.hasAttribute("hidden"),
   }));
   check(
-    mapTabState.selected === "phone-tab-map" && mapTabState.mapHidden === false && mapTabState.tripHidden === true,
+    mapTabState.selected === "phone-tab-map" &&
+      mapTabState.mapHidden === false &&
+      mapTabState.tripHidden === true,
     "520px Map tab selection exposes only the Map panel after settling",
     mapTabState,
   );
@@ -502,7 +504,9 @@ try {
     tripHidden: document.querySelector("#phone-panel-trip")?.hasAttribute("hidden"),
   }));
   check(
-    tripTabState.selected === "phone-tab-trip" && tripTabState.tripHidden === false && tripTabState.mapHidden === true,
+    tripTabState.selected === "phone-tab-trip" &&
+      tripTabState.tripHidden === false &&
+      tripTabState.mapHidden === true,
     "520px Trip tab selection exposes only the Trip panel after settling",
     tripTabState,
   );
