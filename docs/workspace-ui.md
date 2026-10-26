@@ -609,13 +609,14 @@ The Trip header shows the destination, localized short date range and traveller 
 When the known estimate equals the budget, the budget panel says “At budget” instead of reporting
 zero under budget. If itinerary stops remain unpriced, the status adds “unpriced stops not counted”
 and uses the caution colour; those missing costs remain listed beneath the estimate.
-When the estimate is below budget but itinerary stops remain unpriced, the status says “Known estimate
-within budget · unpriced stops not counted” and uses the caution colour. The missing costs remain
+When the estimate is below budget but costs remain unpriced, the status says “Known estimate
+within budget · unpriced costs not counted” and uses the caution colour. The missing costs remain
 listed beneath the estimate. Status text wraps within the budget panel at narrow drawer widths.
 The budget card also breaks the known estimate into accommodation, transport, meals and activities.
 Each amount is labelled as an estimate; proposal items without prices are counted as unpriced beside
-their category and are not added to the total. Restaurant ideas are suggestions rather than costs, so they
-are not counted as unpriced meals; the row counts match the “Not included” notes. Transport without a quoted amount or any priced item,
+their category and are not added to the total. Restaurant suggestions are excluded from the dining breakdown; a
+scheduled restaurant is counted once as an itinerary Stop. Unpriced counts include all categories
+and an unquoted transport estimate, so the total can exceed the activity count. Transport without a quoted amount or any priced item,
 and any other category whose items are all unpriced, shows “Not costed” instead of a zero estimate,
 keeping its unpriced count. Published zero fares remain zero; older nonzero
 transport estimates remain visible. Missing transport prices are disclosed below the breakdown,
@@ -627,7 +628,8 @@ The budget summary starts collapsed and keeps the known estimate, budget limit,
 currency and any unpriced count visible. Expanding it shows each priced item,
 including explicit zero prices and “Price unknown” rows. A Trip issues section
 groups scheduled overlaps, unlocated stops, unpriced items and failed place
-lookups; selecting a row takes the traveller to its stop and day.
+lookups. It starts collapsed. Selecting a row takes the traveller to its stop and day, or expands
+the budget and focuses the matching cost item when there is no scheduled Stop.
 
 Names of removed surfaces below appear only to explain their removal; nothing in this section
 describes current behaviour except the absences.
@@ -686,8 +688,8 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   [Agent Note](../.agents/notes/implemented/architecture/2026-10-07-selection-id-on-proposal-items.md).
 - **Travel tips.** The destination guide's advice (customs and etiquette, safety, entry and health,
   weather and packing, and places to explore) is a collapsible block at the top of the day view. It
-  opens the first time outside an ongoing trip. Whether this viewer folded it is remembered for that trip in this browser
-  (`localStorage`, key `trip-tips-folded:<tripId>`); without a saved choice it follows the on-trip default. The
+  starts collapsed unless this viewer has saved an expanded preference for that trip in this browser
+  (`localStorage`, key `trip-tips-folded:<tripId>`). The
   block is absent when the plan has no guide. Advice spanning multiple calendar months explicitly identifies that its scope is the first month.
 - **On-trip day.** When today falls within the trip dates, the day view initially selects today and marks it “Today”, using the first resolved destination’s time zone. While the Trip view stays open, the date refreshes each minute and when the window regains focus or visibility. Budget and travel tips initially collapse; a valid manual day selection is saved per trip in this browser (`localStorage`, key `trip-day-selected:<tripId>`) and is restored during the same destination-local day. When that day changes, the selection yields to the new Today; expired or out-of-range selections also yield to Today (or Day 1 when today is outside the trip). Saved tips preferences still take precedence. Without verified destination coordinates, the existing first-day defaults remain. Timed next-stop highlighting is deferred.
 - **Restaurants.** The restaurants the dining specialist found are listed under Ideas, marked
@@ -758,8 +760,8 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   to its day, and the reverse also works. The selected marker has a larger outlined badge and a
   bordered label, and its drawer row adds a leading inset line and weight alongside `aria-pressed`;
   color is not the sole cue. Stops on other days step back to grey badges without labels.
-- **Trip itinerary.** One itinerary view: heading and summary, budget, then travel tips (when the plan
-  has a destination guide), the day strip, the chosen day's stops in visiting order with the number
+- **Trip itinerary.** One itinerary view: heading and summary, compact budget and issues,
+  collapsed travel tips (when the plan has a destination guide), the day strip, the chosen day's stops in visiting order with the number
   their place carries on the map (a repeat visit keeps it), the day's flights and stay rows, then Ideas,
   unnumbered. On wide desktop the linked map is visible beside the itinerary; on tablet an Itinerary/Map
   switch shows one at a time. The phone Trip tab continues to show the existing Trip surface. The
