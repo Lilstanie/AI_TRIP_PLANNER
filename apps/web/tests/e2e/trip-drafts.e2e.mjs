@@ -434,7 +434,7 @@ try {
             noteParent: popover?.className ?? note?.parentElement?.className ?? null,
             modal: popover?.getAttribute("aria-modal") ?? null,
             stopPopoverCount: document.querySelectorAll(".fact-popover--stop").length,
-            scrimCount: document.querySelectorAll(".fact-popover__scrim").length,
+            scrimCount: document.querySelectorAll(".fact-popover-scrim").length,
             noteFocused: document.activeElement === note,
             activeElement:
               document.activeElement?.getAttribute("aria-label") ??

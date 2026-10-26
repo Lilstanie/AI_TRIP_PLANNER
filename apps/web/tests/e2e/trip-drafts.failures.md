@@ -26,12 +26,12 @@ Current browser evidence covers Trip isolation and note restore/discard at 1440p
 AddStop fields (including suggested times) across day/map navigation and 520px/521px/390px, and a
 forced 503 followed by a successful retry at 1440px. A phone note modal survives a 390px to 521px
 transition and remains restorable after returning to 390px. The phone Escape test waits for the
-phone modal to mount and the Note field to receive focus after the 521px to 390px transition before
-checking the discard prompt. A focused reproduction found the earlier timeout acted while only the
-old Note surface was visible: Escape targeted the chat composer, with no phone modal or modal scrim
-mounted. Waiting for the actual modal and focused Note field made three consecutive same-page
-transitions pass. This was an E2E synchronization issue; no production change was needed. A
-concurrent workspace tab publishes a
+phone shell and its modal or Restore entry before deciding whether to restore the draft, then
+checks modal focus before pressing Escape. The first modal-only wait still failed in the parent
+run: it had read the old tablet textbox and skipped Restore. The failure screenshot showed the
+phone Restore entry with no modal. The revised check records before/after DOM state and exercises
+three same-page transitions; the parent integration log records its result. These changes concern
+E2E synchronization; no production change was needed. A concurrent workspace tab publishes a
 newer Plan revision; saving the old time draft is refused before the preview-edit request, retains
 the draft value, and leaves the newer revision intact. A same-page confirmed chat replan returns the
 same Stop ID at a changed time; restoring the retained draft shows the stale notice, explicit rebase
