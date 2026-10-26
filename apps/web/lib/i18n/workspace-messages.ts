@@ -39,6 +39,7 @@ export const WORKSPACE_ZH = {
     "已找到的最低价选项已超出预算。请在聊天中提高预算或更改日期。",
   "Overlaps {range} on this day.": "与 {range} 时段重叠。",
   "Two scheduled items overlap on Day {day}.": "第 {day} 天有两项安排时间重叠。",
+  "That activity already exists in this plan.": "此活动已存在于当前行程中。",
   "Estimate changed by {change} from the previous plan.": "估算较上一版方案变化 {change}。",
   "Estimate unchanged from the previous plan.": "估算与上一版方案相比没有变化。",
   Dismiss: "关闭",
@@ -146,6 +147,21 @@ export const WORKSPACE_ZH = {
   "Move later": "延后",
   "Move to": "移动到",
   "Search Google Maps": "搜索 Google 地图",
+  "Add place": "添加地点",
+  "Add stop": "添加站点",
+  "Save as Idea": "保存为想法",
+  "Search places": "搜索地点",
+  "Start time": "开始时间",
+  "End time": "结束时间",
+  "Suggested; editable": "建议时间，可修改",
+  "Ask AI about this day": "向 AI 咨询这一天",
+  "Ask AI about {v0}": "向 AI 咨询 {v0}",
+  "Suggest a change for {v0} on Day {v1}, taking the rest of my current plan into account.":
+    "请结合当前行程，调整第 {v1} 天的 {v0} 安排。",
+  "Suggest improvements for Day {v0}, taking the rest of my current plan into account.":
+    "请结合当前行程，优化第 {v0} 天的安排。",
+  "Replace your edited plan? Your direct timeline edits will be replaced if the new plan succeeds.":
+    "替换已编辑的行程吗？如果新方案生成成功，你直接修改的时间线内容将被替换。",
   Search: "搜索",
   "Place results": "地点搜索结果",
   Use: "使用",
@@ -167,6 +183,8 @@ export const WORKSPACE_ZH = {
   "Not included: costs for": "未计入：",
   "with no published price.": "尚未公布的费用。",
   "Trip views": "行程视图",
+  "Return to today": "返回今天",
+  "Agent Team, {count} working": "智能体团队，{count} 个正在工作",
   "No itinerary yet. Fill in your preferences and select Update trip.":
     "尚无日程。填写偏好后选择更新行程。",
   "Place name": "地点名称",

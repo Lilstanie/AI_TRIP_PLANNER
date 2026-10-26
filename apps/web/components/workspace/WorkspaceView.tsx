@@ -40,12 +40,14 @@ import { usePhoneTripUpdates } from "./usePhoneTripUpdates";
 import { usePhoneBack } from "./usePhoneBack";
 import type { MobileView } from "./workspace-helpers";
 import { dateRangeLabel } from "@/lib/workspace/trip-facts";
+import { TripDraftRestoreEntry, TripDraftsProvider, type TripDraft } from "../trip/timeline/TripDrafts";
 
 export function WorkspaceView({ model }: { model: WorkspaceModel }) {
   const { t, locale, delta, notice: localizeNotice } = useLocale();
   const { settings } = useSettings();
   const { session, layout, itinerary, history } = model;
   const [chatView, setChatView] = useState<ChatView>("conversation");
+  const [tripView, setTripView] = useState<"itinerary" | "map">("itinerary");
   const {
     plan,
     draft,
@@ -131,7 +133,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
   const chatsSearch = useRef<HTMLInputElement>(null);
   const chatsPanel = useRef<HTMLDivElement>(null);
   const viewSwitch = useRef<HTMLDivElement>(null);
-  useSegmentIndicator(viewSwitch, `${narrow}|${page}|${mobileView}`);
+  useSegmentIndicator(viewSwitch, `${narrow}|${page}|${mobileView}|${tripOpen}|${tripView}`);
 
   const backdrop = usePresence(drawerOpen || undefined, 360);
 
@@ -190,6 +192,26 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
 
   const selectView = (view: MobileView) =>
     view !== mobileView && viewTransition(() => layout.selectView(view), `to-${view}`);
+
+  const selectMapStop = (id: string) => {
+    const stop = itinerary.stop(id);
+    if (stop) layout.pickMapDay(stop.day);
+    session.showStop(id);
+  };
+
+  const restoreTripDraft = (draft: TripDraft) => {
+    if (draft.day !== undefined) layout.pickMapDay(draft.day);
+    if (draft.field === "add") {
+      if (phone) layout.selectView("trip");
+      else openTrip();
+      return;
+    }
+    if (draft.stopId) {
+      session.selectStop(draft.stopId);
+      if (phone) layout.selectView("trip");
+      else openTrip();
+    }
+  };
 
   useEffect(() => {
     if (!phone || plan || mobileView !== "trip") return;
@@ -281,6 +303,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
               day={layout.mapDay}
               onDayChange={layout.pickMapDay}
               onSelect={session.selectStop}
+              onSend={session.send}
               onRoutesChange={session.showRoutes}
               onApply={session.applyEdit}
               revisions={revisions}
@@ -318,6 +341,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
   );
 
   return (
+    <TripDraftsProvider tripId={plan?.tripId ?? ""}>
     <div
       className="workspace-app"
       data-sidebar-collapsed={!narrow && sidebarCollapsed}
@@ -392,7 +416,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
         </div>
       ) : (
         <div className="workspace-main">
-          <header className="workspace-topbar">
+            <header className="workspace-topbar">
             {menuButton}
             {phone ? (
               <>
@@ -439,18 +463,29 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                 ref={viewSwitch}
                 className="topbar-views segmented"
                 role="group"
-                aria-label={t("Workspace view")}
+                aria-label={t(tripOpen ? "Trip views" : "Workspace view")}
               >
-                {(["chat", "map"] as const).map((view) => (
-                  <button
-                    key={view}
-                    type="button"
-                    aria-pressed={mobileView === view}
-                    onClick={() => selectView(view)}
-                  >
-                    {t(view === "chat" ? "Chat" : "Map")}
-                  </button>
-                ))}
+                {tripOpen
+                  ? (["itinerary", "map"] as const).map((view) => (
+                      <button
+                        key={view}
+                        type="button"
+                        aria-pressed={tripView === view}
+                        onClick={() => setTripView(view)}
+                      >
+                        {t(view === "itinerary" ? "Itinerary" : "Map")}
+                      </button>
+                    ))
+                  : (["chat", "map"] as const).map((view) => (
+                      <button
+                        key={view}
+                        type="button"
+                        aria-pressed={mobileView === view}
+                        onClick={() => selectView(view)}
+                      >
+                        {t(view === "chat" ? "Chat" : "Map")}
+                      </button>
+                    ))}
               </div>
             )}
             {!phone && (
@@ -473,7 +508,6 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                     aria-label={t("Open your trip")}
                     aria-describedby={tripStops ? "trip-trigger-count" : undefined}
                     aria-expanded={tripOpen}
-                    aria-haspopup="dialog"
                     onClick={() => (tripOpen ? closeTrip() : openTrip())}
                   >
                     <RouteIcon />
@@ -491,6 +525,9 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
           </header>
           <div className="workspace-notices">
             <CurrencyNotice />
+            {page === "workspace" && plan && (
+              <TripDraftRestoreEntry onRestore={restoreTripDraft} />
+            )}
             {estimateChange !== undefined && (
               <div className="estimate-notice" role="status">
                 <span>
@@ -548,6 +585,34 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
             data-mobile-view={mobileView}
             data-map={plan ? "shown" : "hidden"}
           >
+            {tripOpen && !phone ? (
+              <section
+                className="trip-workspace"
+                aria-label={t("Your trip")}
+                data-day={layout.mapDay}
+                data-view={tripView}
+              >
+                <div className="trip-workspace__timeline" hidden={narrow && tripView !== "itinerary"}>
+                  {tripContent}
+                </div>
+                <div className="trip-workspace__map" hidden={narrow && tripView !== "map"}>
+                  <TripMapCanvas
+                    destination={plan?.brief.destination}
+                    viewKey={plan ? `${plan.tripId}|${plan.brief.destination}` : undefined}
+                    tripPlaces={tripPlaces}
+                    selectedActivity={selectedActivity}
+                    onSelectActivity={selectMapStop}
+                    routes={mapRoutes}
+                    focusedDay={layout.mapDay}
+                    focusRequest={layout.mapFocus}
+                    visible={!narrow || tripView === "map"}
+                    showPhotos={dataMode.mode === "live" && !!dataMode.providers?.maps}
+                    userLocation={userLocation}
+                  />
+                </div>
+              </section>
+            ) : (
+              <>
             <div className="workspace-panel workspace-panel--chat" {...phonePanel("chat")}>
               <ChatPanel
                 plan={plan}
@@ -638,6 +703,8 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
               />
             )}
             {navDrawer}
+              </>
+            )}
           </main>
           {phone && (
             <PhoneTabBar
@@ -654,5 +721,6 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
       )}
       <WorkspaceDialogs model={model} />
     </div>
+    </TripDraftsProvider>
   );
 }

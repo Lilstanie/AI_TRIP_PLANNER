@@ -383,12 +383,16 @@ Contract: `EditRequest` and `EditPreview` in `apps/web/lib/trip/trip-edit.ts`.
 ```
 
 `operation.kind` is `verify` (a day's routes), `move` (a drag: `day` and `index`), `time`, `place`, `leg`, `choose`,
-`undo`, or one of the four item actions the timeline's menu sends: `remove` (`id`), `idea` (`id`, takes the stop off its
+`add`, `undo`, or one of the four item actions the timeline's menu sends: `remove` (`id`), `idea` (`id`, takes the stop off its
 day), `schedule` (`id`, `day`: the end of that day) and `swap` (`id`, `direction` -1 or 1: an arrow move). The item
 actions are applied by the same transform the browser's item actions use, then their days are routed. A `move` is
 refused by any blocker it raises, and a `schedule` by any blocker but an unconfirmed place. A `swap` keeps the start
 times it traded, is refused only for a stop running past midnight, and a leg that does not fit those times is a notice on
-its stop.
+its stop. `add` takes a stable `id`, `detail`, optional `location`, optional matched `placeId`/`savedPlace`, and either
+all of `day`, `startTime`, and `endTime` (a scheduled Stop) or none of them (an Idea). It rejects incomplete,
+reversed, out-of-trip, and overlapping schedules. It preserves the submitted times of all existing Stops; unresolved
+places and costs remain unresolved rather than receiving fabricated coordinates or prices. `undo` may include
+`addedIds` to remove Stops or Ideas created by the edit it reverses.
 Only activities with a day are routed and re-timed; ideas (activities without a day) pass through unchanged. The response is
 `{ plan, baseVersion, routes, differences, blockers, blockerNotices }`. Each difference is a value
 object `{ stop, days?: { from, to }, before, after, placeChanged }` that the interface words in the

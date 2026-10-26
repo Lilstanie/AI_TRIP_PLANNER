@@ -27,6 +27,7 @@ function touchedDays(operation: Operation, activities: TripPlaces["activities"])
     days.add(operation.day);
   } else if (operation.kind === "remove" || operation.kind === "idea" || operation.kind === "swap")
     add(dayOf(operation.id));
+  else if (operation.kind === "add") add(operation.day);
   else if (operation.kind === "undo") for (const stop of operation.activities) days.add(stop.day);
   function add(day: number | undefined) {
     if (day !== undefined) days.add(day);
@@ -155,7 +156,10 @@ export function useTimelineEdits({
         operation.kind === "schedule" ||
         operation.kind === "swap"
         ? undefined
-        : undoStepOf(checked),
+        : {
+            ...undoStepOf(checked),
+            ...(operation.kind === "add" ? { addedIds: [operation.id] } : {}),
+          },
     );
     onRoutesChange?.(routes);
     setChanged(
@@ -177,6 +181,10 @@ export function useTimelineEdits({
 
   function leg(id: string, mode: LegMode) {
     return edit({ kind: "leg", id, mode });
+  }
+
+  function add(input: Omit<Extract<Operation, { kind: "add" }>, "kind">) {
+    return edit({ kind: "add", ...input });
   }
 
   async function search(text: string) {
@@ -207,6 +215,7 @@ export function useTimelineEdits({
     changed,
     busy: working !== "",
     edit,
+    add,
     leg,
     search,
   };
