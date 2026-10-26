@@ -409,13 +409,19 @@ try {
         await phoneRestore.waitFor({ state: "visible" });
         await phoneRestore.click();
       }
+      const phoneDiscard = page.getByRole("dialog", { name: "Discard changes?" });
+      const phoneNoteInput = page.getByRole("textbox", { name: "Note", exact: true });
+      const phoneNoteModal = page.locator('.fact-popover--stop[aria-modal="true"]');
+      await phoneNoteModal.waitFor({ state: "visible" });
+      await page.waitForFunction(() => {
+        const note = document.querySelector(".fact-popover--stop textarea");
+        return note && document.activeElement === note;
+      });
       check(
-        (await page.getByRole("textbox", { name: "Note", exact: true }).inputValue()) ===
-          "Restore this note through the phone modal flow",
-        "the phone modal draft remains restorable after returning to phone width",
+        (await phoneNoteInput.inputValue()) === "Restore this note through the phone modal flow",
+        "the phone modal draft restores and receives focus after returning to phone width",
       );
       await page.keyboard.press("Escape");
-      const phoneDiscard = page.getByRole("dialog", { name: "Discard changes?" });
       await phoneDiscard.waitFor({ state: "visible" });
       await phoneDiscard.getByRole("button", { name: "Discard changes", exact: true }).click();
     }
